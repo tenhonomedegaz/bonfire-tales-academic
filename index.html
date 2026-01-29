@@ -1,0 +1,152 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bonfire Tales RPG</title>
+    <meta name="description" content="Mundo vivo, missões e RPG via Discord." />
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+              serif: ['Cinzel', 'serif'],
+            },
+            colors: {
+              bonfire: {
+                bg0: '#09090A', /* Darker, richer black */
+                bg1: '#101012',
+                bg2: '#18181B',
+                card: '#151517',
+                stroke: '#27272A',
+                flame: '#D21717',
+                ember: '#F27007',
+                spark: '#F7B113',
+                text: '#EDEDED',
+                muted: '#A1A1AA',
+              }
+            },
+            backgroundImage: {
+              'noise': "url('data:image/svg+xml,%3Csvg viewBox=\"0 0 200 200\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cfilter id=\"noiseFilter\"%3E%3CfeTurbulence type=\"fractalNoise\" baseFrequency=\"0.65\" numOctaves=\"3\" stitchTiles=\"stitch\"/%3E%3C/filter%3E%3Crect width=\"100%25\" height=\"100%25\" filter=\"url(%23noiseFilter)\" opacity=\"0.05\"/%3E%3C/svg%3E')",
+              'bonfire-gradient': 'linear-gradient(to right, #D21717, #F27007)',
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      :root {
+        --bg0: #09090A;
+        --bg1: #101012;
+        --card-glass: rgba(20, 20, 23, 0.7);
+        --stroke: #27272A;
+        --text: #EDEDED;
+        --muted: #A1A1AA;
+        --ember: #F27007;
+        --flame: #D21717;
+        --spark: #F7B113;
+      }
+      
+      body {
+        background-color: var(--bg0);
+        color: var(--text);
+        font-family: 'Inter', sans-serif;
+        -webkit-font-smoothing: antialiased;
+        position: relative;
+      }
+
+      /* Global Noise Texture */
+      body::before {
+        content: "";
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-image: url('data:image/svg+xml,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noiseFilter"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23noiseFilter)" opacity="0.4"/%3E%3C/svg%3E');
+        opacity: 0.08;
+        pointer-events: none;
+        z-index: 9999;
+        mix-blend-mode: overlay;
+      }
+
+      /* Custom Scrollbar */
+      ::-webkit-scrollbar {
+        width: 10px;
+      }
+      ::-webkit-scrollbar-track {
+        background: var(--bg0);
+        border-left: 1px solid var(--stroke);
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #333;
+        border: 2px solid var(--bg0);
+        border-radius: 5px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: var(--ember);
+      }
+
+      /* Utility: Bonfire Underline (The Identity) */
+      .bonfire-underline {
+        position: relative;
+        display: inline-block;
+      }
+      .bonfire-underline::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        bottom: -4px;
+        width: 100%;
+        height: 2px;
+        background: linear-gradient(90deg, transparent 0%, var(--flame) 30%, var(--ember) 70%, transparent 100%);
+        opacity: 0.8;
+      }
+
+      /* Utility: Glass Card */
+      .glass-card {
+        background: var(--card-glass);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+      }
+
+      /* Utility: Text Gradient */
+      .text-gradient {
+        background: linear-gradient(to right, var(--text) 20%, var(--muted) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      .font-rpg {
+        font-family: 'Cinzel', serif;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react-router-dom": "https://esm.sh/react-router-dom@^7.12.0",
+    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
+    "@google/genai": "https://esm.sh/@google/genai"
+  }
+}
+</script>
+</head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>

@@ -1,0 +1,671 @@
+[
+  {
+    "name": "Anão",
+    "slug": "anao",
+    "type": "humanoid",
+    "tagline": "Esculpidos na rocha viva, guardiões da memória e do aço.",
+    "stats": {
+      "creatureType": "Humanoide",
+      "size": "Médio (1,20m – 1,50m)",
+      "speed": "9 metros [30 pés]",
+      "lifespan": "350 anos"
+    },
+    "images": {
+      "base": "https://i.imgur.com/base-dwarf-placeholder.png"
+    },
+    "lore": {
+      "presentation": "\"Não nascemos de ventre algum; fomos esculpidos. Onde o fogo beija a pedra e o frio estala os cristais, ali despertamos ao som de martelos ancestrais.\"\n\nForjados nas entranhas do mundo pelos Primeiros Deuses, os anões não são meros habitantes da terra; eles são a própria terra manifestada. Dizem as lendas que suas almas não foram sopradas pelo vento, mas acesas a partir de brasas do núcleo do mundo e colocadas em corpos moldados na rocha viva. Eles caminham sob a luz pálida de gemas encantadas e o eco distante de reinos que não conhecem o sol.\n\nSeus impérios se estendem como labirintos vivos abaixo da superfície, cravejados de maravilhas arquitetônicas onde cada pilar conta uma história e cada muralha de granito guarda um segredo de eras passadas. Mais do que exímios mineradores e ferreiros inigualáveis, os anões são os Guardiões da Memória. Em uma sociedade onde o papel apodrece e a madeira queima, eles escolheram gravar sua história naquilo que é eterno: o metal e a pedra.\n\nEles são uma civilização de historiadores guerreiros, leais aos seus clãs até a morte e impetuosos como uma forja em brasa. Para um anão, a tradição não é um peso que atrasa o progresso, mas a fundação sólida que impede o mundo de desmoronar no caos. Seja você um protetor estoico dos salões antigos, blindado em placas de adamante, ou um andarilho de espírito curioso buscando recuperar relíquias perdidas para restaurar a honra de sua família, carregar o sangue anão é carregar a história do mundo gravada em seus próprios ossos.\n\nEste arquétipo é ideal para jogadores que buscam resiliência, lealdade inabalável e uma conexão profunda com o passado do cenário.",
+      "roleplay": "Jogar com um anão é interpretar alguém que vê o mundo através da lente da permanência e do dever.\n\nVocê provavelmente...\n• A Palavra é Lei: Valoriza a honra acima da própria vida. Sua palavra é um contrato irrevogável, e a quebra de uma promessa é uma mancha espiritual que nem o tempo apaga. Você despreza a mentira, vendo-a como uma fraqueza de povos que não têm estrutura moral.\n• O Ciclo da Pedra: Vê a morte não como um fim aterrorizante, mas como um retorno pacífico à \"Pedra-Mãe\". O nascimento é visto como uma escultura divina bruta, e cabe a você se \"lapidar\" através de atos de bravura e ofício ao longo da vida.\n• Pragmatismo Seco: Possui um senso de humor cínico e prático. Enquanto um elfo pode cantar sobre a beleza de uma folha ao vento, você comenta sobre a qualidade estrutural da ponte onde ele está pisando.\n\nOutros provavelmente...\n• Respeito pelo Aço: Confiam suas vidas à qualidade do seu trabalho. Ninguém questiona a arma forjada por um anão ou a muralha erguida por suas mãos.\n• A Montanha Imóvel: Temem sua teimosia lendária. Seus aliados sabem que tentar mudar sua opinião depois que ela foi formada é tão inútil quanto tentar empurrar uma montanha com as mãos nuas.\n• Lealdade de Ferro: Sabem que sua amizade é difícil de conquistar e você não se abre facilmente para estranhos. Mas, uma vez que alguém ganha sua confiança, você lutará por essa pessoa contra o próprio inferno.",
+      "society": "A sociedade anã é construída como suas fortalezas: camada sobre camada, sustentando umas às outras, projetadas para resistir a qualquer cerco.\n\nO Clã acima do Indivíduo\nA base de tudo é o Clã. Mais do que uma família, o Clã é uma corporação militar, econômica e social. O sobrenome de um anão diz quem ele é, qual sua profissão e qual seu status. A hierarquia é rígida, baseada em mérito, idade e contribuição para a comunidade. A traição a um Clã é punida com o Ostracismo — o anão tem seu nome apagado dos registros de pedra e é forçado a viver na superfície como um \"Sem-Nome\", a pior vergonha possível.\n\nRituais da Terra\nSeus rituais envolvem o canto harmônico profundo, capaz de ressoar através das cavernas para encontrar veios de minério ou falhas na rocha. Eles celebram festivais em homenagem aos espíritos elementais, oferecendo gemas lapidadas ao magma ou metais refinados aos lagos subterrâneos.\n\nOs Grandes Bastiões\nEmbora existam postos avançados em todo o mundo, a civilização anã se ancora em três grandes cidades-estado:\n\n• Drûmhuldar (O Bastião do Norte): Escavada sob as geleiras eternas dos ermos gélidos, esta é a capital militar. Suas muralhas são feitas de um gelo negro mágico reforçado com aço. Seus habitantes são sombrios, sobreviventes natos que lutam diariamente contra as bestas das neves e gigantes.\n• Khazrundel (A Joia do Pantano): Uma maravilha da engenharia localizada no centro do continente. Construída abaixo do nível do mar, próxima aos pântanos, ela possui um sistema colossal de diques e bombas hidráulicas. É o centro comercial e diplomático, onde o ouro flui tão livremente quanto a água.\n• Ferlanden (A Forja do Vulcão): Situada perigosamente nas margens internas de um vulcão ativo ao sul. Ferlanden é o coração industrial dos anões. O calor do magma alimenta as Grandes Forjas, permitindo a criação de ligas metálicas que seriam impossíveis em qualquer outro lugar. É um lugar de fuligem, barulho e perigo constante."
+    },
+    "baseTraits": [
+      {
+        "name": "Visão no Escuro Superior",
+        "text": "Acostumado à vida em túneis profundos onde a luz do sol nunca alcança, seus olhos se adaptaram à escuridão absoluta.",
+        "bullets": [
+          "Você possui Visão no Escuro com alcance de 36 metros [120 pés].",
+          "Dentro desse alcance, você enxerga na penumbra como se fosse luz plena e na escuridão como se fosse penumbra.",
+          "Você não pode discernir cores na escuridão, apenas tons de cinza."
+        ]
+      },
+      {
+        "name": "Vigor e Robustez Anã",
+        "text": "Seu corpo possui uma densidade óssea superior e um metabolismo sobrenaturalmente adaptado para processar toxinas e suportar punições físicas.",
+        "bullets": [
+          "Resiliência a Veneno: Você tem Resistência a dano de Veneno.",
+          "Estômago de Ferro: Você tem Vantagem em Testes de Resistência para evitar ou encerrar a condição Envenenado.",
+          "Vitalidade da Pedra: Seu Ponto de Vida máximo aumenta em 1, e aumenta em mais 1 sempre que você sobe de nível."
+        ]
+      },
+      {
+        "name": "Senso da Pedra",
+        "text": "Sua conexão com a terra permite que você sinta vibrações sutis através do solo, como se a própria rocha sussurrasse a localização de seus inimigos.",
+        "bullets": [
+          "Como uma Ação Bônus, você ganha Sentido Sísmico (Tremorsense) com alcance de 18 metros [60 pés] por 10 minutos.",
+          "Para utilizar essa característica, você deve estar tocando uma superfície de pedra (natural ou trabalhada).",
+          "Enquanto ela estiver ativa, você detecta a localização exata de qualquer criatura ou objeto que esteja em contato com a mesma superfície dentro do alcance, mesmo que a criatura esteja Invisível ou na escuridão total.",
+          "Você pode usar essa característica um número de vezes igual ao seu Bônus de Proficiência e recupera todos os usos gastos quando termina um Descanso Longo."
+        ]
+      },
+      {
+        "name": "Divergência Ancestral",
+        "text": "O sangue de seu clã ou a influência dos planos moldam seus talentos finais.",
+        "bullets": [
+          "No momento da criação do personagem, você deve escolher uma Linhagem (preservando o sangue puro e a adaptação biológica dos anões) ou uma Essência (alterando sua natureza fundamental com magia planar)."
+        ]
+      }
+    ],
+    "lineages": [
+      {
+        "name": "Linhagem da Montanha",
+        "slug": "montanha",
+        "image": "https://i.imgur.com/mountain-dwarf-placeholder.png",
+        "description": "Os guardiões das cúpulas altas, guerreiros de armadura pesada que vigiam os portões da superfície contra invasores.\n\nFilhos das Cúpulas Altas\nOs anões da montanha habitam os \"Salões Superiores\", as camadas das cidades-fortaleza que estão mais próximas da superfície ou encravadas nos picos das cordilheiras. Diferente de seus primos profundos, eles estão acostumados com o ar rarefeito e o terreno acidentado das encostas externas. Eles são a primeira linha de defesa de qualquer reino anão. Sua cultura é marcial e direta; eles valorizam a força física bruta e a capacidade de manter uma posição defensiva contra ondas de orcs ou gigantes. Seus corpos são mais largos e suas peles, bronzeadas pelo sol da altitude, são duras como couro velho.",
+        "traits": [
+          {
+            "name": "Estabilidade da Montanha",
+            "text": "Você é uma muralha viva.",
+            "bullets": [
+              "Você tem Vantagem em testes de Habilidade e Testes de Resistência para evitar ser Empurrado ou Derrubado.",
+              "Além disso, seu treinamento com cargas extremas permite que você ignore o peso da proteção: o uso de armadura pesada não reduz seu deslocamento, mesmo que você não tenha o valor de Força normalmente necessário para usá-la."
+            ]
+          },
+          {
+            "name": "Passo Rochoso",
+            "text": "Você se move por encostas traiçoeiras com facilidade sobrenatural.",
+            "bullets": [
+              "Você ignora terreno difícil causado por escombros, rochas soltas ou pedra irregular.",
+              "Além disso, você tem Vantagem em testes de Força (Atletismo) para escalar superfícies rochosas naturais ou trabalhadas."
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Linhagem das Profundezas",
+        "slug": "profundezas",
+        "image": "https://i.imgur.com/deep-dwarf-placeholder.png",
+        "description": "Exploradores do submundo profundo, de pele pálida e sentidos aguçados, acostumados ao silêncio e à escuridão absoluta.\n\nVigilantes do Abismo\nOs anões das profundezas, ou \"Duergar\" em alguns dialetos antigos (embora distintos dos anões cinzentos malignos), habitam as raízes do mundo. Eles vivem quilômetros abaixo da superfície, onde a pressão é esmagadora e o silêncio é absoluto. Sua pele perdeu a cor ao longo de milênios, tornando-se pálida como mármore ou cinza como granito, e seus olhos grandes captam o menor feixe de bioluminescência. Eles são os mestres dos segredos, encarregados de vigiar as fronteiras entre o reino anão e os horrores inomináveis do Subterrâneo Profundo (Underdark).",
+        "traits": [
+          {
+            "name": "Sentinela das Galerias",
+            "text": "Seus instintos foram afiados para sobreviver em túneis claustrofóbicos.",
+            "bullets": [
+              "Enquanto estiver no subterrâneo ou em ambientes de pedra fechados, você tem Vantagem em testes de Sabedoria (Percepção) e Sabedoria (Sobrevivência) para detectar armadilhas de pedra, perigos ambientais naturais (como gás ou desmoronamentos) e passagens secretas."
+            ]
+          },
+          {
+            "name": "Memória da Rocha",
+            "text": "Você conhece as marcas do passado.",
+            "bullets": [
+              "Você ganha proficiência na perícia História.",
+              "Se você já for proficiente nela, você adiciona o dobro do seu Bônus de Proficiência em testes de História relacionados à origem de trabalhos em pedra, arquitetura anã, genealogia de clãs ou cidades subterrâneas."
+            ]
+          }
+        ]
+      }
+    ],
+    "allowedEssences": ["vampirica"],
+    "racialTalents": [
+      {
+        "level": 1,
+        "name": "Educação Enânica",
+        "prerequisites": "Anão, Nível 1+",
+        "effect": "Você possui conhecimento prático vital para a economia do seu povo. Você ganha proficiência em dois Kits de Ferramentas diferentes à sua escolha.",
+        "tags": ["Perícia", "Ferramenta"]
+      },
+      {
+        "level": 1,
+        "name": "História Anã",
+        "prerequisites": "Anão, Nível 1+",
+        "effect": "Você é um estudioso das lendas. Você se torna treinado na perícia Religião e em um Kit de Ferramentas à sua escolha. Além disso, tem Vantagem em testes de História relacionados a origem de anões e suas cidades.",
+        "tags": ["Perícia", "Lore"]
+      },
+      {
+        "level": 1,
+        "name": "Familiaridade em Armamento Enânico",
+        "prerequisites": "Anão, Nível 1+",
+        "effect": "As armas de guerra de seu clã são familiares ao seu toque. Você recebe proficiência em Machados de Batalha, Machados de Mão, Martelos Leves e Martelos de Combate.",
+        "tags": ["Combate", "Proficiência"]
+      },
+      {
+        "level": 1,
+        "name": "Ligas de Aço Enânico",
+        "prerequisites": "Anão, Nível 1+",
+        "effect": "Você ignora a redução na sua Velocidade causada por qualquer armadura que você esteja usando.\n\nEspecial: Caso você seja um Anão da Montanha (que já possui essa característica), você recebe +1,5 metros [+5 pés] de deslocamento de caminhada.",
+        "tags": ["Defesa", "Movimento"]
+      },
+      {
+        "level": 1,
+        "name": "Olhar para Tesouros",
+        "prerequisites": "Anão, Nível 1+",
+        "effect": "Você pode gastar 1 minuto avaliando um objeto. Se o fizer, descobre o valor monetário exato e se ele é de origem Anã. Além disso, você tem Vantagem em testes de Inteligência para avaliar gemas e obras de arte.",
+        "tags": ["Exploração", "Social"]
+      },
+      {
+        "level": 5,
+        "name": "Reforço Anão",
+        "prerequisites": "Anão, Nível 5+, Treinado em Ferramentas de Ferreiro",
+        "effect": "Durante suas preparações diárias, você pode reforçar uma única armadura ou escudo não-mágico. O item concede um bônus de +1 na CA até o seu próximo Descanso Longo.",
+        "tags": ["Crafting", "Defesa"]
+      },
+      {
+        "level": 5,
+        "name": "Punho Explosivo",
+        "prerequisites": "Anão, Nível 5+",
+        "effect": "Seus ataques desarmados perdem a propriedade \"Não-Letal\" e causam 1d4 de dano de Fogo adicional. Você ganha Resistência a dano de Fogo contra seus próprios efeitos.",
+        "tags": ["Combate", "Dano"]
+      },
+      {
+        "level": 5,
+        "name": "Vingue por Glória",
+        "prerequisites": "Anão, Nível 5+",
+        "effect": "Quando um aliado a até 9 metros [30 pés] cair a 0 PV, você pode usar sua Reação para ganhar os efeitos da magia Heroísmo (sem concentração) por 1 minuto. Uso: 1 vez por Descanso Longo.",
+        "tags": ["Suporte", "Reação"]
+      },
+      {
+        "level": 5,
+        "name": "Sifão de Arma",
+        "prerequisites": "Anão, Nível 5+",
+        "effect": "Como Ação Bônus, você carrega uma bomba ou alquímico na arma. O próximo acerto causa o dano da bomba somado ao ataque. Se for arma de fogo, o dano da bomba explode em raio de 1,5m; o alvo sofre total, adjacentes sofrem 1 de dano.",
+        "tags": ["Combate", "Item"]
+      },
+      {
+        "level": 5,
+        "name": "Resiliência Enânica",
+        "prerequisites": "Anão, Nível 5+",
+        "effect": "Sempre que realizar a ação de Esquivar (Dodge) em combate, você pode gastar um Dado de Vida. Role o dado, adicione seu modificador de Constituição e recupere essa quantidade de PV.",
+        "tags": ["Cura", "Defesa"]
+      },
+      {
+        "level": 5,
+        "name": "Escudo das Cúpulas",
+        "prerequisites": "Anão, Nível 5+, Linhagem da Montanha",
+        "effect": "Você sabe se firmar contra impactos. Se você for alvo de um efeito que exija um Teste de Resistência de Destreza para tomar metade do dano, você pode usar sua Reação para realizar um Teste de Resistência de Constituição no lugar.",
+        "tags": ["Defesa", "Reação"]
+      },
+      {
+        "level": 5,
+        "name": "Caçador da Penumbra",
+        "prerequisites": "Anão, Nível 5+, Linhagem das Profundezas",
+        "effect": "Você se mescla às sombras. Enquanto estiver em penumbra ou escuridão, você pode realizar a ação de Esconder-se como uma Ação Bônus.",
+        "tags": ["Furtividade", "Ação Bônus"]
+      },
+      {
+        "level": 9,
+        "name": "Forjador de Batalha",
+        "prerequisites": "Anão, Nível 9+, Talento Reforço Anão",
+        "effect": "Funciona como o talento Reforço Anão, mas para armas. Você pode tocar uma arma não-mágica ao final de um Descanso Longo; ela se torna mágica e recebe +1 nas jogadas de ataque e dano até o próximo Descanso Longo.",
+        "tags": ["Crafting", "Ofensivo"]
+      },
+      {
+        "level": 9,
+        "name": "Ecos em Pedra",
+        "prerequisites": "Anão, Nível 9+, Característica Senso da Pedra",
+        "effect": "Sua percepção sísmica se torna natural. Você ganha Sentido Sísmico (Tremorsense) passivo com alcance de 6 metros [20 pés], desde que esteja tocando uma superfície de pedra. Isso funciona constantemente, sem gastar usos da habilidade Senso da Pedra.",
+        "tags": ["Sentidos", "Exploração"]
+      },
+      {
+        "level": 9,
+        "name": "Chamado dos Heróis",
+        "prerequisites": "Anão, Nível 9+, Talento Vingue por Glória",
+        "effect": "Você conjura Heroísmo de 3º Círculo. Se estiver com menos da metade dos PV máximos ao conjurar, você recebe o dobro de Pontos de Vida Temporários. Uso: 1 vez por Descanso Longo.",
+        "tags": ["Magia", "Suporte"]
+      },
+      {
+        "level": 9,
+        "name": "Ossos de Pedra",
+        "prerequisites": "Anão, Nível 9+",
+        "effect": "Ao sofrer um Acerto Crítico, você pode usar sua Reação para realizar um teste puro de d20 (sem modificadores) contra CD 17. Caso tenha sucesso, você transforma o Acerto Crítico em um acerto normal.",
+        "tags": ["Defesa", "Reação"]
+      },
+      {
+        "level": 9,
+        "name": "Aptidão Explosiva",
+        "prerequisites": "Anão, Nível 9+, Talento Sifão de Arma",
+        "effect": "Você e seus aliados são Imunes a qualquer dano ou efeito em área causado por suas próprias armas de fogo, bombas ou explosivos alquímicos.",
+        "tags": ["Defesa", "Area"]
+      },
+      {
+        "level": 13,
+        "name": "Resiliência da Montanha",
+        "prerequisites": "Anão, Nível 13+",
+        "effect": "Seu PV máximo aumenta em valor igual ao seu Nível e +1 por nível futuro. Se possuir o talento Robusto, ganha Vantagem em Testes de Resistência contra a Morte.",
+        "tags": ["Vida", "Sobrevivência"]
+      },
+      {
+        "level": 13,
+        "name": "Instinto do Artesão",
+        "prerequisites": "Anão, Nível 13+",
+        "effect": "Ao errar um ataque com arma de fogo (ou misfire), você pode usar sua Reação para causar dano igual ao mod. de Destreza (mínimo 1) ou dano mínimo da arma no alvo. Não aplica efeitos \"ao acertar\".",
+        "tags": ["Combate", "Dano"]
+      },
+      {
+        "level": 13,
+        "name": "Mestre Artesão Enânico",
+        "prerequisites": "Anão, Nível 13+, Forjador de Batalha ou Reforço Anão",
+        "effect": "Ao usar Forjador de Batalha ou Reforço Anão, o bônus aumenta para +2. Pode ser aplicado em itens mágicos existentes para aumentar o bônus em +1 (até o limite de +3).",
+        "tags": ["Crafting", "Buff"]
+      },
+      {
+        "level": 13,
+        "name": "Olhar Analítico",
+        "prerequisites": "Anão, Nível 13+",
+        "effect": "Vantagem em Intuição para detectar mentiras e controle mental. Vantagem em Percepção/Investigação para detectar disfarces de mortos-vivos e rastreá-los a até 9m.",
+        "tags": ["Social", "Investigação"]
+      },
+      {
+        "level": 13,
+        "name": "Crescimento Titânico",
+        "prerequisites": "Anão, Nível 13+, Linhagem da Montanha",
+        "effect": "Você desperta o sangue dos gigantes antigos. Como uma Ação Bônus, você pode aumentar seu tamanho para Grande por 1 minuto. Enquanto Grande, você tem Vantagem em testes de Força e seus ataques com arma causam 1d4 de dano extra. Uso: 1 vez por Descanso Longo.",
+        "tags": ["Transformação", "Combate"]
+      },
+      {
+        "level": 17,
+        "name": "Disparo Abençoado pela Forja",
+        "prerequisites": "Anão, Nível 17+, Talento Aptidão Explosiva",
+        "effect": "Como Ação Bônus, você imbui sua arma de ataque à distância com calor sagrado por 1 minuto: Ataques causam dano extra de Fogo igual ao seu Bônus de Proficiência. Ignoram a condição Invisível e penalidades por área Fortemente Obscurecida. Ignoram todas as instâncias de Cobertura (exceto Cobertura Total). Uso: 1 vez por Descanso Curto.",
+        "tags": ["Combate", "Buff"]
+      },
+      {
+        "level": 17,
+        "name": "Portão de Pedra e Ferro",
+        "prerequisites": "Anão, Nível 17+",
+        "effect": "Você pode conjurar a magia Passagem (Passwall) sem gastar espaço de magia, através de pedra, terra ou metal não-mágicos. Uso: Um número de vezes igual ao seu Bônus de Proficiência por Descanso Longo.",
+        "tags": ["Magia", "Exploração"]
+      },
+      {
+        "level": 17,
+        "name": "Muralha de Pedra Viva",
+        "prerequisites": "Anão, Nível 17+, Talento Resiliência Enânica",
+        "effect": "Quando você sofre dano, você pode usar sua Reação para se encerrar num esquife de pedra. Você ganha 50 Pontos de Vida Temporários imediatamente. Até o final do seu próximo turno, você fica Petrificado (o que concede Resistência a todo dano, dobrando a efetividade dos PV temporários). Se os PV temporários acabarem, a petrificação termina prematuramente. Uso: 1 vez por Descanso Longo.",
+        "tags": ["Defesa", "Sobrevivência"]
+      },
+      {
+        "level": 17,
+        "name": "Eco Perfeito",
+        "prerequisites": "Anão, Nível 17+, Talento Ecos em Pedra",
+        "effect": "Enquanto sua característica Senso da Pedra estiver ativa (seja a passiva ou ativa), você conhece a posição precisa de qualquer criatura tocando o solo num raio de 24 metros [80 pés]. Seus ataques contra essas criaturas não sofrem Desvantagem por elas estarem Invisíveis ou Escondidas, e elas não recebem benefícios de Meia Cobertura ou 3/4 de Cobertura provindos de pedra ou metal contra você.",
+        "tags": ["Sentidos", "Combate"]
+      },
+      {
+        "level": 17,
+        "name": "Terremoto Ancestral",
+        "prerequisites": "Anão, Nível 17+",
+        "effect": "Você pode conjurar a magia Terremoto (Earthquake) sem gastar espaço de magia. A CD é baseada na sua Constituição. Você pode escolher um número de criaturas igual ao seu Mod. de Sabedoria para serem imunes ao efeito. Uso: 1 vez por Descanso Longo.",
+        "tags": ["Magia", "Area"]
+      }
+    ]
+  },
+  {
+      "name": "Humano",
+      "slug": "humano",
+      "type": "humanoid",
+      "tagline": "Versáteis e ambiciosos, espalhados por todo o mundo e capazes de se tornar qualquer coisa.",
+      "stats": {
+        "creatureType": "Humanoide",
+        "size": "Médio (1,50m – 1,90m)",
+        "speed": "9 metros [30 pés]",
+        "lifespan": "90 anos"
+      },
+      "images": {
+        "base": "https://i.imgur.com/base-human-placeholder.png"
+      },
+      "lore": {
+        "presentation": "\"Não vivemos o suficiente para ver as montanhas mudarem, nem temos a magia para parar o tempo. Por isso, construímos coisas que duram mais que nós e sonhamos mais alto do que qualquer deus permitiria.\"\n\nHumanos não têm a longevidade dos elfos, os olhos que veem na escuridão profunda dos anões, nem ossos feitos de pedra ou alma forjada em planos mágicos. Mas onde quer que se vá — dos desertos abrasadores às metrópoles costeiras, das geleiras do norte até os vulcões do sul — há um humano ali. Adaptados a todos os cantos do mundo, eles são, simultaneamente, os grandes conquistadores, os incansáveis construtores e os sobreviventes definitivos.\n\nO verdadeiro poder da humanidade reside na sua multiplicidade e ambição. Seus povos são muitos, seus idiomas incontáveis e suas ideias, conflitantes. Enquanto outras raças buscam aperfeiçoar o que são, os humanos buscam se tornar o que ainda não existem. Alguns constroem impérios com mão de ferro; outros trilham os campos como andarilhos solitários em busca de iluminação. Alguns nascem em vilas com tradições arcanas milenares, outros sequer sabem ler, mas possuem a astúcia para derrubar reis.\n\nNenhum humano é igual ao outro, mas todos compartilham um potencial incalculável. Se você deseja um personagem que é uma página em branco, livre para crescer de forma única e moldar o destino do mundo através de pura força de vontade, o humano é sua escolha.",
+        "roleplay": "A curta vida humana (comparada a outras raças) gera uma urgência em deixar um legado.\n\nVocê provavelmente...\n• Ambição Ilimitada: Sente que o tempo está sempre correndo, o que o impulsiona a agir agora. Você quer mudar o mundo, ficar rico ou salvar alguém antes que seja tarde demais.\n• Adaptabilidade: Não se prende a uma única tradição. Se uma ferramenta élfica funciona melhor que a sua, você a usa. Se uma tática anã vence a batalha, você a aprende.\n• Diversidade de Crença: Pode ser um devoto fervoroso, um ateu pragmático ou alguém que vê os deuses como parceiros de negócios. Sua moral é moldada por sua experiência, não apenas por sua ancestralidade.\n\nOutros provavelmente...\n• Imprevisibilidade: Nunca sabem exatamente o que esperar de você. Um elfo quase sempre agirá como um elfo, mas um humano pode ser um santo ou um monstro.\n• Respeito pela Tenacidade: Admiram como sua raça se recupera de catástrofes, reconstruindo cidades inteiras em uma única geração.\n• Desconfiança: Veem sua expansão rápida e desejo de conquista como uma ameaça ao equilíbrio natural ou às tradições antigas.",
+        "society": "A sociedade humana é um mosaico. Eles formam desde impérios burocráticos e repúblicas mercantes até tribos nômades e teocracias rígidas. Eles valorizam a inovação, o comércio e a diplomacia (ou a guerra) como meios de expansão. Cidades humanas são geralmente caldeirões culturais, onde todas as raças podem ser encontradas, desde que tenham ouro para gastar.\n\nCentros de Influência\n• A Capital Imperial: Uma metrópole de pedra branca e estandartes coloridos, onde a política é tão letal quanto a guerra.\n• Porto Livre: Uma cidade costeira onde o comércio dita a lei e guildas de ladrões operam à luz do dia.\n• As Fronteiras: Vilarejos fortificados no limite do desconhecido, onde a vida é dura e a comunidade é tudo."
+      },
+      "baseTraits": [
+        {
+          "name": "Habilidoso",
+          "text": "Sua curiosidade natural o leva a aprender um pouco de tudo.",
+          "bullets": ["Você ganha proficiência em duas Perícias à sua escolha."]
+        },
+        {
+          "name": "Poliglota",
+          "text": "Onde há civilização, há humanos negociando.",
+          "bullets": ["Você aprende dois idiomas adicionais à sua escolha, além do Comum."]
+        },
+        {
+          "name": "Jeitinho Humano",
+          "text": "Você sempre tem um jeitinho para resolver seus problemas.",
+          "bullets": ["Você ganha proficiência em duas Ferramentas à sua escolha."]
+        },
+        {
+          "name": "Divergência Ancestral",
+          "text": "O sangue de seu clã ou a influência dos planos moldam seus talentos finais.",
+          "bullets": [
+            "Você deve escolher uma Linhagem (representando sua herança mista ou treinamento específico) ou uma Essência (alterando sua natureza com magia planar)."
+          ]
+        }
+      ],
+      "lineages": [
+        {
+          "name": "Erthari (Humanos da Terra)",
+          "slug": "erthari",
+          "image": "https://i.imgur.com/erthari-human-placeholder.png",
+          "description": "Aqueles que vieram do povo comum, mantendo a linhagem humana pura e focada na superação pessoal através de esforço e técnica.",
+          "traits": [
+            {
+              "name": "Determinação Comum",
+              "text": "Você recebe um Talento de Origem de sua escolha no 1º nível.",
+              "bullets": ["Você deve cumprir os pré-requisitos do talento normalmente."]
+            },
+            {
+              "name": "Versatilidade Prática",
+              "text": "Você adapta suas proficiências conforme o dia.",
+              "bullets": [
+                "Sempre que você terminar um Descanso Longo, você pode escolher uma das perícias ou ferramentas concedidas pelo traço Habilidoso e trocá-la por outra proficiência de perícia ou ferramenta de sua escolha."
+              ]
+            },
+            {
+              "name": "Instinto Humano",
+              "text": "Seu corpo aguenta mais do que parece.",
+              "bullets": ["Você tem Vantagem em Testes de Resistência para evitar Exaustão."]
+            }
+          ]
+        },
+        {
+          "name": "Sálarin (Sangue Élfico)",
+          "slug": "salarin",
+          "image": "https://i.imgur.com/salarin-human-placeholder.png",
+          "description": "Descendentes de cruzamentos antigos ou bênçãos feéricas. Possuem a graça e a magia sutil dos elfos, mas com a ambição humana.",
+          "traits": [
+            {
+              "name": "Eco Ancestral",
+              "text": "Você carrega um eco de magia antiga no sangue.",
+              "bullets": [
+                "Você conhece um Truque (Cantrip) da lista de magias de Mago ou Druida.",
+                "Além disso, escolha uma magia de nível 1 dessa mesma lista que não cause dano.",
+                "Você pode conjurar essa magia de nível 1 um número de vezes igual ao seu Bônus de Proficiência por Descanso Longo, sem gastar espaço de magia.",
+                "Sua habilidade de conjuração é Inteligência, Sabedoria ou Carisma."
+              ]
+            },
+            {
+              "name": "Visão no Escuro",
+              "text": "Seus olhos se adaptaram à meia-luz.",
+              "bullets": [
+                "Você enxerga na meia-luz num raio de 18 metros [60 pés] como se fosse luz plena, e na escuridão como se fosse meia-luz.",
+                "Você não discerne cores na escuridão, apenas tons de cinza."
+              ]
+            },
+            {
+              "name": "Ancestralidade Feérica",
+              "text": "A influência feérica protege sua mente e seu sono.",
+              "bullets": [
+                "Você tem Vantagem em Testes de Resistência para evitar ou encerrar a condição Enfeitiçado.",
+                "Além disso, a magia não pode colocar você para dormir.",
+                "Você satisfaz os pré-requisitos para talentos raciais de Elfos ou Humanos (mas não Erthari)."
+              ]
+            },
+            {
+              "name": "Sangue Élfico",
+              "text": "Como um mestiço, você acessa evoluções raciais de mais de uma origem.",
+              "bullets": [
+                "Como um mestiço, você é capaz de escolher evoluções raciais tanto de humano quanto de Anão, respeitando os respectivos pre-requisitos. (mas não Erthari)."
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Durkarn (Sangue Anão)",
+          "slug": "durkarn",
+          "image": "https://i.imgur.com/durkarn-human-placeholder.png",
+          "description": "Forjados pela convivência ou sangue misto com clãs anões, herdaram o vigor, a densidade muscular e a robustez da montanha.",
+          "traits": [
+            {
+              "name": "Vigor do Clã",
+              "text": "Seu corpo é denso como rocha.",
+              "bullets": [
+                "Seu máximo de Pontos de Vida aumenta em 1 no nível 1, e aumenta em +1 para cada nível que você ganhar posteriormente."
+              ]
+            },
+            {
+              "name": "Resiliência da Pedra",
+              "text": "Seu corpo resiste a toxinas e corrupção.",
+              "bullets": [
+                "Você tem Resistência a dano de Veneno e Vantagem em Testes de Resistência para evitar a condição Envenenado."
+              ]
+            },
+            {
+              "name": "Visão no Escuro",
+              "text": "Você enxerga bem em locais sem luz.",
+              "bullets": ["Você possui Visão no Escuro com alcance de 18 metros [60 pés]."]
+            },
+            {
+              "name": "Sangue Anão",
+              "text": "Como um mestiço, você acessa evoluções raciais de mais de uma origem.",
+              "bullets": [
+                "Como um mestiço, você é capaz de escolher evoluções raciais tanto de humano quanto de Anão, respeitando os respectivos pre-requisitos. (mas não Erthari)."
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Goruun (Sangue Orc)",
+          "slug": "goruun",
+          "image": "https://i.imgur.com/goruun-human-placeholder.png",
+          "description": "Nascidos em fronteiras de guerra ou clãs híbridos, possuem uma presença imponente, massa muscular superior e uma tenacidade lendária.",
+          "traits": [
+            {
+              "name": "Legado Implacável",
+              "text": "Você se recusa a cair quando deveria.",
+              "bullets": [
+                "Quando você é reduzido a 0 Pontos de Vida mas não morre imediatamente, você pode escolher cair para 1 Ponto de Vida em vez disso.",
+                "Você deve terminar um Descanso Longo para poder usar essa característica novamente."
+              ]
+            },
+            {
+              "name": "Ameaça Latente",
+              "text": "Sua presença pesa no ambiente.",
+              "bullets": [
+                "Você ganha proficiência na perícia Intimidação.",
+                "Se você já for proficiente, pode escolher outra perícia entre Atletismo ou Sobrevivência."
+              ]
+            },
+            {
+              "name": "Visão no Escuro",
+              "text": "Você enxerga bem em locais sem luz.",
+              "bullets": ["Você possui Visão no Escuro com alcance de 18 metros [60 pés]."]
+            },
+            {
+              "name": "Sangue Órquico",
+              "text": "Como um mestiço, você acessa evoluções raciais de mais de uma origem.",
+              "bullets": [
+                "Como um mestiço, você é capaz de escolher evoluções raciais tanto de humano quanto de Anão, respeitando os respectivos pre-requisitos. (mas não Erthari)."
+              ]
+            }
+          ]
+        }
+      ],
+      "allowedEssences": [
+        "bestial",
+        "draconica",
+        "celestial",
+        "elemental",
+        "feerica",
+        "infernal",
+        "onirica",
+        "vampirica",
+        "vazio"
+      ],
+      "racialTalents": [
+        {
+          "level": 1,
+          "name": "Cultura Adotada",
+          "prerequisites": "Humano (Erthari você não pode selecionar o talento Multi-talentoso futuramente",
+          "effect": "Você viveu tempo suficiente entre outro povo para mimetizar sua biologia ou costumes. Escolha uma Raça Humanoide diferente da sua.\nVocê é considerado dessa raça para satisfazer pré-requisitos de itens mágicos e Talentos Raciais.\n(Nenhuma Essência é elegivel para essa escolha.)",
+          "tags": ["Origem", "Regras"]
+        },
+        {
+          "level": 1,
+          "name": "Tatuagens Arcanas",
+          "prerequisites": "Humano",
+          "effect": "Escolha uma escola de magia: Abjuração, Conjuração, Encantamento, Evocação, Ilusão, Necromancia ou Transmutação. Você aprende um Truque (Cantrip) da lista de Mago associado a essa escola. Sua habilidade de conjuração para este truque é Inteligência, Sabedoria ou Carisma (escolha ao adquirir o talento).",
+          "tags": ["Magia", "Truque"]
+        },
+        {
+          "level": 1,
+          "name": "Prodígio Nato",
+          "prerequisites": "Humano",
+          "effect": "Você ganha proficiência em uma Perícia de sua escolha, proficiência em uma Ferramenta de sua escolha e fluência em um Idioma de sua escolha.",
+          "tags": ["Perícia", "Ferramenta", "Idioma"]
+        },
+        {
+          "level": 1,
+          "name": "Aprendiz Prático",
+          "prerequisites": "Humano (Erthari)",
+          "effect": "Quando você termina um Descanso Longo, você pode escolher uma Perícia ou Ferramenta na qual não tenha proficiência. Você ganha proficiência nela até o final do seu próximo Descanso Longo. Você perde essa proficiência se escolher uma diferente no dia seguinte.",
+          "tags": ["Perícia", "Ferramenta"]
+        },
+        {
+          "level": 1,
+          "name": "Instinto de Sobrevivência",
+          "prerequisites": "Humano",
+          "effect": "Você pode usar sua Reação quando for atingido por um ataque para se mover até metade do seu deslocamento sem provocar Ataques de Oportunidade. Você pode usar essa característica uma vez por Descanso Curto.",
+          "tags": ["Defesa", "Reação"]
+        },
+        {
+          "level": 5,
+          "name": "Tatuagens Aprimoradas",
+          "prerequisites": "Nível 5+; Talento Tatuagens Arcanas",
+          "effect": "Você aprende uma magia de nível 1 da mesma escola escolhida no talento Tatuagens Arcanas. Você pode conjurá-la uma vez sem gastar espaço de magia por Descanso Longo, ou utilizando seus próprios espaços de magia.",
+          "tags": ["Magia"]
+        },
+        {
+          "level": 5,
+          "name": "Improvisador Sagaz",
+          "prerequisites": "Nível 5+; Humano (Erthari)",
+          "effect": "Você pode adicionar metade do seu Bônus de Proficiência (arredondado para baixo) a qualquer teste de Habilidade (Perícia) que você faça que não já utilize seu bônus de proficiência (Essa habilidade não se acumula com a habilidade Pau pra toda obra (Jack of all trades) do Bardo). Além disso, você pode usar uma Ação Bônus para realizar um teste de Inteligência (Investigação) ou Sabedoria (Percepção) em combate.",
+          "tags": ["Perícia", "Combate"]
+        },
+        {
+          "level": 5,
+          "name": "Adaptabilidade Ambiental",
+          "prerequisites": "Nível 5+; Humano",
+          "effect": "Escolha entre Frio ou Fogo. Você ganha Resistência ao tipo de dano escolhido. Além disso, você não sofre penalidades por climas extremos (muito quentes ou muito frios) relacionados à resistência escolhida.",
+          "tags": ["Resistência", "Sobrevivência"]
+        },
+        {
+          "level": 5,
+          "name": "Elo Tático",
+          "prerequisites": "Nível 5+; Humano",
+          "effect": "Criaturas voluntárias (Willing) a até 18 metros [60 pés] de você nunca são consideradas Invisíveis para você, permitindo que você as veja para conjurar magias de cura e suporte. Além disso, você pode usar a ação de Ajuda como uma Ação Bônus.",
+          "tags": ["Suporte", "Ação Bônus"]
+        },
+        {
+          "level": 5,
+          "name": "Recuperação Acelerada",
+          "prerequisites": "Nível 5+; Humano",
+          "effect": "Sempre que você gastar Dados de Vida (Hit Dice) durante um Descanso Curto, você pode rolar o dado duas vezes e escolher o melhor resultado para determinar a quantidade de cura.",
+          "tags": ["Cura", "Descanso"]
+        },
+        {
+          "level": 9,
+          "name": "Tatuagens Virtuosas",
+          "prerequisites": "Nível 9+; Talento Tatuagens Aprimoradas",
+          "effect": "Você aprende uma magia de nível 3 da mesma escola escolhida no talento Tatuagens Arcanas. Você pode conjurá-la uma vez sem gastar espaço de magia por Descanso Longo.",
+          "tags": ["Magia"]
+        },
+        {
+          "level": 9,
+          "name": "Alma Cooperativa",
+          "prerequisites": "Nível 9+; Humano",
+          "effect": "Quando você usa a ação de Ajuda para auxiliar um aliado em um ataque ou teste de habilidade, esse aliado ganha um bônus de +1d4 na rolagem, além da Vantagem. Se você tiver Expertise na perícia que está ajudando, o bônus aumenta para +1d6.",
+          "tags": ["Suporte", "Ajuda"]
+        },
+        {
+          "level": 9,
+          "name": "Memória Vívida",
+          "prerequisites": "Nível 9+; Humano (Erthari)",
+          "effect": "Você tem Vantagem em testes de História, Religião ou Arcanismo para recordar informações. Além disso, você não pode ser surpreendido enquanto estiver consciente.",
+          "tags": ["Exploração", "Perícia"]
+        },
+        {
+          "level": 9,
+          "name": "Vontade de Ferro",
+          "prerequisites": "Nível 9+; Humano",
+          "effect": "Você ganha proficiência em testes de resistência de Sabedoria. Se você já tiver essa proficiência, você ganha proficiência em Inteligência ou Carisma (à sua escolha).",
+          "tags": ["Resistência"]
+        },
+        {
+          "level": 9,
+          "name": "Mestre da Improvisação",
+          "prerequisites": "Nível 9+; Talento Improvisador Sagaz",
+          "effect": "Você é proficiente com Armas Improvisadas. O dano de suas armas improvisadas torna-se 1d6 (ou 1d8 se empunhada com duas mãos). Quando você acerta um ataque com uma arma improvisada, você pode usar uma Ação Bônus para tentar empurrar o alvo ou derrubá-lo (Caído).",
+          "tags": ["Combate"]
+        },
+        {
+          "level": 13,
+          "name": "Multi-talentoso",
+          "prerequisites": "Nível 13+; Humano (Erthari não possuir o talento Cultura Adotada",
+          "effect": "Você pode escolher um Talento (Feat) de qualquer para a qual cumpra os pré-requisitos, você não recebe bônus de atributo para esse Talento, mesmo que ele normalmente conceda.",
+          "tags": ["Regras"]
+        },
+        {
+          "level": 13,
+          "name": "Persistência Teimosa",
+          "prerequisites": "Nível 13+; Humano",
+          "effect": "Uma vez por Descanso Longo, se você falhar em um Teste de Resistência contra uma condição negativa, você pode imediatamente rerolar o teste e deve usar o novo resultado.",
+          "tags": ["Defesa"]
+        },
+        {
+          "level": 13,
+          "name": "Treinamento de Elite",
+          "prerequisites": "Nível 13+; Humano (Erthari)",
+          "effect": "Você escolhe duas armas com as quais tem proficiência. Você aprende a propriedade de Maestria dessas armas e pode utilizá-la. Se você já possui Maestria nelas, você ganha +2 nas rolagens de dano com essas armas específicas.",
+          "tags": ["Combate"]
+        },
+        {
+          "level": 13,
+          "name": "Caminhante Incansável",
+          "prerequisites": "Nível 13+; Humano",
+          "effect": "Seu deslocamento aumenta em 3 metros [10 pés]. Você ignora terreno difícil não-mágico e tem Vantagem em testes de resistência para evitar Exaustão.",
+          "tags": ["Movimento", "Sobrevivência"]
+        },
+        {
+          "level": 13,
+          "name": "Especialista Versátil",
+          "prerequisites": "Nível 13+; Talento Prodígio Nato ou Aprendiz Prático",
+          "effect": "Escolha duas perícias nas quais você seja proficiente. Você ganha Expertise (o dobro do bônus de proficiência) nessas perícias.",
+          "tags": ["Perícia"]
+        },
+        {
+          "level": 17,
+          "name": "Presença Heroica",
+          "prerequisites": "Nível 17+; Humano",
+          "effect": "Uma vez por Descanso Longo, como uma ação, você concede a si mesmo e a até 10 aliados a 18 metros [60 pés] vantagem em todos os Testes de Resistência por 1 minuto ou até você ficar Incapacitado.",
+          "tags": ["Suporte"]
+        },
+        {
+          "level": 17,
+          "name": "Frio e Calculista",
+          "prerequisites": "Nível 17+; Humano (Erthari)",
+          "effect": "Adicione seu modificador de Inteligência ou Sabedoria à sua Iniciativa. Quando for alvo de um ataque, você pode usar sua Reação para ganhar +5 na CA contra aquele ataque, potencialmente fazendo-o errar.",
+          "tags": ["Defesa", "Reação"]
+        },
+        {
+          "level": 17,
+          "name": "Voz da Razão",
+          "prerequisites": "Nível 17+; Humano",
+          "effect": "Você tem Vantagem em testes de Carisma (Persuasão). Uma vez por dia, você pode conjurar a magia Santuário (CD 8 + proficiência + mod. Carisma) sobre si mesmo como uma Ação Bônus, sem gastar espaço de magia. Se uma criatura falhar no teste de resistência para te atacar sob este efeito, ela perde o ataque (não pode escolher outro alvo).",
+          "tags": ["Social", "Defesa"]
+        },
+        {
+          "level": 17,
+          "name": "Espírito Indomável",
+          "prerequisites": "Nível 17+; Humano",
+          "effect": "Se você começar seu turno com 0 Pontos de Vida, você pode gastar 1 Dado de Vida para recuperar PV igual ao resultado da rolagem + seu modificador de Constituição e se levantar imediatamente. Você pode usar esta habilidade uma vez por Descanso Longo.",
+          "tags": ["Sobrevivência", "Cura"]
+        },
+        {
+          "level": 17,
+          "name": "Auge do Potencial",
+          "prerequisites": "Nível 17+; Humano (Erthari)",
+          "effect": "Uma vez por Descanso Longo, se você falhar em uma jogada de ataque, teste de habilidade ou teste de resistência, você pode tratar a rolagem do d20 como um 20 natural.",
+          "tags": ["Regras"]
+        }
+      ]
+    }
+]

@@ -1,0 +1,205 @@
+[
+  {
+    "id": "vampirica",
+    "name": "Essência Vampírica",
+    "slug": "vampirica",
+    "image": "https://i.imgur.com/vampire-essence-placeholder.png",
+    "lore": {
+      "presentation": "Vampiro (O Circuito Invertido)\n\n\"A morte é um fim. O que nós temos não é morte, é um circuito. Somos uma fome que aprendeu a ter forma, um sangue que lembra do frio da Umbra e continua batendo por pura força de vontade.\"\n\nEm Cineria, vampiros não são apenas cadáveres que andam. Eles são o resultado do Rito das Três Veias, um circuito mágico invertido instalado no sangue que substitui a vida pela condução de energia da noite. Essa condição, conhecida como O Cálice, transforma o indivíduo em um predador funcional, ancorado entre a pressão do Sol e a alimentação constante.\n\nA maioria dos vampiros modernos não vive em criptas solitárias, mas em Velmourn, a Ilha dos Monstros. Lá, sob a névoa eterna que protege sua pele da Pressão Solar, eles formaram uma aristocracia sombria. Organizados em Clãs rigorosos, eles governam a noite com leis de ferro, hemomancia e política. Para um vampiro de Velmourn, a \"besta\" interior não é uma desculpa para o caos, mas um cão de guarda que deve ser treinado.\n\nVocê é um herdeiro dessa lógica: uma criatura capaz de atravessar séculos, desde que saiba pagar o preço do sangue. Esta essência é ideal para jogadores que buscam um arquétipo de sobrevivência, elegância e poder sombrio. Se você quer interpretar um nobre imortal, um espião deformado pelas sombras ou um feiticeiro que manipula a própria vida como arma, a Essência Vampírica é o seu caminho.",
+      "roleplay": "Vivendo como um Vampiro\n\nVocê provavelmente...\n• Sente o mundo em dois estados: a Noite, onde seu corpo é leve e poderoso, e o Dia, onde a Pressão Solar comprime sua força vital e dificulta sua existência.\n• Enxerga mortais através da ótica da \"Escada do Selo\": alguns são alimento, alguns são ferramentas, e poucos são dignos de receber o Cálice.\n• Mantém uma disciplina férrea sobre sua fome, pois sabe que um vampiro sem controle é apenas uma Cria instável fadada a ser caçada.\n\nOutros provavelmente...\n• Sentem um arrepio instintivo perto de você, uma reação biológica de presa reconhecendo predador.\n• Assumem que você faz parte da política de Velmourn e, portanto, possui conexões perigosas e recursos antigos.",
+      "society": "Sociedade e Origem\n\nA origem dos vampiros remonta à Era da Umbra, à lenda do Santo e a Emissária, onde um sacrifício necessário criou o primeiro circuito para conter a escuridão. Hoje, essa linhagem se concentra em Velmourn.\n\nA sociedade vampírica é dividida em Clãs (Vesánio, Tenebrus, Sybaris, Rubedo, Corvinus), cada um com sua filosofia sobre o que significa ser imortal. Fora da ilha, vampiros são vistos como ameaças ou lendas, muitas vezes forçados a esconder sua natureza de ordens de caçadores e da luz impiedosa do Sol.\n\nPoderes da Essência\nAo ser transformado pelo Cálice, seu corpo morre e renasce como um circuito invertido. Você substitui as características de Subraça ou Linhagem de sua raça original pelos traços abaixo."
+    },
+    "traits": [
+      {
+        "name": "Natureza Morta-Viva",
+        "text": "Seu coração parou e a luz divina não encontra morada em sua carne. Sua anatomia mudou fundamentalmente.",
+        "bullets": [
+          "Seu tipo de criatura é Morto-Vivo.",
+          "Você é Imune a dano de Veneno, à condição Envenenado e tem resistência a dano Necrotico.",
+          "Você tem Vantagem em Testes de Resistência contra Morte.",
+          "Você não precisa comer, beber ou respirar (embora precise de sangue).",
+          "Você não precisa dormir e magia não pode colocá-lo para dormir. Você pode terminar um Descanso Longo em 4 horas se passar essas horas em um estado inativo e imóvel.",
+          "Rejeição à Luz: Você não pode recuperar Pontos de Vida por qualquer magia que converta energia em cura (como Curar Ferimentos, Palavra Curativa ou Cura Completa). Você só recupera Pontos de Vida por magias que roubam vitalidade de uma criatura viva e transferem essa vitalidade para você, essas magias causam dano necrótico e incluem a frase “você recupera PV” no efeito (como Toque Vampírico e Enervação). Isso não torna o dano necrótico benéfico para você, essas magias apenas drenam a vitalidade do alvo para você, oque no processo, causa dano necrótico no alvo."
+        ]
+      },
+      {
+        "name": "Visão de Predador",
+        "text": "Seus olhos perfuram a escuridão para encontrar a presa.",
+        "bullets": [
+          "Você tem Visão no Escuro com alcance de 18 metros [60 pés].",
+          "Se você já possui Visão no Escuro vinda de sua Raça Base, o alcance dela aumenta em 9 metros [30 pés]."
+        ]
+      },
+      {
+        "name": "Regeneração Sanguínea",
+        "text": "O circuito consome sua vitalidade armazenada para fechar feridas instantaneamente.",
+        "bullets": [
+          "No início do seu turno, você pode gastar 1 Dado de Vida (sem necessidade de ação) para recuperar Pontos de Vida. A cura é igual ao resultado da rolagem do dado + seu Modificador de Constituição.",
+          "Esta característica não funciona se você estiver sob luz solar direta, se tiver sofrido dano Radiante ou dano de água benta desde o seu último turno, ou se estiver Incapacitado."
+        ]
+      },
+      {
+        "name": "Sensibilidade à Luz Solar",
+        "text": "A luz do dia comprime seu circuito interno, dificultando sua existência.",
+        "bullets": [
+          "Enquanto estiver sob luz solar direta, você tem Desvantagem nas Jogadas de Ataque, em Testes de Habilidade e em Testes de Resistência."
+        ]
+      },
+      {
+        "name": "Mordida Vampírica",
+        "text": "Sua fome é uma arma e uma ferramenta de manutenção. Você ganha um Ataque Desarmado especial usando suas presas.",
+        "bullets": [
+          "Você pode usar Destreza em vez de Força para as jogadas de ataque e dano deste golpe.",
+          "Ao acertar, você causa 1d6 + Modificador de Constituição de dano Perfurante (em vez do dano normal de um ataque desarmado).",
+          "Quando você causa dano com essa mordida a uma criatura que não seja um Constructo ou Morto-Vivo, você pode ativar o seguinte efeito:",
+          "Drenar: Você recupera Pontos de Vida iguais ao dano perfurante causado. Além disso, você recupera um número de Dados de Vida gastos igual ao seu Bônus de Proficiência."
+        ]
+      }
+    ],
+    "talents": [
+      {
+        "level": 1,
+        "name": "Educação Vesánia",
+        "prerequisites": "Essência Vampírica",
+        "effect": "Você ganha proficiência na perícia Furtividade e uma proficiência entre Intuição e Persuasão. Além disso, o vampiro Vesánio ganha Vantagem em testes de habilidade (intuição) que envolvam discernir emoções.",
+        "tags": ["Perícia", "Social"]
+      },
+      {
+        "level": 1,
+        "name": "Educação Tenebrus",
+        "prerequisites": "Essência Vampírica",
+        "effect": "Você ganha proficiência na perícia Atletismo. Além disso, escolha uma perícia entre Furtividade, Intimidação e Lidar com Animais; você ganha proficiência na perícia escolhida. Além disso, você também sempre está sob o efeito da magia Falar com Animais (Speak with Animals).",
+        "tags": ["Perícia", "Exploração"]
+      },
+      {
+        "level": 1,
+        "name": "Educação Sybaris",
+        "prerequisites": "Essência Vampírica",
+        "effect": "Você se move com graça sobrenatural. Escolha duas perícias entre Acrobacia, Persuasão e Intuição; você ganha proficiência nelas. Além disso, sua velocidade de caminhada aumenta em 5 pés (1,5 metros).",
+        "tags": ["Perícia", "Movimento"]
+      },
+      {
+        "level": 1,
+        "name": "Educação Rubedo",
+        "prerequisites": "Essência Vampírica",
+        "effect": "Escolha duas perícias entre Arcanismo, Intuição e Persuasão; você ganha proficiência nela. Além disso, você aprende um Truque da lista de magias de Mago à sua escolha.",
+        "tags": ["Perícia", "Magia"]
+      },
+      {
+        "level": 1,
+        "name": "Educação Corvinus",
+        "prerequisites": "Essência Vampírica",
+        "effect": "Escolha duas perícias entre Atletismo, História, Persuasão ou Intimidação. Além disso, seus Pontos de Vida máximos aumentam em 1, e aumenta em mais 1 sempre que você sobe de nível. Este recurso não se acumula com o benefício racial de outras raças que possuam a mesma habilidade, tendo como exemplo o Vigor e Robustez Anã.",
+        "tags": ["Perícia", "Vida"]
+      },
+      {
+        "level": 5,
+        "name": "Hemomancia de Sangue Menor",
+        "prerequisites": "Essência Vampírica, Nível 5+",
+        "effect": "Você aprende a queimar sua própria vitalidade para forçar a Trama. Você aprende as magias associadas ao seu Clã (veja lista abaixo). Para conjurar uma dessas magias, você deve gastar um número de Dados de Vida igual ao Nível da Magia (ex: 2 DV para Nível 2). Você não gasta espaços de magia. Você pode usar esta habilidade uma vez para cada magia listada por Descanso Curto ou Longo. Carisma, Inteligência ou Sabedoria é seu atributo de conjuração (escolha ao pegar o talento).",
+        "tags": ["Magia", "Sangue"]
+      },
+      {
+        "level": 5,
+        "name": "Caminhante das Paredes",
+        "prerequisites": "Essência Vampírica, Nível 5+",
+        "effect": "Seu deslocamento base aumenta em 3 metro [10 pés]. Além disso, você ganha deslocamento de Escalada igual ao seu deslocamento de caminhada. Você pode escalar superfícies difíceis, inclusive de cabeça para baixo em tetos, sem precisar fazer testes de habilidade e deixando as mãos livres.",
+        "tags": ["Movimento", "Exploração"]
+      },
+      {
+        "level": 5,
+        "name": "Brumas de Velmourn",
+        "prerequisites": "Essência Vampírica, Nível 5+",
+        "effect": "Você pode conjurar a magia Névoa Obscurecente [Fog Cloud] sem gastar espaço de magia. Você recupera o uso após um Descanso Longo. Você consegue enxergar normalmente através da névoa criada por esta magia e não sofre desvantagem em testes de Sabedoria (Percepção) que dependam da visão enquanto estiver dentro dela. Quando você conjura essa magia, chamas não-mágicas na área são extintas, e o deslocamento de criaturas hostis dentro da névoa é reduzido em 3 metros [10 pés].",
+        "tags": ["Magia", "Controle"]
+      },
+      {
+        "level": 9,
+        "name": "Sede Insaciável",
+        "prerequisites": "Essência Vampírica, Nível 9+",
+        "effect": "Sua capacidade de recuperação se torna lendária.\n\nRecuperação Poderosa: Sempre que você rolar um Dado de Vida para se curar (pela Regeneração ou Descanso), você trata qualquer resultado 1 ou 2 como sendo 3.\n\nBanquete Sanguíneo: Uma vez por turno, ao acertar um ataque em uma criatura que esteja com metade da vida ou menos (Sangrenta) e não seja Constructo ou Morto-Vivo, você pode gastar 1 Dado de Vida para recuperar PV igual à rolagem + seu Modificador de Constituição.",
+        "tags": ["Cura", "Combate"]
+      },
+      {
+        "level": 9,
+        "name": "Metamorfose da Noite",
+        "prerequisites": "Essência Vampírica, Nível 9+",
+        "effect": "Como uma Ação, você pode se transformar em um Morcego Gigante, um Lobo Atroz ou em uma nuvem de Névoa (como na magia Forma Gasosa). Você mantém suas estatísticas mentais (INT, SAB, CAR) e seus Pontos de Vida atuais. Se cair a 0 PV, você reverte à forma normal com o excesso de dano aplicado. Você pode usar essa habilidade um número de vezes igual ao seu Bônus de Proficiência por Descanso Longo.",
+        "tags": ["Transformação", "Utilitário"]
+      },
+      {
+        "level": 9,
+        "name": "Drenagem Hemomântica",
+        "prerequisites": "Essência Vampírica, Nível 9+",
+        "effect": "Você aprende a magia Toque Vampírico. Você pode conjurá-la uma vez por dia sem gastar espaço de magia. Ao conjurar Toque Vampírico (seja por essa habilidade ou espaços de classe), você pode gastar 1 Dado de Vida para aprimorá-la por 1 minuto: O alcance dos ataques da magia aumenta para 9 metros [30 pés] (tentáculos de sangue). Você recupera PV igual a todo o dano necrótico causado (em vez da metade). Se você matar uma criatura com a magia, recupera 1 Dado de Vida gasto.",
+        "tags": ["Magia", "Cura"]
+      },
+      {
+        "level": 9,
+        "name": "Exaltação Vampírica",
+        "prerequisites": "Essência Vampírica, Nível 9+",
+        "effect": "Como uma Ação Bônus, você dissolve a parte inferior do seu corpo em fumaça negra. Por 10 minutos, você ganha deslocamento de Voo igual ao seu deslocamento de caminhada e pode pairar. Recupera com Descanso Curto ou Longo.",
+        "tags": ["Movimento", "Voo"]
+      },
+      {
+        "level": 13,
+        "name": "Hemomancia de Sangue Maior",
+        "prerequisites": "Essência Vampírica, Talento Hemomancia Menor, Nível 13+",
+        "effect": "Você aprofunda seu domínio. Você aprende as magias maiores do seu Clã. O custo em Dados de Vida é igual ao nível da magia. (1 uso de cada por Descanso Longo).",
+        "tags": ["Magia", "Sangue"]
+      },
+      {
+        "level": 13,
+        "name": "Caminhante do Dia (Daywalker)",
+        "prerequisites": "Essência Vampírica, Nível 13+",
+        "effect": "Você desenvolveu resistência à compressão do circuito. Você não sofre mais Desvantagem em Testes de Resistência ou Testes de Habilidade (Perícias) sob luz solar direta. (A Desvantagem em Ataques permanece, mantendo o tema de que o sol ainda atrapalha o combate, mas não a exploração).",
+        "tags": ["Passivo", "Sobrevivência"]
+      },
+      {
+        "level": 13,
+        "name": "Manto de Sombras",
+        "prerequisites": "Essência Vampírica, Nível 13+",
+        "effect": "Quando você conjura uma magia que cria escuridão ou quando você apaga uma fonte de luz não-mágica, uma aura de sombra de 1,5 metros [5 pés] surge ao seu redor. Essa aura conta como escuridão total para os outros e penumbra para você. Ataques contra você têm Desvantagem enquanto a aura persistir (1 minuto).",
+        "tags": ["Defesa", "Furtividade"]
+      },
+      {
+        "level": 17,
+        "name": "Transformação: Sinfonia de Sangue",
+        "prerequisites": "Essência Vampírica, Nível 17+",
+        "effect": "Você libera todo o poder do Sangue-Fonte, tornando-se o ápice da predação por 1 minuto. Como uma Ação Bônus, você se transforma. Enquanto a transformação durar, você ganha os seguintes benefícios:\n\nSenhor dos Céus: Você ganha deslocamento de Voo igual ao seu deslocamento de caminhada e pode pairar.\n\nFonte Eterna: No início de cada um dos seus turnos, se você tiver pelo menos 1 PV e não estiver sob luz solar direta, você rola 1 Dado de Vida da sua classe e recupera PV iguais ao resultado + seu Modificador de Constituição. Você NÃO gasta este dado da sua reserva.\n\nPoder do Sangue: Uma vez por turno, quando você causar dano com um Ataque com Arma (incluindo mordida) ou uma Magia, você causa dano Necrótico adicional igual ao valor máximo do seu Dado de Vida.\n\nRecarga: Uma vez por Descanso Longo.",
+        "tags": ["Transformação", "Ultimate"]
+      },
+      {
+        "level": 17,
+        "name": "Cura Distorcida",
+        "prerequisites": "Essência Vampírica, Nível 17+",
+        "effect": "Você inverte a polaridade da magia positiva. Quando você ativar um item mágico (como um cajado ou varinha) para lançar uma magia de cura, você pode inverter a energia: a magia causa dano Necrótico igual à quantidade que curaria. O alvo deve fazer um Teste de Resistência de Constituição para receber metade do dano em um sucesso. Além disso, se alguém lançar uma magia de cura em você, você pode usar sua Reação para absorver a energia, ganhando PV Temporários igual à cura rolada, em vez de falhar na cura.",
+        "tags": ["Dano", "Reação"]
+      }
+    ],
+    "tables": [
+      {
+        "title": "Clã e Magias (Custo em Dados de Vida)",
+        "headers": ["Clã", "Magias (Custo em Dados de Vida)"],
+        "rows": [
+          ["Vesánio", "Sussurros Dissonantes (1 DV), Coroa da Loucura (2 DV), Medo (3 DV)"],
+          ["Tenebrus", "Disfarçar-se (1 DV), Passos sem Pegadas (2 DV), Conjurar Animais (3 DV)"],
+          ["Sybaris", "Enfeitiçar Pessoa (1 DV), Cativar (2 DV), Padrão Hipnótico (3 DV)"],
+          ["Rubedo", "Mãos Flamejantes (1 DV), Detectar Pensamentos (2 DV), Contra-Mágica (3 DV)"],
+          ["Corvinus", "Comando (1 DV), Imobilizar Pessoa (2 DV), Sugestão (3 DV)"]
+        ]
+      },
+      {
+        "title": "Clã e Magias Maiores (Custo em Dados de Vida)",
+        "headers": ["Clã", "Magias (Custo em Dados de Vida)"],
+        "rows": [
+          ["Vesánio", "Confusão (4 DV), Inundação de Energia Negativa (5 DV), Prisão Mental (6 DV)"],
+          ["Tenebrus", "Invisibilidade Maior (4 DV), Criar Passagem (5 DV), Olhar Irresistível/Eyebite (6 DV)"],
+          ["Sybaris", "Compulsão (4 DV), Sonho (5 DV), Visão da Verdade (6 DV)"],
+          ["Rubedo", "Banimento (4 DV), Círculo de Poder (5 DV), Jaula de Alma (6 DV)"],
+          ["Corvinus", "Enfeitiçar Monstro (4 DV), Imobilizar Monstro (5 DV), Sugestão em Massa (6 DV)"]
+        ]
+      }
+    ]
+  }
+]
