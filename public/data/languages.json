@@ -6,274 +6,26 @@
     "nativeName": "Comum Cineriano",
     "category": "Comum",
     "modality": "spoken",
-    "family": "Cineriana (Imperial-Comercial)",
-    "regions": [
-      "Império Auraliano",
-      "Reinos Centrais",
-      "Rotas Comerciais",
-      "Norte (Vyrmheim e serras frias)",
-      "Centro Tropical (Auralon e cinturões de rota)",
-      "Sul (desertos e rotas longas)",
-      "Tsunari (ilhas orientais)",
-      "Nexovar (arcano-tec)",
-      "Velmourn (Ilha dos Monstros)"
-    ],
-    "peoples": [
-      "Humanos",
-      "Folkens",
-      "Viajantes",
-      "Mercadores",
-      "Aventureiros",
-      "Escribas",
-      "Mensageiros"
-    ],
+    "family": "Cineriana",
+    "regions": ["Império Auraliano", "Reinos Centrais", "Rotas Comerciais"],
+    "peoples": ["Humanos", "Viajantes", "Mercadores"],
     "status": "Comum",
     "referenceLanguage": "pt-BR",
-
     "description": [
-      "O Comum Cineriano é a língua franca de Cinéria. Ele não nasceu elegante; nasceu necessário. Foi moldado por rotas, feiras, portos, postos de guarda e por qualquer lugar onde uma palavra mal entendida vira prejuízo, briga ou guerra.",
-      "A força do Cineriano é a padronização: termos claros, frases diretas e uma ortografia estável o bastante para cartazes de missão, recibos, mapas e contratos circularem entre reinos sem que cada cidade invente sua própria regra.",
-      "Mesmo povos que preservam idiomas próprios usam o Cineriano para comércio, diplomacia e vida de estrada. Quase todo cidadão entende o básico; quem vive de viagem aprende rápido, ou vira vítima de golpe."
+      "O Comum Cineriano é a língua franca de Cinéria, moldada por rotas comerciais e pela necessidade de comunicação clara entre diferentes povos. Sua força reside na padronização, permitindo que contratos, mapas e avisos circulem de forma confiável entre os reinos."
     ],
-
-    "lore": {
-      "origem": [
-        "Primeiras Rotas: caravanas humanas começaram a misturar dialetos em feiras sazonais e rios navegáveis. Surgiram expressões comuns para preço, peso, distância e perigo.",
-        "Pactos de Estrada: cidades-ponte e guildas criaram um vocabulário mínimo para registrar dívidas e cargas. A língua começou a perder regionalismos difíceis.",
-        "Padronização de Chancelaria: o Império Auraliano (e depois outros reinos) consolidou grafia e fórmulas legais para impedir fraudes. O Cineriano de contrato virou referência.",
-        "Era dos Contratos: o crescimento de postos de missão e escritórios (incluindo o Nexus) espalhou expressões fixas de trabalho mercenário: prova exigida, risco, pagamento, prazo e testemunhas."
-      ],
-      "comoAsPessoasUsam": [
-        "Registro de Estrada (popular): curto e objetivo, cheio de cortes e gírias. Serve para negociar, pedir abrigo, avisar perigo e sobreviver.",
-        "Registro de Chancelaria (formal): repetitivo de propósito. Em contrato, você repete valor, prazo e condição para evitar interpretação ambígua.",
-        "Registro de Porto (prático): cheio de números, abreviações e palavras emprestadas. Em porto, tempo vale mais que poesia."
-      ],
-      "tabus": [
-        "Juramentos formais em Cineriano têm peso social. Quebrar um juramento selado (com testemunha, carimbo ou sinal de guilda) mancha reputação por anos.",
-        "Ofender alguém no idioma da estrada é visto como provocação direta. Em algumas cidades, insulto em Cineriano formal é considerado covardia (porque usa a lei como arma)."
-      ]
-    },
-
     "writingSystem": {
-      "name": "Alfabeto Cineriano (Latino Refinado)",
+      "name": "Alfabeto Cineriano",
       "direction": "ltr",
-      "type": "Alfabeto",
-      "notes": "Base latino com convenções de chancelaria e sinais padronizados para cartazes de missão, recibos e contratos. Números críticos em documentos podem ser repetidos por extenso."
+      "type": "Alfabeto"
     },
-
-    "accessibility": {
-      "supportsBraille": true
-    },
-
-    "orthography": {
-      "regras": [
-        "Ortografia predominantemente fonética: prioridade é leitura rápida em cartazes e placas.",
-        "Uso de diacríticos é mais comum em nomes próprios, topônimos e termos de chancela (para reduzir ambiguidade).",
-        "Em documentos, ':' introduz cláusula e ';' separa exceções/adendos."
-      ],
-      "digrafos": [
-        { "digraph": "ch", "sound": "/ʃ/", "example": "chama" },
-        { "digraph": "lh", "sound": "/ʎ/", "example": "trilho" },
-        { "digraph": "nh", "sound": "/ɲ/", "example": "ninho" },
-        { "digraph": "qu", "sound": "/k/", "example": "quebra" }
-      ],
-      "acentuacao": [
-        "Tônica geralmente na penúltima sílaba (fala comum).",
-        "Em registro formal, palavras terminadas em -r/-l/-z tendem a receber ênfase final."
-      ]
-    },
-
-    "accents": [
-      {
-        "region": "Norte",
-        "notes": [
-          "Vogais mais fechadas; fala mais curta.",
-          "R mais 'batido' e seco.",
-          "Vocabulário comum para neve, gelo, passagem e abrigo."
-        ],
-        "example": { "pt": "Está frio demais.", "variant": "Tá frio demais.", "tip": "cortes de palavras e menos conectivos" }
-      },
-      {
-        "region": "Centro",
-        "notes": [
-          "Padrão de chancelaria e rotas principais; é o sotaque 'neutral' do sistema.",
-          "Boa dicção, ritmo constante."
-        ],
-        "example": { "pt": "Quanto custa isso?", "variant": "Quanto custa?", "tip": "curto e direto" }
-      },
-      {
-        "region": "Sul",
-        "notes": [
-          "Fala mais arrastada; alonga vogais em fim de frase.",
-          "Mais termos de rota longa: sede, sombra, pedágio, caravana."
-        ],
-        "example": { "pt": "Tem água por perto?", "variant": "Água por perto?", "tip": "redução por necessidade" }
-      },
-      {
-        "region": "Tsunari (oriental)",
-        "notes": [
-          "Entonação mais marcada; pausas curtas entre frases.",
-          "Uso frequente de honoríficos cinerianos (Senhor/Senhora) mesmo entre desconhecidos.",
-          "Alguns empréstimos de termos locais entram em comida, ritos e etiqueta."
-        ],
-        "example": { "pt": "Com licença.", "variant": "Com licença, senhor(a).", "tip": "polidez como padrão" }
-      },
-      {
-        "region": "Nexovar (arcano-tec)",
-        "notes": [
-          "Vocabulário cheio de termos técnicos e abreviações (arcano + mecânico).",
-          "Frases rápidas e cheias de siglas, especialmente em ambientes industriais.",
-          "Ritmo 'cortado', como comandos."
-        ],
-        "example": { "pt": "Preciso de uma peça.", "variant": "Preciso da peça. Agora.", "tip": "modo operacional" }
-      },
-      {
-        "region": "Velmourn (Ilha dos Monstros)",
-        "notes": [
-          "Baixa voz e poucas palavras (por hábito de sobrevivência).",
-          "Mais palavras para rastros, silêncio, cheiro, noite, abrigo improvisado.",
-          "Metáforas de caça entram no cotidiano."
-        ],
-        "example": { "pt": "Fique quieto.", "variant": "Quieto. Agora.", "tip": "comando seco" }
-      }
-    ],
-
-    "glyphs": [
-      { "char": "A", "translit": "a", "notes": "A aberto" },
-      { "char": "B", "translit": "b", "notes": "B claro" },
-      { "char": "C", "translit": "c", "notes": "C = /k/ ou /s/ (antes de e/i)" },
-      { "char": "D", "translit": "d", "notes": "D claro" },
-      { "char": "E", "translit": "e", "notes": "E aberto/fechado por região" },
-      { "char": "F", "translit": "f", "notes": "F soprado" },
-      { "char": "G", "translit": "g", "notes": "G = /g/ (formal); pode soar /ʒ/ urbano antes de e/i" },
-      { "char": "H", "translit": "h", "notes": "Geralmente mudo; aspirado em nomes estrangeiros" },
-      { "char": "I", "translit": "i", "notes": "I curto" },
-      { "char": "J", "translit": "j", "notes": "Som de 'j' português" },
-      { "char": "K", "translit": "k", "notes": "Usado em nomes e termos técnicos" },
-      { "char": "L", "translit": "l", "notes": "L claro" },
-      { "char": "M", "translit": "m", "notes": "M nasal" },
-      { "char": "N", "translit": "n", "notes": "N nasal" },
-      { "char": "O", "translit": "o", "notes": "O aberto/fechado por região" },
-      { "char": "P", "translit": "p", "notes": "P seco" },
-      { "char": "Q", "translit": "q", "notes": "Usado em 'qu' para /k/" },
-      { "char": "R", "translit": "r", "notes": "Vibrante simples; mais forte em fala de estrada" },
-      { "char": "S", "translit": "s", "notes": "Entre vogais pode soar /z/" },
-      { "char": "T", "translit": "t", "notes": "T claro" },
-      { "char": "U", "translit": "u", "notes": "U fechado" },
-      { "char": "V", "translit": "v", "notes": "V claro" },
-      { "char": "W", "translit": "w", "notes": "Raro; nomes/porto" },
-      { "char": "X", "translit": "x", "notes": "Varia: /ʃ/ comum em estrada; /ks/ formal" },
-      { "char": "Y", "translit": "y", "notes": "Raro; nomes antigos" },
-      { "char": "Z", "translit": "z", "notes": "Z sonoro" },
-
-      { "char": "Á", "translit": "á", "notes": "Ênfase/tônica marcada" },
-      { "char": "Â", "translit": "â", "notes": "Registro formal/antigo" },
-      { "char": "Ã", "translit": "ã", "notes": "Nasalização" },
-      { "char": "Ç", "translit": "ç", "notes": "Som /s/ antes de a/o/u" },
-      { "char": "É", "translit": "é", "notes": "Ênfase/tônica marcada" },
-      { "char": "Ê", "translit": "ê", "notes": "Registro formal/antigo" },
-      { "char": "Í", "translit": "í", "notes": "Ênfase/tônica marcada" },
-      { "char": "Ó", "translit": "ó", "notes": "Ênfase/tônica marcada" },
-      { "char": "Ô", "translit": "ô", "notes": "Registro formal/antigo" },
-      { "char": "Õ", "translit": "õ", "notes": "Nasalização" },
-      { "char": "Ú", "translit": "ú", "notes": "Ênfase/tônica marcada" },
-
-      { "char": "0", "translit": "0", "notes": "Zero" },
-      { "char": "1", "translit": "1", "notes": "Um" },
-      { "char": "2", "translit": "2", "notes": "Dois" },
-      { "char": "3", "translit": "3", "notes": "Três" },
-      { "char": "4", "translit": "4", "notes": "Quatro" },
-      { "char": "5", "translit": "5", "notes": "Cinco" },
-      { "char": "6", "translit": "6", "notes": "Seis" },
-      { "char": "7", "translit": "7", "notes": "Sete" },
-      { "char": "8", "translit": "8", "notes": "Oito" },
-      { "char": "9", "translit": "9", "notes": "Nove" },
-
-      { "char": ".", "translit": ".", "notes": "Fim de frase" },
-      { "char": ",", "translit": ",", "notes": "Pausa curta" },
-      { "char": ":", "translit": ":", "notes": "Cláusula/condição em documento" },
-      { "char": ";", "translit": ";", "notes": "Exceção/adendo em documento" },
-      { "char": "—", "translit": "—", "notes": "Fala formal/ata" }
-    ],
-
-    "dictionary": {
-      "contrato": "contrato",
-      "recompensa": "recompensa",
-      "prova": "prova",
-      "prazo": "prazo",
-      "risco": "risco",
-      "testemunha": "testemunha",
-      "selo": "selo",
-      "guarda": "guarda",
-      "estrada": "estrada",
-      "porto": "porto",
-      "abrigo": "abrigo",
-      "água": "água",
-      "comida": "comida",
-      "silêncio": "silêncio",
-      "perigo": "perigo",
-      "fogueira": "fogueira",
-      "história": "história",
-      "nexus": "nexus"
-    },
-
-    "pronunciationTips": [
-      "Pronúncia direta e clara; prioridade é ser entendido em estrada e mercado.",
-      "Tônica geralmente na penúltima sílaba; em fala formal, finais -r/-l/-z podem receber ênfase.",
-      "Em porto e feira, frases encurtam e perdem artigos (registro prático)."
-    ],
-
-    "customs": [
-      "Em postos de rota, é comum declarar intenção logo no início: 'Paz na fogueira.' Isso evita que estranhos sejam confundidos com provocadores.",
-      "Em contratos públicos, valores críticos são lidos duas vezes (número e por extenso) e confirmados por testemunha, reduzindo fraudes.",
-      "Quando alguém se identifica como contratado (ou agente), espera-se citar local, prazo e prova — o básico que impede golpes.",
-      "Em Velmourn, falar baixo e cortar palavras é etiqueta de sobrevivência: a fala longa denuncia presença."
-    ],
-
-    "phrases": [
-      { "pt": "Paz na fogueira.", "native": "Paz na fogueira.", "translit": "paz na fo-guei-ra", "usage": "Cumprimento de estrada; sinal de intenção pacífica." },
-      { "pt": "Oi. Tudo bem?", "native": "Oi. Tudo bem?", "translit": "oi tu-do bem", "usage": "Saudação casual." },
-      { "pt": "Bom dia.", "native": "Bom dia.", "translit": "bom ji-a", "usage": "Saudação neutra." },
-      { "pt": "Boa noite.", "native": "Boa noite.", "translit": "boa noi-te", "usage": "Saudação neutra." },
-
-      { "pt": "Quanto custa?", "native": "Quanto custa?", "translit": "quan-to cus-ta", "usage": "Feira/porto." },
-      { "pt": "Pode baixar o preço?", "native": "Pode baixar o preço?", "translit": "po-de bai-xar o pre-ço", "usage": "Barganha." },
-      { "pt": "Fechado. Temos acordo.", "native": "Fechado. Temos acordo.", "translit": "fe-cha-do te-mos a-cor-do", "usage": "Negociação concluída." },
-      { "pt": "Me dê um recibo.", "native": "Me dê um recibo.", "translit": "me dê um re-ci-bo", "usage": "Compra formal." },
-
-      { "pt": "Procuro trabalho. Contrato limpo.", "native": "Procuro trabalho. Contrato limpo.", "translit": "pro-cu-ro tra-ba-lho con-tra-to lim-po", "usage": "Posto de missão / taverna." },
-      { "pt": "Qual é o risco e a recompensa?", "native": "Qual é o risco e a recompensa?", "translit": "qual é o ris-co e a re-com-pen-sa", "usage": "Antes de aceitar missão." },
-      { "pt": "Qual é a prova exigida?", "native": "Qual é a prova exigida?", "translit": "qual é a pro-va e-xi-gi-da", "usage": "Evitar golpes." },
-      { "pt": "Tem testemunha?", "native": "Tem testemunha?", "translit": "tem tes-te-mu-nha", "usage": "Discussão legal." },
-
-      { "pt": "Assine aqui e aqui.", "native": "Assine aqui e aqui.", "translit": "a-ssi-ne a-qui e a-qui", "usage": "Cartório/guichê." },
-      { "pt": "Leia em voz alta.", "native": "Leia em voz alta.", "translit": "lei-a em voz al-ta", "usage": "Conferir contrato." },
-      { "pt": "Eu confirmo sob testemunha.", "native": "Eu confirmo sob testemunha.", "translit": "eu con-fir-mo sob tes-te-mu-nha", "usage": "Fórmula de validação." },
-      { "pt": "Este é o meu selo.", "native": "Este é o meu selo.", "translit": "es-te é o meu se-lo", "usage": "Prova de registro." },
-
-      { "pt": "Água e abrigo por uma noite.", "native": "Água e abrigo por uma noite.", "translit": "á-gua e a-bri-go por u-ma noi-te", "usage": "Pedido de viagem." },
-      { "pt": "Traga comida. E silêncio.", "native": "Traga comida. E silêncio.", "translit": "tra-ga co-mi-da e si-lên-cio", "usage": "Velmourn / furtividade." },
-      { "pt": "Perigo à frente.", "native": "Perigo à frente.", "translit": "pe-ri-go à fren-te", "usage": "Aviso rápido." },
-      { "pt": "Não avance sozinho.", "native": "Não avance sozinho.", "translit": "não a-van-ce so-zi-nho", "usage": "Aviso de grupo." },
-
-      { "pt": "Afastem-se!", "native": "Afastem-se!", "translit": "a-fas-tem-se", "usage": "Emergência." },
-      { "pt": "Chame a guarda!", "native": "Chame a guarda!", "translit": "cha-me a guar-da", "usage": "Cidade/porto." },
-      { "pt": "Não quero confusão.", "native": "Não quero confusão.", "translit": "não que-ro con-fu-são", "usage": "Desescalar." },
-      { "pt": "Isso fica entre nós.", "native": "Isso fica entre nós.", "translit": "i-sso fi-ca en-tre nós", "usage": "Acordo discreto." },
-
-      { "pt": "Conte sua história.", "native": "Conte sua história.", "translit": "con-te su-a his-tó-ria", "usage": "Vibe Bonfire; convite." },
-      { "pt": "Que a estrada seja leve.", "native": "Que a estrada seja leve.", "translit": "que a es-tra-da se-ja le-ve", "usage": "Bênção de viagem." },
-      { "pt": "Pela minha palavra, eu cumpro.", "native": "Pela minha palavra, eu cumpro.", "translit": "pe-la mi-nha pa-la-vra eu cum-pro", "usage": "Juramento simples." },
-      { "pt": "Assine ou recuse. Sem rodeio.", "native": "Assine ou recuse. Sem rodeio.", "translit": "a-ssi-ne ou re-cu-se sem ro-dei-o", "usage": "Chancelaria dura." }
-    ],
-
     "transliterationEngine": "latin",
     "ttsEngine": "gemini"
   },
   {
     "slug": "enanico",
     "name": "Enânico",
-    "nativeName": "Khuszche",
+    "nativeName": "Khuzdul",
     "category": "Regional",
     "modality": "spoken",
     "family": "Primeval",
@@ -282,35 +34,50 @@
     "status": "Regional",
     "referenceLanguage": "de-DE",
     "description": [
-      "O Khuszche é tão antigo quanto as montanhas. É uma língua gutural, cheia de consoantes duras e sons que ecoam bem em cavernas.",
-      "Sua escrita rúnica (Dethek) é angular, feita para ser entalhada em pedra com cinzel."
+      "O Enânico é tão antigo quanto as montanhas. É uma língua gutural, cheia de consoantes duras e sons que ecoam bem em cavernas. Sua escrita rúnica (Dethek) é angular, feita para ser entalhada em pedra com cinzel e martelo."
     ],
     "writingSystem": {
       "name": "Runas Dethek",
       "direction": "ltr",
-      "type": "Runas",
-      "notes": "Escrito da esquerda para direita, sem espaços."
-    },
-    "accessibility": {
-      "supportsBraille": true
+      "type": "Runas"
     },
     "glyphs": [
-      { "char": "ᚨ", "translit": "a", "notes": "Como em 'Ar'" },
-      { "char": "ᛒ", "translit": "b", "notes": "Explosivo" },
-      { "char": "ᚲ", "translit": "k", "notes": "K duro" },
-      { "char": "ᛞ", "translit": "d", "notes": "D profundo" },
-      { "char": "ᚱ", "translit": "r", "notes": "R enrolado, vibrante" }
+      { "char": "ᚨ", "translit": "a" }, { "char": "ᛒ", "translit": "b" }, { "char": "ᚲ", "translit": "k" },
+      { "char": "ᛞ", "translit": "d" }, { "char": "ᛖ", "translit": "e" }, { "char": "ᚠ", "translit": "f" },
+      { "char": "ᚷ", "translit": "g" }, { "char": "ᚺ", "translit": "h" }, { "char": "ᛁ", "translit": "i" },
+      { "char": "ᛃ", "translit": "j" }, { "char": "ᛚ", "translit": "l" }, { "char": "ᛗ", "translit": "m" },
+      { "char": "ᚾ", "translit": "n" }, { "char": "ᛟ", "translit": "o" }, { "char": "ᛈ", "translit": "p" },
+      { "char": "ᚱ", "translit": "r" }, { "char": "ᛊ", "translit": "s" }, { "char": "ᛏ", "translit": "t" },
+      { "char": "ᚢ", "translit": "u" }, { "char": "ᚹ", "translit": "w" }, { "char": "ᛉ", "translit": "z" }
     ],
-    "dictionary": {
-      "amigo": "mellon",
-      "pedra": "gond",
-      "ouro": "aurum"
-    },
     "transliterationEngine": "runic",
-    "ttsEngine": "gemini",
-    "phrases": [
-      { "pt": "Pela barba dos ancestrais!", "native": "Vras khazadum!", "translit": "Vras ka-za-dum", "usage": "Surpresa ou raiva" }
-    ]
+    "ttsEngine": "gemini"
+  },
+  {
+    "slug": "silvestre",
+    "name": "Silvestre",
+    "nativeName": "(Sons da Floresta)",
+    "category": "Exótico",
+    "modality": "spoken",
+    "family": "Feérica (Primal)",
+    "regions": ["Florestas Antigas", "Clareiras Feéricas", "Reinos de Verão"],
+    "peoples": ["Feéricos", "Animais Despertos", "Druidas"],
+    "status": "Secreto",
+    "referenceLanguage": "cy-GB",
+    "description": [
+      "Silvestre não é uma língua de palavras, mas de sensações: o som do vento nas folhas, o estalar de um galho, o cheiro de terra molhada. É a comunicação instintiva da natureza. Não possui escrita nativa; quando precisa ser registrado, usa-se a escrita Élfica ou Comum."
+    ],
+    "writingSystem": {
+      "name": "Nenhuma (usa Élfico/Comum)",
+      "direction": "ltr",
+      "type": "Alfabeto",
+      "notes": "É uma língua primariamente oral e contextual."
+    },
+    "pronunciationTips": [
+      "Baseado em sons da natureza: assobios, cliques, murmúrios."
+    ],
+    "transliterationEngine": "latin",
+    "ttsEngine": "gemini"
   },
   {
     "slug": "libras",
@@ -319,308 +86,65 @@
     "category": "Sinais",
     "modality": "signed",
     "family": "Inclusiva",
-    "regions": ["Império Auraliano", "Comunidades Inclusivas", "Postos do Bonfire Nexus", "Portos e Rotas Comerciais"],
-    "peoples": ["Pessoas Surdas", "Intérpretes Arcanos", "Aventureiros", "Mensageiros", "Curandeiros"],
+    "regions": ["Império Auraliano", "Postos do Nexus", "Rotas Comerciais"],
+    "peoples": ["Pessoas Surdas", "Intérpretes Arcanos", "Aventureiros"],
     "status": "Inclusivo",
     "referenceLanguage": "pt-BR",
     "description": [
-      "A Língua de Sinais é uma modalidade gestual-visual utilizada em todo o império para comunicação inclusiva e também estratégica (em situações de silêncio absoluto, alto ruído ou necessidade de discrição).",
-      "Não possui uma 'escrita' alfabética nativa, utilizando a Glosa para registro em papel e a Datilologia para soletração de nomes próprios, siglas e termos raros."
+      "A Língua de Sinais é uma modalidade gestual-visual utilizada para comunicação inclusiva e também estratégica (em situações de silêncio absoluto ou discrição)."
     ],
     "writingSystem": {
       "name": "Datilologia",
       "direction": "ltr",
       "type": "Ideogramas",
-      "notes": "Representação visual de letras e números através de configurações de mão. Emojis são apenas placeholders de interface."
+      "notes": "Representação visual de letras e números. Emojis são placeholders."
     },
-    "glyphs": [
-  { "char": "✊", "translit": "A", "notes": "Datilologia: A (placeholder visual por emoji)." },
-  { "char": "✋", "translit": "B", "notes": "Datilologia: B (placeholder visual por emoji)." },
-  { "char": "🤏", "translit": "C", "notes": "Datilologia: C (placeholder visual por emoji)." },
-  { "char": "☝️", "translit": "D", "notes": "Datilologia: D (placeholder visual por emoji)." },
-  { "char": "✊", "translit": "E", "notes": "Datilologia: E (placeholder visual por emoji)." },
-  { "char": "👌", "translit": "F", "notes": "Datilologia: F (placeholder visual por emoji)." },
-  { "char": "👉", "translit": "G", "notes": "Datilologia: G (placeholder visual por emoji)." },
-  { "char": "✌️➡️", "translit": "H", "notes": "Datilologia: H (placeholder visual por emoji)." },
-  { "char": "🤙", "translit": "I", "notes": "Datilologia: I (placeholder visual por emoji)." },
-  { "char": "🤙↩️", "translit": "J", "notes": "Datilologia: J (placeholder visual por emoji)." },
-  { "char": "✌️👍", "translit": "K", "notes": "Datilologia: K (placeholder visual por emoji)." },
-  { "char": "👍☝️", "translit": "L", "notes": "Datilologia: L (placeholder visual por emoji)." },
-  { "char": "✊🫳🫳🫳", "translit": "M", "notes": "Datilologia: M (placeholder visual por emoji)." },
-  { "char": "✊🫳🫳", "translit": "N", "notes": "Datilologia: N (placeholder visual por emoji)." },
-  { "char": "⭕", "translit": "O", "notes": "Datilologia: O (placeholder visual por emoji)." },
-  { "char": "✌️👇", "translit": "P", "notes": "Datilologia: P (placeholder visual por emoji)." },
-  { "char": "👉👇", "translit": "Q", "notes": "Datilologia: Q (placeholder visual por emoji)." },
-  { "char": "🤞", "translit": "R", "notes": "Datilologia: R (placeholder visual por emoji)." },
-  { "char": "✊👍", "translit": "S", "notes": "Datilologia: S (placeholder visual por emoji)." },
-  { "char": "✊🫳", "translit": "T", "notes": "Datilologia: T (placeholder visual por emoji)." },
-  { "char": "✌️", "translit": "U", "notes": "Datilologia: U (placeholder visual por emoji)." },
-  { "char": "✌️✨", "translit": "V", "notes": "Datilologia: V (placeholder visual por emoji)." },
-  { "char": "🖖", "translit": "W", "notes": "Datilologia: W (placeholder visual por emoji)." },
-  { "char": "☝️🪝", "translit": "X", "notes": "Datilologia: X (placeholder visual por emoji)." },
-  { "char": "🤟", "translit": "Y", "notes": "Datilologia: Y (placeholder visual por emoji)." },
-  { "char": "☝️〰️", "translit": "Z", "notes": "Datilologia: Z (placeholder visual por emoji)." },
-
-  { "char": "⭕", "translit": "0", "notes": "Número 0 (placeholder visual)." },
-  { "char": "☝️", "translit": "1", "notes": "Número 1 (placeholder visual)." },
-  { "char": "✌️", "translit": "2", "notes": "Número 2 (placeholder visual)." },
-  { "char": "🤟", "translit": "3", "notes": "Número 3 (placeholder visual)." },
-  { "char": "✋", "translit": "4", "notes": "Número 4 (placeholder visual)." },
-  { "char": "🖐️", "translit": "5", "notes": "Número 5 (placeholder visual)." },
-  { "char": "🖐️➕", "translit": "6", "notes": "Número 6 (placeholder visual)." },
-  { "char": "✋➕", "translit": "7", "notes": "Número 7 (placeholder visual)." },
-  { "char": "👌➕", "translit": "8", "notes": "Número 8 (placeholder visual)." },
-  { "char": "🤙➕", "translit": "9", "notes": "Número 9 (placeholder visual)." }
-],
     "accessibility": {
       "manualAlphabet": {
-        "A": "✊",
-        "B": "✋",
-        "C": "🤏",
-        "D": "☝️",
-        "E": "✊",
-        "F": "👌",
-        "G": "👉",
-        "H": "✌️➡️",
-        "I": "🤙",
-        "J": "🤙↩️",
-        "K": "✌️👍",
-        "L": "👍☝️",
-        "M": "✊🫳🫳🫳",
-        "N": "✊🫳🫳",
-        "O": "👌",
-        "P": "✌️👇",
-        "Q": "👈👇",
-        "R": "🤞",
-        "S": "✊👍",
-        "T": "✊🫳",
-        "U": "✌️",
-        "V": "✌️✨",
-        "W": "🖖",
-        "X": "☝️🪝",
-        "Y": "🤟",
-        "Z": "☝️〰️",
-        "0": "⭕",
-        "1": "☝️",
-        "2": "✌️",
-        "3": "🤟",
-        "4": "✋",
-        "5": "🖐️",
-        "6": "🖐️➕",
-        "7": "✋➕",
-        "8": "👌➕",
-        "9": "🤙➕"
+        "A": "✊", "B": "✋", "C": "🤏", "D": "☝️", "E": "✊", "F": "👌", "G": "👉", "H": "✌️➡️", "I": "🤙", "J": "🤙↩️", "K": "✌️👍", "L": "👍☝️", "M": "✊🫳🫳🫳", "N": "✊🫳🫳", "O": "👌", "P": "✌️👇", "Q": "👈👇", "R": "🤞", "S": "✊👍", "T": "✊🫳", "U": "✌️", "V": "✌️✨", "W": "🖖", "X": "☝️🪝", "Y": "🤟", "Z": "☝️〰️"
       },
       "basicSigns": [
-        { "slug": "ola", "label": "Olá", "description": "Saudação curta, gesto simples voltado ao interlocutor. (Placeholder visual: 👋)" },
-        { "slug": "bom-dia", "label": "Bom Dia", "description": "Combinação de 'Bom' + 'Dia' com movimento ascendente. (☀️)" },
-        { "slug": "boa-tarde", "label": "Boa Tarde", "description": "Variação de cumprimento com marca de período do dia. (🌤️)" },
-        { "slug": "boa-noite", "label": "Boa Noite", "description": "Cumprimento/encerramento com referência ao período noturno. (🌙)" },
-
-        { "slug": "por-favor", "label": "Por favor", "description": "Pedido educado, movimento suave na região do peito. (🙏)" },
-        { "slug": "obrigado", "label": "Obrigado", "description": "Agradecimento, gesto saindo da região da boca/queixo em direção à frente. (🤝)" },
-        { "slug": "desculpa", "label": "Desculpa", "description": "Pedido de desculpas, gesto curto e respeitoso. (🫶)" },
-        { "slug": "com-licenca", "label": "Com licença", "description": "Interrupção educada/abrir passagem. (🚶‍♂️➡️)" },
-
-        { "slug": "sim", "label": "Sim", "description": "Confirmação. (✅)" },
-        { "slug": "nao", "label": "Não", "description": "Negação. (❌)" },
-        { "slug": "talvez", "label": "Talvez", "description": "Incerteza/possibilidade; útil em negociação. (🤷)" },
-
-        { "slug": "ajuda", "label": "Ajuda", "description": "Pedido de ajuda; sinal ensinado em rotas e postos do Nexus. (🆘)" },
-        { "slug": "perigo", "label": "Perigo", "description": "Alerta imediato; sinal pode ser repetido para urgência. (⚠️)" },
-        { "slug": "silencio", "label": "Silêncio", "description": "Sinal tático para discrição. (🤫)" },
-        { "slug": "pare", "label": "Pare", "description": "Comando de parada imediata. (✋🛑)" },
-
-        { "slug": "agua", "label": "Água", "description": "Pedido básico de sobrevivência. (💧)" },
-        { "slug": "comida", "label": "Comida", "description": "Pedido básico; taverna/estrada. (🍞)" },
-        { "slug": "abrigo", "label": "Abrigo", "description": "Pedido de pouso/proteção por uma noite. (🏠)" },
-
-        { "slug": "amigo", "label": "Amigo", "description": "Identifica aliado ou intenção pacífica. (🫂)" },
-        { "slug": "inimigo", "label": "Inimigo", "description": "Indica ameaça/hostilidade. (👀⚔️)" },
-
-        { "slug": "ir", "label": "Ir", "description": "Indica deslocamento/avançar. (➡️)" },
-        { "slug": "voltar", "label": "Voltar", "description": "Indica retorno/recuo. (⬅️)" },
-        { "slug": "aqui", "label": "Aqui", "description": "Indica posição presente. (📍)" },
-        { "slug": "la", "label": "Lá", "description": "Indica posição distante/direção. (👉)" }
+        { "slug": "ola", "label": "Olá", "description": "Saudação curta. (👋)" },
+        { "slug": "ajuda", "label": "Ajuda", "description": "Pedido de ajuda; ensinado em postos do Nexus. (🆘)" },
+        { "slug": "perigo", "label": "Perigo", "description": "Alerta imediato. (⚠️)" },
+        { "slug": "silencio", "label": "Silêncio", "description": "Sinal tático para discrição. (🤫)" }
       ]
     },
     "transliterationEngine": "latin",
     "ttsEngine": "none"
   },
   {
-    "slug": "braille",
+    "slug": "braile",
     "name": "Braile",
     "nativeName": "Sistema Tátil",
     "category": "Escrita",
     "modality": "script",
     "family": "Tátil",
-    "regions": [
-      "Academias Imperiais",
-      "Bibliotecas de Ponto",
-      "Cartórios e Chancelarias",
-      "Postos do Bonfire Nexus",
-      "Hospitais e Casas de Cura",
-      "Rotas Comerciais (placas em relevo)"
-    ],
-    "peoples": [
-      "Pessoas Cegas",
-      "Escribas Táteis",
-      "Cartógrafos",
-      "Arquivistas",
-      "Aventureiros (uso em mapas)",
-      "Intérpretes Arcanos"
-    ],
+    "regions": ["Academias", "Bibliotecas", "Postos do Nexus"],
+    "peoples": ["Pessoas Cegas", "Escribas", "Cartógrafos"],
     "status": "Inclusivo",
     "referenceLanguage": "pt-BR",
     "description": [
-      "O Braile é um sistema de escrita tátil baseado em células de seis pontos. Ele não é um idioma: ele registra idiomas. Em Cinéria, ele é ensinado como ferramenta de leitura, navegação e autonomia, principalmente em academias, bibliotecas e ofícios de arquivo.",
-      "No Bonfire Tales, o Braile é valioso em situações onde luz é perigosa, frágil ou inexistente. Mapas em relevo, placas discretas e fichas de contrato em pontos permitem que um aventureiro leia no escuro sem acender uma chama — e sem chamar atenção."
+      "Braile é um sistema de escrita tátil baseado em células de seis pontos. Não é um idioma, mas um método para registrar idiomas. É valioso para ler no escuro sem acender uma tocha."
     ],
-
-    "lore": {
-      "origem": [
-        "As primeiras versões do Braile cineriano surgiram em centros de arquivo onde pergaminhos se acumulavam e a leitura por voz era lenta demais. Escribas buscaram um método de leitura silenciosa pelo toque.",
-        "A consolidação veio quando chancelarias e bibliotecas perceberam que um sistema tátil também serve como camada de segurança: documentos em Braile são difíceis de falsificar por quem não domina o método.",
-        "Com a expansão de postos de missão e contratos públicos, versões táteis de avisos e rotas começaram a aparecer em lugares estratégicos: corrimãos, pilares, mapas de parede e placas de hospedaria."
-      ],
-      "usosNoMundo": [
-        "Bibliotecas de Ponto: acervos onde livros são copiados em papel espesso ou placas finas, com padronização de margens e marcação tátil de capítulos.",
-        "Cartografia Tátil: mapas em relevo que combinam linhas (cursos d’água, muralhas) com símbolos de pontos (perigo, abrigo, rota segura).",
-        "Placas Discretas: marcações táteis em locais públicos (postos, templos, hospitais) para orientação e inclusão.",
-        "Arquivos do Nexus: versões táteis de contratos e recibos, usadas por agentes e por quem prefere não depender de leitura em voz alta."
-      ],
-      "tabus": [
-        "Em algumas regiões, é considerado desrespeitoso “testar” o Braile como brincadeira: tocar livros táteis sem necessidade é visto como invasão de espaço.",
-        "Em chancelarias, adulterar marcação tátil é crime grave, pois pode colocar pessoas em risco (ex.: trocar uma placa de saída por outra)."
-      ]
-    },
-
     "writingSystem": {
       "name": "Cela de 6 Pontos",
       "direction": "ltr",
-      "type": "Tátil",
-      "notes": "Cada caractere é uma combinação de 6 pontos (2 colunas × 3 linhas). Em escrita formal, usa sinais especiais para número, maiúscula e pontuação."
+      "type": "Tátil"
     },
-
-    "accessibility": {
-      "supportsBraille": true
-    },
-
-    "orthography": {
-      "regras": [
-        "A leitura é feita da esquerda para a direita, célula por célula.",
-        "O Braile registra letras e sinais; ele não substitui gramática do idioma falado.",
-        "Textos formais usam sinais de número e maiúscula para reduzir ambiguidade."
-      ],
-      "marcadores": [
-        { "name": "Sinal de Maiúscula", "char": "⠠", "use": "Indica que a próxima letra é maiúscula." },
-        { "name": "Sinal de Número", "char": "⠼", "use": "Indica que os próximos caracteres são números." }
-      ]
-    },
+    "accessibility": { "supportsBraille": true },
     "glyphs": [
-      { "char": "⠁", "translit": "a", "notes": "A" },
-      { "char": "⠃", "translit": "b", "notes": "B" },
-      { "char": "⠉", "translit": "c", "notes": "C" },
-      { "char": "⠙", "translit": "d", "notes": "D" },
-      { "char": "⠑", "translit": "e", "notes": "E" },
-      { "char": "⠋", "translit": "f", "notes": "F" },
-      { "char": "⠛", "translit": "g", "notes": "G" },
-      { "char": "⠓", "translit": "h", "notes": "H" },
-      { "char": "⠊", "translit": "i", "notes": "I" },
-      { "char": "⠚", "translit": "j", "notes": "J" },
-      { "char": "⠅", "translit": "k", "notes": "K" },
-      { "char": "⠇", "translit": "l", "notes": "L" },
-      { "char": "⠍", "translit": "m", "notes": "M" },
-      { "char": "⠝", "translit": "n", "notes": "N" },
-      { "char": "⠕", "translit": "o", "notes": "O" },
-      { "char": "⠏", "translit": "p", "notes": "P" },
-      { "char": "⠟", "translit": "q", "notes": "Q" },
-      { "char": "⠗", "translit": "r", "notes": "R" },
-      { "char": "⠎", "translit": "s", "notes": "S" },
-      { "char": "⠞", "translit": "t", "notes": "T" },
-      { "char": "⠥", "translit": "u", "notes": "U" },
-      { "char": "⠧", "translit": "v", "notes": "V" },
-      { "char": "⠺", "translit": "w", "notes": "W" },
-      { "char": "⠭", "translit": "x", "notes": "X" },
-      { "char": "⠽", "translit": "y", "notes": "Y" },
-      { "char": "⠵", "translit": "z", "notes": "Z" },
-
-      { "char": "⠼⠁", "translit": "1", "notes": "Número 1 (⠼ + a)" },
-      { "char": "⠼⠃", "translit": "2", "notes": "Número 2" },
-      { "char": "⠼⠉", "translit": "3", "notes": "Número 3" },
-      { "char": "⠼⠙", "translit": "4", "notes": "Número 4" },
-      { "char": "⠼⠑", "translit": "5", "notes": "Número 5" },
-      { "char": "⠼⠋", "translit": "6", "notes": "Número 6" },
-      { "char": "⠼⠛", "translit": "7", "notes": "Número 7" },
-      { "char": "⠼⠓", "translit": "8", "notes": "Número 8" },
-      { "char": "⠼⠊", "translit": "9", "notes": "Número 9" },
-      { "char": "⠼⠚", "translit": "0", "notes": "Número 0" },
-
-      { "char": "⠂", "translit": ",", "notes": "Vírgula" },
-      { "char": "⠲", "translit": ".", "notes": "Ponto final" },
-      { "char": "⠦", "translit": "?", "notes": "Interrogação" },
-      { "char": "⠖", "translit": "!", "notes": "Exclamação" },
-      { "char": "⠒", "translit": ":", "notes": "Dois pontos" },
-      { "char": "⠆", "translit": ";", "notes": "Ponto e vírgula" },
-      { "char": "⠤", "translit": "-", "notes": "Hífen" },
-      { "char": "⠶", "translit": "“”", "notes": "Aspas" },
-      { "char": "⠠", "translit": "CAP", "notes": "Sinal de maiúscula" },
-      { "char": "⠼", "translit": "NUM", "notes": "Sinal de número" },
-      { "char": "⠀", "translit": " ", "notes": "Espaço (célula vazia)" }
+      { "char": "⠁", "translit": "a" }, { "char": "⠃", "translit": "b" }, { "char": "⠉", "translit": "c" },
+      { "char": "⠙", "translit": "d" }, { "char": "⠑", "translit": "e" }, { "char": "⠋", "translit": "f" },
+      { "char": "⠛", "translit": "g" }, { "char": "⠓", "translit": "h" }, { "char": "⠊", "translit": "i" },
+      { "char": "⠚", "translit": "j" }, { "char": "⠅", "translit": "k" }, { "char": "⠇", "translit": "l" },
+      { "char": "⠍", "translit": "m" }, { "char": "⠝", "translit": "n" }, { "char": "⠕", "translit": "o" },
+      { "char": "⠏", "translit": "p" }, { "char": "⠟", "translit": "q" }, { "char": "⠗", "translit": "r" },
+      { "char": "⠎", "translit": "s" }, { "char": "⠞", "translit": "t" }, { "char": "⠥", "translit": "u" },
+      { "char": "⠧", "translit": "v" }, { "char": "⠺", "translit": "w" }, { "char": "⠭", "translit": "x" },
+      { "char": "⠽", "translit": "y" }, { "char": "⠵", "translit": "z" }
     ],
-
-    "customs": [
-      "Bibliotecas de Ponto costumam ter mesas de leitura com régua-guia (para manter linhas retas) e livros em papel grosso ou placas finas, para segurar o relevo.",
-      "Mapas táteis usam convenções: linhas contínuas para estradas, pontos duplos para perigo, pontos triplos para abrigo, e contorno em relevo para rios e muralhas.",
-      "Em postos do Nexus, versões táteis de contratos têm marcações de seção: objetivo, prazo, prova e recompensa são sempre apresentados na mesma ordem para leitura rápida."
-    ],
-
-    "phrases": [
-      {
-        "pt": "Paz na fogueira.",
-        "native": "⠠⠏⠁⠵⠀⠝⠁⠀⠋⠕⠛⠥⠑⠊⠗⠁⠲",
-        "translit": "CAP p a z (esp) n a (esp) f o g u e i r a .",
-        "usage": "Exemplo de frase em Braile (registro do Comum Cineriano)."
-      },
-      {
-        "pt": "Perigo à frente.",
-        "native": "⠠⠏⠑⠗⠊⠛⠕⠀⠷⠀⠋⠗⠑⠝⠞⠑⠲",
-        "translit": "CAP p e r i g o (esp) à (esp) f r e n t e .",
-        "usage": "Aviso em placa tátil (rota/porta)."
-      },
-      {
-        "pt": "Água e abrigo.",
-        "native": "⠠⠷⠛⠥⠁⠀⠑⠀⠁⠃⠗⠊⠛⠕⠲",
-        "translit": "CAP á g u a (esp) e (esp) a b r i g o .",
-        "usage": "Placas e mapas de orientação."
-      },
-      {
-        "pt": "Saída à esquerda.",
-        "native": "⠠⠎⠁⠷⠙⠁⠀⠷⠀⠑⠎⠟⠥⠑⠗⠙⠁⠲",
-        "translit": "CAP s a í d a (esp) à (esp) e s q u e r d a .",
-        "usage": "Orientação em edifícios públicos."
-      }
-    ],
-
-    "dictionary": {
-      "braile": "sistema tátil",
-      "pontos": "células",
-      "cela": "célula",
-      "mapa": "mapa em relevo",
-      "placa": "placa tátil",
-      "biblioteca": "biblioteca de ponto",
-      "contrato": "contrato em pontos",
-      "nexus": "nexus"
-    },
-
     "transliterationEngine": "braille",
-    "ttsEngine": "gemini",
-
-    "pronunciationTips": [
-      "Braile não é falado; é lido pelo toque.",
-      "Quando um texto precisa ser vocalizado, ele segue a pronúncia do idioma de origem (ex.: Comum Cineriano).",
-      "Em leitura rápida, leitores experientes reconhecem padrões de palavra, não letra por letra."
-    ]
+    "ttsEngine": "gemini"
   }
-
 ]
