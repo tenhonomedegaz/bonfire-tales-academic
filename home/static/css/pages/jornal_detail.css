@@ -139,3 +139,33 @@
   padding: .7rem .9rem;
   text-transform: uppercase;
 }
+
+/* ── Layout em Colunas (O Atlas) ── */
+.artigo-layout--colunas {
+  max-width: 1000px;
+}
+.artigo-body--colunas .bonfire-markdown {
+  column-count: 2;
+  column-gap: 2.5rem;
+  column-rule: 1px solid var(--stroke);
+}
+.artigo-body--colunas .bonfire-markdown h1,
+.artigo-body--colunas .bonfire-markdown h2 {
+  column-span: all;
+  text-align: center;
+  margin-bottom: 1rem;
+}
+.artigo-body--colunas .bonfire-markdown img {
+  break-inside: avoid;
+}
+.artigo-body--colunas .bonfire-markdown p,
+.artigo-body--colunas .bonfire-markdown ul,
+.artigo-body--colunas .bonfire-markdown ol,
+.artigo-body--colunas .bonfire-markdown blockquote {
+  break-inside: avoid;
+}
+@media (max-width: 768px) {
+  .artigo-body--colunas .bonfire-markdown {
+    column-count: 1;
+  }
+}

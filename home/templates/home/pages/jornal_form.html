@@ -38,6 +38,13 @@
         <label for="edDataPublicacao">Data de Publicação (Retroativa)</label>
         <input type="datetime-local" id="edDataPublicacao" name="data_publicacao" value="{{ artigo.data_publicacao|date:'Y-m-d\TH:i'|default:'' }}">
       </div>
+      <div class="editor-field">
+        <label for="edLayout">Layout</label>
+        <select id="edLayout" name="layout">
+          <option value="padrao" {% if artigo.layout != 'colunas' %}selected{% endif %}>Padrão</option>
+          <option value="colunas" {% if artigo.layout == 'colunas' %}selected{% endif %}>Colunas (Atlas)</option>
+        </select>
+      </div>
     </div>
 
     <div class="editor-toolbar">
@@ -190,6 +197,7 @@
       conteudo_markdown: editor.value,
       destaque: document.getElementById('edDestaque').value === 'true',
       data_publicacao: document.getElementById('edDataPublicacao').value,
+      layout: document.getElementById('edLayout').value,
     };
     const csrf = decodeURIComponent((document.cookie.split('; ').find(r => r.startsWith('csrftoken=')) || '').split('=')[1] || '');
     const url = {% if is_new %}'{% url "jornal_create" %}'{% else %}'{% url "jornal_update" slug=artigo.slug %}'{% endif %};

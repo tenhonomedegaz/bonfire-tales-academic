@@ -2476,6 +2476,7 @@ def jornal_create_view(request):
             'imagem_url': data.get('imagem_url', ''),
             'autor': request.user,
             'destaque': data.get('destaque', False),
+            'layout': data.get('layout', 'padrao'),
         }
         
         data_publicacao_str = data.get('data_publicacao')
@@ -2507,6 +2508,7 @@ def jornal_update_view(request, slug):
     artigo.resumo = data.get('resumo', artigo.resumo)
     artigo.imagem_url = data.get('imagem_url', artigo.imagem_url)
     artigo.destaque = data.get('destaque', artigo.destaque)
+    artigo.layout = data.get('layout', artigo.layout)
     
     data_publicacao_str = data.get('data_publicacao')
     if data_publicacao_str:

@@ -75,7 +75,7 @@
       <div class="flex-1 flex flex-row w-full justify-center">
           {% block ad_containers %}
           
-          <aside class="ad-container-left hidden min-[1600px]:flex flex-col gap-4 w-[160px] 2xl:w-[250px] flex-shrink-0 pt-8 sticky top-[57px] h-[calc(100vh-57px)] overflow-hidden z-30">
+          <aside class="ad-container-left hidden min-[1340px]:flex flex-col gap-4 w-[160px] 2xl:w-[250px] flex-shrink-0 pt-8 sticky top-[57px] h-[calc(100vh-57px)] overflow-hidden z-30">
               <div class="h-full w-full">
                   {% include 'home/components/ad_sidebar.html' %}
               </div>
@@ -85,7 +85,7 @@
           <main class="{% block main_class %}flex-1 w-full max-w-5xl mx-auto px-4 md:px-8 py-8{% endblock %} relative z-10 min-w-0">
               {% block mobile_ad_top %}
               
-              <div class="block min-[1600px]:hidden mb-8 w-full">
+              <div class="block min-[1340px]:hidden mb-8 w-full">
                   {% include 'home/components/ad_horizontal.html' %}
               </div>
               {% endblock %}
@@ -103,7 +103,7 @@
 
           {% block ad_containers_right %}
           
-          <aside class="ad-container-right hidden min-[1600px]:flex flex-col gap-4 w-[160px] 2xl:w-[250px] flex-shrink-0 pt-8 sticky top-[57px] h-[calc(100vh-57px)] overflow-hidden z-30">
+          <aside class="ad-container-right hidden min-[1340px]:flex flex-col gap-4 w-[160px] 2xl:w-[250px] flex-shrink-0 pt-8 sticky top-[57px] h-[calc(100vh-57px)] overflow-hidden z-30">
               <div class="h-full w-full">
                   {% include 'home/components/ad_sidebar.html' %}
               </div>

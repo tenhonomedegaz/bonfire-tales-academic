@@ -21,8 +21,8 @@
   </div>
 </div>
 
-<div class="artigo-layout">
-  <div class="artigo-body">
+<div class="artigo-layout{% if artigo.layout == 'colunas' %} artigo-layout--colunas{% endif %}">
+  <div class="artigo-body{% if artigo.layout == 'colunas' %} artigo-body--colunas{% endif %}">
     <div class="bonfire-markdown" data-markdown-source>{{ artigo.conteudo_markdown|escape }}</div>
   </div>
 
