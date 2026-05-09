@@ -2,6 +2,13 @@
 chcp 65001 >nul 2>&1
 cd /d "%~dp0"
 
+REM Auto-minimizar a janela ao ser executado
+if not defined MINIMIZED (
+    set "MINIMIZED=1"
+    start /min "" cmd /c "%~f0"
+    exit /b
+)
+
 REM Script silencioso para iniciar o servidor Django automaticamente.
 REM Usado pela Tarefa Agendada do Windows ou pelo bot do Discord.
 
