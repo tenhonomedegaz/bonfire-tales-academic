@@ -1,0 +1,54 @@
+{% extends "home/base.html" %}
+{% load static %}
+
+{% block title %}Login - Bonfire Tales{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+  <div class="max-w-md mx-auto">
+    <div class="bg-[var(--bg1)] border border-[var(--stroke)] shadow-2xl p-6 rounded relative">
+      <h2 class="text-2xl font-rpg font-bold text-[var(--ember)] mb-6 text-center">Acessar Conta</h2>
+
+      <form method="post" action="{% url 'login' %}">
+        {% csrf_token %}
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-semibold mb-1 text-[var(--muted)]" for="id_username">Usuário ou e-mail</label>
+            <input 
+              type="text" 
+              name="username" 
+              id="id_username" 
+              required
+              class="w-full bg-[var(--bg0)] border border-[var(--stroke)] text-[var(--text)] text-sm py-2 px-3 focus:outline-none focus:border-[var(--ember)] focus:ring-1 focus:ring-[var(--ember)] rounded-sm"
+            >
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-1 text-[var(--muted)]" for="id_password">Senha</label>
+            <input 
+              type="password" 
+              name="password" 
+              id="id_password" 
+              required
+              class="w-full bg-[var(--bg0)] border border-[var(--stroke)] text-[var(--text)] text-sm py-2 px-3 focus:outline-none focus:border-[var(--ember)] focus:ring-1 focus:ring-[var(--ember)] rounded-sm"
+            >
+          </div>
+          
+          {% if form.errors %}
+            <p class="text-red-500 text-sm">Usuário/e-mail ou senha incorretos. Tente novamente.</p>
+          {% endif %}
+
+          <div class="pt-4">
+            <button type="submit" class="w-full text-center flex items-center justify-center rounded-sm bg-gradient-to-r from-[var(--flame)] to-[var(--ember)] px-4 py-2 font-bold text-white shadow-[0_0_15px_rgba(210,23,23,0.3)] hover:shadow-[0_0_20px_rgba(210,23,23,0.6)] hover:brightness-110 transition-all">
+              Entrar
+            </button>
+          </div>
+          <p class="text-center text-xs text-[var(--muted)]">
+            Não tem acesso? <a href="{% url 'register' %}" class="text-[var(--ember)] hover:text-[var(--text)]">Cadastrar</a>
+          </p>
+        </div>
+        <input type="hidden" name="next" value="{{ next|default:'/' }}">
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

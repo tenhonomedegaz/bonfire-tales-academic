@@ -1,0 +1,141 @@
+.artigo-layout {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 1.5rem 4rem;
+}
+.artigo-hero {
+  background-color: #1a1a1e;
+  background-image: linear-gradient(to bottom, rgba(0,0,0,.15), rgba(0,0,0,.85)), var(--hero-bg);
+  background-position: center;
+  background-size: cover;
+  border-bottom: 1px solid var(--stroke);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: 340px;
+  padding: 2.5rem clamp(1.25rem, 4vw, 3rem);
+}
+.artigo-eyebrow {
+  color: var(--ember);
+  font-size: .72rem;
+  font-weight: 900;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+.artigo-title {
+  color: #fff;
+  font-family: 'Cinzel', serif;
+  font-size: clamp(1.8rem, 3.5vw, 2.6rem);
+  font-weight: 900;
+  line-height: 1.15;
+  margin-top: .5rem;
+  text-shadow: 0 4px 18px rgba(0,0,0,.8);
+  text-transform: uppercase;
+}
+.artigo-meta {
+  align-items: center;
+  color: var(--muted);
+  display: flex;
+  font-size: .78rem;
+  gap: .5rem;
+  margin-top: 1rem;
+}
+.artigo-meta .author { color: var(--ember); font-weight: 700; }
+.artigo-body {
+  margin-top: 2.5rem;
+}
+.artigo-body .bonfire-markdown {
+  color: var(--muted);
+  font-size: .88rem;
+  line-height: 1.75;
+}
+.artigo-body .bonfire-markdown strong { color: #fff; }
+.artigo-body .bonfire-markdown h1,
+.artigo-body .bonfire-markdown h2,
+.artigo-body .bonfire-markdown h3 {
+  color: var(--ember);
+  font-family: 'Cinzel', serif;
+  text-transform: uppercase;
+}
+.artigo-back {
+  align-items: center;
+  color: var(--muted);
+  display: inline-flex;
+  font-size: .78rem;
+  font-weight: 700;
+  gap: .35rem;
+  margin-top: 2rem;
+  transition: color .2s;
+}
+.artigo-back:hover { color: var(--ember); }
+.artigo-edit-tools {
+  border-top: 1px solid var(--stroke);
+  display: flex;
+  gap: .75rem;
+  justify-content: flex-end;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+}
+.artigo-edit-btn {
+  align-items: center;
+  background: var(--ember);
+  border-radius: 5px;
+  color: #070707;
+  display: inline-flex;
+  font-size: .72rem;
+  font-weight: 900;
+  gap: .35rem;
+  letter-spacing: .06em;
+  padding: .7rem .9rem;
+  text-transform: uppercase;
+  transition: background .2s;
+}
+.artigo-edit-btn:hover { background: var(--flame); }
+.wiki-inline-editor {
+  background: var(--bg1);
+  border: 1px solid var(--stroke);
+  border-radius: 8px;
+  display: none;
+  gap: .75rem;
+  margin-top: 1rem;
+  padding: 1rem;
+}
+.wiki-inline-editor.is-open { display: grid; }
+.wiki-inline-editor label {
+  color: var(--muted);
+  display: grid;
+  font-size: .68rem;
+  font-weight: 900;
+  gap: .35rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+.wiki-inline-editor input,
+.wiki-inline-editor textarea {
+  background: var(--bg0);
+  border: 1px solid var(--stroke);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: .85rem;
+  padding: .65rem .75rem;
+}
+.wiki-inline-editor textarea { min-height: 300px; resize: vertical; font-family: Consolas, monospace; }
+.wiki-inline-actions { display: flex; gap: .5rem; justify-content: flex-end; }
+.wiki-inline-cancel {
+  border: 1px solid var(--stroke);
+  border-radius: 5px;
+  color: var(--muted);
+  font-size: .72rem;
+  font-weight: 900;
+  padding: .7rem .9rem;
+  text-transform: uppercase;
+}
+.wiki-inline-save {
+  background: var(--ember);
+  border-radius: 5px;
+  color: #070707;
+  font-size: .72rem;
+  font-weight: 900;
+  padding: .7rem .9rem;
+  text-transform: uppercase;
+}

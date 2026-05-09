@@ -1,0 +1,184 @@
+.regions-home {
+  left: 50%;
+  margin: -1rem 0 0;
+  padding: 1.25rem clamp(.8rem, 2vw, 1.5rem) 3rem;
+  position: relative;
+  transform: translateX(-50%);
+  width: min(100vw, 1920px);
+}
+.regions-home-header {
+  align-items: flex-end;
+  display: flex;
+  gap: 1.5rem;
+  justify-content: space-between;
+  margin-bottom: 2.25rem;
+}
+.regions-kicker {
+  align-items: center;
+  color: var(--ember);
+  display: flex;
+  font-size: .72rem;
+  font-weight: 900;
+  gap: .65rem;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+.regions-kicker span {
+  background: linear-gradient(to right, transparent, var(--ember));
+  height: 1px;
+  width: 32px;
+}
+.regions-home h1 {
+  color: #f3eee6;
+  font-family: 'Cinzel', serif;
+  font-size: clamp(2.2rem, 4vw, 4rem);
+  font-weight: 500;
+  letter-spacing: .04em;
+  margin-top: 1rem;
+  text-transform: uppercase;
+}
+.regions-summary {
+  color: #866b4f;
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  font-size: .85rem;
+  font-style: italic;
+}
+.regions-summary button {
+  border: 1px solid var(--ember);
+  border-radius: 4px;
+  color: var(--ember);
+  font-size: .72rem;
+  font-style: normal;
+  font-weight: 900;
+  letter-spacing: .08em;
+  padding: .55rem .75rem;
+  text-transform: uppercase;
+}
+.territory-card-grid {
+  display: grid;
+  gap: 1.1rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.territory-card {
+  background: #070707;
+  border: 1px solid color-mix(in srgb, var(--territory-color) 52%, #1f1f1f);
+  border-radius: 4px;
+  min-height: 250px;
+  overflow: hidden;
+  position: relative;
+}
+.territory-card:nth-child(1),
+.territory-card:nth-child(2),
+.territory-card:nth-child(3) {
+  min-height: 255px;
+}
+.territory-card-bg {
+  background-image:
+    linear-gradient(to right, rgba(6,6,6,.88), rgba(6,6,6,.62) 45%, rgba(6,6,6,.22)),
+    linear-gradient(to top, rgba(6,6,6,.95), transparent 60%),
+    var(--territory-image);
+  background-position: center;
+  background-size: cover;
+  inset: 0;
+  position: absolute;
+  transition: transform .7s ease, filter .7s ease;
+}
+.territory-card:hover .territory-card-bg {
+  filter: brightness(1.08);
+  transform: scale(1.035);
+}
+.territory-card-content {
+  display: flex;
+  flex-direction: column;
+  inset: 0;
+  padding: 1.35rem;
+  position: absolute;
+  z-index: 1;
+}
+.territory-card-label {
+  align-self: flex-start;
+  background: color-mix(in srgb, var(--territory-color) 14%, rgba(0,0,0,.55));
+  border: 1px solid color-mix(in srgb, var(--territory-accent) 48%, transparent);
+  color: var(--territory-accent);
+  font-size: .72rem;
+  font-weight: 900;
+  letter-spacing: .08em;
+  padding: .45rem .65rem;
+  text-transform: uppercase;
+}
+.territory-card h2 {
+  color: #f3eee6;
+  font-family: 'Cinzel', serif;
+  font-size: clamp(1.25rem, 1.55vw, 1.75rem);
+  font-weight: 500;
+  margin-top: .75rem;
+  text-transform: uppercase;
+}
+.territory-card p {
+  color: #b8a99a;
+  font-family: Georgia, serif;
+  font-size: .9rem;
+  line-height: 1.55;
+  margin-top: .45rem;
+  max-width: 68ch;
+}
+.territory-card-meta {
+  align-items: center;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  margin-top: auto;
+}
+.territory-card-meta span {
+  align-items: center;
+  color: color-mix(in srgb, var(--territory-accent) 60%, #a9947b);
+  display: flex;
+  font-size: .78rem;
+  gap: .45rem;
+}
+.territory-card-meta svg {
+  color: var(--territory-accent);
+}
+.territory-card-meta a {
+  background: color-mix(in srgb, var(--territory-color) 20%, transparent);
+  border: 1px solid color-mix(in srgb, var(--territory-accent) 70%, transparent);
+  border-radius: 4px;
+  color: var(--territory-accent);
+  font-size: .72rem;
+  font-weight: 900;
+  letter-spacing: .1em;
+  padding: .55rem .85rem;
+  text-transform: uppercase;
+}
+.territory-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .35rem;
+  margin-top: .8rem;
+}
+.territory-tags span {
+  background: color-mix(in srgb, var(--territory-color) 30%, rgba(70, 38, 18, .55));
+  border: 1px solid color-mix(in srgb, var(--territory-accent) 32%, rgba(204, 126, 55, .32));
+  color: color-mix(in srgb, var(--territory-accent) 70%, #b49372);
+  font-size: .66rem;
+  font-weight: 900;
+  letter-spacing: .08em;
+  padding: .35rem .5rem;
+  text-transform: uppercase;
+}
+.regions-empty {
+  color: var(--muted);
+  grid-column: 1 / -1;
+  padding: 2rem;
+  text-align: center;
+}
+@media (max-width: 1180px) {
+  .territory-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 760px) {
+  .regions-home-header { align-items: flex-start; flex-direction: column; }
+  .territory-card-grid { grid-template-columns: 1fr; }
+  .regions-summary { align-items: flex-start; flex-direction: column; }
+}

@@ -1,0 +1,51 @@
+{% extends 'home/base.html' %}
+{% load static %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/pages/cronica_detail.css' %}">
+
+{% endblock %}
+
+{% block content %}
+<div class="cronica-hero">
+  <span class="cronica-eyebrow">{{ cronica.territorio_label }}{% if cronica.regiao_label %} &middot; {{ cronica.regiao_label }}{% endif %}</span>
+  <h1 class="cronica-title">{{ cronica.titulo }}</h1>
+  <div class="cronica-meta">
+    <span class="author">{{ cronica.autor.username }}</span>
+    {% if cronica.personagem_nome %}
+    <span>&middot;</span>
+    <span class="personagem">como {{ cronica.personagem_nome }}</span>
+    {% endif %}
+    <span>&middot;</span>
+    <span>{{ cronica.data_submissao|date:"d \d\e F \d\e Y" }}</span>
+  </div>
+</div>
+
+<div class="cronica-layout">
+  {% if cronica.status == 'pendente' %}
+  <div class="cronica-status-banner pendente">
+    <h4>⏳ Aguardando Aprovação</h4>
+    <p>Esta crônica está em análise pela equipe de staff. Você será notificado quando ela for aprovada ou receberá feedback para ajustes.</p>
+  </div>
+  {% elif cronica.status == 'reprovada' %}
+  <div class="cronica-status-banner reprovada">
+    <h4>✗ Crônica Reprovada</h4>
+    {% if cronica.feedback_staff %}
+    <p><strong>Feedback:</strong> {{ cronica.feedback_staff }}</p>
+    {% else %}
+    <p>Esta crônica foi reprovada. Você pode editá-la e resubmeter.</p>
+    {% endif %}
+    <a href="{% url 'cronica_edit' slug=cronica.slug %}" style="color: var(--ember); font-weight: 700; font-size: .78rem; margin-top: .5rem; display: inline-block;">Editar e Resubmeter →</a>
+  </div>
+  {% endif %}
+
+  <div class="cronica-body">
+    <div class="bonfire-markdown" data-markdown-source data-markdown-options="false">{{ cronica.conteudo_markdown|escape }}</div>
+  </div>
+
+  <a href="{% url 'mundo_cronicas' %}" class="cronica-back">
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+    Voltar às Crônicas
+  </a>
+</div>
+{% endblock %}

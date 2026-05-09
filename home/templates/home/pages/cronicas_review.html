@@ -1,0 +1,80 @@
+{% extends 'home/base.html' %}
+{% load static %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/pages/cronicas_review.css' %}">
+
+{% endblock %}
+
+{% block content %}
+<div class="review-shell">
+  <a href="{% url 'mundo_cronicas' %}" class="review-back">
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+    Voltar às Crônicas
+  </a>
+
+  <div class="review-header">
+    <h1>Fila de Revisão</h1>
+    <p>{{ pendentes|length }} crônica{{ pendentes|length|pluralize:"s" }} aguardando aprovação. Leia o conteúdo abaixo e decida.</p>
+  </div>
+
+  {% for c in pendentes %}
+  <div class="review-item" id="review-{{ c.id_cronica }}">
+    <div class="review-item-header">
+      <h2 class="review-item-title">{{ c.titulo }}</h2>
+      <div class="review-item-meta">
+        <span class="author">{{ c.autor.username }}</span>
+        {% if c.personagem_nome %}<span>&middot; como <em>{{ c.personagem_nome }}</em></span>{% endif %}
+        {% if c.territorio %}<span>&middot; <span class="location">{{ c.territorio }}{% if c.regiao %} / {{ c.regiao }}{% endif %}</span></span>{% endif %}
+        <span>&middot; {{ c.data_submissao|date:"d/m/Y H:i" }}</span>
+      </div>
+    </div>
+    <div class="review-item-body">
+      <div class="bonfire-markdown" data-markdown-source data-markdown-options="false">{{ c.conteudo_markdown|escape }}</div>
+    </div>
+    <div class="review-item-actions">
+      <input type="text" class="review-feedback-input" id="feedback-{{ c.id_cronica }}" placeholder="Feedback (obrigatório para reprovar)...">
+      <button type="button" class="review-btn-approve" onclick="reviewAction({{ c.id_cronica }}, 'aprovar')">✓ Aprovar</button>
+      <button type="button" class="review-btn-reject" onclick="reviewAction({{ c.id_cronica }}, 'reprovar')">✗ Reprovar</button>
+    </div>
+  </div>
+  {% empty %}
+  <div class="review-empty">
+    <p>🎉 Nenhuma crônica pendente! Todas foram revisadas.</p>
+  </div>
+  {% endfor %}
+</div>
+
+<script>
+function csrfToken() {
+  return decodeURIComponent((document.cookie.split('; ').find(r => r.startsWith('csrftoken=')) || '').split('=')[1] || '');
+}
+
+async function reviewAction(id, action) {
+  const feedbackEl = document.getElementById(`feedback-${id}`);
+  const feedback = feedbackEl ? feedbackEl.value : '';
+  
+  if (action === 'reprovar' && !feedback.trim()) {
+    feedbackEl.style.borderColor = '#ef4444';
+    feedbackEl.focus();
+    feedbackEl.placeholder = 'Escreva o motivo da reprovação...';
+    return;
+  }
+
+  const res = await fetch(`/mundo/cronicas/${id}/revisar/`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken()},
+    body: JSON.stringify({ action, feedback }),
+  });
+
+  if (res.ok) {
+    const item = document.getElementById(`review-${id}`);
+    item.classList.add('is-resolved');
+    const actionsDiv = item.querySelector('.review-item-actions');
+    const statusText = action === 'aprovar' ? '✓ Aprovada' : '✗ Reprovada';
+    const statusColor = action === 'aprovar' ? '#22c55e' : '#ef4444';
+    actionsDiv.innerHTML = `<span style="color: ${statusColor}; font-weight: 900; font-size: .78rem;">${statusText}</span>`;
+  }
+}
+</script>
+{% endblock %}

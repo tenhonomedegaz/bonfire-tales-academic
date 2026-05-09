@@ -1,0 +1,26 @@
+# Molde para importar opcoes de jogo pelo admin.
+# Separe cada bloco com uma linha contendo apenas ---
+# Classes e Subclasses recebem slugs separados por virgula. Deixe em branco se a opcao nao tiver acesso especifico.
+
+[OPCOES]
+Nome: Nome da Opcao
+Slug:
+Tipo: Manobra
+Tags: Manobra, Guerreiro
+Pre Requisito: 5º nivel de Guerreiro
+Classes: guerreiro
+Subclasses:
+Nivel Recebimento: 5
+Descricao:
+Texto da opcao em Markdown.
+---
+
+Nome: Outra Opcao
+Tipo: Estilo de Luta
+Tags: Marcial
+Pre Requisito:
+Classes: guerreiro, patrulheiro
+Subclasses:
+Nivel Recebimento: 1
+Descricao:
+Texto da opcao em Markdown.

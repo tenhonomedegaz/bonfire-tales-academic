@@ -1,0 +1,157 @@
+<div id="tab-armas" class="tab-content">
+    <h3 class="text-2xl font-bold mb-4 text-[var(--spark)]">Armas</h3>
+    {% if armas %}
+        {% for item in armas %}
+        <div class="item-card" onclick="toggleItem(this)">
+            <div class="item-card-header">
+                <div>
+                    <h4 class="font-bold text-lg m-0">{{ item.nome }}</h4>
+                    <span class="text-sm text-[var(--muted)]">{{ item.get_subcategoria_display|default:item.subcategoria }}</span>
+                </div>
+                <div class="flex items-center gap-4">
+                    <span class="text-sm font-semibold text-[var(--flame)]">{{ item.dano }}</span>
+                    <span class="text-sm text-[var(--muted)]">{{ item.preco }} | {{ item.peso|default:"--" }} kg</span>
+                    <svg class="chevron w-5 h-5 text-[var(--muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </div>
+            </div>
+            <div class="item-card-body">
+                {% if item.propriedades %}
+                    <p class="mb-2"><strong>Propriedades:</strong> {{ item.propriedades }}</p>
+                {% endif %}
+                {% if item.maestria %}
+                    <p class="mb-2"><strong>Maestria:</strong> <span class="text-[var(--spark)]">{{ item.maestria }}</span></p>
+                {% endif %}
+                {% if item.descricao_markdown %}
+                    <div class="bonfire-markdown text-sm mt-2" data-markdown-source>
+                        {{ item.descricao_markdown|escape }}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <p class="text-[var(--muted)]">Nenhuma arma cadastrada.</p>
+    {% endif %}
+</div>
+
+<div id="tab-armaduras" class="tab-content">
+    <h3 class="text-2xl font-bold mb-4 text-[var(--spark)]">Armaduras e Escudos</h3>
+    {% if armaduras %}
+        {% for item in armaduras %}
+        <div class="item-card" onclick="toggleItem(this)">
+            <div class="item-card-header">
+                <div>
+                    <h4 class="font-bold text-lg m-0">{{ item.nome }}</h4>
+                    <span class="text-sm text-[var(--muted)]">{{ item.get_subcategoria_display|default:item.subcategoria }}</span>
+                </div>
+                <div class="flex items-center gap-4">
+                    <span class="text-sm font-semibold text-[var(--spark)]">CA {{ item.ca }}</span>
+                    <span class="text-sm text-[var(--muted)]">{{ item.preco }} | {{ item.peso|default:"--" }} kg</span>
+                    <svg class="chevron w-5 h-5 text-[var(--muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </div>
+            </div>
+            <div class="item-card-body">
+                <div class="flex gap-4 mb-2">
+                    {% if item.forca_minima %}
+                        <p class="text-sm"><strong>Força Mínima:</strong> {{ item.forca_minima }}</p>
+                    {% endif %}
+                    {% if item.furtividade_desvantagem %}
+                        <p class="text-sm text-[var(--flame)]"><strong>Desvantagem em Furtividade</strong></p>
+                    {% endif %}
+                </div>
+                {% if item.descricao_markdown %}
+                    <div class="bonfire-markdown text-sm mt-2" data-markdown-source>
+                        {{ item.descricao_markdown|escape }}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <p class="text-[var(--muted)]">Nenhuma armadura cadastrada.</p>
+    {% endif %}
+</div>
+
+<div id="tab-ferramentas" class="tab-content">
+    <h3 class="text-2xl font-bold mb-4 text-[var(--spark)]">Ferramentas</h3>
+    {% if ferramentas %}
+        {% for item in ferramentas %}
+        <div class="item-card" onclick="toggleItem(this)">
+            <div class="item-card-header">
+                <div>
+                    <h4 class="font-bold text-lg m-0">{{ item.nome }}</h4>
+                </div>
+                <div class="flex items-center gap-4">
+                    <span class="text-sm text-[var(--muted)]">{{ item.preco }} | {{ item.peso|default:"--" }} kg</span>
+                    <svg class="chevron w-5 h-5 text-[var(--muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </div>
+            </div>
+            <div class="item-card-body">
+                {% if item.descricao_markdown %}
+                    <div class="bonfire-markdown text-sm mt-2" data-markdown-source>
+                        {{ item.descricao_markdown|escape }}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <p class="text-[var(--muted)]">Nenhuma ferramenta cadastrada.</p>
+    {% endif %}
+</div>
+
+<div id="tab-pacotes" class="tab-content">
+    <h3 class="text-2xl font-bold mb-4 text-[var(--spark)]">Pacotes</h3>
+    {% if pacotes %}
+        {% for item in pacotes %}
+        <div class="item-card" onclick="toggleItem(this)">
+            <div class="item-card-header">
+                <div>
+                    <h4 class="font-bold text-lg m-0">{{ item.nome }}</h4>
+                </div>
+                <div class="flex items-center gap-4">
+                    <span class="text-sm text-[var(--muted)]">{{ item.preco }}</span>
+                    <svg class="chevron w-5 h-5 text-[var(--muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </div>
+            </div>
+            <div class="item-card-body">
+                {% if item.descricao_markdown %}
+                    <div class="bonfire-markdown text-sm mt-2" data-markdown-source>
+                        {{ item.descricao_markdown|escape }}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <p class="text-[var(--muted)]">Nenhum pacote cadastrado.</p>
+    {% endif %}
+</div>
+
+<div id="tab-equipamentos" class="tab-content">
+    <h3 class="text-2xl font-bold mb-4 text-[var(--spark)]">Equipamento de Aventura</h3>
+    {% if equipamentos %}
+        {% for item in equipamentos %}
+        <div class="item-card" onclick="toggleItem(this)">
+            <div class="item-card-header">
+                <div>
+                    <h4 class="font-bold text-lg m-0">{{ item.nome }}</h4>
+                </div>
+                <div class="flex items-center gap-4">
+                    <span class="text-sm text-[var(--muted)]">{{ item.preco }} | {{ item.peso|default:"--" }} kg</span>
+                    <svg class="chevron w-5 h-5 text-[var(--muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </div>
+            </div>
+            <div class="item-card-body">
+                {% if item.descricao_markdown %}
+                    <div class="bonfire-markdown text-sm mt-2" data-markdown-source>
+                        {{ item.descricao_markdown|escape }}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <p class="text-[var(--muted)]">Nenhum equipamento cadastrado.</p>
+    {% endif %}
+</div>

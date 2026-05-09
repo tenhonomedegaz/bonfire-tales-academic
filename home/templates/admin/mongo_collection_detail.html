@@ -1,0 +1,108 @@
+
+<link rel="stylesheet" href="{% static 'css/pages/mongo_collection_detail.css' %}">
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrastyle %}{{ block.super }}
+
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+  <div class="object-tools">
+    <a href="{% url 'admin:mongo_document_edit' %}?collection={{ collection_name|urlencode }}" class="addlink">Novo documento</a>
+    {% if collection_name == spells_collection_name %}
+    <a href="{% url 'admin:spell_excel_import' %}" class="addlink">Importar Excel</a>
+    {% endif %}
+    <a href="{% url 'admin:mongo_collections' %}" class="viewsitelink">Voltar para collections</a>
+  </div>
+
+  <h1>{{ title }}</h1>
+
+  <form method="get" class="mongo-toolbar">
+    <div class="mongo-toolbar-fields">
+      <label>
+        Busca
+        <input type="search" name="q" value="{{ search }}" placeholder="Busca em campos texto">
+      </label>
+      <label>
+        Por página
+        <input type="number" name="per_page" min="1" max="200" value="{{ per_page }}" style="width: 90px;">
+      </label>
+    </div>
+    <input type="hidden" name="page" value="1">
+    <button type="submit" class="button">Filtrar</button>
+  </form>
+
+  {% if mongo_error %}
+  <div class="messagelist">
+    <div class="warning">Mongo indisponível: {{ mongo_error }}</div>
+  </div>
+  {% else %}
+  <div class="mongo-pager">
+    <div class="mongo-pager-summary">
+      Mostrando <strong>{{ page_start }}</strong>-<strong>{{ page_end }}</strong>
+      de <strong>{{ total_documents }}</strong> documentos.
+      Página <strong>{{ page }}</strong> de <strong>{{ total_pages }}</strong>.
+    </div>
+    <div class="mongo-page-actions">
+      <a class="button{% if not previous_page_url %} disabled{% endif %}" {% if previous_page_url %}href="{{ first_page_url }}"{% endif %}>Primeira</a>
+      <a class="button{% if not previous_page_url %} disabled{% endif %}" {% if previous_page_url %}href="{{ previous_page_url }}"{% endif %}>Anterior</a>
+      {% for link in page_links %}
+        {% if link.is_current %}
+        <span class="button default">{{ link.number }}</span>
+        {% else %}
+        <a class="button" href="{{ link.url }}">{{ link.number }}</a>
+        {% endif %}
+      {% endfor %}
+      <a class="button{% if not next_page_url %} disabled{% endif %}" {% if next_page_url %}href="{{ next_page_url }}"{% endif %}>Próxima</a>
+      <a class="button{% if not next_page_url %} disabled{% endif %}" {% if next_page_url %}href="{{ last_page_url }}"{% endif %}>Última</a>
+    </div>
+  </div>
+
+  <div class="module mongo-table-wrap">
+    <table class="mongo-data-table">
+      <thead>
+        <tr>
+          {% for column in table_columns %}
+          <th>{{ column }}</th>
+          {% endfor %}
+          <th style="width: 180px;">Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in table_rows %}
+        <tr>
+          {% for cell in row.cells %}
+          <td class="mongo-cell"><div class="mongo-cell-content" title="{{ cell }}">{{ cell }}</div></td>
+          {% endfor %}
+          <td>
+            <div class="mongo-actions">
+            <a href="{% url 'admin:mongo_document_edit' %}?collection={{ collection_name|urlencode }}&id={{ row.id|urlencode }}">Editar</a>
+            <form method="post" action="{% url 'admin:mongo_document_delete' %}" style="display: inline;" onsubmit="return confirm('Excluir este documento do Mongo?');">
+              {% csrf_token %}
+              <input type="hidden" name="collection" value="{{ collection_name }}">
+              <input type="hidden" name="id" value="{{ row.id }}">
+              <button type="submit" class="button" style="padding: 3px 8px; margin-left: 8px;">Excluir</button>
+            </form>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="{{ table_columns|length|add:1 }}">Nenhum documento encontrado.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="mongo-pager" style="justify-content: flex-end;">
+    <div class="mongo-page-actions">
+      <a class="button{% if not previous_page_url %} disabled{% endif %}" {% if previous_page_url %}href="{{ previous_page_url }}"{% endif %}>Anterior</a>
+      <a class="button{% if not next_page_url %} disabled{% endif %}" {% if next_page_url %}href="{{ next_page_url }}"{% endif %}>Próxima</a>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

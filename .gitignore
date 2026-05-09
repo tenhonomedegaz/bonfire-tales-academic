@@ -11,6 +11,10 @@ node_modules
 dist
 dist-ssr
 *.local
+.env
+.env.*
+staticfiles/
+AI_CONTEXT_DO_NOT_COMMIT.md
 
 # Editor directories and files
 .vscode/*

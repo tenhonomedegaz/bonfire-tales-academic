@@ -1,0 +1,283 @@
+{% extends 'home/base.html' %}
+{% load static %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/pages/cronica_form.css' %}">
+
+{% endblock %}
+
+{% block content %}
+<div class="editor-shell">
+  <div class="editor-header">
+    <h1>{% if is_new %}Escrever Crônica{% else %}Editar Crônica{% endif %}</h1>
+    <p>Narre os acontecimentos vividos pelo seu personagem. Após submeter, um membro da equipe aprovará sua crônica.</p>
+  </div>
+
+  <div class="editor-info-box">
+    <strong>Dica:</strong> Use Markdown para formatar seu texto. **Negrito**, *itálico*, listas com <code>-</code>, títulos com <code>#</code>. O preview ao lado mostra como ficará.
+  </div>
+
+  <form id="cronicaEditorForm">
+    <div class="editor-fields">
+      <div class="editor-field">
+        <label for="edTitulo">Título da Crônica</label>
+        <input id="edTitulo" name="titulo" value="{{ cronica.titulo|default:'' }}" placeholder="O Cerco de Drumhuldar..." required>
+        <p class="editor-help is-spacer">Alinhamento</p>
+      </div>
+      <div class="editor-field">
+        <label for="edPersonagem">Nome do Personagem (opcional)</label>
+        <input id="edPersonagem" name="personagem_nome" value="{{ cronica.personagem_nome|default:'' }}" placeholder="Quem narra a história?">
+        <p class="editor-help">Este nome aparece como o autor/personagem narrador da crônica publicada.</p>
+      </div>
+      <div class="editor-field">
+        <label for="edTerritorio">Territórios</label>
+        <select id="edTerritorio" name="territorio" multiple>
+          {% for t in territorios %}
+          <option value="{{ t }}" {% if t in selected_territorios %}selected{% endif %}>{{ t }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="editor-field">
+        <label for="edRegiao">Regiões (opcional)</label>
+        <select id="edRegiao" name="regiao" multiple>
+          {% for nome, terr in regioes %}
+          <option value="{{ nome }}" data-territory="{{ terr|default:'' }}" {% if nome in selected_regioes %}selected{% endif %}>{{ nome }}{% if terr %} - {{ terr }}{% endif %}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="editor-field full">
+        <label for="edResumo">Resumo (breve descrição para a listagem)</label>
+        <input id="edResumo" name="resumo" value="{{ cronica.resumo|default:'' }}" placeholder="Em poucas palavras, sobre o que é esta crônica..." maxlength="300">
+      </div>
+    </div>
+
+    <div class="editor-toolbar">
+      <button type="button" class="editor-tool" data-wrap="bold" title="Ctrl+B">B</button>
+      <button type="button" class="editor-tool" data-wrap="italic" title="Ctrl+I"><em>I</em></button>
+      <button type="button" class="editor-tool" data-wrap="link" title="Ctrl+K">Link</button>
+      <button type="button" class="editor-tool" data-wrap="image" title="Ctrl+Alt+I">Imagem</button>
+      <button type="button" class="editor-tool" data-wrap="code" title="Ctrl+`">Código</button>
+      <button type="button" class="editor-tool" data-wrap="color" title="Ctrl+Alt+C">Cor</button>
+      <button type="button" class="editor-tool" data-wrap="center">Centralizar</button>
+      <button type="button" class="editor-tool" data-wrap="click">Clicável</button>
+      <button type="button" class="editor-tool" data-prefix="- ">Bullet</button>
+      <button type="button" class="editor-tool" data-prefix="  - ">Sub-bullet</button>
+      <label class="editor-file-tool">Abrir .txt<input id="edFileInput" type="file" accept=".txt,.md,text/plain"></label>
+      <button type="button" class="editor-tool" id="edDownload">Baixar .txt</button>
+      <button type="button" class="editor-tool" id="edCopy">Copiar</button>
+      <button type="button" class="editor-tool" id="edClear">Limpar</button>
+      <span class="editor-status" id="edStatus">Editor pronto.</span>
+    </div>
+
+    <div class="editor-split">
+      <div class="editor-panel">
+        <div class="editor-panel-header">
+          <h2>Texto</h2>
+          <span id="edCounter">0 caracteres</span>
+        </div>
+        <textarea id="edMarkdown" class="editor-textarea" placeholder="Narre sua crônica em Markdown...">{{ cronica.conteudo_markdown|default:'' }}</textarea>
+      </div>
+      <div class="editor-panel">
+        <div class="editor-panel-header">
+          <h2>Preview</h2>
+          <span>Mesmo leitor do site</span>
+        </div>
+        <div id="edPreview" class="editor-preview bonfire-markdown"></div>
+      </div>
+    </div>
+
+    <div class="editor-actions">
+      <a href="{% url 'mundo_cronicas' %}" class="editor-cancel">Cancelar</a>
+      <button type="submit" class="editor-submit">{% if is_new %}Submeter Crônica{% else %}Salvar Alterações{% endif %}</button>
+    </div>
+  </form>
+</div>
+
+<script>
+(function() {
+  const editor = document.getElementById('edMarkdown');
+  const preview = document.getElementById('edPreview');
+  const counter = document.getElementById('edCounter');
+  const territorioSelect = document.getElementById('edTerritorio');
+  const regiaoSelect = document.getElementById('edRegiao');
+  const status = document.getElementById('edStatus');
+  const fileInput = document.getElementById('edFileInput');
+
+  // Filter regions by territory
+  const allRegionOptions = Array.from(regiaoSelect.querySelectorAll('option[data-territory]'));
+  territorioSelect.addEventListener('change', () => {
+    const selectedTerritories = Array.from(territorioSelect.selectedOptions).map(opt => opt.value);
+    allRegionOptions.forEach(opt => {
+      opt.hidden = selectedTerritories.length && !selectedTerritories.includes(opt.dataset.territory);
+    });
+  });
+  // Trigger on load
+  territorioSelect.dispatchEvent(new Event('change'));
+
+  function renderPreview() {
+    const src = editor.value;
+    counter.textContent = `${src.length} caracteres`;
+    if (typeof renderBonfireMarkdown === 'function') {
+      preview.innerHTML = renderBonfireMarkdown(src, { enableOptions: false });
+    } else if (window.marked && typeof window.marked.parse === 'function') {
+      preview.innerHTML = applyMarkdownColorsToHtml(marked.parse(src, { breaks: true, gfm: true }));
+    } else {
+      preview.textContent = src;
+    }
+  }
+
+  editor.addEventListener('input', renderPreview);
+  renderPreview();
+
+  function setStatus(message) {
+    status.textContent = message;
+    window.clearTimeout(setStatus.timeout);
+    setStatus.timeout = window.setTimeout(() => status.textContent = 'Editor pronto.', 2200);
+  }
+
+  function replaceSelection(prefix, suffix, options = {}) {
+    const start = editor.selectionStart;
+    const end = editor.selectionEnd;
+    const selectedText = editor.value.substring(start, end);
+    const replacement = prefix + selectedText + suffix;
+    editor.value = editor.value.substring(0, start) + replacement + editor.value.substring(end);
+    if (options.selectUrl) {
+      editor.selectionStart = start + prefix.length + selectedText.length + 2;
+      editor.selectionEnd = editor.selectionStart + 3;
+    } else if (options.colorCursor) {
+      editor.selectionStart = start + '[color='.length;
+      editor.selectionEnd = editor.selectionStart;
+    } else {
+      editor.selectionStart = start + prefix.length;
+      editor.selectionEnd = start + prefix.length + selectedText.length;
+    }
+    editor.focus();
+    renderPreview();
+  }
+
+  function prefixLines(prefix) {
+    const start = editor.selectionStart;
+    const end = editor.selectionEnd;
+    const before = editor.value.slice(0, start);
+    const selected = editor.value.slice(start, end) || '';
+    const after = editor.value.slice(end);
+    const replacement = selected.split('\n').map(line => line ? `${prefix}${line}` : prefix.trimEnd()).join('\n');
+    editor.value = before + replacement + after;
+    editor.selectionStart = start;
+    editor.selectionEnd = start + replacement.length;
+    editor.focus();
+    renderPreview();
+  }
+
+  document.querySelectorAll('[data-wrap]').forEach(button => {
+    button.addEventListener('click', () => {
+      const type = button.dataset.wrap;
+      if (type === 'bold') replaceSelection('**', '**');
+      if (type === 'italic') replaceSelection('*', '*');
+      if (type === 'link') replaceSelection('[', '](url)', { selectUrl: true });
+      if (type === 'image') replaceSelection('![', '](url){position:right,length:40%}', { selectUrl: true });
+      if (type === 'code') replaceSelection('`', '`');
+      if (type === 'color') {
+        if (typeof openBonfireColorMenu === 'function') openBonfireColorMenu(button, editor);
+        else replaceSelection('[color=]', '[/color]', { colorCursor: true });
+      }
+      if (type === 'center') replaceSelection('::center\n', '\n::');
+      if (type === 'click') replaceSelection('::click Título\n', '\n::endclick');
+    });
+  });
+
+  document.querySelectorAll('[data-prefix]').forEach(button => {
+    button.addEventListener('click', () => prefixLines(button.dataset.prefix));
+  });
+
+  editor.addEventListener('keydown', event => {
+    const isMac = navigator.platform.toUpperCase().includes('MAC');
+    const cmdKey = isMac ? event.metaKey : event.ctrlKey;
+    if (!cmdKey) return;
+    const key = event.key.toLowerCase();
+    if (event.altKey && key === 'c') {
+      event.preventDefault();
+      replaceSelection('[color=]', '[/color]', { colorCursor: true });
+    } else if (event.altKey && key === 'i') {
+      event.preventDefault();
+      replaceSelection('![', '](url){position:right,length:40%}', { selectUrl: true });
+    } else if (key === 'b') {
+      event.preventDefault();
+      replaceSelection('**', '**');
+    } else if (key === 'i') {
+      event.preventDefault();
+      replaceSelection('*', '*');
+    } else if (key === 'k') {
+      event.preventDefault();
+      replaceSelection('[', '](url)', { selectUrl: true });
+    } else if (event.key === '`') {
+      event.preventDefault();
+      replaceSelection('`', '`');
+    }
+  });
+
+  document.getElementById('edCopy').addEventListener('click', async () => {
+    await navigator.clipboard.writeText(editor.value);
+    setStatus('Texto copiado.');
+  });
+
+  document.getElementById('edClear').addEventListener('click', () => {
+    if (!editor.value || confirm('Limpar o texto atual?')) {
+      editor.value = '';
+      renderPreview();
+      setStatus('Editor limpo.');
+    }
+  });
+
+  document.getElementById('edDownload').addEventListener('click', () => {
+    const blob = new Blob([editor.value], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'bonfire-cronica.txt';
+    link.click();
+    URL.revokeObjectURL(url);
+    setStatus('Arquivo gerado.');
+  });
+
+  fileInput.addEventListener('change', () => {
+    const file = fileInput.files && fileInput.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      editor.value = String(reader.result || '');
+      renderPreview();
+      setStatus(`Arquivo aberto: ${file.name}`);
+    };
+    reader.readAsText(file);
+    fileInput.value = '';
+  });
+
+  const form = document.getElementById('cronicaEditorForm');
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const body = {
+      titulo: document.getElementById('edTitulo').value,
+      personagem_nome: document.getElementById('edPersonagem').value,
+      territorio: Array.from(territorioSelect.selectedOptions).map(opt => opt.value),
+      regiao: Array.from(regiaoSelect.selectedOptions).filter(opt => !opt.hidden).map(opt => opt.value),
+      resumo: document.getElementById('edResumo').value,
+      conteudo_markdown: editor.value,
+    };
+    const csrf = decodeURIComponent((document.cookie.split('; ').find(r => r.startsWith('csrftoken=')) || '').split('=')[1] || '');
+    const url = {% if is_new %}'{% url "cronica_create" %}'{% else %}'{% url "cronica_edit" slug=cronica.slug %}'{% endif %};
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      window.location.href = '{% url "mundo_cronicas" %}';
+    } else {
+      alert(data.error || 'Erro ao salvar');
+    }
+  });
+})();
+</script>
+{% endblock %}

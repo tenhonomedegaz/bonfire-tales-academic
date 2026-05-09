@@ -1,0 +1,156 @@
+{% if classe %}
+<div id="ajax-traits-section">
+    <section class="rounded border border-[var(--stroke)] bg-[var(--bg1)] p-3">
+      <h2 class="font-rpg text-[17px] font-bold uppercase text-[var(--text)]">{{ classe.nome }}</h2>
+
+      <div class="mt-4 divide-y divide-[var(--stroke)]">
+        {% for trait in class_traits %}
+        <div class="py-1">
+          <span class="block text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">{{ trait.label }}</span>
+          <span class="mt-0.5 block text-[11px] font-semibold leading-tight text-[var(--text)] trait-value">{{ trait.value|linebreaksbr }}</span>
+        </div>
+        {% empty %}
+        <p class="py-3 text-sm text-[var(--muted)]">Preencha os dados de ficha desta classe no admin.</p>
+        {% endfor %}
+      </div>
+
+      {% if multiclass_traits %}
+      <div class="mt-2 border-t border-[var(--stroke)] pt-2">
+        <h3 class="mb-1 text-[10px] font-bold uppercase tracking-widest text-[var(--ember)]">Multiclasse</h3>
+        <div class="divide-y divide-[var(--stroke)]">
+          {% for trait in multiclass_traits %}
+          <div class="py-1">
+            <span class="block text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">{{ trait.label }}</span>
+            <span class="mt-0.5 block text-[11px] font-semibold leading-tight text-[var(--text)] trait-value">{{ trait.value|linebreaksbr }}</span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </section>
+</div>
+
+<section class="min-w-0" id="ajax-content-inner">
+    <header class="mb-5 border-b border-[var(--stroke)] pb-4">
+      <h1 class="font-rpg text-2xl font-extrabold uppercase tracking-wide text-[var(--text)] md:text-3xl">{{ classe.nome }}</h1>
+      {% if classe.tagline %}
+      <p class="mt-1 max-w-4xl text-[11px] italic leading-relaxed text-[var(--muted)]">{{ classe.tagline }}</p>
+      {% endif %}
+    </header>
+
+    {% if progression_table %}
+    <div data-progression-table class="mb-4 overflow-x-auto rounded border border-[var(--stroke)] bg-[var(--bg1)] custom-scrollbar">
+      <div class="min-w-[700px]">
+        <table class="w-full table-auto border-collapse text-[11px]">
+          <colgroup>
+            <col class="w-12">
+            {% for col in colunas %}
+              {% if col.is_feature %}
+            <col class="w-auto">
+              {% elif col.spell_level %}
+            <col {% if col.subclass_only %}data-subclass-column="{{ col.subclass_slugs_attr }}"{% endif %} class="{% if col.subclass_only %}is-collapsed-column {% endif %}w-7">
+              {% else %}
+            <col {% if col.subclass_only %}data-subclass-column="{{ col.subclass_slugs_attr }}"{% endif %} class="{% if col.subclass_only %}is-collapsed-column {% endif %}">
+              {% endif %}
+            {% endfor %}
+          </colgroup>
+          <thead class="bg-[#3a0b0b] text-white shadow-inner">
+            <tr>
+              <th {% if spell_slots_count %}rowspan="2"{% endif %} class="w-10 border-r border-b border-[var(--stroke)] px-1 py-0.5 text-center text-[10px] font-bold uppercase tracking-wider">Nível</th>
+              {% for col in colunas %}
+                {% if not col.spell_level %}
+              <th {% if spell_slots_count %}rowspan="2"{% endif %} {% if col.subclass_only %}data-subclass-column="{{ col.subclass_slugs_attr }}"{% endif %} class="{% if col.subclass_only %}is-collapsed-column {% endif %}border-r border-b border-[var(--stroke)] px-1 py-0.5 text-[10px] font-bold uppercase tracking-wider text-left {% if col.is_feature %}w-auto{% else %}w-12 text-center{% endif %}">
+                {% if col.name == "Bônus de Proficiência" or col.name == "Bônus de proficiência" %}
+                  <span class="hidden md:inline">{{ col.name }}</span>
+                  <span class="md:hidden">BP</span>
+                {% else %}
+                  {{ col.name }}
+                {% endif %}
+              </th>
+                {% endif %}
+              {% endfor %}
+              {% if spell_slots_count %}
+              <th colspan="{{ spell_slots_count }}" data-spell-slots-header class="{% if not base_spell_slots_count %}hidden {% endif %}border-r border-b border-[var(--stroke)] px-1 py-0.5 text-center text-[10px] font-bold uppercase tracking-wider">Espaços de Magia</th>
+              {% endif %}
+            </tr>
+            {% if spell_slots_count %}
+            <tr data-spell-slots-row class="{% if not base_spell_slots_count %}hidden{% endif %}">
+              {% for col in colunas %}
+                {% if col.spell_level %}
+              <th {% if col.subclass_only %}data-subclass-column="{{ col.subclass_slugs_attr }}"{% endif %} data-spell-slot-column class="{% if col.subclass_only %}is-collapsed-column {% endif %}w-5 border-r border-b border-[var(--stroke)] px-0.5 py-0.5 text-center text-[10px] font-bold uppercase tracking-wider whitespace-nowrap">{{ col.name }}</th>
+                {% endif %}
+              {% endfor %}
+            </tr>
+            {% endif %}
+          </thead>
+          <tbody class="divide-y divide-[var(--stroke)] text-[var(--text)]">
+            {% for row in progression_table %}
+            <tr class="transition-colors odd:bg-transparent even:bg-[var(--bg2)]/50 hover:bg-[var(--bg2)]">
+              <td class="border-r border-[var(--stroke)] px-1 py-0.5 text-center font-bold">{{ row.nivel }}</td>
+              {% for cell in row.cells %}
+              <td {% if cell.col.subclass_only %}data-subclass-column="{{ cell.col.subclass_slugs_attr }}"{% endif %} class="{% if cell.col.subclass_only %}is-collapsed-column {% endif %}border-r border-[var(--stroke)] px-1 py-0.5 align-top leading-tight {% if cell.col.is_feature %}text-left whitespace-nowrap{% elif cell.col.spell_level %}px-0.5 text-center whitespace-normal break-words{% else %}text-center whitespace-normal break-words{% endif %}">
+                {{ cell.valor|safe }}
+              </td>
+              {% endfor %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+
+    <section class="mb-4" data-subclass-anchor>
+      <h2 class="mb-2 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-[var(--muted)]">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-[var(--muted)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3 8 4.5-8 4.5-8-4.5L12 3Z"/><path d="m4 12 8 4.5 8-4.5"/><path d="m4 16.5 8 4.5 8-4.5"/></svg>
+        Subclasses {% if subclasses %}(selecione para ver){% endif %}
+      </h2>
+      <div class="flex flex-wrap gap-1.5">
+        <button type="button" data-subclass-toggle="" class="subclass-toggle rounded border border-[var(--flame)] bg-[var(--flame)]/10 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-[var(--text)]">Base</button>
+        {% for sub in subclasses %}
+        <button type="button" data-subclass-toggle="{{ sub.slug }}" class="subclass-toggle rounded border border-[var(--stroke)] px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-[var(--muted)] hover:border-[var(--spark)] hover:text-[var(--text)]">{{ sub.nome }}</button>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section>
+      <h2 class="mb-2 font-rpg text-[17px] font-bold text-[var(--text)] bonfire-underline">Habilidades</h2>
+      <div class="space-y-3" data-feature-list>
+        {% for item in habilidade_sections %}
+        <article class="{% if item.is_subclass %}hidden subclass-content{% endif %} overflow-hidden rounded border border-[var(--stroke)] bg-[var(--bg1)]" {% if item.is_subclass %}data-subclass-slug="{{ item.subclasse_slug }}"{% endif %} data-feature-card data-feature-id="{{ item.habilidade.id_habilidade }}">
+          <header class="flex items-center justify-between border-b px-2.5 py-1.5 {% if item.is_subclass %}border-[var(--spark)]/70 bg-[var(--spark)]/5{% else %}border-[var(--flame)]/40 bg-[var(--flame)]/5{% endif %}">
+            <h3 data-feature-title class="font-rpg text-[14px] font-bold {% if item.is_subclass %}text-[var(--spark)]{% else %}text-[var(--flame)]{% endif %}">Nivel {{ item.habilidade.niveladquirido }}: {{ item.habilidade.nome }}</h3>
+            <div class="flex items-center gap-2">
+              {% if item.is_subclass %}
+              <span class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">{{ item.subclasse.nome }}</span>
+              {% endif %}
+              {% if can_edit_wiki %}
+              <button type="button" class="wiki-edit-button !text-[10px] !px-1.5 !py-0.5" data-feature-edit>Editar</button>
+              {% endif %}
+            </div>
+          </header>
+          <div class="bonfire-markdown p-2.5 text-[12px] leading-[1.4] text-[var(--muted)] max-w-none" data-markdown>{{ item.habilidade.descricao }}</div>
+          {% if can_edit_wiki %}
+          <form class="wiki-inline-editor" data-feature-form>
+            <div class="wiki-inline-row">
+              <label>Nome <input name="nome" value="{{ item.habilidade.nome }}"></label>
+              <label>Nível <input name="niveladquirido" type="number" min="0" max="20" value="{{ item.habilidade.niveladquirido }}"></label>
+            </div>
+            <label>Texto real <textarea name="descricao">{{ item.habilidade.descricao }}</textarea></label>
+            <div class="wiki-inline-actions">
+              <button type="button" class="wiki-inline-cancel" data-feature-cancel>Cancelar</button>
+              <button type="submit" class="wiki-inline-save">Salvar</button>
+            </div>
+          </form>
+          {% endif %}
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+</section>
+{% else %}
+<section class="rounded border border-[var(--stroke)] bg-[var(--bg1)] p-8 text-center" id="ajax-content-inner">
+  <h2 class="font-rpg text-xl font-bold text-[var(--text)]">Nenhuma classe selecionada</h2>
+  <p class="mt-2 text-[11px] text-[var(--muted)]">Use a busca ou a lista lateral para abrir uma classe.</p>
+</section>
+{% endif %}

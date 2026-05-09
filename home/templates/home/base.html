@@ -1,0 +1,119 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bonfire Tales RPG</title>
+  <meta name="description" content="Mundo vivo, missões e RPG via Discord." />
+  <meta name="google-adsense-account" content="ca-pub-1634793837919535">
+  <link rel="icon" type="image/png" href="{% static 'assets/logo.png' %}" />
+  <link rel="shortcut icon" type="image/png" href="{% static 'assets/logo.png' %}" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            serif: ['Cinzel', 'serif'],
+          },
+          colors: {
+            bonfire: {
+              bg0: '#09090A', /* Darker, richer black */
+              bg1: '#101012',
+              bg2: '#18181B',
+              card: '#151517',
+              stroke: '#27272A',
+              flame: '#D21717',
+              ember: '#F27007',
+              spark: '#F7B113',
+              text: '#EDEDED',
+              muted: '#A1A1AA',
+            }
+          },
+          backgroundImage: {
+            'noise': "url('data:image/svg+xml,%3Csvg viewBox=\"0 0 200 200\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cfilter id=\"noiseFilter\"%3E%3CfeTurbulence type=\"fractalNoise\" baseFrequency=\"0.65\" numOctaves=\"3\" stitchTiles=\"stitch\"/%3E%3C/filter%3E%3Crect width=\"100%25\" height=\"100%25\" filter=\"url(%23noiseFilter)\" opacity=\"0.05\"/%3E%3C/svg%3E')",
+            'bonfire-gradient': 'linear-gradient(to right, #D21717, #F27007)',
+          },
+          keyframes: {
+            'fade-in-down': {
+              '0%': { opacity: '0', transform: 'translateY(-10px)' },
+              '100%': { opacity: '1', transform: 'translateY(0)' },
+            },
+            'fade-in': {
+              '0%': { opacity: '0' },
+              '100%': { opacity: '1' },
+            }
+          },
+          animation: {
+            'fade-in-down': 'fade-in-down 0.2s ease-out forwards',
+            'fade-in': 'fade-in 0.2s ease-out forwards',
+          }
+        }
+      }
+    }
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="{% static 'js/markdown.js' %}"></script>
+  <script src="{% static 'js/options-widget.js' %}"></script>
+
+  {% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/pages/base.css' %}">
+{% endblock %}
+</head>
+<body>
+  <div id="root">
+    <div class="flex flex-col min-h-screen pt-[57px] bg-[var(--bg0)] text-[var(--text)] selection:bg-[var(--ember)] selection:text-white">
+      {% include 'home/components/header.html' %}
+      
+      <div class="flex-1 flex flex-row w-full justify-center">
+          {% block ad_containers %}
+          
+          <aside class="ad-container-left hidden min-[1600px]:flex flex-col gap-4 w-[160px] 2xl:w-[250px] flex-shrink-0 pt-8 sticky top-[57px] h-[calc(100vh-57px)] overflow-hidden z-30">
+              <div class="h-full w-full">
+                  {% include 'home/components/ad_sidebar.html' %}
+              </div>
+          </aside>
+          {% endblock %}
+
+          <main class="{% block main_class %}flex-1 w-full max-w-5xl mx-auto px-4 md:px-8 py-8{% endblock %} relative z-10 min-w-0">
+              {% block mobile_ad_top %}
+              
+              <div class="block min-[1600px]:hidden mb-8 w-full">
+                  {% include 'home/components/ad_horizontal.html' %}
+              </div>
+              {% endblock %}
+
+              {% block content %}
+              {% endblock %}
+
+              {% block mobile_ad %}
+              
+              <div class="block mt-12 mb-4 w-full px-4 md:px-0">
+                  {% include 'home/components/ad_horizontal.html' %}
+              </div>
+              {% endblock %}
+          </main>
+
+          {% block ad_containers_right %}
+          
+          <aside class="ad-container-right hidden min-[1600px]:flex flex-col gap-4 w-[160px] 2xl:w-[250px] flex-shrink-0 pt-8 sticky top-[57px] h-[calc(100vh-57px)] overflow-hidden z-30">
+              <div class="h-full w-full">
+                  {% include 'home/components/ad_sidebar.html' %}
+              </div>
+          </aside>
+          {% endblock %}
+      </div>
+
+      {% include 'home/components/footer.html' %}
+    </div>
+  </div>
+</body>
+</html>

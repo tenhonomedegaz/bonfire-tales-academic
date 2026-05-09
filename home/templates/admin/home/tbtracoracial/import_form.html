@@ -1,0 +1,87 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<div id="content-main">
+  <p>
+    Envie um <strong>.txt</strong> com blocos separados por <code>---</code>.
+    Cada bloco precisa de <code>Nome</code>, exatamente uma origem por slug
+    (<code>Raca</code>, <code>Linhagem</code> ou <code>Essencia</code>) e <code>Descricao</code>.
+  </p>
+
+  <form method="post" enctype="multipart/form-data" novalidate>
+    {% csrf_token %}
+    <fieldset class="module aligned">
+      {% for field in form %}
+        <div class="form-row">
+          <div>
+            {{ field.errors }}
+            {{ field.label_tag }}
+            {{ field }}
+            {% if field.help_text %}
+              <div class="help">{{ field.help_text }}</div>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </fieldset>
+    <div class="submit-row">
+      <input type="submit" class="default" value="Ler arquivo e revisar">
+      <a class="button cancel-link" href="{% url 'admin:home_tbtracoracial_changelist' %}">Cancelar</a>
+    </div>
+  </form>
+
+  {% if errors %}
+    <div class="module">
+      <h2>Problemas encontrados</h2>
+      <ul class="messagelist">
+        {% for error in errors %}
+          <li class="warning">{{ error }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  {% if preview %}
+    <div class="module">
+      <h2>Previa da importacao: {{ preview|length }} tracos raciais</h2>
+      <div class="results">
+        <table>
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>Origem</th>
+              <th>Nivel</th>
+              <th>Talento racial</th>
+              <th>Pre-requisito</th>
+              <th>Descricao</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for traco in preview %}
+              <tr>
+                <td>{{ traco.nome }}</td>
+                <td>{{ traco.origem_tipo }}: {{ traco.origem_nome }}</td>
+                <td>{{ traco.nivel_requisito }}</td>
+                <td>{{ traco.talento_racial|yesno:"Sim,Nao" }}</td>
+                <td>{{ traco.pre_requisito|default:"-" }}</td>
+                <td>{{ traco.descricao|truncatechars:140 }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="confirmar" value="1">
+        <input type="hidden" name="payload" value="{{ payload|escape }}">
+        <input type="hidden" name="atualizar_existentes" value="{% if atualizar_existentes %}on{% endif %}">
+        <div class="submit-row">
+          <input type="submit" class="default" value="Confirmar importacao">
+          <a class="button cancel-link" href="{% url 'admin:home_tbtracoracial_changelist' %}">Cancelar</a>
+        </div>
+      </form>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

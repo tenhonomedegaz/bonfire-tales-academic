@@ -1,0 +1,154 @@
+
+<link rel="stylesheet" href="{% static 'css/pages/base_site.css' %}">
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block title %}{{ title }} | Bonfire Tales RPG Admin{% endblock %}
+
+{% block header %}
+
+<div id="header" style="background-color: var(--bg1); border-bottom: 1px solid var(--stroke); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5); display: flex; justify-content: space-between; align-items: center; padding: 0 20px; height: 64px;">
+    
+    <div id="branding" style="margin: 0; padding: 0;">
+        <a href="{% url 'admin:index' %}" style="display: flex; align-items: center; gap: 12px; text-decoration: none;">
+            <img src="/static/assets/logo.png" alt="Bonfire Tales" style="height: 32px; width: auto; filter: drop-shadow(0 0 8px rgba(210,23,23,0.5));" />
+            <h1 style="margin: 0; padding: 0; font-family: 'Cinzel', serif; font-weight: 800; font-size: 1.125rem; letter-spacing: 0.05em; color: var(--body-loud-color); text-transform: uppercase;">
+                Bonfire Tales Admin
+            </h1>
+        </a>
+    </div>
+
+    {% if user.is_active and user.is_staff %}
+    <div id="user-tools" style="margin: 0; padding: 0; font-family: 'Inter', sans-serif; display: flex; align-items: center; gap: 20px;">
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <a href="/" target="_blank" style="color: var(--body-quiet-color); font-weight: 600; text-decoration: none; font-size: 14px;" onmouseover="this.style.color='var(--body-loud-color)'" onmouseout="this.style.color='var(--body-quiet-color)'">Ver Site</a>
+            <a href="{% url 'admin:markdown_editor' %}" style="color: var(--body-quiet-color); font-weight: 600; text-decoration: none; font-size: 14px;" onmouseover="this.style.color='var(--body-loud-color)'" onmouseout="this.style.color='var(--body-quiet-color)'">Editor Markdown</a>
+        </div>
+        
+        <div style="position: relative;" onmouseover="document.getElementById('user-dropdown').style.display='block'" onmouseout="document.getElementById('user-dropdown').style.display='none'">
+            <button style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 4px; border: 1px solid var(--stroke); background: var(--bg0); color: var(--body-loud-color); cursor: pointer;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--ember);"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                <span style="font-weight: bold; font-size: 14px;">{{ user.get_username }}</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.5;"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <div id="user-dropdown" style="display: none; position: absolute; right: 0; top: 100%; margin-top: 8px; width: 160px; z-index: 50;">
+                <div style="background: var(--bg1); border: 1px solid var(--stroke); border-radius: 4px; padding: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: 4px;">
+                    {% if user.has_usable_password %}
+                    <a href="{% url 'admin:password_change' %}" style="display: block; padding: 8px 12px; font-size: 13px; color: var(--body-quiet-color); text-decoration: none; font-weight: 600; border-radius: 2px;" onmouseover="this.style.color='var(--body-loud-color)'; this.style.backgroundColor='var(--bg0)'" onmouseout="this.style.color='var(--body-quiet-color)'; this.style.backgroundColor='transparent'">Alterar Senha</a>
+                    {% endif %}
+                    <form action="{% url 'admin:logout' %}" method="post" style="margin: 0; width: 100%;">
+                        {% csrf_token %}
+                        <button type="submit" style="width: 100%; text-align: left; background: transparent; border: none; padding: 8px 12px; font-size: 13px; color: #f87171; font-weight: 600; cursor: pointer; border-radius: 2px;" onmouseover="this.style.backgroundColor='rgba(210,23,23,0.1)'" onmouseout="this.style.backgroundColor='transparent'">
+                            Sair
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extrastyle %}
+{{ block.super }}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<script>
+document.addEventListener('keydown', function(e) {
+    if (e.target.tagName.toLowerCase() === 'textarea') {
+        const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+        const cmdKey = isMac ? e.metaKey : e.ctrlKey;
+        
+        if (cmdKey) {
+            let prefix = '', suffix = '';
+            let isLink = false;
+            let isColor = false;
+            
+            if (e.key.toLowerCase() === 'b') {
+                prefix = '**'; suffix = '**';
+            } else if (e.key.toLowerCase() === 'i') {
+                prefix = '*'; suffix = '*';
+            } else if (e.key.toLowerCase() === 'k') {
+                prefix = '['; suffix = '](url)';
+                isLink = true;
+            } else if (e.shiftKey && e.key.toLowerCase() === 'c') {
+                prefix = '[color=]'; suffix = '[/color]';
+                isColor = true;
+            } else if (e.key === '`') {
+                prefix = '`'; suffix = '`';
+            } else {
+                return; // Not a handled shortcut
+            }
+            
+            e.preventDefault(); // Prevent browser default (like opening bookmarks for ctrl+b)
+            
+            const textarea = e.target;
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const text = textarea.value;
+            
+            const selectedText = text.substring(start, end);
+            const replacement = prefix + selectedText + suffix;
+            
+            textarea.value = text.substring(0, start) + replacement + text.substring(end);
+            
+            if (isLink) {
+                // Select "url" part to easily overwrite
+                textarea.selectionStart = start + prefix.length + selectedText.length + 2;
+                textarea.selectionEnd = textarea.selectionStart + 3;
+            } else if (isColor) {
+                // Put the cursor after "color=" so the color can be typed manually.
+                textarea.selectionStart = start + '[color='.length;
+                textarea.selectionEnd = textarea.selectionStart;
+            } else {
+                // Keep the original text selected inside the markdown symbols
+                textarea.selectionStart = start + prefix.length;
+                textarea.selectionEnd = start + prefix.length + selectedText.length;
+            }
+
+            textarea.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+    }
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    const submitRows = document.querySelectorAll('.submit-row');
+    if (!submitRows.length || document.querySelector('.submit-row .bonfire-cancel-edit')) {
+        return;
+    }
+
+    const pathParts = window.location.pathname.split('/').filter(Boolean);
+    const adminIndex = pathParts.indexOf('admin');
+    if (adminIndex === -1 || pathParts.length < adminIndex + 4) {
+        return;
+    }
+
+    const lastPart = pathParts[pathParts.length - 1];
+    let listPath = '';
+    if (lastPart === 'change' && pathParts.length >= adminIndex + 5) {
+        listPath = '/' + pathParts.slice(0, -2).join('/') + '/';
+    } else if (lastPart === 'add') {
+        listPath = '/' + pathParts.slice(0, -1).join('/') + '/';
+    }
+
+    if (!listPath) {
+        return;
+    }
+
+    submitRows.forEach(row => {
+        const cancel = document.createElement('a');
+        cancel.href = listPath;
+        cancel.className = 'button cancel-link bonfire-cancel-edit';
+        cancel.textContent = 'Cancelar';
+        row.appendChild(cancel);
+    });
+});
+</script>
+{% endblock %}

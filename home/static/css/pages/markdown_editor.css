@@ -1,0 +1,290 @@
+.markdown-editor-shell {
+    display: grid;
+    gap: 16px;
+}
+
+.markdown-editor-toolbar {
+    align-items: center;
+    background: var(--darkened-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px;
+}
+
+.markdown-editor-toolbar button,
+.markdown-editor-toolbar label {
+    background: #18181B;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: var(--body-fg);
+    cursor: pointer;
+    font-weight: 800;
+    line-height: 1;
+    padding: 9px 11px;
+}
+
+.markdown-editor-toolbar button:hover,
+.markdown-editor-toolbar label:hover {
+    border-color: var(--secondary);
+    color: var(--secondary);
+}
+
+.markdown-editor-toolbar input[type="file"] {
+    display: none;
+}
+
+.markdown-editor-grid {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    height: calc(100vh - 250px);
+    min-height: 560px;
+}
+
+.markdown-editor-panel {
+    background: var(--darkened-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.markdown-editor-panel header {
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 12px;
+}
+
+.markdown-editor-panel h2 {
+    color: var(--primary);
+    font-family: "Cinzel", serif;
+    font-size: 14px;
+    letter-spacing: .08em;
+    margin: 0;
+    text-transform: uppercase;
+}
+
+#markdownEditor {
+    background: #09090A;
+    border: 0;
+    box-sizing: border-box;
+    color: var(--body-fg);
+    flex: 1;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 14px;
+    line-height: 1.65;
+    min-height: 0;
+    outline: none;
+    padding: 16px;
+    resize: none;
+    overflow-x: hidden;
+    overflow-wrap: break-word;
+    white-space: pre-wrap;
+    word-break: break-word;
+    width: 100%;
+}
+
+.markdown-preview {
+    color: #c7c7d1;
+    flex: 1;
+    font-size: 15px;
+    font-weight: 450;
+    line-height: 1.7;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overflow-wrap: anywhere;
+    padding: 16px;
+    word-break: break-word;
+}
+
+.markdown-preview hr {
+    border: 0;
+    border-top: 1px solid var(--border-color);
+    margin: 1rem 0;
+}
+
+.markdown-preview table {
+    border-collapse: collapse;
+    margin: 1rem 0;
+    width: 100%;
+}
+
+.markdown-preview th {
+    background: rgba(90, 0, 0, .85);
+    color: #ffffff;
+    font-weight: 800;
+    padding: .75rem 1rem;
+    text-align: left;
+    text-transform: uppercase;
+}
+
+.markdown-preview td {
+    background: var(--darkened-bg);
+    border-bottom: 1px solid var(--border-color);
+    color: #d4d4dc;
+    padding: .75rem 1rem;
+}
+
+.markdown-preview tr:nth-child(even) td {
+    background: var(--selected-bg);
+}
+
+.markdown-preview ul {
+    list-style-type: disc;
+    padding-left: 1.5rem;
+}
+
+.markdown-preview ul ul {
+    list-style-type: circle;
+    margin-top: .35rem;
+}
+
+.markdown-preview p {
+    margin: 0 0 1rem;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.markdown-preview strong {
+    color: #ffffff;
+    font-weight: 900;
+}
+
+.markdown-preview em {
+    color: var(--accent);
+}
+
+.markdown-preview blockquote {
+    background: #09090A;
+    border: 1px solid var(--border-color);
+    border-left: 4px solid var(--secondary);
+    border-radius: 6px;
+    margin: 1.5rem 0;
+    padding: 1rem;
+}
+
+.markdown-preview h1,
+.markdown-preview h2,
+.markdown-preview h3 {
+    color: var(--primary);
+    font-family: "Cinzel", serif;
+    letter-spacing: .06em;
+    line-height: 1.25;
+    margin: 1rem 0 .65rem;
+    text-transform: uppercase;
+}
+
+.markdown-preview h1 { font-size: 1.6rem; }
+.markdown-preview h2 { font-size: 1.35rem; }
+.markdown-preview h3 { font-size: 1.1rem; }
+
+.markdown-preview h4 {
+    background: #101012;
+    border: 1px solid var(--secondary);
+    border-bottom-color: rgba(247, 177, 19, 0.75);
+    border-radius: 4px;
+    color: var(--accent);
+    display: table;
+    font-family: "Cinzel", serif;
+    font-size: .95rem;
+    font-weight: 800;
+    line-height: 1.25;
+    margin: 1.25rem 0 .75rem;
+    padding: .35rem .55rem;
+    text-transform: capitalize;
+}
+
+.markdown-preview .bonfire-center {
+    color: #ffffff;
+    font-weight: 800;
+    line-height: 1.6;
+    margin: 1.5rem auto;
+    text-align: center;
+}
+
+.markdown-preview .bonfire-toggle {
+    margin: 1.5rem 0;
+}
+
+.markdown-preview .bonfire-toggle summary {
+    background: #050505;
+    border: 1px solid var(--secondary);
+    border-radius: 6px;
+    box-shadow: 0 0 14px rgba(242, 112, 7, .55), inset 0 0 18px rgba(210, 23, 23, .28);
+    color: #ffffff;
+    cursor: pointer;
+    display: table;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: .04em;
+    margin: 0 auto;
+    padding: 9px 14px;
+    text-transform: uppercase;
+}
+
+.markdown-preview .bonfire-toggle summary::marker,
+.markdown-preview .bonfire-toggle summary::-webkit-details-marker {
+    display: none;
+}
+
+.markdown-preview .bonfire-toggle-content {
+    background: #050505;
+    border: 1px solid rgba(255,255,255,.06);
+    border-radius: 6px;
+    margin-top: .9rem;
+    padding: 1rem 1.25rem;
+}
+
+.markdown-preview .bonfire-color-black { color: #111827 !important; }
+.markdown-preview .bonfire-color-dark-blue { color: #2563eb !important; }
+.markdown-preview .bonfire-color-dark-green { color: #16a34a !important; }
+.markdown-preview .bonfire-color-dark-aqua { color: #0891b2 !important; }
+.markdown-preview .bonfire-color-dark-red { color: #dc2626 !important; }
+.markdown-preview .bonfire-color-dark-purple { color: #9333ea !important; }
+.markdown-preview .bonfire-color-gold { color: #f59e0b !important; }
+.markdown-preview .bonfire-color-gray { color: #9ca3af !important; }
+.markdown-preview .bonfire-color-dark-gray { color: #6b7280 !important; }
+.markdown-preview .bonfire-color-blue { color: #60a5fa !important; }
+.markdown-preview .bonfire-color-green { color: #22c55e !important; }
+.markdown-preview .bonfire-color-aqua { color: #22d3ee !important; }
+.markdown-preview .bonfire-color-red { color: #ef4444 !important; }
+.markdown-preview .bonfire-color-light-purple { color: #c084fc !important; }
+.markdown-preview .bonfire-color-yellow { color: #facc15 !important; }
+.markdown-preview .bonfire-color-white { color: #ffffff !important; }
+.markdown-preview .bonfire-color-ember { color: var(--secondary) !important; }
+.markdown-preview .bonfire-color-flame { color: var(--primary) !important; }
+.markdown-preview .bonfire-color-spark { color: var(--accent) !important; }
+.markdown-preview .bonfire-color-muted { color: var(--body-quiet-color) !important; }
+
+.markdown-editor-help {
+    color: var(--body-quiet-color);
+    font-size: 12px;
+    line-height: 1.55;
+}
+
+.markdown-editor-help code {
+    background: #18181B;
+    border: 1px solid var(--border-color);
+    border-radius: 3px;
+    color: var(--accent);
+    padding: 1px 5px;
+}
+
+.markdown-editor-status {
+    color: var(--body-quiet-color);
+    font-size: 12px;
+}
+
+@media (max-width: 1100px) {
+    .markdown-editor-grid {
+        grid-template-columns: 1fr;
+    }
+}

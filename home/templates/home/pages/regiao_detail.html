@@ -1,0 +1,1217 @@
+{% extends 'home/base.html' %}
+{% load static %}
+
+{% block main_class %}flex-1 w-full{% endblock %}
+
+{% block ad_containers %}{% endblock %}
+{% block ad_containers_right %}{% endblock %}
+
+{% block extra_head %}
+<style>
+.region-layout {
+  --territory-color: {{ territory_color }};
+  --territory-accent: {{ territory_display_color }};
+  --territory-contrast: {{ territory_contrast }};
+  display: grid;
+  grid-template-columns: 252px minmax(0, 1fr) 300px;
+  min-height: calc(100vh - 3.5rem);
+}
+.region-left,
+.region-right {
+  background: var(--bg0);
+  max-height: calc(100vh - 3.5rem);
+  overflow-y: auto;
+  position: sticky;
+  top: 3.5rem;
+}
+.region-left { border-right: 1px solid var(--stroke); padding: 1rem 0; }
+.region-right { border-left: 1px solid var(--stroke); padding: 1.25rem; }
+.territory-nav + .territory-nav { margin-top: .35rem; }
+.territory-nav-title {
+  align-items: center;
+  color: var(--territory-accent);
+  cursor: pointer;
+  display: flex;
+  font-family: 'Cinzel', serif;
+  font-size: .68rem;
+  font-weight: 900;
+  justify-content: space-between;
+  letter-spacing: .14em;
+  list-style: none;
+  padding: .65rem 1rem .45rem;
+  text-transform: uppercase;
+}
+.territory-nav-title::-webkit-details-marker { display: none; }
+.territory-nav-title.is-active {
+  background: color-mix(in srgb, var(--territory-color) 16%, transparent);
+}
+.territory-nav-title::after {
+  border: solid currentColor;
+  border-width: 0 2px 2px 0;
+  content: "";
+  height: 7px;
+  margin-left: .65rem;
+  transform: rotate(45deg);
+  transition: transform .25s ease;
+  width: 7px;
+}
+.territory-nav[open] .territory-nav-title::after { transform: rotate(225deg); }
+.territory-nav-list {
+  display: grid;
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transform: translateY(-6px);
+  transition: max-height .45s cubic-bezier(.2,.8,.2,1), opacity .25s ease, transform .35s ease;
+}
+.territory-nav[open] .territory-nav-list {
+  max-height: 520px;
+  opacity: 1;
+  transform: translateY(0);
+}
+.region-link {
+  border-left: 3px solid transparent;
+  color: var(--muted);
+  display: block;
+  font-size: .8rem;
+  font-weight: 700;
+  padding: .5rem 1rem .5rem 1.2rem;
+  transition: background-color .2s ease, border-color .2s ease, color .2s ease;
+}
+.region-link:hover {
+  background: color-mix(in srgb, var(--territory-color) 13%, transparent);
+  color: var(--territory-accent);
+}
+.region-link.is-active {
+  background: color-mix(in srgb, var(--territory-color) 16%, transparent);
+  border-left-color: var(--territory-accent);
+  color: #fff;
+}
+.region-main { min-width: 0; }
+.region-hero {
+  background-image:
+    linear-gradient(to bottom, rgba(0,0,0,.18), rgba(0,0,0,.52) 52%, rgba(0,0,0,.95)),
+    var(--hero-bg);
+  background-position: center;
+  background-size: cover;
+  border-bottom: 1px solid var(--stroke);
+  min-height: 300px;
+  padding: 2.25rem clamp(1.25rem, 2vw, 2rem);
+  position: relative;
+}
+.region-hero-blur {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  backdrop-filter: blur(40px);
+  background: linear-gradient(   
+    to bottom,
+    transparent 0%,
+    transparent 30%,
+    rgba(0, 0, 0, 0.3) 55%,
+    rgba(0, 0, 0, 0.75) 75%,
+    rgba(0, 0, 0, 0.97) 100%
+  );
+  -webkit-mask: linear-gradient(
+    to bottom,
+    transparent 0%,
+    transparent 20%,
+    rgba(0,0,0,0.3) 45%,
+    rgba(0,0,0,0.8) 65%,
+    black 85%
+  );
+  mask: linear-gradient(
+    to bottom,
+    transparent 0%,
+    transparent 20%,
+    rgba(0,0,0,0.3) 45%,
+    rgba(0,0,0,0.8) 65%,
+    black 85%
+  );
+}
+.region-category-icon {
+  position: absolute;
+  bottom: 1.5rem;
+  right: 2rem;
+  z-index: 4;
+  width: 75px;
+  height: 75px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: rgba(0,0,0,0.35);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 50%;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.region-category-icon:hover { transform: scale(1.15) rotate(5deg); }
+.region-category-icon img {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+}
+.region-hero-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  height: 100%;
+  min-height: 230px;
+  justify-content: flex-end;
+  position: relative;
+  z-index: 5;
+}
+.region-heading-row {
+  align-items: center;
+  display: flex;
+  gap: .8rem;
+}
+.map-pin-link {
+  align-items: center;
+  background: color-mix(in srgb, var(--territory-color) 16%, rgba(0,0,0,.72));
+  border: 1px solid var(--territory-accent);
+  border-radius: 6px;
+  color: var(--territory-accent);
+  display: inline-flex;
+  height: 36px;
+  justify-content: center;
+  width: 36px;
+}
+.map-pin-link svg { height: 16px; width: 16px; }
+.region-eyebrow {
+  color: var(--territory-accent);
+  font-size: .72rem;
+  font-weight: 900;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+.region-title {
+  color: #fff;
+  font-family: 'Cinzel', serif;
+  font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+  font-weight: 900;
+  line-height: 1;
+  text-shadow: 0 4px 18px rgba(0,0,0,.8);
+  text-transform: uppercase;
+}
+.topic-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  max-width: 100%;
+}
+.topic-btn {
+  background: var(--bg1);
+  border: 1px solid var(--stroke);
+  border-radius: 5px;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: .75rem;
+  font-weight: 800;
+  padding: .55rem .8rem;
+  transition: border-color .2s ease, color .2s ease, background-color .2s ease;
+}
+.topic-btn:hover {
+  border-color: var(--territory-accent);
+  color: var(--territory-accent);
+}
+.topic-btn.is-active {
+  background: var(--territory-color);
+  border-color: var(--territory-color);
+  color: var(--territory-contrast);
+}
+.region-content {
+  padding: clamp(1.25rem, 2vw, 2rem);
+  transition: opacity .28s ease, transform .28s ease;
+}
+.region-content.is-swapping {
+  opacity: 0;
+  transform: translateY(8px);
+}
+.topic-heading {
+  color: #f3eee6;
+  display: table;
+  font-family: 'Cinzel', serif;
+  font-size: 1.25rem;
+  font-weight: 900;
+  margin-bottom: 1.25rem;
+  position: relative;
+  text-transform: uppercase;
+}
+.topic-heading::after {
+  background: var(--territory-accent);
+  bottom: -.4rem;
+  content: "";
+  height: 1px;
+  left: 0;
+  position: absolute;
+  width: 100%;
+}
+.topic-section { display: none; }
+.topic-section.is-visible { animation: fadeTopic .25s ease both; display: block; }
+@keyframes fadeTopic { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+.bonfire-markdown {
+  color: var(--muted);
+  font-size: .82rem;
+  line-height: 1.65;
+}
+.bonfire-markdown > * + * { margin-top: .85rem; }
+.bonfire-markdown h1,
+.bonfire-markdown h2,
+.bonfire-markdown h3,
+.bonfire-markdown h4 {
+  color: var(--territory-accent);
+  font-family: 'Cinzel', serif;
+  text-transform: uppercase;
+}
+.bonfire-markdown strong { color: #fff; }
+.page-highlight, .page-highlight strong { color: var(--territory-accent) !important; }
+.bonfire-markdown ul,
+.bonfire-markdown ol { padding-left: 1.5rem; }
+.bonfire-markdown blockquote {
+  border-left: 3px solid var(--territory-accent);
+  padding-left: .85rem;
+}
+.bonfire-markdown table { border-collapse: collapse; width: 100%; }
+.bonfire-markdown th,
+.bonfire-markdown td { border: 1px solid var(--stroke); padding: .55rem .75rem; }
+.side-map-card {
+  background: var(--bg1);
+  border: 1px solid var(--stroke);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.side-map-image {
+  background-image:
+    linear-gradient(to bottom, rgba(0,0,0,.08), rgba(0,0,0,.75)),
+    var(--map-image);
+  background-position: center;
+  background-size: cover;
+  min-height: 150px;
+}
+.side-map-body { display: none; }
+.wiki-edit-button,
+.wiki-inline-save {
+  background: var(--territory-color);
+  border-radius: 5px;
+  color: var(--territory-contrast);
+  display: inline-flex;
+  font-size: .72rem;
+  font-weight: 900;
+  letter-spacing: .08em;
+  padding: .7rem .9rem;
+  text-transform: uppercase;
+}
+.wiki-tools { display: flex; justify-content: flex-end; margin-top: 1rem; }
+.wiki-inline-editor {
+  background: var(--bg1);
+  border: 1px solid var(--stroke);
+  border-radius: 8px;
+  display: none;
+  gap: .75rem;
+  margin-top: 1rem;
+  padding: 1rem;
+}
+.wiki-inline-editor.is-open { display: grid; }
+.wiki-inline-editor label {
+  color: var(--muted);
+  display: grid;
+  font-size: .68rem;
+  font-weight: 900;
+  gap: .35rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+.wiki-inline-editor input,
+.wiki-inline-editor textarea {
+  background: var(--bg0);
+  border: 1px solid var(--stroke);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: .85rem;
+  padding: .65rem .75rem;
+}
+.wiki-inline-editor textarea { min-height: 220px; resize: vertical; }
+.wiki-inline-actions { display: flex; gap: .5rem; justify-content: flex-end; }
+.wiki-inline-cancel {
+  border: 1px solid var(--stroke);
+  border-radius: 5px;
+  color: var(--muted);
+  font-size: .72rem;
+  font-weight: 900;
+  padding: .7rem .9rem;
+  text-transform: uppercase;
+}
+.region-stats-card {
+  background: var(--bg1);
+  border: 1px solid var(--stroke);
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  padding: 1.25rem;
+}
+.stats-title {
+  color: var(--muted);
+  font-family: 'Cinzel', serif;
+  font-size: .65rem;
+  font-weight: 900;
+  letter-spacing: .15em;
+  margin-bottom: 1.5rem;
+  text-transform: uppercase;
+}
+.stats-title span { color: var(--territory-accent); }
+.stats-grid { display: grid; gap: 1.25rem; }
+.stat-item { display: grid; gap: .4rem; }
+.stat-header { display: flex; justify-content: space-between; align-items: flex-end; }
+.stat-label {
+  color: var(--muted);
+  font-size: .65rem;
+  font-weight: 800;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+}
+.stat-dots {
+  display: flex;
+  gap: 3px;
+  margin-bottom: 2px;
+}
+.stat-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.stat-dot.is-filled {
+  background: var(--stat-color, var(--territory-color));
+  box-shadow: 0 0 8px var(--stat-color, var(--territory-color));
+  border-color: transparent;
+}
+.stat-bar-bg {
+  background: rgba(255,255,255,0.03);
+  border-radius: 4px;
+  height: 6px;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+.stat-bar-fill {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--stat-color, var(--territory-color)) 40%, black), var(--stat-color, var(--territory-color)));
+  height: 100%;
+  transition: width 1.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  width: 0;
+  border-radius: 4px;
+}
+.stat-value { display: none; }
+.region-org-card {
+  background: var(--bg1);
+  border: 1px solid var(--stroke);
+  border-radius: 8px;
+  margin: 1rem 0;
+  padding: 1rem;
+}
+.region-org-list {
+  display: grid;
+  gap: .75rem;
+}
+.region-org-item {
+  border-top: 1px solid var(--stroke);
+  padding-top: .75rem;
+}
+.region-org-item:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+.region-org-name {
+  color: #fff;
+  font-family: 'Cinzel', serif;
+  font-size: .82rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+.region-org-meta {
+  color: var(--territory-accent);
+  font-size: .66rem;
+  font-weight: 900;
+  letter-spacing: .1em;
+  margin-top: .2rem;
+  text-transform: uppercase;
+}
+.region-org-desc {
+  color: var(--muted);
+  font-size: .78rem;
+  line-height: 1.5;
+  margin-top: .35rem;
+}
+
+.subtopic-body-title {
+  color: var(--territory-color);
+  font-family: 'Cinzel', serif;
+  font-size: .85rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+.subtopic-body-title::after {
+  content: " \2014 ";
+  color: var(--muted);
+  font-weight: 400;
+}
+.h1-group-panel .bonfire-markdown p:first-child {
+  display: inline;
+}
+
+
+.bonfire-h1-lore {
+  color: #fff;
+  font-family: 'Cinzel', serif;
+  font-size: 1.75rem;
+  font-weight: 900;
+  margin: 2rem 0 1rem;
+  text-transform: uppercase;
+}
+.h1-group-panel { display: none; }
+.h1-group-panel.is-visible { display: block; animation: fadeTopic .3s ease both; }
+
+.subtopic-btn {
+  background: var(--bg0);
+  border: 1px solid var(--stroke);
+  border-radius: 4px;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: .65rem;
+  font-weight: 700;
+  padding: .4rem .7rem;
+  text-transform: uppercase;
+  transition: all .2s;
+}
+.subtopic-btn:hover {
+  border-color: var(--territory-accent);
+  color: var(--territory-accent);
+}
+.subtopic-btn.is-active {
+  background: color-mix(in srgb, var(--territory-color) 15%, transparent);
+  border-color: var(--territory-accent);
+  color: var(--territory-accent);
+}
+.region-mobile-menu-button,
+.region-mobile-backdrop,
+.region-mobile-drawer {
+  display: none;
+}
+
+@media (max-width: 1100px) {
+  .region-layout { grid-template-columns: 1fr; }
+  .region-left,
+  .region-right { display: none; }
+  .region-mobile-menu-button {
+    align-items: center;
+    background: color-mix(in srgb, var(--territory-color) 20%, rgba(8,8,9,.92));
+    border: 1px solid var(--territory-accent);
+    border-radius: 7px;
+    color: var(--territory-accent);
+    display: inline-flex;
+    height: 44px;
+    left: 1rem;
+    justify-content: center;
+    padding: 0;
+    position: fixed;
+    bottom: 2rem;
+    top: auto;
+    transition: left .24s ease, border-color .2s ease, color .2s ease;
+    width: 44px;
+    z-index: 70;
+  }
+  body.region-menu-open .region-mobile-menu-button {
+    left: calc(min(88vw, 360px) + 8px);
+  }
+  .region-mobile-menu-button .close-icon {
+    display: none;
+  }
+  body.region-menu-open .region-mobile-menu-button .open-icon {
+    display: none;
+  }
+  body.region-menu-open .region-mobile-menu-button .close-icon {
+    display: block;
+  }
+  .region-mobile-backdrop {
+    background: rgba(0,0,0,.72);
+    display: block;
+    inset: 57px 0 0;
+    opacity: 0;
+    pointer-events: none;
+    position: fixed;
+    transition: opacity .2s ease;
+    z-index: 80;
+  }
+  .region-mobile-drawer {
+    background: var(--bg0);
+    border-right: 1px solid var(--stroke);
+    box-shadow: 18px 0 40px rgba(0,0,0,.45);
+    display: block;
+    inset: 57px auto 0 0;
+    height: calc(100dvh - 57px);
+    max-width: min(88vw, 360px);
+    overflow-y: auto;
+    padding: 1rem 0 5rem;
+    position: fixed;
+    transform: translateX(-105%);
+    transition: transform .24s ease;
+    width: 100%;
+    z-index: 90;
+  }
+  body.region-menu-open .region-mobile-backdrop {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  body.region-menu-open .region-mobile-drawer {
+    transform: translateX(0);
+  }
+  .region-mobile-drawer-header {
+    align-items: center;
+    border-bottom: 1px solid var(--stroke);
+    display: flex;
+    justify-content: space-between;
+    padding: 0 1rem 1rem;
+  }
+  .region-mobile-drawer-title {
+    color: #fff;
+    font-family: 'Cinzel', serif;
+    font-size: .9rem;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+  .region-mobile-close {
+    border: 1px solid var(--stroke);
+    border-radius: 6px;
+    color: var(--muted);
+    font-weight: 900;
+    padding: .45rem .65rem;
+  }
+  .region-mobile-actions {
+    display: grid;
+    gap: .65rem;
+    padding: 1rem;
+  }
+  .region-content {
+    padding-bottom: 6rem;
+  }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="region-layout">
+  <button type="button" class="region-mobile-menu-button" id="regionMobileMenuButton" aria-label="Abrir menu de regiões">
+    <svg xmlns="http://www.w3.org/2000/svg" class="open-icon h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 5 7 7-7 7"/></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" class="close-icon h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 19-7-7 7-7"/></svg>
+  </button>
+  <button type="button" class="region-mobile-backdrop" id="regionMobileBackdrop" aria-label="Fechar menu"></button>
+  <aside class="region-mobile-drawer" id="regionMobileDrawer" aria-label="Menu de regiões">
+    <div class="region-mobile-drawer-header">
+      <div class="region-mobile-drawer-title">Regiões</div>
+      <button type="button" class="region-mobile-close" id="regionMobileClose">Fechar</button>
+    </div>
+    <div class="region-mobile-actions">
+      <a href="{% url 'mapa' %}?region={{ regiao.slug }}" class="topic-btn" style="display:flex;justify-content:center;text-decoration:none;">Ver no mapa</a>
+      <a href="{% url 'mundo_cronicas' %}?regiao={{ regiao.nome }}" class="topic-btn" style="display:flex;justify-content:center;text-decoration:none;">Crônicas</a>
+    </div>
+    {% for group in territory_groups %}
+    <details class="territory-nav" style="--territory-color: {{ group.color }}; --territory-accent: {{ group.display_color }}; --territory-contrast: {{ group.contrast }};" {% if group.is_current %}open{% endif %}>
+      <summary class="territory-nav-title" style="color: var(--territory-accent);">{{ group.display_nome }}</summary>
+      <div class="territory-nav-list">
+      {% for r in group.regioes %}
+      <a href="{% url 'regiao_detail' slug=r.slug %}" class="region-link {% if r.slug == regiao.slug %}is-active{% endif %}">
+        {{ r.nome }}
+      </a>
+      {% endfor %}
+      </div>
+    </details>
+    {% endfor %}
+  </aside>
+
+  <aside class="region-left">
+    {% for group in territory_groups %}
+    <details class="territory-nav" style="--territory-color: {{ group.color }}; --territory-accent: {{ group.display_color }}; --territory-contrast: {{ group.contrast }};" {% if group.is_current %}open{% endif %}>
+      <summary class="territory-nav-title" data-territory-title="{{ group.nome }}" style="color: var(--territory-accent);">{{ group.display_nome }}</summary>
+      <div class="territory-nav-list">
+      {% for r in group.regioes %}
+      <a href="{% url 'regiao_detail' slug=r.slug %}" data-region-link="{{ r.slug }}" class="region-link {% if r.slug == regiao.slug %}is-active{% endif %}">
+        {{ r.nome }}
+      </a>
+      {% endfor %}
+      </div>
+    </details>
+    {% endfor %}
+  </aside>
+
+  <main class="region-main">
+    <section class="region-hero" id="regionHero" style="--hero-bg: url('{{ imagem_url }}')">
+      <div class="region-hero-blur"></div>
+      <div class="region-hero-inner">
+        <div class="region-heading-row">
+          <a href="{% url 'mapa' %}?region={{ regiao.slug }}" class="map-pin-link" title="Ver no mapa">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+          </a>
+          <div class="region-eyebrow">Regiões / {{ display_territory }}</div>
+        </div>
+        <h1 class="region-title" id="articleTitle">{{ regiao.nome }}</h1>
+        
+        {% if lore_topics|length > 1 %}
+        <nav class="topic-nav" aria-label="Tópicos da região" style="margin-top: .75rem;">
+          {% for topic in lore_topics %}
+          <button class="topic-btn {% if forloop.first %}is-active{% endif %}" data-topic-toggle="{{ topic.slug }}" data-topic-title="{{ topic.title }}">{{ topic.title }}</button>
+          {% endfor %}
+        </nav>
+        {% endif %}
+        <nav class="topic-nav" aria-label="Tópicos da região" hidden></nav>
+      </div>
+      <div class="region-category-icon" id="heroCategoryIcon" title="Categoria da região">
+        
+      </div>
+    </section>
+
+    <div class="region-content" id="articleContent">
+      <h2 class="topic-heading" id="currentTopicTitle">História</h2>
+      {% if lore_topics %}
+        {% for topic in lore_topics %}
+        <section class="topic-section {% if forloop.first %}is-visible{% endif %}" data-topic-slug="{{ topic.slug }}">
+          <div class="bonfire-markdown" data-markdown-source>{{ topic.content|escape }}</div>
+        </section>
+        {% endfor %}
+      {% elif regiao.lore_markdown %}
+        <div class="bonfire-markdown" data-markdown-source>{{ regiao.lore_markdown|escape }}</div>
+      {% else %}
+        <p class="bonfire-markdown">{% if can_edit_wiki %}Use "Editar região" para adicionar a lore desta região.{% else %}A lore desta região ainda não foi escrita.{% endif %}</p>
+      {% endif %}
+  </main>
+
+  <aside class="region-right">
+    
+    <div class="region-stats-card" id="regionStats">
+      <h3 class="stats-title">Atributos da <span id="statsTypeName">Região</span></h3>
+      <div class="stats-grid" id="statsGrid">
+        
+      </div>
+    </div>
+
+    {% if organizations %}
+    <div class="region-org-card">
+      <h3 class="stats-title" style="margin-bottom:1rem;">Organizacoes</h3>
+      <div class="region-org-list">
+        {% for org in organizations %}
+          <article class="region-org-item">
+            <div class="region-org-name">{{ org.nome }}</div>
+            <div class="region-org-meta">{{ org.tipo }}{% if org.sede %} - {{ org.sede }}{% endif %}</div>
+            {% if org.descricao %}
+              <p class="region-org-desc">{{ org.descricao|truncatechars:180 }}</p>
+            {% endif %}
+          </article>
+        {% endfor %}
+      </div>
+      <a href="{% url 'mundo_organizacoes' %}" class="topic-btn" style="display:flex;justify-content:center;margin-top:1rem;text-decoration:none;width:100%;">Ver organizacoes</a>
+    </div>
+    {% endif %}
+
+    <div style="margin: 1rem 0;">
+      <a href="{% url 'mundo_cronicas' %}?{% if is_territory %}territorio={{ regiao.nome }}{% else %}regiao={{ regiao.nome }}{% endif %}" class="topic-btn" id="sideCronicasBtn" style="background: var(--territory-color); color: var(--text); display: flex; align-items: center; justify-content: center; gap: .5rem; text-decoration: none; width: 100%; border: none;">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+          <path d="M4 19h16v2H4v-2zm16-4H4v2h16v-2zm0-4H4v2h16v-2zm0-4H4v2h16V7zm0-4H4v2h16V3z"/>
+        </svg>
+        <span id="cronicasBtnText">Ler crônicas {% if is_territory %}do território{% else %}da região{% endif %} {{ regiao.nome }}</span>
+      </a>
+    </div>
+
+    <div class="side-map-card" style="--map-image: url('{{ side_image_url }}')">
+      <div class="side-map-image"></div>
+    </div>
+  </aside>
+</div>
+
+{{ client_regions|json_script:"regions-client-data" }}
+{{ client_territories|json_script:"territories-client-data" }}
+
+<script>
+(function() {
+  const canEditWiki = {{ can_edit_wiki|yesno:"true,false" }};
+  const initialRegionSlug = "{{ current_region_slug|escapejs }}";
+  const regions = JSON.parse(document.getElementById('regions-client-data')?.textContent || '[]');
+  const territories = JSON.parse(document.getElementById('territories-client-data')?.textContent || '{}');
+  const regionsBySlug = new Map(regions.map(region => [region.slug, region]));
+
+  const layout = document.querySelector('.region-layout');
+  const hero = document.getElementById('regionHero');
+  const titleEl = document.getElementById('articleTitle');
+  const eyebrowEl = document.querySelector('.region-eyebrow');
+  const topicNav = document.querySelector('.topic-nav');
+  const contentEl = document.getElementById('articleContent');
+  const sideCard = document.querySelector('.side-map-card');
+  const mapPin = document.querySelector('.map-pin-link');
+
+  let currentData = null;
+
+  const mobileMenuButton = document.getElementById('regionMobileMenuButton');
+  const mobileBackdrop = document.getElementById('regionMobileBackdrop');
+  const mobileClose = document.getElementById('regionMobileClose');
+  function openRegionMenu() {
+    document.body.classList.add('region-menu-open');
+  }
+  function closeRegionMenu() {
+    document.body.classList.remove('region-menu-open');
+  }
+  mobileMenuButton?.addEventListener('click', openRegionMenu);
+  mobileBackdrop?.addEventListener('click', closeRegionMenu);
+  mobileClose?.addEventListener('click', closeRegionMenu);
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape') closeRegionMenu();
+  });
+
+  function csrfToken() {
+    return decodeURIComponent((document.cookie.split('; ').find(r => r.startsWith('csrftoken=')) || '').split('=')[1] || '');
+  }
+
+  function getDisplayColor(hexColor) {
+    if (!hexColor) return '#f27007';
+    const hex = hexColor.replace('#', '').toLowerCase();
+    return (hex === '000' || hex === '000000' || hex === 'black') ? '#ffffff' : hexColor;
+  }
+
+  function getContrastColor(hexColor) {
+    if (!hexColor) return '#070707';
+    const hex = hexColor.replace('#', '').toLowerCase();
+    return (hex === '000' || hex === '000000' || hex === 'black') ? '#ffffff' : '#070707';
+  }
+
+  function getCategoryIcon(categoria) {
+    const filenames = {
+      'capital': 'capital.png',
+      'cidade': 'cidade.png',
+      'fortaleza': 'fortaleza.png',
+      'castelo': 'fortaleza.png',
+      'conglomerado_de_vilas': 'conglomerado.png',
+      'conglomerado_vilas': 'conglomerado.png',
+      'vila': 'vila.png',
+      'cidade_portuaria': 'porto.png',
+      'porto': 'porto.png',
+      'area_selvagem': 'terras_selvagens.png',
+      'area_perigosa': 'terras_selvagens.png'
+    };
+    const file = filenames[categoria] || 'cidade.png';
+    return `{% static 'assets/map_icons/' %}${file}`;
+  }
+
+  function slugify(value) {
+    return String(value || '')
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'territorio';
+  }
+
+  function parseBonfireMarkdown(text) {
+    if (!text) return '';
+    const html = typeof renderBonfireMarkdown === 'function'
+      ? renderBonfireMarkdown(text)
+      : (window.marked && typeof window.marked.parse === 'function'
+        ? applyMarkdownColorsToHtml(window.marked.parse(normalizeMarkdown(text), { breaks: true, gfm: true }))
+        : String(text).replace(/\n/g, '<br>'));
+    // Custom tag [color=page]
+    return html.replace(/\[color=page\](.*?)\[\/color\]/gi, '<span class="page-highlight">$1</span>');
+  }
+
+  function renderStats(data) {
+    const grid = document.getElementById('statsGrid');
+    const typeName = document.getElementById('statsTypeName');
+    if (!grid || !data || !data.stats) {
+      document.getElementById('regionStats').style.display = 'none';
+      return;
+    }
+    document.getElementById('regionStats').style.display = 'block';
+    grid.innerHTML = '';
+
+    let attributes = [];
+    const stats = data.stats;
+    const cat = data.categoria || '';
+
+    if (data.type === 'territory') {
+      typeName.textContent = 'Território';
+      attributes = [
+        { label: 'Riqueza Natural', val: stats.riqueza_natural },
+        { label: 'Riqueza Monetária', val: stats.riqueza_monetaria },
+        { label: 'Poder Militar', val: stats.poder_militar },
+        { label: 'Desenv. Tecnológico', val: stats.desenvolvimento_tecnologico },
+        { label: 'Estabilidade Política', val: stats.estabilidade_politica_interna },
+        { label: 'Ameaças Externas', val: stats.ameacas_externas },
+        { label: 'Diplomacia', val: stats.diplomacia },
+        { label: 'Manipulação da Trama', val: stats.manipulacao_trama },
+      ];
+    } else if (cat === 'area_selvagem' || cat === 'area_perigosa') {
+      typeName.textContent = 'Área Selvagem';
+      attributes = [
+        { label: 'Ameaças Internas', val: stats.ameacas_internas },
+        { label: 'Densidade Populacional', val: stats.densidade_populacional },
+        { label: 'Nível de Periculosidade', val: stats.nivel_periculosidade },
+        { label: 'Manipulação da Trama', val: stats.manipulacao_trama },
+        { label: 'Recursos Naturais', val: stats.recursos_naturais },
+        { label: 'Recursos Mágicos', val: stats.recursos_magicos },
+        { label: 'Diversidade de Criaturas', val: stats.diversidade_criaturas },
+      ];
+    } else {
+      typeName.textContent = 'Região';
+      attributes = [
+        { label: 'Movimentações Econômicas', val: stats.movimentacoes_economicas },
+        { label: 'Poder Militar', val: stats.poder_militar },
+        { label: 'Desenv. Tecnológico', val: stats.desenvolvimento_tecnologico },
+        { label: 'Estabilidade Política', val: stats.estabilidade_politica_interna },
+        { label: 'Ameaças Externas', val: stats.ameacas_externas },
+        { label: 'Densidade Populacional', val: stats.densidade_populacional },
+        { label: 'Tolerância a Estrangeiros', val: stats.tolerancia_estrangeiros },
+        { label: 'Manipulação da Trama', val: stats.manipulacao_trama },
+      ];
+    }
+
+    const statColors = {
+      'Movimentações Econômicas': '#f2994a',
+      'Riqueza Monetária': '#f2994a',
+      'Poder Militar': '#eb5757',
+      'Desenv. Tecnológico': '#56ccf2',
+      'Estabilidade Política': '#27ae60',
+      'Ameaças Externas': '#eb5757',
+      'Ameaças Internas': '#eb5757',
+      'Perigo Local': '#eb5757',
+      'Nível de Periculosidade': '#eb5757',
+      'Densidade Populacional': '#bb6bd9',
+      'Tolerância a Estrangeiros': '#f2c94c',
+      'Manipulação da Trama': '#bb6bd9',
+      'Influência Mágica': '#bb6bd9',
+      'Recursos Mágicos': '#bb6bd9',
+      'Riqueza Natural': '#27ae60',
+      'Recursos Naturais': '#27ae60',
+      'Diversidade de Criaturas': '#f2994a',
+      'Diplomacia': '#56ccf2'
+    };
+
+    attributes.forEach(attr => {
+      if (attr.val === undefined) return;
+      const div = document.createElement('div');
+      div.className = 'stat-item';
+      const color = statColors[attr.label] || 'var(--territory-color)';
+      div.style.setProperty('--stat-color', color);
+      
+      const percentage = Math.min(Math.max((attr.val / 5) * 100, 0), 100);
+      const dotsCount = Math.min(Math.max(Math.round(attr.val), 0), 5);
+      let dotsHtml = '';
+      for (let i = 1; i <= 5; i++) {
+        dotsHtml += `<span class="stat-dot ${i <= dotsCount ? 'is-filled' : ''}"></span>`;
+      }
+
+      div.innerHTML = `
+        <div class="stat-header">
+          <span class="stat-label">${attr.label}</span>
+          <div class="stat-dots">${dotsHtml}</div>
+        </div>
+        <div class="stat-bar-bg">
+          <div class="stat-bar-fill" style="width: 0%" data-target-width="${percentage}%"></div>
+        </div>
+      `;
+      grid.appendChild(div);
+    });
+
+    requestAnimationFrame(() => {
+      grid.querySelectorAll('.stat-bar-fill').forEach(bar => {
+        bar.style.width = bar.dataset.targetWidth;
+      });
+    });
+  }
+
+  function renderTopicContent(topic) {
+    if (!topic) return;
+    let bodyHtml = '';
+    
+    const content = Array.isArray(topic.content) ? topic.content : [topic.content];
+    
+    content.forEach(part => {
+      if (typeof part === 'string') {
+        bodyHtml += `<div class="bonfire-markdown mb-6">${parseBonfireMarkdown(part)}</div>`;
+      } else if (part.type === 'h1_group') {
+        bodyHtml += renderH1Group(part);
+      }
+    });
+
+    contentEl.innerHTML = `
+      <h2 class="topic-heading" id="currentTopicTitle">${topic.title}</h2>
+      <div id="activeTopicBody">${bodyHtml}</div>
+      ${renderEditor(currentData)}
+    `;
+    bindEditor(currentData);
+  }
+
+  function renderH1Group(group) {
+    const subtopics = group.subtopics || [];
+    const id = `group-${slugify(group.title)}`;
+    
+    let subNavHtml = '';
+    if (subtopics.length > 0) {
+      subNavHtml = `
+        <div class="subtopic-nav mb-6 flex flex-wrap gap-2">
+          ${subtopics.map((st, idx) => `
+            <button class="subtopic-btn ${idx === 0 ? 'is-active' : ''}" data-group-id="${id}" data-subtopic-toggle="${st.slug}">${st.title}</button>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    return `
+      <div class="h1-section-group mb-12" id="${id}">
+        <h1 class="bonfire-h1-lore">${group.title}</h1>
+        <div class="bonfire-markdown mb-6">${parseBonfireMarkdown(group.intro)}</div>
+        ${subNavHtml}
+        <div class="h1-group-body">
+          ${subtopics.map((st, idx) => `
+            <div class="h1-group-panel ${idx === 0 ? 'is-visible' : ''}" data-group-parent="${id}" data-sub-slug="${st.slug}">
+              <div class="bonfire-markdown"><strong class="subtopic-body-title">${st.title}</strong> ${parseBonfireMarkdown(st.content)}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  function renderTopicButtons(topics) {
+    if (!topicNav) return;
+    topicNav.innerHTML = topics.map((t, i) => `
+      <button class="topic-btn ${i === 0 ? 'is-active' : ''}" data-topic-toggle="${t.slug}">${t.title}</button>
+    `).join('');
+    topicNav.hidden = topics.length <= 1;
+  }
+
+  function renderEditor(data) {
+    if (!canEditWiki) return '';
+    if (data.type === 'region') {
+      return `
+        <div class="wiki-tools mt-8 pt-8 border-t border-[var(--stroke)]"><button type="button" class="wiki-edit-button" id="btnEditRegion">Editar região</button></div>
+        <form id="regionForm" class="wiki-inline-editor" data-region-id="${data.id}">
+          <label>Nome <input name="nome" value="${data.nome}"></label>
+          <label>Território <input name="territorio" value="${data.territorio || ''}"></label>
+          <label>URL da imagem de fundo <input name="brasao_url" value="${data.raw_imagem_url || ''}"></label>
+          <label>URL do mapa lateral <input name="mapa_url" value="${data.raw_mapa_url || ''}"></label>
+          <label>Tags adicionais <input name="etiquetas_adicionais" value="${data.etiquetas_adicionais || ''}" placeholder="Separadas por vírgula"></label>
+          <label>Lore markdown <textarea name="lore_markdown" rows="12">${data.lore_markdown || ''}</textarea></label>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 1rem;">
+            <label>Mov. Econômicas <input type="number" name="movimentacoes_economicas" value="${data.stats?.movimentacoes_economicas || 0}"></label>
+            <label>Poder Militar <input type="number" name="poder_militar" value="${data.stats?.poder_militar || 0}"></label>
+            <label>Desenv. Tecnológico <input type="number" name="desenvolvimento_tecnologico" value="${data.stats?.desenvolvimento_tecnologico || 0}"></label>
+            <label>Estabilidade Política <input type="number" name="estabilidade_politica_interna" value="${data.stats?.estabilidade_politica_interna || 0}"></label>
+            <label>Ameaças Externas <input type="number" name="ameacas_externas" value="${data.stats?.ameacas_externas || 0}"></label>
+            <label>Densidade Pop. <input type="number" name="densidade_populacional" value="${data.stats?.densidade_populacional || 0}"></label>
+            <label>Tol. Estrangeiros <input type="number" name="tolerancia_estrangeiros" value="${data.stats?.tolerancia_estrangeiros || 0}"></label>
+            <label>Manipulação Trama <input type="number" name="manipulacao_trama" value="${data.stats?.manipulacao_trama || 0}"></label>
+            <label>Ameaças Internas <input type="number" name="ameacas_internas" value="${data.stats?.ameacas_internas || 0}"></label>
+            <label>Nível Periculosidade <input type="number" name="nivel_periculosidade" value="${data.stats?.nivel_periculosidade || 0}"></label>
+          </div>
+          <div class="wiki-inline-actions mt-4">
+            <button type="button" class="wiki-inline-cancel" id="btnCancelRegion">Cancelar</button>
+            <button type="submit" class="wiki-inline-save">Salvar</button>
+          </div>
+        </form>`;
+    } else {
+      return `
+        <div class="wiki-tools mt-8 pt-8 border-t border-[var(--stroke)]"><button type="button" class="wiki-edit-button" id="btnEditTerritory">Editar território</button></div>
+        <form id="territoryForm" class="wiki-inline-editor" data-territory-id="${data.id}">
+          <label>Nome <input name="nome" value="${data.nome}"></label>
+          <label>URL da imagem <input name="imagem_url" value="${data.raw_imagem_url || ''}"></label>
+          <label>Descrição breve <textarea name="descricao_breve" rows="2">${data.descricao_breve || ''}</textarea></label>
+          <label>Lore markdown <textarea name="lore_markdown" rows="12">${data.lore_markdown || ''}</textarea></label>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 1rem;">
+            <label>Riqueza Natural <input type="number" name="riqueza_natural" value="${data.stats?.riqueza_natural || 0}"></label>
+            <label>Riqueza Monetária <input type="number" name="riqueza_monetaria" value="${data.stats?.riqueza_monetaria || 0}"></label>
+            <label>Poder Militar <input type="number" name="poder_militar" value="${data.stats?.poder_militar || 0}"></label>
+            <label>Desenv. Tecnológico <input type="number" name="desenvolvimento_tecnologico" value="${data.stats?.desenvolvimento_tecnologico || 0}"></label>
+            <label>Estabilidade Política <input type="number" name="estabilidade_politica_interna" value="${data.stats?.estabilidade_politica_interna || 0}"></label>
+            <label>Ameaças Externas <input type="number" name="ameacas_externas" value="${data.stats?.ameacas_externas || 0}"></label>
+            <label>Diplomacia <input type="number" name="diplomacia" value="${data.stats?.diplomacia || 0}"></label>
+            <label>Manipulação Trama <input type="number" name="manipulacao_trama" value="${data.stats?.manipulacao_trama || 0}"></label>
+          </div>
+          <div class="wiki-inline-actions mt-4">
+            <button type="button" class="wiki-inline-cancel" id="btnCancelTerritory">Cancelar</button>
+            <button type="submit" class="wiki-inline-save">Salvar</button>
+          </div>
+        </form>`;
+    }
+  }
+
+  function bindEditor(data) {
+    if (!canEditWiki) return;
+    
+    if (data.type === 'region') {
+      const regionForm = document.getElementById('regionForm');
+      document.getElementById('btnEditRegion')?.addEventListener('click', () => regionForm?.classList.add('is-open'));
+      document.getElementById('btnCancelRegion')?.addEventListener('click', () => regionForm?.classList.remove('is-open'));
+      regionForm?.addEventListener('submit', async e => {
+        e.preventDefault();
+        const formData = Object.fromEntries(new FormData(regionForm).entries());
+        const res = await fetch(`/wiki/regioes/${data.id}/editar/`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken()},
+          body: JSON.stringify(formData),
+        });
+        if (res.ok) window.location.reload();
+        else alert('Erro ao salvar');
+      });
+    } else {
+      const territoryForm = document.getElementById('territoryForm');
+      document.getElementById('btnEditTerritory')?.addEventListener('click', () => territoryForm?.classList.add('is-open'));
+      document.getElementById('btnCancelTerritory')?.addEventListener('click', () => territoryForm?.classList.remove('is-open'));
+      territoryForm?.addEventListener('submit', async e => {
+        e.preventDefault();
+        const formData = Object.fromEntries(new FormData(territoryForm).entries());
+        const res = await fetch(`/wiki/territorios/${data.id}/editar/`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken()},
+          body: JSON.stringify(formData),
+        });
+        if (res.ok) window.location.reload();
+        else alert('Erro ao salvar');
+      });
+    }
+  }
+
+  function updateView(data, pushState = true) {
+    if (!data) return;
+    currentData = data;
+    
+    if (pushState) {
+        const url = data.type === 'region' ? data.url : `?territory=${data.slug}`;
+        history.pushState({ slug: data.slug, type: data.type }, '', url);
+    }
+
+    contentEl.classList.add('is-swapping');
+    setTimeout(() => {
+      hero.style.setProperty('--hero-bg', `url('${data.imagem_url}')`);
+      if (sideCard) sideCard.style.setProperty('--map-image', `url('${data.side_image_url || data.territory_image_url || data.imagem_url}')`);
+      titleEl.textContent = data.nome;
+      eyebrowEl.textContent = data.type === 'region' ? `Regiões / ${data.display_territory}` : 'Territórios';
+      layout.style.setProperty('--territory-color', data.color);
+      layout.style.setProperty('--territory-accent', getDisplayColor(data.color));
+      layout.style.setProperty('--territory-contrast', getContrastColor(data.color));
+      
+      if (mapPin) {
+        mapPin.href = data.type === 'region' ? `{% url 'mapa' %}?region=${data.slug}` : `{% url 'mapa' %}`;
+        mapPin.style.display = data.type === 'region' ? 'flex' : 'none';
+      }
+
+      renderTopicButtons(data.topics || []);
+      renderTopicContent(data.topics?.[0] || {title: 'Lore', content: data.fallback_text});
+      renderStats(data);
+
+      const sideCronicasBtn = document.getElementById('sideCronicasBtn');
+      const cronicasBtnText = document.getElementById('cronicasBtnText');
+      if (sideCronicasBtn && cronicasBtnText) {
+          const typeParam = data.type === 'territory' ? 'territorio' : 'regiao';
+          sideCronicasBtn.href = `{% url 'mundo_cronicas' %}?${typeParam}=${encodeURIComponent(data.nome)}`;
+          cronicasBtnText.textContent = `Ler crônicas ${data.type === 'territory' ? 'do território' : 'da região'} ${data.nome}`;
+          sideCronicasBtn.style.backgroundColor = data.color || '#f27007';
+          sideCronicasBtn.style.color = getContrastColor(data.color);
+      }
+
+      const heroIcon = document.getElementById('heroCategoryIcon');
+      if (heroIcon) {
+          heroIcon.innerHTML = data.type === 'region' ? `<img src="${getCategoryIcon(data.categoria)}" alt="${data.categoria}">` : '';
+          heroIcon.style.display = data.type === 'region' ? 'flex' : 'none';
+          heroIcon.title = data.categoria ? data.categoria.replace(/_/g, ' ') : '';
+      }
+
+      document.querySelectorAll('.region-link').forEach(link => {
+          link.classList.toggle('is-active', link.dataset.regionLink === data.slug);
+      });
+      document.querySelectorAll('.territory-nav').forEach(nav => {
+          const isMatch = data.type === 'territory' 
+              ? nav.querySelector(`[data-territory-title="${data.nome}"]`)
+              : nav.querySelector(`[data-region-link="${data.slug}"]`);
+          if (isMatch) nav.open = true;
+      });
+
+      contentEl.classList.remove('is-swapping');
+    }, 200);
+  }
+
+  // Global Click Handlers
+  document.addEventListener('click', e => {
+    const topicBtn = e.target.closest('[data-topic-toggle]');
+    if (topicBtn) {
+      const slug = topicBtn.dataset.topicToggle;
+      const topic = (currentData.topics || []).find(t => t.slug === slug);
+      if (topic) {
+        document.querySelectorAll('.topic-btn').forEach(b => b.classList.toggle('is-active', b === topicBtn));
+        renderTopicContent(topic);
+      }
+      return;
+    }
+
+    const subtopicBtn = e.target.closest('[data-subtopic-toggle]');
+    if (subtopicBtn) {
+      const slug = subtopicBtn.dataset.subtopicToggle;
+      const groupId = subtopicBtn.dataset.groupId;
+      const container = document.getElementById(groupId);
+      if (container) {
+        container.querySelectorAll('.subtopic-btn').forEach(b => b.classList.toggle('is-active', b === subtopicBtn));
+        container.querySelectorAll('.h1-group-panel').forEach(s => s.classList.toggle('is-visible', s.dataset.subSlug === slug));
+      }
+      return;
+    }
+
+    const regionLink = e.target.closest('[data-region-link]');
+    if (regionLink) {
+      e.preventDefault();
+      updateView(regionsBySlug.get(regionLink.dataset.regionLink));
+      return;
+    }
+
+    const territoryLink = e.target.closest('[data-territory-title]');
+    if (territoryLink) {
+      e.preventDefault();
+      const nav = territoryLink.closest('details');
+      document.querySelectorAll('details.territory-nav').forEach(n => {
+          if (n !== nav) n.open = false;
+      });
+      if (nav) nav.open = true;
+      updateView(territories[territoryLink.dataset.territoryTitle]);
+      return;
+    }
+  });
+
+  window.addEventListener('popstate', e => {
+    if (e.state) {
+      const data = e.state.type === 'region' ? regionsBySlug.get(e.state.slug) : territories[e.state.slug];
+      if (data) updateView(data, false);
+    }
+  });
+
+  // Initial Load
+  const urlParams = new URLSearchParams(window.location.search);
+  const paramTerritory = urlParams.get('territory');
+  let initialArticle = null;
+  
+  if (paramTerritory) {
+      initialArticle = Object.values(territories).find(t => t.slug === paramTerritory);
+  }
+  if (!initialArticle) {
+      initialArticle = regionsBySlug.get(initialRegionSlug);
+  }
+  
+  if (initialArticle) {
+      updateView(initialArticle, false);
+      // Force correct sidebar open state on load
+      document.querySelectorAll('.territory-nav').forEach(nav => {
+          const summary = nav.querySelector('[data-territory-title]');
+          if (summary) {
+              const isMatch = initialArticle.type === 'territory' 
+                  ? summary.dataset.territoryTitle === initialArticle.nome
+                  : nav.querySelector(`[data-region-link="${initialArticle.slug}"]`);
+              nav.open = !!isMatch;
+          }
+      });
+  }
+
+})();
+</script>
+{% endblock %}
+

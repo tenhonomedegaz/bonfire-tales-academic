@@ -1,0 +1,514 @@
+{% extends 'home/base.html' %}
+{% load static %}
+
+{% block main_class %}flex-1 w-full py-4{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/pages/raca_detail.css' %}">
+
+{% endblock %}
+
+{% block content %}
+<div class="mx-auto w-full max-w-[1440px] px-2 sm:px-4">
+  <button type="button" class="race-mobile-menu-toggle" data-race-menu-toggle aria-controls="raceSidebar" aria-expanded="false" aria-label="Abrir lista de raças">
+    <svg xmlns="http://www.w3.org/2000/svg" class="open-icon h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 5 7 7-7 7"/></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" class="close-icon h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 19-7-7 7-7"/></svg>
+  </button>
+  <div class="race-mobile-backdrop" data-race-menu-close></div>
+  <div class="race-detail-layout">
+    <aside id="raceSidebar" class="race-sidebar h-full">
+      <div class="mb-3">
+        <label class="relative block">
+          <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-[var(--muted)]">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          </span>
+          <input id="raceSearch" type="search" placeholder="Buscar raça..." class="w-full rounded border border-[var(--stroke)] bg-[var(--bg1)] py-2 pl-9 pr-3 text-sm text-[var(--text)] outline-none focus:border-[var(--ember)]">
+        </label>
+      </div>
+
+      {% comment %}
+        <details class="group/race-nav relative rounded border border-[var(--stroke)] bg-[var(--bg1)]">
+          <summary class="flex cursor-pointer items-center justify-between px-4 py-3 text-sm font-bold uppercase tracking-widest text-[var(--text)] list-none">
+            <span class="flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-[var(--ember)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3 8 4.5-8 4.5-8-4.5L12 3Z"/><path d="m4 12 8 4.5 8-4.5"/><path d="m4 16.5 8 4.5 8-4.5"/></svg>
+              {% if raca %}{{ raca.nome }}{% else %}Selecione uma Raça{% endif %}
+            </span>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform group-open/race-nav:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+          </summary>
+          <div class="absolute left-0 top-full z-10 mt-1 max-h-60 w-full overflow-y-auto rounded border border-[var(--stroke)] bg-[var(--bg1)] shadow-2xl animate-fade-in-down origin-top">
+            {% for item in all_racas %}
+            <a href="{% url 'raca_detail' slug=item.slug %}" data-search="{{ item.nome }} {{ item.tagline }}" class="race-nav-item block border-b border-[var(--stroke)] px-4 py-3 text-sm font-bold uppercase last:border-0 hover:bg-[var(--bg2)] hover:text-[var(--ember)] {% if item.id_raca == selected_raca_id %}text-[var(--ember)]{% else %}text-[var(--muted)]{% endif %}">
+              {{ item.nome }}
+            </a>
+            {% endfor %}
+          </div>
+        </details>
+      </div>
+
+      {% endcomment %}
+      <nav id="raceNav" class="mb-6 grid gap-2">
+        {% for item in all_racas %}
+        <a href="{% url 'raca_detail' slug=item.slug %}" data-search="{{ item.nome }} {{ item.tagline }}" class="race-nav-item rounded border px-3 py-2 text-sm font-bold uppercase transition-colors {% if item.id_raca == selected_raca_id %}border-[var(--flame)] bg-[var(--flame)]/5 text-[var(--text)]{% else %}border-transparent text-[var(--muted)] hover:border-[var(--stroke)] hover:bg-[var(--bg1)] hover:text-[var(--text)]{% endif %}">
+          {{ item.nome }}
+        </a>
+        {% empty %}
+        <p class="rounded border border-[var(--stroke)] bg-[var(--bg1)] p-3 text-sm text-[var(--muted)]">Nenhuma raça cadastrada.</p>
+        {% endfor %}
+      </nav>
+
+      <div id="raceTraitsContainer">
+      {% if raca %}
+      <section class="rounded border border-[var(--stroke)] bg-[var(--bg1)] p-4">
+        <h2 class="font-rpg text-lg font-bold uppercase text-[var(--text)]">{{ raca.nome }}</h2>
+
+        <div class="mt-4 divide-y divide-[var(--stroke)]">
+          <div class="py-3">
+            <span class="block text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Linhagens</span>
+            <span class="mt-1 block text-[11px] font-semibold leading-snug text-[var(--text)]">{{ linhagens|length }}</span>
+          </div>
+          <div class="py-3">
+            <span class="block text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Traços Base</span>
+            <span class="mt-1 block text-[11px] font-semibold leading-snug text-[var(--text)]">{{ tracos_base|length }}</span>
+          </div>
+          <div class="py-3">
+            <span class="block text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Permite Essência</span>
+            <span class="mt-1 block text-[11px] font-semibold leading-snug text-[var(--text)]">{% if raca.permite_essencia %}Sim{% else %}Não{% endif %}</span>
+          </div>
+        </div>
+      </section>
+      {% else %}
+      <section class="rounded border border-[var(--stroke)] bg-[var(--bg1)] p-4">
+        <h2 class="font-rpg text-lg font-bold uppercase text-[var(--text)]">Raças</h2>
+        <div class="mt-4 grid grid-cols-3 gap-2 text-center">
+          <div>
+            <strong class="block font-rpg text-lg text-[var(--text)]">{{ all_racas|length }}</strong>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">Raças</span>
+          </div>
+          <div>
+            <strong class="block font-rpg text-lg text-[var(--text)]">{{ total_linhagens }}</strong>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">Linhagens</span>
+          </div>
+          <div>
+            <strong class="block font-rpg text-lg text-[var(--text)]">{{ total_tracos }}</strong>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">Traços</span>
+          </div>
+        </div>
+        <p class="mt-4 text-[11px] leading-relaxed text-[var(--muted)]">Selecione uma raça na lista para ver apresentação, traços e linhagens.</p>
+      </section>
+      {% endif %}
+      </div>
+    </aside>
+
+    <section class="min-w-0">
+      <header class="mb-5 border-b border-[var(--stroke)] pb-4">
+        <h1 data-race-title class="font-rpg text-2xl font-extrabold uppercase tracking-wide text-[var(--text)] md:text-3xl">{% if raca %}{{ raca.nome }}{% else %}Raças{% endif %}</h1>
+        {% if raca.tagline or can_edit_wiki %}
+        <p data-race-tagline class="mt-1 max-w-4xl text-[10px] italic leading-relaxed text-[var(--muted)] {% if not raca.tagline %}hidden{% endif %}">"{{ raca.tagline }}"</p>
+        {% elif not raca %}
+        <p class="mt-1 max-w-4xl text-[10px] leading-relaxed text-[var(--muted)]">Escolha uma raça no menu lateral para abrir traços raciais, linhagens e textos de ambientação.</p>
+        {% endif %}
+      </header>
+
+      {% if raca %}
+      <div class="space-y-8">
+        {% if can_edit_wiki %}
+        <div class="flex justify-end">
+          <button type="button" class="wiki-edit-button" data-race-edit>Editar raça</button>
+        </div>
+        <form class="wiki-inline-editor" data-race-form data-race-id="{{ raca.id_raca }}">
+          <label>Nome <input name="nome" value="{{ raca.nome }}"></label>
+          <label>Tagline <input name="tagline" value="{{ raca.tagline|default:'' }}"></label>
+          <label>Visão Geral <textarea name="lore_presentation">{{ raca.lore_presentation|default:'' }}</textarea></label>
+          <label>Roleplay <textarea name="lore_roleplay">{{ raca.lore_roleplay|default:'' }}</textarea></label>
+          <label>Sociedade <textarea name="lore_society">{{ raca.lore_society|default:'' }}</textarea></label>
+          <div class="wiki-inline-actions">
+            <button type="button" class="wiki-inline-cancel" data-race-cancel>Cancelar</button>
+            <button type="submit" class="wiki-inline-save">Salvar</button>
+          </div>
+        </form>
+        {% endif %}
+        <section class="grid gap-4 lg:grid-cols-3">
+          {% if raca.lore_presentation or can_edit_wiki %}
+          <article data-race-section="lore_presentation" class="rounded border border-[var(--stroke)] bg-[var(--bg1)] p-4 lg:col-span-3 {% if not raca.lore_presentation %}hidden{% endif %}">
+            <h2 class="mb-3 font-rpg text-lg font-bold text-[var(--flame)] bonfire-underline">Visão Geral</h2>
+            <div class="bonfire-markdown text-[13px] leading-[1.65] text-[var(--muted)]" data-markdown-source data-race-field="lore_presentation">{{ raca.lore_presentation|default:''|escape }}</div>
+          </article>
+          {% endif %}
+
+          {% if raca.lore_roleplay or can_edit_wiki %}
+          <article data-race-section="lore_roleplay" class="rounded border border-[var(--stroke)] bg-[var(--bg1)] p-4 {% if not raca.lore_roleplay %}hidden{% endif %} {% if not raca.lore_society %}lg:col-span-3{% else %}lg:col-span-2{% endif %}">
+            <h2 class="mb-3 font-rpg text-lg font-bold text-[var(--flame)] bonfire-underline">Roleplay</h2>
+            <div class="bonfire-markdown text-[13px] leading-[1.65] text-[var(--muted)]" data-markdown-source data-race-field="lore_roleplay">{{ raca.lore_roleplay|default:''|escape }}</div>
+          </article>
+          {% endif %}
+
+          {% if raca.lore_society or can_edit_wiki %}
+          <article data-race-section="lore_society" class="rounded border border-[var(--stroke)] bg-[var(--bg1)] p-4 {% if not raca.lore_society %}hidden{% endif %} {% if not raca.lore_roleplay %}lg:col-span-3{% endif %}">
+            <h2 class="mb-3 font-rpg text-lg font-bold text-[var(--flame)] bonfire-underline">Sociedade</h2>
+            <div class="bonfire-markdown text-[13px] leading-[1.65] text-[var(--muted)]" data-markdown-source data-race-field="lore_society">{{ raca.lore_society|default:''|escape }}</div>
+          </article>
+          {% endif %}
+        </section>
+
+        <section>
+          <h2 class="mb-4 font-rpg text-xl font-bold text-[var(--text)] bonfire-underline">Traços Raciais</h2>
+          <div class="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+            {% for traco in tracos_base %}
+            <article class="race-trait-card rounded border border-[var(--stroke)] bg-[var(--bg1)] hover:border-[var(--ember)]/60" data-race-trait-card data-trait-id="{{ traco.id_traco }}">
+              <header class="flex items-center justify-between gap-3 border-b border-[var(--flame)]/35 bg-[var(--flame)]/5 px-4 py-3">
+                <h3 data-trait-title class="font-rpg text-[15px] font-bold text-[var(--flame)]">{{ traco.nome }}</h3>
+                {% if can_edit_wiki %}<button type="button" class="wiki-edit-button" data-trait-edit>Editar</button>{% endif %}
+                {% if traco.talento_racial %}
+                <span class="shrink-0 rounded border border-[var(--ember)]/60 bg-[var(--ember)]/10 px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-[var(--ember)]">Talento</span>
+                {% elif traco.nivel_requisito > 0 %}
+                <span class="shrink-0 rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Nv. {{ traco.nivel_requisito }}</span>
+                {% endif %}
+              </header>
+              <div data-trait-preview class="p-4 text-[13px] leading-[1.65] text-[var(--muted)]">
+                <p data-trait-prereq class="mb-3 rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-xs font-bold uppercase tracking-wider text-[var(--ember)] {% if not traco.talento_racial or not traco.pre_requisito %}hidden{% endif %}">Pré-requisito: {{ traco.pre_requisito }}</p>
+                <div class="bonfire-markdown" data-markdown-source>{{ traco.descricao|default:''|escape }}</div>
+              </div>
+              {% if can_edit_wiki %}
+              <form class="wiki-inline-editor" data-trait-form>
+                <div class="wiki-inline-row">
+                  <label>Nome <input name="nome" value="{{ traco.nome }}"></label>
+                  <label>Nível <input name="nivel_requisito" type="number" min="0" max="20" value="{{ traco.nivel_requisito }}"></label>
+                </div>
+                <label class="wiki-inline-check"><input type="checkbox" name="talento_racial" {% if traco.talento_racial %}checked{% endif %}> Talento racial</label>
+                <label>Pré-requisito <input name="pre_requisito" value="{{ traco.pre_requisito|default:'' }}"></label>
+                <label>Texto real <textarea name="descricao">{{ traco.descricao }}</textarea></label>
+                <div class="wiki-inline-actions">
+                  <button type="button" class="wiki-inline-cancel" data-trait-cancel>Cancelar</button>
+                  <button type="submit" class="wiki-inline-save">Salvar</button>
+                </div>
+              </form>
+              {% endif %}
+            </article>
+            {% empty %}
+            <p class="text-sm italic text-[var(--muted)]">Sem traços raciais cadastrados para esta raça.</p>
+            {% endfor %}
+          </div>
+        </section>
+
+        <section>
+          <h2 class="mb-4 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[var(--muted)]">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-[var(--muted)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3 8 4.5-8 4.5-8-4.5L12 3Z"/><path d="m4 12 8 4.5 8-4.5"/><path d="m4 16.5 8 4.5 8-4.5"/></svg>
+            Linhagens
+          </h2>
+          <div class="space-y-4">
+            {% for linhagem in linhagens %}
+            <article class="overflow-hidden rounded border border-[var(--stroke)] bg-[var(--bg1)]">
+              <header class="border-b border-[var(--spark)]/60 bg-[var(--spark)]/5 px-4 py-3">
+                <h3 class="font-rpg text-lg font-bold text-[var(--spark)]">{{ linhagem.nome }}</h3>
+                {% if linhagem.descricao %}
+                <p class="mt-2 text-[13px] italic leading-relaxed text-[var(--muted)] bonfire-markdown" data-markdown-source>{{ linhagem.descricao|default:''|escape }}</p>
+                {% endif %}
+              </header>
+
+              {% if linhagem.lore_presentation or linhagem.lore_roleplay or linhagem.lore_society %}
+              <div class="grid gap-4 border-b border-[var(--stroke)] p-4 text-[13px] leading-[1.65] text-[var(--muted)] lg:grid-cols-3">
+                {% if linhagem.lore_presentation %}
+                <div>
+                  <h4 class="mb-2 text-[10px] font-bold uppercase tracking-widest text-[var(--ember)]">Visão Geral</h4>
+                  <div class="bonfire-markdown" data-markdown-source>{{ linhagem.lore_presentation|default:''|escape }}</div>
+                </div>
+                {% endif %}
+                {% if linhagem.lore_roleplay %}
+                <div>
+                  <h4 class="mb-2 text-[10px] font-bold uppercase tracking-widest text-[var(--ember)]">Roleplay</h4>
+                  <div class="bonfire-markdown" data-markdown-source>{{ linhagem.lore_roleplay|default:''|escape }}</div>
+                </div>
+                {% endif %}
+                {% if linhagem.lore_society %}
+                <div>
+                  <h4 class="mb-2 text-[10px] font-bold uppercase tracking-widest text-[var(--ember)]">Sociedade</h4>
+                  <div class="bonfire-markdown" data-markdown-source>{{ linhagem.lore_society|default:''|escape }}</div>
+                </div>
+                {% endif %}
+              </div>
+              {% endif %}
+
+              <div class="grid gap-4 p-4 md:grid-cols-2 2xl:grid-cols-3">
+                {% for traco in linhagem.tracos_linhagem.all %}
+                <div class="race-trait-card rounded border border-[var(--stroke)] bg-[var(--bg0)] p-4">
+                  <div class="mb-2 flex items-center justify-between gap-3">
+                    <h4 class="font-rpg text-[15px] font-bold text-[var(--spark)]">{{ traco.nome }}</h4>
+                    {% if traco.talento_racial %}
+                    <span class="shrink-0 rounded border border-[var(--ember)]/60 bg-[var(--ember)]/10 px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-[var(--ember)]">Talento</span>
+                    {% elif traco.nivel_requisito > 0 %}
+                    <span class="shrink-0 rounded border border-[var(--stroke)] px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Nv. {{ traco.nivel_requisito }}</span>
+                    {% endif %}
+                  </div>
+                  <div class="text-[13px] leading-[1.65] text-[var(--muted)]">
+                    <p class="mb-3 rounded border border-[var(--stroke)] bg-[var(--bg1)] px-3 py-2 text-xs font-bold uppercase tracking-wider text-[var(--ember)] {% if not traco.talento_racial or not traco.pre_requisito %}hidden{% endif %}">Pré-requisito: {{ traco.pre_requisito }}</p>
+                    <div class="bonfire-markdown" data-markdown-source>{{ traco.descricao|default:''|escape }}</div>
+                  </div>
+                </div>
+                {% empty %}
+                <p class="text-sm italic text-[var(--muted)]">Sem traços cadastrados para esta linhagem.</p>
+                {% endfor %}
+              </div>
+            </article>
+            {% empty %}
+            <p class="rounded border border-[var(--stroke)] bg-[var(--bg1)] p-4 text-sm italic text-[var(--muted)]">Sem linhagens cadastradas para esta raça.</p>
+            {% endfor %}
+          </div>
+        </section>
+      </div>
+      {% else %}
+      <section class="rounded border border-[var(--stroke)] bg-[var(--bg1)] p-8 text-center">
+        <h2 class="font-rpg text-xl font-bold text-[var(--text)]">Nenhuma raça selecionada</h2>
+        <p class="mt-2 text-[13px] text-[var(--muted)]">Use a busca ou a lista lateral para abrir uma raça.</p>
+      </section>
+      {% endif %}
+    </section>
+  </div>
+</div>
+
+<script>
+  function renderMarkdownToHtml(value) {
+    if (typeof renderBonfireMarkdown === 'function') return renderBonfireMarkdown(value);
+    const source = typeof normalizeMarkdown === 'function' ? normalizeMarkdown(value) : String(value || '');
+    if (window.marked && typeof window.marked.parse === 'function') return applyMarkdownColorsToHtml(marked.parse(source, { breaks: true, gfm: true }));
+    return applyMarkdownColorsToHtml(escapeHtml(source)).replace(/\n/g, '<br>');
+  }
+
+  function renderMarkdownElement(element, raw) {
+    element.dataset.markdownRaw = raw;
+    element.innerHTML = renderMarkdownToHtml(raw);
+  }
+
+  function renderAllMarkdown() {
+    document.querySelectorAll('[data-markdown-source]').forEach(element => {
+      const raw = element.dataset.markdownRaw ?? element.textContent;
+      renderMarkdownElement(element, raw);
+    });
+  }
+
+  function initPage() {
+    renderAllMarkdown();
+
+    document.querySelectorAll('[data-race-trait-card]').forEach(card => {
+      const edit = card.querySelector('[data-trait-edit]');
+      const form = card.querySelector('[data-trait-form]');
+      const cancel = card.querySelector('[data-trait-cancel]');
+      const preview = card.querySelector('[data-trait-preview]');
+      const title = card.querySelector('[data-trait-title]');
+      const textarea = form?.elements.descricao;
+      if (!edit || !form || !preview || !textarea) return;
+
+      edit.addEventListener('click', () => {
+        form.classList.add('is-open');
+        textarea.focus();
+      });
+      cancel?.addEventListener('click', () => form.classList.remove('is-open'));
+      const prereq = preview.querySelector('[data-trait-prereq]');
+      const markdownTarget = preview.querySelector('[data-markdown-source]');
+      const updatePreview = () => {
+        const isTalent = form.elements.talento_racial.checked;
+        const requirement = form.elements.pre_requisito.value.trim();
+        if (prereq) {
+          prereq.textContent = `Pré-requisito: ${requirement}`;
+          prereq.classList.toggle('hidden', !(isTalent && requirement));
+        }
+        if (markdownTarget) {
+          renderMarkdownElement(markdownTarget, textarea.value);
+        }
+      };
+
+      textarea.addEventListener('input', updatePreview);
+      form.addEventListener('input', event => {
+        if (event.target.name === 'pre_requisito' || event.target.name === 'talento_racial') {
+          updatePreview();
+        }
+      });
+      form.addEventListener('submit', async event => {
+        event.preventDefault();
+        const data = Object.fromEntries(new FormData(form).entries());
+        data.talento_racial = form.elements.talento_racial.checked;
+        const response = await fetch(`/wiki/tracos-raciais/${card.dataset.traitId}/editar/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': decodeURIComponent(wikiCookie('csrftoken'))
+          },
+          body: JSON.stringify(data)
+        });
+        if (!response.ok) {
+          alert('Não foi possível salvar o traço racial.');
+          return;
+        }
+        const result = await response.json();
+        title.textContent = result.trait.nome;
+        form.elements.nome.value = result.trait.nome;
+        form.elements.nivel_requisito.value = result.trait.nivel_requisito;
+        form.elements.pre_requisito.value = result.trait.pre_requisito;
+        form.elements.talento_racial.checked = result.trait.talento_racial;
+        form.elements.descricao.value = result.trait.descricao;
+        updatePreview();
+        form.classList.remove('is-open');
+      });
+    });
+
+    const raceEdit = document.querySelector('[data-race-edit]');
+    const raceForm = document.querySelector('[data-race-form]');
+    const raceCancel = document.querySelector('[data-race-cancel]');
+    const raceTagline = document.querySelector('[data-race-tagline]');
+    const raceTitle = document.querySelector('[data-race-title]');
+
+    raceEdit?.addEventListener('click', () => {
+      raceForm?.classList.add('is-open');
+    });
+    raceCancel?.addEventListener('click', () => {
+      raceForm?.classList.remove('is-open');
+    });
+
+    raceForm?.addEventListener('submit', async event => {
+      event.preventDefault();
+      const data = Object.fromEntries(new FormData(raceForm).entries());
+      const raceId = raceForm.dataset.raceId;
+      const response = await fetch(`/wiki/racas/${raceId}/editar/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': decodeURIComponent(wikiCookie('csrftoken'))
+        },
+        body: JSON.stringify(data)
+      });
+      if (!response.ok) {
+        alert('Não foi possível salvar a raça.');
+        return;
+      }
+      const result = await response.json();
+      if (raceTitle && result.race.nome) {
+        raceTitle.textContent = result.race.nome;
+        const sideTitle = document.querySelector('aside h2');
+        if (sideTitle) sideTitle.textContent = result.race.nome;
+      }
+      if (raceTagline) {
+        raceTagline.textContent = result.race.tagline ? `"${result.race.tagline}"` : '';
+        raceTagline.classList.toggle('hidden', !result.race.tagline);
+      }
+
+      ['lore_presentation', 'lore_roleplay', 'lore_society'].forEach(field => {
+        const section = document.querySelector(`[data-race-section="${field}"]`);
+        const content = document.querySelector(`[data-race-field="${field}"]`);
+        const value = result.race[field] || '';
+        if (section) section.classList.toggle('hidden', !value);
+        if (content) renderMarkdownElement(content, value);
+      });
+
+      raceForm.classList.remove('is-open');
+    });
+  }
+
+  // Sidebar Search
+  const raceSearch = document.getElementById('raceSearch');
+  const raceItems = Array.from(document.querySelectorAll('.race-nav-item'));
+  const raceNav = document.getElementById('raceNav');
+  const raceMenuToggle = document.querySelector('[data-race-menu-toggle]');
+  const raceMenuClosers = document.querySelectorAll('[data-race-menu-close]');
+  let raceFilterTimer = null;
+
+  function setRaceMenuOpen(isOpen) {
+    document.body.classList.toggle('race-menu-open', isOpen);
+    raceMenuToggle?.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  }
+
+  raceMenuToggle?.addEventListener('click', () => {
+    setRaceMenuOpen(!document.body.classList.contains('race-menu-open'));
+  });
+
+  raceMenuClosers.forEach(closer => {
+    closer.addEventListener('click', () => setRaceMenuOpen(false));
+  });
+
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape') setRaceMenuOpen(false);
+  });
+
+  raceSearch?.addEventListener('input', () => {
+    const query = raceSearch.value.toLowerCase();
+    raceItems.forEach(item => {
+      const text = (item.dataset.search || '').toLowerCase();
+      item.classList.toggle('hidden', query && !text.includes(query));
+    });
+    raceNav?.classList.remove('race-nav-filtering');
+    void raceNav?.offsetWidth;
+    raceNav?.classList.add('race-nav-filtering');
+    if (raceFilterTimer) clearTimeout(raceFilterTimer);
+    raceFilterTimer = setTimeout(() => {
+      raceNav?.classList.remove('race-nav-filtering');
+      raceFilterTimer = null;
+    }, 260);
+  });
+
+  // AJAX Loading
+  const contentArea = document.querySelector('section.min-w-0');
+  
+  document.addEventListener('click', event => {
+    const link = event.target.closest('.race-nav-item');
+    if (!link) return;
+    event.preventDefault();
+    setRaceMenuOpen(false);
+    
+    const url = link.href;
+    loadContent(url);
+  });
+
+  async function loadContent(url) {
+    contentArea.style.opacity = '0.5';
+    contentArea.style.pointerEvents = 'none';
+    
+    try {
+      const response = await fetch(url + (url.includes('?') ? '&' : '?') + 'ajax=1');
+      if (!response.ok) throw new Error('Failed to load');
+      
+      const html = await response.text();
+      const temp = document.createElement('div');
+      temp.innerHTML = html;
+
+      // Update traits container if present
+      const newTraits = temp.querySelector('#ajax-traits-section');
+      const traitsContainer = document.getElementById('raceTraitsContainer');
+      if (newTraits && traitsContainer) {
+          traitsContainer.innerHTML = newTraits.innerHTML;
+      }
+
+      const newContent = temp.querySelector('#ajax-content-inner');
+      if (newContent) {
+        contentArea.innerHTML = '';
+        contentArea.appendChild(newContent);
+      }
+      
+      // Update sidebar active state
+      raceItems.forEach(item => {
+          const isActive = item.href === url || item.href === window.location.origin + url;
+          item.classList.toggle('border-[var(--flame)]', isActive);
+          item.classList.toggle('bg-[var(--flame)]/5', isActive);
+          item.classList.toggle('text-[var(--text)]', isActive);
+          item.classList.toggle('border-transparent', !isActive);
+          item.classList.toggle('text-[var(--muted)]', !isActive);
+      });
+      
+      window.history.pushState({}, '', url);
+      initPage();
+    } catch (err) {
+      console.error(err);
+      window.location.href = url; // Fallback to normal load
+    } finally {
+      contentArea.style.opacity = '1';
+      contentArea.style.pointerEvents = '';
+    }
+  }
+
+  function wikiCookie(name) {
+    return document.cookie
+      .split('; ')
+      .find(row => row.startsWith(`${name}=`))
+      ?.split('=')[1] || '';
+  }
+
+  initPage();
+</script>
+{% endblock %}

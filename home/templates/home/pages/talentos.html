@@ -1,0 +1,772 @@
+{% extends 'home/base.html' %}
+
+{% block main_class %}flex-1 w-full py-4{% endblock %}
+{% load static %}
+
+{% block title %}Talentos - Bonfire Tales RPG{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/pages/talentos.css' %}">
+
+{% endblock %}
+
+{% block content %}
+<div class="mx-auto w-full max-w-[1440px] px-2 sm:px-4 py-4">
+
+    <div class="mb-4">
+        <h1 class="font-cinzel text-xl font-bold text-bonfire-text uppercase">Talentos</h1>
+        <p class="text-bonfire-muted text-[11px] mt-1">Habilidades especiais, marcas e poderes de origem.</p>
+
+        <div class="mt-4 flex flex-col sm:flex-row gap-4 items-center" id="talentSearchBar">
+            <div class="relative w-full sm:w-2/3 lg:w-3/4">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg class="h-5 w-5 text-bonfire-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                </div>
+                <input type="text" id="searchInput" placeholder="Buscar talento, tag, requisito..." class="bg-bonfire-bg1 border border-bonfire-stroke text-bonfire-text text-sm rounded-md focus:ring-primary focus:border-bonfire-flame block w-full pl-10 p-2.5 transition-colors">
+            </div>
+            <div class="flex gap-2 w-full sm:w-auto">
+                <button id="filterToggle" type="button" class="bg-bonfire-bg1 hover:bg-bonfire-bg2 border border-bonfire-stroke text-bonfire-muted px-4 py-2.5 rounded-md text-sm font-medium flex items-center gap-2 transition-colors">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
+                    Filtros
+                    <span id="filterCount" class="hidden min-w-5 rounded-full bg-bonfire-flame px-1.5 py-0.5 text-[10px] font-bold text-white">0</span>
+                </button>
+                <button class="bg-bonfire-bg1 hover:bg-bonfire-bg2 border border-bonfire-stroke text-bonfire-muted px-4 py-2.5 rounded-md text-sm font-medium flex items-center gap-2 transition-colors" onclick="toggleSort()">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path></svg>
+                    A-Z
+                </button>
+            </div>
+        </div>
+        <div id="filterModal" class="hidden fixed inset-0 z-[80] items-center justify-center p-4">
+            <button id="filterBackdrop" type="button" class="filter-backdrop absolute inset-0 bg-black/80 backdrop-blur-sm" aria-label="Fechar filtros"></button>
+            <div class="filter-panel relative w-full max-w-xl overflow-hidden rounded-lg border border-bonfire-stroke bg-bonfire-bg1 shadow-2xl">
+                <div class="flex items-center justify-between border-b border-bonfire-stroke px-5 py-4">
+                    <h2 class="font-cinzel text-lg font-bold uppercase text-bonfire-text flex items-center gap-2">
+                        <svg class="h-4 w-4 text-bonfire-flame" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+                        </svg>
+                        Filtros
+                    </h2>
+                    <button id="filterClose" type="button" class="rounded p-2 text-bonfire-muted transition-colors hover:bg-bonfire-bg2 hover:text-bonfire-text" aria-label="Fechar filtros">
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="max-h-[65vh] space-y-7 overflow-y-auto p-5 custom-scrollbar">
+                    <section>
+                        <h3 class="border-b border-bonfire-stroke pb-2 text-xs font-bold uppercase tracking-widest text-bonfire-muted">Categoria</h3>
+                        <div id="typeFilterOptions" class="mt-3 flex flex-wrap gap-2"></div>
+                    </section>
+
+                    <section>
+                        <h3 class="border-b border-bonfire-stroke pb-2 text-xs font-bold uppercase tracking-widest text-bonfire-muted">Etiquetas Principais</h3>
+                        <div id="mainTagFilterOptions" class="mt-3 flex flex-wrap gap-2"></div>
+                    </section>
+
+                    <section>
+                        <h3 class="border-b border-bonfire-stroke pb-2 text-xs font-bold uppercase tracking-widest text-bonfire-muted">Aumento de Atributo</h3>
+                        <div id="attributeFilterOptions" class="mt-3 flex flex-wrap gap-2"></div>
+                    </section>
+
+                    <section>
+                        <h3 class="border-b border-bonfire-stroke pb-2 text-xs font-bold uppercase tracking-widest text-bonfire-muted">Tags Adicionais</h3>
+                        <div id="tagFilterOptions" class="mt-3 flex flex-wrap gap-2"></div>
+                    </section>
+
+                    <section>
+                        <h3 class="border-b border-bonfire-stroke pb-2 text-xs font-bold uppercase tracking-widest text-bonfire-muted">Pré-requisitos</h3>
+                        <div id="prereqFilterOptions" class="mt-3 flex flex-wrap gap-2"></div>
+                    </section>
+                </div>
+
+                <div class="flex flex-col gap-3 border-t border-bonfire-stroke p-4 sm:flex-row">
+                    <button id="clearFilters" type="button" class="rounded-md border border-bonfire-stroke px-4 py-3 text-sm font-bold text-bonfire-muted transition-colors hover:border-bonfire-flame hover:text-bonfire-text sm:w-32">
+                        Limpar Tudo
+                    </button>
+                    <button id="applyFilterModal" type="button" class="rounded-md bg-bonfire-flame px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-bonfire-ember sm:flex-1">
+                        Aplicar Filtros
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="talent-main-grid grid gap-6 border-t border-bonfire-stroke pt-6 flex-1">
+        <button type="button" class="talent-mobile-menu-button" id="talentMobileMenuButton" aria-label="Abrir lista de talentos">
+            <svg xmlns="http://www.w3.org/2000/svg" class="open-icon h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 5 7 7-7 7"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" class="close-icon h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 19-7-7 7-7"/></svg>
+        </button>
+        <button type="button" class="talent-mobile-backdrop" id="talentMobileBackdrop" aria-label="Fechar lista"></button>
+
+        <aside class="talent-list-panel xl:sticky xl:top-24 h-full max-h-[calc(100vh-140px)] overflow-y-auto custom-scrollbar flex flex-col gap-2 pr-2" id="talentosList">
+            
+        </aside>
+
+        <main class="talent-detail-panel hidden mt-8 md:mt-0 md:pl-6" id="talentoDetail">
+            <div class="flex items-center justify-center h-full text-bonfire-muted flex-col gap-4">
+                <svg class="w-16 h-16 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                </svg>
+                <p>Selecione um talento para ver os detalhes.</p>
+            </div>
+        </main>
+
+{{ json_talentos|json_script:'talentos-data' }}
+{{ talent_tipo_choices|json_script:'talent-tipo-choices' }}
+{{ talent_etiqueta_choices|json_script:'talent-etiqueta-choices' }}
+<script>
+    // Carregar dados enviados pelo Django
+    const talentosData = JSON.parse(document.getElementById('talentos-data').textContent);
+    const talentTipoChoices = JSON.parse(document.getElementById('talent-tipo-choices').textContent);
+    const talentEtiquetaChoices = JSON.parse(document.getElementById('talent-etiqueta-choices').textContent);
+    const canEditWiki = {{ can_edit_wiki|yesno:"true,false" }};
+    let filteredTalentos = [...talentosData];
+    let selectedTalentoId = null;
+    let isAscending = true;
+
+    const listContainer = document.getElementById('talentosList');
+    const detailContainer = document.getElementById('talentoDetail');
+    const searchInput = document.getElementById('searchInput');
+    const filterToggle = document.getElementById('filterToggle');
+    const filterModal = document.getElementById('filterModal');
+    const filterBackdrop = document.getElementById('filterBackdrop');
+    const filterClose = document.getElementById('filterClose');
+    const filterCount = document.getElementById('filterCount');
+    const typeFilterOptions = document.getElementById('typeFilterOptions');
+    const mainTagFilterOptions = document.getElementById('mainTagFilterOptions');
+    const tagFilterOptions = document.getElementById('tagFilterOptions');
+    const prereqFilterOptions = document.getElementById('prereqFilterOptions');
+    const clearFilters = document.getElementById('clearFilters');
+    const applyFilterModal = document.getElementById('applyFilterModal');
+    const talentMobileMenuButton = document.getElementById('talentMobileMenuButton');
+    const talentMobileBackdrop = document.getElementById('talentMobileBackdrop');
+    const filterOptions = {
+        type: [],
+        mainTag: [],
+        tag: [],
+        attribute: [],
+        prereq: []
+    };
+    let filterCloseTimer = null;
+    let activeFilters = {
+        type: '',
+        mainTag: '',
+        tag: '',
+        attribute: '',
+        prereq: ''
+    };
+    let draftFilters = { ...activeFilters };
+    let listAnimationTimer = null;
+
+    function openTalentMenu() {
+        document.body.classList.add('talent-menu-open');
+    }
+
+    function closeTalentMenu() {
+        document.body.classList.remove('talent-menu-open');
+    }
+
+    function isTableSeparator(line) {
+        return /^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$/.test(line);
+    }
+
+    function parseTable(lines) {
+        const rows = lines
+            .filter(line => line.includes('|') && !isTableSeparator(line))
+            .map(line => line.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map(cell => cell.trim()));
+
+        if (rows.length < 2) return null;
+
+        const header = rows[0].map(cell => `<th>${parseInlineMarkdown(cell)}</th>`).join('');
+        const body = rows.slice(1).map(row => {
+            const cells = row.map(cell => `<td>${parseInlineMarkdown(cell)}</td>`).join('');
+            return `<tr>${cells}</tr>`;
+        }).join('');
+
+        return `<table><thead><tr>${header}</tr></thead><tbody>${body}</tbody></table>`;
+    }
+
+    function renderListBlock(lines) {
+        let html = '<ul>';
+        let nestedOpen = false;
+        let topItemOpen = false;
+
+        lines.forEach(line => {
+            const isNested = /^\s{2,}-\s+/.test(line);
+            const text = line.replace(/^\s*-\s+/, '');
+
+            if (isNested) {
+                if (!topItemOpen) {
+                    html += '<li>';
+                    topItemOpen = true;
+                }
+                if (!nestedOpen) {
+                    html += '<ul>';
+                    nestedOpen = true;
+                }
+                html += `<li>${parseInlineMarkdown(text)}</li>`;
+                return;
+            }
+
+            if (nestedOpen) {
+                html += '</ul>';
+                nestedOpen = false;
+            }
+            if (topItemOpen) {
+                html += '</li>';
+            }
+
+            html += `<li>${parseInlineMarkdown(text)}`;
+            topItemOpen = true;
+        });
+
+        if (nestedOpen) html += '</ul>';
+        if (topItemOpen) html += '</li>';
+        return `${html}</ul>`;
+    }
+
+    function renderFallbackMarkdown(value) {
+        const source = normalizeMarkdown(value);
+        const blocks = source.split(/\n{2,}/);
+
+        return blocks.map(block => {
+            const lines = block.split('\n').filter(line => line.trim() !== '');
+
+            if (lines.length >= 3 && lines[0].includes('|') && isTableSeparator(lines[1])) {
+                const table = parseTable(lines);
+                if (table) return table;
+            }
+
+            if (lines.every(line => /^\s*-\s+/.test(line))) {
+                return renderListBlock(lines);
+            }
+
+            const headingMatch = block.match(/^(#{1,4})\s+(.+)$/);
+            if (headingMatch) {
+                const level = headingMatch[1].length + 2;
+                return `<h${level}>${parseInlineMarkdown(headingMatch[2])}</h${level}>`;
+            }
+
+            return `<p>${lines.map(parseInlineMarkdown).join('<br>')}</p>`;
+        }).join('');
+    }
+
+    function renderMarkdown(value) {
+        if (typeof renderBonfireMarkdown === 'function') return renderBonfireMarkdown(value);
+        const normalizedValue = normalizeMarkdown(value);
+        const withToggles = normalizedValue.replace(/::(?:click|toggle)\s+([^\n]+)\n([\s\S]*?)\n::end(?:click|toggle)/gi, (_match, title, content) => {
+            const innerSource = normalizeMarkdown(content);
+            const innerHtml = window.marked && typeof window.marked.parse === 'function'
+                ? applyMarkdownColorsToHtml(window.marked.parse(innerSource, { breaks: true, gfm: true }))
+                : renderFallbackMarkdown(innerSource);
+            return `<details class="bonfire-toggle"><summary>${parseInlineMarkdown(title.trim())}</summary><div class="bonfire-toggle-content">${innerHtml}</div></details>`;
+        });
+
+        if (window.marked && typeof window.marked.parse === 'function') {
+            return applyMarkdownColorsToHtml(window.marked.parse(withToggles, { breaks: true, gfm: true }));
+        }
+
+        return renderFallbackMarkdown(withToggles);
+    }
+
+    function getExtraTags(talento) {
+        return (talento.etiquetas_adicionais || '')
+            .split(',')
+            .map(tag => tag.trim())
+            .filter(Boolean);
+    }
+
+    function capitalizeLabel(value) {
+        return String(value || '')
+            .toLocaleLowerCase('pt-BR')
+            .replace(/(^|\s)(\S)/g, match => match.toLocaleUpperCase('pt-BR'));
+    }
+
+    function createFilterChip(value, filterType) {
+        const button = document.createElement('button');
+        const isActive = draftFilters[filterType] === value;
+
+        button.type = 'button';
+        button.textContent = filterType === 'mainTag' ? capitalizeLabel(value) : value;
+        button.className = [
+            'filter-chip-pop rounded border px-3 py-2 text-xs font-bold transition-all duration-200 hover:-translate-y-0.5',
+            isActive
+                ? 'border-bonfire-flame bg-bonfire-bg2 text-bonfire-text shadow-[inset_0_0_0_1px_var(--flame)]'
+                : 'border-bonfire-stroke bg-bonfire-bg0 text-bonfire-muted hover:border-bonfire-flame hover:text-bonfire-text'
+        ].join(' ');
+        button.addEventListener('click', () => {
+            draftFilters[filterType] = isActive ? '' : value;
+            renderFilterChips();
+        });
+
+        return button;
+    }
+
+    function renderChipGroup(container, values, filterType, emptyLabel) {
+        container.innerHTML = '';
+
+        if (!values.length) {
+            container.innerHTML = `<p class="text-sm text-bonfire-muted">${emptyLabel}</p>`;
+            return;
+        }
+
+        values.forEach(value => {
+            container.appendChild(createFilterChip(value, filterType));
+        });
+    }
+
+    function renderFilterChips() {
+        renderChipGroup(typeFilterOptions, filterOptions.type, 'type', 'Nenhuma categoria cadastrada.');
+        renderChipGroup(mainTagFilterOptions, filterOptions.mainTag, 'mainTag', 'Nenhuma etiqueta principal cadastrada.');
+        renderChipGroup(attributeFilterOptions, filterOptions.attribute, 'attribute', 'Nenhum aumento de atributo cadastrado.');
+        renderChipGroup(tagFilterOptions, filterOptions.tag, 'tag', 'Nenhuma tag adicional cadastrada.');
+        renderChipGroup(prereqFilterOptions, filterOptions.prereq, 'prereq', 'Nenhum pré-requisito cadastrado.');
+    }
+
+    function populateFilters() {
+        filterOptions.type = [...new Set(talentosData.map(t => t.tipo).filter(Boolean))].sort();
+        filterOptions.mainTag = [...new Set(talentosData.map(t => t.etiqueta).filter(Boolean))].sort();
+        filterOptions.tag = [...new Set(talentosData.flatMap(t => getExtraTags(t)).filter(Boolean))].sort();
+        filterOptions.attribute = [...new Set(talentosData.flatMap(t => (t.atributos_str || '').split(',').map(a => a.trim())).filter(a => a && a !== 'Nenhum'))].sort();
+        
+        // Ignorar requisitos de nível nos chips de filtro
+        const isLevelPrereq = (s) => /nível/i.test(s) || /\d+(º|ª)/.test(s);
+        
+        filterOptions.prereq = [...new Set(talentosData.flatMap(t => 
+            (t.pre_requisito || '')
+            .split(/,|\sou\s/i)
+            .map(s => s.trim())
+            .filter(s => s && s.toLowerCase() !== 'nenhum' && !isLevelPrereq(s))
+        ))].sort();
+
+        renderFilterChips();
+    }
+
+    function applyFilters(animateList = true) {
+        const query = searchInput.value.toLowerCase();
+        const typeValue = activeFilters.type;
+        const mainTagValue = activeFilters.mainTag;
+        const tagValue = activeFilters.tag;
+        const attrValue = activeFilters.attribute;
+        const prereqValue = activeFilters.prereq;
+
+        filteredTalentos = talentosData.filter(t => {
+            const extraTags = getExtraTags(t);
+            const haystack = [
+                t.nome,
+                t.etiqueta,
+                t.etiquetas_adicionais,
+                t.pre_requisito,
+                t.tipo,
+                t.atributos_str
+            ].join(' ').toLowerCase();
+
+            const matchesSearch = !query || haystack.includes(query);
+            const matchesType = !typeValue || t.tipo === typeValue;
+            const matchesMainTag = !mainTagValue || t.etiqueta === mainTagValue;
+            const matchesTag = !tagValue || extraTags.includes(tagValue);
+            const matchesAttr = !attrValue || (t.atributos_str || '').split(',').map(a => a.trim()).includes(attrValue);
+            const matchesPrereq = !prereqValue || (t.pre_requisito || '').split(/,|\sou\s/i).map(s => s.trim()).includes(prereqValue);
+
+            return matchesSearch && matchesType && matchesMainTag && matchesTag && matchesAttr && matchesPrereq;
+        });
+
+        filteredTalentos.sort((a, b) => {
+            if (a.nome < b.nome) return isAscending ? -1 : 1;
+            if (a.nome > b.nome) return isAscending ? 1 : -1;
+            return 0;
+        });
+
+        const activeFilterCount = [typeValue, mainTagValue, tagValue, attrValue, prereqValue].filter(Boolean).length;
+        filterCount.textContent = activeFilterCount;
+        filterCount.classList.toggle('hidden', activeFilterCount === 0);
+        renderList(animateList);
+    }
+
+    function renderList(animateList = false) {
+        if (animateList && listContainer.children.length) {
+            if (listAnimationTimer) clearTimeout(listAnimationTimer);
+            listContainer.classList.remove('talent-list-expanding');
+            listContainer.classList.add('talent-list-collapsing');
+            listAnimationTimer = setTimeout(() => {
+                listContainer.classList.remove('talent-list-collapsing');
+                renderList(false);
+                Array.from(listContainer.children).forEach((child, index) => {
+                    child.style.animationDelay = `${Math.min(index * 18, 160)}ms`;
+                });
+                listContainer.classList.add('talent-list-expanding');
+                listAnimationTimer = setTimeout(() => {
+                    listContainer.classList.remove('talent-list-expanding');
+                    Array.from(listContainer.children).forEach(child => {
+                        child.style.animationDelay = '';
+                    });
+                    listAnimationTimer = null;
+                }, 620);
+            }, 270);
+            return;
+        }
+
+        listContainer.innerHTML = '';
+        
+        if (filteredTalentos.length === 0) {
+            listContainer.innerHTML = '<p class="text-bonfire-muted text-sm p-4 text-center">Nenhum talento encontrado.</p>';
+            return;
+        }
+
+        filteredTalentos.forEach(talento => {
+            const isSelected = talento.id === selectedTalentoId;
+            
+            // Classes condicionais
+            const borderClass = isSelected ? 'border-bonfire-ember' : 'border-transparent';
+            const bgClass = isSelected ? 'bg-bonfire-bg1' : 'hover:bg-bonfire-bg1';
+            const textClass = isSelected ? 'text-bonfire-text' : 'text-bonfire-muted';
+            const tipoStr = (talento.tipo || '').toLowerCase();
+            const etiquetaStr = (talento.etiqueta || '').toUpperCase();
+            const etiquetasAdicionais = getExtraTags(talento);
+            const typeBadgeColor = tipoStr === 'origem' ? 'border-bonfire-flame text-bonfire-flame' : 'border-bonfire-stroke text-bonfire-muted';
+
+            const item = document.createElement('div');
+            item.className = `p-4 cursor-pointer rounded-md border transition-all duration-200 ${borderClass} ${bgClass} flex justify-between items-start`;
+            item.onclick = () => selectTalento(talento.id);
+
+            item.innerHTML = `
+                <div class="flex-1">
+                    <h3 class="font-bold text-[13px] ${textClass} transition-colors">${talento.nome}</h3>
+                    <p class="text-xs text-bonfire-muted mt-1 uppercase tracking-wider">${etiquetaStr}</p>
+                    ${etiquetasAdicionais.length ? `
+                        <div class="flex flex-wrap gap-1 mt-2">
+                            ${etiquetasAdicionais.slice(0, 3).map(tag => `
+                                <span class="text-[9px] text-bonfire-muted border border-bonfire-stroke px-1.5 py-0.5 rounded uppercase tracking-wider">${tag}</span>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                </div>
+                <div class="ml-2">
+                    <span class="text-[10px] font-bold px-2 py-0.5 rounded border uppercase tracking-wider ${typeBadgeColor}">
+                        ${talento.tipo || ''}
+                    </span>
+                </div>
+            `;
+            listContainer.appendChild(item);
+        });
+    }
+
+    function selectTalento(id) {
+        selectedTalentoId = id;
+        renderList(); // Atualiza seleção na lista
+        
+        const talento = talentosData.find(t => t.id === id);
+        if (!talento) return;
+        closeTalentMenu();
+
+        // Renderizar detalhes
+        // Mostrar em telas pequenas também
+        detailContainer.classList.remove('hidden');
+        detailContainer.classList.add('flex', 'flex-col');
+
+        // Converter markdown. Usa marked.js quando disponível e fallback local se o CDN falhar.
+        const renderedHtml = renderMarkdown(talento.descricao);
+
+        detailContainer.innerHTML = `
+            <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <div class="flex flex-wrap gap-2">
+                    <span class="text-xs font-bold px-2 py-1 rounded border border-bonfire-flame text-bonfire-flame uppercase tracking-wider">${talento.tipo}</span>
+                    <span class="text-xs font-bold px-2 py-1 rounded border border-bonfire-stroke text-bonfire-muted uppercase tracking-wider">${talento.etiqueta}</span>
+                    ${getExtraTags(talento).map(tag => `<span class="text-xs font-bold px-2 py-1 rounded border border-bonfire-stroke text-bonfire-muted uppercase tracking-wider">${tag}</span>`).join('')}
+                </div>
+                ${canEditWiki ? `<button type="button" class="wiki-edit-button" onclick="openTalentEditor(${talento.id})">Editar wiki</button>` : ''}
+            </div>
+            
+            <h2 data-talent-title class="font-cinzel text-xl font-bold text-bonfire-text uppercase mb-4">${talento.nome}</h2>
+            <div data-talent-editor></div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+                <div class="talent-info-card bg-bonfire-bg1 border border-bonfire-stroke rounded-md p-4">
+                  <div>
+                    <p class="text-[10px] text-bonfire-muted font-bold tracking-wider uppercase mb-1">Pré-Requisitos</p>
+                    <p class="text-bonfire-text font-medium text-[13px]">${talento.pre_requisito || 'Nenhum'}</p>
+                  </div>
+                </div>
+                <div class="talent-info-card bg-bonfire-bg1 border border-bonfire-stroke rounded-md p-4">
+                  <div>
+                    <p class="text-[10px] text-bonfire-muted font-bold tracking-wider uppercase mb-1">Aumento de Atributo</p>
+                    <p class="text-bonfire-ember font-medium flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd"></path></svg>
+                        ${talento.atributos_str}
+                    </p>
+                  </div>
+                </div>
+            </div>
+
+            <div data-talent-preview class="bonfire-markdown max-w-none text-[13px] leading-[1.65] text-bonfire-muted">
+                ${renderedHtml}
+            </div>
+        `;
+        detailContainer.classList.remove('talent-detail-enter');
+        void detailContainer.offsetWidth;
+        detailContainer.classList.add('talent-detail-enter');
+    }
+
+    function choiceOptions(choices, selected) {
+        return choices.map(([value, label]) => `
+            <option value="${escapeHtml(value)}" ${value === selected ? 'selected' : ''}>${escapeHtml(label)}</option>
+        `).join('');
+    }
+
+    function openTalentEditor(id) {
+        const talento = talentosData.find(t => t.id === id);
+        const mount = detailContainer.querySelector('[data-talent-editor]');
+        const preview = detailContainer.querySelector('[data-talent-preview]');
+        if (!talento || !mount || !preview) return;
+
+        mount.innerHTML = `
+            <form class="wiki-editor" data-talent-edit-form>
+                <div class="wiki-editor-grid">
+                    <label>Nome
+                        <input name="nome" value="${escapeHtml(talento.nome)}">
+                    </label>
+                    <label>Tipo
+                        <select name="tipo">${choiceOptions(talentTipoChoices, talento.tipo_key)}</select>
+                    </label>
+                    <label>Etiqueta principal
+                        <select name="etiqueta">${choiceOptions(talentEtiquetaChoices, talento.etiqueta_key)}</select>
+                    </label>
+                    <label>Etiquetas adicionais
+                        <input name="etiquetas_adicionais" value="${escapeHtml(talento.etiquetas_adicionais || '')}">
+                    </label>
+                    <label class="wide">Pré-requisito
+                        <input name="pre_requisito" value="${escapeHtml(talento.pre_requisito === 'Nenhum' ? '' : talento.pre_requisito)}">
+                    </label>
+                    <label class="wide">Atributos
+                        <div class="wiki-attr-grid">
+                            ${[
+                                ['atrib_forca', 'Força'],
+                                ['atrib_destreza', 'Destreza'],
+                                ['atrib_constituicao', 'Constituição'],
+                                ['atrib_inteligencia', 'Inteligência'],
+                                ['atrib_sabedoria', 'Sabedoria'],
+                                ['atrib_carisma', 'Carisma']
+                            ].map(([field, label]) => `
+                                <label><input type="checkbox" name="${field}" ${talento[field] ? 'checked' : ''}> ${label}</label>
+                            `).join('')}
+                        </div>
+                    </label>
+                    <label class="wide">Texto real
+                        <textarea name="descricao">${escapeHtml(talento.descricao || '')}</textarea>
+                    </label>
+                </div>
+                <div class="wiki-editor-actions">
+                    <button type="button" class="wiki-cancel" onclick="closeTalentEditor()">Cancelar</button>
+                    <button type="submit" class="wiki-save">Salvar</button>
+                </div>
+            </form>
+        `;
+
+        const form = mount.querySelector('[data-talent-edit-form]');
+        const textarea = form.elements.descricao;
+        textarea.addEventListener('input', () => {
+            preview.innerHTML = renderMarkdown(textarea.value);
+        });
+        form.addEventListener('submit', event => saveTalentEditor(event, talento.id));
+    }
+
+    function closeTalentEditor() {
+        const mount = detailContainer.querySelector('[data-talent-editor]');
+        if (mount) mount.innerHTML = '';
+    }
+
+    async function saveTalentEditor(event, id) {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const data = Object.fromEntries(new FormData(form).entries());
+        ['atrib_forca', 'atrib_destreza', 'atrib_constituicao', 'atrib_inteligencia', 'atrib_sabedoria', 'atrib_carisma'].forEach(attr => {
+            data[attr] = form.elements[attr]?.checked || false;
+        });
+
+        const response = await fetch(`/wiki/talentos/${id}/editar/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': decodeURIComponent(getCookie('csrftoken'))
+            },
+            body: JSON.stringify(data)
+        });
+        if (!response.ok) {
+            alert('Não foi possível salvar este talento.');
+            return;
+        }
+        const result = await response.json();
+        const index = talentosData.findIndex(t => t.id === id);
+        if (index >= 0) talentosData[index] = result.talent;
+        selectedTalentoId = id;
+        applyFilters(false);
+        selectTalento(id);
+    }
+
+    function toggleAnimatedDetails(details) {
+        const content = details.querySelector('.bonfire-toggle-content');
+        if (!content || details.dataset.animating === 'true') return;
+
+        details.dataset.animating = 'true';
+        if (!details.open) {
+            details.open = true;
+            content.style.maxHeight = '0px';
+            content.style.opacity = '0';
+            content.style.transform = 'translateY(-12px)';
+            requestAnimationFrame(() => {
+                content.style.maxHeight = `${content.scrollHeight}px`;
+                content.style.opacity = '1';
+                content.style.transform = 'translateY(0)';
+            });
+            setTimeout(() => {
+                content.style.maxHeight = 'none';
+                content.style.opacity = '';
+                content.style.transform = '';
+                details.dataset.animating = 'false';
+            }, 560);
+            return;
+        }
+
+        content.style.maxHeight = `${content.scrollHeight}px`;
+        content.style.opacity = '1';
+        content.style.transform = 'translateY(0)';
+        requestAnimationFrame(() => {
+            content.style.maxHeight = '0px';
+            content.style.opacity = '0';
+            content.style.transform = 'translateY(-12px)';
+        });
+        setTimeout(() => {
+            details.open = false;
+            content.style.maxHeight = '';
+            content.style.opacity = '';
+            content.style.transform = '';
+            details.dataset.animating = 'false';
+        }, 560);
+    }
+
+    document.addEventListener('click', event => {
+        const summary = event.target.closest('.bonfire-toggle > summary');
+        if (!summary) return;
+        const details = summary.parentElement;
+        if (!details || !details.classList.contains('bonfire-toggle')) return;
+        event.preventDefault();
+        toggleAnimatedDetails(details);
+    });
+
+    function closeTalentoDetail() {
+        detailContainer.classList.add('hidden');
+        detailContainer.classList.remove('flex');
+    }
+
+    function openFilterModal() {
+        if (filterCloseTimer) {
+            clearTimeout(filterCloseTimer);
+            filterCloseTimer = null;
+        }
+        draftFilters = { ...activeFilters };
+        renderFilterChips();
+        filterModal.classList.remove('is-closing');
+        filterModal.classList.remove('hidden');
+        filterModal.classList.add('flex');
+        document.body.classList.add('overflow-hidden');
+    }
+
+    function closeFilterModal() {
+        if (filterModal.classList.contains('hidden')) return;
+        filterModal.classList.add('is-closing');
+        filterCloseTimer = setTimeout(() => {
+            filterModal.classList.add('hidden');
+            filterModal.classList.remove('flex', 'is-closing');
+            filterCloseTimer = null;
+        }, 170);
+        document.body.classList.remove('overflow-hidden');
+    }
+
+    // Busca Dinâmica
+    searchInput.addEventListener('input', () => {
+        applyFilters();
+    });
+
+    filterToggle.addEventListener('click', () => {
+        openFilterModal();
+    });
+    talentMobileMenuButton?.addEventListener('click', openTalentMenu);
+    talentMobileBackdrop?.addEventListener('click', closeTalentMenu);
+
+    [filterBackdrop, filterClose].forEach(element => {
+        element.addEventListener('click', closeFilterModal);
+    });
+
+    applyFilterModal.addEventListener('click', () => {
+        activeFilters = { ...draftFilters };
+        applyFilters();
+        closeFilterModal();
+    });
+
+    clearFilters.addEventListener('click', () => {
+        activeFilters = {
+            type: '',
+            mainTag: '',
+            tag: '',
+            attribute: ''
+        };
+        draftFilters = { ...activeFilters };
+        renderFilterChips();
+        applyFilters();
+    });
+
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape') closeTalentMenu();
+        if (event.key === 'Escape' && !filterModal.classList.contains('hidden')) {
+            closeFilterModal();
+        }
+    });
+
+    // Ordenação Simples A-Z / Z-A
+    function toggleSort() {
+        isAscending = !isAscending;
+        applyFilters();
+    }
+
+    // Inicialização
+    populateFilters();
+    applyFilters(false);
+
+    // Move search bar into drawer on mobile
+    (function() {
+        const mq = window.matchMedia('(max-width: 1100px)');
+        const searchBar = document.getElementById('talentSearchBar');
+        if (!searchBar) return;
+        const originalParent = searchBar.parentElement;
+        const originalNext = searchBar.nextElementSibling;
+        function handleLayout(e) {
+            if (e.matches) {
+                listContainer.insertBefore(searchBar, listContainer.firstChild);
+            } else if (originalParent) {
+                originalParent.insertBefore(searchBar, originalNext);
+            }
+        }
+        mq.addEventListener('change', handleLayout);
+        handleLayout(mq);
+    })();
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+</script>
+{% endblock %}

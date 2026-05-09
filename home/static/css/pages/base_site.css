@@ -1,0 +1,253 @@
+/* CSS Variables - Forçamos o Tema Escuro Temático do Bonfire */
+:root, [data-theme="light"], [data-theme="dark"] {
+    --primary: #D21717; /* Flame */
+    --secondary: #F27007; /* Ember */
+    --accent: #F7B113; /* Spark */
+    --primary-fg: #EDEDED;
+    --body-fg: #EDEDED;
+    --body-bg: #09090A; /* bg0 */
+    --body-quiet-color: #A1A1AA; /* muted */
+    --body-loud-color: #EDEDED; /* text */
+    --header-color: #EDEDED;
+    --header-branding-color: #D21717;
+    --header-bg: #101012; /* bg1 */
+    --header-link-color: #EDEDED;
+    --breadcrumbs-fg: #A1A1AA;
+    --breadcrumbs-link-fg: #F27007;
+    --breadcrumbs-bg: #151517; /* card */
+    --link-fg: #F27007;
+    --link-hover-color: #D21717;
+    --link-selected-fg: #F7B113;
+    --hairline-color: #27272A; /* stroke */
+    --border-color: #27272A; /* stroke */
+    --error-fg: #D21717;
+    --message-success-bg: #151517;
+    --message-warning-bg: #151517;
+    --message-error-bg: #D21717;
+    --darkened-bg: #101012; /* bg1 */
+    --selected-bg: #18181B; /* bg2 */
+    --selected-row: rgba(210, 23, 23, 0.1);
+    --button-bg: #D21717;
+    --button-hover-bg: #F27007;
+    --default-button-bg: var(--button-bg);
+    --default-button-hover-bg: var(--button-hover-bg);
+    --close-button-bg: #27272A;
+    --close-button-hover-bg: #D21717;
+    --delete-button-bg: #D21717;
+    --delete-button-hover-bg: #A10000;
+    --object-tools-bg: #151517; /* card */
+    --object-tools-fg: #F27007;
+    --object-tools-hover-bg: #18181B;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--body-bg);
+    color: var(--body-fg);
+}
+
+/* Typography Overrides */
+#header #branding h1 {
+    font-family: 'Cinzel', serif;
+    font-weight: 800;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+div.breadcrumbs {
+    border-bottom: 1px solid var(--border-color);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    background: var(--breadcrumbs-bg);
+    font-size: 13px;
+}
+
+.module h2, .module caption, .inline-group h2, #content-main h1 {
+    font-family: 'Cinzel', serif;
+    font-weight: bold;
+    color: var(--primary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+#content-main .module {
+    border: 1px solid var(--border-color);
+    border-radius: 0.25rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    background: var(--darkened-bg);
+}
+
+.dashboard #content-main {
+    width: 100% !important;
+    float: none !important;
+}
+
+.dashboard #content {
+    width: 100% !important;
+}
+
+#dashboard-columns {
+    width: 100% !important;
+    box-sizing: border-box;
+}
+
+tr.row1 { background-color: var(--body-bg); }
+tr.row2 { background-color: var(--darkened-bg); }
+
+tbody tr:hover {
+    background-color: var(--selected-bg);
+}
+
+/* Button Upgrades */
+.button, input[type=submit], input[type=button], .submit-row input, a.button {
+    background: linear-gradient(to right, var(--primary), var(--secondary));
+    border: 1px solid transparent;
+    font-family: 'Inter', sans-serif;
+    border-radius: 0.25rem;
+    text-shadow: none;
+    box-shadow: 0 4px 10px rgba(210, 23, 23, 0.4);
+    transition: all 0.3s ease;
+}
+
+.button:hover, input[type=submit]:hover, input[type=button]:hover, .submit-row input:hover, a.button:hover {
+    background: linear-gradient(to right, var(--secondary), var(--primary));
+    box-shadow: 0 6px 15px rgba(210, 23, 23, 0.6);
+    transform: translateY(-1px);
+}
+
+a:link, a:visited { color: var(--secondary); transition: color 0.3s ease;}
+a:hover { color: var(--primary); }
+
+#changelist-filter h2 { background-color: var(--darkened-bg); color: var(--primary); border-bottom: 1px solid var(--border-color); }
+#changelist-filter { border-left: 1px solid var(--border-color); background: var(--darkened-bg); }
+
+input[type=text], input[type=password], input[type=email], input[type=url], input[type=number], input[type=tel], textarea, select, .vTextField {
+    border: 1px solid var(--border-color);
+    border-radius: 0.25rem;
+    padding: 6px 8px;
+    background-color: var(--body-bg);
+    color: var(--body-loud-color);
+    transition: border-color 0.15s ease-in-out;
+}
+
+input[type=text]:focus, input[type=password]:focus, input[type=email]:focus, input[type=url]:focus, input[type=number]:focus, input[type=tel]:focus, textarea:focus, select:focus, .vTextField:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 1px var(--primary);
+    outline: none;
+}
+
+/* Admin content ergonomics */
+#content {
+    max-width: 100%;
+}
+
+@media (min-width: 1200px) {
+    .dashboard #content-main {
+        width: 100%;
+        float: none;
+    }
+}
+
+#changelist table thead th {
+    background: #151517;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--body-loud-color);
+}
+
+#changelist table tbody td,
+#changelist table tbody th {
+    vertical-align: middle;
+}
+
+#changelist .field-descricao_curta,
+#changelist .field-short_description,
+#changelist .field-short_tagline {
+    max-width: 360px;
+    color: var(--body-quiet-color);
+    line-height: 1.4;
+}
+
+.admin-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    padding: 2px 8px;
+    margin: 1px 2px 1px 0;
+    background: #18181B;
+    color: var(--body-fg);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.admin-badge-hot {
+    border-color: rgba(242, 112, 7, .65);
+    color: var(--secondary);
+    background: rgba(242, 112, 7, .08);
+}
+
+.admin-badge-soft {
+    border-color: rgba(247, 177, 19, .55);
+    color: var(--accent);
+    background: rgba(247, 177, 19, .08);
+}
+
+.admin-muted {
+    color: var(--body-quiet-color);
+}
+
+.admin-map-icon {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+    vertical-align: middle;
+    filter: drop-shadow(0 1px 4px rgba(0,0,0,.55));
+}
+
+.admin-map-token {
+    align-items: center;
+    border-radius: 999px 999px 999px 4px;
+    color: #fff;
+    display: inline-flex;
+    font-size: 12px;
+    font-weight: 900;
+    height: 28px;
+    justify-content: center;
+    width: 28px;
+}
+.admin-map-token-red { background: #dc2626; }
+.admin-map-token-blue { background: #2563eb; }
+.admin-map-token-green { background: #16a34a; }
+.admin-map-token-yellow { background: #ca8a04; }
+.admin-map-token-orange { background: #ea580c; }
+.admin-map-token-violet { background: #7c3aed; }
+.admin-map-token-gray { background: #71717a; }
+.admin-map-token-black { background: #18181b; }
+
+textarea.bonfire-markdown,
+.form-row textarea {
+    min-height: 180px;
+    font-family: "Inter", sans-serif;
+    line-height: 1.55;
+    resize: vertical;
+}
+
+.aligned .form-row {
+    border-bottom-color: rgba(255,255,255,.05);
+}
+
+.inline-group .tabular tr.has_original td {
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+
+.submit-row {
+    position: sticky;
+    bottom: 0;
+    z-index: 20;
+    border-top: 1px solid var(--border-color);
+    box-shadow: 0 -8px 24px rgba(0,0,0,.35);
+}

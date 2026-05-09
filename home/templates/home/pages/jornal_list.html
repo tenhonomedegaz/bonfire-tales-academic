@@ -1,0 +1,191 @@
+{% extends 'home/base.html' %}
+{% load static %}
+
+{% block extra_head %}
+<style>
+.jornal-hero {
+  background: linear-gradient(to bottom, rgba(9,9,10,.3), rgba(9,9,10,.95)), url('{% static "assets/parchment-texture.jpg" %}');
+  background-size: cover;
+  border-bottom: 1px solid var(--stroke);
+  padding: 3rem 2rem 2rem;
+  text-align: center;
+}
+.jornal-hero-title {
+  color: #fff;
+  font-family: 'Cinzel', serif;
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-shadow: 0 4px 24px rgba(0,0,0,.8);
+  text-transform: uppercase;
+}
+.jornal-hero-sub {
+  color: var(--muted);
+  font-size: .85rem;
+  margin-top: .5rem;
+}
+.jornal-grid {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  max-width: 1200px;
+  margin: 2rem auto;
+  padding: 0 1.5rem;
+}
+.jornal-card {
+  background: var(--bg1);
+  border: 1px solid var(--stroke);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: border-color .25s, transform .25s, box-shadow .25s;
+}
+.jornal-card:hover {
+  border-color: var(--ember);
+  box-shadow: 0 12px 40px rgba(0,0,0,.5);
+  transform: translateY(-3px);
+}
+.jornal-card.is-destaque {
+  grid-column: 1 / -1;
+}
+.jornal-card.is-destaque .jornal-card-cover {
+  min-height: 280px;
+}
+.jornal-card-cover {
+  background-color: #1a1a1e;
+  background-position: center;
+  background-size: cover;
+  min-height: 180px;
+  position: relative;
+}
+.jornal-card-cover::after {
+  background: linear-gradient(to top, rgba(0,0,0,.85) 0%, transparent 60%);
+  bottom: 0;
+  content: "";
+  height: 50%;
+  left: 0;
+  position: absolute;
+  right: 0;
+}
+.jornal-badge-destaque {
+  background: var(--ember);
+  border-radius: 4px;
+  color: #070707;
+  font-size: .6rem;
+  font-weight: 900;
+  left: 12px;
+  letter-spacing: .1em;
+  padding: 4px 8px;
+  position: absolute;
+  text-transform: uppercase;
+  top: 12px;
+  z-index: 1;
+}
+.jornal-card-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: .5rem;
+  padding: 1.25rem;
+}
+.jornal-card-title {
+  color: #fff;
+  font-family: 'Cinzel', serif;
+  font-size: 1.15rem;
+  font-weight: 800;
+  line-height: 1.3;
+}
+.jornal-card-summary {
+  color: var(--muted);
+  font-size: .82rem;
+  line-height: 1.6;
+  flex: 1;
+}
+.jornal-card-meta {
+  align-items: center;
+  border-top: 1px solid var(--stroke);
+  color: var(--muted);
+  display: flex;
+  font-size: .7rem;
+  gap: .5rem;
+  margin-top: .5rem;
+  padding-top: .75rem;
+}
+.jornal-card-meta .author {
+  color: var(--ember);
+  font-weight: 700;
+}
+.jornal-actions {
+  display: flex;
+  justify-content: center;
+  padding: 1rem;
+}
+.jornal-new-btn {
+  align-items: center;
+  background: var(--ember);
+  border-radius: 6px;
+  color: #070707;
+  display: inline-flex;
+  font-size: .78rem;
+  font-weight: 900;
+  gap: .5rem;
+  letter-spacing: .06em;
+  padding: .75rem 1.25rem;
+  text-transform: uppercase;
+  transition: background .2s, transform .2s;
+}
+.jornal-new-btn:hover {
+  background: var(--flame);
+  transform: translateY(-1px);
+}
+.jornal-empty {
+  color: var(--muted);
+  font-size: .9rem;
+  grid-column: 1 / -1;
+  padding: 4rem 2rem;
+  text-align: center;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="jornal-hero">
+  <h1 class="jornal-hero-title">Jornal de Cinéria</h1>
+  <p class="jornal-hero-sub">As últimas notícias, relatos e acontecimentos do mundo vivo.</p>
+</div>
+
+{% if can_edit_wiki %}
+<div class="jornal-actions">
+  <a href="{% url 'jornal_create' %}" class="jornal-new-btn">
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+    Publicar Novo Artigo
+  </a>
+</div>
+{% endif %}
+
+<div class="jornal-grid">
+  {% for artigo in artigos %}
+  <a href="{% url 'jornal_detail' slug=artigo.slug %}" class="jornal-card {% if artigo.destaque %}is-destaque{% endif %}">
+    <div class="jornal-card-cover" {% if artigo.imagem_url %}style="background-image: url('{{ artigo.imagem_url }}')"{% endif %}>
+      {% if artigo.destaque %}<span class="jornal-badge-destaque">Destaque</span>{% endif %}
+    </div>
+    <div class="jornal-card-body">
+      <h2 class="jornal-card-title">{{ artigo.titulo }}</h2>
+      {% if artigo.resumo %}
+      <p class="jornal-card-summary">{{ artigo.resumo }}</p>
+      {% endif %}
+      <div class="jornal-card-meta">
+        <span class="author">{{ artigo.autor.username|default:"Redação" }}</span>
+        <span>&middot;</span>
+        <span>{{ artigo.data_publicacao|date:"d M Y" }}</span>
+      </div>
+    </div>
+  </a>
+  {% empty %}
+  <div class="jornal-empty">
+    <p>Nenhum artigo publicado ainda. As prensas estão silenciosas...</p>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

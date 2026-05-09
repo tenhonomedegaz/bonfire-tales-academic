@@ -1,0 +1,256 @@
+
+<link rel="stylesheet" href="{% static 'css/pages/markdown_editor.css' %}">
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrahead %}
+{{ block.super }}
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="{% static 'js/markdown.js' %}"></script>
+{% endblock %}
+
+{% block extrastyle %}
+{{ block.super }}
+
+{% endblock %}
+
+{% block content %}
+<div id="content-main" class="markdown-editor-shell">
+  <div>
+    <h1>Editor Markdown</h1>
+    <p class="markdown-editor-help">
+      Editor paralelo para montar descrições antes de inserir no banco. Atalhos:
+      <code>Ctrl+B</code> negrito,
+      <code>Ctrl+I</code> itálico,
+      <code>Ctrl+K</code> link,
+      <code>Ctrl+`</code> código,
+      <code>Ctrl+Alt+C</code> cor,
+      <code>Ctrl+Alt+I</code> imagem,
+      <code>Ctrl+S</code> salvar rascunho local.
+    </p>
+  </div>
+
+  <div class="markdown-editor-toolbar">
+    <button type="button" data-wrap="bold" title="Ctrl+B">B</button>
+    <button type="button" data-wrap="italic" title="Ctrl+I"><em>I</em></button>
+    <button type="button" data-wrap="link" title="Ctrl+K">Link</button>
+    <button type="button" data-wrap="code" title="Ctrl+`">Código</button>
+    <button type="button" data-wrap="image" title="Ctrl+Alt+I">Imagem</button>
+    <button type="button" data-wrap="color" title="Ctrl+Alt+C">Cor</button>
+    <button type="button" data-wrap="center">Centralizar</button>
+    <button type="button" data-wrap="click">Clicável</button>
+    <button type="button" data-prefix="- ">Bullet</button>
+    <button type="button" data-prefix="  - ">Sub-bullet</button>
+    <label>
+      Abrir .txt
+      <input id="markdownFileInput" type="file" accept=".txt,.md,text/plain">
+    </label>
+    <button type="button" id="downloadMarkdown">Baixar .txt</button>
+    <button type="button" id="copyMarkdown">Copiar texto</button>
+    <button type="button" id="clearMarkdown">Limpar</button>
+    <span id="markdownStatus" class="markdown-editor-status">Rascunho local pronto.</span>
+  </div>
+
+  <div class="markdown-editor-grid">
+    <section class="markdown-editor-panel">
+      <header>
+        <h2>Texto</h2>
+        <span id="markdownCounter" class="markdown-editor-status">0 caracteres</span>
+      </header>
+      <textarea id="markdownEditor" spellcheck="true" placeholder="Escreva seu Markdown aqui..."></textarea>
+    </section>
+
+    <section class="markdown-editor-panel">
+      <header>
+        <h2>Preview</h2>
+        <span class="markdown-editor-status">Mesmo leitor do site</span>
+      </header>
+      <div id="markdownPreview" class="markdown-preview"></div>
+    </section>
+  </div>
+</div>
+
+<script>
+(function() {
+    const storageKey = 'bonfire-markdown-editor-draft';
+    const editor = document.getElementById('markdownEditor');
+    const preview = document.getElementById('markdownPreview');
+    const status = document.getElementById('markdownStatus');
+    const counter = document.getElementById('markdownCounter');
+    const fileInput = document.getElementById('markdownFileInput');
+
+    function renderMarkdown() {
+        counter.textContent = `${editor.value.length} caracteres`;
+
+        if (!editor.value.trim()) {
+            preview.innerHTML = '<p class="admin-muted"><em>O preview aparece aqui.</em></p>';
+            return;
+        }
+
+        if (typeof renderBonfireMarkdown === 'function') {
+            preview.innerHTML = renderBonfireMarkdown(editor.value);
+        } else if (window.marked && typeof window.marked.parse === 'function') {
+            preview.innerHTML = applyMarkdownColorsToHtml(marked.parse(editor.value, { breaks: true, gfm: true }));
+        } else {
+            preview.innerHTML = applyMarkdownColorsToHtml(escapeHtml(editor.value)).replace(/\n/g, '<br>');
+        }
+    }
+
+    function setStatus(message) {
+        status.textContent = message;
+        window.clearTimeout(setStatus.timeout);
+        setStatus.timeout = window.setTimeout(() => {
+            status.textContent = 'Rascunho local pronto.';
+        }, 2200);
+    }
+
+    function saveDraft() {
+        localStorage.setItem(storageKey, editor.value);
+        setStatus('Rascunho salvo neste navegador.');
+    }
+
+    function replaceSelection(prefix, suffix, options = {}) {
+        const start = editor.selectionStart;
+        const end = editor.selectionEnd;
+        const selectedText = editor.value.substring(start, end);
+        const replacement = prefix + selectedText + suffix;
+
+        editor.value = editor.value.substring(0, start) + replacement + editor.value.substring(end);
+
+        if (options.selectUrl) {
+            editor.selectionStart = start + prefix.length + selectedText.length + 2;
+            editor.selectionEnd = editor.selectionStart + 3;
+        } else if (options.colorCursor) {
+            editor.selectionStart = start + '[color='.length;
+            editor.selectionEnd = editor.selectionStart;
+        } else {
+            editor.selectionStart = start + prefix.length;
+            editor.selectionEnd = start + prefix.length + selectedText.length;
+        }
+
+        editor.focus();
+        renderMarkdown();
+        localStorage.setItem(storageKey, editor.value);
+    }
+
+    function prefixLines(prefix) {
+        const start = editor.selectionStart;
+        const end = editor.selectionEnd;
+        const before = editor.value.slice(0, start);
+        const selected = editor.value.slice(start, end) || '';
+        const after = editor.value.slice(end);
+        const replacement = selected
+            .split('\n')
+            .map(line => line ? `${prefix}${line}` : prefix.trimEnd())
+            .join('\n');
+
+        editor.value = before + replacement + after;
+        editor.selectionStart = start;
+        editor.selectionEnd = start + replacement.length;
+        editor.focus();
+        renderMarkdown();
+        localStorage.setItem(storageKey, editor.value);
+    }
+
+    document.querySelectorAll('[data-wrap]').forEach(button => {
+        button.addEventListener('click', () => {
+            const type = button.dataset.wrap;
+            if (type === 'bold') replaceSelection('**', '**');
+            if (type === 'italic') replaceSelection('*', '*');
+            if (type === 'link') replaceSelection('[', '](url)', { selectUrl: true });
+            if (type === 'image') replaceSelection('![', '](url){position:right,length:40%}', { selectUrl: true });
+            if (type === 'code') replaceSelection('`', '`');
+            if (type === 'color') {
+                if (typeof openBonfireColorMenu === 'function') openBonfireColorMenu(button, editor);
+                else replaceSelection('[color=]', '[/color]', { colorCursor: true });
+            }
+            if (type === 'center') replaceSelection('::center\n', '\n::');
+            if (type === 'click') replaceSelection('::click Título\n', '\n::endclick');
+        });
+    });
+
+    document.querySelectorAll('[data-prefix]').forEach(button => {
+        button.addEventListener('click', () => prefixLines(button.dataset.prefix));
+    });
+
+    document.getElementById('copyMarkdown').addEventListener('click', async () => {
+        await navigator.clipboard.writeText(editor.value);
+        setStatus('Texto copiado.');
+    });
+
+    document.getElementById('clearMarkdown').addEventListener('click', () => {
+        if (!editor.value || confirm('Limpar o rascunho atual?')) {
+            editor.value = '';
+            localStorage.removeItem(storageKey);
+            renderMarkdown();
+            setStatus('Editor limpo.');
+        }
+    });
+
+    document.getElementById('downloadMarkdown').addEventListener('click', () => {
+        const blob = new Blob([editor.value], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'bonfire-markdown.txt';
+        link.click();
+        URL.revokeObjectURL(url);
+        setStatus('Arquivo gerado.');
+    });
+
+    fileInput.addEventListener('change', () => {
+        const file = fileInput.files && fileInput.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = () => {
+            editor.value = String(reader.result || '');
+            renderMarkdown();
+            saveDraft();
+            setStatus(`Arquivo aberto: ${file.name}`);
+        };
+        reader.readAsText(file);
+        fileInput.value = '';
+    });
+
+    editor.addEventListener('input', () => {
+        renderMarkdown();
+        localStorage.setItem(storageKey, editor.value);
+    });
+
+    editor.addEventListener('keydown', event => {
+        const isMac = navigator.platform.toUpperCase().includes('MAC');
+        const cmdKey = isMac ? event.metaKey : event.ctrlKey;
+        if (!cmdKey) return;
+
+        const key = event.key.toLowerCase();
+        if (key === 's') {
+            event.preventDefault();
+            saveDraft();
+        } else if (event.altKey && key === 'c') {
+            event.preventDefault();
+            replaceSelection('[color=]', '[/color]', { colorCursor: true });
+        } else if (event.altKey && key === 'i') {
+            event.preventDefault();
+            replaceSelection('![', '](url){position:right,length:40%}', { selectUrl: true });
+        } else if (key === 'b') {
+            event.preventDefault();
+            replaceSelection('**', '**');
+        } else if (key === 'i') {
+            event.preventDefault();
+            replaceSelection('*', '*');
+        } else if (key === 'k') {
+            event.preventDefault();
+            replaceSelection('[', '](url)', { selectUrl: true });
+        } else if (event.key === '`') {
+            event.preventDefault();
+            replaceSelection('`', '`');
+        }
+    });
+
+    const saved = localStorage.getItem(storageKey);
+    if (saved) editor.value = saved;
+    renderMarkdown();
+})();
+</script>
+{% endblock %}

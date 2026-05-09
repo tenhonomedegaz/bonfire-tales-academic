@@ -1,0 +1,79 @@
+{% extends 'home/base.html' %}
+{% load static %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/pages/jornal_detail.css' %}">
+
+{% endblock %}
+
+{% block content %}
+<div class="artigo-hero" style="--hero-bg: url('{{ artigo.imagem_url|default:"" }}')">
+  <span class="artigo-eyebrow">Jornal de Cinéria</span>
+  <h1 class="artigo-title">{{ artigo.titulo }}</h1>
+  <div class="artigo-meta">
+    <span class="author">{{ artigo.autor.username|default:"Redação" }}</span>
+    <span>&middot;</span>
+    <span>{{ artigo.data_publicacao|date:"d \d\e F \d\e Y" }}</span>
+    {% if artigo.data_edicao != artigo.data_publicacao %}
+    <span>&middot;</span>
+    <span>Editado em {{ artigo.data_edicao|date:"d/m/Y" }}</span>
+    {% endif %}
+  </div>
+</div>
+
+<div class="artigo-layout">
+  <div class="artigo-body">
+    <div class="bonfire-markdown" data-markdown-source>{{ artigo.conteudo_markdown|escape }}</div>
+  </div>
+
+  <a href="{% url 'mundo_jornal' %}" class="artigo-back">
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+    Voltar ao Jornal
+  </a>
+
+  {% if can_edit_wiki %}
+  <div class="artigo-edit-tools">
+    <button type="button" class="artigo-edit-btn" id="btnEditArticle">Editar Artigo</button>
+  </div>
+  <form id="articleForm" class="wiki-inline-editor">
+    <label>Título <input name="titulo" value="{{ artigo.titulo }}"></label>
+    <label>Resumo <input name="resumo" value="{{ artigo.resumo|default:'' }}"></label>
+    <label>URL da Imagem <input name="imagem_url" value="{{ artigo.imagem_url|default:'' }}"></label>
+    <label>
+      <span>Destaque</span>
+      <input type="checkbox" name="destaque" {% if artigo.destaque %}checked{% endif %} style="width: auto;">
+    </label>
+    <label>Conteúdo Markdown <textarea name="conteudo_markdown">{{ artigo.conteudo_markdown|default:'' }}</textarea></label>
+    <div class="wiki-inline-actions">
+      <button type="button" class="wiki-inline-cancel" id="btnCancelArticle">Cancelar</button>
+      <button type="submit" class="wiki-inline-save">Salvar</button>
+    </div>
+  </form>
+  <script>
+  (function() {
+    const form = document.getElementById('articleForm');
+    document.getElementById('btnEditArticle')?.addEventListener('click', () => form.classList.add('is-open'));
+    document.getElementById('btnCancelArticle')?.addEventListener('click', () => form.classList.remove('is-open'));
+    form?.addEventListener('submit', async e => {
+      e.preventDefault();
+      const fd = new FormData(form);
+      const body = {
+        titulo: fd.get('titulo'),
+        resumo: fd.get('resumo'),
+        imagem_url: fd.get('imagem_url'),
+        conteudo_markdown: fd.get('conteudo_markdown'),
+        destaque: !!fd.get('destaque'),
+      };
+      const csrf = decodeURIComponent((document.cookie.split('; ').find(r => r.startsWith('csrftoken=')) || '').split('=')[1] || '');
+      const res = await fetch('{% url "jornal_update" slug=artigo.slug %}', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+        body: JSON.stringify(body),
+      });
+      if (res.ok) window.location.reload();
+    });
+  })();
+  </script>
+  {% endif %}
+</div>
+{% endblock %}

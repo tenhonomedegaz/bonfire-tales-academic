@@ -1,0 +1,66 @@
+.mongo-editor-shell {
+    display: grid;
+    gap: 16px;
+  }
+  .mongo-editor-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .mongo-editor-tab {
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 800;
+    padding: 8px 12px;
+  }
+  .mongo-editor-tab.is-active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+  }
+  .mongo-fields-grid {
+    display: grid;
+    gap: 12px;
+  }
+  .mongo-editor-help {
+    color: var(--body-quiet-color);
+    font-size: 12px;
+    line-height: 1.45;
+    margin: 0 0 12px;
+  }
+  .mongo-field-row {
+    background: rgba(255,255,255,.025);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    display: grid;
+    gap: 8px;
+    grid-template-columns: minmax(160px, 240px) minmax(0, 1fr) 110px;
+    padding: 10px;
+  }
+  .mongo-field-tools {
+    align-items: center;
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+  .mongo-remove-field {
+    border-color: var(--delete-button-bg);
+    color: var(--delete-button-bg);
+  }
+  .mongo-field-row input,
+  .mongo-field-row textarea,
+  .mongo-field-row select,
+  #id_document_json {
+    font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+    width: 100%;
+  }
+  .mongo-field-row textarea {
+    min-height: 92px;
+  }
+  .mongo-editor-panel[hidden] {
+    display: none;
+  }
+  @media (max-width: 900px) {
+    .mongo-field-row { grid-template-columns: 1fr; }
+  }

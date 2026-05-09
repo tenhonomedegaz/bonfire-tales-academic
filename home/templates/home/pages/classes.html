@@ -1,0 +1,70 @@
+{% extends 'home/base.html' %}
+
+{% block content %}
+<section class="mx-auto max-w-7xl">
+  <div class="mb-8 grid gap-6 lg:grid-cols-[1fr_320px] lg:items-end">
+    <div>
+      <p class="mb-2 text-xs font-bold uppercase tracking-[0.35em] text-[var(--ember)]">Jogador / Construção</p>
+      <h1 class="font-rpg text-4xl font-extrabold uppercase tracking-widest text-[var(--text)] md:text-6xl">Classes</h1>
+      <p class="mt-4 max-w-3xl text-base leading-relaxed text-[var(--muted)]">
+        Classes definem a espinha dorsal mecânica do personagem: progressão, recursos, habilidades e caminhos de especialização.
+      </p>
+    </div>
+    <div class="grid grid-cols-3 gap-3 rounded border border-[var(--stroke)] bg-[var(--bg1)] p-4 text-center">
+      <div>
+        <strong class="block font-rpg text-2xl text-[var(--text)]">{{ classes|length }}</strong>
+        <span class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">Classes</span>
+      </div>
+      <div>
+        <strong class="block font-rpg text-2xl text-[var(--text)]">{{ total_subclasses }}</strong>
+        <span class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">Subclasses</span>
+      </div>
+      <div>
+        <strong class="block font-rpg text-2xl text-[var(--text)]">{{ total_habilidades }}</strong>
+        <span class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">Habilidades</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="mb-5 flex flex-col gap-3 sm:flex-row">
+    <label class="relative flex-1">
+      <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-[var(--muted)]">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      </span>
+      <input id="classSearch" type="search" placeholder="Buscar classe..." class="w-full rounded border border-[var(--stroke)] bg-[var(--bg1)] py-3 pl-10 pr-4 text-sm text-[var(--text)] outline-none focus:border-[var(--ember)]">
+    </label>
+  </div>
+
+  <div id="classGrid" class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+    {% for classe in classes %}
+    <a href="{% url 'classe_detail' slug=classe.slug %}" data-search="{{ classe.nome }} {{ classe.tagline }}" class="class-card group rounded border border-[var(--stroke)] bg-[var(--bg1)] p-5 transition hover:-translate-y-0.5 hover:border-[var(--ember)] hover:bg-[var(--bg2)]">
+      <div class="mb-4 flex items-start justify-between gap-4">
+        <div>
+          <h2 class="font-rpg text-2xl font-bold text-[var(--text)] group-hover:text-[var(--ember)]">{{ classe.nome }}</h2>
+          <p class="mt-2 line-clamp-2 text-sm leading-relaxed text-[var(--muted)]">{{ classe.tagline|default:"Especialização de aventureiros em Cinéria." }}</p>
+        </div>
+        <span class="rounded border border-[var(--stroke)] px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">Classe</span>
+      </div>
+      <div class="flex items-center justify-between border-t border-[var(--stroke)] pt-3 text-xs font-bold uppercase tracking-wider text-[var(--muted)]">
+        <span>Progressão e habilidades</span>
+        <span class="text-[var(--ember)]">Abrir</span>
+      </div>
+    </a>
+    {% empty %}
+    <div class="col-span-full rounded border border-[var(--stroke)] bg-[var(--bg1)] p-8 text-center text-[var(--muted)]">Nenhuma classe cadastrada.</div>
+    {% endfor %}
+  </div>
+</section>
+
+<script>
+  const classSearch = document.getElementById('classSearch');
+  const classCards = [...document.querySelectorAll('.class-card')];
+
+  classSearch.addEventListener('input', () => {
+    const query = classSearch.value.toLowerCase();
+    classCards.forEach(card => {
+      card.classList.toggle('hidden', !card.dataset.search.toLowerCase().includes(query));
+    });
+  });
+</script>
+{% endblock %}

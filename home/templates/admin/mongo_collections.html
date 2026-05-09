@@ -1,0 +1,103 @@
+{% extends "admin/base_site.html" %}
+{% load mongo_tags %}
+
+{% block content %}
+<div id="content-main">
+  <h1>{{ title }}</h1>
+
+  {% if mongo_error %}
+  <div class="messagelist">
+    <div class="warning">Mongo indisponivel: {{ mongo_error }}</div>
+  </div>
+  {% else %}
+  <p class="help">
+    Database: <strong>{{ database_name|default:configured_database|default:"detectado automaticamente" }}</strong>.
+    As collections do site estao separadas das collections nativas do bot.
+  </p>
+
+  <div class="module">
+    <h2>Banco do Site</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Collection</th>
+          <th>Documentos</th>
+          <th>Campos encontrados</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for collection in collections %}
+        {% if collection|mongo_kind:'site' %}
+        <tr>
+          <th scope="row">
+            <a href="{% url 'admin:mongo_collection_detail' collection.name %}">{{ collection.name }}</a>
+          </th>
+          <td>{{ collection.count }}</td>
+          <td>
+            {% for key in collection.sample_keys %}
+            <span class="admin-badge">{{ key }}</span>
+            {% empty %}
+            <span class="admin-muted">Sem amostra</span>
+            {% endfor %}
+          </td>
+        </tr>
+        {% endif %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="module">
+    <h2>Banco Original do Bot</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Collection</th>
+          <th>Documentos</th>
+          <th>Campos encontrados</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for collection in collections %}
+        {% if collection|mongo_kind:'bot' %}
+        <tr>
+          <th scope="row"><a href="{% url 'admin:mongo_collection_detail' collection.name %}">{{ collection.name }}</a></th>
+          <td>{{ collection.count }}</td>
+          <td>
+            {% for key in collection.sample_keys %}<span class="admin-badge">{{ key }}</span>{% empty %}<span class="admin-muted">Sem amostra</span>{% endfor %}
+          </td>
+        </tr>
+        {% endif %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="module">
+    <h2>Outras Collections</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Collection</th>
+          <th>Documentos</th>
+          <th>Campos encontrados</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for collection in collections %}
+        {% if collection|mongo_kind:'other' %}
+        <tr>
+          <th scope="row"><a href="{% url 'admin:mongo_collection_detail' collection.name %}">{{ collection.name }}</a></th>
+          <td>{{ collection.count }}</td>
+          <td>
+            {% for key in collection.sample_keys %}<span class="admin-badge">{{ key }}</span>{% empty %}<span class="admin-muted">Sem amostra</span>{% endfor %}
+          </td>
+        </tr>
+        {% endif %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,68 @@
+
+<link rel="stylesheet" href="{% static 'css/pages/spell_import.css' %}">
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrastyle %}{{ block.super }}
+
+{% endblock %}
+
+{% block content %}
+<div id="content-main" class="spell-import-shell">
+  <div class="object-tools">
+    <a href="{% url 'admin:mongo_collection_detail' collection_name %}" class="viewsitelink">Abrir collection {{ collection_name }}</a>
+    <a href="{% url 'admin:mongo_collections' %}" class="viewsitelink">Collections Mongo</a>
+  </div>
+
+  <h1>{{ title }}</h1>
+
+  {% if mongo_error %}
+  <div class="messagelist"><div class="warning">Mongo indisponível: {{ mongo_error }}</div></div>
+  {% endif %}
+
+  {% if result %}
+  <section class="spell-import-card spell-import-result">
+    <h2>Resultado</h2>
+    <p>
+      Lidas <strong>{{ result.read }}</strong> magias para <code>{{ result.collection }}</code>.
+      {% if result.validated_only %}
+      Validação concluída sem gravar.
+      {% else %}
+      Criadas <strong>{{ result.imported }}</strong>, atualizadas <strong>{{ result.updated }}</strong>, ignoradas <strong>{{ result.skipped }}</strong>.
+      {% endif %}
+    </p>
+  </section>
+  {% endif %}
+
+  <section class="spell-import-card">
+    <h2>Arquivo Excel</h2>
+    <form method="post" enctype="multipart/form-data" class="spell-import-grid" novalidate>
+      {% csrf_token %}
+      {{ form.as_p }}
+      <div class="submit-row">
+        <input type="submit" value="Importar para o Mongo" class="default">
+      </div>
+    </form>
+  </section>
+
+  <section class="spell-import-card">
+    <h2>Colunas aceitas</h2>
+    <p class="help">A primeira linha precisa conter cabeçalhos. A collection final recebe campos padronizados em PascalCase.</p>
+    <ul class="spell-columns">
+      <li>Nome</li>
+      <li>Nivel/lvl: aceita 1-9 ou C para truque. C e salvo como 0.</li>
+      <li>Casting Time/cating time: aceita Acao, Reacao e Bonus.</li>
+      <li>Ritual: TRUE/FALSE.</li>
+      <li>Duracao: se contiver Concentracao, salva Concentracao=true e limpa a duracao.</li>
+      <li>Escola</li>
+      <li>Alcance</li>
+      <li>Componentes: V, S, M e material entre parenteses.</li>
+      <li>Classes ou classes (nome do bonfas)</li>
+      <li>Subclasses ou subclasses (nome do bonfas)</li>
+      <li>Descricao</li>
+      <li>Em Niveis Superiores</li>
+    </ul>
+    <p class="help">Alcance é normalizado para o formato <code>18 metros [60 pés]</code> usando 5 pés = 1,5 metros.</p>
+  </section>
+</div>
+{% endblock %}

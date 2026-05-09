@@ -1,0 +1,91 @@
+# Molde para importar recursos e habilidades de classe pelo admin.
+# No admin, escolha a Classe no formulario. O campo Subclasse e opcional.
+# Separe cada bloco com uma linha contendo apenas ---
+
+[RECURSOS]
+Nivel: 1
+Bônus de Proficiência: +2
+Dado de Inspiração: d6
+Magias Preparadas: 4
+Truques: 2
+1º: -
+2º: -
+3º: -
+4º: -
+5º: -
+6º: -
+7º: -
+8º: -
+9º: -
+---
+Nivel: 2
+Bônus de Proficiência: +2
+Dado de Inspiração: d6
+Magias Preparadas: 5
+Truques: 2
+1º: 3
+2º: -
+3º: -
+4º: -
+5º: -
+6º: -
+7º: -
+8º: -
+9º: -
+---
+
+# Recursos de subclasse tambem usam Subclasse com o slug da subclasse.
+# Isso serve para subclasse caster em classe nao-caster. Que nem o Cavaleiro Arcano.
+Nivel: 3
+Subclasse: slug-da-subclasse-caster
+Truques: 2
+1º: 2
+2º: -
+3º: -
+4º: -
+5º: -
+---
+
+# a secao [RECURSOS DE SUBCLASSE] tambem funciona.
+[RECURSOS DE SUBCLASSE]
+Nivel: 4
+Subclasse: slug-da-subclasse-caster
+Truques: 2
+1º: 3
+2º: -
+3º: -
+4º: -
+5º: -
+---
+
+[HABILIDADES]
+Nome: Conjuração de Magias
+Nivel: 1
+Subclasse:
+Table Only: nao
+Descrição:
+Texto em markdown da habilidade.
+
+- **Benefício**: descreva aqui.
+- **Outro Ponto**: descreva aqui.
+---
+Nome: Inspiração Bárdica
+Nivel: 1
+Subclasse:
+Table Only: nao
+Descrição:
+Texto em markdown da habilidade.
+---
+Nome: Incremento de Atributo ou Talento
+Nivel: 4
+Subclasse:
+Table Only: sim
+Descrição:
+Este texto nao aparece na lista de habilidades quando Table Only estiver sim.
+---
+Nome: Estrofe de Batalha
+Nivel: 3
+Subclasse:
+Table Only: nao
+Descrição:
+Para habilidade de subclasse, preencha o slug da subclasse no campo Subclasse.

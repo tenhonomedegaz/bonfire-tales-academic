@@ -1,0 +1,390 @@
+
+<link rel="stylesheet" href="{% static 'css/pages/header.css' %}">
+
+{% load static %}
+
+<header class="fixed top-0 left-0 z-50 w-full bg-[var(--bg1)]/95 backdrop-blur-md border-b border-[var(--stroke)] shadow-2xl shadow-black/50">
+    <div class="container mx-auto px-3 h-14 flex items-center gap-3 lg:gap-5 justify-between relative group/header">
+
+      <a href="/" class="flex items-center gap-3 flex-shrink-0 pt-1 pb-1 group/logo focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ember)] select-none">
+        <img src="{% static 'assets/logo.png' %}" alt="Bonfire Tales" class="h-7 w-auto object-contain drop-shadow-[0_0_8px_rgba(210,23,23,0.5)] transition-transform duration-300 group-hover/logo:scale-110" />
+        <span class="font-rpg font-bold text-base tracking-wide text-[var(--text)] group-hover/logo:text-[var(--ember)] transition-colors hidden sm:block">
+          BONFIRE TALES
+        </span>
+      </a>
+
+      <nav class="hidden min-[1100px]:flex items-center h-full flex-1">
+
+        <div class="h-full flex items-center group/tab">
+          <button class="relative px-3 h-full flex items-center gap-1 text-sm font-semibold transition-colors text-[var(--muted)] group-hover/tab:text-[var(--text)] group-hover/tab:bg-[var(--bg0)] focus:outline-none">
+            Sistemas
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-down opacity-50 group-hover/tab:rotate-180 transition-transform"><path d="m6 9 6 6 6-6"/></svg>
+            <div class="absolute bottom-0 left-0 w-full h-[2px] bg-[var(--ember)] opacity-0 group-hover/tab:opacity-100 transition-opacity"></div>
+          </button>
+          
+          <div class="hidden group-hover/tab:block absolute left-0 top-full w-full bg-[var(--bg1)] border-b border-[var(--stroke)] shadow-xl animate-in fade-in slide-in-from-top-2 duration-200">
+            <div class="container mx-auto px-4 py-8 grid grid-cols-4 gap-8">
+              <div class="space-y-4">
+                <h3 class="font-rpg font-bold text-[var(--ember)] text-sm uppercase tracking-widest border-b border-[var(--stroke)] pb-2 mb-2">Fundamentos</h3>
+                <ul class="space-y-2">
+                  <li><a href="/sistemas/regras-e-punicoes" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Regras e Punições</a></li>
+                  <li><a href="/sistemas/glossario" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Glossário</a></li>
+                </ul>
+              </div>
+              <div class="space-y-4">
+                <h3 class="font-rpg font-bold text-[var(--ember)] text-sm uppercase tracking-widest border-b border-[var(--stroke)] pb-2 mb-2">Aventurando-se</h3>
+                <ul class="space-y-2">
+                  <li><a href="/sistemas/criacao-de-ficha" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Criação de Ficha</a></li>
+                  <li><a href="/sistemas/missoes" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Missões e Ranks</a></li>
+                </ul>
+              </div>
+              <div class="col-span-2"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="h-full flex items-center group/tab">
+          <button class="relative px-4 h-full flex items-center gap-1 text-sm font-semibold transition-colors text-[var(--muted)] group-hover/tab:text-[var(--text)] group-hover/tab:bg-[var(--bg0)] focus:outline-none">
+            Jogador
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-down opacity-50 group-hover/tab:rotate-180 transition-transform"><path d="m6 9 6 6 6-6"/></svg>
+            <div class="absolute bottom-0 left-0 w-full h-[2px] bg-[var(--ember)] opacity-0 group-hover/tab:opacity-100 transition-opacity"></div>
+          </button>
+          
+          <div class="hidden group-hover/tab:block absolute left-0 top-full w-full bg-[var(--bg1)] border-b border-[var(--stroke)] shadow-xl animate-in fade-in slide-in-from-top-2 duration-200">
+            <div class="container mx-auto px-4 py-8 grid grid-cols-4 gap-8">
+              <div class="space-y-4">
+                <h3 class="font-rpg font-bold text-[var(--ember)] text-sm uppercase tracking-widest border-b border-[var(--stroke)] pb-2 mb-2">Construção</h3>
+                <ul class="space-y-2">
+                  <li><a href="/jogador/raca" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Raça</a></li>
+                  <li><a href="/jogador/classes" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Classes</a></li>
+                  <li><a href="/jogador/antecedentes/" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Antecedente</a></li>
+                </ul>
+              </div>
+              <div class="space-y-4">
+                <h3 class="font-rpg font-bold text-[var(--ember)] text-sm uppercase tracking-widest border-b border-[var(--stroke)] pb-2 mb-2">Detalhes</h3>
+                <ul class="space-y-2">
+                  <li><a href="/jogador/talentos" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Talentos</a></li>
+                  <li><a href="/jogador/idiomas" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Idiomas</a></li>
+                </ul>
+              </div>
+              <div class="space-y-4">
+                <h3 class="font-rpg font-bold text-[var(--ember)] text-sm uppercase tracking-widest border-b border-[var(--stroke)] pb-2 mb-2">Recursos</h3>
+                <ul class="space-y-2">
+                  <li><a href="/jogador/opcoes-adicionais" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Opções Adicionais</a></li>
+                  <li><a href="/magias/listas" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Magias</a></li>
+                </ul>
+              </div>
+              <div class="col-span-1"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="h-full flex items-center group/tab">
+          <button class="relative px-4 h-full flex items-center gap-1 text-sm font-semibold transition-colors text-[var(--muted)] group-hover/tab:text-[var(--text)] group-hover/tab:bg-[var(--bg0)] focus:outline-none">
+            Mestre
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-down opacity-50 group-hover/tab:rotate-180 transition-transform"><path d="m6 9 6 6 6-6"/></svg>
+            <div class="absolute bottom-0 left-0 w-full h-[2px] bg-[var(--ember)] opacity-0 group-hover/tab:opacity-100 transition-opacity"></div>
+          </button>
+          
+          <div class="hidden group-hover/tab:block absolute left-0 top-full w-full bg-[var(--bg1)] border-b border-[var(--stroke)] shadow-xl animate-in fade-in slide-in-from-top-2 duration-200">
+            <div class="container mx-auto px-4 py-8 grid grid-cols-4 gap-8">
+              <div class="space-y-4">
+                <h3 class="font-rpg font-bold text-[var(--ember)] text-sm uppercase tracking-widest border-b border-[var(--stroke)] pb-2 mb-2">Guia</h3>
+                <ul class="space-y-2">
+                  <li><a href="/mestre/se-tornando-mestre" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Se tornando mestre</a></li>
+                  <li><a href="/mestre/bestiario" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Bestiario</a></li>
+                </ul>
+              </div>
+              <div class="space-y-4">
+                <h3 class="font-rpg font-bold text-[var(--ember)] text-sm uppercase tracking-widest border-b border-[var(--stroke)] pb-2 mb-2">Desafios</h3>
+                <ul class="space-y-2">
+                  <li><a href="/mestre/armadilhas-e-perigos" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Armadilhas e Perigos</a></li>
+                  <li><a href="/mestre/condicoes" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Condições</a></li>
+                </ul>
+              </div>
+              <div class="space-y-4">
+                <h3 class="font-rpg font-bold text-[var(--ember)] text-sm uppercase tracking-widest border-b border-[var(--stroke)] pb-2 mb-2">Gestão</h3>
+                <ul class="space-y-2">
+                  <li><a href="/mestre/mercado-de-mestre" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Mercado de Mestre</a></li>
+                  <li><a href="/mestre/tipos-de-missoes" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Tipos de Missões</a></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="h-full flex items-center group/tab">
+          <button class="relative px-4 h-full flex items-center gap-1 text-sm font-semibold transition-colors text-[var(--muted)] group-hover/tab:text-[var(--text)] group-hover/tab:bg-[var(--bg0)] focus:outline-none">
+            Mercado
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-down opacity-50 group-hover/tab:rotate-180 transition-transform"><path d="m6 9 6 6 6-6"/></svg>
+            <div class="absolute bottom-0 left-0 w-full h-[2px] bg-[var(--ember)] opacity-0 group-hover/tab:opacity-100 transition-opacity"></div>
+          </button>
+          
+          <div class="hidden group-hover/tab:block absolute left-0 top-full w-full bg-[var(--bg1)] border-b border-[var(--stroke)] shadow-xl animate-in fade-in slide-in-from-top-2 duration-200">
+            <div class="container mx-auto px-4 py-8 grid grid-cols-4 gap-8">
+              <div class="space-y-4">
+                <h3 class="font-rpg font-bold text-[var(--ember)] text-sm uppercase tracking-widest border-b border-[var(--stroke)] pb-2 mb-2">Equipamento</h3>
+                <ul class="space-y-2">
+                  <li><a href="/mercado/armas" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Armas</a></li>
+                  <li><a href="/mercado/itens-mundanos" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Itens Mundanos</a></li>
+                  <li><a href="/mercado/itens-magicos" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Itens Mágicos</a></li>
+                </ul>
+              </div>
+              <div class="space-y-4">
+                <h3 class="font-rpg font-bold text-[var(--ember)] text-sm uppercase tracking-widest border-b border-[var(--stroke)] pb-2 mb-2">Comércio</h3>
+                <ul class="space-y-2">
+                  <li><a href="/mercado/negociacoes" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Negociações</a></li>
+                </ul>
+              </div>
+              <div class="col-span-1"></div>
+              <div class="col-span-1 p-4 rounded bg-[var(--bg0)] border border-[var(--stroke)] flex flex-col justify-center items-center text-center opacity-70">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-12 h-12 text-[var(--stroke)] mb-2"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
+                <span class="text-xs text-[var(--muted)]">Conteúdo atualizado semanalmente.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="h-full flex items-center group/tab">
+          <button class="relative px-4 h-full flex items-center gap-1 text-sm font-semibold transition-colors text-[var(--muted)] group-hover/tab:text-[var(--text)] group-hover/tab:bg-[var(--bg0)] focus:outline-none">
+            Mundo
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-down opacity-50 group-hover/tab:rotate-180 transition-transform"><path d="m6 9 6 6 6-6"/></svg>
+            <div class="absolute bottom-0 left-0 w-full h-[2px] bg-[var(--ember)] opacity-0 group-hover/tab:opacity-100 transition-opacity"></div>
+          </button>
+          
+          <div class="hidden group-hover/tab:block absolute left-0 top-full w-full bg-[var(--bg1)] border-b border-[var(--stroke)] shadow-xl animate-in fade-in slide-in-from-top-2 duration-200">
+            <div class="container mx-auto px-4 py-8 grid grid-cols-4 gap-8">
+              <div class="space-y-4">
+                <h3 class="font-rpg font-bold text-[var(--ember)] text-sm uppercase tracking-widest border-b border-[var(--stroke)] pb-2 mb-2">Lore</h3>
+                <ul class="space-y-2">
+                  <li><a href="/mundo/cosmo" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Cosmo</a></li>
+                  <li><a href="/mundo/linha-do-tempo" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Linha do Tempo</a></li>
+                </ul>
+              </div>
+              <div class="space-y-4">
+                <h3 class="font-rpg font-bold text-[var(--ember)] text-sm uppercase tracking-widest border-b border-[var(--stroke)] pb-2 mb-2">Atlas</h3>
+                <ul class="space-y-2">
+                  <li><a href="/mapa" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Mapa</a></li>
+                  <li><a href="/mundo/regioes" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Regiões</a></li>
+                  <li><a href="/mundo/organizacoes" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Organizações</a></li>
+                </ul>
+              </div>
+              <div class="space-y-4">
+                <h3 class="font-rpg font-bold text-[var(--ember)] text-sm uppercase tracking-widest border-b border-[var(--stroke)] pb-2 mb-2">Publicações</h3>
+                <ul class="space-y-2">
+                  <li><a href="/mundo/jornal" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Jornal</a></li>
+                  <li><a href="/mundo/cronicas" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Crônicas</a></li>
+                </ul>
+              </div>
+              <div class="col-span-1 overflow-hidden rounded bg-[var(--bg0)] border border-[var(--stroke)] flex flex-col">
+                <a href="/mapa" class="group/map block relative flex-1 min-h-[120px] overflow-hidden">
+                  <img src="{% static 'assets/cineria low q.jpg' %}" alt="Mini mapa de Cinéria" class="absolute inset-0 h-full w-full object-cover object-center opacity-70 transition duration-300 group-hover/map:scale-105 group-hover/map:opacity-90" />
+                  <div class="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent"></div>
+                  <div class="absolute bottom-0 left-0 right-0 p-4">
+                    <span class="font-rpg text-sm font-bold uppercase tracking-widest text-[var(--ember)]">Mapa de Cinéria</span>
+                    <p class="mt-1 text-xs text-[var(--muted)]">Abrir atlas interativo</p>
+                  </div>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </nav>
+
+      <div class="flex items-center gap-3 justify-end ml-4">
+        <div class="hidden min-[1100px]:flex relative group w-64">
+           <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-[var(--muted)]">
+             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+           </div>
+           <input 
+             type="text" 
+             placeholder="Buscar regras, itens ou monstro"
+             class="w-full bg-[var(--bg0)] border border-[var(--stroke)] text-[var(--text)] text-sm rounded-sm py-1.5 pl-9 pr-2 focus:border-[var(--ember)] focus:ring-1 focus:ring-[var(--ember)] placeholder:text-[var(--muted)]/50 transition-all outline-none"
+           />
+        </div>
+
+        <div class="hidden min-[1100px]:flex items-center gap-2 border-l border-[var(--stroke)] pl-3">
+            <a href="https://discord.gg/eyqe7rj2AX" target="_blank" class="text-[var(--muted)] hover:text-[var(--text)] transition-colors p-1 rounded"><img src="{% static 'assets/discord_icon.png' %}" class="w-4 h-4 object-contain opacity-70 hover:opacity-100 transition-opacity" alt="Discord" /></a>
+            <a href="https://www.youtube.com/@bonfiretalesrpg" target="_blank" class="text-[var(--muted)] hover:text-[var(--text)] transition-colors p-1 rounded"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"/><polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"/></svg></a>
+            <a href="https://www.instagram.com/bonfiretalesrpg/" target="_blank" class="text-[var(--muted)] hover:text-[var(--text)] transition-colors p-1 rounded"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg></a>
+        </div>
+
+        {% if user.is_authenticated %}
+            
+            <div class="hidden min-[1100px]:block relative group/user">
+                <button class="flex items-center gap-2 px-4 py-1.5 rounded-sm border border-[var(--stroke)] bg-[var(--bg0)] text-[var(--text)] hover:border-[var(--ember)] transition-all focus:outline-none shadow-[0_0_10px_rgba(210,23,23,0.1)]">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-[var(--ember)]"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    <span class="font-bold text-sm">{{ user.username }}</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="opacity-50 group-hover/user:rotate-180 transition-transform"><path d="m6 9 6 6 6-6"/></svg>
+                </button>
+                <div class="hidden group-hover/user:block absolute right-0 top-full pt-2 w-48 z-50 animate-fade-in-down origin-top">
+                    <div class="bg-[var(--bg1)] border border-[var(--stroke)] shadow-2xl rounded p-2 flex flex-col gap-1">
+                        {% if user.is_superuser %}
+                        <a href="/admin/" target="_blank" class="flex items-center justify-center gap-2 px-3 py-2 text-sm font-bold text-white bg-gradient-to-r from-[var(--flame)] to-[var(--ember)] rounded-sm hover:brightness-110 transition-all shadow-[0_0_15px_rgba(210,23,23,0.3)] hover:shadow-[0_0_20px_rgba(210,23,23,0.6)]">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                            Admin
+                        </a>
+                        {% endif %}
+                        <form action="{% url 'logout' %}" method="post" class="w-full m-0">
+                            {% csrf_token %}
+                            <button type="submit" class="w-full flex items-center justify-center gap-2 px-3 py-2 mt-1 text-sm font-bold text-[var(--muted)] hover:bg-[var(--bg0)] hover:text-red-500 rounded-sm transition-all focus:outline-none">
+                                Sair
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <details class="hidden min-[1100px]:relative min-[1100px]:block">
+              <summary class="list-none cursor-pointer rounded-sm bg-[var(--bg0)] border border-[var(--stroke)] px-4 py-1.5 text-sm font-bold text-[var(--muted)] hover:text-[var(--text)] hover:border-[var(--ember)] transition-all">
+                Conta
+              </summary>
+              <div class="absolute right-0 top-12 w-48 rounded border border-[var(--stroke)] bg-[var(--bg1)] p-2 shadow-2xl animate-fade-in-down origin-top">
+                <a href="/colaborador/" class="flex items-center justify-center gap-2 px-3 py-2 text-sm font-bold text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--bg0)] rounded-sm transition-all">
+                  Colaborador
+                </a>
+                <a href="{% url 'register' %}" class="flex items-center justify-center gap-2 px-3 py-2 text-sm font-bold text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--bg0)] rounded-sm transition-all">
+                  Cadastro
+                </a>
+                <a href="{% url 'login' %}" class="mt-1 flex items-center justify-center gap-2 px-3 py-2 text-sm font-bold text-white bg-gradient-to-r from-[var(--flame)] to-[var(--ember)] rounded-sm hover:brightness-110 transition-all shadow-[0_0_15px_rgba(210,23,23,0.3)] hover:shadow-[0_0_20px_rgba(210,23,23,0.6)]">
+                  Login
+                </a>
+              </div>
+            </details>
+        {% endif %}
+        
+        <details class="min-[1100px]:hidden relative group/mob-menu">
+          <summary class="list-none cursor-pointer rounded border border-[var(--stroke)] bg-[var(--bg0)] p-2 text-[var(--text)] hover:border-[var(--ember)] transition-all">
+            <span class="sr-only">Abrir menu</span>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 group-open/mob-menu:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 hidden group-open/mob-menu:block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </summary>
+          <div class="absolute right-0 top-12 w-[min(92vw,360px)] max-h-[80vh] overflow-y-auto rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] shadow-[0_20px_50px_rgba(0,0,0,0.8)] z-[100] mobile-menu-enter">
+            
+            <div class="p-4 border-b border-[var(--stroke)] bg-[var(--bg0)]/50">
+              <label class="relative block">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-[var(--muted)]">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                </span>
+                <input type="search" placeholder="Buscar no sistema..." class="w-full rounded border border-[var(--stroke)] bg-[var(--bg1)] py-2 pl-9 pr-3 text-sm text-[var(--text)] outline-none focus:border-[var(--ember)] transition-all" />
+              </label>
+            </div>
+
+            <div class="p-2 space-y-1">
+              
+              <details class="group/mob-cat" open>
+                <summary class="list-none cursor-pointer flex items-center justify-between p-3 rounded hover:bg-[var(--bg0)] transition-colors">
+                  <div class="flex items-center gap-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-[var(--ember)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    <span class="font-rpg text-xs font-bold uppercase tracking-widest text-[var(--text)]">Sua Conta</span>
+                  </div>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-[var(--muted)] transition-transform group-open/mob-cat:rotate-180"><path d="m6 9 6 6 6-6"/></svg>
+                </summary>
+                <div class="grid gap-1 px-3 pb-3 pt-1 border-l-2 border-[var(--ember)]/20 ml-5 mt-1 mobile-cat-enter">
+                  {% if user.is_authenticated %}
+                    <div class="mb-2 p-2 rounded bg-[var(--bg0)] flex items-center gap-2">
+                        <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                        <span class="text-xs font-bold text-[var(--text)] truncate">{{ user.username }}</span>
+                    </div>
+                    {% if user.is_superuser %}
+                    <a href="/admin/" target="_blank" class="flex items-center gap-2 p-2 text-sm font-bold text-white bg-gradient-to-r from-[var(--flame)] to-[var(--ember)] rounded-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                        Painel Admin
+                    </a>
+                    {% endif %}
+                    <form action="{% url 'logout' %}" method="post" class="m-0">
+                        {% csrf_token %}
+                        <button type="submit" class="w-full text-left p-2 text-sm text-[var(--muted)] hover:text-red-500 transition-colors">Sair da Conta</button>
+                    </form>
+                  {% else %}
+                    <a href="{% url 'login' %}" class="flex items-center justify-center gap-2 p-2 text-sm font-bold text-white bg-gradient-to-r from-[var(--flame)] to-[var(--ember)] rounded-sm shadow-lg shadow-[var(--flame)]/20">Login</a>
+                    <a href="{% url 'register' %}" class="text-center p-2 text-sm text-[var(--text)] border border-[var(--stroke)] rounded-sm hover:border-[var(--ember)] mt-1">Cadastro</a>
+                    <a href="/colaborador/" class="text-center p-2 text-sm text-[var(--muted)] hover:text-[var(--text)] mt-1">Seja um Colaborador</a>
+                  {% endif %}
+                </div>
+              </details>
+
+              <details class="group/mob-cat">
+                <summary class="list-none cursor-pointer flex items-center justify-between p-3 rounded hover:bg-[var(--bg0)] transition-colors">
+                  <div class="flex items-center gap-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-[var(--muted)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a4 4 0 0 0-4-4H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a4 4 0 0 1 4-4h6z"/></svg>
+                    <span class="font-rpg text-xs font-bold uppercase tracking-widest text-[var(--text)]">Sistemas</span>
+                  </div>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-[var(--muted)] transition-transform group-open/mob-cat:rotate-180"><path d="m6 9 6 6 6-6"/></svg>
+                </summary>
+                <div class="grid gap-2 px-3 pb-3 pt-1 border-l-2 border-[var(--stroke)] ml-5 mt-1 text-sm text-[var(--muted)] mobile-cat-enter">
+                  <a href="/sistemas/regras-e-punicoes/" class="hover:text-[var(--text)] py-1">Regras e Punições</a>
+                  <a href="/sistemas/glossario/" class="hover:text-[var(--text)] py-1">Glossário</a>
+                  <a href="/sistemas/criacao-de-ficha/" class="hover:text-[var(--text)] py-1">Criação de Ficha</a>
+                  <a href="/sistemas/missoes/" class="hover:text-[var(--text)] py-1">Missões e Ranks</a>
+                </div>
+              </details>
+
+              <details class="group/mob-cat">
+                <summary class="list-none cursor-pointer flex items-center justify-between p-3 rounded hover:bg-[var(--bg0)] transition-colors">
+                  <div class="flex items-center gap-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-[var(--muted)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    <span class="font-rpg text-xs font-bold uppercase tracking-widest text-[var(--text)]">Jogador</span>
+                  </div>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-[var(--muted)] transition-transform group-open/mob-cat:rotate-180"><path d="m6 9 6 6 6-6"/></svg>
+                </summary>
+                <div class="grid grid-cols-2 gap-x-4 gap-y-2 px-3 pb-3 pt-1 border-l-2 border-[var(--stroke)] ml-5 mt-1 text-sm text-[var(--muted)] mobile-cat-enter">
+                  <a href="/jogador/raca/" class="hover:text-[var(--text)] py-1">Raça</a>
+                  <a href="/jogador/classes/" class="hover:text-[var(--text)] py-1">Classes</a>
+                  <a href="/jogador/antecedentes/" class="hover:text-[var(--text)] py-1">Antecedentes</a>
+                  <a href="/jogador/talentos/" class="hover:text-[var(--text)] py-1">Talentos</a>
+                  <a href="/jogador/idiomas/" class="hover:text-[var(--text)] py-1">Idiomas</a>
+                  <a href="/jogador/opcoes-adicionais/" class="hover:text-[var(--text)] py-1">Opções</a>
+                  <a href="/magias/listas/" class="hover:text-[var(--text)] py-1">Magias</a>
+                </div>
+              </details>
+
+              <details class="group/mob-cat">
+                <summary class="list-none cursor-pointer flex items-center justify-between p-3 rounded hover:bg-[var(--bg0)] transition-colors">
+                  <div class="flex items-center gap-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-[var(--muted)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+                    <span class="font-rpg text-xs font-bold uppercase tracking-widest text-[var(--text)]">Mundo e Mestre</span>
+                  </div>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-[var(--muted)] transition-transform group-open/mob-cat:rotate-180"><path d="m6 9 6 6 6-6"/></svg>
+                </summary>
+                <div class="grid grid-cols-2 gap-x-4 gap-y-2 px-3 pb-3 pt-1 border-l-2 border-[var(--stroke)] ml-5 mt-1 text-sm text-[var(--muted)] mobile-cat-enter">
+                  <a href="/mestre/se-tornando-mestre/" class="hover:text-[var(--text)] py-1">Guia Mestre</a>
+                  <a href="/mestre/bestiario/" class="hover:text-[var(--text)] py-1">Bestiário</a>
+                  <a href="/mercado/armas/" class="hover:text-[var(--text)] py-1">Mercado</a>
+                  <a href="/mapa/" class="hover:text-[var(--text)] py-1">Mapa Mundi</a>
+                  <a href="/mundo/jornal/" class="hover:text-[var(--text)] py-1">Jornal</a>
+                  <a href="/mundo/cronicas/" class="hover:text-[var(--text)] py-1">Crônicas</a>
+                  <a href="/mundo/regioes/" class="hover:text-[var(--text)] py-1">Regiões</a>
+                  <a href="/mundo/organizacoes/" class="hover:text-[var(--text)] py-1">Organizações</a>
+                </div>
+              </details>
+            </div>
+
+            <div class="p-4 mt-2 border-t border-[var(--stroke)] bg-[var(--bg0)]/30 flex justify-center gap-6">
+                <a href="https://discord.gg/eyqe7rj2AX" target="_blank" class="text-[var(--muted)] hover:text-[var(--ember)] transition-colors"><img src="{% static 'assets/discord_icon.png' %}" class="w-5 h-5 object-contain opacity-70" alt="Discord" /></a>
+                <a href="https://www.youtube.com/@bonfiretalesrpg" target="_blank" class="text-[var(--muted)] hover:text-[var(--ember)] transition-colors"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"/><polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"/></svg></a>
+                <a href="https://www.instagram.com/bonfiretalesrpg/" target="_blank" class="text-[var(--muted)] hover:text-[var(--ember)] transition-colors"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg></a>
+            </div>
+          </div>
+        </details>
+      </div>
+    </div>
+</header>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const mobCats = document.querySelectorAll('details.group\\/mob-cat');
+    mobCats.forEach(cat => {
+        const summary = cat.querySelector('summary');
+        if (!summary) return;
+        summary.addEventListener('click', (e) => {
+            e.preventDefault();
+            mobCats.forEach(other => {
+                if (other !== cat) other.removeAttribute('open');
+            });
+            cat.setAttribute('open', '');
+        });
+    });
+});
+</script>

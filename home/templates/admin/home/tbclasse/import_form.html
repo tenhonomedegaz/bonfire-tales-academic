@@ -1,0 +1,115 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<div id="content-main">
+  <p>
+    Envie um <strong>.txt</strong> com as secoes <code>[RECURSOS]</code> e
+    <code>[HABILIDADES]</code>. Separe cada bloco com <code>---</code>.
+  </p>
+
+  <form method="post" enctype="multipart/form-data" novalidate>
+    {% csrf_token %}
+    <fieldset class="module aligned">
+      {% for field in form %}
+        <div class="form-row">
+          <div>
+            {{ field.errors }}
+            {{ field.label_tag }}
+            {{ field }}
+            {% if field.help_text %}
+              <div class="help">{{ field.help_text }}</div>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </fieldset>
+    <div class="submit-row">
+      <input type="submit" class="default" value="Ler arquivo e revisar">
+      <a class="button cancel-link" href="{% url 'admin:home_tbclasse_changelist' %}">Cancelar</a>
+    </div>
+  </form>
+
+  {% if errors %}
+    <div class="module">
+      <h2>Problemas encontrados</h2>
+      <ul class="messagelist">
+        {% for error in errors %}
+          <li class="warning">{{ error }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  {% if preview_recursos or preview_habilidades %}
+    <div class="module">
+      <h2>Previa</h2>
+
+      <h3>Recursos de classe: {{ preview_recursos|length }}</h3>
+      <div class="results">
+        <table>
+          <thead>
+            <tr>
+              <th>Nivel</th>
+              <th>Nome</th>
+              <th>Valor</th>
+              <th>Subclasse</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for recurso in preview_recursos %}
+              <tr>
+                <td>{{ recurso.nivel }}</td>
+                <td>{{ recurso.nome }}</td>
+                <td>{{ recurso.valor|default:"-" }}</td>
+                <td>{{ recurso.subclasse_nome|default:"Base" }}</td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="4">Nenhum recurso no arquivo.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Habilidades de classe: {{ preview_habilidades|length }}</h3>
+      <div class="results">
+        <table>
+          <thead>
+            <tr>
+              <th>Nivel</th>
+              <th>Nome</th>
+              <th>Subclasse</th>
+              <th>So tabela</th>
+              <th>Descricao</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for habilidade in preview_habilidades %}
+              <tr>
+                <td>{{ habilidade.niveladquirido }}</td>
+                <td>{{ habilidade.nome }}</td>
+                <td>{{ habilidade.subclasse_nome|default:"Base" }}</td>
+                <td>{{ habilidade.table_only|yesno:"Sim,Nao" }}</td>
+                <td>{{ habilidade.descricao|truncatechars:140 }}</td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="5">Nenhuma habilidade no arquivo.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="confirmar" value="1">
+        <input type="hidden" name="classe_id" value="{{ classe_id }}">
+        <input type="hidden" name="payload" value="{{ payload|escape }}">
+        <input type="hidden" name="atualizar_existentes" value="{% if atualizar_existentes %}on{% endif %}">
+        <div class="submit-row">
+          <input type="submit" class="default" value="Confirmar importacao">
+          <a class="button cancel-link" href="{% url 'admin:home_tbclasse_changelist' %}">Cancelar</a>
+        </div>
+      </form>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

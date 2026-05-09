@@ -1,0 +1,108 @@
+
+<link rel="stylesheet" href="{% static 'css/pages/index.css' %}">
+{% extends "admin/base_site.html" %}
+{% load static %}
+{% load i18n static mongo_tags %}
+
+{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static "admin/css/dashboard.css" %}">
+
+{% endblock %}
+
+{% block coltype %}{% endblock %}
+{% block bodyclass %}{{ block.super }} dashboard{% endblock %}
+{% block nav-breadcrumbs %}{% endblock %}
+{% block nav-sidebar %}{% endblock %}
+
+{% block content %}
+<div class="admin-dashboard-grid">
+  <section>
+    {% get_mongo_collections as mongo_cols %}
+    <div class="app-mongo module">
+      <table style="width: 100%;">
+        <caption>
+          <a href="{% url 'admin:mongo_collections' %}" class="section" title="Collections Mongo" style="width:100%;">Mongo</a>
+        </caption>
+        <tr>
+          <td colspan="3">
+            <p class="mongo-dashboard-note">
+              As collections do site ficam separadas das collections originais do bot. Use o editor do Mongo com cuidado nas collections do bot.
+            </p>
+          </td>
+        </tr>
+        <tr><th colspan="3">Banco do Site</th></tr>
+        {% for col in mongo_cols %}
+          {% if col|mongo_kind:'site' %}
+          <tr class="model-{{ col.name }}">
+            <th scope="row">
+              <a href="{% url 'admin:mongo_collection_detail' col.name %}">{{ col.name }}<span class="mongo-count">({{ col.count }})</span></a>
+            </th>
+            <td style="width:78px; text-align:center;"><a href="{% url 'admin:mongo_document_edit' %}?collection={{ col.name }}" class="addlink">Adicionar</a></td>
+            <td style="width:78px; text-align:center;"><a href="{% url 'admin:mongo_collection_detail' col.name %}" class="changelink">Alterar</a></td>
+          </tr>
+          {% endif %}
+        {% endfor %}
+        <tr><th colspan="3">Banco Original do Bot</th></tr>
+        {% for col in mongo_cols %}
+          {% if col|mongo_kind:'bot' %}
+          <tr class="model-{{ col.name }}">
+            <th scope="row">
+              <a href="{% url 'admin:mongo_collection_detail' col.name %}">{{ col.name }}<span class="mongo-count">({{ col.count }})</span></a>
+            </th>
+            <td style="width:78px; text-align:center;"><a href="{% url 'admin:mongo_document_edit' %}?collection={{ col.name }}" class="addlink">Adicionar</a></td>
+            <td style="width:78px; text-align:center;"><a href="{% url 'admin:mongo_collection_detail' col.name %}" class="changelink">Alterar</a></td>
+          </tr>
+          {% endif %}
+        {% endfor %}
+        <tr><th colspan="3">Outras Collections</th></tr>
+        {% for col in mongo_cols %}
+          {% if col|mongo_kind:'other' %}
+          <tr class="model-{{ col.name }}">
+            <th scope="row">
+              <a href="{% url 'admin:mongo_collection_detail' col.name %}">{{ col.name }}<span class="mongo-count">({{ col.count }})</span></a>
+            </th>
+            <td style="width:78px; text-align:center;"><a href="{% url 'admin:mongo_document_edit' %}?collection={{ col.name }}" class="addlink">Adicionar</a></td>
+            <td style="width:78px; text-align:center;"><a href="{% url 'admin:mongo_collection_detail' col.name %}" class="changelink">Alterar</a></td>
+          </tr>
+          {% endif %}
+        {% endfor %}
+        {% if not mongo_cols %}
+          <tr><td>Mongo indisponivel ou sem collections.</td></tr>
+        {% endif %}
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="module" id="recent-actions-module">
+      <h2>{% translate 'Recent actions' %}</h2>
+      <h3>{% translate 'My actions' %}</h3>
+      {% load log %}
+      {% get_admin_log 10 as admin_log for_user user %}
+      {% if not admin_log %}
+      <p>{% translate 'None available' %}</p>
+      {% else %}
+      <ul class="actionlist">
+        {% for entry in admin_log %}
+        <li class="{% if entry.is_addition %}addlink{% endif %}{% if entry.is_change %}changelink{% endif %}{% if entry.is_deletion %}deletelink{% endif %}">
+          <span class="visually-hidden">{% if entry.is_addition %}{% translate 'Added:' %}{% elif entry.is_change %}{% translate 'Changed:' %}{% elif entry.is_deletion %}{% translate 'Deleted:' %}{% endif %}</span>
+          {% if entry.is_deletion or not entry.get_admin_url %}
+            {{ entry.object_repr }}
+          {% else %}
+            <a href="{{ entry.get_admin_url }}">{{ entry.object_repr }}</a>
+          {% endif %}
+          <br>
+          {% if entry.content_type %}
+            <span class="mini quiet">{% filter capfirst %}{{ entry.content_type.name }}{% endfilter %}</span>
+          {% else %}
+            <span class="mini quiet">{% translate 'Unknown content' %}</span>
+          {% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </div>
+  </section>
+</div>
+{% endblock %}
+
+{% block sidebar %}{% endblock %}

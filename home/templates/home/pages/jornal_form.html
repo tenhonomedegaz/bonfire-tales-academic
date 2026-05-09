@@ -1,0 +1,205 @@
+{% extends 'home/base.html' %}
+{% load static %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/pages/jornal_form.css' %}">
+
+{% endblock %}
+
+{% block content %}
+<div class="editor-shell">
+  <div class="editor-header">
+    <h1>{% if is_new %}Publicar Novo Artigo{% else %}Editar Artigo{% endif %}</h1>
+    <p>Use Markdown para formatar o conteúdo. O preview atualiza em tempo real.</p>
+  </div>
+
+  <form id="jornalEditorForm">
+    <div class="editor-fields">
+      <div class="editor-field">
+        <label for="edTitulo">Título</label>
+        <input id="edTitulo" name="titulo" value="{{ artigo.titulo|default:'' }}" placeholder="Título do artigo...">
+      </div>
+      <div class="editor-field">
+        <label for="edResumo">Resumo</label>
+        <input id="edResumo" name="resumo" value="{{ artigo.resumo|default:'' }}" placeholder="Breve descrição para a listagem...">
+      </div>
+      <div class="editor-field">
+        <label for="edImagem">URL da Imagem de Capa</label>
+        <input id="edImagem" name="imagem_url" value="{{ artigo.imagem_url|default:'' }}" placeholder="https://...">
+      </div>
+      <div class="editor-field">
+        <label for="edDestaque">Destaque</label>
+        <select id="edDestaque" name="destaque">
+          <option value="false" {% if not artigo.destaque %}selected{% endif %}>Não</option>
+          <option value="true" {% if artigo.destaque %}selected{% endif %}>Sim</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="editor-toolbar">
+      <button type="button" class="editor-tool" data-wrap="bold" title="Ctrl+B">B</button>
+      <button type="button" class="editor-tool" data-wrap="italic" title="Ctrl+I"><em>I</em></button>
+      <button type="button" class="editor-tool" data-wrap="link" title="Ctrl+K">Link</button>
+      <button type="button" class="editor-tool" data-wrap="image" title="Ctrl+Alt+I">Imagem</button>
+      <button type="button" class="editor-tool" data-wrap="code" title="Ctrl+`">Codigo</button>
+      <button type="button" class="editor-tool" data-wrap="color" title="Ctrl+Alt+C">Cor</button>
+      <button type="button" class="editor-tool" data-wrap="center">Centralizar</button>
+      <button type="button" class="editor-tool" data-wrap="click">Clicavel</button>
+      <button type="button" class="editor-tool" data-prefix="- ">Bullet</button>
+      <button type="button" class="editor-tool" data-prefix="  - ">Sub-bullet</button>
+      <span class="editor-status">Ctrl+Alt+C para cor</span>
+    </div>
+
+    <div class="editor-split">
+      <div class="editor-panel">
+        <div class="editor-panel-header">
+          <h2>Texto</h2>
+          <span id="edCounter">0 caracteres</span>
+        </div>
+        <textarea id="edMarkdown" class="editor-textarea" placeholder="Escreva o artigo em Markdown...">{{ artigo.conteudo_markdown|default:'' }}</textarea>
+      </div>
+      <div class="editor-panel">
+        <div class="editor-panel-header">
+          <h2>Preview</h2>
+          <span>Mesmo leitor do site</span>
+        </div>
+        <div id="edPreview" class="editor-preview bonfire-markdown"></div>
+      </div>
+    </div>
+
+    <div class="editor-actions">
+      <a href="{% url 'mundo_jornal' %}" class="editor-cancel">Cancelar</a>
+      <button type="submit" class="editor-submit">{% if is_new %}Publicar{% else %}Salvar{% endif %}</button>
+    </div>
+  </form>
+</div>
+
+<script>
+(function() {
+  const editor = document.getElementById('edMarkdown');
+  const preview = document.getElementById('edPreview');
+  const counter = document.getElementById('edCounter');
+
+  function renderPreview() {
+    const src = editor.value;
+    counter.textContent = `${src.length} caracteres`;
+    if (typeof renderBonfireMarkdown === 'function') {
+      preview.innerHTML = renderBonfireMarkdown(src);
+    } else if (window.marked && typeof window.marked.parse === 'function') {
+      preview.innerHTML = applyMarkdownColorsToHtml(marked.parse(src, { breaks: true, gfm: true }));
+    } else {
+      preview.textContent = src;
+    }
+  }
+
+  editor.addEventListener('input', renderPreview);
+  renderPreview();
+
+  function replaceSelection(prefix, suffix, options = {}) {
+    const start = editor.selectionStart;
+    const end = editor.selectionEnd;
+    const selectedText = editor.value.substring(start, end);
+    const replacement = prefix + selectedText + suffix;
+    editor.value = editor.value.substring(0, start) + replacement + editor.value.substring(end);
+    if (options.selectUrl) {
+      editor.selectionStart = start + prefix.length + selectedText.length + 2;
+      editor.selectionEnd = editor.selectionStart + 3;
+    } else if (options.colorCursor) {
+      editor.selectionStart = start + '[color='.length;
+      editor.selectionEnd = editor.selectionStart;
+    } else {
+      editor.selectionStart = start + prefix.length;
+      editor.selectionEnd = start + prefix.length + selectedText.length;
+    }
+    editor.focus();
+    renderPreview();
+  }
+
+  function prefixLines(prefix) {
+    const start = editor.selectionStart;
+    const end = editor.selectionEnd;
+    const before = editor.value.slice(0, start);
+    const selected = editor.value.slice(start, end) || '';
+    const after = editor.value.slice(end);
+    const replacement = selected.split('\n').map(line => line ? `${prefix}${line}` : prefix.trimEnd()).join('\n');
+    editor.value = before + replacement + after;
+    editor.selectionStart = start;
+    editor.selectionEnd = start + replacement.length;
+    editor.focus();
+    renderPreview();
+  }
+
+  document.querySelectorAll('[data-wrap]').forEach(button => {
+    button.addEventListener('click', () => {
+      const type = button.dataset.wrap;
+      if (type === 'bold') replaceSelection('**', '**');
+      if (type === 'italic') replaceSelection('*', '*');
+      if (type === 'link') replaceSelection('[', '](url)', { selectUrl: true });
+      if (type === 'image') replaceSelection('![', '](url){position:right,length:40%}', { selectUrl: true });
+      if (type === 'code') replaceSelection('`', '`');
+      if (type === 'color') {
+        if (typeof openBonfireColorMenu === 'function') openBonfireColorMenu(button, editor);
+        else replaceSelection('[color=]', '[/color]', { colorCursor: true });
+      }
+      if (type === 'center') replaceSelection('::center\n', '\n::');
+      if (type === 'click') replaceSelection('::click Titulo\n', '\n::endclick');
+    });
+  });
+
+  document.querySelectorAll('[data-prefix]').forEach(button => {
+    button.addEventListener('click', () => prefixLines(button.dataset.prefix));
+  });
+
+  editor.addEventListener('keydown', event => {
+    const isMac = navigator.platform.toUpperCase().includes('MAC');
+    const cmdKey = isMac ? event.metaKey : event.ctrlKey;
+    if (!cmdKey) return;
+    const key = event.key.toLowerCase();
+    if (event.altKey && key === 'c') {
+      event.preventDefault();
+      replaceSelection('[color=]', '[/color]', { colorCursor: true });
+    } else if (event.altKey && key === 'i') {
+      event.preventDefault();
+      replaceSelection('![', '](url){position:right,length:40%}', { selectUrl: true });
+    } else if (key === 'b') {
+      event.preventDefault();
+      replaceSelection('**', '**');
+    } else if (key === 'i') {
+      event.preventDefault();
+      replaceSelection('*', '*');
+    } else if (key === 'k') {
+      event.preventDefault();
+      replaceSelection('[', '](url)', { selectUrl: true });
+    } else if (event.key === '`') {
+      event.preventDefault();
+      replaceSelection('`', '`');
+    }
+  });
+
+  const form = document.getElementById('jornalEditorForm');
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const body = {
+      titulo: document.getElementById('edTitulo').value,
+      resumo: document.getElementById('edResumo').value,
+      imagem_url: document.getElementById('edImagem').value,
+      conteudo_markdown: editor.value,
+      destaque: document.getElementById('edDestaque').value === 'true',
+    };
+    const csrf = decodeURIComponent((document.cookie.split('; ').find(r => r.startsWith('csrftoken=')) || '').split('=')[1] || '');
+    const url = {% if is_new %}'{% url "jornal_create" %}'{% else %}'{% url "jornal_update" slug=artigo.slug %}'{% endif %};
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      window.location.href = data.slug ? `/mundo/jornal/${data.slug}/` : '{% url "mundo_jornal" %}';
+    } else {
+      alert(data.error || 'Erro ao salvar');
+    }
+  });
+})();
+</script>
+{% endblock %}

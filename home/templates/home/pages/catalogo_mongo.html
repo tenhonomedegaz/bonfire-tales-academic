@@ -1,0 +1,211 @@
+{% extends 'home/base.html' %}
+{% load static %}
+
+{% block main_class %}flex-1 w-full max-w-7xl mx-auto px-4 md:px-8 py-8{% endblock %}
+{% block title %}{{ title }} - Bonfire Tales RPG{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/pages/catalogo_mongo.css' %}">
+
+{% endblock %}
+
+{% block content %}
+<section class="catalog-shell">
+  <header class="catalog-header">
+    <h1 class="catalog-title">{{ title }}</h1>
+    <p class="catalog-subtitle">{{ subtitle }}</p>
+    {% if mongo_error %}
+      <p class="catalog-empty" style="margin-top:1rem;">Mongo indisponivel agora: {{ mongo_error }}</p>
+    {% endif %}
+    {% if can_edit_wiki and kind == 'magias' %}
+      <a class="catalog-action" href="{% url 'admin:spell_excel_import' %}" style="display:inline-flex;margin-top:1rem;text-decoration:none;">Importar magias por Excel</a>
+    {% endif %}
+
+    {% if can_edit_wiki and kind == 'organizacoes' %}
+      <button type="button" class="catalog-action" id="toggleOrgForm" style="margin-top:1rem;">Nova organizacao</button>
+      <form class="org-form" id="orgForm">
+        <input name="nome" placeholder="Nome da organizacao" required>
+        <input name="tipo" placeholder="Tipo, ex: Guilda, Ordem, Reino">
+        <input name="sede" placeholder="Sede">
+        <input name="regioes" placeholder="Regioes separadas por virgula">
+        <input name="territorios" placeholder="Territorios separados por virgula">
+        <input name="lideranca" placeholder="Lideranca">
+        <input name="aliados" placeholder="Aliados separados por virgula">
+        <input name="inimigos" placeholder="Inimigos separados por virgula">
+        <input class="wide" name="tags" placeholder="Tags separadas por virgula">
+        <textarea class="wide" name="descricao" rows="5" placeholder="Descricao em Markdown"></textarea>
+        <button class="catalog-action wide" type="submit">Salvar no Mongo</button>
+      </form>
+    {% endif %}
+  </header>
+
+  <div class="catalog-grid">
+    <button type="button" class="catalog-mobile-menu-button" id="catalogMobileMenuButton" aria-label="Abrir lista">
+      <svg xmlns="http://www.w3.org/2000/svg" class="open-icon h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 5 7 7-7 7"/></svg>
+      <svg xmlns="http://www.w3.org/2000/svg" class="close-icon h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 19-7-7 7-7"/></svg>
+    </button>
+    <button type="button" class="catalog-mobile-backdrop" id="catalogMobileBackdrop" aria-label="Fechar lista"></button>
+    <aside class="catalog-sidebar" id="catalogSidebar">
+      <div class="catalog-tools">
+        <input class="catalog-input" id="catalogSearch" type="search" placeholder="Buscar por nome, tag ou texto..." autocomplete="off">
+        <select class="catalog-select" id="catalogType">
+          <option value="">Todos os tipos</option>
+        </select>
+      </div>
+      <div class="catalog-list custom-scrollbar" id="catalogList"></div>
+    </aside>
+    <article class="catalog-detail" id="catalogDetail">
+      <p class="catalog-empty">Selecione um item na lista.</p>
+    </article>
+  </div>
+</section>
+
+{{ items|json_script:"catalog-data" }}
+<script>
+(function() {
+  const items = JSON.parse(document.getElementById('catalog-data')?.textContent || '[]');
+  const list = document.getElementById('catalogList');
+  const detail = document.getElementById('catalogDetail');
+  const search = document.getElementById('catalogSearch');
+  const typeSelect = document.getElementById('catalogType');
+  const mobileMenuButton = document.getElementById('catalogMobileMenuButton');
+  const mobileBackdrop = document.getElementById('catalogMobileBackdrop');
+  let activeSlug = items[0]?.slug || '';
+
+  function setCatalogMenuOpen(isOpen) {
+    document.body.classList.toggle('catalog-menu-open', isOpen);
+    mobileMenuButton?.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  }
+
+  function esc(value) {
+    const div = document.createElement('div');
+    div.textContent = value == null ? '' : String(value);
+    return div.innerHTML;
+  }
+
+  function markdown(value) {
+    if (!value) return '';
+    if (typeof renderBonfireMarkdown === 'function') return renderBonfireMarkdown(value);
+    if (window.marked?.parse) return window.marked.parse(value, { gfm: true, breaks: true });
+    return esc(value).replace(/\n/g, '<br>');
+  }
+
+  function visibleTags(item) {
+    return (item.tags || []).filter(Boolean).slice(0, 8);
+  }
+
+  function itemText(item) {
+    return [
+      item.nome,
+      item.tipo,
+      item.resumo,
+      item.descricao,
+      ...(item.tags || []),
+      ...Object.values(item.meta || {})
+    ].join(' ').toLowerCase();
+  }
+
+  function renderTypes() {
+    const types = [...new Set(items.map(item => item.tipo).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+    types.forEach(type => {
+      const option = document.createElement('option');
+      option.value = type;
+      option.textContent = type;
+      typeSelect.appendChild(option);
+    });
+  }
+
+  function filteredItems() {
+    const query = (search.value || '').trim().toLowerCase();
+    const type = typeSelect.value;
+    return items.filter(item => {
+      if (type && item.tipo !== type) return false;
+      if (query && !itemText(item).includes(query)) return false;
+      return true;
+    });
+  }
+
+  function renderList() {
+    const data = filteredItems();
+    if (!data.length) {
+      list.innerHTML = '<div class="catalog-empty">Nenhum item encontrado.</div>';
+      renderDetail(null);
+      return;
+    }
+    if (!data.some(item => item.slug === activeSlug)) activeSlug = data[0].slug;
+    list.innerHTML = data.map(item => `
+      <button class="catalog-card ${item.slug === activeSlug ? 'is-active' : ''}" type="button" data-slug="${esc(item.slug)}">
+        <div class="catalog-card-title">${esc(item.nome || 'Sem nome')}</div>
+        <div class="catalog-card-meta">${esc(item.tipo || '')}</div>
+        <div class="tag-row">${visibleTags(item).map(tag => `<span class="tag-chip">${esc(tag)}</span>`).join('')}</div>
+      </button>
+    `).join('');
+    list.querySelectorAll('.catalog-card').forEach(button => {
+      button.addEventListener('click', () => {
+        activeSlug = button.dataset.slug;
+        setCatalogMenuOpen(false);
+        renderList();
+      });
+    });
+    renderDetail(data.find(item => item.slug === activeSlug) || data[0]);
+  }
+
+  function renderDetail(item) {
+    if (!item) {
+      detail.innerHTML = '<p class="catalog-empty">Nada para exibir.</p>';
+      return;
+    }
+    const metaEntries = Object.entries(item.meta || {}).filter(([, value]) => {
+      if (Array.isArray(value)) return value.length;
+      return value !== undefined && value !== null && String(value).trim();
+    });
+    detail.innerHTML = `
+      <div class="catalog-card-meta">${esc(item.tipo || '')}</div>
+      <h2 class="detail-title">${esc(item.nome || 'Sem nome')}</h2>
+      <div class="tag-row">${visibleTags(item).map(tag => `<span class="tag-chip">${esc(tag)}</span>`).join('')}</div>
+      ${item.resumo ? `<p class="catalog-subtitle">${esc(item.resumo)}</p>` : ''}
+      ${metaEntries.length ? `<div class="detail-meta-grid">${metaEntries.map(([label, value]) => `
+        <div class="detail-meta-item">
+          <span class="detail-meta-label">${esc(label)}</span>
+          <span class="detail-meta-value">${esc(Array.isArray(value) ? value.join(', ') : value)}</span>
+        </div>
+      `).join('')}</div>` : ''}
+      <div class="bonfire-markdown prose prose-invert max-w-none" style="margin-top:1.25rem;">${markdown(item.descricao || '') || '<p class="catalog-empty">Sem descricao cadastrada.</p>'}</div>
+    `;
+  }
+
+  async function submitOrganization(event) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const data = Object.fromEntries(new FormData(form).entries());
+    const response = await fetch(window.location.pathname, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': decodeURIComponent((document.cookie.split('; ').find(row => row.startsWith('csrftoken=')) || '').split('=')[1] || ''),
+      },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      alert('Nao foi possivel salvar a organizacao.');
+      return;
+    }
+    window.location.reload();
+  }
+
+  document.getElementById('toggleOrgForm')?.addEventListener('click', () => {
+    document.getElementById('orgForm')?.classList.toggle('is-open');
+  });
+  document.getElementById('orgForm')?.addEventListener('submit', submitOrganization);
+  mobileMenuButton?.addEventListener('click', () => setCatalogMenuOpen(!document.body.classList.contains('catalog-menu-open')));
+  mobileBackdrop?.addEventListener('click', () => setCatalogMenuOpen(false));
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape') setCatalogMenuOpen(false);
+  });
+  search.addEventListener('input', renderList);
+  typeSelect.addEventListener('change', renderList);
+  renderTypes();
+  renderList();
+})();
+</script>
+{% endblock %}

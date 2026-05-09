@@ -1,0 +1,83 @@
+{% extends 'home/base.html' %}
+{% load static %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/pages/cronicas_list.css' %}">
+
+{% endblock %}
+
+{% block content %}
+<div class="cronicas-hero">
+  <h1 class="cronicas-hero-title">Crônicas de Cinéria</h1>
+  <p class="cronicas-hero-sub">Relatos escritos pelos aventureiros que moldam o mundo.</p>
+</div>
+
+<div class="cronicas-toolbar">
+  <form method="get" style="display: contents;">
+    <select name="territorio" class="cronicas-filter" onchange="this.form.submit()">
+      <option value="">Todos os Territórios</option>
+      {% for t in territorios %}
+      <option value="{{ t }}" {% if territorio_filter == t %}selected{% endif %}>{{ t }}</option>
+      {% endfor %}
+    </select>
+    <select name="regiao" class="cronicas-filter" onchange="this.form.submit()">
+      <option value="">Todas as Regiões</option>
+      {% for r in regioes %}
+      <option value="{{ r }}" {% if regiao_filter == r %}selected{% endif %}>{{ r }}</option>
+      {% endfor %}
+    </select>
+  </form>
+
+  {% if is_authenticated %}
+  <a href="{% url 'cronica_create' %}" class="cronicas-btn">
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+    Escrever Crônica
+  </a>
+  {% endif %}
+
+  {% if can_edit_wiki %}
+  <a href="{% url 'cronicas_review' %}" class="cronicas-btn-outline">
+    Revisão
+    {% if pendente_count > 0 %}<span class="cronicas-review-badge">{{ pendente_count }}</span>{% endif %}
+  </a>
+  {% endif %}
+</div>
+
+<div class="cronicas-grid">
+  {% for c in cronicas %}
+  <a href="{% url 'cronica_detail' slug=c.slug %}" class="cronica-card">
+    <span class="cronica-card-eyebrow">{{ c.territorio_label }}{% if c.regiao_label %} &middot; {{ c.regiao_label }}{% endif %}</span>
+    <h2 class="cronica-card-title">{{ c.titulo }}</h2>
+    {% if c.resumo %}<p class="cronica-card-summary">{{ c.resumo }}</p>{% endif %}
+    <div class="cronica-card-footer">
+      <span class="author">{{ c.autor.username }}</span>
+      {% if c.personagem_nome %}<span>&middot;</span><span class="personagem">{{ c.personagem_nome }}</span>{% endif %}
+      <span>&middot;</span>
+      <span>{{ c.data_submissao|date:"d M Y" }}</span>
+    </div>
+  </a>
+  {% empty %}
+  <div class="cronicas-empty">
+    <p>Nenhuma crônica publicada ainda. Seja o primeiro a registrar sua história!</p>
+  </div>
+  {% endfor %}
+</div>
+
+{% if minhas_cronicas %}
+<div class="minhas-section">
+  <h3 class="minhas-title">Minhas Crônicas</h3>
+  <div class="minhas-list">
+    {% for c in minhas_cronicas %}
+    <div class="minhas-item">
+      <span class="minhas-item-title">{{ c.titulo }}</span>
+      <span class="minhas-status {{ c.status }}">{{ c.get_status_display }}</span>
+      {% if c.status == 'reprovada' or c.status == 'pendente' %}
+      <a href="{% url 'cronica_edit' slug=c.slug %}" class="minhas-action">Editar</a>
+      {% endif %}
+      <a href="{% url 'cronica_detail' slug=c.slug %}" class="minhas-action">Ver</a>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}

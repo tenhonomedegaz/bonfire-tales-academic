@@ -1,0 +1,111 @@
+
+<link rel="stylesheet" href="{% static 'css/pages/regioes.css' %}">
+{% extends 'home/base.html' %}
+{% load static %}
+
+{% block content %}
+<section class="regions-home">
+  <header class="regions-home-header">
+    <div>
+      <div class="regions-kicker"><span></span> Explorar por região</div>
+      <h1>Regiões de Cinéria</h1>
+    </div>
+    <div class="regions-summary">
+      {{ total_territorios }} regiões · {{ total_locais }} locais conhecidos
+      {% if can_edit_wiki %}
+      <button id="btnNewRegion" type="button">+ Nova região</button>
+      {% endif %}
+    </div>
+  </header>
+
+  <div class="territory-card-grid">
+    {% for territorio in territorios_cards %}
+    <article class="territory-card cursor-pointer" onclick="location.href='{% if territorio.regioes %}{% url 'mundo_regioes' %}?territory={{ territorio.nome|slugify }}{% else %}#{% endif %}'" style="--territory-color: {{ territorio.color }}; --territory-accent: {{ territorio.display_color }}; --territory-contrast: {{ territorio.contrast }}; --territory-image: url('{{ territorio.imagem_url }}');">
+      <div class="territory-card-bg"></div>
+      <div class="territory-card-content">
+        <div class="territory-card-label">{{ territorio.display_nome }} — {{ territorio.locais_count }} locais</div>
+        <h2>{{ territorio.display_nome }}</h2>
+        <p>{{ territorio.descricao_breve }}</p>
+        <div class="territory-card-meta">
+          <span>
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+            {{ territorio.locais_count }} locais conhecidos
+          </span>
+          {% if territorio.regioes %}
+          <a href="{% url 'mapa' %}?region={{ territorio.regioes.0.slug }}" class="explore-map-btn" onclick="event.stopPropagation()">Explorar mapa</a>
+          {% endif %}
+        </div>
+        <div class="territory-tags">
+          {% for tag in territorio.tags %}
+          <span>{{ tag }}</span>
+          {% endfor %}
+        </div>
+      </div>
+    </article>
+    {% empty %}
+    <p class="regions-empty">Nenhuma região cadastrada ainda.</p>
+    {% endfor %}
+  </div>
+</section>
+
+{% if can_edit_wiki %}
+<dialog id="newRegionModal" class="backdrop:bg-black/80 bg-[var(--bg1)] text-[var(--text)] border border-[var(--stroke)] rounded-lg shadow-2xl p-0 w-[600px] max-w-[95vw]">
+  <div class="p-6 border-b border-[var(--stroke)] flex justify-between items-center bg-[var(--bg0)]">
+    <h3 class="font-cinzel text-2xl font-bold text-[var(--ember)] uppercase tracking-widest">Criar Região</h3>
+    <button formmethod="dialog" onclick="document.getElementById('newRegionModal').close()" class="text-[var(--muted)] hover:text-red-500 transition-colors">X</button>
+  </div>
+  <div class="p-6 space-y-4">
+    <div class="grid grid-cols-2 gap-4">
+      <label class="grid gap-1 text-xs font-bold uppercase tracking-widest text-[var(--muted)]">Nome
+        <input id="nr-nome" type="text" class="bg-[var(--bg0)] border border-[var(--stroke)] rounded p-2 text-sm text-[var(--text)]">
+      </label>
+      <label class="grid gap-1 text-xs font-bold uppercase tracking-widest text-[var(--muted)]">Território
+        <input id="nr-territorio" type="text" class="bg-[var(--bg0)] border border-[var(--stroke)] rounded p-2 text-sm text-[var(--text)]">
+      </label>
+    </div>
+    <label class="grid gap-1 text-xs font-bold uppercase tracking-widest text-[var(--muted)]">URL da imagem de fundo
+      <input id="nr-imagem" type="text" class="bg-[var(--bg0)] border border-[var(--stroke)] rounded p-2 text-sm text-[var(--text)]">
+    </label>
+    <label class="grid gap-1 text-xs font-bold uppercase tracking-widest text-[var(--muted)]">URL do mapa lateral
+      <input id="nr-mapa" type="text" class="bg-[var(--bg0)] border border-[var(--stroke)] rounded p-2 text-sm text-[var(--text)]">
+    </label>
+    <label class="grid gap-1 text-xs font-bold uppercase tracking-widest text-[var(--muted)]">Tags adicionais
+      <input id="nr-tags" type="text" placeholder="Separadas por vírgula" class="bg-[var(--bg0)] border border-[var(--stroke)] rounded p-2 text-sm text-[var(--text)]">
+    </label>
+    <label class="grid gap-1 text-xs font-bold uppercase tracking-widest text-[var(--muted)]">Descrição breve
+      <textarea id="nr-desc" rows="3" class="bg-[var(--bg0)] border border-[var(--stroke)] rounded p-2 text-sm text-[var(--text)]"></textarea>
+    </label>
+  </div>
+  <div class="p-6 border-t border-[var(--stroke)] bg-[var(--bg0)] flex justify-end gap-3">
+    <button onclick="document.getElementById('newRegionModal').close()" class="px-4 py-2 text-sm font-bold text-[var(--muted)] hover:text-white transition-colors">Cancelar</button>
+    <button id="btnSaveNewRegion" class="px-6 py-2 bg-[var(--ember)] text-white text-sm font-bold rounded hover:bg-[var(--flame)] transition-all">Criar</button>
+  </div>
+</dialog>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const modal = document.getElementById('newRegionModal');
+  document.getElementById('btnNewRegion')?.addEventListener('click', () => modal?.showModal());
+  document.getElementById('btnSaveNewRegion')?.addEventListener('click', async () => {
+    const payload = {
+      nome: document.getElementById('nr-nome').value.trim(),
+      territorio: document.getElementById('nr-territorio').value.trim(),
+      brasao_url: document.getElementById('nr-imagem').value.trim(),
+      mapa_url: document.getElementById('nr-mapa').value.trim(),
+      etiquetas_adicionais: document.getElementById('nr-tags').value.trim(),
+      descricao_breve: document.getElementById('nr-desc').value.trim(),
+    };
+    if (!payload.nome) return alert('O nome da região é obrigatório.');
+    const res = await fetch('/wiki/regioes/criar/', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (data.ok) window.location.href = data.redirect || `/mundo/regioes/${data.region.slug}/`;
+    else alert(data.error || 'Erro ao criar região.');
+  });
+});
+</script>
+{% endif %}
+{% endblock %}

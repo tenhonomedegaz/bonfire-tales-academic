@@ -1,0 +1,43 @@
+{% if itens %}
+<div class="magic-grid">
+    {% for item in itens %}
+    <div class="magic-card {{ item.raridade }}" data-rarity="{{ item.raridade }}" onclick="toggleMagicCard(this)">
+        <div class="magic-card-header">
+            <h3 class="font-bold text-xl m-0">{{ item.nome }}</h3>
+            <span class="text-xs font-bold uppercase tracking-wider opacity-70">{{ item.get_raridade_display }}</span>
+        </div>
+        <div class="magic-card-body">
+            <div class="flex flex-wrap gap-2 mb-3">
+                <span class="badge">{{ item.tipo|default:"Item Maravilhoso" }}</span>
+                {% if item.slot %}
+                <span class="badge">{{ item.get_slot_display }}</span>
+                {% endif %}
+                {% if item.requer_sintonizacao %}
+                <span class="badge badge-sintonizacao">
+                    Sintonização {% if item.detalhes_sintonizacao %}({{ item.detalhes_sintonizacao }}){% endif %}
+                </span>
+                {% endif %}
+            </div>
+            
+            <div class="magic-card-expanded">
+                {% if item.descricao_markdown %}
+                    <div class="bonfire-markdown text-sm" data-markdown-source>
+                        {{ item.descricao_markdown|escape }}
+                    </div>
+                {% else %}
+                    <p class="text-[var(--muted)] italic text-sm">Nenhuma descrição disponível.</p>
+                {% endif %}
+            </div>
+            
+            <div class="text-center mt-2 opacity-50">
+                <svg class="w-5 h-5 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="p-8 text-center bg-[var(--bg1)] rounded-lg border border-[var(--stroke)]">
+    <p class="text-[var(--muted)] text-lg">Nenhum item mágico foi catalogado ainda.</p>
+</div>
+{% endif %}

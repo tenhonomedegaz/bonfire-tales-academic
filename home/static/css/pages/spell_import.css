@@ -1,0 +1,24 @@
+.spell-import-shell {
+    display: grid;
+    gap: 18px;
+    max-width: 980px;
+  }
+  .spell-import-card {
+    background: var(--darkened-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 18px;
+  }
+  .spell-import-card h2 {
+    margin-top: 0;
+  }
+  .spell-import-grid {
+    display: grid;
+    gap: 14px;
+  }
+  .spell-import-result {
+    border-left: 4px solid var(--primary);
+  }
+  .spell-columns {
+    columns: 2;
+  }
