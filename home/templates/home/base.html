@@ -64,9 +64,8 @@
   <script src="{% static 'js/markdown.js' %}"></script>
   <script src="{% static 'js/options-widget.js' %}"></script>
 
-  {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/pages/base.css' %}">
-{% endblock %}
+  <link rel="stylesheet" href="{% static 'css/pages/base.css' %}">
+  {% block extra_head %}{% endblock %}
 </head>
 <body>
   <div id="root">
