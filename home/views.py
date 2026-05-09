@@ -2524,6 +2524,29 @@ def jornal_update_view(request, slug):
     return JsonResponse({'ok': True})
 
 
+@staff_member_required
+@require_POST
+def jornal_import_gdoc(request):
+    """Importa um Google Doc público e retorna título + markdown."""
+    data = _json_body(request)
+    url_or_id = data.get('url', '').strip()
+    if not url_or_id:
+        return JsonResponse({'error': 'Informe o link do Google Docs.'}, status=400)
+
+    try:
+        from .google_docs_import import import_google_doc
+        result = import_google_doc(url_or_id)
+        return JsonResponse({
+            'ok': True,
+            'titulo': result['titulo'],
+            'conteudo_markdown': result['conteudo_markdown'],
+        })
+    except PermissionError as e:
+        return JsonResponse({'error': str(e)}, status=403)
+    except ValueError as e:
+        return JsonResponse({'error': str(e)}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': f'Erro inesperado: {str(e)}'}, status=500)
 
 
 

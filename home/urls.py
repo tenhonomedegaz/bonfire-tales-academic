@@ -73,6 +73,7 @@ urlpatterns = [
     path('mundo/jornal/novo/', views.jornal_create_view, name='jornal_create'),
     path('mundo/jornal/<slug:slug>/', views.jornal_detail_view, name='jornal_detail'),
     path('mundo/jornal/<slug:slug>/editar/', views.jornal_update_view, name='jornal_update'),
+    path('mundo/jornal/importar-gdoc/', views.jornal_import_gdoc, name='jornal_import_gdoc'),
 
     
     path('mundo/cronicas/', views.cronicas_list_view, name='mundo_cronicas'),

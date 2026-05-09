@@ -223,3 +223,6 @@ SITE_MONGO_SYNC_NAMESPACE = os.environ.get('SITE_MONGO_SYNC_NAMESPACE', 'site_sq
 
 # Logs Console Admin
 SERVER_LOGS_PASSWORD_HASH = os.environ.get('SERVER_LOGS_PASSWORD_HASH', 'pbkdf2_sha256$1200000$gTvUJzX0lYFlWEmZJuVz6P$NFoDenHOCIGklcvrwoM4bL/9m8uKCLcXxQU+PrALvP0=')
+
+# Google Docs Import
+DOCS_API_KEY = os.environ.get('DOCS_API_KEY', '')

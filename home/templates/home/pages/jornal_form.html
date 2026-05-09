@@ -47,6 +47,18 @@
       </div>
     </div>
 
+    <div class="editor-import-section" style="margin-bottom: 1rem; padding: 1rem; border: 1px dashed var(--stroke); border-radius: 8px; background: var(--bg0);">
+      <label style="display: block; font-size: .68rem; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: .5rem;">
+        Importar do Google Docs
+      </label>
+      <div style="display: flex; gap: .5rem; align-items: center;">
+        <input type="text" id="edGdocUrl" placeholder="Cole o link do Google Docs aqui..." style="flex: 1; background: var(--bg1); border: 1px solid var(--stroke); border-radius: 6px; color: var(--text); font-size: .85rem; padding: .65rem .75rem;">
+        <button type="button" id="btnImportGdoc" style="background: var(--ember); color: #070707; font-size: .72rem; font-weight: 900; padding: .7rem 1.2rem; border-radius: 5px; text-transform: uppercase; white-space: nowrap; cursor: pointer;">
+          Importar
+        </button>
+      </div>
+      <p id="gdocStatus" style="font-size: .75rem; color: var(--muted); margin-top: .5rem; display: none;"></p>
+    </div>
     <div class="editor-toolbar">
       <button type="button" class="editor-tool" data-wrap="bold" title="Ctrl+B">B</button>
       <button type="button" class="editor-tool" data-wrap="italic" title="Ctrl+I"><em>I</em></button>
@@ -211,6 +223,58 @@
       window.location.href = data.slug ? `/mundo/jornal/${data.slug}/` : '{% url "mundo_jornal" %}';
     } else {
       alert(data.error || 'Erro ao salvar');
+    }
+  });
+
+  // --- Google Docs Import ---
+  const btnImport = document.getElementById('btnImportGdoc');
+  const gdocInput = document.getElementById('edGdocUrl');
+  const gdocStatus = document.getElementById('gdocStatus');
+
+  btnImport?.addEventListener('click', async () => {
+    const gdocUrl = gdocInput.value.trim();
+    if (!gdocUrl) {
+      gdocStatus.textContent = 'Cole o link do Google Docs primeiro.';
+      gdocStatus.style.display = 'block';
+      gdocStatus.style.color = 'var(--flame)';
+      return;
+    }
+
+    btnImport.disabled = true;
+    btnImport.textContent = 'Importando...';
+    gdocStatus.textContent = 'Conectando ao Google Docs...';
+    gdocStatus.style.display = 'block';
+    gdocStatus.style.color = 'var(--muted)';
+
+    try {
+      const csrf = decodeURIComponent((document.cookie.split('; ').find(r => r.startsWith('csrftoken=')) || '').split('=')[1] || '');
+      const res = await fetch('{% url "jornal_import_gdoc" %}', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+        body: JSON.stringify({ url: gdocUrl }),
+      });
+      const data = await res.json();
+
+      if (data.ok) {
+        // Preencher os campos com o conteúdo importado
+        const tituloField = document.getElementById('edTitulo');
+        if (tituloField && !tituloField.value.trim()) {
+          tituloField.value = data.titulo;
+        }
+        editor.value = data.conteudo_markdown;
+        renderPreview();
+        gdocStatus.textContent = 'Importado com sucesso! Revise o conteúdo e ajuste os títulos se necessário.';
+        gdocStatus.style.color = 'var(--ember)';
+      } else {
+        gdocStatus.textContent = data.error || 'Erro ao importar.';
+        gdocStatus.style.color = 'var(--flame)';
+      }
+    } catch (err) {
+      gdocStatus.textContent = 'Erro de conexão ao importar o documento.';
+      gdocStatus.style.color = 'var(--flame)';
+    } finally {
+      btnImport.disabled = false;
+      btnImport.textContent = 'Importar';
     }
   });
 })();
