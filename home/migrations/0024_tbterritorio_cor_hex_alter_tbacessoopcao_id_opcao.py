@@ -15,6 +15,7 @@ class Migration(migrations.Migration):
             model_name='tbterritorio',
             name='cor_hex',
             field=models.CharField(db_column='CorHex', max_length=7, default='#ffffff', help_text='Cor em formato Hexadecimal (ex: #FFFFFF)'),
+        ),
         migrations.AlterField(
             model_name='tbacessoopcao',
             name='id_opcao',
