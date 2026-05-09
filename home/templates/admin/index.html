@@ -73,6 +73,24 @@
   </section>
 
   <section>
+    <div class="module">
+      <table style="width: 100%;">
+        <caption>
+          <span class="section" title="Ferramentas">Ferramentas de Desenvolvedor</span>
+        </caption>
+        <tr>
+          <th scope="row"><a href="{% url 'admin:server_logs' %}">Console do Servidor</a></th>
+          <td>Ver logs em tempo real protegidos por hash.</td>
+        </tr>
+        <tr>
+          <th scope="row"><a href="{% url 'admin:markdown_editor' %}">Editor Markdown</a></th>
+          <td>Editor com preview para regras e descrições.</td>
+        </tr>
+      </table>
+    </div>
+  </section>
+
+  <section>
     <div class="module" id="recent-actions-module">
       <h2>{% translate 'Recent actions' %}</h2>
       <h3>{% translate 'My actions' %}</h3>

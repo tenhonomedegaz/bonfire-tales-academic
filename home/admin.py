@@ -60,6 +60,56 @@ def markdown_editor_view(request):
     return render(request, "admin/markdown_editor.html", context)
 
 
+def server_logs_view(request):
+    import os
+    from django.contrib.auth.hashers import check_password
+
+    context = {
+        **admin.site.each_context(request),
+        "title": "Console do Servidor",
+        "is_authenticated": False,
+        "provided_password": "",
+    }
+
+    if request.method == "POST":
+        password = request.POST.get("server_password", "")
+        expected_hash = getattr(settings, 'SERVER_LOGS_PASSWORD_HASH', '')
+        if check_password(password, expected_hash):
+            context["is_authenticated"] = True
+            context["provided_password"] = password
+            messages.success(request, "Acesso aos logs liberado.")
+        else:
+            messages.error(request, "Senha incorreta.")
+    
+    if context["is_authenticated"]:
+        site_log_path = os.path.join(settings.BASE_DIR, 'site_console.log')
+        if os.path.exists(site_log_path):
+            with open(site_log_path, 'r', encoding='utf-8') as f:
+                lines = f.readlines()
+                context["site_log"] = "".join(lines[-150:]) if lines else "Log vazio."
+        else:
+            context["site_log"] = "Arquivo site_console.log nao encontrado."
+
+        # Bot log
+        bot_log_dir = os.path.abspath(os.path.join(settings.BASE_DIR, '../bonfire-bot-main/log'))
+        bot_log_content = "Pasta de log do bot nao encontrada."
+        if os.path.exists(bot_log_dir):
+            import glob
+            log_files = glob.glob(os.path.join(bot_log_dir, '*log-combined.log'))
+            if log_files:
+                latest_log = max(log_files, key=os.path.getmtime)
+                with open(latest_log, 'r', encoding='utf-8') as f:
+                    lines = f.readlines()
+                    bot_log_content = "".join(lines[-150:]) if lines else "Log vazio."
+            else:
+                bot_log_content = "Nenhum arquivo log-combined.log encontrado."
+        
+        context["bot_log"] = bot_log_content
+
+    return render(request, "admin/server_logs.html", context)
+
+
+
 def mongo_collections_view(request):
     mongo_error = ""
     collections = []
@@ -2251,6 +2301,11 @@ _original_admin_get_urls = admin.site.get_urls
 
 def _bonfire_admin_get_urls():
     custom_urls = [
+        path(
+            "server-logs/",
+            admin.site.admin_view(server_logs_view),
+            name="server_logs",
+        ),
         path(
             "markdown-editor/",
             admin.site.admin_view(markdown_editor_view),
