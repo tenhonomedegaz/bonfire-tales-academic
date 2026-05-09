@@ -118,6 +118,20 @@
                 <div class="log-content" id="bot-log">{{ bot_log }}</div>
             </div>
         </div>
+
+        <div class="log-panel" style="margin-top: 30px;">
+            <h2>⚙️ Configuração (.env)</h2>
+            <p style="color: var(--muted); font-size: 0.85rem; margin-bottom: 10px;">Cuidado: Alterar estas chaves pode derrubar o site ou o bot. Salve e depois use o comando de reiniciar.</p>
+            <form method="post" autocomplete="off">
+                {% csrf_token %}
+                <input type="hidden" name="server_password" value="{{ provided_password }}">
+                <input type="hidden" name="action" value="save_env">
+                <textarea name="env_content" style="width: 100%; height: 300px; background: #000; color: #fff; font-family: monospace; padding: 15px; border: 1px solid #333; border-radius: 4px; resize: vertical;">{{ env_content }}</textarea>
+                <div style="margin-top: 15px; text-align: right;">
+                    <button type="submit" style="background: #d65c00; color: white; border: none; padding: 10px 25px; cursor: pointer; border-radius: 4px; font-weight: bold;">Salvar .env</button>
+                </div>
+            </form>
+        </div>
         <script>
             // Auto-scroll to bottom
             const siteLog = document.getElementById('site-log');

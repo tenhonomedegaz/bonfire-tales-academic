@@ -106,6 +106,23 @@ def server_logs_view(request):
         
         context["bot_log"] = bot_log_content
 
+        # .env Editor
+        env_path = os.path.join(settings.BASE_DIR, '.env')
+        if request.POST.get("action") == "save_env":
+            new_env_content = request.POST.get("env_content", "")
+            try:
+                with open(env_path, 'w', encoding='utf-8') as f:
+                    f.write(new_env_content)
+                messages.success(request, "Arquivo .env salvo com sucesso! Reinicie o servidor para aplicar as mudanças.")
+            except Exception as e:
+                messages.error(request, f"Erro ao salvar .env: {e}")
+        
+        if os.path.exists(env_path):
+            with open(env_path, 'r', encoding='utf-8') as f:
+                context["env_content"] = f.read()
+        else:
+            context["env_content"] = ""
+
     return render(request, "admin/server_logs.html", context)
 
 
