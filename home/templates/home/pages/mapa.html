@@ -1,7 +1,10 @@
-
-<link rel="stylesheet" href="{% static 'css/pages/mapa.css' %}">
 {% extends 'home/base.html' %}
 {% load static %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/pages/base.css' %}">
+<link rel="stylesheet" href="{% static 'css/pages/mapa.css' %}">
+{% endblock %}
 
 {% block main_class %}flex-1 w-full overflow-hidden{% endblock %}
 

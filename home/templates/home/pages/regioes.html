@@ -1,7 +1,10 @@
-
-<link rel="stylesheet" href="{% static 'css/pages/regioes.css' %}">
 {% extends 'home/base.html' %}
 {% load static %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/pages/base.css' %}">
+<link rel="stylesheet" href="{% static 'css/pages/regioes.css' %}">
+{% endblock %}
 
 {% block content %}
 <section class="regions-home">
