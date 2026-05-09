@@ -25,25 +25,20 @@ def extract_doc_id(url_or_id: str) -> str:
     return url_or_id
 
 
-def fetch_doc_html(doc_id: str) -> str:
+def fetch_doc_html(doc_id: str, api_key: str) -> str:
     """
-    Busca o conteúdo de um Google Doc público como HTML usando a URL de exportação pública.
-    Retorna o HTML ou levanta exceção. Não requer API key.
+    Busca o conteúdo de um Google Doc público como HTML via Drive API.
+    Retorna o HTML ou levanta exceção.
     """
-    url = f"https://docs.google.com/document/d/{doc_id}/export?format=html"
-    
+    url = (
+        f"https://www.googleapis.com/drive/v3/files/{doc_id}/export"
+        f"?mimeType=text/html&key={api_key}"
+    )
     req = urllib.request.Request(url, headers={
         'User-Agent': 'BonfireSite/1.0',
     })
     try:
         with urllib.request.urlopen(req, timeout=30) as resp:
-            content_type = resp.headers.get_content_type()
-            # Se for um zip (tem imagens soltas ou outro formato), a exportação falha
-            # como um html limpo, mas na maioria dos casos com imagens embutidas 
-            # ele retorna HTML.
-            if content_type == 'application/zip':
-                raise PermissionError("O documento contém arquivos que forçam download em ZIP. Remova algumas imagens ou simplifique o arquivo.")
-            
             return resp.read().decode('utf-8')
     except urllib.error.HTTPError as e:
         if e.code == 404:
@@ -269,11 +264,19 @@ def import_google_doc(url_or_id: str) -> dict:
     
     Raises:
         PermissionError: Se não tiver acesso ao documento.
+        ValueError: Se a API key não estiver configurada.
     """
+    api_key = os.environ.get('DOCS_API_KEY', '')
+    if not api_key:
+        raise ValueError(
+            "A chave DOCS_API_KEY não está configurada no .env. "
+            "Adicione uma chave de API do Google Cloud com acesso à Drive API."
+        )
+    
     doc_id = extract_doc_id(url_or_id)
     
-    # Buscar HTML do documento (URL pública não precisa de API Key)
-    raw_html = fetch_doc_html(doc_id)
+    # Buscar HTML do documento
+    raw_html = fetch_doc_html(doc_id, api_key)
     
     # Extrair título do documento
     title_match = re.search(r'<title[^>]*>(.*?)</title>', raw_html, re.IGNORECASE | re.DOTALL)
