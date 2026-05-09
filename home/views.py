@@ -340,7 +340,15 @@ def _mongo_traco(doc):
 
 
 def home_view(request):
-    return render(request, 'home/pages/home.html')
+    try:
+        from .models import TbJornal
+        ultimas_noticias = TbJornal.objects.all().order_by('-data_publicacao')[:3]
+    except Exception:
+        ultimas_noticias = []
+        
+    return render(request, 'home/pages/home.html', {
+        'ultimas_noticias': ultimas_noticias
+    })
 
 
 def register_view(request):
@@ -2460,15 +2468,27 @@ def jornal_create_view(request):
         while TbJornal.objects.filter(slug=slug).exists():
             slug = f"{base_slug}-{counter}"
             counter += 1
-        artigo = TbJornal.objects.create(
-            titulo=titulo,
-            slug=slug,
-            conteudo_markdown=data.get('conteudo_markdown', ''),
-            resumo=data.get('resumo', ''),
-            imagem_url=data.get('imagem_url', ''),
-            autor=request.user,
-            destaque=data.get('destaque', False),
-        )
+        kwargs = {
+            'titulo': titulo,
+            'slug': slug,
+            'conteudo_markdown': data.get('conteudo_markdown', ''),
+            'resumo': data.get('resumo', ''),
+            'imagem_url': data.get('imagem_url', ''),
+            'autor': request.user,
+            'destaque': data.get('destaque', False),
+        }
+        
+        data_publicacao_str = data.get('data_publicacao')
+        if data_publicacao_str:
+            try:
+                from django.utils.dateparse import parse_datetime
+                parsed = parse_datetime(data_publicacao_str)
+                if parsed:
+                    kwargs['data_publicacao'] = parsed
+            except Exception:
+                pass
+                
+        artigo = TbJornal.objects.create(**kwargs)
         return JsonResponse({'ok': True, 'slug': artigo.slug})
     
     return render(request, 'home/pages/jornal_form.html', {
@@ -2487,6 +2507,17 @@ def jornal_update_view(request, slug):
     artigo.resumo = data.get('resumo', artigo.resumo)
     artigo.imagem_url = data.get('imagem_url', artigo.imagem_url)
     artigo.destaque = data.get('destaque', artigo.destaque)
+    
+    data_publicacao_str = data.get('data_publicacao')
+    if data_publicacao_str:
+        try:
+            from django.utils.dateparse import parse_datetime
+            parsed = parse_datetime(data_publicacao_str)
+            if parsed:
+                artigo.data_publicacao = parsed
+        except Exception:
+            pass
+            
     artigo.save()
     return JsonResponse({'ok': True})
 

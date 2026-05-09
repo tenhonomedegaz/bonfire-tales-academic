@@ -345,6 +345,11 @@ body { overflow: hidden !important; }
   top: .75rem !important;
   right: .75rem !important;
 }
+@media (max-width: 1100px) {
+  .leaflet-top.leaflet-right {
+    top: 70px !important;
+  }
+}
 .leaflet-control-container,
 .leaflet-top,
 .leaflet-bottom {
@@ -406,12 +411,12 @@ body { overflow: hidden !important; }
   transition: opacity 0.3s, filter 0.3s;
 }
 .custom-map-icon.is-active {
-  filter: drop-shadow(0 0 12px rgba(255,255,255,.75)) drop-shadow(0 0 18px var(--territory-color));
+  filter: drop-shadow(0 0 18px var(--territory-color));
   opacity: 1 !important;
   z-index: 1000 !important;
 }
 .custom-map-icon.is-active .map-pin {
-  border-color: #fff;
+  border-color: var(--pin);
   box-shadow: 0 12px 24px rgba(0,0,0,.65), 0 0 0 4px color-mix(in srgb, var(--pin) 32%, transparent), inset 0 0 18px rgba(0,0,0,.2);
   filter: brightness(1.16);
   transform: rotate(-45deg) translateY(-4px) scale(1.14);

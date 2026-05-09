@@ -23,6 +23,7 @@
 import json
 
 from django.db import models
+from django.utils import timezone
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
@@ -441,7 +442,7 @@ class TbJornal(models.Model):
     resumo = models.CharField(db_column='Resumo', max_length=300, blank=True, null=True)
     imagem_url = models.CharField(db_column='ImagemUrl', max_length=500, blank=True, null=True)
     autor = models.ForeignKey('auth.User', models.SET_NULL, db_column='Autor', blank=True, null=True, related_name='jornais')
-    data_publicacao = models.DateTimeField(db_column='DataPublicacao', auto_now_add=True)
+    data_publicacao = models.DateTimeField(db_column='DataPublicacao', default=timezone.now)
     data_edicao = models.DateTimeField(db_column='DataEdicao', auto_now=True)
     destaque = models.BooleanField(db_column='Destaque', default=False)
 

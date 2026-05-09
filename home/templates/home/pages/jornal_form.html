@@ -34,6 +34,10 @@
           <option value="true" {% if artigo.destaque %}selected{% endif %}>Sim</option>
         </select>
       </div>
+      <div class="editor-field">
+        <label for="edDataPublicacao">Data de Publicação (Retroativa)</label>
+        <input type="datetime-local" id="edDataPublicacao" name="data_publicacao" value="{{ artigo.data_publicacao|date:'Y-m-d\TH:i'|default:'' }}">
+      </div>
     </div>
 
     <div class="editor-toolbar">
@@ -185,6 +189,7 @@
       imagem_url: document.getElementById('edImagem').value,
       conteudo_markdown: editor.value,
       destaque: document.getElementById('edDestaque').value === 'true',
+      data_publicacao: document.getElementById('edDataPublicacao').value,
     };
     const csrf = decodeURIComponent((document.cookie.split('; ').find(r => r.startsWith('csrftoken=')) || '').split('=')[1] || '');
     const url = {% if is_new %}'{% url "jornal_create" %}'{% else %}'{% url "jornal_update" slug=artigo.slug %}'{% endif %};

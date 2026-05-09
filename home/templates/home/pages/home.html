@@ -170,36 +170,24 @@
           Últimas do Grimório
         </h2>
         <div class="space-y-4">
-            <a href="/atualizacoes" class="group block p-6 rounded bg-[var(--bg0)] border border-[var(--stroke)] hover:border-[var(--ember)] transition-all hover:translate-x-1 shadow-sm">
+          {% if ultimas_noticias %}
+            {% for noticia in ultimas_noticias %}
+            <a href="{% url 'jornal_detail' slug=noticia.slug %}" class="group block p-6 rounded bg-[var(--bg0)] border border-[var(--stroke)] hover:border-[var(--ember)] transition-all hover:translate-x-1 shadow-sm">
               <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <h3 class="text-lg font-bold text-[var(--text)] group-hover:text-[var(--ember)] transition-colors">
-                  Patch 1.2 — Nova Classe: O Arcanista de Sangue
+                  {{ noticia.titulo }}
                 </h3>
                 <span class="text-xs font-mono text-[var(--muted)] px-3 py-1 bg-[var(--bg1)] rounded border border-[var(--stroke)]">
-                  12 Fev
+                  {{ noticia.data_publicacao|date:"d M" }}
                 </span>
               </div>
             </a>
-            <a href="/atualizacoes" class="group block p-6 rounded bg-[var(--bg0)] border border-[var(--stroke)] hover:border-[var(--ember)] transition-all hover:translate-x-1 shadow-sm">
-              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <h3 class="text-lg font-bold text-[var(--text)] group-hover:text-[var(--ember)] transition-colors">
-                  Evento de Mundo: A Lua Vermelha
-                </h3>
-                <span class="text-xs font-mono text-[var(--muted)] px-3 py-1 bg-[var(--bg1)] rounded border border-[var(--stroke)]">
-                  05 Fev
-                </span>
-              </div>
-            </a>
-            <a href="/atualizacoes" class="group block p-6 rounded bg-[var(--bg0)] border border-[var(--stroke)] hover:border-[var(--ember)] transition-all hover:translate-x-1 shadow-sm">
-              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <h3 class="text-lg font-bold text-[var(--text)] group-hover:text-[var(--ember)] transition-colors">
-                  Hotfix: Ajuste de Dano em Armas Pesadas
-                </h3>
-                <span class="text-xs font-mono text-[var(--muted)] px-3 py-1 bg-[var(--bg1)] rounded border border-[var(--stroke)]">
-                  01 Fev
-                </span>
-              </div>
-            </a>
+            {% endfor %}
+          {% else %}
+            <div class="p-6 rounded bg-[var(--bg0)] border border-[var(--stroke)] text-center">
+              <p class="text-[var(--muted)]">Nenhuma notícia publicada ainda.</p>
+            </div>
+          {% endif %}
         </div>
       </div>
 
@@ -209,7 +197,7 @@
            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-10 h-10 text-[var(--text)] mb-6 group-hover:text-[var(--ember)] transition-colors"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
            <h3 class="font-rpg text-2xl font-bold mb-4">Crônicas</h3>
            <p class="text-[var(--muted)] mb-8 flex-grow">Leia os relatos das últimas campanhas e como elas alteraram a política do mundo.</p>
-           <a href="/mundo/jornal" class="mt-auto w-full py-3 rounded border border-[var(--stroke)] text-center text-sm font-bold uppercase tracking-widest hover:bg-[var(--text)] hover:text-black transition-colors">
+           <a href="{% url 'mundo_cronicas' %}" class="mt-auto w-full py-3 rounded border border-[var(--stroke)] text-center text-sm font-bold uppercase tracking-widest hover:bg-[var(--text)] hover:text-black transition-colors">
              Ler Crônicas
            </a>
         </div>
