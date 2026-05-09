@@ -7,5 +7,8 @@ FOR /F "tokens=5" %%T IN ('netstat -a -n -o ^| findstr :8000') DO (
     taskkill /F /PID %%T >nul 2>&1
 )
 
+echo Finalizando processo cloudflared.exe...
+taskkill /F /IM cloudflared.exe >nul 2>&1
+
 echo Servidor encerrado.
 exit /b 0
