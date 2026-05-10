@@ -220,7 +220,9 @@
   font-size: 1.5rem;
   line-height: 1.6;
   text-align: justify;
-  hyphens: auto;
+  hyphens: none;
+  overflow-wrap: break-word;
+  word-break: normal;
 }
 
 /* ── Sobrescrever cor de utilitários como center ── */
@@ -247,7 +249,7 @@
 /* ── No-column (full-width span) ── */
 .atlas-no-column {
   column-span: all;
-  text-align: center;
+  text-align: justify;
   padding: 0.8rem 2rem;
 }
 
@@ -265,11 +267,14 @@
 }
 .artigo-body--atlas .bonfire-markdown h2 {
   font-family: 'Playfair Display', 'Cinzel', serif;
-  font-size: 1.8rem;
+  font-size: 1.55rem;
   font-weight: 800;
   color: var(--atlas-ink);
   text-align: center;
-  margin: 0.8rem 0 0.4rem;
+  margin: 1.2rem 0 0.8rem;
+  padding: 0.4rem 0;
+  border-top: 1px solid var(--atlas-ink-muted);
+  border-bottom: 1px solid var(--atlas-ink-muted);
   line-height: 1.2;
   hyphens: none;
 }
@@ -283,6 +288,7 @@
   margin: 0.2rem 0 0.6rem;
   line-height: 1.35;
   hyphens: none;
+  text-transform: none !important;
 }
 .artigo-body--atlas .bonfire-markdown h4 {
   font-family: 'EB Garamond', 'Garamond', serif;
@@ -477,6 +483,23 @@
   .atlas-header-date { margin: 0 auto; }
   .atlas-header-title { font-size: 2.8rem; }
   .atlas-cabecalho-title { font-size: 1.8rem; }
+}
+
+/* ── Image Captions ── */
+.bonfire-md-image-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 1rem 0;
+}
+.bonfire-md-image-caption {
+  font-family: 'EB Garamond', 'Garamond', serif;
+  font-size: 1.35rem;
+  font-style: italic;
+  color: var(--atlas-ink-muted);
+  text-align: center;
+  margin-top: 0.5rem;
+  max-width: 95%;
 }
 
 /* ── Google Fonts for Atlas ── */

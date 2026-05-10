@@ -167,6 +167,7 @@ function bonfireImageStyleFromModifiers(modifiers) {
         if (key === 'position') {
             if (['left', 'right'].includes(normalizedValue)) {
                 styles.push(`float:${normalizedValue}`);
+                styles.push(normalizedValue === 'left' ? 'margin: 0.5rem 1.5rem 1.5rem 0' : 'margin: 0.5rem 0 1.5rem 1.5rem');
                 classNames.push(`bonfire-md-image-float-${normalizedValue}`);
                 meta.side = normalizedValue;
             } else if (['center', 'centre', 'centro'].includes(normalizedValue)) {
@@ -226,6 +227,11 @@ function bonfireImageStyleFromModifiers(modifiers) {
             return;
         }
 
+        if (key === 'legenda') {
+            meta.legenda = normalizedValue === 'true';
+            return;
+        }
+
         if (allowed.has(cssKey)) styles.push(`${cssKey}:${value}`);
     });
 
@@ -251,7 +257,15 @@ function applyBonfireImageModifiers(value) {
         const imageStyle = safeImageStyleForLayout(image);
         const styleAttr = imageStyle ? ` style="${escapeHtml(imageStyle)}"` : '';
         const classAttr = ` class="${escapeHtml(image.className)}"`;
-        const img = `<img src="${escapeHtml(url)}" alt="${escapeHtml(alt)}"${classAttr}${styleAttr}>`;
+        
+        let img;
+        if (image.meta.legenda && alt) {
+            const figureClass = image.className ? ` class="${escapeHtml(image.className)} bonfire-md-image-container"` : ` class="bonfire-md-image-container"`;
+            img = `<figure${figureClass}${styleAttr}><img src="${escapeHtml(url)}" alt="${escapeHtml(alt)}" style="width: 100%; height: auto; margin: 0;"><figcaption class="bonfire-md-image-caption">${escapeHtml(alt)}</figcaption></figure>`;
+        } else {
+            img = `<img src="${escapeHtml(url)}" alt="${escapeHtml(alt)}"${classAttr}${styleAttr}>`;
+        }
+
         if (image.meta.breakLine) {
             const side = image.meta.inline ? 'inline' : (image.meta.side || 'center');
             return `\n\n<div class="bonfire-md-image-box bonfire-md-image-box-${escapeHtml(side)}">${img}</div>\n\n`;

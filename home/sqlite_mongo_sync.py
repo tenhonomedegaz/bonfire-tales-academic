@@ -292,6 +292,7 @@ def mongo_collection_to_sqlite(collection_name, namespace=DEFAULT_NAMESPACE):
     collection = database[collection_name]
     inserted = 0
     updated = 0
+    deleted = 0
     conflicts = 0
 
     with connection.cursor() as cursor:
@@ -302,6 +303,7 @@ def mongo_collection_to_sqlite(collection_name, namespace=DEFAULT_NAMESPACE):
 
         cursor.execute("PRAGMA foreign_keys=OFF")
         try:
+            mongo_pks = set()
             for document in collection.find({}):
                 document = serialize_document(document)
                 row = {
@@ -326,10 +328,21 @@ def mongo_collection_to_sqlite(collection_name, namespace=DEFAULT_NAMESPACE):
                     conflicts += 1
 
                 update_or_insert_row(cursor, table_name, row, pk_columns)
+                if pk_column and pk_column in row:
+                    mongo_pks.add(row[pk_column])
                 if existing:
                     updated += 1
                 else:
                     inserted += 1
+
+            if pk_column:
+                cursor.execute(f'SELECT "{pk_column}" FROM "{table_name}"')
+                sqlite_pks = set(r[0] for r in cursor.fetchall())
+                to_delete = sqlite_pks - mongo_pks
+                if to_delete:
+                    for pk_val in to_delete:
+                        cursor.execute(f'DELETE FROM "{table_name}" WHERE "{pk_column}" = %s', [pk_val])
+                    deleted = len(to_delete)
         finally:
             cursor.execute("PRAGMA foreign_keys=ON")
 
@@ -337,6 +350,7 @@ def mongo_collection_to_sqlite(collection_name, namespace=DEFAULT_NAMESPACE):
         "table": table_name,
         "inserted": inserted,
         "updated": updated,
+        "deleted": deleted,
         "conflicts": conflicts,
         "skipped": False,
     }

@@ -54,6 +54,7 @@ class Command(BaseCommand):
 
         total_inserted = 0
         total_updated = 0
+        total_deleted = 0
         total_conflicts = 0
 
         for collection_name, stats in pull_results.items():
@@ -61,10 +62,12 @@ class Command(BaseCommand):
                 continue
             total_inserted += stats["inserted"]
             total_updated += stats["updated"]
+            total_deleted += stats.get("deleted", 0)
             total_conflicts += stats["conflicts"]
             self.stdout.write(
                 f"{collection_name} -> {stats['table']}: "
                 f"{stats['inserted']} inseridos, {stats['updated']} atualizados, "
+                f"{stats.get('deleted', 0)} deletados, "
                 f"{stats['conflicts']} conflitos preservados"
             )
 

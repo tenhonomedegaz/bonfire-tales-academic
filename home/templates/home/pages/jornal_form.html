@@ -2,12 +2,16 @@
 {% load static %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/pages/jornal_form.css' %}">
-
+<link rel="stylesheet" href="{% static 'css/pages/jornal_form.css' %}?v=7">
+<link rel="stylesheet" href="{% static 'css/pages/jornal_detail.css' %}?v=7">
 {% endblock %}
 
+{% block main_class %}flex-1 w-full max-w-full px-4 md:px-8 py-8{% endblock %}
+{% block ad_containers %}{% endblock %}
+{% block ad_containers_right %}{% endblock %}
+
 {% block content %}
-<div class="editor-shell">
+<div class="editor-shell" style="max-width: 1600px;">
   <div class="editor-header">
     <h1>{% if is_new %}Publicar Novo Artigo{% else %}Editar Artigo{% endif %}</h1>
     <p>Use Markdown para formatar o conteúdo. O preview atualiza em tempo real.</p>
@@ -41,24 +45,14 @@
       <div class="editor-field">
         <label for="edLayout">Layout</label>
         <select id="edLayout" name="layout">
-          <option value="padrao" {% if artigo.layout != 'colunas' %}selected{% endif %}>Padrão</option>
-          <option value="colunas" {% if artigo.layout == 'colunas' %}selected{% endif %}>Colunas (Atlas)</option>
+          <option value="padrao" {% if artigo.layout == 'padrao' %}selected{% endif %}>Padrão</option>
+          <option value="colunas" {% if artigo.layout == 'colunas' %}selected{% endif %}>Colunas</option>
+          <option value="atlas" {% if artigo.layout == 'atlas' %}selected{% endif %}>Atlas (Jornal)</option>
         </select>
       </div>
     </div>
 
-    <div class="editor-import-section" style="margin-bottom: 1rem; padding: 1rem; border: 1px dashed var(--stroke); border-radius: 8px; background: var(--bg0);">
-      <label style="display: block; font-size: .68rem; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: .5rem;">
-        Importar do Google Docs
-      </label>
-      <div style="display: flex; gap: .5rem; align-items: center;">
-        <input type="text" id="edGdocUrl" placeholder="Cole o link do Google Docs aqui..." style="flex: 1; background: var(--bg1); border: 1px solid var(--stroke); border-radius: 6px; color: var(--text); font-size: .85rem; padding: .65rem .75rem;">
-        <button type="button" id="btnImportGdoc" style="background: var(--ember); color: #070707; font-size: .72rem; font-weight: 900; padding: .7rem 1.2rem; border-radius: 5px; text-transform: uppercase; white-space: nowrap; cursor: pointer;">
-          Importar
-        </button>
-      </div>
-      <p id="gdocStatus" style="font-size: .75rem; color: var(--muted); margin-top: .5rem; display: none;"></p>
-    </div>
+
     <div class="editor-toolbar">
       <button type="button" class="editor-tool" data-wrap="bold" title="Ctrl+B">B</button>
       <button type="button" class="editor-tool" data-wrap="italic" title="Ctrl+I"><em>I</em></button>
@@ -73,7 +67,7 @@
       <span class="editor-status">Ctrl+Alt+C para cor</span>
     </div>
 
-    <div class="editor-split">
+    <div class="editor-split" style="grid-template-columns: 380px 1fr; gap: 1.5rem;">
       <div class="editor-panel">
         <div class="editor-panel-header">
           <h2>Texto</h2>
@@ -86,7 +80,9 @@
           <h2>Preview</h2>
           <span>Mesmo leitor do site</span>
         </div>
-        <div id="edPreview" class="editor-preview bonfire-markdown"></div>
+        <div id="edPreviewContainer">
+          <div id="edPreview" class="editor-preview bonfire-markdown"></div>
+        </div>
       </div>
     </div>
 
@@ -106,7 +102,20 @@
   function renderPreview() {
     const src = editor.value;
     counter.textContent = `${src.length} caracteres`;
-    if (typeof renderBonfireMarkdown === 'function') {
+    const layout = document.getElementById('edLayout').value;
+    const container = document.getElementById('edPreviewContainer');
+    
+    if (layout === 'atlas') {
+      preview.dataset.atlasMode = 'true';
+      container.classList.add('artigo-layout--atlas', 'artigo-body--atlas');
+    } else {
+      preview.dataset.atlasMode = 'false';
+      container.classList.remove('artigo-layout--atlas', 'artigo-body--atlas');
+    }
+
+    if (typeof renderBonfireMarkdownElement === 'function') {
+      renderBonfireMarkdownElement(preview, src);
+    } else if (typeof renderBonfireMarkdown === 'function') {
       preview.innerHTML = renderBonfireMarkdown(src);
     } else if (window.marked && typeof window.marked.parse === 'function') {
       preview.innerHTML = applyMarkdownColorsToHtml(marked.parse(src, { breaks: true, gfm: true }));
@@ -114,6 +123,8 @@
       preview.textContent = src;
     }
   }
+
+  document.getElementById('edLayout').addEventListener('change', renderPreview);
 
   editor.addEventListener('input', renderPreview);
   renderPreview();
@@ -226,57 +237,7 @@
     }
   });
 
-  // --- Google Docs Import ---
-  const btnImport = document.getElementById('btnImportGdoc');
-  const gdocInput = document.getElementById('edGdocUrl');
-  const gdocStatus = document.getElementById('gdocStatus');
 
-  btnImport?.addEventListener('click', async () => {
-    const gdocUrl = gdocInput.value.trim();
-    if (!gdocUrl) {
-      gdocStatus.textContent = 'Cole o link do Google Docs primeiro.';
-      gdocStatus.style.display = 'block';
-      gdocStatus.style.color = 'var(--flame)';
-      return;
-    }
-
-    btnImport.disabled = true;
-    btnImport.textContent = 'Importando...';
-    gdocStatus.textContent = 'Conectando ao Google Docs...';
-    gdocStatus.style.display = 'block';
-    gdocStatus.style.color = 'var(--muted)';
-
-    try {
-      const csrf = decodeURIComponent((document.cookie.split('; ').find(r => r.startsWith('csrftoken=')) || '').split('=')[1] || '');
-      const res = await fetch('{% url "jornal_import_gdoc" %}', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
-        body: JSON.stringify({ url: gdocUrl }),
-      });
-      const data = await res.json();
-
-      if (data.ok) {
-        // Preencher os campos com o conteúdo importado
-        const tituloField = document.getElementById('edTitulo');
-        if (tituloField && !tituloField.value.trim()) {
-          tituloField.value = data.titulo;
-        }
-        editor.value = data.conteudo_markdown;
-        renderPreview();
-        gdocStatus.textContent = 'Importado com sucesso! Revise o conteúdo e ajuste os títulos se necessário.';
-        gdocStatus.style.color = 'var(--ember)';
-      } else {
-        gdocStatus.textContent = data.error || 'Erro ao importar.';
-        gdocStatus.style.color = 'var(--flame)';
-      }
-    } catch (err) {
-      gdocStatus.textContent = 'Erro de conexão ao importar o documento.';
-      gdocStatus.style.color = 'var(--flame)';
-    } finally {
-      btnImport.disabled = false;
-      btnImport.textContent = 'Importar';
-    }
-  });
 })();
 </script>
 {% endblock %}
