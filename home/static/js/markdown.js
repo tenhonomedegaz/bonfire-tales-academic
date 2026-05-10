@@ -442,9 +442,9 @@ function buildAtlasCabecalhoHtml(content) {
     }
     return '<div class="atlas-cabecalho">'
         + '<div class="atlas-cabecalho-top">'
-        +   '<img src="/static/assets/pena_branca.png" alt="" class="atlas-cabecalho-pena">'
+        +   '<img src="/static/assets/pena_preta.png" alt="" class="atlas-cabecalho-pena">'
         +   '<div class="atlas-cabecalho-title">O Atlas</div>'
-        +   '<img src="/static/assets/pena_branca.png" alt="" class="atlas-cabecalho-pena atlas-cabecalho-pena--right">'
+        +   '<img src="/static/assets/pena_preta.png" alt="" class="atlas-cabecalho-pena atlas-cabecalho-pena--right">'
         + '</div>'
         + '<div class="atlas-cabecalho-subtitle">Consciência, verdade e dever</div>'
         + sectionHtml

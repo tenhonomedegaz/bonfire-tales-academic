@@ -196,6 +196,19 @@
 .artigo-layout--atlas ~ .artigo-hero,
 [data-artigo-layout="atlas"] ~ .artigo-hero { display: none; }
 
+/* ── Escurecer botoes e interacoes ── */
+.artigo-layout--atlas .artigo-back {
+  color: var(--atlas-ink-muted);
+  margin-left: 2rem;
+}
+.artigo-layout--atlas .artigo-back:hover {
+  color: var(--atlas-ink);
+}
+.artigo-layout--atlas .artigo-edit-tools {
+  border-top-color: var(--atlas-rule);
+  padding-right: 2rem;
+}
+
 /* ── Atlas body ── */
 .artigo-body--atlas {
   margin-top: 0;
@@ -204,7 +217,7 @@
 .artigo-body--atlas .bonfire-markdown {
   color: var(--atlas-ink);
   font-family: 'EB Garamond', 'Garamond', 'Georgia', serif;
-  font-size: 0.92rem;
+  font-size: 1.15rem;
   line-height: 1.6;
   text-align: justify;
   hyphens: auto;
@@ -213,7 +226,7 @@
 /* ── Atlas columns ── */
 .artigo-body--atlas .atlas-columns {
   column-count: 2;
-  column-gap: 2rem;
+  column-gap: 3rem;
   column-rule: 1px solid var(--atlas-rule);
   padding: 1.5rem 2rem;
 }
@@ -236,7 +249,7 @@
 /* ── Headings inside atlas ── */
 .artigo-body--atlas .bonfire-markdown h1 {
   font-family: 'Playfair Display', 'Cinzel', serif;
-  font-size: 2.2rem;
+  font-size: 2.8rem;
   font-weight: 900;
   color: var(--atlas-ink);
   text-align: center;
@@ -246,7 +259,7 @@
 }
 .artigo-body--atlas .bonfire-markdown h2 {
   font-family: 'Playfair Display', 'Cinzel', serif;
-  font-size: 1.5rem;
+  font-size: 1.9rem;
   font-weight: 800;
   color: var(--atlas-ink);
   text-align: center;
@@ -255,7 +268,7 @@
 }
 .artigo-body--atlas .bonfire-markdown h3 {
   font-family: 'EB Garamond', 'Garamond', serif;
-  font-size: 1.1rem;
+  font-size: 1.35rem;
   font-weight: 700;
   font-style: italic;
   color: var(--atlas-ink-muted);
@@ -265,7 +278,7 @@
 }
 .artigo-body--atlas .bonfire-markdown h4 {
   font-family: 'EB Garamond', 'Garamond', serif;
-  font-size: 0.92rem;
+  font-size: 1.15rem;
   font-weight: 700;
   color: var(--atlas-ink);
   margin: 0.5rem 0 0.3rem;
@@ -291,7 +304,7 @@
 .artigo-body--atlas .bonfire-markdown blockquote {
   font-family: 'EB Garamond', 'Garamond', serif;
   font-style: italic;
-  font-size: 1.15rem;
+  font-size: 1.4rem;
   text-align: center;
   color: var(--atlas-ink);
   border: none;
@@ -323,7 +336,7 @@
 }
 .atlas-header-title {
   font-family: 'Playfair Display', 'Cinzel', serif;
-  font-size: 3rem;
+  font-size: 4rem;
   font-weight: 900;
   font-style: italic;
   color: var(--atlas-ink);
@@ -333,7 +346,7 @@
 }
 .atlas-header-subtitle {
   font-family: 'EB Garamond', 'Garamond', serif;
-  font-size: 1rem;
+  font-size: 1.25rem;
   font-weight: 600;
   color: var(--atlas-ink-muted);
   margin: 0.15rem 0 0;
@@ -342,7 +355,7 @@
   background: var(--atlas-header-bg);
   color: var(--atlas-header-text);
   font-family: 'EB Garamond', 'Garamond', serif;
-  font-size: 0.82rem;
+  font-size: 1.05rem;
   font-weight: 700;
   text-align: center;
   padding: 0.5rem 0.75rem;
@@ -359,7 +372,7 @@
   padding: 0.3rem 0;
   margin-top: 0.3rem;
   font-family: 'EB Garamond', 'Garamond', serif;
-  font-size: 0.78rem;
+  font-size: 0.95rem;
   font-weight: 700;
   color: var(--atlas-ink);
   text-transform: uppercase;
@@ -397,7 +410,7 @@
 }
 .atlas-cabecalho-title {
   font-family: 'Playfair Display', 'Cinzel', serif;
-  font-size: 2rem;
+  font-size: 2.5rem;
   font-weight: 900;
   font-style: italic;
   color: var(--atlas-ink);
@@ -408,7 +421,7 @@
 }
 .atlas-cabecalho-subtitle {
   font-family: 'EB Garamond', 'Garamond', serif;
-  font-size: 0.85rem;
+  font-size: 1.05rem;
   font-style: italic;
   color: var(--atlas-ink-muted);
   text-align: center;
@@ -418,7 +431,7 @@
   background: var(--atlas-header-bg);
   color: var(--atlas-header-text);
   font-family: 'Playfair Display', 'Cinzel', serif;
-  font-size: 1.5rem;
+  font-size: 1.8rem;
   font-weight: 800;
   text-align: center;
   padding: 0.45rem 1.5rem;
@@ -454,8 +467,8 @@
   }
   .atlas-header-logo { margin: 0 auto; }
   .atlas-header-date { margin: 0 auto; }
-  .atlas-header-title { font-size: 2rem; }
-  .atlas-cabecalho-title { font-size: 1.4rem; }
+  .atlas-header-title { font-size: 2.8rem; }
+  .atlas-cabecalho-title { font-size: 1.8rem; }
 }
 
 /* ── Google Fonts for Atlas ── */

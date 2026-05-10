@@ -2,11 +2,12 @@
 {% load static %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/pages/jornal_detail.css' %}?v=4">
+<link rel="stylesheet" href="{% static 'css/pages/jornal_detail.css' %}?v=5">
 
 {% endblock %}
 
 {% block content %}
+{% if artigo.layout != 'atlas' %}
 <div class="artigo-hero" style="--hero-bg: url('{{ artigo.imagem_url|default:"" }}')">
   <span class="artigo-eyebrow">Jornal de Cinéria</span>
   <h1 class="artigo-title">{{ artigo.titulo }}</h1>
@@ -20,6 +21,7 @@
     {% endif %}
   </div>
 </div>
+{% endif %}
 
 <div class="artigo-layout{% if artigo.layout == 'colunas' %} artigo-layout--colunas{% endif %}{% if artigo.layout == 'atlas' %} artigo-layout--atlas{% endif %}" data-artigo-layout="{{ artigo.layout }}">
   <div class="artigo-body{% if artigo.layout == 'colunas' %} artigo-body--colunas{% endif %}{% if artigo.layout == 'atlas' %} artigo-body--atlas{% endif %}">
