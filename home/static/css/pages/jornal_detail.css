@@ -217,7 +217,7 @@
 .artigo-body--atlas .bonfire-markdown {
   color: var(--atlas-ink);
   font-family: 'EB Garamond', 'Garamond', 'Georgia', serif;
-  font-size: 1.15rem;
+  font-size: 1.5rem;
   line-height: 1.6;
   text-align: justify;
   hyphens: auto;
@@ -249,7 +249,7 @@
 /* ── Headings inside atlas ── */
 .artigo-body--atlas .bonfire-markdown h1 {
   font-family: 'Playfair Display', 'Cinzel', serif;
-  font-size: 2.8rem;
+  font-size: 2.4rem;
   font-weight: 900;
   color: var(--atlas-ink);
   text-align: center;
@@ -259,7 +259,7 @@
 }
 .artigo-body--atlas .bonfire-markdown h2 {
   font-family: 'Playfair Display', 'Cinzel', serif;
-  font-size: 1.9rem;
+  font-size: 1.8rem;
   font-weight: 800;
   color: var(--atlas-ink);
   text-align: center;
@@ -268,7 +268,7 @@
 }
 .artigo-body--atlas .bonfire-markdown h3 {
   font-family: 'EB Garamond', 'Garamond', serif;
-  font-size: 1.35rem;
+  font-size: 1.6rem;
   font-weight: 700;
   font-style: italic;
   color: var(--atlas-ink-muted);
@@ -278,7 +278,7 @@
 }
 .artigo-body--atlas .bonfire-markdown h4 {
   font-family: 'EB Garamond', 'Garamond', serif;
-  font-size: 1.15rem;
+  font-size: 1.5rem;
   font-weight: 700;
   color: var(--atlas-ink);
   margin: 0.5rem 0 0.3rem;
@@ -304,7 +304,7 @@
 .artigo-body--atlas .bonfire-markdown blockquote {
   font-family: 'EB Garamond', 'Garamond', serif;
   font-style: italic;
-  font-size: 1.4rem;
+  font-size: 1.6rem;
   text-align: center;
   color: var(--atlas-ink);
   border: none;
