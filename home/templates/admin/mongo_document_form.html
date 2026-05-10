@@ -1,10 +1,9 @@
-
-<link rel="stylesheet" href="{% static 'css/pages/mongo_document_form.css' %}">
 {% extends "admin/base_site.html" %}
 {% load static %}
 
-{% block extrastyle %}{{ block.super }}
-
+{% block extrastyle %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'css/pages/mongo_document_form.css' %}">
 {% endblock %}
 
 {% block content %}

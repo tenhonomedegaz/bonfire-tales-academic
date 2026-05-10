@@ -25,20 +25,21 @@ def extract_doc_id(url_or_id: str) -> str:
     return url_or_id
 
 
-def fetch_doc_html(doc_id: str, api_key: str) -> str:
+def fetch_doc_html(doc_id: str) -> str:
     """
-    Busca o conteúdo de um Google Doc público como HTML via Drive API.
-    Retorna o HTML ou levanta exceção.
+    Busca o conteúdo de um Google Doc público como HTML usando a URL de exportação pública.
+    Retorna o HTML ou levanta exceção. Não requer API key.
     """
-    url = (
-        f"https://www.googleapis.com/drive/v3/files/{doc_id}/export"
-        f"?mimeType=text/html&key={api_key}"
-    )
+    url = f"https://docs.google.com/document/d/{doc_id}/export?format=html"
+    
     req = urllib.request.Request(url, headers={
         'User-Agent': 'BonfireSite/1.0',
     })
     try:
         with urllib.request.urlopen(req, timeout=30) as resp:
+            content_type = resp.headers.get_content_type()
+            if content_type == 'application/zip':
+                raise PermissionError("O documento contém arquivos que forçam download em ZIP. Remova algumas imagens ou simplifique o arquivo.")
             return resp.read().decode('utf-8')
     except urllib.error.HTTPError as e:
         if e.code == 404:
@@ -99,12 +100,11 @@ def _detect_heading_level(font_size_pt: float, text_length: int) -> int:
 
 def _extract_image_urls(html_content: str) -> list:
     """Extrai URLs de imagens do HTML do Google Docs."""
-    # Google Docs embeds images as data URIs or external URLs
     urls = []
     for match in re.finditer(r'<img[^>]+src=["\']([^"\']+)["\']', html_content, re.IGNORECASE):
         src = match.group(1)
         if src.startswith('data:'):
-            continue  # Skip data URIs
+            continue
         urls.append(html_module.unescape(src))
     return urls
 
@@ -112,19 +112,30 @@ def _extract_image_urls(html_content: str) -> list:
 def html_to_markdown(html_content: str) -> str:
     """
     Converte HTML exportado do Google Docs para Markdown formatado Bonfire.
-    
-    Detecta headings por tamanho de fonte, preserva bold/italic,
-    converte listas, e extrai links de imagens.
     """
+    # 1. Extrair definições de CSS da tag <style> para mapear font-sizes das classes
+    css_font_sizes = {}
+    style_matches = re.findall(r'<style[^>]*>(.*?)</style>', html_content, re.DOTALL | re.IGNORECASE)
+    if style_matches:
+        css_text = style_matches[0]
+        for match in re.finditer(r'\.([a-zA-Z0-9_-]+)\s*\{([^}]+)\}', css_text):
+            class_name = match.group(1)
+            props = match.group(2)
+            fs_match = re.search(r'font-size:\s*([\d.]+)pt', props)
+            if fs_match:
+                css_font_sizes[class_name] = float(fs_match.group(1))
+            else:
+                fs_px_match = re.search(r'font-size:\s*([\d.]+)px', props)
+                if fs_px_match:
+                    css_font_sizes[class_name] = float(fs_px_match.group(1)) * 0.75
+
     # Remove o head e scripts
     html_content = re.sub(r'<head[^>]*>.*?</head>', '', html_content, flags=re.DOTALL | re.IGNORECASE)
     html_content = re.sub(r'<style[^>]*>.*?</style>', '', html_content, flags=re.DOTALL | re.IGNORECASE)
     html_content = re.sub(r'<script[^>]*>.*?</script>', '', html_content, flags=re.DOTALL | re.IGNORECASE)
     
-    lines = []
     image_counter = [0]
     
-    # Processar imagens - substituir por markdown antes de limpar tags
     def replace_img(match):
         tag = match.group(0)
         src_match = re.search(r'src=["\']([^"\']+)["\']', tag)
@@ -140,14 +151,12 @@ def html_to_markdown(html_content: str) -> str:
     
     html_content = re.sub(r'<img[^>]*/?>', replace_img, html_content, flags=re.IGNORECASE)
     
-    # Processar links
     def replace_link(match):
         attrs = match.group(1)
         text = match.group(2)
         href_match = re.search(r'href=["\']([^"\']+)["\']', attrs)
         if href_match:
             href = html_module.unescape(href_match.group(1))
-            # Ignorar links internos do Google
             if 'google.com/url' in href:
                 q_match = re.search(r'[?&]q=([^&]+)', href)
                 if q_match:
@@ -159,54 +168,60 @@ def html_to_markdown(html_content: str) -> str:
     
     html_content = re.sub(r'<a\s+([^>]*)>(.*?)</a>', replace_link, html_content, flags=re.DOTALL | re.IGNORECASE)
     
-    # Processar bold e italic
     html_content = re.sub(r'<b[^>]*>(.*?)</b>', r'**\1**', html_content, flags=re.DOTALL | re.IGNORECASE)
     html_content = re.sub(r'<strong[^>]*>(.*?)</strong>', r'**\1**', html_content, flags=re.DOTALL | re.IGNORECASE)
     html_content = re.sub(r'<i[^>]*>(.*?)</i>', r'*\1*', html_content, flags=re.DOTALL | re.IGNORECASE)
     html_content = re.sub(r'<em[^>]*>(.*?)</em>', r'*\1*', html_content, flags=re.DOTALL | re.IGNORECASE)
     html_content = re.sub(r'<u[^>]*>(.*?)</u>', r'__\1__', html_content, flags=re.DOTALL | re.IGNORECASE)
     
-    # Processar listas
     html_content = re.sub(r'<ul[^>]*>', '\n', html_content, flags=re.IGNORECASE)
     html_content = re.sub(r'</ul>', '\n', html_content, flags=re.IGNORECASE)
     html_content = re.sub(r'<ol[^>]*>', '\n', html_content, flags=re.IGNORECASE)
     html_content = re.sub(r'</ol>', '\n', html_content, flags=re.IGNORECASE)
     html_content = re.sub(r'<li[^>]*>(.*?)</li>', r'- \1\n', html_content, flags=re.DOTALL | re.IGNORECASE)
     
-    # Processar parágrafos e headings
-    # Google Docs usa <p> com spans que possuem estilos inline
     def process_paragraph(match):
         p_attrs = match.group(1) or ''
         p_content = match.group(2)
         
-        # Verificar tamanhos de fonte nos spans internos
         max_font_size = 0
-        span_matches = re.finditer(r'<span[^>]*style=["\']([^"\']*)["\'][^>]*>', p_content)
-        for sm in span_matches:
-            style = _clean_google_style(sm.group(1))
-            fs = _font_size_pt(style)
-            if fs > max_font_size:
-                max_font_size = fs
         
-        # Verificar estilo do próprio parágrafo
+        # 1. Verificar tamanho de fonte nas classes do parágrafo
+        p_class_match = re.search(r'class=["\']([^"\']*)["\']', p_attrs)
+        if p_class_match:
+            for c in p_class_match.group(1).split():
+                if c in css_font_sizes and css_font_sizes[c] > max_font_size:
+                    max_font_size = css_font_sizes[c]
+        
+        # 2. Verificar estilo inline do parágrafo
         p_style_match = re.search(r'style=["\']([^"\']*)["\']', p_attrs)
         if p_style_match:
             p_style = _clean_google_style(p_style_match.group(1))
             p_fs = _font_size_pt(p_style)
             if p_fs > max_font_size:
                 max_font_size = p_fs
+                
+        # 3. Verificar spans internos (classes e estilos inline)
+        span_matches = re.finditer(r'<span([^>]*)>', p_content)
+        for sm in span_matches:
+            span_attrs = sm.group(1)
+            # span classes
+            span_class_match = re.search(r'class=["\']([^"\']*)["\']', span_attrs)
+            if span_class_match:
+                for c in span_class_match.group(1).split():
+                    if c in css_font_sizes and css_font_sizes[c] > max_font_size:
+                        max_font_size = css_font_sizes[c]
+            # span styles
+            style_match = re.search(r'style=["\']([^"\']*)["\']', span_attrs)
+            if style_match:
+                style = _clean_google_style(style_match.group(1))
+                fs = _font_size_pt(style)
+                if fs > max_font_size:
+                    max_font_size = fs
         
-        # Limpar tags internas (spans, etc.)
         clean_text = re.sub(r'<[^>]+>', '', p_content).strip()
         clean_text = html_module.unescape(clean_text)
         
-        # Preservar formatação markdown que já foi inserida
-        # Re-processar bold/italic que pode estar dentro de spans
-        formatted = p_content
-        formatted = re.sub(r'<[^>]+>', '', formatted).strip()
-        formatted = html_module.unescape(formatted)
-        
-        # Detectar heading
         heading_level = _detect_heading_level(max_font_size, len(clean_text))
         
         if not clean_text:
@@ -225,7 +240,6 @@ def html_to_markdown(html_content: str) -> str:
         flags=re.DOTALL | re.IGNORECASE
     )
     
-    # Processar headings HTML nativos (h1-h6) — caso o Docs use
     for level in range(1, 7):
         prefix = '#' * level
         html_content = re.sub(
@@ -235,20 +249,11 @@ def html_to_markdown(html_content: str) -> str:
             flags=re.DOTALL | re.IGNORECASE
         )
     
-    # Processar <br>
     html_content = re.sub(r'<br\s*/?>', '\n', html_content, flags=re.IGNORECASE)
-    
-    # Limpar tags restantes
     html_content = re.sub(r'<[^>]+>', '', html_content)
-    
-    # Limpar entidades HTML
     html_content = html_module.unescape(html_content)
-    
-    # Limpar whitespace excessivo
     html_content = re.sub(r'\n{3,}', '\n\n', html_content)
     html_content = re.sub(r'[ \t]+', ' ', html_content)
-    
-    # Limpar bold/italic vazios
     html_content = re.sub(r'\*\*\s*\*\*', '', html_content)
     html_content = re.sub(r'\*\s*\*', '', html_content)
     
@@ -264,19 +269,10 @@ def import_google_doc(url_or_id: str) -> dict:
     
     Raises:
         PermissionError: Se não tiver acesso ao documento.
-        ValueError: Se a API key não estiver configurada.
     """
-    api_key = os.environ.get('DOCS_API_KEY', '')
-    if not api_key:
-        raise ValueError(
-            "A chave DOCS_API_KEY não está configurada no .env. "
-            "Adicione uma chave de API do Google Cloud com acesso à Drive API."
-        )
-    
     doc_id = extract_doc_id(url_or_id)
     
-    # Buscar HTML do documento
-    raw_html = fetch_doc_html(doc_id, api_key)
+    raw_html = fetch_doc_html(doc_id)
     
     # Extrair título do documento
     title_match = re.search(r'<title[^>]*>(.*?)</title>', raw_html, re.IGNORECASE | re.DOTALL)

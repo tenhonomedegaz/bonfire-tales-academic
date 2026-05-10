@@ -445,7 +445,7 @@ class TbJornal(models.Model):
     data_publicacao = models.DateTimeField(db_column='DataPublicacao', default=timezone.now)
     data_edicao = models.DateTimeField(db_column='DataEdicao', auto_now=True)
     destaque = models.BooleanField(db_column='Destaque', default=False)
-    layout = models.CharField(db_column='Layout', max_length=20, choices=[('padrao', 'Padrão'), ('colunas', 'Colunas')], default='padrao')
+    layout = models.CharField(db_column='Layout', max_length=20, choices=[('padrao', 'Padrão'), ('colunas', 'Colunas'), ('atlas', 'Atlas (Jornal)')], default='padrao')
 
     class Meta:
         managed = True

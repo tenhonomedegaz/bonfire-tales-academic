@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/pages/jornal_detail.css' %}">
+<link rel="stylesheet" href="{% static 'css/pages/jornal_detail.css' %}?v=4">
 
 {% endblock %}
 
@@ -21,9 +21,9 @@
   </div>
 </div>
 
-<div class="artigo-layout{% if artigo.layout == 'colunas' %} artigo-layout--colunas{% endif %}">
-  <div class="artigo-body{% if artigo.layout == 'colunas' %} artigo-body--colunas{% endif %}">
-    <div class="bonfire-markdown" data-markdown-source>{{ artigo.conteudo_markdown|escape }}</div>
+<div class="artigo-layout{% if artigo.layout == 'colunas' %} artigo-layout--colunas{% endif %}{% if artigo.layout == 'atlas' %} artigo-layout--atlas{% endif %}" data-artigo-layout="{{ artigo.layout }}">
+  <div class="artigo-body{% if artigo.layout == 'colunas' %} artigo-body--colunas{% endif %}{% if artigo.layout == 'atlas' %} artigo-body--atlas{% endif %}">
+    <div class="bonfire-markdown{% if artigo.layout == 'atlas' %} atlas-markdown{% endif %}" data-markdown-source{% if artigo.layout == 'atlas' %} data-atlas-mode="true"{% endif %}>{{ artigo.conteudo_markdown|escape }}</div>
   </div>
 
   <a href="{% url 'mundo_jornal' %}" class="artigo-back">

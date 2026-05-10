@@ -395,6 +395,160 @@ function renderBonfireMarkdown(value, options = {}) {
     return applyMarkdownColorsToHtml(escapeHtml(source)).replace(/\n/g, '<br>');
 }
 
+/* ═══════════════════════════════════════════════
+   Atlas Newspaper Layout Engine
+   ═══════════════════════════════════════════════ */
+
+function buildAtlasHeaderHtml(content) {
+    const lines = content.split('\n').map(l => l.trim()).filter(Boolean);
+    const data = {};
+    for (const line of lines) {
+        const colonIdx = line.indexOf(':');
+        if (colonIdx > 0) {
+            const key = line.substring(0, colonIdx).trim().toLowerCase();
+            const val = line.substring(colonIdx + 1).trim();
+            data[key] = val;
+        }
+    }
+    const numero = data['no'] || data['numero'] || '';
+    const dateStr = data['data'] || '';
+    const assunto = data['assunto'] || '';
+    const preco = data['preço'] || data['preco'] || '';
+    const dateHtml = escapeHtml(dateStr).replace(/,\s*/g, ',<br>');
+
+    return '<div class="atlas-header">'
+        + '<div class="atlas-header-top">'
+        +   '<img src="/static/assets/logo.png" alt="O Atlas" class="atlas-header-logo">'
+        +   '<div class="atlas-header-title-block">'
+        +     '<div class="atlas-header-title">O Atlas</div>'
+        +     '<div class="atlas-header-subtitle">O Jornal Oficial do Reino</div>'
+        +   '</div>'
+        +   '<div class="atlas-header-date">' + dateHtml + '</div>'
+        + '</div>'
+        + '<div class="atlas-header-bar">'
+        +   '<span>' + escapeHtml(numero) + '</span>'
+        +   '<span>Bonfire Tales RPG</span>'
+        +   '<span>' + escapeHtml(assunto) + '</span>'
+        +   '<span>' + escapeHtml(preco) + '</span>'
+        + '</div>'
+        + '</div>';
+}
+
+function buildAtlasCabecalhoHtml(content) {
+    const title = content.trim();
+    let sectionHtml = '';
+    if (title) {
+        sectionHtml = '<div class="atlas-cabecalho-section-title">' + escapeHtml(title) + '</div>';
+    }
+    return '<div class="atlas-cabecalho">'
+        + '<div class="atlas-cabecalho-top">'
+        +   '<img src="/static/assets/pena_branca.png" alt="" class="atlas-cabecalho-pena">'
+        +   '<div class="atlas-cabecalho-title">O Atlas</div>'
+        +   '<img src="/static/assets/pena_branca.png" alt="" class="atlas-cabecalho-pena atlas-cabecalho-pena--right">'
+        + '</div>'
+        + '<div class="atlas-cabecalho-subtitle">Consciência, verdade e dever</div>'
+        + sectionHtml
+        + '</div>';
+}
+
+function parseAtlasBlocks(text) {
+    const blocks = [];
+    const lines = text.split('\n');
+    let buffer = [];
+    let i = 0;
+
+    function flushBuffer() {
+        const content = buffer.join('\n').trim();
+        if (content) blocks.push({ type: 'content', content: content });
+        buffer = [];
+    }
+
+    while (i < lines.length) {
+        const line = lines[i];
+        const trimLine = line.trim();
+
+        if (/^::header$/i.test(trimLine)) {
+            flushBuffer();
+            const inner = [];
+            i++;
+            while (i < lines.length && !/^::$/.test(lines[i].trim())) { inner.push(lines[i]); i++; }
+            blocks.push({ type: 'header', content: inner.join('\n').trim() });
+            i++;
+            continue;
+        }
+
+        if (/^::cabe[cç]alho$/i.test(trimLine)) {
+            flushBuffer();
+            const inner = [];
+            i++;
+            while (i < lines.length && !/^::$/.test(lines[i].trim())) { inner.push(lines[i]); i++; }
+            blocks.push({ type: 'cabecalho', content: inner.join('\n').trim() });
+            i++;
+            continue;
+        }
+
+        if (/^::no-column$/i.test(trimLine)) {
+            flushBuffer();
+            const inner = [];
+            i++;
+            while (i < lines.length && !/^::$/.test(lines[i].trim())) { inner.push(lines[i]); i++; }
+            blocks.push({ type: 'no-column', content: inner.join('\n').trim() });
+            i++;
+            continue;
+        }
+
+        if (/^\s*----\s*$/.test(line)) {
+            flushBuffer();
+            blocks.push({ type: 'separator' });
+            i++;
+            continue;
+        }
+
+        buffer.push(line);
+        i++;
+    }
+    flushBuffer();
+    return blocks;
+}
+
+function renderAtlasLayout(rawValue, options) {
+    options = options || {};
+    const text = String(rawValue || '').replace(/\r\n/g, '\n');
+    const blocks = parseAtlasBlocks(text);
+    let html = '';
+    let inColumns = false;
+
+    for (let b = 0; b < blocks.length; b++) {
+        var block = blocks[b];
+        switch (block.type) {
+            case 'header':
+                if (inColumns) { html += '</div>'; inColumns = false; }
+                html += buildAtlasHeaderHtml(block.content);
+                break;
+            case 'cabecalho':
+                if (inColumns) { html += '</div>'; inColumns = false; }
+                html += buildAtlasCabecalhoHtml(block.content);
+                break;
+            case 'separator':
+                if (inColumns) { html += '</div>'; inColumns = false; }
+                html += '<hr class="atlas-separator">';
+                break;
+            case 'no-column':
+                if (inColumns) { html += '</div>'; inColumns = false; }
+                var ncHtml = renderBonfireMarkdown(block.content, options);
+                html += '<div class="atlas-no-column">' + ncHtml + '</div>';
+                break;
+            case 'content':
+                if (!inColumns) { html += '<div class="atlas-columns">'; inColumns = true; }
+                var contentMd = block.content.replace(/^\/column\s*$/gm, '\n\n<div class="atlas-column-break"></div>\n\n');
+                html += renderBonfireMarkdown(contentMd, options);
+                break;
+        }
+    }
+    if (inColumns) html += '</div>';
+    return html;
+}
+
 function renderBonfireMarkdownElement(element, rawValue, options = {}) {
     if (!element) return;
     const raw = rawValue ?? element.dataset.markdownRaw ?? element.textContent;
@@ -403,7 +557,12 @@ function renderBonfireMarkdownElement(element, rawValue, options = {}) {
         enableOptions: element.dataset.markdownOptions === 'false' ? false : options.enableOptions
     };
     element.dataset.markdownRaw = raw;
-    element.innerHTML = renderBonfireMarkdown(raw, mergedOptions);
+
+    if (element.dataset.atlasMode === 'true') {
+        element.innerHTML = renderAtlasLayout(raw, mergedOptions);
+    } else {
+        element.innerHTML = renderBonfireMarkdown(raw, mergedOptions);
+    }
     element.dataset.markdownRendered = 'true';
 }
 
@@ -435,6 +594,7 @@ if (typeof module !== 'undefined' && module.exports) {
         normalizeMarkdown,
         buildBonfireMarkdownSource,
         renderBonfireMarkdown,
+        renderAtlasLayout,
         renderBonfireMarkdownElement,
         renderBonfireMarkdownElements
     };

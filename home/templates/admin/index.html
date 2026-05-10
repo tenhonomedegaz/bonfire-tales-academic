@@ -1,11 +1,10 @@
-
-<link rel="stylesheet" href="{% static 'css/pages/index.css' %}">
 {% extends "admin/base_site.html" %}
-{% load static %}
 {% load i18n static mongo_tags %}
 
-{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static "admin/css/dashboard.css" %}">
-
+{% block extrastyle %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'css/pages/index.css' %}">
+<link rel="stylesheet" href="{% static 'admin/css/dashboard.css' %}">
 {% endblock %}
 
 {% block coltype %}{% endblock %}

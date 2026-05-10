@@ -1,10 +1,9 @@
-
-<link rel="stylesheet" href="{% static 'css/pages/spell_import.css' %}">
 {% extends "admin/base_site.html" %}
 {% load static %}
 
-{% block extrastyle %}{{ block.super }}
-
+{% block extrastyle %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'css/pages/spell_import.css' %}">
 {% endblock %}
 
 {% block content %}
