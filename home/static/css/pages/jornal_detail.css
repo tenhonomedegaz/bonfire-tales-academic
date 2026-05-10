@@ -223,6 +223,11 @@
   hyphens: auto;
 }
 
+/* ── Sobrescrever cor de utilitários como center ── */
+.artigo-body--atlas .bonfire-markdown .bonfire-center {
+  color: var(--atlas-ink) !important;
+}
+
 /* ── Atlas columns ── */
 .artigo-body--atlas .atlas-columns {
   column-count: 2;
@@ -249,13 +254,14 @@
 /* ── Headings inside atlas ── */
 .artigo-body--atlas .bonfire-markdown h1 {
   font-family: 'Playfair Display', 'Cinzel', serif;
-  font-size: 2.4rem;
+  font-size: 2.2rem;
   font-weight: 900;
   color: var(--atlas-ink);
   text-align: center;
   margin: 0.3rem 0 0.2rem;
   line-height: 1.15;
   letter-spacing: 0.01em;
+  hyphens: none;
 }
 .artigo-body--atlas .bonfire-markdown h2 {
   font-family: 'Playfair Display', 'Cinzel', serif;
@@ -265,6 +271,7 @@
   text-align: center;
   margin: 0.8rem 0 0.4rem;
   line-height: 1.2;
+  hyphens: none;
 }
 .artigo-body--atlas .bonfire-markdown h3 {
   font-family: 'EB Garamond', 'Garamond', serif;
@@ -275,6 +282,7 @@
   text-align: center;
   margin: 0.2rem 0 0.6rem;
   line-height: 1.35;
+  hyphens: none;
 }
 .artigo-body--atlas .bonfire-markdown h4 {
   font-family: 'EB Garamond', 'Garamond', serif;
