@@ -152,13 +152,19 @@
         <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-[var(--muted)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3 8 4.5-8 4.5-8-4.5L12 3Z"/><path d="m4 12 8 4.5 8-4.5"/><path d="m4 16.5 8 4.5 8-4.5"/></svg>
         Subclasses {% if subclasses %}(selecione para ver){% endif %}
       </h2>
-      <div class="flex flex-wrap gap-1.5">
+      <div class="flex flex-wrap gap-1.5 items-center">
         <button type="button" data-subclass-toggle="" class="subclass-toggle rounded border border-[var(--flame)] bg-[var(--flame)]/10 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-[var(--text)]">Base</button>
         {% for sub in subclasses %}
         <button type="button" data-subclass-toggle="{{ sub.slug }}" class="subclass-toggle rounded border border-[var(--stroke)] px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-[var(--muted)] hover:border-[var(--spark)] hover:text-[var(--text)]">{{ sub.nome }}</button>
         {% empty %}
         <span class="text-sm text-[var(--muted)]">Sem subclasses cadastradas.</span>
         {% endfor %}
+        {% if subclasses %}
+        <label data-subclass-only-toggle class="hidden ml-2 flex items-center gap-1.5 cursor-pointer select-none rounded border border-[var(--stroke)] px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--muted)] hover:border-[var(--spark)] hover:text-[var(--text)] transition-colors" title="Mostrar apenas habilidades da subclasse selecionada">
+          <input type="checkbox" data-subclass-only-check class="accent-[var(--spark)]" style="width: 12px; height: 12px;">
+          Só Subclasse
+        </label>
+        {% endif %}
       </div>
     </section>
 
@@ -173,7 +179,7 @@
             {% include 'home/components/ad_horizontal.html' %}
         </div>
         {% endif %}
-        <article class="{% if item.is_subclass %}hidden subclass-content{% endif %} overflow-hidden rounded border border-[var(--stroke)] bg-[var(--bg1)]" {% if item.is_subclass %}data-subclass-slug="{{ item.subclasse_slug }}"{% endif %} data-feature-card data-feature-id="{{ item.habilidade.id_habilidade }}">
+        <article class="{% if item.is_subclass %}hidden subclass-content{% endif %} overflow-hidden rounded border border-[var(--stroke)] bg-[var(--bg1)]" {% if item.is_subclass %}data-subclass-slug="{{ item.subclasse_slug }}"{% else %}data-base-feature{% endif %} data-feature-card data-feature-id="{{ item.habilidade.id_habilidade }}">
           <header class="flex items-center justify-between border-b px-2.5 py-1.5 {% if item.is_subclass %}border-[var(--spark)]/70 bg-[var(--spark)]/5{% else %}border-[var(--flame)]/40 bg-[var(--flame)]/5{% endif %}">
             <h3 data-feature-title class="font-rpg text-[14px] font-bold {% if item.is_subclass %}text-[var(--spark)]{% else %}text-[var(--flame)]{% endif %}">Nivel {{ item.habilidade.niveladquirido }}: {{ item.habilidade.nome }}</h3>
             <div class="flex items-center gap-2">
@@ -245,9 +251,34 @@
     const spellSlotColumns = Array.from(document.querySelectorAll('[data-spell-slot-column]'));
     const subclassAnchor = document.querySelector('[data-subclass-anchor]');
     const featureList = document.querySelector('[data-feature-list]');
+    const baseFeatures = Array.from(document.querySelectorAll('[data-base-feature]'));
+    const subclassOnlyToggle = document.querySelector('[data-subclass-only-toggle]');
+    const subclassOnlyCheck = document.querySelector('[data-subclass-only-check]');
     let stateAnimationTimer = null;
+    let subclassOnlyMode = false;
+    let currentSlug = '';
+
+    if (subclassOnlyCheck) {
+      subclassOnlyCheck.addEventListener('change', () => {
+        subclassOnlyMode = subclassOnlyCheck.checked;
+        if (subclassOnlyToggle) {
+          subclassOnlyToggle.classList.toggle('border-[var(--spark)]', subclassOnlyMode);
+          subclassOnlyToggle.classList.toggle('bg-[var(--spark)]/10', subclassOnlyMode);
+          subclassOnlyToggle.classList.toggle('text-[var(--spark)]', subclassOnlyMode);
+        }
+        applyBaseFeatureVisibility();
+      });
+    }
+
+    function applyBaseFeatureVisibility() {
+      const hideBase = subclassOnlyMode && currentSlug;
+      baseFeatures.forEach(el => {
+        el.classList.toggle('hidden', hideBase);
+      });
+    }
 
     function setSubclass(slug, initial = false) {
+      currentSlug = slug;
       const anchorTop = subclassAnchor ? subclassAnchor.getBoundingClientRect().top : null;
       const previousFeatureHeight = featureList ? featureList.offsetHeight : 0;
       if (!initial && featureList && previousFeatureHeight) {
@@ -266,6 +297,18 @@
         button.classList.toggle('border-[var(--stroke)]', !active);
         button.classList.toggle('text-[var(--muted)]', !active);
       });
+
+      // Show/hide the "Só Subclasse" toggle based on whether a subclass is selected
+      if (subclassOnlyToggle) {
+        subclassOnlyToggle.classList.toggle('hidden', !slug);
+        subclassOnlyToggle.classList.toggle('flex', Boolean(slug));
+        if (!slug) {
+          // Reset only-subclass mode when going back to Base
+          subclassOnlyMode = false;
+          if (subclassOnlyCheck) subclassOnlyCheck.checked = false;
+          subclassOnlyToggle.classList.remove('border-[var(--spark)]', 'bg-[var(--spark)]/10', 'text-[var(--spark)]');
+        }
+      }
 
       subclassContents.forEach(element => {
         element.classList.toggle('hidden', !slug || element.dataset.subclassSlug !== slug);
@@ -290,6 +333,9 @@
         spellSlotsRow?.classList.toggle('hidden', visibleSpellSlots === 0);
         spellSlotsHeader.colSpan = Math.max(visibleSpellSlots, 1);
       }
+
+      // Apply base feature visibility based on subclass-only mode
+      applyBaseFeatureVisibility();
 
       if (!initial && anchorTop !== null) {
         requestAnimationFrame(() => {

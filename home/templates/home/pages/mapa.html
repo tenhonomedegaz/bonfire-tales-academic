@@ -522,6 +522,7 @@ function extractMarkdownBrief(markdown) {
       continue;
     }
     if (/^##\s+/.test(trimmed)) break;
+    if (/^-{3,}\s*$/.test(trimmed)) break;
     if (trimmed && !trimmed.startsWith('#')) parts.push(trimmed);
   }
   const result = (parts.length ? parts.join(' ') : '').trim();
@@ -1177,23 +1178,20 @@ function startDrawHole() {
     map.on('pm:drawend', _cleanupCutListeners);
 }
 
-function applyChaikinRecursive(coordsArray, iterations) {
-    if (coordsArray.length > 0 && coordsArray[0] instanceof L.LatLng) {
-        if (coordsArray.length < 3) return coordsArray;
-        let newCoords = coordsArray;
-        for (let iter = 0; iter < iterations; iter++) {
-            const tempCoords = [];
-            for (let i = 0; i < newCoords.length; i++) {
-                const p1 = newCoords[i];
-                const p2 = newCoords[(i + 1) % newCoords.length];
-                tempCoords.push([0.75 * p1.lat + 0.25 * p2.lat, 0.75 * p1.lng + 0.25 * p2.lng]);
-                tempCoords.push([0.25 * p1.lat + 0.75 * p2.lat, 0.25 * p1.lng + 0.75 * p2.lng]);
-            }
-            newCoords = tempCoords.map(c => L.latLng(c[0], c[1]));
+function applyChaikinToRing(ring, iterations) {
+    if (!ring || ring.length < 3) return ring;
+    let newCoords = ring;
+    for (let iter = 0; iter < iterations; iter++) {
+        const tempCoords = [];
+        for (let i = 0; i < newCoords.length; i++) {
+            const p1 = newCoords[i];
+            const p2 = newCoords[(i + 1) % newCoords.length];
+            tempCoords.push(L.latLng(0.75 * p1.lat + 0.25 * p2.lat, 0.75 * p1.lng + 0.25 * p2.lng));
+            tempCoords.push(L.latLng(0.25 * p1.lat + 0.75 * p2.lat, 0.25 * p1.lng + 0.75 * p2.lng));
         }
-        return newCoords;
+        newCoords = tempCoords;
     }
-    return coordsArray.map(arr => applyChaikinRecursive(arr, iterations));
+    return newCoords;
 }
 
 function countVertices(coordsArray) {
@@ -1201,6 +1199,34 @@ function countVertices(coordsArray) {
         return coordsArray.length;
     }
     return coordsArray.reduce((acc, arr) => acc + countVertices(arr), 0);
+}
+
+function collectSharedVertices(territoryName) {
+    const shared = new Set();
+    let targetCoords = [];
+    territoryPolygonsLayer.eachLayer(l => {
+        if (l._bonfireTerritory && l._bonfireTerritory.nome === territoryName) {
+            const polys = getOuterRingsWithParents(l.getLatLngs());
+            polys.forEach(p => targetCoords.push(...p.outerRing));
+        }
+    });
+    territoryPolygonsLayer.eachLayer(l => {
+        if (l._bonfireTerritory && l._bonfireTerritory.nome !== territoryName) {
+            const polys = getOuterRingsWithParents(l.getLatLngs());
+            for (const p of polys) {
+                for (const ring of p.parentPolygon) {
+                    for (const pt of ring) {
+                        for (const tc of targetCoords) {
+                            if (Math.abs(tc.lat - pt.lat) < 1.0 && Math.abs(tc.lng - pt.lng) < 1.0) {
+                                shared.add(`${tc.lat}|${tc.lng}`);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    });
+    return shared;
 }
 
 function applyChaikin(territoryName = activeTerritory, silent = false) {
@@ -1221,21 +1247,54 @@ function applyChaikin(territoryName = activeTerritory, silent = false) {
         return;
     }
 
+    const sharedKeys = collectSharedVertices(territoryName);
+
     targetLayers.forEach(targetLayer => {
         const rings = targetLayer.getLatLngs();
-        const totalVertices = countVertices(rings);
+        const polys = getOuterRingsWithParents(rings);
 
-        if (totalVertices > 400) {
-            showToast('Um dos polígonos é muito complexo. Suavização bloqueada para evitar travamento.', 'error');
-            return;
+        for (const poly of polys) {
+            const outerRing = poly.outerRing;
+            const outerVertices = countVertices([outerRing]);
+
+            if (outerVertices > 400) {
+                showToast('Polígono muito complexo. Suavização bloqueada.', 'error');
+                return;
+            }
+
+            let iterations = 3;
+            if (outerVertices > 100) iterations = 2;
+            if (outerVertices > 250) iterations = 1;
+
+            // Save original positions of shared border vertices
+            const frozenPositions = [];
+            for (let i = 0; i < outerRing.length; i++) {
+                const key = `${outerRing[i].lat}|${outerRing[i].lng}`;
+                if (sharedKeys.has(key)) {
+                    frozenPositions.push({ index: i, lat: outerRing[i].lat, lng: outerRing[i].lng });
+                }
+            }
+
+            // Smooth only the outer ring
+            const smoothed = applyChaikinToRing(outerRing, iterations);
+            // Replace outer ring in-place
+            poly.parentPolygon[0] = smoothed;
+
+            // Snap smoothed vertices back to frozen shared positions
+            for (const frozen of frozenPositions) {
+                let bestDist = Infinity;
+                let bestIdx = -1;
+                for (let j = 0; j < smoothed.length; j++) {
+                    const d = Math.abs(smoothed[j].lat - frozen.lat) + Math.abs(smoothed[j].lng - frozen.lng);
+                    if (d < bestDist) { bestDist = d; bestIdx = j; }
+                }
+                if (bestIdx >= 0) {
+                    smoothed[bestIdx] = L.latLng(frozen.lat, frozen.lng);
+                }
+            }
+            // Inner rings (holes) are preserved as-is at indices 1+
         }
-
-        let iterations = 3;
-        if (totalVertices > 100) iterations = 2;
-        if (totalVertices > 250) iterations = 1;
-
-        const newRings = applyChaikinRecursive(rings, iterations);
-        targetLayer.setLatLngs(newRings);
+        targetLayer.setLatLngs(rings);
     });
     
     recalculateTerritoryCoords(territoryName);
@@ -1262,6 +1321,9 @@ function optimizePolygon(territoryName = activeTerritory, silent = false) {
     });
     
     if (targetLayers.length === 0) return;
+
+    // Collect shared border vertices to protect them
+    const sharedKeys = collectSharedVertices(territoryName);
     
     let removedCount = 0;
     
@@ -1270,86 +1332,53 @@ function optimizePolygon(territoryName = activeTerritory, silent = false) {
         let polygons = getOuterRingsWithParents(rings);
         
         for (const poly of polygons) {
-            let coords = poly.outerRing;
-            if (coords.length <= 3) continue;
-            
-            const points = coords.map((c, idx) => {
-                let p = map.project(c, map.getMaxZoom());
-                p._originalIndex = idx;
-                return p;
-            });
-            
-            let proxyKept = [];
-            if (points.length > 0) {
-                proxyKept.push(points[0]);
-                for (let i = 1; i < points.length; i++) {
-                    if (points[i].distanceTo(proxyKept[proxyKept.length - 1]) >= 3) {
-                        proxyKept.push(points[i]);
-                    }
-                }
-            }
-            
-            // Usa o algoritmo Ramer-Douglas-Peucker nativo do Leaflet para simplificar
-            // Mantém perfeitamente o formato da curva, removendo apenas lixo colinear.
-            const simplified = L.LineUtil.simplify(proxyKept, 5);
-            const keptIndices = new Set(simplified.map(p => p._originalIndex));
-            
-            let toRemove = new Set();
-            for (let i = 0; i < coords.length; i++) {
-                if (!keptIndices.has(i)) {
-                    toRemove.add(i);
-                }
-            }
-            
-            if (coords.length - toRemove.size < 3) {
-                toRemove.clear(); // Proteção contra colapso do polígono
-            }
-            
-            if (toRemove.size > 0) {
-                // Prepare neighbors outside the loop for efficiency and sync
-                let neighbors = [];
-                territoryPolygonsLayer.eachLayer(other => {
-                    if (other._bonfireTerritory && other._bonfireTerritory.nome !== territoryName) {
-                        neighbors.push({
-                            layer: other,
-                            rings: other.getLatLngs(),
-                            changed: false
-                        });
-                    }
+            // Process each ring (outer + holes)
+            for (let ringIdx = 0; ringIdx < poly.parentPolygon.length; ringIdx++) {
+                let coords = poly.parentPolygon[ringIdx];
+                if (coords.length <= 3) continue;
+                
+                const points = coords.map((c, idx) => {
+                    let p = map.project(c, map.getMaxZoom());
+                    p._originalIndex = idx;
+                    p._isShared = sharedKeys.has(`${c.lat}|${c.lng}`);
+                    return p;
                 });
                 
-                // Sync removal with neighbors
-                for (const i of toRemove) {
-                    const deadVertex = coords[i];
-                    for (let neighbor of neighbors) {
-                        let otherPolys = getOuterRingsWithParents(neighbor.rings);
-                        for (let op of otherPolys) {
-                            for (let ring of op.parentPolygon) {
-                                for (let j = ring.length - 1; j >= 0; j--) {
-                                    // Use 1.0 margin because L.CRS.Simple values are basically pixels
-                                    if (Math.abs(ring[j].lat - deadVertex.lat) < 1.0 && Math.abs(ring[j].lng - deadVertex.lng) < 1.0) {
-                                        ring.splice(j, 1);
-                                        neighbor.changed = true;
-                                        break; // Only delete one exact point on this ring per deleted active point
-                                    }
-                                }
-                            }
+                // Remove duplicate near-zero-distance points
+                let proxyKept = [];
+                if (points.length > 0) {
+                    proxyKept.push(points[0]);
+                    for (let i = 1; i < points.length; i++) {
+                        if (points[i].distanceTo(proxyKept[proxyKept.length - 1]) >= 3) {
+                            proxyKept.push(points[i]);
                         }
                     }
                 }
                 
-                // Apply changes to neighbors ONLY ONCE after syncing all removals
-                for (let neighbor of neighbors) {
-                    if (neighbor.changed) {
-                        neighbor.layer.setLatLngs(neighbor.rings);
-                        recalculateTerritoryCoords(neighbor.layer._bonfireTerritory.nome);
+                const simplified = L.LineUtil.simplify(proxyKept, 5);
+                const keptIndices = new Set(simplified.map(p => p._originalIndex));
+                
+                let toRemove = new Set();
+                for (let i = 0; i < coords.length; i++) {
+                    if (!keptIndices.has(i)) {
+                        // Never remove shared border vertices
+                        const key = `${coords[i].lat}|${coords[i].lng}`;
+                        if (!sharedKeys.has(key)) {
+                            toRemove.add(i);
+                        }
                     }
                 }
                 
-                let sortedRemove = Array.from(toRemove).sort((a,b)=>b-a);
-                for (const i of sortedRemove) {
-                    coords.splice(i, 1);
-                    removedCount++;
+                if (coords.length - toRemove.size < 3) {
+                    toRemove.clear();
+                }
+                
+                if (toRemove.size > 0) {
+                    let sortedRemove = Array.from(toRemove).sort((a,b) => b - a);
+                    for (const i of sortedRemove) {
+                        coords.splice(i, 1);
+                        removedCount++;
+                    }
                 }
             }
         }
@@ -1492,7 +1521,9 @@ function autoAlignPolygon(territoryName = activeTerritory, silent = false) {
         changed = true;
     }
     
-    // Inject missing vertices into OTHER polygons so active can snap
+    // Phase 1: Collect all vertex injections needed for OTHER polygons
+    // (so target vertices can snap to other edges)
+    const otherInjections = new Map(); // otherCoords array ref -> [{insertIndex, newLatLng}]
     for (const targetLayer of targetLayers) {
         let targetPolygons = getOuterRingsWithParents(targetLayer.getLatLngs());
         for (const targetPoly of targetPolygons) {
@@ -1508,6 +1539,14 @@ function autoAlignPolygon(territoryName = activeTerritory, silent = false) {
                     let otherPolygons = getOuterRingsWithParents(other.getLatLngs());
                     for (const otherPoly of otherPolygons) {
                         for (const otherCoords of otherPoly.parentPolygon) {
+                            // Check if vertex already exists nearby
+                            let alreadyExists = false;
+                            for (let k = 0; k < otherCoords.length; k++) {
+                                const sp = map.project(otherCoords[k], map.getMaxZoom());
+                                if (p1.distanceTo(sp) < 5) { alreadyExists = true; break; }
+                            }
+                            if (alreadyExists) continue;
+
                             for (let j = 0; j < otherCoords.length; j++) {
                                 const nextJ = (j + 1) % otherCoords.length;
                                 const sp1 = map.project(otherCoords[j], map.getMaxZoom());
@@ -1534,14 +1573,29 @@ function autoAlignPolygon(territoryName = activeTerritory, silent = false) {
                     }
                 }
                 if (injectionData) {
-                    injectionData.otherCoords.splice(injectionData.insertIndex, 0, injectionData.newLatLng);
+                    if (!otherInjections.has(injectionData.otherCoords)) {
+                        otherInjections.set(injectionData.otherCoords, []);
+                    }
+                    otherInjections.get(injectionData.otherCoords).push({
+                        insertIndex: injectionData.insertIndex,
+                        newLatLng: injectionData.newLatLng
+                    });
                     otherLayersModified.add(injectionData.otherLayer);
                 }
             }
         }
     }
 
-    // Inject missing vertices into ACTIVE polygon so it can snap to OTHERs corners
+    // Apply all other-polygon injections in reverse order to prevent index shifts
+    for (const [coordsArr, injections] of otherInjections) {
+        injections.sort((a, b) => b.insertIndex - a.insertIndex);
+        for (const inj of injections) {
+            coordsArr.splice(inj.insertIndex, 0, inj.newLatLng);
+        }
+    }
+
+    // Phase 2: Collect all vertex injections needed for TARGET polygon
+    const targetInjections = new Map();
     for (const other of otherLayers) {
         let otherPolygons = getOuterRingsWithParents(other.getLatLngs());
         for (const otherPoly of otherPolygons) {
@@ -1557,6 +1611,14 @@ function autoAlignPolygon(territoryName = activeTerritory, silent = false) {
                         let targetPolygons = getOuterRingsWithParents(targetLayer.getLatLngs());
                         for (const targetPoly of targetPolygons) {
                             const coords = targetPoly.outerRing;
+                            // Check if vertex already exists nearby
+                            let alreadyExists = false;
+                            for (let k = 0; k < coords.length; k++) {
+                                const sp = map.project(coords[k], map.getMaxZoom());
+                                if (pOther.distanceTo(sp) < 5) { alreadyExists = true; break; }
+                            }
+                            if (alreadyExists) continue;
+
                             for (let i = 0; i < coords.length; i++) {
                                 const nextI = (i + 1) % coords.length;
                                 const sp1 = map.project(coords[i], map.getMaxZoom());
@@ -1581,11 +1643,25 @@ function autoAlignPolygon(territoryName = activeTerritory, silent = false) {
                         }
                     }
                     if (injectionData) {
-                        injectionData.coordsArray.splice(injectionData.insertIndex, 0, injectionData.newLatLng);
+                        if (!targetInjections.has(injectionData.coordsArray)) {
+                            targetInjections.set(injectionData.coordsArray, []);
+                        }
+                        targetInjections.get(injectionData.coordsArray).push({
+                            insertIndex: injectionData.insertIndex,
+                            newLatLng: injectionData.newLatLng
+                        });
                         changed = true;
                     }
                 }
             }
+        }
+    }
+
+    // Apply all target-polygon injections in reverse order
+    for (const [coordsArr, injections] of targetInjections) {
+        injections.sort((a, b) => b.insertIndex - a.insertIndex);
+        for (const inj of injections) {
+            coordsArr.splice(inj.insertIndex, 0, inj.newLatLng);
         }
     }
 
@@ -1624,7 +1700,7 @@ function autoAlignPolygon(territoryName = activeTerritory, silent = false) {
         }
         
         if (changed) {
-            targetLayer.setLatLngs(targetLayer.getLatLngs()); // Trigger refresh
+            targetLayer.setLatLngs(targetLayer.getLatLngs());
         }
     }
 
@@ -1649,11 +1725,30 @@ function autoAlignPolygon(territoryName = activeTerritory, silent = false) {
             showToast('Não consegui identificar o território cortado.', 'error');
             return;
         }
-        bindTerritoryLayer(layer, territoryName);
         if (originalLayer) territoryPolygonsLayer.removeLayer(originalLayer);
-        territoryPolygonsLayer.addLayer(layer);
+
+        // Geoman may return a LayerGroup when the cut splits the polygon
+        const layers = (layer instanceof L.LayerGroup) ? layer.getLayers() : [layer];
+        let addedCount = 0;
+        for (const subLayer of layers) {
+            if (subLayer instanceof L.Polygon || subLayer instanceof L.LayerGroup) {
+                // If it's a nested LayerGroup, flatten
+                const innerLayers = (subLayer instanceof L.LayerGroup) ? subLayer.getLayers() : [subLayer];
+                for (const inner of innerLayers) {
+                    if (inner instanceof L.Polygon) {
+                        bindTerritoryLayer(inner, territoryName);
+                        territoryPolygonsLayer.addLayer(inner);
+                        addedCount++;
+                    }
+                }
+            }
+        }
         recalculateTerritoryCoords(territoryName);
-        showToast('Buraco cortado com sucesso!', 'success');
+        if (addedCount > 1) {
+            showToast(`Polígono dividido em ${addedCount} partes!`, 'success');
+        } else {
+            showToast('Buraco cortado com sucesso!', 'success');
+        }
     });
 
 document.getElementById('sidebarToggle').onclick = () => {

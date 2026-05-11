@@ -34,6 +34,7 @@ body { overflow: hidden !important; }
   display: flex;
   flex-direction: column;
   min-width: 0;
+  overflow: hidden;
   z-index: 20;
 }
 @media (max-width: 1100px) {
@@ -58,6 +59,7 @@ body { overflow: hidden !important; }
   background: var(--bg0);
   border-bottom: 1px solid var(--stroke);
   display: grid;
+  flex-shrink: 0;
   gap: .75rem;
   padding: .8rem;
 }
@@ -168,6 +170,7 @@ body { overflow: hidden !important; }
 }
 .map-index {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding: .8rem;
 }
@@ -267,6 +270,7 @@ body { overflow: hidden !important; }
 .map-sidebar-footer {
   background: var(--bg0);
   border-top: 1px solid var(--stroke);
+  flex-shrink: 0;
   padding: .9rem;
   text-align: center;
 }
@@ -773,10 +777,13 @@ body { overflow: hidden !important; }
   background: var(--bg0);
   border-top: 1px solid var(--stroke);
   display: flex;
-  gap: .5rem;
-  padding: .75rem;
+  flex-shrink: 0;
   flex-wrap: wrap;
+  gap: .5rem;
   justify-content: center;
+  max-height: 40vh;
+  overflow-y: auto;
+  padding: .75rem;
 }
 .admin-btn {
   background: var(--bg2);
