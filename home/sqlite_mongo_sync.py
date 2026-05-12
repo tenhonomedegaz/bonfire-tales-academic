@@ -33,6 +33,8 @@ def serialize_sqlite_value(value):
         return str(value)
     if isinstance(value, bytes):
         return value.hex()
+    if isinstance(value, (list, dict, tuple)):
+        return json.dumps(value, ensure_ascii=False, default=str)
     return value
 
 
@@ -307,7 +309,7 @@ def mongo_collection_to_sqlite(collection_name, namespace=DEFAULT_NAMESPACE):
             for document in collection.find({}):
                 document = serialize_document(document)
                 row = {
-                    column: document.get(column)
+                    column: serialize_sqlite_value(document.get(column))
                     for column in columns
                     if column in document
                 }
