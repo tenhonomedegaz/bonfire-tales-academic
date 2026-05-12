@@ -88,7 +88,7 @@ class TbClasse(models.Model):
 
     class Meta:
 
-        managed = False
+        managed = True
 
         db_table = 'TB_Classe'
         verbose_name = 'Classe'
@@ -121,7 +121,7 @@ class TbClassehabilidade(models.Model):
 
     class Meta:
 
-        managed = False
+        managed = True
 
         db_table = 'TB_ClasseHabilidade'
         verbose_name = 'Habilidade de Classe'
@@ -185,7 +185,7 @@ class TbRecursoclasse(models.Model):
 
     class Meta:
 
-        managed = False
+        managed = True
 
         db_table = 'TB_RecursoClasse'
         verbose_name = 'Recurso de Classe'
@@ -214,7 +214,7 @@ class TbSubclasse(models.Model):
 
     class Meta:
 
-        managed = False
+        managed = True
 
         db_table = 'TB_Subclasse'
         verbose_name = 'Subclasse'
@@ -623,3 +623,23 @@ class TbItemMagico(models.Model):
 
     def __str__(self):
         return f"[{self.get_raridade_display()}] {self.nome}"
+
+
+class UserProfile(models.Model):
+    user = models.OneToOneField('auth.User', on_delete=models.CASCADE, related_name='profile')
+    avatar_url = models.CharField(db_column='AvatarUrl', max_length=500, blank=True, null=True, help_text='URL da imagem de perfil.')
+
+    class Meta:
+        db_table = 'TB_UserProfile'
+        verbose_name = 'Perfil de Usuário'
+        verbose_name_plural = 'Perfis de Usuários'
+
+    def __str__(self):
+        return f"Perfil de {self.user.username}"
+
+
+@receiver(post_save, sender='auth.User')
+def create_user_profile(sender, instance, created, **kwargs):
+    if created:
+        UserProfile.objects.get_or_create(user=instance)
+

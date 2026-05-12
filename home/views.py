@@ -368,6 +368,66 @@ def register_view(request):
     })
 
 
+@login_required(login_url='/login/')
+def profile_view(request):
+    from .models import UserProfile
+    from django.contrib.auth import update_session_auth_hash
+
+    user = request.user
+    profile, _ = UserProfile.objects.get_or_create(user=user)
+
+    messages = []
+    errors = []
+
+    if request.method == 'POST':
+        action = request.POST.get('action', '')
+
+        if action == 'update_profile':
+            new_username = request.POST.get('username', '').strip()
+            new_avatar = request.POST.get('avatar_url', '').strip()
+
+            if new_username and new_username != user.username:
+                User = get_user_model()
+                if User.objects.filter(username=new_username).exclude(pk=user.pk).exists():
+                    errors.append('Esse nome de usuário já está em uso.')
+                elif len(new_username) < 3:
+                    errors.append('O nome de usuário deve ter pelo menos 3 caracteres.')
+                elif len(new_username) > 30:
+                    errors.append('O nome de usuário deve ter no máximo 30 caracteres.')
+                else:
+                    user.username = new_username
+                    user.save()
+                    messages.append('Nome de usuário atualizado!')
+
+            profile.avatar_url = new_avatar or None
+            profile.save()
+            if not errors:
+                messages.append('Perfil salvo com sucesso!')
+
+        elif action == 'change_password':
+            current_password = request.POST.get('current_password', '')
+            new_password = request.POST.get('new_password', '')
+            confirm_password = request.POST.get('confirm_password', '')
+
+            if not user.check_password(current_password):
+                errors.append('A senha atual está incorreta.')
+            elif len(new_password) < 6:
+                errors.append('A nova senha deve ter pelo menos 6 caracteres.')
+            elif new_password != confirm_password:
+                errors.append('As senhas não coincidem.')
+            else:
+                user.set_password(new_password)
+                user.save()
+                update_session_auth_hash(request, user)
+                messages.append('Senha alterada com sucesso!')
+
+    return render(request, 'home/pages/perfil.html', {
+        'profile': profile,
+        'success_messages': messages,
+        'error_messages': errors,
+    })
+
+
 def classes_view(request):
     try:
         return _mongo_classes_view(request)

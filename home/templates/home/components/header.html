@@ -213,12 +213,21 @@
             
             <div class="hidden min-[1100px]:block relative group/user">
                 <button class="flex items-center gap-2 px-4 py-1.5 rounded-sm border border-[var(--stroke)] bg-[var(--bg0)] text-[var(--text)] hover:border-[var(--ember)] transition-all focus:outline-none shadow-[0_0_10px_rgba(210,23,23,0.1)]">
+                    {% if user_profile.avatar_url %}
+                    <img src="{{ user_profile.avatar_url }}" alt="" class="w-5 h-5 rounded-full object-cover border border-[var(--stroke)]" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-[var(--ember)]" style="display:none;"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    {% else %}
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-[var(--ember)]"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    {% endif %}
                     <span class="font-bold text-sm">{{ user.username }}</span>
                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="opacity-50 group-hover/user:rotate-180 transition-transform"><path d="m6 9 6 6 6-6"/></svg>
                 </button>
                 <div class="hidden group-hover/user:block absolute right-0 top-full pt-2 w-48 z-50 animate-fade-in-down origin-top">
                     <div class="bg-[var(--bg1)] border border-[var(--stroke)] shadow-2xl rounded p-2 flex flex-col gap-1">
+                        <a href="{% url 'profile' %}" class="flex items-center justify-center gap-2 px-3 py-2 text-sm font-bold text-[var(--text)] hover:bg-[var(--bg0)] rounded-sm transition-all">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                            Meu Perfil
+                        </a>
                         {% if user.is_superuser %}
                         <a href="/admin/" target="_blank" class="flex items-center justify-center gap-2 px-3 py-2 text-sm font-bold text-white bg-gradient-to-r from-[var(--flame)] to-[var(--ember)] rounded-sm hover:brightness-110 transition-all shadow-[0_0_15px_rgba(210,23,23,0.3)] hover:shadow-[0_0_20px_rgba(210,23,23,0.6)]">
                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
@@ -283,9 +292,18 @@
                 <div class="grid gap-1 px-3 pb-3 pt-1 border-l-2 border-[var(--ember)]/20 ml-5 mt-1 mobile-cat-enter">
                   {% if user.is_authenticated %}
                     <div class="mb-2 p-2 rounded bg-[var(--bg0)] flex items-center gap-2">
+                        {% if user_profile.avatar_url %}
+                        <img src="{{ user_profile.avatar_url }}" alt="" class="w-6 h-6 rounded-full object-cover border border-[var(--stroke)]" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                        <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse" style="display:none;"></div>
+                        {% else %}
                         <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                        {% endif %}
                         <span class="text-xs font-bold text-[var(--text)] truncate">{{ user.username }}</span>
                     </div>
+                    <a href="{% url 'profile' %}" class="flex items-center gap-2 p-2 text-sm font-bold text-[var(--text)] hover:bg-[var(--bg0)] rounded-sm transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        Meu Perfil
+                    </a>
                     {% if user.is_superuser %}
                     <a href="/admin/" target="_blank" class="flex items-center gap-2 p-2 text-sm font-bold text-white bg-gradient-to-r from-[var(--flame)] to-[var(--ember)] rounded-sm">
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>

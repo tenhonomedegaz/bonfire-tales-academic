@@ -1,0 +1,251 @@
+/* =============================================
+   PERFIL DE USUÁRIO
+   ============================================= */
+
+.profile-page {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 2rem 0;
+}
+
+/* --- Header do perfil --- */
+.profile-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.25rem;
+    padding: 2.5rem 2rem;
+    background: var(--bg1);
+    border: 1px solid var(--stroke);
+    border-radius: 8px;
+    margin-bottom: 2rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.profile-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(to right, var(--flame), var(--ember));
+}
+
+.profile-avatar-wrapper {
+    position: relative;
+    width: 96px;
+    height: 96px;
+    border-radius: 50%;
+    border: 3px solid var(--stroke);
+    overflow: hidden;
+    background: var(--bg0);
+    box-shadow: 0 0 20px rgba(210, 23, 23, 0.15);
+    transition: border-color 0.3s;
+}
+
+.profile-avatar-wrapper:hover {
+    border-color: var(--ember);
+}
+
+.profile-avatar-wrapper img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.profile-avatar-fallback {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+}
+
+.profile-username {
+    font-family: 'Cinzel', serif;
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: 0.05em;
+}
+
+.profile-role {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 0.25rem 0.75rem;
+    border-radius: 3px;
+    background: var(--bg0);
+    border: 1px solid var(--stroke);
+    color: var(--muted);
+}
+
+.profile-role.is-staff {
+    background: linear-gradient(135deg, var(--flame), var(--ember));
+    border: none;
+    color: #fff;
+    box-shadow: 0 0 12px rgba(210, 23, 23, 0.3);
+}
+
+/* --- Cards / Seções --- */
+.profile-section {
+    background: var(--bg1);
+    border: 1px solid var(--stroke);
+    border-radius: 8px;
+    padding: 1.75rem;
+    margin-bottom: 1.5rem;
+    transition: border-color 0.3s;
+}
+
+.profile-section:hover {
+    border-color: color-mix(in srgb, var(--stroke) 70%, var(--ember));
+}
+
+.profile-section-title {
+    font-family: 'Cinzel', serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ember);
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--stroke);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.profile-field {
+    margin-bottom: 1.15rem;
+}
+
+.profile-field:last-of-type {
+    margin-bottom: 0;
+}
+
+.profile-label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--muted);
+    margin-bottom: 0.4rem;
+    letter-spacing: 0.02em;
+}
+
+.profile-input {
+    width: 100%;
+    padding: 0.6rem 0.85rem;
+    background: var(--bg0);
+    border: 1px solid var(--stroke);
+    border-radius: 4px;
+    color: var(--text);
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.profile-input:focus {
+    border-color: var(--ember);
+    box-shadow: 0 0 0 2px rgba(242, 112, 7, 0.15);
+}
+
+.profile-input::placeholder {
+    color: var(--muted);
+    opacity: 0.5;
+}
+
+/* Avatar preview inline */
+.avatar-preview-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+
+.avatar-preview-small {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 2px solid var(--stroke);
+    object-fit: cover;
+    background: var(--bg0);
+    flex-shrink: 0;
+}
+
+.avatar-preview-hint {
+    font-size: 0.75rem;
+    color: var(--muted);
+    opacity: 0.7;
+}
+
+/* Botão */
+.profile-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.6rem 1.5rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #fff;
+    background: linear-gradient(135deg, var(--flame), var(--ember));
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 1rem;
+    transition: filter 0.2s, box-shadow 0.2s;
+    box-shadow: 0 0 12px rgba(210, 23, 23, 0.2);
+}
+
+.profile-btn:hover {
+    filter: brightness(1.15);
+    box-shadow: 0 0 20px rgba(210, 23, 23, 0.4);
+}
+
+/* Toasts */
+.profile-toast {
+    padding: 0.65rem 1rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    animation: profile-toast-in 0.35s ease-out;
+}
+
+.profile-toast.success {
+    background: rgba(34, 197, 94, 0.1);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    color: #22c55e;
+}
+
+.profile-toast.error {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #ef4444;
+}
+
+@keyframes profile-toast-in {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Responsivo */
+@media (max-width: 640px) {
+    .profile-page {
+        padding: 1rem 0;
+    }
+    .profile-header {
+        padding: 1.5rem 1rem;
+    }
+    .profile-section {
+        padding: 1.25rem;
+    }
+}

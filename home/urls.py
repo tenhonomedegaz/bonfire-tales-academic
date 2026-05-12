@@ -6,6 +6,7 @@ urlpatterns = [
     path('cadastro/', views.register_view, name='register'),
     path('login/', auth_views.LoginView.as_view(template_name='home/login.html', authentication_form=views.EmailOrUsernameAuthenticationForm), name='login'),
     path('logout/', auth_views.LogoutView.as_view(next_page='/'), name='logout'),
+    path('perfil/', views.profile_view, name='profile'),
     path('wiki/talentos/<int:talent_id>/editar/', views.wiki_update_talent, name='wiki_update_talent'),
     path('wiki/habilidades-classe/<int:feature_id>/editar/', views.wiki_update_class_feature, name='wiki_update_class_feature'),
     path('wiki/tracos-raciais/<int:trait_id>/editar/', views.wiki_update_racial_trait, name='wiki_update_racial_trait'),
