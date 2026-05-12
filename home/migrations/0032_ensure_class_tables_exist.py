@@ -46,7 +46,7 @@ def ensure_tables_exist(apps, schema_editor):
                 "Nome" varchar(100) NOT NULL,
                 "Slug" varchar(100) NOT NULL UNIQUE,
                 "Tagline" text NULL,
-                "Id_Classe_id" integer NULL REFERENCES "TB_Classe" ("Id_Classe") DEFERRABLE INITIALLY DEFERRED
+                "Id_Classe" integer NULL REFERENCES "TB_Classe" ("Id_Classe") DEFERRABLE INITIALLY DEFERRED
             )
         """)
 
@@ -58,8 +58,8 @@ def ensure_tables_exist(apps, schema_editor):
                 "Descricao" text NULL,
                 "NivelAdquirido" integer NOT NULL DEFAULT 0,
                 "TableOnly" bool NOT NULL DEFAULT 0,
-                "Id_Classe_id" integer NULL REFERENCES "TB_Classe" ("Id_Classe") DEFERRABLE INITIALLY DEFERRED,
-                "Id_Subclasse_id" integer NULL REFERENCES "TB_Subclasse" ("Id_Subclasse") DEFERRABLE INITIALLY DEFERRED
+                "Id_Classe" integer NULL REFERENCES "TB_Classe" ("Id_Classe") DEFERRABLE INITIALLY DEFERRED,
+                "Id_Subclasse" integer NULL REFERENCES "TB_Subclasse" ("Id_Subclasse") DEFERRABLE INITIALLY DEFERRED
             )
         """)
 
@@ -71,8 +71,8 @@ def ensure_tables_exist(apps, schema_editor):
                 "Slug" varchar(100) NOT NULL,
                 "Nivel" integer NOT NULL DEFAULT 0,
                 "Valor" varchar(100) NULL,
-                "Id_Classe_id" integer NULL REFERENCES "TB_Classe" ("Id_Classe") DEFERRABLE INITIALLY DEFERRED,
-                "Id_Subclasse_id" integer NULL REFERENCES "TB_Subclasse" ("Id_Subclasse") DEFERRABLE INITIALLY DEFERRED
+                "Id_Classe" integer NULL REFERENCES "TB_Classe" ("Id_Classe") DEFERRABLE INITIALLY DEFERRED,
+                "Id_Subclasse" integer NULL REFERENCES "TB_Subclasse" ("Id_Subclasse") DEFERRABLE INITIALLY DEFERRED
             )
         """)
 

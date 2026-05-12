@@ -120,7 +120,7 @@ WSGI_APPLICATION = 'bonfire.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'bonfas_classes.db',
+        'NAME': os.environ.get('BONFIRE_SQLITE_PATH') or BASE_DIR / 'bonfas_classes.db',
     }
 }
 

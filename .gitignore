@@ -16,6 +16,11 @@ dist-ssr
 staticfiles/
 AI_CONTEXT_DO_NOT_COMMIT.md
 bonfas_classes.db
+bonfas_classes.db.*
+*.sqlite3
+*.db
+*.db-*
+*.db.*
 __pycache__/
 *.pyc
 

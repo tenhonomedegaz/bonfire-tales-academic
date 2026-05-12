@@ -3,6 +3,28 @@
 from django.db import migrations, models
 
 
+def ensure_legacy_option_tables(apps, schema_editor):
+    existing_tables = schema_editor.connection.introspection.table_names()
+    with schema_editor.connection.cursor() as cursor:
+        if "TB_OpcaoJogo" not in existing_tables:
+            cursor.execute("""
+                CREATE TABLE "TB_OpcaoJogo" (
+                    "Id_Opcao" integer NOT NULL PRIMARY KEY AUTOINCREMENT,
+                    "Nome" varchar(100) NOT NULL,
+                    "Slug" varchar(100) NOT NULL UNIQUE,
+                    "Tipo" varchar(100) NOT NULL,
+                    "Descricao" text NULL
+                )
+            """)
+
+        if "TB_AcessoOpcao" not in existing_tables:
+            cursor.execute("""
+                CREATE TABLE "TB_AcessoOpcao" (
+                    "Id_AcessoOpcao" integer NOT NULL PRIMARY KEY AUTOINCREMENT
+                )
+            """)
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -10,6 +32,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        migrations.RunPython(ensure_legacy_option_tables, migrations.RunPython.noop),
         migrations.AlterModelOptions(
             name='tbacessoopcao',
             options={'managed': True, 'verbose_name': 'Acesso de Opção', 'verbose_name_plural': 'Acessos de Opções'},

@@ -39,13 +39,23 @@ echo.
 
 REM === Coletar arquivos estaticos ===
 echo  [2/4] Preparando arquivos do site...
-.venv\Scripts\python.exe manage.py collectstatic --noinput >nul 2>&1
+.venv\Scripts\python.exe manage.py collectstatic --noinput
+if %ERRORLEVEL% NEQ 0 (
+    echo  [ERRO] Falha ao preparar arquivos estaticos.
+    pause
+    exit /b 1
+)
 echo         Arquivos prontos.
 echo.
 
 REM === Migracoes ===
 echo  [3/4] Verificando banco de dados...
-.venv\Scripts\python.exe manage.py migrate --noinput >nul 2>&1
+.venv\Scripts\python.exe manage.py migrate --noinput
+if %ERRORLEVEL% NEQ 0 (
+    echo  [ERRO] Falha ao aplicar migracoes do banco.
+    pause
+    exit /b 1
+)
 echo         Banco de dados OK.
 echo.
 
