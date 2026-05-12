@@ -798,7 +798,7 @@ class TalentoBulkConfirmForm(forms.Form):
 class ClasseBulkImportForm(forms.Form):
     classe = forms.ModelChoiceField(
         label="Classe",
-        queryset=TbClasse.objects.all().order_by("nome"),
+        queryset=TbClasse.objects.none(),
         help_text="Classe que recebera os recursos e habilidades do arquivo.",
     )
     arquivo = forms.FileField(
@@ -811,6 +811,10 @@ class ClasseBulkImportForm(forms.Form):
         initial=True,
         help_text="Recursos: classe/subclasse/nivel/nome. Habilidades: classe/subclasse/nivel/nome.",
     )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['classe'].queryset = TbClasse.objects.all().order_by("nome")
 
     def clean_arquivo(self):
         uploaded = self.cleaned_data["arquivo"]
