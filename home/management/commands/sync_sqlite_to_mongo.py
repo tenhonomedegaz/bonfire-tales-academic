@@ -29,6 +29,11 @@ class Command(BaseCommand):
             action="store_true",
             help="Confirma escrita real no Mongo. Sem isso o comando fica em dry-run.",
         )
+        parser.add_argument(
+            "--delete-missing",
+            action="store_true",
+            help="Remove documentos do Mongo ausentes no SQLite. Perigoso se o SQLite estiver vazio.",
+        )
 
     def handle(self, *args, **options):
         namespace = options["namespace"].strip() or "site_sqlite"
@@ -58,7 +63,11 @@ class Command(BaseCommand):
             if dry_run:
                 row_count = self._count_rows(table_name)
             else:
-                row_count = sqlite_table_to_mongo(table_name, namespace=namespace)
+                row_count = sqlite_table_to_mongo(
+                    table_name,
+                    namespace=namespace,
+                    delete_missing=options["delete_missing"],
+                )
             collection_name = mongo_safe_collection(namespace, table_name)
             self.stdout.write(
                 f"{table_name} -> {collection_name}: {row_count} registros"

@@ -25,7 +25,7 @@ if %ERRORLEVEL% NEQ 0 (
     exit /b 1
 )
 
-.venv\Scripts\python.exe manage.py sync_mongo_to_sqlite --bidirectional --confirm-merge
+.venv\Scripts\python.exe manage.py sync_mongo_to_sqlite
 if %ERRORLEVEL% NEQ 0 (
     echo [ERRO] Falha na sincronizacao. O backup local foi preservado.
     pause

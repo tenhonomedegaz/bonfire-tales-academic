@@ -28,6 +28,11 @@ class Command(BaseCommand):
             action="store_true",
             help="Confirma sincronizacao bidirecional, que pode preservar conflitos como duplicatas.",
         )
+        parser.add_argument(
+            "--delete-missing",
+            action="store_true",
+            help="Remove do SQLite registros ausentes no Mongo. Nao use em recuperacao de banco.",
+        )
 
     def handle(self, *args, **options):
         namespace = options["namespace"].strip() or "site_sqlite"
@@ -39,7 +44,11 @@ class Command(BaseCommand):
 
         try:
             if options["bidirectional"]:
-                result = bidirectional_sync(namespace=namespace, backup=not options["skip_generic_backup"])
+                result = bidirectional_sync(
+                    namespace=namespace,
+                    backup=not options["skip_generic_backup"],
+                    delete_missing=options["delete_missing"],
+                )
                 pull_results = result["pull"]
                 backup_total = result["backup_total"]
                 push_results = result["push"]
@@ -47,6 +56,7 @@ class Command(BaseCommand):
                 pull_results, backup_total = mongo_to_sqlite(
                     namespace=namespace,
                     backup=not options["skip_generic_backup"],
+                    delete_missing=options["delete_missing"],
                 )
                 push_results = {}
         except BotMongoUnavailable as exc:

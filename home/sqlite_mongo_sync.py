@@ -14,6 +14,15 @@ from .bot_mongo import get_bot_database, serialize_document
 DEFAULT_NAMESPACE = "site_sqlite"
 MONGO_BACKUP_TABLE = "MongoBackupDocument"
 SYNC_LOCK = threading.Lock()
+DJANGO_SYNC_TABLES = {
+    "django_admin_log",
+    "django_session",
+    "auth_group",
+    "auth_group_permissions",
+    "auth_user",
+    "auth_user_groups",
+    "auth_user_user_permissions",
+}
 
 
 def mongo_safe_collection(namespace, table_name):
@@ -52,10 +61,19 @@ def normalized_row(row):
 
 
 def table_names():
+    def should_sync(table_name):
+        if table_name == MONGO_BACKUP_TABLE:
+            return False
+        if table_name.startswith("TB_"):
+            return True
+        if table_name in DJANGO_SYNC_TABLES:
+            return True
+        return False
+
     return [
         table_name
         for table_name in connection.introspection.table_names()
-        if table_name != MONGO_BACKUP_TABLE and table_name.startswith("TB_")
+        if should_sync(table_name)
     ]
 
 
@@ -167,7 +185,7 @@ def update_or_insert_row(cursor, table_name, row, pk_columns):
     insert_row(cursor, table_name, row)
 
 
-def sqlite_table_to_mongo(table_name, namespace=DEFAULT_NAMESPACE, database=None):
+def sqlite_table_to_mongo(table_name, namespace=DEFAULT_NAMESPACE, database=None, delete_missing=False):
     if database is None:
         database = get_bot_database()
     collection_name = mongo_safe_collection(namespace, table_name)
@@ -202,11 +220,12 @@ def sqlite_table_to_mongo(table_name, namespace=DEFAULT_NAMESPACE, database=None
         }
         collection.replace_one({"_id": pk}, document, upsert=True)
 
-    collection.delete_many({
-        "_source": "django_sqlite",
-        "_sqlite_table": table_name,
-        "_id": {"$nin": current_ids},
-    })
+    if delete_missing and current_ids:
+        collection.delete_many({
+            "_source": "django_sqlite",
+            "_sqlite_table": table_name,
+            "_id": {"$nin": current_ids},
+        })
     return len(rows)
 
 
@@ -274,18 +293,23 @@ def delete_sqlite_instance_from_mongo(instance, namespace=DEFAULT_NAMESPACE, dat
         collection.delete_one({"_id": pk_id})
 
 
-def sqlite_to_mongo(namespace=DEFAULT_NAMESPACE, selected_tables=None):
+def sqlite_to_mongo(namespace=DEFAULT_NAMESPACE, selected_tables=None, delete_missing=False):
     database = get_bot_database()
     selected = set(selected_tables or [])
     copied = {}
     for table_name in table_names():
         if selected and table_name not in selected:
             continue
-        copied[table_name] = sqlite_table_to_mongo(table_name, namespace=namespace, database=database)
+        copied[table_name] = sqlite_table_to_mongo(
+            table_name,
+            namespace=namespace,
+            database=database,
+            delete_missing=delete_missing,
+        )
     return copied
 
 
-def mongo_collection_to_sqlite(collection_name, namespace=DEFAULT_NAMESPACE):
+def mongo_collection_to_sqlite(collection_name, namespace=DEFAULT_NAMESPACE, delete_missing=False):
     table_name = sqlite_table_from_collection(collection_name, namespace)
     if not table_name or table_name not in table_names():
         return {"table": table_name, "inserted": 0, "updated": 0, "conflicts": 0, "skipped": True}
@@ -337,7 +361,7 @@ def mongo_collection_to_sqlite(collection_name, namespace=DEFAULT_NAMESPACE):
                 else:
                     inserted += 1
 
-            if pk_column:
+            if delete_missing and pk_column and mongo_pks:
                 cursor.execute(f'SELECT "{pk_column}" FROM "{table_name}"')
                 sqlite_pks = set(r[0] for r in cursor.fetchall())
                 to_delete = sqlite_pks - mongo_pks
@@ -403,21 +427,29 @@ def backup_all_mongo_documents_to_sqlite():
     return total
 
 
-def mongo_to_sqlite(namespace=DEFAULT_NAMESPACE, backup=True):
+def mongo_to_sqlite(namespace=DEFAULT_NAMESPACE, backup=True, delete_missing=False):
     database = get_bot_database()
     results = {}
     for collection_name in sorted(database.list_collection_names()):
         if not collection_name.startswith(f"{namespace}_"):
             continue
-        results[collection_name] = mongo_collection_to_sqlite(collection_name, namespace=namespace)
+        results[collection_name] = mongo_collection_to_sqlite(
+            collection_name,
+            namespace=namespace,
+            delete_missing=delete_missing,
+        )
     backup_total = backup_all_mongo_documents_to_sqlite() if backup else 0
     return results, backup_total
 
 
-def bidirectional_sync(namespace=DEFAULT_NAMESPACE, backup=True):
+def bidirectional_sync(namespace=DEFAULT_NAMESPACE, backup=True, delete_missing=False):
     with SYNC_LOCK:
-        pull_results, backup_total = mongo_to_sqlite(namespace=namespace, backup=backup)
-        push_results = sqlite_to_mongo(namespace=namespace)
+        pull_results, backup_total = mongo_to_sqlite(
+            namespace=namespace,
+            backup=backup,
+            delete_missing=delete_missing,
+        )
+        push_results = sqlite_to_mongo(namespace=namespace, delete_missing=delete_missing)
     return {
         "pull": pull_results,
         "backup_total": backup_total,

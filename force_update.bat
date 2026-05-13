@@ -74,10 +74,20 @@ if exist "%DB_BACKUP%" (
 )
 
 echo.
-echo [5/5] Aplicando migracoes do Django...
+echo [5/6] Aplicando migracoes do Django...
 .venv\Scripts\python.exe manage.py migrate --noinput
 if errorlevel 1 (
     echo [ERRO] O update terminou, mas as migracoes falharam.
+    echo        O banco local foi preservado. Veja o erro acima.
+    pause
+    exit /b 1
+)
+
+echo.
+echo [6/6] Restaurando dados do Mongo para o SQLite...
+.venv\Scripts\python.exe manage.py sync_mongo_to_sqlite
+if errorlevel 1 (
+    echo [ERRO] O update terminou, mas a restauracao Mongo -> SQLite falhou.
     echo        O banco local foi preservado. Veja o erro acima.
     pause
     exit /b 1
