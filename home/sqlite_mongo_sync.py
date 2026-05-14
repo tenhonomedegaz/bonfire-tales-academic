@@ -221,11 +221,7 @@ def sqlite_table_to_mongo(table_name, namespace=DEFAULT_NAMESPACE, database=None
         collection.replace_one({"_id": pk}, document, upsert=True)
 
     if delete_missing and current_ids:
-        collection.delete_many({
-            "_source": "django_sqlite",
-            "_sqlite_table": table_name,
-            "_id": {"$nin": current_ids},
-        })
+        collection.delete_many({"_id": {"$nin": current_ids}})
     return len(rows)
 
 
