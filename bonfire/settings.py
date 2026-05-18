@@ -117,12 +117,26 @@ WSGI_APPLICATION = 'bonfire.wsgi.application'
 
 
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.environ.get('BONFIRE_SQLITE_PATH') or BASE_DIR / 'bonfas_classes.db',
+_db_engine = os.environ.get('DB_ENGINE', '').strip()
+
+if _db_engine and _db_engine != 'django.db.backends.sqlite3':
+    DATABASES = {
+        'default': {
+            'ENGINE': _db_engine,
+            'NAME': os.environ.get('DB_NAME', 'postgres'),
+            'USER': os.environ.get('DB_USER', 'postgres'),
+            'PASSWORD': os.environ.get('DB_PASSWORD', ''),
+            'HOST': os.environ.get('DB_HOST', 'localhost'),
+            'PORT': os.environ.get('DB_PORT', '5432'),
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': os.environ.get('BONFIRE_SQLITE_PATH') or BASE_DIR / 'bonfas_classes.db',
+        }
+    }
 
 
 
