@@ -15,10 +15,13 @@ def ensure_tables_exist(apps, schema_editor):
 
     cursor = connection.cursor()
 
+    autoincrement = 'SERIAL PRIMARY KEY' if connection.vendor == 'postgresql' else 'integer NOT NULL PRIMARY KEY AUTOINCREMENT'
+    boolean_false = 'FALSE' if connection.vendor == 'postgresql' else '0'
+
     if 'TB_Classe' not in existing_tables:
-        cursor.execute("""
+        cursor.execute(f"""
             CREATE TABLE "TB_Classe" (
-                "Id_Classe" integer NOT NULL PRIMARY KEY AUTOINCREMENT,
+                "Id_Classe" {autoincrement},
                 "Nome" varchar(100) NOT NULL,
                 "Slug" varchar(100) NOT NULL UNIQUE,
                 "Tagline" text NULL,
@@ -40,9 +43,9 @@ def ensure_tables_exist(apps, schema_editor):
         """)
 
     if 'TB_Subclasse' not in existing_tables:
-        cursor.execute("""
+        cursor.execute(f"""
             CREATE TABLE "TB_Subclasse" (
-                "Id_Subclasse" integer NOT NULL PRIMARY KEY AUTOINCREMENT,
+                "Id_Subclasse" {autoincrement},
                 "Nome" varchar(100) NOT NULL,
                 "Slug" varchar(100) NOT NULL UNIQUE,
                 "Tagline" text NULL,
@@ -51,22 +54,22 @@ def ensure_tables_exist(apps, schema_editor):
         """)
 
     if 'TB_ClasseHabilidade' not in existing_tables:
-        cursor.execute("""
+        cursor.execute(f"""
             CREATE TABLE "TB_ClasseHabilidade" (
-                "Id_Habilidade" integer NOT NULL PRIMARY KEY AUTOINCREMENT,
+                "Id_Habilidade" {autoincrement},
                 "Nome" varchar(100) NOT NULL,
                 "Descricao" text NULL,
                 "NivelAdquirido" integer NOT NULL DEFAULT 0,
-                "TableOnly" bool NOT NULL DEFAULT 0,
+                "TableOnly" boolean NOT NULL DEFAULT {boolean_false},
                 "Id_Classe" integer NULL REFERENCES "TB_Classe" ("Id_Classe") DEFERRABLE INITIALLY DEFERRED,
                 "Id_Subclasse" integer NULL REFERENCES "TB_Subclasse" ("Id_Subclasse") DEFERRABLE INITIALLY DEFERRED
             )
         """)
 
     if 'TB_RecursoClasse' not in existing_tables:
-        cursor.execute("""
+        cursor.execute(f"""
             CREATE TABLE "TB_RecursoClasse" (
-                "Id_Recurso" integer NOT NULL PRIMARY KEY AUTOINCREMENT,
+                "Id_Recurso" {autoincrement},
                 "Nome" varchar(100) NOT NULL,
                 "Slug" varchar(100) NOT NULL,
                 "Nivel" integer NOT NULL DEFAULT 0,
