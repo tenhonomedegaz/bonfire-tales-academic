@@ -123,7 +123,7 @@ def mongo_collections_view(request):
 
     context = {
         **admin.site.each_context(request),
-        "title": "Mongo do Bot",
+        "title": "PostgreSQL",
         "collections": collections,
         "mongo_error": mongo_error,
         "database_name": database_name,
@@ -182,7 +182,7 @@ def mongo_collection_detail_view(request, collection_name):
 
     context = {
         **admin.site.each_context(request),
-        "title": f"Mongo: {collection_name}",
+        "title": f"PostgreSQL: {collection_name}",
         "collection_name": collection_name,
         "table_columns": table_columns,
         "table_rows": table_rows,

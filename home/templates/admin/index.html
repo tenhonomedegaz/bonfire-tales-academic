@@ -19,53 +19,50 @@
     <div class="app-mongo module">
       <table style="width: 100%;">
         <caption>
-          <a href="{% url 'admin:mongo_collections' %}" class="section" title="Collections Mongo" style="width:100%;">Mongo</a>
+          <a href="{% url 'admin:mongo_collections' %}" class="section" title="Tabelas PostgreSQL" style="width:100%;">PostgreSQL</a>
         </caption>
         <tr>
           <td colspan="3">
             <p class="mongo-dashboard-note">
-              As collections do site ficam separadas das collections originais do bot. Use o editor do Mongo com cuidado nas collections do bot.
+              Navegador de todas as tabelas do banco configurado pelo Django.
             </p>
           </td>
         </tr>
-        <tr><th colspan="3">Banco do Site</th></tr>
+        <tr><th colspan="3">Tabelas do Site</th></tr>
         {% for col in mongo_cols %}
-          {% if col|mongo_kind:'site' %}
+          {% if col|mongo_kind:'app' %}
           <tr class="model-{{ col.name }}">
             <th scope="row">
               <a href="{% url 'admin:mongo_collection_detail' col.name %}">{{ col.name }}<span class="mongo-count">({{ col.count }})</span></a>
             </th>
-            <td style="width:78px; text-align:center;"><a href="{% url 'admin:mongo_document_edit' %}?collection={{ col.name }}" class="addlink">Adicionar</a></td>
             <td style="width:78px; text-align:center;"><a href="{% url 'admin:mongo_collection_detail' col.name %}" class="changelink">Alterar</a></td>
           </tr>
           {% endif %}
         {% endfor %}
-        <tr><th colspan="3">Banco Original do Bot</th></tr>
+        <tr><th colspan="3">Tabelas do Bot</th></tr>
         {% for col in mongo_cols %}
           {% if col|mongo_kind:'bot' %}
           <tr class="model-{{ col.name }}">
             <th scope="row">
               <a href="{% url 'admin:mongo_collection_detail' col.name %}">{{ col.name }}<span class="mongo-count">({{ col.count }})</span></a>
             </th>
-            <td style="width:78px; text-align:center;"><a href="{% url 'admin:mongo_document_edit' %}?collection={{ col.name }}" class="addlink">Adicionar</a></td>
             <td style="width:78px; text-align:center;"><a href="{% url 'admin:mongo_collection_detail' col.name %}" class="changelink">Alterar</a></td>
           </tr>
           {% endif %}
         {% endfor %}
-        <tr><th colspan="3">Outras Collections</th></tr>
+        <tr><th colspan="3">Tabelas do Django</th></tr>
         {% for col in mongo_cols %}
-          {% if col|mongo_kind:'other' %}
+          {% if col|mongo_kind:'django' %}
           <tr class="model-{{ col.name }}">
             <th scope="row">
               <a href="{% url 'admin:mongo_collection_detail' col.name %}">{{ col.name }}<span class="mongo-count">({{ col.count }})</span></a>
             </th>
-            <td style="width:78px; text-align:center;"><a href="{% url 'admin:mongo_document_edit' %}?collection={{ col.name }}" class="addlink">Adicionar</a></td>
             <td style="width:78px; text-align:center;"><a href="{% url 'admin:mongo_collection_detail' col.name %}" class="changelink">Alterar</a></td>
           </tr>
           {% endif %}
         {% endfor %}
         {% if not mongo_cols %}
-          <tr><td>Mongo indisponivel ou sem collections.</td></tr>
+          <tr><td>PostgreSQL indisponivel ou sem tabelas.</td></tr>
         {% endif %}
       </table>
     </div>

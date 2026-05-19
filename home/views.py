@@ -21,7 +21,7 @@ from django.db import transaction
 from django.utils.text import slugify
 from django.views.decorators.http import require_POST
 
-from .bot_mongo import BotMongoUnavailable, find_published_quests, get_bot_database, serialize_document
+from .bot_mongo import BotMongoUnavailable, find_published_quests, serialize_document
 from .models import (
     TbClasse,
     TbClassehabilidade,
@@ -96,7 +96,7 @@ class RelatedList(list):
 
 
 def _mongo_collection(key):
-    return get_bot_database()[SITE_COLLECTIONS[key]]
+    raise BotMongoUnavailable("Acesso Mongo legado foi removido; use PostgreSQL.")
 
 
 def _mongo_docs(key, sort=None, query=None):
@@ -429,10 +429,7 @@ def profile_view(request):
 
 
 def classes_view(request):
-    try:
-        return _mongo_classes_view(request)
-    except BotMongoUnavailable:
-        return _sqlite_classes_view(request)
+    return _sqlite_classes_view(request)
 
 
 def _sqlite_classes_view(request):
@@ -521,10 +518,7 @@ def _column_key(column):
 
 
 def classe_detail_view(request, slug):
-    try:
-        return _mongo_classe_detail_view(request, slug)
-    except BotMongoUnavailable:
-        return _sqlite_classe_detail_view(request, slug)
+    return _sqlite_classe_detail_view(request, slug)
 
 
 def _sqlite_classe_detail_view(request, slug):
@@ -973,10 +967,7 @@ def _mongo_classe_detail_view(request, slug):
 
 
 def racas_view(request):
-    try:
-        return _mongo_racas_view(request)
-    except BotMongoUnavailable:
-        return _sqlite_racas_view(request)
+    return _sqlite_racas_view(request)
 
 
 def _sqlite_racas_view(request):
@@ -997,10 +988,7 @@ def _sqlite_racas_view(request):
 
 
 def raca_detail_view(request, slug):
-    try:
-        return _mongo_raca_detail_view(request, slug)
-    except BotMongoUnavailable:
-        return _sqlite_raca_detail_view(request, slug)
+    return _sqlite_raca_detail_view(request, slug)
 
 
 def _sqlite_raca_detail_view(request, slug):

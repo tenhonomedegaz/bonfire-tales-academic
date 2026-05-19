@@ -2,7 +2,7 @@ import logging
 
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models.signals import post_save, post_delete, pre_save
+from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from django.utils.text import slugify
 
@@ -25,8 +25,6 @@ from .models import (
     TbTracoracial,
 )
 from .security import find_sql_danger
-from .sqlite_mongo_sync import sqlite_instance_to_mongo, delete_sqlite_instance_from_mongo
-from .bot_mongo import BotMongoUnavailable
 
 
 logger = logging.getLogger(__name__)
@@ -68,32 +66,6 @@ def block_dangerous_sql_text(sender, instance, **kwargs):
 
     if errors:
         raise ValidationError({"__all__": ["Texto bloqueado por conter comando SQL potencialmente destrutivo."]})
-
-
-@receiver(post_save)
-def auto_sync_mongo_on_save(sender, instance, **kwargs):
-    if sender not in SYNCED_MODELS:
-        return
-    try:
-        sqlite_instance_to_mongo(instance)
-    except BotMongoUnavailable as e:
-        logger.warning("MongoDB unavailable during post_save sync for %s: %s", sender.__name__, str(e))
-    except Exception as e:
-        logger.error("Error syncing %s to MongoDB: %s", sender.__name__, str(e), exc_info=True)
-
-
-@receiver(post_delete)
-def auto_sync_mongo_on_delete(sender, instance, **kwargs):
-    if sender not in SYNCED_MODELS:
-        return
-    try:
-        delete_sqlite_instance_from_mongo(instance)
-    except BotMongoUnavailable as e:
-        logger.warning("MongoDB unavailable during post_delete sync for %s: %s", sender.__name__, str(e))
-    except Exception as e:
-        logger.error("Error deleting %s from MongoDB: %s", sender.__name__, str(e), exc_info=True)
-
-
 
 
 def _unique_slug(base):

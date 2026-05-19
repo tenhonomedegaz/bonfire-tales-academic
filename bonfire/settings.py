@@ -3,6 +3,7 @@
 import importlib.util
 import os
 from pathlib import Path
+from urllib.parse import urlparse
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -118,8 +119,22 @@ WSGI_APPLICATION = 'bonfire.wsgi.application'
 
 
 _db_engine = os.environ.get('DB_ENGINE', '').strip()
+_postgres_url = os.environ.get('POSTGRES_URL', '').strip()
 
-if _db_engine and _db_engine != 'django.db.backends.sqlite3':
+if _postgres_url:
+    _parsed_db = urlparse(_postgres_url)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': (_parsed_db.path or '/postgres').lstrip('/'),
+            'USER': _parsed_db.username or 'postgres',
+            'PASSWORD': _parsed_db.password or '',
+            'HOST': _parsed_db.hostname or 'localhost',
+            'PORT': str(_parsed_db.port or 5432),
+            'OPTIONS': {'connect_timeout': int(os.environ.get('DB_CONNECT_TIMEOUT', '5'))},
+        }
+    }
+elif _db_engine and _db_engine != 'django.db.backends.sqlite3':
     DATABASES = {
         'default': {
             'ENGINE': _db_engine,
@@ -128,6 +143,7 @@ if _db_engine and _db_engine != 'django.db.backends.sqlite3':
             'PASSWORD': os.environ.get('DB_PASSWORD', ''),
             'HOST': os.environ.get('DB_HOST', 'localhost'),
             'PORT': os.environ.get('DB_PORT', '5432'),
+            'OPTIONS': {'connect_timeout': int(os.environ.get('DB_CONNECT_TIMEOUT', '5'))},
         }
     }
 else:
@@ -199,8 +215,6 @@ if _env_bool("DJANGO_USE_X_FORWARDED_PROTO", False):
 
 LOGIN_REDIRECT_URL = '/'
 
-BOT_MONGO_URI = os.environ.get('BOT_MONGO_URI') or os.environ.get('DATABASE_URL') or BOT_ENV.get('DATABASE_URL', '')
-BOT_MONGO_DATABASE = os.environ.get('BOT_MONGO_DATABASE') or BOT_ENV.get('DATABASE_NAME', '')
 BOT_MONGO_COLLECTIONS = {
     'quests': os.environ.get('BOT_MONGO_QUESTS_COLLECTION', 'rpg_quests'),
     'items': os.environ.get('BOT_MONGO_ITEMS_COLLECTION', 'rpg_items'),

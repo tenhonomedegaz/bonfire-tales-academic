@@ -1,5 +1,4 @@
 from django import template
-from django.conf import settings
 from home.bot_mongo import list_collection_summaries, BotMongoUnavailable
 
 register = template.Library()
@@ -21,4 +20,4 @@ def mongo_kind(collection, kind):
 
 @register.simple_tag
 def site_mongo_collection(key):
-    return getattr(settings, "SITE_MONGO_COLLECTIONS", {}).get(key, "")
+    return key

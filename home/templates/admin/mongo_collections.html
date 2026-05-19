@@ -7,27 +7,27 @@
 
   {% if mongo_error %}
   <div class="messagelist">
-    <div class="warning">Mongo indisponivel: {{ mongo_error }}</div>
+    <div class="warning">PostgreSQL indisponivel: {{ mongo_error }}</div>
   </div>
   {% else %}
   <p class="help">
     Database: <strong>{{ database_name|default:configured_database|default:"detectado automaticamente" }}</strong>.
-    As collections do site estao separadas das collections nativas do bot.
+    Tabelas do site, do bot e do Django no PostgreSQL.
   </p>
 
   <div class="module">
-    <h2>Banco do Site</h2>
+    <h2>Tabelas do Site</h2>
     <table>
       <thead>
         <tr>
-          <th>Collection</th>
-          <th>Documentos</th>
-          <th>Campos encontrados</th>
+          <th>Tabela</th>
+          <th>Registros</th>
+          <th>Colunas</th>
         </tr>
       </thead>
       <tbody>
         {% for collection in collections %}
-        {% if collection|mongo_kind:'site' %}
+        {% if collection|mongo_kind:'app' %}
         <tr>
           <th scope="row">
             <a href="{% url 'admin:mongo_collection_detail' collection.name %}">{{ collection.name }}</a>
@@ -37,7 +37,7 @@
             {% for key in collection.sample_keys %}
             <span class="admin-badge">{{ key }}</span>
             {% empty %}
-            <span class="admin-muted">Sem amostra</span>
+            <span class="admin-muted">Sem colunas</span>
             {% endfor %}
           </td>
         </tr>
@@ -48,13 +48,13 @@
   </div>
 
   <div class="module">
-    <h2>Banco Original do Bot</h2>
+    <h2>Tabelas do Bot</h2>
     <table>
       <thead>
         <tr>
-          <th>Collection</th>
-          <th>Documentos</th>
-          <th>Campos encontrados</th>
+          <th>Tabela</th>
+          <th>Registros</th>
+          <th>Colunas</th>
         </tr>
       </thead>
       <tbody>
@@ -74,23 +74,23 @@
   </div>
 
   <div class="module">
-    <h2>Outras Collections</h2>
+    <h2>Tabelas do Django</h2>
     <table>
       <thead>
         <tr>
-          <th>Collection</th>
-          <th>Documentos</th>
-          <th>Campos encontrados</th>
+          <th>Tabela</th>
+          <th>Registros</th>
+          <th>Colunas</th>
         </tr>
       </thead>
       <tbody>
         {% for collection in collections %}
-        {% if collection|mongo_kind:'other' %}
+        {% if collection|mongo_kind:'django' %}
         <tr>
           <th scope="row"><a href="{% url 'admin:mongo_collection_detail' collection.name %}">{{ collection.name }}</a></th>
           <td>{{ collection.count }}</td>
           <td>
-            {% for key in collection.sample_keys %}<span class="admin-badge">{{ key }}</span>{% empty %}<span class="admin-muted">Sem amostra</span>{% endfor %}
+            {% for key in collection.sample_keys %}<span class="admin-badge">{{ key }}</span>{% empty %}<span class="admin-muted">Sem colunas</span>{% endfor %}
           </td>
         </tr>
         {% endif %}
