@@ -4,84 +4,173 @@
 {% block extrastyle %}
 {{ block.super }}
 <style>
-    .log-container {
-        display: flex;
-        gap: 20px;
+    .console-grid {
+        display: grid;
+        gap: 18px;
+        grid-template-columns: minmax(340px, 0.8fr) minmax(420px, 1.2fr);
         margin-top: 20px;
     }
 
-    .log-panel {
-        flex: 1;
+    .console-panel {
         background: #1e1e1e;
+        border: 1px solid #333;
         border-radius: 8px;
-        padding: 15px;
+        padding: 16px;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-        display: flex;
-        flex-direction: column;
     }
 
-    .log-panel h2 {
-        color: #f27007;
-        margin-top: 0;
-        margin-bottom: 15px;
+    .console-panel h2 {
         border-bottom: 1px solid #333;
-        padding-bottom: 10px;
+        color: #f27007;
         font-family: monospace;
+        margin: 0 0 14px;
+        padding-bottom: 10px;
+    }
+
+    .console-form-row {
+        display: grid;
+        gap: 10px;
+        margin-bottom: 12px;
+    }
+
+    .console-form-row select,
+    .console-form-row input,
+    .console-form-row textarea {
+        background: #0b0b0b;
+        border: 1px solid #444;
+        border-radius: 4px;
+        box-sizing: border-box;
+        color: #f5f5f5;
+        font-family: "Courier New", Courier, monospace;
+        padding: 10px;
+        width: 100%;
+    }
+
+    .console-command textarea {
+        min-height: 90px;
+        resize: vertical;
+    }
+
+    .console-env textarea {
+        min-height: 360px;
+        resize: vertical;
+    }
+
+    .console-output,
+    .log-content,
+    .history-output {
+        background: #000;
+        border: 1px solid #222;
+        border-radius: 4px;
+        color: #0f0;
+        font-family: "Courier New", Courier, monospace;
+        font-size: 13px;
+        line-height: 1.4;
+        overflow: auto;
+        padding: 14px;
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+
+    .console-output {
+        max-height: 420px;
     }
 
     .log-content {
-        background: #000;
-        color: #0f0;
-        font-family: 'Courier New', Courier, monospace;
-        padding: 15px;
+        height: 360px;
+    }
+
+    .history-list {
+        display: grid;
+        gap: 12px;
+        max-height: 760px;
+        overflow: auto;
+        padding-right: 4px;
+    }
+
+    .history-item {
+        background: #121212;
+        border: 1px solid #333;
+        border-radius: 6px;
+        padding: 12px;
+    }
+
+    .history-meta {
+        color: #bbb;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 8px;
+    }
+
+    .history-command {
+        color: #fff;
+        font-family: "Courier New", Courier, monospace;
+        margin-bottom: 8px;
+    }
+
+    .history-output {
+        max-height: 180px;
+    }
+
+    .console-tabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 20px 0 0;
+    }
+
+    .console-tabs a,
+    .console-button {
+        background: #f27007;
+        border: none;
         border-radius: 4px;
-        overflow-y: auto;
-        height: 60vh;
-        white-space: pre-wrap;
-        word-wrap: break-word;
-        font-size: 13px;
-        line-height: 1.4;
+        color: white !important;
+        cursor: pointer;
+        display: inline-block;
+        font-weight: 700;
+        padding: 9px 14px;
+        text-decoration: none;
+    }
+
+    .console-button.secondary {
+        background: #444;
+    }
+
+    .console-note {
+        color: #cfcfcf;
+        margin: 0 0 12px;
     }
 
     .auth-container {
-        max-width: 400px;
-        margin: 50px auto;
         background: #fff;
-        padding: 30px;
         border-radius: 8px;
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        margin: 50px auto;
+        max-width: 400px;
+        padding: 30px;
     }
 
     .auth-container h2 {
-        margin-top: 0;
         color: #333;
+        margin-top: 0;
     }
 
     .auth-container input[type="password"] {
-        width: 100%;
-        padding: 10px;
-        margin: 15px 0;
         border: 1px solid #ccc;
         border-radius: 4px;
         box-sizing: border-box;
-    }
-
-    .auth-container button {
-        background: #f27007;
-        color: white;
-        border: none;
-        padding: 10px 15px;
-        border-radius: 4px;
-        cursor: pointer;
+        margin: 15px 0;
+        padding: 10px;
         width: 100%;
-        font-weight: bold;
     }
 
-    .auth-container button:hover {
-        background: #d65c00;
+    @media (max-width: 1100px) {
+        .console-grid {
+            grid-template-columns: 1fr;
+        }
     }
 
-    /* Adaptação para o tema escuro do admin django */
     body.theme-dark .auth-container {
         background: #2b2b2b;
     }
@@ -92,8 +181,8 @@
 
     body.theme-dark .auth-container input[type="password"] {
         background: #1e1e1e;
-        color: #fff;
         border-color: #444;
+        color: #fff;
     }
 </style>
 {% endblock %}
@@ -102,42 +191,117 @@
 <div id="content-main">
     {% if not is_authenticated %}
     <div class="auth-container">
-        <h2>Autenticação Segura</h2>
-        <p>Para visualizar os logs do servidor, informe a senha mestre.</p>
+        <h2>Autenticacao Segura</h2>
+        <p>Para visualizar logs, executar comandos e editar envs, informe a senha mestre.</p>
         <form method="post" autocomplete="off">
             {% csrf_token %}
-            <input type="password" name="server_password" placeholder="Senha do Servidor" required autofocus
-                autocomplete="new-password">
-            <button type="submit">Acessar Console</button>
+            <input type="hidden" name="action" value="authenticate">
+            <input type="password" name="server_password" placeholder="Senha do Servidor" required autofocus autocomplete="new-password">
+            <button type="submit" class="console-button">Acessar Console</button>
         </form>
     </div>
     {% else %}
-    <p>Estes são os logs mais recentes capturados em ambos os serviços.</p>
-    <form method="post" style="display:inline;" autocomplete="off">
-        {% csrf_token %}
-        <input type="hidden" name="server_password" value="{{ provided_password }}">
-        <button type="submit"
-            style="background:#f27007; color:white; border:none; padding:8px 15px; cursor:pointer; border-radius:4px;">Atualizar
-            Logs</button>
-    </form>
+    <p class="console-note">
+        Console administrativo para executar comandos nas pastas do site e do bot, acompanhar logs e alterar os arquivos <code>.env</code>.
+        Alteracoes de env geralmente exigem reiniciar o processo afetado.
+    </p>
 
-    <div class="log-container">
-        <div class="log-panel">
-            <h2>🌐 Django Site Log</h2>
-            <div class="log-content" id="site-log">{{ site_log }}</div>
-        </div>
+    <div class="console-grid">
+        <section class="console-panel console-command">
+            <h2>Comando</h2>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="run_command">
+                <div class="console-form-row">
+                    <label for="target">Pasta</label>
+                    <select id="target" name="target">
+                        {% for key, target in targets.items %}
+                        <option value="{{ key }}" {% if key == selected_target %}selected{% endif %}>{{ target.label }} - {{ target.path }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="console-form-row">
+                    <label for="command">Comando</label>
+                    <textarea id="command" name="command" spellcheck="false" placeholder="Ex.: git status">{{ command_text }}</textarea>
+                </div>
+                <button type="submit" class="console-button">Executar</button>
+                <button type="submit" name="action" value="refresh" class="console-button secondary">Atualizar logs</button>
+            </form>
 
-        <div class="log-panel">
-            <h2>🤖 Discord Bot Log</h2>
-            <div class="log-content" id="bot-log">{{ bot_log }}</div>
-        </div>
+            {% if command_result %}
+            <h2 style="margin-top:20px;">Resposta</h2>
+            <p class="console-note">
+                {{ command_result.target_label }} | codigo: {{ command_result.return_code }}
+            </p>
+            <div class="console-output">{{ command_result.output }}</div>
+            {% endif %}
+        </section>
+
+        <section class="console-panel">
+            <h2>Historico</h2>
+            <div class="history-list">
+                {% for item in history %}
+                <article class="history-item">
+                    <div class="history-meta">
+                        <span>{{ item.created_at }}</span>
+                        <span>{{ item.target_label }}</span>
+                        <span>codigo: {{ item.return_code }}</span>
+                    </div>
+                    <div class="history-command">$ {{ item.command }}</div>
+                    <div class="history-output">{{ item.output }}</div>
+                </article>
+                {% empty %}
+                <p class="console-note">Nenhum comando executado por aqui ainda.</p>
+                {% endfor %}
+            </div>
+        </section>
     </div>
+
+    <div class="console-grid">
+        <section class="console-panel">
+            <h2>Log do Site</h2>
+            <div class="log-content" id="site-log">{{ site_log }}</div>
+        </section>
+
+        <section class="console-panel">
+            <h2>Log do Bot</h2>
+            <div class="log-content" id="bot-log">{{ bot_log }}</div>
+        </section>
+    </div>
+
+    <div class="console-grid">
+        <section class="console-panel console-env">
+            <h2>.env do Site</h2>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="save_env">
+                <input type="hidden" name="env_target" value="site">
+                <div class="console-form-row">
+                    <textarea name="env_content" spellcheck="false">{{ site_env_content }}</textarea>
+                </div>
+                <button type="submit" class="console-button">Salvar .env do site</button>
+            </form>
+        </section>
+
+        <section class="console-panel console-env">
+            <h2>.env do Bot</h2>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="save_env">
+                <input type="hidden" name="env_target" value="bot">
+                <div class="console-form-row">
+                    <textarea name="env_content" spellcheck="false">{{ bot_env_content }}</textarea>
+                </div>
+                <button type="submit" class="console-button">Salvar .env do bot</button>
+            </form>
+        </section>
+    </div>
+
     <script>
-        // Auto-scroll to bottom
-        const siteLog = document.getElementById('site-log');
-        const botLog = document.getElementById('bot-log');
-        siteLog.scrollTop = siteLog.scrollHeight;
-        botLog.scrollTop = botLog.scrollHeight;
+        for (const id of ['site-log', 'bot-log']) {
+            const element = document.getElementById(id);
+            if (element) element.scrollTop = element.scrollHeight;
+        }
     </script>
     {% endif %}
 </div>

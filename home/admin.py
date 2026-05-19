@@ -1,7 +1,10 @@
-import json
+﻿import json
 import math
 import re
+import subprocess
 import unicodedata
+from datetime import datetime
+from pathlib import Path
 from urllib.parse import urlencode
 
 from django import forms
@@ -60,51 +63,200 @@ def markdown_editor_view(request):
     return render(request, "admin/markdown_editor.html", context)
 
 
+def _admin_console_paths():
+    site_dir = Path(settings.BASE_DIR).resolve()
+    bot_dir = Path(getattr(settings, "BOT_PROJECT_DIR", site_dir.parent / "bonfire-bot-main")).resolve()
+    return {
+        "site": {
+            "label": "Site Django",
+            "path": site_dir,
+            "env_path": site_dir / ".env",
+            "log_path": site_dir / "site_console.log",
+        },
+        "bot": {
+            "label": "Bot Discord",
+            "path": bot_dir,
+            "env_path": bot_dir / ".env",
+            "log_path": _latest_bot_log_path(bot_dir),
+        },
+    }
+
+
+def _latest_bot_log_path(bot_dir):
+    log_dir = bot_dir / "log"
+    if not log_dir.exists():
+        return None
+    log_files = list(log_dir.glob("*log-combined.log"))
+    if not log_files:
+        return None
+    return max(log_files, key=lambda item: item.stat().st_mtime)
+
+
+def _tail_file(path, lines=150, missing_message="Arquivo nao encontrado."):
+    if not path or not Path(path).exists():
+        return missing_message
+    try:
+        with Path(path).open("r", encoding="utf-8", errors="replace") as handle:
+            content = handle.readlines()
+    except OSError as exc:
+        return f"Erro ao ler arquivo: {exc}"
+    return "".join(content[-lines:]) if content else "Log vazio."
+
+
+def _console_history_path():
+    return Path(settings.BASE_DIR) / "admin_console_history.jsonl"
+
+
+def _append_console_history(entry):
+    entry = {
+        **entry,
+        "created_at": datetime.now().isoformat(timespec="seconds"),
+    }
+    with _console_history_path().open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(entry, ensure_ascii=False) + "\n")
+
+
+def _read_console_history(limit=40):
+    path = _console_history_path()
+    if not path.exists():
+        return []
+    try:
+        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+    except OSError:
+        return []
+    entries = []
+    for line in lines[-limit:]:
+        try:
+            entries.append(json.loads(line))
+        except json.JSONDecodeError:
+            continue
+    return list(reversed(entries))
+
+
+def _run_admin_console_command(target, command):
+    paths = _admin_console_paths()
+    target_info = paths.get(target)
+    if not target_info:
+        raise ValueError("Pasta alvo invalida.")
+    if not target_info["path"].exists():
+        raise FileNotFoundError(f"Pasta nao encontrada: {target_info['path']}")
+
+    completed = subprocess.run(
+        command,
+        cwd=target_info["path"],
+        shell=True,
+        text=True,
+        capture_output=True,
+        timeout=120,
+        encoding="utf-8",
+        errors="replace",
+    )
+    output = "\n".join(part for part in (completed.stdout, completed.stderr) if part).strip()
+    return completed.returncode, output or "Comando executado sem saida."
+
+
+def _read_env_content(path):
+    path = Path(path)
+    if not path.exists():
+        return ""
+    return path.read_text(encoding="utf-8", errors="replace")
+
+
+def _write_env_content(path, content):
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists():
+        backup = path.with_name(f"{path.name}.backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}")
+        backup.write_text(path.read_text(encoding="utf-8", errors="replace"), encoding="utf-8")
+    path.write_text(content.replace("\r\n", "\n"), encoding="utf-8")
+
+
 def server_logs_view(request):
-    import os
     from django.contrib.auth.hashers import check_password
+
+    console_paths = _admin_console_paths()
+    is_authenticated = bool(request.session.get("admin_console_authenticated"))
+    command_result = None
+    selected_target = request.POST.get("target") or request.GET.get("target") or "site"
 
     context = {
         **admin.site.each_context(request),
         "title": "Console do Servidor",
-        "is_authenticated": False,
-        "provided_password": "",
+        "is_authenticated": is_authenticated,
+        "targets": console_paths,
+        "selected_target": selected_target if selected_target in console_paths else "site",
+        "command_text": "",
+        "command_result": None,
     }
 
     if request.method == "POST":
-        password = request.POST.get("server_password", "")
-        expected_hash = getattr(settings, 'SERVER_LOGS_PASSWORD_HASH', '')
-        if check_password(password, expected_hash):
-            context["is_authenticated"] = True
-            context["provided_password"] = password
-            messages.success(request, "Acesso aos logs liberado.")
-        else:
-            messages.error(request, "Senha incorreta.")
-    
-    if context["is_authenticated"]:
-        site_log_path = os.path.join(settings.BASE_DIR, 'site_console.log')
-        if os.path.exists(site_log_path):
-            with open(site_log_path, 'r', encoding='utf-8') as f:
-                lines = f.readlines()
-                context["site_log"] = "".join(lines[-150:]) if lines else "Log vazio."
-        else:
-            context["site_log"] = "Arquivo site_console.log nao encontrado."
-
-        # Bot log
-        bot_log_dir = os.path.abspath(os.path.join(settings.BASE_DIR, '../bonfire-bot-main/log'))
-        bot_log_content = "Pasta de log do bot nao encontrada."
-        if os.path.exists(bot_log_dir):
-            import glob
-            log_files = glob.glob(os.path.join(bot_log_dir, '*log-combined.log'))
-            if log_files:
-                latest_log = max(log_files, key=os.path.getmtime)
-                with open(latest_log, 'r', encoding='utf-8') as f:
-                    lines = f.readlines()
-                    bot_log_content = "".join(lines[-150:]) if lines else "Log vazio."
+        action = request.POST.get("action", "refresh")
+        if action == "authenticate":
+            password = request.POST.get("server_password", "")
+            expected_hash = getattr(settings, 'SERVER_LOGS_PASSWORD_HASH', '')
+            if check_password(password, expected_hash):
+                request.session["admin_console_authenticated"] = True
+                context["is_authenticated"] = True
+                messages.success(request, "Acesso ao console liberado.")
             else:
-                bot_log_content = "Nenhum arquivo log-combined.log encontrado."
-        
-        context["bot_log"] = bot_log_content
+                messages.error(request, "Senha incorreta.")
+        elif not context["is_authenticated"]:
+            messages.error(request, "Autentique o console antes de continuar.")
+        elif action == "run_command":
+            command_text = request.POST.get("command", "").strip()
+            context["command_text"] = command_text
+            if not command_text:
+                messages.error(request, "Informe um comando para executar.")
+            else:
+                try:
+                    return_code, output = _run_admin_console_command(context["selected_target"], command_text)
+                    command_result = {
+                        "target": context["selected_target"],
+                        "target_label": console_paths[context["selected_target"]]["label"],
+                        "command": command_text,
+                        "return_code": return_code,
+                        "output": output[-12000:],
+                    }
+                    _append_console_history(command_result)
+                    if return_code == 0:
+                        messages.success(request, "Comando executado.")
+                    else:
+                        messages.warning(request, f"Comando terminou com codigo {return_code}.")
+                except Exception as exc:
+                    command_result = {
+                        "target": context["selected_target"],
+                        "target_label": console_paths.get(context["selected_target"], {}).get("label", context["selected_target"]),
+                        "command": command_text,
+                        "return_code": "erro",
+                        "output": str(exc),
+                    }
+                    _append_console_history(command_result)
+                    messages.error(request, f"Falha ao executar comando: {exc}")
+        elif action == "save_env":
+            env_target = request.POST.get("env_target", "site")
+            env_content = request.POST.get("env_content", "")
+            if env_target not in console_paths:
+                messages.error(request, "Env alvo invalido.")
+            else:
+                try:
+                    _write_env_content(console_paths[env_target]["env_path"], env_content)
+                    messages.success(request, f".env do {console_paths[env_target]['label']} salvo com backup automatico.")
+                except OSError as exc:
+                    messages.error(request, f"Falha ao salvar .env: {exc}")
+
+    if context["is_authenticated"]:
+        context["site_log"] = _tail_file(
+            console_paths["site"]["log_path"],
+            missing_message="Arquivo site_console.log nao encontrado.",
+        )
+        context["bot_log"] = _tail_file(
+            console_paths["bot"]["log_path"],
+            missing_message="Log do bot nao encontrado.",
+        )
+        context["history"] = _read_console_history()
+        context["command_result"] = command_result
+        context["site_env_content"] = _read_env_content(console_paths["site"]["env_path"])
+        context["bot_env_content"] = _read_env_content(console_paths["bot"]["env_path"])
 
     return render(request, "admin/server_logs.html", context)
 
@@ -127,7 +279,7 @@ def mongo_collections_view(request):
         "collections": collections,
         "mongo_error": mongo_error,
         "database_name": database_name,
-        "configured_database": getattr(settings, "BOT_MONGO_DATABASE", ""),
+        "configured_database": getattr(settings, "DB_NAME", ""),
     }
     return render(request, "admin/mongo_collections.html", context)
 
@@ -235,7 +387,7 @@ MONGO_EDITOR_SCHEMAS = {
 
 
 def _mongo_schema_for_collection(collection_name):
-    configured = getattr(settings, "SITE_MONGO_COLLECTIONS", {})
+    configured = getattr(settings, "SITE_POSTGRES_TABLES", {})
     for key, configured_name in configured.items():
         if configured_name == collection_name and key in MONGO_EDITOR_SCHEMAS:
             return MONGO_EDITOR_SCHEMAS[key]
@@ -389,9 +541,9 @@ def mongo_document_delete_view(request):
 
 
 SPELL_COLLECTION_KEY = "spells"
-SPELL_COLLECTION_NAME = getattr(settings, "SITE_MONGO_COLLECTIONS", {}).get(
+SPELL_COLLECTION_NAME = getattr(settings, "SITE_POSTGRES_TABLES", {}).get(
     SPELL_COLLECTION_KEY,
-    getattr(settings, "BOT_MONGO_COLLECTIONS", {}).get(SPELL_COLLECTION_KEY, "spells"),
+    getattr(settings, "BOT_POSTGRES_TABLES", {}).get(SPELL_COLLECTION_KEY, "spells"),
 )
 
 SPELL_HEADER_ALIASES = {

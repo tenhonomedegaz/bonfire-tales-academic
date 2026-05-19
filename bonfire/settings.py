@@ -1,10 +1,11 @@
-
+﻿
 
 import importlib.util
 import os
 from pathlib import Path
 from urllib.parse import urlparse
 
+from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -134,7 +135,7 @@ if _postgres_url:
             'OPTIONS': {'connect_timeout': int(os.environ.get('DB_CONNECT_TIMEOUT', '5'))},
         }
     }
-elif _db_engine and _db_engine != 'django.db.backends.sqlite3':
+elif _db_engine and _db_engine == 'django.db.backends.postgresql':
     DATABASES = {
         'default': {
             'ENGINE': _db_engine,
@@ -147,12 +148,9 @@ elif _db_engine and _db_engine != 'django.db.backends.sqlite3':
         }
     }
 else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': os.environ.get('BONFIRE_SQLITE_PATH') or BASE_DIR / 'bonfas_classes.db',
-        }
-    }
+    raise ImproperlyConfigured(
+        "PostgreSQL e obrigatorio. Defina POSTGRES_URL ou DB_ENGINE=django.db.backends.postgresql no .env."
+    )
 
 
 
@@ -215,39 +213,36 @@ if _env_bool("DJANGO_USE_X_FORWARDED_PROTO", False):
 
 LOGIN_REDIRECT_URL = '/'
 
-BOT_MONGO_COLLECTIONS = {
-    'quests': os.environ.get('BOT_MONGO_QUESTS_COLLECTION', 'rpg_quests'),
-    'items': os.environ.get('BOT_MONGO_ITEMS_COLLECTION', 'rpg_items'),
-    'dedicated_ranks': os.environ.get('BOT_MONGO_DEDICATED_RANKS_COLLECTION', 'dedicated-ranks'),
-    'jobs': os.environ.get('BOT_MONGO_JOBS_COLLECTION', 'discord_jobs'),
-    'store': os.environ.get('BOT_MONGO_STORE_COLLECTION', 'discord_bot_store'),
-    'spells': os.environ.get('BOT_MONGO_SPELLS_COLLECTION', 'spells'),
-    'backgrounds': os.environ.get('BOT_MONGO_BACKGROUNDS_COLLECTION', 'backgrounds'),
-    'bestiary': os.environ.get('BOT_MONGO_BESTIARY_COLLECTION', 'bestiary'),
-    'organizations': os.environ.get('BOT_MONGO_ORGANIZATIONS_COLLECTION', 'organizations'),
+BOT_POSTGRES_TABLES = {
+    'quests': os.environ.get('BOT_POSTGRES_QUESTS_TABLE', 'rpg_quests'),
+    'items': os.environ.get('BOT_POSTGRES_ITEMS_TABLE', 'rpg_items'),
+    'dedicated_ranks': os.environ.get('BOT_POSTGRES_DEDICATED_RANKS_TABLE', 'dedicated-ranks'),
+    'jobs': os.environ.get('BOT_POSTGRES_JOBS_TABLE', 'discord_jobs'),
+    'store': os.environ.get('BOT_POSTGRES_STORE_TABLE', 'discord_bot_store'),
+    'spells': os.environ.get('BOT_POSTGRES_SPELLS_TABLE', 'spells'),
+    'backgrounds': os.environ.get('BOT_POSTGRES_BACKGROUNDS_TABLE', 'backgrounds'),
+    'bestiary': os.environ.get('BOT_POSTGRES_BESTIARY_TABLE', 'bestiary'),
+    'organizations': os.environ.get('BOT_POSTGRES_ORGANIZATIONS_TABLE', 'organizations'),
 }
-SITE_MONGO_COLLECTIONS = {
-    'classes': os.environ.get('SITE_MONGO_CLASSES_COLLECTION', 'site_sqlite_TB_Classe'),
-    'subclasses': os.environ.get('SITE_MONGO_SUBCLASSES_COLLECTION', 'site_sqlite_TB_Subclasse'),
-    'class_features': os.environ.get('SITE_MONGO_CLASS_FEATURES_COLLECTION', 'site_sqlite_TB_ClasseHabilidade'),
-    'class_resources': os.environ.get('SITE_MONGO_CLASS_RESOURCES_COLLECTION', 'site_sqlite_TB_RecursoClasse'),
-    'races': os.environ.get('SITE_MONGO_RACES_COLLECTION', 'site_sqlite_TB_Raca'),
-    'lineages': os.environ.get('SITE_MONGO_LINEAGES_COLLECTION', 'site_sqlite_TB_Linhagem'),
-    'essences': os.environ.get('SITE_MONGO_ESSENCES_COLLECTION', 'site_sqlite_TB_Essencia'),
-    'racial_traits': os.environ.get('SITE_MONGO_RACIAL_TRAITS_COLLECTION', 'site_sqlite_TB_TracoRacial'),
-    'map_markers': os.environ.get('SITE_MONGO_MAP_MARKERS_COLLECTION', 'site_sqlite_TB_MapMarker'),
-    'regions': os.environ.get('SITE_MONGO_REGIONS_COLLECTION', 'site_sqlite_TB_Regiao'),
-    'territories': os.environ.get('SITE_MONGO_TERRITORIES_COLLECTION', 'site_sqlite_TB_Territorio'),
-    'talents': os.environ.get('SITE_MONGO_TALENTS_COLLECTION', 'site_sqlite_TB_Talento'),
-    'options': os.environ.get('SITE_MONGO_OPTIONS_COLLECTION', 'site_sqlite_TB_OpcaoJogo'),
-    'spells': os.environ.get('SITE_MONGO_SPELLS_COLLECTION', BOT_MONGO_COLLECTIONS['spells']),
-    'backgrounds': os.environ.get('SITE_MONGO_BACKGROUNDS_COLLECTION', BOT_MONGO_COLLECTIONS['backgrounds']),
-    'bestiary': os.environ.get('SITE_MONGO_BESTIARY_COLLECTION', BOT_MONGO_COLLECTIONS['bestiary']),
-    'organizations': os.environ.get('SITE_MONGO_ORGANIZATIONS_COLLECTION', BOT_MONGO_COLLECTIONS['organizations']),
+SITE_POSTGRES_TABLES = {
+    'classes': os.environ.get('SITE_POSTGRES_CLASSES_TABLE', 'home_tbclasse'),
+    'subclasses': os.environ.get('SITE_POSTGRES_SUBCLASSES_TABLE', 'home_tbsubclasse'),
+    'class_features': os.environ.get('SITE_POSTGRES_CLASS_FEATURES_TABLE', 'home_tbclassehabilidade'),
+    'class_resources': os.environ.get('SITE_POSTGRES_CLASS_RESOURCES_TABLE', 'home_tbrecursoclasse'),
+    'races': os.environ.get('SITE_POSTGRES_RACES_TABLE', 'home_tbraca'),
+    'lineages': os.environ.get('SITE_POSTGRES_LINEAGES_TABLE', 'home_tblinhagem'),
+    'essences': os.environ.get('SITE_POSTGRES_ESSENCES_TABLE', 'home_tbessencia'),
+    'racial_traits': os.environ.get('SITE_POSTGRES_RACIAL_TRAITS_TABLE', 'home_tbtracoracial'),
+    'map_markers': os.environ.get('SITE_POSTGRES_MAP_MARKERS_TABLE', 'home_tbmapmarker'),
+    'regions': os.environ.get('SITE_POSTGRES_REGIONS_TABLE', 'home_tbregiao'),
+    'territories': os.environ.get('SITE_POSTGRES_TERRITORIES_TABLE', 'home_tbterritorio'),
+    'talents': os.environ.get('SITE_POSTGRES_TALENTS_TABLE', 'home_tbtalento'),
+    'options': os.environ.get('SITE_POSTGRES_OPTIONS_TABLE', 'home_tbopcaojogo'),
+    'spells': os.environ.get('SITE_POSTGRES_SPELLS_TABLE', BOT_POSTGRES_TABLES['spells']),
+    'backgrounds': os.environ.get('SITE_POSTGRES_BACKGROUNDS_TABLE', BOT_POSTGRES_TABLES['backgrounds']),
+    'bestiary': os.environ.get('SITE_POSTGRES_BESTIARY_TABLE', BOT_POSTGRES_TABLES['bestiary']),
+    'organizations': os.environ.get('SITE_POSTGRES_ORGANIZATIONS_TABLE', BOT_POSTGRES_TABLES['organizations']),
 }
-SITE_MONGO_SYNC_ENABLED = False
-SITE_MONGO_SYNC_INTERVAL_SECONDS = int(os.environ.get('SITE_MONGO_SYNC_INTERVAL_SECONDS', '45'))
-SITE_MONGO_SYNC_NAMESPACE = os.environ.get('SITE_MONGO_SYNC_NAMESPACE', 'site_sqlite')
 
 
 # Logs Console Admin

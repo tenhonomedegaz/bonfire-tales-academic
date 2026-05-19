@@ -39,7 +39,7 @@ está ligado e o servidor está rodando, o site fica acessível pela internet.
 | `start_server.bat` | Inicia o servidor (clique duplo) |
 | `instalar_servidor.bat` | Instalação inicial (executar como admin, UMA VEZ) |
 | `.env` | Configurações do site (NÃO MEXA!) |
-| `bonfas_classes.db` | Banco de dados do site (NÃO APAGUE!) |
+| PostgreSQL | Banco de dados do site e do bot |
 
 ---
 

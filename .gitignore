@@ -15,6 +15,7 @@ dist-ssr
 .env.*
 staticfiles/
 AI_CONTEXT_DO_NOT_COMMIT.md
+admin_console_history.jsonl
 bonfas_classes.db
 bonfas_classes.db.*
 *.sqlite3

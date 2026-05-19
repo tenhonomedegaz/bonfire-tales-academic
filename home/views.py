@@ -1,4 +1,4 @@
-import json
+﻿import json
 import re
 import unicodedata
 from datetime import datetime, timezone as datetime_timezone
@@ -17,7 +17,7 @@ from django.templatetags.static import static
 from django.urls import reverse
 from django.utils.html import escape, format_html, format_html_join
 from django.utils import timezone
-from django.db import transaction
+from django.db import connection, transaction
 from django.utils.text import slugify
 from django.views.decorators.http import require_POST
 
@@ -45,23 +45,23 @@ from .security import validate_no_sql_danger
 
 
 SITE_COLLECTIONS = {
-    'classes': settings.SITE_MONGO_COLLECTIONS.get('classes', 'site_sqlite_TB_Classe'),
-    'subclasses': settings.SITE_MONGO_COLLECTIONS.get('subclasses', 'site_sqlite_TB_Subclasse'),
-    'class_features': settings.SITE_MONGO_COLLECTIONS.get('class_features', 'site_sqlite_TB_ClasseHabilidade'),
-    'class_resources': settings.SITE_MONGO_COLLECTIONS.get('class_resources', 'site_sqlite_TB_RecursoClasse'),
-    'races': settings.SITE_MONGO_COLLECTIONS.get('races', 'site_sqlite_TB_Raca'),
-    'lineages': settings.SITE_MONGO_COLLECTIONS.get('lineages', 'site_sqlite_TB_Linhagem'),
-    'essences': settings.SITE_MONGO_COLLECTIONS.get('essences', 'site_sqlite_TB_Essencia'),
-    'racial_traits': settings.SITE_MONGO_COLLECTIONS.get('racial_traits', 'site_sqlite_TB_TracoRacial'),
-    'map_markers': settings.SITE_MONGO_COLLECTIONS.get('map_markers', 'site_sqlite_TB_MapMarker'),
-    'regions': settings.SITE_MONGO_COLLECTIONS.get('regions', 'site_sqlite_TB_Regiao'),
-    'territories': settings.SITE_MONGO_COLLECTIONS.get('territories', 'site_sqlite_TB_Territorio'),
-    'talents': settings.SITE_MONGO_COLLECTIONS.get('talents', 'site_sqlite_TB_Talento'),
-    'options': settings.SITE_MONGO_COLLECTIONS.get('options', 'site_sqlite_TB_OpcaoJogo'),
-    'backgrounds': settings.SITE_MONGO_COLLECTIONS.get('backgrounds', 'backgrounds'),
-    'spells': settings.SITE_MONGO_COLLECTIONS.get('spells', 'spells'),
-    'bestiary': settings.SITE_MONGO_COLLECTIONS.get('bestiary', 'bestiary'),
-    'organizations': settings.SITE_MONGO_COLLECTIONS.get('organizations', 'organizations'),
+    'classes': settings.SITE_POSTGRES_TABLES.get('classes', 'home_tbclasse'),
+    'subclasses': settings.SITE_POSTGRES_TABLES.get('subclasses', 'home_tbsubclasse'),
+    'class_features': settings.SITE_POSTGRES_TABLES.get('class_features', 'home_tbclassehabilidade'),
+    'class_resources': settings.SITE_POSTGRES_TABLES.get('class_resources', 'home_tbrecursoclasse'),
+    'races': settings.SITE_POSTGRES_TABLES.get('races', 'home_tbraca'),
+    'lineages': settings.SITE_POSTGRES_TABLES.get('lineages', 'home_tblinhagem'),
+    'essences': settings.SITE_POSTGRES_TABLES.get('essences', 'home_tbessencia'),
+    'racial_traits': settings.SITE_POSTGRES_TABLES.get('racial_traits', 'home_tbtracoracial'),
+    'map_markers': settings.SITE_POSTGRES_TABLES.get('map_markers', 'home_tbmapmarker'),
+    'regions': settings.SITE_POSTGRES_TABLES.get('regions', 'home_tbregiao'),
+    'territories': settings.SITE_POSTGRES_TABLES.get('territories', 'home_tbterritorio'),
+    'talents': settings.SITE_POSTGRES_TABLES.get('talents', 'home_tbtalento'),
+    'options': settings.SITE_POSTGRES_TABLES.get('options', 'home_tbopcaojogo'),
+    'backgrounds': settings.SITE_POSTGRES_TABLES.get('backgrounds', 'backgrounds'),
+    'spells': settings.SITE_POSTGRES_TABLES.get('spells', 'spells'),
+    'bestiary': settings.SITE_POSTGRES_TABLES.get('bestiary', 'bestiary'),
+    'organizations': settings.SITE_POSTGRES_TABLES.get('organizations', 'organizations'),
 }
 
 
@@ -95,20 +95,97 @@ class RelatedList(list):
         return self
 
 
+def _postgres_table_for_key(key):
+    table_name = SITE_COLLECTIONS.get(key)
+    if not table_name:
+        raise BotMongoUnavailable(f"Tabela PostgreSQL nao configurada para: {key}")
+    with connection.cursor() as cursor:
+        table_names = connection.introspection.table_names(cursor)
+    if table_name not in table_names:
+        raise BotMongoUnavailable(f"Tabela PostgreSQL nao encontrada: {table_name}")
+    return table_name
+
+
+def _postgres_columns(table_name):
+    with connection.cursor() as cursor:
+        return [column.name for column in connection.introspection.get_table_description(cursor, table_name)]
+
+
+def _quote_name(name):
+    return connection.ops.quote_name(name)
+
+
+def _row_to_document(columns, row):
+    return serialize_document(dict(zip(columns, row)))
+
+
+class _PostgresCollection:
+    def __init__(self, key):
+        self.table_name = _postgres_table_for_key(key)
+        self.columns = _postgres_columns(self.table_name)
+
+    def update_one(self, filter_query, update, upsert=False):
+        document = dict(update.get('$set') or {})
+        if upsert:
+            document = {**(update.get('$setOnInsert') or {}), **document}
+        where_items = {key: value for key, value in (filter_query or {}).items() if key in self.columns}
+        data = {key: value for key, value in document.items() if key in self.columns}
+        if not where_items:
+            raise BotMongoUnavailable("Filtro sem colunas validas para PostgreSQL.")
+        if not data:
+            return
+
+        where_sql = " AND ".join(f"{_quote_name(key)} = %s" for key in where_items)
+        with connection.cursor() as cursor:
+            cursor.execute(
+                f"SELECT COUNT(*) FROM {_quote_name(self.table_name)} WHERE {where_sql}",
+                list(where_items.values()),
+            )
+            exists = cursor.fetchone()[0] > 0
+            if exists:
+                set_sql = ", ".join(f"{_quote_name(key)} = %s" for key in data)
+                cursor.execute(
+                    f"UPDATE {_quote_name(self.table_name)} SET {set_sql} WHERE {where_sql}",
+                    [*data.values(), *where_items.values()],
+                )
+            elif upsert:
+                insert_data = {**where_items, **data}
+                columns_sql = ", ".join(_quote_name(key) for key in insert_data)
+                placeholders = ", ".join(["%s"] * len(insert_data))
+                cursor.execute(
+                    f"INSERT INTO {_quote_name(self.table_name)} ({columns_sql}) VALUES ({placeholders})",
+                    list(insert_data.values()),
+                )
+
+
 def _mongo_collection(key):
-    raise BotMongoUnavailable("Acesso Mongo legado foi removido; use PostgreSQL.")
+    return _PostgresCollection(key)
 
 
 def _mongo_docs(key, sort=None, query=None):
-    cursor = _mongo_collection(key).find(query or {})
-    if sort:
-        cursor = cursor.sort(sort)
-    return [serialize_document(document) for document in cursor]
+    table_name = _postgres_table_for_key(key)
+    columns = _postgres_columns(table_name)
+    query = query or {}
+    valid_query = {field: value for field, value in query.items() if field in columns}
+    where_sql = ""
+    params = []
+    if valid_query:
+        where_sql = " WHERE " + " AND ".join(f"{_quote_name(field)} = %s" for field in valid_query)
+        params = list(valid_query.values())
+    order_parts = []
+    for field, direction in (sort or []):
+        if field in columns:
+            order_parts.append(f"{_quote_name(field)} {'DESC' if direction == -1 else 'ASC'}")
+    order_sql = f" ORDER BY {', '.join(order_parts)}" if order_parts else ""
+    with connection.cursor() as cursor:
+        cursor.execute(f"SELECT * FROM {_quote_name(table_name)}{where_sql}{order_sql}", params)
+        rows = cursor.fetchall()
+    return [_row_to_document(columns, row) for row in rows]
 
 
 def _mongo_one(key, query):
-    document = _mongo_collection(key).find_one(query)
-    return serialize_document(document) if document else None
+    documents = _mongo_docs(key, query=query)
+    return documents[0] if documents else None
 
 
 def _mongo_upsert_site_document(key, id_field, id_value, payload):
@@ -429,10 +506,10 @@ def profile_view(request):
 
 
 def classes_view(request):
-    return _sqlite_classes_view(request)
+    return _postgres_classes_view(request)
 
 
-def _sqlite_classes_view(request):
+def _postgres_classes_view(request):
     classes = TbClasse.objects.all().order_by('nome')
     total_habilidades = TbClassehabilidade.objects.count()
     total_subclasses = TbSubclasse.objects.count()
@@ -518,10 +595,10 @@ def _column_key(column):
 
 
 def classe_detail_view(request, slug):
-    return _sqlite_classe_detail_view(request, slug)
+    return _postgres_classe_detail_view(request, slug)
 
 
-def _sqlite_classe_detail_view(request, slug):
+def _postgres_classe_detail_view(request, slug):
     classe = get_object_or_404(TbClasse, slug=slug)
     all_classes = TbClasse.objects.all().order_by('nome')
     subclasses = TbSubclasse.objects.filter(id_classe=classe).order_by('nome')
@@ -967,10 +1044,10 @@ def _mongo_classe_detail_view(request, slug):
 
 
 def racas_view(request):
-    return _sqlite_racas_view(request)
+    return _postgres_racas_view(request)
 
 
-def _sqlite_racas_view(request):
+def _postgres_racas_view(request):
     racas = TbRaca.objects.all().order_by('nome')
     context = {
         'raca': None,
@@ -988,10 +1065,10 @@ def _sqlite_racas_view(request):
 
 
 def raca_detail_view(request, slug):
-    return _sqlite_raca_detail_view(request, slug)
+    return _postgres_raca_detail_view(request, slug)
 
 
-def _sqlite_raca_detail_view(request, slug):
+def _postgres_raca_detail_view(request, slug):
     raca = get_object_or_404(TbRaca, slug=slug)
     racas = TbRaca.objects.all().order_by('nome')
     tracos_base = raca.tracos.all().order_by('nivel_requisito', 'nome')

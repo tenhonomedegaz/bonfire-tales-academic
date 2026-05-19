@@ -9,8 +9,7 @@ Copie `production.env.example` para `.env.production` e ajuste:
 - `DJANGO_SECRET_KEY`
 - `DJANGO_ALLOWED_HOSTS`
 - `DJANGO_CSRF_TRUSTED_ORIGINS`
-- `BOT_MONGO_URI`
-- `BOT_MONGO_DATABASE`
+- `POSTGRES_URL`
 
 Para túnel provisório via Cloudflare, coloque o domínio `trycloudflare.com` gerado em `DJANGO_ALLOWED_HOSTS` e a URL completa com `https://` em `DJANGO_CSRF_TRUSTED_ORIGINS`.
 
@@ -48,5 +47,5 @@ Use a URL gerada no `.env.production` e reinicie o servidor.
 ## Observações
 
 - Não use `runserver` para os staffs.
-- Faça backup do `bonfas_classes.db` antes de rodar alterações grandes.
-- O Mongo continua sendo sincronizado pelo middleware e signals do projeto.
+- Faça backup do PostgreSQL antes de rodar alterações grandes.
+- O site usa PostgreSQL como banco definitivo; a sincronização SQLite/Mongo foi desativada.

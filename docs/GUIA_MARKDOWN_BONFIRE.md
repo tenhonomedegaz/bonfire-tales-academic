@@ -1,4 +1,4 @@
-# Guia de Markdown do Bonfire
+﻿# Guia de Markdown do Bonfire
 
 Este guia documenta as tags aceitas pelos leitores e editores Markdown do site.
 
@@ -119,7 +119,7 @@ Texto do bloco na esquerda.
 
 O Mongo tem dois grupos:
 
-- Banco do site: collections configuradas em `SITE_MONGO_COLLECTIONS`.
-- Banco original do bot: collections configuradas em `BOT_MONGO_COLLECTIONS`.
+- Banco do site: collections configuradas em `SITE_POSTGRES_TABLES`.
+- Banco original do bot: collections configuradas em `BOT_POSTGRES_TABLES`.
 
 As collections nativas do bot nao devem ser renomeadas. O site deve gravar conteudo proprio nas collections do site.

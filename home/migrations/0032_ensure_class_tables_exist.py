@@ -15,8 +15,8 @@ def ensure_tables_exist(apps, schema_editor):
 
     cursor = connection.cursor()
 
-    autoincrement = 'SERIAL PRIMARY KEY' if connection.vendor == 'postgresql' else 'integer NOT NULL PRIMARY KEY AUTOINCREMENT'
-    boolean_false = 'FALSE' if connection.vendor == 'postgresql' else '0'
+    autoincrement = 'SERIAL PRIMARY KEY'
+    boolean_false = 'FALSE'
 
     if 'TB_Classe' not in existing_tables:
         cursor.execute(f"""
