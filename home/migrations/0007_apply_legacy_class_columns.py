@@ -1,26 +1,23 @@
 from django.db import migrations
 
 
-def table_exists(schema_editor, table_name):
-    return table_name in schema_editor.connection.introspection.table_names()
-
-
 def ensure_legacy_class_tables(schema_editor):
     with schema_editor.connection.cursor() as cursor:
-        if not table_exists(schema_editor, "TB_Classe"):
+        existing_tables = schema_editor.connection.introspection.table_names()
+        if "TB_Classe" not in existing_tables:
             cursor.execute("""
                 CREATE TABLE "TB_Classe" (
-                    "Id_Classe" integer NOT NULL PRIMARY KEY AUTOINCREMENT,
+                    "Id_Classe" SERIAL PRIMARY KEY,
                     "Nome" varchar(100) NOT NULL,
                     "Slug" varchar(100) NOT NULL UNIQUE,
                     "Tagline" text NULL
                 )
             """)
 
-        if not table_exists(schema_editor, "TB_ClasseHabilidade"):
+        if "TB_ClasseHabilidade" not in existing_tables:
             cursor.execute("""
                 CREATE TABLE "TB_ClasseHabilidade" (
-                    "Id_Habilidade" integer NOT NULL PRIMARY KEY AUTOINCREMENT,
+                    "Id_Habilidade" SERIAL PRIMARY KEY,
                     "Nome" varchar(100) NOT NULL,
                     "Descricao" text NULL,
                     "NivelAdquirido" integer NOT NULL DEFAULT 0,
@@ -32,10 +29,11 @@ def ensure_legacy_class_tables(schema_editor):
 
 def add_column_if_missing(schema_editor, table_name, column_name, column_type):
     with schema_editor.connection.cursor() as cursor:
-        existing_columns = {
-            row[1]
-            for row in cursor.execute(f'PRAGMA table_info("{table_name}")').fetchall()
-        }
+        cursor.execute(
+            "SELECT column_name FROM information_schema.columns WHERE table_name = %s",
+            [table_name],
+        )
+        existing_columns = {row[0] for row in cursor.fetchall()}
         if column_name not in existing_columns:
             cursor.execute(f'ALTER TABLE "{table_name}" ADD COLUMN "{column_name}" {column_type}')
 
@@ -62,7 +60,7 @@ def add_legacy_class_columns(apps, schema_editor):
     for column_name in class_text_columns:
         add_column_if_missing(schema_editor, "TB_Classe", column_name, "TEXT NULL")
 
-    add_column_if_missing(schema_editor, "TB_ClasseHabilidade", "TableOnly", "bool NOT NULL DEFAULT 0")
+    add_column_if_missing(schema_editor, "TB_ClasseHabilidade", "TableOnly", "boolean NOT NULL DEFAULT FALSE")
 
 
 class Migration(migrations.Migration):

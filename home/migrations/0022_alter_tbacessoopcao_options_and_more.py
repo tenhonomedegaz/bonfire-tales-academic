@@ -9,7 +9,7 @@ def ensure_legacy_option_tables(apps, schema_editor):
         if "TB_OpcaoJogo" not in existing_tables:
             cursor.execute("""
                 CREATE TABLE "TB_OpcaoJogo" (
-                    "Id_Opcao" integer NOT NULL PRIMARY KEY AUTOINCREMENT,
+                    "Id_Opcao" SERIAL PRIMARY KEY,
                     "Nome" varchar(100) NOT NULL,
                     "Slug" varchar(100) NOT NULL UNIQUE,
                     "Tipo" varchar(100) NOT NULL,
@@ -20,7 +20,7 @@ def ensure_legacy_option_tables(apps, schema_editor):
         if "TB_AcessoOpcao" not in existing_tables:
             cursor.execute("""
                 CREATE TABLE "TB_AcessoOpcao" (
-                    "Id_AcessoOpcao" integer NOT NULL PRIMARY KEY AUTOINCREMENT
+                    "Id_AcessoOpcao" SERIAL PRIMARY KEY
                 )
             """)
 
