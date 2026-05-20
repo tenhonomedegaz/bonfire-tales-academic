@@ -522,7 +522,8 @@ class TbCronica(models.Model):
 
 @receiver(post_save, sender=TbRegiao)
 def sync_region_to_marker(sender, instance, **kwargs):
-    
+    if kwargs.get('raw', False):
+        return
     from django.utils.text import slugify
     
     
@@ -640,6 +641,8 @@ class UserProfile(models.Model):
 
 @receiver(post_save, sender='auth.User')
 def create_user_profile(sender, instance, created, **kwargs):
+    if kwargs.get('raw', False):
+        return
     if created:
         UserProfile.objects.get_or_create(user=instance)
 
