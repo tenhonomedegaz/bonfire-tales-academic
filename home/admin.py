@@ -1812,21 +1812,11 @@ from .models import (
 )
 
 
-class BotReadOnlyMixin:
-    """Mixin para tabelas do bot: somente leitura no admin."""
 
-    def has_add_permission(self, request):
-        return False
-
-    def has_delete_permission(self, request, obj=None):
-        return False
-
-    def has_change_permission(self, request, obj=None):
-        return False
 
 
 @admin.register(BotQuest)
-class BotQuestAdmin(BotReadOnlyMixin, admin.ModelAdmin):
+class BotQuestAdmin(admin.ModelAdmin):
     list_display = ('name', 'status', 'questMaster', 'questDate', 'playersAmount', 'isPublished')
     list_filter = ('status', 'isPublished', 'type')
     search_fields = ('name', 'questMaster', 'description')
@@ -1836,7 +1826,7 @@ class BotQuestAdmin(BotReadOnlyMixin, admin.ModelAdmin):
 
 
 @admin.register(BotMember)
-class BotMemberAdmin(BotReadOnlyMixin, admin.ModelAdmin):
+class BotMemberAdmin(admin.ModelAdmin):
     list_display = ('discordUserTag', 'discordUserId', 'email', 'isModerator', 'isAdmin', 'tokenSuperboost', 'tokenXpBoost', 'tokenMission')
     list_filter = ('isModerator', 'isAdmin', 'skipValidation')
     search_fields = ('discordUserTag', 'discordUserId', 'email')
@@ -1874,7 +1864,7 @@ class BotCharacterLogAdmin(admin.ModelAdmin):
 
 
 @admin.register(BotKeyValueStore)
-class BotKeyValueStoreAdmin(BotReadOnlyMixin, admin.ModelAdmin):
+class BotKeyValueStoreAdmin(admin.ModelAdmin):
     list_display = ('key', 'updatedAt')
     search_fields = ('key',)
     ordering = ('key',)
@@ -1910,6 +1900,11 @@ def _bonfire_admin_get_app_list(request, app_label=None):
         return _original_get_app_list(request, app_label)
         
     home_app = app_dict.get('home')
+    auth_app = app_dict.get('auth')
+    
+    if auth_app:
+        auth_app['name'] = 'Autenticação'
+        
     if home_app:
         site_models = []
         bot_models = []
@@ -1930,13 +1925,17 @@ def _bonfire_admin_get_app_list(request, app_label=None):
             'models': bot_models,
         }
         
+        # Order: Autenticação, Tables Bot, Tables Site, others
         app_list = []
+        if auth_app:
+            app_list.append(auth_app)
+        app_list.append(bot_app)
+        app_list.append(home_app)
+        
         for app in app_dict.values():
-            if app['app_label'] == 'home':
-                app_list.append(home_app)
-                app_list.append(bot_app)
-            else:
+            if app['app_label'] not in ('home', 'auth'):
                 app_list.append(app)
+                
         return app_list
         
     return sorted(app_dict.values(), key=lambda x: x['name'].lower())
