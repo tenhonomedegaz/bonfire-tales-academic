@@ -48,7 +48,7 @@ class Command(BaseCommand):
         
         call_command('loaddata', backup_file, database='default')
         
-        self.stdout.write(self.style.SUCCESS("🎉 Todos os dados do site foram restaurados com sucesso!"))
+        self.stdout.write(self.style.SUCCESS("Todos os dados do site foram restaurados com sucesso!"))
         
         if os.path.exists(backup_file):
             try:
