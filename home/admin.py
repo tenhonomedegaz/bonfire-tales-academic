@@ -1799,7 +1799,6 @@ class TbItemMagicoAdmin(BonfireAdminMixin, admin.ModelAdmin):
 
 from .models import (
     BotQuest,
-    BotItem,
     BotMember,
     BotTransaction,
     BotSchedulerJob,
@@ -1830,12 +1829,6 @@ class BotQuestAdmin(BotReadOnlyMixin, admin.ModelAdmin):
     ordering = ('-questDate',)
 
 
-@admin.register(BotItem)
-class BotItemAdmin(BotReadOnlyMixin, admin.ModelAdmin):
-    list_display = ('translatedName', 'name', 'rarity', 'tier', 'type', 'price', 'consumable')
-    list_filter = ('rarity', 'tier', 'type', 'shopType', 'consumable')
-    search_fields = ('name', 'translatedName', 'description')
-    ordering = ('translatedName',)
 
 
 @admin.register(BotMember)
@@ -1903,3 +1896,45 @@ def _bonfire_admin_get_urls():
 
 
 admin.site.get_urls = _bonfire_admin_get_urls
+
+
+_original_get_app_list = admin.site.get_app_list
+
+def _bonfire_admin_get_app_list(request, app_label=None):
+    app_dict = admin.site._build_app_dict(request)
+    if app_label:
+        return _original_get_app_list(request, app_label)
+        
+    home_app = app_dict.get('home')
+    if home_app:
+        site_models = []
+        bot_models = []
+        for model in home_app['models']:
+            if model['object_name'].startswith('Bot'):
+                bot_models.append(model)
+            else:
+                site_models.append(model)
+                
+        home_app['name'] = 'Tables Site'
+        home_app['models'] = site_models
+        
+        bot_app = {
+            'name': 'Tables Bot',
+            'app_label': 'tables_bot',
+            'app_url': '',
+            'has_module_perms': True,
+            'models': bot_models,
+        }
+        
+        app_list = []
+        for app in app_dict.values():
+            if app['app_label'] == 'home':
+                app_list.append(home_app)
+                app_list.append(bot_app)
+            else:
+                app_list.append(app)
+        return app_list
+        
+    return sorted(app_dict.values(), key=lambda x: x['name'].lower())
+
+admin.site.get_app_list = _bonfire_admin_get_app_list

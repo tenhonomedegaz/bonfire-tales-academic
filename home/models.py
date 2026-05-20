@@ -693,32 +693,7 @@ class BotQuest(models.Model):
         return self.name or self.id
 
 
-class BotItem(models.Model):
-    id = models.CharField(primary_key=True, max_length=30)
-    shopType = models.CharField(db_column='shopType', max_length=100)
-    name = models.CharField(max_length=500, unique=True)
-    translatedName = models.CharField(db_column='translatedName', max_length=500)
-    rarity = models.CharField(max_length=100)
-    tier = models.CharField(max_length=100)
-    rollChance = models.FloatField(db_column='rollChance')
-    consumable = models.BooleanField()
-    sintonization = models.CharField(max_length=200)
-    type = models.CharField(max_length=100)
-    description = models.TextField()
-    baseBook = models.CharField(db_column='baseBook', max_length=200)
-    alwaysOnTheStore = models.BooleanField(db_column='alwaysOnTheStore', default=False)
-    price = models.CharField(max_length=100)
-    createdAt = models.DateTimeField(db_column='createdAt')
-    updatedAt = models.DateTimeField(db_column='updatedAt')
 
-    class Meta:
-        managed = False
-        db_table = 'rpg_items'
-        verbose_name = 'Item (Bot)'
-        verbose_name_plural = 'Itens (Bot)'
-
-    def __str__(self):
-        return f"{self.translatedName} ({self.name})"
 
 
 class BotMember(models.Model):
