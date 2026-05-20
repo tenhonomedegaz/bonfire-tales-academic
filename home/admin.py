@@ -86,20 +86,38 @@ def _latest_bot_log_path(bot_dir):
     log_dir = bot_dir / "log"
     if not log_dir.exists():
         return None
-    log_files = list(log_dir.glob("*log-combined.log"))
-    if not log_files:
+    # Try multiple patterns: pm2-style, dated, and plain
+    patterns = ["*log-combined.log", "*.log", "*combined*.log"]
+    for pattern in patterns:
+        try:
+            log_files = [f for f in log_dir.glob(pattern) if f.is_file() and f.stat().st_size > 0]
+        except OSError:
+            continue
+        if log_files:
+            return max(log_files, key=lambda item: item.stat().st_mtime)
+    # Fallback: any .log file at all, even empty
+    try:
+        log_files = list(log_dir.glob("*.log"))
+    except OSError:
         return None
-    return max(log_files, key=lambda item: item.stat().st_mtime)
+    if log_files:
+        return max(log_files, key=lambda item: item.stat().st_mtime)
+    return None
 
 
 def _tail_file(path, lines=150, missing_message="Arquivo nao encontrado."):
-    if not path or not Path(path).exists():
-        return missing_message
+    if not path:
+        return f"{missing_message}\n(caminho nao definido)"
+    path = Path(path)
+    if not path.exists():
+        return f"{missing_message}\n(verificado: {path})"
     try:
-        with Path(path).open("r", encoding="utf-8", errors="replace") as handle:
+        with path.open("r", encoding="utf-8", errors="replace") as handle:
             content = handle.readlines()
+    except PermissionError:
+        return f"Sem permissao para ler: {path}"
     except OSError as exc:
-        return f"Erro ao ler arquivo: {exc}"
+        return f"Erro ao ler arquivo: {exc}\n(caminho: {path})"
     return "".join(content[-lines:]) if content else "Log vazio."
 
 
@@ -158,8 +176,13 @@ def _run_admin_console_command(target, command):
 def _read_env_content(path):
     path = Path(path)
     if not path.exists():
-        return ""
-    return path.read_text(encoding="utf-8", errors="replace")
+        return f"# Arquivo .env nao encontrado em: {path}"
+    try:
+        return path.read_text(encoding="utf-8", errors="replace")
+    except PermissionError:
+        return f"# Sem permissao para ler: {path}"
+    except OSError as exc:
+        return f"# Erro ao ler: {exc}"
 
 
 def _write_env_content(path, content):
@@ -245,18 +268,19 @@ def server_logs_view(request):
                     messages.error(request, f"Falha ao salvar .env: {exc}")
 
     if context["is_authenticated"]:
+        bot_path_info = console_paths["bot"]
         context["site_log"] = _tail_file(
             console_paths["site"]["log_path"],
             missing_message="Arquivo site_console.log nao encontrado.",
         )
         context["bot_log"] = _tail_file(
-            console_paths["bot"]["log_path"],
-            missing_message="Log do bot nao encontrado.",
+            bot_path_info["log_path"],
+            missing_message=f"Log do bot nao encontrado. Pasta do bot: {bot_path_info['path']} (existe: {bot_path_info['path'].exists()})",
         )
         context["history"] = _read_console_history()
         context["command_result"] = command_result
         context["site_env_content"] = _read_env_content(console_paths["site"]["env_path"])
-        context["bot_env_content"] = _read_env_content(console_paths["bot"]["env_path"])
+        context["bot_env_content"] = _read_env_content(bot_path_info["env_path"])
 
     return render(request, "admin/server_logs.html", context)
 
