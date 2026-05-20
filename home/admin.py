@@ -1793,6 +1793,96 @@ class TbItemMagicoAdmin(BonfireAdminMixin, admin.ModelAdmin):
     )
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Tabelas do Bot (Prisma) — somente leitura no admin
+# ─────────────────────────────────────────────────────────────────────────────
+
+from .models import (
+    BotQuest,
+    BotItem,
+    BotMember,
+    BotTransaction,
+    BotSchedulerJob,
+    BotDedicatedRank,
+    BotCharacterLog,
+    BotKeyValueStore,
+)
+
+
+class BotReadOnlyMixin:
+    """Mixin para tabelas do bot: somente leitura no admin."""
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(BotQuest)
+class BotQuestAdmin(BotReadOnlyMixin, admin.ModelAdmin):
+    list_display = ('name', 'status', 'questMaster', 'questDate', 'playersAmount', 'isPublished')
+    list_filter = ('status', 'isPublished', 'type')
+    search_fields = ('name', 'questMaster', 'description')
+    ordering = ('-questDate',)
+
+
+@admin.register(BotItem)
+class BotItemAdmin(BotReadOnlyMixin, admin.ModelAdmin):
+    list_display = ('translatedName', 'name', 'rarity', 'tier', 'type', 'price', 'consumable')
+    list_filter = ('rarity', 'tier', 'type', 'shopType', 'consumable')
+    search_fields = ('name', 'translatedName', 'description')
+    ordering = ('translatedName',)
+
+
+@admin.register(BotMember)
+class BotMemberAdmin(BotReadOnlyMixin, admin.ModelAdmin):
+    list_display = ('discordUserTag', 'discordUserId', 'email', 'isModerator', 'isAdmin', 'tokenSuperboost', 'tokenXpBoost', 'tokenMission')
+    list_filter = ('isModerator', 'isAdmin', 'skipValidation')
+    search_fields = ('discordUserTag', 'discordUserId', 'email')
+    ordering = ('discordUserTag',)
+
+
+@admin.register(BotTransaction)
+class BotTransactionAdmin(BotReadOnlyMixin, admin.ModelAdmin):
+    list_display = ('transactionCode', 'name', 'email', 'subscriptionPlan', 'status', 'grossAmount', 'paymentDate', 'claimed')
+    list_filter = ('status', 'claimed', 'subscriptionPlan')
+    search_fields = ('transactionCode', 'name', 'email')
+    ordering = ('-paymentDate',)
+
+
+@admin.register(BotSchedulerJob)
+class BotSchedulerJobAdmin(BotReadOnlyMixin, admin.ModelAdmin):
+    list_display = ('name', 'nextRunAt')
+    search_fields = ('name',)
+    ordering = ('nextRunAt',)
+
+
+@admin.register(BotDedicatedRank)
+class BotDedicatedRankAdmin(BotReadOnlyMixin, admin.ModelAdmin):
+    list_display = ('priorityRankName', 'isActive', 'isPriorityLocked', 'validFrom', 'validUntil')
+    list_filter = ('isActive', 'isPriorityLocked')
+    ordering = ('-validFrom',)
+
+
+@admin.register(BotCharacterLog)
+class BotCharacterLogAdmin(BotReadOnlyMixin, admin.ModelAdmin):
+    list_display = ('characterName', 'discordUserTag', 'className', 'rankName', 'level', 'adventuresPlayed', 'isNovice')
+    list_filter = ('rankName', 'className', 'isNovice')
+    search_fields = ('characterName', 'discordUserTag', 'discordUserId')
+    ordering = ('characterName',)
+
+
+@admin.register(BotKeyValueStore)
+class BotKeyValueStoreAdmin(BotReadOnlyMixin, admin.ModelAdmin):
+    list_display = ('key', 'updatedAt')
+    search_fields = ('key',)
+    ordering = ('key',)
+
+
 _original_admin_get_urls = admin.site.get_urls
 
 

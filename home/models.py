@@ -646,3 +646,212 @@ def create_user_profile(sender, instance, created, **kwargs):
     if created:
         UserProfile.objects.get_or_create(user=instance)
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Tabelas exclusivas do Bot (Prisma) — managed=False
+# O Django NÃO cria/migra essas tabelas, apenas lê/escreve.
+# ─────────────────────────────────────────────────────────────────────────────
+
+class BotQuest(models.Model):
+    id = models.CharField(primary_key=True, max_length=30)
+    guildId = models.CharField(db_column='guildId', max_length=100)
+    channelId = models.CharField(db_column='channelId', max_length=100, blank=True, null=True)
+    name = models.CharField(max_length=500)
+    description = models.TextField()
+    questDate = models.DateTimeField(db_column='questDate')
+    playersAmount = models.IntegerField(db_column='playersAmount')
+    rules = models.TextField()
+    tags = models.TextField(db_column='tags', blank=True, null=True, help_text='PostgreSQL array')
+    type = models.CharField(max_length=100)
+    tableUrl = models.CharField(db_column='tableUrl', max_length=500)
+    questMaster = models.CharField(db_column='questMaster', max_length=200)
+    allowedRanks = models.TextField(db_column='allowedRanks', blank=True, null=True)
+    mandatoryPlayers = models.TextField(db_column='mandatoryPlayers', blank=True, null=True)
+    highPriorityPlayers = models.TextField(db_column='highPriorityPlayers', blank=True, null=True)
+    subscribedPlayers = models.JSONField(db_column='subscribedPlayers', default=list)
+    questPlayers = models.JSONField(db_column='questPlayers', default=list)
+    removedPlayers = models.TextField(db_column='removedPlayers', blank=True, null=True)
+    participationRequests = models.JSONField(db_column='participationRequests', default=list)
+    createdBy = models.CharField(db_column='createdBy', max_length=200)
+    isPublished = models.BooleanField(db_column='isPublished', default=False)
+    status = models.CharField(max_length=50, default='idle')
+    timeEvents = models.JSONField(db_column='timeEvents', default=list)
+    startDate = models.DateTimeField(db_column='startDate', blank=True, null=True)
+    endDate = models.DateTimeField(db_column='endDate', blank=True, null=True)
+    rewardAventurasOverride = models.IntegerField(db_column='rewardAventurasOverride', blank=True, null=True)
+    dedicatedRankId = models.CharField(db_column='dedicatedRankId', max_length=30, blank=True, null=True)
+    createdAt = models.DateTimeField(db_column='createdAt')
+    updatedAt = models.DateTimeField(db_column='updatedAt')
+
+    class Meta:
+        managed = False
+        db_table = 'rpg_quests'
+        verbose_name = 'Missão (Bot)'
+        verbose_name_plural = 'Missões (Bot)'
+
+    def __str__(self):
+        return self.name or self.id
+
+
+class BotItem(models.Model):
+    id = models.CharField(primary_key=True, max_length=30)
+    shopType = models.CharField(db_column='shopType', max_length=100)
+    name = models.CharField(max_length=500, unique=True)
+    translatedName = models.CharField(db_column='translatedName', max_length=500)
+    rarity = models.CharField(max_length=100)
+    tier = models.CharField(max_length=100)
+    rollChance = models.FloatField(db_column='rollChance')
+    consumable = models.BooleanField()
+    sintonization = models.CharField(max_length=200)
+    type = models.CharField(max_length=100)
+    description = models.TextField()
+    baseBook = models.CharField(db_column='baseBook', max_length=200)
+    alwaysOnTheStore = models.BooleanField(db_column='alwaysOnTheStore', default=False)
+    price = models.CharField(max_length=100)
+    createdAt = models.DateTimeField(db_column='createdAt')
+    updatedAt = models.DateTimeField(db_column='updatedAt')
+
+    class Meta:
+        managed = False
+        db_table = 'rpg_items'
+        verbose_name = 'Item (Bot)'
+        verbose_name_plural = 'Itens (Bot)'
+
+    def __str__(self):
+        return f"{self.translatedName} ({self.name})"
+
+
+class BotMember(models.Model):
+    id = models.CharField(primary_key=True, max_length=30)
+    discordUserId = models.CharField(db_column='discordUserId', max_length=100, unique=True)
+    discordUserTag = models.CharField(db_column='discordUserTag', max_length=200)
+    email = models.CharField(max_length=300, unique=True)
+    tokenSuperboost = models.IntegerField(db_column='tokenSuperboost', default=0)
+    tokenXpBoost = models.IntegerField(db_column='tokenXpBoost', default=0)
+    tokenMission = models.IntegerField(db_column='tokenMission', default=0)
+    isModerator = models.BooleanField(db_column='isModerator', default=False)
+    isAdmin = models.BooleanField(db_column='isAdmin', default=False)
+    skipValidation = models.BooleanField(db_column='skipValidation', default=False)
+    createdAt = models.DateTimeField(db_column='createdAt')
+    updatedAt = models.DateTimeField(db_column='updatedAt')
+
+    class Meta:
+        managed = False
+        db_table = 'discord_subscribers'
+        verbose_name = 'Membro (Bot)'
+        verbose_name_plural = 'Membros (Bot)'
+
+    def __str__(self):
+        return f"{self.discordUserTag} ({self.discordUserId})"
+
+
+class BotTransaction(models.Model):
+    id = models.CharField(primary_key=True, max_length=30)
+    transactionCode = models.CharField(db_column='transactionCode', max_length=200, unique=True)
+    transactionSource = models.CharField(db_column='transactionSource', max_length=200, blank=True, null=True)
+    paymentDate = models.DateTimeField(db_column='paymentDate')
+    expirationDate = models.DateTimeField(db_column='expirationDate')
+    subscriptionPlan = models.CharField(db_column='subscriptionPlan', max_length=200)
+    subscriptionPeriod = models.CharField(db_column='subscriptionPeriod', max_length=200)
+    subscriptionReference = models.CharField(db_column='subscriptionReference', max_length=200, blank=True, null=True)
+    status = models.IntegerField()
+    grossAmount = models.FloatField(db_column='grossAmount')
+    netAmount = models.FloatField(db_column='netAmount')
+    name = models.CharField(max_length=300, blank=True, null=True)
+    email = models.CharField(max_length=300)
+    comments = models.TextField(blank=True, null=True)
+    claimed = models.BooleanField(default=False)
+    claimedAt = models.DateTimeField(db_column='claimedAt', blank=True, null=True)
+    createdAt = models.DateTimeField(db_column='createdAt')
+    updatedAt = models.DateTimeField(db_column='updatedAt')
+
+    class Meta:
+        managed = False
+        db_table = 'transactions'
+        verbose_name = 'Transação (Bot)'
+        verbose_name_plural = 'Transações (Bot)'
+
+    def __str__(self):
+        return f"{self.transactionCode} - {self.name or self.email}"
+
+
+class BotSchedulerJob(models.Model):
+    id = models.CharField(primary_key=True, max_length=30)
+    name = models.CharField(max_length=300)
+    data = models.JSONField()
+    nextRunAt = models.DateTimeField(db_column='nextRunAt')
+
+    class Meta:
+        managed = False
+        db_table = 'discord_jobs'
+        verbose_name = 'Job Agendado (Bot)'
+        verbose_name_plural = 'Jobs Agendados (Bot)'
+
+    def __str__(self):
+        return f"{self.name} → {self.nextRunAt}"
+
+
+class BotDedicatedRank(models.Model):
+    id = models.CharField(primary_key=True, max_length=30)
+    guildId = models.CharField(db_column='guildId', max_length=100)
+    rankings = models.JSONField()
+    validFrom = models.DateTimeField(db_column='validFrom')
+    validUntil = models.DateTimeField(db_column='validUntil')
+    isActive = models.BooleanField(db_column='isActive', default=True)
+    isPriorityLocked = models.BooleanField(db_column='isPriorityLocked', default=False)
+    priorityRankName = models.CharField(db_column='priorityRankName', max_length=200, blank=True, null=True)
+    createdAt = models.DateTimeField(db_column='createdAt')
+    updatedAt = models.DateTimeField(db_column='updatedAt')
+
+    class Meta:
+        managed = False
+        db_table = 'dedicated-ranks'
+        verbose_name = 'Ranking Dedicado (Bot)'
+        verbose_name_plural = 'Rankings Dedicados (Bot)'
+
+    def __str__(self):
+        return f"Rank {self.priorityRankName or self.id} ({'Ativo' if self.isActive else 'Inativo'})"
+
+
+class BotCharacterLog(models.Model):
+    id = models.CharField(primary_key=True, max_length=30)
+    discordUserId = models.CharField(db_column='discordUserId', max_length=100)
+    discordUserTag = models.CharField(db_column='discordUserTag', max_length=200)
+    sheetUrl = models.CharField(db_column='sheetUrl', max_length=500)
+    spreadsheetId = models.CharField(db_column='spreadsheetId', max_length=300, unique=True)
+    characterName = models.CharField(db_column='characterName', max_length=300)
+    rankName = models.CharField(db_column='rankName', max_length=200)
+    className = models.CharField(db_column='className', max_length=200)
+    level = models.IntegerField(default=0)
+    adventuresPlayed = models.IntegerField(db_column='adventuresPlayed', default=0)
+    validStarterAdventures = models.IntegerField(db_column='validStarterAdventures', default=0)
+    isNovice = models.BooleanField(db_column='isNovice', default=False)
+    registeredBy = models.CharField(db_column='registeredBy', max_length=200)
+    createdAt = models.DateTimeField(db_column='createdAt')
+    updatedAt = models.DateTimeField(db_column='updatedAt')
+
+    class Meta:
+        managed = False
+        db_table = 'rpg_character_logs'
+        verbose_name = 'Ficha de Personagem (Bot)'
+        verbose_name_plural = 'Fichas de Personagens (Bot)'
+
+    def __str__(self):
+        return f"{self.characterName} ({self.discordUserTag}) - Nv.{self.level}"
+
+
+class BotKeyValueStore(models.Model):
+    id = models.CharField(primary_key=True, max_length=30)
+    key = models.CharField(max_length=300, unique=True)
+    value = models.JSONField()
+    createdAt = models.DateTimeField(db_column='createdAt')
+    updatedAt = models.DateTimeField(db_column='updatedAt')
+
+    class Meta:
+        managed = False
+        db_table = 'store_keyvalue'
+        verbose_name = 'KeyValue (Bot)'
+        verbose_name_plural = 'KeyValue Store (Bot)'
+
+    def __str__(self):
+        return self.key
