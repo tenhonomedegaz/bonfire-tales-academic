@@ -56,6 +56,8 @@ _syncing_region_marker = False
 
 @receiver(pre_save)
 def block_dangerous_sql_text(sender, instance, **kwargs):
+    if kwargs.get('raw', False):
+        return
     if sender not in SYNCED_MODELS:
         return
 
@@ -90,6 +92,8 @@ def _shared_fields_from_marker(marker):
 
 @receiver(post_save, sender=TbMapMarker)
 def auto_create_region_from_marker(sender, instance, created, **kwargs):
+    if kwargs.get('raw', False):
+        return
     
     global _syncing_region_marker
     if _syncing_region_marker:
@@ -113,6 +117,8 @@ def auto_create_region_from_marker(sender, instance, created, **kwargs):
 
 @receiver(post_save, sender=TbRegiao)
 def auto_create_marker_from_region(sender, instance, created, **kwargs):
+    if kwargs.get('raw', False):
+        return
     
     global _syncing_region_marker
     if _syncing_region_marker:
