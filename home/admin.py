@@ -62,6 +62,10 @@ def markdown_editor_view(request):
 def _admin_console_paths():
     site_dir = Path(settings.BASE_DIR).resolve()
     bot_dir = Path(getattr(settings, "BOT_PROJECT_DIR", site_dir.parent / "bonfire-bot-main")).resolve()
+    if not bot_dir.exists():
+        alt_dir = site_dir.parent / "BonfireBot"
+        if alt_dir.exists():
+            bot_dir = alt_dir
     return {
         "site": {
             "label": "Site Django",
@@ -1840,7 +1844,7 @@ class BotMemberAdmin(BotReadOnlyMixin, admin.ModelAdmin):
 
 
 @admin.register(BotTransaction)
-class BotTransactionAdmin(BotReadOnlyMixin, admin.ModelAdmin):
+class BotTransactionAdmin(admin.ModelAdmin):
     list_display = ('transactionCode', 'name', 'email', 'subscriptionPlan', 'status', 'grossAmount', 'paymentDate', 'claimed')
     list_filter = ('status', 'claimed', 'subscriptionPlan')
     search_fields = ('transactionCode', 'name', 'email')
@@ -1848,21 +1852,21 @@ class BotTransactionAdmin(BotReadOnlyMixin, admin.ModelAdmin):
 
 
 @admin.register(BotSchedulerJob)
-class BotSchedulerJobAdmin(BotReadOnlyMixin, admin.ModelAdmin):
+class BotSchedulerJobAdmin(admin.ModelAdmin):
     list_display = ('name', 'nextRunAt')
     search_fields = ('name',)
     ordering = ('nextRunAt',)
 
 
 @admin.register(BotDedicatedRank)
-class BotDedicatedRankAdmin(BotReadOnlyMixin, admin.ModelAdmin):
+class BotDedicatedRankAdmin(admin.ModelAdmin):
     list_display = ('priorityRankName', 'isActive', 'isPriorityLocked', 'validFrom', 'validUntil')
     list_filter = ('isActive', 'isPriorityLocked')
     ordering = ('-validFrom',)
 
 
 @admin.register(BotCharacterLog)
-class BotCharacterLogAdmin(BotReadOnlyMixin, admin.ModelAdmin):
+class BotCharacterLogAdmin(admin.ModelAdmin):
     list_display = ('characterName', 'discordUserTag', 'className', 'rankName', 'level', 'adventuresPlayed', 'isNovice')
     list_filter = ('rankName', 'className', 'isNovice')
     search_fields = ('characterName', 'discordUserTag', 'discordUserId')
