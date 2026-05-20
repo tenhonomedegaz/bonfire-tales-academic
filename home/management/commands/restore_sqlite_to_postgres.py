@@ -41,6 +41,11 @@ class Command(BaseCommand):
             )
         
         self.stdout.write("Carregando dados no PostgreSQL...")
+        
+        # O banco precisa estar limpo antes de carregar os dados do SQLite
+        self.stdout.write("Limpando banco de dados PostgreSQL antes do import...")
+        call_command('flush', '--noinput', database='default')
+        
         call_command('loaddata', backup_file, database='default')
         
         self.stdout.write(self.style.SUCCESS("🎉 Todos os dados do site foram restaurados com sucesso!"))
