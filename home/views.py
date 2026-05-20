@@ -1,4 +1,4 @@
-﻿import json
+import json
 import re
 import unicodedata
 from datetime import datetime, timezone as datetime_timezone
@@ -21,7 +21,7 @@ from django.db import connection, transaction
 from django.utils.text import slugify
 from django.views.decorators.http import require_POST
 
-from .bot_mongo import BotMongoUnavailable, find_published_quests, serialize_document
+
 from .models import (
     TbClasse,
     TbClassehabilidade,
@@ -1178,35 +1178,63 @@ def sistemas_missoes_view(request):
     if status not in allowed_status:
         status = ''
 
-    mongo_error = ''
     quests = []
+    mongo_error = ''
     try:
-        raw_quests = find_published_quests(search=search, status=status)
-    except BotMongoUnavailable as exc:
+        with connection.cursor() as cursor:
+            query = """
+                SELECT id, name, description, "questDate", "playersAmount",
+                       "subscribedPlayers", "questPlayers", status, type, tags,
+                       "questMaster", "tableUrl", "guildId", "channelId"
+                FROM "Quest"
+                WHERE "isPublished" = true
+            """
+            params = []
+            if status:
+                query += ' AND status = %s'
+                params.append(status)
+            if search:
+                query += ' AND name ILIKE %s'
+                params.append(f'%{search}%')
+            
+            query += ' ORDER BY "questDate" DESC LIMIT 100'
+            cursor.execute(query, params)
+            columns = [col[0] for col in cursor.description]
+            for row in cursor.fetchall():
+                quest = dict(zip(columns, row))
+                
+                # Parse JSON arrays safely
+                def parse_json(val):
+                    if isinstance(val, list): return val
+                    if isinstance(val, str):
+                        try:
+                            return json.loads(val)
+                        except:
+                            return []
+                    return []
+                
+                subscribed_players = parse_json(quest['subscribedPlayers'])
+                quest_players = parse_json(quest['questPlayers'])
+                players_amount = quest['playersAmount'] or 0
+                
+                quests.append({
+                    'id': quest['id'],
+                    'name': quest['name'] or 'Missao sem nome',
+                    'description': quest['description'] or '',
+                    'quest_date': quest['questDate'],
+                    'players_amount': players_amount,
+                    'filled_slots': len(quest_players),
+                    'queue_amount': len(subscribed_players),
+                    'status': quest['status'] or 'idle',
+                    'type': quest['type'] or '',
+                    'tags': parse_json(quest['tags']),
+                    'quest_master': quest['questMaster'] or '',
+                    'table_url': quest['tableUrl'] or '',
+                    'discord_url': f"https://discord.com/channels/{quest['guildId']}/{quest['channelId']}" if quest.get('guildId') and quest.get('channelId') else "",
+                    'is_full': bool(players_amount and len(quest_players) >= players_amount),
+                })
+    except Exception as exc:
         mongo_error = str(exc)
-        raw_quests = []
-
-    for quest in raw_quests:
-        subscribed_players = quest.get('subscribedPlayers') or []
-        quest_players = quest.get('questPlayers') or []
-        players_amount = quest.get('playersAmount') or 0
-        quest_date = _parse_mongo_date(quest.get('questDate'))
-        quests.append({
-            'id': quest.get('_id'),
-            'name': quest.get('name') or 'Missao sem nome',
-            'description': quest.get('description') or '',
-            'quest_date': quest_date,
-            'players_amount': players_amount,
-            'filled_slots': len(quest_players),
-            'queue_amount': len(subscribed_players),
-            'status': quest.get('status') or 'idle',
-            'type': quest.get('type') or '',
-            'tags': quest.get('tags') or [],
-            'quest_master': quest.get('questMaster') or '',
-            'table_url': quest.get('tableUrl') or '',
-            'discord_url': _quest_discord_url(quest),
-            'is_full': bool(players_amount and len(quest_players) >= players_amount),
-        })
 
     context = {
         'quests': quests,
