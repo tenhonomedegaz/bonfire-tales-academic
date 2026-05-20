@@ -176,7 +176,7 @@
         {% if forloop.counter == 10 %}
         
         <div class="block min-[1600px]:hidden my-4 w-full">
-            {% include 'home/components/ad_horizontal.html' %}
+            {% include 'home/components/horizontal_support.html' %}
         </div>
         {% endif %}
         <article class="{% if item.is_subclass %}hidden subclass-content{% endif %} overflow-hidden rounded border border-[var(--stroke)] bg-[var(--bg1)]" {% if item.is_subclass %}data-subclass-slug="{{ item.subclasse_slug }}"{% else %}data-base-feature{% endif %} data-feature-card data-feature-id="{{ item.habilidade.id_habilidade }}">

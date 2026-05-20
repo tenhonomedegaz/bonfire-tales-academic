@@ -88,7 +88,7 @@
             <tr class="transition-colors odd:bg-transparent even:bg-[var(--bg2)]/50 hover:bg-[var(--bg2)]">
               <td class="border-r border-[var(--stroke)] px-1 py-0.5 text-center font-bold">{{ row.nivel }}</td>
               {% for cell in row.cells %}
-              <td {% if cell.col.subclass_only %}data-subclass-column="{{ cell.col.subclass_slugs_attr }}"{% endif %} class="{% if cell.col.subclass_only %}is-collapsed-column {% endif %}border-r border-[var(--stroke)] px-1 py-0.5 align-top leading-tight {% if cell.col.is_feature %}text-left whitespace-nowrap{% elif cell.col.spell_level %}px-0.5 text-center whitespace-normal break-words{% else %}text-center whitespace-normal break-words{% endif %}">
+              <td {% if cell.col.subclass_only %}data-subclass-column="{{ cell.col.subclass_slugs_attr }}"{% endif %} class="{% if cell.col.subclass_only %}is-collapsed-column {% endif %}border-r border-[var(--stroke)] px-1 py-0.5 align-middle leading-tight {% if cell.col.is_feature %}text-left whitespace-nowrap{% elif cell.col.spell_level %}px-0.5 text-center whitespace-normal break-words{% else %}text-center whitespace-normal break-words{% endif %}">
                 {{ cell.valor|safe }}
               </td>
               {% endfor %}

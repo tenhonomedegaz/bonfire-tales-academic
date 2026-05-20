@@ -75,9 +75,9 @@
       <div class="flex-1 flex flex-row w-full justify-center">
           {% block ad_containers %}
           
-          <aside class="ad-container-left hidden min-[1340px]:flex flex-col gap-4 w-[160px] 2xl:w-[250px] flex-shrink-0 pt-8 sticky top-[57px] h-[calc(100vh-57px)] overflow-hidden z-30">
+          <aside class="support-sidebar-left hidden min-[1340px]:flex flex-col gap-4 w-[160px] 2xl:w-[250px] flex-shrink-0 pt-8 sticky top-[57px] h-[calc(100vh-57px)] overflow-hidden z-30">
               <div class="h-full w-full">
-                  {% include 'home/components/ad_sidebar.html' %}
+                  {% include 'home/components/sidebar_support.html' %}
               </div>
           </aside>
           {% endblock %}
@@ -86,7 +86,7 @@
               {% block mobile_ad_top %}
               
               <div class="block min-[1340px]:hidden mb-8 w-full">
-                  {% include 'home/components/ad_horizontal.html' %}
+                  {% include 'home/components/horizontal_support.html' %}
               </div>
               {% endblock %}
 
@@ -96,16 +96,16 @@
               {% block mobile_ad %}
               
               <div class="block mt-12 mb-4 w-full px-4 md:px-0">
-                  {% include 'home/components/ad_horizontal.html' %}
+                  {% include 'home/components/horizontal_support.html' %}
               </div>
               {% endblock %}
           </main>
 
           {% block ad_containers_right %}
           
-          <aside class="ad-container-right hidden min-[1340px]:flex flex-col gap-4 w-[160px] 2xl:w-[250px] flex-shrink-0 pt-8 sticky top-[57px] h-[calc(100vh-57px)] overflow-hidden z-30">
+          <aside class="support-sidebar-right hidden min-[1340px]:flex flex-col gap-4 w-[160px] 2xl:w-[250px] flex-shrink-0 pt-8 sticky top-[57px] h-[calc(100vh-57px)] overflow-hidden z-30">
               <div class="h-full w-full">
-                  {% include 'home/components/ad_sidebar.html' %}
+                  {% include 'home/components/sidebar_support.html' %}
               </div>
           </aside>
           {% endblock %}

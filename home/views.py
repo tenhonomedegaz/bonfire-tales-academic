@@ -13,6 +13,9 @@ from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.core.serializers.json import DjangoJSONEncoder
 from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, render, redirect
+from django.core.paginator import Paginator
+from django.db.models import Count, Q, F
+from django.db.models.functions import Lower
 from django.templatetags.static import static
 from django.urls import reverse
 from django.utils.html import escape, format_html, format_html_join
@@ -673,7 +676,7 @@ def _postgres_classe_detail_view(request, slug):
     seen_columns = set()
     recursos = TbRecursoclasse.objects.filter(
         id_classe=classe,
-    ).select_related('id_subclasse').order_by('id_subclasse_id', 'id_recurso')
+    ).select_related('id_subclasse').order_by(F('id_subclasse_id').asc(nulls_first=True), 'id_recurso')
 
     for recurso in recursos:
         is_feature = _is_feature_column(recurso.nome)
