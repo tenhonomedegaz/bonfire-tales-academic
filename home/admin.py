@@ -63,9 +63,11 @@ def _admin_console_paths():
     site_dir = Path(settings.BASE_DIR).resolve()
     bot_dir = Path(getattr(settings, "BOT_PROJECT_DIR", site_dir.parent / "bonfire-bot-main")).resolve()
     if not bot_dir.exists():
-        alt_dir = site_dir.parent / "BonfireBot"
-        if alt_dir.exists():
-            bot_dir = alt_dir
+        for alt_name in ("BonfireBot-main", "BonfireBot", "bonfirebot-main"):
+            alt_dir = site_dir.parent / alt_name
+            if alt_dir.exists():
+                bot_dir = alt_dir
+                break
     return {
         "site": {
             "label": "Site Django",
