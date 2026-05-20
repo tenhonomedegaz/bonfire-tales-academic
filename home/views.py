@@ -44,6 +44,11 @@ from .models import (
 from .security import validate_no_sql_danger
 
 
+class BotMongoUnavailable(Exception):
+    """Raised when a requested PostgreSQL table is not available."""
+    pass
+
+
 SITE_COLLECTIONS = {
     'classes': settings.SITE_POSTGRES_TABLES.get('classes', 'home_tbclasse'),
     'subclasses': settings.SITE_POSTGRES_TABLES.get('subclasses', 'home_tbsubclasse'),
