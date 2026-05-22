@@ -126,6 +126,7 @@ class TbClassehabilidade(models.Model):
         db_table = 'TB_ClasseHabilidade'
         verbose_name = 'Habilidade de Classe'
         verbose_name_plural = 'Habilidades de Classe'
+        unique_together = (('id_classe', 'id_subclasse', 'nome', 'niveladquirido'),)
 
     def __str__(self):
         return f"{self.nome} (Nivel {self.niveladquirido})"
@@ -190,6 +191,7 @@ class TbRecursoclasse(models.Model):
         db_table = 'TB_RecursoClasse'
         verbose_name = 'Recurso de Classe'
         verbose_name_plural = 'Recursos de Classe'
+        unique_together = (('id_classe', 'id_subclasse', 'nome', 'nivel'),)
 
     def __str__(self):
         return f"{self.nome} - Nivel {self.nivel}"
