@@ -1110,12 +1110,12 @@ class TbClasseAdmin(BonfireAdminMixin, admin.ModelAdmin):
                 for item in payload.get("recursos", []):
                     query = TbRecursoclasse.objects.filter(
                         id_classe=classe,
-                        id_subclasse_id=item["id_subclasse"],
                         nivel=item["nivel"],
                         nome=item["nome"],
                     )
                     existing = query.first()
                     if existing and atualizar_existentes:
+                        existing.id_subclasse_id = item["id_subclasse"]
                         existing.slug = item["slug"]
                         existing.valor = item["valor"]
                         existing.save()
@@ -1137,12 +1137,12 @@ class TbClasseAdmin(BonfireAdminMixin, admin.ModelAdmin):
                 for item in payload.get("habilidades", []):
                     query = TbClassehabilidade.objects.filter(
                         id_classe=classe,
-                        id_subclasse_id=item["id_subclasse"],
                         niveladquirido=item["niveladquirido"],
                         nome=item["nome"],
                     )
                     existing = query.first()
                     if existing and atualizar_existentes:
+                        existing.id_subclasse_id = item["id_subclasse"]
                         existing.descricao = item["descricao"]
                         existing.table_only = item["table_only"]
                         existing.save()
