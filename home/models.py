@@ -81,6 +81,7 @@ class TbClasse(models.Model):
     equipamento = models.TextField(db_column='Equipamento', blank=True, null=True)
     multiclass_requisitos = models.TextField(db_column='MulticlassRequisitos', blank=True, null=True)
     multiclass_pericias = models.TextField(db_column='MulticlassPericias', blank=True, null=True)
+    multiclass_armas = models.TextField(db_column='MulticlassArmas', blank=True, null=True)
     multiclass_ferramentas = models.TextField(db_column='MulticlassFerramentas', blank=True, null=True)
     multiclass_armaduras = models.TextField(db_column='MulticlassArmaduras', blank=True, null=True)
 

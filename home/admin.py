@@ -1057,6 +1057,7 @@ class TbClasseAdmin(BonfireAdminMixin, admin.ModelAdmin):
         ("Multiclasse", {"fields": (
             "multiclass_requisitos",
             "multiclass_pericias",
+            "multiclass_armas",
             "multiclass_ferramentas",
             "multiclass_armaduras",
         )}),

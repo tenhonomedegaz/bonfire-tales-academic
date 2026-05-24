@@ -332,6 +332,7 @@ def _mongo_classe(doc):
         equipamento=doc.get('Equipamento'),
         multiclass_requisitos=doc.get('MulticlassRequisitos'),
         multiclass_pericias=doc.get('MulticlassPericias'),
+        multiclass_armas=doc.get('MulticlassArmas'),
         multiclass_ferramentas=doc.get('MulticlassFerramentas'),
         multiclass_armaduras=doc.get('MulticlassArmaduras'),
     )
@@ -667,6 +668,7 @@ def _postgres_classe_detail_view(request, slug):
     multiclass_traits = [
         ('Requisitos', classe.multiclass_requisitos),
         ('Pericias', classe.multiclass_pericias),
+        ('Armas', classe.multiclass_armas),
         ('Ferramentas', classe.multiclass_ferramentas),
         ('Armaduras', classe.multiclass_armaduras),
     ]
@@ -896,6 +898,7 @@ def _mongo_classe_detail_view(request, slug):
     multiclass_traits = [
         ('Requisitos', classe.multiclass_requisitos),
         ('Pericias', classe.multiclass_pericias),
+        ('Armas', classe.multiclass_armas),
         ('Ferramentas', classe.multiclass_ferramentas),
         ('Armaduras', classe.multiclass_armaduras),
     ]
