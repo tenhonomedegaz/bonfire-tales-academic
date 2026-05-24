@@ -51,6 +51,7 @@
               <th>Nome</th>
               <th>Tipo</th>
               <th>Tags adicionais</th>
+              <th>Tags JSON</th>
               <th>Pre-requisito</th>
               <th>Nivel</th>
               <th>Acessos</th>
@@ -63,6 +64,7 @@
                 <td>{{ opcao.nome }}</td>
                 <td>{{ opcao.tipo }}</td>
                 <td>{{ opcao.etiquetas_adicionais|default:"-" }}</td>
+                <td>{{ opcao.tags_json|join:", "|default:"-" }}</td>
                 <td>{{ opcao.pre_requisito|default:"Nenhum" }}</td>
                 <td>{{ opcao.nivel_recebimento }}</td>
                 <td>{{ opcao.access_display }}</td>

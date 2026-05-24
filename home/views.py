@@ -43,6 +43,7 @@ from .models import (
     TbTracoracial,
     TbItemMundano,
     TbItemMagico,
+    TbMagia,
 )
 from .security import validate_no_sql_danger
 
@@ -234,6 +235,17 @@ def _split_catalog_list(value):
     return [part.strip() for part in re.split(r'[,;/\n]+', str(value)) if part.strip()]
 
 
+def _tags_json_value(data):
+    value = data.get('tags_json') if isinstance(data, dict) else None
+    if value in (None, '') and isinstance(data, dict):
+        value = data.get('TagsJSON')
+    if value in (None, ''):
+        return []
+    if isinstance(value, (list, dict)):
+        return value
+    return _split_catalog_list(value)
+
+
 def _slug_match_values(value):
     values = _split_catalog_list(value)
     matches = set()
@@ -365,6 +377,7 @@ def _mongo_habilidade(doc, classes_by_id=None, subclasses_by_id=None):
         descricao=doc.get('Descricao') or '',
         niveladquirido=doc.get('NivelAdquirido') or 0,
         table_only=_bool(doc.get('TableOnly')),
+        tags_json=doc.get('TagsJSON') or [],
     )
 
 
@@ -422,6 +435,7 @@ def _mongo_traco(doc):
         nivel_requisito=doc.get('NivelRequisito') or 0,
         talento_racial=_bool(doc.get('TalentoRacial')),
         pre_requisito=doc.get('PreRequisito'),
+        tags_json=doc.get('TagsJSON') or [],
     )
 
 
@@ -1299,6 +1313,7 @@ def _talent_payload(talent):
         'etiqueta': talent.get_etiqueta_display(),
         'etiqueta_key': talent.etiqueta,
         'etiquetas_adicionais': talent.etiquetas_adicionais or '',
+        'tags_json': talent.tags_json or [],
         'pre_requisito': talent.pre_requisito or 'Nenhum',
         'atributos_str': ', '.join(atributos) if atributos else 'Nenhum',
         'atrib_forca': talent.atrib_forca,
@@ -1322,6 +1337,8 @@ def wiki_update_talent(request, talent_id):
     talent.tipo = data.get('tipo') if data.get('tipo') in dict(TbTalento.TIPO_CHOICES) else talent.tipo
     talent.etiqueta = data.get('etiqueta') if data.get('etiqueta') in dict(TbTalento.ETIQUETA_CHOICES) else talent.etiqueta
     talent.etiquetas_adicionais = (data.get('etiquetas_adicionais') or '').strip() or None
+    if 'tags_json' in data or 'TagsJSON' in data:
+        talent.tags_json = _tags_json_value(data)
     talent.pre_requisito = (data.get('pre_requisito') or '').strip() or None
     talent.descricao = data.get('descricao') or ''
     for attr in ('atrib_forca', 'atrib_destreza', 'atrib_constituicao', 'atrib_inteligencia', 'atrib_sabedoria', 'atrib_carisma'):
@@ -1340,6 +1357,8 @@ def wiki_update_option(request, id):
     opcao.nome = (data.get('nome') or opcao.nome).strip()
     opcao.tipo = (data.get('tipo') or opcao.tipo).strip()
     opcao.etiquetas_adicionais = (data.get('etiquetas_adicionais') or '').strip() or None
+    if 'tags_json' in data or 'TagsJSON' in data:
+        opcao.tags_json = _tags_json_value(data)
     opcao.pre_requisito = (data.get('pre_requisito') or '').strip() or None
     opcao.descricao = data.get('descricao') or ''
     opcao.save()
@@ -1355,6 +1374,7 @@ def _option_payload(o):
         'descricao': o.descricao,
         'pre_requisito': o.pre_requisito or '',
         'etiquetas_adicionais': o.etiquetas_adicionais or '',
+        'tags_json': o.tags_json or [],
     }
 
 
@@ -1370,6 +1390,8 @@ def wiki_update_class_feature(request, feature_id):
     except (TypeError, ValueError):
         pass
     feature.descricao = data.get('descricao') or ''
+    if 'tags_json' in data or 'TagsJSON' in data:
+        feature.tags_json = _tags_json_value(data)
     feature.save()
     return JsonResponse({
         'ok': True,
@@ -1378,6 +1400,7 @@ def wiki_update_class_feature(request, feature_id):
             'nome': feature.nome,
             'niveladquirido': feature.niveladquirido,
             'descricao': feature.descricao,
+            'tags_json': feature.tags_json or [],
         },
     })
 
@@ -1396,6 +1419,8 @@ def wiki_update_racial_trait(request, trait_id):
     trait.talento_racial = bool(data.get('talento_racial'))
     trait.pre_requisito = (data.get('pre_requisito') or '').strip() or None
     trait.descricao = data.get('descricao') or ''
+    if 'tags_json' in data or 'TagsJSON' in data:
+        trait.tags_json = _tags_json_value(data)
     trait.save()
     return JsonResponse({
         'ok': True,
@@ -1406,6 +1431,7 @@ def wiki_update_racial_trait(request, trait_id):
             'talento_racial': trait.talento_racial,
             'pre_requisito': trait.pre_requisito or '',
             'descricao': trait.descricao,
+            'tags_json': trait.tags_json or [],
         },
     })
 
@@ -2286,6 +2312,7 @@ def talentos_view(request):
                 'etiqueta': etiqueta_display.get(etiqueta, etiqueta),
                 'etiqueta_key': etiqueta,
                 'etiquetas_adicionais': t.get('EtiquetasAdicionais') or '',
+                'tags_json': t.get('TagsJSON') or [],
                 'pre_requisito': t.get('PreRequisito') or 'Nenhum',
                 'atributos_str': ', '.join(atributos) if atributos else 'Nenhum',
                 'atrib_forca': bool(t.get('Atrib_Forca')),
@@ -2347,6 +2374,7 @@ def opcoes_view(request):
                 'descricao': op.get('Descricao') or '',
                 'pre_requisito': op.get('PreRequisito') or '',
                 'etiquetas_adicionais': op.get('EtiquetasAdicionais') or '',
+                'tags_json': op.get('TagsJSON') or [],
             })
         return render(request, 'home/pages/opcoes.html', {
             'json_opcoes': opcoes_lista,
@@ -2366,6 +2394,7 @@ def opcoes_view(request):
             'descricao': op.descricao or '',
             'pre_requisito': op.pre_requisito or '',
             'etiquetas_adicionais': op.etiquetas_adicionais or '',
+            'tags_json': op.tags_json or [],
         })
 
     context = {
@@ -2408,7 +2437,12 @@ def _spell_payload(document):
         'nome': name,
         'slug': _doc_value(document, ['Slug', 'slug'], slugify(name)),
         'tipo': _doc_value(document, ['Escola', 'escola', 'school'], 'Magia'),
-        'tags': [level_label] + _split_catalog_list(_doc_value(document, ['Classes', 'classes'])) + _split_catalog_list(_doc_value(document, ['Subclasses', 'subclasses'])),
+        'tags': (
+            [level_label]
+            + _split_catalog_list(_doc_value(document, ['Classes', 'classes']))
+            + _split_catalog_list(_doc_value(document, ['Subclasses', 'subclasses']))
+            + _split_catalog_list(_doc_value(document, ['TagsJSON', 'Tags', 'tags']))
+        ),
         'resumo': _doc_value(document, ['Resumo', 'resumo']),
         'descricao': _doc_value(document, ['Descricao', 'Descrição', 'descricao', 'description']),
         'meta': {
@@ -2497,14 +2531,41 @@ def antecedentes_view(request):
 
 
 def magias_view(request):
-    return _render_catalog(
-        request,
-        'Magias',
-        'Lista de magias com nivel, escola, componentes, ritual e concentracao.',
-        'magias',
-        'spells',
-        _spell_payload,
-    )
+    items = []
+    for magia in TbMagia.objects.all().order_by('nivel', 'nome'):
+        level_label = 'Truque' if magia.nivel == 0 else f'Nivel {magia.nivel}'
+        tags = [
+            level_label,
+            *(_split_catalog_list(magia.classes)),
+            *(_split_catalog_list(magia.subclasses)),
+            *(_split_catalog_list(magia.tags_json)),
+        ]
+        items.append({
+            'nome': magia.nome,
+            'slug': magia.slug,
+            'tipo': magia.escola or 'Magia',
+            'tags': tags,
+            'resumo': '',
+            'descricao': magia.descricao or '',
+            'meta': {
+                'Nivel': level_label,
+                'Tempo de Conjuracao': magia.casting_time or '',
+                'Ritual': 'Sim' if magia.ritual else 'Nao',
+                'Concentracao': 'Sim' if magia.concentracao else 'Nao',
+                'Duracao': magia.duracao or '',
+                'Alcance': magia.alcance or '',
+                'Componentes': magia.componentes or '',
+                'Em niveis superiores': magia.em_niveis_superiores or '',
+            },
+        })
+    return render(request, 'home/pages/catalogo_mongo.html', {
+        'title': 'Magias',
+        'subtitle': 'Lista de magias com nivel, escola, componentes, ritual e concentracao.',
+        'kind': 'magias',
+        'items': items,
+        'mongo_error': '',
+        'can_edit_wiki': request.user.is_staff,
+    })
 
 
 def bestiario_view(request):

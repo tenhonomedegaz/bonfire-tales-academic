@@ -41,6 +41,7 @@ from .models import (
     TbTracoracial,
     TbItemMundano,
     TbItemMagico,
+    TbMagia,
 )
 from .security import validate_json_no_sql_danger, validate_no_sql_danger
 
@@ -442,6 +443,29 @@ class OpcaoJogoBulkConfirmForm(forms.Form):
     atualizar_existentes = forms.BooleanField(required=False, widget=forms.HiddenInput)
 
 
+class MagiaExcelImportForm(forms.Form):
+    arquivo = forms.FileField(
+        label="Arquivo .xlsx",
+        help_text='Use a planilha com a aba "Versão Final pra Import".',
+    )
+    atualizar_existentes = forms.BooleanField(
+        label="Atualizar magias existentes pelo slug",
+        required=False,
+        initial=True,
+    )
+
+    def clean_arquivo(self):
+        uploaded = self.cleaned_data["arquivo"]
+        if not uploaded.name.lower().endswith(".xlsx"):
+            raise forms.ValidationError("Envie um arquivo .xlsx.")
+        return uploaded
+
+
+class MagiaExcelConfirmForm(forms.Form):
+    payload = forms.CharField(widget=forms.HiddenInput)
+    atualizar_existentes = forms.BooleanField(required=False, widget=forms.HiddenInput)
+
+
 def _normalize_label(value):
     normalized = unicodedata.normalize("NFKD", value or "")
     without_accents = "".join(char for char in normalized if not unicodedata.combining(char))
@@ -484,6 +508,166 @@ def _unique_option_slug(base_slug, current_slug=None):
         candidate = f"{slug}-{counter}"
         counter += 1
     return candidate
+
+
+def _unique_spell_slug(base_slug, current_slug=None):
+    slug = base_slug or "magia"
+    candidate = slug
+    counter = 2
+    query = TbMagia.objects.all()
+    if current_slug:
+        query = query.exclude(slug=current_slug)
+
+    while query.filter(slug=candidate).exists():
+        candidate = f"{slug}-{counter}"
+        counter += 1
+    return candidate
+
+
+def _split_csv_text(value):
+    if not value:
+        return []
+    return [part.strip() for part in re.split(r"[,;\n]+", str(value)) if part.strip()]
+
+
+def _parse_spell_level(value):
+    text = str(value or "").strip().lower()
+    if not text:
+        return 0
+    if text in {"c", "cantrip", "truque", "truques"}:
+        return 0
+    match = re.search(r"\d+", text)
+    if not match:
+        raise ValueError(f"Nivel invalido: {value}")
+    level = int(match.group(0))
+    if level < 0 or level > 9:
+        raise ValueError(f"Nivel fora do intervalo 0-9: {value}")
+    return level
+
+
+def _parse_excel_bool(value):
+    if isinstance(value, bool):
+        return value
+    text = str(value or "").strip().lower()
+    return text in {"1", "true", "sim", "s", "yes", "y", "verdadeiro"}
+
+
+def _normalize_duration(value):
+    text = str(value or "").strip()
+    if not text:
+        return "", False
+    normalized = _normalize_label(text)
+    if "concentracao" not in normalized:
+        return text, False
+    cleaned = re.sub(r"(?i)\bconcentra[cç][aã]o\b\s*,?\s*(at[eé]\s*)?", "", text).strip(" ,;-")
+    return cleaned or text, True
+
+
+def _parse_magias_xlsx(uploaded_file):
+    try:
+        from openpyxl import load_workbook
+    except ImportError as exc:
+        raise forms.ValidationError("A dependencia openpyxl nao esta instalada.") from exc
+
+    try:
+        workbook = load_workbook(uploaded_file, read_only=True, data_only=True)
+    except Exception as exc:
+        raise forms.ValidationError(f"Nao foi possivel ler o Excel: {exc}") from exc
+
+    sheet_name = "Versão Final pra Import"
+    if sheet_name not in workbook.sheetnames:
+        raise forms.ValidationError(f'A aba "{sheet_name}" nao foi encontrada.')
+
+    worksheet = workbook[sheet_name]
+    rows = worksheet.iter_rows(values_only=True)
+    headers = next(rows, None)
+    if not headers:
+        raise forms.ValidationError("A planilha esta vazia.")
+
+    aliases = {
+        "nome": "nome",
+        "lvl": "nivel",
+        "nivel": "nivel",
+        "cating_time": "casting_time",
+        "casting_time": "casting_time",
+        "ritual_booleana": "ritual",
+        "ritual": "ritual",
+        "duracao": "duracao",
+        "escola": "escola",
+        "alcance": "alcance",
+        "componentes": "componentes",
+        "classes_nome_do_bonfas": "classes",
+        "classes": "classes",
+        "subclasses_nome_do_bonfas": "subclasses",
+        "subclasses": "subclasses",
+        "descricao": "descricao",
+        "higher_lvls": "em_niveis_superiores",
+        "em_niveis_superiores": "em_niveis_superiores",
+    }
+    header_map = {
+        index: aliases.get(_normalize_label(header))
+        for index, header in enumerate(headers)
+        if header is not None
+    }
+    required = {"nome", "nivel", "casting_time", "ritual", "duracao", "escola", "alcance", "componentes", "descricao"}
+    missing = sorted(required - set(header for header in header_map.values() if header))
+    if missing:
+        raise forms.ValidationError("Colunas obrigatorias ausentes: " + ", ".join(missing))
+
+    spells = []
+    errors = []
+    for row_number, row in enumerate(rows, start=2):
+        record = {}
+        for index, value in enumerate(row):
+            field = header_map.get(index)
+            if field:
+                record[field] = value
+
+        nome = str(record.get("nome") or "").strip()
+        if not nome:
+            continue
+
+        try:
+            nivel = _parse_spell_level(record.get("nivel"))
+        except ValueError as exc:
+            errors.append(f"Linha {row_number}: {exc}")
+            continue
+
+        duracao, concentracao = _normalize_duration(record.get("duracao"))
+        item = {
+            "nome": nome,
+            "slug": slugify(nome),
+            "nivel": nivel,
+            "nivel_display": "Truque" if nivel == 0 else str(nivel),
+            "casting_time": str(record.get("casting_time") or "").strip(),
+            "ritual": _parse_excel_bool(record.get("ritual")),
+            "duracao": duracao,
+            "concentracao": concentracao,
+            "escola": str(record.get("escola") or "").strip(),
+            "alcance": str(record.get("alcance") or "").strip(),
+            "componentes": str(record.get("componentes") or "").strip(),
+            "classes": str(record.get("classes") or "").strip(),
+            "subclasses": str(record.get("subclasses") or "").strip(),
+            "descricao": str(record.get("descricao") or "").strip(),
+            "em_niveis_superiores": str(record.get("em_niveis_superiores") or "").strip(),
+        }
+        item["tags_json"] = [
+            tag for tag in (
+                item["nivel_display"],
+                item["escola"],
+                *_split_csv_text(item["classes"]),
+                *_split_csv_text(item["subclasses"]),
+            )
+            if tag
+        ]
+        try:
+            validate_no_sql_danger(item, f"linha {row_number}")
+        except forms.ValidationError as exc:
+            errors.append(f"Linha {row_number}: {exc}")
+            continue
+        spells.append(item)
+
+    return spells, errors
 
 
 def _parse_talentos_txt(content, tipo):
@@ -615,6 +799,7 @@ def _parse_talentos_txt(content, tipo):
             "etiqueta": etiqueta,
             "etiqueta_label": dict(TbTalento.ETIQUETA_CHOICES).get(etiqueta, etiqueta),
             "etiquetas_adicionais": tags or None,
+            "tags_json": _parse_tags_json(tags),
             "pre_requisito": pre_requisito or None,
             "descricao": descricao,
             "atributos_display": ", ".join(atributos_display) or "Nenhum",
@@ -739,6 +924,31 @@ def _split_slug_list(value):
     ]
 
 
+def _parse_tags_json(value):
+    value = (value or "").strip()
+    if not value:
+        return []
+    if value.startswith("[") or value.startswith("{"):
+        try:
+            parsed = json.loads(value)
+        except json.JSONDecodeError:
+            return [value]
+        return parsed if isinstance(parsed, (list, dict)) else [parsed]
+    return [
+        item.strip()
+        for item in re.split(r"[,;\n]+", value)
+        if item.strip()
+    ]
+
+
+def _format_tags_preview(tags_json):
+    if not tags_json:
+        return "-"
+    if isinstance(tags_json, list):
+        return ", ".join(str(tag) for tag in tags_json[:6])
+    return Truncator(json.dumps(tags_json, ensure_ascii=False)).chars(80)
+
+
 def _get_subclasse_by_slug(classe, slug):
     slug = (slug or "").strip()
     if not slug:
@@ -776,6 +986,13 @@ def _parse_tracos_raciais_txt(content):
             data.get("talento_racial")
             or data.get("talento")
             or data.get("opcional")
+        )
+        tags_json = _parse_tags_json(
+            data.get("tags_json")
+            or data.get("tagsjson")
+            or data.get("tags")
+            or data.get("tag")
+            or data.get("etiquetas")
         )
 
         if not nome:
@@ -826,6 +1043,7 @@ def _parse_tracos_raciais_txt(content):
             "nivel_requisito": nivel,
             "talento_racial": talento_racial,
             "pre_requisito": pre_requisito or None,
+            "tags_json": tags_json,
             "id_raca": raca.id_raca if raca else None,
             "id_linhagem": linhagem.id_linhagem if linhagem else None,
             "id_essencia": essencia.id_essencia if essencia else None,
@@ -912,6 +1130,7 @@ def _parse_opcoes_jogo_txt(content):
                 "slug": slugify(slug) or slugify(nome),
                 "tipo": tipo,
                 "etiquetas_adicionais": tags or None,
+                "tags_json": _parse_tags_json(tags),
                 "pre_requisito": pre_requisito or None,
                 "descricao": descricao,
                 "nivel_recebimento": nivel_recebimento,
@@ -972,6 +1191,13 @@ def _parse_classe_import_txt(content, classe):
         nivel = data.get("nivel")
         descricao = data.get("descricao", "").strip()
         table_only = _parse_bool(data.get("table_only") or data.get("so_tabela") or data.get("apenas_tabela"))
+        tags_json = _parse_tags_json(
+            data.get("tags_json")
+            or data.get("tagsjson")
+            or data.get("tags")
+            or data.get("tag")
+            or data.get("etiquetas")
+        )
         if not nome:
             errors.append(f"Habilidade bloco {index}: campo Nome ausente.")
             continue
@@ -995,6 +1221,7 @@ def _parse_classe_import_txt(content, classe):
             "niveladquirido": int(nivel),
             "descricao": descricao,
             "table_only": table_only,
+            "tags_json": tags_json,
             "id_subclasse": subclasse.id_subclasse if subclasse else None,
             "subclasse_nome": subclasse.nome if subclasse else "",
         })
@@ -1146,6 +1373,7 @@ class TbClasseAdmin(BonfireAdminMixin, admin.ModelAdmin):
                         existing.id_subclasse_id = item["id_subclasse"]
                         existing.descricao = item["descricao"]
                         existing.table_only = item["table_only"]
+                        existing.tags_json = item["tags_json"]
                         existing.save()
                         habilidades_atualizadas += 1
                         continue
@@ -1159,6 +1387,7 @@ class TbClasseAdmin(BonfireAdminMixin, admin.ModelAdmin):
                         niveladquirido=item["niveladquirido"],
                         descricao=item["descricao"],
                         table_only=item["table_only"],
+                        tags_json=item["tags_json"],
                     )
                     habilidades_criadas += 1
 
@@ -1217,7 +1446,7 @@ class TbSubclasseAdmin(BonfireAdminMixin, admin.ModelAdmin):
 
 @admin.register(TbClassehabilidade)
 class TbClassehabilidadeAdmin(BonfireAdminMixin, admin.ModelAdmin):
-    list_display = ("nome", "classe_nome", "subclasse_nome", "niveladquirido", "table_only", "short_description")
+    list_display = ("nome", "classe_nome", "subclasse_nome", "niveladquirido", "table_only", "tags_preview", "short_description")
     list_filter = ("id_classe", "id_subclasse", "niveladquirido", "table_only")
     search_fields = ("nome", "descricao", "id_classe__nome", "id_subclasse__nome")
     autocomplete_fields = ("id_classe", "id_subclasse")
@@ -1230,6 +1459,10 @@ class TbClassehabilidadeAdmin(BonfireAdminMixin, admin.ModelAdmin):
     @admin.display(description="Subclasse", ordering="id_subclasse__nome")
     def subclasse_nome(self, obj):
         return obj.id_subclasse.nome if obj.id_subclasse else "-"
+
+    @admin.display(description="Tags")
+    def tags_preview(self, obj):
+        return _format_tags_preview(obj.tags_json)
 
 
 @admin.register(TbRecursoclasse)
@@ -1261,7 +1494,7 @@ class TbTracoracialInline(admin.TabularInline):
     model = TbTracoracial
     fk_name = "id_raca"
     extra = 0
-    fields = ("nome", "nivel_requisito", "talento_racial", "pre_requisito", "id_linhagem", "id_essencia", "descricao")
+    fields = ("nome", "nivel_requisito", "talento_racial", "pre_requisito", "tags_json", "id_linhagem", "id_essencia", "descricao")
     autocomplete_fields = ("id_linhagem", "id_essencia")
     show_change_link = True
 
@@ -1325,13 +1558,13 @@ class TbEssenciaAdmin(BonfireAdminMixin, admin.ModelAdmin):
 @admin.register(TbTracoracial)
 class TbTracoracialAdmin(BonfireAdminMixin, admin.ModelAdmin):
     change_list_template = "admin/home/tbtracoracial/change_list.html"
-    list_display = ("nome", "origem_badge", "nivel_requisito", "talento_racial", "pre_requisito_curto", "short_description")
+    list_display = ("nome", "origem_badge", "nivel_requisito", "talento_racial", "pre_requisito_curto", "tags_preview", "short_description")
     list_filter = ("talento_racial", "nivel_requisito", "id_raca", "id_linhagem", "id_essencia")
     search_fields = ("nome", "descricao", "pre_requisito", "id_raca__nome", "id_linhagem__nome", "id_essencia__nome")
     autocomplete_fields = ("id_raca", "id_linhagem", "id_essencia")
     ordering = ("nivel_requisito", "nome")
     fieldsets = (
-        (None, {"fields": ("nome", "nivel_requisito", "talento_racial", "pre_requisito")}),
+        (None, {"fields": ("nome", "nivel_requisito", "talento_racial", "pre_requisito", "tags_json")}),
         ("Origem", {"fields": ("id_raca", "id_linhagem", "id_essencia")}),
         ("Texto em Markdown", {"fields": ("descricao",)}),
     )
@@ -1392,6 +1625,7 @@ class TbTracoracialAdmin(BonfireAdminMixin, admin.ModelAdmin):
                         existing.nivel_requisito = item["nivel_requisito"]
                         existing.talento_racial = item["talento_racial"]
                         existing.pre_requisito = item["pre_requisito"]
+                        existing.tags_json = item["tags_json"]
                         existing.save()
                         updated += 1
                         continue
@@ -1404,6 +1638,7 @@ class TbTracoracialAdmin(BonfireAdminMixin, admin.ModelAdmin):
                         nivel_requisito=item["nivel_requisito"],
                         talento_racial=item["talento_racial"],
                         pre_requisito=item["pre_requisito"],
+                        tags_json=item["tags_json"],
                         id_raca_id=item["id_raca"],
                         id_linhagem_id=item["id_linhagem"],
                         id_essencia_id=item["id_essencia"],
@@ -1440,6 +1675,10 @@ class TbTracoracialAdmin(BonfireAdminMixin, admin.ModelAdmin):
     def pre_requisito_curto(self, obj):
         return Truncator(obj.pre_requisito or "-").chars(55)
 
+    @admin.display(description="Tags")
+    def tags_preview(self, obj):
+        return _format_tags_preview(obj.tags_json)
+
 
 @admin.register(TbMapMarker)
 class TbMapMarkerAdmin(BonfireAdminMixin, admin.ModelAdmin):
@@ -1464,13 +1703,13 @@ class TbMapMarkerAdmin(BonfireAdminMixin, admin.ModelAdmin):
 @admin.register(TbTalento)
 class TbTalentoAdmin(BonfireAdminMixin, admin.ModelAdmin):
     change_list_template = "admin/home/tbtalento/change_list.html"
-    list_display = ("nome", "tipo_badge", "etiquetas_badges", "pre_requisito_curto", "atributos_badges", "descricao_curta")
+    list_display = ("nome", "tipo_badge", "etiquetas_badges", "tags_preview", "pre_requisito_curto", "atributos_badges", "descricao_curta")
     list_filter = ("tipo", "etiqueta", "atrib_forca", "atrib_destreza", "atrib_constituicao", "atrib_inteligencia", "atrib_sabedoria", "atrib_carisma")
     search_fields = ("nome", "slug", "descricao", "etiqueta", "etiquetas_adicionais", "pre_requisito")
     prepopulated_fields = {"slug": ("nome",)}
     ordering = ("nome",)
     fieldsets = (
-        (None, {"fields": ("nome", "slug", "tipo", "etiqueta", "etiquetas_adicionais", "pre_requisito")}),
+        (None, {"fields": ("nome", "slug", "tipo", "etiqueta", "etiquetas_adicionais", "tags_json", "pre_requisito")}),
         ("Aumento de atributo", {"fields": ("atrib_forca", "atrib_destreza", "atrib_constituicao", "atrib_inteligencia", "atrib_sabedoria", "atrib_carisma")}),
         ("Texto em Markdown", {"fields": ("descricao",)}),
     )
@@ -1525,6 +1764,7 @@ class TbTalentoAdmin(BonfireAdminMixin, admin.ModelAdmin):
                         existing.tipo = item["tipo"]
                         existing.etiqueta = item["etiqueta"]
                         existing.etiquetas_adicionais = item["etiquetas_adicionais"]
+                        existing.tags_json = item["tags_json"]
                         existing.pre_requisito = item["pre_requisito"]
                         existing.descricao = item["descricao"]
                         existing.atrib_forca = item.get("atrib_forca", False)
@@ -1544,6 +1784,7 @@ class TbTalentoAdmin(BonfireAdminMixin, admin.ModelAdmin):
                         tipo=item["tipo"],
                         etiqueta=item["etiqueta"],
                         etiquetas_adicionais=item["etiquetas_adicionais"],
+                        tags_json=item["tags_json"],
                         pre_requisito=item["pre_requisito"],
                         descricao=item["descricao"],
                         atrib_forca=item.get("atrib_forca", False),
@@ -1583,6 +1824,10 @@ class TbTalentoAdmin(BonfireAdminMixin, admin.ModelAdmin):
             labels.extend([tag.strip() for tag in obj.etiquetas_adicionais.split(",") if tag.strip()])
         return format_html(" ".join('<span class="admin-badge">{}</span>' for _ in labels), *labels)
 
+    @admin.display(description="Tags JSON")
+    def tags_preview(self, obj):
+        return _format_tags_preview(obj.tags_json)
+
     @admin.display(description="Pre-requisito")
     def pre_requisito_curto(self, obj):
         return Truncator(obj.pre_requisito or "Nenhum").chars(55)
@@ -1614,7 +1859,7 @@ class TbTalentoAdmin(BonfireAdminMixin, admin.ModelAdmin):
 @admin.register(TbOpcaojogo)
 class TbOpcaojogoAdmin(BonfireAdminMixin, admin.ModelAdmin):
     change_list_template = "admin/home/tbopcaojogo/change_list.html"
-    list_display = ("nome", "tipo", "etiquetas_adicionais", "pre_requisito", "slug", "short_description")
+    list_display = ("nome", "tipo", "etiquetas_adicionais", "tags_preview", "pre_requisito", "slug", "short_description")
     list_filter = ("tipo",)
     search_fields = ("nome", "slug", "tipo", "descricao", "pre_requisito", "etiquetas_adicionais")
     prepopulated_fields = {"slug": ("nome",)}
@@ -1671,6 +1916,7 @@ class TbOpcaojogoAdmin(BonfireAdminMixin, admin.ModelAdmin):
                         opcao.nome = item["nome"]
                         opcao.tipo = item["tipo"]
                         opcao.etiquetas_adicionais = item["etiquetas_adicionais"]
+                        opcao.tags_json = item["tags_json"]
                         opcao.pre_requisito = item["pre_requisito"]
                         opcao.descricao = item["descricao"]
                         opcao.save()
@@ -1681,6 +1927,7 @@ class TbOpcaojogoAdmin(BonfireAdminMixin, admin.ModelAdmin):
                             slug=_unique_option_slug(item["slug"]),
                             tipo=item["tipo"],
                             etiquetas_adicionais=item["etiquetas_adicionais"],
+                            tags_json=item["tags_json"],
                             pre_requisito=item["pre_requisito"],
                             descricao=item["descricao"],
                         )
@@ -1727,6 +1974,10 @@ class TbOpcaojogoAdmin(BonfireAdminMixin, admin.ModelAdmin):
                 "atualizar_existentes": form.cleaned_data["atualizar_existentes"],
             })
         return render(request, "admin/home/tbopcaojogo/import_form.html", context)
+
+    @admin.display(description="Tags JSON")
+    def tags_preview(self, obj):
+        return _format_tags_preview(obj.tags_json)
 
 
 @admin.register(TbAcessoopcao)
@@ -1783,13 +2034,13 @@ class TbTerritorioAdmin(BonfireAdminMixin, admin.ModelAdmin):
 
 @admin.register(TbItemMundano)
 class TbItemMundanoAdmin(BonfireAdminMixin, admin.ModelAdmin):
-    list_display = ("nome", "categoria", "subcategoria", "preco", "peso")
+    list_display = ("nome", "categoria", "subcategoria", "preco", "peso", "tags_preview")
     list_filter = ("categoria", "subcategoria")
     search_fields = ("nome", "slug", "descricao_markdown")
     prepopulated_fields = {"slug": ("nome",)}
     fieldsets = (
         (None, {
-            "fields": ("nome", "slug", "categoria", "subcategoria", "preco", "peso", "imagem_url")
+            "fields": ("nome", "slug", "categoria", "subcategoria", "preco", "peso", "imagem_url", "tags_json")
         }),
         ("Propriedades de Combate (Armas)", {
             "fields": ("dano", "propriedades", "maestria"),
@@ -1804,16 +2055,20 @@ class TbItemMundanoAdmin(BonfireAdminMixin, admin.ModelAdmin):
         }),
     )
 
+    @admin.display(description="Tags")
+    def tags_preview(self, obj):
+        return _format_tags_preview(obj.tags_json)
+
 
 @admin.register(TbItemMagico)
 class TbItemMagicoAdmin(BonfireAdminMixin, admin.ModelAdmin):
-    list_display = ("nome", "raridade", "tipo", "slot", "requer_sintonizacao")
+    list_display = ("nome", "raridade", "tipo", "slot", "requer_sintonizacao", "tags_preview")
     list_filter = ("raridade", "slot", "requer_sintonizacao")
     search_fields = ("nome", "slug", "descricao_markdown")
     prepopulated_fields = {"slug": ("nome",)}
     fieldsets = (
         (None, {
-            "fields": ("nome", "slug", "tipo", "raridade", "slot", "imagem_url")
+            "fields": ("nome", "slug", "tipo", "raridade", "slot", "imagem_url", "tags_json")
         }),
         ("Sintonização", {
             "fields": ("requer_sintonizacao", "detalhes_sintonizacao"),
@@ -1823,10 +2078,140 @@ class TbItemMagicoAdmin(BonfireAdminMixin, admin.ModelAdmin):
         }),
     )
 
+    @admin.display(description="Tags")
+    def tags_preview(self, obj):
+        return _format_tags_preview(obj.tags_json)
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Tabelas do Bot (Prisma) — somente leitura no admin
 # ─────────────────────────────────────────────────────────────────────────────
+
+@admin.register(TbMagia)
+class TbMagiaAdmin(BonfireAdminMixin, admin.ModelAdmin):
+    change_list_template = "admin/home/tbmagia/change_list.html"
+    list_display = ("nome", "nivel_display", "escola", "casting_time", "ritual", "concentracao", "alcance", "tags_preview")
+    list_filter = ("nivel", "escola", "ritual", "concentracao")
+    search_fields = ("nome", "slug", "escola", "classes", "subclasses", "descricao", "em_niveis_superiores")
+    prepopulated_fields = {"slug": ("nome",)}
+    ordering = ("nivel", "nome")
+    fieldsets = (
+        (None, {"fields": ("nome", "slug", "nivel", "escola", "tags_json")}),
+        ("Conjuracao", {"fields": ("casting_time", "ritual", "duracao", "concentracao", "alcance", "componentes")}),
+        ("Acesso", {"fields": ("classes", "subclasses")}),
+        ("Texto", {"fields": ("descricao", "em_niveis_superiores")}),
+    )
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                "importar-excel/",
+                self.admin_site.admin_view(self.importar_excel_view),
+                name="home_tbmagia_importar_excel",
+            ),
+        ]
+        return custom_urls + urls
+
+    def changelist_view(self, request, extra_context=None):
+        extra_context = extra_context or {}
+        extra_context["import_url"] = reverse("admin:home_tbmagia_importar_excel")
+        return super().changelist_view(request, extra_context=extra_context)
+
+    def importar_excel_view(self, request):
+        context = {
+            **self.admin_site.each_context(request),
+            "opts": self.model._meta,
+            "title": "Importar magias por Excel",
+            "form": MagiaExcelImportForm(),
+            "preview": None,
+            "errors": [],
+            "payload": "",
+            "atualizar_existentes": True,
+        }
+
+        if request.method != "POST":
+            return render(request, "admin/spell_import.html", context)
+
+        if request.POST.get("confirmar") == "1":
+            confirm_form = MagiaExcelConfirmForm(request.POST)
+            if not confirm_form.is_valid():
+                messages.error(request, "Nao foi possivel confirmar a importacao.")
+                return render(request, "admin/spell_import.html", context)
+
+            magias = json.loads(confirm_form.cleaned_data["payload"])
+            atualizar_existentes = confirm_form.cleaned_data["atualizar_existentes"]
+            created = 0
+            updated = 0
+
+            with transaction.atomic():
+                for item in magias:
+                    existing = TbMagia.objects.filter(slug=item["slug"]).first()
+                    if existing and atualizar_existentes:
+                        magia = existing
+                        magia.nome = item["nome"]
+                        magia.nivel = item["nivel"]
+                        magia.casting_time = item["casting_time"]
+                        magia.ritual = item["ritual"]
+                        magia.duracao = item["duracao"]
+                        magia.concentracao = item["concentracao"]
+                        magia.escola = item["escola"]
+                        magia.alcance = item["alcance"]
+                        magia.componentes = item["componentes"]
+                        magia.classes = item["classes"]
+                        magia.subclasses = item["subclasses"]
+                        magia.descricao = item["descricao"]
+                        magia.em_niveis_superiores = item["em_niveis_superiores"]
+                        magia.tags_json = item["tags_json"]
+                        magia.save()
+                        updated += 1
+                    else:
+                        TbMagia.objects.create(
+                            nome=item["nome"],
+                            slug=_unique_spell_slug(item["slug"]),
+                            nivel=item["nivel"],
+                            casting_time=item["casting_time"],
+                            ritual=item["ritual"],
+                            duracao=item["duracao"],
+                            concentracao=item["concentracao"],
+                            escola=item["escola"],
+                            alcance=item["alcance"],
+                            componentes=item["componentes"],
+                            classes=item["classes"],
+                            subclasses=item["subclasses"],
+                            descricao=item["descricao"],
+                            em_niveis_superiores=item["em_niveis_superiores"],
+                            tags_json=item["tags_json"],
+                        )
+                        created += 1
+
+            messages.success(request, f"Importacao concluida: {created} magias criadas, {updated} atualizadas.")
+            return redirect("admin:home_tbmagia_changelist")
+
+        form = MagiaExcelImportForm(request.POST, request.FILES)
+        context["form"] = form
+
+        if form.is_valid():
+            try:
+                magias, errors = _parse_magias_xlsx(form.cleaned_data["arquivo"])
+            except forms.ValidationError as exc:
+                magias, errors = [], exc.messages
+            context.update({
+                "preview": magias,
+                "errors": errors,
+                "payload": json.dumps(magias, ensure_ascii=False),
+                "atualizar_existentes": form.cleaned_data["atualizar_existentes"],
+            })
+        return render(request, "admin/spell_import.html", context)
+
+    @admin.display(description="Nivel", ordering="nivel")
+    def nivel_display(self, obj):
+        return "Truque" if obj.nivel == 0 else obj.nivel
+
+    @admin.display(description="Tags")
+    def tags_preview(self, obj):
+        return _format_tags_preview(obj.tags_json)
+
 
 from .models import (
     BotQuest,

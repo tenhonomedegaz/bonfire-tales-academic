@@ -51,6 +51,7 @@
               <th>Tipo</th>
               <th>Etiqueta</th>
               <th>Tags adicionais</th>
+              <th>Tags JSON</th>
               <th>Pre-requisito</th>
               <th>Atributos</th>
               <th>Descricao</th>
@@ -63,6 +64,7 @@
                 <td>{{ talento.tipo }}</td>
                 <td>{{ talento.etiqueta_label }}</td>
                 <td>{{ talento.etiquetas_adicionais|default:"-" }}</td>
+                <td>{{ talento.tags_json|join:", "|default:"-" }}</td>
                 <td>{{ talento.pre_requisito|default:"Nenhum" }}</td>
                 <td>{{ talento.atributos_display|default:"Nenhum" }}</td>
                 <td>{{ talento.descricao|truncatechars:120 }}</td>

@@ -53,6 +53,7 @@
               <th>Nivel</th>
               <th>Talento racial</th>
               <th>Pre-requisito</th>
+              <th>Tags</th>
               <th>Descricao</th>
             </tr>
           </thead>
@@ -64,6 +65,7 @@
                 <td>{{ traco.nivel_requisito }}</td>
                 <td>{{ traco.talento_racial|yesno:"Sim,Nao" }}</td>
                 <td>{{ traco.pre_requisito|default:"-" }}</td>
+                <td>{{ traco.tags_json|join:", "|default:"-" }}</td>
                 <td>{{ traco.descricao|truncatechars:140 }}</td>
               </tr>
             {% endfor %}

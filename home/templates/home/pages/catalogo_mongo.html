@@ -18,7 +18,7 @@
       <p class="catalog-empty" style="margin-top:1rem;">Mongo indisponivel agora: {{ mongo_error }}</p>
     {% endif %}
     {% if can_edit_wiki and kind == 'magias' %}
-      <a class="catalog-action" href="{% url 'admin:spell_excel_import' %}" style="display:inline-flex;margin-top:1rem;text-decoration:none;">Importar magias por Excel</a>
+      <a class="catalog-action" href="{% url 'admin:home_tbmagia_importar_excel' %}" style="display:inline-flex;margin-top:1rem;text-decoration:none;">Importar magias por Excel</a>
     {% endif %}
 
     {% if can_edit_wiki and kind == 'organizacoes' %}

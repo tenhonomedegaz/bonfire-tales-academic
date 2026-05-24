@@ -79,6 +79,7 @@
               <th>Nome</th>
               <th>Subclasse</th>
               <th>So tabela</th>
+              <th>Tags</th>
               <th>Descricao</th>
             </tr>
           </thead>
@@ -89,10 +90,11 @@
                 <td>{{ habilidade.nome }}</td>
                 <td>{{ habilidade.subclasse_nome|default:"Base" }}</td>
                 <td>{{ habilidade.table_only|yesno:"Sim,Nao" }}</td>
+                <td>{{ habilidade.tags_json|join:", "|default:"-" }}</td>
                 <td>{{ habilidade.descricao|truncatechars:140 }}</td>
               </tr>
             {% empty %}
-              <tr><td colspan="5">Nenhuma habilidade no arquivo.</td></tr>
+              <tr><td colspan="6">Nenhuma habilidade no arquivo.</td></tr>
             {% endfor %}
           </tbody>
         </table>

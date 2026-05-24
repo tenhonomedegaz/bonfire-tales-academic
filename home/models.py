@@ -117,6 +117,7 @@ class TbClassehabilidade(models.Model):
     niveladquirido = models.IntegerField(db_column='NivelAdquirido')  
 
     table_only = models.BooleanField(db_column='TableOnly', default=False, help_text='Mostra esta habilidade apenas na tabela de progressao.')
+    tags_json = models.JSONField(db_column='TagsJSON', blank=True, default=list, help_text='Tags estruturadas usadas pelo criador de personagem.')
 
 
 
@@ -150,6 +151,7 @@ class TbOpcaojogo(models.Model):
 
     pre_requisito = models.TextField(db_column='PreRequisito', blank=True, null=True)
     etiquetas_adicionais = models.CharField(db_column='EtiquetasAdicionais', max_length=255, blank=True, null=True)
+    tags_json = models.JSONField(db_column='TagsJSON', blank=True, default=list, help_text='Tags estruturadas usadas pelo criador de personagem.')
 
 
     class Meta:
@@ -288,6 +290,7 @@ class TbTracoracial(models.Model):
     nivel_requisito = models.IntegerField(db_column='NivelRequisito', default=0)
     talento_racial = models.BooleanField(db_column='TalentoRacial', default=False, help_text='Marca tracos opcionais de raca que podem ser escolhidos como talentos raciais.')
     pre_requisito = models.TextField(db_column='PreRequisito', blank=True, null=True, help_text='Pre-requisito para talentos raciais opcionais.')
+    tags_json = models.JSONField(db_column='TagsJSON', blank=True, default=list, help_text='Tags estruturadas usadas pelo criador de personagem.')
 
     class Meta:
         db_table = 'TB_TracoRacial'
@@ -412,6 +415,7 @@ class TbTalento(models.Model):
     nome = models.CharField(db_column='Nome', max_length=150)
     slug = models.SlugField(db_column='Slug', max_length=150, unique=True, help_text="Ex: guerreiro-nato (usado para links)")
     tipo = models.CharField(db_column='Tipo', max_length=50, choices=TIPO_CHOICES, default='geral')
+    tags_json = models.JSONField(db_column='TagsJSON', blank=True, default=list, help_text='Tags estruturadas usadas pelo criador de personagem.')
     etiqueta = models.CharField(db_column='Etiqueta', max_length=50, choices=ETIQUETA_CHOICES, default='combate', help_text="Categoria/Tag principal do talento.")
     etiquetas_adicionais = models.TextField(db_column='EtiquetasAdicionais', blank=True, null=True, help_text="Tags adicionais separadas por vírgula.")
     pre_requisito = models.TextField(db_column='PreRequisito', blank=True, null=True, help_text="Pré-requisitos do talento.")
@@ -574,6 +578,7 @@ class TbItemMundano(models.Model):
     
     descricao_markdown = models.TextField(db_column='DescricaoMarkdown', blank=True, null=True)
     imagem_url = models.CharField(db_column='ImagemUrl', max_length=500, blank=True, null=True)
+    tags_json = models.JSONField(db_column='TagsJSON', blank=True, default=list, help_text='Tags estruturadas usadas pelo criador de personagem.')
 
     class Meta:
         db_table = 'TB_ItemMundano'
@@ -619,6 +624,7 @@ class TbItemMagico(models.Model):
     
     descricao_markdown = models.TextField(db_column='DescricaoMarkdown', blank=True, null=True)
     imagem_url = models.CharField(db_column='ImagemUrl', max_length=500, blank=True, null=True)
+    tags_json = models.JSONField(db_column='TagsJSON', blank=True, default=list, help_text='Tags estruturadas usadas pelo criador de personagem.')
 
     class Meta:
         db_table = 'TB_ItemMagico'
@@ -627,6 +633,36 @@ class TbItemMagico(models.Model):
 
     def __str__(self):
         return f"[{self.get_raridade_display()}] {self.nome}"
+
+
+class TbMagia(models.Model):
+    id_magia = models.AutoField(db_column='Id_Magia', primary_key=True)
+    nome = models.CharField(db_column='Nome', max_length=200)
+    slug = models.SlugField(db_column='Slug', max_length=220, unique=True)
+    nivel = models.IntegerField(db_column='Nivel', default=0, help_text='Use 0 para truques.')
+    casting_time = models.CharField(db_column='CastingTime', max_length=120, blank=True, null=True)
+    ritual = models.BooleanField(db_column='Ritual', default=False)
+    duracao = models.CharField(db_column='Duracao', max_length=200, blank=True, null=True)
+    concentracao = models.BooleanField(db_column='Concentracao', default=False)
+    escola = models.CharField(db_column='Escola', max_length=120, blank=True, null=True)
+    alcance = models.CharField(db_column='Alcance', max_length=120, blank=True, null=True)
+    componentes = models.CharField(db_column='Componentes', max_length=300, blank=True, null=True)
+    classes = models.TextField(db_column='Classes', blank=True, null=True)
+    subclasses = models.TextField(db_column='Subclasses', blank=True, null=True)
+    descricao = models.TextField(db_column='Descricao', blank=True, null=True)
+    em_niveis_superiores = models.TextField(db_column='EmNiveisSuperiores', blank=True, null=True)
+    tags_json = models.JSONField(db_column='TagsJSON', blank=True, default=list, help_text='Tags estruturadas usadas pelo criador de personagem.')
+
+    class Meta:
+        managed = True
+        db_table = 'spells'
+        verbose_name = 'Magia'
+        verbose_name_plural = 'Magias'
+        ordering = ['nivel', 'nome']
+
+    def __str__(self):
+        level = 'Truque' if self.nivel == 0 else f'Nivel {self.nivel}'
+        return f"{self.nome} ({level})"
 
 
 class UserProfile(models.Model):
