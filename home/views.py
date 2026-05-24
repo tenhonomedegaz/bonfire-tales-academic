@@ -686,7 +686,10 @@ def _postgres_classe_detail_view(request, slug):
         ('Ferramentas', classe.multiclass_ferramentas),
         ('Armaduras', classe.multiclass_armaduras),
     ]
-    multiclass_traits = [{'label': label, 'value': value} for label, value in multiclass_traits if value]
+    multiclass_traits = [
+        {'label': label, 'value': value if value and str(value).strip() else '-'}
+        for label, value in multiclass_traits
+    ]
 
     columns = []
     seen_columns = set()
