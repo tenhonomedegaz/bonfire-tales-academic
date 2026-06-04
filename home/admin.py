@@ -52,6 +52,48 @@ admin.site.index_title = "Painel de Conteudo"
 admin.site.has_permission = lambda request: request.user.is_active and request.user.is_superuser
 
 
+def download_backup_view(request):
+    from django.apps import apps
+    from django.core import serializers
+    from django.http import HttpResponse
+    import json
+    from datetime import datetime
+
+    if not (request.user.is_active and request.user.is_superuser):
+        return HttpResponse("Proibido", status=403)
+
+    home_models = apps.get_app_config('home').get_models()
+    model_order_names = [
+        'tbraca', 'tblinhagem', 'tbessencia', 'tbtracoracial',
+        'tbclasse', 'tbsubclasse', 'tbclassehabilidade', 'tbrecursoclasse',
+        'tbopcaojogo', 'tbacessoopcao', 'tbtalento',
+        'tbregiao', 'tbterritorio', 'tbmapmarker',
+        'tbcronica', 'tbjornal', 'tbitemmundano', 'tbitemmagico', 'tbmagia'
+    ]
+    sorted_models = []
+    model_dict = {m._meta.model_name: m for m in home_models}
+    for name in model_order_names:
+        if name in model_dict:
+            sorted_models.append(model_dict.pop(name))
+    sorted_models.extend(model_dict.values())
+
+    records = []
+    for model in sorted_models:
+        try:
+            qs = model.objects.all().order_by('pk')
+            if qs.exists():
+                serialized = serializers.serialize('python', qs)
+                records.extend(serialized)
+        except Exception:
+            continue
+
+    response_data = json.dumps(records, indent=2, ensure_ascii=False)
+    filename = f"backup_site_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+    response = HttpResponse(response_data, content_type="application/json; charset=utf-8")
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+
+
 def markdown_editor_view(request):
     context = {
         **admin.site.each_context(request),
@@ -385,6 +427,41 @@ class ClasseBulkImportForm(forms.Form):
         uploaded.seek(position)
         validate_no_sql_danger(content, "arquivo")
         return uploaded
+
+
+class RacaBulkImportForm(forms.Form):
+    raca = forms.ModelChoiceField(
+        label="Raça",
+        queryset=TbRaca.objects.none(),
+        help_text="Raça que receberá os traços e talentos do arquivo.",
+    )
+    arquivo = forms.FileField(
+        label="Arquivo .txt",
+        help_text="Use blocos separados por ---.",
+    )
+    atualizar_existentes = forms.BooleanField(
+        label="Atualizar registros existentes",
+        required=False,
+        initial=True,
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['raca'].queryset = TbRaca.objects.all().order_by("nome")
+
+    def clean_arquivo(self):
+        uploaded = self.cleaned_data["arquivo"]
+        position = uploaded.tell()
+        content = _decode_upload(uploaded)
+        uploaded.seek(position)
+        validate_no_sql_danger(content, "arquivo")
+        return uploaded
+
+
+class RacaBulkConfirmForm(forms.Form):
+    payload = forms.CharField(widget=forms.HiddenInput)
+    raca_id = forms.IntegerField(widget=forms.HiddenInput)
+    atualizar_existentes = forms.BooleanField(required=False, widget=forms.HiddenInput)
 
 
 class ClasseBulkConfirmForm(forms.Form):
@@ -1057,6 +1134,100 @@ def _parse_tracos_raciais_txt(content):
     return tracos, errors
 
 
+def _parse_raca_import_txt(content, raca):
+    source = content.replace("\r\n", "\n").replace("\r", "\n").strip()
+    first_line = source.split("\n", 1)[0] if source else ""
+    if _normalize_label(first_line).strip("[]") in {"tracos", "tracos_raciais"}:
+        source = "\n".join(source.split("\n")[1:]).strip()
+
+    tracos = []
+    errors = []
+
+    for index, block in enumerate(_split_blocks(source), start=1):
+        data = _parse_key_value_block(block)
+        nome = data.get("nome", "").strip()
+        descricao = data.get("descricao", "").strip()
+        
+        nivel_raw = (data.get("nivel") or data.get("nivel_requisito") or "").strip()
+        talento_racial = _parse_bool(
+            data.get("talento_racial")
+            or data.get("talento")
+            or data.get("opcional")
+        )
+        
+        if not nivel_raw:
+            nivel = 1 if talento_racial else 0
+        else:
+            match = re.match(r'^(\d+)', nivel_raw)
+            if match:
+                nivel = int(match.group(1))
+            else:
+                nivel = 1 if talento_racial else 0
+
+        pre_requisito = (
+            data.get("pre_requisito")
+            or data.get("prerequisito")
+            or data.get("requisito")
+            or ""
+        ).strip()
+        
+        tags_json = _parse_tags_json(
+            data.get("tags_json")
+            or data.get("tagsjson")
+            or data.get("tags")
+            or data.get("tag")
+            or data.get("etiquetas")
+        )
+
+        if not nome:
+            errors.append(f"Bloco {index}: campo Nome ausente.")
+            continue
+        if not descricao:
+            errors.append(f"Traco '{nome}': campo Descricao ausente.")
+            continue
+
+        raca_slug = (data.get("raca") or data.get("raça") or "").strip()
+        linhagem_slug = (data.get("linhagem") or "").strip()
+        essencia_slug = (data.get("essencia") or data.get("essência") or "").strip()
+
+        if essencia_slug:
+            continue
+
+        target_linhagem = None
+        if linhagem_slug:
+            linhagem = TbLinhagem.objects.filter(slug=linhagem_slug, id_raca=raca).first()
+            if not linhagem:
+                other_linhagem = TbLinhagem.objects.filter(slug=linhagem_slug).select_related("id_raca").first()
+                if other_linhagem:
+                    errors.append(f"Traco '{nome}': a linhagem '{linhagem_slug}' pertence a raca '{other_linhagem.id_raca.nome}', e nao a '{raca.nome}'.")
+                else:
+                    errors.append(f"Traco '{nome}': linhagem '{linhagem_slug}' nao encontrada para a raca '{raca.nome}'.")
+                continue
+            target_linhagem = linhagem
+        elif raca_slug:
+            if raca_slug.lower() != raca.slug.lower():
+                errors.append(f"Traco '{nome}': raca '{raca_slug}' nao corresponde a raca selecionada '{raca.slug}'.")
+                continue
+
+        tracos.append({
+            "nome": nome,
+            "descricao": descricao,
+            "nivel_requisito": nivel,
+            "talento_racial": talento_racial,
+            "pre_requisito": pre_requisito or None,
+            "tags_json": tags_json,
+            "id_raca": raca.id_raca,
+            "id_linhagem": target_linhagem.id_linhagem if target_linhagem else None,
+            "id_essencia": None,
+            "linhagem_nome": target_linhagem.nome if target_linhagem else "",
+        })
+
+    if not tracos and not errors:
+        errors.append("Nenhum traco racial foi encontrado no arquivo.")
+
+    return tracos, errors
+
+
 def _parse_opcoes_jogo_txt(content):
     source = content.replace("\r\n", "\n").replace("\r", "\n").strip()
     if _normalize_label(source.split("\n", 1)[0] if source else "").strip("_") in {"opcoes", "opcoes_jogo"}:
@@ -1501,6 +1672,7 @@ class TbTracoracialInline(admin.TabularInline):
 
 @admin.register(TbRaca)
 class TbRacaAdmin(BonfireAdminMixin, admin.ModelAdmin):
+    change_list_template = "admin/home/tbraca/change_list.html"
     list_display = ("nome", "slug", "permite_essencia_badge", "linhagens_count", "tracos_count")
     list_filter = ("permite_essencia",)
     search_fields = ("nome", "slug", "tagline", "lore_presentation", "lore_roleplay", "lore_society")
@@ -1523,6 +1695,107 @@ class TbRacaAdmin(BonfireAdminMixin, admin.ModelAdmin):
     @admin.display(description="Tracos")
     def tracos_count(self, obj):
         return obj.tracos.count()
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                "importar-arquivo/",
+                self.admin_site.admin_view(self.importar_arquivo_view),
+                name="home_tbraca_importar_arquivo",
+            ),
+        ]
+        return custom_urls + urls
+
+    def changelist_view(self, request, extra_context=None):
+        extra_context = extra_context or {}
+        extra_context["import_url"] = reverse("admin:home_tbraca_importar_arquivo")
+        return super().changelist_view(request, extra_context=extra_context)
+
+    def importar_arquivo_view(self, request):
+        context = {
+            **self.admin_site.each_context(request),
+            "opts": self.model._meta,
+            "title": "Importar traços e talentos de raça",
+            "form": RacaBulkImportForm(),
+            "preview_tracos": [],
+            "errors": [],
+            "payload": "",
+            "raca_id": "",
+            "atualizar_existentes": True,
+        }
+
+        if request.method != "POST":
+            return render(request, "admin/home/tbraca/import_form.html", context)
+
+        if request.POST.get("confirmar") == "1":
+            confirm_form = RacaBulkConfirmForm(request.POST)
+            if not confirm_form.is_valid():
+                messages.error(request, "Não foi possível confirmar a importação.")
+                return render(request, "admin/home/tbraca/import_form.html", context)
+
+            raca = get_object_or_404(TbRaca, pk=confirm_form.cleaned_data["raca_id"])
+            payload = json.loads(confirm_form.cleaned_data["payload"])
+            atualizar_existentes = confirm_form.cleaned_data["atualizar_existentes"]
+            tracos_criados = tracos_atualizados = 0
+
+            with transaction.atomic():
+                for item in payload:
+                    query = TbTracoracial.objects.filter(
+                        nome=item["nome"],
+                        id_raca_id=item["id_raca"],
+                        id_linhagem_id=item["id_linhagem"],
+                        id_essencia_id=item["id_essencia"],
+                    )
+                    existing = query.first()
+                    if existing and atualizar_existentes:
+                        existing.descricao = item["descricao"]
+                        existing.nivel_requisito = item["nivel_requisito"]
+                        existing.talento_racial = item["talento_racial"]
+                        existing.pre_requisito = item["pre_requisito"]
+                        existing.tags_json = item["tags_json"]
+                        existing.save()
+                        tracos_atualizados += 1
+                        continue
+                    if existing and not atualizar_existentes:
+                        continue
+
+                    TbTracoracial.objects.create(
+                        nome=item["nome"],
+                        descricao=item["descricao"],
+                        nivel_requisito=item["nivel_requisito"],
+                        talento_racial=item["talento_racial"],
+                        pre_requisito=item["pre_requisito"],
+                        tags_json=item["tags_json"],
+                        id_raca_id=item["id_raca"],
+                        id_linhagem_id=item["id_linhagem"],
+                        id_essencia_id=item["id_essencia"],
+                    )
+                    tracos_criados += 1
+
+            messages.success(
+                request,
+                (
+                    f"Importação concluída: {tracos_criados} traços/talentos criados, "
+                    f"{tracos_atualizados} atualizados para a raça {raca.nome}."
+                ),
+            )
+            return redirect("admin:home_tbraca_changelist")
+
+        form = RacaBulkImportForm(request.POST, request.FILES)
+        context["form"] = form
+        if form.is_valid():
+            raca = form.cleaned_data["raca"]
+            content = _decode_upload(form.cleaned_data["arquivo"])
+            tracos, errors = _parse_raca_import_txt(content, raca)
+            context.update({
+                "preview_tracos": tracos,
+                "errors": errors,
+                "payload": json.dumps(tracos, ensure_ascii=False),
+                "raca_id": raca.pk,
+                "atualizar_existentes": form.cleaned_data["atualizar_existentes"],
+            })
+        return render(request, "admin/home/tbraca/import_form.html", context)
 
 
 @admin.register(TbLinhagem)
@@ -2296,6 +2569,11 @@ def _bonfire_admin_get_urls():
             "markdown-editor/",
             admin.site.admin_view(markdown_editor_view),
             name="markdown_editor",
+        ),
+        path(
+            "download-backup/",
+            admin.site.admin_view(download_backup_view),
+            name="download_backup",
         ),
     ]
     return custom_urls + _original_admin_get_urls()
