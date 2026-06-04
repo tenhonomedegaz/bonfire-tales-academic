@@ -295,16 +295,16 @@
                      class="talent-list-item p-3 cursor-pointer rounded border border-transparent hover:border-[var(--stroke)] hover:bg-[var(--bg1)] text-[var(--muted)] hover:text-[var(--text)] transition-all flex flex-col gap-1.5">
                   <h4 class="font-bold text-[13px] text-[var(--text)]" data-talent-card-title>{{ traco.nome }}</h4>
                   <div class="flex flex-wrap gap-1.5">
-                    <span class="text-[9px] font-bold px-1.5 py-0.5 rounded border border-[var(--stroke)] bg-[var(--bg0)] text-[var(--muted)]">
+                    <span data-talent-card-level-badge class="text-[9px] font-bold px-1.5 py-0.5 rounded border border-[var(--stroke)] bg-[var(--bg0)] text-[var(--muted)]">
                       Nv. {{ traco.nivel_requisito }}+
                     </span>
                     {% if traco.id_linhagem %}
-                    <span class="text-[9px] font-bold px-1.5 py-0.5 rounded border border-[var(--spark)] bg-[var(--spark)]/10 text-[var(--spark)] uppercase tracking-wider">
+                    <span data-talent-card-lineage-badge class="text-[9px] font-bold px-1.5 py-0.5 rounded border border-[var(--spark)] bg-[var(--spark)]/10 text-[var(--spark)] uppercase tracking-wider">
                       {{ traco.id_linhagem.nome }}
                     </span>
                     {% endif %}
                     {% if traco.pre_requisito %}
-                    <span class="text-[9px] font-bold px-1.5 py-0.5 rounded border border-yellow-500/20 text-yellow-500/80 uppercase tracking-wider truncate max-w-[120px]" title="{{ traco.pre_requisito }}">
+                    <span data-talent-card-prereq-badge class="text-[9px] font-bold px-1.5 py-0.5 rounded border border-yellow-500/20 text-yellow-500/80 uppercase tracking-wider truncate max-w-[120px]" title="{{ traco.pre_requisito }}">
                       Req: {{ traco.pre_requisito }}
                     </span>
                     {% endif %}
@@ -598,7 +598,8 @@
       if (activeTalentLevelBadge) activeTalentLevelBadge.textContent = `Nível ${level}+`;
       
       // Find the lineage badge text dynamically
-      const lineageName = card.querySelector('.text-\\[9px\\].font-bold.px-1\\.5.py-0\\.5.rounded.border:not(.border-yellow-500\\/20)')?.textContent?.trim() || '';
+      const lineageBadge = card.querySelector('[data-talent-card-lineage-badge]');
+      const lineageName = lineageBadge ? lineageBadge.textContent.trim() : '';
       if (activeTalentLineageBadge) {
         if (linhagemSlug && lineageName) {
           activeTalentLineageBadge.textContent = lineageName;
@@ -701,14 +702,15 @@
           const prereqEl = card.querySelector('[data-talent-card-prereq]');
           if (prereqEl) prereqEl.textContent = result.trait.pre_requisito || '';
           
-          // Update badges inside the card
-          const lvlBadge = card.querySelector('span:first-of-type') || card.querySelector('.text-\\[9px\\].font-bold.px-1\\.5:first-of-type');
+          // Update badges inside the card using data attributes
+          const lvlBadge = card.querySelector('[data-talent-card-level-badge]');
           if (lvlBadge) lvlBadge.textContent = `Nv. ${result.trait.nivel_requisito}+`;
           
-          let reqBadge = card.querySelector('.border-yellow-500\\/20');
+          let reqBadge = card.querySelector('[data-talent-card-prereq-badge]');
           if (result.trait.pre_requisito) {
             if (!reqBadge) {
               reqBadge = document.createElement('span');
+              reqBadge.setAttribute('data-talent-card-prereq-badge', '');
               reqBadge.className = "text-[9px] font-bold px-1.5 py-0.5 rounded border border-yellow-500/20 text-yellow-500/80 uppercase tracking-wider truncate max-w-[120px]";
               card.querySelector('.flex.flex-wrap').appendChild(reqBadge);
             }
