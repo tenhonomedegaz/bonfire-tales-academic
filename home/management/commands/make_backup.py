@@ -6,6 +6,7 @@ import json
 import os
 from django.core.management.base import BaseCommand
 from django.core import serializers
+from django.core.serializers.json import DjangoJSONEncoder
 from django.apps import apps
 
 class Command(BaseCommand):
@@ -51,6 +52,6 @@ class Command(BaseCommand):
                 
         # Write to backup_sqlite.json
         with open(backup_path, 'w', encoding='utf-8') as f:
-            json.dump(records, f, indent=2, ensure_ascii=False)
+            json.dump(records, f, indent=2, ensure_ascii=False, cls=DjangoJSONEncoder)
             
         self.stdout.write(self.style.SUCCESS(f'\nBackup salvo com sucesso em: {backup_path} ({len(records)} registros no total)'))

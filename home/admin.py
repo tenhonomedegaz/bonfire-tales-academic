@@ -19,6 +19,7 @@ from django.contrib import admin
 from django.contrib import messages
 from django.db import models, transaction
 from django.shortcuts import get_object_or_404, redirect, render
+from django.core.serializers.json import DjangoJSONEncoder
 from django.urls import path, reverse
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
@@ -87,7 +88,7 @@ def download_backup_view(request):
         except Exception:
             continue
 
-    response_data = json.dumps(records, indent=2, ensure_ascii=False)
+    response_data = json.dumps(records, indent=2, ensure_ascii=False, cls=DjangoJSONEncoder)
     filename = f"backup_site_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
     response = HttpResponse(response_data, content_type="application/json; charset=utf-8")
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
