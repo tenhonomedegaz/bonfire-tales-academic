@@ -5,6 +5,8 @@ from django.db import migrations, models
 
 
 def add_spell_tags_json(apps, schema_editor):
+    if schema_editor.connection.vendor != 'postgresql':
+        return
     table = settings.SITE_POSTGRES_TABLES.get('spells', 'spells')
     schema_editor.execute(
         f"ALTER TABLE IF EXISTS {schema_editor.quote_name(table)} "
@@ -13,6 +15,8 @@ def add_spell_tags_json(apps, schema_editor):
 
 
 def remove_spell_tags_json(apps, schema_editor):
+    if schema_editor.connection.vendor != 'postgresql':
+        return
     table = settings.SITE_POSTGRES_TABLES.get('spells', 'spells')
     schema_editor.execute(
         f"ALTER TABLE IF EXISTS {schema_editor.quote_name(table)} "

@@ -14,9 +14,10 @@
 
 {% block content %}
 {% static 'assets/cineria.jpg' as map_url %}
+{% static 'assets/subterraneo_placeholder.png' as underground_map_url %}
 {% static 'assets/fire_background.png' as default_place_url %}
 
-<div class="map-shell border-t border-[var(--stroke)]">
+<div class="map-shell border-t border-[var(--stroke)] layer-surface">
   <button id="sidebarToggle" class="map-sidebar-mobile-toggle" aria-label="Toggle Sidebar">
     <div class="toggle-icon">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 open-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
@@ -93,7 +94,20 @@
     </div>
   </aside>
 
-  <div id="map"></div>
+  <div id="map">
+    {% if request.user.is_staff %}
+    <div class="map-layer-selector leaflet-bar leaflet-control" style="pointer-events: auto;">
+        <button id="btnLayerSurface" class="layer-selector-btn active" onclick="switchLayer(0)" title="Superfície">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+            <span>Superfície</span>
+        </button>
+        <button id="btnLayerUnderground" class="layer-selector-btn" onclick="switchLayer(1)" title="Subterrâneo">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <span>Subterrâneo</span>
+        </button>
+    </div>
+    {% endif %}
+  </div>
   
   <div id="toast-container"></div>
 
@@ -382,8 +396,9 @@ function asyncLoadSvg(el) {
 }
 
 function markerIcon(item) {
+  const layerClass = (item.camada || 0) > 0 ? 'layer-underground' : 'layer-surface';
   return L.divIcon({
-    className: 'custom-map-icon',
+    className: `custom-map-icon ${layerClass}`,
     html: `<div class="map-pin" style="--pin: ${territoryColor(item.territorio)}">
              <div class="map-pin-symbol" style="display:flex; justify-content:center; align-items:center;">${getCategoryIcon(item.categoria || 'cidade')}</div>
            </div>`,
@@ -448,6 +463,13 @@ function placeCard(item) {
                   <select onchange="updatePendingMarkerField('${item.id || item._tempId}', 'territorio', this.value)" style="background: var(--bg2); border: 1px solid var(--stroke); color: var(--text); padding: .3rem; font-size: .75rem; border-radius: 4px; outline: none; appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23ffffff%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right .7rem top 50%; background-size: .65rem auto;">
                       <option value="" style="background: var(--bg1); color: var(--text);">Sem Território</option>
                       ${jsonTerritories.map(t => `<option value="${t.nome}" ${item.territorio === t.nome ? 'selected' : ''} style="background: var(--bg1); color: var(--text);">${t.nome}</option>`).join('')}
+                  </select>
+              </div>
+              <div class="flex flex-col gap-1">
+                  <label class="text-[0.6rem] uppercase opacity-70">Camada</label>
+                  <select onchange="updatePendingMarkerField('${item.id || item._tempId}', 'camada', parseInt(this.value))" style="background: var(--bg2); border: 1px solid var(--stroke); color: var(--text); padding: .3rem; font-size: .75rem; border-radius: 4px; outline: none; appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23ffffff%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right .7rem top 50%; background-size: .65rem auto;">
+                      <option value="0" ${(item.camada || 0) === 0 ? 'selected' : ''} style="background: var(--bg1); color: var(--text);">Superfície</option>
+                      <option value="1" ${(item.camada || 0) === 1 ? 'selected' : ''} style="background: var(--bg1); color: var(--text);">Subterrâneo</option>
                   </select>
               </div>
           </div>
@@ -549,6 +571,44 @@ let activeMarker = null;
 let activeTerritory = '';
 let isEditMode = false;
 
+let activeLayer = 0; // 0 = Superfície, 1 = Subterrâneo
+
+function switchLayer(layerIndex) {
+    if (activeLayer === layerIndex) return;
+    activeLayer = layerIndex;
+    
+    const shell = document.querySelector('.map-shell');
+    if (activeLayer === 0) {
+        shell.classList.remove('layer-underground');
+        shell.classList.add('layer-surface');
+    } else {
+        shell.classList.remove('layer-surface');
+        shell.classList.add('layer-underground');
+    }
+    
+    document.querySelectorAll('.layer-selector-btn').forEach((btn, idx) => {
+        btn.classList.toggle('active', idx === activeLayer);
+    });
+    
+    if (activeLayer === 0) {
+        surfaceOverlay.setOpacity(1);
+        undergroundOverlay.setOpacity(0);
+    } else {
+        surfaceOverlay.setOpacity(0);
+        undergroundOverlay.setOpacity(1);
+    }
+    
+    if (activeMarker) {
+        const itemLayer = activeMarker._bonfireData.camada || 0;
+        if (itemLayer !== activeLayer) {
+            closeDetail();
+        }
+    }
+    
+    buildSidebarIndex();
+    filterMap();
+}
+
 // History for Undo
 let initialPolygons = {}; // To store initial states if needed
 
@@ -597,6 +657,7 @@ function undoAllChanges() {
 window.undoLastChange = undoAllChanges;
 
 const mapUrl = '{{ map_url }}';
+const undergroundMapUrl = '{{ underground_map_url }}';
 
 const mapWidth = 6144;
 const mapHeight = 4608;
@@ -607,7 +668,8 @@ const bounds = new L.LatLngBounds(
 );
 
 map.setMaxBounds(bounds.pad(0.2));
-const overlay = L.imageOverlay(mapUrl, bounds, { opacity: 1 }).addTo(map);
+const surfaceOverlay = L.imageOverlay(mapUrl, bounds, { opacity: 1, className: 'map-overlay-layer surface-overlay' }).addTo(map);
+const undergroundOverlay = L.imageOverlay(undergroundMapUrl, bounds, { opacity: 0, className: 'map-overlay-layer underground-overlay' }).addTo(map);
 
 // Center map instead of fitBounds, preventing top-left alignment issues
 map.setView(bounds.getCenter(), window.innerWidth <= 1100 ? -2 : -1);
@@ -643,6 +705,7 @@ function setupMarkersAndPolygons() {
       if (!t.coordenadas_poligono) return;
       const coords = typeof t.coordenadas_poligono === 'string' ? JSON.parse(t.coordenadas_poligono) : t.coordenadas_poligono;
       const polygon = L.polygon(coords, {
+          className: `territory-polygon layer-${t.camada > 0 ? 'underground' : 'surface'}`,
           color: territoryColor(t.nome),
           fillColor: territoryColor(t.nome),
           fillOpacity: 0.3,
@@ -690,6 +753,7 @@ function setupMarkersAndPolygons() {
 function regionsByTerritory() {
   const grouped = new Map();
   enrichedMarkers.forEach(m => {
+    if ((m.camada || 0) !== activeLayer) return;
     const t = m.territorio || 'Sem território';
     if (!grouped.has(t)) grouped.set(t, []);
     grouped.get(t).push(m);
@@ -834,6 +898,13 @@ function closeDetail() {
 
 function selectTerritory(territory) {
   if (isEditMode) return;
+  const terrObj = jsonTerritories.find(t => t.nome === territory);
+  if (terrObj) {
+      const tCamada = terrObj.camada || 0;
+      if (tCamada !== activeLayer) {
+          switchLayer(tCamada);
+      }
+  }
   activeTerritory = territory;
   activeMarker = null;
   const shell = document.querySelector('.map-shell');
@@ -890,6 +961,11 @@ function selectRegion(name, shouldZoom, explicitMarker = null) {
   if (isEditMode) return;
   const marker = explicitMarker || leafletMarkers.find(m => normalize(m._bonfireData.nome) === normalize(name));
   if (!marker) return;
+  
+  const mCamada = marker._bonfireData.camada || 0;
+  if (mCamada !== activeLayer) {
+      switchLayer(mCamada);
+  }
   
   activeMarker = marker;
   activeTerritory = marker._bonfireData.territorio;
@@ -959,7 +1035,8 @@ function filterMap() {
   markersLayer.clearLayers();
   leafletMarkers.forEach(m => {
     const d = m._bonfireData;
-    const match = (!query || d.nome.toLowerCase().includes(query)) && (!cat || d.categoria === cat);
+    const isOnCurrentLayer = (d.camada || 0) === activeLayer;
+    const match = isOnCurrentLayer && (!query || d.nome.toLowerCase().includes(query)) && (!cat || d.categoria === cat);
     if (match) {
         m.addTo(markersLayer);
         const icon = m.getElement();
@@ -985,7 +1062,8 @@ function startCreateMarker() {
         lat: center.lat,
         lng: center.lng,
         categoria: 'cidade',
-        territorio: activeTerritory && activeTerritory !== 'Sem território' ? activeTerritory : ''
+        territorio: activeTerritory && activeTerritory !== 'Sem território' ? activeTerritory : '',
+        camada: activeLayer
     };
     
     const marker = L.marker(center, {
@@ -1090,6 +1168,21 @@ function chooseAreaTerritory(preferredName = '') {
     const confirmBtn = document.getElementById('areaTerritoryConfirm');
     const cancelBtn = document.getElementById('areaTerritoryCancel');
     if (!modal || !select || !confirmBtn || !cancelBtn) return Promise.resolve(preferredName || jsonTerritories[0]?.nome || '');
+    
+    // Filter options based on active layer
+    Array.from(select.options).forEach(opt => {
+        const terr = jsonTerritories.find(t => t.nome === opt.value);
+        const terrCamada = terr ? (terr.camada || 0) : 0;
+        opt.style.display = (terrCamada === activeLayer) ? '' : 'none';
+        if (terrCamada !== activeLayer && select.value === opt.value) {
+            select.value = '';
+        }
+    });
+    if (!select.value || (select.selectedOptions[0] && select.selectedOptions[0].style.display === 'none')) {
+        const firstVisible = Array.from(select.options).find(opt => opt.style.display === '');
+        if (firstVisible) select.value = firstVisible.value;
+    }
+    
     if (preferredName) select.value = preferredName;
     modal.hidden = false;
     select.focus();
@@ -1108,8 +1201,10 @@ function chooseAreaTerritory(preferredName = '') {
 }
 
 function bindTerritoryLayer(layer, territoryName) {
-    layer._bonfireTerritory = jsonTerritories.find(t => t.nome === territoryName) || { nome: territoryName };
+    const t = jsonTerritories.find(x => x.nome === territoryName) || { nome: territoryName, camada: activeLayer };
+    layer._bonfireTerritory = t;
     layer.setStyle({
+        className: `territory-polygon layer-${t.camada > 0 ? 'underground' : 'surface'}`,
         color: territoryColor(territoryName),
         fillColor: territoryColor(territoryName),
         fillOpacity: 0.3,

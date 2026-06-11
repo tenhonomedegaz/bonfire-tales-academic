@@ -1030,6 +1030,111 @@ body { overflow: hidden !important; }
   width: 24px !important;
   height: 24px !important;
   display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Subterranean Map Transitions & Layer Selector */
+
+.map-overlay-layer {
+  transition: opacity 0.6s ease-in-out !important;
+}
+
+/* Entry animation for pins when layers switch or search filter matches */
+@keyframes pinBounceIn {
+  0% {
+    opacity: 0;
+    transform: rotate(-45deg) scale(0.3);
+  }
+  70% {
+    transform: rotate(-45deg) scale(1.1);
+  }
+  100% {
+    opacity: 1;
+    transform: rotate(-45deg) scale(1);
+  }
+}
+
+.custom-map-icon .map-pin {
+  animation: pinBounceIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* Territory Polygons Transitions */
+.territory-polygon {
+  transition: opacity 0.5s ease-in-out, fill-opacity 0.5s ease-in-out, stroke-opacity 0.5s ease-in-out !important;
+}
+
+/* Layer Switch Visibility Toggling */
+/* Surface mode active */
+.map-shell.layer-surface .territory-polygon.layer-underground {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+.map-shell.layer-surface .territory-polygon.layer-surface {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+/* Underground mode active */
+.map-shell.layer-underground .territory-polygon.layer-surface {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+.map-shell.layer-underground .territory-polygon.layer-underground {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+/* Floating Layer Selector Panel */
+.map-layer-selector {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  z-index: 999;
+  display: flex;
+  background: rgba(10, 12, 14, 0.85) !important;
+  border: 1px solid var(--stroke) !important;
+  border-radius: 8px !important;
+  padding: 0.25rem !important;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6) !important;
   align-items: center;
-  justify-content: center;
+  gap: 0.25rem;
+}
+
+.layer-selector-btn {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: 'Cinzel', serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.layer-selector-btn:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.layer-selector-btn.active {
+  color: #070707 !important;
+  background: var(--ember) !important;
+  box-shadow: 0 0 12px rgba(255, 107, 0, 0.4) !important;
+}
+
+.layer-selector-btn svg {
+  transition: transform 0.3s ease;
+}
+
+.layer-selector-btn.active svg {
+  transform: scale(1.1);
 }

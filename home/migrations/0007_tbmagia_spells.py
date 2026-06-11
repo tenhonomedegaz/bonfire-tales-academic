@@ -40,6 +40,33 @@ CREATE UNIQUE INDEX IF NOT EXISTS "spells_Slug_key" ON "spells" ("Slug");
 """
 
 
+def create_spells_table_func(apps, schema_editor):
+    if schema_editor.connection.vendor == 'postgresql':
+        schema_editor.execute(CREATE_SPELLS_TABLE)
+    else:
+        schema_editor.execute(
+            'CREATE TABLE IF NOT EXISTS "spells" ('
+            '"Id_Magia" integer PRIMARY KEY AUTOINCREMENT, '
+            '"Nome" varchar(200) NOT NULL, '
+            '"Slug" varchar(220) NOT NULL, '
+            '"Nivel" integer NOT NULL DEFAULT 0, '
+            '"CastingTime" varchar(120) NULL, '
+            '"Ritual" boolean NOT NULL DEFAULT false, '
+            '"Duracao" varchar(200) NULL, '
+            '"Concentracao" boolean NOT NULL DEFAULT false, '
+            '"Escola" varchar(120) NULL, '
+            '"Alcance" varchar(120) NULL, '
+            '"Componentes" varchar(300) NULL, '
+            '"Classes" text NULL, '
+            '"Subclasses" text NULL, '
+            '"Descricao" text NULL, '
+            '"EmNiveisSuperiores" text NULL, '
+            '"TagsJSON" text NOT NULL DEFAULT \'[]\''
+            ')'
+        )
+        schema_editor.execute('CREATE UNIQUE INDEX IF NOT EXISTS "spells_Slug_key" ON "spells" ("Slug")')
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -49,7 +76,7 @@ class Migration(migrations.Migration):
     operations = [
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL(CREATE_SPELLS_TABLE, reverse_sql=migrations.RunSQL.noop),
+                migrations.RunPython(create_spells_table_func, reverse_code=migrations.RunPython.noop),
             ],
             state_operations=[
                 migrations.CreateModel(

@@ -78,9 +78,12 @@ class Command(BaseCommand):
         total_skipped = 0
         errors = []
 
-        # Use SET CONSTRAINTS ALL DEFERRED to allow inserting in any order
+        # Use deferred constraints or disable foreign keys to allow inserting in any order
         cursor = connection.cursor()
-        cursor.execute("SET CONSTRAINTS ALL DEFERRED")
+        if connection.vendor == 'postgresql':
+            cursor.execute("SET CONSTRAINTS ALL DEFERRED")
+        elif connection.vendor == 'sqlite':
+            cursor.execute("PRAGMA foreign_keys = OFF")
 
         # Process each model group separately for better error reporting
         for model_name in MODEL_ORDER:
