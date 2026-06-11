@@ -1,5 +1,5 @@
 {% if raca %}
-<div id="ajax-traits-section">
+{% if only_traits %}
     <section class="rounded border border-[var(--stroke)] bg-[var(--bg1)] p-4">
       <h2 class="font-rpg text-lg font-bold uppercase text-[var(--text)]">{{ raca.nome }}</h2>
 
@@ -18,277 +18,483 @@
         </div>
       </div>
     </section>
-</div>
+{% elif only_content %}
+    <div id="raceDetailContainer" data-active-tab="regras" data-active-lineage="" data-active-essence="" data-base-image="{{ raca.image_url }}" data-race-name="{{ raca.nome }}">
+      <!-- Race Header -->
+      <header class="mb-5 border-b border-[var(--stroke)] pb-4 flex flex-col gap-2">
+        <h1 data-race-title class="font-rpg text-3xl font-extrabold uppercase tracking-wide text-[var(--text)] md:text-4xl">{{ raca.nome }}</h1>
+        {% if raca.tagline %}
+        <p data-race-tagline class="text-base italic leading-relaxed text-[var(--muted)] border-l-2 border-[var(--ember)] pl-4">"{{ raca.tagline }}"</p>
+        {% endif %}
+      </header>
 
-<section class="min-w-0" id="ajax-content-inner">
-  <header class="mb-5 border-b border-[var(--stroke)] pb-4">
-    <h1 data-race-title class="font-rpg text-2xl font-extrabold uppercase tracking-wide text-[var(--text)] md:text-3xl">{% if raca %}{{ raca.nome }}{% else %}Raças{% endif %}</h1>
-    {% if raca.tagline or can_edit_wiki %}
-    <p data-race-tagline class="mt-1 max-w-4xl text-[10px] italic leading-relaxed text-[var(--muted)] {% if not raca.tagline %}hidden{% endif %}">"{{ raca.tagline }}"</p>
-    {% elif not raca %}
-    <p class="mt-1 max-w-4xl text-[10px] leading-relaxed text-[var(--muted)]">Escolha uma raça no menu lateral para abrir traços raciais, linhagens e textos de ambientação.</p>
-    {% endif %}
-  </header>
-
-  <div class="space-y-8">
-    {% if can_edit_wiki %}
-    <div class="flex justify-end">
-      <button type="button" class="wiki-edit-button" data-race-edit>Editar raça</button>
-    </div>
-    <form class="wiki-inline-editor" data-race-form data-race-id="{{ raca.id_raca }}">
-      <label>Nome <input name="nome" value="{{ raca.nome }}"></label>
-      <label>Tagline <input name="tagline" value="{{ raca.tagline|default:'' }}"></label>
-      <label>Visão Geral <textarea name="lore_presentation">{{ raca.lore_presentation|default:'' }}</textarea></label>
-      <label>Roleplay <textarea name="lore_roleplay">{{ raca.lore_roleplay|default:'' }}</textarea></label>
-      <label>Sociedade <textarea name="lore_society">{{ raca.lore_society|default:'' }}</textarea></label>
-      <div class="wiki-inline-actions">
-        <button type="button" class="wiki-inline-cancel" data-race-cancel>Cancelar</button>
-        <button type="submit" class="wiki-inline-save">Salvar</button>
+      {% if can_edit_wiki %}
+      <div class="flex justify-end mb-4">
+        <button type="button" class="wiki-edit-button" data-race-edit>Editar raça</button>
       </div>
-    </form>
-    {% endif %}
-    <section class="grid gap-4 lg:grid-cols-3">
-      {% if raca.lore_presentation or can_edit_wiki %}
-      <article data-race-section="lore_presentation" class="rounded border border-[var(--stroke)] bg-[var(--bg1)] p-4 lg:col-span-3 {% if not raca.lore_presentation %}hidden{% endif %}">
-        <h2 class="mb-3 font-rpg text-lg font-bold text-[var(--flame)] bonfire-underline">Visão Geral</h2>
-        <div class="bonfire-markdown text-[13px] leading-[1.65] text-[var(--muted)]" data-markdown-source data-race-field="lore_presentation">{{ raca.lore_presentation|default:''|escape }}</div>
-      </article>
+      <form class="wiki-inline-editor" data-race-form data-race-id="{{ raca.id_raca }}">
+        <label>Nome <input name="nome" value="{{ raca.nome }}"></label>
+        <label>Tagline <input name="tagline" value="{{ raca.tagline|default:'' }}"></label>
+        <label>Visão Geral <textarea name="lore_presentation">{{ raca.lore_presentation|default:'' }}</textarea></label>
+        <label>Roleplay <textarea name="lore_roleplay">{{ raca.lore_roleplay|default:'' }}</textarea></label>
+        <label>Sociedade <textarea name="lore_society">{{ raca.lore_society|default:'' }}</textarea></label>
+        <div class="wiki-inline-actions">
+          <button type="button" class="wiki-inline-cancel" data-race-cancel>Cancelar</button>
+          <button type="submit" class="wiki-inline-save">Salvar</button>
+        </div>
+      </form>
       {% endif %}
 
-      {% if raca.lore_roleplay or can_edit_wiki %}
-      <article data-race-section="lore_roleplay" class="rounded border border-[var(--stroke)] bg-[var(--bg1)] p-4 {% if not raca.lore_roleplay %}hidden{% endif %} {% if not raca.lore_society %}lg:col-span-3{% else %}lg:col-span-2{% endif %}">
-        <h2 class="mb-3 font-rpg text-lg font-bold text-[var(--flame)] bonfire-underline">Roleplay</h2>
-        <div class="bonfire-markdown text-[13px] leading-[1.65] text-[var(--muted)]" data-markdown-source data-race-field="lore_roleplay">{{ raca.lore_roleplay|default:''|escape }}</div>
-      </article>
-      {% endif %}
-
-      {% if raca.lore_society or can_edit_wiki %}
-      <article data-race-section="lore_society" class="rounded border border-[var(--stroke)] bg-[var(--bg1)] p-4 {% if not raca.lore_society %}hidden{% endif %} {% if not raca.lore_roleplay %}lg:col-span-3{% endif %}">
-        <h2 class="mb-3 font-rpg text-lg font-bold text-[var(--flame)] bonfire-underline">Sociedade</h2>
-        <div class="bonfire-markdown text-[13px] leading-[1.65] text-[var(--muted)]" data-markdown-source data-race-field="lore_society">{{ raca.lore_society|default:''|escape }}</div>
-      </article>
-      {% endif %}
-    </section>
-
-    <section class="space-y-4">
-      <h2 class="font-rpg text-xl font-bold text-[var(--text)]">Traços Raciais Básicos</h2>
-      <div class="space-y-3">
-        {% for traco in tracos_base %}
-          {% if not traco.talento_racial and not traco.id_linhagem and not traco.id_linhagem_id %}
-          <article class="overflow-hidden rounded border border-[var(--stroke)] bg-[var(--bg1)]" data-race-trait-card data-trait-id="{{ traco.id_traco }}">
-            <header class="flex items-center justify-between border-b border-[var(--flame)]/30 bg-[var(--flame)]/5 px-3 py-2">
-              <h3 data-trait-title class="font-rpg text-[14px] font-bold text-[var(--flame)]">{{ traco.nome }}</h3>
-              {% if can_edit_wiki %}<button type="button" class="wiki-edit-button !text-[10px] !px-1.5 !py-0.5" data-trait-edit>Editar</button>{% endif %}
-            </header>
-            <div data-trait-preview class="p-3 text-[13px] leading-[1.6] text-[var(--muted)]">
-              <div class="bonfire-markdown" data-markdown-source>{{ traco.descricao|default:''|escape }}</div>
-            </div>
-            {% if can_edit_wiki %}
-            <form class="wiki-inline-editor" data-trait-form>
-              <div class="wiki-inline-row">
-                <label>Nome <input name="nome" value="{{ traco.nome }}"></label>
-                <input type="hidden" name="nivel_requisito" value="0">
-              </div>
-              <input type="hidden" name="talento_racial" value="false">
-              <label>Texto real <textarea name="descricao">{{ traco.descricao }}</textarea></label>
-              <div class="wiki-inline-actions">
-                <button type="button" class="wiki-inline-cancel" data-trait-cancel>Cancelar</button>
-                <button type="submit" class="wiki-inline-save">Salvar</button>
-              </div>
-            </form>
-            {% endif %}
-          </article>
-          {% endif %}
-        {% empty %}
-        <p class="text-sm italic text-[var(--muted)]">Sem traços raciais cadastrados para esta raça.</p>
-        {% endfor %}
-      </div>
-    </section>
-
-    <!-- Linhagens (Subclass-style selection tab) -->
-    <section class="space-y-4">
-      <h3 class="mb-2 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-[var(--muted)]">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-[var(--muted)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3 8 4.5-8 4.5-8-4.5L12 3Z"/><path d="m4 12 8 4.5 8-4.5"/><path d="m4 16.5 8 4.5 8-4.5"/></svg>
-        Linhagens {% if linhagens %}(selecione para ver){% endif %}
-      </h3>
-      <div class="flex flex-wrap gap-1.5 items-center">
-        <button type="button" data-linhagem-toggle="" class="linhagem-toggle rounded border border-[var(--flame)] bg-[var(--flame)]/10 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-[var(--text)]">Base</button>
-        {% for linhagem in linhagens %}
-        <button type="button" data-linhagem-toggle="{{ linhagem.slug }}" class="linhagem-toggle rounded border border-[var(--stroke)] px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-[var(--muted)] hover:border-[var(--spark)] hover:text-[var(--text)]">{{ linhagem.nome }}</button>
-        {% endfor %}
+      <!-- TABS BAR -->
+      <div class="flex items-center gap-2 border-b border-[var(--stroke)] mb-6 pb-2 overflow-x-auto">
+        <button type="button" data-tab-btn="regras" class="tab-btn active">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4.5 16.5c-1.5 1.26-2.5 3.19-2.5 5.5h20c0-2.31-1-4.24-2.5-5.5"/><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2Zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8Z"/></svg>
+          Regras
+        </button>
+        <button type="button" data-tab-btn="lore" class="tab-btn">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/></svg>
+          Lore
+        </button>
+        <button type="button" data-tab-btn="talentos" class="tab-btn">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          Talentos
+        </button>
       </div>
 
-      <!-- Active Lineage Content Container -->
-      <div id="linhagemPresentationContainer" class="space-y-4 hidden">
-        {% for linhagem in linhagens %}
-        <div data-linhagem-content="{{ linhagem.slug }}" class="hidden space-y-4">
-          {% if linhagem.descricao %}
-          <p class="text-[13px] italic leading-relaxed text-[var(--muted)] bonfire-markdown" data-markdown-source>{{ linhagem.descricao|default:''|escape }}</p>
-          {% endif %}
-          {% if linhagem.lore_presentation or linhagem.lore_roleplay or linhagem.lore_society %}
-          <div class="grid gap-4 border-t border-[var(--stroke)] pt-4 text-[13px] leading-[1.65] text-[var(--muted)] lg:grid-cols-3">
-            {% if linhagem.lore_presentation %}
-            <div>
-              <h4 class="mb-2 text-[10px] font-bold uppercase tracking-widest text-[var(--ember)]">Visão Geral</h4>
-              <div class="bonfire-markdown" data-markdown-source>{{ linhagem.lore_presentation|default:''|escape }}</div>
+      <!-- TAB CONTENT AREA -->
+      <div class="tab-contents">
+        
+        <!-- TAB 1: REGRAS -->
+        <div id="tab-content-regras" class="tab-pane active">
+          
+          <!-- Stat Block -->
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div class="bg-[var(--bg1)] p-3 rounded border border-[var(--stroke)] flex flex-col items-center text-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-[var(--ember)] mb-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><path d="M12 2a10 10 0 1 1-10 10A10 10 0 0 1 12 2Z"/></svg>
+              <span class="text-[10px] uppercase font-bold text-[var(--muted)]">Tipo</span>
+              <span class="text-sm font-bold text-[var(--text)]">{{ stats.creatureType }}</span>
             </div>
-            {% endif %}
-            {% if linhagem.lore_roleplay %}
-            <div>
-              <h4 class="mb-2 text-[10px] font-bold uppercase tracking-widest text-[var(--ember)]">Roleplay</h4>
-              <div class="bonfire-markdown" data-markdown-source>{{ linhagem.lore_roleplay|default:''|escape }}</div>
+            <div class="bg-[var(--bg1)] p-3 rounded border border-[var(--stroke)] flex flex-col items-center text-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-[var(--ember)] mb-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 3v18M19 3v18M5 12h14"/></svg>
+              <span class="text-[10px] uppercase font-bold text-[var(--muted)]">Tamanho</span>
+              <span class="text-sm font-bold text-[var(--text)]">{{ stats.size }}</span>
             </div>
-            {% endif %}
-            {% if linhagem.lore_society %}
-            <div>
-              <h4 class="mb-2 text-[10px] font-bold uppercase tracking-widest text-[var(--ember)]">Sociedade</h4>
-              <div class="bonfire-markdown" data-markdown-source>{{ linhagem.lore_society|default:''|escape }}</div>
+            <div class="bg-[var(--bg1)] p-3 rounded border border-[var(--stroke)] flex flex-col items-center text-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-[var(--ember)] mb-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 3 4 4M19 17l-4-4M21 3l-6 6M9 15l-6 6M12 3v18M3 12h18"/></svg>
+              <span class="text-[10px] uppercase font-bold text-[var(--muted)]">Velocidade</span>
+              <span class="text-sm font-bold text-[var(--text)]">{{ stats.speed }}</span>
             </div>
-            {% endif %}
+            <div class="bg-[var(--bg1)] p-3 rounded border border-[var(--stroke)] flex flex-col items-center text-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-[var(--ember)] mb-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              <span class="text-[10px] uppercase font-bold text-[var(--muted)]">Vida Média</span>
+              <span class="text-sm font-bold text-[var(--text)]">{{ stats.lifespan }}</span>
+            </div>
           </div>
-          {% endif %}
 
-          <!-- Lineage Base Traits (grid of cards in a single column) -->
-          <div class="space-y-4 border-t border-[var(--stroke)] pt-4">
-            <h4 class="text-[11px] font-bold uppercase tracking-widest text-[var(--muted)]">Traços de Linhagem</h4>
-            <div class="space-y-3">
-              {% for traco in linhagem.tracos_linhagem.all %}
-                {% if not traco.talento_racial %}
-                <article class="overflow-hidden rounded border border-[var(--stroke)] bg-[var(--bg1)]" data-race-trait-card data-trait-id="{{ traco.id_traco }}">
-                  <header class="flex items-center justify-between border-b border-[var(--spark)]/30 bg-[var(--spark)]/5 px-3 py-2">
-                    <h3 data-trait-title class="font-rpg text-[14px] font-bold text-[var(--spark)]">{{ traco.nome }}</h3>
-                    {% if can_edit_wiki %}<button type="button" class="wiki-edit-button !text-[10px] !px-1.5 !py-0.5" data-trait-edit>Editar</button>{% endif %}
-                  </header>
-                  <div data-trait-preview class="p-3 text-[13px] leading-[1.6] text-[var(--muted)]">
-                    <div class="bonfire-markdown" data-markdown-source>{{ traco.descricao|default:''|escape }}</div>
+          <!-- Base Traits -->
+          <div class="mb-10">
+             <h3 class="font-rpg text-xl font-bold text-[var(--text)] mb-4 flex items-center gap-2 border-b border-[var(--stroke)] pb-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-[var(--ember)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4.5 16.5c-1.5 1.26-2.5 3.19-2.5 5.5h20c0-2.31-1-4.24-2.5-5.5"/><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2Zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8Z"/></svg>
+                Traços da Raça Base
+             </h3>
+             <div class="space-y-4">
+               {% for traco in tracos_base %}
+                 {% if not traco.talento_racial and not traco.id_linhagem and not traco.id_linhagem_id %}
+                   <article class="overflow-hidden rounded border border-[var(--stroke)] bg-[var(--bg1)]" data-race-trait-card data-trait-id="{{ traco.id_traco }}">
+                     <header class="flex items-center justify-between border-b border-[var(--flame)]/30 bg-[var(--flame)]/5 px-3 py-2">
+                       <h3 data-trait-title class="font-rpg text-[14px] font-bold text-[var(--flame)]">{{ traco.nome }}</h3>
+                       {% if can_edit_wiki %}<button type="button" class="wiki-edit-button !text-[10px] !px-1.5 !py-0.5" data-trait-edit>Editar</button>{% endif %}
+                     </header>
+                     <div data-trait-preview class="p-3 text-[13px] leading-[1.6] text-[var(--muted)]">
+                       <div class="bonfire-markdown" data-markdown-source>{{ traco.descricao|default:''|escape }}</div>
+                     </div>
+                     {% if can_edit_wiki %}
+                     <form class="wiki-inline-editor" data-trait-form>
+                       <div class="wiki-inline-row">
+                         <label>Nome <input name="nome" value="{{ traco.nome }}"></label>
+                         <input type="hidden" name="nivel_requisito" value="0">
+                       </div>
+                       <input type="hidden" name="talento_racial" value="false">
+                       <label>Texto real <textarea name="descricao">{{ traco.descricao }}</textarea></label>
+                       <div class="wiki-inline-actions">
+                         <button type="button" class="wiki-inline-cancel" data-trait-cancel>Cancelar</button>
+                         <button type="submit" class="wiki-inline-save">Salvar</button>
+                       </div>
+                     </form>
+                     {% endif %}
+                   </article>
+                 {% endif %}
+               {% empty %}
+                 <p class="text-sm italic text-[var(--muted)]">Sem traços raciais cadastrados.</p>
+               {% endfor %}
+             </div>
+          </div>
+
+          <!-- Ancestral Divergence Split Layout -->
+          <div class="mb-10">
+             <h3 class="font-rpg text-xl font-bold text-[var(--text)] mb-4 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-[var(--flame)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+                Divergência Ancestral
+             </h3>
+
+             <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- Left: List selections -->
+                <div class="lg:col-span-7 flex flex-col gap-4">
+                  <div class="text-sm text-[var(--muted)] bg-[var(--bg1)] p-3 rounded border border-[var(--stroke)]">
+                    <p>Escolha <strong>uma</strong> opção abaixo. Selecionar uma Linhagem desmarca Essências e vice-versa.</p>
                   </div>
-                  {% if can_edit_wiki %}
-                  <form class="wiki-inline-editor" data-trait-form>
-                    <div class="wiki-inline-row">
-                      <label>Nome <input name="nome" value="{{ traco.nome }}"></label>
-                      <input type="hidden" name="nivel_requisito" value="0">
-                    </div>
-                    <input type="hidden" name="talento_racial" value="false">
-                    <label>Texto real <textarea name="descricao">{{ traco.descricao }}</textarea></label>
-                    <div class="wiki-inline-actions">
-                      <button type="button" class="wiki-inline-cancel" data-trait-cancel>Cancelar</button>
-                      <button type="submit" class="wiki-inline-save">Salvar</button>
-                    </div>
-                  </form>
+
+                  <!-- Two Columns -->
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                     <!-- Column 1: Lineages -->
+                     <div class="flex flex-col h-96 bg-[var(--bg0)]/50 rounded border border-[var(--stroke)] p-3">
+                        <div class="flex items-center justify-between border-b border-[var(--stroke)] pb-2 mb-3">
+                          <h4 class="text-xs font-bold uppercase tracking-widest text-[var(--text)]">Linhagens</h4>
+                          <button type="button" id="clearLineageBtn" class="text-[10px] uppercase font-bold text-[var(--muted)] hover:text-[var(--flame)] flex items-center gap-1 transition-colors hidden">
+                            Limpar
+                          </button>
+                        </div>
+                        <div class="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+                           {% for lin in linhagens %}
+                             <button type="button" data-linhagem-btn="{{ lin.slug }}" data-name="{{ lin.nome }}" data-image="{{ lin.image_url }}" class="selection-btn">
+                                <span class="btn-text">{{ lin.nome }}</span>
+                                <span class="btn-check"></span>
+                             </button>
+                           {% empty %}
+                             <p class="text-xs text-[var(--muted)] italic p-2">Nenhuma linhagem disponível.</p>
+                           {% endfor %}
+                        </div>
+                     </div>
+
+                     <!-- Column 2: Essences -->
+                     <div class="flex flex-col h-96 bg-[var(--bg0)]/50 rounded border border-[var(--stroke)] p-3">
+                        <div class="flex items-center justify-between border-b border-[var(--stroke)] pb-2 mb-3">
+                          <h4 class="text-xs font-bold uppercase tracking-widest text-purple-400">Essências</h4>
+                          <button type="button" id="clearEssenceBtn" class="text-[10px] uppercase font-bold text-[var(--muted)] hover:text-purple-400 flex items-center gap-1 transition-colors hidden">
+                            Limpar
+                          </button>
+                        </div>
+                        <div class="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+                           {% if raca.permite_essencia %}
+                             {% for ess in essencias %}
+                               <button type="button" data-essencia-btn="{{ ess.slug }}" data-name="{{ ess.nome }}" data-image="{{ ess.image_url }}" class="selection-btn essence-btn">
+                                  <span class="btn-text">{{ ess.nome }}</span>
+                                  <span class="btn-check"></span>
+                               </button>
+                             {% empty %}
+                               <p class="text-xs text-[var(--muted)] italic p-2">Nenhuma essência disponível.</p>
+                             {% endfor %}
+                           {% else %}
+                             <div class="h-full flex items-center justify-center text-center p-4 opacity-50">
+                               <p class="text-xs text-[var(--muted)]">Essências não disponíveis para esta raça.</p>
+                             </div>
+                           {% endif %}
+                        </div>
+                     </div>
+                  </div>
+                </div>
+
+                <!-- Right: Preview Image -->
+                <div class="lg:col-span-5">
+                   <div class="relative aspect-[3/4] md:aspect-[4/3] lg:aspect-[3/4] bg-[var(--bg1)] rounded-lg border border-[var(--stroke)] overflow-hidden shadow-2xl">
+                      <div id="racePreviewImage" class="absolute inset-0 bg-cover bg-center transition-all duration-500" style="background-image: url('{{ raca.image_url }}')"></div>
+                      <div class="absolute inset-0 bg-gradient-to-t from-[var(--bg0)] to-transparent opacity-90"></div>
+                      
+                      <div class="absolute bottom-0 left-0 p-6">
+                         <span id="racePreviewLabel" class="text-[var(--muted)] text-xs font-bold uppercase tracking-widest mb-1 block">Raça Base</span>
+                         <h3 id="racePreviewTitle" class="font-rpg text-2xl font-bold text-[var(--text)]">{{ raca.nome }}</h3>
+                      </div>
+                   </div>
+                </div>
+             </div>
+          </div>
+
+          <!-- Dynamic traits list for selections -->
+          <div class="mt-8">
+             {% for lin in linhagens %}
+               <div data-linhagem-traits="{{ lin.slug }}" class="hidden animate-in fade-in slide-in-from-bottom-4 border-t border-[var(--stroke)] pt-8">
+                  <h3 class="font-rpg text-xl font-bold text-[var(--text)] mb-4 pb-2">
+                    Traços da <span class="text-[var(--ember)]">{{ lin.nome }}</span>
+                  </h3>
+                  {% if lin.descricao %}
+                    <p class="text-[13px] italic leading-relaxed text-[var(--muted)] mb-6 bonfire-markdown" data-markdown-source>{{ lin.descricao|default:''|escape }}</p>
                   {% endif %}
+                  <div class="space-y-4">
+                     {% for traco in lin.tracos_linhagem.all %}
+                       {% if not traco.talento_racial %}
+                         <article class="overflow-hidden rounded border border-[var(--stroke)] bg-[var(--bg1)]" data-race-trait-card data-trait-id="{{ traco.id_traco }}">
+                           <header class="flex items-center justify-between border-b border-[var(--spark)]/30 bg-[var(--spark)]/5 px-3 py-2">
+                             <h3 data-trait-title class="font-rpg text-[14px] font-bold text-[var(--spark)]">{{ traco.nome }}</h3>
+                             {% if can_edit_wiki %}<button type="button" class="wiki-edit-button !text-[10px] !px-1.5 !py-0.5" data-trait-edit>Editar</button>{% endif %}
+                           </header>
+                           <div data-trait-preview class="p-3 text-[13px] leading-[1.6] text-[var(--muted)]">
+                             <div class="bonfire-markdown" data-markdown-source>{{ traco.descricao|default:''|escape }}</div>
+                           </div>
+                           {% if can_edit_wiki %}
+                           <form class="wiki-inline-editor" data-trait-form>
+                             <div class="wiki-inline-row">
+                               <label>Nome <input name="nome" value="{{ traco.nome }}"></label>
+                               <input type="hidden" name="nivel_requisito" value="0">
+                             </div>
+                             <input type="hidden" name="talento_racial" value="false">
+                             <label>Texto real <textarea name="descricao">{{ traco.descricao }}</textarea></label>
+                             <div class="wiki-inline-actions">
+                               <button type="button" class="wiki-inline-cancel" data-trait-cancel>Cancelar</button>
+                               <button type="submit" class="wiki-inline-save">Salvar</button>
+                             </div>
+                           </form>
+                           {% endif %}
+                         </article>
+                       {% endif %}
+                     {% empty %}
+                       <p class="text-sm italic text-[var(--muted)]">Sem traços de linhagem cadastrados.</p>
+                     {% endfor %}
+                  </div>
+                  
+                  <div class="mt-8 p-6 bg-[var(--bg1)] rounded border border-[var(--stroke)] text-center">
+                     <p class="text-[var(--muted)] mb-4">Gostou desta linhagem?</p>
+                     <button type="button" data-goto-talents-btn class="inline-flex items-center gap-2 px-6 py-3 rounded bg-[var(--ember)] text-white font-bold hover:bg-[var(--flame)] transition-colors shadow-lg">
+                       Ver Talentos Disponíveis
+                       <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                     </button>
+                  </div>
+               </div>
+             {% endfor %}
+
+             {% for ess in essencias %}
+               <div data-essencia-traits="{{ ess.slug }}" class="hidden animate-in fade-in slide-in-from-bottom-4 border-t border-[var(--stroke)] pt-8">
+                  <h3 class="font-rpg text-xl font-bold text-[var(--text)] mb-4 pb-2">
+                    Traços da <span class="text-purple-400">{{ ess.nome }}</span>
+                  </h3>
+                  <div class="space-y-4">
+                     {% for traco in ess.tracos.all %}
+                       {% if not traco.talento_racial %}
+                         <article class="overflow-hidden rounded border border-[var(--stroke)] bg-[var(--bg1)]" data-race-trait-card data-trait-id="{{ traco.id_traco }}">
+                           <header class="flex items-center justify-between border-b border-purple-500/30 bg-purple-500/5 px-3 py-2">
+                             <h3 data-trait-title class="font-rpg text-[14px] font-bold text-purple-400">{{ traco.nome }}</h3>
+                             {% if can_edit_wiki %}<button type="button" class="wiki-edit-button !text-[10px] !px-1.5 !py-0.5" data-trait-edit>Editar</button>{% endif %}
+                           </header>
+                           <div data-trait-preview class="p-3 text-[13px] leading-[1.6] text-[var(--muted)]">
+                             <div class="bonfire-markdown" data-markdown-source>{{ traco.descricao|default:''|escape }}</div>
+                           </div>
+                           {% if can_edit_wiki %}
+                           <form class="wiki-inline-editor" data-trait-form>
+                             <div class="wiki-inline-row">
+                               <label>Nome <input name="nome" value="{{ traco.nome }}"></label>
+                               <input type="hidden" name="nivel_requisito" value="0">
+                             </div>
+                             <input type="hidden" name="talento_racial" value="false">
+                             <label>Texto real <textarea name="descricao">{{ traco.descricao }}</textarea></label>
+                             <div class="wiki-inline-actions">
+                               <button type="button" class="wiki-inline-cancel" data-trait-cancel>Cancelar</button>
+                               <button type="submit" class="wiki-inline-save">Salvar</button>
+                             </div>
+                           </form>
+                           {% endif %}
+                         </article>
+                       {% endif %}
+                     {% empty %}
+                       <p class="text-sm italic text-[var(--muted)]">Sem traços de essência cadastrados.</p>
+                     {% endfor %}
+                  </div>
+
+                  <div class="mt-8 p-6 bg-purple-900/10 rounded border border-purple-900/30 text-center">
+                     <p class="text-purple-200/70 mb-4">A Essência altera fundamentalmente seu personagem.</p>
+                     <button type="button" data-goto-talents-btn class="inline-flex items-center gap-2 px-6 py-3 rounded bg-purple-600 text-white font-bold hover:bg-purple-700 transition-colors shadow-lg">
+                       Ver Talentos de Essência
+                       <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                     </button>
+                  </div>
+               </div>
+             {% endfor %}
+          </div>
+
+        </div>
+
+        <!-- TAB 2: LORE -->
+        <div id="tab-content-lore" class="tab-pane">
+           <!-- Base Race Lore -->
+           <div id="baseRaceLore" class="max-w-4xl space-y-6">
+              {% if raca.lore_presentation %}
+              <article class="rounded border border-[var(--stroke)] bg-[var(--bg1)] p-5">
+                <h2 class="mb-3 font-rpg text-xl font-bold text-[var(--flame)] bonfire-underline">Visão Geral: {{ raca.nome }}</h2>
+                <div class="bonfire-markdown text-[13px] leading-[1.65] text-[var(--muted)]" data-markdown-source>{{ raca.lore_presentation|default:''|escape }}</div>
+              </article>
+              {% endif %}
+
+              {% if raca.lore_roleplay %}
+              <article class="rounded border border-[var(--stroke)] bg-[var(--bg1)] p-5">
+                <h3 class="mb-3 font-bold text-[var(--text)] flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-[var(--flame)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                  Como Interpretar (Roleplay)
+                </h3>
+                <div class="bonfire-markdown text-[13px] leading-[1.65] text-[var(--muted)]" data-markdown-source>{{ raca.lore_roleplay|default:''|escape }}</div>
+              </article>
+              {% endif %}
+
+              {% if raca.lore_society %}
+              <article class="rounded border border-[var(--stroke)] bg-[var(--bg1)] p-5">
+                <h3 class="mb-3 font-bold text-[var(--text)] flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-[var(--flame)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                  Sociedade e Cultura
+                </h3>
+                <div class="bonfire-markdown text-[13px] leading-[1.65] text-[var(--muted)]" data-markdown-source>{{ raca.lore_society|default:''|escape }}</div>
+              </article>
+              {% endif %}
+           </div>
+
+           <!-- Essence Lores -->
+           {% for ess in essencias %}
+             <div data-essencia-lore="{{ ess.slug }}" class="max-w-4xl space-y-6 hidden">
+                {% if ess.lore_presentation %}
+                <article class="rounded border border-purple-500/30 bg-purple-950/10 p-5">
+                  <h2 class="mb-3 font-rpg text-xl font-bold text-purple-400 bonfire-underline">Ambientação da Essência: {{ ess.nome }}</h2>
+                  <div class="bonfire-markdown text-[13px] leading-[1.65] text-[var(--muted)]" data-markdown-source>{{ ess.lore_presentation|default:''|escape }}</div>
                 </article>
                 {% endif %}
-              {% empty %}
-              <p class="text-sm italic text-[var(--muted)] px-4">Sem traços de linhagem cadastrados.</p>
-              {% endfor %}
-            </div>
-          </div>
-        </div>
-        {% endfor %}
-      </div>
-    </section>
 
-    <!-- Talentos Raciais / Evolução Racial (Split Pane) -->
-    <section class="space-y-4">
-      <div class="border-b border-[var(--stroke)] pb-2 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <h2 class="font-rpg text-xl font-bold text-[var(--text)]">Evolução Racial (Talentos)</h2>
-        <!-- Multi-select level filter bar -->
-        <div class="flex flex-wrap gap-1.5 items-center bg-[var(--bg0)]/45 p-1 rounded border border-[var(--stroke)]">
-          <span class="text-[9px] font-bold uppercase tracking-wider text-[var(--muted)] px-2">Filtrar:</span>
-          <button type="button" data-level-toggle="1" class="level-toggle rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider transition-colors border border-[var(--flame)] bg-[var(--flame)]/10 text-[var(--text)]">Nv 1+</button>
-          <button type="button" data-level-toggle="5" class="level-toggle rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider transition-colors border border-[var(--flame)] bg-[var(--flame)]/10 text-[var(--text)]">Nv 5+</button>
-          <button type="button" data-level-toggle="9" class="level-toggle rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider transition-colors border border-[var(--flame)] bg-[var(--flame)]/10 text-[var(--text)]">Nv 9+</button>
-          <button type="button" data-level-toggle="13" class="level-toggle rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider transition-colors border border-[var(--flame)] bg-[var(--flame)]/10 text-[var(--text)]">Nv 13+</button>
-          <button type="button" data-level-toggle="17" class="level-toggle rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider transition-colors border border-[var(--flame)] bg-[var(--flame)]/10 text-[var(--text)]">Nv 17+</button>
-        </div>
-      </div>
-      
-      <div class="grid gap-6 lg:grid-cols-[300px_1fr] border-t border-[var(--stroke)]/50 pt-4">
-        <!-- Left panel: Talent sidebar -->
-        <aside class="space-y-1.5 overflow-y-auto pr-2 custom-scrollbar max-h-[500px] border-r border-[var(--stroke)]/30" id="talentsSidebar">
-          {% for traco in tracos_base %}
-            {% if traco.talento_racial %}
-            <div data-talent-card
-                 data-trait-id="{{ traco.id_traco }}"
-                 data-level="{{ traco.nivel_requisito }}"
-                 data-linhagem-slug="{{ traco.id_linhagem.slug|default:'' }}"
-                 role="button"
-                 tabindex="0"
-                 class="talent-list-item p-3 cursor-pointer rounded border border-transparent hover:border-[var(--stroke)] hover:bg-[var(--bg1)] text-[var(--muted)] hover:text-[var(--text)] transition-all flex flex-col gap-1.5">
-              <h4 class="font-bold text-[13px] text-[var(--text)]" data-talent-card-title>{{ traco.nome }}</h4>
-              <div class="flex flex-wrap gap-1.5">
-                <span data-talent-card-level-badge class="text-[9px] font-bold px-1.5 py-0.5 rounded border border-[var(--stroke)] bg-[var(--bg0)] text-[var(--muted)]">
-                  Nv. {{ traco.nivel_requisito }}+
-                </span>
-                {% if traco.id_linhagem %}
-                <span data-talent-card-lineage-badge class="text-[9px] font-bold px-1.5 py-0.5 rounded border border-[var(--spark)] bg-[var(--spark)]/10 text-[var(--spark)] uppercase tracking-wider">
-                  {{ traco.id_linhagem.nome }}
-                </span>
+                {% if ess.lore_roleplay %}
+                <article class="rounded border border-[var(--stroke)] bg-[var(--bg1)] p-5">
+                  <h3 class="mb-3 font-bold text-[var(--text)] flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-purple-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    Roleplay
+                  </h3>
+                  <div class="bonfire-markdown text-[13px] leading-[1.65] text-[var(--muted)]" data-markdown-source>{{ ess.lore_roleplay|default:''|escape }}</div>
+                </article>
                 {% endif %}
-                {% if traco.pre_requisito %}
-                <span data-talent-card-prereq-badge class="text-[9px] font-bold px-1.5 py-0.5 rounded border border-yellow-500/20 text-yellow-500/80 uppercase tracking-wider truncate max-w-[120px]" title="{{ traco.pre_requisito }}">
-                  Req: {{ traco.pre_requisito }}
-                </span>
+
+                {% if ess.lore_society %}
+                <article class="rounded border border-[var(--stroke)] bg-[var(--bg1)] p-5">
+                  <h3 class="mb-3 font-bold text-[var(--text)] flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-purple-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    Sociedade
+                  </h3>
+                  <div class="bonfire-markdown text-[13px] leading-[1.65] text-[var(--muted)]" data-markdown-source>{{ ess.lore_society|default:''|escape }}</div>
+                </article>
                 {% endif %}
-              </div>
-              <!-- Hidden details source for JS access -->
-              <div class="hidden" data-talent-card-desc>{{ traco.descricao|default:'' }}</div>
-              <div class="hidden" data-talent-card-prereq>{{ traco.pre_requisito|default:'' }}</div>
-            </div>
-            {% endif %}
-          {% endfor %}
-        </aside>
+             </div>
+           {% endfor %}
+        </div>
 
-        <!-- Right panel: Active talent detail & editor -->
-        <main class="rounded border border-[var(--stroke)] bg-[var(--bg0)]/45 p-5 min-h-[350px] relative flex flex-col justify-between" id="activeTalentPanel">
-          <div class="flex flex-col items-center justify-center h-full text-[var(--muted)] text-center py-12" id="talentDetailEmpty">
-            <svg class="w-12 h-12 opacity-30 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18s-3.332.477-4.5 1.253" />
-            </svg>
-            <p class="text-xs font-semibold">Selecione um talento para ver os detalhes.</p>
-          </div>
+        <!-- TAB 3: TALENTOS -->
+        <div id="tab-content-talentos" class="tab-pane">
+           <div class="text-[var(--muted)] mb-8 p-4 bg-[var(--bg1)] border border-[var(--stroke)] rounded text-sm relative">
+              <strong class="text-[var(--text)] block mb-1">Sobre Talentos Raciais</strong>
+              Estes talentos podem ser escolhidos nos níveis indicados (1, 5, 9, 13, 17) para substituir talentos de classe, permitindo que seu personagem evolua sua biologia ou natureza mágica.
+              
+              <!-- Dynamic alert text inside the guide block -->
+              <span data-talents-filter-alert="essence" class="block mt-2 text-purple-400 font-bold border-t border-[var(--stroke)] pt-2 hidden">
+                Visualizando talentos da Essência selecionada. Talentos de linhagem específica foram ocultados.
+              </span>
+              <span data-talents-filter-alert="lineage" class="block mt-2 text-[var(--ember)] font-bold border-t border-[var(--stroke)] pt-2 hidden">
+                Visualizando talentos da Linhagem selecionada.
+              </span>
+              <span data-talents-filter-alert="none" class="block mt-2 text-[var(--muted)] font-bold border-t border-[var(--stroke)] pt-2">
+                Visualizando talentos gerais da raça base. Selecione uma Linhagem ou Essência nas Regras para liberar talentos adicionais.
+              </span>
+           </div>
 
-          <div class="hidden space-y-4 w-full" id="talentDetailContent">
-            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--stroke)] pb-3">
-              <div class="flex flex-wrap gap-1.5">
-                <span class="text-[10px] font-bold px-2 py-0.5 rounded border border-[var(--stroke)] bg-[var(--bg0)] text-[var(--muted)] uppercase tracking-wider" id="activeTalentLevelBadge">Nível</span>
-                <span class="text-[10px] font-bold px-2 py-0.5 rounded border border-[var(--spark)] bg-[var(--spark)]/10 text-[var(--spark)] uppercase tracking-wider hidden" id="activeTalentLineageBadge">Linhagem</span>
-              </div>
-              {% if can_edit_wiki %}
-              <button type="button" class="wiki-edit-button !text-[10px] !px-2 !py-1" id="activeTalentEditButton">Editar wiki</button>
-              {% endif %}
-            </div>
+           <!-- Multi-select level filter bar -->
+           <div class="flex flex-wrap gap-2 items-center bg-[var(--bg0)]/45 p-2 rounded border border-[var(--stroke)] mb-8">
+             <span class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)] px-2">Filtrar por Nível:</span>
+             {% for lvl in levels %}
+               <button type="button" data-level-toggle-v2="{{ lvl }}" class="level-toggle active">
+                 Nv {{ lvl }}+
+               </button>
+             {% endfor %}
+           </div>
 
-            <div id="talentPreviewBlock" class="space-y-4">
-              <h3 class="font-rpg text-xl font-bold text-[var(--flame)] uppercase" id="activeTalentTitle">Nome</h3>
-              <p class="rounded border border-yellow-500/20 bg-yellow-500/5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-yellow-500/80 hidden" id="activeTalentPrereqBlock">Pré-requisito: <span class="font-normal normal-case ml-1 text-[var(--text)]" id="activeTalentPrereqVal">Nenhum</span></p>
-              <div class="bonfire-markdown text-[13px] leading-[1.65] text-[var(--muted)]" id="activeTalentDescBody"></div>
-            </div>
+           <!-- Level Headers and Talent Cards Grids -->
+           <div class="space-y-12">
+             {% for level in levels %}
+               <div id="talent-level-section-{{ level }}" class="mb-10">
+                  <div class="flex items-center gap-4 mb-6">
+                    <span class="font-rpg font-bold text-[var(--text)] text-lg border border-[var(--stroke)] px-3 py-1 rounded bg-[var(--bg1)]">
+                      Nível {{ level }}
+                    </span>
+                    <div class="h-px bg-[var(--stroke)] flex-1"></div>
+                  </div>
+                  
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                     {% for talent in talents %}
+                        {% if talent.nivel_requisito == level %}
+                           <article class="talent-card-v2 bg-[var(--bg2)] border border-[var(--stroke)] rounded p-5 flex flex-col gap-2 hover:border-[var(--muted)] transition-all h-full relative overflow-hidden group" data-race-trait-card data-trait-id="{{ talent.id_traco }}" data-talent-card-v2 data-level="{{ talent.nivel_requisito }}" data-linhagem="{{ talent.id_linhagem.slug|default:'' }}" data-essencia="{{ talent.id_essencia.slug|default:'' }}">
+                               
+                               <!-- Source Badge -->
+                               <div class="absolute top-0 right-0 px-2.5 py-1 text-[10px] uppercase font-bold tracking-widest rounded-bl {{ talent.source_color }} bg-[var(--bg0)] border-l border-b border-[var(--stroke)]">
+                                 {{ talent.source }}
+                               </div>
 
-            {% if can_edit_wiki %}
-            <form class="wiki-inline-editor !m-0 !p-4 bg-[var(--bg0)] rounded border border-[var(--stroke)] hidden" id="talentEditForm">
-              <div class="wiki-inline-row">
-                <label>Nome <input name="nome" id="editTalentName"></label>
-                <label>Nível <input name="nivel_requisito" type="number" min="0" max="20" id="editTalentLevel"></label>
-              </div>
-              <label class="wiki-inline-check"><input type="checkbox" name="talento_racial" id="editTalentIsTalent"> Talento racial</label>
-              <label>Pré-requisito <input name="pre_requisito" id="editTalentPrereq"></label>
-              <label>Texto real <textarea name="descricao" id="editTalentDesc" class="min-h-[120px]"></textarea></label>
-              <div class="wiki-inline-actions">
-                <button type="button" class="wiki-inline-cancel" id="editTalentCancelButton">Cancelar</button>
-                <button type="submit" class="wiki-inline-save">Salvar</button>
-              </div>
-            </form>
-            {% endif %}
-          </div>
-        </main>
+                               <div class="flex justify-between items-start pr-20">
+                                 <h5 data-trait-title class="font-bold text-[var(--text)] text-base leading-tight">{{ talent.nome }}</h5>
+                                 {% if can_edit_wiki %}
+                                 <button type="button" class="wiki-edit-button !text-[9px] !px-1.5 !py-0.5 ml-2 shrink-0" data-trait-edit>Editar</button>
+                                 {% endif %}
+                               </div>
+                               
+                               <div data-trait-preview class="space-y-3 flex-1 flex flex-col justify-between">
+                                  <div>
+                                     <div class="flex gap-1 flex-wrap mb-2">
+                                         {% for tag in talent.tags_json %}
+                                           <span class="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-[var(--bg0)] border border-[var(--stroke)] text-[var(--muted)]">
+                                             {{ tag }}
+                                           </span>
+                                         {% endfor %}
+                                     </div>
+
+                                     {% if talent.pre_requisito %}
+                                     <div class="text-xs text-[var(--muted)] font-mono border-l-2 border-[var(--stroke)] pl-2 mb-2 opacity-80" data-trait-prereq>
+                                       Pré-requisito: {{ talent.pre_requisito }}
+                                     </div>
+                                     {% endif %}
+                                  </div>
+                                  
+                                  <div class="text-sm text-[var(--muted)] leading-relaxed whitespace-pre-wrap bonfire-markdown flex-1" data-markdown-source>
+                                    {{ talent.descricao }}
+                                  </div>
+                               </div>
+
+                               {% if can_edit_wiki %}
+                               <form class="wiki-inline-editor" data-trait-form>
+                                 <div class="wiki-inline-row">
+                                   <label>Nome <input name="nome" value="{{ talent.nome }}"></label>
+                                   <label>Nível <input name="nivel_requisito" type="number" value="{{ talent.nivel_requisito }}"></label>
+                                 </div>
+                                 <input type="hidden" name="talento_racial" value="true">
+                                 <label>Pré-requisito <input name="pre_requisito" value="{{ talent.pre_requisito|default:'' }}"></label>
+                                 <label>Texto real <textarea name="descricao" class="min-h-[100px]">{{ talent.descricao }}</textarea></label>
+                                 <div class="wiki-inline-actions">
+                                   <button type="button" class="wiki-inline-cancel" data-trait-cancel>Cancelar</button>
+                                   <button type="submit" class="wiki-inline-save">Salvar</button>
+                                 </div>
+                               </form>
+                               {% endif %}
+                           </article>
+                        {% endif %}
+                     {% endfor %}
+                  </div>
+               </div>
+             {% endfor %}
+           </div>
+
+        </div>
+
       </div>
-    </section>
-  </div>
-</section>
+
+    </div>
+{% endif %}
 {% else %}
 <section class="rounded border border-[var(--stroke)] bg-[var(--bg1)] p-8 text-center" id="ajax-content-inner">
   <h2 class="font-rpg text-2xl font-bold text-[var(--text)]">Nenhuma raça selecionada</h2>
-  <p class="mt-2 text-[11px] text-[var(--muted)]">Use a busca ou a lista lateral para abrir uma raça.</p>
+  <p class="mt-2 text-sm text-[var(--muted)]">Use a busca ou a lista lateral para abrir uma raça.</p>
 </section>
+{% endif %}
+
+{% if not only_traits and not only_content %}
+  <div id="ajax-traits-section">
+      {% include 'home/partials/raca_detail_content.html' with only_traits=True %}
+  </div>
+  <section class="min-w-0" id="ajax-content-inner">
+      {% include 'home/partials/raca_detail_content.html' with only_content=True %}
+  </section>
 {% endif %}

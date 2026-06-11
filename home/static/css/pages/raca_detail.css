@@ -229,3 +229,141 @@
     from { opacity: .78; transform: translateY(3px); }
     to { opacity: 1; transform: translateY(0); }
   }
+
+  /* Redesigned Tab and Selection components */
+  .tab-btn {
+    background: transparent;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    color: var(--muted);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    padding: 0.75rem 1.25rem;
+    text-transform: uppercase;
+    transition: all 0.2s ease;
+  }
+  .tab-btn:hover {
+    color: var(--text);
+  }
+  .tab-btn.active {
+    border-color: var(--ember);
+    color: var(--text);
+    background: var(--bg1);
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+  }
+  .tab-pane {
+    display: none;
+    animation: bonfireRaceRefresh 0.3s ease both;
+  }
+  .tab-pane.active {
+    display: block;
+  }
+
+  .selection-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    background: var(--bg1);
+    border: 1px solid var(--stroke);
+    border-radius: 4px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s ease;
+    margin-bottom: 0.5rem;
+  }
+  .selection-btn:hover {
+    border-color: var(--muted);
+    background: var(--bg2);
+  }
+  .selection-btn.is-selected {
+    border-color: var(--ember);
+    box-shadow: 0 0 0 1px var(--ember);
+    background: var(--bg2);
+  }
+  .selection-btn.essence-btn.is-selected {
+    border-color: #a855f7; /* purple-500 */
+    box-shadow: 0 0 0 1px #a855f7;
+    background: rgba(168, 85, 247, 0.05);
+  }
+  .selection-btn.dimmed {
+    opacity: 0.4;
+    filter: grayscale(0.8);
+  }
+  .selection-btn.dimmed:hover {
+    opacity: 0.9;
+    filter: none;
+  }
+  .btn-text {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--muted);
+    transition: color 0.2s ease;
+  }
+  .selection-btn:hover .btn-text,
+  .selection-btn.is-selected .btn-text {
+    color: var(--text);
+  }
+  .selection-btn.essence-btn.is-selected .btn-text {
+    color: #f3e8ff; /* purple-100 */
+  }
+  .btn-check {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 1px solid var(--stroke);
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    margin-left: 0.75rem;
+  }
+  .selection-btn:hover .btn-check {
+    border-color: var(--muted);
+  }
+  .selection-btn.is-selected .btn-check {
+    background: var(--ember);
+    border-color: var(--ember);
+    box-shadow: inset 0 0 0 2px var(--bg2);
+  }
+  .selection-btn.essence-btn.is-selected .btn-check {
+    background: #a855f7;
+    border-color: #a855f7;
+    box-shadow: inset 0 0 0 2px var(--bg2);
+  }
+
+  .level-toggle {
+    border: 1px solid transparent;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.25rem 0.5rem;
+    text-transform: uppercase;
+    transition: all 0.2s ease;
+    background: transparent;
+    color: var(--muted);
+  }
+  .level-toggle:hover {
+    border-color: var(--stroke);
+    background: var(--bg1);
+  }
+  .level-toggle.active {
+    border-color: var(--flame);
+    background: rgba(226, 92, 56, 0.1); /* flame/10 */
+    color: var(--text);
+  }
+
+  .talent-card-v2 {
+    transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+  }
+  .talent-card-v2:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    border-color: var(--muted);
+  }

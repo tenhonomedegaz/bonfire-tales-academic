@@ -1101,6 +1101,105 @@ def _postgres_raca_detail_view(request, slug):
     racas = TbRaca.objects.all().order_by('nome')
     tracos_base = raca.tracos.all().order_by('nivel_requisito', 'nome')
     linhagens = raca.linhagens.all().prefetch_related('tracos_linhagem').order_by('nome')
+    essencias = TbEssencia.objects.all().prefetch_related('tracos').order_by('nome')
+
+    # Image mapping
+    RACE_IMAGES = {
+        'anao': 'https://i.imgur.com/base-dwarf-placeholder.png',
+        'humano': 'https://i.imgur.com/base-human-placeholder.png',
+        'elfo': 'https://i.imgur.com/base-elf-placeholder.png',
+        'folken': 'https://i.imgur.com/base-folken-placeholder.png',
+        'orc': 'https://i.imgur.com/base-orc-placeholder.png',
+    }
+
+    LINEAGE_IMAGES = {
+        'montanha': 'https://i.imgur.com/mountain-dwarf-placeholder.png',
+        'profundezas': 'https://i.imgur.com/deep-dwarf-placeholder.png',
+        'erthari': 'https://i.imgur.com/erthari-human-placeholder.png',
+        'salarin': 'https://i.imgur.com/salarin-human-placeholder.png',
+        'durkarn': 'https://i.imgur.com/durkarn-human-placeholder.png',
+        'goruun': 'https://i.imgur.com/goruun-human-placeholder.png',
+    }
+
+    ESSENCE_IMAGES = {
+        'vampirismo': 'https://i.imgur.com/vampire-essence-placeholder.png',
+        'nephilim': 'https://i.imgur.com/nephilim-essence-placeholder.png',
+    }
+
+    # Stat mapping
+    RACE_STATS_MAP = {
+        'anao': {
+            'creatureType': 'Humanoide',
+            'size': 'Médio (1,20m – 1,50m)',
+            'speed': '9 metros [30 pés]',
+            'lifespan': '350 anos'
+        },
+        'humano': {
+            'creatureType': 'Humanoide',
+            'size': 'Médio (1,50m – 1,90m)',
+            'speed': '9 metros [30 pés]',
+            'lifespan': '90 anos'
+        },
+        'elfo': {
+            'creatureType': 'Humanoide',
+            'size': 'Médio (1,60m – 1,90m)',
+            'speed': '9 metros [30 pés]',
+            'lifespan': '700 anos'
+        },
+        'folken': {
+            'creatureType': 'Humanoide',
+            'size': 'Médio (1,60m – 2,00m)',
+            'speed': '9 metros [30 pés]',
+            'lifespan': '120 anos'
+        },
+        'orc': {
+            'creatureType': 'Humanoide',
+            'size': 'Médio (1,80m – 2,10m)',
+            'speed': '9 metros [30 pés]',
+            'lifespan': '80 anos'
+        }
+    }
+
+    default_stats = {
+        'creatureType': 'Humanoide',
+        'size': 'Médio',
+        'speed': '9 metros [30 pés]',
+        'lifespan': '100 anos'
+    }
+
+    stats = RACE_STATS_MAP.get(raca.slug, default_stats)
+    raca.image_url = RACE_IMAGES.get(raca.slug, 'https://i.imgur.com/base-human-placeholder.png')
+
+    for lin in linhagens:
+        lin.image_url = LINEAGE_IMAGES.get(lin.slug, raca.image_url)
+
+    for ess in essencias:
+        ess.image_url = ESSENCE_IMAGES.get(ess.slug, 'https://i.imgur.com/nephilim-essence-placeholder.png')
+
+    # Collect talents
+    talents = []
+    # 1. Base race talents
+    for t in tracos_base:
+        if t.talento_racial:
+            t.source = "Raça"
+            t.source_color = "text-[var(--text)] border-[var(--stroke)]"
+            talents.append(t)
+    # 2. Lineage talents
+    for lin in linhagens:
+        for t in lin.tracos_linhagem.all():
+            if t.talento_racial:
+                t.source = "Linhagem"
+                t.source_color = "text-[var(--ember)] border-[var(--ember)]"
+                talents.append(t)
+    # 3. Essence talents
+    for ess in essencias:
+        for t in ess.tracos.all():
+            if t.talento_racial:
+                t.source = "Essência"
+                t.source_color = "text-purple-400 border-purple-500"
+                talents.append(t)
+
+    talents.sort(key=lambda x: x.nome)
 
     context = {
         'raca': raca,
@@ -1108,6 +1207,10 @@ def _postgres_raca_detail_view(request, slug):
         'selected_raca_id': raca.id_raca,
         'tracos_base': tracos_base,
         'linhagens': linhagens,
+        'essencias': essencias,
+        'stats': stats,
+        'talents': talents,
+        'levels': [1, 5, 9, 13, 17],
         'total_linhagens': TbLinhagem.objects.count(),
         'total_tracos': TbTracoracial.objects.count(),
         'can_edit_wiki': request.user.is_staff,
@@ -1521,6 +1624,7 @@ def mapa_view(request):
                 'descricao_breve': _extract_brief(region.get('LoreMarkdown')),
                 'territorio': region.get('Territorio') or 'Sem território',
                 'categoria': region.get('Categoria') or 'cidade',
+                'camada': region.get('Camada') or 0,
                 'lore_url': _marker_lore_url(region.get('Nome') or '', ''),
                 'stats': {
                     'movimentacoes_economicas': region.get('MovimentacoesEconomicas', 0),
@@ -1545,6 +1649,7 @@ def mapa_view(request):
             'descricao_breve': _extract_brief(region.lore_markdown),
             'territorio': region.territorio or 'Sem território',
             'categoria': region.categoria or 'cidade',
+            'camada': region.camada,
             'lore_url': _marker_lore_url(region.nome, ''),
             'stats': {
                 'movimentacoes_economicas': region.movimentacoes_economicas,
@@ -1573,6 +1678,7 @@ def mapa_view(request):
                 'imagem_url': _asset_url(territory.get('ImagemUrl')),
                 'coordenadas_poligono': territory.get('CoordenadasPoligono'),
                 'cor_hex': territory.get('CorHex', '#ffffff'),
+                'camada': territory.get('Camada') or 0,
                 'stats': {
                     'riqueza_natural': territory.get('RiquezaNatural', 0),
                     'riqueza_monetaria': territory.get('RiquezaMonetaria', 0),
@@ -1592,6 +1698,7 @@ def mapa_view(request):
             'imagem_url': _asset_url(territory.imagem_url),
             'coordenadas_poligono': territory.coordenadas_poligono,
             'cor_hex': territory.cor_hex or '#ffffff',
+            'camada': territory.camada,
             'stats': {
                 'riqueza_natural': territory.riqueza_natural,
                 'riqueza_monetaria': territory.riqueza_monetaria,
@@ -1619,10 +1726,17 @@ def mapa_view(request):
                 'lng': marker.get('Longitude'),
                 'categoria': marker.get('Categoria') or 'cidade',
                 'territorio': marker.get('Territorio') or '',
+                'camada': marker.get('Camada') or 0,
                 'lore_url': _marker_lore_url(marker.get('Nome') or '', ''),
             }
             for marker in marcadores_docs
         ]
+
+        if not request.user.is_staff:
+            marcadores_lista = [m for m in marcadores_lista if m.get('camada', 0) == 0]
+            regioes_lista = [r for r in regioes_lista if r.get('camada', 0) == 0]
+            territorios_lista = [t for t in territorios_lista if t.get('camada', 0) == 0]
+
         return render(request, 'home/pages/mapa.html', {
             'json_markers': marcadores_lista,
             'json_regions': regioes_lista,
@@ -1646,8 +1760,14 @@ def mapa_view(request):
             'lng': m.lng,
             'categoria': m.categoria,
             'territorio': m.territorio or '',
+            'camada': m.camada,
             'lore_url': _marker_lore_url(m.nome, ''),
         })
+
+    if not request.user.is_staff:
+        marcadores_lista = [m for m in marcadores_lista if m.get('camada', 0) == 0]
+        regioes_lista = [r for r in regioes_lista if r.get('camada', 0) == 0]
+        territorios_lista = [t for t in territorios_lista if t.get('camada', 0) == 0]
 
     context = {
         'json_markers': marcadores_lista,
@@ -1667,7 +1787,13 @@ def mundo_regioes_view(request):
             if first_region:
                 return regiao_detail_view(request, slug=first_region.slug)
 
-    regioes = TbRegiao.objects.all().order_by('territorio', 'nome')
+    if not request.user.is_staff:
+        regioes = TbRegiao.objects.filter(camada=0).order_by('territorio', 'nome')
+        territorios_qs = TbTerritorio.objects.filter(camada=0)
+    else:
+        regioes = TbRegiao.objects.all().order_by('territorio', 'nome')
+        territorios_qs = TbTerritorio.objects.all()
+
     regioes_lista = []
     markers = {m.nome: m for m in TbMapMarker.objects.all()}
     for r in regioes:
@@ -1681,7 +1807,7 @@ def mundo_regioes_view(request):
             'etiquetas_adicionais': r.etiquetas_adicionais or '',
         })
 
-    territories_by_name = {t.nome: t for t in TbTerritorio.objects.all()}
+    territories_by_name = {t.nome: t for t in territorios_qs}
     grouped = {}
     for region in regioes_lista:
         key = region['territorio'] or 'Sem território'
@@ -1701,9 +1827,12 @@ def mundo_regioes_view(request):
         
         color = territory.cor_hex if territory and territory.cor_hex else _territory_color(territory_name)
         display_color = _get_display_color(color)
+        display_nome = _display_territory(territory_name)
+        if territory and territory.camada > 0:
+            display_nome += f" (Subterrâneo Lvl {territory.camada})"
         territorios_cards.append({
             'nome': territory_name,
-            'display_nome': _display_territory(territory_name),
+            'display_nome': display_nome,
             'slug': territory.slug if territory else slugify(territory_name),
             'imagem_url': image_url,
             'descricao_breve': description,
@@ -1857,17 +1986,23 @@ def _organizations_for_location(region_name, territory_name):
 
 def regiao_detail_view(request, slug):
     regiao = get_object_or_404(TbRegiao, slug=slug)
+    if regiao.camada > 0 and not request.user.is_staff:
+        raise Http404("Região não encontrada")
 
     
     marker = TbMapMarker.objects.filter(nome=regiao.nome).first()
 
     
-    all_regioes = TbRegiao.objects.all().order_by('territorio', 'nome')
+    if not request.user.is_staff:
+        all_regioes = TbRegiao.objects.filter(camada=0).order_by('territorio', 'nome')
+        territory_objects = {t.nome: t for t in TbTerritorio.objects.filter(camada=0)}
+    else:
+        all_regioes = TbRegiao.objects.all().order_by('territorio', 'nome')
+        territory_objects = {t.nome: t for t in TbTerritorio.objects.all()}
     territorios = {}
     for r in all_regioes:
         terr = r.territorio or 'Sem território'
         territorios.setdefault(terr, []).append(r)
-    territory_objects = {t.nome: t for t in TbTerritorio.objects.all()}
     territory_groups = []
     client_regions = []
     client_territories = {}
@@ -2154,7 +2289,7 @@ def wiki_batch_save_map(request):
                 lng = float(m_data.get('lng', 0))
                 categoria = m_data.get('categoria', 'cidade')
                 territorio = m_data.get('territorio')
-                
+                camada = int(m_data.get('camada', 0))
                 
                 marker = None
                 original_name = None
@@ -2174,7 +2309,7 @@ def wiki_batch_save_map(request):
                     if existing:
                         marker = existing
                     else:
-                        marker = TbMapMarker.objects.create(nome=nome, lat=lat, lng=lng, categoria=categoria, territorio=territorio)
+                        marker = TbMapMarker.objects.create(nome=nome, lat=lat, lng=lng, categoria=categoria, territorio=territorio, camada=camada)
                         
                         r_obj = TbRegiao.objects.filter(nome=nome).first()
                         if not r_obj:
@@ -2186,7 +2321,8 @@ def wiki_batch_save_map(request):
                                 nome=nome,
                                 slug=new_slug,
                                 categoria=categoria,
-                                territorio=territorio
+                                territorio=territorio,
+                                camada=camada
                             )
                 
                 
@@ -2195,6 +2331,7 @@ def wiki_batch_save_map(request):
                 marker.lng = lng
                 marker.categoria = categoria
                 marker.territorio = territorio
+                marker.camada = camada
                 marker.save()
                 _mongo_upsert_site_document('map_markers', 'Id_Marker', marker.id_marker, {
                     'Nome': marker.nome,
@@ -2202,6 +2339,7 @@ def wiki_batch_save_map(request):
                     'Longitude': marker.lng,
                     'Categoria': marker.categoria,
                     'Territorio': marker.territorio,
+                    'Camada': marker.camada,
                 })
                 
                 
@@ -2216,6 +2354,7 @@ def wiki_batch_save_map(request):
                     region.slug = new_slug
                     region.categoria = categoria
                     region.territorio = territorio
+                    region.camada = camada
                     region.save()
                     _mongo_upsert_site_document('regions', 'Id_Regiao', region.id_regiao, {
                         'Nome': region.nome,
@@ -2226,6 +2365,7 @@ def wiki_batch_save_map(request):
                         'BrasaoUrl': region.brasao_url,
                         'MapaUrl': region.mapa_url,
                         'EtiquetasAdicionais': region.etiquetas_adicionais,
+                        'Camada': region.camada,
                     })
                 else:
                     
@@ -2235,9 +2375,10 @@ def wiki_batch_save_map(request):
                         if TbRegiao.objects.filter(slug=new_slug).exists():
                             import uuid
                             new_slug += f"-{uuid.uuid4().hex[:6]}"
-                        r_obj = TbRegiao.objects.create(nome=nome, slug=new_slug)
+                        r_obj = TbRegiao.objects.create(nome=nome, slug=new_slug, camada=camada)
                     r_obj.categoria = categoria
                     r_obj.territorio = territorio
+                    r_obj.camada = camada
                     r_obj.save()
                     _mongo_upsert_site_document('regions', 'Id_Regiao', r_obj.id_regiao, {
                         'Nome': r_obj.nome,
@@ -2248,6 +2389,7 @@ def wiki_batch_save_map(request):
                         'BrasaoUrl': r_obj.brasao_url,
                         'MapaUrl': r_obj.mapa_url,
                         'EtiquetasAdicionais': r_obj.etiquetas_adicionais,
+                        'Camada': r_obj.camada,
                     })
                     
             
@@ -2255,8 +2397,14 @@ def wiki_batch_save_map(request):
                 t_id = t_data.get('id')
                 if not t_id or t_id in ['undefined', 'null', '']: continue
                 territory = get_object_or_404(TbTerritorio, pk=t_id)
+                modified = False
                 if 'coordenadas_poligono' in t_data:
                     territory.coordenadas_poligono = t_data.get('coordenadas_poligono')
+                    modified = True
+                if 'camada' in t_data:
+                    territory.camada = int(t_data.get('camada', 0))
+                    modified = True
+                if modified:
                     territory.save()
                     _mongo_upsert_site_document('territories', 'Id_Territorio', territory.id_territorio, {
                         'Nome': territory.nome,
@@ -2266,6 +2414,7 @@ def wiki_batch_save_map(request):
                         'CoordenadasPoligono': territory.coordenadas_poligono,
                         'CorHex': territory.cor_hex,
                         'LoreMarkdown': territory.lore_markdown,
+                        'Camada': territory.camada,
                     })
                     
         return JsonResponse({'ok': True})

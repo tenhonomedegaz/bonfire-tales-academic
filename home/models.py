@@ -318,6 +318,7 @@ class TbMapMarker(models.Model):
     lng = models.FloatField(db_column='Longitude', help_text="Ponto X / Esquerda pra direita no mapa customizado.")
     categoria = models.CharField(db_column='Categoria', max_length=50, choices=PIN_ICON_CHOICES, default='cidade')
     territorio = models.CharField(db_column='Territorio', max_length=150, blank=True, null=True)
+    camada = models.IntegerField(db_column='Camada', default=0, help_text="Camada do mapa (0=Superficie, 1=Subterraneo Nivel 1, etc.)")
     
     class Meta:
         db_table = 'TB_MapMarker'
@@ -339,6 +340,7 @@ class TbRegiao(models.Model):
     brasao_url = models.CharField(db_column='BrasaoUrl', max_length=500, blank=True, null=True, help_text='URL ou caminho static da imagem do brasão.')
     mapa_url = models.CharField(db_column='MapaUrl', max_length=500, blank=True, null=True, help_text='URL ou caminho static do mapa lateral da região.')
     etiquetas_adicionais = models.TextField(db_column='EtiquetasAdicionais', blank=True, null=True, help_text='Tags adicionais separadas por vírgula.')
+    camada = models.IntegerField(db_column='Camada', default=0, help_text="Camada do mapa (0=Superficie, 1=Subterraneo Nivel 1, etc.)")
 
     movimentacoes_economicas = models.IntegerField(db_column='MovimentacoesEconomicas', default=0)
     poder_militar = models.IntegerField(db_column='PoderMilitar', default=0)
@@ -374,6 +376,7 @@ class TbTerritorio(models.Model):
 
     coordenadas_poligono = models.JSONField(db_column='CoordenadasPoligono', blank=True, null=True, help_text='Coordenadas GeoJSON para renderizar a área no mapa.')
     cor_hex = models.CharField(db_column='CorHex', max_length=7, default='#ffffff', help_text='Cor em formato Hexadecimal (ex: #FFFFFF)')
+    camada = models.IntegerField(db_column='Camada', default=0, help_text="Camada do mapa (0=Superficie, 1=Subterraneo Nivel 1, etc.)")
     riqueza_natural = models.IntegerField(db_column='RiquezaNatural', default=0)
     riqueza_monetaria = models.IntegerField(db_column='RiquezaMonetaria', default=0)
     poder_militar = models.IntegerField(db_column='PoderMilitar', default=0)
@@ -541,12 +544,14 @@ def sync_region_to_marker(sender, instance, **kwargs):
             'lng': 0,
             'categoria': instance.categoria or 'cidade',
             'territorio': instance.territorio,
+            'camada': instance.camada,
         }
     )
     
     if not created:
         marker.territorio = instance.territorio
         marker.categoria = instance.categoria
+        marker.camada = instance.camada
         marker.save()
 
 class TbItemMundano(models.Model):
@@ -592,23 +597,50 @@ class TbItemMundano(models.Model):
 class TbItemMagico(models.Model):
     RARIDADE_CHOICES = [
         ('comum', 'Comum'),
+        ('comum_menor', 'Comum Menor'),
+        ('comum_maior', 'Comum Maior'),
         ('incomum', 'Incomum'),
+        ('incomum_menor', 'Incomum Menor'),
+        ('incomum_maior', 'Incomum Maior'),
         ('raro', 'Raro'),
+        ('raro_menor', 'Raro Menor'),
+        ('raro_maior', 'Raro Maior'),
         ('muito_raro', 'Muito Raro'),
+        ('muito_raro_menor', 'Muito Raro Menor'),
+        ('muito_raro_maior', 'Muito Raro Maior'),
         ('lendario', 'Lendário'),
+        ('lendario_menor', 'Lendario Menor'),
+        ('lendario_maior', 'Lendario Maior'),
         ('artefato', 'Artefato'),
     ]
 
     SLOT_CHOICES = [
         ('cabeca', 'Cabeça'),
         ('face_olhos', 'Face/Olhos'),
+        ('rosto', 'Rosto'),
         ('pescoco', 'Pescoço'),
         ('costas', 'Costas'),
         ('torso', 'Torso'),
+        ('bracos', 'Bracos'),
         ('maos', 'Mãos'),
         ('dedos', 'Dedos'),
+        ('aneis', 'Aneis'),
         ('cintura', 'Cintura'),
         ('pes', 'Pés'),
+        ('pele', 'Pele'),
+        ('arma', 'Arma'),
+        ('armadura', 'Armadura'),
+        ('escudo', 'Escudo'),
+        ('municao', 'Municao'),
+        ('pocao', 'Pocao'),
+        ('pergaminho', 'Pergaminho'),
+        ('varinha', 'Varinha'),
+        ('cajado_bastao', 'Cajado/Bastao'),
+        ('veiculo', 'Veiculo'),
+        ('flutuando', 'Flutuando'),
+        ('acessorio', 'Acessorio'),
+        ('edificacao', 'Edificacao'),
+        ('empunhado', 'Empunhado'),
         ('objeto', 'Objeto'),
         ('item_menor', 'Item Menor'),
     ]
@@ -620,6 +652,8 @@ class TbItemMagico(models.Model):
     requer_sintonizacao = models.BooleanField(db_column='RequerSintonizacao', default=False)
     detalhes_sintonizacao = models.CharField(db_column='DetalhesSintonizacao', max_length=150, blank=True, null=True, help_text='Ex: por um mago')
     slot = models.CharField(db_column='Slot', max_length=50, choices=SLOT_CHOICES, default='objeto')
+    loja = models.CharField(blank=True, db_column='Loja', help_text='Loja/caravana em que o item pode aparecer.', max_length=100, null=True)
+    preco = models.DecimalField(blank=True, db_column='Preco', decimal_places=2, help_text='Preco em PO.', max_digits=12, null=True)
     tipo = models.CharField(db_column='Tipo', max_length=100, blank=True, null=True, help_text='Ex: Espada longa, Poção, Anel')
     
     descricao_markdown = models.TextField(db_column='DescricaoMarkdown', blank=True, null=True)
