@@ -48,6 +48,40 @@ from .models import (
 from .security import validate_no_sql_danger
 
 
+def _log_wiki_edit(request, obj, message="Edited inline via wiki"):
+    try:
+        from django.contrib.admin.models import LogEntry, CHANGE
+        from django.contrib.contenttypes.models import ContentType
+        
+        LogEntry.objects.log_action(
+            user_id=request.user.id,
+            content_type_id=ContentType.objects.get_for_model(obj).pk,
+            object_id=obj.pk,
+            object_repr=str(obj),
+            action_flag=CHANGE,
+            change_message=message
+        )
+    except Exception:
+        pass
+
+
+def _log_wiki_creation(request, obj, message="Created inline via wiki"):
+    try:
+        from django.contrib.admin.models import LogEntry, ADD
+        from django.contrib.contenttypes.models import ContentType
+        
+        LogEntry.objects.log_action(
+            user_id=request.user.id,
+            content_type_id=ContentType.objects.get_for_model(obj).pk,
+            object_id=obj.pk,
+            object_repr=str(obj),
+            action_flag=ADD,
+            change_message=message
+        )
+    except Exception:
+        pass
+
+
 class BotMongoUnavailable(Exception):
     """Raised when a requested PostgreSQL table is not available."""
     pass
@@ -1450,6 +1484,7 @@ def wiki_update_talent(request, talent_id):
     for attr in ('atrib_forca', 'atrib_destreza', 'atrib_constituicao', 'atrib_inteligencia', 'atrib_sabedoria', 'atrib_carisma'):
         setattr(talent, attr, bool(data.get(attr)))
     talent.save()
+    _log_wiki_edit(request, talent, f"Edição inline de talento: {talent.nome}")
     return JsonResponse({'ok': True, 'talent': _talent_payload(talent)})
 
 
@@ -1468,6 +1503,7 @@ def wiki_update_option(request, id):
     opcao.pre_requisito = (data.get('pre_requisito') or '').strip() or None
     opcao.descricao = data.get('descricao') or ''
     opcao.save()
+    _log_wiki_edit(request, opcao, f"Edição inline de opção de jogo: {opcao.nome}")
     return JsonResponse({'ok': True, 'opcao': _option_payload(opcao)})
 
 
@@ -1499,6 +1535,7 @@ def wiki_update_class_feature(request, feature_id):
     if 'tags_json' in data or 'TagsJSON' in data:
         feature.tags_json = _tags_json_value(data)
     feature.save()
+    _log_wiki_edit(request, feature, f"Edição inline de recurso de classe: {feature.nome}")
     return JsonResponse({
         'ok': True,
         'feature': {
@@ -1528,6 +1565,7 @@ def wiki_update_racial_trait(request, trait_id):
     if 'tags_json' in data or 'TagsJSON' in data:
         trait.tags_json = _tags_json_value(data)
     trait.save()
+    _log_wiki_edit(request, trait, f"Edição inline de traço racial: {trait.nome}")
     return JsonResponse({
         'ok': True,
         'trait': {
@@ -1554,6 +1592,7 @@ def wiki_update_race(request, race_id):
     race.lore_roleplay = data.get('lore_roleplay') or ''
     race.lore_society = data.get('lore_society') or ''
     race.save()
+    _log_wiki_edit(request, race, f"Edição inline de raça: {race.nome}")
     return JsonResponse({
         'ok': True,
         'race': {
@@ -2184,6 +2223,7 @@ def wiki_create_region(request):
         mapa_url=(data.get('mapa_url') or '').strip() or None,
         etiquetas_adicionais=(data.get('etiquetas_adicionais') or '').strip() or None,
     )
+    _log_wiki_creation(request, region, f"Criação inline de região: {region.nome}")
     return JsonResponse({'ok': True, 'region': _region_payload(region), 'redirect': f'/mundo/regioes/{region.slug}/'})
 
 
@@ -2218,7 +2258,7 @@ def wiki_update_region(request, region_id):
     region.nivel_periculosidade = int(data.get('nivel_periculosidade') or region.nivel_periculosidade)
 
     region.save()
-
+    _log_wiki_edit(request, region, f"Edição inline de região: {region.nome}")
     return JsonResponse({'ok': True, 'region': _region_payload(region)})
 
 @staff_member_required
@@ -2246,7 +2286,7 @@ def wiki_update_territory(request, territory_id):
     territory.manipulacao_trama = int(data.get('manipulacao_trama') or 0)
 
     territory.save()
-
+    _log_wiki_edit(request, territory, f"Edição inline de território: {territory.nome}")
     return JsonResponse({'ok': True, 'redirect': f'/mundo/regioes/?territory={territory.slug}'})
 
 
@@ -2264,6 +2304,7 @@ def wiki_update_marker_position(request, marker_id):
         return JsonResponse({'ok': False, 'error': 'lat/lng inválidos.'}, status=400)
 
     marker.save()
+    _log_wiki_edit(request, marker, f"Edição inline de posição de marcador: {marker.nome}")
     return JsonResponse({'ok': True, 'marker': {'id': marker.id_marker, 'lat': marker.lat, 'lng': marker.lng}})
 
 
@@ -2333,6 +2374,7 @@ def wiki_batch_save_map(request):
                 marker.territorio = territorio
                 marker.camada = camada
                 marker.save()
+                _log_wiki_edit(request, marker, f"Marcador de mapa salvo via lote: {marker.nome}")
                 _mongo_upsert_site_document('map_markers', 'Id_Marker', marker.id_marker, {
                     'Nome': marker.nome,
                     'Latitude': marker.lat,
@@ -2356,6 +2398,7 @@ def wiki_batch_save_map(request):
                     region.territorio = territorio
                     region.camada = camada
                     region.save()
+                    _log_wiki_edit(request, region, f"Região de mapa salva via lote: {region.nome}")
                     _mongo_upsert_site_document('regions', 'Id_Regiao', region.id_regiao, {
                         'Nome': region.nome,
                         'Slug': region.slug,
@@ -2380,6 +2423,7 @@ def wiki_batch_save_map(request):
                     r_obj.territorio = territorio
                     r_obj.camada = camada
                     r_obj.save()
+                    _log_wiki_edit(request, r_obj, f"Região de mapa criada/salva via lote: {r_obj.nome}")
                     _mongo_upsert_site_document('regions', 'Id_Regiao', r_obj.id_regiao, {
                         'Nome': r_obj.nome,
                         'Slug': r_obj.slug,
@@ -2406,6 +2450,7 @@ def wiki_batch_save_map(request):
                     modified = True
                 if modified:
                     territory.save()
+                    _log_wiki_edit(request, territory, f"Território de mapa salvo via lote: {territory.nome}")
                     _mongo_upsert_site_document('territories', 'Id_Territorio', territory.id_territorio, {
                         'Nome': territory.nome,
                         'Slug': territory.slug,
