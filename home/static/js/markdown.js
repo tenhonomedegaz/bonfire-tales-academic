@@ -389,8 +389,90 @@ function normalizeMarkdown(value, options = {}) {
     return output;
 }
 
+function slugify(text) {
+    if (!text) return '';
+    return text.toString().toLowerCase().trim()
+        .replace(/\s+/g, '-')
+        .replace(/[^\w\-]+/g, '')
+        .replace(/\-\-+/g, '-');
+}
+
+function parseToggleBlock(content, options = {}) {
+    const lines = content.split(/\r?\n/);
+    let title = '';
+    let introLines = [];
+    let subtopics = [];
+    let currentSubtopic = null;
+    
+    for (let line of lines) {
+        const trimmed = line.trim();
+        if (trimmed.startsWith('# ')) {
+            title = trimmed.substring(2).trim();
+        } else if (trimmed.startsWith('### ')) {
+            if (currentSubtopic) {
+                subtopics.push(currentSubtopic);
+            }
+            const stTitle = trimmed.substring(4).trim();
+            currentSubtopic = {
+                title: stTitle,
+                slug: slugify(stTitle),
+                contentLines: []
+            };
+        } else {
+            if (currentSubtopic) {
+                currentSubtopic.contentLines.push(line);
+            } else {
+                introLines.push(line);
+            }
+        }
+    }
+    if (currentSubtopic) {
+        subtopics.push(currentSubtopic);
+    }
+    
+    // Generate unique ID for this toggle group
+    const groupId = 'toggle-' + Math.random().toString(36).substring(2, 9);
+    
+    // Render intro and subtopics
+    const introHtml = renderBonfireMarkdown(introLines.join('\n'), options);
+    
+    let buttonsHtml = '';
+    let panelsHtml = '';
+    
+    subtopics.forEach((st, idx) => {
+        const activeClass = idx === 0 ? 'is-active' : '';
+        const visibleClass = idx === 0 ? 'is-visible' : '';
+        const stContentHtml = renderBonfireMarkdown(st.contentLines.join('\n'), options);
+        
+        buttonsHtml += `<button type="button" class="subtopic-btn ${activeClass}" data-group-id="${groupId}" data-subtopic-toggle="${st.slug}">${parseInlineMarkdown(st.title)}</button>`;
+        panelsHtml += `
+            <div class="h1-group-panel ${visibleClass}" data-group-parent="${groupId}" data-sub-slug="${st.slug}">
+                <div class="bonfire-markdown"><strong class="subtopic-body-title">${st.title}</strong><br>${stContentHtml}</div>
+            </div>
+        `;
+    });
+    
+    return `
+        <div class="h1-section-group mb-12" id="${groupId}">
+            <h1 class="bonfire-h1-lore">${parseInlineMarkdown(title)}</h1>
+            <div class="bonfire-markdown mb-6">${introHtml}</div>
+            ${subtopics.length > 0 ? `<div class="subtopic-nav mb-6 flex flex-wrap gap-2">${buttonsHtml}</div>` : ''}
+            <div class="h1-group-body">
+                ${panelsHtml}
+            </div>
+        </div>
+    `;
+}
+
 function buildBonfireMarkdownSource(value, options = {}) {
-    const source = normalizeMarkdown(value, options);
+    let source = normalizeMarkdown(value, options);
+    
+    // Process new ::toggle ... ::endtoggle blocks
+    source = source.replace(/::toggle\s*\n([\s\S]*?)\n::endtoggle/gi, (_match, content) => {
+        return parseToggleBlock(content, options);
+    });
+
+    // Process legacy ::click ... ::endclick blocks (keep ::toggle support for legacy title tag lines)
     return source.replace(/::(?:click|toggle)\s+([^\n]+)\n([\s\S]*?)\n::end(?:click|toggle)/gi, (_match, title, content) => {
         const innerHtml = renderBonfireMarkdown(content, options);
         return `<details class="bonfire-toggle"><summary>${parseInlineMarkdown(title.trim())}</summary><div class="bonfire-toggle-content">${innerHtml}</div></details>`;
@@ -591,6 +673,20 @@ function renderBonfireMarkdownElements(root = document, selector = '[data-markdo
 if (typeof document !== 'undefined') {
     document.addEventListener('DOMContentLoaded', () => {
         renderBonfireMarkdownElements(document);
+
+        // Add global handler for subtopic-btn (used in ::toggle and regions)
+        document.addEventListener('click', (e) => {
+            const subtopicBtn = e.target.closest('[data-subtopic-toggle]');
+            if (subtopicBtn) {
+                const slug = subtopicBtn.dataset.subtopicToggle;
+                const groupId = subtopicBtn.dataset.groupId;
+                const container = subtopicBtn.closest('.h1-section-group') || document.getElementById(groupId);
+                if (container) {
+                    container.querySelectorAll('.subtopic-btn').forEach(b => b.classList.toggle('is-active', b === subtopicBtn));
+                    container.querySelectorAll('.h1-group-panel').forEach(s => s.classList.toggle('is-visible', s.dataset.subSlug === slug));
+                }
+            }
+        });
     });
 }
 
