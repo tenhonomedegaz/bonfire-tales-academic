@@ -380,11 +380,29 @@ function normalizeMarkdown(value, options = {}) {
         });
 
     if (enableOptions) {
-        output = output.replace(/::options=([^\n\r]+)/gi, (_match, tipo) => {
-            const tipoClean = tipo.trim();
-            return `<div class="bonfire-options-widget" data-tipo="${tipoClean}"><span class="bonfire-options-loading">Carregando opcoes de <strong>${tipoClean}</strong>...</span></div>`;
+        output = output.replace(/::(?:options|opcoes)(?:=|\s+)([^\n\r]+)/gi, (_match, config) => {
+            const parts = config.split(';');
+            const tipoClean = parts[0].trim();
+            let attrs = `data-tipo="${tipoClean}"`;
+            for (let i = 1; i < parts.length; i++) {
+                const part = parts[i].trim();
+                if (!part) continue;
+                const match = part.match(/^([a-zA-Z0-9_\-]+)[\s=]+(.*)$/);
+                if (match) {
+                    const key = match[1].toLowerCase();
+                    const val = match[2].trim();
+                    attrs += ` data-${key}="${val}"`;
+                }
+            }
+            return `<div class="bonfire-options-widget" ${attrs}><span class="bonfire-options-loading">Carregando opcoes de <strong>${tipoClean}</strong>...</span></div>`;
         });
     }
+
+    // Parse preview cards: (texto)[tabela, arg1, arg2) or [texto](tabela, arg1, arg2)
+    output = output.replace(/([\[\(])([^\]\)]+)[\]\)]\s*([\[\(])\s*(tb[A-Za-z0-9_á-úÁ-Ú\s]+)([^\]\)]*)[\]\)]/gi, (_match, _o1, text, _o2, table, argsStr) => {
+        const args = argsStr.split(',').map(s => s.trim()).filter(Boolean);
+        return `<a href="#" class="bonfire-card-trigger" data-table="${escapeHtml(table)}" data-args="${escapeHtml(args.join(','))}">${text}</a>`;
+    });
 
     return output;
 }

@@ -56,7 +56,7 @@ OPTION_TIPO_MAPPING = {
         "nivel": 2
     },
     "Estilos Kensei": {
-        "tipo": "Estilos Kensei",
+        "tipo": "Estilos de Ki",
         "classe": "monge",
         "subclasse": "kensei",
         "nivel": 3
@@ -142,13 +142,13 @@ OPTION_TIPO_MAPPING = {
         "nivel": 17
     },
     "Infusões de Varinha": {
-        "tipo": "Infusões de Varinha",
+        "tipo": "Infusões do Artífice",
         "classe": "artifice",
         "subclasse": "magiduelista",
         "nivel": 3
     },
     "Infusões de Elixir": {
-        "tipo": "Infusões de Elixir",
+        "tipo": "Infusões do Artífice",
         "classe": "artifice",
         "subclasse": "alquimista",
         "nivel": 3
@@ -335,7 +335,12 @@ def to_markdown(node, options_to_skip=None):
             opt_info = get_option_group_info(target_id, node.text)
             if opt_info:
                 title = opt_info["widget_title"]
-                return f"\n\n::click {title}\n::options={title}\n::endclick\n\n"
+                sub = opt_info.get("subclasse")
+                if opt_info["classe"] in ["artifice", "monge"]:
+                    sub_filter = f";subclasse={sub}" if sub else ";subclasse=null"
+                else:
+                    sub_filter = ""
+                return f"\n\n::click {title}\n::options={title}{sub_filter}\n::endclick\n\n"
         return "" # Discard non-option spoiler buttons (like subclass collapsibles)
                 
     if options_to_skip and id(node) in options_to_skip:
@@ -516,20 +521,44 @@ def parse_options_from_div(div, opt_info, soup):
                     })
         return options_list
 
-    # 2. Check if there are h5 headings (Monge, Artífice, Caçador)
-    h5_headings = inner_div.find_all("h5")
-    if h5_headings:
-        for h5 in h5_headings:
-            name = clean_text(h5.text).strip()
+    # 2. Check if there are headings representing options (h5, h4, h3)
+    headings = []
+    # Identify the deepest level of heading that exists in this block and exclude the main title
+    for level_name in ["h5", "h4", "h3"]:
+        level_headings = inner_div.find_all(level_name)
+        filtered = []
+        for h in level_headings:
+            h_text = h.text.strip().lower()
+            # Skip if it is exactly the option type name or known section header
+            if h_text == opt_info["tipo"].lower():
+                continue
+            if h_text in ["infusões de elixir", "infusões de varinha", "infusões do artífice"]:
+                continue
+            # Also skip generic/higher grouping headers like "núcleos de varinha" or "madeiras de varinha"
+            if level_name == "h3" and h_text in ["núcleos de varinha", "madeiras de varinha"]:
+                continue
+            filtered.append(h)
+        if filtered:
+            headings = filtered
+            break
+
+    if headings:
+        for h_tag in headings:
+            name = clean_text(h_tag.text).strip()
             if not name:
                 continue
                 
             siblings = []
-            curr = h5.next_sibling
+            curr = h_tag.next_sibling
+            current_level = int(h_tag.name[1])
             while curr:
                 if isinstance(curr, bs4.element.Tag):
-                    if curr.name in ["h5", "h4", "h3", "h2", "h1", "hr"]:
+                    if curr.name == "hr":
                         break
+                    if curr.name.startswith("h") and len(curr.name) == 2 and curr.name[1].isdigit():
+                        sibling_level = int(curr.name[1])
+                        if sibling_level <= current_level:
+                            break
                 siblings.append(curr)
                 curr = curr.next_sibling
                 
@@ -980,25 +1009,29 @@ def parse_class_html_file(filename):
                 op_obj.save()
                 
             TbAcessoopcao.objects.filter(id_opcao=op_obj, id_classe=classe).delete()
+            TbAcessoopcao.objects.filter(id_opcao=op_obj, id_subclasse__id_classe=classe).delete()
             
-            for c_slug in opt["classes"]:
-                cls = TbClasse.objects.filter(slug=c_slug).first()
-                if cls:
-                    TbAcessoopcao.objects.get_or_create(
-                        id_opcao=op_obj,
-                        id_classe=cls,
-                        id_subclasse=None,
-                        defaults={"nivel_recebimento": opt["nivel_recebimento"]}
-                    )
-            for s_slug in opt["subclasses"]:
-                sub = TbSubclasse.objects.filter(slug=s_slug).first()
-                if sub:
-                    TbAcessoopcao.objects.get_or_create(
-                        id_opcao=op_obj,
-                        id_classe=None,
-                        id_subclasse=sub,
-                        defaults={"nivel_recebimento": opt["nivel_recebimento"]}
-                    )
+            if opt["subclasses"]:
+                for s_slug in opt["subclasses"]:
+                    sub = TbSubclasse.objects.filter(slug=s_slug).first()
+                    if sub:
+                        cls = sub.id_classe
+                        TbAcessoopcao.objects.get_or_create(
+                            id_opcao=op_obj,
+                            id_classe=cls,
+                            id_subclasse=sub,
+                            defaults={"nivel_recebimento": opt["nivel_recebimento"]}
+                        )
+            else:
+                for c_slug in opt["classes"]:
+                    cls = TbClasse.objects.filter(slug=c_slug).first()
+                    if cls:
+                        TbAcessoopcao.objects.get_or_create(
+                            id_opcao=op_obj,
+                            id_classe=cls,
+                            id_subclasse=None,
+                            defaults={"nivel_recebimento": opt["nivel_recebimento"]}
+                        )
                     
     print(f"Successfully imported and updated database for {classe.nome}.")
     return True

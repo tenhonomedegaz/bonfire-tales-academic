@@ -2819,6 +2819,7 @@ def organizacoes_view(request):
 def api_opcoes(request):
     
     tipo_filter = request.GET.get('tipo', '').strip()
+    subclasse_filter = request.GET.get('subclasse', '').strip()
 
     try:
         query = {} if not tipo_filter else {'Tipo': tipo_filter}
@@ -2841,6 +2842,12 @@ def api_opcoes(request):
     qs = TbOpcaojogo.objects.all().order_by('nome')
     if tipo_filter:
         qs = qs.filter(tipo__iexact=tipo_filter)
+    if subclasse_filter:
+        if subclasse_filter.lower() == 'null':
+            qs = qs.filter(tbacessoopcao__id_subclasse__isnull=True)
+        else:
+            qs = qs.filter(tbacessoopcao__id_subclasse__slug=subclasse_filter)
+        qs = qs.distinct()
     opcoes_lista = [
         {
             'id': op.id_opcao,
@@ -2854,6 +2861,143 @@ def api_opcoes(request):
         for op in qs
     ]
     return JsonResponse({'opcoes': opcoes_lista})
+
+
+def api_card_preview(request):
+    import re
+    from django.http import JsonResponse
+    from home.models import (
+        TbClasse, TbSubclasse, TbClassehabilidade, TbTalento, TbRaca, TbRegiao, TbMagia
+    )
+
+    table = request.GET.get('table', '').strip().lower()
+    args_str = request.GET.get('args', '').strip()
+    args = [arg.strip() for arg in args_str.split(',') if arg.strip()]
+
+    title = ""
+    description = ""
+    read_more_url = ""
+
+    def slugify_py(text):
+        import unicodedata
+        if not text:
+            return ""
+        text = unicodedata.normalize('NFKD', text).encode('ascii', 'ignore').decode('utf-8')
+        text = re.sub(r'[^\w\s-]', '', text).strip().lower()
+        return re.sub(r'[-\s]+', '-', text)
+
+    if not table or not args:
+        return JsonResponse({'success': False, 'error': 'Tabela ou parâmetros inválidos'}, status=400)
+
+    # 1. Habilidade de classe
+    if table in ['tbhabilidade de classe', 'tbhabilidade', 'tbhabilidadeclasse', 'tbclassehabilidade']:
+        p1 = args[0]  # class or subclass slug
+        p2 = args[1] if len(args) > 1 else ""  # ability slug
+        
+        ability = None
+        
+        # Check if p1 is subclass slug
+        sub = TbSubclasse.objects.filter(slug=p1).first()
+        if sub:
+            for hab in TbClassehabilidade.objects.filter(id_subclasse=sub):
+                if slugify_py(hab.nome) == p2:
+                    ability = hab
+                    break
+        else:
+            # Check if p1 is class slug
+            classe = TbClasse.objects.filter(slug=p1).first()
+            if classe:
+                for hab in TbClassehabilidade.objects.filter(id_classe=classe):
+                    if slugify_py(hab.nome) == p2:
+                        ability = hab
+                        break
+
+        # Global search fallback
+        if not ability:
+            for hab in TbClassehabilidade.objects.all():
+                if slugify_py(hab.nome) == p2 or slugify_py(hab.nome) == p1:
+                    ability = hab
+                    break
+
+        if ability:
+            title = ability.nome
+            description = ability.descricao or ""
+            if ability.id_subclasse:
+                read_more_url = f"/jogador/classes/{ability.id_classe.slug}/?subclasse={ability.id_subclasse.slug}#{slugify_py(ability.nome)}"
+            else:
+                read_more_url = f"/jogador/classes/{ability.id_classe.slug}/#{slugify_py(ability.nome)}"
+
+    # 2. Classe
+    elif table in ['tbclasse', 'classes', 'classe']:
+        p1 = args[0]
+        classe = TbClasse.objects.filter(slug=p1).first()
+        if classe:
+            title = classe.nome
+            description = classe.tagline or ""
+            read_more_url = f"/jogador/classes/{classe.slug}/"
+
+    # 3. Subclasse
+    elif table in ['tbsubclasse', 'subclasses', 'subclasse']:
+        p1 = args[0]
+        sub = TbSubclasse.objects.filter(slug=p1).first()
+        if sub:
+            title = sub.nome
+            description = sub.descricao or ""
+            read_more_url = f"/jogador/classes/{sub.id_classe.slug}/?subclasse={sub.slug}"
+
+    # 4. Talento
+    elif table in ['tbtalento', 'talento', 'talentos']:
+        p1 = args[0]
+        tal = None
+        for t in TbTalento.objects.all():
+            if slugify_py(t.nome) == p1 or t.slug == p1:
+                tal = t
+                break
+        if tal:
+            title = tal.nome
+            description = tal.descricao or ""
+            read_more_url = f"/jogador/talentos/#{slugify_py(tal.nome)}"
+
+    # 5. Raça
+    elif table in ['tbraca', 'raca', 'racas']:
+        p1 = args[0]
+        raca = TbRaca.objects.filter(slug=p1).first()
+        if raca:
+            title = raca.nome
+            description = raca.tagline or ""
+            read_more_url = f"/jogador/raca/{raca.slug}/"
+
+    # 6. Região
+    elif table in ['tbregiao', 'regiao', 'regioes']:
+        p1 = args[0]
+        reg = TbRegiao.objects.filter(slug=p1).first()
+        if reg:
+            title = reg.nome
+            description = reg.descricao or ""
+            read_more_url = f"/mundo/regioes/{reg.slug}/"
+
+    # 7. Magia
+    elif table in ['tbmagia', 'magia', 'magias']:
+        p1 = args[0]
+        mag = None
+        for m in TbMagia.objects.all():
+            if slugify_py(m.nome) == p1 or m.slug == p1:
+                mag = m
+                break
+        if mag:
+            title = mag.nome
+            description = mag.descricao or ""
+            read_more_url = f"/magias/listas/#{slugify_py(mag.nome)}"
+
+    if title:
+        return JsonResponse({
+            'success': True,
+            'title': title,
+            'description': description,
+            'url': read_more_url
+        })
+    
+    return JsonResponse({'success': False, 'error': 'Item não encontrado'}, status=404)
 
 
 

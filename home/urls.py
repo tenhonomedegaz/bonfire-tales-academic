@@ -44,6 +44,7 @@ urlpatterns = [
     path('jogador/idiomas/', views.placeholder_view, {'title': 'Idiomas'}, name='jogador_idiomas'),
     path('jogador/opcoes-adicionais/', views.opcoes_view, name='jogador_opcoes'),
     path('api/opcoes/', views.api_opcoes, name='api_opcoes'),
+    path('api/card-preview/', views.api_card_preview, name='api_card_preview'),
 
     path('mestre/bestiario/', views.bestiario_view, name='mestre_bestiario'),
     path('mestre/armadilhas-e-perigos/', views.placeholder_view, {'title': 'Armadilhas e Perigos'}, name='mestre_armadilhas'),

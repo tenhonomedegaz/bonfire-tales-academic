@@ -253,6 +253,108 @@
     padding: 1.5rem;
     text-align: center;
 }
+
+/* Card Preview CSS */
+.bonfire-card-trigger {
+    color: var(--spark);
+    text-decoration: none;
+    border-bottom: 1px dashed var(--spark);
+    font-weight: 600;
+    transition: color 0.2s, border-color 0.2s;
+    cursor: pointer;
+}
+.bonfire-card-trigger:hover {
+    color: var(--ember);
+    border-bottom-color: var(--ember);
+}
+.bonfire-preview-card {
+    background: rgba(16, 16, 18, 0.95);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--stroke);
+    border-radius: 8px;
+    padding: 1rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    font-family: 'Inter', sans-serif;
+    color: var(--text);
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    animation: bonfireFadeIn 0.2s ease-out;
+}
+@keyframes bonfireFadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.bonfire-preview-card-loader, .bonfire-preview-card-error {
+    color: var(--muted);
+    font-size: 12px;
+    text-align: center;
+    padding: 1rem;
+}
+.bonfire-preview-card-error {
+    color: var(--flame);
+}
+.bonfire-preview-card-close {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 18px;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0;
+}
+.bonfire-preview-card-close:hover {
+    color: var(--text);
+}
+.bonfire-preview-card-header {
+    border-bottom: 1px solid var(--stroke);
+    padding-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
+}
+.bonfire-preview-card-type {
+    display: inline-block;
+    color: var(--ember);
+    font-size: 9px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.bonfire-preview-card-title {
+    margin: 2px 0 0 0;
+    font-family: 'Cinzel', serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    text-transform: uppercase;
+}
+.bonfire-preview-card-body {
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--muted);
+    max-height: 200px;
+    overflow-y: auto;
+}
+.bonfire-preview-card-footer {
+    border-top: 1px solid var(--stroke);
+    padding-top: 0.5rem;
+    display: flex;
+    justify-content: flex-end;
+}
+.bonfire-preview-card-more {
+    color: var(--spark);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: color 0.15s;
+}
+.bonfire-preview-card-more:hover {
+    color: var(--ember);
+}
 `;
 
     
@@ -266,11 +368,14 @@
     
     const _cache = {};
 
-    async function fetchOpcoes(tipo) {
-        const key = tipo.toLowerCase();
+    async function fetchOpcoes(tipo, subclasse = '') {
+        const key = `${tipo.toLowerCase()}::${subclasse.toLowerCase()}`;
         if (_cache[key]) return _cache[key];
         try {
-            const url = `/api/opcoes/?tipo=${encodeURIComponent(tipo)}`;
+            let url = `/api/opcoes/?tipo=${encodeURIComponent(tipo)}`;
+            if (subclasse) {
+                url += `&subclasse=${encodeURIComponent(subclasse)}`;
+            }
             const res = await fetch(url);
             if (!res.ok) throw new Error(res.statusText);
             const json = await res.json();
@@ -491,17 +596,18 @@
         const widgets = document.querySelectorAll('.bonfire-options-widget[data-tipo]:not([data-hydrated])');
         if (!widgets.length) return;
 
-        
-        const byTipo = {};
+        const byKey = {};
         widgets.forEach(el => {
             const tipo = el.dataset.tipo || '';
-            if (!byTipo[tipo]) byTipo[tipo] = [];
-            byTipo[tipo].push(el);
+            const subclasse = el.dataset.subclasse || '';
+            const key = `${tipo}::${subclasse}`;
+            if (!byKey[key]) byKey[key] = { tipo, subclasse, els: [] };
+            byKey[key].els.push(el);
         });
 
         await Promise.all(
-            Object.entries(byTipo).map(async ([tipo, els]) => {
-                const opcoes = await fetchOpcoes(tipo);
+            Object.values(byKey).map(async ({ tipo, subclasse, els }) => {
+                const opcoes = await fetchOpcoes(tipo, subclasse);
                 els.forEach(el => {
                     if (el.dataset.hydrated) return; 
                     renderWidget(el, tipo, opcoes);
@@ -517,7 +623,13 @@
     function init() {
         hydrateAll();
 
-        
+        document.addEventListener('click', async (e) => {
+            const trigger = e.target.closest('.bonfire-card-trigger');
+            if (!trigger) return;
+            e.preventDefault();
+            await showCardPreview(trigger);
+        });
+
         document.addEventListener('toggle', (e) => {
             const details = e.target;
             if (details.tagName !== 'DETAILS' || !details.open) return;
@@ -559,6 +671,107 @@
         return (text || '').replace(/\\n/g, '\n');
     }
 
-    
+    let activeCard = null;
+
+    async function showCardPreview(trigger) {
+        if (activeCard) {
+            activeCard.remove();
+            activeCard = null;
+        }
+
+        const table = trigger.dataset.table;
+        const args = trigger.dataset.args;
+
+        const card = document.createElement('div');
+        card.className = 'bonfire-preview-card';
+        card.innerHTML = `
+            <div class="bonfire-preview-card-loader">Carregando...</div>
+        `;
+        document.body.appendChild(card);
+        activeCard = card;
+
+        positionCard(trigger, card);
+
+        try {
+            const res = await fetch(`/api/card-preview/?table=${encodeURIComponent(table)}&args=${encodeURIComponent(args)}`);
+            if (!res.ok) throw new Error('Item não encontrado');
+            const data = await res.json();
+            if (!data.success) throw new Error(data.error || 'Erro');
+
+            const renderFn = (window.renderBonfireMarkdown || (txt => txt));
+            let fullDesc = data.description || '';
+            if (fullDesc.length > 280) {
+                fullDesc = fullDesc.substring(0, 280) + '...';
+            }
+            const descHtml = renderFn(fullDesc);
+
+            card.innerHTML = `
+                <button type="button" class="bonfire-preview-card-close">&times;</button>
+                <div class="bonfire-preview-card-header">
+                    <span class="bonfire-preview-card-type">${escapeHtml(table.replace(/^tb/, ''))}</span>
+                    <h3 class="bonfire-preview-card-title">${escapeHtml(data.title)}</h3>
+                </div>
+                <div class="bonfire-preview-card-body bonfire-markdown">
+                    ${descHtml}
+                </div>
+                ${data.url ? `
+                    <div class="bonfire-preview-card-footer">
+                        <a href="${data.url}" class="bonfire-preview-card-more">Ler Mais &rarr;</a>
+                    </div>
+                ` : ''}
+            `;
+
+            positionCard(trigger, card);
+
+            card.querySelector('.bonfire-preview-card-close').addEventListener('click', (e) => {
+                e.stopPropagation();
+                card.remove();
+                if (activeCard === card) activeCard = null;
+            });
+
+        } catch (err) {
+            card.innerHTML = `
+                <button type="button" class="bonfire-preview-card-close">&times;</button>
+                <div class="bonfire-preview-card-error">Erro ao carregar prévia: ${escapeHtml(err.message)}</div>
+            `;
+            positionCard(trigger, card);
+            card.querySelector('.bonfire-preview-card-close').addEventListener('click', (e) => {
+                e.stopPropagation();
+                card.remove();
+                if (activeCard === card) activeCard = null;
+            });
+        }
+    }
+
+    function positionCard(trigger, card) {
+        const rect = trigger.getBoundingClientRect();
+        const cardWidth = 320;
+        
+        let left = rect.left + window.scrollX + (rect.width / 2) - (cardWidth / 2);
+        if (left < 10) left = 10;
+        if (left + cardWidth > window.innerWidth - 10) {
+            left = window.innerWidth - cardWidth - 10;
+        }
+
+        const cardHeight = card.offsetHeight || 150;
+        let top = rect.top + window.scrollY - cardHeight - 10;
+        if (rect.top - cardHeight - 10 < 10) {
+            top = rect.bottom + window.scrollY + 10;
+        }
+
+        card.style.position = 'absolute';
+        card.style.left = `${left}px`;
+        card.style.top = `${top}px`;
+        card.style.width = `${cardWidth}px`;
+        card.style.zIndex = '1000';
+    }
+
+    document.addEventListener('click', (e) => {
+        if (activeCard && !activeCard.contains(e.target) && !e.target.closest('.bonfire-card-trigger')) {
+            activeCard.remove();
+            activeCard = null;
+        }
+    });
+
     window.bonfireOptionsWidget = { hydrate: hydrateAll };
 })();
