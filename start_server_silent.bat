@@ -21,21 +21,10 @@ if %ERRORLEVEL% NEQ 0 exit /b 1
 .venv\Scripts\python.exe manage.py migrate --noinput >> site_console.log 2>&1
 if %ERRORLEVEL% NEQ 0 exit /b 1
 
-REM Extrai o token do Cloudflare do arquivo .env (se existir)
-set "CLOUDFLARE_TUNNEL_TOKEN="
-for /f "usebackq tokens=1,* delims==" %%A in (".env") do (
-    if "%%A"=="CLOUDFLARE_TUNNEL_TOKEN" set "CLOUDFLARE_TUNNEL_TOKEN=%%B"
-)
-
-REM Inicia o Cloudflare Tunnel silenciosamente se o token estiver presente
-if not "%CLOUDFLARE_TUNNEL_TOKEN%"=="" (
-    if not exist "cloudflared.exe" (
-        echo Baixando cloudflared.exe...
-        curl -L -o cloudflared.exe https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe >nul 2>&1
-    )
-    if exist "cloudflared.exe" (
-        start /B cloudflared.exe tunnel --no-autoupdate run --token %CLOUDFLARE_TUNNEL_TOKEN% >nul 2>&1
-    )
+REM Iniciar Cloudflare Tunnel se nao estiver rodando
+tasklist /FI "IMAGENAME eq cloudflared.exe" 2>nul | find /I "cloudflared.exe" >nul
+if %ERRORLEVEL% NEQ 0 (
+    start /B "" cloudflared tunnel run bonfire-site >nul 2>&1
 )
 
 REM Inicia o Waitress e redireciona a saída para o log, mantendo-o rodando
