@@ -9,7 +9,7 @@ echo ====================================================
 echo.
 
 if not exist ".venv\Scripts\python.exe" (
-    echo [ERRO] Ambiente virtual (.venv) nao encontrado!
+    echo [ERRO] Ambiente virtual .venv nao encontrado!
     pause
     exit /b 1
 )
