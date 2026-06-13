@@ -97,6 +97,17 @@ def main():
     backup_deserialized = list(serializers.deserialize("json", data_str))
     print(f"  - Deserializados {len(backup_deserialized)} objetos do arquivo de backup.")
 
+    # Identificar IDs de usuarios exigidos por chaves estrangeiras no backup
+    required_user_ids = set()
+    for deserialized_obj in backup_deserialized:
+        instance = deserialized_obj.object
+        for field in instance._meta.fields:
+            if field.is_relation and field.related_model == User:
+                val = getattr(instance, field.attname)
+                if val is not None:
+                    required_user_ids.add(int(val))
+    print(f"  - Encontrados {len(required_user_ids)} IDs de usuarios referenciados no backup: {list(required_user_ids)}")
+
     # 4. Mesclar dados de bot e separar RPG/outros objetos
     final_bot_instances = []
     rpg_instances = []
@@ -182,9 +193,8 @@ def main():
 
     # 6. Criar usuarios dummy requeridos para chaves estrangeiras apenas se nao existirem
     print("\nVerificando/Criando usuarios dummy requeridos...")
-    dummy_uids = [1, 5, 7, 12, 13, 14, 15, 16]
     created_count = 0
-    for uid in dummy_uids:
+    for uid in sorted(required_user_ids):
         _, created = User.objects.get_or_create(
             id=uid, 
             defaults={
@@ -195,6 +205,7 @@ def main():
         )
         if created:
             created_count += 1
+            print(f"  - Criado usuario dummy para ID: {uid}")
     print(f"- {created_count} novos usuarios dummy criados.")
 
     # 7. Salvar objetos no banco de dados de forma transacional
