@@ -665,7 +665,7 @@ function renderAtlasLayout(rawValue, options) {
 
 function renderBonfireMarkdownElement(element, rawValue, options = {}) {
     if (!element) return;
-    const raw = rawValue ?? element.dataset.markdownRaw ?? element.textContent;
+    const raw = (rawValue ?? element.dataset.markdownRaw ?? element.textContent).trim();
     const mergedOptions = {
         ...options,
         enableOptions: element.dataset.markdownOptions === 'false' ? false : options.enableOptions

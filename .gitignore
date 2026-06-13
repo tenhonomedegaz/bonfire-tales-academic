@@ -35,3 +35,7 @@ __pycache__/
 *.njsproj
 *.sln
 *.sw?
+
+# Reference HTML and doc assets
+ref/
+

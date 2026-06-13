@@ -1,6 +1,7 @@
 import os
 import re
 import bs4
+import unicodedata
 from bs4 import BeautifulSoup
 
 def clean_text(text):
@@ -56,8 +57,31 @@ def parse_anvil_html(filepath, is_essence=False):
     
     title_el = soup.find("h1")
     title = clean_text(title_el.text) if title_el else os.path.basename(filepath).split(" ")[0]
-    slug = "anao" if "Anão" in title else ("vampirismo" if "Vampirismo" in title else "nephilim")
     
+    # Generate slug dynamically based on title
+    title_lower = title.lower()
+    if "anão" in title_lower or "anao" in title_lower:
+        slug = "anao"
+    elif "elfo" in title_lower:
+        slug = "elfo"
+    elif "orc" in title_lower:
+        slug = "orc"
+    elif "nephilim" in title_lower:
+        slug = "nephilim"
+    elif "vampirismo" in title_lower:
+        slug = "vampirismo"
+    elif "dracônica" in title_lower or "draconica" in title_lower:
+        slug = "draconica"
+    elif "elemental" in title_lower:
+        slug = "elemental"
+    elif "humano" in title_lower or "humanos" in title_lower:
+        slug = "humano"
+    else:
+        # Fallback slugify
+        val = unicodedata.normalize('NFKD', title).encode('ascii', 'ignore').decode('ascii')
+        val = re.sub(r'[^\w\s-]', '', val).strip().lower()
+        slug = re.sub(r'[-\s]+', '-', val)
+        
     tagline = ""
     first_bq = soup.find("blockquote")
     if first_bq:
@@ -70,11 +94,11 @@ def parse_anvil_html(filepath, is_essence=False):
     h3_headings = soup.find_all("h3")
     for h3 in h3_headings:
         h3_text = clean_text(h3.text)
-        if "Interpretando" in h3_text:
+        if "Interpretando" in h3_text or "Interpretação" in h3_text:
             lore_roleplay.extend(extract_section_elements(h3))
-        elif "Aparência" in h3_text or "Origem" in h3_text or "Os Dois Polos" in h3_text or "Velmourn" in h3_text:
+        elif any(k in h3_text for k in ["Aparência", "Origem", "Os Dois Polos", "Velmourn", "O Despertar", "Vertentes"]):
             lore_presentation.extend(extract_section_elements(h3))
-        elif "Relações" in h3_text or "Bastiões" in h3_text or "Nomes" in h3_text or "Sociedade" in h3_text:
+        elif any(k in h3_text for k in ["Relações", "Bastiões", "Nomes", "Sociedade", "Enclaves", "Reino", "Selat'Mura", "Círculos", "Trindade", "Alentos", "Ganchos", "Gerador"]):
             lore_society.extend(extract_section_elements(h3))
             
     lore_presentation_txt = "\n\n".join(lore_presentation).strip()
@@ -152,16 +176,11 @@ def parse_anvil_html(filepath, is_essence=False):
                     curr = curr.next_element
 
     # 4. Parse Option A: Lineages/Clãs
-    for h3 in h3_headings:
-        h3_text = clean_text(h3.text)
-        # We also check for Heading 2 "Os Clãs Vampíricos" for essences
-        is_clans_h2 = "Os Clãs Vampíricos" in h3_text
-    
     # Let's search all headings (h2 and h3) for clãs/lineages
     all_headings = soup.find_all(['h2', 'h3'])
     for h in all_headings:
         h_text = clean_text(h.text)
-        if "Linhagens Anãs" in h_text or "Os Clãs Vampíricos" in h_text or "Os Dois Polos" in h_text:
+        if any(k in h_text for k in ["Linhagens Anãs", "Os Clãs Vampíricos", "Os Dois Polos", "Linhagens Élficas", "Linhagens Órquicas", "Linhagens Humanas"]):
             curr = h.next_element
             while curr:
                 if not isinstance(curr, bs4.element.Tag):
@@ -171,7 +190,11 @@ def parse_anvil_html(filepath, is_essence=False):
                     break
                 if curr.name == 'h4':
                     lin_name = clean_text(curr.text)
-                    lin_slug = lin_name.lower().replace("anão da ", "").replace("anão das ", "").split(" ")[0].split("(")[0].strip()
+                    
+                    # Clean the lineage name to generate a clean slug
+                    lin_name_clean = lin_name.lower()
+                    lin_name_clean = lin_name_clean.replace("anão da ", "").replace("anão das ", "").replace("orc ", "").strip()
+                    lin_slug = lin_name_clean.split(" ")[0].split("(")[0].strip()
                     
                     lin_desc_elements = []
                     next_el = curr.next_element
@@ -253,7 +276,7 @@ def parse_anvil_html(filepath, is_essence=False):
                 if not isinstance(curr, bs4.element.Tag):
                     curr = curr.next_element
                     continue
-                if curr.name in ['h1', 'h2', 'h3', 'hr']:
+                if curr.name in ['h1', 'h2', 'h3']:
                     break
                 if curr.name == 'h5':
                     talent_name = clean_text(curr.text)
@@ -298,6 +321,12 @@ def parse_anvil_html(filepath, is_essence=False):
     print(f"Generated: {output_filepath}")
 
 if __name__ == "__main__":
-    parse_anvil_html("ref/Anão in Bonfire Tales RPG _ World Anvil.html", is_essence=False)
-    parse_anvil_html("ref/Vampirismo in Bonfire Tales RPG _ World Anvil.html", is_essence=True)
-    parse_anvil_html("ref/Nephilim in Bonfire Tales RPG _ World Anvil.html", is_essence=True)
+    races_dir = "ref/raças"
+    parse_anvil_html(os.path.join(races_dir, "Anão in Bonfire Tales RPG _ World Anvil.html"), is_essence=False)
+    parse_anvil_html(os.path.join(races_dir, "Elfo in Bonfire Tales RPG _ World Anvil.html"), is_essence=False)
+    parse_anvil_html(os.path.join(races_dir, "Orc in Bonfire Tales RPG _ World Anvil.html"), is_essence=False)
+    parse_anvil_html(os.path.join(races_dir, "Humanos in Bonfire Tales RPG _ World Anvil.html"), is_essence=False)
+    parse_anvil_html(os.path.join(races_dir, "Vampirismo in Bonfire Tales RPG _ World Anvil.html"), is_essence=True)
+    parse_anvil_html(os.path.join(races_dir, "Nephilim in Bonfire Tales RPG _ World Anvil.html"), is_essence=True)
+    parse_anvil_html(os.path.join(races_dir, "Essência Dracônica in Bonfire Tales RPG _ World Anvil.html"), is_essence=True)
+    parse_anvil_html(os.path.join(races_dir, "Essência Elemental in Bonfire Tales RPG _ World Anvil.html"), is_essence=True)

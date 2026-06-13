@@ -73,6 +73,14 @@
                      onerror="this.style.display='none';">
                 <span class="avatar-preview-hint">Cole o link de uma imagem (Imgur, Discord CDN, etc.)</span>
             </div>
+        <div class="profile-field">
+            <div class="profile-checkbox-group">
+                <input type="checkbox" id="id_vlibras_enabled" name="vlibras_enabled" {% if profile.vlibras_enabled %}checked{% endif %}>
+                <label class="profile-checkbox-label" for="id_vlibras_enabled">
+                    <span class="profile-checkbox-title">Habilitar VLibras</span>
+                    <span class="profile-checkbox-desc">Ativa o tradutor de Libras (Língua Brasileira de Sinais) no site.</span>
+                </label>
+            </div>
         </div>
 
         <button type="submit" class="profile-btn">

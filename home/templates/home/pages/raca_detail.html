@@ -44,14 +44,25 @@
           </div>
         </details>
       {% endcomment %}
-      <nav id="raceNav" class="mb-6 grid gap-2">
-        {% for item in all_racas %}
-        <a href="{% url 'raca_detail' slug=item.slug %}" data-search="{{ item.nome }} {{ item.tagline }}" class="race-nav-item rounded border px-3 py-2 text-sm font-bold uppercase transition-colors {% if item.id_raca == selected_raca_id %}border-[var(--flame)] bg-[var(--flame)]/5 text-[var(--text)]{% else %}border-transparent text-[var(--muted)] hover:border-[var(--stroke)] hover:bg-[var(--bg1)] hover:text-[var(--text)]{% endif %}">
-          {{ item.nome }}
-        </a>
-        {% empty %}
-        <p class="rounded border border-[var(--stroke)] bg-[var(--bg1)] p-3 text-sm text-[var(--muted)]">Nenhuma raça cadastrada.</p>
-        {% endfor %}
+      <nav id="raceNav" class="mb-6">
+        <details class="group/race-cat w-full rounded border border-[var(--stroke)] bg-[var(--bg1)]" open>
+          <summary class="flex cursor-pointer items-center justify-between px-3 py-2 text-xs font-bold uppercase tracking-wider text-[var(--text)] list-none hover:bg-[var(--bg2)] transition-colors select-none">
+            <span class="flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-[var(--ember)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              Humanoides
+            </span>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-[var(--muted)] transition-transform duration-200 group-open/race-cat:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+          </summary>
+          <div class="p-2 grid gap-1 border-t border-[var(--stroke)] bg-[var(--bg0)]/30">
+            {% for item in all_racas %}
+            <a href="{% url 'raca_detail' slug=item.slug %}" data-search="{{ item.nome }} {{ item.tagline }}" class="race-nav-item block rounded border px-3 py-1.5 text-xs font-bold uppercase transition-colors {% if item.id_raca == selected_raca_id %}border-[var(--flame)] bg-[var(--flame)]/5 text-[var(--text)]{% else %}border-transparent text-[var(--muted)] hover:border-[var(--stroke)] hover:bg-[var(--bg1)] hover:text-[var(--text)]{% endif %}">
+              {{ item.nome }}
+            </a>
+            {% empty %}
+            <p class="p-2 text-xs text-[var(--muted)]">Nenhuma raça cadastrada.</p>
+            {% endfor %}
+          </div>
+        </details>
       </nav>
 
       <div id="raceTraitsContainer">
@@ -63,10 +74,6 @@
           <div class="py-3">
             <span class="block text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Linhagens</span>
             <span class="mt-1 block text-[11px] font-semibold leading-snug text-[var(--text)]">{{ linhagens|length }}</span>
-          </div>
-          <div class="py-3">
-            <span class="block text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Traços Base</span>
-            <span class="mt-1 block text-[11px] font-semibold leading-snug text-[var(--text)]">{{ tracos_base|length }}</span>
           </div>
           <div class="py-3">
             <span class="block text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Permite Essência</span>
@@ -105,15 +112,17 @@
 
 <script>
   function renderMarkdownToHtml(value) {
-    if (typeof renderBonfireMarkdown === 'function') return renderBonfireMarkdown(value);
-    const source = typeof normalizeMarkdown === 'function' ? normalizeMarkdown(value) : String(value || '');
+    const cleanValue = String(value || '').trim();
+    if (typeof renderBonfireMarkdown === 'function') return renderBonfireMarkdown(cleanValue);
+    const source = typeof normalizeMarkdown === 'function' ? normalizeMarkdown(cleanValue) : cleanValue;
     if (window.marked && typeof window.marked.parse === 'function') return applyMarkdownColorsToHtml(marked.parse(source, { breaks: true, gfm: true }));
     return applyMarkdownColorsToHtml(escapeHtml(source)).replace(/\n/g, '<br>');
   }
 
   function renderMarkdownElement(element, raw) {
-    element.dataset.markdownRaw = raw;
-    element.innerHTML = renderMarkdownToHtml(raw);
+    const trimmed = String(raw || '').trim();
+    element.dataset.markdownRaw = trimmed;
+    element.innerHTML = renderMarkdownToHtml(trimmed);
   }
 
   function renderAllMarkdown() {
@@ -147,9 +156,9 @@
     });
 
     // 2. Lineage / Essence Selection Setup
-    const linButtons = container.querySelectorAll('[data-linhagem-btn]');
-    const essButtons = container.querySelectorAll('[data-essencia-btn]');
-    
+    const linhagemSelect = document.getElementById('linhagemSelect');
+    const essenciaSelect = document.getElementById('essenciaSelect');
+
     function setLineage(slug) {
       container.setAttribute('data-active-lineage', slug);
       container.setAttribute('data-active-essence', '');
@@ -168,35 +177,27 @@
       updateSelection();
     }
 
-    linButtons.forEach(btn => {
-      btn.addEventListener('click', () => {
-        const slug = btn.getAttribute('data-linhagem-btn');
-        const current = container.getAttribute('data-active-lineage') || '';
-        if (current === slug) {
+    if (linhagemSelect) {
+      linhagemSelect.addEventListener('change', (e) => {
+        const slug = e.target.value;
+        if (!slug) {
           clearAllSelection();
         } else {
           setLineage(slug);
         }
       });
-    });
+    }
 
-    essButtons.forEach(btn => {
-      btn.addEventListener('click', () => {
-        const slug = btn.getAttribute('data-essencia-btn');
-        const current = container.getAttribute('data-active-essence') || '';
-        if (current === slug) {
+    if (essenciaSelect) {
+      essenciaSelect.addEventListener('change', (e) => {
+        const slug = e.target.value;
+        if (!slug) {
           clearAllSelection();
         } else {
           setEssence(slug);
         }
       });
-    });
-
-    const clearLin = document.getElementById('clearLineageBtn');
-    if (clearLin) clearLin.addEventListener('click', clearAllSelection);
-
-    const clearEss = document.getElementById('clearEssenceBtn');
-    if (clearEss) clearEss.addEventListener('click', clearAllSelection);
+    }
 
     // Goto Talents Buttons
     container.querySelectorAll('[data-goto-talents-btn]').forEach(btn => {
@@ -212,24 +213,11 @@
       const activeLineage = container.getAttribute('data-active-lineage') || '';
       const activeEssence = container.getAttribute('data-active-essence') || '';
 
-      // Update button active styles
-      linButtons.forEach(btn => {
-        const slug = btn.getAttribute('data-linhagem-btn');
-        const isSelected = slug === activeLineage;
-        btn.classList.toggle('is-selected', isSelected);
-        btn.classList.toggle('dimmed', !isSelected && (!!activeLineage || !!activeEssence));
-      });
-
-      essButtons.forEach(btn => {
-        const slug = btn.getAttribute('data-essencia-btn');
-        const isSelected = slug === activeEssence;
-        btn.classList.toggle('is-selected', isSelected);
-        btn.classList.toggle('dimmed', !isSelected && (!!activeLineage || !!activeEssence));
-      });
-
-      // Clear buttons visibility
-      if (clearLin) clearLin.classList.toggle('hidden', !activeLineage);
-      if (clearEss) clearEss.classList.toggle('hidden', !activeEssence);
+      // Sync dropdown select values to match the attributes
+      const linSelect = document.getElementById('linhagemSelect');
+      const essSelect = document.getElementById('essenciaSelect');
+      if (linSelect && linSelect.value !== activeLineage) linSelect.value = activeLineage;
+      if (essSelect && essSelect.value !== activeEssence) essSelect.value = activeEssence;
 
       // Update Preview Card Image & Text
       const previewImg = document.getElementById('racePreviewImage');
@@ -240,18 +228,18 @@
       let labelText = 'Raça Base';
       let selectionName = container.getAttribute('data-race-name') || '';
 
-      if (activeEssence) {
-        const essBtn = container.querySelector(`[data-essencia-btn="${activeEssence}"]`);
-        if (essBtn) {
-          imgUrl = essBtn.getAttribute('data-image') || imgUrl;
-          selectionName = essBtn.getAttribute('data-name');
+      if (activeEssence && essSelect) {
+        const selectedOpt = essSelect.querySelector(`option[value="${activeEssence}"]`);
+        if (selectedOpt) {
+          imgUrl = selectedOpt.getAttribute('data-image') || imgUrl;
+          selectionName = selectedOpt.getAttribute('data-name') || selectedOpt.textContent;
           labelText = 'Essência Selecionada';
         }
-      } else if (activeLineage) {
-        const linBtn = container.querySelector(`[data-linhagem-btn="${activeLineage}"]`);
-        if (linBtn) {
-          imgUrl = linBtn.getAttribute('data-image') || imgUrl;
-          selectionName = linBtn.getAttribute('data-name');
+      } else if (activeLineage && linSelect) {
+        const selectedOpt = linSelect.querySelector(`option[value="${activeLineage}"]`);
+        if (selectedOpt) {
+          imgUrl = selectedOpt.getAttribute('data-image') || imgUrl;
+          selectionName = selectedOpt.getAttribute('data-name') || selectedOpt.textContent;
           labelText = 'Linhagem Selecionada';
         }
       }
@@ -315,6 +303,7 @@
     function applyTalentFilters() {
       const activeLineage = container.getAttribute('data-active-lineage') || '';
       const activeEssence = container.getAttribute('data-active-essence') || '';
+      const currentRaceSlug = container.getAttribute('data-race-slug') || '';
 
       container.querySelectorAll('[data-talent-card-v2]').forEach(card => {
         const lvlVal = parseInt(card.getAttribute('data-level'), 10) || 1;
@@ -328,14 +317,53 @@
         const levelMatches = activeLevels.has(group);
         const cardLineage = card.getAttribute('data-linhagem') || '';
         const cardEssence = card.getAttribute('data-essencia') || '';
+        const cardRace = card.getAttribute('data-origem-raca') || '';
+        const prereqText = (card.getAttribute('data-prereq') || '').toLowerCase();
+
+        // Check prerequisite restrictions
+        const hasLinhagemPrereq = prereqText.includes('linhagem') || prereqText.includes('linhagens');
+        const hasEssencePrereq = prereqText.includes('essência') || prereqText.includes('essencia');
+        const isOnlyLineage = hasLinhagemPrereq && !hasEssencePrereq;
 
         let matchesSelection = false;
+
         if (activeEssence) {
-          matchesSelection = (cardEssence === activeEssence) || (cardEssence === '' && cardLineage === '');
+          // If essence is selected:
+          // 1. Must be the selected essence's talent:
+          if (cardEssence === activeEssence) {
+            matchesSelection = true;
+          }
+          // 2. Or must be a base race talent of the current race, which does not require only-lineage:
+          else if (cardEssence === '' && cardLineage === '' && (cardRace === currentRaceSlug || cardRace === '') && !isOnlyLineage) {
+            matchesSelection = true;
+          }
         } else if (activeLineage) {
-          matchesSelection = (cardLineage === activeLineage) || (cardLineage === '' && cardEssence === '');
+          // If a lineage is selected:
+          // 1. Must be the selected lineage's talent:
+          if (cardLineage === activeLineage) {
+            matchesSelection = true;
+          }
+          // 2. Or must be a base race talent of the current race:
+          else if (cardEssence === '' && cardLineage === '' && (cardRace === currentRaceSlug || cardRace === '')) {
+            matchesSelection = true;
+          }
+          // 3. Or if current race is human, and we are durkarn/salarin/goruun, we can select base talents of dwarf/elf/orc respectively,
+          //    provided they do not require specific lineages or "apenas linhagens":
+          else if (currentRaceSlug === 'humano' && cardEssence === '' && cardLineage === '') {
+            if (activeLineage === 'salarin' && cardRace === 'elfo' && !isOnlyLineage) {
+              matchesSelection = true;
+            } else if (activeLineage === 'durkarn' && cardRace === 'anao' && !isOnlyLineage) {
+              matchesSelection = true;
+            } else if (activeLineage === 'goruun' && cardRace === 'orc' && !isOnlyLineage) {
+              matchesSelection = true;
+            }
+          }
         } else {
-          matchesSelection = (cardLineage === '' && cardEssence === '');
+          // If no lineage and no essence is selected:
+          // Must be a base race talent of the current race:
+          if (cardEssence === '' && cardLineage === '' && (cardRace === currentRaceSlug || cardRace === '')) {
+            matchesSelection = true;
+          }
         }
 
         card.classList.toggle('hidden', !(levelMatches && matchesSelection));
@@ -393,6 +421,66 @@
       
       form.addEventListener('submit', async event => {
         event.preventDefault();
+        const data = Object.fromEntries(new FormData(form).entries());
+        const traitId = form.dataset.traitId;
+        const response = await fetch(`/wiki/tracos-raciais/${traitId}/editar/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': decodeURIComponent(wikiCookie('csrftoken'))
+          },
+          body: JSON.stringify(data)
+        });
+        if (!response.ok) {
+          alert('Não foi possível salvar o traço.');
+          return;
+        }
+        const result = await response.json();
+        if (title && result.trait.nome) {
+          title.textContent = result.trait.nome;
+        }
+        form.classList.remove('is-open');
+      });
+    });
+
+    // 5. Race Editing Inline Binder
+    const raceEditBtn = container.querySelector('[data-race-edit]');
+    const raceForm = container.querySelector('[data-race-form]');
+    const raceCancelBtn = container.querySelector('[data-race-cancel]');
+    if (raceEditBtn && raceForm) {
+      raceEditBtn.addEventListener('click', (event) => {
+        event.stopPropagation();
+        raceForm.classList.add('is-open');
+      });
+      raceCancelBtn?.addEventListener('click', () => {
+        raceForm.classList.remove('is-open');
+      });
+      raceForm.addEventListener('submit', async event => {
+        event.preventDefault();
+        const data = Object.fromEntries(new FormData(raceForm).entries());
+        const raceId = raceForm.dataset.raceId;
+        const response = await fetch(`/wiki/racas/${raceId}/editar/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': decodeURIComponent(wikiCookie('csrftoken'))
+          },
+          body: JSON.stringify(data)
+        });
+        if (!response.ok) {
+          alert('Não foi possível salvar a raça.');
+          return;
+        }
+        raceForm.classList.remove('is-open');
+        loadContent(window.location.pathname);
+      });
+    }
+    updateSelection();
+  }
+
+  // Sidebar Search
+  const raceSearch = document.getElementById('raceSearch');
+  const raceItems = Array.from(document.querySelectorAll('.race-nav-item'));
   const raceNav = document.getElementById('raceNav');
   const raceMenuToggle = document.querySelector('[data-race-menu-toggle]');
   const raceMenuClosers = document.querySelectorAll('[data-race-menu-close]');

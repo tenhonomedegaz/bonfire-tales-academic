@@ -166,7 +166,26 @@ class TbOpcaojogo(models.Model):
         return self.nome
 
 
+class TbAntecedente(models.Model):
+    id_antecedente = models.AutoField(db_column='Id_Antecedente', primary_key=True)
+    nome = models.CharField(db_column='Nome', max_length=150)
+    slug = models.CharField(db_column='Slug', max_length=150, unique=True)
+    tipo = models.CharField(db_column='Tipo', max_length=100, default='Antecedente')
+    pre_requisito = models.TextField(db_column='PreRequisito', blank=True, null=True)
+    proficiencias = models.TextField(db_column='Proficiencias', blank=True, null=True)
+    idiomas = models.TextField(db_column='Idiomas', blank=True, null=True)
+    equipamento = models.TextField(db_column='Equipamento', blank=True, null=True)
+    descricao = models.TextField(db_column='Descricao')
+    resumo = models.TextField(db_column='Resumo', blank=True, null=True)
+    etiquetas_adicionais = models.TextField(db_column='EtiquetasAdicionais', blank=True, null=True)
 
+    class Meta:
+        db_table = 'backgrounds'
+        verbose_name = 'Antecedente'
+        verbose_name_plural = 'Antecedentes'
+
+    def __str__(self):
+        return self.nome
 
 
 class TbRecursoclasse(models.Model):
@@ -702,6 +721,7 @@ class TbMagia(models.Model):
 class UserProfile(models.Model):
     user = models.OneToOneField('auth.User', on_delete=models.CASCADE, related_name='profile')
     avatar_url = models.CharField(db_column='AvatarUrl', max_length=500, blank=True, null=True, help_text='URL da imagem de perfil.')
+    vlibras_enabled = models.BooleanField(db_column='VlibrasEnabled', default=False, help_text='Habilita o plugin VLibras no site.')
 
     class Meta:
         db_table = 'TB_UserProfile'

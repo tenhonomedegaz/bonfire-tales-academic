@@ -249,3 +249,78 @@
         padding: 1.25rem;
     }
 }
+
+/* Checkbox / Switch VLibras */
+.profile-checkbox-group {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin-top: 1.25rem;
+    padding: 0.85rem;
+    background: var(--bg0);
+    border: 1px solid var(--stroke);
+    border-radius: 4px;
+    cursor: pointer;
+    user-select: none;
+    transition: border-color 0.2s;
+}
+
+.profile-checkbox-group:hover {
+    border-color: var(--ember);
+}
+
+.profile-checkbox-group input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 1.25rem;
+    height: 1.25rem;
+    border: 1px solid var(--stroke);
+    border-radius: 3px;
+    outline: none;
+    background-color: var(--bg1);
+    cursor: pointer;
+    display: grid;
+    place-content: center;
+    transition: background-color 0.2s, border-color 0.2s;
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+
+.profile-checkbox-group input[type="checkbox"]:checked {
+    background-color: var(--ember);
+    border-color: var(--ember);
+}
+
+.profile-checkbox-group input[type="checkbox"]::before {
+    content: "";
+    width: 0.65rem;
+    height: 0.65rem;
+    transform: scale(0);
+    transition: 120ms transform ease-in-out;
+    background-color: #fff;
+    clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+}
+
+.profile-checkbox-group input[type="checkbox"]:checked::before {
+    transform: scale(1);
+}
+
+.profile-checkbox-label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    cursor: pointer;
+}
+
+.profile-checkbox-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.profile-checkbox-desc {
+    font-size: 0.75rem;
+    color: var(--muted);
+    opacity: 0.85;
+    line-height: 1.35;
+}

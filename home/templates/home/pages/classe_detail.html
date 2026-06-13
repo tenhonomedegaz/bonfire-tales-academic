@@ -376,7 +376,7 @@
       const cancel = card.querySelector('[data-feature-cancel]');
       const preview = card.querySelector('[data-markdown]');
       const title = card.querySelector('[data-feature-title]');
-      const textarea = form?.elements.descricao;
+      const textarea = form?.elements?.descricao;
       if (!edit || !form || !preview || !textarea) return;
 
       edit.addEventListener('click', () => {

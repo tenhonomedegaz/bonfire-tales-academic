@@ -255,8 +255,9 @@
     }
 
     function renderMarkdown(value) {
-        if (typeof renderBonfireMarkdown === 'function') return renderBonfireMarkdown(value);
-        const normalizedValue = normalizeMarkdown(value);
+        const cleanValue = String(value || '').trim();
+        if (typeof renderBonfireMarkdown === 'function') return renderBonfireMarkdown(cleanValue);
+        const normalizedValue = normalizeMarkdown(cleanValue);
         const withToggles = normalizedValue.replace(/::(?:click|toggle)\s+([^\n]+)\n([\s\S]*?)\n::end(?:click|toggle)/gi, (_match, title, content) => {
             const innerSource = normalizeMarkdown(content);
             const innerHtml = window.marked && typeof window.marked.parse === 'function'

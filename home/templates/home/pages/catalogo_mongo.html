@@ -6,7 +6,6 @@
 
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'css/pages/catalogo_mongo.css' %}">
-
 {% endblock %}
 
 {% block content %}
@@ -14,6 +13,20 @@
   <header class="catalog-header">
     <h1 class="catalog-title">{{ title }}</h1>
     <p class="catalog-subtitle">{{ subtitle }}</p>
+    {% if kind == 'antecedentes' %}
+      <div class="catalog-intro-box" style="margin-top: 1.5rem; padding: 1.25rem; background: var(--bg0); border: 1px solid var(--stroke); border-radius: 6px; font-size: 0.9rem; line-height: 1.6; color: var(--text);">
+        <p style="margin-bottom: 0.75rem;">Todo <b>Antecedente</b> concede benefícios básicos ao seu personagem, além de ajudar a definir sua história e o jeito que ele encara o mundo. Ao escolher um antecedente, você recebe:</p>
+        <ul style="margin-bottom: 1rem; padding-left: 1.25rem; list-style-type: disc; display: flex; flex-direction: column; gap: 0.5rem;">
+          <li><b>Atributos:</b> Você pode alocar <b>+2</b> em um atributo e <b>+1</b> em outro (à sua escolha).</li>
+          <li><b>Perícias:</b> Escolha <b>2 perícias</b> à sua escolha.</li>
+          <li><b>Idiomas ou Ferramentas:</b> Seu personagem <b>sempre sabe falar Comum</b>. Além disso, escolha <b>2</b> entre <b>Idiomas</b> e/ou <b>Proficiências com Ferramentas</b> (pode ser 2 idiomas, 2 ferramentas, ou 1 de cada).</li>
+          <li><b>Equipamentos (PO iniciais):</b> Você recebe <b>100 PO</b> para comprar itens. Pelo menos <b>50 PO</b> devem ser gastos em <b>itens mundanos</b> (equipamentos comuns, ferramentas, roupas, suprimentos, etc.). O restante fica a seu critério.</li>
+          <li><b>Habilidade do Antecedente:</b> Você recebe <b>1 habilidade</b> ligada ao seu antecedente, pensada para te ajudar durante as aventuras.</li>
+          <li><b>Talento de Origem:</b> Você escolhe <b>1 Talento de Origem</b>.</li>
+        </ul>
+        <p style="font-style: italic; color: var(--muted); border-left: 2px solid var(--ember); padding-left: 0.75rem;"><b>Origem de Nascimento (Reino) e Deus:</b> Alguns antecedentes também pedem que você escolha uma <b>Origem de Nascimento</b> (Reino) ou um <b>deus</b> para definir detalhes do seu Talento de Origem. Se esse for o seu caso, selecione-os apropriadamente.</p>
+      </div>
+    {% endif %}
     {% if mongo_error %}
       <p class="catalog-empty" style="margin-top:1rem;">Mongo indisponivel agora: {{ mongo_error }}</p>
     {% endif %}

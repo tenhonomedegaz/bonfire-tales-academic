@@ -158,6 +158,24 @@ def _quote_name(name):
     return connection.ops.quote_name(name)
 
 
+from decimal import Decimal
+from datetime import date
+
+
+def _serialize_mongo_value(value):
+    if isinstance(value, (datetime, date)):
+        return value.isoformat()
+    if isinstance(value, Decimal):
+        return float(value)
+    if isinstance(value, (list, dict)):
+        return value
+    return value
+
+
+def serialize_document(document):
+    return {key: _serialize_mongo_value(value) for key, value in (document or {}).items()}
+
+
 def _row_to_document(columns, row):
     return serialize_document(dict(zip(columns, row)))
 
@@ -519,6 +537,7 @@ def profile_view(request):
         if action == 'update_profile':
             new_username = request.POST.get('username', '').strip()
             new_avatar = request.POST.get('avatar_url', '').strip()
+            vlibras_enabled = request.POST.get('vlibras_enabled') == 'on'
 
             if new_username and new_username != user.username:
                 User = get_user_model()
@@ -534,6 +553,7 @@ def profile_view(request):
                     messages.append('Nome de usuário atualizado!')
 
             profile.avatar_url = new_avatar or None
+            profile.vlibras_enabled = vlibras_enabled
             profile.save()
             if not errors:
                 messages.append('Perfil salvo com sucesso!')
@@ -1142,7 +1162,6 @@ def _postgres_raca_detail_view(request, slug):
         'anao': 'https://i.imgur.com/base-dwarf-placeholder.png',
         'humano': 'https://i.imgur.com/base-human-placeholder.png',
         'elfo': 'https://i.imgur.com/base-elf-placeholder.png',
-        'folken': 'https://i.imgur.com/base-folken-placeholder.png',
         'orc': 'https://i.imgur.com/base-orc-placeholder.png',
     }
 
@@ -1158,6 +1177,8 @@ def _postgres_raca_detail_view(request, slug):
     ESSENCE_IMAGES = {
         'vampirismo': 'https://i.imgur.com/vampire-essence-placeholder.png',
         'nephilim': 'https://i.imgur.com/nephilim-essence-placeholder.png',
+        'draconica': 'https://i.imgur.com/draconic-essence-placeholder.png',
+        'elemental': 'https://i.imgur.com/elemental-essence-placeholder.png',
     }
 
     # Stat mapping
@@ -1179,12 +1200,6 @@ def _postgres_raca_detail_view(request, slug):
             'size': 'Médio (1,60m – 1,90m)',
             'speed': '9 metros [30 pés]',
             'lifespan': '700 anos'
-        },
-        'folken': {
-            'creatureType': 'Humanoide',
-            'size': 'Médio (1,60m – 2,00m)',
-            'speed': '9 metros [30 pés]',
-            'lifespan': '120 anos'
         },
         'orc': {
             'creatureType': 'Humanoide',
@@ -1232,6 +1247,24 @@ def _postgres_raca_detail_view(request, slug):
                 t.source = "Essência"
                 t.source_color = "text-purple-400 border-purple-500"
                 talents.append(t)
+
+    # 4. Other races base talents (only when current race is human, for Goruun, Durkarn, Sálarin)
+    if raca.slug == 'humano':
+        other_talents = TbTracoracial.objects.filter(
+            id_raca__slug__in=['anao', 'elfo', 'orc'],
+            talento_racial=True,
+            id_linhagem=None,
+            id_essencia=None
+        ).select_related('id_raca')
+        for t in other_talents:
+            t.source = t.id_raca.nome
+            if t.id_raca.slug == 'anao':
+                t.source_color = "text-amber-500 border-amber-600"
+            elif t.id_raca.slug == 'elfo':
+                t.source_color = "text-emerald-500 border-emerald-600"
+            else: # orc
+                t.source_color = "text-red-500 border-red-600"
+            talents.append(t)
 
     talents.sort(key=lambda x: x.nome)
 
@@ -2717,14 +2750,42 @@ def _render_catalog(request, title, subtitle, kind, key, mapper):
 
 
 def antecedentes_view(request):
-    return _render_catalog(
-        request,
-        'Antecedentes',
-        'Origens, oficios, vinculos e escolhas de historia para personagens.',
-        'antecedentes',
-        'backgrounds',
-        _background_payload,
-    )
+    from .models import TbAntecedente
+    
+    backgrounds = TbAntecedente.objects.all().order_by('nome')
+    items = []
+    for bg in backgrounds:
+        tags = [t.strip() for t in (bg.etiquetas_adicionais or '').split(',') if t.strip()]
+        profs = [p.strip() for p in (bg.proficiencias or '').split(',') if p.strip()]
+        langs = [l.strip() for l in (bg.idiomas or '').split(',') if l.strip()]
+        
+        items.append({
+            'nome': bg.nome,
+            'slug': bg.slug,
+            'tipo': bg.tipo,
+            'tags': tags,
+            'resumo': bg.resumo,
+            'pre_requisito': bg.pre_requisito,
+            'proficiencias': profs,
+            'idiomas': langs,
+            'equipamento': bg.equipamento,
+            'descricao': bg.descricao,
+            'meta': {
+                'Pré-requisito': bg.pre_requisito or '',
+                'Proficiências': ', '.join(profs) if profs else '',
+                'Idiomas': ', '.join(langs) if langs else '',
+                'Equipamento': bg.equipamento or '',
+            },
+        })
+        
+    return render(request, 'home/pages/catalogo_mongo.html', {
+        'title': 'Antecedentes',
+        'subtitle': 'Origens, ofícios, vínculos e escolhas de história para personagens.',
+        'kind': 'antecedentes',
+        'items': items,
+        'mongo_error': None,
+        'can_edit_wiki': request.user.is_staff,
+    })
 
 
 def magias_view(request):

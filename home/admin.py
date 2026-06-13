@@ -42,7 +42,8 @@ from .models import (
     TbTracoracial,
     TbItemMundano,
     TbItemMagico,
-    TbMagia,
+    TbMagia,
+    TbAntecedente,
 )
 from .security import validate_json_no_sql_danger, validate_no_sql_danger
 
@@ -2543,6 +2544,14 @@ class TbOpcaojogoAdmin(BonfireAdminMixin, admin.ModelAdmin):
         return _format_tags_preview(obj.tags_json)
 
 
+@admin.register(TbAntecedente)
+class TbAntecedenteAdmin(admin.ModelAdmin):
+    list_display = ("nome", "tipo", "slug", "resumo")
+    search_fields = ("nome", "slug", "descricao", "resumo", "pre_requisito", "proficiencias", "idiomas", "equipamento", "etiquetas_adicionais")
+    prepopulated_fields = {"slug": ("nome",)}
+    ordering = ("nome",)
+
+
 @admin.register(TbAcessoopcao)
 class TbAcessoopcaoAdmin(BonfireAdminMixin, admin.ModelAdmin):
     list_display = ("id_opcao", "id_classe", "id_subclasse")
