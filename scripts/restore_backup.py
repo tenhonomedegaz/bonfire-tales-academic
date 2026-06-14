@@ -1,7 +1,11 @@
 import os
 import sys
 import django
+import warnings
 from pathlib import Path
+
+# Suprimir avisos chatos de data/hora naive do Django ao importar do backup
+warnings.filterwarnings('ignore', category=RuntimeWarning, message='.*received a naive datetime.*')
 
 # Add project root to Python path
 sys.path.append(str(Path(__file__).resolve().parent.parent))
