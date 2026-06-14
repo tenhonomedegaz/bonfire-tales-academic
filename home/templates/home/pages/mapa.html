@@ -682,6 +682,51 @@ function isPointOrLatLng(val) {
     return false;
 }
 
+function getLatLngValues(p) {
+    if (!p) return { lat: 0, lng: 0 };
+    if (p instanceof L.LatLng) return { lat: p.lat, lng: p.lng };
+    if (typeof p === 'object') {
+        if ('lat' in p && 'lng' in p) return { lat: p.lat, lng: p.lng };
+        if (Array.isArray(p) && p.length >= 2) return { lat: p[0], lng: p[1] };
+    }
+    return { lat: 0, lng: 0 };
+}
+
+function cleanLatLngs(coords) {
+    if (!Array.isArray(coords)) return coords;
+    if (coords.length === 0) return coords;
+
+    if (isPointOrLatLng(coords[0])) {
+        const cleaned = [];
+        for (let i = 0; i < coords.length; i++) {
+            const p = coords[i];
+            const val = getLatLngValues(p);
+            
+            if (cleaned.length === 0) {
+                cleaned.push(p);
+            } else {
+                const prev = cleaned[cleaned.length - 1];
+                const prevVal = getLatLngValues(prev);
+                
+                if (Math.abs(prevVal.lat - val.lat) > 1e-7 || Math.abs(prevVal.lng - val.lng) > 1e-7) {
+                    cleaned.push(p);
+                }
+            }
+        }
+        
+        if (cleaned.length > 1) {
+            const first = getLatLngValues(cleaned[0]);
+            const last = getLatLngValues(cleaned[cleaned.length - 1]);
+            if (Math.abs(first.lat - last.lat) < 1e-7 && Math.abs(first.lng - last.lng) < 1e-7) {
+                cleaned.pop();
+            }
+        }
+        return cleaned;
+    }
+
+    return coords.map(cleanLatLngs);
+}
+
 function flattenCoordinates(arr) {
     if (!Array.isArray(arr)) return arr;
     let current = arr;
@@ -722,6 +767,7 @@ function setupMarkersAndPolygons() {
       if (!t.coordenadas_poligono) return;
       let coords = typeof t.coordenadas_poligono === 'string' ? JSON.parse(t.coordenadas_poligono) : t.coordenadas_poligono;
       coords = flattenCoordinates(coords);
+      coords = cleanLatLngs(coords);
       const polygon = L.polygon(coords, {
           className: `territory-polygon layer-${t.camada > 0 ? 'underground' : 'surface'}`,
           color: territoryColor(t.nome),
@@ -1118,6 +1164,7 @@ function recalculateTerritoryCoords(territoryName) {
             // Leaflet polygons might be single or multi. getLatLngs() returns an array of rings/polygons.
             let latlngs = l.getLatLngs();
             latlngs = flattenCoordinates(latlngs);
+            latlngs = cleanLatLngs(latlngs);
             if (latlngs && latlngs.length > 0) {
                 // Leaflet standardizes to 3D arrays for single polygon with holes, or 4D for multi
                 // We will just store what it gives us. Usually latlngs[0] is the outer ring.
@@ -1129,7 +1176,7 @@ function recalculateTerritoryCoords(territoryName) {
     const t = jsonTerritories.find(x => x.nome === territoryName);
     if (t) {
         const rawCoords = multiCoords.length === 1 ? multiCoords[0] : multiCoords;
-        pendingChanges.territories[t.id] = flattenCoordinates(rawCoords);
+        pendingChanges.territories[t.id] = cleanLatLngs(flattenCoordinates(rawCoords));
         markChange();
     }
 }
