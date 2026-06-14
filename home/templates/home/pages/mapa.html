@@ -1243,6 +1243,7 @@ function processTerritoryGeometry(territoryName) {
 }
 
 function startDrawHole() {
+    console.log('startDrawHole called. activeTerritory:', activeTerritory);
     if (!activeTerritory || activeTerritory === 'Sem território') {
         showToast('Selecione um território antes de cortar um buraco.', 'error');
         return;
@@ -1252,8 +1253,13 @@ function startDrawHole() {
     updateAdminEditState();
     document.getElementById('btnCut')?.classList.add('primary-active');
     showToast('Desenhe a área que deseja recortar dentro de um polígono existente.', 'info');
+    
+    const layers = territoryPolygonsLayer.getLayers();
+    console.log('Layers available for cutting:', layers.length, layers);
+    
     map.pm.enableGlobalCutMode({
-        allowSelfIntersection: false
+        allowSelfIntersection: false,
+        layersToCut: layers
     });
     
     // Right-click removes last vertex during cut too
@@ -1265,6 +1271,7 @@ function startDrawHole() {
     }
     map.on('contextmenu', _onCutRightClick);
     function _cleanupCutListeners() {
+        console.log('_cleanupCutListeners called');
         map.off('contextmenu', _onCutRightClick);
         map.off('pm:drawend', _cleanupCutListeners);
         map.pm.disableGlobalCutMode();
@@ -1815,9 +1822,11 @@ function autoAlignPolygon(territoryName = activeTerritory, silent = false) {
 }
 
     map.on('pm:cut', (e) => {
+        console.log('pm:cut event triggered:', e);
         const layer = e.layer;
         const originalLayer = e.originalLayer;
         const territoryName = originalLayer?._bonfireTerritory?.nome || activeTerritory;
+        console.log('pm:cut resolved layer:', layer, 'originalLayer:', originalLayer, 'territoryName:', territoryName);
         if (!territoryName) {
             showToast('Não consegui identificar o território cortado.', 'error');
             return;
