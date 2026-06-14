@@ -218,7 +218,7 @@ def main():
     with transaction.atomic():
         for instance in rpg_instances:
             try:
-                instance.save()
+                instance.save(raw=True)
                 rpg_count += 1
                 if rpg_count % 500 == 0:
                     print(f"-> {rpg_count} objetos RPG salvos...")

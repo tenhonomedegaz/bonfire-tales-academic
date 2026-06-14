@@ -52078,570 +52078,6 @@
     }
   },
   {
-    "model": "home.tbmapmarker",
-    "pk": 5,
-    "fields": {
-      "nome": "Velaryn",
-      "lat": -947.8766401805669,
-      "lng": 1225.76960518688,
-      "categoria": "capital",
-      "territorio": "Território Independente",
-      "camada": 0
-    }
-  },
-  {
-    "model": "home.tbmapmarker",
-    "pk": 6,
-    "fields": {
-      "nome": "Volgranndur",
-      "lat": -283.19626586521224,
-      "lng": 909.3393206059001,
-      "categoria": "cidade",
-      "territorio": "Reino Volgran",
-      "camada": 0
-    }
-  },
-  {
-    "model": "home.tbmapmarker",
-    "pk": 7,
-    "fields": {
-      "nome": "Brinvalde",
-      "lat": -800.0,
-      "lng": 1528.0,
-      "categoria": "cidade",
-      "territorio": "Reino Auraliano",
-      "camada": 0
-    }
-  },
-  {
-    "model": "home.tbmapmarker",
-    "pk": 8,
-    "fields": {
-      "nome": "Terras Férteis",
-      "lat": -1000.0,
-      "lng": 1402.0,
-      "categoria": "conglomerado_vilas",
-      "territorio": "Reino Auraliano",
-      "camada": 0
-    }
-  },
-  {
-    "model": "home.tbmapmarker",
-    "pk": 9,
-    "fields": {
-      "nome": "Solmarion",
-      "lat": -874.0,
-      "lng": 792.0,
-      "categoria": "fortaleza",
-      "territorio": "Reino Auraliano",
-      "camada": 0
-    }
-  },
-  {
-    "model": "home.tbmapmarker",
-    "pk": 10,
-    "fields": {
-      "nome": "Auralon",
-      "lat": -1212.3345763443356,
-      "lng": 1915.5522702343571,
-      "categoria": "capital",
-      "territorio": "Reino Auraliano",
-      "camada": 0
-    }
-  },
-  {
-    "model": "home.tbmapmarker",
-    "pk": 11,
-    "fields": {
-      "nome": "Vilaterra",
-      "lat": -1076.0,
-      "lng": 1620.0,
-      "categoria": "cidade",
-      "territorio": "Reino Auraliano",
-      "camada": 0
-    }
-  },
-  {
-    "model": "home.tbmapmarker",
-    "pk": 12,
-    "fields": {
-      "nome": "Porto Espólio",
-      "lat": -1018.0,
-      "lng": 1962.0,
-      "categoria": "cidade",
-      "territorio": "Reino Auraliano",
-      "camada": 0
-    }
-  },
-  {
-    "model": "home.tbmapmarker",
-    "pk": 13,
-    "fields": {
-      "nome": "Muralha de Agramar",
-      "lat": -764.0,
-      "lng": 1316.0,
-      "categoria": "fortaleza",
-      "territorio": "Reino Auraliano",
-      "camada": 0
-    }
-  },
-  {
-    "model": "home.tbmapmarker",
-    "pk": 14,
-    "fields": {
-      "nome": "Bastião Rochaeterna",
-      "lat": -732.0,
-      "lng": 1110.0,
-      "categoria": "fortaleza",
-      "territorio": "Reino Karag Dûm",
-      "camada": 0
-    }
-  },
-  {
-    "model": "home.tbmapmarker",
-    "pk": 15,
-    "fields": {
-      "nome": "Crystalis",
-      "lat": -546.0,
-      "lng": 1536.0,
-      "categoria": "fortaleza",
-      "territorio": "Reino Karag Dûm",
-      "camada": 0
-    }
-  },
-  {
-    "model": "home.tbmapmarker",
-    "pk": 16,
-    "fields": {
-      "nome": "Drûmhuldar",
-      "lat": -468.0,
-      "lng": 1062.0,
-      "categoria": "capital",
-      "territorio": "Reino Karag Dûm",
-      "camada": 0
-    }
-  },
-  {
-    "model": "home.tbmapmarker",
-    "pk": 21,
-    "fields": {
-      "nome": "Sylvereth",
-      "lat": -994.0,
-      "lng": 454.0,
-      "categoria": "cidade",
-      "territorio": "Reino Eryndor",
-      "camada": 0
-    }
-  },
-  {
-    "model": "home.tbmapmarker",
-    "pk": 22,
-    "fields": {
-      "nome": "Shaerelyn",
-      "lat": -1102.0,
-      "lng": 198.0,
-      "categoria": "cidade",
-      "territorio": "Reino Eryndor",
-      "camada": 0
-    }
-  },
-  {
-    "model": "home.tbmapmarker",
-    "pk": 23,
-    "fields": {
-      "nome": "Elyrenna",
-      "lat": -1152.0,
-      "lng": 530.0,
-      "categoria": "cidade",
-      "territorio": "Reino Eryndor",
-      "camada": 0
-    }
-  },
-  {
-    "model": "home.tbmapmarker",
-    "pk": 24,
-    "fields": {
-      "nome": "Elenharis",
-      "lat": -818.0,
-      "lng": 258.0,
-      "categoria": "capital",
-      "territorio": "Reino Eryndor",
-      "camada": 0
-    }
-  },
-  {
-    "model": "home.tbmapmarker",
-    "pk": 25,
-    "fields": {
-      "nome": "Terras Devastadas",
-      "lat": -571.8095623725259,
-      "lng": 1254.1970033509153,
-      "categoria": "area_selvagem",
-      "territorio": "Zonas de Perigo",
-      "camada": 0
-    }
-  },
-  {
-    "model": "home.tbmapmarker",
-    "pk": 26,
-    "fields": {
-      "nome": "Vyrmhein",
-      "lat": -279.0,
-      "lng": 1465.0,
-      "categoria": "capital",
-      "territorio": "Vyrmrealm",
-      "camada": 0
-    }
-  },
-  {
-    "model": "home.tbmapmarker",
-    "pk": 27,
-    "fields": {
-      "nome": "Fjarnok",
-      "lat": -415.0,
-      "lng": 1402.0,
-      "categoria": "vila",
-      "territorio": "Vyrmrealm",
-      "camada": 0
-    }
-  },
-  {
-    "model": "home.tbmapmarker",
-    "pk": 28,
-    "fields": {
-      "nome": "Zar'Kantar",
-      "lat": -410.0,
-      "lng": 1651.0,
-      "categoria": "cidade",
-      "territorio": "Vyrmrealm",
-      "camada": 0
-    }
-  },
-  {
-    "model": "home.tbmapmarker",
-    "pk": 29,
-    "fields": {
-      "nome": "Thurvangar",
-      "lat": -305.0,
-      "lng": 1766.0,
-      "categoria": "fortaleza",
-      "territorio": "Vyrmrealm",
-      "camada": 0
-    }
-  },
-  {
-    "model": "home.tbmapmarker",
-    "pk": 30,
-    "fields": {
-      "nome": "Floresta Eterna",
-      "lat": -952.7356384824586,
-      "lng": 1624.6118742701765,
-      "categoria": "area_selvagem",
-      "territorio": "Floresta Eterna",
-      "camada": 0
-    }
-  },
-  {
-    "model": "home.tbmapmarker",
-    "pk": 31,
-    "fields": {
-      "nome": "Agrabbar",
-      "lat": 0.0,
-      "lng": 0.0,
-      "categoria": "capital",
-      "territorio": "Sem território",
-      "camada": 0
-    }
-  },
-  {
-    "model": "home.tbmapmarker",
-    "pk": 32,
-    "fields": {
-      "nome": "Nova Região",
-      "lat": -1601.0667746430724,
-      "lng": 1546.828955859208,
-      "categoria": "capital",
-      "territorio": "",
-      "camada": 0
-    }
-  },
-  {
-    "model": "home.tbmapmarker",
-    "pk": 56,
-    "fields": {
-      "nome": "Velaryn",
-      "lat": 0.0,
-      "lng": 0.0,
-      "categoria": "capital",
-      "territorio": "Território Independente",
-      "camada": 0
-    }
-  },
-  {
-    "model": "home.tbmapmarker",
-    "pk": 57,
-    "fields": {
-      "nome": "Volgranndur",
-      "lat": 0.0,
-      "lng": 0.0,
-      "categoria": "cidade",
-      "territorio": "Reino Volgran",
-      "camada": 0
-    }
-  },
-  {
-    "model": "home.tbmapmarker",
-    "pk": 58,
-    "fields": {
-      "nome": "Brinvalde",
-      "lat": 0.0,
-      "lng": 0.0,
-      "categoria": "cidade",
-      "territorio": "Reino Auraliano",
-      "camada": 0
-    }
-  },
-  {
-    "model": "home.tbmapmarker",
-    "pk": 59,
-    "fields": {
-      "nome": "Solmarion",
-      "lat": 0.0,
-      "lng": 0.0,
-      "categoria": "fortaleza",
-      "territorio": "Reino Auraliano",
-      "camada": 0
-    }
-  },
-  {
-    "model": "home.tbmapmarker",
-    "pk": 60,
-    "fields": {
-      "nome": "Auralon",
-      "lat": 0.0,
-      "lng": 0.0,
-      "categoria": "capital",
-      "territorio": "Reino Auraliano",
-      "camada": 0
-    }
-  },
-  {
-    "model": "home.tbmapmarker",
-    "pk": 61,
-    "fields": {
-      "nome": "Vilaterra",
-      "lat": 0.0,
-      "lng": 0.0,
-      "categoria": "cidade",
-      "territorio": "Reino Auraliano",
-      "camada": 0
-    }
-  },
-  {
-    "model": "home.tbmapmarker",
-    "pk": 62,
-    "fields": {
-      "nome": "Porto Espólio",
-      "lat": 0.0,
-      "lng": 0.0,
-      "categoria": "cidade",
-      "territorio": "Reino Auraliano",
-      "camada": 0
-    }
-  },
-  {
-    "model": "home.tbmapmarker",
-    "pk": 63,
-    "fields": {
-      "nome": "Muralha de Agramar",
-      "lat": 0.0,
-      "lng": 0.0,
-      "categoria": "fortaleza",
-      "territorio": "Reino Auraliano",
-      "camada": 0
-    }
-  },
-  {
-    "model": "home.tbmapmarker",
-    "pk": 64,
-    "fields": {
-      "nome": "Terras Férteis",
-      "lat": 0.0,
-      "lng": 0.0,
-      "categoria": "conglomerado_vilas",
-      "territorio": "Reino Auraliano",
-      "camada": 0
-    }
-  },
-  {
-    "model": "home.tbmapmarker",
-    "pk": 65,
-    "fields": {
-      "nome": "Crystalis",
-      "lat": 0.0,
-      "lng": 0.0,
-      "categoria": "fortaleza",
-      "territorio": "Reino Karag Dûm",
-      "camada": 0
-    }
-  },
-  {
-    "model": "home.tbmapmarker",
-    "pk": 66,
-    "fields": {
-      "nome": "Bastião Rochaeterna",
-      "lat": 0.0,
-      "lng": 0.0,
-      "categoria": "fortaleza",
-      "territorio": "Reino Karag Dûm",
-      "camada": 0
-    }
-  },
-  {
-    "model": "home.tbmapmarker",
-    "pk": 67,
-    "fields": {
-      "nome": "Drûmhuldar",
-      "lat": 0.0,
-      "lng": 0.0,
-      "categoria": "capital",
-      "territorio": "Reino Karag Dûm",
-      "camada": 0
-    }
-  },
-  {
-    "model": "home.tbmapmarker",
-    "pk": 68,
-    "fields": {
-      "nome": "Sylvereth",
-      "lat": 0.0,
-      "lng": 0.0,
-      "categoria": "cidade",
-      "territorio": "Reino Eryndor",
-      "camada": 0
-    }
-  },
-  {
-    "model": "home.tbmapmarker",
-    "pk": 69,
-    "fields": {
-      "nome": "Shaerelyn",
-      "lat": 0.0,
-      "lng": 0.0,
-      "categoria": "cidade",
-      "territorio": "Reino Eryndor",
-      "camada": 0
-    }
-  },
-  {
-    "model": "home.tbmapmarker",
-    "pk": 70,
-    "fields": {
-      "nome": "Elyrenna",
-      "lat": 0.0,
-      "lng": 0.0,
-      "categoria": "cidade",
-      "territorio": "Reino Eryndor",
-      "camada": 0
-    }
-  },
-  {
-    "model": "home.tbmapmarker",
-    "pk": 71,
-    "fields": {
-      "nome": "Elenharis",
-      "lat": 0.0,
-      "lng": 0.0,
-      "categoria": "capital",
-      "territorio": "Reino Eryndor",
-      "camada": 0
-    }
-  },
-  {
-    "model": "home.tbmapmarker",
-    "pk": 72,
-    "fields": {
-      "nome": "Terras Devastadas",
-      "lat": 0.0,
-      "lng": 0.0,
-      "categoria": "area_selvagem",
-      "territorio": "Zonas de Perigo",
-      "camada": 0
-    }
-  },
-  {
-    "model": "home.tbmapmarker",
-    "pk": 73,
-    "fields": {
-      "nome": "Vyrmhein",
-      "lat": 0.0,
-      "lng": 0.0,
-      "categoria": "capital",
-      "territorio": "Vyrmrealm",
-      "camada": 0
-    }
-  },
-  {
-    "model": "home.tbmapmarker",
-    "pk": 74,
-    "fields": {
-      "nome": "Fjarnok",
-      "lat": 0.0,
-      "lng": 0.0,
-      "categoria": "vila",
-      "territorio": "Vyrmrealm",
-      "camada": 0
-    }
-  },
-  {
-    "model": "home.tbmapmarker",
-    "pk": 75,
-    "fields": {
-      "nome": "Zar'Kantar",
-      "lat": 0.0,
-      "lng": 0.0,
-      "categoria": "cidade",
-      "territorio": "Vyrmrealm",
-      "camada": 0
-    }
-  },
-  {
-    "model": "home.tbmapmarker",
-    "pk": 76,
-    "fields": {
-      "nome": "Thurvangar",
-      "lat": 0.0,
-      "lng": 0.0,
-      "categoria": "fortaleza",
-      "territorio": "Vyrmrealm",
-      "camada": 0
-    }
-  },
-  {
-    "model": "home.tbmapmarker",
-    "pk": 77,
-    "fields": {
-      "nome": "Floresta Eterna",
-      "lat": 0.0,
-      "lng": 0.0,
-      "categoria": "area_selvagem",
-      "territorio": "Floresta Eterna",
-      "camada": 0
-    }
-  },
-  {
-    "model": "home.tbmapmarker",
-    "pk": 78,
-    "fields": {
-      "nome": "Agrabbar",
-      "lat": 0.0,
-      "lng": 0.0,
-      "categoria": "capital",
-      "territorio": "Sem território",
-      "camada": 0
-    }
-  },
-  {
     "model": "home.tbantecedente",
     "pk": 1,
     "fields": {
@@ -78959,6 +78395,294 @@
       "registeredBy": "933147416155279380",
       "createdAt": "2026-06-13T11:47:43.633",
       "updatedAt": "2026-06-13T11:47:43.636"
+    }
+  },
+  {
+    "model": "home.tbmapmarker",
+    "pk": 5,
+    "fields": {
+      "nome": "Velaryn",
+      "lat": -947.8766401805669,
+      "lng": 1225.76960518688,
+      "categoria": "capital",
+      "territorio": "Território Independente",
+      "camada": 0
+    }
+  },
+  {
+    "model": "home.tbmapmarker",
+    "pk": 6,
+    "fields": {
+      "nome": "Volgranndur",
+      "lat": -283.19626586521224,
+      "lng": 909.3393206059001,
+      "categoria": "cidade",
+      "territorio": "Reino Volgran",
+      "camada": 0
+    }
+  },
+  {
+    "model": "home.tbmapmarker",
+    "pk": 7,
+    "fields": {
+      "nome": "Brinvalde",
+      "lat": -800.0,
+      "lng": 1528.0,
+      "categoria": "cidade",
+      "territorio": "Reino Auraliano",
+      "camada": 0
+    }
+  },
+  {
+    "model": "home.tbmapmarker",
+    "pk": 8,
+    "fields": {
+      "nome": "Terras Férteis",
+      "lat": -1000.0,
+      "lng": 1402.0,
+      "categoria": "conglomerado_vilas",
+      "territorio": "Reino Auraliano",
+      "camada": 0
+    }
+  },
+  {
+    "model": "home.tbmapmarker",
+    "pk": 9,
+    "fields": {
+      "nome": "Solmarion",
+      "lat": -874.0,
+      "lng": 792.0,
+      "categoria": "fortaleza",
+      "territorio": "Reino Auraliano",
+      "camada": 0
+    }
+  },
+  {
+    "model": "home.tbmapmarker",
+    "pk": 10,
+    "fields": {
+      "nome": "Auralon",
+      "lat": -1212.3345763443356,
+      "lng": 1915.5522702343571,
+      "categoria": "capital",
+      "territorio": "Reino Auraliano",
+      "camada": 0
+    }
+  },
+  {
+    "model": "home.tbmapmarker",
+    "pk": 11,
+    "fields": {
+      "nome": "Vilaterra",
+      "lat": -1076.0,
+      "lng": 1620.0,
+      "categoria": "cidade",
+      "territorio": "Reino Auraliano",
+      "camada": 0
+    }
+  },
+  {
+    "model": "home.tbmapmarker",
+    "pk": 12,
+    "fields": {
+      "nome": "Porto Espólio",
+      "lat": -1018.0,
+      "lng": 1962.0,
+      "categoria": "cidade",
+      "territorio": "Reino Auraliano",
+      "camada": 0
+    }
+  },
+  {
+    "model": "home.tbmapmarker",
+    "pk": 13,
+    "fields": {
+      "nome": "Muralha de Agramar",
+      "lat": -764.0,
+      "lng": 1316.0,
+      "categoria": "fortaleza",
+      "territorio": "Reino Auraliano",
+      "camada": 0
+    }
+  },
+  {
+    "model": "home.tbmapmarker",
+    "pk": 14,
+    "fields": {
+      "nome": "Bastião Rochaeterna",
+      "lat": -732.0,
+      "lng": 1110.0,
+      "categoria": "fortaleza",
+      "territorio": "Reino Karag Dûm",
+      "camada": 0
+    }
+  },
+  {
+    "model": "home.tbmapmarker",
+    "pk": 15,
+    "fields": {
+      "nome": "Crystalis",
+      "lat": -546.0,
+      "lng": 1536.0,
+      "categoria": "fortaleza",
+      "territorio": "Reino Karag Dûm",
+      "camada": 0
+    }
+  },
+  {
+    "model": "home.tbmapmarker",
+    "pk": 16,
+    "fields": {
+      "nome": "Drûmhuldar",
+      "lat": -468.0,
+      "lng": 1062.0,
+      "categoria": "capital",
+      "territorio": "Reino Karag Dûm",
+      "camada": 0
+    }
+  },
+  {
+    "model": "home.tbmapmarker",
+    "pk": 21,
+    "fields": {
+      "nome": "Sylvereth",
+      "lat": -994.0,
+      "lng": 454.0,
+      "categoria": "cidade",
+      "territorio": "Reino Eryndor",
+      "camada": 0
+    }
+  },
+  {
+    "model": "home.tbmapmarker",
+    "pk": 22,
+    "fields": {
+      "nome": "Shaerelyn",
+      "lat": -1102.0,
+      "lng": 198.0,
+      "categoria": "cidade",
+      "territorio": "Reino Eryndor",
+      "camada": 0
+    }
+  },
+  {
+    "model": "home.tbmapmarker",
+    "pk": 23,
+    "fields": {
+      "nome": "Elyrenna",
+      "lat": -1152.0,
+      "lng": 530.0,
+      "categoria": "cidade",
+      "territorio": "Reino Eryndor",
+      "camada": 0
+    }
+  },
+  {
+    "model": "home.tbmapmarker",
+    "pk": 24,
+    "fields": {
+      "nome": "Elenharis",
+      "lat": -818.0,
+      "lng": 258.0,
+      "categoria": "capital",
+      "territorio": "Reino Eryndor",
+      "camada": 0
+    }
+  },
+  {
+    "model": "home.tbmapmarker",
+    "pk": 25,
+    "fields": {
+      "nome": "Terras Devastadas",
+      "lat": -571.8095623725259,
+      "lng": 1254.1970033509153,
+      "categoria": "area_selvagem",
+      "territorio": "Zonas de Perigo",
+      "camada": 0
+    }
+  },
+  {
+    "model": "home.tbmapmarker",
+    "pk": 26,
+    "fields": {
+      "nome": "Vyrmhein",
+      "lat": -279.0,
+      "lng": 1465.0,
+      "categoria": "capital",
+      "territorio": "Vyrmrealm",
+      "camada": 0
+    }
+  },
+  {
+    "model": "home.tbmapmarker",
+    "pk": 27,
+    "fields": {
+      "nome": "Fjarnok",
+      "lat": -415.0,
+      "lng": 1402.0,
+      "categoria": "vila",
+      "territorio": "Vyrmrealm",
+      "camada": 0
+    }
+  },
+  {
+    "model": "home.tbmapmarker",
+    "pk": 28,
+    "fields": {
+      "nome": "Zar'Kantar",
+      "lat": -410.0,
+      "lng": 1651.0,
+      "categoria": "cidade",
+      "territorio": "Vyrmrealm",
+      "camada": 0
+    }
+  },
+  {
+    "model": "home.tbmapmarker",
+    "pk": 29,
+    "fields": {
+      "nome": "Thurvangar",
+      "lat": -305.0,
+      "lng": 1766.0,
+      "categoria": "fortaleza",
+      "territorio": "Vyrmrealm",
+      "camada": 0
+    }
+  },
+  {
+    "model": "home.tbmapmarker",
+    "pk": 30,
+    "fields": {
+      "nome": "Floresta Eterna",
+      "lat": -952.7356384824586,
+      "lng": 1624.6118742701765,
+      "categoria": "area_selvagem",
+      "territorio": "Floresta Eterna",
+      "camada": 0
+    }
+  },
+  {
+    "model": "home.tbmapmarker",
+    "pk": 31,
+    "fields": {
+      "nome": "Agrabbar",
+      "lat": 0.0,
+      "lng": 0.0,
+      "categoria": "capital",
+      "territorio": "Sem território",
+      "camada": 0
+    }
+  },
+  {
+    "model": "home.tbmapmarker",
+    "pk": 32,
+    "fields": {
+      "nome": "Nova Região",
+      "lat": -1601.0667746430724,
+      "lng": 1546.828955859208,
+      "categoria": "capital",
+      "territorio": "",
+      "camada": 0
     }
   }
 ]
