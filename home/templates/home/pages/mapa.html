@@ -727,6 +727,18 @@ function cleanLatLngs(coords) {
     return coords.map(cleanLatLngs);
 }
 
+function isMultiPolygon(coords) {
+    if (!Array.isArray(coords) || coords.length === 0) return false;
+    const first = coords[0];
+    if (Array.isArray(first) && first.length > 0) {
+        const second = first[0];
+        if (Array.isArray(second) && second.length > 0) {
+            return isPointOrLatLng(second[0]);
+        }
+    }
+    return false;
+}
+
 function flattenCoordinates(arr) {
     if (!Array.isArray(arr)) return arr;
     let current = arr;
@@ -768,46 +780,51 @@ function setupMarkersAndPolygons() {
       let coords = typeof t.coordenadas_poligono === 'string' ? JSON.parse(t.coordenadas_poligono) : t.coordenadas_poligono;
       coords = flattenCoordinates(coords);
       coords = cleanLatLngs(coords);
-      const polygon = L.polygon(coords, {
-          className: `territory-polygon layer-${t.camada > 0 ? 'underground' : 'surface'}`,
-          color: territoryColor(t.nome),
-          fillColor: territoryColor(t.nome),
-          fillOpacity: 0.3,
-          weight: 2,
-          smoothFactor: 0,
-          noClip: true
-      }).addTo(territoryPolygonsLayer);
-      polygon._bonfireTerritory = t;
       
-      if (canEditWiki) {
-          polygon.on('pm:edit', (e) => {
-              recalculateTerritoryCoords(t.nome);
-          });
-          polygon.on('pm:vertexadded', () => recalculateTerritoryCoords(t.nome));
-          polygon.on('pm:vertexremoved', (e) => {
-              if (e.marker) syncNeighborRemove(e.marker.getLatLng(), t.nome);
-              recalculateTerritoryCoords(t.nome);
-          });
-          polygon.on('pm:markerdragstart', (e) => {
-              if (e.marker) polygon._bonfireOriginalVertex = Object.assign({}, e.marker.getLatLng());
-          });
-          polygon.on('pm:markerdragend', (e) => {
-              if (e.marker && polygon._bonfireOriginalVertex) {
-                  syncNeighborDrag(polygon._bonfireOriginalVertex, e.marker.getLatLng(), t.nome);
-              }
-              recalculateTerritoryCoords(t.nome);
-          });
-      }
+      const singlePolygons = isMultiPolygon(coords) ? coords : [coords];
       
-      polygon.on('mouseover', (e) => {
-          if (!document.querySelector('.map-shell').classList.contains('is-focused')) {
-              e.target.setStyle({ fillOpacity: 0.45, weight: 3 });
+      singlePolygons.forEach(polyCoords => {
+          const polygon = L.polygon(polyCoords, {
+              className: `territory-polygon layer-${t.camada > 0 ? 'underground' : 'surface'}`,
+              color: territoryColor(t.nome),
+              fillColor: territoryColor(t.nome),
+              fillOpacity: 0.3,
+              weight: 2,
+              smoothFactor: 0,
+              noClip: true
+          }).addTo(territoryPolygonsLayer);
+          polygon._bonfireTerritory = t;
+          
+          if (canEditWiki) {
+              polygon.on('pm:edit', (e) => {
+                  recalculateTerritoryCoords(t.nome);
+              });
+              polygon.on('pm:vertexadded', () => recalculateTerritoryCoords(t.nome));
+              polygon.on('pm:vertexremoved', (e) => {
+                  if (e.marker) syncNeighborRemove(e.marker.getLatLng(), t.nome);
+                  recalculateTerritoryCoords(t.nome);
+              });
+              polygon.on('pm:markerdragstart', (e) => {
+                  if (e.marker) polygon._bonfireOriginalVertex = Object.assign({}, e.marker.getLatLng());
+              });
+              polygon.on('pm:markerdragend', (e) => {
+                  if (e.marker && polygon._bonfireOriginalVertex) {
+                      syncNeighborDrag(polygon._bonfireOriginalVertex, e.marker.getLatLng(), t.nome);
+                  }
+                  recalculateTerritoryCoords(t.nome);
+              });
           }
+          
+          polygon.on('mouseover', (e) => {
+              if (!document.querySelector('.map-shell').classList.contains('is-focused')) {
+                  e.target.setStyle({ fillOpacity: 0.45, weight: 3 });
+              }
+          });
+          polygon.on('mouseout', (e) => {
+              e.target.setStyle({ fillOpacity: 0.3, weight: 2 });
+          });
+          polygon.on('click', () => selectTerritory(t.nome));
       });
-      polygon.on('mouseout', (e) => {
-          e.target.setStyle({ fillOpacity: 0.3, weight: 2 });
-      });
-      polygon.on('click', () => selectTerritory(t.nome));
   });
 
   buildCategoryFilter();
