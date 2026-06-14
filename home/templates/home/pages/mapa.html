@@ -1669,6 +1669,7 @@ function ensureContainedPolygonHoles(targetLayers, otherLayers) {
     let changed = false;
     const modifiedLayers = new Set();
 
+    // Case 1: Target is contained in Neighbor (Neighbor gets a hole)
     for (const targetLayer of targetLayers) {
         const targetPolygons = getOuterRingsWithParents(targetLayer.getLatLngs());
         for (const targetPoly of targetPolygons) {
@@ -1698,6 +1699,34 @@ function ensureContainedPolygonHoles(targetLayers, otherLayers) {
                 bestContainer.polygon.parentPolygon.push(innerRing.map(point => L.latLng(point.lat, point.lng)));
                 modifiedLayers.add(bestContainer.layer);
                 changed = true;
+            }
+        }
+    }
+
+    // Case 2: Target contains Neighbor (Target gets a hole)
+    for (const targetLayer of targetLayers) {
+        const targetPolygons = getOuterRingsWithParents(targetLayer.getLatLngs());
+        for (const targetPoly of targetPolygons) {
+            const outerRing = targetPoly.outerRing;
+            if (!outerRing || outerRing.length < 3) continue;
+
+            for (const otherLayer of otherLayers) {
+                const otherPolygons = getOuterRingsWithParents(otherLayer.getLatLngs());
+                for (const otherPoly of otherPolygons) {
+                    const innerRing = otherPoly.outerRing;
+                    if (!innerRing || innerRing.length < 3) continue;
+
+                    if (ringContainsRing(outerRing, innerRing)) {
+                        const alreadyHasHole = targetPoly.parentPolygon
+                            .slice(1)
+                            .some(holeRing => ringsAlmostEqual(holeRing, innerRing));
+                        if (alreadyHasHole) continue;
+
+                        targetPoly.parentPolygon.push(innerRing.map(point => L.latLng(point.lat, point.lng)));
+                        modifiedLayers.add(targetLayer);
+                        changed = true;
+                    }
+                }
             }
         }
     }
