@@ -727,16 +727,23 @@ function cleanLatLngs(coords) {
     return coords.map(cleanLatLngs);
 }
 
-function isMultiPolygon(coords) {
-    if (!Array.isArray(coords) || coords.length === 0) return false;
-    const first = coords[0];
-    if (Array.isArray(first) && first.length > 0) {
-        const second = first[0];
-        if (Array.isArray(second) && second.length > 0) {
-            return isPointOrLatLng(second[0]);
-        }
+function getSinglePolygons(coords) {
+    if (!Array.isArray(coords) || coords.length === 0) return [];
+    if (!Array.isArray(coords[0])) return [];
+    
+    if (isPointOrLatLng(coords[0])) {
+        return [[coords]];
     }
-    return false;
+    
+    if (isPointOrLatLng(coords[0][0])) {
+        return coords.map(ring => [ring]);
+    }
+    
+    if (Array.isArray(coords[0][0]) && isPointOrLatLng(coords[0][0][0])) {
+        return coords;
+    }
+    
+    return coords.flatMap(getSinglePolygons);
 }
 
 function flattenCoordinates(arr) {
@@ -781,7 +788,7 @@ function setupMarkersAndPolygons() {
       coords = flattenCoordinates(coords);
       coords = cleanLatLngs(coords);
       
-      const singlePolygons = isMultiPolygon(coords) ? coords : [coords];
+      const singlePolygons = getSinglePolygons(coords);
       
       singlePolygons.forEach(polyCoords => {
           const polygon = L.polygon(polyCoords, {
