@@ -933,7 +933,6 @@ function selectTerritory(territory) {
       map.fitBounds(L.featureGroup(myPolygons).getBounds(), { padding: [50, 50] });
   }
   
-  const terrObj = jsonTerritories.find(t => t.nome === territory);
   const html = territoryCard(terrObj || { nome: territory });
   if (window.innerWidth <= 1100) {
       document.querySelector('.map-shell').classList.remove('has-detail', 'is-sidebar-open');
