@@ -1373,7 +1373,7 @@ function startDrawHole() {
     map.on('pm:drawend', _cleanupCutListeners);
 }
 
-function applyChaikinToRing(ring, iterations) {
+function applyChaikinToRingSelective(ring, sharedKeys, iterations) {
     if (!ring || ring.length < 3) return ring;
     let newCoords = ring;
     for (let iter = 0; iter < iterations; iter++) {
@@ -1381,8 +1381,21 @@ function applyChaikinToRing(ring, iterations) {
         for (let i = 0; i < newCoords.length; i++) {
             const p1 = newCoords[i];
             const p2 = newCoords[(i + 1) % newCoords.length];
-            tempCoords.push(L.latLng(0.75 * p1.lat + 0.25 * p2.lat, 0.75 * p1.lng + 0.25 * p2.lng));
-            tempCoords.push(L.latLng(0.25 * p1.lat + 0.75 * p2.lat, 0.25 * p1.lng + 0.75 * p2.lng));
+            
+            const is_p1_shared = sharedKeys.has(`${p1.lat}|${p1.lng}`);
+            const is_p2_shared = sharedKeys.has(`${p2.lat}|${p2.lng}`);
+            
+            if (is_p1_shared && is_p2_shared) {
+                tempCoords.push(p1);
+            } else if (is_p1_shared && !is_p2_shared) {
+                tempCoords.push(p1);
+                tempCoords.push(L.latLng(0.25 * p1.lat + 0.75 * p2.lat, 0.25 * p1.lng + 0.75 * p2.lng));
+            } else if (!is_p1_shared && is_p2_shared) {
+                tempCoords.push(L.latLng(0.75 * p1.lat + 0.25 * p2.lat, 0.75 * p1.lng + 0.25 * p2.lng));
+            } else {
+                tempCoords.push(L.latLng(0.75 * p1.lat + 0.25 * p2.lat, 0.75 * p1.lng + 0.25 * p2.lng));
+                tempCoords.push(L.latLng(0.25 * p1.lat + 0.75 * p2.lat, 0.25 * p1.lng + 0.75 * p2.lng));
+            }
         }
         newCoords = tempCoords;
     }
@@ -1461,39 +1474,17 @@ function applyChaikin(territoryName = activeTerritory, silent = false) {
             if (outerVertices > 100) iterations = 2;
             if (outerVertices > 250) iterations = 1;
 
-            // Save original positions of shared border vertices
-            const frozenPositions = [];
-            for (let i = 0; i < outerRing.length; i++) {
-                const key = `${outerRing[i].lat}|${outerRing[i].lng}`;
-                if (sharedKeys.has(key)) {
-                    frozenPositions.push({ index: i, lat: outerRing[i].lat, lng: outerRing[i].lng });
-                }
-            }
-
-            // Smooth only the outer ring
-            const smoothed = applyChaikinToRing(outerRing, iterations);
+            // Smooth only the outer ring, preserving shared borders
+            const smoothed = applyChaikinToRingSelective(outerRing, sharedKeys, iterations);
             // Replace outer ring in-place
             poly.parentPolygon[0] = smoothed;
-
-            // Snap smoothed vertices back to frozen shared positions
-            for (const frozen of frozenPositions) {
-                let bestDist = Infinity;
-                let bestIdx = -1;
-                for (let j = 0; j < smoothed.length; j++) {
-                    const d = Math.abs(smoothed[j].lat - frozen.lat) + Math.abs(smoothed[j].lng - frozen.lng);
-                    if (d < bestDist) { bestDist = d; bestIdx = j; }
-                }
-                if (bestIdx >= 0) {
-                    smoothed[bestIdx] = L.latLng(frozen.lat, frozen.lng);
-                }
-            }
-            // Inner rings (holes) are preserved as-is at indices 1+
+            // Inner rings (holes) are preserved as-is
         }
         targetLayer.setLatLngs(rings);
     });
     
     recalculateTerritoryCoords(territoryName);
-    if (!silent) showToast('Polígonos suavizados com sucesso!', 'success');
+    if (!silent) showToast('Polígonos suavizados com sucesso (preservando fronteiras)!', 'success');
 }
 
 function getClosestPointOnSegment(p, p1, p2) {
@@ -1511,23 +1502,27 @@ function optimizePolygon(territoryName = activeTerritory, silent = false) {
     }
     
     let targetLayers = [];
+    let otherLayers = [];
+    
     territoryPolygonsLayer.eachLayer(l => {
-        if (l._bonfireTerritory && l._bonfireTerritory.nome === territoryName) targetLayers.push(l);
+        if (l._bonfireTerritory && l._bonfireTerritory.nome === territoryName) {
+            targetLayers.push(l);
+        } else if (l._bonfireTerritory) {
+            otherLayers.push(l);
+        }
     });
     
     if (targetLayers.length === 0) return;
 
-    // Collect shared border vertices to protect them
-    const sharedKeys = collectSharedVertices(territoryName);
-    
     let removedCount = 0;
+    let otherLayersModified = new Set();
     
     for (const targetLayer of targetLayers) {
         let rings = targetLayer.getLatLngs();
         let polygons = getOuterRingsWithParents(rings);
+        let targetUpdated = false;
         
         for (const poly of polygons) {
-            // Process each ring (outer + holes)
             for (let ringIdx = 0; ringIdx < poly.parentPolygon.length; ringIdx++) {
                 let coords = poly.parentPolygon[ringIdx];
                 if (coords.length <= 3) continue;
@@ -1535,54 +1530,83 @@ function optimizePolygon(territoryName = activeTerritory, silent = false) {
                 const points = coords.map((c, idx) => {
                     let p = map.project(c, map.getMaxZoom());
                     p._originalIndex = idx;
-                    p._isShared = sharedKeys.has(`${c.lat}|${c.lng}`);
+                    p._latlng = c;
                     return p;
                 });
                 
-                // Remove duplicate near-zero-distance points
                 let proxyKept = [];
                 if (points.length > 0) {
                     proxyKept.push(points[0]);
                     for (let i = 1; i < points.length; i++) {
-                        if (points[i].distanceTo(proxyKept[proxyKept.length - 1]) >= 3) {
+                        if (points[i].distanceTo(proxyKept[proxyKept.length - 1]) >= 2) {
                             proxyKept.push(points[i]);
                         }
                     }
                 }
                 
-                const simplified = L.LineUtil.simplify(proxyKept, 5);
+                const simplified = L.LineUtil.simplify(proxyKept, 3);
                 const keptIndices = new Set(simplified.map(p => p._originalIndex));
                 
-                let toRemove = new Set();
+                let toRemove = [];
                 for (let i = 0; i < coords.length; i++) {
                     if (!keptIndices.has(i)) {
-                        // Never remove shared border vertices
-                        const key = `${coords[i].lat}|${coords[i].lng}`;
-                        if (!sharedKeys.has(key)) {
-                            toRemove.add(i);
-                        }
+                        toRemove.push({ index: i, latlng: coords[i] });
                     }
                 }
                 
-                if (coords.length - toRemove.size < 3) {
-                    toRemove.clear();
+                if (coords.length - toRemove.length < 3) {
+                    continue;
                 }
                 
-                if (toRemove.size > 0) {
-                    let sortedRemove = Array.from(toRemove).sort((a,b) => b - a);
-                    for (const i of sortedRemove) {
-                        coords.splice(i, 1);
+                if (toRemove.length > 0) {
+                    toRemove.sort((a, b) => b.index - a.index);
+                    
+                    for (const item of toRemove) {
+                        coords.splice(item.index, 1);
                         removedCount++;
+                        targetUpdated = true;
+                        
+                        // Also remove from any sharing neighbor polygons in sync
+                        for (const other of otherLayers) {
+                            let otherLatLngs = other.getLatLngs();
+                            let otherPolys = getOuterRingsWithParents(otherLatLngs);
+                            let otherUpdated = false;
+                            
+                            for (const otherPoly of otherPolys) {
+                                for (let oRingIdx = 0; oRingIdx < otherPoly.parentPolygon.length; oRingIdx++) {
+                                    let oRing = otherPoly.parentPolygon[oRingIdx];
+                                    for (let j = oRing.length - 1; j >= 0; j--) {
+                                        const dist = Math.abs(oRing[j].lat - item.latlng.lat) + Math.abs(oRing[j].lng - item.latlng.lng);
+                                        if (dist < 1e-5) {
+                                            oRing.splice(j, 1);
+                                            otherUpdated = true;
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            if (otherUpdated) {
+                                other.setLatLngs(otherLatLngs);
+                                otherLayersModified.add(other);
+                            }
+                        }
                     }
                 }
             }
         }
-        targetLayer.setLatLngs(rings);
+        if (targetUpdated) {
+            targetLayer.setLatLngs(rings);
+        }
     }
     
-    if (removedCount > 0) {
+    otherLayersModified.forEach(layer => {
+        layer.setLatLngs(layer.getLatLngs());
+        recalculateTerritoryCoords(layer._bonfireTerritory.nome);
+    });
+    
+    if (removedCount > 0 || otherLayersModified.size > 0) {
         recalculateTerritoryCoords(territoryName);
-        if (!silent) showToast(`${removedCount} vértices inúteis otimizados!`, 'success');
+        if (!silent) showToast(`${removedCount} vértices inúteis otimizados nos territórios!`, 'success');
     } else {
         if (!silent) showToast('O polígono já está limpo e otimizado.', 'info');
     }
@@ -1709,193 +1733,186 @@ function autoAlignPolygon(territoryName = activeTerritory, silent = false) {
     }
 
     let changed = false;
-    const SNAP_DIST = 50;
+    const SNAP_DIST_PX = 25;
 
-    let otherLayersModified = new Set();
+    const getProj = (latlng) => map.project(latlng, map.getMaxZoom());
+    const getUnproj = (point) => map.unproject(point, map.getMaxZoom());
+
+    const getClosestPointOnSegment = (p, p1, p2) => {
+        const l2 = (p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2;
+        if (l2 === 0) return { point: p1, t: 0 };
+        let t = ((p.x - p1.x) * (p2.x - p1.x) + (p.y - p1.y) * (p2.y - p1.y)) / l2;
+        t = Math.max(0, Math.min(1, t));
+        return { point: L.point(p1.x + t * (p2.x - p1.x), p1.y + t * (p2.y - p1.y)), t: t };
+    };
+
+    const getClosestPointOnRing = (p, ring) => {
+        let bestDist = Infinity;
+        let bestPoint = null;
+        let bestSegmentIdx = -1;
+        
+        for (let i = 0; i < ring.length; i++) {
+            const nextIdx = (i + 1) % ring.length;
+            const p1 = getProj(ring[i]);
+            const p2 = getProj(ring[nextIdx]);
+            
+            const res = getClosestPointOnSegment(p, p1, p2);
+            const dist = p.distanceTo(res.point);
+            if (dist < bestDist) {
+                bestDist = dist;
+                bestPoint = res.point;
+                bestSegmentIdx = i;
+            }
+        }
+        return { dist: bestDist, point: bestPoint, segmentIdx: bestSegmentIdx };
+    };
+
     if (ensureContainedPolygonHoles(targetLayers, otherLayers)) {
         changed = true;
     }
-    
-    // Phase 1: Collect all vertex injections needed for OTHER polygons
-    // (so target vertices can snap to other edges)
-    const otherInjections = new Map(); // otherCoords array ref -> [{insertIndex, newLatLng}]
+
+    let otherLayersModified = new Set();
+
+    // Mutually inject vertices to ensure matching vertex layouts on shared borders
     for (const targetLayer of targetLayers) {
-        let targetPolygons = getOuterRingsWithParents(targetLayer.getLatLngs());
-        for (const targetPoly of targetPolygons) {
-            const coords = targetPoly.outerRing;
-            if (!coords || coords.length < 3) continue;
-            
-            for (let i = 0; i < coords.length; i++) {
-                const p1 = map.project(coords[i], map.getMaxZoom());
-                let bestDist = SNAP_DIST;
-                let injectionData = null;
-
+        let targetLatLngs = targetLayer.getLatLngs();
+        let targetPolys = getOuterRingsWithParents(targetLatLngs);
+        
+        for (const targetPoly of targetPolys) {
+            for (let tRingIdx = 0; tRingIdx < targetPoly.parentPolygon.length; tRingIdx++) {
+                let tRing = targetPoly.parentPolygon[tRingIdx];
+                if (!tRing || tRing.length < 3) continue;
+                
                 for (const other of otherLayers) {
-                    let otherPolygons = getOuterRingsWithParents(other.getLatLngs());
-                    for (const otherPoly of otherPolygons) {
-                        for (const otherCoords of otherPoly.parentPolygon) {
-                            // Check if vertex already exists nearby
-                            let alreadyExists = false;
-                            for (let k = 0; k < otherCoords.length; k++) {
-                                const sp = map.project(otherCoords[k], map.getMaxZoom());
-                                if (p1.distanceTo(sp) < 5) { alreadyExists = true; break; }
+                    let otherLatLngs = other.getLatLngs();
+                    let otherPolys = getOuterRingsWithParents(otherLatLngs);
+                    let otherUpdated = false;
+                    
+                    for (const otherPoly of otherPolys) {
+                        for (let oRingIdx = 0; oRingIdx < otherPoly.parentPolygon.length; oRingIdx++) {
+                            let oRing = otherPoly.parentPolygon[oRingIdx];
+                            if (!oRing || oRing.length < 3) continue;
+                            
+                            // 1. Inject target vertices into neighbor edges
+                            for (let i = 0; i < tRing.length; i++) {
+                                const ptT = getProj(tRing[i]);
+                                const res = getClosestPointOnRing(ptT, oRing);
+                                if (res.dist < SNAP_DIST_PX) {
+                                    let exists = false;
+                                    for (let j = 0; j < oRing.length; j++) {
+                                        if (ptT.distanceTo(getProj(oRing[j])) < 3 || getProj(oRing[j]).distanceTo(res.point) < 3) {
+                                            exists = true;
+                                            break;
+                                        }
+                                    }
+                                    if (!exists) {
+                                        const insertIdx = (res.segmentIdx + 1) % (oRing.length + 1);
+                                        oRing.splice(insertIdx, 0, getUnproj(res.point));
+                                        otherUpdated = true;
+                                        changed = true;
+                                    }
+                                }
                             }
-                            if (alreadyExists) continue;
-
-                            for (let j = 0; j < otherCoords.length; j++) {
-                                const nextJ = (j + 1) % otherCoords.length;
-                                const sp1 = map.project(otherCoords[j], map.getMaxZoom());
-                                const sp2 = map.project(otherCoords[nextJ], map.getMaxZoom());
-                                
-                                const closest = getClosestPointOnSegment(p1, sp1, sp2);
-                                const dist = p1.distanceTo(closest.point);
-                                
-                                if (dist < bestDist && closest.t > 0.05 && closest.t < 0.95) {
-                                    const distToSp1 = closest.point.distanceTo(sp1);
-                                    const distToSp2 = closest.point.distanceTo(sp2);
-                                    if (distToSp1 > 5 && distToSp2 > 5) {
-                                        bestDist = dist;
-                                        injectionData = {
-                                            otherLayer: other,
-                                            otherCoords: otherCoords,
-                                            insertIndex: j + 1,
-                                            newLatLng: map.unproject(closest.point, map.getMaxZoom())
-                                        };
+                            
+                            // 2. Inject neighbor vertices into target edges
+                            for (let i = 0; i < oRing.length; i++) {
+                                const ptO = getProj(oRing[i]);
+                                const res = getClosestPointOnRing(ptO, tRing);
+                                if (res.dist < SNAP_DIST_PX) {
+                                    let exists = false;
+                                    for (let j = 0; j < tRing.length; j++) {
+                                        if (ptO.distanceTo(getProj(tRing[j])) < 3 || getProj(tRing[j]).distanceTo(res.point) < 3) {
+                                            exists = true;
+                                            break;
+                                        }
+                                    }
+                                    if (!exists) {
+                                        const insertIdx = (res.segmentIdx + 1) % (tRing.length + 1);
+                                        tRing.splice(insertIdx, 0, getUnproj(res.point));
+                                        changed = true;
                                     }
                                 }
                             }
                         }
                     }
-                }
-                if (injectionData) {
-                    if (!otherInjections.has(injectionData.otherCoords)) {
-                        otherInjections.set(injectionData.otherCoords, []);
+                    if (otherUpdated) {
+                        other.setLatLngs(otherLatLngs);
+                        otherLayersModified.add(other);
                     }
-                    otherInjections.get(injectionData.otherCoords).push({
-                        insertIndex: injectionData.insertIndex,
-                        newLatLng: injectionData.newLatLng
-                    });
-                    otherLayersModified.add(injectionData.otherLayer);
                 }
             }
         }
-    }
-
-    // Apply all other-polygon injections in reverse order to prevent index shifts
-    for (const [coordsArr, injections] of otherInjections) {
-        injections.sort((a, b) => b.insertIndex - a.insertIndex);
-        for (const inj of injections) {
-            coordsArr.splice(inj.insertIndex, 0, inj.newLatLng);
+        if (changed) {
+            targetLayer.setLatLngs(targetLatLngs);
         }
     }
 
-    // Phase 2: Collect all vertex injections needed for TARGET polygon
-    const targetInjections = new Map();
-    for (const other of otherLayers) {
-        let otherPolygons = getOuterRingsWithParents(other.getLatLngs());
-        for (const otherPoly of otherPolygons) {
-            for (const otherCoords of otherPoly.parentPolygon) {
-                if (!otherCoords || otherCoords.length < 3) continue;
+    // Phase 3: Snap target vertices exactly to neighbor vertices, and clean duplicates
+    for (const targetLayer of targetLayers) {
+        let targetLatLngs = targetLayer.getLatLngs();
+        let targetPolys = getOuterRingsWithParents(targetLatLngs);
+        
+        for (const targetPoly of targetPolys) {
+            for (let tRingIdx = 0; tRingIdx < targetPoly.parentPolygon.length; tRingIdx++) {
+                let tRing = targetPoly.parentPolygon[tRingIdx];
+                if (!tRing || tRing.length < 3) continue;
                 
-                for (let j = 0; j < otherCoords.length; j++) {
-                    const pOther = map.project(otherCoords[j], map.getMaxZoom());
-                    let bestDist = SNAP_DIST;
-                    let injectionData = null;
+                for (let i = 0; i < tRing.length; i++) {
+                    const ptT = getProj(tRing[i]);
+                    let bestDist = SNAP_DIST_PX;
+                    let bestLatLng = null;
                     
-                    for (const targetLayer of targetLayers) {
-                        let targetPolygons = getOuterRingsWithParents(targetLayer.getLatLngs());
-                        for (const targetPoly of targetPolygons) {
-                            const coords = targetPoly.outerRing;
-                            // Check if vertex already exists nearby
-                            let alreadyExists = false;
-                            for (let k = 0; k < coords.length; k++) {
-                                const sp = map.project(coords[k], map.getMaxZoom());
-                                if (pOther.distanceTo(sp) < 5) { alreadyExists = true; break; }
-                            }
-                            if (alreadyExists) continue;
-
-                            for (let i = 0; i < coords.length; i++) {
-                                const nextI = (i + 1) % coords.length;
-                                const sp1 = map.project(coords[i], map.getMaxZoom());
-                                const sp2 = map.project(coords[nextI], map.getMaxZoom());
-                                
-                                const closest = getClosestPointOnSegment(pOther, sp1, sp2);
-                                const dist = pOther.distanceTo(closest.point);
-                                
-                                if (dist < bestDist && closest.t > 0.05 && closest.t < 0.95) {
-                                    const distToSp1 = closest.point.distanceTo(sp1);
-                                    const distToSp2 = closest.point.distanceTo(sp2);
-                                    if (distToSp1 > 5 && distToSp2 > 5) {
-                                        bestDist = dist;
-                                        injectionData = {
-                                            coordsArray: coords,
-                                            insertIndex: i + 1,
-                                            newLatLng: map.unproject(closest.point, map.getMaxZoom())
-                                        };
+                    for (const other of otherLayers) {
+                        let otherPolys = getOuterRingsWithParents(other.getLatLngs());
+                        for (const otherPoly of otherPolys) {
+                            for (const oRing of otherPoly.parentPolygon) {
+                                for (let j = 0; j < oRing.length; j++) {
+                                    const ptO = getProj(oRing[j]);
+                                    const d = ptT.distanceTo(ptO);
+                                    if (d < bestDist) {
+                                        bestDist = d;
+                                        bestLatLng = oRing[j];
                                     }
                                 }
                             }
                         }
                     }
-                    if (injectionData) {
-                        if (!targetInjections.has(injectionData.coordsArray)) {
-                            targetInjections.set(injectionData.coordsArray, []);
-                        }
-                        targetInjections.get(injectionData.coordsArray).push({
-                            insertIndex: injectionData.insertIndex,
-                            newLatLng: injectionData.newLatLng
-                        });
+                    
+                    if (bestLatLng && (tRing[i].lat !== bestLatLng.lat || tRing[i].lng !== bestLatLng.lng)) {
+                        tRing[i] = L.latLng(bestLatLng.lat, bestLatLng.lng);
                         changed = true;
                     }
                 }
-            }
-        }
-    }
-
-    // Apply all target-polygon injections in reverse order
-    for (const [coordsArr, injections] of targetInjections) {
-        injections.sort((a, b) => b.insertIndex - a.insertIndex);
-        for (const inj of injections) {
-            coordsArr.splice(inj.insertIndex, 0, inj.newLatLng);
-        }
-    }
-
-    // Phase 3: Snap active polygon vertices exactly to neighbor vertices
-    for (const targetLayer of targetLayers) {
-        let targetPolygons = getOuterRingsWithParents(targetLayer.getLatLngs());
-        for (const targetPoly of targetPolygons) {
-            const coords = targetPoly.outerRing;
-            
-            for (let i = 0; i < coords.length; i++) {
-                const p1 = map.project(coords[i], map.getMaxZoom());
-                let bestDist = SNAP_DIST;
-                let bestSnap = null;
                 
-                for (const other of otherLayers) {
-                    const otherRings = getOuterRingsWithParents(other.getLatLngs());
-                    for (const otherPoly of otherRings) {
-                        for (const otherCoords of otherPoly.parentPolygon) {
-                            for (let j = 0; j < otherCoords.length; j++) {
-                                const p2 = map.project(otherCoords[j], map.getMaxZoom());
-                                const dist = p1.distanceTo(p2);
-                                if (dist < bestDist) {
-                                    bestDist = dist;
-                                    bestSnap = otherCoords[j];
-                                }
-                            }
+                // Post-snap cleanup: remove consecutive duplicate vertices
+                const cleanedRing = [];
+                for (let i = 0; i < tRing.length; i++) {
+                    if (cleanedRing.length === 0) {
+                        cleanedRing.push(tRing[i]);
+                    } else {
+                        const prev = cleanedRing[cleanedRing.length - 1];
+                        if (Math.abs(prev.lat - tRing[i].lat) > 1e-7 || Math.abs(prev.lng - tRing[i].lng) > 1e-7) {
+                            cleanedRing.push(tRing[i]);
                         }
                     }
                 }
+                // Check closing duplicate
+                if (cleanedRing.length > 1) {
+                    const first = cleanedRing[0];
+                    const last = cleanedRing[cleanedRing.length - 1];
+                    if (Math.abs(first.lat - last.lat) < 1e-7 && Math.abs(first.lng - last.lng) < 1e-7) {
+                        cleanedRing.pop();
+                    }
+                }
                 
-                if (bestSnap && (coords[i].lat !== bestSnap.lat || coords[i].lng !== bestSnap.lng)) {
-                    coords[i] = L.latLng(bestSnap.lat, bestSnap.lng);
+                if (cleanedRing.length !== tRing.length) {
+                    targetPoly.parentPolygon[tRingIdx] = cleanedRing;
                     changed = true;
                 }
             }
         }
-        
         if (changed) {
-            targetLayer.setLatLngs(targetLayer.getLatLngs());
+            targetLayer.setLatLngs(targetLatLngs);
         }
     }
 
@@ -1906,9 +1923,9 @@ function autoAlignPolygon(territoryName = activeTerritory, silent = false) {
 
     if (changed || otherLayersModified.size > 0) {
         recalculateTerritoryCoords(territoryName);
-        if (!silent) showToast('Fronteiras zipadas e alinhadas!', 'success');
+        if (!silent) showToast('Fronteiras zipadas e alinhadas perfeitamente!', 'success');
     } else {
-        if (!silent) showToast(`Nenhum vértice estava próximo o suficiente (${SNAP_DIST}px) para o zíper.`, 'info');
+        if (!silent) showToast('Fronteiras já estão alinhadas.', 'info');
     }
 }
 
@@ -2009,18 +2026,48 @@ function updateAdminEditState() {
 function toggleEditMode() {
     const btnEdit = document.getElementById('btnEdit');
     
-    if (map.pm.globalEditModeEnabled()) {
-        map.pm.disableGlobalEditMode();
+    let editModeActive = false;
+    territoryPolygonsLayer.eachLayer(l => {
+        if (l.pm && l.pm.enabled()) editModeActive = true;
+    });
+    
+    if (editModeActive) {
+        territoryPolygonsLayer.eachLayer(l => {
+            if (l.pm) l.pm.disable();
+        });
         isEditMode = false;
         updateAdminEditState();
         if (btnEdit) btnEdit.classList.remove('primary-active');
         showToast('Modo de edição desativado.', 'info');
     } else {
-        map.pm.enableGlobalEditMode();
-        isEditMode = true;
-        updateAdminEditState();
-        if (btnEdit) btnEdit.classList.add('primary-active');
-        showToast('Modo de edição ativado. Cliques de navegação desativados.', 'success');
+        if (!activeTerritory || activeTerritory === 'Sem território') {
+            showToast('Selecione um território antes de ativar a edição.', 'error');
+            return;
+        }
+        
+        let count = 0;
+        territoryPolygonsLayer.eachLayer(l => {
+            if (l._bonfireTerritory && l._bonfireTerritory.nome === activeTerritory) {
+                if (l.pm) {
+                    l.pm.enable({
+                        allowSelfIntersection: false,
+                        preventMarkerDoubleClicks: true
+                    });
+                    count++;
+                }
+            } else {
+                if (l.pm) l.pm.disable();
+            }
+        });
+        
+        if (count > 0) {
+            isEditMode = true;
+            updateAdminEditState();
+            if (btnEdit) btnEdit.classList.add('primary-active');
+            showToast(`Edição ativada para o território: ${activeTerritory}`, 'success');
+        } else {
+            showToast('Nenhuma camada encontrada para este território.', 'error');
+        }
     }
 }
 
