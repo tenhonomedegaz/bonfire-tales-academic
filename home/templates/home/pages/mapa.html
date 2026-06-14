@@ -674,6 +674,23 @@ const undergroundOverlay = L.imageOverlay(undergroundMapUrl, bounds, { opacity: 
 // Center map instead of fitBounds, preventing top-left alignment issues
 map.setView(bounds.getCenter(), window.innerWidth <= 1100 ? -2 : -1);
 
+function isPointOrLatLng(val) {
+    if (!val) return false;
+    if (val instanceof L.LatLng) return true;
+    if (typeof val === 'object' && 'lat' in val && 'lng' in val) return true;
+    if (Array.isArray(val) && val.length === 2 && typeof val[0] === 'number') return true;
+    return false;
+}
+
+function flattenCoordinates(arr) {
+    if (!Array.isArray(arr)) return arr;
+    let current = arr;
+    while (current.length === 1 && Array.isArray(current[0]) && !isPointOrLatLng(current[0][0])) {
+        current = current[0];
+    }
+    return current;
+}
+
 setupMarkersAndPolygons();
 
 function setupMarkersAndPolygons() {
@@ -703,7 +720,8 @@ function setupMarkersAndPolygons() {
 
   Object.values(jsonTerritories).forEach(t => {
       if (!t.coordenadas_poligono) return;
-      const coords = typeof t.coordenadas_poligono === 'string' ? JSON.parse(t.coordenadas_poligono) : t.coordenadas_poligono;
+      let coords = typeof t.coordenadas_poligono === 'string' ? JSON.parse(t.coordenadas_poligono) : t.coordenadas_poligono;
+      coords = flattenCoordinates(coords);
       const polygon = L.polygon(coords, {
           className: `territory-polygon layer-${t.camada > 0 ? 'underground' : 'surface'}`,
           color: territoryColor(t.nome),
@@ -1098,7 +1116,8 @@ function recalculateTerritoryCoords(territoryName) {
     territoryPolygonsLayer.eachLayer(l => {
         if (l._bonfireTerritory && l._bonfireTerritory.nome === territoryName) {
             // Leaflet polygons might be single or multi. getLatLngs() returns an array of rings/polygons.
-            const latlngs = l.getLatLngs();
+            let latlngs = l.getLatLngs();
+            latlngs = flattenCoordinates(latlngs);
             if (latlngs && latlngs.length > 0) {
                 // Leaflet standardizes to 3D arrays for single polygon with holes, or 4D for multi
                 // We will just store what it gives us. Usually latlngs[0] is the outer ring.
@@ -1109,7 +1128,8 @@ function recalculateTerritoryCoords(territoryName) {
     
     const t = jsonTerritories.find(x => x.nome === territoryName);
     if (t) {
-        pendingChanges.territories[t.id] = multiCoords.length === 1 ? multiCoords[0] : multiCoords;
+        const rawCoords = multiCoords.length === 1 ? multiCoords[0] : multiCoords;
+        pendingChanges.territories[t.id] = flattenCoordinates(rawCoords);
         markChange();
     }
 }
