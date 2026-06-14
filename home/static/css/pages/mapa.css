@@ -1037,7 +1037,7 @@ body { overflow: hidden !important; }
 /* Subterranean Map Transitions & Layer Selector */
 
 .map-overlay-layer {
-  transition: opacity 0.6s ease-in-out !important;
+  transition: opacity 0.6s ease-in-out;
 }
 
 /* Entry animation for pins when layers switch or search filter matches */
