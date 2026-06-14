@@ -1252,7 +1252,9 @@ function startDrawHole() {
     updateAdminEditState();
     document.getElementById('btnCut')?.classList.add('primary-active');
     showToast('Desenhe a área que deseja recortar dentro de um polígono existente.', 'info');
-    map.pm.enableDraw('Cut');
+    map.pm.enableGlobalCutMode({
+        allowSelfIntersection: false
+    });
     
     // Right-click removes last vertex during cut too
     function _onCutRightClick(e) {
@@ -1265,6 +1267,7 @@ function startDrawHole() {
     function _cleanupCutListeners() {
         map.off('contextmenu', _onCutRightClick);
         map.off('pm:drawend', _cleanupCutListeners);
+        map.pm.disableGlobalCutMode();
         isEditMode = false;
         updateAdminEditState();
         document.getElementById('btnCut')?.classList.remove('primary-active');
