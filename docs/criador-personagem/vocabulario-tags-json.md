@@ -35,6 +35,23 @@ de forma que a ficha **derive o estado** do personagem e um futuro
    curta demais e empurrar a lógica pro backend, **prefira a tag mais explícita** —
    quanto menos código isolado por habilidade, melhor.
 
+### Regra: primitiva do vocabulário **vs** definido no JSON
+A linha que separa "o backend conhece" de "está no JSON":
+
+- **Primitiva do vocabulário** = um **verbo genérico** que o backend implementa
+  **uma vez** e serve pra qualquer classe: `resist`, `aura`, `mark`, `roll`,
+  `match`, `modify`, `action`, `pick`, `cast`, `if`, `save`… É um conjunto
+  **pequeno e fixo**. Adicionar verbo novo = **consultar o PO** (vira hardcode).
+- **Definido no JSON** = qualquer coisa **específica** de uma classe/habilidade:
+  a tabela "magia-selvagem", a lista "runa", o "aspecto-selvagem", o poder
+  "desperta" de cada runa. Vai num `define{}` e é **referenciado**.
+
+> **Teste:** *"isso precisa de um verbo genérico novo no backend, ou dá pra
+> compor com verbos que já existem + um `define`?"* Se dá pra compor, **não é
+> vocabulário**. Ex.: "poder raivar de armadura pesada" não é um verbo novo —
+> é `modify` removendo a restrição da Fúria. "Invocar a runa desperta" não é
+> verbo novo — é uma `action:` que aponta para um efeito `define`-ido.
+
 ### Onde vivem
 Campo `tags_json` (JSONField) em `TbTracoracial`, `TbClassehabilidade`,
 `TbOpcaojogo`, `TbTalento` e demais catálogos.
