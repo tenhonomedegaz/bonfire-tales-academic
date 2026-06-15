@@ -27,9 +27,6 @@
           {% if raca.tagline %}
           <p data-race-tagline class="race-hero-tagline">"{{ raca.tagline }}"</p>
           {% endif %}
-          {% if raca.lore_presentation %}
-          <div class="race-hero-desc bonfire-markdown" data-markdown-source>{{ raca.lore_presentation|default:''|escape }}</div>
-          {% endif %}
         </div>
       </header>
 
@@ -134,8 +131,17 @@
         <!-- TAB 1: LORE -->
         <div id="tab-content-lore" class="tab-pane active">
           <div id="baseRaceLore" class="race-lore-accordions">
-            {% if raca.lore_roleplay %}
+            {% if raca.lore_presentation %}
             <details class="lore-accordion" open>
+              <summary>Visão Geral</summary>
+              <div class="lore-accordion-body">
+                <div class="bonfire-markdown" data-markdown-source>{{ raca.lore_presentation|default:''|escape }}</div>
+              </div>
+            </details>
+            {% endif %}
+
+            {% if raca.lore_roleplay %}
+            <details class="lore-accordion">
               <summary>Como Interpretar (Roleplay)</summary>
               <div class="lore-accordion-body">
                 <div class="bonfire-markdown" data-markdown-source>{{ raca.lore_roleplay|default:''|escape }}</div>
@@ -152,8 +158,8 @@
             </details>
             {% endif %}
 
-            {% if not raca.lore_roleplay and not raca.lore_society %}
-            <p class="race-empty-note">Sem informações adicionais de lore para esta raça.</p>
+            {% if not raca.lore_presentation and not raca.lore_roleplay and not raca.lore_society %}
+            <p class="race-empty-note">Nenhuma informação de lore cadastrada para esta raça.</p>
             {% endif %}
           </div>
 
