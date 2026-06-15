@@ -141,6 +141,10 @@ restringido:
 Vocabulário: `spellcasting`, `concentration`, `unconscious`, `incapacitated`,
 `armor`, `heavy-armor`, …
 
+**`requires{...}`** é o **inverso** de `restriction`: uma **condição positiva** que
+o efeito **exige** para funcionar (ex.: `requires:equiped{armadura-aprimorada}`,
+`requires:runa-ativa`, `requires:weapon{vinculada}`). Sem ela, o efeito não se aplica.
+
 ---
 
 ## 6. Identidade / Filtro / Pré-requisito
@@ -332,7 +336,6 @@ Ex.: **Fôlego Furioso** — em fúria, ao cair a 0 PV, CON save de CD crescente
 ## 14. Em aberto (a definir com o PO)
 
 - **Pré-requisito de atributo** (`for13` vs `prereq=str-score>=13`).
-- **Condição positiva** ("só funciona com X equipado") — inverso de `restriction`/`equiped`; provável `requires{...}`.
 - **Valores específicos** de algumas mecânicas (cura por marca da Sede de Sangue, poderes de cada runa do Despertar Rúnico) — preencher caso a caso.
 - Esquema do **parser** (string → JSON estruturado) e do **motor de derivação**.
 

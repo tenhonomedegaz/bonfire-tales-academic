@@ -923,3 +923,183 @@ class BotKeyValueStore(models.Model):
 
     def __str__(self):
         return self.key
+
+
+# =====================================================================
+# FICHA DE PERSONAGEM (criador de personagem)
+# Tabelas novas, gerenciadas pelo Django (managed=True). A identidade
+# racial e de classe referencia o conteudo existente via FK.
+# Ver docs/criador-personagem/vocabulario-tags-json.md
+# =====================================================================
+
+class TbPersonagem(models.Model):
+    id_personagem = models.AutoField(db_column='Id_Personagem', primary_key=True)
+    dono = models.ForeignKey('auth.User', models.CASCADE, db_column='Dono', related_name='personagens')
+    nome = models.CharField(db_column='Nome', max_length=150)
+    publico = models.BooleanField(db_column='Publico', default=False)
+
+    # Identidade racial (conteudo existente)
+    id_raca = models.ForeignKey('TbRaca', models.SET_NULL, db_column='Id_Raca', blank=True, null=True)
+    id_linhagem = models.ForeignKey('TbLinhagem', models.SET_NULL, db_column='Id_Linhagem', blank=True, null=True)
+    id_essencia = models.ForeignKey('TbEssencia', models.SET_NULL, db_column='Id_Essencia', blank=True, null=True)
+    id_antecedente = models.ForeignKey('TbAntecedente', models.SET_NULL, db_column='Id_Antecedente', blank=True, null=True)
+
+    # Atributos
+    forca = models.IntegerField(db_column='Forca', default=10)
+    destreza = models.IntegerField(db_column='Destreza', default=10)
+    constituicao = models.IntegerField(db_column='Constituicao', default=10)
+    inteligencia = models.IntegerField(db_column='Inteligencia', default=10)
+    sabedoria = models.IntegerField(db_column='Sabedoria', default=10)
+    carisma = models.IntegerField(db_column='Carisma', default=10)
+
+    # Vitais / combate (nivel e total; PV/CA podem ser derivados, mas guardamos o estado)
+    nivel = models.IntegerField(db_column='Nivel', default=1)
+    pv_maximo = models.IntegerField(db_column='PVMaximo', default=0)
+    pv_atual = models.IntegerField(db_column='PVAtual', default=0)
+    pv_temporario = models.IntegerField(db_column='PVTemporario', default=0)
+    ca = models.IntegerField(db_column='CA', default=10)
+    iniciativa_bonus = models.IntegerField(db_column='IniciativaBonus', default=0)
+    velocidade = models.CharField(db_column='Velocidade', max_length=50, blank=True, default='9 m / 30 ft')
+
+    # Bio / narrativa
+    tagline = models.CharField(db_column='Tagline', max_length=255, blank=True, null=True)
+    jogador = models.CharField(db_column='Jogador', max_length=150, blank=True, null=True)
+    patente = models.CharField(db_column='Patente', max_length=100, blank=True, null=True)
+    idade = models.CharField(db_column='Idade', max_length=30, blank=True, null=True)
+    altura = models.CharField(db_column='Altura', max_length=30, blank=True, null=True)
+    peso = models.CharField(db_column='Peso', max_length=30, blank=True, null=True)
+    tamanho = models.CharField(db_column='Tamanho', max_length=30, blank=True, null=True)
+    genero = models.CharField(db_column='Genero', max_length=50, blank=True, null=True)
+    aparencia = models.TextField(db_column='Aparencia', blank=True, null=True)
+    historia = models.TextField(db_column='Historia', blank=True, null=True)
+    anotacoes = models.TextField(db_column='Anotacoes', blank=True, null=True)
+
+    criado_em = models.DateTimeField(db_column='CriadoEm', auto_now_add=True)
+    atualizado_em = models.DateTimeField(db_column='AtualizadoEm', auto_now=True)
+
+    class Meta:
+        db_table = 'TB_Personagem'
+        verbose_name = 'Personagem'
+        verbose_name_plural = 'Personagens'
+
+    def __str__(self):
+        return self.nome
+
+
+class TbPersonagemClasse(models.Model):
+    id = models.AutoField(db_column='Id', primary_key=True)
+    id_personagem = models.ForeignKey('TbPersonagem', models.CASCADE, db_column='Id_Personagem', related_name='classes')
+    id_classe = models.ForeignKey('TbClasse', models.PROTECT, db_column='Id_Classe')
+    id_subclasse = models.ForeignKey('TbSubclasse', models.SET_NULL, db_column='Id_Subclasse', blank=True, null=True)
+    nivel = models.IntegerField(db_column='Nivel', default=1)
+    principal = models.BooleanField(db_column='Principal', default=False, help_text='Classe inicial (define dado de vida base, etc.).')
+
+    class Meta:
+        db_table = 'TB_PersonagemClasse'
+        verbose_name = 'Classe do Personagem'
+        verbose_name_plural = 'Classes do Personagem'
+
+    def __str__(self):
+        return f'{self.id_personagem_id} - {self.id_classe_id} Nv{self.nivel}'
+
+
+class TbPersonagemPericia(models.Model):
+    id_pericia = models.AutoField(db_column='Id_Pericia', primary_key=True)
+    id_personagem = models.ForeignKey('TbPersonagem', models.CASCADE, db_column='Id_Personagem', related_name='pericias')
+    nome = models.CharField(db_column='Nome', max_length=50)
+    atributo = models.CharField(db_column='Atributo', max_length=3)
+    proficiente = models.BooleanField(db_column='Proficiente', default=False)
+    expertise = models.BooleanField(db_column='Expertise', default=False)
+
+    class Meta:
+        db_table = 'TB_PersonagemPericia'
+        unique_together = (('id_personagem', 'nome'),)
+
+
+class TbPersonagemEscolha(models.Model):
+    """Slots genericos de pick: (pericia, opcao:<tipo>, idioma, lista definida, etc.)."""
+    id = models.AutoField(db_column='Id', primary_key=True)
+    id_personagem = models.ForeignKey('TbPersonagem', models.CASCADE, db_column='Id_Personagem', related_name='escolhas')
+    origem = models.CharField(db_column='Origem', max_length=150, help_text='Habilidade/traco que concedeu o pick.')
+    tipo = models.CharField(db_column='Tipo', max_length=60, help_text='Tipo do pick (pericia, opcao:metamagia, aspecto-selvagem...).')
+    slot = models.IntegerField(db_column='Slot', default=0)
+    id_opcao = models.ForeignKey('TbOpcaojogo', models.SET_NULL, db_column='Id_Opcao', blank=True, null=True)
+    valor = models.CharField(db_column='Valor', max_length=200, blank=True, null=True, help_text='Texto livre quando nao ha catalogo.')
+
+    class Meta:
+        db_table = 'TB_PersonagemEscolha'
+        unique_together = (('id_personagem', 'origem', 'tipo', 'slot'),)
+
+
+class TbPersonagemMagia(models.Model):
+    id = models.AutoField(db_column='Id', primary_key=True)
+    id_personagem = models.ForeignKey('TbPersonagem', models.CASCADE, db_column='Id_Personagem', related_name='magias')
+    id_magia = models.ForeignKey('TbMagia', models.SET_NULL, db_column='Id_Magia', blank=True, null=True)
+    nivel = models.IntegerField(db_column='Nivel', default=0)
+    nome = models.CharField(db_column='Nome', max_length=200)
+    preparada = models.BooleanField(db_column='Preparada', default=False)
+    sempre_preparada = models.BooleanField(db_column='SemprePreparada', default=False)
+    origem = models.CharField(db_column='Origem', max_length=100, blank=True, null=True)
+
+    class Meta:
+        db_table = 'TB_PersonagemMagia'
+
+
+class TbPersonagemTalento(models.Model):
+    id = models.AutoField(db_column='Id', primary_key=True)
+    id_personagem = models.ForeignKey('TbPersonagem', models.CASCADE, db_column='Id_Personagem', related_name='talentos')
+    id_talento = models.ForeignKey('TbTalento', models.SET_NULL, db_column='Id_Talento', blank=True, null=True)
+    categoria = models.CharField(db_column='Categoria', max_length=20, blank=True, null=True)
+    nivel = models.IntegerField(db_column='Nivel', blank=True, null=True)
+    nome = models.CharField(db_column='Nome', max_length=150)
+    detalhes = models.CharField(db_column='Detalhes', max_length=200, blank=True, null=True)
+
+    class Meta:
+        db_table = 'TB_PersonagemTalento'
+
+
+class TbPersonagemProficiencia(models.Model):
+    id = models.AutoField(db_column='Id', primary_key=True)
+    id_personagem = models.ForeignKey('TbPersonagem', models.CASCADE, db_column='Id_Personagem', related_name='proficiencias')
+    tipo = models.CharField(db_column='Tipo', max_length=20, help_text='idioma / ferramenta / arma / armadura')
+    nome = models.CharField(db_column='Nome', max_length=100)
+    origem = models.CharField(db_column='Origem', max_length=100, blank=True, null=True)
+
+    class Meta:
+        db_table = 'TB_PersonagemProficiencia'
+
+
+class TbPersonagemItem(models.Model):
+    id = models.AutoField(db_column='Id', primary_key=True)
+    id_personagem = models.ForeignKey('TbPersonagem', models.CASCADE, db_column='Id_Personagem', related_name='inventario')
+    qtd = models.IntegerField(db_column='Qtd', default=1)
+    nome = models.CharField(db_column='Nome', max_length=200)
+    custo = models.CharField(db_column='Custo', max_length=30, blank=True, null=True)
+    peso = models.CharField(db_column='Peso', max_length=20, blank=True, null=True)
+    equipado = models.BooleanField(db_column='Equipado', default=False)
+    sintonizado = models.BooleanField(db_column='Sintonizado', default=False)
+
+    class Meta:
+        db_table = 'TB_PersonagemItem'
+
+
+class TbPersonagemPersonalidade(models.Model):
+    id = models.AutoField(db_column='Id', primary_key=True)
+    id_personagem = models.ForeignKey('TbPersonagem', models.CASCADE, db_column='Id_Personagem', related_name='personalidade')
+    tipo = models.CharField(db_column='Tipo', max_length=20, help_text='traco / ideal / vinculo / defeito')
+    texto = models.TextField(db_column='Texto')
+
+    class Meta:
+        db_table = 'TB_PersonagemPersonalidade'
+
+
+class TbPersonagemRecurso(models.Model):
+    """Contadores de recurso (usos de Furia, Ki, etc.) — maximo costuma ser derivado, atual e o gasto."""
+    id = models.AutoField(db_column='Id', primary_key=True)
+    id_personagem = models.ForeignKey('TbPersonagem', models.CASCADE, db_column='Id_Personagem', related_name='recursos')
+    nome = models.CharField(db_column='Nome', max_length=100)
+    atual = models.IntegerField(db_column='Atual', default=0)
+    maximo = models.IntegerField(db_column='Maximo', default=0)
+
+    class Meta:
+        db_table = 'TB_PersonagemRecurso'
