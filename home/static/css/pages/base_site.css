@@ -263,3 +263,100 @@ textarea.bonfire-markdown,
     border-top: 1px solid var(--border-color);
     box-shadow: 0 -8px 24px rgba(0,0,0,.35);
 }
+
+/* =====================================================================
+   ERGONOMIA DE EDIÇÃO (inlines) — navegação mais prática nos bancos
+   O tema escuro deixava cada linha de inline gigante (textarea de 180px)
+   e desalinhada. Aqui compactamos os inlines, damos rolagem horizontal
+   às tabelas largas e fixamos o cabeçalho das colunas.
+   ===================================================================== */
+
+/* 1. Textareas dentro de inlines ficam compactos (o de 180px vale só no
+      formulário principal, p/ lore). Continuam redimensionáveis. */
+.inline-group .tabular td textarea,
+.inline-group .tabular td .vLargeTextField,
+.inline-related.tabular td textarea,
+.inline-related.tabular td .vLargeTextField {
+    min-height: 56px;
+    height: 56px;
+    line-height: 1.4;
+}
+
+/* 2. Tabelas de inline largas (muitos campos) rolam em vez de quebrar. */
+.inline-group .tabular {
+    overflow-x: auto;
+}
+.inline-group .tabular > fieldset,
+.inline-group .tabular table {
+    min-width: 100%;
+}
+
+/* 3. Células do inline alinhadas ao topo e mais densas. */
+.inline-group .tabular td,
+.inline-group .tabular th {
+    vertical-align: top;
+    padding: 8px 10px;
+}
+.inline-group .tabular input[type=text],
+.inline-group .tabular select,
+.inline-group .tabular .vTextField {
+    min-width: 8ch;
+}
+
+/* 4. A coluna "original" (repr do objeto + link Change) deixa de esticar
+      vazia: largura mínima, no topo, em destaque suave. */
+.inline-group .tabular td.original {
+    width: 1%;
+    white-space: nowrap;
+    padding-top: 12px;
+}
+.inline-group .tabular td.original p {
+    margin: 0;
+    font-weight: 600;
+    color: var(--body-loud-color);
+}
+
+/* 5. Cabeçalho das colunas do inline fica fixo ao rolar a página. */
+.inline-group .tabular thead th {
+    position: sticky;
+    top: 105px; /* abaixo do header (64) + breadcrumbs */
+    z-index: 5;
+    background: #151517;
+    border-bottom: 1px solid var(--border-color);
+    white-space: nowrap;
+}
+
+/* 6. Zebra + hover nas linhas do inline para acompanhar visualmente. */
+.inline-group .tabular tr.form-row:nth-child(even) > td {
+    background: rgba(255, 255, 255, .015);
+}
+.inline-group .tabular tr.form-row:hover > td {
+    background: var(--selected-bg);
+}
+
+/* 7. Widgets de FK relacionada (add/change/view) mais compactos e alinhados. */
+.related-widget-wrapper {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+.related-widget-wrapper-link {
+    opacity: .8;
+}
+.related-widget-wrapper-link:hover {
+    opacity: 1;
+}
+
+/* 8. Cabeçalho de inline stacked: separação clara entre objetos. */
+.inline-group .inline-related h3 {
+    background: #151517;
+    border-bottom: 1px solid var(--border-color);
+    padding: 8px 12px;
+    font-weight: 700;
+}
+
+/* 9. Botão "adicionar outro" do inline mais visível. */
+.inline-group .add-row a {
+    font-weight: 700;
+}

@@ -25,7 +25,7 @@
         <div class="race-hero-body">
           <h1 data-race-title class="race-hero-title font-rpg">{{ raca.nome }}</h1>
           {% if raca.tagline %}
-          <p data-race-tagline class="race-hero-tagline">"{{ raca.tagline }}"</p>
+          <p data-race-tagline class="race-hero-tagline">"{{ raca.tagline|cut:'*'|cut:'"' }}"</p>
           {% endif %}
         </div>
       </header>
