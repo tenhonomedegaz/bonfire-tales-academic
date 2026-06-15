@@ -130,32 +130,27 @@
 
         <!-- TAB 1: LORE -->
         <div id="tab-content-lore" class="tab-pane active">
-          <div id="baseRaceLore" class="race-lore-accordions">
+          <div id="baseRaceLore" class="h1-section-group race-lore-group">
+            <div class="subtopic-nav flex flex-wrap gap-2 mb-5">
+              {% if raca.lore_presentation %}<button type="button" class="subtopic-btn" data-group-id="baseRaceLore" data-subtopic-toggle="visao-geral">Visão Geral</button>{% endif %}
+              {% if raca.lore_roleplay %}<button type="button" class="subtopic-btn" data-group-id="baseRaceLore" data-subtopic-toggle="roleplay">Como Interpretar</button>{% endif %}
+              {% if raca.lore_society %}<button type="button" class="subtopic-btn" data-group-id="baseRaceLore" data-subtopic-toggle="sociedade">Sociedade e Cultura</button>{% endif %}
+            </div>
+
             {% if raca.lore_presentation %}
-            <details class="lore-accordion" open>
-              <summary>Visão Geral</summary>
-              <div class="lore-accordion-body">
-                <div class="bonfire-markdown" data-markdown-source>{{ raca.lore_presentation|default:''|escape }}</div>
-              </div>
-            </details>
+            <div class="h1-group-panel race-lore-panel" data-sub-slug="visao-geral">
+              <div class="bonfire-markdown" data-markdown-source>{{ raca.lore_presentation|default:''|escape }}</div>
+            </div>
             {% endif %}
-
             {% if raca.lore_roleplay %}
-            <details class="lore-accordion">
-              <summary>Como Interpretar (Roleplay)</summary>
-              <div class="lore-accordion-body">
-                <div class="bonfire-markdown" data-markdown-source>{{ raca.lore_roleplay|default:''|escape }}</div>
-              </div>
-            </details>
+            <div class="h1-group-panel race-lore-panel" data-sub-slug="roleplay">
+              <div class="bonfire-markdown" data-markdown-source>{{ raca.lore_roleplay|default:''|escape }}</div>
+            </div>
             {% endif %}
-
             {% if raca.lore_society %}
-            <details class="lore-accordion">
-              <summary>Sociedade e Cultura</summary>
-              <div class="lore-accordion-body">
-                <div class="bonfire-markdown" data-markdown-source>{{ raca.lore_society|default:''|escape }}</div>
-              </div>
-            </details>
+            <div class="h1-group-panel race-lore-panel" data-sub-slug="sociedade">
+              <div class="bonfire-markdown" data-markdown-source>{{ raca.lore_society|default:''|escape }}</div>
+            </div>
             {% endif %}
 
             {% if not raca.lore_presentation and not raca.lore_roleplay and not raca.lore_society %}
@@ -165,30 +160,27 @@
 
           <!-- Lore de Essências -->
           {% for ess in essencias %}
-          <div data-essencia-lore="{{ ess.slug }}" class="race-lore-accordions hidden">
+          <div data-essencia-lore="{{ ess.slug }}" id="lore-ess-{{ ess.slug }}" class="h1-section-group race-lore-group hidden">
+            <div class="subtopic-nav flex flex-wrap gap-2 mb-5">
+              {% if ess.lore_presentation %}<button type="button" class="subtopic-btn" data-group-id="lore-ess-{{ ess.slug }}" data-subtopic-toggle="apresentacao">Ambientação</button>{% endif %}
+              {% if ess.lore_roleplay %}<button type="button" class="subtopic-btn" data-group-id="lore-ess-{{ ess.slug }}" data-subtopic-toggle="roleplay">Roleplay</button>{% endif %}
+              {% if ess.lore_society %}<button type="button" class="subtopic-btn" data-group-id="lore-ess-{{ ess.slug }}" data-subtopic-toggle="sociedade">Sociedade</button>{% endif %}
+            </div>
+
             {% if ess.lore_presentation %}
-            <details class="lore-accordion lore-accordion--essence" open>
-              <summary>Ambientação da Essência: {{ ess.nome }}</summary>
-              <div class="lore-accordion-body">
-                <div class="bonfire-markdown" data-markdown-source>{{ ess.lore_presentation|default:''|escape }}</div>
-              </div>
-            </details>
+            <div class="h1-group-panel race-lore-panel" data-sub-slug="apresentacao">
+              <div class="bonfire-markdown" data-markdown-source>{{ ess.lore_presentation|default:''|escape }}</div>
+            </div>
             {% endif %}
             {% if ess.lore_roleplay %}
-            <details class="lore-accordion lore-accordion--essence">
-              <summary>Roleplay: {{ ess.nome }}</summary>
-              <div class="lore-accordion-body">
-                <div class="bonfire-markdown" data-markdown-source>{{ ess.lore_roleplay|default:''|escape }}</div>
-              </div>
-            </details>
+            <div class="h1-group-panel race-lore-panel" data-sub-slug="roleplay">
+              <div class="bonfire-markdown" data-markdown-source>{{ ess.lore_roleplay|default:''|escape }}</div>
+            </div>
             {% endif %}
             {% if ess.lore_society %}
-            <details class="lore-accordion lore-accordion--essence">
-              <summary>Sociedade: {{ ess.nome }}</summary>
-              <div class="lore-accordion-body">
-                <div class="bonfire-markdown" data-markdown-source>{{ ess.lore_society|default:''|escape }}</div>
-              </div>
-            </details>
+            <div class="h1-group-panel race-lore-panel" data-sub-slug="sociedade">
+              <div class="bonfire-markdown" data-markdown-source>{{ ess.lore_society|default:''|escape }}</div>
+            </div>
             {% endif %}
           </div>
           {% endfor %}

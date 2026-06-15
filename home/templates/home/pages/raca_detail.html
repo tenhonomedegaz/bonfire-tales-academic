@@ -4,7 +4,7 @@
 {% block main_class %}flex-1 w-full py-4{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/pages/raca_detail.css' %}?v=2">
+<link rel="stylesheet" href="{% static 'css/pages/raca_detail.css' %}?v=3">
 
 {% endblock %}
 
@@ -152,6 +152,17 @@
 
     const container = document.getElementById('raceDetailContainer');
     if (!container) return;
+
+    // 0. Lore: garante o primeiro botão/painel ativo em cada grupo de subtópicos
+    //    (o clique é tratado pelo handler global de markdown.js)
+    container.querySelectorAll('.race-lore-group').forEach(group => {
+      if (!group.querySelector('.subtopic-btn.is-active')) {
+        group.querySelector('.subtopic-btn')?.classList.add('is-active');
+      }
+      if (!group.querySelector('.h1-group-panel.is-visible')) {
+        group.querySelector('.h1-group-panel')?.classList.add('is-visible');
+      }
+    });
 
     // 1. Tab Switching Setup
     const tabButtons = container.querySelectorAll('[data-tab-btn]');
