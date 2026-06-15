@@ -281,12 +281,12 @@
   }
   .selection-btn:hover {
     border-color: var(--muted);
-    background: var(--bg2);
+    background: var(--bg2, #18181B);
   }
   .selection-btn.is-selected {
     border-color: var(--ember);
     box-shadow: 0 0 0 1px var(--ember);
-    background: var(--bg2);
+    background: var(--bg2, #18181B);
   }
   .selection-btn.essence-btn.is-selected {
     border-color: #a855f7; /* purple-500 */
@@ -329,12 +329,12 @@
   .selection-btn.is-selected .btn-check {
     background: var(--ember);
     border-color: var(--ember);
-    box-shadow: inset 0 0 0 2px var(--bg2);
+    box-shadow: inset 0 0 0 2px var(--bg2, #18181B);
   }
   .selection-btn.essence-btn.is-selected .btn-check {
     background: #a855f7;
     border-color: #a855f7;
-    box-shadow: inset 0 0 0 2px var(--bg2);
+    box-shadow: inset 0 0 0 2px var(--bg2, #18181B);
   }
 
   .level-toggle {
@@ -360,10 +360,521 @@
   }
 
   .talent-card-v2 {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: var(--bg2, #18181B);
+    border: 1px solid var(--stroke);
+    border-radius: 6px;
+    padding: 1.25rem;
     transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
   }
   .talent-card-v2:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
     border-color: var(--muted);
+  }
+
+  /* ======================================================
+     NOVA DISPOSIÇÃO DA PÁGINA DE RAÇA (hero + ficha + abas)
+     Mantém a paleta (--ember/--flame/--spark/purple) e a fonte
+     'font-rpg' (Cinzel); apenas reorganiza os elementos.
+     ====================================================== */
+
+  /* --- Hero / cabeçalho --- */
+  .race-hero {
+    display: flex;
+    align-items: flex-start;
+    gap: 1.25rem;
+    background: var(--bg1);
+    border: 1px solid var(--stroke);
+    border-radius: 10px;
+    padding: 1.25rem;
+    margin-bottom: 1.25rem;
+  }
+  .race-hero-media {
+    flex-shrink: 0;
+  }
+  .race-hero-thumb {
+    width: 132px;
+    height: 132px;
+    border-radius: 8px;
+    border: 1px solid var(--stroke);
+    background-color: var(--bg0);
+    background-size: cover;
+    background-position: center;
+    transition: background-image 0.4s ease;
+  }
+  .race-hero-body {
+    min-width: 0;
+    flex: 1;
+  }
+  .race-hero-title {
+    font-size: clamp(1.9rem, 4vw, 2.6rem);
+    font-weight: 800;
+    line-height: 1.05;
+    color: var(--spark);
+    margin: 0;
+  }
+  .race-hero-tagline {
+    margin: 0.65rem 0 0;
+    padding-left: 0.9rem;
+    border-left: 2px solid var(--ember);
+    font-style: italic;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  .race-hero-desc {
+    margin-top: 0.85rem;
+    font-size: 0.93rem;
+    line-height: 1.6;
+    color: var(--text);
+  }
+
+  /* --- Ficha rápida (stats) --- */
+  .race-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.85rem;
+    margin-bottom: 1.25rem;
+  }
+  @media (min-width: 720px) {
+    .race-stats-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  }
+  .race-stat-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    background: var(--bg1);
+    border: 1px solid var(--stroke);
+    border-radius: 8px;
+    padding: 0.85rem 1rem;
+  }
+  .race-stat-label {
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ember);
+  }
+  .race-stat-value {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  /* --- Divergência ancestral (seletores) --- */
+  .race-divergence {
+    background: var(--bg1);
+    border: 1px solid var(--ember);
+    border-radius: 10px;
+    padding: 1.25rem 1.35rem;
+    margin-bottom: 1.5rem;
+  }
+  .race-divergence-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--spark);
+    margin: 0;
+  }
+  .race-divergence-desc {
+    margin: 0.4rem 0 1rem;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+  .race-divergence-selects {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+  }
+  @media (min-width: 640px) {
+    .race-divergence-selects { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  .race-select-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+  .race-select-group label {
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .race-select-group label.essence-label {
+    color: #c084fc; /* purple-400 */
+  }
+  .race-select-group select {
+    width: 100%;
+    background: var(--bg0);
+    border: 1px solid var(--stroke);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 0.9rem;
+    padding: 0.65rem 0.7rem;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.2s ease;
+  }
+  .race-select-group select:focus { border-color: var(--ember); }
+  .race-select-group:has(.essence-label) select:focus { border-color: #a855f7; }
+  .race-select-group select.is-disabled {
+    color: var(--muted);
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .race-showing {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-top: 1rem;
+  }
+  .race-showing-label {
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+  .race-showing-badge {
+    display: inline-block;
+    background: rgba(247, 177, 19, 0.12); /* spark tint */
+    border: 1px solid var(--spark);
+    border-radius: 6px;
+    color: var(--spark);
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    padding: 0.3rem 0.75rem;
+  }
+
+  /* --- Barra de abas --- */
+  .race-tabs {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-bottom: 1px solid var(--stroke);
+    margin-bottom: 1.5rem;
+    padding-bottom: 0;
+    overflow-x: auto;
+  }
+
+  /* --- Aba Lore: acordeões --- */
+  .race-lore-accordions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    max-width: 56rem;
+  }
+  .lore-accordion {
+    background: var(--bg1);
+    border: 1px solid var(--stroke);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .lore-accordion[open] {
+    border-color: var(--ember);
+  }
+  .lore-accordion--essence[open] {
+    border-color: rgba(168, 85, 247, 0.5);
+  }
+  .lore-accordion > summary {
+    list-style: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.85rem 1.1rem;
+    font-family: 'Cinzel', serif;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ember);
+    user-select: none;
+  }
+  .lore-accordion--essence > summary { color: #c084fc; }
+  .lore-accordion > summary::-webkit-details-marker { display: none; }
+  .lore-accordion > summary::after {
+    content: "";
+    width: 9px;
+    height: 9px;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: rotate(45deg);
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+    margin-bottom: 3px;
+  }
+  .lore-accordion[open] > summary::after {
+    transform: rotate(-135deg);
+    margin-bottom: -3px;
+  }
+  .lore-accordion-body {
+    padding: 0 1.1rem 1.1rem;
+    border-top: 1px solid var(--stroke);
+  }
+  .lore-accordion-body .bonfire-markdown {
+    padding-top: 0.9rem;
+    font-size: 0.88rem;
+    line-height: 1.65;
+    color: var(--muted);
+  }
+
+  /* --- Aba Regras: seções de traços --- */
+  .race-trait-section { margin-bottom: 2rem; }
+  .race-trait-section-title {
+    font-family: 'Cinzel', serif;
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0 0 0.85rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid var(--stroke);
+  }
+  .race-trait-section-title--base { color: var(--flame); }
+  .race-trait-section-title--lineage { color: var(--ember); }
+  .race-trait-section-title--essence { color: #c084fc; }
+  .race-trait-section-desc {
+    font-size: 0.85rem;
+    font-style: italic;
+    line-height: 1.6;
+    color: var(--muted);
+    margin: 0 0 1rem;
+  }
+  .race-trait-list {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.85rem;
+  }
+  @media (min-width: 860px) {
+    .race-trait-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  .race-trait-card {
+    overflow: hidden;
+    background: var(--bg2, #18181B);
+    border: 1px solid var(--stroke);
+    border-radius: 6px;
+  }
+  .race-trait-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.55rem 0.85rem;
+    border-bottom: 1px solid var(--stroke);
+  }
+  .race-trait-card-head h5 {
+    font-family: 'Cinzel', serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    margin: 0;
+    line-height: 1.25;
+  }
+  .race-trait-card-head--base { border-bottom-color: rgba(210, 23, 23, 0.3); background: rgba(210, 23, 23, 0.06); }
+  .race-trait-card-head--base h5 { color: var(--flame); }
+  .race-trait-card-head--lineage { border-bottom-color: rgba(247, 177, 19, 0.3); background: rgba(247, 177, 19, 0.06); }
+  .race-trait-card-head--lineage h5 { color: var(--spark); }
+  .race-trait-card-head--essence { border-bottom-color: rgba(168, 85, 247, 0.3); background: rgba(168, 85, 247, 0.06); }
+  .race-trait-card-head--essence h5 { color: #c084fc; }
+  .race-trait-edit { flex-shrink: 0; }
+  .race-trait-card-body {
+    padding: 0.85rem;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: var(--muted);
+  }
+
+  .race-trait-cta {
+    margin-top: 1rem;
+    padding: 1rem;
+    text-align: center;
+    background: var(--bg2, #18181B);
+    border: 1px solid var(--stroke);
+    border-radius: 6px;
+  }
+  .race-trait-cta--essence {
+    background: rgba(168, 85, 247, 0.06);
+    border-color: rgba(168, 85, 247, 0.2);
+  }
+  .race-trait-cta p {
+    margin: 0 0 0.6rem;
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+  .race-trait-cta-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    background: var(--ember);
+    color: #fff;
+    font-size: 0.78rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+  .race-trait-cta-btn:hover { background: var(--flame); }
+  .race-trait-cta-btn--essence { background: #9333ea; }
+  .race-trait-cta-btn--essence:hover { background: #7e22ce; }
+
+  /* --- Aba Talentos --- */
+  .race-talents-guide {
+    position: relative;
+    margin-bottom: 2rem;
+    padding: 1rem;
+    background: var(--bg1);
+    border: 1px solid var(--stroke);
+    border-radius: 6px;
+    font-size: 0.88rem;
+    color: var(--muted);
+  }
+  .race-talents-guide strong {
+    display: block;
+    margin-bottom: 0.25rem;
+    color: var(--text);
+  }
+  .race-talents-alert {
+    display: block;
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--stroke);
+    font-weight: 700;
+  }
+  .race-talents-alert--essence { color: #c084fc; }
+  .race-talents-alert--lineage { color: var(--ember); }
+  .race-talents-alert--none { color: var(--muted); }
+
+  .race-level-filter {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+    padding: 0.5rem;
+    background: rgba(0, 0, 0, 0.18);
+    border: 1px solid var(--stroke);
+    border-radius: 6px;
+  }
+  .race-level-filter-label {
+    padding: 0 0.5rem;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .race-talent-levels {
+    display: flex;
+    flex-direction: column;
+    gap: 2.5rem;
+  }
+  .race-talent-level-head {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  .race-talent-level-tag {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text);
+    background: var(--bg1);
+    border: 1px solid var(--stroke);
+    border-radius: 6px;
+    padding: 0.25rem 0.85rem;
+  }
+  .race-talent-level-rule {
+    flex: 1;
+    height: 1px;
+    background: var(--stroke);
+  }
+  .race-talent-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.25rem;
+  }
+  @media (min-width: 860px) {
+    .race-talent-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+
+  .talent-card-badge {
+    position: absolute;
+    top: 0;
+    right: 0;
+    padding: 0.25rem 0.6rem;
+    font-size: 0.6rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    background: var(--bg0);
+    border-left: 1px solid var(--stroke);
+    border-bottom: 1px solid var(--stroke);
+    border-bottom-left-radius: 6px;
+    z-index: 2;
+  }
+  .talent-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin: -1.25rem -1.25rem 1rem;
+    padding: 0.65rem 5.5rem 0.65rem 1rem;
+    background: var(--bg1);
+    border-bottom: 1px solid var(--stroke);
+  }
+  .talent-card-head h5 {
+    font-family: 'Cinzel', serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--text);
+    margin: 0;
+  }
+  .talent-card-edit { flex-shrink: 0; }
+  .talent-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    flex: 1;
+  }
+  .talent-card-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+  .talent-card-tag {
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    background: var(--bg0);
+    border: 1px solid var(--stroke);
+    color: var(--muted);
+  }
+  .talent-card-prereq {
+    font-size: 0.78rem;
+    color: var(--muted);
+    border-left: 2px solid rgba(210, 23, 23, 0.6);
+    background: rgba(210, 23, 23, 0.06);
+    border-radius: 0 4px 4px 0;
+    padding: 0.25rem 0.6rem;
+  }
+  .talent-card-desc {
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: var(--muted);
+  }
+
+  .race-empty-note {
+    font-size: 0.8rem;
+    font-style: italic;
+    color: var(--muted);
   }

@@ -111,8 +111,20 @@
 </div>
 
 <script>
+  // Remove indentação acidental que o marked.js interpretaria como bloco de
+  // código (texto monoespaçado em caixa). Mantém recuo pequeno só para
+  // sub-itens de lista, padronizando a formatação de traços e talentos.
+  function dedentMarkdown(value) {
+    return String(value || '').split('\n').map(line => {
+      const indent = (line.match(/^[ \t]*/) || [''])[0];
+      if (!/\t/.test(indent) && indent.length < 4) return line;
+      const rest = line.slice(indent.length);
+      return /^([-*+]\s|\d+[.)]\s)/.test(rest) ? '  ' + rest : rest;
+    }).join('\n');
+  }
+
   function renderMarkdownToHtml(value) {
-    const cleanValue = String(value || '').trim();
+    const cleanValue = dedentMarkdown(String(value || '').trim());
     if (typeof renderBonfireMarkdown === 'function') return renderBonfireMarkdown(cleanValue);
     const source = typeof normalizeMarkdown === 'function' ? normalizeMarkdown(cleanValue) : cleanValue;
     if (window.marked && typeof window.marked.parse === 'function') return applyMarkdownColorsToHtml(marked.parse(source, { breaks: true, gfm: true }));
@@ -120,7 +132,10 @@
   }
 
   function renderMarkdownElement(element, raw) {
-    const trimmed = String(raw || '').trim();
+    // Guarda a fonte já "dedentada" para que o renderizador global de
+    // markdown.js (que roda novamente no DOMContentLoaded a partir de
+    // dataset.markdownRaw) não reintroduza blocos de código.
+    const trimmed = dedentMarkdown(String(raw || '').trim());
     element.dataset.markdownRaw = trimmed;
     element.innerHTML = renderMarkdownToHtml(trimmed);
   }
@@ -247,6 +262,12 @@
       if (previewImg) previewImg.style.backgroundImage = `url('${imgUrl}')`;
       if (previewTitle) previewTitle.textContent = selectionName;
       if (previewLabel) previewLabel.textContent = labelText;
+
+      // "Mostrando:" chip na Divergência Ancestral
+      const showingBadge = document.getElementById('raceShowingBadge');
+      if (showingBadge) {
+        showingBadge.textContent = (activeEssence || activeLineage) ? selectionName : 'Raça base';
+      }
 
       // Update specific traits lists
       container.querySelectorAll('[data-linhagem-traits]').forEach(el => {
