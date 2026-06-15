@@ -84,6 +84,7 @@ class TbClasse(models.Model):
     multiclass_armas = models.TextField(db_column='MulticlassArmas', blank=True, null=True)
     multiclass_ferramentas = models.TextField(db_column='MulticlassFerramentas', blank=True, null=True)
     multiclass_armaduras = models.TextField(db_column='MulticlassArmaduras', blank=True, null=True)
+    tags_json = models.JSONField(db_column='TagsJSON', blank=True, default=list, help_text='Tag da classe (hit-dice, saves-prof, skills-lvl1, subclass-choices, asi-choices, multiclass...).')
 
 
 
@@ -200,9 +201,11 @@ class TbRecursoclasse(models.Model):
 
     slug = models.CharField(db_column='Slug')  
 
-    nivel = models.IntegerField(db_column='Nivel')  
+    nivel = models.IntegerField(db_column='Nivel', blank=True, null=True)
 
-    valor = models.CharField(db_column='Valor', blank=True, null=True)  
+    valor = models.CharField(db_column='Valor', blank=True, null=True)
+
+    valores_json = models.JSONField(db_column='ValoresJSON', blank=True, default=dict, help_text='Mapa nivel->valor, so os niveis onde o valor muda. Ex.: {"1":"2","5":"3"}.')
 
 
 

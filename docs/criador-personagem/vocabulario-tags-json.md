@@ -112,16 +112,20 @@ Aponta para algo **definido em outro lugar** — nunca uma string solta:
 
 Vincula a ativação a um **evento** ou a **outra habilidade**:
 
-- `trigger=ability{<nome>, classe:<slug>}` — "enquanto/quando a habilidade X estiver ativa" (ex.: `trigger=ability{furia, classe:barbaro}` = enquanto enfurecido).
-- `trigger=<evento>` — evento canônico abaixo.
+- `trigger=ability{<nome>, classe:<slug>}` — vincula a OUTRA habilidade (ex.: `trigger=ability{furia, classe:barbaro}`). Cobre tanto "enquanto X ativa" (com `while-active`) quanto "no momento que X ativa" (com `instant`). **Tudo que é específico de uma classe** (entrar em fúria, frenesi, dano dos espíritos…) vira referência a `ability{}`, NÃO um evento.
+- `trigger=<evento>` — evento **genérico do jogo** (vale pra qualquer personagem).
 
 A escolha de *sempre ativar / perguntar / perguntar quando muda o resultado*
 (estilo *chain* de Yu-Gi-Oh) é **implícita** a todo trigger — não há tag.
 
-**Eventos canônicos:** `enter-rage` · `first-attack` · `hit-melee` ·
+**Eventos canônicos (só os genéricos):** `first-attack` · `hit-melee` ·
 `crit-melee` · `hit-by-melee` · `drop-to-0` · `reduce-to-0` · `take-damage` ·
 `fail-save` · `initiative` · `turn-start` · `turn-end` ·
-`short-rest` · `long-rest` · `spirit-damage`.
+`short-rest` · `long-rest`.
+
+> `enter-rage`, `spirit-damage`, `frenesi` **não** são eventos — são específicos
+> demais. Use `trigger=ability{furia|frenesi|...}` (o `instant`/`while-active`
+> define se é "ao ativar" ou "enquanto ativo").
 
 ---
 
@@ -159,6 +163,28 @@ Um identificador resolvido contra o banco (substitui tags-slug redundantes):
 | `prereq=<ref>` | outra entidade/atributo | exige algo presente *(forma de atributo em revisão)* |
 
 ---
+
+## 6b. Tag da CLASSE (`TbClasse.tags_json`)
+
+A própria **classe** carrega uma tag com a metadata que o motor usa (substitui
+as colunas hoje vazias da `TbClasse`):
+
+```
+[ hit-dice:1d12,
+  saves-prof{str, con},
+  skills-lvl1{pick:N de [Atletismo, Intimidacao, ...]},
+  subclass-choices{3, 6, 10, 14, 18},
+  asi-choices{4, 8, 12, 16, 19},
+  multiclass-req{str>=13},
+  multiclass-prof{escudos, armas-simples, armas-marciais} ]
+```
+
+- `hit-dice:<dado>` — dado de vida; o PV deriva dele (§1.4 e §11).
+- `saves-prof{<attr>…}` — testes de resistência proficientes da classe.
+- `skills-lvl1{pick:N de […]}` — perícias que a classe concede no nível 1 (quantidade + lista).
+- `subclass-choices{…}` — níveis **DA classe** com característica de subclasse; o **primeiro** (ex.: 3) é onde se **escolhe** a subclasse (cada classe escolhe a sua → multiclasse pode ter várias subclasses).
+- `asi-choices{…}` — níveis com Incremento de Atributo/Talento.
+- `multiclass-req{…}` / `multiclass-prof{…}` — requisito e proficiências ao multiclassar.
 
 ## 7. Escolhas (`pick:`)
 

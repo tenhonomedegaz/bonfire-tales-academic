@@ -130,8 +130,11 @@ def _tracos_raciais(personagem):
 
 
 def _recursos(classes):
-    """Valor atual de cada recurso de classe: a maior linha com nível <= nível
-    da classe (inclui recursos de subclasse quando aplicável)."""
+    """Valor atual de cada recurso de classe para o nível da classe.
+
+    Lê o formato consolidado (`valores_json` = {nivel: valor}, pega o maior
+    nível <= nível da classe). Mantém fallback para linhas legadas ainda não
+    consolidadas (1 linha por nível)."""
     from .models import TbRecursoclasse
     from django.db.models import Q
     recursos = {}
@@ -140,12 +143,19 @@ def _recursos(classes):
         filtro = Q(id_classe=c.id_classe, id_subclasse__isnull=True)
         if c.id_subclasse_id and nivel >= 3:
             filtro |= Q(id_subclasse=c.id_subclasse)
-        qs = TbRecursoclasse.objects.filter(filtro, nivel__lte=nivel).order_by('nome', 'nivel')
-        atual = {}
-        for r in qs:
-            atual[r.nome] = r.valor  # a última (maior nível <= nivel) vence
-        for nome, valor in atual.items():
-            recursos[f'{c.id_classe.nome}: {nome}'] = valor
+        legado = {}  # nome -> (melhor_nivel, valor) para linhas nao consolidadas
+        for r in TbRecursoclasse.objects.filter(filtro):
+            chave = f'{c.id_classe.nome}: {r.nome}'
+            vj = r.valores_json or {}
+            if vj:
+                niveis = sorted(int(k) for k in vj if int(k) <= nivel)
+                if niveis:
+                    recursos[chave] = vj[str(niveis[-1])]
+            elif r.nivel is not None and r.nivel <= nivel:
+                if r.nome not in legado or r.nivel > legado[r.nome][0]:
+                    legado[r.nome] = (r.nivel, r.valor)
+        for nome, (_lv, val) in legado.items():
+            recursos[f'{c.id_classe.nome}: {nome}'] = val
     return recursos
 
 
