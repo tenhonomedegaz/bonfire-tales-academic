@@ -1,0 +1,618 @@
+Relatorio de diferencas entre as planilhas de itens
+===================================================
+
+Planilha de slots: itemsbonfasporslot.xlsx
+Planilha de loja: Loja de Itens - Bonfire Tales (1).xlsx
+
+Linhas na planilha de slots: 1381
+Linhas na planilha de loja: 949
+Itens casados por nome ingles: 865
+Itens apenas na planilha de slots: 506
+Itens apenas na planilha de loja: 79
+Linhas geradas em items_magicos_import_final.xlsx: 1460
+
+Status das linhas geradas:
+- pronto: 875
+- revisar_manual: 585
+
+Itens presentes apenas na planilha de slots
+--------------------------------------------
+- +1 Weapon (no damage) -> +1 Arma (sem dano)
+- +2 Rod of the Pact Keeper -> +2 Varinha do Guardião do Pacto
+- +2 Weapon (no damage) -> +2 Arma (sem dano)
+- +3 Weapon (no damage) -> +3 Arma (sem dano)
+- Adze of Annam -> Adze de Annam
+- Akmon, Hammer of Purphoros -> Akmon, Martelo de Purphoros
+- Alchemy Jug (Blue) -> Jarro de Alquimia (Azul)
+- Alchemy Jug (Orange) -> Jarro de Alquimia (Laranja)
+- Ammunition of Slaying -> Munição para Matar
+- Apparatus of Kwalish -> Aparelho de Kwalish
+- Arcanaloth's Music Box -> Caixa de Música de Arcanaloth
+- Armor of Resistance -> Armadura da Resistência
+- Armor of Vulnerability -> Armadura da Vulnerabilidade
+- Armor of Vulnerability (Bludgeoning) -> Armadura da Vulnerabilidade (Contundente)
+- Armor of Vulnerability (Piercing) -> Armadura da Vulnerabilidade (Perfurante)
+- Armor of Vulnerability (Slashing) -> Armadura da Vulnerabilidade (Corte)
+- Axe of the Dwarvish Lords -> Machado dos Senhores Anões
+- Azorius Guild Signet -> Selo da Guilda Azorius
+- Azorius Keyrune -> Chave Azorius
+- Azuredge -> Azuredge
+- Baba Yaga's Mortar and Pestle -> Pilão e almofariz da Baba Yaga
+- Baba Yaga's Pestle -> Pilão da Baba Yaga
+- Bag of Beans -> Saco de Feijões
+- Bag of Tricks, Gray -> Saco de Truques, Cinza
+- Bag of Tricks, Rust -> Saco de Truques, Ferrugem
+- Bag of Tricks, Tan -> Saco de Truques, Tan
+- Balance Card -> Cartão de saldo
+- Battle Standard of Infernal Power -> Estandarte de Batalha do Poder Infernal
+- Belt of Cloud Giant Strength -> Cinto da Força do Gigante das Nuvens
+- Belt of Giant Strength -> Cinto de Força Gigante
+- Berserker Axe -> Machado Berserker
+- Bigby's Beneficent Bracelet -> Pulseira Benéfica de Bigby
+- Black Crystal Tablet -> Tablete de Cristal Preto
+- Blackrazor -> Blackrazor
+- Blackstaff -> Blackstaff
+- Blade of Avernus -> Lâmina de Avernus
+- Blade of Broken Mirrors -> Lâmina de Espelhos Quebrados
+- Blade of Broken Mirrors (Awakened) -> Lâmina dos Espelhos Quebrados (Desperta)
+- Blade of Broken Mirrors (Dormant) -> Lâmina de Espelhos Quebrados (Adormecida)
+- Blade of Broken Mirrors (Exalted) -> Lâmina dos Espelhos Quebrados (Exaltado)
+- Blade of the Medusa -> Lâmina da Medusa
+- Blood Spear -> Lança de Sangue
+- Bloodseeker Ammunition -> Munição Bloodseeker
+- Bob -> Prumo
+- Bonecounter -> Contador de Ossos
+- Book of Exalted Deeds -> Livro dos Feitos Exaltados
+- Book of Vile Darkness -> Livro da Escuridão Vil
+- Book of Vile Darkness (Variant) -> Livro da Escuridão Vil (Variante)
+- Bookmark -> Adicionar aos favoritos
+- Boots of the Winterlands -> Botas das Terras de Inverno
+- Boros Guild Signet -> Selo da Guilda Boros
+- Boros Keyrune -> Chave Boros
+- Bowl of Commanding Water Elementals -> Tigela de Elementais da Água Comandantes
+- Bracelet of Rock Magic -> Pulseira da Magia da Rocha
+- Bracer of Flying Daggers -> Bracelete de Adagas Voadoras
+- Brazier of Commanding Fire Elementals -> Braseiro de Comando dos Elementais do Fogo
+- Calimemnon Crystal -> Cristal Calimemnon
+- Candle Mace -> Vela Mace
+- Cap of Vanishing -> Capa do Desaparecimento
+- Carpet of Flying, 3 ft. × 5 ft. -> Tapete Voador, 90 cm × 150 cm.
+- Carpet of Flying, 4 ft. × 6 ft. -> Tapete Voador, 1,2 m × 1,8 m.
+- Carpet of Flying, 5 ft. × 7 ft. -> Tapete Voador, 1,5 m × 2,1 m.
+- Carpet of Flying, 6 ft. × 9 ft. -> Tapete Voador, 1,83 m × 2,74 m
+- Censer of Controlling Air Elementals -> Incensário para Controlar Elementais do Ar
+- Chime of Opening -> Sino da Abertura
+- Chromatic Rose -> Rosa Cromática
+- Chronolometer -> Cronômetro
+- Clockwork Dog -> Cão Mecânico
+- Coin of Decisionry -> Moeda de Decisão
+- Comet Card -> Cartão Cometa
+- Command Amulet -> Amuleto de Comando
+- Conch of Teleportation -> Concha de Teletransporte
+- Constantori's Portrait -> Retrato de Constantori
+- Crook of Rao -> Ladrão de Rao
+- Crown of Horns -> Coroa de Chifres
+- Crown of Lies -> Coroa de Mentiras
+- Crusader's Shortsword -> Espada curta do cruzado
+- Crystal Ball (Legendary Version) -> Bola de Cristal (Versão Lendária)
+- Crystal Ball of Mind Reading -> Bola de Cristal da Leitura da Mente
+- Crystal Ball of Telepathy -> Bola de Cristal da Telepatia
+- Crystal Ball of True Seeing -> Bola de Cristal da Visão Verdadeira
+- Cubic Gate -> Portão Cúbico
+- Cursed Luckstone -> Pedra da Sorte Amaldiçoada
+- Dagger of Guitar Solos -> Adaga dos Solos de Guitarra
+- Dancing Monkey Fruit -> Fruta do Macaco Dançante
+- Danoth's Visor -> Viseira de Danoth
+- Daoud's Wondrous Lanthorn -> A maravilhosa lanterna de Daoud
+- Dawnbringer -> Portador da Aurora
+- Deck of Many More Things -> Baralho de Muitas Outras Coisas
+- Deck of Many Things -> Baralho de Muitas Coisas
+- Deck of Several Things -> Baralho de várias coisas
+- Deck of Wonder -> Baralho das Maravilhas
+- Dekella, Bident of Thassa -> Dekella, Bidente de Thassa
+- Demon Skin -> Pele Demoníaca
+- Demonomicon of Iggwilv -> Demonomicon de Iggwilva
+- Devastation Orb -> Orbe da Devastação
+- Dimir Guild Signet -> Selo da Guilda Dimir
+- Docent -> Docente
+- Documancy Satchel -> Pasta para Documentos
+- Donjon Card -> Cartão Donjon
+- Draakhorn -> Draakhorn
+- Draconic Longsword -> Espada longa dracônica
+- Dragon Sensing Longsword -> Espada Longa de Detecção de Dragões
+- Dragon Thighbone Club -> Clube do Coxofemoral do Dragão
+- Dragon-Touched Focus -> Foco Tocado pelo Dragão
+- Dragon Vessel -> Vaso do Dragão
+- Dragongleam -> Brilho do Dragão
+- Dragon's Wrath Weapon -> Arma da Ira do Dragão
+- Dragonstaff of Ahghairon -> Cajado do Dragão de Ahghairon
+- Dried Leech -> Sanguessuga seca
+- Drow +1 Armor -> Armadura Drow +1
+- Drow +1 Weapon -> Arma Drow +1
+- Drow +2 Armor -> Armadura Drow +2
+- Drow +2 Weapon -> Arma Drow +2
+- Drow +3 Armor -> Armadura Drow +3
+- Drow +3 Weapon -> Arma Drow +3
+- Drown -> Afogar
+- Elder Cartographer's Glossography -> Glossografia do Cartógrafo Ancião
+- Elemental Essence Shard (Air) -> Fragmento de Essência Elemental (Ar)
+- Elemental Essence Shard (Earth) -> Fragmento de Essência Elemental (Terra)
+- Elemental Essence Shard (Fire) -> Fragmento de Essência Elemental (Fogo)
+- Elemental Essence Shard (Water) -> Fragmento de Essência Elemental (Água)
+- Enspelled Armor -> Armadura Encantada
+- Enspelled Armor (Cantrip) -> Armadura Encantada (Truque)
+- Enspelled Armor (Level 1) -> Armadura Encantada (Nível 1)
+- Enspelled Armor (Level 2) -> Armadura Encantada (Nível 2)
+- Enspelled Armor (Level 3) -> Armadura Encantada (Nível 3)
+- Enspelled Armor (Level 4) -> Armadura Encantada (Nível 4)
+- Enspelled Armor (Level 5) -> Armadura Encantada (Nível 5)
+- Enspelled Armor (Level 6) -> Armadura Encantada (Nível 6)
+- Enspelled Armor (Level 7) -> Armadura Encantada (Nível 7)
+- Enspelled Armor (Level 8) -> Armadura Encantada (Nível 8)
+- Enspelled Staff -> Equipe Enfeitiçada
+- Enspelled Staff (Cantrip) -> Cajado Enfeitiçado (Truque)
+- Enspelled Staff (Level 1) -> Cajado Enfeitiçado (Nível 1)
+- Enspelled Staff (Level 2) -> Cajado Enfeitiçado (Nível 2)
+- Enspelled Staff (Level 3) -> Cajado Enfeitiçado (Nível 3)
+- Enspelled Staff (Level 4) -> Cajado Enfeitiçado (Nível 4)
+- Enspelled Staff (Level 5) -> Cajado Enfeitiçado (Nível 5)
+- Enspelled Staff (Level 6) -> Cajado Enfeitiçado (Nível 6)
+- Enspelled Staff (Level 7) -> Cajado Enfeitiçado (Nível 7)
+- Enspelled Staff (Level 8) -> Cajado Enfeitiçado (Nível 8)
+- Enspelled Weapon -> Arma Enfeitiçada
+- Enspelled Weapon (Cantrip) -> Arma Encantada (Truque)
+- Enspelled Weapon (Level 1) -> Arma Encantada (Nível 1)
+- Enspelled Weapon (Level 2) -> Arma Encantada (Nível 2)
+- Enspelled Weapon (Level 3) -> Arma Encantada (Nível 3)
+- Enspelled Weapon (Level 4) -> Arma Encantada (Nível 4)
+- Enspelled Weapon (Level 5) -> Arma Encantada (Nível 5)
+- Enspelled Weapon (Level 6) -> Arma Encantada (Nível 6)
+- Enspelled Weapon (Level 7) -> Arma Encantada (Nível 7)
+- Enspelled Weapon (Level 8) -> Arma Enfeitiçada (Nível 8)
+- Ephixis, Bow of Nylea -> Ephixis, Arco de Nylea
+- Euryale Card -> Cartão Euryale
+- Euryale's Aegis -> Égide de Euríale
+- Eye and Hand of Vecna -> Olho e Mão de Vecna
+- Eye of Vecna -> Olho de Vecna
+- Fabulist Gem -> Joia Fabulista
+- Faerie Dust -> Pó de Fada
+- Failed Experiment Wand -> Varinha de experimento fracassada
+- Falkir's Helm of Pigheadedness -> Elmo da Teimosia de Falkir
+- Fates Card -> Carta do Destino
+- Feather of Diatryma Summoning -> Pena de Diatryma Invocando
+- Figurine of Wondrous Power -> Estatueta de Poder Maravilhoso
+- Figurine of Wondrous Power, Bronze Griffon -> Estatueta de Poder Maravilhoso, Grifo de Bronze
+- Figurine of Wondrous Power, Ebony Fly -> Estatueta de Poder Maravilhoso, Mosca de Ébano
+- Figurine of Wondrous Power, Golden Lions -> Estatueta de Poder Maravilhoso, Leões Dourados
+- Figurine of Wondrous Power, Ivory Goats -> Estatueta de Poder Maravilhoso, Cabras de Marfim
+- Figurine of Wondrous Power, Marble Elephant -> Estatueta de Poder Maravilhoso, Elefante de Mármore
+- Figurine of Wondrous Power, Onyx Dog -> Estatueta de Poder Maravilhoso, Cão de Ônix
+- Figurine of Wondrous Power, Serpentine Owl -> Estatueta de Poder Maravilhoso, Coruja Serpentina
+- Figurine of Wondrous Power, Silver Raven -> Estatueta de Poder Maravilhoso, Corvo Prateado
+- Flame Tongue Shortsword of Greed -> Espada curta da língua de fogo da ganância
+- Flames Card -> Carta Flames
+- Fool Card -> Carta do Louco
+- Fork of Eddy Summoning -> Bifurcação da Invocação de Eddy
+- Gambler's Blade -> Lâmina do Jogador
+- Gem Card -> Cartão Gem
+- Glamerweave -> Glamerweave
+- Gnomengarde Grenade -> Granada de Gnomengerde
+- Gold Canary Figurine of Wondrous Power -> Estatueta de Canário Dourado de Poder Maravilhoso
+- Golgari Guild Signet -> Selo da Guilda Golgari
+- Gravenhollow Compass Ring -> Anel da Bússola de Gravenholl
+- Green Copper Ewer -> Jarro de cobre verde
+- Grimoire Infinitus -> Grimório Infinito
+- Grovelthrash -> Groveltrash
+- Grovelthrash (Awakened) -> Groveltrash (Desperto)
+- Grovelthrash (Dormant) -> Grovelthrash (Dormente)
+- Grovelthrash (Exalted) -> Groveltrash (Exaltado)
+- Gruul Guild Signet -> Selo da Guilda Gruul
+- Gruul Keyrune -> Chave Gruul
+- Guild Keyrune -> Chave Runa da Guilda
+- Guild Signet -> Selo da Guilda
+- Hag Eye -> Olho de Bruxa
+- Hammer of Thunderbolts -> Martelo dos Raios
+- Hammock of Worlds -> Rede dos Mundos
+- Hand of Vecna -> Mão de Vecna
+- Harkon's Bite -> A mordida de Harkon
+- Harp of Gilded Plenty -> Harpa da Abundância Dourada
+- Hell Hound Cloak -> Manto do Cão Infernal
+- Hellfire Weapon -> Arma do Inferno
+- Helm of Disjunction -> Elmo da Disjunção
+- Helm of Perfect Potential -> Elmo do Potencial Perfeito
+- Helm of the Gods -> Elmo dos Deuses
+- Helm of the Scavenger -> Elmo do Catador
+- Heretic -> Herege
+- Hide of the Feral Guardian -> Esconderijo do Guardião Selvagem
+- Hide of the Feral Guardian (Dormant) -> Pele do Guardião Selvagem (Adormecida)
+- Hither-Thither Staff -> Equipe de Dentro-Ali
+- Holly's Handy Haversack -> Mochila prática da Holly
+- Horizon Puzzle Cube -> Cubo Quebra-Cabeça Horizonte
+- Horn of Beckoning Death -> Trompa da Morte
+- Horn of the Endless Maze -> Chifre do Labirinto Infinito
+- Horn of Valhalla -> Chifre de Valhalla
+- Horn of Valhalla, Brass -> Trompa de Valhalla, de bronze
+- Horn of Valhalla, Iron -> Chifre de Valhalla, Ferro
+- Horn of Valhalla, Silver -> Chifre de Valhalla, Prata
+- Iggwilv's Cauldron -> Caldeirão de Iggwilv
+- Imbued Wood (Fernian Ash) -> Madeira Imbuída (Freixo Ferniano)
+- Imbued Wood Focus -> Foco em Madeira Imbuída
+- Imbued Wood (Irian Rosewood) -> Madeira Imbuída (Pau-rosa da Irlanda)
+- Imbued Wood (Kythrian Manchineel) -> Madeira Imbuída (Manchineel Cítrio)
+- Imbued Wood (Lamannian Oak) -> Madeira Imbuída (Carvalho Lamanniano)
+- Imbued Wood (Mabaran Ebony) -> Madeira Imbuída (Ébano Mabaran)
+- Imbued Wood (Risian Pine) -> Madeira Imbuída (Pinheiro da Rísia)
+- Imbued Wood (Shavarran Birch) -> Madeira Imbuída (Bétula de Shavarran)
+- Imbued Wood (Xorian Wenge) -> Madeira Imbuída (Wengué Xoriano)
+- Infernal Tack -> Tacha Infernal
+- Infiltrator's Key -> Chave do Infiltrador
+- Instrument of the Bards -> Instrumento dos Bardos
+- Ioun Stone -> Pedra Ioun
+- Iron Flask -> Frasco de ferro
+- Ironfang -> Presa de Ferro
+- Izzet Guild Signet -> Selo da Guilda Izzet
+- Izzet Keyrune -> Chave Runa Izzet
+- Jade Serpent Staff -> Cajado de Serpente de Jade
+- Jester Card -> Carta do Bobo da Corte
+- Jewel of Three Prayers -> Joia das Três Orações
+- Junky +1 Dagger -> Adaga Junky +1
+- Key Card -> Cartão-chave
+- Khrusor, Spear of Heliod -> Khrusor, Lança de Hélio
+- Knight Card -> Carta do Cavaleiro
+- Korolnor Scepter -> Cetro de Korolnor
+- Lash of Shadows -> Chicote de Sombras
+- Lash of Shadows (Awakened) -> Chicote das Sombras (Desperto)
+- Lash of Shadows (Dormant) -> Chicote de Sombras (Adormecido)
+- Lash of Shadows (Exalted) -> Chicote das Sombras (Exaltado)
+- Leather Golem Armor -> Armadura de Golem de Couro
+- Lesser Hammock of Worlds -> Rede Menor dos Mundos
+- Living Loot Satchel -> Bolsa de Tesouros Vivos
+- Loadstone -> Magnetita
+- Lost Crown of Besilmer -> A Coroa Perdida de Besilmer
+- Luba's Tarokka of Souls -> Tarokka das Almas de Luba
+- Luck Blade -> Lâmina da Sorte
+- Luxon Beacon -> Farol Luxon
+- Mace of the Black Crown -> Maça da Coroa Negra
+- Mace of the Black Crown (Awakened) -> Maça da Coroa Negra (Desperta)
+- Mace of the Black Crown (Dormant) -> Maça da Coroa Negra (Adormecida)
+- Mace of the Black Crown (Exalted) -> Maça da Coroa Negra (Exaltado)
+- Macuahuitl -> Macauhuitl
+- Magen Handbell -> Sino de mão Magen
+- Mask of the Dragon Queen -> Máscara da Rainha Dragão
+- Mastix, Whip of Erebos -> Mastix, Chicote de Érebo
+- Mechanical Wonder (Flying) -> Maravilha Mecânica (Voadora)
+- Mechanical Wonder (Mobility) -> Maravilha Mecânica (Mobilidade)
+- Mighty Servant of Leuk-o -> Poderoso Servo de Leuk-o
+- Mind Carapace Armor -> Armadura de Carapaça Mental
+- Mind Crystal -> Cristal da Mente
+- Mind Flayer Skull -> Crânio Devorador de Mentes
+- Mithral +1 Armor -> Armadura de Mithral +1
+- Mizzium Apparatus -> Aparelho Mizzium
+- Moon Card -> Carta da Lua
+- Moonblade -> Lâmina Lunar
+- Murgaxor's Orb -> Orbe de Murgaxor
+- Nepenthe -> Nepenthe
+- Nightfall Pearl -> Pérola do Anoitecer
+- Obviator's Lenses -> Lentes do Obviador
+- Occultant Abacus -> Ábaco Ocultista
+- Orb of Damara -> Orbe de Damara
+- Orb of Dragonkind -> Orbe da Espécie Dracônica
+- Orb of Shielding (Fernian Basalt) -> Orbe de Proteção (Basalto Ferniano)
+- Orb of Shielding (Irian Quartz) -> Orbe de Proteção (Quartzo Iriano)
+- Orb of Shielding (Kythrian Skarn) -> Orbe da Blindagem (Kythrian Skarn)
+- Orb of Shielding (Lamannian Flint) -> Orbe de Proteção (Sílex Lamanniano)
+- Orb of Shielding (Mabaran Obsidian) -> Orbe de Proteção (Obsidiana de Mabaran)
+- Orb of Shielding (Risian Shale) -> Orbe de Proteção (Xisto Risiano)
+- Orb of Shielding (Shavarran Chert) -> Orbe de Proteção (Sílex Shavarran)
+- Orb of Shielding (Xorian Marble) -> Orbe de Proteção (Mármore Xoriano)
+- Orcsplitter -> Orcsplitter
+- Orcus Figurine -> Estatueta Orcus
+- Orrery of the Wanderer -> Planetário do Andarilho
+- Orzhov Guild Signet -> Selo da Guilda Orzhof
+- Orzhov Keyrune -> Chave Orzhov
+- Outer Essence Shard -> Fragmento de Essência Exterior
+- Outer Essence Shard (Chaotic) -> Fragmento de Essência Exterior (Caótico)
+- Outer Essence Shard (Evil) -> Fragmento da Essência Exterior (Mal)
+- Outer Essence Shard (Good) -> Fragmento de Essência Exterior (Bom)
+- Outer Essence Shard (Lawful) -> Fragmento de Essência Exterior (Leal)
+- Pathfinder's Greataxe -> Grande machado do Pathfinder
+- Pearl of Undead Detection -> Pérola da Detecção de Mortos-Vivos
+- Petrified Grung Egg -> Ovo Grung Petrificado
+- Piercer -> Perfurador
+- Pipes of Pestilence -> Cachimbo da Pestilência
+- Piwafwi (Cloak of Elvenkind) -> Piwafwi (Manto Élfico)
+- Planecaller's Codex -> Códice do Planecaller
+- Plate Armor of Etherealness (*) -> Armadura de Placas da Eterealidade (*)
+- Plate of Knight's Fellowship -> Prato da Irmandade dos Cavaleiros
+- Poison Soaked Kukri -> Kukri encharcado de veneno
+- Portal Compass -> Bússola do Portal
+- Portfolio Keeper -> Gestor de Portfólio
+- Potion of Dragon's Majesty -> Poção da Majestade do Dragão
+- Potion of Giant Size -> Poção de Tamanho Gigante
+- Potion of Giant Strength -> Poção de Força Gigante
+- Potion of Mind Control -> Poção de Controle Mental
+- Potion of Mind Control (monster) -> Poção de Controle Mental (monstro)
+- Potion of Resistance -> Poção de Resistência
+- Potion of Storm Giant Strength -> Poção da Força do Gigante da Tempestade
+- Potions of Healing -> Poções de Cura
+- Prehistoric Figurine of Wondrous Power -> Estatueta pré-histórica de poder maravilhoso
+- Prehistoric Figurine of Wondrous Power, Jasper Tyrannosaurus Rex -> Estatueta pré-histórica de poder maravilhoso, Tiranossauro Rex de Jaspe
+- Prehistoric Figurine of Wondrous Power, Kyanite Pteranodon -> Estatueta pré-histórica de poder maravilhoso, pteranodonte de cianita.
+- Prehistoric Figurine of Wondrous Power, Pyrite Plesiosaurus -> Estatueta pré-histórica de poder maravilhoso, Plesiossauro de pirita
+- Professor Orb -> Professor Orb
+- Professor Skant -> Professor Skant
+- Puzzle Card -> Carta de quebra-cabeça
+- Quaal's Feather Token -> Ficha de Pena de Quaal
+- Radiance -> Radiância
+- Rakdos Guild Signet -> Selo da Guilda Rakdos
+- Rakdos Keyrune -> Chave-runa Rakdos
+- Red Wizard Blade -> Lâmina do Mago Vermelho
+- Repeating Shot -> Tiro repetido
+- Repulsion Shield -> Escudo de Repulsão
+- Returning Weapon -> Arma que retorna
+- Ring of Elemental Command (Air) -> Anel do Comando Elemental (Ar)
+- Ring of Elemental Command (Earth) -> Anel do Comando Elemental (Terra)
+- Ring of Elemental Command (Fire) -> Anel do Comando Elemental (Fogo)
+- Ring of Elemental Command (Water) -> Anel de Comando Elemental (Água)
+- Ring of Resistance -> Anel de Resistência
+- Ring of Winter -> Anel do Inverno
+- Robe of Useful Items -> Manto de Itens Úteis
+- Rod of Seven Parts -> Vara das Sete Partes
+- Rod of the Pact Keeper -> Vara do Guardião do Pacto
+- Rod of the Vonindod -> Vara do Vonindod
+- Rogue Card -> Carta de Ladino
+- Ruby Weave Gem -> Gema de trama rubi
+- Ruin Card -> Carta de Ruína
+- Ruin's Wake -> O rastro da ruína
+- Ruin's Wake (Awakened) -> O Despertar da Ruína (Desperto)
+- Ruin's Wake (Dormant) -> O Despertar da Ruína (Adormecido)
+- Ruin's Wake (Exalted) -> O Despertar da Ruína (Exaltado)
+- Ruinstone -> Pedra da Ruína
+- Sage Card -> Cartão Sábio
+- Sage's Signet -> Sinete do Sábio
+- Sage's Signet (Serpent) -> Sinete do Sábio (Serpente)
+- Sage's Signet (Songbird) -> Sinete de Sábio (Pássaro Canoro)
+- Saint Markovia's Thighbone -> Fêmur de Santa Markovia
+- Scaled Ornament -> Ornamento em escala
+- Scarab of Protection -> Escaravelho da Proteção
+- Scorpion Armor -> Armadura de Escorpião
+- Scroll of Protection (Aberrations) -> Pergaminho de Proteção (Aberrações)
+- Scroll of Protection (Beasts) -> Pergaminho de Proteção (Feras)
+- Scroll of Protection (Celestials) -> Pergaminho de Proteção (Celestiais)
+- Scroll of Protection (Constructs) -> Pergaminho de Proteção (Construções)
+- Scroll of Protection (Dragons) -> Pergaminho de Proteção (Dragões)
+- Scroll of Protection (Elementals) -> Pergaminho de Proteção (Elementais)
+- Scroll of Protection (Fey) -> Pergaminho de Proteção (Fey)
+- Scroll of Protection (Fiends) -> Pergaminho de Proteção (Demônios)
+- Scroll of Protection (Giants) -> Pergaminho de Proteção (Gigantes)
+- Scroll of Protection (Humanoids) -> Pergaminho de Proteção (Humanoides)
+- Scroll of Protection (Monstrosities) -> Pergaminho de Proteção (Monstruosidades)
+- Scroll of Protection (Oozes) -> Pergaminho de Proteção (Exsudações)
+- Scroll of Protection (Plants) -> Pergaminho de Proteção (Plantas)
+- Scroll of Protection (Undead) -> Pergaminho de Proteção (Mortos-vivos)
+- Scroll of the Comet -> Pergaminho do Cometa
+- Scroll of Titan Summoning -> Pergaminho de Invocação de Titã
+- Scroll of Titan Summoning (Animal Lord) -> Pergaminho de Invocação de Titã (Senhor dos Animais)
+- Scroll of Titan Summoning (Blob of Annihilation) -> Pergaminho de Invocação de Titã (Bolha de Aniquilação)
+- Scroll of Titan Summoning (Colossus) -> Pergaminho de Invocação de Titã (Colosso)
+- Scroll of Titan Summoning (Elemental Cataclysm) -> Pergaminho de Invocação de Titã (Cataclismo Elemental)
+- Scroll of Titan Summoning (Empyrean) -> Pergaminho de Invocação de Titã (Empíreo)
+- Scroll of Titan Summoning (Kraken) -> Pergaminho de Invocação de Titã (Kraken)
+- Scroll of Titan Summoning (Tarrasque) -> Pergaminho de Invocação de Titã (Tarrasque)
+- Selesnya Guild Signet -> Selo da Guilda Selesnya
+- Selesnya Keyrune -> Chave Selesnya
+- Sending Stones -> Enviando Pedras
+- Shard Solitaire (Black Sapphire) -> Solitário de Fragmentos (Safira Negra)
+- Shard Solitaire (Diamond) -> Solitário de Fragmentos (Diamante)
+- Shard Solitaire (Jacinth) -> Solitário de Fragmentos (Jacinto)
+- Shard Solitaire (Rainbow Pearl) -> Solitário de Fragmentos (Pérola Arco-Íris)
+- Shard Solitaire (Ruby) -> Solitário de Fragmentos (Rubi)
+- Shield of Shouting -> Escudo de Gritos
+- Shield of the Hidden Lord -> Escudo do Senhor Oculto
+- Shield of the Tortoise -> Escudo da Tartaruga
+- Shrieking Greaves -> Grevas Gritantes
+- Silken Spite -> Rancor de Seda
+- Silken Spite (Awakened) -> Rancor de Seda (Desperto)
+- Silken Spite (Dormant) -> Rancor Sedoso (Adormecido)
+- Silken Spite (Exalted) -> Rancor de Seda (Exaltado)
+- Silver Sword -> Espada de Prata
+- Simic Guild Signet -> Selo da Guilda Simic
+- Simic Keyrune -> Chave Simic
+- Skull Card -> Carta de Caveira
+- Smokepowder -> Pólvora
+- Snicker-Snack -> Snicker-Snack
+- Soul Coin -> Moeda da Alma
+- Sovereign Glue -> Cola Soberana
+- Speaking Stones -> Pedras Falantes
+- Spell Gem -> Gema de Feitiço
+- Spell Gem (Bloodstone) -> Gema de Feitiço (Pedra de Sangue)
+- Spell Gem (Diamond) -> Gema de Feitiço (Diamante)
+- Spell Gem (Lapis lazuli) -> Gema mágica (Lápis-lazúli)
+- Spell Gem (Obsidian) -> Gema de Feitiço (Obsidiana)
+- Spell Gem (Quartz) -> Gema mágica (quartzo)
+- Spell Gem (Ruby) -> Gema mágica (Rubi)
+- Spell Gem (Star ruby) -> Gema mágica (Rubi estrela)
+- Spell-Refueling Ring -> Anel de Reabastecimento de Feitiços
+- Spell Scroll -> Pergaminho de Feitiço
+- Spell Scroll (Cantrip) -> Pergaminho de Feitiço (Truque)
+- Spell Scroll (Level 1) -> Pergaminho de Feitiço (Nível 1)
+- Spell Scroll (Level 2) -> Pergaminho de Feitiço (Nível 2)
+- Spell Scroll (Level 3) -> Pergaminho de Feitiço (Nível 3)
+- Spell Scroll (Level 4) -> Pergaminho de Feitiço (Nível 4)
+- Spell Scroll (Level 5) -> Pergaminho de Feitiço (Nível 5)
+- Spell Scroll (Level 6) -> Pergaminho de Feitiço (Nível 6)
+- Spell Scroll (Level 7) -> Pergaminho de Feitiço (Nível 7)
+- Spell Scroll (Level 8) -> Pergaminho de Feitiço (Nível 8)
+- Spell Scroll (Level 9) -> Pergaminho de Feitiço (Nível 9)
+- Spelljamming Helm -> Elmo de Spelljamming
+- Spellwrought Tattoo -> Tatuagem Enfeitiçada
+- Spellwrought Tattoo (1st Level) -> Tatuagem Forjada por Feitiço (1º Nível)
+- Spellwrought Tattoo (2nd Level) -> Tatuagem Forjada por Feitiço (2º Nível)
+- Spellwrought Tattoo (3rd Level) -> Tatuagem Forjada por Feitiço (3º Nível)
+- Spellwrought Tattoo (4th Level) -> Tatuagem Forjada por Feitiço (4º Nível)
+- Spellwrought Tattoo (5th Level) -> Tatuagem Forjada por Feitiço (5º Nível)
+- Spellwrought Tattoo (Cantrip) -> Tatuagem Forjada por Feitiço (Truque)
+- Sphere of Annihilation -> Esfera de Aniquilação
+- Staff of the Forgotten One -> Cajado do Esquecido
+- Star Card -> Cartão Estrela
+- Statuette of Augury -> Estatueta de Augúrio
+- Statuette of Saint Markovia -> Estatueta de Santa Markovia
+- Stone of Controlling Earth Elementals -> Pedra do Controle dos Elementais da Terra
+- Stone of Golorr -> Pedra de Golorr
+- Stone of Ill Luck -> Pedra do Azar
+- Stonky's ring -> Anel do Stonky
+- Stormgirdle -> Cinto da Tempestade
+- Sun Card -> Cartão Sun
+- Sunsword -> Espada Solar
+- Sword of Kas -> Espada de Kas
+- Sword of the Planes -> Espada dos Planos
+- Sword of Vengeance -> Espada da Vingança
+- Sword of Zariel -> Espada de Zariel
+- Tablet of Reawakening -> Tablete do Renascimento
+- Talarith -> Talarith
+- Talisman of Pure Good -> Talismã da Bondade Pura
+- Talisman of the Sphere -> Talismã da Esfera
+- Talisman of Ultimate Evil -> Talismã do Mal Supremo
+- Talons Card -> Carta Talons
+- Tankard of Plenty -> Caneca da Abundância
+- Tearulai -> Tearulai
+- Teeth of Dahlver-Nar -> Dentes de Dahlver-Nar
+- Teleportation Tablet -> Tablet de Teletransporte
+- Teleporter Ring -> Anel Teletransportador
+- Telescopic Transporter -> Transportador Telescópico
+- Thayan Spell Tattoo -> Tatuagem de feitiço Thayan
+- The Bloody End -> O Fim Sangrento
+- The Bloody End (Awakened) -> O Fim Sangrento (Desperto)
+- The Bloody End (Dormant) -> O Fim Sangrento (Adormecido)
+- The Bloody End (Exalted) -> O Fim Sangrento (Exaltado)
+- The Codicil of White -> O Codicilo de White
+- Throne Card -> Carta do Trono
+- Thunderbuss -> Thunderbuss
+- Tinderstrike -> Tinderstrike
+- Tome of the Dragon -> Tomo do Dragão
+- Travel Alchemical Kit -> Kit de viagem alquímico
+- Trident of Fish Command -> Comando Tridente dos Peixes
+- Universal Solvent -> Solvente Universal
+- Vanrak's Mithral Shirt -> Camisa de Mithral de Vanrak
+- Verminshroud -> Verminshroud
+- Vicious +1 Weapon -> Arma Viciosa +1
+- Void Card -> Cartão Nulo
+- Vorpal Sword -> Espada Vorpal
+- Wand of Orcus -> Varinha de Orcus
+- Wand of the War Mage -> Varinha do Mago de Guerra
+- Wave -> Aceno
+- Waythe -> Waythe
+- Well of Many Worlds -> Poço de Muitos Mundos
+- Wheel of Wind and Water -> Roda do Vento e da Água
+- Whelm -> Sobrecarregar
+- Whisper Jar -> Pote dos Sussurros
+- White Dragon Cape -> Capa do Dragão Branco
+- Wildspace Orrery -> Planetário do Espaço Selvagem
+- Will of the Talon -> Vontade da Garra
+- Will of the Talon (Awakened) -> Vontade da Garra (Desperta)
+- Will of the Talon (Dormant) -> Vontade da Garra (Adormecida)
+- Will of the Talon (Exalted) -> Vontade da Garra (Exaltado)
+- Windvane -> cata-vento
+- Witchlight Vane -> Cata-vento de luz de bruxa
+- Witchlight Watch -> Relógio da Luz da Bruxa
+- Wraps of Unarmed Power -> Envoltórios de Poder Desarmado
+- Wreath of the Prism -> Coroa do Prisma
+- Wreath of the Prism (Awakened) -> Coroa do Prisma (Desperta)
+- Wreath of the Prism (Dormant) -> Coroa do Prisma (Adormecida)
+- Wreath of the Prism (Exalted) -> Coroa do Prisma (Exaltado)
+- Wyrmskull Throne -> Trono Crânio de Verme
+- Yester Hill Axe -> Machado de Yester Hill
+- Ythryn Mythallar -> Ythryn Mythallar
+
+Itens presentes apenas na planilha de loja
+------------------------------------------
+- Agony (Awakened) | Muito Raro Maior | Somente Via Quest | Somente via Quest
+- Agony (Dormant) | Raro Maior | Forja | 9000.0
+- Agony (Exalted) | Muito Raro Maior | Somente Via Quest | Somente via Quest
+- Armor of Etherealness | Lendário Menor | Forja | 18000.0
+- Armor of the Valiant Soul (Awakened) | Muito Raro Maior | Somente Via Quest | Somente Via quest
+- Armor of the Valiant Soul (Dormant) | Raro Maior | Forja | 9000.0
+- Armor of the Valiant Soul (Exalted) | Lendário Maior | Somente Via Quest | Somente Via quest
+- Boots of Haste | Muito Raro Menor | Item Mágico | 12000.0
+- Boots of the Vigilant | Incomum Maior | Item Mágico | 2000.0
+- Cabal's Ruin (Awakened) | Muito Raro Maior | Somente Via Quest | Somente Via quest
+- Cabal's Ruin (Dormant) | Raro Maior | Item Mágico | 9000.0
+- Cabal's Ruin (Exalted) | Lendário Maior | Somente Via Quest | Somente Via quest
+- Cataclysm Bolts | Muito Raro Menor | Item Mágico | 2500.0
+- Circlet of Barbed Vision (Awakened) | Muito Raro Maior | Somente Via Quest | Somente Via quest
+- Circlet of Barbed Vision (Dormant) | Raro Maior | Item Mágico | 9000.0
+- Circlet of Barbed Vision (Exalted) | Lendário Maior | Somente Via Quest | Somente Via quest
+- Coat of the Crest | Raro Menor | Forja | 4000.0
+- Condemner (Awakened) | Muito Raro Maior | Somente Via Quest | Somente Via quest
+- Condemner (Dormant) | Raro Maior | Item Mágico | 9000.0
+- Condemner (Exalted) | Lendário Maior | Somente Via Quest | Somente Via quest
+- Corecut Dagger | Muito Raro Menor | Forja | 12000.0
+- Dagger of Denial | Raro Menor | Forja | 4000.0
+- Deathwalker's Ward (Awakened) | Muito Raro Maior | Somente Via Quest | Somente Via quest
+- Deathwalker's Ward (Dormant) | Raro Maior | Item Mágico | 9000.0
+- Deathwalker's Ward (Exalted) | Lendário Maior | Somente Via Quest | Somente Via quest
+- Doublet of Dramatic Demise | Incomum Maior | Item Mágico | 2.000 PO
+- Dried Leech Ammunition | Incomum Menor | Forja | 500.0
+- Earthboard | Raro Maior | Item Mágico | 9000.0
+- Echo Stone | Incomum Menor | Item Mágico | 1000.0
+- Fenthras (Awakened) | Muito Raro Menor | Forja | 12000.0
+- Fenthras (Dormant) | Raro Maior | Forja | 9000.0
+- Fenthras (Exalted) | Lendário Menor | Forja | 18000.0
+- Flamefriend Lantern | Muito Raro Menor | Item Mágico | 12000.0
+- Hammer/Maul of Thunderbolts | Lendário Maior | Somente Via Quest | Somente Via quest
+- Honor's Last Stand | Lendário Maior | Somente Via Quest | Somente Via quest
+- Honor's Last Stand (Awakened) | Muito Raro Maior | Somente Via Quest | Somente Via quest
+- Honor's Last Stand (Dormant) | Raro Maior | Item Mágico | 9000.0
+- Imbued Wood  | Comum Maior | Item Mágico | 500.0
+- Inescapable Lash | Raro Menor | Forja | 4000.0
+- Kiss of the Changebringer (Awakened) | Muito Raro Maior | Somente Via Quest | Somente Via quest
+- Kiss of the Changebringer (Dormant) | Raro Maior | Item Mágico | 9000.0
+- Kiss of the Changebringer (Exalted) | Lendário Maior | Somente Via Quest | Somente Via quest
+- Lindwyrm Venom | Muito Raro Maior | Alquimia | 2500.0
+- Luck Weapon | Lendário Maior | Somente Via Quest | Somente Via quest
+- Magician's Judge | Raro Maior | Forja | 9000.0
+- Mirror of Infinite Transpondence | Raro Maior | Item Mágico | 9000.0
+- Mythcarver (Awakened) | Muito Raro Maior | Somente Via Quest | Somente Via quest
+- Mythcarver (Dormant) | Raro Maior | Item Mágico | 9000.0
+- Mythcarver (Exalted) | Lendário Maior | Somente Via Quest | Somente Via quest
+- Oceanic Weapon | Raro Menor | Forja | 4000.0
+- Plate of the Dawnmartyr (Awakened) | Muito Raro Maior | Somente Via Quest | Somente Via quest
+- Plate of the Dawnmartyr (Dormant) | Raro Maior | Item Mágico | 9000.0
+- Plate of the Dawnmartyr (Exalted) | Lendário Maior | Somente Via Quest | Somente Via quest
+- Pyremaul (Awakened) | Muito Raro Maior | Somente Via Quest | Somente Via quest
+- Pyremaul (Dormant) | Raro Maior | Item Mágico | 9000.0
+- Pyremaul (Exalted) | Lendário Maior | Somente Via Quest | Somente Via quest
+- Raven's Slumber | Raro Maior | Item Mágico | 9000.0
+- Ring of Protection +2 | Lendário Menor | Forja | 18000.0
+- Rod of Mercurial Form | Incomum Menor | Forja | 1000.0
+- Skysail | Raro Menor | Forja | 4000.0
+- Spire of Conflux (Awakened) | Muito Raro Maior | Somente Via Quest | Somente Via quest
+- Spire of Conflux (Dormant) | Raro Maior | Item Mágico | 9000.0
+- Spire of Conflux (Exalted) | Lendário Maior | Somente Via Quest | Somente Via quest
+- Star Razor (Awakened) | Muito Raro Menor | Forja | 12000.0
+- Star Razor (Dormant) | Raro Menor | Forja | 4000.0
+- Star Razor (Exalted) | Lendário Menor | Forja | 18000.0
+- Stormrider Boots | Raro Maior | Item Mágico | 9000.0
+- Summer's Dance | Incomum Maior | Forja | 2000.0
+- Tinkertop Boltblaster 1000 | Muito Raro Menor | Forja | 12000.0
+- Titanstone Knuckles (Awakened) | Muito Raro Maior | Somente Via Quest | Somente Via quest
+- Titanstone Knuckles (Dormant) | Muito Raro Menor | Item Mágico | 12000.0
+- Titanstone Knuckles (Exalted) | Lendário Maior | Somente Via Quest | Somente Via quest
+- Vorpal Weapon | Lendário Maior | Somente Via Quest | Somente Via quest
+- Whisper (Awakened) | Muito Raro Menor | Forja | 12000.0
+- Whisper (Dormant) | Raro Menor | Forja | 4000.0
+- Whisper (Exalted) | Lendário Menor | Forja | 18000.0
+- Wraps of Dyamak (Awakened) | Muito Raro Maior | Somente Via Quest | Somente Via quest
+- Wraps of Dyamak (Dormant) | Raro Maior | Item Mágico | 9000.0
+- Wraps of Dyamak (Exalted) | Lendário Maior | Somente Via Quest | Somente Via quest
+
+Nomes duplicados na planilha de slots
+-------------------------------------
+- Cloak of Billowing (4 linhas)
+- Dread Helm (4 linhas)
+- Potion of Healing (2 linhas)
+- Prosthetic Limb (4 linhas)
+
+Nomes duplicados na planilha de loja
+-----------------------------------
+- Mind Crystal (Subtle) (2 linhas)
