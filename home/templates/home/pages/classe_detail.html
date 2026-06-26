@@ -199,6 +199,9 @@
               <label>Nível <input name="niveladquirido" type="number" min="0" max="20" value="{{ item.habilidade.niveladquirido }}"></label>
             </div>
             <label>Texto real <textarea name="descricao">{{ item.habilidade.descricao }}</textarea></label>
+            <label>Tags <span class="text-[10px] text-[var(--muted)]">(uma por linha)</span>
+              <textarea name="tags_json_text" rows="6" spellcheck="false" class="font-mono !text-[11px]">{% for tag in item.habilidade.tags_json %}{{ tag }}
+{% endfor %}</textarea></label>
             <div class="wiki-inline-actions">
               <button type="button" class="wiki-inline-cancel" data-feature-cancel>Cancelar</button>
               <button type="submit" class="wiki-inline-save">Salvar</button>
@@ -391,6 +394,10 @@
         event.preventDefault();
         const featureId = card.dataset.featureId;
         const data = Object.fromEntries(new FormData(form).entries());
+        if ('tags_json_text' in data) {
+          data.tags_json = data.tags_json_text.split('\n').map(t => t.trim()).filter(Boolean);
+          delete data.tags_json_text;
+        }
         const response = await fetch(`/wiki/habilidades-classe/${featureId}/editar/`, {
           method: 'POST',
           headers: {

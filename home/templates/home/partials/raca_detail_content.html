@@ -211,6 +211,8 @@
                       </div>
                       <input type="hidden" name="talento_racial" value="false">
                       <label>Texto real <textarea name="descricao">{{ traco.descricao }}</textarea></label>
+                      <label>Tags <span class="text-[10px] text-[var(--muted)]">(uma por linha)</span><textarea name="tags_json_text" rows="5" spellcheck="false" class="font-mono">{% for tag in traco.tags_json %}{{ tag }}
+{% endfor %}</textarea></label>
                       <div class="wiki-inline-actions">
                         <button type="button" class="wiki-inline-cancel" data-trait-cancel>Cancelar</button>
                         <button type="submit" class="wiki-inline-save">Salvar</button>
@@ -251,6 +253,8 @@
                       </div>
                       <input type="hidden" name="talento_racial" value="false">
                       <label>Texto real <textarea name="descricao">{{ traco.descricao }}</textarea></label>
+                      <label>Tags <span class="text-[10px] text-[var(--muted)]">(uma por linha)</span><textarea name="tags_json_text" rows="5" spellcheck="false" class="font-mono">{% for tag in traco.tags_json %}{{ tag }}
+{% endfor %}</textarea></label>
                       <div class="wiki-inline-actions">
                         <button type="button" class="wiki-inline-cancel" data-trait-cancel>Cancelar</button>
                         <button type="submit" class="wiki-inline-save">Salvar</button>
@@ -294,6 +298,8 @@
                       </div>
                       <input type="hidden" name="talento_racial" value="false">
                       <label>Texto real <textarea name="descricao">{{ traco.descricao }}</textarea></label>
+                      <label>Tags <span class="text-[10px] text-[var(--muted)]">(uma por linha)</span><textarea name="tags_json_text" rows="5" spellcheck="false" class="font-mono">{% for tag in traco.tags_json %}{{ tag }}
+{% endfor %}</textarea></label>
                       <div class="wiki-inline-actions">
                         <button type="button" class="wiki-inline-cancel" data-trait-cancel>Cancelar</button>
                         <button type="submit" class="wiki-inline-save">Salvar</button>
@@ -360,14 +366,6 @@
                       </header>
 
                       <div data-trait-preview class="talent-card-body">
-                        {% if talent.tags_json %}
-                        <div class="talent-card-tags">
-                          {% for tag in talent.tags_json %}
-                          <span class="talent-card-tag">{{ tag }}</span>
-                          {% endfor %}
-                        </div>
-                        {% endif %}
-
                         {% if talent.pre_requisito %}
                         <div class="talent-card-prereq" data-trait-prereq>Pré-requisito: {{ talent.pre_requisito }}</div>
                         {% endif %}
@@ -384,6 +382,8 @@
                         <input type="hidden" name="talento_racial" value="true">
                         <label>Pré-requisito <input name="pre_requisito" value="{{ talent.pre_requisito|default:'' }}"></label>
                         <label>Texto real <textarea name="descricao" class="min-h-[100px]">{{ talent.descricao }}</textarea></label>
+                        <label>Tags <span class="text-[10px] text-[var(--muted)]">(uma por linha)</span><textarea name="tags_json_text" rows="5" spellcheck="false" class="font-mono">{% for tag in talent.tags_json %}{{ tag }}
+{% endfor %}</textarea></label>
                         <div class="wiki-inline-actions">
                           <button type="button" class="wiki-inline-cancel" data-trait-cancel>Cancelar</button>
                           <button type="submit" class="wiki-inline-save">Salvar</button>

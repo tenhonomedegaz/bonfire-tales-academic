@@ -454,6 +454,10 @@
       form.addEventListener('submit', async event => {
         event.preventDefault();
         const data = Object.fromEntries(new FormData(form).entries());
+        if ('tags_json_text' in data) {
+          data.tags_json = data.tags_json_text.split('\n').map(t => t.trim()).filter(Boolean);
+          delete data.tags_json_text;
+        }
         const traitId = form.dataset.traitId;
         const response = await fetch(`/wiki/tracos-raciais/${traitId}/editar/`, {
           method: 'POST',
