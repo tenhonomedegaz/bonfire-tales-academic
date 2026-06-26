@@ -1659,6 +1659,94 @@ def placeholder_view(request, title='Notas de Atualizacao'):
     return render(request, 'home/pages/placeholder.html', {'page_title': title})
 
 
+# ════════════════════════ Página de Colaborador (Asaas) ════════════════════════
+# Vitrine de doação/assinatura que espelha o embed do comando `/colab-info` do bot
+# (src/modules/discord/commands/bonfire/subscription/subscriptionEmbeds.ts). Usa os
+# MESMOS links de checkout do Asaas. Os benefícios são concedidos no Discord pelo bot
+# após o pagamento (webhook → tabela `transactions` → claim). Os preços trimestral/
+# semestral/anual vêm de `bonfireSubscriptionOffers` (config do bot).
+COLABORADOR_TIERS = [
+    {
+        'key': 'conde',
+        'titulo': 'Conde / Condessa',
+        'emoji': '👑',
+        'preco_mes': '19,90',
+        'destaque': False,
+        'beneficios': [
+            ('📌', 'Preferência em filas de missões (a partir do rank Ametista)'),
+        ],
+        'assinatura': 'https://www.asaas.com/c/8875kbi9lmlnbpbs',
+        'unico': 'https://www.asaas.com/c/0d19cyn73or5ee4m',
+        'planos': [
+            {'label': 'Trimestral', 'off': '10% OFF', 'preco': '53,73', 'url': 'https://www.asaas.com/c/gggvz2l87g6ah4rs'},
+            {'label': 'Semestral', 'off': '15% OFF', 'preco': '101,49', 'url': 'https://www.asaas.com/c/74zeloshnmy8qf6d'},
+            {'label': 'Anual', 'off': '25% OFF', 'preco': '179,10', 'url': 'https://www.asaas.com/c/8kbe3dbsjx5tl9c5'},
+        ],
+    },
+    {
+        'key': 'marques',
+        'titulo': 'Marquês / Marquesa',
+        'emoji': '👑',
+        'preco_mes': '29,90',
+        'destaque': False,
+        'beneficios': [
+            ('👥', '+1 Slot de personagem durante o mês (limite de +1, fora os de níveis específicos)'),
+            ('📌', 'Preferência em filas de missões (a partir do rank Ametista)'),
+            ('⚔️', '+1 Missão Especial (mensal)'),
+        ],
+        'assinatura': 'https://www.asaas.com/c/2icusjwxwyth44dl',
+        'unico': 'https://www.asaas.com/c/vdc8h0lg9c6ni55z',
+        'planos': [
+            {'label': 'Trimestral', 'off': '10% OFF', 'preco': '80,73', 'url': 'https://www.asaas.com/c/ckm5u78s3yhkztf4'},
+            {'label': 'Semestral', 'off': '15% OFF', 'preco': '152,49', 'url': 'https://www.asaas.com/c/js1wn7vwapvcis2k'},
+            {'label': 'Anual', 'off': '25% OFF', 'preco': '269,10', 'url': 'https://www.asaas.com/c/mo3xjc7myj5q67g7'},
+        ],
+    },
+    {
+        'key': 'duque',
+        'titulo': 'Duque / Duquesa',
+        'emoji': '👑',
+        'preco_mes': '39,90',
+        'destaque': True,
+        'beneficios': [
+            ('👥', '+1 Slot de personagem durante o período (limite de +1, fora os de níveis específicos)'),
+            ('📌', 'Preferência em filas de missões (a partir do rank Ametista)'),
+            ('⚔️', '+1 Missão Especial (mensal)'),
+            ('💥', '+1 Boost para uma missão (mensal)'),
+            ('🔒', 'Possibilidade de colocar 1 personagem no cofre durante o mês'),
+        ],
+        'assinatura': 'https://www.asaas.com/c/p7ne3agr03yphhqx',
+        'unico': 'https://www.asaas.com/c/ir2nwmgt3s950e02',
+        'planos': [
+            {'label': 'Trimestral', 'off': '10% OFF', 'preco': '107,73', 'url': 'https://www.asaas.com/c/m7uakneidrvso7a9'},
+            {'label': 'Semestral', 'off': '15% OFF', 'preco': '203,49', 'url': 'https://www.asaas.com/c/en2ibwj3r29s77ig'},
+            {'label': 'Anual', 'off': '25% OFF', 'preco': '359,10', 'url': 'https://www.asaas.com/c/hojk0lk7zssxsa8w'},
+        ],
+    },
+]
+
+COLABORADOR_TOKENS = [
+    {'emoji': '⚔️', 'nome': 'Missão Especial', 'preco': '14,90',
+     'desc': 'Garante +1 missão especial para você participar.',
+     'url': 'https://www.asaas.com/c/4i2hskg41p4mszkg'},
+    {'emoji': '💥', 'nome': 'Boost', 'preco': '19,90',
+     'desc': 'Aumenta as recompensas de uma missão.',
+     'url': 'https://www.asaas.com/c/seyli68v427zvbds'},
+    {'emoji': '🚀', 'nome': 'Superboost', 'preco': '69,90',
+     'desc': 'Turbina ainda mais as recompensas de uma missão.',
+     'url': 'https://www.asaas.com/c/69cthesmlfcu15th'},
+]
+
+
+def colaborador_view(request):
+    """Vitrine de pacotes de colaborador e tokens (links de checkout do Asaas)."""
+    return render(request, 'home/pages/colaborador.html', {
+        'page_title': 'Seja um Colaborador',
+        'tiers': COLABORADOR_TIERS,
+        'tokens': COLABORADOR_TOKENS,
+    })
+
+
 def _parse_skills_lvl1(tags_json):
     """(n, lista) de skills-lvl1{pick:N de [..]}; lista None = qualquer das 18."""
     for t in (tags_json or []):

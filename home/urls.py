@@ -134,7 +134,7 @@ urlpatterns = [
 
     path('mapa/', views.mapa_view, name='mapa'),
     path('mapa', views.mapa_view),
-    path('colaborador/', views.placeholder_view, {'title': 'Colaborador'}, name='colaborador'),
+    path('colaborador/', views.colaborador_view, name='colaborador'),
     path('catarse/', views.placeholder_view, {'title': 'Apoie no Catarse'}, name='catarse'),
     path('quem-somos/', views.placeholder_view, {'title': 'Quem Somos'}, name='quem_somos'),
 ]
