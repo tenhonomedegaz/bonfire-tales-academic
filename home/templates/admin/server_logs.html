@@ -261,6 +261,44 @@
         </section>
     </div>
 
+    {% if op_result %}
+    <div class="console-grid">
+        <section class="console-panel">
+            <h2>{{ op_result.titulo }}</h2>
+            <div class="console-output">{{ op_result.output }}</div>
+        </section>
+    </div>
+    {% endif %}
+
+    <div class="console-grid">
+        <section class="console-panel">
+            <h2>Backup completo</h2>
+            <p class="console-note">Inclui TODAS as tabelas do site (catalogo + personagens/missoes/mercado) E o login (usuarios/grupos). Baixe ANTES de restaurar ou mesclar.</p>
+            <p><a class="console-button secondary" href="{% url 'admin:download_backup' %}">Baixar backup completo (.json)</a></p>
+
+            <h2 style="margin-top:24px;">Restaurar backup</h2>
+            <p class="console-note">Carrega um .json de backup completo (upsert por PK). <strong>Sobrescreve</strong> os dados existentes pelos do arquivo.</p>
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="restore_backup">
+                <div class="console-form-row"><input type="file" name="arquivo" accept=".json" required></div>
+                <div class="console-form-row"><input type="text" name="confirmar" placeholder="Digite RESTAURAR para confirmar" autocomplete="off"></div>
+                <button type="submit" class="console-button">Restaurar backup</button>
+            </form>
+        </section>
+
+        <section class="console-panel">
+            <h2>Merge de conteudo (dev &rarr; producao)</h2>
+            <p class="console-note">Suba o <code>conteudo.json</code> gerado no dev (<code>manage.py dump_conteudo</code>). Sincroniza o catalogo por CHAVE NATURAL (slug/nome), <strong>preservando usuarios, personagens e missoes</strong> — o mesmo sync do deploy. Faca um backup completo antes.</p>
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="merge_conteudo">
+                <div class="console-form-row"><input type="file" name="arquivo" accept=".json" required></div>
+                <button type="submit" class="console-button">Mesclar conteudo</button>
+            </form>
+        </section>
+    </div>
+
     <div class="console-grid">
         <section class="console-panel">
             <h2>Log do Site</h2>

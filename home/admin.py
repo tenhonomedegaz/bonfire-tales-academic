@@ -63,7 +63,15 @@ admin.site.has_permission = lambda request: request.user.is_active and request.u
 
 
 def download_backup_view(request):
+    """Backup COMPLETO: todas as tabelas do app `home` (catálogo + dados de usuário:
+    personagens, missões, mercado, etc.) MAIS o que é necessário pro login —
+    `auth.Group` e `auth.User` (com senha-hash). FKs serializadas com chave natural
+    (username/codename) para resolverem no restore mesmo com PKs diferentes. As FKs
+    internas do catálogo (home→home) mantêm o PK. Ordem: Group, User, depois home (que
+    referencia User)."""
     from django.apps import apps
+    from django.contrib.auth import get_user_model
+    from django.contrib.auth.models import Group
     from django.core import serializers
     from django.http import HttpResponse
     import json
@@ -87,18 +95,20 @@ def download_backup_view(request):
             sorted_models.append(model_dict.pop(name))
     sorted_models.extend(model_dict.values())
 
+    # auth primeiro (Group antes de User; User antes do home por causa de FK dono/autor)
+    all_models = [Group, get_user_model()] + sorted_models
+
     records = []
-    for model in sorted_models:
+    for model in all_models:
         try:
             qs = model.objects.all().order_by('pk')
             if qs.exists():
-                serialized = serializers.serialize('python', qs)
-                records.extend(serialized)
+                records.extend(serializers.serialize('python', qs, use_natural_foreign_keys=True))
         except Exception:
             continue
 
     response_data = json.dumps(records, indent=2, ensure_ascii=False, cls=DjangoJSONEncoder)
-    filename = f"backup_site_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+    filename = f"backup_completo_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
     response = HttpResponse(response_data, content_type="application/json; charset=utf-8")
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     return response
@@ -265,6 +275,7 @@ def server_logs_view(request):
         "selected_target": selected_target if selected_target in console_paths else "site",
         "command_text": "",
         "command_result": None,
+        "op_result": None,
     }
 
     if request.method == "POST":
@@ -321,6 +332,46 @@ def server_logs_view(request):
                     messages.success(request, f".env do {console_paths[env_target]['label']} salvo com backup automatico.")
                 except OSError as exc:
                     messages.error(request, f"Falha ao salvar .env: {exc}")
+        elif action == "restore_backup":
+            f = request.FILES.get("arquivo")
+            if not f:
+                messages.error(request, "Selecione um arquivo .json de backup.")
+            elif request.POST.get("confirmar") != "RESTAURAR":
+                messages.error(request, "Digite RESTAURAR para confirmar (a operacao sobrescreve dados existentes).")
+            else:
+                try:
+                    from django.core import serializers
+                    from django.db import transaction
+                    texto = f.read().decode("utf-8")
+                    n = 0
+                    with transaction.atomic():
+                        for obj in serializers.deserialize("json", texto):
+                            obj.save()
+                            n += 1
+                    messages.success(request, f"Backup restaurado: {n} registros carregados.")
+                    context["op_result"] = {"titulo": "Restauracao de backup",
+                                            "output": f"{n} registros restaurados de {f.name} (upsert por PK; auth/login incluido)."}
+                except Exception as exc:
+                    messages.error(request, f"Falha ao restaurar: {exc}")
+                    context["op_result"] = {"titulo": "Restauracao — ERRO", "output": str(exc)}
+        elif action == "merge_conteudo":
+            f = request.FILES.get("arquivo")
+            if not f:
+                messages.error(request, "Selecione o arquivo de conteudo (conteudo.json do dev).")
+            else:
+                try:
+                    from .deploy_sync import sincronizar_conteudo, relatorio_texto
+                    texto = f.read().decode("utf-8")
+                    rel = sincronizar_conteudo(texto)
+                    saida = relatorio_texto(rel)
+                    if rel["mem_ok"]:
+                        messages.success(request, "Conteudo sincronizado. Memoria (usuarios/missoes) intacta.")
+                    else:
+                        messages.warning(request, "Sincronizado, MAS a contagem da memoria mudou — verifique!")
+                    context["op_result"] = {"titulo": "Merge de conteudo (chave natural)", "output": saida}
+                except Exception as exc:
+                    messages.error(request, f"Falha no merge: {exc}")
+                    context["op_result"] = {"titulo": "Merge de conteudo — ERRO", "output": str(exc)}
 
     if context["is_authenticated"]:
         bot_path_info = console_paths["bot"]
