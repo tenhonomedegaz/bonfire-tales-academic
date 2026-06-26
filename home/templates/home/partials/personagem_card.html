@@ -1,0 +1,26 @@
+<div class="flex flex-col rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-4 {% if cofre %}opacity-75{% endif %}">
+  <a href="{% url 'ficha_detail' c.obj.id_personagem %}" class="group flex-1">
+    <div class="flex items-start justify-between gap-2">
+      <span class="font-serif text-base font-bold text-[var(--text)] group-hover:text-[var(--ember)]">{{ c.obj.nome }}</span>
+      <span class="shrink-0 rounded border px-1.5 py-0.5 text-[10px] uppercase tracking-wider {% if c.obj.publico %}border-[var(--spark)]/50 text-[var(--spark)]{% else %}border-[var(--stroke)] text-[var(--muted)]{% endif %}">{% if c.obj.publico %}Público{% else %}Privado{% endif %}</span>
+    </div>
+    <p class="mt-1 text-sm text-[var(--muted)]">{{ c.raca }} · {{ c.classe }}</p>
+    <p class="mt-0.5 text-xs text-[var(--muted)]">Nível {{ c.nivel }}</p>
+  </a>
+  <div class="mt-3 flex items-center gap-3 border-t border-[var(--stroke)] pt-3 text-xs font-semibold">
+    <a href="{% url 'ficha_detail' c.obj.id_personagem %}" class="text-[var(--ember)] hover:underline">Ver ficha</a>
+    <span class="flex-1"></span>
+    {% if cofre %}
+      <form method="post" action="{% url 'personagem_restaurar' c.obj.id_personagem %}">{% csrf_token %}
+        <button class="text-[var(--muted)] hover:text-[var(--text)]" title="Tirar do cofre">Restaurar</button>
+      </form>
+    {% else %}
+      <form method="post" action="{% url 'personagem_arquivar' c.obj.id_personagem %}">{% csrf_token %}
+        <button class="text-[var(--muted)] hover:text-[var(--text)]" title="Guardar no cofre">Guardar</button>
+      </form>
+    {% endif %}
+    <form method="post" action="{% url 'personagem_excluir' c.obj.id_personagem %}" onsubmit="return confirm('Excluir {{ c.obj.nome|escapejs }} definitivamente?');">{% csrf_token %}
+      <button class="text-[var(--flame)] hover:underline" title="Excluir definitivamente">Excluir</button>
+    </form>
+  </div>
+</div>

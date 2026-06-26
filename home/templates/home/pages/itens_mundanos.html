@@ -1,81 +1,25 @@
 {% extends 'home/base.html' %}
 {% load static %}
 
+{% block main_class %}flex-1 w-full py-4{% endblock %}
+
 {% block title %}{{ title }} | Bonfire Tales{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/pages/itens_mundanos.css' %}">
-
+<link rel="stylesheet" href="{% static 'css/pages/talentos.css' %}?v=2">
+<link rel="stylesheet" href="{% static 'css/pages/itens_mundanos.css' %}?v=2">
 {% endblock %}
 
 {% block content %}
-<div class="market-layout">
-  <button type="button" class="market-mobile-menu-button" id="marketMobileMenuButton" aria-label="Abrir categorias">
-    <svg xmlns="http://www.w3.org/2000/svg" class="open-icon h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 5 7 7-7 7"/></svg>
-    <svg xmlns="http://www.w3.org/2000/svg" class="close-icon h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 19-7-7 7-7"/></svg>
-  </button>
-  <button type="button" class="market-mobile-backdrop" id="marketMobileBackdrop" aria-label="Fechar categorias"></button>
+<div class="mx-auto w-full max-w-[1440px] px-2 sm:px-4 py-4">
 
-  <aside class="market-sidebar">
-    <h2 class="market-sidebar-title">Mercado</h2>
-    <nav class="market-nav">
-      <button class="tab-btn" data-tab="armas" onclick="switchTab('armas', this)">Armas</button>
-      <button class="tab-btn" data-tab="armaduras" onclick="switchTab('armaduras', this)">Armaduras e Escudos</button>
-      <button class="tab-btn" data-tab="ferramentas" onclick="switchTab('ferramentas', this)">Ferramentas</button>
-      <button class="tab-btn" data-tab="pacotes" onclick="switchTab('pacotes', this)">Pacotes</button>
-      <button class="tab-btn" data-tab="equipamentos" onclick="switchTab('equipamentos', this)">Equipamento de Aventura</button>
-    </nav>
-  </aside>
+  <div class="mb-4">
+    <h1 class="font-cinzel text-xl font-bold text-bonfire-text uppercase">{{ title|default:"Itens Mundanos" }}</h1>
+    <p class="text-bonfire-muted text-[11px] mt-1">Equipamentos, armas e ferramentas mundanas de Cinéria. Filtre por categoria, busque pelo nome e selecione para ver os detalhes.</p>
+  </div>
 
-  <section class="market-content" id="main-content">
-    <header class="mb-8 border-b border-[var(--stroke)] pb-5">
-      <h1 class="market-title">{{ title }}</h1>
-      <p class="market-subtitle">Consulte equipamentos, armas e ferramentas mundanas disponíveis para aventureiros em Cinéria.</p>
-    </header>
-
-    <div id="content-container">
-      {% include 'home/partials/itens_mundanos_content.html' %}
-    </div>
-  </section>
+  <div id="content-container">
+    {% include 'home/partials/itens_mundanos_content.html' %}
+  </div>
 </div>
-
-<script>
-  function setMarketMenuOpen(isOpen) {
-    document.body.classList.toggle('market-menu-open', isOpen);
-    document.getElementById('marketMobileMenuButton')?.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-  }
-
-  function switchTab(tabId, btn) {
-    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-    document.getElementById('tab-' + tabId)?.classList.add('active');
-    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-    btn.classList.add('active');
-    setMarketMenuOpen(false);
-  }
-
-  function toggleItem(card) {
-    card.classList.toggle('open');
-  }
-
-  function renderItemMarkdown() {
-    document.querySelectorAll('[data-markdown-source]').forEach(el => {
-      const source = el.textContent || '';
-      if (typeof renderBonfireMarkdown === 'function') {
-        el.innerHTML = renderBonfireMarkdown(source);
-      } else if (window.marked?.parse) {
-        el.innerHTML = window.marked.parse(source, { gfm: true, breaks: true });
-      }
-    });
-  }
-
-  document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('marketMobileMenuButton')?.addEventListener('click', () => setMarketMenuOpen(!document.body.classList.contains('market-menu-open')));
-    document.getElementById('marketMobileBackdrop')?.addEventListener('click', () => setMarketMenuOpen(false));
-    document.addEventListener('keydown', event => {
-      if (event.key === 'Escape') setMarketMenuOpen(false);
-    });
-    renderItemMarkdown();
-    document.querySelector('.tab-btn')?.click();
-  });
-</script>
 {% endblock %}

@@ -1,0 +1,779 @@
+/* ============================================================
+   Ficha de Personagem — layout estilo planilha clássica D&D 5e
+   Tema escuro premium (ember/flame/Cinzel). Apenas disposição;
+   as fórmulas de exibição vêm prontas do contexto Django.
+   ============================================================ */
+
+.ficha {
+  --gold: var(--spark);
+  width: 100%;
+}
+
+/* ---------- Cabeçalho ---------- */
+.ficha-header {
+  position: relative;
+  border: 1px solid var(--stroke);
+  border-radius: 12px;
+  background:
+    radial-gradient(120% 140% at 0% 0%, rgba(210, 23, 23, 0.14), transparent 55%),
+    linear-gradient(180deg, var(--bg1), var(--bg0));
+  padding: 1.1rem 1.25rem;
+  overflow: hidden;
+}
+.ficha-header::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, var(--flame), var(--ember));
+  height: 3px;
+}
+.ficha-name {
+  font-family: 'Cinzel', serif;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1.05;
+  color: var(--text);
+  font-size: clamp(1.7rem, 1rem + 2.4vw, 2.6rem);
+  text-shadow: 0 0 18px rgba(210, 23, 23, 0.35);
+}
+
+/* ---------- Banner (cabeçalho estilo planilha) ---------- */
+.ficha-banner {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  align-items: stretch;
+}
+@media (min-width: 900px) {
+  .ficha-banner { grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.35fr); }
+}
+
+/* pergaminho à esquerda */
+.banner-scroll {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+  position: relative;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--stroke);
+  border-radius: 10px;
+  background:
+    radial-gradient(140% 160% at 0% 0%, rgba(242, 112, 7, 0.12), transparent 60%),
+    linear-gradient(180deg, var(--bg0), var(--bg1));
+}
+.banner-classes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.55rem;
+  font-family: 'Cinzel', serif;
+}
+.banner-class {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ember);
+  letter-spacing: 0.02em;
+}
+.banner-class em { font-style: normal; color: var(--muted); font-weight: 600; }
+.banner-sep { color: var(--muted); }
+.banner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+}
+.banner-btn {
+  border: 1px solid var(--stroke);
+  border-radius: 7px;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+  white-space: nowrap;
+  transition: color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
+}
+.banner-btn:hover { color: var(--text); border-color: var(--ember); }
+.banner-btn.primary {
+  background: linear-gradient(135deg, var(--flame), var(--ember));
+  color: #fff;
+  font-weight: 700;
+  border-color: transparent;
+}
+.banner-btn.primary:hover { color: #fff; opacity: 0.92; }
+
+/* bloco de identidade à direita */
+.banner-identity {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: stretch;
+}
+.banner-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  min-width: 0;
+}
+.banner-field {
+  border: 1px solid var(--stroke);
+  border-radius: 8px;
+  background: var(--bg0);
+  padding: 0.4rem 0.6rem;
+  min-width: 0;
+}
+.banner-field.wide { grid-column: 1 / -1; }
+.banner-field .lbl {
+  display: block;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  font-weight: 700;
+}
+.banner-field .val {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.25;
+  word-break: break-word;
+}
+.banner-field .val-muted { color: var(--muted); font-weight: 600; }
+
+/* selo de nível (losango/escudo) */
+.banner-level {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 5.5rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--ember);
+  border-radius: 12px;
+  background:
+    radial-gradient(120% 120% at 50% 0%, rgba(242, 112, 7, 0.22), transparent 65%),
+    linear-gradient(180deg, var(--bg1), var(--bg0));
+  box-shadow: inset 0 0 0 1px rgba(242, 112, 7, 0.15), 0 0 20px rgba(210, 23, 23, 0.2);
+}
+.banner-level .lvl-lbl {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--muted);
+  font-weight: 800;
+}
+.banner-level .lvl-num {
+  font-family: 'Cinzel', serif;
+  font-size: 2.4rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--spark);
+  text-shadow: 0 0 16px rgba(247, 177, 19, 0.4);
+}
+@media (max-width: 520px) {
+  .banner-identity { grid-template-columns: 1fr; }
+  .banner-fields { grid-template-columns: 1fr; }
+  .banner-level { flex-direction: row; gap: 0.5rem; min-width: 0; }
+  .banner-level .lvl-num { font-size: 1.8rem; }
+}
+
+/* ---------- Cartões genéricos / molduras ---------- */
+.ficha-panel {
+  border: 1px solid var(--stroke);
+  border-radius: 10px;
+  background: var(--bg1);
+  padding: 0.85rem 0.9rem;
+}
+.ficha-section-title {
+  font-family: 'Cinzel', serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.72rem;
+  color: var(--ember);
+  border-bottom: 1px solid var(--stroke);
+  padding-bottom: 0.35rem;
+  margin-bottom: 0.6rem;
+}
+
+/* ---------- Atributos | Saves+Perícias (2 colunas) ---------- */
+.attr-skills {
+  display: grid;
+  grid-template-columns: minmax(0, 0.62fr) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+@media (max-width: 420px) {
+  .attr-skills { grid-template-columns: 1fr; }
+}
+
+/* coluna vertical de atributos (6 caixas empilhadas) */
+.attr-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+.attr-box {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.12rem;
+  border: 1px solid var(--stroke);
+  border-radius: 10px;
+  background: linear-gradient(180deg, var(--bg1), var(--bg0));
+  text-align: center;
+  padding: 0.5rem 0.4rem 0.95rem;
+  min-height: 90px;
+}
+.attr-box .attr-sig {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.attr-box .attr-mod {
+  font-family: 'Cinzel', serif;
+  font-size: 1.95rem;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1;
+  text-align: center;
+}
+/* valor do atributo num quadradinho na base do box (estilo planilha) */
+.attr-box .attr-score {
+  position: absolute;
+  bottom: -0.7rem;
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 2.3rem;
+  border: 1px solid var(--stroke);
+  border-radius: 7px;
+  background: var(--bg0);
+  text-align: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--spark);
+  padding: 0.1rem 0.45rem;
+}
+
+/* mini stats (prof / percepção passiva) acima das listas */
+.attr-stat-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+.attr-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  border: 1px solid var(--stroke);
+  border-radius: 8px;
+  background: var(--bg0);
+  padding: 0.4rem 0.55rem;
+  text-align: center;
+}
+.attr-stat .lbl {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  font-weight: 700;
+}
+.attr-stat .v {
+  font-family: 'Cinzel', serif;
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.1;
+}
+.attr-stat .v.spark { color: var(--spark); }
+
+/* ---------- Listas de salvaguardas / perícias ---------- */
+.line-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.2rem 0;
+  border-bottom: 1px solid rgba(39, 39, 42, 0.6);
+  font-size: 0.82rem;
+}
+.line-row:last-child { border-bottom: 0; }
+.line-row .name { color: var(--muted); min-width: 0; }
+.line-row .val { font-weight: 700; color: var(--text); white-space: nowrap; }
+
+.prof-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  margin-right: 0.35rem;
+  border: 1px solid var(--muted);
+  vertical-align: middle;
+}
+.prof-dot.on { background: var(--ember); border-color: var(--ember); box-shadow: 0 0 6px rgba(242, 112, 7, 0.6); }
+.prof-dot.exp { background: var(--spark); border-color: var(--spark); box-shadow: 0 0 6px rgba(247, 177, 19, 0.7); }
+
+/* ---------- Caixas de combate (CA/Inic/Vel) ---------- */
+.combat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+.combat-box {
+  border: 1px solid var(--stroke);
+  border-radius: 10px;
+  background: linear-gradient(180deg, var(--bg1), var(--bg0));
+  text-align: center;
+  padding: 0.6rem 0.3rem;
+}
+.combat-box .lbl {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  font-weight: 700;
+}
+.combat-box .big {
+  font-family: 'Cinzel', serif;
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.1;
+  white-space: nowrap;
+}
+.combat-box.ca .big { color: var(--spark); }
+/* velocidade tem unidade (ex.: "9 m" / "30 ft") — fonte menor pra caber */
+.combat-box.vel .big {
+  font-size: 0.92rem;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  white-space: normal;
+  word-break: break-word;
+}
+
+/* PV — apenas máximo (esta ficha é um log, não ficha de combate) */
+.hp-track {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+}
+.hp-track.single { grid-template-columns: 1fr; }
+.hp-cell {
+  border: 1px solid var(--stroke);
+  border-radius: 8px;
+  background: var(--bg0);
+  text-align: center;
+  padding: 0.45rem 0.2rem;
+}
+.hp-cell .lbl { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 700; }
+.hp-cell .v { font-size: 1.05rem; font-weight: 800; color: var(--text); }
+.hp-cell.max .v { color: var(--flame); font-size: 1.4rem; }
+.hp-track.single .hp-cell.max { padding: 0.6rem 0.4rem; }
+
+/* ---------- CARDS DE HABILIDADE (acordeão) ---------- */
+.feat-group + .feat-group { margin-top: 1.4rem; }
+.feat-group-title {
+  font-family: 'Cinzel', serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 0.78rem;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.7rem;
+}
+.feat-group-title::before {
+  content: "";
+  width: 14px; height: 14px;
+  border-radius: 3px;
+  background: linear-gradient(135deg, var(--flame), var(--ember));
+  box-shadow: 0 0 10px rgba(242, 112, 7, 0.5);
+}
+.feat-group-title .count {
+  margin-left: auto;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+/* cards de habilidade em UMA coluna só (largura cheia da seção) */
+.feat-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.6rem;
+}
+
+.feat-card {
+  border: 1px solid var(--stroke);
+  border-radius: 10px;
+  background: linear-gradient(180deg, var(--bg1), var(--bg0));
+  overflow: hidden;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+.feat-card.open {
+  border-color: var(--ember);
+  box-shadow: 0 0 0 1px rgba(242, 112, 7, 0.25), 0 14px 30px rgba(0, 0, 0, 0.45);
+}
+.feat-card:hover { border-color: rgba(242, 112, 7, 0.55); }
+
+.feat-head {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  text-align: left;
+  padding: 0.7rem 0.85rem;
+  background: transparent;
+  cursor: pointer;
+  border: 0;
+  color: inherit;
+}
+.feat-head:focus-visible { outline: 2px solid var(--ember); outline-offset: -2px; }
+.feat-head .feat-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.feat-head .feat-name {
+  display: block;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--text);
+  line-height: 1.25;
+}
+/* FONTE/ORIGEM da habilidade — sempre numa linha ABAIXO do nome */
+.feat-head .feat-meta {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--ember);
+  opacity: 0.85;
+}
+.feat-badge {
+  flex-shrink: 0;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--spark);
+  border: 1px solid var(--stroke);
+  background: var(--bg0);
+  border-radius: 999px;
+  padding: 0.12rem 0.5rem;
+  white-space: nowrap;
+}
+.feat-chevron {
+  flex-shrink: 0;
+  width: 18px; height: 18px;
+  color: var(--muted);
+  transition: transform 0.25s ease, color 0.2s ease;
+  margin-top: 0.1rem;
+}
+.feat-card.open .feat-chevron { transform: rotate(180deg); color: var(--ember); }
+
+.feat-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.28s ease;
+}
+.feat-card.open .feat-body { grid-template-rows: 1fr; }
+.feat-body-inner {
+  overflow: hidden;
+  min-height: 0;
+}
+.feat-card.open .feat-body-inner {
+  border-top: 1px solid var(--stroke);
+}
+.feat-desc {
+  padding: 0.8rem 0.95rem 0.95rem;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.feat-desc.empty { color: var(--muted); font-style: italic; opacity: 0.7; }
+
+/* ---------- Tags / pílulas auxiliares ---------- */
+.pill {
+  display: inline-block;
+  font-size: 0.72rem;
+  border: 1px solid var(--stroke);
+  background: var(--bg0);
+  border-radius: 6px;
+  padding: 0.1rem 0.5rem;
+  color: var(--spark);
+}
+.pill.muted { color: var(--muted); }
+
+/* ---------- Grid principal de 3 colunas ---------- */
+.ficha-columns {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+@media (min-width: 1024px) {
+  .ficha-columns {
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.85fr) minmax(0, 1.1fr);
+    align-items: start;
+  }
+}
+
+/* defesas/sentidos definição */
+.def-row { display: flex; gap: 0.6rem; padding: 0.25rem 0; font-size: 0.82rem; }
+.def-row dt { width: 7.5rem; flex-shrink: 0; color: var(--muted); }
+.def-row dd { color: var(--text); min-width: 0; }
+
+/* ============================================================
+   ABAS (multi-página da ficha)
+   ============================================================ */
+.ficha-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  border-bottom: 1px solid var(--stroke);
+  padding-bottom: 0.1rem;
+}
+.ficha-tab {
+  font-family: 'Cinzel', serif;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  font-size: 0.82rem;
+  color: var(--muted);
+  background: linear-gradient(180deg, var(--bg1), var(--bg0));
+  border: 1px solid var(--stroke);
+  border-bottom: none;
+  border-radius: 9px 9px 0 0;
+  padding: 0.55rem 1.05rem;
+  position: relative;
+  bottom: -1px;
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+.ficha-tab:hover { color: var(--text); border-color: rgba(242, 112, 7, 0.55); }
+.ficha-tab:focus-visible { outline: 2px solid var(--ember); outline-offset: 2px; }
+.ficha-tab.is-active {
+  color: var(--spark);
+  border-color: var(--ember);
+  border-bottom: 1px solid var(--bg0);
+  background:
+    radial-gradient(120% 160% at 50% 0%, rgba(242, 112, 7, 0.18), transparent 65%),
+    linear-gradient(180deg, var(--bg1), var(--bg0));
+}
+.ficha-tab.is-active::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  border-radius: 9px 9px 0 0;
+  background: linear-gradient(90deg, var(--flame), var(--ember));
+}
+
+.ficha-tabpanel { animation: fade-in 0.25s ease-out; }
+.ficha-tabpanel[hidden] { display: none; }
+
+/* ============================================================
+   ABA INFORMAÇÕES
+   ============================================================ */
+.info-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+@media (min-width: 860px) {
+  .info-layout { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); }
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem 0.7rem;
+}
+@media (min-width: 520px) {
+  .info-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+.info-field { display: flex; flex-direction: column; gap: 0.25rem; min-width: 0; }
+.info-field.full { grid-column: 1 / -1; }
+.info-field .lbl {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  font-weight: 700;
+}
+.info-field .hint {
+  text-transform: none;
+  letter-spacing: 0.02em;
+  color: var(--ember);
+  font-weight: 600;
+  opacity: 0.85;
+  margin-left: 0.3rem;
+}
+.info-field input,
+.info-field textarea {
+  width: 100%;
+  border: 1px solid var(--stroke);
+  border-radius: 8px;
+  background: var(--bg0);
+  color: var(--text);
+  font-size: 0.85rem;
+  padding: 0.45rem 0.6rem;
+  font-family: inherit;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.info-field textarea { resize: vertical; line-height: 1.55; }
+.info-field input:focus,
+.info-field textarea:focus {
+  outline: none;
+  border-color: var(--ember);
+  box-shadow: 0 0 0 2px rgba(242, 112, 7, 0.18);
+}
+.info-field input::placeholder,
+.info-field textarea::placeholder { color: var(--muted); opacity: 0.6; }
+
+.info-portraits {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-bottom: 0.85rem;
+}
+.info-portrait { margin: 0; text-align: center; min-width: 0; }
+.info-portrait img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid var(--stroke);
+  background: var(--bg0);
+}
+.info-portrait.token img { border-radius: 999px; }
+.info-portrait-ph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border: 1px dashed var(--stroke);
+  border-radius: 10px;
+  background: var(--bg0);
+  color: var(--muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.info-portrait.token .info-portrait-ph { border-radius: 999px; }
+.info-portrait figcaption {
+  margin-top: 0.35rem;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.info-actions { display: flex; justify-content: flex-end; }
+.info-actions .banner-btn { font-size: 0.9rem; padding: 0.55rem 1.4rem; }
+
+.info-lore {
+  font-size: 0.88rem;
+  line-height: 1.65;
+  color: var(--text);
+}
+.info-lore .bonfire-markdown { color: var(--text); }
+.info-empty { color: var(--muted); font-style: italic; font-size: 0.85rem; }
+
+/* ============================================================
+   ABA MAGIAS
+   ============================================================ */
+.magias-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-bottom: 0.6rem;
+}
+.magia-count {
+  border: 1px solid var(--stroke);
+  border-radius: 8px;
+  background: var(--bg0);
+  padding: 0.4rem 0.8rem;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+.magia-count strong { color: var(--ember); font-family: 'Cinzel', serif; font-size: 1.05rem; }
+.magia-count.alt strong { color: var(--spark); }
+.magias-help { font-size: 0.78rem; color: var(--muted); line-height: 1.5; }
+.magias-help em { color: var(--spark); font-style: normal; font-weight: 600; }
+
+.magias-list { display: flex; flex-direction: column; }
+.magia-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid rgba(39, 39, 42, 0.6);
+}
+.magia-row:last-child { border-bottom: 0; }
+.magia-row.is-unprepared { opacity: 0.5; }
+.magia-name { font-size: 0.9rem; font-weight: 600; color: var(--text); min-width: 0; }
+.magia-badges { display: flex; flex-wrap: wrap; gap: 0.35rem; justify-content: flex-end; }
+.magia-badge {
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border: 1px solid var(--stroke);
+  border-radius: 999px;
+  padding: 0.1rem 0.55rem;
+  white-space: nowrap;
+}
+.magia-badge.prep { color: var(--ember); border-color: rgba(242, 112, 7, 0.5); background: rgba(242, 112, 7, 0.08); }
+.magia-badge.sempre { color: var(--spark); border-color: rgba(247, 177, 19, 0.5); background: rgba(247, 177, 19, 0.08); }
+.magia-badge.origem { color: var(--muted); background: var(--bg0); }
+
+/* ============================================================
+   ABA HISTÓRICO
+   ============================================================ */
+.hist-scroll { overflow-x: auto; }
+.hist-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+.hist-table th {
+  text-align: left;
+  font-family: 'Cinzel', serif;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ember);
+  font-weight: 700;
+  padding: 0.45rem 0.6rem;
+  border-bottom: 1px solid var(--stroke);
+  white-space: nowrap;
+}
+.hist-table th.num { text-align: right; }
+.hist-table td {
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid rgba(39, 39, 42, 0.6);
+  color: var(--text);
+  vertical-align: top;
+}
+.hist-table td.num { text-align: right; white-space: nowrap; font-weight: 700; }
+.hist-table tbody tr:last-child td { border-bottom: 0; }
+.hist-table tbody tr:hover { background: rgba(242, 112, 7, 0.05); }
+.hist-date { color: var(--muted); white-space: nowrap; }
+.hist-desc { color: var(--muted); min-width: 12rem; }
+.hist-val { color: var(--text); }
+.hist-table tr.is-debit .hist-val { color: var(--flame); }
+.hist-table tr.is-credit .hist-val { color: var(--spark); }
+.hist-saldo { color: var(--text); }
+.hist-table .cur { font-size: 0.7em; font-weight: 600; color: var(--muted); }
+.hist-note { margin-top: 0.6rem; font-size: 0.72rem; color: var(--muted); }

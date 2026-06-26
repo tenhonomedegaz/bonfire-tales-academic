@@ -1,157 +1,307 @@
-<div id="tab-armas" class="tab-content">
-    <h3 class="text-2xl font-bold mb-4 text-[var(--spark)]">Armas</h3>
-    {% if armas %}
-        {% for item in armas %}
-        <div class="item-card" onclick="toggleItem(this)">
-            <div class="item-card-header">
-                <div>
-                    <h4 class="font-bold text-lg m-0">{{ item.nome }}</h4>
-                    <span class="text-sm text-[var(--muted)]">{{ item.get_subcategoria_display|default:item.subcategoria }}</span>
-                </div>
-                <div class="flex items-center gap-4">
-                    <span class="text-sm font-semibold text-[var(--flame)]">{{ item.dano }}</span>
-                    <span class="text-sm text-[var(--muted)]">{{ item.preco }} | {{ item.peso|default:"--" }} kg</span>
-                    <svg class="chevron w-5 h-5 text-[var(--muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                </div>
-            </div>
-            <div class="item-card-body">
-                {% if item.propriedades %}
-                    <p class="mb-2"><strong>Propriedades:</strong> {{ item.propriedades }}</p>
-                {% endif %}
-                {% if item.maestria %}
-                    <p class="mb-2"><strong>Maestria:</strong> <span class="text-[var(--spark)]">{{ item.maestria }}</span></p>
-                {% endif %}
-                {% if item.descricao_markdown %}
-                    <div class="bonfire-markdown text-sm mt-2" data-markdown-source>
-                        {{ item.descricao_markdown|escape }}
-                    </div>
-                {% endif %}
-            </div>
+{% load static %}
+<div class="mu-shell" data-mu-root>
+
+  <!-- Filtros -->
+  <div id="muSearchBar" class="mu-filters">
+    <input id="mu-busca" type="search" placeholder="Buscar item mundano…" autocomplete="off"
+           class="w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)] outline-none focus:border-[var(--ember)]">
+    <div class="mt-3 flex flex-wrap gap-2" id="mu-cat-filters">
+      <button type="button" class="mu-cat-chip active" data-cat="todos">Todos</button>
+      <button type="button" class="mu-cat-chip" data-cat="armas">Armas</button>
+      <button type="button" class="mu-cat-chip" data-cat="armaduras">Armaduras</button>
+      <button type="button" class="mu-cat-chip" data-cat="ferramentas">Ferramentas</button>
+      <button type="button" class="mu-cat-chip" data-cat="pacotes">Pacotes</button>
+      <button type="button" class="mu-cat-chip" data-cat="equipamentos">Equipamentos</button>
+      {% for g in grupos_extra %}
+      <button type="button" class="mu-cat-chip" data-cat="{{ g.id }}">{{ g.label }}</button>
+      {% endfor %}
+    </div>
+    <p class="mt-3 text-xs text-[var(--muted)]"><span id="mu-count">0</span> item(ns)</p>
+  </div>
+
+  <div class="talent-main-grid grid gap-6 border-t border-bonfire-stroke pt-6 flex-1">
+    <button type="button" class="talent-mobile-menu-button" id="muMobileMenuButton" aria-label="Abrir lista de itens">
+      <svg xmlns="http://www.w3.org/2000/svg" class="open-icon h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 5 7 7-7 7"/></svg>
+      <svg xmlns="http://www.w3.org/2000/svg" class="close-icon h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 19-7-7 7-7"/></svg>
+    </button>
+    <button type="button" class="talent-mobile-backdrop" id="muMobileBackdrop" aria-label="Fechar lista"></button>
+
+    <aside class="talent-list-panel xl:sticky xl:top-24 h-full max-h-[calc(100vh-140px)] overflow-y-auto custom-scrollbar flex flex-col gap-2 pr-2" id="muList">
+
+      {% for item in armas %}
+      <div class="mu-list-item" data-id="arma-{{ forloop.counter }}" data-cat="armas"
+           data-search="{{ item.nome|lower }} arma {{ item.get_subcategoria_display|default:item.subcategoria|lower }}">
+        <div class="mu-list-item-main">
+          <h3 class="mu-list-item-name">{{ item.nome }}</h3>
+          <p class="mu-list-item-meta">{{ item.get_subcategoria_display|default:item.subcategoria }}{% if item.dano %} · {{ item.dano }}{% endif %}</p>
         </div>
-        {% endfor %}
-    {% else %}
-        <p class="text-[var(--muted)]">Nenhuma arma cadastrada.</p>
-    {% endif %}
+        <span class="mu-list-item-price">{{ item.preco|default:"--" }}</span>
+      </div>
+      {% endfor %}
+
+      {% for item in armaduras %}
+      <div class="mu-list-item" data-id="armadura-{{ forloop.counter }}" data-cat="armaduras"
+           data-search="{{ item.nome|lower }} armadura {{ item.get_subcategoria_display|default:item.subcategoria|lower }}">
+        <div class="mu-list-item-main">
+          <h3 class="mu-list-item-name">{{ item.nome }}</h3>
+          <p class="mu-list-item-meta">{{ item.get_subcategoria_display|default:item.subcategoria }}{% if item.ca %} · CA {{ item.ca }}{% endif %}</p>
+        </div>
+        <span class="mu-list-item-price">{{ item.preco|default:"--" }}</span>
+      </div>
+      {% endfor %}
+
+      {% for item in ferramentas %}
+      <div class="mu-list-item" data-id="ferramenta-{{ forloop.counter }}" data-cat="ferramentas"
+           data-search="{{ item.nome|lower }} ferramenta">
+        <div class="mu-list-item-main">
+          <h3 class="mu-list-item-name">{{ item.nome }}</h3>
+          <p class="mu-list-item-meta">Ferramenta</p>
+        </div>
+        <span class="mu-list-item-price">{{ item.preco|default:"--" }}</span>
+      </div>
+      {% endfor %}
+
+      {% for item in pacotes %}
+      <div class="mu-list-item" data-id="pacote-{{ forloop.counter }}" data-cat="pacotes"
+           data-search="{{ item.nome|lower }} pacote">
+        <div class="mu-list-item-main">
+          <h3 class="mu-list-item-name">{{ item.nome }}</h3>
+          <p class="mu-list-item-meta">Pacote</p>
+        </div>
+        <span class="mu-list-item-price">{{ item.preco|default:"--" }}</span>
+      </div>
+      {% endfor %}
+
+      {% for item in equipamentos %}
+      <div class="mu-list-item" data-id="equip-{{ forloop.counter }}" data-cat="equipamentos"
+           data-search="{{ item.nome|lower }} equipamento aventura">
+        <div class="mu-list-item-main">
+          <h3 class="mu-list-item-name">{{ item.nome }}</h3>
+          <p class="mu-list-item-meta">Equipamento de Aventura</p>
+        </div>
+        <span class="mu-list-item-price">{{ item.preco|default:"--" }}</span>
+      </div>
+      {% endfor %}
+
+      {% for g in grupos_extra %}
+      {% for item in g.itens %}
+      <div class="mu-list-item" data-id="extra-{{ g.id }}-{{ forloop.counter }}" data-cat="{{ g.id }}"
+           data-search="{{ item.nome|lower }} {{ g.label|lower }} {{ item.get_subcategoria_display|default:item.subcategoria|lower }}">
+        <div class="mu-list-item-main">
+          <h3 class="mu-list-item-name">{{ item.nome }}</h3>
+          <p class="mu-list-item-meta">{{ g.label }}</p>
+        </div>
+        <span class="mu-list-item-price">{{ item.preco|default:"--" }}</span>
+      </div>
+      {% endfor %}
+      {% endfor %}
+
+      <p class="mu-empty text-bonfire-muted text-sm p-4 text-center" hidden>Nenhum item encontrado.</p>
+    </aside>
+
+    <main class="talent-detail-panel hidden mt-8 md:mt-0 md:pl-6" id="muDetail">
+      <div class="flex items-center justify-center h-full text-bonfire-muted flex-col gap-4">
+        <svg class="w-16 h-16 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+        </svg>
+        <p class="text-sm">Selecione um item para ver os detalhes.</p>
+      </div>
+    </main>
+  </div>
+
+  <!-- Loja de detalhe -->
+  <div class="mu-data-store" hidden>
+    {% for item in armas %}
+    <template id="arma-{{ forloop.counter }}-tpl">
+      <div class="mu-detail">
+        <span class="mu-detail-cat">Arma · {{ item.get_subcategoria_display|default:item.subcategoria }}</span>
+        <h2 class="mu-detail-title">{{ item.nome }}</h2>
+        <div class="mu-detail-stats">
+          {% if item.dano %}<div class="mu-stat"><span class="mu-stat-label">Dano</span><span class="mu-stat-value mu-stat-accent">{{ item.dano }}</span></div>{% endif %}
+          <div class="mu-stat"><span class="mu-stat-label">Preço</span><span class="mu-stat-value">{{ item.preco|default:"--" }}</span></div>
+          <div class="mu-stat"><span class="mu-stat-label">Peso</span><span class="mu-stat-value">{{ item.peso|default:"--" }} kg</span></div>
+        </div>
+        {% if item.propriedades %}<p class="mu-detail-line"><strong>Propriedades:</strong> {{ item.propriedades }}</p>{% endif %}
+        {% if item.maestria %}<p class="mu-detail-line"><strong>Maestria:</strong> <span class="text-[var(--spark)]">{{ item.maestria }}</span></p>{% endif %}
+        {% if item.descricao_markdown %}<div class="bonfire-markdown mu-detail-desc text-sm" data-markdown-source>{{ item.descricao_markdown|escape }}</div>{% endif %}
+      </div>
+    </template>
+    {% endfor %}
+
+    {% for item in armaduras %}
+    <template id="armadura-{{ forloop.counter }}-tpl">
+      <div class="mu-detail">
+        <span class="mu-detail-cat">Armadura · {{ item.get_subcategoria_display|default:item.subcategoria }}</span>
+        <h2 class="mu-detail-title">{{ item.nome }}</h2>
+        <div class="mu-detail-stats">
+          {% if item.ca %}<div class="mu-stat"><span class="mu-stat-label">Classe de Armadura</span><span class="mu-stat-value mu-stat-stat">CA {{ item.ca }}</span></div>{% endif %}
+          <div class="mu-stat"><span class="mu-stat-label">Preço</span><span class="mu-stat-value">{{ item.preco|default:"--" }}</span></div>
+          <div class="mu-stat"><span class="mu-stat-label">Peso</span><span class="mu-stat-value">{{ item.peso|default:"--" }} kg</span></div>
+          {% if item.forca_minima %}<div class="mu-stat"><span class="mu-stat-label">Força Mínima</span><span class="mu-stat-value">{{ item.forca_minima }}</span></div>{% endif %}
+        </div>
+        {% if item.furtividade_desvantagem %}<p class="mu-detail-line text-[var(--flame)]"><strong>Desvantagem em Furtividade</strong></p>{% endif %}
+        {% if item.descricao_markdown %}<div class="bonfire-markdown mu-detail-desc text-sm" data-markdown-source>{{ item.descricao_markdown|escape }}</div>{% endif %}
+      </div>
+    </template>
+    {% endfor %}
+
+    {% for item in ferramentas %}
+    <template id="ferramenta-{{ forloop.counter }}-tpl">
+      <div class="mu-detail">
+        <span class="mu-detail-cat">Ferramenta</span>
+        <h2 class="mu-detail-title">{{ item.nome }}</h2>
+        <div class="mu-detail-stats">
+          <div class="mu-stat"><span class="mu-stat-label">Preço</span><span class="mu-stat-value">{{ item.preco|default:"--" }}</span></div>
+          <div class="mu-stat"><span class="mu-stat-label">Peso</span><span class="mu-stat-value">{{ item.peso|default:"--" }} kg</span></div>
+        </div>
+        {% if item.descricao_markdown %}<div class="bonfire-markdown mu-detail-desc text-sm" data-markdown-source>{{ item.descricao_markdown|escape }}</div>{% endif %}
+      </div>
+    </template>
+    {% endfor %}
+
+    {% for item in pacotes %}
+    <template id="pacote-{{ forloop.counter }}-tpl">
+      <div class="mu-detail">
+        <span class="mu-detail-cat">Pacote</span>
+        <h2 class="mu-detail-title">{{ item.nome }}</h2>
+        <div class="mu-detail-stats">
+          <div class="mu-stat"><span class="mu-stat-label">Preço</span><span class="mu-stat-value">{{ item.preco|default:"--" }}</span></div>
+        </div>
+        {% if item.descricao_markdown %}<div class="bonfire-markdown mu-detail-desc text-sm" data-markdown-source>{{ item.descricao_markdown|escape }}</div>{% endif %}
+      </div>
+    </template>
+    {% endfor %}
+
+    {% for item in equipamentos %}
+    <template id="equip-{{ forloop.counter }}-tpl">
+      <div class="mu-detail">
+        <span class="mu-detail-cat">Equipamento de Aventura</span>
+        <h2 class="mu-detail-title">{{ item.nome }}</h2>
+        <div class="mu-detail-stats">
+          <div class="mu-stat"><span class="mu-stat-label">Preço</span><span class="mu-stat-value">{{ item.preco|default:"--" }}</span></div>
+          <div class="mu-stat"><span class="mu-stat-label">Peso</span><span class="mu-stat-value">{{ item.peso|default:"--" }} kg</span></div>
+        </div>
+        {% if item.descricao_markdown %}<div class="bonfire-markdown mu-detail-desc text-sm" data-markdown-source>{{ item.descricao_markdown|escape }}</div>{% endif %}
+      </div>
+    </template>
+    {% endfor %}
+
+    {% for g in grupos_extra %}
+    {% for item in g.itens %}
+    <template id="extra-{{ g.id }}-{{ forloop.counter }}-tpl">
+      <div class="mu-detail">
+        <span class="mu-detail-cat">{{ g.label }}{% if item.get_subcategoria_display or item.subcategoria %} · {{ item.get_subcategoria_display|default:item.subcategoria }}{% endif %}{% if item.fonte %} · {{ item.fonte }}{% endif %}</span>
+        <h2 class="mu-detail-title">{{ item.nome }}</h2>
+        <div class="mu-detail-stats">
+          <div class="mu-stat"><span class="mu-stat-label">Preço</span><span class="mu-stat-value">{{ item.preco|default:"--" }}</span></div>
+          {% if item.peso %}<div class="mu-stat"><span class="mu-stat-label">Peso</span><span class="mu-stat-value">{{ item.peso }} lb</span></div>{% endif %}
+        </div>
+        {% if item.descricao_markdown %}<div class="bonfire-markdown mu-detail-desc text-sm" data-markdown-source>{{ item.descricao_markdown|escape }}</div>{% else %}<p class="text-sm text-[var(--muted)] mt-3">Regras conforme o padrão do livro de origem.</p>{% endif %}
+      </div>
+    </template>
+    {% endfor %}
+    {% endfor %}
+  </div>
 </div>
 
-<div id="tab-armaduras" class="tab-content">
-    <h3 class="text-2xl font-bold mb-4 text-[var(--spark)]">Armaduras e Escudos</h3>
-    {% if armaduras %}
-        {% for item in armaduras %}
-        <div class="item-card" onclick="toggleItem(this)">
-            <div class="item-card-header">
-                <div>
-                    <h4 class="font-bold text-lg m-0">{{ item.nome }}</h4>
-                    <span class="text-sm text-[var(--muted)]">{{ item.get_subcategoria_display|default:item.subcategoria }}</span>
-                </div>
-                <div class="flex items-center gap-4">
-                    <span class="text-sm font-semibold text-[var(--spark)]">CA {{ item.ca }}</span>
-                    <span class="text-sm text-[var(--muted)]">{{ item.preco }} | {{ item.peso|default:"--" }} kg</span>
-                    <svg class="chevron w-5 h-5 text-[var(--muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                </div>
-            </div>
-            <div class="item-card-body">
-                <div class="flex gap-4 mb-2">
-                    {% if item.forca_minima %}
-                        <p class="text-sm"><strong>Força Mínima:</strong> {{ item.forca_minima }}</p>
-                    {% endif %}
-                    {% if item.furtividade_desvantagem %}
-                        <p class="text-sm text-[var(--flame)]"><strong>Desvantagem em Furtividade</strong></p>
-                    {% endif %}
-                </div>
-                {% if item.descricao_markdown %}
-                    <div class="bonfire-markdown text-sm mt-2" data-markdown-source>
-                        {{ item.descricao_markdown|escape }}
-                    </div>
-                {% endif %}
-            </div>
-        </div>
-        {% endfor %}
-    {% else %}
-        <p class="text-[var(--muted)]">Nenhuma armadura cadastrada.</p>
-    {% endif %}
-</div>
+<script>
+(function(){
+  var root = document.querySelector('[data-mu-root]');
+  if (!root || root.dataset.muInit === '1') return;
+  root.dataset.muInit = '1';
 
-<div id="tab-ferramentas" class="tab-content">
-    <h3 class="text-2xl font-bold mb-4 text-[var(--spark)]">Ferramentas</h3>
-    {% if ferramentas %}
-        {% for item in ferramentas %}
-        <div class="item-card" onclick="toggleItem(this)">
-            <div class="item-card-header">
-                <div>
-                    <h4 class="font-bold text-lg m-0">{{ item.nome }}</h4>
-                </div>
-                <div class="flex items-center gap-4">
-                    <span class="text-sm text-[var(--muted)]">{{ item.preco }} | {{ item.peso|default:"--" }} kg</span>
-                    <svg class="chevron w-5 h-5 text-[var(--muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                </div>
-            </div>
-            <div class="item-card-body">
-                {% if item.descricao_markdown %}
-                    <div class="bonfire-markdown text-sm mt-2" data-markdown-source>
-                        {{ item.descricao_markdown|escape }}
-                    </div>
-                {% endif %}
-            </div>
-        </div>
-        {% endfor %}
-    {% else %}
-        <p class="text-[var(--muted)]">Nenhuma ferramenta cadastrada.</p>
-    {% endif %}
-</div>
+  var listContainer = root.querySelector('#muList');
+  var detailContainer = root.querySelector('#muDetail');
+  var countEl = root.querySelector('#mu-count');
+  var busca = root.querySelector('#mu-busca');
+  var catFilters = root.querySelector('#mu-cat-filters');
+  var emptyMsg = root.querySelector('.mu-empty');
+  var mobileMenuButton = root.querySelector('#muMobileMenuButton');
+  var mobileBackdrop = root.querySelector('#muMobileBackdrop');
 
-<div id="tab-pacotes" class="tab-content">
-    <h3 class="text-2xl font-bold mb-4 text-[var(--spark)]">Pacotes</h3>
-    {% if pacotes %}
-        {% for item in pacotes %}
-        <div class="item-card" onclick="toggleItem(this)">
-            <div class="item-card-header">
-                <div>
-                    <h4 class="font-bold text-lg m-0">{{ item.nome }}</h4>
-                </div>
-                <div class="flex items-center gap-4">
-                    <span class="text-sm text-[var(--muted)]">{{ item.preco }}</span>
-                    <svg class="chevron w-5 h-5 text-[var(--muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                </div>
-            </div>
-            <div class="item-card-body">
-                {% if item.descricao_markdown %}
-                    <div class="bonfire-markdown text-sm mt-2" data-markdown-source>
-                        {{ item.descricao_markdown|escape }}
-                    </div>
-                {% endif %}
-            </div>
-        </div>
-        {% endfor %}
-    {% else %}
-        <p class="text-[var(--muted)]">Nenhum pacote cadastrado.</p>
-    {% endif %}
-</div>
+  var items = Array.prototype.slice.call(listContainer.querySelectorAll('.mu-list-item'));
+  var activeCat = 'todos';
 
-<div id="tab-equipamentos" class="tab-content">
-    <h3 class="text-2xl font-bold mb-4 text-[var(--spark)]">Equipamento de Aventura</h3>
-    {% if equipamentos %}
-        {% for item in equipamentos %}
-        <div class="item-card" onclick="toggleItem(this)">
-            <div class="item-card-header">
-                <div>
-                    <h4 class="font-bold text-lg m-0">{{ item.nome }}</h4>
-                </div>
-                <div class="flex items-center gap-4">
-                    <span class="text-sm text-[var(--muted)]">{{ item.preco }} | {{ item.peso|default:"--" }} kg</span>
-                    <svg class="chevron w-5 h-5 text-[var(--muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                </div>
-            </div>
-            <div class="item-card-body">
-                {% if item.descricao_markdown %}
-                    <div class="bonfire-markdown text-sm mt-2" data-markdown-source>
-                        {{ item.descricao_markdown|escape }}
-                    </div>
-                {% endif %}
-            </div>
-        </div>
-        {% endfor %}
-    {% else %}
-        <p class="text-[var(--muted)]">Nenhum equipamento cadastrado.</p>
-    {% endif %}
-</div>
+  function norm(s){ return (s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase(); }
+
+  function renderMarkdownIn(node){
+    node.querySelectorAll('[data-markdown-source]').forEach(function(el){
+      if (el.dataset.rendered === '1') return;
+      var source = el.textContent || '';
+      if (typeof renderBonfireMarkdown === 'function') el.innerHTML = renderBonfireMarkdown(source);
+      else if (window.marked && window.marked.parse) el.innerHTML = window.marked.parse(source, { gfm:true, breaks:true });
+      el.dataset.rendered = '1';
+    });
+  }
+
+  function openMenu(){ document.body.classList.add('talent-menu-open'); }
+  function closeMenu(){ document.body.classList.remove('talent-menu-open'); }
+
+  function applyFilters(){
+    var q = norm(busca.value.trim());
+    var shown = 0;
+    items.forEach(function(it){
+      var cat = it.getAttribute('data-cat') || '';
+      var matchCat = activeCat === 'todos' || cat === activeCat;
+      var matchSearch = !q || norm(it.getAttribute('data-search')).indexOf(q) !== -1;
+      if (matchCat && matchSearch){ it.style.display = ''; shown++; }
+      else it.style.display = 'none';
+    });
+    countEl.textContent = shown;
+    if (emptyMsg) emptyMsg.hidden = shown !== 0;
+  }
+
+  function selectItem(id){
+    var tpl = root.querySelector('#' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '-tpl');
+    if (!tpl) return;
+    items.forEach(function(it){ it.classList.toggle('selected', it.getAttribute('data-id') === id); });
+    closeMenu();
+
+    detailContainer.classList.remove('hidden');
+    detailContainer.classList.add('flex', 'flex-col');
+    detailContainer.innerHTML = '';
+    detailContainer.appendChild(tpl.content.cloneNode(true));
+    renderMarkdownIn(detailContainer);
+
+    detailContainer.classList.remove('talent-detail-enter');
+    void detailContainer.offsetWidth;
+    detailContainer.classList.add('talent-detail-enter');
+  }
+
+  items.forEach(function(it){
+    it.addEventListener('click', function(){ selectItem(it.getAttribute('data-id')); });
+  });
+
+  catFilters.addEventListener('click', function(e){
+    var btn = e.target.closest('.mu-cat-chip');
+    if (!btn) return;
+    activeCat = btn.getAttribute('data-cat');
+    catFilters.querySelectorAll('.mu-cat-chip').forEach(function(b){ b.classList.toggle('active', b === btn); });
+    closeMenu();
+    applyFilters();
+  });
+
+  busca.addEventListener('input', applyFilters);
+
+  mobileMenuButton && mobileMenuButton.addEventListener('click', openMenu);
+  mobileBackdrop && mobileBackdrop.addEventListener('click', closeMenu);
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeMenu(); });
+
+  // Move a barra de busca para dentro do drawer no mobile (mesmo padrão de talentos.html)
+  (function(){
+    var mq = window.matchMedia('(max-width: 1100px)');
+    var searchBar = root.querySelector('#muSearchBar');
+    if (!searchBar) return;
+    var originalParent = searchBar.parentElement;
+    var originalNext = searchBar.nextElementSibling;
+    function handleLayout(e){
+      if (e.matches) listContainer.insertBefore(searchBar, listContainer.firstChild);
+      else if (originalParent) originalParent.insertBefore(searchBar, originalNext);
+    }
+    if (mq.addEventListener) mq.addEventListener('change', handleLayout); else mq.addListener(handleLayout);
+    handleLayout(mq);
+  })();
+
+  applyFilters();
+})();
+</script>

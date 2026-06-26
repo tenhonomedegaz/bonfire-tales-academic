@@ -1,0 +1,151 @@
+{% extends 'home/base.html' %}
+{% load static %}
+
+{% block content %}
+<section class="animate-fade-in max-w-3xl">
+  <header class="mb-4 flex flex-wrap items-end justify-between gap-3 border-b border-[var(--stroke)] pb-4">
+    <div>
+      <h1 class="font-serif text-2xl md:text-3xl font-bold text-[var(--ember)]">Mercado de Mestre</h1>
+      <p class="mt-1 text-sm text-[var(--muted)]">Ganhe <strong>Moedas de Mestragem (MM)</strong> registrando as mesas que você conduz e troque por recompensas.</p>
+    </div>
+    <div class="flex gap-2">
+      <div class="rounded-lg border border-[var(--ember)]/40 bg-[var(--bg1)] px-4 py-2 text-right">
+        <div class="text-xs text-[var(--muted)]">Saldo</div>
+        <div class="font-serif text-xl font-bold text-[var(--flame)]">{{ saldo }} MM</div>
+      </div>
+      <div class="rounded-lg border border-[var(--spark)]/40 bg-[var(--bg1)] px-4 py-2 text-right">
+        <div class="text-xs text-[var(--muted)]">Eventos</div>
+        <div class="font-serif text-xl font-bold text-[var(--spark)]">{{ moedas_evento }} 🔥</div>
+      </div>
+    </div>
+  </header>
+
+  {% if msg == 'aventura' %}<p class="mb-4 rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-3 py-2 text-sm text-[var(--spark)]">Aventura registrada — MM creditadas!</p>
+  {% elif msg == 'resgatado' %}<p class="mb-4 rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-3 py-2 text-sm text-[var(--spark)]">Recompensa resgatada! A staff cumpre o efeito pelo seu histórico.</p>
+  {% elif msg == 'rei' %}<p class="mb-4 rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-3 py-2 text-sm text-[var(--spark)]">Você é o novo Rei da Colina! 👑</p>
+  {% elif msg == 'ouro' %}<p class="mb-4 rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-3 py-2 text-sm text-[var(--spark)]">Assinatura Mestre Ouro ativada — você ganhou um 5º espaço de personagem.</p>
+  {% elif msg == 'mensalidade' %}<p class="mb-4 rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-3 py-2 text-sm text-[var(--spark)]">Mensalidade paga — Mestre Ouro renovado.</p>
+  {% elif msg == 'braseiros' %}<p class="mb-4 rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-3 py-2 text-sm text-[var(--spark)]">Braseiros creditados no personagem! 🔥</p>
+  {% elif msg == 'sem_evento' %}<p class="mb-4 rounded border border-[var(--flame)]/50 bg-[var(--flame)]/10 px-3 py-2 text-sm text-[var(--flame)]">Você não tem Moedas de Evento.</p>
+  {% elif msg == 'sem_personagem' %}<p class="mb-4 rounded border border-[var(--flame)]/50 bg-[var(--flame)]/10 px-3 py-2 text-sm text-[var(--flame)]">Selecione um personagem seu.</p>
+  {% elif msg == 'saldo' %}<p class="mb-4 rounded border border-[var(--flame)]/50 bg-[var(--flame)]/10 px-3 py-2 text-sm text-[var(--flame)]">MM insuficientes.</p>
+  {% elif msg == 'ja_rei' %}<p class="mb-4 rounded border border-[var(--stroke)] bg-[var(--bg1)] px-3 py-2 text-sm text-[var(--muted)]">Você já é o Rei da Colina.</p>
+  {% elif msg == 'nome' %}<p class="mb-4 rounded border border-[var(--flame)]/50 bg-[var(--flame)]/10 px-3 py-2 text-sm text-[var(--flame)]">Informe o nome da aventura.</p>{% endif %}
+
+  <!-- Status: Rei da Colina + Mestre Ouro -->
+  <div class="mb-6 grid gap-3 sm:grid-cols-2">
+    <div class="rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-3 text-sm">
+      <div class="font-serif font-bold text-[var(--ember)]">👑 Rei da Colina</div>
+      {% if rei_colina.holder %}<div class="text-[var(--text)]">{{ rei_colina.holder.username }}{% if sou_rei %} <span class="text-[var(--spark)]">(você)</span>{% endif %}</div>
+      {% else %}<div class="text-[var(--muted)]">Cargo vago.</div>{% endif %}
+      <div class="text-xs text-[var(--muted)]">Próximo lance: {{ rei_colina.preco_atual }} MM</div>
+    </div>
+    <div class="rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-3 text-sm">
+      <div class="font-serif font-bold text-[var(--ember)]">⭐ Mestre Ouro</div>
+      {% if mestre_ouro_ativo %}<div class="text-[var(--spark)]">Ativo — 5º espaço liberado.</div>
+      <div class="text-xs text-[var(--muted)]">Próxima mensalidade: {{ mestre_ouro_proximo|date:"d/m/Y"|default:"—" }} (500 MM)</div>
+      {% else %}<div class="text-[var(--muted)]">Inativo.</div>{% endif %}
+    </div>
+  </div>
+
+  <!-- Resgatar braseiros (Moedas de Evento → braseiros no personagem) -->
+  {% if meus_personagens %}
+  <div class="mb-6 rounded-lg border border-[var(--spark)]/40 bg-[var(--bg1)] p-4">
+    <h2 class="mb-1 font-serif text-base font-bold text-[var(--text)]">Resgatar Braseiros 🔥</h2>
+    <p class="mb-3 text-xs text-[var(--muted)]">Gaste Moedas de Evento para dar braseiros a um personagem seu — cada moeda vale o <strong>BP (rank)</strong> do personagem. Você tem <strong class="text-[var(--spark)]">{{ moedas_evento }}</strong> moeda(s).</p>
+    <form method="post" action="{% url 'mestre_resgatar_braseiros' %}" class="flex flex-wrap items-end gap-2">
+      {% csrf_token %}
+      <label class="text-xs text-[var(--muted)]">Personagem
+        <select name="personagem" required class="mt-0.5 block w-56 rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-1.5 text-sm text-[var(--text)]">
+          {% for p in meus_personagens %}<option value="{{ p.id }}">{{ p.nome }}</option>{% endfor %}
+        </select></label>
+      <label class="text-xs text-[var(--muted)]">Moedas
+        <input type="number" name="moedas" min="1" max="{{ moedas_evento }}" value="1" class="mt-0.5 block w-20 rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-1.5 text-sm text-[var(--text)]"></label>
+      <button type="submit" {% if moedas_evento < 1 %}disabled{% endif %} class="rounded bg-bonfire-gradient px-4 py-2 text-sm font-bold text-white hover:opacity-90 disabled:opacity-40">Resgatar braseiros</button>
+    </form>
+  </div>
+  {% endif %}
+
+  <!-- Registrar aventura conduzida -->
+  <h2 class="mb-3 font-serif text-lg font-bold text-[var(--text)]">Registrar mesa conduzida</h2>
+  <form method="post" action="{% url 'mestre_registrar_aventura' %}" class="mb-6 grid gap-3 rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-4 sm:grid-cols-2">
+    {% csrf_token %}
+    <label class="text-xs text-[var(--muted)] sm:col-span-2">Nome da aventura
+      <input name="nome" required class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)]"></label>
+    <label class="text-xs text-[var(--muted)]">Data
+      <input name="data" type="date" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)]"></label>
+    <label class="text-xs text-[var(--muted)]">Jogadores
+      <input name="jogadores" type="number" min="0" value="0" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)]"></label>
+    <label class="text-xs text-[var(--muted)]">Recompensa (MM)
+      <input name="recompensa_mm" type="number" min="0" value="100" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)]"></label>
+    <label class="text-xs text-[var(--muted)]">Observação
+      <input name="observacao" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)]"></label>
+    <div class="sm:col-span-2"><button type="submit" class="rounded bg-bonfire-gradient px-4 py-2 text-sm font-bold text-white hover:opacity-90">Registrar e creditar MM</button></div>
+  </form>
+
+  <!-- Catálogo de recompensas -->
+  <h2 class="mb-3 font-serif text-lg font-bold text-[var(--text)]">Recompensas</h2>
+  <div class="mb-6 space-y-2">
+    {% for r in recompensas %}
+      <div class="flex flex-wrap items-center justify-between gap-2 rounded-lg border {% if r.tipo != 'normal' %}border-[var(--ember)]/40{% else %}border-[var(--stroke)]{% endif %} bg-[var(--bg1)] p-3">
+        <div class="min-w-0 flex-1">
+          <div class="font-serif text-sm font-bold text-[var(--text)]">{{ r.nome }}
+            {% if r.tipo == 'leilao' %}<span class="ml-1 rounded bg-[var(--ember)]/15 px-1.5 py-0.5 text-xs text-[var(--ember)]">leilão</span>
+            {% elif r.tipo == 'assinatura' %}<span class="ml-1 rounded bg-[var(--ember)]/15 px-1.5 py-0.5 text-xs text-[var(--ember)]">assinatura</span>{% endif %}
+          </div>
+          {% if r.descricao %}<div class="text-xs text-[var(--muted)]">{{ r.descricao }}</div>{% endif %}
+        </div>
+        <form method="post" action="{% url 'mestre_resgatar' %}" class="flex items-center gap-2">
+          {% csrf_token %}<input type="hidden" name="recompensa" value="{{ r.id_recompensa }}">
+          {% if r.tipo == 'leilao' %}
+            <span class="font-mono text-sm text-[var(--flame)]">{{ rei_colina.preco_atual }} MM</span>
+            <button type="submit" {% if sou_rei %}disabled{% endif %} class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-1.5 text-xs font-bold text-[var(--ember)] hover:border-[var(--ember)] disabled:opacity-40">{% if sou_rei %}Você é o Rei{% else %}Dar lance{% endif %}</button>
+          {% elif r.tipo == 'assinatura' %}
+            <span class="font-mono text-sm text-[var(--flame)]">{% if mestre_ouro_ativo %}{{ r.mensalidade_mm }} MM/mês{% else %}{{ r.preco_mm }} MM{% endif %}</span>
+            <button type="submit" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-1.5 text-xs font-bold text-[var(--ember)] hover:border-[var(--ember)]">{% if mestre_ouro_ativo %}Pagar mensalidade{% else %}Assinar{% endif %}</button>
+          {% else %}
+            <span class="font-mono text-sm text-[var(--flame)]">{{ r.preco_mm }} MM</span>
+            <button type="submit" {% if saldo < r.preco_mm %}disabled{% endif %} class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-1.5 text-xs font-bold text-[var(--ember)] hover:border-[var(--ember)] disabled:opacity-40">Resgatar</button>
+          {% endif %}
+        </form>
+      </div>
+    {% endfor %}
+  </div>
+
+  <!-- Aventuras registradas -->
+  {% if aventuras %}
+  <h2 class="mb-3 font-serif text-lg font-bold text-[var(--text)]">Minhas aventuras</h2>
+  <div class="mb-6 overflow-hidden rounded-lg border border-[var(--stroke)] bg-[var(--bg1)]">
+    <table class="w-full text-sm">
+      <tbody>
+        {% for a in aventuras %}
+          <tr class="border-b border-[var(--stroke)]/40 last:border-0">
+            <td class="px-3 py-1.5 text-[var(--text)]">{{ a.nome }}</td>
+            <td class="hidden px-3 py-1.5 text-xs text-[var(--muted)] sm:table-cell">{{ a.data|date:"d/m/Y"|default:"" }}{% if a.jogadores %} · {{ a.jogadores }} jog.{% endif %}</td>
+            <td class="px-3 py-1.5 text-right font-mono text-[var(--spark)]">+{{ a.recompensa_mm }} MM</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  <!-- Histórico de MM -->
+  {% if transacoes %}
+  <h2 class="mb-3 font-serif text-lg font-bold text-[var(--text)]">Histórico de MM</h2>
+  <div class="overflow-hidden rounded-lg border border-[var(--stroke)] bg-[var(--bg1)]">
+    <table class="w-full text-sm">
+      <tbody>
+        {% for t in transacoes %}
+          <tr class="border-b border-[var(--stroke)]/40 last:border-0">
+            <td class="px-3 py-1.5 text-[var(--text)]">{{ t.descricao }}</td>
+            <td class="px-3 py-1.5 text-right font-mono {% if t.valor_mm >= 0 %}text-[var(--spark)]{% else %}text-[var(--flame)]{% endif %}">{% if t.valor_mm >= 0 %}+{% endif %}{{ t.valor_mm }} MM</td>
+            <td class="hidden px-3 py-1.5 text-right text-xs text-[var(--muted)] sm:table-cell">{{ t.criado_em|date:"d/m H:i" }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

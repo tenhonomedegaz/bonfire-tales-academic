@@ -1,43 +1,182 @@
-{% if itens %}
-<div class="magic-grid">
-    {% for item in itens %}
-    <div class="magic-card {{ item.raridade }}" data-rarity="{{ item.raridade }}" onclick="toggleMagicCard(this)">
-        <div class="magic-card-header">
-            <h3 class="font-bold text-xl m-0">{{ item.nome }}</h3>
-            <span class="text-xs font-bold uppercase tracking-wider opacity-70">{{ item.get_raridade_display }}</span>
-        </div>
-        <div class="magic-card-body">
-            <div class="flex flex-wrap gap-2 mb-3">
-                <span class="badge">{{ item.tipo|default:"Item Maravilhoso" }}</span>
-                {% if item.slot %}
-                <span class="badge">{{ item.get_slot_display }}</span>
-                {% endif %}
-                {% if item.requer_sintonizacao %}
-                <span class="badge badge-sintonizacao">
-                    Sintonização {% if item.detalhes_sintonizacao %}({{ item.detalhes_sintonizacao }}){% endif %}
-                </span>
-                {% endif %}
-            </div>
-            
-            <div class="magic-card-expanded">
-                {% if item.descricao_markdown %}
-                    <div class="bonfire-markdown text-sm" data-markdown-source>
-                        {{ item.descricao_markdown|escape }}
-                    </div>
-                {% else %}
-                    <p class="text-[var(--muted)] italic text-sm">Nenhuma descrição disponível.</p>
-                {% endif %}
-            </div>
-            
-            <div class="text-center mt-2 opacity-50">
-                <svg class="w-5 h-5 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-            </div>
-        </div>
+{% load static %}
+<div class="mi-shell" data-mi-root>
+
+  <!-- Filtros -->
+  <div id="miSearchBar" class="mi-filters">
+    <input id="mi-busca" type="search" placeholder="Buscar item mágico…" autocomplete="off"
+           class="w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)] outline-none focus:border-[var(--ember)]">
+    <div class="mt-3 flex flex-wrap gap-2" id="mi-rarity-filters">
+      <button type="button" class="mi-rarity-chip active" data-rarity="todos">Todos</button>
+      {% for r in raridades_filtro %}
+      <button type="button" class="mi-rarity-chip rarity-{{ r.value|cut:'_menor'|cut:'_maior' }}" data-rarity="{{ r.value }}">
+        <span class="mi-rarity-dot rarity-dot-{{ r.value|cut:'_menor'|cut:'_maior' }}"></span>{{ r.label }}
+      </button>
+      {% endfor %}
     </div>
+    <p class="mt-3 text-xs text-[var(--muted)]"><span id="mi-count">0</span> item(ns)</p>
+  </div>
+
+  <div class="talent-main-grid grid gap-6 border-t border-bonfire-stroke pt-6 flex-1">
+    <button type="button" class="talent-mobile-menu-button" id="miMobileMenuButton" aria-label="Abrir lista de itens">
+      <svg xmlns="http://www.w3.org/2000/svg" class="open-icon h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 5 7 7-7 7"/></svg>
+      <svg xmlns="http://www.w3.org/2000/svg" class="close-icon h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 19-7-7 7-7"/></svg>
+    </button>
+    <button type="button" class="talent-mobile-backdrop" id="miMobileBackdrop" aria-label="Fechar lista"></button>
+
+    <aside class="talent-list-panel xl:sticky xl:top-24 h-full max-h-[calc(100vh-140px)] overflow-y-auto custom-scrollbar flex flex-col gap-2 pr-2" id="miList">
+      {% for item in itens %}
+      {% with base_rarity=item.raridade|cut:'_menor'|cut:'_maior' %}
+      <div class="mi-list-item rarity-{{ base_rarity }}" data-id="item-{{ forloop.counter }}"
+           data-rarity="{{ item.raridade }}"
+           data-search="{{ item.nome|lower }} {{ item.get_raridade_display|lower }} {{ item.tipo|lower }}">
+        <div class="mi-list-item-main">
+          <h3 class="mi-list-item-name">{{ item.nome }}</h3>
+          <p class="mi-list-item-meta">{{ item.get_raridade_display }}{% if item.tipo %} · {{ item.tipo }}{% elif item.slot %} · {{ item.get_slot_display }}{% endif %}</p>
+        </div>
+        {% if item.requer_sintonizacao %}<span class="mi-attune-mark" title="Requer sintonização">S</span>{% endif %}
+      </div>
+      {% endwith %}
+      {% endfor %}
+      {% if not itens %}
+      <p class="text-bonfire-muted text-sm p-4 text-center">Nenhum item mágico foi catalogado ainda.</p>
+      {% endif %}
+    </aside>
+
+    <main class="talent-detail-panel hidden mt-8 md:mt-0 md:pl-6" id="miDetail">
+      <div class="flex items-center justify-center h-full text-bonfire-muted flex-col gap-4">
+        <svg class="w-16 h-16 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+        </svg>
+        <p class="text-sm">Selecione um item para ver os detalhes.</p>
+      </div>
+    </main>
+  </div>
+
+  <!-- Loja de detalhe: cada item renderizado server-side, oculto, popula o painel ao clicar -->
+  <div class="mi-data-store" hidden>
+    {% for item in itens %}
+    {% with base_rarity=item.raridade|cut:'_menor'|cut:'_maior' %}
+    <template id="item-{{ forloop.counter }}-tpl">
+      <div class="mi-detail rarity-{{ base_rarity }}">
+        <div class="mi-detail-head">
+          <span class="mi-detail-rarity rarity-{{ base_rarity }}">{{ item.get_raridade_display }}</span>
+          <h2 class="mi-detail-title">{{ item.nome }}</h2>
+        </div>
+        <div class="mi-detail-pills">
+          <span class="mi-pill">{{ item.tipo|default:"Item Maravilhoso" }}</span>
+          {% if item.slot %}<span class="mi-pill">{{ item.get_slot_display }}</span>{% endif %}
+          {% if item.requer_sintonizacao %}
+          <span class="mi-pill mi-pill-attune">Sintonização{% if item.detalhes_sintonizacao %} ({{ item.detalhes_sintonizacao }}){% endif %}</span>
+          {% endif %}
+        </div>
+        {% if item.descricao_markdown %}
+          <div class="bonfire-markdown mi-detail-desc text-[13px] leading-[1.65] text-bonfire-muted" data-markdown-source>{{ item.descricao_markdown|escape }}</div>
+        {% else %}
+          <p class="text-[var(--muted)] italic text-sm mt-4">Nenhuma descrição disponível.</p>
+        {% endif %}
+      </div>
+    </template>
+    {% endwith %}
     {% endfor %}
+  </div>
 </div>
-{% else %}
-<div class="p-8 text-center bg-[var(--bg1)] rounded-lg border border-[var(--stroke)]">
-    <p class="text-[var(--muted)] text-lg">Nenhum item mágico foi catalogado ainda.</p>
-</div>
-{% endif %}
+
+<script>
+(function(){
+  var root = document.querySelector('[data-mi-root]');
+  if (!root || root.dataset.miInit === '1') return;
+  root.dataset.miInit = '1';
+
+  var listContainer = root.querySelector('#miList');
+  var detailContainer = root.querySelector('#miDetail');
+  var countEl = root.querySelector('#mi-count');
+  var busca = root.querySelector('#mi-busca');
+  var rarityFilters = root.querySelector('#mi-rarity-filters');
+  var mobileMenuButton = root.querySelector('#miMobileMenuButton');
+  var mobileBackdrop = root.querySelector('#miMobileBackdrop');
+
+  var items = Array.prototype.slice.call(listContainer.querySelectorAll('.mi-list-item'));
+  var activeRarity = 'todos';
+
+  function norm(s){ return (s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase(); }
+
+  function renderMarkdownIn(node){
+    node.querySelectorAll('[data-markdown-source]').forEach(function(el){
+      if (el.dataset.rendered === '1') return;
+      var source = el.textContent || '';
+      if (typeof renderBonfireMarkdown === 'function') el.innerHTML = renderBonfireMarkdown(source);
+      else if (window.marked && window.marked.parse) el.innerHTML = window.marked.parse(source, { gfm:true, breaks:true });
+      el.dataset.rendered = '1';
+    });
+  }
+
+  function openMenu(){ document.body.classList.add('talent-menu-open'); }
+  function closeMenu(){ document.body.classList.remove('talent-menu-open'); }
+
+  function applyFilters(){
+    var q = norm(busca.value.trim());
+    var shown = 0;
+    items.forEach(function(it){
+      var r = it.getAttribute('data-rarity') || '';
+      var matchRarity = activeRarity === 'todos' || r === activeRarity;
+      var matchSearch = !q || norm(it.getAttribute('data-search')).indexOf(q) !== -1;
+      if (matchRarity && matchSearch){ it.style.display = ''; shown++; }
+      else it.style.display = 'none';
+    });
+    countEl.textContent = shown;
+  }
+
+  function selectItem(id){
+    var tpl = root.querySelector('#' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '-tpl');
+    if (!tpl) return;
+    items.forEach(function(it){ it.classList.toggle('selected', it.getAttribute('data-id') === id); });
+    closeMenu();
+
+    detailContainer.classList.remove('hidden');
+    detailContainer.classList.add('flex', 'flex-col');
+    detailContainer.innerHTML = '';
+    detailContainer.appendChild(tpl.content.cloneNode(true));
+    renderMarkdownIn(detailContainer);
+
+    detailContainer.classList.remove('talent-detail-enter');
+    void detailContainer.offsetWidth;
+    detailContainer.classList.add('talent-detail-enter');
+  }
+
+  items.forEach(function(it){
+    it.addEventListener('click', function(){ selectItem(it.getAttribute('data-id')); });
+  });
+
+  rarityFilters.addEventListener('click', function(e){
+    var btn = e.target.closest('.mi-rarity-chip');
+    if (!btn) return;
+    activeRarity = btn.getAttribute('data-rarity');
+    rarityFilters.querySelectorAll('.mi-rarity-chip').forEach(function(b){ b.classList.toggle('active', b === btn); });
+    closeMenu();
+    applyFilters();
+  });
+
+  busca.addEventListener('input', applyFilters);
+
+  mobileMenuButton && mobileMenuButton.addEventListener('click', openMenu);
+  mobileBackdrop && mobileBackdrop.addEventListener('click', closeMenu);
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeMenu(); });
+
+  // Move a barra de busca para dentro do drawer no mobile (mesmo padrão de talentos.html)
+  (function(){
+    var mq = window.matchMedia('(max-width: 1100px)');
+    var searchBar = root.querySelector('#miSearchBar');
+    if (!searchBar) return;
+    var originalParent = searchBar.parentElement;
+    var originalNext = searchBar.nextElementSibling;
+    function handleLayout(e){
+      if (e.matches) listContainer.insertBefore(searchBar, listContainer.firstChild);
+      else if (originalParent) originalParent.insertBefore(searchBar, originalNext);
+    }
+    if (mq.addEventListener) mq.addEventListener('change', handleLayout); else mq.addListener(handleLayout);
+    handleLayout(mq);
+  })();
+
+  applyFilters();
+})();
+</script>

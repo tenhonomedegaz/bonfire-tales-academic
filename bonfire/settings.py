@@ -206,8 +206,12 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 
 SECURE_SSL_REDIRECT = _env_bool("DJANGO_SECURE_SSL_REDIRECT", False)
-SESSION_COOKIE_SECURE = _env_bool("DJANGO_SESSION_COOKIE_SECURE", SECURE_SSL_REDIRECT)
-CSRF_COOKIE_SECURE = _env_bool("DJANGO_CSRF_COOKIE_SECURE", SECURE_SSL_REDIRECT)
+# Em DEBUG (dev sobre http://127.0.0.1) os cookies NÃO podem ser Secure, senão o
+# navegador descarta o sessionid/csrf em conexões http e o login (inclusive o OAuth
+# do Discord, que depende do state na sessão) nunca persiste. Em produção DEBUG=False
+# e os flags voltam a respeitar o .env (HTTPS via Cloudflare).
+SESSION_COOKIE_SECURE = (not DEBUG) and _env_bool("DJANGO_SESSION_COOKIE_SECURE", SECURE_SSL_REDIRECT)
+CSRF_COOKIE_SECURE = (not DEBUG) and _env_bool("DJANGO_CSRF_COOKIE_SECURE", SECURE_SSL_REDIRECT)
 SECURE_HSTS_SECONDS = int(os.environ.get("DJANGO_SECURE_HSTS_SECONDS", "0"))
 SECURE_HSTS_INCLUDE_SUBDOMAINS = _env_bool("DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS", False)
 SECURE_HSTS_PRELOAD = _env_bool("DJANGO_SECURE_HSTS_PRELOAD", False)
@@ -254,3 +258,21 @@ SERVER_LOGS_PASSWORD_HASH = os.environ.get('SERVER_LOGS_PASSWORD_HASH', 'pbkdf2_
 
 # Google Docs Import
 DOCS_API_KEY = os.environ.get('DOCS_API_KEY', '')
+
+# ── Discord OAuth2 (login/vínculo de conta) — fluxo custom enxuto ──────────────
+# Credenciais vêm do .env (gitignored). REDIRECT_URI vazio = derivado da request
+# (registre no Discord Dev Portal: http://localhost:8000/discord/callback/ e
+# https://bonfiretales.com.br/discord/callback/).
+DISCORD_OAUTH_CLIENT_ID = os.environ.get("DISCORD_OAUTH_CLIENT_ID", "").strip()
+DISCORD_OAUTH_CLIENT_SECRET = os.environ.get("DISCORD_OAUTH_CLIENT_SECRET", "").strip()
+DISCORD_OAUTH_REDIRECT_URI = os.environ.get("DISCORD_OAUTH_REDIRECT_URI", "").strip()
+
+# ── Asaas (pagamentos) — webhook que cria a transação na tabela compartilhada ──
+# TODAS as credenciais vêm do .env (gitignored). NUNCA hardcodar aqui.
+# ASAAS_WEBHOOK_TOKEN: token forte (32-255 chars) configurado no painel do Asaas;
+#   o webhook valida o header `asaas-access-token` contra ele.
+# ASAAS_API_KEY: chave de API (access_token) p/ buscar o pagamento completo pelo id.
+# ASAAS_API_BASE: sandbox por padrão; em produção use https://api.asaas.com/v3.
+ASAAS_WEBHOOK_TOKEN = os.environ.get("ASAAS_WEBHOOK_TOKEN", "").strip()
+ASAAS_API_KEY = os.environ.get("ASAAS_API_KEY", "").strip()
+ASAAS_API_BASE = os.environ.get("ASAAS_API_BASE", "https://api-sandbox.asaas.com/v3").strip().rstrip("/")

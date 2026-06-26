@@ -39,3 +39,7 @@ __pycache__/
 # Reference HTML and doc assets
 ref/
 
+
+# Arquivos de trabalho/locais (não versionar)
+scratch/
+.claude/

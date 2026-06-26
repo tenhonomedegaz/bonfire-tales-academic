@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Bonfire Tales RPG</title>
+  <title>{% block title %}{% if page_title %}{{ page_title }} · {% endif %}Bonfire Tales RPG{% endblock %}</title>
   <meta name="description" content="Mundo vivo, missões e RPG via Discord." />
   <meta name="google-adsense-account" content="ca-pub-1634793837919535">
   <link rel="icon" type="image/png" href="{% static 'assets/logo.png' %}" />
@@ -62,7 +62,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script src="{% static 'js/markdown.js' %}?v=8"></script>
-  <script src="{% static 'js/options-widget.js' %}"></script>
+  <script src="{% static 'js/options-widget.js' %}?v=2"></script>
 
   <link rel="stylesheet" href="{% static 'css/pages/base.css' %}">
   {% block extra_head %}{% endblock %}

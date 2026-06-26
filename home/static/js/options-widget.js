@@ -335,8 +335,9 @@
     font-size: 12px;
     line-height: 1.5;
     color: var(--muted);
-    max-height: 200px;
+    max-height: 340px;
     overflow-y: auto;
+    padding-right: 4px;
 }
 .bonfire-preview-card-footer {
     border-top: 1px solid var(--stroke);
@@ -355,6 +356,46 @@
 .bonfire-preview-card-more:hover {
     color: var(--ember);
 }
+
+/* Creature Sheet Widget (creature:slug) */
+.bonfire-creature-widget {
+    border: 1px solid var(--stroke);
+    border-radius: 8px;
+    margin: 1.25rem 0;
+    background: var(--bg0);
+    overflow: hidden;
+}
+.bonfire-creature-header {
+    background: var(--bg1);
+    border-bottom: 1px solid var(--stroke);
+    padding: .6rem .9rem;
+}
+.bonfire-creature-name {
+    color: var(--ember);
+    font-family: 'Cinzel', serif;
+    font-size: 1.05rem;
+    font-weight: 800;
+    margin: 0;
+}
+.bonfire-creature-sub {
+    color: var(--muted);
+    font-size: 11px;
+    font-style: italic;
+    text-transform: capitalize;
+}
+.bonfire-creature-body { padding: .9rem; font-size: 13px; color: var(--text); }
+.bonfire-creature-meta { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: .6rem; color: var(--muted); font-size: 12px; }
+.bonfire-creature-meta b, .bonfire-creature-line b { color: var(--flame); font-weight: 700; }
+.bonfire-creature-attrs { display: flex; flex-wrap: wrap; gap: .4rem; margin: .5rem 0; }
+.bonfire-creature-attrs > div { flex: 1; min-width: 58px; text-align: center; border: 1px solid var(--stroke); border-radius: 6px; padding: .3rem; }
+.bonfire-creature-attrs .ab { display: block; color: var(--ember); font-weight: 900; font-size: 10px; }
+.bonfire-creature-attrs .sc { display: block; font-size: 12px; }
+.bonfire-creature-line { margin: .2rem 0; font-size: 12px; color: var(--muted); }
+.bonfire-creature-section { margin-top: .75rem; border-top: 1px solid var(--stroke); padding-top: .5rem; }
+.bonfire-creature-section h4 { color: var(--ember); font-family: 'Cinzel', serif; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; margin: 0 0 .4rem 0; }
+.bonfire-creature-trait { margin-bottom: .5rem; font-size: 12px; line-height: 1.5; }
+.bonfire-creature-trait strong { color: var(--text); }
+.bonfire-creature-desc { margin-top: .75rem; border-top: 1px dashed var(--stroke); padding-top: .6rem; font-size: 12px; color: var(--muted); }
 `;
 
     
@@ -620,8 +661,44 @@
     
 
     
+    const _creatureCache = {};
+    async function hydrateCreatures() {
+        const widgets = document.querySelectorAll('.bonfire-creature-widget[data-slug]:not([data-hydrated])');
+        if (!widgets.length) return;
+        const renderFn = (window.renderBonfireMarkdown || (txt => escapeHtml(txt)));
+        await Promise.all([...widgets].map(async (el) => {
+            if (el.dataset.hydrated) return;
+            const slug = el.dataset.slug;
+            try {
+                if (!_creatureCache[slug]) {
+                    const res = await fetch(`/api/creature/?slug=${encodeURIComponent(slug)}`);
+                    if (!res.ok) throw new Error('nao encontrada');
+                    _creatureCache[slug] = await res.json();
+                }
+                const d = _creatureCache[slug];
+                if (!d.success) throw new Error(d.error || 'erro');
+                const sub = [d.tipo, d.tamanho, d.nd ? ('ND ' + d.nd) : ''].filter(Boolean).join(' · ');
+                const descHtml = d.descricao ? `<div class="bonfire-creature-desc bonfire-markdown">${renderFn(d.descricao)}</div>` : '';
+                el.innerHTML = `
+                    <div class="bonfire-creature-header">
+                        <p class="bonfire-creature-name">${escapeHtml(d.nome)}</p>
+                        <span class="bonfire-creature-sub">${escapeHtml(sub)}</span>
+                    </div>
+                    <div class="bonfire-creature-body">
+                        ${d.statblock_html || ''}
+                        ${descHtml}
+                    </div>`;
+                el.dataset.hydrated = '1';
+            } catch (e) {
+                el.innerHTML = `<div class="bonfire-preview-card-error" style="padding:.75rem">Criatura «${escapeHtml(slug)}» nao encontrada.</div>`;
+                el.dataset.hydrated = '1';
+            }
+        }));
+    }
+
     function init() {
         hydrateAll();
+        hydrateCreatures();
 
         document.addEventListener('click', async (e) => {
             const trigger = e.target.closest('.bonfire-card-trigger');
@@ -635,21 +712,26 @@
             if (details.tagName !== 'DETAILS' || !details.open) return;
             const pending = details.querySelectorAll('.bonfire-options-widget[data-tipo]:not([data-hydrated])');
             if (pending.length) hydrateAll();
+            if (details.querySelectorAll('.bonfire-creature-widget[data-slug]:not([data-hydrated])').length) hydrateCreatures();
         }, true);
 
-        
+
         const observer = new MutationObserver((mutations) => {
-            let hasNew = false;
+            let hasNew = false, hasNewCreature = false;
             mutations.forEach(m => {
                 m.addedNodes.forEach(node => {
                     if (node.nodeType === 1) {
                         if (node.classList.contains('bonfire-options-widget') || node.querySelector('.bonfire-options-widget')) {
                             hasNew = true;
                         }
+                        if (node.classList.contains('bonfire-creature-widget') || node.querySelector('.bonfire-creature-widget')) {
+                            hasNewCreature = true;
+                        }
                     }
                 });
             });
             if (hasNew) hydrateAll();
+            if (hasNewCreature) hydrateCreatures();
         });
         observer.observe(document.body, { childList: true, subtree: true });
     }
@@ -699,11 +781,9 @@
             if (!data.success) throw new Error(data.error || 'Erro');
 
             const renderFn = (window.renderBonfireMarkdown || (txt => txt));
-            let fullDesc = data.description || '';
-            if (fullDesc.length > 280) {
-                fullDesc = fullDesc.substring(0, 280) + '...';
-            }
-            const descHtml = renderFn(fullDesc);
+            // sem truncar: o corpo do card é scrollável (ver .bonfire-preview-card-body),
+            // então a pessoa lê a habilidade inteira sem ir para outra página.
+            const descHtml = renderFn(data.description || '');
 
             card.innerHTML = `
                 <button type="button" class="bonfire-preview-card-close">&times;</button>
@@ -773,5 +853,5 @@
         }
     });
 
-    window.bonfireOptionsWidget = { hydrate: hydrateAll };
+    window.bonfireOptionsWidget = { hydrate: hydrateAll, hydrateCreatures: hydrateCreatures };
 })();

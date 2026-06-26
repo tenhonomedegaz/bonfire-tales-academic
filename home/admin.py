@@ -44,6 +44,14 @@ from .models import (
     TbItemMagico,
     TbMagia,
     TbAntecedente,
+    TbBestiario,
+    TbArmadilha,
+    TbCondicao,
+    TbTransacao,
+    TbRecompensaMestre,
+    TbAventuraMestre,
+    TbTransacaoMestre,
+    TbReiDaColina,
 )
 from .security import validate_json_no_sql_danger, validate_no_sql_danger
 
@@ -1799,6 +1807,98 @@ class TbRecursoclasseAdmin(BonfireAdminMixin, admin.ModelAdmin):
     @admin.display(description="Subclasse", ordering="id_subclasse__nome")
     def subclasse_nome(self, obj):
         return obj.id_subclasse.nome if obj.id_subclasse else "-"
+
+
+@admin.register(TbBestiario)
+class TbBestiarioAdmin(BonfireAdminMixin, admin.ModelAdmin):
+    list_filter = ("tipo", "tamanho", "escala_com_dono", "companheiro_classe")
+    search_fields = ("nome", "slug", "tipo")
+    autocomplete_fields = ("companheiro_classe", "companheiro_subclasse")
+    prepopulated_fields = {"slug": ("nome",)}
+    ordering = ("nome",)
+    list_display = ("nome", "tipo", "tamanho", "nd", "source", "companheiro_de", "escala_com_dono")
+    fieldsets = (
+        (None, {"fields": ("nome", "slug", "tipo", "tamanho", "nd", "alinhamento", "source", "imagem_url")}),
+        ("Atalhos de display", {"fields": ("ca", "pv")}),
+        ("Statblock (schema 5etools — importável do criador de mobs/Roll20)", {"fields": ("statblock_json",)}),
+        ("Mecânica Bonfire (summon / motor da ficha)", {"fields": ("tags_json",)}),
+        ("Companheiro", {"fields": ("companheiro_classe", "companheiro_subclasse", "escala_com_dono")}),
+        ("Descrição", {"fields": ("descricao_markdown",)}),
+    )
+
+    @admin.display(description="Companheiro de")
+    def companheiro_de(self, obj):
+        return obj.companheiro_subclasse or obj.companheiro_classe or "-"
+
+
+@admin.register(TbArmadilha)
+class TbArmadilhaAdmin(BonfireAdminMixin, admin.ModelAdmin):
+    list_filter = ("tipo", "comunidade")
+    search_fields = ("nome", "slug", "tipo")
+    prepopulated_fields = {"slug": ("nome",)}
+    ordering = ("nome",)
+    list_display = ("nome", "tipo", "nd", "comunidade", "autor", "source")
+    raw_id_fields = ("autor",)
+    fieldsets = (
+        (None, {"fields": ("nome", "slug", "tipo", "nd", "source")}),
+        ("Mecânica", {"fields": ("gatilho", "deteccao", "desarme", "save_atributo", "save_cd", "dano", "efeito")}),
+        ("Descrição", {"fields": ("descricao_markdown",)}),
+        ("Origem", {"fields": ("comunidade", "autor")}),
+    )
+
+
+@admin.register(TbTransacao)
+class TbTransacaoAdmin(admin.ModelAdmin):
+    list_display = ("id_transacao", "id_personagem", "tipo", "descricao", "valor_pc", "saldo_pc", "criado_em")
+    list_filter = ("tipo",)
+    search_fields = ("descricao", "id_personagem__nome")
+    raw_id_fields = ("id_personagem",)
+    readonly_fields = ("criado_em",)
+
+
+@admin.register(TbRecompensaMestre)
+class TbRecompensaMestreAdmin(admin.ModelAdmin):
+    list_display = ("nome", "tipo", "preco_mm", "mensalidade_mm", "ativo", "ordem")
+    list_filter = ("tipo", "ativo")
+    search_fields = ("nome", "slug")
+    prepopulated_fields = {"slug": ("nome",)}
+    ordering = ("ordem", "preco_mm")
+
+
+@admin.register(TbAventuraMestre)
+class TbAventuraMestreAdmin(admin.ModelAdmin):
+    list_display = ("nome", "mestre", "data", "jogadores", "recompensa_mm", "criado_em")
+    search_fields = ("nome", "mestre__username")
+    raw_id_fields = ("mestre",)
+    readonly_fields = ("criado_em",)
+
+
+@admin.register(TbTransacaoMestre)
+class TbTransacaoMestreAdmin(admin.ModelAdmin):
+    list_display = ("id_transacao", "mestre", "tipo", "descricao", "valor_mm", "saldo_mm", "criado_em")
+    list_filter = ("tipo",)
+    search_fields = ("descricao", "mestre__username")
+    raw_id_fields = ("mestre",)
+    readonly_fields = ("criado_em",)
+
+
+@admin.register(TbReiDaColina)
+class TbReiDaColinaAdmin(admin.ModelAdmin):
+    list_display = ("id", "holder", "preco_atual", "desde")
+    raw_id_fields = ("holder",)
+
+
+@admin.register(TbCondicao)
+class TbCondicaoAdmin(BonfireAdminMixin, admin.ModelAdmin):
+    list_filter = ("categoria",)
+    search_fields = ("nome", "slug", "nome_en", "resumo")
+    prepopulated_fields = {"slug": ("nome",)}
+    ordering = ("ordem", "nome")
+    list_display = ("nome", "slug", "categoria", "resumo", "ordem")
+    fieldsets = (
+        (None, {"fields": ("nome", "nome_en", "slug", "categoria", "ordem")}),
+        ("Conteúdo", {"fields": ("resumo", "definicao", "efeitos_json")}),
+    )
 
 
 class TbLinhagemInline(admin.StackedInline):

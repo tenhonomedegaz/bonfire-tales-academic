@@ -1,0 +1,53 @@
+{% extends 'home/base.html' %}
+{% load static %}
+
+{% block content %}
+<section class="animate-fade-in max-w-4xl">
+  <header class="mb-5 border-b border-[var(--stroke)] pb-4">
+    <h1 class="font-serif text-2xl md:text-3xl font-bold text-[var(--ember)]">Glossário do Sistema</h1>
+    <p class="mt-1 text-sm text-[var(--muted)]">{{ regras|length }} termos de regra traduzidos. Para os efeitos das condições, veja a <a href="{% url 'mestre_condicoes' %}" class="text-[var(--flame)] underline">página de Condições</a>.</p>
+  </header>
+
+  <div class="sticky top-2 z-10 mb-5">
+    <input id="glo-busca" type="search" placeholder="Buscar termo (PT ou inglês)…" autocomplete="off"
+           class="w-full rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] px-4 py-2.5 text-[var(--text)] shadow focus:border-[var(--ember)] focus:outline-none">
+    <p class="mt-1 text-xs text-[var(--muted)]"><span id="glo-count">{{ regras|length }}</span> termos</p>
+  </div>
+
+  <div id="glo-lista" class="space-y-2.5">
+    {% for r in regras %}
+      <article class="glo-item rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-3"
+               data-busca="{{ r.nome|lower }} {{ r.nome_en|lower }}">
+        <div class="flex flex-wrap items-baseline justify-between gap-x-2">
+          <h2 class="font-serif font-bold text-[var(--text)]">{{ r.nome }}</h2>
+          <span class="text-xs text-[var(--muted)]">{{ r.nome_en }}{% if r.categoria %} · {{ r.categoria }}{% endif %}</span>
+        </div>
+        <p class="mt-1 text-sm text-[var(--muted)]">{{ r.definicao }}</p>
+      </article>
+    {% endfor %}
+    <p id="glo-vazio" class="hidden rounded border border-dashed border-[var(--stroke)] px-4 py-6 text-center text-sm text-[var(--muted)]">Nenhum termo encontrado.</p>
+  </div>
+</section>
+
+<script>
+  (function () {
+    var inp = document.getElementById('glo-busca');
+    var itens = Array.prototype.slice.call(document.querySelectorAll('.glo-item'));
+    var count = document.getElementById('glo-count');
+    var vazio = document.getElementById('glo-vazio');
+    if (!inp) return;
+    function norm(s) { return (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(); }
+    inp.addEventListener('input', function () {
+      var q = norm(inp.value.trim());
+      var n = 0;
+      itens.forEach(function (el) {
+        var hit = !q || norm(el.getAttribute('data-busca')).indexOf(q) !== -1;
+        el.classList.toggle('hidden', !hit);
+        if (hit) n++;
+      });
+      count.textContent = n;
+      vazio.classList.toggle('hidden', n !== 0);
+    });
+  })();
+</script>
+{% endblock %}

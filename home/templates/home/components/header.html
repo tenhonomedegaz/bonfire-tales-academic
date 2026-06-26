@@ -105,7 +105,6 @@
                 <h3 class="font-rpg font-bold text-[var(--ember)] text-sm uppercase tracking-widest border-b border-[var(--stroke)] pb-2 mb-2">Gestão</h3>
                 <ul class="space-y-2">
                   <li><a href="/mestre/mercado-de-mestre" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Mercado de Mestre</a></li>
-                  <li><a href="/mestre/tipos-de-missoes" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Tipos de Missões</a></li>
                 </ul>
               </div>
             </div>
@@ -124,7 +123,6 @@
               <div class="space-y-4">
                 <h3 class="font-rpg font-bold text-[var(--ember)] text-sm uppercase tracking-widest border-b border-[var(--stroke)] pb-2 mb-2">Equipamento</h3>
                 <ul class="space-y-2">
-                  <li><a href="/mercado/armas" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Armas</a></li>
                   <li><a href="/mercado/itens-mundanos" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Itens Mundanos</a></li>
                   <li><a href="/mercado/itens-magicos" class="text-sm text-[var(--muted)] hover:text-[var(--text)] hover:translate-x-1 transition-all flex items-center gap-2 group/link"><span class="w-1 h-1 bg-[var(--stroke)] rounded-full group-hover/link:bg-[var(--flame)] transition-colors"></span> Itens Mágicos</a></li>
                 </ul>
@@ -192,16 +190,18 @@
       </nav>
 
       <div class="flex items-center gap-3 justify-end ml-4">
-        <div class="hidden min-[1100px]:flex relative group w-64">
+        <form action="{% url 'busca' %}" method="get" class="hidden min-[1100px]:flex relative group w-64">
            <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-[var(--muted)]">
              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
            </div>
-           <input 
-             type="text" 
+           <input
+             type="search"
+             name="q"
+             value="{{ request.GET.q|default:'' }}"
              placeholder="Buscar regras, itens ou monstro"
              class="w-full bg-[var(--bg0)] border border-[var(--stroke)] text-[var(--text)] text-sm rounded-sm py-1.5 pl-9 pr-2 focus:border-[var(--ember)] focus:ring-1 focus:ring-[var(--ember)] placeholder:text-[var(--muted)]/50 transition-all outline-none"
            />
-        </div>
+        </form>
 
         <div class="hidden min-[1100px]:flex items-center gap-2 border-l border-[var(--stroke)] pl-3">
             <a href="https://discord.gg/eyqe7rj2AX" target="_blank" class="text-[var(--muted)] hover:text-[var(--text)] transition-colors p-1 rounded" aria-label="Discord"><img src="{% static 'assets/discord_icon.png' %}" class="w-4 h-4 object-contain opacity-70 hover:opacity-100 transition-opacity" alt="Discord" /></a>
@@ -224,6 +224,10 @@
                 </button>
                 <div class="hidden group-hover/user:block absolute right-0 top-full pt-2 w-48 z-50 animate-fade-in-down origin-top">
                     <div class="bg-[var(--bg1)] border border-[var(--stroke)] shadow-2xl rounded p-2 flex flex-col gap-1">
+                        <a href="{% url 'personagens' %}" class="flex items-center justify-center gap-2 px-3 py-2 text-sm font-bold text-[var(--text)] hover:bg-[var(--bg0)] rounded-sm transition-all">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                            Meus Personagens
+                        </a>
                         <a href="{% url 'profile' %}" class="flex items-center justify-center gap-2 px-3 py-2 text-sm font-bold text-[var(--text)] hover:bg-[var(--bg0)] rounded-sm transition-all">
                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                             Meu Perfil
@@ -271,12 +275,12 @@
           <div class="absolute right-0 top-12 w-[min(92vw,360px)] max-h-[80vh] overflow-y-auto rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] shadow-[0_20px_50px_rgba(0,0,0,0.8)] z-[100] mobile-menu-enter">
             
             <div class="p-4 border-b border-[var(--stroke)] bg-[var(--bg0)]/50">
-              <label class="relative block">
+              <form action="{% url 'busca' %}" method="get" class="relative block">
                 <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-[var(--muted)]">
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
                 </span>
-                <input type="search" placeholder="Buscar no sistema..." class="w-full rounded border border-[var(--stroke)] bg-[var(--bg1)] py-2 pl-9 pr-3 text-sm text-[var(--text)] outline-none focus:border-[var(--ember)] transition-all" />
-              </label>
+                <input type="search" name="q" value="{{ request.GET.q|default:'' }}" placeholder="Buscar no sistema..." class="w-full rounded border border-[var(--stroke)] bg-[var(--bg1)] py-2 pl-9 pr-3 text-sm text-[var(--text)] outline-none focus:border-[var(--ember)] transition-all" />
+              </form>
             </div>
 
             <div class="p-2 space-y-1">
@@ -300,6 +304,10 @@
                         {% endif %}
                         <span class="text-xs font-bold text-[var(--text)] truncate">{{ user.username }}</span>
                     </div>
+                    <a href="{% url 'personagens' %}" class="flex items-center gap-2 p-2 text-sm font-bold text-[var(--text)] hover:bg-[var(--bg0)] rounded-sm transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                        Meus Personagens
+                    </a>
                     <a href="{% url 'profile' %}" class="flex items-center gap-2 p-2 text-sm font-bold text-[var(--text)] hover:bg-[var(--bg0)] rounded-sm transition-colors">
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                         Meu Perfil
@@ -368,7 +376,7 @@
                 <div class="grid grid-cols-2 gap-x-4 gap-y-2 px-3 pb-3 pt-1 border-l-2 border-[var(--stroke)] ml-5 mt-1 text-sm text-[var(--muted)] mobile-cat-enter">
                   <a href="/mestre/se-tornando-mestre/" class="hover:text-[var(--text)] py-1">Guia Mestre</a>
                   <a href="/mestre/bestiario/" class="hover:text-[var(--text)] py-1">Bestiário</a>
-                  <a href="/mercado/armas/" class="hover:text-[var(--text)] py-1">Mercado</a>
+                  <a href="/mercado/itens-mundanos/" class="hover:text-[var(--text)] py-1">Mercado</a>
                   <a href="/mapa/" class="hover:text-[var(--text)] py-1">Mapa Mundi</a>
                   <a href="/mundo/jornal/" class="hover:text-[var(--text)] py-1">Jornal</a>
                   <a href="/mundo/cronicas/" class="hover:text-[var(--text)] py-1">Crônicas</a>

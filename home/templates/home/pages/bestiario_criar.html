@@ -1,0 +1,76 @@
+{% extends 'home/base.html' %}
+{% load static %}
+
+{% block content %}
+<section class="animate-fade-in max-w-2xl">
+  <header class="mb-5 border-b border-[var(--stroke)] pb-4">
+    <h1 class="font-serif text-2xl md:text-3xl font-bold text-[var(--ember)]">{% if editar %}Editar Criatura{% else %}Nova Criatura{% endif %}</h1>
+    <p class="mt-1 text-sm text-[var(--muted)]">Cada traço/ação vira uma habilidade própria, com tags mecânicas opcionais — guardadas na criatura, não no banco de habilidades.</p>
+  </header>
+  {% if request.GET.e == 'nome' %}<p class="mb-4 rounded border border-[var(--flame)]/50 bg-[var(--flame)]/10 px-3 py-2 text-sm text-[var(--flame)]">Informe um nome para a criatura.</p>{% endif %}
+
+  <form method="post" action="{% if editar %}{% url 'bestiario_editar' criatura_id %}{% else %}{% url 'bestiario_criar' %}{% endif %}" class="space-y-5">
+    {% csrf_token %}
+    {% if is_staff %}
+      <label class="flex items-center gap-2 rounded border border-[var(--ember)]/30 bg-[var(--bg1)] px-3 py-2 text-sm text-[var(--text)]">
+        <input type="checkbox" name="oficial" class="accent-[var(--ember)]" {% if oficial %}checked{% endif %}>
+        Criatura <strong>oficial</strong> (sem marcar = criatura da comunidade)
+      </label>
+    {% endif %}
+    <div class="grid gap-3 sm:grid-cols-2">
+      <label class="text-xs text-[var(--muted)] sm:col-span-2">Nome
+        <input name="nome" required value="{{ pf.nome|default:'' }}" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)]"></label>
+      <label class="text-xs text-[var(--muted)]">Tipo
+        <input name="tipo" value="{{ pf.tipo|default:'' }}" placeholder="ex.: besta, morto-vivo, construto" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)]"></label>
+      <label class="text-xs text-[var(--muted)]">Tamanho
+        <select name="tamanho" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)]">
+          <option value="T" {% if pf.tamanho == 'T' %}selected{% endif %}>Minúsculo</option>
+          <option value="S" {% if pf.tamanho == 'S' %}selected{% endif %}>Pequeno</option>
+          <option value="M" {% if pf.tamanho == 'M' or not pf %}selected{% endif %}>Médio</option>
+          <option value="L" {% if pf.tamanho == 'L' %}selected{% endif %}>Grande</option>
+          <option value="H" {% if pf.tamanho == 'H' %}selected{% endif %}>Enorme</option>
+          <option value="G" {% if pf.tamanho == 'G' %}selected{% endif %}>Descomunal</option></select></label>
+      <label class="text-xs text-[var(--muted)]">Alinhamento
+        <input name="alinhamento" value="{{ pf.alinhamento|default:'' }}" placeholder="ex.: N, LE, CG" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)]"></label>
+      <label class="text-xs text-[var(--muted)]">ND
+        <input name="nd" value="{{ pf.nd|default:'' }}" placeholder="ex.: 1/4, 5" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)]"></label>
+    </div>
+
+    <div class="grid grid-cols-3 gap-3">
+      <label class="text-xs text-[var(--muted)]">CA<input name="ca" type="number" value="{{ pf.ca|default:12 }}" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)]"></label>
+      <label class="text-xs text-[var(--muted)]">PV<input name="pv" type="number" value="{{ pf.pv|default:10 }}" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)]"></label>
+      <label class="text-xs text-[var(--muted)]">Deslocamento (ft)<input name="desloc_ft" type="number" value="{{ pf.desloc_ft|default:30 }}" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)]"></label>
+    </div>
+
+    <div class="grid grid-cols-3 gap-3 sm:grid-cols-6">
+      <label class="text-xs text-[var(--muted)]">FOR<input name="str" type="number" value="{{ pf.abil.str|default:10 }}" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-2 text-sm text-[var(--text)]"></label>
+      <label class="text-xs text-[var(--muted)]">DES<input name="dex" type="number" value="{{ pf.abil.dex|default:10 }}" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-2 text-sm text-[var(--text)]"></label>
+      <label class="text-xs text-[var(--muted)]">CON<input name="con" type="number" value="{{ pf.abil.con|default:10 }}" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-2 text-sm text-[var(--text)]"></label>
+      <label class="text-xs text-[var(--muted)]">INT<input name="int" type="number" value="{{ pf.abil.int|default:10 }}" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-2 text-sm text-[var(--text)]"></label>
+      <label class="text-xs text-[var(--muted)]">SAB<input name="wis" type="number" value="{{ pf.abil.wis|default:10 }}" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-2 text-sm text-[var(--text)]"></label>
+      <label class="text-xs text-[var(--muted)]">CAR<input name="cha" type="number" value="{{ pf.abil.cha|default:10 }}" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-2 text-sm text-[var(--text)]"></label>
+    </div>
+
+    <div class="grid gap-3 sm:grid-cols-2">
+      <label class="text-xs text-[var(--muted)]">Sentidos (vírgula)<input name="sentidos" value="{{ pf.sentidos|default:'' }}" placeholder="visão no escuro 18m" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)]"></label>
+      <label class="text-xs text-[var(--muted)]">Percepção passiva<input name="passivo" type="number" value="{{ pf.passivo|default:'' }}" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)]"></label>
+      <label class="text-xs text-[var(--muted)] sm:col-span-2">Idiomas (vírgula)<input name="idiomas" value="{{ pf.idiomas|default:'' }}" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)]"></label>
+    </div>
+
+    <label class="block text-xs text-[var(--muted)]">Traços <span class="text-[var(--muted)]">(uma por linha — <code>Nome | descrição | tag1, tag2</code>; as tags são opcionais)</span>
+      <textarea name="tracos" rows="4" placeholder="Anfíbio | Pode respirar no ar e na água. | breathe:underwater" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)]">{{ pf.tracos|default:'' }}</textarea></label>
+    <label class="block text-xs text-[var(--muted)]">Ações <span class="text-[var(--muted)]">(uma por linha — <code>Nome | descrição | tags</code>)</span>
+      <textarea name="acoes" rows="4" placeholder="Mordida | Ataque corpo a corpo +5, 1d8+3 perfurante. | attack:natural, dmg:1d8+3(perfurante)" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)]">{{ pf.acoes|default:'' }}</textarea></label>
+
+    <div class="grid gap-3 sm:grid-cols-2">
+      <label class="text-xs text-[var(--muted)] sm:col-span-2">URL da imagem (opcional)<input name="imagem_url" type="url" value="{{ pf.imagem_url|default:'' }}" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)]"></label>
+      <label class="text-xs text-[var(--muted)] sm:col-span-2">Descrição / lore (opcional)<textarea name="descricao" rows="2" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)]">{{ pf.descricao|default:'' }}</textarea></label>
+    </div>
+
+    <div class="flex gap-2">
+      <button type="submit" class="rounded bg-bonfire-gradient px-5 py-2.5 text-sm font-bold text-white hover:opacity-90">{% if editar %}Salvar alterações{% else %}Criar criatura{% endif %}</button>
+      <a href="{% url 'bestiario' %}" class="rounded border border-[var(--stroke)] px-4 py-2.5 text-sm text-[var(--muted)] hover:text-[var(--text)]">Cancelar</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

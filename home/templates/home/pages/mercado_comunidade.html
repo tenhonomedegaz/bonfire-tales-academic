@@ -1,0 +1,70 @@
+{% extends 'home/base.html' %}
+{% load static %}
+
+{% block content %}
+<section class="animate-fade-in max-w-4xl">
+  <header class="mb-5 border-b border-[var(--stroke)] pb-4">
+    <h1 class="font-serif text-2xl md:text-3xl font-bold text-[var(--ember)]">Mercado da Comunidade</h1>
+    <p class="mt-1 text-sm text-[var(--muted)]">Itens mágicos anunciados por jogadores, vendidos pelo preço de venda do mercado. Anuncie um item que não usa mais na <strong>edição da ficha</strong>.</p>
+  </header>
+
+  {% if msg == 'comprado' %}<p class="mb-4 rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-3 py-2 text-sm text-[var(--spark)]">Item comprado e adicionado ao inventário!</p>
+  {% elif msg == 'cancelado' %}<p class="mb-4 rounded border border-[var(--stroke)] bg-[var(--bg1)] px-3 py-2 text-sm text-[var(--muted)]">Anúncio cancelado — o item voltou ao inventário.</p>
+  {% elif msg == 'saldo' %}<p class="mb-4 rounded border border-[var(--flame)]/50 bg-[var(--flame)]/10 px-3 py-2 text-sm text-[var(--flame)]">Saldo insuficiente nesse personagem.</p>
+  {% elif msg == 'sem_personagem' %}<p class="mb-4 rounded border border-[var(--flame)]/50 bg-[var(--flame)]/10 px-3 py-2 text-sm text-[var(--flame)]">Escolha um personagem para comprar.</p>
+  {% elif msg == 'proprio' %}<p class="mb-4 rounded border border-[var(--flame)]/50 bg-[var(--flame)]/10 px-3 py-2 text-sm text-[var(--flame)]">Você não pode comprar o próprio anúncio.</p>
+  {% elif msg == 'indisponivel' %}<p class="mb-4 rounded border border-[var(--flame)]/50 bg-[var(--flame)]/10 px-3 py-2 text-sm text-[var(--flame)]">Esse anúncio não está mais disponível.</p>{% endif %}
+
+  {% if meus_anuncios %}
+  <h2 class="mb-3 font-serif text-lg font-bold text-[var(--text)]">Meus anúncios</h2>
+  <div class="mb-7 space-y-2">
+    {% for a in meus_anuncios %}
+      <div class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--ember)]/30 bg-[var(--bg1)] px-4 py-2.5">
+        <div class="text-sm">
+          <span class="font-semibold text-[var(--text)]">{{ a.nome }}</span>
+          {% if a.raridade %}<span class="ml-1 rounded bg-[var(--ember)]/15 px-1.5 py-0.5 text-xs text-[var(--ember)]">{{ a.raridade }}</span>{% endif %}
+          {% if a.requer_sintonizacao %}<span class="ml-1 text-xs text-[var(--muted)]">⟡ sintonização</span>{% endif %}
+          <span class="ml-2 text-[var(--flame)]">{{ a.preco_display }}</span>
+        </div>
+        <form method="post" action="{% url 'cancelar_anuncio' a.id %}">
+          {% csrf_token %}
+          <button type="submit" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-1 text-xs text-[var(--muted)] hover:border-[var(--flame)] hover:text-[var(--flame)]">Cancelar</button>
+        </form>
+      </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <h2 class="mb-3 font-serif text-lg font-bold text-[var(--text)]">À venda na comunidade</h2>
+  {% if anuncios %}
+    {% if not meus_personagens %}
+      <p class="mb-3 rounded border border-dashed border-[var(--stroke)] px-3 py-2 text-sm text-[var(--muted)]">Crie um personagem para poder comprar.</p>
+    {% endif %}
+    <div class="grid gap-3 sm:grid-cols-2">
+      {% for a in anuncios %}
+        <div class="flex flex-col justify-between rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-4">
+          <div>
+            <div class="flex items-start justify-between gap-2">
+              <h3 class="font-serif font-bold text-[var(--text)]">{{ a.nome }}</h3>
+              {% if a.raridade %}<span class="shrink-0 rounded bg-[var(--ember)]/15 px-1.5 py-0.5 text-xs text-[var(--ember)]">{{ a.raridade }}</span>{% endif %}
+            </div>
+            <p class="mt-1 text-xs text-[var(--muted)]">Vendedor: {{ a.vendedor }}{% if a.requer_sintonizacao %} · ⟡ exige sintonização{% endif %}</p>
+            <p class="mt-2 text-sm font-semibold text-[var(--flame)]">{{ a.preco_display }}</p>
+          </div>
+          {% if meus_personagens %}
+          <form method="post" action="{% url 'comprar_anuncio' a.id %}" class="mt-3 flex flex-wrap items-center gap-2">
+            {% csrf_token %}
+            <select name="comprador" required class="flex-1 rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-1.5 text-sm text-[var(--text)]">
+              {% for pj in meus_personagens %}<option value="{{ pj.id }}">{{ pj.nome }} ({{ pj.carteira }})</option>{% endfor %}
+            </select>
+            <button type="submit" class="rounded bg-bonfire-gradient px-3 py-1.5 text-sm font-bold text-white hover:opacity-90">Comprar</button>
+          </form>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="rounded-lg border border-dashed border-[var(--stroke)] px-4 py-8 text-center text-sm text-[var(--muted)]">Nenhum item à venda no momento. Que tal anunciar um?</p>
+  {% endif %}
+</section>
+{% endblock %}

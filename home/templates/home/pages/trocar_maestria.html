@@ -1,0 +1,71 @@
+{% extends 'home/base.html' %}
+{% load static %}
+
+{% block content %}
+<section class="animate-fade-in mx-auto max-w-3xl">
+  <header class="mb-4 border-b border-[var(--stroke)] pb-4">
+    <h1 class="font-serif text-2xl font-bold text-[var(--ember)]">Trocar Maestrias de Arma</h1>
+    <p class="mt-1 text-sm text-[var(--muted)]">{{ p.nome }} — escolha exatamente <strong>{{ n_slots }}</strong> arma(s). Você conhece todas as maestrias de cada arma escolhida e aplica 1 por ataque.</p>
+  </header>
+
+  {% if erro %}<div class="mb-4 rounded border border-[var(--flame)]/50 bg-[var(--flame)]/10 px-4 py-2 text-sm text-[var(--flame)]">{{ erro }}</div>{% endif %}
+
+  <form method="post" action="{% url 'personagem_trocar_maestria' p.id_personagem %}">
+    {% csrf_token %}
+    <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+      <input id="tm-busca" type="search" placeholder="Buscar arma…" autocomplete="off"
+             class="w-full max-w-xs rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-1.5 text-sm text-[var(--text)] focus:border-[var(--ember)] focus:outline-none">
+      <span class="text-sm font-semibold text-[var(--muted)]">Selecionadas: <strong id="tm-count" class="text-[var(--text)]">0</strong>/{{ n_slots }}</span>
+    </div>
+
+    <div id="tm-armas" class="max-h-[60vh] overflow-y-auto rounded border border-[var(--stroke)] bg-[var(--bg0)] p-2">
+      {% regroup armas by cat as grupos %}
+      {% for g in grupos %}
+        <div class="mb-1 mt-3 text-[11px] font-semibold uppercase tracking-wider text-[var(--muted)]/80 first:mt-0">{{ g.grouper }}</div>
+        <div class="grid grid-cols-1 gap-1 sm:grid-cols-2">
+          {% for w in g.list %}
+            <label class="tm-item flex cursor-pointer flex-col gap-0.5 rounded border border-[var(--stroke)] bg-[var(--bg1)] px-2 py-1.5 hover:border-[var(--ember)]" data-nome="{{ w.nome|lower }}">
+              <div class="flex items-center gap-2">
+                <input type="checkbox" name="arma" value="{{ w.slug }}" {% if w.slug in atuais %}checked{% endif %}>
+                <span class="text-sm font-semibold text-[var(--text)]">{{ w.nome }}</span>
+                <span class="ml-auto text-[11px] text-[var(--muted)]">{{ w.dano }}</span>
+              </div>
+              {% if w.maestrias %}<div class="flex flex-wrap gap-1">{% for m in w.maestrias %}<span class="rounded bg-[var(--bg0)] px-1.5 py-0.5 text-[10px] text-[var(--spark)]">{{ m }}</span>{% endfor %}</div>{% endif %}
+            </label>
+          {% endfor %}
+        </div>
+      {% endfor %}
+    </div>
+
+    <div class="mt-5 flex items-center justify-end gap-3 pb-10">
+      <a href="{% url 'ficha_detail' p.id_personagem %}" class="rounded border border-[var(--stroke)] px-4 py-2 text-sm text-[var(--muted)] hover:text-[var(--text)]">Cancelar</a>
+      <button type="submit" id="tm-submit" class="rounded bg-bonfire-gradient px-6 py-2 text-sm font-bold text-white hover:opacity-90 disabled:opacity-50">Salvar Maestrias</button>
+    </div>
+  </form>
+</section>
+
+<script>
+(function(){
+  var N = {{ n_slots }};
+  var wrap = document.getElementById('tm-armas');
+  var counter = document.getElementById('tm-count');
+  var submit = document.getElementById('tm-submit');
+  var busca = document.getElementById('tm-busca');
+  var boxes = Array.prototype.slice.call(wrap.querySelectorAll('input[type=checkbox]'));
+  function upd(){
+    var n = boxes.filter(function(b){return b.checked;}).length;
+    counter.textContent = n;
+    boxes.forEach(function(b){ b.disabled = !b.checked && n >= N; });
+    submit.disabled = (n !== N);
+  }
+  boxes.forEach(function(b){ b.addEventListener('change', upd); });
+  upd();
+  if (busca) busca.addEventListener('input', function(){
+    var q = (busca.value||'').toLowerCase().trim();
+    Array.prototype.forEach.call(wrap.querySelectorAll('.tm-item'), function(it){
+      it.style.display = (!q || (it.dataset.nome||'').indexOf(q) !== -1) ? '' : 'none';
+    });
+  });
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,640 @@
+{% extends 'home/base.html' %}
+{% load static %}
+
+{% block title %}{{ p.nome }} · Ficha · Bonfire Tales RPG{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/pages/ficha.css' %}?v=4">
+{% endblock %}
+
+{% block content %}
+<section class="ficha animate-fade-in space-y-5">
+
+  {# ===================== CABEÇALHO (banner estilo planilha) ===================== #}
+  <header class="ficha-header ficha-banner">
+    {# --- pergaminho à esquerda: nome + classes --- #}
+    <div class="banner-scroll">
+      <h1 class="ficha-name">{{ p.nome }}</h1>
+      <div class="banner-classes">
+        {% for c in ficha.classes %}<span class="banner-class">{{ c.classe }}{% if c.subclasse %} <em>({{ c.subclasse }})</em>{% endif %} {{ c.nivel }}</span>{% if not forloop.last %}<span class="banner-sep">/</span>{% endif %}{% empty %}<span class="banner-class">—</span>{% endfor %}
+      </div>
+      <div class="banner-actions">
+        <a href="{% url 'personagens' %}" class="banner-btn">← Personagens</a>
+        {% if pode_editar %}<a href="{% url 'editar_ficha' p.id_personagem %}" class="banner-btn primary">Editar / Subir de nível</a>{% endif %}
+      </div>
+    </div>
+
+    {# --- bloco de identidade à direita: campos rotulados + selo de nível --- #}
+    <div class="banner-identity">
+      <div class="banner-fields">
+        {% if p.dono_id %}<div class="banner-field"><span class="lbl">Jogador</span><span class="val">{{ p.dono.username }}</span></div>{% endif %}
+        <div class="banner-field wide"><span class="lbl">Raça</span><span class="val">{{ raca_linha|default:"—" }}{% if p.id_antecedente_id %} <span class="val-muted">· {{ p.id_antecedente.nome }}</span>{% endif %}</span></div>
+        <div class="banner-field"><span class="lbl">Rank / Patente</span><span class="val">{{ ficha.progressao.rank|default:"—" }}</span></div>
+        <div class="banner-field"><span class="lbl">Aventuras</span><span class="val">{{ ficha.progressao.aventuras|default:"0" }}</span></div>
+        <div class="banner-field"><span class="lbl">Próximo nível</span><span class="val">{{ ficha.progressao.proximo_nivel_aventuras|default:"—" }}{% if ficha.progressao.proximo_nivel_aventuras %} <span class="val-muted">av.</span>{% endif %}</span></div>
+      </div>
+
+      <div class="banner-level" title="Nível total">
+        <span class="lvl-lbl">Nível</span>
+        <span class="lvl-num">{{ ficha.nivel_total|default:ficha.progressao.nivel_aventuras }}</span>
+      </div>
+    </div>
+  </header>
+
+  {# ===================== BARRA DE ABAS ===================== #}
+  <nav class="ficha-tabs" role="tablist" aria-label="Seções da ficha">
+    <button type="button" class="ficha-tab is-active" role="tab" data-tab="ficha" aria-selected="true">Ficha</button>
+    <button type="button" class="ficha-tab" role="tab" data-tab="info" aria-selected="false">Informações</button>
+    <button type="button" class="ficha-tab" role="tab" data-tab="magias" aria-selected="false">Magias</button>
+    <button type="button" class="ficha-tab" role="tab" data-tab="historico" aria-selected="false">Histórico</button>
+  </nav>
+
+  {# ===================== ABA 1: FICHA ===================== #}
+  <div class="ficha-tabpanel is-active space-y-5" data-tabpanel="ficha" role="tabpanel">
+
+  {# ===================== GRID 3 COLUNAS ===================== #}
+  <div class="ficha-columns">
+
+    {# -------- COLUNA ESQUERDA: atributos (vertical) | saves + perícias -------- #}
+    <div class="attr-skills">
+
+      {# coluna interna esquerda: 6 atributos empilhados #}
+      <div class="attr-stack">
+        {% for sig, a in ficha.atributos.items %}
+          <div class="attr-box" title="base {{ a.base }}{% for b in a.breakdown %} · {{ b.valor }} {{ b.origem }}{% endfor %}">
+            <div class="attr-sig">{{ sig }}</div>
+            <div class="attr-mod">{% if a.mod >= 0 %}+{% endif %}{{ a.mod }}</div>
+            <span class="attr-score">{{ a.valor }}</span>
+          </div>
+        {% endfor %}
+      </div>
+
+      {# coluna interna direita: prof, saves, perícias, percepção passiva #}
+      <div class="attr-side space-y-4">
+        <div class="attr-stat-row">
+          <div class="attr-stat">
+            <span class="lbl">Bônus de Prof.</span>
+            <span class="v spark">+{{ ficha.bonus_proficiencia }}</span>
+          </div>
+          <div class="attr-stat"
+               data-passive-perception
+               data-sab-mod="{{ ficha.atributos.SAB.mod|default:0 }}"
+               data-perc-bonus="{% for per in ficha.pericias %}{% if per.nome == 'Percepção' %}{{ per.bonus }}{% endif %}{% endfor %}">
+            <span class="lbl">Percepção Passiva</span>
+            <span class="v" data-pp-value>—</span>
+          </div>
+        </div>
+
+        <div class="ficha-panel">
+          <div class="ficha-section-title">Testes de Resistência</div>
+          <ul>
+            {% for sig, s in ficha.saves.items %}
+              <li class="line-row">
+                <span class="name"><span class="prof-dot {% if s.proficiente %}on{% endif %}"></span>{{ sig }}</span>
+                <span class="val">{% if s.bonus >= 0 %}+{% endif %}{{ s.bonus }}</span>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+
+        <div class="ficha-panel">
+          <div class="ficha-section-title">Perícias</div>
+          <ul>
+            {% for per in ficha.pericias %}
+              <li class="line-row">
+                <span class="name"><span class="prof-dot {% if per.expertise %}exp{% elif per.proficiente %}on{% endif %}"></span>{{ per.nome }}{% if per.expertise %} <span class="text-[var(--spark)] text-[10px]">◆◆</span>{% elif per.proficiente %} <span class="text-[var(--ember)] text-[10px]">◆</span>{% endif %}</span>
+                <span class="val">{% if per.bonus >= 0 %}+{% endif %}{{ per.bonus }}</span>
+              </li>
+            {% empty %}<li class="line-row"><span class="name">—</span></li>{% endfor %}
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    {# -------- COLUNA CENTRAL: combate, PV, ataques, recursos, equipados -------- #}
+    <div class="space-y-4">
+      <div class="ficha-panel">
+        <div class="combat-grid">
+          <div class="combat-box ca"><div class="lbl">CA</div><div class="big">{{ ficha.ca }}</div></div>
+          <div class="combat-box"><div class="lbl">Inic.</div><div class="big">{% if ficha.iniciativa >= 0 %}+{% endif %}{{ ficha.iniciativa }}</div></div>
+          <div class="combat-box vel"><div class="lbl">Vel.</div><div class="big">{{ ficha.velocidade }}</div></div>
+        </div>
+        {% if ficha.ca_fonte %}<p class="mt-2 text-center text-[11px] text-[var(--muted)]">{{ ficha.ca_fonte }}</p>{% endif %}
+        <div class="hp-track single">
+          <div class="hp-cell max"><div class="lbl">Pontos de Vida Máximos</div><div class="v">{{ ficha.pv.maximo_calculado }}</div></div>
+        </div>
+      </div>
+
+      <div class="ficha-panel">
+        <div class="ficha-section-title">Ataques <span class="float-right font-sans text-[11px] normal-case tracking-normal text-[var(--muted)]">{{ ficha.ataques.quantidade }}× por ação</span></div>
+        <ul>
+          {% for at in ficha.ataques.perfis %}
+            <li class="line-row"><span class="name text-[var(--text)]">{{ at.nome }}</span><span class="val">{% if at.bonus_ataque >= 0 %}+{% endif %}{{ at.bonus_ataque }} · {{ at.dano }}</span></li>
+          {% empty %}<li class="line-row"><span class="name">—</span></li>{% endfor %}
+        </ul>
+      </div>
+
+      {% if ficha.recursos %}
+      <div class="ficha-panel">
+        <div class="ficha-section-title">Recursos</div>
+        <ul>
+          {% for nome, val in ficha.recursos.items %}
+            <li class="line-row"><span class="name">{{ nome }}</span><span class="val">{{ val }}</span></li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+
+      <div class="ficha-panel">
+        <div class="ficha-section-title">Equipados / Sintonizados</div>
+        <ul>
+          {% for it in ficha.inventario %}{% if it.equipado %}
+            <li class="line-row"><span class="name text-[var(--text)]">{% if it.qtd > 1 %}{{ it.qtd }}× {% endif %}{{ it.nome }}</span><span class="pill">equipado</span></li>
+          {% endif %}{% empty %}<li class="line-row"><span class="name">—</span></li>{% endfor %}
+        </ul>
+      </div>
+    </div>
+
+    {# -------- COLUNA DIREITA: CARDS DE HABILIDADE -------- #}
+    <div>
+      <div class="ficha-panel">
+        <div class="ficha-section-title">Características &amp; Habilidades <span class="float-right font-sans text-[11px] normal-case tracking-normal text-[var(--muted)]">{{ ficha.features|length }}</span></div>
+
+        {% comment %} Grupo: Características de Classe (classe, subclasse) {% endcomment %}
+        <div class="feat-group" data-feat-group>
+          <div class="feat-group-title">Características de Classe <span class="count" data-feat-count>0</span></div>
+          <div class="feat-grid">
+            {% for f in ficha.features %}{% if f.origem == "classe" or f.origem == "subclasse" %}
+              <article class="feat-card" data-feat-card data-feat-key="{{ forloop.counter0 }}">
+                <button type="button" class="feat-head" aria-expanded="false">
+                  <span class="feat-main"><span class="feat-name">{{ f.nome }}</span><span class="feat-meta">{{ f.fonte|default:f.origem }}</span></span>
+                  {% if f.nivel %}<span class="feat-badge">Nv {{ f.nivel }}</span>{% endif %}
+                  <svg class="feat-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                </button>
+                <div class="feat-body"><div class="feat-body-inner"></div></div>
+              </article>
+            {% endif %}{% endfor %}
+          </div>
+        </div>
+
+        {% comment %} Grupo: Características de Raça (raca, essencia, linhagem) {% endcomment %}
+        <div class="feat-group" data-feat-group>
+          <div class="feat-group-title">Características de Raça <span class="count" data-feat-count>0</span></div>
+          <div class="feat-grid">
+            {% for f in ficha.features %}{% if f.origem == "raca" or f.origem == "essencia" or f.origem == "linhagem" %}
+              <article class="feat-card" data-feat-card data-feat-key="{{ forloop.counter0 }}">
+                <button type="button" class="feat-head" aria-expanded="false">
+                  <span class="feat-main"><span class="feat-name">{{ f.nome }}</span><span class="feat-meta">{{ f.fonte|default:f.origem }}</span></span>
+                  {% if f.nivel %}<span class="feat-badge">Nv {{ f.nivel }}</span>{% endif %}
+                  <svg class="feat-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                </button>
+                <div class="feat-body"><div class="feat-body-inner"></div></div>
+              </article>
+            {% endif %}{% endfor %}
+          </div>
+        </div>
+
+        {% comment %} Grupo: Antecedente {% endcomment %}
+        <div class="feat-group" data-feat-group>
+          <div class="feat-group-title">Antecedente <span class="count" data-feat-count>0</span></div>
+          <div class="feat-grid">
+            {% for f in ficha.features %}{% if f.origem == "antecedente" %}
+              <article class="feat-card" data-feat-card data-feat-key="{{ forloop.counter0 }}">
+                <button type="button" class="feat-head" aria-expanded="false">
+                  <span class="feat-main"><span class="feat-name">{{ f.nome }}</span><span class="feat-meta">{{ f.fonte|default:f.origem }}</span></span>
+                  {% if f.nivel %}<span class="feat-badge">Nv {{ f.nivel }}</span>{% endif %}
+                  <svg class="feat-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                </button>
+                <div class="feat-body"><div class="feat-body-inner"></div></div>
+              </article>
+            {% endif %}{% endfor %}
+          </div>
+        </div>
+
+        {% comment %} Grupo: Talentos (talento, talento-racial) {% endcomment %}
+        <div class="feat-group" data-feat-group>
+          <div class="feat-group-title">Talentos <span class="count" data-feat-count>0</span></div>
+          <div class="feat-grid">
+            {% for f in ficha.features %}{% if f.origem == "talento" or f.origem == "talento-racial" %}
+              <article class="feat-card" data-feat-card data-feat-key="{{ forloop.counter0 }}">
+                <button type="button" class="feat-head" aria-expanded="false">
+                  <span class="feat-main"><span class="feat-name">{{ f.nome }}</span><span class="feat-meta">{{ f.fonte|default:f.origem }}</span></span>
+                  {% if f.nivel %}<span class="feat-badge">Nv {{ f.nivel }}</span>{% endif %}
+                  <svg class="feat-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                </button>
+                <div class="feat-body"><div class="feat-body-inner"></div></div>
+              </article>
+            {% endif %}{% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ===================== LARGURA CHEIA ===================== #}
+
+  <div class="ficha-panel">
+    <div class="ficha-section-title">Mochila &amp; Equipamento</div>
+    <div class="mb-3 flex flex-wrap gap-2">
+      <div class="flex min-w-[3.2rem] flex-col items-center rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-1.5"><span class="text-[9px] font-bold uppercase tracking-wider text-[var(--muted)]">PO</span><span class="font-bold text-[var(--spark)]">{{ ficha.carteira.po|default:0 }}</span></div>
+      <div class="flex min-w-[3.2rem] flex-col items-center rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-1.5"><span class="text-[9px] font-bold uppercase tracking-wider text-[var(--muted)]">PP</span><span class="font-bold text-[var(--text)]">{{ ficha.carteira.pp|default:0 }}</span></div>
+      <div class="flex min-w-[3.2rem] flex-col items-center rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-1.5"><span class="text-[9px] font-bold uppercase tracking-wider text-[var(--muted)]">PC</span><span class="font-bold text-[var(--text)]">{{ ficha.carteira.pc|default:0 }}</span></div>
+      <div class="ml-auto flex min-w-[3.2rem] flex-col items-center rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-1.5"><span class="text-[9px] font-bold uppercase tracking-wider text-[var(--muted)]">Peso</span><span class="font-bold text-[var(--text)]">{{ ficha.peso_total|default:0 }}</span></div>
+    </div>
+    {% if ficha.inventario %}
+    <ul class="space-y-0.5">
+      {% for it in ficha.inventario %}
+        <li class="flex items-center justify-between gap-2 border-b border-[var(--stroke)]/40 py-1 text-sm">
+          <span class="min-w-0 text-[var(--text)]">{% if it.qtd > 1 %}{{ it.qtd }}× {% endif %}{{ it.nome }}{% if it.equipado %} <span class="pill">equipado</span>{% elif it.pode_equipar %} <span class="pill muted">guardado</span>{% endif %}</span>
+          <span class="flex shrink-0 gap-3 text-xs text-[var(--muted)]">{% if it.custo %}<span>{{ it.custo }}</span>{% endif %}{% if it.peso %}<span>{{ it.peso }}</span>{% endif %}</span>
+        </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="text-sm text-[var(--muted)]">Mochila vazia. Compre itens no mercado e equipe pela ficha.</p>
+    {% endif %}
+  </div>
+
+  {% if ficha.maestrias_armas %}
+  <div class="ficha-panel">
+    <div class="ficha-section-title">Maestrias de Arma{% if pode_editar and ficha.maestria_trocavel %}<a href="{% url 'personagem_trocar_maestria' p.id_personagem %}" class="float-right font-sans text-[11px] normal-case tracking-normal text-[var(--ember)] hover:underline">↻ Trocar</a>{% endif %}</div>
+    <p class="mb-3 text-xs text-[var(--muted)]">Você conhece as maestrias de cada arma escolhida e aplica <strong>1 por ataque</strong> (escolhida ao atacar).{% if ficha.maestria_trocavel %} <span class="text-[var(--spark)]">Trocável.</span>{% endif %}</p>
+    <ul class="grid gap-2 sm:grid-cols-2">
+      {% for w in ficha.maestrias_armas %}
+        <li class="rounded border border-[var(--stroke)] bg-[var(--bg0)] p-2.5">
+          <div class="font-semibold text-[var(--text)]">{{ w.arma }}{% if w.dano %} <span class="text-xs font-normal text-[var(--muted)]">— {{ w.dano }}</span>{% endif %}{% if not w.encontrada %} <span class="text-xs text-[var(--flame)]">(arma não cadastrada)</span>{% endif %}</div>
+          <div class="mt-2 space-y-1.5">
+            {% for m in w.maestrias %}
+              <details class="maestria-card rounded border border-[var(--stroke)]/60 bg-[var(--bg1)]">
+                <summary class="flex cursor-pointer items-center gap-2 px-2 py-1.5 text-xs font-bold text-[var(--spark)] hover:text-[var(--flame)]"><span class="maestria-chevron text-[var(--muted)]">▸</span>{{ m.nome }}</summary>
+                {% if m.efeito %}<div class="border-t border-[var(--stroke)]/40 px-2 py-1.5 text-[11px] leading-snug text-[var(--muted)]">{{ m.efeito }}</div>{% endif %}
+              </details>
+            {% empty %}<span class="text-xs text-[var(--muted)]">—</span>{% endfor %}
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  {% if ficha.magias %}
+  <div class="ficha-panel">
+    <div class="ficha-section-title">Magias</div>
+    <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      {% regroup ficha.magias by nivel as magias_por_nivel %}
+      {% for grupo in magias_por_nivel %}
+      <div>
+        <h3 class="mb-1 text-xs font-semibold uppercase tracking-wider text-[var(--ember)]">{% if grupo.grouper == 0 %}Truques{% else %}{{ grupo.grouper }}º nível{% endif %}</h3>
+        <ul>
+          {% for m in grupo.list %}
+            <li class="line-row"><span class="name text-[var(--text)]">{{ m.nome }}</span><span class="text-xs text-[var(--muted)]">{{ m.escola }}</span></li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="ficha-panel">
+    <div class="ficha-section-title">Defesas &amp; Sentidos</div>
+    <dl class="grid gap-x-8 sm:grid-cols-2">
+      <div class="def-row"><dt>Resistências</dt><dd>{{ ficha.resistencias|join:", "|default:"—" }}</dd></div>
+      <div class="def-row"><dt>Imunidades</dt><dd>{{ ficha.imunidades|join:", "|default:"—" }}</dd></div>
+      <div class="def-row"><dt>Imun. condição</dt><dd>{{ ficha.imunidades_condicao|join:", "|default:"—" }}</dd></div>
+      <div class="def-row"><dt>Sentidos</dt><dd>{{ ficha.sentidos|join:", "|default:"—" }}</dd></div>
+      <div class="def-row"><dt>Idiomas</dt><dd>{{ ficha.idiomas|join:", "|default:"—" }}</dd></div>
+      <div class="def-row"><dt>Ferramentas</dt><dd>{{ ficha.ferramentas|join:", "|default:"—" }}</dd></div>
+      <div class="def-row"><dt>Prof. arma</dt><dd>{{ ficha.proficiencias_arma|join:", "|default:"—" }}{% if ficha.prof_multiclasse_arma %} <span class="text-[var(--spark)]" title="Ganhas por multiclasse">+ {{ ficha.prof_multiclasse_arma|join:", " }} <span class="text-[10px] uppercase">(multiclasse)</span></span>{% endif %}</dd></div>
+      <div class="def-row"><dt>Prof. armadura</dt><dd>{{ ficha.proficiencias_armadura|join:", "|default:"—" }}{% if ficha.prof_multiclasse_armadura %} <span class="text-[var(--spark)]" title="Ganhas por multiclasse">+ {{ ficha.prof_multiclasse_armadura|join:", " }} <span class="text-[10px] uppercase">(multiclasse)</span></span>{% endif %}</dd></div>
+      {% if ficha.outras_proficiencias %}<div class="def-row"><dt>Outras prof.</dt><dd>{{ ficha.outras_proficiencias|join:", " }}</dd></div>{% endif %}
+    </dl>
+  </div>
+
+  {% if ficha.vantagens %}
+  <div class="ficha-panel">
+    <div class="ficha-section-title">Vantagens Condicionais</div>
+    <ul class="list-inside list-disc text-sm text-[var(--muted)] space-y-0.5">{% for v in ficha.vantagens %}<li>{{ v }}</li>{% endfor %}</ul>
+  </div>
+  {% endif %}
+
+  {% if ficha.avisos %}
+  <div class="rounded-lg border border-[var(--spark)]/40 bg-[var(--spark)]/5 p-3 text-xs text-[var(--spark)] space-y-0.5">
+    {% for a in ficha.avisos %}<p>{{ a }}</p>{% endfor %}
+  </div>
+  {% endif %}
+
+  </div>{# /ABA 1: FICHA #}
+
+  {# ===================== ABA 2: INFORMAÇÕES ===================== #}
+  <div class="ficha-tabpanel space-y-5" data-tabpanel="info" role="tabpanel" hidden>
+    {% if pode_editar %}
+    <form method="post" action="{% url 'personagem_info_salvar' p.id_personagem %}" class="info-form space-y-5">
+      {% csrf_token %}
+
+      <div class="info-layout">
+        {# coluna esquerda: atributos físicos em grade rotulada #}
+        <div class="ficha-panel">
+          <div class="ficha-section-title">Dados do Personagem</div>
+          <div class="info-grid">
+            <label class="info-field"><span class="lbl">Idade</span><input type="text" name="idade" value="{{ p.idade|default:'' }}"></label>
+            <label class="info-field"><span class="lbl">Altura</span><input type="text" name="altura" value="{{ p.altura|default:'' }}"></label>
+            <label class="info-field"><span class="lbl">Peso</span><input type="text" name="peso" value="{{ p.peso|default:'' }}"></label>
+            <label class="info-field"><span class="lbl">Tamanho</span><input type="text" name="tamanho" value="{{ p.tamanho|default:'' }}"></label>
+            <label class="info-field"><span class="lbl">Gênero</span><input type="text" name="genero" value="{{ p.genero|default:'' }}"></label>
+            <label class="info-field"><span class="lbl">Olhos</span><input type="text" name="olhos" value="{{ p.olhos|default:'' }}"></label>
+            <label class="info-field"><span class="lbl">Cabelo</span><input type="text" name="cabelo" value="{{ p.cabelo|default:'' }}"></label>
+            <label class="info-field"><span class="lbl">Pele</span><input type="text" name="pele" value="{{ p.pele|default:'' }}"></label>
+          </div>
+        </div>
+
+        {# coluna direita: retrato + token #}
+        <div class="ficha-panel">
+          <div class="ficha-section-title">Retrato &amp; Token</div>
+          <div class="info-portraits">
+            <figure class="info-portrait">
+              {% if p.foto_url %}<img src="{{ p.foto_url }}" alt="Retrato de {{ p.nome }}" loading="lazy">{% else %}<div class="info-portrait-ph">Sem retrato</div>{% endif %}
+              <figcaption>Retrato</figcaption>
+            </figure>
+            <figure class="info-portrait token">
+              {% if p.token_url %}<img src="{{ p.token_url }}" alt="Token de {{ p.nome }}" loading="lazy">{% else %}<div class="info-portrait-ph">Sem token</div>{% endif %}
+              <figcaption>Token</figcaption>
+            </figure>
+          </div>
+          <label class="info-field full"><span class="lbl">URL do retrato <span class="hint">link de imagem</span></span><input type="url" name="foto_url" value="{{ p.foto_url|default:'' }}" placeholder="https://..."></label>
+          <label class="info-field full"><span class="lbl">URL do token <span class="hint">link de imagem</span></span><input type="url" name="token_url" value="{{ p.token_url|default:'' }}" placeholder="https://..."></label>
+        </div>
+      </div>
+
+      <div class="ficha-panel">
+        <div class="ficha-section-title">Aparência</div>
+        <label class="info-field full"><textarea name="aparencia" rows="4" placeholder="Descreva a aparência do personagem...">{{ p.aparencia|default:'' }}</textarea></label>
+      </div>
+
+      <div class="ficha-panel">
+        <div class="ficha-section-title">História</div>
+        <label class="info-field full"><textarea name="historia" rows="8" placeholder="A história e lore do personagem...">{{ p.historia|default:'' }}</textarea></label>
+      </div>
+
+      <div class="ficha-panel">
+        <div class="ficha-section-title">Anotações</div>
+        <label class="info-field full"><textarea name="anotacoes" rows="5" placeholder="Anotações livres...">{{ p.anotacoes|default:'' }}</textarea></label>
+      </div>
+
+      <div class="info-actions">
+        <button type="submit" class="banner-btn primary">Salvar Informações</button>
+      </div>
+    </form>
+
+    {% else %}
+    {# ----- modo leitura ----- #}
+    <div class="info-layout">
+      <div class="ficha-panel">
+        <div class="ficha-section-title">Dados do Personagem</div>
+        <dl class="grid gap-x-8 sm:grid-cols-2">
+          <div class="def-row"><dt>Idade</dt><dd>{{ p.idade|default:"—" }}</dd></div>
+          <div class="def-row"><dt>Altura</dt><dd>{{ p.altura|default:"—" }}</dd></div>
+          <div class="def-row"><dt>Peso</dt><dd>{{ p.peso|default:"—" }}</dd></div>
+          <div class="def-row"><dt>Tamanho</dt><dd>{{ p.tamanho|default:"—" }}</dd></div>
+          <div class="def-row"><dt>Gênero</dt><dd>{{ p.genero|default:"—" }}</dd></div>
+          <div class="def-row"><dt>Olhos</dt><dd>{{ p.olhos|default:"—" }}</dd></div>
+          <div class="def-row"><dt>Cabelo</dt><dd>{{ p.cabelo|default:"—" }}</dd></div>
+          <div class="def-row"><dt>Pele</dt><dd>{{ p.pele|default:"—" }}</dd></div>
+        </dl>
+      </div>
+      <div class="ficha-panel">
+        <div class="ficha-section-title">Retrato &amp; Token</div>
+        <div class="info-portraits">
+          <figure class="info-portrait">
+            {% if p.foto_url %}<img src="{{ p.foto_url }}" alt="Retrato de {{ p.nome }}" loading="lazy">{% else %}<div class="info-portrait-ph">Sem retrato</div>{% endif %}
+            <figcaption>Retrato</figcaption>
+          </figure>
+          <figure class="info-portrait token">
+            {% if p.token_url %}<img src="{{ p.token_url }}" alt="Token de {{ p.nome }}" loading="lazy">{% else %}<div class="info-portrait-ph">Sem token</div>{% endif %}
+            <figcaption>Token</figcaption>
+          </figure>
+        </div>
+      </div>
+    </div>
+
+    <div class="ficha-panel">
+      <div class="ficha-section-title">Aparência</div>
+      {% if p.aparencia %}<div class="info-lore" data-lore>{{ p.aparencia }}</div>{% else %}<p class="info-empty">Sem descrição de aparência.</p>{% endif %}
+    </div>
+
+    <div class="ficha-panel">
+      <div class="ficha-section-title">História</div>
+      {% if p.historia %}<div class="info-lore" data-lore>{{ p.historia }}</div>{% else %}<p class="info-empty">Sem história registrada.</p>{% endif %}
+    </div>
+
+    {% if p.anotacoes %}
+    <div class="ficha-panel">
+      <div class="ficha-section-title">Anotações</div>
+      <div class="info-lore" data-lore>{{ p.anotacoes }}</div>
+    </div>
+    {% endif %}
+    {% endif %}
+  </div>{# /ABA 2: INFORMAÇÕES #}
+
+  {# ===================== ABA 3: MAGIAS ===================== #}
+  <div class="ficha-tabpanel space-y-5" data-tabpanel="magias" role="tabpanel" hidden>
+    <div class="ficha-panel">
+      <div class="ficha-section-title">Magias</div>
+      <p class="magias-help">Clique no marcador (○) para preparar/desmarcar uma magia. Magias de raça/outras origens são <em>sempre preparadas</em> (★, conhecidas) e não contam no limite de magias preparadas da classe.</p>
+    </div>
+
+    {% if magias_info.essencia_pendentes and pode_editar %}
+    <div class="ficha-panel border border-[var(--ember)]/40">
+      <div class="ficha-section-title">Magias a escolher</div>
+      {% for b in magias_info.essencia_pendentes %}
+      <form method="post" action="{% url 'personagem_escolher_magia_essencia' p.id_personagem %}" class="mb-3 last:mb-0">{% csrf_token %}
+        <input type="hidden" name="fonte" value="{{ b.fonte }}">
+        <input type="hidden" name="slot" value="{{ b.slot }}">
+        <p class="magias-help mb-2"><strong>{{ b.fonte }}</strong> — escolha {{ b.rotulo }}:</p>
+        <div class="flex flex-wrap gap-2 {% if b.opcoes|length > 12 %}max-h-56 overflow-y-auto pr-1{% endif %}">
+          {% for o in b.opcoes %}
+          <label class="inline-flex items-center gap-2 rounded border border-[var(--line)] px-3 py-1.5 text-sm cursor-pointer hover:border-[var(--ember)]">
+            <input type="checkbox" name="magia" value="{{ o.slug }}" {% if o.slug in b.escolhidos %}checked{% endif %}>
+            <span>{{ o.nome }}</span>
+          </label>
+          {% endfor %}
+        </div>
+        <button type="submit" class="btn-ember text-sm mt-2">Confirmar escolha</button>
+      </form>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if magias_info.lista %}
+      {% regroup magias_info.lista by nivel as grupos %}
+      {% for grupo in grupos %}
+      <div class="ficha-panel">
+        <div class="ficha-section-title">{% if grupo.grouper == 0 %}Truques{% else %}{{ grupo.grouper }}º Nível{% endif %}</div>
+        <ul class="magias-list">
+          {% for m in grupo.list %}
+            <li class="magia-row {% if not m.preparada and not m.sempre_preparada %}is-unprepared{% endif %}">
+              <span class="flex min-w-0 items-center gap-2">
+                {% if m.sempre_preparada %}
+                  <span class="shrink-0 text-sm leading-none text-[var(--spark)]" title="Sempre preparada (conhecida)">★</span>
+                {% elif pode_editar %}
+                  <form method="post" action="{% url 'personagem_toggle_magia' p.id_personagem m.id %}" class="contents">{% csrf_token %}<button type="submit" class="shrink-0 text-sm leading-none {% if m.preparada %}text-[var(--ember)]{% else %}text-[var(--muted)] hover:text-[var(--ember)]{% endif %}" title="{% if m.preparada %}Preparada — clique para desmarcar{% else %}Não preparada — clique para preparar{% endif %}">{% if m.preparada %}●{% else %}○{% endif %}</button></form>
+                {% else %}
+                  <span class="shrink-0 text-sm leading-none {% if m.preparada %}text-[var(--ember)]{% else %}text-[var(--muted)]{% endif %}">{% if m.preparada %}●{% else %}○{% endif %}</span>
+                {% endif %}
+                <span class="magia-name">{{ m.nome }}</span>
+              </span>
+              <span class="magia-badges">
+                {% if m.sempre_preparada %}<span class="magia-badge sempre">Sempre preparada</span>{% elif m.preparada %}<span class="magia-badge prep">Preparada</span>{% endif %}
+                {% if m.origem %}<span class="magia-badge origem">{{ m.origem }}</span>{% endif %}
+              </span>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="ficha-panel"><p class="info-empty">Este personagem ainda não tem magias selecionadas.</p></div>
+    {% endif %}
+  </div>{# /ABA 3: MAGIAS #}
+
+  {# ===================== ABA 4: HISTÓRICO ===================== #}
+  <div class="ficha-tabpanel space-y-5" data-tabpanel="historico" role="tabpanel" hidden>
+    <div class="ficha-panel">
+      <div class="ficha-section-title">Histórico de Transações</div>
+      {% if transacoes %}
+      <div class="hist-scroll">
+        <table class="hist-table">
+          <thead>
+            <tr><th>Data</th><th>Tipo</th><th>Descrição</th><th class="num">Valor</th><th class="num">Saldo</th></tr>
+          </thead>
+          <tbody>
+            {% for t in transacoes %}
+            <tr class="{% if t.valor_pc < 0 %}is-debit{% elif t.valor_pc > 0 %}is-credit{% endif %}">
+              <td class="hist-date">{{ t.criado_em|date:'d/m/Y H:i' }}</td>
+              <td>{{ t.get_tipo_display }}</td>
+              <td class="hist-desc">{{ t.descricao|default:'—' }}</td>
+              <td class="num hist-val">{% if t.valor_pc > 0 %}+{% endif %}{{ t.valor_pc|floatformat:0 }} <span class="cur">PC</span></td>
+              <td class="num hist-saldo">{{ t.saldo_pc|floatformat:0 }} <span class="cur">PC</span></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <p class="hist-note">Valores em peças de cobre (PC). 100 PC = 1 PO.</p>
+      {% else %}
+      <p class="info-empty">Nenhuma transação registrada.</p>
+      {% endif %}
+    </div>
+  </div>{# /ABA 4: HISTÓRICO #}
+
+  {# ===================== Dados das descrições para os cards ===================== #}
+  <script type="application/json" id="ficha-feat-desc">{% autoescape off %}{
+    {% for f in ficha.features %}"{{ forloop.counter0 }}": "{{ f.descricao|escapejs }}"{% if not forloop.last %},
+    {% endif %}{% endfor %}
+  }{% endautoescape %}</script>
+</section>
+
+<script>
+(function () {
+  // Descrições markdown das habilidades (indexadas por chave estável).
+  let descMap = {};
+  try { descMap = JSON.parse(document.getElementById('ficha-feat-desc').textContent || '{}'); } catch (e) { descMap = {}; }
+
+  function renderDesc(raw) {
+    const value = String(raw || '').trim();
+    if (!value) return '<p class="feat-desc empty">Sem descrição detalhada.</p>';
+    let html;
+    if (typeof window.renderBonfireMarkdown === 'function') {
+      html = window.renderBonfireMarkdown(value);
+    } else {
+      html = '<p>' + value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/\n/g, '<br>') + '</p>';
+    }
+    return '<div class="feat-desc bonfire-markdown">' + html + '</div>';
+  }
+
+  // Percepção passiva: 10 + bônus da perícia Percepção, ou 10 + mod SAB se não proficiente.
+  const ppEl = document.querySelector('[data-passive-perception]');
+  if (ppEl) {
+    const percRaw = (ppEl.getAttribute('data-perc-bonus') || '').trim();
+    const sabMod = parseInt(ppEl.getAttribute('data-sab-mod') || '0', 10) || 0;
+    const value = percRaw !== '' ? (parseInt(percRaw, 10) + 10) : (10 + sabMod);
+    const ppOut = ppEl.querySelector('[data-pp-value]') || ppEl;
+    ppOut.textContent = value;
+  }
+
+  // Conta cards por grupo e esconde grupos vazios.
+  document.querySelectorAll('[data-feat-group]').forEach(function (group) {
+    const n = group.querySelectorAll('[data-feat-card]').length;
+    if (n === 0) { group.style.display = 'none'; return; }
+    const badge = group.querySelector('[data-feat-count]');
+    if (badge) badge.textContent = n;
+  });
+
+  const cards = document.querySelectorAll('.feat-card');
+  cards.forEach(function (card) {
+    const head = card.querySelector('.feat-head');
+    const inner = card.querySelector('.feat-body-inner');
+    if (!head || !inner) return;
+    let rendered = false;
+
+    head.addEventListener('click', function () {
+      const willOpen = !card.classList.contains('open');
+      if (willOpen && !rendered) {
+        const key = card.getAttribute('data-feat-key');
+        inner.innerHTML = renderDesc(descMap[key]);
+        rendered = true;
+      }
+      card.classList.toggle('open', willOpen);
+      head.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+    });
+  });
+
+  // ---------- Lore (aparência/história/anotações) em markdown, igual ao resto do site ----------
+  document.querySelectorAll('[data-lore]').forEach(function (el) {
+    const raw = el.textContent || '';
+    if (typeof window.renderBonfireMarkdown === 'function') {
+      el.innerHTML = '<div class="bonfire-markdown">' + window.renderBonfireMarkdown(raw) + '</div>';
+    } else {
+      el.innerHTML = raw.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/\n/g, '<br>');
+    }
+  });
+
+  // ---------- Abas (troca sem recarregar) ----------
+  const tabs = Array.prototype.slice.call(document.querySelectorAll('.ficha-tab'));
+  const panels = Array.prototype.slice.call(document.querySelectorAll('.ficha-tabpanel'));
+
+  function activateTab(name) {
+    const exists = tabs.some(function (t) { return t.getAttribute('data-tab') === name; });
+    if (!exists) name = 'ficha';
+    tabs.forEach(function (t) {
+      const on = t.getAttribute('data-tab') === name;
+      t.classList.toggle('is-active', on);
+      t.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    panels.forEach(function (pnl) {
+      const on = pnl.getAttribute('data-tabpanel') === name;
+      pnl.classList.toggle('is-active', on);
+      pnl.hidden = !on;
+    });
+  }
+
+  tabs.forEach(function (t) {
+    t.addEventListener('click', function () {
+      const name = t.getAttribute('data-tab');
+      activateTab(name);
+      try {
+        const url = new URL(window.location.href);
+        if (name === 'ficha') { url.searchParams.delete('aba'); }
+        else { url.searchParams.set('aba', name); }
+        history.replaceState(null, '', url);
+      } catch (e) {}
+    });
+  });
+
+  // Aba inicial via ?aba=info|magias|historico (padrão: ficha)
+  let initial = 'ficha';
+  try { initial = (new URL(window.location.href)).searchParams.get('aba') || 'ficha'; } catch (e) {}
+  if (initial !== 'ficha') activateTab(initial);
+})();
+</script>
+{% endblock %}

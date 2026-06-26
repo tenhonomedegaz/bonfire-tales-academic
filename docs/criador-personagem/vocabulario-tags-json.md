@@ -104,7 +104,24 @@ Aponta para algo **definido em outro lugar** — nunca uma string solta:
 | `always-active{...}` | passiva, sempre ligada (**sem** `action`) |
 | `while-active{...}` | dura/alterna (ativado, com fim) |
 | `instant{...}` | acontece e acaba |
-| `action=<tipo>` | tipo de ação p/ ativar: `action`·`bonus-action`·`reaction`·`free` |
+| `action=<tipo>` | tipo de ação p/ ativar **esta** habilidade: `action`·`bonus-action`·`reaction`·`free` |
+
+### Custo de ação **≠** execução
+
+Os **tipos de ação** são só quatro: `free`, `bonus-action`, `action`, `reaction`.
+**Dash, Disengage, Atacar, Teleportar… NÃO são tipos de ação** — são **execuções**
+(você *gasta* uma ação para fazê-las, assim como gasta a ação para Atacar).
+
+- Ativação da própria habilidade: `action=<tipo>`.
+- Conceder/gastar uma ação para executar algo, dentro de um efeito:
+  `action:<tipo>, instant{<execução(ões)>}` (ou `action:<tipo> -> <execução>`).
+  - ✅ `while-active{ action:bonus-action, instant{dash} }` — "pode Dashar com ação bônus".
+  - ✅ `action:bonus-action, instant{attack:melee}` · `action:reaction, instant{aoe{...}}`.
+  - ❌ `action:dash(bonus)` · ❌ `action:attack{natural}(bonus)` (confunde custo com execução).
+
+Execuções comuns em `instant{}`: `dash`, `disengage`, `teleport:<dist>`, `attack:<perfil>`
+(`melee`/`natural`/`unarmed`/…), `marcar`/`apply:<...>`, ou um nome de execução custom
+cujo detalhe vive na descrição.
 
 ---
 
@@ -121,11 +138,34 @@ A escolha de *sempre ativar / perguntar / perguntar quando muda o resultado*
 **Eventos canônicos (só os genéricos):** `first-attack` · `hit-melee` ·
 `crit-melee` · `hit-by-melee` · `drop-to-0` · `reduce-to-0` · `take-damage` ·
 `fail-save` · `initiative` · `turn-start` · `turn-end` ·
-`short-rest` · `long-rest`.
+`short-rest` · `long-rest` · `end` (fim da **duração ativa da própria habilidade** —
+ex.: Frenesi, ao acabar, dá exaustão: `on:end -> exhaustion:+1`).
 
 > `enter-rage`, `spirit-damage`, `frenesi` **não** são eventos — são específicos
 > demais. Use `trigger=ability{furia|frenesi|...}` (o `instant`/`while-active`
 > define se é "ao ativar" ou "enquanto ativo").
+
+### Regra de ouro: nada de nome de classe "solto"
+
+Uma tag **nunca** pode carregar o nome de uma habilidade/recurso específico de uma
+classe como se fosse vocabulário genérico (`furia`, `frenesi`, `runa`…). Se a tag
+**usa outra habilidade** — seu estado, seu valor, sua duração — ela **referencia**
+com `ability{<nome>, classe:<slug>}` (e `.campo` para um valor exportado):
+
+| ❌ Errado (nome solto) | ✅ Certo (referência) |
+|---|---|
+| `dmg:furia(fogo)` | `dmg:ability{furia, classe:barbaro}.dmg-bonus(fogo)` |
+| `duration:furia` | `duration:ability{furia, classe:barbaro}` |
+| `1/furia` | `1/ability{furia, classe:barbaro}` |
+| `match(runa.ativa)` | `match(ability{runas-elementais, classe:barbaro}.runa.ativa)` |
+| `on:furia-end` | `on:end` |
+
+> **Exceção:** *variáveis internas* definidas com `define{}` (a tabela
+> `magia-selvagem`, a lista `runa`, `aspecto-selvagem`…). Bare é OK **dentro da
+> habilidade dona**; usada por outra habilidade, ainda vai por `ability{<dona>,
+> classe:<slug>}.<variável>`. A própria Fúria expõe seu bônus por
+> `define{dmg-bonus: roundup(classlvl/2)}`, referenciado como
+> `ability{furia, classe:barbaro}.dmg-bonus`.
 
 ---
 
@@ -247,7 +287,7 @@ cast{ spell:comunhao-natureza, modifiers{ ritual, ability:wis-mod, no-slot } }
 
 ---
 
-## 9. Definir métodos/tabelas inline + override *(proposta)*
+## 9. Definir métodos/tabelas inline + override
 
 Quando a habilidade cria uma mecânica nova (sem regra no backend), ela a
 **define** no próprio JSON. Outras habilidades **referenciam** essa definição.
@@ -263,6 +303,16 @@ define{
 }
 ... e usa: roll:magia-selvagem
 ```
+
+O **corpo de cada resultado** (`N:{...}`) é um **bloco de efeito** montado com os verbos
+genéricos de sempre (`dmg:`, `resist:`, `aoe{}`, `aura{}`, `action:`, `save{}`, `apply:`,
+`move:`, `temp-hp:`, `trigger=`…). Dentro do bloco, `self.cd` = a CD da própria habilidade
+e `furia` = o bônus de dano da Fúria. Efeito complexo demais para fórmula (teleporte, forma
+fantasmal, crescer) vira `action:<nome>` cujo texto fica na descrição.
+
+**Controle de tabela** (só fazem sentido dentro de `table{}`):
+- `reroll` — rola de novo na mesma tabela.
+- `apply-also` — acumula com o resultado atual (aplica os dois).
 
 ### Referência a partir de outra habilidade
 ```
@@ -288,15 +338,21 @@ override numa entidade referenciada — nada específico de Caos Encarnado.
 
 | Token | Significado |
 |---|---|
-| `resource-cost:<recurso>` | consome uso (`resource-cost:furias`, `…:1/long-rest`) |
-| `duration:<n>` | em **rodadas** (`duration:10`=1min); ou `duration:furia`, `until-next-turn` |
+| `resource-cost:<recurso>` | consome uso (`resource-cost:furias`, `…:1/long-rest`, custo alt. `{1/long-rest \| furias}`) |
+| `duration:<n>` | em **rodadas** (`duration:10`=1min) ou `until-next-turn` |
+| `duration:ability{<nome>, classe:<slug>}` | dura **enquanto outra habilidade durar** (ex.: `duration:ability{furia, classe:barbaro}`) |
 | `cd=<fórmula>` | classe de dificuldade (`cd=8+pb+con-mod`) |
 
-**Valores dinâmicos** *(proposta)* — quando algo cresce com o uso:
+> **Fúria não é "duração".** Uma habilidade não pode usar `duration:furia` — `furia`
+> é uma **habilidade**, não um valor de tempo. Para "dura enquanto a Fúria durar" use
+> a **referência correta**: `duration:ability{furia, classe:barbaro}` (mesma forma de
+> todo `ability{}`). Idem para "fim da duração": use `on:end` (§4), não `on:furia-end`.
+
+**Valores dinâmicos** — quando algo cresce com o uso:
 `cd=10+5*uses{self, reset:rest}` (Fôlego Furioso: CD sobe 5 por uso, volta a 10
 após descanso). `uses{self}` = nº de vezes que **esta** habilidade foi usada.
 
-### Funções compostas (modelo Excel) *(proposta)*
+### Funções compostas (modelo Excel)
 O motor avalia funções genéricas, que **aninham**:
 - `if( <cond> ): <then>` (opcional `else: <...>`) — ramo condicional.
 - `save{ <attr>, cd=<fórmula> }` — rola um teste de resistência; vale como condição (sucesso/falha).
@@ -352,17 +408,105 @@ Ex.: **Fôlego Furioso** — em fúria, ao cair a 0 PV, CON save de CD crescente
 | Primitiva | Sintaxe | Uso |
 |---|---|---|
 | **Aura** | `aura{ radius:<dist>, target:<allies\|enemies\|all>, effects{...} }` | emanação centrada no personagem; aplica `effects` a quem está no raio enquanto ativa |
-| **Marca/contador** | `mark{ <nome>, on:<evento> -> <delta>, consume:<evento> -> <efeito> }` | acumula contadores em alvos e os consome num evento (ex.: Sede de Sangue) |
-| **Lista definível** | `define{ <nome>: list{ <chave>:{...}, … } }` + `pick:<nome>:N` | define opções no próprio JSON (aspectos da fúria, runas) e abre escolha |
+| **Área de efeito** | `aoe{ point:<dist>, radius:<dist>, save{...}, dmg:<...>, on-success:<half\|none> }` | explosão/área pontual (alvo um ponto, não emanação contínua); resolve teste + dano de uma vez |
+| **Marca/contador** | `mark{ <nome>, on:<evento> -> <delta>, consume:<evento> -> <efeito> }` | acumula contadores em alvos e os consome num evento (ex.: Sede de Sangue → `temp-hp:+(con-mod * marks)`) |
+| **Lista definível** | `define{ <nome>: list{ <chave>:{...}, … } }` + `pick:<nome>:N` | o corpo de cada `<chave>` é **bloco de efeito** (aspectos da fúria) **ou** **atributos tipados** (`pericias:[…]`, `elemento:[…]`); `pick` abre a escolha |
 | **Arma definida/modificada** | `define:weapon{ <nome>: <dmg>+<mod>, <dano> }` · `<arma>.add-property{ <prop>… }` | perfil de ataque (armadura vira arma) ou propriedade nova (arremesso/retorno) |
-| **Custo alternativo** | `resource-cost:{ <a> \| <b> }` | paga `a` **ou** `b` (ex.: `1/long-rest \| 1 furia`) |
+| **Custo alternativo** | `resource-cost:{ <a> \| <b> }` | paga `a` **ou** `b` (ex.: `1/long-rest \| furias`) |
+
+> **`aura{}` vs `aoe{}`:** `aura` é emanação **contínua** presa ao personagem (dura enquanto ativa);
+> `aoe` é uma detonação **pontual** num lugar/instante (resolve teste + efeito e acaba).
+> **Seletor dinâmico:** `resist:last-damage-type` resiste ao último tipo de dano sofrido (muda sozinho).
+
+> **Criaturas voluntárias e contagem de aceitação.** `pick:aliados:N(range:<dist>, willing)`
+> seleciona até `N` criaturas **voluntárias** (`willing` = só entram quem aceita). A
+> **quantidade que aceitou** vira a variável de runtime **`aliados-aceitos`**, usável em
+> fórmulas (igual a `marks` da Sede de Sangue) — ex.: `temp-hp:+(<valor> * aliados-aceitos)`.
+> Esse padrão se repete em várias habilidades que afetam aliados voluntários.
 
 > **Forma/transformação** não é primitiva nova — é `define{}` + `while-active{...}`.
 
 ## 14. Em aberto (a definir com o PO)
 
-- **Pré-requisito de atributo** (`for13` vs `prereq=str-score>=13`).
-- **Valores específicos** de algumas mecânicas (cura por marca da Sede de Sangue, poderes de cada runa do Despertar Rúnico) — preencher caso a caso.
-- Esquema do **parser** (string → JSON estruturado) e do **motor de derivação**.
+- Esquema do **parser** (string → JSON estruturado) e do **motor de derivação** (avaliador das funções/efeitos).
 
-Rascunho de trabalho: `ref/criador_barbaro_tags.md` (Bárbaro, com notas do PO).
+**Resolvidos** (2026-06-15, Bárbaro como molde):
+- Pré-requisito de atributo → na **tag da classe** como `multiclass-req{str>=13}` (§6b).
+- Cura por marca da **Sede de Sangue** → `consume:turn-end -> temp-hp:+(con-mod * marks)`.
+- Poderes despertos das runas (Arauto Rúnico) → **sem verbo `invoke`**: o Despertar Rúnico usa
+  `match(ability{runas-elementais, classe:barbaro}.runa.ativa){ chamas:{…}, … }` (switch que já existe, §10);
+  a lista de runas (Runas Elementais) guarda só `elemento`.
+- **Proficiência concedida** → `prof:<categoria>{<valor>}` (ex.: `prof:tool{ferreiro}`, `prof:armor{pesada}`).
+  Evita o `prof:cat:val` de duplo dois-pontos (ambíguo com o separador de token).
+- **Custo de ação ≠ execução** → `action:<tipo>, instant{<execução>}` (ver §3).
+- **Nada de nome de classe solto** → referência sempre `ability{<nome>, classe:<slug>}.<campo>`;
+  fim de duração própria via `on:end`; `furia` não é duração. Regra de ouro no §4.
+- **`uses{self, reset:rest}`** e **funções compostas** (if/save/roll/match) → confirmados (saíram de *proposta*).
+- Forma do corpo de `table{results{…}}` e `list{…}` → bloco de efeito genérico (§9, §13).
+
+**Resolvidos** (2026-06-17, Monge como 2º molde marcial):
+- **Pool de recurso NÃO é tag.** Vetado `resource{}` para declarar pool — recurso de classe vive na
+  `TbRecursoclasse`; se não existir, escrever na tabela. Tag só referencia (`resource{<slug>}`), gasta
+  (`resource-cost:<slug>:<N>`, **com quantidade**) ou restaura (`resource-restore:<slug>=all`). Ex.: Ki =
+  recurso `pontos-de-ki`; Dado de Artes Marciais = recurso `artes-marciais` (não `define{}`).
+- **`miss`** (evento bidirecional), **`cleanse`** (remove condição), **`move:wall`/`move:liquid`**,
+  limitador **`1/turn`**, família **`hit-by-*`**, **`on-fail`** → aprovados.
+- **Evasão sem verbo próprio:** `source{aoe}.save{dex}.on-success:=none, on-fail:=half`.
+- **CD de classe (Ki):** a habilidade-fonte expõe via `define{cd: 8+pb+wis-mod}`; as demais referenciam
+  `ability{ki, classe:monge}.cd` (regra de ouro: referência, não repetição).
+
+**Resolvidos** (2026-06-17, Ladino):
+- **Distância canônica = `ft`** (pés). Converter tags antigas em metros (5ft=1.5m, 30ft=9m, 60ft=18m…).
+- Aprovados: `first-turn`, `hide`, `dmg-reduction:half`, `no-adv-against-self`, condições
+  `adv`/`no-dadv`/`not-moved`/`ally(range:ft)`/`target{acted|!acted|surprised}`, escopo `next-attack`,
+  combinadores `requires:{a and b | c}`, e `acuidade` (finesse) no catálogo B7.
+- **Ataque Furtivo:** `1/turn`, `requires:{adv | ally(range:5ft) and no-dadv}`, dano = recurso
+  `dados-de-furtividade`. **Técnica de Furtividade:** `pick:<tecnica>(cost:Nd6 de dados-de-furtividade)`.
+
+> **Fonte de conteúdo das classes:** HTMLs do World Anvil em `ref/Classes/` (consultar em caso de dúvida).
+
+Rascunho de trabalho (espelho do banco): `ref/criador_barbaro_tags.md` (regenerado de `TbClassehabilidade`).
+
+---
+
+## 15. Tags de EFEITO de magia (`TbMagia.tags_json`)
+
+A magia **já tem campos estruturados** (`nivel`, `escola`, `casting_time`, `ritual`,
+`duracao`, `concentracao`, `alcance`, `componentes`, `classes`, `subclasses`) — a tag
+**não os repete**. A `tags_json` carrega só o **efeito mecânico** + escala por slot.
+Reusa os verbos das habilidades; o que é específico de magia:
+
+| Token | Significado |
+|---|---|
+| `dmg:<NdX>(<elemento>)` | dano; `(auto)` = sem rolagem (ex.: Mísseis Mágicos) |
+| `save{<attr>}` + `on-success:half` | teste de resistência; metade no sucesso |
+| `attack:magico` | magia com jogada de ataque (eixo de rolagem por conjuração) |
+| `heal:<NdX>+spell-mod` | cura |
+| `aoe{<forma>:<tam>}` | `cone`/`sphere`/`cube`/`line` + tamanho (origem; alcance fica no campo) |
+| `targets:<N>` | nº de alvos/dardos |
+| `buff:<stat>:+<N>` | bônus temporário (ex.: `buff:max-hp:+5`) |
+| `apply:<condicao>` | condição (Caído, Cego…) |
+| `upcast:{<delta>/nivel}` | escala por **nível de espaço de magia** acima do base (`em_niveis_superiores`) |
+
+Ex.: **Bola de Fogo** = `[aoe{sphere:6m}, save{dex}, dmg:8d6(fogo), on-success:half, upcast:{dmg:+1d6/nivel}]`.
+**Cura por slot**: `[heal:2d8+spell-mod, upcast:{heal:+2d8/nivel}]`.
+
+> Elemento de **Força** = token `forca` (decisão do PO; não usar "energia").
+> As ~211 magias de **efeito simples** (dano/cura/ataque) foram taggadas
+> semi-automaticamente da descrição; as **complexas** (condições, invocação,
+> múltiplos efeitos) ficam para tratamento manual.
+
+---
+
+## 16. Conjuração e progressões de classe (tags de habilidade)
+
+| Token | Significado |
+|---|---|
+| `spellcasting{ ability:<attr>, slots:<full\|half\|third>, lista:<classe>, prepara:<conhecidas\|preparadas>, foco:<...> }` | declara a conjuração da classe. **`slots` é a fração de caster** para multiclasse: full (Bardo/Mago/…), half (Paladino/Caçador), third (Cavaleiro Arcano/Atirador). |
+| `pick:pericia-expertise:{ <nivel>:<qtd> }` | **Especialização/Expertise é regra GLOBAL** — o motor dobra o PB em qualquer perícia marcada `pericia-expertise`. A tag só sinaliza a escolha; **não** se cria `expertise:dobra-pb`. |
+| `spell-selection:<lista>{ efeito: magia-conhecida(...) }` | adiciona magia **conhecida** (permanente, não é efeito "enquanto ativo") escolhida de `<lista>` (ex.: `any`). `extra, fora-do-limite` = não conta no total de Magias Conhecidas. |
+
+> **Slots compartilhados no multiclasse (importante):** espaços de magia NÃO são a
+> soma dos slots de cada classe. Soma-se o **nível de conjurador** (full = nível
+> inteiro, half = metade, third = um terço), e a tabela única de slots é lida com
+> esse total. Por isso cada `spellcasting{}` declara `slots:full|half|third`.

@@ -1,26 +1,29 @@
 # -*- coding: utf-8 -*-
 """Motor de derivação da ficha de personagem.
 
-Recebe um TbPersonagem e deriva o estado mecânico (atributos, nível,
-proficiência, PV, features ativas, recursos…) a partir do conteúdo do banco.
+Recebe um TbPersonagem e deriva o estado mecânico (atributos base+bônus, nível,
+proficiência, PV, CA ciente de armadura, ataques, features ativas, recursos e os
+efeitos PASSIVOS das tags_json).
 
 Fases:
-- ESTRUTURAL (este módulo): tudo que não depende das tags — atributos, nível
-  total, bônus de proficiência, PV pelo dado de vida, features por nível de
-  classe (subclasse só a partir do nível 3 DA CLASSE), traços raciais e
-  recursos de classe. Multiclasse é suportado: cada classe tem seu próprio
-  nível e sua própria subclasse.
-- TAGS (a fazer): `apply_tags()` é o ponto de plugue para o avaliador das
-  `tags_json` (perícias/resistências/efeitos via funções). Hoje ele só coleta
-  as tags cruas das features ativas — o parser/avaliador entra quando o
-  vocabulário (docs/criador-personagem/vocabulario-tags-json.md) for fechado e
-  as tags estiverem no banco.
+- ESTRUTURAL: atributos (BASE point-buy + Σ bônus de TbPersonagemAtributoBonus),
+  nível total, bônus de proficiência, PV pelo dado de vida (campo OU tag
+  `hit-dice`), features por nível DA classe (subclasse só a partir do 3º nível),
+  traços raciais, antecedente, talentos e recursos. Multiclasse: `classlvl` por
+  feature.
+- TAGS (apply_tags): resolve `match(<escolha>){…}`/`define{}` e aplica efeitos
+  PASSIVOS (PV/CA/velocidade/resistências/imunidades/sentidos/salvaguardas/
+  perícias/proficiências/ataques/recursos-de-tag/vantagens). Efeitos ativos
+  (trigger/instant/while-active/action/cast) NÃO entram na ficha estática.
 
-Lacunas de dado conhecidas viram avisos em `state['avisos']` (ex.: dado de vida
-não cadastrado na classe → PV não calculável).
+Lacunas de dado conhecidas viram avisos em `state['avisos']`.
 """
 
+import ast
+import math
+import operator
 import re
+import unicodedata
 
 # (campo no modelo, sigla PT, rótulo)
 ATRIBUTOS = [
@@ -32,23 +35,177 @@ ATRIBUTOS = [
     ('carisma', 'CAR', 'Carisma'),
 ]
 
+_ATTR_EN = {'FOR': 'str', 'DES': 'dex', 'CON': 'con', 'INT': 'int', 'SAB': 'wis', 'CAR': 'cha'}
+_EN_SIG = {v: k for k, v in _ATTR_EN.items()}
+
+# token de salvaguarda -> código EN canônico. Aceita siglas PT-BR e EN no tag
+# saves-prof{} (o Bardo escreve {des, car}; as demais classes usam {dex, cha}…).
+_SAVE_TOKEN_EN = {
+    'for': 'str', 'des': 'dex', 'con': 'con', 'int': 'int', 'sab': 'wis', 'car': 'cha',
+    'str': 'str', 'dex': 'dex', 'wis': 'wis', 'cha': 'cha',
+    'forca': 'str', 'destreza': 'dex', 'constituicao': 'con',
+    'inteligencia': 'int', 'sabedoria': 'wis', 'carisma': 'cha',
+}
+
+# Grants UNIFORMES do antecedente (mesmos p/ todos; hoje hardcoded no template
+# catalogo_mongo.html). Expostos como dado p/ o criador ler de uma só fonte.
+GRANTS_ANTECEDENTE = {
+    'asi': '+2/+1 (à escolha)', 'pericias': 2, 'idioma_fixo': 'Comum',
+    'idiomas_ou_ferramentas': 2, 'po_inicial': 100, 'po_mundano_min': 50,
+    'talento_origem': 1, 'habilidade': 1,
+}
+
+# 18 perícias: slug -> (nome PT, atributo padrão)
+_SKILL_INFO = {
+    'atletismo': ('Atletismo', 'FOR'),
+    'acrobacia': ('Acrobacia', 'DES'), 'furtividade': ('Furtividade', 'DES'),
+    'prestidigitacao': ('Prestidigitação', 'DES'),
+    'arcanismo': ('Arcanismo', 'INT'), 'historia': ('História', 'INT'),
+    'investigacao': ('Investigação', 'INT'), 'natureza': ('Natureza', 'INT'),
+    'religiao': ('Religião', 'INT'),
+    'adestrar-animais': ('Adestrar Animais', 'SAB'), 'intuicao': ('Intuição', 'SAB'),
+    'medicina': ('Medicina', 'SAB'), 'percepcao': ('Percepção', 'SAB'),
+    'sobrevivencia': ('Sobrevivência', 'SAB'),
+    'enganacao': ('Enganação', 'CAR'), 'intimidacao': ('Intimidação', 'CAR'),
+    'atuacao': ('Atuação', 'CAR'), 'persuasao': ('Persuasão', 'CAR'),
+}
+
+_ACTIVE_BLOCKS = ('while-active', 'while', 'instant', 'cast', 'aura', 'effects')
+_ACTIVE_MARKERS = ('trigger=', 'instant{', 'while-active{', 'while{', 'cast{', 'action=', 'on:')
+# slugs-placeholder/indireção não resolvidos que não devem virar tipo literal
+# ('pick' vaza de escolhas não resolvidas como resist:pick:{ácido|frio|veneno}).
+_PLACEHOLDERS = ('all', 'source', 'elemento', 'pick')
+
+
+def _slug(s):
+    s = unicodedata.normalize('NFKD', str(s)).encode('ascii', 'ignore').decode().lower()
+    return re.sub(r'[^a-z0-9]+', '-', s).strip('-')
+
 
 def modificador(valor):
-    """Modificador de atributo D&D: (valor - 10) // 2 (floor)."""
     return (int(valor) - 10) // 2
 
 
+# Token de proficiência (tags prof{}/multiclass-prof{} da classe) -> (categoria, rótulo legível).
+_PROF_TOKEN_LABEL = {
+    'armadura-leve': ('armadura', 'Leve'), 'armadura-media': ('armadura', 'Média'),
+    'armadura-pesada': ('armadura', 'Pesada'), 'escudos': ('armadura', 'Escudos'),
+    'armas-simples': ('arma', 'Armas Simples'), 'armas-marciais': ('arma', 'Armas Marciais'),
+    'armas-fogo': ('arma', 'Armas de Fogo'),
+    'armas-marciais-acuidade-ou-leves': ('arma', 'Armas Marciais com Acuidade ou Leves'),
+    'armas-marciais-leves': ('arma', 'Armas Marciais Leves'),
+}
+
+
+def _proficiencias_classe(classes):
+    """Proficiências de arma/armadura: PLENAS da classe PRINCIPAL (tag `prof{...}`) +
+    subconjunto de MULTICLASSE das demais classes (tag `multiclass-prof{...}`), em rótulos
+    legíveis. A regra de save (só da principal) é a mesma — ver _saves."""
+    principal = _classe_principal(classes)
+
+    def _toks(tags, key):
+        out = []
+        for t in (tags or []):
+            m = re.match(re.escape(key) + r'\{([^}]*)\}', str(t).strip())
+            if m:
+                out += [x.strip() for x in m.group(1).split(',') if x.strip()]
+        return out
+
+    c_arm, c_wpn, mc_arm, mc_wpn = [], [], [], []
+    for c in classes:
+        tags = getattr(c.id_classe, 'tags_json', None) or []
+        primaria = bool(principal) and c.id_classe_id == principal.id_classe_id
+        alvo_arm, alvo_wpn = (c_arm, c_wpn) if primaria else (mc_arm, mc_wpn)
+        for tk in _toks(tags, 'prof' if primaria else 'multiclass-prof'):
+            lab = _PROF_TOKEN_LABEL.get(tk)
+            if lab:
+                (alvo_arm if lab[0] == 'armadura' else alvo_wpn).append(lab[1])
+
+    def _dedup(seq, excl=()):
+        seen, out = set(excl), []
+        for x in seq:
+            if x not in seen:
+                seen.add(x); out.append(x)
+        return out
+    return {
+        'classe_armaduras': _dedup(c_arm), 'classe_armas': _dedup(c_wpn),
+        'multiclasse_armaduras': _dedup(mc_arm, excl=c_arm), 'multiclasse_armas': _dedup(mc_wpn, excl=c_wpn),
+    }
+
+
 def bonus_proficiencia(nivel_total):
-    """Fórmula padrão: 2 no nível 1, +1 a cada 4 níveis."""
     return 2 + (max(1, int(nivel_total)) - 1) // 4
 
 
+# ───────────────── Progressão por aventuras (tabelas Bonfire) ─────────────────
+# (mín de aventuras, nível). 21 = Epic Boon (160), 22 = Lenda (200).
+_AVENTURAS_NIVEL = [(0, 1), (1, 2), (3, 3), (6, 4), (9, 5), (13, 6), (17, 7), (22, 8),
+                    (28, 9), (35, 10), (42, 11), (50, 12), (59, 13), (69, 14), (79, 15),
+                    (90, 16), (102, 17), (114, 18), (127, 19), (140, 20), (160, 21), (200, 22)]
+_RANK_FAIXA = [(1, 4, 'Obsidiana'), (5, 8, 'Ametista'), (9, 12, 'Topázio'), (13, 16, 'Esmeralda'),
+               (17, 19, 'Âmbar'), (20, 20, 'Rubi'), (21, 21, 'Diamante'), (22, 22, 'Lenda')]
+_RANK_OURO = {'Obsidiana': 120, 'Ametista': 250, 'Topázio': 400, 'Esmeralda': 650,
+              'Âmbar': 800, 'Rubi': 1000, 'Diamante': 1200, 'Lenda': 1200}
+
+
+def nivel_por_aventuras(n):
+    """Nº de aventuras → nível (1..20; 21 = Epic Boon; 22 = Lenda)."""
+    nivel = 1
+    for minimo, nv in _AVENTURAS_NIVEL:
+        if int(n or 0) >= minimo:
+            nivel = nv
+        else:
+            break
+    return nivel
+
+
+def aventuras_para_nivel(nivel):
+    """Mín de aventuras p/ atingir um nível (p/ backfill dos personagens existentes)."""
+    melhor = 0
+    for minimo, nv in _AVENTURAS_NIVEL:
+        if nv <= int(nivel or 1):
+            melhor = minimo
+    return melhor
+
+
+def rank_por_nivel(nivel):
+    for lo, hi, nome in _RANK_FAIXA:
+        if lo <= int(nivel) <= hi:
+            return nome
+    return 'Obsidiana'
+
+
+def nivel_label(nivel):
+    return {21: 'Epic Boon', 22: 'Lenda'}.get(int(nivel), str(nivel))
+
+
+def ouro_por_aventura(nivel):
+    """Ouro (PO) por aventura no rank do nível dado (tabela 2)."""
+    return _RANK_OURO.get(rank_por_nivel(nivel), 0)
+
+
+def braseiros_por_aventura(nivel):
+    """Braseiros por aventura = BP do personagem (2/3/4/5/6 por rank)."""
+    return bonus_proficiencia(min(int(nivel), 20))
+
+
 def _dado_de_vida(texto):
-    """Extrai o N de '1dN' (ex.: '1d10 por nível de Caçador' -> 10)."""
     if not texto:
         return None
     m = re.search(r'd\s*(\d+)', str(texto))
     return int(m.group(1)) if m else None
+
+
+def _hit_dice_from_tag(classe):
+    for tag in (getattr(classe, 'tags_json', None) or []):
+        m = re.search(r'hit-dice:\s*\d*d(\d+)', str(tag))
+        if m:
+            return int(m.group(1))
+    return None
+
+
+def _dado_de_vida_classe(classe):
+    return _dado_de_vida(getattr(classe, 'dado_vida', None)) or _hit_dice_from_tag(classe)
 
 
 def _classe_principal(classes):
@@ -61,22 +218,13 @@ def _classe_principal(classes):
 
 
 def _calcular_pv(personagem, classes, con_mod, avisos):
-    """PV pelo dado de vida.
-
-    - 1º nível da classe principal = dado cheio (1d10 -> 10).
-    - Demais níveis (qualquer classe) = dado/2 + 1 (1d10 -> 6, 1d12 -> 7).
-    - Cada nível soma o modificador de Constituição.
-    """
     principal = _classe_principal(classes)
-    total = 0
-    faltou = False
+    total, faltou = 0, False
     for c in classes:
-        die = _dado_de_vida(getattr(c.id_classe, 'dado_vida', None))
+        die = _dado_de_vida_classe(c.id_classe)
         if die is None:
             faltou = True
-            avisos.append(
-                f"Dado de vida não cadastrado em '{c.id_classe.nome}' — PV parcial."
-            )
+            avisos.append(f"Dado de vida não cadastrado em '{c.id_classe.nome}' — PV parcial.")
             continue
         for nivel_idx in range(int(c.nivel or 0)):
             primeiro = (c is principal and nivel_idx == 0)
@@ -85,73 +233,100 @@ def _calcular_pv(personagem, classes, con_mod, avisos):
     return {'valor': total, 'completo': not faltou}
 
 
+# ───────────────────────── features (com classlvl) ──────────────────────
 def _features_de_classe(classes):
-    """Habilidades ativas por classe, respeitando o nível DA classe e a regra
-    da subclasse (só a partir do 3º nível da classe)."""
     from .models import TbClassehabilidade
     out = []
     for c in classes:
         nivel = int(c.nivel or 0)
-        base = TbClassehabilidade.objects.filter(
-            id_classe=c.id_classe, id_subclasse__isnull=True,
-            niveladquirido__lte=nivel,
-        ).order_by('niveladquirido', 'nome')
-        for h in base:
-            out.append(('classe', c.id_classe.nome, h))
+        for h in TbClassehabilidade.objects.filter(
+                id_classe=c.id_classe, id_subclasse__isnull=True,
+                niveladquirido__lte=nivel).order_by('niveladquirido', 'nome'):
+            out.append(('classe', c.id_classe.nome, h, nivel))
         if c.id_subclasse_id and nivel >= 3:
-            sub = TbClassehabilidade.objects.filter(
-                id_subclasse=c.id_subclasse, niveladquirido__lte=nivel,
-            ).order_by('niveladquirido', 'nome')
-            for h in sub:
-                out.append(('subclasse', c.id_subclasse.nome, h))
+            for h in TbClassehabilidade.objects.filter(
+                    id_subclasse=c.id_subclasse, niveladquirido__lte=nivel).order_by('niveladquirido', 'nome'):
+                out.append(('subclasse', c.id_subclasse.nome, h, nivel))
     return out
 
 
 def _tracos_raciais(personagem):
-    """Traços passivos da raça + linhagem/essência escolhidas (talentos não —
-    esses são escolhas explícitas)."""
     from .models import TbTracoracial
     out = []
     if not personagem.id_raca_id:
         return out
-    base = TbTracoracial.objects.filter(
-        id_raca=personagem.id_raca, talento_racial=False,
-        id_linhagem__isnull=True, id_essencia__isnull=True,
-    )
-    for t in base:
-        out.append(('raca', personagem.id_raca.nome, t))
+    for t in TbTracoracial.objects.filter(id_raca=personagem.id_raca, talento_racial=False,
+                                           id_linhagem__isnull=True, id_essencia__isnull=True):
+        out.append(('raca', personagem.id_raca.nome, t, None))
     if personagem.id_linhagem_id:
         for t in TbTracoracial.objects.filter(id_linhagem=personagem.id_linhagem, talento_racial=False):
-            out.append(('linhagem', personagem.id_linhagem.nome, t))
+            out.append(('linhagem', personagem.id_linhagem.nome, t, None))
     if personagem.id_essencia_id:
         for t in TbTracoracial.objects.filter(id_essencia=personagem.id_essencia, talento_racial=False):
-            out.append(('essencia', personagem.id_essencia.nome, t))
+            out.append(('essencia', personagem.id_essencia.nome, t, None))
+    return out
+
+
+def _antecedente(personagem):
+    """Antecedente como fonte de feature (a 'habilidade do antecedente' = suas
+    tags_json), em paralelo a _tracos_raciais."""
+    if not personagem.id_antecedente_id:
+        return []
+    a = personagem.id_antecedente
+    return [('antecedente', a.nome, a, None)]
+
+
+def _talentos(personagem):
+    from .models import TbTracoracial
+    from django.db.models import Q
+    out = []
+    for pt in personagem.talentos.select_related('id_talento').all():
+        if pt.id_talento_id:
+            out.append(('talento', pt.categoria or 'talento', pt.id_talento, None))
+        else:
+            # Talento racial salvo só por nome: resolve pela raça, linhagem (sub-raça)
+            # OU essência do personagem; cai num fallback global por nome se preciso.
+            cond = Q()
+            if personagem.id_raca_id:
+                cond |= Q(id_raca=personagem.id_raca_id)
+            if getattr(personagem, 'id_linhagem_id', None):
+                cond |= Q(id_linhagem=personagem.id_linhagem_id)
+            if getattr(personagem, 'id_essencia_id', None):
+                cond |= Q(id_essencia=personagem.id_essencia_id)
+            tr = TbTracoracial.objects.filter(cond, nome=pt.nome).first() if cond else None
+            if tr is None:
+                tr = TbTracoracial.objects.filter(nome=pt.nome, talento_racial=True).first()
+            if tr:
+                out.append(('talento-racial', tr.nome, tr, None))
     return out
 
 
 def _recursos(classes):
-    """Valor atual de cada recurso de classe para o nível da classe.
-
-    Lê o formato consolidado (`valores_json` = {nivel: valor}, pega o maior
-    nível <= nível da classe). Mantém fallback para linhas legadas ainda não
-    consolidadas (1 linha por nível)."""
+    """Recursos de CLASSE (TbRecursoclasse). Ignora placeholders '-'/vazio/0."""
     from .models import TbRecursoclasse
     from django.db.models import Q
     recursos = {}
+
+    def _vazio(v):
+        return v is None or str(v).strip() in ('', '-', '0')
+
     for c in classes:
         nivel = int(c.nivel or 0)
         filtro = Q(id_classe=c.id_classe, id_subclasse__isnull=True)
         if c.id_subclasse_id and nivel >= 3:
             filtro |= Q(id_subclasse=c.id_subclasse)
-        legado = {}  # nome -> (melhor_nivel, valor) para linhas nao consolidadas
+        legado = {}
         for r in TbRecursoclasse.objects.filter(filtro):
+            _rs = _slug(r.nome)
+            if 'bonus' in _rs and 'proficiencia' in _rs:
+                continue  # PB é calculado pelo NÍVEL TOTAL do personagem, não é recurso de classe
             chave = f'{c.id_classe.nome}: {r.nome}'
             vj = r.valores_json or {}
             if vj:
                 niveis = sorted(int(k) for k in vj if int(k) <= nivel)
-                if niveis:
+                if niveis and not _vazio(vj[str(niveis[-1])]):
                     recursos[chave] = vj[str(niveis[-1])]
-            elif r.nivel is not None and r.nivel <= nivel:
+            elif r.nivel is not None and r.nivel <= nivel and not _vazio(r.valor):
                 if r.nome not in legado or r.nivel > legado[r.nome][0]:
                     legado[r.nome] = (r.nivel, r.valor)
         for nome, (_lv, val) in legado.items():
@@ -159,80 +334,1116 @@ def _recursos(classes):
     return recursos
 
 
-def apply_tags(state, features):
-    """Ponto de plugue para o avaliador das tags_json (FASE 2).
+def _resource_max_at(r, nivel):
+    """Máximo NUMÉRICO de um TbRecursoclasse no nível dado (valores_json ou valor). None se não-numérico."""
+    vj = r.valores_json or {}
+    val = None
+    if vj:
+        niveis = sorted(int(k) for k in vj if int(k) <= nivel)
+        if niveis:
+            val = vj[str(niveis[-1])]
+    elif r.nivel is not None and r.nivel <= nivel:
+        val = r.valor
+    try:
+        return int(str(val).strip())
+    except (ValueError, TypeError, AttributeError):
+        return None
 
-    Hoje só coleta as tags cruas das features ativas em `state['tags_brutas']`.
-    Quando o vocabulário fechar e as tags estiverem no banco, este método
-    interpreta as funções (if/save/roll/match/…) e aplica os efeitos em
-    state['pericias'], state['resistencias'], state['movimentos'], etc.
-    """
+
+def _recursos_consumiveis(personagem, classes):
+    """Recursos CONSUMÍVEIS (TbRecursoclasse com `reset` preenchido) com máximo numérico,
+    mesclados com o uso atual (TbPersonagemRecurso). Para o tracker usar/recuperar da ficha."""
+    from .models import TbRecursoclasse
+    from django.db.models import Q
+    if personagem is None:
+        return []
+    atuais = {pr.nome: pr for pr in personagem.recursos.all()}
+    out, seen = [], set()
+    for c in classes:
+        nivel = int(c.nivel or 0)
+        filtro = Q(id_classe=c.id_classe, id_subclasse__isnull=True)
+        if c.id_subclasse_id and nivel >= 3:
+            filtro |= Q(id_subclasse=c.id_subclasse)
+        for r in TbRecursoclasse.objects.filter(filtro).exclude(reset__isnull=True).exclude(reset=''):
+            mx = _resource_max_at(r, nivel)
+            if mx is None or mx <= 0 or r.nome in seen:
+                continue
+            seen.add(r.nome)
+            pr = atuais.get(r.nome)
+            atual = min(pr.atual, mx) if pr else mx
+            out.append({'slug': r.slug, 'nome': r.nome, 'classe': c.id_classe.nome,
+                        'maximo': mx, 'atual': atual, 'reset': r.reset})
+    return out
+
+
+def _maestrias_armas(personagem):
+    """Maestria de Arma = escolha de ARMA, não de maestria abstrata. Cada slot
+    (TbPersonagemEscolha tipo='maestria', valor=slug/nome da arma) dá acesso a
+    TODAS as maestrias daquela arma; no ataque o jogador usa 1. Retorna a lista de
+    armas escolhidas com suas maestrias resolvidas (nome + efeito de TbOpcaojogo)."""
+    from .models import TbItemMundano, TbOpcaojogo
+    if personagem is None:
+        return []
+    picks = list(personagem.escolhas.filter(tipo='maestria').order_by('slot'))
+    if not picks:
+        return []
+    mast = {o.slug: o for o in TbOpcaojogo.objects.filter(tipo='Maestria de Arma')}
+    out = []
+    for e in picks:
+        val = (e.valor or '').strip()
+        arma = (TbItemMundano.objects.filter(categoria='arma', slug=val).first()
+                or TbItemMundano.objects.filter(categoria='arma', slug='arma-%s' % _slug(val)).first()
+                or TbItemMundano.objects.filter(categoria='arma', nome__iexact=val).first())
+        if not arma:
+            out.append({'arma': val, 'encontrada': False, 'maestrias': []})
+            continue
+        mslugs = []
+        for t in (arma.tags_json or []):
+            m = re.search(r'maestrias\{([^}]*)\}', str(t))
+            if m:
+                mslugs = [x.strip() for x in m.group(1).split(',') if x.strip()]
+        maestrias = [{'slug': s, 'nome': mast[s].nome if s in mast else s,
+                      'efeito': (mast[s].descricao if s in mast else '') or ''} for s in mslugs]
+        out.append({'arma': arma.nome, 'slug': arma.slug, 'encontrada': True,
+                    'dano': arma.dano, 'propriedades': arma.propriedades, 'maestrias': maestrias})
+    return out
+
+
+def _inventario(personagem):
+    """Itens do personagem (TbPersonagemItem) com estado de equipado. Item POSSUÍDO mas
+    NÃO equipado não concede benefícios (armadura guardada = sem CA; idem itens mágicos)."""
+    if personagem is None:
+        return []
+    out = []
+    for it in personagem.inventario.select_related('id_item_magico').all().order_by('-equipado', 'nome'):
+        magico = it.id_item_magico
+        out.append({'id': it.id, 'nome': it.nome, 'qtd': it.qtd, 'custo': it.custo, 'peso': it.peso,
+                    'equipado': bool(it.equipado), 'tipo_equip': it.tipo_equip,
+                    'pode_equipar': bool(it.tipo_equip) or bool(magico),
+                    'magico': bool(magico),
+                    'raridade': magico.get_raridade_display() if magico else None,
+                    'requer_sintonizacao': bool(magico and magico.requer_sintonizacao),
+                    'sintonizado': bool(it.sintonizado),
+                    'tem_efeito': bool(magico and (magico.tags_json or []))})
+    return out
+
+
+def _features_de_itens(personagem):
+    """Itens mágicos EQUIPADOS (e, se exigirem, SINTONIZADOS) viram features para o
+    apply_tags. Item guardado/não-sintonizado não concede efeito."""
+    if personagem is None:
+        return []
+    feats = []
+    for it in personagem.inventario.select_related('id_item_magico').all():
+        magico = it.id_item_magico
+        if not magico or not it.equipado:
+            continue
+        if magico.requer_sintonizacao and not it.sintonizado:
+            continue
+        if magico.tags_json or []:
+            feats.append(('item', it.nome, magico, None))
+    return feats
+
+
+def _features_de_opcoes(personagem):
+    """Opções de jogo ESCOLHIDAS (TbPersonagemEscolha → TbOpcaojogo) viram features p/
+    aplicar os efeitos PASSIVOS da opção (ex.: Estilo de Luta dá bônus passivo). Liga pelo
+    `id_opcao` ou, em escolhas antigas sem vínculo, pelo `valor`=slug. classlvl=None."""
+    if personagem is None:
+        return []
+    from .models import TbOpcaojogo
+    feats, por_slug = [], None
+    for e in personagem.escolhas.select_related('id_opcao').all():
+        op = e.id_opcao
+        if op is None and e.valor:
+            if por_slug is None:
+                por_slug = {o.slug: o for o in TbOpcaojogo.objects.all()}
+            op = por_slug.get(e.valor)
+        if op is not None and (op.tags_json or []):
+            feats.append(('opcao', op.nome, op, None))
+    return feats
+
+
+def _magias_personagem(personagem):
+    """Magias conhecidas/preparadas (TbPersonagemMagia) agrupadas por nível, p/ a ficha."""
+    if personagem is None:
+        return []
+    out = []
+    for mg in personagem.magias.select_related('id_magia').order_by('nivel', 'nome'):
+        out.append({'nivel': mg.nivel, 'nome': mg.nome,
+                    'escola': getattr(mg.id_magia, 'escola', '') or '', 'preparada': mg.preparada})
+    return out
+
+
+def _parse_spell_selection(resolved):
+    """De uma tag `spell-selection:[a, b]{truque|nivel:N, qtd:K, …}` JÁ resolvida
+    (match(vertente) substituído), extrai (slugs, nivel_de_magia, qtd)."""
+    mlist = re.search(r'\[([^\]]*)\]', resolved)
+    slugs = [s.strip() for s in mlist.group(1).split(',') if s.strip()] if mlist else []
+    mbody = re.search(r'\]\s*\{([^}]*)\}', resolved)
+    body = mbody.group(1) if mbody else ''
+    if re.search(r'\btruque\b', body):
+        nivel = 0
+    else:
+        mn = re.search(r'nivel\s*:\s*(\d+)', body)
+        nivel = int(mn.group(1)) if mn else None
+    mq = re.search(r'qtd\s*:\s*(\d+)', body)
+    qtd = int(mq.group(1)) if mq else len(slugs)
+    return slugs, nivel, qtd
+
+
+_CAST_BLOCK_RE = re.compile(r'cast\{((?:[^{}]|\{[^{}]*\})*)\}')
+# escopo de spell-selection que é uma CLASSE → nome como aparece em TbMagia.classes
+_CLASSE_SCOPE = {'mago': 'Mago', 'clerigo': 'Clérigo', 'druida': 'Druida',
+                 'feiticeiro': 'Feiticeiro', 'bardo': 'Bardo', 'mistico': 'Místico',
+                 'paladino': 'Paladino', 'artifice': 'Artífice', 'cacador': 'Caçador',
+                 'patrulheiro': 'Caçador'}
+
+
+def _qtd_de(body, nivel_total):
+    """qtd da escolha: `qtd:K`, `qtd:{classlvl=L:n,…}` (soma cumulativa até o nível) ou
+    `pick:K`. None se não houver."""
+    m = re.search(r'qtd\s*:\s*\{([^}]*)\}', body)
+    if m:
+        return sum(int(v) for lv, v in re.findall(r'classlvl\s*=\s*(\d+)\s*:\s*(\d+)', m.group(1))
+                   if int(lv) <= nivel_total) or None
+    m = re.search(r'qtd\s*:\s*(\d+)', body) or re.search(r'\bpick\s*:\s*(\d+)', body)
+    return int(m.group(1)) if m else None
+
+
+def _nivel_filtro(body):
+    """Nível de magia exigido pelo body: `truque`→0; `nivel:N`/`ciclo:N`→N; senão None."""
+    if re.search(r'\btruque\b', body):
+        return 0
+    m = re.search(r'(?:nivel|ciclo)\s*:\s*(\d+)', body)
+    return int(m.group(1)) if m else None
+
+
+def _rotulo_escolha(nivel, qtd, classes=None, escola=None):
+    nv = 'truque(s)' if nivel == 0 else (('magia(s) de %sº ciclo' % nivel) if nivel else 'magia(s)')
+    extra = ''
+    if escola:
+        extra += ' de %s' % escola.title()
+    if classes:
+        extra += ' de %s' % '/'.join(classes)
+    return '%d %s%s' % (qtd, nv, extra)
+
+
+def _iter_spell_selections(s):
+    """Gera (scope, scope_extra, body) de cada `spell-selection:` da tag, casando chaves.
+    scope = identificador após o ':'; scope_extra = chaves do PRÓPRIO escopo (ex.:
+    pick{lista:{…}}); body = o `{…}`/`(…)` seguinte (filtros/qtd)."""
+    out = []
+    for m in re.finditer(r'spell-selection:', s):
+        i = m.end()
+        mt = re.match(r'[a-z0-9-]+', s[i:])
+        if not mt:
+            continue
+        scope = mt.group(0)
+        j = i + mt.end()
+        scope_extra = ''
+        # só `pick` tem chave de PARÂMETRO própria (pick{lista:…}) antes do body;
+        # p/ os demais escopos a 1ª chave já é o body.
+        if scope == 'pick' and j < len(s) and s[j] == '{':
+            k = _match_close(s, j)
+            if k > 0:
+                scope_extra, j = s[j + 1:k], k + 1
+        while j < len(s) and s[j] in ' \t':
+            j += 1
+        body = ''
+        if j < len(s) and s[j] == '{':
+            k = _match_close(s, j)
+            if k > 0:
+                body = s[j + 1:k]
+        elif j < len(s) and s[j] == '(':
+            depth, k = 0, j
+            while k < len(s):
+                if s[k] == '(':
+                    depth += 1
+                elif s[k] == ')':
+                    depth -= 1
+                    if depth == 0:
+                        break
+                k += 1
+            body = s[j + 1:k]
+        out.append((scope, scope_extra, body))
+    return out
+
+
+def _grants_de_tag(tag, escolhas, catalog, nivel_total, is_spellcaster=False):
+    """(fixas, escolha) de UMA tag. fixas=[(slug,nivel)] (magia específica garantida);
+    escolha=None | dict normalizado:
+      {'opcoes':[slug], 'qtd':K, 'rotulo':str}                 (lista concreta de opções)
+      {'pool':{'classes':[Nome], 'nivel':N|None, 'escola':E|None}, 'qtd':K, 'rotulo':str}
+
+    Concede: `cast{… spell:X … always-prepared}` (Marcas), `spell-selection:match(var){…}`
+    (vertente/veste-lunar…), `spell-selection:<slug>{… always-prepared}` (magia única),
+    `spell:X` concreto, e as LISTAS DE DECRETO `any{ a, b, … }, fora-do-limite` — adicionadas
+    como conhecidas/sempre-preparadas se o personagem for conjurador (gate requires:spellcasting,
+    `is_spellcaster`). Escolhas: `spell-selection:<classe>{… qtd:K …}` (pool de classe),
+    `pick{lista:{a|b}}{… qtd:K}` (união), e a Marca Planar (`any{spell:pick{… match(pick:…)}}`).
+    IGNORA cast ativo e `spell:pick{…}` não resolvido. Respeita `requires:lvl{N}`."""
+    s = str(tag)
+    m = re.search(r'requires:lvl\{(\d+)\}', s)
+    if m and nivel_total < int(m.group(1)):
+        return [], None
+    # match(var){…} — concessão por escolha já feita (vertente, veste-lunar…)
+    if 'spell-selection:match(' in s:
+        slugs, nivel, qtd = _parse_spell_selection(_resolve_match(s, escolhas))
+        slugs = [sl for sl in slugs if sl in catalog]
+        if not slugs or nivel is None:
+            return [], None
+        if qtd >= len(slugs):
+            return [(sl, nivel) for sl in slugs], None
+        return [], {'opcoes': slugs, 'qtd': qtd, 'rotulo': _rotulo_escolha(nivel, qtd)}
+    fixas, escolha = [], None
+    for cm in _CAST_BLOCK_RE.finditer(s):
+        blk = cm.group(1)
+        if 'always-prepared' in blk:
+            for sm in re.finditer(r'spell:([a-z0-9-]+)', blk):
+                if sm.group(1) in catalog:
+                    fixas.append((sm.group(1), catalog[sm.group(1)]))
+    s_wo = _CAST_BLOCK_RE.sub('', s)
+    for scope, scope_extra, body in _iter_spell_selections(s_wo):
+        full = scope_extra + ' ' + body
+        # (a) escopo é uma MAGIA concreta sempre-preparada
+        if scope in catalog:
+            if 'always-prepared' in body:
+                fixas.append((scope, catalog[scope]))
+            for sm in re.finditer(r'spell:([a-z0-9-]+)', full):   # magia-conhecida(spell:X)
+                if sm.group(1) in catalog:
+                    fixas.append((sm.group(1), catalog[sm.group(1)]))
+            continue
+        # (b) spell:X concreto (any{spell:X}, paladino{spell:X}) sem pick → grant
+        concretos = [sm.group(1) for sm in re.finditer(r'spell:([a-z0-9-]+)', full)
+                     if sm.group(1) in catalog]
+        if concretos and 'pick' not in full:
+            for sl in concretos:
+                fixas.append((sl, catalog[sl]))
+            continue
+        # (c) Marca Planar: any{spell:pick{lista:cantrip, match(pick:<var>){…}}}
+        if scope == 'any' and 'match(pick:' in full:
+            mv = re.search(r'match\(pick:([a-z0-9-]+)\)\s*\{', full)
+            if mv and escolhas.get(mv.group(1)):
+                bo = full.find('{', mv.end() - 1)
+                ramo = _ramo(full[bo + 1:_match_close(full, bo)], escolhas[mv.group(1)])
+                if ramo and ramo is not _NO_BRANCH:
+                    opt = [x.strip() for x in re.split(r'[|,]', ramo.strip('{} '))
+                           if x.strip() in catalog]
+                    if opt:
+                        escolha = {'opcoes': opt, 'qtd': 1,
+                                   'rotulo': _rotulo_escolha(0, 1)}
+                        break
+            continue
+        # (c2) LISTA DE DECRETO: any{ slug, slug, … } (fora-do-limite) — todas as magias
+        # da lista entram como conhecidas/sempre-preparadas. Gate: se a tag exige
+        # `requires:spellcasting`, só concede a conjuradores.
+        if scope == 'any' and 'spell:' not in full and 'pick' not in full and 'efeito' not in full:
+            lista = [x.strip() for x in re.split(r'[,|]', body) if x.strip() in catalog]
+            if lista:
+                if 'requires:spellcasting' in s and not is_spellcaster:
+                    continue
+                for sl in lista:
+                    fixas.append((sl, catalog[sl]))
+                continue
+        # (d) escolha qtd:K de uma classe / união de classes
+        qtd = _qtd_de(body, nivel_total)
+        if not qtd:
+            continue
+        classes = None
+        if scope in _CLASSE_SCOPE:
+            classes = [_CLASSE_SCOPE[scope]]
+        elif scope == 'pick':
+            lm = re.search(r'lista\s*:\s*\{([^{}]*)\}', scope_extra)
+            if lm:
+                classes = [_CLASSE_SCOPE[c.strip()] for c in re.split(r'[|,]', lm.group(1))
+                           if c.strip() in _CLASSE_SCOPE]
+            else:
+                rm = re.search(r'lista\s*:\s*match\(([a-z0-9:-]+)\)\s*(\{.*)', scope_extra)
+                if rm:
+                    var = rm.group(1).split(':')[-1]
+                    cl = _resolve_match('match(%s)%s' % (var, rm.group(2)),
+                                        {var: escolhas.get(var)}).strip()
+                    if cl in _CLASSE_SCOPE:
+                        classes = [_CLASSE_SCOPE[cl]]
+        if classes:
+            me = re.search(r'escola\s*:\s*([a-z-]+)', body)
+            esc = me.group(1) if (me and me.group(1) not in ('pick', 'ability')) else None
+            nv = _nivel_filtro(body)
+            escolha = {'pool': {'classes': sorted(set(classes)), 'nivel': nv, 'escola': esc},
+                       'qtd': qtd, 'rotulo': _rotulo_escolha(nv, qtd, classes, esc)}
+            break
+    return fixas, escolha
+
+
+def _norm_escola(e):
+    return ''.join(c for c in unicodedata.normalize('NFD', (e or '').lower())
+                   if unicodedata.category(c) != 'Mn')
+
+
+def _resolve_pool(pool, catalog_rich):
+    """Resolve um pool {classes, nivel, escola} para a lista ordenada de slugs candidatos."""
+    cls, nv, esc = set(pool['classes']), pool['nivel'], _norm_escola(pool['escola']) if pool['escola'] else None
+    out = []
+    for slug, (nivel, escola, classes) in catalog_rich.items():
+        if nv is not None and nivel != nv:
+            continue
+        if esc and escola != esc:
+            continue
+        if cls and not (cls & classes):
+            continue
+        out.append(slug)
+    return sorted(out)
+
+
+def _personagem_conjura(classes):
+    """True se alguma classe/subclasse do personagem (ou habilidade de classe até o nível
+    atual) carrega tag `spellcasting{…}` — i.e., é conjurador (p/ liberar as listas de
+    decreto, que só entram na lista de magias de quem conjura)."""
+    from .models import TbClassehabilidade
+    for c in classes:
+        cl = c.id_classe
+        srcs = [cl] + ([c.id_subclasse] if c.id_subclasse_id else [])
+        srcs += list(TbClassehabilidade.objects.filter(id_classe=cl, niveladquirido__lte=(c.nivel or 1)))
+        for src in srcs:
+            if any('spellcasting{' in str(t) for t in (getattr(src, 'tags_json', None) or [])):
+                return True
+    return False
+
+
+def magias_concedidas(personagem):
+    """Todas as magias ESPECÍFICAS concedidas à lista de magias por features ATIVAS do
+    personagem (Essência/vertente, talentos pegos — Marcas, Juramento das Três Luas… —,
+    classe/subclasse, antecedente, itens, opções). Itera a MESMA lista de features de
+    `derive` (já filtrada por nível/escolha/talento-pego) e extrai grants/escolhas via
+    `_grants_de_tag`. Escolhas (qtd<lista, ou pool de classe) viram pendências e ficam em
+    TbPersonagemEscolha(tipo='magia-concedida', origem=fonte, slot=ordinal da escolha na
+    feature, valor=slugs separados por vírgula). Retorna {'concedidas':[{slug,nivel,fonte}],
+    'pendentes':[{fonte,slot,rotulo,qtd,opcoes,escolhidos}]}."""
+    out = {'concedidas': [], 'pendentes': []}
+    if personagem is None:
+        return out
+    from .models import TbMagia, TbPersonagemEscolha
+    classes = list(personagem.classes.select_related('id_classe', 'id_subclasse').order_by('-principal', 'id'))
+    nivel_total = sum(int(c.nivel or 0) for c in classes) or int(personagem.nivel or 1)
+    is_caster = _personagem_conjura(classes)
+    features = (_features_de_classe(classes) + _tracos_raciais(personagem)
+                + _antecedente(personagem) + _talentos(personagem)
+                + _features_de_itens(personagem) + _features_de_opcoes(personagem))
+    escolhas, _listas = _collect_escolhas(personagem, features)
+    catalog, catalog_rich = {}, {}
+    for sl, nv, esc, cl in TbMagia.objects.values_list('slug', 'nivel', 'escola', 'classes'):
+        catalog[sl] = nv
+        catalog_rich[sl] = (nv, _norm_escola(esc),
+                            {x.strip() for x in (cl or '').split(',') if x.strip()})
+    escolhidos = {}
+    for e in TbPersonagemEscolha.objects.filter(id_personagem=personagem, tipo='magia-concedida'):
+        escolhidos.setdefault((e.origem or '', e.slot), set()).update(
+            x for x in (e.valor or '').split(',') if x)
+    seen, ordem = set(), {}
+    for (_o, _f, obj, _cl) in features:
+        fonte = getattr(obj, 'nome', '') or ''
+        for tag in (getattr(obj, 'tags_json', None) or []):
+            fixas, escolha = _grants_de_tag(tag, escolhas, catalog, nivel_total, is_caster)
+            for slug, nivel in fixas:
+                if slug not in seen:
+                    seen.add(slug)
+                    out['concedidas'].append({'slug': slug, 'nivel': nivel, 'fonte': fonte})
+            if not escolha:
+                continue
+            opcoes = escolha.get('opcoes')
+            if opcoes is None and escolha.get('pool'):
+                opcoes = _resolve_pool(escolha['pool'], catalog_rich)
+            opcoes = [s for s in (opcoes or []) if s in catalog]
+            if not opcoes:
+                continue
+            slot = ordem.get(fonte, 0)
+            ordem[fonte] = slot + 1
+            chosen = [s for s in opcoes if s in escolhidos.get((fonte, slot), set())][:escolha['qtd']]
+            for s in chosen:
+                if s not in seen:
+                    seen.add(s)
+                    out['concedidas'].append({'slug': s, 'nivel': catalog.get(s, 0), 'fonte': fonte})
+            if len(chosen) < escolha['qtd']:
+                out['pendentes'].append({'fonte': fonte, 'slot': slot, 'rotulo': escolha['rotulo'],
+                                         'qtd': escolha['qtd'], 'opcoes': opcoes, 'escolhidos': chosen})
+    return out
+
+
+# compat: nome antigo
+magias_essencia = magias_concedidas
+
+
+# ───────────────────────── FASE 2: interpretador de tags ────────────────
+_OPS = {ast.Add: operator.add, ast.Sub: operator.sub, ast.Mult: operator.mul,
+        ast.Div: operator.truediv, ast.FloorDiv: operator.floordiv,
+        ast.Mod: operator.mod, ast.USub: operator.neg, ast.UAdd: operator.pos}
+_FUNCS = {'max': max, 'min': min, 'round': round, 'abs': abs,
+          'roundup': lambda x: math.ceil(x), 'rounddown': lambda x: math.floor(x)}
+
+
+def _build_ctx(nivel_total, pb, atributos):
+    ctx = {'lvl': int(nivel_total), 'classlvl': int(nivel_total), 'pb': int(pb)}
+    for sig, en in _ATTR_EN.items():
+        ctx[en + '-mod'] = atributos[sig]['mod']
+        ctx[en + '-score'] = atributos[sig]['valor']
+    return ctx
+
+
+def _eval_node(node):
+    if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)):
+        return node.value
+    if isinstance(node, ast.BinOp) and type(node.op) in _OPS:
+        return _OPS[type(node.op)](_eval_node(node.left), _eval_node(node.right))
+    if isinstance(node, ast.UnaryOp) and type(node.op) in _OPS:
+        return _OPS[type(node.op)](_eval_node(node.operand))
+    if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id in _FUNCS:
+        return _FUNCS[node.func.id](*[_eval_node(a) for a in node.args])
+    raise ValueError('nó não permitido na fórmula')
+
+
+def _eval_formula(expr, ctx):
+    """Fórmula aritmética (variáveis + max/min/round/roundup/rounddown), via AST
+    (sem eval, sem potência). int ou None."""
+    e = str(expr).strip()
+    # NÃO incluir '-' nas fronteiras: variáveis hifenadas (dex-mod) são substituídas
+    # inteiras (ordem por tamanho desc), e '-' aqui é operador de subtração — incluí-lo
+    # fazia 'classlvl-3' não substituir 'classlvl' e a fórmula virar None.
+    for var in sorted(ctx, key=len, reverse=True):
+        e = re.sub(r'(?<![a-z0-9_])' + re.escape(var) + r'(?![a-z0-9_])', '(%d)' % ctx[var], e)
+    if re.search(r'[A-Za-z_]', re.sub(r'\b(?:max|min|round|abs|roundup|rounddown)\b', '', e)):
+        return None
+    try:
+        return int(_eval_node(ast.parse(e, mode='eval').body))
+    except Exception:
+        return None
+
+
+def _match_close(s, i):
+    depth = 0
+    while i < len(s):
+        if s[i] == '{':
+            depth += 1
+        elif s[i] == '}':
+            depth -= 1
+            if depth == 0:
+                return i
+        i += 1
+    return -1
+
+
+_NO_BRANCH = object()
+
+
+def _ramo(inner, escolhido):
+    if escolhido is None:
+        return _NO_BRANCH
+    for m in re.finditer(r'(?:^|[,{]|\s)' + re.escape(escolhido) + r'\s*:', inner):
+        j = m.end()
+        while j < len(inner) and inner[j] == ' ':
+            j += 1
+        if j < len(inner) and inner[j] == '{':
+            return inner[j + 1:_match_close(inner, j)]
+        k, depth = j, 0
+        while k < len(inner):
+            c = inner[k]
+            if c in '{[(':
+                depth += 1
+            elif c in '}])':
+                depth -= 1
+            elif c == ',' and depth == 0:
+                break
+            k += 1
+        return inner[j:k].strip()
+    return _NO_BRANCH
+
+
+def _resolve_match(text, escolhas):
+    """Substitui match(var){…} pelo ramo escolhido (ou 'default'); recursivo."""
+    out = text
+    for _ in range(40):
+        m = re.search(r'match\(([a-z0-9-]+)\)\s*\{', out)
+        if not m:
+            break
+        var, bo = m.group(1), m.end() - 1
+        bc = _match_close(out, bo)
+        if bc < 0:
+            break
+        inner = out[bo + 1:bc]
+        rep = _ramo(inner, escolhas.get(var))
+        if rep is _NO_BRANCH:
+            rep = _ramo(inner, 'default')
+        if rep is _NO_BRANCH:
+            rep = ''
+        out = out[:m.start()] + rep + out[bc + 1:]
+    return out
+
+
+def _active_spans(tag):
+    spans = []
+    for kw in _ACTIVE_BLOCKS:
+        for m in re.finditer(r'\b' + kw + r'\s*\{', tag):
+            bc = _match_close(tag, m.end() - 1)
+            if bc > 0:
+                spans.append((m.start(), bc))
+    return spans
+
+
+def _passive_segments(tag):
+    """always-active{} fora de bloco ativo; ou a tag nua se não tem always-active
+    nem marcador ativo."""
+    spans = _active_spans(tag)
+    segs, has_aa = [], False
+    for m in re.finditer(r'always-active\s*\{', tag):
+        if any(a <= m.start() <= b for a, b in spans):
+            continue
+        has_aa = True
+        bc = _match_close(tag, m.end() - 1)
+        if bc > 0:
+            segs.append(tag[m.end():bc])
+    if not has_aa and not any(mk in tag for mk in _ACTIVE_MARKERS):
+        segs.append(tag)
+    return segs
+
+
+def _parse_defines(text):
+    """(is_weapon, nome|None, corpo) de cada define{}/define:weapon{} (via _match_close)."""
+    out = []
+    for m in re.finditer(r'define(:weapon)?\s*\{', text):
+        bc = _match_close(text, m.end() - 1)
+        if bc < 0:
+            continue
+        body = text[m.end():bc].strip()
+        nm = re.match(r'^([a-z0-9-]+)\s*:\s*(.*)$', body, re.S)
+        out.append((bool(m.group(1)), nm.group(1) if nm else None,
+                    nm.group(2).strip() if nm else body))
+    return out
+
+
+def _classify_define(is_weapon, nome, corpo, ctx):
+    """Classifica o corpo de um define{}. 'slug'->indireção (resist:elemento),
+    'pool'->recurso (max/reset), 'scalar'->número; demais ignorados na ficha."""
+    if is_weapon:
+        return ('weapon', None)
+    if nome is None:
+        return ('flag', None)
+    if corpo.startswith('list{'):
+        return ('list', None)
+    if corpo.startswith('table{'):
+        return ('table', None)
+    if re.search(r'\b(?:max|uses|qtd)\s*:', corpo) and (re.search(r'\breset\s*:', corpo) or 'die' in corpo):
+        mx = re.search(r'\b(?:max|uses|qtd)\s*:\s*([^,}]+)', corpo)
+        rs = re.search(r'reset\s*:\s*([a-z-]+)', corpo)
+        return ('pool', {'max': _eval_formula(mx.group(1), ctx) if mx else None,
+                         'reset': rs.group(1) if rs else None})
+    if re.fullmatch(r'[a-z0-9-]+', corpo):
+        return ('slug', corpo)
+    val = _eval_formula(corpo, ctx)
+    return ('scalar', val) if val is not None else ('outro', None)
+
+
+def _prog(expr, level):
+    """De '{classlvl=5:2, classlvl=11:3}' devolve o valor do maior limiar <= level."""
+    melhor = None
+    for lv, v in re.findall(r'classlvl\s*=\s*(\d+)\s*:\s*([^,}]+)', expr):
+        if int(lv) <= int(level) and (melhor is None or int(lv) >= melhor[0]):
+            melhor = (int(lv), v.strip())
+    return melhor[1] if melhor else None
+
+
+def _die_size(s):
+    """(faces, qtd) de 'XdY' para comparar dados; (0, 0) se não for dado."""
+    m = re.search(r'(\d*)d(\d+)', str(s))
+    return (int(m.group(2)), int(m.group(1) or 1)) if m else (0, 0)
+
+
+def _collect_escolhas(personagem, features):
+    """Devolve (escolhas, listas): `escolhas` = 1º valor por tipo (menor slot, p/
+    match()); `listas` = todos os valores por tipo ordenados por slot (p/ pick:).
+    Também injeta set:<var>=<valor> de traços passivos em ambos."""
+    escolhas, listas = {}, {}
+    if personagem is not None:
+        for e in personagem.escolhas.all().order_by('tipo', 'slot'):
+            listas.setdefault(e.tipo, []).append(e.valor)
+            escolhas.setdefault(e.tipo, e.valor)
+    for _o, _f, obj, _cl in features:
+        for t in (getattr(obj, 'tags_json', None) or []):
+            if not isinstance(t, str):
+                continue
+            for m in re.finditer(r'(?<![a-z-])set:([a-z0-9-]+)\s*=\s*([a-z0-9-]+)(?!\s*[:{])', t):
+                escolhas.setdefault(m.group(1), m.group(2))
+                listas.setdefault(m.group(1), [m.group(2)])
+    return escolhas, listas
+
+
+def _cond_nomes():
+    """slug -> nome PT das condições (TbCondicao), p/ exibir imunidades legíveis."""
+    from .models import TbCondicao
+    return {c.slug: c.nome for c in TbCondicao.objects.all()}
+
+
+def _armadura_equipada(personagem, dex_mod):
+    """CA derivada de armadura/escudo equipados (campos tipo_equip/ca_base/ca_limite_des)."""
+    tem_arm = tem_esc = False
+    ca_arm, fonte = None, None
+    esc_bonus = 0
+    for it in personagem.inventario.filter(equipado=True):
+        if not it.tipo_equip:
+            continue
+        if it.tipo_equip == 'escudo':
+            tem_esc = True
+            esc_bonus = max(esc_bonus, it.ca_base if it.ca_base is not None else 2)
+        elif it.tipo_equip.startswith('armadura'):
+            tem_arm = True
+            base = it.ca_base if it.ca_base is not None else 10
+            lim = it.ca_limite_des
+            if lim is None:
+                ca = base + dex_mod            # leve: DES total (até negativa)
+            elif lim == 0:
+                ca = base                      # pesada: DES não conta (nem negativa)
+            else:
+                ca = base + min(dex_mod, lim)  # média: até o teto
+            if ca_arm is None or ca > ca_arm:
+                ca_arm, fonte = ca, it.nome
+    return {'tem_armadura': tem_arm, 'tem_escudo': tem_esc, 'ca_armadura': ca_arm,
+            'fonte': fonte, 'escudo_bonus': esc_bonus}
+
+
+def apply_tags(state, features, personagem=None, escolhas=None):
+    """Interpreta as tags_json e aplica os efeitos PASSIVOS. Coleta o que
+    perícias/saves/idiomas/ataques precisam em state['_tag']."""
+    base_ctx = state['_ctx']
+    if escolhas is None:
+        escolhas, _ = _collect_escolhas(personagem, features)
+
+    coll = {'skill_prof': set(), 'save_prof': set(), 'all_saves': 0, 'check_attr': {},
+            'check_bonus': {}, 'idiomas': [], 'ferramentas': [], 'armaduras': [], 'armas': [],
+            'initiative': 0, 'move_modes': {}, 'desvantagens': [],
+            'n_ataques': 0, 'ataque_dado': {}, 'ataque_attr': {}}
+    hp_bonus, resist, imune, cond_imune, vantagens, notas = [], [], [], [], [], []
+    sentidos, ca_cands, recursos_tag = {}, [], {}
+    resist_condicionais = []  # (tipo, se_ja_tem, senao) -> avaliados após o loop principal
+    speed_bonus = 0
     brutas = []
-    for origem, fonte, obj in features:
-        tags = getattr(obj, 'tags_json', None)
+
+    for origem, fonte, obj, classlvl in features:
+        tags = [t for t in (getattr(obj, 'tags_json', None) or []) if isinstance(t, str)]
         if tags:
-            brutas.append({'origem': origem, 'fonte': fonte,
-                           'nome': getattr(obj, 'nome', ''), 'tags': tags})
+            brutas.append({'origem': origem, 'fonte': fonte, 'nome': getattr(obj, 'nome', ''), 'tags': tags})
+        ctx = dict(base_ctx)
+        if classlvl is not None:
+            ctx['classlvl'] = int(classlvl)
+        feat_nome = getattr(obj, 'nome', fonte)
+        resolvidas = [_resolve_match(t, escolhas) for t in tags]
+        segs = [seg for r in resolvidas for seg in _passive_segments(r)]
+
+        # defines (só em contexto PASSIVO): slug -> locais (indireção); pool -> recurso
+        locais = {}
+        for seg in segs:
+            for is_w, nm, corpo in _parse_defines(seg):
+                kind, payload = _classify_define(is_w, nm, corpo, ctx)
+                if kind == 'slug':
+                    locais[nm] = corpo
+                elif kind == 'pool' and payload['max'] is not None:
+                    recursos_tag['%s: %s' % (feat_nome, nm)] = payload
+
+        # gate de ESCUDO no nível da feature (ca= e restriction são tags irmãs). A
+        # defesa-sem-armadura é IMPLICITAMENTE vetada por armadura (toda ca= é base
+        # desarmada), então não precisa de gate de armadura explícito.
+        feat_gate_shield = any(re.search(r'equiped\{\s*(?:escudo|shield)|requires:\s*\{?\s*!\s*(?:escudo|shield)|!\s*escudo', r) for r in resolvidas)
+
+        for seg in segs:
+            if seg:
+                # passiva gateada por recurso (requires:resource{...}>=N) é CONDICIONAL:
+                # não entra no número fixo — vira vantagem condicional. (corrige o all-saves
+                # do Ladino/Trilha do Fantasma, aplicado incondicionalmente antes.)
+                if re.search(r'requires:\s*resource\{', seg):
+                    ms = re.search(r'all-saves:\s*\+([^\s,}]+)', seg)
+                    vantagens.append((('+%s em todas as salvaguardas' % ms.group(1)) if ms
+                                      else 'efeito') + ' (condicional: requer recurso) — %s' % feat_nome)
+                    continue
+                # PV
+                for m in re.finditer(r'(?:attr:|buff:)?max-hp:?\s*\+\s*([^\s,}]+)', seg):
+                    if 'on:' in seg[m.start():m.end() + 12]:
+                        continue
+                    val = _eval_formula(m.group(1), ctx)
+                    if val is not None:
+                        hp_bonus.append((feat_nome, val))
+                # CA (defesa sem armadura) — candidata com gates da feature
+                m = re.search(r'\bca\s*=\s*([0-9a-z+\-*/(). ]+?)(?=[,}]|$)', seg)
+                if m:
+                    val = _eval_formula(m.group(1), ctx)
+                    if val is not None:
+                        ca_cands.append((val, feat_nome, feat_gate_shield))
+                # Velocidade / modos
+                for m in re.finditer(r'speed:\s*\+(\d+)\s*ft', seg):
+                    speed_bonus += int(m.group(1))
+                for m in re.finditer(r'move:(climb|swim|fly|burrow|wall)(?:\(=\s*(?:speed|walk)\)|:=?\s*(?:speed|walk)|:\+?(\d+)\s*ft|\((\d+)\s*ft\))?', seg):
+                    val = m.group(2) or m.group(3)
+                    coll['move_modes'][m.group(1)] = (val + 'ft') if val else 'walk'
+                # Resistências / imunidades
+                # Resistência CONDICIONAL: "if(already:resist{X}): resist:A else: resist:B"
+                # (ex.: Oread "Sangue Elemental"). Avaliada numa 2ª passada (resist_condicionais),
+                # contra o conjunto FINAL de resistências — senão o regex genérico abaixo aplicaria
+                # A e B ao mesmo tempo (bug do veneno+ácido).
+                _cond = re.search(r'if\(already:resist\{([a-z0-9-]+)\}\):\s*resist:([a-z0-9-]+)\s*else:\s*resist:([a-z0-9-]+)', seg)
+                if _cond:
+                    resist_condicionais.append((_cond.group(1), _cond.group(2), _cond.group(3)))
+                    seg = seg[:_cond.start()] + seg[_cond.end():]
+                for m in re.finditer(r'(?<![a-z-])resist:([a-z0-9-]+)', seg):
+                    v = locais.get(m.group(1), m.group(1))
+                    if v not in _PLACEHOLDERS and v not in resist:
+                        resist.append(v)
+                for m in re.finditer(r'(?<![a-z-])immune:([a-z0-9-]+)', seg):
+                    v = locais.get(m.group(1), m.group(1))
+                    if v not in _PLACEHOLDERS and v not in imune:
+                        imune.append(v)
+                for m in re.finditer(r'cond-immune:([a-z0-9-]+)', seg):
+                    v = locais.get(m.group(1), m.group(1))
+                    if v not in _PLACEHOLDERS and v not in cond_imune:
+                        cond_imune.append(v)
+                # Sentidos (range:/radius:)
+                for m in re.finditer(r'sense:([a-z0-9-]+)(?:\((?:range|radius):\+?(\d+)\s*ft)?', seg):
+                    t, rng = m.group(1), (int(m.group(2)) if m.group(2) else 0)
+                    sentidos[t] = max(sentidos.get(t, 0), rng)
+                # Proficiências
+                for m in re.finditer(r'(?<![a-z-])prof:([a-z0-9-]+)(?:\{([^}]+)\})?', seg):
+                    chave, valor = m.group(1), m.group(2)
+                    if valor:
+                        alvo = {'armor': coll['armaduras'], 'weapon': coll['armas'],
+                                'tool': coll['ferramentas'], 'idioma': coll['idiomas']}.get(chave)
+                        if alvo is not None:
+                            alvo.append(valor)
+                    elif chave in _SKILL_INFO:
+                        coll['skill_prof'].add(chave)
+                    elif chave.startswith('armadura'):
+                        coll['armaduras'].append(chave)
+                    elif chave.startswith('arma'):
+                        coll['armas'].append(chave)
+                # Salvaguardas
+                for m in re.finditer(r'(?<![a-z-])save-prof:([a-z0-9-]+)', seg):
+                    coll['save_prof'].add(m.group(1))
+                for m in re.finditer(r'all-saves:\s*\+([^\s,}]+)', seg):
+                    val = _eval_formula(m.group(1), ctx)
+                    if val is not None:
+                        coll['all_saves'] += val
+                for m in re.finditer(r'(?<![a-z-])(?:buff:)?initiative:\s*\+([^\s,}]+)', seg):
+                    val = _eval_formula(m.group(1), ctx)
+                    if val is not None:
+                        coll['initiative'] += val
+                # Perícias (troca de atributo / bônus)
+                for m in re.finditer(r'check-attr:([a-z0-9-]+)\s*:?=\s*([a-z]{3})', seg):
+                    if m.group(2) in _EN_SIG:
+                        coll['check_attr'][m.group(1)] = _EN_SIG[m.group(2)]
+                for m in re.finditer(r'check-bonus:([a-z0-9-]+)\s*[=:]\s*\+?([^\s,}]+)', seg):
+                    val = _eval_formula(m.group(2), ctx)
+                    if val is not None:
+                        coll['check_bonus'][m.group(1)] = coll['check_bonus'].get(m.group(1), 0) + val
+                # Ataques: nº de ataques + perfis desarmado/natural
+                for m in re.finditer(r'attacks:=\s*(\{[^}]*\}|[^,}\s]+)', seg):
+                    raw = m.group(1)
+                    if raw.startswith('{'):
+                        v = _prog(raw, ctx['classlvl'])
+                        val = int(v) if v and v.isdigit() else None
+                    else:
+                        val = _eval_formula(raw, ctx)
+                    if val is not None:
+                        coll['n_ataques'] = max(coll['n_ataques'], val)
+                for m in re.finditer(r'(unarmed-strike|natural)\.dmg\s*[:=]+\s*(\{[^}]*\}[^,}]*|resource\{[^}]*\}|[^,}]+)', seg):
+                    escopo, dado = m.group(1), m.group(2).strip()
+                    prog = re.match(r'\{[^}]*\}', dado)
+                    if prog:
+                        dado = _prog(prog.group(0), ctx['classlvl']) or dado
+                    dado = re.sub(r'\s*\+\s*[a-z]{3}-mod', '', dado).strip()
+                    ant = coll['ataque_dado'].get(escopo)
+                    if ant is None or _die_size(dado) > _die_size(ant):
+                        coll['ataque_dado'][escopo] = dado
+                for m in re.finditer(r'(unarmed-strike|natural)\.(?:attr|dmg-attr|check-attr:atk):=\s*([a-z]{3})', seg):
+                    if m.group(2) in _EN_SIG:
+                        coll['ataque_attr'][m.group(1)] = _EN_SIG[m.group(2)]
+                # Vantagens / desvantagens / falas
+                for m in re.finditer(r'(?<![a-z-])adv:([a-z0-9-]+(?:\{[^}]*\})?(?:\([^)]*\))?)', seg):
+                    vantagens.append('%s — %s' % (m.group(1), feat_nome))
+                for m in re.finditer(r'(?<![a-z-])(?:no-)?dadv:([a-z0-9-]+(?:\{[^}]*\})?(?:\([^)]*\))?)', seg):
+                    coll['desvantagens'].append('%s — %s' % (m.group(1), feat_nome))
+                for m in re.finditer(r'(?<![a-z-])speak:([a-z0-9-]+)', seg):
+                    notas.append('falar com %s (%s)' % (m.group(1), feat_nome))
+
+    # ── aplica no state ──
     state['tags_brutas'] = brutas
+    state['pv']['bonus_tags'] = hp_bonus
+    state['pv']['maximo_calculado'] += sum(v for _, v in hp_bonus)
+
+    # CA ciente de armadura
+    dex_mod = base_ctx['dex-mod']
+    equip = _armadura_equipada(personagem, dex_mod) if personagem is not None else \
+        {'tem_armadura': False, 'tem_escudo': False, 'ca_armadura': None, 'fonte': None, 'escudo_bonus': 0}
+    validas = [(v, n) for (v, n, gs) in ca_cands
+               if not equip['tem_armadura'] and not (gs and equip['tem_escudo'])]
+    desarmada = max(validas, key=lambda x: x[0], default=(10 + dex_mod, 'base sem armadura'))
+    opcoes = [desarmada]
+    if equip['ca_armadura'] is not None:
+        opcoes.append((equip['ca_armadura'], 'armadura: %s' % (equip['fonte'] or '?')))
+    melhor = max(opcoes, key=lambda x: x[0])
+    ca_final = melhor[0]
+    if equip['tem_escudo']:  # escudo: usa o ca_base do item (+2 padrão), não fixo
+        ca_final += equip.get('escudo_bonus') or 2
+    state['ca'] = ca_final
+    state['ca_fonte'] = melhor[1] + (' + escudo' if equip['tem_escudo'] else '')
+
+    mft = re.search(r'(\d+)\s*ft', state.get('velocidade') or '')
+    if mft:
+        total = int(mft.group(1)) + speed_bonus
+        state['velocidade'] = '%g m / %d ft' % (round(total * 0.3, 1), total)
+        state['velocidade_bonus'] = speed_bonus
+    if coll['move_modes']:
+        state['movimento_modos'] = coll['move_modes']
+    # Resistências condicionais "se já tem X -> A, senão B" avaliadas contra o conjunto FINAL.
+    for _tipo, _a, _b in resist_condicionais:
+        _chosen = _a if _tipo in resist else _b
+        if _chosen not in _PLACEHOLDERS and _chosen not in resist:
+            resist.append(_chosen)
+    state['resistencias'] = resist
+    _cn = _cond_nomes()
+    state['imunidades'] = imune + ['%s (condição)' % _cn.get(c, c.replace('-', ' ').capitalize()) for c in cond_imune]
+    state['imunidades_condicao'] = [{'slug': c, 'nome': _cn.get(c, c.replace('-', ' ').capitalize())} for c in cond_imune]
+    state['sentidos'] = ['%s%s' % (t, ' %dft' % r if r else '') for t, r in sentidos.items()]
+    state['vantagens'] = vantagens
+    if coll['desvantagens']:
+        state['desvantagens_impostas'] = coll['desvantagens']
+    state['notas_passivas'] = notas
+    if recursos_tag:  # pools de talento/subclasse via define{} -> recursos
+        for k, v in recursos_tag.items():
+            state['recursos'][k] = '%s%s' % (v['max'], ' (reset %s)' % v['reset'] if v['reset'] else '')
+    state['_tag'] = coll
     return state
 
 
+def _ataques(coll, atributos, pb, recursos=None):
+    recursos = recursos or {}
+    perfis = []
+    for escopo in sorted(set(coll['ataque_dado']) | set(coll['ataque_attr'])):
+        sig = coll['ataque_attr'].get(escopo, 'FOR')
+        mod = atributos.get(sig, {}).get('mod', 0)
+        dado = coll['ataque_dado'].get(escopo, '—')
+        mres = re.match(r'resource\{([a-z0-9-]+)\}', dado or '')
+        if mres:  # dado = dado do recurso (ex.: Artes Marciais -> 1d8)
+            slug = mres.group(1)
+            achado = next((v for k, v in recursos.items() if _slug(k.split(':')[-1]) == slug), None)
+            dado = str(achado) if achado else 'dado de %s' % slug.replace('-', ' ')
+        perfis.append({'escopo': escopo,
+                       'nome': 'Ataque desarmado' if escopo == 'unarmed-strike' else 'Ataque natural',
+                       'atributo': sig, 'dado': dado, 'bonus_ataque': mod + pb,
+                       'dano': '%s %+d' % (dado, mod) if dado != '—' else '—'})
+    return {'quantidade': coll['n_ataques'] or 1, 'perfis': perfis,
+            'avisos': ['ataques com arma do inventário não derivados (sem catálogo de armas)']}
+
+
+def _saves(classes, atributos, pb, tag_prof=None, all_saves_bonus=0):
+    prof = set()
+    principal = _classe_principal(classes)
+    if principal:
+        for tag in (getattr(principal.id_classe, 'tags_json', None) or []):
+            m = re.match(r'saves-prof\{([^}]*)\}', str(tag).strip())
+            if m:
+                raw = {x.strip().lower() for x in m.group(1).split(',') if x.strip()}
+                prof = {_SAVE_TOKEN_EN.get(t, t) for t in raw}  # normaliza PT-BR/EN -> EN
+    tag_prof = tag_prof or set()
+    if 'all' in tag_prof:
+        prof |= set(_ATTR_EN.values())
+    prof |= {_SAVE_TOKEN_EN.get(p, p) for p in tag_prof
+             if _SAVE_TOKEN_EN.get(p, p) in _EN_SIG}
+    out = {}
+    for sig, en in _ATTR_EN.items():
+        p = en in prof
+        out[sig] = {'proficiente': p, 'bonus': atributos[sig]['mod'] + (pb if p else 0) + all_saves_bonus}
+    return out
+
+
+def _pericias(personagem, atributos, pb, tag_skill_prof=None, check_attr=None, check_bonus=None):
+    tag_skill_prof = tag_skill_prof or set()
+    check_attr = check_attr or {}
+    check_bonus = check_bonus or {}
+    base = {}
+    # começa com TODAS as perícias canônicas (a ficha lista todas, proficientes ou não)
+    for sl, info in _SKILL_INFO.items():
+        base[sl] = {'nome': info[0], 'attr_def': info[1], 'proficiente': False, 'expertise': False}
+    # sobrepõe os registros do personagem (proficiência/expertise/atributo custom)
+    for per in personagem.pericias.all():
+        sl = _slug(per.nome)
+        d = base.get(sl) or {'nome': per.nome, 'attr_def': None, 'proficiente': False, 'expertise': False}
+        if per.atributo in atributos:
+            d['attr_def'] = per.atributo
+        d['nome'] = per.nome
+        d['proficiente'] = d['proficiente'] or per.proficiente
+        d['expertise'] = d['expertise'] or per.expertise
+        base[sl] = d
+    for sl in tag_skill_prof:
+        if sl in base:
+            base[sl]['proficiente'] = True
+        elif sl in _SKILL_INFO:
+            base[sl] = {'nome': _SKILL_INFO[sl][0], 'attr_def': None, 'proficiente': True, 'expertise': False}
+    out = []
+    for sl, d in base.items():
+        sig = check_attr.get(sl) or d['attr_def'] or (_SKILL_INFO[sl][1] if sl in _SKILL_INFO else 'FOR')
+        mod = atributos.get(sig, {}).get('mod', 0)
+        bonus = mod + (pb if d['proficiente'] else 0) + (pb if d['expertise'] else 0) + check_bonus.get(sl, 0)
+        out.append({'nome': d['nome'], 'atributo': sig, 'proficiente': d['proficiente'],
+                    'expertise': d['expertise'], 'bonus': bonus})
+    return sorted(out, key=lambda x: x['nome'])
+
+
+def _proficiencias(personagem):
+    idiomas, ferramentas, outras = [], [], []
+    for p in personagem.proficiencias.all():
+        if p.tipo == 'idioma':
+            idiomas.append(p.nome)
+        elif p.tipo == 'ferramenta':
+            ferramentas.append(p.nome)
+        else:
+            outras.append('%s: %s' % (p.tipo, p.nome))
+    return idiomas, ferramentas, outras
+
+
+def _apply_attr_asi(features, escolhas, atributos):
+    """Pré-passe: ASI passivo via tag (attr:<x>-score+N) — soma em valor+bonus e
+    registra no breakdown (mantém base+Σbreakdown == valor); aplica o teto
+    `attr-max:<x>-score=N`."""
+    caps = {}
+    for _o, fonte, obj, _cl in features:
+        feat_nome = getattr(obj, 'nome', fonte)
+        for t in (getattr(obj, 'tags_json', None) or []):
+            if not isinstance(t, str):
+                continue
+            for seg in _passive_segments(_resolve_match(t, escolhas)):
+                for m in re.finditer(r'attr:([a-z]{3})-score\s*\+\s*(\d+)', seg):
+                    sig = _EN_SIG.get(m.group(1))
+                    if sig:
+                        n = int(m.group(2))
+                        atributos[sig]['valor'] += n
+                        atributos[sig]['bonus'] += n
+                        atributos[sig].setdefault('breakdown', []).append(
+                            {'origem': feat_nome + ' (tag)', 'valor': n})
+                for m in re.finditer(r'attr-max:([a-z]{3})-score\s*=\s*(\d+)', seg):
+                    sig = _EN_SIG.get(m.group(1))
+                    if sig:
+                        caps[sig] = min(caps.get(sig, 999), int(m.group(2)))
+    for sig, cap in caps.items():
+        if atributos[sig]['valor'] > cap:
+            ajuste = cap - atributos[sig]['valor']
+            atributos[sig]['valor'] = cap
+            atributos[sig]['bonus'] += ajuste
+            atributos[sig].setdefault('breakdown', []).append({'origem': 'teto %d' % cap, 'valor': ajuste})
+
+
 def derive(personagem):
-    """Deriva o estado completo (estrutural) de um TbPersonagem."""
+    """Deriva o estado completo (estrutural + tags passivas) de um TbPersonagem."""
     avisos = []
 
-    # 1. Atributos e modificadores
+    # 1. Atributos: BASE (point-buy) + Σ bônus (TbPersonagemAtributoBonus) + breakdown
+    bonus_por_attr = {}
+    for b in personagem.atributo_bonus.all():
+        bonus_por_attr.setdefault(b.atributo, []).append((b.origem, b.valor))
     atributos = {}
     for campo, sigla, rotulo in ATRIBUTOS:
-        valor = getattr(personagem, campo)
-        atributos[sigla] = {'valor': valor, 'mod': modificador(valor), 'rotulo': rotulo}
-    con_mod = atributos['CON']['mod']
+        base = int(getattr(personagem, campo))
+        fontes = bonus_por_attr.get(sigla, [])
+        atributos[sigla] = {'base': base, 'bonus': sum(v for _, v in fontes),
+                            'valor': base + sum(v for _, v in fontes), 'mod': 0, 'rotulo': rotulo,
+                            'breakdown': [{'origem': o, 'valor': v} for o, v in fontes]}
 
-    # 2. Classes e nível total
-    classes = list(
-        personagem.classes.select_related('id_classe', 'id_subclasse').order_by('-principal', 'id')
-    )
+    # 2. Classes / nível / features (inclui antecedente)
+    classes = list(personagem.classes.select_related('id_classe', 'id_subclasse').order_by('-principal', 'id'))
     nivel_total = sum(int(c.nivel or 0) for c in classes) or int(personagem.nivel or 1)
+    features = (_features_de_classe(classes) + _tracos_raciais(personagem)
+                + _antecedente(personagem) + _talentos(personagem)
+                + _features_de_itens(personagem) + _features_de_opcoes(personagem))
+    escolhas, listas = _collect_escolhas(personagem, features)
+
+    # 3. Pré-passe de ASI passivo (tag) → mods / PB / PV / ctx
+    _apply_attr_asi(features, escolhas, atributos)
+    for sig in atributos:
+        atributos[sig]['mod'] = modificador(atributos[sig]['valor'])
+    con_mod = atributos['CON']['mod']
     pb = bonus_proficiencia(nivel_total)
-
-    # 3. PV
     pv = _calcular_pv(personagem, classes, con_mod, avisos)
+    ctx = _build_ctx(nivel_total, pb, atributos)
 
-    # 4. Features ativas
-    features_classe = _features_de_classe(classes)
-    tracos = _tracos_raciais(personagem)
-    features = features_classe + tracos
-
-    # 5. Recursos
-    recursos = _recursos(classes)
-
-    # 6. Iniciativa / saves base (proficiência de save vem da classe/tag — TODO)
-    iniciativa = atributos['DES']['mod'] + int(personagem.iniciativa_bonus or 0)
+    # aviso: antecedente preenchido mas sem tags (habilidade não aplicada)
+    if personagem.id_antecedente_id and not (personagem.id_antecedente.tags_json or []):
+        avisos.append(f"Antecedente '{personagem.id_antecedente.nome}' sem tags_json — habilidade não aplicada.")
 
     state = {
+        '_ctx': ctx,
         'personagem': {'id': personagem.id_personagem, 'nome': personagem.nome},
         'nivel_total': nivel_total,
         'bonus_proficiencia': pb,
         'atributos': atributos,
-        'pv': {
-            'maximo_calculado': pv['valor'], 'pv_completo': pv['completo'],
-            'atual': personagem.pv_atual, 'temporario': personagem.pv_temporario,
-        },
-        'iniciativa': iniciativa,
+        'pv': {'maximo_calculado': pv['valor'], 'pv_completo': pv['completo'],
+               'atual': personagem.pv_atual, 'temporario': personagem.pv_temporario},
+        'iniciativa': atributos['DES']['mod'] + int(personagem.iniciativa_bonus or 0),
         'ca': personagem.ca,
         'velocidade': personagem.velocidade,
-        'classes': [
-            {'classe': c.id_classe.nome, 'subclasse': c.id_subclasse.nome if c.id_subclasse_id else None,
-             'nivel': c.nivel, 'principal': c.principal} for c in classes
-        ],
-        'features': [
-            {'origem': o, 'fonte': f, 'nome': getattr(obj, 'nome', ''),
-             'nivel': getattr(obj, 'niveladquirido', getattr(obj, 'nivel_requisito', None))}
-            for (o, f, obj) in features
-        ],
-        'recursos': recursos,
+        'classes': [{'classe': c.id_classe.nome, 'subclasse': c.id_subclasse.nome if c.id_subclasse_id else None,
+                     'nivel': c.nivel, 'principal': c.principal} for c in classes],
+        'features': [{'origem': o, 'fonte': f, 'nome': getattr(obj, 'nome', ''),
+                      'nivel': getattr(obj, 'niveladquirido', getattr(obj, 'nivel_requisito', None)),
+                      'descricao': (getattr(obj, 'descricao', '') or getattr(obj, 'descricao_markdown', '') or '')}
+                     for (o, f, obj, _cl) in features if not getattr(obj, 'table_only', False)],
+        'recursos': _recursos(classes),
+        'maestrias_armas': _maestrias_armas(personagem),
+        'magias': _magias_personagem(personagem),
+        'inventario': _inventario(personagem),
+        'grants_antecedente': GRANTS_ANTECEDENTE if personagem.id_antecedente_id else None,
+        'picks': listas,
         'avisos': avisos,
     }
 
-    apply_tags(state, features)
+    # Progressão por aventuras: nº de aventuras define o nível-TETO + rank.
+    av = int(getattr(personagem, 'aventuras', 0) or 0)
+    nivel_av = nivel_por_aventuras(av)
+    state['progressao'] = {
+        'aventuras': av, 'nivel_aventuras': nivel_av, 'nivel_label': nivel_label(nivel_av),
+        'nivel_max': min(nivel_av, 20), 'rank': rank_por_nivel(nivel_av),
+        'braseiros': int(getattr(personagem, 'braseiros', 0) or 0),
+        'no_teto': nivel_total >= min(nivel_av, 20),
+    }
+
+    apply_tags(state, features, personagem, escolhas)
+
+    # pós-tags
+    tag = state['_tag']
+    state['saves'] = _saves(classes, atributos, pb, tag['save_prof'], tag['all_saves'])
+    state['pericias'] = _pericias(personagem, atributos, pb, tag['skill_prof'], tag['check_attr'], tag['check_bonus'])
+    state['ataques'] = _ataques(tag, atributos, pb, state['recursos'])
+    idiomas, ferramentas, outras = _proficiencias(personagem)
+    state['idiomas'] = sorted(set(idiomas) | set(tag['idiomas']))
+    state['ferramentas'] = sorted(set(ferramentas) | set(tag['ferramentas']))
+    _pc = _proficiencias_classe(classes)
+    state['proficiencias_armadura'] = _pc['classe_armaduras'] + sorted(set(tag['armaduras']))
+    state['proficiencias_arma'] = _pc['classe_armas'] + sorted(set(tag['armas']))
+    state['prof_multiclasse_armadura'] = _pc['multiclasse_armaduras']
+    state['prof_multiclasse_arma'] = _pc['multiclasse_armas']
+    state['outras_proficiencias'] = outras
+    state['iniciativa'] += tag['initiative']
+
+    # Maestria de arma é TROCÁVEL se a habilidade que a concede (pick:arma) tiver a tag 'trocavel'.
+    state['maestria_trocavel'] = any(
+        any('pick:arma' in str(t) for t in (getattr(obj, 'tags_json', None) or []))
+        and any(str(t).strip() == 'trocavel' for t in (getattr(obj, 'tags_json', None) or []))
+        for (_o, _f, obj, _cl) in features)
+
+    # Mochila: carteira (PC -> PO/PP/PC) + peso total carregado.
+    _cpc = int(getattr(personagem, 'carteira_pc', 0) or 0)
+    state['carteira'] = {'pc_total': _cpc, 'po': _cpc // 100, 'pp': (_cpc % 100) // 10, 'pc': _cpc % 10}
+
+    def _peso_item(it):
+        try:
+            return float(str(it.get('peso') or 0).replace(',', '.').split()[0]) * (it.get('qtd') or 1)
+        except (ValueError, AttributeError, IndexError):
+            return 0.0
+    state['peso_total'] = round(sum(_peso_item(it) for it in state['inventario']), 2)
+
+    state.pop('_ctx', None)
+    state.pop('_tag', None)
     return state

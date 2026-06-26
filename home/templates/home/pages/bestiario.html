@@ -1,0 +1,101 @@
+{% extends 'home/base.html' %}
+{% load static %}
+
+{% block content %}
+<section class="animate-fade-in max-w-3xl">
+  <header class="mb-4 flex flex-wrap items-end justify-between gap-3 border-b border-[var(--stroke)] pb-4">
+    <div>
+      <h1 class="font-serif text-2xl md:text-3xl font-bold text-[var(--ember)]">Bestiário</h1>
+      <p class="mt-1 text-sm text-[var(--muted)]">Criaturas oficiais e da comunidade, com blocos de estatística completos.</p>
+    </div>
+    {% if pode_criar %}<a href="{% url 'bestiario_criar' %}" class="rounded bg-bonfire-gradient px-4 py-2 text-sm font-bold text-white hover:opacity-90">+ Nova criatura</a>{% endif %}
+  </header>
+
+  {% if msg == 'criada' %}<p class="mb-4 rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-3 py-2 text-sm text-[var(--spark)]">Criatura criada!</p>
+  {% elif msg == 'editada' %}<p class="mb-4 rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-3 py-2 text-sm text-[var(--spark)]">Criatura atualizada!</p>
+  {% elif msg == 'excluida' %}<p class="mb-4 rounded border border-[var(--stroke)] bg-[var(--bg1)] px-3 py-2 text-sm text-[var(--muted)]">Criatura excluída.</p>{% endif %}
+
+  <form method="get" class="mb-4 flex flex-wrap items-center gap-2 text-sm">
+    <select name="f" onchange="this.form.submit()" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-1.5 text-sm text-[var(--text)]">
+      <option value="" {% if not filtro %}selected{% endif %}>Todas</option>
+      <option value="oficial" {% if filtro == 'oficial' %}selected{% endif %}>Oficiais</option>
+      <option value="comunidade" {% if filtro == 'comunidade' %}selected{% endif %}>Comunidade</option>
+    </select>
+    <select name="nd" onchange="this.form.submit()" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-1.5 text-sm text-[var(--text)]">
+      <option value="">ND: todos</option>
+      {% for nd in nds %}<option value="{{ nd }}" {% if nd == nd_sel %}selected{% endif %}>ND {{ nd }}</option>{% endfor %}
+    </select>
+    <select name="ord" onchange="this.form.submit()" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-1.5 text-sm text-[var(--text)]">
+      <option value="az" {% if ordem != 'za' %}selected{% endif %}>A → Z</option>
+      <option value="za" {% if ordem == 'za' %}selected{% endif %}>Z → A</option>
+    </select>
+    <input id="bz-busca" type="search" placeholder="Buscar criatura…" autocomplete="off"
+           class="flex-1 rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-1.5 text-sm text-[var(--text)] focus:border-[var(--ember)] focus:outline-none">
+  </form>
+
+  <div class="space-y-3">
+    {% for c in criaturas %}
+      <details class="bz-item group rounded-lg border-l-2 border-[var(--ember)]/60 border-y border-r border-[var(--stroke)] bg-[var(--bg1)] open:bg-[var(--bg1)]" data-busca="{{ c.nome|lower }} {{ c.tipo|lower }}">
+        <summary class="flex cursor-pointer flex-wrap items-center justify-between gap-2 px-4 py-2.5 list-none">
+          <span class="font-serif font-bold text-[var(--text)]">{{ c.nome }}
+            {% if c.comunidade %}<span class="ml-1 rounded bg-[var(--flame)]/15 px-1.5 py-0.5 text-xs text-[var(--flame)]">comunidade</span>{% endif %}
+          </span>
+          <span class="text-xs text-[var(--muted)]">{{ c.tamanho }} {{ c.tipo }}{% if c.nd %} · ND {{ c.nd }}{% endif %}{% if c.autor %} · por {{ c.autor }}{% endif %}</span>
+        </summary>
+        <div class="border-t border-[var(--stroke)]/60 px-4 py-3">
+          {% with sb=c.sb %}
+          <p class="font-serif italic text-sm text-[var(--ember)]">{{ sb.cabecalho }}</p>
+          <div class="mt-2 space-y-0.5 text-sm text-[var(--text)]">
+            {% if sb.ca %}<div><strong class="text-[var(--muted)]">CA</strong> {{ sb.ca }}</div>{% endif %}
+            {% if sb.pv %}<div><strong class="text-[var(--muted)]">PV</strong> {{ sb.pv }}</div>{% endif %}
+            {% if sb.desloc %}<div><strong class="text-[var(--muted)]">Deslocamento</strong> {{ sb.desloc }}</div>{% endif %}
+          </div>
+          {% if sb.abilities %}
+          <div class="my-3 grid grid-cols-3 gap-2 rounded border-y border-[var(--stroke)]/60 py-2 sm:grid-cols-6">
+            {% for a in sb.abilities %}
+              <div class="text-center"><div class="text-xs font-bold text-[var(--ember)]">{{ a.sig }}</div><div class="text-sm text-[var(--text)]">{{ a.score }} ({{ a.mod }})</div></div>
+            {% endfor %}
+          </div>
+          {% endif %}
+          <div class="space-y-0.5 text-sm text-[var(--text)]">
+            {% if sb.saves %}<div><strong class="text-[var(--muted)]">Salvaguardas</strong> {{ sb.saves }}</div>{% endif %}
+            {% if sb.skills %}<div><strong class="text-[var(--muted)]">Perícias</strong> {{ sb.skills }}</div>{% endif %}
+            {% if sb.resist %}<div><strong class="text-[var(--muted)]">Resistências</strong> {{ sb.resist }}</div>{% endif %}
+            {% if sb.immune %}<div><strong class="text-[var(--muted)]">Imunidades a Dano</strong> {{ sb.immune }}</div>{% endif %}
+            {% if sb.cond_immune %}<div><strong class="text-[var(--muted)]">Imunidades a Condição</strong> {{ sb.cond_immune }}</div>{% endif %}
+            {% if sb.sentidos %}<div><strong class="text-[var(--muted)]">Sentidos</strong> {{ sb.sentidos }}{% if sb.passivo %} · Percepção passiva {{ sb.passivo }}{% endif %}</div>{% endif %}
+            {% if sb.idiomas %}<div><strong class="text-[var(--muted)]">Idiomas</strong> {{ sb.idiomas }}</div>{% endif %}
+            {% if sb.cr %}<div><strong class="text-[var(--muted)]">ND</strong> {{ sb.cr }}</div>{% endif %}
+          </div>
+          {% if sb.traits %}<div class="mt-3"></div>{% include 'home/partials/sb_bloco.html' with bloco=sb.traits %}{% endif %}
+          {% if sb.actions %}<h3 class="mt-3 border-b border-[var(--ember)]/40 pb-0.5 font-serif text-sm font-bold text-[var(--ember)]">Ações</h3>{% include 'home/partials/sb_bloco.html' with bloco=sb.actions titulo='' %}{% endif %}
+          {% if sb.bonus %}<h3 class="mt-3 border-b border-[var(--ember)]/40 pb-0.5 font-serif text-sm font-bold text-[var(--ember)]">Ações Bônus</h3>{% include 'home/partials/sb_bloco.html' with bloco=sb.bonus titulo='' %}{% endif %}
+          {% if sb.reactions %}<h3 class="mt-3 border-b border-[var(--ember)]/40 pb-0.5 font-serif text-sm font-bold text-[var(--ember)]">Reações</h3>{% include 'home/partials/sb_bloco.html' with bloco=sb.reactions titulo='' %}{% endif %}
+          {% if sb.legendary %}<h3 class="mt-3 border-b border-[var(--ember)]/40 pb-0.5 font-serif text-sm font-bold text-[var(--ember)]">Ações Lendárias</h3>{% include 'home/partials/sb_bloco.html' with bloco=sb.legendary titulo='' %}{% endif %}
+          {% endwith %}
+          {% if c.descricao %}<div class="mt-3 text-sm text-[var(--muted)] bonfire-markdown" data-markdown-source>{{ c.descricao|escape }}</div>{% endif %}
+          {% if c.pode_editar %}
+            <div class="mt-3 flex items-center gap-3">
+              <a href="{% url 'bestiario_editar' c.id %}" class="text-xs text-[var(--ember)] hover:underline">Editar</a>
+              <form method="post" action="{% url 'bestiario_excluir' c.id %}" onsubmit="return confirm('Excluir {{ c.nome|escapejs }}?');">
+                {% csrf_token %}<button type="submit" class="text-xs text-[var(--flame)] hover:underline">Excluir</button>
+              </form>
+            </div>
+          {% endif %}
+        </div>
+      </details>
+    {% empty %}
+      <p class="rounded-lg border border-dashed border-[var(--stroke)] px-4 py-8 text-center text-sm text-[var(--muted)]">Nenhuma criatura.</p>
+    {% endfor %}
+  </div>
+</section>
+
+<script>
+  (function(){
+    var inp=document.getElementById('bz-busca'), itens=[].slice.call(document.querySelectorAll('.bz-item'));
+    function norm(s){return (s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();}
+    inp.addEventListener('input',function(){var q=norm(inp.value.trim());
+      itens.forEach(function(el){el.classList.toggle('hidden', q && norm(el.getAttribute('data-busca')).indexOf(q)===-1);});});
+  })();
+</script>
+{% endblock %}
