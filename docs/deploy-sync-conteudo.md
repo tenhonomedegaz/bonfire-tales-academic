@@ -12,9 +12,13 @@ Os dados de USUÁRIO referenciam o CONTEÚDO **por PK (id)**:
 `TbPersonagemClasse.id_classe/id_subclasse`, `TbPersonagemItem.id_item_magico`,
 `TbPersonagemEscolha.id_opcao`, `TbAnuncioItemMagico.id_item_magico`.
 
-➡️ **Regra de ouro: a sincronização de conteúdo TEM que preservar os PKs.** Por isso
-usamos **UPSERT por PK** (`loaddata`), **nunca** `TRUNCATE`+reinsert (que renumeraria
-os IDs e quebraria todas essas FKs).
+➡️ **Os PKs do catálogo DESALINHARAM entre dev e produção** (ex.: `pk=1596` é "Frenesi"
+do Bárbaro no dev e "Conjuração" de um conjurador na prod). Carregar por PK (`loaddata`)
+poria o conteúdo errado em cima do registro errado. Por isso a sync é por **CHAVE NATURAL**:
+- Tabelas referenciadas por FK de usuário (todas têm **slug único**): match por slug →
+  ATUALIZA o registro da prod **preservando o PK dela** (a FK do personagem continua válida).
+- Demais tabelas (ninguém referencia por PK): **substitui inteiras** (delete+reinsert),
+  remapeando as FKs de pai do PK-dev para o PK-prod.
 
 ## Classificação das tabelas
 
@@ -57,11 +61,12 @@ ou
 manage.py migrate && manage.py sync_conteudo
 ```
 
-`sync_conteudo` faz tudo com segurança: (1) backup da memória em `backups/` (restaurável
-com `loaddata`); (2) **checa alinhamento de PK** (manifesto do dev × produção) e ABORTA se
-algum PK apontar p/ registro diferente; (3) `loaddata` do conteúdo (upsert por PK); (4)
-realinha as sequences; (5) confirma que as tabelas de usuário/missão ficaram com a MESMA
-contagem. Use `--dry-run` p/ só checar o alinhamento sem carregar.
+`sync_conteudo` (por CHAVE NATURAL) faz tudo com segurança: (1) backup da memória em
+`backups/` (restaurável com `loaddata`); (2) **upsert por slug** das tabelas referenciadas
+por usuário (preserva o PK da prod); (3) **substitui inteiras** as demais (delete+reinsert,
+remapeando FKs de pai); (4) realinha as sequences; (5) confirma que as tabelas de
+usuário/missão ficaram com a MESMA contagem. Use `--dry-run` p/ ver o plano (quantos
+atualizar/inserir/substituir) sem alterar nada.
 
 Para gerar/atualizar o fixture (no dev, antes de commitar): `manage.py dump_conteudo
 --output home/fixtures/conteudo.json --manifest home/fixtures/conteudo_manifest.json`.

@@ -1,30 +1,47 @@
 # -*- coding: utf-8 -*-
-"""Carrega o CONTEÚDO (home/fixtures/conteudo.json) na PRODUÇÃO com segurança.
+"""Sincroniza o CONTEÚDO (home/fixtures/conteudo.json) na produção por CHAVE NATURAL.
 
-Roda na produção (após `git pull` + `migrate`) e atualiza só o catálogo, por UPSERT
-de PK, SEM tocar nas tabelas de usuário/missão. Antes de carregar, confere se os PKs
-do fixture (manifesto do dev) apontam para os MESMOS registros que já existem na
-produção (chave natural slug/nome) — se houver divergência, ABORTA (não sobrescreve o
-registro errado). Depois, conserta as sequences e confirma que a "memória"
-(usuários/personagens/missões) ficou com a MESMA contagem.
+Por que NÃO por PK: os PKs do catálogo desalinharam entre dev e produção, então carregar
+por PK (loaddata) sobrescreveria o registro errado (ex.: pôr "Frenesi" do Bárbaro em cima
+da "Conjuração" de um conjurador). Aqui a sincronização é por slug/nome:
 
-    manage.py sync_conteudo            # checa, carrega, conserta sequences, verifica
-    manage.py sync_conteudo --dry-run  # só a checagem de alinhamento (não carrega)
+- Tabelas que os USUÁRIOS referenciam por FK (Raça, Essência, Linhagem, Antecedente,
+  Classe, Subclasse, Opção, Magia, Talento, ItemMágico): match por **slug** → ATUALIZA o
+  registro existente da produção (PRESERVA o PK da prod, então a FK do personagem continua
+  válida) e INSERE os novos. Nunca apaga (não orfana FK).
+- Demais tabelas (habilidades de classe, recursos, acesso-opção, traços raciais, condições,
+  idiomas, regras, recompensas, itens mundanos, bestiário, armadilhas, mundo): ninguém as
+  referencia por PK → SUBSTITUI inteiras (delete + reinsert), remapeando as FKs de pai
+  (id_classe, id_raca, …) do PK do dev para o PK da produção.
+
+A "memória" (personagens, missões, mercado, usuários) NÃO é tocada; é conferida antes/depois.
+
+    manage.py sync_conteudo            # executa (recomendado: deploy_conteudo.bat)
+    manage.py sync_conteudo --dry-run  # só relata o que faria (update/insert/replace)
     manage.py sync_conteudo --allow-sqlite   # permite rodar em SQLite (teste local)
 """
-import json
 import os
+from collections import defaultdict
 
+from django.apps import apps
+from django.core import serializers
 from django.core.management import call_command
 from django.core.management.base import BaseCommand, CommandError
-from django.db import connection, transaction
+from django.db import connection, models, transaction
 
-from .dump_conteudo import CONTENT_MODELS, NATURAL_KEY, _resolve
+FIXTURE_PATH = "home/fixtures/conteudo.json"
 
-FIXTURE = "conteudo"  # home/fixtures/conteudo.json (loaddata acha pelo nome)
-MANIFEST_PATH = "home/fixtures/conteudo_manifest.json"
-
-# "Memória" da produção — conferir que a contagem NÃO muda.
+# Tabelas referenciadas por FK de usuário → match por slug, PRESERVA PK. (ordem: pais antes)
+UPSERT_POR_SLUG = [
+    "TbRaca", "TbEssencia", "TbAntecedente", "TbClasse", "TbOpcaojogo",
+    "TbMagia", "TbTalento", "TbItemMagico", "TbLinhagem", "TbSubclasse",
+]
+# Tabelas não referenciadas por FK de usuário → substitui inteiras (delete + reinsert).
+SUBSTITUI = [
+    "TbClassehabilidade", "TbRecursoclasse", "TbAcessoopcao", "TbTracoracial",
+    "TbCondicao", "TbIdioma", "TbRegra", "TbRecompensaMestre", "TbItemMundano",
+    "TbRegiao", "TbTerritorio", "TbMapMarker", "TbBestiario", "TbArmadilha",
+]
 MEMORY_MODELS = [
     "TbPersonagem", "TbPersonagemAtributoBonus", "TbPersonagemClasse",
     "TbPersonagemEscolha", "TbPersonagemItem", "TbPersonagemMagia",
@@ -35,109 +52,133 @@ MEMORY_MODELS = [
 ]
 
 
-def _natural_key(model):
-    nm = NATURAL_KEY.get(model.__name__, "slug")
-    if nm and not hasattr(model, nm):
-        nm = "nome" if hasattr(model, "nome") else None
-    return nm
+def _m(nome):
+    return apps.get_app_config("home").get_model(nome)
 
 
-def _manifesto_atual():
-    out = {}
-    for m in _resolve(CONTENT_MODELS):
-        key = _natural_key(m)
-        if not key:
-            continue
-        out[m.__name__] = {str(o.pk): getattr(o, key) for o in m.objects.all()}
-    return out
+def _fk_fields(model):
+    """{attname (ex.: id_classe_id): ModeloAlvo} das FKs do modelo."""
+    return {f.attname: f.related_model for f in model._meta.get_fields()
+            if isinstance(f, models.ForeignKey)}
 
 
-def _contagem(model_names):
-    from django.apps import apps
-    out = {}
-    for nm in model_names:
-        m = apps.get_app_config("home").get_model(nm)
-        out[nm] = m.objects.count()
-    return out
+def _label(model):
+    return "home." + model.__name__.lower()
+
+
+def _contagem(nomes):
+    return {nm: _m(nm).objects.count() for nm in nomes}
 
 
 class Command(BaseCommand):
-    help = "Carrega o conteúdo (fixture) na produção preservando usuários/missões."
+    help = "Sincroniza o catálogo na produção por chave natural, preservando usuários/missões."
 
     def add_arguments(self, parser):
-        parser.add_argument("--dry-run", action="store_true", help="Só checa alinhamento.")
-        parser.add_argument("--allow-sqlite", action="store_true",
-                            help="Permite rodar em SQLite (por padrão exige PostgreSQL).")
-        parser.add_argument("--no-backup", action="store_true",
-                            help="NÃO faz o backup da memória antes de carregar (não recomendado).")
+        parser.add_argument("--dry-run", action="store_true")
+        parser.add_argument("--allow-sqlite", action="store_true")
+        parser.add_argument("--no-backup", action="store_true")
 
     def handle(self, *args, **opt):
         if connection.vendor != "postgresql" and not opt["allow_sqlite"]:
-            raise CommandError(
-                "Banco atual é '%s' (esperado postgresql). Rode na PRODUÇÃO, ou use "
-                "--allow-sqlite p/ testar localmente." % connection.vendor)
+            raise CommandError("Banco é '%s' (esperado postgresql). Rode na PRODUÇÃO ou use "
+                               "--allow-sqlite." % connection.vendor)
+        if not os.path.exists(FIXTURE_PATH):
+            raise CommandError("Fixture não encontrado: %s" % FIXTURE_PATH)
 
-        # 1) Checagem de alinhamento de PK (fixture/dev × produção atual)
-        if not os.path.exists(MANIFEST_PATH):
-            raise CommandError("Manifesto não encontrado: %s" % MANIFEST_PATH)
-        dev = json.load(open(MANIFEST_PATH, encoding="utf-8"))
-        prod = _manifesto_atual()
-        divergencias = []
-        for modelo, devmap in dev.items():
-            prodmap = prod.get(modelo, {})
-            for pk, chave in devmap.items():
-                if pk in prodmap and prodmap[pk] != chave:
-                    divergencias.append((modelo, pk, chave, prodmap[pk]))
-        if divergencias:
-            self.stdout.write(self.style.ERROR(
-                "ABORTADO: %d PK(s) apontam p/ registros DIFERENTES na produção "
-                "(carregar sobrescreveria o errado):" % len(divergencias)))
-            for modelo, pk, dv, pv in divergencias[:25]:
-                self.stdout.write("  %s pk=%s  dev=%r  prod=%r" % (modelo, pk, dv, pv))
-            raise CommandError("Alinhamento de PK divergente — sincronizar por chave natural à mão.")
-        self.stdout.write(self.style.SUCCESS("Alinhamento de PK OK (nenhum PK aponta p/ registro diferente)."))
+        # Carrega o fixture (conteúdo do dev) agrupado por modelo.
+        por_modelo = defaultdict(list)
+        with open(FIXTURE_PATH, encoding="utf-8") as fh:
+            for d in serializers.deserialize("json", fh.read()):
+                por_modelo[_label(d.object._meta.model)].append(d.object)
+
+        remap = defaultdict(dict)   # remap['home.tbclasse'][dev_pk] = prod_pk
+
+        def remapear_fks(obj):
+            for attname, alvo in _fk_fields(obj._meta.model).items():
+                dev_val = getattr(obj, attname)
+                if dev_val is None:
+                    continue
+                mp = remap.get(_label(alvo))
+                if mp is None:        # alvo fora do escopo (ex.: autor->User) → mantém
+                    continue
+                if dev_val in mp:
+                    setattr(obj, attname, mp[dev_val])
+
+        plano = {"upsert_update": 0, "upsert_insert": 0, "replace": 0}
 
         if opt["dry_run"]:
-            self.stdout.write("Dry-run: não carreguei nada.")
+            for nome in UPSERT_POR_SLUG:
+                M = _m(nome)
+                existentes = set(M.objects.values_list("slug", flat=True))
+                for obj in por_modelo.get(_label(M), []):
+                    plano["upsert_update" if obj.slug in existentes else "upsert_insert"] += 1
+            for nome in SUBSTITUI:
+                plano["replace"] += len(por_modelo.get(_label(_m(nome)), []))
+            self.stdout.write(self.style.SUCCESS(
+                "DRY-RUN: por slug → %d atualizar + %d inserir | substituir inteiras → %d "
+                "registros. Nada foi alterado." % (
+                    plano["upsert_update"], plano["upsert_insert"], plano["replace"])))
             return
 
-        # 2) Snapshot da memória ANTES + backup (rede de segurança)
         mem_antes = _contagem(MEMORY_MODELS)
         if not opt["no_backup"]:
             from datetime import datetime
             os.makedirs("backups", exist_ok=True)
             destino = os.path.join("backups", "memoria_%s.json" % datetime.now().strftime("%Y%m%d_%H%M%S"))
             with open(destino, "w", encoding="utf-8") as fh:
-                call_command("dumpdata", *("home.%s" % m for m in MEMORY_MODELS),
-                             indent=2, stdout=fh)
+                call_command("dumpdata", *("home.%s" % m for m in MEMORY_MODELS), indent=2, stdout=fh)
             self.stdout.write("Backup da memória -> %s" % destino)
 
-        # 3) Carregar conteúdo (upsert por PK, em transação)
         with transaction.atomic():
-            call_command("loaddata", FIXTURE, verbosity=1)
+            # PASSO 1: upsert por slug (preserva PK da produção)
+            for nome in UPSERT_POR_SLUG:
+                M = _m(nome)
+                campos = [f.attname for f in M._meta.fields if not f.primary_key]
+                up = ins = 0
+                for obj in por_modelo.get(_label(M), []):
+                    dev_pk = obj.pk
+                    remapear_fks(obj)
+                    prod = M.objects.filter(slug=obj.slug).first()
+                    if prod:
+                        for c in campos:
+                            setattr(prod, c, getattr(obj, c))
+                        prod.save()
+                        remap[_label(M)][dev_pk] = prod.pk
+                        up += 1
+                    else:
+                        obj.pk = None
+                        obj.save()
+                        remap[_label(M)][dev_pk] = obj.pk
+                        ins += 1
+                self.stdout.write("  %-20s slug: %d atualizados, %d inseridos" % (nome, up, ins))
 
-        # 4) Consertar sequences (Postgres)
-        if connection.vendor == "postgresql":
-            from io import StringIO
-            buf = StringIO()
-            call_command("sqlsequencereset", "home", stdout=buf)
-            sql = buf.getvalue().strip()
-            if sql:
-                with connection.cursor() as cur:
-                    cur.execute(sql)
-            self.stdout.write("Sequences de PK realinhadas.")
+            # PASSO 2: substitui inteiras (delete + reinsert, remapeando FKs de pai)
+            for nome in SUBSTITUI:
+                M = _m(nome)
+                M.objects.all().delete()
+                novos = por_modelo.get(_label(M), [])
+                for obj in novos:
+                    remapear_fks(obj)
+                    obj.save(force_insert=True)   # mantém o PK do dev (ninguém referencia)
+                self.stdout.write("  %-20s substituída: %d registros" % (nome, len(novos)))
 
-        # 5) Verificar memória intacta
+            # PASSO 3: realinha sequences (Postgres)
+            if connection.vendor == "postgresql":
+                from io import StringIO
+                buf = StringIO()
+                call_command("sqlsequencereset", "home", stdout=buf)
+                sql = buf.getvalue().strip()
+                if sql:
+                    with connection.cursor() as cur:
+                        cur.execute(sql)
+                self.stdout.write("Sequences realinhadas.")
+
+        # Verificação: memória intacta
         mem_depois = _contagem(MEMORY_MODELS)
         mudou = {k: (mem_antes[k], mem_depois[k]) for k in mem_antes if mem_antes[k] != mem_depois[k]}
         if mudou:
-            self.stdout.write(self.style.ERROR(
-                "ATENÇÃO: contagem da MEMÓRIA mudou! %s — restaure do backup!" % mudou))
+            self.stdout.write(self.style.ERROR("ATENÇÃO: memória mudou! %s — restaure do backup!" % mudou))
         else:
             self.stdout.write(self.style.SUCCESS(
                 "Memória intacta: %d tabelas de usuário/missão com a mesma contagem." % len(mem_antes)))
-
-        # 6) Relatório do conteúdo
-        cont = _contagem(CONTENT_MODELS)
-        self.stdout.write(self.style.SUCCESS(
-            "Conteúdo sincronizado: %d registros em %d tabelas." % (sum(cont.values()), len(cont))))
+        self.stdout.write(self.style.SUCCESS("Conteúdo sincronizado por chave natural."))
