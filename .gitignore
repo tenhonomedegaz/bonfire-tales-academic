@@ -43,3 +43,4 @@ ref/
 # Arquivos de trabalho/locais (não versionar)
 scratch/
 .claude/
+backups/

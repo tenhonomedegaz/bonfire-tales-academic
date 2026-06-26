@@ -44,7 +44,29 @@ COMPARTILHADAS com o bot). Nunca tocar via Django.
 
 Ambos já estão em `CONTENT_MODELS` do `dump_conteudo` (24 modelos, ~4118 registros).
 
-## Procedimento de deploy
+## Deploy de UM COMANDO (recomendado)
+
+O fixture vai **no git** (`home/fixtures/conteudo.json` + `conteudo_manifest.json`), então
+na produção basta, após `git pull`:
+
+```
+deploy_conteudo.bat
+```
+ou
+```
+manage.py migrate && manage.py sync_conteudo
+```
+
+`sync_conteudo` faz tudo com segurança: (1) backup da memória em `backups/` (restaurável
+com `loaddata`); (2) **checa alinhamento de PK** (manifesto do dev × produção) e ABORTA se
+algum PK apontar p/ registro diferente; (3) `loaddata` do conteúdo (upsert por PK); (4)
+realinha as sequences; (5) confirma que as tabelas de usuário/missão ficaram com a MESMA
+contagem. Use `--dry-run` p/ só checar o alinhamento sem carregar.
+
+Para gerar/atualizar o fixture (no dev, antes de commitar): `manage.py dump_conteudo
+--output home/fixtures/conteudo.json --manifest home/fixtures/conteudo_manifest.json`.
+
+## Procedimento manual (passo a passo, equivalente)
 
 ### 0. Backups (a rede de segurança)
 - **Produção (obrigatório):** `pg_dump` completo →
