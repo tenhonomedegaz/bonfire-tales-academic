@@ -1,0 +1,26 @@
+{% extends 'home/base.html' %}
+
+{% block content %}
+<main class="flex-1 min-h-[55vh] flex flex-col items-center justify-center p-4 text-center">
+  {% if status == 'ok' %}
+    <div class="w-16 h-16 rounded-full bg-[var(--bg1)] border border-[var(--ember)] flex items-center justify-center mb-6">
+      <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8 text-[var(--ember)]"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+    </div>
+    <h1 class="font-rpg text-3xl md:text-4xl font-bold text-[var(--text)] mb-4 uppercase">E-mail confirmado!</h1>
+    <p class="text-[var(--muted)] max-w-md mb-8">Seu e-mail foi verificado com sucesso. Agora ele vale para entrar e para vincular suas compras de colaborador.</p>
+  {% elif status == 'expirado' %}
+    <h1 class="font-rpg text-3xl md:text-4xl font-bold text-[var(--text)] mb-4 uppercase">Link expirado</h1>
+    <p class="text-[var(--muted)] max-w-md mb-8">O link de confirmação expirou (vale 24h). Entre no seu perfil e peça um novo.</p>
+  {% elif status == 'conflito' %}
+    <h1 class="font-rpg text-3xl md:text-4xl font-bold text-[var(--text)] mb-4 uppercase">E-mail já confirmado</h1>
+    <p class="text-[var(--muted)] max-w-md mb-8">Esse e-mail já foi confirmado em outra conta. Se for seu, use-o para entrar; se não, escolha outro no seu perfil.</p>
+  {% else %}
+    <h1 class="font-rpg text-3xl md:text-4xl font-bold text-[var(--text)] mb-4 uppercase">Link inválido</h1>
+    <p class="text-[var(--muted)] max-w-md mb-8">Não foi possível confirmar este e-mail (o link pode ter sido alterado). Tente reenviar a confirmação pelo seu perfil.</p>
+  {% endif %}
+  <div class="flex gap-4">
+    <a href="/perfil/" class="inline-flex items-center gap-2 text-[var(--ember)] hover:text-[var(--flame)] font-medium transition-colors">Ir para o perfil</a>
+    <a href="/" class="inline-flex items-center gap-2 text-[var(--muted)] hover:text-[var(--text)] font-medium transition-colors">Início</a>
+  </div>
+</main>
+{% endblock %}

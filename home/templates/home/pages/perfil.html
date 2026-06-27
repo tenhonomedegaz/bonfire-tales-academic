@@ -66,6 +66,11 @@
             <label class="profile-label" for="id_email">E-mail</label>
             <input class="profile-input" type="email" id="id_email" name="email" value="{{ user.email|default:'' }}" placeholder="voce@email.com" autocomplete="email">
             <span class="avatar-preview-hint">Usado para entrar com e-mail e para vincular suas compras de colaborador (Asaas). Use o mesmo e-mail do pagamento.</span>
+            {% if user.email %}{% if profile.email_verified %}
+            <span class="avatar-preview-hint" style="color:#22c55e">✓ E-mail confirmado.</span>
+            {% else %}
+            <span class="avatar-preview-hint" style="color:var(--flame)">E-mail ainda não confirmado — veja abaixo.</span>
+            {% endif %}{% endif %}
         </div>
 
         <div class="profile-field">
@@ -94,6 +99,20 @@
             Salvar Perfil
         </button>
     </form>
+
+    {% if user.email and not profile.email_verified %}
+    <!-- Seção: Confirmar E-mail -->
+    <form method="post" class="profile-section">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="resend_verification">
+        <h2 class="profile-section-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+            Confirmar E-mail
+        </h2>
+        <p class="avatar-preview-hint" style="margin-bottom:.75rem">Enviamos um link de confirmação para <strong style="color:var(--ember)">{{ user.email }}</strong>. Confirme para o e-mail valer (login e cobrança). Não recebeu?</p>
+        <button type="submit" class="profile-btn" style="background:transparent;border:1px solid var(--stroke)">Reenviar confirmação</button>
+    </form>
+    {% endif %}
 
     {% if has_password %}
     <!-- Seção: Alterar Senha -->

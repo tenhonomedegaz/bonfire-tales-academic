@@ -513,6 +513,8 @@ def register_view(request):
             user.email = form.cleaned_data.get("email") or ""
             user.save()
             login(request, user)
+            if user.email:
+                _enviar_verificacao_email(request, user)
             return redirect("home")
     else:
         form = StaffSignupForm()
@@ -520,6 +522,52 @@ def register_view(request):
     return render(request, "home/register.html", {
         "form": form,
     })
+
+
+def _enviar_verificacao_email(request, user):
+    """Manda o link de confirmação de e-mail (token assinado, expira em 24h). Falha em
+    silêncio se o envio não estiver configurado (cai no backend de console em dev)."""
+    from django.conf import settings
+    from django.core import signing
+    from django.core.mail import send_mail
+    if not user.email:
+        return
+    token = signing.dumps({'uid': user.pk, 'email': user.email.lower()}, salt='email-verify')
+    link = request.build_absolute_uri(reverse('verify_email', args=[token]))
+    corpo = ('Olá, %s!\n\nConfirme seu e-mail no Bonfire Tales clicando no link abaixo '
+             '(expira em 24 horas):\n\n%s\n\nSe não foi você, pode ignorar esta mensagem.'
+             % (user.username, link))
+    try:
+        send_mail('Confirme seu e-mail — Bonfire Tales', corpo,
+                  settings.DEFAULT_FROM_EMAIL, [user.email], fail_silently=True)
+    except Exception:
+        pass
+
+
+def verify_email(request, token):
+    """Confirma o e-mail a partir do token assinado. Só e-mail verificado 'trava' o uso
+    por outra conta — então um e-mail só pendente nunca bloqueia o dono real."""
+    from django.core import signing
+    from .models import UserProfile
+    try:
+        data = signing.loads(token, salt='email-verify', max_age=60 * 60 * 24)
+    except signing.SignatureExpired:
+        return render(request, 'home/pages/verificar_email.html', {'status': 'expirado'})
+    except signing.BadSignature:
+        return render(request, 'home/pages/verificar_email.html', {'status': 'invalido'})
+    User = get_user_model()
+    user = User.objects.filter(pk=data.get('uid')).first()
+    email = (data.get('email') or '').lower()
+    if not user or (user.email or '').lower() != email:
+        status = 'invalido'  # e-mail mudou depois que o link foi gerado
+    elif UserProfile.objects.filter(user__email__iexact=email, email_verified=True).exclude(user=user).exists():
+        status = 'conflito'
+    else:
+        prof, _ = UserProfile.objects.get_or_create(user=user)
+        prof.email_verified = True
+        prof.save(update_fields=['email_verified'])
+        status = 'ok'
+    return render(request, 'home/pages/verificar_email.html', {'status': status})
 
 
 @login_required(login_url='/login/')
@@ -555,18 +603,23 @@ def profile_view(request):
                     user.username = new_username
                     user_changed = True
 
-            # E-mail editável (importante p/ casar a cobrança do Asaas por e-mail)
+            # E-mail editável (importante p/ casar a cobrança do Asaas). Unicidade só
+            # entre e-mails VERIFICADOS: um e-mail só pendente não bloqueia ninguém,
+            # evitando que alguém "reserve" o e-mail de outra pessoa.
+            email_mudou = False
             if new_email != (user.email or ''):
                 from django.core.validators import validate_email
                 from django.core.exceptions import ValidationError
                 try:
                     if new_email:
                         validate_email(new_email)
-                    if new_email and User.objects.filter(email__iexact=new_email).exclude(pk=user.pk).exists():
-                        errors.append('Esse e-mail já está em uso por outra conta.')
+                    if new_email and UserProfile.objects.filter(
+                            user__email__iexact=new_email, email_verified=True).exclude(user=user).exists():
+                        errors.append('Esse e-mail já está confirmado em outra conta.')
                     else:
                         user.email = new_email
                         user_changed = True
+                        email_mudou = True
                 except ValidationError:
                     errors.append('E-mail inválido.')
 
@@ -575,9 +628,23 @@ def profile_view(request):
 
             profile.avatar_url = new_avatar or None
             profile.vlibras_enabled = vlibras_enabled
+            if email_mudou:
+                profile.email_verified = False
             profile.save()
             if not errors:
                 messages.append('Perfil salvo com sucesso!')
+            if email_mudou and user.email and not errors:
+                _enviar_verificacao_email(request, user)
+                messages.append('Enviamos um link de confirmação para %s. Confirme para validar o e-mail.' % user.email)
+
+        elif action == 'resend_verification':
+            if not user.email:
+                errors.append('Defina um e-mail primeiro (em Dados do Perfil).')
+            elif profile.email_verified:
+                messages.append('Seu e-mail já está confirmado.')
+            else:
+                _enviar_verificacao_email(request, user)
+                messages.append('Link de confirmação reenviado para %s.' % user.email)
 
         elif action == 'set_password_initial':
             # Conta criada via login com Discord (sem senha): define a senha de acesso
@@ -767,7 +834,12 @@ def discord_callback(request):
     prof, _ = UserProfile.objects.get_or_create(user=user)
     prof.discord_user_id = discord_id
     prof.discord_username = discord_name
-    prof.save(update_fields=['discord_user_id', 'discord_username'])
+    # Discord já entrega o e-mail confirmado → confia nele (vale p/ login e cobrança),
+    # desde que ninguém mais já tenha verificado esse mesmo e-mail.
+    ja_verif = bool(discord_email) and UserProfile.objects.filter(
+        user__email__iexact=discord_email, email_verified=True).exclude(user=user).exists()
+    prof.email_verified = bool(discord_email and duser.get('verified') and not ja_verif)
+    prof.save(update_fields=['discord_user_id', 'discord_username', 'email_verified'])
     login(request, user)
     return redirect(nxt)
 

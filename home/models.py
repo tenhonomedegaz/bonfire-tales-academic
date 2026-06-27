@@ -743,6 +743,8 @@ class UserProfile(models.Model):
     user = models.OneToOneField('auth.User', on_delete=models.CASCADE, related_name='profile')
     avatar_url = models.CharField(db_column='AvatarUrl', max_length=500, blank=True, null=True, help_text='URL da imagem de perfil.')
     vlibras_enabled = models.BooleanField(db_column='VlibrasEnabled', default=False, help_text='Habilita o plugin VLibras no site.')
+    email_verified = models.BooleanField(db_column='EmailVerified', default=False,
+                                         help_text='E-mail confirmado por link de verificação. Só e-mail verificado "trava" o uso por outra conta e vale para a cobrança.')
     # Vínculo com o Discord (OAuth2). discord_user_id é o vínculo FORTE com o bot
     # (BotMember), substituindo o casamento frágil por e-mail.
     discord_user_id = models.CharField(db_column='DiscordUserId', max_length=32, blank=True, null=True, unique=True)

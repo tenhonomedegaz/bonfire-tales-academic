@@ -221,6 +221,20 @@ if _env_bool("DJANGO_USE_X_FORWARDED_PROTO", False):
 
 LOGIN_REDIRECT_URL = '/'
 
+# ── E-mail (Gmail SMTP) ──────────────────────────────────────────────────────
+# Defina EMAIL_HOST_USER (a conta) e EMAIL_HOST_PASSWORD (a "senha de app" do Google,
+# NÃO a senha normal) no .env. Sem isso, cai no backend de console (não envia de verdade,
+# útil em dev). EMAIL_CONFIGURADO indica se o envio real está ativo.
+EMAIL_HOST = os.environ.get("EMAIL_HOST", "smtp.gmail.com")
+EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
+EMAIL_USE_TLS = _env_bool("EMAIL_USE_TLS", True)
+EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "").strip()
+EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "").strip()
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", EMAIL_HOST_USER or "no-reply@bonfiretales.com.br")
+EMAIL_CONFIGURADO = bool(EMAIL_HOST_USER and EMAIL_HOST_PASSWORD)
+EMAIL_BACKEND = ("django.core.mail.backends.smtp.EmailBackend" if EMAIL_CONFIGURADO
+                 else "django.core.mail.backends.console.EmailBackend")
+
 BOT_POSTGRES_TABLES = {
     'quests': os.environ.get('BOT_POSTGRES_QUESTS_TABLE', 'rpg_quests'),
     'items': os.environ.get('BOT_POSTGRES_ITEMS_TABLE', 'rpg_items'),
