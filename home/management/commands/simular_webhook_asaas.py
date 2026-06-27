@@ -85,6 +85,7 @@ class Command(BaseCommand):
         req = urllib.request.Request(
             opt["url"], data=data, method="POST",
             headers={"Content-Type": "application/json",
+                     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
                      "asaas-access-token": settings.ASAAS_WEBHOOK_TOKEN})
         self.stdout.write("POST %s  (evento=%s, plano=%s, id=%s)" % (opt["url"], opt["evento"], plano, pay_id))
         try:

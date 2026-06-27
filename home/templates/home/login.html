@@ -23,7 +23,10 @@
             >
           </div>
           <div>
-            <label class="block text-sm font-semibold mb-1 text-[var(--muted)]" for="id_password">Senha</label>
+            <div class="flex justify-between items-center mb-1">
+              <label class="block text-sm font-semibold text-[var(--muted)]" for="id_password">Senha</label>
+              <a href="{% url 'password_reset' %}" class="text-xs text-[var(--ember)] hover:text-[var(--text)] transition-colors">Esqueceu a senha?</a>
+            </div>
             <input 
               type="password" 
               name="password" 
