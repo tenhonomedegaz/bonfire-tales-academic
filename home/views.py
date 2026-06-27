@@ -538,11 +538,13 @@ def profile_view(request):
 
         if action == 'update_profile':
             new_username = request.POST.get('username', '').strip()
+            new_email = request.POST.get('email', '').strip()
             new_avatar = request.POST.get('avatar_url', '').strip()
             vlibras_enabled = request.POST.get('vlibras_enabled') == 'on'
+            User = get_user_model()
+            user_changed = False
 
             if new_username and new_username != user.username:
-                User = get_user_model()
                 if User.objects.filter(username=new_username).exclude(pk=user.pk).exists():
                     errors.append('Esse nome de usuário já está em uso.')
                 elif len(new_username) < 3:
@@ -551,14 +553,48 @@ def profile_view(request):
                     errors.append('O nome de usuário deve ter no máximo 30 caracteres.')
                 else:
                     user.username = new_username
-                    user.save()
-                    messages.append('Nome de usuário atualizado!')
+                    user_changed = True
+
+            # E-mail editável (importante p/ casar a cobrança do Asaas por e-mail)
+            if new_email != (user.email or ''):
+                from django.core.validators import validate_email
+                from django.core.exceptions import ValidationError
+                try:
+                    if new_email:
+                        validate_email(new_email)
+                    if new_email and User.objects.filter(email__iexact=new_email).exclude(pk=user.pk).exists():
+                        errors.append('Esse e-mail já está em uso por outra conta.')
+                    else:
+                        user.email = new_email
+                        user_changed = True
+                except ValidationError:
+                    errors.append('E-mail inválido.')
+
+            if user_changed:
+                user.save()
 
             profile.avatar_url = new_avatar or None
             profile.vlibras_enabled = vlibras_enabled
             profile.save()
             if not errors:
                 messages.append('Perfil salvo com sucesso!')
+
+        elif action == 'set_password_initial':
+            # Conta criada via login com Discord (sem senha): define a senha de acesso
+            # SEM exigir a senha atual, para passar a entrar também com e-mail/usuário.
+            new_password = request.POST.get('new_password', '')
+            confirm_password = request.POST.get('confirm_password', '')
+            if user.has_usable_password():
+                errors.append('Você já tem uma senha definida; use "Alterar Senha".')
+            elif len(new_password) < 6:
+                errors.append('A nova senha deve ter pelo menos 6 caracteres.')
+            elif new_password != confirm_password:
+                errors.append('As senhas não coincidem.')
+            else:
+                user.set_password(new_password)
+                user.save()
+                update_session_auth_hash(request, user)
+                messages.append('Senha definida! Agora você também pode entrar com e-mail/usuário e senha.')
 
         elif action == 'change_password':
             current_password = request.POST.get('current_password', '')
@@ -584,6 +620,7 @@ def profile_view(request):
         'error_messages': errors,
         'discord_msg': request.GET.get('discord'),
         'discord_oauth_on': bool(_settings.DISCORD_OAUTH_CLIENT_ID),
+        'has_password': user.has_usable_password(),
     })
 
 
