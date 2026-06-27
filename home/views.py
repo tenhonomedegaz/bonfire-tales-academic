@@ -695,13 +695,23 @@ def discord_callback(request):
 
     # 1) Usuário já logado → VINCULAR ao Discord
     if request.user.is_authenticated:
-        clash = UserProfile.objects.filter(discord_user_id=discord_id).exclude(user=request.user).first()
-        if clash:
+        clash = (UserProfile.objects.filter(discord_user_id=discord_id)
+                 .exclude(user=request.user).select_related('user').first())
+        # Só bloqueia se o Discord já estiver numa conta REAL (com senha). Se estiver preso
+        # a uma conta "fantasma" (criada pelo próprio login com Discord, sem senha definida),
+        # o dono — que acabou de provar posse via OAuth — reivindica: solta o vínculo da
+        # fantasma e segue. É isso que destrava "conectar Discord a uma conta já existente".
+        if clash and clash.user.has_usable_password():
             return redirect('/perfil/?discord=ja_vinculado')
-        prof, _ = UserProfile.objects.get_or_create(user=request.user)
-        prof.discord_user_id = discord_id
-        prof.discord_username = discord_name
-        prof.save(update_fields=['discord_user_id', 'discord_username'])
+        with transaction.atomic():
+            if clash:
+                clash.discord_user_id = None
+                clash.discord_username = None
+                clash.save(update_fields=['discord_user_id', 'discord_username'])
+            prof, _ = UserProfile.objects.get_or_create(user=request.user)
+            prof.discord_user_id = discord_id
+            prof.discord_username = discord_name
+            prof.save(update_fields=['discord_user_id', 'discord_username'])
         return redirect('/perfil/?discord=vinculado')
 
     # 2) Não logado → achar conta pelo discord_user_id
