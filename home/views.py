@@ -6293,7 +6293,6 @@ def bestiario_view(request):
     nd_sel = request.GET.get('nd', '')
     tipo_sel = request.GET.get('tipo', '')
     tam_sel = request.GET.get('tam', '')
-    fonte_sel = request.GET.get('fonte', '')
     ordem = request.GET.get('ord', 'az')
     is_staff = perms.is_staff_user(request.user)
     qs = TbBestiario.objects.select_related('autor')
@@ -6307,8 +6306,6 @@ def bestiario_view(request):
         qs = qs.filter(tipo=tipo_sel)
     if tam_sel:
         qs = qs.filter(tamanho=tam_sel)
-    if fonte_sel:
-        qs = qs.filter(source=fonte_sel)
     criaturas = []
     for b in qs:
         criaturas.append({
@@ -6316,8 +6313,7 @@ def bestiario_view(request):
             'tipo': _sb_tipo_pt(b.tipo), 'nd': b.nd or '', 'tamanho': _SB_TAM.get(b.tamanho, b.tamanho or ''),
             'comunidade': b.comunidade, 'autor': b.autor.username if b.autor_id else None,
             'imagem': b.imagem_url or '',
-            'source': b.source or '',
-            'busca': ' '.join([b.nome or '', b.slug or '', b.tipo or '', b.tamanho or '', b.nd or '', b.source or '']).lower(),
+            'busca': ' '.join([b.nome or '', b.slug or '', b.tipo or '', b.tamanho or '', b.nd or '']).lower(),
             'nd_valor': _nd_valor(b.nd),
             'sb': _statblock_display_full(b.statblock_json if isinstance(b.statblock_json, dict) else {}, b),
             'descricao': _clean_5et(b.descricao_markdown or ''),
@@ -6335,12 +6331,11 @@ def bestiario_view(request):
     nds_all = sorted({(x.nd or '').strip() for x in all_qs if (x.nd or '').strip()}, key=_nd_valor)
     tipos_all = sorted({(x.tipo or '').strip() for x in all_qs if (x.tipo or '').strip()})
     tamanhos_all = sorted({(x.tamanho or '').strip() for x in all_qs if (x.tamanho or '').strip()})
-    fontes_all = sorted({(x.source or '').strip() for x in all_qs if (x.source or '').strip()})
     return render(request, 'home/pages/bestiario.html', {
         'page_title': 'Bestiário',
         'criaturas': criaturas, 'filtro': filtro, 'nd_sel': nd_sel, 'tipo_sel': tipo_sel,
-        'tam_sel': tam_sel, 'fonte_sel': fonte_sel, 'ordem': ordem, 'nds': nds_all,
-        'tipos': tipos_all, 'tamanhos': tamanhos_all, 'fontes': fontes_all,
+        'tam_sel': tam_sel, 'ordem': ordem, 'nds': nds_all,
+        'tipos': tipos_all, 'tamanhos': tamanhos_all,
         'pode_criar': perms.is_mestre(request.user), 'is_staff': is_staff,
         'msg': request.GET.get('m'),
     })
@@ -6453,7 +6448,7 @@ def bestiario_criar(request):
         TbBestiario.objects.create(
             nome=nome, slug=slug, tipo=g('tipo') or None, tamanho=g('tamanho') or None,
             nd=(g('nd') or '').strip() or None, alinhamento=g('alinhamento') or None,
-            source='BonfireTales' if oficial else 'Comunidade', ca=str(num('ca', 10)), pv=str(num('pv', 1)),
+            ca=str(num('ca', 10)), pv=str(num('pv', 1)),
             statblock_json=_build_statblock(g), descricao_markdown=(g('descricao') or '').strip() or None,
             imagem_url=(g('imagem_url') or '').strip() or None,
             comunidade=not oficial, autor=request.user)
@@ -6492,7 +6487,6 @@ def bestiario_editar(request, pk):
         b.imagem_url = (g('imagem_url') or '').strip() or None
         if is_staff:
             b.comunidade = (g('oficial') != 'on')
-            b.source = 'Comunidade' if b.comunidade else 'BonfireTales'
         b.save()
         return redirect(reverse('bestiario') + '?m=editada')
     return render(request, 'home/pages/bestiario_criar.html', {
@@ -6566,7 +6560,6 @@ def _armadilha_apply(a, g, is_staff):
     a.descricao_markdown = (g('descricao') or '').strip() or None
     oficial = bool(is_staff and g('oficial') == 'on')
     a.comunidade = not oficial
-    a.source = 'BonfireTales' if oficial else 'Comunidade'
 
 
 @login_required(login_url='/login/')

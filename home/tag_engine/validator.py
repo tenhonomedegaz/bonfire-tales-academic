@@ -451,7 +451,7 @@ class DataIndex:
             return True
         if slug in self.internal_pools or slug in self.ability_names or slug == "uses":
             return True  # pool interno (define/max/mark), uso da própria habilidade, item, 'uses'=auto
-        if slug in ("all", "spell-slot", "pact-slot", "spell-slots"):
+        if slug in ("all", "spell-slot", "pact-slot", "spell-slots", "charges"):
             return True
         return bool(_NUMERIC.match(slug))  # '1','2'...'9' = nível de espaço
 

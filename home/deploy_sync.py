@@ -8,6 +8,8 @@ PRESERVAM o PK da produção; as demais são substituídas inteiras com remapeam
 Ver docs/deploy-sync-conteudo.md.
 """
 from collections import defaultdict
+import json
+import os
 
 from django.apps import apps
 from django.core import serializers
@@ -33,6 +35,7 @@ MEMORY_MODELS = [
     "TbReiDaColina", "UserProfile",
 ]
 CONTENT_MODELS = UPSERT_POR_SLUG + SUBSTITUI
+DELETIONS_PATH = os.path.join("home", "content_deletions.json")
 
 
 def _m(nome):
@@ -50,6 +53,31 @@ def _label(model):
 
 def contagem(nomes):
     return {nm: _m(nm).objects.count() for nm in nomes}
+
+
+def _load_content_deletions():
+    if not os.path.exists(DELETIONS_PATH):
+        return {}
+    with open(DELETIONS_PATH, encoding="utf-8") as fh:
+        data = json.load(fh)
+    if not isinstance(data, dict):
+        return {}
+    return {str(model): [str(slug) for slug in slugs if slug]
+            for model, slugs in data.items() if isinstance(slugs, list)}
+
+
+def _memory_references(obj):
+    refs = []
+    target_model = obj._meta.model
+    for model_name in MEMORY_MODELS:
+        M = _m(model_name)
+        for field in M._meta.fields:
+            if not isinstance(field, models.ForeignKey) or field.related_model != target_model:
+                continue
+            count = M.objects.filter(**{field.attname: obj.pk}).count()
+            if count:
+                refs.append((model_name, field.name, count))
+    return refs
 
 
 def sincronizar_conteudo(fixture_text):
@@ -72,7 +100,7 @@ def sincronizar_conteudo(fixture_text):
                 setattr(obj, attname, mp[val])
 
     mem_antes = contagem(MEMORY_MODELS)
-    rel = {"pass1": [], "pass2": []}
+    rel = {"pass1": [], "pass2": [], "deletions": []}
 
     with transaction.atomic():
         # PASSO 1: upsert por slug (preserva PK da produção)
@@ -107,6 +135,30 @@ def sincronizar_conteudo(fixture_text):
                 obj.save(force_insert=True)
             rel["pass2"].append((nome, len(novos)))
 
+        # PASSO 2.5: deleções explícitas de conteúdo removido da dev.
+        for nome, slugs in _load_content_deletions().items():
+            if nome not in UPSERT_POR_SLUG:
+                rel["deletions"].append((nome, 0, len(slugs), "modelo nao permitido para tombstone"))
+                continue
+            M = _m(nome)
+            deleted = blocked = 0
+            details = []
+            for slug in slugs:
+                obj = M.objects.filter(slug=slug).first()
+                if not obj:
+                    continue
+                refs = _memory_references(obj)
+                if refs:
+                    blocked += 1
+                    details.append("%s referenciado por %s" % (
+                        slug,
+                        ", ".join("%s.%s=%d" % ref for ref in refs),
+                    ))
+                    continue
+                obj.delete()
+                deleted += 1
+            rel["deletions"].append((nome, deleted, blocked, "; ".join(details)))
+
         # PASSO 3: realinha sequences (Postgres)
         if connection.vendor == "postgresql":
             from io import StringIO
@@ -133,6 +185,12 @@ def relatorio_texto(rel):
     linhas.append("== Demais tabelas (substituídas inteiras) ==")
     for nome, n in rel["pass2"]:
         linhas.append("  %-20s %d registros" % (nome, n))
+    if rel.get("deletions"):
+        linhas.append("== Deleções explícitas de conteúdo ==")
+        for nome, deleted, blocked, details in rel["deletions"]:
+            linhas.append("  %-20s %d removidos, %d bloqueados" % (nome, deleted, blocked))
+            if details:
+                linhas.append("    %s" % details)
     if rel["mem_ok"]:
         linhas.append("MEMÓRIA INTACTA: %d tabelas de usuário/missão com a mesma contagem." % len(rel["mem_antes"]))
     else:

@@ -197,6 +197,7 @@
 {{ json_markers|json_script:"markers-data" }}
 {{ json_regions|json_script:"regions-data" }}
 {{ json_territories|json_script:"territories-data" }}
+{{ json_layers|json_script:"layers-data" }}
 <script>
 const canEditWiki = {% if can_edit_wiki %}true{% else %}false{% endif %};
 
@@ -719,7 +720,7 @@ function undoAllChanges() {
 }
 window.undoLastChange = undoAllChanges;
 
-const layersData = {{ json_layers|safe }};
+const layersData = JSON.parse(document.getElementById('layers-data').textContent);
 
 const mapWidth = 6144;
 const mapHeight = 4608;

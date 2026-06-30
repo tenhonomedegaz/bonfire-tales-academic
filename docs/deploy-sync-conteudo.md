@@ -64,12 +64,47 @@ manage.py migrate && manage.py sync_conteudo
 `sync_conteudo` (por CHAVE NATURAL) faz tudo com segurança: (1) backup da memória em
 `backups/` (restaurável com `loaddata`); (2) **upsert por slug** das tabelas referenciadas
 por usuário (preserva o PK da prod); (3) **substitui inteiras** as demais (delete+reinsert,
-remapeando FKs de pai); (4) realinha as sequences; (5) confirma que as tabelas de
+remapeando FKs de pai); (4) aplica deleções explícitas versionadas em
+`home/content_deletions.json` somente quando não há FK de memória bloqueando; (5) realinha as sequences; (6) confirma que as tabelas de
 usuário/missão ficaram com a MESMA contagem. Use `--dry-run` p/ ver o plano (quantos
 atualizar/inserir/substituir) sem alterar nada.
 
 Para gerar/atualizar o fixture (no dev, antes de commitar): `manage.py dump_conteudo
 --output home/fixtures/conteudo.json --manifest home/fixtures/conteudo_manifest.json`.
+
+## Procedimento seguro quando existe backup fresco da produção
+
+Quando houver um `backup_completo_<timestamp>.json` recém-baixado da produção, primeiro
+rebaseie o banco local nele e só então gere o fixture. Isso evita sobrescrever conteúdo
+que não foi alterado na dev com uma versão local velha.
+
+```
+manage.py migrate
+manage.py restore_full_backup_local --file ref/backup_completo_YYYYMMDD_HHMMSS.json --confirm RESTAURAR_LOCAL
+manage.py sync_conteudo
+manage.py dump_conteudo --output home/fixtures/conteudo.json --manifest home/fixtures/conteudo_manifest.json
+manage.py sync_conteudo --dry-run
+```
+
+O resultado é um `conteudo.json` baseado no backup fresco da produção mais as mudanças
+de conteúdo da dev. Dados de usuário/runtime não entram no fixture.
+
+### Deleções explícitas
+
+Tabelas referenciadas por personagem/usuário usam upsert por slug e preservam PKs.
+Por segurança, um registro ausente no fixture **não é deletado automaticamente**.
+Conteúdo removido de propósito deve ser listado em `home/content_deletions.json`.
+
+Exemplo:
+
+```
+{
+  "TbMagia": ["sacrificio-de-sangue"]
+}
+```
+
+Durante o sync, a deleção só acontece se o registro não estiver referenciado por tabelas
+de memória. Se houver referência, o relatório mostra a deleção como bloqueada.
 
 ## Procedimento manual (passo a passo, equivalente)
 

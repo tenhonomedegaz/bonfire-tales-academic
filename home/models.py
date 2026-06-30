@@ -656,7 +656,6 @@ class TbItemMundano(models.Model):
     slug = models.SlugField(db_column='Slug', max_length=150, unique=True)
     categoria = models.CharField(db_column='Categoria', max_length=50, choices=CATEGORIA_CHOICES, default='equipamento_aventura')
     subcategoria = models.CharField(db_column='Subcategoria', max_length=100, blank=True, null=True, help_text='Ex: arma_simples, escudo, ferramenta_artesao')
-    fonte = models.CharField(db_column='Fonte', max_length=20, blank=True, null=True, help_text="Livro/edição de origem (ex.: PHB'24, PHB'14, DMG'24).")
     peso = models.FloatField(db_column='Peso', blank=True, null=True, help_text='Peso em kg ou lbs')
     preco = models.CharField(db_column='Preco', max_length=50, blank=True, null=True, help_text='Ex: 5 PO')
     
@@ -1395,12 +1394,11 @@ class TbBestiario(models.Model):
     nome = models.CharField(db_column='Nome', max_length=150)
     slug = models.SlugField(db_column='Slug', max_length=150, unique=True, help_text='Chave do summon:bestiary{<slug>}.')
     tipo = models.CharField(db_column='Tipo', max_length=60, blank=True, null=True, help_text='Tipo (5etools type.type): undead, beast, fiend, construct…')
-    tamanho = models.CharField(db_column='Tamanho', max_length=30, blank=True, null=True, help_text='T/S/M/L/H/G (5etools).')
-    nd = models.CharField(db_column='ND', max_length=20, blank=True, null=True, help_text='Nível de Desafio / cr (ex.: 1/4, 1/2, 5). Forma Selvagem filtra por isto.')
+    tamanho = models.CharField(db_column='Tamanho', max_length=80, blank=True, null=True, help_text='Tamanho ou lista de tamanhos possíveis.')
+    nd = models.CharField(db_column='ND', max_length=80, blank=True, null=True, help_text='Nível de Desafio / CR com XP/PB quando disponível.')
     alinhamento = models.CharField(db_column='Alinhamento', max_length=40, blank=True, null=True)
-    source = models.CharField(db_column='Source', max_length=60, blank=True, null=True, default='BonfireTales', help_text='Fonte (BonfireTales, XMM…).')
     ca = models.CharField(db_column='CA', max_length=40, blank=True, null=True, help_text='Número ou fórmula (atalho de display).')
-    pv = models.CharField(db_column='PV', max_length=60, blank=True, null=True, help_text='Número ou fórmula (ex.: 5+5*classlvl) p/ companheiros que escalam.')
+    pv = models.CharField(db_column='PV', max_length=160, blank=True, null=True, help_text='Número ou fórmula (ex.: 5+5*classlvl) p/ companheiros que escalam.')
     statblock_json = models.JSONField(db_column='StatblockJSON', blank=True, default=dict, help_text='Statblock no schema 5etools (ac, hp, speed, str..cha, save, skill, senses, languages, resist/immune/vulnerable/conditionImmune, trait/action/bonus/reaction/legendary, passive). Importável 1:1 do criador de mobs/Roll20.')
     tags_json = models.JSONField(db_column='TagsJSON', blank=True, default=list, help_text='Mecânica no vocabulário Bonfire (para summon:bestiary{} / motor da ficha).')
     companheiro_classe = models.ForeignKey('TbClasse', db_column='Id_Classe', blank=True, null=True, on_delete=models.SET_NULL, help_text='Companheiro de classe (ex.: Defensor de Aço → Artífice).')
@@ -1446,7 +1444,6 @@ class TbArmadilha(models.Model):
     efeito = models.TextField(db_column='Efeito', blank=True, null=True,
                               help_text='Efeito completo / consequências.')
     descricao_markdown = models.TextField(db_column='DescricaoMarkdown', blank=True, null=True)
-    source = models.CharField(db_column='Source', max_length=60, blank=True, null=True, default='BonfireTales')
     comunidade = models.BooleanField(db_column='Comunidade', default=False)
     autor = models.ForeignKey('auth.User', models.SET_NULL, db_column='Id_Autor', blank=True, null=True, related_name='armadilhas')
 

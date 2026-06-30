@@ -15,7 +15,8 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import connection
 
 from home.deploy_sync import (UPSERT_POR_SLUG, SUBSTITUI, MEMORY_MODELS, _m,
-                              _label, sincronizar_conteudo, relatorio_texto)
+                              _label, _load_content_deletions, sincronizar_conteudo,
+                              relatorio_texto)
 
 FIXTURE_PATH = "home/fixtures/conteudo.json"
 
@@ -43,8 +44,9 @@ class Command(BaseCommand):
             cont = Counter(o["model"] for o in json.loads(texto))
             up = sum(cont.get(_label(_m(n)), 0) for n in UPSERT_POR_SLUG)
             rep = sum(cont.get(_label(_m(n)), 0) for n in SUBSTITUI)
+            deletions = sum(len(slugs) for slugs in _load_content_deletions().values())
             self.stdout.write(self.style.SUCCESS(
-                "DRY-RUN: %d por slug (preserva PK) | %d substituídos. Nada alterado." % (up, rep)))
+                "DRY-RUN: %d por slug (preserva PK) | %d substituídos | %d deleções explícitas. Nada alterado." % (up, rep, deletions)))
             return
 
         if not opt["no_backup"]:

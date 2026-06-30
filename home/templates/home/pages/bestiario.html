@@ -74,7 +74,7 @@
   {% elif msg == 'excluida' %}<p class="rounded border border-[var(--stroke)] bg-[var(--bg1)] px-3 py-2 text-sm text-[var(--muted)]">Criatura excluida.</p>{% endif %}
 
   <form method="get" class="bestiary-toolbar">
-    <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-7">
+    <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-6">
       <input id="bz-busca" type="search" placeholder="Buscar criatura..." autocomplete="off"
              class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)] outline-none focus:border-[var(--ember)] lg:col-span-2">
       <select name="f" onchange="this.form.submit()" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-2 text-sm text-[var(--text)]">
@@ -89,10 +89,6 @@
       <select name="tipo" onchange="this.form.submit()" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-2 text-sm text-[var(--text)]">
         <option value="">Tipo todos</option>
         {% for tipo in tipos %}<option value="{{ tipo }}" {% if tipo == tipo_sel %}selected{% endif %}>{{ tipo }}</option>{% endfor %}
-      </select>
-      <select name="fonte" onchange="this.form.submit()" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-2 text-sm text-[var(--text)]">
-        <option value="">Fonte todas</option>
-        {% for fonte in fontes %}<option value="{{ fonte }}" {% if fonte == fonte_sel %}selected{% endif %}>{{ fonte }}</option>{% endfor %}
       </select>
       <select name="ord" onchange="this.form.submit()" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-2 text-sm text-[var(--text)]">
         <option value="az" {% if ordem == 'az' %}selected{% endif %}>A-Z</option>
@@ -115,7 +111,6 @@
             <div class="mt-1 text-[11px] uppercase tracking-wide text-[var(--muted)]">{{ c.tamanho }} {{ c.tipo }}{% if c.nd %} · ND {{ c.nd }}{% endif %}</div>
           </div>
           <div class="flex shrink-0 flex-col items-end gap-1">
-            {% if c.source %}<span class="monster-pill">{{ c.source }}</span>{% endif %}
             {% if c.comunidade %}<span class="monster-pill">comunidade</span>{% endif %}
           </div>
         </div>
@@ -132,7 +127,7 @@
           {% with sb=c.sb %}
           <header class="monster-header">
             <h2 class="monster-title">{{ c.nome }}</h2>
-            <p class="monster-subtitle">{{ sb.cabecalho }}{% if c.source %} · {{ c.source }}{% endif %}{% if c.autor %} · por {{ c.autor }}{% endif %}</p>
+            <p class="monster-subtitle">{{ sb.cabecalho }}{% if c.autor %} · por {{ c.autor }}{% endif %}</p>
           </header>
 
           <section class="grid gap-2">

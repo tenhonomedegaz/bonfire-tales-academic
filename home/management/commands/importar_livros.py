@@ -21,7 +21,7 @@ from django.utils.text import slugify
 # arquivo -> (Model, campos permitidos no modelo)
 PLANO = {
     "mundano": ("itens_mundanos.json", "TbItemMundano", [
-        "nome", "slug", "categoria", "subcategoria", "fonte", "peso", "preco",
+        "nome", "slug", "categoria", "subcategoria", "peso", "preco",
         "dano", "propriedades", "maestria", "ca", "tipo_equip", "ca_base",
         "ca_limite_des", "forca_minima", "furtividade_desvantagem",
         "descricao_markdown", "imagem_url", "tags_json"]),
@@ -29,7 +29,7 @@ PLANO = {
         "nome", "slug", "raridade", "requer_sintonizacao", "detalhes_sintonizacao",
         "slot", "loja", "preco", "tipo", "descricao_markdown", "imagem_url", "tags_json"]),
     "criatura": ("criaturas.json", "TbBestiario", [
-        "nome", "slug", "tipo", "tamanho", "nd", "alinhamento", "source", "ca", "pv",
+        "nome", "slug", "tipo", "tamanho", "nd", "alinhamento", "ca", "pv",
         "statblock_json", "tags_json", "descricao_markdown", "imagem_url", "comunidade"]),
     # TbRegra so tem o subconjunto de glossario; os campos de VTT (rule_kind,
     # default_enabled, toggleable, implementation_notes) ficam no JSON para o futuro VTT.

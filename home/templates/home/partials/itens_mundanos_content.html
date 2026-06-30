@@ -190,7 +190,7 @@
     {% for item in g.itens %}
     <template id="extra-{{ g.id }}-{{ forloop.counter }}-tpl">
       <div class="mu-detail">
-        <span class="mu-detail-cat">{{ g.label }}{% if item.get_subcategoria_display or item.subcategoria %} · {{ item.get_subcategoria_display|default:item.subcategoria }}{% endif %}{% if item.fonte %} · {{ item.fonte }}{% endif %}</span>
+        <span class="mu-detail-cat">{{ g.label }}{% if item.get_subcategoria_display or item.subcategoria %} · {{ item.get_subcategoria_display|default:item.subcategoria }}{% endif %}</span>
         <h2 class="mu-detail-title">{{ item.nome }}</h2>
         <div class="mu-detail-stats">
           <div class="mu-stat"><span class="mu-stat-label">Preço</span><span class="mu-stat-value">{{ item.preco|default:"--" }}</span></div>

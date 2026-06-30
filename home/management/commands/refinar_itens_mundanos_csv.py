@@ -3,7 +3,7 @@
 
 O CSV tem dados mais completos em ingles. Este comando e conservador:
 - casa itens por slug/nome e por aliases PT->EN para armas/ferramentas;
-- preenche fonte/preco/peso quando faltam;
+- preenche preco/peso quando faltam;
 - gera um bloco "Dados oficiais" em portugues a partir dos campos estruturados;
 - nao sobrescreve dano/propriedades/maestria/tags_json quando o banco ja tem
   versoes mais ricas (ex.: maestrias homebrew adicionais).
@@ -133,13 +133,47 @@ MASTERY_NAMES = {
     "Vex": "Vexar",
 }
 
+TYPE_MAPPINGS_MUNDANO = {
+    "Simple Weapon": "Arma Simples",
+    "Martial Weapon": "Arma Marcial",
+    "Melee Weapon": "Arma Corpo a Corpo",
+    "Ranged Weapon": "Arma à Distância",
+    "Weapon": "Arma",
+    "Adventuring Gear": "Equipamento de Aventura",
+    "Light Armor": "Armadura Leve",
+    "Medium Armor": "Armadura Média",
+    "Heavy Armor": "Armadura Pesada",
+    "Spellcasting Focus": "Foco de Conjuração",
+    "Artisan's Tools": "Ferramentas de Artesão",
+    "Gaming Set": "Conjunto de Jogos",
+    "Gaming Sets": "Conjunto de Jogos",
+    "Musical Instrument": "Instrumento Musical",
+    "Musical Instruments": "Instrumentos Musicais",
+    "Mounts and Vehicles": "Montarias e Veículos",
+    "Tack, Harness, and Drawn Vehicles": "Equipamento de Montaria e Tração",
+    "Ammunition": "Munição",
+    "Tools": "Ferramentas",
+    "Tool": "Ferramenta",
+    "Shield": "Escudo",
+    "Armor (Shield)": "Armadura (Escudo)",
+}
+
+def translate_type_mundano(tipo_en):
+    if not tipo_en:
+        return "—"
+    parts = [p.strip() for p in tipo_en.split(",")]
+    parts_pt = []
+    for part in parts:
+        parts_pt.append(TYPE_MAPPINGS_MUNDANO.get(part, part))
+    return ", ".join(parts_pt)
+
 PROPERTY_HELP = {
     "Ammunition": "usa munição; o alcance indicado mostra distância normal/longa.",
     "Finesse": "pode usar Força ou Destreza no ataque e no dano.",
     "Heavy": "arma pesada.",
     "Light": "permite o ataque extra de arma leve como ação bônus, seguindo as regras de duas armas.",
     "Loading": "só permite disparar uma munição por ação, ação bônus ou reação.",
-    "Reach": "aumenta o alcance corpo a corpo em 5 pés.",
+    "Reach": "aumenta o alcance corpo a corpo em 1,5 m (5 ft.).",
     "Thrown": "pode ser arremessada; se for arma corpo a corpo, usa o mesmo atributo do ataque corpo a corpo.",
     "Two-Handed": "exige duas mãos para atacar.",
     "Versatile": "pode ser usada com uma ou duas mãos; o dado entre parênteses vale ao usar duas mãos.",
@@ -183,6 +217,27 @@ PHRASE_TRANSLATIONS = {
     "win the game": "vencer o jogo",
     "Play a known tune": "Tocar uma melodia conhecida",
     "improvise a song": "improvisar uma música",
+    "Write text with impressive flourishes that guard against forgery": "Escrever texto com floreios impressionantes que protegem contra falsificação",
+    "Modify footwear to give Vantagem on the wearer's next Destreza (Acrobatics) teste": "Modificar calçados para dar Vantagem no próximo teste de Destreza (Acrobacia) do usuário",
+    "Modify p\u00e9wear to give Vantagem on the wearer's next Destreza (Acrobatics) teste": "Modificar calçados para dar Vantagem no próximo teste de Destreza (Acrobacia) do usuário",
+    "Modify footwear to give Vantagem on the wearer's next Destreza (Acrobatics)": "Modificar calçados para dar Vantagem no próximo teste de Destreza (Acrobacia) do usuário",
+    "Discern what a glass object held in the past 24 hours": "Discernir o que um objeto de vidro continha nas últimas 24 horas",
+    "Add a design to a leather item": "Adicionar um desenho a um item de couro",
+    "Paint a recognizable image of something you've seen": "Pintar uma imagem reconhecível de algo que você viu",
+    "Discern what a ceramic object held in the past 24 hours": "Discernir o que um objeto de cerâmica continha nas últimas 24 horas",
+    "Pry open a door or container": "Forçar a abertura de uma porta ou recipiente",
+    "Mend a tear in clothing": "Remendar um rasgo em roupas",
+    "sew a Tiny design": "costurar um desenho Mínimo",
+    "sew a Minimo design": "costurar um desenho Mínimo",
+    "Any Melee weapon (except Club, Greatclub, Quarterstaff, and Whip), Medium armor (except Hide), Heavy armor, Ball Bearings, Bucket, Caltrops, Chain, Crowbar, Firearm Bullets, Grappling Hook, Iron Pot, Iron Spikes, Sling Bullets": "Qualquer arma Corpo a Corpo (exceto Porrete, Clava Grande, Bordão e Chicote), armadura Média (exceto Couro Batido), armadura Pesada, Esferas de Aço, Balde, Abrolhos, Corrente, Pé de Cabra, Balas de Arma de Fogo, Gancho de Escalada, Panela de Ferro, Cravos de Ferro, Balas de Estilingue",
+    "Padded Armor, Basket, Bedroll, Blanket, Fine Clothes, Net, Robe, Rope, Sack, String, Tent, Traveler's Clothes": "Armadura Acolchoada, Cesto, Saco de Dormir, Cobertor, Roupas Finas, Rede, Manto, Corda, Saco, Barbante, Tenda, Roupas de Viajante",
+    "Antitoxin, Candle, Healer's Kit, Potion of Healing": "Antídoto, Vela, Kit de Curandeiro, Poção de Cura",
+    "Ink, Spell Scroll": "Tinta, Pergaminho de Magia",
+    "Climber's Kit": "Kit de Escalada",
+    "Glass Bottle, Magnifying Glass, Spyglass, Vial": "Garrafa de Vidro, Lente de Aumento, Luneta, Frasco",
+    "Sling, Whip, Hide Armor, Leather Armor, Studded Leather Armor, Backpack, Crossbow Bolt Case, Map or Scroll Case, Parchment, Pouch, Quiver, Waterskin": "Estilingue, Chicote, Couro Batido, Couro, Couro Batido Tachado, Mochila, Estojo de Virotes, Estojo de Mapas ou Pergaminhos, Pergaminho, Algibeira, Aljava, Odre",
+    "Druidic Focus, Holy Symbol": "Foco Druídico, Símbolo Sagrado",
+    "Jug, Lamp": "Jarra, Lâmpada",
 }
 
 TYPE_CATS = [
@@ -274,9 +329,39 @@ def split_csv_list(text):
 
 def translate_property(prop):
     out = prop.replace("\u00a0", " ")
+    
+    def repl_range(match):
+        prefix = match.group(1) or ""
+        val1 = int(match.group(2))
+        val2 = int(match.group(3))
+        m1 = int(round(val1 * 0.3))
+        if val1 == 5: m1 = 1.5
+        elif val1 == 15: m1 = 4.5
+        m2 = int(round(val2 * 0.3))
+        if val2 == 5: m2 = 1.5
+        elif val2 == 15: m2 = 4.5
+        
+        prefix_pt = "alcance " if "range" in prefix.lower() else ""
+        m1_str = str(m1).replace(".", ",")
+        m2_str = str(m2).replace(".", ",")
+        return f"({prefix_pt}{m1_str}/{m2_str} m ({val1}/{val2} ft.))"
+        
+    out = re.sub(r"\((range\s+)?(\d+)/(\d+)\)", repl_range, out, flags=re.I)
+    
+    def repl_single(match):
+        prefix = match.group(1) or ""
+        val = int(match.group(2))
+        m = int(round(val * 0.3))
+        if val == 5: m = 1.5
+        elif val == 15: m = 4.5
+        prefix_pt = "alcance " if "range" in prefix.lower() else ""
+        m_str = str(m).replace(".", ",")
+        return f"({prefix_pt}{m_str} m ({val} ft.))"
+        
+    out = re.sub(r"\((range\s+)?(\d+)\)", repl_single, out, flags=re.I)
+    
     for en, pt in PROPERTY_NAMES.items():
         out = re.sub(rf"\b{re.escape(en)}\b", pt, out)
-    out = out.replace("ft.", "pés")
     return out
 
 
@@ -395,6 +480,23 @@ def translate_light_text(text):
     out = out.replace(", or ", ", ou ")
     for en, pt in PHRASE_TRANSLATIONS.items():
         out = out.replace(en, pt)
+        
+    def repl_strength_requirement(match):
+        score = match.group(1)
+        feet = match.group(2)
+        m = int(round(int(feet) * 0.3))
+        if int(feet) == 5: m = 1.5
+        elif int(feet) == 15: m = 4.5
+        m_str = str(m).replace(".", ",")
+        return f"Se quem veste tem um valor de Força menor que {score}, seu deslocamento é reduzido em {m_str} m ({feet} ft.)."
+        
+    out = re.sub(
+        r"If the wearer has a For\u00e7a score lower than (\d+), their speed is reduced by (\d+)\s+p\u00e9s\.?",
+        repl_strength_requirement,
+        out,
+        flags=re.I
+    )
+    
     craft_names = {
         "Acid": "Ácido",
         "Alchemist's Fire": "Fogo Alquímico",
@@ -430,10 +532,7 @@ def mastery_quick_rule(mastery):
 
 def build_official_block(obj, row):
     lines = ["### Dados oficiais"]
-    if row.get("Name") and ascii_slug(row["Name"]) != ascii_slug(obj.nome):
-        lines.append(f"*{row['Name']}*")
-    lines.append(f"- **Fonte:** {row.get('Source') or '—'}" + (f" p. {row.get('Page')}" if row.get("Page") else ""))
-    lines.append(f"- **Tipo:** {row.get('Type') or '—'}")
+    lines.append(f"- **Tipo:** {translate_type_mundano(row.get('Type'))}")
     if row.get("Value"):
         lines.append(f"- **Preço:** {norm_money(row.get('Value'))}")
     if row.get("Weight"):
@@ -469,7 +568,6 @@ def build_official_block(obj, row):
 
 def build_local_item_block(obj):
     lines = ["### Dados do item"]
-    lines.append("- **Fonte:** Bonfire")
     lines.append(f"- **Categoria:** {obj.get_categoria_display()}")
     if obj.subcategoria:
         lines.append(f"- **Subcategoria:** {obj.subcategoria}")
@@ -534,8 +632,6 @@ class Command(BaseCommand):
                     new_desc = (base + "\n\n" + build_local_item_block(obj)).strip() if base else build_local_item_block(obj)
                     if new_desc != (obj.descricao_markdown or "").strip():
                         changes["descricao_markdown"] = new_desc
-                    if not obj.fonte:
-                        changes["fonte"] = "Bonfire"
                 if changes:
                     updates.append((obj, changes))
                 unmatched.append(obj.slug)
@@ -544,13 +640,11 @@ class Command(BaseCommand):
 
             stats["matched"] += 1
             changes = {}
-            if not obj.fonte and row.get("Source"):
-                changes["fonte"] = row["Source"]
-            if not obj.preco and row.get("Value"):
+            if row.get("Value") and obj.categoria != "arma" or (row.get("Value") and obj.slug in ALIASES):
                 changes["preco"] = norm_money(row["Value"])
-            if obj.peso is None and row.get("Weight"):
+            if row.get("Weight"):
                 w = parse_weight(row["Weight"])
-                if w is not None:
+                if w is not None and obj.peso != w:
                     changes["peso"] = w
             if not obj.subcategoria:
                 sub = official_subcategory(row.get("Type"))
@@ -573,7 +667,6 @@ class Command(BaseCommand):
             should_add_block = (
                 obj.categoria in {"arma", "armadura", "ferramenta"}
                 or not base
-                or not obj.fonte
             )
             if should_add_block:
                 block = build_official_block(obj, row)

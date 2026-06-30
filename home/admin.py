@@ -1892,9 +1892,9 @@ class TbBestiarioAdmin(BonfireAdminMixin, admin.ModelAdmin):
     autocomplete_fields = ("companheiro_classe", "companheiro_subclasse")
     prepopulated_fields = {"slug": ("nome",)}
     ordering = ("nome",)
-    list_display = ("nome", "tipo", "tamanho", "nd", "source", "companheiro_de", "escala_com_dono")
+    list_display = ("nome", "tipo", "tamanho", "nd", "companheiro_de", "escala_com_dono")
     fieldsets = (
-        (None, {"fields": ("nome", "slug", "tipo", "tamanho", "nd", "alinhamento", "source", "imagem_url")}),
+        (None, {"fields": ("nome", "slug", "tipo", "tamanho", "nd", "alinhamento", "imagem_url")}),
         ("Atalhos de display", {"fields": ("ca", "pv")}),
         ("Statblock (schema 5etools — importável do criador de mobs/Roll20)", {"fields": ("statblock_json",)}),
         ("Mecânica Bonfire (summon / motor da ficha)", {"fields": ("tags_json",)}),
@@ -1913,10 +1913,10 @@ class TbArmadilhaAdmin(BonfireAdminMixin, admin.ModelAdmin):
     search_fields = ("nome", "slug", "tipo")
     prepopulated_fields = {"slug": ("nome",)}
     ordering = ("nome",)
-    list_display = ("nome", "tipo", "nd", "comunidade", "autor", "source")
+    list_display = ("nome", "tipo", "nd", "comunidade", "autor")
     raw_id_fields = ("autor",)
     fieldsets = (
-        (None, {"fields": ("nome", "slug", "tipo", "nd", "source")}),
+        (None, {"fields": ("nome", "slug", "tipo", "nd")}),
         ("Mecânica", {"fields": ("gatilho", "deteccao", "desarme", "save_atributo", "save_cd", "dano", "efeito")}),
         ("Descrição", {"fields": ("descricao_markdown",)}),
         ("Origem", {"fields": ("comunidade", "autor")}),

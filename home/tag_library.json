@@ -453,6 +453,30 @@
       "op": "meta",
       "doc": "Metadado de item: subcategoria:<slug> (arma_simples, armadura-media, instrumento, conjunto_jogo, etc.)."
     },
+    "raridade": {
+      "categoria": "A1",
+      "forma": "key_value",
+      "op": "meta",
+      "doc": "Metadado de item mágico: raridade:<slug>."
+    },
+    "slot": {
+      "categoria": "A1",
+      "forma": "key_value",
+      "op": "meta",
+      "doc": "Metadado de item mágico: slot:<slug>."
+    },
+    "loja": {
+      "categoria": "A1",
+      "forma": "key_value",
+      "op": "meta",
+      "doc": "Metadado comercial: loja:<slug> indica onde o item pode aparecer."
+    },
+    "tipo": {
+      "categoria": "A1",
+      "forma": "key_value",
+      "op": "meta",
+      "doc": "Metadado de item: tipo:<slug> para classes de item, tipos de arma, instrumento, variante etc."
+    },
     "preco": {
       "categoria": "A1",
       "forma": "key_value",
@@ -476,6 +500,18 @@
       "forma": "key_value",
       "op": "meta",
       "doc": "Metadado de item com cargas: charges:<N>(reset:dawn|daily|none). Para itens com contador proprio na ficha."
+    },
+    "maestrias": {
+      "categoria": "A1",
+      "forma": "block",
+      "op": "meta",
+      "doc": "Lista de maestrias de arma disponíveis no item mundano. O valor referencia slugs de TB_OpcaoJogo quando houver correspondência."
+    },
+    "dex-ca-max": {
+      "categoria": "A5",
+      "forma": "key_value",
+      "op": "meta",
+      "doc": "Teto de modificador de Destreza aplicado à CA da armadura."
     },
     "atk": {
       "categoria": "A4",
@@ -2399,11 +2435,19 @@
         "versatil",
         "sutil",
         "acuidade",
+        "adaptavel",
         "alcance",
+        "arma-dupla",
+        "carregar",
+        "composto",
+        "duas-maos",
+        "empunhadura-longa",
         "municao",
-        "recarga"
+        "pareada",
+        "recarga",
+        "tecnica"
       ],
-      "nota": "acuidade = finesse (adicionado 2026-06-17)."
+      "nota": "acuidade = finesse. Lista expandida para propriedades Bonfire de armas mundanas."
     },
     "caster-fraction": {
       "lang": "en",
