@@ -67,4 +67,3 @@
 - **Caçador:** habilidade "Conjuração" **duplicada** (Nv1 e Nv2, textos divergentes) — consolidar.
 - **Feiticeiro:** habilidade base "Fonte de Magia" (conversão slot↔ponto) **não existe** na TB_ClasseHabilidade — criar.
 - **Bardo:** "Palavras da Criação" usa slugs `palavra-de-poder-cura/matar` — confirmar em `TbMagia.slug`.
-- **Normalização:** recurso de inspiração do Bardo é `dado-de-inspiracao`, mas tags antigas usam `dado-inspiracao` — alinhar.

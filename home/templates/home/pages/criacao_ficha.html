@@ -66,11 +66,11 @@
       <!-- ASI do antecedente -->
       <div class="mt-4 grid gap-3 sm:grid-cols-2">
         <div>
-          <label for="cf-asi2" class="mb-1 block text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Aumento +2 (antecedente)</label>
+          <label for="cf-asi2" class="mb-1 block text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Aumento <span data-asi-major-label>+2</span> (antecedente)</label>
           <select id="cf-asi2" class="w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)] focus:border-[var(--ember)] focus:outline-none"></select>
         </div>
         <div>
-          <label for="cf-asi1" class="mb-1 block text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Aumento +1 (antecedente)</label>
+          <label for="cf-asi1" class="mb-1 block text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Aumento <span data-asi-minor-label>+1</span> (antecedente)</label>
           <select id="cf-asi1" class="w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)] focus:border-[var(--ember)] focus:outline-none"></select>
         </div>
       </div>
@@ -126,7 +126,7 @@
         </label>
         <label class="mt-2 flex cursor-pointer items-center gap-2 rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm">
           <input type="radio" name="equip_classe" value="ouro">
-          <span class="text-[var(--text)]">150 PO no lugar do equipamento</span>
+          <span class="text-[var(--text)]"><span data-equip-gold-alt>150</span> PO no lugar do equipamento</span>
         </label>
       </fieldset>
       <div id="cf-maestria-wrap" hidden class="mt-4">
@@ -165,14 +165,14 @@
     <!-- 4. Antecedente -->
     <div class="rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-4">
       <h2 class="mb-3 font-serif text-lg font-bold text-[var(--ember)]">4. Antecedente</h2>
-      <p class="mb-3 text-xs text-[var(--muted)]">Concede 100 PO, 2 perícias e 2 escolhas de idioma/ferramenta (2 idiomas, 2 ferramentas ou 1 de cada).</p>
+      <p id="cf-antecedente-resumo" class="mb-3 text-xs text-[var(--muted)]"></p>
       <div class="mb-3">
         <label for="cf-antecedente" class="mb-1 block text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Antecedente</label>
         <select id="cf-antecedente" class="w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)] focus:border-[var(--ember)] focus:outline-none"></select>
       </div>
       <div class="mb-1 text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Perícias do antecedente <span data-bgskill-counter></span></div>
       <div id="cf-bg-skills" class="grid grid-cols-1 gap-1 sm:grid-cols-2"></div>
-      <div class="mt-4 mb-1 text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Idiomas / Ferramentas <span data-langtool-counter></span> <span class="font-normal normal-case text-[var(--muted)]">— 2 no total (idiomas, ferramentas ou misto)</span></div>
+      <div class="mt-4 mb-1 text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Idiomas / Ferramentas <span data-langtool-counter></span> <span data-langtool-hint class="font-normal normal-case text-[var(--muted)]"></span></div>
       <div class="grid gap-4 sm:grid-cols-2">
         <div>
           <div class="mb-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--muted)]/80">Idiomas</div>

@@ -331,6 +331,12 @@
     color: var(--text);
     text-transform: uppercase;
 }
+.bonfire-preview-card-subtitle {
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.35;
+    margin-top: .2rem;
+}
 .bonfire-preview-card-body {
     font-size: 12px;
     line-height: 1.5;
@@ -780,16 +786,21 @@
             const data = await res.json();
             if (!data.success) throw new Error(data.error || 'Erro');
 
-            const renderFn = (window.renderBonfireMarkdown || (txt => txt));
+            const renderFn = (txt => {
+                if (window.renderBonfireMarkdown) return window.renderBonfireMarkdown(txt, { cardPreview: true });
+                return txt;
+            });
             // sem truncar: o corpo do card é scrollável (ver .bonfire-preview-card-body),
             // então a pessoa lê a habilidade inteira sem ir para outra página.
-            const descHtml = renderFn(data.description || '');
+            const descHtml = data.card_html || renderFn(data.description || '');
+            card.dataset.cardWidth = data.card_width || '';
 
             card.innerHTML = `
                 <button type="button" class="bonfire-preview-card-close">&times;</button>
                 <div class="bonfire-preview-card-header">
-                    <span class="bonfire-preview-card-type">${escapeHtml(table.replace(/^tb/, ''))}</span>
+                    <span class="bonfire-preview-card-type">${escapeHtml(data.kind || table.replace(/^tb/, ''))}</span>
                     <h3 class="bonfire-preview-card-title">${escapeHtml(data.title)}</h3>
+                    ${data.subtitle ? `<div class="bonfire-preview-card-subtitle">${escapeHtml(data.subtitle)}</div>` : ''}
                 </div>
                 <div class="bonfire-preview-card-body bonfire-markdown">
                     ${descHtml}
@@ -825,7 +836,8 @@
 
     function positionCard(trigger, card) {
         const rect = trigger.getBoundingClientRect();
-        const cardWidth = 320;
+        const requestedWidth = parseInt(card.dataset.cardWidth || '0', 10);
+        const cardWidth = Math.min(Math.max(requestedWidth || 320, 320), Math.max(320, window.innerWidth - 20));
         
         let left = rect.left + window.scrollX + (rect.width / 2) - (cardWidth / 2);
         if (left < 10) left = 10;

@@ -95,16 +95,23 @@
   </aside>
 
   <div id="map">
-    {% if request.user.is_staff %}
+    {% if json_layers|length > 1 or request.user.is_superuser %}
     <div class="map-layer-selector leaflet-bar leaflet-control" style="pointer-events: auto;">
-        <button id="btnLayerSurface" class="layer-selector-btn active" onclick="switchLayer(0)" title="Superfície">
+        {% for layer in json_layers %}
+        <button id="btnLayer{{ layer.id_layer }}" class="layer-selector-btn{% if layer.id_layer == 0 %} active{% endif %}" onclick="switchLayer({{ layer.id_layer }})" title="{{ layer.nome }}" data-layer-id="{{ layer.id_layer }}">
+            {% if layer.id_layer == 0 %}
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-            <span>Superfície</span>
-        </button>
-        <button id="btnLayerUnderground" class="layer-selector-btn" onclick="switchLayer(1)" title="Subterrâneo">
+            {% else %}
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-            <span>Subterrâneo</span>
+            {% endif %}
+            <span>{{ layer.nome }}</span>
         </button>
+        {% endfor %}
+        {% if request.user.is_superuser %}
+        <button class="layer-selector-btn layer-manage-btn" onclick="openLayerManagement()" title="Gerenciar Camadas" style="border-left: 1px solid var(--stroke); border-radius: 0 6px 6px 0; padding: 0.5rem 0.8rem;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+        {% endif %}
     </div>
     {% endif %}
   </div>
@@ -127,6 +134,51 @@
       <div class="map-modal-actions">
         <button type="button" class="map-modal-secondary" id="areaTerritoryCancel">Cancelar</button>
         <button type="button" class="map-modal-primary" id="areaTerritoryConfirm">Confirmar</button>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if request.user.is_superuser %}
+  <div class="map-modal-backdrop" id="layerManagementModal" hidden>
+    <div class="map-modal" role="dialog" aria-modal="true" aria-labelledby="layerManagementTitle" style="max-width: 600px; width: 90%;">
+      <h2 id="layerManagementTitle">Gerenciar Camadas do Mapa</h2>
+      <p style="margin-bottom: 1rem; font-size: 0.85rem; color: var(--muted);">Adicione novas camadas subterrâneas, faça upload da imagem de fundo, renomeie ou exclua as existentes.</p>
+      
+      <!-- List of layers -->
+      <div id="layerListContainer" style="display: flex; flex-direction: column; gap: 0.75rem; max-height: 250px; overflow-y: auto; margin-bottom: 1.5rem; padding-right: 0.25rem;">
+        <!-- Filled dynamically by JavaScript -->
+      </div>
+      
+      <!-- Add New Layer Form -->
+      <div style="border-top: 1px solid var(--stroke); padding-top: 1rem; margin-top: 1rem;">
+        <h3 style="font-family: 'Cinzel', serif; font-size: 0.9rem; text-transform: uppercase; color: var(--ember); margin-bottom: 0.75rem;">Adicionar Nova Camada</h3>
+        <form id="addLayerForm" onsubmit="submitAddLayer(event)" enctype="multipart/form-data" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+          {% csrf_token %}
+          <label style="grid-column: span 2;">
+            Nome da Camada
+            <input type="text" name="nome" placeholder="Ex: Subterrâneo Lvl 2" required style="width: 100%; margin-top: 0.25rem;">
+          </label>
+          <label>
+            Ordem (Exibição)
+            <input type="number" name="ordem" value="0" required style="width: 100%; margin-top: 0.25rem;">
+          </label>
+          <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; margin-top: 1.2rem;">
+            <input type="checkbox" name="publica" style="width: auto; cursor: pointer;">
+            <span>Camada Pública?</span>
+          </label>
+          <label style="grid-column: span 2;">
+            Imagem de Fundo (.png, .jpg)
+            <input type="file" name="imagem" accept="image/*" required style="width: 100%; margin-top: 0.25rem; background: var(--bg2); border: 1px solid var(--stroke); padding: 0.4rem; border-radius: 4px;">
+          </label>
+          <div style="grid-column: span 2; display: flex; justify-content: flex-end; margin-top: 0.5rem;">
+            <button type="submit" class="map-modal-primary" style="padding: 0.5rem 1rem; font-size: 0.8rem;">Criar Camada</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="map-modal-actions" style="margin-top: 1.5rem; border-top: 1px solid var(--stroke); padding-top: 1rem;">
+        <button type="button" class="map-modal-secondary" onclick="closeLayerManagement()">Fechar</button>
       </div>
     </div>
   </div>
@@ -586,17 +638,28 @@ function switchLayer(layerIndex) {
         shell.classList.add('layer-underground');
     }
     
-    document.querySelectorAll('.layer-selector-btn').forEach((btn, idx) => {
-        btn.classList.toggle('active', idx === activeLayer);
+    // Clear and update dynamic layer class
+    shell.className = shell.className.replace(/\blayer-\d+/g, '');
+    shell.classList.add(`layer-${activeLayer}`);
+    
+    document.querySelectorAll('.layer-selector-btn').forEach((btn) => {
+        if (btn.dataset.layerId) {
+            const id = parseInt(btn.dataset.layerId);
+            btn.classList.toggle('active', id === activeLayer);
+        }
     });
     
-    if (activeLayer === 0) {
-        surfaceOverlay.setOpacity(1);
-        undergroundOverlay.setOpacity(0);
-    } else {
-        surfaceOverlay.setOpacity(0);
-        undergroundOverlay.setOpacity(1);
-    }
+    // Toggle overlays opacity
+    Object.keys(mapOverlays).forEach(id => {
+        const overlay = mapOverlays[id];
+        if (overlay) {
+            if (parseInt(id) === activeLayer) {
+                overlay.setOpacity(1);
+            } else {
+                overlay.setOpacity(0);
+            }
+        }
+    });
     
     if (activeMarker) {
         const itemLayer = activeMarker._bonfireData.camada || 0;
@@ -656,8 +719,7 @@ function undoAllChanges() {
 }
 window.undoLastChange = undoAllChanges;
 
-const mapUrl = '{{ map_url }}';
-const undergroundMapUrl = '{{ underground_map_url }}';
+const layersData = {{ json_layers|safe }};
 
 const mapWidth = 6144;
 const mapHeight = 4608;
@@ -668,8 +730,18 @@ const bounds = new L.LatLngBounds(
 );
 
 map.setMaxBounds(bounds.pad(0.2));
-const surfaceOverlay = L.imageOverlay(mapUrl, bounds, { opacity: 1, className: 'map-overlay-layer surface-overlay' }).addTo(map);
-const undergroundOverlay = L.imageOverlay(undergroundMapUrl, bounds, { opacity: 0, className: 'map-overlay-layer underground-overlay' }).addTo(map);
+
+const mapOverlays = {};
+layersData.forEach((layer) => {
+    const opacity = (layer.id_layer === activeLayer) ? 1 : 0;
+    const isPlaceholder = layer.is_placeholder;
+    const className = `map-overlay-layer layer-overlay-${layer.id_layer}` + (isPlaceholder ? ' placeholder-overlay brightness-50' : '');
+    const overlay = L.imageOverlay(layer.imagem_url, bounds, {
+        opacity: opacity,
+        className: className
+    }).addTo(map);
+    mapOverlays[layer.id_layer] = overlay;
+});
 
 // Center map instead of fitBounds, preventing top-left alignment issues
 map.setView(bounds.getCenter(), window.innerWidth <= 1100 ? -2 : -1);
@@ -792,7 +864,7 @@ function setupMarkersAndPolygons() {
       
       singlePolygons.forEach(polyCoords => {
           const polygon = L.polygon(polyCoords, {
-              className: `territory-polygon layer-${t.camada > 0 ? 'underground' : 'surface'}`,
+              className: `territory-polygon layer-${t.camada || 0} layer-${t.camada > 0 ? 'underground' : 'surface'}`,
               color: territoryColor(t.nome),
               fillColor: territoryColor(t.nome),
               fillOpacity: 0.3,
@@ -1294,7 +1366,7 @@ function bindTerritoryLayer(layer, territoryName) {
     const t = jsonTerritories.find(x => x.nome === territoryName) || { nome: territoryName, camada: activeLayer };
     layer._bonfireTerritory = t;
     layer.setStyle({
-        className: `territory-polygon layer-${t.camada > 0 ? 'underground' : 'surface'}`,
+        className: `territory-polygon layer-${t.camada || 0} layer-${t.camada > 0 ? 'underground' : 'surface'}`,
         color: territoryColor(territoryName),
         fillColor: territoryColor(territoryName),
         fillOpacity: 0.3,
@@ -2098,6 +2170,181 @@ function toggleEditMode() {
             showToast('Nenhuma camada encontrada para este território.', 'error');
         }
     }
+}
+
+function renderLayersList() {
+    const container = document.getElementById('layerListContainer');
+    if (!container) return;
+    container.innerHTML = '';
+    
+    layersData.forEach(layer => {
+        const isBaseLayer = layer.id_layer === 0;
+        const row = document.createElement('div');
+        row.style.background = 'var(--bg0)';
+        row.style.border = '1px solid var(--stroke)';
+        row.style.borderRadius = '6px';
+        row.style.padding = '0.75rem';
+        row.style.display = 'flex';
+        row.style.flexDirection = 'column';
+        row.style.gap = '0.5rem';
+        row.id = `layer-row-${layer.id_layer}`;
+        
+        row.innerHTML = `
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
+                <span style="font-family: 'Cinzel', serif; font-size: 0.8rem; font-weight: 700; color: var(--ember);">ID: ${layer.id_layer}</span>
+                <div style="display: flex; gap: 0.35rem;">
+                    <button type="button" class="map-modal-primary" onclick="saveLayerChanges(${layer.id_layer}, this)" style="padding: 0.35rem 0.7rem; font-size: 0.72rem; border-radius: 4px; border: none; font-weight: bold; cursor: pointer;">Salvar</button>
+                    ${!isBaseLayer ? `<button type="button" class="map-modal-secondary" onclick="deleteLayer(${layer.id_layer})" style="padding: 0.35rem 0.7rem; font-size: 0.72rem; border-radius: 4px; color: var(--ruby); border: 1px solid var(--ruby); cursor: pointer; background: transparent;">Excluir</button>` : ''}
+                </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 0.5rem;">
+                <label style="margin: 0; font-size: 0.75rem;">
+                    Nome
+                    <input type="text" id="layer-name-${layer.id_layer}" value="${layer.nome}" style="width: 100%; padding: 0.25rem; font-size: 0.75rem; margin-top: 0.15rem; background: var(--bg2); border: 1px solid var(--stroke); color: var(--text); border-radius: 4px;">
+                </label>
+                <label style="margin: 0; font-size: 0.75rem;">
+                    Ordem
+                    <input type="number" id="layer-order-${layer.id_layer}" value="${layer.ordem}" style="width: 100%; padding: 0.25rem; font-size: 0.75rem; margin-top: 0.15rem; background: var(--bg2); border: 1px solid var(--stroke); color: var(--text); border-radius: 4px;">
+                </label>
+                <label style="margin: 0; font-size: 0.75rem; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; cursor: pointer; padding-bottom: 0.3rem;">
+                    <input type="checkbox" id="layer-public-${layer.id_layer}" ${layer.publica ? 'checked' : ''} ${isBaseLayer ? 'disabled' : ''} style="cursor: pointer; width: auto;">
+                    <span style="font-size: 0.65rem; margin-top: 0.2rem;">Pública?</span>
+                </label>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.25rem;">
+                <img src="${layer.imagem_url}" style="width: 40px; height: 30px; object-fit: cover; border-radius: 4px; border: 1px solid var(--stroke);">
+                <label style="margin: 0; font-size: 0.7rem; flex: 1;">
+                    Alterar imagem de fundo
+                    <input type="file" id="layer-file-${layer.id_layer}" accept="image/*" style="width: 100%; font-size: 0.7rem; margin-top: 0.1rem; padding: 0.1rem; border: none; background: transparent; color: var(--muted);">
+                </label>
+            </div>
+        `;
+        container.appendChild(row);
+    });
+}
+
+function openLayerManagement() {
+    renderLayersList();
+    const modal = document.getElementById('layerManagementModal');
+    if (modal) modal.hidden = false;
+}
+
+function closeLayerManagement() {
+    const modal = document.getElementById('layerManagementModal');
+    if (modal) modal.hidden = true;
+}
+
+function submitAddLayer(e) {
+    e.preventDefault();
+    const form = document.getElementById('addLayerForm');
+    const formData = new FormData(form);
+    
+    fetch('/wiki/mapa/camadas/adicionar/', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.ok) {
+            showToast('Nova camada adicionada com sucesso!', 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast(data.error || 'Erro ao criar camada.', 'error');
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        showToast('Falha na comunicação com o servidor.', 'error');
+    });
+}
+
+function saveLayerChanges(layerId, btn) {
+    const nome = document.getElementById(`layer-name-${layerId}`).value.trim();
+    const ordem = document.getElementById(`layer-order-${layerId}`).value;
+    const publicaCheckbox = document.getElementById(`layer-public-${layerId}`);
+    const publica = publicaCheckbox ? publicaCheckbox.checked : true;
+    const fileInput = document.getElementById(`layer-file-${layerId}`);
+    const file = fileInput ? fileInput.files[0] : null;
+    
+    if (!nome) {
+        showToast('Nome da camada é obrigatório.', 'error');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('nome', nome);
+    formData.append('ordem', ordem);
+    formData.append('publica', publica ? 'true' : 'false');
+    if (file) {
+        formData.append('imagem', file);
+    }
+    
+    // Add CSRF
+    const csrfToken = document.querySelector('#addLayerForm [name=csrfmiddlewaretoken]').value;
+    formData.append('csrfmiddlewaretoken', csrfToken);
+    
+    const originalText = btn.innerText;
+    btn.innerText = 'Salvando...';
+    btn.disabled = true;
+    
+    fetch(`/wiki/mapa/camadas/${layerId}/editar/`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.ok) {
+            showToast('Alterações salvas com sucesso!', 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast(data.error || 'Erro ao salvar alterações.', 'error');
+            btn.innerText = originalText;
+            btn.disabled = false;
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        showToast('Falha na comunicação com o servidor.', 'error');
+        btn.innerText = originalText;
+        btn.disabled = false;
+    });
+}
+
+function deleteLayer(layerId) {
+    if (!confirm('Tem certeza que deseja excluir esta camada? Todos os marcadores e territórios nela serão reassociados à Superfície (camada 0) e esta ação NÃO pode ser desfeita.')) {
+        return;
+    }
+    
+    const formData = new FormData();
+    const csrfToken = document.querySelector('#addLayerForm [name=csrfmiddlewaretoken]').value;
+    formData.append('csrfmiddlewaretoken', csrfToken);
+    
+    fetch(`/wiki/mapa/camadas/${layerId}/excluir/`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.ok) {
+            showToast('Camada excluída com sucesso!', 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast(data.error || 'Erro ao excluir camada.', 'error');
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        showToast('Falha na comunicação com o servidor.', 'error');
+    });
 }
 
 </script>

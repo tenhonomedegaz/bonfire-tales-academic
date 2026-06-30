@@ -15,7 +15,8 @@
 ## A. KEYWORDS ESTRUTURAIS — inglês
 
 ### A1. Ativação
-`always-active` · `while-active` · `instant` · `action=` (tipos: `free` · `bonus-action` · `action` · `reaction`)
+`always-active` · `while-active` · `instant` · `action=` (tipos: `free` · `bonus-action` · `action` · `reaction`) ·
+`log-castable` *(metadado: pode ser executado pelo log da ficha; ex.: efeito persistente como `Encontrar Familiar`)*
 
 ### A2. Gatilhos / eventos *(genéricos)*
 `trigger=` · `on:` · `first-attack` · `hit-melee` · `crit-melee` · `hit-by-melee` ·
@@ -24,7 +25,8 @@
 
 ### A3. Referência / definição
 `ability{<nome>, classe:<slug>}` · `spell:<slug>` · `opcao:<tipo>` · `classe:<slug>` ·
-`define{}` · `modify:` · `modifiers{}`
+`define{}` · `modify:` · `modifiers{}` ·
+`any-bestiary{tipo:<tipo>, nd:<valor>}` *(seleção dinâmica do bestiário para `define{}` + `pick:`)*
 
 ### A4. Efeito — ofensa / dano
 `dmg` *(verbo **e** valor; **nunca** `damage`)* · `crit-dmg` · `dmg-type` ·
@@ -129,7 +131,7 @@ Usados em `attack:<tipo>` e como **escopo** (`melee.`, `ranged.`, `unarmed-strik
 ## C. NOMES PRÓPRIOS / VARIÁVEIS `define` / SLUGS — português
 
 - **Habilidades** (`ability{...}`): `furia`, `frenesi`, `inspiracao-bardica`, `despertar-bestial`, `guardioes-ancestrais`, `runas-elementais`, …
-- **Recursos**: `furias`, `dado-inspiracao`, `maestria-com-armas`
+- **Recursos**: `furias`, `inspiracao-bardica` (usos), `dado-de-inspiracao` (valor do dado), `dado-de-combate` (valor do dado), `quantidade-de-dados` (usos), `dado-de-cacador` (valor do dado), `pontos-de-segredo` (usos), `segredos` (escolhas), `dados-de-furtividade` (quantidade de dados do Ataque Furtivo), `dado-de-furtividade` (valor do dado), `maestria-com-armas`
 - **Variáveis `define`**: `magia-selvagem`, `runa`, `aspecto-selvagem`, `adaptacao`, `ferida`, `marca-guardiao`, `dmg-bonus`, `sangue`, `forma-sagrada`, `couraca`, `agil`, `alfa`, `chamas`, `tempestade`, `erosao`, `nevasca`
 - **Slugs de magia** (`spell:`): `detectar-magia`, `comunhao-com-a-natureza`, `augurio`, `clarividencia`, `elementalismo`
 - **Slugs de classe** (`classe:`): `barbaro`, `bardo`, `cacador`, …
@@ -172,7 +174,7 @@ com `id_subclasse` **nulo** na `TB_ClasseHabilidade` (penduradas na classe base)
 - **A5** `dmg-reduction:half` *(metade, arredonda p/ baixo)* · `no-adv-against-self` *(ninguém tem Vantagem contra você; `unless:incapacitated`)*.
 - **Condições** (`requires:`/`if()`): `adv` · `no-dadv` · `not-moved` · `ally(range:<ft>)` ·
   `target{acted}`/`target{!acted}` · `target{surprised}`; escopo `next-attack`. Combinadores `{a and b | c}`.
-- **Técnica de Furtividade:** `pick:<tecnica>(cost:Nd6 de <recurso-de-dano>)` *(troca dados do recurso de dano por efeito)*.
+- **Técnica de Furtividade:** `pick:<tecnica>(cost:N de dados-de-furtividade)` *(troca quantidade de dados do Ataque Furtivo por efeito; o tamanho do dado vem de `dado-de-furtividade`)*.
 
 ---
 
@@ -193,8 +195,8 @@ com `id_subclasse` **nulo** na `TB_ClasseHabilidade` (penduradas na classe base)
 - **Condição** `silenciado`. **Escopos de empunhadura** `off-hand`/`one-handed`/`two-handed`/`free-hand`.
 - **Eventos** `after-attack-action`, `enemy-enters-reach`, `enemy-enters-aura`, `enemy-moves-within-aura`, família `enter-area`, `target-miss`, `enemy-end-turn`.
 - **Primitivas** `no-opportunity-attack`, `contest{}` (teste contestado), `die-min`/`die:-1-step`, `read:`, `repeatable`, `teleport:swap`/`reposition`.
-- **Extensões**: `ca:+<f>(target:..., against:..., duration:...)` *(bônus temporário; ≠ `ca=` que sobrescreve)*; `grant:reaction{<exec>}(target:ally)`; `attack:opportunity`; `repeat-save:now`; `cleanse:doenca`; `modify:spell.casting-time`; `cast{spell:school:<x>}` *(filtro por escola)*; `modify:spell{escolhido}`; `resource-cost:<rec>:Nd6` *(custo em dados)*; `sense:see-through-objects`/`sense-through`; `color-vision`; `no-reaction`/`no-trace`/`no-read-thoughts`/`no-instant-death`.
-- **Variáveis** `spent` (gasto efetivo), `dado-de-combate`, `ability-mod`. **Catálogo** `kit-de-venenos` (ferramenta).
+- **Extensões**: `ca:+<f>(target:..., against:..., duration:...)` *(bônus temporário; ≠ `ca=` que sobrescreve)*; `grant:reaction{<exec>}(target:ally)`; `attack:opportunity`; `repeat-save:now`; `cleanse:doenca`; `modify:spell.casting-time`; `cast{spell:school:<x>}` *(filtro por escola)*; `modify:spell{escolhido}`; `resource-cost:<rec>:N` *(custo em quantidade; em recurso `table-only` como `dados-de-furtividade`, é abatimento local da ativação, não tracker persistente)*; `sense:see-through-objects`/`sense-through`; `color-vision`; `no-reaction`/`no-trace`/`no-read-thoughts`/`no-instant-death`.
+- **Variáveis** `spent` (gasto efetivo), `dado-de-combate`, `dado-de-cacador`, `dado-de-furtividade`, `ability-mod`. **Catálogo** `kit-de-venenos` (ferramenta).
 - **Pendência de dado:** Virtudes = Paladino → recurso `conviccao` + habilidade `golpe-da-conviccao` faltam (sistema de Convicção do **rework**); `weapon{kensei}`/`weapon{pacto}` pedem `define{}` na feature da subclasse.
 
 ---

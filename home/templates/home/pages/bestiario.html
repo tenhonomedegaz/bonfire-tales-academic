@@ -1,101 +1,241 @@
 {% extends 'home/base.html' %}
 {% load static %}
 
+{% block main_class %}flex-1 w-full max-w-[1500px] mx-auto px-3 md:px-6 py-6{% endblock %}
+
+{% block extra_head %}
+<style>
+  .bestiary-shell { display: grid; gap: 1rem; }
+  .bestiary-toolbar {
+    border: 1px solid var(--stroke);
+    background: color-mix(in srgb, var(--bg1) 82%, transparent);
+    padding: .85rem;
+  }
+  .bestiary-grid { display: grid; grid-template-columns: minmax(260px, 360px) minmax(0, 1fr); gap: 1rem; align-items: start; }
+  .bestiary-list { max-height: calc(100vh - 210px); overflow: auto; padding-right: .35rem; }
+  .bestiary-list-item {
+    width: 100%;
+    border: 1px solid transparent;
+    border-left: 2px solid var(--stroke);
+    background: transparent;
+    color: var(--muted);
+    text-align: left;
+    padding: .7rem .75rem;
+    transition: border-color .15s, background .15s, color .15s;
+  }
+  .bestiary-list-item:hover, .bestiary-list-item.is-active {
+    border-color: var(--stroke);
+    border-left-color: var(--ember);
+    background: var(--bg1);
+    color: var(--text);
+  }
+  .monster-sheet {
+    border: 1px solid var(--stroke);
+    background: var(--bg0);
+    min-height: 540px;
+  }
+  .monster-sheet-inner { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; padding: 1rem; }
+  .monster-header { border-bottom: 3px double var(--ember); padding-bottom: .65rem; }
+  .monster-title { color: var(--ember); font-family: Cinzel, serif; font-size: clamp(1.35rem, 2vw, 2rem); font-weight: 800; line-height: 1.1; }
+  .monster-subtitle { color: var(--muted); font-size: .85rem; font-style: italic; margin-top: .2rem; }
+  .monster-line { font-size: .9rem; color: var(--text); }
+  .monster-line strong { color: var(--flame); }
+  .monster-attrs { border-top: 2px solid var(--flame); border-bottom: 2px solid var(--flame); display: grid; grid-template-columns: repeat(6, minmax(56px, 1fr)); gap: .25rem; padding: .55rem 0; }
+  .monster-attr { text-align: center; }
+  .monster-attr b { color: var(--ember); display: block; font-size: .75rem; }
+  .monster-attr span { color: var(--text); font-size: .82rem; }
+  .monster-section { border-top: 1px solid var(--stroke); padding-top: .75rem; }
+  .monster-section-title { color: var(--ember); font-family: Cinzel, serif; font-size: 1rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+  .monster-spellcasting { border: 1px solid color-mix(in srgb, var(--spark) 45%, var(--stroke)); background: color-mix(in srgb, var(--bg1) 78%, transparent); padding: .75rem; }
+  .monster-spell-row { display: grid; grid-template-columns: 90px minmax(0, 1fr); gap: .5rem; font-size: .82rem; }
+  .monster-spell-row + .monster-spell-row { margin-top: .35rem; }
+  .monster-pill { border: 1px solid var(--stroke); color: var(--muted); display: inline-flex; align-items: center; gap: .25rem; font-size: .68rem; font-weight: 800; padding: .12rem .4rem; text-transform: uppercase; }
+  .monster-empty { align-items: center; color: var(--muted); display: flex; min-height: 380px; justify-content: center; text-align: center; }
+  @media (max-width: 900px) {
+    .bestiary-grid { grid-template-columns: 1fr; }
+    .bestiary-list { max-height: 320px; }
+    .monster-attrs { grid-template-columns: repeat(3, minmax(70px, 1fr)); }
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-<section class="animate-fade-in max-w-3xl">
-  <header class="mb-4 flex flex-wrap items-end justify-between gap-3 border-b border-[var(--stroke)] pb-4">
+<section class="bestiary-shell animate-fade-in">
+  <header class="flex flex-wrap items-end justify-between gap-3 border-b border-[var(--stroke)] pb-4">
     <div>
-      <h1 class="font-serif text-2xl md:text-3xl font-bold text-[var(--ember)]">Bestiário</h1>
-      <p class="mt-1 text-sm text-[var(--muted)]">Criaturas oficiais e da comunidade, com blocos de estatística completos.</p>
+      <h1 class="font-serif text-2xl md:text-3xl font-bold text-[var(--ember)]">Bestiario</h1>
+      <p class="mt-1 text-sm text-[var(--muted)]">Fichas completas, filtros por ND e consulta rapida de criaturas.</p>
     </div>
     {% if pode_criar %}<a href="{% url 'bestiario_criar' %}" class="rounded bg-bonfire-gradient px-4 py-2 text-sm font-bold text-white hover:opacity-90">+ Nova criatura</a>{% endif %}
   </header>
 
-  {% if msg == 'criada' %}<p class="mb-4 rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-3 py-2 text-sm text-[var(--spark)]">Criatura criada!</p>
-  {% elif msg == 'editada' %}<p class="mb-4 rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-3 py-2 text-sm text-[var(--spark)]">Criatura atualizada!</p>
-  {% elif msg == 'excluida' %}<p class="mb-4 rounded border border-[var(--stroke)] bg-[var(--bg1)] px-3 py-2 text-sm text-[var(--muted)]">Criatura excluída.</p>{% endif %}
+  {% if msg == 'criada' %}<p class="rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-3 py-2 text-sm text-[var(--spark)]">Criatura criada.</p>
+  {% elif msg == 'editada' %}<p class="rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-3 py-2 text-sm text-[var(--spark)]">Criatura atualizada.</p>
+  {% elif msg == 'excluida' %}<p class="rounded border border-[var(--stroke)] bg-[var(--bg1)] px-3 py-2 text-sm text-[var(--muted)]">Criatura excluida.</p>{% endif %}
 
-  <form method="get" class="mb-4 flex flex-wrap items-center gap-2 text-sm">
-    <select name="f" onchange="this.form.submit()" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-1.5 text-sm text-[var(--text)]">
-      <option value="" {% if not filtro %}selected{% endif %}>Todas</option>
-      <option value="oficial" {% if filtro == 'oficial' %}selected{% endif %}>Oficiais</option>
-      <option value="comunidade" {% if filtro == 'comunidade' %}selected{% endif %}>Comunidade</option>
-    </select>
-    <select name="nd" onchange="this.form.submit()" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-1.5 text-sm text-[var(--text)]">
-      <option value="">ND: todos</option>
-      {% for nd in nds %}<option value="{{ nd }}" {% if nd == nd_sel %}selected{% endif %}>ND {{ nd }}</option>{% endfor %}
-    </select>
-    <select name="ord" onchange="this.form.submit()" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-1.5 text-sm text-[var(--text)]">
-      <option value="az" {% if ordem != 'za' %}selected{% endif %}>A → Z</option>
-      <option value="za" {% if ordem == 'za' %}selected{% endif %}>Z → A</option>
-    </select>
-    <input id="bz-busca" type="search" placeholder="Buscar criatura…" autocomplete="off"
-           class="flex-1 rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-1.5 text-sm text-[var(--text)] focus:border-[var(--ember)] focus:outline-none">
+  <form method="get" class="bestiary-toolbar">
+    <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-7">
+      <input id="bz-busca" type="search" placeholder="Buscar criatura..." autocomplete="off"
+             class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)] outline-none focus:border-[var(--ember)] lg:col-span-2">
+      <select name="f" onchange="this.form.submit()" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-2 text-sm text-[var(--text)]">
+        <option value="" {% if not filtro %}selected{% endif %}>Todas</option>
+        <option value="oficial" {% if filtro == 'oficial' %}selected{% endif %}>Oficiais</option>
+        <option value="comunidade" {% if filtro == 'comunidade' %}selected{% endif %}>Comunidade</option>
+      </select>
+      <select name="nd" onchange="this.form.submit()" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-2 text-sm text-[var(--text)]">
+        <option value="">ND todos</option>
+        {% for nd in nds %}<option value="{{ nd }}" {% if nd == nd_sel %}selected{% endif %}>ND {{ nd }}</option>{% endfor %}
+      </select>
+      <select name="tipo" onchange="this.form.submit()" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-2 text-sm text-[var(--text)]">
+        <option value="">Tipo todos</option>
+        {% for tipo in tipos %}<option value="{{ tipo }}" {% if tipo == tipo_sel %}selected{% endif %}>{{ tipo }}</option>{% endfor %}
+      </select>
+      <select name="fonte" onchange="this.form.submit()" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-2 text-sm text-[var(--text)]">
+        <option value="">Fonte todas</option>
+        {% for fonte in fontes %}<option value="{{ fonte }}" {% if fonte == fonte_sel %}selected{% endif %}>{{ fonte }}</option>{% endfor %}
+      </select>
+      <select name="ord" onchange="this.form.submit()" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-2 text-sm text-[var(--text)]">
+        <option value="az" {% if ordem == 'az' %}selected{% endif %}>A-Z</option>
+        <option value="za" {% if ordem == 'za' %}selected{% endif %}>Z-A</option>
+        <option value="nd_asc" {% if ordem == 'nd_asc' %}selected{% endif %}>ND menor</option>
+        <option value="nd_desc" {% if ordem == 'nd_desc' %}selected{% endif %}>ND maior</option>
+      </select>
+    </div>
+    <p class="mt-2 text-xs text-[var(--muted)]"><span id="bz-count">{{ criaturas|length }}</span> criatura(s)</p>
   </form>
 
-  <div class="space-y-3">
-    {% for c in criaturas %}
-      <details class="bz-item group rounded-lg border-l-2 border-[var(--ember)]/60 border-y border-r border-[var(--stroke)] bg-[var(--bg1)] open:bg-[var(--bg1)]" data-busca="{{ c.nome|lower }} {{ c.tipo|lower }}">
-        <summary class="flex cursor-pointer flex-wrap items-center justify-between gap-2 px-4 py-2.5 list-none">
-          <span class="font-serif font-bold text-[var(--text)]">{{ c.nome }}
-            {% if c.comunidade %}<span class="ml-1 rounded bg-[var(--flame)]/15 px-1.5 py-0.5 text-xs text-[var(--flame)]">comunidade</span>{% endif %}
-          </span>
-          <span class="text-xs text-[var(--muted)]">{{ c.tamanho }} {{ c.tipo }}{% if c.nd %} · ND {{ c.nd }}{% endif %}{% if c.autor %} · por {{ c.autor }}{% endif %}</span>
-        </summary>
-        <div class="border-t border-[var(--stroke)]/60 px-4 py-3">
+  <div class="bestiary-grid">
+    <aside class="bestiary-list custom-scrollbar" id="bz-list">
+      {% for c in criaturas %}
+      <button type="button" class="bz-item bestiary-list-item {% if forloop.first %}is-active{% endif %}"
+              data-target="monster-{{ c.id }}" data-busca="{{ c.busca }}">
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <div class="font-serif text-sm font-bold">{{ c.nome }}</div>
+            <div class="mt-1 text-[11px] uppercase tracking-wide text-[var(--muted)]">{{ c.tamanho }} {{ c.tipo }}{% if c.nd %} · ND {{ c.nd }}{% endif %}</div>
+          </div>
+          <div class="flex shrink-0 flex-col items-end gap-1">
+            {% if c.source %}<span class="monster-pill">{{ c.source }}</span>{% endif %}
+            {% if c.comunidade %}<span class="monster-pill">comunidade</span>{% endif %}
+          </div>
+        </div>
+      </button>
+      {% empty %}
+      <p class="rounded border border-dashed border-[var(--stroke)] px-4 py-8 text-center text-sm text-[var(--muted)]">Nenhuma criatura.</p>
+      {% endfor %}
+    </aside>
+
+    <main class="monster-sheet">
+      {% for c in criaturas %}
+      <article id="monster-{{ c.id }}" class="monster-panel {% if not forloop.first %}hidden{% endif %}">
+        <div class="monster-sheet-inner">
           {% with sb=c.sb %}
-          <p class="font-serif italic text-sm text-[var(--ember)]">{{ sb.cabecalho }}</p>
-          <div class="mt-2 space-y-0.5 text-sm text-[var(--text)]">
-            {% if sb.ca %}<div><strong class="text-[var(--muted)]">CA</strong> {{ sb.ca }}</div>{% endif %}
-            {% if sb.pv %}<div><strong class="text-[var(--muted)]">PV</strong> {{ sb.pv }}</div>{% endif %}
-            {% if sb.desloc %}<div><strong class="text-[var(--muted)]">Deslocamento</strong> {{ sb.desloc }}</div>{% endif %}
-          </div>
+          <header class="monster-header">
+            <h2 class="monster-title">{{ c.nome }}</h2>
+            <p class="monster-subtitle">{{ sb.cabecalho }}{% if c.source %} · {{ c.source }}{% endif %}{% if c.autor %} · por {{ c.autor }}{% endif %}</p>
+          </header>
+
+          <section class="grid gap-2">
+            {% if sb.ca %}<div class="monster-line"><strong>Classe de Armadura</strong> {{ sb.ca }}</div>{% endif %}
+            {% if sb.pv %}<div class="monster-line"><strong>Pontos de Vida</strong> {{ sb.pv }}</div>{% endif %}
+            {% if sb.desloc %}<div class="monster-line"><strong>Deslocamento</strong> {{ sb.desloc }}</div>{% endif %}
+          </section>
+
           {% if sb.abilities %}
-          <div class="my-3 grid grid-cols-3 gap-2 rounded border-y border-[var(--stroke)]/60 py-2 sm:grid-cols-6">
+          <section class="monster-attrs">
             {% for a in sb.abilities %}
-              <div class="text-center"><div class="text-xs font-bold text-[var(--ember)]">{{ a.sig }}</div><div class="text-sm text-[var(--text)]">{{ a.score }} ({{ a.mod }})</div></div>
+              <div class="monster-attr"><b>{{ a.sig }}</b><span>{{ a.score }} ({{ a.mod }})</span></div>
             {% endfor %}
-          </div>
+          </section>
           {% endif %}
-          <div class="space-y-0.5 text-sm text-[var(--text)]">
-            {% if sb.saves %}<div><strong class="text-[var(--muted)]">Salvaguardas</strong> {{ sb.saves }}</div>{% endif %}
-            {% if sb.skills %}<div><strong class="text-[var(--muted)]">Perícias</strong> {{ sb.skills }}</div>{% endif %}
-            {% if sb.resist %}<div><strong class="text-[var(--muted)]">Resistências</strong> {{ sb.resist }}</div>{% endif %}
-            {% if sb.immune %}<div><strong class="text-[var(--muted)]">Imunidades a Dano</strong> {{ sb.immune }}</div>{% endif %}
-            {% if sb.cond_immune %}<div><strong class="text-[var(--muted)]">Imunidades a Condição</strong> {{ sb.cond_immune }}</div>{% endif %}
-            {% if sb.sentidos %}<div><strong class="text-[var(--muted)]">Sentidos</strong> {{ sb.sentidos }}{% if sb.passivo %} · Percepção passiva {{ sb.passivo }}{% endif %}</div>{% endif %}
-            {% if sb.idiomas %}<div><strong class="text-[var(--muted)]">Idiomas</strong> {{ sb.idiomas }}</div>{% endif %}
-            {% if sb.cr %}<div><strong class="text-[var(--muted)]">ND</strong> {{ sb.cr }}</div>{% endif %}
-          </div>
-          {% if sb.traits %}<div class="mt-3"></div>{% include 'home/partials/sb_bloco.html' with bloco=sb.traits %}{% endif %}
-          {% if sb.actions %}<h3 class="mt-3 border-b border-[var(--ember)]/40 pb-0.5 font-serif text-sm font-bold text-[var(--ember)]">Ações</h3>{% include 'home/partials/sb_bloco.html' with bloco=sb.actions titulo='' %}{% endif %}
-          {% if sb.bonus %}<h3 class="mt-3 border-b border-[var(--ember)]/40 pb-0.5 font-serif text-sm font-bold text-[var(--ember)]">Ações Bônus</h3>{% include 'home/partials/sb_bloco.html' with bloco=sb.bonus titulo='' %}{% endif %}
-          {% if sb.reactions %}<h3 class="mt-3 border-b border-[var(--ember)]/40 pb-0.5 font-serif text-sm font-bold text-[var(--ember)]">Reações</h3>{% include 'home/partials/sb_bloco.html' with bloco=sb.reactions titulo='' %}{% endif %}
-          {% if sb.legendary %}<h3 class="mt-3 border-b border-[var(--ember)]/40 pb-0.5 font-serif text-sm font-bold text-[var(--ember)]">Ações Lendárias</h3>{% include 'home/partials/sb_bloco.html' with bloco=sb.legendary titulo='' %}{% endif %}
+
+          <section class="grid gap-1 text-sm">
+            {% if sb.saves %}<div class="monster-line"><strong>Salvaguardas</strong> {{ sb.saves }}</div>{% endif %}
+            {% if sb.skills %}<div class="monster-line"><strong>Pericias</strong> {{ sb.skills }}</div>{% endif %}
+            {% if sb.vuln %}<div class="monster-line"><strong>Vulnerabilidades</strong> {{ sb.vuln }}</div>{% endif %}
+            {% if sb.resist %}<div class="monster-line"><strong>Resistencias</strong> {{ sb.resist }}</div>{% endif %}
+            {% if sb.immune %}<div class="monster-line"><strong>Imunidades a dano</strong> {{ sb.immune }}</div>{% endif %}
+            {% if sb.cond_immune %}<div class="monster-line"><strong>Imunidades a condicao</strong> {{ sb.cond_immune }}</div>{% endif %}
+            {% if sb.sentidos %}<div class="monster-line"><strong>Sentidos</strong> {{ sb.sentidos }}{% if sb.passivo %} · Percepcao passiva {{ sb.passivo }}{% endif %}</div>{% endif %}
+            {% if sb.idiomas %}<div class="monster-line"><strong>Idiomas</strong> {{ sb.idiomas }}</div>{% endif %}
+            {% if sb.cr %}<div class="monster-line"><strong>Nivel de Desafio</strong> {{ sb.cr }}</div>{% endif %}
+          </section>
+
+          {% if sb.spellcasting %}
+          <section class="monster-spellcasting">
+            <h3 class="monster-section-title mb-2">Conjuracao</h3>
+            {% for cast in sb.spellcasting %}
+              <div class="mb-3 last:mb-0">
+                <div class="mb-1 text-xs font-bold text-[var(--text)]">{{ cast.nome }}</div>
+                {% for row in cast.rows %}
+                <div class="monster-spell-row">
+                  <strong class="text-[var(--spark)]">{{ row.label }}</strong>
+                  <div>
+                    {% for spell in row.spells %}
+                      {% if spell.slug %}<a class="bonfire-card-trigger text-[var(--spark)] hover:text-[var(--ember)]" href="#" data-table="tbMagia" data-args="{{ spell.slug }}">{{ spell.nome }}</a>{% else %}{{ spell.nome }}{% endif %}{% if not forloop.last %}, {% endif %}
+                    {% endfor %}
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+            {% endfor %}
+          </section>
+          {% endif %}
+
+          {% if sb.traits %}<section class="monster-section">{% include 'home/partials/sb_bloco.html' with bloco=sb.traits %}</section>{% endif %}
+          {% if sb.actions %}<section class="monster-section"><h3 class="monster-section-title">Acoes</h3>{% include 'home/partials/sb_bloco.html' with bloco=sb.actions %}</section>{% endif %}
+          {% if sb.bonus %}<section class="monster-section"><h3 class="monster-section-title">Acoes bonus</h3>{% include 'home/partials/sb_bloco.html' with bloco=sb.bonus %}</section>{% endif %}
+          {% if sb.reactions %}<section class="monster-section"><h3 class="monster-section-title">Reacoes</h3>{% include 'home/partials/sb_bloco.html' with bloco=sb.reactions %}</section>{% endif %}
+          {% if sb.legendary %}<section class="monster-section"><h3 class="monster-section-title">Acoes lendarias</h3>{% include 'home/partials/sb_bloco.html' with bloco=sb.legendary %}</section>{% endif %}
+          {% if sb.mythic %}<section class="monster-section"><h3 class="monster-section-title">Acoes miticas</h3>{% include 'home/partials/sb_bloco.html' with bloco=sb.mythic %}</section>{% endif %}
+          {% if sb.lair %}<section class="monster-section"><h3 class="monster-section-title">Acoes de covil</h3>{% include 'home/partials/sb_bloco.html' with bloco=sb.lair %}</section>{% endif %}
+          {% if sb.regional %}<section class="monster-section"><h3 class="monster-section-title">Efeitos regionais</h3>{% include 'home/partials/sb_bloco.html' with bloco=sb.regional %}</section>{% endif %}
           {% endwith %}
-          {% if c.descricao %}<div class="mt-3 text-sm text-[var(--muted)] bonfire-markdown" data-markdown-source>{{ c.descricao|escape }}</div>{% endif %}
+
+          {% if c.descricao %}<section class="monster-section bonfire-markdown text-sm text-[var(--muted)]" data-markdown-source>{{ c.descricao|escape }}</section>{% endif %}
           {% if c.pode_editar %}
-            <div class="mt-3 flex items-center gap-3">
-              <a href="{% url 'bestiario_editar' c.id %}" class="text-xs text-[var(--ember)] hover:underline">Editar</a>
-              <form method="post" action="{% url 'bestiario_excluir' c.id %}" onsubmit="return confirm('Excluir {{ c.nome|escapejs }}?');">
-                {% csrf_token %}<button type="submit" class="text-xs text-[var(--flame)] hover:underline">Excluir</button>
-              </form>
-            </div>
+          <div class="flex items-center gap-3 border-t border-[var(--stroke)] pt-3">
+            <a href="{% url 'bestiario_editar' c.id %}" class="text-xs text-[var(--ember)] hover:underline">Editar</a>
+            <form method="post" action="{% url 'bestiario_excluir' c.id %}" onsubmit="return confirm('Excluir {{ c.nome|escapejs }}?');">
+              {% csrf_token %}<button type="submit" class="text-xs text-[var(--flame)] hover:underline">Excluir</button>
+            </form>
+          </div>
           {% endif %}
         </div>
-      </details>
-    {% empty %}
-      <p class="rounded-lg border border-dashed border-[var(--stroke)] px-4 py-8 text-center text-sm text-[var(--muted)]">Nenhuma criatura.</p>
-    {% endfor %}
+      </article>
+      {% empty %}
+      <div class="monster-empty">Nenhuma criatura para exibir.</div>
+      {% endfor %}
+    </main>
   </div>
 </section>
 
 <script>
-  (function(){
-    var inp=document.getElementById('bz-busca'), itens=[].slice.call(document.querySelectorAll('.bz-item'));
-    function norm(s){return (s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();}
-    inp.addEventListener('input',function(){var q=norm(inp.value.trim());
-      itens.forEach(function(el){el.classList.toggle('hidden', q && norm(el.getAttribute('data-busca')).indexOf(q)===-1);});});
-  })();
+(function(){
+  var search = document.getElementById('bz-busca');
+  var list = Array.prototype.slice.call(document.querySelectorAll('.bz-item'));
+  var panels = Array.prototype.slice.call(document.querySelectorAll('.monster-panel'));
+  var count = document.getElementById('bz-count');
+  function norm(s){return (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();}
+  function show(id){
+    list.forEach(function(btn){btn.classList.toggle('is-active', btn.dataset.target === id);});
+    panels.forEach(function(panel){panel.classList.toggle('hidden', panel.id !== id);});
+  }
+  list.forEach(function(btn){btn.addEventListener('click', function(){show(btn.dataset.target);});});
+  if(search){
+    search.addEventListener('input', function(){
+      var q = norm(search.value.trim());
+      var visible = 0;
+      list.forEach(function(btn){
+        var ok = !q || norm(btn.dataset.busca).indexOf(q) !== -1;
+        btn.classList.toggle('hidden', !ok);
+        if(ok) visible += 1;
+      });
+      if(count) count.textContent = visible;
+      var first = list.find(function(btn){return !btn.classList.contains('hidden');});
+      if(first) show(first.dataset.target);
+    });
+  }
+})();
 </script>
 {% endblock %}

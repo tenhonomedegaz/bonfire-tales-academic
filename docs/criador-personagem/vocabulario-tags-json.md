@@ -283,6 +283,20 @@ Progressão acumulada por nível: `pick:pericia:{classlvl=5:1, classlvl=10:2}`.
 ```
 cast{ spell:detectar-magia, modifiers{ range:+30, no-concentration, target:self } }
 cast{ spell:comunhao-natureza, modifiers{ ritual, ability:wis-mod, no-slot } }
+cast{ spell:detectar-magia, modifiers{ no-slot, always-prepared }, uses{1, reset:long-rest} }
+```
+
+Para magias inatas/concedidas que nao gastam espaco de magia, prefira declarar o
+limite dentro do proprio `cast{}` com `uses{N, reset:long-rest}` ou
+`uses{N, reset:short-rest}`. A ficha trata isso como recurso oculto da magia:
+aparece na linha da magia como `1/day`, `3/day`, etc., mas nao entra na aba de
+recursos consumiveis.
+
+Formatos antigos ainda reconhecidos pelo motor/validador:
+
+```
+cast{ spell:detectar-magia, modifiers{ no-slot } }, resource-cost:1/long-rest
+cast{ spell:detectar-magia, modifiers{ no-slot, 1/long-rest } }
 ```
 
 ---
@@ -449,6 +463,9 @@ Ex.: **Fôlego Furioso** — em fúria, ao cair a 0 PV, CON save de CD crescente
   `TbRecursoclasse`; se não existir, escrever na tabela. Tag só referencia (`resource{<slug>}`), gasta
   (`resource-cost:<slug>:<N>`, **com quantidade**) ou restaura (`resource-restore:<slug>=all`). Ex.: Ki =
   recurso `pontos-de-ki`; Dado de Artes Marciais = recurso `artes-marciais` (não `define{}`).
+  O campo `tipo` classifica o papel no builder: `table-only` = dado informativo/derivado da tabela
+  (ex.: slots por nivel), `consumable` = pool gasto/rastreado na ficha (ex.: `furias`),
+  `choice` = quantidade de escolhas que nao se gasta (ex.: maestrias de arma, magias conhecidas).
 - **`miss`** (evento bidirecional), **`cleanse`** (remove condição), **`move:wall`/`move:liquid`**,
   limitador **`1/turn`**, família **`hit-by-*`**, **`on-fail`** → aprovados.
 - **Evasão sem verbo próprio:** `source{aoe}.save{dex}.on-success:=none, on-fail:=half`.
@@ -460,8 +477,9 @@ Ex.: **Fôlego Furioso** — em fúria, ao cair a 0 PV, CON save de CD crescente
 - Aprovados: `first-turn`, `hide`, `dmg-reduction:half`, `no-adv-against-self`, condições
   `adv`/`no-dadv`/`not-moved`/`ally(range:ft)`/`target{acted|!acted|surprised}`, escopo `next-attack`,
   combinadores `requires:{a and b | c}`, e `acuidade` (finesse) no catálogo B7.
-- **Ataque Furtivo:** `1/turn`, `requires:{adv | ally(range:5ft) and no-dadv}`, dano = recurso
-  `dados-de-furtividade`. **Técnica de Furtividade:** `pick:<tecnica>(cost:Nd6 de dados-de-furtividade)`.
+- **Ataque Furtivo:** `1/turn`, `requires:{adv | ally(range:5ft) and no-dadv}`, dano =
+  `resource{dados-de-furtividade}d(dado-de-furtividade)`. **Técnica de Furtividade:**
+  `pick:<tecnica>(cost:N de dados-de-furtividade)`.
 
 > **Fonte de conteúdo das classes:** HTMLs do World Anvil em `ref/Classes/` (consultar em caso de dúvida).
 

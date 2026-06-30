@@ -1532,7 +1532,20 @@ def _parse_classe_import_txt(content, classe):
     habilidades = []
     errors = []
 
-    reserved_resource_keys = {"nivel", "subclasse"}
+    reserved_resource_keys = {"nivel", "subclasse", "tipo", "resource_type", "recurso_tipo", "reset", "recarga"}
+    valid_resource_types = {"table-only", "consumable", "choice"}
+    resource_type_aliases = {
+        "apenas-tabela": "table-only",
+        "apenas_tabela": "table-only",
+        "tabela": "table-only",
+        "table": "table-only",
+        "table-only": "table-only",
+        "consumivel": "consumable",
+        "consumable": "consumable",
+        "escolha": "choice",
+        "choice": "choice",
+        "pick": "choice",
+    }
 
     for index, block in enumerate(_split_blocks(sections["recursos"]), start=1):
         data = _parse_key_value_block(block)
@@ -1547,6 +1560,12 @@ def _parse_classe_import_txt(content, classe):
         if subclasse_slug and not subclasse:
             errors.append(f"Recurso bloco {index}: subclasse '{subclasse_slug}' nao encontrada para {classe.nome}.")
             continue
+        tipo_raw = (data.get("tipo") or data.get("resource_type") or data.get("recurso_tipo") or "").strip()
+        tipo = resource_type_aliases.get(slugify(tipo_raw), tipo_raw if tipo_raw in valid_resource_types else "")
+        if tipo_raw and tipo not in valid_resource_types:
+            errors.append(f"Recurso bloco {index}: tipo '{tipo_raw}' invalido. Use table-only, consumable ou choice.")
+            continue
+        reset = (data.get("reset") or data.get("recarga") or "").strip() or None
 
         for key, value in data.items():
             if key in reserved_resource_keys:
@@ -1559,6 +1578,8 @@ def _parse_classe_import_txt(content, classe):
                 "nome": nome,
                 "slug": slugify(nome),
                 "valor": value.strip() or None,
+                "tipo": tipo or "table-only",
+                "reset": reset,
                 "id_subclasse": subclasse.id_subclasse if subclasse else None,
                 "subclasse_nome": subclasse.nome if subclasse else "",
             })
@@ -1622,7 +1643,7 @@ class TbClassehabilidadeInline(admin.StackedInline):
 class TbRecursoclasseInline(admin.TabularInline):
     model = TbRecursoclasse
     extra = 0
-    fields = ("nivel", "nome", "slug", "valor", "id_subclasse")
+    fields = ("nivel", "nome", "slug", "tipo", "valor", "reset", "id_subclasse")
     autocomplete_fields = ("id_subclasse",)
     prepopulated_fields = {"slug": ("nome",)}
     ordering = ("nivel", "nome")
@@ -1724,6 +1745,8 @@ class TbClasseAdmin(BonfireAdminMixin, admin.ModelAdmin):
                         existing.id_subclasse_id = item["id_subclasse"]
                         existing.slug = item["slug"]
                         existing.valor = item["valor"]
+                        existing.tipo = item.get("tipo") or "table-only"
+                        existing.reset = item.get("reset")
                         existing.save()
                         recursos_atualizados += 1
                         continue
@@ -1737,6 +1760,8 @@ class TbClasseAdmin(BonfireAdminMixin, admin.ModelAdmin):
                         slug=item["slug"],
                         nivel=item["nivel"],
                         valor=item["valor"],
+                        tipo=item.get("tipo") or "table-only",
+                        reset=item.get("reset"),
                     )
                     recursos_criados += 1
 
@@ -1845,8 +1870,8 @@ class TbClassehabilidadeAdmin(BonfireAdminMixin, admin.ModelAdmin):
 
 @admin.register(TbRecursoclasse)
 class TbRecursoclasseAdmin(BonfireAdminMixin, admin.ModelAdmin):
-    list_display = ("nome", "classe_nome", "subclasse_nome", "nivel", "valor")
-    list_filter = ("id_classe", "id_subclasse", "nivel")
+    list_display = ("nome", "classe_nome", "subclasse_nome", "nivel", "tipo", "valor", "reset")
+    list_filter = ("tipo", "reset", "id_classe", "id_subclasse", "nivel")
     search_fields = ("nome", "slug", "valor", "id_classe__nome", "id_subclasse__nome")
     autocomplete_fields = ("id_classe", "id_subclasse")
     ordering = ("id_classe__nome", "nivel", "nome")

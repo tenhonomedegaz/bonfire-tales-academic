@@ -61,6 +61,11 @@ def _iter_models(only=None):
         for m in TbMagia.objects.all():
             yield (m.nome, m.tags_json)
 
+    def bestiario():
+        from home.models import TbBestiario
+        for b in TbBestiario.objects.all():
+            yield (b.nome, b.tags_json)
+
     add("classe-hab", classe_hab)
     add("talento", talento)
     add("opcao", opcao)
@@ -68,6 +73,7 @@ def _iter_models(only=None):
     add("antecedente", antecedente)
     add("classe", classe_meta)
     add("magia", magia)
+    add("bestiario", bestiario)
     return specs
 
 
@@ -77,7 +83,7 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("--lint", action="store_true", help="Só audita a biblioteca.")
         parser.add_argument("--model", default=None,
-                            help="classe-hab | talento | opcao | traco | classe | antecedente | magia")
+                            help="classe-hab | talento | opcao | traco | classe | antecedente | magia | bestiario")
         parser.add_argument("--errors-only", action="store_true")
         parser.add_argument("--no-db", action="store_true", help="Não checa referências (#REF!).")
         parser.add_argument("--max", type=int, default=40, help="Máx. de itens listados por seção.")
@@ -144,7 +150,7 @@ class Command(BaseCommand):
         self.stdout.write(self.style.MIGRATE_HEADING("\n-- ERROS (#REF! / desbalanceado / catálogo) --"))
         if errors:
             for full, d in errors[: opt["max"]]:
-                self._line(d.level, f"[{d.code}] {full}\n        → {d.message}\n        … {d.fragment}")
+                self._line(d.level, f"[{d.code}] {full}\n        -> {d.message}\n        ... {d.fragment}")
             if len(errors) > opt["max"]:
                 self.stdout.write(f"  (+{len(errors) - opt['max']} erros omitidos)")
         else:
@@ -161,7 +167,7 @@ class Command(BaseCommand):
             self.stdout.write(self.style.MIGRATE_HEADING("\n-- OUTROS AVISOS (catálogo/padrão) --"))
             other = [(f, d) for f, d in warns if d.code != "verbo-desconhecido"]
             for full, d in other[: opt["max"]]:
-                self._line(d.level, f"[{d.code}] {full} → {d.message}  ({d.fragment})")
+                self._line(d.level, f"[{d.code}] {full} -> {d.message}  ({d.fragment})")
             if not other:
                 self.stdout.write("  (nenhum)")
             elif len(other) > opt["max"]:

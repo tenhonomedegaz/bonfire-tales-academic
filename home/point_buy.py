@@ -49,3 +49,11 @@ def validar_asi(mais2, mais1):
     elif mais2 == mais1:
         erros.append('O +2 e o +1 do ASI devem ser em atributos diferentes.')
     return (not erros, erros)
+
+
+def validar_asi_classe(attr1, attr2):
+    """ASI de classe: dois incrementos de +1. Repetir o atributo equivale a +2."""
+    erros = []
+    if attr1 not in SIGLAS or attr2 not in SIGLAS:
+        erros.append('Atributos do ASI invalidos.')
+    return (not erros, erros)

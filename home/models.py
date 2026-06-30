@@ -192,6 +192,15 @@ class TbAntecedente(models.Model):
 
 class TbRecursoclasse(models.Model):
 
+    RESOURCE_TIPO_TABLE_ONLY = 'table-only'
+    RESOURCE_TIPO_CONSUMABLE = 'consumable'
+    RESOURCE_TIPO_CHOICE = 'choice'
+    RESOURCE_TIPO_CHOICES = (
+        (RESOURCE_TIPO_TABLE_ONLY, 'Apenas tabela'),
+        (RESOURCE_TIPO_CONSUMABLE, 'Consumível'),
+        (RESOURCE_TIPO_CHOICE, 'Escolha'),
+    )
+
     id_recurso = models.AutoField(db_column='Id_Recurso', primary_key=True)  
 
     id_classe = models.ForeignKey(TbClasse, models.DO_NOTHING, db_column='Id_Classe')  
@@ -207,6 +216,9 @@ class TbRecursoclasse(models.Model):
     valor = models.CharField(db_column='Valor', blank=True, null=True)
 
     valores_json = models.JSONField(db_column='ValoresJSON', blank=True, default=dict, help_text='Mapa nivel->valor, so os niveis onde o valor muda. Ex.: {"1":"2","5":"3"}.')
+    tipo = models.CharField(db_column='Tipo', max_length=20, choices=RESOURCE_TIPO_CHOICES,
+                            blank=True, default=RESOURCE_TIPO_TABLE_ONLY,
+                            help_text="Papel do recurso no builder: 'table-only', 'consumable' ou 'choice'.")
     reset = models.CharField(db_column='Reset', max_length=20, blank=True, null=True,
                              help_text="Tipo de recuperação do recurso CONSUMÍVEL: 'long-rest', 'short-rest' ou 'short-or-long'. Vazio = stat derivado (não rastreável na ficha).")
 
@@ -223,6 +235,31 @@ class TbRecursoclasse(models.Model):
 
     def __str__(self):
         return f"{self.nome} - Nivel {self.nivel}"
+
+    @property
+    def tipo_efetivo(self):
+        validos = {
+            self.RESOURCE_TIPO_TABLE_ONLY,
+            self.RESOURCE_TIPO_CONSUMABLE,
+            self.RESOURCE_TIPO_CHOICE,
+        }
+        if self.tipo in validos:
+            return self.tipo
+        if self.reset:
+            return self.RESOURCE_TIPO_CONSUMABLE
+        return self.RESOURCE_TIPO_TABLE_ONLY
+
+    @property
+    def consumivel(self):
+        return self.tipo_efetivo == self.RESOURCE_TIPO_CONSUMABLE
+
+    @property
+    def escolha(self):
+        return self.tipo_efetivo == self.RESOURCE_TIPO_CHOICE
+
+    @property
+    def apenas_tabela(self):
+        return self.tipo_efetivo == self.RESOURCE_TIPO_TABLE_ONLY
 
 
 
@@ -324,6 +361,24 @@ class TbTracoracial(models.Model):
 
     def __str__(self):
         return self.nome
+
+
+class TbMapLayer(models.Model):
+    id_layer = models.IntegerField(db_column='Id_Layer', primary_key=True)
+    nome = models.CharField(db_column='Nome', max_length=150)
+    imagem_url = models.CharField(db_column='ImagemUrl', max_length=500, blank=True, null=True)
+    ordem = models.IntegerField(db_column='Ordem', default=0)
+    publica = models.BooleanField(db_column='Publica', default=False)
+
+    class Meta:
+        db_table = 'TB_MapLayer'
+        verbose_name = 'Camada de Mapa'
+        verbose_name_plural = 'Camadas de Mapa'
+        ordering = ['ordem']
+
+    def __str__(self):
+        return f"{self.nome} (Ordem: {self.ordem})"
+
 
 class TbMapMarker(models.Model):
 

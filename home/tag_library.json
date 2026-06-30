@@ -100,7 +100,7 @@
       "assina": "(target_selector, formula, tipo)"
     },
     "resource": {
-      "doc": "Gasta/restaura/lê um recurso. NÃO declara pool: o pool de recurso de classe vive na TB_RecursoClasse (veto do PO 2026-06-17). A tag só referencia/gasta/restaura.",
+      "doc": "Gasta/restaura/lê um recurso. NÃO declara pool: o pool de recurso de classe vive na TB_RecursoClasse (veto do PO 2026-06-17). A tag só referencia/gasta/restaura. O papel do pool fica em TbRecursoclasse.tipo: table-only, consumable ou choice.",
       "assina": "(recurso, acao, qtd?, reset?)"
     },
     "grant-execution": {
@@ -159,9 +159,9 @@
   "references": {
     "_doc": "Formas de apontar para algo definido em outro lugar — nunca string solta (regra de ouro, vocabulario §4).",
     "ability": {
-      "sintaxe": "ability{<nome>, <fonte>:<slug>}[.<campo>]",
-      "resolve": "habilidade por nome+fonte; .<campo> lê um valor exportado por um define{}. <fonte> = classe | talento | raca | linhagem | essencia (o motor precisa resolver além de classe — p/ alterar habilidade de raça via talento racial, ou melhorar talento via talentos-pré-requisito).",
-      "exemplo": "ability{furia, classe:barbaro}.dmg-bonus | ability{<nome>, talento:<slug>}",
+      "sintaxe": "ability{<habilidade>, <fonte>:<entidade>}[.<campo>]",
+      "resolve": "habilidade por slug/nome + fonte; .<campo> le um valor exportado por um define{}. <fonte> = classe | subclasse | talento | raca | linhagem | essencia. A entidade e sempre o slug da tabela indicada pela fonte; talento: aponta so para TbTalento e subclasse: aponta so para TbSubclasse.",
+      "exemplo": "ability{furia, classe:barbaro}.dmg-bonus | ability{foco-mortal, subclasse:atirador} | ability{tratamento-de-campo, talento:curandeiro}",
       "nota": "NÃO confundir com o campo 'ability:' DENTRO de spellcasting{} (atributo de conjuração). Fora de spellcasting, p/ o modificador de conjuração use 'spell-mod' (decisão 2026-06-17)."
     },
     "spell": {
@@ -173,6 +173,11 @@
       "sintaxe": "bestiary{<slug>}",
       "resolve": "criatura do BESTIÁRIO (statblock). Companheiros de subclasse (Defensor de Aço, Familiar Primal, espíritos, mortos-vivos comandados) são entradas de bestiário. Ver docs/criador-personagem/bestiario-e-summon.md.",
       "exemplo": "summon:bestiary{defensor-de-aco}"
+    },
+    "any-bestiary": {
+      "sintaxe": "any-bestiary{tipo:<tipo>, nd:<valor>}",
+      "resolve": "seleção dinâmica de criaturas do BESTIÁRIO por filtros. Use dentro de define{} + pick:<nome>:N quando a regra permite qualquer criatura que case com filtros, em vez de uma lista fechada de slugs.",
+      "exemplo": "define{familiar: list{ bat | cat | any-bestiary{tipo:besta, nd:0} }}"
     },
     "opcao": {
       "sintaxe": "opcao:<tipo>",
@@ -388,7 +393,7 @@
       ":=": "set (sobrescreve, não acumula)",
       ":+": "add (soma/acumula/empilha)",
       "=": "bind (vínculo/fórmula/identidade)",
-      "@": "destinatário: redireciona o efeito imediatamente anterior para o seletor (ex.: move:15ft@target, dado-de-inspiracao}:1@ally(range:60ft), mark{...}@chosen-creature)",
+      "@": "destinatário: redireciona o efeito imediatamente anterior para o seletor (ex.: move:15ft@target, grant:resource{dado-de-inspiracao}:1@ally(range:60ft), mark{...}@chosen-creature)",
       "+ - * /": "aritmética em fórmulas"
     },
     "variaveis_de_formula": {
@@ -408,7 +413,9 @@
       "ft-moved": "pés percorridos nesta ação (ex.: dmg = 2*ft-moved)",
       "owner-max-hp": "PV máximo do invocador/dono (ex.: threshold:owner-max-hp do Selo de Céssira)",
       "spent": "quantidade efetivamente gasta de um recurso nesta ativação (par de ciclo-gasto; Virtudes/Metamagia)",
-      "dado-de-combate": "valor rolado do recurso-dado de manobra (resource{dado-de-combate}, análogo a artes-marciais/dados-de-cacador)",
+      "dado-de-combate": "valor rolado do recurso-dado de manobra (resource{dado-de-combate}, análogo a artes-marciais/dado-de-cacador)",
+      "dado-de-cacador": "valor rolado do Dado de Caçador; os Pontos de Segredo usam o recurso consumível pontos-de-segredo",
+      "dado-de-furtividade": "valor de cada dado de Ataque Furtivo; dados-de-furtividade guarda a quantidade de dados",
       "talent-attr": "o atributo que ESTE talento aumenta (asi-attr); usado na CD da habilidade do talento: cd=8+pb+talent-attr-mod. Sufixos -mod/-score. Aprovado 2026-06-18.",
       "grau": "nível/grau de uma trilha de opção (Virtudes: grau>=2). Gate de progressão, análogo a classlvl. Aprovado 2026-06-18.",
       "ciclo": "contador de ciclo de gasto de recurso (Conjuração Elemental); par de 'spent' e do limiter 1/<reset>{per:ciclo}. Aprovado 2026-06-18."
@@ -427,6 +434,12 @@
       "forma": "flag",
       "op": "meta",
       "doc": "Marca a ESCOLHA concedida por esta habilidade como trocável (o jogador pode refazer a seleção depois — ex.: maestria de arma, estilo de luta). A MESMA habilidade pode ser trocável numa classe e fixa em outra: a tag fica na versão da classe que permite a troca."
+    },
+    "log-castable": {
+      "categoria": "A1",
+      "forma": "flag",
+      "op": "meta",
+      "doc": "Marca magia/efeito que pode ser executado pelo log da ficha fora do fluxo normal de turno/descanso, geralmente porque cria ou atualiza um estado persistente (ex.: Encontrar Familiar)."
     },
     "while-active": {
       "categoria": "A1",
@@ -485,6 +498,12 @@
       "op": null,
       "doc": "Referência a magia (references.spell)."
     },
+    "any-bestiary": {
+      "categoria": "A3",
+      "forma": "reference",
+      "op": null,
+      "doc": "Referência dinâmica ao bestiário por filtros; usada em define{} quando uma escolha aceita qualquer criatura compatível, como qualquer Besta de ND 0 para familiar."
+    },
     "opcao": {
       "categoria": "A3",
       "forma": "reference",
@@ -503,6 +522,12 @@
       "forma": "key_value",
       "op": "override",
       "doc": "modify:<entidade-ref>.<prop>{...} — override genérico numa entidade referenciada."
+    },
+    "add-to-set": {
+      "categoria": "A9",
+      "forma": "key_value",
+      "op": "add-to-set",
+      "doc": "Adiciona um valor a uma coleção nomeada do estado. Ex.: add-to-set:arma-de-monge(wielded)."
     },
     "modifiers": {
       "categoria": "A3",
@@ -677,7 +702,7 @@
       "forma": "reference",
       "op": "resource",
       "target": "recursos",
-      "doc": "REFERENCIA um pool de recurso. REGRA (2026-06-18): SÓ vão na TB_RecursoClasse pools que ESCALAM por nível de classe (Fúrias 2→6, pontos-de-ki=nível — via valores_json). Pools de FÓRMULA (max=pb/mod/2*pb) ou FIXOS (teto 3) são INTERNOS: declarados via define{<slug>: max:<fórmula>, reset:..., [die:...]} na habilidade-fonte (NÃO na tabela) e referenciados normalmente por resource{<slug>}/resource-cost:<slug>. O uso da própria habilidade também é um pool (resource-cost:<nome-da-habilidade>)."
+      "doc": "REFERENCIA um pool de recurso. REGRA (2026-06-18): SÓ vão na TB_RecursoClasse pools que ESCALAM por nível de classe (Fúrias 2→6, pontos-de-ki=nível — via valores_json). Pools de FÓRMULA (max=pb/mod/2*pb) ou FIXOS (teto 3) são INTERNOS: declarados via define{<slug>: max:<fórmula>, reset:..., [die:...]} na habilidade-fonte (NÃO na tabela) e referenciados normalmente por resource{<slug>}/resource-cost:<slug>. O uso da própria habilidade também é um pool (resource-cost:<nome-da-habilidade>). TbRecursoclasse.tipo define o papel no builder: table-only (informativo), consumable (rastreador de usos) ou choice (quantidade de escolhas nao consumidas)."
     },
     "resource-cost": {
       "categoria": "A6",
@@ -687,7 +712,7 @@
         "type": "ref|alt",
         "doc": "recurso, '1/long-rest', ou custo alternativo {a|b}"
       },
-      "doc": "Gasta uso(s). resource-cost:furias (=1); quantidade: resource-cost:<rec>:<N> (resource-cost:pontos-de-ki:2); faixa fechada :1..3 ou aberta :1..all (gasta quanto quiser; Ímpetos Arcanos); custo alternativo {a|b}."
+      "doc": "Gasta uso(s). resource-cost:furias (=1); quantidade: resource-cost:<rec>:<N> (resource-cost:pontos-de-ki:2); faixa fechada :1..3 ou aberta :1..all (gasta quanto quiser; Ímpetos Arcanos); custo alternativo {a|b}. Em recurso table-only usado como orçamento local (ex.: dados-de-furtividade), o custo reduz a quantidade da ativação atual e não cria tracker persistente."
     },
     "resource-restore": {
       "categoria": "A6",
@@ -2152,6 +2177,11 @@
       "sintaxe": "asi-choices{4, 8, 12, 16, 19}",
       "op": "set-value",
       "doc": "Níveis com Incremento de Atributo/Talento. ÚNICA fonte de ASI — não existe choice:asi por habilidade; a feature é detectada por nome (_eh_feature_asi)."
+    },
+    "background-grants": {
+      "sintaxe": "background-grants{asi:+2/+1, pericia:2, idioma-fixo:Comum, idioma-ou-ferramenta:2, po:100, po-mundano-min:50, talento-origem:1, habilidade:1, equip-gold-alt:150}",
+      "op": "set-value",
+      "doc": "Metadado de criacao de personagem para antecedentes: ASI, pericias, idioma fixo, escolhas idioma/ferramenta, dinheiro inicial e alternativa de ouro do equipamento."
     },
     "multiclass-req": {
       "sintaxe": "multiclass-req{str>=13}",

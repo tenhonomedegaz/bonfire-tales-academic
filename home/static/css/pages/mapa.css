@@ -1064,23 +1064,37 @@ body { overflow: hidden !important; }
   transition: opacity 0.5s ease-in-out, fill-opacity 0.5s ease-in-out, stroke-opacity 0.5s ease-in-out !important;
 }
 
-/* Layer Switch Visibility Toggling */
-/* Surface mode active */
-.map-shell.layer-surface .territory-polygon.layer-underground {
+/* Layer Switch Visibility Toggling (Multi-layer support) */
+.territory-polygon {
   opacity: 0 !important;
   pointer-events: none !important;
-}
-.map-shell.layer-surface .territory-polygon.layer-surface {
-  opacity: 1 !important;
-  pointer-events: auto !important;
+  transition: opacity 0.5s ease-in-out, fill-opacity 0.5s ease-in-out, stroke-opacity 0.5s ease-in-out !important;
 }
 
-/* Underground mode active */
-.map-shell.layer-underground .territory-polygon.layer-surface {
-  opacity: 0 !important;
-  pointer-events: none !important;
-}
-.map-shell.layer-underground .territory-polygon.layer-underground {
+/* Base states & layer matches up to 20 */
+.map-shell.layer-surface .territory-polygon.layer-surface,
+.map-shell.layer-underground .territory-polygon.layer-underground,
+.map-shell.layer-0 .territory-polygon.layer-0,
+.map-shell.layer-1 .territory-polygon.layer-1,
+.map-shell.layer-2 .territory-polygon.layer-2,
+.map-shell.layer-3 .territory-polygon.layer-3,
+.map-shell.layer-4 .territory-polygon.layer-4,
+.map-shell.layer-5 .territory-polygon.layer-5,
+.map-shell.layer-6 .territory-polygon.layer-6,
+.map-shell.layer-7 .territory-polygon.layer-7,
+.map-shell.layer-8 .territory-polygon.layer-8,
+.map-shell.layer-9 .territory-polygon.layer-9,
+.map-shell.layer-10 .territory-polygon.layer-10,
+.map-shell.layer-11 .territory-polygon.layer-11,
+.map-shell.layer-12 .territory-polygon.layer-12,
+.map-shell.layer-13 .territory-polygon.layer-13,
+.map-shell.layer-14 .territory-polygon.layer-14,
+.map-shell.layer-15 .territory-polygon.layer-15,
+.map-shell.layer-16 .territory-polygon.layer-16,
+.map-shell.layer-17 .territory-polygon.layer-17,
+.map-shell.layer-18 .territory-polygon.layer-18,
+.map-shell.layer-19 .territory-polygon.layer-19,
+.map-shell.layer-20 .territory-polygon.layer-20 {
   opacity: 1 !important;
   pointer-events: auto !important;
 }
@@ -1137,4 +1151,8 @@ body { overflow: hidden !important; }
 
 .layer-selector-btn.active svg {
   transform: scale(1.1);
+}
+
+.map-overlay-layer.brightness-50 {
+  filter: brightness(0.5) !important;
 }

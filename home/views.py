@@ -1,4 +1,5 @@
 import json
+import hashlib
 import re
 import unicodedata
 from datetime import datetime, timezone as datetime_timezone
@@ -35,6 +36,7 @@ from .models import (
     TbJornal,
     TbLinhagem,
     TbMapMarker,
+    TbMapLayer,
     TbOpcaojogo,
     TbRaca,
     TbRecursoclasse,
@@ -1879,20 +1881,80 @@ def _parse_skills_lvl1(tags_json):
     return (2, None)
 
 
+_ARMADURA_PROF_TOKEN = {
+    'armadura-leve': 'leve',
+    'armadura-media': 'media',
+    'armadura-pesada': 'pesada',
+    'escudos': 'escudo',
+}
+_PICK_ARMA_RE = re.compile(r'pick:arma:(\{[^}]*\}|[A-Za-z0-9_+\-]+)(?:\([^)]*\))*')
+_PICK_OPCAO_NV_RE = re.compile(r'pick:opcao:([a-z0-9-]+)(?:\([^)]*\))?(?::(\{[^}]*\}|[A-Za-z0-9_+\-]+))?(?:\([^)]*\))*')
+_PICK_EXPERTISE_RE = re.compile(r'pick:pericia-expertise:(\{[^}]*\}|[A-Za-z0-9_+\-]+)(?:\([^)]*\))*')
+
+
+def _classe_armaduras_prof(classe):
+    out = []
+    for tag in (getattr(classe, 'tags_json', None) or []):
+        m = re.match(r'prof\{([^}]*)\}', str(tag).strip())
+        if not m:
+            continue
+        for token in [x.strip() for x in m.group(1).split(',') if x.strip()]:
+            val = _ARMADURA_PROF_TOKEN.get(token)
+            if val and val not in out:
+                out.append(val)
+    return out
+
+
+def _count_expr_for_level(expr, level):
+    expr = (expr or '').strip()
+    if expr.startswith('{'):
+        return sum(int(v) for lv, v in re.findall(r'classlvl\s*=\s*(\d+)\s*:\s*([+-]?\d+)', expr)
+                   if int(lv) <= level) or None
+    if re.match(r'^[+-]?\d+$', expr):
+        return int(expr)
+    return None
+
+
+def _resource_ref_from_tag(tag):
+    m = re.search(r'=\s*(?:resource|recurso)\s+([a-z0-9-]+)', str(tag))
+    return m.group(1) if m else None
+
+
+def _choice_resource_limit(classe, nivel, resource_slug):
+    if not resource_slug:
+        return None
+    from .character_engine import RESOURCE_TIPO_CHOICE, _resource_max_at, _resource_tipo
+    qs = TbRecursoclasse.objects.filter(id_classe=classe, id_subclasse__isnull=True)
+    exatos = list(qs.filter(slug=resource_slug))
+    parciais = list(qs.filter(slug__icontains=resource_slug))
+    candidatos = exatos + [r for r in parciais if r not in exatos]
+    r = next((rec for rec in candidatos if _resource_tipo(rec) == RESOURCE_TIPO_CHOICE), None)
+    if r is None and candidatos:
+        r = candidatos[0]
+    return _resource_max_at(r, nivel) if r else None
+
+
+def _pick_count_for_tag(classe, nivel, expr, tag):
+    val = _count_expr_for_level(expr, nivel)
+    if val is not None:
+        return val
+    if (expr or '').strip() in ('N', '+', ''):
+        return _choice_resource_limit(classe, nivel, _resource_ref_from_tag(tag))
+    return None
+
+
+def _classe_nv1_sources(classe):
+    return [classe] + list(TbClassehabilidade.objects.filter(
+        id_classe=classe, id_subclasse__isnull=True, niveladquirido=1))
+
+
 def _classe_maestria_n(classe, nivel=1):
-    """Quantas ARMAS o jogador escolhe para Maestria de Arma neste nível (valor do
-    recurso 'Maestria*com/em Armas'); 0 se a classe não concede maestria."""
-    from .models import TbRecursoclasse
-    for r in TbRecursoclasse.objects.filter(id_classe=classe, id_subclasse__isnull=True):
-        if 'maestria' in (r.slug or '').lower():
-            vj = r.valores_json or {}
-            ks = sorted(int(k) for k in vj if int(k) <= nivel)
-            if ks:
-                try:
-                    return int(str(vj[str(ks[-1])]).strip())
-                except (ValueError, TypeError):
-                    return 0
-    return 0
+    total = 0
+    for src in _classe_nv1_sources(classe):
+        for tag in (getattr(src, 'tags_json', None) or []):
+            for m in _PICK_ARMA_RE.finditer(str(tag)):
+                total += _pick_count_for_tag(classe, nivel, m.group(1), tag) or 0
+    return total
 
 
 def _criador_armas():
@@ -1917,62 +1979,507 @@ def _criador_armas():
 
 
 def _classe_escolhas_nv1(classe):
-    """Escolhas de classe no nível 1 (além de perícias/maestria): estilo de luta e
-    perícia-expertise. Lê os pick: das habilidades base de nível 1."""
-    from .models import TbClassehabilidade
     from .character_engine import _SKILL_INFO
     estilo_n = expertise_n = 0
     expertise_fixa = []
-    for h in TbClassehabilidade.objects.filter(id_classe=classe, id_subclasse__isnull=True, niveladquirido=1):
-        for t in (h.tags_json or []):
-            t = str(t)
-            m = re.search(r'pick:opcao:estilo-de-luta:(\d+)', t)
+    opcao_picks = []
+    for src in _classe_nv1_sources(classe):
+        for tag in (getattr(src, 'tags_json', None) or []):
+            text = str(tag)
+            for m in _PICK_OPCAO_NV_RE.finditer(text):
+                slug, expr = m.group(1), m.group(2)
+                n = _pick_count_for_tag(classe, 1, expr, text) or 0
+                if n > 0:
+                    opcao_picks.append({'slug': slug, 'n': n})
+                if slug == 'estilo-de-luta':
+                    estilo_n += n
+            for m in _PICK_EXPERTISE_RE.finditer(text):
+                expr = (m.group(1) or '').strip()
+                n = _pick_count_for_tag(classe, 1, expr, text)
+                if n is not None:
+                    expertise_n += n
+                elif expr.startswith('{') and 'classlvl' not in expr:
+                    expertise_fixa += [s.strip() for s in re.split(r'[,\s|]+', expr.strip('{} '))
+                                       if s.strip() in _SKILL_INFO]
+    return {'estilo_n': estilo_n, 'expertise_n': expertise_n,
+            'expertise_fixa': expertise_fixa, 'opcao_picks': opcao_picks}
+
+
+def _classe_spellcasting_info(classe, nivel_habilidades=1):
+    from .character_engine import spell_scope_names
+    qs = TbClassehabilidade.objects.filter(id_classe=classe, id_subclasse__isnull=True)
+    if nivel_habilidades is not None:
+        qs = qs.filter(niveladquirido__lte=nivel_habilidades)
+    qs = qs.order_by('niveladquirido', 'id_habilidade')
+    sc, mods = None, []
+    for src in [classe] + list(qs):
+        for tag in (getattr(src, 'tags_json', None) or []):
+            m = re.search(r'spellcasting\{([^}]*)\}', str(tag))
             if m:
-                estilo_n = int(m.group(1))
-            m = re.search(r'pick:pericia-expertise:\{([^}]*)\}', t)
-            if m:
-                m2 = re.search(r'classlvl=1:(\d+)', m.group(1))
-                if m2:
-                    expertise_n = int(m2.group(1))
+                body = m.group(1)
+                if re.search(r'\b(?:slots|lista)\s*:', body):
+                    sc = body
                 else:
-                    expertise_fixa += [s.strip() for s in re.split(r'[,\s]+', m.group(1)) if s.strip() in _SKILL_INFO]
-    return {'estilo_n': estilo_n, 'expertise_n': expertise_n, 'expertise_fixa': expertise_fixa}
+                    mods.append(body)
+    if not sc:
+        return None
+    for body in mods:
+        mm = re.search(r'prepara\s*:?=\s*([a-z-]+)', body)
+        if mm:
+            sc = re.sub(r'prepara\s*:\s*[a-z-]+', 'prepara:%s' % mm.group(1), sc)
+    lista_raw = (re.search(r'lista\s*:\s*([a-z0-9_|,-]+)', sc) or [None, ''])[1]
+    lista_slugs = [x.strip() for x in re.split(r'[|,]', lista_raw) if x.strip()]
+    slots_raw = (re.search(r'slots\s*:\s*([^,}]+)', sc) or [None, 'full'])[1].strip()
+    slots_resource = (re.search(r'resource\s*:\s*([a-z0-9-]+)', slots_raw) or [None, None])[1]
+    return {
+        'raw': sc,
+        'ability': (re.search(r'ability\s*:\s*([\w|]+)', sc) or [None, 'int'])[1],
+        'lista': lista_slugs,
+        'lista_nomes': spell_scope_names(lista_slugs) or [classe.nome],
+        'prepara': (re.search(r'prepara\s*:\s*([a-z-]+)', sc) or [None, None])[1],
+        'prep_formula': (re.search(r'prep-limite\s*:\s*([^,}]+)', sc) or [None, None])[1],
+        'slots': slots_raw.split('(', 1)[0].strip(),
+        'slots_raw': slots_raw,
+        'slots_resource': slots_resource,
+    }
+
+
+def _spell_list_q(lista_nomes):
+    q = Q(pk__in=[])
+    for nome in lista_nomes or []:
+        q |= Q(classes__icontains=nome)
+    return q
+
+
+def _max_spell_level_for_slots(nivel, slots):
+    if slots == 'half':
+        return min(5, (nivel + 5) // 4)
+    if slots == 'third':
+        if nivel >= 19:
+            return 4
+        if nivel >= 13:
+            return 3
+        if nivel >= 7:
+            return 2
+        return 1 if nivel >= 3 else 0
+    if slots == 'pact':
+        return min(5, max(1, (nivel + 1) // 2))
+    return min(9, (nivel + 1) // 2)
+
+
+def _classe_slot_table(classe, nivel):
+    """Le os recursos table-only 1o..9o da classe para total de slots."""
+    from .character_engine import _resource_max_at, _resource_tipo, RESOURCE_TIPO_TABLE_ONLY
+    out = {}
+    if not classe:
+        return out
+    for r in TbRecursoclasse.objects.filter(id_classe=classe, id_subclasse__isnull=True):
+        slug = (r.slug or '').strip().lower()
+        if not re.match(r'^[1-9]o$', slug):
+            continue
+        if _resource_tipo(r) != RESOURCE_TIPO_TABLE_ONLY:
+            continue
+        val = _resource_max_at(r, nivel)
+        if val is not None:
+            out[int(slug[0])] = max(0, val)
+    return out
+
+
+def _full_caster_slot_source(casters):
+    for c in casters:
+        if c['info']['slots'] == 'full':
+            return c['pc'].id_classe
+    return (TbClasse.objects.filter(slug='mago').first()
+            or TbClasse.objects.filter(slug='bardo').first()
+            or (casters[0]['pc'].id_classe if casters else None))
+
+
+def _spell_slot_totals(casters):
+    slot_casters = [c for c in casters if c['info']['slots'] in {'full', 'half', 'third'}]
+    if not slot_casters:
+        return {}
+    if len(slot_casters) == 1:
+        pc = slot_casters[0]['pc']
+        return _classe_slot_table(pc.id_classe, int(pc.nivel or 0))
+    effective = 0
+    for c in slot_casters:
+        nivel = int(c['pc'].nivel or 0)
+        kind = c['info']['slots']
+        if kind == 'full':
+            effective += nivel
+        elif kind == 'half':
+            effective += nivel // 2
+        elif kind == 'third':
+            effective += nivel // 3
+    return _classe_slot_table(_full_caster_slot_source(slot_casters), max(1, effective))
+
+
+def _spell_slot_rows(personagem, totals):
+    atuais = {r.nome: r for r in personagem.recursos.filter(nome__startswith='spell-slot:')}
+    rows = []
+    for nivel in range(1, 10):
+        total = int(totals.get(nivel) or 0)
+        key = 'spell-slot:%d' % nivel
+        pr = atuais.get(key)
+        atual = min(int(getattr(pr, 'atual', total) or 0), total) if pr else total
+        rows.append({'nivel': nivel, 'key': key, 'total': total, 'atual': max(0, atual)})
+    return rows
+
+
+_REST_LABELS = {
+    'long-rest': 'day',
+    'day': 'day',
+    'short-rest': 'short-rest',
+    'short-or-long': 'rest',
+    'rest': 'rest',
+}
+_REST_UNITS_RE = r'(long-rest|short-rest|short-or-long|rest|day)'
+_INNATE_RESOURCE_PREFIX = 'spell-innate:'
+
+
+def _uses_eval_ctx(ficha, classlvl=None):
+    ficha = ficha or {}
+    ctx = {
+        'lvl': int(ficha.get('nivel_total') or classlvl or 1),
+        'classlvl': int(classlvl or ficha.get('nivel_total') or 1),
+        'pb': int(ficha.get('bonus_proficiencia') or 0),
+    }
+    attrs = ficha.get('atributos') or {}
+    mods = []
+    for sig, en in {'FOR': 'str', 'DES': 'dex', 'CON': 'con', 'INT': 'int', 'SAB': 'wis', 'CAR': 'cha'}.items():
+        data = attrs.get(sig) or {}
+        mod = int(data.get('mod') or 0)
+        val = int(data.get('valor') or 0)
+        ctx[en + '-mod'] = mod
+        ctx[en + '-score'] = val
+        if en in ('int', 'wis', 'cha'):
+            mods.append(mod)
+    if mods:
+        ctx['spell-mod'] = max(mods)
+    return ctx
+
+
+def _uses_count_value(raw, ctx=None):
+    raw = str(raw or '').strip().lower()
+    if not raw:
+        return None
+    if raw.isdigit():
+        return int(raw)
+    ctx = ctx or {}
+    if raw in ctx:
+        return int(ctx[raw])
+    try:
+        from .character_engine import _eval_formula
+        val = _eval_formula(raw, ctx)
+        return int(val) if val is not None else None
+    except Exception:
+        return None
+
+
+def _uses_label(count, reset):
+    suffix = _REST_LABELS.get(reset or '', reset or '')
+    return '%s/%s' % (count, suffix) if count and suffix else ''
+
+
+def _uses_meta_from_text(text, ctx=None):
+    s = str(text or '').lower()
+    if re.search(r'\bat-will\b', s):
+        return {'maximo': 0, 'reset': 'at-will', 'label': 'at-will'}
+
+    patterns = [
+        r'uses\s*\{\s*([^,{}]+)\s*,\s*reset\s*:\s*' + _REST_UNITS_RE,
+        r'resource-cost\s*:\s*([^,\s{}|:]+)\s*/\s*' + _REST_UNITS_RE,
+        r'\b([^,\s{}|:]+)\s*/\s*' + _REST_UNITS_RE,
+    ]
+    for rx in patterns:
+        m = re.search(rx, s)
+        if not m:
+            continue
+        count = _uses_count_value(m.group(1), ctx)
+        if count is None:
+            continue
+        reset = m.group(2)
+        return {'maximo': max(0, count), 'reset': reset, 'label': _uses_label(count, reset)}
+    return None
+
+
+def _uses_label_from_text(text, ctx=None):
+    meta = _uses_meta_from_text(text, ctx)
+    return meta.get('label', '') if meta else ''
+
+
+def _iter_tag_blocks(text, head):
+    s = str(text or '')
+    rx = re.compile(r'\b%s\s*\{' % re.escape(head), re.I)
+    pos = 0
+    while True:
+        m = rx.search(s, pos)
+        if not m:
+            return
+        open_pos = m.end() - 1
+        depth = 0
+        end = None
+        for i in range(open_pos, len(s)):
+            if s[i] == '{':
+                depth += 1
+            elif s[i] == '}':
+                depth -= 1
+                if depth == 0:
+                    end = i
+                    break
+        if end is None:
+            return
+        yield s[open_pos + 1:end]
+        pos = end + 1
+
+
+def _innate_resource_key(origem, spell_slug):
+    origem_slug = slugify(origem or 'feature') or 'feature'
+    spell_slug = slugify(spell_slug or 'spell') or 'spell'
+    base = '%s:%s' % (origem_slug, spell_slug)
+    key = _INNATE_RESOURCE_PREFIX + base
+    if len(key) <= 100:
+        return key
+    digest = hashlib.sha1(base.encode('utf-8')).hexdigest()[:10]
+    return '%s%s:%s:%s' % (_INNATE_RESOURCE_PREFIX, origem_slug[:28], spell_slug[:34], digest)
+
+
+def _resource_resets_on_rest(reset, longo):
+    reset = (reset or '').strip().lower()
+    if longo:
+        return reset in ('long-rest', 'day', 'short-rest', 'short-or-long', 'rest')
+    return reset in ('short-rest', 'short-or-long', 'rest')
+
+
+def _innate_spell_uses(personagem, ficha=None):
+    """Mapeia (fonte, spell_slug) -> metadados de uso inato vindos das tags."""
+    from .character_engine import (
+        _features_de_classe, _tracos_raciais, _antecedente, _talentos,
+        _features_de_itens, _features_de_opcoes,
+    )
+    classes = list(personagem.classes.select_related('id_classe', 'id_subclasse').order_by('-principal', 'id'))
+    features = (_features_de_classe(classes) + _tracos_raciais(personagem)
+                + _antecedente(personagem) + _talentos(personagem)
+                + _features_de_itens(personagem) + _features_de_opcoes(personagem))
+    catalog = set(TbMagia.objects.values_list('slug', flat=True))
+    out = {}
+    for (_origem, _fonte, obj, _cl) in features:
+        fonte = getattr(obj, 'nome', '') or ''
+        tags = [str(t) for t in (getattr(obj, 'tags_json', None) or [])]
+        ctx = _uses_eval_ctx(ficha, _cl)
+        source_meta = None
+        for t in tags:
+            source_meta = source_meta or _uses_meta_from_text(t, ctx)
+        for t in tags:
+            for body in _iter_tag_blocks(t, 'cast'):
+                if 'no-slot' not in body.lower():
+                    continue
+                meta = _uses_meta_from_text(body, ctx) or _uses_meta_from_text(t, ctx) or source_meta
+                if not meta:
+                    continue
+                for slug in re.findall(r'spell:([a-z0-9-]+)', body):
+                    if slug in catalog:
+                        out[(fonte, slug)] = meta
+    return out
+
+
+def _innate_spell_labels(personagem):
+    """Compatibilidade: (fonte, spell_slug) -> 1/day, 3/day etc."""
+    return {k: v.get('label', '') for k, v in _innate_spell_uses(personagem).items()}
+
+
+def _attr_sig_from_spell_ability(ability_raw):
+    first = (ability_raw or 'int').split('|', 1)[0].strip().lower()
+    return {'str': 'FOR', 'for': 'FOR', 'dex': 'DES', 'des': 'DES',
+            'con': 'CON', 'int': 'INT', 'wis': 'SAB', 'sab': 'SAB',
+            'cha': 'CAR', 'car': 'CAR'}.get(first, 'INT')
+
+
+def _magias_sheet_info(personagem, ficha, essencia_pendentes):
+    from .models import TbPersonagemMagia
+    classes = list(personagem.classes.select_related('id_classe', 'id_subclasse').order_by('-principal', 'id'))
+    casters = []
+    for pc in classes:
+        info = _classe_spellcasting_info(pc.id_classe, nivel_habilidades=int(pc.nivel or 1))
+        if info:
+            casters.append({'pc': pc, 'info': info})
+    primary = casters[0] if casters else None
+    spellcasting = None
+    if primary:
+        sig = _attr_sig_from_spell_ability(primary['info']['ability'])
+        mod = int((((ficha.get('atributos') or {}).get(sig) or {}).get('mod')) or 0)
+        pb = int(ficha.get('bonus_proficiencia') or 0)
+        spellcasting = {
+            'classe': primary['pc'].id_classe.nome,
+            'ability': sig,
+            'ability_nome': {'INT': 'Inteligencia', 'SAB': 'Sabedoria', 'CAR': 'Carisma',
+                             'FOR': 'Forca', 'DES': 'Destreza', 'CON': 'Constituicao'}.get(sig, sig),
+            'mod': mod,
+            'cd': 8 + pb + mod,
+            'ataque': pb + mod,
+            'slots_kind': primary['info']['slots'],
+            'slots_resource': primary['info'].get('slots_resource'),
+            'prepara': primary['info'].get('prepara'),
+        }
+
+    innate_uses = _innate_spell_uses(personagem, ficha)
+    innate_rows = {r.nome: r for r in personagem.recursos.filter(nome__startswith=_INNATE_RESOURCE_PREFIX)}
+    magias_pers = list(TbPersonagemMagia.objects.filter(id_personagem=personagem)
+                       .select_related('id_magia').order_by('nivel', 'nome'))
+    lista = []
+    for m in magias_pers:
+        slug = getattr(m.id_magia, 'slug', '') or slugify(m.nome or '')
+        innate_meta = innate_uses.get((m.origem or '', slug), {}) if m.sempre_preparada else {}
+        innate_label = innate_meta.get('label', '') if innate_meta else ''
+        innate_max = int(innate_meta.get('maximo') or 0) if innate_meta else 0
+        innate_key = _innate_resource_key(m.origem or '', slug) if innate_max > 0 else ''
+        innate_row = innate_rows.get(innate_key) if innate_key else None
+        innate_atual = min(int(innate_row.atual or 0), innate_max) if innate_row else innate_max
+        known_auto = bool(primary and primary['info'].get('prepara') == 'conhecidas'
+                          and not m.sempre_preparada
+                          and ((m.origem or '') in ('', primary['pc'].id_classe.nome)))
+        always_display = bool(m.sempre_preparada or known_auto)
+        lista.append({
+            'id': m.id, 'slug': slug, 'nivel': m.nivel, 'nome': m.nome,
+            'preparada': bool(m.preparada), 'sempre_preparada': always_display,
+            'known_auto': known_auto,
+            'origem': m.origem or '', 'escola': getattr(m.id_magia, 'escola', '') or '',
+            'innate_label': innate_label,
+            'innate_key': innate_key,
+            'innate_max': innate_max,
+            'innate_atual': max(0, innate_atual),
+            'innate_reset': innate_meta.get('reset', '') if innate_meta else '',
+        })
+
+    by_level = {n: [] for n in range(0, 10)}
+    for m in lista:
+        by_level.setdefault(int(m['nivel'] or 0), []).append(m)
+
+    totals = _spell_slot_totals(casters)
+    slots = _spell_slot_rows(personagem, totals) if totals else []
+    slot_map = {r['nivel']: r for r in slots}
+
+    mystic_resource = None
+    if primary and primary['info']['slots'] == 'pact':
+        wanted = primary['info'].get('slots_resource')
+        from .character_engine import _recursos_consumiveis
+        for r in _recursos_consumiveis(personagem, classes):
+            if not wanted or r.get('slug') == wanted:
+                if wanted and r.get('slug') != wanted:
+                    continue
+                mystic_resource = r
+                break
+        max_cycle = None
+        for r in ficha.get('recursos_por_tipo', {}).get('table-only', []):
+            if 'ciclo' in (r.get('slug') or '') or 'feitico' in slugify(r.get('nome') or ''):
+                try:
+                    max_cycle = int(str(r.get('valor')).strip())
+                except (TypeError, ValueError):
+                    pass
+        if mystic_resource:
+            spellcasting['mystic_resource'] = mystic_resource
+            spellcasting['max_cycle'] = max_cycle
+
+    grupos = []
+    for nivel in range(0, 10):
+        grupos.append({
+            'nivel': nivel,
+            'titulo': 'Truques' if nivel == 0 else '%do Nivel' % nivel,
+            'magias': by_level.get(nivel, []),
+            'slot': slot_map.get(nivel),
+        })
+
+    return {
+        'lista': lista,
+        'grupos': grupos,
+        'slots': slots,
+        'spellcasting': spellcasting,
+        'n_preparadas': sum(1 for m in lista if m['preparada'] and not m['sempre_preparada']
+                            and int(m.get('nivel') or 0) >= 1),
+        'n_sempre': sum(1 for m in lista if m['sempre_preparada']),
+        'total': len(lista),
+        'essencia_pendentes': essencia_pendentes,
+    }
+
+
+def _consumiveis_ficha_cards(personagem, ficha):
+    from .character_engine import _recursos_consumiveis, derive
+    classes = list(personagem.classes.select_related('id_classe', 'id_subclasse'))
+    atuais = {pr.nome: pr for pr in personagem.recursos.all()}
+    cards = []
+    seen_names = set()
+    seen_slugs = set()
+    for r in _recursos_consumiveis(personagem, classes):
+        seen_names.add(r['nome'])
+        seen_slugs.add(r.get('slug') or '')
+        cards.append({
+            'kind': 'recurso', 'id': r['slug'], 'nome': r['nome'],
+            'subtitulo': r.get('classe') or '', 'atual': r['atual'], 'maximo': r['maximo'],
+            'reset': r.get('reset') or 'manual',
+        })
+    for nome, val in (ficha.get('recursos') or {}).items():
+        nome_limpo = str(nome or '').strip()
+        if not nome_limpo or nome_limpo in seen_names or nome_limpo.split(':')[-1].strip() in seen_names:
+            continue
+        tag_slug = slugify(nome_limpo.split(':')[-1].strip() or nome_limpo)
+        if tag_slug in seen_slugs:
+            continue
+        m = re.match(r'^\s*(\d+)\s*\(reset\s+([^)]+)\)\s*$', str(val or '').strip())
+        if not m:
+            continue
+        mx = int(m.group(1))
+        if mx <= 0:
+            continue
+        key = 'tag-resource:%s' % slugify(nome_limpo)[:82]
+        pr = atuais.get(key)
+        atual = min(int(pr.atual or 0), mx) if pr else mx
+        cards.append({
+            'kind': 'recurso', 'id': 'tag:%s' % slugify(nome_limpo),
+            'db_nome': key, 'nome': nome_limpo, 'subtitulo': 'habilidade',
+            'atual': max(0, atual), 'maximo': mx, 'reset': m.group(2),
+        })
+    for it in (ficha.get('inventario') or []):
+        if not it.get('consumivel'):
+            continue
+        qtd = max(0, int(it.get('qtd') or 0))
+        cards.append({
+            'kind': 'item', 'id': it['id'], 'nome': it['nome'],
+            'subtitulo': it.get('raridade') or it.get('consumivel_tipo') or 'item',
+            'atual': qtd, 'maximo': qtd, 'reset': '',
+        })
+    return cards
 
 
 def _classe_conjuracao(classe):
-    """Dados de conjuração da classe no nível 1: atributo, contagem de truques e de
-    magias de 1º nível (explícita do recurso, ou None = fórmula mod+nível), + as listas."""
-    from .models import TbClassehabilidade, TbRecursoclasse, TbMagia
-    sc = None
-    fontes = [classe] + list(TbClassehabilidade.objects.filter(
-        id_classe=classe, id_subclasse__isnull=True, niveladquirido=1))
-    for src in fontes:
-        for t in (getattr(src, 'tags_json', None) or []):
-            m = re.search(r'spellcasting\{([^}]*)\}', str(t))
-            if m:
-                sc = m.group(1)
-    if not sc:
+    from .models import TbRecursoclasse, TbMagia
+    from .character_engine import RESOURCE_TIPO_CHOICE, _resource_max_at, _resource_tipo
+    info = _classe_spellcasting_info(classe, nivel_habilidades=1)
+    if not info:
         return None
-    ability = (re.search(r'ability:(\w+)', sc) or [None, 'int'])[1]
 
     def res_v1(substrs):
         for r in TbRecursoclasse.objects.filter(id_classe=classe, id_subclasse__isnull=True):
+            slug = (r.slug or '').lower()
+            if any(s in slug for s in substrs) and _resource_tipo(r) == RESOURCE_TIPO_CHOICE:
+                val = _resource_max_at(r, 1)
+                if val is not None:
+                    return val
+        for r in TbRecursoclasse.objects.filter(id_classe=classe, id_subclasse__isnull=True):
             if any(s in (r.slug or '').lower() for s in substrs):
-                vj = r.valores_json or {}
-                ks = sorted(int(k) for k in vj if int(k) <= 1)
-                if ks:
-                    try:
-                        return int(str(vj[str(ks[-1])]).strip())
-                    except (ValueError, TypeError):
-                        pass
+                val = _resource_max_at(r, 1)
+                if val is not None:
+                    return val
         return None
 
-    truques = [{'slug': m.slug, 'nome': m.nome}
-               for m in TbMagia.objects.filter(nivel=0, classes__icontains=classe.nome).order_by('nome')]
-    nv1 = [{'slug': m.slug, 'nome': m.nome, 'escola': m.escola or ''}
-           for m in TbMagia.objects.filter(nivel=1, classes__icontains=classe.nome).order_by('nome')]
-    return {'ability': ability, 'truques_n': res_v1(['truque']) or 0,
-            'magias_n': res_v1(['magias-conhecidas', 'magias-preparadas']),
+    def magia_qs(nivel):
+        return TbMagia.objects.filter(_spell_list_q(info['lista_nomes']), nivel=nivel).order_by('nome')
+
+    magias_n = res_v1(['magias-conhecidas', 'magias-preparadas'])
+    truques = [{'slug': m.slug, 'nome': m.nome} for m in magia_qs(0)]
+    nv1 = [{'slug': m.slug, 'nome': m.nome, 'escola': m.escola or ''} for m in magia_qs(1)]
+    return {'ability': info['ability'], 'lista': info['lista'], 'lista_nomes': info['lista_nomes'],
+            'truques_n': res_v1(['truque']) or 0, 'magias_n': magias_n,
+            'magias_formula': None if magias_n is not None else info['prep_formula'],
             'truques': truques, 'magias_nv1': nv1}
 
 
@@ -2035,24 +2542,23 @@ def _registrar_transacao(personagem, tipo, descricao, delta_pc):
         id_personagem=personagem, tipo=tipo, descricao=(descricao or '')[:255],
         valor_pc=int(delta_pc), saldo_pc=int(personagem.carteira_pc or 0))
 
-# Proficiência de armadura por classe (padrão D&D 5.5e) — não está nas tags do banco.
-_ARMADURA_PROF = {
-    'barbaro': ['leve', 'media', 'escudo'], 'bardo': ['leve'],
-    'cacador': ['leve', 'media', 'escudo'], 'clerigo': ['leve', 'media', 'escudo'],
-    'druida': ['leve', 'media', 'escudo'], 'feiticeiro': [],
-    'guerreiro': ['leve', 'media', 'pesada', 'escudo'], 'ladino': ['leve'],
-    'mago': [], 'mistico': ['leve'], 'monge': [],
-    'paladino': ['leve', 'media', 'pesada', 'escudo'], 'artifice': ['leve', 'media', 'escudo'],
-}
-
-
-def _spell_count_nv1(conj, base, mais2, mais1):
-    """Nº de magias de 1º nível: explícito do recurso, ou fórmula mod-de-conjuração + 1 (mín 1)."""
+def _spell_count_nv1(conj, base, mais2, mais1, asi_vals=(2, 1)):
     if conj.get('magias_n') is not None:
         return conj['magias_n']
-    ab = _AB_SIG.get(conj.get('ability'), 'INT')
-    score = int(base.get(ab, 8)) + (2 if mais2 == ab else 0) + (1 if mais1 == ab else 0)
-    return max(1, (score - 10) // 2 + 1)
+    formula = conj.get('magias_formula')
+    if formula:
+        from .character_engine import _eval_formula
+        ctx = {'classlvl': 1, 'lvl': 1}
+        major, minor = asi_vals
+        for en, sig in _AB_SIG.items():
+            score = int(base.get(sig, 8)) + (major if mais2 == sig else 0) + (minor if mais1 == sig else 0)
+            ctx[en + '-mod'] = (score - 10) // 2
+        abil = conj.get('ability') or 'int'
+        ctx['spell-mod'] = (max(ctx.get(a + '-mod', 0) for a in abil.split('|'))
+                            if '|' in abil else ctx.get(abil + '-mod', 0))
+        val = _eval_formula(formula, ctx)
+        return max(1, int(val)) if val is not None else 0
+    return 0
 
 
 def _criador_armaduras():
@@ -2087,14 +2593,34 @@ def _criador_catalogos():
                         'maestria_n': _classe_maestria_n(c, 1),
                         'estilo_n': esc1['estilo_n'], 'expertise_n': esc1['expertise_n'],
                         'expertise_fixa': esc1['expertise_fixa'],
+                        'opcao_picks': esc1.get('opcao_picks', []),
                         'conjuracao': _classe_conjuracao(c),
-                        'armaduras_prof': _ARMADURA_PROF.get(c.slug, []),
+                        'armaduras_prof': _classe_armaduras_prof(c),
                         'subclasse_nivel': min(sub) if sub else None})
+    def _vertentes_catalogo():
+        nomes = set()
+        for tr in TbTracoracial.objects.all():
+            txt = '%s\n%s' % (tr.pre_requisito or '', tr.descricao or '')
+            nomes.update(m.group(1).strip() for m in re.finditer(r'Vertente\s+([A-ZÀ-Ý][A-Za-zÀ-ÿ-]+)', txt))
+            if 'vertente' in txt.lower():
+                nomes.update(m.group(1).strip() for m in re.finditer(r'^\s*[-*]\s*\*\*([A-Za-zÀ-ÿ-]+)\b', txt, re.M))
+        return [{'slug': slugify(n), 'nome': n} for n in sorted(nomes, key=lambda x: x.lower()) if slugify(n)]
+
+    vertentes_catalogo = _vertentes_catalogo()
+
+    def _essencia_vertentes(e):
+        txt = '\n'.join('%s\n%s' % (t.pre_requisito or '', t.descricao or '')
+                        for t in TbTracoracial.objects.filter(id_essencia=e))
+        norm = _norm_req(txt)
+        return [v for v in vertentes_catalogo if re.search(r'\b%s\b' % re.escape(v['slug']), norm)]
+
     def _vertente_de(t):
         # talentos elementais trazem "Vertente Sylph/Oread/Ifrit/Undine" no pré-requisito/descrição
-        txt = ((t.pre_requisito or '') + ' ' + (t.descricao or '')).lower()
-        m = re.search(r'vertente\s+(ifrit|undine|oread|sylph)', txt)
-        return m.group(1) if m else ''
+        txt = _norm_req((t.pre_requisito or '') + ' ' + (t.descricao or ''))
+        for v in vertentes_catalogo:
+            if re.search(r'\b%s\b' % re.escape(v['slug']), txt):
+                return v['slug']
+        return ''
 
     def _traco_dict(t):
         return {'nome': t.nome, 'pre': (t.pre_requisito or '').strip(),
@@ -2121,7 +2647,7 @@ def _criador_catalogos():
     # Escolhas de RAÇA automáticas: traços (não-talento) que concedem perícia/idioma/ferramenta
     # extra via tag pick:<tipo>:<n>[ de [lista]] (ex.: humano Habilidoso pick:pericia:2). O front
     # renderiza um seletor por escolha, reativo à raça/linhagem/essência, igual às escolhas de classe.
-    _pick_re = re.compile(r'pick:(pericia|idioma|ferramenta):(\d+)(?:\s+de\s+\[([^\]]*)\])?')
+    _pick_re = re.compile(r'pick:(pericia|idioma|ferramenta):(\{[^}]*\}|[A-Za-z0-9_+\-]+)(?:\([^)]*\))?(?:\s+de\s+\[([^\]]*)\])?')
 
     def _racial_picks(qs_traits):
         out = []
@@ -2129,7 +2655,9 @@ def _criador_catalogos():
             for tag in (t.tags_json or []):
                 for m in _pick_re.finditer(str(tag)):
                     de = [s.strip() for s in (m.group(3) or '').split(',') if s.strip()]
-                    out.append({'tipo': m.group(1), 'n': int(m.group(2)), 'de': de, 'fonte': t.nome})
+                    n = _count_expr_for_level(m.group(2), 1) or 0
+                    if n > 0:
+                        out.append({'tipo': m.group(1), 'n': n, 'de': de, 'fonte': t.nome})
         return out
 
     racial_choices_raca, racial_choices_linhagem, racial_choices_essencia = {}, {}, {}
@@ -2147,13 +2675,16 @@ def _criador_catalogos():
             racial_choices_essencia[e.slug] = p
     pericias = sorted(({'slug': sl, 'nome': info[0]} for sl, info in _SKILL_INFO.items()),
                       key=lambda x: x['nome'])
+    from .character_engine import background_grants
     return {
         'racas': racas,
-        'essencias': [{'slug': e.slug, 'nome': e.nome} for e in TbEssencia.objects.all().order_by('nome')],
-        'vertentes': [{'slug': 'ifrit', 'nome': 'Ifrit (Fogo)'}, {'slug': 'undine', 'nome': 'Undine (Água)'},
-                      {'slug': 'oread', 'nome': 'Oread (Terra)'}, {'slug': 'sylph', 'nome': 'Sylph (Ar)'}],
+        'essencias': [{'slug': e.slug, 'nome': e.nome, 'vertentes': _essencia_vertentes(e)}
+                      for e in TbEssencia.objects.all().order_by('nome')],
+        'vertentes': vertentes_catalogo,
         'classes': classes,
-        'antecedentes': [{'slug': a.slug, 'nome': a.nome} for a in TbAntecedente.objects.all().order_by('nome')],
+        'antecedentes': [{'slug': a.slug, 'nome': a.nome, 'grants': background_grants(a)}
+                         for a in TbAntecedente.objects.all().order_by('nome')],
+        'grants_antecedente': background_grants(),
         'talentos_origem': [{'id': t.id_talento, 'nome': t.nome, 'pre': (t.pre_requisito or '').strip(),
                              'descricao': (t.descricao or '').strip()}
                             for t in TbTalento.objects.filter(tipo__iexact='origem').order_by('nome')],
@@ -2392,6 +2923,96 @@ def _ficha_editavel(request, pk):
     return p
 
 
+_TALENTO_ATTR_FIELDS = {
+    'FOR': 'atrib_forca',
+    'DES': 'atrib_destreza',
+    'CON': 'atrib_constituicao',
+    'INT': 'atrib_inteligencia',
+    'SAB': 'atrib_sabedoria',
+    'CAR': 'atrib_carisma',
+}
+
+
+def _asi_slots(personagem):
+    slots = []
+    classes = personagem.classes.select_related('id_classe').order_by('-principal', 'id')
+    for pc in classes:
+        for nivel in sorted(_tag_levels(pc.id_classe.tags_json, 'asi-choices')):
+            if nivel <= int(pc.nivel or 0):
+                slots.append({'classe': pc.id_classe, 'nivel': nivel,
+                              'origem': 'ASI %s N%d' % (pc.id_classe.nome, nivel)})
+    return slots
+
+
+def _asi_aplicados(personagem):
+    origens = {
+        o for o in personagem.atributo_bonus
+        .filter(origem_tipo__in=('asi-classe', 'classe-asi'))
+        .values_list('origem', flat=True)
+        if o
+    }
+    return len(origens) + personagem.talentos.filter(categoria='asi-nivel').count()
+
+
+def _next_asi_slot(personagem):
+    slots = _asi_slots(personagem)
+    aplicados = _asi_aplicados(personagem)
+    return slots[aplicados] if aplicados < len(slots) else None
+
+
+def _talento_attr_options(talento):
+    attrs = [sig for sig, field in _TALENTO_ATTR_FIELDS.items() if getattr(talento, field, False)]
+    return attrs or list(_TALENTO_ATTR_FIELDS)
+
+
+def _norm_req(texto):
+    return unicodedata.normalize('NFKD', str(texto or '')).encode('ascii', 'ignore').decode().lower()
+
+
+def _talento_prereq_ok(talento, personagem, ficha):
+    req = _norm_req(talento.pre_requisito)
+    if not req:
+        return True
+    nivel_total = int(ficha.get('nivel_total') or personagem.nivel or 1)
+    m = re.search(r'nivel\s*(\d+)\s*\+', req)
+    if m and nivel_total < int(m.group(1)):
+        return False
+    attrs = ficha.get('atributos') or {}
+    req_attrs = {
+        'forca': 'FOR', 'destreza': 'DES', 'constituicao': 'CON',
+        'inteligencia': 'INT', 'sabedoria': 'SAB', 'carisma': 'CAR',
+    }
+    for nome, sig in req_attrs.items():
+        m = re.search(r'%s\s*(\d+)\s*\+' % nome, req)
+        if m and int((attrs.get(sig) or {}).get('valor') or 0) < int(m.group(1)):
+            return False
+    if ('conjuracao' in req or 'magia de pacto' in req) and not any(
+            _classe_spellcasting_info(pc.id_classe, nivel_habilidades=pc.nivel or 1)
+            for pc in personagem.classes.select_related('id_classe')):
+        return False
+    if 'arma marcial' in req and not any('Marcial' in p for p in ficha.get('proficiencias_arma', [])):
+        return False
+    if 'talento ' in req:
+        owned = {_norm_req(t.nome) for t in personagem.talentos.all()}
+        trecho = req.split('talento ', 1)[1]
+        if not owned or not any(nome and nome in trecho for nome in owned):
+            return False
+    return True
+
+
+def _talentos_asi_disponiveis(personagem, ficha):
+    from .models import TbTalento
+    owned_ids = set(personagem.talentos.exclude(id_talento__isnull=True).values_list('id_talento_id', flat=True))
+    out = []
+    for t in TbTalento.objects.filter(tipo__iexact='geral').order_by('nome'):
+        if t.id_talento in owned_ids or not _talento_prereq_ok(t, personagem, ficha):
+            continue
+        attrs = _talento_attr_options(t)
+        out.append({'id': t.id_talento, 'nome': t.nome, 'pre': (t.pre_requisito or '').strip(),
+                    'attrs': attrs, 'attrs_csv': ','.join(attrs)})
+    return out
+
+
 def _pendencias_nivel(personagem):
     """Escolhas que faltam no nível atual: subclasse (N>=nível-da-subclasse) e ASIs."""
     from .models import TbSubclasse
@@ -2401,28 +3022,21 @@ def _pendencias_nivel(personagem):
         return pend
     nivel = pc.nivel or 1
     classe = pc.id_classe
-    sub_lv = _tag_levels(classe.tags_json, 'subclass-choices')
-    pend['subclasse_nivel'] = min(sub_lv) if sub_lv else 3
-    if nivel >= pend['subclasse_nivel'] and not pc.id_subclasse_id:
+    from .character_engine import _subclass_min_level
+    pend['subclasse_nivel'] = _subclass_min_level(classe)
+    if pend['subclasse_nivel'] and nivel >= pend['subclasse_nivel'] and not pc.id_subclasse_id:
         pend['subclasse'] = True
         pend['subclasses'] = [{'id': s.id_subclasse, 'nome': s.nome}
                               for s in TbSubclasse.objects.filter(id_classe=classe).order_by('nome')]
-    asi_levels = [l for l in _tag_levels(classe.tags_json, 'asi-choices') if l <= nivel]
-    aplicados = (personagem.atributo_bonus.filter(origem_tipo='asi-classe').count() // 2
-                 + personagem.talentos.filter(categoria='asi-nivel').count())
-    pend['asi_pendentes'] = max(0, len(asi_levels) - aplicados)
+    pend['asi_pendentes'] = max(0, len(_asi_slots(personagem)) - _asi_aplicados(personagem))
     return pend
 
 
-# Tiers de TALENTO RACIAL (raça/linhagem/essência): um talento por nível-marco.
-_TIERS_TALENTO_RACIAL = (1, 5, 9, 13, 17)
 
 
 def _pendencias_talento_racial(personagem):
-    """Talentos raciais a escolher por nível-marco (1/5/9/13/17). O de nv1 é pego na
-    criação; os demais aqui. Opções = traços `talento_racial=True` com nivel_requisito ==
-    tier, vindos da raça, linhagem OU essência do personagem (mesmo pool do criador), menos
-    os já escolhidos. Retorna [{nivel, opcoes:[{nome,descricao,pre}]}] só p/ tiers em aberto."""
+    """Talentos raciais a escolher por nivel_requisito dos tracos raciais marcados
+    como talento_racial, vindos de raca, linhagem ou essencia, menos os ja escolhidos."""
     from .models import TbTracoracial
     from django.db.models import Q
     total = sum(c.nivel or 0 for c in personagem.classes.all()) or (personagem.nivel or 1)
@@ -2439,7 +3053,12 @@ def _pendencias_talento_racial(personagem):
     picked_nomes = set(picked.values_list('nome', flat=True))
     picked_tiers = set(picked.values_list('nivel', flat=True))
     out = []
-    for tier in _TIERS_TALENTO_RACIAL:
+    tiers = sorted({
+        n for n in TbTracoracial.objects.filter(cond, talento_racial=True)
+        .values_list('nivel_requisito', flat=True)
+        if n
+    })
+    for tier in tiers:
         if tier > total or tier in picked_tiers:
             continue
         opcoes = [o for o in TbTracoracial.objects.filter(cond, talento_racial=True,
@@ -2453,7 +3072,7 @@ def _pendencias_talento_racial(personagem):
 
 
 # pick:opcao:<slug>(<mod>):<count>  — count = {progressão} | inteiro | N | +
-_PICK_OPCAO_RE = re.compile(r'pick:opcao:([a-z0-9-]+)(?:\([^)]*\))?(?::(\{[^}]*\}|\d+|N|\+))?')
+_PICK_OPCAO_RE = re.compile(r'pick:opcao:([a-z0-9-]+)(?:\([^)]*\))?(?::(\{[^}]*\}|[+-]?\d+|N|\+))?')
 
 
 def _pick_count_expr(expr, level):
@@ -2462,9 +3081,9 @@ def _pick_count_expr(expr, level):
     (a conta vem de um recurso de tabela)."""
     expr = (expr or '').strip()
     if expr.startswith('{'):
-        return sum(int(v) for lv, v in re.findall(r'classlvl\s*=\s*(\d+)\s*:\s*(\d+)', expr)
+        return sum(int(v) for lv, v in re.findall(r'classlvl\s*=\s*(\d+)\s*:\s*([+-]?\d+)', expr)
                    if int(lv) <= level)
-    if expr.isdigit():
+    if re.match(r'^[+-]?\d+$', expr):
         return int(expr)
     return None
 
@@ -2476,7 +3095,7 @@ def _opcao_grupos(personagem):
     o limite (recurso de tabela ou expressão), lista as opções acessíveis (TbAcessoopcao) e
     as já escolhidas. As escolhas vivem em TbPersonagemEscolha (tipo=<slug>)."""
     from .models import TbClassehabilidade, TbOpcaojogo, TbAcessoopcao, TbRecursoclasse
-    from .character_engine import _resource_max_at
+    from .character_engine import RESOURCE_TIPO_CHOICE, _resource_max_at, _resource_tipo
     from django.utils.text import slugify
     from django.db.models import Q
     grupos = []
@@ -2492,7 +3111,8 @@ def _opcao_grupos(personagem):
         classe = c.id_classe
         habs = list(TbClassehabilidade.objects.filter(
             id_classe=classe, id_subclasse__isnull=True, niveladquirido__lte=nivel))
-        if c.id_subclasse_id and nivel >= 3:
+        from .character_engine import _subclass_unlocked
+        if _subclass_unlocked(c, nivel):
             habs += list(TbClassehabilidade.objects.filter(
                 id_subclasse=c.id_subclasse, niveladquirido__lte=nivel))
         picks = {}
@@ -2502,9 +3122,9 @@ def _opcao_grupos(personagem):
                 for m in _PICK_OPCAO_RE.finditer(t):
                     slug, expr = m.group(1), m.group(2)
                     d = picks.setdefault(slug, {'exprs': set(), 'resource': None})
-                    rm = re.search(r'=resource\s+([a-z0-9-]+)', t)
-                    if rm:
-                        d['resource'] = rm.group(1)
+                    resource_ref = _resource_ref_from_tag(t)
+                    if resource_ref:
+                        d['resource'] = resource_ref
                     if expr and expr not in ('N', '+'):
                         d['exprs'].add(expr)
         for slug, d in picks.items():
@@ -2513,8 +3133,13 @@ def _opcao_grupos(personagem):
             vistos.add((classe.id_classe, slug))
             limite = None
             if d['resource']:
-                r = (TbRecursoclasse.objects.filter(id_classe=classe, slug=d['resource']).first()
-                     or TbRecursoclasse.objects.filter(id_classe=classe, slug__icontains=d['resource']).first())
+                recursos_qs = TbRecursoclasse.objects.filter(id_classe=classe)
+                exatos = list(recursos_qs.filter(slug=d['resource']))
+                parciais = list(recursos_qs.filter(slug__icontains=d['resource']))
+                candidatos = exatos + [r for r in parciais if r not in exatos]
+                r = next((rec for rec in candidatos if _resource_tipo(rec) == RESOURCE_TIPO_CHOICE), None)
+                if r is None and candidatos:
+                    r = candidatos[0]
                 if r:
                     limite = _resource_max_at(r, nivel)
             if limite is None and d['exprs']:
@@ -2563,10 +3188,8 @@ def editar_ficha_view(request, pk):
     pend = _pendencias_nivel(p)
     pendm = _pendencias_magias(p)
     talentos_raciais_pend = _pendencias_talento_racial(p)
-    talentos = []
     from .models import TbTalento, TbItemMundano
-    for t in TbTalento.objects.filter(tipo__iexact='origem').order_by('nome'):
-        talentos.append({'id': t.id_talento, 'nome': t.nome})
+    talentos = _talentos_asi_disponiveis(p, ficha)
     # mercado: itens mundanos compráveis (com preço parseável) agrupados por categoria
     cat_label = dict(TbItemMundano.CATEGORIA_CHOICES)
     grupos = {}
@@ -2586,7 +3209,7 @@ def editar_ficha_view(request, pk):
              'requer_sintonizacao': it.requer_sintonizacao})
     itens_magicos_compra = [{'raridade': k, 'itens': v} for k, v in grupos_mag.items()]
     sintonizados_usados = p.inventario.filter(sintonizado=True).count()
-    from .character_engine import _recursos_consumiveis
+    from .character_engine import _recursos_consumiveis, derive
     recursos_consumiveis = _recursos_consumiveis(p, list(p.classes.select_related('id_classe', 'id_subclasse')))
     magias_preparadas = _magias_preparadas_info(p, ficha)
     # preço de venda (80%) dos itens mundanos com custo parseável
@@ -2818,24 +3441,40 @@ def personagem_escolher_subclasse(request, pk):
 def personagem_aplicar_asi(request, pk):
     from .models import TbPersonagemAtributoBonus, TbPersonagemTalento, TbTalento
     from . import point_buy
+    from .character_engine import derive
     p = _ficha_editavel(request, pk)
-    pc = p.classes.filter(principal=True).first() or p.classes.first()
-    nivel = pc.nivel if pc else 1
     if _pendencias_nivel(p)['asi_pendentes'] < 1:
         return redirect('editar_ficha', pk=pk)
+    slot = _next_asi_slot(p)
+    nivel = slot['nivel'] if slot else (p.nivel or 1)
+    origem_base = slot['origem'] if slot else 'ASI N%d' % nivel
     if request.POST.get('tipo') == 'talento':
         t = TbTalento.objects.filter(id_talento=request.POST.get('talento')).first()
-        if t:
+        attr = request.POST.get('talento_attr')
+        ficha = derive(p)
+        validos = {x['id'] for x in _talentos_asi_disponiveis(p, ficha)}
+        if t and t.id_talento in validos and attr in _talento_attr_options(t):
             TbPersonagemTalento.objects.create(id_personagem=p, id_talento=t, categoria='asi-nivel',
-                                               nivel=nivel, nome=t.nome)
+                                               nivel=nivel, nome=t.nome, detalhes='asi-attr:%s' % attr)
+            TbPersonagemAtributoBonus.objects.create(
+                id_personagem=p, atributo=attr, valor=1,
+                origem='Talento %s N%d' % (t.nome, nivel), origem_tipo='talento-asi')
     else:
-        mais2, mais1 = request.POST.get('mais2'), request.POST.get('mais1')
-        ok, _e = point_buy.validar_asi(mais2, mais1)
+        attr1 = request.POST.get('asi_attr_1') or request.POST.get('mais2')
+        attr2 = request.POST.get('asi_attr_2') or request.POST.get('mais1')
+        ok, _e = point_buy.validar_asi_classe(attr1, attr2)
         if ok:
-            TbPersonagemAtributoBonus.objects.create(id_personagem=p, atributo=mais2, valor=2,
-                                                     origem='ASI N%d' % nivel, origem_tipo='asi-classe')
-            TbPersonagemAtributoBonus.objects.create(id_personagem=p, atributo=mais1, valor=1,
-                                                     origem='ASI N%d' % nivel, origem_tipo='asi-classe')
+            if attr1 == attr2:
+                TbPersonagemAtributoBonus.objects.create(
+                    id_personagem=p, atributo=attr1, valor=2,
+                    origem=origem_base, origem_tipo='asi-classe')
+            else:
+                TbPersonagemAtributoBonus.objects.create(
+                    id_personagem=p, atributo=attr1, valor=1,
+                    origem=origem_base, origem_tipo='asi-classe')
+                TbPersonagemAtributoBonus.objects.create(
+                    id_personagem=p, atributo=attr2, valor=1,
+                    origem=origem_base, origem_tipo='asi-classe')
     return redirect('editar_ficha', pk=pk)
 
 
@@ -2895,7 +3534,8 @@ def _pendencias_magias(personagem):
     if not pc:
         return None
     classe, nivel = pc.id_classe, (pc.nivel or 1)
-    if not _classe_conjuracao(classe):
+    spell_info = _classe_spellcasting_info(classe, nivel_habilidades=nivel)
+    if not spell_info:
         return None
 
     def res_at(substrs):
@@ -2910,26 +3550,23 @@ def _pendencias_magias(personagem):
                         pass
         return None
 
-    frac = 'full'
-    for src in [classe] + list(TbClassehabilidade.objects.filter(id_classe=classe, id_subclasse__isnull=True, niveladquirido=1)):
-        for t in (getattr(src, 'tags_json', None) or []):
-            if 'slots:half' in str(t):
-                frac = 'half'
-    maxlv = min(5, (nivel + 5) // 4) if frac == 'half' else min(9, (nivel + 1) // 2)
+    maxlv = _max_spell_level_for_slots(nivel, spell_info['slots'])
     conhecidos = set(personagem.magias.values_list('id_magia__slug', flat=True))
     truques_exp = res_at(['truque']) or 0
     known_exp = res_at(['magias-conhecidas'])
     cant_pend = max(0, truques_exp - personagem.magias.filter(nivel=0).count())
     known_pend = max(0, (known_exp - personagem.magias.filter(nivel__gte=1).count())) if known_exp is not None else 0
     lt = [{'slug': m.slug, 'nome': m.nome} for m in
-          TbMagia.objects.filter(nivel=0, classes__icontains=classe.nome).order_by('nome') if m.slug not in conhecidos]
+          TbMagia.objects.filter(_spell_list_q(spell_info['lista_nomes']), nivel=0).order_by('nome') if m.slug not in conhecidos]
     lm = [{'slug': m.slug, 'nome': m.nome, 'nivel': m.nivel} for m in
-          TbMagia.objects.filter(nivel__gte=1, nivel__lte=maxlv, classes__icontains=classe.nome).order_by('nivel', 'nome') if m.slug not in conhecidos]
+          TbMagia.objects.filter(_spell_list_q(spell_info['lista_nomes']), nivel__gte=1,
+                                  nivel__lte=maxlv).order_by('nivel', 'nome') if m.slug not in conhecidos]
     swap_lvl = any('swap:level-up' in str(t) for h in TbClassehabilidade.objects.filter(id_classe=classe, id_subclasse__isnull=True) for t in (h.tags_json or []))
     conhecidas = [{'slug': m.id_magia.slug, 'nome': m.nome, 'nivel': m.nivel}
                   for m in personagem.magias.select_related('id_magia').filter(id_magia__isnull=False).order_by('nivel', 'nome')]
     return {'cantrips_pend': cant_pend, 'known_pend': known_pend, 'max_nivel': maxlv,
-            'lista_truques': lt, 'lista_magias': lm, 'swap_level_up': swap_lvl, 'conhecidas': conhecidas}
+            'lista_truques': lt, 'lista_magias': lm, 'lista_nomes': spell_info['lista_nomes'],
+            'swap_level_up': swap_lvl, 'conhecidas': conhecidas}
 
 
 _ABIL_EN = {'FOR': 'str', 'DES': 'dex', 'CON': 'con', 'INT': 'int', 'SAB': 'wis', 'CAR': 'cha'}
@@ -2938,38 +3575,30 @@ _ABIL_EN = {'FOR': 'str', 'DES': 'dex', 'CON': 'con', 'INT': 'int', 'SAB': 'wis'
 def _magias_preparadas_info(personagem, ficha):
     """Conjuradores PREPARADOS (prepara:preparadas + prep-limite): limite calculado da
     fórmula, lista de magias da classe (nv1..máx) e set preparado atual. None se não-preparado."""
-    from .models import TbMagia, TbClassehabilidade
+    from .models import TbMagia
     from .character_engine import _eval_formula
     pc = personagem.classes.filter(principal=True).first() or personagem.classes.first()
     if not pc:
         return None
     classe, nivel = pc.id_classe, (pc.nivel or 1)
-    sc = None
-    for src in [classe] + list(TbClassehabilidade.objects.filter(id_classe=classe, id_subclasse__isnull=True)):
-        for t in (getattr(src, 'tags_json', None) or []):
-            mm = re.search(r'spellcasting\{([^}]*)\}', str(t))
-            if mm:
-                sc = mm.group(1)
-    if not sc or 'prepara:preparadas' not in sc:
-        return None
-    mf = re.search(r'prep-limite:([^,}]+)', sc)
-    if not mf:
+    spell_info = _classe_spellcasting_info(classe, nivel_habilidades=nivel)
+    if not spell_info or spell_info.get('prepara') != 'preparadas' or not spell_info.get('prep_formula'):
         return None
     ats = ficha['atributos']
     ctx = {'classlvl': nivel, 'lvl': ficha['nivel_total'], 'pb': ficha['bonus_proficiencia']}
     for sig, en in _ABIL_EN.items():
         ctx[en + '-mod'] = ats[sig]['mod']
-    abil = (re.search(r'ability:([\w|]+)', sc) or [None, 'int'])[1]
+    abil = spell_info['ability']
     ctx['spell-mod'] = (max(ctx[a + '-mod'] for a in abil.split('|')) if '|' in abil
                         else ctx.get(abil + '-mod', 0))
-    limite = _eval_formula(mf.group(1).strip(), ctx)
+    limite = _eval_formula(spell_info['prep_formula'].strip(), ctx)
     limite = max(1, limite) if limite is not None else None
-    maxlv = min(5, (nivel + 5) // 4) if 'slots:half' in sc else min(9, (nivel + 1) // 2)
-    preparadas = set(personagem.magias.filter(nivel__gte=1, preparada=True)
+    maxlv = _max_spell_level_for_slots(nivel, spell_info['slots'])
+    preparadas = set(personagem.magias.filter(nivel__gte=1, preparada=True, sempre_preparada=False)
                      .values_list('id_magia__slug', flat=True))
     por_nivel = {}
-    for m in TbMagia.objects.filter(nivel__gte=1, nivel__lte=maxlv,
-                                    classes__icontains=classe.nome).order_by('nivel', 'nome'):
+    for m in TbMagia.objects.filter(_spell_list_q(spell_info['lista_nomes']), nivel__gte=1,
+                                    nivel__lte=maxlv).order_by('nivel', 'nome'):
         por_nivel.setdefault(m.nivel, []).append(
             {'slug': m.slug, 'nome': m.nome, 'marcada': m.slug in preparadas})
     grupos = [{'nivel': nv, 'magias': por_nivel[nv]} for nv in sorted(por_nivel)]
@@ -3010,8 +3639,10 @@ def personagem_trocar_magia(request, pk):
         return redirect('editar_ficha', pk=pk)
     classe = (p.classes.filter(principal=True).first() or p.classes.first()).id_classe
     conhecidas = {m['slug'] for m in pend['conhecidas']}
+    disponiveis = {m['slug'] for m in pend['lista_truques']} | {m['slug'] for m in pend['lista_magias']}
+    novo_slug = request.POST.get('adicionar')
     old = p.magias.select_related('id_magia').filter(id_magia__slug=request.POST.get('remover')).first()
-    new_mg = TbMagia.objects.filter(slug=request.POST.get('adicionar'), classes__icontains=classe.nome).first()
+    new_mg = TbMagia.objects.filter(slug=novo_slug).first() if novo_slug in disponiveis else None
     if (old and new_mg and new_mg.slug not in conhecidas
             and (old.nivel == 0) == (new_mg.nivel == 0)        # truque↔truque
             and new_mg.nivel <= pend['max_nivel']):
@@ -3253,43 +3884,154 @@ def cancelar_anuncio(request, anuncio_id):
 
 
 # ───────────────────────── Recursos de classe (usar/descansar) ───────────────
+def _redirect_next_or(request, fallback_url):
+    nxt = (request.POST.get('next') or '').strip()
+    if nxt.startswith('/') and not nxt.startswith('//'):
+        return redirect(nxt)
+    return redirect(fallback_url)
+
+
 @login_required(login_url='/login/')
 @require_POST
 def personagem_usar_recurso(request, pk):
     """Gasta (−1) ou desfaz (+1) um uso de um recurso consumível do personagem."""
-    from .character_engine import _recursos_consumiveis
+    from .character_engine import _recursos_consumiveis, derive
     from .models import TbPersonagemRecurso
     p = _ficha_editavel(request, pk)
     classes = list(p.classes.select_related('id_classe', 'id_subclasse'))
     cons = {r['slug']: r for r in _recursos_consumiveis(p, classes)}
+    for r_tag in _consumiveis_ficha_cards(p, derive(p)):
+        if r_tag.get('db_nome'):
+            cons[r_tag['id']] = r_tag
     r = cons.get(request.POST.get('recurso'))
     if not r:
-        return redirect('editar_ficha', pk=pk)
+        return _redirect_next_or(request, reverse('editar_ficha', args=[pk]))
     delta = 1 if request.POST.get('acao') == 'desfazer' else -1
     novo = max(0, min(r['maximo'], r['atual'] + delta))
     pr, _ = TbPersonagemRecurso.objects.get_or_create(
-        id_personagem=p, nome=r['nome'], defaults={'maximo': r['maximo'], 'atual': r['maximo']})
+        id_personagem=p, nome=r.get('db_nome') or r['nome'],
+        defaults={'maximo': r['maximo'], 'atual': r['maximo']})
     pr.atual, pr.maximo = novo, r['maximo']
     pr.save(update_fields=['atual', 'maximo'])
-    return redirect('editar_ficha', pk=pk)
+    return _redirect_next_or(request, reverse('editar_ficha', args=[pk]))
+
+
+@login_required(login_url='/login/')
+@require_POST
+def personagem_usar_item_consumivel(request, pk):
+    """Gasta (-1) ou devolve (+1) a quantidade de um item consumivel do inventario."""
+    from .character_engine import _item_consumivel_meta
+    from .models import TbPersonagemItem
+    p = _ficha_editavel(request, pk)
+    it = (TbPersonagemItem.objects.filter(id=request.POST.get('item'), id_personagem=p)
+          .select_related('id_item_magico').first())
+    if not it or not _item_consumivel_meta(it, it.id_item_magico)['consumivel']:
+        return _redirect_next_or(request, reverse('ficha_detail', args=[pk]) + '?aba=ficha')
+    delta = 1 if request.POST.get('acao') == 'desfazer' else -1
+    it.qtd = max(0, min(999, int(it.qtd or 0) + delta))
+    it.save(update_fields=['qtd'])
+    return _redirect_next_or(request, reverse('ficha_detail', args=[pk]) + '?aba=ficha')
+
+
+@login_required(login_url='/login/')
+@require_POST
+def personagem_usar_slot_magia(request, pk):
+    """Gasta (-1) ou devolve (+1) um slot de magia rastreado na aba Magias."""
+    from .character_engine import derive
+    from .models import TbPersonagemRecurso
+    p = _ficha_editavel(request, pk)
+    try:
+        nivel = int(request.POST.get('nivel') or 0)
+    except (TypeError, ValueError):
+        nivel = 0
+    if nivel < 1 or nivel > 9:
+        return _redirect_next_or(request, reverse('ficha_detail', args=[pk]) + '?aba=magias')
+    info = _magias_sheet_info(p, derive(p), [])
+    slot = next((s for s in info.get('slots', []) if s['nivel'] == nivel), None)
+    total = int((slot or {}).get('total') or 0)
+    if total <= 0:
+        return _redirect_next_or(request, reverse('ficha_detail', args=[pk]) + '?aba=magias')
+    key = 'spell-slot:%d' % nivel
+    pr, _ = TbPersonagemRecurso.objects.get_or_create(
+        id_personagem=p, nome=key, defaults={'maximo': total, 'atual': total})
+    atual_base = min(int(pr.atual or 0), total)
+    delta = 1 if request.POST.get('acao') == 'desfazer' else -1
+    pr.atual = max(0, min(total, atual_base + delta))
+    pr.maximo = total
+    pr.save(update_fields=['atual', 'maximo'])
+    return _redirect_next_or(request, reverse('ficha_detail', args=[pk]) + '?aba=magias')
+
+
+@login_required(login_url='/login/')
+@require_POST
+def personagem_usar_magia_inata(request, pk, magia_id):
+    """Gasta (-1) ou devolve (+1) o uso oculto de uma magia inata/concedida."""
+    from .character_engine import derive
+    from .models import TbPersonagemMagia, TbPersonagemRecurso
+    p = _ficha_editavel(request, pk)
+    m = get_object_or_404(TbPersonagemMagia, pk=magia_id, id_personagem=p)
+    if not m.sempre_preparada:
+        return _redirect_next_or(request, reverse('ficha_detail', args=[pk]) + '?aba=magias')
+    info = _magias_sheet_info(p, derive(p), [])
+    row = next((x for x in info.get('lista', []) if x.get('id') == m.id), None)
+    key = (row or {}).get('innate_key') or ''
+    total = int((row or {}).get('innate_max') or 0)
+    if not key or total <= 0:
+        return _redirect_next_or(request, reverse('ficha_detail', args=[pk]) + '?aba=magias')
+    pr, _ = TbPersonagemRecurso.objects.get_or_create(
+        id_personagem=p, nome=key, defaults={'maximo': total, 'atual': total})
+    atual_base = min(int(pr.atual or 0), total)
+    delta = 1 if request.POST.get('acao') == 'desfazer' else -1
+    pr.atual = max(0, min(total, atual_base + delta))
+    pr.maximo = total
+    pr.save(update_fields=['atual', 'maximo'])
+    return _redirect_next_or(request, reverse('ficha_detail', args=[pk]) + '?aba=magias')
 
 
 @login_required(login_url='/login/')
 @require_POST
 def personagem_descansar(request, pk):
-    """Descanso: recupera recursos. Curto = só os de reset curto; Longo = todos."""
-    from .character_engine import _recursos_consumiveis
+    """Descanso: recupera recursos conforme o reset declarado no recurso."""
+    from .character_engine import _recursos_consumiveis, derive
     from .models import TbPersonagemRecurso
     p = _ficha_editavel(request, pk)
     longo = request.POST.get('tipo') == 'longo'
     classes = list(p.classes.select_related('id_classe', 'id_subclasse'))
+    ficha = derive(p)
     for r in _recursos_consumiveis(p, classes):
-        if longo or r['reset'] in ('short-rest', 'short-or-long'):
+        reset = r.get('reset') or ''
+        if _resource_resets_on_rest(reset, longo):
             pr, _ = TbPersonagemRecurso.objects.get_or_create(
                 id_personagem=p, nome=r['nome'], defaults={'maximo': r['maximo'], 'atual': r['maximo']})
             pr.atual, pr.maximo = r['maximo'], r['maximo']
             pr.save(update_fields=['atual', 'maximo'])
-    return redirect(reverse('editar_ficha', args=[pk]) + ('?rest=longo' if longo else '?rest=curto'))
+    for r in _consumiveis_ficha_cards(p, ficha):
+        if not r.get('db_nome') or not _resource_resets_on_rest(r.get('reset'), longo):
+            continue
+        pr, _ = TbPersonagemRecurso.objects.get_or_create(
+            id_personagem=p, nome=r['db_nome'], defaults={'maximo': r['maximo'], 'atual': r['maximo']})
+        pr.atual, pr.maximo = r['maximo'], r['maximo']
+        pr.save(update_fields=['atual', 'maximo'])
+    magias_info = _magias_sheet_info(p, ficha, [])
+    if longo:
+        for s in magias_info.get('slots', []):
+            total = int(s.get('total') or 0)
+            if total <= 0:
+                continue
+            pr, _ = TbPersonagemRecurso.objects.get_or_create(
+                id_personagem=p, nome=s['key'], defaults={'maximo': total, 'atual': total})
+            pr.atual, pr.maximo = total, total
+            pr.save(update_fields=['atual', 'maximo'])
+    for m in magias_info.get('lista', []):
+        key = m.get('innate_key') or ''
+        total = int(m.get('innate_max') or 0)
+        if not key or total <= 0 or not _resource_resets_on_rest(m.get('innate_reset'), longo):
+            continue
+        pr, _ = TbPersonagemRecurso.objects.get_or_create(
+            id_personagem=p, nome=key, defaults={'maximo': total, 'atual': total})
+        pr.atual, pr.maximo = total, total
+        pr.save(update_fields=['atual', 'maximo'])
+    return _redirect_next_or(request, reverse('editar_ficha', args=[pk]) + ('?rest=longo' if longo else '?rest=curto'))
 
 
 @login_required(login_url='/login/')
@@ -3334,7 +4076,18 @@ def ficha_detail_view(request, pk):
     # "Essência" + a vertente escolhida). Linhagem (sub-raça) vira "Raça (Linhagem)".
     _vert = (TbPersonagemEscolha.objects.filter(id_personagem=p, tipo='vertente')
              .values_list('valor', flat=True).first()) or ''
-    _vert_disp = {'ifrit': 'Ifrit', 'undine': 'Undine', 'oread': 'Oread', 'sylph': 'Sylph'}.get(_vert, _vert.title())
+    _vert_disp = _vert.replace('-', ' ').title()
+    if _vert and p.id_essencia_id:
+        from .models import TbTracoracial
+        for tr in TbTracoracial.objects.filter(id_essencia=p.id_essencia):
+            txt = '%s\n%s' % (tr.pre_requisito or '', tr.descricao or '')
+            nomes = [m.group(1).strip() for m in re.finditer(r'Vertente\s+([A-ZÀ-Ý][A-Za-zÀ-ÿ-]+)', txt)]
+            if 'vertente' in txt.lower():
+                nomes += [m.group(1).strip() for m in re.finditer(r'^\s*[-*]\s*\*\*([A-Za-zÀ-ÿ-]+)\b', txt, re.M)]
+            achado = next((n for n in nomes if slugify(n) == _vert), None)
+            if achado:
+                _vert_disp = achado
+                break
     _raca = p.id_raca.nome if p.id_raca_id else ''
     if p.id_essencia_id:
         _ess = re.sub(r'^ess[êe]ncia\s+', '', p.id_essencia.nome or '', flags=re.I).strip()
@@ -3348,7 +4101,7 @@ def ficha_detail_view(request, pk):
     prog['proximo_nivel_aventuras'] = aventuras_para_nivel(min((prog.get('nivel_aventuras') or 0) + 1, 22))
     # Magias da Essência (vertente): sincroniza (idempotente) as fixas do nível atual e
     # levanta as ESCOLHAS pendentes (ex.: 2º ciclo, escolha 2 de 3) p/ a ficha pedir.
-    from .models import TbPersonagemMagia, TbTransacao, TbMagia
+    from .models import TbTransacao, TbMagia
     _sync_magias_concedidas(p)
     from .character_engine import magias_concedidas
     _pend = magias_concedidas(p)['pendentes']
@@ -3363,14 +4116,8 @@ def ficha_detail_view(request, pk):
                 'opcoes': [{'slug': s, 'nome': _nomes.get(s, s)} for s in b['opcoes']]})
     # Página de Magias: todas as magias do personagem (preparadas / conhecidas-sempre).
     # As sempre_preparada (raça/outros) NÃO contam no total de preparadas da classe.
-    magias_pers = list(TbPersonagemMagia.objects.filter(id_personagem=p).order_by('nivel', 'nome'))
-    magias_info = {
-        'lista': magias_pers,
-        'n_preparadas': sum(1 for m in magias_pers if m.preparada and not m.sempre_preparada),
-        'n_sempre': sum(1 for m in magias_pers if m.sempre_preparada),
-        'total': len(magias_pers),
-        'essencia_pendentes': essencia_pendentes,
-    }
+    magias_info = _magias_sheet_info(p, ficha, essencia_pendentes)
+    consumiveis_cards = _consumiveis_ficha_cards(p, ficha)
     # Página de Histórico: compras/vendas do personagem.
     transacoes = list(TbTransacao.objects.filter(id_personagem=p).order_by('-pk')[:300])
     return render(request, 'home/pages/ficha_detail.html', {
@@ -3379,6 +4126,7 @@ def ficha_detail_view(request, pk):
         'ficha': ficha,
         'raca_linha': raca_linha,
         'magias_info': magias_info,
+        'consumiveis_cards': consumiveis_cards,
         'transacoes': transacoes,
         'pode_editar': p.dono_id == request.user.id or perms.is_staff_user(request.user),
     })
@@ -3425,16 +4173,32 @@ def personagem_trocar_maestria(request, pk):
 def personagem_toggle_magia(request, pk, magia_id):
     """Marca/desmarca uma magia como PREPARADA (clicável na aba Magias da ficha).
     Magias `sempre_preparada` (raça/outros) não são alternáveis."""
-    from .models import TbPersonagem, TbPersonagemMagia
-    from . import permissions as perms
-    p = get_object_or_404(TbPersonagem, pk=pk)
-    if not (p.dono_id == request.user.id or perms.is_staff_user(request.user)):
-        raise Http404()
+    from .character_engine import derive
+    from .models import TbPersonagemMagia
+    p = _ficha_editavel(request, pk)
     m = get_object_or_404(TbPersonagemMagia, pk=magia_id, id_personagem=p)
-    if not m.sempre_preparada:
-        m.preparada = not m.preparada
+    url = reverse('ficha_detail', args=[pk]) + '?aba=magias'
+    if m.sempre_preparada:
+        return redirect(url)
+    if m.preparada:
+        m.preparada = False
         m.save(update_fields=['preparada'])
-    return redirect(reverse('ficha_detail', args=[pk]) + '?aba=magias')
+        return redirect(url)
+
+    ficha = derive(p)
+    info = _magias_preparadas_info(p, ficha)
+    if info and int(m.nivel or 0) >= 1:
+        validos = {x['slug'] for g in info.get('grupos', []) for x in g.get('magias', [])}
+        slug = getattr(m.id_magia, 'slug', '') or slugify(m.nome or '')
+        if slug not in validos:
+            return redirect(url + '&prep=invalida')
+        limite = info.get('limite')
+        atuais = p.magias.filter(nivel__gte=1, preparada=True, sempre_preparada=False).exclude(pk=m.pk).count()
+        if limite is not None and atuais >= int(limite):
+            return redirect(url + '&prep=limite')
+    m.preparada = True
+    m.save(update_fields=['preparada'])
+    return redirect(url)
 
 
 @login_required(login_url='/login/')
@@ -3531,6 +4295,11 @@ def criar_personagem_view(request):
         erros.append('Escolha uma classe.')
     if not antec:
         erros.append('Escolha um antecedente.')
+    from .character_engine import background_asi_values, background_grants
+    bg_grants = background_grants(antec) if antec else background_grants()
+    asi_major, asi_minor = background_asi_values(bg_grants)
+    bg_skill_n = int(bg_grants.get('pericias') or 0)
+    bg_langtool_n = int(bg_grants.get('idiomas_ou_ferramentas') or 0)
 
     # Maestria de Arma: escolha de ARMAS (não de maestrias). Conhece todas as maestrias de cada arma.
     mn = _classe_maestria_n(classe, 1) if classe else 0
@@ -3545,13 +4314,16 @@ def criar_personagem_view(request):
     # Perícias: validar quantidade e pertinência no SERVIDOR (não confiar só no cliente)
     pc = list(dict.fromkeys(data.get('pericias_classe') or []))
     pa = list(dict.fromkeys(data.get('pericias_antecedente') or []))
+    lt_sel = list(dict.fromkeys(data.get('idiomas_ferramentas') or []))
     if classe:
         pn, plista = _parse_skills_lvl1(classe.tags_json)
         pool = set(plista) if plista else set(_SKILL_INFO.keys())
         if len(pc) != pn or any(s not in pool for s in pc):
             erros.append('Escolha exatamente %d perícia(s) de classe válida(s).' % pn)
-    if len(pa) != 2 or any(s not in _SKILL_INFO for s in pa):
-        erros.append('Escolha exatamente 2 perícias de antecedente válidas.')
+    if len(pa) != bg_skill_n or any(s not in _SKILL_INFO for s in pa):
+        erros.append('Escolha exatamente %d perícia(s) de antecedente válida(s).' % bg_skill_n)
+    if len(lt_sel) != bg_langtool_n:
+        erros.append('Escolha exatamente %d idioma(s)/ferramenta(s).' % bg_langtool_n)
 
     # Escolhas de classe nv1: estilo de luta (Guerreiro) e expertise (Ladino)
     esc1 = _classe_escolhas_nv1(classe) if classe else {'estilo_n': 0, 'expertise_n': 0, 'expertise_fixa': []}
@@ -3569,7 +4341,7 @@ def criar_personagem_view(request):
         nslugs = {m['slug'] for m in conj['magias_nv1']}
         truques_sel = [s for s in dict.fromkeys(data.get('truques') or []) if s in tslugs]
         magias_sel = [s for s in dict.fromkeys(data.get('magias') or []) if s in nslugs]
-        n_mag = _spell_count_nv1(conj, base, mais2, mais1)
+        n_mag = _spell_count_nv1(conj, base, mais2, mais1, (asi_major, asi_minor))
         if conj['truques_n'] and len(truques_sel) != conj['truques_n']:
             erros.append('Escolha %d truque(s).' % conj['truques_n'])
         if len(magias_sel) != n_mag:
@@ -3589,9 +4361,9 @@ def criar_personagem_view(request):
             id_raca=raca, id_linhagem=linhagem, id_essencia=essencia, id_antecedente=antec,
             **{campo[s]: base[s] for s in SIG})
         TbPersonagemClasse.objects.create(id_personagem=p, id_classe=classe, nivel=1, principal=True)
-        TbPersonagemAtributoBonus.objects.create(id_personagem=p, atributo=mais2, valor=2,
+        TbPersonagemAtributoBonus.objects.create(id_personagem=p, atributo=mais2, valor=asi_major,
                                                  origem='Antecedente %s' % antec.nome, origem_tipo='antecedente')
-        TbPersonagemAtributoBonus.objects.create(id_personagem=p, atributo=mais1, valor=1,
+        TbPersonagemAtributoBonus.objects.create(id_personagem=p, atributo=mais1, valor=asi_minor,
                                                  origem='Antecedente %s' % antec.nome, origem_tipo='antecedente')
         if essencia and data.get('vertente'):
             TbPersonagemEscolha.objects.create(id_personagem=p, origem='Essência %s' % essencia.nome,
@@ -3604,9 +4376,11 @@ def criar_personagem_view(request):
             if info:
                 TbPersonagemPericia.objects.get_or_create(
                     id_personagem=p, nome=info[0], defaults={'atributo': info[1], 'proficiente': True})
-        TbPersonagemProficiencia.objects.create(id_personagem=p, tipo='idioma', nome='Comum', origem='regra')
+        idioma_fixo = (bg_grants.get('idioma_fixo') or '').strip()
+        if idioma_fixo:
+            TbPersonagemProficiencia.objects.create(id_personagem=p, tipo='idioma', nome=idioma_fixo, origem='regra')
         ferr_nomes = set(TbItemMundano.objects.filter(categoria='ferramenta').values_list('nome', flat=True))
-        for esc in (data.get('idiomas_ferramentas') or [])[:2]:
+        for esc in lt_sel[:bg_langtool_n]:
             tipo = 'ferramenta' if esc in ferr_nomes else 'idioma'
             TbPersonagemProficiencia.objects.create(id_personagem=p, tipo=tipo, nome=esc, origem='antecedente')
         # Escolhas de RAÇA (perícias/idiomas/ferramentas extras da raça/linhagem/essência)
@@ -3622,13 +4396,13 @@ def criar_personagem_view(request):
         for nm in (esc_raca.get('ferramentas') or []):
             TbPersonagemProficiencia.objects.get_or_create(
                 id_personagem=p, tipo='ferramenta', nome=nm, defaults={'origem': 'racial'})
-        # Dinheiro inicial vai para a CARTEIRA (PC): antecedente 100 PO + (opção da classe 150 PO OU equipamento texto)
-        carteira = 100 * 100
+        # Dinheiro inicial vai para a carteira (PC) conforme as grants do antecedente.
+        carteira = int(bg_grants.get('po_inicial') or 0) * 100
         if data.get('equip_classe') == 'inicial' and (classe.equipamento or '').strip():
             TbPersonagemItem.objects.create(id_personagem=p, qtd=1,
                                             nome='Equipamento inicial da classe: %s' % classe.equipamento.strip()[:170])
         else:
-            carteira += 150 * 100
+            carteira += int(bg_grants.get('equip_gold_alt') or 0) * 100
         # Sem armadura inicial: o jogador compra e equipa a armadura na própria ficha,
         # e a CA é derivada do equipamento equipado (não se pré-equipa nada no criador).
         p.carteira_pc = carteira
@@ -4001,6 +4775,57 @@ def mapa_view(request):
             }
         }
 
+    # Seed and ensure default 4 layers
+    default_layers = [
+        (0, "Cinéria", "assets/cineria.jpg", True),
+        (1, "Grande Metrópole Subterrânea", None, False),
+        (2, "Zona Proibida", None, False),
+        (3, "Câmaras Abissais", None, False),
+    ]
+    for id_l, name_l, img_l, pub_l in default_layers:
+        layer_obj, created = TbMapLayer.objects.get_or_create(
+            id_layer=id_l,
+            defaults={'nome': name_l, 'imagem_url': img_l, 'ordem': id_l, 'publica': pub_l}
+        )
+        if not created:
+            # Force exact requested name/defaults
+            if layer_obj.nome != name_l:
+                layer_obj.nome = name_l
+                layer_obj.save()
+
+    layers_qs = TbMapLayer.objects.all().order_by('ordem')
+    public_layers = list(TbMapLayer.objects.filter(publica=True).values_list('id_layer', flat=True))
+
+    def _layer_url(val):
+        if not val:
+            return ""
+        if val.startswith(('http://', 'https://', '/')):
+            return val
+        from django.templatetags.static import static
+        return static(val)
+
+    # Get main layer image URL for fallback
+    main_layer_img = ""
+    main_layer = TbMapLayer.objects.filter(id_layer=0).first()
+    if main_layer and main_layer.imagem_url:
+        main_layer_img = _layer_url(main_layer.imagem_url)
+
+    layers_lista = []
+    for l in layers_qs:
+        is_placeholder = (l.id_layer != 0 and not l.imagem_url)
+        img = _layer_url(l.imagem_url) if l.imagem_url else main_layer_img
+        layers_lista.append({
+            'id_layer': l.id_layer,
+            'nome': l.nome,
+            'imagem_url': img,
+            'ordem': l.ordem,
+            'publica': l.publica,
+            'is_placeholder': is_placeholder,
+        })
+
+    if not request.user.is_staff:
+        layers_lista = [l for l in layers_lista if l['publica']]
+
     try:
         marcadores_docs = _mongo_docs('map_markers', [('Nome', 1)])
         regioes_docs = _mongo_docs('regions', [('Territorio', 1), ('Nome', 1)])
@@ -4023,14 +4848,15 @@ def mapa_view(request):
         ]
 
         if not request.user.is_staff:
-            marcadores_lista = [m for m in marcadores_lista if m.get('camada', 0) == 0]
-            regioes_lista = [r for r in regioes_lista if r.get('camada', 0) == 0]
-            territorios_lista = [t for t in territorios_lista if t.get('camada', 0) == 0]
+            marcadores_lista = [m for m in marcadores_lista if m.get('camada', 0) in public_layers]
+            regioes_lista = [r for r in regioes_lista if r.get('camada', 0) in public_layers]
+            territorios_lista = [t for t in territorios_lista if t.get('camada', 0) in public_layers]
 
         return render(request, 'home/pages/mapa.html', {
             'json_markers': marcadores_lista,
             'json_regions': regioes_lista,
             'json_territories': territorios_lista,
+            'json_layers': layers_lista,
             'can_edit_wiki': request.user.is_staff,
         })
     except BotMongoUnavailable:
@@ -4055,14 +4881,15 @@ def mapa_view(request):
         })
 
     if not request.user.is_staff:
-        marcadores_lista = [m for m in marcadores_lista if m.get('camada', 0) == 0]
-        regioes_lista = [r for r in regioes_lista if r.get('camada', 0) == 0]
-        territorios_lista = [t for t in territorios_lista if t.get('camada', 0) == 0]
+        marcadores_lista = [m for m in marcadores_lista if m.get('camada', 0) in public_layers]
+        regioes_lista = [r for r in regioes_lista if r.get('camada', 0) in public_layers]
+        territorios_lista = [t for t in territorios_lista if t.get('camada', 0) in public_layers]
 
     context = {
         'json_markers': marcadores_lista,
         'json_regions': regioes_lista,
         'json_territories': territorios_lista,
+        'json_layers': layers_lista,
         'can_edit_wiki': request.user.is_staff,
     }
     return render(request, 'home/pages/mapa.html', context)
@@ -4077,9 +4904,27 @@ def mundo_regioes_view(request):
             if first_region:
                 return regiao_detail_view(request, slug=first_region.slug)
 
+    default_layers = [
+        (0, "Cinéria", "assets/cineria.jpg", True),
+        (1, "Grande Metrópole Subterrânea", None, False),
+        (2, "Zona Proibida", None, False),
+        (3, "Câmaras Abissais", None, False),
+    ]
+    for id_l, name_l, img_l, pub_l in default_layers:
+        layer_obj, created = TbMapLayer.objects.get_or_create(
+            id_layer=id_l,
+            defaults={'nome': name_l, 'imagem_url': img_l, 'ordem': id_l, 'publica': pub_l}
+        )
+        if not created:
+            if layer_obj.nome != name_l:
+                layer_obj.nome = name_l
+                layer_obj.save()
+
+    public_layers = list(TbMapLayer.objects.filter(publica=True).values_list('id_layer', flat=True)) or [0]
+
     if not request.user.is_staff:
-        regioes = TbRegiao.objects.filter(camada=0).order_by('territorio', 'nome')
-        territorios_qs = TbTerritorio.objects.filter(camada=0)
+        regioes = TbRegiao.objects.filter(camada__in=public_layers).order_by('territorio', 'nome')
+        territorios_qs = TbTerritorio.objects.filter(camada__in=public_layers)
     else:
         regioes = TbRegiao.objects.all().order_by('territorio', 'nome')
         territorios_qs = TbTerritorio.objects.all()
@@ -4277,7 +5122,8 @@ def _organizations_for_location(region_name, territory_name):
 @ensure_csrf_cookie  # edição inline (wiki) lê o csrftoken do cookie
 def regiao_detail_view(request, slug):
     regiao = get_object_or_404(TbRegiao, slug=slug)
-    if regiao.camada > 0 and not request.user.is_staff:
+    public_layers = list(TbMapLayer.objects.filter(publica=True).values_list('id_layer', flat=True)) or [0]
+    if regiao.camada not in public_layers and not request.user.is_staff:
         raise Http404("Região não encontrada")
 
     
@@ -4285,8 +5131,8 @@ def regiao_detail_view(request, slug):
 
     
     if not request.user.is_staff:
-        all_regioes = TbRegiao.objects.filter(camada=0).order_by('territorio', 'nome')
-        territory_objects = {t.nome: t for t in TbTerritorio.objects.filter(camada=0)}
+        all_regioes = TbRegiao.objects.filter(camada__in=public_layers).order_by('territorio', 'nome')
+        territory_objects = {t.nome: t for t in TbTerritorio.objects.filter(camada__in=public_layers)}
     else:
         all_regioes = TbRegiao.objects.all().order_by('territorio', 'nome')
         territory_objects = {t.nome: t for t in TbTerritorio.objects.all()}
@@ -5176,6 +6022,101 @@ def _sb_sgn(n):
     return ('+%d' % n) if n >= 0 else ('%d' % n)
 
 
+def _sb_text(v):
+    if v is None:
+        return ''
+    if isinstance(v, str):
+        return _clean_statblock_text(v)
+    if isinstance(v, dict):
+        for key in ('name', 'entry', 'entries', 'type', 'special'):
+            if key in v:
+                return _sb_text(v.get(key))
+        return _clean_statblock_text(str(v))
+    if isinstance(v, (list, tuple)):
+        return ', '.join(_sb_text(x) for x in v if _sb_text(x))
+    return _clean_statblock_text(str(v))
+
+
+def _sb_size_text(sb, criatura=None):
+    size = sb.get('size') if isinstance(sb, dict) else ''
+    if isinstance(size, list):
+        size = size[0] if size else ''
+    value = _SB_TAM.get(size, size or getattr(criatura, 'tamanho', '') or '')
+    return _clean_statblock_text(value)
+
+
+def _sb_type_text(sb, criatura=None):
+    tp = sb.get('type') if isinstance(sb, dict) else ''
+    if isinstance(tp, dict):
+        tp = tp.get('type') or tp.get('name') or ''
+    return _clean_statblock_text(_sb_tipo_pt(tp or getattr(criatura, 'tipo', '') or ''))
+
+
+def _sb_alignment_text(sb, criatura=None):
+    alin = sb.get('alignment') if isinstance(sb, dict) else ''
+    if isinstance(alin, list):
+        return ', '.join(_SB_ALIN.get(a, str(a)) for a in alin if a)
+    return _clean_statblock_text(alin or getattr(criatura, 'alinhamento', '') or '')
+
+
+def _sb_sections(sb, *keys):
+    out = []
+    for key in keys:
+        value = sb.get(key) if isinstance(sb, dict) else None
+        if isinstance(value, list):
+            out.extend(value)
+    return out
+
+
+def _sb_section_groups(sb):
+    return [
+        ('Tracos', _sb_sections(sb, 'trait', 'traits')),
+        ('Conjuracao', _spellcasting_blocks(sb)),
+        ('Acoes', _sb_sections(sb, 'action', 'actions')),
+        ('Acoes bonus', _sb_sections(sb, 'bonus', 'bonus_actions')),
+        ('Reacoes', _sb_sections(sb, 'reaction', 'reactions')),
+        ('Acoes lendarias', _sb_sections(sb, 'legendary', 'legendary_actions')),
+        ('Acoes miticas', _sb_sections(sb, 'mythic', 'mythic_actions')),
+        ('Acoes de covil', _sb_sections(sb, 'lair', 'lair_actions')),
+        ('Efeitos regionais', _sb_sections(sb, 'regional', 'regional_effects')),
+    ]
+
+
+def _spellcasting_blocks(sb):
+    blocks = []
+    for section in ('trait', 'traits', 'action', 'actions', 'bonus', 'bonus_actions', 'reaction', 'reactions'):
+        for block in _sb_sections(sb, section):
+            if not isinstance(block, dict):
+                continue
+            uses = block.get('spell_uses') or []
+            refs = block.get('spell_refs') or []
+            name = (block.get('name') or block.get('name_en') or '').lower()
+            if uses or ('spellcasting' in name) or ('conjuracao' in name) or refs:
+                blocks.append(block)
+    return blocks
+
+
+def _spellcasting_display(sb):
+    out = []
+    for block in _spellcasting_blocks(sb):
+        rows = []
+        for use in block.get('spell_uses') or []:
+            label = use.get('label') or use.get('label_en') or ''
+            spells = use.get('spells') or []
+            rows.append({
+                'label': _clean_statblock_text(label),
+                'spells': [{'nome': s.get('name') or s.get('name_en') or s.get('slug'), 'slug': s.get('slug')} for s in spells if isinstance(s, dict)],
+            })
+        if not rows and block.get('spell_refs'):
+            rows.append({
+                'label': 'Referencias',
+                'spells': [{'nome': s.get('name') or s.get('name_en') or s.get('slug'), 'slug': s.get('slug')} for s in block.get('spell_refs') if isinstance(s, dict)],
+            })
+        if rows:
+            out.append({'nome': _clean_statblock_text(block.get('name') or block.get('name_en') or 'Conjuracao'), 'rows': rows})
+    return out
+
+
 def _sb_entries(entries):
     """Achata 'entries' (5etools) em texto. Strings diretas; objetos/listas viram texto simples."""
     out = []
@@ -5292,6 +6233,57 @@ def _nd_valor(nd):
         return 999.0
 
 
+def _statblock_display_full(sb, criatura=None):
+    sb = sb or {}
+    base = _statblock_display(sb, criatura)
+    ability_map = sb.get('abilities') if isinstance(sb.get('abilities'), dict) else {}
+    if ability_map:
+        base['abilities'] = []
+        for en, sig in _SB_AB:
+            sc = ability_map.get(en)
+            if sc is None:
+                continue
+            mod = _sb_mod(sc)
+            base['abilities'].append({'sig': sig, 'score': sc, 'mod': _sb_sgn(mod), 'save': _sb_sgn(mod)})
+
+    if sb.get('ac_text'):
+        base['ca'] = sb.get('ac_text')
+    if isinstance(sb.get('speed'), str):
+        base['desloc'] = sb.get('speed')
+    if sb.get('saving_throws'):
+        base['saves'] = _clean_statblock_text(sb.get('saving_throws'))
+    if isinstance(sb.get('skills'), list):
+        base['skills'] = ', '.join(_clean_statblock_text(x) for x in sb.get('skills'))
+
+    def _join_any(*keys):
+        for key in keys:
+            value = sb.get(key)
+            if value:
+                return _sb_text(value)
+        return ''
+
+    alignment = _sb_alignment_text(sb, criatura)
+    base['cabecalho'] = ('%s %s%s' % (
+        _sb_size_text(sb, criatura),
+        _sb_type_text(sb, criatura),
+        (', ' + alignment) if alignment else '',
+    )).strip()
+    base['resist'] = _join_any('damage_resistances', 'resist')
+    base['immune'] = _join_any('damage_immunities', 'immune')
+    base['vuln'] = _join_any('damage_vulnerabilities', 'vulnerable')
+    base['cond_immune'] = _join_any('condition_immunities', 'conditionImmune')
+    base['traits'] = _sb_bloco(_sb_sections(sb, 'trait', 'traits'))
+    base['actions'] = _sb_bloco(_sb_sections(sb, 'action', 'actions'))
+    base['bonus'] = _sb_bloco(_sb_sections(sb, 'bonus', 'bonus_actions'))
+    base['reactions'] = _sb_bloco(_sb_sections(sb, 'reaction', 'reactions'))
+    base['legendary'] = _sb_bloco(_sb_sections(sb, 'legendary', 'legendary_actions'))
+    base['mythic'] = _sb_bloco(_sb_sections(sb, 'mythic', 'mythic_actions'))
+    base['lair'] = _sb_bloco(_sb_sections(sb, 'lair', 'lair_actions'))
+    base['regional'] = _sb_bloco(_sb_sections(sb, 'regional', 'regional_effects'))
+    base['spellcasting'] = _spellcasting_display(sb)
+    return base
+
+
 def bestiario_view(request):
     """Bestiário: criaturas oficiais + da comunidade, com statblock 5e renderizado.
     Filtros: origem (todas/oficial/comunidade), ND, e ordenação alfabética A→Z/Z→A."""
@@ -5299,6 +6291,9 @@ def bestiario_view(request):
     from . import permissions as perms
     filtro = request.GET.get('f', '')
     nd_sel = request.GET.get('nd', '')
+    tipo_sel = request.GET.get('tipo', '')
+    tam_sel = request.GET.get('tam', '')
+    fonte_sel = request.GET.get('fonte', '')
     ordem = request.GET.get('ord', 'az')
     is_staff = perms.is_staff_user(request.user)
     qs = TbBestiario.objects.select_related('autor')
@@ -5308,6 +6303,12 @@ def bestiario_view(request):
         qs = qs.filter(comunidade=True)
     if nd_sel:
         qs = qs.filter(nd=nd_sel)
+    if tipo_sel:
+        qs = qs.filter(tipo=tipo_sel)
+    if tam_sel:
+        qs = qs.filter(tamanho=tam_sel)
+    if fonte_sel:
+        qs = qs.filter(source=fonte_sel)
     criaturas = []
     for b in qs:
         criaturas.append({
@@ -5315,16 +6316,31 @@ def bestiario_view(request):
             'tipo': _sb_tipo_pt(b.tipo), 'nd': b.nd or '', 'tamanho': _SB_TAM.get(b.tamanho, b.tamanho or ''),
             'comunidade': b.comunidade, 'autor': b.autor.username if b.autor_id else None,
             'imagem': b.imagem_url or '',
-            'sb': _statblock_display(b.statblock_json if isinstance(b.statblock_json, dict) else {}, b),
+            'source': b.source or '',
+            'busca': ' '.join([b.nome or '', b.slug or '', b.tipo or '', b.tamanho or '', b.nd or '', b.source or '']).lower(),
+            'nd_valor': _nd_valor(b.nd),
+            'sb': _statblock_display_full(b.statblock_json if isinstance(b.statblock_json, dict) else {}, b),
             'descricao': _clean_5et(b.descricao_markdown or ''),
             'pode_editar': is_staff or (b.comunidade and b.autor_id == request.user.id),
         })
-    criaturas.sort(key=lambda c: c['nome'].lower(), reverse=(ordem == 'za'))
-    nds_all = sorted({(x.nd or '').strip() for x in TbBestiario.objects.all() if (x.nd or '').strip()},
-                     key=_nd_valor)
+    if ordem == 'za':
+        criaturas.sort(key=lambda c: c['nome'].lower(), reverse=True)
+    elif ordem == 'nd_desc':
+        criaturas.sort(key=lambda c: (c['nd_valor'], c['nome'].lower()), reverse=True)
+    elif ordem == 'nd_asc':
+        criaturas.sort(key=lambda c: (c['nd_valor'], c['nome'].lower()))
+    else:
+        criaturas.sort(key=lambda c: c['nome'].lower())
+    all_qs = TbBestiario.objects.all()
+    nds_all = sorted({(x.nd or '').strip() for x in all_qs if (x.nd or '').strip()}, key=_nd_valor)
+    tipos_all = sorted({(x.tipo or '').strip() for x in all_qs if (x.tipo or '').strip()})
+    tamanhos_all = sorted({(x.tamanho or '').strip() for x in all_qs if (x.tamanho or '').strip()})
+    fontes_all = sorted({(x.source or '').strip() for x in all_qs if (x.source or '').strip()})
     return render(request, 'home/pages/bestiario.html', {
         'page_title': 'Bestiário',
-        'criaturas': criaturas, 'filtro': filtro, 'nd_sel': nd_sel, 'ordem': ordem, 'nds': nds_all,
+        'criaturas': criaturas, 'filtro': filtro, 'nd_sel': nd_sel, 'tipo_sel': tipo_sel,
+        'tam_sel': tam_sel, 'fonte_sel': fonte_sel, 'ordem': ordem, 'nds': nds_all,
+        'tipos': tipos_all, 'tamanhos': tamanhos_all, 'fontes': fontes_all,
         'pode_criar': perms.is_mestre(request.user), 'is_staff': is_staff,
         'msg': request.GET.get('m'),
     })
@@ -5875,8 +6891,9 @@ def api_opcoes(request):
 def api_card_preview(request):
     import re
     from django.http import JsonResponse
+    from django.utils.html import escape as esc
     from home.models import (
-        TbClasse, TbSubclasse, TbClassehabilidade, TbTalento, TbRaca, TbRegiao, TbMagia
+        TbClasse, TbSubclasse, TbClassehabilidade, TbTalento, TbRaca, TbRegiao, TbMagia, TbBestiario
     )
 
     table = request.GET.get('table', '').strip().lower()
@@ -5884,8 +6901,12 @@ def api_card_preview(request):
     args = [arg.strip() for arg in args_str.split(',') if arg.strip()]
 
     title = ""
+    subtitle = ""
+    kind = "generic"
     description = ""
     read_more_url = ""
+    card_html = ""
+    card_width = 360
 
     def slugify_py(text):
         import unicodedata
@@ -5930,6 +6951,11 @@ def api_card_preview(request):
 
         if ability:
             title = ability.nome
+            if ability.id_subclasse:
+                subtitle = f"Subclasse: {ability.id_subclasse.nome} · Classe: {ability.id_classe.nome} lvl {ability.niveladquirido}"
+            else:
+                subtitle = f"Classe: {ability.id_classe.nome} lvl {ability.niveladquirido}"
+            kind = "ability"
             description = ability.descricao or ""
             if ability.id_subclasse:
                 read_more_url = f"/jogador/classes/{ability.id_classe.slug}/?subclasse={ability.id_subclasse.slug}#{slugify_py(ability.nome)}"
@@ -5942,6 +6968,8 @@ def api_card_preview(request):
         classe = TbClasse.objects.filter(slug=p1).first()
         if classe:
             title = classe.nome
+            subtitle = "Classe"
+            kind = "class"
             description = classe.tagline or ""
             read_more_url = f"/jogador/classes/{classe.slug}/"
 
@@ -5951,6 +6979,8 @@ def api_card_preview(request):
         sub = TbSubclasse.objects.filter(slug=p1).first()
         if sub:
             title = sub.nome
+            subtitle = f"Subclasse: {sub.id_classe.nome}"
+            kind = "subclass"
             description = sub.descricao or ""
             read_more_url = f"/jogador/classes/{sub.id_classe.slug}/?subclasse={sub.slug}"
 
@@ -5964,6 +6994,8 @@ def api_card_preview(request):
                 break
         if tal:
             title = tal.nome
+            subtitle = "Talento"
+            kind = "talent"
             description = tal.descricao or ""
             read_more_url = f"/jogador/talentos/#{slugify_py(tal.nome)}"
 
@@ -5973,6 +7005,8 @@ def api_card_preview(request):
         raca = TbRaca.objects.filter(slug=p1).first()
         if raca:
             title = raca.nome
+            subtitle = f"Raca: {raca.nome}"
+            kind = "race"
             description = raca.tagline or ""
             read_more_url = f"/jogador/raca/{raca.slug}/"
 
@@ -5982,6 +7016,8 @@ def api_card_preview(request):
         reg = TbRegiao.objects.filter(slug=p1).first()
         if reg:
             title = reg.nome
+            subtitle = "Regiao"
+            kind = "region"
             description = reg.descricao or ""
             read_more_url = f"/mundo/regioes/{reg.slug}/"
 
@@ -5995,14 +7031,54 @@ def api_card_preview(request):
                 break
         if mag:
             title = mag.nome
-            description = mag.descricao or ""
+            subtitle = "%s · %s" % ("Truque" if mag.nivel == 0 else f"Nivel {mag.nivel}", mag.escola or "Magia")
+            kind = "spell"
+            meta_lines = [
+                f"**Tempo de conjuracao:** {mag.casting_time or '-'}",
+                f"**Alcance:** {mag.alcance or '-'}",
+                f"**Componentes:** {mag.componentes or '-'}",
+                f"**Duracao:** {mag.duracao or '-'}",
+                f"**Escola:** {mag.escola or '-'}",
+                f"**Nivel:** {'Truque' if mag.nivel == 0 else mag.nivel}",
+                f"**Ritual:** {'Sim' if mag.ritual else 'Nao'}",
+                f"**Concentracao:** {'Sim' if mag.concentracao else 'Nao'}",
+            ]
+            description = "\n".join(meta_lines) + "\n\n" + (mag.descricao or "")
+            if mag.em_niveis_superiores:
+                description += "\n\n### Em niveis superiores\n" + mag.em_niveis_superiores
+            if mag.classes:
+                description += "\n\n**Classes:** " + mag.classes
+            card_width = 400
             read_more_url = f"/magias/listas/#{slugify_py(mag.nome)}"
+
+    # 8. Criatura / Bestiario
+    elif table in ['tbbestiario', 'bestiario', 'criatura', 'creature', 'monster']:
+        p1 = args[0]
+        cr = TbBestiario.objects.filter(slug=p1).first()
+        if not cr:
+            for item in TbBestiario.objects.all():
+                if slugify_py(item.nome) == p1:
+                    cr = item
+                    break
+        if cr:
+            title = cr.nome
+            subtitle = "Criatura: %s%s" % (cr.tipo or "", (" · ND " + cr.nd) if cr.nd else "")
+            kind = "monster"
+            card_width = 540
+            card_html = _render_creature_statblock_full(cr)
+            if cr.descricao_markdown:
+                card_html += '<div class="bonfire-creature-desc bonfire-markdown">%s</div>' % esc(cr.descricao_markdown)
+            read_more_url = f"/mestre/bestiario/#monster-{cr.id_criatura}"
 
     if title:
         return JsonResponse({
             'success': True,
             'title': title,
+            'subtitle': subtitle,
+            'kind': kind,
             'description': description,
+            'card_html': card_html,
+            'card_width': card_width,
             'url': read_more_url
         })
     
@@ -6159,6 +7235,74 @@ def _render_creature_statblock(cr):
     return ''.join(parts)
 
 
+def _render_creature_statblock_full(cr):
+    from django.utils.html import escape as esc
+    sb = cr.statblock_json if isinstance(cr.statblock_json, dict) else {}
+    display = _statblock_display_full(sb, cr)
+    parts = []
+
+    def line(label, value):
+        if not value:
+            return ''
+        return '<div class="bonfire-creature-line"><b>%s</b> %s</div>' % (esc(label), esc(str(value)))
+
+    parts.append('<div class="bonfire-creature-card-sheet">')
+    parts.append('<div class="bonfire-creature-meta">%s%s%s</div>' % (
+        '<span><b>CA</b> %s</span>' % esc(str(display.get('ca'))) if display.get('ca') else '',
+        '<span><b>PV</b> %s</span>' % esc(str(display.get('pv'))) if display.get('pv') else '',
+        '<span><b>Deslocamento</b> %s</span>' % esc(str(display.get('desloc'))) if display.get('desloc') else '',
+    ))
+    if display.get('abilities'):
+        parts.append('<div class="bonfire-creature-attrs">')
+        for a in display['abilities']:
+            parts.append('<div><span class="ab">%s</span><span class="sc">%s (%s)</span></div>' % (
+                esc(a.get('sig', '')), esc(str(a.get('score', ''))), esc(str(a.get('mod', '')))
+            ))
+        parts.append('</div>')
+
+    for label, key in [
+        ('Salvaguardas', 'saves'), ('Pericias', 'skills'), ('Vulnerabilidades', 'vuln'),
+        ('Resistencias', 'resist'), ('Imunidades a dano', 'immune'), ('Imunidades a condicao', 'cond_immune'),
+        ('Sentidos', 'sentidos'), ('Idiomas', 'idiomas'), ('Nivel de Desafio', 'cr'),
+    ]:
+        parts.append(line(label, display.get(key)))
+
+    if display.get('spellcasting'):
+        parts.append('<div class="bonfire-creature-section"><h4>Conjuracao</h4>')
+        for cast in display['spellcasting']:
+            parts.append('<div class="bonfire-creature-trait"><strong>%s.</strong>' % esc(cast.get('nome') or 'Conjuracao'))
+            for row in cast.get('rows') or []:
+                spell_links = []
+                for spell in row.get('spells') or []:
+                    nome = esc(spell.get('nome') or spell.get('slug') or '')
+                    slug = spell.get('slug')
+                    if slug:
+                        spell_links.append('<a href="#" class="bonfire-card-trigger" data-table="tbMagia" data-args="%s">%s</a>' % (esc(slug), nome))
+                    else:
+                        spell_links.append(nome)
+                parts.append('<div><b>%s</b> %s</div>' % (esc(row.get('label') or ''), ', '.join(spell_links)))
+            parts.append('</div>')
+        parts.append('</div>')
+
+    for label, key in [
+        ('Tracos', 'traits'), ('Acoes', 'actions'), ('Acoes bonus', 'bonus'),
+        ('Reacoes', 'reactions'), ('Acoes lendarias', 'legendary'), ('Acoes miticas', 'mythic'),
+        ('Acoes de covil', 'lair'), ('Efeitos regionais', 'regional'),
+    ]:
+        blocks = display.get(key) or []
+        if not blocks:
+            continue
+        parts.append('<div class="bonfire-creature-section"><h4>%s</h4>' % esc(label))
+        for block in blocks:
+            parts.append('<div class="bonfire-creature-trait"><strong>%s.</strong> %s</div>' % (
+                esc(block.get('nome') or ''), esc(block.get('texto') or '')
+            ))
+        parts.append('</div>')
+
+    parts.append('</div>')
+    return ''.join(parts)
+
+
 def api_creature_preview(request):
     from django.http import JsonResponse
     from home.models import TbBestiario
@@ -6176,7 +7320,7 @@ def api_creature_preview(request):
         'nd': cr.nd or '',
         'ca': cr.ca or '',
         'pv': cr.pv or '',
-        'statblock_html': _render_creature_statblock(cr),
+        'statblock_html': _render_creature_statblock_full(cr),
         'descricao': cr.descricao_markdown or '',
     })
 
@@ -6699,3 +7843,107 @@ def busca_global(request):
         'page_title': ('Busca: %s' % q) if q else 'Busca',
         'q': q, 'grupos': grupos, 'total': total,
     })
+
+
+from django.core.files.storage import default_storage
+import os
+
+@login_required
+def wiki_add_layer(request):
+    if not request.user.is_superuser:
+        return JsonResponse({'error': 'Acesso negado. Apenas superusuários podem gerenciar camadas.'}, status=403)
+    
+    if request.method == 'POST':
+        nome = request.POST.get('nome', '').strip()
+        ordem_raw = request.POST.get('ordem', '0')
+        publica = request.POST.get('publica') in ('true', 'on', '1')
+        file_obj = request.FILES.get('imagem')
+        
+        if not nome:
+            return JsonResponse({'error': 'O nome da camada é obrigatório.'}, status=400)
+        if not file_obj:
+            return JsonResponse({'error': 'A imagem de fundo é obrigatória.'}, status=400)
+            
+        try:
+            ordem = int(ordem_raw)
+        except ValueError:
+            ordem = 0
+            
+        # Save file to default_storage (saves in MEDIA_ROOT/map_layers)
+        name = default_storage.save(os.path.join('map_layers', file_obj.name), file_obj)
+        imagem_url = default_storage.url(name)
+        
+        # Get next ID
+        from django.db.models import Max
+        max_id = TbMapLayer.objects.aggregate(Max('id_layer'))['id_layer__max']
+        next_id = (max_id or 0) + 1
+        if next_id < 2:  # 0 and 1 are reserved for Surface and Subterraneo Lvl 1
+            next_id = 2
+            
+        TbMapLayer.objects.create(
+            id_layer=next_id,
+            nome=nome,
+            imagem_url=imagem_url,
+            ordem=ordem,
+            publica=publica
+        )
+        return JsonResponse({'ok': True})
+    return JsonResponse({'error': 'Método não permitido.'}, status=405)
+
+
+@login_required
+def wiki_edit_layer(request, layer_id):
+    if not request.user.is_superuser:
+        return JsonResponse({'error': 'Acesso negado. Apenas superusuários podem gerenciar camadas.'}, status=403)
+        
+    layer = get_object_or_404(TbMapLayer, id_layer=layer_id)
+    
+    if request.method == 'POST':
+        nome = request.POST.get('nome', '').strip()
+        ordem_raw = request.POST.get('ordem', str(layer.ordem))
+        publica = request.POST.get('publica') in ('true', 'on', '1')
+        file_obj = request.FILES.get('imagem')
+        
+        if not nome:
+            return JsonResponse({'error': 'O nome da camada é obrigatório.'}, status=400)
+            
+        try:
+            ordem = int(ordem_raw)
+        except ValueError:
+            ordem = layer.ordem
+            
+        layer.nome = nome
+        layer.ordem = ordem
+        # Layer 0 (Surface) must remain public to prevent lockout
+        if layer_id == 0:
+            layer.publica = True
+        else:
+            layer.publica = publica
+            
+        if file_obj:
+            name = default_storage.save(os.path.join('map_layers', file_obj.name), file_obj)
+            layer.imagem_url = default_storage.url(name)
+            
+        layer.save()
+        return JsonResponse({'ok': True})
+    return JsonResponse({'error': 'Método não permitido.'}, status=405)
+
+
+@login_required
+@require_POST
+def wiki_delete_layer(request, layer_id):
+    if not request.user.is_superuser:
+        return JsonResponse({'error': 'Acesso negado. Apenas superusuários podem gerenciar camadas.'}, status=403)
+        
+    if layer_id == 0:
+        return JsonResponse({'error': 'Não é possível excluir a camada principal (Superfície).'}, status=400)
+        
+    layer = get_object_or_404(TbMapLayer, id_layer=layer_id)
+    
+    # Reassociate markers, regions, and territories belonging to this layer to layer 0
+    TbMapMarker.objects.filter(camada=layer_id).update(camada=0)
+    TbRegiao.objects.filter(camada=layer_id).update(camada=0)
+    TbTerritorio.objects.filter(camada=layer_id).update(camada=0)
+    
+    layer.delete()
+    return JsonResponse({'ok': True})

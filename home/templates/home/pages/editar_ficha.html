@@ -129,15 +129,32 @@
       <h3 class="mb-2 font-semibold text-[var(--spark)]">Aprimoramento de Atributo ou Talento <span class="text-xs font-normal text-[var(--muted)]">({{ pend.asi_pendentes }} pendente{{ pend.asi_pendentes|pluralize }})</span></h3>
       <form method="post" action="{% url 'personagem_aplicar_asi' p.id_personagem %}" class="space-y-3" id="asi-form">
         {% csrf_token %}
-        <label class="flex items-center gap-2 text-sm"><input type="radio" name="tipo" value="asi" checked onchange="document.getElementById('asi-attrs').hidden=false;document.getElementById('asi-tal').hidden=true;"> Aumentar atributos (+2 / +1)</label>
+        <label class="flex items-center gap-2 text-sm"><input type="radio" name="tipo" value="asi" checked onchange="document.getElementById('asi-attrs').hidden=false;document.getElementById('asi-tal').hidden=true;"> Aumentar atributos (+2 distribuivel)</label>
         <div id="asi-attrs" class="ml-6 flex flex-wrap gap-2">
-          <select name="mais2" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-1.5 text-sm">{% for a in atributos %}<option value="{{ a }}">+2 {{ a }}</option>{% endfor %}</select>
-          <select name="mais1" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-1.5 text-sm">{% for a in atributos %}<option value="{{ a }}">+1 {{ a }}</option>{% endfor %}</select>
+          <select name="asi_attr_1" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-1.5 text-sm">{% for a in atributos %}<option value="{{ a }}">+1 {{ a }}</option>{% endfor %}</select>
+          <select name="asi_attr_2" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-1.5 text-sm">{% for a in atributos %}<option value="{{ a }}">+1 {{ a }}</option>{% endfor %}</select>
         </div>
-        <label class="flex items-center gap-2 text-sm"><input type="radio" name="tipo" value="talento" onchange="document.getElementById('asi-attrs').hidden=true;document.getElementById('asi-tal').hidden=false;"> Escolher um Talento</label>
-        <div id="asi-tal" hidden class="ml-6">
-          <select name="talento" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-1.5 text-sm"><option value="">— Talento —</option>{% for t in talentos_normais %}<option value="{{ t.id }}">{{ t.nome }}</option>{% endfor %}</select>
+        <label class="flex items-center gap-2 text-sm"><input type="radio" name="tipo" value="talento" onchange="document.getElementById('asi-attrs').hidden=true;document.getElementById('asi-tal').hidden=false;"> Escolher um Talento (+1 atributo)</label>
+        <div id="asi-tal" hidden class="ml-6 flex flex-wrap gap-2">
+          <select name="talento" id="asi-talento-select" class="min-w-[14rem] rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-1.5 text-sm"><option value="">— Talento —</option>{% for t in talentos_normais %}<option value="{{ t.id }}" data-attrs="{{ t.attrs_csv }}">{{ t.nome }}{% if t.pre %} ({{ t.pre }}){% endif %}</option>{% endfor %}</select>
+          <select name="talento_attr" id="asi-talento-attr" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-1.5 text-sm">{% for a in atributos %}<option value="{{ a }}">+1 {{ a }}</option>{% endfor %}</select>
         </div>
+        <script>
+          (function(){
+            var talento = document.getElementById('asi-talento-select');
+            var attr = document.getElementById('asi-talento-attr');
+            if (!talento || !attr) return;
+            function syncTalentAttr(){
+              var opt = talento.options[talento.selectedIndex];
+              var allowed = ((opt && opt.getAttribute('data-attrs')) || '').split(',').filter(Boolean);
+              Array.prototype.forEach.call(attr.options, function(o){ o.disabled = allowed.length && allowed.indexOf(o.value) === -1; });
+              if (attr.options[attr.selectedIndex] && attr.options[attr.selectedIndex].disabled) {
+                for (var i = 0; i < attr.options.length; i++) if (!attr.options[i].disabled) { attr.value = attr.options[i].value; break; }
+              }
+            }
+            talento.addEventListener('change', syncTalentAttr); syncTalentAttr();
+          })();
+        </script>
         <button type="submit" class="rounded bg-bonfire-gradient px-4 py-2 text-sm font-bold text-white hover:opacity-90">Confirmar</button>
       </form>
     </div>
@@ -233,7 +250,7 @@
       {% for r in recursos_consumiveis %}
         <li class="flex flex-wrap items-center justify-between gap-2">
           <span class="text-sm text-[var(--text)]">{{ r.nome }}
-            <span class="ml-1 text-xs text-[var(--muted)]">({{ r.classe }} · recarga {% if r.reset == 'short-or-long' %}curta/longa{% elif r.reset == 'short-rest' %}curta{% else %}longa{% endif %})</span>
+            <span class="ml-1 text-xs text-[var(--muted)]">({{ r.classe }} · recarga {% if r.reset == 'short-or-long' %}curta/longa{% elif r.reset == 'short-rest' %}curta{% elif r.reset == 'long-rest' %}longa{% else %}manual{% endif %})</span>
           </span>
           <span class="flex items-center gap-2">
             <span class="font-mono text-sm {% if r.atual == 0 %}text-[var(--flame)]{% else %}text-[var(--spark)]{% endif %}">{{ r.atual }}/{{ r.maximo }}</span>

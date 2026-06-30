@@ -154,8 +154,23 @@ _RE_MASTERY = re.compile(r"add-mastery\s*:\s*([a-z0-9-]+)")
 _RE_OPCAO = re.compile(r"\bopcao\s*:\s*([a-z0-9-]+)")
 _RE_BESTIARY = re.compile(r"bestiary\s*\{\s*([a-z0-9-]+)\s*\}")
 _RE_CLASSE = re.compile(r"\bclasse\s*:\s*([a-z0-9-]+)")
+_RE_SOURCE = re.compile(r"\b(talento|raca|linhagem|essencia|subclasse)\s*:\s*([a-z][a-z0-9-]*)")
 
-_SRC_RE = re.compile(r"\b(classe|talento|raca|linhagem|essencia|bestiary|dominio)\s*:\s*([a-z0-9-]+)")
+_SRC_RE = re.compile(r"\b(classe|subclasse|talento|raca|linhagem|essencia|bestiary|dominio)\s*:\s*([a-z0-9-]+)")
+
+
+def _check_source_refs(line, data):
+    if data is None:
+        return []
+    out = []
+    # Fonte de ability/condicao racial/talento: subclasse:, raca:, linhagem:, essencia:, talento:.
+    # A regex exige slug iniciado por letra, entao nao confunde pick:talento:1.
+    for m in _RE_SOURCE.finditer(line):
+        kind, slug = m.group(1), m.group(2)
+        if not data.source_exists(kind, slug):
+            out.append(Diagnostic(ERROR, "ref-source",
+                       f"{kind} '{slug}' nao existe no banco (#REF!)", m.group(0)))
+    return out
 
 
 def _check_references(line, lib, data, locals_=frozenset()):
@@ -184,6 +199,10 @@ def _check_references(line, lib, data, locals_=frozenset()):
               and (src_s, nm) not in data.ability_by_classe):
             out.append(Diagnostic(INFO, "ref-ability-classe",
                        f"ability '{name}' existe, mas não na classe '{src_s}' (conferir fonte)", m.group(0)))
+        elif (src_t == "subclasse" and src_s
+              and (src_s, nm) not in data.ability_by_subclasse):
+            out.append(Diagnostic(INFO, "ref-ability-subclasse",
+                       f"ability '{name}' existe, mas nao na subclasse '{src_s}' (conferir fonte)", m.group(0)))
     # spell:slug
     for m in _RE_SPELL.finditer(line):
         slug = m.group(1)
@@ -241,7 +260,7 @@ _CAT_SPECIAL = {
                     "elemento-ascendencia", "elixir-proprio", "dragao", "misseis-magicos",
                     # variáveis de ESCOLHA de essência (o tipo é definido pela escolha):
                     "alento", "alento-", "sangue", "vertente", "elemento", "item-alquimico"},
-    "condition": {"pick", "magia", "reaction", "concentration", "active", "spell", "same-condition"},
+    "condition": {"all", "pick", "magia", "reaction", "concentration", "active", "spell", "same-condition"},
     "size": set(),
     "weapon-property": set(),
     "sense-type": {"see-through-objects", "see-through", "see-through-fog"},
@@ -279,6 +298,93 @@ def _check_style(line, lib):
 
 
 # ───────────────────────── API pública ──────────────────────────────
+_CAST_OPEN_RE = re.compile(r"\bcast\s*\{", re.I)
+_NO_SLOT_RE = re.compile(r"\bno-slot\b", re.I)
+_AT_WILL_RE = re.compile(r"\bat-will\b", re.I)
+_INNATE_USES_RE = re.compile(
+    r"\buses\s*\{\s*[^,{}]+\s*,\s*reset\s*:\s*"
+    r"(?:long-rest|short-rest|short-or-long|rest|day)\b",
+    re.I,
+)
+_INNATE_REST_LIMIT_RE = re.compile(
+    r"(?:\bresource-cost\s*:\s*)?[^,\s{}|:]+\s*/\s*"
+    r"(?:long-rest|short-rest|short-or-long|rest|day)\b",
+    re.I,
+)
+
+
+def _iter_cast_blocks(line):
+    pos = 0
+    while True:
+        m = _CAST_OPEN_RE.search(line, pos)
+        if not m:
+            return
+        open_pos = m.end() - 1
+        depth = 0
+        end = None
+        for i in range(open_pos, len(line)):
+            if line[i] == "{":
+                depth += 1
+            elif line[i] == "}":
+                depth -= 1
+                if depth == 0:
+                    end = i
+                    break
+        if end is None:
+            return
+        yield m.start(), end + 1, line[open_pos + 1:end]
+        pos = end + 1
+
+
+def _has_innate_limit(text):
+    return bool(_AT_WILL_RE.search(text) or _INNATE_USES_RE.search(text)
+                or _INNATE_REST_LIMIT_RE.search(text))
+
+
+def _concrete_spells_in_cast(body):
+    out = []
+    for m in _RE_SPELL.finditer(body):
+        slug = m.group(1)
+        if slug in _SPELL_NONSLUG or body[m.end():m.end() + 1] in "{(":
+            continue
+        out.append(slug)
+    return out
+
+
+def _check_innate_casting_tags(tags):
+    lines = [str(t) for t in (tags or []) if isinstance(t, str) and t.strip()]
+    generic_limit = any(_has_innate_limit(line) and not any(True for _ in _iter_cast_blocks(line))
+                        for line in lines)
+    missing = []
+    for line in lines:
+        for start, end, body in _iter_cast_blocks(line):
+            if not _NO_SLOT_RE.search(body):
+                continue
+            spells = _concrete_spells_in_cast(body)
+            if not spells:
+                continue
+            if _has_innate_limit(body) or _has_innate_limit(line):
+                continue
+            for slug in spells:
+                missing.append((slug, line[start:end]))
+
+    if not missing:
+        return []
+    if generic_limit and len(missing) == 1:
+        return []
+    if generic_limit:
+        slugs = ", ".join(sorted({s for s, _fragm in missing})[:4])
+        return [Diagnostic(WARN, "innate-cast-ambiguous-uses",
+                "varios cast{... no-slot ...} compartilham limite generico; prefira uses{N, reset:...} no cast de cada magia",
+                slugs)]
+    return [
+        Diagnostic(WARN, "innate-cast-uses",
+                   "cast{... no-slot ...} sem at-will, uses{N, reset:...} ou N/long-rest; a ficha nao consegue rastrear usos inatos",
+                   frag)
+        for _slug, frag in missing
+    ]
+
+
 def validate_tag_line(line, lib, data=None, locals_=frozenset()):
     diags = []
     if not isinstance(line, str) or not line.strip():
@@ -301,6 +407,7 @@ def validate_tag_line(line, lib, data=None, locals_=frozenset()):
                      f"{kind} '{head}' não está na biblioteca (x{count})", head))
 
     diags += _check_references(line, lib, data, locals_)
+    diags += _check_source_refs(line, data)
     diags += _check_catalogs(line, lib, locals_)
     diags += _check_style(line, lib)
     return diags
@@ -316,6 +423,7 @@ def validate_tags_json(tags, lib, data=None):
     locals_ = collect_locals(tags)
     for line in tags:
         out.extend(validate_tag_line(line, lib, data, locals_))
+    out.extend(_check_innate_casting_tags(tags))
     return out
 
 
@@ -326,9 +434,12 @@ class DataIndex:
     def __init__(self):
         self.ability_names = set()
         self.ability_by_classe = set()
+        self.ability_by_subclasse = set()
         self.ability_classe_names = set()  # slugs que SÃO hab-de-classe (alguma classe)
+        self.ability_subclasse_names = set()
         self.spell_slugs = set()
         self.classe_slugs = set()
+        self.source_slugs = {"talento": set(), "raca": set(), "linhagem": set(), "essencia": set(), "subclasse": set()}
         self.resources = set()
         self.masteries = set()
         self.opcao_tipos = set()
@@ -343,6 +454,9 @@ class DataIndex:
         if slug in ("all", "spell-slot", "pact-slot", "spell-slots"):
             return True
         return bool(_NUMERIC.match(slug))  # '1','2'...'9' = nível de espaço
+
+    def source_exists(self, kind, slug):
+        return slug in self.source_slugs.get(kind, set())
 
     @classmethod
     def build(cls):
@@ -360,9 +474,23 @@ class DataIndex:
                 self.classe_slugs.add(_slug(getattr(c, "slug", None) or c.nome))
         safe(classes)
 
+        def source_models():
+            from home.models import TbRaca, TbLinhagem, TbEssencia, TbTalento, TbSubclasse
+            for s in TbSubclasse.objects.all():
+                self.source_slugs["subclasse"].add(_slug(getattr(s, "slug", None) or s.nome))
+            for r in TbRaca.objects.all():
+                self.source_slugs["raca"].add(_slug(getattr(r, "slug", None) or r.nome))
+            for l in TbLinhagem.objects.all():
+                self.source_slugs["linhagem"].add(_slug(getattr(l, "slug", None) or l.nome))
+            for e in TbEssencia.objects.all():
+                self.source_slugs["essencia"].add(_slug(getattr(e, "slug", None) or e.nome))
+            for t in TbTalento.objects.all():
+                self.source_slugs["talento"].add(_slug(getattr(t, "slug", None) or t.nome))
+        safe(source_models)
+
         def abilities():
             from home.models import TbClassehabilidade
-            for h in TbClassehabilidade.objects.select_related("id_classe").all():
+            for h in TbClassehabilidade.objects.select_related("id_classe", "id_subclasse").all():
                 nm = _slug(h.nome)
                 self.ability_names.add(nm)
                 cl = getattr(h, "id_classe", None)
@@ -370,6 +498,11 @@ class DataIndex:
                     cs = _slug(getattr(cl, "slug", None) or getattr(cl, "nome", "") or "")
                     if cs:
                         self.ability_by_classe.add((cs, nm))
+                sub = getattr(h, "id_subclasse", None)
+                if sub is not None:
+                    ss = _slug(getattr(sub, "slug", None) or getattr(sub, "nome", "") or "")
+                    if ss:
+                        self.ability_by_subclasse.add((ss, nm))
         safe(abilities)
 
         def more_ability_sources():
@@ -389,6 +522,8 @@ class DataIndex:
         def resources():
             from home.models import TbRecursoclasse
             for r in TbRecursoclasse.objects.all():
+                if getattr(r, "slug", None):
+                    self.resources.add(_slug(r.slug))
                 if r.nome:
                     self.resources.add(_slug(r.nome))
         safe(resources)
@@ -425,5 +560,6 @@ class DataIndex:
         # de opções/talentos/traços, que entram em ability_names mas não têm classe —
         # logo ability{opcao, classe:X} não deve acusar "classe errada" (não tem classe).
         self.ability_classe_names = {a for (_, a) in self.ability_by_classe}
+        self.ability_subclasse_names = {a for (_, a) in self.ability_by_subclasse}
 
         return self

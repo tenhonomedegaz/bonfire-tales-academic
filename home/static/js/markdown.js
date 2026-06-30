@@ -398,13 +398,15 @@ function normalizeMarkdown(value, options = {}) {
         });
     }
 
-    // Creature sheet widget (inline): creature:<slug>  -> ficha da criatura do bestiário
-    output = output.replace(/\bcreature:([a-z0-9_-]+)/gi, (_match, slug) => {
-        return `<div class="bonfire-creature-widget" data-slug="${escapeHtml(slug.toLowerCase())}"><span class="bonfire-options-loading">Carregando ficha de criatura...</span></div>`;
+    // Explicit inline creature sheet. Raw creature:slug is not parsed in normal
+    // markdown; use ::creature-preview slug where a statblock must be embedded.
+    output = output.replace(/::creature-preview\s+([a-z0-9_-]+)/gi, (_match, slug) => {
+        const cleanSlug = escapeHtml(slug.toLowerCase());
+        return `<div class="bonfire-creature-widget" data-slug="${cleanSlug}"><span class="bonfire-options-loading">Carregando ficha de criatura...</span></div>`;
     });
 
     // Parse preview cards: (texto)[tabela, arg1, arg2) or [texto](tabela, arg1, arg2)
-    output = output.replace(/([\[\(])([^\]\)]+)[\]\)]\s*([\[\(])\s*(tb[A-Za-z0-9_á-úÁ-Ú\s]+)([^\]\)]*)[\]\)]/gi, (_match, _o1, text, _o2, table, argsStr) => {
+    output = output.replace(/([\[\(])([^\]\)]+)[\]\)]\s*([\[\(])\s*((?:tb[A-Za-z0-9_á-úÁ-Ú\s]+)|creature|bestiario|criatura|monster)([^\]\)]*)[\]\)]/gi, (_match, _o1, text, _o2, table, argsStr) => {
         const args = argsStr.split(',').map(s => s.trim()).filter(Boolean);
         return `<a href="#" class="bonfire-card-trigger" data-table="${escapeHtml(table)}" data-args="${escapeHtml(args.join(','))}">${text}</a>`;
     });

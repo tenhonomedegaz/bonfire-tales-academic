@@ -1,6 +1,9 @@
 # Molde para importar recursos e habilidades de classe pelo admin.
 # No admin, escolha a Classe no formulario. O campo Subclasse e opcional.
 # Separe cada bloco com uma linha contendo apenas ---
+# Em [RECURSOS], Tipo e Reset sao opcionais e valem para os recursos do bloco.
+# Tipos: table-only (so tabela), consumable (gasta/trackeia), choice (quantidade de escolhas).
+# Reset para consumable: long-rest, short-rest, short-or-long. Vazio = manual/sem auto-reset.
 
 [RECURSOS]
 Nivel: 1

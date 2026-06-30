@@ -8,7 +8,7 @@ efeitos PASSIVOS das tags_json).
 Fases:
 - ESTRUTURAL: atributos (BASE point-buy + Σ bônus de TbPersonagemAtributoBonus),
   nível total, bônus de proficiência, PV pelo dado de vida (campo OU tag
-  `hit-dice`), features por nível DA classe (subclasse só a partir do 3º nível),
+  `hit-dice`), features por nível DA classe (subclasse no nível de `subclass-choices`),
   traços raciais, antecedente, talentos e recursos. Multiclasse: `classlvl` por
   feature.
 - TAGS (apply_tags): resolve `match(<escolha>){…}`/`define{}` e aplica efeitos
@@ -47,8 +47,8 @@ _SAVE_TOKEN_EN = {
     'inteligencia': 'int', 'sabedoria': 'wis', 'carisma': 'cha',
 }
 
-# Grants UNIFORMES do antecedente (mesmos p/ todos; hoje hardcoded no template
-# catalogo_mongo.html). Expostos como dado p/ o criador ler de uma só fonte.
+# Grants padrao do antecedente. Cada antecedente pode sobrescrever via
+# `background-grants{...}` em tags_json; este valor e fallback de compatibilidade.
 GRANTS_ANTECEDENTE = {
     'asi': '+2/+1 (à escolha)', 'pericias': 2, 'idioma_fixo': 'Comum',
     'idiomas_ou_ferramentas': 2, 'po_inicial': 100, 'po_mundano_min': 50,
@@ -56,6 +56,14 @@ GRANTS_ANTECEDENTE = {
 }
 
 # 18 perícias: slug -> (nome PT, atributo padrão)
+DEFAULT_BACKGROUND_GRANT_TAG = (
+    'background-grants{asi:+2/+1, pericia:2, idioma-fixo:Comum, '
+    'idioma-ou-ferramenta:2, po:100, po-mundano-min:50, talento-origem:1, '
+    'habilidade:1, equip-gold-alt:150}'
+)
+DEFAULT_GRANTS_ANTECEDENTE = dict(GRANTS_ANTECEDENTE, equip_gold_alt=150)
+GRANTS_ANTECEDENTE = DEFAULT_GRANTS_ANTECEDENTE
+
 _SKILL_INFO = {
     'atletismo': ('Atletismo', 'FOR'),
     'acrobacia': ('Acrobacia', 'DES'), 'furtividade': ('Furtividade', 'DES'),
@@ -80,6 +88,96 @@ _PLACEHOLDERS = ('all', 'source', 'elemento', 'pick')
 def _slug(s):
     s = unicodedata.normalize('NFKD', str(s)).encode('ascii', 'ignore').decode().lower()
     return re.sub(r'[^a-z0-9]+', '-', s).strip('-')
+
+
+def _tag_levels(tags_json, verb):
+    for tag in (tags_json or []):
+        match = re.match(rf'^{re.escape(verb)}\s*\{{(.+)\}}\s*$', str(tag).strip())
+        if match:
+            return {int(n) for n in re.findall(r'\d+', match.group(1))}
+    return set()
+
+
+def _subclass_min_level(classe):
+    """Primeiro nivel em que a subclasse fica ativa, vindo de `subclass-choices`."""
+    levels = _tag_levels(getattr(classe, 'tags_json', None), 'subclass-choices')
+    if levels:
+        return min(levels)
+    try:
+        from .models import TbClassehabilidade
+        nivel = (TbClassehabilidade.objects
+                 .filter(id_classe=classe, id_subclasse__isnull=False)
+                 .order_by('niveladquirido')
+                 .values_list('niveladquirido', flat=True)
+                 .first())
+        return int(nivel) if nivel is not None else None
+    except Exception:
+        return None
+
+
+def _subclass_unlocked(personagem_classe, nivel=None):
+    if not getattr(personagem_classe, 'id_subclasse_id', None):
+        return False
+    nivel = int(nivel if nivel is not None else (personagem_classe.nivel or 0))
+    min_level = _subclass_min_level(personagem_classe.id_classe)
+    return min_level is not None and nivel >= min_level
+
+
+def _coerce_int(v, default=0):
+    try:
+        return int(str(v).strip())
+    except (TypeError, ValueError):
+        return default
+
+
+_BACKGROUND_GRANT_KEYS = {
+    'asi': 'asi',
+    'pericia': 'pericias',
+    'pericias': 'pericias',
+    'idioma-fixo': 'idioma_fixo',
+    'idiomas-fixo': 'idioma_fixo',
+    'idioma-ou-ferramenta': 'idiomas_ou_ferramentas',
+    'idiomas-ou-ferramentas': 'idiomas_ou_ferramentas',
+    'idioma-ferramenta': 'idiomas_ou_ferramentas',
+    'idiomas-ferramentas': 'idiomas_ou_ferramentas',
+    'po': 'po_inicial',
+    'po-inicial': 'po_inicial',
+    'po-mundano-min': 'po_mundano_min',
+    'talento-origem': 'talento_origem',
+    'habilidade': 'habilidade',
+    'equip-gold-alt': 'equip_gold_alt',
+    'equip-ouro-alt': 'equip_gold_alt',
+    'equipamento-ouro': 'equip_gold_alt',
+}
+
+
+def _parse_background_grants(tags_json):
+    grants = {}
+    for tag in (tags_json or []):
+        m = re.match(r'^background-grants\{([^}]*)\}\s*$', str(tag).strip())
+        if not m:
+            continue
+        for part in [p.strip() for p in m.group(1).split(',') if p.strip()]:
+            if ':' not in part:
+                continue
+            key, value = [x.strip() for x in part.split(':', 1)]
+            out_key = _BACKGROUND_GRANT_KEYS.get(_slug(key))
+            if not out_key:
+                continue
+            grants[out_key] = value if out_key == 'asi' else _coerce_int(value, value)
+    return grants
+
+
+def background_grants(antecedente=None):
+    grants = dict(DEFAULT_GRANTS_ANTECEDENTE)
+    if antecedente is not None:
+        grants.update(_parse_background_grants(getattr(antecedente, 'tags_json', None) or []))
+    return grants
+
+
+def background_asi_values(grants):
+    m = re.search(r'\+?\s*(\d+)\s*/\s*\+?\s*(\d+)', str((grants or {}).get('asi') or ''))
+    return (int(m.group(1)), int(m.group(2))) if m else (2, 1)
 
 
 def modificador(valor):
@@ -134,6 +232,21 @@ def _proficiencias_classe(classes):
 
 
 def bonus_proficiencia(nivel_total):
+    try:
+        from django.conf import settings
+        tabela = getattr(settings, 'BONFIRE_PROFICIENCY_BY_LEVEL', None)
+    except Exception:
+        tabela = None
+    if isinstance(tabela, dict):
+        nivel = max(1, int(nivel_total))
+        chaves = sorted(int(k) for k in tabela if int(k) <= nivel)
+        if chaves:
+            return int(tabela.get(chaves[-1], tabela.get(str(chaves[-1]))))
+    elif isinstance(tabela, (list, tuple)):
+        nivel = max(1, int(nivel_total))
+        for item in sorted(tabela, key=lambda x: int(x[0]), reverse=True):
+            if nivel >= int(item[0]):
+                return int(item[1])
     return 2 + (max(1, int(nivel_total)) - 1) // 4
 
 
@@ -243,7 +356,7 @@ def _features_de_classe(classes):
                 id_classe=c.id_classe, id_subclasse__isnull=True,
                 niveladquirido__lte=nivel).order_by('niveladquirido', 'nome'):
             out.append(('classe', c.id_classe.nome, h, nivel))
-        if c.id_subclasse_id and nivel >= 3:
+        if _subclass_unlocked(c, nivel):
             for h in TbClassehabilidade.objects.filter(
                     id_subclasse=c.id_subclasse, niveladquirido__lte=nivel).order_by('niveladquirido', 'nome'):
                 out.append(('subclasse', c.id_subclasse.nome, h, nivel))
@@ -301,6 +414,78 @@ def _talentos(personagem):
     return out
 
 
+_TALENT_ATTR_FIELDS = {
+    'FOR': 'atrib_forca',
+    'DES': 'atrib_destreza',
+    'CON': 'atrib_constituicao',
+    'INT': 'atrib_inteligencia',
+    'SAB': 'atrib_sabedoria',
+    'CAR': 'atrib_carisma',
+}
+
+
+def _parse_talent_attr_details(texto):
+    m = re.search(r'(?:asi-attr|talent-attr)\s*:\s*(FOR|DES|CON|INT|SAB|CAR)', str(texto or ''), re.I)
+    return m.group(1).upper() if m else None
+
+
+def _talent_attr_map(personagem):
+    out = {}
+    if personagem is None:
+        return out
+    for pt in personagem.talentos.select_related('id_talento').all():
+        sig = _parse_talent_attr_details(pt.detalhes)
+        if not sig:
+            continue
+        if pt.id_talento_id:
+            out[('id', pt.id_talento_id)] = sig
+            out[('slug', getattr(pt.id_talento, 'slug', ''))] = sig
+        out[('nome', _slug(pt.nome))] = sig
+    return out
+
+
+def _feature_talent_attr_sig(obj, attr_map):
+    if not attr_map or obj is None:
+        return None
+    obj_id = getattr(obj, 'id_talento', None)
+    if obj_id and ('id', obj_id) in attr_map:
+        return attr_map[('id', obj_id)]
+    slug = getattr(obj, 'slug', '')
+    if slug and ('slug', slug) in attr_map:
+        return attr_map[('slug', slug)]
+    nome = getattr(obj, 'nome', '')
+    return attr_map.get(('nome', _slug(nome)))
+
+
+RESOURCE_TIPO_TABLE_ONLY = 'table-only'
+RESOURCE_TIPO_CONSUMABLE = 'consumable'
+RESOURCE_TIPO_CHOICE = 'choice'
+RESOURCE_TIPOS = (RESOURCE_TIPO_TABLE_ONLY, RESOURCE_TIPO_CONSUMABLE, RESOURCE_TIPO_CHOICE)
+
+
+def _resource_tipo(r):
+    tipo = getattr(r, 'tipo_efetivo', None)
+    if tipo:
+        return tipo
+    tipo = getattr(r, 'tipo', None)
+    if tipo in RESOURCE_TIPOS:
+        return tipo
+    if getattr(r, 'reset', None):
+        return RESOURCE_TIPO_CONSUMABLE
+    return RESOURCE_TIPO_TABLE_ONLY
+
+
+def _resource_value_at(r, nivel):
+    vj = r.valores_json or {}
+    if vj:
+        niveis = sorted(int(k) for k in vj if int(k) <= nivel)
+        if niveis:
+            return vj[str(niveis[-1])]
+    if r.nivel is not None and r.nivel <= nivel:
+        return r.valor
+    return None
+
+
 def _recursos(classes):
     """Recursos de CLASSE (TbRecursoclasse). Ignora placeholders '-'/vazio/0."""
     from .models import TbRecursoclasse
@@ -313,7 +498,7 @@ def _recursos(classes):
     for c in classes:
         nivel = int(c.nivel or 0)
         filtro = Q(id_classe=c.id_classe, id_subclasse__isnull=True)
-        if c.id_subclasse_id and nivel >= 3:
+        if _subclass_unlocked(c, nivel):
             filtro |= Q(id_subclasse=c.id_subclasse)
         legado = {}
         for r in TbRecursoclasse.objects.filter(filtro):
@@ -323,9 +508,9 @@ def _recursos(classes):
             chave = f'{c.id_classe.nome}: {r.nome}'
             vj = r.valores_json or {}
             if vj:
-                niveis = sorted(int(k) for k in vj if int(k) <= nivel)
-                if niveis and not _vazio(vj[str(niveis[-1])]):
-                    recursos[chave] = vj[str(niveis[-1])]
+                val = _resource_value_at(r, nivel)
+                if not _vazio(val):
+                    recursos[chave] = val
             elif r.nivel is not None and r.nivel <= nivel and not _vazio(r.valor):
                 if r.nome not in legado or r.nivel > legado[r.nome][0]:
                     legado[r.nome] = (r.nivel, r.valor)
@@ -334,24 +519,56 @@ def _recursos(classes):
     return recursos
 
 
+def _recursos_por_tipo(classes):
+    from .models import TbRecursoclasse
+    from django.db.models import Q
+    out = {tipo: [] for tipo in RESOURCE_TIPOS}
+
+    def _vazio(v):
+        return v is None or str(v).strip() in ('', '-', '0')
+
+    seen = set()
+    for c in classes:
+        nivel = int(c.nivel or 0)
+        filtro = Q(id_classe=c.id_classe, id_subclasse__isnull=True)
+        if _subclass_unlocked(c, nivel):
+            filtro |= Q(id_subclasse=c.id_subclasse)
+        for r in TbRecursoclasse.objects.filter(filtro):
+            _rs = _slug(r.nome)
+            if 'bonus' in _rs and 'proficiencia' in _rs:
+                continue
+            val = _resource_value_at(r, nivel)
+            if _vazio(val):
+                continue
+            key = (c.id_classe_id, r.id_subclasse_id, r.slug or r.nome)
+            if key in seen:
+                continue
+            seen.add(key)
+            tipo = _resource_tipo(r)
+            out.setdefault(tipo, []).append({
+                'slug': r.slug,
+                'nome': r.nome,
+                'classe': c.id_classe.nome,
+                'subclasse': c.id_subclasse.nome if r.id_subclasse_id and c.id_subclasse_id else None,
+                'valor': val,
+                'tipo': tipo,
+                'reset': r.reset or '',
+            })
+    return out
+
+
 def _resource_max_at(r, nivel):
     """Máximo NUMÉRICO de um TbRecursoclasse no nível dado (valores_json ou valor). None se não-numérico."""
-    vj = r.valores_json or {}
-    val = None
-    if vj:
-        niveis = sorted(int(k) for k in vj if int(k) <= nivel)
-        if niveis:
-            val = vj[str(niveis[-1])]
-    elif r.nivel is not None and r.nivel <= nivel:
-        val = r.valor
+    val = _resource_value_at(r, nivel)
     try:
         return int(str(val).strip())
     except (ValueError, TypeError, AttributeError):
-        return None
+        m = re.match(r'^\s*([+-]?\d+)\s*(?:$|\(|\[)', str(val or ''))
+        return int(m.group(1)) if m else None
 
 
 def _recursos_consumiveis(personagem, classes):
-    """Recursos CONSUMÍVEIS (TbRecursoclasse com `reset` preenchido) com máximo numérico,
+    """Recursos CONSUMIVEIS (TbRecursoclasse tipo=consumable) com maximo numerico,
     mesclados com o uso atual (TbPersonagemRecurso). Para o tracker usar/recuperar da ficha."""
     from .models import TbRecursoclasse
     from django.db.models import Q
@@ -362,9 +579,11 @@ def _recursos_consumiveis(personagem, classes):
     for c in classes:
         nivel = int(c.nivel or 0)
         filtro = Q(id_classe=c.id_classe, id_subclasse__isnull=True)
-        if c.id_subclasse_id and nivel >= 3:
+        if _subclass_unlocked(c, nivel):
             filtro |= Q(id_subclasse=c.id_subclasse)
-        for r in TbRecursoclasse.objects.filter(filtro).exclude(reset__isnull=True).exclude(reset=''):
+        for r in TbRecursoclasse.objects.filter(filtro):
+            if _resource_tipo(r) != RESOURCE_TIPO_CONSUMABLE:
+                continue
             mx = _resource_max_at(r, nivel)
             if mx is None or mx <= 0 or r.nome in seen:
                 continue
@@ -372,7 +591,7 @@ def _recursos_consumiveis(personagem, classes):
             pr = atuais.get(r.nome)
             atual = min(pr.atual, mx) if pr else mx
             out.append({'slug': r.slug, 'nome': r.nome, 'classe': c.id_classe.nome,
-                        'maximo': mx, 'atual': atual, 'reset': r.reset})
+                        'maximo': mx, 'atual': atual, 'reset': r.reset or 'manual'})
     return out
 
 
@@ -409,6 +628,24 @@ def _maestrias_armas(personagem):
     return out
 
 
+def _item_consumivel_meta(item, magico=None):
+    """Retorna metadados de consumo para itens rastreados por quantidade.
+
+    O caminho principal vem do catalogo estruturado de item magico (slot/tipo);
+    tags explicitas permitem novos consumiveis sem mexer na ficha.
+    """
+    magico = magico if magico is not None else getattr(item, 'id_item_magico', None)
+    tags = [str(t).lower() for t in (getattr(magico, 'tags_json', None) or [])]
+    slot = (getattr(magico, 'slot', '') or '').strip().lower()
+    tipo = _slug(getattr(magico, 'tipo', '') or '')
+    explicit = any(('consumable' in t or 'consumivel' in t or 'consume:item' in t) for t in tags)
+    catalog = bool(magico and (slot in {'pocao', 'pergaminho'} or tipo in {'pocao', 'pergaminho'}))
+    return {
+        'consumivel': bool(explicit or catalog),
+        'consumivel_tipo': slot or tipo,
+    }
+
+
 def _inventario(personagem):
     """Itens do personagem (TbPersonagemItem) com estado de equipado. Item POSSUÍDO mas
     NÃO equipado não concede benefícios (armadura guardada = sem CA; idem itens mágicos)."""
@@ -417,6 +654,7 @@ def _inventario(personagem):
     out = []
     for it in personagem.inventario.select_related('id_item_magico').all().order_by('-equipado', 'nome'):
         magico = it.id_item_magico
+        cons = _item_consumivel_meta(it, magico)
         out.append({'id': it.id, 'nome': it.nome, 'qtd': it.qtd, 'custo': it.custo, 'peso': it.peso,
                     'equipado': bool(it.equipado), 'tipo_equip': it.tipo_equip,
                     'pode_equipar': bool(it.tipo_equip) or bool(magico),
@@ -424,7 +662,9 @@ def _inventario(personagem):
                     'raridade': magico.get_raridade_display() if magico else None,
                     'requer_sintonizacao': bool(magico and magico.requer_sintonizacao),
                     'sintonizado': bool(it.sintonizado),
-                    'tem_efeito': bool(magico and (magico.tags_json or []))})
+                    'tem_efeito': bool(magico and (magico.tags_json or [])),
+                    'consumivel': cons['consumivel'],
+                    'consumivel_tipo': cons['consumivel_tipo']})
     return out
 
 
@@ -494,10 +734,29 @@ def _parse_spell_selection(resolved):
 
 _CAST_BLOCK_RE = re.compile(r'cast\{((?:[^{}]|\{[^{}]*\})*)\}')
 # escopo de spell-selection que é uma CLASSE → nome como aparece em TbMagia.classes
-_CLASSE_SCOPE = {'mago': 'Mago', 'clerigo': 'Clérigo', 'druida': 'Druida',
-                 'feiticeiro': 'Feiticeiro', 'bardo': 'Bardo', 'mistico': 'Místico',
-                 'paladino': 'Paladino', 'artifice': 'Artífice', 'cacador': 'Caçador',
-                 'patrulheiro': 'Caçador'}
+def _spell_class_scope_map():
+    """Escopos de magia vindos das classes cadastradas, sem mapa fixo no motor."""
+    try:
+        from .models import TbClasse
+        out = {}
+        for classe in TbClasse.objects.all():
+            nome = classe.nome
+            for key in (classe.slug, classe.nome, _slug(classe.slug), _slug(classe.nome)):
+                if key:
+                    out[str(key).strip().lower()] = nome
+        return out
+    except Exception:
+        return {}
+
+
+def spell_scope_names(scopes):
+    scope_map = _spell_class_scope_map()
+    out = []
+    for scope in scopes:
+        nome = scope_map.get(str(scope).strip().lower())
+        if nome and nome not in out:
+            out.append(nome)
+    return out
 
 
 def _qtd_de(body, nivel_total):
@@ -651,21 +910,20 @@ def _grants_de_tag(tag, escolhas, catalog, nivel_total, is_spellcaster=False):
         if not qtd:
             continue
         classes = None
-        if scope in _CLASSE_SCOPE:
-            classes = [_CLASSE_SCOPE[scope]]
+        scope_map = _spell_class_scope_map()
+        if scope in scope_map:
+            classes = [scope_map[scope]]
         elif scope == 'pick':
             lm = re.search(r'lista\s*:\s*\{([^{}]*)\}', scope_extra)
             if lm:
-                classes = [_CLASSE_SCOPE[c.strip()] for c in re.split(r'[|,]', lm.group(1))
-                           if c.strip() in _CLASSE_SCOPE]
+                classes = spell_scope_names(c.strip() for c in re.split(r'[|,]', lm.group(1)))
             else:
                 rm = re.search(r'lista\s*:\s*match\(([a-z0-9:-]+)\)\s*(\{.*)', scope_extra)
                 if rm:
                     var = rm.group(1).split(':')[-1]
                     cl = _resolve_match('match(%s)%s' % (var, rm.group(2)),
                                         {var: escolhas.get(var)}).strip()
-                    if cl in _CLASSE_SCOPE:
-                        classes = [_CLASSE_SCOPE[cl]]
+                    classes = spell_scope_names([cl])
         if classes:
             me = re.search(r'escola\s*:\s*([a-z-]+)', body)
             esc = me.group(1) if (me and me.group(1) not in ('pick', 'ability')) else None
@@ -1025,6 +1283,7 @@ def apply_tags(state, features, personagem=None, escolhas=None):
     resist_condicionais = []  # (tipo, se_ja_tem, senao) -> avaliados após o loop principal
     speed_bonus = 0
     brutas = []
+    talent_attrs = _talent_attr_map(personagem)
 
     for origem, fonte, obj, classlvl in features:
         tags = [t for t in (getattr(obj, 'tags_json', None) or []) if isinstance(t, str)]
@@ -1033,6 +1292,14 @@ def apply_tags(state, features, personagem=None, escolhas=None):
         ctx = dict(base_ctx)
         if classlvl is not None:
             ctx['classlvl'] = int(classlvl)
+        talent_sig = _feature_talent_attr_sig(obj, talent_attrs)
+        if talent_sig:
+            en = _ATTR_EN.get(talent_sig)
+            if en:
+                ctx['talent-attr-mod'] = ctx.get(en + '-mod', 0)
+                ctx['talent-attr-score'] = ctx.get(en + '-score', 0)
+                ctx['asi-attr-mod'] = ctx['talent-attr-mod']
+                ctx['asi-attr-score'] = ctx['talent-attr-score']
         feat_nome = getattr(obj, 'nome', fonte)
         resolvidas = [_resolve_match(t, escolhas) for t in tags]
         segs = [seg for r in resolvidas for seg in _passive_segments(r)]
@@ -1391,10 +1658,11 @@ def derive(personagem):
                       'descricao': (getattr(obj, 'descricao', '') or getattr(obj, 'descricao_markdown', '') or '')}
                      for (o, f, obj, _cl) in features if not getattr(obj, 'table_only', False)],
         'recursos': _recursos(classes),
+        'recursos_por_tipo': _recursos_por_tipo(classes),
         'maestrias_armas': _maestrias_armas(personagem),
         'magias': _magias_personagem(personagem),
         'inventario': _inventario(personagem),
-        'grants_antecedente': GRANTS_ANTECEDENTE if personagem.id_antecedente_id else None,
+        'grants_antecedente': background_grants(personagem.id_antecedente) if personagem.id_antecedente_id else None,
         'picks': listas,
         'avisos': avisos,
     }

@@ -4,7 +4,7 @@
 {% block title %}{{ p.nome }} · Ficha · Bonfire Tales RPG{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/pages/ficha.css' %}?v=4">
+<link rel="stylesheet" href="{% static 'css/pages/ficha.css' %}?v=5">
 {% endblock %}
 
 {% block content %}
@@ -134,14 +134,54 @@
         </ul>
       </div>
 
-      {% if ficha.recursos %}
+      {% if consumiveis_cards %}
       <div class="ficha-panel">
-        <div class="ficha-section-title">Recursos</div>
-        <ul>
-          {% for nome, val in ficha.recursos.items %}
-            <li class="line-row"><span class="name">{{ nome }}</span><span class="val">{{ val }}</span></li>
+        <div class="ficha-section-title">Recursos Consumiveis</div>
+        <div class="resource-cards">
+          {% for r in consumiveis_cards %}
+          <article class="resource-card {% if r.atual == 0 %}is-empty{% endif %}">
+            <div class="resource-card-top"><span>Total</span><strong>{{ r.maximo }}</strong></div>
+            <div class="resource-card-value">{{ r.atual }}</div>
+            <div class="resource-card-name">{{ r.nome }}</div>
+            {% if r.subtitulo %}<div class="resource-card-sub">{{ r.subtitulo }}</div>{% endif %}
+            {% if pode_editar %}
+            <div class="resource-card-actions">
+              {% if r.kind == 'recurso' %}
+              <form method="post" action="{% url 'personagem_usar_recurso' p.id_personagem %}">
+                {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><input type="hidden" name="recurso" value="{{ r.id }}">
+                <button type="submit" {% if r.atual == 0 %}disabled{% endif %} title="Usar">-</button>
+              </form>
+              <form method="post" action="{% url 'personagem_usar_recurso' p.id_personagem %}">
+                {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><input type="hidden" name="recurso" value="{{ r.id }}"><input type="hidden" name="acao" value="desfazer">
+                <button type="submit" {% if r.atual == r.maximo %}disabled{% endif %} title="Devolver uso">+</button>
+              </form>
+              {% else %}
+              <form method="post" action="{% url 'personagem_usar_item_consumivel' p.id_personagem %}">
+                {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><input type="hidden" name="item" value="{{ r.id }}">
+                <button type="submit" {% if r.atual == 0 %}disabled{% endif %} title="Consumir">-</button>
+              </form>
+              <form method="post" action="{% url 'personagem_usar_item_consumivel' p.id_personagem %}">
+                {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><input type="hidden" name="item" value="{{ r.id }}"><input type="hidden" name="acao" value="desfazer">
+                <button type="submit" title="Adicionar unidade">+</button>
+              </form>
+              {% endif %}
+            </div>
+            {% endif %}
+          </article>
           {% endfor %}
-        </ul>
+        </div>
+        {% if pode_editar %}
+        <div class="resource-rest-actions">
+          <form method="post" action="{% url 'personagem_descansar' p.id_personagem %}">
+            {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><input type="hidden" name="tipo" value="curto">
+            <button type="submit">Descanso Curto</button>
+          </form>
+          <form method="post" action="{% url 'personagem_descansar' p.id_personagem %}">
+            {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><input type="hidden" name="tipo" value="longo">
+            <button type="submit" class="primary">Descanso Longo</button>
+          </form>
+        </div>
+        {% endif %}
       </div>
       {% endif %}
 
@@ -438,10 +478,65 @@
 
   {# ===================== ABA 3: MAGIAS ===================== #}
   <div class="ficha-tabpanel space-y-5" data-tabpanel="magias" role="tabpanel" hidden>
-    <div class="ficha-panel">
-      <div class="ficha-section-title">Magias</div>
-      <p class="magias-help">Clique no marcador (○) para preparar/desmarcar uma magia. Magias de raça/outras origens são <em>sempre preparadas</em> (★, conhecidas) e não contam no limite de magias preparadas da classe.</p>
+    <div class="spellbook-head">
+      <div class="spell-title">
+        <span>Magias</span>
+        {% if magias_info.spellcasting %}<strong>{{ magias_info.spellcasting.classe }}</strong>{% endif %}
+      </div>
+      <div class="spell-stats">
+        {% if magias_info.spellcasting %}
+        <div class="spell-stat"><span>Atributo</span><strong>{{ magias_info.spellcasting.ability_nome }}</strong></div>
+        <div class="spell-stat"><span>CD</span><strong>{{ magias_info.spellcasting.cd }}</strong></div>
+        <div class="spell-stat"><span>Ataque</span><strong>{% if magias_info.spellcasting.ataque >= 0 %}+{% endif %}{{ magias_info.spellcasting.ataque }}</strong></div>
+        {% endif %}
+        <div class="spell-stat"><span>Preparadas</span><strong>{{ magias_info.n_preparadas }}</strong></div>
+        <div class="spell-stat alt"><span>Sempre</span><strong>{{ magias_info.n_sempre }}</strong></div>
+      </div>
     </div>
+    {% if request.GET.prep == 'limite' %}
+    <div class="spell-alert">Limite de magias preparadas atingido.</div>
+    {% endif %}
+
+    {% if magias_info.spellcasting.slots_kind == 'pact' %}
+    <div class="mystic-casting">
+      {% if magias_info.spellcasting.mystic_resource %}
+      <article class="mystic-points">
+        <span>{{ magias_info.spellcasting.mystic_resource.nome }}</span>
+        <strong>{{ magias_info.spellcasting.mystic_resource.atual }}/{{ magias_info.spellcasting.mystic_resource.maximo }}</strong>
+      </article>
+      {% endif %}
+      {% if magias_info.spellcasting.max_cycle %}
+      <article class="mystic-points subtle">
+        <span>Ciclo Maximo</span>
+        <strong>{{ magias_info.spellcasting.max_cycle }}</strong>
+      </article>
+      {% endif %}
+    </div>
+    {% elif magias_info.slots %}
+    <div class="spell-slots-grid">
+      {% for s in magias_info.slots %}
+      <article class="spell-slot-card {% if s.total == 0 %}is-zero{% endif %}">
+        <div class="spell-slot-level">{{ s.nivel }}</div>
+        <div class="spell-slot-numbers">
+          <span>Total</span><strong>{{ s.total }}</strong>
+          <span>Restantes</span><strong>{{ s.atual }}</strong>
+        </div>
+        {% if pode_editar and s.total > 0 %}
+        <div class="spell-slot-actions">
+          <form method="post" action="{% url 'personagem_usar_slot_magia' p.id_personagem %}">
+            {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><input type="hidden" name="nivel" value="{{ s.nivel }}">
+            <button type="submit" {% if s.atual == 0 %}disabled{% endif %} title="Gastar slot">-</button>
+          </form>
+          <form method="post" action="{% url 'personagem_usar_slot_magia' p.id_personagem %}">
+            {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><input type="hidden" name="nivel" value="{{ s.nivel }}"><input type="hidden" name="acao" value="desfazer">
+            <button type="submit" {% if s.atual == s.total %}disabled{% endif %} title="Restaurar slot">+</button>
+          </form>
+        </div>
+        {% endif %}
+      </article>
+      {% endfor %}
+    </div>
+    {% endif %}
 
     {% if magias_info.essencia_pendentes and pode_editar %}
     <div class="ficha-panel border border-[var(--ember)]/40">
@@ -465,33 +560,56 @@
     </div>
     {% endif %}
 
-    {% if magias_info.lista %}
-      {% regroup magias_info.lista by nivel as grupos %}
-      {% for grupo in grupos %}
-      <div class="ficha-panel">
-        <div class="ficha-section-title">{% if grupo.grouper == 0 %}Truques{% else %}{{ grupo.grouper }}º Nível{% endif %}</div>
-        <ul class="magias-list">
-          {% for m in grupo.list %}
-            <li class="magia-row {% if not m.preparada and not m.sempre_preparada %}is-unprepared{% endif %}">
-              <span class="flex min-w-0 items-center gap-2">
-                {% if m.sempre_preparada %}
-                  <span class="shrink-0 text-sm leading-none text-[var(--spark)]" title="Sempre preparada (conhecida)">★</span>
-                {% elif pode_editar %}
-                  <form method="post" action="{% url 'personagem_toggle_magia' p.id_personagem m.id %}" class="contents">{% csrf_token %}<button type="submit" class="shrink-0 text-sm leading-none {% if m.preparada %}text-[var(--ember)]{% else %}text-[var(--muted)] hover:text-[var(--ember)]{% endif %}" title="{% if m.preparada %}Preparada — clique para desmarcar{% else %}Não preparada — clique para preparar{% endif %}">{% if m.preparada %}●{% else %}○{% endif %}</button></form>
-                {% else %}
-                  <span class="shrink-0 text-sm leading-none {% if m.preparada %}text-[var(--ember)]{% else %}text-[var(--muted)]{% endif %}">{% if m.preparada %}●{% else %}○{% endif %}</span>
-                {% endif %}
-                <span class="magia-name">{{ m.nome }}</span>
-              </span>
-              <span class="magia-badges">
-                {% if m.sempre_preparada %}<span class="magia-badge sempre">Sempre preparada</span>{% elif m.preparada %}<span class="magia-badge prep">Preparada</span>{% endif %}
-                {% if m.origem %}<span class="magia-badge origem">{{ m.origem }}</span>{% endif %}
+    {% if magias_info.lista or magias_info.spellcasting %}
+      <div class="spell-level-grid">
+      {% for grupo in magias_info.grupos %}
+        <section class="spell-level-card {% if not grupo.magias %}is-empty{% endif %}">
+          <header class="spell-level-head">
+            <span class="spell-level-num">{% if grupo.nivel == 0 %}0{% else %}{{ grupo.nivel }}{% endif %}</span>
+            <strong>{{ grupo.titulo }}</strong>
+            {% if grupo.slot %}<span>{{ grupo.slot.atual }}/{{ grupo.slot.total }}</span>{% endif %}
+          </header>
+          <ul class="spell-list">
+            {% for m in grupo.magias %}
+            <li class="spell-row {% if not m.preparada and not m.sempre_preparada %}is-unprepared{% endif %}">
+              {% if m.sempre_preparada %}
+                <span class="spell-marker {% if m.innate_label %}innate{% else %}always{% endif %}" title="{% if m.innate_label %}Conjuracao inata{% elif m.known_auto %}Conhecida{% else %}Sempre preparada{% endif %}"></span>
+              {% elif pode_editar %}
+                <form method="post" action="{% url 'personagem_toggle_magia' p.id_personagem m.id %}" class="contents">{% csrf_token %}<button type="submit" class="spell-marker toggle {% if m.preparada %}prepared{% endif %}" title="{% if m.preparada %}Preparada{% else %}Nao preparada{% endif %}"></button></form>
+              {% else %}
+                <span class="spell-marker readonly {% if m.preparada %}prepared{% endif %}"></span>
+              {% endif %}
+              <span class="spell-name">{{ m.nome }}</span>
+              <span class="spell-tags">
+                {% if m.innate_label %}
+                  <span class="spell-tag innate">{{ m.innate_label }}</span>
+                  {% if m.innate_key %}
+                  <span class="spell-innate-counter">{{ m.innate_atual }}/{{ m.innate_max }}</span>
+                  {% if pode_editar %}
+                  <span class="spell-inline-actions">
+                    <form method="post" action="{% url 'personagem_usar_magia_inata' p.id_personagem m.id %}">
+                      {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+                      <button type="submit" {% if m.innate_atual == 0 %}disabled{% endif %} title="Gastar uso inato">-</button>
+                    </form>
+                    <form method="post" action="{% url 'personagem_usar_magia_inata' p.id_personagem m.id %}">
+                      {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><input type="hidden" name="acao" value="desfazer">
+                      <button type="submit" {% if m.innate_atual == m.innate_max %}disabled{% endif %} title="Restaurar uso inato">+</button>
+                    </form>
+                  </span>
+                  {% endif %}
+                  {% endif %}
+                {% elif m.known_auto %}<span class="spell-tag always">conhecida</span>{% elif m.sempre_preparada %}<span class="spell-tag always">sempre</span>{% elif m.preparada %}<span class="spell-tag prepared">prep</span>{% endif %}
+                {% if m.escola %}<span class="spell-tag muted">{{ m.escola }}</span>{% endif %}
+                {% if m.origem %}<span class="spell-tag source">{{ m.origem }}</span>{% endif %}
               </span>
             </li>
-          {% endfor %}
-        </ul>
-      </div>
+            {% empty %}
+            <li class="spell-empty">-</li>
+            {% endfor %}
+          </ul>
+        </section>
       {% endfor %}
+      </div>
     {% else %}
       <div class="ficha-panel"><p class="info-empty">Este personagem ainda não tem magias selecionadas.</p></div>
     {% endif %}

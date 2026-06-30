@@ -51,7 +51,9 @@
             <tr>
               <th>Nivel</th>
               <th>Nome</th>
+              <th>Tipo</th>
               <th>Valor</th>
+              <th>Reset</th>
               <th>Subclasse</th>
             </tr>
           </thead>
@@ -60,11 +62,13 @@
               <tr>
                 <td>{{ recurso.nivel }}</td>
                 <td>{{ recurso.nome }}</td>
+                <td>{{ recurso.tipo }}</td>
                 <td>{{ recurso.valor|default:"-" }}</td>
+                <td>{{ recurso.reset|default:"-" }}</td>
                 <td>{{ recurso.subclasse_nome|default:"Base" }}</td>
               </tr>
             {% empty %}
-              <tr><td colspan="4">Nenhum recurso no arquivo.</td></tr>
+              <tr><td colspan="6">Nenhum recurso no arquivo.</td></tr>
             {% endfor %}
           </tbody>
         </table>

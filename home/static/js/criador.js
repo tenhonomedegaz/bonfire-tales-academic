@@ -27,29 +27,34 @@
             lab.appendChild(inp); lab.appendChild(span);
             return lab;
         }
+        function limitValue(n) { return (typeof n === 'function') ? n() : n; }
         function enforceLimit(wrap, n, counterEl) {
             var boxes = Array.prototype.slice.call(wrap.querySelectorAll('input[type=checkbox]'));
             function upd() {
+                var lim = limitValue(n);
                 var chosen = boxes.filter(function (b) { return b.checked; }).length;
-                boxes.forEach(function (b) { b.disabled = !b.checked && chosen >= n; });
-                if (counterEl) counterEl.textContent = '(' + chosen + '/' + n + ')';
+                boxes.forEach(function (b) { b.disabled = !b.checked && chosen >= lim; });
+                if (counterEl) counterEl.textContent = '(' + chosen + '/' + lim + ')';
             }
             boxes.forEach(function (b) { b.addEventListener('change', upd); });
             upd();
+            return upd;
         }
-        // Limite COMPARTILHADO por vários containers (ex.: idiomas + ferramentas = 2 no total).
+        // Limite compartilhado por varios containers, vindo do catalogo/tag.
         function enforceLimitGroup(wraps, n, counterEl) {
             var boxes = [];
             wraps.forEach(function (w) {
                 boxes = boxes.concat(Array.prototype.slice.call(w.querySelectorAll('input[type=checkbox]')));
             });
             function upd() {
+                var lim = limitValue(n);
                 var chosen = boxes.filter(function (b) { return b.checked; }).length;
-                boxes.forEach(function (b) { b.disabled = !b.checked && chosen >= n; });
-                if (counterEl) counterEl.textContent = '(' + chosen + '/' + n + ')';
+                boxes.forEach(function (b) { b.disabled = !b.checked && chosen >= lim; });
+                if (counterEl) counterEl.textContent = '(' + chosen + '/' + lim + ')';
             }
             boxes.forEach(function (b) { b.addEventListener('change', upd); });
             upd();
+            return upd;
         }
         // Checkbox com uma linha de descrição inline (estilo "widget": vê o efeito sem sair da aba).
         function checkboxDesc(value, label, desc) {
@@ -84,8 +89,25 @@
 
         // índices auxiliares
         var racaBySlug = {}; CAT.racas.forEach(function (r) { racaBySlug[r.slug] = r; });
+        var essenciaBySlug = {}; (CAT.essencias || []).forEach(function (e) { essenciaBySlug[e.slug] = e; });
         var classeBySlug = {}; CAT.classes.forEach(function (c) { classeBySlug[c.slug] = c; });
         var periciaBySlug = {}; CAT.pericias.forEach(function (p) { periciaBySlug[p.slug] = p; });
+        var antecedenteBySlug = {}; (CAT.antecedentes || []).forEach(function (a) { antecedenteBySlug[a.slug] = a; });
+        var defaultBgGrants = CAT.grants_antecedente || {};
+        function toInt(v, fallback) {
+            var n = parseInt(v, 10);
+            return isNaN(n) ? fallback : n;
+        }
+        function currentBgGrants() {
+            var a = (typeof antSel !== 'undefined' && antSel) ? antecedenteBySlug[antSel.value] : null;
+            return (a && a.grants) || defaultBgGrants || {};
+        }
+        function currentAsiParts() {
+            var m = String(currentBgGrants().asi || '+2/+1').match(/\+?\s*(\d+)\s*\/\s*\+?\s*(\d+)/);
+            return { major: m ? parseInt(m[1], 10) : 2, minor: m ? parseInt(m[2], 10) : 1 };
+        }
+        function bgSkillN() { return toInt(currentBgGrants().pericias, 0); }
+        function bgLangToolN() { return toInt(currentBgGrants().idiomas_ou_ferramentas, 0); }
 
         // ---- ASI (+2 / +1)
         var asi2 = el('cf-asi2'), asi1 = el('cf-asi1');
@@ -106,6 +128,28 @@
         asi1.addEventListener('change', syncAsi);
         syncAsi();
 
+        function updateBackgroundCopy() {
+            var g = currentBgGrants();
+            var asi = currentAsiParts();
+            var majorLabel = document.querySelector('[data-asi-major-label]');
+            var minorLabel = document.querySelector('[data-asi-minor-label]');
+            if (majorLabel) majorLabel.textContent = '+' + asi.major;
+            if (minorLabel) minorLabel.textContent = '+' + asi.minor;
+            var equipGold = document.querySelector('[data-equip-gold-alt]');
+            if (equipGold) equipGold.textContent = toInt(g.equip_gold_alt, 0);
+            var resumo = el('cf-antecedente-resumo');
+            if (resumo) {
+                resumo.textContent = 'Concede ' + toInt(g.po_inicial, 0) + ' PO, '
+                    + toInt(g.pericias, 0) + ' perícia(s) e '
+                    + toInt(g.idiomas_ou_ferramentas, 0) + ' escolha(s) de idioma/ferramenta.';
+            }
+            var hint = document.querySelector('[data-langtool-hint]');
+            if (hint) {
+                var n = toInt(g.idiomas_ou_ferramentas, 0);
+                hint.textContent = '— ' + n + ' no total (idiomas, ferramentas ou misto)';
+            }
+        }
+
         // ---- Raça / linhagem / essência / vertente
         var racaSel = el('cf-raca');
         racaSel.appendChild(opt('', '— Selecione —'));
@@ -115,10 +159,12 @@
         var verWrap = el('cf-vertente-wrap'), verSel = el('cf-vertente');
 
         function onEssencia() {
-            if (/element/i.test(essSel.value)) {
+            var ess = essenciaBySlug[essSel.value];
+            var vertentes = (ess && ess.vertentes && ess.vertentes.length) ? ess.vertentes : [];
+            if (vertentes.length) {
                 verSel.innerHTML = '';
                 verSel.appendChild(opt('', '— Selecione —'));
-                (CAT.vertentes || []).forEach(function (v) { verSel.appendChild(opt(v.slug, v.nome)); });
+                vertentes.forEach(function (v) { verSel.appendChild(opt(v.slug, v.nome)); });
                 verWrap.hidden = false;
             } else { verWrap.hidden = true; }
         }
@@ -267,12 +313,43 @@
         var magiaCounter = document.querySelector('[data-magia-counter]');
         var magiaLimit = 0;
 
+        function escapeRegExp(s) { return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+        function evalFormula(expr, ctx) {
+            if (!expr) return null;
+            var js = String(expr);
+            Object.keys(ctx).sort(function (a, b) { return b.length - a.length; }).forEach(function (key) {
+                js = js.replace(new RegExp(escapeRegExp(key), 'g'), String(ctx[key]));
+            });
+            js = js.replace(/\brounddown\s*\(/g, 'Math.floor(')
+                   .replace(/\broundup\s*\(/g, 'Math.ceil(')
+                   .replace(/\bmax\s*\(/g, 'Math.max(')
+                   .replace(/\bmin\s*\(/g, 'Math.min(')
+                   .replace(/\bround\s*\(/g, 'Math.round(')
+                   .replace(/\babs\s*\(/g, 'Math.abs(');
+            if (/[A-Za-z_]/.test(js.replace(/Math\.(?:max|min|floor|ceil|round|abs)/g, ''))) return null;
+            try {
+                var val = Function('"use strict"; return (' + js + ');')();
+                return isFinite(val) ? Math.floor(val) : null;
+            } catch (e) {
+                return null;
+            }
+        }
+
         function spellCountNv1(conj) {
             if (conj.magias_n != null) return conj.magias_n;
-            var sig = SIG_AB[conj.ability] || 'INT';
-            var sc = (window.PointBuy ? window.PointBuy.scores() : {})[sig] || 8;
-            sc += (asi2.value === sig ? 2 : 0) + (asi1.value === sig ? 1 : 0);
-            return Math.max(1, Math.floor((sc - 10) / 2) + 1);
+            if (!conj.magias_formula) return 0;
+            var asi = currentAsiParts();
+            var scores = window.PointBuy ? window.PointBuy.scores() : {};
+            var ctx = { classlvl: 1, lvl: 1 };
+            Object.keys(SIG_AB).forEach(function (ab) {
+                var sig = SIG_AB[ab];
+                var sc = (scores[sig] || 8) + (asi2.value === sig ? asi.major : 0) + (asi1.value === sig ? asi.minor : 0);
+                ctx[ab + '-mod'] = Math.floor((sc - 10) / 2);
+            });
+            var abilities = String(conj.ability || 'int').split('|');
+            ctx['spell-mod'] = Math.max.apply(null, abilities.map(function (ab) { return ctx[ab + '-mod'] || 0; }));
+            var n = evalFormula(conj.magias_formula, ctx);
+            return n == null ? 0 : Math.max(1, n);
         }
         function enforceMagias() {
             var boxes = Array.prototype.slice.call(magiasBox.querySelectorAll('input[type=checkbox]'));
@@ -323,9 +400,9 @@
             var cChk = cb.filter(function (b) { return b.checked; }), bChk = bb.filter(function (b) { return b.checked; });
             var cSel = cChk.map(function (b) { return b.value; }), bSel = bChk.map(function (b) { return b.value; });
             cb.forEach(function (b) { b.disabled = !b.checked && (cChk.length >= classN || bSel.indexOf(b.value) !== -1); });
-            bb.forEach(function (b) { b.disabled = !b.checked && (bChk.length >= 2 || cSel.indexOf(b.value) !== -1); });
+            bb.forEach(function (b) { b.disabled = !b.checked && (bChk.length >= bgSkillN() || cSel.indexOf(b.value) !== -1); });
             if (skillCounter) skillCounter.textContent = classN ? '(' + cChk.length + '/' + classN + ')' : '';
-            var bgC = document.querySelector('[data-bgskill-counter]'); if (bgC) bgC.textContent = '(' + bChk.length + '/2)';
+            var bgC = document.querySelector('[data-bgskill-counter]'); if (bgC) bgC.textContent = '(' + bChk.length + '/' + bgSkillN() + ')';
         }
         skillsWrap.addEventListener('change', applySkillRules);
         bgWrap.addEventListener('change', applySkillRules);
@@ -337,8 +414,16 @@
         var langWrap = el('cf-idiomas-lang'), toolWrap = el('cf-idiomas-tool');
         (CAT.idiomas || []).forEach(function (it) { langWrap.appendChild(checkboxDesc(it.nome, it.nome, it.desc)); });
         (CAT.ferramentas || []).forEach(function (it) { toolWrap.appendChild(checkboxDesc(it.nome, it.nome, it.desc)); });
-        enforceLimitGroup([langWrap, toolWrap], 2, document.querySelector('[data-langtool-counter]'));
+        var updateLangToolLimit = enforceLimitGroup([langWrap, toolWrap], bgLangToolN, document.querySelector('[data-langtool-counter]'));
         function idiomasFerramentasSel() { return checkedVals(langWrap).concat(checkedVals(toolWrap)); }
+        antSel.addEventListener('change', function () {
+            updateBackgroundCopy();
+            applySkillRules();
+            updateLangToolLimit();
+            updateMagiaLimit();
+        });
+        updateBackgroundCopy();
+        updateLangToolLimit();
 
         // ---- Talentos
         var toSel = el('cf-talento-origem'), toDesc = el('cf-talento-origem-desc');
@@ -456,15 +541,16 @@
         function clientValidate() {
             var errs = [];
             if (!el('cf-nome').value.trim()) errs.push('Dê um nome ao personagem.');
-            if (asi2.value === asi1.value) errs.push('O +2 e o +1 do ASI devem ir em atributos diferentes.');
+            var asi = currentAsiParts();
+            if (asi2.value === asi1.value) errs.push('O +' + asi.major + ' e o +' + asi.minor + ' do ASI devem ir em atributos diferentes.');
             if (!racaSel.value) errs.push('Escolha uma raça.');
             if (!classeSel.value) errs.push('Escolha uma classe.');
             if (!antSel.value) errs.push('Escolha um antecedente.');
             var c = classeBySlug[classeSel.value];
             if (c && checkedVals(skillsWrap).length !== c.pericias_n)
                 errs.push('Escolha exatamente ' + c.pericias_n + ' perícia(s) de classe.');
-            if (checkedVals(bgWrap).length !== 2) errs.push('Escolha 2 perícias do antecedente.');
-            if (idiomasFerramentasSel().length !== 2) errs.push('Escolha 2 idiomas/ferramentas.');
+            if (checkedVals(bgWrap).length !== bgSkillN()) errs.push('Escolha ' + bgSkillN() + ' perícia(s) do antecedente.');
+            if (idiomasFerramentasSel().length !== bgLangToolN()) errs.push('Escolha ' + bgLangToolN() + ' idioma(s)/ferramenta(s).');
             var _lbl = { pericia: 'perícia(s)', idioma: 'idioma(s)', ferramenta: 'ferramenta(s)' };
             racialGroups.forEach(function (g) {
                 if (checkedVals(g.grid).length !== g.n)
