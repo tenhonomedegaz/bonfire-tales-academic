@@ -435,6 +435,66 @@
       "op": "meta",
       "doc": "Marca a ESCOLHA concedida por esta habilidade como trocável (o jogador pode refazer a seleção depois — ex.: maestria de arma, estilo de luta). A MESMA habilidade pode ser trocável numa classe e fixa em outra: a tag fica na versão da classe que permite a troca."
     },
+    "item": {
+      "categoria": "A1",
+      "forma": "key_value",
+      "op": "meta",
+      "doc": "Metadado de catálogo de item: item:mundano ou item:magico. Usado por ficha/exportador/VTT para separar regras de item sem depender da tabela."
+    },
+    "categoria": {
+      "categoria": "A1",
+      "forma": "key_value",
+      "op": "meta",
+      "doc": "Metadado de item: categoria:<slug> (arma, armadura, ferramenta, pocao, pergaminho, etc.)."
+    },
+    "subcategoria": {
+      "categoria": "A1",
+      "forma": "key_value",
+      "op": "meta",
+      "doc": "Metadado de item: subcategoria:<slug> (arma_simples, armadura-media, instrumento, conjunto_jogo, etc.)."
+    },
+    "preco": {
+      "categoria": "A1",
+      "forma": "key_value",
+      "op": "meta",
+      "doc": "Metadado de item: preco:<valor-normalizado> (ex.: preco:25-po). Valor de compra, nao fonte mecanica."
+    },
+    "peso": {
+      "categoria": "A1",
+      "forma": "key_value",
+      "op": "meta",
+      "doc": "Metadado de item: peso:<valor>lb. Peso em libras para carga/inventario."
+    },
+    "consumable": {
+      "categoria": "A1",
+      "forma": "flag",
+      "op": "meta",
+      "doc": "Marca item consumivel: pocao, pergaminho, municao, veneno, explosivo ou item gasto/descartado no uso."
+    },
+    "charges": {
+      "categoria": "A6",
+      "forma": "key_value",
+      "op": "meta",
+      "doc": "Metadado de item com cargas: charges:<N>(reset:dawn|daily|none). Para itens com contador proprio na ficha."
+    },
+    "atk": {
+      "categoria": "A4",
+      "forma": "key_value",
+      "op": "add-modifier",
+      "doc": "Bonus em jogadas de ataque concedido por item/efeito. Escopo pode refinar: weapon.atk:+1, spell.atk:+1, unarmed.atk:+1."
+    },
+    "spell-save-cd": {
+      "categoria": "A7",
+      "forma": "key_value",
+      "op": "add-modifier",
+      "doc": "Bonus na CD de resistencia de magias concedido por item/efeito."
+    },
+    "item-bonus": {
+      "categoria": "A1",
+      "forma": "key_value",
+      "op": "meta",
+      "doc": "Bonus generico extraido de item quando a regra precisa de contexto futuro: item-bonus:<alvo>:+N."
+    },
     "log-castable": {
       "categoria": "A1",
       "forma": "flag",
