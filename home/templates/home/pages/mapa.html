@@ -269,7 +269,14 @@ async function saveAllChanges() {
     
     const payload = {
         markers: Object.values(pendingChanges.markers),
-        territories: Object.entries(pendingChanges.territories).map(([id, coords]) => ({ id, coordenadas_poligono: coords }))
+        territories: Object.entries(pendingChanges.territories).map(([id, coords]) => {
+            const terr = jsonTerritories.find(x => x.id == id);
+            return {
+                id,
+                coordenadas_poligono: coords,
+                camada: terr ? (terr.camada || 0) : activeLayer
+            };
+        })
     };
     
     try {
@@ -521,8 +528,7 @@ function placeCard(item) {
               <div class="flex flex-col gap-1">
                   <label class="text-[0.6rem] uppercase opacity-70">Camada</label>
                   <select onchange="updatePendingMarkerField('${item.id || item._tempId}', 'camada', parseInt(this.value))" style="background: var(--bg2); border: 1px solid var(--stroke); color: var(--text); padding: .3rem; font-size: .75rem; border-radius: 4px; outline: none; appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23ffffff%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right .7rem top 50%; background-size: .65rem auto;">
-                      <option value="0" ${(item.camada || 0) === 0 ? 'selected' : ''} style="background: var(--bg1); color: var(--text);">Superfície</option>
-                      <option value="1" ${(item.camada || 0) === 1 ? 'selected' : ''} style="background: var(--bg1); color: var(--text);">Subterrâneo</option>
+                      ${layersData.map(l => `<option value="${l.id_layer}" ${(item.camada || 0) === l.id_layer ? 'selected' : ''} style="background: var(--bg1); color: var(--text);">${escapeHtml(l.nome)}</option>`).join('')}
                   </select>
               </div>
           </div>
@@ -1332,21 +1338,36 @@ function chooseAreaTerritory(preferredName = '') {
     const cancelBtn = document.getElementById('areaTerritoryCancel');
     if (!modal || !select || !confirmBtn || !cancelBtn) return Promise.resolve(preferredName || jsonTerritories[0]?.nome || '');
     
-    // Filter options based on active layer
-    Array.from(select.options).forEach(opt => {
-        const terr = jsonTerritories.find(t => t.nome === opt.value);
-        const terrCamada = terr ? (terr.camada || 0) : 0;
-        opt.style.display = (terrCamada === activeLayer) ? '' : 'none';
-        if (terrCamada !== activeLayer && select.value === opt.value) {
-            select.value = '';
-        }
+    // Populate dropdown dynamically with all territories and their layer names
+    select.innerHTML = '';
+    
+    // Sort territories: current layer first, then alphabetical by name
+    const sortedTerritories = [...jsonTerritories].sort((a, b) => {
+        const aCamada = a.camada || 0;
+        const bCamada = b.camada || 0;
+        if (aCamada === activeLayer && bCamada !== activeLayer) return -1;
+        if (aCamada !== activeLayer && bCamada === activeLayer) return 1;
+        return a.nome.localeCompare(b.nome);
     });
-    if (!select.value || (select.selectedOptions[0] && select.selectedOptions[0].style.display === 'none')) {
-        const firstVisible = Array.from(select.options).find(opt => opt.style.display === '');
-        if (firstVisible) select.value = firstVisible.value;
+
+    sortedTerritories.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t.nome;
+        const terrCamada = t.camada || 0;
+        const layerObj = layersData.find(l => l.id_layer === terrCamada);
+        const layerName = layerObj ? layerObj.nome : `Camada ${terrCamada}`;
+        opt.textContent = `${t.nome} (${layerName})`;
+        opt.style.background = 'var(--bg1)';
+        opt.style.color = 'var(--text)';
+        select.appendChild(opt);
+    });
+    
+    if (preferredName) {
+        select.value = preferredName;
+    } else {
+        select.value = sortedTerritories[0]?.nome || '';
     }
     
-    if (preferredName) select.value = preferredName;
     modal.hidden = false;
     select.focus();
     return new Promise(resolve => {

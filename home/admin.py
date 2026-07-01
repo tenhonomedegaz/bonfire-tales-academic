@@ -2433,14 +2433,14 @@ class TbTracoracialAdmin(BonfireAdminMixin, admin.ModelAdmin):
 
 @admin.register(TbMapMarker)
 class TbMapMarkerAdmin(BonfireAdminMixin, admin.ModelAdmin):
-    list_display = ("nome", "pin_preview", "categoria", "territorio", "lat", "lng")
+    list_display = ("nome", "pin_preview", "categoria", "territorio", "camada", "lat", "lng")
     search_fields = ("nome", "categoria", "territorio")
-    list_filter = ("categoria", "territorio")
+    list_filter = ("categoria", "territorio", "camada")
     ordering = ("territorio", "nome")
     fieldsets = (
         (None, {"fields": ("nome", "categoria")}),
         ("Coordenadas", {"fields": ("lat", "lng")}),
-        ("Localização", {"fields": ("territorio",)}),
+        ("Localização", {"fields": ("territorio", "camada")}),
     )
 
     @admin.display(description="Pin")
@@ -2749,8 +2749,8 @@ class TbAcessoopcaoAdmin(BonfireAdminMixin, admin.ModelAdmin):
 
 @admin.register(TbRegiao)
 class TbRegiaoAdmin(BonfireAdminMixin, admin.ModelAdmin):
-    list_display = ("nome", "slug", "territorio", "categoria", "etiquetas_adicionais")
-    list_filter = ("categoria", "territorio")
+    list_display = ("nome", "slug", "territorio", "categoria", "camada", "etiquetas_adicionais")
+    list_filter = ("categoria", "territorio", "camada")
     search_fields = ("nome", "slug", "territorio", "etiquetas_adicionais")
     prepopulated_fields = {"slug": ("nome",)}
     ordering = ("territorio", "nome")
@@ -2758,7 +2758,8 @@ class TbRegiaoAdmin(BonfireAdminMixin, admin.ModelAdmin):
 
 @admin.register(TbTerritorio)
 class TbTerritorioAdmin(BonfireAdminMixin, admin.ModelAdmin):
-    list_display = ("nome", "slug", "color_preview", "short_description")
+    list_display = ("nome", "slug", "color_preview", "short_description", "camada")
+    list_filter = ("camada",)
     search_fields = ("nome", "slug", "descricao_breve", "lore_markdown")
     prepopulated_fields = {"slug": ("nome",)}
     ordering = ("nome",)
@@ -2769,7 +2770,7 @@ class TbTerritorioAdmin(BonfireAdminMixin, admin.ModelAdmin):
             "desenvolvimento_tecnologico", "estabilidade_politica_interna", 
             "ameacas_externas", "diplomacia", "manipulacao_trama"
         )}),
-        ("Mapa", {"fields": ("cor_hex", "coordenadas_poligono")}),
+        ("Mapa", {"fields": ("cor_hex", "coordenadas_poligono", "camada")}),
         ("Lore", {"fields": ("lore_markdown",)}),
     )
 
