@@ -4979,6 +4979,7 @@ def mundo_regioes_view(request):
             'tags': tags,
         })
 
+    all_territories_list = list(TbTerritorio.objects.values_list('nome', flat=True).order_by('nome'))
     return render(request, 'home/pages/regioes.html', {
         'regioes': regioes_lista,
         'territorios_cards': territorios_cards,
@@ -4986,6 +4987,7 @@ def mundo_regioes_view(request):
         'total_locais': len(regioes_lista),
         'can_edit_wiki': request.user.is_staff,
         'categoria_choices': TbMapMarker.PIN_ICON_CHOICES,
+        'all_territories_list': all_territories_list,
     })
 
 
@@ -5235,6 +5237,7 @@ def regiao_detail_view(request, slug):
     t_display_color = _get_display_color(t_color)
     t_contrast = _get_contrast_color(t_color)
 
+    all_territories_list = list(TbTerritorio.objects.values_list('nome', flat=True).order_by('nome'))
     context = {
         'regiao': regiao,
         'imagem_url': _asset_url(regiao.brasao_url) if getattr(regiao, 'brasao_url', None) else _asset_url(territorio_obj.imagem_url if territorio_obj else None),
@@ -5256,6 +5259,7 @@ def regiao_detail_view(request, slug):
         'organizations': _organizations_for_location(regiao.nome, regiao.territorio or ''),
         'can_edit_wiki': request.user.is_staff,
         'categoria_choices': TbMapMarker.PIN_ICON_CHOICES,
+        'all_territories_list': all_territories_list,
     }
     return render(request, 'home/pages/regiao_detail.html', context)
 
@@ -5296,6 +5300,12 @@ def wiki_create_region(request):
     nome = (data.get('nome') or '').strip()
     if not nome:
         return JsonResponse({'ok': False, 'error': 'Nome é obrigatório.'}, status=400)
+
+    territorio = (data.get('territorio') or '').strip() or None
+    if territorio:
+        from .models import TbTerritorio
+        if not TbTerritorio.objects.filter(nome__iexact=territorio).exists():
+            return JsonResponse({'ok': False, 'error': f'O território "{territorio}" não existe. Por favor, crie-o primeiro no painel de administração.'}, status=400)
 
     slug = slugify(nome)
     if not slug:
@@ -5338,7 +5348,15 @@ def wiki_update_region(request, region_id):
 
 
     region.lore_markdown = data.get('lore_markdown') if 'lore_markdown' in data else region.lore_markdown
-    region.territorio = (data.get('territorio') or '').strip() or None
+    
+    if 'territorio' in data:
+        territorio_val = (data.get('territorio') or '').strip() or None
+        if territorio_val:
+            from .models import TbTerritorio
+            if not TbTerritorio.objects.filter(nome__iexact=territorio_val).exists():
+                return JsonResponse({'ok': False, 'error': f'O território "{territorio_val}" não existe. Por favor, crie-o primeiro no painel de administração.'}, status=400)
+        region.territorio = territorio_val
+
     region.categoria = data.get('categoria') if data.get('categoria') in valid_categorias else region.categoria
     region.brasao_url = (data.get('brasao_url') or '').strip() or None
     region.mapa_url = (data.get('mapa_url') or '').strip() or None
