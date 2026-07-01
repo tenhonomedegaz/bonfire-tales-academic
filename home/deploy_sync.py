@@ -100,7 +100,7 @@ def sincronizar_conteudo(fixture_text):
                 setattr(obj, attname, mp[val])
 
     mem_antes = contagem(MEMORY_MODELS)
-    rel = {"pass1": [], "pass2": [], "deletions": []}
+    rel = {"pass1": [], "pass2": [], "pass2_skipped": [], "deletions": []}
 
     with transaction.atomic():
         # PASSO 1: upsert por slug (preserva PK da produção)
@@ -128,8 +128,11 @@ def sincronizar_conteudo(fixture_text):
         # PASSO 2: substitui inteiras (delete + reinsert, remapeando FKs de pai)
         for nome in SUBSTITUI:
             M = _m(nome)
-            M.objects.all().delete()
             novos = por_modelo.get(_label(M), [])
+            if _label(M) not in por_modelo:
+                rel["pass2_skipped"].append((nome, "modelo ausente no fixture; tabela preservada"))
+                continue
+            M.objects.all().delete()
             for obj in novos:
                 remapear_fks(obj)
                 obj.save(force_insert=True)
@@ -185,6 +188,10 @@ def relatorio_texto(rel):
     linhas.append("== Demais tabelas (substituídas inteiras) ==")
     for nome, n in rel["pass2"]:
         linhas.append("  %-20s %d registros" % (nome, n))
+    if rel.get("pass2_skipped"):
+        linhas.append("== Tabelas preservadas por ausência no fixture ==")
+        for nome, motivo in rel["pass2_skipped"]:
+            linhas.append("  %-20s %s" % (nome, motivo))
     if rel.get("deletions"):
         linhas.append("== Deleções explícitas de conteúdo ==")
         for nome, deleted, blocked, details in rel["deletions"]:

@@ -340,17 +340,28 @@ def server_logs_view(request):
                 messages.error(request, "Digite RESTAURAR para confirmar (a operacao sobrescreve dados existentes).")
             else:
                 try:
+                    from io import StringIO
+                    from django.core.management import call_command
                     from django.core import serializers
-                    from django.db import transaction
+                    from django.db import connection, transaction
                     texto = f.read().decode("utf-8")
                     n = 0
+                    app_labels = set()
                     with transaction.atomic():
                         for obj in serializers.deserialize("json", texto):
+                            app_labels.add(obj.object._meta.app_label)
                             obj.save()
                             n += 1
+                        if connection.vendor == "postgresql" and app_labels:
+                            buf = StringIO()
+                            call_command("sqlsequencereset", *sorted(app_labels), stdout=buf)
+                            sql = buf.getvalue().strip()
+                            if sql:
+                                with connection.cursor() as cur:
+                                    cur.execute(sql)
                     messages.success(request, f"Backup restaurado: {n} registros carregados.")
                     context["op_result"] = {"titulo": "Restauracao de backup",
-                                            "output": f"{n} registros restaurados de {f.name} (upsert por PK; auth/login incluido)."}
+                                            "output": f"{n} registros restaurados de {f.name} (upsert por PK; sequences realinhadas)."}
                 except Exception as exc:
                     messages.error(request, f"Falha ao restaurar: {exc}")
                     context["op_result"] = {"titulo": "Restauracao — ERRO", "output": str(exc)}
