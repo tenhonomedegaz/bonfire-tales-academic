@@ -87,6 +87,7 @@ def _shared_fields_from_marker(marker):
         'nome': marker.nome,
         'territorio': marker.territorio or '',
         'categoria': marker.categoria or 'cidade',
+        'camada': marker.camada,
     }
 
 
@@ -141,6 +142,7 @@ def auto_create_marker_from_region(sender, instance, created, **kwargs):
             lng=0,
             categoria=instance.categoria or 'cidade',
             territorio=instance.territorio or '',
+            camada=instance.camada,
         )
     finally:
         _syncing_region_marker = False

@@ -2443,6 +2443,17 @@ class TbMapMarkerAdmin(BonfireAdminMixin, admin.ModelAdmin):
         ("Localização", {"fields": ("territorio", "camada")}),
     )
 
+    def formfield_for_dbfield(self, db_field, request, **kwargs):
+        if db_field.name == 'territorio':
+            from django.forms import ChoiceField
+            from .models import TbTerritorio
+            try:
+                choices = [('', '---------')] + [(t.nome, t.nome) for t in TbTerritorio.objects.all().order_by('nome')]
+            except Exception:
+                choices = [('', '---------')]
+            return ChoiceField(choices=choices, required=False, label=db_field.verbose_name or db_field.name, help_text=db_field.help_text, initial=db_field.get_default())
+        return super().formfield_for_dbfield(db_field, request, **kwargs)
+
     @admin.display(description="Pin")
     def pin_preview(self, obj):
         from django.utils.safestring import mark_safe
@@ -2754,6 +2765,17 @@ class TbRegiaoAdmin(BonfireAdminMixin, admin.ModelAdmin):
     search_fields = ("nome", "slug", "territorio", "etiquetas_adicionais")
     prepopulated_fields = {"slug": ("nome",)}
     ordering = ("territorio", "nome")
+
+    def formfield_for_dbfield(self, db_field, request, **kwargs):
+        if db_field.name == 'territorio':
+            from django.forms import ChoiceField
+            from .models import TbTerritorio
+            try:
+                choices = [('', '---------')] + [(t.nome, t.nome) for t in TbTerritorio.objects.all().order_by('nome')]
+            except Exception:
+                choices = [('', '---------')]
+            return ChoiceField(choices=choices, required=False, label=db_field.verbose_name or db_field.name, help_text=db_field.help_text, initial=db_field.get_default())
+        return super().formfield_for_dbfield(db_field, request, **kwargs)
 
 
 @admin.register(TbTerritorio)
