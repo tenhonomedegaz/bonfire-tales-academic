@@ -5379,6 +5379,58 @@ def wiki_update_region(request, region_id):
 
 @staff_member_required
 @require_POST
+def wiki_create_territory(request):
+    data = _json_body(request)
+    validate_no_sql_danger(data, 'territorio')
+
+    nome = (data.get('nome') or '').strip()
+    if not nome:
+        return JsonResponse({'ok': False, 'error': 'Nome é obrigatório.'}, status=400)
+
+    slug = slugify(nome)
+    if not slug:
+        return JsonResponse({'ok': False, 'error': 'Não foi possível gerar slug do nome.'}, status=400)
+
+    if TbTerritorio.objects.filter(models.Q(slug=slug) | models.Q(nome__iexact=nome)).exists():
+        return JsonResponse({'ok': False, 'error': 'Um território com este nome já existe.'}, status=400)
+
+    cor_hex = (data.get('cor_hex') or '#ffffff').strip()
+    camada = int(data.get('camada') or 0)
+
+    territory = TbTerritorio.objects.create(
+        nome=nome,
+        slug=slug,
+        cor_hex=cor_hex,
+        camada=camada,
+    )
+
+    _mongo_upsert_site_document('territories', 'Id_Territorio', territory.id_territorio, {
+        'Nome': territory.nome,
+        'Slug': territory.slug,
+        'DescricaoBreve': territory.descricao_breve,
+        'ImagemUrl': territory.imagem_url,
+        'CoordenadasPoligono': territory.coordenadas_poligono,
+        'CorHex': territory.cor_hex,
+        'LoreMarkdown': territory.lore_markdown,
+        'Camada': territory.camada,
+    })
+
+    _log_wiki_creation(request, territory, f"Criação inline de território: {territory.nome}")
+
+    return JsonResponse({
+        'ok': True,
+        'territory': {
+            'id': territory.id_territorio,
+            'nome': territory.nome,
+            'slug': territory.slug,
+            'cor_hex': territory.cor_hex,
+            'camada': territory.camada,
+        }
+    })
+
+
+@staff_member_required
+@require_POST
 def wiki_update_territory(request, territory_id):
     data = _json_body(request)
     validate_no_sql_danger(data, 'territorio')

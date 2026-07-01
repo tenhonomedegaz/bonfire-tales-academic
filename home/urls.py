@@ -35,6 +35,7 @@ urlpatterns = [
     path('wiki/regioes/criar/', views.wiki_create_region, name='wiki_create_region'),
     path('wiki/regioes/<int:region_id>/editar/', views.wiki_update_region, name='wiki_update_region'),
     path('wiki/opcoes/<int:id>/editar/', views.wiki_update_option, name='wiki_update_option'),
+    path('wiki/territorios/criar/', views.wiki_create_territory, name='wiki_create_territory'),
     path('wiki/territorios/<int:territory_id>/editar/', views.wiki_update_territory, name='wiki_update_territory'),
     path('wiki/marcadores/<int:marker_id>/posicao/', views.wiki_update_marker_position, name='wiki_update_marker_position'),
     path('wiki/mapa/salvar-lote/', views.wiki_batch_save_map, name='wiki_batch_save_map'),

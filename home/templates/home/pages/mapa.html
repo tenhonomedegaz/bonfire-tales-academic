@@ -123,15 +123,36 @@
     <div class="map-modal" role="dialog" aria-modal="true" aria-labelledby="areaTerritoryTitle">
       <h2 id="areaTerritoryTitle">Escolher território da área</h2>
       <p>A nova área será vinculada a este território.</p>
-      <label>
-        Território
-        <select id="areaTerritorySelect">
-          {% for territory in json_territories %}
-          <option value="{{ territory.nome }}">{{ territory.nome }}</option>
-          {% endfor %}
-        </select>
-      </label>
-      <div class="map-modal-actions">
+      
+      <div id="selectTerritorySection">
+        <label>
+          Território
+          <select id="areaTerritorySelect" style="width: 100%; margin-bottom: 0.5rem; background: var(--bg2); border: 1px solid var(--stroke); color: var(--text); padding: .3rem; font-size: .75rem; border-radius: 4px; outline: none;">
+            {% for territory in json_territories %}
+            <option value="{{ territory.nome }}">{{ territory.nome }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <button type="button" class="map-modal-secondary" id="btnShowCreateTerritory" style="width: 100%; margin-bottom: 1rem; border: 1px dashed var(--stroke); padding: 0.5rem; text-align: center; font-size: 0.75rem; cursor: pointer; border-radius: 4px;">+ Criar Novo Território</button>
+      </div>
+
+      <div id="createTerritorySection" style="display: none; border-top: 1px solid var(--stroke); padding-top: 1rem; margin-top: 0.5rem; margin-bottom: 1rem;">
+        <h3 style="font-size: 0.85rem; font-weight: bold; text-transform: uppercase; margin-bottom: 0.75rem; color: var(--ember);">Novo Território</h3>
+        <label style="display: block; margin-bottom: 0.5rem; font-size: 0.75rem;">
+          Nome
+          <input type="text" id="newTerritoryName" placeholder="Ex: Reino de Cinéria" style="width: 100%; background: var(--bg2); border: 1px solid var(--stroke); color: var(--text); padding: 0.4rem; border-radius: 4px; outline: none; margin-top: 0.25rem; font-size: 0.75rem;">
+        </label>
+        <label style="display: block; margin-bottom: 0.5rem; font-size: 0.75rem;">
+          Cor do Território
+          <input type="color" id="newTerritoryColor" value="#ff8800" style="display: block; width: 60px; height: 36px; padding: 2px; cursor: pointer; border: 1px solid var(--stroke); border-radius: 4px; margin-top: 0.25rem; background: transparent;">
+        </label>
+        <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+          <button type="button" id="btnCancelCreateTerritory" class="map-modal-secondary" style="flex: 1; padding: 0.4rem; font-size: 0.75rem; border-radius: 4px; cursor: pointer;">Voltar</button>
+          <button type="button" id="btnConfirmCreateTerritory" class="map-modal-primary" style="flex: 1; padding: 0.4rem; font-size: 0.75rem; border-radius: 4px; cursor: pointer; background: var(--ember); border: none;">Criar Território</button>
+        </div>
+      </div>
+
+      <div class="map-modal-actions" id="areaTerritoryMainActions">
         <button type="button" class="map-modal-secondary" id="areaTerritoryCancel">Cancelar</button>
         <button type="button" class="map-modal-primary" id="areaTerritoryConfirm">Confirmar</button>
       </div>
@@ -1338,6 +1359,81 @@ function chooseAreaTerritory(preferredName = '') {
     const cancelBtn = document.getElementById('areaTerritoryCancel');
     if (!modal || !select || !confirmBtn || !cancelBtn) return Promise.resolve(preferredName || jsonTerritories[0]?.nome || '');
     
+    // Elements for inline territory creation
+    const btnShow = document.getElementById('btnShowCreateTerritory');
+    const btnCancel = document.getElementById('btnCancelCreateTerritory');
+    const btnConfirm = document.getElementById('btnConfirmCreateTerritory');
+    const selectSection = document.getElementById('selectTerritorySection');
+    const createSection = document.getElementById('createTerritorySection');
+    const mainActions = document.getElementById('areaTerritoryMainActions');
+
+    // Reset section visibilities
+    if (selectSection && createSection && mainActions) {
+        selectSection.style.display = 'block';
+        mainActions.style.display = 'flex';
+        createSection.style.display = 'none';
+    }
+
+    // Set up listeners once
+    if (btnShow && !btnShow._hasListener) {
+        btnShow._hasListener = true;
+        btnShow.addEventListener('click', () => {
+            selectSection.style.display = 'none';
+            mainActions.style.display = 'none';
+            createSection.style.display = 'block';
+            document.getElementById('newTerritoryName').value = '';
+            document.getElementById('newTerritoryName').focus();
+        });
+        
+        btnCancel.addEventListener('click', () => {
+            createSection.style.display = 'none';
+            selectSection.style.display = 'block';
+            mainActions.style.display = 'flex';
+        });
+
+        btnConfirm.addEventListener('click', async () => {
+            const nameInput = document.getElementById('newTerritoryName');
+            const colorInput = document.getElementById('newTerritoryColor');
+            const name = nameInput.value.trim();
+            const color = colorInput.value;
+            if (!name) return alert('Nome do território é obrigatório.');
+            
+            btnConfirm.disabled = true;
+            btnConfirm.textContent = 'Criando...';
+            try {
+                const res = await fetch('/wiki/territorios/criar/', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
+                    body: JSON.stringify({ nome: name, cor_hex: color, camada: activeLayer })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Erro do servidor');
+                
+                // Add to local cache
+                jsonTerritories.push({
+                    id: data.territory.id,
+                    nome: data.territory.nome,
+                    slug: data.territory.slug,
+                    cor_hex: data.territory.cor_hex,
+                    camada: data.territory.camada
+                });
+                _territoryColorMap[data.territory.nome] = data.territory.cor_hex;
+                
+                // Re-open with the new territory selected
+                createSection.style.display = 'none';
+                selectSection.style.display = 'block';
+                mainActions.style.display = 'flex';
+                
+                chooseAreaTerritory(data.territory.nome);
+            } catch (err) {
+                alert('Erro ao criar território: ' + err.message);
+            } finally {
+                btnConfirm.disabled = false;
+                btnConfirm.textContent = 'Criar Território';
+            }
+        });
+    }
+
     // Populate dropdown dynamically with all territories and their layer names
     select.innerHTML = '';
     

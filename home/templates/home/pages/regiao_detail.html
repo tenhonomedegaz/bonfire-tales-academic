@@ -741,6 +741,54 @@
   const allTerritories = JSON.parse(document.getElementById('all-territories-data')?.textContent || '[]');
   const regionsBySlug = new Map(regions.map(region => [region.slug, region]));
 
+  window.showInlineCreateTerritoryDetail = function() {
+    document.getElementById('inlineCreateTerritorySectionDetail').style.display = 'block';
+    document.getElementById('detail-ntr-nome').value = '';
+    document.getElementById('detail-ntr-nome').focus();
+  };
+
+  window.hideInlineCreateTerritoryDetail = function() {
+    document.getElementById('inlineCreateTerritorySectionDetail').style.display = 'none';
+  };
+
+  window.confirmInlineCreateTerritoryDetail = async function(camada) {
+    const nome = document.getElementById('detail-ntr-nome').value.trim();
+    const cor = document.getElementById('detail-ntr-cor').value;
+    if (!nome) return alert('O nome do território é obrigatório.');
+
+    const btn = document.getElementById('btnConfirmCreateTerritoryDetail');
+    btn.disabled = true;
+    btn.innerText = 'Criando...';
+
+    try {
+      const res = await fetch('/wiki/territorios/criar/', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken()},
+        body: JSON.stringify({ nome: nome, cor_hex: cor, camada: camada }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erro no servidor.');
+
+      allTerritories.push(data.territory.nome);
+      
+      const select = document.getElementById('edit-nr-territorio');
+      if (select) {
+        const opt = document.createElement('option');
+        opt.value = data.territory.nome;
+        opt.textContent = data.territory.nome;
+        opt.selected = true;
+        select.appendChild(opt);
+      }
+
+      document.getElementById('inlineCreateTerritorySectionDetail').style.display = 'none';
+    } catch (err) {
+      alert('Erro ao criar território: ' + err.message);
+    } finally {
+      btn.disabled = false;
+      btn.innerText = 'Criar';
+    }
+  };
+
   const layout = document.querySelector('.region-layout');
   const hero = document.getElementById('regionHero');
   const titleEl = document.getElementById('articleTitle');
@@ -993,11 +1041,31 @@
         <form id="regionForm" class="wiki-inline-editor" data-region-id="${data.id}">
           <label>Nome <input name="nome" value="${data.nome}"></label>
           <label>Território
-            <select name="territorio" style="background: var(--bg2); border: 1px solid var(--stroke); color: var(--text); padding: .3rem; font-size: .75rem; border-radius: 4px; outline: none; width: 100%; appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23ffffff%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right .7rem top 50%; background-size: .65rem auto;">
-              <option value="">Sem território</option>
-              ${allTerritories.map(name => `<option value="${name}" ${data.territorio === name ? 'selected' : ''} style="background: var(--bg1); color: var(--text);">${name}</option>`).join('')}
-            </select>
+            <div style="display: flex; gap: 0.5rem; margin-top: 0.25rem;">
+              <select id="edit-nr-territorio" name="territorio" style="flex: 1; background: var(--bg2); border: 1px solid var(--stroke); color: var(--text); padding: .3rem; font-size: .75rem; border-radius: 4px; outline: none; appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23ffffff%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right .7rem top 50%; background-size: .65rem auto;">
+                <option value="">Sem território</option>
+                ${allTerritories.map(name => `<option value="${name}" ${data.territorio === name ? 'selected' : ''} style="background: var(--bg1); color: var(--text);">${name}</option>`).join('')}
+              </select>
+              <button type="button" onclick="showInlineCreateTerritoryDetail()" style="padding: 0.3rem 0.6rem; background: var(--bg2); border: 1px solid var(--stroke); color: var(--ember); font-weight: bold; border-radius: 4px; cursor: pointer; font-size: 0.75rem;">+</button>
+            </div>
           </label>
+
+          <!-- Seção oculta de criação de território no detalhe da região -->
+          <div id="inlineCreateTerritorySectionDetail" style="display: none; border: 1px dashed var(--stroke); padding: 0.75rem; border-radius: 4px; margin-top: 0.5rem; background: var(--bg0);">
+            <div style="font-size: 0.7rem; font-weight: bold; color: var(--ember); margin-bottom: 0.5rem; text-transform: uppercase;">Criar Novo Território</div>
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
+              <label style="font-size: 0.65rem; margin: 0;">Nome
+                <input type="text" id="detail-ntr-nome" placeholder="Nome" style="width:100%; background: var(--bg2); border:1px solid var(--stroke); color:var(--text); padding:0.25rem; font-size:0.7rem; border-radius:4px; margin-top:0.15rem;">
+              </label>
+              <label style="font-size: 0.65rem; margin: 0;">Cor
+                <input type="color" id="detail-ntr-cor" value="#ff8800" style="display:block; width:100%; height:26px; padding:1px; cursor:pointer; background:transparent; border:1px solid var(--stroke); border-radius:4px; margin-top:0.15rem;">
+              </label>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 0.35rem;">
+              <button type="button" onclick="hideInlineCreateTerritoryDetail()" style="padding: 0.2rem 0.4rem; font-size: 0.65rem; background: transparent; border: none; color: var(--muted); cursor: pointer;">Cancelar</button>
+              <button type="button" id="btnConfirmCreateTerritoryDetail" onclick="confirmInlineCreateTerritoryDetail(${data.camada || 0})" style="padding: 0.2rem 0.5rem; font-size: 0.65rem; background: var(--ember); border: none; color: white; border-radius: 4px; cursor: pointer;">Criar</button>
+            </div>
+          </div>
           <label>URL da imagem de fundo <input name="brasao_url" value="${data.raw_imagem_url || ''}"></label>
           <label>URL do mapa lateral <input name="mapa_url" value="${data.raw_mapa_url || ''}"></label>
           <label>Tags adicionais <input name="etiquetas_adicionais" value="${data.etiquetas_adicionais || ''}" placeholder="Separadas por vírgula"></label>
