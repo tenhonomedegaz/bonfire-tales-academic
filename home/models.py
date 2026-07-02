@@ -660,21 +660,8 @@ class TbItemMundano(models.Model):
     preco = models.CharField(db_column='Preco', max_length=50, blank=True, null=True, help_text='Ex: 5 PO')
     
     
-    dano = models.CharField(db_column='Dano', max_length=50, blank=True, null=True, help_text='Ex: 1d8 cortante')
-    propriedades = models.CharField(db_column='Propriedades', max_length=200, blank=True, null=True, help_text='Ex: Acuidade, Leve')
-    maestria = models.CharField(db_column='Maestria', max_length=100, blank=True, null=True, help_text='Opção adicional de maestria')
-    
-    
-    ca = models.CharField(db_column='CA', max_length=50, blank=True, null=True, help_text='Ex: 14 + mod Des (max 2)')
-    tipo_equip = models.CharField(db_column='TipoEquip', max_length=20, blank=True, null=True,
-                                  help_text='armadura-leve / armadura-media / armadura-pesada / escudo (deriva CA).')
-    ca_base = models.IntegerField(db_column='CABase', blank=True, null=True,
-                                  help_text='CA base da armadura (couro=11, escamas=14, placas=18, escudo=+2).')
-    ca_limite_des = models.IntegerField(db_column='CALimiteDes', blank=True, null=True,
-                                        help_text='Teto do mod DES: leve=vazio (ilimitado), média=2, pesada=0.')
-    forca_minima = models.IntegerField(db_column='ForcaMinima', blank=True, null=True, help_text='Força mínima para usar')
-    furtividade_desvantagem = models.BooleanField(db_column='FurtividadeDesvantagem', default=False)
-    
+    # Mecânica (dano, propriedades de arma, alcance, CA, força mínima, furtividade,
+    # maestrias) vive em tags_json — o DSL componível. Ver home/item_mecanica.py.
     descricao_markdown = models.TextField(db_column='DescricaoMarkdown', blank=True, null=True)
     imagem_url = models.CharField(db_column='ImagemUrl', max_length=500, blank=True, null=True)
     tags_json = models.JSONField(db_column='TagsJSON', blank=True, default=list, help_text='Tags estruturadas usadas pelo criador de personagem.')
@@ -796,6 +783,11 @@ class TbMagia(models.Model):
 class UserProfile(models.Model):
     user = models.OneToOneField('auth.User', on_delete=models.CASCADE, related_name='profile')
     avatar_url = models.CharField(db_column='AvatarUrl', max_length=500, blank=True, null=True, help_text='URL da imagem de perfil.')
+    banner_url = models.CharField(db_column='BannerUrl', max_length=500, blank=True, null=True, help_text='URL do banner do perfil. Aceita imagens animadas.')
+    bio = models.TextField(db_column='Bio', blank=True, null=True, help_text='Texto curto exibido no perfil publico.')
+    profile_theme = models.CharField(db_column='ProfileTheme', max_length=40, default='bonfire', help_text='Tema visual do perfil.')
+    avatar_frame = models.CharField(db_column='AvatarFrame', max_length=40, blank=True, null=True, help_text='Efeito de borda do avatar.')
+    profile_effect = models.CharField(db_column='ProfileEffect', max_length=40, blank=True, null=True, help_text='Efeito visual do cartao de perfil.')
     vlibras_enabled = models.BooleanField(db_column='VlibrasEnabled', default=False, help_text='Habilita o plugin VLibras no site.')
     email_verified = models.BooleanField(db_column='EmailVerified', default=False,
                                          help_text='E-mail confirmado por link de verificação. Só e-mail verificado "trava" o uso por outra conta e vale para a cobrança.')
@@ -1079,6 +1071,10 @@ class TbPersonagem(models.Model):
     anotacoes = models.TextField(db_column='Anotacoes', blank=True, null=True)
     foto_url = models.CharField(db_column='FotoUrl', max_length=500, blank=True, null=True, help_text='Link da imagem do retrato do personagem.')
     token_url = models.CharField(db_column='TokenUrl', max_length=500, blank=True, null=True, help_text='Link da imagem do token do personagem.')
+    banner_url = models.CharField(db_column='BannerUrl', max_length=500, blank=True, null=True, help_text='Link do banner visual da ficha. Aceita imagens animadas.')
+    ficha_theme = models.CharField(db_column='FichaTheme', max_length=40, default='bonfire', help_text='Tema visual da ficha.')
+    foto_frame = models.CharField(db_column='FotoFrame', max_length=40, blank=True, null=True, help_text='Efeito de borda do retrato/token.')
+    ficha_effect = models.CharField(db_column='FichaEffect', max_length=40, blank=True, null=True, help_text='Efeito visual do cabecalho da ficha.')
 
     criado_em = models.DateTimeField(db_column='CriadoEm', auto_now_add=True)
     atualizado_em = models.DateTimeField(db_column='AtualizadoEm', auto_now=True)
@@ -1184,13 +1180,10 @@ class TbPersonagemItem(models.Model):
     peso = models.CharField(db_column='Peso', max_length=20, blank=True, null=True)
     equipado = models.BooleanField(db_column='Equipado', default=False)
     sintonizado = models.BooleanField(db_column='Sintonizado', default=False)
-    # armadura-base equipável (para derivar CA): tipo + base + teto de mod DES
-    tipo_equip = models.CharField(db_column='TipoEquip', max_length=20, blank=True, null=True,
-                                  help_text='armadura-leve / armadura-media / armadura-pesada / escudo (deriva CA).')
-    ca_base = models.IntegerField(db_column='CABase', blank=True, null=True,
-                                  help_text='CA base da armadura (couro=11, cota-de-escamas=14, placas=18, escudo=+2).')
-    ca_limite_des = models.IntegerField(db_column='CALimiteDes', blank=True, null=True,
-                                        help_text='Teto do mod DES: leve=vazio (ilimitado), média=2, pesada=0.')
+    # Mecânica do item equipado (CA/dano/propriedades) vive em tags_json — o snapshot
+    # antigo (tipo_equip/ca_base/ca_limite_des) foi migrado pra cá. Ver item_mecanica.py.
+    tags_json = models.JSONField(db_column='TagsJSON', blank=True, default=list,
+                                 help_text='Snapshot da mecânica do item equipado (CA/dano/propriedades). Fonte única da mecânica.')
     # Vínculo ao catálogo de itens mágicos: traz tags_json (efeitos), raridade e
     # requer_sintonizacao. Itens mundanos ficam com este campo nulo.
     id_item_magico = models.ForeignKey('TbItemMagico', models.SET_NULL, db_column='Id_ItemMagico',

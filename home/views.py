@@ -2,6 +2,8 @@ import json
 import hashlib
 import re
 import unicodedata
+from urllib.parse import unquote, urlsplit
+from .item_mecanica import mecanica_de_tags, dano_display, propriedades_display, ca_display
 from datetime import datetime, timezone as datetime_timezone
 from types import SimpleNamespace
 
@@ -12,6 +14,8 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model, login
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.core.serializers.json import DjangoJSONEncoder
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
 from django.http import Http404, JsonResponse, HttpResponseBadRequest, HttpResponse
 from django.shortcuts import get_object_or_404, render, redirect
 from django.views.decorators.http import require_POST
@@ -572,6 +576,89 @@ def verify_email(request, token):
     return render(request, 'home/pages/verificar_email.html', {'status': status})
 
 
+APPEARANCE_THEMES = {
+    'bonfire': {'label': 'Bonfire', 'class': 'theme-bonfire'},
+    'ember': {'label': 'Brasas de Cineria', 'class': 'theme-ember'},
+    'arcane': {'label': 'Arcano Violeta', 'class': 'theme-arcane'},
+    'verdant': {'label': 'Bosque Esmeralda', 'class': 'theme-verdant'},
+    'moonlit': {'label': 'Luar Prateado', 'class': 'theme-moonlit'},
+}
+
+APPEARANCE_FRAMES = {
+    'none': {'label': 'Sem moldura', 'class': ''},
+    'ember-ring': {'label': 'Anel de Brasa', 'class': 'frame-ember-ring'},
+    'arcane-pulse': {'label': 'Pulso Arcano', 'class': 'frame-arcane-pulse'},
+    'gold-trim': {'label': 'Friso Dourado', 'class': 'frame-gold-trim'},
+}
+
+APPEARANCE_EFFECTS = {
+    'none': {'label': 'Sem efeito', 'class': ''},
+    'soft-glow': {'label': 'Brilho suave', 'class': 'effect-soft-glow'},
+    'glass': {'label': 'Vidro escuro', 'class': 'effect-glass'},
+    'embers': {'label': 'Brasas discretas', 'class': 'effect-embers'},
+}
+
+
+def _appearance_choice(value, choices, default='none'):
+    value = (value or default or '').strip()
+    return value if value in choices else default
+
+
+def _appearance_context(theme='bonfire', frame='none', effect='none'):
+    theme_key = _appearance_choice(theme, APPEARANCE_THEMES, 'bonfire')
+    frame_key = _appearance_choice(frame, APPEARANCE_FRAMES, 'none')
+    effect_key = _appearance_choice(effect, APPEARANCE_EFFECTS, 'none')
+    return {
+        'theme_key': theme_key,
+        'frame_key': frame_key,
+        'effect_key': effect_key,
+        'theme_class': APPEARANCE_THEMES[theme_key]['class'],
+        'frame_class': APPEARANCE_FRAMES[frame_key]['class'],
+        'effect_class': APPEARANCE_EFFECTS[effect_key]['class'],
+        'theme_label': APPEARANCE_THEMES[theme_key]['label'],
+    }
+
+
+PROFILE_UPLOAD_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.gif', '.webp'}
+
+
+def _local_profile_upload_path(value):
+    value = (value or '').strip()
+    media_url = getattr(settings, 'MEDIA_URL', '/media/')
+    if not value or not value.startswith(media_url):
+        return ''
+    path = unquote(urlsplit(value).path)
+    if not path.startswith(media_url):
+        return ''
+    rel = path[len(media_url):].lstrip('/\\')
+    return rel if rel.startswith('profile_uploads/') else ''
+
+
+def _delete_profile_upload(value):
+    rel = _local_profile_upload_path(value)
+    if rel and default_storage.exists(rel):
+        default_storage.delete(rel)
+
+
+def _save_profile_upload(user, uploaded, kind, old_value='', max_mb=10):
+    if not uploaded:
+        return ''
+    if uploaded.size > max_mb * 1024 * 1024:
+        raise ValueError('O arquivo de %s deve ter no maximo %d MB.' % (kind, max_mb))
+    ext = ('.' + (uploaded.name or '').split('.')[-1].lower()) if '.' in (uploaded.name or '') else ''
+    content_type = (getattr(uploaded, 'content_type', '') or '').lower()
+    if not ext and content_type.startswith('image/'):
+        ext = '.' + content_type.split('/', 1)[1].replace('jpeg', 'jpg')
+    if ext not in PROFILE_UPLOAD_EXTENSIONS or not content_type.startswith('image/'):
+        raise ValueError('Envie uma imagem PNG, JPG, WEBP ou GIF para %s.' % kind)
+    _delete_profile_upload(old_value)
+    path = 'profile_uploads/user_%s/%s%s' % (user.pk, kind, ext)
+    if default_storage.exists(path):
+        default_storage.delete(path)
+    saved = default_storage.save(path, ContentFile(uploaded.read()))
+    return default_storage.url(saved)
+
+
 @login_required(login_url='/login/')
 def profile_view(request):
     from .models import UserProfile
@@ -590,6 +677,13 @@ def profile_view(request):
             new_username = request.POST.get('username', '').strip()
             new_email = request.POST.get('email', '').strip()
             new_avatar = request.POST.get('avatar_url', '').strip()
+            new_banner = request.POST.get('banner_url', '').strip()
+            clear_avatar = request.POST.get('clear_avatar') == 'on'
+            clear_banner = request.POST.get('clear_banner') == 'on'
+            new_bio = request.POST.get('bio', '').strip()
+            profile_theme = _appearance_choice(request.POST.get('profile_theme'), APPEARANCE_THEMES, 'bonfire')
+            avatar_frame = _appearance_choice(request.POST.get('avatar_frame'), APPEARANCE_FRAMES, 'none')
+            profile_effect = _appearance_choice(request.POST.get('profile_effect'), APPEARANCE_EFFECTS, 'none')
             vlibras_enabled = request.POST.get('vlibras_enabled') == 'on'
             User = get_user_model()
             user_changed = False
@@ -628,7 +722,33 @@ def profile_view(request):
             if user_changed:
                 user.save()
 
+            try:
+                avatar_upload = request.FILES.get('avatar_file')
+                banner_upload = request.FILES.get('banner_file')
+                if avatar_upload:
+                    new_avatar = _save_profile_upload(user, avatar_upload, 'avatar', profile.avatar_url, max_mb=8)
+                elif clear_avatar:
+                    _delete_profile_upload(profile.avatar_url)
+                    new_avatar = ''
+                elif new_avatar != (profile.avatar_url or ''):
+                    _delete_profile_upload(profile.avatar_url)
+
+                if banner_upload:
+                    new_banner = _save_profile_upload(user, banner_upload, 'banner', profile.banner_url, max_mb=12)
+                elif clear_banner:
+                    _delete_profile_upload(profile.banner_url)
+                    new_banner = ''
+                elif new_banner != (profile.banner_url or ''):
+                    _delete_profile_upload(profile.banner_url)
+            except ValueError as exc:
+                errors.append(str(exc))
+
             profile.avatar_url = new_avatar or None
+            profile.banner_url = new_banner or None
+            profile.bio = new_bio[:800] or None
+            profile.profile_theme = profile_theme
+            profile.avatar_frame = None if avatar_frame == 'none' else avatar_frame
+            profile.profile_effect = None if profile_effect == 'none' else profile_effect
             profile.vlibras_enabled = vlibras_enabled
             if email_mudou:
                 profile.email_verified = False
@@ -690,6 +810,37 @@ def profile_view(request):
         'discord_msg': request.GET.get('discord'),
         'discord_oauth_on': bool(_settings.DISCORD_OAUTH_CLIENT_ID),
         'has_password': user.has_usable_password(),
+        'appearance': _appearance_context(profile.profile_theme, profile.avatar_frame, profile.profile_effect),
+        'appearance_themes': APPEARANCE_THEMES,
+        'appearance_frames': APPEARANCE_FRAMES,
+        'appearance_effects': APPEARANCE_EFFECTS,
+    })
+
+
+def public_profile_view(request, username):
+    from .models import UserProfile, TbPersonagem
+    from . import permissions as perms
+
+    User = get_user_model()
+    viewed_user = get_object_or_404(User, username__iexact=username)
+    profile, _ = UserProfile.objects.get_or_create(user=viewed_user)
+    pode_ver_privados = request.user.is_authenticated and (
+        request.user.pk == viewed_user.pk or perms.is_staff_user(request.user)
+    )
+    personagens_qs = (TbPersonagem.objects.filter(dono=viewed_user)
+                      .select_related('id_raca')
+                      .prefetch_related('classes__id_classe')
+                      .order_by('-atualizado_em'))
+    if not pode_ver_privados:
+        personagens_qs = personagens_qs.filter(publico=True, arquivado=False)
+    personagens = [_personagem_card(p) for p in personagens_qs]
+    return render(request, 'home/pages/perfil_publico.html', {
+        'page_title': viewed_user.username,
+        'viewed_user': viewed_user,
+        'profile': profile,
+        'personagens': personagens,
+        'pode_ver_privados': pode_ver_privados,
+        'appearance': _appearance_context(profile.profile_theme, profile.avatar_frame, profile.profile_effect),
     })
 
 
@@ -1971,8 +2122,9 @@ def _criador_armas():
             m = re.search(r'maestrias\{([^}]*)\}', str(t))
             if m:
                 mslugs = [x.strip() for x in m.group(1).split(',') if x.strip()]
-        out.append({'slug': w.slug, 'nome': w.nome, 'dano': w.dano or '',
-                    'propriedades': w.propriedades or '',
+        _mec = mecanica_de_tags(w.tags_json, w.subcategoria)
+        out.append({'slug': w.slug, 'nome': w.nome, 'dano': dano_display(_mec),
+                    'propriedades': propriedades_display(_mec),
                     'cat': sub_label.get(w.subcategoria, w.subcategoria or 'Arma'),
                     'maestrias': [mast.get(s, s) for s in mslugs]})
     return out
@@ -2565,10 +2717,15 @@ def _criador_armaduras():
     """Catálogo de armaduras+escudo (TbItemMundano categoria=armadura) com CA estruturada."""
     from .models import TbItemMundano
     out = []
-    for a in TbItemMundano.objects.filter(categoria='armadura').exclude(tipo_equip__isnull=True).order_by('ca_base'):
-        out.append({'slug': a.slug, 'nome': a.nome, 'ca': a.ca or '', 'tipo_equip': a.tipo_equip,
-                    'sub': a.subcategoria or '', 'forca_minima': a.forca_minima,
-                    'furtividade': bool(a.furtividade_desvantagem)})
+    arms = []
+    for a in TbItemMundano.objects.filter(categoria='armadura'):
+        mec = mecanica_de_tags(a.tags_json, a.subcategoria)
+        if mec['tipo_equip']:
+            arms.append((mec['ca_base'] or 0, a, mec))
+    for _cb, a, mec in sorted(arms, key=lambda x: x[0]):
+        out.append({'slug': a.slug, 'nome': a.nome, 'ca': ca_display(mec), 'tipo_equip': mec['tipo_equip'],
+                    'sub': a.subcategoria or '', 'forca_minima': mec['forca_minima'],
+                    'furtividade': bool(mec['furtividade_desvantagem'])})
     return out
 
 
@@ -3672,13 +3829,14 @@ def personagem_comprar_item(request, pk):
     with transaction.atomic():
         p.carteira_pc = (p.carteira_pc or 0) - total
         p.save(update_fields=['carteira_pc', 'atualizado_em'])
+        _mec = mecanica_de_tags(item.tags_json, item.subcategoria)
         existente = TbPersonagemItem.objects.filter(id_personagem=p, nome=item.nome, equipado=False).first()
-        if existente and not item.tipo_equip:
+        if existente and not _mec['tipo_equip']:
             existente.qtd = (existente.qtd or 0) + qtd
             existente.save(update_fields=['qtd'])
         else:
             TbPersonagemItem.objects.create(id_personagem=p, qtd=qtd, nome=item.nome, custo=item.preco,
-                tipo_equip=item.tipo_equip, ca_base=item.ca_base, ca_limite_des=item.ca_limite_des)
+                tags_json=list(item.tags_json or []))
         _registrar_transacao(p, 'compra', 'Compra: %s x%d' % (item.nome, qtd), -total)
     return redirect(reverse('editar_ficha', args=[pk]) + '?compra=ok')
 
@@ -3694,12 +3852,14 @@ def personagem_equipar_item(request, pk):
     if not it:
         return redirect('editar_ficha', pk=pk)
     novo = not it.equipado
-    if novo and it.tipo_equip:  # equipar: tira o que ocupa o mesmo "slot"
-        if it.tipo_equip == 'escudo':
-            TbPersonagemItem.objects.filter(id_personagem=p, tipo_equip='escudo', equipado=True).update(equipado=False)
-        elif it.tipo_equip.startswith('armadura'):
-            TbPersonagemItem.objects.filter(id_personagem=p, equipado=True,
-                                            tipo_equip__startswith='armadura').update(equipado=False)
+    _mec = mecanica_de_tags(it.tags_json)
+    if novo and _mec['tipo_equip']:  # equipar: tira o que ocupa o mesmo "slot"
+        alvo_escudo = _mec['is_escudo']
+        for outro in TbPersonagemItem.objects.filter(id_personagem=p, equipado=True):
+            om = mecanica_de_tags(outro.tags_json)
+            if (alvo_escudo and om['is_escudo']) or (not alvo_escudo and om['is_armadura']):
+                outro.equipado = False
+                outro.save(update_fields=['equipado'])
     it.equipado = novo
     it.save(update_fields=['equipado'])
     return redirect('editar_ficha', pk=pk)
@@ -4129,6 +4289,10 @@ def ficha_detail_view(request, pk):
         'consumiveis_cards': consumiveis_cards,
         'transacoes': transacoes,
         'pode_editar': p.dono_id == request.user.id or perms.is_staff_user(request.user),
+        'appearance': _appearance_context(p.ficha_theme, p.foto_frame, p.ficha_effect),
+        'appearance_themes': APPEARANCE_THEMES,
+        'appearance_frames': APPEARANCE_FRAMES,
+        'appearance_effects': APPEARANCE_EFFECTS,
     })
 
 
@@ -4248,10 +4412,17 @@ def personagem_info_salvar(request, pk):
     if not (p.dono_id == request.user.id or perms.is_staff_user(request.user)):
         raise Http404()
     campos = ['jogador', 'idade', 'altura', 'peso', 'tamanho', 'genero', 'olhos', 'cabelo',
-              'pele', 'aparencia', 'historia', 'anotacoes', 'foto_url', 'token_url']
+              'pele', 'aparencia', 'historia', 'anotacoes', 'foto_url', 'token_url',
+              'banner_url']
     for c in campos:
         if c in request.POST:
             setattr(p, c, (request.POST.get(c) or '').strip()[:5000] or None)
+    p.ficha_theme = _appearance_choice(request.POST.get('ficha_theme'), APPEARANCE_THEMES, 'bonfire')
+    foto_frame = _appearance_choice(request.POST.get('foto_frame'), APPEARANCE_FRAMES, 'none')
+    ficha_effect = _appearance_choice(request.POST.get('ficha_effect'), APPEARANCE_EFFECTS, 'none')
+    p.foto_frame = None if foto_frame == 'none' else foto_frame
+    p.ficha_effect = None if ficha_effect == 'none' else ficha_effect
+    campos += ['ficha_theme', 'foto_frame', 'ficha_effect']
     p.save(update_fields=campos)
     return redirect(reverse('ficha_detail', args=[pk]) + '?aba=info')
 

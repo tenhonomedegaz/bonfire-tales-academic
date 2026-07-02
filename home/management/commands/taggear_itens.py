@@ -74,6 +74,17 @@ def weight_tag(value):
     return ("%g-lb" % float(value)).replace(".", "p")
 
 
+def clean_official_block(text):
+    if not text:
+        return text
+    cleaned = re.sub(r"\s*### Dados oficiais[\s\S]*$", "", str(text), flags=re.I)
+    cleaned = re.sub(r"\s*#### Regras rápidas[\s\S]*$", "", cleaned, flags=re.I)
+    cleaned = re.sub(r"\s*Tipo:\*\*[\s\S]*$", "", cleaned, flags=re.I)
+    cleaned = re.sub(r"\s*- \*\*(?:Tipo|Preço|Peso|Dano/CA|Propriedades|Maestria):\*\*[\s\S]*$", "", cleaned, flags=re.I)
+    cleaned = re.sub(r"\n{3,}", "\n\n", cleaned).strip()
+    return cleaned
+
+
 def damage_tag(dano):
     if not dano:
         return None
@@ -113,6 +124,27 @@ def property_tags(propriedades):
     return out
 
 
+def attack_kind_tags(item, propriedades):
+    tags = ["attack:weapon"]
+    sub = norm_slug(item.subcategoria or "")
+    prop = norm_slug(propriedades or "")
+    is_ranged = "dist" in sub or "fogo" in sub or "municao" in prop
+    is_thrown = "arremesso" in prop
+    if is_ranged:
+        tags.append("attack:ranged")
+    else:
+        tags.append("attack:melee")
+    if is_thrown:
+        tags.append("attack:ranged")
+    if "arma-simples" in sub:
+        tags.append("requires:prof-arma-simples")
+    elif "arma-marcial" in sub:
+        tags.append("requires:prof-arma-marcial")
+    elif "arma-fogo" in sub:
+        tags.append("requires:prof-arma-fogo")
+    return tags
+
+
 def mastery_tags(item):
     tags = [t for t in (item.tags_json or []) if isinstance(t, str) and t.startswith("maestrias{")]
     if tags:
@@ -128,24 +160,108 @@ def mastery_tags(item):
     return ["maestrias{" + ", ".join(s for s in slugs if s) + "}"] if slugs else []
 
 
+MANUAL_MUNDANE_TAGS = {
+    "acid": [
+        "consumable", "action=action", "attack:ranged", "range:20ft",
+        "dmg:2d6(acido)",
+    ],
+    "holy-water": [
+        "consumable", "action=action", "attack:ranged", "range:20ft",
+        "target:creature(tipo:corruptor|morto-vivo)", "dmg:2d6(radiante)",
+    ],
+    "alchemist-s-fire": [
+        "consumable", "action=action", "attack:ranged", "range:20ft",
+        "dmg:1d4(fogo)", "apply:queimando(dmg:1d4(fogo), trigger=turn-start, extinguish{action=action, save{dex, cd=10}})",
+    ],
+    "oil": [
+        "consumable", "action=action", "attack:ranged", "range:20ft",
+        "aoe{cube:5ft, trigger=ignited, dmg:5(fogo), duration:2rounds}",
+    ],
+    "healer-s-kit": [
+        "charges:10(reset:none)", "action=action", "resource-cost:charges:1", "stabilize",
+    ],
+    "antitoxin": [
+        "consumable", "action=bonus-action", "adv:save{vs:veneno}(duration:1h)",
+    ],
+    "portable-ram": [
+        "adv:str-check{break-door}", "str-check:+4(requires:assisted)",
+    ],
+    "hunting-trap": [
+        "action=action", "trigger=step-on", "save{dex, cd=13}",
+        "on-fail:{dmg:1d4(perfurante), speed:=0}", "escape{action=action, save{str, cd=13}}",
+    ],
+    "caltrops": [
+        "consumable", "action=action", "aoe{cube:5ft, save{dex, cd=15}, on-fail:{dmg:1(perfurante), speed:*0.5}, avoid:half-speed}",
+    ],
+    "ball-bearings": [
+        "consumable", "action=action", "aoe{cube:10ft, save{dex, cd=10}, on-fail:apply:caido, avoid:half-speed}",
+    ],
+    "torch": [
+        "light:bright(radius:20ft)", "light:dim(radius:+20ft)", "duration:1h", "dmg:1(fogo)(as:improvised-weapon)",
+    ],
+    "bomb": [
+        "consumable", "action=action", "range:60ft",
+        "aoe{radius:5ft, save{dex, cd=12}, dmg:3d6(fogo), on-success:half}",
+    ],
+    "smoke-grenade": [
+        "consumable", "action=action", "range:60ft",
+        "aoe{radius:20ft, obscured:heavy, duration:1min, dispersed-by:strong-wind}",
+    ],
+    "gunpowder-keg": [
+        "consumable", "trigger=ignite-or-fire-damage",
+        "aoe{radius:10ft, save{dex, cd=12}, dmg:7d6(fogo), on-success:half, spreads-around-corners, ignites:flammable}",
+    ],
+    "gunpowder-powder-horn": [
+        "consumable", "charges:10(reset:none)", "trigger=ignite-or-fire-damage",
+        "aoe{radius:5ft, save{dex, cd=12}, dmg:3d6(fogo), on-success:half}",
+    ],
+    "net": [
+        "action=action", "attack:ranged", "range:5ft", "target:creature(size<=large)",
+        "save{dex, cd=8+dex-mod+pb}", "on-fail:apply:agarrado", "escape{action=action, save{str, cd=10}}",
+    ],
+    "rope": ["object-hp:2", "break{save{str, cd=17}}"],
+    "silk-rope-50-feet": ["object-hp:2", "break{save{str, cd=17}}"],
+    "chain": ["break{save{str, cd=20}}"],
+    "manacles": [
+        "apply:restringido(hands-only)", "escape{save{dex, cd=20}}", "break{save{str, cd=25}}",
+        "unlock{tools:ladrao, save{dex, cd=15}}",
+    ],
+}
+
+
+POISON_TAGS = {
+    "basic-poison": ["consumable", "action=action", "apply-poison:weapon-or-ammo(qtd:3)", "trigger=hit", "save{con, cd=10}", "on-fail:dmg:1d4(veneno)", "duration:1min"],
+    "assassin-s-blood": ["consumable", "save{con, cd=10}", "on-fail:{dmg:1d12(veneno), apply:envenenado(duration:24h)}"],
+    "burnt-othur-fumes": ["consumable", "save{con, cd=13}", "on-fail:{dmg:3d6(veneno), restriction{heal}}", "repeat-save:turn-start(on-fail:dmg:1d6(veneno), end-after:3success)"],
+    "carrion-crawler-mucus": ["consumable", "save{con, cd=13}", "on-fail:{apply:envenenado(duration:1min), apply:paralisado(while:envenenado)}", "repeat-save:turn-end"],
+    "essence-of-ether": ["consumable", "save{con, cd=15}", "on-fail:{apply:envenenado(duration:8h), apply:inconsciente(while:envenenado, until:damage-or-shaken)}"],
+    "lolth-s-sting": ["consumable", "trigger=hit", "save{con, cd=13}", "on-fail:{dmg:1d6(veneno), apply:envenenado(duration:1min), restriction{heal}}", "repeat-save:turn-end"],
+    "malice": ["consumable", "save{con, cd=15}", "on-fail:apply:cego(duration:1h)"],
+    "midnight-tears": ["consumable", "trigger=midnight-after-ingested", "save{con, cd=17}", "on-fail:dmg:9d6(veneno)", "on-success:half"],
+    "oil-of-taggit": ["consumable", "save{con, cd=13}", "on-fail:{apply:envenenado(duration:24h), apply:inconsciente(while:envenenado, until:damage)}"],
+    "pale-tincture": ["consumable", "save{con, cd=16}", "on-fail:{dmg:1d6(veneno), apply:envenenado, restriction{heal:this-damage}}", "repeat-save:24h(on-fail:dmg:1d6(veneno), end-after:3success)"],
+    "purple-worm-poison": ["consumable", "trigger=hit", "save{con, cd=19}", "on-fail:dmg:12d6(veneno)", "on-success:half"],
+    "serpent-venom": ["consumable", "trigger=hit", "save{con, cd=11}", "on-fail:dmg:3d6(veneno)", "on-success:half"],
+    "torpor": ["consumable", "save{con, cd=15}", "on-fail:{apply:envenenado(duration:4d6h), apply:incapacitado(while:envenenado)}"],
+    "truth-serum": ["consumable", "save{con, cd=11}", "on-fail:{apply:envenenado(duration:1h), restriction{lie}}"],
+    "wyvern-poison": ["consumable", "trigger=hit", "save{con, cd=15}", "on-fail:dmg:7d6(veneno)", "on-success:half"],
+}
+
+
 def mundane_tags(item):
-    tags = ["item:mundano", f"categoria:{item.categoria}"]
-    if item.subcategoria and item.categoria != "armadura":
-        tags.append(f"subcategoria:{norm_slug(item.subcategoria)}")
-    if item.preco:
-        tags.append(f"preco:{money_tag(item.preco)}")
-    if item.peso is not None:
-        tags.append(f"peso:{weight_tag(item.peso)}")
+    if item.slug in POISON_TAGS:
+        tags = POISON_TAGS[item.slug][:]
+    else:
+        tags = MANUAL_MUNDANE_TAGS.get(item.slug, [])[:]
 
     if item.categoria == "arma":
+        tags.extend(attack_kind_tags(item, item.propriedades))
         dt = damage_tag(item.dano)
         if dt:
             tags.append(dt)
         tags.extend(property_tags(item.propriedades))
         tags.extend(mastery_tags(item))
     elif item.categoria == "armadura":
-        if item.tipo_equip:
-            tags.append(f"subcategoria:{norm_slug(item.tipo_equip)}")
         if item.ca_base is not None:
             if item.tipo_equip == "escudo":
                 tags.append(f"ca:+{item.ca_base}")
@@ -158,14 +274,16 @@ def mundane_tags(item):
         if item.furtividade_desvantagem:
             tags.append("dadv:furtividade")
     elif item.categoria in {"municao", "veneno", "explosivo", "comida"}:
-        tags.append("consumable")
-    elif item.slug == "healer-s-kit":
-        tags.extend(["charges:10(reset:none)", "action=action", "stabilize:creature"])
-    elif item.slug in {"acid", "alchemist-s-fire", "holy-water", "oil"}:
-        tags.extend(["consumable", "action=action", "attack:ranged"])
+        if "consumable" not in tags:
+            tags.append("consumable")
 
     # Keep non-duplicated manual tags not generated above.
-    generated_prefixes = ("item:", "categoria:", "subcategoria:", "preco:", "peso:", "dmg:", "add-property:", "range:", "reload:", "ca=", "ca:+", "dex-ca-max:", "dadv:", "requires:", "charges:", "action=", "attack:", "stabilize:")
+    generated_prefixes = (
+        "item:", "categoria:", "subcategoria:", "preco:", "peso:", "raridade:", "slot:", "loja:", "tipo:",
+        "dmg:", "add-property:", "range:", "reload:", "ca=", "ca:+", "dex-ca-max:", "dadv:",
+        "requires:", "charges:", "action=", "attack:", "stabilize", "consumable",
+        "aoe{", "apply:",
+    )
     for t in item.tags_json or []:
         if isinstance(t, str) and t not in tags and not t.startswith(generated_prefixes):
             tags.append(t)
@@ -202,22 +320,11 @@ def magic_rows():
 
 
 def magic_tags(item, row, spell_map):
-    tags = [
-        "item:magico",
-        f"raridade:{norm_slug(item.raridade)}",
-        f"slot:{norm_slug(item.slot)}",
-    ]
-    if item.loja:
-        tags.append(f"loja:{norm_slug(item.loja)}")
+    tags = []
     if item.requer_sintonizacao:
         tags.append("sintonizacao")
         if item.detalhes_sintonizacao:
             tags.append(f"requires:{norm_slug(item.detalhes_sintonizacao)}")
-    if item.tipo:
-        for part in str(item.tipo).split(","):
-            p = norm_slug(part)
-            if p:
-                tags.append(f"tipo:{p}")
     desc_en = (row or {}).get("description_en", "") or ""
     desc_pt = item.descricao_markdown or ""
     if (
@@ -254,7 +361,11 @@ def magic_tags(item, row, spell_map):
             else:
                 tags.append(f"cast{{spell:{slug}, modifiers{{no-slot}}, uses{{1, reset:day}}}}")
 
-    generated_prefixes = ("item:", "raridade:", "slot:", "loja:", "tipo:", "requires:", "consumable", "ca:", "weapon.", "unarmed.", "spell.", "spell-save-cd:", "charges:", "cast{")
+    generated_prefixes = (
+        "item:", "raridade:", "slot:", "loja:", "tipo:",
+        "requires:", "consumable", "ca:", "weapon.", "unarmed.", "spell.",
+        "spell-save-cd:", "charges:", "cast{",
+    )
     for t in item.tags_json or []:
         if isinstance(t, str) and t not in tags and not t.startswith(generated_prefixes):
             tags.append(t)
@@ -276,11 +387,15 @@ class Command(BaseCommand):
         from home.models import TbItemMagico, TbItemMundano
 
         updates = []
+        desc_updates = []
         if opts["tipo"] in {"mundano", "todos"}:
             for obj in TbItemMundano.objects.all():
                 tags = mundane_tags(obj)
                 if obj.tags_json != tags:
                     updates.append((obj, tags))
+                clean_desc = clean_official_block(obj.descricao_markdown)
+                if clean_desc != (obj.descricao_markdown or ""):
+                    desc_updates.append((obj, clean_desc))
         if opts["tipo"] in {"magico", "todos"}:
             rows = magic_rows()
             spells = load_spell_map()
@@ -294,7 +409,14 @@ class Command(BaseCommand):
                 for obj, tags in updates:
                     obj.tags_json = tags
                     obj.save(update_fields=["tags_json"])
+                for obj, desc in desc_updates:
+                    obj.descricao_markdown = desc
+                    obj.save(update_fields=["descricao_markdown"])
 
         self.stdout.write(self.style.SUCCESS(
-            "%s updates=%d" % ("APPLY" if opts["apply"] else "PREVIEW", len(updates))
+            "%s tag_updates=%d desc_updates=%d" % (
+                "APPLY" if opts["apply"] else "PREVIEW",
+                len(updates),
+                len(desc_updates),
+            )
         ))

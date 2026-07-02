@@ -7,7 +7,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="profile-page">
+<div class="profile-page {{ appearance.theme_class }} {{ appearance.effect_class }}">
 
     <!-- Toasts -->
     {% for msg in success_messages %}
@@ -24,8 +24,11 @@
     {% endfor %}
 
     <!-- Header do Perfil -->
-    <div class="profile-header">
-        <div class="profile-avatar-wrapper" id="profile-avatar-main">
+    <div class="profile-header profile-hero">
+        {% if profile.banner_url %}
+        <div class="profile-banner-media" style="background-image:url('{{ profile.banner_url }}');"></div>
+        {% endif %}
+        <div class="profile-avatar-wrapper {{ appearance.frame_class }}" id="profile-avatar-main">
             {% if profile.avatar_url %}
             <img src="{{ profile.avatar_url }}" alt="Avatar de {{ user.username }}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
             <div class="profile-avatar-fallback" style="display:none;">
@@ -35,9 +38,10 @@
             <div class="profile-avatar-fallback">
                 <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
             </div>
-            {% endif %}
+        {% endif %}
         </div>
         <span class="profile-username">{{ user.username }}</span>
+        {% if profile.bio %}<p class="profile-bio-preview">{{ profile.bio }}</p>{% endif %}
         {% if user.is_superuser %}
         <span class="profile-role is-staff">Administrador</span>
         {% elif user.is_staff %}
@@ -45,10 +49,11 @@
         {% else %}
         <span class="profile-role">Jogador</span>
         {% endif %}
+        <a href="{% url 'public_profile' user.username %}" class="profile-public-link">Ver perfil publico</a>
     </div>
 
     <!-- Seção: Dados do Perfil -->
-    <form method="post" class="profile-section">
+    <form method="post" class="profile-section" enctype="multipart/form-data">
         {% csrf_token %}
         <input type="hidden" name="action" value="update_profile">
 
@@ -76,14 +81,69 @@
         <div class="profile-field">
             <label class="profile-label" for="id_avatar_url">Foto de Perfil (URL da imagem)</label>
             <input class="profile-input" type="url" id="id_avatar_url" name="avatar_url" value="{{ profile.avatar_url|default:'' }}" placeholder="https://i.imgur.com/sua-foto.png" autocomplete="off">
+            <label class="profile-file-drop" for="id_avatar_file">
+                <span>Enviar imagem ou GIF</span>
+                <input type="file" id="id_avatar_file" name="avatar_file" accept="image/png,image/jpeg,image/webp,image/gif">
+            </label>
             <div class="avatar-preview-row">
                 <img id="avatar-preview-img" class="avatar-preview-small"
                      src="{{ profile.avatar_url|default:'' }}"
                      alt="Preview"
                      style="{% if not profile.avatar_url %}display:none;{% endif %}"
                      onerror="this.style.display='none';">
-                <span class="avatar-preview-hint">Cole o link de uma imagem (Imgur, Discord CDN, etc.)</span>
+                <span class="avatar-preview-hint">Cole um link ou envie um arquivo. Upload substitui a URL.</span>
             </div>
+            {% if profile.avatar_url %}
+            <label class="profile-inline-check"><input type="checkbox" name="clear_avatar"> Remover foto atual</label>
+            {% endif %}
+        </div>
+
+        <div class="profile-field">
+            <label class="profile-label" for="id_banner_url">Banner do Perfil (URL da imagem ou GIF)</label>
+            <input class="profile-input" type="url" id="id_banner_url" name="banner_url" value="{{ profile.banner_url|default:'' }}" placeholder="https://.../banner.gif" autocomplete="off">
+            <label class="profile-file-drop" for="id_banner_file">
+                <span>Enviar banner ou GIF</span>
+                <input type="file" id="id_banner_file" name="banner_file" accept="image/png,image/jpeg,image/webp,image/gif">
+            </label>
+            <div class="banner-preview-box" id="banner-preview-box" style="{% if profile.banner_url %}background-image:url('{{ profile.banner_url }}');{% else %}display:none;{% endif %}"></div>
+            <span class="avatar-preview-hint">GIFs e imagens estaticas funcionam para todos os usuarios.</span>
+            {% if profile.banner_url %}
+            <label class="profile-inline-check"><input type="checkbox" name="clear_banner"> Remover banner atual</label>
+            {% endif %}
+        </div>
+
+        <div class="profile-field">
+            <label class="profile-label" for="id_bio">Bio publica</label>
+            <textarea class="profile-input profile-textarea" id="id_bio" name="bio" rows="3" maxlength="800" placeholder="Uma frase curta sobre voce, seus personagens ou suas mesas...">{{ profile.bio|default:'' }}</textarea>
+        </div>
+
+        <div class="profile-appearance-grid">
+            <label class="profile-field">
+                <span class="profile-label">Tema</span>
+                <select class="profile-input" name="profile_theme">
+                    {% for key, item in appearance_themes.items %}
+                    <option value="{{ key }}" {% if key == appearance.theme_key %}selected{% endif %}>{{ item.label }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label class="profile-field">
+                <span class="profile-label">Borda do Avatar</span>
+                <select class="profile-input" name="avatar_frame">
+                    {% for key, item in appearance_frames.items %}
+                    <option value="{{ key }}" {% if key == appearance.frame_key %}selected{% endif %}>{{ item.label }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label class="profile-field">
+                <span class="profile-label">Efeito do Perfil</span>
+                <select class="profile-input" name="profile_effect">
+                    {% for key, item in appearance_effects.items %}
+                    <option value="{{ key }}" {% if key == appearance.effect_key %}selected{% endif %}>{{ item.label }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+        </div>
+
         <div class="profile-field">
             <div class="profile-checkbox-group">
                 <input type="checkbox" id="id_vlibras_enabled" name="vlibras_enabled" {% if profile.vlibras_enabled %}checked{% endif %}>
@@ -210,6 +270,10 @@
 document.addEventListener('DOMContentLoaded', () => {
     const urlInput = document.getElementById('id_avatar_url');
     const preview = document.getElementById('avatar-preview-img');
+    const avatarFile = document.getElementById('id_avatar_file');
+    const bannerUrl = document.getElementById('id_banner_url');
+    const bannerFile = document.getElementById('id_banner_file');
+    const bannerPreview = document.getElementById('banner-preview-box');
 
     if (urlInput && preview) {
         urlInput.addEventListener('input', () => {
@@ -221,6 +285,36 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 preview.style.display = 'none';
             }
+        });
+    }
+
+    if (avatarFile && preview) {
+        avatarFile.addEventListener('change', () => {
+            const file = avatarFile.files && avatarFile.files[0];
+            if (!file) return;
+            preview.src = URL.createObjectURL(file);
+            preview.style.display = 'block';
+        });
+    }
+
+    const setBanner = (url) => {
+        if (!bannerPreview) return;
+        if (url) {
+            bannerPreview.style.backgroundImage = `url("${url}")`;
+            bannerPreview.style.display = 'block';
+        } else {
+            bannerPreview.style.display = 'none';
+        }
+    };
+
+    if (bannerUrl) {
+        bannerUrl.addEventListener('input', () => setBanner(bannerUrl.value.trim()));
+    }
+    if (bannerFile) {
+        bannerFile.addEventListener('change', () => {
+            const file = bannerFile.files && bannerFile.files[0];
+            if (!file) return;
+            setBanner(URL.createObjectURL(file));
         });
     }
 });

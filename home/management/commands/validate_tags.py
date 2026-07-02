@@ -66,6 +66,11 @@ def _iter_models(only=None):
         for b in TbBestiario.objects.all():
             yield (b.nome, b.tags_json)
 
+    def item_mundano():
+        from home.models import TbItemMundano
+        for item in TbItemMundano.objects.all():
+            yield (item.nome, item.tags_json)
+
     add("classe-hab", classe_hab)
     add("talento", talento)
     add("opcao", opcao)
@@ -74,6 +79,7 @@ def _iter_models(only=None):
     add("classe", classe_meta)
     add("magia", magia)
     add("bestiario", bestiario)
+    add("item-mundano", item_mundano)
     return specs
 
 
@@ -83,7 +89,7 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("--lint", action="store_true", help="Só audita a biblioteca.")
         parser.add_argument("--model", default=None,
-                            help="classe-hab | talento | opcao | traco | classe | antecedente | magia | bestiario")
+                            help="classe-hab | talento | opcao | traco | classe | antecedente | magia | bestiario | item-mundano")
         parser.add_argument("--errors-only", action="store_true")
         parser.add_argument("--no-db", action="store_true", help="Não checa referências (#REF!).")
         parser.add_argument("--max", type=int, default=40, help="Máx. de itens listados por seção.")

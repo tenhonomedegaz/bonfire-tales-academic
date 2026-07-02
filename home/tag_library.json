@@ -25,7 +25,7 @@
   },
   "meta": {
     "versao": "0.2",
-    "atualizado_em": "2026-06-18",
+    "atualizado_em": "2026-07-01",
     "compativel_com_vocabulario": "0.2",
     "unidade_distancia": "ft (pés) — padrão canônico (decisão 2026-06-17). Converter tags antigas em metros: 5ft=1.5m · 10ft=3m · 15ft=4.5m · 20ft=6m · 30ft=9m · 60ft=18m · 90ft=27m."
   },
@@ -253,6 +253,10 @@
       "grapple": "manobra Agarrar: grapple.contest (ver contest{})",
       "manobra": "perfil de Manobra de Combate (resource{dado-de-combate}): manobra.cd / manobra.<efeito>"
     },
+    "direcao_ataque": {
+      "vs": "CONTRA (o alvo/vítima do ataque): em adv/dadv/no-adv:attack{...} desambigua a direção. no-adv:attack{vs:self} = nenhum ataque feito CONTRA você tem Vantagem. Sem vs:/by:, um 'target:self' fica ambíguo (atacante vs vítima).",
+      "by": "POR (quem faz o ataque): no-adv:attack{by:self} = seus próprios ataques não têm Vantagem; dadv:attack{by:enemies} = ataques dos inimigos têm Desvantagem."
+    },
     "pendencia": "No banco existem 'attack:magico' (PT) vindos do tagueamento de magia — padronizar para 'attack:magic'."
   },
   "selectors": {
@@ -355,8 +359,13 @@
       "doc": "Rola teste de resistência; vale como condição (sucesso/falha)."
     },
     "roll": {
-      "sintaxe": "roll{ table:<ref>, dice:<NdX>, keep:<sum|highest|lowest|pick:K> }",
+      "sintaxe": "roll{ table:<ref>, dice:<dados>, keep:<sum|highest|lowest|pick:K> }",
       "doc": "Rolagem genérica (tabela ou dados); 'keep' modela 'rola 2 escolhe 1' sem mecânica nova."
+    },
+    "dados": {
+      "sintaxe": "<N>d<X>[dK | dhK | khK | klK]",
+      "doc": "Notação de dados padrão de VTT (opera sobre o dado, como um operador). 'NdX' = N dados de X faces. Modificadores de descarte: 'dK' descarta os K MENORES (mantém os maiores); 'dhK' descarta os K MAIORES (mantém os menores). Aliases explícitos: 'khK' = mantém os K maiores, 'klK' = mantém os K menores. Ex.: 4d6d1 = rola 4d6 e descarta o menor (mantém os 3 maiores) = 4d6kh3; 4d6dh1 = descarta o maior; 4d6d2 = descarta os 2 menores. Válido em qualquer lugar que aceite <NdX> (dmg, roll{dice}, table, fórmulas).",
+      "exemplo": "dmg:4d6d1(fogo) | roll{ dice:2d20kh1 } | define{ pv-inicial: 4d6d1 }"
     },
     "min": {
       "sintaxe": "min(<a>, <b>)",
@@ -422,72 +431,48 @@
     }
   },
   "primitives": {
+    "at-will": {
+      "categoria": "A12",
+      "forma": "flag",
+      "op": "add-modifier",
+      "doc": "Qualificador de cast{}: conjura À VONTADE (sem custo de recurso nem limite de usos). Atalho consagrado, mantido de propósito: equivale a cast{no-slot} sem uses{}/resource-cost, mas o volume de uso (~627) e a clareza justificam a primitiva."
+    },
+    "rede": {
+      "categoria": "A-util",
+      "forma": "key_value",
+      "op": null,
+      "doc": "Rede de contatos sociais (utilidade narrativa de antecedente, não-mecânica): rede:contatos-criminais, rede:agentes-de-espionagem, rede:contratantes-mercenarios. Acesso a abrigo/hospedagem/informação a critério do mestre. Aprovado 2026-06-19."
+    },
+    "recall": {
+      "categoria": "A-util",
+      "forma": "key_value",
+      "op": null,
+      "doc": "Conhecimento/memória passiva de um tema (narrativa): recall:terreno-e-geografia, recall:contratos-e-eventos-locais. O personagem sempre lembra/sabe o assunto. Aprovado 2026-06-19."
+    },
+    "patente": {
+      "categoria": "A-util",
+      "forma": "key_value",
+      "op": null,
+      "doc": "Patente/autoridade militar (narrativa): patente:militar — influência sobre soldados de patente inferior, requisição de equipamento simples/montaria e acesso a fortalezas amigas. Aprovado 2026-06-19."
+    },
+    "marcha-forcada": {
+      "categoria": "A-util",
+      "forma": "key_value",
+      "op": null,
+      "doc": "Ritmo de viagem estendido (não é o move: de combate): marcha-forcada(max:16h) — marcha o dobro do tempo antes do efeito de marcha forçada. Aprovado 2026-06-19."
+    },
+    "forrageio": {
+      "categoria": "A-util",
+      "forma": "key_value",
+      "op": null,
+      "doc": "Encontrar recursos naturais na terra: forrageio:comida-e-agua(target:6) — para si e até N pessoas por dia, se houver fonte natural. Aprovado 2026-06-19."
+    },
     "_doc": "Cada verbo do vocabulário -> op do motor + onde escreve (target) + tipagem do valor. ESBOÇO: cobre o que já aparece nas tags; itens marcados 'todo' faltam detalhar.",
     "always-active": {
       "categoria": "A1",
       "forma": "flag",
       "op": "gate",
       "doc": "Passiva sempre ligada (sem action)."
-    },
-    "trocavel": {
-      "categoria": "A1",
-      "forma": "flag",
-      "op": "meta",
-      "doc": "Marca a ESCOLHA concedida por esta habilidade como trocável (o jogador pode refazer a seleção depois — ex.: maestria de arma, estilo de luta). A MESMA habilidade pode ser trocável numa classe e fixa em outra: a tag fica na versão da classe que permite a troca."
-    },
-    "item": {
-      "categoria": "A1",
-      "forma": "key_value",
-      "op": "meta",
-      "doc": "Metadado de catálogo de item: item:mundano ou item:magico. Usado por ficha/exportador/VTT para separar regras de item sem depender da tabela."
-    },
-    "categoria": {
-      "categoria": "A1",
-      "forma": "key_value",
-      "op": "meta",
-      "doc": "Metadado de item: categoria:<slug> (arma, armadura, ferramenta, pocao, pergaminho, etc.)."
-    },
-    "subcategoria": {
-      "categoria": "A1",
-      "forma": "key_value",
-      "op": "meta",
-      "doc": "Metadado de item: subcategoria:<slug> (arma_simples, armadura-media, instrumento, conjunto_jogo, etc.)."
-    },
-    "raridade": {
-      "categoria": "A1",
-      "forma": "key_value",
-      "op": "meta",
-      "doc": "Metadado de item mágico: raridade:<slug>."
-    },
-    "slot": {
-      "categoria": "A1",
-      "forma": "key_value",
-      "op": "meta",
-      "doc": "Metadado de item mágico: slot:<slug>."
-    },
-    "loja": {
-      "categoria": "A1",
-      "forma": "key_value",
-      "op": "meta",
-      "doc": "Metadado comercial: loja:<slug> indica onde o item pode aparecer."
-    },
-    "tipo": {
-      "categoria": "A1",
-      "forma": "key_value",
-      "op": "meta",
-      "doc": "Metadado de item: tipo:<slug> para classes de item, tipos de arma, instrumento, variante etc."
-    },
-    "preco": {
-      "categoria": "A1",
-      "forma": "key_value",
-      "op": "meta",
-      "doc": "Metadado de item: preco:<valor-normalizado> (ex.: preco:25-po). Valor de compra, nao fonte mecanica."
-    },
-    "peso": {
-      "categoria": "A1",
-      "forma": "key_value",
-      "op": "meta",
-      "doc": "Metadado de item: peso:<valor>lb. Peso em libras para carga/inventario."
     },
     "consumable": {
       "categoria": "A1",
@@ -507,35 +492,17 @@
       "op": "meta",
       "doc": "Lista de maestrias de arma disponíveis no item mundano. O valor referencia slugs de TB_OpcaoJogo quando houver correspondência."
     },
-    "dex-ca-max": {
-      "categoria": "A5",
-      "forma": "key_value",
-      "op": "meta",
-      "doc": "Teto de modificador de Destreza aplicado à CA da armadura."
-    },
     "atk": {
       "categoria": "A4",
       "forma": "key_value",
       "op": "add-modifier",
       "doc": "Bonus em jogadas de ataque concedido por item/efeito. Escopo pode refinar: weapon.atk:+1, spell.atk:+1, unarmed.atk:+1."
     },
-    "spell-save-cd": {
-      "categoria": "A7",
-      "forma": "key_value",
-      "op": "add-modifier",
-      "doc": "Bonus na CD de resistencia de magias concedido por item/efeito."
-    },
-    "item-bonus": {
-      "categoria": "A1",
-      "forma": "key_value",
-      "op": "meta",
-      "doc": "Bonus generico extraido de item quando a regra precisa de contexto futuro: item-bonus:<alvo>:+N."
-    },
     "log-castable": {
       "categoria": "A1",
       "forma": "flag",
       "op": "meta",
-      "doc": "Marca magia/efeito que pode ser executado pelo log da ficha fora do fluxo normal de turno/descanso, geralmente porque cria ou atualiza um estado persistente (ex.: Encontrar Familiar)."
+      "doc": "Termo consagrado: marca magia conjurável FORA de jogo (pelo log da ficha) para efeito real duradouro, tipicamente por ter tempo de conjuração longo e/ou componentes materiais e criar um estado persistente. Ex.: Encontrar Familiar (familiar por tempo indeterminado), Simulacro, Glifo de Vigilância, Aura Mágica (permanente após 30 dias). NÃO depreciar."
     },
     "while-active": {
       "categoria": "A1",
@@ -664,12 +631,6 @@
       },
       "doc": "Define o tipo de dano."
     },
-    "dmg-bonus": {
-      "categoria": "C",
-      "forma": "bind",
-      "op": null,
-      "doc": "NÃO é primitiva: é variável 'define' exposta por uma habilidade (ex.: Fúria). Lê-se por ability{...}.dmg-bonus."
-    },
     "crit-range": {
       "categoria": "A4",
       "forma": "key_value",
@@ -755,13 +716,6 @@
         "type": "number|formula|half"
       },
       "doc": "Reduz dano recebido; rolável/por reação (Desviar Ataques: dmg-reduction:1d10+dex-mod+classlvl); 'half' = metade arredondando p/ baixo (Esquiva Instintiva); escopo de fonte take-damage{fall} (Queda Lenta)."
-    },
-    "no-adv-against-self": {
-      "categoria": "A5",
-      "forma": "flag",
-      "op": "set-value",
-      "target": "defesa.adv_contra",
-      "doc": "Ataques contra você não podem ter Vantagem (Inatingível). Geralmente com unless:incapacitated. Aprovado 2026-06-17."
     },
     "heal": {
       "categoria": "A6",
@@ -968,16 +922,6 @@
       },
       "doc": "Soma a uma rolagem disparada por gatilho (Momento de Ajuste: roll-add:+2*spent; Lampejo de Gênio: roll-add:+int-mod a teste de aliado)."
     },
-    "roll-sub": {
-      "categoria": "A7",
-      "forma": "key_value",
-      "op": "add-modifier",
-      "target": "rolagem",
-      "value": {
-        "type": "formula"
-      },
-      "doc": "SUBTRAI de uma rolagem (penalidade): inverso de roll-add. Fixo (número) ou variável (referência). Ex.: roll-sub:-1d4(next:check, target:enemies)."
-    },
     "check-bonus": {
       "categoria": "A7",
       "forma": "key_value",
@@ -1134,6 +1078,54 @@
       },
       "doc": "apply:<condição>(save:..., duração)."
     },
+    "object-hp": {
+      "categoria": "A9",
+      "forma": "key_value",
+      "op": "set-value",
+      "doc": "PV ou durabilidade de um objeto mundano quando isso importa mecanicamente: object-hp:2."
+    },
+    "break": {
+      "categoria": "A9",
+      "forma": "block",
+      "op": "grant-execution",
+      "doc": "Quebrar/arrebentar um objeto ou restrição: break{save{str, cd=20}}."
+    },
+    "escape": {
+      "categoria": "A9",
+      "forma": "block",
+      "op": "grant-execution",
+      "doc": "Escapar de contenção, armadilha, rede ou algemas: escape{action=action, save{str, cd=13}}."
+    },
+    "unlock": {
+      "categoria": "A9",
+      "forma": "block",
+      "op": "grant-execution",
+      "doc": "Abrir/destrancar com chave, ferramenta ou teste: unlock{tools:ladrao, save{dex, cd=15}}."
+    },
+    "avoid": {
+      "categoria": "A10",
+      "forma": "key_value",
+      "op": "gate",
+      "doc": "Modo de evitar um perigo/área sem rolar, por exemplo avoid:half-speed em estrepes ou rolamentos."
+    },
+    "dispersed-by": {
+      "categoria": "A10",
+      "forma": "key_value",
+      "op": "gate",
+      "doc": "Condição ambiental que encerra/dispersa uma área: dispersed-by:strong-wind."
+    },
+    "ignites": {
+      "categoria": "A10",
+      "forma": "key_value",
+      "op": "emit-area",
+      "doc": "Indica que o efeito incendeia certos alvos/materiais: ignites:flammable."
+    },
+    "spreads-around-corners": {
+      "categoria": "A10",
+      "forma": "flag",
+      "op": "emit-area",
+      "doc": "Área se propaga por esquinas/cantos, como explosões de pólvora."
+    },
     "cleanse": {
       "categoria": "A9",
       "forma": "key_value",
@@ -1158,18 +1150,6 @@
       "op": "summon",
       "doc": "Invoca criatura(s) do bestiário (summon:bestiary{<slug>}; :N p/ quantidade). Statblock vive no bestiário; companheiros que escalam recebem scaling do invocador. Aprovado 2026-06-17."
     },
-    "ignore-resist": {
-      "categoria": "A4",
-      "forma": "key_value",
-      "op": "set-value",
-      "target": "ataque.ignore_resist",
-      "value": {
-        "type": "catalog|all",
-        "catalog": "damage-type",
-        "lang": "pt"
-      },
-      "doc": "Ofensivo: o dano ignora a Resistência do alvo (não a Imunidade). ignore-resist:cortante / ignore-resist:all."
-    },
     "difficult-terrain": {
       "categoria": "A10",
       "forma": "flag",
@@ -1182,13 +1162,6 @@
       "forma": "flag",
       "op": "set-value",
       "doc": "Ignora terreno difícil no movimento próprio."
-    },
-    "banish": {
-      "categoria": "A9",
-      "forma": "key_value",
-      "op": "apply-condition",
-      "target": "alvo",
-      "doc": "Remove o alvo do combate/mapa temporariamente (banish(until:turn-end)) ou bane ao plano nativo (banish:plano-nativo). Aplica condição 'banido'."
     },
     "redirect-damage": {
       "categoria": "A5",
@@ -1297,7 +1270,7 @@
       "categoria": "A7",
       "forma": "key_value",
       "op": "grant-roll-mod",
-      "doc": "Nega Vantagem numa rolagem (no-adv:attack{target:enemies} em aura). Par de no-dadv / no-adv-against-self."
+      "doc": "Nega Vantagem numa rolagem. Em ATAQUES, desambigue a direção com vs:/by: (scopes.direcao_ataque): no-adv:attack{vs:self} = nenhum ataque feito CONTRA você tem Vantagem (defensivo — substitui o antigo 'no-adv-against-self', ex-Inatingível); no-adv:attack{vs:enemies} = ataques contra inimigos não têm Vantagem (aura); no-adv:attack{by:self} = seus próprios ataques não têm Vantagem. Par de no-dadv."
     },
     "allow-concentration": {
       "categoria": "A12",
@@ -1341,13 +1314,6 @@
       },
       "doc": "Concede propriedade de arma a um perfil (Armas Integradas → acuidade). Difere de define:weapon...add-property{}."
     },
-    "repair": {
-      "categoria": "A9",
-      "forma": "key_value",
-      "op": "heal",
-      "target": "objeto",
-      "doc": "Conserta objetos/construtos (repair:objetos(in-aura) — Axioma da Ordem). Cura aplicada a objeto."
-    },
     "no-unconscious-at-0": {
       "categoria": "A5",
       "forma": "flag",
@@ -1390,12 +1356,6 @@
       "forma": "flag",
       "op": "pick",
       "doc": "A opção/escolha pode ser tomada mais de uma vez (Aprendizado dos Antigos)."
-    },
-    "teleport-swap": {
-      "categoria": "A8",
-      "forma": "key_value",
-      "op": "grant-execution",
-      "doc": "teleport:swap(target:<sel>, willing) = troca de lugar com criatura voluntária (Alternar Posição); teleport:reposition = reposiciona aliado voluntário sem AdO."
     },
     "grant": {
       "categoria": "A9",
@@ -1490,36 +1450,6 @@
       "op": "grant-execution",
       "target": "sentidos",
       "doc": "Percebe pelos sentidos de um vínculo/familiar."
-    },
-    "rede": {
-      "categoria": "A-util",
-      "forma": "key_value",
-      "op": null,
-      "doc": "Rede de contatos sociais (utilidade narrativa de antecedente, não-mecânica): rede:contatos-criminais, rede:agentes-de-espionagem, rede:contratantes-mercenarios. Acesso a abrigo/hospedagem/informação a critério do mestre. Aprovado 2026-06-19."
-    },
-    "recall": {
-      "categoria": "A-util",
-      "forma": "key_value",
-      "op": null,
-      "doc": "Conhecimento/memória passiva de um tema (narrativa): recall:terreno-e-geografia, recall:contratos-e-eventos-locais. O personagem sempre lembra/sabe o assunto. Aprovado 2026-06-19."
-    },
-    "forrageio": {
-      "categoria": "A-util",
-      "forma": "key_value",
-      "op": null,
-      "doc": "Encontrar recursos naturais na terra: forrageio:comida-e-agua(target:6) — para si e até N pessoas por dia, se houver fonte natural. Aprovado 2026-06-19."
-    },
-    "marcha-forcada": {
-      "categoria": "A-util",
-      "forma": "key_value",
-      "op": null,
-      "doc": "Ritmo de viagem estendido (não é o move: de combate): marcha-forcada(max:16h) — marcha o dobro do tempo antes do efeito de marcha forçada. Aprovado 2026-06-19."
-    },
-    "patente": {
-      "categoria": "A-util",
-      "forma": "key_value",
-      "op": null,
-      "doc": "Patente/autoridade militar (narrativa): patente:militar — influência sobre soldados de patente inferior, requisição de equipamento simples/montaria e acesso a fortalezas amigas. Aprovado 2026-06-19."
     },
     "aura": {
       "categoria": "A10",
@@ -1764,12 +1694,6 @@
       "target": "sintonizacao",
       "doc": "Itens mágicos: o personagem sintoniza até 3 (padrão); item só tem efeito sintonizado; alguns exigem pré-req (raça/classe/conjurador — fica no item). attr-max:sintonizacao=N eleva o teto (Maestria em Itens Mágicos)."
     },
-    "push-pull-ver": {
-      "categoria": "A8",
-      "forma": "flag",
-      "op": null,
-      "doc": "ver primitives.push / primitives.pull (movimento forçado)."
-    },
     "_doc_talentos": "Vocabulário formalizado a partir do tagueamento de TALENTOS (2026-06-18, aprovado pelo PO). Recursos universais dados-de-vida/inspiracao-heroica vivem em 'recursos_universais'.",
     "swap-initiative": {
       "categoria": "A2",
@@ -1851,12 +1775,6 @@
       "op": "grant-execution",
       "doc": "Manipula equipamento sem ação extra: equip:draw (sacar) | equip:stow (guardar) | equip:reload (recarregar). 'no-loading' via no-*."
     },
-    "draw": {
-      "categoria": "A8",
-      "forma": "key_value",
-      "op": "grant-execution",
-      "doc": "Saca/desembainha uma arma como parte da ação (draw:weapon{arremesso}). Atalho de equip:draw."
-    },
     "reload": {
       "categoria": "A8",
       "forma": "flag",
@@ -1876,23 +1794,11 @@
       "target": "alvo",
       "doc": "O alvo fica imune a ESTA habilidade por uma duração (Assecla: immune-ability(duration:24h))."
     },
-    "no-use-consumed": {
-      "categoria": "A11",
-      "forma": "flag",
-      "op": "override",
-      "doc": "O uso da habilidade NÃO é descontado do limite nesta ativação (Sortudo/Fortuna do Tolo)."
-    },
     "negate-effect": {
       "categoria": "A9",
       "forma": "key_value",
       "op": "gate",
       "doc": "Previne/anula um efeito iminente sobre um aliado protegido (Guarda de Formação). Par defensivo de apply."
-    },
-    "mimicry": {
-      "categoria": "A9",
-      "forma": "flag",
-      "op": "grant-execution",
-      "doc": "Imita sons/vozes ouvidos; quem suspeita faz teste contestado (Atuação vs Intuição)."
     },
     "reduce-forced-movement": {
       "categoria": "A5",
@@ -1957,12 +1863,6 @@
       "op": "set-value",
       "target": "pv.maximo",
       "doc": "Reduz o PV MÁXIMO (Hemomancia): max-hp-reduction:+<f>(reset:long-rest). Gasta vitalidade até o descanso. Aprovado 2026-06-18."
-    },
-    "ability-pick": {
-      "categoria": "A12",
-      "forma": "key_value",
-      "op": "pick",
-      "doc": "Escolhe o atributo de conjuração de uma magia/efeito (ability-pick:{int|wis|cha}); sinônimo de pick:spell-mod. Aprovado 2026-06-18."
     },
     "obscured": {
       "categoria": "A10",
@@ -2109,12 +2009,6 @@
       "op": "set-value",
       "target": "variaveis",
       "doc": "Atribui uma variável de ESCOLHA/estado do personagem (set:descendencia=wyvern). Base das transformações/escolhas de essência; referenciada depois por requires:<var>=<valor> e match(<var>){...}."
-    },
-    "at-will": {
-      "categoria": "A12",
-      "forma": "flag",
-      "op": "add-modifier",
-      "doc": "Qualificador de cast{}: conjura À VONTADE (sem custo de recurso nem limite de usos)."
     },
     "wield-item": {
       "categoria": "A8",

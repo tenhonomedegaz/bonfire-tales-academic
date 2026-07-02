@@ -8,12 +8,16 @@
 {% endblock %}
 
 {% block content %}
-<section class="ficha animate-fade-in space-y-5">
+<section class="ficha animate-fade-in space-y-5 {{ appearance.theme_class }} {{ appearance.effect_class }}">
 
   {# ===================== CABEÇALHO (banner estilo planilha) ===================== #}
   <header class="ficha-header ficha-banner">
+    {% if p.banner_url %}<div class="ficha-banner-media" style="background-image:url('{{ p.banner_url }}');"></div>{% endif %}
     {# --- pergaminho à esquerda: nome + classes --- #}
     <div class="banner-scroll">
+      <div class="banner-character-avatar {{ appearance.frame_class }}">
+        {% if p.foto_url %}<img src="{{ p.foto_url }}" alt="Retrato de {{ p.nome }}" loading="lazy">{% else %}<span>{{ p.nome|first|upper }}</span>{% endif %}
+      </div>
       <h1 class="ficha-name">{{ p.nome }}</h1>
       <div class="banner-classes">
         {% for c in ficha.classes %}<span class="banner-class">{{ c.classe }}{% if c.subclasse %} <em>({{ c.subclasse }})</em>{% endif %} {{ c.nivel }}</span>{% if not forloop.last %}<span class="banner-sep">/</span>{% endif %}{% empty %}<span class="banner-class">—</span>{% endfor %}
@@ -403,6 +407,34 @@
           </div>
           <label class="info-field full"><span class="lbl">URL do retrato <span class="hint">link de imagem</span></span><input type="url" name="foto_url" value="{{ p.foto_url|default:'' }}" placeholder="https://..."></label>
           <label class="info-field full"><span class="lbl">URL do token <span class="hint">link de imagem</span></span><input type="url" name="token_url" value="{{ p.token_url|default:'' }}" placeholder="https://..."></label>
+        </div>
+      </div>
+
+      <div class="ficha-panel">
+        <div class="ficha-section-title">Tema da Ficha</div>
+        <div class="info-grid appearance-controls">
+          <label class="info-field full"><span class="lbl">URL do banner <span class="hint">imagem ou GIF</span></span><input type="url" name="banner_url" value="{{ p.banner_url|default:'' }}" placeholder="https://.../banner.gif"></label>
+          <label class="info-field"><span class="lbl">Tema</span>
+            <select name="ficha_theme">
+              {% for key, item in appearance_themes.items %}
+              <option value="{{ key }}" {% if key == appearance.theme_key %}selected{% endif %}>{{ item.label }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <label class="info-field"><span class="lbl">Moldura</span>
+            <select name="foto_frame">
+              {% for key, item in appearance_frames.items %}
+              <option value="{{ key }}" {% if key == appearance.frame_key %}selected{% endif %}>{{ item.label }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <label class="info-field"><span class="lbl">Efeito</span>
+            <select name="ficha_effect">
+              {% for key, item in appearance_effects.items %}
+              <option value="{{ key }}" {% if key == appearance.effect_key %}selected{% endif %}>{{ item.label }}</option>
+              {% endfor %}
+            </select>
+          </label>
         </div>
       </div>
 

@@ -25,6 +25,8 @@ import operator
 import re
 import unicodedata
 
+from .item_mecanica import mecanica_de_tags, dano_display, propriedades_display
+
 # (campo no modelo, sigla PT, rótulo)
 ATRIBUTOS = [
     ('forca', 'FOR', 'Força'),
@@ -623,8 +625,10 @@ def _maestrias_armas(personagem):
                 mslugs = [x.strip() for x in m.group(1).split(',') if x.strip()]
         maestrias = [{'slug': s, 'nome': mast[s].nome if s in mast else s,
                       'efeito': (mast[s].descricao if s in mast else '') or ''} for s in mslugs]
+        _mec = mecanica_de_tags(arma.tags_json, arma.subcategoria)
         out.append({'arma': arma.nome, 'slug': arma.slug, 'encontrada': True,
-                    'dano': arma.dano, 'propriedades': arma.propriedades, 'maestrias': maestrias})
+                    'dano': dano_display(_mec), 'propriedades': propriedades_display(_mec),
+                    'maestrias': maestrias})
     return out
 
 
@@ -655,9 +659,10 @@ def _inventario(personagem):
     for it in personagem.inventario.select_related('id_item_magico').all().order_by('-equipado', 'nome'):
         magico = it.id_item_magico
         cons = _item_consumivel_meta(it, magico)
+        _mec_inv = mecanica_de_tags(it.tags_json)
         out.append({'id': it.id, 'nome': it.nome, 'qtd': it.qtd, 'custo': it.custo, 'peso': it.peso,
-                    'equipado': bool(it.equipado), 'tipo_equip': it.tipo_equip,
-                    'pode_equipar': bool(it.tipo_equip) or bool(magico),
+                    'equipado': bool(it.equipado), 'tipo_equip': _mec_inv['tipo_equip'],
+                    'pode_equipar': bool(_mec_inv['tipo_equip']) or bool(magico),
                     'magico': bool(magico),
                     'raridade': magico.get_raridade_display() if magico else None,
                     'requer_sintonizacao': bool(magico and magico.requer_sintonizacao),
@@ -1241,26 +1246,21 @@ def _cond_nomes():
 
 
 def _armadura_equipada(personagem, dex_mod):
-    """CA derivada de armadura/escudo equipados (campos tipo_equip/ca_base/ca_limite_des)."""
+    """CA derivada de armadura/escudo equipados, lida das tags do item (mecanica_de_tags)."""
     tem_arm = tem_esc = False
     ca_arm, fonte = None, None
     esc_bonus = 0
     for it in personagem.inventario.filter(equipado=True):
-        if not it.tipo_equip:
-            continue
-        if it.tipo_equip == 'escudo':
+        mec = mecanica_de_tags(it.tags_json)
+        if mec['is_escudo']:
             tem_esc = True
-            esc_bonus = max(esc_bonus, it.ca_base if it.ca_base is not None else 2)
-        elif it.tipo_equip.startswith('armadura'):
+            esc_bonus = max(esc_bonus, mec['ca_base'] if mec['ca_base'] is not None else 2)
+        elif mec['is_armadura']:
             tem_arm = True
-            base = it.ca_base if it.ca_base is not None else 10
-            lim = it.ca_limite_des
-            if lim is None:
-                ca = base + dex_mod            # leve: DES total (até negativa)
-            elif lim == 0:
-                ca = base                      # pesada: DES não conta (nem negativa)
-            else:
-                ca = base + min(dex_mod, lim)  # média: até o teto
+            # CA = fórmula do item avaliada com o DES do personagem (ex.: 14+min(dex-mod,2)).
+            ca = _eval_formula(mec.get('ca_formula') or '', {'dex-mod': dex_mod})
+            if ca is None:
+                ca = (mec['ca_base'] if mec['ca_base'] is not None else 10) + dex_mod
             if ca_arm is None or ca > ca_arm:
                 ca_arm, fonte = ca, it.nome
     return {'tem_armadura': tem_arm, 'tem_escudo': tem_esc, 'ca_armadura': ca_arm,

@@ -27,6 +27,7 @@ urlpatterns = [
     path('discord/login/', views.discord_login, name='discord_login'),
     path('discord/callback/', views.discord_callback, name='discord_callback'),
     path('perfil/discord/desvincular/', views.discord_unlink, name='discord_unlink'),
+    path('perfil/<str:username>/', views.public_profile_view, name='public_profile'),
     path('verificar-email/<str:token>/', views.verify_email, name='verify_email'),
     path('wiki/talentos/<int:talent_id>/editar/', views.wiki_update_talent, name='wiki_update_talent'),
     path('wiki/habilidades-classe/<int:feature_id>/editar/', views.wiki_update_class_feature, name='wiki_update_class_feature'),
