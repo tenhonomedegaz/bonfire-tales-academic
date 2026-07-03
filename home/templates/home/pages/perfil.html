@@ -232,6 +232,31 @@
             </div>
         </div>
 
+        <!-- Seção: Conquistas (progresso — só leitura; concessão é manual/staff) -->
+        <div class="profile-badges-editor">
+            <h3 class="profile-subsection-title">Conquistas
+                <span class="avatar-preview-hint" style="text-transform:none;letter-spacing:0">({{ conquistas.obtidas_count }} / {{ conquistas.total }})</span>
+            </h3>
+            {% if conquistas.obtidas or conquistas.bloqueadas %}
+            <ul class="conquista-grid">
+                {% for c in conquistas.obtidas %}
+                <li class="conquista-item is-obtida" title="{{ c.nome }}{% if c.descricao %} — {{ c.descricao }}{% endif %} · {{ c.concedida_em|date:'d/m/Y' }}">
+                    {% if c.icone_url %}<img class="conquista-icone" src="{{ c.icone_url }}" alt="" loading="lazy">{% else %}<span class="conquista-icone conquista-icone-fallback" aria-hidden="true">🏆</span>{% endif %}
+                    <span class="conquista-nome">{{ c.nome }}</span>
+                </li>
+                {% endfor %}
+                {% for c in conquistas.bloqueadas %}
+                <li class="conquista-item is-bloqueada" title="{{ c.nome }} — bloqueada{% if c.descricao %}: {{ c.descricao }}{% endif %}">
+                    <span class="conquista-icone conquista-icone-lock" aria-hidden="true">🔒</span>
+                    <span class="conquista-nome">{{ c.nome }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <span class="avatar-preview-hint">Nenhuma conquista disponível ainda. Elas são concedidas pela equipe.</span>
+            {% endif %}
+        </div>
+
         <button type="submit" class="profile-btn">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
             Salvar Perfil

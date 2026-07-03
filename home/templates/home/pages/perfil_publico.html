@@ -52,6 +52,29 @@
     </div>
   </div>
 
+  {% if conquistas.total or conquistas.obtidas_count %}
+  <div class="public-profile-section">
+    <div class="public-profile-section-head">
+      <h2>Conquistas</h2>
+      <span>{{ conquistas.obtidas_count }} / {{ conquistas.total }}</span>
+    </div>
+    <ul class="conquista-grid" aria-label="Conquistas de {{ viewed_user.username }}">
+      {% for c in conquistas.obtidas %}
+      <li class="conquista-item is-obtida" title="{{ c.nome }}{% if c.descricao %} — {{ c.descricao }}{% endif %} · {{ c.concedida_em|date:'d/m/Y' }}">
+        {% if c.icone_url %}<img class="conquista-icone" src="{{ c.icone_url }}" alt="" loading="lazy">{% else %}<span class="conquista-icone conquista-icone-fallback" aria-hidden="true">🏆</span>{% endif %}
+        <span class="conquista-nome">{{ c.nome }}</span>
+      </li>
+      {% endfor %}
+      {% for c in conquistas.bloqueadas %}
+      <li class="conquista-item is-bloqueada" title="{{ c.nome }} — bloqueada">
+        <span class="conquista-icone conquista-icone-lock" aria-hidden="true">🔒</span>
+        <span class="conquista-nome">{{ c.nome }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
   <div class="public-profile-section">
     <div class="public-profile-section-head">
       <h2>Personagens</h2>

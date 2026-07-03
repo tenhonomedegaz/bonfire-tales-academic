@@ -29,6 +29,10 @@ CONTENT_MODELS = [
     # Catálogo de cosméticos de perfil/ficha (F1). Inventário do usuário
     # (TbUsuarioCosmetico) é dado de USUÁRIO e NÃO entra aqui.
     "TbCosmetico",
+    # Conquistas (F3): definição cadastrável pela staff → CONTEÚDO (sync por slug).
+    # A concessão (TbUsuarioConquista) é dado de USUÁRIO e NÃO entra aqui.
+    # Vem DEPOIS de TbCosmetico porque tem FK recompensa→TbCosmetico.
+    "TbConquista",
     # Decisão do PO (2026-06-26): sincronizar Bestiário/Armadilhas inteiros (todos
     # oficiais, autor nulo) + conteúdo de mundo (fonte de verdade = dev).
     "TbBestiario", "TbArmadilha", "TbRegiao", "TbTerritorio", "TbMapMarker",

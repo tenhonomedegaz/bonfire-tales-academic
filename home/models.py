@@ -1655,3 +1655,76 @@ def _invalidate_cosmetico_cache(sender, **kwargs):
     except Exception:
         # Cache é best-effort; nunca deixe uma falha de cache quebrar o save.
         pass
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Conquistas (F3) — definição cadastrável pela staff + concessão (inclusive em
+# massa) + recompensa que cai no inventário de cosméticos.
+# Ver docs/agentes/arquitetura_personalizacao_perfil.md §3 e §7 (F3).
+# CONQUISTA (TbConquista) é CONTEÚDO sincronizado por slug; a CONCESSÃO
+# (TbUsuarioConquista) é dado de USUÁRIO e NÃO é sincronizada no deploy.
+# ─────────────────────────────────────────────────────────────────────────────
+
+class TbConquista(models.Model):
+    """Definição de uma conquista. Concedida manualmente pela staff (F3) ou, no
+    futuro, por critério automático (criterio_json em signals). Ao ser concedida,
+    se tiver `recompensa`, desbloqueia o cosmético ligado no inventário do usuário.
+    A chave natural é o `slug` (usado no sync de conteúdo)."""
+    CRITERIO_CHOICES = [
+        ('manual', 'Manual (staff concede)'),
+        ('automatico', 'Automático (por critério)'),
+    ]
+
+    slug = models.SlugField(db_column='Slug', max_length=60, unique=True,
+                            help_text="Identificador estável (ex.: 'sangue-de-dragao').")
+    nome = models.CharField(db_column='Nome', max_length=100)
+    descricao = models.CharField(db_column='Descricao', max_length=255, blank=True)
+    icone_url = models.CharField(db_column='IconeUrl', max_length=500, blank=True,
+                                 help_text='Ícone/medalha da conquista (URL).')
+    secreta = models.BooleanField(db_column='Secreta', default=False,
+                                  help_text='Se marcada, só aparece pra quem a tem (não vaza existência).')
+    criterio = models.CharField(db_column='Criterio', max_length=20, default='manual',
+                                choices=CRITERIO_CHOICES,
+                                help_text='manual = staff concede; automatico = por critério (fase 2).')
+    criterio_json = models.JSONField(db_column='CriterioJson', default=dict, blank=True,
+                                     help_text='Para automático: {"evento":"aventuras","gte":10} (fase 2).')
+    recompensa = models.ForeignKey(TbCosmetico, on_delete=models.SET_NULL, null=True,
+                                   blank=True, related_name='conquistas',
+                                   db_column='RecompensaId',
+                                   help_text='Cosmético desbloqueado no inventário ao conceder.')
+    ordem = models.IntegerField(db_column='Ordem', default=0)
+    ativo = models.BooleanField(db_column='Ativo', default=True)
+
+    class Meta:
+        db_table = 'TB_Conquista'
+        verbose_name = 'Conquista'
+        verbose_name_plural = 'Conquistas'
+        ordering = ['ordem', 'nome']
+
+    def __str__(self):
+        return self.nome
+
+
+class TbUsuarioConquista(models.Model):
+    """Concessão de uma conquista a um usuário (o que ele CONQUISTOU). Dado de
+    USUÁRIO — NÃO entra no sync de conteúdo. `concedida_por` registra qual staff
+    concedeu (auditoria)."""
+    user = models.ForeignKey('auth.User', on_delete=models.CASCADE,
+                             related_name='conquistas', db_column='UserId')
+    conquista = models.ForeignKey(TbConquista, on_delete=models.CASCADE,
+                                  related_name='concessoes', db_column='ConquistaId')
+    concedida_em = models.DateTimeField(db_column='ConcedidaEm', auto_now_add=True)
+    concedida_por = models.ForeignKey('auth.User', on_delete=models.SET_NULL,
+                                      null=True, blank=True,
+                                      related_name='conquistas_concedidas',
+                                      db_column='ConcedidaPorId')
+
+    class Meta:
+        db_table = 'TB_UsuarioConquista'
+        verbose_name = 'Conquista do usuário'
+        verbose_name_plural = 'Conquistas dos usuários'
+        unique_together = [('user', 'conquista')]
+        ordering = ['-concedida_em']
+
+    def __str__(self):
+        return '%s → %s' % (self.user.username, self.conquista.slug)

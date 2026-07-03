@@ -22,6 +22,9 @@ UPSERT_POR_SLUG = [
     # Catálogo de cosméticos (F1): referenciado por TbUsuarioCosmetico (inventário
     # do usuário) → casa por slug e preserva PK pra não quebrar o inventário.
     "TbCosmetico",
+    # Conquistas (F3): referenciada por TbUsuarioConquista (concessão do usuário)
+    # → casa por slug e preserva PK. Depois de TbCosmetico (FK recompensa).
+    "TbConquista",
 ]
 # Não referenciadas por FK de usuário → substitui inteiras (delete + reinsert).
 SUBSTITUI = [
@@ -39,6 +42,9 @@ MEMORY_MODELS = [
     # Inventário de cosméticos (F1): dado de USUÁRIO — nunca sincroniza, e protege
     # cosméticos referenciados contra deleção por tombstone (_memory_references).
     "TbUsuarioCosmetico",
+    # Concessão de conquistas (F3): dado de USUÁRIO — nunca sincroniza, e protege
+    # conquistas referenciadas contra deleção por tombstone.
+    "TbUsuarioConquista",
 ]
 CONTENT_MODELS = UPSERT_POR_SLUG + SUBSTITUI
 DELETIONS_PATH = os.path.join("home", "content_deletions.json")

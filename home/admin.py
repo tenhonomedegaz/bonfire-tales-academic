@@ -3191,3 +3191,129 @@ class TbUsuarioCosmeticoAdmin(admin.ModelAdmin):
     autocomplete_fields = ('user', 'cosmetico')
     readonly_fields = ('desbloqueado_em',)
     ordering = ('-desbloqueado_em',)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Conquistas (F3) — CRUD + concessão em massa (fonte única: conquistas.py).
+# ─────────────────────────────────────────────────────────────────────────────
+from .models import TbConquista, TbUsuarioConquista
+
+
+class _ConcederConquistaForm(forms.Form):
+    """Formulário da página intermediária de concessão em massa. Aceita usuários
+    por multi-select E/OU uma lista colada de usernames (um por linha/vírgula)."""
+    usuarios = forms.ModelMultipleChoiceField(
+        queryset=None, required=False,
+        widget=forms.SelectMultiple(attrs={'size': 14, 'style': 'min-width:280px'}),
+        label='Selecionar usuários',
+    )
+    usernames = forms.CharField(
+        required=False, widget=forms.Textarea(attrs={'rows': 5, 'cols': 40}),
+        label='Ou colar usernames',
+        help_text='Um por linha ou separados por vírgula. Ignora vazios e desconhecidos.',
+    )
+
+    def __init__(self, *args, **kwargs):
+        from django.contrib.auth import get_user_model
+        super().__init__(*args, **kwargs)
+        self.fields['usuarios'].queryset = (
+            get_user_model().objects.filter(is_active=True).order_by('username'))
+
+    def usuarios_resolvidos(self):
+        """União de (multi-select ∪ usernames colados), sem duplicar. Retorna
+        (users: list, desconhecidos: list[str])."""
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        selecionados = list(self.cleaned_data.get('usuarios') or [])
+        por_pk = {u.pk: u for u in selecionados}
+        desconhecidos = []
+        texto = (self.cleaned_data.get('usernames') or '').replace(',', '\n')
+        nomes = [n.strip() for n in texto.splitlines() if n.strip()]
+        if nomes:
+            # Django username é case-sensitive por padrão; casa também por lower.
+            achados_lower = {u.username.lower(): u
+                             for u in User.objects.filter(username__in=nomes)}
+            for nome in nomes:
+                u = achados_lower.get(nome.lower())
+                if u:
+                    por_pk[u.pk] = u
+                else:
+                    desconhecidos.append(nome)
+        return list(por_pk.values()), desconhecidos
+
+
+@admin.register(TbConquista)
+class TbConquistaAdmin(admin.ModelAdmin):
+    list_display = ('nome', 'slug', 'secreta', 'criterio', 'recompensa', 'ativo', 'ordem')
+    list_filter = ('secreta', 'criterio', 'ativo')
+    search_fields = ('nome', 'slug', 'descricao')
+    list_editable = ('ativo', 'ordem')
+    prepopulated_fields = {'slug': ('nome',)}
+    raw_id_fields = ('recompensa',)
+    fieldsets = (
+        (None, {'fields': ('nome', 'slug', 'descricao', 'icone_url')}),
+        ('Visibilidade', {'fields': ('secreta', 'ativo', 'ordem')}),
+        ('Critério', {'fields': ('criterio', 'criterio_json')}),
+        ('Recompensa', {'fields': ('recompensa',),
+                        'description': 'Cosmético desbloqueado no inventário ao conceder.'}),
+    )
+    actions = ('conceder_a_usuarios',)
+
+    @admin.action(description='Conceder conquista(s) selecionada(s) a usuários…')
+    def conceder_a_usuarios(self, request, queryset):
+        """Ação com página intermediária: escolhe usuários (multi-select ou lista
+        colada) e concede TODAS as conquistas selecionadas a TODOS eles, via
+        conceder_conquista (idempotente, seta concedida_por=request.user)."""
+        from django.contrib.admin.helpers import ACTION_CHECKBOX_NAME
+        from .conquistas import conceder_conquista
+
+        conquistas = list(queryset)
+        if request.POST.get('confirmar'):
+            form = _ConcederConquistaForm(request.POST)
+            if form.is_valid():
+                users, desconhecidos = form.usuarios_resolvidos()
+                if not users:
+                    self.message_user(
+                        request, 'Nenhum usuário válido informado.', level=messages.WARNING)
+                else:
+                    total_concedidas = total_ja = 0
+                    for conq in conquistas:
+                        for u in users:
+                            if conceder_conquista(u, conq, por=request.user):
+                                total_concedidas += 1
+                            else:
+                                total_ja += 1
+                    self.message_user(
+                        request,
+                        '%d concessão(ões) nova(s) e %d já existente(s) em %d usuário(s) × %d conquista(s).'
+                        % (total_concedidas, total_ja, len(users), len(conquistas)),
+                        level=messages.SUCCESS)
+                    if desconhecidos:
+                        self.message_user(
+                            request,
+                            'Usernames ignorados (não encontrados): %s' % ', '.join(desconhecidos),
+                            level=messages.WARNING)
+                    return None  # volta pro changelist
+        else:
+            form = _ConcederConquistaForm()
+
+        context = {
+            **self.admin_site.each_context(request),
+            'title': 'Conceder conquistas a usuários',
+            'conquistas': conquistas,
+            'form': form,
+            'action_checkbox_name': ACTION_CHECKBOX_NAME,
+            'selected_ids': [str(c.pk) for c in conquistas],
+            'opts': self.model._meta,
+        }
+        return render(request, 'admin/home/tbconquista/conceder.html', context)
+
+
+@admin.register(TbUsuarioConquista)
+class TbUsuarioConquistaAdmin(admin.ModelAdmin):
+    list_display = ('user', 'conquista', 'concedida_em', 'concedida_por')
+    list_filter = ('conquista', 'concedida_em')
+    search_fields = ('user__username', 'conquista__nome', 'conquista__slug')
+    autocomplete_fields = ('user', 'conquista', 'concedida_por')
+    readonly_fields = ('concedida_em',)
+    ordering = ('-concedida_em',)

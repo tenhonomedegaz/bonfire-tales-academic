@@ -5,6 +5,7 @@ import unicodedata
 from urllib.parse import unquote, urlsplit
 from .item_mecanica import mecanica_de_tags, dano_display, propriedades_display, ca_display
 from . import badges as _badges
+from . import conquistas as _conquistas
 from datetime import datetime, timezone as datetime_timezone
 from types import SimpleNamespace
 
@@ -1001,6 +1002,8 @@ def profile_view(request):
         'badges_derivadas': _badges.badges_derivadas(user),
         'titulo_equipado_slug': (profile.titulo_equipado or '').strip(),
         'badges_destaque_slugs': list(profile.badges_destaque or []),
+        # F3 — progresso das próprias conquistas (obtidas + bloqueadas não-secretas).
+        'conquistas': _conquistas.conquistas_do_usuario(user),
     })
 
 
@@ -1033,6 +1036,8 @@ def public_profile_view(request, username):
         # F2 — badges (derivadas + concedidas, fixadas primeiro) e título equipado.
         'badges': _badges.badges_do_usuario(viewed_user),
         'titulo': _badges.titulo_do_usuario(viewed_user),
+        # F3 — vitrine de conquistas (compacta). Secretas não-obtidas nunca aparecem.
+        'conquistas': _conquistas.conquistas_do_usuario(viewed_user),
     })
 
 
