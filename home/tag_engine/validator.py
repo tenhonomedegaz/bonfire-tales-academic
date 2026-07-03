@@ -25,7 +25,7 @@ Diagnostic = namedtuple("Diagnostic", "level code message fragment")
 # blocos cujo CORPO é uma lista de efeitos (recursão de validação de heads)
 WRAPPER_BLOCKS = {
     "instant", "while-active", "always-active", "effects", "aura", "aoe",
-    "restriction", "modifiers", "cast", "while",
+    "restriction", "restricts", "modifiers", "cast", "while",
 }
 
 _NUMERIC = re.compile(r"^\d")
@@ -115,21 +115,22 @@ def _walk_heads(nodes, lib, unknown, locals_=frozenset(), top=True):
             # head). Evita recursar em ref aninhada: cast:ability{X} -> o {X} é da
             # ability, não do cast, então 'X' não é lido como verbo.
             blk = seg[hend] if hend < len(seg) else None
-            if blk and blk[0] == "grp" and blk[1] == "{" and (base in WRAPPER_BLOCKS or base is None):
+            base_key = base.replace("_", "-") if base else None
+            if blk and blk[0] == "grp" and blk[1] == "{" and (base_key in WRAPPER_BLOCKS or base is None):
                 _walk_heads(blk[2], lib, unknown, locals_, top=False)
 
 
 # ───────────────────────── checagens por regex ──────────────────────
 # nomes criados por define{<nome>: ...} ou define:weapon{<nome>: ...} — locais válidos,
 # não verbos. Coletados em TODAS as linhas do registro (podem ser usados noutra linha).
-_RE_DEFINE = re.compile(r"define\s*(?::\s*weapon\s*)?\{\s*([a-z0-9][a-z0-9-]*)\s*:")
+_RE_DEFINE = re.compile(r"define\s*(?::\s*weapon\s*)?\{\s*([a-z0-9][a-z0-9_-]*)\s*:")
 # formas de DECLARAR um pool INTERNO (recurso de fórmula/fixo que NÃO vai na
 # TB_RecursoClasse — só vão na tabela recursos que escalam por nível): definido
 # via define{}, resource{X}(max:...), max:X=..., ou mark{X,...}.
-_RE_POOL_DECL = re.compile(r"resource\{([a-z0-9-]+)\}\s*\(")
-_RE_MAX_DECL = re.compile(r"\bmax:([a-z0-9-]+)\s*=")
-_RE_MARK_DECL = re.compile(r"mark\{\s*([a-z0-9-]+)\s*,")
-_RE_EQUIPED = re.compile(r"equiped\{([a-z0-9-]+)\}")  # itens com cargas (kit-de-curandeiro)
+_RE_POOL_DECL = re.compile(r"resource\{([a-z0-9_-]+)\}\s*\(")
+_RE_MAX_DECL = re.compile(r"\bmax:([a-z0-9_-]+)\s*=")
+_RE_MARK_DECL = re.compile(r"mark\{\s*([a-z0-9_-]+)\s*,")
+_RE_EQUIPED = re.compile(r"equiped\{([a-z0-9_-]+)\}")  # itens com cargas (kit-de-curandeiro)
 
 def collect_locals(tags):
     out = set()
@@ -140,23 +141,24 @@ def collect_locals(tags):
 
 
 _RE_ABILITY = re.compile(r"ability\s*\{([^{}]*)\}")
-_RE_SPELL = re.compile(r"\bspell\s*:\s*([a-z0-9][a-z0-9-]*)")
-_RE_RES_BRACE = re.compile(r"\bresource\s*\{\s*([a-z0-9-]+)\s*\}")
-_RE_RES_KV = re.compile(r"\bresource-(?:cost|restore)\s*:\s*([a-z0-9-]+)")
+_RE_SPELL = re.compile(r"\bspell\s*:\s*([a-z0-9][a-z0-9_-]*)")
+_RE_RES_BRACE = re.compile(r"\bresource\s*\{\s*([a-z0-9_-]+)\s*\}")
+_RE_RES_KV = re.compile(r"\bresource[_-](?:cost|restore)\s*:\s*([a-z0-9_-]+)")
 
 # palavras-chave de SELEÇÃO de magia (spell:pick{lista|escola|nivel}) — não são slugs.
 # A forma canônica é cast{spell:pick{...}}; reportadas à parte, não como #REF!.
 # seletores semânticos de spell: (não são slugs de TbMagia): a magia em contexto.
 _SPELL_NONSLUG = {"pick", "lista", "truque", "escola", "ability", "nivel", "qualquer",
-                  "any", "active", "picked", "spell-selection", "elemental",
-                  "livro-de-rituais", "cantrip", "escolhido", "caminho-final-preparada", "school"}
-_RE_MASTERY = re.compile(r"add-mastery\s*:\s*([a-z0-9-]+)")
-_RE_OPCAO = re.compile(r"\bopcao\s*:\s*([a-z0-9-]+)")
-_RE_BESTIARY = re.compile(r"bestiary\s*\{\s*([a-z0-9-]+)\s*\}")
-_RE_CLASSE = re.compile(r"\bclasse\s*:\s*([a-z0-9-]+)")
-_RE_SOURCE = re.compile(r"\b(talento|raca|linhagem|essencia|subclasse)\s*:\s*([a-z][a-z0-9-]*)")
+                  "any", "active", "picked", "spell-selection", "spell_selection", "elemental",
+                  "livro-de-rituais", "livro_de_rituais", "cantrip", "escolhido", 
+                  "caminho-final-preparada", "caminho_final_preparada", "school"}
+_RE_MASTERY = re.compile(r"add[_-]mastery\s*:\s*([a-z0-9_-]+)")
+_RE_OPCAO = re.compile(r"\bopcao\s*:\s*([a-z0-9_-]+)")
+_RE_BESTIARY = re.compile(r"bestiary\s*\{\s*([a-z0-9_-]+)\s*\}")
+_RE_CLASSE = re.compile(r"\bclasse\s*:\s*([a-z0-9_-]+)")
+_RE_SOURCE = re.compile(r"\b(talento|raca|linhagem|essencia|subclasse)\s*:\s*([a-z][a-z0-9_-]*)")
 
-_SRC_RE = re.compile(r"\b(classe|subclasse|talento|raca|linhagem|essencia|bestiary|dominio)\s*:\s*([a-z0-9-]+)")
+_SRC_RE = re.compile(r"\b(classe|subclasse|talento|raca|linhagem|essencia|bestiary|dominio)\s*:\s*([a-z0-9_-]+)")
 
 
 def _check_source_refs(line, data):
@@ -166,7 +168,7 @@ def _check_source_refs(line, data):
     # Fonte de ability/condicao racial/talento: subclasse:, raca:, linhagem:, essencia:, talento:.
     # A regex exige slug iniciado por letra, entao nao confunde pick:talento:1.
     for m in _RE_SOURCE.finditer(line):
-        kind, slug = m.group(1), m.group(2)
+        kind, slug = m.group(1), _slug(m.group(2))
         if not data.source_exists(kind, slug):
             out.append(Diagnostic(ERROR, "ref-source",
                        f"{kind} '{slug}' nao existe no banco (#REF!)", m.group(0)))
@@ -187,7 +189,7 @@ def _check_references(line, lib, data, locals_=frozenset()):
         if nm in locals_:
             continue
         sm = _SRC_RE.search(inner)
-        src_t, src_s = (sm.group(1), sm.group(2)) if sm else (None, None)
+        src_t, src_s = (sm.group(1), _slug(sm.group(2))) if sm else (None, None)
         # ability{X, talento:Y} aponta p/ sub-feature descrita no markdown do talento —
         # não é #REF! contra TbClassehabilidade (decisão da triagem 2026-06-18).
         if src_t in ("talento", "raca", "essencia", "linhagem", "bestiary", "dominio"):
@@ -205,50 +207,58 @@ def _check_references(line, lib, data, locals_=frozenset()):
                        f"ability '{name}' existe, mas nao na subclasse '{src_s}' (conferir fonte)", m.group(0)))
     # spell:slug
     for m in _RE_SPELL.finditer(line):
-        slug = m.group(1)
+        raw_slug = m.group(1)
+        slug = _slug(raw_slug)
         if slug in _SPELL_NONSLUG or line[m.end():m.end() + 1] in "{(":
             continue  # spell:pick{...} / spell:x(...) — não é slug solto
         if slug not in data.spell_slugs:
             out.append(Diagnostic(ERROR, "ref-spell",
-                       f"spell '{slug}' não existe (TbMagia.slug) (#REF!)", m.group(0)))
+                       f"spell '{raw_slug}' não existe (TbMagia.slug) (#REF!)", m.group(0)))
     # resource{slug} / resource-cost|restore:slug
     for rx in (_RE_RES_BRACE, _RE_RES_KV):
         for m in rx.finditer(line):
             if line[m.end():m.end() + 1] == "{":
                 continue  # resource-cost:ability{...} = ref aninhada, não slug
-            if not data.resource_exists(m.group(1), lib):
+            if not data.resource_exists(_slug(m.group(1)), lib):
                 out.append(Diagnostic(ERROR, "ref-resource",
                            f"recurso '{m.group(1)}' não existe em TB_RecursoClasse nem é universal (#REF!)", m.group(0)))
     # add-mastery:slug  ('wielded' = herda a maestria da arma-base; nº = nº de maestrias)
     for m in _RE_MASTERY.finditer(line):
-        v = m.group(1)
+        v = _slug(m.group(1))
         if v not in data.masteries and v not in ("wielded",) and not v.isdigit():
             out.append(Diagnostic(ERROR, "ref-mastery",
                        f"maestria '{v}' não existe em TB_OpcaoJogo[Maestria de Arma] (#REF!)", m.group(0)))
     # opcao:tipo  ('item-magico'/'itens' = referência ao catálogo TbItemMagico, não TB_OpcaoJogo)
     for m in _RE_OPCAO.finditer(line):
-        if m.group(1) not in data.opcao_tipos and m.group(1) not in ("item-magico", "itens"):
+        tipo = _slug(m.group(1))
+        if tipo not in data.opcao_tipos and tipo not in ("item-magico", "itens"):
             out.append(Diagnostic(WARN, "ref-opcao",
                        f"tipo de opção '{m.group(1)}' não casa com TB_OpcaoJogo.Tipo", m.group(0)))
     # bestiary{slug}
     for m in _RE_BESTIARY.finditer(line):
-        if data.bestiary_slugs and m.group(1) not in data.bestiary_slugs:
+        slug = _slug(m.group(1))
+        if data.bestiary_slugs and slug not in data.bestiary_slugs:
             out.append(Diagnostic(ERROR, "ref-bestiary",
                        f"criatura '{m.group(1)}' não existe no Bestiário (#REF!)", m.group(0)))
     # classe:slug (fora de ability{}, já coberto lá)
     for m in _RE_CLASSE.finditer(line):
-        if m.group(1) not in data.classe_slugs:
+        slug = _slug(m.group(1))
+        if slug not in data.classe_slugs:
             out.append(Diagnostic(WARN, "ref-classe",
                        f"classe '{m.group(1)}' não casa com TbClasse.slug", m.group(0)))
     return out
 
 
-_CAT_RE = re.compile(r"\b(resist|immune|vuln|cond-immune|dmg-type|ignore-resist|convert-dmg-type|apply|cleanse|size|add-property|sense)\s*:\s*=?\s*([a-zà-ÿ][a-zà-ÿ-]*)")
+_CAT_RE = re.compile(r"\b(resist|immune|vuln|cond[_-]immune|dmg[_-]type|ignore[_-]resist|convert[_-]dmg[_-]type|apply|cleanse|size|add[_-]property|sense)\s*:\s*=?\s*([a-zà-ÿ][a-zà-ÿ_-]*)")
 _CAT_MAP = {
     "resist": "damage-type", "immune": "damage-type", "vuln": "damage-type",
-    "dmg-type": "damage-type", "ignore-resist": "damage-type", "convert-dmg-type": "damage-type",
-    "cond-immune": "condition", "apply": "condition", "cleanse": "condition",
-    "size": "size", "add-property": "weapon-property", "sense": "sense-type",
+    "dmg-type": "damage-type", "dmg_type": "damage-type",
+    "ignore-resist": "damage-type", "ignore_resist": "damage-type",
+    "convert-dmg-type": "damage-type", "convert_dmg_type": "damage-type",
+    "cond-immune": "condition", "cond_immune": "condition",
+    "apply": "condition", "cleanse": "condition",
+    "size": "size", "add-property": "weapon-property", "add_property": "weapon-property",
+    "sense": "sense-type",
 }
 _CAT_SPECIAL = {
     # selectors/keywords + alvos de imunidade que NÃO são tipos de dano mas valem
@@ -385,11 +395,26 @@ def _check_innate_casting_tags(tags):
     ]
 
 
-def validate_tag_line(line, lib, data=None, locals_=frozenset()):
+def _check_strict_names(tokens, line):
+    out = []
+    for tok in tokens:
+        if tok.type == "WORD" and "-" in tok.value:
+            out.append(Diagnostic(
+                ERROR,
+                "nome-com-hifen",
+                "identificador mecanico deve usar snake_case; '-' fica reservado para operador matematico",
+                _frag(line, tok.pos),
+            ))
+    return out
+
+
+def validate_tag_line(line, lib, data=None, locals_=frozenset(), strict_names=False):
     diags = []
     if not isinstance(line, str) or not line.strip():
         return diags
     tokens = tokenize(line)
+    if strict_names:
+        diags.extend(_check_strict_names(tokens, line))
 
     bal = check_balance(tokens, line)
     for pos, msg in bal:
@@ -413,7 +438,7 @@ def validate_tag_line(line, lib, data=None, locals_=frozenset()):
     return diags
 
 
-def validate_tags_json(tags, lib, data=None):
+def validate_tags_json(tags, lib, data=None, strict_names=False):
     """tags = lista de strings (uma TbX.tags_json). Retorna [Diagnostic]."""
     out = []
     if not tags:
@@ -422,7 +447,7 @@ def validate_tags_json(tags, lib, data=None):
         tags = [tags]
     locals_ = collect_locals(tags)
     for line in tags:
-        out.extend(validate_tag_line(line, lib, data, locals_))
+        out.extend(validate_tag_line(line, lib, data, locals_, strict_names=strict_names))
     out.extend(_check_innate_casting_tags(tags))
     return out
 
@@ -447,7 +472,7 @@ class DataIndex:
         self.internal_pools = set()   # pools de fórmula/fixos declarados nas tags
 
     def resource_exists(self, slug, lib):
-        if slug in self.resources or slug in lib.recursos_universais:
+        if slug in self.resources or slug in lib.recursos_universais or slug.replace("-", "_") in lib.recursos_universais:
             return True
         if slug in self.internal_pools or slug in self.ability_names or slug == "uses":
             return True  # pool interno (define/max/mark), uso da própria habilidade, item, 'uses'=auto
@@ -553,7 +578,7 @@ class DataIndex:
                         if not isinstance(line, str):
                             continue
                         for rx in (_RE_DEFINE, _RE_POOL_DECL, _RE_MAX_DECL, _RE_MARK_DECL, _RE_EQUIPED):
-                            self.internal_pools.update(m.group(1) for m in rx.finditer(line))
+                            self.internal_pools.update(_slug(m.group(1)) for m in rx.finditer(line))
         safe(pools)
 
         # quais slugs são habilidade-DE-CLASSE (existem em alguma classe): distingue

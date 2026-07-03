@@ -24,7 +24,7 @@ import json
 
 from django.db import models
 from django.utils import timezone
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 
 
@@ -784,8 +784,10 @@ class UserProfile(models.Model):
     user = models.OneToOneField('auth.User', on_delete=models.CASCADE, related_name='profile')
     avatar_url = models.CharField(db_column='AvatarUrl', max_length=500, blank=True, null=True, help_text='URL da imagem de perfil.')
     banner_url = models.CharField(db_column='BannerUrl', max_length=500, blank=True, null=True, help_text='URL do banner do perfil. Aceita imagens animadas.')
+    background_url = models.CharField(db_column='BackgroundUrl', max_length=500, blank=True, null=True, help_text='Imagem/GIF de fundo da pagina de perfil (cover, fixo).')
     bio = models.TextField(db_column='Bio', blank=True, null=True, help_text='Texto curto exibido no perfil publico.')
     profile_theme = models.CharField(db_column='ProfileTheme', max_length=40, default='bonfire', help_text='Tema visual do perfil.')
+    theme_custom = models.JSONField(db_column='ThemeCustom', default=dict, blank=True, help_text='Cores do tema Personalizado (accent/accent2/surface/deep/gradiente).')
     avatar_frame = models.CharField(db_column='AvatarFrame', max_length=40, blank=True, null=True, help_text='Efeito de borda do avatar.')
     profile_effect = models.CharField(db_column='ProfileEffect', max_length=40, blank=True, null=True, help_text='Efeito visual do cartao de perfil.')
     vlibras_enabled = models.BooleanField(db_column='VlibrasEnabled', default=False, help_text='Habilita o plugin VLibras no site.')
@@ -1072,7 +1074,9 @@ class TbPersonagem(models.Model):
     foto_url = models.CharField(db_column='FotoUrl', max_length=500, blank=True, null=True, help_text='Link da imagem do retrato do personagem.')
     token_url = models.CharField(db_column='TokenUrl', max_length=500, blank=True, null=True, help_text='Link da imagem do token do personagem.')
     banner_url = models.CharField(db_column='BannerUrl', max_length=500, blank=True, null=True, help_text='Link do banner visual da ficha. Aceita imagens animadas.')
+    ficha_background_url = models.CharField(db_column='FichaBackgroundUrl', max_length=500, blank=True, null=True, help_text='Imagem/GIF de fundo da pagina da ficha (cover, fixo).')
     ficha_theme = models.CharField(db_column='FichaTheme', max_length=40, default='bonfire', help_text='Tema visual da ficha.')
+    ficha_theme_custom = models.JSONField(db_column='FichaThemeCustom', default=dict, blank=True, help_text='Cores do tema Personalizado da ficha (accent/accent2/surface/deep/gradiente).')
     foto_frame = models.CharField(db_column='FotoFrame', max_length=40, blank=True, null=True, help_text='Efeito de borda do retrato/token.')
     ficha_effect = models.CharField(db_column='FichaEffect', max_length=40, blank=True, null=True, help_text='Efeito visual do cabecalho da ficha.')
 
@@ -1521,3 +1525,109 @@ class TbRegra(models.Model):
 
     def __str__(self):
         return self.nome
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Personalização de perfil/ficha (F1) — catálogo em banco + inventário por usuário
+# Ver docs/agentes/arquitetura_personalizacao_perfil.md §3.
+# CATÁLOGO (TbCosmetico) é CONTEÚDO sincronizado por slug; o INVENTÁRIO
+# (TbUsuarioCosmetico) é dado de USUÁRIO e NÃO é sincronizado no deploy.
+# ─────────────────────────────────────────────────────────────────────────────
+
+class TbCosmetico(models.Model):
+    """Catálogo de cosméticos (temas/molduras/efeitos/etc.). Cada linha aponta pra
+    uma classe CSS (e opcionalmente um asset). Adicionar cosmético = INSERT + CSS,
+    sem deploy de Python. A chave natural é o `slug` (usado no sync de conteúdo)."""
+    TIPO_CHOICES = [
+        ('tema', 'Tema'),
+        ('moldura', 'Moldura'),
+        ('efeito', 'Efeito'),
+        ('titulo', 'Título'),
+        ('badge', 'Badge'),
+        ('banner_preset', 'Banner'),
+    ]
+    ORIGEM_CHOICES = [
+        ('livre', 'Livre (todos têm)'),
+        ('conquista', 'Conquista'),
+        ('loja_mm', 'Loja (Moedas de Mestragem)'),
+        ('loja_evento', 'Loja (Moedas de Evento)'),
+        ('loja_braseiro', 'Loja (Braseiros)'),
+        ('colaborador', 'Colaborador'),
+        ('staff', 'Staff'),
+        ('evento_manual', 'Evento (manual)'),
+    ]
+    ESCOPO_CHOICES = [
+        ('perfil', 'Só perfil'),
+        ('ficha', 'Só ficha'),
+        ('ambos', 'Perfil e ficha'),
+    ]
+
+    slug = models.SlugField(db_column='Slug', max_length=60, unique=True,
+                            help_text="Identificador estável (ex.: 'ember', 'gold-trim').")
+    tipo = models.CharField(db_column='Tipo', max_length=20, choices=TIPO_CHOICES)
+    nome = models.CharField(db_column='Nome', max_length=100)
+    descricao = models.CharField(db_column='Descricao', max_length=255, blank=True)
+    raridade = models.CharField(db_column='Raridade', max_length=20, default='comum',
+                                help_text='comum | raro | epico | lendario (cor do card).')
+    css_class = models.CharField(db_column='CssClass', max_length=60, blank=True,
+                                 help_text="Classe CSS aplicada (ex.: 'theme-ember', 'frame-gold-trim').")
+    asset_url = models.CharField(db_column='AssetUrl', max_length=500, blank=True,
+                                 help_text='Ícone de badge ou overlay webp/gif de moldura animada.')
+    animado = models.BooleanField(db_column='Animado', default=False)
+    origem = models.CharField(db_column='Origem', max_length=20, default='livre',
+                              choices=ORIGEM_CHOICES,
+                              help_text='Como o cosmético é adquirido. livre = todos têm.')
+    preco = models.IntegerField(db_column='Preco', null=True, blank=True,
+                                help_text='Em MM/evento/braseiro conforme a origem.')
+    requer_plano = models.CharField(db_column='RequerPlano', max_length=30, blank=True,
+                                    help_text='Para origem=colaborador: tier mínimo.')
+    escopo = models.CharField(db_column='Escopo', max_length=10, default='ambos',
+                              choices=ESCOPO_CHOICES)
+    ativo = models.BooleanField(db_column='Ativo', default=True)
+    ordem = models.IntegerField(db_column='Ordem', default=0)
+
+    class Meta:
+        db_table = 'TB_Cosmetico'
+        verbose_name = 'Cosmético'
+        verbose_name_plural = 'Cosméticos'
+        ordering = ['tipo', 'ordem', 'nome']
+
+    def __str__(self):
+        return '%s (%s)' % (self.nome, self.get_tipo_display())
+
+
+class TbUsuarioCosmetico(models.Model):
+    """Inventário: o que cada usuário TEM desbloqueado (≠ o que está usando, que
+    continua nos campos string de UserProfile/TbPersonagem). Dado de USUÁRIO —
+    NÃO entra no sync de conteúdo."""
+    user = models.ForeignKey('auth.User', on_delete=models.CASCADE,
+                             related_name='cosmeticos', db_column='UserId')
+    cosmetico = models.ForeignKey(TbCosmetico, on_delete=models.CASCADE,
+                                  related_name='desbloqueios', db_column='CosmeticoId')
+    desbloqueado_em = models.DateTimeField(db_column='DesbloqueadoEm', auto_now_add=True)
+    origem = models.CharField(db_column='Origem', max_length=30, blank=True,
+                              help_text="Como foi obtido ('conquista:<slug>', 'compra_mm', 'staff', 'seed'…).")
+
+    class Meta:
+        db_table = 'TB_UsuarioCosmetico'
+        verbose_name = 'Cosmético do usuário'
+        verbose_name_plural = 'Cosméticos dos usuários'
+        unique_together = [('user', 'cosmetico')]
+        ordering = ['-desbloqueado_em']
+
+    def __str__(self):
+        return '%s → %s' % (self.user.username, self.cosmetico.slug)
+
+
+# Invalidação do cache do catálogo de cosméticos quando a staff edita no admin.
+@receiver(post_save, sender=TbCosmetico)
+@receiver(post_delete, sender=TbCosmetico)
+def _invalidate_cosmetico_cache(sender, **kwargs):
+    if kwargs.get('raw', False):
+        return
+    try:
+        from .cosmetics import invalidate_cosmetic_cache
+        invalidate_cosmetic_cache()
+    except Exception:
+        # Cache é best-effort; nunca deixe uma falha de cache quebrar o save.
+        pass

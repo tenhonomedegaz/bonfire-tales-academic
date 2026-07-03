@@ -7,7 +7,8 @@
 {% endblock %}
 
 {% block content %}
-<div class="profile-page {{ appearance.theme_class }} {{ appearance.effect_class }}">
+{% if appearance.background_url %}<div class="profile-bg-media" id="profile-bg-media" style="background-image:url('{{ appearance.background_url }}');"></div>{% else %}<div class="profile-bg-media" id="profile-bg-media" style="display:none"></div>{% endif %}
+<div class="profile-page {{ appearance.theme_class }} {{ appearance.effect_class }}{% if appearance.background_url %} profile-has-bg{% endif %}" id="profile-root"{% if appearance.custom_style %} style="{{ appearance.custom_style }}"{% endif %}>
 
     <!-- Toasts -->
     {% for msg in success_messages %}
@@ -113,6 +114,20 @@
         </div>
 
         <div class="profile-field">
+            <label class="profile-label" for="id_background_url">Imagem de Fundo da Página (URL da imagem ou GIF)</label>
+            <input class="profile-input" type="url" id="id_background_url" name="background_url" value="{{ profile.background_url|default:'' }}" placeholder="https://.../fundo.jpg" autocomplete="off">
+            <label class="profile-file-drop" for="id_background_file">
+                <span>Enviar fundo ou GIF</span>
+                <input type="file" id="id_background_file" name="background_file" accept="image/png,image/jpeg,image/webp,image/gif">
+            </label>
+            <div class="banner-preview-box" id="background-preview-box" style="aspect-ratio:16/6;{% if profile.background_url %}background-image:url('{{ profile.background_url }}');{% else %}display:none;{% endif %}"></div>
+            <span class="avatar-preview-hint">Preenche o fundo da sua pagina de perfil (cover, fixo). Um overlay escuro mantem os cartoes legiveis.</span>
+            {% if profile.background_url %}
+            <label class="profile-inline-check"><input type="checkbox" name="clear_background"> Remover fundo atual</label>
+            {% endif %}
+        </div>
+
+        <div class="profile-field">
             <label class="profile-label" for="id_bio">Bio publica</label>
             <textarea class="profile-input profile-textarea" id="id_bio" name="bio" rows="3" maxlength="800" placeholder="Uma frase curta sobre voce, seus personagens ou suas mesas...">{{ profile.bio|default:'' }}</textarea>
         </div>
@@ -120,7 +135,7 @@
         <div class="profile-appearance-grid">
             <label class="profile-field">
                 <span class="profile-label">Tema</span>
-                <select class="profile-input" name="profile_theme">
+                <select class="profile-input" name="profile_theme" id="id_profile_theme">
                     {% for key, item in appearance_themes.items %}
                     <option value="{{ key }}" {% if key == appearance.theme_key %}selected{% endif %}>{{ item.label }}</option>
                     {% endfor %}
@@ -128,7 +143,7 @@
             </label>
             <label class="profile-field">
                 <span class="profile-label">Borda do Avatar</span>
-                <select class="profile-input" name="avatar_frame">
+                <select class="profile-input" name="avatar_frame" id="id_avatar_frame">
                     {% for key, item in appearance_frames.items %}
                     <option value="{{ key }}" {% if key == appearance.frame_key %}selected{% endif %}>{{ item.label }}</option>
                     {% endfor %}
@@ -136,12 +151,29 @@
             </label>
             <label class="profile-field">
                 <span class="profile-label">Efeito do Perfil</span>
-                <select class="profile-input" name="profile_effect">
+                <select class="profile-input" name="profile_effect" id="id_profile_effect">
                     {% for key, item in appearance_effects.items %}
                     <option value="{{ key }}" {% if key == appearance.effect_key %}selected{% endif %}>{{ item.label }}</option>
                     {% endfor %}
                 </select>
             </label>
+        </div>
+
+        {# Cores do tema Personalizado — aparecem quando Tema = Personalizado #}
+        <div class="profile-appearance-grid custom-theme-controls" id="profile-custom-controls" style="{% if not appearance.is_custom %}display:none;{% endif %}margin-top:.75rem">
+            <label class="profile-field"><span class="profile-label">Destaque</span><input type="color" class="profile-input" name="custom_accent" id="id_custom_accent" value="{{ appearance.custom.accent }}"></label>
+            <label class="profile-field"><span class="profile-label">Destaque 2</span><input type="color" class="profile-input" name="custom_accent2" id="id_custom_accent2" value="{{ appearance.custom.accent2 }}"></label>
+            <label class="profile-field"><span class="profile-label">Superfície</span><input type="color" class="profile-input" name="custom_surface" id="id_custom_surface" value="{{ appearance.custom.surface }}"></label>
+            <label class="profile-field"><span class="profile-label">Fundo</span><input type="color" class="profile-input" name="custom_deep" id="id_custom_deep" value="{{ appearance.custom.deep }}"></label>
+            <label class="profile-inline-check" style="grid-column:1/-1"><input type="checkbox" name="custom_gradiente" id="id_custom_gradiente" {% if appearance.custom.gradiente %}checked{% endif %}> Degradê animado no destaque</label>
+        </div>
+
+        {# Preview ao vivo #}
+        <div class="profile-header profile-live-preview {{ appearance.theme_class }} {{ appearance.effect_class }}" id="profile-preview" style="margin-top:1rem;padding:1.5rem;{{ appearance.custom_style }}">
+            <div class="profile-avatar-wrapper {{ appearance.frame_class }}" id="profile-preview-frame" style="width:64px;height:64px">
+                {% if profile.avatar_url %}<img src="{{ profile.avatar_url }}" alt="">{% else %}<div class="profile-avatar-fallback"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>{% endif %}
+            </div>
+            <span class="profile-username" style="font-size:1rem">Prévia do tema</span>
         </div>
 
         <div class="profile-field">
@@ -316,6 +348,60 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!file) return;
             setBanner(URL.createObjectURL(file));
         });
+    }
+
+    // --- Fundo da página (background) ---
+    const bgUrl = document.getElementById('id_background_url');
+    const bgFile = document.getElementById('id_background_file');
+    const bgPreview = document.getElementById('background-preview-box');
+    const setBg = (url) => {
+        if (!bgPreview) return;
+        if (url) { bgPreview.style.backgroundImage = `url("${url}")`; bgPreview.style.display = 'block'; }
+        else { bgPreview.style.display = 'none'; }
+    };
+    if (bgUrl) bgUrl.addEventListener('input', () => setBg(bgUrl.value.trim()));
+    if (bgFile) bgFile.addEventListener('change', () => {
+        const file = bgFile.files && bgFile.files[0];
+        if (file) setBg(URL.createObjectURL(file));
+    });
+
+    // --- Preview ao vivo do tema/moldura/efeito/custom ---
+    const pv = document.getElementById('profile-preview');
+    if (pv) {
+        const pvFrame = document.getElementById('profile-preview-frame');
+        const themeSel = document.getElementById('id_profile_theme');
+        const frameSel = document.getElementById('id_avatar_frame');
+        const effectSel = document.getElementById('id_profile_effect');
+        const customBox = document.getElementById('profile-custom-controls');
+        const THEME = { {% for key, item in appearance_themes.items %}'{{ key }}':'{{ item.class }}',{% endfor %} };
+        const FRAME = { {% for key, item in appearance_frames.items %}'{{ key }}':'{{ item.class }}',{% endfor %} };
+        const EFFECT = { {% for key, item in appearance_effects.items %}'{{ key }}':'{{ item.class }}',{% endfor %} };
+        const cA = document.getElementById('id_custom_accent');
+        const cB = document.getElementById('id_custom_accent2');
+        const cS = document.getElementById('id_custom_surface');
+        const cD = document.getElementById('id_custom_deep');
+        const cG = document.getElementById('id_custom_gradiente');
+        const applyTheme = () => {
+            const t = themeSel ? themeSel.value : 'bonfire';
+            pv.className = 'profile-header profile-live-preview ' + (THEME[t] || '') + ' ' + (EFFECT[effectSel.value] || '');
+            pvFrame.className = 'profile-avatar-wrapper ' + (FRAME[frameSel.value] || '');
+            const isCustom = t === 'custom';
+            if (customBox) customBox.style.display = isCustom ? '' : 'none';
+            if (isCustom) {
+                const accent = cG && cG.checked ? `linear-gradient(120deg, ${cA.value}, ${cB.value})` : cA.value;
+                pv.style.cssText = 'margin-top:1rem;padding:1.5rem;'
+                    + `--profile-accent:${accent};--profile-accent-solid:${cA.value};`
+                    + `--profile-accent-2:${cB.value};--profile-surface:${cS.value};--profile-deep:${cD.value};`;
+            } else {
+                pv.style.cssText = 'margin-top:1rem;padding:1.5rem';
+            }
+        };
+        [themeSel, frameSel, effectSel, cA, cB, cS, cD, cG].forEach(el => {
+            if (!el) return;
+            el.addEventListener('input', applyTheme);
+            el.addEventListener('change', applyTheme);
+        });
+        applyTheme();
     }
 });
 </script>

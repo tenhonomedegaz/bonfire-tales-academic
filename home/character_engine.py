@@ -1043,11 +1043,37 @@ _OPS = {ast.Add: operator.add, ast.Sub: operator.sub, ast.Mult: operator.mul,
         ast.Mod: operator.mod, ast.USub: operator.neg, ast.UAdd: operator.pos}
 _FUNCS = {'max': max, 'min': min, 'round': round, 'abs': abs,
           'roundup': lambda x: math.ceil(x), 'rounddown': lambda x: math.floor(x)}
+_FORMULA_ALIASES = {
+    'str-mod': 'str_mod', 'dex-mod': 'dex_mod', 'con-mod': 'con_mod',
+    'int-mod': 'int_mod', 'wis-mod': 'wis_mod', 'cha-mod': 'cha_mod',
+    'str-score': 'str_score', 'dex-score': 'dex_score', 'con-score': 'con_score',
+    'int-score': 'int_score', 'wis-score': 'wis_score', 'cha-score': 'cha_score',
+    'spell-mod': 'spell_mod',
+}
+
+
+def _formula_ctx(ctx):
+    out = dict(ctx or {})
+    for old, new in _FORMULA_ALIASES.items():
+        if old in out and new not in out:
+            out[new] = out[old]
+        if new in out and old not in out:
+            out[old] = out[new]
+    return out
+
+
+def _normalize_formula_vars(expr):
+    out = str(expr)
+    for old, new in sorted(_FORMULA_ALIASES.items(), key=lambda item: len(item[0]), reverse=True):
+        out = re.sub(r'(?<![a-z0-9_])' + re.escape(old) + r'(?![a-z0-9_])', new, out)
+    return out
 
 
 def _build_ctx(nivel_total, pb, atributos):
     ctx = {'lvl': int(nivel_total), 'classlvl': int(nivel_total), 'pb': int(pb)}
     for sig, en in _ATTR_EN.items():
+        ctx[en + '_mod'] = atributos[sig]['mod']
+        ctx[en + '_score'] = atributos[sig]['valor']
         ctx[en + '-mod'] = atributos[sig]['mod']
         ctx[en + '-score'] = atributos[sig]['valor']
     return ctx
@@ -1068,10 +1094,8 @@ def _eval_node(node):
 def _eval_formula(expr, ctx):
     """Fórmula aritmética (variáveis + max/min/round/roundup/rounddown), via AST
     (sem eval, sem potência). int ou None."""
-    e = str(expr).strip()
-    # NÃO incluir '-' nas fronteiras: variáveis hifenadas (dex-mod) são substituídas
-    # inteiras (ordem por tamanho desc), e '-' aqui é operador de subtração — incluí-lo
-    # fazia 'classlvl-3' não substituir 'classlvl' e a fórmula virar None.
+    e = _normalize_formula_vars(str(expr).strip())
+    ctx = _formula_ctx(ctx)
     for var in sorted(ctx, key=len, reverse=True):
         e = re.sub(r'(?<![a-z0-9_])' + re.escape(var) + r'(?![a-z0-9_])', '(%d)' % ctx[var], e)
     if re.search(r'[A-Za-z_]', re.sub(r'\b(?:max|min|round|abs|roundup|rounddown)\b', '', e)):
@@ -1257,8 +1281,8 @@ def _armadura_equipada(personagem, dex_mod):
             esc_bonus = max(esc_bonus, mec['ca_base'] if mec['ca_base'] is not None else 2)
         elif mec['is_armadura']:
             tem_arm = True
-            # CA = fórmula do item avaliada com o DES do personagem (ex.: 14+min(dex-mod,2)).
-            ca = _eval_formula(mec.get('ca_formula') or '', {'dex-mod': dex_mod})
+            # CA = fórmula do item avaliada com o DES do personagem (ex.: 14+min(dex_mod,2)).
+            ca = _eval_formula(mec.get('ca_formula') or '', {'dex_mod': dex_mod})
             if ca is None:
                 ca = (mec['ca_base'] if mec['ca_base'] is not None else 10) + dex_mod
             if ca_arm is None or ca > ca_arm:
@@ -1442,7 +1466,7 @@ def apply_tags(state, features, personagem=None, escolhas=None):
     state['pv']['maximo_calculado'] += sum(v for _, v in hp_bonus)
 
     # CA ciente de armadura
-    dex_mod = base_ctx['dex-mod']
+    dex_mod = base_ctx['dex_mod']
     equip = _armadura_equipada(personagem, dex_mod) if personagem is not None else \
         {'tem_armadura': False, 'tem_escudo': False, 'ca_armadura': None, 'fonte': None, 'escudo_bonus': 0}
     validas = [(v, n) for (v, n, gs) in ca_cands

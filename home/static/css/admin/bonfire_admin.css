@@ -1,0 +1,983 @@
+/* ============================================================================
+   BONFIRE TALES — TEMA DO DJANGO ADMIN (reescrito do zero)
+   ----------------------------------------------------------------------------
+   Prioridade: USABILIDADE. Legibilidade alta, contraste bom, espacamento
+   generoso, tabelas escaneaveis, formularios confortaveis e botoes de acao
+   obvios. Estetica dark/brasa alinhada ao site (tokens --ember/--flame/--spark
+   de home/static/css/pages/base.css), mas sem exageros animados: e ferramenta
+   interna.
+
+   Estrutura do arquivo:
+     1.  Tokens (paleta + mapeamento das variaveis nativas do admin)
+     2.  Base tipografica e reset leve
+     3.  Cabecalho e breadcrumbs
+     4.  Layout / modulos (cards)
+     5.  Dashboard (index / app list)
+     6.  Changelist (tabelas, toolbar, acoes, paginacao)
+     7.  Filtros (sidebar)
+     8.  Formularios (change_form, fieldsets, widgets)
+     9.  Inlines (stacked como cards + tabular)
+     10. Botoes e submit-row
+     11. Mensagens e erros
+     12. Login
+     13. Delete confirmation
+     14. Badges utilitarios usados em list_display (admin.py)
+     15. Acessibilidade (foco, prefers-reduced-motion)
+   ========================================================================== */
+
+/* ==========================================================================
+   1. TOKENS
+   Paleta do site + aliases para as variaveis nativas do Django admin.
+   IMPORTANTE: --darkened-bg, --border-color, --primary, --secondary, --accent,
+   --body-fg, --body-quiet-color e --selected-bg sao consumidos por
+   spell_import.css e markdown_editor.css — nao renomear.
+   ========================================================================== */
+:root,
+[data-theme="light"],
+[data-theme="dark"],
+html[data-theme] {
+    /* Paleta Bonfire */
+    --bg0: #0A0A0B;          /* fundo base da pagina */
+    --bg1: #131316;          /* superficie de cards / modulos */
+    --bg2: #1C1C20;          /* superficie elevada / cabecalhos de card */
+    --bg3: #232329;          /* hover / linhas destacadas */
+    --card: #131316;
+    --stroke: #2E2E34;       /* bordas visiveis, contraste um pouco maior */
+    --stroke-soft: rgba(255, 255, 255, .06);
+    --text: #F2F2F3;         /* texto principal, alto contraste */
+    --text-soft: #D4D4D8;
+    --muted: #A8A8B2;        /* rotulos, ajuda, texto secundario */
+    --ember: #F27007;
+    --ember-soft: rgba(242, 112, 7, .14);
+    --flame: #D21717;
+    --spark: #F7B113;
+    --ok: #34C759;
+    --warn: #F7B113;
+    --danger: #E23B3B;
+
+    /* Aliases nativos do admin -> tokens Bonfire */
+    --primary: var(--ember);
+    --secondary: var(--flame);
+    --accent: var(--spark);
+    --primary-fg: #ffffff;
+    --body-fg: var(--text);
+    --body-bg: var(--bg0);
+    --body-quiet-color: var(--muted);
+    --body-loud-color: var(--text);
+
+    --header-color: var(--text);
+    --header-branding-color: var(--ember);
+    --header-bg: var(--bg1);
+    --header-link-color: var(--text);
+
+    --breadcrumbs-fg: var(--muted);
+    --breadcrumbs-link-fg: var(--ember);
+    --breadcrumbs-bg: var(--bg1);
+
+    --link-fg: var(--ember);
+    --link-hover-color: var(--spark);
+    --link-selected-fg: var(--spark);
+
+    --hairline-color: var(--stroke);
+    --border-color: var(--stroke);
+    --darkened-bg: var(--bg1);
+    --selected-bg: var(--bg2);
+    --selected-row: var(--ember-soft);
+
+    --error-fg: var(--danger);
+    --message-success-bg: rgba(52, 199, 89, .12);
+    --message-warning-bg: rgba(247, 177, 19, .12);
+    --message-error-bg: rgba(226, 59, 59, .14);
+
+    --button-bg: var(--ember);
+    --button-fg: #ffffff;
+    --button-hover-bg: var(--flame);
+    --default-button-bg: var(--ember);
+    --default-button-hover-bg: var(--flame);
+    --close-button-bg: var(--bg2);
+    --close-button-hover-bg: var(--bg3);
+    --delete-button-bg: var(--danger);
+    --delete-button-hover-bg: #B01E1E;
+    --object-tools-bg: var(--bg2);
+    --object-tools-fg: var(--text);
+    --object-tools-hover-bg: var(--ember);
+
+    --font-family-primary:
+        'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    --font-family-monospace:
+        'JetBrains Mono', Consolas, 'Courier New', monospace;
+
+    /* Espacamento / raios reutilizaveis */
+    --radius: 10px;
+    --radius-sm: 6px;
+    --shadow-card: 0 6px 22px rgba(0, 0, 0, .45);
+    --focus-ring: 0 0 0 3px rgba(242, 112, 7, .35);
+}
+
+/* ==========================================================================
+   2. BASE
+   ========================================================================== */
+html { color-scheme: dark; }
+
+body {
+    font-family: var(--font-family-primary);
+    background-color: var(--bg0);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+a:link,
+a:visited {
+    color: var(--ember);
+    text-decoration: none;
+    transition: color .15s ease;
+}
+a:hover { color: var(--spark); }
+
+p, li { color: var(--text-soft); }
+
+h1, h2, h3, h4, h5 { color: var(--text); }
+
+/* Titulos com identidade Bonfire, sem gritar */
+#content-main > h1,
+#content h1,
+.colMS #content-main h1,
+.module h2,
+.module caption,
+.inline-group h2 {
+    font-family: 'Cinzel', 'Inter', serif;
+    font-weight: 700;
+    letter-spacing: .05em;
+}
+#content > h1,
+#content-main > h1 {
+    color: var(--text);
+    font-size: 1.5rem;
+    margin: 0 0 18px;
+}
+
+/* Scrollbars coerentes com o tema, sem esconder demais */
+* {
+    scrollbar-color: var(--stroke) transparent;
+    scrollbar-width: thin;
+}
+::-webkit-scrollbar { width: 12px; height: 12px; }
+::-webkit-scrollbar-thumb {
+    background: var(--stroke);
+    border-radius: 7px;
+    border: 3px solid var(--bg0);
+}
+::-webkit-scrollbar-thumb:hover { background: #43434b; }
+::-webkit-scrollbar-track { background: transparent; }
+
+/* ==========================================================================
+   3. CABECALHO / BREADCRUMBS
+   O #header ja recebe estilos inline no base_site.html; aqui garantimos
+   fixacao e coerencia dos titulos.
+   ========================================================================== */
+#header {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    color: var(--text);
+}
+#header #branding h1 {
+    font-family: 'Cinzel', 'Inter', serif;
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+div.breadcrumbs {
+    background: var(--bg1);
+    border-bottom: 1px solid var(--stroke);
+    color: var(--muted);
+    font-size: 13px;
+    padding: 11px 40px;
+    position: sticky;
+    top: 64px;                 /* altura do header inline (64px) */
+    z-index: 999;
+}
+div.breadcrumbs a { color: var(--ember); }
+div.breadcrumbs a:hover { color: var(--spark); }
+
+/* ==========================================================================
+   4. LAYOUT / MODULOS (cards)
+   ========================================================================== */
+#content { padding: 26px 40px; max-width: 100%; }
+#content-main { width: 100%; }
+
+.module {
+    background: var(--bg1);
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-card);
+    margin-bottom: 24px;
+    overflow: hidden;
+}
+.module > h2,
+.module > caption,
+.inline-group > h2 {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--stroke);
+    color: var(--text);
+    padding: 13px 18px;
+    font-size: 12px;
+    text-transform: uppercase;
+    margin: 0;
+}
+
+/* ==========================================================================
+   5. DASHBOARD (index / lista de apps)
+   ========================================================================== */
+.dashboard #content { max-width: 1240px; margin: 0 auto; }
+.dashboard #content-main {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    gap: 22px;
+    width: 100% !important;
+    float: none !important;
+}
+.dashboard .module table { width: 100%; }
+.dashboard .module th,
+.dashboard .module td { padding: 11px 18px; }
+.dashboard .module tbody tr:hover > * { background: var(--bg2); }
+.dashboard .module a { font-weight: 600; }
+.dashboard .module .addlink,
+.dashboard .module .changelink,
+.dashboard .module .viewlink { color: var(--muted); font-weight: 600; }
+.dashboard .module .addlink:hover,
+.dashboard .module .changelink:hover,
+.dashboard .module .viewlink:hover { color: var(--ember); }
+
+.dashboard-welcome h1 {
+    font-family: 'Cinzel', 'Inter', serif;
+    color: var(--ember);
+}
+
+/* Sidebar de acoes recentes (coluna direita do index) */
+#content-related {
+    background: transparent;
+}
+#content-related .module {
+    background: var(--bg1);
+}
+#content-related .module h2 { color: var(--ember); }
+#recent-actions-module a { color: var(--text-soft); }
+#recent-actions-module a:hover { color: var(--ember); }
+.mini { color: var(--muted); }
+
+/* ==========================================================================
+   6. CHANGELIST (tabelas, toolbar, acoes, paginacao)
+   ========================================================================== */
+table { border-collapse: collapse; }
+
+thead th,
+thead td {
+    background: var(--bg2);
+    color: var(--muted);
+    border-bottom: 1px solid var(--stroke) !important;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: .05em;
+    padding: 11px 14px;
+    text-align: left;
+}
+thead th a,
+thead th a:link,
+thead th a:visited { color: var(--muted); }
+thead th.sorted { color: var(--text); }
+thead th.sorted a { color: var(--ember); }
+
+tbody td, tbody th {
+    border-bottom: 1px solid var(--stroke-soft);
+    padding: 11px 14px;
+    vertical-align: middle;
+    color: var(--text-soft);
+}
+tbody td a { color: var(--ember); font-weight: 600; }
+tbody td a:hover { color: var(--spark); }
+
+/* Zebra sutil + hover claro para escaneabilidade */
+#changelist tbody tr.row1 { background: var(--bg1); }
+#changelist tbody tr.row2 { background: #0F0F12; }
+#changelist table tbody tr:hover > * { background: var(--bg3); }
+#changelist tbody tr.selected > * { background: var(--selected-row); }
+
+#changelist .action-checkbox-column,
+#changelist td.action-checkbox { background: transparent; }
+
+#changelist { background: transparent; }
+#changelist .results {
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius);
+    overflow: auto;
+    box-shadow: var(--shadow-card);
+}
+#changelist .results table { width: 100%; }
+
+/* Paginacao */
+.paginator {
+    border-top: 1px solid var(--stroke);
+    background: var(--bg1);
+    color: var(--muted);
+    padding: 12px 14px;
+    font-size: 13px;
+}
+.paginator a:link,
+.paginator a:visited {
+    background: var(--bg2);
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius-sm);
+    color: var(--text-soft);
+    padding: 4px 10px;
+    margin: 0 2px;
+}
+.paginator a:hover { background: var(--ember); color: #fff; border-color: var(--ember); }
+.paginator .this-page {
+    background: var(--ember);
+    border-radius: var(--radius-sm);
+    color: #fff;
+    padding: 4px 10px;
+    font-weight: 700;
+}
+
+/* Toolbar de busca */
+#toolbar {
+    background: var(--bg1);
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius);
+    padding: 14px;
+    margin-bottom: 16px;
+}
+#toolbar form#changelist-search { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+#toolbar #searchbar {
+    min-width: 240px;
+    flex: 1;
+}
+#changelist-search label { display: none; }
+#changelist-search #searchbar:focus { border-color: var(--ember); }
+
+/* Barra de acoes em massa */
+.actions {
+    background: var(--bg1);
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius);
+    color: var(--muted);
+    padding: 12px 14px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.actions label { color: var(--muted); font-weight: 600; }
+.actions .button {
+    padding: 6px 14px;
+}
+
+/* ==========================================================================
+   7. FILTROS (sidebar)
+   ========================================================================== */
+#changelist-filter {
+    background: var(--bg1);
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-card);
+    width: 240px;
+}
+#changelist-filter h2 {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--stroke);
+    border-radius: var(--radius) var(--radius) 0 0;
+    color: var(--ember);
+    font-family: 'Cinzel', 'Inter', serif;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    padding: 12px 16px;
+    font-size: 12px;
+}
+#changelist-filter h3 {
+    color: var(--text);
+    font-weight: 700;
+    padding: 10px 16px 4px;
+    margin: 0;
+    font-size: 12px;
+}
+#changelist-filter ul { padding: 0 8px 10px; margin: 0; }
+#changelist-filter li { list-style: none; }
+#changelist-filter li a {
+    color: var(--text-soft);
+    display: block;
+    padding: 6px 8px;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+#changelist-filter li a:hover { background: var(--bg2); color: var(--spark); white-space: normal; }
+#changelist-filter li.selected a {
+    background: var(--ember-soft);
+    color: var(--spark);
+    font-weight: 600;
+}
+
+/* ==========================================================================
+   8. FORMULARIOS (change_form, fieldsets, widgets)
+   ========================================================================== */
+input[type=text], input[type=password], input[type=email], input[type=url],
+input[type=number], input[type=tel], input[type=search], input[type=date],
+input[type=time], input[type=datetime-local], textarea, select, .vTextField {
+    background: var(--bg0);
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    padding: 9px 11px;
+    font-family: var(--font-family-primary);
+    font-size: 14px;
+    transition: border-color .15s ease, box-shadow .15s ease;
+}
+input::placeholder, textarea::placeholder { color: #6b6b73; }
+
+input:focus, textarea:focus, select:focus, .vTextField:focus,
+input:focus-visible, textarea:focus-visible, select:focus-visible {
+    border-color: var(--ember);
+    box-shadow: var(--focus-ring);
+    outline: none;
+}
+
+textarea { line-height: 1.6; resize: vertical; min-height: 96px; }
+/* Textareas grandes (lore, JSONField, tags_json) confortaveis por padrao */
+.aligned .form-row > div > textarea,
+form #content-main textarea.vLargeTextField,
+textarea.vLargeTextField { min-height: 200px; }
+
+select[multiple] { min-height: 140px; }
+
+/* Fieldsets bem separados */
+fieldset.module { margin-bottom: 24px; }
+.form-row {
+    border-bottom: 1px solid var(--stroke-soft);
+    padding: 14px 18px;
+}
+fieldset.module .form-row:last-child { border-bottom: 0; }
+.form-row.errors { background: var(--message-error-bg); }
+
+/* Labels claros, acima quando possivel */
+.aligned label,
+form .form-row label {
+    color: var(--muted);
+    font-weight: 600;
+    font-size: 12.5px;
+}
+.aligned label.required,
+form .form-row label.required { color: var(--text); }
+.aligned label.required::after,
+.required > label::after {
+    content: " *";
+    color: var(--ember);
+    font-weight: 700;
+}
+
+.help, .helptext, .form-row .help, div.help {
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+/* Campos readonly legiveis */
+.form-row .readonly, .readonly {
+    color: var(--text-soft);
+    background: var(--bg0);
+    border: 1px solid var(--stroke-soft);
+    border-radius: var(--radius-sm);
+    padding: 8px 11px;
+    display: inline-block;
+}
+
+/* Collapse / details */
+.collapse-toggle,
+details.module > summary,
+fieldset.collapsed .collapse-toggle { color: var(--ember); font-weight: 600; }
+fieldset.collapsed h2 { color: var(--muted); }
+
+/* Checkbox / radio com cor de acento */
+input[type=checkbox], input[type=radio] { accent-color: var(--ember); width: 16px; height: 16px; }
+
+/* Selects nativos com seta visivel no dark */
+select {
+    appearance: none;
+    background-image:
+        linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+        linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+    background-position:
+        calc(100% - 16px) center,
+        calc(100% - 11px) center;
+    background-size: 5px 5px, 5px 5px;
+    background-repeat: no-repeat;
+    padding-right: 30px;
+}
+select[multiple] { background-image: none; padding-right: 11px; }
+
+/* ==========================================================================
+   9. INLINES
+   Stacked -> cada objeto vira CARD, campos em grade, sem rolagem horizontal.
+   Tabular -> tabela compacta que cabe.
+   ========================================================================== */
+.inline-group {
+    background: transparent;
+    margin-bottom: 24px;
+}
+.inline-group > .tabular,
+.inline-group > .stacked,
+.inline-group > div > .inline-related { margin: 0; }
+
+/* ---- Inline STACKED como card ---- */
+.inline-group .inline-related {
+    background: var(--bg1);
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius);
+    margin: 0 0 16px;
+    overflow: hidden;
+}
+.inline-group .inline-related.empty-form { display: none; }
+.inline-group .inline-related > h3 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--stroke);
+    margin: 0;
+    padding: 11px 16px;
+    font-family: 'Cinzel', 'Inter', serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: .04em;
+    color: var(--text);
+    text-transform: none;
+}
+.inline-group .inline-related > h3 b { color: var(--muted); font-weight: 600; }
+.inline-group .inline-related > h3 .inline_label { color: var(--spark); }
+.inline-group .inline-related > h3 .inlinechangelink { color: var(--ember); font-size: 12px; font-weight: 600; }
+.inline-group .inline-related > h3 .delete { margin-left: auto; }
+.inline-group .inline-related > h3 .delete label { color: var(--muted); }
+
+/* Campos em grade responsiva */
+.inline-group .inline-related > fieldset {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 6px 20px;
+    padding: 16px;
+    border: 0;
+}
+.inline-group .inline-related > fieldset > .form-row {
+    border: 0;
+    padding: 8px 0;
+    min-width: 0;
+}
+.inline-group .inline-related > fieldset > .form-row > div { width: 100%; }
+.inline-group .inline-related > fieldset .flex-container {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 5px;
+    width: 100%;
+}
+.inline-group .inline-related > fieldset label {
+    float: none;
+    width: auto;
+    padding: 0;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+.inline-group .inline-related > fieldset input[type=text],
+.inline-group .inline-related > fieldset input[type=number],
+.inline-group .inline-related > fieldset input[type=url],
+.inline-group .inline-related > fieldset select,
+.inline-group .inline-related > fieldset textarea,
+.inline-group .inline-related > fieldset .vTextField,
+.inline-group .inline-related > fieldset .related-widget-wrapper {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+.inline-group .inline-related > fieldset .related-widget-wrapper select { width: auto; flex: 1; min-width: 0; }
+.inline-group .inline-related > fieldset textarea { min-height: 80px; height: 92px; }
+/* Campos longos ocupam a linha inteira */
+.inline-group .inline-related > fieldset > .form-row.field-descricao,
+.inline-group .inline-related > fieldset > .form-row.field-pre_requisito,
+.inline-group .inline-related > fieldset > .form-row.field-lore_presentation,
+.inline-group .inline-related > fieldset > .form-row.field-tags_json,
+.inline-group .inline-related > fieldset > .form-row.field-tagline { grid-column: 1 / -1; }
+.inline-group .inline-related > fieldset > .form-row.field-descricao textarea,
+.inline-group .inline-related > fieldset > .form-row.field-lore_presentation textarea,
+.inline-group .inline-related > fieldset > .form-row.field-tags_json textarea { height: 140px; }
+
+/* ---- Inline TABULAR ---- */
+.inline-group .tabular { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--stroke); }
+.inline-group .tabular table { width: 100%; table-layout: auto; }
+.inline-group .tabular thead th {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--stroke);
+    padding: 9px 11px;
+    white-space: nowrap;
+}
+.inline-group .tabular tbody td, .inline-group .tabular tbody th {
+    vertical-align: top;
+    padding: 9px 11px;
+    border-bottom: 1px solid var(--stroke-soft);
+}
+.inline-group .tabular td.original {
+    width: 1px;
+    white-space: nowrap;
+    padding-top: 12px;
+    color: var(--muted);
+}
+.inline-group .tabular td.original p { margin: 0; font-weight: 600; color: var(--text); }
+.inline-group .tabular tr.form-row:hover > td { background: var(--bg2); }
+.inline-group .tabular textarea { min-height: 56px; }
+
+/* Botao "adicionar outro" bem visivel */
+.inline-group .add-row {
+    border-top: 1px solid var(--stroke);
+    background: var(--bg1);
+    padding: 12px 16px;
+}
+.inline-group .add-row a {
+    color: var(--ember);
+    font-weight: 700;
+}
+.inline-group .add-row a::before { content: "+ "; font-weight: 900; }
+.inline-group .add-row a:hover { color: var(--spark); }
+
+/* Widgets de FK relacionada compactos */
+.related-widget-wrapper {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    float: none;
+}
+.related-widget-wrapper-link { opacity: .85; }
+.related-widget-wrapper-link:hover { opacity: 1; }
+
+/* ==========================================================================
+   10. BOTOES E SUBMIT-ROW
+   ========================================================================== */
+.button, input[type=submit], input[type=button], .submit-row input, a.button,
+.object-tools a, .addlink, .button.default {
+    border-radius: var(--radius-sm);
+    font-family: var(--font-family-primary);
+    font-weight: 700;
+    text-shadow: none;
+    cursor: pointer;
+    transition: background-color .18s ease, transform .12s ease, box-shadow .18s ease, border-color .18s ease;
+}
+
+/* Botao primario (salvar) */
+.button, input[type=submit], input[type=button], .submit-row input, a.button {
+    background: var(--ember);
+    color: #fff;
+    border: 1px solid transparent;
+    box-shadow: 0 4px 12px rgba(242, 112, 7, .22);
+    padding: 9px 16px;
+}
+.button:hover, input[type=submit]:hover, input[type=button]:hover,
+.submit-row input:hover, a.button:hover {
+    background: var(--flame);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(210, 23, 23, .32);
+    color: #fff;
+}
+.button:active, input[type=submit]:active, .submit-row input:active { transform: translateY(0); }
+
+/* Botao default (Salvar principal) — mesma familia, um pouco mais forte */
+.button.default, input[type=submit].default, .submit-row input.default {
+    background: var(--ember);
+    font-weight: 800;
+}
+.button.default:hover, input[type=submit].default:hover,
+.submit-row input.default:hover { background: var(--flame); }
+
+/* Deletar */
+.submit-row a.deletelink, a.deletelink, .deletelink-box a {
+    background: var(--danger);
+    color: #fff;
+    border-radius: var(--radius-sm);
+    padding: 9px 16px;
+    font-weight: 700;
+    box-shadow: none;
+}
+.submit-row a.deletelink:hover, a.deletelink:hover { background: var(--delete-button-hover-bg); color: #fff; }
+
+/* Cancelar (link injetado pelo base_site.html + cancel-link nativo) */
+.button.cancel-link, a.cancel-link, .bonfire-cancel-edit {
+    background: transparent;
+    border: 1px solid var(--stroke);
+    color: var(--muted);
+    box-shadow: none;
+    font-weight: 600;
+}
+.button.cancel-link:hover, a.cancel-link:hover, .bonfire-cancel-edit:hover {
+    background: var(--bg2);
+    color: var(--text);
+    border-color: var(--muted);
+}
+
+/* Object-tools (Adicionar / Historico no topo do change_form) */
+.object-tools a, .object-tools a:link, .object-tools a:visited {
+    background: var(--bg2);
+    color: var(--text);
+    box-shadow: none;
+    border: 1px solid var(--stroke);
+    padding: 7px 14px;
+    text-transform: none;
+    letter-spacing: 0;
+}
+.object-tools a:hover { background: var(--ember); border-color: var(--ember); color: #fff; }
+.object-tools a.addlink::before { filter: none; }
+
+/* Submit-row fixa no rodape para acao sempre visivel */
+.submit-row {
+    background: var(--bg1);
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    margin-top: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    position: sticky;
+    bottom: 12px;
+    z-index: 20;
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, .4);
+}
+.submit-row p.deletelink-box { margin: 0; margin-left: auto; }
+
+/* ==========================================================================
+   11. MENSAGENS E ERROS
+   ========================================================================== */
+ul.messagelist { padding: 0; margin: 0 0 18px; }
+ul.messagelist li {
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--stroke);
+    color: var(--text);
+    padding: 12px 16px 12px 44px;
+    margin-bottom: 8px;
+    background-repeat: no-repeat;
+    background-position: 16px center;
+    font-weight: 500;
+}
+ul.messagelist li.success {
+    background-color: var(--message-success-bg);
+    border-color: rgba(52, 199, 89, .45);
+    color: #bff0cb;
+}
+ul.messagelist li.warning {
+    background-color: var(--message-warning-bg);
+    border-color: rgba(247, 177, 19, .45);
+    color: #f6dfa0;
+}
+ul.messagelist li.error {
+    background-color: var(--message-error-bg);
+    border-color: rgba(226, 59, 59, .5);
+    color: #f6b6b6;
+}
+.errornote {
+    background: var(--message-error-bg);
+    border: 1px solid rgba(226, 59, 59, .5);
+    border-radius: var(--radius-sm);
+    color: #f6b6b6;
+    padding: 12px 16px;
+    font-weight: 600;
+}
+.errorlist {
+    background: transparent;
+    color: #f6b6b6;
+    margin: 4px 0 6px;
+    padding: 0;
+    list-style: none;
+}
+.errorlist li {
+    background: var(--message-error-bg);
+    border: 1px solid rgba(226, 59, 59, .4);
+    border-radius: var(--radius-sm);
+    padding: 6px 10px;
+    margin-bottom: 4px;
+}
+
+/* ==========================================================================
+   12. LOGIN
+   ========================================================================== */
+body.login {
+    background: radial-gradient(1200px 600px at 50% -10%, rgba(242, 112, 7, .10), transparent 60%), var(--bg0);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+}
+body.login #container {
+    background: var(--bg1);
+    border: 1px solid var(--stroke);
+    border-radius: 14px;
+    box-shadow: 0 18px 60px rgba(0, 0, 0, .6);
+    width: 100%;
+    max-width: 420px;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+}
+body.login #header {
+    position: static;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    padding: 24px 28px 0;
+    height: auto;
+}
+body.login #content { padding: 24px 28px 28px; }
+body.login #content-main { width: 100%; }
+body.login .form-row { border: 0; padding: 8px 0; }
+body.login .form-row label { display: block; margin-bottom: 6px; }
+body.login .form-row input { width: 100%; box-sizing: border-box; }
+body.login .submit-row {
+    position: static;
+    box-shadow: none;
+    border: 0;
+    background: transparent;
+    padding: 12px 0 0;
+    margin: 0;
+}
+body.login .submit-row input { width: 100%; padding: 11px; }
+body.login #content-related { display: none; }
+
+/* ==========================================================================
+   13. DELETE CONFIRMATION
+   ========================================================================== */
+.delete-confirmation #content { max-width: 900px; }
+.delete-confirmation .module {
+    background: var(--bg1);
+    padding: 4px 0;
+}
+.delete-confirmation ul { padding: 8px 24px; }
+.delete-confirmation .summary,
+.delete-confirmation form { padding: 0; }
+.delete-confirmation form .submit-row {
+    position: static;
+    box-shadow: none;
+}
+.delete-confirmation form input[type=submit] {
+    background: var(--danger);
+}
+.delete-confirmation form input[type=submit]:hover { background: var(--delete-button-hover-bg); }
+.delete-confirmation p.deletelink-box a,
+.delete-confirmation .cancel-link {
+    background: transparent;
+    border: 1px solid var(--stroke);
+    color: var(--muted);
+}
+/* Objetos protegidos / aviso destacado */
+.delete-confirmation .errornote,
+.delete-confirmation ul.messagelist li.warning { font-weight: 600; }
+
+/* ==========================================================================
+   14. BADGES UTILITARIOS (usados em list_display no home/admin.py)
+   admin-badge, admin-badge-hot, admin-badge-soft, admin-muted,
+   admin-map-icon, admin-map-token*
+   ========================================================================== */
+.admin-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border: 1px solid var(--stroke);
+    border-radius: 999px;
+    padding: 2px 9px;
+    margin: 1px 3px 1px 0;
+    background: var(--bg2);
+    color: var(--text);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+.admin-badge-hot { border-color: rgba(242, 112, 7, .65); color: var(--ember); background: rgba(242, 112, 7, .10); }
+.admin-badge-soft { border-color: rgba(247, 177, 19, .55); color: var(--spark); background: rgba(247, 177, 19, .10); }
+.admin-muted { color: var(--muted); }
+
+.admin-map-icon {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+    vertical-align: middle;
+    filter: drop-shadow(0 1px 4px rgba(0, 0, 0, .55));
+}
+.admin-map-token {
+    align-items: center;
+    border-radius: 999px 999px 999px 4px;
+    color: #fff;
+    display: inline-flex;
+    font-size: 12px;
+    font-weight: 900;
+    height: 28px;
+    justify-content: center;
+    width: 28px;
+}
+.admin-map-token-red { background: #dc2626; }
+.admin-map-token-blue { background: #2563eb; }
+.admin-map-token-green { background: #16a34a; }
+.admin-map-token-yellow { background: #ca8a04; }
+.admin-map-token-orange { background: #ea580c; }
+.admin-map-token-violet { background: #7c3aed; }
+.admin-map-token-gray { background: #71717a; }
+.admin-map-token-black { background: #18181b; }
+
+/* ==========================================================================
+   15. ACESSIBILIDADE
+   ========================================================================== */
+/* Foco de teclado sempre visivel (links, botoes, campos) */
+a:focus-visible,
+button:focus-visible,
+.button:focus-visible,
+input[type=submit]:focus-visible,
+input[type=button]:focus-visible,
+[tabindex]:focus-visible,
+.object-tools a:focus-visible {
+    outline: 2px solid var(--spark);
+    outline-offset: 2px;
+    box-shadow: var(--focus-ring);
+}
+
+/* Respeita quem pediu menos movimento */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        transition-duration: .01ms !important;
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+    }
+    .button:hover, input[type=submit]:hover, a.button:hover { transform: none; }
+}
+
+/* ==========================================================================
+   16. RESPONSIVO (telas medias)
+   ========================================================================== */
+@media (max-width: 1024px) {
+    #content { padding: 20px 20px; }
+    div.breadcrumbs { padding: 10px 20px; }
+    .dashboard #content-main { grid-template-columns: 1fr; }
+    #changelist-filter { width: 100%; }
+    .colMS #content-main { margin-right: 0; }
+}
+@media (max-width: 767px) {
+    .inline-group .inline-related > fieldset { grid-template-columns: 1fr; }
+    .submit-row { position: static; box-shadow: none; }
+    #toolbar #searchbar { min-width: 0; }
+}

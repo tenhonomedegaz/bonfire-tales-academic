@@ -1,7 +1,7 @@
 # Vocabulário do `tags_json` (Criador de Personagem)
 
 > **Doc canônico.** Sintaxe das tags mecânicas do criador de personagem do
-> Bonfire Tales. Versão **0.2 — provisória**. Itens marcados *(proposta)* ainda
+> Bonfire Tales. Versão **0.3 — snake_case/retagging**. Itens marcados *(proposta)* ainda
 > precisam do aval do PO.
 
 ---
@@ -64,28 +64,37 @@ Uma entrada é uma **expressão** `[...]` com **tokens** separados por vírgula:
 
 | Forma | Uso | Exemplo |
 |---|---|---|
-| `flag` | liga algo sem valor | `always-active`, `no-concentration` |
+| `flag` | liga algo sem valor | `always_active`, `no_concentration` |
 | `chave:valor` | **efeito** | `resist:fogo`, `dmg:+1d6` |
-| `chave=valor` | **vínculo / fórmula / identidade** | `trigger=...`, `ca=10+dex-mod+con-mod` |
-| `bloco{...}` | agrupa tokens de um escopo | `while-active{...}`, `restriction{...}` |
-| `escopo.efeito` | **escopo** do efeito (dot-path) | `str-atk.crit-range:+1` |
+| `chave=valor` | **vínculo / fórmula / identidade** | `trigger=...`, `ca=10+dex_mod+con_mod` |
+| `bloco{...}` | agrupa tokens de um escopo | `while_active{...}`, `restriction{...}` |
+| `escopo.efeito` | **escopo** do efeito (dot-path) | `str_atk.crit_range:+1` |
 | `ref{...}` | **referência a entidade definida** | `ability{furia, classe:barbaro}` |
 | `define{...}` | **define** método/tabela local | ver §9 |
 
 Blocos **aninham**. `:` = efeito-com-valor; `=` = vínculo/fórmula/identidade.
+
+### Identificadores mecânicos
+
+Identificadores de tag usam `snake_case` (`[a-z][a-z0-9_]*`). Hífen não é
+permitido em nomes mecânicos novos; `-` fica reservado para subtração/unário em
+fórmulas. Slugs do banco que ainda tenham hífen devem ser escritos na tag como
+identificador seguro (`detectar_magia`) e resolvidos pelo validador contra o
+slug real (`detectar-magia`). Guia operacional para retagging:
+`docs/agentes/regras_retagging_tags_json.md`.
 
 ### Escopo via dot-path
 Em vez de `restriction`, restrinja **a quê** o efeito se aplica com `escopo.efeito`:
 
 | Escopo | Significado |
 |---|---|
-| `weapon.` / `heavy-weapon.` / `light-weapon.` | ataque com arma (geral / pesada / leve) |
-| `unarmed-strike.` | ataque desarmado |
-| `str-atk.` / `dex-atk.` | ataque que usa o atributo |
+| `weapon.` / `heavy_weapon.` / `light_weapon.` | ataque com arma (geral / pesada / leve) |
+| `unarmed_strike.` | ataque desarmado |
+| `str_atk.` / `dex_atk.` | ataque que usa o atributo |
 | `melee.` / `ranged.` | corpo a corpo / à distância |
 
-Ex.: `str-atk.crit-range:+1` (Instinto Brutal); `unarmed-strike.dmg={...}`;
-`weapon.crit-dmg=+1d10` (Fúria Devastadora).
+Ex.: `str_atk.crit_range:+1` (Instinto Brutal); `unarmed_strike.dmg={...}`;
+`weapon.crit_dmg=+1d10` (Fúria Devastadora).
 
 ### Referência a entidade (`ref{...}`)
 Aponta para algo **definido em outro lugar** — nunca uma string solta:
@@ -164,30 +173,36 @@ com `ability{<nome>, classe:<slug>}` (e `.campo` para um valor exportado):
 > `magia-selvagem`, a lista `runa`, `aspecto-selvagem`…). Bare é OK **dentro da
 > habilidade dona**; usada por outra habilidade, ainda vai por `ability{<dona>,
 > classe:<slug>}.<variável>`. A própria Fúria expõe seu bônus por
-> `define{dmg-bonus: roundup(classlvl/2)}`, referenciado como
-> `ability{furia, classe:barbaro}.dmg-bonus`.
+> `define{dmg_bonus: roundup(classlvl/2)}`, referenciado como
+> `ability{furia, classe:barbaro}.dmg_bonus`.
 
 ---
 
-## 5. Restrições (2 níveis) — `restriction{}` / `equiped{}`
+## 5. Bloqueios e proibições — `requires{}` / `restriction{}` / `restricts{}`
 
-`restriction` significa **"NÃO pode"** (nunca "só pode"). O nível diz **o quê** é
-restringido:
+Esses três verbos não são intercambiáveis:
 
-| Onde | Significa |
+| Verbo | Significa | Exemplo |
 |---|---|
-| **dentro** do efeito (`while-active{... restriction{...}}`) | o que o **efeito te impede** enquanto está ativo (ex.: em fúria não pode `spellcasting`, `concentration`) |
-| **fora**, no topo (`restriction{...}`) | o que **impede ativar** o efeito (ex.: `unconscious`) |
+| `requires{...}` | condição positiva exigida: se não cumprir, o escopo não funciona | `requires{equiped{escudo}}` |
+| `restriction{...}` | condição bloqueadora do escopo atual: se for verdadeira, o escopo não pode ser usado ou não se aplica | `restriction{inconsciente, equiped{armadura_pesada}}` |
+| `restricts{...}` | proibição imposta pelo efeito enquanto ele está ativo | `while_active{restricts{spellcasting, concentration}}` |
 
-`equiped{<item>}` é uma restrição por **equipamento equipado**
-(`equiped{armor}`, `equiped{heavy-armor}`) — também pode aparecer nos dois níveis.
+`restriction{...}` sempre olha para **o escopo em que está escrita**. Se ela está
+no topo da habilidade, bloqueia a habilidade inteira. Se ela está dentro de um
+`always_active{...}`, bloqueia só aquele efeito. Use `restricts{...}` quando o
+efeito ativo é quem proíbe o personagem/alvo de fazer algo.
+
+`equiped{<item>}` é uma condição por **equipamento equipado**
+(`equiped{armor}`, `equiped{armadura_pesada}`) e pode aparecer dentro de
+`requires{...}` ou `restriction{...}` conforme o sentido da regra.
 
 Vocabulário: `spellcasting`, `concentration`, `unconscious`, `incapacitated`,
 `armor`, `heavy-armor`, …
 
-**`requires{...}`** é o **inverso** de `restriction`: uma **condição positiva** que
-o efeito **exige** para funcionar (ex.: `requires:equiped{armadura-aprimorada}`,
-`requires:runa-ativa`, `requires:weapon{vinculada}`). Sem ela, o efeito não se aplica.
+Variáveis de fórmula devem usar `_`, não `-`: `dex_mod`, `con_mod`,
+`dmg_bonus`. Hífen fica reservado para slugs/textos controlados e para o
+operador de subtração em fórmulas.
 
 ---
 
@@ -393,7 +408,7 @@ Ex.: **Fôlego Furioso** — em fúria, ao cair a 0 PV, CON save de CD crescente
 
 - **Nível:** `classlvl` (da classe) ≠ `lvl` (total).
 - **Funções:** `roundup()`, `rounddown()`, aritmética em fórmulas.
-- **Recursos/modificadores:** `furias`, `pb`, `str-mod`, `con-mod`, …
+- **Recursos/modificadores:** `furias`, `pb`, `str_mod`, `con_mod`, …
 - **Derivações do motor (não-tag):** PV (do dado de vida, §1.4), bônus de
   proficiência, slots de magia — calculados da progressão, sem hardcode por classe.
 
@@ -402,16 +417,15 @@ Ex.: **Fôlego Furioso** — em fúria, ao cair a 0 PV, CON save de CD crescente
 ## 12. Exemplo comentado — Fúria
 
 ```
-[ action=bonus-action,
-  while-active{
+[ action=bonus_action,
+  while_active{
     resist:concussao, resist:cortante, resist:perfurante,   # resistência física
     dmg=+(roundup(classlvl/2)),                              # dano de fúria (escala c/ nível de classe)
-    dadv:int-check, adv:str-check, adv:str-save,             # desv. INT, vant. FOR
-    restriction{ spellcasting, concentration }              # o efeito te IMPEDE de conjurar/concentrar
+    dadv:int_check, adv:str_check, adv:str_save,             # desv. INT, vant. FOR
+    restricts{ spellcasting, concentration }                # o efeito te IMPEDE de conjurar/concentrar
   },
-  resource-cost:furias,           # gasta 1 uso de Fúria
-  restriction{ unconscious },     # NÃO ativa se inconsciente
-  equiped{ heavy-armor },         # NÃO ativa com armadura pesada
+  resource_cost:furias,           # gasta 1 uso de Fúria
+  restriction{ unconscious, equiped{heavy_armor} }, # NÃO ativa se inconsciente ou com armadura pesada
   duration:10 ]                   # 1 min = 10 rodadas
 ```
 

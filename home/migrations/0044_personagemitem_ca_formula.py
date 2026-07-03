@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """Converte o snapshot de CA dos itens equipados (TbPersonagemItem.tags_json) do formato
 antigo 'ca=<int>' [+ 'dex-ca-max:N'] para a formula canonica, e remove dex-ca-max:
-  sem dex-ca-max     -> ca=<base>+dex-mod          (leve)
-  dex-ca-max:N (>0)  -> ca=<base>+min(dex-mod,N)   (media)
+  sem dex-ca-max     -> ca=<base>+dex_mod          (leve)
+  dex-ca-max:N (>0)  -> ca=<base>+min(dex_mod,N)   (media)
   dex-ca-max:0       -> ca=<base>                  (pesada)
 Necessario porque o motor passou a AVALIAR ca=<formula> (dex-ca-max deixou de existir)."""
 import re
@@ -29,11 +29,11 @@ def to_formula(apps, schema_editor):
         if base is None:
             continue  # sem CA de armadura (arma/escudo/consumivel)
         if cap is None:
-            formula = "%d+dex-mod" % base
+            formula = "%d+dex_mod" % base
         elif cap == 0:
             formula = "%d" % base
         else:
-            formula = "%d+min(dex-mod,%d)" % (base, cap)
+            formula = "%d+min(dex_mod,%d)" % (base, cap)
         novo = [t for t in tags if isinstance(t, str) and not _CA.match(t) and not _DX.match(t)]
         novo.insert(0, "ca=%s" % formula)
         if novo != tags:

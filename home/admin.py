@@ -1,11 +1,9 @@
 import json
-import math
 import re
 import subprocess
 import unicodedata
 from datetime import datetime
 from pathlib import Path
-from urllib.parse import urlencode
 
 from django import forms
 from django.conf import settings
@@ -53,7 +51,7 @@ from .models import (
     TbTransacaoMestre,
     TbReiDaColina,
 )
-from .security import validate_json_no_sql_danger, validate_no_sql_danger
+from .security import validate_no_sql_danger
 
 
 admin.site.site_header = "Bonfire Tales Admin"
@@ -2820,17 +2818,13 @@ class TbItemMundanoAdmin(BonfireAdminMixin, admin.ModelAdmin):
     list_filter = ("categoria", "subcategoria")
     search_fields = ("nome", "slug", "descricao_markdown")
     prepopulated_fields = {"slug": ("nome",)}
+    readonly_fields = ("mecanica_resumo",)
     fieldsets = (
         (None, {
             "fields": ("nome", "slug", "categoria", "subcategoria", "preco", "peso", "imagem_url", "tags_json")
         }),
-        ("Propriedades de Combate (Armas)", {
-            "fields": ("dano", "propriedades", "maestria"),
-            "classes": ("collapse",),
-        }),
-        ("Propriedades de Armadura", {
-            "fields": ("ca", "forca_minima", "furtividade_desvantagem"),
-            "classes": ("collapse",),
+        ("Mecânica (derivada das tags)", {
+            "fields": ("mecanica_resumo",),
         }),
         ("Descrição", {
             "fields": ("descricao_markdown",)
@@ -2840,6 +2834,31 @@ class TbItemMundanoAdmin(BonfireAdminMixin, admin.ModelAdmin):
     @admin.display(description="Tags")
     def tags_preview(self, obj):
         return _format_tags_preview(obj.tags_json)
+
+    @admin.display(description="Mecânica (derivada das tags)")
+    def mecanica_resumo(self, obj):
+        from home.item_mecanica import mecanica_de_tags, dano_display, propriedades_display, ca_display
+
+        mec = mecanica_de_tags(obj.tags_json, obj.subcategoria)
+        partes = []
+        dano = dano_display(mec)
+        if dano:
+            partes.append(format_html("<strong>Dano:</strong> {}", dano))
+        ca = ca_display(mec)
+        if ca:
+            partes.append(format_html("<strong>CA:</strong> {}", ca))
+        props = propriedades_display(mec)
+        if props:
+            partes.append(format_html("<strong>Propriedades:</strong> {}", props))
+        if mec.get("maestrias"):
+            partes.append(format_html("<strong>Maestrias:</strong> {}", ", ".join(mec["maestrias"])))
+        if mec.get("forca_minima"):
+            partes.append(format_html("<strong>Força mínima:</strong> {}", mec["forca_minima"]))
+        if mec.get("furtividade_desvantagem"):
+            partes.append(format_html("<strong>Furtividade:</strong> desvantagem"))
+        if not partes:
+            return "(sem mecânica derivada das tags)"
+        return mark_safe("<br>".join(partes))
 
 
 @admin.register(TbItemMagico)
@@ -3140,3 +3159,35 @@ def _bonfire_admin_get_app_list(request, app_label=None):
     return sorted(app_dict.values(), key=lambda x: x['name'].lower())
 
 admin.site.get_app_list = _bonfire_admin_get_app_list
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Personalização de perfil/ficha (F1) — CRUD do catálogo de cosméticos + inventário
+# (import local pra não mexer no bloco de imports do topo, tocado por outro agente).
+# ─────────────────────────────────────────────────────────────────────────────
+from .models import TbCosmetico, TbUsuarioCosmetico
+
+
+@admin.register(TbCosmetico)
+class TbCosmeticoAdmin(admin.ModelAdmin):
+    list_display = ('tipo', 'nome', 'slug', 'raridade', 'origem', 'escopo', 'ativo', 'ordem')
+    list_filter = ('tipo', 'origem', 'raridade', 'ativo', 'escopo', 'animado')
+    search_fields = ('nome', 'slug')
+    list_editable = ('ativo', 'ordem')
+    prepopulated_fields = {'slug': ('nome',)}
+    fieldsets = (
+        (None, {'fields': ('tipo', 'nome', 'slug', 'descricao', 'raridade')}),
+        ('Render', {'fields': ('css_class', 'asset_url', 'animado')}),
+        ('Aquisição', {'fields': ('origem', 'preco', 'requer_plano')}),
+        ('Disponibilidade', {'fields': ('escopo', 'ativo', 'ordem')}),
+    )
+
+
+@admin.register(TbUsuarioCosmetico)
+class TbUsuarioCosmeticoAdmin(admin.ModelAdmin):
+    list_display = ('user', 'cosmetico', 'origem', 'desbloqueado_em')
+    list_filter = ('origem', 'cosmetico__tipo')
+    search_fields = ('user__username', 'cosmetico__nome', 'cosmetico__slug')
+    autocomplete_fields = ('user', 'cosmetico')
+    readonly_fields = ('desbloqueado_em',)
+    ordering = ('-desbloqueado_em',)

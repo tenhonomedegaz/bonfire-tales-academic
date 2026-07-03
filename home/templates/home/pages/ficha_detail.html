@@ -8,7 +8,8 @@
 {% endblock %}
 
 {% block content %}
-<section class="ficha animate-fade-in space-y-5 {{ appearance.theme_class }} {{ appearance.effect_class }}">
+{% if appearance.background_url %}<div class="ficha-bg-media" style="background-image:url('{{ appearance.background_url }}');"></div>{% endif %}
+<section class="ficha animate-fade-in space-y-5 {{ appearance.theme_class }} {{ appearance.effect_class }}"{% if appearance.custom_style %} style="{{ appearance.custom_style }}"{% endif %}>
 
   {# ===================== CABEÇALHO (banner estilo planilha) ===================== #}
   <header class="ficha-header ficha-banner">
@@ -373,7 +374,7 @@
   {# ===================== ABA 2: INFORMAÇÕES ===================== #}
   <div class="ficha-tabpanel space-y-5" data-tabpanel="info" role="tabpanel" hidden>
     {% if pode_editar %}
-    <form method="post" action="{% url 'personagem_info_salvar' p.id_personagem %}" class="info-form space-y-5">
+    <form method="post" action="{% url 'personagem_info_salvar' p.id_personagem %}" class="info-form space-y-5" enctype="multipart/form-data" id="ficha-appearance-form">
       {% csrf_token %}
 
       <div class="info-layout">
@@ -406,7 +407,9 @@
             </figure>
           </div>
           <label class="info-field full"><span class="lbl">URL do retrato <span class="hint">link de imagem</span></span><input type="url" name="foto_url" value="{{ p.foto_url|default:'' }}" placeholder="https://..."></label>
+          <label class="info-field full"><span class="lbl">Enviar retrato <span class="hint">PNG/JPG/WEBP/GIF · até 8MB · substitui a URL</span></span><input type="file" name="foto_file" accept="image/png,image/jpeg,image/webp,image/gif"></label>
           <label class="info-field full"><span class="lbl">URL do token <span class="hint">link de imagem</span></span><input type="url" name="token_url" value="{{ p.token_url|default:'' }}" placeholder="https://..."></label>
+          <label class="info-field full"><span class="lbl">Enviar token <span class="hint">PNG/JPG/WEBP/GIF · até 8MB · substitui a URL</span></span><input type="file" name="token_file" accept="image/png,image/jpeg,image/webp,image/gif"></label>
         </div>
       </div>
 
@@ -414,27 +417,47 @@
         <div class="ficha-section-title">Tema da Ficha</div>
         <div class="info-grid appearance-controls">
           <label class="info-field full"><span class="lbl">URL do banner <span class="hint">imagem ou GIF</span></span><input type="url" name="banner_url" value="{{ p.banner_url|default:'' }}" placeholder="https://.../banner.gif"></label>
+          <label class="info-field full"><span class="lbl">Enviar banner <span class="hint">até 12MB · substitui a URL</span></span><input type="file" name="banner_file" accept="image/png,image/jpeg,image/webp,image/gif"></label>
+          <label class="info-field full"><span class="lbl">URL do fundo da página <span class="hint">imagem ou GIF (cover, fixo)</span></span><input type="url" name="ficha_background_url" value="{{ p.ficha_background_url|default:'' }}" placeholder="https://.../fundo.jpg"></label>
+          <label class="info-field full"><span class="lbl">Enviar fundo <span class="hint">até 12MB · substitui a URL</span></span><input type="file" name="background_file" accept="image/png,image/jpeg,image/webp,image/gif"></label>
           <label class="info-field"><span class="lbl">Tema</span>
-            <select name="ficha_theme">
+            <select name="ficha_theme" id="ficha-theme-select">
               {% for key, item in appearance_themes.items %}
               <option value="{{ key }}" {% if key == appearance.theme_key %}selected{% endif %}>{{ item.label }}</option>
               {% endfor %}
             </select>
           </label>
           <label class="info-field"><span class="lbl">Moldura</span>
-            <select name="foto_frame">
+            <select name="foto_frame" id="ficha-frame-select">
               {% for key, item in appearance_frames.items %}
               <option value="{{ key }}" {% if key == appearance.frame_key %}selected{% endif %}>{{ item.label }}</option>
               {% endfor %}
             </select>
           </label>
           <label class="info-field"><span class="lbl">Efeito</span>
-            <select name="ficha_effect">
+            <select name="ficha_effect" id="ficha-effect-select">
               {% for key, item in appearance_effects.items %}
               <option value="{{ key }}" {% if key == appearance.effect_key %}selected{% endif %}>{{ item.label }}</option>
               {% endfor %}
             </select>
           </label>
+        </div>
+
+        {# Cores do tema Personalizado — só valem quando Tema = Personalizado #}
+        <div class="info-grid appearance-controls custom-theme-controls" id="ficha-custom-controls" style="{% if not appearance.is_custom %}display:none;{% endif %}margin-top:.75rem">
+          <label class="info-field"><span class="lbl">Destaque</span><input type="color" name="custom_accent" id="ficha-custom-accent" value="{{ appearance.custom.accent }}"></label>
+          <label class="info-field"><span class="lbl">Destaque 2</span><input type="color" name="custom_accent2" id="ficha-custom-accent2" value="{{ appearance.custom.accent2 }}"></label>
+          <label class="info-field"><span class="lbl">Superfície</span><input type="color" name="custom_surface" id="ficha-custom-surface" value="{{ appearance.custom.surface }}"></label>
+          <label class="info-field"><span class="lbl">Fundo</span><input type="color" name="custom_deep" id="ficha-custom-deep" value="{{ appearance.custom.deep }}"></label>
+          <label class="info-field full appearance-toggle"><input type="checkbox" name="custom_gradiente" id="ficha-custom-gradiente" {% if appearance.custom.gradiente %}checked{% endif %}> <span class="lbl">Degradê animado no destaque</span></label>
+        </div>
+
+        {# Preview ao vivo do tema/moldura/efeito #}
+        <div class="ficha-header ficha-live-preview {{ appearance.theme_class }} {{ appearance.effect_class }}" id="ficha-preview" style="margin-top:1rem;{{ appearance.custom_style }}">
+          <div class="banner-character-avatar {{ appearance.frame_class }}" id="ficha-preview-frame" style="width:56px;height:56px">
+            {% if p.foto_url %}<img src="{{ p.foto_url }}" alt="" loading="lazy">{% else %}<span>{{ p.nome|first|upper }}</span>{% endif %}
+          </div>
+          <span class="ficha-name" style="font-size:1rem">Prévia — {{ p.nome }}</span>
         </div>
       </div>
 
@@ -785,6 +808,48 @@
   let initial = 'ficha';
   try { initial = (new URL(window.location.href)).searchParams.get('aba') || 'ficha'; } catch (e) {}
   if (initial !== 'ficha') activateTab(initial);
+})();
+</script>
+
+{# Preview ao vivo do seletor de aparência da ficha #}
+<script>
+(function () {
+  const preview = document.getElementById('ficha-preview');
+  if (!preview) return;
+  const frameEl = document.getElementById('ficha-preview-frame');
+  const themeSel = document.getElementById('ficha-theme-select');
+  const frameSel = document.getElementById('ficha-frame-select');
+  const effectSel = document.getElementById('ficha-effect-select');
+  const customBox = document.getElementById('ficha-custom-controls');
+  const THEME = { {% for key, item in appearance_themes.items %}'{{ key }}':'{{ item.class }}',{% endfor %} };
+  const FRAME = { {% for key, item in appearance_frames.items %}'{{ key }}':'{{ item.class }}',{% endfor %} };
+  const EFFECT = { {% for key, item in appearance_effects.items %}'{{ key }}':'{{ item.class }}',{% endfor %} };
+  const cA = document.getElementById('ficha-custom-accent');
+  const cB = document.getElementById('ficha-custom-accent2');
+  const cS = document.getElementById('ficha-custom-surface');
+  const cD = document.getElementById('ficha-custom-deep');
+  const cG = document.getElementById('ficha-custom-gradiente');
+
+  function apply() {
+    const t = themeSel ? themeSel.value : 'bonfire';
+    preview.className = 'ficha-header ficha-live-preview ' + (THEME[t] || '') + ' ' + (EFFECT[effectSel.value] || '');
+    frameEl.className = 'banner-character-avatar ' + (FRAME[frameSel.value] || '');
+    const isCustom = t === 'custom';
+    if (customBox) customBox.style.display = isCustom ? '' : 'none';
+    if (isCustom) {
+      const accent = cG && cG.checked ? ('linear-gradient(120deg, ' + cA.value + ', ' + cB.value + ')') : cA.value;
+      preview.style.cssText = 'margin-top:1rem;width:56px;'
+        + '--sheet-accent:' + accent + ';--sheet-accent-solid:' + cA.value
+        + ';--sheet-accent-2:' + cB.value + ';--sheet-surface:' + cS.value + ';--sheet-deep:' + cD.value + ';';
+    } else {
+      preview.style.cssText = 'margin-top:1rem';
+    }
+  }
+  [themeSel, frameSel, effectSel, cA, cB, cS, cD, cG].forEach(el => {
+    if (el) el.addEventListener('input', apply);
+    if (el) el.addEventListener('change', apply);
+  });
+  apply();
 })();
 </script>
 {% endblock %}

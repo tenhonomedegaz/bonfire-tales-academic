@@ -54,13 +54,15 @@ for _k, _v in _PROJECT_ENV.items():
 
 
 
-SECRET_KEY = os.environ.get(
-    "DJANGO_SECRET_KEY",
-    'django-insecure-x6%=xcc0x#6+#17z8-p+815+e-)&yy2q_*0u+q7wnsoa!845iw',
-)
+DEBUG = _env_bool("DJANGO_DEBUG", False)
 
-
-DEBUG = _env_bool("DJANGO_DEBUG", True)
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
+if not SECRET_KEY:
+    if DEBUG:
+        # Só dev: chave insegura e publicamente conhecida, nunca usar em produção.
+        SECRET_KEY = 'django-insecure-x6%=xcc0x#6+#17z8-p+815+e-)&yy2q_*0u+q7wnsoa!845iw'
+    else:
+        raise ImproperlyConfigured("DJANGO_SECRET_KEY ausente em produção")
 
 ALLOWED_HOSTS = [
     host.strip()

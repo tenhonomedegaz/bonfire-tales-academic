@@ -11,28 +11,29 @@
     ],
     "como_o_motor_usa": [
       "1. parse: string da tag -> AST de tokens (formas em 'token_forms').",
-      "2. resolve: 'references' (ability{}, spell:, define{}, escopo dot-path).",
+      "2. resolve: 'references' (ability{}, spell:, define{}, escopo dot_path).",
       "3. dispatch: para cada verbo, olha 'primitives[verbo]' -> pega 'op' + 'target' + 'value';",
       "   chama a operação 'ops[op]' que escreve em state[target].",
       "4. funções (if/match/save/roll/min/max/round) são avaliadas por 'functions'.",
       "Verbo ausente daqui = erro de validação (consultar o PO); nunca um efeito mágico."
     ],
     "docs_irmaos": [
-      "docs/criador-personagem/vocabulario-tags-json.md  (regras em prosa, canônico)",
-      "docs/criador-personagem/dicionario-tags.md        (lista categorizada A/B/C/D)"
+      "docs/criador_personagem/vocabulario_tags_json.md  (regras em prosa, canônico)",
+      "docs/criador_personagem/dicionario_tags.md        (lista categorizada A/B/C/D)"
     ],
     "regra_de_idioma": "keyword estrutural = inglês; valor de catálogo do jogo = português; nome próprio/define/slug = português."
   },
   "meta": {
     "versao": "0.2",
     "atualizado_em": "2026-07-01",
-    "compativel_com_vocabulario": "0.2",
-    "unidade_distancia": "ft (pés) — padrão canônico (decisão 2026-06-17). Converter tags antigas em metros: 5ft=1.5m · 10ft=3m · 15ft=4.5m · 20ft=6m · 30ft=9m · 60ft=18m · 90ft=27m."
+    "compativel_com_vocabulario": "0.3_snake_case",
+    "regra_identificadores": "Identificadores mecanicos canonicos usam snake_case ([a_z][a_z0_9_]*). Hifen em nomes e legado; '-' fica reservado para formulas matematicas. Use validate_tags --strict_names no retagging.",
+    "unidade_distancia": "ft (pés) — padrão canônico (decisão 2026_06_17). Converter tags antigas em metros: 5ft=1.5m · 10ft=3m · 15ft=4.5m · 20ft=6m · 30ft=9m · 60ft=18m · 90ft=27m."
   },
   "token_forms": {
     "flag": {
       "sintaxe": "<nome>",
-      "exemplo": "always-active",
+      "exemplo": "always_active",
       "doc": "Liga algo sem valor."
     },
     "key_value": {
@@ -42,18 +43,18 @@
     },
     "bind": {
       "sintaxe": "<chave>=<valor>",
-      "exemplo": "cd=8+pb+con-mod",
+      "exemplo": "cd=8+pb+con_mod",
       "doc": "Vínculo/fórmula/identidade. '=' = liga ou define."
     },
     "block": {
       "sintaxe": "<chave>{<tokens>}",
-      "exemplo": "while-active{...}",
+      "exemplo": "while_active{...}",
       "doc": "Agrupa tokens de um escopo; aninha."
     },
     "scope_path": {
       "sintaxe": "<escopo>.<efeito>",
-      "exemplo": "str-atk.crit-range:+1",
-      "doc": "Aplica o efeito só àquele escopo (dot-path, ver 'scopes')."
+      "exemplo": "str_atk.crit_range:+1",
+      "doc": "Aplica o efeito só àquele escopo (dot_path, ver 'scopes')."
     },
     "reference": {
       "sintaxe": "<ref>{<args>}",
@@ -67,31 +68,31 @@
       "doc": "Marcador/metadado lido pela APLICAÇÃO (UI, edição de ficha), sem efeito no estado derivado pelo motor. Ex.: 'trocavel' marca que a escolha concedida pode ser refeita pelo jogador.",
       "assina": "(flag)"
     },
-    "add-to-set": {
+    "add_to_set": {
       "doc": "Adiciona um valor a uma coleção do estado.",
       "assina": "(target_path, value)"
     },
-    "add-modifier": {
+    "add_modifier": {
       "doc": "Soma um modificador numérico/dado a um valor derivado (acumula). Operador ':+'.",
       "assina": "(target_path, formula, scope?)"
     },
-    "set-value": {
+    "set_value": {
       "doc": "Sobrescreve um valor (não acumula). Operador ':=' ou '='.",
       "assina": "(target_path, formula, scope?)"
     },
-    "grant-roll-mod": {
+    "grant_roll_mod": {
       "doc": "Concede vantagem/desvantagem/min/reroll numa rolagem (save/check/attack).",
       "assina": "(roll_id, modo)"
     },
-    "add-damage": {
+    "add_damage": {
       "doc": "Adiciona dado/tipo de dano a um perfil de ataque ou escopo.",
       "assina": "(scope, dice, dmg_type?)"
     },
-    "absorb-damage": {
-      "doc": "Em vez de SOFRER o dano do tipo dado, absorve-o (passa a ter resistência/imunidade situacional). Ex.: Absorver Elementos.",
+    "absorb_damage": {
+      "doc": "Em vez de SOFRER o dano do tipo dado, absorve_o (passa a ter resistência/imunidade situacional). Ex.: Absorver Elementos.",
       "assina": "(target_selector, dmg_type)"
     },
-    "apply-condition": {
+    "apply_condition": {
       "doc": "Aplica uma condição a um alvo (com save/duração opcionais).",
       "assina": "(target_selector, condicao, save?, duration?)"
     },
@@ -100,22 +101,22 @@
       "assina": "(target_selector, formula, tipo)"
     },
     "resource": {
-      "doc": "Gasta/restaura/lê um recurso. NÃO declara pool: o pool de recurso de classe vive na TB_RecursoClasse (veto do PO 2026-06-17). A tag só referencia/gasta/restaura. O papel do pool fica em TbRecursoclasse.tipo: table-only, consumable ou choice.",
+      "doc": "Gasta/restaura/lê um recurso. NÃO declara pool: o pool de recurso de classe vive na TB_RecursoClasse (veto do PO 2026_06_17). A tag só referencia/gasta/restaura. O papel do pool fica em TbRecursoclasse.tipo: table_only, consumable ou choice.",
       "assina": "(recurso, acao, qtd?, reset?)"
     },
-    "grant-execution": {
+    "grant_execution": {
       "doc": "Concede uma execução acionável (dash, attack, teleport...) por um custo de ação.",
       "assina": "(execucao, action_cost, payload?)"
     },
-    "emit-area": {
+    "emit_area": {
       "doc": "Emite área: aura contínua ou aoe pontual.",
       "assina": "(forma, raio/tam, target, effects)"
     },
-    "cast-spell": {
+    "cast_spell": {
       "doc": "Concede conjuração de uma magia com modificadores.",
       "assina": "(spell_ref, modifiers)"
     },
-    "roll-table": {
+    "roll_table": {
       "doc": "Rola numa tabela definida (define{} table{}).",
       "assina": "(table_ref, dice?, keep?)"
     },
@@ -143,15 +144,19 @@
       "doc": "Condição de porteiro: restriction (NÃO pode) / requires (exige) / equiped.",
       "assina": "(tipo, condicao, nivel)"
     },
-    "declare-caster": {
+    "restrict": {
+      "doc": "Impõe uma proibição enquanto o escopo ativo durar. Diferente de gate: não bloqueia a ativação do próprio efeito, cria uma restrição no personagem/alvo. Ex.: restricts{spellcasting, concentration}.",
+      "assina": "(target_selector, capacidades[])"
+    },
+    "declare_caster": {
       "doc": "Declara a conjuração da classe (fração de caster p/ multiclasse).",
       "assina": "(ability, slots, lista, prepara, foco)"
     },
-    "grant-proficiency": {
+    "grant_proficiency": {
       "doc": "Concede proficiência/expertise (perícia, save, armadura, arma, ferramenta).",
       "assina": "(categoria, valor, dobra_pb?)"
     },
-    "alter-attribute": {
+    "alter_attribute": {
       "doc": "Altera valor ou teto de um atributo.",
       "assina": "(attr, campo, valor)"
     }
@@ -161,33 +166,33 @@
     "ability": {
       "sintaxe": "ability{<habilidade>, <fonte>:<entidade>}[.<campo>]",
       "resolve": "habilidade por slug/nome + fonte; .<campo> le um valor exportado por um define{}. <fonte> = classe | subclasse | talento | raca | linhagem | essencia. A entidade e sempre o slug da tabela indicada pela fonte; talento: aponta so para TbTalento e subclasse: aponta so para TbSubclasse.",
-      "exemplo": "ability{furia, classe:barbaro}.dmg-bonus | ability{foco-mortal, subclasse:atirador} | ability{tratamento-de-campo, talento:curandeiro}",
-      "nota": "NÃO confundir com o campo 'ability:' DENTRO de spellcasting{} (atributo de conjuração). Fora de spellcasting, p/ o modificador de conjuração use 'spell-mod' (decisão 2026-06-17)."
+      "exemplo": "ability{furia, classe:barbaro}.dmg_bonus | ability{foco_mortal, subclasse:atirador} | ability{tratamento_de_campo, talento:curandeiro}",
+      "nota": "NÃO confundir com o campo 'ability:' DENTRO de spellcasting{} (atributo de conjuração). Fora de spellcasting, p/ o modificador de conjuração use 'spell_mod' (snake_case; legado: spell_mod)."
     },
     "spell": {
       "sintaxe": "spell:<slug>  |  spell:pick{lista:<classe>, nivel<=N, escola:[...]}",
-      "resolve": "TbMagia.slug (forma direta) OU seleção dinâmica de uma lista. spell:pick é a ÚNICA forma de SELECIONAR magia — nunca spell:lista/truque/escola soltos (decisão PO 2026-06-18).",
-      "exemplo": "spell:detectar-magia | cast{spell:pick{lista:bardo, nivel<=1}}"
+      "resolve": "TbMagia.slug (forma direta) OU seleção dinâmica de uma lista. spell:pick é a ÚNICA forma de SELECIONAR magia — nunca spell:lista/truque/escola soltos (decisão PO 2026_06_18).",
+      "exemplo": "spell:detectar_magia | cast{spell:pick{lista:bardo, nivel<=1}}"
     },
     "bestiary": {
       "sintaxe": "bestiary{<slug>}",
-      "resolve": "criatura do BESTIÁRIO (statblock). Companheiros de subclasse (Defensor de Aço, Familiar Primal, espíritos, mortos-vivos comandados) são entradas de bestiário. Ver docs/criador-personagem/bestiario-e-summon.md.",
-      "exemplo": "summon:bestiary{defensor-de-aco}"
+      "resolve": "criatura do BESTIÁRIO (statblock). Companheiros de subclasse (Defensor de Aço, Familiar Primal, espíritos, mortos_vivos comandados) são entradas de bestiário. Ver docs/criador_personagem/bestiario_e_summon.md.",
+      "exemplo": "summon:bestiary{defensor_de_aco}"
     },
-    "any-bestiary": {
-      "sintaxe": "any-bestiary{tipo:<tipo>, nd:<valor>}",
+    "any_bestiary": {
+      "sintaxe": "any_bestiary{tipo:<tipo>, nd:<valor>}",
       "resolve": "seleção dinâmica de criaturas do BESTIÁRIO por filtros. Use dentro de define{} + pick:<nome>:N quando a regra permite qualquer criatura que case com filtros, em vez de uma lista fechada de slugs.",
-      "exemplo": "define{familiar: list{ bat | cat | any-bestiary{tipo:besta, nd:0} }}"
+      "exemplo": "define{familiar: list{ bat | cat | any_bestiary{tipo:besta, nd:0} }}"
     },
     "opcao": {
       "sintaxe": "opcao:<tipo>",
       "resolve": "TB_OpcaoJogo.Tipo (acesso via TB_AcessoOpcao)",
-      "exemplo": "opcao:maestria-de-arma"
+      "exemplo": "opcao:maestria_de_arma"
     },
     "arma": {
       "sintaxe": "arma:<slug>  |  pick:arma:N",
       "resolve": "TB_ItemMundano (Categoria='arma'). Maestria de Arma = escolher ARMA(s); o personagem conhece TODAS as maestrias da arma e aplica 1 por ataque (escolhida ao atacar). As maestrias da arma ficam em TB_OpcaoJogo[Maestria de Arma].",
-      "exemplo": "pick:arma:N(=resource maestria-com-armas)"
+      "exemplo": "pick:arma:N(=resource maestria_com_armas)"
     },
     "classe": {
       "sintaxe": "classe:<slug>",
@@ -195,12 +200,12 @@
       "exemplo": "classe:barbaro"
     },
     "local": {
-      "sintaxe": "<nome-local>",
+      "sintaxe": "<nome_local>",
       "resolve": "algo criado por define{} na mesma habilidade.",
-      "exemplo": "magia-selvagem"
+      "exemplo": "magia_selvagem"
     },
     "identidade": {
-      "_doc": "Filtros resolvidos contra o banco (substituem tags-slug redundantes).",
+      "_doc": "Filtros resolvidos contra o banco (substituem tags_slug redundantes).",
       "raca": {
         "sintaxe": "raca=<slug>",
         "resolve": "TbRaca.slug"
@@ -220,14 +225,14 @@
     }
   },
   "scopes": {
-    "_doc": "Taxonomia de ATAQUE — eixos estruturais, SEMPRE inglês (dicionario §A4b). Usados como dot-path 'escopo.efeito' e como valor de attack:<tipo>.",
+    "_doc": "Taxonomia de ATAQUE — eixos estruturais, SEMPRE inglês (dicionario §A4b). Usados como dot_path 'escopo.efeito' e como valor de attack:<tipo>.",
     "distancia": {
       "melee": "corpo a corpo",
       "ranged": "à distância"
     },
     "tipo_fisico": {
       "unarmed": "desarmado",
-      "unarmed-strike": "golpe do Ataque Desarmado (perfil 2024)",
+      "unarmed_strike": "golpe do Ataque Desarmado (perfil 2024)",
       "weapon": "com arma",
       "natural": "arma natural"
     },
@@ -235,27 +240,27 @@
       "magic": "usa mod. de conjuração + PB"
     },
     "atributo": {
-      "str-atk": "ataque por Força",
-      "dex-atk": "ataque por Destreza"
+      "str_atk": "ataque por Força",
+      "dex_atk": "ataque por Destreza"
     },
     "qualificadores_de_arma": {
-      "heavy-weapon": "arma pesada",
-      "light-weapon": "arma leve"
+      "heavy_weapon": "arma pesada",
+      "light_weapon": "arma leve"
     },
     "empunhadura": {
-      "off-hand": "mão secundária",
-      "one-handed": "uma mão",
-      "two-handed": "duas mãos",
-      "free-hand": "ao menos uma mão livre (requires)"
+      "off_hand": "mão secundária",
+      "one_handed": "uma mão",
+      "two_handed": "duas mãos",
+      "free_hand": "ao menos uma mão livre (requires)"
     },
     "situacional": {
       "mount": "montaria (Combatente Montado): mount.<efeito>",
       "grapple": "manobra Agarrar: grapple.contest (ver contest{})",
-      "manobra": "perfil de Manobra de Combate (resource{dado-de-combate}): manobra.cd / manobra.<efeito>"
+      "manobra": "perfil de Manobra de Combate (resource{dado_de_combate}): manobra.cd / manobra.<efeito>"
     },
     "direcao_ataque": {
-      "vs": "CONTRA (o alvo/vítima do ataque): em adv/dadv/no-adv:attack{...} desambigua a direção. no-adv:attack{vs:self} = nenhum ataque feito CONTRA você tem Vantagem. Sem vs:/by:, um 'target:self' fica ambíguo (atacante vs vítima).",
-      "by": "POR (quem faz o ataque): no-adv:attack{by:self} = seus próprios ataques não têm Vantagem; dadv:attack{by:enemies} = ataques dos inimigos têm Desvantagem."
+      "vs": "CONTRA (o alvo/vítima do ataque): em adv/dadv/no_adv:attack{...} desambigua a direção. no_adv:attack{vs:self} = nenhum ataque feito CONTRA você tem Vantagem. Sem vs:/by:, um 'target:self' fica ambíguo (atacante vs vítima).",
+      "by": "POR (quem faz o ataque): no_adv:attack{by:self} = seus próprios ataques não têm Vantagem; dadv:attack{by:enemies} = ataques dos inimigos têm Desvantagem."
     },
     "pendencia": "No banco existem 'attack:magico' (PT) vindos do tagueamento de magia — padronizar para 'attack:magic'."
   },
@@ -270,79 +275,79 @@
     "guard": "criatura protegida (guardião)",
     "bound": "criatura vinculada",
     "wielded": "arma/objeto empunhado",
-    "chosen-enemies": "inimigos escolhidos",
+    "chosen_enemies": "inimigos escolhidos",
     "source": "a fonte do dano/efeito recebido",
-    "last-damage-type": "o último tipo de dano sofrido (muda em runtime)",
-    "magic-object": "objeto mágico",
+    "last_damage_type": "o último tipo de dano sofrido (muda em runtime)",
+    "magic_object": "objeto mágico",
     "collision": "alvo de colisão (investida)",
-    "companion": "criatura-companheira controlada pelo personagem (Defensor de Aço, Familiar Primal, espíritos/mortos-vivos comandados — entradas do Bestiário)"
+    "companion": "criatura_companheira controlada pelo personagem (Defensor de Aço, Familiar Primal, espíritos/mortos_vivos comandados — entradas do Bestiário)"
   },
   "conditions": {
-    "_doc": "Condições de runtime p/ requires:/if()/trigger= (aprovadas 2026-06-17). Distâncias em ft.",
+    "_doc": "Condições de runtime p/ requires:/if()/trigger= (aprovadas 2026_06_17). Distâncias em ft.",
     "adv": "você tem Vantagem na rolagem",
-    "no-dadv": "você NÃO tem Desvantagem",
-    "not-moved": "você não se moveu neste turno",
+    "no_dadv": "você NÃO tem Desvantagem",
+    "not_moved": "você não se moveu neste turno",
     "ally(range:<dist>)": "há um aliado a até <dist> ft",
     "target{acted}": "o alvo já agiu no combate",
     "target{!acted}": "o alvo ainda não agiu no combate",
     "target{surprised}": "o alvo está Surpreso",
-    "in-dim-light": "você está em Luz Fraca ou Escuridão (par de in-light)",
+    "in_dim_light": "você está em Luz Fraca ou Escuridão (par de in_light)",
     "banished": "o alvo está banido/removido do mapa (até um evento)",
-    "in:ability{<nome>}": "você está sob efeito ativo de uma habilidade própria referenciada (ex.: in:ability{forma-do-terror})",
-    "next-attack": "escopo: a próxima jogada de ataque deste turno",
+    "in:ability{<nome>}": "você está sob efeito ativo de uma habilidade própria referenciada (ex.: in:ability{forma_do_terror})",
+    "next_attack": "escopo: a próxima jogada de ataque deste turno",
     "target{same}": "a MESMA criatura do gatilho (ex.: Ataque Estudado — vantagem contra quem você errou)",
-    "sangrando": "a criatura está Sangrando (Bloodied — metade ou menos do PV máximo). Predicado: requires:target{sangrando} (Atacante Selvagem). Aprovado 2026-06-18.",
-    "moved-by-other": "você foi movido por uma força/criatura externa neste turno (predicado defensivo). Aprovado 2026-06-18.",
-    "combinadores": "requires:{a and b | c} — AND/OR entre condições (ex.: Ataque Furtivo: {adv | ally(range:5ft) and no-dadv})"
+    "sangrando": "a criatura está Sangrando (Bloodied — metade ou menos do PV máximo). Predicado: requires:target{sangrando} (Atacante Selvagem). Aprovado 2026_06_18.",
+    "moved_by_other": "você foi movido por uma força/criatura externa neste turno (predicado defensivo). Aprovado 2026_06_18.",
+    "combinadores": "requires:{a and b | c} — AND/OR entre condições (ex.: Ataque Furtivo: {adv | ally(range:5ft) and no_dadv})"
   },
   "events": {
     "_doc": "Eventos GENÉRICOS do jogo p/ trigger= (valem pra qualquer personagem). Específico de classe NÃO é evento: use trigger=ability{...} (vocabulario §4).",
-    "first-attack": "primeiro ataque do turno",
-    "first-turn": "primeiro turno do personagem no combate (aprovado 2026-06-17)",
-    "hit-melee": "acerta corpo a corpo",
-    "crit-melee": "crítico corpo a corpo",
-    "hit-by-melee": "é acertado por ataque corpo a corpo",
-    "hit-by-ranged": "é acertado por ataque à distância",
-    "hit-by-attack": "é acertado por qualquer ataque (melee ou ranged)",
-    "miss": "erra um ataque OU um ataque contra você erra (bidirecional — aprovado 2026-06-17)",
-    "hit-thrown": "acerta com arma de arremesso",
-    "drop-to-0": "cai a 0 PV",
-    "reduce-to-0": "reduz alvo a 0 PV",
-    "take-damage": "sofre dano",
-    "fail-save": "falha num teste de resistência",
-    "fail-check": "falha num teste de perícia/habilidade (par de fail-save — aprovado 2026-06-17)",
-    "save-roll": "o ato de rolar um teste de resistência (antes do resultado; p/ reação de aliado)",
-    "magic.deal-dmg": "uma magia/truque SEU causou dano a uma criatura",
+    "first_attack": "primeiro ataque do turno",
+    "first_turn": "primeiro turno do personagem no combate (aprovado 2026_06_17)",
+    "hit_melee": "acerta corpo a corpo",
+    "crit_melee": "crítico corpo a corpo",
+    "hit_by_melee": "é acertado por ataque corpo a corpo",
+    "hit_by_ranged": "é acertado por ataque à distância",
+    "hit_by_attack": "é acertado por qualquer ataque (melee ou ranged)",
+    "miss": "erra um ataque OU um ataque contra você erra (bidirecional — aprovado 2026_06_17)",
+    "hit_thrown": "acerta com arma de arremesso",
+    "drop_to_0": "cai a 0 PV",
+    "reduce_to_0": "reduz alvo a 0 PV",
+    "take_damage": "sofre dano",
+    "fail_save": "falha num teste de resistência",
+    "fail_check": "falha num teste de perícia/habilidade (par de fail_save — aprovado 2026_06_17)",
+    "save_roll": "o ato de rolar um teste de resistência (antes do resultado; p/ reação de aliado)",
+    "magic.deal_dmg": "uma magia/truque SEU causou dano a uma criatura",
     "initiative": "rola iniciativa",
-    "turn-start": "início do turno",
-    "turn-end": "fim do turno",
-    "short-rest": "descanso curto",
-    "long-rest": "descanso longo",
-    "enter-aura": "entra numa aura",
-    "attack-roll": "ao rolar uma jogada de ataque (antes do resultado; par de save-roll)",
-    "ally-fail-save": "um aliado falha num teste de resistência",
-    "ally-take-damage": "um aliado sofre dano",
-    "target-attacks": "uma criatura faz um ataque (contra você ou aliado)",
-    "succeed-save": "você (ou aliado) obtém sucesso num teste de resistência",
-    "creature-dies": "uma criatura morre (ex.: in-aura — Sacerdote da Passagem)",
-    "enemy-heals": "um inimigo é curado (Sopro de Nascira)",
-    "ally-drop-to-0": "um aliado cai a 0 PV",
-    "target-drop-to-0": "o alvo (marcado/escolhido) cai a 0 PV",
+    "turn_start": "início do turno",
+    "turn_end": "fim do turno",
+    "short_rest": "descanso curto",
+    "long_rest": "descanso longo",
+    "enter_aura": "entra numa aura",
+    "attack_roll": "ao rolar uma jogada de ataque (antes do resultado; par de save_roll)",
+    "ally_fail_save": "um aliado falha num teste de resistência",
+    "ally_take_damage": "um aliado sofre dano",
+    "target_attacks": "uma criatura faz um ataque (contra você ou aliado)",
+    "succeed_save": "você (ou aliado) obtém sucesso num teste de resistência",
+    "creature_dies": "uma criatura morre (ex.: in_aura — Sacerdote da Passagem)",
+    "enemy_heals": "um inimigo é curado (Sopro de Nascira)",
+    "ally_drop_to_0": "um aliado cai a 0 PV",
+    "target_drop_to_0": "o alvo (marcado/escolhido) cai a 0 PV",
     "overuse": "usar uma característica ALÉM dos usos gratuitos (ex.: exaustão no 2º uso — Paradoxo da Repetição)",
-    "after-attack-action": "imediatamente após realizar a Ação de Atacar (gatilho de ação bônus)",
-    "enemy-enters-reach": "um inimigo entra no alcance corpo a corpo da sua arma",
-    "enemy-enters-aura": "um inimigo entra numa aura referenciada",
-    "enemy-moves-within-aura": "um inimigo se move dentro de uma aura referenciada",
-    "enter-area": "uma criatura entra numa área/zona criada por você (família: enter-area-or-move, enter-area-or-turn-start)",
-    "target-miss": "o alvo erra um ataque",
-    "enemy-end-turn": "um inimigo termina o turno (no alcance/zona dado)",
+    "after_attack_action": "imediatamente após realizar a Ação de Atacar (gatilho de ação bônus)",
+    "enemy_enters_reach": "um inimigo entra no alcance corpo a corpo da sua arma",
+    "enemy_enters_aura": "um inimigo entra numa aura referenciada",
+    "enemy_moves_within_aura": "um inimigo se move dentro de uma aura referenciada",
+    "enter_area": "uma criatura entra numa área/zona criada por você (família: enter_area_or_move, enter_area_or_turn_start)",
+    "target_miss": "o alvo erra um ataque",
+    "enemy_end_turn": "um inimigo termina o turno (no alcance/zona dado)",
     "end": "fim da duração ativa da PRÓPRIA habilidade (on:end)",
-    "ally-spend-inspiration": "um aliado gasta uma Inspiração Heroica (Fólio Incansável) — aprovado 2026-06-18",
-    "death-save": "uma criatura faz um Teste contra a Morte (ver primitives.death-save) — aprovado 2026-06-18",
-    "fail-again": "o dado/re-rolagem adicionado pela característica também falha (2ª falha consecutiva — Perícia Inigualável) — aprovado 2026-06-18",
-    "attack-action": "você realiza a Ação de Atacar (≠ ability — é a ação genérica; substitui ability{ataque}) — aprovado 2026-06-18",
-    "hide-action": "você realiza a Ação Esconder-se (substitui ability{esconder}) — aprovado 2026-06-18",
-    "dodge-action": "você realiza a Ação Esquivar (substitui ability{dodge}) — aprovado 2026-06-18"
+    "ally_spend_inspiration": "um aliado gasta uma Inspiração Heroica (Fólio Incansável) — aprovado 2026_06_18",
+    "death_save": "uma criatura faz um Teste contra a Morte (ver primitives.death_save) — aprovado 2026_06_18",
+    "fail_again": "o dado/re_rolagem adicionado pela característica também falha (2ª falha consecutiva — Perícia Inigualável) — aprovado 2026_06_18",
+    "attack_action": "você realiza a Ação de Atacar (≠ ability — é a ação genérica; substitui ability{ataque}) — aprovado 2026_06_18",
+    "hide_action": "você realiza a Ação Esconder_se (substitui ability{esconder}) — aprovado 2026_06_18",
+    "dodge_action": "você realiza a Ação Esquivar (substitui ability{dodge}) — aprovado 2026_06_18"
   },
   "functions": {
     "_doc": "Funções genéricas avaliadas pelo motor (modelo Excel). Aninham. Adicionar função = consultar o PO.",
@@ -365,7 +370,7 @@
     "dados": {
       "sintaxe": "<N>d<X>[dK | dhK | khK | klK]",
       "doc": "Notação de dados padrão de VTT (opera sobre o dado, como um operador). 'NdX' = N dados de X faces. Modificadores de descarte: 'dK' descarta os K MENORES (mantém os maiores); 'dhK' descarta os K MAIORES (mantém os menores). Aliases explícitos: 'khK' = mantém os K maiores, 'klK' = mantém os K menores. Ex.: 4d6d1 = rola 4d6 e descarta o menor (mantém os 3 maiores) = 4d6kh3; 4d6dh1 = descarta o maior; 4d6d2 = descarta os 2 menores. Válido em qualquer lugar que aceite <NdX> (dmg, roll{dice}, table, fórmulas).",
-      "exemplo": "dmg:4d6d1(fogo) | roll{ dice:2d20kh1 } | define{ pv-inicial: 4d6d1 }"
+      "exemplo": "dmg:4d6d1(fogo) | roll{ dice:2d20kh1 } | define{ pv_inicial: 4d6d1 }"
     },
     "min": {
       "sintaxe": "min(<a>, <b>)",
@@ -388,22 +393,22 @@
       "doc": "Nº de vezes que a habilidade foi usada (valor dinâmico)."
     },
     "limiters": {
-      "_doc": "Limitadores de frequência (independem de recurso; aprovados 2026-06-17).",
+      "_doc": "Limitadores de frequência (independem de recurso; aprovados 2026_06_17).",
       "1/turn": "uma vez por turno",
-      "1/round": "uma vez por RODADA (resseta no início do próprio turno; difere de 1/turn p/ reações que ocorrem fora do seu turno). Aprovado 2026-06-25.",
+      "1/round": "uma vez por RODADA (resseta no início do próprio turno; difere de 1/turn p/ reações que ocorrem fora do seu turno). Aprovado 2026_06_25.",
       "1/attack": "uma vez por ataque (ex.: 1 manobra por ataque)",
       "1/spell": "uma vez por feitiço conjurado (ex.: 1 metamagia por magia)",
       "1/combat": "uma vez por combate",
-      "1/long-rest": "uma vez por descanso longo",
-      "1/<reset>{per:<chave>}": "uma vez por janela, por sub-chave (ex.: 1/long-rest{per:ciclo})",
+      "1/long_rest": "uma vez por descanso longo",
+      "1/<reset>{per:<chave>}": "uma vez por janela, por sub_chave (ex.: 1/long_rest{per:ciclo})",
       "N/<reset>": "N vezes por janela de reset"
     },
     "operadores": {
       ":=": "set (sobrescreve, não acumula)",
       ":+": "add (soma/acumula/empilha)",
       "=": "bind (vínculo/fórmula/identidade)",
-      "@": "destinatário: redireciona o efeito imediatamente anterior para o seletor (ex.: move:15ft@target, grant:resource{dado-de-inspiracao}:1@ally(range:60ft), mark{...}@chosen-creature)",
-      "+ - * /": "aritmética em fórmulas"
+      "@": "destinatário: redireciona o efeito imediatamente anterior para o seletor (ex.: move:15ft@target, grant:resource{dado_de_inspiracao}:1@ally(range:60ft), mark{...}@chosen_creature)",
+      "+ _ * /": "aritmética em fórmulas"
     },
     "variaveis_de_formula": {
       "_doc": "Escala/atributo (dicionario §A14).",
@@ -411,64 +416,64 @@
       "pb": "bônus de proficiência",
       "classlvl": "nível DA classe",
       "lvl": "nível total",
-      "spell-mod": "modificador de conjuração",
+      "spell_mod": "modificador de conjuração",
       "self.cd": "a CD da própria habilidade (dentro de um define)",
       "marks": "nº de marcas acumuladas",
-      "aliados-aceitos": "nº de aliados voluntários que aceitaram",
-      "spell-level": "nível do espaço/magia conjurada (custo do Dom da Criação = PF igual ao nível)",
-      "sintonizacao-ativa": "nº de itens mágicos atualmente sintonizados (Magnum Opus)",
-      "damage-dealt": "dano que você causou (gatilho/fórmula)",
-      "damage-taken": "dano que você sofreu (ex.: redirect/reflect)",
-      "ft-moved": "pés percorridos nesta ação (ex.: dmg = 2*ft-moved)",
-      "owner-max-hp": "PV máximo do invocador/dono (ex.: threshold:owner-max-hp do Selo de Céssira)",
-      "spent": "quantidade efetivamente gasta de um recurso nesta ativação (par de ciclo-gasto; Virtudes/Metamagia)",
-      "dado-de-combate": "valor rolado do recurso-dado de manobra (resource{dado-de-combate}, análogo a artes-marciais/dado-de-cacador)",
-      "dado-de-cacador": "valor rolado do Dado de Caçador; os Pontos de Segredo usam o recurso consumível pontos-de-segredo",
-      "dado-de-furtividade": "valor de cada dado de Ataque Furtivo; dados-de-furtividade guarda a quantidade de dados",
-      "talent-attr": "o atributo que ESTE talento aumenta (asi-attr); usado na CD da habilidade do talento: cd=8+pb+talent-attr-mod. Sufixos -mod/-score. Aprovado 2026-06-18.",
-      "grau": "nível/grau de uma trilha de opção (Virtudes: grau>=2). Gate de progressão, análogo a classlvl. Aprovado 2026-06-18.",
-      "ciclo": "contador de ciclo de gasto de recurso (Conjuração Elemental); par de 'spent' e do limiter 1/<reset>{per:ciclo}. Aprovado 2026-06-18."
+      "aliados_aceitos": "nº de aliados voluntários que aceitaram",
+      "spell_level": "nível do espaço/magia conjurada (custo do Dom da Criação = PF igual ao nível)",
+      "sintonizacao_ativa": "nº de itens mágicos atualmente sintonizados (Magnum Opus)",
+      "damage_dealt": "dano que você causou (gatilho/fórmula)",
+      "damage_taken": "dano que você sofreu (ex.: redirect/reflect)",
+      "ft_moved": "pés percorridos nesta ação (ex.: dmg = 2*ft_moved)",
+      "owner_max_hp": "PV máximo do invocador/dono (ex.: threshold:owner_max_hp do Selo de Céssira)",
+      "spent": "quantidade efetivamente gasta de um recurso nesta ativação (par de ciclo_gasto; Virtudes/Metamagia)",
+      "dado_de_combate": "valor rolado do recurso_dado de manobra (resource{dado_de_combate}, análogo a artes_marciais/dado_de_cacador)",
+      "dado_de_cacador": "valor rolado do Dado de Caçador; os Pontos de Segredo usam o recurso consumível pontos_de_segredo",
+      "dado_de_furtividade": "valor de cada dado de Ataque Furtivo; dados_de_furtividade guarda a quantidade de dados",
+      "talent_attr": "o atributo que ESTE talento aumenta (asi_attr); usado na CD da habilidade do talento: cd=8+pb+talent_attr_mod. Sufixos -mod/-score. Aprovado 2026_06_18.",
+      "grau": "nível/grau de uma trilha de opção (Virtudes: grau>=2). Gate de progressão, análogo a classlvl. Aprovado 2026_06_18.",
+      "ciclo": "contador de ciclo de gasto de recurso (Conjuração Elemental); par de 'spent' e do limiter 1/<reset>{per:ciclo}. Aprovado 2026_06_18."
     }
   },
   "primitives": {
-    "at-will": {
+    "at_will": {
       "categoria": "A12",
       "forma": "flag",
-      "op": "add-modifier",
-      "doc": "Qualificador de cast{}: conjura À VONTADE (sem custo de recurso nem limite de usos). Atalho consagrado, mantido de propósito: equivale a cast{no-slot} sem uses{}/resource-cost, mas o volume de uso (~627) e a clareza justificam a primitiva."
+      "op": "add_modifier",
+      "doc": "Qualificador de cast{}: conjura À VONTADE (sem custo de recurso nem limite de usos). Atalho consagrado, mantido de propósito: equivale a cast{no_slot} sem uses{}/resource_cost, mas o volume de uso (~627) e a clareza justificam a primitiva."
     },
     "rede": {
-      "categoria": "A-util",
+      "categoria": "A_util",
       "forma": "key_value",
       "op": null,
-      "doc": "Rede de contatos sociais (utilidade narrativa de antecedente, não-mecânica): rede:contatos-criminais, rede:agentes-de-espionagem, rede:contratantes-mercenarios. Acesso a abrigo/hospedagem/informação a critério do mestre. Aprovado 2026-06-19."
+      "doc": "Rede de contatos sociais (utilidade narrativa de antecedente, não_mecânica): rede:contatos_criminais, rede:agentes_de_espionagem, rede:contratantes_mercenarios. Acesso a abrigo/hospedagem/informação a critério do mestre. Aprovado 2026_06_19."
     },
     "recall": {
-      "categoria": "A-util",
+      "categoria": "A_util",
       "forma": "key_value",
       "op": null,
-      "doc": "Conhecimento/memória passiva de um tema (narrativa): recall:terreno-e-geografia, recall:contratos-e-eventos-locais. O personagem sempre lembra/sabe o assunto. Aprovado 2026-06-19."
+      "doc": "Conhecimento/memória passiva de um tema (narrativa): recall:terreno_e_geografia, recall:contratos_e_eventos_locais. O personagem sempre lembra/sabe o assunto. Aprovado 2026_06_19."
     },
     "patente": {
-      "categoria": "A-util",
+      "categoria": "A_util",
       "forma": "key_value",
       "op": null,
-      "doc": "Patente/autoridade militar (narrativa): patente:militar — influência sobre soldados de patente inferior, requisição de equipamento simples/montaria e acesso a fortalezas amigas. Aprovado 2026-06-19."
+      "doc": "Patente/autoridade militar (narrativa): patente:militar — influência sobre soldados de patente inferior, requisição de equipamento simples/montaria e acesso a fortalezas amigas. Aprovado 2026_06_19."
     },
-    "marcha-forcada": {
-      "categoria": "A-util",
+    "marcha_forcada": {
+      "categoria": "A_util",
       "forma": "key_value",
       "op": null,
-      "doc": "Ritmo de viagem estendido (não é o move: de combate): marcha-forcada(max:16h) — marcha o dobro do tempo antes do efeito de marcha forçada. Aprovado 2026-06-19."
+      "doc": "Ritmo de viagem estendido (não é o move: de combate): marcha_forcada(max:16h) — marcha o dobro do tempo antes do efeito de marcha forçada. Aprovado 2026_06_19."
     },
     "forrageio": {
-      "categoria": "A-util",
+      "categoria": "A_util",
       "forma": "key_value",
       "op": null,
-      "doc": "Encontrar recursos naturais na terra: forrageio:comida-e-agua(target:6) — para si e até N pessoas por dia, se houver fonte natural. Aprovado 2026-06-19."
+      "doc": "Encontrar recursos naturais na terra: forrageio:comida_e_agua(target:6) — para si e até N pessoas por dia, se houver fonte natural. Aprovado 2026_06_19."
     },
     "_doc": "Cada verbo do vocabulário -> op do motor + onde escreve (target) + tipagem do valor. ESBOÇO: cobre o que já aparece nas tags; itens marcados 'todo' faltam detalhar.",
-    "always-active": {
+    "always_active": {
       "categoria": "A1",
       "forma": "flag",
       "op": "gate",
@@ -495,16 +500,16 @@
     "atk": {
       "categoria": "A4",
       "forma": "key_value",
-      "op": "add-modifier",
+      "op": "add_modifier",
       "doc": "Bonus em jogadas de ataque concedido por item/efeito. Escopo pode refinar: weapon.atk:+1, spell.atk:+1, unarmed.atk:+1."
     },
-    "log-castable": {
+    "log_castable": {
       "categoria": "A1",
       "forma": "flag",
       "op": "meta",
       "doc": "Termo consagrado: marca magia conjurável FORA de jogo (pelo log da ficha) para efeito real duradouro, tipicamente por ter tempo de conjuração longo e/ou componentes materiais e criar um estado persistente. Ex.: Encontrar Familiar (familiar por tempo indeterminado), Simulacro, Glifo de Vigilância, Aura Mágica (permanente após 30 dias). NÃO depreciar."
     },
-    "while-active": {
+    "while_active": {
       "categoria": "A1",
       "forma": "block",
       "op": "gate",
@@ -525,7 +530,7 @@
         "type": "enum",
         "valores": [
           "free",
-          "bonus-action",
+          "bonus_action",
           "action",
           "reaction"
         ]
@@ -561,7 +566,7 @@
       "op": null,
       "doc": "Referência a magia (references.spell)."
     },
-    "any-bestiary": {
+    "any_bestiary": {
       "categoria": "A3",
       "forma": "reference",
       "op": null,
@@ -584,13 +589,13 @@
       "categoria": "A3",
       "forma": "key_value",
       "op": "override",
-      "doc": "modify:<entidade-ref>.<prop>{...} — override genérico numa entidade referenciada."
+      "doc": "modify:<entidade_ref>.<prop>{...} — override genérico numa entidade referenciada."
     },
-    "add-to-set": {
+    "add_to_set": {
       "categoria": "A9",
       "forma": "key_value",
-      "op": "add-to-set",
-      "doc": "Adiciona um valor a uma coleção nomeada do estado. Ex.: add-to-set:arma-de-monge(wielded)."
+      "op": "add_to_set",
+      "doc": "Adiciona um valor a uma coleção nomeada do estado. Ex.: add_to_set:arma_de_monge(wielded)."
     },
     "modifiers": {
       "categoria": "A3",
@@ -601,50 +606,50 @@
     "dmg": {
       "categoria": "A4",
       "forma": "key_value",
-      "op": "add-damage",
+      "op": "add_damage",
       "target": "ataque.dano",
       "value": {
         "type": "dice|formula",
-        "elemento": "catalog:damage-type (PT)"
+        "elemento": "catalog:damage_type (PT)"
       },
-      "doc": "Dano (verbo E valor; nunca 'damage'). dmg:+1d6, dmg:8d6(fogo), dmg:+(roundup(classlvl/2)). (auto) = sem rolagem. Tipo escolhido inline: dmg:+1d8(pick:{raio | fogo | frio | trovejante}). 'no-crit-mult' marca dano não-multiplicado no crítico."
+      "doc": "Dano (verbo E valor; nunca 'damage'). dmg:+1d6, dmg:8d6(fogo), dmg:+(roundup(classlvl/2)). (auto) = sem rolagem. Tipo escolhido inline: dmg:+1d8(pick:{raio | fogo | frio | trovejante}). 'no_crit_mult' marca dano não_multiplicado no crítico."
     },
-    "crit-dmg": {
+    "crit_dmg": {
       "categoria": "A4",
       "forma": "bind",
-      "op": "add-damage",
+      "op": "add_damage",
       "target": "ataque.crit",
       "value": {
         "type": "dice|formula"
       },
-      "doc": "Dado extra no crítico. Use escopo (weapon.crit-dmg=+1d10)."
+      "doc": "Dado extra no crítico. Use escopo (weapon.crit_dmg=+1d10)."
     },
-    "dmg-type": {
+    "dmg_type": {
       "categoria": "A4",
       "forma": "key_value",
-      "op": "set-value",
+      "op": "set_value",
       "target": "ataque.dano.tipo",
       "value": {
         "type": "catalog",
-        "catalog": "damage-type",
+        "catalog": "damage_type",
         "lang": "pt"
       },
       "doc": "Define o tipo de dano."
     },
-    "crit-range": {
+    "crit_range": {
       "categoria": "A4",
       "forma": "key_value",
-      "op": "add-modifier",
-      "target": "ataque.crit-range",
+      "op": "add_modifier",
+      "target": "ataque.crit_range",
       "value": {
         "type": "number"
       },
-      "doc": "Amplia margem de crítico (str-atk.crit-range:+1)."
+      "doc": "Amplia margem de crítico (str_atk.crit_range:+1)."
     },
     "attacks": {
       "categoria": "A4",
       "forma": "key_value",
-      "op": "set-value",
+      "op": "set_value",
       "target": "ataque.qtd",
       "value": {
         "type": "number|formula"
@@ -654,7 +659,7 @@
     "attack": {
       "categoria": "A4",
       "forma": "key_value",
-      "op": "grant-execution",
+      "op": "grant_execution",
       "target": "ataque",
       "value": {
         "type": "scope",
@@ -665,41 +670,41 @@
     "resist": {
       "categoria": "A5",
       "forma": "key_value",
-      "op": "add-to-set",
+      "op": "add_to_set",
       "target": "resistencias",
       "value": {
         "type": "catalog|source|selector",
-        "catalog": "damage-type",
+        "catalog": "damage_type",
         "lang": "pt"
       },
-      "doc": "resist:fogo, resist:source{magical-effect}, resist:last-damage-type."
+      "doc": "resist:fogo, resist:source{magical_effect}, resist:last_damage_type."
     },
     "immune": {
       "categoria": "A5",
       "forma": "key_value",
-      "op": "add-to-set",
+      "op": "add_to_set",
       "target": "imunidades",
       "value": {
         "type": "catalog",
-        "catalog": "damage-type",
+        "catalog": "damage_type",
         "lang": "pt"
       }
     },
     "vuln": {
       "categoria": "A5",
       "forma": "key_value",
-      "op": "add-to-set",
+      "op": "add_to_set",
       "target": "vulnerabilidades",
       "value": {
         "type": "catalog",
-        "catalog": "damage-type",
+        "catalog": "damage_type",
         "lang": "pt"
       }
     },
-    "cond-immune": {
+    "cond_immune": {
       "categoria": "A5",
       "forma": "key_value",
-      "op": "add-to-set",
+      "op": "add_to_set",
       "target": "imunidades_condicao",
       "value": {
         "type": "catalog",
@@ -707,15 +712,15 @@
         "lang": "pt"
       }
     },
-    "dmg-reduction": {
+    "dmg_reduction": {
       "categoria": "A5",
       "forma": "key_value",
-      "op": "add-modifier",
+      "op": "add_modifier",
       "target": "dano_recebido",
       "value": {
         "type": "number|formula|half"
       },
-      "doc": "Reduz dano recebido; rolável/por reação (Desviar Ataques: dmg-reduction:1d10+dex-mod+classlvl); 'half' = metade arredondando p/ baixo (Esquiva Instintiva); escopo de fonte take-damage{fall} (Queda Lenta)."
+      "doc": "Reduz dano recebido; rolável/por reação (Desviar Ataques: dmg_reduction:1d10+dex_mod+classlvl); 'half' = metade arredondando p/ baixo (Esquiva Instintiva); escopo de fonte take_damage{fall} (Queda Lenta)."
     },
     "heal": {
       "categoria": "A6",
@@ -725,9 +730,9 @@
       "value": {
         "type": "dice|formula"
       },
-      "doc": "heal:2d8+spell-mod. heal:max = maximiza os dados de cura (Cura Suprema). Idem dmg:max."
+      "doc": "heal:2d8+spell_mod. heal:max = maximiza os dados de cura (Cura Suprema). Idem dmg:max."
     },
-    "temp-hp": {
+    "temp_hp": {
       "categoria": "A6",
       "forma": "key_value",
       "op": "heal",
@@ -735,12 +740,12 @@
       "value": {
         "type": "formula"
       },
-      "doc": "temp-hp:+(con-mod * marks)."
+      "doc": "temp_hp:+(con_mod * marks)."
     },
     "hp": {
       "categoria": "A6",
       "forma": "key_value",
-      "op": "set-value",
+      "op": "set_value",
       "target": "pv.atual",
       "value": {
         "type": "number|formula"
@@ -752,23 +757,23 @@
       "forma": "reference",
       "op": "resource",
       "target": "recursos",
-      "doc": "REFERENCIA um pool de recurso. REGRA (2026-06-18): SÓ vão na TB_RecursoClasse pools que ESCALAM por nível de classe (Fúrias 2→6, pontos-de-ki=nível — via valores_json). Pools de FÓRMULA (max=pb/mod/2*pb) ou FIXOS (teto 3) são INTERNOS: declarados via define{<slug>: max:<fórmula>, reset:..., [die:...]} na habilidade-fonte (NÃO na tabela) e referenciados normalmente por resource{<slug>}/resource-cost:<slug>. O uso da própria habilidade também é um pool (resource-cost:<nome-da-habilidade>). TbRecursoclasse.tipo define o papel no builder: table-only (informativo), consumable (rastreador de usos) ou choice (quantidade de escolhas nao consumidas)."
+      "doc": "REFERENCIA um pool de recurso. REGRA (2026_06_18): SÓ vão na TB_RecursoClasse pools que ESCALAM por nível de classe (Fúrias 2→6, pontos_de_ki=nível — via valores_json). Pools de FÓRMULA (max=pb/mod/2*pb) ou FIXOS (teto 3) são INTERNOS: declarados via define{<slug>: max:<fórmula>, reset:..., [die:...]} na habilidade_fonte (NÃO na tabela) e referenciados normalmente por resource{<slug>}/resource_cost:<slug>. O uso da própria habilidade também é um pool (resource_cost:<nome_da_habilidade>). TbRecursoclasse.tipo define o papel no builder: table_only (informativo), consumable (rastreador de usos) ou choice (quantidade de escolhas nao consumidas)."
     },
-    "resource-cost": {
+    "resource_cost": {
       "categoria": "A6",
       "forma": "key_value",
       "op": "resource",
       "value": {
         "type": "ref|alt",
-        "doc": "recurso, '1/long-rest', ou custo alternativo {a|b}"
+        "doc": "recurso, '1/long_rest', ou custo alternativo {a|b}"
       },
-      "doc": "Gasta uso(s). resource-cost:furias (=1); quantidade: resource-cost:<rec>:<N> (resource-cost:pontos-de-ki:2); faixa fechada :1..3 ou aberta :1..all (gasta quanto quiser; Ímpetos Arcanos); custo alternativo {a|b}. Em recurso table-only usado como orçamento local (ex.: dados-de-furtividade), o custo reduz a quantidade da ativação atual e não cria tracker persistente."
+      "doc": "Gasta uso(s). resource_cost:furias (=1); quantidade: resource_cost:<rec>:<N> (resource_cost:pontos_de_ki:2); faixa fechada :1..3 ou aberta :1..all (gasta quanto quiser; Ímpetos Arcanos); custo alternativo {a|b}. Em recurso table_only usado como orçamento local (ex.: dados_de_furtividade), o custo reduz a quantidade da ativação atual e não cria tracker persistente."
     },
-    "resource-restore": {
+    "resource_restore": {
       "categoria": "A6",
       "forma": "key_value",
       "op": "resource",
-      "doc": "Restaura recurso. =all; quantidade: resource-restore:<rec>:<N>; com teto de nível: resource-restore:spell-slot:1(max-nivel:roundup(pb/2)) (Recorrer ao Poder Divino, Recuperação Arcana)."
+      "doc": "Restaura recurso. =all; quantidade: resource_restore:<rec>:<N>; com teto de nível: resource_restore:spell_slot:1(max_nivel:roundup(pb/2)) (Recorrer ao Poder Divino, Recuperação Arcana)."
     },
     "uses": {
       "categoria": "A6",
@@ -783,15 +788,15 @@
       "value": {
         "type": "enum",
         "valores": [
-          "short-rest",
-          "long-rest",
+          "short_rest",
+          "long_rest",
           "rest",
           "turn",
-          "level-up",
-          "2d4-long-rest"
+          "level_up",
+          "2d4_long_rest"
         ]
       },
-      "doc": "Quando o recurso recupera. level-up = ao subir de nível (retraining); 2d4-long-rest = após Nº aleatório de descansos longos (Intervenção Divina Maior)."
+      "doc": "Quando o recurso recupera. level_up = ao subir de nível (retraining); 2d4_long_rest = após Nº aleatório de descansos longos (Intervenção Divina Maior)."
     },
     "swap": {
       "categoria": "A6",
@@ -800,42 +805,42 @@
       "value": {
         "type": "enum",
         "valores": [
-          "long-rest",
-          "short-rest",
-          "level-up"
+          "long_rest",
+          "short_rest",
+          "level_up"
         ]
       },
-      "doc": "Marca uma ESCOLHA (pick:) como RE-ESCOLHÍVEL no evento dado, SEM mudar de nível. Ex.: estilo de luta do Caçador trocável em descanso longo = pick:opcao:estilo-de-luta:1(swap:long-rest); magia CONHECIDA (não preparada) trocável ao subir de nível = pick:spell:N(swap:level-up). Metadado lido pela mecânica de level-up/edição da ficha — só use onde o texto da habilidade disser explicitamente que pode trocar."
+      "doc": "Marca uma ESCOLHA (pick:) como RE_ESCOLHÍVEL no evento dado, SEM mudar de nível. Ex.: estilo de luta do Caçador trocável em descanso longo = pick:opcao:estilo_de_luta:1(swap:long_rest); magia CONHECIDA (não preparada) trocável ao subir de nível = pick:spell:N(swap:level_up). Metadado lido pela mecânica de level_up/edição da ficha — só use onde o texto da habilidade disser explicitamente que pode trocar."
     },
     "adv": {
       "categoria": "A7",
       "forma": "key_value",
-      "op": "grant-roll-mod",
+      "op": "grant_roll_mod",
       "value": {
-        "type": "roll-id",
-        "doc": "save/check/attack: str-save, int-check, initiative..."
+        "type": "roll_id",
+        "doc": "save/check/attack: str_save, int_check, initiative..."
       },
       "doc": "Vantagem numa rolagem."
     },
     "dadv": {
       "categoria": "A7",
       "forma": "key_value",
-      "op": "grant-roll-mod",
+      "op": "grant_roll_mod",
       "value": {
-        "type": "roll-id"
+        "type": "roll_id"
       },
       "doc": "Desvantagem numa rolagem."
     },
     "reroll": {
       "categoria": "A7",
       "forma": "flag|block",
-      "op": "grant-roll-mod",
+      "op": "grant_roll_mod",
       "doc": "Rola de novo (em table{} = rola na mesma tabela)."
     },
     "roll": {
       "categoria": "A7",
       "forma": "block",
-      "op": "roll-table",
+      "op": "roll_table",
       "doc": "Rolagem genérica (ver functions.roll)."
     },
     "save": {
@@ -847,23 +852,23 @@
     "cd": {
       "categoria": "A7",
       "forma": "bind",
-      "op": "set-value",
+      "op": "set_value",
       "target": "save.cd",
       "value": {
         "type": "formula"
       },
-      "doc": "Classe de Dificuldade do teste/efeito (cd=8+pb+con-mod). NÃO é duração."
+      "doc": "Classe de Dificuldade do teste/efeito (cd=8+pb+con_mod). NÃO é duração."
     },
-    "same-cd": {
+    "same_cd": {
       "categoria": "A7",
       "forma": "flag",
-      "op": "set-value",
+      "op": "set_value",
       "doc": "Usa a mesma CD de referência."
     },
-    "on-success": {
+    "on_success": {
       "categoria": "A7",
       "forma": "key_value",
-      "op": "set-value",
+      "op": "set_value",
       "target": "save.on_success",
       "value": {
         "type": "enum",
@@ -874,10 +879,10 @@
       },
       "doc": "Resultado no sucesso do teste (metade/nada)."
     },
-    "on-fail": {
+    "on_fail": {
       "categoria": "A7",
       "forma": "key_value",
-      "op": "set-value",
+      "op": "set_value",
       "target": "save.on_fail",
       "value": {
         "type": "enum",
@@ -886,12 +891,12 @@
           "none"
         ]
       },
-      "doc": "Resultado na falha (contraparte de on-success). Evasão = source{aoe}.save{dex}.on-success:=none, on-fail:=half (sem verbo 'evasion' — decisão 2026-06-17)."
+      "doc": "Resultado na falha (contraparte de on_success). Evasão = source{aoe}.save{dex}.on_success:=none, on_fail:=half (sem verbo 'evasion' — decisão 2026_06_17)."
     },
     "keep": {
       "categoria": "A7",
       "forma": "key_value",
-      "op": "roll-table",
+      "op": "roll_table",
       "value": {
         "type": "enum",
         "valores": [
@@ -906,63 +911,63 @@
     "dice": {
       "categoria": "A7",
       "forma": "key_value",
-      "op": "roll-table",
+      "op": "roll_table",
       "value": {
         "type": "dice"
       },
       "doc": "Dados de uma rolagem/tabela (dice:1d12, dice:2d12)."
     },
-    "roll-add": {
+    "roll_add": {
       "categoria": "A7",
       "forma": "key_value",
-      "op": "add-modifier",
+      "op": "add_modifier",
       "target": "rolagem",
       "value": {
         "type": "formula"
       },
-      "doc": "Soma a uma rolagem disparada por gatilho (Momento de Ajuste: roll-add:+2*spent; Lampejo de Gênio: roll-add:+int-mod a teste de aliado)."
+      "doc": "Soma a uma rolagem disparada por gatilho (Momento de Ajuste: roll_add:+2*spent; Lampejo de Gênio: roll_add:+int_mod a teste de aliado)."
     },
-    "check-bonus": {
+    "check_bonus": {
       "categoria": "A7",
       "forma": "key_value",
-      "op": "add-modifier",
+      "op": "add_modifier",
       "target": "pericia.bonus",
       "value": {
         "type": "formula"
       },
-      "doc": "Soma fixa a UM teste de perícia nomeado (check-bonus:religiao=max(wis-mod,1)). Aprovado 2026-06-17."
+      "doc": "Soma fixa a UM teste de perícia nomeado (check_bonus:religiao=max(wis_mod,1)). Aprovado 2026_06_17."
     },
-    "check-attr": {
+    "check_attr": {
       "categoria": "A7",
       "forma": "key_value",
-      "op": "set-value",
+      "op": "set_value",
       "target": "pericia.atributo",
       "value": {
         "type": "attr"
       },
-      "doc": "Troca o ATRIBUTO de uma perícia (check-attr:persuasao:=forca = Persuasão com Força; Mente Afiada usa INT). Aprovado 2026-06-17."
+      "doc": "Troca o ATRIBUTO de uma perícia (check_attr:persuasao:=forca = Persuasão com Força; Mente Afiada usa INT). Aprovado 2026_06_17."
     },
-    "all-saves": {
+    "all_saves": {
       "categoria": "A7",
       "forma": "key_value",
-      "op": "add-modifier",
+      "op": "add_modifier",
       "target": "saves.bonus",
       "value": {
         "type": "formula"
       },
-      "doc": "Bônus numérico em TODOS os saves (Aura de Proteção: all-saves:+max(cha-mod,1); Magnum Opus: all-saves:+sintonizacao-ativa)."
+      "doc": "Bônus numérico em TODOS os saves (Aura de Proteção: all_saves:+max(cha_mod,1); Magnum Opus: all_saves:+sintonizacao_ativa)."
     },
-    "auto-save-success": {
+    "auto_save_success": {
       "categoria": "A7",
       "forma": "flag",
-      "op": "set-value",
+      "op": "set_value",
       "target": "save.auto",
       "doc": "Sucesso automático num teste de resistência (Manto das Raízes e Marés / Contatar o Patrono)."
     },
     "speed": {
       "categoria": "A8",
       "forma": "key_value",
-      "op": "add-modifier",
+      "op": "add_modifier",
       "target": "movimento.deslocamento",
       "value": {
         "type": "number|formula"
@@ -972,7 +977,7 @@
     "move": {
       "categoria": "A8",
       "forma": "key_value",
-      "op": "add-to-set",
+      "op": "add_to_set",
       "target": "movimento.modos",
       "value": {
         "type": "enum",
@@ -985,18 +990,18 @@
           "liquid"
         ]
       },
-      "doc": "Modo de movimento (escalar:eq/nadar:eq/fly:eq = igual ao deslocamento). wall = sobe superfícies verticais; liquid = anda sobre líquidos (Movimento Acrobático — aprovado 2026-06-17)."
+      "doc": "Modo de movimento (escalar:eq/nadar:eq/fly:eq = igual ao deslocamento). wall = sobe superfícies verticais; liquid = anda sobre líquidos (Movimento Acrobático — aprovado 2026_06_17)."
     },
     "jump": {
       "categoria": "A8",
       "forma": "key_value",
-      "op": "add-modifier",
+      "op": "add_modifier",
       "target": "movimento.salto"
     },
     "size": {
       "categoria": "A8",
       "forma": "key_value",
-      "op": "set-value",
+      "op": "set_value",
       "target": "corpo.tamanho",
       "value": {
         "type": "catalog",
@@ -1007,7 +1012,7 @@
     "reach": {
       "categoria": "A8",
       "forma": "key_value",
-      "op": "add-modifier",
+      "op": "add_modifier",
       "target": "corpo.alcance",
       "value": {
         "type": "number"
@@ -1016,7 +1021,7 @@
     "teleport": {
       "categoria": "A8",
       "forma": "key_value",
-      "op": "grant-execution",
+      "op": "grant_execution",
       "target": "movimento",
       "value": {
         "type": "distancia"
@@ -1025,51 +1030,51 @@
     "dash": {
       "categoria": "A8",
       "forma": "flag",
-      "op": "grant-execution",
+      "op": "grant_execution",
       "doc": "Execução: Disparada."
     },
     "disengage": {
       "categoria": "A8",
       "forma": "flag",
-      "op": "grant-execution",
+      "op": "grant_execution",
       "doc": "Execução: Desengajar."
     },
     "hide": {
       "categoria": "A8",
       "forma": "flag",
-      "op": "grant-execution",
-      "doc": "Execução: Esconder-se (teste de Furtividade). Aprovado 2026-06-17."
+      "op": "grant_execution",
+      "doc": "Execução: Esconder_se (teste de Furtividade). Aprovado 2026_06_17."
     },
-    "move-through": {
+    "move_through": {
       "categoria": "A8",
       "forma": "flag",
-      "op": "grant-execution",
+      "op": "grant_execution",
       "doc": "Atravessa espaço de criaturas."
     },
     "push": {
       "categoria": "A8",
       "forma": "key_value",
-      "op": "grant-execution",
+      "op": "grant_execution",
       "target": "alvo",
       "value": {
         "type": "distancia"
       },
-      "doc": "Movimento FORÇADO: empurra o alvo <ft> (push:10ft; from:<sel> opcional). Aprovado 2026-06-17."
+      "doc": "Movimento FORÇADO: empurra o alvo <ft> (push:10ft; from:<sel> opcional). Aprovado 2026_06_17."
     },
     "pull": {
       "categoria": "A8",
       "forma": "key_value",
-      "op": "grant-execution",
+      "op": "grant_execution",
       "target": "alvo",
       "value": {
         "type": "distancia"
       },
-      "doc": "Movimento FORÇADO: puxa o alvo <ft> (pull:10ft). Aprovado 2026-06-17."
+      "doc": "Movimento FORÇADO: puxa o alvo <ft> (pull:10ft). Aprovado 2026_06_17."
     },
     "apply": {
       "categoria": "A9",
       "forma": "key_value",
-      "op": "apply-condition",
+      "op": "apply_condition",
       "target": "alvo",
       "value": {
         "type": "catalog",
@@ -1078,65 +1083,65 @@
       },
       "doc": "apply:<condição>(save:..., duração)."
     },
-    "object-hp": {
+    "object_hp": {
       "categoria": "A9",
       "forma": "key_value",
-      "op": "set-value",
-      "doc": "PV ou durabilidade de um objeto mundano quando isso importa mecanicamente: object-hp:2."
+      "op": "set_value",
+      "doc": "PV ou durabilidade de um objeto mundano quando isso importa mecanicamente: object_hp:2."
     },
     "break": {
       "categoria": "A9",
       "forma": "block",
-      "op": "grant-execution",
+      "op": "grant_execution",
       "doc": "Quebrar/arrebentar um objeto ou restrição: break{save{str, cd=20}}."
     },
     "escape": {
       "categoria": "A9",
       "forma": "block",
-      "op": "grant-execution",
+      "op": "grant_execution",
       "doc": "Escapar de contenção, armadilha, rede ou algemas: escape{action=action, save{str, cd=13}}."
     },
     "unlock": {
       "categoria": "A9",
       "forma": "block",
-      "op": "grant-execution",
+      "op": "grant_execution",
       "doc": "Abrir/destrancar com chave, ferramenta ou teste: unlock{tools:ladrao, save{dex, cd=15}}."
     },
     "avoid": {
       "categoria": "A10",
       "forma": "key_value",
       "op": "gate",
-      "doc": "Modo de evitar um perigo/área sem rolar, por exemplo avoid:half-speed em estrepes ou rolamentos."
+      "doc": "Modo de evitar um perigo/área sem rolar, por exemplo avoid:half_speed em estrepes ou rolamentos."
     },
-    "dispersed-by": {
+    "dispersed_by": {
       "categoria": "A10",
       "forma": "key_value",
       "op": "gate",
-      "doc": "Condição ambiental que encerra/dispersa uma área: dispersed-by:strong-wind."
+      "doc": "Condição ambiental que encerra/dispersa uma área: dispersed_by:strong_wind."
     },
     "ignites": {
       "categoria": "A10",
       "forma": "key_value",
-      "op": "emit-area",
+      "op": "emit_area",
       "doc": "Indica que o efeito incendeia certos alvos/materiais: ignites:flammable."
     },
-    "spreads-around-corners": {
+    "spreads_around_corners": {
       "categoria": "A10",
       "forma": "flag",
-      "op": "emit-area",
+      "op": "emit_area",
       "doc": "Área se propaga por esquinas/cantos, como explosões de pólvora."
     },
     "cleanse": {
       "categoria": "A9",
       "forma": "key_value",
-      "op": "apply-condition",
+      "op": "apply_condition",
       "target": "self",
       "value": {
         "type": "catalog|magia|reaction|concentration",
         "catalog": "condition",
         "lang": "pt"
       },
-      "doc": "Remove condição (inverso de apply). cleanse:pick:{amedrontado | enfeiticado | envenenado}; cleanse:magia(qtd:1) = encerra efeito de magia; cleanse:reaction / cleanse:concentration = remove a Reação/Concentração de inimigos na área (capstones). Aprovado 2026-06-17."
+      "doc": "Remove condição (inverso de apply). cleanse:pick:{amedrontado | enfeiticado | envenenado}; cleanse:magia(qtd:1) = encerra efeito de magia; cleanse:reaction / cleanse:concentration = remove a Reação/Concentração de inimigos na área (capstones). Aprovado 2026_06_17."
     },
     "mark": {
       "categoria": "A9",
@@ -1148,95 +1153,95 @@
       "categoria": "A9",
       "forma": "key_value",
       "op": "summon",
-      "doc": "Invoca criatura(s) do bestiário (summon:bestiary{<slug>}; :N p/ quantidade). Statblock vive no bestiário; companheiros que escalam recebem scaling do invocador. Aprovado 2026-06-17."
+      "doc": "Invoca criatura(s) do bestiário (summon:bestiary{<slug>}; :N p/ quantidade). Statblock vive no bestiário; companheiros que escalam recebem scaling do invocador. Aprovado 2026_06_17."
     },
-    "difficult-terrain": {
+    "difficult_terrain": {
       "categoria": "A10",
       "forma": "flag",
-      "op": "emit-area",
+      "op": "emit_area",
       "target": "terreno",
       "doc": "Torna a área terreno difícil para os alvos (effects de aura/aoe)."
     },
-    "no-difficult-terrain": {
+    "no_difficult_terrain": {
       "categoria": "A8",
       "forma": "flag",
-      "op": "set-value",
+      "op": "set_value",
       "doc": "Ignora terreno difícil no movimento próprio."
     },
-    "redirect-damage": {
+    "redirect_damage": {
       "categoria": "A5",
       "forma": "key_value",
-      "op": "set-value",
+      "op": "set_value",
       "target": "dano_recebido",
-      "doc": "Sofre no lugar de outra criatura / redireciona dano (Aura do Guardião). Valor via damage-taken."
+      "doc": "Sofre no lugar de outra criatura / redireciona dano (Aura do Guardião). Valor via damage_taken."
     },
     "cover": {
       "categoria": "A9",
       "forma": "key_value",
-      "op": "set-value",
+      "op": "set_value",
       "target": "cobertura",
       "value": {
         "type": "enum",
         "valores": [
           "half",
-          "three-quarters",
+          "three_quarters",
           "total"
         ]
       },
-      "doc": "Concede cobertura (meia/três-quartos/total), geralmente em effects de aura."
+      "doc": "Concede cobertura (meia/três_quartos/total), geralmente em effects de aura."
     },
-    "repeat-save": {
+    "repeat_save": {
       "categoria": "A7",
       "forma": "key_value",
-      "op": "apply-condition",
+      "op": "apply_condition",
       "target": "save.repeat",
       "value": {
         "type": "event"
       },
-      "doc": "Save-ends: o alvo repete o teste no evento dado e encerra o efeito em sucesso (repeat-save:turn-end)."
+      "doc": "Save_ends: o alvo repete o teste no evento dado e encerra o efeito em sucesso (repeat_save:turn_end)."
     },
-    "convert-dmg-type": {
+    "convert_dmg_type": {
       "categoria": "A4",
       "forma": "key_value",
-      "op": "set-value",
+      "op": "set_value",
       "target": "ataque.dano.tipo",
       "value": {
-        "type": "catalog|weapon-type",
-        "catalog": "damage-type",
+        "type": "catalog|weapon_type",
+        "catalog": "damage_type",
         "lang": "pt"
       },
-      "doc": "Converte o TIPO de TODO o dano causado nesta ação/turno (Alma Radiante → radiante). 'weapon-type' = mesmo tipo da arma usada (dinâmico). Difere de dmg-type (perfil de arma)."
+      "doc": "Converte o TIPO de TODO o dano causado nesta ação/turno (Alma Radiante → radiante). 'weapon_type' = mesmo tipo da arma usada (dinâmico). Difere de dmg_type (perfil de arma)."
     },
-    "redirect-save": {
+    "redirect_save": {
       "categoria": "A7",
       "forma": "key_value",
-      "op": "set-value",
-      "doc": "O alvo faz o teste no lugar de outra criatura / redireciona um save (família redirect-*)."
+      "op": "set_value",
+      "doc": "O alvo faz o teste no lugar de outra criatura / redireciona um save (família redirect_*)."
     },
-    "redirect-heal": {
+    "redirect_heal": {
       "categoria": "A6",
       "forma": "key_value",
       "op": "heal",
       "doc": "Realoca a cura (ex.: rouba a cura de um inimigo — Sopro de Nascira)."
     },
-    "downgrade-crit": {
+    "downgrade_crit": {
       "categoria": "A5",
       "forma": "flag",
-      "op": "set-value",
+      "op": "set_value",
       "target": "defesa.crit",
-      "doc": "Transforma um crítico recebido em acerto comum (anula o crítico inteiro; mais forte que no-crit-mult)."
+      "doc": "Transforma um crítico recebido em acerto comum (anula o crítico inteiro; mais forte que no_crit_mult)."
     },
     "crit": {
       "categoria": "A4",
       "forma": "flag",
-      "op": "set-value",
+      "op": "set_value",
       "target": "ataque.crit",
       "doc": "crit:auto = este ataque é Acerto Crítico automático (Momento Perfeito, Angústia Mental)."
     },
-    "auto-result": {
+    "auto_result": {
       "categoria": "A7",
       "forma": "key_value",
-      "op": "set-value",
+      "op": "set_value",
       "target": "rolagem",
       "value": {
         "type": "enum",
@@ -1245,111 +1250,111 @@
           "nat1"
         ]
       },
-      "doc": "Trata a próxima rolagem de d20 como 20/1 natural (Axioma de Thamior). Par de auto-save-success."
+      "doc": "Trata a próxima rolagem de d20 como 20/1 natural (Axioma de Thamior). Par de auto_save_success."
     },
-    "replace-d20": {
+    "replace_d20": {
       "categoria": "A7",
       "forma": "key_value",
-      "op": "set-value",
+      "op": "set_value",
       "target": "rolagem",
-      "doc": "Substitui o d20 de um teste por valor fixo (replace-d20:classlvl — Cena é Corpo). Difere de min: (piso)."
+      "doc": "Substitui o d20 de um teste por valor fixo (replace_d20:classlvl — Cena é Corpo). Difere de min: (piso)."
     },
-    "replace-attack": {
+    "replace_attack": {
       "categoria": "A4",
       "forma": "key_value",
-      "op": "grant-execution",
+      "op": "grant_execution",
       "doc": "Substitui um dos ataques da Ação de Ataque por outra execução (truque — Segundo Ataque Mágico)."
     },
-    "no-surprised": {
+    "no_surprised": {
       "categoria": "A5",
       "forma": "flag",
-      "op": "set-value",
+      "op": "set_value",
       "doc": "Não pode ser Surpreendido (par defensivo de target{surprised})."
     },
-    "no-adv": {
+    "no_adv": {
       "categoria": "A7",
       "forma": "key_value",
-      "op": "grant-roll-mod",
-      "doc": "Nega Vantagem numa rolagem. Em ATAQUES, desambigue a direção com vs:/by: (scopes.direcao_ataque): no-adv:attack{vs:self} = nenhum ataque feito CONTRA você tem Vantagem (defensivo — substitui o antigo 'no-adv-against-self', ex-Inatingível); no-adv:attack{vs:enemies} = ataques contra inimigos não têm Vantagem (aura); no-adv:attack{by:self} = seus próprios ataques não têm Vantagem. Par de no-dadv."
+      "op": "grant_roll_mod",
+      "doc": "Nega Vantagem numa rolagem. Em ATAQUES, desambigue a direção com vs:/by: (scopes.direcao_ataque): no_adv:attack{vs:self} = nenhum ataque feito CONTRA você tem Vantagem (defensivo — substitui o antigo 'no_adv_against_self', ex_Inatingível); no_adv:attack{vs:enemies} = ataques contra inimigos não têm Vantagem (aura); no_adv:attack{by:self} = seus próprios ataques não têm Vantagem. Par de no_dadv."
     },
-    "allow-concentration": {
+    "allow_concentration": {
       "categoria": "A12",
       "forma": "key_value",
-      "op": "set-value",
+      "op": "set_value",
       "target": "concentracao.max",
       "value": {
         "type": "number"
       },
-      "doc": "Mantém concentração em N magias simultâneas (Ato Contínuo: allow-concentration:2)."
+      "doc": "Mantém concentração em N magias simultâneas (Ato Contínuo: allow_concentration:2)."
     },
-    "allow-reaction": {
+    "allow_reaction": {
       "categoria": "A13",
       "forma": "key_value",
-      "op": "set-value",
+      "op": "set_value",
       "target": "reacoes.max",
-      "doc": "Eleva o teto de Reações (allow-reaction:2(per:trigger) — Reflexos Rápidos: 2 reações no mesmo gatilho). Análogo a allow-concentration."
+      "doc": "Eleva o teto de Reações (allow_reaction:2(per:trigger) — Reflexos Rápidos: 2 reações no mesmo gatilho). Análogo a allow_concentration."
     },
     "suppress": {
       "categoria": "A9",
       "forma": "key_value",
-      "op": "apply-condition",
-      "doc": "Suprime temporariamente um sub-efeito de um efeito ativo próprio sem removê-lo (Supressão Alquímica)."
+      "op": "apply_condition",
+      "doc": "Suprime temporariamente um sub_efeito de um efeito ativo próprio sem removê_lo (Supressão Alquímica)."
     },
-    "drop-held-item": {
+    "drop_held_item": {
       "categoria": "A9",
       "forma": "flag",
-      "op": "apply-condition",
+      "op": "apply_condition",
       "target": "alvo",
       "doc": "Força o alvo a soltar o que segura (Exigência da Ordem)."
     },
-    "add-property": {
+    "add_property": {
       "categoria": "A8",
       "forma": "key_value",
-      "op": "set-value",
+      "op": "set_value",
       "target": "arma.propriedades",
       "value": {
         "type": "catalog",
-        "catalog": "weapon-property",
+        "catalog": "weapon_property",
         "lang": "pt"
       },
-      "doc": "Concede propriedade de arma a um perfil (Armas Integradas → acuidade). Difere de define:weapon...add-property{}."
+      "doc": "Concede propriedade de arma a um perfil (Armas Integradas → acuidade). Difere de define:weapon...add_property{}."
     },
-    "no-unconscious-at-0": {
+    "no_unconscious_at_0": {
       "categoria": "A5",
       "forma": "flag",
-      "op": "set-value",
+      "op": "set_value",
       "target": "defesa.unconscious_at_0",
-      "doc": "Não cai Inconsciente ao chegar a 0 PV (Anjo Vingativo: só morre quando a forma acaba). Costuma vir com on:end -> die-if-0."
+      "doc": "Não cai Inconsciente ao chegar a 0 PV (Anjo Vingativo: só morre quando a forma acaba). Costuma vir com on:end -> die_if_0."
     },
     "ignore": {
       "categoria": "A9",
       "forma": "key_value",
-      "op": "set-value",
-      "doc": "Ignora um benefício/propriedade do alvo (ignore:speed-bonus, ignore:resist, ignore:invisivel). Lado ofensivo."
+      "op": "set_value",
+      "doc": "Ignora um benefício/propriedade do alvo (ignore:speed_bonus, ignore:resist, ignore:invisivel). Lado ofensivo."
     },
-    "no-opportunity-attack": {
+    "no_opportunity_attack": {
       "categoria": "A8",
       "forma": "flag",
-      "op": "grant-execution",
-      "doc": "Movimento concedido NÃO provoca Ataque de Oportunidade (vs disengage blanket; pode ser no-opportunity-attack:from{<sel>})."
+      "op": "grant_execution",
+      "doc": "Movimento concedido NÃO provoca Ataque de Oportunidade (vs disengage blanket; pode ser no_opportunity_attack:from{<sel>})."
     },
     "contest": {
       "categoria": "A7",
       "forma": "block",
       "op": null,
-      "doc": "Teste CONTESTADO (ex.: Agarrar: contest{atletismo vs atletismo|acrobacia}). Difere de save{} (CD fixa). roll-add some o dado de recurso ao teste."
+      "doc": "Teste CONTESTADO (ex.: Agarrar: contest{atletismo vs atletismo|acrobacia}). Difere de save{} (CD fixa). roll_add some o dado de recurso ao teste."
     },
-    "die-min": {
+    "die_min": {
       "categoria": "A7",
       "forma": "key_value",
-      "op": "set-value",
-      "doc": "Piso por DADO (trata <=N como o piso; Armas Grandes 1-2→3). die:-1-step = reduz a categoria do dado (Estocada)."
+      "op": "set_value",
+      "doc": "Piso por DADO (trata <=N como o piso; Armas Grandes 1_2→3). die:-1_step = reduz a categoria do dado (Estocada)."
     },
     "read": {
       "categoria": "A9",
       "forma": "key_value",
-      "op": "grant-execution",
-      "doc": "Ler/compreender escrita (read:any-language). Par utilitário de speak:."
+      "op": "grant_execution",
+      "doc": "Ler/compreender escrita (read:any_language). Par utilitário de speak:."
     },
     "repeatable": {
       "categoria": "A13",
@@ -1360,25 +1365,25 @@
     "grant": {
       "categoria": "A9",
       "forma": "key_value",
-      "op": "grant-execution",
-      "doc": "Concede algo ao alvo. grant:extra-action = uma ação completa extra no turno (Surto de Ação; não cabe nos 4 custos nem em 'execução'). Aprovado 2026-06-17."
+      "op": "grant_execution",
+      "doc": "Concede algo ao alvo. grant:extra_action = uma ação completa extra no turno (Surto de Ação; não cabe nos 4 custos nem em 'execução'). Aprovado 2026_06_17."
     },
     "enhance": {
       "categoria": "A9",
       "forma": "key_value",
-      "op": "add-modifier",
+      "op": "add_modifier",
       "doc": "Aprimora algo existente."
     },
     "destroy": {
       "categoria": "A9",
       "forma": "key_value",
-      "op": "grant-execution",
+      "op": "grant_execution",
       "doc": "Destrói alvo/objeto."
     },
     "light": {
       "categoria": "A9",
       "forma": "key_value",
-      "op": "emit-area",
+      "op": "emit_area",
       "target": "iluminacao",
       "value": {
         "type": "enum",
@@ -1393,17 +1398,17 @@
     "extinguish": {
       "categoria": "A9",
       "forma": "key_value",
-      "op": "emit-area",
-      "target": "fogo-na-area",
-      "doc": "Apaga chamas/fogo NÃO mágico na área (Brumas Ofuscantes: extinguish:fire(nonmagical, in-aura)). Não cria escuridão (use 'light:none' p/ isso). Aprovado 2026-06-26."
+      "op": "emit_area",
+      "target": "fogo_na_area",
+      "doc": "Apaga chamas/fogo NÃO mágico na área (Brumas Ofuscantes: extinguish:fire(nonmagical, in_aura)). Não cria escuridão (use 'light:none' p/ isso). Aprovado 2026_06_26."
     },
     "speak": {
       "categoria": "A9",
       "forma": "key_value",
-      "op": "grant-execution",
+      "op": "grant_execution",
       "value": {
         "type": "catalog",
-        "catalog": "creature-type",
+        "catalog": "creature_type",
         "lang": "pt"
       },
       "doc": "Falar com tipo de criatura."
@@ -1411,57 +1416,57 @@
     "ca": {
       "categoria": "A9",
       "forma": "bind",
-      "op": "set-value",
+      "op": "set_value",
       "target": "ca",
       "value": {
         "type": "formula"
       },
-      "doc": "Sobrescreve CA (ca=10+dex-mod+con-mod)."
+      "doc": "Sobrescreve CA (ca=10+dex_mod+con_mod)."
     },
     "sense": {
       "categoria": "A9",
       "forma": "key_value",
-      "op": "emit-area",
+      "op": "emit_area",
       "target": "sentidos",
       "value": {
         "type": "catalog",
-        "catalog": "sense-type",
+        "catalog": "sense_type",
         "lang": "en"
       },
-      "doc": "Sentido/visão que a criatura POSSUI (catálogo sense-type, INGLÊS, universais do D&D: darkvision/blindsight/devilsight/truesight/tremorsense). Para DETECTAR algo do mundo use detect:."
+      "doc": "Sentido/visão que a criatura POSSUI (catálogo sense_type, INGLÊS, universais do D&D: darkvision/blindsight/devilsight/truesight/tremorsense). Para DETECTAR algo do mundo use detect:."
     },
     "detect": {
       "categoria": "A9",
       "forma": "key_value",
-      "op": "emit-area",
+      "op": "emit_area",
       "target": "sentidos",
-      "doc": "DETECTA algo do mundo (alvo em PT): detect:{creature-type:[celestial, morto-vivo]}, detect:magia, detect:sitio-sagrado, detect:plano-etereo, detect:invisivel. Pode mapear p/ cast{} de magia equivalente. NÃO existe detect:mentira — 'saber se alguém mente' é regra de flavor, não codável."
+      "doc": "DETECTA algo do mundo (alvo em PT): detect:{creature_type:[celestial, morto_vivo]}, detect:magia, detect:sitio_sagrado, detect:plano_etereo, detect:invisivel. Pode mapear p/ cast{} de magia equivalente. NÃO existe detect:mentira — 'saber se alguém mente' é regra de flavor, não codável."
     },
     "telepathy": {
       "categoria": "A9",
       "forma": "key_value",
-      "op": "grant-execution",
+      "op": "grant_execution",
       "target": "comunicacao",
-      "doc": "Comunicação telepática com um vínculo (telepathy:bound(range:same-plane))."
+      "doc": "Comunicação telepática com um vínculo (telepathy:bound(range:same_plane))."
     },
-    "share-senses": {
+    "share_senses": {
       "categoria": "A9",
       "forma": "key_value",
-      "op": "grant-execution",
+      "op": "grant_execution",
       "target": "sentidos",
       "doc": "Percebe pelos sentidos de um vínculo/familiar."
     },
     "aura": {
       "categoria": "A10",
       "forma": "block",
-      "op": "emit-area",
+      "op": "emit_area",
       "doc": "aura{ radius, target:<allies|enemies|all>, effects{...} } — emanação contínua presa ao personagem."
     },
     "aoe": {
       "categoria": "A10",
       "forma": "block",
-      "op": "emit-area",
-      "doc": "aoe{ point|forma:tam, save{...}, dmg, on-success } — detonação pontual; resolve teste+efeito e acaba."
+      "op": "emit_area",
+      "doc": "aoe{ point|forma:tam, save{...}, dmg, on_success } — detonação pontual; resolve teste+efeito e acaba."
     },
     "radius": {
       "categoria": "A10",
@@ -1530,13 +1535,13 @@
       "op": null,
       "doc": "Bloco de efeitos aplicados pela área/aura."
     },
-    "in-aura": {
+    "in_aura": {
       "categoria": "A10",
       "forma": "flag",
       "op": null,
       "doc": "Condição: estar dentro da aura."
     },
-    "in-light": {
+    "in_light": {
       "categoria": "A10",
       "forma": "flag",
       "op": null,
@@ -1561,13 +1566,19 @@
       "categoria": "A13",
       "forma": "flag",
       "op": "pick",
-      "doc": "Só entram criaturas voluntárias; gera variável 'aliados-aceitos'."
+      "doc": "Só entram criaturas voluntárias; gera variável 'aliados_aceitos'."
     },
     "restriction": {
       "categoria": "A13",
       "forma": "block",
       "op": "gate",
-      "doc": "NÃO pode (nunca 'só pode'). Dentro do efeito = te impede enquanto ativo; no topo = impede ativar."
+      "doc": "Condição bloqueadora do escopo atual: se a condição for verdadeira, este efeito/habilidade não pode ser usado ou não se aplica. No topo bloqueia toda a habilidade; dentro de um bloco bloqueia só aquele bloco. Ex.: restriction{inconsciente}; always_active{restriction{equiped{armor}}, ca=10+dex_mod+con_mod}."
+    },
+    "restricts": {
+      "categoria": "A13",
+      "forma": "block",
+      "op": "restrict",
+      "doc": "Proibição imposta pelo efeito ativo ao personagem/alvo. Use quando a habilidade restringe uma ação enquanto está ativa. Ex.: while_active{restricts{spellcasting, concentration}} em Fúria."
     },
     "equiped": {
       "categoria": "A13",
@@ -1577,7 +1588,7 @@
         "type": "enum",
         "valores": [
           "armor",
-          "heavy-armor",
+          "heavy_armor",
           "shield",
           "<item>"
         ]
@@ -1587,39 +1598,39 @@
     "attr": {
       "categoria": "A14",
       "forma": "key_value",
-      "op": "alter-attribute",
+      "op": "alter_attribute",
       "target": "atributos",
       "doc": "attr:<attr>-score+N — altera valor de atributo."
     },
-    "attr-max": {
+    "attr_max": {
       "categoria": "A14",
       "forma": "key_value",
-      "op": "alter-attribute",
+      "op": "alter_attribute",
       "doc": "Altera o teto do atributo."
     },
     "prof": {
       "categoria": "A6/efeito",
       "forma": "key_value",
-      "op": "grant-proficiency",
+      "op": "grant_proficiency",
       "value": {
-        "type": "categoria-valor",
+        "type": "categoria_valor",
         "doc": "prof:<perícia> | prof:armor{X} | prof:weapon{X} | prof:tool{X}"
       },
-      "doc": "Concede proficiência. Use prof:<categoria>{<valor>} p/ evitar duplo dois-pontos."
+      "doc": "Concede proficiência. Use prof:<categoria>{<valor>} p/ evitar duplo dois_pontos."
     },
     "expertise": {
       "categoria": "efeito",
       "forma": "key_value",
-      "op": "grant-proficiency",
+      "op": "grant_proficiency",
       "value": {
         "dobra_pb": true
       },
-      "doc": "Especialização: dobra PB. Em classe, sinaliza por pick:pericia-expertise (regra global)."
+      "doc": "Especialização: dobra PB. Em classe, sinaliza por pick:pericia_expertise (regra global)."
     },
-    "save-prof": {
+    "save_prof": {
       "categoria": "efeito",
       "forma": "key_value",
-      "op": "grant-proficiency",
+      "op": "grant_proficiency",
       "target": "saves",
       "value": {
         "type": "attr"
@@ -1628,38 +1639,38 @@
     "min": {
       "categoria": "A11",
       "forma": "key_value",
-      "op": "grant-roll-mod",
-      "doc": "Piso de resultado (min:str-check=str-score)."
+      "op": "grant_roll_mod",
+      "doc": "Piso de resultado (min:str_check=str_score)."
     },
     "cast": {
       "categoria": "A12",
       "forma": "block",
-      "op": "cast-spell",
+      "op": "cast_spell",
       "doc": "Concede conjuração de uma magia: cast{spell:<slug>, ...} OU seleção dinâmica cast{spell:pick{lista:<classe>, nivel<=N}} (Intervenção Divina, Arcana Mística)."
     },
     "spellcasting": {
       "categoria": "A12",
       "forma": "block",
-      "op": "declare-caster",
+      "op": "declare_caster",
       "doc": "Declara a conjuração da classe. slots:full|half|third|pact(resource:<slug>) (pact = caster por pontos, recupera em descanso curto — Místico). ability:<attr> (ou int|wis se escolhível). Ver 'tags_de_classe' e vocabulario §16."
     },
-    "spell-selection": {
+    "spell_selection": {
       "categoria": "A12",
       "forma": "key_value",
       "op": "pick",
-      "doc": "Adiciona magia escolhida de uma lista; 'extra, fora-do-limite' = não conta no total; 'always-prepared' = sempre preparada (Montaria Heróica); 'qtd:<formula>' = N preparadas por fórmula."
+      "doc": "Adiciona magia escolhida de uma lista; 'extra, fora_do_limite' = não conta no total; 'always_prepared' = sempre preparada (Montaria Heróica); 'qtd:<formula>' = N preparadas por fórmula."
     },
     "upcast": {
       "categoria": "A12",
       "forma": "block",
-      "op": "add-modifier",
+      "op": "add_modifier",
       "doc": "Escala por nível de espaço de magia (upcast:{dmg:+1d6/nivel})."
     },
     "buff": {
       "categoria": "A12",
       "forma": "key_value",
-      "op": "add-modifier",
-      "doc": "Bônus temporário (buff:max-hp:+5)."
+      "op": "add_modifier",
+      "doc": "Bônus temporário (buff:max_hp:+5)."
     },
     "targets": {
       "categoria": "A12",
@@ -1673,15 +1684,15 @@
     "ritual": {
       "categoria": "A12",
       "forma": "flag",
-      "op": "add-modifier"
+      "op": "add_modifier"
     },
-    "no-*": {
+    "no_*": {
       "categoria": "A11",
       "forma": "flag",
       "op": "override",
-      "doc": "Remove uma exigência/marca: no-slot, no-material, no-concentration, no-atk-roll, no-space, no-inconsciente, no-los, no-somatic, no-verbal, no-sleep, no-crit-mult, no-stack:<x> (não acumula com outra característica, ex.: no-stack:truque-potente)."
+      "doc": "Remove uma exigência/marca: no_slot, no_material, no_concentration, no_atk_roll, no_space, no_inconsciente, no_los, no_somatic, no_verbal, no_sleep, no_crit_mult, no_stack:<x> (não acumula com outra característica, ex.: no_stack:truque_potente)."
     },
-    "spell-mod": {
+    "spell_mod": {
       "categoria": "A14",
       "forma": "flag",
       "op": null,
@@ -1690,27 +1701,27 @@
     "sintonizacao": {
       "categoria": "efeito",
       "forma": "key_value",
-      "op": "alter-attribute",
+      "op": "alter_attribute",
       "target": "sintonizacao",
-      "doc": "Itens mágicos: o personagem sintoniza até 3 (padrão); item só tem efeito sintonizado; alguns exigem pré-req (raça/classe/conjurador — fica no item). attr-max:sintonizacao=N eleva o teto (Maestria em Itens Mágicos)."
+      "doc": "Itens mágicos: o personagem sintoniza até 3 (padrão); item só tem efeito sintonizado; alguns exigem pré_req (raça/classe/conjurador — fica no item). attr_max:sintonizacao=N eleva o teto (Maestria em Itens Mágicos)."
     },
-    "_doc_talentos": "Vocabulário formalizado a partir do tagueamento de TALENTOS (2026-06-18, aprovado pelo PO). Recursos universais dados-de-vida/inspiracao-heroica vivem em 'recursos_universais'.",
-    "swap-initiative": {
+    "_doc_talentos": "Vocabulário formalizado a partir do tagueamento de TALENTOS (2026_06_18, aprovado pelo PO). Recursos universais dados_de_vida/inspiracao_heroica vivem em 'recursos_universais'.",
+    "swap_initiative": {
       "categoria": "A2",
       "forma": "key_value",
-      "op": "grant-execution",
-      "doc": "Troca seu resultado de iniciativa com o de um aliado voluntário (Alerta). swap-initiative:ally(willing)."
+      "op": "grant_execution",
+      "doc": "Troca seu resultado de iniciativa com o de um aliado voluntário (Alerta). swap_initiative:ally(willing)."
     },
-    "extra-d20": {
+    "extra_d20": {
       "categoria": "A7",
       "forma": "key_value",
-      "op": "grant-roll-mod",
+      "op": "grant_roll_mod",
       "doc": "Rola um d20 ADICIONAL e mantém o melhor (Precisão/Olho Crítico). Difere de adv (2 dados): empilha um 3º d20."
     },
-    "apply-poison": {
+    "apply_poison": {
       "categoria": "A9",
       "forma": "key_value",
-      "op": "grant-execution",
+      "op": "grant_execution",
       "doc": "Aplica uma dose de veneno à arma/munição como parte de uma ação (Envenenador)."
     },
     "stabilize": {
@@ -1723,151 +1734,151 @@
     "create": {
       "categoria": "A9",
       "forma": "key_value",
-      "op": "grant-execution",
+      "op": "grant_execution",
       "doc": "Cria um item consumível temporário (Chef: create:petisco(qtd:pb)). qtd:<n> = instâncias."
     },
     "imbue": {
       "categoria": "A9",
       "forma": "key_value",
-      "op": "grant-execution",
+      "op": "grant_execution",
       "doc": "Imbui um objeto tocado com um efeito até o fim da duração (Portador da Luz: imbue:object(sunlight))."
     },
     "focus": {
       "categoria": "A12",
       "forma": "key_value",
-      "op": "set-value",
+      "op": "set_value",
       "target": "conjuracao.foco",
-      "doc": "Define o foco de conjuração de uma magia concedida por talento (focus:baralho | focus:wielded | focus:simbolo-sagrado)."
+      "doc": "Define o foco de conjuração de uma magia concedida por talento (focus:baralho | focus:wielded | focus:simbolo_sagrado)."
     },
-    "add-mastery": {
+    "add_mastery": {
       "categoria": "A4",
       "forma": "key_value",
-      "op": "grant-proficiency",
+      "op": "grant_proficiency",
       "target": "arma.maestria",
       "value": {
         "type": "ref",
         "ref": "opcao:Maestria de Arma"
       },
-      "doc": "Concede uma Maestria de Arma a um perfil (unarmed-strike.add-mastery:empurrar). Valor = slug de TB_OpcaoJogo[Maestria de Arma]. mastery{swap:<a>:<b>} troca a maestria de uma arma."
+      "doc": "Concede uma Maestria de Arma a um perfil (unarmed_strike.add_mastery:empurrar). Valor = slug de TB_OpcaoJogo[Maestria de Arma]. mastery{swap:<a>:<b>} troca a maestria de uma arma."
     },
-    "weapon-die": {
+    "weapon_die": {
       "categoria": "A4",
       "forma": "key_value",
-      "op": "set-value",
+      "op": "set_value",
       "target": "ataque.dado",
-      "doc": "Manipula o DADO de dano da arma. weapon-die:+1-step sobe a categoria (1d6→1d8); par de die-step / die-min."
+      "doc": "Manipula o DADO de dano da arma. weapon_die:+1_step sobe a categoria (1d6→1d8); par de die_step / die_min."
     },
-    "die-step": {
+    "die_step": {
       "categoria": "A7",
       "forma": "key_value",
-      "op": "set-value",
-      "doc": "Altera a categoria do dado em ±N passos (die-step:-1 = Estocada reduz; die-step:+1 = aumenta). Par de die-min (piso)."
+      "op": "set_value",
+      "doc": "Altera a categoria do dado em ±N passos (die_step:-1 = Estocada reduz; die_step:+1 = aumenta). Par de die_min (piso)."
     },
-    "split-damage": {
+    "split_damage": {
       "categoria": "A4",
       "forma": "key_value",
-      "op": "add-damage",
-      "doc": "Divide o dano rolado entre múltiplos alvos (split-damage:targets:N)."
+      "op": "add_damage",
+      "doc": "Divide o dano rolado entre múltiplos alvos (split_damage:targets:N)."
     },
     "equip": {
       "categoria": "A8",
       "forma": "key_value",
-      "op": "grant-execution",
-      "doc": "Manipula equipamento sem ação extra: equip:draw (sacar) | equip:stow (guardar) | equip:reload (recarregar). 'no-loading' via no-*."
+      "op": "grant_execution",
+      "doc": "Manipula equipamento sem ação extra: equip:draw (sacar) | equip:stow (guardar) | equip:reload (recarregar). 'no_loading' via no_*."
     },
     "reload": {
       "categoria": "A8",
       "forma": "flag",
-      "op": "grant-execution",
+      "op": "grant_execution",
       "doc": "Recarrega arma de munição/recarga (Besteiro). Atalho de equip:reload."
     },
     "toggle": {
       "categoria": "A1",
       "forma": "key_value",
-      "op": "set-value",
+      "op": "set_value",
       "doc": "Alterna entre dois estados mutuamente exclusivos (toggle:ofensivo|defensivo)."
     },
-    "immune-ability": {
+    "immune_ability": {
       "categoria": "A5",
       "forma": "block",
-      "op": "apply-condition",
+      "op": "apply_condition",
       "target": "alvo",
-      "doc": "O alvo fica imune a ESTA habilidade por uma duração (Assecla: immune-ability(duration:24h))."
+      "doc": "O alvo fica imune a ESTA habilidade por uma duração (Assecla: immune_ability(duration:24h))."
     },
-    "negate-effect": {
+    "negate_effect": {
       "categoria": "A9",
       "forma": "key_value",
       "op": "gate",
       "doc": "Previne/anula um efeito iminente sobre um aliado protegido (Guarda de Formação). Par defensivo de apply."
     },
-    "reduce-forced-movement": {
+    "reduce_forced_movement": {
       "categoria": "A5",
       "forma": "key_value",
-      "op": "add-modifier",
+      "op": "add_modifier",
       "target": "movimento.forcado",
-      "doc": "Reduz os pés de movimento FORÇADO que você sofre (reduce-forced-movement:+pb)."
+      "doc": "Reduz os pés de movimento FORÇADO que você sofre (reduce_forced_movement:+pb)."
     },
-    "movement-cost": {
+    "movement_cost": {
       "categoria": "A8",
       "forma": "key_value",
-      "op": "set-value",
+      "op": "set_value",
       "target": "movimento.custo",
-      "doc": "Sobrescreve o custo de uma manobra de movimento: movement-cost:stand-up=5ft (Formação Bastiônica), movement-cost:mount=0 (Escudeiro)."
+      "doc": "Sobrescreve o custo de uma manobra de movimento: movement_cost:stand_up=5ft (Formação Bastiônica), movement_cost:mount=0 (Escudeiro)."
     },
     "search": {
       "categoria": "A8",
       "forma": "flag",
-      "op": "grant-execution",
+      "op": "grant_execution",
       "doc": "Execução: ação Procurar."
     },
     "study": {
       "categoria": "A8",
       "forma": "flag",
-      "op": "grant-execution",
+      "op": "grant_execution",
       "doc": "Execução: ação Estudar (2024). Mente Afiada a torna ação bônus."
     },
     "help": {
       "categoria": "A8",
       "forma": "flag",
-      "op": "grant-execution",
+      "op": "grant_execution",
       "doc": "Execução: ação Ajudar (sempre 'help' em inglês, nunca 'ajuda')."
     },
-    "death-save": {
+    "death_save": {
       "categoria": "A7",
       "forma": "key_value",
-      "op": "grant-roll-mod",
-      "doc": "Teste contra a Morte: roll-id p/ adv/dadv (adv:death-save) e evento (trigger=death-save)."
+      "op": "grant_roll_mod",
+      "doc": "Teste contra a Morte: roll_id p/ adv/dadv (adv:death_save) e evento (trigger=death_save)."
     },
     "sunlight": {
       "categoria": "A9",
       "forma": "flag",
-      "op": "emit-area",
+      "op": "emit_area",
       "target": "iluminacao",
-      "doc": "A luz produzida conta como LUZ DO SOL (relevante p/ mortos-vivos/vampiros). Qualificador de light:/imbue:."
+      "doc": "A luz produzida conta como LUZ DO SOL (relevante p/ mortos_vivos/vampiros). Qualificador de light:/imbue:."
     },
     "dodge": {
       "categoria": "A8",
       "forma": "flag",
-      "op": "grant-execution",
+      "op": "grant_execution",
       "doc": "Execução: ação Esquivar (ataques contra você com Desvantagem; saves de Des com Vantagem)."
     },
     "check": {
       "categoria": "A7",
       "forma": "block",
       "op": null,
-      "doc": "Teste de perícia/atributo: check{<pericia>} ou check{<attr>}. Usado em adv:check{furtividade}, trigger=check{...}, contest. Roll-id base de <attr>-check."
+      "doc": "Teste de perícia/atributo: check{<pericia>} ou check{<attr>}. Usado em adv:check{furtividade}, trigger=check{...}, contest. Roll_id base de <attr>-check."
     },
-    "max-hp-reduction": {
+    "max_hp_reduction": {
       "categoria": "A6",
       "forma": "key_value",
-      "op": "set-value",
+      "op": "set_value",
       "target": "pv.maximo",
-      "doc": "Reduz o PV MÁXIMO (Hemomancia): max-hp-reduction:+<f>(reset:long-rest). Gasta vitalidade até o descanso. Aprovado 2026-06-18."
+      "doc": "Reduz o PV MÁXIMO (Hemomancia): max_hp_reduction:+<f>(reset:long_rest). Gasta vitalidade até o descanso. Aprovado 2026_06_18."
     },
     "obscured": {
       "categoria": "A10",
       "forma": "key_value",
-      "op": "emit-area",
+      "op": "emit_area",
       "target": "visao",
       "value": {
         "type": "enum",
@@ -1876,144 +1887,144 @@
           "heavy"
         ]
       },
-      "doc": "Cria área leve/intensamente OBSCURECIDA (obscured:heavy|light). Eixo de visão do 5e (afeta Percepção/ataques) DISTINTO de light:none (escuridão mágica). Também buff passivo de Furtividade (Manto da Caçada). Aprovado 2026-06-18."
+      "doc": "Cria área leve/intensamente OBSCURECIDA (obscured:heavy|light). Eixo de visão do 5e (afeta Percepção/ataques) DISTINTO de light:none (escuridão mágica). Também buff passivo de Furtividade (Manto da Caçada). Aprovado 2026_06_18."
     },
-    "repeat-turn": {
+    "repeat_turn": {
       "categoria": "A9",
       "forma": "key_value",
-      "op": "grant-execution",
-      "doc": "Concede um TURNO inteiro extra a outra criatura, fora da iniciativa (Paradoxo da Repetição). Manipulação de ordem de turno — ≠ grant:extra-action (1 ação no próprio turno). Aprovado 2026-06-18."
+      "op": "grant_execution",
+      "doc": "Concede um TURNO inteiro extra a outra criatura, fora da iniciativa (Paradoxo da Repetição). Manipulação de ordem de turno — ≠ grant:extra_action (1 ação no próprio turno). Aprovado 2026_06_18."
     },
     "limit": {
       "categoria": "A13",
       "forma": "key_value",
-      "op": "set-value",
+      "op": "set_value",
       "target": "efeito.teto",
-      "doc": "Teto de instâncias/contagem simultâneas de um efeito (limit:1 — Marca da Alma, Voto Compartilhado). Análogo a allow-concentration. Cobre max-active. Aprovado 2026-06-18."
+      "doc": "Teto de instâncias/contagem simultâneas de um efeito (limit:1 — Marca da Alma, Voto Compartilhado). Análogo a allow_concentration. Cobre max_active. Aprovado 2026_06_18."
     },
-    "creature-type": {
+    "creature_type": {
       "categoria": "A14",
       "forma": "key_value",
-      "op": "set-value",
+      "op": "set_value",
       "target": "corpo.tipo",
       "value": {
         "type": "catalog",
-        "catalog": "creature-type",
+        "catalog": "creature_type",
         "lang": "pt"
       },
-      "doc": "Define/sobrescreve o tipo de criatura do personagem (creature-type:=[humanoide, construto] — Mestre Aprimorado). Aprovado 2026-06-18."
+      "doc": "Define/sobrescreve o tipo de criatura do personagem (creature_type:=[humanoide, construto] — Mestre Aprimorado). Aprovado 2026_06_18."
     },
     "utilize": {
       "categoria": "A8",
       "forma": "flag",
-      "op": "grant-execution",
-      "doc": "Execução: ação Utilizar (2024) — usar um objeto. Família de search/study/help/dodge. Aprovado 2026-06-18."
+      "op": "grant_execution",
+      "doc": "Execução: ação Utilizar (2024) — usar um objeto. Família de search/study/help/dodge. Aprovado 2026_06_18."
     },
     "breathe": {
       "categoria": "A8",
       "forma": "key_value",
-      "op": "set-value",
+      "op": "set_value",
       "target": "respiracao",
-      "doc": "Respiração em ambiente especial (breathe:underwater — Presente do Oceano). Flag de ambiente, par de move:swim. Aprovado 2026-06-18."
+      "doc": "Respiração em ambiente especial (breathe:underwater — Presente do Oceano). Flag de ambiente, par de move:swim. Aprovado 2026_06_18."
     },
-    "dmg-attr": {
+    "dmg_attr": {
       "categoria": "A14",
       "forma": "key_value",
-      "op": "set-value",
+      "op": "set_value",
       "target": "ataque.dano.atributo",
       "value": {
         "type": "attr"
       },
-      "doc": "Atributo usado no dano de um escopo (natural.dmg-attr:=wis). Campo de ataque, par de check-attr/save-attr/jump-attr."
+      "doc": "Atributo usado no dano de um escopo (natural.dmg_attr:=wis). Campo de ataque, par de check_attr/save_attr/jump_attr."
     },
-    "atk-attr": {
+    "atk_attr": {
       "categoria": "A14",
       "forma": "key_value",
-      "op": "set-value",
+      "op": "set_value",
       "target": "ataque.acerto.atributo",
       "value": {
         "type": "attr"
       },
-      "doc": "Atributo usado na rolagem de ATAQUE de um escopo (atk-attr:cha — Arma Mística usa Carisma no lugar de For/Des). Par exato do dmg-attr. Aprovado 2026-06-19."
+      "doc": "Atributo usado na rolagem de ATAQUE de um escopo (atk_attr:cha — Arma Mística usa Carisma no lugar de For/Des). Par exato do dmg_attr. Aprovado 2026_06_19."
     },
-    "save-attr": {
+    "save_attr": {
       "categoria": "A7",
       "forma": "key_value",
-      "op": "set-value",
+      "op": "set_value",
       "target": "save.atributo",
       "value": {
         "type": "attr"
       },
-      "doc": "Atributo do teste de resistência que o efeito impõe (save-attr:=int)."
+      "doc": "Atributo do teste de resistência que o efeito impõe (save_attr:=int)."
     },
-    "jump-attr": {
+    "jump_attr": {
       "categoria": "A8",
       "forma": "key_value",
-      "op": "set-value",
+      "op": "set_value",
       "target": "movimento.salto.atributo",
       "value": {
         "type": "attr"
       },
-      "doc": "Atributo do salto (jump-attr:=dex)."
+      "doc": "Atributo do salto (jump_attr:=dex)."
     },
-    "summon-hp": {
+    "summon_hp": {
       "categoria": "A9",
       "forma": "key_value",
       "op": "summon",
-      "doc": "Parâmetro de PV da criatura invocada (summon-hp:half). Scaling do summon (statblock vive no bestiário)."
+      "doc": "Parâmetro de PV da criatura invocada (summon_hp:half). Scaling do summon (statblock vive no bestiário)."
     },
     "area": {
       "categoria": "A10",
       "forma": "key_value",
-      "op": "emit-area",
+      "op": "emit_area",
       "target": "area.tamanho",
       "doc": "Multiplicador/tamanho de área (aoe.area:*3). Campo de aoe, par de radius/point."
     },
     "command": {
       "categoria": "A9",
       "forma": "key_value",
-      "op": "grant-execution",
-      "doc": "Comanda um companheiro/objeto invocado (command:mao-magica, command:companion). Família de summon."
+      "op": "grant_execution",
+      "doc": "Comanda um companheiro/objeto invocado (command:mao_magica, command:companion). Família de summon."
     },
-    "cast-from": {
+    "cast_from": {
       "categoria": "A12",
       "forma": "key_value",
-      "op": "set-value",
+      "op": "set_value",
       "target": "conjuracao.origem",
-      "doc": "Suas magias PARTEM de um ponto/ilusão referenciado, usando seus próprios sentidos (cast-from:ilusao(use:own-senses) — Invocar Duplicidade). Relocaliza a origem da conjuração de forma passiva (≠ origem: num cast{} pontual). Aprovado 2026-06-18."
+      "doc": "Suas magias PARTEM de um ponto/ilusão referenciado, usando seus próprios sentidos (cast_from:ilusao(use:own_senses) — Invocar Duplicidade). Relocaliza a origem da conjuração de forma passiva (≠ origem: num cast{} pontual). Aprovado 2026_06_18."
     },
-    "check-swap": {
+    "check_swap": {
       "categoria": "A7",
       "forma": "key_value",
-      "op": "set-value",
+      "op": "set_value",
       "target": "pericia.swap",
-      "doc": "Rola uma perícia no lugar de outra num teste (check-swap:persuasao=religiao(ability:wis) — Autoridade Sagrada). ≠ check-attr (que troca só o ATRIBUTO). Aprovado 2026-06-18."
+      "doc": "Rola uma perícia no lugar de outra num teste (check_swap:persuasao=religiao(ability:wis) — Autoridade Sagrada). ≠ check_attr (que troca só o ATRIBUTO). Aprovado 2026_06_18."
     },
-    "repeat-while": {
+    "repeat_while": {
       "categoria": "A1",
       "forma": "key_value",
       "op": "gate",
-      "doc": "Repete a execução anterior ENQUANTO a condição valer (attack:weapon(...)(repeat-while:resource{X}>0) — Golpes Encadeados). Construto de laço. Aprovado 2026-06-18."
+      "doc": "Repete a execução anterior ENQUANTO a condição valer (attack:weapon(...)(repeat_while:resource{X}>0) — Golpes Encadeados). Construto de laço. Aprovado 2026_06_18."
     },
-    "next-melee-dmg": {
+    "next_melee_dmg": {
       "categoria": "A4",
       "forma": "key_value",
-      "op": "add-modifier",
-      "target": "alvo.proximo-ataque.dano",
-      "doc": "Debuff no dano do PRÓXIMO ataque corpo a corpo do alvo (next-melee-dmg:-ability-mod — maestria Debilitar/Weaken). Aprovado 2026-06-18."
+      "op": "add_modifier",
+      "target": "alvo.proximo_ataque.dano",
+      "doc": "Debuff no dano do PRÓXIMO ataque corpo a corpo do alvo (next_melee_dmg:-ability_mod — maestria Debilitar/Weaken). Aprovado 2026_06_18."
     },
-    "_doc_raciais": "Vocabulário formalizado a partir do tagueamento dos TRAÇOS RACIAIS (2026-06-18, aprovado pelo PO).",
+    "_doc_raciais": "Vocabulário formalizado a partir do tagueamento dos TRAÇOS RACIAIS (2026_06_18, aprovado pelo PO).",
     "set": {
       "categoria": "A14",
       "forma": "bind",
-      "op": "set-value",
+      "op": "set_value",
       "target": "variaveis",
       "doc": "Atribui uma variável de ESCOLHA/estado do personagem (set:descendencia=wyvern). Base das transformações/escolhas de essência; referenciada depois por requires:<var>=<valor> e match(<var>){...}."
     },
-    "wield-item": {
+    "wield_item": {
       "categoria": "A8",
       "forma": "flag",
-      "op": "set-value",
+      "op": "set_value",
       "doc": "Pode empunhar/usar itens nesta forma (formas que normalmente impediriam)."
     },
     "width": {
@@ -2028,44 +2039,44 @@
     "consume": {
       "categoria": "A9",
       "forma": "key_value",
-      "op": "grant-execution",
-      "doc": "Consome um item/consumível como parte do efeito (consume:item-alquimico — Sifão de Arma)."
+      "op": "grant_execution",
+      "doc": "Consome um item/consumível como parte do efeito (consume:item_alquimico — Sifão de Arma)."
     },
-    "replace-save": {
+    "replace_save": {
       "categoria": "A7",
       "forma": "key_value",
-      "op": "set-value",
-      "target": "save.atributo-defensivo",
-      "doc": "Troca o ATRIBUTO do save DEFENSIVO exigido (replace-save:con(instead-of:dex) — Campeão das Cúpulas). Par de save-attr (que você impõe) e check-swap (perícia)."
+      "op": "set_value",
+      "target": "save.atributo_defensivo",
+      "doc": "Troca o ATRIBUTO do save DEFENSIVO exigido (replace_save:con(instead_of:dex) — Campeão das Cúpulas). Par de save_attr (que você impõe) e check_swap (perícia)."
     },
-    "count-as": {
+    "count_as": {
       "categoria": "A14",
       "forma": "key_value",
-      "op": "set-value",
-      "doc": "Tratado como outra raça/tipo de criatura p/ pré-requisitos (count-as:anao(for:prereq) — Cultura Adotada) ou percepção (count-as:humanoide(for:detection) — Eremita Diurno). Absorve detect-as."
+      "op": "set_value",
+      "doc": "Tratado como outra raça/tipo de criatura p/ pré_requisitos (count_as:anao(for:prereq) — Cultura Adotada) ou percepção (count_as:humanoide(for:detection) — Eremita Diurno). Absorve detect_as."
     },
-    "concentration-check": {
+    "concentration_check": {
       "categoria": "A7",
       "forma": "key_value",
-      "op": "grant-roll-mod",
-      "doc": "Modificador no teste de Concentração (concentration-check:adv|dadv)."
+      "op": "grant_roll_mod",
+      "doc": "Modificador no teste de Concentração (concentration_check:adv|dadv)."
     },
-    "cast-level": {
+    "cast_level": {
       "categoria": "A12",
       "forma": "key_value",
-      "op": "cast-spell",
-      "doc": "Conjura a magia num NÍVEL/ciclo fixo (cast-level:5). Absorve cast-as-cycle. Difere de upcast (que escala por espaço gasto)."
+      "op": "cast_spell",
+      "doc": "Conjura a magia num NÍVEL/ciclo fixo (cast_level:5). Absorve cast_as_cycle. Difere de upcast (que escala por espaço gasto)."
     },
-    "half-components": {
+    "half_components": {
       "categoria": "A11",
       "forma": "flag",
       "op": "override",
-      "doc": "Conjura com METADE dos componentes materiais (Última Rodada). Família de no-*."
+      "doc": "Conjura com METADE dos componentes materiais (Última Rodada). Família de no_*."
     },
-    "color-vision": {
+    "color_vision": {
       "categoria": "A9",
       "forma": "flag",
-      "op": "emit-area",
+      "op": "emit_area",
       "target": "sentidos",
       "doc": "Enxerga em CORES na escuridão (não em tons de cinza). Qualificador de sense:darkvision."
     },
@@ -2073,48 +2084,48 @@
       "categoria": "A1",
       "forma": "block",
       "op": "gate",
-      "doc": "Bloco ativo CONDICIONAL: while:<cond>{<efeitos>} — efeitos valem ENQUANTO a condição se mantém (while:in-sunlight{...}, while:frenesi{...}). while-active gateado por condição inline; também qualificador (resist:all(while:petrificado))."
+      "doc": "Bloco ativo CONDICIONAL: while:<cond>{<efeitos>} — efeitos valem ENQUANTO a condição se mantém (while:in_sunlight{...}, while:frenesi{...}). while_active gateado por condição inline; também qualificador (resist:all(while:petrificado))."
     },
     "force": {
       "categoria": "A9",
       "forma": "key_value",
-      "op": "grant-execution",
+      "op": "grant_execution",
       "target": "alvo",
-      "doc": "Compele o alvo a realizar uma ação (force:attack(profile:..., target:nearest-living) — Frenesi de Sangue). Controle de ação forçada."
+      "doc": "Compele o alvo a realizar uma ação (force:attack(profile:..., target:nearest_living) — Frenesi de Sangue). Controle de ação forçada."
     },
     "absorb": {
       "categoria": "A5",
       "forma": "key_value",
-      "op": "absorb-damage",
+      "op": "absorb_damage",
       "target": "resistencias",
       "value": {
         "type": "catalog",
-        "catalog": "damage-type",
+        "catalog": "damage_type",
         "lang": "pt"
       },
-      "doc": "absorb:<dano> — em vez de sofrer o dano daquele tipo, anula e cura PV igual ao dano que sofreria. Usado nas Investiduras (nv17) quando o personagem JA e Imune ao tipo. Aprovado 2026-06-22 (Essencia Elemental, versao final)."
+      "doc": "absorb:<dano> — em vez de sofrer o dano daquele tipo, anula e cura PV igual ao dano que sofreria. Usado nas Investiduras (nv17) quando o personagem JA e Imune ao tipo. Aprovado 2026_06_22 (Essencia Elemental, versao final)."
     },
-    "immune-effect": {
+    "immune_effect": {
       "categoria": "A5",
       "forma": "key_value",
-      "op": "add-to-set",
+      "op": "add_to_set",
       "target": "imunidades_efeito",
       "value": {
         "type": "selector",
         "doc": "efeito de movimento forcado/posicao: push, prone..."
       },
-      "doc": "immune-effect:<efeito>(requires:source{...}) — imune a um EFEITO que nao e condicao catalogada (ex.: empurrar/derrubar por meios nao magicos). Investidura da Pedra. Aprovado 2026-06-22."
+      "doc": "immune_effect:<efeito>(requires:source{...}) — imune a um EFEITO que nao e condicao catalogada (ex.: empurrar/derrubar por meios nao magicos). Investidura da Pedra. Aprovado 2026_06_22."
     }
   },
   "escolhas": {
     "_doc": "Detalhe de pick: (vocabulario §7). op = pick.",
     "pick:opcao:<tipo>:N": "escolhe N de TB_OpcaoJogo do tipo (acesso via TB_AcessoOpcao)",
-    "pick:pericia:N | pick:idioma:N | pick:ferramenta:N": "escolhe de listas-catálogo",
-    "pick:<local>:N": "escolhe de algo definido por define{} (ex.: pick:aspecto-selvagem:1)",
-    "pick:pericia-expertise:{<nivel>:<qtd>}": "marca perícias p/ expertise (motor dobra PB — regra global)",
+    "pick:pericia:N | pick:idioma:N | pick:ferramenta:N": "escolhe de listas_catálogo",
+    "pick:<local>:N": "escolhe de algo definido por define{} (ex.: pick:aspecto_selvagem:1)",
+    "pick:pericia_expertise:{<nivel>:<qtd>}": "marca perícias p/ expertise (motor dobra PB — regra global)",
     "progressao": "pick:pericia:{classlvl=5:1, classlvl=10:2} acumula por nível",
-    "N_de_recurso": "pick:arma:N(=recurso maestria-com-armas) — Maestria de Arma escolhe ARMAS (não maestrias abstratas); cada arma dá acesso a todas as maestrias dela, 1 por ataque",
-    "pick:spell-mod:{int|wis|cha}": "o jogador escolhe o atributo de conjuração de uma magia concedida por talento (par de spell-mod:asi-attr). Aprovado 2026-06-18."
+    "N_de_recurso": "pick:arma:N(=recurso maestria_com_armas) — Maestria de Arma escolhe ARMAS (não maestrias abstratas); cada arma dá acesso a todas as maestrias dela, 1 por ataque",
+    "pick:spell_mod:{int|wis|cha}": "o jogador escolhe o atributo de conjuração de uma magia concedida por talento (par de spell_mod:asi_attr). Aprovado 2026_06_18."
   },
   "definicoes_inline": {
     "_doc": "Corpo de define{} (vocabulario §9 e §13). op = define; o corpo de cada resultado/chave é um BLOCO DE EFEITO montado com os verbos genéricos de 'primitives'.",
@@ -2122,7 +2133,7 @@
       "sintaxe": "define{ <nome>: table{ dice:<NdX>, results{ N:{<efeito>}, ... } } }",
       "controle": [
         "reroll",
-        "apply-also"
+        "apply_also"
       ],
       "uso": "roll:<nome> | roll:ability{<dona>}.<nome>"
     },
@@ -2132,71 +2143,71 @@
       "uso": "pick:<nome>:N"
     },
     "weapon": {
-      "sintaxe": "define:weapon{ <nome>: <dmg>+<mod>, <dano> } | <arma>.add-property{<prop>}",
+      "sintaxe": "define:weapon{ <nome>: <dmg>+<mod>, <dano> } | <arma>.add_property{<prop>}",
       "uso": "perfil de ataque (armadura vira arma) ou propriedade nova"
     },
     "pool": {
       "sintaxe": "define{ <slug>: max:<fórmula>, reset:<rest>, [die:{<nivel>:<dado>}] }",
-      "uso": "declara um RECURSO INTERNO de fórmula/fixo (não vai na TB_RecursoClasse — só pools que escalam por nível vão na tabela). Ex.: define{dados-sombrios: max:2*pb, die:{3:d6,5:d8,11:d10,17:d12}, reset:{long-rest:all, short-rest:1}}. Referenciado por resource{<slug>}/resource-cost:<slug>. Aprovado 2026-06-18."
+      "uso": "declara um RECURSO INTERNO de fórmula/fixo (não vai na TB_RecursoClasse — só pools que escalam por nível vão na tabela). Ex.: define{dados_sombrios: max:2*pb, die:{3:d6,5:d8,11:d10,17:d12}, reset:{long_rest:all, short_rest:1}}. Referenciado por resource{<slug>}/resource_cost:<slug>. Aprovado 2026_06_18."
     },
-    "expor_variavel": "define{dmg-bonus: roundup(classlvl/2)} — exposto como ability{<dona>, classe:<slug>}.dmg-bonus"
+    "expor_variavel": "define{dmg_bonus: roundup(classlvl/2)} — exposto como ability{<dona>, classe:<slug>}.dmg_bonus"
   },
   "tags_de_classe": {
     "_doc": "TbClasse.tags_json — metadata que o motor usa (substitui colunas vazias da TbClasse). vocabulario §6b.",
-    "hit-dice": {
-      "sintaxe": "hit-dice:1d12",
-      "op": "set-value",
+    "hit_dice": {
+      "sintaxe": "hit_dice:1d12",
+      "op": "set_value",
       "target": "classe.dado_vida",
       "doc": "PV deriva do dado (motor, não tag)."
     },
-    "saves-prof": {
-      "sintaxe": "saves-prof{str, con}",
-      "op": "grant-proficiency",
+    "saves_prof": {
+      "sintaxe": "saves_prof{str, con}",
+      "op": "grant_proficiency",
       "target": "saves"
     },
-    "skills-lvl1": {
-      "sintaxe": "skills-lvl1{pick:N de [Atletismo, ...]}",
+    "skills_lvl1": {
+      "sintaxe": "skills_lvl1{pick:N de [Atletismo, ...]}",
       "op": "pick"
     },
-    "subclass-choices": {
-      "sintaxe": "subclass-choices{3, 6, 10, 14, 18}",
-      "op": "set-value",
+    "subclass_choices": {
+      "sintaxe": "subclass_choices{3, 6, 10, 14, 18}",
+      "op": "set_value",
       "doc": "Níveis DA classe com característica de subclasse; o 1º é onde se escolhe a subclasse."
     },
-    "asi-choices": {
-      "sintaxe": "asi-choices{4, 8, 12, 16, 19}",
-      "op": "set-value",
+    "asi_choices": {
+      "sintaxe": "asi_choices{4, 8, 12, 16, 19}",
+      "op": "set_value",
       "doc": "Níveis com Incremento de Atributo/Talento. ÚNICA fonte de ASI — não existe choice:asi por habilidade; a feature é detectada por nome (_eh_feature_asi)."
     },
-    "background-grants": {
-      "sintaxe": "background-grants{asi:+2/+1, pericia:2, idioma-fixo:Comum, idioma-ou-ferramenta:2, po:100, po-mundano-min:50, talento-origem:1, habilidade:1, equip-gold-alt:150}",
-      "op": "set-value",
+    "background_grants": {
+      "sintaxe": "background_grants{asi:+2/+1, pericia:2, idioma_fixo:Comum, idioma_ou_ferramenta:2, po:100, po_mundano_min:50, talento_origem:1, habilidade:1, equip_gold_alt:150}",
+      "op": "set_value",
       "doc": "Metadado de criacao de personagem para antecedentes: ASI, pericias, idioma fixo, escolhas idioma/ferramenta, dinheiro inicial e alternativa de ouro do equipamento."
     },
-    "multiclass-req": {
-      "sintaxe": "multiclass-req{str>=13}",
+    "multiclass_req": {
+      "sintaxe": "multiclass_req{str>=13}",
       "op": "gate"
     },
-    "multiclass-prof": {
-      "sintaxe": "multiclass-prof{escudos, armas-simples}",
-      "op": "grant-proficiency"
+    "multiclass_prof": {
+      "sintaxe": "multiclass_prof{escudos, armas_simples}",
+      "op": "grant_proficiency"
     }
   },
   "recursos_universais": {
-    "_doc": "Recursos que TODO personagem possui (NÃO são pools de classe de TB_RecursoClasse; o motor os conhece nativamente). Referenciáveis por resource{}/resource-cost: como qualquer recurso. Aprovados 2026-06-18.",
-    "dados-de-vida": {
+    "_doc": "Recursos que TODO personagem possui (NÃO são pools de classe de TB_RecursoClasse; o motor os conhece nativamente). Referenciáveis por resource{}/resource_cost: como qualquer recurso. Aprovados 2026_06_18.",
+    "dados_de_vida": {
       "valor": "quantidade = nível total do personagem; tamanho = dado de vida da classe",
       "reset": "metade no descanso longo (regra padrão)",
-      "uso": "gasto no descanso curto p/ recuperar PV; talentos podem gastá-los como recurso (Hemomancia, Adepto da Veste Negra)."
+      "uso": "gasto no descanso curto p/ recuperar PV; talentos podem gastá_los como recurso (Hemomancia, Adepto da Veste Negra)."
     },
-    "inspiracao-heroica": {
+    "inspiracao_heroica": {
       "valor": "marcador booleano (tem / não tem)",
-      "uso": "gasta-se ANTES de uma rolagem p/ ganhar Vantagem num teste/ataque e (se o mestre permitir) re-rolar um dado. Concedida por grant:inspiracao-heroica; evento ally-spend-inspiration."
+      "uso": "gasta_se ANTES de uma rolagem p/ ganhar Vantagem num teste/ataque e (se o mestre permitir) re_rolar um dado. Concedida por grant:inspiracao_heroica; evento ally_spend_inspiration."
     }
   },
   "catalogs": {
-    "_doc": "VALORES-CATÁLOGO em PORTUGUÊS (dicionario §B). Listas fixas validadas inline; listas grandes/dinâmicas apontam para tabela do banco.",
-    "damage-type": {
+    "_doc": "VALORES_CATÁLOGO em PORTUGUÊS (dicionario §B). Listas fixas validadas inline; listas grandes/dinâmicas apontam para tabela do banco.",
+    "damage_type": {
       "lang": "pt",
       "valores": [
         "fogo",
@@ -2242,24 +2253,24 @@
         "incorporeo",
         "queimando",
         "mutagenico",
-        "marca-guardiao",
+        "marca_guardiao",
         "debilitante",
-        "vibracoes-letais",
-        "golpe-fantasmagorico",
-        "no-reaction",
-        "no-heal",
-        "no-camuflagem",
-        "in-receptaculo",
-        "restricao-de-acao",
+        "vibracoes_letais",
+        "golpe_fantasmagorico",
+        "no_reaction",
+        "no_heal",
+        "no_camuflagem",
+        "in_receptaculo",
+        "restricao_de_acao",
         "frenesi",
-        "frenesi-de-sangue",
+        "frenesi_de_sangue",
         "seduzido",
-        "half-speed",
-        "no-invisivel"
+        "half_speed",
+        "no_invisivel"
       ],
-      "nota": "Os 5e + homebrew. possuido = dominação; banido = banish; afastado = turned; silenciado = sem verbal. Estados homebrew (enlarge/incorporeo/queimando/mutagenico/marca-guardiao/debilitante/vibracoes-letais/golpe-fantasmagorico/no-reaction/no-heal/no-camuflagem) aplicados por características específicas. Adicionados 2026-06-17/18."
+      "nota": "Os 5e + homebrew. possuido = dominação; banido = banish; afastado = turned; silenciado = sem verbal. Estados homebrew (enlarge/incorporeo/queimando/mutagenico/marca_guardiao/debilitante/vibracoes_letais/golpe_fantasmagorico/no_reaction/no_heal/no_camuflagem) aplicados por características específicas. Adicionados 2026_06_17/18."
     },
-    "creature-type": {
+    "creature_type": {
       "lang": "pt",
       "valores": [
         "aberracao",
@@ -2274,7 +2285,7 @@
         "humanoide",
         "limo",
         "monstruosidade",
-        "morto-vivo",
+        "morto_vivo",
         "planta"
       ],
       "nota": "tipos de criatura do sistema (catálogo fechado). corruptor = fiend."
@@ -2301,25 +2312,25 @@
         "furtividade",
         "intuicao",
         "investigacao",
-        "adestrar-animais",
+        "adestrar_animais",
         "natureza",
         "arcanismo"
       ]
     },
-    "equipment-category": {
+    "equipment_category": {
       "lang": "pt",
       "valores": [
-        "armadura-leve",
-        "armadura-media",
-        "armadura-pesada",
-        "armas-simples",
-        "armas-marciais",
+        "armadura_leve",
+        "armadura_media",
+        "armadura_pesada",
+        "armas_simples",
+        "armas_marciais",
         "escudos",
-        "instrumento-musical",
+        "instrumento_musical",
         "ferreiro"
       ]
     },
-    "weapon-property": {
+    "weapon_property": {
       "lang": "pt",
       "valores": [
         "leve",
@@ -2331,11 +2342,11 @@
         "acuidade",
         "adaptavel",
         "alcance",
-        "arma-dupla",
+        "arma_dupla",
         "carregar",
         "composto",
-        "duas-maos",
-        "empunhadura-longa",
+        "duas_maos",
+        "empunhadura_longa",
         "municao",
         "pareada",
         "recarga",
@@ -2343,7 +2354,7 @@
       ],
       "nota": "acuidade = finesse. Lista expandida para propriedades Bonfire de armas mundanas."
     },
-    "caster-fraction": {
+    "caster_fraction": {
       "lang": "en",
       "valores": [
         "full",
@@ -2359,10 +2370,10 @@
         "comum",
         "incomum",
         "raro",
-        "muito-raro",
+        "muito_raro",
         "lendario"
       ],
-      "nota": "raridade de item mágico (Replicar Item Mágico escala por nível). Adicionado 2026-06-17."
+      "nota": "raridade de item mágico (Replicar Item Mágico escala por nível). Adicionado 2026_06_17."
     },
     "idioma": {
       "lang": "pt",
@@ -2378,9 +2389,9 @@
         "anao",
         "silvestre"
       ],
-      "nota": "valor de speak:<idioma> (≠ creature-type). Adicionado 2026-06-17."
+      "nota": "valor de speak:<idioma> (≠ creature_type). Adicionado 2026_06_17."
     },
-    "sense-type": {
+    "sense_type": {
       "lang": "en",
       "valores": [
         "darkvision",
@@ -2390,7 +2401,7 @@
         "tremorsense",
         "ethereal"
       ],
-      "nota": "tipos de sentido/visão (universais do D&D, INGLÊS como a taxonomia de ataque); valor de sense:. Detecção de coisas do mundo usa detect: (PT). Adicionado 2026-06-18."
+      "nota": "tipos de sentido/visão (universais do D&D, INGLÊS como a taxonomia de ataque); valor de sense:. Detecção de coisas do mundo usa detect: (PT). Adicionado 2026_06_18."
     },
     "referencias_de_banco": {
       "spell": "TbMagia.slug",
@@ -2404,7 +2415,7 @@
   },
   "open_questions": [
     "Parser string -> AST: IMPLEMENTADO em home/tag_engine/ (lexer.py + parser.py + validator.py). Falta o EVALUATOR (contrato exato de cada op aplicando em state[target]).",
-    "Forma final de prereq=<ref> (pré-requisito de atributo/entidade).",
+    "Forma final de prereq=<ref> (pré_requisito de atributo/entidade).",
     "Mapear todos os targets de estado no character_engine (resistencias, ataque, movimento, recursos...) e fechar a lista de 'ops'."
   ]
 }

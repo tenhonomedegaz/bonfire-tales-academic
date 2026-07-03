@@ -10,7 +10,7 @@ Convencao das tags (geradas por taggear_itens.py):
   ca=18                        -> armadura: CA base (antes de DES)
   ca:+2                        -> escudo: bonus de CA
   dex-ca-max:2                 -> teto do mod de DES (armadura)
-  requires:str-score>=15       -> forca minima
+  requires:str_score>=15       -> forca minima
   dadv:furtividade             -> desvantagem em Furtividade
 tipo_equip e derivado: ca:+ => 'escudo'; ca= => 'armadura-<subcategoria>'.
 """
@@ -19,10 +19,10 @@ import re
 _DMG = re.compile(r"^dmg:\s*([0-9]+d[0-9]+(?:\s*[+-]\s*[0-9]+)?)\s*\(([^)]+)\)", re.I)
 _PROP = re.compile(r"^add-property:\s*([^(]+?)\s*(?:\((.+)\))?\s*$", re.I)
 _MAEST = re.compile(r"^maestrias\s*\{(.+)\}", re.I | re.S)
-_CA_SET = re.compile(r"^ca\s*=\s*(.+?)\s*$", re.I)          # ca=<formula> (14+min(dex-mod,2), 18, ...)
+_CA_SET = re.compile(r"^ca\s*=\s*(.+?)\s*$", re.I)          # ca=<formula> (14+min(dex_mod,2), 18, ...)
 _CA_ADD = re.compile(r"^ca\s*:\s*\+\s*([0-9]+)", re.I)      # escudo ca:+N
 _DEXMAX = re.compile(r"^dex-ca-max:\s*([0-9]+)", re.I)      # legado (retrocompat): sintetiza a formula
-_FORCA = re.compile(r"^requires:\s*str-score\s*>=\s*([0-9]+)", re.I)
+_FORCA = re.compile(r"^requires:\s*str[_-]score\s*>=\s*([0-9]+)", re.I)
 _FURT = re.compile(r"^dadv:\s*furtividade\b", re.I)
 
 
@@ -93,10 +93,10 @@ def mecanica_de_tags(tags, subcategoria=None):
             # LEGADO: ca=<int> + dex-ca-max:N -> sintetiza a formula.
             ca_base = int(ca_rhs)
             ca_formula = ("%d" % ca_base if ca_limite_des == 0
-                          else "%d+min(dex-mod,%d)" % (ca_base, ca_limite_des))
+                          else "%d+min(dex_mod,%d)" % (ca_base, ca_limite_des))
         else:
-            # NOVO formato: ca=<formula> avaliada literalmente. Leve = 'base+dex-mod',
-            # media = 'base+min(dex-mod,N)', pesada = 'base' (constante).
+            # NOVO formato: ca=<formula> avaliada literalmente. Leve = 'base+dex_mod',
+            # media = 'base+min(dex_mod,N)', pesada = 'base' (constante).
             ca_formula = ca_rhs
             mm = re.match(r"([0-9]+)", ca_rhs)
             if mm:
@@ -151,10 +151,10 @@ def ca_display(mec):
     if not mec.get("is_armadura"):
         return ""
     f = (mec.get("ca_formula") or "").replace(" ", "")
-    m = re.match(r"^(\d+)\+min\(dex-mod,(\d+)\)$", f)
+    m = re.match(r"^(\d+)\+min\(dex[_-]mod,(\d+)\)$", f)
     if m:
         return "%s + mod Des (máx %s)" % (m.group(1), m.group(2))
-    m = re.match(r"^(\d+)\+dex-mod$", f)
+    m = re.match(r"^(\d+)\+dex[_-]mod$", f)
     if m:
         return "%s + mod Des" % m.group(1)
     if re.match(r"^\d+$", f):

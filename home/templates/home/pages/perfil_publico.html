@@ -7,7 +7,9 @@
 {% endblock %}
 
 {% block content %}
-<section class="public-profile-page {{ appearance.theme_class }} {{ appearance.effect_class }}">
+{% if appearance.background_url %}<div class="profile-bg-media" style="background-image:url('{{ appearance.background_url }}');"></div>{% endif %}
+<section class="public-profile-page {{ appearance.theme_class }} {{ appearance.effect_class }}{% if appearance.background_url %} profile-has-bg{% endif %}"{% if appearance.custom_style %} style="{{ appearance.custom_style }}"{% endif %}>
+  <a href="{% url 'jogadores' %}" class="public-profile-back">← Jogadores</a>
   <div class="public-profile-card">
     <div class="public-profile-banner">
       {% if profile.banner_url %}<div class="public-profile-banner-media" style="background-image:url('{{ profile.banner_url }}');"></div>{% endif %}

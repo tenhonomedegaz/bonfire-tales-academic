@@ -19,6 +19,9 @@ from django.db import connection, models, transaction
 UPSERT_POR_SLUG = [
     "TbRaca", "TbEssencia", "TbAntecedente", "TbClasse", "TbOpcaojogo",
     "TbMagia", "TbTalento", "TbItemMagico", "TbLinhagem", "TbSubclasse",
+    # Catálogo de cosméticos (F1): referenciado por TbUsuarioCosmetico (inventário
+    # do usuário) → casa por slug e preserva PK pra não quebrar o inventário.
+    "TbCosmetico",
 ]
 # Não referenciadas por FK de usuário → substitui inteiras (delete + reinsert).
 SUBSTITUI = [
@@ -33,6 +36,9 @@ MEMORY_MODELS = [
     "TbPersonagemRecurso", "TbPersonagemTalento", "TbTransacao", "TbTransacaoMestre",
     "TbAventuraMestre", "TbAnuncioItemMagico", "TbCronica", "TbJornal",
     "TbReiDaColina", "UserProfile",
+    # Inventário de cosméticos (F1): dado de USUÁRIO — nunca sincroniza, e protege
+    # cosméticos referenciados contra deleção por tombstone (_memory_references).
+    "TbUsuarioCosmetico",
 ]
 CONTENT_MODELS = UPSERT_POR_SLUG + SUBSTITUI
 DELETIONS_PATH = os.path.join("home", "content_deletions.json")

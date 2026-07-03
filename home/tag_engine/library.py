@@ -10,7 +10,7 @@ import re
 
 LIB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "tag_library.json")
 
-_WORD = re.compile(r"[a-z0-9][a-z0-9-]*")
+_WORD = re.compile(r"[a-z0-9][a-z0-9_-]*")
 
 # Qualificadores estruturais que aparecem como CHAVE dentro de (...) e blocos
 # (range:, target:, willing, vs:, ...). São legítimos mas não são "primitivas"
@@ -56,10 +56,13 @@ SKILLS = {
 
 _ATTRS = ("str", "dex", "con", "int", "wis", "cha")
 _ROLL_SUFFIX = ("mod", "score", "save", "check", "atk")
-# str-mod, dex-save, cha-atk, ... + roll-ids avulsos
-ROLL_IDS = {f"{a}-{s}" for a in _ATTRS for s in _ROLL_SUFFIX} | {
+# str-mod/dex_mod, dex-save, cha-atk, ... + roll-ids avulsos
+ROLL_IDS = (
+    {f"{a}-{s}" for a in _ATTRS for s in _ROLL_SUFFIX}
+    | {f"{a}_{s}" for a in _ATTRS for s in _ROLL_SUFFIX}
+    | {
     "initiative", "death-save", "ability-check", "spell-attack", "spell-save",
-}
+})
 
 
 def _base(token_key):
@@ -67,6 +70,12 @@ def _base(token_key):
     'ally(range:<dist>)' -> 'ally'; 'target{acted}' -> 'target'."""
     m = _WORD.match(token_key.strip().lower())
     return m.group(0) if m else token_key.strip().lower()
+
+
+def _legacy_key(key):
+    """Compatibilidade temporaria do retagging: tags novas usam snake_case,
+    enquanto a biblioteca/banco legado ainda pode ter nomes com hifen."""
+    return str(key).lower().replace("_", "-")
 
 
 class Library:
@@ -150,13 +159,15 @@ class Library:
     # ---- consultas ---------------------------------------------------------
     def head_known(self, head):
         head = head.lower()
-        if head in self.known_heads:
+        if head in self.known_heads or _legacy_key(head) in self.known_heads:
             return True
-        return any(head.startswith(w) for w in self.wildcards)
+        legacy = _legacy_key(head)
+        return any(head.startswith(w) or legacy.startswith(w) for w in self.wildcards)
 
     def scope_known(self, seg):
         seg = seg.lower()
-        return seg in self.scopes or seg in self.selectors
+        legacy = _legacy_key(seg)
+        return seg in self.scopes or seg in self.selectors or legacy in self.scopes or legacy in self.selectors
 
     # ---- auto-auditoria da biblioteca -------------------------------------
     def lint(self):

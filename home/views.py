@@ -13,7 +13,6 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model, login
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
-from django.core.serializers.json import DjangoJSONEncoder
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.http import Http404, JsonResponse, HttpResponseBadRequest, HttpResponse
@@ -21,11 +20,10 @@ from django.shortcuts import get_object_or_404, render, redirect
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from django.core.paginator import Paginator
-from django.db.models import Count, Q, F
-from django.db.models.functions import Lower
+from django.db.models import Count, Q, F, Max
 from django.templatetags.static import static
 from django.urls import reverse
-from django.utils.html import escape, format_html, format_html_join
+from django.utils.html import format_html, format_html_join
 from django.utils import timezone
 from django.db import connection, transaction
 from django.utils.text import slugify
@@ -582,6 +580,7 @@ APPEARANCE_THEMES = {
     'arcane': {'label': 'Arcano Violeta', 'class': 'theme-arcane'},
     'verdant': {'label': 'Bosque Esmeralda', 'class': 'theme-verdant'},
     'moonlit': {'label': 'Luar Prateado', 'class': 'theme-moonlit'},
+    'custom': {'label': 'Personalizado', 'class': 'theme-custom'},
 }
 
 APPEARANCE_FRAMES = {
@@ -589,6 +588,8 @@ APPEARANCE_FRAMES = {
     'ember-ring': {'label': 'Anel de Brasa', 'class': 'frame-ember-ring'},
     'arcane-pulse': {'label': 'Pulso Arcano', 'class': 'frame-arcane-pulse'},
     'gold-trim': {'label': 'Friso Dourado', 'class': 'frame-gold-trim'},
+    'frost': {'label': 'Coroa de Gelo', 'class': 'frame-frost'},
+    'verdant': {'label': 'Trança Verdejante', 'class': 'frame-verdant'},
 }
 
 APPEARANCE_EFFECTS = {
@@ -596,7 +597,41 @@ APPEARANCE_EFFECTS = {
     'soft-glow': {'label': 'Brilho suave', 'class': 'effect-soft-glow'},
     'glass': {'label': 'Vidro escuro', 'class': 'effect-glass'},
     'embers': {'label': 'Brasas discretas', 'class': 'effect-embers'},
+    'aurora': {'label': 'Aurora', 'class': 'effect-aurora'},
+    'starfall': {'label': 'Chuva de estrelas', 'class': 'effect-starfall'},
 }
+
+# Cor hex validada (#rrggbb). NUNCA injetar string livre em style inline.
+_HEX_COLOR_RE = re.compile(r'^#[0-9a-fA-F]{6}$')
+
+# Fallback usado quando o tema custom não tem uma cor válida definida.
+CUSTOM_THEME_DEFAULT = {
+    'accent': '#f59e0b',
+    'accent2': '#7c2d12',
+    'surface': '#1b120f',
+    'deep': '#0e0a08',
+    'gradiente': False,
+}
+
+
+# Mapa dos dicts hardcoded por "tipo interno" (theme/frame/effect). Continuam sendo
+# a semente do catálogo (data migration 0048) e um FALLBACK caso o catálogo esteja
+# vazio/indisponível — garante zero regressão mesmo antes de rodar o seed.
+_APPEARANCE_FALLBACK = {
+    'theme': APPEARANCE_THEMES,
+    'frame': APPEARANCE_FRAMES,
+    'effect': APPEARANCE_EFFECTS,
+}
+_APPEARANCE_DEFAULT = {'theme': 'bonfire', 'frame': 'none', 'effect': 'none'}
+
+
+def _appearance_catalog(tipo_interno):
+    """Catálogo (dict {slug: {label, class, ...}}) de um tipo interno
+    (theme/frame/effect), vindo do banco com cache; cai no dict hardcoded se o
+    catálogo estiver vazio (ex.: antes do seed rodar). Contrato idêntico ao dict."""
+    from .cosmetics import get_catalog, APPEARANCE_TIPO
+    catalogo = get_catalog(APPEARANCE_TIPO[tipo_interno])
+    return catalogo or _APPEARANCE_FALLBACK[tipo_interno]
 
 
 def _appearance_choice(value, choices, default='none'):
@@ -604,22 +639,103 @@ def _appearance_choice(value, choices, default='none'):
     return value if value in choices else default
 
 
-def _appearance_context(theme='bonfire', frame='none', effect='none'):
-    theme_key = _appearance_choice(theme, APPEARANCE_THEMES, 'bonfire')
-    frame_key = _appearance_choice(frame, APPEARANCE_FRAMES, 'none')
-    effect_key = _appearance_choice(effect, APPEARANCE_EFFECTS, 'none')
+def _cosmetic_allowed(user, tipo_interno, value, escopo='ambos'):
+    """True se `value` é escolha permitida do `tipo_interno` para o usuário:
+    existe no catálogo ativo (escopo compatível) E (livre OU no inventário). Usa
+    o dict de fallback quando o catálogo está vazio (mesmo comportamento antigo)."""
+    from .cosmetics import cosmetic_allowed
+    catalogo = _appearance_catalog(tipo_interno)
+    if catalogo is _APPEARANCE_FALLBACK[tipo_interno]:
+        return value in catalogo  # fallback: whitelist aberta como antes
+    return cosmetic_allowed(user, tipo_interno, value, escopo)
+
+
+def _appearance_validated(user, tipo_interno, value, escopo='ambos'):
+    """Valida uma escolha de aparência POR POSSE (catálogo+inventário). Devolve o
+    slug se permitido, senão o default do tipo. Substitui `_appearance_choice` no
+    salvamento de perfil/ficha. Em F1 (tudo livre) devolve os mesmos resultados."""
+    default = _APPEARANCE_DEFAULT[tipo_interno]
+    value = (value or default or '').strip()
+    if _cosmetic_allowed(user, tipo_interno, value, escopo):
+        return value
+    return default
+
+
+def _sanitize_custom_theme(raw):
+    """Normaliza o dict do tema Personalizado: só cores ^#[0-9a-fA-F]{6}$ passam;
+    valor inválido cai no default. `gradiente` vira bool. Blindado contra injeção
+    em style inline — nenhuma string livre do usuário sobrevive daqui."""
+    raw = raw if isinstance(raw, dict) else {}
+    out = {}
+    for key in ('accent', 'accent2', 'surface', 'deep'):
+        val = str(raw.get(key, '') or '').strip()
+        out[key] = val if _HEX_COLOR_RE.match(val) else CUSTOM_THEME_DEFAULT[key]
+    grad = raw.get('gradiente')
+    out['gradiente'] = grad in (True, 'true', 'on', '1', 1)
+    return out
+
+
+def _custom_theme_from_post(request, prefix=''):
+    """Monta o dict do tema custom a partir dos campos do formulário
+    (accent/accent2/surface/deep + gradiente)."""
+    return _sanitize_custom_theme({
+        'accent': request.POST.get(prefix + 'custom_accent'),
+        'accent2': request.POST.get(prefix + 'custom_accent2'),
+        'surface': request.POST.get(prefix + 'custom_surface'),
+        'deep': request.POST.get(prefix + 'custom_deep'),
+        'gradiente': request.POST.get(prefix + 'custom_gradiente'),
+    })
+
+
+def _custom_theme_style(colors):
+    """Bloco de CSS custom properties inline (string) para o tema Personalizado.
+    Recebe SEMPRE cores já sanitizadas por _sanitize_custom_theme."""
+    c = _sanitize_custom_theme(colors)
+    if c['gradiente']:
+        accent_val = 'linear-gradient(120deg, %s, %s)' % (c['accent'], c['accent2'])
+    else:
+        accent_val = c['accent']
+    return (
+        '--profile-accent:%s;--sheet-accent:%s;'
+        '--profile-accent-solid:%s;--sheet-accent-solid:%s;'
+        '--profile-accent-2:%s;--sheet-accent-2:%s;'
+        '--profile-surface:%s;--sheet-surface:%s;'
+        '--profile-deep:%s;--sheet-deep:%s;'
+    ) % (accent_val, accent_val, c['accent'], c['accent'],
+         c['accent2'], c['accent2'], c['surface'], c['surface'],
+         c['deep'], c['deep'])
+
+
+def _appearance_context(theme='bonfire', frame='none', effect='none',
+                        theme_custom=None, background=''):
+    themes = _appearance_catalog('theme')
+    frames = _appearance_catalog('frame')
+    effects = _appearance_catalog('effect')
+    theme_key = _appearance_choice(theme, themes, 'bonfire')
+    frame_key = _appearance_choice(frame, frames, 'none')
+    effect_key = _appearance_choice(effect, effects, 'none')
+    custom = _sanitize_custom_theme(theme_custom)
     return {
         'theme_key': theme_key,
         'frame_key': frame_key,
         'effect_key': effect_key,
-        'theme_class': APPEARANCE_THEMES[theme_key]['class'],
-        'frame_class': APPEARANCE_FRAMES[frame_key]['class'],
-        'effect_class': APPEARANCE_EFFECTS[effect_key]['class'],
-        'theme_label': APPEARANCE_THEMES[theme_key]['label'],
+        'theme_class': themes[theme_key]['class'],
+        'frame_class': frames[frame_key]['class'],
+        'effect_class': effects[effect_key]['class'],
+        'theme_label': themes[theme_key]['label'],
+        'custom': custom,
+        'background_url': (background or '').strip(),
+        # style inline SÓ para o tema custom validado; senão string vazia.
+        'custom_style': _custom_theme_style(custom) if theme_key == 'custom' else '',
+        'is_custom': theme_key == 'custom',
     }
 
 
 PROFILE_UPLOAD_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.gif', '.webp'}
+
+
+# Prefixos de MEDIA que este site gerencia (só estes podem ser deletados por URL).
+_MANAGED_UPLOAD_PREFIXES = ('profile_uploads/', 'character_uploads/')
 
 
 def _local_profile_upload_path(value):
@@ -631,7 +747,7 @@ def _local_profile_upload_path(value):
     if not path.startswith(media_url):
         return ''
     rel = path[len(media_url):].lstrip('/\\')
-    return rel if rel.startswith('profile_uploads/') else ''
+    return rel if rel.startswith(_MANAGED_UPLOAD_PREFIXES) else ''
 
 
 def _delete_profile_upload(value):
@@ -640,7 +756,10 @@ def _delete_profile_upload(value):
         default_storage.delete(rel)
 
 
-def _save_profile_upload(user, uploaded, kind, old_value='', max_mb=10):
+def _save_media_upload(rel_dir, uploaded, kind, old_value='', max_mb=10):
+    """Salva um upload de imagem (mesma validação de perfil) em `rel_dir/<kind><ext>`
+    dentro do MEDIA_ROOT. Extensões e content-type de imagem; substitui o anterior.
+    Base compartilhada por perfil (profile_uploads/) e personagem (character_uploads/)."""
     if not uploaded:
         return ''
     if uploaded.size > max_mb * 1024 * 1024:
@@ -652,11 +771,19 @@ def _save_profile_upload(user, uploaded, kind, old_value='', max_mb=10):
     if ext not in PROFILE_UPLOAD_EXTENSIONS or not content_type.startswith('image/'):
         raise ValueError('Envie uma imagem PNG, JPG, WEBP ou GIF para %s.' % kind)
     _delete_profile_upload(old_value)
-    path = 'profile_uploads/user_%s/%s%s' % (user.pk, kind, ext)
+    path = '%s/%s%s' % (rel_dir.rstrip('/'), kind, ext)
     if default_storage.exists(path):
         default_storage.delete(path)
     saved = default_storage.save(path, ContentFile(uploaded.read()))
     return default_storage.url(saved)
+
+
+def _save_profile_upload(user, uploaded, kind, old_value='', max_mb=10):
+    return _save_media_upload('profile_uploads/user_%s' % user.pk, uploaded, kind, old_value, max_mb)
+
+
+def _save_character_upload(pers, uploaded, kind, old_value='', max_mb=10):
+    return _save_media_upload('character_uploads/pers_%s' % pers.pk, uploaded, kind, old_value, max_mb)
 
 
 @login_required(login_url='/login/')
@@ -678,12 +805,15 @@ def profile_view(request):
             new_email = request.POST.get('email', '').strip()
             new_avatar = request.POST.get('avatar_url', '').strip()
             new_banner = request.POST.get('banner_url', '').strip()
+            new_background = request.POST.get('background_url', '').strip()
             clear_avatar = request.POST.get('clear_avatar') == 'on'
             clear_banner = request.POST.get('clear_banner') == 'on'
+            clear_background = request.POST.get('clear_background') == 'on'
             new_bio = request.POST.get('bio', '').strip()
-            profile_theme = _appearance_choice(request.POST.get('profile_theme'), APPEARANCE_THEMES, 'bonfire')
-            avatar_frame = _appearance_choice(request.POST.get('avatar_frame'), APPEARANCE_FRAMES, 'none')
-            profile_effect = _appearance_choice(request.POST.get('profile_effect'), APPEARANCE_EFFECTS, 'none')
+            profile_theme = _appearance_validated(user, 'theme', request.POST.get('profile_theme'), 'perfil')
+            avatar_frame = _appearance_validated(user, 'frame', request.POST.get('avatar_frame'), 'perfil')
+            profile_effect = _appearance_validated(user, 'effect', request.POST.get('profile_effect'), 'perfil')
+            theme_custom = _custom_theme_from_post(request)
             vlibras_enabled = request.POST.get('vlibras_enabled') == 'on'
             User = get_user_model()
             user_changed = False
@@ -740,13 +870,24 @@ def profile_view(request):
                     new_banner = ''
                 elif new_banner != (profile.banner_url or ''):
                     _delete_profile_upload(profile.banner_url)
+
+                background_upload = request.FILES.get('background_file')
+                if background_upload:
+                    new_background = _save_profile_upload(user, background_upload, 'background', profile.background_url, max_mb=12)
+                elif clear_background:
+                    _delete_profile_upload(profile.background_url)
+                    new_background = ''
+                elif new_background != (profile.background_url or ''):
+                    _delete_profile_upload(profile.background_url)
             except ValueError as exc:
                 errors.append(str(exc))
 
             profile.avatar_url = new_avatar or None
             profile.banner_url = new_banner or None
+            profile.background_url = new_background or None
             profile.bio = new_bio[:800] or None
             profile.profile_theme = profile_theme
+            profile.theme_custom = theme_custom
             profile.avatar_frame = None if avatar_frame == 'none' else avatar_frame
             profile.profile_effect = None if profile_effect == 'none' else profile_effect
             profile.vlibras_enabled = vlibras_enabled
@@ -810,10 +951,12 @@ def profile_view(request):
         'discord_msg': request.GET.get('discord'),
         'discord_oauth_on': bool(_settings.DISCORD_OAUTH_CLIENT_ID),
         'has_password': user.has_usable_password(),
-        'appearance': _appearance_context(profile.profile_theme, profile.avatar_frame, profile.profile_effect),
-        'appearance_themes': APPEARANCE_THEMES,
-        'appearance_frames': APPEARANCE_FRAMES,
-        'appearance_effects': APPEARANCE_EFFECTS,
+        'appearance': _appearance_context(profile.profile_theme, profile.avatar_frame,
+                                          profile.profile_effect, profile.theme_custom,
+                                          profile.background_url),
+        'appearance_themes': _appearance_catalog('theme'),
+        'appearance_frames': _appearance_catalog('frame'),
+        'appearance_effects': _appearance_catalog('effect'),
     })
 
 
@@ -840,11 +983,148 @@ def public_profile_view(request, username):
         'profile': profile,
         'personagens': personagens,
         'pode_ver_privados': pode_ver_privados,
-        'appearance': _appearance_context(profile.profile_theme, profile.avatar_frame, profile.profile_effect),
+        'appearance': _appearance_context(profile.profile_theme, profile.avatar_frame,
+                                          profile.profile_effect, profile.theme_custom,
+                                          profile.background_url),
     })
 
 
 # ───────────────────────── Discord OAuth2 (custom enxuto) ─────────────────────
+def jogadores_view(request):
+    from .models import UserProfile, TbPersonagem
+
+    User = get_user_model()
+    q = (request.GET.get('q') or '').strip()
+    filtro = (request.GET.get('filtro') or 'todos').strip()
+    ordem = (request.GET.get('ordem') or 'nome').strip()
+    filtros_validos = {
+        'todos': 'Todos',
+        'personagens': 'Com personagens',
+        'customizados': 'Perfil customizado',
+        'equipe': 'Equipe',
+    }
+    ordens_validas = {
+        'nome': 'Nome',
+        'personagens': 'Mais personagens',
+        'atividade': 'Atividade recente',
+    }
+    if filtro not in filtros_validos:
+        filtro = 'todos'
+    if ordem not in ordens_validas:
+        ordem = 'nome'
+
+    public_character_q = Q(personagens__publico=True, personagens__arquivado=False)
+    custom_profile_q = (
+        Q(profile__bio__gt='')
+        | Q(profile__avatar_url__gt='')
+        | Q(profile__banner_url__gt='')
+        | Q(profile__background_url__gt='')
+        | (Q(profile__profile_theme__isnull=False) & ~Q(profile__profile_theme='bonfire'))
+        | (Q(profile__avatar_frame__isnull=False) & ~Q(profile__avatar_frame=''))
+        | (Q(profile__profile_effect__isnull=False) & ~Q(profile__profile_effect=''))
+    )
+    base = (User.objects.filter(is_active=True)
+            .select_related('profile')
+            .annotate(public_character_count=Count(
+                'personagens',
+                filter=public_character_q,
+                distinct=True,
+            ))
+            .annotate(public_character_updated=Max(
+                'personagens__atualizado_em',
+                filter=public_character_q,
+            )))
+    if q:
+        base = base.filter(
+            Q(username__icontains=q)
+            | Q(profile__bio__icontains=q)
+            | Q(personagens__nome__icontains=q, personagens__publico=True, personagens__arquivado=False)
+        ).distinct()
+    else:
+        base = base.filter(
+            Q(public_character_count__gt=0)
+            | custom_profile_q
+            | Q(is_staff=True)
+        )
+
+    if filtro == 'personagens':
+        base = base.filter(public_character_count__gt=0)
+    elif filtro == 'customizados':
+        base = base.filter(custom_profile_q)
+    elif filtro == 'equipe':
+        base = base.filter(is_staff=True)
+
+    if ordem == 'personagens':
+        base = base.order_by('-public_character_count', 'username')
+    elif ordem == 'atividade':
+        base = base.order_by('-public_character_updated', 'username')
+    else:
+        base = base.order_by('username')
+
+    users_page = Paginator(base, 18).get_page(request.GET.get('page'))
+    ids = [u.pk for u in users_page.object_list]
+    public_chars = {}
+    if ids:
+        qs = (TbPersonagem.objects.filter(dono_id__in=ids, publico=True, arquivado=False)
+              .select_related('id_raca')
+              .prefetch_related('classes__id_classe')
+              .order_by('-atualizado_em'))
+        for p in qs:
+            bucket = public_chars.setdefault(p.dono_id, [])
+            if len(bucket) < 3:
+                bucket.append(_personagem_card(p))
+
+    cards = []
+    for u in users_page.object_list:
+        profile, _ = UserProfile.objects.get_or_create(user=u)
+        cards.append({
+            'user': u,
+            'profile': profile,
+            'appearance': _appearance_context(profile.profile_theme, profile.avatar_frame,
+                                              profile.profile_effect, profile.theme_custom),
+            'public_count': int(getattr(u, 'public_character_count', 0) or 0),
+            'characters': public_chars.get(u.pk, []),
+        })
+
+    def _querystring(**updates):
+        params = request.GET.copy()
+        params.pop('page', None)
+        for key, value in updates.items():
+            if value in (None, '', 'todos') and key == 'filtro':
+                params.pop(key, None)
+            elif value in (None, '', 'nome') and key == 'ordem':
+                params.pop(key, None)
+            elif value in (None, '') and key == 'q':
+                params.pop(key, None)
+            else:
+                params[key] = value
+        encoded = params.urlencode()
+        return ('?' + encoded) if encoded else '?'
+
+    base_querystring = _querystring()
+    page_query_prefix = base_querystring + ('&' if base_querystring != '?' else '')
+
+    return render(request, 'home/pages/jogadores.html', {
+        'page_title': 'Jogadores',
+        'q': q,
+        'filtro': filtro,
+        'ordem': ordem,
+        'filter_options': [
+            {'key': key, 'label': label, 'url': _querystring(filtro=key)}
+            for key, label in filtros_validos.items()
+        ],
+        'sort_options': [
+            {'key': key, 'label': label}
+            for key, label in ordens_validas.items()
+        ],
+        'base_querystring': base_querystring,
+        'page_query_prefix': page_query_prefix,
+        'cards': cards,
+        'page_obj': users_page,
+        'total_encontrados': users_page.paginator.count,
+    })
+
+
 _DISCORD_API = 'https://discord.com/api'
 
 
@@ -4289,10 +4569,11 @@ def ficha_detail_view(request, pk):
         'consumiveis_cards': consumiveis_cards,
         'transacoes': transacoes,
         'pode_editar': p.dono_id == request.user.id or perms.is_staff_user(request.user),
-        'appearance': _appearance_context(p.ficha_theme, p.foto_frame, p.ficha_effect),
-        'appearance_themes': APPEARANCE_THEMES,
-        'appearance_frames': APPEARANCE_FRAMES,
-        'appearance_effects': APPEARANCE_EFFECTS,
+        'appearance': _appearance_context(p.ficha_theme, p.foto_frame, p.ficha_effect,
+                                          p.ficha_theme_custom, p.ficha_background_url),
+        'appearance_themes': _appearance_catalog('theme'),
+        'appearance_frames': _appearance_catalog('frame'),
+        'appearance_effects': _appearance_catalog('effect'),
     })
 
 
@@ -4413,16 +4694,35 @@ def personagem_info_salvar(request, pk):
         raise Http404()
     campos = ['jogador', 'idade', 'altura', 'peso', 'tamanho', 'genero', 'olhos', 'cabelo',
               'pele', 'aparencia', 'historia', 'anotacoes', 'foto_url', 'token_url',
-              'banner_url']
+              'banner_url', 'ficha_background_url']
     for c in campos:
         if c in request.POST:
             setattr(p, c, (request.POST.get(c) or '').strip()[:5000] or None)
-    p.ficha_theme = _appearance_choice(request.POST.get('ficha_theme'), APPEARANCE_THEMES, 'bonfire')
-    foto_frame = _appearance_choice(request.POST.get('foto_frame'), APPEARANCE_FRAMES, 'none')
-    ficha_effect = _appearance_choice(request.POST.get('ficha_effect'), APPEARANCE_EFFECTS, 'none')
+    # Upload real de imagens do personagem — precedência sobre a URL. Kinds:
+    # foto/token (8MB) e banner/background (12MB), em media/character_uploads/pers_<pk>/.
+    upload_kinds = [
+        ('foto_file', 'foto', 'foto_url', 8),
+        ('token_file', 'token', 'token_url', 8),
+        ('banner_file', 'banner', 'banner_url', 12),
+        ('background_file', 'background', 'ficha_background_url', 12),
+    ]
+    try:
+        for field_name, kind, attr, max_mb in upload_kinds:
+            up = request.FILES.get(field_name)
+            if up:
+                url = _save_character_upload(p, up, kind, getattr(p, attr) or '', max_mb=max_mb)
+                setattr(p, attr, url or None)
+    except ValueError:
+        # Arquivo inválido/grande: ignora o upload, mantém o que já havia (não quebra o save).
+        pass
+    dono = p.dono  # a carteira de cosméticos é do dono do personagem (escopo=ficha)
+    p.ficha_theme = _appearance_validated(dono, 'theme', request.POST.get('ficha_theme'), 'ficha')
+    p.ficha_theme_custom = _custom_theme_from_post(request)
+    foto_frame = _appearance_validated(dono, 'frame', request.POST.get('foto_frame'), 'ficha')
+    ficha_effect = _appearance_validated(dono, 'effect', request.POST.get('ficha_effect'), 'ficha')
     p.foto_frame = None if foto_frame == 'none' else foto_frame
     p.ficha_effect = None if ficha_effect == 'none' else ficha_effect
-    campos += ['ficha_theme', 'foto_frame', 'ficha_effect']
+    campos += ['ficha_theme', 'ficha_theme_custom', 'foto_frame', 'ficha_effect']
     p.save(update_fields=campos)
     return redirect(reverse('ficha_detail', args=[pk]) + '?aba=info')
 
@@ -7836,6 +8136,13 @@ def itens_mundanos_view(request):
     itens = TbItemMundano.objects.all().order_by('nome')
     by = {}
     for i in itens:
+        mec = mecanica_de_tags(i.tags_json, i.subcategoria)
+        i.mec_dano = dano_display(mec)
+        i.mec_ca = ca_display(mec)
+        i.mec_propriedades = propriedades_display(mec)
+        i.mec_maestrias = ", ".join(mec.get("maestrias") or [])
+        i.mec_forca_minima = mec.get("forca_minima")
+        i.mec_furtividade = mec.get("furtividade_desvantagem")
         by.setdefault(i.categoria, []).append(i)
     EXTRA = [('municao', 'Munição'), ('foco', 'Focos de Conjuração'), ('comida', 'Comida e Bebida'),
              ('montaria', 'Montarias'), ('veiculo', 'Veículos'), ('mercadoria', 'Mercadorias'),

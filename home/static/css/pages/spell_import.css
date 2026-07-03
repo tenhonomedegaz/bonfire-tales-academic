@@ -1,24 +1,48 @@
+/* ============================================================================
+   BONFIRE ADMIN — Importacao de magias / itens magicos (spell_import.html,
+   tbitemmagico/import_form.html).
+   Depende dos tokens definidos em css/admin/bonfire_admin.css
+   (--bg1, --stroke, --ember, --muted, --text, --radius etc.).
+   ========================================================================== */
 .spell-import-shell {
     display: grid;
-    gap: 18px;
+    gap: 20px;
     max-width: 980px;
-  }
-  .spell-import-card {
-    background: var(--darkened-bg);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 18px;
-  }
-  .spell-import-card h2 {
+}
+
+.spell-import-card {
+    background: var(--bg1);
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius, 10px);
+    box-shadow: var(--shadow-card, 0 6px 22px rgba(0, 0, 0, .45));
+    padding: 20px;
+}
+
+.spell-import-card h2 {
     margin-top: 0;
-  }
-  .spell-import-grid {
+    margin-bottom: 14px;
+    color: var(--ember);
+    font-family: 'Cinzel', 'Inter', serif;
+    font-size: 1.05rem;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+.spell-import-grid {
     display: grid;
-    gap: 14px;
-  }
-  .spell-import-result {
-    border-left: 4px solid var(--primary);
-  }
-  .spell-columns {
+    gap: 16px;
+}
+
+.spell-import-result {
+    border-left: 4px solid var(--ember);
+    padding-left: 14px;
+}
+
+.spell-columns {
     columns: 2;
-  }
+    column-gap: 28px;
+}
+
+@media (max-width: 767px) {
+    .spell-columns { columns: 1; }
+}

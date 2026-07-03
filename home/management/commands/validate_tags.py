@@ -7,6 +7,7 @@ no espírito do Excel: aponta exatamente a fórmula errada.
     manage.py validate_tags --model talento  # só um catálogo
     manage.py validate_tags --errors-only    # só ERROS (#REF!/desbalanceado/catálogo)
     manage.py validate_tags --no-db          # pula checagem de referências (#REF!)
+    manage.py validate_tags --strict-names   # falha nomes mecânicos com hífen
 """
 from collections import Counter, defaultdict
 
@@ -92,6 +93,8 @@ class Command(BaseCommand):
                             help="classe-hab | talento | opcao | traco | classe | antecedente | magia | bestiario | item-mundano")
         parser.add_argument("--errors-only", action="store_true")
         parser.add_argument("--no-db", action="store_true", help="Não checa referências (#REF!).")
+        parser.add_argument("--strict-names", action="store_true",
+                            help="Marca hifen em identificadores mecanicos como ERRO; use no retagging snake_case.")
         parser.add_argument("--max", type=int, default=40, help="Máx. de itens listados por seção.")
 
     def handle(self, *args, **opt):
@@ -135,7 +138,7 @@ class Command(BaseCommand):
                 n_tagged += 1
                 n_tags += len(tags) if isinstance(tags, list) else 1
                 full = f"{key}:{label}"
-                for d in validate_tags_json(tags, lib, data):
+                for d in validate_tags_json(tags, lib, data, strict_names=opt["strict_names"]):
                     by_level[d.level] += 1
                     by_code[d.code] += 1
                     per_model[key] += 1

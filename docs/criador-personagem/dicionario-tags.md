@@ -1,6 +1,7 @@
 # Dicionário de keywords do `tags_json` — categorizado
 
 > Referência canônica de **toda** keyword usada nas tags, agrupada por categoria.
+> Retagging snake_case: veja `docs/agentes/regras_retagging_tags_json.md`.
 > **Regra de idioma:** *keyword estrutural* (verbo/chave/seletor/função) = **inglês**;
 > *valor de catálogo do jogo* (o que o jogador escolhe ou o sistema cataloga:
 > perícia, dano, condição, criatura, tamanho, equipamento, propriedade de arma) =
@@ -76,10 +77,10 @@ Usados em `attack:<tipo>` e como **escopo** (`melee.`, `ranged.`, `unarmed-strik
 `targets` · `buff`
 
 ### A13. Escolha / pré-requisito / restrição
-`pick:` · `requires:` · `willing` · `restriction{}` · `equiped{}`
+`pick:` · `requires:` · `willing` · `restriction{}` · `restricts{}` · `equiped{}`
 
 ### A14. Escala / atributo *(variáveis de fórmula)*
-`str`/`dex`/`con`/`int`/`wis`/`cha` + `-mod`/`-score`/`-save`/`-check` · `pb` · `classlvl` · `lvl`
+`str`/`dex`/`con`/`int`/`wis`/`cha` + `_mod`/`_score`/`_save`/`_check` · `pb` · `classlvl` · `lvl`
 
 ### A15. Seletor
 `self` · `all` · `allies` · `enemies` · `creature` · `active` · `guard` · `bound` ·
@@ -132,7 +133,7 @@ Usados em `attack:<tipo>` e como **escopo** (`melee.`, `ranged.`, `unarmed-strik
 
 - **Habilidades** (`ability{...}`): `furia`, `frenesi`, `inspiracao-bardica`, `despertar-bestial`, `guardioes-ancestrais`, `runas-elementais`, …
 - **Recursos**: `furias`, `inspiracao-bardica` (usos), `dado-de-inspiracao` (valor do dado), `dado-de-combate` (valor do dado), `quantidade-de-dados` (usos), `dado-de-cacador` (valor do dado), `pontos-de-segredo` (usos), `segredos` (escolhas), `dados-de-furtividade` (quantidade de dados do Ataque Furtivo), `dado-de-furtividade` (valor do dado), `maestria-com-armas`
-- **Variáveis `define`**: `magia-selvagem`, `runa`, `aspecto-selvagem`, `adaptacao`, `ferida`, `marca-guardiao`, `dmg-bonus`, `sangue`, `forma-sagrada`, `couraca`, `agil`, `alfa`, `chamas`, `tempestade`, `erosao`, `nevasca`
+- **Variáveis `define`**: `magia_selvagem`, `runa`, `aspecto_selvagem`, `adaptacao`, `ferida`, `marca_guardiao`, `dmg_bonus`, `sangue`, `forma_sagrada`, `couraca`, `agil`, `alfa`, `chamas`, `tempestade`, `erosao`, `nevasca`
 - **Slugs de magia** (`spell:`): `detectar-magia`, `comunhao-com-a-natureza`, `augurio`, `clarividencia`, `elementalismo`
 - **Slugs de classe** (`classe:`): `barbaro`, `bardo`, `cacador`, …
 
@@ -214,7 +215,7 @@ com `id_subclasse` **nulo** na `TB_ClasseHabilidade` (penduradas na classe base)
 - `on-success` saiu de **A12** → **A7** (resultado de teste, não é exclusivo de magia).
 - `choice:asi` **removido** (redundante com `asi-choices`; ASI é detectado por nome).
 - `choice:` genérico **removido** de A13 (só o `choice:asi` o usava; escolha = `pick:`).
-- `dmg-bonus` **removido** de A4 (é variável `define`, fica só em C).
+- `dmg_bonus` **removido** de A4 (é variável `define`, fica só em C).
 - taxonomia de ataque: **inglês** (A4b), `attack:magico` → `attack:magic` no banco.
 - `damage` → **`dmg`** (verbo e valor são o mesmo token).
 - `light` (arma) → **`leve`** (propriedade de arma, B7); `light:` (iluminação) fica em A9.

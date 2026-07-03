@@ -1,0 +1,118 @@
+{% extends 'home/base.html' %}
+{% load static %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/pages/perfil.css' %}">
+<title>Jogadores - Bonfire Tales RPG</title>
+{% endblock %}
+
+{% block content %}
+<section class="players-page">
+  <header class="players-head">
+    <div>
+      <p class="players-kicker">Comunidade</p>
+      <h1>Jogadores</h1>
+    </div>
+    <form action="{% url 'jogadores' %}" method="get" class="players-search">
+      {% if filtro != 'todos' %}<input type="hidden" name="filtro" value="{{ filtro }}">{% endif %}
+      {% if ordem != 'nome' %}<input type="hidden" name="ordem" value="{{ ordem }}">{% endif %}
+      <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <input type="search" name="q" value="{{ q }}" placeholder="Buscar jogador ou personagem publico">
+      <button type="submit">Buscar</button>
+    </form>
+  </header>
+
+  <div class="players-toolbar">
+    <nav class="players-tabs" aria-label="Filtros de jogadores">
+      {% for item in filter_options %}
+      <a href="{{ item.url }}" class="{% if item.key == filtro %}is-active{% endif %}">{{ item.label }}</a>
+      {% endfor %}
+    </nav>
+    <form action="{% url 'jogadores' %}" method="get" class="players-order">
+      {% if q %}<input type="hidden" name="q" value="{{ q }}">{% endif %}
+      {% if filtro != 'todos' %}<input type="hidden" name="filtro" value="{{ filtro }}">{% endif %}
+      <label for="players-order">Ordenar</label>
+      <select id="players-order" name="ordem" onchange="this.form.submit()">
+        {% for item in sort_options %}
+        <option value="{{ item.key }}" {% if item.key == ordem %}selected{% endif %}>{{ item.label }}</option>
+        {% endfor %}
+      </select>
+    </form>
+  </div>
+
+  <div class="players-meta">
+    <span>{{ total_encontrados }} perfil{% if total_encontrados != 1 %}s{% endif %}</span>
+    <span class="players-meta-actions">
+      {% if q or filtro != 'todos' or ordem != 'nome' %}<a href="{% url 'jogadores' %}">Limpar filtros</a>{% endif %}
+      {% if user.is_authenticated %}
+      <a href="{% url 'public_profile' user.username %}">Meu perfil publico</a>
+      {% endif %}
+    </span>
+  </div>
+
+  {% if cards %}
+  <div class="players-grid">
+    {% for card in cards %}
+    <article class="player-card {{ card.appearance.theme_class }} {{ card.appearance.effect_class }}"{% if card.appearance.custom_style %} style="{{ card.appearance.custom_style }}"{% endif %}>
+      <a href="{% url 'public_profile' card.user.username %}" class="player-card-banner" aria-label="Abrir perfil de {{ card.user.username }}">
+        {% if card.profile.banner_url %}<span style="background-image:url('{{ card.profile.banner_url }}');"></span>{% endif %}
+      </a>
+      <div class="player-card-body">
+        <a href="{% url 'public_profile' card.user.username %}" class="player-card-avatar {{ card.appearance.frame_class }}">
+          {% if card.profile.avatar_url %}
+          <img src="{{ card.profile.avatar_url }}" alt="Avatar de {{ card.user.username }}" loading="lazy">
+          {% else %}
+          <span>{{ card.user.username|first|upper }}</span>
+          {% endif %}
+        </a>
+        <div class="player-card-main">
+          <div class="player-card-title">
+            <a href="{% url 'public_profile' card.user.username %}">{{ card.user.username }}</a>
+            {% if card.user.is_superuser %}
+            <span class="profile-role is-staff">Admin</span>
+            {% elif card.user.is_staff %}
+            <span class="profile-role is-staff">Staff</span>
+            {% endif %}
+          </div>
+          {% if card.profile.bio %}<p>{{ card.profile.bio|truncatechars:150 }}</p>{% endif %}
+          <span class="player-card-count">{{ card.public_count }} personagem{% if card.public_count != 1 %}s{% endif %} publico{% if card.public_count != 1 %}s{% endif %}</span>
+        </div>
+      </div>
+
+      {% if card.characters %}
+      <div class="player-card-characters">
+        {% for c in card.characters %}
+        <a href="{% url 'ficha_detail' c.obj.id_personagem %}">
+          <strong>{{ c.obj.nome }}</strong>
+          <span>{{ c.raca }} - Nivel {{ c.nivel }}</span>
+        </a>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <div class="player-card-footer">
+        <a href="{% url 'public_profile' card.user.username %}">Ver perfil</a>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="players-empty">
+    <h2>Nenhum perfil encontrado</h2>
+    <p>Tente buscar por outro nome ou personagem publico.</p>
+  </div>
+  {% endif %}
+
+  {% if page_obj.paginator.num_pages > 1 %}
+  <nav class="players-pagination" aria-label="Paginacao de jogadores">
+    {% if page_obj.has_previous %}
+    <a href="{{ page_query_prefix }}page={{ page_obj.previous_page_number }}">Anterior</a>
+    {% endif %}
+    <span>Pagina {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+    <a href="{{ page_query_prefix }}page={{ page_obj.next_page_number }}">Proxima</a>
+    {% endif %}
+  </nav>
+  {% endif %}
+</section>
+{% endblock %}

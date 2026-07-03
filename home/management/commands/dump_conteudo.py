@@ -26,6 +26,9 @@ CONTENT_MODELS = [
     "TbMagia", "TbTalento", "TbTracoracial",
     "TbItemMagico", "TbItemMundano",
     "TbCondicao", "TbIdioma", "TbRegra", "TbRecompensaMestre",
+    # Catálogo de cosméticos de perfil/ficha (F1). Inventário do usuário
+    # (TbUsuarioCosmetico) é dado de USUÁRIO e NÃO entra aqui.
+    "TbCosmetico",
     # Decisão do PO (2026-06-26): sincronizar Bestiário/Armadilhas inteiros (todos
     # oficiais, autor nulo) + conteúdo de mundo (fonte de verdade = dev).
     "TbBestiario", "TbArmadilha", "TbRegiao", "TbTerritorio", "TbMapMarker",

@@ -43,3 +43,12 @@ ref/
 scratch/
 .claude/
 backups/
+
+# Uploads de usuário (PII) e dumps avulsos na raiz
+media/
+backup_sqlite.json
+/conteudo.json
+
+# Assets pesados de referência em docs/agentes/ (imagens, não código)
+docs/agentes/*.png
+docs/agentes/*.gif

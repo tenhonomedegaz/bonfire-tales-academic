@@ -21,6 +21,47 @@
 .profile-page.theme-moonlit,
 .public-profile-page.theme-moonlit { --profile-accent: #cbd5e1; --profile-accent-2: #60a5fa; --profile-surface: #10151f; --profile-deep: #080b10; }
 
+/* Tema Personalizado (Discord Nitro-like): as CSS vars vêm de style inline VALIDADO
+   server-side (só #rrggbb). --profile-accent pode ser cor OU linear-gradient animado. */
+.profile-page.theme-custom,
+.public-profile-page.theme-custom,
+.player-card.theme-custom { --profile-accent-solid: var(--profile-accent); }
+
+/* Accent em degradê: quando o inline manda um linear-gradient(...), animamos o
+   background-position pra dar vida. Só entra quando o valor é realmente um gradiente. */
+.theme-custom .profile-btn,
+.theme-custom .profile-role.is-staff,
+.theme-custom .profile-header::before {
+    background-size: 200% 200%;
+    animation: profile-accent-shift 8s ease infinite;
+}
+
+@keyframes profile-accent-shift {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* ===== Imagem de fundo do perfil (background_url) — cover fixo + overlay do tema ===== */
+.profile-has-bg { position: relative; }
+.profile-bg-media {
+    position: fixed;
+    inset: 0;
+    z-index: -2;
+    background-position: center;
+    background-size: cover;
+    background-attachment: fixed;
+}
+.profile-bg-media::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background:
+        radial-gradient(120% 90% at 50% -10%, color-mix(in srgb, var(--profile-accent-solid, var(--profile-accent)) 22%, transparent), transparent 60%),
+        linear-gradient(180deg, color-mix(in srgb, var(--profile-deep) 78%, transparent), color-mix(in srgb, var(--profile-deep) 94%, transparent));
+}
+
 /* --- Header do perfil --- */
 .profile-header {
     display: flex;
@@ -88,19 +129,105 @@
     border-color: var(--profile-accent);
 }
 
+/* Base para molduras animadas: pseudo-elemento que gira/pulsa por cima da borda. */
+.frame-ember-ring,
+.frame-arcane-pulse,
+.frame-gold-trim,
+.frame-frost,
+.frame-verdant { position: relative; }
+
+.frame-ember-ring::before,
+.frame-arcane-pulse::before,
+.frame-gold-trim::before,
+.frame-frost::before,
+.frame-verdant::before {
+    content: "";
+    position: absolute;
+    inset: -6px;
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: 2;
+}
+
+/* Anel de Brasa — brasas pulsantes girando */
 .frame-ember-ring {
     border-color: #f97316;
     box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.18), 0 0 24px rgba(249, 115, 22, 0.38);
+    animation: frame-ember-pulse 2.4s ease-in-out infinite;
+}
+.frame-ember-ring::before {
+    background: conic-gradient(from 0deg, transparent, #f97316, #fbbf24, transparent, #f97316, transparent);
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
+            mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
+    animation: frame-spin 5s linear infinite;
+    opacity: 0.85;
+}
+@keyframes frame-ember-pulse {
+    0%, 100% { box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.18), 0 0 20px rgba(249, 115, 22, 0.30); }
+    50%      { box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.30), 0 0 34px rgba(249, 115, 22, 0.55); }
 }
 
+/* Pulso Arcano — halo arcano respirando */
 .frame-arcane-pulse {
     border-color: #a78bfa;
     box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.14), 0 0 28px rgba(167, 139, 250, 0.42);
+    animation: frame-arcane-breathe 3.2s ease-in-out infinite;
+}
+.frame-arcane-pulse::before {
+    background: conic-gradient(from 90deg, transparent, #06b6d4, #a78bfa, transparent, #a78bfa, transparent);
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
+            mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
+    animation: frame-spin 7s linear infinite reverse;
+    opacity: 0.8;
+}
+@keyframes frame-arcane-breathe {
+    0%, 100% { box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.12), 0 0 22px rgba(167, 139, 250, 0.34); }
+    50%      { box-shadow: 0 0 0 4px rgba(167, 139, 250, 0.26), 0 0 40px rgba(6, 182, 212, 0.5); }
 }
 
+/* Friso Dourado — brilho que percorre a borda */
 .frame-gold-trim {
     border-color: #facc15;
     box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.22), inset 0 0 0 2px rgba(250, 204, 21, 0.18);
+}
+.frame-gold-trim::before {
+    background: conic-gradient(from 0deg, transparent 0deg, transparent 300deg, #fde68a 340deg, #fff 350deg, #facc15 360deg);
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+            mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+    animation: frame-spin 3.5s linear infinite;
+}
+
+/* Coroa de Gelo (nova) — cristais frios girando devagar */
+.frame-frost {
+    border-color: #7dd3fc;
+    box-shadow: 0 0 0 3px rgba(125, 211, 252, 0.18), 0 0 26px rgba(224, 242, 254, 0.45);
+    animation: frame-arcane-breathe 4s ease-in-out infinite;
+}
+.frame-frost::before {
+    background: conic-gradient(from 45deg, transparent, #e0f2fe, #7dd3fc, transparent, #bae6fd, transparent);
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
+            mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
+    animation: frame-spin 9s linear infinite;
+    opacity: 0.85;
+}
+
+/* Trança Verdejante (nova) — folhas/seiva percorrendo a borda */
+.frame-verdant {
+    border-color: #4ade80;
+    box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.16), 0 0 24px rgba(132, 204, 22, 0.4);
+    animation: frame-ember-pulse 3s ease-in-out infinite;
+}
+.frame-verdant::before {
+    background: conic-gradient(from 210deg, transparent, #84cc16, #4ade80, transparent, #22c55e, transparent);
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
+            mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
+    animation: frame-spin 6s linear infinite;
+    opacity: 0.82;
+}
+
+@keyframes frame-spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
 }
 
 .profile-avatar-wrapper img {
@@ -480,16 +607,101 @@
     backdrop-filter: blur(12px);
 }
 
+/* Brasas discretas — partículas subindo (CSS puro, sem JS) */
+.effect-embers .profile-header,
+.effect-embers .public-profile-card { position: relative; }
 .effect-embers .profile-header::after,
 .effect-embers .public-profile-card::after {
     content: "";
     position: absolute;
     inset: 0;
     pointer-events: none;
-    background-image: radial-gradient(circle at 15% 25%, color-mix(in srgb, var(--profile-accent) 35%, transparent) 0 1px, transparent 2px),
-                      radial-gradient(circle at 82% 42%, color-mix(in srgb, var(--profile-accent-2) 35%, transparent) 0 1px, transparent 2px);
-    background-size: 76px 76px, 118px 118px;
-    opacity: 0.35;
+    background-image:
+        radial-gradient(circle at 15% 100%, color-mix(in srgb, var(--profile-accent) 60%, transparent) 0 1.5px, transparent 2.5px),
+        radial-gradient(circle at 42% 100%, color-mix(in srgb, var(--profile-accent-2) 55%, transparent) 0 1.5px, transparent 2.5px),
+        radial-gradient(circle at 68% 100%, color-mix(in srgb, var(--profile-accent) 55%, transparent) 0 1.5px, transparent 2.5px),
+        radial-gradient(circle at 88% 100%, color-mix(in srgb, var(--profile-accent-2) 55%, transparent) 0 1.5px, transparent 2.5px);
+    background-size: 90px 160px, 130px 200px, 110px 180px, 150px 220px;
+    background-repeat: repeat-x;
+    opacity: 0.5;
+    animation: effect-embers-rise 6s linear infinite;
+}
+@keyframes effect-embers-rise {
+    from { background-position: 0 0, 0 0, 0 0, 0 0; }
+    to   { background-position: 0 -160px, 0 -200px, 0 -180px, 0 -220px; }
+}
+
+/* Aurora (novo) — véus de cor deslizando por trás dos cards */
+.effect-aurora .profile-header,
+.effect-aurora .public-profile-card { position: relative; }
+.effect-aurora .profile-header::after,
+.effect-aurora .public-profile-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(115deg,
+        transparent 10%,
+        color-mix(in srgb, var(--profile-accent) 26%, transparent) 30%,
+        transparent 45%,
+        color-mix(in srgb, var(--profile-accent-2) 26%, transparent) 65%,
+        transparent 85%);
+    background-size: 260% 260%;
+    mix-blend-mode: screen;
+    opacity: 0.55;
+    animation: effect-aurora-flow 12s ease-in-out infinite;
+}
+@keyframes effect-aurora-flow {
+    0%, 100% { background-position: 0% 50%; }
+    50%      { background-position: 100% 50%; }
+}
+
+/* Chuva de estrelas (novo) — pontos brilhando/cintilando */
+.effect-starfall .profile-header,
+.effect-starfall .public-profile-card { position: relative; }
+.effect-starfall .profile-header::after,
+.effect-starfall .public-profile-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+        radial-gradient(circle at 20% 30%, #fff 0 1px, transparent 1.5px),
+        radial-gradient(circle at 70% 20%, color-mix(in srgb, var(--profile-accent) 80%, #fff) 0 1px, transparent 1.5px),
+        radial-gradient(circle at 45% 70%, #fff 0 1px, transparent 1.5px),
+        radial-gradient(circle at 85% 60%, color-mix(in srgb, var(--profile-accent-2) 80%, #fff) 0 1px, transparent 1.5px);
+    background-size: 200px 200px, 240px 240px, 180px 180px, 220px 220px;
+    opacity: 0.6;
+    animation: effect-starfall-twinkle 3.5s ease-in-out infinite;
+}
+@keyframes effect-starfall-twinkle {
+    0%, 100% { opacity: 0.25; }
+    50%      { opacity: 0.75; }
+}
+
+/* Acessibilidade: desliga animações para quem pediu menos movimento. */
+@media (prefers-reduced-motion: reduce) {
+    .frame-ember-ring,
+    .frame-arcane-pulse,
+    .frame-gold-trim,
+    .frame-frost,
+    .frame-verdant,
+    .frame-ember-ring::before,
+    .frame-arcane-pulse::before,
+    .frame-gold-trim::before,
+    .frame-frost::before,
+    .frame-verdant::before,
+    .effect-embers .profile-header::after,
+    .effect-embers .public-profile-card::after,
+    .effect-aurora .profile-header::after,
+    .effect-aurora .public-profile-card::after,
+    .effect-starfall .profile-header::after,
+    .effect-starfall .public-profile-card::after,
+    .theme-custom .profile-btn,
+    .theme-custom .profile-role.is-staff,
+    .theme-custom .profile-header::before {
+        animation: none !important;
+    }
 }
 
 .public-profile-page {
@@ -502,10 +714,21 @@
     padding: 2rem 0 3rem;
 }
 
+.public-profile-back {
+    display: inline-flex;
+    margin-bottom: 0.75rem;
+    color: var(--profile-accent);
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
 .public-profile-card,
 .public-profile-section {
     position: relative;
     overflow: hidden;
+    min-width: 0;
     border: 1px solid var(--stroke);
     border-radius: 10px;
     background: var(--profile-surface);
@@ -611,7 +834,7 @@
 
 .public-character-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr));
     gap: 0.85rem;
 }
 
@@ -657,5 +880,388 @@
     .public-profile-body {
         grid-template-columns: 1fr;
         justify-items: start;
+    }
+
+    .public-profile-section-head {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .public-character-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .public-character-card {
+        width: 100%;
+    }
+}
+
+/* Diretório de jogadores */
+.players-page {
+    --profile-accent: var(--ember);
+    --profile-accent-2: var(--flame);
+    --profile-surface: var(--bg1);
+    --profile-deep: var(--bg0);
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 1.5rem 0 3rem;
+}
+
+.players-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 460px);
+    gap: 1rem;
+    align-items: end;
+    margin-bottom: 1rem;
+}
+
+.players-kicker {
+    margin-bottom: 0.25rem;
+    color: var(--ember);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.players-head h1 {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(2rem, 4vw, 3.4rem);
+    font-weight: 800;
+    color: var(--text);
+}
+
+.players-search {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.6rem;
+    min-height: 46px;
+    padding: 0 0.55rem 0 0.8rem;
+    border: 1px solid var(--stroke);
+    border-radius: 6px;
+    background: var(--bg1);
+}
+
+.players-search svg {
+    color: var(--muted);
+}
+
+.players-search input {
+    min-width: 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--text);
+    font-size: 0.92rem;
+}
+
+.players-search button,
+.players-pagination a {
+    border: 1px solid color-mix(in srgb, var(--ember) 44%, var(--stroke));
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--ember) 14%, var(--bg0));
+    color: var(--ember);
+    font-size: 0.76rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.players-search button {
+    padding: 0.45rem 0.75rem;
+}
+
+.players-toolbar {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    align-items: center;
+    margin-bottom: 0.9rem;
+}
+
+.players-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+}
+
+.players-tabs a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 34px;
+    padding: 0.45rem 0.7rem;
+    border: 1px solid var(--stroke);
+    border-radius: 4px;
+    background: var(--bg1);
+    color: var(--muted);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.players-tabs a.is-active {
+    border-color: color-mix(in srgb, var(--ember) 54%, var(--stroke));
+    background: color-mix(in srgb, var(--ember) 16%, var(--bg0));
+    color: var(--ember);
+}
+
+.players-order {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    white-space: nowrap;
+}
+
+.players-order label {
+    color: var(--muted);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.players-order select {
+    min-height: 34px;
+    border: 1px solid var(--stroke);
+    border-radius: 4px;
+    background: var(--bg1);
+    color: var(--text);
+    padding: 0.35rem 0.55rem;
+    font-size: 0.82rem;
+    outline: none;
+}
+
+.players-meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    color: var(--muted);
+    font-size: 0.83rem;
+}
+
+.players-meta-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.7rem;
+}
+
+.players-meta a {
+    color: var(--ember);
+    font-weight: 700;
+}
+
+.players-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+}
+
+.player-card {
+    --profile-accent: var(--ember);
+    --profile-accent-2: var(--flame);
+    --profile-surface: var(--bg1);
+    --profile-deep: var(--bg0);
+    position: relative;
+    overflow: hidden;
+    min-height: 320px;
+    border: 1px solid var(--stroke);
+    border-radius: 8px;
+    background: var(--profile-surface);
+}
+
+.player-card.theme-ember { --profile-accent: #f59e0b; --profile-accent-2: #7c2d12; --profile-surface: #1b120f; --profile-deep: #0e0a08; }
+.player-card.theme-arcane { --profile-accent: #a78bfa; --profile-accent-2: #06b6d4; --profile-surface: #151223; --profile-deep: #090914; }
+.player-card.theme-verdant { --profile-accent: #34d399; --profile-accent-2: #84cc16; --profile-surface: #0e1a14; --profile-deep: #07110c; }
+.player-card.theme-moonlit { --profile-accent: #cbd5e1; --profile-accent-2: #60a5fa; --profile-surface: #10151f; --profile-deep: #080b10; }
+
+.player-card-banner {
+    position: relative;
+    display: block;
+    height: 118px;
+    background: radial-gradient(circle at 15% 0%, color-mix(in srgb, var(--profile-accent) 26%, transparent), transparent 52%),
+                linear-gradient(135deg, var(--profile-deep), var(--profile-surface));
+}
+
+.player-card-banner span {
+    position: absolute;
+    inset: 0;
+    background-position: center;
+    background-size: cover;
+}
+
+.player-card-banner::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(0,0,0,0.06), var(--profile-surface));
+}
+
+.player-card-body {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.85rem;
+    align-items: end;
+    padding: 0 1rem 1rem;
+    margin-top: -34px;
+}
+
+.player-card-avatar {
+    display: grid;
+    place-items: center;
+    width: 74px;
+    height: 74px;
+    overflow: hidden;
+    border: 3px solid var(--profile-surface);
+    border-radius: 50%;
+    background: var(--profile-deep);
+    color: var(--profile-accent);
+    font-family: 'Cinzel', serif;
+    font-size: 2rem;
+    font-weight: 800;
+}
+
+.player-card-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.player-card-title {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.player-card-title > a {
+    min-width: 0;
+    color: var(--text);
+    font-family: 'Cinzel', serif;
+    font-size: 1.2rem;
+    font-weight: 800;
+}
+
+.player-card-main p {
+    margin-top: 0.35rem;
+    color: var(--muted);
+    font-size: 0.84rem;
+    line-height: 1.45;
+}
+
+.player-card-count {
+    display: block;
+    margin-top: 0.45rem;
+    color: var(--profile-accent);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.player-card-characters {
+    display: grid;
+    gap: 0.55rem;
+    padding: 0 1rem 1rem;
+}
+
+.player-card-characters a {
+    min-height: 54px;
+    padding: 0.7rem;
+    border: 1px solid color-mix(in srgb, var(--stroke) 80%, var(--profile-accent));
+    border-radius: 6px;
+    background: var(--profile-deep);
+}
+
+.player-card-characters strong,
+.player-card-characters span {
+    display: block;
+}
+
+.player-card-characters strong {
+    color: var(--text);
+    font-size: 0.86rem;
+}
+
+.player-card-characters span {
+    margin-top: 0.2rem;
+    color: var(--muted);
+    font-size: 0.76rem;
+}
+
+.player-card-footer {
+    padding: 0 1rem 1rem;
+}
+
+.player-card-footer a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 34px;
+    padding: 0.45rem 0.75rem;
+    border: 1px solid color-mix(in srgb, var(--profile-accent) 54%, var(--stroke));
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--profile-accent) 13%, var(--profile-deep));
+    color: var(--profile-accent);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.players-empty {
+    border: 1px dashed var(--stroke);
+    border-radius: 8px;
+    padding: 2rem;
+    background: var(--bg1);
+    color: var(--muted);
+    text-align: center;
+}
+
+.players-empty h2 {
+    margin-bottom: 0.4rem;
+    color: var(--text);
+    font-family: 'Cinzel', serif;
+    font-weight: 800;
+}
+
+.players-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.8rem;
+    margin-top: 1.25rem;
+    color: var(--muted);
+    font-size: 0.84rem;
+}
+
+.players-pagination a {
+    padding: 0.5rem 0.75rem;
+}
+
+@media (max-width: 740px) {
+    .players-head {
+        grid-template-columns: 1fr;
+    }
+
+    .players-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .players-order {
+        justify-content: space-between;
+    }
+}
+
+@media (max-width: 430px) {
+    .player-card-body {
+        grid-template-columns: 1fr;
+        margin-top: -46px;
     }
 }

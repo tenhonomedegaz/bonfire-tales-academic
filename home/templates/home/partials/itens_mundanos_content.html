@@ -33,7 +33,7 @@
            data-search="{{ item.nome|lower }} arma {{ item.get_subcategoria_display|default:item.subcategoria|lower }}">
         <div class="mu-list-item-main">
           <h3 class="mu-list-item-name">{{ item.nome }}</h3>
-          <p class="mu-list-item-meta">{{ item.get_subcategoria_display|default:item.subcategoria }}{% if item.dano %} · {{ item.dano }}{% endif %}</p>
+          <p class="mu-list-item-meta">{{ item.get_subcategoria_display|default:item.subcategoria }}{% if item.mec_dano %} · {{ item.mec_dano }}{% endif %}</p>
         </div>
         <span class="mu-list-item-price">{{ item.preco|default:"--" }}</span>
       </div>
@@ -44,7 +44,7 @@
            data-search="{{ item.nome|lower }} armadura {{ item.get_subcategoria_display|default:item.subcategoria|lower }}">
         <div class="mu-list-item-main">
           <h3 class="mu-list-item-name">{{ item.nome }}</h3>
-          <p class="mu-list-item-meta">{{ item.get_subcategoria_display|default:item.subcategoria }}{% if item.ca %} · CA {{ item.ca }}{% endif %}</p>
+          <p class="mu-list-item-meta">{{ item.get_subcategoria_display|default:item.subcategoria }}{% if item.mec_ca %} · CA {{ item.mec_ca }}{% endif %}</p>
         </div>
         <span class="mu-list-item-price">{{ item.preco|default:"--" }}</span>
       </div>
@@ -117,12 +117,12 @@
         <span class="mu-detail-cat">Arma · {{ item.get_subcategoria_display|default:item.subcategoria }}</span>
         <h2 class="mu-detail-title">{{ item.nome }}</h2>
         <div class="mu-detail-stats">
-          {% if item.dano %}<div class="mu-stat"><span class="mu-stat-label">Dano</span><span class="mu-stat-value mu-stat-accent">{{ item.dano }}</span></div>{% endif %}
+          {% if item.mec_dano %}<div class="mu-stat"><span class="mu-stat-label">Dano</span><span class="mu-stat-value mu-stat-accent">{{ item.mec_dano }}</span></div>{% endif %}
           <div class="mu-stat"><span class="mu-stat-label">Preço</span><span class="mu-stat-value">{{ item.preco|default:"--" }}</span></div>
           <div class="mu-stat"><span class="mu-stat-label">Peso</span><span class="mu-stat-value">{{ item.peso|default:"--" }} kg</span></div>
         </div>
-        {% if item.propriedades %}<p class="mu-detail-line"><strong>Propriedades:</strong> {{ item.propriedades }}</p>{% endif %}
-        {% if item.maestria %}<p class="mu-detail-line"><strong>Maestria:</strong> <span class="text-[var(--spark)]">{{ item.maestria }}</span></p>{% endif %}
+        {% if item.mec_propriedades %}<p class="mu-detail-line"><strong>Propriedades:</strong> {{ item.mec_propriedades }}</p>{% endif %}
+        {% if item.mec_maestrias %}<p class="mu-detail-line"><strong>Maestria:</strong> <span class="text-[var(--spark)]">{{ item.mec_maestrias }}</span></p>{% endif %}
         {% if item.descricao_markdown %}<div class="bonfire-markdown mu-detail-desc text-sm" data-markdown-source>{{ item.descricao_markdown|escape }}</div>{% endif %}
       </div>
     </template>
@@ -134,12 +134,12 @@
         <span class="mu-detail-cat">Armadura · {{ item.get_subcategoria_display|default:item.subcategoria }}</span>
         <h2 class="mu-detail-title">{{ item.nome }}</h2>
         <div class="mu-detail-stats">
-          {% if item.ca %}<div class="mu-stat"><span class="mu-stat-label">Classe de Armadura</span><span class="mu-stat-value mu-stat-stat">CA {{ item.ca }}</span></div>{% endif %}
+          {% if item.mec_ca %}<div class="mu-stat"><span class="mu-stat-label">Classe de Armadura</span><span class="mu-stat-value mu-stat-stat">CA {{ item.mec_ca }}</span></div>{% endif %}
           <div class="mu-stat"><span class="mu-stat-label">Preço</span><span class="mu-stat-value">{{ item.preco|default:"--" }}</span></div>
           <div class="mu-stat"><span class="mu-stat-label">Peso</span><span class="mu-stat-value">{{ item.peso|default:"--" }} kg</span></div>
-          {% if item.forca_minima %}<div class="mu-stat"><span class="mu-stat-label">Força Mínima</span><span class="mu-stat-value">{{ item.forca_minima }}</span></div>{% endif %}
+          {% if item.mec_forca_minima %}<div class="mu-stat"><span class="mu-stat-label">Força Mínima</span><span class="mu-stat-value">{{ item.mec_forca_minima }}</span></div>{% endif %}
         </div>
-        {% if item.furtividade_desvantagem %}<p class="mu-detail-line text-[var(--flame)]"><strong>Desvantagem em Furtividade</strong></p>{% endif %}
+        {% if item.mec_furtividade %}<p class="mu-detail-line text-[var(--flame)]"><strong>Desvantagem em Furtividade</strong></p>{% endif %}
         {% if item.descricao_markdown %}<div class="bonfire-markdown mu-detail-desc text-sm" data-markdown-source>{{ item.descricao_markdown|escape }}</div>{% endif %}
       </div>
     </template>
