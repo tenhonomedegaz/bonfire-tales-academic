@@ -114,11 +114,16 @@ def _concedida_dict(cosmetico):
     nome = cosmetico.get('nome') if isinstance(cosmetico, dict) else cosmetico.nome
     asset = cosmetico.get('asset_url') if isinstance(cosmetico, dict) else cosmetico.asset_url
     desc = cosmetico.get('descricao') if isinstance(cosmetico, dict) else cosmetico.descricao
+    # asset_url aceita DUAS formas: URL de imagem (http/https ou caminho /static…) →
+    # renderiza <img>; ou um glyph emoji (ex.: '🐉') → renderiza como texto nativo,
+    # sem depender de CDN externo. Vazio → medalha genérica.
+    _asset = (asset or '').strip()
+    _is_url = _asset.startswith(('http://', 'https://', '/'))
     return {
         'slug': slug,
         'nome': nome,
-        'icone': '' if asset else '🏅',
-        'icone_asset': asset or '',
+        'icone': '' if _is_url else (_asset or '🏅'),
+        'icone_asset': _asset if _is_url else '',
         'classe': 'badge-concedida badge-rar-%s' % (rar or 'comum'),
         'origem': 'concedida',
         'tooltip': desc or nome,

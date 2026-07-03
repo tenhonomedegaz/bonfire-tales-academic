@@ -21,12 +21,11 @@ TITULOS = [
 ]
 
 BADGES = [
+    # asset_url guarda um glyph emoji nativo (renderizado como texto, sem CDN externo).
     ('badge-matador-dragoes', 'badge', 'Matador de Dragões',
-     'Derrotou um dragão em uma mesa oficial.', 'epico',
-     'https://twemoji.maxcdn.com/v/latest/72x72/1f409.png'),
+     'Derrotou um dragão em uma mesa oficial.', 'epico', '🐉'),
     ('badge-primeira-fogueira', 'badge', 'Primeira Fogueira',
-     'Participou de uma das primeiras mesas da comunidade.', 'raro',
-     'https://twemoji.maxcdn.com/v/latest/72x72/1f525.png'),
+     'Participou de uma das primeiras mesas da comunidade.', 'raro', '🔥'),
 ]
 
 
