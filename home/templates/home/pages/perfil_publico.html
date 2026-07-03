@@ -35,7 +35,18 @@
           <span class="profile-role">Jogador</span>
           {% endif %}
         </div>
+        {% if titulo %}<p class="{{ titulo.classe }}" title="{{ titulo.descricao }}">{{ titulo.nome }}</p>{% endif %}
         <p class="public-profile-handle">@{{ viewed_user.username }}</p>
+        {% if badges %}
+        <ul class="profile-badges" aria-label="Insígnias de {{ viewed_user.username }}">
+          {% for b in badges %}
+          <li class="profile-badge {{ b.classe }}" title="{{ b.tooltip }}">
+            {% if b.icone_asset %}<img class="profile-badge-icon" src="{{ b.icone_asset }}" alt="" loading="lazy">{% elif b.icone %}<span class="profile-badge-emoji" aria-hidden="true">{{ b.icone }}</span>{% endif %}
+            <span class="profile-badge-name">{{ b.nome }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+        {% endif %}
         {% if profile.bio %}<p class="public-profile-bio">{{ profile.bio }}</p>{% endif %}
       </div>
     </div>

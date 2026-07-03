@@ -28,6 +28,8 @@ from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 
 
+# Personalização de perfil (F2). Limite de badges que o usuário fixa na vitrine.
+BADGES_DESTAQUE_LIMITE = 6
 
 
 
@@ -807,6 +809,12 @@ class UserProfile(models.Model):
                                             help_text='Assinatura Mestre Ouro ativa → +1 espaço de personagem.')
     mestre_ouro_proximo_pgto = models.DateField(db_column='MestreOuroProximoPgto', blank=True, null=True,
                                                 help_text='Data da próxima mensalidade (500 MM).')
+    # Personalização F2 — vitrine de badges/títulos (o que ESTÁ equipado; a posse
+    # vive no inventário TbUsuarioCosmetico e nas badges derivadas computadas).
+    titulo_equipado = models.CharField(db_column='TituloEquipado', max_length=60, blank=True, default='',
+                                       help_text='Slug de um cosmético tipo=titulo equipado sob o nome.')
+    badges_destaque = models.JSONField(db_column='BadgesDestaque', default=list, blank=True,
+                                       help_text='Slugs de badges concedidas que o usuário fixa na vitrine (até 6).')
 
     class Meta:
         db_table = 'TB_UserProfile'
@@ -815,6 +823,22 @@ class UserProfile(models.Model):
 
     def __str__(self):
         return f"Perfil de {self.user.username}"
+
+    def save(self, *args, **kwargs):
+        # Normaliza badges_destaque: lista de slugs (strings), sem duplicatas,
+        # cortada no limite. Nunca aceita tipos estranhos (blindagem de dado).
+        raw = self.badges_destaque
+        if not isinstance(raw, list):
+            raw = []
+        seen, limpos = set(), []
+        for slug in raw:
+            slug = str(slug).strip()
+            if slug and slug not in seen:
+                seen.add(slug)
+                limpos.append(slug)
+        self.badges_destaque = limpos[:BADGES_DESTAQUE_LIMITE]
+        self.titulo_equipado = (self.titulo_equipado or '').strip()
+        super().save(*args, **kwargs)
 
 
 @receiver(post_save, sender='auth.User')

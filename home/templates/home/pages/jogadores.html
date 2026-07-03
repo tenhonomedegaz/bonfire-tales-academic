@@ -74,6 +74,17 @@
             <span class="profile-role is-staff">Staff</span>
             {% endif %}
           </div>
+          {% if card.titulo %}<p class="profile-title-mini {{ card.titulo.classe }}" title="{{ card.titulo.descricao }}">{{ card.titulo.nome }}</p>{% endif %}
+          {% if card.badges %}
+          <ul class="profile-badges profile-badges-mini" aria-label="Insígnias de {{ card.user.username }}">
+            {% for b in card.badges %}
+            <li class="profile-badge {{ b.classe }}" title="{{ b.tooltip }}">
+              {% if b.icone_asset %}<img class="profile-badge-icon" src="{{ b.icone_asset }}" alt="" loading="lazy">{% elif b.icone %}<span class="profile-badge-emoji" aria-hidden="true">{{ b.icone }}</span>{% endif %}
+              <span class="profile-badge-name">{{ b.nome }}</span>
+            </li>
+            {% endfor %}
+          </ul>
+          {% endif %}
           {% if card.profile.bio %}<p>{{ card.profile.bio|truncatechars:150 }}</p>{% endif %}
           <span class="player-card-count">{{ card.public_count }} personagem{% if card.public_count != 1 %}s{% endif %} publico{% if card.public_count != 1 %}s{% endif %}</span>
         </div>

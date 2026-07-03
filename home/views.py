@@ -4,6 +4,7 @@ import re
 import unicodedata
 from urllib.parse import unquote, urlsplit
 from .item_mecanica import mecanica_de_tags, dano_display, propriedades_display, ca_display
+from . import badges as _badges
 from datetime import datetime, timezone as datetime_timezone
 from types import SimpleNamespace
 
@@ -661,6 +662,38 @@ def _appearance_validated(user, tipo_interno, value, escopo='ambos'):
     return default
 
 
+def _validated_titulo_equipado(user, slug):
+    """Slug de título só é aceito se o usuário POSSUI o cosmético (inventário, por
+    slug completo). Qualquer outro valor → '' (nenhum título). Blinda contra POST
+    de slug que o user não tem."""
+    slug = (slug or '').strip()
+    if not slug:
+        return ''
+    return slug if _badges.user_possui_cosmetico(user, slug, 'titulo') else ''
+
+
+def _validated_badges_destaque(user, slugs):
+    """Filtra a lista de slugs de badge para SÓ os que o usuário realmente possui
+    (badges concedidas no inventário), preservando a ordem escolhida, sem duplicatas
+    e cortando no limite. Slug inválido/não-possuído é descartado silenciosamente."""
+    from .models import TbUsuarioCosmetico, BADGES_DESTAQUE_LIMITE
+    slugs = [str(s).strip() for s in (slugs or []) if str(s).strip()]
+    if not slugs:
+        return []
+    possuidos = set(
+        TbUsuarioCosmetico.objects
+        .filter(user=user, cosmetico__tipo='badge', cosmetico__ativo=True,
+                cosmetico__slug__in=slugs)
+        .values_list('cosmetico__slug', flat=True)
+    )
+    out, vistos = [], set()
+    for s in slugs:
+        if s in possuidos and s not in vistos:
+            out.append(s)
+            vistos.add(s)
+    return out[:BADGES_DESTAQUE_LIMITE]
+
+
 def _sanitize_custom_theme(raw):
     """Normaliza o dict do tema Personalizado: só cores ^#[0-9a-fA-F]{6}$ passam;
     valor inválido cai no default. `gradiente` vira bool. Blindado contra injeção
@@ -814,6 +847,8 @@ def profile_view(request):
             avatar_frame = _appearance_validated(user, 'frame', request.POST.get('avatar_frame'), 'perfil')
             profile_effect = _appearance_validated(user, 'effect', request.POST.get('profile_effect'), 'perfil')
             theme_custom = _custom_theme_from_post(request)
+            titulo_equipado = _validated_titulo_equipado(user, request.POST.get('titulo_equipado'))
+            badges_destaque = _validated_badges_destaque(user, request.POST.getlist('badges_destaque'))
             vlibras_enabled = request.POST.get('vlibras_enabled') == 'on'
             User = get_user_model()
             user_changed = False
@@ -890,6 +925,8 @@ def profile_view(request):
             profile.theme_custom = theme_custom
             profile.avatar_frame = None if avatar_frame == 'none' else avatar_frame
             profile.profile_effect = None if profile_effect == 'none' else profile_effect
+            profile.titulo_equipado = titulo_equipado
+            profile.badges_destaque = badges_destaque
             profile.vlibras_enabled = vlibras_enabled
             if email_mudou:
                 profile.email_verified = False
@@ -957,6 +994,13 @@ def profile_view(request):
         'appearance_themes': _appearance_catalog('theme'),
         'appearance_frames': _appearance_catalog('frame'),
         'appearance_effects': _appearance_catalog('effect'),
+        # F2 — Badges & Títulos: títulos que o user possui (dropdown) + badges
+        # concedidas (checkboxes de destaque) + o que ele já equipou/fixou.
+        'titulos_disponiveis': _badges.titulos_disponiveis(user),
+        'badges_concedidas': _badges.badges_concedidas(user),
+        'badges_derivadas': _badges.badges_derivadas(user),
+        'titulo_equipado_slug': (profile.titulo_equipado or '').strip(),
+        'badges_destaque_slugs': list(profile.badges_destaque or []),
     })
 
 
@@ -986,6 +1030,9 @@ def public_profile_view(request, username):
         'appearance': _appearance_context(profile.profile_theme, profile.avatar_frame,
                                           profile.profile_effect, profile.theme_custom,
                                           profile.background_url),
+        # F2 — badges (derivadas + concedidas, fixadas primeiro) e título equipado.
+        'badges': _badges.badges_do_usuario(viewed_user),
+        'titulo': _badges.titulo_do_usuario(viewed_user),
     })
 
 
@@ -1074,9 +1121,17 @@ def jogadores_view(request):
             if len(bucket) < 3:
                 bucket.append(_personagem_card(p))
 
+    users_list = list(users_page.object_list)
+    for u in users_list:
+        # select_related('profile') já carregou; garante existência sem N+1 de save.
+        if getattr(u, 'profile', None) is None:
+            UserProfile.objects.get_or_create(user=u)
+    # F2 — badges/títulos de TODOS os usuários da página em lote (sem N+1).
+    perfil_badges = _badges.perfil_badges_batch(users_list)
     cards = []
-    for u in users_page.object_list:
-        profile, _ = UserProfile.objects.get_or_create(user=u)
+    for u in users_list:
+        profile = getattr(u, 'profile', None) or UserProfile.objects.get_or_create(user=u)[0]
+        info = perfil_badges.get(u.pk, {})
         cards.append({
             'user': u,
             'profile': profile,
@@ -1084,6 +1139,8 @@ def jogadores_view(request):
                                               profile.profile_effect, profile.theme_custom),
             'public_count': int(getattr(u, 'public_character_count', 0) or 0),
             'characters': public_chars.get(u.pk, []),
+            'badges': info.get('badges', []),
+            'titulo': info.get('titulo'),
         })
 
     def _querystring(**updates):

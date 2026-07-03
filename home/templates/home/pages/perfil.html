@@ -186,6 +186,52 @@
             </div>
         </div>
 
+        <!-- Seção: Badges & Títulos (mesmo form/action update_profile) -->
+        <div class="profile-badges-editor">
+            <h3 class="profile-subsection-title">Badges &amp; Títulos</h3>
+
+            <div class="profile-field">
+                <label class="profile-label" for="id_titulo_equipado">Título sob o nome</label>
+                <select class="profile-input" name="titulo_equipado" id="id_titulo_equipado">
+                    <option value="" {% if not titulo_equipado_slug %}selected{% endif %}>Nenhum</option>
+                    {% for t in titulos_disponiveis %}
+                    <option value="{{ t.slug }}" {% if t.slug == titulo_equipado_slug %}selected{% endif %}>{{ t.nome }}</option>
+                    {% endfor %}
+                </select>
+                {% if not titulos_disponiveis %}
+                <span class="avatar-preview-hint">Você ainda não tem títulos. Eles são concedidos por conquistas e eventos.</span>
+                {% endif %}
+            </div>
+
+            <div class="profile-field">
+                <span class="profile-label">Insígnias em destaque na vitrine <span class="avatar-preview-hint" style="text-transform:none;letter-spacing:0">(até 6, aparecem primeiro no seu perfil)</span></span>
+                {% if badges_concedidas %}
+                <div class="profile-badge-picker">
+                    {% for b in badges_concedidas %}
+                    <label class="profile-badge-pick {{ b.classe }}" title="{{ b.tooltip }}">
+                        <input type="checkbox" name="badges_destaque" value="{{ b.slug }}" {% if b.slug in badges_destaque_slugs %}checked{% endif %}>
+                        {% if b.icone_asset %}<img class="profile-badge-icon" src="{{ b.icone_asset }}" alt="" loading="lazy">{% elif b.icone %}<span class="profile-badge-emoji" aria-hidden="true">{{ b.icone }}</span>{% endif %}
+                        <span class="profile-badge-name">{{ b.nome }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <span class="avatar-preview-hint">Você ainda não tem insígnias concedidas. As automáticas (Equipe, Apoiador, Mestre Ouro, Fundador) já aparecem sozinhas no seu perfil.</span>
+                {% endif %}
+                {% if badges_derivadas %}
+                <div class="profile-badges profile-badges-derivadas-preview" style="margin-top:.6rem">
+                    {% for b in badges_derivadas %}
+                    <span class="profile-badge {{ b.classe }}" title="{{ b.tooltip }}">
+                        {% if b.icone %}<span class="profile-badge-emoji" aria-hidden="true">{{ b.icone }}</span>{% endif %}
+                        <span class="profile-badge-name">{{ b.nome }}</span>
+                    </span>
+                    {% endfor %}
+                </div>
+                <span class="avatar-preview-hint">Insígnias automáticas (sempre visíveis conforme seu status).</span>
+                {% endif %}
+            </div>
+        </div>
+
         <button type="submit" class="profile-btn">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
             Salvar Perfil

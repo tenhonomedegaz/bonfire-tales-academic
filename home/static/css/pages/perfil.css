@@ -1265,3 +1265,156 @@
         margin-top: -46px;
     }
 }
+
+/* ─────────────────────────── F2 — Badges & Títulos ─────────────────────────── */
+/* Título sob o nome (cor por raridade; spark/gold por padrão). */
+.profile-title {
+    margin-top: 0.35rem;
+    font-family: 'Cinzel', serif;
+    font-weight: 700;
+    font-size: 0.92rem;
+    letter-spacing: 0.04em;
+    color: var(--spark);
+    text-shadow: 0 0 10px color-mix(in srgb, var(--spark) 30%, transparent);
+}
+.profile-title.rar-comum { color: var(--muted); text-shadow: none; }
+.profile-title.rar-raro { color: var(--ember); text-shadow: 0 0 10px color-mix(in srgb, var(--ember) 28%, transparent); }
+.profile-title.rar-epico { color: var(--spark); }
+.profile-title.rar-lendario {
+    background: linear-gradient(100deg, var(--spark), var(--ember), var(--flame));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: var(--spark);
+}
+.profile-title-mini { font-size: 0.78rem; margin-top: 0.25rem; }
+
+/* Linha de badges (pills pequenas). */
+.profile-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-top: 0.55rem;
+    padding: 0;
+    list-style: none;
+}
+.profile-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.28rem;
+    padding: 0.16rem 0.5rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    line-height: 1.2;
+    border-radius: 999px;
+    border: 1px solid var(--stroke);
+    background: var(--bg0);
+    color: var(--muted);
+    white-space: nowrap;
+}
+.profile-badge-emoji { font-size: 0.82rem; line-height: 1; }
+.profile-badge-icon { width: 14px; height: 14px; object-fit: contain; }
+.profile-badge-name { letter-spacing: 0.02em; }
+
+/* Derivadas (estado do usuário) — paleta real. */
+.badge-derivada { color: var(--text); }
+.badge-staff {
+    border-color: color-mix(in srgb, #3b82f6 55%, var(--stroke));
+    background: color-mix(in srgb, #3b82f6 16%, var(--bg0));
+    color: #93c5fd;
+}
+.badge-apoiador {
+    border-color: color-mix(in srgb, var(--ember) 55%, var(--stroke));
+    background: color-mix(in srgb, var(--ember) 16%, var(--bg0));
+    color: var(--ember);
+}
+.badge-mestre-ouro {
+    border-color: color-mix(in srgb, var(--spark) 60%, var(--stroke));
+    background: color-mix(in srgb, var(--spark) 16%, var(--bg0));
+    color: var(--spark);
+}
+.badge-fundador {
+    border-color: color-mix(in srgb, var(--flame) 50%, var(--stroke));
+    background: color-mix(in srgb, var(--flame) 14%, var(--bg0));
+    color: color-mix(in srgb, var(--flame) 70%, var(--text));
+}
+
+/* Concedidas (inventário) — cor da borda por raridade. */
+.badge-concedida { color: var(--text); }
+.badge-rar-comum { border-color: var(--stroke); }
+.badge-rar-raro { border-color: color-mix(in srgb, var(--ember) 50%, var(--stroke)); }
+.badge-rar-epico { border-color: color-mix(in srgb, var(--spark) 55%, var(--stroke)); color: var(--spark); }
+.badge-rar-lendario {
+    border-color: color-mix(in srgb, var(--flame) 55%, var(--stroke));
+    background: color-mix(in srgb, var(--flame) 12%, var(--bg0));
+    color: color-mix(in srgb, var(--spark) 70%, var(--text));
+}
+
+/* Variante mini para os cards de /jogadores/. */
+.profile-badges-mini { margin-top: 0.4rem; gap: 0.28rem; }
+.profile-badges-mini .profile-badge {
+    padding: 0.12rem 0.42rem;
+    font-size: 0.62rem;
+}
+.profile-badges-mini .profile-badge-emoji { font-size: 0.72rem; }
+.profile-badges-mini .profile-badge-icon { width: 12px; height: 12px; }
+
+/* Editor de badges/títulos na página /perfil/. */
+.profile-badges-editor {
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px dashed var(--stroke);
+}
+.profile-subsection-title {
+    font-family: 'Cinzel', serif;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--profile-accent);
+    margin-bottom: 0.9rem;
+}
+.profile-badge-picker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+.profile-badge-pick {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.3rem 0.6rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    border-radius: 999px;
+    border: 1px solid var(--stroke);
+    background: var(--bg0);
+    color: var(--muted);
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s, color 0.2s;
+}
+.profile-badge-pick:hover {
+    border-color: color-mix(in srgb, var(--ember) 45%, var(--stroke));
+}
+.profile-badge-pick input {
+    accent-color: var(--ember);
+    width: 0.9rem;
+    height: 0.9rem;
+    margin: 0;
+}
+.profile-badge-pick:has(input:checked) {
+    border-color: var(--ember);
+    background: color-mix(in srgb, var(--ember) 14%, var(--bg0));
+    color: var(--text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .profile-title,
+    .profile-badge {
+        text-shadow: none;
+    }
+    .profile-badge-pick {
+        transition: none;
+    }
+}
