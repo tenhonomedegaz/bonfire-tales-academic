@@ -1059,9 +1059,17 @@ body { overflow: hidden !important; }
   animation: pinBounceIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
-/* Territory Polygons Transitions */
+/* Territory Polygons Transitions & Default Styles */
 .territory-polygon {
   transition: opacity 0.5s ease-in-out, fill-opacity 0.5s ease-in-out, stroke-opacity 0.5s ease-in-out !important;
+  stroke-opacity: 0.45 !important;
+  stroke-width: 1.5px !important;
+}
+
+.territory-polygon.is-active,
+.territory-polygon:hover {
+  stroke-opacity: 0.95 !important;
+  stroke-width: 3px !important;
 }
 
 /* Layer Switch Visibility Toggling (Multi-layer support) */
