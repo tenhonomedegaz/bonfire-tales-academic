@@ -348,6 +348,49 @@ function territoryColor(territory) {
   return '#f27007'; // Default ember color
 }
 
+function hexToRgb(hex) {
+  if (!hex) return null;
+  const shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
+  const fullHex = hex.replace(shorthandRegex, (m, r, g, b) => r + r + g + g + b + b);
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(fullHex);
+  return result ? {
+      r: parseInt(result[1], 16),
+      g: parseInt(result[2], 16),
+      b: parseInt(result[3], 16)
+  } : null;
+}
+
+function getColorBrightness(rgb) {
+  if (!rgb) return 255;
+  return 0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b;
+}
+
+function getContrastColor(hex) {
+  if (!hex || hex.indexOf('#') !== 0) return hex;
+  const rgb = hexToRgb(hex);
+  if (!rgb) return hex;
+  const brightness = getColorBrightness(rgb);
+  
+  // If the color is too dark (brightness < 120), we brighten it towards a minimum brightness
+  if (brightness < 120) {
+      // Mix 60% of the original color with 40% white to make it a readable pastel
+      const r = Math.round(rgb.r * 0.6 + 255 * 0.4);
+      const g = Math.round(rgb.g * 0.6 + 255 * 0.4);
+      const b = Math.round(rgb.b * 0.6 + 255 * 0.4);
+      return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+  }
+  return hex;
+}
+
+function getDynamicFillOpacity(hex) {
+  if (!hex || hex.indexOf('#') !== 0) return 0.3;
+  const rgb = hexToRgb(hex);
+  if (!rgb) return 0.3;
+  const brightness = getColorBrightness(rgb);
+  // Scale opacity from 0.3 (brightest colors) to 0.55 (darkest colors)
+  return 0.3 + (1 - brightness / 255) * 0.25;
+}
+
 // Ray-Casting algorithm: checks if a point is inside a polygon
 function pointInPolygon(point, vs) {
   const x = point.lat, y = point.lng;
@@ -923,16 +966,21 @@ function setupMarkersAndPolygons() {
       const singlePolygons = getSinglePolygons(coords);
       
       singlePolygons.forEach(polyCoords => {
+          const rawColor = territoryColor(t.nome);
+          const color = getContrastColor(rawColor);
+          const dynamicOpacity = getDynamicFillOpacity(color);
+
           const polygon = L.polygon(polyCoords, {
               className: `territory-polygon layer-${t.camada || 0} layer-${t.camada > 0 ? 'underground' : 'surface'}`,
-              color: territoryColor(t.nome),
-              fillColor: territoryColor(t.nome),
-              fillOpacity: 0.3,
+              color: color,
+              fillColor: color,
+              fillOpacity: dynamicOpacity,
               weight: 2,
               smoothFactor: 0,
               noClip: true
           }).addTo(territoryPolygonsLayer);
           polygon._bonfireTerritory = t;
+          polygon._bonfireDynamicOpacity = dynamicOpacity;
           
           if (canEditWiki) {
               polygon.on('pm:edit', (e) => {
@@ -956,11 +1004,12 @@ function setupMarkersAndPolygons() {
           
           polygon.on('mouseover', (e) => {
               if (!document.querySelector('.map-shell').classList.contains('is-focused')) {
-                  e.target.setStyle({ fillOpacity: 0.45, weight: 3 });
+                  const targetOpacity = Math.min(0.65, (e.target._bonfireDynamicOpacity || 0.3) + 0.15);
+                  e.target.setStyle({ fillOpacity: targetOpacity });
               }
           });
           polygon.on('mouseout', (e) => {
-              e.target.setStyle({ fillOpacity: 0.3, weight: 2 });
+              e.target.setStyle({ fillOpacity: e.target._bonfireDynamicOpacity || 0.3 });
           });
           polygon.on('click', () => selectTerritory(t.nome));
       });
@@ -1051,12 +1100,12 @@ function buildSidebarIndex() {
     const isOpen = activeTerritory === t ? 'is-open' : '';
     const isActive = activeTerritory === t ? 'is-active' : '';
     
-    const color = territoryColor(t);
-    const colorLower = String(color).toLowerCase();
-      const textColor = (colorLower === '#000000' || colorLower === '#000') ? '#ffffff' : color;
+    const rawColor = territoryColor(t);
+    const color = getContrastColor(rawColor);
+    const textColor = color;
     
     return `
-      <div class="territory-group ${isOpen}" data-territory-name="${t}" style="--item-color: ${color}; --item-text-color: ${textColor};">
+      <div class="territory-group ${isOpen}" data-territory-name="${t}" style="--item-color: ${rawColor}; --item-text-color: ${textColor};">
         <button class="territory-button ${isActive}" data-territory-open="${t}">
           ${displayTerritory(t, true)}
         </button>
@@ -1515,11 +1564,16 @@ function chooseAreaTerritory(preferredName = '') {
 function bindTerritoryLayer(layer, territoryName) {
     const t = jsonTerritories.find(x => x.nome === territoryName) || { nome: territoryName, camada: activeLayer };
     layer._bonfireTerritory = t;
+    const rawColor = territoryColor(territoryName);
+    const color = getContrastColor(rawColor);
+    const dynamicOpacity = getDynamicFillOpacity(color);
+    layer._bonfireDynamicOpacity = dynamicOpacity;
+    
     layer.setStyle({
         className: `territory-polygon layer-${t.camada || 0} layer-${t.camada > 0 ? 'underground' : 'surface'}`,
-        color: territoryColor(territoryName),
-        fillColor: territoryColor(territoryName),
-        fillOpacity: 0.3,
+        color: color,
+        fillColor: color,
+        fillOpacity: dynamicOpacity,
         weight: 2,
         smoothFactor: 0,
         noClip: true
@@ -1541,11 +1595,12 @@ function bindTerritoryLayer(layer, territoryName) {
     });
     layer.on('mouseover', (evt) => {
         if (!document.querySelector('.map-shell').classList.contains('is-focused')) {
-            evt.target.setStyle({ fillOpacity: 0.45, weight: 3 });
+            const targetOpacity = Math.min(0.65, (evt.target._bonfireDynamicOpacity || 0.3) + 0.15);
+            evt.target.setStyle({ fillOpacity: targetOpacity });
         }
     });
     layer.on('mouseout', (evt) => {
-        evt.target.setStyle({ fillOpacity: 0.3, weight: 2 });
+        evt.target.setStyle({ fillOpacity: evt.target._bonfireDynamicOpacity || 0.3 });
     });
     layer.on('click', () => selectTerritory(territoryName));
 }
