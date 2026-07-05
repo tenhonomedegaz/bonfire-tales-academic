@@ -5924,7 +5924,7 @@ def wiki_create_territory(request):
     if not slug:
         return JsonResponse({'ok': False, 'error': 'Não foi possível gerar slug do nome.'}, status=400)
 
-    if TbTerritorio.objects.filter(models.Q(slug=slug) | models.Q(nome__iexact=nome)).exists():
+    if TbTerritorio.objects.filter(Q(slug=slug) | Q(nome__iexact=nome)).exists():
         return JsonResponse({'ok': False, 'error': 'Um território com este nome já existe.'}, status=400)
 
     cor_hex = (data.get('cor_hex') or '#ffffff').strip()
