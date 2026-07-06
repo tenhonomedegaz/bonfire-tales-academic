@@ -1080,8 +1080,9 @@ body { overflow: hidden !important; }
 }
 
 /* Base states & layer matches up to 20 */
-.map-shell.layer-surface .territory-polygon.layer-surface,
-.map-shell.layer-underground .territory-polygon.layer-underground,
+/* IMPORTANT: filtra por camada EXATA (layer-N). Os antigos seletores genericos
+   .layer-surface/.layer-underground vazavam poligonos entre TODAS as camadas
+   subterraneas (ex.: marcacoes da camada 1 apareciam na Zona Proibida/camada 2). */
 .map-shell.layer-0 .territory-polygon.layer-0,
 .map-shell.layer-1 .territory-polygon.layer-1,
 .map-shell.layer-2 .territory-polygon.layer-2,

@@ -5531,6 +5531,12 @@ def mundo_regioes_view(request):
     territorios_cards = []
     for territory_name, regions in sorted(grouped.items(), key=lambda item: item[0]):
         territory = territories_by_name.get(territory_name) or next((t for t in territories_by_name.values() if _normalize_text(t.nome) == _normalize_text(territory_name)), None)
+        if not territory:
+            # TbRegiao.territorio é um CharField solto (sem FK) — quando o território é
+            # apagado do banco, regiões que ainda apontam pro nome antigo ficam órfãs.
+            # Elas não devem ressuscitar um card na listagem (o território não existe mais).
+            # A região órfã continua acessível normalmente via regiao_detail_view.
+            continue
         image_url = _asset_url(territory.imagem_url) if territory and territory.imagem_url else _asset_url(None)
         description = (territory.descricao_breve if territory and territory.descricao_breve else '') or f"{len(regions)} locais conhecidos em {_display_territory(territory_name)}."
         tags = sorted({
@@ -5560,11 +5566,14 @@ def mundo_regioes_view(request):
         })
 
     all_territories_list = list(TbTerritorio.objects.values_list('nome', flat=True).order_by('nome'))
+    # "Locais conhecidos" do cabeçalho deve bater com a soma dos cards exibidos
+    # (regiões órfãs, sem território existente, não entram nos cards nem nessa soma).
+    total_locais_visiveis = sum(card['locais_count'] for card in territorios_cards)
     return render(request, 'home/pages/regioes.html', {
         'regioes': regioes_lista,
         'territorios_cards': territorios_cards,
         'total_territorios': len(territorios_cards),
-        'total_locais': len(regioes_lista),
+        'total_locais': total_locais_visiveis,
         'can_edit_wiki': request.user.is_staff,
         'categoria_choices': TbMapMarker.PIN_ICON_CHOICES,
         'all_territories_list': all_territories_list,
