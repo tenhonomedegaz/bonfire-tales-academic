@@ -3168,8 +3168,26 @@ admin.site.get_app_list = _bonfire_admin_get_app_list
 from .models import TbCosmetico, TbUsuarioCosmetico
 
 
+class _TbCosmeticoForm(forms.ModelForm):
+    """Form do admin de cosméticos: valida a definicao_json do tema pelo
+    sanitizador (hex-only, enums whitelisted). Para tipo != 'tema', força {} —
+    a definição só faz sentido em temas."""
+    class Meta:
+        model = TbCosmetico
+        fields = '__all__'
+
+    def clean_definicao_json(self):
+        from .cosmetics import sanitize_definicao_tema
+        raw = self.cleaned_data.get('definicao_json')
+        tipo = (self.data.get('tipo') or getattr(self.instance, 'tipo', '')).strip()
+        if tipo != 'tema':
+            return {}
+        return sanitize_definicao_tema(raw)
+
+
 @admin.register(TbCosmetico)
 class TbCosmeticoAdmin(admin.ModelAdmin):
+    form = _TbCosmeticoForm
     list_display = ('tipo', 'nome', 'slug', 'raridade', 'origem', 'escopo', 'ativo', 'ordem')
     list_filter = ('tipo', 'origem', 'raridade', 'ativo', 'escopo', 'animado')
     search_fields = ('nome', 'slug')
@@ -3177,7 +3195,15 @@ class TbCosmeticoAdmin(admin.ModelAdmin):
     prepopulated_fields = {'slug': ('nome',)}
     fieldsets = (
         (None, {'fields': ('tipo', 'nome', 'slug', 'descricao', 'raridade')}),
-        ('Render', {'fields': ('css_class', 'asset_url', 'animado')}),
+        ('Render', {'fields': ('css_class', 'asset_url', 'asset_file', 'animado')}),
+        ('Tema (dados)', {
+            'fields': ('definicao_json', 'css_file'),
+            'description': (
+                'Só para tipo=Tema. definicao_json: {accent,accent2,surface,deep '
+                '(#RRGGBB), gradiente (bool), particula (subir|cair|flutuar|nenhuma), '
+                'vel (lenta|media|rapida), glow (bool)} — validado/sanitizado ao salvar. '
+                'css_file: CSS avançado opcional (incluído via &lt;link&gt; quando o tema é equipado).'),
+        }),
         ('Aquisição', {'fields': ('origem', 'preco', 'requer_plano')}),
         ('Disponibilidade', {'fields': ('escopo', 'ativo', 'ordem')}),
     )
@@ -3251,7 +3277,7 @@ class TbConquistaAdmin(admin.ModelAdmin):
     prepopulated_fields = {'slug': ('nome',)}
     raw_id_fields = ('recompensa',)
     fieldsets = (
-        (None, {'fields': ('nome', 'slug', 'descricao', 'icone_url')}),
+        (None, {'fields': ('nome', 'slug', 'descricao', 'icone_url', 'icone_file')}),
         ('Visibilidade', {'fields': ('secreta', 'ativo', 'ordem')}),
         ('Critério', {'fields': ('criterio', 'criterio_json')}),
         ('Recompensa', {'fields': ('recompensa',),

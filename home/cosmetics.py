@@ -11,7 +11,52 @@ entra em fases posteriores (F4).
 
 Ver docs/agentes/arquitetura_personalizacao_perfil.md §4.
 """
+import re
+
 from django.core.cache import cache
+
+# Cor hex validada (#rrggbb). NUNCA injetar string livre em style inline — mesmo
+# contrato de _sanitize_custom_theme em views.py.
+_HEX_COLOR_RE = re.compile(r'^#[0-9a-fA-F]{6}$')
+
+# Defaults do tema basal 'bonfire' (ver docs/agentes/arquitetura_temas_dinamicos.md §4).
+# Usados quando uma cor da definicao_json é inválida/ausente.
+_DEFINICAO_DEFAULT = {
+    'accent': '#f27007',
+    'accent2': '#d21717',
+    'surface': '#101012',
+    'deep': '#09090a',
+}
+_PARTICULA_CHOICES = ('subir', 'cair', 'flutuar', 'nenhuma')
+_VEL_CHOICES = ('lenta', 'media', 'rapida')
+
+
+def sanitize_definicao_tema(raw):
+    """Normaliza a `definicao_json` de um tema-dado (schema §1 do doc normativo).
+
+    - cores accent/accent2/surface/deep: só ^#[0-9a-fA-F]{6}$; inválida → default bonfire.
+    - gradiente: bool.
+    - particula: {subir,cair,flutuar,nenhuma} (default 'subir').
+    - vel: {lenta,media,rapida} (default 'media').
+    - glow: bool (default True).
+
+    Dict vazio/None → retorna {} (significa "sem definição": o render cai no legado,
+    regressão zero). Blindado contra injeção — nenhuma string livre sobrevive daqui."""
+    if not isinstance(raw, dict) or not raw:
+        return {}
+    out = {}
+    for key in ('accent', 'accent2', 'surface', 'deep'):
+        val = str(raw.get(key, '') or '').strip()
+        out[key] = val if _HEX_COLOR_RE.match(val) else _DEFINICAO_DEFAULT[key]
+    grad = raw.get('gradiente')
+    out['gradiente'] = grad in (True, 'true', 'on', '1', 1)
+    particula = str(raw.get('particula', '') or '').strip().lower()
+    out['particula'] = particula if particula in _PARTICULA_CHOICES else 'subir'
+    vel = str(raw.get('vel', '') or '').strip().lower()
+    out['vel'] = vel if vel in _VEL_CHOICES else 'media'
+    glow = raw.get('glow', True)
+    out['glow'] = glow in (True, 'true', 'on', '1', 1)
+    return out
 
 # Mapeia o "tipo interno" de aparência (usado por perfil/ficha) para o `tipo` do
 # catálogo. Permite falar a mesma língua dos helpers antigos (theme/frame/effect).
@@ -62,18 +107,32 @@ def get_catalog(tipo):
           .order_by('ordem', 'nome'))
     for c in qs:
         valor = _valor_de_slug(tipo, c.slug)
+        # css_url do tema (só temas com css_file). Degrada em '' se o storage
+        # não tiver base_url (ex.: dev sem MEDIA configurado).
+        css_url = ''
+        try:
+            if c.css_file:
+                css_url = c.css_file.url
+        except Exception:
+            css_url = ''
         catalogo[valor] = {
             'slug': c.slug,
             'label': c.nome,
             'class': c.css_class,
             'raridade': c.raridade,
             'animado': c.animado,
-            'asset_url': c.asset_url,
+            # asset_url efetivo (arquivo enviado > url/glyph) — o seletor com prévia
+            # e badges/conquistas consomem já resolvido.
+            'asset_url': c.asset_efetivo,
             'origem': c.origem,
             'preco': c.preco,
             'requer_plano': c.requer_plano,
             'escopo': c.escopo,
             'descricao': c.descricao,
+            # Tema como dado: definição sanitizada ({} = sem definição, cai no legado)
+            # + url do CSS avançado, quando houver.
+            'definicao': sanitize_definicao_tema(c.definicao_json) if c.tipo == 'tema' else {},
+            'css_url': css_url,
         }
     cache.set(key, catalogo, _CACHE_TTL)
     return catalogo
@@ -154,6 +213,9 @@ def catalog_options(user, tipo, escopo='ambos', selected=None):
             'preco': item['preco'],
             'requer_plano': item['requer_plano'],
             'descricao': item['descricao'],
+            # Prévia do seletor (WP3): definição sanitizada + css do tema-dado.
+            'definicao': item.get('definicao', {}),
+            'css_url': item.get('css_url', ''),
             'estado': estado,
             'selected': valor == selected,
         })

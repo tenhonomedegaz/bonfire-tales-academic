@@ -1,0 +1,37 @@
+{% comment %}
+Card-swatch de seleção de tema (WP3 — seletor com prévia).
+Uso: {% include 'home/includes/tema_swatch.html' with key=... item=... input_name=... input_id=... selected_value=... disabled=... %}
+
+Parâmetros esperados:
+- key: valor bruto do tema (ex.: 'bonfire', 'tema-abissal') — vira o value do input.
+- item: dict do catálogo (label, class, definicao{accent,accent2,surface,deep,...}, estado).
+- input_name: name do radio (mesmo name que o <select> antigo usava — profile_theme/ficha_theme).
+- input_id: id único do radio (ex.: 'id_profile_theme_{{ key }}').
+- selected_value: valor atualmente selecionado (compara com `key` aqui dentro —
+  Django templates não permitem `key==x` na expressão do {% include with %}).
+- disabled: bool — bloqueado por posse (estado='bloqueado'); desenha cadeado e desabilita o input.
+
+Cores: usa item.definicao quando presente (backend novo); cai no fallback estático
+dos 5 temas basais legados (doc normativo §4 "Backfill legado") quando definicao
+estiver vazia (ainda sem backfill), e num cinza neutro para chave desconhecida.
+{% endcomment %}
+{% with d=item.definicao %}
+<label class="tema-swatch tema-swatch--{{ key|default:'default' }}{% if disabled %} is-locked{% endif %}"
+       title="{{ item.label }}{% if disabled %} (bloqueado){% endif %}">
+    <input type="radio" name="{{ input_name }}" id="{{ input_id }}" value="{{ key }}"
+           {% if key == selected_value %}checked{% endif %} {% if disabled %}disabled{% endif %}>
+    <span class="tema-swatch-preview"
+          {% if d.accent %}
+          style="--tsw-accent:{{ d.accent }};--tsw-accent2:{{ d.accent2 }};--tsw-surface:{{ d.surface }};--tsw-deep:{{ d.deep }};"
+          {% endif %}>
+        <span class="tema-swatch-bar"></span>
+        <span class="tema-swatch-dots" aria-hidden="true">
+            <span class="tema-swatch-dot"></span>
+            <span class="tema-swatch-dot"></span>
+            <span class="tema-swatch-dot"></span>
+        </span>
+        {% if disabled %}<span class="tema-swatch-lock" aria-hidden="true">🔒</span>{% endif %}
+    </span>
+    <span class="tema-swatch-name">{{ item.label }}</span>
+</label>
+{% endwith %}

@@ -112,7 +112,11 @@ def _concedida_dict(cosmetico):
     rar = cosmetico.get('raridade') if isinstance(cosmetico, dict) else cosmetico.raridade
     slug = cosmetico.get('slug') if isinstance(cosmetico, dict) else cosmetico.slug
     nome = cosmetico.get('nome') if isinstance(cosmetico, dict) else cosmetico.nome
-    asset = cosmetico.get('asset_url') if isinstance(cosmetico, dict) else cosmetico.asset_url
+    # Ícone efetivo: arquivo enviado (asset_file) > asset_url/glyph. No dict do
+    # catálogo o campo 'asset_url' já vem resolvido (asset_efetivo); no model,
+    # usa a property. Preserva a lógica emoji-vs-imagem abaixo.
+    asset = (cosmetico.get('asset_url') if isinstance(cosmetico, dict)
+             else cosmetico.asset_efetivo)
     desc = cosmetico.get('descricao') if isinstance(cosmetico, dict) else cosmetico.descricao
     # asset_url aceita DUAS formas: URL de imagem (http/https ou caminho /static…) →
     # renderiza <img>; ou um glyph emoji (ex.: '🐉') → renderiza como texto nativo,

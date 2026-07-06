@@ -62,7 +62,9 @@ def _conquista_dict(conquista, obtida, concedida_em=None):
         'slug': conquista.slug,
         'nome': conquista.nome,
         'descricao': conquista.descricao or '',
-        'icone_url': conquista.icone_url or '',
+        # Ícone efetivo: arquivo enviado (icone_file) > icone_url. O template
+        # continua com o fallback 🏆 quando vazio.
+        'icone_url': conquista.icone_efetivo,
         'secreta': conquista.secreta,
         'obtida': obtida,
         'concedida_em': concedida_em,

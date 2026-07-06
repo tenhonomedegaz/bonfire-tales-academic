@@ -3,7 +3,7 @@
 
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'css/pages/perfil.css' %}">
-<link rel="stylesheet" href="{% static 'css/pages/perfil-fx.css' %}?v=2">
+<link rel="stylesheet" href="{% static 'css/pages/perfil-fx.css' %}?v=3">
 <title>Jogadores - Bonfire Tales RPG</title>
 {% endblock %}
 
@@ -54,7 +54,7 @@
   {% if cards %}
   <div class="players-grid">
     {% for card in cards %}
-    <article class="player-card {{ card.appearance.theme_class }} {{ card.appearance.effect_class }}"{% if card.appearance.custom_style %} style="{{ card.appearance.custom_style }}"{% endif %}>
+    <article class="player-card {{ card.appearance.theme_class }} {{ card.appearance.effect_class }}"{% if card.appearance.fx_particula %} data-fx-particula="{{ card.appearance.fx_particula }}" data-fx-vel="{{ card.appearance.fx_vel }}"{% endif %}{% if card.appearance.custom_style %} style="{{ card.appearance.custom_style }}"{% endif %}>
       <a href="{% url 'public_profile' card.user.username %}" class="player-card-banner" aria-label="Abrir perfil de {{ card.user.username }}">
         {% if card.profile.banner_url %}<span style="background-image:url('{{ card.profile.banner_url }}');"></span>{% endif %}
       </a>

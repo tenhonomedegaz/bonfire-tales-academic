@@ -3,7 +3,8 @@
 
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'css/pages/perfil.css' %}">
-<link rel="stylesheet" href="{% static 'css/pages/perfil-fx.css' %}?v=2">
+<link rel="stylesheet" href="{% static 'css/pages/perfil-fx.css' %}?v=3">
+{% if appearance.theme_css_href %}<link rel="stylesheet" href="{{ appearance.theme_css_href }}">{% endif %}
 <title>Meu Perfil — Bonfire Tales RPG</title>
 {% endblock %}
 
@@ -133,15 +134,16 @@
             <textarea class="profile-input profile-textarea" id="id_bio" name="bio" rows="3" maxlength="800" placeholder="Uma frase curta sobre voce, seus personagens ou suas mesas...">{{ profile.bio|default:'' }}</textarea>
         </div>
 
+        <div class="profile-field">
+            <span class="profile-label">Tema</span>
+            <div class="tema-swatch-grid" id="id_profile_theme_group">
+                {% for key, item in appearance_themes.items %}
+                {% include 'home/includes/tema_swatch.html' with key=key item=item input_name='profile_theme' input_id='id_profile_theme_'|add:key selected_value=appearance.theme_key disabled=False %}
+                {% endfor %}
+            </div>
+        </div>
+
         <div class="profile-appearance-grid">
-            <label class="profile-field">
-                <span class="profile-label">Tema</span>
-                <select class="profile-input" name="profile_theme" id="id_profile_theme">
-                    {% for key, item in appearance_themes.items %}
-                    <option value="{{ key }}" {% if key == appearance.theme_key %}selected{% endif %}>{{ item.label }}</option>
-                    {% endfor %}
-                </select>
-            </label>
             <label class="profile-field">
                 <span class="profile-label">Borda do Avatar</span>
                 <select class="profile-input" name="avatar_frame" id="id_avatar_frame">
@@ -170,7 +172,7 @@
         </div>
 
         {# Preview ao vivo #}
-        <div class="profile-header profile-live-preview {{ appearance.theme_class }} {{ appearance.effect_class }}" id="profile-preview" style="margin-top:1rem;padding:1.5rem;{{ appearance.custom_style }}">
+        <div class="profile-header profile-live-preview {{ appearance.theme_class }} {{ appearance.effect_class }}" id="profile-preview"{% if appearance.fx_particula %} data-fx-particula="{{ appearance.fx_particula }}" data-fx-vel="{{ appearance.fx_vel }}"{% endif %} style="margin-top:1rem;padding:1.5rem;{{ appearance.custom_style }}">
             <div class="profile-avatar-wrapper {{ appearance.frame_class }}" id="profile-preview-frame" style="width:64px;height:64px">
                 {% if profile.avatar_url %}<img src="{{ profile.avatar_url }}" alt="">{% else %}<div class="profile-avatar-fallback"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>{% endif %}
             </div>
@@ -441,7 +443,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const pv = document.getElementById('profile-preview');
     if (pv) {
         const pvFrame = document.getElementById('profile-preview-frame');
-        const themeSel = document.getElementById('id_profile_theme');
+        // Tema agora é um grupo de radios (cards-swatch) em vez de <select> —
+        // lê o valor marcado do grupo (mesmo name="profile_theme" de antes).
+        const themeRadios = document.querySelectorAll('input[name="profile_theme"]');
         const frameSel = document.getElementById('id_avatar_frame');
         const effectSel = document.getElementById('id_profile_effect');
         const customBox = document.getElementById('profile-custom-controls');
@@ -453,8 +457,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const cS = document.getElementById('id_custom_surface');
         const cD = document.getElementById('id_custom_deep');
         const cG = document.getElementById('id_custom_gradiente');
+        const getThemeValue = () => {
+            const checked = document.querySelector('input[name="profile_theme"]:checked');
+            return checked ? checked.value : 'bonfire';
+        };
         const applyTheme = () => {
-            const t = themeSel ? themeSel.value : 'bonfire';
+            const t = getThemeValue();
             pv.className = 'profile-header profile-live-preview ' + (THEME[t] || '') + ' ' + (EFFECT[effectSel.value] || '');
             pvFrame.className = 'profile-avatar-wrapper ' + (FRAME[frameSel.value] || '');
             const isCustom = t === 'custom';
@@ -468,7 +476,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 pv.style.cssText = 'margin-top:1rem;padding:1.5rem';
             }
         };
-        [themeSel, frameSel, effectSel, cA, cB, cS, cD, cG].forEach(el => {
+        [...themeRadios, frameSel, effectSel, cA, cB, cS, cD, cG].forEach(el => {
             if (!el) return;
             el.addEventListener('input', applyTheme);
             el.addEventListener('change', applyTheme);

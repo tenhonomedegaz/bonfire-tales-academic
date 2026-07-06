@@ -3,13 +3,14 @@
 
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'css/pages/perfil.css' %}">
-<link rel="stylesheet" href="{% static 'css/pages/perfil-fx.css' %}?v=2">
+<link rel="stylesheet" href="{% static 'css/pages/perfil-fx.css' %}?v=3">
+{% if appearance.theme_css_href %}<link rel="stylesheet" href="{{ appearance.theme_css_href }}">{% endif %}
 <title>{{ viewed_user.username }} - Perfil - Bonfire Tales RPG</title>
 {% endblock %}
 
 {% block content %}
 {% if appearance.background_url %}<div class="profile-bg-media" style="background-image:url('{{ appearance.background_url }}');"></div>{% endif %}
-<section class="public-profile-page {{ appearance.theme_class }} {{ appearance.effect_class }}{% if appearance.background_url %} profile-has-bg{% endif %}"{% if appearance.custom_style %} style="{{ appearance.custom_style }}"{% endif %}>
+<section class="public-profile-page {{ appearance.theme_class }} {{ appearance.effect_class }}{% if appearance.background_url %} profile-has-bg{% endif %}"{% if appearance.fx_particula %} data-fx-particula="{{ appearance.fx_particula }}" data-fx-vel="{{ appearance.fx_vel }}"{% endif %}{% if appearance.custom_style %} style="{{ appearance.custom_style }}"{% endif %}>
   <a href="{% url 'jogadores' %}" class="public-profile-back">← Jogadores</a>
   <div class="public-profile-card">
     <div class="public-profile-banner">

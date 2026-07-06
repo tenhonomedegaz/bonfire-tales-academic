@@ -721,27 +721,39 @@ def _custom_theme_from_post(request, prefix=''):
     })
 
 
-def _custom_theme_style(colors):
-    """Bloco de CSS custom properties inline (string) para o tema Personalizado.
-    Recebe SEMPRE cores já sanitizadas por _sanitize_custom_theme."""
-    c = _sanitize_custom_theme(colors)
-    if c['gradiente']:
-        accent_val = 'linear-gradient(120deg, %s, %s)' % (c['accent'], c['accent2'])
+def _theme_vars_style(colors):
+    """Builder ÚNICO do bloco de CSS custom properties inline (string), emitindo
+    tanto `--profile-*` quanto `--sheet-*`. Usado pelo tema Personalizado E pelos
+    temas-dado (definicao_json). Recebe um dict com chaves accent/accent2/surface/
+    deep/gradiente (já sanitizadas — hex-only). `gradiente` True → o accent vira
+    linear-gradient(accent, accent2); o *-solid mantém a cor chapada."""
+    accent = colors['accent']
+    accent2 = colors['accent2']
+    surface = colors['surface']
+    deep = colors['deep']
+    if colors.get('gradiente'):
+        accent_val = 'linear-gradient(120deg, %s, %s)' % (accent, accent2)
     else:
-        accent_val = c['accent']
+        accent_val = accent
     return (
         '--profile-accent:%s;--sheet-accent:%s;'
         '--profile-accent-solid:%s;--sheet-accent-solid:%s;'
         '--profile-accent-2:%s;--sheet-accent-2:%s;'
         '--profile-surface:%s;--sheet-surface:%s;'
         '--profile-deep:%s;--sheet-deep:%s;'
-    ) % (accent_val, accent_val, c['accent'], c['accent'],
-         c['accent2'], c['accent2'], c['surface'], c['surface'],
-         c['deep'], c['deep'])
+    ) % (accent_val, accent_val, accent, accent,
+         accent2, accent2, surface, surface, deep, deep)
+
+
+def _custom_theme_style(colors):
+    """Bloco de CSS custom properties inline (string) para o tema Personalizado.
+    Recebe SEMPRE cores já sanitizadas por _sanitize_custom_theme."""
+    return _theme_vars_style(_sanitize_custom_theme(colors))
 
 
 def _appearance_context(theme='bonfire', frame='none', effect='none',
                         theme_custom=None, background=''):
+    from .cosmetics import sanitize_definicao_tema
     themes = _appearance_catalog('theme')
     frames = _appearance_catalog('frame')
     effects = _appearance_catalog('effect')
@@ -749,19 +761,54 @@ def _appearance_context(theme='bonfire', frame='none', effect='none',
     frame_key = _appearance_choice(frame, frames, 'none')
     effect_key = _appearance_choice(effect, effects, 'none')
     custom = _sanitize_custom_theme(theme_custom)
+    is_custom = theme_key == 'custom'
+
+    theme_item = themes.get(theme_key, {})
+    # Definição sanitizada do tema-dado escolhido (get_catalog já sanitiza; o dict
+    # de fallback legado não tem 'definicao' → {} = sem definição, cai no legado).
+    definicao = sanitize_definicao_tema(theme_item.get('definicao')) \
+        if theme_item.get('definicao') else {}
+
+    if is_custom:
+        # Tema Personalizado: comportamento intacto (vars do custom) + fx default
+        # pras partículas (subir/media), como pede a arquitetura §3.
+        theme_class = themes[theme_key]['class']
+        custom_style = _custom_theme_style(custom)
+        fx_particula, fx_vel = 'subir', 'media'
+        theme_css_href = ''
+    elif definicao:
+        # Tema-dado: classe neutra (não colide com as legadas) + vars via builder
+        # único (mesmo do custom, com gradiente quando pedido) + fx por atributo.
+        theme_class = 'theme-data'
+        custom_style = _theme_vars_style(definicao)
+        fx_particula = definicao['particula']
+        fx_vel = definicao['vel']
+        theme_css_href = theme_item.get('css_url', '') or ''
+    else:
+        # Legado (sem definição): EXATAMENTE o comportamento atual — regressão zero.
+        theme_class = themes[theme_key]['class']
+        custom_style = ''
+        fx_particula, fx_vel = '', ''
+        theme_css_href = ''
+
     return {
         'theme_key': theme_key,
         'frame_key': frame_key,
         'effect_key': effect_key,
-        'theme_class': themes[theme_key]['class'],
+        'theme_class': theme_class,
         'frame_class': frames[frame_key]['class'],
         'effect_class': effects[effect_key]['class'],
         'theme_label': themes[theme_key]['label'],
         'custom': custom,
         'background_url': (background or '').strip(),
-        # style inline SÓ para o tema custom validado; senão string vazia.
-        'custom_style': _custom_theme_style(custom) if theme_key == 'custom' else '',
-        'is_custom': theme_key == 'custom',
+        # style inline (tema custom OU tema-dado); '' pros legados.
+        'custom_style': custom_style,
+        'is_custom': is_custom,
+        # Contrato de partículas por atributo (perfil-fx.css). '' = sem definição.
+        'fx_particula': fx_particula,
+        'fx_vel': fx_vel,
+        # <link> do CSS avançado do tema (css_file), quando houver.
+        'theme_css_href': theme_css_href,
     }
 
 

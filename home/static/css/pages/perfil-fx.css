@@ -7,6 +7,20 @@
    animação e :hover. Cobre perfil público, cards de /jogadores e ficha.
    Tudo desliga em prefers-reduced-motion.
 
+   CONTRATO data-fx-* (tema como dado — ver docs/agentes/arquitetura_temas_
+   dinamicos.md): o elemento temado raiz (.public-profile-page, .ficha,
+   .player-card) recebe dois atributos vindos de TbCosmetico.definicao_json:
+     - data-fx-particula="subir|cair|flutuar|nenhuma"  → direção/existência
+       da partícula (default "subir" = fx-rise, sem atributo nenhum, igual
+       ao comportamento legado).
+     - data-fx-vel="lenta|media|rapida"                → duração da animação
+       (lenta ~18s, media ~11s, rapida ~6s).
+   As classes de tema legadas (.theme-arcane/.theme-verdant/.theme-moonlit)
+   continuam funcionando como fallback para quem ainda não tem definicao_json
+   — tema novo (dado) não precisa de nenhuma classe/CSS novo, só emitir os
+   atributos. Cascade: 1) regra base (fx-rise) → 2) overrides por classe
+   legada → 3) overrides por atributo (mais específicos, vencem a classe).
+
    NORTE (futuro, ainda sem implementar — deixar suporte): molduras/avatares
    "cósmicos" ricos, com brilho de rim-light e dois elementos (fogo/gelo).
    Cada moldura será um cosmético (TbCosmetico tipo=frame) + classe CSS
@@ -110,31 +124,60 @@
 }
 
 /* ---------------------------------------------------------------------
-   2) COR + DETALHE (pegada widget) — sem mover nada
+   1b) PARTÍCULAS POR ATRIBUTO (data-fx-*) — tema como dado.
+   Mais específico que as classes legadas acima (mesmo elemento raiz +
+   descendente), então vence no cascade sem precisar de !important.
    --------------------------------------------------------------------- */
 
-/* Aurora de 2 cores atravessando o banner (mais colorida que o sheen antigo). */
-.public-profile-banner { position: relative; overflow: hidden; }
-.public-profile-banner::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-    pointer-events: none;
-    mix-blend-mode: screen;
-    background: linear-gradient(115deg,
-        transparent 8%,
-        color-mix(in srgb, var(--fx-accent) 34%, transparent) 30%,
-        transparent 46%,
-        color-mix(in srgb, var(--fx-accent-2) 32%, transparent) 64%,
-        transparent 86%);
-    background-size: 240% 100%;
-    animation: fx-aurora 11s ease-in-out infinite;
+/* Direção: cair → fx-fall (reaproveita o keyframe da enluarada). */
+.public-profile-page[data-fx-particula="cair"] .public-profile-card::before,
+.public-profile-page[data-fx-particula="cair"] .public-profile-section::before,
+.ficha[data-fx-particula="cair"] .ficha-panel::before,
+.player-card[data-fx-particula="cair"]::before {
+    animation-name: fx-fall;
 }
-@keyframes fx-aurora {
-    0%, 100% { background-position: 130% 0; }
-    50%      { background-position: -30% 0; }
+
+/* Direção: flutuar → reaproveita fx-rise, mas com deriva suave (ease-in-out). */
+.public-profile-page[data-fx-particula="flutuar"] .public-profile-card::before,
+.public-profile-page[data-fx-particula="flutuar"] .public-profile-section::before,
+.ficha[data-fx-particula="flutuar"] .ficha-panel::before,
+.player-card[data-fx-particula="flutuar"]::before {
+    animation-name: fx-rise;
+    animation-timing-function: ease-in-out;
 }
+
+/* Direção: nenhuma → desliga a partícula por completo. */
+.public-profile-page[data-fx-particula="nenhuma"] .public-profile-card::before,
+.public-profile-page[data-fx-particula="nenhuma"] .public-profile-section::before,
+.ficha[data-fx-particula="nenhuma"] .ficha-panel::before,
+.player-card[data-fx-particula="nenhuma"]::before {
+    animation: none;
+    opacity: 0;
+}
+
+/* Velocidade: lenta/media/rapida — sobrepõe a duration herdada da direção. */
+.public-profile-page[data-fx-vel="lenta"] .public-profile-card::before,
+.public-profile-page[data-fx-vel="lenta"] .public-profile-section::before,
+.ficha[data-fx-vel="lenta"] .ficha-panel::before,
+.player-card[data-fx-vel="lenta"]::before {
+    animation-duration: 18s;
+}
+.public-profile-page[data-fx-vel="media"] .public-profile-card::before,
+.public-profile-page[data-fx-vel="media"] .public-profile-section::before,
+.ficha[data-fx-vel="media"] .ficha-panel::before,
+.player-card[data-fx-vel="media"]::before {
+    animation-duration: 11s;
+}
+.public-profile-page[data-fx-vel="rapida"] .public-profile-card::before,
+.public-profile-page[data-fx-vel="rapida"] .public-profile-section::before,
+.ficha[data-fx-vel="rapida"] .ficha-panel::before,
+.player-card[data-fx-vel="rapida"]::before {
+    animation-duration: 6s;
+}
+
+/* ---------------------------------------------------------------------
+   2) COR + DETALHE (pegada widget) — sem mover nada
+   --------------------------------------------------------------------- */
 
 /* Wash de cor radial atrás do conteúdo do card (dá profundidade colorida). */
 .public-profile-card,
@@ -201,7 +244,18 @@
     .public-profile-section::before,
     .ficha-panel::before,
     .player-card::before,
-    .public-profile-banner::after {
+    .public-profile-page[data-fx-particula="cair"] .public-profile-card::before,
+    .public-profile-page[data-fx-particula="cair"] .public-profile-section::before,
+    .ficha[data-fx-particula="cair"] .ficha-panel::before,
+    .player-card[data-fx-particula="cair"]::before,
+    .public-profile-page[data-fx-particula="flutuar"] .public-profile-card::before,
+    .public-profile-page[data-fx-particula="flutuar"] .public-profile-section::before,
+    .ficha[data-fx-particula="flutuar"] .ficha-panel::before,
+    .player-card[data-fx-particula="flutuar"]::before,
+    .public-profile-page[data-fx-particula="nenhuma"] .public-profile-card::before,
+    .public-profile-page[data-fx-particula="nenhuma"] .public-profile-section::before,
+    .ficha[data-fx-particula="nenhuma"] .ficha-panel::before,
+    .player-card[data-fx-particula="nenhuma"]::before {
         animation: none !important;
     }
     .public-character-card,

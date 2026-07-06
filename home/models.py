@@ -26,6 +26,7 @@ from django.db import models
 from django.utils import timezone
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
+from django.core.validators import FileExtensionValidator
 
 
 # Personalização de perfil (F2). Limite de badges que o usuário fixa na vitrine.
@@ -1597,6 +1598,18 @@ class TbCosmetico(models.Model):
                                  help_text="Classe CSS aplicada (ex.: 'theme-ember', 'frame-gold-trim').")
     asset_url = models.CharField(db_column='AssetUrl', max_length=500, blank=True,
                                  help_text='Ícone de badge ou overlay webp/gif de moldura animada.')
+    asset_file = models.FileField(db_column='AssetFile', upload_to='cosmetics/badges/',
+                                  blank=True,
+                                  help_text='Ícone de badge enviado (upload staff). Tem prioridade sobre asset_url.')
+    # Tema como dado (só usado por tipo='tema'). Sanitizado server-side em TODA
+    # renderização por sanitize_definicao_tema (hex-only, enums whitelisted).
+    definicao_json = models.JSONField(db_column='DefinicaoJson', default=dict, blank=True,
+                                      help_text='Tema como dado: {accent,accent2,surface,deep,gradiente,particula,vel,glow}. Só tipo=tema.')
+    # Arquivo .css opcional para temas avançados (upload staff-only via admin).
+    css_file = models.FileField(
+        db_column='CssFile', upload_to='cosmetics/css/', blank=True,
+        validators=[FileExtensionValidator(['css'])],
+        help_text='CSS avançado do tema (upload staff). Incluído como <link> quando o tema é equipado.')
     animado = models.BooleanField(db_column='Animado', default=False)
     origem = models.CharField(db_column='Origem', max_length=20, default='livre',
                               choices=ORIGEM_CHOICES,
@@ -1618,6 +1631,19 @@ class TbCosmetico(models.Model):
 
     def __str__(self):
         return '%s (%s)' % (self.nome, self.get_tipo_display())
+
+    @property
+    def asset_efetivo(self):
+        """URL do ícone efetivo de um badge: arquivo enviado (asset_file) tem
+        prioridade, senão cai no asset_url (que pode ser URL de imagem ou glyph
+        emoji). Só faz sentido para tipo='badge'; para tema/css não se usa."""
+        try:
+            if self.asset_file:
+                return self.asset_file.url
+        except Exception:
+            # FieldFile.url pode levantar se o storage não tiver base_url; degrada.
+            pass
+        return self.asset_url or ''
 
 
 class TbUsuarioCosmetico(models.Model):
@@ -1681,6 +1707,9 @@ class TbConquista(models.Model):
     descricao = models.CharField(db_column='Descricao', max_length=255, blank=True)
     icone_url = models.CharField(db_column='IconeUrl', max_length=500, blank=True,
                                  help_text='Ícone/medalha da conquista (URL).')
+    icone_file = models.FileField(db_column='IconeFile', upload_to='cosmetics/conquistas/',
+                                  blank=True,
+                                  help_text='Ícone/medalha enviado (upload staff). Tem prioridade sobre icone_url.')
     secreta = models.BooleanField(db_column='Secreta', default=False,
                                   help_text='Se marcada, só aparece pra quem a tem (não vaza existência).')
     criterio = models.CharField(db_column='Criterio', max_length=20, default='manual',
@@ -1703,6 +1732,17 @@ class TbConquista(models.Model):
 
     def __str__(self):
         return self.nome
+
+    @property
+    def icone_efetivo(self):
+        """URL do ícone efetivo da conquista: arquivo enviado (icone_file) tem
+        prioridade, senão cai no icone_url. Vazio → o template usa o fallback 🏆."""
+        try:
+            if self.icone_file:
+                return self.icone_file.url
+        except Exception:
+            pass
+        return self.icone_url or ''
 
 
 class TbUsuarioConquista(models.Model):
