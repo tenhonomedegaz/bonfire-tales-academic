@@ -911,6 +911,128 @@ body { overflow: hidden !important; }
   color: #070707;
 }
 
+/* Painéis flutuantes de estilo de desenho (linha/imagem) — editor staff */
+.desenho-style-panel {
+  position: absolute;
+  top: 5rem;
+  right: 1rem;
+  z-index: 1200;
+  width: 240px;
+  background: var(--bg1);
+  border: 1px solid var(--stroke);
+  border-radius: 8px;
+  box-shadow: 0 18px 45px rgba(0,0,0,.6);
+  padding: .85rem;
+  display: flex;
+  flex-direction: column;
+  gap: .65rem;
+}
+.desenho-style-panel[hidden] {
+  display: none;
+}
+.desenho-style-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: 'Cinzel', serif;
+  font-size: .8rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  color: var(--ember);
+}
+.desenho-style-close {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 .2rem;
+}
+.desenho-style-close:hover {
+  color: var(--text);
+}
+.desenho-style-hint {
+  color: var(--muted);
+  font-size: .68rem;
+  line-height: 1.45;
+}
+.desenho-style-row {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  font-size: .7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.desenho-style-row > span {
+  flex: 0 0 auto;
+  min-width: 62px;
+}
+.desenho-style-row input[type="range"] {
+  flex: 1;
+  cursor: pointer;
+}
+.desenho-style-row input[type="color"] {
+  width: 44px;
+  height: 28px;
+  padding: 2px;
+  border: 1px solid var(--stroke);
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+}
+.desenho-style-row output {
+  min-width: 24px;
+  text-align: right;
+  color: var(--text);
+}
+.desenho-style-check {
+  cursor: pointer;
+}
+.desenho-style-check input {
+  width: auto;
+  cursor: pointer;
+}
+.desenho-style-anchor {
+  font-size: .66rem;
+  color: var(--muted);
+  line-height: 1.4;
+  border-top: 1px dashed var(--stroke);
+  padding-top: .5rem;
+}
+.desenho-style-anchor b {
+  color: var(--ember);
+}
+.desenho-style-actions {
+  display: flex;
+  gap: .5rem;
+  justify-content: flex-end;
+}
+.desenho-style-actions .admin-btn {
+  padding: .45rem .7rem;
+}
+.admin-btn.desenho-danger {
+  color: var(--ruby);
+  border-color: var(--ruby);
+  background: transparent;
+}
+.admin-btn.desenho-danger:hover {
+  background: var(--ruby);
+  color: #fff;
+}
+
+@media (max-width: 1100px) {
+  .desenho-style-panel {
+    top: auto;
+    bottom: 5rem;
+    right: .75rem;
+    left: .75rem;
+    width: auto;
+  }
+}
+
 /* Toasts */
 #toast-container {
   position: fixed;

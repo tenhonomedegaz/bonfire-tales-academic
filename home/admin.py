@@ -30,6 +30,7 @@ from .models import (
     TbEssencia,
     TbLinhagem,
     TbMapMarker,
+    TbMapDesenho,
     TbOpcaojogo,
     TbRaca,
     TbRecursoclasse,
@@ -2458,6 +2459,14 @@ class TbMapMarkerAdmin(BonfireAdminMixin, admin.ModelAdmin):
         return mark_safe(
             '<span style="background:#f27007;width:12px;height:12px;border-radius:50%;display:inline-block;"></span>'
         )
+
+
+@admin.register(TbMapDesenho)
+class TbMapDesenhoAdmin(BonfireAdminMixin, admin.ModelAdmin):
+    list_display = ("tipo", "nome", "camada", "ativo")
+    list_filter = ("tipo", "camada", "ativo")
+    search_fields = ("nome",)
+    ordering = ("camada", "ordem", "id_desenho")
 
 
 @admin.register(TbTalento)

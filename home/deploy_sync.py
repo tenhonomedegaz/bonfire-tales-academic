@@ -31,6 +31,9 @@ SUBSTITUI = [
     "TbClassehabilidade", "TbRecursoclasse", "TbAcessoopcao", "TbTracoracial",
     "TbCondicao", "TbIdioma", "TbRegra", "TbRecompensaMestre", "TbItemMundano",
     "TbRegiao", "TbTerritorio", "TbMapMarker", "TbBestiario", "TbArmadilha",
+    # Desenhos do mapa (WP1): mesma natureza do TbMapMarker — dado de mundo
+    # editado pela staff direto em produção, sem FK de usuário.
+    "TbMapDesenho",
 ]
 MEMORY_MODELS = [
     "TbPersonagem", "TbPersonagemAtributoBonus", "TbPersonagemClasse",

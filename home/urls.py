@@ -44,7 +44,10 @@ urlpatterns = [
     path('wiki/mapa/camadas/adicionar/', views.wiki_add_layer, name='wiki_add_layer'),
     path('wiki/mapa/camadas/<int:layer_id>/editar/', views.wiki_edit_layer, name='wiki_edit_layer'),
     path('wiki/mapa/camadas/<int:layer_id>/excluir/', views.wiki_delete_layer, name='wiki_delete_layer'),
-    
+    path('wiki/mapa/desenhos/salvar/', views.wiki_save_desenho, name='wiki_save_desenho'),
+    path('wiki/mapa/desenhos/excluir/', views.wiki_delete_desenho, name='wiki_delete_desenho'),
+    path('wiki/mapa/desenhos/upload-imagem/', views.wiki_upload_map_image, name='wiki_upload_map_image'),
+
     path('', views.home_view, name='home'),
     path('busca/', views.busca_global, name='busca'),
     path('jogador/classes/', views.classes_view, name='classes'),

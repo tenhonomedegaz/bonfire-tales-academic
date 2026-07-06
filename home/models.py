@@ -1768,3 +1768,45 @@ class TbUsuarioConquista(models.Model):
 
     def __str__(self):
         return '%s → %s' % (self.user.username, self.conquista.slug)
+
+
+class TbMapDesenho(models.Model):
+    """Marcação de desenho sobre o mapa criada pela staff no editor (WP1).
+
+    Modelo genérico único para todos os tipos de marcação livre do mapa:
+    imagem posicionável (overlay) e linha (reta, tracejada ou "ligação"
+    ancorada em markers). O que varia por tipo mora em `dados_json` — o
+    formato é validado 100% server-side (ver home/views.py:sanitize_desenho).
+
+    Natureza igual ao TbMapMarker: é dado de MUNDO editado pela staff direto
+    em produção, então entra no sync de conteúdo como "substitui inteira"
+    (ver home/deploy_sync.py). O front (mapa.html) filtra por `camada`.
+    """
+    TIPO_CHOICES = [
+        ('imagem', 'Imagem'),
+        ('linha', 'Linha'),
+    ]
+
+    id_desenho = models.AutoField(db_column='Id_Desenho', primary_key=True)
+    tipo = models.CharField(db_column='Tipo', max_length=20, choices=TIPO_CHOICES)
+    camada = models.IntegerField(db_column='Camada', default=0, help_text="Camada do mapa (0=Superficie, 1=Subterraneo Nivel 1, etc.)")
+    nome = models.CharField(db_column='Nome', max_length=150, blank=True, help_text="Rótulo do desenho (só para a staff se orientar).")
+    dados_json = models.JSONField(db_column='DadosJson', default=dict, help_text="Payload do desenho conforme o tipo (validado no servidor).")
+    ordem = models.IntegerField(db_column='Ordem', default=0)
+    ativo = models.BooleanField(db_column='Ativo', default=True)
+    criado_por = models.ForeignKey('auth.User', on_delete=models.SET_NULL,
+                                   null=True, blank=True,
+                                   related_name='desenhos_mapa',
+                                   db_column='CriadoPorId')
+    criado_em = models.DateTimeField(db_column='CriadoEm', auto_now_add=True)
+    atualizado_em = models.DateTimeField(db_column='AtualizadoEm', auto_now=True)
+
+    class Meta:
+        db_table = 'TB_MapDesenho'
+        verbose_name = 'Desenho do Mapa'
+        verbose_name_plural = 'Desenhos do Mapa'
+        ordering = ['camada', 'ordem', 'id_desenho']
+
+    def __str__(self):
+        rotulo = self.nome or '(sem rótulo)'
+        return '%s [%s] camada %s' % (rotulo, self.tipo, self.camada)

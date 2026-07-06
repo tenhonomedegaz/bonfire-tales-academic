@@ -66,6 +66,15 @@
             <span>Editar</span>
         </button>
         <div class="w-px h-6 bg-bonfire-stroke mx-1"></div>
+        <button class="admin-btn" onclick="startDrawLinha()" id="btnLinha" title="Desenhar Linha/Rota (ancora em pinos)">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 19L19 5M5 19a2 2 0 100-4 2 2 0 000 4zm14-14a2 2 0 100 4 2 2 0 000-4z"></path></svg>
+            <span>Linha</span>
+        </button>
+        <button class="admin-btn" onclick="startAddImagem()" id="btnImagem" title="Sobrepor Imagem (PNG)">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+            <span>Imagem</span>
+        </button>
+        <div class="w-px h-6 bg-bonfire-stroke mx-1"></div>
         <button class="admin-btn" onclick="applyChaikin()" id="btnSmooth" title="Suavizar Bordas">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
             <span>Suavizar</span>
@@ -205,6 +214,54 @@
   </div>
   {% endif %}
 
+  {% if can_edit_wiki %}
+  <!-- Painel flutuante de estilo de linha (aparece durante desenho/edição de uma linha) -->
+  <div id="linhaStylePanel" class="desenho-style-panel" hidden>
+    <div class="desenho-style-head">
+      <span>Estilo da Linha</span>
+      <button type="button" class="desenho-style-close" onclick="closeLinhaStylePanel()" title="Fechar">×</button>
+    </div>
+    <label class="desenho-style-row">
+      <span>Cor</span>
+      <input type="color" id="linhaColorInput" value="#ffffff">
+    </label>
+    <label class="desenho-style-row">
+      <span>Espessura</span>
+      <input type="range" id="linhaWeightInput" min="1" max="12" value="3">
+      <output id="linhaWeightOut">3</output>
+    </label>
+    <label class="desenho-style-row desenho-style-check">
+      <input type="checkbox" id="linhaDashInput">
+      <span>Tracejado</span>
+    </label>
+    <div id="linhaAnchorInfo" class="desenho-style-anchor"></div>
+    <div class="desenho-style-actions">
+      <button type="button" class="admin-btn desenho-danger" id="linhaDeleteBtn" onclick="deleteCurrentLinha()" hidden>Excluir</button>
+      <button type="button" class="admin-btn primary-active" id="linhaSaveBtn" onclick="saveCurrentLinha()">Salvar Linha</button>
+    </div>
+  </div>
+
+  <!-- Painel flutuante de imagem sobreposta -->
+  <div id="imagemStylePanel" class="desenho-style-panel" hidden>
+    <div class="desenho-style-head">
+      <span>Imagem Sobreposta</span>
+      <button type="button" class="desenho-style-close" onclick="closeImagemStylePanel()" title="Fechar">×</button>
+    </div>
+    <p class="desenho-style-hint" id="imagemStyleHint">Envie um PNG e desenhe um retângulo no mapa para posicioná-la.</p>
+    <label class="desenho-style-row">
+      <span>Opacidade</span>
+      <input type="range" id="imagemOpacityInput" min="0.1" max="1" step="0.05" value="1">
+      <output id="imagemOpacityOut">1</output>
+    </label>
+    <div class="desenho-style-actions">
+      <button type="button" class="admin-btn" id="imagemRedrawBtn" onclick="redrawImagemBounds()" hidden>Redesenhar área</button>
+      <button type="button" class="admin-btn desenho-danger" id="imagemDeleteBtn" onclick="deleteCurrentImagem()" hidden>Excluir</button>
+      <button type="button" class="admin-btn primary-active" id="imagemSaveBtn" onclick="saveCurrentImagem()" hidden>Salvar Imagem</button>
+    </div>
+    <input type="file" id="imagemFileInput" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
+  </div>
+  {% endif %}
+
   <aside class="map-detail-panel" id="mapDetail" aria-live="polite"></aside>
 </div>
 
@@ -219,6 +276,7 @@
 {{ json_regions|json_script:"regions-data" }}
 {{ json_territories|json_script:"territories-data" }}
 {{ json_layers|json_script:"layers-data" }}
+{{ json_desenhos|json_script:"desenhos-data" }}
 <script>
 const canEditWiki = {% if can_edit_wiki %}true{% else %}false{% endif %};
 
@@ -696,6 +754,21 @@ let isEditMode = false;
 
 let activeLayer = 0; // 0 = Superfície, 1 = Subterrâneo
 
+// ==== Desenhos do mapa (linhas / imagens sobrepostas) — WP2 ====
+// Pane dedicada para os desenhos: fica ACIMA da imagem de fundo (tilePane=200)
+// e ABAIXO dos marcadores (markerPane=600), para não interceptar cliques dos pinos.
+map.createPane('desenhosPane');
+map.getPane('desenhosPane').style.zIndex = 450;
+
+const jsonDesenhos = JSON.parse(document.getElementById('desenhos-data').textContent);
+// Grupo que só contém os desenhos da camada ativa (filtragem por camada EXATA,
+// igual aos markers em filterMap — SEM depender das classes .layer-N do CSS,
+// que têm teto de 20 e são só para os polígonos de território).
+const desenhosLayer = L.layerGroup().addTo(map);
+// desenho.id -> { data, leafletLayer|null } (leafletLayer só existe enquanto na camada ativa)
+const desenhoRegistry = new Map();
+jsonDesenhos.forEach(d => desenhoRegistry.set(d.id, { data: d, leafletLayer: null }));
+
 function switchLayer(layerIndex) {
     if (activeLayer === layerIndex) return;
     activeLayer = layerIndex;
@@ -917,7 +990,11 @@ function setupMarkersAndPolygons() {
         const newPos = e.target.getLatLng();
         updatePendingMarkerField(item.id, 'lat', newPos.lat);
         updatePendingMarkerField(item.id, 'lng', newPos.lng);
+        // Ligações: linhas ancoradas neste pino acompanham o novo ponto.
+        if (typeof renderDesenhos === 'function') renderDesenhos();
       });
+      // Enquanto arrasta, atualiza as ligações em tempo real (feedback visual).
+      marker.on('drag', () => { if (typeof renderDesenhos === 'function') renderDesenhos(); });
     }
 
     marker._bonfireData = item;
@@ -1297,9 +1374,95 @@ function updateActiveIndex() {
   });
 }
 
+// ==== Renderização dos desenhos (viewer, todos os usuários) ====
+
+// Resolve a posição ATUAL de um marker de ligação (id_marker) -> [lat, lng].
+// Usa o marker Leaflet vivo (que reflete arrastes não-salvos no editor) e cai
+// no dado embutido se o marker não estiver instanciado.
+function resolveMarkerLatLng(markerId) {
+    if (markerId === null || markerId === undefined) return null;
+    const live = leafletMarkers.find(m => m._bonfireData && m._bonfireData.id == markerId);
+    if (live) {
+        const ll = live.getLatLng();
+        return [ll.lat, ll.lng];
+    }
+    const raw = enrichedMarkers.find(m => m.id == markerId);
+    if (raw) return [raw.lat, raw.lng];
+    return null;
+}
+
+// Constrói os pontos efetivos de uma linha: se houver liga_marker_inicio/fim,
+// o primeiro/último ponto vira a posição atual do marker correspondente.
+function linhaEffectivePoints(dados) {
+    const pts = (dados.pontos || []).map(p => [p[0], p[1]]);
+    if (pts.length < 2) return pts;
+    if (dados.liga_marker_inicio !== null && dados.liga_marker_inicio !== undefined) {
+        const ll = resolveMarkerLatLng(dados.liga_marker_inicio);
+        if (ll) pts[0] = ll;
+    }
+    if (dados.liga_marker_fim !== null && dados.liga_marker_fim !== undefined) {
+        const ll = resolveMarkerLatLng(dados.liga_marker_fim);
+        if (ll) pts[pts.length - 1] = ll;
+    }
+    return pts;
+}
+
+// Cria a camada Leaflet de um desenho. interactive=false no viewer (não intercepta
+// cliques dos markers); no editor passamos interactive=true para poder selecioná-lo.
+function buildDesenhoLayer(d, interactive) {
+    const dados = d.dados_json || {};
+    if (d.tipo === 'linha') {
+        const pts = linhaEffectivePoints(dados);
+        if (pts.length < 2) return null;
+        const layer = L.polyline(pts, {
+            pane: 'desenhosPane',
+            color: dados.cor || '#ffffff',
+            weight: dados.espessura || 3,
+            opacity: 0.9,
+            dashArray: dados.tracejado ? '10, 8' : null,
+            interactive: !!interactive,
+            bubblingMouseEvents: false
+        });
+        return layer;
+    }
+    if (d.tipo === 'imagem') {
+        const b = dados.bounds;
+        if (!Array.isArray(b) || b.length !== 2) return null;
+        const layer = L.imageOverlay(dados.url, [b[0], b[1]], {
+            pane: 'desenhosPane',
+            opacity: (dados.opacidade === undefined || dados.opacidade === null) ? 1 : dados.opacidade,
+            interactive: !!interactive
+        });
+        return layer;
+    }
+    return null;
+}
+
+// Filtra os desenhos por camada EXATA (mesmo mecanismo dos markers) e (re)desenha.
+function renderDesenhos() {
+    desenhoRegistry.forEach(entry => {
+        const d = entry.data;
+        // Remove a instância antiga (para re-resolver ligações que possam ter mudado).
+        if (entry.leafletLayer) {
+            desenhosLayer.removeLayer(entry.leafletLayer);
+            entry.leafletLayer = null;
+        }
+        if ((d.camada || 0) !== activeLayer) return; // camada 1 não aparece na 2
+        const layer = buildDesenhoLayer(d, false);
+        if (layer) {
+            layer._bonfireDesenhoId = d.id;
+            desenhosLayer.addLayer(layer);
+            entry.leafletLayer = layer;
+        }
+    });
+}
+
+renderDesenhos();
+
 function filterMap() {
   const query = document.getElementById('mapSearch').value.toLowerCase();
   const cat = document.getElementById('categoryFilter').value;
+  renderDesenhos();
   markersLayer.clearLayers();
   leafletMarkers.forEach(m => {
     const d = m._bonfireData;
@@ -1347,7 +1510,9 @@ function startCreateMarker() {
         const pos = marker.getLatLng();
         updatePendingMarkerField(tempId, 'lat', pos.lat);
         updatePendingMarkerField(tempId, 'lng', pos.lng);
+        if (typeof renderDesenhos === 'function') renderDesenhos();
     });
+    marker.on('drag', () => { if (typeof renderDesenhos === 'function') renderDesenhos(); });
     
     marker.on('click', (e) => {
         L.DomEvent.stopPropagation(e);
@@ -2550,6 +2715,425 @@ function deleteLayer(layerId) {
         console.error(err);
         showToast('Falha na comunicação com o servidor.', 'error');
     });
+}
+
+// ============================================================================
+// EDITOR DE DESENHOS (staff) — linhas/rotas e imagens sobrepostas — WP2
+// ============================================================================
+if (canEditWiki) {
+  const CSRF_TOKEN = '{{ csrf_token }}';
+  const ANCHOR_TOLERANCE_PX = 22; // proximidade (px) p/ ancorar linha em um pino
+
+  // Estado da linha em edição/criação.
+  let linhaDraft = null;   // { id|null, layer, dados, isNew }
+  let imagemDraft = null;  // { id|null, layer, dados, isNew }
+
+  function postJson(url, body) {
+    return fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
+      body: JSON.stringify(body)
+    }).then(async r => {
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok || !data.ok) throw new Error(data.error || ('HTTP ' + r.status));
+      return data;
+    });
+  }
+
+  // ---- Registro local: adiciona/atualiza/remove um desenho no cache e re-renderiza.
+  function upsertDesenhoLocal(d) {
+    desenhoRegistry.set(d.id, { data: d, leafletLayer: null });
+    renderDesenhos();
+  }
+  function removeDesenhoLocal(id) {
+    const entry = desenhoRegistry.get(id);
+    if (entry && entry.leafletLayer) desenhosLayer.removeLayer(entry.leafletLayer);
+    desenhoRegistry.delete(id);
+  }
+
+  // ---- Detecção de ancoragem: dado um LatLng, retorna o id do marker mais próximo
+  // dentro da tolerância (em pixels), considerando só markers da camada ativa.
+  function findAnchorMarker(latlng) {
+    const target = map.latLngToContainerPoint(latlng);
+    let best = null, bestDist = ANCHOR_TOLERANCE_PX;
+    leafletMarkers.forEach(m => {
+      const d = m._bonfireData;
+      if (!d || d.id === null || d.id === undefined) return;
+      if ((d.camada || 0) !== activeLayer) return;
+      const p = map.latLngToContainerPoint(m.getLatLng());
+      const dist = target.distanceTo(p);
+      if (dist < bestDist) { bestDist = dist; best = d.id; }
+    });
+    return best;
+  }
+
+  // ===================== LINHAS =====================
+
+  function openLinhaStylePanel() {
+    document.getElementById('linhaStylePanel').hidden = false;
+    document.getElementById('imagemStylePanel').hidden = true;
+  }
+  window.closeLinhaStylePanel = function () {
+    document.getElementById('linhaStylePanel').hidden = true;
+    if (linhaDraft && linhaDraft.layer) {
+      if (linhaDraft.layer.pm && linhaDraft.layer.pm.enabled()) linhaDraft.layer.pm.disable();
+    }
+    linhaDraft = null;
+    renderDesenhos(); // restaura a versão viewer (não-interativa)
+  };
+
+  function syncLinhaPanelFromDraft() {
+    if (!linhaDraft) return;
+    const dd = linhaDraft.dados;
+    document.getElementById('linhaColorInput').value = dd.cor || '#ffffff';
+    document.getElementById('linhaWeightInput').value = dd.espessura || 3;
+    document.getElementById('linhaWeightOut').textContent = dd.espessura || 3;
+    document.getElementById('linhaDashInput').checked = !!dd.tracejado;
+    document.getElementById('linhaDeleteBtn').hidden = !!linhaDraft.isNew;
+    updateLinhaAnchorInfo();
+  }
+
+  function updateLinhaAnchorInfo() {
+    const el = document.getElementById('linhaAnchorInfo');
+    if (!linhaDraft) { el.textContent = ''; return; }
+    const dd = linhaDraft.dados;
+    const nameOf = (id) => {
+      if (id === null || id === undefined) return null;
+      const m = enrichedMarkers.find(x => x.id == id);
+      return m ? m.nome : ('#' + id);
+    };
+    const ini = nameOf(dd.liga_marker_inicio);
+    const fim = nameOf(dd.liga_marker_fim);
+    if (ini || fim) {
+      el.innerHTML = 'Ancorada: início → <b>' + escapeHtml(ini || 'livre') +
+                     '</b>, fim → <b>' + escapeHtml(fim || 'livre') + '</b>';
+    } else {
+      el.textContent = 'Sem ancoragem em pinos.';
+    }
+  }
+
+  // Aplica o estilo atual do painel à camada Leaflet do rascunho (feedback vivo).
+  function applyLinhaStyleToLayer() {
+    if (!linhaDraft || !linhaDraft.layer) return;
+    const dd = linhaDraft.dados;
+    linhaDraft.layer.setStyle({
+      color: dd.cor || '#ffffff',
+      weight: dd.espessura || 3,
+      dashArray: dd.tracejado ? '10, 8' : null
+    });
+  }
+
+  // Lê os vértices atuais da polyline e recalcula ancoragens nas pontas.
+  function refreshLinhaDadosFromLayer() {
+    if (!linhaDraft || !linhaDraft.layer) return;
+    let latlngs = linhaDraft.layer.getLatLngs();
+    // polyline simples => array de LatLng
+    if (Array.isArray(latlngs) && latlngs.length && Array.isArray(latlngs[0])) latlngs = latlngs[0];
+    const pts = latlngs.map(ll => [ll.lat, ll.lng]);
+    linhaDraft.dados.pontos = pts;
+    if (pts.length >= 2) {
+      linhaDraft.dados.liga_marker_inicio = findAnchorMarker(L.latLng(pts[0][0], pts[0][1]));
+      linhaDraft.dados.liga_marker_fim = findAnchorMarker(L.latLng(pts[pts.length - 1][0], pts[pts.length - 1][1]));
+    }
+    updateLinhaAnchorInfo();
+  }
+
+  window.startDrawLinha = function () {
+    if (linhaDraft) { showToast('Finalize a linha atual primeiro.', 'info'); return; }
+    showToast('Clique para traçar a linha. Duplo-clique/Enter finaliza. Pontas perto de um pino ancoram.', 'info');
+    isEditMode = true;
+    updateAdminEditState();
+    document.getElementById('btnLinha')?.classList.add('primary-active');
+
+    map.pm.enableDraw('Line', { snappable: true, snapDistance: 20 });
+
+    const cleanup = () => {
+      map.off('pm:drawend', cleanup);
+      isEditMode = false;
+      updateAdminEditState();
+      document.getElementById('btnLinha')?.classList.remove('primary-active');
+    };
+    map.on('pm:drawend', cleanup);
+
+    map.once('pm:create', (e) => {
+      const layer = e.layer;
+      // Remove a layer crua do Geoman; passamos a gerir pelo desenhosLayer.
+      map.removeLayer(layer);
+
+      let latlngs = layer.getLatLngs();
+      if (Array.isArray(latlngs) && latlngs.length && Array.isArray(latlngs[0])) latlngs = latlngs[0];
+      const pts = latlngs.map(ll => [ll.lat, ll.lng]);
+      if (pts.length < 2) { showToast('Linha precisa de ao menos 2 pontos.', 'error'); return; }
+
+      const dados = {
+        pontos: pts,
+        cor: document.getElementById('linhaColorInput').value || '#ffffff',
+        espessura: parseInt(document.getElementById('linhaWeightInput').value) || 3,
+        tracejado: document.getElementById('linhaDashInput').checked,
+        liga_marker_inicio: findAnchorMarker(L.latLng(pts[0][0], pts[0][1])),
+        liga_marker_fim: findAnchorMarker(L.latLng(pts[pts.length - 1][0], pts[pts.length - 1][1]))
+      };
+
+      const editLayer = L.polyline(pts, {
+        pane: 'desenhosPane', color: dados.cor, weight: dados.espessura,
+        dashArray: dados.tracejado ? '10, 8' : null, interactive: true
+      }).addTo(map);
+
+      linhaDraft = { id: null, layer: editLayer, dados: dados, isNew: true };
+      if (editLayer.pm) {
+        editLayer.pm.enable({ allowSelfIntersection: true });
+        editLayer.on('pm:edit', refreshLinhaDadosFromLayer);
+        editLayer.on('pm:markerdragend', refreshLinhaDadosFromLayer);
+      }
+      openLinhaStylePanel();
+      syncLinhaPanelFromDraft();
+    });
+  };
+
+  // Editar uma linha já salva: instancia versão interativa + painel.
+  function editExistingLinha(id) {
+    if (linhaDraft) closeLinhaStylePanel();
+    const entry = desenhoRegistry.get(id);
+    if (!entry) return;
+    const d = entry.data;
+    // remove a versão viewer
+    if (entry.leafletLayer) { desenhosLayer.removeLayer(entry.leafletLayer); entry.leafletLayer = null; }
+    const dados = JSON.parse(JSON.stringify(d.dados_json || {}));
+    const pts = (dados.pontos || []).map(p => [p[0], p[1]]);
+    const editLayer = L.polyline(pts, {
+      pane: 'desenhosPane', color: dados.cor || '#ffffff', weight: dados.espessura || 3,
+      dashArray: dados.tracejado ? '10, 8' : null, interactive: true
+    }).addTo(map);
+    linhaDraft = { id: id, layer: editLayer, dados: dados, isNew: false };
+    if (editLayer.pm) {
+      editLayer.pm.enable({ allowSelfIntersection: true });
+      editLayer.on('pm:edit', refreshLinhaDadosFromLayer);
+      editLayer.on('pm:markerdragend', refreshLinhaDadosFromLayer);
+    }
+    openLinhaStylePanel();
+    syncLinhaPanelFromDraft();
+  }
+
+  window.saveCurrentLinha = function () {
+    if (!linhaDraft) return;
+    refreshLinhaDadosFromLayer();
+    const btn = document.getElementById('linhaSaveBtn');
+    btn.disabled = true; const prev = btn.textContent; btn.textContent = 'Salvando...';
+    const payload = {
+      id: linhaDraft.id, tipo: 'linha', camada: activeLayer,
+      nome: '', dados_json: linhaDraft.dados
+    };
+    postJson('/wiki/mapa/desenhos/salvar/', payload).then(data => {
+      const saved = {
+        id: data.id, tipo: 'linha', camada: activeLayer, nome: '', ordem: 0,
+        dados_json: linhaDraft.dados
+      };
+      if (linhaDraft.layer) { map.removeLayer(linhaDraft.layer); linhaDraft.layer = null; }
+      linhaDraft = null;
+      document.getElementById('linhaStylePanel').hidden = true;
+      upsertDesenhoLocal(saved);
+      showToast('Linha salva.', 'success');
+    }).catch(err => {
+      showToast('Erro ao salvar linha: ' + err.message, 'error');
+    }).finally(() => { btn.disabled = false; btn.textContent = prev; });
+  };
+
+  window.deleteCurrentLinha = function () {
+    if (!linhaDraft || linhaDraft.isNew || linhaDraft.id === null) { closeLinhaStylePanel(); return; }
+    if (!confirm('Excluir esta linha?')) return;
+    const id = linhaDraft.id;
+    postJson('/wiki/mapa/desenhos/excluir/', { id: id }).then(() => {
+      if (linhaDraft && linhaDraft.layer) map.removeLayer(linhaDraft.layer);
+      linhaDraft = null;
+      document.getElementById('linhaStylePanel').hidden = true;
+      removeDesenhoLocal(id);
+      showToast('Linha excluída.', 'success');
+    }).catch(err => showToast('Erro ao excluir: ' + err.message, 'error'));
+  };
+
+  // Inputs do painel de linha reagem ao vivo.
+  document.getElementById('linhaColorInput').addEventListener('input', (e) => {
+    if (!linhaDraft) return; linhaDraft.dados.cor = e.target.value; applyLinhaStyleToLayer();
+  });
+  document.getElementById('linhaWeightInput').addEventListener('input', (e) => {
+    document.getElementById('linhaWeightOut').textContent = e.target.value;
+    if (!linhaDraft) return; linhaDraft.dados.espessura = parseInt(e.target.value); applyLinhaStyleToLayer();
+  });
+  document.getElementById('linhaDashInput').addEventListener('change', (e) => {
+    if (!linhaDraft) return; linhaDraft.dados.tracejado = e.target.checked; applyLinhaStyleToLayer();
+  });
+
+  // ===================== IMAGENS =====================
+
+  window.closeImagemStylePanel = function () {
+    document.getElementById('imagemStylePanel').hidden = true;
+    if (imagemDraft && imagemDraft.layer) map.removeLayer(imagemDraft.layer);
+    imagemDraft = null;
+    renderDesenhos();
+  };
+
+  function openImagemStylePanel() {
+    document.getElementById('imagemStylePanel').hidden = false;
+    document.getElementById('linhaStylePanel').hidden = true;
+  }
+
+  window.startAddImagem = function () {
+    if (imagemDraft) { showToast('Finalize a imagem atual primeiro.', 'info'); return; }
+    document.getElementById('imagemFileInput').value = '';
+    document.getElementById('imagemFileInput').click();
+  };
+
+  document.getElementById('imagemFileInput').addEventListener('change', function () {
+    const file = this.files[0];
+    if (!file) return;
+    const fd = new FormData();
+    fd.append('imagem', file);
+    fd.append('csrfmiddlewaretoken', CSRF_TOKEN);
+    showToast('Enviando imagem...', 'info');
+    fetch('/wiki/mapa/desenhos/upload-imagem/', {
+      method: 'POST', body: fd, headers: { 'X-CSRFToken': CSRF_TOKEN, 'X-Requested-With': 'XMLHttpRequest' }
+    }).then(async r => {
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok || !data.ok) throw new Error(data.error || ('HTTP ' + r.status));
+      imagemDraft = {
+        id: null, isNew: true, layer: null,
+        dados: { url: data.url, bounds: null, opacidade: 1 }
+      };
+      openImagemStylePanel();
+      document.getElementById('imagemStyleHint').textContent = 'Desenhe um retângulo no mapa para posicionar a imagem.';
+      document.getElementById('imagemOpacityInput').value = 1;
+      document.getElementById('imagemOpacityOut').textContent = '1';
+      beginRectForImagem();
+    }).catch(err => showToast('Erro no upload: ' + err.message, 'error'));
+  });
+
+  // Ativa o desenho de retângulo (Geoman) que define os bounds da imagem.
+  function beginRectForImagem() {
+    showToast('Desenhe um retângulo: ele será os limites da imagem.', 'info');
+    isEditMode = true; updateAdminEditState();
+    map.pm.enableDraw('Rectangle', { snappable: false });
+    const cleanup = () => { map.off('pm:drawend', cleanup); isEditMode = false; updateAdminEditState(); };
+    map.on('pm:drawend', cleanup);
+    map.once('pm:create', (e) => {
+      const rect = e.layer;
+      const b = rect.getBounds();
+      map.removeLayer(rect);
+      const bounds = [[b.getSouth(), b.getWest()], [b.getNorth(), b.getEast()]];
+      imagemDraft.dados.bounds = bounds;
+      renderImagemDraft();
+      document.getElementById('imagemStyleHint').textContent = 'Ajuste a opacidade e salve. Você pode redesenhar a área.';
+      document.getElementById('imagemSaveBtn').hidden = false;
+      document.getElementById('imagemRedrawBtn').hidden = false;
+    });
+  }
+
+  window.redrawImagemBounds = function () {
+    if (!imagemDraft) return;
+    if (imagemDraft.layer) { map.removeLayer(imagemDraft.layer); imagemDraft.layer = null; }
+    beginRectForImagem();
+  };
+
+  function renderImagemDraft() {
+    if (!imagemDraft || !imagemDraft.dados.bounds) return;
+    if (imagemDraft.layer) map.removeLayer(imagemDraft.layer);
+    imagemDraft.layer = L.imageOverlay(imagemDraft.dados.url, imagemDraft.dados.bounds, {
+      pane: 'desenhosPane', opacity: imagemDraft.dados.opacidade, interactive: false
+    }).addTo(map);
+  }
+
+  document.getElementById('imagemOpacityInput').addEventListener('input', (e) => {
+    document.getElementById('imagemOpacityOut').textContent = e.target.value;
+    if (!imagemDraft) return;
+    imagemDraft.dados.opacidade = parseFloat(e.target.value);
+    if (imagemDraft.layer) imagemDraft.layer.setOpacity(imagemDraft.dados.opacidade);
+  });
+
+  window.saveCurrentImagem = function () {
+    if (!imagemDraft || !imagemDraft.dados.bounds) { showToast('Desenhe a área da imagem primeiro.', 'error'); return; }
+    const btn = document.getElementById('imagemSaveBtn');
+    btn.disabled = true; const prev = btn.textContent; btn.textContent = 'Salvando...';
+    const payload = {
+      id: imagemDraft.id, tipo: 'imagem', camada: activeLayer, nome: '',
+      dados_json: imagemDraft.dados
+    };
+    postJson('/wiki/mapa/desenhos/salvar/', payload).then(data => {
+      const saved = {
+        id: data.id, tipo: 'imagem', camada: activeLayer, nome: '', ordem: 0,
+        dados_json: imagemDraft.dados
+      };
+      if (imagemDraft.layer) { map.removeLayer(imagemDraft.layer); imagemDraft.layer = null; }
+      imagemDraft = null;
+      document.getElementById('imagemStylePanel').hidden = true;
+      upsertDesenhoLocal(saved);
+      showToast('Imagem salva.', 'success');
+    }).catch(err => {
+      showToast('Erro ao salvar imagem: ' + err.message, 'error');
+    }).finally(() => { btn.disabled = false; btn.textContent = prev; });
+  };
+
+  window.deleteCurrentImagem = function () {
+    if (!imagemDraft || imagemDraft.isNew || imagemDraft.id === null) { closeImagemStylePanel(); return; }
+    if (!confirm('Excluir esta imagem?')) return;
+    const id = imagemDraft.id;
+    postJson('/wiki/mapa/desenhos/excluir/', { id: id }).then(() => {
+      if (imagemDraft && imagemDraft.layer) map.removeLayer(imagemDraft.layer);
+      imagemDraft = null;
+      document.getElementById('imagemStylePanel').hidden = true;
+      removeDesenhoLocal(id);
+      showToast('Imagem excluída.', 'success');
+    }).catch(err => showToast('Erro ao excluir: ' + err.message, 'error'));
+  };
+
+  function editExistingImagem(id) {
+    if (imagemDraft) closeImagemStylePanel();
+    const entry = desenhoRegistry.get(id);
+    if (!entry) return;
+    const d = entry.data;
+    if (entry.leafletLayer) { desenhosLayer.removeLayer(entry.leafletLayer); entry.leafletLayer = null; }
+    const dados = JSON.parse(JSON.stringify(d.dados_json || {}));
+    imagemDraft = { id: id, isNew: false, layer: null, dados: dados };
+    renderImagemDraft();
+    openImagemStylePanel();
+    document.getElementById('imagemStyleHint').textContent = 'Ajuste a opacidade, redesenhe a área ou exclua.';
+    document.getElementById('imagemOpacityInput').value = dados.opacidade || 1;
+    document.getElementById('imagemOpacityOut').textContent = dados.opacidade || 1;
+    document.getElementById('imagemSaveBtn').hidden = false;
+    document.getElementById('imagemRedrawBtn').hidden = false;
+    document.getElementById('imagemDeleteBtn').hidden = false;
+  }
+
+  // Expor edição de desenhos existentes: clique nos desenhos renderizados no viewer.
+  // Como o viewer usa interactive:false, adicionamos um clique via layer group.
+  desenhosLayer.on('click', (e) => {
+    const id = e.layer && e.layer._bonfireDesenhoId;
+    if (id === undefined || id === null) return;
+    const entry = desenhoRegistry.get(id);
+    if (!entry) return;
+    if (entry.data.tipo === 'linha') editExistingLinha(id);
+    else if (entry.data.tipo === 'imagem') editExistingImagem(id);
+  });
+
+  // Torna os desenhos clicáveis SÓ para staff (viewer normal permanece interactive:false):
+  // reconstruímos o render staff com interactive:true.
+  const _origRenderDesenhos = renderDesenhos;
+  renderDesenhos = function () {
+    desenhoRegistry.forEach(entry => {
+      const d = entry.data;
+      if (entry.leafletLayer) { desenhosLayer.removeLayer(entry.leafletLayer); entry.leafletLayer = null; }
+      // Não re-renderiza o item que está sendo editado (tem sua própria layer viva).
+      if (linhaDraft && linhaDraft.id === d.id) return;
+      if (imagemDraft && imagemDraft.id === d.id) return;
+      if ((d.camada || 0) !== activeLayer) return;
+      const layer = buildDesenhoLayer(d, true); // interactive p/ staff poder clicar e editar
+      if (layer) {
+        layer._bonfireDesenhoId = d.id;
+        if (d.tipo === 'linha') layer.on('mouseover', () => layer.setStyle && layer.setStyle({ opacity: 1 }));
+        desenhosLayer.addLayer(layer);
+        entry.leafletLayer = layer;
+      }
+    });
+  };
+  renderDesenhos();
 }
 
 </script>

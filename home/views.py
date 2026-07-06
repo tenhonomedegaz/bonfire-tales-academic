@@ -41,6 +41,7 @@ from .models import (
     TbLinhagem,
     TbMapMarker,
     TbMapLayer,
+    TbMapDesenho,
     TbOpcaojogo,
     TbRaca,
     TbRecursoclasse,
@@ -5427,16 +5428,22 @@ def mapa_view(request):
             for marker in marcadores_docs
         ]
 
+        # Desenhos (WP1): moram só no banco relacional (TbMapDesenho), mesmo no
+        # caminho Mongo. Front filtra por camada (com campo camada em cada item).
+        desenhos_lista = [desenho_payload(d) for d in TbMapDesenho.objects.filter(ativo=True)]
+
         if not request.user.is_staff:
             marcadores_lista = [m for m in marcadores_lista if m.get('camada', 0) in public_layers]
             regioes_lista = [r for r in regioes_lista if r.get('camada', 0) in public_layers]
             territorios_lista = [t for t in territorios_lista if t.get('camada', 0) in public_layers]
+            desenhos_lista = [d for d in desenhos_lista if d.get('camada', 0) in public_layers]
 
         return render(request, 'home/pages/mapa.html', {
             'json_markers': marcadores_lista,
             'json_regions': regioes_lista,
             'json_territories': territorios_lista,
             'json_layers': layers_lista,
+            'json_desenhos': desenhos_lista,
             'can_edit_wiki': request.user.is_staff,
         })
     except BotMongoUnavailable:
@@ -5460,16 +5467,20 @@ def mapa_view(request):
             'lore_url': _marker_lore_url(m.nome, ''),
         })
 
+    desenhos_lista = [desenho_payload(d) for d in TbMapDesenho.objects.filter(ativo=True)]
+
     if not request.user.is_staff:
         marcadores_lista = [m for m in marcadores_lista if m.get('camada', 0) in public_layers]
         regioes_lista = [r for r in regioes_lista if r.get('camada', 0) in public_layers]
         territorios_lista = [t for t in territorios_lista if t.get('camada', 0) in public_layers]
+        desenhos_lista = [d for d in desenhos_lista if d.get('camada', 0) in public_layers]
 
     context = {
         'json_markers': marcadores_lista,
         'json_regions': regioes_lista,
         'json_territories': territorios_lista,
         'json_layers': layers_lista,
+        'json_desenhos': desenhos_lista,
         'can_edit_wiki': request.user.is_staff,
     }
     return render(request, 'home/pages/mapa.html', context)
@@ -8603,6 +8614,257 @@ def wiki_delete_layer(request, layer_id):
     TbMapMarker.objects.filter(camada=layer_id).update(camada=0)
     TbRegiao.objects.filter(camada=layer_id).update(camada=0)
     TbTerritorio.objects.filter(camada=layer_id).update(camada=0)
-    
+    TbMapDesenho.objects.filter(camada=layer_id).update(camada=0)
+
     layer.delete()
     return JsonResponse({'ok': True})
+
+
+# ===========================================================================
+# Desenhos do mapa (WP1): imagens e linhas livres desenhadas pela staff.
+# Contrato (dados_json por tipo):
+#   linha:  { pontos: [[lat,lng],...], cor: '#rrggbb', espessura: 1..12,
+#             tracejado: bool, liga_marker_inicio: <id|null>,
+#             liga_marker_fim: <id|null> }
+#   imagem: { url: '<media/static/http>', bounds: [[lat,lng],[lat,lng]],
+#             opacidade: 0.1..1.0 }
+# Toda validação é server-side em sanitize_desenho(); os endpoints só
+# persistem o que passa pela sanitização.
+# ===========================================================================
+
+_HEX_COR_RE = re.compile(r'^#[0-9a-fA-F]{6}$')
+
+# Extensões e limite próprios do upload de imagem de mapa (independente do
+# perfil): PNG/JPG/JPEG/WEBP/GIF, até ~8MB.
+MAP_IMAGE_UPLOAD_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.gif', '.webp'}
+MAP_IMAGE_UPLOAD_MAX_MB = 8
+
+
+def _clamp_num(val, minimo, maximo, padrao):
+    """Converte para float e limita a [minimo, maximo]; usa padrao se inválido."""
+    try:
+        n = float(val)
+    except (TypeError, ValueError):
+        return padrao
+    if n != n:  # NaN
+        return padrao
+    return max(minimo, min(maximo, n))
+
+
+def _ponto_valido(p):
+    """Um ponto = par [lat, lng] numérico finito."""
+    if not isinstance(p, (list, tuple)) or len(p) != 2:
+        return None
+    try:
+        lat = float(p[0])
+        lng = float(p[1])
+    except (TypeError, ValueError):
+        return None
+    if lat != lat or lng != lng:  # NaN
+        return None
+    if lat in (float('inf'), float('-inf')) or lng in (float('inf'), float('-inf')):
+        return None
+    return [lat, lng]
+
+
+def _url_imagem_segura(url):
+    """Aceita só /media/, /static/ ou http(s). Bloqueia javascript:, data:, etc."""
+    url = (url or '').strip()
+    if not url:
+        return ''
+    baixo = url.lower()
+    if baixo.startswith(('http://', 'https://')):
+        return url
+    if url.startswith(('/media/', '/static/')):
+        return url
+    return ''
+
+
+def _marker_id_valido(valor):
+    """Retorna o id do marker se ele existir no banco; senão None."""
+    if valor in (None, '', 'null', 'undefined'):
+        return None
+    try:
+        mid = int(valor)
+    except (TypeError, ValueError):
+        return None
+    if TbMapMarker.objects.filter(pk=mid).exists():
+        return mid
+    return None
+
+
+def sanitize_desenho(tipo, dados):
+    """Valida/normaliza o dados_json de um desenho conforme o tipo.
+
+    Retorna (tipo_normalizado, dados_limpos). Levanta ValueError se o payload
+    for irrecuperável (tipo inválido, poucos pontos, imagem sem url/bounds).
+    Função pura e testável — não toca no banco a não ser para validar a
+    existência dos markers de ligação (liga_marker_*)."""
+    tipo = (tipo or '').strip().lower()
+    if tipo not in ('linha', 'imagem'):
+        raise ValueError('Tipo de desenho inválido (use "linha" ou "imagem").')
+
+    if not isinstance(dados, dict):
+        raise ValueError('dados_json deve ser um objeto.')
+
+    if tipo == 'linha':
+        pontos_raw = dados.get('pontos')
+        if not isinstance(pontos_raw, (list, tuple)):
+            raise ValueError('Linha requer uma lista de pontos.')
+        pontos = []
+        for p in pontos_raw:
+            pv = _ponto_valido(p)
+            if pv is not None:
+                pontos.append(pv)
+        if len(pontos) < 2:
+            raise ValueError('Linha requer no mínimo 2 pontos válidos.')
+
+        cor = (dados.get('cor') or '').strip()
+        if not _HEX_COR_RE.match(cor):
+            cor = '#ffffff'
+
+        espessura = int(_clamp_num(dados.get('espessura'), 1, 12, 3))
+
+        return 'linha', {
+            'pontos': pontos,
+            'cor': cor,
+            'espessura': espessura,
+            'tracejado': bool(dados.get('tracejado')),
+            'liga_marker_inicio': _marker_id_valido(dados.get('liga_marker_inicio')),
+            'liga_marker_fim': _marker_id_valido(dados.get('liga_marker_fim')),
+        }
+
+    # tipo == 'imagem'
+    url = _url_imagem_segura(dados.get('url'))
+    if not url:
+        raise ValueError('Imagem requer uma url válida (/media/, /static/ ou http[s]).')
+
+    bounds_raw = dados.get('bounds')
+    if not isinstance(bounds_raw, (list, tuple)) or len(bounds_raw) != 2:
+        raise ValueError('Imagem requer bounds = [[lat,lng],[lat,lng]].')
+    b0 = _ponto_valido(bounds_raw[0])
+    b1 = _ponto_valido(bounds_raw[1])
+    if b0 is None or b1 is None:
+        raise ValueError('Bounds da imagem inválidos.')
+
+    opacidade = _clamp_num(dados.get('opacidade'), 0.1, 1.0, 1.0)
+
+    return 'imagem', {
+        'url': url,
+        'bounds': [b0, b1],
+        'opacidade': opacidade,
+    }
+
+
+def desenho_payload(d):
+    """Serializa um TbMapDesenho para o front (mesmo padrão de markers)."""
+    return {
+        'id': d.id_desenho,
+        'tipo': d.tipo,
+        'camada': d.camada,
+        'nome': d.nome or '',
+        'ordem': d.ordem,
+        'dados_json': d.dados_json or {},
+    }
+
+
+@staff_member_required
+@require_POST
+def wiki_save_desenho(request):
+    """Cria ou atualiza um desenho do mapa. JSON:
+    { id?, tipo, camada, nome, dados_json }. Retorna {ok, id}."""
+    data = _json_body(request)
+
+    desenho_id = data.get('id')
+    if desenho_id in ('', 'null', 'undefined'):
+        desenho_id = None
+
+    existente = None
+    if desenho_id is not None:
+        try:
+            existente = TbMapDesenho.objects.filter(pk=int(desenho_id)).first()
+        except (TypeError, ValueError):
+            existente = None
+        if existente is None:
+            return JsonResponse({'ok': False, 'error': 'Desenho não encontrado.'}, status=404)
+
+    # Tipo: no update usa o enviado, senão preserva o existente.
+    tipo = data.get('tipo') if 'tipo' in data else (existente.tipo if existente else None)
+    dados = data.get('dados_json') if 'dados_json' in data else (existente.dados_json if existente else {})
+
+    try:
+        tipo_norm, dados_limpos = sanitize_desenho(tipo, dados)
+    except ValueError as exc:
+        return JsonResponse({'ok': False, 'error': str(exc)}, status=400)
+
+    if existente is None:
+        desenho = TbMapDesenho(criado_por=request.user)
+    else:
+        desenho = existente
+
+    desenho.tipo = tipo_norm
+    desenho.dados_json = dados_limpos
+
+    # Update parcial: só sobrescreve os campos enviados no payload.
+    if 'camada' in data or existente is None:
+        try:
+            desenho.camada = int(data.get('camada') or 0)
+        except (TypeError, ValueError):
+            desenho.camada = desenho.camada if existente else 0
+    if 'nome' in data or existente is None:
+        desenho.nome = (data.get('nome') or '').strip()[:150]
+    if 'ordem' in data:
+        try:
+            desenho.ordem = int(data.get('ordem') or 0)
+        except (TypeError, ValueError):
+            pass
+    if 'ativo' in data:
+        desenho.ativo = bool(data.get('ativo'))
+
+    desenho.save()
+    acao = 'Criação' if existente is None else 'Edição'
+    _log_wiki_edit(request, desenho, f"{acao} inline de desenho do mapa: {desenho}")
+    return JsonResponse({'ok': True, 'id': desenho.id_desenho})
+
+
+@staff_member_required
+@require_POST
+def wiki_delete_desenho(request):
+    """Remove um desenho do mapa. JSON: { id }. Retorna {ok}."""
+    data = _json_body(request)
+    desenho_id = data.get('id')
+    try:
+        desenho = TbMapDesenho.objects.filter(pk=int(desenho_id)).first()
+    except (TypeError, ValueError):
+        desenho = None
+    if desenho is None:
+        return JsonResponse({'ok': False, 'error': 'Desenho não encontrado.'}, status=404)
+    desenho.delete()
+    return JsonResponse({'ok': True})
+
+
+@staff_member_required
+@require_POST
+def wiki_upload_map_image(request):
+    """Recebe um upload de imagem (multipart) para overlay do mapa, salvo em
+    MEDIA 'map_uploads/'. Retorna {ok, url}. PNG/JPG/JPEG/WEBP/GIF, até ~8MB."""
+    uploaded = request.FILES.get('imagem') or request.FILES.get('file')
+    if not uploaded:
+        return JsonResponse({'ok': False, 'error': 'Nenhum arquivo enviado.'}, status=400)
+
+    if uploaded.size > MAP_IMAGE_UPLOAD_MAX_MB * 1024 * 1024:
+        return JsonResponse({'ok': False, 'error': 'A imagem deve ter no máximo %d MB.' % MAP_IMAGE_UPLOAD_MAX_MB}, status=400)
+
+    nome_orig = uploaded.name or ''
+    ext = ('.' + nome_orig.split('.')[-1].lower()) if '.' in nome_orig else ''
+    content_type = (getattr(uploaded, 'content_type', '') or '').lower()
+    if not ext and content_type.startswith('image/'):
+        ext = '.' + content_type.split('/', 1)[1].replace('jpeg', 'jpg')
+    if ext not in MAP_IMAGE_UPLOAD_EXTENSIONS or not content_type.startswith('image/'):
+        return JsonResponse({'ok': False, 'error': 'Envie uma imagem PNG, JPG, WEBP ou GIF.'}, status=400)
+
+    # Nome único por conteúdo+timestamp pra não colidir entre uploads.
+    stamp = hashlib.md5(('%s-%s' % (nome_orig, timezone.now().isoformat())).encode('utf-8')).hexdigest()[:12]
+    path = 'map_uploads/%s%s' % (stamp, ext)
+    saved = default_storage.save(path, ContentFile(uploaded.read()))
+    return JsonResponse({'ok': True, 'url': default_storage.url(saved)})
