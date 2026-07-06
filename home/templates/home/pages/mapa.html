@@ -440,14 +440,7 @@ function getContrastColor(hex) {
   return hex;
 }
 
-function getDynamicFillOpacity(hex) {
-  if (!hex || hex.indexOf('#') !== 0) return 0.3;
-  const rgb = hexToRgb(hex);
-  if (!rgb) return 0.3;
-  const brightness = getColorBrightness(rgb);
-  // Scale opacity from 0.3 (brightest colors) to 0.55 (darkest colors)
-  return 0.3 + (1 - brightness / 255) * 0.25;
-}
+
 
 // Ray-Casting algorithm: checks if a point is inside a polygon
 function pointInPolygon(point, vs) {
@@ -1045,19 +1038,17 @@ function setupMarkersAndPolygons() {
       singlePolygons.forEach(polyCoords => {
           const rawColor = territoryColor(t.nome);
           const color = getContrastColor(rawColor);
-          const dynamicOpacity = getDynamicFillOpacity(color);
 
           const polygon = L.polygon(polyCoords, {
               className: `territory-polygon layer-${t.camada || 0} layer-${t.camada > 0 ? 'underground' : 'surface'}`,
               color: color,
               fillColor: color,
-              fillOpacity: dynamicOpacity,
+              fillOpacity: 0.3,
               weight: 2,
               smoothFactor: 0,
               noClip: true
           }).addTo(territoryPolygonsLayer);
           polygon._bonfireTerritory = t;
-          polygon._bonfireDynamicOpacity = dynamicOpacity;
           
           if (canEditWiki) {
               polygon.on('pm:edit', (e) => {
@@ -1081,12 +1072,11 @@ function setupMarkersAndPolygons() {
           
           polygon.on('mouseover', (e) => {
               if (!document.querySelector('.map-shell').classList.contains('is-focused')) {
-                  const targetOpacity = Math.min(0.65, (e.target._bonfireDynamicOpacity || 0.3) + 0.15);
-                  e.target.setStyle({ fillOpacity: targetOpacity });
+                  e.target.setStyle({ fillOpacity: 0.45 });
               }
           });
           polygon.on('mouseout', (e) => {
-              e.target.setStyle({ fillOpacity: e.target._bonfireDynamicOpacity || 0.3 });
+              e.target.setStyle({ fillOpacity: 0.3 });
           });
           polygon.on('click', () => selectTerritory(t.nome));
       });
@@ -1731,14 +1721,12 @@ function bindTerritoryLayer(layer, territoryName) {
     layer._bonfireTerritory = t;
     const rawColor = territoryColor(territoryName);
     const color = getContrastColor(rawColor);
-    const dynamicOpacity = getDynamicFillOpacity(color);
-    layer._bonfireDynamicOpacity = dynamicOpacity;
     
     layer.setStyle({
         className: `territory-polygon layer-${t.camada || 0} layer-${t.camada > 0 ? 'underground' : 'surface'}`,
         color: color,
         fillColor: color,
-        fillOpacity: dynamicOpacity,
+        fillOpacity: 0.3,
         weight: 2,
         smoothFactor: 0,
         noClip: true
@@ -1760,12 +1748,11 @@ function bindTerritoryLayer(layer, territoryName) {
     });
     layer.on('mouseover', (evt) => {
         if (!document.querySelector('.map-shell').classList.contains('is-focused')) {
-            const targetOpacity = Math.min(0.65, (evt.target._bonfireDynamicOpacity || 0.3) + 0.15);
-            evt.target.setStyle({ fillOpacity: targetOpacity });
+            evt.target.setStyle({ fillOpacity: 0.45 });
         }
     });
     layer.on('mouseout', (evt) => {
-        evt.target.setStyle({ fillOpacity: evt.target._bonfireDynamicOpacity || 0.3 });
+        evt.target.setStyle({ fillOpacity: 0.3 });
     });
     layer.on('click', () => selectTerritory(territoryName));
 }
