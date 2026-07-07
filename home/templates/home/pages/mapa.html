@@ -74,6 +74,10 @@
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
             <span>Imagem</span>
         </button>
+        <button class="admin-btn" onclick="toggleDesenhoListPanel()" id="btnDesenhoList" title="Listar / editar / excluir desenhos desta camada">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h10M4 18h10"></path></svg>
+            <span>Desenhos</span>
+        </button>
         <div class="w-px h-6 bg-bonfire-stroke mx-1"></div>
         <button class="admin-btn" onclick="applyChaikin()" id="btnSmooth" title="Suavizar Bordas">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
@@ -234,8 +238,17 @@
       <input type="checkbox" id="linhaDashInput">
       <span>Tracejado</span>
     </label>
+    <label class="desenho-style-field">
+      <span>Nome</span>
+      <input type="text" id="linhaNomeInput" maxlength="150" placeholder="Ex.: Rota do Comércio">
+    </label>
+    <label class="desenho-style-field">
+      <span>Descrição</span>
+      <textarea id="linhaDescricaoInput" maxlength="300" rows="3" placeholder="Aparece no popup ao clicar (opcional)."></textarea>
+    </label>
     <div id="linhaAnchorInfo" class="desenho-style-anchor"></div>
     <div class="desenho-style-actions">
+      <button type="button" class="admin-btn" id="linhaDuplicateBtn" onclick="duplicateLinha()" hidden>Duplicar</button>
       <button type="button" class="admin-btn desenho-danger" id="linhaDeleteBtn" onclick="deleteCurrentLinha()" hidden>Excluir</button>
       <button type="button" class="admin-btn primary-active" id="linhaSaveBtn" onclick="saveCurrentLinha()">Salvar Linha</button>
     </div>
@@ -253,12 +266,30 @@
       <input type="range" id="imagemOpacityInput" min="0.1" max="1" step="0.05" value="1">
       <output id="imagemOpacityOut">1</output>
     </label>
+    <label class="desenho-style-field">
+      <span>Nome</span>
+      <input type="text" id="imagemNomeInput" maxlength="150" placeholder="Ex.: Ruínas do Norte">
+    </label>
+    <label class="desenho-style-field">
+      <span>Descrição</span>
+      <textarea id="imagemDescricaoInput" maxlength="300" rows="3" placeholder="Aparece no popup ao clicar (opcional)."></textarea>
+    </label>
     <div class="desenho-style-actions">
       <button type="button" class="admin-btn" id="imagemRedrawBtn" onclick="redrawImagemBounds()" hidden>Redesenhar área</button>
       <button type="button" class="admin-btn desenho-danger" id="imagemDeleteBtn" onclick="deleteCurrentImagem()" hidden>Excluir</button>
       <button type="button" class="admin-btn primary-active" id="imagemSaveBtn" onclick="saveCurrentImagem()" hidden>Salvar Imagem</button>
     </div>
     <input type="file" id="imagemFileInput" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
+  </div>
+
+  <!-- Painel-lista: descoberta/gerência dos desenhos da camada ativa (fallback que
+       não depende de acertar o clique no canvas). -->
+  <div id="desenhoListPanel" class="desenho-style-panel desenho-list-panel" hidden>
+    <div class="desenho-style-head">
+      <span>Desenhos da Camada</span>
+      <button type="button" class="desenho-style-close" onclick="toggleDesenhoListPanel(false)" title="Fechar">×</button>
+    </div>
+    <div id="desenhoListBody" class="desenho-list-body"></div>
   </div>
   {% endif %}
 
@@ -725,7 +756,10 @@ const jsonDesenhos = JSON.parse(document.getElementById('desenhos-data').textCon
 // Grupo que só contém os desenhos da camada ativa (filtragem por camada EXATA,
 // igual aos markers em filterMap — SEM depender das classes .layer-N do CSS,
 // que têm teto de 20 e são só para os polígonos de território).
-const desenhosLayer = L.layerGroup().addTo(map);
+// featureGroup (não layerGroup): só o featureGroup propaga eventos das camadas-filhas
+// para o grupo (layer.addEventParent). É isso que faz desenhosLayer.on('click') disparar
+// quando o staff clica num desenho — com layerGroup o clique nunca chegava (bug do Gaz).
+const desenhosLayer = L.featureGroup().addTo(map);
 // desenho.id -> { data, leafletLayer|null } (leafletLayer só existe enquanto na camada ativa)
 const desenhoRegistry = new Map();
 jsonDesenhos.forEach(d => desenhoRegistry.set(d.id, { data: d, leafletLayer: null }));
@@ -1364,10 +1398,29 @@ function linhaEffectivePoints(dados) {
     return pts;
 }
 
+// Monta o HTML do popup de um desenho (nome + descrição), sempre escapado —
+// nunca insere dado do banco cru via innerHTML sem passar por escapeHtml.
+function desenhoPopupHtml(d) {
+    const dados = d.dados_json || {};
+    const nome = (d.nome || '').trim();
+    const descricao = (dados.descricao || '').trim();
+    if (!nome && !descricao) return null;
+    let html = '<div class="desenho-popup">';
+    if (nome) html += '<strong>' + escapeHtml(nome) + '</strong>';
+    if (descricao) html += '<p>' + escapeHtml(descricao) + '</p>';
+    html += '</div>';
+    return html;
+}
+
 // Cria a camada Leaflet de um desenho. interactive=false no viewer (não intercepta
-// cliques dos markers); no editor passamos interactive=true para poder selecioná-lo.
+// cliques dos markers) A MENOS que o desenho tenha nome/descrição — nesse caso vira
+// clicável e ganha um popup (WP2: feedback do Gaz "precisava ser clicável pra aparecer
+// o que ela é"). No editor staff passamos interactive=true para poder selecioná-lo
+// (edição tem prioridade sobre popup — o clique lá abre o painel de edição).
 function buildDesenhoLayer(d, interactive) {
     const dados = d.dados_json || {};
+    const popupHtml = interactive ? null : desenhoPopupHtml(d);
+    const clicavel = !!interactive || !!popupHtml;
     if (d.tipo === 'linha') {
         const pts = linhaEffectivePoints(dados);
         if (pts.length < 2) return null;
@@ -1377,9 +1430,10 @@ function buildDesenhoLayer(d, interactive) {
             weight: dados.espessura || 3,
             opacity: 0.9,
             dashArray: dados.tracejado ? '10, 8' : null,
-            interactive: !!interactive,
+            interactive: clicavel,
             bubblingMouseEvents: false
         });
+        if (popupHtml) layer.bindPopup(popupHtml, { className: 'desenho-popup-wrap' });
         return layer;
     }
     if (d.tipo === 'imagem') {
@@ -1388,8 +1442,9 @@ function buildDesenhoLayer(d, interactive) {
         const layer = L.imageOverlay(dados.url, [b[0], b[1]], {
             pane: 'desenhosPane',
             opacity: (dados.opacidade === undefined || dados.opacidade === null) ? 1 : dados.opacidade,
-            interactive: !!interactive
+            interactive: clicavel
         });
+        if (popupHtml) layer.bindPopup(popupHtml, { className: 'desenho-popup-wrap' });
         return layer;
     }
     return null;
@@ -2742,7 +2797,10 @@ if (canEditWiki) {
     document.getElementById('linhaWeightInput').value = dd.espessura || 3;
     document.getElementById('linhaWeightOut').textContent = dd.espessura || 3;
     document.getElementById('linhaDashInput').checked = !!dd.tracejado;
+    document.getElementById('linhaNomeInput').value = linhaDraft.nome || '';
+    document.getElementById('linhaDescricaoInput').value = dd.descricao || '';
     document.getElementById('linhaDeleteBtn').hidden = !!linhaDraft.isNew;
+    document.getElementById('linhaDuplicateBtn').hidden = !!linhaDraft.isNew;
     updateLinhaAnchorInfo();
   }
 
@@ -2824,7 +2882,8 @@ if (canEditWiki) {
         espessura: parseInt(document.getElementById('linhaWeightInput').value) || 3,
         tracejado: document.getElementById('linhaDashInput').checked,
         liga_marker_inicio: findAnchorMarker(L.latLng(pts[0][0], pts[0][1])),
-        liga_marker_fim: findAnchorMarker(L.latLng(pts[pts.length - 1][0], pts[pts.length - 1][1]))
+        liga_marker_fim: findAnchorMarker(L.latLng(pts[pts.length - 1][0], pts[pts.length - 1][1])),
+        descricao: ''
       };
 
       const editLayer = L.polyline(pts, {
@@ -2832,7 +2891,7 @@ if (canEditWiki) {
         dashArray: dados.tracejado ? '10, 8' : null, interactive: true
       }).addTo(map);
 
-      linhaDraft = { id: null, layer: editLayer, dados: dados, isNew: true };
+      linhaDraft = { id: null, layer: editLayer, dados: dados, isNew: true, nome: '' };
       if (editLayer.pm) {
         editLayer.pm.enable({ allowSelfIntersection: true });
         editLayer.on('pm:edit', refreshLinhaDadosFromLayer);
@@ -2857,7 +2916,7 @@ if (canEditWiki) {
       pane: 'desenhosPane', color: dados.cor || '#ffffff', weight: dados.espessura || 3,
       dashArray: dados.tracejado ? '10, 8' : null, interactive: true
     }).addTo(map);
-    linhaDraft = { id: id, layer: editLayer, dados: dados, isNew: false };
+    linhaDraft = { id: id, layer: editLayer, dados: dados, isNew: false, nome: d.nome || '' };
     if (editLayer.pm) {
       editLayer.pm.enable({ allowSelfIntersection: true });
       editLayer.on('pm:edit', refreshLinhaDadosFromLayer);
@@ -2867,18 +2926,66 @@ if (canEditWiki) {
     syncLinhaPanelFromDraft();
   }
 
+  // Duplica uma linha já salva (por id): cria uma cópia com pequeno deslocamento nos
+  // pontos e já entra em edição de vértices da cópia (mesma ideia de duplicateImagem).
+  // Usada tanto pelo botão "Duplicar" do painel de edição quanto pela lista de desenhos.
+  window.duplicateLinhaById = function (id) {
+    const entry = desenhoRegistry.get(id);
+    if (!entry || entry.data.tipo !== 'linha') return;
+    // Se a própria linha está com rascunho aberto, usa os dados vivos (com edições não salvas).
+    const isDraftAtivo = linhaDraft && linhaDraft.id === id;
+    if (isDraftAtivo) refreshLinhaDadosFromLayer();
+    const srcDados = JSON.parse(JSON.stringify(isDraftAtivo ? linhaDraft.dados : (entry.data.dados_json || {})));
+    const srcNome = (isDraftAtivo ? linhaDraft.nome : entry.data.nome) || '';
+    const pts = srcDados.pontos || [];
+    if (pts.length < 2) { showToast('Linha sem pontos válidos.', 'error'); return; }
+    // Desloca ~5% do comprimento total (bbox) para a cópia não ficar por cima do original.
+    let minLat = pts[0][0], maxLat = pts[0][0], minLng = pts[0][1], maxLng = pts[0][1];
+    pts.forEach(p => {
+      if (p[0] < minLat) minLat = p[0]; if (p[0] > maxLat) maxLat = p[0];
+      if (p[1] < minLng) minLng = p[1]; if (p[1] > maxLng) maxLng = p[1];
+    });
+    const dLat = (maxLat - minLat) * 0.05 || 0.0005;
+    const dLng = (maxLng - minLng) * 0.05 || 0.0005;
+    const novosPontos = pts.map(p => [p[0] + dLat, p[1] + dLng]);
+    const dados = {
+      pontos: novosPontos,
+      cor: srcDados.cor || '#ffffff',
+      espessura: srcDados.espessura || 3,
+      tracejado: !!srcDados.tracejado,
+      liga_marker_inicio: null,
+      liga_marker_fim: null,
+      descricao: srcDados.descricao || ''
+    };
+    const nomeCopia = srcNome ? (srcNome + ' (cópia)') : '';
+    const payload = { id: null, tipo: 'linha', camada: activeLayer, nome: nomeCopia, dados_json: dados };
+    postJson('/wiki/mapa/desenhos/salvar/', payload).then(data => {
+      const saved = { id: data.id, tipo: 'linha', camada: activeLayer, nome: nomeCopia, ordem: 0, dados_json: dados };
+      upsertDesenhoLocal(saved);
+      showToast('Cópia da linha criada. Ajuste os vértices.', 'success');
+      editExistingLinha(data.id);
+    }).catch(err => showToast('Erro ao duplicar: ' + err.message, 'error'));
+  };
+  // Atalho usado pelo botão do painel de edição (opera sobre a linha em edição no momento).
+  window.duplicateLinha = function () {
+    if (!linhaDraft || linhaDraft.isNew) return;
+    duplicateLinhaById(linhaDraft.id);
+  };
+
   window.saveCurrentLinha = function () {
     if (!linhaDraft) return;
     refreshLinhaDadosFromLayer();
     const btn = document.getElementById('linhaSaveBtn');
     btn.disabled = true; const prev = btn.textContent; btn.textContent = 'Salvando...';
+    const nome = document.getElementById('linhaNomeInput').value.trim();
+    linhaDraft.dados.descricao = document.getElementById('linhaDescricaoInput').value.trim();
     const payload = {
       id: linhaDraft.id, tipo: 'linha', camada: activeLayer,
-      nome: '', dados_json: linhaDraft.dados
+      nome: nome, dados_json: linhaDraft.dados
     };
     postJson('/wiki/mapa/desenhos/salvar/', payload).then(data => {
       const saved = {
-        id: data.id, tipo: 'linha', camada: activeLayer, nome: '', ordem: 0,
+        id: data.id, tipo: 'linha', camada: activeLayer, nome: nome, ordem: 0,
         dados_json: linhaDraft.dados
       };
       if (linhaDraft.layer) { map.removeLayer(linhaDraft.layer); linhaDraft.layer = null; }
@@ -2915,6 +3022,12 @@ if (canEditWiki) {
   document.getElementById('linhaDashInput').addEventListener('change', (e) => {
     if (!linhaDraft) return; linhaDraft.dados.tracejado = e.target.checked; applyLinhaStyleToLayer();
   });
+  document.getElementById('linhaNomeInput').addEventListener('input', (e) => {
+    if (!linhaDraft) return; linhaDraft.nome = e.target.value;
+  });
+  document.getElementById('linhaDescricaoInput').addEventListener('input', (e) => {
+    if (!linhaDraft) return; linhaDraft.dados.descricao = e.target.value;
+  });
 
   // ===================== IMAGENS =====================
 
@@ -2949,13 +3062,15 @@ if (canEditWiki) {
       const data = await r.json().catch(() => ({}));
       if (!r.ok || !data.ok) throw new Error(data.error || ('HTTP ' + r.status));
       imagemDraft = {
-        id: null, isNew: true, layer: null,
-        dados: { url: data.url, bounds: null, opacidade: 1 }
+        id: null, isNew: true, layer: null, nome: '',
+        dados: { url: data.url, bounds: null, opacidade: 1, descricao: '' }
       };
       openImagemStylePanel();
       document.getElementById('imagemStyleHint').textContent = 'Desenhe um retângulo no mapa para posicionar a imagem.';
       document.getElementById('imagemOpacityInput').value = 1;
       document.getElementById('imagemOpacityOut').textContent = '1';
+      document.getElementById('imagemNomeInput').value = '';
+      document.getElementById('imagemDescricaoInput').value = '';
       beginRectForImagem();
     }).catch(err => showToast('Erro no upload: ' + err.message, 'error'));
   });
@@ -3000,18 +3115,26 @@ if (canEditWiki) {
     imagemDraft.dados.opacidade = parseFloat(e.target.value);
     if (imagemDraft.layer) imagemDraft.layer.setOpacity(imagemDraft.dados.opacidade);
   });
+  document.getElementById('imagemNomeInput').addEventListener('input', (e) => {
+    if (!imagemDraft) return; imagemDraft.nome = e.target.value;
+  });
+  document.getElementById('imagemDescricaoInput').addEventListener('input', (e) => {
+    if (!imagemDraft) return; imagemDraft.dados.descricao = e.target.value;
+  });
 
   window.saveCurrentImagem = function () {
     if (!imagemDraft || !imagemDraft.dados.bounds) { showToast('Desenhe a área da imagem primeiro.', 'error'); return; }
     const btn = document.getElementById('imagemSaveBtn');
     btn.disabled = true; const prev = btn.textContent; btn.textContent = 'Salvando...';
+    const nome = document.getElementById('imagemNomeInput').value.trim();
+    imagemDraft.dados.descricao = document.getElementById('imagemDescricaoInput').value.trim();
     const payload = {
-      id: imagemDraft.id, tipo: 'imagem', camada: activeLayer, nome: '',
+      id: imagemDraft.id, tipo: 'imagem', camada: activeLayer, nome: nome,
       dados_json: imagemDraft.dados
     };
     postJson('/wiki/mapa/desenhos/salvar/', payload).then(data => {
       const saved = {
-        id: data.id, tipo: 'imagem', camada: activeLayer, nome: '', ordem: 0,
+        id: data.id, tipo: 'imagem', camada: activeLayer, nome: nome, ordem: 0,
         dados_json: imagemDraft.dados
       };
       if (imagemDraft.layer) { map.removeLayer(imagemDraft.layer); imagemDraft.layer = null; }
@@ -3044,30 +3167,164 @@ if (canEditWiki) {
     const d = entry.data;
     if (entry.leafletLayer) { desenhosLayer.removeLayer(entry.leafletLayer); entry.leafletLayer = null; }
     const dados = JSON.parse(JSON.stringify(d.dados_json || {}));
-    imagemDraft = { id: id, isNew: false, layer: null, dados: dados };
+    imagemDraft = { id: id, isNew: false, layer: null, dados: dados, nome: d.nome || '' };
     renderImagemDraft();
     openImagemStylePanel();
     document.getElementById('imagemStyleHint').textContent = 'Ajuste a opacidade, redesenhe a área ou exclua.';
     document.getElementById('imagemOpacityInput').value = dados.opacidade || 1;
     document.getElementById('imagemOpacityOut').textContent = dados.opacidade || 1;
+    document.getElementById('imagemNomeInput').value = d.nome || '';
+    document.getElementById('imagemDescricaoInput').value = dados.descricao || '';
     document.getElementById('imagemSaveBtn').hidden = false;
     document.getElementById('imagemRedrawBtn').hidden = false;
     document.getElementById('imagemDeleteBtn').hidden = false;
   }
 
-  // Expor edição de desenhos existentes: clique nos desenhos renderizados no viewer.
-  // Como o viewer usa interactive:false, adicionamos um clique via layer group.
-  desenhosLayer.on('click', (e) => {
-    const id = e.layer && e.layer._bonfireDesenhoId;
-    if (id === undefined || id === null) return;
+  // Abre o editor certo para um desenho existente (usado pelo clique no canvas E pela lista).
+  function editDesenho(id) {
     const entry = desenhoRegistry.get(id);
     if (!entry) return;
     if (entry.data.tipo === 'linha') editExistingLinha(id);
     else if (entry.data.tipo === 'imagem') editExistingImagem(id);
+  }
+
+  // Expor edição de desenhos existentes: clique no próprio desenho.
+  // Agora funciona porque desenhosLayer é um featureGroup (propaga o clique das filhas);
+  // antes era layerGroup e este handler nunca disparava.
+  desenhosLayer.on('click', (e) => {
+    const id = e.layer && e.layer._bonfireDesenhoId;
+    if (id === undefined || id === null) return;
+    if (e.originalEvent) L.DomEvent.stop(e.originalEvent);
+    editDesenho(id);
   });
 
+  // ===================== PAINEL-LISTA (descoberta/gerência) =====================
+
+  // Centraliza o mapa num desenho (bounds da imagem ou pontos da linha) e pisca a layer.
+  window.locateDesenho = function (id) {
+    const entry = desenhoRegistry.get(id);
+    if (!entry) return;
+    const d = entry.data;
+    const dados = d.dados_json || {};
+    let bounds = null;
+    if (d.tipo === 'imagem' && Array.isArray(dados.bounds) && dados.bounds.length === 2) {
+      bounds = L.latLngBounds(dados.bounds[0], dados.bounds[1]);
+    } else if (d.tipo === 'linha') {
+      const pts = linhaEffectivePoints(dados);
+      if (pts && pts.length) bounds = L.latLngBounds(pts);
+    }
+    if (bounds && bounds.isValid()) {
+      map.fitBounds(bounds, { padding: [60, 60], maxZoom: map.getZoom() });
+    }
+    const layer = entry.leafletLayer;
+    if (layer && layer.setStyle) {
+      const prev = d.tipo === 'linha' ? (dados.cor || '#ffffff') : null;
+      layer.setStyle({ color: '#ffd75e' });
+      setTimeout(() => { if (entry.leafletLayer === layer && prev) layer.setStyle({ color: prev }); }, 900);
+    }
+  };
+
+  // Duplica uma imagem: cria um NOVO desenho reusando a MESMA url (sem re-upload),
+  // deslocado um pouco, e já abre em edição para reposicionar (feedback do Gaz).
+  window.duplicateImagem = function (id) {
+    const entry = desenhoRegistry.get(id);
+    if (!entry || entry.data.tipo !== 'imagem') return;
+    const src = JSON.parse(JSON.stringify(entry.data.dados_json || {}));
+    if (!Array.isArray(src.bounds) || src.bounds.length !== 2) {
+      showToast('Imagem sem área definida.', 'error'); return;
+    }
+    // Desloca ~15% da própria altura/largura para a cópia não ficar exatamente por cima.
+    const dLat = (src.bounds[1][0] - src.bounds[0][0]) * 0.15;
+    const dLng = (src.bounds[1][1] - src.bounds[0][1]) * 0.15;
+    const dados = {
+      url: src.url,
+      opacidade: (src.opacidade === undefined || src.opacidade === null) ? 1 : src.opacidade,
+      descricao: src.descricao || '',
+      bounds: [
+        [src.bounds[0][0] + dLat, src.bounds[0][1] + dLng],
+        [src.bounds[1][0] + dLat, src.bounds[1][1] + dLng]
+      ]
+    };
+    const nomeBase = entry.data.nome || '';
+    const nomeCopia = nomeBase ? (nomeBase + ' (cópia)') : '';
+    const payload = { id: null, tipo: 'imagem', camada: activeLayer, nome: nomeCopia, dados_json: dados };
+    postJson('/wiki/mapa/desenhos/salvar/', payload).then(data => {
+      const saved = { id: data.id, tipo: 'imagem', camada: activeLayer, nome: payload.nome, ordem: 0, dados_json: dados };
+      upsertDesenhoLocal(saved);
+      showToast('Cópia da imagem criada. Reposicione-a.', 'success');
+      editExistingImagem(data.id);
+    }).catch(err => showToast('Erro ao duplicar: ' + err.message, 'error'));
+  };
+
+  // Exclui direto pela lista (sem precisar abrir o painel de edição antes).
+  window.deleteDesenhoById = function (id) {
+    const entry = desenhoRegistry.get(id);
+    if (!entry) return;
+    const label = entry.data.tipo === 'imagem' ? 'esta imagem' : 'esta linha';
+    if (!confirm('Excluir ' + label + '?')) return;
+    // Se o item estiver em edição no momento, encerra o rascunho para não deixar layer órfã.
+    if (linhaDraft && linhaDraft.id === id) { if (linhaDraft.layer) map.removeLayer(linhaDraft.layer); linhaDraft = null; document.getElementById('linhaStylePanel').hidden = true; }
+    if (imagemDraft && imagemDraft.id === id) { if (imagemDraft.layer) map.removeLayer(imagemDraft.layer); imagemDraft = null; document.getElementById('imagemStylePanel').hidden = true; }
+    postJson('/wiki/mapa/desenhos/excluir/', { id: id }).then(() => {
+      removeDesenhoLocal(id);
+      renderDesenhoList();
+      showToast('Desenho excluído.', 'success');
+    }).catch(err => showToast('Erro ao excluir: ' + err.message, 'error'));
+  };
+
+  window.toggleDesenhoListPanel = function (force) {
+    const panel = document.getElementById('desenhoListPanel');
+    if (!panel) return;
+    const show = (force === undefined) ? panel.hidden : !!force;
+    panel.hidden = !show;
+    document.getElementById('btnDesenhoList')?.classList.toggle('primary-active', show);
+    if (show) renderDesenhoList();
+  };
+
+  // (Re)desenha a lista de desenhos ATIVOS da camada atual.
+  function renderDesenhoList() {
+    const panel = document.getElementById('desenhoListPanel');
+    const body = document.getElementById('desenhoListBody');
+    if (!panel || !body || panel.hidden) return;
+    const itens = [];
+    desenhoRegistry.forEach(entry => {
+      const d = entry.data;
+      if ((d.camada || 0) === activeLayer) itens.push(d);
+    });
+    itens.sort((a, b) => (a.ordem || 0) - (b.ordem || 0) || (a.id || 0) - (b.id || 0));
+    if (!itens.length) {
+      body.innerHTML = '<p class="desenho-style-hint">Nenhum desenho nesta camada.</p>';
+      return;
+    }
+    const iconLinha = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19L19 5M5 19a2 2 0 100-4 2 2 0 000 4zm14-14a2 2 0 100 4 2 2 0 000-4z"/></svg>';
+    const iconImg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>';
+    const iconEye = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+    const iconEdit = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
+    const iconCopy = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>';
+    const iconDel = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m2 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/></svg>';
+    body.innerHTML = itens.map(d => {
+      const nome = (d.nome && d.nome.trim()) ? escapeHtml(d.nome) : '<i>(sem nome)</i>';
+      const tipoIcon = d.tipo === 'imagem' ? iconImg : iconLinha;
+      const dupBtn = d.tipo === 'imagem'
+        ? '<button type="button" class="desenho-list-act" title="Duplicar imagem" onclick="duplicateImagem(' + d.id + ')">' + iconCopy + '</button>'
+        : '<button type="button" class="desenho-list-act" title="Duplicar linha" onclick="duplicateLinhaById(' + d.id + ')">' + iconCopy + '</button>';
+      return '<div class="desenho-list-item" data-id="' + d.id + '">' +
+        '<span class="desenho-list-icon">' + tipoIcon + '</span>' +
+        '<span class="desenho-list-name">' + nome + '</span>' +
+        '<span class="desenho-list-acts">' +
+          '<button type="button" class="desenho-list-act" title="Localizar/zoom" onclick="locateDesenho(' + d.id + ')">' + iconEye + '</button>' +
+          '<button type="button" class="desenho-list-act" title="Editar" onclick="editDesenho(' + d.id + ')">' + iconEdit + '</button>' +
+          dupBtn +
+          '<button type="button" class="desenho-list-act danger" title="Excluir" onclick="deleteDesenhoById(' + d.id + ')">' + iconDel + '</button>' +
+        '</span>' +
+      '</div>';
+    }).join('');
+  }
+  // editDesenho precisa ser global (usado no onclick inline da lista).
+  window.editDesenho = editDesenho;
+
   // Torna os desenhos clicáveis SÓ para staff (viewer normal permanece interactive:false):
-  // reconstruímos o render staff com interactive:true.
+  // reconstruímos o render staff com interactive:true. Também mantém a lista em dia.
   const _origRenderDesenhos = renderDesenhos;
   renderDesenhos = function () {
     desenhoRegistry.forEach(entry => {
@@ -3085,6 +3342,8 @@ if (canEditWiki) {
         entry.leafletLayer = layer;
       }
     });
+    // Mantém a lista sincronizada (troca de camada, criar/editar/excluir chamam renderDesenhos).
+    renderDesenhoList();
   };
   renderDesenhos();
 }

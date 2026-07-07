@@ -995,6 +995,33 @@ body { overflow: hidden !important; }
   width: auto;
   cursor: pointer;
 }
+.desenho-style-field {
+  display: flex;
+  flex-direction: column;
+  gap: .3rem;
+  font-size: .7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.desenho-style-field input[type="text"],
+.desenho-style-field textarea {
+  font-family: inherit;
+  font-size: .72rem;
+  font-weight: 400;
+  text-transform: none;
+  color: var(--text);
+  background: var(--bg2);
+  border: 1px solid var(--stroke);
+  border-radius: 4px;
+  padding: .4rem .5rem;
+  resize: vertical;
+}
+.desenho-style-field input[type="text"]:focus,
+.desenho-style-field textarea:focus {
+  outline: none;
+  border-color: var(--ember);
+}
 .desenho-style-anchor {
   font-size: .66rem;
   color: var(--muted);
@@ -1023,6 +1050,80 @@ body { overflow: hidden !important; }
   color: #fff;
 }
 
+/* Painel-lista dos desenhos da camada */
+.desenho-list-panel {
+  width: 268px;
+}
+.desenho-list-body {
+  display: flex;
+  flex-direction: column;
+  gap: .25rem;
+  max-height: 340px;
+  overflow-y: auto;
+}
+.desenho-list-item {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .35rem .4rem;
+  border-radius: 6px;
+  border: 1px solid transparent;
+}
+.desenho-list-item:hover {
+  background: var(--bg2, rgba(255,255,255,.04));
+  border-color: var(--stroke);
+}
+.desenho-list-icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  color: var(--ember);
+}
+.desenho-list-icon svg {
+  width: 15px;
+  height: 15px;
+}
+.desenho-list-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: .72rem;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.desenho-list-name i {
+  color: var(--muted);
+}
+.desenho-list-acts {
+  flex: 0 0 auto;
+  display: inline-flex;
+  gap: .15rem;
+}
+.desenho-list-act {
+  background: transparent;
+  border: 1px solid var(--stroke);
+  border-radius: 5px;
+  color: var(--muted);
+  cursor: pointer;
+  padding: .2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.desenho-list-act svg {
+  width: 14px;
+  height: 14px;
+}
+.desenho-list-act:hover {
+  color: var(--text);
+  border-color: var(--ember);
+}
+.desenho-list-act.danger:hover {
+  color: #fff;
+  background: var(--ruby);
+  border-color: var(--ruby);
+}
+
 @media (max-width: 1100px) {
   .desenho-style-panel {
     top: auto;
@@ -1031,6 +1132,40 @@ body { overflow: hidden !important; }
     left: .75rem;
     width: auto;
   }
+}
+
+/* Popup de desenhos clicáveis no viewer (nome + descrição) — WP2 */
+.desenho-popup-wrap .leaflet-popup-content-wrapper {
+  background: var(--bg1);
+  color: var(--text);
+  border: 1px solid var(--stroke);
+  border-radius: 8px;
+  box-shadow: 0 12px 30px rgba(0,0,0,.55);
+}
+.desenho-popup-wrap .leaflet-popup-tip {
+  background: var(--bg1);
+  border: 1px solid var(--stroke);
+}
+.desenho-popup-wrap .leaflet-popup-content {
+  margin: .65rem .8rem;
+  max-width: 260px;
+}
+.desenho-popup {
+  font-size: .78rem;
+  line-height: 1.5;
+}
+.desenho-popup strong {
+  display: block;
+  font-family: 'Cinzel', serif;
+  font-size: .82rem;
+  color: var(--ember);
+  margin-bottom: .25rem;
+}
+.desenho-popup p {
+  margin: 0;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 /* Toasts */

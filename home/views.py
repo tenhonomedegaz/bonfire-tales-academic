@@ -8625,9 +8625,11 @@ def wiki_delete_layer(request, layer_id):
 # Contrato (dados_json por tipo):
 #   linha:  { pontos: [[lat,lng],...], cor: '#rrggbb', espessura: 1..12,
 #             tracejado: bool, liga_marker_inicio: <id|null>,
-#             liga_marker_fim: <id|null> }
+#             liga_marker_fim: <id|null>, descricao: '<texto plano, <=300>' }
 #   imagem: { url: '<media/static/http>', bounds: [[lat,lng],[lat,lng]],
-#             opacidade: 0.1..1.0 }
+#             opacidade: 0.1..1.0, descricao: '<texto plano, <=300>' }
+# Campo `nome` (WP2) mora no modelo (TbMapDesenho.nome), não no dados_json;
+# `descricao` complementa o nome e é opcional para os dois tipos.
 # Toda validação é server-side em sanitize_desenho(); os endpoints só
 # persistem o que passa pela sanitização.
 # ===========================================================================
@@ -8678,6 +8680,18 @@ def _url_imagem_segura(url):
     if url.startswith(('/media/', '/static/')):
         return url
     return ''
+
+
+def _descricao_segura(valor):
+    """Descrição plana opcional (linha/imagem): remove tags HTML, colapsa espaços
+    e corta em 300 chars. Nunca retorna HTML — texto puro."""
+    if valor in (None, ''):
+        return ''
+    texto = str(valor)
+    # Remove qualquer marcação HTML/tag (inclui <script>, <b>, etc.) — sobra só texto.
+    texto = re.sub(r'<[^>]*>', '', texto)
+    texto = re.sub(r'\s+', ' ', texto).strip()
+    return texto[:300]
 
 
 def _marker_id_valido(valor):
@@ -8732,6 +8746,7 @@ def sanitize_desenho(tipo, dados):
             'tracejado': bool(dados.get('tracejado')),
             'liga_marker_inicio': _marker_id_valido(dados.get('liga_marker_inicio')),
             'liga_marker_fim': _marker_id_valido(dados.get('liga_marker_fim')),
+            'descricao': _descricao_segura(dados.get('descricao')),
         }
 
     # tipo == 'imagem'
@@ -8753,6 +8768,7 @@ def sanitize_desenho(tipo, dados):
         'url': url,
         'bounds': [b0, b1],
         'opacidade': opacidade,
+        'descricao': _descricao_segura(dados.get('descricao')),
     }
 
 
