@@ -641,7 +641,6 @@
     <form class="region-layer-filter" data-layer-filter-form>
       <label for="regionLayerFilterMobile">Camada</label>
       <select id="regionLayerFilterMobile" data-layer-filter>
-        <option value="" {% if active_layer is None %}selected{% endif %}>Todas as camadas</option>
         {% for layer in layer_options %}
         <option value="{{ layer.id_layer }}" {% if active_layer == layer.id_layer %}selected{% endif %}>{{ layer.nome }}</option>
         {% endfor %}
@@ -671,7 +670,6 @@
     <form class="region-layer-filter" data-layer-filter-form>
       <label for="regionLayerFilterDesktop">Camada</label>
       <select id="regionLayerFilterDesktop" data-layer-filter>
-        <option value="" {% if active_layer is None %}selected{% endif %}>Todas as camadas</option>
         {% for layer in layer_options %}
         <option value="{{ layer.id_layer }}" {% if active_layer == layer.id_layer %}selected{% endif %}>{{ layer.nome }}</option>
         {% endfor %}

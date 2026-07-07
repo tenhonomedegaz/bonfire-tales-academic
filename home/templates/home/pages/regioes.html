@@ -21,7 +21,6 @@
       <form method="get" class="regions-filter">
         <label for="regionsLayerFilter">Camada</label>
         <select id="regionsLayerFilter" name="camada" onchange="this.form.submit()">
-          <option value="" {% if active_layer is None %}selected{% endif %}>Todas as camadas</option>
           {% for layer in layer_options %}
           <option value="{{ layer.id_layer }}" {% if active_layer == layer.id_layer %}selected{% endif %}>{{ layer.nome }}</option>
           {% endfor %}

@@ -5467,30 +5467,14 @@ def mundo_regioes_view(request):
                 layer_obj.nome = name_l
                 layer_obj.save()
 
-    layer_options_qs = TbMapLayer.objects.all().order_by('ordem', 'id_layer')
-    if not request.user.is_staff:
-        layer_options_qs = layer_options_qs.filter(publica=True)
-    layer_options = list(layer_options_qs)
-    public_layers = list(TbMapLayer.objects.filter(publica=True).values_list('id_layer', flat=True)) or [0]
-    active_layer = None
-    active_layer_raw = request.GET.get('camada', '')
-    if active_layer_raw not in ('', None):
-        try:
-            candidate_layer = int(active_layer_raw)
-            if candidate_layer in {layer.id_layer for layer in layer_options}:
-                active_layer = candidate_layer
-        except (TypeError, ValueError):
-            active_layer = None
+    layer_options = _world_layer_options(request)
+    active_layer = _active_world_layer(request, layer_options, default_layer=0)
+    visible_layers = [layer.id_layer for layer in layer_options] or [0]
 
-    if not request.user.is_staff:
-        regioes = TbRegiao.objects.filter(camada__in=public_layers).order_by('territorio', 'nome')
-        territorios_qs = TbTerritorio.objects.filter(camada__in=public_layers)
-    else:
-        regioes = TbRegiao.objects.all().order_by('territorio', 'nome')
-        territorios_qs = TbTerritorio.objects.all()
-    if active_layer is not None:
-        regioes = regioes.filter(camada=active_layer)
-        territorios_qs = territorios_qs.filter(camada=active_layer)
+    regioes = TbRegiao.objects.filter(camada__in=visible_layers).order_by('territorio', 'nome')
+    territorios_qs = TbTerritorio.objects.filter(camada__in=visible_layers)
+    regioes = regioes.filter(camada=active_layer)
+    territorios_qs = territorios_qs.filter(camada=active_layer)
 
     regioes_lista = []
     markers = {m.nome: m for m in TbMapMarker.objects.all()}
@@ -5724,30 +5708,36 @@ def _organizations_for_location(region_name, territory_name):
 def _world_layer_options(request):
     layer_options_qs = TbMapLayer.objects.all().order_by('ordem', 'id_layer')
     if not request.user.is_staff:
-        layer_options_qs = layer_options_qs.filter(publica=True)
+        layer_options_qs = layer_options_qs.filter(id_layer=0)
     return list(layer_options_qs)
 
 
-def _active_world_layer(request, layer_options):
+def _active_world_layer(request, layer_options, default_layer=0):
     active_layer_raw = request.GET.get('camada', '')
+    available_layers = {layer.id_layer for layer in layer_options}
     if active_layer_raw in ('', None):
-        return None
+        if default_layer in available_layers:
+            return default_layer
+        return layer_options[0].id_layer if layer_options else 0
     try:
         candidate_layer = int(active_layer_raw)
     except (TypeError, ValueError):
-        return None
-    available_layers = {layer.id_layer for layer in layer_options}
-    return candidate_layer if candidate_layer in available_layers else None
+        candidate_layer = None
+    if candidate_layer in available_layers:
+        return candidate_layer
+    if default_layer in available_layers:
+        return default_layer
+    return layer_options[0].id_layer if layer_options else 0
 
 
 @ensure_csrf_cookie  # edição inline (wiki) lê o csrftoken do cookie
 def regiao_detail_view(request, slug):
     regiao = get_object_or_404(TbRegiao, slug=slug)
-    public_layers = list(TbMapLayer.objects.filter(publica=True).values_list('id_layer', flat=True)) or [0]
+    public_layers = [0] if not request.user.is_staff else list(TbMapLayer.objects.values_list('id_layer', flat=True)) or [0]
     if regiao.camada not in public_layers and not request.user.is_staff:
         raise Http404("Região não encontrada")
     layer_options = _world_layer_options(request)
-    active_layer = _active_world_layer(request, layer_options)
+    active_layer = _active_world_layer(request, layer_options, default_layer=regiao.camada)
 
     
     marker = TbMapMarker.objects.filter(nome=regiao.nome).first()
@@ -5897,11 +5887,11 @@ def regiao_detail_view(request, slug):
 @ensure_csrf_cookie
 def territorio_detail_view(request, slug):
     territory = get_object_or_404(TbTerritorio, slug=slug)
-    public_layers = list(TbMapLayer.objects.filter(publica=True).values_list('id_layer', flat=True)) or [0]
+    public_layers = [0] if not request.user.is_staff else list(TbMapLayer.objects.values_list('id_layer', flat=True)) or [0]
     if territory.camada not in public_layers and not request.user.is_staff:
         raise Http404("Territorio nao encontrado")
     layer_options = _world_layer_options(request)
-    active_layer = _active_world_layer(request, layer_options)
+    active_layer = _active_world_layer(request, layer_options, default_layer=territory.camada)
 
     regiao = SimpleNamespace(
         id_regiao=None,
