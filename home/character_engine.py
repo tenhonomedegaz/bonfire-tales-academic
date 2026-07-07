@@ -313,7 +313,7 @@ def _dado_de_vida(texto):
 
 def _hit_dice_from_tag(classe):
     for tag in (getattr(classe, 'tags_json', None) or []):
-        m = re.search(r'hit-dice:\s*\d*d(\d+)', str(tag))
+        m = re.search(r'hit[-_]dice:\s*\d*d(\d+)', str(tag))
         if m:
             return int(m.group(1))
     return None
