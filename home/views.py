@@ -2429,7 +2429,7 @@ _ARMADURA_PROF_TOKEN = {
     'escudos': 'escudo',
 }
 _PICK_ARMA_RE = re.compile(r'pick:arma:(\{[^}]*\}|[A-Za-z0-9_+\-]+)(?:\([^)]*\))*')
-_PICK_OPCAO_NV_RE = re.compile(r'pick:opcao:([a-z0-9-]+)(?:\([^)]*\))?(?::(\{[^}]*\}|[A-Za-z0-9_+\-]+))?(?:\([^)]*\))*')
+_PICK_OPCAO_NV_RE = re.compile(r'pick:opcao:([a-z0-9_-]+)(?:\([^)]*\))?(?::(\{[^}]*\}|[A-Za-z0-9_+\-]+))?(?:\([^)]*\))*')
 _PICK_EXPERTISE_RE = re.compile(r'pick:pericia-expertise:(\{[^}]*\}|[A-Za-z0-9_+\-]+)(?:\([^)]*\))*')
 
 
@@ -3619,7 +3619,7 @@ def _pendencias_talento_racial(personagem):
 
 
 # pick:opcao:<slug>(<mod>):<count>  — count = {progressão} | inteiro | N | +
-_PICK_OPCAO_RE = re.compile(r'pick:opcao:([a-z0-9-]+)(?:\([^)]*\))?(?::(\{[^}]*\}|[+-]?\d+|N|\+))?')
+_PICK_OPCAO_RE = re.compile(r'pick:opcao:([a-z0-9_-]+)(?:\([^)]*\))?(?::(\{[^}]*\}|[+-]?\d+|N|\+))?')
 
 
 def _pick_count_expr(expr, level):
@@ -3648,7 +3648,15 @@ def _opcao_grupos(personagem):
     grupos = []
     if personagem is None:
         return grupos
-    slug2tipo = {slugify(t): t for t in TbOpcaojogo.objects.values_list('tipo', flat=True).distinct() if t}
+    # tags de habilidade usam slug com underscore (ex.: disparos_silvestres), mas
+    # slugify(tipo) produz hifens (ex.: disparos-silvestres); registra as duas formas.
+    slug2tipo = {}
+    for t in TbOpcaojogo.objects.values_list('tipo', flat=True).distinct():
+        if not t:
+            continue
+        s = slugify(t)
+        slug2tipo[s] = t
+        slug2tipo[s.replace('-', '_')] = t
     escolhidas = {}
     for e in personagem.escolhas.select_related('id_opcao').all():
         escolhidas.setdefault(e.tipo, []).append(e)
