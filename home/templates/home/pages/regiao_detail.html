@@ -26,6 +26,32 @@
 }
 .region-left { border-right: 1px solid var(--stroke); padding: 1rem 0; }
 .region-right { border-left: 1px solid var(--stroke); padding: 1.25rem; }
+.region-layer-filter {
+  display: grid;
+  gap: .35rem;
+  padding: 0 1rem 1rem;
+}
+.region-layer-filter label {
+  color: var(--muted);
+  font-size: .65rem;
+  font-weight: 900;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+.region-layer-filter select {
+  background: var(--bg1);
+  border: 1px solid var(--stroke);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: .78rem;
+  font-weight: 800;
+  min-height: 36px;
+  padding: .45rem .55rem;
+}
+.region-layer-filter select:focus {
+  border-color: var(--territory-accent);
+  outline: none;
+}
 .territory-nav + .territory-nav { margin-top: .35rem; }
 .territory-nav-title {
   align-items: center;
@@ -612,16 +638,27 @@
       <div class="region-mobile-drawer-title">Regiões</div>
       <button type="button" class="region-mobile-close" id="regionMobileClose">Fechar</button>
     </div>
+    <form class="region-layer-filter" data-layer-filter-form>
+      <label for="regionLayerFilterMobile">Camada</label>
+      <select id="regionLayerFilterMobile" data-layer-filter>
+        <option value="" {% if active_layer is None %}selected{% endif %}>Todas as camadas</option>
+        {% for layer in layer_options %}
+        <option value="{{ layer.id_layer }}" {% if active_layer == layer.id_layer %}selected{% endif %}>{{ layer.nome }}</option>
+        {% endfor %}
+      </select>
+    </form>
     <div class="region-mobile-actions">
+      {% if not is_territory %}
       <a href="{% url 'mapa' %}?region={{ regiao.slug }}" class="topic-btn" style="display:flex;justify-content:center;text-decoration:none;">Ver no mapa</a>
-      <a href="{% url 'mundo_cronicas' %}?regiao={{ regiao.nome }}" class="topic-btn" style="display:flex;justify-content:center;text-decoration:none;">Crônicas</a>
+      {% endif %}
+      <a href="{% url 'mundo_cronicas' %}?{% if is_territory %}territorio={{ regiao.nome }}{% else %}regiao={{ regiao.nome }}{% endif %}" class="topic-btn" style="display:flex;justify-content:center;text-decoration:none;">Crônicas</a>
     </div>
     {% for group in territory_groups %}
-    <details class="territory-nav" style="--territory-color: {{ group.color }}; --territory-accent: {{ group.display_color }}; --territory-contrast: {{ group.contrast }};" {% if group.is_current %}open{% endif %}>
-      <summary class="territory-nav-title" style="color: var(--territory-accent);">{{ group.display_nome }}</summary>
+    <details class="territory-nav" data-nav-layer="{{ group.camada|default_if_none:'' }}" data-current-article="{{ group.is_current|yesno:'true,false' }}" style="--territory-color: {{ group.color }}; --territory-accent: {{ group.display_color }}; --territory-contrast: {{ group.contrast }};" {% if group.is_current %}open{% endif %}>
+      <summary class="territory-nav-title" data-territory-title="{{ group.nome }}" style="color: var(--territory-accent);">{{ group.display_nome }}</summary>
       <div class="territory-nav-list">
       {% for r in group.regioes %}
-      <a href="{% url 'regiao_detail' slug=r.slug %}" class="region-link {% if r.slug == regiao.slug %}is-active{% endif %}">
+      <a href="{% url 'regiao_detail' slug=r.slug %}" data-region-link="{{ r.slug }}" data-nav-layer="{{ r.camada }}" class="region-link {% if r.slug == regiao.slug %}is-active{% endif %}">
         {{ r.nome }}
       </a>
       {% endfor %}
@@ -631,12 +668,21 @@
   </aside>
 
   <aside class="region-left">
+    <form class="region-layer-filter" data-layer-filter-form>
+      <label for="regionLayerFilterDesktop">Camada</label>
+      <select id="regionLayerFilterDesktop" data-layer-filter>
+        <option value="" {% if active_layer is None %}selected{% endif %}>Todas as camadas</option>
+        {% for layer in layer_options %}
+        <option value="{{ layer.id_layer }}" {% if active_layer == layer.id_layer %}selected{% endif %}>{{ layer.nome }}</option>
+        {% endfor %}
+      </select>
+    </form>
     {% for group in territory_groups %}
-    <details class="territory-nav" style="--territory-color: {{ group.color }}; --territory-accent: {{ group.display_color }}; --territory-contrast: {{ group.contrast }};" {% if group.is_current %}open{% endif %}>
+    <details class="territory-nav" data-nav-layer="{{ group.camada|default_if_none:'' }}" data-current-article="{{ group.is_current|yesno:'true,false' }}" style="--territory-color: {{ group.color }}; --territory-accent: {{ group.display_color }}; --territory-contrast: {{ group.contrast }};" {% if group.is_current %}open{% endif %}>
       <summary class="territory-nav-title" data-territory-title="{{ group.nome }}" style="color: var(--territory-accent);">{{ group.display_nome }}</summary>
       <div class="territory-nav-list">
       {% for r in group.regioes %}
-      <a href="{% url 'regiao_detail' slug=r.slug %}" data-region-link="{{ r.slug }}" class="region-link {% if r.slug == regiao.slug %}is-active{% endif %}">
+      <a href="{% url 'regiao_detail' slug=r.slug %}" data-region-link="{{ r.slug }}" data-nav-layer="{{ r.camada }}" class="region-link {% if r.slug == regiao.slug %}is-active{% endif %}">
         {{ r.nome }}
       </a>
       {% endfor %}
@@ -650,10 +696,10 @@
       <div class="region-hero-blur"></div>
       <div class="region-hero-inner">
         <div class="region-heading-row">
-          <a href="{% url 'mapa' %}?region={{ regiao.slug }}" class="map-pin-link" title="Ver no mapa">
+          <a href="{% url 'mapa' %}?region={{ regiao.slug }}" class="map-pin-link" title="Ver no mapa" {% if is_territory %}style="display:none;"{% endif %}>
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
           </a>
-          <div class="region-eyebrow">Regiões / {{ display_territory }}</div>
+          <div class="region-eyebrow">{% if is_territory %}Territórios{% else %}Regiões / {{ display_territory }}{% endif %}</div>
         </div>
         <h1 class="region-title" id="articleTitle">{{ regiao.nome }}</h1>
         
@@ -666,7 +712,7 @@
         {% endif %}
         <nav class="topic-nav" aria-label="Tópicos da região" hidden></nav>
       </div>
-      <div class="region-category-icon" id="heroCategoryIcon" title="Categoria da região">
+      <div class="region-category-icon" id="heroCategoryIcon" title="Categoria da região" {% if is_territory %}style="display:none;"{% endif %}>
         
       </div>
     </section>
@@ -682,7 +728,7 @@
       {% elif regiao.lore_markdown %}
         <div class="bonfire-markdown" data-markdown-source>{{ regiao.lore_markdown|escape }}</div>
       {% else %}
-        <p class="bonfire-markdown">{% if can_edit_wiki %}Use "Editar região" para adicionar a lore desta região.{% else %}A lore desta região ainda não foi escrita.{% endif %}</p>
+        <p class="bonfire-markdown">{% if is_territory %}{% if can_edit_wiki %}Use "Editar território" para adicionar a lore deste território.{% else %}A lore deste território ainda não foi escrita.{% endif %}{% else %}{% if can_edit_wiki %}Use "Editar região" para adicionar a lore desta região.{% else %}A lore desta região ainda não foi escrita.{% endif %}{% endif %}</p>
       {% endif %}
   </main>
 
@@ -736,10 +782,37 @@
 (function() {
   const canEditWiki = {{ can_edit_wiki|yesno:"true,false" }};
   const initialRegionSlug = "{{ current_region_slug|escapejs }}";
+  const initialTerritorySlug = "{{ current_territory_slug|default:''|escapejs }}";
   const regions = JSON.parse(document.getElementById('regions-client-data')?.textContent || '[]');
   const territories = JSON.parse(document.getElementById('territories-client-data')?.textContent || '{}');
   const allTerritories = JSON.parse(document.getElementById('all-territories-data')?.textContent || '[]');
   const regionsBySlug = new Map(regions.map(region => [region.slug, region]));
+  const territoriesBySlug = new Map(Object.values(territories).map(territory => [territory.slug, territory]));
+  const layerFilterSelects = Array.from(document.querySelectorAll('[data-layer-filter]'));
+
+  function layerValue(value) {
+    return value === undefined || value === null ? '' : String(value);
+  }
+
+  function applyLayerFilter(value) {
+    const selected = layerValue(value);
+    layerFilterSelects.forEach(select => {
+      if (select.value !== selected) select.value = selected;
+    });
+    document.querySelectorAll('details.territory-nav').forEach(nav => {
+      const visible = !selected || layerValue(nav.dataset.navLayer) === selected;
+      nav.hidden = !visible;
+      if (visible && nav.dataset.currentArticle === 'true') nav.open = true;
+    });
+  }
+
+  document.querySelectorAll('[data-layer-filter-form]').forEach(form => {
+    form.addEventListener('submit', event => event.preventDefault());
+  });
+  layerFilterSelects.forEach(select => {
+    select.addEventListener('change', event => applyLayerFilter(event.target.value));
+  });
+  applyLayerFilter("{{ active_layer|default_if_none:'' }}");
 
   window.showInlineCreateTerritoryDetail = function() {
     document.getElementById('inlineCreateTerritorySectionDetail').style.display = 'block';
@@ -1257,7 +1330,7 @@
 
   window.addEventListener('popstate', e => {
     if (e.state) {
-      const data = e.state.type === 'region' ? regionsBySlug.get(e.state.slug) : territories[e.state.slug];
+      const data = e.state.type === 'region' ? regionsBySlug.get(e.state.slug) : territoriesBySlug.get(e.state.slug);
       if (data) updateView(data, false);
     }
   });
@@ -1268,7 +1341,10 @@
   let initialArticle = null;
   
   if (paramTerritory) {
-      initialArticle = Object.values(territories).find(t => t.slug === paramTerritory);
+      initialArticle = territoriesBySlug.get(paramTerritory);
+  }
+  if (!initialArticle && initialTerritorySlug) {
+      initialArticle = territoriesBySlug.get(initialTerritorySlug);
   }
   if (!initialArticle) {
       initialArticle = regionsBySlug.get(initialRegionSlug);

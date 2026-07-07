@@ -1467,7 +1467,7 @@ function renderDesenhos() {
             entry.leafletLayer = null;
         }
         if ((d.camada || 0) !== activeLayer) return; // camada 1 não aparece na 2
-        const layer = buildDesenhoLayer(d, false);
+        const layer = buildDesenhoLayer(d, canEditWiki);
         if (layer) {
             layer._bonfireDesenhoId = d.id;
             desenhosLayer.addLayer(layer);

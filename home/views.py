@@ -5725,12 +5725,33 @@ def _organizations_for_location(region_name, territory_name):
     return organizations
 
 
+def _world_layer_options(request):
+    layer_options_qs = TbMapLayer.objects.all().order_by('ordem', 'id_layer')
+    if not request.user.is_staff:
+        layer_options_qs = layer_options_qs.filter(publica=True)
+    return list(layer_options_qs)
+
+
+def _active_world_layer(request, layer_options):
+    active_layer_raw = request.GET.get('camada', '')
+    if active_layer_raw in ('', None):
+        return None
+    try:
+        candidate_layer = int(active_layer_raw)
+    except (TypeError, ValueError):
+        return None
+    available_layers = {layer.id_layer for layer in layer_options}
+    return candidate_layer if candidate_layer in available_layers else None
+
+
 @ensure_csrf_cookie  # edição inline (wiki) lê o csrftoken do cookie
 def regiao_detail_view(request, slug):
     regiao = get_object_or_404(TbRegiao, slug=slug)
     public_layers = list(TbMapLayer.objects.filter(publica=True).values_list('id_layer', flat=True)) or [0]
     if regiao.camada not in public_layers and not request.user.is_staff:
         raise Http404("Região não encontrada")
+    layer_options = _world_layer_options(request)
+    active_layer = _active_world_layer(request, layer_options)
 
     
     marker = TbMapMarker.objects.filter(nome=regiao.nome).first()
@@ -5738,14 +5759,16 @@ def regiao_detail_view(request, slug):
     
     if not request.user.is_staff:
         all_regioes = TbRegiao.objects.filter(camada__in=public_layers).order_by('territorio', 'nome')
-        territory_objects = {t.nome: t for t in TbTerritorio.objects.filter(camada__in=public_layers)}
+        territory_objects = {t.nome: t for t in TbTerritorio.objects.filter(camada__in=public_layers).order_by('nome')}
     else:
         all_regioes = TbRegiao.objects.all().order_by('territorio', 'nome')
-        territory_objects = {t.nome: t for t in TbTerritorio.objects.all()}
+        territory_objects = {t.nome: t for t in TbTerritorio.objects.all().order_by('nome')}
     territorios = {}
     for r in all_regioes:
         terr = r.territorio or 'Sem território'
         territorios.setdefault(terr, []).append(r)
+    for territory_name in territory_objects:
+        territorios.setdefault(territory_name, [])
     territory_groups = []
     client_regions = []
     client_territories = {}
@@ -5764,6 +5787,7 @@ def regiao_detail_view(request, slug):
             'display_nome': display_name,
             'slug': territory_obj.slug if territory_obj else slugify(name),
             'id': territory_obj.id_territorio if territory_obj else None,
+            'camada': territory_obj.camada if territory_obj else (items[0].camada if items else None),
             'color': color,
             'display_color': display_color,
             'contrast': contrast,
@@ -5792,6 +5816,7 @@ def regiao_detail_view(request, slug):
             'contrast': contrast,
             'regioes': items,
             'is_current': name == (regiao.territorio or 'Sem território'),
+            'camada': territory_obj.camada if territory_obj else (items[0].camada if items else None),
         })
         for item in items:
             client_regions.append({
@@ -5799,6 +5824,7 @@ def regiao_detail_view(request, slug):
                 'id': item.id_regiao,
                 'nome': item.nome,
                 'slug': item.slug,
+                'camada': item.camada,
                 'territorio': item.territorio or 'Sem território',
                 'display_territory': _display_territory(item.territorio),
                 'color': color,
@@ -5859,11 +5885,15 @@ def regiao_detail_view(request, slug):
         'client_regions': client_regions,
         'client_territories': client_territories,
         'current_region_slug': regiao.slug,
+        'current_territory_slug': '',
         'current_territory_name': regiao.territorio or 'Sem território',
         'organizations': _organizations_for_location(regiao.nome, regiao.territorio or ''),
         'can_edit_wiki': request.user.is_staff,
         'categoria_choices': TbMapMarker.PIN_ICON_CHOICES,
         'all_territories_list': all_territories_list,
+        'is_territory': False,
+        'layer_options': layer_options,
+        'active_layer': active_layer,
     }
     return render(request, 'home/pages/regiao_detail.html', context)
 
@@ -5874,27 +5904,158 @@ def territorio_detail_view(request, slug):
     public_layers = list(TbMapLayer.objects.filter(publica=True).values_list('id_layer', flat=True)) or [0]
     if territory.camada not in public_layers and not request.user.is_staff:
         raise Http404("Territorio nao encontrado")
+    layer_options = _world_layer_options(request)
+    active_layer = _active_world_layer(request, layer_options)
 
-    regioes_qs = TbRegiao.objects.filter(territorio__iexact=territory.nome).order_by('nome')
+    regiao = SimpleNamespace(
+        id_regiao=None,
+        nome=territory.nome,
+        slug=territory.slug,
+        camada=territory.camada,
+        territorio=territory.nome,
+        brasao_url=territory.imagem_url or '',
+        mapa_url='',
+        lore_markdown=territory.lore_markdown or '',
+        categoria='territorio',
+        etiquetas_adicionais='',
+    )
+
     if not request.user.is_staff:
-        regioes_qs = regioes_qs.filter(camada__in=public_layers)
+        all_regioes = TbRegiao.objects.filter(camada__in=public_layers).order_by('territorio', 'nome')
+        territory_objects = {t.nome: t for t in TbTerritorio.objects.filter(camada__in=public_layers).order_by('nome')}
+    else:
+        all_regioes = TbRegiao.objects.all().order_by('territorio', 'nome')
+        territory_objects = {t.nome: t for t in TbTerritorio.objects.all().order_by('nome')}
+
+    territorios = {}
+    for r in all_regioes:
+        terr = r.territorio or 'Sem território'
+        territorios.setdefault(terr, []).append(r)
+    for territory_name in territory_objects:
+        territorios.setdefault(territory_name, [])
+
+    territory_groups = []
+    client_regions = []
+    client_territories = {}
+
+    for name, items in territorios.items():
+        territory_obj = territory_objects.get(name) or next((t for t in territory_objects.values() if _normalize_text(t.nome) == _normalize_text(name)), None)
+        display_name = _display_territory(name)
+        color = territory_obj.cor_hex if territory_obj and territory_obj.cor_hex else _territory_color(name)
+        display_color = _get_display_color(color)
+        contrast = _get_contrast_color(color)
+        image_url = _asset_url(territory_obj.imagem_url) if territory_obj and territory_obj.imagem_url else _asset_url(getattr(items[0], 'brasao_url', None) if items else None)
+        territory_topics = _parse_lore_topics(territory_obj.lore_markdown or '') if territory_obj else []
+        client_territories[name] = {
+            'type': 'territory',
+            'nome': name,
+            'display_nome': display_name,
+            'slug': territory_obj.slug if territory_obj else slugify(name),
+            'id': territory_obj.id_territorio if territory_obj else None,
+            'camada': territory_obj.camada if territory_obj else (items[0].camada if items else None),
+            'color': color,
+            'display_color': display_color,
+            'contrast': contrast,
+            'imagem_url': image_url,
+            'raw_imagem_url': territory_obj.imagem_url if territory_obj else '',
+            'descricao_breve': territory_obj.descricao_breve if territory_obj else '',
+            'lore_markdown': territory_obj.lore_markdown if territory_obj else '',
+            'topics': territory_topics,
+            'fallback_text': f'A lore de {display_name} ainda não foi escrita.',
+            'stats': {
+                'riqueza_natural': territory_obj.riqueza_natural if territory_obj else 0,
+                'riqueza_monetaria': territory_obj.riqueza_monetaria if territory_obj else 0,
+                'poder_militar': territory_obj.poder_militar if territory_obj else 0,
+                'desenvolvimento_tecnologico': territory_obj.desenvolvimento_tecnologico if territory_obj else 0,
+                'estabilidade_politica_interna': territory_obj.estabilidade_politica_interna if territory_obj else 0,
+                'ameacas_externas': territory_obj.ameacas_externas if territory_obj else 0,
+                'diplomacia': territory_obj.diplomacia if territory_obj else 0,
+                'manipulacao_trama': territory_obj.manipulacao_trama if territory_obj else 0,
+            }
+        }
+        territory_groups.append({
+            'nome': name,
+            'display_nome': display_name,
+            'color': color,
+            'display_color': display_color,
+            'contrast': contrast,
+            'regioes': items,
+            'is_current': name == territory.nome,
+            'camada': territory_obj.camada if territory_obj else (items[0].camada if items else None),
+        })
+        for item in items:
+            client_regions.append({
+                'type': 'region',
+                'id': item.id_regiao,
+                'nome': item.nome,
+                'slug': item.slug,
+                'camada': item.camada,
+                'territorio': item.territorio or 'Sem território',
+                'display_territory': _display_territory(item.territorio),
+                'color': color,
+                'contrast': contrast,
+                'imagem_url': _asset_url(item.brasao_url) if getattr(item, 'brasao_url', None) else image_url,
+                'raw_imagem_url': getattr(item, 'brasao_url', '') or '',
+                'mapa_url': _asset_url(item.mapa_url) if getattr(item, 'mapa_url', None) else '',
+                'raw_mapa_url': getattr(item, 'mapa_url', '') or '',
+                'side_image_url': _asset_url(item.mapa_url) if getattr(item, 'mapa_url', None) else image_url,
+                'territory_image_url': image_url,
+                'etiquetas_adicionais': item.etiquetas_adicionais or '',
+                'descricao_breve': '',
+                'lore_markdown': item.lore_markdown or '',
+                'categoria': item.categoria or 'cidade',
+                'topics': _parse_lore_topics(item.lore_markdown or ''),
+                'fallback_text': 'Use "Editar região" para adicionar a lore desta região.' if request.user.is_staff else 'A lore desta região ainda não foi escrita.',
+                'url': reverse('regiao_detail', kwargs={'slug': item.slug}),
+                'stats': {
+                    'movimentacoes_economicas': item.movimentacoes_economicas,
+                    'poder_militar': item.poder_militar,
+                    'desenvolvimento_tecnologico': item.desenvolvimento_tecnologico,
+                    'estabilidade_politica_interna': item.estabilidade_politica_interna,
+                    'ameacas_externas': item.ameacas_externas,
+                    'densidade_populacional': item.densidade_populacional,
+                    'tolerancia_estrangeiros': item.tolerancia_estrangeiros,
+                    'manipulacao_trama': item.manipulacao_trama,
+                    'ameacas_internas': item.ameacas_internas,
+                    'nivel_periculosidade': item.nivel_periculosidade,
+                    'recursos_naturais': item.recursos_naturais,
+                    'recursos_magicos': item.recursos_magicos,
+                    'diversidade_criaturas': item.diversidade_criaturas,
+                }
+            })
 
     color = territory.cor_hex or _territory_color(territory.nome)
     display_color = _get_display_color(color)
+    image_url = _asset_url(territory.imagem_url) if territory.imagem_url else _asset_url(None)
+    all_territories_list = list(TbTerritorio.objects.values_list('nome', flat=True).order_by('nome'))
     context = {
-        'territory': territory,
-        'display_nome': _display_territory(territory.nome),
-        'image_url': _asset_url(territory.imagem_url) if territory.imagem_url else _asset_url(None),
+        'regiao': regiao,
+        'imagem_url': image_url,
+        'brasao_url': image_url if territory.imagem_url else None,
+        'side_image_url': image_url,
+        'territory_image_url': image_url,
+        'display_territory': _display_territory(territory.nome),
         'territory_color': color,
         'territory_display_color': display_color,
         'territory_contrast': _get_contrast_color(color),
+        'marker': None,
+        'territorios': territorios,
+        'territory_groups': territory_groups,
         'lore_topics': _parse_lore_topics(territory.lore_markdown or ''),
-        'regioes': list(regioes_qs),
+        'client_regions': client_regions,
+        'client_territories': client_territories,
+        'current_region_slug': '',
+        'current_territory_slug': territory.slug,
+        'current_territory_name': territory.nome,
         'organizations': _organizations_for_location('', territory.nome),
         'can_edit_wiki': request.user.is_staff,
-        'layer_options': TbMapLayer.objects.all().order_by('ordem', 'id_layer'),
+        'categoria_choices': TbMapMarker.PIN_ICON_CHOICES,
+        'all_territories_list': all_territories_list,
+        'is_territory': True,
+        'layer_options': layer_options,
+        'active_layer': active_layer,
     }
-    return render(request, 'home/pages/territorio_detail.html', context)
+    return render(request, 'home/pages/regiao_detail.html', context)
 
 
 def _region_payload(region):
