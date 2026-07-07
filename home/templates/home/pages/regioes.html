@@ -1,6 +1,11 @@
 {% extends 'home/base.html' %}
 {% load static %}
 
+{% block main_class %}flex-1 w-full{% endblock %}
+
+{% block ad_containers %}{% endblock %}
+{% block ad_containers_right %}{% endblock %}
+
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'css/pages/regioes.css' %}">
 {% endblock %}
@@ -22,7 +27,7 @@
           {% endfor %}
         </select>
       </form>
-      <span>{{ total_territorios }} territorios / {{ total_locais }} locais conhecidos</span>
+      <span>{{ total_territorios }} territórios / {{ total_locais }} locais conhecidos</span>
       {% if can_edit_wiki %}
       <button id="btnNewRegion" type="button">+ Nova região</button>
       {% endif %}

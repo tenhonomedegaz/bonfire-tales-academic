@@ -5533,8 +5533,6 @@ def mundo_regioes_view(request):
         color = territory.cor_hex if territory and territory.cor_hex else _territory_color(territory_name)
         display_color = _get_display_color(color)
         display_nome = _display_territory(territory_name)
-        if territory and territory.camada > 0:
-            display_nome += f" (Subterrâneo Lvl {territory.camada})"
         territorios_cards.append({
             'nome': territory_name,
             'display_nome': display_nome,
@@ -5560,15 +5558,13 @@ def mundo_regioes_view(request):
         color = territory.cor_hex if territory.cor_hex else _territory_color(territory_name)
         display_color = _get_display_color(color)
         display_nome = _display_territory(territory_name)
-        if territory.camada > 0:
-            display_nome += f" (SubterrÃ¢neo Lvl {territory.camada})"
         territorios_cards.append({
             'nome': territory_name,
             'display_nome': display_nome,
             'slug': territory.slug,
             'url': reverse('territorio_detail', kwargs={'slug': territory.slug}),
             'imagem_url': image_url,
-            'descricao_breve': (territory.descricao_breve or '') or f"{_display_territory(territory_name)} ainda nÃ£o tem regiÃµes cadastradas.",
+            'descricao_breve': (territory.descricao_breve or '') or f"{_display_territory(territory_name)} ainda não tem regiões cadastradas.",
             'color': color,
             'display_color': display_color,
             'contrast': _get_contrast_color(color),
