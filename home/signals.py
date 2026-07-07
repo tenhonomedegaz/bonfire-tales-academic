@@ -91,6 +91,22 @@ def _shared_fields_from_marker(marker):
     }
 
 
+@receiver(pre_save, sender=TbMapMarker)
+def capture_original_marker_name(sender, instance, **kwargs):
+    if instance.pk:
+        orig = TbMapMarker.objects.filter(pk=instance.pk).first()
+        if orig:
+            instance._original_nome = orig.nome
+
+
+@receiver(pre_save, sender=TbRegiao)
+def capture_original_region_name(sender, instance, **kwargs):
+    if instance.pk:
+        orig = TbRegiao.objects.filter(pk=instance.pk).first()
+        if orig:
+            instance._original_nome = orig.nome
+
+
 @receiver(post_save, sender=TbMapMarker)
 def auto_create_region_from_marker(sender, instance, created, **kwargs):
     if kwargs.get('raw', False):
@@ -104,16 +120,33 @@ def auto_create_region_from_marker(sender, instance, created, **kwargs):
     if not slug:
         return
 
-    
-    if not TbRegiao.objects.filter(models.Q(slug=slug) | models.Q(nome=instance.nome)).exists():
-        _syncing_region_marker = True
-        try:
-            TbRegiao.objects.create(
-                slug=slug,
-                **_shared_fields_from_marker(instance),
-            )
-        finally:
-            _syncing_region_marker = False
+    _syncing_region_marker = True
+    try:
+        if created:
+            if not TbRegiao.objects.filter(models.Q(slug=slug) | models.Q(nome=instance.nome)).exists():
+                TbRegiao.objects.create(
+                    slug=slug,
+                    **_shared_fields_from_marker(instance),
+                )
+        else:
+            orig_nome = getattr(instance, '_original_nome', None)
+            search_name = orig_nome if orig_nome else instance.nome
+            region = TbRegiao.objects.filter(nome=search_name).first()
+            if region:
+                region.nome = instance.nome
+                new_slug = slugify(instance.nome) or 'regiao'
+                candidate = new_slug
+                counter = 2
+                while TbRegiao.objects.filter(slug=candidate).exclude(pk=region.pk).exists():
+                    candidate = f"{new_slug}-{counter}"
+                    counter += 1
+                region.slug = candidate
+                region.territorio = instance.territorio or ''
+                region.categoria = instance.categoria or 'cidade'
+                region.camada = instance.camada
+                region.save()
+    finally:
+        _syncing_region_marker = False
 
 
 @receiver(post_save, sender=TbRegiao)
@@ -129,20 +162,28 @@ def auto_create_marker_from_region(sender, instance, created, **kwargs):
     if not slug:
         return
 
-    
-    existing = TbMapMarker.objects.filter(nome=instance.nome).first()
-    if existing:
-        return
-
     _syncing_region_marker = True
     try:
-        TbMapMarker.objects.create(
-            nome=instance.nome,
-            lat=0,
-            lng=0,
-            categoria=instance.categoria or 'cidade',
-            territorio=instance.territorio or '',
-            camada=instance.camada,
-        )
+        if created:
+            existing = TbMapMarker.objects.filter(nome=instance.nome).first()
+            if not existing:
+                TbMapMarker.objects.create(
+                    nome=instance.nome,
+                    lat=0,
+                    lng=0,
+                    categoria=instance.categoria or 'cidade',
+                    territorio=instance.territorio or '',
+                    camada=instance.camada,
+                )
+        else:
+            orig_nome = getattr(instance, '_original_nome', None)
+            search_name = orig_nome if orig_nome else instance.nome
+            marker = TbMapMarker.objects.filter(nome=search_name).first()
+            if marker:
+                marker.nome = instance.nome
+                marker.categoria = instance.categoria or 'cidade'
+                marker.territorio = instance.territorio or ''
+                marker.camada = instance.camada
+                marker.save()
     finally:
         _syncing_region_marker = False
