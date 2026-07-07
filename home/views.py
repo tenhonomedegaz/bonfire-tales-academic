@@ -91,12 +91,12 @@ def _log_wiki_creation(request, obj, message="Created inline via wiki"):
         pass
 
 
-class BotMongoUnavailable(Exception):
+class SiteDataUnavailable(Exception):
     """Raised when a requested PostgreSQL table is not available."""
     pass
 
 
-SITE_COLLECTIONS = {
+SITE_TABLES = {
     'classes': settings.SITE_POSTGRES_TABLES.get('classes', 'home_tbclasse'),
     'subclasses': settings.SITE_POSTGRES_TABLES.get('subclasses', 'home_tbsubclasse'),
     'class_features': settings.SITE_POSTGRES_TABLES.get('class_features', 'home_tbclassehabilidade'),
@@ -148,13 +148,13 @@ class RelatedList(list):
 
 
 def _postgres_table_for_key(key):
-    table_name = SITE_COLLECTIONS.get(key)
+    table_name = SITE_TABLES.get(key)
     if not table_name:
-        raise BotMongoUnavailable(f"Tabela PostgreSQL nao configurada para: {key}")
+        raise SiteDataUnavailable(f"Tabela PostgreSQL nao configurada para: {key}")
     with connection.cursor() as cursor:
         table_names = connection.introspection.table_names(cursor)
     if table_name not in table_names:
-        raise BotMongoUnavailable(f"Tabela PostgreSQL nao encontrada: {table_name}")
+        raise SiteDataUnavailable(f"Tabela PostgreSQL nao encontrada: {table_name}")
     return table_name
 
 
@@ -171,7 +171,7 @@ from decimal import Decimal
 from datetime import date
 
 
-def _serialize_mongo_value(value):
+def _serialize_site_value(value):
     if isinstance(value, (datetime, date)):
         return value.isoformat()
     if isinstance(value, Decimal):
@@ -182,57 +182,29 @@ def _serialize_mongo_value(value):
 
 
 def serialize_document(document):
-    return {key: _serialize_mongo_value(value) for key, value in (document or {}).items()}
+    return {key: _serialize_site_value(value) for key, value in (document or {}).items()}
 
 
 def _row_to_document(columns, row):
     return serialize_document(dict(zip(columns, row)))
 
 
-class _PostgresCollection:
-    def __init__(self, key):
-        self.table_name = _postgres_table_for_key(key)
-        self.columns = _postgres_columns(self.table_name)
-
-    def update_one(self, filter_query, update, upsert=False):
-        document = dict(update.get('$set') or {})
-        if upsert:
-            document = {**(update.get('$setOnInsert') or {}), **document}
-        where_items = {key: value for key, value in (filter_query or {}).items() if key in self.columns}
-        data = {key: value for key, value in document.items() if key in self.columns}
-        if not where_items:
-            raise BotMongoUnavailable("Filtro sem colunas validas para PostgreSQL.")
-        if not data:
-            return
-
-        where_sql = " AND ".join(f"{_quote_name(key)} = %s" for key in where_items)
-        with connection.cursor() as cursor:
-            cursor.execute(
-                f"SELECT COUNT(*) FROM {_quote_name(self.table_name)} WHERE {where_sql}",
-                list(where_items.values()),
-            )
-            exists = cursor.fetchone()[0] > 0
-            if exists:
-                set_sql = ", ".join(f"{_quote_name(key)} = %s" for key in data)
-                cursor.execute(
-                    f"UPDATE {_quote_name(self.table_name)} SET {set_sql} WHERE {where_sql}",
-                    [*data.values(), *where_items.values()],
-                )
-            elif upsert:
-                insert_data = {**where_items, **data}
-                columns_sql = ", ".join(_quote_name(key) for key in insert_data)
-                placeholders = ", ".join(["%s"] * len(insert_data))
-                cursor.execute(
-                    f"INSERT INTO {_quote_name(self.table_name)} ({columns_sql}) VALUES ({placeholders})",
-                    list(insert_data.values()),
-                )
+def _site_count(key, query=None):
+    table_name = _postgres_table_for_key(key)
+    columns = _postgres_columns(table_name)
+    query = query or {}
+    valid_query = {field: value for field, value in query.items() if field in columns}
+    where_sql = ""
+    params = []
+    if valid_query:
+        where_sql = " WHERE " + " AND ".join(f"{_quote_name(field)} = %s" for field in valid_query)
+        params = list(valid_query.values())
+    with connection.cursor() as cursor:
+        cursor.execute(f"SELECT COUNT(*) FROM {_quote_name(table_name)}{where_sql}", params)
+        return cursor.fetchone()[0]
 
 
-def _mongo_collection(key):
-    return _PostgresCollection(key)
-
-
-def _mongo_docs(key, sort=None, query=None):
+def _site_docs(key, sort=None, query=None):
     table_name = _postgres_table_for_key(key)
     columns = _postgres_columns(table_name)
     query = query or {}
@@ -253,21 +225,49 @@ def _mongo_docs(key, sort=None, query=None):
     return [_row_to_document(columns, row) for row in rows]
 
 
-def _mongo_one(key, query):
-    documents = _mongo_docs(key, query=query)
+def _site_one(key, query):
+    documents = _site_docs(key, query=query)
     return documents[0] if documents else None
 
 
-def _mongo_upsert_site_document(key, id_field, id_value, payload):
+def _upsert_site_document(key, id_field, id_value, payload):
     if id_value in (None, '', 'undefined', 'null'):
         return
-    try:
-        collection = _mongo_collection(key)
-        document = dict(payload)
-        document[id_field] = id_value
-        collection.update_one({id_field: id_value}, {'$set': document}, upsert=True)
-    except BotMongoUnavailable:
-        pass
+    table_name = _postgres_table_for_key(key)
+    columns = _postgres_columns(table_name)
+    if id_field not in columns:
+        raise SiteDataUnavailable(f"Coluna de chave ausente em {table_name}: {id_field}")
+
+    document = dict(payload or {})
+    document[id_field] = id_value
+    data = {field: value for field, value in document.items() if field in columns}
+    if not data:
+        return
+
+    where_sql = f"{_quote_name(id_field)} = %s"
+    with connection.cursor() as cursor:
+        cursor.execute(
+            f"SELECT COUNT(*) FROM {_quote_name(table_name)} WHERE {where_sql}",
+            [id_value],
+        )
+        exists = cursor.fetchone()[0] > 0
+        if exists:
+            update_data = {field: value for field, value in data.items() if field != id_field}
+            if not update_data:
+                return
+            set_sql = ", ".join(f"{_quote_name(field)} = %s" for field in update_data)
+            cursor.execute(
+                f"UPDATE {_quote_name(table_name)} SET {set_sql} WHERE {where_sql}",
+                [*update_data.values(), id_value],
+            )
+            return
+
+        columns_sql = ", ".join(_quote_name(field) for field in data)
+        placeholders = ", ".join(["%s"] * len(data))
+        cursor.execute(
+            f"INSERT INTO {_quote_name(table_name)} ({columns_sql}) VALUES ({placeholders})",
+            list(data.values()),
+        )
 
 
 def _asset_url(value, fallback='assets/fire_background.png'):
@@ -385,7 +385,7 @@ def is_ajax(request):
     return request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.GET.get('ajax') == '1'
 
 
-def _mongo_classe(doc):
+def _site_classe(doc):
     if not doc:
         return None
     return _rec(
@@ -411,7 +411,7 @@ def _mongo_classe(doc):
     )
 
 
-def _mongo_subclasse(doc, classes_by_id=None):
+def _site_subclasse(doc, classes_by_id=None):
     if not doc:
         return None
     classe = classes_by_id.get(doc.get('Id_Classe')) if classes_by_id else None
@@ -425,7 +425,7 @@ def _mongo_subclasse(doc, classes_by_id=None):
     )
 
 
-def _mongo_habilidade(doc, classes_by_id=None, subclasses_by_id=None):
+def _site_habilidade(doc, classes_by_id=None, subclasses_by_id=None):
     subclasse = subclasses_by_id.get(doc.get('Id_Subclasse')) if subclasses_by_id and doc.get('Id_Subclasse') else None
     classe = classes_by_id.get(doc.get('Id_Classe')) if classes_by_id else None
     return _rec(
@@ -442,7 +442,7 @@ def _mongo_habilidade(doc, classes_by_id=None, subclasses_by_id=None):
     )
 
 
-def _mongo_recurso(doc, classes_by_id=None, subclasses_by_id=None):
+def _site_recurso(doc, classes_by_id=None, subclasses_by_id=None):
     subclasse = subclasses_by_id.get(doc.get('Id_Subclasse')) if subclasses_by_id and doc.get('Id_Subclasse') else None
     classe = classes_by_id.get(doc.get('Id_Classe')) if classes_by_id else None
     return _rec(
@@ -458,7 +458,7 @@ def _mongo_recurso(doc, classes_by_id=None, subclasses_by_id=None):
     )
 
 
-def _mongo_raca(doc):
+def _site_raca(doc):
     return _rec(
         id_raca=doc.get('Id_Raca'),
         nome=doc.get('Nome') or '',
@@ -471,7 +471,7 @@ def _mongo_raca(doc):
     )
 
 
-def _mongo_linhagem(doc, tracos=None):
+def _site_linhagem(doc, tracos=None):
     return _rec(
         id_linhagem=doc.get('Id_Linhagem'),
         id_raca_id=doc.get('Id_Raca'),
@@ -485,7 +485,7 @@ def _mongo_linhagem(doc, tracos=None):
     )
 
 
-def _mongo_traco(doc):
+def _site_traco(doc):
     return _rec(
         id_traco=doc.get('Id_Traco'),
         id_raca_id=doc.get('Id_Raca'),
@@ -1426,8 +1426,8 @@ def _postgres_classes_view(request):
     return render(request, 'home/pages/classe_detail.html', context)
 
 
-def _mongo_classes_view(request):
-    classes = [_mongo_classe(doc) for doc in _mongo_docs('classes', [('Nome', 1)])]
+def _site_classes_view(request):
+    classes = [_site_classe(doc) for doc in _site_docs('classes', [('Nome', 1)])]
     context = {
         'classe': None,
         'all_classes': classes,
@@ -1438,8 +1438,8 @@ def _mongo_classes_view(request):
         'progression_table': [],
         'colunas': [],
         'spell_slots_count': 0,
-        'total_habilidades': _mongo_collection('class_features').count_documents({}),
-        'total_subclasses': _mongo_collection('subclasses').count_documents({}),
+        'total_habilidades': _site_count('class_features'),
+        'total_subclasses': _site_count('subclasses'),
         'can_edit_wiki': request.user.is_staff,
     }
     if is_ajax(request):
@@ -1773,23 +1773,23 @@ def _postgres_classe_detail_view(request, slug):
     return render(request, 'home/pages/classe_detail.html', context)
 
 
-def _mongo_classe_detail_view(request, slug):
-    classe_doc = _mongo_one('classes', {'Slug': slug})
+def _site_classe_detail_view(request, slug):
+    classe_doc = _site_one('classes', {'Slug': slug})
     if not classe_doc:
         raise Http404("Classe nao encontrada")
 
-    all_classes = [_mongo_classe(doc) for doc in _mongo_docs('classes', [('Nome', 1)])]
+    all_classes = [_site_classe(doc) for doc in _site_docs('classes', [('Nome', 1)])]
     classes_by_id = {classe.id_classe: classe for classe in all_classes}
-    classe = _mongo_classe(classe_doc)
+    classe = _site_classe(classe_doc)
     classes_by_id[classe.id_classe] = classe
 
-    subclass_docs = _mongo_docs('subclasses', [('Nome', 1)], {'Id_Classe': classe.id_classe})
-    subclasses = [_mongo_subclasse(doc, classes_by_id) for doc in subclass_docs]
+    subclass_docs = _site_docs('subclasses', [('Nome', 1)], {'Id_Classe': classe.id_classe})
+    subclasses = [_site_subclasse(doc, classes_by_id) for doc in subclass_docs]
     subclasses_by_id = {sub.id_subclasse: sub for sub in subclasses}
     selected_subclass_slug = request.GET.get('subclasse', '')
 
-    habilidade_docs = _mongo_docs('class_features', [('NivelAdquirido', 1), ('Nome', 1)], {'Id_Classe': classe.id_classe})
-    all_habilidades = [_mongo_habilidade(doc, classes_by_id, subclasses_by_id) for doc in habilidade_docs]
+    habilidade_docs = _site_docs('class_features', [('NivelAdquirido', 1), ('Nome', 1)], {'Id_Classe': classe.id_classe})
+    all_habilidades = [_site_habilidade(doc, classes_by_id, subclasses_by_id) for doc in habilidade_docs]
     base_habilidades = [item for item in all_habilidades if not item.id_subclasse_id]
     subclass_habilidades_all = [item for item in all_habilidades if item.id_subclasse_id]
     habilidades = [item for item in base_habilidades if not item.table_only]
@@ -1841,8 +1841,8 @@ def _mongo_classe_detail_view(request, slug):
     multiclass_traits = [{'label': label, 'value': value} for label, value in multiclass_traits if value]
 
     recursos = [
-        _mongo_recurso(doc, classes_by_id, subclasses_by_id)
-        for doc in _mongo_docs('class_resources', [('Id_Subclasse', 1), ('Id_Recurso', 1)], {'Id_Classe': classe.id_classe})
+        _site_recurso(doc, classes_by_id, subclasses_by_id)
+        for doc in _site_docs('class_resources', [('Id_Subclasse', 1), ('Id_Recurso', 1)], {'Id_Classe': classe.id_classe})
     ]
 
     columns = []
@@ -2153,16 +2153,16 @@ def _postgres_raca_detail_view(request, slug):
     return render(request, 'home/pages/raca_detail.html', context)
 
 
-def _mongo_racas_view(request):
-    racas = [_mongo_raca(doc) for doc in _mongo_docs('races', [('Nome', 1)])]
+def _site_racas_view(request):
+    racas = [_site_raca(doc) for doc in _site_docs('races', [('Nome', 1)])]
     context = {
         'raca': None,
         'all_racas': racas,
         'selected_raca_id': None,
         'tracos_base': [],
         'linhagens': [],
-        'total_linhagens': _mongo_collection('lineages').count_documents({}),
-        'total_tracos': _mongo_collection('racial_traits').count_documents({}),
+        'total_linhagens': _site_count('lineages'),
+        'total_tracos': _site_count('racial_traits'),
         'can_edit_wiki': request.user.is_staff,
     }
     if is_ajax(request):
@@ -2170,13 +2170,13 @@ def _mongo_racas_view(request):
     return render(request, 'home/pages/raca_detail.html', context)
 
 
-def _mongo_raca_detail_view(request, slug):
-    raca_doc = _mongo_one('races', {'Slug': slug})
+def _site_raca_detail_view(request, slug):
+    raca_doc = _site_one('races', {'Slug': slug})
     if not raca_doc:
         raise Http404("Raca nao encontrada")
-    raca = _mongo_raca(raca_doc)
-    racas = [_mongo_raca(doc) for doc in _mongo_docs('races', [('Nome', 1)])]
-    tracos = [_mongo_traco(doc) for doc in _mongo_docs('racial_traits', [('NivelRequisito', 1), ('Nome', 1)])]
+    raca = _site_raca(raca_doc)
+    racas = [_site_raca(doc) for doc in _site_docs('races', [('Nome', 1)])]
+    tracos = [_site_traco(doc) for doc in _site_docs('racial_traits', [('NivelRequisito', 1), ('Nome', 1)])]
     tracos_base = [traco for traco in tracos if traco.id_raca_id == raca.id_raca]
     tracos_por_linhagem = {}
     for traco in tracos:
@@ -2184,8 +2184,8 @@ def _mongo_raca_detail_view(request, slug):
             tracos_por_linhagem.setdefault(traco.id_linhagem_id, []).append(traco)
 
     linhagens = [
-        _mongo_linhagem(doc, tracos_por_linhagem.get(doc.get('Id_Linhagem'), []))
-        for doc in _mongo_docs('lineages', [('Nome', 1)], {'Id_Raca': raca.id_raca})
+        _site_linhagem(doc, tracos_por_linhagem.get(doc.get('Id_Linhagem'), []))
+        for doc in _site_docs('lineages', [('Nome', 1)], {'Id_Raca': raca.id_raca})
     ]
 
     context = {
@@ -2194,8 +2194,8 @@ def _mongo_raca_detail_view(request, slug):
         'selected_raca_id': raca.id_raca,
         'tracos_base': tracos_base,
         'linhagens': linhagens,
-        'total_linhagens': _mongo_collection('lineages').count_documents({}),
-        'total_tracos': _mongo_collection('racial_traits').count_documents({}),
+        'total_linhagens': _site_count('lineages'),
+        'total_tracos': _site_count('racial_traits'),
         'can_edit_wiki': request.user.is_staff,
     }
     if is_ajax(request):
@@ -2211,7 +2211,7 @@ def guia_mestres_view(request):
     return render(request, 'home/pages/guia_mestres.html')
 
 
-def _parse_mongo_date(value):
+def _parse_site_date(value):
     if isinstance(value, datetime):
         parsed = value
     elif isinstance(value, str):
@@ -2243,7 +2243,7 @@ def sistemas_missoes_view(request):
         status = ''
 
     quests = []
-    mongo_error = ''
+    db_error = ''
     try:
         with connection.cursor() as cursor:
             query = """
@@ -2298,13 +2298,13 @@ def sistemas_missoes_view(request):
                     'is_full': bool(players_amount and len(quest_players) >= players_amount),
                 })
     except Exception as exc:
-        mongo_error = str(exc)
+        db_error = str(exc)
 
     context = {
         'quests': quests,
         'search': search,
         'status': status,
-        'mongo_error': mongo_error,
+        'db_error': db_error,
         'status_options': [
             ('', 'Ativas'),
             ('idle', 'Abertas'),
@@ -5407,48 +5407,6 @@ def mapa_view(request):
     if not request.user.is_staff:
         layers_lista = [l for l in layers_lista if l['publica']]
 
-    try:
-        marcadores_docs = _mongo_docs('map_markers', [('Nome', 1)])
-        regioes_docs = _mongo_docs('regions', [('Territorio', 1), ('Nome', 1)])
-        territorios_docs = _mongo_docs('territories', [('Nome', 1)])
-        regioes_lista = [region_payload(region) for region in regioes_docs]
-        territorios_lista = [territory_payload(territory) for territory in territorios_docs]
-
-        marcadores_lista = [
-            {
-                'id': marker.get('Id_Marker'),
-                'nome': marker.get('Nome') or '',
-                'lat': marker.get('Latitude'),
-                'lng': marker.get('Longitude'),
-                'categoria': marker.get('Categoria') or 'cidade',
-                'territorio': marker.get('Territorio') or '',
-                'camada': marker.get('Camada') or 0,
-                'lore_url': _marker_lore_url(marker.get('Nome') or '', ''),
-            }
-            for marker in marcadores_docs
-        ]
-
-        # Desenhos (WP1): moram só no banco relacional (TbMapDesenho), mesmo no
-        # caminho Mongo. Front filtra por camada (com campo camada em cada item).
-        desenhos_lista = [desenho_payload(d) for d in TbMapDesenho.objects.filter(ativo=True)]
-
-        if not request.user.is_staff:
-            marcadores_lista = [m for m in marcadores_lista if m.get('camada', 0) in public_layers]
-            regioes_lista = [r for r in regioes_lista if r.get('camada', 0) in public_layers]
-            territorios_lista = [t for t in territorios_lista if t.get('camada', 0) in public_layers]
-            desenhos_lista = [d for d in desenhos_lista if d.get('camada', 0) in public_layers]
-
-        return render(request, 'home/pages/mapa.html', {
-            'json_markers': marcadores_lista,
-            'json_regions': regioes_lista,
-            'json_territories': territorios_lista,
-            'json_layers': layers_lista,
-            'json_desenhos': desenhos_lista,
-            'can_edit_wiki': request.user.is_staff,
-        })
-    except BotMongoUnavailable:
-        pass
-
     marcadores_db = TbMapMarker.objects.all()
     regioes_lista = [region_payload(region) for region in TbRegiao.objects.all().order_by('territorio', 'nome')]
     territorios_lista = [territory_payload(territory) for territory in TbTerritorio.objects.all().order_by('nome')]
@@ -5491,9 +5449,7 @@ def mundo_regioes_view(request):
     if territory_slug:
         territory_obj = TbTerritorio.objects.filter(slug=territory_slug).first()
         if territory_obj:
-            first_region = TbRegiao.objects.filter(territorio=territory_obj.nome).first()
-            if first_region:
-                return regiao_detail_view(request, slug=first_region.slug)
+            return redirect('territorio_detail', slug=territory_obj.slug)
 
     default_layers = [
         (0, "Cinéria", "assets/cineria.jpg", True),
@@ -5511,7 +5467,20 @@ def mundo_regioes_view(request):
                 layer_obj.nome = name_l
                 layer_obj.save()
 
+    layer_options_qs = TbMapLayer.objects.all().order_by('ordem', 'id_layer')
+    if not request.user.is_staff:
+        layer_options_qs = layer_options_qs.filter(publica=True)
+    layer_options = list(layer_options_qs)
     public_layers = list(TbMapLayer.objects.filter(publica=True).values_list('id_layer', flat=True)) or [0]
+    active_layer = None
+    active_layer_raw = request.GET.get('camada', '')
+    if active_layer_raw not in ('', None):
+        try:
+            candidate_layer = int(active_layer_raw)
+            if candidate_layer in {layer.id_layer for layer in layer_options}:
+                active_layer = candidate_layer
+        except (TypeError, ValueError):
+            active_layer = None
 
     if not request.user.is_staff:
         regioes = TbRegiao.objects.filter(camada__in=public_layers).order_by('territorio', 'nome')
@@ -5519,6 +5488,9 @@ def mundo_regioes_view(request):
     else:
         regioes = TbRegiao.objects.all().order_by('territorio', 'nome')
         territorios_qs = TbTerritorio.objects.all()
+    if active_layer is not None:
+        regioes = regioes.filter(camada=active_layer)
+        territorios_qs = territorios_qs.filter(camada=active_layer)
 
     regioes_lista = []
     markers = {m.nome: m for m in TbMapMarker.objects.all()}
@@ -5531,6 +5503,7 @@ def mundo_regioes_view(request):
             'territorio': r.territorio or 'Sem território',
             'categoria': r.categoria or 'cidade',
             'etiquetas_adicionais': r.etiquetas_adicionais or '',
+            'camada': r.camada,
         })
 
     territories_by_name = {t.nome: t for t in territorios_qs}
@@ -5566,6 +5539,7 @@ def mundo_regioes_view(request):
             'nome': territory_name,
             'display_nome': display_nome,
             'slug': territory.slug if territory else slugify(territory_name),
+            'url': reverse('territorio_detail', kwargs={'slug': territory.slug}),
             'imagem_url': image_url,
             'descricao_breve': description,
             'color': color,
@@ -5574,6 +5548,34 @@ def mundo_regioes_view(request):
             'locais_count': len(regions),
             'regioes': regions,
             'tags': tags,
+            'camada': territory.camada,
+        })
+
+    listed_territory_ids = {card['slug'] for card in territorios_cards}
+    for territory in sorted(territories_by_name.values(), key=lambda item: item.nome):
+        if territory.slug in listed_territory_ids:
+            continue
+        territory_name = territory.nome
+        image_url = _asset_url(territory.imagem_url) if territory.imagem_url else _asset_url(None)
+        color = territory.cor_hex if territory.cor_hex else _territory_color(territory_name)
+        display_color = _get_display_color(color)
+        display_nome = _display_territory(territory_name)
+        if territory.camada > 0:
+            display_nome += f" (SubterrÃ¢neo Lvl {territory.camada})"
+        territorios_cards.append({
+            'nome': territory_name,
+            'display_nome': display_nome,
+            'slug': territory.slug,
+            'url': reverse('territorio_detail', kwargs={'slug': territory.slug}),
+            'imagem_url': image_url,
+            'descricao_breve': (territory.descricao_breve or '') or f"{_display_territory(territory_name)} ainda nÃ£o tem regiÃµes cadastradas.",
+            'color': color,
+            'display_color': display_color,
+            'contrast': _get_contrast_color(color),
+            'locais_count': 0,
+            'regioes': [],
+            'tags': [],
+            'camada': territory.camada,
         })
 
     all_territories_list = list(TbTerritorio.objects.values_list('nome', flat=True).order_by('nome'))
@@ -5588,6 +5590,8 @@ def mundo_regioes_view(request):
         'can_edit_wiki': request.user.is_staff,
         'categoria_choices': TbMapMarker.PIN_ICON_CHOICES,
         'all_territories_list': all_territories_list,
+        'layer_options': layer_options,
+        'active_layer': active_layer,
     })
 
 
@@ -5710,13 +5714,13 @@ def _organizations_for_location(region_name, territory_name):
     territory_keys = {slugify(territory_name), _normalize_text(territory_name)}
     organizations = []
     try:
-        for document in _mongo_docs('organizations', [('Nome', 1)]):
+        for document in _site_docs('organizations', [('Nome', 1)]):
             payload = _organization_payload(document)
             region_matches = _slug_match_values(payload['regioes'])
             territory_matches = _slug_match_values(payload['territorios'])
             if region_keys.intersection(region_matches) or territory_keys.intersection(territory_matches):
                 organizations.append(payload)
-    except BotMongoUnavailable:
+    except SiteDataUnavailable:
         return []
     return organizations
 
@@ -5864,6 +5868,35 @@ def regiao_detail_view(request, slug):
     return render(request, 'home/pages/regiao_detail.html', context)
 
 
+@ensure_csrf_cookie
+def territorio_detail_view(request, slug):
+    territory = get_object_or_404(TbTerritorio, slug=slug)
+    public_layers = list(TbMapLayer.objects.filter(publica=True).values_list('id_layer', flat=True)) or [0]
+    if territory.camada not in public_layers and not request.user.is_staff:
+        raise Http404("Territorio nao encontrado")
+
+    regioes_qs = TbRegiao.objects.filter(territorio__iexact=territory.nome).order_by('nome')
+    if not request.user.is_staff:
+        regioes_qs = regioes_qs.filter(camada__in=public_layers)
+
+    color = territory.cor_hex or _territory_color(territory.nome)
+    display_color = _get_display_color(color)
+    context = {
+        'territory': territory,
+        'display_nome': _display_territory(territory.nome),
+        'image_url': _asset_url(territory.imagem_url) if territory.imagem_url else _asset_url(None),
+        'territory_color': color,
+        'territory_display_color': display_color,
+        'territory_contrast': _get_contrast_color(color),
+        'lore_topics': _parse_lore_topics(territory.lore_markdown or ''),
+        'regioes': list(regioes_qs),
+        'organizations': _organizations_for_location('', territory.nome),
+        'can_edit_wiki': request.user.is_staff,
+        'layer_options': TbMapLayer.objects.all().order_by('ordem', 'id_layer'),
+    }
+    return render(request, 'home/pages/territorio_detail.html', context)
+
+
 def _region_payload(region):
     return {
         'id': region.id_regiao,
@@ -5875,6 +5908,7 @@ def _region_payload(region):
         'brasao_url': region.brasao_url or '',
         'mapa_url': region.mapa_url or '',
         'etiquetas_adicionais': region.etiquetas_adicionais or '',
+        'camada': region.camada,
         'type': 'region',
         'stats': {
             'movimentacoes_economicas': region.movimentacoes_economicas,
@@ -5891,6 +5925,40 @@ def _region_payload(region):
     }
 
 
+def _unique_slug_for_model(model, value, field='slug', pk=None):
+    base = slugify(value) or 'unnamed'
+    candidate = base
+    counter = 2
+    qs = model.objects.filter(**{field: candidate})
+    if pk is not None:
+        qs = qs.exclude(pk=pk)
+    while qs.exists():
+        candidate = f"{base}-{counter}"
+        counter += 1
+        qs = model.objects.filter(**{field: candidate})
+        if pk is not None:
+            qs = qs.exclude(pk=pk)
+    return candidate
+
+
+def _map_conflict_error(model, nome, pk=None, label='registro'):
+    if not nome:
+        return None
+    qs = model.objects.filter(nome__iexact=nome)
+    if pk is not None:
+        qs = qs.exclude(pk=pk)
+    if qs.exists():
+        return f'Ja existe {label} com este nome.'
+    return None
+
+
+def _parse_map_layer(value, default=0):
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
 @staff_member_required
 @require_POST
 def wiki_create_region(request):
@@ -5900,6 +5968,13 @@ def wiki_create_region(request):
     nome = (data.get('nome') or '').strip()
     if not nome:
         return JsonResponse({'ok': False, 'error': 'Nome é obrigatório.'}, status=400)
+
+    conflict = _map_conflict_error(TbRegiao, nome, label='uma regiao')
+    if conflict:
+        return JsonResponse({'ok': False, 'error': conflict}, status=400)
+    conflict = _map_conflict_error(TbMapMarker, nome, label='um marcador')
+    if conflict:
+        return JsonResponse({'ok': False, 'error': conflict}, status=400)
 
     territorio = (data.get('territorio') or '').strip() or None
     if territorio:
@@ -5912,12 +5987,7 @@ def wiki_create_region(request):
         return JsonResponse({'ok': False, 'error': 'Não foi possível gerar slug do nome.'}, status=400)
 
     
-    candidate = slug
-    counter = 2
-    while TbRegiao.objects.filter(slug=candidate).exists():
-        candidate = f"{slug}-{counter}"
-        counter += 1
-    slug = candidate
+    slug = _unique_slug_for_model(TbRegiao, nome)
 
     valid_categorias = dict(TbMapMarker.PIN_ICON_CHOICES)
 
@@ -5930,6 +6000,7 @@ def wiki_create_region(request):
         brasao_url=(data.get('brasao_url') or '').strip() or None,
         mapa_url=(data.get('mapa_url') or '').strip() or None,
         etiquetas_adicionais=(data.get('etiquetas_adicionais') or '').strip() or None,
+        camada=_parse_map_layer(data.get('camada'), 0),
     )
     _log_wiki_creation(request, region, f"Criação inline de região: {region.nome}")
     return JsonResponse({'ok': True, 'region': _region_payload(region), 'redirect': f'/mundo/regioes/{region.slug}/'})
@@ -5944,7 +6015,19 @@ def wiki_update_region(request, region_id):
 
     valid_categorias = dict(TbMapMarker.PIN_ICON_CHOICES)
 
-    region.nome = (data.get('nome') or region.nome).strip()
+    new_nome = (data.get('nome') or region.nome).strip()
+    if not new_nome:
+        return JsonResponse({'ok': False, 'error': 'Nome e obrigatorio.'}, status=400)
+    conflict = _map_conflict_error(TbRegiao, new_nome, pk=region.pk, label='uma regiao')
+    if conflict:
+        return JsonResponse({'ok': False, 'error': conflict}, status=400)
+    marker_conflicts = TbMapMarker.objects.filter(nome__iexact=new_nome).exclude(nome__iexact=region.nome)
+    if marker_conflicts.exists():
+        return JsonResponse({'ok': False, 'error': 'Ja existe um marcador com este nome.'}, status=400)
+    name_changed = _normalize_text(new_nome) != _normalize_text(region.nome)
+    region.nome = new_nome
+    if name_changed:
+        region.slug = _unique_slug_for_model(TbRegiao, new_nome, pk=region.pk)
 
 
     region.lore_markdown = data.get('lore_markdown') if 'lore_markdown' in data else region.lore_markdown
@@ -5958,6 +6041,8 @@ def wiki_update_region(request, region_id):
         region.territorio = territorio_val
 
     region.categoria = data.get('categoria') if data.get('categoria') in valid_categorias else region.categoria
+    if 'camada' in data:
+        region.camada = _parse_map_layer(data.get('camada'), region.camada)
     region.brasao_url = (data.get('brasao_url') or '').strip() or None
     region.mapa_url = (data.get('mapa_url') or '').strip() or None
     region.etiquetas_adicionais = (data.get('etiquetas_adicionais') or '').strip() or None
@@ -5975,7 +6060,11 @@ def wiki_update_region(request, region_id):
 
     region.save()
     _log_wiki_edit(request, region, f"Edição inline de região: {region.nome}")
-    return JsonResponse({'ok': True, 'region': _region_payload(region)})
+    return JsonResponse({
+        'ok': True,
+        'region': _region_payload(region),
+        'redirect': reverse('regiao_detail', kwargs={'slug': region.slug}),
+    })
 
 @staff_member_required
 @require_POST
@@ -6004,17 +6093,6 @@ def wiki_create_territory(request):
         camada=camada,
     )
 
-    _mongo_upsert_site_document('territories', 'Id_Territorio', territory.id_territorio, {
-        'Nome': territory.nome,
-        'Slug': territory.slug,
-        'DescricaoBreve': territory.descricao_breve,
-        'ImagemUrl': territory.imagem_url,
-        'CoordenadasPoligono': territory.coordenadas_poligono,
-        'CorHex': territory.cor_hex,
-        'LoreMarkdown': territory.lore_markdown,
-        'Camada': territory.camada,
-    })
-
     _log_wiki_creation(request, territory, f"Criação inline de território: {territory.nome}")
 
     return JsonResponse({
@@ -6036,10 +6114,20 @@ def wiki_update_territory(request, territory_id):
     validate_no_sql_danger(data, 'territorio')
     territory = get_object_or_404(TbTerritorio, pk=territory_id)
 
-    territory.nome = (data.get('nome') or territory.nome).strip()
+    new_nome = (data.get('nome') or territory.nome).strip()
+    if not new_nome:
+        return JsonResponse({'ok': False, 'error': 'Nome e obrigatorio.'}, status=400)
+    conflict = _map_conflict_error(TbTerritorio, new_nome, pk=territory.pk, label='um territorio')
+    if conflict:
+        return JsonResponse({'ok': False, 'error': conflict}, status=400)
+    territory.nome = new_nome
     territory.imagem_url = (data.get('imagem_url') or '').strip() or None
     territory.descricao_breve = (data.get('descricao_breve') or '').strip() or None
     territory.lore_markdown = (data.get('lore_markdown') or '').strip() or None
+    if 'cor_hex' in data:
+        territory.cor_hex = (data.get('cor_hex') or territory.cor_hex or '#ffffff').strip()
+    if 'camada' in data:
+        territory.camada = _parse_map_layer(data.get('camada'), territory.camada)
     
     if 'coordenadas_poligono' in data:
         territory.coordenadas_poligono = data.get('coordenadas_poligono')
@@ -6055,7 +6143,7 @@ def wiki_update_territory(request, territory_id):
 
     territory.save()
     _log_wiki_edit(request, territory, f"Edição inline de território: {territory.nome}")
-    return JsonResponse({'ok': True, 'redirect': f'/mundo/regioes/?territory={territory.slug}'})
+    return JsonResponse({'ok': True, 'redirect': reverse('territorio_detail', kwargs={'slug': territory.slug})})
 
 
 @staff_member_required
@@ -6087,55 +6175,56 @@ def wiki_batch_save_map(request):
     try:
         with transaction.atomic():
             
+            valid_categorias = dict(TbMapMarker.PIN_ICON_CHOICES)
             for m_data in data.get('markers', []):
                 m_id = m_data.get('id')
                 if m_id in ['undefined', 'null', '']:
                     m_id = None
-                nome = m_data.get('nome', '').strip()
-                if not nome: continue
-                
+                nome = (m_data.get('nome') or '').strip()
+                if not nome:
+                    continue
+
                 lat = float(m_data.get('lat', 0))
                 lng = float(m_data.get('lng', 0))
-                categoria = m_data.get('categoria', 'cidade')
-                territorio = m_data.get('territorio')
-                camada = int(m_data.get('camada', 0))
-                
+                categoria = m_data.get('categoria') if m_data.get('categoria') in valid_categorias else 'cidade'
+                territorio = (m_data.get('territorio') or '').strip() or None
+                camada = _parse_map_layer(m_data.get('camada'), 0)
+
+                if territorio and not TbTerritorio.objects.filter(nome__iexact=territorio).exists():
+                    return JsonResponse({'ok': False, 'error': f'O territorio "{territorio}" nao existe.'}, status=400)
+
                 marker = None
                 original_name = None
                 if m_id:
-                    marker = TbMapMarker.objects.filter(pk=m_id).first()
-                    if marker:
-                        original_name = marker.nome
-                
-                
-                if not marker:
-                    marker = TbMapMarker.objects.filter(nome=nome).first()
+                    marker = TbMapMarker.objects.select_for_update().filter(pk=m_id).first()
+                    if marker is None:
+                        return JsonResponse({'ok': False, 'error': 'Marcador nao encontrado para edicao.'}, status=404)
+                    original_name = marker.nome
+                else:
+                    if TbMapMarker.objects.filter(nome__iexact=nome).exists() or TbRegiao.objects.filter(nome__iexact=nome).exists():
+                        return JsonResponse({'ok': False, 'error': 'Ja existe uma regiao ou marcador com este nome.'}, status=400)
+                    marker = TbMapMarker.objects.create(
+                        nome=nome,
+                        lat=lat,
+                        lng=lng,
+                        categoria=categoria,
+                        territorio=territorio,
+                        camada=camada,
+                    )
 
-                if not marker:
-                    
-                    
-                    existing = TbMapMarker.objects.filter(nome=nome).first()
-                    if existing:
-                        marker = existing
-                    else:
-                        marker = TbMapMarker.objects.create(nome=nome, lat=lat, lng=lng, categoria=categoria, territorio=territorio, camada=camada)
-                        
-                        r_obj = TbRegiao.objects.filter(nome=nome).first()
-                        if not r_obj:
-                            new_slug = slugify(nome) or 'unnamed'
-                            if TbRegiao.objects.filter(slug=new_slug).exists():
-                                import uuid
-                                new_slug += f"-{uuid.uuid4().hex[:6]}"
-                            TbRegiao.objects.create(
-                                nome=nome,
-                                slug=new_slug,
-                                categoria=categoria,
-                                territorio=territorio,
-                                camada=camada
-                            )
-                
-                
-                marker.nome = nome 
+                search_name = original_name or nome
+                region = TbRegiao.objects.select_for_update().filter(nome__iexact=search_name).first()
+
+                if original_name and _normalize_text(original_name) != _normalize_text(nome):
+                    if TbMapMarker.objects.filter(nome__iexact=nome).exclude(pk=marker.pk).exists():
+                        return JsonResponse({'ok': False, 'error': 'Ja existe um marcador com este nome.'}, status=400)
+                    region_conflicts = TbRegiao.objects.filter(nome__iexact=nome)
+                    if region is not None:
+                        region_conflicts = region_conflicts.exclude(pk=region.pk)
+                    if region_conflicts.exists():
+                        return JsonResponse({'ok': False, 'error': 'Ja existe uma regiao com este nome.'}, status=400)
+
+                marker.nome = nome
                 marker.lat = lat
                 marker.lng = lng
                 marker.categoria = categoria
@@ -6143,68 +6232,25 @@ def wiki_batch_save_map(request):
                 marker.camada = camada
                 marker.save()
                 _log_wiki_edit(request, marker, f"Marcador de mapa salvo via lote: {marker.nome}")
-                _mongo_upsert_site_document('map_markers', 'Id_Marker', marker.id_marker, {
-                    'Nome': marker.nome,
-                    'Latitude': marker.lat,
-                    'Longitude': marker.lng,
-                    'Categoria': marker.categoria,
-                    'Territorio': marker.territorio,
-                    'Camada': marker.camada,
-                })
-                
-                
-                search_name = original_name if original_name else nome
-                region = TbRegiao.objects.filter(nome=search_name).first()
-                if region:
+
+                if region is None:
+                    region = TbRegiao.objects.create(
+                        nome=nome,
+                        slug=_unique_slug_for_model(TbRegiao, nome),
+                        categoria=categoria,
+                        territorio=territorio,
+                        camada=camada,
+                    )
+                    _log_wiki_edit(request, region, f"Regiao de mapa criada via lote: {region.nome}")
+                else:
+                    if _normalize_text(region.nome) != _normalize_text(nome):
+                        region.slug = _unique_slug_for_model(TbRegiao, nome, pk=region.pk)
                     region.nome = nome
-                    new_slug = slugify(nome) or 'unnamed'
-                    if TbRegiao.objects.filter(slug=new_slug).exclude(pk=region.pk).exists():
-                        import uuid
-                        new_slug += f"-{uuid.uuid4().hex[:6]}"
-                    region.slug = new_slug
                     region.categoria = categoria
                     region.territorio = territorio
                     region.camada = camada
                     region.save()
-                    _log_wiki_edit(request, region, f"Região de mapa salva via lote: {region.nome}")
-                    _mongo_upsert_site_document('regions', 'Id_Regiao', region.id_regiao, {
-                        'Nome': region.nome,
-                        'Slug': region.slug,
-                        'Categoria': region.categoria,
-                        'Territorio': region.territorio,
-                        'LoreMarkdown': region.lore_markdown,
-                        'BrasaoUrl': region.brasao_url,
-                        'MapaUrl': region.mapa_url,
-                        'EtiquetasAdicionais': region.etiquetas_adicionais,
-                        'Camada': region.camada,
-                    })
-                else:
-                    
-                    r_obj = TbRegiao.objects.filter(nome=nome).first()
-                    if not r_obj:
-                        new_slug = slugify(nome) or 'unnamed'
-                        if TbRegiao.objects.filter(slug=new_slug).exists():
-                            import uuid
-                            new_slug += f"-{uuid.uuid4().hex[:6]}"
-                        r_obj = TbRegiao.objects.create(nome=nome, slug=new_slug, camada=camada)
-                    r_obj.categoria = categoria
-                    r_obj.territorio = territorio
-                    r_obj.camada = camada
-                    r_obj.save()
-                    _log_wiki_edit(request, r_obj, f"Região de mapa criada/salva via lote: {r_obj.nome}")
-                    _mongo_upsert_site_document('regions', 'Id_Regiao', r_obj.id_regiao, {
-                        'Nome': r_obj.nome,
-                        'Slug': r_obj.slug,
-                        'Categoria': r_obj.categoria,
-                        'Territorio': r_obj.territorio,
-                        'LoreMarkdown': r_obj.lore_markdown,
-                        'BrasaoUrl': r_obj.brasao_url,
-                        'MapaUrl': r_obj.mapa_url,
-                        'EtiquetasAdicionais': r_obj.etiquetas_adicionais,
-                        'Camada': r_obj.camada,
-                    })
-                    
-            
+                    _log_wiki_edit(request, region, f"Regiao de mapa salva via lote: {region.nome}")
             for t_data in data.get('territories', []):
                 t_id = t_data.get('id')
                 if not t_id or t_id in ['undefined', 'null', '']: continue
@@ -6219,17 +6265,6 @@ def wiki_batch_save_map(request):
                 if modified:
                     territory.save()
                     _log_wiki_edit(request, territory, f"Território de mapa salvo via lote: {territory.nome}")
-                    _mongo_upsert_site_document('territories', 'Id_Territorio', territory.id_territorio, {
-                        'Nome': territory.nome,
-                        'Slug': territory.slug,
-                        'DescricaoBreve': territory.descricao_breve,
-                        'ImagemUrl': territory.imagem_url,
-                        'CoordenadasPoligono': territory.coordenadas_poligono,
-                        'CorHex': territory.cor_hex,
-                        'LoreMarkdown': territory.lore_markdown,
-                        'Camada': territory.camada,
-                    })
-                    
         return JsonResponse({'ok': True})
     except Exception as e:
         import traceback
@@ -6248,7 +6283,7 @@ def talentos_view(request):
 
 
     try:
-        talentos_docs = _mongo_docs('talents', [('Nome', 1)])
+        talentos_docs = _site_docs('talents', [('Nome', 1)])
         tipo_display = dict(TbTalento.TIPO_CHOICES)
         etiqueta_display = dict(TbTalento.ETIQUETA_CHOICES)
         talentos_lista = []
@@ -6295,7 +6330,7 @@ def talentos_view(request):
             'talent_tipo_choices': TbTalento.TIPO_CHOICES,
             'talent_etiqueta_choices': TbTalento.ETIQUETA_CHOICES,
         })
-    except BotMongoUnavailable:
+    except SiteDataUnavailable:
         pass
 
     talentos_db = TbTalento.objects.all().order_by('nome')
@@ -6330,7 +6365,7 @@ def talentos_view(request):
 @ensure_csrf_cookie  # edição inline (wiki) lê o csrftoken do cookie
 def opcoes_view(request):
     try:
-        opcoes_docs = _mongo_docs('options', [('Nome', 1)])
+        opcoes_docs = _site_docs('options', [('Nome', 1)])
         opcoes_lista = []
         for op in opcoes_docs:
             opcoes_lista.append({
@@ -6347,7 +6382,7 @@ def opcoes_view(request):
             'json_opcoes': opcoes_lista,
             'can_edit_wiki': request.user.is_staff,
         })
-    except BotMongoUnavailable:
+    except SiteDataUnavailable:
         pass
 
     opcoes_docs = TbOpcaojogo.objects.all().order_by('nome')
@@ -6373,8 +6408,8 @@ def opcoes_view(request):
 
 def _catalog_list(key, mapper, sort_field='Nome'):
     try:
-        documents = _mongo_docs(key, [(sort_field, 1)])
-    except BotMongoUnavailable as exc:
+        documents = _site_docs(key, [(sort_field, 1)])
+    except SiteDataUnavailable as exc:
         return [], str(exc)
     return [mapper(document) for document in documents], ''
 
@@ -6475,13 +6510,13 @@ def _organization_catalog_payload(document):
 
 
 def _render_catalog(request, title, subtitle, kind, key, mapper):
-    items, mongo_error = _catalog_list(key, mapper)
-    return render(request, 'home/pages/catalogo_mongo.html', {
+    items, db_error = _catalog_list(key, mapper)
+    return render(request, 'home/pages/catalogo.html', {
         'title': title,
         'subtitle': subtitle,
         'kind': kind,
         'items': items,
-        'mongo_error': mongo_error,
+        'db_error': db_error,
         'can_edit_wiki': request.user.is_staff,
     })
 
@@ -6515,12 +6550,12 @@ def antecedentes_view(request):
             },
         })
         
-    return render(request, 'home/pages/catalogo_mongo.html', {
+    return render(request, 'home/pages/catalogo.html', {
         'title': 'Antecedentes',
         'subtitle': 'Origens, ofícios, vínculos e escolhas de história para personagens.',
         'kind': 'antecedentes',
         'items': items,
-        'mongo_error': None,
+        'db_error': None,
         'can_edit_wiki': request.user.is_staff,
     })
 
@@ -6577,12 +6612,12 @@ def idiomas_view(request):
                 'Sistema de escrita': i.transcricao or '',
             },
         })
-    return render(request, 'home/pages/catalogo_mongo.html', {
+    return render(request, 'home/pages/catalogo.html', {
         'title': 'Idiomas',
         'subtitle': 'Línguas de Bonfire Tales — basais, derivadas e exóticas.',
         'kind': 'idiomas',
         'items': items,
-        'mongo_error': '',
+        'db_error': '',
         'can_edit_wiki': False,
     })
 
@@ -6626,12 +6661,12 @@ def magias_escolas_view(request):
             'descricao': descricao,
             'meta': {'Total de magias': str(len(magias))},
         })
-    return render(request, 'home/pages/catalogo_mongo.html', {
+    return render(request, 'home/pages/catalogo.html', {
         'title': 'Escolas de Magia',
         'subtitle': 'As oito escolas de magia e as magias que pertencem a cada uma.',
         'kind': 'escolas',
         'items': items,
-        'mongo_error': '',
+        'db_error': '',
         'can_edit_wiki': False,
     })
 
@@ -7488,9 +7523,10 @@ def organizacoes_view(request):
             'UpdatedAt': datetime.now(datetime_timezone.utc),
         }
         try:
-            collection = _mongo_collection('organizations')
-            collection.update_one({'Slug': document['Slug']}, {'$set': document, '$setOnInsert': {'CreatedAt': datetime.now(datetime_timezone.utc)}}, upsert=True)
-        except BotMongoUnavailable as exc:
+            document_to_save = dict(document)
+            document_to_save['CreatedAt'] = document_to_save.get('CreatedAt') or datetime.now(datetime_timezone.utc)
+            _upsert_site_document('organizations', 'Slug', document['Slug'], document_to_save)
+        except SiteDataUnavailable as exc:
             return JsonResponse({'ok': False, 'error': str(exc)}, status=503)
         return JsonResponse({'ok': True, 'organization': serialize_document(document)})
 
@@ -7511,7 +7547,7 @@ def api_opcoes(request):
 
     try:
         query = {} if not tipo_filter else {'Tipo': tipo_filter}
-        opcoes_docs = _mongo_docs('options', [('Nome', 1)], query=query if tipo_filter else None)
+        opcoes_docs = _site_docs('options', [('Nome', 1)], query=query if tipo_filter else None)
         opcoes_lista = []
         for op in opcoes_docs:
             opcoes_lista.append({
@@ -7524,7 +7560,7 @@ def api_opcoes(request):
                 'etiquetas_adicionais': op.get('EtiquetasAdicionais') or '',
             })
         return JsonResponse({'opcoes': opcoes_lista})
-    except BotMongoUnavailable:
+    except SiteDataUnavailable:
         pass
 
     qs = TbOpcaojogo.objects.all().order_by('nome')

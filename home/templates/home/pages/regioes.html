@@ -13,7 +13,16 @@
       <h1>Regiões de Cinéria</h1>
     </div>
     <div class="regions-summary">
-      {{ total_territorios }} regiões · {{ total_locais }} locais conhecidos
+      <form method="get" class="regions-filter">
+        <label for="regionsLayerFilter">Camada</label>
+        <select id="regionsLayerFilter" name="camada" onchange="this.form.submit()">
+          <option value="" {% if active_layer is None %}selected{% endif %}>Todas as camadas</option>
+          {% for layer in layer_options %}
+          <option value="{{ layer.id_layer }}" {% if active_layer == layer.id_layer %}selected{% endif %}>{{ layer.nome }}</option>
+          {% endfor %}
+        </select>
+      </form>
+      <span>{{ total_territorios }} territorios / {{ total_locais }} locais conhecidos</span>
       {% if can_edit_wiki %}
       <button id="btnNewRegion" type="button">+ Nova região</button>
       {% endif %}
@@ -22,7 +31,7 @@
 
   <div class="territory-card-grid">
     {% for territorio in territorios_cards %}
-    <article class="territory-card cursor-pointer" onclick="location.href='{% if territorio.regioes %}{% url 'mundo_regioes' %}?territory={{ territorio.nome|slugify }}{% else %}#{% endif %}'" style="--territory-color: {{ territorio.color }}; --territory-accent: {{ territorio.display_color }}; --territory-contrast: {{ territorio.contrast }}; --territory-image: url('{{ territorio.imagem_url }}');">
+    <article class="territory-card cursor-pointer" onclick="location.href='{{ territorio.url }}'" style="--territory-color: {{ territorio.color }}; --territory-accent: {{ territorio.display_color }}; --territory-contrast: {{ territorio.contrast }}; --territory-image: url('{{ territorio.imagem_url }}');">
       <div class="territory-card-bg"></div>
       <div class="territory-card-content">
         <div class="territory-card-label">{{ territorio.display_nome }} — {{ territorio.locais_count }} locais</div>
@@ -113,6 +122,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   const modal = document.getElementById('newRegionModal');
+  const currentLayer = Number('{{ active_layer|default:0 }}') || 0;
   document.getElementById('btnNewRegion')?.addEventListener('click', () => {
     document.getElementById('createTerritorySectionRegion').style.display = 'none';
     modal?.showModal();
@@ -141,7 +151,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const res = await fetch('/wiki/territorios/criar/', {
         method: 'POST',
         headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
-        body: JSON.stringify({ nome: nome, cor_hex: cor, camada: 0 }),
+        body: JSON.stringify({ nome: nome, cor_hex: cor, camada: currentLayer }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Erro no servidor.');
@@ -170,6 +180,7 @@ document.addEventListener('DOMContentLoaded', () => {
       mapa_url: document.getElementById('nr-mapa').value.trim(),
       etiquetas_adicionais: document.getElementById('nr-tags').value.trim(),
       descricao_breve: document.getElementById('nr-desc').value.trim(),
+      camada: currentLayer,
     };
     if (!payload.nome) return alert('O nome da região é obrigatório.');
     const res = await fetch('/wiki/regioes/criar/', {

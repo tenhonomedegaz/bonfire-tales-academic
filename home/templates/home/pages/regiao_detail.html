@@ -1128,8 +1128,10 @@
           headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken()},
           body: JSON.stringify(formData),
         });
-        if (res.ok) window.location.reload();
-        else alert('Erro ao salvar');
+        const responseData = await res.json().catch(() => ({}));
+        if (res.ok && responseData.redirect) window.location.href = responseData.redirect;
+        else if (res.ok) window.location.reload();
+        else alert(responseData.error || 'Erro ao salvar');
       });
     } else {
       const territoryForm = document.getElementById('territoryForm');
@@ -1154,7 +1156,7 @@
     currentData = data;
     
     if (pushState) {
-        const url = data.type === 'region' ? data.url : `?territory=${data.slug}`;
+        const url = data.type === 'region' ? data.url : `/mundo/territorios/${data.slug}/`;
         history.pushState({ slug: data.slug, type: data.type }, '', url);
     }
 

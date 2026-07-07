@@ -331,7 +331,7 @@ const categoriaChoices = {
 
 // Global state for editor (Phase 1: Infrastructure)
 let pendingChanges = {
-    markers: {},    // { id_marker_or_tempId: { nome, lat, lng, categoria, territorio } }
+    markers: {},    // { id_marker_or_tempId: { id, nome, lat, lng, categoria, territorio, camada } }
     territories: {} // { id_territory: [ coords_arrays ] }
 };
 
@@ -360,13 +360,19 @@ function updatePendingMarkerField(id, field, value) {
                 lat: marker._bonfireData.lat,
                 lng: marker._bonfireData.lng,
                 categoria: marker._bonfireData.categoria,
-                territorio: marker._bonfireData.territorio
+                territorio: marker._bonfireData.territorio,
+                camada: marker._bonfireData.camada ?? activeLayer
             };
         } else {
             pendingChanges.markers[id] = {};
         }
     }
     pendingChanges.markers[id][field] = value;
+    const liveMarker = leafletMarkers.find(m => (m._bonfireData?.id == id || m._tempId == id));
+    if (liveMarker && liveMarker._bonfireData) {
+        liveMarker._bonfireData[field] = value;
+        if (field === 'nome') liveMarker.options.title = value;
+    }
     markChange();
 }
 
@@ -395,7 +401,8 @@ async function saveAllChanges() {
             headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
             body: JSON.stringify(payload)
         });
-        if (!res.ok) throw new Error('Falha no servidor');
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || data.ok === false) throw new Error(data.error || 'Falha no servidor');
         window.location.reload();
     } catch (err) {
         showToast('Erro ao salvar: ' + err.message, 'error');
@@ -3089,7 +3096,7 @@ if (canEditWiki) {
       const bounds = [[b.getSouth(), b.getWest()], [b.getNorth(), b.getEast()]];
       imagemDraft.dados.bounds = bounds;
       renderImagemDraft();
-      document.getElementById('imagemStyleHint').textContent = 'Ajuste a opacidade e salve. Você pode redesenhar a área.';
+      document.getElementById('imagemStyleHint').textContent = 'Arraste a imagem para mover. Ajuste a opacidade, redesenhe a area ou salve.';
       document.getElementById('imagemSaveBtn').hidden = false;
       document.getElementById('imagemRedrawBtn').hidden = false;
     });
@@ -3105,8 +3112,80 @@ if (canEditWiki) {
     if (!imagemDraft || !imagemDraft.dados.bounds) return;
     if (imagemDraft.layer) map.removeLayer(imagemDraft.layer);
     imagemDraft.layer = L.imageOverlay(imagemDraft.dados.url, imagemDraft.dados.bounds, {
-      pane: 'desenhosPane', opacity: imagemDraft.dados.opacidade, interactive: false
+      pane: 'desenhosPane', opacity: imagemDraft.dados.opacidade, interactive: true
     }).addTo(map);
+    enableImagemDraftDragging(imagemDraft.layer);
+  }
+
+  function imagemBoundsToJson(bounds) {
+    return [
+      [bounds.getSouth(), bounds.getWest()],
+      [bounds.getNorth(), bounds.getEast()]
+    ];
+  }
+
+  function imagemPointerPoint(event) {
+    const original = event.touches?.[0] || event.changedTouches?.[0] || event;
+    return map.mouseEventToContainerPoint(original);
+  }
+
+  function enableImagemDraftDragging(layer) {
+    if (!layer || layer._bonfireDragEnabled) return;
+    layer._bonfireDragEnabled = true;
+
+    const bind = () => {
+      const el = layer.getElement();
+      if (!el || el._bonfireImageDragBound) return;
+      el._bonfireImageDragBound = true;
+      el.style.cursor = 'move';
+      el.style.outline = '2px solid rgba(255, 183, 77, 0.85)';
+      el.style.outlineOffset = '2px';
+
+      const startDrag = (event) => {
+        if (!imagemDraft || imagemDraft.layer !== layer) return;
+        L.DomEvent.stop(event);
+        const startPoint = imagemPointerPoint(event);
+        const startBounds = layer.getBounds();
+        const mapWasDragging = map.dragging.enabled();
+        if (mapWasDragging) map.dragging.disable();
+
+        const move = (moveEvent) => {
+          L.DomEvent.preventDefault(moveEvent);
+          const currentPoint = imagemPointerPoint(moveEvent);
+          const startLatLng = map.containerPointToLatLng(startPoint);
+          const currentLatLng = map.containerPointToLatLng(currentPoint);
+          const dLat = currentLatLng.lat - startLatLng.lat;
+          const dLng = currentLatLng.lng - startLatLng.lng;
+          const nextBounds = L.latLngBounds(
+            [startBounds.getSouth() + dLat, startBounds.getWest() + dLng],
+            [startBounds.getNorth() + dLat, startBounds.getEast() + dLng]
+          );
+          layer.setBounds(nextBounds);
+          imagemDraft.dados.bounds = imagemBoundsToJson(nextBounds);
+        };
+
+        const stop = () => {
+          L.DomEvent.off(document, 'mousemove', move);
+          L.DomEvent.off(document, 'mouseup', stop);
+          L.DomEvent.off(document, 'touchmove', move);
+          L.DomEvent.off(document, 'touchend', stop);
+          L.DomEvent.off(document, 'touchcancel', stop);
+          if (mapWasDragging) map.dragging.enable();
+        };
+
+        L.DomEvent.on(document, 'mousemove', move);
+        L.DomEvent.on(document, 'mouseup', stop);
+        L.DomEvent.on(document, 'touchmove', move);
+        L.DomEvent.on(document, 'touchend', stop);
+        L.DomEvent.on(document, 'touchcancel', stop);
+      };
+
+      L.DomEvent.on(el, 'mousedown', startDrag);
+      L.DomEvent.on(el, 'touchstart', startDrag);
+    };
+
+    bind();
+    layer.on('load', bind);
   }
 
   document.getElementById('imagemOpacityInput').addEventListener('input', (e) => {
@@ -3170,7 +3249,7 @@ if (canEditWiki) {
     imagemDraft = { id: id, isNew: false, layer: null, dados: dados, nome: d.nome || '' };
     renderImagemDraft();
     openImagemStylePanel();
-    document.getElementById('imagemStyleHint').textContent = 'Ajuste a opacidade, redesenhe a área ou exclua.';
+    document.getElementById('imagemStyleHint').textContent = 'Arraste a imagem para mover. Ajuste a opacidade, redesenhe a area ou exclua.';
     document.getElementById('imagemOpacityInput').value = dados.opacidade || 1;
     document.getElementById('imagemOpacityOut').textContent = dados.opacidade || 1;
     document.getElementById('imagemNomeInput').value = d.nome || '';

@@ -141,6 +141,7 @@ urlpatterns = [
     path('mundo/cosmo/', views.placeholder_view, {'title': 'Cosmologia'}, name='mundo_cosmo'),
     path('mundo/linha-do-tempo/', views.placeholder_view, {'title': 'Linha do Tempo'}, name='mundo_linha_tempo'),
     path('mundo/regioes/', views.mundo_regioes_view, name='mundo_regioes'),
+    path('mundo/territorios/<slug:slug>/', views.territorio_detail_view, name='territorio_detail'),
     path('mundo/regioes/<slug:slug>/', views.regiao_detail_view, name='regiao_detail'),
     path('mundo/organizacoes/', views.organizacoes_view, name='mundo_organizacoes'),
     path('mundo/bestiario/', views.bestiario_view, name='mundo_bestiario'),

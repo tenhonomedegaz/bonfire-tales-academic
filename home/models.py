@@ -24,7 +24,7 @@ import json
 
 from django.db import models
 from django.utils import timezone
-from django.db.models.signals import post_save, post_delete
+from django.db.models.signals import pre_save, post_save, post_delete
 from django.dispatch import receiver
 from django.core.validators import FileExtensionValidator
 
@@ -613,29 +613,95 @@ class TbCronica(models.Model):
         return ', '.join(self.regioes_lista)
 
 
+def _same_map_name(left, right):
+    return (left or '').strip().casefold() == (right or '').strip().casefold()
+
+
+def _first_marker_by_name(name):
+    if not name:
+        return None
+    return TbMapMarker.objects.filter(nome__iexact=name).order_by('id_marker').first()
+
+
+@receiver(pre_save, sender=TbRegiao)
+def remember_region_map_keys(sender, instance, **kwargs):
+    if not instance.pk:
+        instance._old_nome = None
+        return
+    old = sender.objects.filter(pk=instance.pk).only('nome').first()
+    instance._old_nome = old.nome if old else None
+
+
 @receiver(post_save, sender=TbRegiao)
 def sync_region_to_marker(sender, instance, **kwargs):
     if kwargs.get('raw', False):
         return
-    from django.utils.text import slugify
-    
-    
-    marker, created = TbMapMarker.objects.get_or_create(
-        nome=instance.nome,
-        defaults={
-            'lat': 0, 
-            'lng': 0,
-            'categoria': instance.categoria or 'cidade',
-            'territorio': instance.territorio,
-            'camada': instance.camada,
-        }
-    )
-    
-    if not created:
+
+    old_nome = getattr(instance, '_old_nome', None)
+    marker = _first_marker_by_name(instance.nome)
+    if marker is None and old_nome and not _same_map_name(old_nome, instance.nome):
+        marker = _first_marker_by_name(old_nome)
+
+    if marker is None:
+        marker = TbMapMarker.objects.create(
+            nome=instance.nome,
+            lat=0,
+            lng=0,
+            categoria=instance.categoria or 'cidade',
+            territorio=instance.territorio,
+            camada=instance.camada,
+        )
+    else:
+        marker.nome = instance.nome
         marker.territorio = instance.territorio
-        marker.categoria = instance.categoria
+        marker.categoria = instance.categoria or 'cidade'
         marker.camada = instance.camada
         marker.save()
+
+    if old_nome and not _same_map_name(old_nome, instance.nome):
+        TbMapMarker.objects.filter(nome__iexact=old_nome).exclude(pk=marker.pk).delete()
+
+
+@receiver(post_delete, sender=TbRegiao)
+def delete_region_marker(sender, instance, **kwargs):
+    if TbRegiao.objects.filter(nome__iexact=instance.nome).exists():
+        return
+    TbMapMarker.objects.filter(nome__iexact=instance.nome).delete()
+
+
+@receiver(pre_save, sender=TbTerritorio)
+def remember_territory_map_keys(sender, instance, **kwargs):
+    if not instance.pk:
+        instance._old_nome = None
+        return
+    old = sender.objects.filter(pk=instance.pk).only('nome').first()
+    instance._old_nome = old.nome if old else None
+
+
+@receiver(post_save, sender=TbTerritorio)
+def sync_territory_references(sender, instance, **kwargs):
+    if kwargs.get('raw', False):
+        return
+
+    old_nome = getattr(instance, '_old_nome', None)
+    if old_nome and not _same_map_name(old_nome, instance.nome):
+        TbRegiao.objects.filter(territorio__iexact=old_nome).update(
+            territorio=instance.nome,
+            camada=instance.camada,
+        )
+        TbMapMarker.objects.filter(territorio__iexact=old_nome).update(
+            territorio=instance.nome,
+            camada=instance.camada,
+        )
+    else:
+        TbRegiao.objects.filter(territorio__iexact=instance.nome).update(camada=instance.camada)
+        TbMapMarker.objects.filter(territorio__iexact=instance.nome).update(camada=instance.camada)
+
+
+@receiver(post_delete, sender=TbTerritorio)
+def clear_deleted_territory_references(sender, instance, **kwargs):
+    TbRegiao.objects.filter(territorio__iexact=instance.nome).update(territorio=None)
+    TbMapMarker.objects.filter(territorio__iexact=instance.nome).update(territorio=None)
 
 class TbItemMundano(models.Model):
     CATEGORIA_CHOICES = [

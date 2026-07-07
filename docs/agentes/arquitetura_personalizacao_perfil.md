@@ -138,7 +138,7 @@ _cosmetic_choice(user, tipo, value, escopo) ->
 | 3 | `taggear_itens.py` e `refinar_itens_mundanos_csv.py` — one-shot já cumpridos, crasham se re-executados (leem colunas mortas). Fix: deletar (ou mover p/ docs de histórico) | MÉDIA |
 | 4 | `.gitignore` sem `media/`, `backup_sqlite.json`, `conteudo.json` (21MB de dumps + uploads de usuário passíveis de commit acidental) | MÉDIA |
 | 5 | Assets soltos em `docs/agentes/` (Banner Gaz.png, Gaz Profile.gif, SKARNER*.png) — mover p/ media ou ignorar | BAIXA |
-| 6 | CSS órfãos: `index.css`, `mongo_collection_detail.css`, `mongo_document_form.css` — deletar | BAIXA |
+| 6 | CSS órfãos: `index.css`, `legado_collection_detail.css`, `legado_document_form.css` — deletar | BAIXA |
 | ok | Fixtures, docs de tags, urls/views, templates: **sem problemas** | — |
 
 **Fora de escopo por decisão:** evolução das tags_json (fica pra depois, com monitoramento humano).

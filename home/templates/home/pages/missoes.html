@@ -31,10 +31,10 @@
     </form>
   </header>
 
-  {% if mongo_error %}
+  {% if db_error %}
   <section class="rounded border border-[var(--flame)]/70 bg-[var(--flame)]/10 p-5 text-sm text-[var(--text)]">
     <h2 class="font-rpg text-xl font-bold text-[var(--flame)]">Banco do bot indisponível</h2>
-    <p class="mt-2 text-[var(--muted)]">{{ mongo_error }}</p>
+    <p class="mt-2 text-[var(--muted)]">{{ db_error }}</p>
   </section>
   {% elif quests %}
   <section class="grid gap-4 lg:grid-cols-2">

@@ -24,7 +24,7 @@ Relatorio consolidado de achados **confirmados** (verificados adversarialmente).
 | 14 | Templates orfaos `classes.html` e `racas.html` (contexto descasado) | `home/templates/home/pages/classes.html:1`, `racas.html:1` | **media** | Remover (sobra do commit 3cfb483) |
 | 15 | `parchment-texture.jpg` inexistente -> hero da 404 | `home/templates/home/pages/jornal_list.html:7` | **media** | Adicionar o asset ou corrigir o `{% static %}` |
 | 16 | Modulo `google_docs_import.py` 100% morto | `home/google_docs_import.py:1-289` | **media** | Remover modulo inteiro |
-| 17 | Views Mongo mortas + mappers so por elas | `home/views.py:1275,1622,2002,2019,459` | **media** | Remover ramo Mongo abandonado |
+| 17 | Views adaptador legado mortas + mappers so por elas | `home/views.py:1275,1622,2002,2019,459` | **media** | Remover ramo adaptador legado abandonado |
 | 18 | Modelo `TbPersonagemPersonalidade` (schema morto) | `home/models.py:1363-1370` | **media** | Avaliar remocao (tabela sincronizada, sem feature) |
 | 19 | `importar_livros.py` allowlist com colunas removidas (bug latente) | `home/management/commands/importar_livros.py:23-27` | **media** | Podar chaves mortas da allowlist |
 | 20 | Cadeia de 46 migracoes longa — candidata a `squashmigrations` | `home/migrations/0001-0046` | **media** | Squash ate marco estavel (revisar RunPython) |
@@ -35,13 +35,13 @@ Relatorio consolidado de achados **confirmados** (verificados adversarialmente).
 | 25 | Conversao PO/PP/PC duplicada inline | `home/character_engine.py:1730` (vs `views.py:2894-2906`) | **media** | Extrair helper de divisao |
 | 26 | Arquivos scratch `qc`/`query`/`start` commitados (19 bytes cada) | raiz (`git ls-files`) | **media** | `git rm` os tres |
 | 27 | Assets pesados `SKARNER *.png` untracked em `docs/agentes/` | `docs/agentes/SKARNER IMAGEM.png`, `SKARNER TOKEN.png` | **media** | Ignorar ou nao commitar (~3.4 MB) |
-| 28 | CSS orfaos `index.css` / `mongo_collection_detail.css` / `mongo_document_form.css` | `home/static/css/pages/` | **baixa** | Deletar (ja marcados como orfaos no doc de arquitetura) |
+| 28 | CSS orfaos `index.css` / `legado_collection_detail.css` / `legado_document_form.css` | `home/static/css/pages/` | **baixa** | Deletar (ja marcados como orfaos no doc de arquitetura) |
 | 29 | Imagem orfa `pena_branca.png` | `home/static/assets/pena_branca.png` | **baixa** | Deletar (so `pena_preta.png` e usada) |
 | 30 | Imports mortos em `views.py` (`DjangoJSONEncoder`, `escape`) | `home/views.py:16,27` | **baixa** | Remover imports nao usados |
 | 31 | Imports mortos em `admin.py` (`math`, `urlencode`, `validate_json_no_sql_danger`) | `home/admin.py:2,8,56` | **baixa** | Remover imports nao usados |
 | 32 | Imports mortos em modulo morto (`os`, `json`) | `home/google_docs_import.py:8,13` | **baixa** | Cai junto com o modulo (#16) |
 | 33 | `gunicorn` em `requirements.txt` nunca usado (deploy = waitress) | `requirements.txt:2` | **baixa** | Remover dependencia |
-| 34 | Stubs desativados `sync_mongo_to_sqlite` / `sync_sqlite_to_mongo` | `home/management/commands/sync_*.py:4-10` | **baixa** | Remover (so levantam `CommandError`) |
+| 34 | Stubs desativados `sync_legado_to_sqlite` / `sync_sqlite_to_legado` | `home/management/commands/sync_*.py:4-10` | **baixa** | Remover (so levantam `CommandError`) |
 | 35 | Assets `Gaz Profile.gif` / `Banner Gaz.png` untracked em `docs/agentes/` | `docs/agentes/` | **baixa** | Ignorar (~1.9 MB) |
 | 36 | Backups `.db.*`/`.sqlite3` na raiz (ja ignorados) | `bonfas_classes.db*`, `magias_backup_*.sqlite3` | **baixa** | Higiene de disco: mover para `backups/` |
 | 37 | `console.log` de depuracao no editor de mapa | `home/templates/home/pages/mapa.html:1527,1539,1555,2152,2156` | **baixa** | Remover os 5 logs |
@@ -93,12 +93,12 @@ Ja ignorados corretamente (apenas higiene de disco, sem risco de commit): `bonfa
 ### 4. Codigo morto e orfaos
 
 - **Modulo `google_docs_import.py`** (`1-289`): 100% morto. `import_google_doc()` so referenciado dentro do proprio modulo; nenhum outro `.py` importa dele; nenhuma rota. Remover inteiro (leva junto os imports mortos `os`/`json`).
-- **Ramo Mongo em `views.py`**: `_mongo_classes_view` (`1275`), `_mongo_classe_detail_view` (`1622`), `_mongo_racas_view` (`2002`), `_mongo_raca_detail_view` (`2019`) — todas definidas e nunca chamadas (os dispatchers delegam hardcoded para as variantes `_postgres_*`). Arrastam os mappers `_mongo_subclasse/_habilidade/_recurso/_linhagem/_traco` (`459` etc.) **e tambem** `_mongo_classe`/`_mongo_raca`, cujos unicos call-sites estao dentro das quatro views mortas. Preservar `_mongo_docs`/`_mongo_collection`/`_mongo_upsert_site_document` (vivos: mapa/regioes/jornal).
+- **Ramo adaptador legado em `views.py`**: `_legado_classes_view` (`1275`), `_legado_classe_detail_view` (`1622`), `_legado_racas_view` (`2002`), `_legado_raca_detail_view` (`2019`) — todas definidas e nunca chamadas (os dispatchers delegam hardcoded para as variantes `_postgres_*`). Arrastam os mappers `_legado_subclasse/_habilidade/_recurso/_linhagem/_traco` (`459` etc.) **e tambem** `_legado_classe`/`_legado_raca`, cujos unicos call-sites estao dentro das quatro views mortas. Preservar `_legado_docs`/`_legado_collection`/`_legado_upsert_site_document` (vivos: mapa/regioes/jornal).
 - **Templates orfaos** `classes.html` e `racas.html` (`:1`): paginas completas (`extends base.html`) que ninguem renderiza/inclui. Consomem `{{ classes }}`/`{{ racas }}`, mas as views fornecem `all_classes`/`all_racas` — contexto descasado. Sobra do commit 3cfb483.
 - **Modelo `TbPersonagemPersonalidade`** (`models.py:1363-1370`): `managed=True`, tabela sincronizada, mas zero acesso via ORM ou `related_name='personalidade'`. So aparece na definicao, na migracao 0011 e como string na lista de ordenacao de `deploy_sync.py:32`. Schema morto.
-- **CSS orfaos**: `index.css`, `mongo_collection_detail.css`, `mongo_document_form.css` (`home/static/css/pages/`) — sem `<link>`/`{% static %}`; ja listados como orfaos a deletar em `docs/agentes/arquitetura_personalizacao_perfil.md:141`. `base.html` so linka `base.css` estaticamente, sem loader por convencao.
+- **CSS orfaos**: `index.css`, `legado_collection_detail.css`, `legado_document_form.css` (`home/static/css/pages/`) — sem `<link>`/`{% static %}`; ja listados como orfaos a deletar em `docs/agentes/arquitetura_personalizacao_perfil.md:141`. `base.html` so linka `base.css` estaticamente, sem loader por convencao.
 - **Imagem orfa** `pena_branca.png`: `markdown.js:566,568` so usa `pena_preta.png`.
-- **Stubs desativados** `sync_mongo_to_sqlite.py` / `sync_sqlite_to_mongo.py` (`4-10`): `handle` sempre levanta `CommandError`.
+- **Stubs desativados** `sync_legado_to_sqlite.py` / `sync_sqlite_to_legado.py` (`4-10`): `handle` sempre levanta `CommandError`.
 - **`gunicorn==21.2.0`** (`requirements.txt:2`): nunca importado; todos os scripts de deploy usam `waitress` (`start_server.bat:73`, `start_server_silent.bat:31`, `scripts/run_production.ps1:29`); nao ha Procfile/Dockerfile. Alem disso gunicorn nem roda no Windows.
 - **Imports mortos**: `views.py:16` (`DjangoJSONEncoder`), `views.py:27` (so `escape`; `format_html`/`format_html_join` seguem vivos), `admin.py:2` (`math`), `admin.py:8` (`urlencode`), `admin.py:56` (so `validate_json_no_sql_danger`; `validate_no_sql_danger` e usado).
 
@@ -147,6 +147,6 @@ Ja ignorados corretamente (apenas higiene de disco, sem risco de commit): `bonfa
 1. **`.gitignore`**: adicionar `media/`, `backup_sqlite.json` e `/conteudo.json` (raiz) — remove risco de commitar ~27 MB, incluindo **PII de usuario**. Um so commit.
 2. **`git rm qc query start`**: apagar tres arquivos scratch de 19 bytes ja versionados.
 3. **`DEBUG` default -> `False`** (`settings.py:63`): uma linha que neutraliza quatro achados (DEBUG + ALLOWED_HOSTS `['*']` + cookies inseguros + exposicao de tracebacks).
-4. **Deletar orfaos**: `google_docs_import.py`, `classes.html`, `racas.html`, os 3 CSS (`index.css`, `mongo_collection_detail.css`, `mongo_document_form.css`), `pena_branca.png`, e os stubs `sync_mongo_to_sqlite.py`/`sync_sqlite_to_mongo.py`.
+4. **Deletar orfaos**: `google_docs_import.py`, `classes.html`, `racas.html`, os 3 CSS (`index.css`, `legado_collection_detail.css`, `legado_document_form.css`), `pena_branca.png`, e os stubs `sync_legado_to_sqlite.py`/`sync_sqlite_to_legado.py`.
 5. **Remover imports mortos**: `views.py:16,27`, `admin.py:2,8,56`; e `gunicorn` do `requirements.txt:2`.
 6. **Limpar `console.log`** do `mapa.html` (5 linhas) e o `parchment-texture.jpg` faltante do `jornal_list.html:7`.

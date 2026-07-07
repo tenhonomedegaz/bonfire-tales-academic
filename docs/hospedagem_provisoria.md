@@ -48,4 +48,4 @@ Use a URL gerada no `.env.production` e reinicie o servidor.
 
 - Não use `runserver` para os staffs.
 - Faça backup do PostgreSQL antes de rodar alterações grandes.
-- O site usa PostgreSQL como banco definitivo; a sincronização SQLite/Mongo foi desativada.
+- O site usa PostgreSQL como banco definitivo; a sincronização SQLite legado foi desativada.

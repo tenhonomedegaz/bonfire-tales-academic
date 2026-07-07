@@ -26,7 +26,7 @@ Logar com Discord **ou** vincular a conta existente ao Discord.
 ---
 
 ## 1. Stubs prontos pra virar página (quick wins) ⬜
-Rotas que hoje caem em `placeholder_view` (página vazia). Muitas só precisam de uma view + reaproveitar template de catálogo existente (`catalogo_mongo.html`).
+Rotas que hoje caem em `placeholder_view` (página vazia). Muitas só precisam de uma view + reaproveitar template de catálogo existente (`catalogo.html`).
 | Rota | Vira | Esforço |
 |---|---|---|
 | `/jogador/idiomas/` | Catálogo de **Idiomas** (`TbIdioma` já existe e populado: categoria basal/derivado/exótico, nome_mundo, transcrição) | baixo (reusa catálogo) |
@@ -80,7 +80,7 @@ Rotas que hoje caem em `placeholder_view` (página vazia). Muitas só precisam d
 ---
 
 ## 6. Magias & Catálogos
-**✅** Magias (`/magias/listas`), Talentos (`/jogador/talentos`), Antecedentes, Classes/Raças (catálogos ricos com `catalogo_mongo.html`/`talentos.html`), motor de tags (`tag_engine` + `validate_tags`). **🟡** filtro de escola embutido falta; antecedentes não renderizam “Reino/Deus”. **⬜** Escolas de Magia, Congregação, Idiomas (stubs), wiki-edit p/ magia/talento/idioma.
+**✅** Magias (`/magias/listas`), Talentos (`/jogador/talentos`), Antecedentes, Classes/Raças (catálogos ricos com `catalogo.html`/`talentos.html`), motor de tags (`tag_engine` + `validate_tags`). **🟡** filtro de escola embutido falta; antecedentes não renderizam “Reino/Deus”. **⬜** Escolas de Magia, Congregação, Idiomas (stubs), wiki-edit p/ magia/talento/idioma.
 **UI:** checkbox de Escola no filtro, modal “leia mais” em magias, filtro avançado (escola+nível+concentração+ritual), notas de atualização.
 
 ---
@@ -91,7 +91,7 @@ Rotas que hoje caem em `placeholder_view` (página vazia). Muitas só precisam d
 ---
 
 ## 8. Transversal / infra
-- **Dual-backend** (PostgreSQL/Mongo em prod, SQLite local) com fallback — consolidar/observar inconsistências.
+- **Dual-backend** (PostgreSQL em prod, SQLite local) com fallback — consolidar/observar inconsistências.
 - **Componentização** de templates longos; **dark mode** nativo; **busca global**; **exportações** (PDF/PNG/JSON de fichas, statblocks, cards de região).
 - **Forms no site** para staff (hoje muita coisa só via admin Django).
 

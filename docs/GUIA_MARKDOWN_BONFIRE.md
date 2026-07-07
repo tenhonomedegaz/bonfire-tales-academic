@@ -1,4 +1,4 @@
-﻿# Guia de Markdown do Bonfire
+# Guia de Markdown do Bonfire
 
 Este guia documenta as tags aceitas pelos leitores e editores Markdown do site.
 
@@ -84,7 +84,7 @@ Os modificadores tambem podem ficar na linha seguinte, util quando o editor esti
 {position:right,length:40%}
 ```
 
-Modificadores úteis:
+Modificadores �teis:
 
 - `position:right` ou `position:left`: alinha a imagem na direita/esquerda e deixa o texto contornar.
 - `position:center`: centraliza a imagem. Ideal para imagem em destaque, sem texto contornando.
@@ -117,7 +117,7 @@ Texto do bloco na esquerda.
 
 ## Collections e bancos
 
-O Mongo tem dois grupos:
+O adaptador legado tem dois grupos:
 
 - Banco do site: collections configuradas em `SITE_POSTGRES_TABLES`.
 - Banco original do bot: collections configuradas em `BOT_POSTGRES_TABLES`.

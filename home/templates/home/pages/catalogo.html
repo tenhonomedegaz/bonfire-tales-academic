@@ -5,7 +5,7 @@
 {% block title %}{{ title }} - Bonfire Tales RPG{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/pages/catalogo_mongo.css' %}">
+<link rel="stylesheet" href="{% static 'css/pages/catalogo.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -27,8 +27,8 @@
         <p style="font-style: italic; color: var(--muted); border-left: 2px solid var(--ember); padding-left: 0.75rem;"><b>Origem de Nascimento (Reino) e Deus:</b> Alguns antecedentes também pedem que você escolha uma <b>Origem de Nascimento</b> (Reino) ou um <b>deus</b> para definir detalhes do seu Talento de Origem. Se esse for o seu caso, selecione-os apropriadamente.</p>
       </div>
     {% endif %}
-    {% if mongo_error %}
-      <p class="catalog-empty" style="margin-top:1rem;">Mongo indisponivel agora: {{ mongo_error }}</p>
+    {% if db_error %}
+      <p class="catalog-empty" style="margin-top:1rem;">Banco indisponivel agora: {{ db_error }}</p>
     {% endif %}
     {% if can_edit_wiki and kind == 'magias' %}
       <a class="catalog-action" href="{% url 'admin:home_tbmagia_importar_excel' %}" style="display:inline-flex;margin-top:1rem;text-decoration:none;">Importar magias por Excel</a>
@@ -47,7 +47,7 @@
         <input name="inimigos" placeholder="Inimigos separados por virgula">
         <input class="wide" name="tags" placeholder="Tags separadas por virgula">
         <textarea class="wide" name="descricao" rows="5" placeholder="Descricao em Markdown"></textarea>
-        <button class="catalog-action wide" type="submit">Salvar no Mongo</button>
+        <button class="catalog-action wide" type="submit">Salvar</button>
       </form>
     {% endif %}
   </header>

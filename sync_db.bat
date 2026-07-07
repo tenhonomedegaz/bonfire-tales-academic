@@ -6,7 +6,7 @@ echo ===================================================
 echo   BANCO DEFINITIVO: PostgreSQL
 echo ===================================================
 echo.
-echo A sincronizacao SQLite/Mongo foi desativada.
+echo A sincronizacao SQLite legado foi desativada.
 echo Este projeto agora usa PostgreSQL como fonte unica.
 echo.
 

@@ -45,6 +45,30 @@
   font-size: .85rem;
   font-style: italic;
 }
+.regions-filter {
+  align-items: center;
+  display: flex;
+  gap: .45rem;
+}
+.regions-filter label {
+  color: var(--muted);
+  font-size: .68rem;
+  font-style: normal;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.regions-filter select {
+  background: var(--bg1);
+  border: 1px solid var(--stroke);
+  border-radius: 4px;
+  color: var(--text);
+  font-size: .78rem;
+  font-style: normal;
+  font-weight: 800;
+  min-width: 170px;
+  padding: .52rem .7rem;
+}
 .regions-summary button {
   border: 1px solid var(--ember);
   border-radius: 4px;
