@@ -1796,7 +1796,7 @@
       "categoria": "A1",
       "forma": "key_value",
       "op": "set_value",
-      "doc": "Alterna entre dois estados mutuamente exclusivos (toggle:ofensivo|defensivo)."
+      "doc": "Alterna entre dois estados mutuamente exclusivos (toggle:ofensivo|defensivo; toggle:mente_aberta|mente_fechada). Forma canônica para marcar uma habilidade LIGÁVEL/DESLIGÁVEL pelo jogador quando os dois estados são simplesmente ligado/desligado (sem nome próprio): toggle:on|off, como cláusula-irmã dentro do while_active{} cujos efeitos ela ativa/desativa. Puro marcador — SEM comportamento no motor atual (home/tag_engine só valida vocabulário, não interpreta/executa); a alternância real (ligar/desligar e aplicar/remover os efeitos do while_active) fica a cargo da interface do VTT (bonfire-vtt)."
     },
     "immune_ability": {
       "categoria": "A5",
