@@ -32,6 +32,7 @@ from .models import (
     TbMapMarker,
     TbMapDesenho,
     TbOpcaojogo,
+    TbOrganizacao,
     TbRaca,
     TbRecursoclasse,
     TbRegiao,
@@ -2819,6 +2820,20 @@ class TbTerritorioAdmin(BonfireAdminMixin, admin.ModelAdmin):
             from django.forms import TextInput
             kwargs['widget'] = TextInput(attrs={'type': 'color', 'style': 'width:60px;height:36px;padding:2px;cursor:pointer;'})
         return super().formfield_for_dbfield(db_field, request, **kwargs)
+
+
+@admin.register(TbOrganizacao)
+class TbOrganizacaoAdmin(BonfireAdminMixin, admin.ModelAdmin):
+    list_display = ("nome", "slug", "tipo", "sede")
+    list_filter = ("tipo",)
+    search_fields = ("nome", "slug", "tipo", "sede", "descricao")
+    prepopulated_fields = {"slug": ("nome",)}
+    ordering = ("nome",)
+    fieldsets = (
+        (None, {"fields": ("nome", "slug", "tipo", "sede")}),
+        ("Vinculos", {"fields": ("regioes", "territorios", "aliados", "inimigos")}),
+        ("Detalhes", {"fields": ("lideranca", "tags", "descricao")}),
+    )
 
 
 @admin.register(TbItemMundano)

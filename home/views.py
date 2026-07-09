@@ -7747,7 +7747,8 @@ def api_card_preview(request):
     from django.http import JsonResponse
     from django.utils.html import escape as esc
     from home.models import (
-        TbClasse, TbSubclasse, TbClassehabilidade, TbTalento, TbRaca, TbRegiao, TbMagia, TbBestiario
+        TbClasse, TbSubclasse, TbClassehabilidade, TbTalento, TbRaca, TbRegiao,
+        TbTerritorio, TbOrganizacao, TbMagia, TbBestiario
     )
 
     table = request.GET.get('table', '').strip().lower()
@@ -7870,12 +7871,39 @@ def api_card_preview(request):
         reg = TbRegiao.objects.filter(slug=p1).first()
         if reg:
             title = reg.nome
-            subtitle = "Regiao"
+            subtitle = "Regiao" + (f" - {reg.territorio}" if reg.territorio else "")
             kind = "region"
-            description = reg.descricao or ""
+            description = reg.lore_markdown or ""
+            card_width = 420
             read_more_url = f"/mundo/regioes/{reg.slug}/"
 
-    # 7. Magia
+    # 7. Territorio
+    elif table in ['tbterritorio', 'territorio', 'territorios']:
+        p1 = args[0]
+        territorio = TbTerritorio.objects.filter(slug=p1).first()
+        if territorio:
+            title = territorio.nome
+            subtitle = "Territorio"
+            kind = "territory"
+            description = territorio.lore_markdown or territorio.descricao_breve or ""
+            card_width = 420
+            read_more_url = f"/mundo/territorios/{territorio.slug}/"
+
+    # 8. Organizacao
+    elif table in ['tborganizacao', 'organizacao', 'organizacoes', 'organization', 'organizations']:
+        p1 = args[0]
+        organizacao = TbOrganizacao.objects.filter(slug=p1).first()
+        if organizacao:
+            title = organizacao.nome
+            subtitle = organizacao.tipo or "Organizacao"
+            if organizacao.sede:
+                subtitle += f" - Sede: {organizacao.sede}"
+            kind = "organization"
+            description = organizacao.descricao or ""
+            card_width = 420
+            read_more_url = f"/mundo/organizacoes/#{organizacao.slug}"
+
+    # 9. Magia
     elif table in ['tbmagia', 'magia', 'magias']:
         p1 = args[0]
         mag = None
@@ -7905,7 +7933,7 @@ def api_card_preview(request):
             card_width = 400
             read_more_url = f"/magias/listas/#{slugify_py(mag.nome)}"
 
-    # 8. Criatura / Bestiario
+    # 10. Criatura / Bestiario
     elif table in ['tbbestiario', 'bestiario', 'criatura', 'creature', 'monster']:
         p1 = args[0]
         cr = TbBestiario.objects.filter(slug=p1).first()

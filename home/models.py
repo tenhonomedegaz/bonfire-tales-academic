@@ -478,6 +478,31 @@ class TbTerritorio(models.Model):
         return self.nome
 
 
+class TbOrganizacao(models.Model):
+    id_organizacao = models.AutoField(db_column='Id_Organizacao', primary_key=True)
+    nome = models.CharField(db_column='Nome', max_length=200)
+    slug = models.SlugField(db_column='Slug', max_length=220, unique=True)
+    tipo = models.CharField(db_column='Tipo', max_length=120, default='Organizacao')
+    sede = models.CharField(db_column='Sede', max_length=220, blank=True, null=True)
+    regioes = models.JSONField(db_column='Regioes', blank=True, null=True, default=list)
+    territorios = models.JSONField(db_column='Territorios', blank=True, null=True, default=list)
+    lideranca = models.TextField(db_column='Lideranca', blank=True, null=True)
+    aliados = models.JSONField(db_column='Aliados', blank=True, null=True, default=list)
+    inimigos = models.JSONField(db_column='Inimigos', blank=True, null=True, default=list)
+    tags = models.JSONField(db_column='Tags', blank=True, null=True, default=list)
+    descricao = models.TextField(db_column='Descricao', blank=True, null=True)
+    created_at = models.DateTimeField(db_column='CreatedAt', auto_now_add=True)
+    updated_at = models.DateTimeField(db_column='UpdatedAt', auto_now=True)
+
+    class Meta:
+        db_table = 'organizations'
+        verbose_name = 'Organizacao'
+        verbose_name_plural = 'Organizacoes'
+
+    def __str__(self):
+        return self.nome
+
+
 class TbTalento(models.Model):
     TIPO_CHOICES = [
         ('origem', 'Origem'),
