@@ -405,6 +405,14 @@ function normalizeMarkdown(value, options = {}) {
         return `<div class="bonfire-creature-widget" data-slug="${cleanSlug}"><span class="bonfire-options-loading">Carregando ficha de criatura...</span></div>`;
     });
 
+    // Parse the normal markdown-shaped card form first: [texto](tabela, args).
+    // This prevents prose parentheses from being mistaken for legacy card text
+    // when the prose contains a card link inside it.
+    output = output.replace(/\[([^\]\n]+)\]\(\s*((?:tb[A-Za-z0-9_\s]+)|creature|bestiario|criatura|monster)([^\)]*)\)/gi, (_match, text, table, argsStr) => {
+        const args = argsStr.split(',').map(s => s.trim()).filter(Boolean);
+        return `<a href="#" class="bonfire-card-trigger" data-table="${escapeHtml(table)}" data-args="${escapeHtml(args.join(','))}">${text}</a>`;
+    });
+
     // Parse preview cards: (texto)[tabela, arg1, arg2) or [texto](tabela, arg1, arg2)
     output = output.replace(/([\[\(])([^\]\)]+)[\]\)]\s*([\[\(])\s*((?:tb[A-Za-z0-9_á-úÁ-Ú\s]+)|creature|bestiario|criatura|monster)([^\]\)]*)[\]\)]/gi, (_match, _o1, text, _o2, table, argsStr) => {
         const args = argsStr.split(',').map(s => s.trim()).filter(Boolean);
