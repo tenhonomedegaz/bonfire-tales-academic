@@ -1,0 +1,154 @@
+# Relatorio de importacao de lore de Cidades
+
+- Backup base: `C:\Users\helio\Downloads\backup_completo_20260707_230359.json`
+- Fixture gerado: `C:\Users\helio\Desktop\Projetos Bonfas\BonfireSite-main\ref\backups\restore_lore_cidades_organizacoes_20260708_025934.json`
+- Regioes atualizadas: 59
+- Territorios atualizados: 6
+- Organizacoes criadas: 81
+
+## Regioes/areas/cidades nos docs mas nao encontradas no site
+- `Cidades/arx-aen-seidhe.docx`
+- `Cidades/vale-santo.docx`
+- `Cidades/velquessar.docx`
+- `Areas-Selvagens/arquipelago-de-meraghos.docx`
+- `Areas-Selvagens/campos-de-umetsu.docx`
+- `Areas-Selvagens/deserto-de-mahrenai.docx`
+- `Areas-Selvagens/montes-dorskal.docx`
+- `Areas-Selvagens/subterraneo-1a-camada.docx`
+- `Areas-Selvagens/subterraneo-2a-camada.docx`
+- `Areas-Selvagens/subterraneo-3a-camada.docx`
+
+## Territorios nos docs mas nao encontrados no site
+- `Territorios/bestharok.docx`
+- `Territorios/bonfire-nexus.docx`
+- `Territorios/calathriel.docx`
+- `Territorios/ciclo-do-sultao.docx`
+- `Territorios/drakhoniano.docx`
+- `Territorios/triunvirato-velado.docx`
+
+## Matches de regioes
+- `Cidades/agrabbar.docx` -> Agrabbar (`agrabbar`), slug exato
+- `Cidades/auralon.docx` -> Auralon (`auralon`), slug exato
+- `Cidades/aurevalis.docx` -> Aurevalis (`aurevalis`), slug exato
+- `Cidades/bastiao-rochaeterna.docx` -> Bastião Rochaeterna (`bastiao-rochaeterna`), slug exato
+- `Cidades/brinvalde.docx` -> Brinvalde (`brinvalde`), slug exato
+- `Cidades/caldeirao-do-mar.docx` -> Caldeirão do Mar (`caldeirao-do-mar`), slug exato
+- `Cidades/dharramir.docx` -> Dharramir (`dharramir`), slug exato
+- `Cidades/drakhaenor.docx` -> Drakhaenor (`drakhaenor`), slug exato
+- `Cidades/drumhuldar.docx` -> Drûmhuldar (`drumhuldar`), slug exato
+- `Cidades/elenharis.docx` -> Elenharis (`elenharis`), slug exato
+- `Cidades/elyrenna.docx` -> Elyrenna (`elyrenna`), slug exato
+- `Cidades/fenda-salgada.docx` -> Fenda Salgada (`fenda-salgada`), slug exato
+- `Cidades/ferlanden.docx` -> Ferlanden (`ferlanden`), slug exato
+- `Cidades/fjarnok.docx` -> Fjarnok (`fjarnok`), slug exato
+- `Cidades/hanryo.docx` -> Hanryo (`hanryo`), slug exato
+- `Cidades/kaer-vantor.docx` -> Kear Vantor (`kear-vantor`), alias kaer-vantor
+- `Cidades/kaldorae.docx` -> Kaldorae (`kaldorae`), slug exato
+- `Cidades/khazrundel.docx` -> Khazrundel (`khazrundel`), slug exato
+- `Cidades/lunaris.docx` -> Lunaris (`lunaris`), slug exato
+- `Cidades/menaphos.docx` -> Menaphos (`menaphos`), slug exato
+- `Cidades/mizunaga.docx` -> Mizunaga (`mizunaga`), slug exato
+- `Cidades/nehrasa.docx` -> Nehrasa (`nehrasa`), slug exato
+- `Cidades/porto-espolio.docx` -> Porto Espólio (`porto-espolio`), slug exato
+- `Cidades/qassirah.docx` -> Qassirah (`qassirah`), slug exato
+- `Cidades/sairajah.docx` -> Sairajah (`sairajah`), slug exato
+- `Cidades/selatmura.docx` -> Selat'Mura (`selatmura`), slug exato
+- `Cidades/shaerelyn.docx` -> Shaerelyn (`shaerelyn`), slug exato
+- `Cidades/skjoldrun.docx` -> Skjoldrun (`skjoldrun`), slug exato
+- `Cidades/solcastros.docx` -> Solcastros (`solcastros`), slug exato
+- `Cidades/solmarion.docx` -> Solmarion (`solmarion`), slug exato
+- `Cidades/sophonemm.docx` -> Sophonemm (`sophonemm`), slug exato
+- `Cidades/sopro-invernal.docx` -> Sopro Invernal (`sopro-invernal`), slug exato
+- `Cidades/sylvereth.docx` -> Sylvereth (`sylvereth`), slug exato
+- `Cidades/tarnubek.docx` -> Tarnubek (`tarnubek`), slug exato
+- `Cidades/tensai-nyo-ki.docx` -> Tensai-nyo-ki (`tensai-nyo-ki`), slug exato
+- `Cidades/thamarezzin.docx` -> Thamarezzin (`thamarezzin`), slug exato
+- `Cidades/tremaynor.docx` -> Tremaynor (`tremaynor`), slug exato
+- `Cidades/tsurei.docx` -> Tsurei (`tsurei`), slug exato
+- `Cidades/velaryn.docx` -> Velaryn (`velaryn`), slug exato
+- `Cidades/velmourn.docx` -> Velmourn (`velmourn`), slug exato
+- `Cidades/vila-incandescente.docx` -> Vila Incandecente (`vila-incandecente`), alias vila-incandescente
+- `Cidades/vilaterra.docx` -> Vilaterra (`vilaterra`), slug exato
+- `Cidades/volgranndur.docx` -> Volgranndur (`volgranndur`), slug exato
+- `Cidades/vyrmheim.docx` -> Vyrmhein (`vyrmhein`), alias vyrmheim
+- `Cidades/zar-khantar.docx` -> Zar'Kantar (`zarkantar`), alias zar-khantar
+- `Cidades/zarhak.docx` -> Zahrak (`zahrak`), alias zarhak
+- `Cidades/zhelkar.docx` -> Zhelkar (`zhelkar`), slug exato
+- `Areas-Selvagens/cume-das-nevascas.docx` -> Cume das Nevascas (`cume-das-nevascas`), slug exato
+- `Areas-Selvagens/deserto-das-nagas.docx` -> Deserto das Nägas (`deserto-das-nagas`), slug exato
+- `Areas-Selvagens/deserto-de-khurzahir.docx` -> Deserto de Khurzahir (`deserto-de-khurzahir`), slug exato
+- `Areas-Selvagens/ecos-de-vaurin.docx` -> Ecos de Vaurin (`ecos-de-vaurin`), slug exato
+- `Areas-Selvagens/floresta-dos-bordos.docx` -> Floresta dos Bordos (`floresta-dos-bordos`), slug exato
+- `Areas-Selvagens/floresta-eterna.docx` -> Floresta Eterna (`floresta-eterna`), slug exato
+- `Areas-Selvagens/geleiras-infinitas.docx` -> Geleiras Infinitas (`geleiras-infinitas`), slug exato
+- `Areas-Selvagens/kurohime.docx` -> Kurohime (`kurohime`), slug exato
+- `Areas-Selvagens/muralha-de-agramar.docx` -> Muralha de Agramar (`muralha-de-agramar`), slug exato
+- `Areas-Selvagens/shi-no-mori.docx` -> Shi-no-mori (`shi-no-mori`), slug exato
+- `Areas-Selvagens/terras-devastadas.docx` -> Terras Devastadas (`terras-devastadas`), slug exato
+- `Areas-Selvagens/terras-ferteis.docx` -> Terras Férteis (`terras-ferteis`), slug exato
+
+## Matches de territorios
+- `Territorios/auraliano.docx` -> Reino Auraliano (`reino-auraliano`), alias auraliano
+- `Territorios/karag-dum.docx` -> Reino Karag Dûm (`reino-karag-dum`), alias karag-dum
+- `Territorios/thamar.docx` -> Reino Thamar (`reino-thamar`), alias thamar
+- `Territorios/tsunari.docx` -> Reino Tsunari (`reino-tsunari`), alias tsunari
+- `Territorios/volgran.docx` -> Reino Volgran (`reino-volgran`), alias volgran
+- `Territorios/vyrmrealm.docx` -> Vyrmrealm (`vyrmrealm`), slug exato
+
+## Citacoes ainda sem card por falta de alvo conhecido
+- Arquipélago de Meraghos
+- Assembléia dos Comerciantes
+- Asterios
+- Bestharok
+- Bonfire Nexus
+- Caelistor
+- Calathriel
+- Casa da Assembléia
+- Casa de Khorzhune
+- Cessira
+- Ciclo do Sultão
+- Companhia do Mar Azul
+- Conclave da Fenda
+- Conclave de Mahrenai
+- Conselho dos Anciões Élficos
+- Conselho Mercantil de Velaryn
+- Cooperativa de Guias do Espelho
+- Deserto de Mahrenai
+- Diwan do Oásis
+- Drakhoniano
+- Égide do Caldeirão
+- Eldára
+- Era da Umbra
+- Ezequiel Lucatto
+- Forja Ironbane
+- Guilda das Fés
+- Hector Velard
+- Ignus
+- Irmandade das Velas Negras
+- Irmandade dos Qanatins
+- Kaer Vantor
+- Kalin Spilbor
+- Karag Dûm
+- Khaelor
+- Lago Tsurei
+- Liga das Linhas de Barco
+- Lirandar
+- Lúmen
+- Nahlia Safir
+- Ofício dos Ventos
+- Ordem da Mão Aberta
+- Ponto Geno
+- Porto do Caldeirão
+- Rei Hadromir IV
+- Selune
+- Solwen Agni
+- Tempestus
+- Thamar
+- Tríplice Lente
+- Triunvirato Velado
+- Tsunari
+- Vaurin
+- Velino Cinzento
+- Vigia do Olho
+- Vigias do Vento & Névoa
+- Volgran
