@@ -395,10 +395,70 @@ def _check_innate_casting_tags(tags):
     ]
 
 
+# ─────────────────── posições de VALOR DE REFERÊNCIA ────────────────
+# Chaves cujo VALOR é um SLUG casado por ponte '_'<->'-' no resolvedor: NÃO são
+# identificadores da linguagem (verbo/qualificador/variável de fórmula), então
+# não devem ser normalizadas nem acusadas como "nome com hífen". A convenção do
+# banco é slug hifenado (TbMagia.slug=`bola-de-fogo`, TbBestiario.slug, etc.).
+# Comparadas em forma canônica (lower + '-'→'_'), então casam hífen OU underscore.
+_COLON_REF_KEYS = frozenset({
+    "spell",            # spell:bola-de-fogo  (TbMagia.slug)
+    "item",             # item:holy-water     (contact{item:...})
+    "bestiary",         # summon:bestiary:slug (forma sem chaves)
+    "classe", "subclasse", "talento", "raca", "linhagem", "essencia", "dominio",
+    "add_mastery",      # add-mastery:corte-nick (maestria por slug)
+    "opcao",            # opcao:tipo
+    "pick",             # pick:usos-de-disparo-silvestre (opção/seleção por slug)
+    "resource_cost", "resource_restore",  # resource-cost:<recurso>
+})
+# Chaves cujo CORPO entre chaves é um slug/nome de referência (não bloco de efeitos).
+_BRACE_REF_KEYS = frozenset({
+    "bestiary",   # bestiary{giant-venomous-snake}
+    "ability",    # ability{Nome da Habilidade, fonte:slug}
+    "resource",   # resource{slug}
+})
+
+
+def _reference_value_indices(tokens):
+    """Índices de tokens WORD que são VALOR de uma chave de referência.
+
+    Percorre o fluxo de tokens marcando o WORD que segue uma chave de
+    referência (por `:` ou por `{...}`). Esses tokens carregam SLUGS que o
+    resolvedor casa por ponte '_'<->'-'; portanto ficam de fora tanto da
+    normalização quanto do strict-name (não são identificadores do DSL).
+    """
+    skip = set()
+    n = len(tokens)
+    for i, tok in enumerate(tokens):
+        if tok.type != "WORD":
+            continue
+        key = tok.value.lower().replace("-", "_")
+        nxt = tokens[i + 1] if i + 1 < n else None
+        if nxt is None:
+            continue
+        if nxt.type == "COLON" and key in _COLON_REF_KEYS:
+            if i + 2 < n and tokens[i + 2].type == "WORD":
+                skip.add(i + 2)   # o slug é um único WORD ('-' é continuação de WORD)
+        elif nxt.type == "LBRACE" and key in _BRACE_REF_KEYS:
+            depth = 0             # corpo de ref{...}: pula todo WORD até fechar
+            for j in range(i + 1, n):
+                tj = tokens[j]
+                if tj.type == "LBRACE":
+                    depth += 1
+                elif tj.type == "RBRACE":
+                    depth -= 1
+                    if depth == 0:
+                        break
+                elif tj.type == "WORD" and depth >= 1:
+                    skip.add(j)
+    return skip
+
+
 def _check_strict_names(tokens, line):
+    skip = _reference_value_indices(tokens)
     out = []
-    for tok in tokens:
-        if tok.type == "WORD" and "-" in tok.value:
+    for i, tok in enumerate(tokens):
+        if tok.type == "WORD" and "-" in tok.value and i not in skip:
             out.append(Diagnostic(
                 ERROR,
                 "nome-com-hifen",
@@ -408,7 +468,41 @@ def _check_strict_names(tokens, line):
     return out
 
 
-def validate_tag_line(line, lib, data=None, locals_=frozenset(), strict_names=False):
+def normalize_tag_identifier_names(line):
+    """Troca hifen por underscore dentro de tokens WORD *de identificador* do DSL.
+
+    Normaliza apenas nomes compostos que são identificadores da linguagem
+    (verbos, qualificadores, variáveis de fórmula — ex.: `while-active`,
+    `wis-score`, `resource-cost`). PRESERVA:
+      • SLUGS de referência (spell:, item:, bestiary{...}, ability{...}, …),
+        que o resolvedor casa por ponte '_'<->'-' e que o banco guarda hifenados;
+      • o operador `->` (arrow), mesmo quando colado a um WORD pelo lexer.
+    """
+    if not isinstance(line, str) or "-" not in line:
+        return line
+    tokens = tokenize(line)
+    skip = _reference_value_indices(tokens)
+    n = len(tokens)
+    parts = []
+    cursor = 0
+    for i, tok in enumerate(tokens):
+        parts.append(line[cursor:tok.pos])
+        value = tok.value
+        if tok.type == "WORD" and i not in skip:
+            nxt = tokens[i + 1] if i + 1 < n else None
+            if value.endswith("-") and nxt is not None and nxt.type == "CMP" and nxt.value == ">":
+                # WORD colou o '-' de um arrow `->` (o lexer engloba '-' final):
+                # normaliza só a parte identificadora e devolve o '-' para o arrow.
+                value = value[:-1].replace("-", "_") + "-"
+            else:
+                value = value.replace("-", "_")
+        parts.append(value)
+        cursor = tok.pos + len(tok.value)
+    parts.append(line[cursor:])
+    return "".join(parts)
+
+
+def validate_tag_line(line, lib, data=None, locals_=frozenset(), strict_names=True):
     diags = []
     if not isinstance(line, str) or not line.strip():
         return diags
@@ -438,7 +532,7 @@ def validate_tag_line(line, lib, data=None, locals_=frozenset(), strict_names=Fa
     return diags
 
 
-def validate_tags_json(tags, lib, data=None, strict_names=False):
+def validate_tags_json(tags, lib, data=None, strict_names=True):
     """tags = lista de strings (uma TbX.tags_json). Retorna [Diagnostic]."""
     out = []
     if not tags:

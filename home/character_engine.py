@@ -92,11 +92,56 @@ def _slug(s):
     return re.sub(r'[^a-z0-9]+', '-', s).strip('-')
 
 
+def _tag_name(name):
+    """Nome canonico de verbo/identificador da linguagem de tags.
+
+    Aceita o legado com hifen, mas a forma normalizada usa underscore para nao
+    confundir identificadores com subtracao em formulas futuras.
+    """
+    return _slug(name).replace('-', '_')
+
+
+def _tag_key_variants(name):
+    key = _tag_name(name)
+    return {key, key.replace('_', '-')}
+
+
+def _tag_verb_rx(name):
+    parts = [_tag_name(p) for p in str(name or '').replace('-', '_').split('_') if p]
+    return r'[-_]'.join(re.escape(p) for p in parts)
+
+
+def _tag_block(tag, *heads):
+    """Corpo de `head{...}`, aceitando `head-name{}` e `head_name{}`."""
+    s = str(tag or '').strip()
+    for head in heads:
+        m = re.match(r'^%s\s*\{(.*)\}\s*$' % _tag_verb_rx(head), s, re.I | re.S)
+        if m:
+            return m.group(1)
+    return None
+
+
+def _iter_tag_blocks(tag, head):
+    s = str(tag or '')
+    rx = re.compile(r'\b%s\s*\{' % _tag_verb_rx(head), re.I)
+    pos = 0
+    while True:
+        m = rx.search(s, pos)
+        if not m:
+            return
+        open_pos = m.end() - 1
+        close_pos = _match_close(s, open_pos)
+        if close_pos < 0:
+            return
+        yield s[open_pos + 1:close_pos]
+        pos = close_pos + 1
+
+
 def _tag_levels(tags_json, verb):
     for tag in (tags_json or []):
-        match = re.match(rf'^{re.escape(verb)}\s*\{{(.+)\}}\s*$', str(tag).strip())
-        if match:
-            return {int(n) for n in re.findall(r'\d+', match.group(1))}
+        body = _tag_block(tag, verb)
+        if body:
+            return {int(n) for n in re.findall(r'\d+', body)}
     return set()
 
 
@@ -156,10 +201,10 @@ _BACKGROUND_GRANT_KEYS = {
 def _parse_background_grants(tags_json):
     grants = {}
     for tag in (tags_json or []):
-        m = re.match(r'^background-grants\{([^}]*)\}\s*$', str(tag).strip())
-        if not m:
+        body = _tag_block(tag, 'background_grants')
+        if body is None:
             continue
-        for part in [p.strip() for p in m.group(1).split(',') if p.strip()]:
+        for part in [p.strip() for p in body.split(',') if p.strip()]:
             if ':' not in part:
                 continue
             key, value = [x.strip() for x in part.split(':', 1)]
@@ -194,6 +239,8 @@ _PROF_TOKEN_LABEL = {
     'armas-fogo': ('arma', 'Armas de Fogo'),
     'armas-marciais-acuidade-ou-leves': ('arma', 'Armas Marciais com Acuidade ou Leves'),
     'armas-marciais-leves': ('arma', 'Armas Marciais Leves'),
+    'ferramentas-de-ladrao': ('ferramenta', 'Ferramentas de Ladr\u00e3o'),
+    'ferramentas-de-funileiro': ('ferramenta', 'Ferramentas de Funileiro'),
 }
 
 
@@ -206,20 +253,20 @@ def _proficiencias_classe(classes):
     def _toks(tags, key):
         out = []
         for t in (tags or []):
-            m = re.match(re.escape(key) + r'\{([^}]*)\}', str(t).strip())
-            if m:
-                out += [x.strip() for x in m.group(1).split(',') if x.strip()]
+            body = _tag_block(t, key)
+            if body is not None:
+                out += [x.strip() for x in body.split(',') if x.strip()]
         return out
 
-    c_arm, c_wpn, mc_arm, mc_wpn = [], [], [], []
+    c_arm, c_wpn, c_tool, mc_arm, mc_wpn, mc_tool = [], [], [], [], [], []
     for c in classes:
         tags = getattr(c.id_classe, 'tags_json', None) or []
         primaria = bool(principal) and c.id_classe_id == principal.id_classe_id
-        alvo_arm, alvo_wpn = (c_arm, c_wpn) if primaria else (mc_arm, mc_wpn)
+        alvo_arm, alvo_wpn, alvo_tool = (c_arm, c_wpn, c_tool) if primaria else (mc_arm, mc_wpn, mc_tool)
         for tk in _toks(tags, 'prof' if primaria else 'multiclass-prof'):
-            lab = _PROF_TOKEN_LABEL.get(tk)
+            lab = _PROF_TOKEN_LABEL.get(tk.replace('_', '-'))
             if lab:
-                (alvo_arm if lab[0] == 'armadura' else alvo_wpn).append(lab[1])
+                {'armadura': alvo_arm, 'arma': alvo_wpn, 'ferramenta': alvo_tool}[lab[0]].append(lab[1])
 
     def _dedup(seq, excl=()):
         seen, out = set(excl), []
@@ -229,7 +276,9 @@ def _proficiencias_classe(classes):
         return out
     return {
         'classe_armaduras': _dedup(c_arm), 'classe_armas': _dedup(c_wpn),
+        'classe_ferramentas': _dedup(c_tool),
         'multiclasse_armaduras': _dedup(mc_arm, excl=c_arm), 'multiclasse_armas': _dedup(mc_wpn, excl=c_wpn),
+        'multiclasse_ferramentas': _dedup(mc_tool, excl=c_tool),
     }
 
 
@@ -427,7 +476,7 @@ _TALENT_ATTR_FIELDS = {
 
 
 def _parse_talent_attr_details(texto):
-    m = re.search(r'(?:asi-attr|talent-attr)\s*:\s*(FOR|DES|CON|INT|SAB|CAR)', str(texto or ''), re.I)
+    m = re.search(r'(?:asi[-_]attr|talent[-_]attr)\s*:\s*(FOR|DES|CON|INT|SAB|CAR)', str(texto or ''), re.I)
     return m.group(1).upper() if m else None
 
 
@@ -798,9 +847,9 @@ def _iter_spell_selections(s):
     scope = identificador após o ':'; scope_extra = chaves do PRÓPRIO escopo (ex.:
     pick{lista:{…}}); body = o `{…}`/`(…)` seguinte (filtros/qtd)."""
     out = []
-    for m in re.finditer(r'spell-selection:', s):
+    for m in re.finditer(r'spell[-_]selection:', s):
         i = m.end()
-        mt = re.match(r'[a-z0-9-]+', s[i:])
+        mt = re.match(r'[a-z0-9_-]+', s[i:])
         if not mt:
             continue
         scope = mt.group(0)
@@ -852,7 +901,7 @@ def _grants_de_tag(tag, escolhas, catalog, nivel_total, is_spellcaster=False):
     if m and nivel_total < int(m.group(1)):
         return [], None
     # match(var){…} — concessão por escolha já feita (vertente, veste-lunar…)
-    if 'spell-selection:match(' in s:
+    if re.search(r'spell[-_]selection:match\(', s):
         slugs, nivel, qtd = _parse_spell_selection(_resolve_match(s, escolhas))
         slugs = [sl for sl in slugs if sl in catalog]
         if not slugs or nivel is None:
@@ -863,7 +912,7 @@ def _grants_de_tag(tag, escolhas, catalog, nivel_total, is_spellcaster=False):
     fixas, escolha = [], None
     for cm in _CAST_BLOCK_RE.finditer(s):
         blk = cm.group(1)
-        if 'always-prepared' in blk:
+        if re.search(r'always[-_]prepared', blk):
             for sm in re.finditer(r'spell:([a-z0-9-]+)', blk):
                 if sm.group(1) in catalog:
                     fixas.append((sm.group(1), catalog[sm.group(1)]))
@@ -872,7 +921,7 @@ def _grants_de_tag(tag, escolhas, catalog, nivel_total, is_spellcaster=False):
         full = scope_extra + ' ' + body
         # (a) escopo é uma MAGIA concreta sempre-preparada
         if scope in catalog:
-            if 'always-prepared' in body:
+            if re.search(r'always[-_]prepared', body):
                 fixas.append((scope, catalog[scope]))
             for sm in re.finditer(r'spell:([a-z0-9-]+)', full):   # magia-conhecida(spell:X)
                 if sm.group(1) in catalog:
@@ -887,7 +936,7 @@ def _grants_de_tag(tag, escolhas, catalog, nivel_total, is_spellcaster=False):
             continue
         # (c) Marca Planar: any{spell:pick{lista:cantrip, match(pick:<var>){…}}}
         if scope == 'any' and 'match(pick:' in full:
-            mv = re.search(r'match\(pick:([a-z0-9-]+)\)\s*\{', full)
+            mv = re.search(r'match\(pick:([a-z0-9_-]+)\)\s*\{', full)
             if mv and escolhas.get(mv.group(1)):
                 bo = full.find('{', mv.end() - 1)
                 ramo = _ramo(full[bo + 1:_match_close(full, bo)], escolhas[mv.group(1)])
@@ -905,7 +954,7 @@ def _grants_de_tag(tag, escolhas, catalog, nivel_total, is_spellcaster=False):
         if scope == 'any' and 'spell:' not in full and 'pick' not in full and 'efeito' not in full:
             lista = [x.strip() for x in re.split(r'[,|]', body) if x.strip() in catalog]
             if lista:
-                if 'requires:spellcasting' in s and not is_spellcaster:
+                if re.search(r'requires\s*:\s*spell[-_]?casting', s) and not is_spellcaster:
                     continue
                 for sl in lista:
                     fixas.append((sl, catalog[sl]))
@@ -923,14 +972,14 @@ def _grants_de_tag(tag, escolhas, catalog, nivel_total, is_spellcaster=False):
             if lm:
                 classes = spell_scope_names(c.strip() for c in re.split(r'[|,]', lm.group(1)))
             else:
-                rm = re.search(r'lista\s*:\s*match\(([a-z0-9:-]+)\)\s*(\{.*)', scope_extra)
+                rm = re.search(r'lista\s*:\s*match\(([a-z0-9_:-]+)\)\s*(\{.*)', scope_extra)
                 if rm:
                     var = rm.group(1).split(':')[-1]
                     cl = _resolve_match('match(%s)%s' % (var, rm.group(2)),
                                         {var: escolhas.get(var)}).strip()
                     classes = spell_scope_names([cl])
         if classes:
-            me = re.search(r'escola\s*:\s*([a-z-]+)', body)
+            me = re.search(r'escola\s*:\s*([a-z_-]+)', body)
             esc = me.group(1) if (me and me.group(1) not in ('pick', 'ability')) else None
             nv = _nivel_filtro(body)
             escolha = {'pool': {'classes': sorted(set(classes)), 'nivel': nv, 'escola': esc},
@@ -969,7 +1018,7 @@ def _personagem_conjura(classes):
         srcs = [cl] + ([c.id_subclasse] if c.id_subclasse_id else [])
         srcs += list(TbClassehabilidade.objects.filter(id_classe=cl, niveladquirido__lte=(c.nivel or 1)))
         for src in srcs:
-            if any('spellcasting{' in str(t) for t in (getattr(src, 'tags_json', None) or [])):
+            if any(_tag_block(t, 'spellcasting') is not None for t in (getattr(src, 'tags_json', None) or [])):
                 return True
     return False
 
@@ -1049,6 +1098,8 @@ _FORMULA_ALIASES = {
     'str-score': 'str_score', 'dex-score': 'dex_score', 'con-score': 'con_score',
     'int-score': 'int_score', 'wis-score': 'wis_score', 'cha-score': 'cha_score',
     'spell-mod': 'spell_mod',
+    'talent-attr-mod': 'talent_attr_mod', 'talent-attr-score': 'talent_attr_score',
+    'asi-attr-mod': 'asi_attr_mod', 'asi-attr-score': 'asi_attr_score',
 }
 
 
@@ -1149,7 +1200,7 @@ def _resolve_match(text, escolhas):
     """Substitui match(var){…} pelo ramo escolhido (ou 'default'); recursivo."""
     out = text
     for _ in range(40):
-        m = re.search(r'match\(([a-z0-9-]+)\)\s*\{', out)
+        m = re.search(r'match\(([a-z0-9_-]+)\)\s*\{', out)
         if not m:
             break
         var, bo = m.group(1), m.end() - 1
@@ -1157,7 +1208,7 @@ def _resolve_match(text, escolhas):
         if bc < 0:
             break
         inner = out[bo + 1:bc]
-        rep = _ramo(inner, escolhas.get(var))
+        rep = _ramo(inner, escolhas.get(var, escolhas.get(var.replace('_', '-'), escolhas.get(var.replace('-', '_')))))
         if rep is _NO_BRANCH:
             rep = _ramo(inner, 'default')
         if rep is _NO_BRANCH:
@@ -1169,7 +1220,7 @@ def _resolve_match(text, escolhas):
 def _active_spans(tag):
     spans = []
     for kw in _ACTIVE_BLOCKS:
-        for m in re.finditer(r'\b' + kw + r'\s*\{', tag):
+        for m in re.finditer(r'\b' + _tag_verb_rx(kw) + r'\s*\{', tag):
             bc = _match_close(tag, m.end() - 1)
             if bc > 0:
                 spans.append((m.start(), bc))
@@ -1181,14 +1232,15 @@ def _passive_segments(tag):
     nem marcador ativo."""
     spans = _active_spans(tag)
     segs, has_aa = [], False
-    for m in re.finditer(r'always-active\s*\{', tag):
+    for m in re.finditer(r'\b' + _tag_verb_rx('always_active') + r'\s*\{', tag):
         if any(a <= m.start() <= b for a, b in spans):
             continue
         has_aa = True
         bc = _match_close(tag, m.end() - 1)
         if bc > 0:
             segs.append(tag[m.end():bc])
-    if not has_aa and not any(mk in tag for mk in _ACTIVE_MARKERS):
+    marker_probe = tag.replace('_', '-')
+    if not has_aa and not any(mk in marker_probe for mk in _ACTIVE_MARKERS):
         segs.append(tag)
     return segs
 
@@ -1201,7 +1253,7 @@ def _parse_defines(text):
         if bc < 0:
             continue
         body = text[m.end():bc].strip()
-        nm = re.match(r'^([a-z0-9-]+)\s*:\s*(.*)$', body, re.S)
+        nm = re.match(r'^([a-z0-9_-]+)\s*:\s*(.*)$', body, re.S)
         out.append((bool(m.group(1)), nm.group(1) if nm else None,
                     nm.group(2).strip() if nm else body))
     return out
@@ -1220,10 +1272,10 @@ def _classify_define(is_weapon, nome, corpo, ctx):
         return ('table', None)
     if re.search(r'\b(?:max|uses|qtd)\s*:', corpo) and (re.search(r'\breset\s*:', corpo) or 'die' in corpo):
         mx = re.search(r'\b(?:max|uses|qtd)\s*:\s*([^,}]+)', corpo)
-        rs = re.search(r'reset\s*:\s*([a-z-]+)', corpo)
+        rs = re.search(r'reset\s*:\s*([a-z_-]+)', corpo)
         return ('pool', {'max': _eval_formula(mx.group(1), ctx) if mx else None,
                          'reset': rs.group(1) if rs else None})
-    if re.fullmatch(r'[a-z0-9-]+', corpo):
+    if re.fullmatch(r'[a-z0-9_-]+', corpo):
         return ('slug', corpo)
     val = _eval_formula(corpo, ctx)
     return ('scalar', val) if val is not None else ('outro', None)
@@ -1253,13 +1305,21 @@ def _collect_escolhas(personagem, features):
         for e in personagem.escolhas.all().order_by('tipo', 'slot'):
             listas.setdefault(e.tipo, []).append(e.valor)
             escolhas.setdefault(e.tipo, e.valor)
+            alt = e.tipo.replace('-', '_') if '-' in e.tipo else e.tipo.replace('_', '-')
+            if alt != e.tipo:
+                listas.setdefault(alt, []).append(e.valor)
+                escolhas.setdefault(alt, e.valor)
     for _o, _f, obj, _cl in features:
         for t in (getattr(obj, 'tags_json', None) or []):
             if not isinstance(t, str):
                 continue
-            for m in re.finditer(r'(?<![a-z-])set:([a-z0-9-]+)\s*=\s*([a-z0-9-]+)(?!\s*[:{])', t):
+            for m in re.finditer(r'(?<![a-z_-])set:([a-z0-9_-]+)\s*=\s*([a-z0-9_-]+)(?!\s*[:{])', t):
                 escolhas.setdefault(m.group(1), m.group(2))
                 listas.setdefault(m.group(1), [m.group(2)])
+                alt = m.group(1).replace('-', '_') if '-' in m.group(1) else m.group(1).replace('_', '-')
+                if alt != m.group(1):
+                    escolhas.setdefault(alt, m.group(2))
+                    listas.setdefault(alt, [m.group(2)])
     return escolhas, listas
 
 
@@ -1320,10 +1380,14 @@ def apply_tags(state, features, personagem=None, escolhas=None):
         if talent_sig:
             en = _ATTR_EN.get(talent_sig)
             if en:
-                ctx['talent-attr-mod'] = ctx.get(en + '-mod', 0)
-                ctx['talent-attr-score'] = ctx.get(en + '-score', 0)
-                ctx['asi-attr-mod'] = ctx['talent-attr-mod']
-                ctx['asi-attr-score'] = ctx['talent-attr-score']
+                ctx['talent_attr_mod'] = ctx.get(en + '_mod', ctx.get(en + '-mod', 0))
+                ctx['talent_attr_score'] = ctx.get(en + '_score', ctx.get(en + '-score', 0))
+                ctx['asi_attr_mod'] = ctx['talent_attr_mod']
+                ctx['asi_attr_score'] = ctx['talent_attr_score']
+                ctx['talent-attr-mod'] = ctx['talent_attr_mod']
+                ctx['talent-attr-score'] = ctx['talent_attr_score']
+                ctx['asi-attr-mod'] = ctx['asi_attr_mod']
+                ctx['asi-attr-score'] = ctx['asi_attr_score']
         feat_nome = getattr(obj, 'nome', fonte)
         resolvidas = [_resolve_match(t, escolhas) for t in tags]
         segs = [seg for r in resolvidas for seg in _passive_segments(r)]
@@ -1349,19 +1413,19 @@ def apply_tags(state, features, personagem=None, escolhas=None):
                 # não entra no número fixo — vira vantagem condicional. (corrige o all-saves
                 # do Ladino/Trilha do Fantasma, aplicado incondicionalmente antes.)
                 if re.search(r'requires:\s*resource\{', seg):
-                    ms = re.search(r'all-saves:\s*\+([^\s,}]+)', seg)
+                    ms = re.search(r'all[-_]saves:\s*\+([^\s,}]+)', seg)
                     vantagens.append((('+%s em todas as salvaguardas' % ms.group(1)) if ms
                                       else 'efeito') + ' (condicional: requer recurso) — %s' % feat_nome)
                     continue
                 # PV
-                for m in re.finditer(r'(?:attr:|buff:)?max-hp:?\s*\+\s*([^\s,}]+)', seg):
+                for m in re.finditer(r'(?:attr:|buff:)?max[-_]hp:?\s*\+\s*([^\s,}]+)', seg):
                     if 'on:' in seg[m.start():m.end() + 12]:
                         continue
                     val = _eval_formula(m.group(1), ctx)
                     if val is not None:
                         hp_bonus.append((feat_nome, val))
                 # CA (defesa sem armadura) — candidata com gates da feature
-                m = re.search(r'\bca\s*=\s*([0-9a-z+\-*/(). ]+?)(?=[,}]|$)', seg)
+                m = re.search(r'\bca\s*=\s*([0-9a-z_+\-*/(). ]+?)(?=[,}]|$)', seg)
                 if m:
                     val = _eval_formula(m.group(1), ctx)
                     if val is not None:
@@ -1377,28 +1441,28 @@ def apply_tags(state, features, personagem=None, escolhas=None):
                 # (ex.: Oread "Sangue Elemental"). Avaliada numa 2ª passada (resist_condicionais),
                 # contra o conjunto FINAL de resistências — senão o regex genérico abaixo aplicaria
                 # A e B ao mesmo tempo (bug do veneno+ácido).
-                _cond = re.search(r'if\(already:resist\{([a-z0-9-]+)\}\):\s*resist:([a-z0-9-]+)\s*else:\s*resist:([a-z0-9-]+)', seg)
+                _cond = re.search(r'if\(already:resist\{([a-z0-9_-]+)\}\):\s*resist:([a-z0-9_-]+)\s*else:\s*resist:([a-z0-9_-]+)', seg)
                 if _cond:
                     resist_condicionais.append((_cond.group(1), _cond.group(2), _cond.group(3)))
                     seg = seg[:_cond.start()] + seg[_cond.end():]
-                for m in re.finditer(r'(?<![a-z-])resist:([a-z0-9-]+)', seg):
+                for m in re.finditer(r'(?<![a-z_-])resist:([a-z0-9_-]+)', seg):
                     v = locais.get(m.group(1), m.group(1))
                     if v not in _PLACEHOLDERS and v not in resist:
                         resist.append(v)
-                for m in re.finditer(r'(?<![a-z-])immune:([a-z0-9-]+)', seg):
+                for m in re.finditer(r'(?<![a-z_-])immune:([a-z0-9_-]+)', seg):
                     v = locais.get(m.group(1), m.group(1))
                     if v not in _PLACEHOLDERS and v not in imune:
                         imune.append(v)
-                for m in re.finditer(r'cond-immune:([a-z0-9-]+)', seg):
+                for m in re.finditer(r'cond[-_]immune:([a-z0-9_-]+)', seg):
                     v = locais.get(m.group(1), m.group(1))
                     if v not in _PLACEHOLDERS and v not in cond_imune:
                         cond_imune.append(v)
                 # Sentidos (range:/radius:)
-                for m in re.finditer(r'sense:([a-z0-9-]+)(?:\((?:range|radius):\+?(\d+)\s*ft)?', seg):
+                for m in re.finditer(r'sense:([a-z0-9_-]+)(?:\((?:range|radius):\+?(\d+)\s*ft)?', seg):
                     t, rng = m.group(1), (int(m.group(2)) if m.group(2) else 0)
                     sentidos[t] = max(sentidos.get(t, 0), rng)
                 # Proficiências
-                for m in re.finditer(r'(?<![a-z-])prof:([a-z0-9-]+)(?:\{([^}]+)\})?', seg):
+                for m in re.finditer(r'(?<![a-z_-])prof:([a-z0-9_-]+)(?:\{([^}]+)\})?', seg):
                     chave, valor = m.group(1), m.group(2)
                     if valor:
                         alvo = {'armor': coll['armaduras'], 'weapon': coll['armas'],
@@ -1412,9 +1476,9 @@ def apply_tags(state, features, personagem=None, escolhas=None):
                     elif chave.startswith('arma'):
                         coll['armas'].append(chave)
                 # Salvaguardas
-                for m in re.finditer(r'(?<![a-z-])save-prof:([a-z0-9-]+)', seg):
+                for m in re.finditer(r'(?<![a-z_-])save[-_]prof:([a-z0-9_-]+)', seg):
                     coll['save_prof'].add(m.group(1))
-                for m in re.finditer(r'all-saves:\s*\+([^\s,}]+)', seg):
+                for m in re.finditer(r'all[-_]saves:\s*\+([^\s,}]+)', seg):
                     val = _eval_formula(m.group(1), ctx)
                     if val is not None:
                         coll['all_saves'] += val
@@ -1423,10 +1487,10 @@ def apply_tags(state, features, personagem=None, escolhas=None):
                     if val is not None:
                         coll['initiative'] += val
                 # Perícias (troca de atributo / bônus)
-                for m in re.finditer(r'check-attr:([a-z0-9-]+)\s*:?=\s*([a-z]{3})', seg):
+                for m in re.finditer(r'check[-_]attr:([a-z0-9_-]+)\s*:?=\s*([a-z]{3})', seg):
                     if m.group(2) in _EN_SIG:
                         coll['check_attr'][m.group(1)] = _EN_SIG[m.group(2)]
-                for m in re.finditer(r'check-bonus:([a-z0-9-]+)\s*[=:]\s*\+?([^\s,}]+)', seg):
+                for m in re.finditer(r'check[-_]bonus:([a-z0-9_-]+)\s*[=:]\s*\+?([^\s,}]+)', seg):
                     val = _eval_formula(m.group(2), ctx)
                     if val is not None:
                         coll['check_bonus'][m.group(1)] = coll['check_bonus'].get(m.group(1), 0) + val
@@ -1440,24 +1504,25 @@ def apply_tags(state, features, personagem=None, escolhas=None):
                         val = _eval_formula(raw, ctx)
                     if val is not None:
                         coll['n_ataques'] = max(coll['n_ataques'], val)
-                for m in re.finditer(r'(unarmed-strike|natural)\.dmg\s*[:=]+\s*(\{[^}]*\}[^,}]*|resource\{[^}]*\}|[^,}]+)', seg):
+                for m in re.finditer(r'(unarmed[-_]strike|natural)\.dmg\s*[:=]+\s*(\{[^}]*\}[^,}]*|resource\{[^}]*\}|[^,}]+)', seg):
                     escopo, dado = m.group(1), m.group(2).strip()
+                    escopo = escopo.replace('_', '-')
                     prog = re.match(r'\{[^}]*\}', dado)
                     if prog:
                         dado = _prog(prog.group(0), ctx['classlvl']) or dado
-                    dado = re.sub(r'\s*\+\s*[a-z]{3}-mod', '', dado).strip()
+                    dado = re.sub(r'\s*\+\s*[a-z]{3}[-_]mod', '', dado).strip()
                     ant = coll['ataque_dado'].get(escopo)
                     if ant is None or _die_size(dado) > _die_size(ant):
                         coll['ataque_dado'][escopo] = dado
-                for m in re.finditer(r'(unarmed-strike|natural)\.(?:attr|dmg-attr|check-attr:atk):=\s*([a-z]{3})', seg):
+                for m in re.finditer(r'(unarmed[-_]strike|natural)\.(?:attr|dmg[-_]attr|check[-_]attr:atk):=\s*([a-z]{3})', seg):
                     if m.group(2) in _EN_SIG:
-                        coll['ataque_attr'][m.group(1)] = _EN_SIG[m.group(2)]
+                        coll['ataque_attr'][m.group(1).replace('_', '-')] = _EN_SIG[m.group(2)]
                 # Vantagens / desvantagens / falas
-                for m in re.finditer(r'(?<![a-z-])adv:([a-z0-9-]+(?:\{[^}]*\})?(?:\([^)]*\))?)', seg):
+                for m in re.finditer(r'(?<![a-z_-])adv:([a-z0-9_-]+(?:\{[^}]*\})?(?:\([^)]*\))?)', seg):
                     vantagens.append('%s — %s' % (m.group(1), feat_nome))
-                for m in re.finditer(r'(?<![a-z-])(?:no-)?dadv:([a-z0-9-]+(?:\{[^}]*\})?(?:\([^)]*\))?)', seg):
+                for m in re.finditer(r'(?<![a-z_-])(?:no[-_])?dadv:([a-z0-9_-]+(?:\{[^}]*\})?(?:\([^)]*\))?)', seg):
                     coll['desvantagens'].append('%s — %s' % (m.group(1), feat_nome))
-                for m in re.finditer(r'(?<![a-z-])speak:([a-z0-9-]+)', seg):
+                for m in re.finditer(r'(?<![a-z_-])speak:([a-z0-9_-]+)', seg):
                     notas.append('falar com %s (%s)' % (m.group(1), feat_nome))
 
     # ── aplica no state ──
@@ -1517,7 +1582,7 @@ def _ataques(coll, atributos, pb, recursos=None):
         sig = coll['ataque_attr'].get(escopo, 'FOR')
         mod = atributos.get(sig, {}).get('mod', 0)
         dado = coll['ataque_dado'].get(escopo, '—')
-        mres = re.match(r'resource\{([a-z0-9-]+)\}', dado or '')
+        mres = re.match(r'resource\{([a-z0-9_-]+)\}', dado or '')
         if mres:  # dado = dado do recurso (ex.: Artes Marciais -> 1d8)
             slug = mres.group(1)
             achado = next((v for k, v in recursos.items() if _slug(k.split(':')[-1]) == slug), None)
@@ -1535,9 +1600,9 @@ def _saves(classes, atributos, pb, tag_prof=None, all_saves_bonus=0):
     principal = _classe_principal(classes)
     if principal:
         for tag in (getattr(principal.id_classe, 'tags_json', None) or []):
-            m = re.match(r'saves-prof\{([^}]*)\}', str(tag).strip())
-            if m:
-                raw = {x.strip().lower() for x in m.group(1).split(',') if x.strip()}
+            body = _tag_block(tag, 'saves_prof')
+            if body is not None:
+                raw = {x.strip().lower() for x in body.split(',') if x.strip()}
                 prof = {_SAVE_TOKEN_EN.get(t, t) for t in raw}  # normaliza PT-BR/EN -> EN
     tag_prof = tag_prof or set()
     if 'all' in tag_prof:
@@ -1607,7 +1672,7 @@ def _apply_attr_asi(features, escolhas, atributos):
             if not isinstance(t, str):
                 continue
             for seg in _passive_segments(_resolve_match(t, escolhas)):
-                for m in re.finditer(r'attr:([a-z]{3})-score\s*\+\s*(\d+)', seg):
+                for m in re.finditer(r'attr:([a-z]{3})[-_]score\s*\+\s*(\d+)', seg):
                     sig = _EN_SIG.get(m.group(1))
                     if sig:
                         n = int(m.group(2))
@@ -1615,7 +1680,7 @@ def _apply_attr_asi(features, escolhas, atributos):
                         atributos[sig]['bonus'] += n
                         atributos[sig].setdefault('breakdown', []).append(
                             {'origem': feat_nome + ' (tag)', 'valor': n})
-                for m in re.finditer(r'attr-max:([a-z]{3})-score\s*=\s*(\d+)', seg):
+                for m in re.finditer(r'attr[-_]max:([a-z]{3})[-_]score\s*=\s*(\d+)', seg):
                     sig = _EN_SIG.get(m.group(1))
                     if sig:
                         caps[sig] = min(caps.get(sig, 999), int(m.group(2)))
@@ -1710,12 +1775,13 @@ def derive(personagem):
     state['ataques'] = _ataques(tag, atributos, pb, state['recursos'])
     idiomas, ferramentas, outras = _proficiencias(personagem)
     state['idiomas'] = sorted(set(idiomas) | set(tag['idiomas']))
-    state['ferramentas'] = sorted(set(ferramentas) | set(tag['ferramentas']))
     _pc = _proficiencias_classe(classes)
+    state['ferramentas'] = sorted(set(ferramentas) | set(tag['ferramentas']) | set(_pc['classe_ferramentas']))
     state['proficiencias_armadura'] = _pc['classe_armaduras'] + sorted(set(tag['armaduras']))
     state['proficiencias_arma'] = _pc['classe_armas'] + sorted(set(tag['armas']))
     state['prof_multiclasse_armadura'] = _pc['multiclasse_armaduras']
     state['prof_multiclasse_arma'] = _pc['multiclasse_armas']
+    state['prof_multiclasse_ferramenta'] = _pc['multiclasse_ferramentas']
     state['outras_proficiencias'] = outras
     state['iniciativa'] += tag['initiative']
 

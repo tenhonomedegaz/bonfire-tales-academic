@@ -7,7 +7,8 @@ no espírito do Excel: aponta exatamente a fórmula errada.
     manage.py validate_tags --model talento  # só um catálogo
     manage.py validate_tags --errors-only    # só ERROS (#REF!/desbalanceado/catálogo)
     manage.py validate_tags --no-db          # pula checagem de referências (#REF!)
-    manage.py validate_tags --strict-names   # falha nomes mecânicos com hífen
+    manage.py validate_tags                  # tambem falha nomes mecanicos com hifen
+    manage.py validate_tags --allow-legacy-hyphen  # auditoria temporaria de legado
 """
 from collections import Counter, defaultdict
 
@@ -20,8 +21,14 @@ def _iter_models(only=None):
     """Gera (chave, label, tags_json) para cada registro com a coluna tags_json."""
     specs = []
 
-    def add(key, importer):
-        if only and only != key:
+    def add(key, importer, in_default=True):
+        # item-magico fica FORA da varredura default (metadados de loja —
+        # tipo/item/raridade/slot/loja — não são DSL e geram ruído); continua
+        # acessível sob demanda via `--model item-magico`.
+        if only:
+            if only != key:
+                return
+        elif not in_default:
             return
         specs.append((key, importer))
 
@@ -72,6 +79,11 @@ def _iter_models(only=None):
         for item in TbItemMundano.objects.all():
             yield (item.nome, item.tags_json)
 
+    def item_magico():
+        from home.models import TbItemMagico
+        for item in TbItemMagico.objects.all():
+            yield (item.nome, item.tags_json)
+
     add("classe-hab", classe_hab)
     add("talento", talento)
     add("opcao", opcao)
@@ -81,6 +93,7 @@ def _iter_models(only=None):
     add("magia", magia)
     add("bestiario", bestiario)
     add("item-mundano", item_mundano)
+    add("item-magico", item_magico, in_default=False)
     return specs
 
 
@@ -90,11 +103,13 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("--lint", action="store_true", help="Só audita a biblioteca.")
         parser.add_argument("--model", default=None,
-                            help="classe-hab | talento | opcao | traco | classe | antecedente | magia | bestiario | item-mundano")
+                            help="classe-hab | talento | opcao | traco | classe | antecedente | magia | bestiario | item-mundano | item-magico")
         parser.add_argument("--errors-only", action="store_true")
         parser.add_argument("--no-db", action="store_true", help="Não checa referências (#REF!).")
+        parser.add_argument("--allow-legacy-hyphen", action="store_true",
+                            help="Modo de auditoria legado: nao falha identificadores com hifen.")
         parser.add_argument("--strict-names", action="store_true",
-                            help="Marca hifen em identificadores mecanicos como ERRO; use no retagging snake_case.")
+                            help="Compatibilidade: strict_names agora e padrao.")
         parser.add_argument("--max", type=int, default=40, help="Máx. de itens listados por seção.")
 
     def handle(self, *args, **opt):
@@ -138,7 +153,7 @@ class Command(BaseCommand):
                 n_tagged += 1
                 n_tags += len(tags) if isinstance(tags, list) else 1
                 full = f"{key}:{label}"
-                for d in validate_tags_json(tags, lib, data, strict_names=opt["strict_names"]):
+                for d in validate_tags_json(tags, lib, data, strict_names=not opt["allow_legacy_hyphen"]):
                     by_level[d.level] += 1
                     by_code[d.code] += 1
                     per_model[key] += 1
@@ -169,7 +184,7 @@ class Command(BaseCommand):
             self.stdout.write(self.style.MIGRATE_HEADING("\n-- VERBOS/ESCOPOS DESCONHECIDOS (frequência) --"))
             if unknown:
                 for head, (count, ex) in sorted(unknown.items(), key=lambda kv: -kv[1][0]):
-                    self.stdout.write(f"  {head:<28} x{count:<4} ex: {', '.join(ex)}")
+                    self.stdout.write(self._safe(f"  {head:<28} x{count:<4} ex: {', '.join(ex)}"))
             else:
                 self.stdout.write(self.style.SUCCESS("  nenhum — todo verbo usado está na biblioteca"))
 
@@ -189,4 +204,8 @@ class Command(BaseCommand):
     def _line(self, level, msg):
         style = {"ERROR": self.style.ERROR, "WARN": self.style.WARNING,
                  "INFO": self.style.NOTICE}.get(level, self.style.NOTICE)
-        self.stdout.write(style(f"  [{level}] ") + msg)
+        self.stdout.write(self._safe(style(f"  [{level}] ") + msg))
+
+    def _safe(self, msg):
+        enc = getattr(getattr(self.stdout, "_out", None), "encoding", None) or "utf-8"
+        return str(msg).encode(enc, "replace").decode(enc)

@@ -260,6 +260,7 @@
             renderMaestria(c);
             renderEstilo(c);
             refreshExpertise();
+            renderClasseProfChoices(c);
             renderMagias(c);
             if (!c) { skillCounter.textContent = ''; equipTexto.textContent = ''; return; }
             var lista = (c.pericias_lista && c.pericias_lista.length) ? c.pericias_lista
@@ -277,6 +278,8 @@
         var estiloWrap = el('cf-estilo-wrap'), estiloSel = el('cf-estilo');
         var expertiseWrap = el('cf-expertise-wrap'), expertiseBox = el('cf-expertise');
         var expertiseCounter = document.querySelector('[data-expertise-counter]');
+        var classeProfWrap = el('cf-classe-prof-wrap'), classeProfBox = el('cf-classe-prof');
+        var classeProfGroups = [];
 
         function renderEstilo(c) {
             if (c && c.estilo_n) {
@@ -303,6 +306,68 @@
                 expertiseBox.appendChild(lab);
             });
             enforceLimit(expertiseBox, c.expertise_n, expertiseCounter);
+        }
+
+        function classeProfOptions(tipo) {
+            var ferramentas = CAT.ferramentas || [];
+            if (tipo === 'instrumento') {
+                ferramentas = ferramentas.filter(function (f) { return f.subcategoria === 'instrumento'; });
+            } else if (tipo === 'ferramenta_artesao') {
+                ferramentas = ferramentas.filter(function (f) { return f.subcategoria === 'ferramenta_artesao'; });
+            } else if (tipo === 'ferramenta_artesao_ou_instrumento') {
+                ferramentas = ferramentas.filter(function (f) {
+                    return f.subcategoria === 'ferramenta_artesao' || f.subcategoria === 'instrumento';
+                });
+            }
+            return ferramentas.map(function (f) { return { value: f.nome, label: f.nome, desc: f.desc }; });
+        }
+
+        function classeProfLabel(tipo) {
+            return {
+                instrumento: 'instrumento(s)',
+                ferramenta: 'ferramenta(s)',
+                ferramenta_artesao: 'ferramenta(s) de artesão',
+                ferramenta_ou_instrumento: 'ferramenta(s) ou instrumento(s)',
+                ferramenta_artesao_ou_instrumento: 'ferramenta(s) de artesão ou instrumento(s)'
+            }[tipo] || 'proficiência(s)';
+        }
+
+        function renderClasseProfChoices(c) {
+            classeProfBox.innerHTML = '';
+            classeProfGroups = [];
+            var picks = (c && c.classe_prof_picks) || [];
+            if (!picks.length) { classeProfWrap.hidden = true; return; }
+            classeProfWrap.hidden = false;
+            picks.forEach(function (pick) {
+                var grp = document.createElement('div');
+                var head = document.createElement('div');
+                head.className = 'mb-1 text-xs font-semibold uppercase tracking-wider text-[var(--muted)]';
+                head.textContent = 'Escolha ' + pick.n + ' ' + classeProfLabel(pick.tipo) + ' ';
+                if (pick.fonte) {
+                    var f = document.createElement('span');
+                    f.className = 'font-normal normal-case text-[var(--muted)]';
+                    f.textContent = '— ' + pick.fonte + ' ';
+                    head.appendChild(f);
+                }
+                var counter = document.createElement('span');
+                head.appendChild(counter);
+                grp.appendChild(head);
+                var grid = document.createElement('div');
+                grid.className = 'grid max-h-64 grid-cols-1 gap-1 overflow-y-auto rounded border border-[var(--stroke)] bg-[var(--bg0)] p-2 sm:grid-cols-2';
+                classeProfOptions(pick.tipo).forEach(function (o) {
+                    grid.appendChild(o.desc ? checkboxDesc(o.value, o.label, o.desc) : checkbox(o.value, o.label));
+                });
+                grp.appendChild(grid);
+                classeProfBox.appendChild(grp);
+                enforceLimit(grid, pick.n, counter);
+                classeProfGroups.push({ tipo: pick.tipo, n: pick.n, grid: grid });
+            });
+        }
+
+        function classeProfChoicesSel() {
+            return classeProfGroups.map(function (g) {
+                return { tipo: g.tipo, valores: checkedVals(g.grid) };
+            });
         }
 
         // ---- Magias (truques + 1º nível) — contagem reativa ao mod de conjuração
@@ -562,6 +627,10 @@
             if (c && c.estilo_n && !estiloSel.value) errs.push('Escolha um Estilo de Luta.');
             if (c && c.expertise_n && checkedVals(expertiseBox).length !== c.expertise_n)
                 errs.push('Escolha ' + c.expertise_n + ' perícia(s) para Especialização.');
+            classeProfGroups.forEach(function (g) {
+                if (checkedVals(g.grid).length !== g.n)
+                    errs.push('Escolha ' + g.n + ' ' + classeProfLabel(g.tipo) + ' de classe.');
+            });
             if (c && c.conjuracao) {
                 if (c.conjuracao.truques_n && checkedVals(truquesBox).length !== c.conjuracao.truques_n)
                     errs.push('Escolha ' + c.conjuracao.truques_n + ' truque(s).');
@@ -586,6 +655,7 @@
                 equip_classe: equip === 'inicial' ? 'inicial' : 'ouro',
                 estilo_luta: estiloWrap.hidden ? '' : estiloSel.value,
                 expertise: expertiseWrap.hidden ? [] : checkedVals(expertiseBox),
+                escolhas_classe_prof: classeProfChoicesSel(),
                 truques: magiasWrap.hidden ? [] : checkedVals(truquesBox),
                 magias: magiasWrap.hidden ? [] : checkedVals(magiasBox),
                 antecedente: antSel.value,

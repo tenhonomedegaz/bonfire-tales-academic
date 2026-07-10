@@ -1488,12 +1488,22 @@ def _column_key(column):
     return _normalize_key(column['name'])
 
 
+def _tag_verb_rx(name):
+    parts = [p for p in _normalize_key(str(name or '').replace('-', '_')).split('_') if p]
+    return r'[-_]'.join(re.escape(p) for p in parts)
+
+
+def _tag_block(tag, head):
+    m = re.match(r'^%s\s*\{(.*)\}\s*$' % _tag_verb_rx(head), str(tag or '').strip(), re.I | re.S)
+    return m.group(1) if m else None
+
+
 def _tag_levels(tags_json, verb):
     """Extrai os níveis de uma tag de classe como `verb{4, 8, 12, ...}`."""
     for tag in (tags_json or []):
-        match = re.match(rf'^{re.escape(verb)}\s*\{{(.+)\}}\s*$', str(tag).strip())
-        if match:
-            return {int(n) for n in re.findall(r'\d+', match.group(1))}
+        body = _tag_block(tag, verb)
+        if body:
+            return {int(n) for n in re.findall(r'\d+', body)}
     return set()
 
 
@@ -2412,9 +2422,8 @@ def colaborador_view(request):
 def _parse_skills_lvl1(tags_json):
     """(n, lista) de skills-lvl1{pick:N de [..]}; lista None = qualquer das 18."""
     for t in (tags_json or []):
-        m = re.search(r'skills-lvl1\{([^}]*)\}', str(t))
-        if m:
-            inner = m.group(1)
+        inner = _tag_block(t, 'skills_lvl1')
+        if inner is not None:
             mn = re.search(r'pick:\s*(\d+)', inner)
             ml = re.search(r'\[([^\]]*)\]', inner)
             lista = [x.strip() for x in ml.group(1).split(',') if x.strip()] if ml else None
@@ -2430,17 +2439,21 @@ _ARMADURA_PROF_TOKEN = {
 }
 _PICK_ARMA_RE = re.compile(r'pick:arma:(\{[^}]*\}|[A-Za-z0-9_+\-]+)(?:\([^)]*\))*')
 _PICK_OPCAO_NV_RE = re.compile(r'pick:opcao:([a-z0-9_-]+)(?:\([^)]*\))?(?::(\{[^}]*\}|[A-Za-z0-9_+\-]+))?(?:\([^)]*\))*')
-_PICK_EXPERTISE_RE = re.compile(r'pick:pericia-expertise:(\{[^}]*\}|[A-Za-z0-9_+\-]+)(?:\([^)]*\))*')
+_PICK_EXPERTISE_RE = re.compile(r'pick:pericia[-_]expertise:(\{[^}]*\}|[A-Za-z0-9_+\-]+)(?:\([^)]*\))*')
+_PICK_CLASSE_PROF_RE = re.compile(
+    r'pick:(instrumento|ferramenta|ferramenta_artesao|ferramenta_ou_instrumento|ferramenta_artesao_ou_instrumento):'
+    r'(\{[^}]*\}|[A-Za-z0-9_+\-]+)(?:\([^)]*\))*'
+)
 
 
 def _classe_armaduras_prof(classe):
     out = []
     for tag in (getattr(classe, 'tags_json', None) or []):
-        m = re.match(r'prof\{([^}]*)\}', str(tag).strip())
-        if not m:
+        body = _tag_block(tag, 'prof')
+        if body is None:
             continue
-        for token in [x.strip() for x in m.group(1).split(',') if x.strip()]:
-            val = _ARMADURA_PROF_TOKEN.get(token)
+        for token in [x.strip() for x in body.split(',') if x.strip()]:
+            val = _ARMADURA_PROF_TOKEN.get(token.replace('_', '-'))
             if val and val not in out:
                 out.append(val)
     return out
@@ -2457,7 +2470,9 @@ def _count_expr_for_level(expr, level):
 
 
 def _resource_ref_from_tag(tag):
-    m = re.search(r'=\s*(?:resource|recurso)\s+([a-z0-9-]+)', str(tag))
+    m = re.search(r'=\s*(?:resource|recurso)\s+([a-z0-9_-]+)', str(tag))
+    if not m:
+        m = re.search(r'(?:resource|recurso)\{([a-z0-9_-]+)\}', str(tag))
     return m.group(1) if m else None
 
 
@@ -2533,7 +2548,7 @@ def _classe_escolhas_nv1(classe):
                 n = _pick_count_for_tag(classe, 1, expr, text) or 0
                 if n > 0:
                     opcao_picks.append({'slug': slug, 'n': n})
-                if slug == 'estilo-de-luta':
+                if slug.replace('_', '-') == 'estilo-de-luta':
                     estilo_n += n
             for m in _PICK_EXPERTISE_RE.finditer(text):
                 expr = (m.group(1) or '').strip()
@@ -2547,6 +2562,34 @@ def _classe_escolhas_nv1(classe):
             'expertise_fixa': expertise_fixa, 'opcao_picks': opcao_picks}
 
 
+def _classe_prof_picks_nv1(classe):
+    """Escolhas de proficiencia em ferramenta/instrumento declaradas por tags."""
+    out = []
+    for src in _classe_nv1_sources(classe):
+        for tag in (getattr(src, 'tags_json', None) or []):
+            body = _tag_block(tag, 'prof')
+            if body is None and _tag_block(tag, 'multiclass_prof') is not None:
+                continue
+            text = body if body is not None else str(tag)
+            for m in _PICK_CLASSE_PROF_RE.finditer(text):
+                tipo, expr = m.group(1), (m.group(2) or '').strip()
+                n = _pick_count_for_tag(classe, 1, expr, text) or 0
+                if n > 0:
+                    out.append({'tipo': tipo, 'n': n, 'fonte': getattr(src, 'nome', classe.nome)})
+    return out
+
+
+def _classe_prof_pick_options(tipo):
+    qs = TbItemMundano.objects.filter(categoria='ferramenta')
+    if tipo == 'instrumento':
+        qs = qs.filter(subcategoria='instrumento')
+    elif tipo == 'ferramenta_artesao':
+        qs = qs.filter(subcategoria='ferramenta_artesao')
+    elif tipo == 'ferramenta_artesao_ou_instrumento':
+        qs = qs.filter(subcategoria__in=['ferramenta_artesao', 'instrumento'])
+    return set(qs.values_list('nome', flat=True))
+
+
 def _classe_spellcasting_info(classe, nivel_habilidades=1):
     from .character_engine import spell_scope_names
     qs = TbClassehabilidade.objects.filter(id_classe=classe, id_subclasse__isnull=True)
@@ -2556,9 +2599,8 @@ def _classe_spellcasting_info(classe, nivel_habilidades=1):
     sc, mods = None, []
     for src in [classe] + list(qs):
         for tag in (getattr(src, 'tags_json', None) or []):
-            m = re.search(r'spellcasting\{([^}]*)\}', str(tag))
-            if m:
-                body = m.group(1)
+            body = _tag_block(tag, 'spellcasting')
+            if body is not None:
                 if re.search(r'\b(?:slots|lista)\s*:', body):
                     sc = body
                 else:
@@ -2566,20 +2608,20 @@ def _classe_spellcasting_info(classe, nivel_habilidades=1):
     if not sc:
         return None
     for body in mods:
-        mm = re.search(r'prepara\s*:?=\s*([a-z-]+)', body)
+        mm = re.search(r'prepara\s*:?=\s*([a-z_-]+)', body)
         if mm:
-            sc = re.sub(r'prepara\s*:\s*[a-z-]+', 'prepara:%s' % mm.group(1), sc)
+            sc = re.sub(r'prepara\s*:\s*[a-z_-]+', 'prepara:%s' % mm.group(1), sc)
     lista_raw = (re.search(r'lista\s*:\s*([a-z0-9_|,-]+)', sc) or [None, ''])[1]
     lista_slugs = [x.strip() for x in re.split(r'[|,]', lista_raw) if x.strip()]
     slots_raw = (re.search(r'slots\s*:\s*([^,}]+)', sc) or [None, 'full'])[1].strip()
-    slots_resource = (re.search(r'resource\s*:\s*([a-z0-9-]+)', slots_raw) or [None, None])[1]
+    slots_resource = (re.search(r'resource\s*:\s*([a-z0-9_-]+)', slots_raw) or [None, None])[1]
     return {
         'raw': sc,
         'ability': (re.search(r'ability\s*:\s*([\w|]+)', sc) or [None, 'int'])[1],
         'lista': lista_slugs,
         'lista_nomes': spell_scope_names(lista_slugs) or [classe.nome],
-        'prepara': (re.search(r'prepara\s*:\s*([a-z-]+)', sc) or [None, None])[1],
-        'prep_formula': (re.search(r'prep-limite\s*:\s*([^,}]+)', sc) or [None, None])[1],
+        'prepara': (re.search(r'prepara\s*:\s*([a-z_-]+)', sc) or [None, None])[1],
+        'prep_formula': (re.search(r'prep[-_]limite\s*:\s*([^,}]+)', sc) or [None, None])[1],
         'slots': slots_raw.split('(', 1)[0].strip(),
         'slots_raw': slots_raw,
         'slots_resource': slots_resource,
@@ -2670,12 +2712,15 @@ def _spell_slot_rows(personagem, totals):
 
 _REST_LABELS = {
     'long-rest': 'day',
+    'long_rest': 'day',
     'day': 'day',
     'short-rest': 'short-rest',
+    'short_rest': 'short-rest',
     'short-or-long': 'rest',
+    'short_or_long': 'rest',
     'rest': 'rest',
 }
-_REST_UNITS_RE = r'(long-rest|short-rest|short-or-long|rest|day)'
+_REST_UNITS_RE = r'(long[-_]rest|short[-_]rest|short[-_]or[-_]long|rest|day)'
 _INNATE_RESOURCE_PREFIX = 'spell-innate:'
 
 
@@ -2694,10 +2739,13 @@ def _uses_eval_ctx(ficha, classlvl=None):
         val = int(data.get('valor') or 0)
         ctx[en + '-mod'] = mod
         ctx[en + '-score'] = val
+        ctx[en + '_mod'] = mod
+        ctx[en + '_score'] = val
         if en in ('int', 'wis', 'cha'):
             mods.append(mod)
     if mods:
         ctx['spell-mod'] = max(mods)
+        ctx['spell_mod'] = max(mods)
     return ctx
 
 
@@ -2719,7 +2767,8 @@ def _uses_count_value(raw, ctx=None):
 
 
 def _uses_label(count, reset):
-    suffix = _REST_LABELS.get(reset or '', reset or '')
+    key = (reset or '').replace('_', '-')
+    suffix = _REST_LABELS.get(reset or '', _REST_LABELS.get(key, reset or ''))
     return '%s/%s' % (count, suffix) if count and suffix else ''
 
 
@@ -2730,7 +2779,7 @@ def _uses_meta_from_text(text, ctx=None):
 
     patterns = [
         r'uses\s*\{\s*([^,{}]+)\s*,\s*reset\s*:\s*' + _REST_UNITS_RE,
-        r'resource-cost\s*:\s*([^,\s{}|:]+)\s*/\s*' + _REST_UNITS_RE,
+        r'resource[-_]cost\s*:\s*([^,\s{}|:]+)\s*/\s*' + _REST_UNITS_RE,
         r'\b([^,\s{}|:]+)\s*/\s*' + _REST_UNITS_RE,
     ]
     for rx in patterns:
@@ -2752,7 +2801,7 @@ def _uses_label_from_text(text, ctx=None):
 
 def _iter_tag_blocks(text, head):
     s = str(text or '')
-    rx = re.compile(r'\b%s\s*\{' % re.escape(head), re.I)
+    rx = re.compile(r'\b%s\s*\{' % _tag_verb_rx(head), re.I)
     pos = 0
     while True:
         m = rx.search(s, pos)
@@ -2787,7 +2836,7 @@ def _innate_resource_key(origem, spell_slug):
 
 
 def _resource_resets_on_rest(reset, longo):
-    reset = (reset or '').strip().lower()
+    reset = (reset or '').strip().lower().replace('_', '-')
     if longo:
         return reset in ('long-rest', 'day', 'short-rest', 'short-or-long', 'rest')
     return reset in ('short-rest', 'short-or-long', 'rest')
@@ -2814,7 +2863,7 @@ def _innate_spell_uses(personagem, ficha=None):
             source_meta = source_meta or _uses_meta_from_text(t, ctx)
         for t in tags:
             for body in _iter_tag_blocks(t, 'cast'):
-                if 'no-slot' not in body.lower():
+                if not re.search(r'no[-_]slot', body.lower()):
                     continue
                 meta = _uses_meta_from_text(body, ctx) or _uses_meta_from_text(t, ctx) or source_meta
                 if not meta:
@@ -3000,14 +3049,15 @@ def _classe_conjuracao(classe):
         return None
 
     def res_v1(substrs):
+        needles = [s.replace('_', '-') for s in substrs] + [s.replace('-', '_') for s in substrs]
         for r in TbRecursoclasse.objects.filter(id_classe=classe, id_subclasse__isnull=True):
             slug = (r.slug or '').lower()
-            if any(s in slug for s in substrs) and _resource_tipo(r) == RESOURCE_TIPO_CHOICE:
+            if any(s in slug for s in needles) and _resource_tipo(r) == RESOURCE_TIPO_CHOICE:
                 val = _resource_max_at(r, 1)
                 if val is not None:
                     return val
         for r in TbRecursoclasse.objects.filter(id_classe=classe, id_subclasse__isnull=True):
-            if any(s in (r.slug or '').lower() for s in substrs):
+            if any(s in (r.slug or '').lower() for s in needles):
                 val = _resource_max_at(r, 1)
                 if val is not None:
                     return val
@@ -3095,9 +3145,11 @@ def _spell_count_nv1(conj, base, mais2, mais1, asi_vals=(2, 1)):
         for en, sig in _AB_SIG.items():
             score = int(base.get(sig, 8)) + (major if mais2 == sig else 0) + (minor if mais1 == sig else 0)
             ctx[en + '-mod'] = (score - 10) // 2
+            ctx[en + '_mod'] = ctx[en + '-mod']
         abil = conj.get('ability') or 'int'
         ctx['spell-mod'] = (max(ctx.get(a + '-mod', 0) for a in abil.split('|'))
                             if '|' in abil else ctx.get(abil + '-mod', 0))
+        ctx['spell_mod'] = ctx['spell-mod']
         val = _eval_formula(formula, ctx)
         return max(1, int(val)) if val is not None else 0
     return 0
@@ -3141,6 +3193,7 @@ def _criador_catalogos():
                         'estilo_n': esc1['estilo_n'], 'expertise_n': esc1['expertise_n'],
                         'expertise_fixa': esc1['expertise_fixa'],
                         'opcao_picks': esc1.get('opcao_picks', []),
+                        'classe_prof_picks': _classe_prof_picks_nv1(c),
                         'conjuracao': _classe_conjuracao(c),
                         'armaduras_prof': _classe_armaduras_prof(c),
                         'subclasse_nivel': min(sub) if sub else None})
@@ -3244,7 +3297,8 @@ def _criador_catalogos():
         'pericias': pericias,
         'idiomas': [{'nome': i.nome, 'desc': (i.categoria or '').strip()}
                     for i in TbIdioma.objects.exclude(nome__iexact='Comum').order_by('categoria', 'ordem', 'nome')],
-        'ferramentas': [{'nome': f.nome, 'desc': (f.descricao_markdown or '').strip()}
+        'ferramentas': [{'nome': f.nome, 'desc': (f.descricao_markdown or '').strip(),
+                         'subcategoria': (f.subcategoria or '').strip()}
                         for f in TbItemMundano.objects.filter(categoria='ferramenta').order_by('subcategoria', 'nome')],
         'armas': _criador_armas(),
         'armaduras': _criador_armaduras(),
@@ -3660,6 +3714,9 @@ def _opcao_grupos(personagem):
     escolhidas = {}
     for e in personagem.escolhas.select_related('id_opcao').all():
         escolhidas.setdefault(e.tipo, []).append(e)
+        alt_tipo = e.tipo.replace('-', '_') if '-' in e.tipo else e.tipo.replace('_', '-')
+        if alt_tipo != e.tipo:
+            escolhidas.setdefault(alt_tipo, []).append(e)
     vistos = set()
     for c in personagem.classes.select_related('id_classe', 'id_subclasse'):
         nivel = int(c.nivel or 0)
@@ -3826,7 +3883,29 @@ def personagem_subir_nivel(request, pk):
         p.save(update_fields=['nivel', 'atualizado_em'])
         # Novos níveis podem desbloquear ciclos de Magia Elemental (nv 5/9/13).
         _sync_magias_essencia(p)
+        _refresh_vitais_derivados(p)
     return redirect('editar_ficha', pk=pk)
+
+
+def _refresh_vitais_derivados(personagem, refill=False):
+    """Persiste campos vitais que continuam sendo derivados pelas tags do engine."""
+    from .character_engine import derive
+    antigo_max = int(personagem.pv_maximo or 0)
+    antigo_atual = int(personagem.pv_atual or 0)
+    ficha = derive(personagem)
+    pv = ficha.get('pv') or {}
+    novo_max = int(pv.get('maximo_calculado') or antigo_max or 0)
+    personagem.pv_maximo = novo_max
+    if refill or antigo_max <= 0:
+        personagem.pv_atual = novo_max
+    elif novo_max > antigo_max:
+        personagem.pv_atual = min(novo_max, antigo_atual + (novo_max - antigo_max))
+    elif novo_max > 0:
+        personagem.pv_atual = min(antigo_atual, novo_max)
+    personagem.ca = int(ficha.get('ca') or personagem.ca or 10)
+    personagem.velocidade = ficha.get('velocidade') or personagem.velocidade
+    personagem.save(update_fields=['pv_maximo', 'pv_atual', 'ca', 'velocidade', 'atualizado_em'])
+    return ficha
 
 
 def aplicar_aventuras(personagem, n, evento=False):
@@ -3937,9 +4016,9 @@ def _multiclass_atende(atributos, req):
 
 def _classe_req(cl):
     for t in (cl.tags_json or []):
-        m = re.search(r'multiclass-req\{([^}]*)\}', str(t))
-        if m:
-            return m.group(1)
+        body = _tag_block(t, 'multiclass_req')
+        if body is not None:
+            return body
     return None
 
 
@@ -3975,6 +4054,8 @@ def personagem_adicionar_classe(request, pk):
     TbPersonagemClasse.objects.create(id_personagem=p, id_classe=cl, nivel=1, principal=False)
     p.nivel = sum(c.nivel or 0 for c in p.classes.all())
     p.save(update_fields=['nivel', 'atualizado_em'])
+    _sync_magias_concedidas(p)
+    _refresh_vitais_derivados(p)
     return redirect(reverse('editar_ficha', args=[pk]) + '?mc=ok')
 
 
@@ -3988,6 +4069,8 @@ def personagem_escolher_subclasse(request, pk):
     if pc and sub and not pc.id_subclasse_id:
         pc.id_subclasse = sub
         pc.save(update_fields=['id_subclasse'])
+        _sync_magias_concedidas(p)
+        _refresh_vitais_derivados(p)
     return redirect('editar_ficha', pk=pk)
 
 
@@ -4014,6 +4097,8 @@ def personagem_aplicar_asi(request, pk):
             TbPersonagemAtributoBonus.objects.create(
                 id_personagem=p, atributo=attr, valor=1,
                 origem='Talento %s N%d' % (t.nome, nivel), origem_tipo='talento-asi')
+            _sync_magias_concedidas(p)
+            _refresh_vitais_derivados(p)
     else:
         attr1 = request.POST.get('asi_attr_1') or request.POST.get('mais2')
         attr2 = request.POST.get('asi_attr_2') or request.POST.get('mais1')
@@ -4030,6 +4115,7 @@ def personagem_aplicar_asi(request, pk):
                 TbPersonagemAtributoBonus.objects.create(
                     id_personagem=p, atributo=attr2, valor=1,
                     origem=origem_base, origem_tipo='asi-classe')
+            _refresh_vitais_derivados(p)
     return redirect('editar_ficha', pk=pk)
 
 
@@ -4051,6 +4137,7 @@ def personagem_escolher_talento_racial(request, pk):
     if bloco and any(o['nome'] == nome for o in bloco['opcoes']):
         TbPersonagemTalento.objects.create(id_personagem=p, categoria='racial', nivel=nivel, nome=nome)
         _sync_magias_essencia(p)
+        _refresh_vitais_derivados(p)
     return redirect(reverse('editar_ficha', args=[pk]) + '#talentos-raciais')
 
 
@@ -4064,6 +4151,8 @@ def personagem_escolher_opcoes(request, pk):
     destino = reverse('editar_ficha', args=[pk]) + '#opcoes'
     if request.POST.get('acao') == 'remover':
         TbPersonagemEscolha.objects.filter(id=request.POST.get('escolha'), id_personagem=p).delete()
+        _sync_magias_concedidas(p)
+        _refresh_vitais_derivados(p)
         return redirect(destino)
     slug = (request.POST.get('slug') or '').strip()
     op = TbOpcaojogo.objects.filter(id_opcao=request.POST.get('opcao')).first()
@@ -4078,6 +4167,8 @@ def personagem_escolher_opcoes(request, pk):
     TbPersonagemEscolha.objects.update_or_create(
         id_personagem=p, origem='%s: %s' % (grupo['classe'], grupo['tipo']),
         tipo=slug, slot=grupo['prox_slot'], defaults={'id_opcao': op, 'valor': op.slug})
+    _sync_magias_concedidas(p)
+    _refresh_vitais_derivados(p)
     return redirect(destino)
 
 
@@ -4094,8 +4185,9 @@ def _pendencias_magias(personagem):
         return None
 
     def res_at(substrs):
+        needles = [s.replace('_', '-') for s in substrs] + [s.replace('-', '_') for s in substrs]
         for r in TbRecursoclasse.objects.filter(id_classe=classe, id_subclasse__isnull=True):
-            if any(s in (r.slug or '').lower() for s in substrs):
+            if any(s in (r.slug or '').lower() for s in needles):
                 vj = r.valores_json or {}
                 ks = sorted(int(k) for k in vj if int(k) <= nivel)
                 if ks:
@@ -4116,7 +4208,9 @@ def _pendencias_magias(personagem):
     lm = [{'slug': m.slug, 'nome': m.nome, 'nivel': m.nivel} for m in
           TbMagia.objects.filter(_spell_list_q(spell_info['lista_nomes']), nivel__gte=1,
                                   nivel__lte=maxlv).order_by('nivel', 'nome') if m.slug not in conhecidos]
-    swap_lvl = any('swap:level-up' in str(t) for h in TbClassehabilidade.objects.filter(id_classe=classe, id_subclasse__isnull=True) for t in (h.tags_json or []))
+    swap_lvl = any(re.search(r'swap\s*:\s*level[-_]up', str(t))
+                   for h in TbClassehabilidade.objects.filter(id_classe=classe, id_subclasse__isnull=True)
+                   for t in (h.tags_json or []))
     conhecidas = [{'slug': m.id_magia.slug, 'nome': m.nome, 'nivel': m.nivel}
                   for m in personagem.magias.select_related('id_magia').filter(id_magia__isnull=False).order_by('nivel', 'nome')]
     return {'cantrips_pend': cant_pend, 'known_pend': known_pend, 'max_nivel': maxlv,
@@ -4143,9 +4237,11 @@ def _magias_preparadas_info(personagem, ficha):
     ctx = {'classlvl': nivel, 'lvl': ficha['nivel_total'], 'pb': ficha['bonus_proficiencia']}
     for sig, en in _ABIL_EN.items():
         ctx[en + '-mod'] = ats[sig]['mod']
+        ctx[en + '_mod'] = ats[sig]['mod']
     abil = spell_info['ability']
     ctx['spell-mod'] = (max(ctx[a + '-mod'] for a in abil.split('|')) if '|' in abil
                         else ctx.get(abil + '-mod', 0))
+    ctx['spell_mod'] = ctx['spell-mod']
     limite = _eval_formula(spell_info['prep_formula'].strip(), ctx)
     limite = max(1, limite) if limite is not None else None
     maxlv = _max_spell_level_for_slots(nivel, spell_info['slots'])
@@ -4921,6 +5017,21 @@ def criar_personagem_view(request):
     exp_sel = [s for s in dict.fromkeys(data.get('expertise') or []) if s in set(pc + pa)]
     if esc1['expertise_n'] and len(exp_sel) != esc1['expertise_n']:
         erros.append('Escolha %d perícia(s) para Especialização (entre as proficientes).' % esc1['expertise_n'])
+    classe_prof_picks = _classe_prof_picks_nv1(classe) if classe else []
+    classe_prof_sel = data.get('escolhas_classe_prof') or []
+    if not isinstance(classe_prof_sel, list):
+        classe_prof_sel = []
+    classe_prof_validas = []
+    for idx, pick in enumerate(classe_prof_picks):
+        raw = classe_prof_sel[idx] if idx < len(classe_prof_sel) else {}
+        vals = raw.get('valores') if isinstance(raw, dict) else []
+        vals = list(dict.fromkeys(vals or []))
+        allowed = _classe_prof_pick_options(pick['tipo'])
+        vals = [v for v in vals if v in allowed]
+        n_pick = int(pick.get('n') or 0)
+        if len(vals) != n_pick:
+            erros.append('Escolha %d proficiência(s) de classe em ferramenta/instrumento.' % n_pick)
+        classe_prof_validas.append((pick, vals))
 
     # Conjuração nv1: truques + magias de 1º nível
     conj = _classe_conjuracao(classe) if classe else None
@@ -5013,6 +5124,11 @@ def criar_personagem_view(request):
             info = _SKILL_INFO.get(sl)
             if info:
                 TbPersonagemPericia.objects.filter(id_personagem=p, nome=info[0]).update(expertise=True)
+        for pick, vals in classe_prof_validas:
+            for nm in vals[:int(pick.get('n') or 0)]:
+                TbPersonagemProficiencia.objects.get_or_create(
+                    id_personagem=p, tipo='ferramenta', nome=nm,
+                    defaults={'origem': 'classe'})
         # Expertise FIXA (Mago: Arcanismo) — proficiência + expertise automáticas
         for sl in esc1['expertise_fixa']:
             info = _SKILL_INFO.get(sl)
@@ -5031,6 +5147,7 @@ def criar_personagem_view(request):
         # Magias da Essência (vertente): concede as fixas do nível atual (cantrips + 1º
         # ciclo no nível 1). As de escolha (2º ciclo) ficam pendentes até o nível 5.
         _sync_magias_essencia(p)
+        _refresh_vitais_derivados(p, refill=True)
 
     return JsonResponse({'ok': True, 'id': p.id_personagem,
                          'redirect': reverse('ficha_detail', args=[p.id_personagem])})

@@ -17,11 +17,11 @@ tipo_equip e derivado: ca:+ => 'escudo'; ca= => 'armadura-<subcategoria>'.
 import re
 
 _DMG = re.compile(r"^dmg:\s*([0-9]+d[0-9]+(?:\s*[+-]\s*[0-9]+)?)\s*\(([^)]+)\)", re.I)
-_PROP = re.compile(r"^add-property:\s*([^(]+?)\s*(?:\((.+)\))?\s*$", re.I)
+_PROP = re.compile(r"^add[-_]property:\s*([^(]+?)\s*(?:\((.+)\))?\s*$", re.I)
 _MAEST = re.compile(r"^maestrias\s*\{(.+)\}", re.I | re.S)
 _CA_SET = re.compile(r"^ca\s*=\s*(.+?)\s*$", re.I)          # ca=<formula> (14+min(dex_mod,2), 18, ...)
 _CA_ADD = re.compile(r"^ca\s*:\s*\+\s*([0-9]+)", re.I)      # escudo ca:+N
-_DEXMAX = re.compile(r"^dex-ca-max:\s*([0-9]+)", re.I)      # legado (retrocompat): sintetiza a formula
+_DEXMAX = re.compile(r"^dex[-_]ca[-_]max:\s*([0-9]+)", re.I)      # legado (retrocompat): sintetiza a formula
 _FORCA = re.compile(r"^requires:\s*str[_-]score\s*>=\s*([0-9]+)", re.I)
 _FURT = re.compile(r"^dadv:\s*furtividade\b", re.I)
 

@@ -21,6 +21,7 @@ from .library import Library
 from .lexer import tokenize, LexError
 from .validator import (
     Diagnostic, DataIndex,
+    normalize_tag_identifier_names,
     validate_tag_line, validate_tags_json,
     ERROR, WARN, INFO,
 )
@@ -28,6 +29,7 @@ from .validator import (
 __all__ = [
     "Library", "tokenize", "LexError",
     "Diagnostic", "DataIndex",
+    "normalize_tag_identifier_names",
     "validate_tag_line", "validate_tags_json",
     "ERROR", "WARN", "INFO",
 ]
