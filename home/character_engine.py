@@ -1023,6 +1023,37 @@ def _personagem_conjura(classes):
     return False
 
 
+def _spell_mod(classes, atributos):
+    """Modificador da habilidade de conjuração (`spellcasting{ability:X}`) do personagem,
+    p/ resolver fórmulas passivas que citam `spell_mod` (ex.: Caçador/Instinto Afiado
+    `str_save:+max(1, spell_mod)`). Se a classe oferece escolha (`ability:int|wis`), usa o
+    MAIOR modificador; multiclasse: o maior entre as classes conjuradoras. 0 se não conjura.
+    Só lê a habilidade de conjuração ATÉ o nível da classe (mesma janela de _personagem_conjura)."""
+    from .models import TbClassehabilidade
+    best = None
+    for c in classes:
+        cl = c.id_classe
+        srcs = [cl] + ([c.id_subclasse] if c.id_subclasse_id else [])
+        srcs += list(TbClassehabilidade.objects.filter(id_classe=cl, niveladquirido__lte=(c.nivel or 1)))
+        for src in srcs:
+            for t in (getattr(src, 'tags_json', None) or []):
+                body = _tag_block(t, 'spellcasting')
+                if body is None:
+                    continue
+                m = re.search(r'ability\s*:\s*([a-z|]+)', body)
+                if not m:
+                    continue
+                mods = []
+                for tok in m.group(1).split('|'):
+                    sig = _EN_SIG.get(_SAVE_TOKEN_EN.get(tok.strip()))
+                    if sig:
+                        mods.append(atributos[sig]['mod'])
+                if mods:
+                    cand = max(mods)
+                    best = cand if best is None else max(best, cand)
+    return best or 0
+
+
 def magias_concedidas(personagem):
     """Todas as magias ESPECÍFICAS concedidas à lista de magias por features ATIVAS do
     personagem (Essência/vertente, talentos pegos — Marcas, Juramento das Três Luas… —,
@@ -1155,6 +1186,25 @@ def _eval_formula(expr, ctx):
         return int(_eval_node(ast.parse(e, mode='eval').body))
     except Exception:
         return None
+
+
+def _read_expr(s, i):
+    """Lê uma fórmula a partir de `i` respeitando profundidade de ()/[]/{}: para no
+    primeiro `,` de nível 0 ou num fechamento que encerraria um bloco externo. Necessário
+    p/ valores com vírgula interna, ex.: `max(1, spell_mod)`."""
+    depth, j = 0, i
+    while j < len(s):
+        c = s[j]
+        if c in '([{':
+            depth += 1
+        elif c in ')]}':
+            if depth == 0:
+                break
+            depth -= 1
+        elif c == ',' and depth == 0:
+            break
+        j += 1
+    return s[i:j].strip()
 
 
 def _match_close(s, i):
@@ -1358,7 +1408,7 @@ def apply_tags(state, features, personagem=None, escolhas=None):
     if escolhas is None:
         escolhas, _ = _collect_escolhas(personagem, features)
 
-    coll = {'skill_prof': set(), 'save_prof': set(), 'all_saves': 0, 'check_attr': {},
+    coll = {'skill_prof': set(), 'save_prof': set(), 'all_saves': 0, 'save_bonus': {}, 'check_attr': {},
             'check_bonus': {}, 'idiomas': [], 'ferramentas': [], 'armaduras': [], 'armas': [],
             'initiative': 0, 'move_modes': {}, 'desvantagens': [],
             'n_ataques': 0, 'ataque_dado': {}, 'ataque_attr': {}}
@@ -1431,7 +1481,9 @@ def apply_tags(state, features, personagem=None, escolhas=None):
                     if val is not None:
                         ca_cands.append((val, feat_nome, feat_gate_shield))
                 # Velocidade / modos
-                for m in re.finditer(r'speed:\s*\+(\d+)\s*ft', seg):
+                # bônus de deslocamento sempre-ativo: `speed:+Nft` (a unidade `ft` é
+                # opcional — ex.: item `speed:+18`). `speed:+resource{…}` não casa (exige dígito).
+                for m in re.finditer(r'speed:\s*\+(\d+)(?:\s*ft)?(?![\w.])', seg):
                     speed_bonus += int(m.group(1))
                 for m in re.finditer(r'move:(climb|swim|fly|burrow|wall)(?:\(=\s*(?:speed|walk)\)|:=?\s*(?:speed|walk)|:\+?(\d+)\s*ft|\((\d+)\s*ft\))?', seg):
                     val = m.group(2) or m.group(3)
@@ -1482,6 +1534,16 @@ def apply_tags(state, features, personagem=None, escolhas=None):
                     val = _eval_formula(m.group(1), ctx)
                     if val is not None:
                         coll['all_saves'] += val
+                # Salvaguarda de UMA habilidade: `<attr>_save:+<formula>` (ex.: Caçador/Instinto
+                # Afiado `str_save:+max(1, spell_mod)`). Aceita siglas PT/EN e hífen/underscore;
+                # a fórmula pode ter vírgula interna (args de max/min) → lida por _read_expr.
+                for m in re.finditer(r'(?<![a-z])([a-z]{3})[-_]save:\s*\+', seg):
+                    sig = _EN_SIG.get(_SAVE_TOKEN_EN.get(m.group(1)))
+                    if not sig:
+                        continue
+                    val = _eval_formula(_read_expr(seg, m.end()), ctx)
+                    if val is not None:
+                        coll['save_bonus'][sig] = coll['save_bonus'].get(sig, 0) + val
                 for m in re.finditer(r'(?<![a-z-])(?:buff:)?initiative:\s*\+([^\s,}]+)', seg):
                     val = _eval_formula(m.group(1), ctx)
                     if val is not None:
@@ -1595,8 +1657,9 @@ def _ataques(coll, atributos, pb, recursos=None):
             'avisos': ['ataques com arma do inventário não derivados (sem catálogo de armas)']}
 
 
-def _saves(classes, atributos, pb, tag_prof=None, all_saves_bonus=0):
+def _saves(classes, atributos, pb, tag_prof=None, all_saves_bonus=0, save_bonus=None):
     prof = set()
+    save_bonus = save_bonus or {}
     principal = _classe_principal(classes)
     if principal:
         for tag in (getattr(principal.id_classe, 'tags_json', None) or []):
@@ -1612,7 +1675,8 @@ def _saves(classes, atributos, pb, tag_prof=None, all_saves_bonus=0):
     out = {}
     for sig, en in _ATTR_EN.items():
         p = en in prof
-        out[sig] = {'proficiente': p, 'bonus': atributos[sig]['mod'] + (pb if p else 0) + all_saves_bonus}
+        out[sig] = {'proficiente': p,
+                    'bonus': atributos[sig]['mod'] + (pb if p else 0) + all_saves_bonus + save_bonus.get(sig, 0)}
     return out
 
 
@@ -1724,6 +1788,9 @@ def derive(personagem):
     pb = bonus_proficiencia(nivel_total)
     pv = _calcular_pv(personagem, classes, con_mod, avisos)
     ctx = _build_ctx(nivel_total, pb, atributos)
+    _sm = _spell_mod(classes, atributos)
+    ctx['spell_mod'] = _sm
+    ctx['spell-mod'] = _sm
 
     # aviso: antecedente preenchido mas sem tags (habilidade não aplicada)
     if personagem.id_antecedente_id and not (personagem.id_antecedente.tags_json or []):
@@ -1770,7 +1837,7 @@ def derive(personagem):
 
     # pós-tags
     tag = state['_tag']
-    state['saves'] = _saves(classes, atributos, pb, tag['save_prof'], tag['all_saves'])
+    state['saves'] = _saves(classes, atributos, pb, tag['save_prof'], tag['all_saves'], tag['save_bonus'])
     state['pericias'] = _pericias(personagem, atributos, pb, tag['skill_prof'], tag['check_attr'], tag['check_bonus'])
     state['ataques'] = _ataques(tag, atributos, pb, state['recursos'])
     idiomas, ferramentas, outras = _proficiencias(personagem)
