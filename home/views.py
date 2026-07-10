@@ -1490,7 +1490,7 @@ def _column_key(column):
 
 def _tag_verb_rx(name):
     parts = [p for p in _normalize_key(str(name or '').replace('-', '_')).split('_') if p]
-    return r'[-_]'.join(re.escape(p) for p in parts)
+    return r'_'.join(re.escape(p) for p in parts)
 
 
 def _tag_block(tag, head):
@@ -2432,14 +2432,14 @@ def _parse_skills_lvl1(tags_json):
 
 
 _ARMADURA_PROF_TOKEN = {
-    'armadura-leve': 'leve',
-    'armadura-media': 'media',
-    'armadura-pesada': 'pesada',
+    'armadura_leve': 'leve',
+    'armadura_media': 'media',
+    'armadura_pesada': 'pesada',
     'escudos': 'escudo',
 }
 _PICK_ARMA_RE = re.compile(r'pick:arma:(\{[^}]*\}|[A-Za-z0-9_+\-]+)(?:\([^)]*\))*')
 _PICK_OPCAO_NV_RE = re.compile(r'pick:opcao:([a-z0-9_-]+)(?:\([^)]*\))?(?::(\{[^}]*\}|[A-Za-z0-9_+\-]+))?(?:\([^)]*\))*')
-_PICK_EXPERTISE_RE = re.compile(r'pick:pericia[-_]expertise:(\{[^}]*\}|[A-Za-z0-9_+\-]+)(?:\([^)]*\))*')
+_PICK_EXPERTISE_RE = re.compile(r'pick:pericia_expertise:(\{[^}]*\}|[A-Za-z0-9_+\-]+)(?:\([^)]*\))*')
 _PICK_CLASSE_PROF_RE = re.compile(
     r'pick:(instrumento|ferramenta|ferramenta_artesao|ferramenta_ou_instrumento|ferramenta_artesao_ou_instrumento):'
     r'(\{[^}]*\}|[A-Za-z0-9_+\-]+)(?:\([^)]*\))*'
@@ -2453,7 +2453,7 @@ def _classe_armaduras_prof(classe):
         if body is None:
             continue
         for token in [x.strip() for x in body.split(',') if x.strip()]:
-            val = _ARMADURA_PROF_TOKEN.get(token.replace('_', '-'))
+            val = _ARMADURA_PROF_TOKEN.get(token)
             if val and val not in out:
                 out.append(val)
     return out
@@ -2621,7 +2621,7 @@ def _classe_spellcasting_info(classe, nivel_habilidades=1):
         'lista': lista_slugs,
         'lista_nomes': spell_scope_names(lista_slugs) or [classe.nome],
         'prepara': (re.search(r'prepara\s*:\s*([a-z_-]+)', sc) or [None, None])[1],
-        'prep_formula': (re.search(r'prep[-_]limite\s*:\s*([^,}]+)', sc) or [None, None])[1],
+        'prep_formula': (re.search(r'prep_limite\s*:\s*([^,}]+)', sc) or [None, None])[1],
         'slots': slots_raw.split('(', 1)[0].strip(),
         'slots_raw': slots_raw,
         'slots_resource': slots_resource,
@@ -2737,14 +2737,11 @@ def _uses_eval_ctx(ficha, classlvl=None):
         data = attrs.get(sig) or {}
         mod = int(data.get('mod') or 0)
         val = int(data.get('valor') or 0)
-        ctx[en + '-mod'] = mod
-        ctx[en + '-score'] = val
         ctx[en + '_mod'] = mod
         ctx[en + '_score'] = val
         if en in ('int', 'wis', 'cha'):
             mods.append(mod)
     if mods:
-        ctx['spell-mod'] = max(mods)
         ctx['spell_mod'] = max(mods)
     return ctx
 
@@ -2779,7 +2776,7 @@ def _uses_meta_from_text(text, ctx=None):
 
     patterns = [
         r'uses\s*\{\s*([^,{}]+)\s*,\s*reset\s*:\s*' + _REST_UNITS_RE,
-        r'resource[-_]cost\s*:\s*([^,\s{}|:]+)\s*/\s*' + _REST_UNITS_RE,
+        r'resource_cost\s*:\s*([^,\s{}|:]+)\s*/\s*' + _REST_UNITS_RE,
         r'\b([^,\s{}|:]+)\s*/\s*' + _REST_UNITS_RE,
     ]
     for rx in patterns:
@@ -2863,7 +2860,7 @@ def _innate_spell_uses(personagem, ficha=None):
             source_meta = source_meta or _uses_meta_from_text(t, ctx)
         for t in tags:
             for body in _iter_tag_blocks(t, 'cast'):
-                if not re.search(r'no[-_]slot', body.lower()):
+                if not re.search(r'no_slot', body.lower()):
                     continue
                 meta = _uses_meta_from_text(body, ctx) or _uses_meta_from_text(t, ctx) or source_meta
                 if not meta:
@@ -3144,12 +3141,10 @@ def _spell_count_nv1(conj, base, mais2, mais1, asi_vals=(2, 1)):
         major, minor = asi_vals
         for en, sig in _AB_SIG.items():
             score = int(base.get(sig, 8)) + (major if mais2 == sig else 0) + (minor if mais1 == sig else 0)
-            ctx[en + '-mod'] = (score - 10) // 2
-            ctx[en + '_mod'] = ctx[en + '-mod']
+            ctx[en + '_mod'] = (score - 10) // 2
         abil = conj.get('ability') or 'int'
-        ctx['spell-mod'] = (max(ctx.get(a + '-mod', 0) for a in abil.split('|'))
-                            if '|' in abil else ctx.get(abil + '-mod', 0))
-        ctx['spell_mod'] = ctx['spell-mod']
+        ctx['spell_mod'] = (max(ctx.get(a + '_mod', 0) for a in abil.split('|'))
+                            if '|' in abil else ctx.get(abil + '_mod', 0))
         val = _eval_formula(formula, ctx)
         return max(1, int(val)) if val is not None else 0
     return 0
@@ -3914,17 +3909,17 @@ def aplicar_aventuras(personagem, n, evento=False):
     rank antigo; as seguintes no novo). Sempre credita o ouro do rank (PO→PC). BRASEIROS
     (= BP) só em missão de EVENTO (`evento=True`) — jogar evento dá braseiros; aventura
     normal, não. Retorna (ouro_po, braseiros)."""
-    from .character_engine import nivel_por_aventuras, ouro_por_aventura, braseiros_por_aventura
+    from .character_engine import nivel_por_aventuras, ouro_de_progressao, braseiros_por_aventura
     n = max(0, int(n))
     if n == 0:
         return (0, 0)
     base = int(personagem.aventuras or 0)
-    ouro = bras = 0
-    for k in range(n):
-        nivel = nivel_por_aventuras(base + k)
-        ouro += ouro_por_aventura(nivel)
-        if evento:
-            bras += braseiros_por_aventura(nivel)
+    # Ouro do intervalo = diferença do acumulado (regra sequencial de rank-up embutida).
+    ouro = ouro_de_progressao(base + n) - ouro_de_progressao(base)
+    bras = 0
+    if evento:
+        for k in range(n):
+            bras += braseiros_por_aventura(nivel_por_aventuras(base + k))
     personagem.aventuras = base + n
     personagem.braseiros = int(personagem.braseiros or 0) + bras
     personagem.carteira_pc = int(personagem.carteira_pc or 0) + ouro * 100
@@ -4093,7 +4088,7 @@ def personagem_aplicar_asi(request, pk):
         validos = {x['id'] for x in _talentos_asi_disponiveis(p, ficha)}
         if t and t.id_talento in validos and attr in _talento_attr_options(t):
             TbPersonagemTalento.objects.create(id_personagem=p, id_talento=t, categoria='asi-nivel',
-                                               nivel=nivel, nome=t.nome, detalhes='asi-attr:%s' % attr)
+                                               nivel=nivel, nome=t.nome, detalhes='asi_attr:%s' % attr)
             TbPersonagemAtributoBonus.objects.create(
                 id_personagem=p, atributo=attr, valor=1,
                 origem='Talento %s N%d' % (t.nome, nivel), origem_tipo='talento-asi')
@@ -4208,7 +4203,7 @@ def _pendencias_magias(personagem):
     lm = [{'slug': m.slug, 'nome': m.nome, 'nivel': m.nivel} for m in
           TbMagia.objects.filter(_spell_list_q(spell_info['lista_nomes']), nivel__gte=1,
                                   nivel__lte=maxlv).order_by('nivel', 'nome') if m.slug not in conhecidos]
-    swap_lvl = any(re.search(r'swap\s*:\s*level[-_]up', str(t))
+    swap_lvl = any(re.search(r'swap\s*:\s*level_up', str(t))
                    for h in TbClassehabilidade.objects.filter(id_classe=classe, id_subclasse__isnull=True)
                    for t in (h.tags_json or []))
     conhecidas = [{'slug': m.id_magia.slug, 'nome': m.nome, 'nivel': m.nivel}
@@ -4236,12 +4231,10 @@ def _magias_preparadas_info(personagem, ficha):
     ats = ficha['atributos']
     ctx = {'classlvl': nivel, 'lvl': ficha['nivel_total'], 'pb': ficha['bonus_proficiencia']}
     for sig, en in _ABIL_EN.items():
-        ctx[en + '-mod'] = ats[sig]['mod']
         ctx[en + '_mod'] = ats[sig]['mod']
     abil = spell_info['ability']
-    ctx['spell-mod'] = (max(ctx[a + '-mod'] for a in abil.split('|')) if '|' in abil
-                        else ctx.get(abil + '-mod', 0))
-    ctx['spell_mod'] = ctx['spell-mod']
+    ctx['spell_mod'] = (max(ctx[a + '_mod'] for a in abil.split('|')) if '|' in abil
+                        else ctx.get(abil + '_mod', 0))
     limite = _eval_formula(spell_info['prep_formula'].strip(), ctx)
     limite = max(1, limite) if limite is not None else None
     maxlv = _max_spell_level_for_slots(nivel, spell_info['slots'])
@@ -4281,7 +4274,7 @@ def personagem_aprender_magias(request, pk):
 @login_required(login_url='/login/')
 @require_POST
 def personagem_trocar_magia(request, pk):
-    """Troca 1 magia CONHECIDA por outra ao subir de nível (tag swap:level-up).
+    """Troca 1 magia CONHECIDA por outra ao subir de nível (tag swap:level_up).
     Truque↔truque, conhecida↔conhecida (nível 1..máx conjurável)."""
     from .models import TbMagia, TbPersonagemMagia
     p = _ficha_editavel(request, pk)

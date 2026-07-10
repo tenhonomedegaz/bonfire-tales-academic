@@ -409,10 +409,10 @@
             Object.keys(SIG_AB).forEach(function (ab) {
                 var sig = SIG_AB[ab];
                 var sc = (scores[sig] || 8) + (asi2.value === sig ? asi.major : 0) + (asi1.value === sig ? asi.minor : 0);
-                ctx[ab + '-mod'] = Math.floor((sc - 10) / 2);
+                ctx[ab + '_mod'] = Math.floor((sc - 10) / 2);
             });
             var abilities = String(conj.ability || 'int').split('|');
-            ctx['spell-mod'] = Math.max.apply(null, abilities.map(function (ab) { return ctx[ab + '-mod'] || 0; }));
+            ctx['spell_mod'] = Math.max.apply(null, abilities.map(function (ab) { return ctx[ab + '_mod'] || 0; }));
             var n = evalFormula(conj.magias_formula, ctx);
             return n == null ? 0 : Math.max(1, n);
         }

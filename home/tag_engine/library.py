@@ -17,30 +17,30 @@ _WORD = re.compile(r"[a-z0-9][a-z0-9_-]*")
 # no JSON; listá-los aqui evita falso-positivo de "verbo desconhecido".
 STRUCTURAL_QUALIFIERS = {
     "range", "target", "from", "by", "vs", "duration", "reset", "scope",
-    "on-success", "on-fail", "on-hit", "on-miss", "keep", "dice", "unless",
-    "until", "per", "threshold", "max-nivel", "same-roll", "same-cd", "step",
-    "cost", "lista", "slots", "foco", "known-caster", "prepara", "qtd",
-    "willing", "nonmagical", "magical", "see-or-hear", "can-see-or-hear",
-    "can-see", "can-hear", "one-way", "two-way", "half", "none", "weapon-type",
+    "on_success", "on_fail", "on_hit", "on_miss", "keep", "dice", "unless",
+    "until", "per", "threshold", "max_nivel", "same_roll", "same_cd", "step",
+    "cost", "lista", "slots", "foco", "known_caster", "prepara", "qtd",
+    "willing", "nonmagical", "magical", "see_or_hear", "can_see_or_hear",
+    "can_see", "can_hear", "one_way", "two_way", "half", "none", "weapon_type",
     "source", "of", "in", "out", "self", "active", "concentration", "reaction",
     "restriction", "requires", "max", "min", "and", "or", "not", "elemento",
-    "pericias", "results", "table", "list", "always-prepared", "extra",
-    "fora-do-limite", "incapacitated", "hidden", "no-los", "plano-nativo",
+    "pericias", "results", "table", "list", "always_prepared", "extra",
+    "fora_do_limite", "incapacitated", "hidden", "no_los", "plano_nativo",
     # chaves de modifiers{}/qualificadores e sinônimos (triagem 2026-06-18)
-    "except", "also", "origem", "forma", "attacker", "instant-death",
-    "spell-marca", "marked", "distinct", "no-attack", "no-atk-roll",
+    "except", "also", "origem", "forma", "attacker", "instant_death",
+    "spell_marca", "marked", "distinct", "no_attack", "no_atk_roll",
     # escopos-locais de subclasse (define{}/forma) que o validador não resolve
     # por serem chaves de list{} ou redefinições (:=): tratados como locais.
-    "weapon-integrada", "weapon-aprimorada", "arqueiro", "calice", "pesadelo",
-    "balsamo", "mao-magica", "runes-known", "mente-aberta", "mente-fechada",
-    "surpreendido", "die-if-0", "force-miss", "opportunity-attack",
+    "weapon_integrada", "weapon_aprimorada", "arqueiro", "calice", "pesadelo",
+    "balsamo", "mao_magica", "runes_known", "mente_aberta", "mente_fechada",
+    "surpreendido", "die_if_0", "force_miss", "opportunity_attack",
     # variáveis de ESCOLHA de essência (set/pick/match/requires sobre elas) e formas
     "alento", "vertente", "descendencia", "sangue", "polo", "energia", "elemento",
     "wyvern", "draco", "long", "celestial", "infero", "lumen", "umbra",
     # qualificadores/modificadores 1-off de magia concedida (cast{}/modifiers{})
-    "since-last-turn", "per-ray", "subsequent-action", "underwater-option",
-    "extra-option", "elemental-upgrade", "context", "cast-any", "rebuild", "hover",
-    "wall", "transformacao-draconica",
+    "since_last_turn", "per_ray", "subsequent_action", "underwater_option",
+    "extra_option", "elemental_upgrade", "context", "cast_any", "rebuild", "hover",
+    "wall", "transformacao_draconica",
     # contextos de antecedente (pesquisa acadêmica, gate de tempo)
     "research", "time",
 }
@@ -49,19 +49,18 @@ STRUCTURAL_QUALIFIERS = {
 # listá-las evita falso-positivo quando aparecem como token solto).
 SKILLS = {
     "atletismo", "acrobacia", "furtividade", "prestidigitacao", "arcanismo",
-    "historia", "investigacao", "natureza", "religiao", "adestrar-animais",
+    "historia", "investigacao", "natureza", "religiao", "adestrar_animais",
     "intuicao", "medicina", "percepcao", "sobrevivencia", "enganacao",
     "intimidacao", "atuacao", "persuasao",
 }
 
 _ATTRS = ("str", "dex", "con", "int", "wis", "cha")
 _ROLL_SUFFIX = ("mod", "score", "save", "check", "atk")
-# str-mod/dex_mod, dex-save, cha-atk, ... + roll-ids avulsos
+# dex_mod, wis_save, cha_atk, ... + roll-ids avulsos (identificadores em snake_case)
 ROLL_IDS = (
-    {f"{a}-{s}" for a in _ATTRS for s in _ROLL_SUFFIX}
-    | {f"{a}_{s}" for a in _ATTRS for s in _ROLL_SUFFIX}
+    {f"{a}_{s}" for a in _ATTRS for s in _ROLL_SUFFIX}
     | {
-    "initiative", "death-save", "ability-check", "spell-attack", "spell-save",
+    "initiative", "death_save", "ability_check", "spell_attack", "spell_save",
 })
 
 
@@ -70,12 +69,6 @@ def _base(token_key):
     'ally(range:<dist>)' -> 'ally'; 'target{acted}' -> 'target'."""
     m = _WORD.match(token_key.strip().lower())
     return m.group(0) if m else token_key.strip().lower()
-
-
-def _legacy_key(key):
-    """Compatibilidade temporaria do retagging: tags novas usam snake_case,
-    enquanto a biblioteca/banco legado ainda pode ter nomes com hifen."""
-    return str(key).lower().replace("_", "-")
 
 
 class Library:
@@ -159,15 +152,13 @@ class Library:
     # ---- consultas ---------------------------------------------------------
     def head_known(self, head):
         head = head.lower()
-        if head in self.known_heads or _legacy_key(head) in self.known_heads:
+        if head in self.known_heads:
             return True
-        legacy = _legacy_key(head)
-        return any(head.startswith(w) or legacy.startswith(w) for w in self.wildcards)
+        return any(head.startswith(w) for w in self.wildcards)
 
     def scope_known(self, seg):
         seg = seg.lower()
-        legacy = _legacy_key(seg)
-        return seg in self.scopes or seg in self.selectors or legacy in self.scopes or legacy in self.selectors
+        return seg in self.scopes or seg in self.selectors
 
     # ---- auto-auditoria da biblioteca -------------------------------------
     def lint(self):

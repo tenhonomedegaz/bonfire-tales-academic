@@ -8,13 +8,13 @@ efeitos PASSIVOS das tags_json).
 Fases:
 - ESTRUTURAL: atributos (BASE point-buy + Σ bônus de TbPersonagemAtributoBonus),
   nível total, bônus de proficiência, PV pelo dado de vida (campo OU tag
-  `hit-dice`), features por nível DA classe (subclasse no nível de `subclass-choices`),
+  `hit_dice`), features por nível DA classe (subclasse no nível de `subclass_choices`),
   traços raciais, antecedente, talentos e recursos. Multiclasse: `classlvl` por
   feature.
 - TAGS (apply_tags): resolve `match(<escolha>){…}`/`define{}` e aplica efeitos
   PASSIVOS (PV/CA/velocidade/resistências/imunidades/sentidos/salvaguardas/
   perícias/proficiências/ataques/recursos-de-tag/vantagens). Efeitos ativos
-  (trigger/instant/while-active/action/cast) NÃO entram na ficha estática.
+  (trigger/instant/while_active/action/cast) NÃO entram na ficha estática.
 
 Lacunas de dado conhecidas viram avisos em `state['avisos']`.
 """
@@ -80,8 +80,8 @@ _SKILL_INFO = {
     'atuacao': ('Atuação', 'CAR'), 'persuasao': ('Persuasão', 'CAR'),
 }
 
-_ACTIVE_BLOCKS = ('while-active', 'while', 'instant', 'cast', 'aura', 'effects')
-_ACTIVE_MARKERS = ('trigger=', 'instant{', 'while-active{', 'while{', 'cast{', 'action=', 'on:')
+_ACTIVE_BLOCKS = ('while_active', 'while', 'instant', 'cast', 'aura', 'effects')
+_ACTIVE_MARKERS = ('trigger=', 'instant{', 'while_active{', 'while{', 'cast{', 'action=', 'on:')
 # slugs-placeholder/indireção não resolvidos que não devem virar tipo literal
 # ('pick' vaza de escolhas não resolvidas como resist:pick:{ácido|frio|veneno}).
 _PLACEHOLDERS = ('all', 'source', 'elemento', 'pick')
@@ -93,26 +93,21 @@ def _slug(s):
 
 
 def _tag_name(name):
-    """Nome canonico de verbo/identificador da linguagem de tags.
+    """Nome canonico de verbo/identificador da linguagem de tags (snake_case).
 
-    Aceita o legado com hifen, mas a forma normalizada usa underscore para nao
-    confundir identificadores com subtracao em formulas futuras.
+    Identificadores da linguagem sao snake_case APENAS; '-' e operador matematico
+    (subtracao), nunca separador de identificador.
     """
     return _slug(name).replace('-', '_')
 
 
-def _tag_key_variants(name):
-    key = _tag_name(name)
-    return {key, key.replace('_', '-')}
-
-
 def _tag_verb_rx(name):
     parts = [_tag_name(p) for p in str(name or '').replace('-', '_').split('_') if p]
-    return r'[-_]'.join(re.escape(p) for p in parts)
+    return r'_'.join(re.escape(p) for p in parts)
 
 
 def _tag_block(tag, *heads):
-    """Corpo de `head{...}`, aceitando `head-name{}` e `head_name{}`."""
+    """Corpo de `head{...}` (identificador em snake_case)."""
     s = str(tag or '').strip()
     for head in heads:
         m = re.match(r'^%s\s*\{(.*)\}\s*$' % _tag_verb_rx(head), s, re.I | re.S)
@@ -233,14 +228,14 @@ def modificador(valor):
 
 # Token de proficiência (tags prof{}/multiclass-prof{} da classe) -> (categoria, rótulo legível).
 _PROF_TOKEN_LABEL = {
-    'armadura-leve': ('armadura', 'Leve'), 'armadura-media': ('armadura', 'Média'),
-    'armadura-pesada': ('armadura', 'Pesada'), 'escudos': ('armadura', 'Escudos'),
-    'armas-simples': ('arma', 'Armas Simples'), 'armas-marciais': ('arma', 'Armas Marciais'),
-    'armas-fogo': ('arma', 'Armas de Fogo'),
-    'armas-marciais-acuidade-ou-leves': ('arma', 'Armas Marciais com Acuidade ou Leves'),
-    'armas-marciais-leves': ('arma', 'Armas Marciais Leves'),
-    'ferramentas-de-ladrao': ('ferramenta', 'Ferramentas de Ladr\u00e3o'),
-    'ferramentas-de-funileiro': ('ferramenta', 'Ferramentas de Funileiro'),
+    'armadura_leve': ('armadura', 'Leve'), 'armadura_media': ('armadura', 'Média'),
+    'armadura_pesada': ('armadura', 'Pesada'), 'escudos': ('armadura', 'Escudos'),
+    'armas_simples': ('arma', 'Armas Simples'), 'armas_marciais': ('arma', 'Armas Marciais'),
+    'armas_fogo': ('arma', 'Armas de Fogo'),
+    'armas_marciais_acuidade_ou_leves': ('arma', 'Armas Marciais com Acuidade ou Leves'),
+    'armas_marciais_leves': ('arma', 'Armas Marciais Leves'),
+    'ferramentas_de_ladrao': ('ferramenta', 'Ferramentas de Ladr\u00e3o'),
+    'ferramentas_de_funileiro': ('ferramenta', 'Ferramentas de Funileiro'),
 }
 
 
@@ -264,7 +259,7 @@ def _proficiencias_classe(classes):
         primaria = bool(principal) and c.id_classe_id == principal.id_classe_id
         alvo_arm, alvo_wpn, alvo_tool = (c_arm, c_wpn, c_tool) if primaria else (mc_arm, mc_wpn, mc_tool)
         for tk in _toks(tags, 'prof' if primaria else 'multiclass-prof'):
-            lab = _PROF_TOKEN_LABEL.get(tk.replace('_', '-'))
+            lab = _PROF_TOKEN_LABEL.get(tk)
             if lab:
                 {'armadura': alvo_arm, 'arma': alvo_wpn, 'ferramenta': alvo_tool}[lab[0]].append(lab[1])
 
@@ -348,6 +343,21 @@ def ouro_por_aventura(nivel):
     return _RANK_OURO.get(rank_por_nivel(nivel), 0)
 
 
+def ouro_de_progressao(n_aventuras):
+    """Ouro (PO) ACUMULADO após `n_aventuras` jogadas — função PURA/testável.
+
+    Regra SEQUENCIAL do PO: a k-ésima aventura paga a recompensa do rank do NÍVEL
+    que o personagem detém AO JOGÁ-LA (= nível correspondente a k-1 aventuras já
+    completas). Ao cruzar um limiar de rank no meio de uma missão múltipla, as
+    aventuras anteriores ao cruzamento pagam o rank antigo e as seguintes o novo.
+
+    O ouro de UM intervalo (base → base+n) é a diferença acumulada:
+        ouro_de_progressao(base + n) - ouro_de_progressao(base)
+    """
+    n = max(0, int(n_aventuras or 0))
+    return sum(ouro_por_aventura(nivel_por_aventuras(k)) for k in range(n))
+
+
 def braseiros_por_aventura(nivel):
     """Braseiros por aventura = BP do personagem (2/3/4/5/6 por rank)."""
     return bonus_proficiencia(min(int(nivel), 20))
@@ -362,7 +372,7 @@ def _dado_de_vida(texto):
 
 def _hit_dice_from_tag(classe):
     for tag in (getattr(classe, 'tags_json', None) or []):
-        m = re.search(r'hit[-_]dice:\s*\d*d(\d+)', str(tag))
+        m = re.search(r'hit_dice:\s*\d*d(\d+)', str(tag))
         if m:
             return int(m.group(1))
     return None
@@ -476,7 +486,7 @@ _TALENT_ATTR_FIELDS = {
 
 
 def _parse_talent_attr_details(texto):
-    m = re.search(r'(?:asi[-_]attr|talent[-_]attr)\s*:\s*(FOR|DES|CON|INT|SAB|CAR)', str(texto or ''), re.I)
+    m = re.search(r'(?:asi_attr|talent_attr)\s*:\s*(FOR|DES|CON|INT|SAB|CAR)', str(texto or ''), re.I)
     return m.group(1).upper() if m else None
 
 
@@ -847,7 +857,7 @@ def _iter_spell_selections(s):
     scope = identificador após o ':'; scope_extra = chaves do PRÓPRIO escopo (ex.:
     pick{lista:{…}}); body = o `{…}`/`(…)` seguinte (filtros/qtd)."""
     out = []
-    for m in re.finditer(r'spell[-_]selection:', s):
+    for m in re.finditer(r'spell_selection:', s):
         i = m.end()
         mt = re.match(r'[a-z0-9_-]+', s[i:])
         if not mt:
@@ -901,7 +911,7 @@ def _grants_de_tag(tag, escolhas, catalog, nivel_total, is_spellcaster=False):
     if m and nivel_total < int(m.group(1)):
         return [], None
     # match(var){…} — concessão por escolha já feita (vertente, veste-lunar…)
-    if re.search(r'spell[-_]selection:match\(', s):
+    if re.search(r'spell_selection:match\(', s):
         slugs, nivel, qtd = _parse_spell_selection(_resolve_match(s, escolhas))
         slugs = [sl for sl in slugs if sl in catalog]
         if not slugs or nivel is None:
@@ -912,7 +922,7 @@ def _grants_de_tag(tag, escolhas, catalog, nivel_total, is_spellcaster=False):
     fixas, escolha = [], None
     for cm in _CAST_BLOCK_RE.finditer(s):
         blk = cm.group(1)
-        if re.search(r'always[-_]prepared', blk):
+        if re.search(r'always_prepared', blk):
             for sm in re.finditer(r'spell:([a-z0-9-]+)', blk):
                 if sm.group(1) in catalog:
                     fixas.append((sm.group(1), catalog[sm.group(1)]))
@@ -921,7 +931,7 @@ def _grants_de_tag(tag, escolhas, catalog, nivel_total, is_spellcaster=False):
         full = scope_extra + ' ' + body
         # (a) escopo é uma MAGIA concreta sempre-preparada
         if scope in catalog:
-            if re.search(r'always[-_]prepared', body):
+            if re.search(r'always_prepared', body):
                 fixas.append((scope, catalog[scope]))
             for sm in re.finditer(r'spell:([a-z0-9-]+)', full):   # magia-conhecida(spell:X)
                 if sm.group(1) in catalog:
@@ -954,7 +964,7 @@ def _grants_de_tag(tag, escolhas, catalog, nivel_total, is_spellcaster=False):
         if scope == 'any' and 'spell:' not in full and 'pick' not in full and 'efeito' not in full:
             lista = [x.strip() for x in re.split(r'[,|]', body) if x.strip() in catalog]
             if lista:
-                if re.search(r'requires\s*:\s*spell[-_]?casting', s) and not is_spellcaster:
+                if re.search(r'requires\s*:\s*spell_?casting', s) and not is_spellcaster:
                     continue
                 for sl in lista:
                     fixas.append((sl, catalog[sl]))
@@ -1123,41 +1133,11 @@ _OPS = {ast.Add: operator.add, ast.Sub: operator.sub, ast.Mult: operator.mul,
         ast.Mod: operator.mod, ast.USub: operator.neg, ast.UAdd: operator.pos}
 _FUNCS = {'max': max, 'min': min, 'round': round, 'abs': abs,
           'roundup': lambda x: math.ceil(x), 'rounddown': lambda x: math.floor(x)}
-_FORMULA_ALIASES = {
-    'str-mod': 'str_mod', 'dex-mod': 'dex_mod', 'con-mod': 'con_mod',
-    'int-mod': 'int_mod', 'wis-mod': 'wis_mod', 'cha-mod': 'cha_mod',
-    'str-score': 'str_score', 'dex-score': 'dex_score', 'con-score': 'con_score',
-    'int-score': 'int_score', 'wis-score': 'wis_score', 'cha-score': 'cha_score',
-    'spell-mod': 'spell_mod',
-    'talent-attr-mod': 'talent_attr_mod', 'talent-attr-score': 'talent_attr_score',
-    'asi-attr-mod': 'asi_attr_mod', 'asi-attr-score': 'asi_attr_score',
-}
-
-
-def _formula_ctx(ctx):
-    out = dict(ctx or {})
-    for old, new in _FORMULA_ALIASES.items():
-        if old in out and new not in out:
-            out[new] = out[old]
-        if new in out and old not in out:
-            out[old] = out[new]
-    return out
-
-
-def _normalize_formula_vars(expr):
-    out = str(expr)
-    for old, new in sorted(_FORMULA_ALIASES.items(), key=lambda item: len(item[0]), reverse=True):
-        out = re.sub(r'(?<![a-z0-9_])' + re.escape(old) + r'(?![a-z0-9_])', new, out)
-    return out
-
-
 def _build_ctx(nivel_total, pb, atributos):
     ctx = {'lvl': int(nivel_total), 'classlvl': int(nivel_total), 'pb': int(pb)}
     for sig, en in _ATTR_EN.items():
         ctx[en + '_mod'] = atributos[sig]['mod']
         ctx[en + '_score'] = atributos[sig]['valor']
-        ctx[en + '-mod'] = atributos[sig]['mod']
-        ctx[en + '-score'] = atributos[sig]['valor']
     return ctx
 
 
@@ -1174,10 +1154,10 @@ def _eval_node(node):
 
 
 def _eval_formula(expr, ctx):
-    """Fórmula aritmética (variáveis + max/min/round/roundup/rounddown), via AST
-    (sem eval, sem potência). int ou None."""
-    e = _normalize_formula_vars(str(expr).strip())
-    ctx = _formula_ctx(ctx)
+    """Fórmula aritmética (variáveis snake_case + max/min/round/roundup/rounddown),
+    via AST (sem eval, sem potência). '-' é SEMPRE subtração — variáveis nunca são
+    hifenadas ([a-z_][a-z0-9_]*). int ou None."""
+    e = str(expr).strip()
     for var in sorted(ctx, key=len, reverse=True):
         e = re.sub(r'(?<![a-z0-9_])' + re.escape(var) + r'(?![a-z0-9_])', '(%d)' % ctx[var], e)
     if re.search(r'[A-Za-z_]', re.sub(r'\b(?:max|min|round|abs|roundup|rounddown)\b', '', e)):
@@ -1250,7 +1230,7 @@ def _resolve_match(text, escolhas):
     """Substitui match(var){…} pelo ramo escolhido (ou 'default'); recursivo."""
     out = text
     for _ in range(40):
-        m = re.search(r'match\(([a-z0-9_-]+)\)\s*\{', out)
+        m = re.search(r'match\(([a-z0-9_]+)\)\s*\{', out)
         if not m:
             break
         var, bo = m.group(1), m.end() - 1
@@ -1258,7 +1238,7 @@ def _resolve_match(text, escolhas):
         if bc < 0:
             break
         inner = out[bo + 1:bc]
-        rep = _ramo(inner, escolhas.get(var, escolhas.get(var.replace('_', '-'), escolhas.get(var.replace('-', '_')))))
+        rep = _ramo(inner, escolhas.get(var))
         if rep is _NO_BRANCH:
             rep = _ramo(inner, 'default')
         if rep is _NO_BRANCH:
@@ -1289,8 +1269,7 @@ def _passive_segments(tag):
         bc = _match_close(tag, m.end() - 1)
         if bc > 0:
             segs.append(tag[m.end():bc])
-    marker_probe = tag.replace('_', '-')
-    if not has_aa and not any(mk in marker_probe for mk in _ACTIVE_MARKERS):
+    if not has_aa and not any(mk in tag for mk in _ACTIVE_MARKERS):
         segs.append(tag)
     return segs
 
@@ -1355,21 +1334,13 @@ def _collect_escolhas(personagem, features):
         for e in personagem.escolhas.all().order_by('tipo', 'slot'):
             listas.setdefault(e.tipo, []).append(e.valor)
             escolhas.setdefault(e.tipo, e.valor)
-            alt = e.tipo.replace('-', '_') if '-' in e.tipo else e.tipo.replace('_', '-')
-            if alt != e.tipo:
-                listas.setdefault(alt, []).append(e.valor)
-                escolhas.setdefault(alt, e.valor)
     for _o, _f, obj, _cl in features:
         for t in (getattr(obj, 'tags_json', None) or []):
             if not isinstance(t, str):
                 continue
-            for m in re.finditer(r'(?<![a-z_-])set:([a-z0-9_-]+)\s*=\s*([a-z0-9_-]+)(?!\s*[:{])', t):
+            for m in re.finditer(r'(?<![a-z_-])set:([a-z0-9_]+)\s*=\s*([a-z0-9_-]+)(?!\s*[:{])', t):
                 escolhas.setdefault(m.group(1), m.group(2))
                 listas.setdefault(m.group(1), [m.group(2)])
-                alt = m.group(1).replace('-', '_') if '-' in m.group(1) else m.group(1).replace('_', '-')
-                if alt != m.group(1):
-                    escolhas.setdefault(alt, m.group(2))
-                    listas.setdefault(alt, [m.group(2)])
     return escolhas, listas
 
 
@@ -1430,14 +1401,10 @@ def apply_tags(state, features, personagem=None, escolhas=None):
         if talent_sig:
             en = _ATTR_EN.get(talent_sig)
             if en:
-                ctx['talent_attr_mod'] = ctx.get(en + '_mod', ctx.get(en + '-mod', 0))
-                ctx['talent_attr_score'] = ctx.get(en + '_score', ctx.get(en + '-score', 0))
+                ctx['talent_attr_mod'] = ctx.get(en + '_mod', 0)
+                ctx['talent_attr_score'] = ctx.get(en + '_score', 0)
                 ctx['asi_attr_mod'] = ctx['talent_attr_mod']
                 ctx['asi_attr_score'] = ctx['talent_attr_score']
-                ctx['talent-attr-mod'] = ctx['talent_attr_mod']
-                ctx['talent-attr-score'] = ctx['talent_attr_score']
-                ctx['asi-attr-mod'] = ctx['asi_attr_mod']
-                ctx['asi-attr-score'] = ctx['asi_attr_score']
         feat_nome = getattr(obj, 'nome', fonte)
         resolvidas = [_resolve_match(t, escolhas) for t in tags]
         segs = [seg for r in resolvidas for seg in _passive_segments(r)]
@@ -1463,12 +1430,12 @@ def apply_tags(state, features, personagem=None, escolhas=None):
                 # não entra no número fixo — vira vantagem condicional. (corrige o all-saves
                 # do Ladino/Trilha do Fantasma, aplicado incondicionalmente antes.)
                 if re.search(r'requires:\s*resource\{', seg):
-                    ms = re.search(r'all[-_]saves:\s*\+([^\s,}]+)', seg)
+                    ms = re.search(r'all_saves:\s*\+([^\s,}]+)', seg)
                     vantagens.append((('+%s em todas as salvaguardas' % ms.group(1)) if ms
                                       else 'efeito') + ' (condicional: requer recurso) — %s' % feat_nome)
                     continue
                 # PV
-                for m in re.finditer(r'(?:attr:|buff:)?max[-_]hp:?\s*\+\s*([^\s,}]+)', seg):
+                for m in re.finditer(r'(?:attr:|buff:)?max_hp:?\s*\+\s*([^\s,}]+)', seg):
                     if 'on:' in seg[m.start():m.end() + 12]:
                         continue
                     val = _eval_formula(m.group(1), ctx)
@@ -1505,7 +1472,7 @@ def apply_tags(state, features, personagem=None, escolhas=None):
                     v = locais.get(m.group(1), m.group(1))
                     if v not in _PLACEHOLDERS and v not in imune:
                         imune.append(v)
-                for m in re.finditer(r'cond[-_]immune:([a-z0-9_-]+)', seg):
+                for m in re.finditer(r'cond_immune:([a-z0-9_-]+)', seg):
                     v = locais.get(m.group(1), m.group(1))
                     if v not in _PLACEHOLDERS and v not in cond_imune:
                         cond_imune.append(v)
@@ -1528,16 +1495,16 @@ def apply_tags(state, features, personagem=None, escolhas=None):
                     elif chave.startswith('arma'):
                         coll['armas'].append(chave)
                 # Salvaguardas
-                for m in re.finditer(r'(?<![a-z_-])save[-_]prof:([a-z0-9_-]+)', seg):
+                for m in re.finditer(r'(?<![a-z_-])save_prof:([a-z0-9_-]+)', seg):
                     coll['save_prof'].add(m.group(1))
-                for m in re.finditer(r'all[-_]saves:\s*\+([^\s,}]+)', seg):
+                for m in re.finditer(r'all_saves:\s*\+([^\s,}]+)', seg):
                     val = _eval_formula(m.group(1), ctx)
                     if val is not None:
                         coll['all_saves'] += val
                 # Salvaguarda de UMA habilidade: `<attr>_save:+<formula>` (ex.: Caçador/Instinto
-                # Afiado `str_save:+max(1, spell_mod)`). Aceita siglas PT/EN e hífen/underscore;
+                # Afiado `str_save:+max(1, spell_mod)`). Aceita siglas PT/EN (snake_case);
                 # a fórmula pode ter vírgula interna (args de max/min) → lida por _read_expr.
-                for m in re.finditer(r'(?<![a-z])([a-z]{3})[-_]save:\s*\+', seg):
+                for m in re.finditer(r'(?<![a-z])([a-z]{3})_save:\s*\+', seg):
                     sig = _EN_SIG.get(_SAVE_TOKEN_EN.get(m.group(1)))
                     if not sig:
                         continue
@@ -1549,10 +1516,10 @@ def apply_tags(state, features, personagem=None, escolhas=None):
                     if val is not None:
                         coll['initiative'] += val
                 # Perícias (troca de atributo / bônus)
-                for m in re.finditer(r'check[-_]attr:([a-z0-9_-]+)\s*:?=\s*([a-z]{3})', seg):
+                for m in re.finditer(r'check_attr:([a-z0-9_-]+)\s*:?=\s*([a-z]{3})', seg):
                     if m.group(2) in _EN_SIG:
                         coll['check_attr'][m.group(1)] = _EN_SIG[m.group(2)]
-                for m in re.finditer(r'check[-_]bonus:([a-z0-9_-]+)\s*[=:]\s*\+?([^\s,}]+)', seg):
+                for m in re.finditer(r'check_bonus:([a-z0-9_-]+)\s*[=:]\s*\+?([^\s,}]+)', seg):
                     val = _eval_formula(m.group(2), ctx)
                     if val is not None:
                         coll['check_bonus'][m.group(1)] = coll['check_bonus'].get(m.group(1), 0) + val
@@ -1566,23 +1533,23 @@ def apply_tags(state, features, personagem=None, escolhas=None):
                         val = _eval_formula(raw, ctx)
                     if val is not None:
                         coll['n_ataques'] = max(coll['n_ataques'], val)
-                for m in re.finditer(r'(unarmed[-_]strike|natural)\.dmg\s*[:=]+\s*(\{[^}]*\}[^,}]*|resource\{[^}]*\}|[^,}]+)', seg):
+                for m in re.finditer(r'(unarmed_strike|natural)\.dmg\s*[:=]+\s*(\{[^}]*\}[^,}]*|resource\{[^}]*\}|[^,}]+)', seg):
                     escopo, dado = m.group(1), m.group(2).strip()
                     escopo = escopo.replace('_', '-')
                     prog = re.match(r'\{[^}]*\}', dado)
                     if prog:
                         dado = _prog(prog.group(0), ctx['classlvl']) or dado
-                    dado = re.sub(r'\s*\+\s*[a-z]{3}[-_]mod', '', dado).strip()
+                    dado = re.sub(r'\s*\+\s*[a-z]{3}_mod', '', dado).strip()
                     ant = coll['ataque_dado'].get(escopo)
                     if ant is None or _die_size(dado) > _die_size(ant):
                         coll['ataque_dado'][escopo] = dado
-                for m in re.finditer(r'(unarmed[-_]strike|natural)\.(?:attr|dmg[-_]attr|check[-_]attr:atk):=\s*([a-z]{3})', seg):
+                for m in re.finditer(r'(unarmed_strike|natural)\.(?:attr|dmg_attr|check_attr:atk):=\s*([a-z]{3})', seg):
                     if m.group(2) in _EN_SIG:
                         coll['ataque_attr'][m.group(1).replace('_', '-')] = _EN_SIG[m.group(2)]
                 # Vantagens / desvantagens / falas
                 for m in re.finditer(r'(?<![a-z_-])adv:([a-z0-9_-]+(?:\{[^}]*\})?(?:\([^)]*\))?)', seg):
                     vantagens.append('%s — %s' % (m.group(1), feat_nome))
-                for m in re.finditer(r'(?<![a-z_-])(?:no[-_])?dadv:([a-z0-9_-]+(?:\{[^}]*\})?(?:\([^)]*\))?)', seg):
+                for m in re.finditer(r'(?<![a-z_-])(?:no_)?dadv:([a-z0-9_-]+(?:\{[^}]*\})?(?:\([^)]*\))?)', seg):
                     coll['desvantagens'].append('%s — %s' % (m.group(1), feat_nome))
                 for m in re.finditer(r'(?<![a-z_-])speak:([a-z0-9_-]+)', seg):
                     notas.append('falar com %s (%s)' % (m.group(1), feat_nome))
@@ -1736,7 +1703,7 @@ def _apply_attr_asi(features, escolhas, atributos):
             if not isinstance(t, str):
                 continue
             for seg in _passive_segments(_resolve_match(t, escolhas)):
-                for m in re.finditer(r'attr:([a-z]{3})[-_]score\s*\+\s*(\d+)', seg):
+                for m in re.finditer(r'attr:([a-z]{3})_score\s*\+\s*(\d+)', seg):
                     sig = _EN_SIG.get(m.group(1))
                     if sig:
                         n = int(m.group(2))
@@ -1744,7 +1711,7 @@ def _apply_attr_asi(features, escolhas, atributos):
                         atributos[sig]['bonus'] += n
                         atributos[sig].setdefault('breakdown', []).append(
                             {'origem': feat_nome + ' (tag)', 'valor': n})
-                for m in re.finditer(r'attr[-_]max:([a-z]{3})[-_]score\s*=\s*(\d+)', seg):
+                for m in re.finditer(r'attr_max:([a-z]{3})_score\s*=\s*(\d+)', seg):
                     sig = _EN_SIG.get(m.group(1))
                     if sig:
                         caps[sig] = min(caps.get(sig, 999), int(m.group(2)))
@@ -1790,7 +1757,6 @@ def derive(personagem):
     ctx = _build_ctx(nivel_total, pb, atributos)
     _sm = _spell_mod(classes, atributos)
     ctx['spell_mod'] = _sm
-    ctx['spell-mod'] = _sm
 
     # aviso: antecedente preenchido mas sem tags (habilidade não aplicada)
     if personagem.id_antecedente_id and not (personagem.id_antecedente.tags_json or []):
@@ -1831,6 +1797,9 @@ def derive(personagem):
         'nivel_max': min(nivel_av, 20), 'rank': rank_por_nivel(nivel_av),
         'braseiros': int(getattr(personagem, 'braseiros', 0) or 0),
         'no_teto': nivel_total >= min(nivel_av, 20),
+        # Ouro (PO) acumulado esperado pela progressão de aventuras (linha informativa;
+        # NÃO é a carteira — compras/vendas continuam vivendo em carteira_pc/TbTransacao).
+        'ouro_esperado_po': ouro_de_progressao(av),
     }
 
     apply_tags(state, features, personagem, escolhas)

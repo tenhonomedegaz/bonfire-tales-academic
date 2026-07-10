@@ -7,8 +7,7 @@ no espírito do Excel: aponta exatamente a fórmula errada.
     manage.py validate_tags --model talento  # só um catálogo
     manage.py validate_tags --errors-only    # só ERROS (#REF!/desbalanceado/catálogo)
     manage.py validate_tags --no-db          # pula checagem de referências (#REF!)
-    manage.py validate_tags                  # tambem falha nomes mecanicos com hifen
-    manage.py validate_tags --allow-legacy-hyphen  # auditoria temporaria de legado
+    manage.py validate_tags                  # falha identificador mecanico com hifen (snake_case obrigatorio)
 """
 from collections import Counter, defaultdict
 
@@ -106,10 +105,8 @@ class Command(BaseCommand):
                             help="classe-hab | talento | opcao | traco | classe | antecedente | magia | bestiario | item-mundano | item-magico")
         parser.add_argument("--errors-only", action="store_true")
         parser.add_argument("--no-db", action="store_true", help="Não checa referências (#REF!).")
-        parser.add_argument("--allow-legacy-hyphen", action="store_true",
-                            help="Modo de auditoria legado: nao falha identificadores com hifen.")
         parser.add_argument("--strict-names", action="store_true",
-                            help="Compatibilidade: strict_names agora e padrao.")
+                            help="Compatibilidade: strict_names agora e padrao (sempre ligado).")
         parser.add_argument("--max", type=int, default=40, help="Máx. de itens listados por seção.")
 
     def handle(self, *args, **opt):
@@ -153,7 +150,7 @@ class Command(BaseCommand):
                 n_tagged += 1
                 n_tags += len(tags) if isinstance(tags, list) else 1
                 full = f"{key}:{label}"
-                for d in validate_tags_json(tags, lib, data, strict_names=not opt["allow_legacy_hyphen"]):
+                for d in validate_tags_json(tags, lib, data, strict_names=True):
                     by_level[d.level] += 1
                     by_code[d.code] += 1
                     per_model[key] += 1

@@ -24,7 +24,7 @@ Diagnostic = namedtuple("Diagnostic", "level code message fragment")
 
 # blocos cujo CORPO é uma lista de efeitos (recursão de validação de heads)
 WRAPPER_BLOCKS = {
-    "instant", "while-active", "always-active", "effects", "aura", "aoe",
+    "instant", "while_active", "always_active", "effects", "aura", "aoe",
     "restriction", "restricts", "modifiers", "cast", "while",
 }
 
@@ -115,8 +115,7 @@ def _walk_heads(nodes, lib, unknown, locals_=frozenset(), top=True):
             # head). Evita recursar em ref aninhada: cast:ability{X} -> o {X} é da
             # ability, não do cast, então 'X' não é lido como verbo.
             blk = seg[hend] if hend < len(seg) else None
-            base_key = base.replace("_", "-") if base else None
-            if blk and blk[0] == "grp" and blk[1] == "{" and (base_key in WRAPPER_BLOCKS or base is None):
+            if blk and blk[0] == "grp" and blk[1] == "{" and (base in WRAPPER_BLOCKS or base is None):
                 _walk_heads(blk[2], lib, unknown, locals_, top=False)
 
 

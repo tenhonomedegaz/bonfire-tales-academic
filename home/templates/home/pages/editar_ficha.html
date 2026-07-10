@@ -23,6 +23,7 @@
           {% for c in classes_atuais %}{{ c.nome }} {{ c.nivel }}{% if c.principal %} <span class="text-[var(--ember)]">★</span>{% endif %}{% if not forloop.last %} · {% endif %}{% endfor %}
         </div>
         <div class="mt-1 text-xs text-[var(--muted)]">{{ ficha.progressao.aventuras }} aventura(s) · teto Nv {{ ficha.progressao.nivel_label }} · <span class="text-[var(--spark)]">{{ ficha.progressao.braseiros }} braseiros 🔥</span></div>
+        <div class="mt-1 text-xs text-[var(--muted)]">Ouro de progressão (rank {{ ficha.progressao.rank }}): <span class="text-[var(--flame)]">{{ ficha.progressao.ouro_esperado_po }} PO</span> acumulados</div>
       </div>
       {% if ficha.nivel_total >= 20 %}
         <span class="text-sm text-[var(--muted)]">Nível máximo (20).</span>

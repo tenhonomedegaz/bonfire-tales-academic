@@ -38,6 +38,7 @@
         <div class="banner-field wide"><span class="lbl">Raça</span><span class="val">{{ raca_linha|default:"—" }}{% if p.id_antecedente_id %} <span class="val-muted">· {{ p.id_antecedente.nome }}</span>{% endif %}</span></div>
         <div class="banner-field"><span class="lbl">Rank / Patente</span><span class="val">{{ ficha.progressao.rank|default:"—" }}</span></div>
         <div class="banner-field"><span class="lbl">Aventuras</span><span class="val">{{ ficha.progressao.aventuras|default:"0" }}</span></div>
+        <div class="banner-field"><span class="lbl">Ouro de progressão</span><span class="val">{{ ficha.progressao.ouro_esperado_po|default:"0" }} <span class="val-muted">PO</span></span></div>
         <div class="banner-field"><span class="lbl">Próximo nível</span><span class="val">{{ ficha.progressao.proximo_nivel_aventuras|default:"—" }}{% if ficha.progressao.proximo_nivel_aventuras %} <span class="val-muted">av.</span>{% endif %}</span></div>
       </div>
 
@@ -348,7 +349,7 @@
     <dl class="grid gap-x-8 sm:grid-cols-2">
       <div class="def-row"><dt>Resistências</dt><dd>{{ ficha.resistencias|join:", "|default:"—" }}</dd></div>
       <div class="def-row"><dt>Imunidades</dt><dd>{{ ficha.imunidades|join:", "|default:"—" }}</dd></div>
-      <div class="def-row"><dt>Imun. condição</dt><dd>{{ ficha.imunidades_condicao|join:", "|default:"—" }}</dd></div>
+      <div class="def-row"><dt>Imun. condição</dt><dd>{% for c in ficha.imunidades_condicao %}{{ c.nome }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</dd></div>
       <div class="def-row"><dt>Sentidos</dt><dd>{{ ficha.sentidos|join:", "|default:"—" }}</dd></div>
       <div class="def-row"><dt>Idiomas</dt><dd>{{ ficha.idiomas|join:", "|default:"—" }}</dd></div>
       <div class="def-row"><dt>Ferramentas</dt><dd>{{ ficha.ferramentas|join:", "|default:"—" }}</dd></div>
