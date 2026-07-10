@@ -271,6 +271,17 @@
             });
             applySkillRules();
             equipTexto.textContent = c.equipamento ? c.equipamento : '(sem texto cadastrado)';
+            renderArmadurasProf(c);
+        }
+        // Preview (informativo) das proficiências de armadura que a classe concede.
+        var armadurasProfWrap = el('cf-armaduras-prof');
+        function renderArmadurasProf(c) {
+            if (!armadurasProfWrap) return;
+            var lista = (c && c.armaduras_prof) || [];
+            var out = armadurasProfWrap.querySelector('[data-armaduras-prof]');
+            if (!lista.length) { armadurasProfWrap.hidden = true; if (out) out.textContent = ''; return; }
+            armadurasProfWrap.hidden = false;
+            out.textContent = lista.join(', ');
         }
         classeSel.addEventListener('change', renderClasseSkills);
 

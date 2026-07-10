@@ -39,6 +39,7 @@
         <div class="banner-field"><span class="lbl">Rank / Patente</span><span class="val">{{ ficha.progressao.rank|default:"—" }}</span></div>
         <div class="banner-field"><span class="lbl">Aventuras</span><span class="val">{{ ficha.progressao.aventuras|default:"0" }}</span></div>
         <div class="banner-field"><span class="lbl">Ouro de progressão</span><span class="val">{{ ficha.progressao.ouro_esperado_po|default:"0" }} <span class="val-muted">PO</span></span></div>
+        <div class="banner-field"><span class="lbl">Braseiros</span><span class="val">{{ ficha.progressao.braseiros|default:"0" }}</span></div>
         <div class="banner-field"><span class="lbl">Próximo nível</span><span class="val">{{ ficha.progressao.proximo_nivel_aventuras|default:"—" }}{% if ficha.progressao.proximo_nivel_aventuras %} <span class="val-muted">av.</span>{% endif %}</span></div>
       </div>
 
@@ -129,8 +130,9 @@
         </div>
         {% if ficha.ca_fonte %}<p class="mt-2 text-center text-[11px] text-[var(--muted)]">{{ ficha.ca_fonte }}</p>{% endif %}
         <div class="hp-track single">
-          <div class="hp-cell max"><div class="lbl">Pontos de Vida Máximos</div><div class="v">{{ ficha.pv.maximo_calculado }}</div></div>
+          <div class="hp-cell max"{% if ficha.pv.bonus_tags %} title="{% for b in ficha.pv.bonus_tags %}+{{ b.1 }} {{ b.0 }}{% if not forloop.last %} · {% endif %}{% endfor %}"{% endif %}><div class="lbl">Pontos de Vida Máximos</div><div class="v">{{ ficha.pv.maximo_calculado }}</div></div>
         </div>
+        {% if ficha.pv.bonus_tags %}<p class="mt-1 text-center text-[11px] text-[var(--muted)]">{% for b in ficha.pv.bonus_tags %}{{ b.0 }} +{{ b.1 }}{% if not forloop.last %} · {% endif %}{% endfor %}</p>{% endif %}
       </div>
 
       <div class="ficha-panel">
@@ -351,11 +353,13 @@
       <div class="def-row"><dt>Imunidades</dt><dd>{{ ficha.imunidades|join:", "|default:"—" }}</dd></div>
       <div class="def-row"><dt>Imun. condição</dt><dd>{% for c in ficha.imunidades_condicao %}{{ c.nome }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</dd></div>
       <div class="def-row"><dt>Sentidos</dt><dd>{{ ficha.sentidos|join:", "|default:"—" }}</dd></div>
+      {% if ficha.movimento_modos %}<div class="def-row"><dt>Deslocamentos</dt><dd>{% for modo, val in ficha.movimento_modos.items %}{% if modo == 'climb' %}Escalada{% elif modo == 'swim' %}Natação{% elif modo == 'fly' %}Voo{% elif modo == 'burrow' %}Escavação{% elif modo == 'wall' %}Parede{% else %}{{ modo|capfirst }}{% endif %}{% if val and val != 'walk' %} {{ val }}{% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}</dd></div>{% endif %}
       <div class="def-row"><dt>Idiomas</dt><dd>{{ ficha.idiomas|join:", "|default:"—" }}</dd></div>
-      <div class="def-row"><dt>Ferramentas</dt><dd>{{ ficha.ferramentas|join:", "|default:"—" }}</dd></div>
+      <div class="def-row"><dt>Ferramentas</dt><dd>{{ ficha.ferramentas|join:", "|default:"—" }}{% if ficha.prof_multiclasse_ferramenta %} <span class="text-[var(--spark)]" title="Ganhas por multiclasse">+ {{ ficha.prof_multiclasse_ferramenta|join:", " }} <span class="text-[10px] uppercase">(multiclasse)</span></span>{% endif %}</dd></div>
       <div class="def-row"><dt>Prof. arma</dt><dd>{{ ficha.proficiencias_arma|join:", "|default:"—" }}{% if ficha.prof_multiclasse_arma %} <span class="text-[var(--spark)]" title="Ganhas por multiclasse">+ {{ ficha.prof_multiclasse_arma|join:", " }} <span class="text-[10px] uppercase">(multiclasse)</span></span>{% endif %}</dd></div>
       <div class="def-row"><dt>Prof. armadura</dt><dd>{{ ficha.proficiencias_armadura|join:", "|default:"—" }}{% if ficha.prof_multiclasse_armadura %} <span class="text-[var(--spark)]" title="Ganhas por multiclasse">+ {{ ficha.prof_multiclasse_armadura|join:", " }} <span class="text-[10px] uppercase">(multiclasse)</span></span>{% endif %}</dd></div>
       {% if ficha.outras_proficiencias %}<div class="def-row"><dt>Outras prof.</dt><dd>{{ ficha.outras_proficiencias|join:", " }}</dd></div>{% endif %}
+      {% if ficha.notas_passivas %}<div class="def-row"><dt>Notas passivas</dt><dd>{{ ficha.notas_passivas|join:", " }}</dd></div>{% endif %}
     </dl>
   </div>
 
@@ -363,6 +367,13 @@
   <div class="ficha-panel">
     <div class="ficha-section-title">Vantagens Condicionais</div>
     <ul class="list-inside list-disc text-sm text-[var(--muted)] space-y-0.5">{% for v in ficha.vantagens %}<li>{{ v }}</li>{% endfor %}</ul>
+  </div>
+  {% endif %}
+
+  {% if ficha.desvantagens_impostas %}
+  <div class="ficha-panel">
+    <div class="ficha-section-title">Desvantagens Impostas</div>
+    <ul class="list-inside list-disc text-sm text-[var(--muted)] space-y-0.5">{% for d in ficha.desvantagens_impostas %}<li>{{ d }}</li>{% endfor %}</ul>
   </div>
   {% endif %}
 
