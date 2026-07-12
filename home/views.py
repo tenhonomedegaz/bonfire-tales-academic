@@ -5838,7 +5838,7 @@ def _organizations_for_location(region_name, territory_name):
 def _world_layer_options(request):
     layer_options_qs = TbMapLayer.objects.all().order_by('ordem', 'id_layer')
     if not request.user.is_staff:
-        layer_options_qs = layer_options_qs.filter(id_layer=0)
+        layer_options_qs = layer_options_qs.filter(publica=True)
     return list(layer_options_qs)
 
 
@@ -5863,7 +5863,10 @@ def _active_world_layer(request, layer_options, default_layer=0):
 @ensure_csrf_cookie  # edição inline (wiki) lê o csrftoken do cookie
 def regiao_detail_view(request, slug):
     regiao = get_object_or_404(TbRegiao, slug=slug)
-    public_layers = [0] if not request.user.is_staff else list(TbMapLayer.objects.values_list('id_layer', flat=True)) or [0]
+    if request.user.is_staff:
+        public_layers = list(TbMapLayer.objects.values_list('id_layer', flat=True)) or [0]
+    else:
+        public_layers = list(TbMapLayer.objects.filter(publica=True).values_list('id_layer', flat=True)) or [0]
     if regiao.camada not in public_layers and not request.user.is_staff:
         raise Http404("Região não encontrada")
     layer_options = _world_layer_options(request)
@@ -6017,7 +6020,10 @@ def regiao_detail_view(request, slug):
 @ensure_csrf_cookie
 def territorio_detail_view(request, slug):
     territory = get_object_or_404(TbTerritorio, slug=slug)
-    public_layers = [0] if not request.user.is_staff else list(TbMapLayer.objects.values_list('id_layer', flat=True)) or [0]
+    if request.user.is_staff:
+        public_layers = list(TbMapLayer.objects.values_list('id_layer', flat=True)) or [0]
+    else:
+        public_layers = list(TbMapLayer.objects.filter(publica=True).values_list('id_layer', flat=True)) or [0]
     if territory.camada not in public_layers and not request.user.is_staff:
         raise Http404("Territorio nao encontrado")
     layer_options = _world_layer_options(request)

@@ -29,6 +29,7 @@ from .models import (
     TbClassehabilidade,
     TbEssencia,
     TbLinhagem,
+    TbMapLayer,
     TbMapMarker,
     TbMapDesenho,
     TbOpcaojogo,
@@ -1973,6 +1974,13 @@ class TbTransacaoMestreAdmin(admin.ModelAdmin):
 class TbReiDaColinaAdmin(admin.ModelAdmin):
     list_display = ("id", "holder", "preco_atual", "desde")
     raw_id_fields = ("holder",)
+
+
+@admin.register(TbMapLayer)
+class TbMapLayerAdmin(admin.ModelAdmin):
+    list_display = ("id_layer", "nome", "ordem", "publica", "imagem_url")
+    list_editable = ("ordem", "publica")
+    ordering = ("ordem",)
 
 
 @admin.register(TbCondicao)
