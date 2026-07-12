@@ -5509,10 +5509,10 @@ def mapa_view(request):
     if main_layer and main_layer.imagem_url:
         main_layer_img = _layer_url(main_layer.imagem_url)
 
-    # Placeholder próprio das camadas subterrâneas. Cada camada mostra a SUA
-    # imagem; quando ainda não tem uma, cai neste placeholder (NÃO na imagem da
-    # superfície) — do contrário todas as camadas de subterrâneo sem imagem
-    # exibiriam a mesma arte de superfície, parecendo "compartilhadas".
+    # Placeholder das camadas subterrâneas sem imagem própria: a arte da
+    # SUPERFÍCIE ESCURECIDA (o front aplica brightness-50 via is_placeholder).
+    # Cada camada com imagem própria mostra a SUA (upload por camada é isolado);
+    # só cai no png dedicado como último recurso, se nem a superfície tiver arte.
     from django.templatetags.static import static as _static
     underground_placeholder_img = _static('assets/subterraneo_placeholder.png')
 
@@ -5522,7 +5522,8 @@ def mapa_view(request):
         if l.imagem_url:
             img = _layer_url(l.imagem_url)
         elif l.id_layer != 0:
-            img = underground_placeholder_img
+            # superfície escurecida (is_placeholder → brightness-50 no front)
+            img = main_layer_img or underground_placeholder_img
         else:
             img = main_layer_img
         layers_lista.append({
