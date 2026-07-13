@@ -1,23 +1,23 @@
 {% extends 'home/base.html' %}
 
-{% block main_class %}flex-1 w-full py-4{% endblock %}
+{% block main_class %}flex-1 w-full py-2.5{% endblock %}
 {% load static %}
 
 {% block title %}Opções - Bonfire Tales RPG{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/pages/opcoes.css' %}">
+<link rel="stylesheet" href="{% static 'css/pages/opcoes.css' %}?v=2">
 
 {% endblock %}
 
 {% block content %}
-<div class="mx-auto w-full max-w-[1440px] px-2 sm:px-4 py-4">
+<div class="mx-auto w-full max-w-[1440px] px-2 sm:px-4 py-2.5">
 
-    <div class="mb-4">
+    <div class="mb-2.5">
         <h1 class="font-cinzel text-xl font-bold text-bonfire-text uppercase">Opções Adicionais</h1>
         <p class="text-bonfire-muted text-[11px] mt-1">Estilos de Luta, Segredos de Caçador, Invocações Místicas e muito mais.</p>
 
-        <div class="mt-4 flex flex-col sm:flex-row gap-4 items-center" id="opcaoSearchBar">
+        <div class="mt-2.5 flex flex-col sm:flex-row gap-2.5 items-center" id="opcaoSearchBar">
             <div class="relative w-full sm:w-2/3 lg:w-3/4">
                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <svg class="h-5 w-5 text-bonfire-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -27,12 +27,12 @@
                 <input type="text" id="searchInput" placeholder="Buscar opção, tag, requisito..." class="bg-bonfire-bg1 border border-bonfire-stroke text-bonfire-text text-sm rounded-md focus:ring-primary focus:border-bonfire-flame block w-full pl-10 p-2.5 transition-colors">
             </div>
             <div class="flex gap-2 w-full sm:w-auto">
-                <button id="filterToggle" type="button" class="bg-bonfire-bg1 hover:bg-bonfire-bg2 border border-bonfire-stroke text-bonfire-muted px-4 py-2.5 rounded-md text-sm font-medium flex items-center gap-2 transition-colors">
+                <button id="filterToggle" type="button" class="bg-bonfire-bg1 hover:bg-bonfire-bg2 border border-bonfire-stroke text-bonfire-muted px-3 py-2.5 rounded-md text-sm font-medium flex items-center gap-2 transition-colors">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
                     Filtros
                     <span id="filterCount" class="hidden min-w-5 rounded-full bg-bonfire-flame px-1.5 py-0.5 text-[10px] font-bold text-white">0</span>
                 </button>
-                <button class="bg-bonfire-bg1 hover:bg-bonfire-bg2 border border-bonfire-stroke text-bonfire-muted px-4 py-2.5 rounded-md text-sm font-medium flex items-center gap-2 transition-colors" onclick="toggleSort()">
+                <button class="bg-bonfire-bg1 hover:bg-bonfire-bg2 border border-bonfire-stroke text-bonfire-muted px-3 py-2.5 rounded-md text-sm font-medium flex items-center gap-2 transition-colors" onclick="toggleSort()">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path></svg>
                     A-Z
                 </button>
@@ -41,7 +41,7 @@
         <div id="filterModal" class="hidden fixed inset-0 z-[80] items-center justify-center p-4">
             <button id="filterBackdrop" type="button" class="filter-backdrop absolute inset-0 bg-black/80 backdrop-blur-sm" aria-label="Fechar filtros"></button>
             <div class="filter-panel relative w-full max-w-xl overflow-hidden rounded-lg border border-bonfire-stroke bg-bonfire-bg1 shadow-2xl">
-                <div class="flex items-center justify-between border-b border-bonfire-stroke px-5 py-4">
+                <div class="flex items-center justify-between border-b border-bonfire-stroke px-4 py-2.5">
                     <h2 class="font-cinzel text-lg font-bold uppercase text-bonfire-text flex items-center gap-2">
                         <svg class="h-4 w-4 text-bonfire-flame" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
@@ -55,7 +55,7 @@
                     </button>
                 </div>
 
-                <div class="max-h-[65vh] space-y-7 overflow-y-auto p-5 custom-scrollbar">
+                <div class="max-h-[65vh] space-y-4 overflow-y-auto p-4 custom-scrollbar">
                     <section>
                         <h3 class="border-b border-bonfire-stroke pb-2 text-xs font-bold uppercase tracking-widest text-bonfire-muted">Categoria</h3>
                         <div id="typeFilterOptions" class="mt-3 flex flex-wrap gap-2"></div>
@@ -72,11 +72,11 @@
                     </section>
                 </div>
 
-                <div class="flex flex-col gap-3 border-t border-bonfire-stroke p-4 sm:flex-row">
-                    <button id="clearFilters" type="button" class="rounded-md border border-bonfire-stroke px-4 py-3 text-sm font-bold text-bonfire-muted transition-colors hover:border-bonfire-flame hover:text-bonfire-text sm:w-32">
+                <div class="flex flex-col gap-2 border-t border-bonfire-stroke p-4 sm:flex-row">
+                    <button id="clearFilters" type="button" class="rounded-md border border-bonfire-stroke px-3 py-2 text-sm font-bold text-bonfire-muted transition-colors hover:border-bonfire-flame hover:text-bonfire-text sm:w-32">
                         Limpar Tudo
                     </button>
-                    <button id="applyFilterModal" type="button" class="rounded-md bg-bonfire-flame px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-bonfire-ember sm:flex-1">
+                    <button id="applyFilterModal" type="button" class="rounded-md bg-bonfire-flame px-3 py-2 text-sm font-bold text-white transition-colors hover:bg-bonfire-ember sm:flex-1">
                         Aplicar Filtros
                     </button>
                 </div>
@@ -84,18 +84,18 @@
         </div>
     </div>
 
-    <div class="opcao-main-grid grid gap-6 border-t border-bonfire-stroke pt-6 flex-1">
+    <div class="opcao-main-grid grid gap-3 border-t border-bonfire-stroke pt-4 flex-1">
         <button type="button" class="opcao-mobile-menu-button" id="opcaoMobileMenuButton" aria-label="Abrir lista de opções">
             <svg xmlns="http://www.w3.org/2000/svg" class="open-icon h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 5 7 7-7 7"/></svg>
             <svg xmlns="http://www.w3.org/2000/svg" class="close-icon h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 19-7-7 7-7"/></svg>
         </button>
         <button type="button" class="opcao-mobile-backdrop" id="opcaoMobileBackdrop" aria-label="Fechar lista"></button>
 
-        <aside class="talent-list-panel xl:sticky xl:top-24 h-full max-h-[calc(100vh-140px)] overflow-y-auto custom-scrollbar flex flex-col gap-2 pr-2" id="opcoesList">
-            
+        <aside class="talent-list-panel xl:sticky xl:top-24 h-full max-h-[calc(100vh-140px)] overflow-y-auto custom-scrollbar flex flex-col gap-1.5 pr-2" id="opcoesList">
+
         </aside>
 
-        <main class="talent-detail-panel hidden mt-8 md:mt-0 md:pl-6" id="opcaoDetail">
+        <main class="talent-detail-panel hidden mt-4 md:mt-0 md:pl-4" id="opcaoDetail">
             <div class="flex items-center justify-center h-full text-bonfire-muted flex-col gap-4">
                 <svg class="w-16 h-16 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18s-3.332.477-4.5 1.253" />
@@ -388,7 +388,7 @@
         listContainer.innerHTML = '';
         
         if (filteredOpcoes.length === 0) {
-            listContainer.innerHTML = '<p class="text-bonfire-muted text-sm p-4 text-center">Nenhuma opção encontrada.</p>';
+            listContainer.innerHTML = '<p class="text-bonfire-muted text-sm p-3 text-center">Nenhuma opção encontrada.</p>';
             return;
         }
 
@@ -408,7 +408,7 @@
             ` : '';
 
             const item = document.createElement('div');
-            item.className = `p-4 cursor-pointer rounded-md border transition-all duration-200 ${borderClass} ${bgClass} flex flex-col gap-2`;
+            item.className = `p-2.5 cursor-pointer rounded-md border transition-all duration-200 ${borderClass} ${bgClass} flex flex-col gap-1.5`;
             item.onclick = () => selectOpcao(opcao.id);
 
             item.innerHTML = `
@@ -446,7 +446,7 @@
         const renderedHtml = renderMarkdown(opcao.descricao);
 
         detailContainer.innerHTML = `
-            <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div class="mb-2.5 flex flex-wrap items-center justify-between gap-2">
                 <div class="flex flex-wrap gap-2">
                     <span class="text-xs font-bold px-2 py-1 rounded border border-bonfire-flame text-bonfire-flame uppercase tracking-wider">${escapeHtml(opcao.tipo)}</span>
                     ${getExtraTags(opcao).map(tag => `<span class="text-xs font-bold px-2 py-1 rounded border border-bonfire-stroke text-bonfire-muted uppercase tracking-wider">${tag}</span>`).join('')}
@@ -461,10 +461,10 @@
                 </div>
             </div>
 
-            <h2 data-talent-title class="font-cinzel text-xl font-bold text-bonfire-text uppercase mb-6">${escapeHtml(opcao.nome)}</h2>
+            <h2 data-talent-title class="font-cinzel text-xl font-bold text-bonfire-text uppercase mb-4">${escapeHtml(opcao.nome)}</h2>
             <div data-option-editor></div>
 
-            <div data-option-preview class="bonfire-markdown max-w-none text-[13px] leading-[1.65] text-bonfire-muted">
+            <div data-option-preview class="bonfire-markdown max-w-none text-[13px] leading-[1.45] text-bonfire-muted">
                 ${renderedHtml}
             </div>
         `;

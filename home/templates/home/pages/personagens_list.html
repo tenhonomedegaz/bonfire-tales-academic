@@ -3,7 +3,7 @@
 
 {% block content %}
 <section class="animate-fade-in">
-  <header class="mb-6 flex flex-wrap items-end justify-between gap-4 border-b border-[var(--stroke)] pb-4">
+  <header class="mb-4 flex flex-wrap items-end justify-between gap-2.5 border-b border-[var(--stroke)] pb-4">
     <div>
       <h1 class="font-serif text-2xl md:text-3xl font-bold text-[var(--ember)]">Meus Personagens</h1>
       <p class="mt-1 text-sm text-[var(--muted)]">
@@ -15,26 +15,26 @@
       </p>
     </div>
     {% if pode_criar %}
-      <a href="{% url 'criacao_ficha' %}" class="rounded bg-bonfire-gradient px-4 py-2 text-sm font-bold text-white hover:opacity-90">+ Criar Personagem</a>
+      <a href="{% url 'criacao_ficha' %}" class="rounded bg-bonfire-gradient px-3 py-1.5 text-sm font-bold text-white hover:opacity-90">+ Criar Personagem</a>
     {% else %}
-      <span class="cursor-not-allowed rounded border border-[var(--stroke)] bg-[var(--bg1)] px-4 py-2 text-sm font-semibold text-[var(--muted)]" title="Limite de fichas ativas atingido. Guarde uma no cofre para liberar um slot.">+ Criar Personagem (limite atingido)</span>
+      <span class="cursor-not-allowed rounded border border-[var(--stroke)] bg-[var(--bg1)] px-3 py-1.5 text-sm font-semibold text-[var(--muted)]" title="Limite de fichas ativas atingido. Guarde uma no cofre para liberar um slot.">+ Criar Personagem (limite atingido)</span>
     {% endif %}
   </header>
 
-  <h2 class="mb-3 font-serif text-lg font-bold text-[var(--text)]">Ativos</h2>
+  <h2 class="mb-2 font-serif text-lg font-bold text-[var(--text)]">Ativos</h2>
   {% if ativos %}
-    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div class="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
       {% for c in ativos %}
         {% include 'home/partials/personagem_card.html' with c=c cofre=False %}
       {% endfor %}
     </div>
   {% else %}
-    <p class="rounded border border-dashed border-[var(--stroke)] bg-[var(--bg1)] px-4 py-6 text-center text-sm text-[var(--muted)]">Nenhuma ficha ativa. {% if pode_criar %}Crie a sua primeira!{% else %}Restaure uma do cofre ou ajuste seu limite.{% endif %}</p>
+    <p class="rounded border border-dashed border-[var(--stroke)] bg-[var(--bg1)] px-3 py-4 text-center text-sm text-[var(--muted)]">Nenhuma ficha ativa. {% if pode_criar %}Crie a sua primeira!{% else %}Restaure uma do cofre ou ajuste seu limite.{% endif %}</p>
   {% endif %}
 
   {% if cofre %}
-    <h2 class="mb-3 mt-8 font-serif text-lg font-bold text-[var(--muted)]">Cofre <span class="text-xs font-normal">(guardados — não contam no limite)</span></h2>
-    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <h2 class="mb-2 mt-4 font-serif text-lg font-bold text-[var(--muted)]">Cofre <span class="text-xs font-normal">(guardados — não contam no limite)</span></h2>
+    <div class="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
       {% for c in cofre %}
         {% include 'home/partials/personagem_card.html' with c=c cofre=True %}
       {% endfor %}
@@ -42,10 +42,10 @@
   {% endif %}
 
   {% if is_staff and todas %}
-    <h2 class="mb-3 mt-10 font-serif text-lg font-bold text-[var(--spark)]">Todas as fichas (staff)</h2>
-    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <h2 class="mb-2 mt-6 font-serif text-lg font-bold text-[var(--spark)]">Todas as fichas (staff)</h2>
+    <div class="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
       {% for c in todas %}
-        <a href="{% url 'ficha_detail' c.obj.id_personagem %}" class="block rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-4 hover:border-[var(--spark)]">
+        <a href="{% url 'ficha_detail' c.obj.id_personagem %}" class="block rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-3 hover:border-[var(--spark)]">
           <div class="flex items-center justify-between">
             <span class="font-serif font-bold text-[var(--text)]">{{ c.obj.nome }}</span>
             <span class="text-xs text-[var(--muted)]">@{{ c.dono }}</span>

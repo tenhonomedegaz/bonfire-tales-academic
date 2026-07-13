@@ -13,7 +13,7 @@
     html,
     body {
       max-width: 100%;
-      font-size: 14px;
+      font-size: 13px;
     }
 
     body {
@@ -103,20 +103,20 @@
       border-collapse: collapse;
       width: 100%;
       font-size: 11px;
-      margin: 1rem 0;
+      margin: 0.6rem 0;
     }
     .bonfire-markdown th {
       background: #3a0b0b;
       color: #ffffff;
       font-weight: 800;
       text-transform: uppercase;
-      padding: 0.5rem 0.75rem;
+      padding: 0.4rem 0.55rem;
       text-align: left;
       border: 1px solid var(--stroke);
     }
     .bonfire-markdown td {
       border: 1px solid var(--stroke);
-      padding: 0.5rem 0.75rem;
+      padding: 0.4rem 0.55rem;
     }
     .bonfire-markdown tr:nth-child(even) td {
       background: var(--bg2);
@@ -125,7 +125,7 @@
     /* 5e-tools base typography for markdown */
     .bonfire-markdown strong { color: var(--text); font-weight: 800; }
     .bonfire-markdown p {
-      margin-bottom: 0.65rem;
+      margin-bottom: 0.6rem;
       max-width: 100%;
       overflow-wrap: anywhere;
       word-break: break-word;
@@ -135,12 +135,12 @@
       overflow-wrap: anywhere;
       word-break: break-word;
     }
-    .bonfire-markdown h1 { font-size: 1.25rem; font-weight: 800; margin: 1.25rem 0 0.5rem; }
-    .bonfire-markdown h2 { font-size: 1.1rem; font-weight: 700; margin: 1rem 0 0.4rem; }
-    .bonfire-markdown h3 { font-size: 0.95rem; font-weight: 700; margin: 0.85rem 0 0.35rem; }
-    .bonfire-markdown h4 { font-size: 0.85rem; font-weight: 700; margin: 0.75rem 0 0.3rem; }
+    .bonfire-markdown h1 { font-size: 1.25rem; font-weight: 800; margin: 0.9rem 0 0.4rem; }
+    .bonfire-markdown h2 { font-size: 1.1rem; font-weight: 700; margin: 0.7rem 0 0.35rem; }
+    .bonfire-markdown h3 { font-size: 0.95rem; font-weight: 700; margin: 0.65rem 0 0.3rem; }
+    .bonfire-markdown h4 { font-size: 0.85rem; font-weight: 700; margin: 0.6rem 0 0.25rem; }
     .bonfire-markdown ul,
-    .bonfire-markdown ol { padding-left: 1.4rem; margin-bottom: 0.65rem; }
+    .bonfire-markdown ol { padding-left: 1.4rem; margin-bottom: 0.6rem; }
     .bonfire-markdown ul { list-style: disc outside; }
     .bonfire-markdown ul ul { list-style: circle outside; }
     .bonfire-markdown ol { list-style: decimal outside; }
@@ -149,7 +149,7 @@
       border-left: 3px solid var(--ember);
       padding-left: 0.85rem;
       color: var(--muted);
-      margin: 0.65rem 0;
+      margin: 0.6rem 0;
     }
     .bonfire-markdown a { color: var(--spark); text-decoration: underline; }
     .bonfire-markdown code {
@@ -164,7 +164,7 @@
       font-weight: 800;
       color: var(--text);
     }
-    .bonfire-toggle { margin: 0.85rem 0; }
+    .bonfire-toggle { margin: 0.6rem 0; }
     .bonfire-toggle summary {
       border: 1px solid var(--ember);
       border-radius: 6px;
@@ -181,8 +181,8 @@
     .bonfire-toggle-content {
       border: 1px solid var(--stroke);
       border-radius: 6px;
-      margin-top: 0.55rem;
-      padding: 0.75rem 1rem;
+      margin-top: 0.45rem;
+      padding: 0.5rem 0.7rem;
       background: var(--bg0);
     }
 
@@ -228,9 +228,9 @@
     .bonfire-h1-lore {
       color: #fff;
       font-family: 'Cinzel', serif;
-      font-size: 1.75rem;
+      font-size: 1.5rem;
       font-weight: 900;
-      margin: 2rem 0 1rem;
+      margin: 1.1rem 0 0.6rem;
       text-transform: uppercase;
     }
     .h1-group-panel { display: none; }

@@ -3,30 +3,30 @@
 
 {% block content %}
 <section class="animate-fade-in max-w-3xl">
-  <header class="mb-5 border-b border-[var(--stroke)] pb-4">
+  <header class="mb-3 border-b border-[var(--stroke)] pb-2.5">
     <h1 class="font-serif text-2xl md:text-3xl font-bold text-[var(--ember)]">Busca</h1>
-    <form method="get" action="{% url 'busca' %}" class="mt-3 flex items-center gap-2">
+    <form method="get" action="{% url 'busca' %}" class="mt-3 flex items-center gap-1.5">
       <div class="relative flex-1">
         <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[var(--muted)]">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
         </span>
         <input name="q" type="search" value="{{ q }}" autofocus placeholder="Buscar magias, talentos, itens, monstros, regras…"
-               class="w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] py-2 pl-9 pr-3 text-sm text-[var(--text)] outline-none focus:border-[var(--ember)]">
+               class="w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] py-1.5 pl-9 pr-3 text-sm text-[var(--text)] outline-none focus:border-[var(--ember)]">
       </div>
-      <button type="submit" class="rounded bg-bonfire-gradient px-4 py-2 text-sm font-bold text-white hover:opacity-90">Buscar</button>
+      <button type="submit" class="rounded bg-bonfire-gradient px-3 py-1.5 text-sm font-bold text-white hover:opacity-90">Buscar</button>
     </form>
     {% if q %}<p class="mt-2 text-xs text-[var(--muted)]">{{ total }} resultado{{ total|pluralize:"s" }} para <strong class="text-[var(--text)]">"{{ q }}"</strong>.</p>{% endif %}
   </header>
 
   {% if grupos %}
-    <div class="space-y-5">
+    <div class="space-y-3">
       {% for g in grupos %}
         <div>
-          <h2 class="mb-2 font-serif text-sm font-bold uppercase tracking-wider text-[var(--ember)]">{{ g.icone }} {{ g.categoria }} <span class="text-[var(--muted)]">({{ g.itens|length }})</span></h2>
+          <h2 class="mb-1.5 font-serif text-sm font-bold uppercase tracking-wider text-[var(--ember)]">{{ g.icone }} {{ g.categoria }} <span class="text-[var(--muted)]">({{ g.itens|length }})</span></h2>
           <ul class="divide-y divide-[var(--stroke)]/40 overflow-hidden rounded-lg border border-[var(--stroke)] bg-[var(--bg1)]">
             {% for it in g.itens %}
               <li>
-                <a href="{{ it.url|default:'#' }}" class="flex items-center justify-between gap-3 px-4 py-2.5 hover:bg-[var(--bg0)]">
+                <a href="{{ it.url|default:'#' }}" class="flex items-center justify-between gap-2 px-3 py-1.5 hover:bg-[var(--bg0)]">
                   <span class="font-medium text-[var(--text)]">{{ it.nome }}</span>
                   {% if it.sub %}<span class="shrink-0 text-xs text-[var(--muted)]">{{ it.sub }}</span>{% endif %}
                 </a>
@@ -37,9 +37,9 @@
       {% endfor %}
     </div>
   {% elif q %}
-    <p class="rounded-lg border border-dashed border-[var(--stroke)] px-4 py-10 text-center text-sm text-[var(--muted)]">Nada encontrado para <strong>"{{ q }}"</strong>. Tente outro termo.</p>
+    <p class="rounded-lg border border-dashed border-[var(--stroke)] px-3 py-6 text-center text-sm text-[var(--muted)]">Nada encontrado para <strong>"{{ q }}"</strong>. Tente outro termo.</p>
   {% else %}
-    <p class="rounded-lg border border-dashed border-[var(--stroke)] px-4 py-10 text-center text-sm text-[var(--muted)]">Digite ao menos 2 caracteres para buscar em magias, talentos, raças, classes, itens, bestiário, condições, regiões e mais.</p>
+    <p class="rounded-lg border border-dashed border-[var(--stroke)] px-3 py-6 text-center text-sm text-[var(--muted)]">Digite ao menos 2 caracteres para buscar em magias, talentos, raças, classes, itens, bestiário, condições, regiões e mais.</p>
   {% endif %}
 </section>
 {% endblock %}

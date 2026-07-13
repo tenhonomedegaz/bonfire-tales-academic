@@ -9,7 +9,7 @@
     --profile-deep: var(--bg0);
     max-width: 680px;
     margin: 0 auto;
-    padding: 2rem 0;
+    padding: 1.25rem 0;
 }
 
 .profile-page.theme-ember,
@@ -67,18 +67,18 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 1.25rem;
-    padding: 2.5rem 2rem;
+    gap: 0.75rem;
+    padding: 1.4rem 1.1rem;
     background: var(--profile-surface);
     border: 1px solid var(--stroke);
     border-radius: 8px;
-    margin-bottom: 2rem;
+    margin-bottom: 1rem;
     position: relative;
     overflow: hidden;
 }
 
 .profile-hero {
-    min-height: 260px;
+    min-height: 220px;
     justify-content: flex-end;
 }
 
@@ -122,7 +122,7 @@
 
 .profile-hero .profile-avatar-wrapper {
     z-index: 1;
-    margin-top: 4rem;
+    margin-top: 2.75rem;
 }
 
 .profile-avatar-wrapper:hover {
@@ -259,7 +259,7 @@
     text-align: center;
     color: var(--muted);
     font-size: 0.9rem;
-    line-height: 1.5;
+    line-height: 1.4;
 }
 
 .profile-role {
@@ -267,7 +267,7 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    padding: 0.25rem 0.75rem;
+    padding: 0.2rem 0.7rem;
     border-radius: 3px;
     background: var(--bg0);
     border: 1px solid var(--stroke);
@@ -295,8 +295,8 @@
     background: var(--profile-surface);
     border: 1px solid var(--stroke);
     border-radius: 8px;
-    padding: 1.75rem;
-    margin-bottom: 1.5rem;
+    padding: 0.9rem;
+    margin-bottom: 1rem;
     transition: border-color 0.3s;
 }
 
@@ -306,21 +306,21 @@
 
 .profile-section-title {
     font-family: 'Cinzel', serif;
-    font-size: 0.85rem;
+    font-size: 0.75rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.12em;
     color: var(--profile-accent);
-    margin-bottom: 1.25rem;
-    padding-bottom: 0.75rem;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
     border-bottom: 1px solid var(--stroke);
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.4rem;
 }
 
 .profile-field {
-    margin-bottom: 1.15rem;
+    margin-bottom: 0.7rem;
 }
 
 .profile-field:last-of-type {
@@ -329,16 +329,16 @@
 
 .profile-label {
     display: block;
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     font-weight: 600;
     color: var(--muted);
-    margin-bottom: 0.4rem;
+    margin-bottom: 0.3rem;
     letter-spacing: 0.02em;
 }
 
 .profile-input {
     width: 100%;
-    padding: 0.6rem 0.85rem;
+    padding: 0.45rem 0.6rem;
     background: var(--bg0);
     border: 1px solid var(--stroke);
     border-radius: 4px;
@@ -351,13 +351,13 @@
 .profile-textarea {
     min-height: 5.5rem;
     resize: vertical;
-    line-height: 1.5;
+    line-height: 1.4;
 }
 
 .profile-appearance-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.75rem;
+    gap: 0.5rem;
 }
 
 .profile-input:focus {
@@ -374,8 +374,8 @@
 .avatar-preview-row {
     display: flex;
     align-items: center;
-    gap: 1rem;
-    margin-top: 0.5rem;
+    gap: 0.55rem;
+    margin-top: 0.4rem;
 }
 
 .avatar-preview-small {
@@ -398,8 +398,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: 42px;
-    margin-top: 0.55rem;
+    min-height: 36px;
+    margin-top: 0.45rem;
     border: 1px dashed color-mix(in srgb, var(--profile-accent) 45%, var(--stroke));
     border-radius: 6px;
     background: color-mix(in srgb, var(--profile-accent) 8%, var(--bg0));
@@ -427,7 +427,7 @@
 .banner-preview-box {
     width: 100%;
     aspect-ratio: 21 / 6;
-    margin-top: 0.65rem;
+    margin-top: 0.5rem;
     border: 1px solid var(--stroke);
     border-radius: 6px;
     background-position: center;
@@ -439,7 +439,7 @@
     display: inline-flex;
     align-items: center;
     gap: 0.45rem;
-    margin-top: 0.6rem;
+    margin-top: 0.45rem;
     color: var(--muted);
     font-size: 0.76rem;
     cursor: pointer;
@@ -455,7 +455,7 @@
     align-items: center;
     justify-content: center;
     gap: 0.4rem;
-    padding: 0.6rem 1.5rem;
+    padding: 0.5rem 1.25rem;
     font-size: 0.85rem;
     font-weight: 700;
     color: #fff;
@@ -463,7 +463,7 @@
     border: none;
     border-radius: 4px;
     cursor: pointer;
-    margin-top: 1rem;
+    margin-top: 0.7rem;
     transition: filter 0.2s, box-shadow 0.2s;
     box-shadow: 0 0 12px rgba(210, 23, 23, 0.2);
 }
@@ -475,11 +475,11 @@
 
 /* Toasts */
 .profile-toast {
-    padding: 0.65rem 1rem;
+    padding: 0.5rem 0.75rem;
     border-radius: 4px;
     font-size: 0.85rem;
     font-weight: 500;
-    margin-bottom: 1rem;
+    margin-bottom: 0.7rem;
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -506,13 +506,13 @@
 /* Responsivo */
 @media (max-width: 640px) {
     .profile-page {
-        padding: 1rem 0;
+        padding: 0.75rem 0;
     }
     .profile-header {
-        padding: 1.5rem 1rem;
+        padding: 1rem 0.75rem;
     }
     .profile-section {
-        padding: 1.25rem;
+        padding: 0.75rem;
     }
     .profile-appearance-grid {
         grid-template-columns: 1fr;
@@ -523,9 +523,9 @@
 .profile-checkbox-group {
     display: flex;
     align-items: flex-start;
-    gap: 0.75rem;
-    margin-top: 1.25rem;
-    padding: 0.85rem;
+    gap: 0.6rem;
+    margin-top: 0.9rem;
+    padding: 0.6rem;
     background: var(--bg0);
     border: 1px solid var(--stroke);
     border-radius: 4px;
@@ -711,12 +711,12 @@
     --profile-deep: var(--bg0);
     max-width: 900px;
     margin: 0 auto;
-    padding: 2rem 0 3rem;
+    padding: 1.25rem 0 2rem;
 }
 
 .public-profile-back {
     display: inline-flex;
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.5rem;
     color: var(--profile-accent);
     font-size: 0.78rem;
     font-weight: 800;
@@ -735,7 +735,7 @@
 }
 
 .public-profile-banner {
-    min-height: 220px;
+    min-height: 170px;
     background: radial-gradient(circle at 20% 0%, color-mix(in srgb, var(--profile-accent) 24%, transparent), transparent 48%),
                 linear-gradient(135deg, var(--profile-deep), var(--profile-surface));
 }
@@ -758,9 +758,9 @@
 .public-profile-body {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
-    gap: 1.25rem;
+    gap: 0.75rem;
     align-items: end;
-    padding: 0 1.5rem 1.5rem;
+    padding: 0 1rem 1rem;
     margin-top: -58px;
     position: relative;
     z-index: 1;
@@ -809,21 +809,21 @@
 
 .public-profile-bio {
     max-width: 44rem;
-    margin-top: 0.65rem;
-    line-height: 1.6;
+    margin-top: 0.5rem;
+    line-height: 1.45;
 }
 
 .public-profile-section {
-    margin-top: 1rem;
-    padding: 1.25rem;
+    margin-top: 0.7rem;
+    padding: 0.75rem;
 }
 
 .public-profile-section-head {
     display: flex;
     justify-content: space-between;
-    gap: 1rem;
+    gap: 0.6rem;
     align-items: center;
-    margin-bottom: 1rem;
+    margin-bottom: 0.7rem;
 }
 
 .public-profile-section-head h2 {
@@ -835,16 +835,16 @@
 .public-character-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr));
-    gap: 0.85rem;
+    gap: 0.5rem;
 }
 
 .public-character-card {
     position: relative;
     overflow: hidden;
-    min-height: 132px;
+    min-height: 110px;
     border: 1px solid var(--stroke);
     border-radius: 8px;
-    padding: 1rem;
+    padding: 0.7rem;
     background: var(--profile-deep);
 }
 
@@ -872,7 +872,7 @@
 .public-character-card span,
 .public-character-card em {
     color: var(--muted);
-    font-size: 0.82rem;
+    font-size: 0.85rem;
     margin-top: 0.25rem;
 }
 
@@ -904,15 +904,15 @@
     --profile-deep: var(--bg0);
     max-width: 1120px;
     margin: 0 auto;
-    padding: 1.5rem 0 3rem;
+    padding: 1rem 0 2rem;
 }
 
 .players-head {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(280px, 460px);
-    gap: 1rem;
+    gap: 0.6rem;
     align-items: end;
-    margin-bottom: 1rem;
+    margin-bottom: 0.7rem;
 }
 
 .players-kicker {
@@ -935,9 +935,9 @@
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
-    gap: 0.6rem;
-    min-height: 46px;
-    padding: 0 0.55rem 0 0.8rem;
+    gap: 0.5rem;
+    min-height: 40px;
+    padding: 0 0.45rem 0 0.65rem;
     border: 1px solid var(--stroke);
     border-radius: 6px;
     background: var(--bg1);
@@ -969,15 +969,15 @@
 }
 
 .players-search button {
-    padding: 0.45rem 0.75rem;
+    padding: 0.4rem 0.65rem;
 }
 
 .players-toolbar {
     display: flex;
     justify-content: space-between;
-    gap: 0.75rem;
+    gap: 0.5rem;
     align-items: center;
-    margin-bottom: 0.9rem;
+    margin-bottom: 0.6rem;
 }
 
 .players-tabs {
@@ -989,8 +989,8 @@
 .players-tabs a {
     display: inline-flex;
     align-items: center;
-    min-height: 34px;
-    padding: 0.45rem 0.7rem;
+    min-height: 30px;
+    padding: 0.35rem 0.6rem;
     border: 1px solid var(--stroke);
     border-radius: 4px;
     background: var(--bg1);
@@ -1023,23 +1023,23 @@
 }
 
 .players-order select {
-    min-height: 34px;
+    min-height: 30px;
     border: 1px solid var(--stroke);
     border-radius: 4px;
     background: var(--bg1);
     color: var(--text);
-    padding: 0.35rem 0.55rem;
-    font-size: 0.82rem;
+    padding: 0.3rem 0.5rem;
+    font-size: 0.85rem;
     outline: none;
 }
 
 .players-meta {
     display: flex;
     justify-content: space-between;
-    gap: 1rem;
-    margin-bottom: 1rem;
+    gap: 0.6rem;
+    margin-bottom: 0.7rem;
     color: var(--muted);
-    font-size: 0.83rem;
+    font-size: 0.85rem;
 }
 
 .players-meta-actions {
@@ -1057,7 +1057,7 @@
 .players-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 1rem;
+    gap: 0.55rem;
 }
 
 .player-card {
@@ -1067,7 +1067,7 @@
     --profile-deep: var(--bg0);
     position: relative;
     overflow: hidden;
-    min-height: 320px;
+    min-height: 230px;
     border: 1px solid var(--stroke);
     border-radius: 8px;
     background: var(--profile-surface);
@@ -1081,7 +1081,7 @@
 .player-card-banner {
     position: relative;
     display: block;
-    height: 118px;
+    height: 86px;
     background: radial-gradient(circle at 15% 0%, color-mix(in srgb, var(--profile-accent) 26%, transparent), transparent 52%),
                 linear-gradient(135deg, var(--profile-deep), var(--profile-surface));
 }
@@ -1105,9 +1105,9 @@
     z-index: 1;
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
-    gap: 0.85rem;
+    gap: 0.5rem;
     align-items: end;
-    padding: 0 1rem 1rem;
+    padding: 0 0.75rem 0.75rem;
     margin-top: -34px;
 }
 
@@ -1148,15 +1148,15 @@
 }
 
 .player-card-main p {
-    margin-top: 0.35rem;
+    margin-top: 0.3rem;
     color: var(--muted);
-    font-size: 0.84rem;
-    line-height: 1.45;
+    font-size: 0.85rem;
+    line-height: 1.4;
 }
 
 .player-card-count {
     display: block;
-    margin-top: 0.45rem;
+    margin-top: 0.35rem;
     color: var(--profile-accent);
     font-size: 0.72rem;
     font-weight: 800;
@@ -1166,13 +1166,13 @@
 
 .player-card-characters {
     display: grid;
-    gap: 0.55rem;
-    padding: 0 1rem 1rem;
+    gap: 0.4rem;
+    padding: 0 0.75rem 0.75rem;
 }
 
 .player-card-characters a {
-    min-height: 54px;
-    padding: 0.7rem;
+    min-height: 44px;
+    padding: 0.5rem;
     border: 1px solid color-mix(in srgb, var(--stroke) 80%, var(--profile-accent));
     border-radius: 6px;
     background: var(--profile-deep);
@@ -1195,15 +1195,15 @@
 }
 
 .player-card-footer {
-    padding: 0 1rem 1rem;
+    padding: 0 0.75rem 0.75rem;
 }
 
 .player-card-footer a {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-height: 34px;
-    padding: 0.45rem 0.75rem;
+    min-height: 30px;
+    padding: 0.35rem 0.6rem;
     border: 1px solid color-mix(in srgb, var(--profile-accent) 54%, var(--stroke));
     border-radius: 4px;
     background: color-mix(in srgb, var(--profile-accent) 13%, var(--profile-deep));
@@ -1217,7 +1217,7 @@
 .players-empty {
     border: 1px dashed var(--stroke);
     border-radius: 8px;
-    padding: 2rem;
+    padding: 1.25rem;
     background: var(--bg1);
     color: var(--muted);
     text-align: center;
@@ -1234,14 +1234,14 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 0.8rem;
-    margin-top: 1.25rem;
+    gap: 0.6rem;
+    margin-top: 0.9rem;
     color: var(--muted);
-    font-size: 0.84rem;
+    font-size: 0.85rem;
 }
 
 .players-pagination a {
-    padding: 0.5rem 0.75rem;
+    padding: 0.4rem 0.6rem;
 }
 
 @media (max-width: 740px) {
@@ -1303,7 +1303,7 @@
     align-items: center;
     gap: 0.28rem;
     padding: 0.16rem 0.5rem;
-    font-size: 0.68rem;
+    font-size: 0.73rem;
     font-weight: 700;
     line-height: 1.2;
     border-radius: 999px;
@@ -1354,15 +1354,15 @@
 .profile-badges-mini { margin-top: 0.4rem; gap: 0.28rem; }
 .profile-badges-mini .profile-badge {
     padding: 0.12rem 0.42rem;
-    font-size: 0.62rem;
+    font-size: 0.67rem;
 }
 .profile-badges-mini .profile-badge-emoji { font-size: 0.72rem; }
 .profile-badges-mini .profile-badge-icon { width: 12px; height: 12px; }
 
 /* Editor de badges/títulos na página /perfil/. */
 .profile-badges-editor {
-    margin-top: 1.25rem;
-    padding-top: 1rem;
+    margin-top: 0.9rem;
+    padding-top: 0.7rem;
     border-top: 1px dashed var(--stroke);
 }
 .profile-subsection-title {
@@ -1372,19 +1372,19 @@
     text-transform: uppercase;
     letter-spacing: 0.1em;
     color: var(--profile-accent);
-    margin-bottom: 0.9rem;
+    margin-bottom: 0.6rem;
 }
 .profile-badge-picker {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-top: 0.5rem;
+    gap: 0.4rem;
+    margin-top: 0.4rem;
 }
 .profile-badge-pick {
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
-    padding: 0.3rem 0.6rem;
+    padding: 0.25rem 0.5rem;
     font-size: 0.72rem;
     font-weight: 700;
     border-radius: 999px;
@@ -1413,8 +1413,8 @@
 .conquista-grid {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.5rem;
-    margin: 0.4rem 0 0;
+    gap: 0.4rem;
+    margin: 0.3rem 0 0;
     padding: 0;
     list-style: none;
 }
@@ -1423,7 +1423,7 @@
     align-items: center;
     gap: 0.4rem;
     max-width: 100%;
-    padding: 0.28rem 0.6rem 0.28rem 0.32rem;
+    padding: 0.22rem 0.5rem 0.22rem 0.28rem;
     border: 1px solid var(--stroke);
     border-radius: 999px;
     background: var(--bg0);
@@ -1486,8 +1486,8 @@
 .tema-swatch-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr));
-    gap: 0.6rem;
-    margin-top: 0.4rem;
+    gap: 0.45rem;
+    margin-top: 0.3rem;
 }
 
 .tema-swatch {
@@ -1495,8 +1495,8 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.4rem;
-    padding: 0.5rem;
+    gap: 0.35rem;
+    padding: 0.4rem;
     border: 1px solid var(--stroke);
     border-radius: 6px;
     background: var(--bg0);

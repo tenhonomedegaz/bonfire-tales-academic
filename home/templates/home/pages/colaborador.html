@@ -3,14 +3,14 @@
 
 {% block content %}
 <!-- ░░░ HERO ░░░ -->
-<div class="-mx-4 md:-mx-8 -mt-8 mb-12">
-  <section class="relative py-20 md:py-24 bg-gradient-to-b from-[var(--bg1)] to-[var(--bg0)] border-b border-[var(--stroke)] overflow-hidden">
+<div class="-mx-3 md:-mx-5 -mt-4 mb-8">
+  <section class="relative py-12 md:py-16 bg-gradient-to-b from-[var(--bg1)] to-[var(--bg0)] border-b border-[var(--stroke)] overflow-hidden">
     <div aria-hidden="true" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vw] h-[80vw] bg-[var(--flame)]/5 rounded-full blur-[120px] pointer-events-none"></div>
-    <div class="container mx-auto px-4 text-center relative z-10">
-      <div class="inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded text-xs font-bold bg-[var(--ember)] text-white mb-4">
+    <div class="container mx-auto px-3 text-center relative z-10">
+      <div class="inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded text-xs font-bold bg-[var(--ember)] text-white mb-2.5">
         <span aria-hidden="true">🔥</span> Apoie o Bonfire Tales
       </div>
-      <h1 class="font-rpg text-4xl md:text-6xl font-bold text-[var(--text)] mt-4 mb-6 tracking-tighter">
+      <h1 class="font-rpg text-4xl md:text-6xl font-bold text-[var(--text)] mt-2.5 mb-4 tracking-tighter">
         Coloque lenha na <span class="bg-clip-text text-transparent" style="background-image:linear-gradient(to right,#F27007,#F7B113)">Fogueira</span>
       </h1>
       <p class="text-lg md:text-xl text-[var(--muted)] max-w-2xl mx-auto leading-relaxed">
@@ -21,17 +21,17 @@
   </section>
 </div>
 
-<div class="container mx-auto px-2 sm:px-4 pb-20">
+<div class="container mx-auto px-2 sm:px-3 pb-12">
 
   <!-- ░░░ PACOTES DE COLABORADOR ░░░ -->
-  <div class="mb-6 text-center">
+  <div class="mb-4 text-center">
     <h2 class="font-rpg text-2xl md:text-3xl font-bold text-[var(--text)]">Pacotes de Colaborador</h2>
     <p class="mt-2 text-sm text-[var(--muted)]">Assinatura mensal recorrente, pagamento único ou planos longos com desconto.</p>
   </div>
 
-  <div class="grid gap-6 lg:grid-cols-3 items-start pt-4">
+  <div class="grid gap-3 lg:grid-cols-3 items-start pt-2.5">
     {% for tier in tiers %}
-    <div class="relative flex h-full flex-col rounded-xl border {% if tier.destaque %}border-[var(--ember)] bg-[var(--bg1)] shadow-[0_0_40px_-12px_rgba(242,112,7,0.45)] lg:-mt-3{% else %}border-[var(--stroke)] bg-[var(--bg1)]{% endif %} p-6">
+    <div class="relative flex h-full flex-col rounded-xl border {% if tier.destaque %}border-[var(--ember)] bg-[var(--bg1)] shadow-[0_0_40px_-12px_rgba(242,112,7,0.45)] lg:-mt-3{% else %}border-[var(--stroke)] bg-[var(--bg1)]{% endif %} p-4">
       {% if tier.destaque %}
       <div class="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-bonfire-gradient px-3 py-1 text-xs font-bold text-white shadow-lg">
         <span aria-hidden="true">⭐</span> Mais completo
@@ -39,7 +39,7 @@
       {% endif %}
 
       <!-- Cabeçalho do card -->
-      <div class="mb-5 border-b border-[var(--stroke)] pb-5 text-center">
+      <div class="mb-3 border-b border-[var(--stroke)] pb-3 text-center">
         <div class="text-3xl" aria-hidden="true">{{ tier.emoji }}</div>
         <h3 class="mt-2 font-rpg text-xl font-bold text-[var(--text)]">{{ tier.titulo }}</h3>
         <div class="mt-3 flex items-end justify-center gap-1">
@@ -50,9 +50,9 @@
       </div>
 
       <!-- Benefícios -->
-      <ul class="mb-6 space-y-3 text-sm">
+      <ul class="mb-4 space-y-2 text-sm">
         {% for emoji, texto in tier.beneficios %}
-        <li class="flex items-start gap-2.5 text-[var(--text)]">
+        <li class="flex items-start gap-2 text-[var(--text)]">
           <span class="mt-0.5 flex-shrink-0" aria-hidden="true">{{ emoji }}</span>
           <span>{{ texto }}</span>
         </li>
@@ -60,28 +60,28 @@
       </ul>
 
       <!-- CTAs (empurra o bloco de planos pro rodapé do card) -->
-      <div class="mt-auto space-y-2.5">
+      <div class="mt-auto space-y-2">
         <a href="{{ tier.assinatura }}" target="_blank" rel="noopener noreferrer"
            aria-label="Assinar {{ tier.titulo }} no cartão por R$ {{ tier.preco_mes }} por mês (abre em nova aba)"
-           class="flex w-full items-center justify-center gap-2 rounded-lg bg-bonfire-gradient px-4 py-3 text-sm font-bold text-white transition-all hover:-translate-y-0.5 hover:brightness-110 shadow-[0_0_15px_rgba(210,23,23,0.25)]">
+           class="flex w-full items-center justify-center gap-1.5 rounded-lg bg-bonfire-gradient px-3 py-2 text-sm font-bold text-white transition-all hover:-translate-y-0.5 hover:brightness-110 shadow-[0_0_15px_rgba(210,23,23,0.25)]">
           Assinar no cartão
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
         </a>
         <a href="{{ tier.unico }}" target="_blank" rel="noopener noreferrer"
            aria-label="Pagamento único de {{ tier.titulo }} via Pix, boleto ou cartão (abre em nova aba)"
-           class="flex w-full items-center justify-center gap-2 rounded-lg border border-[var(--stroke)] bg-[var(--bg0)] px-4 py-2.5 text-sm font-semibold text-[var(--text)] transition-all hover:border-[var(--ember)]">
+           class="flex w-full items-center justify-center gap-1.5 rounded-lg border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm font-semibold text-[var(--text)] transition-all hover:border-[var(--ember)]">
           Pagamento único · Pix / Boleto
         </a>
 
         <!-- Planos longos -->
-        <div class="pt-3">
-          <p class="mb-2 text-center text-xs font-bold uppercase tracking-wide text-[var(--muted)]">Planos longos · mais desconto</p>
+        <div class="pt-2">
+          <p class="mb-1.5 text-center text-xs font-bold uppercase tracking-wide text-[var(--muted)]">Planos longos · mais desconto</p>
           <div class="space-y-1.5">
             {% for plano in tier.planos %}
             <a href="{{ plano.url }}" target="_blank" rel="noopener noreferrer"
                aria-label="Assinar plano {{ plano.label }} de {{ tier.titulo }} por R$ {{ plano.preco }} — {{ plano.off }} (abre em nova aba)"
-               class="group flex items-center justify-between gap-2 rounded-lg border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 transition-all hover:border-[var(--spark)]/60">
-              <span class="flex items-center gap-2">
+               class="group flex items-center justify-between gap-1.5 rounded-lg border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-1.5 transition-all hover:border-[var(--spark)]/60">
+              <span class="flex items-center gap-1.5">
                 <span class="text-sm font-semibold text-[var(--text)]">{{ plano.label }}</span>
                 <span class="rounded bg-[var(--spark)]/20 px-1.5 py-0.5 text-[11px] font-bold text-[var(--spark)]">{{ plano.off }}</span>
               </span>
@@ -99,23 +99,23 @@
   </div>
 
   <!-- ░░░ TOKENS AVULSOS ░░░ -->
-  <div class="mt-16 mb-6 text-center">
+  <div class="mt-8 mb-4 text-center">
     <h2 class="font-rpg text-2xl md:text-3xl font-bold text-[var(--text)]"><span aria-hidden="true">⭐</span> Tokens avulsos</h2>
     <p class="mt-2 text-sm text-[var(--muted)] max-w-2xl mx-auto">
       Quer apenas um impulso pontual? Compre tokens de Missão Especial, Boost e Superboost à parte dos pacotes de colaboração.
     </p>
   </div>
 
-  <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+  <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
     {% for token in tokens %}
-    <div class="flex flex-col rounded-xl border border-[var(--stroke)] bg-[var(--bg1)] p-6 text-center">
+    <div class="flex flex-col rounded-xl border border-[var(--stroke)] bg-[var(--bg1)] p-4 text-center">
       <div class="text-3xl" aria-hidden="true">{{ token.emoji }}</div>
       <h3 class="mt-2 font-rpg text-lg font-bold text-[var(--text)]">{{ token.nome }}</h3>
       <p class="mt-2 flex-1 text-sm text-[var(--muted)]">{{ token.desc }}</p>
-      <div class="my-4 font-rpg text-2xl font-bold text-[var(--ember)]">R$ {{ token.preco }}</div>
+      <div class="my-2.5 font-rpg text-2xl font-bold text-[var(--ember)]">R$ {{ token.preco }}</div>
       <a href="{{ token.url }}" target="_blank" rel="noopener noreferrer"
          aria-label="Comprar token {{ token.nome }} por R$ {{ token.preco }} (abre em nova aba)"
-         class="flex w-full items-center justify-center gap-2 rounded-lg border border-[var(--stroke)] bg-[var(--bg0)] px-4 py-2.5 text-sm font-bold text-[var(--text)] transition-all hover:border-[var(--ember)] hover:-translate-y-0.5">
+         class="flex w-full items-center justify-center gap-1.5 rounded-lg border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm font-bold text-[var(--text)] transition-all hover:border-[var(--ember)] hover:-translate-y-0.5">
         Comprar token
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
       </a>
@@ -124,27 +124,27 @@
   </div>
 
   <!-- ░░░ COMO FUNCIONA ░░░ -->
-  <div class="mt-16 rounded-xl border border-[var(--stroke)] bg-[var(--bg1)] p-6 md:p-8">
-    <h2 class="mb-5 font-rpg text-xl font-bold text-[var(--text)] flex items-center gap-2">
+  <div class="mt-8 rounded-xl border border-[var(--stroke)] bg-[var(--bg1)] p-4 md:p-5">
+    <h2 class="mb-3 font-rpg text-xl font-bold text-[var(--text)] flex items-center gap-1.5">
       <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="text-[var(--ember)]"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
       Como funciona
     </h2>
-    <div class="grid gap-5 md:grid-cols-3">
-      <div class="flex gap-3">
+    <div class="grid gap-3 md:grid-cols-3">
+      <div class="flex gap-2">
         <span class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-bonfire-gradient text-sm font-bold text-white" aria-hidden="true">1</span>
         <div>
           <h3 class="text-sm font-bold text-[var(--text)]">Escolha e pague</h3>
           <p class="mt-1 text-sm text-[var(--muted)]">Você é levado ao checkout seguro do Asaas (Pix, boleto ou cartão).</p>
         </div>
       </div>
-      <div class="flex gap-3">
+      <div class="flex gap-2">
         <span class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-bonfire-gradient text-sm font-bold text-white" aria-hidden="true">2</span>
         <div>
           <h3 class="text-sm font-bold text-[var(--text)]">Use o mesmo e-mail</h3>
           <p class="mt-1 text-sm text-[var(--muted)]">No pagamento, informe o e-mail vinculado à sua conta do Discord para o bot reconhecer você.</p>
         </div>
       </div>
-      <div class="flex gap-3">
+      <div class="flex gap-2">
         <span class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-bonfire-gradient text-sm font-bold text-white" aria-hidden="true">3</span>
         <div>
           <h3 class="text-sm font-bold text-[var(--text)]">Resgate no Discord</h3>
@@ -152,10 +152,10 @@
         </div>
       </div>
     </div>
-    <div class="mt-6 flex flex-wrap items-center gap-3 border-t border-[var(--stroke)] pt-5">
+    <div class="mt-4 flex flex-wrap items-center gap-2 border-t border-[var(--stroke)] pt-3">
       <a href="https://discord.gg/eyqe7rj2AX" target="_blank" rel="noopener noreferrer"
          aria-label="Entrar no servidor do Discord (abre em nova aba)"
-         class="inline-flex items-center gap-2 rounded-lg border border-[var(--stroke)] bg-[var(--bg0)] px-4 py-2 text-sm font-bold text-[var(--text)] transition-all hover:border-[var(--ember)]">
+         class="inline-flex items-center gap-1.5 rounded-lg border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-1.5 text-sm font-bold text-[var(--text)] transition-all hover:border-[var(--ember)]">
         <img src="{% static 'assets/discord_icon.png' %}" class="h-4 w-4 object-contain" alt="" aria-hidden="true">
         Entrar no Discord
       </a>

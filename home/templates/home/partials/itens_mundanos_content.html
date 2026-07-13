@@ -19,14 +19,14 @@
     <p class="mt-3 text-xs text-[var(--muted)]"><span id="mu-count">0</span> item(ns)</p>
   </div>
 
-  <div class="talent-main-grid grid gap-6 border-t border-bonfire-stroke pt-6 flex-1">
+  <div class="talent-main-grid grid gap-3 border-t border-bonfire-stroke pt-4 flex-1">
     <button type="button" class="talent-mobile-menu-button" id="muMobileMenuButton" aria-label="Abrir lista de itens">
       <svg xmlns="http://www.w3.org/2000/svg" class="open-icon h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 5 7 7-7 7"/></svg>
       <svg xmlns="http://www.w3.org/2000/svg" class="close-icon h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 19-7-7 7-7"/></svg>
     </button>
     <button type="button" class="talent-mobile-backdrop" id="muMobileBackdrop" aria-label="Fechar lista"></button>
 
-    <aside class="talent-list-panel xl:sticky xl:top-24 h-full max-h-[calc(100vh-140px)] overflow-y-auto custom-scrollbar flex flex-col gap-2 pr-2" id="muList">
+    <aside class="talent-list-panel xl:sticky xl:top-24 h-full max-h-[calc(100vh-140px)] overflow-y-auto custom-scrollbar flex flex-col gap-1.5 pr-2" id="muList">
 
       {% for item in armas %}
       <div class="mu-list-item" data-id="arma-{{ forloop.counter }}" data-cat="armas"
@@ -96,10 +96,10 @@
       {% endfor %}
       {% endfor %}
 
-      <p class="mu-empty text-bonfire-muted text-sm p-4 text-center" hidden>Nenhum item encontrado.</p>
+      <p class="mu-empty text-bonfire-muted text-sm p-3 text-center" hidden>Nenhum item encontrado.</p>
     </aside>
 
-    <main class="talent-detail-panel hidden mt-8 md:mt-0 md:pl-6" id="muDetail">
+    <main class="talent-detail-panel hidden mt-4 md:mt-0 md:pl-4" id="muDetail">
       <div class="flex items-center justify-center h-full text-bonfire-muted flex-col gap-4">
         <svg class="w-16 h-16 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />

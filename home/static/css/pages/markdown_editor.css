@@ -7,7 +7,7 @@
    ========================================================================== */
 .markdown-editor-shell {
     display: grid;
-    gap: 18px;
+    gap: 12px;
 }
 
 .markdown-editor-toolbar {
@@ -17,8 +17,8 @@
     border-radius: var(--radius, 10px);
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
-    padding: 12px;
+    gap: 6px;
+    padding: 8px;
 }
 
 .markdown-editor-toolbar button,
@@ -30,7 +30,7 @@
     cursor: pointer;
     font-weight: 700;
     line-height: 1;
-    padding: 9px 12px;
+    padding: 7px 10px;
     transition: border-color .15s ease, color .15s ease, background-color .15s ease;
 }
 
@@ -45,7 +45,7 @@
 
 .markdown-editor-grid {
     display: grid;
-    gap: 18px;
+    gap: 12px;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     height: calc(100vh - 250px);
     min-height: 560px;
@@ -68,7 +68,7 @@
     border-bottom: 1px solid var(--stroke);
     display: flex;
     justify-content: space-between;
-    padding: 11px 14px;
+    padding: 8px 10px;
 }
 
 .markdown-editor-panel h2 {
@@ -88,10 +88,10 @@
     flex: 1;
     font-family: var(--font-family-monospace, Consolas, monospace);
     font-size: 14px;
-    line-height: 1.7;
+    line-height: 1.5;
     min-height: 0;
     outline: none;
-    padding: 18px;
+    padding: 12px;
     resize: none;
     overflow-x: hidden;
     overflow-wrap: break-word;
@@ -105,11 +105,11 @@
     color: var(--text-soft, #d4d4d8);
     flex: 1;
     font-size: 15px;
-    line-height: 1.75;
+    line-height: 1.5;
     overflow-x: hidden;
     overflow-y: auto;
     overflow-wrap: anywhere;
-    padding: 18px;
+    padding: 12px;
     word-break: break-word;
 }
 
@@ -129,7 +129,7 @@
     background: var(--bg2);
     color: var(--text);
     font-weight: 800;
-    padding: .7rem 1rem;
+    padding: .45rem .65rem;
     text-align: left;
     text-transform: uppercase;
     border-bottom: 2px solid var(--ember);
@@ -138,7 +138,7 @@
     background: var(--bg1);
     border-bottom: 1px solid var(--stroke);
     color: var(--text-soft, #d4d4d8);
-    padding: .7rem 1rem;
+    padding: .45rem .65rem;
 }
 .markdown-preview tr:nth-child(even) td { background: var(--bg2); }
 
@@ -162,8 +162,8 @@
     border: 1px solid var(--stroke);
     border-left: 4px solid var(--ember);
     border-radius: var(--radius-sm, 6px);
-    margin: 1.5rem 0;
-    padding: 1rem;
+    margin: 1rem 0;
+    padding: .7rem;
     color: var(--muted);
 }
 
@@ -183,7 +183,7 @@
     font-family: 'Cinzel', 'Inter', serif;
     letter-spacing: .05em;
     line-height: 1.25;
-    margin: 1.25rem 0 .65rem;
+    margin: .9rem 0 .5rem;
     text-transform: uppercase;
 }
 .markdown-preview h1 { font-size: 1.6rem; }
@@ -200,7 +200,7 @@
     font-size: .95rem;
     font-weight: 800;
     line-height: 1.25;
-    margin: 1.25rem 0 .75rem;
+    margin: .9rem 0 .55rem;
     padding: .35rem .6rem;
     text-transform: capitalize;
 }
@@ -213,7 +213,7 @@
     margin: 1.5rem auto;
     text-align: center;
 }
-.markdown-preview .bonfire-toggle { margin: 1.5rem 0; }
+.markdown-preview .bonfire-toggle { margin: 1rem 0; }
 .markdown-preview .bonfire-toggle summary {
     background: var(--bg0);
     border: 1px solid var(--flame);
@@ -235,8 +235,8 @@
     background: var(--bg0);
     border: 1px solid var(--stroke-soft, rgba(255, 255, 255, .06));
     border-radius: var(--radius-sm, 6px);
-    margin-top: .9rem;
-    padding: 1rem 1.25rem;
+    margin-top: .6rem;
+    padding: .7rem .9rem;
 }
 
 /* Vocabulario de cores BBCode (paridade com base.css / preview do site) */

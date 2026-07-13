@@ -1,17 +1,17 @@
 {% extends 'home/base.html' %}
 {% load static %}
 
-{% block main_class %}flex-1 w-full max-w-[1500px] mx-auto px-3 md:px-6 py-6{% endblock %}
+{% block main_class %}flex-1 w-full max-w-[1500px] mx-auto px-3 md:px-6 py-4{% endblock %}
 
 {% block extra_head %}
 <style>
-  .bestiary-shell { display: grid; gap: 1rem; }
+  .bestiary-shell { display: grid; gap: .7rem; }
   .bestiary-toolbar {
     border: 1px solid var(--stroke);
     background: color-mix(in srgb, var(--bg1) 82%, transparent);
-    padding: .85rem;
+    padding: .6rem;
   }
-  .bestiary-grid { display: grid; grid-template-columns: minmax(260px, 360px) minmax(0, 1fr); gap: 1rem; align-items: start; }
+  .bestiary-grid { display: grid; grid-template-columns: minmax(260px, 360px) minmax(0, 1fr); gap: .7rem; align-items: start; }
   .bestiary-list { max-height: calc(100vh - 210px); overflow: auto; padding-right: .35rem; }
   .bestiary-list-item {
     width: 100%;
@@ -20,7 +20,7 @@
     background: transparent;
     color: var(--muted);
     text-align: left;
-    padding: .7rem .75rem;
+    padding: .5rem .6rem;
     transition: border-color .15s, background .15s, color .15s;
   }
   .bestiary-list-item:hover, .bestiary-list-item.is-active {
@@ -34,19 +34,19 @@
     background: var(--bg0);
     min-height: 540px;
   }
-  .monster-sheet-inner { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; padding: 1rem; }
-  .monster-header { border-bottom: 3px double var(--ember); padding-bottom: .65rem; }
+  .monster-sheet-inner { display: grid; grid-template-columns: minmax(0, 1fr); gap: .7rem; padding: .7rem; }
+  .monster-header { border-bottom: 3px double var(--ember); padding-bottom: .5rem; }
   .monster-title { color: var(--ember); font-family: Cinzel, serif; font-size: clamp(1.35rem, 2vw, 2rem); font-weight: 800; line-height: 1.1; }
   .monster-subtitle { color: var(--muted); font-size: .85rem; font-style: italic; margin-top: .2rem; }
   .monster-line { font-size: .9rem; color: var(--text); }
   .monster-line strong { color: var(--flame); }
-  .monster-attrs { border-top: 2px solid var(--flame); border-bottom: 2px solid var(--flame); display: grid; grid-template-columns: repeat(6, minmax(56px, 1fr)); gap: .25rem; padding: .55rem 0; }
+  .monster-attrs { border-top: 2px solid var(--flame); border-bottom: 2px solid var(--flame); display: grid; grid-template-columns: repeat(6, minmax(56px, 1fr)); gap: .25rem; padding: .4rem 0; }
   .monster-attr { text-align: center; }
   .monster-attr b { color: var(--ember); display: block; font-size: .75rem; }
   .monster-attr span { color: var(--text); font-size: .82rem; }
-  .monster-section { border-top: 1px solid var(--stroke); padding-top: .75rem; }
+  .monster-section { border-top: 1px solid var(--stroke); padding-top: .55rem; }
   .monster-section-title { color: var(--ember); font-family: Cinzel, serif; font-size: 1rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
-  .monster-spellcasting { border: 1px solid color-mix(in srgb, var(--spark) 45%, var(--stroke)); background: color-mix(in srgb, var(--bg1) 78%, transparent); padding: .75rem; }
+  .monster-spellcasting { border: 1px solid color-mix(in srgb, var(--spark) 45%, var(--stroke)); background: color-mix(in srgb, var(--bg1) 78%, transparent); padding: .55rem; }
   .monster-spell-row { display: grid; grid-template-columns: 90px minmax(0, 1fr); gap: .5rem; font-size: .82rem; }
   .monster-spell-row + .monster-spell-row { margin-top: .35rem; }
   .monster-pill { border: 1px solid var(--stroke); color: var(--muted); display: inline-flex; align-items: center; gap: .25rem; font-size: .68rem; font-weight: 800; padding: .12rem .4rem; text-transform: uppercase; }
@@ -61,36 +61,36 @@
 
 {% block content %}
 <section class="bestiary-shell animate-fade-in">
-  <header class="flex flex-wrap items-end justify-between gap-3 border-b border-[var(--stroke)] pb-4">
+  <header class="flex flex-wrap items-end justify-between gap-2 border-b border-[var(--stroke)] pb-2.5">
     <div>
       <h1 class="font-serif text-2xl md:text-3xl font-bold text-[var(--ember)]">Bestiario</h1>
       <p class="mt-1 text-sm text-[var(--muted)]">Fichas completas, filtros por ND e consulta rapida de criaturas.</p>
     </div>
-    {% if pode_criar %}<a href="{% url 'bestiario_criar' %}" class="rounded bg-bonfire-gradient px-4 py-2 text-sm font-bold text-white hover:opacity-90">+ Nova criatura</a>{% endif %}
+    {% if pode_criar %}<a href="{% url 'bestiario_criar' %}" class="rounded bg-bonfire-gradient px-3 py-1.5 text-sm font-bold text-white hover:opacity-90">+ Nova criatura</a>{% endif %}
   </header>
 
-  {% if msg == 'criada' %}<p class="rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-3 py-2 text-sm text-[var(--spark)]">Criatura criada.</p>
-  {% elif msg == 'editada' %}<p class="rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-3 py-2 text-sm text-[var(--spark)]">Criatura atualizada.</p>
-  {% elif msg == 'excluida' %}<p class="rounded border border-[var(--stroke)] bg-[var(--bg1)] px-3 py-2 text-sm text-[var(--muted)]">Criatura excluida.</p>{% endif %}
+  {% if msg == 'criada' %}<p class="rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-2.5 py-1.5 text-sm text-[var(--spark)]">Criatura criada.</p>
+  {% elif msg == 'editada' %}<p class="rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-2.5 py-1.5 text-sm text-[var(--spark)]">Criatura atualizada.</p>
+  {% elif msg == 'excluida' %}<p class="rounded border border-[var(--stroke)] bg-[var(--bg1)] px-2.5 py-1.5 text-sm text-[var(--muted)]">Criatura excluida.</p>{% endif %}
 
   <form method="get" class="bestiary-toolbar">
-    <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-6">
+    <div class="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-6">
       <input id="bz-busca" type="search" placeholder="Buscar criatura..." autocomplete="off"
-             class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)] outline-none focus:border-[var(--ember)] lg:col-span-2">
-      <select name="f" onchange="this.form.submit()" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-2 text-sm text-[var(--text)]">
+             class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-1.5 text-sm text-[var(--text)] outline-none focus:border-[var(--ember)] lg:col-span-2">
+      <select name="f" onchange="this.form.submit()" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-1.5 text-sm text-[var(--text)]">
         <option value="" {% if not filtro %}selected{% endif %}>Todas</option>
         <option value="oficial" {% if filtro == 'oficial' %}selected{% endif %}>Oficiais</option>
         <option value="comunidade" {% if filtro == 'comunidade' %}selected{% endif %}>Comunidade</option>
       </select>
-      <select name="nd" onchange="this.form.submit()" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-2 text-sm text-[var(--text)]">
+      <select name="nd" onchange="this.form.submit()" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-1.5 text-sm text-[var(--text)]">
         <option value="">ND todos</option>
         {% for nd in nds %}<option value="{{ nd }}" {% if nd == nd_sel %}selected{% endif %}>ND {{ nd }}</option>{% endfor %}
       </select>
-      <select name="tipo" onchange="this.form.submit()" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-2 text-sm text-[var(--text)]">
+      <select name="tipo" onchange="this.form.submit()" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-1.5 text-sm text-[var(--text)]">
         <option value="">Tipo todos</option>
         {% for tipo in tipos %}<option value="{{ tipo }}" {% if tipo == tipo_sel %}selected{% endif %}>{{ tipo }}</option>{% endfor %}
       </select>
-      <select name="ord" onchange="this.form.submit()" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-2 text-sm text-[var(--text)]">
+      <select name="ord" onchange="this.form.submit()" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-1.5 text-sm text-[var(--text)]">
         <option value="az" {% if ordem == 'az' %}selected{% endif %}>A-Z</option>
         <option value="za" {% if ordem == 'za' %}selected{% endif %}>Z-A</option>
         <option value="nd_asc" {% if ordem == 'nd_asc' %}selected{% endif %}>ND menor</option>
@@ -116,7 +116,7 @@
         </div>
       </button>
       {% empty %}
-      <p class="rounded border border-dashed border-[var(--stroke)] px-4 py-8 text-center text-sm text-[var(--muted)]">Nenhuma criatura.</p>
+      <p class="rounded border border-dashed border-[var(--stroke)] px-3 py-5 text-center text-sm text-[var(--muted)]">Nenhuma criatura.</p>
       {% endfor %}
     </aside>
 
@@ -158,9 +158,9 @@
 
           {% if sb.spellcasting %}
           <section class="monster-spellcasting">
-            <h3 class="monster-section-title mb-2">Conjuracao</h3>
+            <h3 class="monster-section-title mb-1.5">Conjuracao</h3>
             {% for cast in sb.spellcasting %}
-              <div class="mb-3 last:mb-0">
+              <div class="mb-2 last:mb-0">
                 <div class="mb-1 text-xs font-bold text-[var(--text)]">{{ cast.nome }}</div>
                 {% for row in cast.rows %}
                 <div class="monster-spell-row">
@@ -189,7 +189,7 @@
 
           {% if c.descricao %}<section class="monster-section bonfire-markdown text-sm text-[var(--muted)]" data-markdown-source>{{ c.descricao|escape }}</section>{% endif %}
           {% if c.pode_editar %}
-          <div class="flex items-center gap-3 border-t border-[var(--stroke)] pt-3">
+          <div class="flex items-center gap-2 border-t border-[var(--stroke)] pt-2">
             <a href="{% url 'bestiario_editar' c.id %}" class="text-xs text-[var(--ember)] hover:underline">Editar</a>
             <form method="post" action="{% url 'bestiario_excluir' c.id %}" onsubmit="return confirm('Excluir {{ c.nome|escapejs }}?');">
               {% csrf_token %}<button type="submit" class="text-xs text-[var(--flame)] hover:underline">Excluir</button>

@@ -1,10 +1,10 @@
 {% extends 'home/base.html' %}
 {% load static %}
 
-{% block main_class %}flex-1 w-full py-4{% endblock %}
+{% block main_class %}flex-1 w-full py-2.5{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/pages/raca_detail.css' %}?v=3">
+<link rel="stylesheet" href="{% static 'css/pages/raca_detail.css' %}?v=5">
 
 {% endblock %}
 
@@ -44,9 +44,9 @@
           </div>
         </details>
       {% endcomment %}
-      <nav id="raceNav" class="mb-6">
+      <nav id="raceNav" class="mb-4">
         <details class="group/race-cat w-full rounded border border-[var(--stroke)] bg-[var(--bg1)]" open>
-          <summary class="flex cursor-pointer items-center justify-between px-3 py-2 text-xs font-bold uppercase tracking-wider text-[var(--text)] list-none hover:bg-[var(--bg2)] transition-colors select-none">
+          <summary class="flex cursor-pointer items-center justify-between px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-[var(--text)] list-none hover:bg-[var(--bg2)] transition-colors select-none">
             <span class="flex items-center gap-2">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-[var(--ember)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
               Humanoides
@@ -67,24 +67,24 @@
 
       <div id="raceTraitsContainer">
       {% if raca %}
-      <section class="rounded border border-[var(--stroke)] bg-[var(--bg1)] p-4">
+      <section class="rounded border border-[var(--stroke)] bg-[var(--bg1)] p-3">
         <h2 class="font-rpg text-lg font-bold uppercase text-[var(--text)]">{{ raca.nome }}</h2>
 
-        <div class="mt-4 divide-y divide-[var(--stroke)]">
-          <div class="py-3">
+        <div class="mt-2.5 divide-y divide-[var(--stroke)]">
+          <div class="py-2">
             <span class="block text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Linhagens</span>
             <span class="mt-1 block text-[11px] font-semibold leading-snug text-[var(--text)]">{{ linhagens|length }}</span>
           </div>
-          <div class="py-3">
+          <div class="py-2">
             <span class="block text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Permite Essência</span>
             <span class="mt-1 block text-[11px] font-semibold leading-snug text-[var(--text)]">{% if raca.permite_essencia %}Sim{% else %}Não{% endif %}</span>
           </div>
         </div>
       </section>
       {% else %}
-      <section class="rounded border border-[var(--stroke)] bg-[var(--bg1)] p-4">
+      <section class="rounded border border-[var(--stroke)] bg-[var(--bg1)] p-3">
         <h2 class="font-rpg text-lg font-bold uppercase text-[var(--text)]">Raças</h2>
-        <div class="mt-4 grid grid-cols-3 gap-2 text-center">
+        <div class="mt-2.5 grid grid-cols-3 gap-2 text-center">
           <div>
             <strong class="block font-rpg text-lg text-[var(--text)]">{{ all_racas|length }}</strong>
             <span class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">Raças</span>
@@ -98,7 +98,7 @@
             <span class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">Traços</span>
           </div>
         </div>
-        <p class="mt-4 text-[11px] leading-relaxed text-[var(--muted)]">Selecione uma raça na lista para ver apresentação, traços e linhagens.</p>
+        <p class="mt-2.5 text-[11px] leading-relaxed text-[var(--muted)]">Selecione uma raça na lista para ver apresentação, traços e linhagens.</p>
       </section>
       {% endif %}
       </div>

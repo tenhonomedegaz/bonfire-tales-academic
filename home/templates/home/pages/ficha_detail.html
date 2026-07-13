@@ -4,14 +4,14 @@
 {% block title %}{{ p.nome }} · Ficha · Bonfire Tales RPG{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/pages/ficha.css' %}?v=5">
+<link rel="stylesheet" href="{% static 'css/pages/ficha.css' %}?v=6">
 <link rel="stylesheet" href="{% static 'css/pages/perfil-fx.css' %}?v=3">
 {% if appearance.theme_css_href %}<link rel="stylesheet" href="{{ appearance.theme_css_href }}">{% endif %}
 {% endblock %}
 
 {% block content %}
 {% if appearance.background_url %}<div class="ficha-bg-media" style="background-image:url('{{ appearance.background_url }}');"></div>{% endif %}
-<section class="ficha animate-fade-in space-y-5 {{ appearance.theme_class }} {{ appearance.effect_class }}"{% if appearance.fx_particula %} data-fx-particula="{{ appearance.fx_particula }}" data-fx-vel="{{ appearance.fx_vel }}"{% endif %}{% if appearance.custom_style %} style="{{ appearance.custom_style }}"{% endif %}>
+<section class="ficha animate-fade-in space-y-3 {{ appearance.theme_class }} {{ appearance.effect_class }}"{% if appearance.fx_particula %} data-fx-particula="{{ appearance.fx_particula }}" data-fx-vel="{{ appearance.fx_vel }}"{% endif %}{% if appearance.custom_style %} style="{{ appearance.custom_style }}"{% endif %}>
 
   {# ===================== CABEÇALHO (banner estilo planilha) ===================== #}
   <header class="ficha-header ficha-banner">
@@ -59,7 +59,7 @@
   </nav>
 
   {# ===================== ABA 1: FICHA ===================== #}
-  <div class="ficha-tabpanel is-active space-y-5" data-tabpanel="ficha" role="tabpanel">
+  <div class="ficha-tabpanel is-active space-y-3" data-tabpanel="ficha" role="tabpanel">
 
   {# ===================== GRID 3 COLUNAS ===================== #}
   <div class="ficha-columns">
@@ -79,7 +79,7 @@
       </div>
 
       {# coluna interna direita: prof, saves, perícias, percepção passiva #}
-      <div class="attr-side space-y-4">
+      <div class="attr-side space-y-2.5">
         <div class="attr-stat-row">
           <div class="attr-stat">
             <span class="lbl">Bônus de Prof.</span>
@@ -121,14 +121,14 @@
     </div>
 
     {# -------- COLUNA CENTRAL: combate, PV, ataques, recursos, equipados -------- #}
-    <div class="space-y-4">
+    <div class="space-y-2.5">
       <div class="ficha-panel">
         <div class="combat-grid">
           <div class="combat-box ca"><div class="lbl">CA</div><div class="big">{{ ficha.ca }}</div></div>
           <div class="combat-box"><div class="lbl">Inic.</div><div class="big">{% if ficha.iniciativa >= 0 %}+{% endif %}{{ ficha.iniciativa }}</div></div>
           <div class="combat-box vel"><div class="lbl">Vel.</div><div class="big">{{ ficha.velocidade }}</div></div>
         </div>
-        {% if ficha.ca_fonte %}<p class="mt-2 text-center text-[11px] text-[var(--muted)]">{{ ficha.ca_fonte }}</p>{% endif %}
+        {% if ficha.ca_fonte %}<p class="mt-1.5 text-center text-[11px] text-[var(--muted)]">{{ ficha.ca_fonte }}</p>{% endif %}
         <div class="hp-track single">
           <div class="hp-cell max"{% if ficha.pv.bonus_tags %} title="{% for b in ficha.pv.bonus_tags %}+{{ b.1 }} {{ b.0 }}{% if not forloop.last %} · {% endif %}{% endfor %}"{% endif %}><div class="lbl">Pontos de Vida Máximos</div><div class="v">{{ ficha.pv.maximo_calculado }}</div></div>
         </div>
@@ -285,7 +285,7 @@
 
   <div class="ficha-panel">
     <div class="ficha-section-title">Mochila &amp; Equipamento</div>
-    <div class="mb-3 flex flex-wrap gap-2">
+    <div class="mb-2 flex flex-wrap gap-1.5">
       <div class="flex min-w-[3.2rem] flex-col items-center rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-1.5"><span class="text-[9px] font-bold uppercase tracking-wider text-[var(--muted)]">PO</span><span class="font-bold text-[var(--spark)]">{{ ficha.carteira.po|default:0 }}</span></div>
       <div class="flex min-w-[3.2rem] flex-col items-center rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-1.5"><span class="text-[9px] font-bold uppercase tracking-wider text-[var(--muted)]">PP</span><span class="font-bold text-[var(--text)]">{{ ficha.carteira.pp|default:0 }}</span></div>
       <div class="flex min-w-[3.2rem] flex-col items-center rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-1.5"><span class="text-[9px] font-bold uppercase tracking-wider text-[var(--muted)]">PC</span><span class="font-bold text-[var(--text)]">{{ ficha.carteira.pc|default:0 }}</span></div>
@@ -294,9 +294,9 @@
     {% if ficha.inventario %}
     <ul class="space-y-0.5">
       {% for it in ficha.inventario %}
-        <li class="flex items-center justify-between gap-2 border-b border-[var(--stroke)]/40 py-1 text-sm">
+        <li class="flex items-center justify-between gap-1.5 border-b border-[var(--stroke)]/40 py-1 text-sm">
           <span class="min-w-0 text-[var(--text)]">{% if it.qtd > 1 %}{{ it.qtd }}× {% endif %}{{ it.nome }}{% if it.equipado %} <span class="pill">equipado</span>{% elif it.pode_equipar %} <span class="pill muted">guardado</span>{% endif %}</span>
-          <span class="flex shrink-0 gap-3 text-xs text-[var(--muted)]">{% if it.custo %}<span>{{ it.custo }}</span>{% endif %}{% if it.peso %}<span>{{ it.peso }}</span>{% endif %}</span>
+          <span class="flex shrink-0 gap-2 text-xs text-[var(--muted)]">{% if it.custo %}<span>{{ it.custo }}</span>{% endif %}{% if it.peso %}<span>{{ it.peso }}</span>{% endif %}</span>
         </li>
       {% endfor %}
     </ul>
@@ -308,12 +308,12 @@
   {% if ficha.maestrias_armas %}
   <div class="ficha-panel">
     <div class="ficha-section-title">Maestrias de Arma{% if pode_editar and ficha.maestria_trocavel %}<a href="{% url 'personagem_trocar_maestria' p.id_personagem %}" class="float-right font-sans text-[11px] normal-case tracking-normal text-[var(--ember)] hover:underline">↻ Trocar</a>{% endif %}</div>
-    <p class="mb-3 text-xs text-[var(--muted)]">Você conhece as maestrias de cada arma escolhida e aplica <strong>1 por ataque</strong> (escolhida ao atacar).{% if ficha.maestria_trocavel %} <span class="text-[var(--spark)]">Trocável.</span>{% endif %}</p>
-    <ul class="grid gap-2 sm:grid-cols-2">
+    <p class="mb-2 text-xs text-[var(--muted)]">Você conhece as maestrias de cada arma escolhida e aplica <strong>1 por ataque</strong> (escolhida ao atacar).{% if ficha.maestria_trocavel %} <span class="text-[var(--spark)]">Trocável.</span>{% endif %}</p>
+    <ul class="grid gap-1.5 sm:grid-cols-2">
       {% for w in ficha.maestrias_armas %}
         <li class="rounded border border-[var(--stroke)] bg-[var(--bg0)] p-2.5">
           <div class="font-semibold text-[var(--text)]">{{ w.arma }}{% if w.dano %} <span class="text-xs font-normal text-[var(--muted)]">— {{ w.dano }}</span>{% endif %}{% if not w.encontrada %} <span class="text-xs text-[var(--flame)]">(arma não cadastrada)</span>{% endif %}</div>
-          <div class="mt-2 space-y-1.5">
+          <div class="mt-1.5 space-y-1.5">
             {% for m in w.maestrias %}
               <details class="maestria-card rounded border border-[var(--stroke)]/60 bg-[var(--bg1)]">
                 <summary class="flex cursor-pointer items-center gap-2 px-2 py-1.5 text-xs font-bold text-[var(--spark)] hover:text-[var(--flame)]"><span class="maestria-chevron text-[var(--muted)]">▸</span>{{ m.nome }}</summary>
@@ -330,7 +330,7 @@
   {% if ficha.magias %}
   <div class="ficha-panel">
     <div class="ficha-section-title">Magias</div>
-    <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {% regroup ficha.magias by nivel as magias_por_nivel %}
       {% for grupo in magias_por_nivel %}
       <div>
@@ -348,7 +348,7 @@
 
   <div class="ficha-panel">
     <div class="ficha-section-title">Defesas &amp; Sentidos</div>
-    <dl class="grid gap-x-8 sm:grid-cols-2">
+    <dl class="grid gap-x-4 sm:grid-cols-2">
       <div class="def-row"><dt>Resistências</dt><dd>{{ ficha.resistencias|join:", "|default:"—" }}</dd></div>
       <div class="def-row"><dt>Imunidades</dt><dd>{{ ficha.imunidades|join:", "|default:"—" }}</dd></div>
       <div class="def-row"><dt>Imun. condição</dt><dd>{% for c in ficha.imunidades_condicao %}{{ c.nome }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</dd></div>
@@ -378,7 +378,7 @@
   {% endif %}
 
   {% if ficha.avisos %}
-  <div class="rounded-lg border border-[var(--spark)]/40 bg-[var(--spark)]/5 p-3 text-xs text-[var(--spark)] space-y-0.5">
+  <div class="rounded-lg border border-[var(--spark)]/40 bg-[var(--spark)]/5 p-2 text-xs text-[var(--spark)] space-y-0.5">
     {% for a in ficha.avisos %}<p>{{ a }}</p>{% endfor %}
   </div>
   {% endif %}
@@ -386,9 +386,9 @@
   </div>{# /ABA 1: FICHA #}
 
   {# ===================== ABA 2: INFORMAÇÕES ===================== #}
-  <div class="ficha-tabpanel space-y-5" data-tabpanel="info" role="tabpanel" hidden>
+  <div class="ficha-tabpanel space-y-3" data-tabpanel="info" role="tabpanel" hidden>
     {% if pode_editar %}
-    <form method="post" action="{% url 'personagem_info_salvar' p.id_personagem %}" class="info-form space-y-5" enctype="multipart/form-data" id="ficha-appearance-form">
+    <form method="post" action="{% url 'personagem_info_salvar' p.id_personagem %}" class="info-form space-y-3" enctype="multipart/form-data" id="ficha-appearance-form">
       {% csrf_token %}
 
       <div class="info-layout">
@@ -461,7 +461,7 @@
         </div>
 
         {# Cores do tema Personalizado — só valem quando Tema = Personalizado #}
-        <div class="info-grid appearance-controls custom-theme-controls" id="ficha-custom-controls" style="{% if not appearance.is_custom %}display:none;{% endif %}margin-top:.75rem">
+        <div class="info-grid appearance-controls custom-theme-controls" id="ficha-custom-controls" style="{% if not appearance.is_custom %}display:none;{% endif %}margin-top:.5rem">
           <label class="info-field"><span class="lbl">Destaque</span><input type="color" name="custom_accent" id="ficha-custom-accent" value="{{ appearance.custom.accent }}"></label>
           <label class="info-field"><span class="lbl">Destaque 2</span><input type="color" name="custom_accent2" id="ficha-custom-accent2" value="{{ appearance.custom.accent2 }}"></label>
           <label class="info-field"><span class="lbl">Superfície</span><input type="color" name="custom_surface" id="ficha-custom-surface" value="{{ appearance.custom.surface }}"></label>
@@ -470,7 +470,7 @@
         </div>
 
         {# Preview ao vivo do tema/moldura/efeito #}
-        <div class="ficha-header ficha-live-preview {{ appearance.theme_class }} {{ appearance.effect_class }}" id="ficha-preview" style="margin-top:1rem;{{ appearance.custom_style }}">
+        <div class="ficha-header ficha-live-preview {{ appearance.theme_class }} {{ appearance.effect_class }}" id="ficha-preview" style="margin-top:.7rem;{{ appearance.custom_style }}">
           <div class="banner-character-avatar {{ appearance.frame_class }}" id="ficha-preview-frame" style="width:56px;height:56px">
             {% if p.foto_url %}<img src="{{ p.foto_url }}" alt="" loading="lazy">{% else %}<span>{{ p.nome|first|upper }}</span>{% endif %}
           </div>
@@ -503,7 +503,7 @@
     <div class="info-layout">
       <div class="ficha-panel">
         <div class="ficha-section-title">Dados do Personagem</div>
-        <dl class="grid gap-x-8 sm:grid-cols-2">
+        <dl class="grid gap-x-4 sm:grid-cols-2">
           <div class="def-row"><dt>Idade</dt><dd>{{ p.idade|default:"—" }}</dd></div>
           <div class="def-row"><dt>Altura</dt><dd>{{ p.altura|default:"—" }}</dd></div>
           <div class="def-row"><dt>Peso</dt><dd>{{ p.peso|default:"—" }}</dd></div>
@@ -549,7 +549,7 @@
   </div>{# /ABA 2: INFORMAÇÕES #}
 
   {# ===================== ABA 3: MAGIAS ===================== #}
-  <div class="ficha-tabpanel space-y-5" data-tabpanel="magias" role="tabpanel" hidden>
+  <div class="ficha-tabpanel space-y-3" data-tabpanel="magias" role="tabpanel" hidden>
     <div class="spellbook-head">
       <div class="spell-title">
         <span>Magias</span>
@@ -614,19 +614,19 @@
     <div class="ficha-panel border border-[var(--ember)]/40">
       <div class="ficha-section-title">Magias a escolher</div>
       {% for b in magias_info.essencia_pendentes %}
-      <form method="post" action="{% url 'personagem_escolher_magia_essencia' p.id_personagem %}" class="mb-3 last:mb-0">{% csrf_token %}
+      <form method="post" action="{% url 'personagem_escolher_magia_essencia' p.id_personagem %}" class="mb-2 last:mb-0">{% csrf_token %}
         <input type="hidden" name="fonte" value="{{ b.fonte }}">
         <input type="hidden" name="slot" value="{{ b.slot }}">
-        <p class="magias-help mb-2"><strong>{{ b.fonte }}</strong> — escolha {{ b.rotulo }}:</p>
-        <div class="flex flex-wrap gap-2 {% if b.opcoes|length > 12 %}max-h-56 overflow-y-auto pr-1{% endif %}">
+        <p class="magias-help mb-1.5"><strong>{{ b.fonte }}</strong> — escolha {{ b.rotulo }}:</p>
+        <div class="flex flex-wrap gap-1.5 {% if b.opcoes|length > 12 %}max-h-56 overflow-y-auto pr-1{% endif %}">
           {% for o in b.opcoes %}
-          <label class="inline-flex items-center gap-2 rounded border border-[var(--line)] px-3 py-1.5 text-sm cursor-pointer hover:border-[var(--ember)]">
+          <label class="inline-flex items-center gap-1.5 rounded border border-[var(--line)] px-3 py-1.5 text-sm cursor-pointer hover:border-[var(--ember)]">
             <input type="checkbox" name="magia" value="{{ o.slug }}" {% if o.slug in b.escolhidos %}checked{% endif %}>
             <span>{{ o.nome }}</span>
           </label>
           {% endfor %}
         </div>
-        <button type="submit" class="btn-ember text-sm mt-2">Confirmar escolha</button>
+        <button type="submit" class="btn-ember text-sm mt-1.5">Confirmar escolha</button>
       </form>
       {% endfor %}
     </div>
@@ -688,7 +688,7 @@
   </div>{# /ABA 3: MAGIAS #}
 
   {# ===================== ABA 4: HISTÓRICO ===================== #}
-  <div class="ficha-tabpanel space-y-5" data-tabpanel="historico" role="tabpanel" hidden>
+  <div class="ficha-tabpanel space-y-3" data-tabpanel="historico" role="tabpanel" hidden>
     <div class="ficha-panel">
       <div class="ficha-section-title">Histórico de Transações</div>
       {% if transacoes %}
@@ -861,11 +861,11 @@
     if (customBox) customBox.style.display = isCustom ? '' : 'none';
     if (isCustom) {
       const accent = cG && cG.checked ? ('linear-gradient(120deg, ' + cA.value + ', ' + cB.value + ')') : cA.value;
-      preview.style.cssText = 'margin-top:1rem;width:56px;'
+      preview.style.cssText = 'margin-top:.7rem;width:56px;'
         + '--sheet-accent:' + accent + ';--sheet-accent-solid:' + cA.value
         + ';--sheet-accent-2:' + cB.value + ';--sheet-surface:' + cS.value + ';--sheet-deep:' + cD.value + ';';
     } else {
-      preview.style.cssText = 'margin-top:1rem';
+      preview.style.cssText = 'margin-top:.7rem';
     }
   }
   [...themeRadios, frameSel, effectSel, cA, cB, cS, cD, cG].forEach(el => {

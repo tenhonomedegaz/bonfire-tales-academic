@@ -1,11 +1,11 @@
 {% extends 'home/base.html' %}
 {% load static %}
 
-{% block main_class %}flex-1 w-full max-w-7xl mx-auto px-4 md:px-8 py-8{% endblock %}
+{% block main_class %}flex-1 w-full max-w-7xl mx-auto px-4 md:px-8 py-4{% endblock %}
 {% block title %}{{ title }} - Bonfire Tales RPG{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/pages/catalogo.css' %}">
+<link rel="stylesheet" href="{% static 'css/pages/catalogo.css' %}?v=4">
 {% endblock %}
 
 {% block content %}
@@ -14,9 +14,9 @@
     <h1 class="catalog-title">{{ title }}</h1>
     <p class="catalog-subtitle">{{ subtitle }}</p>
     {% if kind == 'antecedentes' %}
-      <div class="catalog-intro-box" style="margin-top: 1.5rem; padding: 1.25rem; background: var(--bg0); border: 1px solid var(--stroke); border-radius: 6px; font-size: 0.9rem; line-height: 1.6; color: var(--text);">
-        <p style="margin-bottom: 0.75rem;">Todo <b>Antecedente</b> concede benefícios básicos ao seu personagem, além de ajudar a definir sua história e o jeito que ele encara o mundo. Ao escolher um antecedente, você recebe:</p>
-        <ul style="margin-bottom: 1rem; padding-left: 1.25rem; list-style-type: disc; display: flex; flex-direction: column; gap: 0.5rem;">
+      <div class="catalog-intro-box" style="margin-top: 1rem; padding: 0.75rem; background: var(--bg0); border: 1px solid var(--stroke); border-radius: 6px; font-size: 0.9rem; line-height: 1.45; color: var(--text);">
+        <p style="margin-bottom: 0.5rem;">Todo <b>Antecedente</b> concede benefícios básicos ao seu personagem, além de ajudar a definir sua história e o jeito que ele encara o mundo. Ao escolher um antecedente, você recebe:</p>
+        <ul style="margin-bottom: 0.6rem; padding-left: 1.25rem; list-style-type: disc; display: flex; flex-direction: column; gap: 0.4rem;">
           <li><b>Atributos:</b> Você pode alocar <b>+2</b> em um atributo e <b>+1</b> em outro (à sua escolha).</li>
           <li><b>Perícias:</b> Escolha <b>2 perícias</b> à sua escolha.</li>
           <li><b>Idiomas ou Ferramentas:</b> Seu personagem <b>sempre sabe falar Comum</b>. Além disso, escolha <b>2</b> entre <b>Idiomas</b> e/ou <b>Proficiências com Ferramentas</b> (pode ser 2 idiomas, 2 ferramentas, ou 1 de cada).</li>
@@ -24,18 +24,18 @@
           <li><b>Habilidade do Antecedente:</b> Você recebe <b>1 habilidade</b> ligada ao seu antecedente, pensada para te ajudar durante as aventuras.</li>
           <li><b>Talento de Origem:</b> Você escolhe <b>1 Talento de Origem</b>.</li>
         </ul>
-        <p style="font-style: italic; color: var(--muted); border-left: 2px solid var(--ember); padding-left: 0.75rem;"><b>Origem de Nascimento (Reino) e Deus:</b> Alguns antecedentes também pedem que você escolha uma <b>Origem de Nascimento</b> (Reino) ou um <b>deus</b> para definir detalhes do seu Talento de Origem. Se esse for o seu caso, selecione-os apropriadamente.</p>
+        <p style="font-style: italic; color: var(--muted); border-left: 2px solid var(--ember); padding-left: 0.5rem;"><b>Origem de Nascimento (Reino) e Deus:</b> Alguns antecedentes também pedem que você escolha uma <b>Origem de Nascimento</b> (Reino) ou um <b>deus</b> para definir detalhes do seu Talento de Origem. Se esse for o seu caso, selecione-os apropriadamente.</p>
       </div>
     {% endif %}
     {% if db_error %}
-      <p class="catalog-empty" style="margin-top:1rem;">Banco indisponivel agora: {{ db_error }}</p>
+      <p class="catalog-empty" style="margin-top:0.6rem;">Banco indisponivel agora: {{ db_error }}</p>
     {% endif %}
     {% if can_edit_wiki and kind == 'magias' %}
-      <a class="catalog-action" href="{% url 'admin:home_tbmagia_importar_excel' %}" style="display:inline-flex;margin-top:1rem;text-decoration:none;">Importar magias por Excel</a>
+      <a class="catalog-action" href="{% url 'admin:home_tbmagia_importar_excel' %}" style="display:inline-flex;margin-top:0.6rem;text-decoration:none;">Importar magias por Excel</a>
     {% endif %}
 
     {% if can_edit_wiki and kind == 'organizacoes' %}
-      <button type="button" class="catalog-action" id="toggleOrgForm" style="margin-top:1rem;">Nova organizacao</button>
+      <button type="button" class="catalog-action" id="toggleOrgForm" style="margin-top:0.6rem;">Nova organizacao</button>
       <form class="org-form" id="orgForm">
         <input name="nome" placeholder="Nome da organizacao" required>
         <input name="tipo" placeholder="Tipo, ex: Guilda, Ordem, Reino">
@@ -183,7 +183,7 @@
           <span class="detail-meta-value">${esc(Array.isArray(value) ? value.join(', ') : value)}</span>
         </div>
       `).join('')}</div>` : ''}
-      <div class="bonfire-markdown prose prose-invert max-w-none" style="margin-top:1.25rem;">${markdown(item.descricao || '') || '<p class="catalog-empty">Sem descricao cadastrada.</p>'}</div>
+      <div class="bonfire-markdown prose prose-invert max-w-none" style="margin-top:0.75rem;">${markdown(item.descricao || '') || '<p class="catalog-empty">Sem descricao cadastrada.</p>'}</div>
     `;
   }
 

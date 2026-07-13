@@ -2,8 +2,8 @@
     .prose table {
         width: 100%;
         border-collapse: collapse;
-        margin-top: 1rem;
-        margin-bottom: 1rem;
+        margin-top: 0.6rem;
+        margin-bottom: 0.6rem;
         font-size: 0.875rem;
     }
     .prose th {
@@ -11,12 +11,12 @@
         color: #ffffff;
         font-weight: 700;
         text-transform: uppercase;
-        padding: 0.75rem 1rem;
+        padding: 0.4rem 0.6rem;
         text-align: left;
         border-bottom: 1px solid var(--stroke);
     }
     .prose td {
-        padding: 0.75rem 1rem;
+        padding: 0.4rem 0.6rem;
         border-bottom: 1px solid var(--stroke);
         background-color: var(--bg1);
         color: #ffffff;
@@ -27,10 +27,10 @@
     .prose h3 {
         color: var(--ember);
         font-family: 'Cinzel', serif;
-        font-size: 1.25rem;
+        font-size: 1.05rem;
         font-weight: 700;
-        margin-top: 1.5rem;
-        margin-bottom: 0.5rem;
+        margin-top: 1rem;
+        margin-bottom: 0.4rem;
         text-transform: uppercase;
     }
     .prose h4 {
@@ -44,32 +44,32 @@
         font-size: 0.95rem;
         font-weight: 800;
         line-height: 1.25;
-        margin: 1.25rem 0 0.75rem;
-        padding: 0.35rem 0.55rem;
+        margin: 0.85rem 0 0.5rem;
+        padding: 0.3rem 0.5rem;
         text-transform: capitalize;
     }
     .prose ul {
         list-style-type: disc;
         padding-left: 1.5rem;
-        margin-bottom: 1rem;
+        margin-bottom: 0.6rem;
     }
     .prose ul ul {
         list-style-type: circle;
-        margin-top: 0.35rem;
-        margin-bottom: 0.35rem;
+        margin-top: 0.3rem;
+        margin-bottom: 0.3rem;
     }
     .prose li {
-        margin-bottom: 0.25rem;
+        margin-bottom: 0.2rem;
     }
     .prose p {
         color: #ffffff;
-        margin-bottom: 1rem;
-        line-height: 1.7;
+        margin-bottom: 0.6rem;
+        line-height: 1.5;
     }
     .prose em {
         color: var(--spark);
         display: block;
-        margin-bottom: 1rem;
+        margin-bottom: 0.6rem;
         font-size: 1.1rem;
     }
     .prose strong {
@@ -81,9 +81,9 @@
         border: 1px solid var(--stroke);
         border-left: 4px solid var(--ember);
         border-radius: 0.5rem;
-        padding: 1.5rem;
-        margin-top: 2rem;
-        margin-bottom: 2rem;
+        padding: 0.85rem;
+        margin-top: 1.2rem;
+        margin-bottom: 1.2rem;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
     }
     .prose blockquote p:first-child {
@@ -98,12 +98,12 @@
     .prose .bonfire-center {
         color: #ffffff;
         font-weight: 700;
-        line-height: 1.6;
-        margin: 1.5rem auto;
+        line-height: 1.45;
+        margin: 1rem auto;
         text-align: center;
     }
     .prose .bonfire-toggle {
-        margin: 1.5rem 0;
+        margin: 1rem 0;
     }
     .prose .bonfire-toggle summary {
         background: #050505;
@@ -117,7 +117,7 @@
         font-weight: 900;
         letter-spacing: .04em;
         margin: 0 auto;
-        padding: 9px 14px;
+        padding: 7px 12px;
         text-transform: uppercase;
         transition: border-color .2s ease, transform .2s ease;
     }
@@ -133,10 +133,10 @@
         background: #050505;
         border: 1px solid rgba(255,255,255,.06);
         border-radius: 6px;
-        margin-top: .9rem;
+        margin-top: .6rem;
         max-height: none;
         overflow: hidden;
-        padding: 1rem 1.25rem;
+        padding: 0.7rem 0.85rem;
         transition: max-height .55s cubic-bezier(.2, .8, .2, 1), opacity .35s ease, transform .45s cubic-bezier(.2, .8, .2, 1);
     }
     .filter-backdrop {
@@ -238,7 +238,7 @@
     .talent-info-card {
         align-items: center;
         display: flex;
-        min-height: 104px;
+        min-height: 84px;
     }
     .talent-info-card p:last-child {
         line-height: 1.35;
@@ -334,7 +334,7 @@
             left: 0;
             width: 60vw;
             max-height: none !important;
-            padding: 1rem .75rem 5rem;
+            padding: 0.7rem .5rem 4rem;
             transform: translateX(-105%);
             transition: transform .24s ease;
             z-index: 95;
@@ -349,8 +349,8 @@
         .talent-list-panel > #opcaoSearchBar {
             background: var(--bg0);
             border-bottom: 1px solid var(--stroke);
-            margin: -1rem -.75rem .75rem;
-            padding: .75rem;
+            margin: -0.7rem -.5rem .5rem;
+            padding: .5rem;
             position: sticky;
             top: 0;
             z-index: 5;
@@ -363,7 +363,7 @@
         font-size: 11px;
         font-weight: 800;
         letter-spacing: .08em;
-        padding: .55rem .75rem;
+        padding: .45rem .65rem;
         text-transform: uppercase;
         transition: border-color .2s ease, color .2s ease, background-color .2s ease;
     }
@@ -376,12 +376,12 @@
         background: rgba(16,16,18,.98);
         border: 1px solid var(--stroke);
         border-radius: 8px;
-        margin-bottom: 1rem;
-        padding: 1rem;
+        margin-bottom: 0.7rem;
+        padding: 0.7rem;
     }
     .wiki-editor-grid {
         display: grid;
-        gap: .8rem;
+        gap: .5rem;
     }
     @media (min-width: 900px) {
         .wiki-editor-grid {
@@ -431,14 +431,14 @@
         border-radius: 6px;
         display: flex;
         flex-direction: row;
-        gap: .4rem;
-        padding: .45rem .6rem;
+        gap: .35rem;
+        padding: .4rem .55rem;
     }
     .wiki-editor-actions {
         display: flex;
-        gap: .6rem;
+        gap: .45rem;
         justify-content: flex-end;
-        margin-top: 1rem;
+        margin-top: 0.7rem;
     }
     .wiki-save {
         background: var(--flame);
@@ -446,7 +446,7 @@
         color: #fff;
         font-size: 12px;
         font-weight: 900;
-        padding: .7rem 1rem;
+        padding: .5rem .75rem;
     }
     .wiki-cancel {
         border: 1px solid var(--stroke);
@@ -454,5 +454,5 @@
         color: var(--muted);
         font-size: 12px;
         font-weight: 900;
-        padding: .7rem 1rem;
+        padding: .5rem .75rem;
     }

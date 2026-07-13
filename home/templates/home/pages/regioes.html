@@ -7,7 +7,7 @@
 {% block ad_containers_right %}{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/pages/regioes.css' %}">
+<link rel="stylesheet" href="{% static 'css/pages/regioes.css' %}?v=2">
 {% endblock %}
 
 {% block content %}
@@ -65,18 +65,18 @@
 
 {% if can_edit_wiki %}
 <dialog id="newRegionModal" class="backdrop:bg-black/80 bg-[var(--bg1)] text-[var(--text)] border border-[var(--stroke)] rounded-lg shadow-2xl p-0 w-[600px] max-w-[95vw]">
-  <div class="p-6 border-b border-[var(--stroke)] flex justify-between items-center bg-[var(--bg0)]">
+  <div class="p-4 border-b border-[var(--stroke)] flex justify-between items-center bg-[var(--bg0)]">
     <h3 class="font-cinzel text-2xl font-bold text-[var(--ember)] uppercase tracking-widest">Criar Região</h3>
     <button formmethod="dialog" onclick="document.getElementById('newRegionModal').close()" class="text-[var(--muted)] hover:text-red-500 transition-colors">X</button>
   </div>
-  <div class="p-6 space-y-4">
-    <div class="grid grid-cols-2 gap-4">
+  <div class="p-4 space-y-2.5">
+    <div class="grid grid-cols-2 gap-2.5">
       <label class="grid gap-1 text-xs font-bold uppercase tracking-widest text-[var(--muted)]">Nome
-        <input id="nr-nome" type="text" class="bg-[var(--bg0)] border border-[var(--stroke)] rounded p-2 text-sm text-[var(--text)]">
+        <input id="nr-nome" type="text" class="bg-[var(--bg0)] border border-[var(--stroke)] rounded p-1.5 text-sm text-[var(--text)]">
       </label>
       <label class="grid gap-1 text-xs font-bold uppercase tracking-widest text-[var(--muted)]">Território
-        <div class="flex gap-2">
-          <select id="nr-territorio" class="flex-1 bg-[var(--bg0)] border border-[var(--stroke)] rounded p-2 text-sm text-[var(--text)]" style="min-width: 0;">
+        <div class="flex gap-1.5">
+          <select id="nr-territorio" class="flex-1 bg-[var(--bg0)] border border-[var(--stroke)] rounded p-1.5 text-sm text-[var(--text)]" style="min-width: 0;">
             <option value="">Sem território</option>
             {% for territory_name in all_territories_list %}
             <option value="{{ territory_name }}">{{ territory_name }}</option>
@@ -88,38 +88,38 @@
     </div>
 
     <!-- Seção oculta para criação inline de território -->
-    <div id="createTerritorySectionRegion" style="display: none; border: 1px dashed var(--stroke); padding: 1rem; border-radius: 6px; background: var(--bg0);">
-      <h4 class="font-cinzel text-xs font-bold text-[var(--ember)] uppercase tracking-wider mb-3">Criar Novo Território</h4>
-      <div class="grid grid-cols-2 gap-4">
+    <div id="createTerritorySectionRegion" style="display: none; border: 1px dashed var(--stroke); padding: .7rem; border-radius: 6px; background: var(--bg0);">
+      <h4 class="font-cinzel text-xs font-bold text-[var(--ember)] uppercase tracking-wider mb-2">Criar Novo Território</h4>
+      <div class="grid grid-cols-2 gap-2.5">
         <label class="grid gap-1 text-xs font-bold uppercase tracking-widest text-[var(--muted)]">Nome do Território
-          <input id="ntr-nome" type="text" placeholder="Ex: Reino de Cinéria" class="bg-[var(--bg1)] border border-[var(--stroke)] rounded p-2 text-sm text-[var(--text)]">
+          <input id="ntr-nome" type="text" placeholder="Ex: Reino de Cinéria" class="bg-[var(--bg1)] border border-[var(--stroke)] rounded p-1.5 text-sm text-[var(--text)]">
         </label>
         <label class="grid gap-1 text-xs font-bold uppercase tracking-widest text-[var(--muted)]">Cor do Território
           <input id="ntr-cor" type="color" value="#ff8800" class="block w-[60px] h-[36px] p-[2px] cursor-pointer bg-transparent border border-[var(--stroke)] rounded">
         </label>
       </div>
-      <div class="flex justify-end gap-2 mt-4">
+      <div class="flex justify-end gap-1.5 mt-2.5">
         <button type="button" id="btnCancelCreateTerritoryRegion" class="px-3 py-1.5 text-xs font-bold text-[var(--muted)] hover:text-white transition-colors" style="cursor: pointer;">Voltar</button>
-        <button type="button" id="btnConfirmCreateTerritoryRegion" class="px-4 py-1.5 bg-[var(--ember)] text-white text-xs font-bold rounded hover:bg-[var(--flame)] transition-all" style="cursor: pointer; border: none;">Criar</button>
+        <button type="button" id="btnConfirmCreateTerritoryRegion" class="px-3 py-1.5 bg-[var(--ember)] text-white text-xs font-bold rounded hover:bg-[var(--flame)] transition-all" style="cursor: pointer; border: none;">Criar</button>
       </div>
     </div>
 
     <label class="grid gap-1 text-xs font-bold uppercase tracking-widest text-[var(--muted)]">URL da imagem de fundo
-      <input id="nr-imagem" type="text" class="bg-[var(--bg0)] border border-[var(--stroke)] rounded p-2 text-sm text-[var(--text)]">
+      <input id="nr-imagem" type="text" class="bg-[var(--bg0)] border border-[var(--stroke)] rounded p-1.5 text-sm text-[var(--text)]">
     </label>
     <label class="grid gap-1 text-xs font-bold uppercase tracking-widest text-[var(--muted)]">URL do mapa lateral
-      <input id="nr-mapa" type="text" class="bg-[var(--bg0)] border border-[var(--stroke)] rounded p-2 text-sm text-[var(--text)]">
+      <input id="nr-mapa" type="text" class="bg-[var(--bg0)] border border-[var(--stroke)] rounded p-1.5 text-sm text-[var(--text)]">
     </label>
     <label class="grid gap-1 text-xs font-bold uppercase tracking-widest text-[var(--muted)]">Tags adicionais
-      <input id="nr-tags" type="text" placeholder="Separadas por vírgula" class="bg-[var(--bg0)] border border-[var(--stroke)] rounded p-2 text-sm text-[var(--text)]">
+      <input id="nr-tags" type="text" placeholder="Separadas por vírgula" class="bg-[var(--bg0)] border border-[var(--stroke)] rounded p-1.5 text-sm text-[var(--text)]">
     </label>
     <label class="grid gap-1 text-xs font-bold uppercase tracking-widest text-[var(--muted)]">Descrição breve
-      <textarea id="nr-desc" rows="3" class="bg-[var(--bg0)] border border-[var(--stroke)] rounded p-2 text-sm text-[var(--text)]"></textarea>
+      <textarea id="nr-desc" rows="3" class="bg-[var(--bg0)] border border-[var(--stroke)] rounded p-1.5 text-sm text-[var(--text)]"></textarea>
     </label>
   </div>
-  <div class="p-6 border-t border-[var(--stroke)] bg-[var(--bg0)] flex justify-end gap-3">
-    <button onclick="document.getElementById('newRegionModal').close()" class="px-4 py-2 text-sm font-bold text-[var(--muted)] hover:text-white transition-colors" style="cursor: pointer;">Cancelar</button>
-    <button id="btnSaveNewRegion" class="px-6 py-2 bg-[var(--ember)] text-white text-sm font-bold rounded hover:bg-[var(--flame)] transition-all" style="cursor: pointer; border: none;">Criar</button>
+  <div class="p-4 border-t border-[var(--stroke)] bg-[var(--bg0)] flex justify-end gap-2">
+    <button onclick="document.getElementById('newRegionModal').close()" class="px-3 py-1.5 text-sm font-bold text-[var(--muted)] hover:text-white transition-colors" style="cursor: pointer;">Cancelar</button>
+    <button id="btnSaveNewRegion" class="px-4 py-1.5 bg-[var(--ember)] text-white text-sm font-bold rounded hover:bg-[var(--flame)] transition-all" style="cursor: pointer; border: none;">Criar</button>
   </div>
 </dialog>
 

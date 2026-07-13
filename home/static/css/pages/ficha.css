@@ -47,7 +47,7 @@
   background:
     radial-gradient(120% 140% at 0% 0%, rgba(210, 23, 23, 0.14), transparent 55%),
     linear-gradient(180deg, var(--bg1), var(--bg0));
-  padding: 1.1rem 1.25rem;
+  padding: 0.7rem 0.75rem;
   overflow: hidden;
 }
 .ficha-header::before {
@@ -183,7 +183,7 @@
 .ficha-banner {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 1rem;
+  gap: 0.55rem;
   align-items: stretch;
 }
 @media (min-width: 900px) {
@@ -198,7 +198,7 @@
   min-width: 0;
   position: relative;
   z-index: 1;
-  padding: 0.85rem 1rem;
+  padding: 0.6rem 0.7rem;
   border: 1px solid var(--stroke);
   border-radius: 10px;
   background:
@@ -346,7 +346,7 @@
   border: 1px solid var(--stroke);
   border-radius: 7px;
   padding: 0.35rem 0.7rem;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   color: var(--muted);
   white-space: nowrap;
   transition: color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
@@ -364,7 +364,7 @@
 .banner-identity {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.75rem;
+  gap: 0.5rem;
   align-items: stretch;
   position: relative;
   z-index: 1;
@@ -372,7 +372,7 @@
 .banner-fields {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.5rem;
+  gap: 0.45rem;
   min-width: 0;
 }
 .banner-field {
@@ -461,7 +461,7 @@
 .attr-skills {
   display: grid;
   grid-template-columns: minmax(0, 0.62fr) minmax(0, 1fr);
-  gap: 1rem;
+  gap: 0.55rem;
   align-items: start;
 }
 @media (max-width: 420px) {
@@ -472,7 +472,7 @@
 .attr-stack {
   display: flex;
   flex-direction: column;
-  gap: 1.2rem;
+  gap: 0.7rem;
 }
 .attr-box {
   position: relative;
@@ -486,7 +486,7 @@
   background: linear-gradient(180deg, var(--bg1), var(--bg0));
   text-align: center;
   padding: 0.5rem 0.4rem 0.95rem;
-  min-height: 90px;
+  min-height: 76px;
 }
 .attr-box .attr-sig {
   font-size: 10px;
@@ -514,7 +514,7 @@
   border-radius: 7px;
   background: var(--bg0);
   text-align: center;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   font-weight: 700;
   color: var(--spark);
   padding: 0.1rem 0.45rem;
@@ -524,7 +524,7 @@
 .attr-stat-row {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.6rem;
+  gap: 0.45rem;
 }
 .attr-stat {
   display: flex;
@@ -558,9 +558,9 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-  padding: 0.2rem 0;
+  padding: 0.15rem 0;
   border-bottom: 1px solid rgba(39, 39, 42, 0.6);
-  font-size: 0.82rem;
+  font-size: 0.85rem;
 }
 .line-row:last-child { border-bottom: 0; }
 .line-row .name { color: var(--muted); min-width: 0; }
@@ -582,7 +582,7 @@
 .combat-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.55rem;
+  gap: 0.45rem;
 }
 .combat-box {
   border: 1px solid var(--stroke);
@@ -637,7 +637,7 @@
 .hp-track.single .hp-cell.max { padding: 0.6rem 0.4rem; }
 
 /* ---------- CARDS DE HABILIDADE (acordeão) ---------- */
-.feat-group + .feat-group { margin-top: 1.4rem; }
+.feat-group + .feat-group { margin-top: 0.85rem; }
 .feat-group-title {
   font-family: 'Cinzel', serif;
   font-weight: 700;
@@ -647,8 +647,8 @@
   color: var(--text);
   display: flex;
   align-items: center;
-  gap: 0.6rem;
-  margin-bottom: 0.7rem;
+  gap: 0.45rem;
+  margin-bottom: 0.5rem;
 }
 .feat-group-title::before {
   content: "";
@@ -670,7 +670,7 @@
 .feat-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 0.6rem;
+  gap: 0.45rem;
 }
 
 .feat-card {
@@ -690,9 +690,9 @@
   width: 100%;
   display: flex;
   align-items: flex-start;
-  gap: 0.6rem;
+  gap: 0.45rem;
   text-align: left;
-  padding: 0.7rem 0.85rem;
+  padding: 0.5rem 0.7rem;
   background: transparent;
   cursor: pointer;
   border: 0;
@@ -753,9 +753,9 @@
   border-top: 1px solid var(--stroke);
 }
 .feat-desc {
-  padding: 0.8rem 0.95rem 0.95rem;
+  padding: 0.6rem 0.75rem 0.75rem;
   font-size: 0.85rem;
-  line-height: 1.6;
+  line-height: 1.45;
   color: var(--muted);
 }
 .feat-desc.empty { color: var(--muted); font-style: italic; opacity: 0.7; }
@@ -776,7 +776,7 @@
 .ficha-columns {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 1rem;
+  gap: 0.55rem;
 }
 @media (min-width: 1024px) {
   .ficha-columns {
@@ -786,7 +786,7 @@
 }
 
 /* defesas/sentidos definição */
-.def-row { display: flex; gap: 0.6rem; padding: 0.25rem 0; font-size: 0.82rem; }
+.def-row { display: flex; gap: 0.45rem; padding: 0.25rem 0; font-size: 0.85rem; }
 .def-row dt { width: 7.5rem; flex-shrink: 0; color: var(--muted); }
 .def-row dd { color: var(--text); min-width: 0; }
 
@@ -804,13 +804,13 @@
   font-family: 'Cinzel', serif;
   font-weight: 700;
   letter-spacing: 0.06em;
-  font-size: 0.82rem;
+  font-size: 0.85rem;
   color: var(--muted);
   background: linear-gradient(180deg, var(--bg1), var(--bg0));
   border: 1px solid var(--stroke);
   border-bottom: none;
   border-radius: 9px 9px 0 0;
-  padding: 0.55rem 1.05rem;
+  padding: 0.4rem 0.75rem;
   position: relative;
   bottom: -1px;
   cursor: pointer;
@@ -844,7 +844,7 @@
 .info-layout {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 1rem;
+  gap: 0.55rem;
   align-items: start;
 }
 @media (min-width: 860px) {
@@ -854,7 +854,7 @@
 .info-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.6rem 0.7rem;
+  gap: 0.45rem 0.5rem;
 }
 @media (min-width: 520px) {
   .info-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -889,7 +889,7 @@
   font-family: inherit;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
-.info-field textarea { resize: vertical; line-height: 1.55; }
+.info-field textarea { resize: vertical; line-height: 1.45; }
 .info-field input:focus,
 .info-field textarea:focus {
   outline: none;
@@ -902,8 +902,8 @@
 .info-portraits {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
-  margin-bottom: 0.85rem;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
 }
 .info-portrait { margin: 0; text-align: center; min-width: 0; }
 .info-portrait img {
@@ -940,11 +940,11 @@
 }
 
 .info-actions { display: flex; justify-content: flex-end; }
-.info-actions .banner-btn { font-size: 0.9rem; padding: 0.55rem 1.4rem; }
+.info-actions .banner-btn { font-size: 0.9rem; padding: 0.4rem 1rem; }
 
 .info-lore {
   font-size: 0.88rem;
-  line-height: 1.65;
+  line-height: 1.45;
   color: var(--text);
 }
 .info-lore .bonfire-markdown { color: var(--text); }
@@ -953,19 +953,19 @@
 /* ============================================================
    CONTADORES DE RECURSOS
    ============================================================ */
-.resource-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 0.65rem; }
+.resource-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 0.5rem; }
 .resource-card {
-  min-height: 104px;
+  min-height: 84px;
   border: 1px solid rgba(82, 82, 91, 0.78);
   border-radius: 6px;
   background: linear-gradient(180deg, rgba(39, 39, 42, 0.98), rgba(24, 24, 27, 0.98));
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
-  padding: 0.55rem 0.6rem 0.5rem;
+  padding: 0.45rem 0.55rem 0.45rem;
   text-align: center;
 }
 .resource-card.is-empty { border-color: rgba(220, 38, 38, 0.45); }
 .resource-card-top { display: flex; justify-content: space-between; gap: 0.35rem; color: var(--muted); font-size: 9px; font-weight: 700; text-transform: uppercase; }
-.resource-card-top strong { color: var(--text); font-size: 0.82rem; }
+.resource-card-top strong { color: var(--text); font-size: 0.85rem; }
 .resource-card-value { margin-top: 0.1rem; color: #fff; font-family: 'Cinzel', serif; font-size: 1.72rem; font-weight: 800; line-height: 1; }
 .resource-card-name { margin-top: 0.1rem; color: var(--text); font-size: 0.66rem; font-weight: 800; line-height: 1.1; text-transform: uppercase; }
 .resource-card-sub { margin-top: 0.18rem; color: var(--muted); font-size: 0.58rem; font-weight: 700; line-height: 1.1; text-transform: uppercase; }
@@ -977,14 +977,14 @@
 }
 .resource-card-actions button:hover, .spell-slot-actions button:hover { border-color: var(--ember); color: var(--ember); }
 .resource-card-actions button:disabled, .spell-slot-actions button:disabled { cursor: not-allowed; opacity: 0.35; }
-.resource-rest-actions { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 0.75rem; padding-top: 0.7rem; border-top: 1px solid rgba(82, 82, 91, 0.45); }
+.resource-rest-actions { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid rgba(82, 82, 91, 0.45); }
 .resource-rest-actions button { border: 1px solid var(--stroke); border-radius: 5px; background: var(--bg0); color: var(--muted); padding: 0.35rem 0.7rem; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; }
 .resource-rest-actions button.primary { border-color: rgba(242, 112, 7, 0.55); color: var(--ember); }
 
 /* ============================================================
    SPELLBOOK
    ============================================================ */
-.spellbook-head { display: flex; align-items: stretch; justify-content: space-between; gap: 1rem; border: 1px solid var(--stroke); border-radius: 8px; background: rgba(24, 24, 27, 0.92); padding: 0.8rem; }
+.spellbook-head { display: flex; align-items: stretch; justify-content: space-between; gap: 0.55rem; border: 1px solid var(--stroke); border-radius: 8px; background: rgba(24, 24, 27, 0.92); padding: 0.55rem; }
 .spell-title { display: flex; min-width: 12rem; flex-direction: column; justify-content: center; gap: 0.1rem; }
 .spell-title span, .spell-stat span, .mystic-points span, .spell-slot-numbers span { color: var(--muted); font-size: 0.62rem; font-weight: 800; text-transform: uppercase; }
 .spell-title strong { color: var(--text); font-family: 'Cinzel', serif; font-size: 1.35rem; }
@@ -1012,11 +1012,11 @@
 .spell-slot-level { display: flex; align-items: center; justify-content: center; width: 1.8rem; height: 2rem; border-radius: 4px; background: var(--bg1); color: var(--text); font-family: 'Cinzel', serif; font-weight: 900; }
 .spell-slot-numbers { display: grid; grid-template-columns: auto 1fr; gap: 0.1rem 0.35rem; align-items: baseline; }
 .spell-slot-numbers strong { color: var(--text); font-size: 0.95rem; line-height: 1; }
-.spell-level-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(236px, 1fr)); gap: 0.75rem; }
+.spell-level-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(236px, 1fr)); gap: 0.5rem; }
 .spell-level-card { overflow: hidden; border: 1px solid var(--stroke); border-radius: 7px; background: rgba(24, 24, 27, 0.96); }
 .spell-level-card.is-empty { opacity: 0.62; }
 .spell-level-head { display: grid; grid-template-columns: 2rem 1fr auto; align-items: center; gap: 0.55rem; min-height: 2.35rem; border-bottom: 1px solid rgba(82, 82, 91, 0.55); background: rgba(39, 39, 42, 0.92); padding: 0.35rem 0.55rem; }
-.spell-level-head strong { color: var(--text); font-family: 'Cinzel', serif; font-size: 0.8rem; }
+.spell-level-head strong { color: var(--text); font-family: 'Cinzel', serif; font-size: 0.85rem; }
 .spell-level-head > span:last-child { color: var(--spark); font-size: 0.72rem; font-weight: 800; }
 .spell-level-num { display: inline-flex; align-items: center; justify-content: center; width: 1.55rem; height: 1.55rem; border-radius: 4px; background: var(--bg0); color: var(--ember); font-weight: 900; }
 .spell-list { display: flex; flex-direction: column; padding: 0.25rem 0.5rem 0.45rem; }
@@ -1065,7 +1065,7 @@
 }
 .spell-inline-actions button:hover { border-color: #ff4057; color: #ffb3bd; }
 .spell-inline-actions button:disabled { cursor: not-allowed; opacity: 0.35; }
-.spell-empty { color: var(--muted); font-size: 0.8rem; padding: 0.35rem 0; }
+.spell-empty { color: var(--muted); font-size: 0.85rem; padding: 0.35rem 0; }
 
 @media (max-width: 760px) {
   .spellbook-head { flex-direction: column; }
@@ -1080,20 +1080,20 @@
 .magias-counts {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.6rem;
-  margin-bottom: 0.6rem;
+  gap: 0.45rem;
+  margin-bottom: 0.45rem;
 }
 .magia-count {
   border: 1px solid var(--stroke);
   border-radius: 8px;
   background: var(--bg0);
-  padding: 0.4rem 0.8rem;
-  font-size: 0.82rem;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.85rem;
   color: var(--muted);
 }
 .magia-count strong { color: var(--ember); font-family: 'Cinzel', serif; font-size: 1.05rem; }
 .magia-count.alt strong { color: var(--spark); }
-.magias-help { font-size: 0.78rem; color: var(--muted); line-height: 1.5; }
+.magias-help { font-size: 0.85rem; color: var(--muted); line-height: 1.4; }
 .magias-help em { color: var(--spark); font-style: normal; font-weight: 600; }
 
 .magias-list { display: flex; flex-direction: column; }
@@ -1101,8 +1101,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.6rem;
-  padding: 0.4rem 0;
+  gap: 0.45rem;
+  padding: 0.3rem 0;
   border-bottom: 1px solid rgba(39, 39, 42, 0.6);
 }
 .magia-row:last-child { border-bottom: 0; }
@@ -1130,7 +1130,7 @@
 .hist-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.82rem;
+  font-size: 0.85rem;
 }
 .hist-table th {
   text-align: left;
@@ -1161,7 +1161,7 @@
 .hist-table tr.is-credit .hist-val { color: var(--spark); }
 .hist-saldo { color: var(--text); }
 .hist-table .cur { font-size: 0.7em; font-weight: 600; color: var(--muted); }
-.hist-note { margin-top: 0.6rem; font-size: 0.72rem; color: var(--muted); }
+.hist-note { margin-top: 0.5rem; font-size: 0.85rem; color: var(--muted); }
 
 /* ---------- Aparencia customizavel ---------- */
 .ficha.theme-ember .ficha-panel,

@@ -1,6 +1,6 @@
 .cronicas-hero {
   border-bottom: 1px solid var(--stroke);
-  padding: 2.5rem 2rem 1.5rem;
+  padding: 1.5rem 1.25rem 1rem;
   text-align: center;
 }
 .cronicas-hero-title {
@@ -20,11 +20,11 @@
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: .75rem;
+  gap: .5rem;
   justify-content: center;
   max-width: 1200px;
-  margin: 1.5rem auto 0;
-  padding: 0 1.5rem;
+  margin: 1rem auto 0;
+  padding: 0 1.25rem;
 }
 .cronicas-filter {
   background: var(--bg1);
@@ -32,7 +32,7 @@
   border-radius: 6px;
   color: var(--text);
   font-size: .78rem;
-  padding: .55rem .75rem;
+  padding: .45rem .6rem;
 }
 .cronicas-filter:focus { border-color: var(--ember); outline: none; }
 .cronicas-btn {
@@ -45,7 +45,7 @@
   font-weight: 900;
   gap: .4rem;
   letter-spacing: .06em;
-  padding: .6rem 1rem;
+  padding: .5rem .8rem;
   text-transform: uppercase;
   transition: background .2s, transform .2s;
 }
@@ -61,7 +61,7 @@
   font-weight: 900;
   gap: .4rem;
   letter-spacing: .06em;
-  padding: .55rem 1rem;
+  padding: .45rem .8rem;
   text-transform: uppercase;
   transition: all .2s;
 }
@@ -81,11 +81,11 @@
 }
 .cronicas-grid {
   display: grid;
-  gap: 1.25rem;
+  gap: .75rem;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   max-width: 1200px;
-  margin: 1.5rem auto 3rem;
-  padding: 0 1.5rem;
+  margin: 1rem auto 2rem;
+  padding: 0 1.25rem;
 }
 .cronica-card {
   background: var(--bg1);
@@ -93,7 +93,7 @@
   border-radius: 10px;
   display: flex;
   flex-direction: column;
-  padding: 1.25rem;
+  padding: .75rem;
   transition: border-color .25s, transform .25s, box-shadow .25s;
 }
 .cronica-card:hover {
@@ -120,7 +120,7 @@
   color: var(--muted);
   flex: 1;
   font-size: .8rem;
-  line-height: 1.6;
+  line-height: 1.45;
   margin-top: .5rem;
 }
 .cronica-card-footer {
@@ -130,8 +130,8 @@
   display: flex;
   font-size: .68rem;
   gap: .4rem;
-  margin-top: .75rem;
-  padding-top: .65rem;
+  margin-top: .55rem;
+  padding-top: .5rem;
 }
 .cronica-card-footer .author { color: var(--spark); font-weight: 700; }
 .cronica-card-footer .personagem { color: var(--ember); font-style: italic; }
@@ -139,15 +139,15 @@
   color: var(--muted);
   font-size: .9rem;
   grid-column: 1 / -1;
-  padding: 4rem 2rem;
+  padding: 2.5rem 1.5rem;
   text-align: center;
 }
 /* Minhas crônicas */
 .minhas-section {
   border-top: 1px solid var(--stroke);
   max-width: 1200px;
-  margin: 0 auto 3rem;
-  padding: 1.5rem 1.5rem 0;
+  margin: 0 auto 2rem;
+  padding: 1rem 1.25rem 0;
 }
 .minhas-title {
   color: var(--muted);
@@ -155,12 +155,12 @@
   font-size: .75rem;
   font-weight: 900;
   letter-spacing: .12em;
-  margin-bottom: 1rem;
+  margin-bottom: .6rem;
   text-transform: uppercase;
 }
 .minhas-list {
   display: grid;
-  gap: .5rem;
+  gap: .4rem;
 }
 .minhas-item {
   align-items: center;
@@ -168,8 +168,8 @@
   border: 1px solid var(--stroke);
   border-radius: 6px;
   display: flex;
-  gap: .75rem;
-  padding: .65rem .85rem;
+  gap: .55rem;
+  padding: .5rem .65rem;
 }
 .minhas-item-title {
   color: var(--text);

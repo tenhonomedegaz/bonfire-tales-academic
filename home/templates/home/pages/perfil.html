@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/pages/perfil.css' %}">
+<link rel="stylesheet" href="{% static 'css/pages/perfil.css' %}?v=3">
 <link rel="stylesheet" href="{% static 'css/pages/perfil-fx.css' %}?v=3">
 {% if appearance.theme_css_href %}<link rel="stylesheet" href="{{ appearance.theme_css_href }}">{% endif %}
 <title>Meu Perfil — Bonfire Tales RPG</title>
@@ -163,7 +163,7 @@
         </div>
 
         {# Cores do tema Personalizado — aparecem quando Tema = Personalizado #}
-        <div class="profile-appearance-grid custom-theme-controls" id="profile-custom-controls" style="{% if not appearance.is_custom %}display:none;{% endif %}margin-top:.75rem">
+        <div class="profile-appearance-grid custom-theme-controls" id="profile-custom-controls" style="{% if not appearance.is_custom %}display:none;{% endif %}margin-top:.5rem">
             <label class="profile-field"><span class="profile-label">Destaque</span><input type="color" class="profile-input" name="custom_accent" id="id_custom_accent" value="{{ appearance.custom.accent }}"></label>
             <label class="profile-field"><span class="profile-label">Destaque 2</span><input type="color" class="profile-input" name="custom_accent2" id="id_custom_accent2" value="{{ appearance.custom.accent2 }}"></label>
             <label class="profile-field"><span class="profile-label">Superfície</span><input type="color" class="profile-input" name="custom_surface" id="id_custom_surface" value="{{ appearance.custom.surface }}"></label>
@@ -172,7 +172,7 @@
         </div>
 
         {# Preview ao vivo #}
-        <div class="profile-header profile-live-preview {{ appearance.theme_class }} {{ appearance.effect_class }}" id="profile-preview"{% if appearance.fx_particula %} data-fx-particula="{{ appearance.fx_particula }}" data-fx-vel="{{ appearance.fx_vel }}"{% endif %} style="margin-top:1rem;padding:1.5rem;{{ appearance.custom_style }}">
+        <div class="profile-header profile-live-preview {{ appearance.theme_class }} {{ appearance.effect_class }}" id="profile-preview"{% if appearance.fx_particula %} data-fx-particula="{{ appearance.fx_particula }}" data-fx-vel="{{ appearance.fx_vel }}"{% endif %} style="margin-top:.7rem;padding:.85rem;{{ appearance.custom_style }}">
             <div class="profile-avatar-wrapper {{ appearance.frame_class }}" id="profile-preview-frame" style="width:64px;height:64px">
                 {% if profile.avatar_url %}<img src="{{ profile.avatar_url }}" alt="">{% else %}<div class="profile-avatar-fallback"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>{% endif %}
             </div>
@@ -222,7 +222,7 @@
                 <span class="avatar-preview-hint">Você ainda não tem insígnias concedidas. As automáticas (Equipe, Apoiador, Mestre Ouro, Fundador) já aparecem sozinhas no seu perfil.</span>
                 {% endif %}
                 {% if badges_derivadas %}
-                <div class="profile-badges profile-badges-derivadas-preview" style="margin-top:.6rem">
+                <div class="profile-badges profile-badges-derivadas-preview" style="margin-top:.5rem">
                     {% for b in badges_derivadas %}
                     <span class="profile-badge {{ b.classe }}" title="{{ b.tooltip }}">
                         {% if b.icone %}<span class="profile-badge-emoji" aria-hidden="true">{{ b.icone }}</span>{% endif %}
@@ -275,7 +275,7 @@
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
             Confirmar E-mail
         </h2>
-        <p class="avatar-preview-hint" style="margin-bottom:.75rem">Enviamos um link de confirmação para <strong style="color:var(--ember)">{{ user.email }}</strong>. Confirme para o e-mail valer (login e cobrança). Não recebeu?</p>
+        <p class="avatar-preview-hint" style="margin-bottom:.5rem">Enviamos um link de confirmação para <strong style="color:var(--ember)">{{ user.email }}</strong>. Confirme para o e-mail valer (login e cobrança). Não recebeu?</p>
         <button type="submit" class="profile-btn" style="background:transparent;border:1px solid var(--stroke)">Reenviar confirmação</button>
     </form>
     {% endif %}
@@ -322,7 +322,7 @@
             Definir Senha de Acesso
         </h2>
 
-        <p class="avatar-preview-hint" style="margin-bottom:.75rem">Você entrou pelo Discord, então ainda não tem senha. Confirme seu <strong>e-mail</strong> acima e defina uma senha para também poder entrar com e-mail/usuário — sem depender do Discord.</p>
+        <p class="avatar-preview-hint" style="margin-bottom:.5rem">Você entrou pelo Discord, então ainda não tem senha. Confirme seu <strong>e-mail</strong> acima e defina uma senha para também poder entrar com e-mail/usuário — sem depender do Discord.</p>
 
         <div class="profile-field">
             <label class="profile-label" for="id_new_password">Nova Senha</label>
@@ -355,13 +355,13 @@
         {% if profile.discord_user_id %}
             <p class="profile-label">Vinculado como <strong style="color:var(--ember)">{{ profile.discord_username|default:profile.discord_user_id }}</strong>.</p>
             <p class="avatar-preview-hint">Seu rank e personagens do bot são sincronizados por este vínculo.</p>
-            <form method="post" action="{% url 'discord_unlink' %}" style="margin-top:.75rem">
+            <form method="post" action="{% url 'discord_unlink' %}" style="margin-top:.5rem">
                 {% csrf_token %}
                 <button type="submit" class="profile-btn" style="background:transparent;border:1px solid var(--stroke)">Desvincular Discord</button>
             </form>
         {% elif discord_oauth_on %}
             <p class="avatar-preview-hint">Conecte seu Discord para sincronizar rank e personagens do bot, e poder entrar com um clique.</p>
-            <a href="{% url 'discord_login' %}?next=/perfil/" class="profile-btn" style="display:inline-flex;margin-top:.75rem;background:#5865F2;border:none">
+            <a href="{% url 'discord_login' %}?next=/perfil/" class="profile-btn" style="display:inline-flex;margin-top:.5rem;background:#5865F2;border:none">
                 <svg width="14" height="14" viewBox="0 0 127.14 96.36" fill="currentColor" aria-hidden="true"><path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07Z"/></svg>
                 Conectar Discord
             </a>
@@ -469,11 +469,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (customBox) customBox.style.display = isCustom ? '' : 'none';
             if (isCustom) {
                 const accent = cG && cG.checked ? `linear-gradient(120deg, ${cA.value}, ${cB.value})` : cA.value;
-                pv.style.cssText = 'margin-top:1rem;padding:1.5rem;'
+                pv.style.cssText = 'margin-top:.7rem;padding:.85rem;'
                     + `--profile-accent:${accent};--profile-accent-solid:${cA.value};`
                     + `--profile-accent-2:${cB.value};--profile-surface:${cS.value};--profile-deep:${cD.value};`;
             } else {
-                pv.style.cssText = 'margin-top:1rem;padding:1.5rem';
+                pv.style.cssText = 'margin-top:.7rem;padding:.85rem';
             }
         };
         [...themeRadios, frameSel, effectSel, cA, cB, cS, cD, cG].forEach(el => {

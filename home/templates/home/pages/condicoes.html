@@ -3,30 +3,30 @@
 
 {% block content %}
 <section class="animate-fade-in max-w-4xl">
-  <header class="mb-6 flex flex-wrap items-end justify-between gap-3 border-b border-[var(--stroke)] pb-4">
+  <header class="mb-4 flex flex-wrap items-end justify-between gap-2 border-b border-[var(--stroke)] pb-2.5">
     <div>
       <h1 class="font-serif text-2xl md:text-3xl font-bold text-[var(--ember)]">Condições</h1>
       <p class="mt-1 text-sm text-[var(--muted)]">As {{ condicoes|length }} condições do sistema e seus efeitos. Uma criatura pode estar sob várias ao mesmo tempo.</p>
     </div>
-    {% if is_staff %}<a href="{% url 'condicao_criar' %}" class="rounded bg-bonfire-gradient px-4 py-2 text-sm font-bold text-white hover:opacity-90">+ Nova condição</a>{% endif %}
+    {% if is_staff %}<a href="{% url 'condicao_criar' %}" class="rounded bg-bonfire-gradient px-3 py-1.5 text-sm font-bold text-white hover:opacity-90">+ Nova condição</a>{% endif %}
   </header>
 
-  {% if msg == 'criada' %}<p class="mb-4 rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-3 py-2 text-sm text-[var(--spark)]">Condição criada!</p>
-  {% elif msg == 'editada' %}<p class="mb-4 rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-3 py-2 text-sm text-[var(--spark)]">Condição atualizada!</p>
-  {% elif msg == 'excluida' %}<p class="mb-4 rounded border border-[var(--stroke)] bg-[var(--bg1)] px-3 py-2 text-sm text-[var(--muted)]">Condição excluída.</p>{% endif %}
+  {% if msg == 'criada' %}<p class="mb-2.5 rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-2.5 py-1.5 text-sm text-[var(--spark)]">Condição criada!</p>
+  {% elif msg == 'editada' %}<p class="mb-2.5 rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-2.5 py-1.5 text-sm text-[var(--spark)]">Condição atualizada!</p>
+  {% elif msg == 'excluida' %}<p class="mb-2.5 rounded border border-[var(--stroke)] bg-[var(--bg1)] px-2.5 py-1.5 text-sm text-[var(--muted)]">Condição excluída.</p>{% endif %}
 
-  <nav class="mb-6 flex flex-wrap gap-1.5">
+  <nav class="mb-4 flex flex-wrap gap-1.5">
     {% for c in condicoes %}
       <a href="#cond-{{ c.slug }}" class="rounded border border-[var(--stroke)] bg-[var(--bg1)] px-2.5 py-1 text-xs text-[var(--muted)] hover:border-[var(--ember)] hover:text-[var(--ember)]">{{ c.nome }}</a>
     {% endfor %}
   </nav>
 
-  <div class="space-y-4">
+  <div class="space-y-2.5">
     {% for c in condicoes %}
-      <article id="cond-{{ c.slug }}" class="scroll-mt-24 rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-4">
-        <header class="mb-2 flex flex-wrap items-baseline justify-between gap-2 border-b border-[var(--stroke)]/50 pb-2">
+      <article id="cond-{{ c.slug }}" class="scroll-mt-24 rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-3">
+        <header class="mb-1.5 flex flex-wrap items-baseline justify-between gap-1.5 border-b border-[var(--stroke)]/50 pb-1.5">
           <h2 class="font-serif text-lg font-bold text-[var(--flame)]">{{ c.nome }}</h2>
-          <span class="flex items-center gap-3 text-xs text-[var(--muted)]">{% if c.nome_en %}{{ c.nome_en }}{% endif %}{% if c.categoria != '5e' %} · homebrew{% endif %}
+          <span class="flex items-center gap-2 text-xs text-[var(--muted)]">{% if c.nome_en %}{{ c.nome_en }}{% endif %}{% if c.categoria != '5e' %} · homebrew{% endif %}
             {% if is_staff %}
               <a href="{% url 'condicao_editar' c.id_condicao %}" class="text-[var(--ember)] hover:underline">Editar</a>
               <form method="post" action="{% url 'condicao_excluir' c.id_condicao %}" class="inline" onsubmit="return confirm('Excluir {{ c.nome|escapejs }}?');">
@@ -35,7 +35,7 @@
             {% endif %}
           </span>
         </header>
-        {% if c.resumo %}<p class="mb-3 text-sm italic text-[var(--muted)]">{{ c.resumo }}</p>{% endif %}
+        {% if c.resumo %}<p class="mb-2 text-sm italic text-[var(--muted)]">{{ c.resumo }}</p>{% endif %}
         <dl class="space-y-1.5">
           {% for e in c.efeitos_json %}
             <div class="text-sm">

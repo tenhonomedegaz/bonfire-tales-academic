@@ -1,10 +1,10 @@
 {% extends 'home/base.html' %}
 {% load static %}
 
-{% block main_class %}flex-1 w-full py-4{% endblock %}
+{% block main_class %}flex-1 w-full py-2.5{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/pages/classe_detail.css' %}">
+<link rel="stylesheet" href="{% static 'css/pages/classe_detail.css' %}?v=2">
 
 {% endblock %}
 
@@ -26,9 +26,9 @@
       </label>
     </div>
 
-    <nav id="classNav" class="mb-4 grid gap-1">
+    <nav id="classNav" class="mb-2.5 grid gap-1">
       {% for item in all_classes %}
-      <a href="{% url 'classe_detail' slug=item.slug %}" data-search="{{ item.nome }}" class="class-nav-item rounded border px-2 py-1 text-[11px] font-bold uppercase transition-colors {% if item.id_classe == classe.id_classe %}border-[var(--flame)] bg-[var(--flame)]/5 text-[var(--text)]{% else %}border-transparent text-[var(--muted)] hover:border-[var(--stroke)] hover:bg-[var(--bg1)] hover:text-[var(--text)]{% endif %}">
+      <a href="{% url 'classe_detail' slug=item.slug %}" data-search="{{ item.nome }}" class="class-nav-item rounded border px-2 py-1 text-[10px] font-bold uppercase transition-colors {% if item.id_classe == classe.id_classe %}border-[var(--flame)] bg-[var(--flame)]/5 text-[var(--text)]{% else %}border-transparent text-[var(--muted)] hover:border-[var(--stroke)] hover:bg-[var(--bg1)] hover:text-[var(--text)]{% endif %}">
         {{ item.nome }}
       </a>
       {% endfor %}
@@ -36,17 +36,17 @@
 
     <div id="classTraitsContainer">
     {% if classe %}
-    <section class="rounded border border-[var(--stroke)] bg-[var(--bg1)] p-3">
+    <section class="rounded border border-[var(--stroke)] bg-[var(--bg1)] p-2">
       <h2 class="font-rpg text-[17px] font-bold uppercase text-[var(--text)]">{{ classe.nome }}</h2>
 
-      <div class="mt-4 divide-y divide-[var(--stroke)]">
+      <div class="mt-2.5 divide-y divide-[var(--stroke)]">
         {% for trait in class_traits %}
         <div class="py-1">
           <span class="block text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">{{ trait.label }}</span>
           <span class="mt-0.5 block text-[11px] font-semibold leading-tight text-[var(--text)] trait-value">{{ trait.value|linebreaksbr }}</span>
         </div>
         {% empty %}
-        <p class="py-3 text-sm text-[var(--muted)]">Preencha os dados de ficha desta classe no admin.</p>
+        <p class="py-2 text-sm text-[var(--muted)]">Preencha os dados de ficha desta classe no admin.</p>
         {% endfor %}
       </div>
 
@@ -65,7 +65,7 @@
       {% endif %}
     </section>
     {% else %}
-    <section class="rounded border border-[var(--stroke)] bg-[var(--bg1)] p-4">
+    <section class="rounded border border-[var(--stroke)] bg-[var(--bg1)] p-3">
       <h2 class="font-rpg text-lg font-bold uppercase text-[var(--text)]">Classes</h2>
       <p class="mt-3 text-[11px] leading-relaxed text-[var(--muted)]">Selecione uma classe na lista para ver progressao, recursos e subclasses.</p>
     </section>
@@ -74,7 +74,7 @@
   </aside>
 
   <section class="min-w-0">
-    <header class="mb-5 border-b border-[var(--stroke)] pb-4">
+    <header class="mb-3 border-b border-[var(--stroke)] pb-2.5">
       <h1 class="font-rpg text-2xl font-extrabold uppercase tracking-wide text-[var(--text)] md:text-3xl">{% if classe %}{{ classe.nome }}{% else %}Classes{% endif %}</h1>
       {% if classe.tagline %}
       <p class="mt-1 max-w-4xl text-[10px] italic leading-relaxed text-[var(--muted)]">{{ classe.tagline }}</p>
@@ -84,7 +84,7 @@
     </header>
 
     {% if progression_table %}
-    <div data-progression-table class="mb-4 overflow-x-auto rounded border border-[var(--stroke)] bg-[var(--bg1)] custom-scrollbar">
+    <div data-progression-table class="mb-2.5 overflow-x-auto rounded border border-[var(--stroke)] bg-[var(--bg1)] custom-scrollbar">
       <div class="min-w-[700px]">
         <table class="w-full table-auto border-collapse text-[11px]">
           <colgroup>
@@ -147,20 +147,20 @@
     {% endif %}
 
     {% if classe %}
-    <section class="mb-4" data-subclass-anchor>
+    <section class="mb-2.5" data-subclass-anchor>
       <h2 class="mb-2 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-[var(--muted)]">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-[var(--muted)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3 8 4.5-8 4.5-8-4.5L12 3Z"/><path d="m4 12 8 4.5 8-4.5"/><path d="m4 16.5 8 4.5 8-4.5"/></svg>
         Subclasses {% if subclasses %}(selecione para ver){% endif %}
       </h2>
       <div class="flex flex-wrap gap-1.5 items-center">
-        <button type="button" data-subclass-toggle="" class="subclass-toggle rounded border border-[var(--flame)] bg-[var(--flame)]/10 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-[var(--text)]">Base</button>
+        <button type="button" data-subclass-toggle="" class="subclass-toggle rounded border border-[var(--flame)] bg-[var(--flame)]/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--text)]">Base</button>
         {% for sub in subclasses %}
-        <button type="button" data-subclass-toggle="{{ sub.slug }}" class="subclass-toggle rounded border border-[var(--stroke)] px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-[var(--muted)] hover:border-[var(--spark)] hover:text-[var(--text)]">{{ sub.nome }}</button>
+        <button type="button" data-subclass-toggle="{{ sub.slug }}" class="subclass-toggle rounded border border-[var(--stroke)] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--muted)] hover:border-[var(--spark)] hover:text-[var(--text)]">{{ sub.nome }}</button>
         {% empty %}
         <span class="text-sm text-[var(--muted)]">Sem subclasses cadastradas.</span>
         {% endfor %}
         {% if subclasses %}
-        <label data-subclass-only-toggle class="hidden ml-2 flex items-center gap-1.5 cursor-pointer select-none rounded border border-[var(--stroke)] px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--muted)] hover:border-[var(--spark)] hover:text-[var(--text)] transition-colors" title="Mostrar apenas habilidades da subclasse selecionada">
+        <label data-subclass-only-toggle class="hidden ml-1.5 flex items-center gap-1.5 cursor-pointer select-none rounded border border-[var(--stroke)] px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--muted)] hover:border-[var(--spark)] hover:text-[var(--text)] transition-colors" title="Mostrar apenas habilidades da subclasse selecionada">
           <input type="checkbox" data-subclass-only-check class="accent-[var(--spark)]" style="width: 12px; height: 12px;">
           Só Subclasse
         </label>
@@ -171,11 +171,11 @@
     <section>
     <section>
       <h2 class="mb-2 font-rpg text-[17px] font-bold text-[var(--text)] bonfire-underline">Habilidades</h2>
-      <div class="space-y-3" data-feature-list>
+      <div class="space-y-2" data-feature-list>
         {% for item in habilidade_sections %}
         {% if forloop.counter == 10 %}
-        
-        <div class="block min-[1600px]:hidden my-4 w-full">
+
+        <div class="block min-[1600px]:hidden my-2.5 w-full">
             {% include 'home/components/horizontal_support.html' %}
         </div>
         {% endif %}
@@ -215,7 +215,7 @@
       </div>
     </section>
     {% else %}
-    <section class="rounded border border-[var(--stroke)] bg-[var(--bg1)] p-8 text-center">
+    <section class="rounded border border-[var(--stroke)] bg-[var(--bg1)] p-5 text-center">
       <h2 class="font-rpg text-xl font-bold text-[var(--text)]">Nenhuma classe selecionada</h2>
       <p class="mt-2 text-[13px] text-[var(--muted)]">Use a busca ou a lista lateral para abrir uma classe.</p>
     </section>

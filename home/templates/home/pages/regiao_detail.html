@@ -24,12 +24,12 @@
   position: sticky;
   top: 3.5rem;
 }
-.region-left { border-right: 1px solid var(--stroke); padding: 1rem 0; }
-.region-right { border-left: 1px solid var(--stroke); padding: 1.25rem; }
+.region-left { border-right: 1px solid var(--stroke); padding: .7rem 0; }
+.region-right { border-left: 1px solid var(--stroke); padding: .75rem; }
 .region-layer-filter {
   display: grid;
   gap: .35rem;
-  padding: 0 1rem 1rem;
+  padding: 0 .7rem .7rem;
 }
 .region-layer-filter label {
   color: var(--muted);
@@ -64,7 +64,7 @@
   justify-content: space-between;
   letter-spacing: .14em;
   list-style: none;
-  padding: .65rem 1rem .45rem;
+  padding: .5rem .7rem .35rem;
   text-transform: uppercase;
 }
 .territory-nav-title::-webkit-details-marker { display: none; }
@@ -101,7 +101,7 @@
   display: block;
   font-size: .8rem;
   font-weight: 700;
-  padding: .5rem 1rem .5rem 1.2rem;
+  padding: .4rem .7rem .4rem .9rem;
   transition: background-color .2s ease, border-color .2s ease, color .2s ease;
 }
 .region-link:hover {
@@ -121,8 +121,8 @@
   background-position: center;
   background-size: cover;
   border-bottom: 1px solid var(--stroke);
-  min-height: 300px;
-  padding: 2.25rem clamp(1.25rem, 2vw, 2rem);
+  min-height: 260px;
+  padding: 1.5rem clamp(1rem, 2vw, 1.5rem);
   position: relative;
 }
 .region-hero-blur {
@@ -182,9 +182,9 @@
 .region-hero-inner {
   display: flex;
   flex-direction: column;
-  gap: 1.1rem;
+  gap: .8rem;
   height: 100%;
-  min-height: 230px;
+  min-height: 200px;
   justify-content: flex-end;
   position: relative;
   z-index: 5;
@@ -192,7 +192,7 @@
 .region-heading-row {
   align-items: center;
   display: flex;
-  gap: .8rem;
+  gap: .6rem;
 }
 .map-pin-link {
   align-items: center;
@@ -236,7 +236,7 @@
   cursor: pointer;
   font-size: .75rem;
   font-weight: 800;
-  padding: .55rem .8rem;
+  padding: .45rem .65rem;
   transition: border-color .2s ease, color .2s ease, background-color .2s ease;
 }
 .topic-btn:hover {
@@ -249,7 +249,7 @@
   color: var(--territory-contrast);
 }
 .region-content {
-  padding: clamp(1.25rem, 2vw, 2rem);
+  padding: clamp(.9rem, 2vw, 1.5rem);
   transition: opacity .28s ease, transform .28s ease;
 }
 .region-content.is-swapping {
@@ -262,7 +262,7 @@
   font-family: 'Cinzel', serif;
   font-size: 1.25rem;
   font-weight: 900;
-  margin-bottom: 1.25rem;
+  margin-bottom: .8rem;
   position: relative;
   text-transform: uppercase;
 }
@@ -281,9 +281,9 @@
 .bonfire-markdown {
   color: var(--muted);
   font-size: .82rem;
-  line-height: 1.65;
+  line-height: 1.45;
 }
-.bonfire-markdown > * + * { margin-top: .85rem; }
+.bonfire-markdown > * + * { margin-top: .6rem; }
 .bonfire-markdown h1,
 .bonfire-markdown h2,
 .bonfire-markdown h3,
@@ -302,7 +302,7 @@
 }
 .bonfire-markdown table { border-collapse: collapse; width: 100%; }
 .bonfire-markdown th,
-.bonfire-markdown td { border: 1px solid var(--stroke); padding: .55rem .75rem; }
+.bonfire-markdown td { border: 1px solid var(--stroke); padding: .4rem .6rem; }
 .side-map-card {
   background: var(--bg1);
   border: 1px solid var(--stroke);
@@ -374,8 +374,8 @@
   background: var(--bg1);
   border: 1px solid var(--stroke);
   border-radius: 8px;
-  margin-bottom: 1rem;
-  padding: 1.25rem;
+  margin-bottom: .7rem;
+  padding: .75rem;
 }
 .stats-title {
   color: var(--muted);
@@ -383,11 +383,11 @@
   font-size: .65rem;
   font-weight: 900;
   letter-spacing: .15em;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
   text-transform: uppercase;
 }
 .stats-title span { color: var(--territory-accent); }
-.stats-grid { display: grid; gap: 1.25rem; }
+.stats-grid { display: grid; gap: .8rem; }
 .stat-item { display: grid; gap: .4rem; }
 .stat-header { display: flex; justify-content: space-between; align-items: flex-end; }
 .stat-label {
@@ -434,16 +434,16 @@
   background: var(--bg1);
   border: 1px solid var(--stroke);
   border-radius: 8px;
-  margin: 1rem 0;
-  padding: 1rem;
+  margin: .7rem 0;
+  padding: .7rem;
 }
 .region-org-list {
   display: grid;
-  gap: .75rem;
+  gap: .55rem;
 }
 .region-org-item {
   border-top: 1px solid var(--stroke);
-  padding-top: .75rem;
+  padding-top: .55rem;
 }
 .region-org-item:first-child {
   border-top: 0;
@@ -493,7 +493,7 @@
   font-family: 'Cinzel', serif;
   font-size: 1.75rem;
   font-weight: 900;
-  margin: 2rem 0 1rem;
+  margin: 1.25rem 0 .7rem;
   text-transform: uppercase;
 }
 .h1-group-panel { display: none; }
@@ -579,7 +579,7 @@
     height: calc(100dvh - 57px);
     max-width: min(88vw, 360px);
     overflow-y: auto;
-    padding: 1rem 0 5rem;
+    padding: .7rem 0 3.5rem;
     position: fixed;
     transform: translateX(-105%);
     transition: transform .24s ease;
@@ -616,11 +616,11 @@
   }
   .region-mobile-actions {
     display: grid;
-    gap: .65rem;
-    padding: 1rem;
+    gap: .5rem;
+    padding: .7rem;
   }
   .region-content {
-    padding-bottom: 6rem;
+    padding-bottom: 4rem;
   }
 }
 </style>

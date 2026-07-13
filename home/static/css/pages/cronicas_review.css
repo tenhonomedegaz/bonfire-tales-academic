@@ -1,9 +1,9 @@
 .review-shell {
   max-width: 1000px;
   margin: 0 auto;
-  padding: 2rem 1.5rem 4rem;
+  padding: 1.25rem 1.25rem 2.5rem;
 }
-.review-header { margin-bottom: 2rem; }
+.review-header { margin-bottom: 1.25rem; }
 .review-header h1 {
   color: #fff;
   font-family: 'Cinzel', serif;
@@ -16,7 +16,7 @@
   background: var(--bg1);
   border: 1px solid var(--stroke);
   border-radius: 10px;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
   overflow: hidden;
 }
 .review-item-header {
@@ -24,8 +24,8 @@
   border-bottom: 1px solid var(--stroke);
   display: flex;
   flex-wrap: wrap;
-  gap: .75rem;
-  padding: 1rem 1.25rem;
+  gap: .5rem;
+  padding: .7rem .9rem;
 }
 .review-item-title {
   color: #fff;
@@ -43,20 +43,20 @@
 .review-item-body {
   max-height: 400px;
   overflow-y: auto;
-  padding: 1.25rem;
+  padding: .75rem;
 }
 .review-item-body .bonfire-markdown {
   color: var(--muted);
   font-size: .82rem;
-  line-height: 1.7;
+  line-height: 1.5;
 }
 .review-item-body .bonfire-markdown strong { color: #fff; }
 .review-item-actions {
   align-items: center;
   border-top: 1px solid var(--stroke);
   display: flex;
-  gap: .75rem;
-  padding: 1rem 1.25rem;
+  gap: .5rem;
+  padding: .7rem .9rem;
 }
 .review-feedback-input {
   background: var(--bg0);
@@ -65,7 +65,7 @@
   color: var(--text);
   flex: 1;
   font-size: .8rem;
-  padding: .55rem .75rem;
+  padding: .45rem .6rem;
 }
 .review-feedback-input::placeholder { color: var(--muted); }
 .review-btn-approve {
@@ -75,7 +75,7 @@
   font-size: .72rem;
   font-weight: 900;
   letter-spacing: .06em;
-  padding: .65rem 1rem;
+  padding: .5rem .8rem;
   text-transform: uppercase;
   transition: background .2s;
 }
@@ -88,7 +88,7 @@
   font-size: .72rem;
   font-weight: 900;
   letter-spacing: .06em;
-  padding: .6rem 1rem;
+  padding: .5rem .8rem;
   text-transform: uppercase;
   transition: all .2s;
 }
@@ -96,7 +96,7 @@
 .review-empty {
   color: var(--muted);
   font-size: .9rem;
-  padding: 4rem 2rem;
+  padding: 2.5rem 1.5rem;
   text-align: center;
 }
 .review-item.is-resolved {
@@ -110,7 +110,7 @@
   font-size: .78rem;
   font-weight: 700;
   gap: .35rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
   transition: color .2s;
 }
 .review-back:hover { color: var(--ember); }

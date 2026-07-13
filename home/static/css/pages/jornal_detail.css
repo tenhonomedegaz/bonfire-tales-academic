@@ -13,7 +13,7 @@
   flex-direction: column;
   justify-content: flex-end;
   min-height: 340px;
-  padding: 2.5rem clamp(1.25rem, 4vw, 3rem);
+  padding: 1.5rem clamp(1rem, 4vw, 2rem);
 }
 .artigo-eyebrow {
   color: var(--ember);
@@ -38,16 +38,16 @@
   display: flex;
   font-size: .78rem;
   gap: .5rem;
-  margin-top: 1rem;
+  margin-top: .7rem;
 }
 .artigo-meta .author { color: var(--ember); font-weight: 700; }
 .artigo-body {
-  margin-top: 2.5rem;
+  margin-top: 1.5rem;
 }
 .artigo-body .bonfire-markdown {
   color: var(--muted);
   font-size: .88rem;
-  line-height: 1.75;
+  line-height: 1.5;
 }
 .artigo-body .bonfire-markdown strong { color: #fff; }
 .artigo-body .bonfire-markdown h1,
@@ -71,10 +71,10 @@
 .artigo-edit-tools {
   border-top: 1px solid var(--stroke);
   display: flex;
-  gap: .75rem;
+  gap: .55rem;
   justify-content: flex-end;
-  margin-top: 2rem;
-  padding-top: 1.5rem;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
 }
 .artigo-edit-btn {
   align-items: center;
@@ -86,7 +86,7 @@
   font-weight: 900;
   gap: .35rem;
   letter-spacing: .06em;
-  padding: .7rem .9rem;
+  padding: .55rem .7rem;
   text-transform: uppercase;
   transition: background .2s;
 }
@@ -96,9 +96,9 @@
   border: 1px solid var(--stroke);
   border-radius: 8px;
   display: none;
-  gap: .75rem;
-  margin-top: 1rem;
-  padding: 1rem;
+  gap: .55rem;
+  margin-top: .7rem;
+  padding: .7rem;
 }
 .wiki-inline-editor.is-open { display: grid; }
 .wiki-inline-editor label {
@@ -117,7 +117,7 @@
   border-radius: 6px;
   color: var(--text);
   font-size: .85rem;
-  padding: .65rem .75rem;
+  padding: .5rem .6rem;
 }
 .wiki-inline-editor textarea { min-height: 300px; resize: vertical; font-family: Consolas, monospace; }
 .wiki-inline-actions { display: flex; gap: .5rem; justify-content: flex-end; }
@@ -127,7 +127,7 @@
   color: var(--muted);
   font-size: .72rem;
   font-weight: 900;
-  padding: .7rem .9rem;
+  padding: .55rem .7rem;
   text-transform: uppercase;
 }
 .wiki-inline-save {
@@ -136,7 +136,7 @@
   color: #070707;
   font-size: .72rem;
   font-weight: 900;
-  padding: .7rem .9rem;
+  padding: .55rem .7rem;
   text-transform: uppercase;
 }
 

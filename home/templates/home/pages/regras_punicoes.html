@@ -1,16 +1,16 @@
 {% extends 'home/base.html' %}
 
 {% block content %}
-<div class="-mx-4 md:-mx-8 -mt-8 mb-8">
-  
-  <section class="relative py-20 bg-[var(--bg1)] border-b border-[var(--stroke)] overflow-hidden">
+<div class="-mx-4 md:-mx-8 -mt-8 mb-4">
+
+  <section class="relative py-12 bg-[var(--bg1)] border-b border-[var(--stroke)] overflow-hidden">
     <div class="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(210,23,23,0.1),_transparent_70%)] pointer-events-none"></div>
     <div class="container mx-auto px-4 text-center relative z-10">
-      <div class="inline-flex items-center gap-2 text-[var(--flame)] mb-4">
+      <div class="inline-flex items-center gap-2 text-[var(--flame)] mb-2.5">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>
         <span class="font-bold uppercase tracking-widest text-sm">Código de Conduta</span>
       </div>
-      <h1 class="font-rpg text-4xl md:text-6xl font-bold text-[var(--text)] mb-6">
+      <h1 class="font-rpg text-4xl md:text-6xl font-bold text-[var(--text)] mb-4">
         Regras e Punições
       </h1>
       <p class="text-xl text-[var(--muted)] max-w-2xl mx-auto leading-relaxed">
@@ -20,14 +20,13 @@
   </section>
 </div>
 
-<div class="container mx-auto max-w-4xl pb-24">
-  
-  
-  <div class="prose prose-invert max-w-none text-[var(--muted)] mb-16">
+<div class="container mx-auto max-w-4xl pb-14">
+
+  <div class="prose prose-invert max-w-none text-[var(--muted)] mb-10">
     <p class="text-lg leading-relaxed">
       Para manter um ambiente agradável, seguro e divertido, temos regras simples. Ao participar do servidor, você concorda com estas regras e com o sistema de punições abaixo.
     </p>
-    <div class="not-prose bg-[var(--bg2)] border-l-4 border-[var(--spark)] p-4 rounded-r mt-6">
+    <div class="not-prose bg-[var(--bg2)] border-l-4 border-[var(--spark)] p-3 rounded-r mt-4">
        <p class="text-[var(--text)] font-medium flex items-center gap-2">
          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-[var(--spark)]"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
          Se você tiver dúvida ou precisar denunciar algo, fale com um <span class="text-[var(--spark)] font-bold">Moderador</span>.
@@ -36,19 +35,19 @@
   </div>
 
   
-  <section class="mb-20">
-    <h2 class="font-rpg text-3xl font-bold text-[var(--text)] mb-8 flex items-center gap-3 pb-4 border-b border-[var(--stroke)]">
+  <section class="mb-10">
+    <h2 class="font-rpg text-3xl font-bold text-[var(--text)] mb-5 flex items-center gap-2 pb-2.5 border-b border-[var(--stroke)]">
       <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8 text-[var(--flame)]"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
       Regras do Servidor
     </h2>
 
-    <div class="grid gap-6">
-      
-      <div class="group bg-[var(--bg1)] p-5 rounded border border-[var(--stroke)] hover:border-[var(--muted)] transition-colors">
-        <div class="flex items-start gap-4">
+    <div class="grid gap-3">
+
+      <div class="group bg-[var(--bg1)] p-3 rounded border border-[var(--stroke)] hover:border-[var(--muted)] transition-colors">
+        <div class="flex items-start gap-2.5">
           <div class="flex-shrink-0 w-8 h-8 bg-[var(--bg2)] rounded flex items-center justify-center font-bold text-[var(--ember)] border border-[var(--stroke)] group-hover:border-[var(--ember)] transition-colors">1</div>
           <div>
-            <h3 class="font-bold text-[var(--text)] text-lg mb-2">Respeite para ser respeitado</h3>
+            <h3 class="font-bold text-[var(--text)] text-lg mb-1.5">Respeite para ser respeitado</h3>
             <p class="text-[var(--muted)] text-sm leading-relaxed">
               Este é um servidor de comunidade. Trate as pessoas com o respeito que você espera receber.
               Também crie um personagem disposto a jogar em equipe. Não importa tendência, personalidade ou motivação. Seu personagem precisa funcionar com o grupo.
@@ -58,11 +57,11 @@
       </div>
 
       
-      <div class="group bg-[var(--bg1)] p-5 rounded border border-[var(--stroke)] hover:border-[var(--muted)] transition-colors">
-        <div class="flex items-start gap-4">
+      <div class="group bg-[var(--bg1)] p-3 rounded border border-[var(--stroke)] hover:border-[var(--muted)] transition-colors">
+        <div class="flex items-start gap-2.5">
           <div class="flex-shrink-0 w-8 h-8 bg-[var(--bg2)] rounded flex items-center justify-center font-bold text-[var(--ember)] border border-[var(--stroke)] group-hover:border-[var(--ember)] transition-colors">2</div>
           <div>
-            <h3 class="font-bold text-[var(--text)] text-lg mb-2">Conteúdo ofensivo</h3>
+            <h3 class="font-bold text-[var(--text)] text-lg mb-1.5">Conteúdo ofensivo</h3>
             <p class="text-[var(--muted)] text-sm leading-relaxed">
               É proibida qualquer manifestação de racismo, LGBTQ+fobia ou qualquer tipo de discriminação.
               Isso vale para avatar do Discord, nome, mensagens, narração, comportamento em campanha e qualquer manifestação direta ou indireta dentro do servidor.
@@ -72,11 +71,11 @@
       </div>
 
       
-      <div class="group bg-[var(--bg1)] p-5 rounded border border-[var(--stroke)] hover:border-[var(--muted)] transition-colors">
-        <div class="flex items-start gap-4">
+      <div class="group bg-[var(--bg1)] p-3 rounded border border-[var(--stroke)] hover:border-[var(--muted)] transition-colors">
+        <div class="flex items-start gap-2.5">
           <div class="flex-shrink-0 w-8 h-8 bg-[var(--bg2)] rounded flex items-center justify-center font-bold text-[var(--ember)] border border-[var(--stroke)] group-hover:border-[var(--ember)] transition-colors">3</div>
           <div>
-            <h3 class="font-bold text-[var(--text)] text-lg mb-2">Assédio</h3>
+            <h3 class="font-bold text-[var(--text)] text-lg mb-1.5">Assédio</h3>
             <p class="text-[var(--muted)] text-sm leading-relaxed">
               Assédio é expressamente proibido. Isso inclui apelidos para envergonhar, ameaças, humilhação e qualquer atitude feita para causar desconforto.
               Em situações graves, a pessoa pode responder civil e criminalmente conforme a legislação brasileira, além de sofrer sanções internas do servidor.
@@ -86,11 +85,11 @@
       </div>
 
       
-      <div class="group bg-[var(--bg1)] p-5 rounded border border-[var(--stroke)] hover:border-[var(--muted)] transition-colors">
-        <div class="flex items-start gap-4">
+      <div class="group bg-[var(--bg1)] p-3 rounded border border-[var(--stroke)] hover:border-[var(--muted)] transition-colors">
+        <div class="flex items-start gap-2.5">
           <div class="flex-shrink-0 w-8 h-8 bg-[var(--bg2)] rounded flex items-center justify-center font-bold text-[var(--ember)] border border-[var(--stroke)] group-hover:border-[var(--ember)] transition-colors">4</div>
           <div>
-            <h3 class="font-bold text-[var(--text)] text-lg mb-2">Política, religião e esportes</h3>
+            <h3 class="font-bold text-[var(--text)] text-lg mb-1.5">Política, religião e esportes</h3>
             <p class="text-[var(--muted)] text-sm leading-relaxed">
               Evite ferir, provocar ou impor opiniões sobre assuntos polêmicos que possam gerar discórdia. Isso inclui política, religião, esportes e outros temas sensíveis.
             </p>
@@ -99,11 +98,11 @@
       </div>
 
       
-      <div class="group bg-[var(--bg1)] p-5 rounded border border-[var(--stroke)] hover:border-[var(--muted)] transition-colors">
-        <div class="flex items-start gap-4">
+      <div class="group bg-[var(--bg1)] p-3 rounded border border-[var(--stroke)] hover:border-[var(--muted)] transition-colors">
+        <div class="flex items-start gap-2.5">
           <div class="flex-shrink-0 w-8 h-8 bg-[var(--bg2)] rounded flex items-center justify-center font-bold text-[var(--ember)] border border-[var(--stroke)] group-hover:border-[var(--ember)] transition-colors">5</div>
           <div>
-            <h3 class="font-bold text-[var(--text)] text-lg mb-2">Divulgação</h3>
+            <h3 class="font-bold text-[var(--text)] text-lg mb-1.5">Divulgação</h3>
             <p class="text-[var(--muted)] text-sm leading-relaxed">
               Use apenas os canais específicos para divulgar campanhas, streams e artes.
               No geral, não aprovamos venda de produtos ou serviços no servidor sem autorização da equipe.
@@ -113,11 +112,11 @@
       </div>
 
       
-      <div class="group bg-[var(--bg1)] p-5 rounded border border-[var(--stroke)] hover:border-[var(--muted)] transition-colors">
-        <div class="flex items-start gap-4">
+      <div class="group bg-[var(--bg1)] p-3 rounded border border-[var(--stroke)] hover:border-[var(--muted)] transition-colors">
+        <div class="flex items-start gap-2.5">
           <div class="flex-shrink-0 w-8 h-8 bg-[var(--bg2)] rounded flex items-center justify-center font-bold text-[var(--ember)] border border-[var(--stroke)] group-hover:border-[var(--ember)] transition-colors">6</div>
           <div>
-            <h3 class="font-bold text-[var(--text)] text-lg mb-2">Conteúdo e RP +18</h3>
+            <h3 class="font-bold text-[var(--text)] text-lg mb-1.5">Conteúdo e RP +18</h3>
             <p class="text-[var(--muted)] text-sm leading-relaxed">
               É estritamente proibido conteúdo sexual, nudez, erotização, fetichização, insinuações explícitas e qualquer interação de teor sexual, mesmo em RP.
             </p>
@@ -126,11 +125,11 @@
       </div>
 
       
-      <div class="group bg-[var(--bg1)] p-5 rounded border border-[var(--stroke)] hover:border-[var(--muted)] transition-colors">
-        <div class="flex items-start gap-4">
+      <div class="group bg-[var(--bg1)] p-3 rounded border border-[var(--stroke)] hover:border-[var(--muted)] transition-colors">
+        <div class="flex items-start gap-2.5">
           <div class="flex-shrink-0 w-8 h-8 bg-[var(--bg2)] rounded flex items-center justify-center font-bold text-[var(--ember)] border border-[var(--stroke)] group-hover:border-[var(--ember)] transition-colors">7</div>
           <div>
-            <h3 class="font-bold text-[var(--text)] text-lg mb-2">Spam</h3>
+            <h3 class="font-bold text-[var(--text)] text-lg mb-1.5">Spam</h3>
             <p class="text-[var(--muted)] text-sm leading-relaxed">
               Evite spam, publicações excessivas e caps lock.
             </p>
@@ -139,11 +138,11 @@
       </div>
 
       
-      <div class="group bg-[var(--bg1)] p-5 rounded border border-[var(--stroke)] hover:border-[var(--muted)] transition-colors">
-        <div class="flex items-start gap-4">
+      <div class="group bg-[var(--bg1)] p-3 rounded border border-[var(--stroke)] hover:border-[var(--muted)] transition-colors">
+        <div class="flex items-start gap-2.5">
           <div class="flex-shrink-0 w-8 h-8 bg-[var(--bg2)] rounded flex items-center justify-center font-bold text-[var(--ember)] border border-[var(--stroke)] group-hover:border-[var(--ember)] transition-colors">8</div>
           <div>
-            <h3 class="font-bold text-[var(--text)] text-lg mb-2">Informações pessoais</h3>
+            <h3 class="font-bold text-[var(--text)] text-lg mb-1.5">Informações pessoais</h3>
             <p class="text-[var(--muted)] text-sm leading-relaxed">
               Não publique informações pessoais, como nome completo, telefone, CPF, RG e dados similares.
             </p>
@@ -152,11 +151,11 @@
       </div>
 
       
-      <div class="group bg-[var(--bg1)] p-5 rounded border border-[var(--stroke)] hover:border-[var(--muted)] transition-colors">
-        <div class="flex items-start gap-4">
+      <div class="group bg-[var(--bg1)] p-3 rounded border border-[var(--stroke)] hover:border-[var(--muted)] transition-colors">
+        <div class="flex items-start gap-2.5">
           <div class="flex-shrink-0 w-8 h-8 bg-[var(--bg2)] rounded flex items-center justify-center font-bold text-[var(--ember)] border border-[var(--stroke)] group-hover:border-[var(--ember)] transition-colors">9</div>
           <div>
-            <h3 class="font-bold text-[var(--text)] text-lg mb-2">Denúncia</h3>
+            <h3 class="font-bold text-[var(--text)] text-lg mb-1.5">Denúncia</h3>
             <p class="text-[var(--muted)] text-sm leading-relaxed">
               Se você quiser denunciar comportamento inapropriado, entre em contato com um <strong class="text-[var(--text)]">Moderador</strong>.
             </p>
@@ -165,11 +164,11 @@
       </div>
 
       
-      <div class="group bg-[var(--bg1)] p-5 rounded border border-[var(--stroke)] hover:border-[var(--muted)] transition-colors">
-        <div class="flex items-start gap-4">
+      <div class="group bg-[var(--bg1)] p-3 rounded border border-[var(--stroke)] hover:border-[var(--muted)] transition-colors">
+        <div class="flex items-start gap-2.5">
           <div class="flex-shrink-0 w-8 h-8 bg-[var(--bg2)] rounded flex items-center justify-center font-bold text-[var(--ember)] border border-[var(--stroke)] group-hover:border-[var(--ember)] transition-colors">10</div>
           <div>
-            <h3 class="font-bold text-[var(--text)] text-lg mb-2">Punição</h3>
+            <h3 class="font-bold text-[var(--text)] text-lg mb-1.5">Punição</h3>
             <p class="text-[var(--muted)] text-sm leading-relaxed">
               Quem descumpre regras pode receber alertas. Se o comportamento for recorrente ou grave, punições serão aplicadas.
             </p>
@@ -180,31 +179,31 @@
   </section>
 
   
-  <section class="mb-20">
-    <h2 class="font-rpg text-3xl font-bold text-[var(--text)] mb-8 flex items-center gap-3 pb-4 border-b border-[var(--stroke)]">
+  <section class="mb-10">
+    <h2 class="font-rpg text-3xl font-bold text-[var(--text)] mb-5 flex items-center gap-2 pb-2.5 border-b border-[var(--stroke)]">
       <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8 text-[var(--flame)]"><path d="m14 13-7.5 7.5c-.83.83-2.17.83-3 0 0 0 0 0 0 0a2.12 2.12 0 0 1 0-3L11 10"/><path d="m16 16 6-6"/><path d="m8 8 6-6"/><path d="m9 7 8 8"/><path d="m21 11-8-8"/></svg>
       Punições do Servidor
     </h2>
     
-    <p class="text-[var(--muted)] mb-8 text-lg">
+    <p class="text-[var(--muted)] mb-5 text-lg">
       Para manter a convivência saudável e o ambiente de jogo seguro, usamos um sistema gradual de punições. As punições podem ser:
     </p>
 
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
-      <div class="bg-[var(--bg1)] border border-[var(--stroke)] py-3 px-4 rounded text-center font-bold text-[var(--text)] shadow-sm">Alertas</div>
-      <div class="bg-[var(--bg1)] border border-[var(--stroke)] py-3 px-4 rounded text-center font-bold text-[var(--text)] shadow-sm">Advertências</div>
-      <div class="bg-[var(--bg1)] border border-[var(--stroke)] py-3 px-4 rounded text-center font-bold text-[var(--text)] shadow-sm">Silêncio</div>
-      <div class="bg-[var(--bg1)] border border-[var(--stroke)] py-3 px-4 rounded text-center font-bold text-[var(--text)] shadow-sm">Banimento</div>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-2.5 mb-6">
+      <div class="bg-[var(--bg1)] border border-[var(--stroke)] py-2 px-3 rounded text-center font-bold text-[var(--text)] shadow-sm">Alertas</div>
+      <div class="bg-[var(--bg1)] border border-[var(--stroke)] py-2 px-3 rounded text-center font-bold text-[var(--text)] shadow-sm">Advertências</div>
+      <div class="bg-[var(--bg1)] border border-[var(--stroke)] py-2 px-3 rounded text-center font-bold text-[var(--text)] shadow-sm">Silêncio</div>
+      <div class="bg-[var(--bg1)] border border-[var(--stroke)] py-2 px-3 rounded text-center font-bold text-[var(--text)] shadow-sm">Banimento</div>
     </div>
 
-    <div class="space-y-12">
-      
-      <div class="bg-[var(--bg1)] p-6 rounded-lg border border-[var(--stroke)]">
-        <h3 class="font-rpg text-2xl font-bold text-[var(--text)] mb-4 flex items-center gap-2">
+    <div class="space-y-6">
+
+      <div class="bg-[var(--bg1)] p-4 rounded-lg border border-[var(--stroke)]">
+        <h3 class="font-rpg text-2xl font-bold text-[var(--text)] mb-2.5 flex items-center gap-2">
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 text-[var(--spark)]"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
           Alertas
         </h3>
-        <div class="text-[var(--muted)] space-y-4">
+        <div class="text-[var(--muted)] space-y-2.5">
           <p>
             Alertas são punições leves. Eles são aplicados quando há infração de regra ou conduta nociva que ainda não é grave o suficiente para justificar uma advertência.
           </p>
@@ -213,8 +212,8 @@
             <li>A moderação analisa contexto e histórico antes de aplicar o alerta.</li>
             <li>Alertas podem gerar advertências em caso de reincidência.</li>
           </ul>
-          <div class="bg-[var(--bg2)] p-4 rounded mt-4">
-            <h4 class="font-bold text-[var(--spark)] text-sm uppercase mb-2">Regras de reincidência</h4>
+          <div class="bg-[var(--bg2)] p-3 rounded mt-2.5">
+            <h4 class="font-bold text-[var(--spark)] text-sm uppercase mb-1.5">Regras de reincidência</h4>
             <ul class="text-sm space-y-2">
               <li>Se o jogador receber um segundo alerta em até 6 meses, pelo mesmo motivo, pode receber uma advertência por reincidência.</li>
               <li>Se o jogador receber três alertas em até 6 meses, por qualquer motivo, pode receber uma advertência por reincidência.</li>
@@ -224,16 +223,16 @@
       </div>
 
       
-      <div class="bg-[var(--bg1)] p-6 rounded-lg border border-[var(--stroke)]">
-        <h3 class="font-rpg text-2xl font-bold text-[var(--text)] mb-4 flex items-center gap-2">
+      <div class="bg-[var(--bg1)] p-4 rounded-lg border border-[var(--stroke)]">
+        <h3 class="font-rpg text-2xl font-bold text-[var(--text)] mb-2.5 flex items-center gap-2">
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 text-[var(--ember)]"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
           Advertências
         </h3>
-        <div class="text-[var(--muted)] space-y-4">
+        <div class="text-[var(--muted)] space-y-2.5">
           <p>
             Advertências são punições mais graves e cumulativas. Representam violações de regra mais sérias ou comportamento nocivo contínuo com a comunidade.
           </p>
-          <div class="grid md:grid-cols-3 gap-4 my-4">
+          <div class="grid md:grid-cols-3 gap-2.5 my-2.5">
             <div class="bg-[var(--bg0)] border border-[var(--stroke)] p-3 rounded text-center">
               <span class="block text-[var(--ember)] font-bold text-lg">1ª Advertência</span>
               <span class="text-xs">1 semana como Infrator</span>
@@ -260,8 +259,8 @@
       </div>
 
       
-      <div class="border border-green-900/30 bg-[#051a0a] p-6 rounded-lg">
-         <h3 class="font-rpg text-xl font-bold text-green-400 mb-2 flex items-center gap-2">
+      <div class="border border-green-900/30 bg-[#051a0a] p-4 rounded-lg">
+         <h3 class="font-rpg text-xl font-bold text-green-400 mb-1.5 flex items-center gap-2">
            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
            Prescrição de Advertências
          </h3>
@@ -271,12 +270,12 @@
       </div>
 
       
-      <div class="bg-[var(--bg1)] p-6 rounded-lg border border-[var(--stroke)]">
-        <h3 class="font-rpg text-2xl font-bold text-[var(--text)] mb-4 flex items-center gap-2">
+      <div class="bg-[var(--bg1)] p-4 rounded-lg border border-[var(--stroke)]">
+        <h3 class="font-rpg text-2xl font-bold text-[var(--text)] mb-2.5 flex items-center gap-2">
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 text-[var(--muted)]"><line x1="2" x2="22" y1="2" y2="22"/><path d="M18.89 13.23A7.12 7.12 0 0 0 19 12v-2"/><path d="M5 10v2a7 7 0 0 0 12 5"/><path d="M15 9.34V5a3 3 0 0 0-5.68-1.33"/><path d="M9 9v3a3 3 0 0 0 5.12 2.12"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
           Silêncio
         </h3>
-        <p class="text-[var(--muted)] mb-4">
+        <p class="text-[var(--muted)] mb-2.5">
           Silêncio é uma punição temporária usada quando o jogador gera tumulto em canais públicos, aumenta discussões ou atrapalha o andamento das conversas.
         </p>
         <ul class="list-disc list-inside space-y-2 text-[var(--muted)] marker:text-[var(--text)]">
@@ -287,12 +286,12 @@
       </div>
 
       
-      <div class="bg-[var(--bg0)] p-6 rounded-lg border border-[var(--flame)] shadow-[0_0_15px_rgba(210,23,23,0.15)]">
-        <h3 class="font-rpg text-2xl font-bold text-[var(--flame)] mb-4 flex items-center gap-2">
+      <div class="bg-[var(--bg0)] p-4 rounded-lg border border-[var(--flame)] shadow-[0_0_15px_rgba(210,23,23,0.15)]">
+        <h3 class="font-rpg text-2xl font-bold text-[var(--flame)] mb-2.5 flex items-center gap-2">
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6"><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></svg>
           Banimento Imediato
         </h3>
-        <p class="text-[var(--muted)] mb-4">
+        <p class="text-[var(--muted)] mb-2.5">
           Banimento imediato é aplicado em condutas extremamente graves, mesmo sem histórico. Exemplos:
         </p>
         <div class="grid md:grid-cols-2 gap-x-8 gap-y-2 text-sm text-[var(--text)]">
@@ -303,7 +302,7 @@
           <div class="flex items-center gap-2"><div class="w-1.5 h-1.5 bg-[var(--flame)] rounded-full"></div> Assédio pesado ou perseguição</div>
           <div class="flex items-center gap-2"><div class="w-1.5 h-1.5 bg-[var(--flame)] rounded-full"></div> Conteúdo sexual ilegal ou extremo</div>
         </div>
-        <p class="text-xs text-[var(--muted)] mt-6 italic">
+        <p class="text-xs text-[var(--muted)] mt-4 italic">
           Em casos assim, além do banimento, o ocorrido pode ser reportado à plataforma e, quando for o caso, às autoridades competentes.
         </p>
       </div>
@@ -312,7 +311,7 @@
   </section>
 
   
-  <section class="text-center py-8 border-t border-[var(--stroke)]">
+  <section class="text-center py-5 border-t border-[var(--stroke)]">
     <p class="text-[var(--muted)]">
       Ao participar do servidor, você concorda com estas regras e punições. <br/>
       Nosso objetivo é manter um ambiente saudável, respeitoso e divertido para todos.

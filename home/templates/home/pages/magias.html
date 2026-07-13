@@ -1,19 +1,19 @@
 {% extends 'home/base.html' %}
 
-{% block main_class %}flex-1 w-full py-4{% endblock %}
+{% block main_class %}flex-1 w-full py-2.5{% endblock %}
 {% load static %}
 
 {% block title %}Magias - Bonfire Tales RPG{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/pages/talentos.css' %}">
+<link rel="stylesheet" href="{% static 'css/pages/talentos.css' %}?v=3">
 {% endblock %}
 
 {% block content %}
-<div class="mx-auto w-full max-w-[1440px] px-2 sm:px-4 py-4">
+<div class="mx-auto w-full max-w-[1440px] px-2 sm:px-4 py-2.5">
 
-  <div class="mb-4">
-    <div class="flex flex-wrap items-end justify-between gap-3">
+  <div class="mb-2.5">
+    <div class="flex flex-wrap items-end justify-between gap-2">
       <div>
         <h1 class="font-cinzel text-xl font-bold text-bonfire-text uppercase">Magias</h1>
         <p class="text-bonfire-muted text-[11px] mt-1">Filtre por escola, nível, concentração e ritual. Selecione para ver os detalhes.</p>
@@ -22,7 +22,7 @@
     </div>
 
     <!-- Filtros -->
-    <div id="mgSearchBar" class="mt-4">
+    <div id="mgSearchBar" class="mt-2.5">
       <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
         <input id="mg-busca" type="search" placeholder="Buscar nome ou texto…" autocomplete="off"
                class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)] outline-none focus:border-[var(--ember)] lg:col-span-2">
@@ -34,7 +34,7 @@
           <option value="">Todos os níveis</option>
           {% for n in niveis %}<option value="{{ n }}">{% if n == 0 %}Truque{% else %}Nível {{ n }}{% endif %}</option>{% endfor %}
         </select>
-        <div class="flex items-center gap-3 px-1">
+        <div class="flex items-center gap-2 px-1">
           <label class="flex items-center gap-1.5 text-xs text-[var(--muted)]"><input id="mg-conc" type="checkbox" class="accent-[var(--ember)]"> Concentração</label>
           <label class="flex items-center gap-1.5 text-xs text-[var(--muted)]"><input id="mg-ritual" type="checkbox" class="accent-[var(--ember)]"> Ritual</label>
         </div>
@@ -43,17 +43,17 @@
     </div>
   </div>
 
-  <div class="talent-main-grid grid gap-6 border-t border-bonfire-stroke pt-6 flex-1">
+  <div class="talent-main-grid grid gap-3 border-t border-bonfire-stroke pt-4 flex-1">
     <button type="button" class="talent-mobile-menu-button" id="mgMobileMenuButton" aria-label="Abrir lista de magias">
       <svg xmlns="http://www.w3.org/2000/svg" class="open-icon h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 5 7 7-7 7"/></svg>
       <svg xmlns="http://www.w3.org/2000/svg" class="close-icon h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 19-7-7 7-7"/></svg>
     </button>
     <button type="button" class="talent-mobile-backdrop" id="mgMobileBackdrop" aria-label="Fechar lista"></button>
 
-    <aside class="talent-list-panel xl:sticky xl:top-24 h-full max-h-[calc(100vh-140px)] overflow-y-auto custom-scrollbar flex flex-col gap-2 pr-2" id="mgList">
+    <aside class="talent-list-panel xl:sticky xl:top-24 h-full max-h-[calc(100vh-140px)] overflow-y-auto custom-scrollbar flex flex-col gap-1.5 pr-2" id="mgList">
     </aside>
 
-    <main class="talent-detail-panel hidden mt-8 md:mt-0 md:pl-6" id="mgDetail">
+    <main class="talent-detail-panel hidden mt-4 md:mt-0 md:pl-4" id="mgDetail">
       <div class="flex items-center justify-center h-full text-bonfire-muted flex-col gap-4">
         <svg class="w-16 h-16 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18s-3.332.477-4.5 1.253" />
@@ -124,7 +124,7 @@
     var sub = esc(m.nivel_label||'') + (m.escola ? ' · ' + esc(m.escola) : '');
 
     var item = document.createElement('div');
-    item.className = 'p-4 cursor-pointer rounded-md border transition-all duration-200 '+borderClass+' '+bgClass+' flex flex-col gap-2';
+    item.className = 'p-2.5 cursor-pointer rounded-md border transition-all duration-200 '+borderClass+' '+bgClass+' flex flex-col gap-1.5';
     item.setAttribute('data-slug', m.slug);
     item.onclick = function(){ selectMagia(m.slug); };
     item.innerHTML =
@@ -139,7 +139,7 @@
   function renderList(){
     listContainer.innerHTML = '';
     if(!filtered.length){
-      listContainer.innerHTML = '<p class="text-bonfire-muted text-sm p-4 text-center">Nenhuma magia com esses filtros.</p>';
+      listContainer.innerHTML = '<p class="text-bonfire-muted text-sm p-3 text-center">Nenhuma magia com esses filtros.</p>';
       return;
     }
     filtered.forEach(function(m){ listContainer.appendChild(listItem(m)); });
@@ -174,7 +174,7 @@
     }).join('');
 
     var niveisHtml = m.em_niveis
-      ? '<div class="mt-6 rounded border border-[var(--stroke)] bg-[var(--bg0)] p-3 text-[13px]">'
+      ? '<div class="mt-4 rounded border border-[var(--stroke)] bg-[var(--bg0)] p-2 text-[13px]">'
           + '<div class="mb-1 text-xs font-bold uppercase tracking-wider text-[var(--ember)]">Em níveis superiores</div>'
           + '<div class="bonfire-markdown text-[var(--muted)]">'+md(m.em_niveis)+'</div>'
         + '</div>'
@@ -182,10 +182,10 @@
 
     detailContainer.innerHTML =
       '<h2 class="font-cinzel text-xl font-bold text-bonfire-text uppercase mb-1">'+esc(m.nome)+'</h2>'
-      + '<p class="text-xs text-bonfire-muted mb-5">'+subtitulo+'</p>'
-      + '<div class="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm sm:grid-cols-3 mb-4">'+metaHtml+'</div>'
-      + (tagsHtml ? '<div class="mb-5 flex flex-wrap gap-1">'+tagsHtml+'</div>' : '')
-      + '<div class="bonfire-markdown max-w-none text-[13px] leading-[1.65] text-bonfire-muted">'+md(m.descricao)+'</div>'
+      + '<p class="text-xs text-bonfire-muted mb-3">'+subtitulo+'</p>'
+      + '<div class="grid grid-cols-2 gap-x-2.5 gap-y-1.5 text-sm sm:grid-cols-3 mb-2.5">'+metaHtml+'</div>'
+      + (tagsHtml ? '<div class="mb-3 flex flex-wrap gap-1">'+tagsHtml+'</div>' : '')
+      + '<div class="bonfire-markdown max-w-none text-[13px] leading-[1.45] text-bonfire-muted">'+md(m.descricao)+'</div>'
       + niveisHtml;
 
     detailContainer.classList.remove('talent-detail-enter');

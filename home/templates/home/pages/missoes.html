@@ -1,49 +1,49 @@
 {% extends 'home/base.html' %}
 
 {% block content %}
-<div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-  <header class="mb-8 flex flex-col gap-5 border-b border-[var(--stroke)] pb-6 lg:flex-row lg:items-end lg:justify-between">
+<div class="mx-auto max-w-7xl px-3 py-4 sm:px-5 lg:px-5">
+  <header class="mb-4 flex flex-col gap-3 border-b border-[var(--stroke)] pb-3 lg:flex-row lg:items-end lg:justify-between">
     <div>
-      <p class="mb-2 text-xs font-bold uppercase tracking-[0.35em] text-[var(--ember)]">Discord / PostgreSQL</p>
+      <p class="mb-1.5 text-xs font-bold uppercase tracking-[0.35em] text-[var(--ember)]">Discord / PostgreSQL</p>
       <h1 class="font-rpg text-4xl font-extrabold uppercase tracking-wide text-[var(--text)] md:text-5xl">Missões</h1>
-      <p class="mt-3 max-w-3xl text-sm leading-relaxed text-[var(--muted)]">
+      <p class="mt-2 max-w-3xl text-sm leading-relaxed text-[var(--muted)]">
         Lista lida diretamente do banco PostgreSQL usado pelo bot do Discord.
       </p>
     </div>
 
-    <form method="get" class="flex w-full flex-col gap-3 sm:flex-row lg:w-auto">
+    <form method="get" class="flex w-full flex-col gap-2 sm:flex-row lg:w-auto">
       <label class="relative min-w-0 flex-1 lg:w-80">
         <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-[var(--muted)]">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
         </span>
-        <input name="q" value="{{ search }}" type="search" placeholder="Buscar missão..." class="w-full rounded border border-[var(--stroke)] bg-[var(--bg1)] py-2 pl-9 pr-3 text-sm text-[var(--text)] outline-none transition-colors focus:border-[var(--ember)]">
+        <input name="q" value="{{ search }}" type="search" placeholder="Buscar missão..." class="w-full rounded border border-[var(--stroke)] bg-[var(--bg1)] py-1.5 pl-9 pr-3 text-sm text-[var(--text)] outline-none transition-colors focus:border-[var(--ember)]">
       </label>
 
-      <select name="status" class="rounded border border-[var(--stroke)] bg-[var(--bg1)] px-3 py-2 text-sm font-semibold text-[var(--text)] outline-none transition-colors focus:border-[var(--ember)]">
+      <select name="status" class="rounded border border-[var(--stroke)] bg-[var(--bg1)] px-2.5 py-1.5 text-sm font-semibold text-[var(--text)] outline-none transition-colors focus:border-[var(--ember)]">
         {% for value, label in status_options %}
         <option value="{{ value }}" {% if value == status %}selected{% endif %}>{{ label }}</option>
         {% endfor %}
       </select>
 
-      <button type="submit" class="rounded bg-[var(--flame)] px-5 py-2 text-sm font-bold uppercase tracking-wider text-white transition-colors hover:bg-[var(--ember)]">
+      <button type="submit" class="rounded bg-[var(--flame)] px-3 py-1.5 text-sm font-bold uppercase tracking-wider text-white transition-colors hover:bg-[var(--ember)]">
         Filtrar
       </button>
     </form>
   </header>
 
   {% if db_error %}
-  <section class="rounded border border-[var(--flame)]/70 bg-[var(--flame)]/10 p-5 text-sm text-[var(--text)]">
+  <section class="rounded border border-[var(--flame)]/70 bg-[var(--flame)]/10 p-3 text-sm text-[var(--text)]">
     <h2 class="font-rpg text-xl font-bold text-[var(--flame)]">Banco do bot indisponível</h2>
     <p class="mt-2 text-[var(--muted)]">{{ db_error }}</p>
   </section>
   {% elif quests %}
-  <section class="grid gap-4 lg:grid-cols-2">
+  <section class="grid gap-2.5 lg:grid-cols-2">
     {% for quest in quests %}
     <article class="overflow-hidden rounded border border-[var(--stroke)] bg-[var(--bg1)] transition-colors hover:border-[var(--ember)]/70">
-      <header class="flex flex-col gap-3 border-b border-[var(--stroke)] bg-[var(--bg2)]/60 px-4 py-3 sm:flex-row sm:items-start sm:justify-between">
+      <header class="flex flex-col gap-2 border-b border-[var(--stroke)] bg-[var(--bg2)]/60 px-3 py-2 sm:flex-row sm:items-start sm:justify-between">
         <div class="min-w-0">
           <h2 class="font-rpg text-xl font-bold uppercase text-[var(--text)]">{{ quest.name }}</h2>
-          <div class="mt-2 flex flex-wrap gap-2">
+          <div class="mt-1.5 flex flex-wrap gap-1.5">
             {% if quest.type %}
             <span class="rounded border border-[var(--ember)]/60 px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-[var(--ember)]">{{ quest.type }}</span>
             {% endif %}
@@ -60,35 +60,35 @@
         {% endif %}
       </header>
 
-      <div class="space-y-4 p-4">
+      <div class="space-y-2.5 p-3">
         {% if quest.description %}
         <p class="text-sm leading-relaxed text-[var(--muted)]">{{ quest.description|linebreaksbr }}</p>
         {% endif %}
 
-        <dl class="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
-          <div class="rounded border border-[var(--stroke)] bg-[var(--bg0)] p-3">
+        <dl class="grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
+          <div class="rounded border border-[var(--stroke)] bg-[var(--bg0)] p-2">
             <dt class="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Vagas</dt>
             <dd class="mt-1 font-bold text-[var(--text)]">{{ quest.filled_slots }}/{{ quest.players_amount }}</dd>
           </div>
-          <div class="rounded border border-[var(--stroke)] bg-[var(--bg0)] p-3">
+          <div class="rounded border border-[var(--stroke)] bg-[var(--bg0)] p-2">
             <dt class="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Fila</dt>
             <dd class="mt-1 font-bold text-[var(--text)]">{{ quest.queue_amount }}</dd>
           </div>
-          <div class="rounded border border-[var(--stroke)] bg-[var(--bg0)] p-3 sm:col-span-2">
+          <div class="rounded border border-[var(--stroke)] bg-[var(--bg0)] p-2 sm:col-span-2">
             <dt class="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Mestre</dt>
             <dd class="mt-1 truncate font-bold text-[var(--text)]">{{ quest.quest_master|default:"-" }}</dd>
           </div>
         </dl>
 
         {% if quest.tags %}
-        <div class="flex flex-wrap gap-2">
+        <div class="flex flex-wrap gap-1.5">
           {% for tag in quest.tags %}
           <span class="rounded border border-[var(--stroke)] px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">{{ tag }}</span>
           {% endfor %}
         </div>
         {% endif %}
 
-        <div class="flex flex-wrap gap-3 border-t border-[var(--stroke)] pt-4">
+        <div class="flex flex-wrap gap-2 border-t border-[var(--stroke)] pt-2.5">
           {% if quest.discord_url %}
           <a href="{{ quest.discord_url }}" target="_blank" rel="noopener noreferrer" class="text-xs font-bold uppercase tracking-wider text-[var(--ember)] hover:text-[var(--spark)]">Abrir no Discord</a>
           {% endif %}
@@ -101,7 +101,7 @@
     {% endfor %}
   </section>
   {% else %}
-  <section class="rounded border border-[var(--stroke)] bg-[var(--bg1)] p-8 text-center">
+  <section class="rounded border border-[var(--stroke)] bg-[var(--bg1)] p-5 text-center">
     <h2 class="font-rpg text-2xl font-bold text-[var(--text)]">Nenhuma missão encontrada</h2>
     <p class="mt-2 text-sm text-[var(--muted)]">Tente outro filtro ou verifique se existem missões publicadas no bot.</p>
   </section>

@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/pages/perfil.css' %}">
+<link rel="stylesheet" href="{% static 'css/pages/perfil.css' %}?v=3">
 <link rel="stylesheet" href="{% static 'css/pages/perfil-fx.css' %}?v=3">
 {% if appearance.theme_css_href %}<link rel="stylesheet" href="{{ appearance.theme_css_href }}">{% endif %}
 <title>{{ viewed_user.username }} - Perfil - Bonfire Tales RPG</title>

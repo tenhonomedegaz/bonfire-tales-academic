@@ -1,14 +1,14 @@
 {% if raca %}
 {% if only_traits %}
-    <section class="rounded border border-[var(--stroke)] bg-[var(--bg1)] p-4">
+    <section class="rounded border border-[var(--stroke)] bg-[var(--bg1)] p-3">
       <h2 class="font-rpg text-lg font-bold uppercase text-[var(--text)]">{{ raca.nome }}</h2>
 
-      <div class="mt-4 divide-y divide-[var(--stroke)]">
-        <div class="py-3">
+      <div class="mt-2.5 divide-y divide-[var(--stroke)]">
+        <div class="py-2">
           <span class="block text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Linhagens</span>
           <span class="mt-1 block text-[11px] font-semibold leading-snug text-[var(--text)]">{{ linhagens|length }}</span>
         </div>
-        <div class="py-3">
+        <div class="py-2">
           <span class="block text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Permite Essência</span>
           <span class="mt-1 block text-[11px] font-semibold leading-snug text-[var(--text)]">{% if raca.permite_essencia %}Sim{% else %}Não{% endif %}</span>
         </div>
@@ -31,7 +31,7 @@
       </header>
 
       {% if can_edit_wiki %}
-      <div class="flex justify-end mb-4">
+      <div class="flex justify-end mb-2.5">
         <button type="button" class="wiki-edit-button" data-race-edit>Editar raça</button>
       </div>
       <form class="wiki-inline-editor" data-race-form data-race-id="{{ raca.id_raca }}">
@@ -131,7 +131,7 @@
         <!-- TAB 1: LORE -->
         <div id="tab-content-lore" class="tab-pane active">
           <div id="baseRaceLore" class="h1-section-group race-lore-group">
-            <div class="subtopic-nav flex flex-wrap gap-2 mb-5">
+            <div class="subtopic-nav flex flex-wrap gap-1.5 mb-3">
               {% if raca.lore_presentation %}<button type="button" class="subtopic-btn" data-group-id="baseRaceLore" data-subtopic-toggle="visao-geral">Visão Geral</button>{% endif %}
               {% if raca.lore_roleplay %}<button type="button" class="subtopic-btn" data-group-id="baseRaceLore" data-subtopic-toggle="roleplay">Como Interpretar</button>{% endif %}
               {% if raca.lore_society %}<button type="button" class="subtopic-btn" data-group-id="baseRaceLore" data-subtopic-toggle="sociedade">Sociedade e Cultura</button>{% endif %}
@@ -161,7 +161,7 @@
           <!-- Lore de Essências -->
           {% for ess in essencias %}
           <div data-essencia-lore="{{ ess.slug }}" id="lore-ess-{{ ess.slug }}" class="h1-section-group race-lore-group hidden">
-            <div class="subtopic-nav flex flex-wrap gap-2 mb-5">
+            <div class="subtopic-nav flex flex-wrap gap-1.5 mb-3">
               {% if ess.lore_presentation %}<button type="button" class="subtopic-btn" data-group-id="lore-ess-{{ ess.slug }}" data-subtopic-toggle="apresentacao">Ambientação</button>{% endif %}
               {% if ess.lore_roleplay %}<button type="button" class="subtopic-btn" data-group-id="lore-ess-{{ ess.slug }}" data-subtopic-toggle="roleplay">Roleplay</button>{% endif %}
               {% if ess.lore_society %}<button type="button" class="subtopic-btn" data-group-id="lore-ess-{{ ess.slug }}" data-subtopic-toggle="sociedade">Sociedade</button>{% endif %}
@@ -403,7 +403,7 @@
     </div>
 {% endif %}
 {% else %}
-<section class="rounded border border-[var(--stroke)] bg-[var(--bg1)] p-8 text-center" id="ajax-content-inner">
+<section class="rounded border border-[var(--stroke)] bg-[var(--bg1)] p-5 text-center" id="ajax-content-inner">
   <h2 class="font-rpg text-2xl font-bold text-[var(--text)]">Nenhuma raça selecionada</h2>
   <p class="mt-2 text-sm text-[var(--muted)]">Use a busca ou a lista lateral para abrir uma raça.</p>
 </section>

@@ -3,19 +3,19 @@
 
 {% block content %}
 <section class="animate-fade-in max-w-3xl">
-  <header class="mb-4 flex flex-wrap items-end justify-between gap-3 border-b border-[var(--stroke)] pb-4">
+  <header class="mb-2.5 flex flex-wrap items-end justify-between gap-2 border-b border-[var(--stroke)] pb-2.5">
     <div>
       <h1 class="font-serif text-2xl md:text-3xl font-bold text-[var(--ember)]">Armadilhas e Perigos</h1>
       <p class="mt-1 text-sm text-[var(--muted)]">Armadilhas oficiais e da comunidade — gatilho, detecção, desarme e efeito.</p>
     </div>
-    {% if pode_criar %}<a href="{% url 'armadilha_criar' %}" class="rounded bg-bonfire-gradient px-4 py-2 text-sm font-bold text-white hover:opacity-90">+ Nova armadilha</a>{% endif %}
+    {% if pode_criar %}<a href="{% url 'armadilha_criar' %}" class="rounded bg-bonfire-gradient px-3 py-1.5 text-sm font-bold text-white hover:opacity-90">+ Nova armadilha</a>{% endif %}
   </header>
 
-  {% if msg == 'criada' %}<p class="mb-4 rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-3 py-2 text-sm text-[var(--spark)]">Armadilha criada!</p>
-  {% elif msg == 'editada' %}<p class="mb-4 rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-3 py-2 text-sm text-[var(--spark)]">Armadilha atualizada!</p>
-  {% elif msg == 'excluida' %}<p class="mb-4 rounded border border-[var(--stroke)] bg-[var(--bg1)] px-3 py-2 text-sm text-[var(--muted)]">Armadilha excluída.</p>{% endif %}
+  {% if msg == 'criada' %}<p class="mb-2.5 rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-2.5 py-1.5 text-sm text-[var(--spark)]">Armadilha criada!</p>
+  {% elif msg == 'editada' %}<p class="mb-2.5 rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-2.5 py-1.5 text-sm text-[var(--spark)]">Armadilha atualizada!</p>
+  {% elif msg == 'excluida' %}<p class="mb-2.5 rounded border border-[var(--stroke)] bg-[var(--bg1)] px-2.5 py-1.5 text-sm text-[var(--muted)]">Armadilha excluída.</p>{% endif %}
 
-  <form method="get" class="mb-4 flex flex-wrap items-center gap-2 text-sm">
+  <form method="get" class="mb-2.5 flex flex-wrap items-center gap-1.5 text-sm">
     <select name="f" onchange="this.form.submit()" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-1.5 text-sm text-[var(--text)]">
       <option value="" {% if not filtro %}selected{% endif %}>Todas</option>
       <option value="oficial" {% if filtro == 'oficial' %}selected{% endif %}>Oficiais</option>
@@ -33,25 +33,25 @@
            class="flex-1 rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-1.5 text-sm text-[var(--text)] focus:border-[var(--ember)] focus:outline-none">
   </form>
 
-  <div class="space-y-3">
+  <div class="space-y-2">
     {% for a in armadilhas %}
       <details class="ar-item rounded-lg border-l-2 border-[var(--ember)]/60 border-y border-r border-[var(--stroke)] bg-[var(--bg1)]" data-busca="{{ a.nome|lower }} {{ a.tipo|lower }}">
-        <summary class="flex cursor-pointer flex-wrap items-center justify-between gap-2 px-4 py-2.5 list-none">
+        <summary class="flex cursor-pointer flex-wrap items-center justify-between gap-1.5 px-3 py-1.5 list-none">
           <span class="font-serif font-bold text-[var(--text)]">{{ a.nome }}
             {% if a.comunidade %}<span class="ml-1 rounded bg-[var(--flame)]/15 px-1.5 py-0.5 text-xs text-[var(--flame)]">comunidade</span>{% endif %}
           </span>
           <span class="text-xs text-[var(--muted)]">{{ a.tipo }}{% if a.nd %} · ND {{ a.nd }}{% endif %}{% if a.autor %} · por {{ a.autor }}{% endif %}</span>
         </summary>
-        <div class="space-y-1 border-t border-[var(--stroke)]/60 px-4 py-3 text-sm text-[var(--text)]">
+        <div class="space-y-1 border-t border-[var(--stroke)]/60 px-3 py-2 text-sm text-[var(--text)]">
           {% if a.gatilho %}<div><strong class="text-[var(--muted)]">Gatilho</strong> {{ a.gatilho }}</div>{% endif %}
           {% if a.deteccao %}<div><strong class="text-[var(--muted)]">Detecção</strong> {{ a.deteccao }}</div>{% endif %}
           {% if a.desarme %}<div><strong class="text-[var(--muted)]">Desarme</strong> {{ a.desarme }}</div>{% endif %}
           {% if a.save %}<div><strong class="text-[var(--muted)]">Salvaguarda</strong> {{ a.save }}</div>{% endif %}
           {% if a.dano %}<div><strong class="text-[var(--muted)]">Dano</strong> {{ a.dano }}</div>{% endif %}
           {% if a.efeito %}<p class="mt-1 text-[var(--muted)]">{{ a.efeito|linebreaksbr }}</p>{% endif %}
-          {% if a.descricao %}<p class="mt-2 text-[var(--muted)]">{{ a.descricao }}</p>{% endif %}
+          {% if a.descricao %}<p class="mt-1.5 text-[var(--muted)]">{{ a.descricao }}</p>{% endif %}
           {% if a.pode_editar %}
-            <div class="mt-3 flex items-center gap-3">
+            <div class="mt-2 flex items-center gap-2">
               <a href="{% url 'armadilha_editar' a.id %}" class="text-xs text-[var(--ember)] hover:underline">Editar</a>
               <form method="post" action="{% url 'armadilha_excluir' a.id %}" onsubmit="return confirm('Excluir {{ a.nome|escapejs }}?');">
                 {% csrf_token %}<button type="submit" class="text-xs text-[var(--flame)] hover:underline">Excluir</button>
@@ -61,7 +61,7 @@
         </div>
       </details>
     {% empty %}
-      <p class="rounded-lg border border-dashed border-[var(--stroke)] px-4 py-8 text-center text-sm text-[var(--muted)]">Nenhuma armadilha.</p>
+      <p class="rounded-lg border border-dashed border-[var(--stroke)] px-3 py-5 text-center text-sm text-[var(--muted)]">Nenhuma armadilha.</p>
     {% endfor %}
   </div>
 </section>
