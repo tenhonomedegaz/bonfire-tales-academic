@@ -11,9 +11,14 @@
 
 {% block content %}
 <div id="content-main">
-    <div class="dashboard-welcome" style="padding: 2rem; text-align: center; color: var(--body-quiet-color);">
-        <h1 style="font-size: 2rem; margin-bottom: 1rem;">Bem-vindo ao Painel de Conteúdo</h1>
-        <p>Use o menu lateral à esquerda para navegar entre as tabelas do site e do bot.</p>
+    <div class="dashboard-welcome">
+        <h1>Bem-vindo ao Painel de Conteúdo</h1>
+        <p>Escolha uma tabela abaixo para gerenciar. No computador, o menu lateral também está sempre disponível.</p>
+    </div>
+
+    {# Lista de apps/modelos renderizada aqui (navegacao empilhada, essencial no celular) #}
+    <div class="app-list">
+        {% include "admin/app_list.html" with app_list=app_list show_changelinks=True %}
     </div>
 </div>
 {% endblock %}

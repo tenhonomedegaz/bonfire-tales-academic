@@ -1,6 +1,7 @@
 import json
 import re
 import subprocess
+import types
 import unicodedata
 from datetime import datetime
 from pathlib import Path
@@ -3375,3 +3376,100 @@ class TbUsuarioConquistaAdmin(admin.ModelAdmin):
     autocomplete_fields = ('user', 'conquista', 'concedida_por')
     readonly_fields = ('concedida_em',)
     ordering = ('-concedida_em',)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# UX GLOBAL DO ADMIN (aplicado a TODOS os ModelAdmin registrados)
+#   1. Coluna "Excluir" por linha em toda changelist -> leva direto para a
+#      pagina de confirmacao PADRAO do Django (mantem protecao de FK). Sem
+#      precisar de checkbox + dropdown + "Go". A acao em massa continua existindo.
+#   2. Campos com null=True deixam de ser tratados como obrigatorios ao editar
+#      (reclamacao recorrente do PO: colunas NULL no banco viravam obrigatorias).
+# Implementacao: patch unico no registry, depois de todos os register().
+# ─────────────────────────────────────────────────────────────────────────────
+def _bonfire_row_delete_link(obj):
+    """Callable de list_display: link de exclusao por linha (1 clique)."""
+    try:
+        url = reverse(
+            "admin:%s_%s_delete" % (obj._meta.app_label, obj._meta.model_name),
+            args=[obj.pk],
+        )
+    except Exception:
+        return ""
+    return format_html(
+        '<a class="bonfire-row-delete" href="{}" title="Excluir" '
+        'aria-label="Excluir este registro">'
+        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" '
+        'stroke="currentColor" stroke-width="2" stroke-linecap="round" '
+        'stroke-linejoin="round" aria-hidden="true">'
+        '<path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>'
+        '<path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>'
+        '<line x1="10" y1="11" x2="10" y2="17"/>'
+        '<line x1="14" y1="11" x2="14" y2="17"/></svg>'
+        '<span class="bonfire-row-delete-txt">Excluir</span></a>',
+        url,
+    )
+
+
+_bonfire_row_delete_link.short_description = mark_safe(
+    '<span class="bonfire-del-head">Excluir</span>'
+)
+
+
+def _bonfire_install_row_delete(model_admin):
+    """Injeta a coluna de exclusao via get_list_display (respeita permissao).
+    Usa MethodType para que continue sendo um metodo ligado (o system check do
+    admin inspeciona `get_list_display.__func__`)."""
+    if getattr(model_admin, "_bonfire_delete_installed", False):
+        return
+    model_admin._bonfire_delete_installed = True
+    _orig_get_list_display = model_admin.get_list_display
+
+    def get_list_display(self, request, _orig=_orig_get_list_display):
+        display = list(_orig(request))
+        try:
+            can_delete = self.has_delete_permission(request)
+        except Exception:
+            can_delete = False
+        if can_delete and _bonfire_row_delete_link not in display:
+            display.append(_bonfire_row_delete_link)
+        return display
+
+    model_admin.get_list_display = types.MethodType(get_list_display, model_admin)
+
+
+def _bonfire_install_nullable_optional(model_admin):
+    """Campos null=True do modelo nao devem ser obrigatorios no form do admin."""
+    if getattr(model_admin, "_bonfire_nullable_installed", False):
+        return
+    model_admin._bonfire_nullable_installed = True
+    _orig_get_form = model_admin.get_form
+
+    def get_form(request, obj=None, _orig=_orig_get_form, _self=model_admin, **kwargs):
+        FormClass = _orig(request, obj, **kwargs)
+        try:
+            meta = _self.model._meta
+        except Exception:
+            return FormClass
+        for field_name, form_field in FormClass.base_fields.items():
+            if not form_field.required:
+                continue
+            try:
+                model_field = meta.get_field(field_name)
+            except Exception:
+                continue
+            # Coluna aceita NULL no banco -> pode ficar em branco no admin.
+            if getattr(model_field, "null", False):
+                form_field.required = False
+        return FormClass
+
+    model_admin.get_form = get_form
+
+
+def _bonfire_patch_admin_registry():
+    for model_admin in admin.site._registry.values():
+        _bonfire_install_row_delete(model_admin)
+        _bonfire_install_nullable_optional(model_admin)
+
+
+_bonfire_patch_admin_registry()

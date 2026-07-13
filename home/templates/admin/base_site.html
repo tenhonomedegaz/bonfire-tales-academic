@@ -50,9 +50,16 @@
 </div>
 {% endblock %}
 
+{% block responsive %}
+{{ block.super }}
+{# Recarrega o tema DEPOIS do responsive.css do Django para que os overrides
+   mobile do Bonfire (alvos de toque 44px, sem zoom, etc.) vencam o cascade. #}
+<link rel="stylesheet" href="{% static 'css/admin/bonfire_admin.css' %}?v=6">
+{% endblock %}
+
 {% block extrastyle %}
 {{ block.super }}
-<link rel="stylesheet" href="{% static 'css/admin/bonfire_admin.css' %}?v=1">
+<link rel="stylesheet" href="{% static 'css/admin/bonfire_admin.css' %}?v=6">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">

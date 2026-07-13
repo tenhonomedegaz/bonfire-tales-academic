@@ -233,12 +233,16 @@ div.breadcrumbs a:hover { color: var(--spark); }
    ========================================================================== */
 .dashboard #content { max-width: 1240px; margin: 0 auto; }
 .dashboard #content-main {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
-    gap: 22px;
     width: 100% !important;
     float: none !important;
 }
+.dashboard #content-main > .dashboard-welcome { margin-bottom: 22px; }
+.dashboard .app-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    gap: 22px;
+}
+.dashboard .app-list .module { margin-bottom: 0; }
 .dashboard .module table { width: 100%; }
 .dashboard .module th,
 .dashboard .module td { padding: 11px 18px; }
@@ -251,10 +255,20 @@ div.breadcrumbs a:hover { color: var(--spark); }
 .dashboard .module .changelink:hover,
 .dashboard .module .viewlink:hover { color: var(--ember); }
 
+.dashboard-welcome {
+    background: var(--bg1);
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius);
+    padding: 22px 24px;
+    text-align: center;
+}
 .dashboard-welcome h1 {
     font-family: 'Cinzel', 'Inter', serif;
     color: var(--ember);
+    font-size: 1.6rem;
+    margin: 0 0 8px;
 }
+.dashboard-welcome p { color: var(--muted); margin: 0; }
 
 /* Sidebar de acoes recentes (coluna direita do index) */
 #content-related {
@@ -967,17 +981,291 @@ input[type=button]:focus-visible,
 }
 
 /* ==========================================================================
-   16. RESPONSIVO (telas medias)
+   15b. COLUNA "EXCLUIR" POR LINHA (delete em 1 clique)
+   Injetada em toda changelist por home/admin.py. Botao compacto que leva a
+   pagina de confirmacao padrao do Django (mantem protecao de FK).
+   ========================================================================== */
+#result_list th.column-_bonfire_row_delete_link,
+#result_list td.field-_bonfire_row_delete_link {
+    text-align: center;
+    width: 1%;
+    white-space: nowrap;
+}
+.bonfire-del-head {
+    font-size: 11px;
+    letter-spacing: .04em;
+}
+a.bonfire-row-delete {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    position: relative;              /* containing block do texto oculto (evita vazamento de scroll) */
+    min-height: 34px;
+    padding: 5px 10px;
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(226, 59, 59, .45);
+    background: var(--message-error-bg);
+    color: #f0a3a3 !important;
+    font-weight: 700;
+    font-size: 12px;
+    line-height: 1;
+    transition: background-color .15s ease, color .15s ease, border-color .15s ease;
+}
+a.bonfire-row-delete:hover {
+    background: var(--danger);
+    border-color: var(--danger);
+    color: #fff !important;
+}
+a.bonfire-row-delete svg { flex: 0 0 auto; }
+/* Em telas largas o icone basta (o link ja tem aria-label + title); o texto so
+   aparece no mobile como reforco de alvo de toque. display:none aqui evita que
+   o rotulo, posicionado no fim da tabela, infle o scroll horizontal da pagina. */
+@media (min-width: 768px) {
+    a.bonfire-row-delete .bonfire-row-delete-txt { display: none; }
+}
+
+/* ==========================================================================
+   16. RESPONSIVO
    ========================================================================== */
 @media (max-width: 1024px) {
     #content { padding: 20px 20px; }
     div.breadcrumbs { padding: 10px 20px; }
-    .dashboard #content-main { grid-template-columns: 1fr; }
+    .dashboard .app-list { grid-template-columns: 1fr; }
     #changelist-filter { width: 100%; }
     .colMS #content-main { margin-right: 0; }
 }
+
+/* ==========================================================================
+   16b. MOBILE (<= 767px) — uso real no celular
+   Alvos de toque >= 40px, sem scroll horizontal do body, header/filtros/toolbar
+   empilhados, formularios full-width, busca sem zoom (font 16px), navegacao
+   por lista. A tabela rola no proprio container (.results ja tem overflow).
+   ========================================================================== */
 @media (max-width: 767px) {
+    html, body { max-width: 100%; overflow-x: hidden; }
+
+    /* ---- Header custom (base_site.html tem estilos inline; sobrescrevemos) ---- */
+    #header {
+        position: static !important;
+        height: auto !important;
+        flex-wrap: wrap !important;
+        gap: 10px !important;
+        padding: 10px 14px !important;
+        row-gap: 12px;
+    }
+    #header #branding { flex: 1 1 auto; }
+    #header #branding h1 { font-size: 1rem !important; }
+    #header #user-tools {
+        flex-wrap: wrap !important;
+        gap: 10px !important;
+        width: 100% !important;
+        justify-content: flex-start !important;
+    }
+    /* grupo de links (Ver Site / Editor / Console / Backup) rola horizontal
+       proprio, sem empurrar o body */
+    #header #user-tools > div:first-child {
+        gap: 14px !important;
+        flex-wrap: wrap;
+        row-gap: 8px;
+    }
+    #header #user-tools a { min-height: 40px; display: inline-flex; align-items: center; }
+    #header #user-tools button { min-height: 40px; }
+
+    /* Breadcrumbs deixam de ser sticky (offset fixo quebra com header flexivel) */
+    div.breadcrumbs {
+        position: static !important;
+        top: auto !important;
+        padding: 10px 14px;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+
+    #content { padding: 14px; }
+
+    #content h1, #content-main > h1 { font-size: 1.25rem; }
+
+    /* ---- Nav sidebar do Django vira lista empilhada tocavel ---- */
+    #toggle-nav-sidebar {
+        min-height: 44px;
+        min-width: 44px;
+        font-size: 20px;
+    }
+    #nav-sidebar .app-name-header,
+    #nav-sidebar caption a,
+    #nav-sidebar tr th a,
+    #nav-sidebar li a,
+    #nav-sidebar table a {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        padding: 8px 14px;
+        font-size: 15px;
+    }
+    #nav-filter { min-height: 44px; font-size: 16px; padding: 8px 12px; }
+
+    /* ---- Dashboard: lista de apps/modelos = navegacao empilhada tocavel ---- */
+    .dashboard #content { padding: 14px; }
+    .dashboard .app-list .module th,
+    .dashboard .app-list .module td { padding: 4px 14px; }
+    .dashboard .app-list .module th a,
+    .dashboard .app-list .module td a {
+        display: flex;
+        align-items: center;
+        min-height: 44px;
+    }
+    .dashboard .app-list .module caption a { min-height: 44px; display: flex; align-items: center; }
+
+    /* ---- Toolbar / busca ---- */
+    #toolbar { padding: 10px; }
+    #toolbar form#changelist-search { gap: 8px; }
+    /* Django 6 embrulha o #searchbar num <div> flex dimensionado pelo conteúdo
+       (~91px) — sem isto o input colapsa a ~12px no mobile. */
+    #toolbar #changelist-search > div {
+        flex: 1 1 100%;
+        display: flex;
+        min-width: 0;
+    }
+    #toolbar #searchbar {
+        width: 100%;
+        min-width: 0;
+        flex: 1 1 100%;
+        min-height: 44px;
+        font-size: 16px;                 /* evita zoom no iOS */
+        box-sizing: border-box;
+    }
+    #toolbar #changelist-search input[type=submit] {
+        min-height: 44px;
+        flex: 0 0 auto;
+    }
+
+    /* ---- Object tools (Adicionar / Historico) no topo, tocaveis e visiveis ---- */
+    .object-tools {
+        float: none;
+        margin: 0 0 12px;
+        padding: 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .object-tools li { display: block; }
+    .object-tools a, .object-tools a:link {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+        padding: 10px 16px;
+        font-size: 14px;
+    }
+    .object-tools a.addlink { font-weight: 800; }
+
+    /* ---- Acoes em massa empilhadas e tocaveis ---- */
+    .actions {
+        padding: 10px;
+        gap: 8px;
+    }
+    .actions select { min-height: 44px; width: 100%; font-size: 16px; }
+    .actions .button { min-height: 44px; width: 100%; }
+    .actions span.action-counter,
+    .actions span.all,
+    .actions span.question,
+    .actions span.clear { width: 100%; }
+
+    /* ---- Tabela: rola no proprio container; 1a coluna legivel ---- */
+    #changelist .results {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        max-width: 100%;
+    }
+    #result_list { min-width: 640px; }               /* garante rolagem, nao estica body */
+    #result_list tbody th, #result_list tbody td { min-height: 44px; }
+    #result_list tbody th a, #result_list tbody td a { display: inline-block; padding: 4px 0; }
+    /* Coluna de acao/checkbox e link principal sempre visiveis */
+    #result_list thead th, #result_list tbody td, #result_list tbody th { padding: 12px 12px; }
+
+    /* ---- Filtros como bloco empilhado (nao coluna lateral) ---- */
+    #changelist-filter {
+        width: 100% !important;
+        position: static !important;
+        margin: 0 0 14px;
+        max-height: none;
+    }
+    #changelist-filter li a { min-height: 40px; display: flex; align-items: center; }
+    #changelist .change-list #changelist-filter { float: none; }
+
+    /* ---- Paginacao tocavel ---- */
+    .paginator {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        padding: 12px;
+    }
+    .paginator a:link, .paginator a:visited, .paginator .this-page {
+        min-height: 40px;
+        min-width: 40px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 6px 12px;
+    }
+
+    /* ---- Formularios full-width, confortaveis ---- */
+    .aligned label, form .form-row label { display: block; float: none; width: auto; margin-bottom: 6px; }
+    .form-row { padding: 12px 14px; }
+    .aligned .form-row > div,
+    .form-row input[type=text], .form-row input[type=email], .form-row input[type=url],
+    .form-row input[type=number], .form-row input[type=password], .form-row input[type=date],
+    .form-row input[type=time], .form-row input[type=datetime-local],
+    .form-row textarea, .form-row select, .form-row .vTextField {
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+    /* Vence a especificidade do responsive.css do Django (.form-row input...),
+       que fixa 2.25rem/36px. Alvo de toque 44px + fonte 16px (sem zoom iOS). */
+    .form-row input:not([type]),
+    .form-row input[type=text], .form-row input[type=email],
+    .form-row input[type=url], .form-row input[type=tel],
+    .form-row input[type=number], .form-row input[type=password],
+    .form-row input[type=search], .form-row input[type=date],
+    .form-row input[type=time], .form-row input[type=datetime-local],
+    .form-row textarea, .form-row select, .form-row .vTextField,
+    input[type=text], input[type=email], input[type=url], input[type=number],
+    input[type=password], input[type=search], input[type=date], input[type=time],
+    input[type=datetime-local], textarea, select, .vTextField {
+        min-height: 44px;
+        font-size: 16px;                 /* evita zoom no iOS */
+    }
+    .form-row select { height: 44px; }
+    .form-row select[multiple] { height: auto; }
     .inline-group .inline-related > fieldset { grid-template-columns: 1fr; }
-    .submit-row { position: static; box-shadow: none; }
-    #toolbar #searchbar { min-width: 0; }
+
+    /* ---- Botoes e submit-row: alvos grandes, sem sticky no mobile ---- */
+    .submit-row {
+        position: static;
+        box-shadow: none;
+        padding: 12px;
+        gap: 10px;
+    }
+    .submit-row input, .submit-row a, .button, input[type=submit], a.button {
+        min-height: 44px;
+        width: 100%;
+        box-sizing: border-box;
+        justify-content: center;
+    }
+    .submit-row p.deletelink-box { margin: 0; width: 100%; }
+    .submit-row a.deletelink { display: block; text-align: center; }
+
+    /* Coluna de exclusao por linha: mostra texto + icone (alvo maior) */
+    a.bonfire-row-delete { min-height: 40px; padding: 8px 12px; }
+}
+
+/* ==========================================================================
+   16c. MOBILE ESTREITO (<= 400px) — celular pequeno
+   ========================================================================== */
+@media (max-width: 400px) {
+    #content { padding: 12px 10px; }
+    #header #user-tools > div:first-child { gap: 10px !important; }
+    #header #user-tools a { font-size: 13px !important; }
+    #result_list { min-width: 560px; }
 }
