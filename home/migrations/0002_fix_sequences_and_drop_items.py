@@ -7,8 +7,12 @@ def fix_sequences_and_drop_items(apps, schema_editor):
     connection = schema_editor.connection
     
     # 1. Drop the Bot Item table (since BotItem model was removed)
+    # CASCADE é sintaxe Postgres; no SQLite (dev/banco de teste) quebra o parse.
     with connection.cursor() as cursor:
-        cursor.execute("DROP TABLE IF EXISTS rpg_items CASCADE;")
+        if connection.vendor == 'postgresql':
+            cursor.execute("DROP TABLE IF EXISTS rpg_items CASCADE;")
+        else:
+            cursor.execute("DROP TABLE IF EXISTS rpg_items;")
     
     # 2. Reset sequences for all managed models in 'home' app
     home_models = [
