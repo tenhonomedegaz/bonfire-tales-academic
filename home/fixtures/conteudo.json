@@ -19536,9 +19536,10 @@
     "nivel": null,
     "valor": null,
     "valores_json": {
-      "1": "3",
-      "9": "4",
-      "17": "5"
+      "1": "2",
+      "4": "3",
+      "10": "4",
+      "16": "5"
     },
     "tipo": "choice",
     "reset": null

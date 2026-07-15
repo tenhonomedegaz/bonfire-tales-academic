@@ -2480,9 +2480,13 @@ def _choice_resource_limit(classe, nivel, resource_slug):
     if not resource_slug:
         return None
     from .character_engine import RESOURCE_TIPO_CHOICE, _resource_max_at, _resource_tipo
+    # tags referenciam o recurso com underscore (ex.: maestria_com_armas), mas o slug
+    # em TbRecursoclasse é gerado com hífen (ex.: maestria-com-armas); casa as duas formas.
+    alvo = resource_slug.replace('_', '-')
     qs = TbRecursoclasse.objects.filter(id_classe=classe, id_subclasse__isnull=True)
-    exatos = list(qs.filter(slug=resource_slug))
-    parciais = list(qs.filter(slug__icontains=resource_slug))
+    todos = list(qs)
+    exatos = [r for r in todos if (r.slug or '').replace('_', '-') == alvo]
+    parciais = [r for r in todos if alvo in (r.slug or '').replace('_', '-')]
     candidatos = exatos + [r for r in parciais if r not in exatos]
     r = next((rec for rec in candidatos if _resource_tipo(rec) == RESOURCE_TIPO_CHOICE), None)
     if r is None and candidatos:

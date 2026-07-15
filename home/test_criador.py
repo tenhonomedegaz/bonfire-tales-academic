@@ -161,6 +161,72 @@ class CriacaoArquetiposTests(_CriadorBase):
             id_personagem=p, categoria='origem').exists())
 
 
+class Bug3MaestriaDeArmaTests(_CriadorBase):
+    """BUG-3 (gap de conteúdo): Guerreiro, Bárbaro e Ladino têm a feature de
+    Maestria de Arma descrita no N1, mas até então a tag `pick:arma:N` não
+    resolvia a contagem (o slug do recurso usa hífen em TbRecursoclasse mas as
+    tags referenciam com underscore — `_choice_resource_limit` não casava as
+    duas formas e devolvia N=0 em silêncio). Ancora o N correto de cada classe
+    (igual ao Caçador, o gabarito) e prova que a ficha nasce com a feature +
+    as armas escolhidas materializadas — não só o count."""
+
+    def _cria_ok(self, payload):
+        user = self._novo_usuario('dono-%s' % payload['classe'], staff=True)
+        resp = self._post_criar(user, payload)
+        self.assertEqual(resp.status_code, 200, resp.content)
+        body = resp.json()
+        self.assertTrue(body['ok'], body)
+        p = TbPersonagem.objects.get(pk=body['id'])
+        from home.character_engine import derive
+        return p, derive(p)
+
+    def test_guerreiro_maestria_de_arma(self):
+        classe = TbClasse.objects.get(slug='guerreiro')
+        self.assertEqual(views._classe_maestria_n(classe, 1), 3,
+                          'Disciplina Marcial: "Escolha três tipos de armas" no N1.')
+        p, ficha = self._cria_ok(self._payload('guerreiro'))
+        self.assertEqual(p.escolhas.filter(tipo='maestria').count(), 3)
+        self.assertEqual(len(ficha['maestrias_armas']), 3)
+        self.assertTrue(all(m['encontrada'] for m in ficha['maestrias_armas']), ficha['maestrias_armas'])
+        self.assertTrue(any(f['nome'] == 'Disciplina Marcial' for f in ficha['features']), ficha['features'])
+
+    def test_barbaro_maestria_de_arma(self):
+        classe = TbClasse.objects.get(slug='barbaro')
+        self.assertEqual(views._classe_maestria_n(classe, 1), 2,
+                          'Maestria em Armas: "dois tipos de armas" no N1.')
+        p, ficha = self._cria_ok(self._payload('barbaro'))
+        self.assertEqual(p.escolhas.filter(tipo='maestria').count(), 2)
+        self.assertEqual(len(ficha['maestrias_armas']), 2)
+        self.assertTrue(all(m['encontrada'] for m in ficha['maestrias_armas']), ficha['maestrias_armas'])
+        self.assertTrue(any(f['nome'] == 'Maestria em Armas' for f in ficha['features']), ficha['features'])
+
+    def test_ladino_maestria_de_arma(self):
+        classe = TbClasse.objects.get(slug='ladino')
+        self.assertEqual(views._classe_maestria_n(classe, 1), 2,
+                          'Maestria em Armas do Ladino: "duas armas à sua escolha" no N1.')
+        p, ficha = self._cria_ok(self._payload('ladino'))
+        self.assertEqual(p.escolhas.filter(tipo='maestria').count(), 2)
+        self.assertEqual(len(ficha['maestrias_armas']), 2)
+        self.assertTrue(all(m['encontrada'] for m in ficha['maestrias_armas']), ficha['maestrias_armas'])
+        self.assertTrue(any(f['nome'] == 'Maestria em Armas do Ladino' for f in ficha['features']), ficha['features'])
+
+    def test_cacador_continua_gabarito(self):
+        # regressão: o gabarito não pode quebrar com a normalização hífen/underscore.
+        classe = TbClasse.objects.get(slug='cacador')
+        self.assertEqual(views._classe_maestria_n(classe, 1), 3)
+
+    def test_maestria_de_arma_obrigatoria_no_servidor(self):
+        # sem escolher as armas, o servidor rejeita (não confia só no JS).
+        payload = self._payload('guerreiro')
+        payload.pop('maestrias', None)
+        user = self._novo_usuario('sem-maestria', staff=True)
+        resp = self._post_criar(user, payload)
+        self.assertEqual(resp.status_code, 400, resp.content)
+        body = resp.json()
+        self.assertFalse(body.get('ok', True))
+        self.assertTrue(any('Maestria de Arma' in e for e in body.get('erros', [])), body)
+
+
 class Bug4VertenteMagiaTests(_CriadorBase):
     """BUG-4 (verificação): o caminho essência/vertente → magia é CONSISTENTE no N1.
 
