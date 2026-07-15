@@ -2,10 +2,10 @@
 {% load static %}
 
 {% block content %}
-<section class="animate-fade-in max-w-4xl">
+<section class="animate-fade-in">
   <header class="mb-4 border-b border-[var(--stroke)] pb-4">
     <h1 class="font-serif text-2xl md:text-3xl font-bold text-[var(--ember)]">Criação de Ficha</h1>
-    <p class="mt-1 text-[var(--muted)] text-sm">Monte seu personagem de nível 1 — atributos, raça, classe, antecedente e talentos.</p>
+    <p class="mt-1 text-[var(--muted)] text-sm">Monte seu personagem de nível 1, passo a passo — a prévia da ficha acompanha cada escolha.</p>
   </header>
 
   {% if not logado %}
@@ -14,216 +14,289 @@
     </div>
   {% endif %}
 
-  <form id="criador-form" class="space-y-3">
+  <div class="cf-layout">
+    <div class="cf-main">
+      <!-- Stepper (U1) -->
+      <nav class="cf-stepper" aria-label="Etapas da criação">
+        <ol id="cf-stepper">
+          <li class="cf-step-tab" data-step-tab="0" role="button" tabindex="0"><span class="cf-step-badge"><span>1</span></span><span class="cf-step-name">Atributos</span></li>
+          <li class="cf-step-tab" data-step-tab="1" role="button" tabindex="0"><span class="cf-step-badge"><span>2</span></span><span class="cf-step-name">Raça</span></li>
+          <li class="cf-step-tab" data-step-tab="2" role="button" tabindex="0"><span class="cf-step-badge"><span>3</span></span><span class="cf-step-name">Classe</span></li>
+          <li class="cf-step-tab" data-step-tab="3" role="button" tabindex="0"><span class="cf-step-badge"><span>4</span></span><span class="cf-step-name">Antecedente</span></li>
+          <li class="cf-step-tab" data-step-tab="4" role="button" tabindex="0"><span class="cf-step-badge"><span>5</span></span><span class="cf-step-name">Talentos</span></li>
+          <li class="cf-step-tab" data-step-tab="5" role="button" tabindex="0"><span class="cf-step-badge"><span>6</span></span><span class="cf-step-name">Revisão</span></li>
+        </ol>
+      </nav>
 
-    <!-- Nome -->
-    <div class="rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-3">
-      <label for="cf-nome" class="mb-1 block text-sm font-semibold uppercase tracking-wider text-[var(--muted)]">Nome do personagem</label>
-      <input id="cf-nome" type="text" maxlength="150" placeholder="Ex.: Durgan Pedra-Funda"
-             class="w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-1.5 text-[var(--text)] focus:border-[var(--ember)] focus:outline-none">
-    </div>
+      <form id="criador-form" class="space-y-3">
 
-    <!-- 1. Atributos (point-buy) -->
-    <div class="rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-3">
-      <h2 class="mb-1 font-serif text-lg font-bold text-[var(--ember)]">1. Atributos <span class="text-sm font-normal text-[var(--muted)]">(point-buy)</span></h2>
-      <p class="mb-2 text-xs text-[var(--muted)]">Cada atributo começa em 8. Subir custa 1 ponto até 13; de 14 em diante, 2 pontos. Máx. 15 por atributo, {{ pb_max_pontos }} pontos no total.</p>
-      <div data-point-buy class="overflow-x-auto rounded-lg border border-[var(--stroke)] bg-[var(--bg0)]">
-        <table class="w-full min-w-[560px] border-collapse text-sm">
-          <thead>
-            <tr class="bg-[var(--bg2)] text-[var(--muted)]">
-              <th class="px-2.5 py-1.5 text-left font-semibold uppercase tracking-wider text-xs">Atributo</th>
-              <th class="px-2.5 py-1.5 text-center font-semibold uppercase tracking-wider text-xs">Valor</th>
-              <th class="px-2.5 py-1.5 text-center font-semibold uppercase tracking-wider text-xs">Modificador</th>
-              <th class="px-2.5 py-1.5 text-center font-semibold uppercase tracking-wider text-xs">Custo</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-[var(--stroke)]">
-            {% for sig, nome in atributos %}
-            <tr data-attr="{{ sig }}" class="odd:bg-transparent even:bg-[var(--bg2)]/40">
-              <td class="px-2.5 py-1.5 font-serif font-semibold text-[var(--text)]">{{ nome }} <span class="text-xs font-normal text-[var(--muted)]">({{ sig }})</span></td>
-              <td class="px-2.5 py-1.5">
-                <div class="mx-auto flex w-fit items-center gap-1.5 rounded border border-[var(--stroke)] bg-[var(--bg1)] px-2 py-1">
-                  <input data-score type="text" inputmode="numeric" readonly value="8"
-                         class="w-7 bg-transparent text-center text-base font-bold text-[var(--text)] focus:outline-none" aria-label="Valor de {{ nome }}">
-                  <div class="flex flex-col leading-none">
-                    <button type="button" data-inc class="px-1 text-[10px] text-[var(--muted)] hover:text-[var(--ember)] disabled:opacity-30 disabled:hover:text-[var(--muted)]" aria-label="Aumentar">▲</button>
-                    <button type="button" data-dec class="px-1 text-[10px] text-[var(--muted)] hover:text-[var(--ember)] disabled:opacity-30 disabled:hover:text-[var(--muted)]" aria-label="Diminuir">▼</button>
-                  </div>
-                </div>
-              </td>
-              <td data-mod class="px-2.5 py-1.5 text-center font-semibold text-[var(--spark)]">-1</td>
-              <td data-cost class="px-2.5 py-1.5 text-center text-[var(--muted)]">0</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-        <div class="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--stroke)] bg-[var(--bg2)]/50 px-3 py-2">
-          <button type="button" data-reset class="rounded border border-[var(--stroke)] bg-[var(--bg1)] px-3 py-1.5 text-sm font-semibold text-[var(--text)] hover:border-[var(--ember)] hover:text-[var(--ember)]">Reset</button>
-          <span class="text-sm font-semibold text-[var(--muted)]">Pontos: <strong data-points class="text-[var(--text)]">0</strong><span class="text-[var(--muted)]">/{{ pb_max_pontos }}</span></span>
+        <!-- ============ ETAPA 1 · Identidade + Atributos ============ -->
+        <div class="cf-step space-y-3" data-step="0">
+          <div class="rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-3">
+            <label for="cf-nome" class="mb-1 block text-sm font-semibold uppercase tracking-wider text-[var(--muted)]">Nome do personagem</label>
+            <input id="cf-nome" type="text" maxlength="150" placeholder="Ex.: Durgan Pedra-Funda"
+                   class="w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-[var(--text)] focus:border-[var(--ember)] focus:outline-none">
+          </div>
+
+          <div class="rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-3">
+            <h2 class="mb-1 font-serif text-lg font-bold text-[var(--ember)]">Atributos <span class="text-sm font-normal text-[var(--muted)]">(point-buy)</span></h2>
+            <p class="mb-2 text-xs text-[var(--muted)]">Cada atributo começa em 8. Subir custa 1 ponto até 13; de 14 em diante, 2 pontos. Máx. 15 por atributo, {{ pb_max_pontos }} pontos no total.</p>
+            <div data-point-buy class="overflow-x-auto rounded-lg border border-[var(--stroke)] bg-[var(--bg0)]">
+              <table class="w-full min-w-[520px] border-collapse text-sm">
+                <thead>
+                  <tr class="bg-[var(--bg2)] text-[var(--muted)]">
+                    <th class="px-2.5 py-1.5 text-left font-semibold uppercase tracking-wider text-xs">Atributo</th>
+                    <th class="px-2.5 py-1.5 text-center font-semibold uppercase tracking-wider text-xs">Valor</th>
+                    <th class="px-2.5 py-1.5 text-center font-semibold uppercase tracking-wider text-xs">Modificador</th>
+                    <th class="px-2.5 py-1.5 text-center font-semibold uppercase tracking-wider text-xs">Custo</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-[var(--stroke)]">
+                  {% for sig, nome in atributos %}
+                  <tr data-attr="{{ sig }}" class="odd:bg-transparent even:bg-[var(--bg2)]/40">
+                    <td class="px-2.5 py-1.5 font-serif font-semibold text-[var(--text)]">{{ nome }} <span class="text-xs font-normal text-[var(--muted)]">({{ sig }})</span></td>
+                    <td class="px-2.5 py-1.5">
+                      <div class="mx-auto flex w-fit items-center gap-1.5 rounded border border-[var(--stroke)] bg-[var(--bg1)] px-2 py-1">
+                        <input data-score type="text" inputmode="numeric" readonly value="8"
+                               class="w-7 bg-transparent text-center text-base font-bold text-[var(--text)] focus:outline-none" aria-label="Valor de {{ nome }}">
+                        <div class="flex flex-col leading-none">
+                          <button type="button" data-inc class="px-2 py-0.5 text-[11px] text-[var(--muted)] hover:text-[var(--ember)] disabled:opacity-30 disabled:hover:text-[var(--muted)]" aria-label="Aumentar {{ nome }}">▲</button>
+                          <button type="button" data-dec class="px-2 py-0.5 text-[11px] text-[var(--muted)] hover:text-[var(--ember)] disabled:opacity-30 disabled:hover:text-[var(--muted)]" aria-label="Diminuir {{ nome }}">▼</button>
+                        </div>
+                      </div>
+                    </td>
+                    <td data-mod class="px-2.5 py-1.5 text-center font-semibold text-[var(--spark)]">-1</td>
+                    <td data-cost class="px-2.5 py-1.5 text-center text-[var(--muted)]">0</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+              <div class="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--stroke)] bg-[var(--bg2)]/50 px-3 py-2">
+                <button type="button" data-reset class="rounded border border-[var(--stroke)] bg-[var(--bg1)] px-3 py-2 text-sm font-semibold text-[var(--text)] hover:border-[var(--ember)] hover:text-[var(--ember)]">Reset</button>
+                <span class="text-sm font-semibold text-[var(--muted)]">Pontos: <strong data-points class="text-[var(--text)]">0</strong><span class="text-[var(--muted)]">/{{ pb_max_pontos }}</span></span>
+              </div>
+            </div>
+
+            <!-- ASI do antecedente -->
+            <div class="mt-2.5 grid gap-2 sm:grid-cols-2">
+              <div>
+                <label for="cf-asi2" class="mb-1 block text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Aumento <span data-asi-major-label>+2</span> (antecedente)</label>
+                <select id="cf-asi2" class="w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)] focus:border-[var(--ember)] focus:outline-none"></select>
+              </div>
+              <div>
+                <label for="cf-asi1" class="mb-1 block text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Aumento <span data-asi-minor-label>+1</span> (antecedente)</label>
+                <select id="cf-asi1" class="w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)] focus:border-[var(--ember)] focus:outline-none"></select>
+              </div>
+            </div>
+            <p class="mt-2 text-xs text-[var(--muted)]">O +2 e o +1 devem ir em atributos diferentes e somam por cima do point-buy.</p>
+          </div>
+          <div class="cf-step-err" data-step-err="0" hidden></div>
         </div>
-      </div>
 
-      <!-- ASI do antecedente -->
-      <div class="mt-2.5 grid gap-2 sm:grid-cols-2">
-        <div>
-          <label for="cf-asi2" class="mb-1 block text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Aumento <span data-asi-major-label>+2</span> (antecedente)</label>
-          <select id="cf-asi2" class="w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-1.5 text-sm text-[var(--text)] focus:border-[var(--ember)] focus:outline-none"></select>
+        <!-- ============ ETAPA 2 · Raça ============ -->
+        <div class="cf-step space-y-3" data-step="1" hidden>
+          <div class="rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-3">
+            <h2 class="mb-2 font-serif text-lg font-bold text-[var(--ember)]">Raça e Linhagem / Essência</h2>
+            <div class="grid gap-2 sm:grid-cols-2">
+              <div>
+                <label for="cf-raca" class="mb-1 block text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Raça</label>
+                <select id="cf-raca" class="w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)] focus:border-[var(--ember)] focus:outline-none"></select>
+              </div>
+              <div id="cf-linhagem-wrap" hidden>
+                <label for="cf-linhagem" class="mb-1 block text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Linhagem</label>
+                <select id="cf-linhagem" class="w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)] focus:border-[var(--ember)] focus:outline-none"></select>
+              </div>
+              <div id="cf-essencia-wrap" hidden>
+                <label for="cf-essencia" class="mb-1 block text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Essência</label>
+                <select id="cf-essencia" class="w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)] focus:border-[var(--ember)] focus:outline-none"></select>
+              </div>
+              <div id="cf-vertente-wrap" hidden>
+                <label for="cf-vertente" class="mb-1 block text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Vertente elemental</label>
+                <select id="cf-vertente" class="w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)] focus:border-[var(--ember)] focus:outline-none"></select>
+              </div>
+            </div>
+            <div class="cf-info" id="cf-raca-info" hidden></div>
+            <div class="cf-info" id="cf-essencia-info" hidden></div>
+          </div>
+
+          <div id="cf-raca-escolhas-wrap" hidden class="rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-3">
+            <h2 class="mb-1 font-serif text-lg font-bold text-[var(--ember)]">Escolhas de Raça</h2>
+            <p class="mb-2 text-xs text-[var(--muted)]">Perícias, idiomas e ferramentas extras concedidos pela sua raça, linhagem ou essência.</p>
+            <div id="cf-raca-escolhas" class="space-y-2.5"></div>
+          </div>
+          <div class="cf-step-err" data-step-err="1" hidden></div>
         </div>
-        <div>
-          <label for="cf-asi1" class="mb-1 block text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Aumento <span data-asi-minor-label>+1</span> (antecedente)</label>
-          <select id="cf-asi1" class="w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-1.5 text-sm text-[var(--text)] focus:border-[var(--ember)] focus:outline-none"></select>
+
+        <!-- ============ ETAPA 3 · Classe ============ -->
+        <div class="cf-step space-y-3" data-step="2" hidden>
+          <div class="rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-3">
+            <h2 class="mb-2 font-serif text-lg font-bold text-[var(--ember)]">Classe</h2>
+            <div class="mb-2">
+              <label for="cf-classe" class="mb-1 block text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Classe</label>
+              <select id="cf-classe" class="w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)] focus:border-[var(--ember)] focus:outline-none"></select>
+            </div>
+            <div class="cf-info" id="cf-classe-info" hidden></div>
+          </div>
+
+          <div class="rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-3">
+            <div class="mb-1 flex items-center justify-between">
+              <span class="text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Perícias de classe <span data-skill-counter></span></span>
+            </div>
+            <div id="cf-classe-skills" class="grid grid-cols-1 gap-1 sm:grid-cols-2"></div>
+            <fieldset class="mt-2.5">
+              <legend class="mb-1 text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Equipamento inicial</legend>
+              <label class="flex cursor-pointer items-start gap-1.5 rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm">
+                <input type="radio" name="equip_classe" value="inicial" checked class="mt-1">
+                <span><strong class="text-[var(--text)]">Equipamento inicial da classe</strong><span id="cf-equip-texto" class="block text-xs text-[var(--muted)]"></span></span>
+              </label>
+              <label class="mt-2 flex cursor-pointer items-center gap-1.5 rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm">
+                <input type="radio" name="equip_classe" value="ouro">
+                <span class="text-[var(--text)]"><span data-equip-gold-alt>150</span> PO no lugar do equipamento</span>
+              </label>
+            </fieldset>
+            <div id="cf-maestria-wrap" hidden class="mt-2.5">
+              <div class="mb-1 text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Maestria de Arma <span data-maestria-counter></span></div>
+              <p class="mb-1.5 text-xs text-[var(--muted)]">Escolha as <strong>armas</strong> — você conhece todas as maestrias de cada arma e aplica 1 por ataque (escolhida ao atacar).</p>
+              <input id="cf-maestria-busca" type="search" placeholder="Buscar arma…" autocomplete="off"
+                     class="mb-1.5 w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)] focus:border-[var(--ember)] focus:outline-none">
+              <div id="cf-maestria-armas" class="max-h-80 overflow-y-auto rounded border border-[var(--stroke)] bg-[var(--bg0)] p-1.5"></div>
+            </div>
+            <div id="cf-estilo-wrap" hidden class="mt-2.5">
+              <label for="cf-estilo" class="mb-1 block text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Estilo de Luta</label>
+              <select id="cf-estilo" class="w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)] focus:border-[var(--ember)] focus:outline-none"></select>
+            </div>
+            <div id="cf-expertise-wrap" hidden class="mt-2.5">
+              <div class="mb-1 text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Especialização <span data-expertise-counter></span></div>
+              <p class="mb-1.5 text-xs text-[var(--muted)]">Escolha perícias <strong>proficientes</strong> para dobrar o bônus de proficiência (expertise).</p>
+              <div id="cf-expertise" class="grid grid-cols-1 gap-1 sm:grid-cols-2"></div>
+            </div>
+            <div id="cf-classe-prof-wrap" hidden class="mt-2.5">
+              <div class="mb-1 text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Proficiências de Classe</div>
+              <div id="cf-classe-prof" class="space-y-2.5"></div>
+            </div>
+            <p id="cf-armaduras-prof" hidden class="mt-2.5 text-xs text-[var(--muted)]"><span class="font-semibold uppercase tracking-wider text-[var(--muted)]">Proficiências de armadura:</span> <span data-armaduras-prof class="text-[var(--text)]"></span></p>
+            <p class="mt-2.5 text-xs text-[var(--muted)]">A CA é derivada da armadura/escudo que você <strong>comprar e equipar na ficha</strong>. Sem armadura, usa a defesa da classe (ou 10 + Des).</p>
+          </div>
+
+          <!-- Magias (apenas conjuradores) -->
+          <div id="cf-magias-wrap" hidden class="rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-3">
+            <h2 class="mb-1 font-serif text-lg font-bold text-[var(--ember)]">Magias</h2>
+            <p class="mb-2 text-xs text-[var(--muted)]">Truques e magias de 1º nível da sua classe. A quantidade de magias preparadas pode depender do seu modificador de conjuração.</p>
+            <div id="cf-truques-sec" class="mb-2.5">
+              <div class="mb-1 text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Truques <span data-truque-counter></span></div>
+              <div id="cf-truques" class="grid max-h-60 grid-cols-1 gap-1 overflow-y-auto rounded border border-[var(--stroke)] bg-[var(--bg0)] p-1.5 sm:grid-cols-2"></div>
+            </div>
+            <div>
+              <div class="mb-1 text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Magias de 1º nível <span data-magia-counter></span></div>
+              <div id="cf-magias" class="grid max-h-60 grid-cols-1 gap-1 overflow-y-auto rounded border border-[var(--stroke)] bg-[var(--bg0)] p-1.5 sm:grid-cols-2"></div>
+            </div>
+          </div>
+          <div class="cf-step-err" data-step-err="2" hidden></div>
         </div>
-      </div>
-      <p class="mt-2 text-xs text-[var(--muted)]">O +2 e o +1 devem ir em atributos diferentes e somam por cima do point-buy.</p>
-    </div>
 
-    <!-- 2. Raça -->
-    <div class="rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-3">
-      <h2 class="mb-2 font-serif text-lg font-bold text-[var(--ember)]">2. Raça e Linhagem / Essência</h2>
-      <div class="grid gap-2 sm:grid-cols-2">
-        <div>
-          <label for="cf-raca" class="mb-1 block text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Raça</label>
-          <select id="cf-raca" class="w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-1.5 text-sm text-[var(--text)] focus:border-[var(--ember)] focus:outline-none"></select>
+        <!-- ============ ETAPA 4 · Antecedente ============ -->
+        <div class="cf-step space-y-3" data-step="3" hidden>
+          <div class="rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-3">
+            <h2 class="mb-2 font-serif text-lg font-bold text-[var(--ember)]">Antecedente</h2>
+            <div class="mb-2">
+              <label for="cf-antecedente" class="mb-1 block text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Antecedente</label>
+              <select id="cf-antecedente" class="w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)] focus:border-[var(--ember)] focus:outline-none"></select>
+            </div>
+            <div class="cf-info" id="cf-antecedente-info" hidden></div>
+            <p id="cf-antecedente-resumo" class="mt-2 text-xs text-[var(--muted)]"></p>
+          </div>
+
+          <div class="rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-3">
+            <div class="mb-1 text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Perícias do antecedente <span data-bgskill-counter></span></div>
+            <div id="cf-bg-skills" class="grid grid-cols-1 gap-1 sm:grid-cols-2"></div>
+            <div class="mt-2.5 mb-1 text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Idiomas / Ferramentas <span data-langtool-counter></span> <span data-langtool-hint class="font-normal normal-case text-[var(--muted)]"></span></div>
+            <div class="grid gap-2.5 sm:grid-cols-2">
+              <div>
+                <div class="mb-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--muted)]/80">Idiomas</div>
+                <div id="cf-idiomas-lang" class="grid grid-cols-1 gap-1"></div>
+              </div>
+              <div>
+                <div class="mb-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--muted)]/80">Ferramentas</div>
+                <div id="cf-idiomas-tool" class="grid grid-cols-1 gap-1"></div>
+              </div>
+            </div>
+          </div>
+          <div class="cf-step-err" data-step-err="3" hidden></div>
         </div>
-        <div id="cf-linhagem-wrap" hidden>
-          <label for="cf-linhagem" class="mb-1 block text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Linhagem</label>
-          <select id="cf-linhagem" class="w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-1.5 text-sm text-[var(--text)] focus:border-[var(--ember)] focus:outline-none"></select>
+
+        <!-- ============ ETAPA 5 · Talentos ============ -->
+        <div class="cf-step space-y-3" data-step="4" hidden>
+          <div class="rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-3">
+            <h2 class="mb-2 font-serif text-lg font-bold text-[var(--ember)]">Talento de Origem</h2>
+            <p class="mb-2 text-xs text-[var(--muted)]">Concedido pelo antecedente — escolha um.</p>
+            <select id="cf-talento-origem" class="w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)] focus:border-[var(--ember)] focus:outline-none"></select>
+            <div id="cf-talento-origem-desc" class="bonfire-markdown mt-3 hidden rounded border border-[var(--stroke)] bg-[var(--bg0)] p-2 text-sm text-[var(--muted)]"></div>
+          </div>
+
+          <div class="rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-3">
+            <h2 class="mb-2 font-serif text-lg font-bold text-[var(--ember)]">Talento de Raça <span class="text-sm font-normal text-[var(--muted)]">(nível 1)</span></h2>
+            <select id="cf-talento-raca" class="w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)] focus:border-[var(--ember)] focus:outline-none"></select>
+            <p id="cf-talento-raca-vazio" class="mt-2 hidden text-xs text-[var(--muted)]">Esta raça/linhagem/essência não tem talentos raciais de nível 1 cadastrados.</p>
+            <div id="cf-talento-raca-desc" class="bonfire-markdown mt-3 hidden rounded border border-[var(--stroke)] bg-[var(--bg0)] p-2 text-sm text-[var(--muted)]"></div>
+          </div>
+          <div class="cf-step-err" data-step-err="4" hidden></div>
         </div>
-        <div id="cf-essencia-wrap" hidden>
-          <label for="cf-essencia" class="mb-1 block text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Essência</label>
-          <select id="cf-essencia" class="w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-1.5 text-sm text-[var(--text)] focus:border-[var(--ember)] focus:outline-none"></select>
+
+        <!-- ============ ETAPA 6 · Revisão ============ -->
+        <div class="cf-step space-y-3" data-step="5" hidden>
+          <div class="rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-3">
+            <h2 class="mb-2 font-serif text-lg font-bold text-[var(--ember)]">Revisão</h2>
+            <p class="mb-2 text-xs text-[var(--muted)]">Confira a prévia ao lado — ela reflete exatamente a ficha que será criada. Pendências abaixo impedem o salvamento.</p>
+            <div id="cf-review" class="space-y-1 text-sm text-[var(--text)]"></div>
+          </div>
+          <div id="cf-erros" class="hidden rounded border border-[var(--flame)]/50 bg-[var(--flame)]/10 px-3 py-2 text-sm text-[var(--flame)]"></div>
+          <div class="cf-step-err" data-step-err="5" hidden></div>
         </div>
-        <div id="cf-vertente-wrap" hidden>
-          <label for="cf-vertente" class="mb-1 block text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Vertente elemental</label>
-          <select id="cf-vertente" class="w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-1.5 text-sm text-[var(--text)] focus:border-[var(--ember)] focus:outline-none"></select>
+
+        <!-- Navegação de etapas -->
+        <div class="cf-stepnav">
+          <a href="{% url 'personagens' %}" class="rounded border border-[var(--stroke)] px-3 py-2 text-sm text-[var(--muted)] hover:text-[var(--text)]">Cancelar</a>
+          <button type="button" class="cf-btn" data-prev disabled>← Voltar</button>
+          <span class="cf-hint" id="cf-nav-hint"></span>
+          <span class="flex-1"></span>
+          <button type="button" class="cf-btn cf-btn-primary" data-next>Avançar →</button>
+          <button type="submit" id="cf-submit" class="cf-btn cf-btn-primary" hidden>Criar Personagem</button>
         </div>
-      </div>
+      </form>
     </div>
 
-    <!-- 2b. Escolhas de Raça (perícias/idiomas/ferramentas extras) -->
-    <div id="cf-raca-escolhas-wrap" hidden class="rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-3">
-      <h2 class="mb-1 font-serif text-lg font-bold text-[var(--ember)]">Escolhas de Raça</h2>
-      <p class="mb-2 text-xs text-[var(--muted)]">Perícias, idiomas e ferramentas extras concedidos pela sua raça, linhagem ou essência.</p>
-      <div id="cf-raca-escolhas" class="space-y-2.5"></div>
-    </div>
-
-    <!-- 3. Classe -->
-    <div class="rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-3">
-      <h2 class="mb-2 font-serif text-lg font-bold text-[var(--ember)]">3. Classe</h2>
-      <div class="mb-2">
-        <label for="cf-classe" class="mb-1 block text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Classe</label>
-        <select id="cf-classe" class="w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-1.5 text-sm text-[var(--text)] focus:border-[var(--ember)] focus:outline-none"></select>
+    <!-- Preview ao vivo (U4) -->
+    <aside class="cf-preview" id="cf-preview" aria-live="polite">
+      <div class="cf-preview-head">
+        <span class="cf-preview-title">Prévia da ficha</span>
+        <span class="cf-preview-status" id="cf-preview-status">nível 1</span>
       </div>
-      <div class="mb-1 flex items-center justify-between">
-        <span class="text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Perícias de classe <span data-skill-counter></span></span>
-      </div>
-      <div id="cf-classe-skills" class="grid grid-cols-1 gap-1 sm:grid-cols-2"></div>
-      <fieldset class="mt-2.5">
-        <legend class="mb-1 text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Equipamento inicial</legend>
-        <label class="flex cursor-pointer items-start gap-1.5 rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-1.5 text-sm">
-          <input type="radio" name="equip_classe" value="inicial" checked class="mt-1">
-          <span><strong class="text-[var(--text)]">Equipamento inicial da classe</strong><span id="cf-equip-texto" class="block text-xs text-[var(--muted)]"></span></span>
-        </label>
-        <label class="mt-2 flex cursor-pointer items-center gap-1.5 rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-1.5 text-sm">
-          <input type="radio" name="equip_classe" value="ouro">
-          <span class="text-[var(--text)]"><span data-equip-gold-alt>150</span> PO no lugar do equipamento</span>
-        </label>
-      </fieldset>
-      <div id="cf-maestria-wrap" hidden class="mt-2.5">
-        <div class="mb-1 text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Maestria de Arma <span data-maestria-counter></span></div>
-        <p class="mb-1.5 text-xs text-[var(--muted)]">Escolha as <strong>armas</strong> — você conhece todas as maestrias de cada arma e aplica 1 por ataque (escolhida ao atacar).</p>
-        <input id="cf-maestria-busca" type="search" placeholder="Buscar arma…" autocomplete="off"
-               class="mb-1.5 w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-1.5 text-sm text-[var(--text)] focus:border-[var(--ember)] focus:outline-none">
-        <div id="cf-maestria-armas" class="max-h-80 overflow-y-auto rounded border border-[var(--stroke)] bg-[var(--bg0)] p-1.5"></div>
-      </div>
-      <div id="cf-estilo-wrap" hidden class="mt-2.5">
-        <label for="cf-estilo" class="mb-1 block text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Estilo de Luta</label>
-        <select id="cf-estilo" class="w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-1.5 text-sm text-[var(--text)] focus:border-[var(--ember)] focus:outline-none"></select>
-      </div>
-      <div id="cf-expertise-wrap" hidden class="mt-2.5">
-        <div class="mb-1 text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Especialização <span data-expertise-counter></span></div>
-        <p class="mb-1.5 text-xs text-[var(--muted)]">Escolha perícias <strong>proficientes</strong> para dobrar o bônus de proficiência (expertise).</p>
-        <div id="cf-expertise" class="grid grid-cols-1 gap-1 sm:grid-cols-2"></div>
-      </div>
-      <div id="cf-classe-prof-wrap" hidden class="mt-2.5">
-        <div class="mb-1 text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Proficiências de Classe</div>
-        <div id="cf-classe-prof" class="space-y-2.5"></div>
-      </div>
-      <p id="cf-armaduras-prof" hidden class="mt-2.5 text-xs text-[var(--muted)]"><span class="font-semibold uppercase tracking-wider text-[var(--muted)]">Proficiências de armadura:</span> <span data-armaduras-prof class="text-[var(--text)]"></span></p>
-      <p class="mt-2.5 text-xs text-[var(--muted)]">A CA é derivada da armadura/escudo que você <strong>comprar e equipar na ficha</strong>. Sem armadura, usa a defesa da classe (ou 10 + Des).</p>
-    </div>
-
-    <!-- 3b. Magias (apenas conjuradores) -->
-    <div id="cf-magias-wrap" hidden class="rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-3">
-      <h2 class="mb-1 font-serif text-lg font-bold text-[var(--ember)]">Magias</h2>
-      <p class="mb-2 text-xs text-[var(--muted)]">Truques e magias de 1º nível da sua classe. A quantidade de magias preparadas pode depender do seu modificador de conjuração.</p>
-      <div id="cf-truques-sec" class="mb-2.5">
-        <div class="mb-1 text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Truques <span data-truque-counter></span></div>
-        <div id="cf-truques" class="grid max-h-60 grid-cols-1 gap-1 overflow-y-auto rounded border border-[var(--stroke)] bg-[var(--bg0)] p-1.5 sm:grid-cols-2"></div>
-      </div>
-      <div>
-        <div class="mb-1 text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Magias de 1º nível <span data-magia-counter></span></div>
-        <div id="cf-magias" class="grid max-h-60 grid-cols-1 gap-1 overflow-y-auto rounded border border-[var(--stroke)] bg-[var(--bg0)] p-1.5 sm:grid-cols-2"></div>
-      </div>
-    </div>
-
-    <!-- 4. Antecedente -->
-    <div class="rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-3">
-      <h2 class="mb-2 font-serif text-lg font-bold text-[var(--ember)]">4. Antecedente</h2>
-      <p id="cf-antecedente-resumo" class="mb-2 text-xs text-[var(--muted)]"></p>
-      <div class="mb-2">
-        <label for="cf-antecedente" class="mb-1 block text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Antecedente</label>
-        <select id="cf-antecedente" class="w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-1.5 text-sm text-[var(--text)] focus:border-[var(--ember)] focus:outline-none"></select>
-      </div>
-      <div class="mb-1 text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Perícias do antecedente <span data-bgskill-counter></span></div>
-      <div id="cf-bg-skills" class="grid grid-cols-1 gap-1 sm:grid-cols-2"></div>
-      <div class="mt-2.5 mb-1 text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Idiomas / Ferramentas <span data-langtool-counter></span> <span data-langtool-hint class="font-normal normal-case text-[var(--muted)]"></span></div>
-      <div class="grid gap-2.5 sm:grid-cols-2">
-        <div>
-          <div class="mb-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--muted)]/80">Idiomas</div>
-          <div id="cf-idiomas-lang" class="grid grid-cols-1 gap-1"></div>
+      <div class="cf-preview-body" id="cf-preview-body">
+        <div class="cf-preview-name" id="cf-preview-name">Novo personagem <span class="cf-preview-sub" id="cf-preview-sub"></span></div>
+        <div class="cf-vitals">
+          <div class="cf-vital accent"><span class="k">PV</span><span class="v" data-pv>—</span></div>
+          <div class="cf-vital accent"><span class="k">CA</span><span class="v" data-ca>—</span></div>
+          <div class="cf-vital"><span class="k">Prof.</span><span class="v" data-pb>+2</span></div>
         </div>
-        <div>
-          <div class="mb-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--muted)]/80">Ferramentas</div>
-          <div id="cf-idiomas-tool" class="grid grid-cols-1 gap-1"></div>
-        </div>
+        <div class="cf-attrs" id="cf-preview-attrs"></div>
+        <div id="cf-preview-extra"></div>
       </div>
-    </div>
-
-    <!-- 5. Talento de origem -->
-    <div class="rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-3">
-      <h2 class="mb-2 font-serif text-lg font-bold text-[var(--ember)]">5. Talento de Origem</h2>
-      <select id="cf-talento-origem" class="w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-1.5 text-sm text-[var(--text)] focus:border-[var(--ember)] focus:outline-none"></select>
-      <div id="cf-talento-origem-desc" class="bonfire-markdown mt-3 hidden rounded border border-[var(--stroke)] bg-[var(--bg0)] p-2 text-sm text-[var(--muted)]"></div>
-    </div>
-
-    <!-- 6. Talento de raça nv1 -->
-    <div class="rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-3">
-      <h2 class="mb-2 font-serif text-lg font-bold text-[var(--ember)]">6. Talento de Raça <span class="text-sm font-normal text-[var(--muted)]">(nível 1)</span></h2>
-      <select id="cf-talento-raca" class="w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-1.5 text-sm text-[var(--text)] focus:border-[var(--ember)] focus:outline-none"></select>
-      <p id="cf-talento-raca-vazio" class="mt-2 hidden text-xs text-[var(--muted)]">Esta raça/linhagem/essência não tem talentos raciais de nível 1 cadastrados.</p>
-      <div id="cf-talento-raca-desc" class="bonfire-markdown mt-3 hidden rounded border border-[var(--stroke)] bg-[var(--bg0)] p-2 text-sm text-[var(--muted)]"></div>
-    </div>
-
-    <div id="cf-erros" class="hidden rounded border border-[var(--flame)]/50 bg-[var(--flame)]/10 px-3 py-2 text-sm text-[var(--flame)]"></div>
-
-    <div class="flex items-center justify-end gap-2 pb-10">
-      <a href="{% url 'personagens' %}" class="rounded border border-[var(--stroke)] px-3 py-1.5 text-sm text-[var(--muted)] hover:text-[var(--text)]">Cancelar</a>
-      <button type="submit" id="cf-submit" class="rounded bg-bonfire-gradient px-3 py-1.5 text-sm font-bold text-white hover:opacity-90 disabled:opacity-50">Criar Personagem</button>
-    </div>
-  </form>
+    </aside>
+  </div>
 </section>
 
 {{ catalogos|json_script:"cf-catalogos" }}
 <script>
   window.POINT_BUY = { custo: {{ pb_custo|safe }}, maxPontos: {{ pb_max_pontos }}, min: {{ pb_min }}, max: {{ pb_max }} };
   window.CRIAR_URL = "{% url 'criar_personagem' %}";
+  window.CRIAR_PREVIEW_URL = "{% url 'criar_personagem_preview' %}";
   window.CRIAR_LOGADO = {{ logado|yesno:"true,false" }};
   window.CSRF_TOKEN = "{{ csrf_token }}";
 </script>
 {% endblock %}
 
 {% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/pages/criador.css' %}?v=2">
 <script src="{% static 'js/point_buy.js' %}?v=2" defer></script>
-<script src="{% static 'js/criador.js' %}?v=8" defer></script>
+<script src="{% static 'js/criador.js' %}?v=10" defer></script>
 {% endblock %}

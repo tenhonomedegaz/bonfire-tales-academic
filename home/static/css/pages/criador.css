@@ -1,0 +1,229 @@
+/* Criador de personagem — usabilidade (stepper + preview ao vivo + painéis de info).
+   Segue a identidade do site (paleta ember, Cinzel, densidade root 13px). Estrutural
+   aqui; controles internos continuam com utilitários Tailwind no template. */
+
+.cf-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 1rem;
+  align-items: start;
+}
+.cf-main { min-width: 0; }
+
+/* ---- Stepper ---------------------------------------------------------- */
+.cf-stepper {
+  position: sticky;
+  top: 57px;
+  z-index: 20;
+  background: color-mix(in srgb, var(--bg0) 88%, transparent);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--stroke);
+  border-radius: 0.6rem;
+  padding: 0.4rem;
+  margin-bottom: 0.85rem;
+}
+.cf-stepper ol {
+  display: flex;
+  gap: 0.25rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.cf-step-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: 1 0 auto;
+  min-height: 40px;
+  padding: 0.3rem 0.6rem;
+  border-radius: 0.45rem;
+  border: 1px solid transparent;
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .15s, color .15s, border-color .15s;
+  user-select: none;
+}
+.cf-step-tab:hover { color: var(--text); background: color-mix(in srgb, var(--bg2) 70%, transparent); }
+.cf-step-tab:focus-visible { outline: 2px solid var(--ember); outline-offset: 1px; }
+.cf-step-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  border: 1px solid var(--stroke);
+  background: var(--bg1);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.cf-step-name { font-size: 12px; font-weight: 600; }
+.cf-step-tab.is-current { border-color: var(--ember); color: var(--ember); background: color-mix(in srgb, var(--ember) 10%, transparent); }
+.cf-step-tab.is-current .cf-step-badge { border-color: var(--ember); color: var(--ember); }
+.cf-step-tab.is-complete .cf-step-badge {
+  background: var(--ember);
+  border-color: var(--ember);
+  color: #fff;
+}
+.cf-step-tab.is-complete .cf-step-badge::after { content: '✓'; }
+.cf-step-tab.is-complete .cf-step-badge span { display: none; }
+.cf-step-tab.is-error .cf-step-badge { border-color: var(--flame); color: var(--flame); }
+
+/* ---- Steps ------------------------------------------------------------ */
+.cf-step[hidden] { display: none !important; }
+.cf-step { animation: cf-fade .18s ease-out; }
+@keyframes cf-fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+.cf-stepnav {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.85rem;
+  padding: 0.6rem 0;
+  background: linear-gradient(to top, var(--bg0) 70%, transparent);
+}
+.cf-stepnav .cf-hint { font-size: 12px; color: var(--muted); }
+.cf-btn {
+  min-height: 40px;
+  padding: 0 0.9rem;
+  border-radius: 0.45rem;
+  font-size: 13px;
+  font-weight: 700;
+  border: 1px solid var(--stroke);
+  color: var(--text);
+  background: var(--bg1);
+  cursor: pointer;
+}
+.cf-btn:hover { border-color: var(--ember); color: var(--ember); }
+.cf-btn:disabled { opacity: .45; cursor: not-allowed; }
+.cf-btn-primary {
+  border: none;
+  color: #fff;
+  background: linear-gradient(to right, var(--flame), var(--ember));
+}
+.cf-btn-primary:hover { opacity: .92; color: #fff; }
+
+/* ---- Painéis de info (escolha informada) ------------------------------ */
+.cf-info {
+  margin-top: 0.6rem;
+  border: 1px solid var(--stroke);
+  border-left: 3px solid var(--ember);
+  border-radius: 0.45rem;
+  background: var(--bg0);
+  padding: 0.6rem 0.7rem;
+}
+.cf-info[hidden] { display: none; }
+.cf-info-tagline { font-size: 12px; color: var(--spark); font-style: italic; margin-bottom: 0.25rem; }
+.cf-info-resumo { font-size: 12.5px; color: var(--muted); line-height: 1.45; }
+.cf-info-list { margin-top: 0.5rem; display: flex; flex-direction: column; gap: 0.3rem; }
+.cf-info-trait { font-size: 12px; }
+.cf-info-trait b { color: var(--text); font-weight: 700; }
+.cf-info-trait span { color: var(--muted); }
+.cf-info-meta { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.5rem; }
+.cf-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 11px;
+  padding: 0.12rem 0.45rem;
+  border-radius: 999px;
+  background: var(--bg2);
+  border: 1px solid var(--stroke);
+  color: var(--muted);
+}
+.cf-chip b { color: var(--text); }
+
+/* ---- Erros inline por etapa ------------------------------------------- */
+.cf-step-err {
+  margin-top: 0.7rem;
+  border: 1px solid color-mix(in srgb, var(--flame) 50%, transparent);
+  background: color-mix(in srgb, var(--flame) 10%, transparent);
+  color: var(--flame);
+  border-radius: 0.45rem;
+  padding: 0.5rem 0.7rem;
+  font-size: 12.5px;
+}
+.cf-step-err[hidden] { display: none; }
+.cf-step-err ul { list-style: disc; margin: 0; padding-left: 1.1rem; }
+.field-invalid { border-color: var(--flame) !important; }
+
+/* ---- Preview ao vivo -------------------------------------------------- */
+.cf-preview {
+  position: sticky;
+  top: 57px;
+  border: 1px solid var(--stroke);
+  border-radius: 0.6rem;
+  background: var(--bg1);
+  overflow: hidden;
+}
+.cf-preview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.55rem 0.7rem;
+  border-bottom: 1px solid var(--stroke);
+  background: var(--bg2);
+}
+.cf-preview-title { font-family: 'Cinzel', serif; font-weight: 700; font-size: 13px; color: var(--ember); }
+.cf-preview-status { font-size: 10.5px; color: var(--muted); }
+.cf-preview-status.is-live { color: var(--spark); }
+.cf-preview-body { padding: 0.7rem; }
+.cf-preview-name { font-family: 'Cinzel', serif; font-weight: 700; font-size: 14px; color: var(--text); margin-bottom: 0.5rem; word-break: break-word; }
+.cf-preview-sub { font-size: 11px; color: var(--muted); font-weight: 400; }
+
+.cf-vitals { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.35rem; margin-bottom: 0.6rem; }
+.cf-vital {
+  text-align: center;
+  border: 1px solid var(--stroke);
+  border-radius: 0.4rem;
+  background: var(--bg0);
+  padding: 0.35rem 0.2rem;
+}
+.cf-vital .k { display: block; font-size: 9.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.cf-vital .v { display: block; font-size: 17px; font-weight: 800; color: var(--text); line-height: 1.1; }
+.cf-vital.accent .v { color: var(--ember); }
+
+.cf-attrs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.3rem; margin-bottom: 0.6rem; }
+.cf-attr {
+  border: 1px solid var(--stroke);
+  border-radius: 0.4rem;
+  background: var(--bg0);
+  padding: 0.3rem 0.15rem;
+  text-align: center;
+}
+.cf-attr .s { display: block; font-size: 9.5px; font-weight: 700; letter-spacing: .05em; color: var(--muted); }
+.cf-attr .m { display: block; font-size: 15px; font-weight: 800; color: var(--text); line-height: 1.15; }
+.cf-attr .t { display: block; font-size: 10px; color: var(--muted); }
+.cf-attr.save-prof { border-color: color-mix(in srgb, var(--ember) 55%, var(--stroke)); }
+
+.cf-prev-sec { margin-top: 0.55rem; }
+.cf-prev-sec > .h {
+  font-size: 10px; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--muted); font-weight: 700; margin-bottom: 0.3rem;
+}
+.cf-prev-chips { display: flex; flex-wrap: wrap; gap: 0.25rem; }
+.cf-prev-empty { font-size: 11.5px; color: var(--muted); font-style: italic; }
+.cf-preview-placeholder { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+/* ---- Responsivo ------------------------------------------------------- */
+@media (max-width: 900px) {
+  .cf-layout { display: flex; flex-direction: column; }
+  /* stepper + etapas primeiro (navegação no topo); a prévia acompanha logo abaixo */
+  .cf-main { order: 0; }
+  .cf-preview { order: 1; position: static; margin-top: 1rem; }
+  .cf-stepper { position: sticky; top: 57px; }
+  .cf-stepnav { position: sticky; }
+  .cf-vitals { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 400px) {
+  .cf-step-name { display: none; }
+  .cf-step-tab { flex: 1 1 0; justify-content: center; padding: 0.3rem; }
+}

@@ -3166,16 +3166,68 @@ def _criador_armaduras():
     return out
 
 
+_SAVE_PT = {'str': 'FOR', 'for': 'FOR', 'forca': 'FOR', 'força': 'FOR',
+            'dex': 'DES', 'des': 'DES', 'destreza': 'DES',
+            'con': 'CON', 'constituicao': 'CON', 'constituição': 'CON',
+            'int': 'INT', 'inteligencia': 'INT', 'inteligência': 'INT',
+            'wis': 'SAB', 'sab': 'SAB', 'sabedoria': 'SAB',
+            'cha': 'CAR', 'car': 'CAR', 'carisma': 'CAR'}
+
+
+def _criador_resumo_md(txt, limit=320):
+    """Primeiro parágrafo de um markdown, reduzido a texto curto para o painel de info
+    do criador (mostrar o efeito da escolha SEM abrir outra aba)."""
+    s = (txt or '').strip()
+    if not s:
+        return ''
+    for bloco in re.split(r'\n\s*\n', s):
+        b = re.sub(r'[#*_>`]+', '', bloco).strip()
+        b = re.sub(r'\s+', ' ', b)
+        if b:
+            return b if len(b) <= limit else b[:limit].rsplit(' ', 1)[0] + '…'
+    return ''
+
+
 def _criador_catalogos():
     from .models import (TbRaca, TbLinhagem, TbEssencia, TbClasse, TbAntecedente,
-                         TbTalento, TbTracoracial, TbIdioma, TbItemMundano, TbOpcaojogo)
-    from .character_engine import _SKILL_INFO
+                         TbTalento, TbTracoracial, TbIdioma, TbItemMundano, TbOpcaojogo,
+                         TbClassehabilidade)
+    from .character_engine import _SKILL_INFO, _dado_de_vida_classe
+
+    def _tracos_de(qs):
+        return [{'nome': t.nome, 'desc': _criador_resumo_md(t.descricao, 200)} for t in qs]
+
+    def _classe_saves(c):
+        out = []
+        for tag in (c.tags_json or []):
+            m = re.search(r'saves[_-]prof\s*\{([^}]*)\}', str(tag))
+            if not m:
+                continue
+            for tok in m.group(1).split(','):
+                sig = _SAVE_PT.get(tok.strip().lower())
+                if sig and sig not in out:
+                    out.append(sig)
+        return out
+
+    def _classe_features1(c):
+        return [{'nome': h.nome, 'desc': _criador_resumo_md(h.descricao, 200)}
+                for h in TbClassehabilidade.objects.filter(
+                    id_classe=c, id_subclasse__isnull=True, niveladquirido__lte=1,
+                    table_only=False).order_by('niveladquirido', 'nome')]
+
     racas = []
     for r in TbRaca.objects.all().order_by('nome'):
-        linhagens = [{'slug': l.slug, 'nome': getattr(l, 'nome', l.slug)}
+        linhagens = [{'slug': l.slug, 'nome': getattr(l, 'nome', l.slug),
+                      'desc': _criador_resumo_md(getattr(l, 'descricao', '') or getattr(l, 'lore_presentation', ''), 200)}
                      for l in TbLinhagem.objects.filter(id_raca=r).order_by('nome')]
+        tracos = _tracos_de(TbTracoracial.objects.filter(
+            id_raca=r, talento_racial=False, id_linhagem__isnull=True,
+            id_essencia__isnull=True, nivel_requisito__lte=1).order_by('nome'))
         racas.append({'slug': r.slug, 'nome': r.nome,
                       'permite_essencia': bool(getattr(r, 'permite_essencia', True)),
+                      'tagline': (r.tagline or '').strip(),
+                      'resumo': _criador_resumo_md(r.lore_presentation, 320),
+                      'tracos': tracos,
                       'linhagens': linhagens})
     classes = []
     for c in TbClasse.objects.all().order_by('nome'):
@@ -3184,6 +3236,12 @@ def _criador_catalogos():
         esc1 = _classe_escolhas_nv1(c)
         classes.append({'slug': c.slug, 'nome': c.nome, 'pericias_n': n, 'pericias_lista': lista,
                         'equipamento': (c.equipamento or '').strip(),
+                        'tagline': (c.tagline or '').strip(),
+                        'hit_die': _dado_de_vida_classe(c) or 0,
+                        'atributo_principal': (c.atributo_principal or '').strip(),
+                        'saves': _classe_saves(c),
+                        'features1': _classe_features1(c),
+                        'resumo': _criador_resumo_md(c.tagline or '', 320),
                         'maestria_n': _classe_maestria_n(c, 1),
                         'estilo_n': esc1['estilo_n'], 'expertise_n': esc1['expertise_n'],
                         'expertise_fixa': esc1['expertise_fixa'],
@@ -3273,11 +3331,13 @@ def _criador_catalogos():
     from .character_engine import background_grants
     return {
         'racas': racas,
-        'essencias': [{'slug': e.slug, 'nome': e.nome, 'vertentes': _essencia_vertentes(e)}
+        'essencias': [{'slug': e.slug, 'nome': e.nome, 'vertentes': _essencia_vertentes(e),
+                       'resumo': _criador_resumo_md(e.lore_presentation, 240)}
                       for e in TbEssencia.objects.all().order_by('nome')],
         'vertentes': vertentes_catalogo,
         'classes': classes,
-        'antecedentes': [{'slug': a.slug, 'nome': a.nome, 'grants': background_grants(a)}
+        'antecedentes': [{'slug': a.slug, 'nome': a.nome, 'grants': background_grants(a),
+                          'resumo': _criador_resumo_md(a.resumo or a.descricao, 280)}
                          for a in TbAntecedente.objects.all().order_by('nome')],
         'grants_antecedente': background_grants(),
         'talentos_origem': [{'id': t.id_talento, 'nome': t.nome, 'pre': (t.pre_requisito or '').strip(),
@@ -4037,10 +4097,15 @@ def personagem_adicionar_classe(request, pk):
     """Adiciona uma classe por multiclasse (nível 1), se o pré-requisito for atendido.
     A 1ª classe (principal) permanece a referência de PV/saves/perícias/equipamento iniciais."""
     from .models import TbClasse, TbPersonagemClasse
-    from .character_engine import derive
+    from .character_engine import derive, nivel_por_aventuras
     p = _ficha_editavel(request, pk)
     if (p.nivel or 0) >= 20:
         return redirect(reverse('editar_ficha', args=[pk]) + '?mc=max')
+    # Multiclasse também SOBE o nível total — respeita o mesmo teto de aventuras do
+    # `subir-nivel`, senão o dono contorna a economia de progressão (BUG-1).
+    teto = min(nivel_por_aventuras(p.aventuras), 20)
+    if (p.nivel or 0) >= teto:
+        return redirect(reverse('editar_ficha', args=[pk]) + '?mc=teto')
     cl = TbClasse.objects.filter(id_classe=request.POST.get('classe')).first()
     if not cl or p.classes.filter(id_classe=cl).exists():
         return redirect(reverse('editar_ficha', args=[pk]) + '?mc=invalido')
@@ -4934,30 +4999,31 @@ def personagem_info_salvar(request, pk):
     return redirect(reverse('ficha_detail', args=[pk]) + '?aba=info')
 
 
-@login_required(login_url='/login/')
-@require_POST
-def criar_personagem_view(request):
-    """Persiste a ficha criada (point-buy + escolhas) -> TbPersonagem + relacionados."""
-    from .models import (TbPersonagem, TbPersonagemClasse, TbPersonagemPericia,
-                         TbPersonagemProficiencia, TbPersonagemItem, TbPersonagemTalento,
-                         TbPersonagemAtributoBonus, TbPersonagemEscolha, TbItemMundano, TbOpcaojogo,
-                         TbPersonagemMagia, TbMagia,
+def _criador_resolver(data):
+    """Resolve e valida o payload do criador SEM persistir. Retorna (R, erros): R traz
+    todos os objetos/valores já resolvidos para persistir; erros é a lista de pendências.
+    Compartilhado por criar_personagem_view (que exige erros==[]) e pelo preview ao vivo
+    (que ignora pendências de contagem e monta o subconjunto válido)."""
+    from .models import (TbItemMundano, TbOpcaojogo,
                          TbRaca, TbLinhagem, TbEssencia, TbClasse, TbAntecedente, TbTalento)
-    from .character_engine import _SKILL_INFO
-    from . import point_buy, permissions as perms
+    from .character_engine import _SKILL_INFO, background_asi_values, background_grants
+    from . import point_buy
 
-    data = _json_body(request)
     erros = []
     SIG = point_buy.SIGLAS
-
-    if not perms.pode_criar(request.user):
-        return JsonResponse({'ok': False, 'erros': ['Limite de fichas ativas atingido — guarde uma no cofre.']}, status=400)
 
     nome = (data.get('nome') or '').strip()
     if not nome:
         erros.append('Dê um nome ao personagem.')
+    elif len(nome) > 150:
+        # o campo do banco tem 150 — validar explicitamente em vez de truncar em silêncio.
+        erros.append('Nome muito longo (máximo de 150 caracteres).')
 
     scores = data.get('scores') or {}
+    # Exige os seis atributos: sem isso um POST incompleto criaria a ficha com 8 em
+    # silêncio no atributo faltante (o JS deveria mandar todos).
+    if any(s not in scores for s in SIG):
+        erros.append('Distribua os seis atributos (point-buy incompleto).')
     base = {s: int(scores.get(s, 8) or 8) for s in SIG}
     _, e = point_buy.validar([base[s] for s in SIG]); erros += e
     asi = data.get('asi') or {}
@@ -4973,11 +5039,29 @@ def criar_personagem_view(request):
         erros.append('Escolha uma classe.')
     if not antec:
         erros.append('Escolha um antecedente.')
-    from .character_engine import background_asi_values, background_grants
     bg_grants = background_grants(antec) if antec else background_grants()
     asi_major, asi_minor = background_asi_values(bg_grants)
     bg_skill_n = int(bg_grants.get('pericias') or 0)
     bg_langtool_n = int(bg_grants.get('idiomas_ou_ferramentas') or 0)
+
+    # Talento de Origem: TODO antecedente concede 1 (talento_origem:1). É obrigatório —
+    # antes o server só criava `if data.get('talento_origem')`, deixando a ficha nascer
+    # sem o feat garantido pelo antecedente, em silêncio.
+    to = None
+    if antec and int(bg_grants.get('talento_origem') or 0) >= 1:
+        to = TbTalento.objects.filter(
+            id_talento=data.get('talento_origem'), tipo__iexact='origem').first()
+        if not to:
+            erros.append('Escolha o Talento de Origem concedido pelo antecedente.')
+
+    # Cross-field raça×essência: só aceita essência se a raça a permitir.
+    if data.get('essencia') and raca and not raca.permite_essencia:
+        erros.append('Esta raça não permite escolher uma essência.')
+    # Cross-field raça×linhagem: linhagem informada tem de pertencer à raça (antes era
+    # descartada em silêncio quando não casava).
+    if data.get('linhagem') and raca and not TbLinhagem.objects.filter(
+            slug=data.get('linhagem'), id_raca=raca).exists():
+        erros.append('A linhagem escolhida não pertence a esta raça.')
 
     # Maestria de Arma: escolha de ARMAS (não de maestrias). Conhece todas as maestrias de cada arma.
     mn = _classe_maestria_n(classe, 1) if classe else 0
@@ -5040,110 +5124,226 @@ def criar_personagem_view(request):
         if len(magias_sel) != n_mag:
             erros.append('Escolha %d magia(s) de 1º nível.' % n_mag)
 
-    if erros:
-        return JsonResponse({'ok': False, 'erros': erros}, status=400)
-
     linhagem = TbLinhagem.objects.filter(slug=data.get('linhagem'), id_raca=raca).first() if data.get('linhagem') else None
-    essencia = TbEssencia.objects.filter(slug=data.get('essencia')).first() if data.get('essencia') else None
+    essencia = TbEssencia.objects.filter(slug=data.get('essencia')).first() if (data.get('essencia') and raca and raca.permite_essencia) else None
+
+    R = {
+        'nome': nome, 'base': base, 'mais2': mais2, 'mais1': mais1,
+        'asi_major': asi_major, 'asi_minor': asi_minor, 'bg_grants': bg_grants,
+        'raca': raca, 'linhagem': linhagem, 'essencia': essencia, 'antec': antec, 'classe': classe,
+        'to': to, 'armas_sel': armas_sel, 'mn': mn, 'pc': pc, 'pa': pa,
+        'lt_sel': lt_sel, 'bg_langtool_n': bg_langtool_n, 'esc1': esc1, 'exp_sel': exp_sel,
+        'classe_prof_validas': classe_prof_validas, 'conj': conj,
+        'truques_sel': truques_sel, 'magias_sel': magias_sel,
+    }
+    return R, erros
+
+
+def _criador_persistir(user, data, R):
+    """Cria o TbPersonagem + relacionados a partir de R (já resolvido por _criador_resolver).
+    DEVE rodar dentro de transaction.atomic(). Retorna o personagem criado."""
+    from .models import (TbPersonagem, TbPersonagemClasse, TbPersonagemPericia,
+                         TbPersonagemProficiencia, TbPersonagemItem, TbPersonagemTalento,
+                         TbPersonagemAtributoBonus, TbPersonagemEscolha, TbItemMundano, TbOpcaojogo,
+                         TbPersonagemMagia, TbMagia)
+    from .character_engine import _SKILL_INFO
+    from . import point_buy
+    SIG = point_buy.SIGLAS
+    nome = R['nome']; base = R['base']; mais2 = R['mais2']; mais1 = R['mais1']
+    asi_major = R['asi_major']; asi_minor = R['asi_minor']; bg_grants = R['bg_grants']
+    raca = R['raca']; linhagem = R['linhagem']; essencia = R['essencia']
+    antec = R['antec']; classe = R['classe']; to = R['to']
+    armas_sel = R['armas_sel']; mn = R['mn']; pc = R['pc']; pa = R['pa']
+    lt_sel = R['lt_sel']; bg_langtool_n = R['bg_langtool_n']; esc1 = R['esc1']
+    exp_sel = R['exp_sel']; classe_prof_validas = R['classe_prof_validas']
+    conj = R['conj']; truques_sel = R['truques_sel']; magias_sel = R['magias_sel']
     campo = {'FOR': 'forca', 'DES': 'destreza', 'CON': 'constituicao',
              'INT': 'inteligencia', 'SAB': 'sabedoria', 'CAR': 'carisma'}
 
+    p = TbPersonagem.objects.create(
+        dono=user, nome=nome[:150], nivel=1,
+        id_raca=raca, id_linhagem=linhagem, id_essencia=essencia, id_antecedente=antec,
+        **{campo[s]: base[s] for s in SIG})
+    TbPersonagemClasse.objects.create(id_personagem=p, id_classe=classe, nivel=1, principal=True)
+    TbPersonagemAtributoBonus.objects.create(id_personagem=p, atributo=mais2, valor=asi_major,
+                                             origem='Antecedente %s' % antec.nome, origem_tipo='antecedente')
+    TbPersonagemAtributoBonus.objects.create(id_personagem=p, atributo=mais1, valor=asi_minor,
+                                             origem='Antecedente %s' % antec.nome, origem_tipo='antecedente')
+    if essencia and data.get('vertente'):
+        TbPersonagemEscolha.objects.create(id_personagem=p, origem='Essência %s' % essencia.nome,
+                                           tipo='vertente', valor=data['vertente'])
+    for i, wslug in enumerate(armas_sel[:mn]):
+        TbPersonagemEscolha.objects.create(id_personagem=p, origem='Maestria de Arma (%s)' % classe.nome,
+                                           tipo='maestria', slot=i, valor=wslug)
+    for sl in set(pc + pa):
+        info = _SKILL_INFO.get(sl)
+        if info:
+            TbPersonagemPericia.objects.get_or_create(
+                id_personagem=p, nome=info[0], defaults={'atributo': info[1], 'proficiente': True})
+    idioma_fixo = (bg_grants.get('idioma_fixo') or '').strip()
+    if idioma_fixo:
+        TbPersonagemProficiencia.objects.create(id_personagem=p, tipo='idioma', nome=idioma_fixo, origem='regra')
+    ferr_nomes = set(TbItemMundano.objects.filter(categoria='ferramenta').values_list('nome', flat=True))
+    for esc in lt_sel[:bg_langtool_n]:
+        tipo = 'ferramenta' if esc in ferr_nomes else 'idioma'
+        TbPersonagemProficiencia.objects.create(id_personagem=p, tipo=tipo, nome=esc, origem='antecedente')
+    # Escolhas de RAÇA (perícias/idiomas/ferramentas extras da raça/linhagem/essência)
+    esc_raca = data.get('escolhas_raca') or {}
+    for sl in (esc_raca.get('pericias') or []):
+        info = _SKILL_INFO.get(sl)
+        if info:
+            TbPersonagemPericia.objects.get_or_create(
+                id_personagem=p, nome=info[0], defaults={'atributo': info[1], 'proficiente': True})
+    for nm in (esc_raca.get('idiomas') or []):
+        TbPersonagemProficiencia.objects.get_or_create(
+            id_personagem=p, tipo='idioma', nome=nm, defaults={'origem': 'racial'})
+    for nm in (esc_raca.get('ferramentas') or []):
+        TbPersonagemProficiencia.objects.get_or_create(
+            id_personagem=p, tipo='ferramenta', nome=nm, defaults={'origem': 'racial'})
+    # Dinheiro inicial vai para a carteira (PC) conforme as grants do antecedente.
+    carteira = int(bg_grants.get('po_inicial') or 0) * 100
+    equip_txt = (classe.equipamento or '').strip()
+    ouro_alt = int(bg_grants.get('equip_gold_alt') or 0)
+    if data.get('equip_classe') == 'inicial' and equip_txt:
+        TbPersonagemItem.objects.create(id_personagem=p, qtd=1,
+                                        nome='Equipamento inicial da classe: %s' % equip_txt[:170])
+    else:
+        carteira += ouro_alt * 100
+        # BUG-2: 10/13 classes não têm kit cadastrado. Se o jogador escolheu
+        # "equipamento inicial" e não há texto, a escolha vira ouro — antes isso
+        # acontecia em silêncio (ficava parecendo que pegou itens). Registra o
+        # ouro alternativo explicitamente no inventário para não enganar.
+        if data.get('equip_classe') == 'inicial' and not equip_txt:
+            TbPersonagemItem.objects.create(
+                id_personagem=p, qtd=1,
+                nome='Ouro inicial (+%d PO) — classe sem kit de equipamento cadastrado' % ouro_alt)
+    # Sem armadura inicial: o jogador compra e equipa a armadura na própria ficha,
+    # e a CA é derivada do equipamento equipado (não se pré-equipa nada no criador).
+    p.carteira_pc = carteira
+    p.save(update_fields=['carteira_pc'])
+    # `to` já foi resolvido e validado como obrigatório na fase de validação acima.
+    if to:
+        TbPersonagemTalento.objects.create(id_personagem=p, id_talento=to, categoria='origem', nivel=1, nome=to.nome)
+    if data.get('talento_raca'):
+        TbPersonagemTalento.objects.create(id_personagem=p, categoria='racial', nivel=1, nome=data['talento_raca'])
+    # Estilo de Luta (Guerreiro)
+    if esc1['estilo_n']:
+        est = TbOpcaojogo.objects.filter(tipo='Estilo de Luta', slug=data.get('estilo_luta')).first()
+        if est:
+            TbPersonagemEscolha.objects.create(id_personagem=p, origem='Estilo de Luta (%s)' % classe.nome,
+                                               tipo='estilo-de-luta', valor=est.slug)
+    # Perícia-Especializada (expertise) escolhida — marca nas perícias proficientes
+    for sl in exp_sel[:esc1['expertise_n']]:
+        info = _SKILL_INFO.get(sl)
+        if info:
+            TbPersonagemPericia.objects.filter(id_personagem=p, nome=info[0]).update(expertise=True)
+    for pick, vals in classe_prof_validas:
+        for nm in vals[:int(pick.get('n') or 0)]:
+            TbPersonagemProficiencia.objects.get_or_create(
+                id_personagem=p, tipo='ferramenta', nome=nm,
+                defaults={'origem': 'classe'})
+    # Expertise FIXA (Mago: Arcanismo) — proficiência + expertise automáticas
+    for sl in esc1['expertise_fixa']:
+        info = _SKILL_INFO.get(sl)
+        if info:
+            TbPersonagemPericia.objects.update_or_create(
+                id_personagem=p, nome=info[0],
+                defaults={'atributo': info[1], 'proficiente': True, 'expertise': True})
+    # Magias conhecidas/preparadas no nível 1 (truques + 1º nível)
+    if conj:
+        for nivel, sel in ((0, truques_sel), (1, magias_sel)):
+            for slug in sel:
+                mg = TbMagia.objects.filter(slug=slug).first()
+                if mg:
+                    TbPersonagemMagia.objects.create(id_personagem=p, id_magia=mg, nivel=nivel,
+                        nome=mg.nome, preparada=True, origem=classe.nome)
+    # Magias da Essência (vertente): concede as fixas do nível atual (cantrips + 1º
+    # ciclo no nível 1). As de escolha (2º ciclo) ficam pendentes até o nível 5.
+    _sync_magias_essencia(p)
+    _refresh_vitais_derivados(p, refill=True)
+    return p
+
+
+def _criador_preview_resumo(ficha):
+    """Extrai do derive só o que o painel de preview mostra (PV/CA/atributos/saves/
+    proficiências), no formato que o front consome."""
+    at = ficha.get('atributos') or {}
+    saves = ficha.get('saves') or {}
+    ordem = ['FOR', 'DES', 'CON', 'INT', 'SAB', 'CAR']
+    atributos = []
+    for sig in ordem:
+        a = at.get(sig) or {}
+        s = saves.get(sig) or {}
+        atributos.append({'sig': sig, 'valor': a.get('valor'), 'mod': a.get('mod', 0),
+                          'save_bonus': s.get('bonus'), 'save_prof': bool(s.get('proficiente'))})
+    pericias = [{'nome': p['nome'], 'atributo': p['atributo'], 'bonus': p['bonus'],
+                 'proficiente': p['proficiente'], 'expertise': p['expertise']}
+                for p in (ficha.get('pericias') or []) if p.get('proficiente') or p.get('expertise')]
+    pv = ficha.get('pv') or {}
+    return {
+        'nivel': ficha.get('nivel_total'),
+        'pb': ficha.get('bonus_proficiencia'),
+        'pv': pv.get('maximo_calculado'),
+        'pv_completo': pv.get('pv_completo', True),
+        'ca': ficha.get('ca'),
+        'iniciativa': ficha.get('iniciativa'),
+        'velocidade': ficha.get('velocidade'),
+        'atributos': atributos,
+        'pericias': pericias,
+        'idiomas': ficha.get('idiomas') or [],
+        'ferramentas': ficha.get('ferramentas') or [],
+        'prof_armadura': ficha.get('proficiencias_armadura') or [],
+        'prof_arma': ficha.get('proficiencias_arma') or [],
+        'n_features': len([f for f in (ficha.get('features') or [])]),
+        'n_magias': len(ficha.get('magias') or []),
+    }
+
+
+@require_POST
+def criar_personagem_preview_view(request):
+    """Preview AO VIVO da ficha: monta o personagem numa transação REVERTIDA, roda o MESMO
+    derive do servidor e devolve o resumo — garante que o preview BATE com a ficha final.
+    Aceita subconjunto válido (ignora pendências de contagem) p/ atualizar a cada escolha."""
+    from .character_engine import derive
+    from django.contrib.auth import get_user_model
+    data = _json_body(request)
+    R, _erros = _criador_resolver(data)
+    if not (R['raca'] and R['classe'] and R['antec']):
+        return JsonResponse({'ok': True, 'ready': False})
+    dono = request.user if request.user.is_authenticated else get_user_model().objects.order_by('id').first()
+    if dono is None:
+        return JsonResponse({'ok': True, 'ready': False})
+    try:
+        with transaction.atomic():
+            p = _criador_persistir(dono, data, R)
+            ficha = derive(p)
+            transaction.set_rollback(True)
+    except Exception:
+        return JsonResponse({'ok': True, 'ready': False})
+    return JsonResponse({'ok': True, 'ready': True, 'preview': _criador_preview_resumo(ficha)})
+
+
+@login_required(login_url='/login/')
+@require_POST
+def criar_personagem_view(request):
+    """Persiste a ficha criada (point-buy + escolhas) -> TbPersonagem + relacionados."""
+    from . import permissions as perms
+
+    data = _json_body(request)
+
+    if not perms.pode_criar(request.user):
+        return JsonResponse({'ok': False, 'erros': ['Limite de fichas ativas atingido — guarde uma no cofre.']}, status=400)
+
+    R, erros = _criador_resolver(data)
+    if erros:
+        return JsonResponse({'ok': False, 'erros': erros}, status=400)
+
     with transaction.atomic():
-        p = TbPersonagem.objects.create(
-            dono=request.user, nome=nome[:150], nivel=1,
-            id_raca=raca, id_linhagem=linhagem, id_essencia=essencia, id_antecedente=antec,
-            **{campo[s]: base[s] for s in SIG})
-        TbPersonagemClasse.objects.create(id_personagem=p, id_classe=classe, nivel=1, principal=True)
-        TbPersonagemAtributoBonus.objects.create(id_personagem=p, atributo=mais2, valor=asi_major,
-                                                 origem='Antecedente %s' % antec.nome, origem_tipo='antecedente')
-        TbPersonagemAtributoBonus.objects.create(id_personagem=p, atributo=mais1, valor=asi_minor,
-                                                 origem='Antecedente %s' % antec.nome, origem_tipo='antecedente')
-        if essencia and data.get('vertente'):
-            TbPersonagemEscolha.objects.create(id_personagem=p, origem='Essência %s' % essencia.nome,
-                                               tipo='vertente', valor=data['vertente'])
-        for i, wslug in enumerate(armas_sel[:mn]):
-            TbPersonagemEscolha.objects.create(id_personagem=p, origem='Maestria de Arma (%s)' % classe.nome,
-                                               tipo='maestria', slot=i, valor=wslug)
-        for sl in set(pc + pa):
-            info = _SKILL_INFO.get(sl)
-            if info:
-                TbPersonagemPericia.objects.get_or_create(
-                    id_personagem=p, nome=info[0], defaults={'atributo': info[1], 'proficiente': True})
-        idioma_fixo = (bg_grants.get('idioma_fixo') or '').strip()
-        if idioma_fixo:
-            TbPersonagemProficiencia.objects.create(id_personagem=p, tipo='idioma', nome=idioma_fixo, origem='regra')
-        ferr_nomes = set(TbItemMundano.objects.filter(categoria='ferramenta').values_list('nome', flat=True))
-        for esc in lt_sel[:bg_langtool_n]:
-            tipo = 'ferramenta' if esc in ferr_nomes else 'idioma'
-            TbPersonagemProficiencia.objects.create(id_personagem=p, tipo=tipo, nome=esc, origem='antecedente')
-        # Escolhas de RAÇA (perícias/idiomas/ferramentas extras da raça/linhagem/essência)
-        esc_raca = data.get('escolhas_raca') or {}
-        for sl in (esc_raca.get('pericias') or []):
-            info = _SKILL_INFO.get(sl)
-            if info:
-                TbPersonagemPericia.objects.get_or_create(
-                    id_personagem=p, nome=info[0], defaults={'atributo': info[1], 'proficiente': True})
-        for nm in (esc_raca.get('idiomas') or []):
-            TbPersonagemProficiencia.objects.get_or_create(
-                id_personagem=p, tipo='idioma', nome=nm, defaults={'origem': 'racial'})
-        for nm in (esc_raca.get('ferramentas') or []):
-            TbPersonagemProficiencia.objects.get_or_create(
-                id_personagem=p, tipo='ferramenta', nome=nm, defaults={'origem': 'racial'})
-        # Dinheiro inicial vai para a carteira (PC) conforme as grants do antecedente.
-        carteira = int(bg_grants.get('po_inicial') or 0) * 100
-        if data.get('equip_classe') == 'inicial' and (classe.equipamento or '').strip():
-            TbPersonagemItem.objects.create(id_personagem=p, qtd=1,
-                                            nome='Equipamento inicial da classe: %s' % classe.equipamento.strip()[:170])
-        else:
-            carteira += int(bg_grants.get('equip_gold_alt') or 0) * 100
-        # Sem armadura inicial: o jogador compra e equipa a armadura na própria ficha,
-        # e a CA é derivada do equipamento equipado (não se pré-equipa nada no criador).
-        p.carteira_pc = carteira
-        p.save(update_fields=['carteira_pc'])
-        to = (TbTalento.objects.filter(id_talento=data.get('talento_origem'), tipo__iexact='origem').first()
-              if data.get('talento_origem') else None)
-        if to:
-            TbPersonagemTalento.objects.create(id_personagem=p, id_talento=to, categoria='origem', nivel=1, nome=to.nome)
-        if data.get('talento_raca'):
-            TbPersonagemTalento.objects.create(id_personagem=p, categoria='racial', nivel=1, nome=data['talento_raca'])
-        # Estilo de Luta (Guerreiro)
-        if esc1['estilo_n']:
-            est = TbOpcaojogo.objects.filter(tipo='Estilo de Luta', slug=data.get('estilo_luta')).first()
-            if est:
-                TbPersonagemEscolha.objects.create(id_personagem=p, origem='Estilo de Luta (%s)' % classe.nome,
-                                                   tipo='estilo-de-luta', valor=est.slug)
-        # Perícia-Especializada (expertise) escolhida — marca nas perícias proficientes
-        for sl in exp_sel[:esc1['expertise_n']]:
-            info = _SKILL_INFO.get(sl)
-            if info:
-                TbPersonagemPericia.objects.filter(id_personagem=p, nome=info[0]).update(expertise=True)
-        for pick, vals in classe_prof_validas:
-            for nm in vals[:int(pick.get('n') or 0)]:
-                TbPersonagemProficiencia.objects.get_or_create(
-                    id_personagem=p, tipo='ferramenta', nome=nm,
-                    defaults={'origem': 'classe'})
-        # Expertise FIXA (Mago: Arcanismo) — proficiência + expertise automáticas
-        for sl in esc1['expertise_fixa']:
-            info = _SKILL_INFO.get(sl)
-            if info:
-                TbPersonagemPericia.objects.update_or_create(
-                    id_personagem=p, nome=info[0],
-                    defaults={'atributo': info[1], 'proficiente': True, 'expertise': True})
-        # Magias conhecidas/preparadas no nível 1 (truques + 1º nível)
-        if conj:
-            for nivel, sel in ((0, truques_sel), (1, magias_sel)):
-                for slug in sel:
-                    mg = TbMagia.objects.filter(slug=slug).first()
-                    if mg:
-                        TbPersonagemMagia.objects.create(id_personagem=p, id_magia=mg, nivel=nivel,
-                            nome=mg.nome, preparada=True, origem=classe.nome)
-        # Magias da Essência (vertente): concede as fixas do nível atual (cantrips + 1º
-        # ciclo no nível 1). As de escolha (2º ciclo) ficam pendentes até o nível 5.
-        _sync_magias_essencia(p)
-        _refresh_vitais_derivados(p, refill=True)
+        p = _criador_persistir(request.user, data, R)
 
     return JsonResponse({'ok': True, 'id': p.id_personagem,
                          'redirect': reverse('ficha_detail', args=[p.id_personagem])})
+
 
 
 def _json_body(request):

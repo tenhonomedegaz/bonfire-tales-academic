@@ -601,9 +601,330 @@
         verSel.addEventListener('change', fillTalentosRaca);
         refreshRaceDependent();
 
-        // ---- Validação + submit
-        var erroBox = el('cf-erros'), submitBtn = el('cf-submit');
+        // ================= Painéis de INFO (escolha informada — U2) =================
+        function escHtml(s) { var d = document.createElement('div'); d.textContent = (s == null ? '' : String(s)); return d.innerHTML; }
+        function fillInfo(box, opts) {
+            if (!box) return;
+            if (!opts) { box.hidden = true; box.innerHTML = ''; return; }
+            var h = '';
+            if (opts.tagline) h += '<div class="cf-info-tagline">' + escHtml(String(opts.tagline).replace(/[*_`>#]/g, '').trim()) + '</div>';
+            if (opts.resumo) h += '<div class="cf-info-resumo">' + escHtml(opts.resumo) + '</div>';
+            if (opts.meta && opts.meta.length) {
+                h += '<div class="cf-info-meta">' + opts.meta.map(function (m) {
+                    return '<span class="cf-chip">' + escHtml(m.k) + ' <b>' + escHtml(m.v) + '</b></span>';
+                }).join('') + '</div>';
+            }
+            if (opts.traits && opts.traits.length) {
+                h += '<div class="cf-info-list">' + opts.traits.map(function (t) {
+                    return '<div class="cf-info-trait"><b>' + escHtml(t.nome) + '</b>' +
+                        (t.desc ? ' <span>— ' + escHtml(t.desc) + '</span>' : '') + '</div>';
+                }).join('') + '</div>';
+            }
+            box.innerHTML = h || '<div class="cf-info-resumo">Sem descrição cadastrada.</div>';
+            box.hidden = false;
+        }
+        function renderRacaInfo() {
+            var r = racaBySlug[racaSel.value];
+            if (!r) { fillInfo(el('cf-raca-info'), null); return; }
+            var traits = (r.tracos || []).slice();
+            if (!linWrap.hidden && linSel.value) {
+                var lobj = (r.linhagens || []).filter(function (l) { return l.slug === linSel.value; })[0];
+                if (lobj && lobj.desc) traits.unshift({ nome: 'Linhagem: ' + lobj.nome, desc: lobj.desc });
+            }
+            fillInfo(el('cf-raca-info'), { tagline: r.tagline, resumo: r.resumo, traits: traits.slice(0, 6) });
+        }
+        function renderEssenciaInfo() {
+            var e = essenciaBySlug[essSel.value];
+            fillInfo(el('cf-essencia-info'), (essWrap.hidden || !e) ? null : { tagline: 'Essência: ' + e.nome, resumo: e.resumo });
+        }
+        function renderClasseInfo() {
+            var c = classeBySlug[classeSel.value];
+            if (!c) { fillInfo(el('cf-classe-info'), null); return; }
+            var meta = [];
+            if (c.hit_die) meta.push({ k: 'Dado de vida', v: 'd' + c.hit_die });
+            if (c.saves && c.saves.length) meta.push({ k: 'Resistências', v: c.saves.join(', ') });
+            if (c.atributo_principal) meta.push({ k: 'Atributo', v: c.atributo_principal });
+            fillInfo(el('cf-classe-info'), { tagline: c.tagline, resumo: c.resumo, meta: meta, traits: (c.features1 || []).slice(0, 6) });
+        }
+        function renderAntecedenteInfo() {
+            var a = antecedenteBySlug[antSel.value];
+            if (!a) { fillInfo(el('cf-antecedente-info'), null); return; }
+            var g = a.grants || {};
+            var meta = [{ k: 'PO inicial', v: (g.po_inicial || 0) },
+                        { k: 'Perícias', v: (g.pericias || 0) },
+                        { k: 'ASI', v: (g.asi || '+2/+1') }];
+            fillInfo(el('cf-antecedente-info'), { resumo: a.resumo, meta: meta });
+        }
+        racaSel.addEventListener('change', renderRacaInfo);
+        linSel.addEventListener('change', renderRacaInfo);
+        essSel.addEventListener('change', function () { renderEssenciaInfo(); renderRacaInfo(); });
+        verSel.addEventListener('change', renderRacaInfo);
+        classeSel.addEventListener('change', renderClasseInfo);
+        antSel.addEventListener('change', renderAntecedenteInfo);
+        renderRacaInfo(); renderEssenciaInfo(); renderClasseInfo(); renderAntecedenteInfo();
 
+        // ================= Validação por etapa (U3) =================
+        var erroBox = el('cf-erros'), submitBtn = el('cf-submit');
+        var _lblEsc = { pericia: 'perícia(s)', idioma: 'idioma(s)', ferramenta: 'ferramenta(s)' };
+
+        var STEP_VALIDATORS = [
+            function () { // 0 · Identidade + Atributos
+                var e = [];
+                if (!el('cf-nome').value.trim()) e.push('Dê um nome ao personagem.');
+                var asi = currentAsiParts();
+                if (asi2.value === asi1.value) e.push('O +' + asi.major + ' e o +' + asi.minor + ' do ASI devem ir em atributos diferentes.');
+                return e;
+            },
+            function () { // 1 · Raça
+                var e = [];
+                if (!racaSel.value) e.push('Escolha uma raça.');
+                if (!verWrap.hidden && !verSel.value) e.push('Escolha a vertente elemental.');
+                racialGroups.forEach(function (g) {
+                    if (checkedVals(g.grid).length !== g.n)
+                        e.push('Escolhas de raça: selecione ' + g.n + ' ' + (_lblEsc[g.tipo] || g.tipo) + '.');
+                });
+                return e;
+            },
+            function () { // 2 · Classe
+                var e = [], c = classeBySlug[classeSel.value];
+                if (!classeSel.value) { e.push('Escolha uma classe.'); return e; }
+                if (c && checkedVals(skillsWrap).length !== c.pericias_n)
+                    e.push('Escolha exatamente ' + c.pericias_n + ' perícia(s) de classe.');
+                if (c && c.maestria_n && checkedVals(maestriaArmas).length !== c.maestria_n)
+                    e.push('Escolha ' + c.maestria_n + ' arma(s) para Maestria de Arma.');
+                if (c && c.estilo_n && !estiloSel.value) e.push('Escolha um Estilo de Luta.');
+                if (c && c.expertise_n && checkedVals(expertiseBox).length !== c.expertise_n)
+                    e.push('Escolha ' + c.expertise_n + ' perícia(s) para Especialização.');
+                classeProfGroups.forEach(function (g) {
+                    if (checkedVals(g.grid).length !== g.n)
+                        e.push('Escolha ' + g.n + ' ' + classeProfLabel(g.tipo) + ' de classe.');
+                });
+                if (c && c.conjuracao) {
+                    if (c.conjuracao.truques_n && checkedVals(truquesBox).length !== c.conjuracao.truques_n)
+                        e.push('Escolha ' + c.conjuracao.truques_n + ' truque(s).');
+                    if (checkedVals(magiasBox).length !== magiaLimit)
+                        e.push('Escolha ' + magiaLimit + ' magia(s) de 1º nível.');
+                }
+                return e;
+            },
+            function () { // 3 · Antecedente
+                var e = [];
+                if (!antSel.value) { e.push('Escolha um antecedente.'); return e; }
+                if (checkedVals(bgWrap).length !== bgSkillN()) e.push('Escolha ' + bgSkillN() + ' perícia(s) do antecedente.');
+                if (idiomasFerramentasSel().length !== bgLangToolN()) e.push('Escolha ' + bgLangToolN() + ' idioma(s)/ferramenta(s).');
+                return e;
+            },
+            function () { // 4 · Talentos
+                var e = [];
+                if (antSel.value && toSel.options.length > 1 && !toSel.value)
+                    e.push('Escolha o Talento de Origem concedido pelo antecedente.');
+                return e;
+            },
+            function () { return []; } // 5 · Revisão
+        ];
+        function stepErrors(i) { try { return STEP_VALIDATORS[i] ? STEP_VALIDATORS[i]() : []; } catch (err) { return []; } }
+        function clientValidate() {
+            var all = [];
+            for (var i = 0; i < STEP_VALIDATORS.length; i++) all = all.concat(stepErrors(i));
+            return all;
+        }
+
+        // ================= Stepper (U1) =================
+        var steps = Array.prototype.slice.call(document.querySelectorAll('.cf-step'));
+        var tabs = Array.prototype.slice.call(document.querySelectorAll('.cf-step-tab'));
+        var prevBtn = document.querySelector('[data-prev]');
+        var nextBtn = document.querySelector('[data-next]');
+        var navHint = el('cf-nav-hint');
+        var LAST = steps.length - 1;
+        var current = 0;
+        var touched = {};
+
+        function stepErrBox(i) { return document.querySelector('[data-step-err="' + i + '"]'); }
+        function showStepErr(i, arr) {
+            var box = stepErrBox(i);
+            if (!box) return;
+            if (!arr || !arr.length) { box.hidden = true; box.innerHTML = ''; return; }
+            box.innerHTML = '<strong>Faltam ' + arr.length + ' item(ns) nesta etapa:</strong><ul>' +
+                arr.map(function (x) { return '<li>' + escHtml(x) + '</li>'; }).join('') + '</ul>';
+            box.hidden = false;
+        }
+        function updateStepper() {
+            tabs.forEach(function (t, idx) {
+                var errs = stepErrors(idx);
+                t.classList.toggle('is-current', idx === current);
+                t.classList.toggle('is-complete', errs.length === 0);
+                t.classList.toggle('is-error', !!touched[idx] && errs.length > 0);
+            });
+            var e = stepErrors(current);
+            var totalPend = clientValidate().length;
+            if (current === LAST) {
+                navHint.textContent = totalPend ? ('faltam ' + totalPend + ' item(ns) para criar') : 'tudo pronto — pode criar!';
+                submitBtn.textContent = totalPend ? ('Criar (faltam ' + totalPend + ')') : 'Criar Personagem';
+            } else {
+                navHint.textContent = e.length ? ('faltam ' + e.length + ' nesta etapa') : '';
+            }
+        }
+        function refreshCurrentErrors() {
+            if (touched[current]) showStepErr(current, stepErrors(current));
+            updateStepper();
+        }
+        function goTo(i, noscroll) {
+            i = Math.max(0, Math.min(LAST, i));
+            current = i;
+            steps.forEach(function (s, idx) { s.hidden = idx !== i; });
+            prevBtn.disabled = (i === 0);
+            nextBtn.hidden = (i === LAST);
+            submitBtn.hidden = (i !== LAST);
+            showStepErr(i, touched[i] ? stepErrors(i) : []);
+            if (i === LAST) renderReview();
+            updateStepper();
+            if (!noscroll) { try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) { window.scrollTo(0, 0); } }
+        }
+        tabs.forEach(function (t) {
+            function jump() { goTo(parseInt(t.getAttribute('data-step-tab'), 10)); }
+            t.addEventListener('click', jump);
+            t.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); jump(); } });
+        });
+        nextBtn.addEventListener('click', function () {
+            var e = stepErrors(current);
+            touched[current] = true;
+            if (e.length) { showStepErr(current, e); updateStepper(); return; }
+            showStepErr(current, []);
+            goTo(current + 1);
+        });
+        prevBtn.addEventListener('click', function () { goTo(current - 1); });
+
+        function renderReview() {
+            var box = el('cf-review');
+            if (!box) return;
+            function racaText() {
+                var r = racaBySlug[racaSel.value]; if (!r) return '—';
+                var out = r.nome;
+                if (!linWrap.hidden && linSel.value) { var l = (r.linhagens || []).filter(function (x) { return x.slug === linSel.value; })[0]; if (l) out += ' · ' + l.nome; }
+                if (!essWrap.hidden && essSel.value) { var es = essenciaBySlug[essSel.value]; if (es) out += ' · ' + es.nome; }
+                return out;
+            }
+            var c = classeBySlug[classeSel.value];
+            var a = antecedenteBySlug[antSel.value];
+            var toTxt = (toSel.value && toSel.options[toSel.selectedIndex]) ? toSel.options[toSel.selectedIndex].textContent : '—';
+            var rows = [
+                ['Nome', el('cf-nome').value.trim() || '—'],
+                ['Raça', racaText()],
+                ['Classe', c ? c.nome : '—'],
+                ['Antecedente', a ? a.nome : '—'],
+                ['Talento de origem', toTxt]
+            ];
+            var h = rows.map(function (r) {
+                return '<div class="flex justify-between gap-3 border-b border-[var(--stroke)] py-1"><span class="text-[var(--muted)]">' +
+                    escHtml(r[0]) + '</span><span class="text-right font-semibold">' + escHtml(r[1]) + '</span></div>';
+            }).join('');
+            var pend = clientValidate();
+            if (pend.length) {
+                h += '<div class="cf-step-err" style="display:block;margin-top:.7rem"><strong>Pendências antes de criar:</strong><ul>' +
+                    pend.map(function (x) { return '<li>' + escHtml(x) + '</li>'; }).join('') + '</ul></div>';
+            } else {
+                h += '<p class="mt-2 text-xs text-[var(--spark)]">Tudo certo — a ficha bate com a prévia ao lado.</p>';
+            }
+            box.innerHTML = h;
+        }
+
+        // ================= Preview AO VIVO (U4) =================
+        var pvEl = document.querySelector('#cf-preview [data-pv]');
+        var caEl = document.querySelector('#cf-preview [data-ca]');
+        var pbEl = document.querySelector('#cf-preview [data-pb]');
+        var attrsEl = el('cf-preview-attrs');
+        var extraEl = el('cf-preview-extra');
+        var statusEl = el('cf-preview-status');
+        var nameEl = el('cf-preview-name');
+        var subEl = el('cf-preview-sub');
+        var previewTimer = null, previewSeq = 0;
+
+        function localAttrs() {
+            var scores = window.PointBuy ? window.PointBuy.scores() : {};
+            var asi = currentAsiParts();
+            return SIG.map(function (p) {
+                var sig = p[0];
+                var v = (scores[sig] || 8) + (asi2.value === sig ? asi.major : 0) + (asi1.value === sig ? asi.minor : 0);
+                return { sig: sig, valor: v, mod: Math.floor((v - 10) / 2), save_prof: false };
+            });
+        }
+        function renderAttrs(list) {
+            attrsEl.innerHTML = list.map(function (a) {
+                return '<div class="cf-attr' + (a.save_prof ? ' save-prof' : '') + '"><span class="s">' + a.sig +
+                    '</span><span class="m">' + (a.mod >= 0 ? '+' : '') + a.mod + '</span><span class="t">' + a.valor + '</span></div>';
+            }).join('');
+        }
+        function chips(arr) {
+            if (!arr || !arr.length) return '<span class="cf-prev-empty">—</span>';
+            return '<div class="cf-prev-chips">' + arr.map(function (x) { return '<span class="cf-chip">' + escHtml(x) + '</span>'; }).join('') + '</div>';
+        }
+        function buildExtra(pv) {
+            var h = '';
+            var pers = (pv.pericias || []).map(function (p) { return p.nome + (p.expertise ? ' ◆' : ''); });
+            h += '<div class="cf-prev-sec"><div class="h">Perícias proficientes</div>' + chips(pers) + '</div>';
+            if ((pv.prof_arma || []).length) h += '<div class="cf-prev-sec"><div class="h">Armas</div>' + chips(pv.prof_arma) + '</div>';
+            if ((pv.prof_armadura || []).length) h += '<div class="cf-prev-sec"><div class="h">Armaduras</div>' + chips(pv.prof_armadura) + '</div>';
+            if ((pv.idiomas || []).length) h += '<div class="cf-prev-sec"><div class="h">Idiomas</div>' + chips(pv.idiomas) + '</div>';
+            if ((pv.ferramentas || []).length) h += '<div class="cf-prev-sec"><div class="h">Ferramentas</div>' + chips(pv.ferramentas) + '</div>';
+            var extras = [];
+            if (pv.n_magias) extras.push(pv.n_magias + ' magia(s)');
+            if (pv.n_features) extras.push(pv.n_features + ' traço(s)/feature(s)');
+            if (pv.iniciativa != null) extras.push('Iniciativa ' + (pv.iniciativa >= 0 ? '+' : '') + pv.iniciativa);
+            if (pv.velocidade) extras.push(pv.velocidade + ' de deslocamento');
+            if (extras.length) h += '<div class="cf-prev-sec"><div class="h">Resumo</div>' + chips(extras) + '</div>';
+            return h;
+        }
+        function updateName() {
+            var nome = el('cf-nome').value.trim();
+            var c = classeBySlug[classeSel.value], r = racaBySlug[racaSel.value];
+            var sub = [r ? r.nome : null, c ? c.nome : null].filter(Boolean).join(' · ');
+            nameEl.childNodes[0] && (nameEl.childNodes[0].nodeValue = (nome || 'Novo personagem') + ' ');
+            subEl.textContent = sub;
+        }
+        function renderLocal() { renderAttrs(localAttrs()); updateName(); }
+        function runPreview() {
+            renderLocal();
+            var ready = racaSel.value && classeSel.value && antSel.value;
+            if (!ready) {
+                pvEl.textContent = '—'; caEl.textContent = '—';
+                statusEl.textContent = 'monte raça, classe e antecedente';
+                statusEl.classList.remove('is-live');
+                extraEl.innerHTML = '<p class="cf-preview-placeholder">Assim que você escolher raça, classe e antecedente, a prévia mostra PV, CA, perícias e proficiências — exatamente como a ficha final.</p>';
+                return;
+            }
+            var seq = ++previewSeq;
+            statusEl.textContent = 'atualizando…'; statusEl.classList.add('is-live');
+            fetch(window.CRIAR_PREVIEW_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': window.CSRF_TOKEN },
+                body: JSON.stringify(payload())
+            }).then(function (r) { return r.json(); }).then(function (j) {
+                if (seq !== previewSeq) return; // resposta obsoleta
+                statusEl.classList.remove('is-live');
+                if (!j || !j.ready || !j.preview) { statusEl.textContent = 'nível 1'; return; }
+                var pv = j.preview;
+                pvEl.textContent = pv.pv == null ? '—' : pv.pv;
+                caEl.textContent = pv.ca == null ? '—' : pv.ca;
+                pbEl.textContent = (pv.pb >= 0 ? '+' : '') + pv.pb;
+                statusEl.textContent = 'nível ' + (pv.nivel || 1) + (pv.pv_completo ? '' : ' (PV parcial)');
+                renderAttrs(pv.atributos || localAttrs());
+                extraEl.innerHTML = buildExtra(pv);
+            }).catch(function () {
+                if (seq !== previewSeq) return;
+                statusEl.classList.remove('is-live'); statusEl.textContent = 'nível 1';
+            });
+        }
+        function schedulePreview() {
+            renderLocal();
+            refreshCurrentErrors();
+            clearTimeout(previewTimer);
+            previewTimer = setTimeout(runPreview, 280);
+        }
+        form.addEventListener('change', schedulePreview);
+        form.addEventListener('input', function (ev) { if (ev.target && ev.target.id === 'cf-nome') { updateName(); refreshCurrentErrors(); } });
+        if (window.PointBuy) window.PointBuy.onChange(function () { renderLocal(); clearTimeout(previewTimer); previewTimer = setTimeout(runPreview, 280); });
+
+        // legado: alguns caminhos ainda chamam showErros (submit agregado)
         function showErros(arr) {
             erroBox.innerHTML = '';
             if (!arr || !arr.length) { erroBox.classList.add('hidden'); return; }
@@ -611,45 +932,10 @@
             arr.forEach(function (e) { var li = document.createElement('li'); li.textContent = e; ul.appendChild(li); });
             erroBox.appendChild(ul);
             erroBox.classList.remove('hidden');
-            erroBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
 
-        function clientValidate() {
-            var errs = [];
-            if (!el('cf-nome').value.trim()) errs.push('Dê um nome ao personagem.');
-            var asi = currentAsiParts();
-            if (asi2.value === asi1.value) errs.push('O +' + asi.major + ' e o +' + asi.minor + ' do ASI devem ir em atributos diferentes.');
-            if (!racaSel.value) errs.push('Escolha uma raça.');
-            if (!classeSel.value) errs.push('Escolha uma classe.');
-            if (!antSel.value) errs.push('Escolha um antecedente.');
-            var c = classeBySlug[classeSel.value];
-            if (c && checkedVals(skillsWrap).length !== c.pericias_n)
-                errs.push('Escolha exatamente ' + c.pericias_n + ' perícia(s) de classe.');
-            if (checkedVals(bgWrap).length !== bgSkillN()) errs.push('Escolha ' + bgSkillN() + ' perícia(s) do antecedente.');
-            if (idiomasFerramentasSel().length !== bgLangToolN()) errs.push('Escolha ' + bgLangToolN() + ' idioma(s)/ferramenta(s).');
-            var _lbl = { pericia: 'perícia(s)', idioma: 'idioma(s)', ferramenta: 'ferramenta(s)' };
-            racialGroups.forEach(function (g) {
-                if (checkedVals(g.grid).length !== g.n)
-                    errs.push('Escolhas de raça: selecione ' + g.n + ' ' + (_lbl[g.tipo] || g.tipo) + '.');
-            });
-            if (!verWrap.hidden && !verSel.value) errs.push('Escolha a vertente elemental.');
-            if (c && c.maestria_n && checkedVals(maestriaArmas).length !== c.maestria_n)
-                errs.push('Escolha ' + c.maestria_n + ' arma(s) para Maestria de Arma.');
-            if (c && c.estilo_n && !estiloSel.value) errs.push('Escolha um Estilo de Luta.');
-            if (c && c.expertise_n && checkedVals(expertiseBox).length !== c.expertise_n)
-                errs.push('Escolha ' + c.expertise_n + ' perícia(s) para Especialização.');
-            classeProfGroups.forEach(function (g) {
-                if (checkedVals(g.grid).length !== g.n)
-                    errs.push('Escolha ' + g.n + ' ' + classeProfLabel(g.tipo) + ' de classe.');
-            });
-            if (c && c.conjuracao) {
-                if (c.conjuracao.truques_n && checkedVals(truquesBox).length !== c.conjuracao.truques_n)
-                    errs.push('Escolha ' + c.conjuracao.truques_n + ' truque(s).');
-                if (checkedVals(magiasBox).length !== magiaLimit)
-                    errs.push('Escolha ' + magiaLimit + ' magia(s) de 1º nível.');
-            }
-            return errs;
-        }
+        goTo(0, true);
+        runPreview();
 
         function payload() {
             var equip = (form.querySelector('input[name=equip_classe]:checked') || {}).value;
@@ -679,10 +965,21 @@
             };
         }
 
+        function firstBadStep() {
+            for (var i = 0; i < STEP_VALIDATORS.length; i++) { if (stepErrors(i).length) return i; }
+            return -1;
+        }
         form.addEventListener('submit', function (ev) {
             ev.preventDefault();
             var errs = clientValidate();
-            if (errs.length) { showErros(errs); return; }
+            if (errs.length) {
+                // marca tudo como visitado, leva à 1ª etapa pendente e mostra o erro NELA (U3)
+                for (var i = 0; i < STEP_VALIDATORS.length; i++) touched[i] = true;
+                var bad = firstBadStep();
+                showErros(errs);
+                if (bad >= 0 && bad !== current) goTo(bad); else { renderReview(); updateStepper(); }
+                return;
+            }
             if (!window.CRIAR_LOGADO) { showErros(['Você precisa estar logado para salvar. Faça login e tente novamente.']); return; }
             showErros([]);
             submitBtn.disabled = true; submitBtn.textContent = 'Salvando…';

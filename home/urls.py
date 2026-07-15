@@ -65,6 +65,7 @@ urlpatterns = [
     path('atualizacoes/', views.atualizacoes_view, name='atualizacoes'),
     path('sistemas/criacao-de-ficha/', views.criacao_ficha_view, name='criacao_ficha'),
     path('sistemas/criacao-de-ficha/salvar/', views.criar_personagem_view, name='criar_personagem'),
+    path('sistemas/criacao-de-ficha/preview/', views.criar_personagem_preview_view, name='criar_personagem_preview'),
     path('sistemas/glossario/', views.glossario_view, name='sistemas_glossario'),
     path('sistemas/missoes/', views.sistemas_missoes_view, name='sistemas_missoes'),
     
