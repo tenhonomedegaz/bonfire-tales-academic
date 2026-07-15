@@ -154,17 +154,10 @@
                 <span class="text-[var(--text)]"><span data-equip-gold-alt>150</span> PO no lugar do equipamento</span>
               </label>
             </fieldset>
-            <div id="cf-maestria-wrap" hidden class="mt-2.5">
-              <div class="mb-1 text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Maestria de Arma <span data-maestria-counter></span></div>
-              <p class="mb-1.5 text-xs text-[var(--muted)]">Escolha as <strong>armas</strong> — você conhece todas as maestrias de cada arma e aplica 1 por ataque (escolhida ao atacar).</p>
-              <input id="cf-maestria-busca" type="search" placeholder="Buscar arma…" autocomplete="off"
-                     class="mb-1.5 w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)] focus:border-[var(--ember)] focus:outline-none">
-              <div id="cf-maestria-armas" class="max-h-80 overflow-y-auto rounded border border-[var(--stroke)] bg-[var(--bg0)] p-1.5"></div>
-            </div>
-            <div id="cf-estilo-wrap" hidden class="mt-2.5">
-              <label for="cf-estilo" class="mb-1 block text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Estilo de Luta</label>
-              <select id="cf-estilo" class="w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)] focus:border-[var(--ember)] focus:outline-none"></select>
-            </div>
+            <!-- Escolhas de classe dirigidas por tags pick:* (Maestria de Arma, Estilo de Luta,
+                 e qualquer pick:opcao:<tipo>:N do N1) — renderizadas genericamente pelo
+                 resolvedor (home.picks), um bloco por grupo. FONTE ÚNICA com o editar-ficha. -->
+            <div id="cf-pick-groups" hidden class="mt-2.5 space-y-2.5"></div>
             <div id="cf-expertise-wrap" hidden class="mt-2.5">
               <div class="mb-1 text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Especialização <span data-expertise-counter></span></div>
               <p class="mb-1.5 text-xs text-[var(--muted)]">Escolha perícias <strong>proficientes</strong> para dobrar o bônus de proficiência (expertise).</p>

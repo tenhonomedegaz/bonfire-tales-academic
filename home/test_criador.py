@@ -138,8 +138,9 @@ class CriacaoArquetiposTests(_CriadorBase):
     def test_guerreiro_marcial(self):
         p, ficha = self._cria_ok(self._payload('guerreiro'))
         self.assertEqual(p.classes.first().id_classe.slug, 'guerreiro')
-        # estilo de luta gravado
-        self.assertTrue(p.escolhas.filter(tipo='estilo-de-luta').exists())
+        # estilo de luta gravado — agora pelo resolvedor genérico (kind `opcao`), que grava
+        # o slug da tag (underscore 'estilo_de_luta'), FONTE ÚNICA com o editar-ficha.
+        self.assertTrue(p.escolhas.filter(tipo='estilo_de_luta').exists())
 
     def test_mago_conjurador(self):
         p, ficha = self._cria_ok(self._payload('mago'))
@@ -488,3 +489,117 @@ class PreviewAoVivoTests(_CriadorBase):
         payload['classe'] = ''
         prev = self._preview(user, payload)
         self.assertFalse(prev.get('ready'), prev)
+
+
+class PicksGenericoTests(_CriadorBase):
+    """Sistema GENÉRICO de escolhas `pick:*` (home.picks): o criador passa a montar as
+    escolhas de Maestria de Arma e Estilo de Luta pelo componente genérico (payload
+    `picks:[{kind,tipo,valores}]`), com o MESMO resultado do caminho legado."""
+
+    def _cria(self, apelido, payload):
+        resp = self._post_criar(self._novo_usuario(apelido, staff=True), payload)
+        self.assertEqual(resp.status_code, 200, resp.content)
+        return TbPersonagem.objects.get(pk=resp.json()['id'])
+
+    def _para_picks(self, payload):
+        """Converte os campos legados (maestrias/estilo_luta) para o payload genérico
+        `picks:[...]` — exatamente o que o JS do wizard passa a enviar."""
+        pl = dict(payload)
+        picks = []
+        armas = pl.pop('maestrias', None)
+        if armas:
+            picks.append({'kind': 'arma', 'tipo': None, 'valores': list(armas)})
+        estilo = pl.pop('estilo_luta', None)
+        if estilo:
+            picks.append({'kind': 'opcao', 'tipo': 'estilo_de_luta', 'valores': [estilo]})
+        pl['picks'] = picks
+        return pl
+
+    def _prova_identico(self, classe_slug, **kw):
+        """Cria o MESMO personagem por dois caminhos (campos legados vs picks[]) e prova
+        que as escolhas persistidas e a ficha derivada são idênticas."""
+        from home.character_engine import derive
+        base = self._payload(classe_slug, **kw)
+        leg = self._cria('leg-%s' % classe_slug, base)
+        gen = self._cria('gen-%s' % classe_slug, self._para_picks(base))
+
+        def escset(p):
+            return sorted((e.tipo, e.slot, e.valor) for e in p.escolhas.all())
+        self.assertEqual(escset(leg), escset(gen), 'escolhas persistidas divergem legado×genérico')
+        dl, dg = derive(leg), derive(gen)
+        self.assertEqual([m.get('slug') for m in dl['maestrias_armas']],
+                         [m.get('slug') for m in dg['maestrias_armas']], 'maestrias divergem')
+        self.assertEqual(sorted(f['nome'] for f in dl['features']),
+                         sorted(f['nome'] for f in dg['features']), 'features divergem')
+        return gen
+
+    def test_guerreiro_via_picks(self):
+        # Guerreiro exercita os DOIS kinds no N1: arma (Maestria x3) + opcao (Estilo de Luta)
+        p = self._prova_identico('guerreiro')
+        self.assertEqual(p.escolhas.filter(tipo='maestria').count(), 3)
+        self.assertTrue(p.escolhas.filter(tipo='estilo_de_luta').exists())
+
+    def test_cacador_via_picks(self):
+        p = self._prova_identico('cacador')
+        self.assertEqual(p.escolhas.filter(tipo='maestria').count(), 3)
+
+    def test_ladino_via_picks(self):
+        p = self._prova_identico('ladino')
+        self.assertEqual(p.escolhas.filter(tipo='maestria').count(), 2)
+
+    def test_maestria_obrigatoria_no_generico(self):
+        # sem o pick de arma, a validação genérica (server-side) rejeita com a msg correta.
+        pl = self._para_picks(self._payload('guerreiro'))
+        pl['picks'] = [g for g in pl['picks'] if g['kind'] != 'arma']
+        resp = self._post_criar(self._novo_usuario('sem-arma-gen', staff=True), pl)
+        self.assertEqual(resp.status_code, 400, resp.content)
+        self.assertTrue(any('Maestria de Arma' in e for e in resp.json().get('erros', [])), resp.json())
+
+
+class PickTipoSinteticoTests(_CriadorBase):
+    """O TESTE-CHAVE do PO: um TIPO de opção NOVO, inventado só nos dados (uma feature de
+    classe com `pick:opcao:tipo_sintetico:2` + 3 opções TbOpcaojogo desse tipo), é
+    LISTADO, VALIDADO e PERSISTIDO pelo criador SEM UMA LINHA de código novo — prova de que
+    as escolhas são dirigidas pelas tags, não por caminhos hardcoded por tipo."""
+
+    def setUp(self):
+        from home.models import TbClasse, TbClassehabilidade, TbOpcaojogo
+        # Mago: sem pick:arma/estilo no N1 -> isola o grupo sintético como única escolha genérica.
+        self.classe = TbClasse.objects.get(slug='mago')
+        TbClassehabilidade.objects.create(
+            id_classe=self.classe, id_subclasse=None, nome='Dom Sintético',
+            descricao='Feature de teste.', niveladquirido=1,
+            tags_json=['pick:opcao:tipo_sintetico:2'])
+        self.slugs = []
+        for i in range(3):
+            o = TbOpcaojogo.objects.create(
+                nome='Opção Sintética %d' % i, slug='op-sint-%d' % i,
+                tipo='Tipo Sintético', descricao='efeito %d' % i, tags_json=[])
+            self.slugs.append(o.slug)
+
+    def test_resolvedor_lista_o_grupo(self):
+        from home import picks as P
+        grupos = [g for g in P.resolve_builder(self.classe, kinds={'opcao'})
+                  if g['tipo'] == 'tipo_sintetico']
+        self.assertEqual(len(grupos), 1, 'o resolvedor deve descobrir o grupo pelas tags')
+        g = grupos[0]
+        self.assertEqual(g['n'], 2)
+        self.assertEqual(g['persist_tipo'], 'tipo_sintetico')
+        self.assertEqual({u['slug'] for u in g['universo']}, set(self.slugs))
+
+    def test_criador_persiste_o_tipo_sintetico(self):
+        pl = self._payload('mago')
+        pl['picks'] = [{'kind': 'opcao', 'tipo': 'tipo_sintetico',
+                        'valores': [self.slugs[0], self.slugs[2]]}]
+        resp = self._post_criar(self._novo_usuario('sintetico', staff=True), pl)
+        self.assertEqual(resp.status_code, 200, resp.content)
+        p = TbPersonagem.objects.get(pk=resp.json()['id'])
+        escs = p.escolhas.filter(tipo='tipo_sintetico')
+        self.assertEqual(escs.count(), 2)
+        self.assertEqual(set(escs.values_list('valor', flat=True)), {self.slugs[0], self.slugs[2]})
+
+    def test_validacao_generica_rejeita_contagem_errada(self):
+        pl = self._payload('mago')
+        pl['picks'] = [{'kind': 'opcao', 'tipo': 'tipo_sintetico', 'valores': [self.slugs[0]]}]
+        resp = self._post_criar(self._novo_usuario('sintetico-bad', staff=True), pl)
+        self.assertEqual(resp.status_code, 400, resp.content)

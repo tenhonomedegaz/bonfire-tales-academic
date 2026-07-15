@@ -3233,6 +3233,7 @@ def _criador_catalogos():
                       'resumo': _criador_resumo_md(r.lore_presentation, 320),
                       'tracos': tracos,
                       'linhagens': linhagens})
+    from . import picks as _picks
     classes = []
     for c in TbClasse.objects.all().order_by('nome'):
         n, lista = _parse_skills_lvl1(c.tags_json)
@@ -3253,6 +3254,9 @@ def _criador_catalogos():
                         'classe_prof_picks': _classe_prof_picks_nv1(c),
                         'conjuracao': _classe_conjuracao(c),
                         'armaduras_prof': _classe_armaduras_prof(c),
+                        # grupos de escolha genéricos (kinds arma/opcao) que o JS renderiza
+                        # em loop — substitui os catálogos dedicados maestria_n/estilo.
+                        'pick_groups': _picks.resolve_builder(c, kinds={'arma', 'opcao'}),
                         'subclasse_nivel': min(sub) if sub else None})
     def _vertentes_catalogo():
         nomes = set()
@@ -3750,99 +3754,34 @@ def _pick_count_expr(expr, level):
 
 def _opcao_grupos(personagem):
     """Grupos de escolha de OPÇÕES de classe de nível alto (metamagia, manobras, segredos
-    místicos/de caçador, infusões, estilos de ki, técnicas de furtividade, estilo de luta):
-    lê `pick:opcao:<slug>:N` das habilidades de classe/subclasse até o nível atual, calcula
-    o limite (recurso de tabela ou expressão), lista as opções acessíveis (TbAcessoopcao) e
-    as já escolhidas. As escolhas vivem em TbPersonagemEscolha (tipo=<slug>)."""
-    from .models import TbClassehabilidade, TbOpcaojogo, TbAcessoopcao, TbRecursoclasse
-    from .character_engine import RESOURCE_TIPO_CHOICE, _resource_max_at, _resource_tipo
-    from django.utils.text import slugify
-    from django.db.models import Q
+    místicos/de caçador, infusões, estilos de ki, técnicas de furtividade, estilo de luta).
+
+    ADAPTER: a varredura de `pick:opcao:<slug>:N` (habilidades de classe/subclasse até o
+    nível, limite por recurso/expressão, universo TbAcessoopcao, escolhas já feitas) mora
+    agora no resolvedor genérico (`home.picks`) — FONTE ÚNICA compartilhada com o criador.
+    Aqui só reformatamos os PickGroup no shape que `editar_ficha.html` espera."""
+    from . import picks as _picks
     grupos = []
     if personagem is None:
         return grupos
-    # tags de habilidade usam slug com underscore (ex.: disparos_silvestres), mas
-    # slugify(tipo) produz hifens (ex.: disparos-silvestres); registra as duas formas.
-    slug2tipo = {}
-    for t in TbOpcaojogo.objects.values_list('tipo', flat=True).distinct():
-        if not t:
-            continue
-        s = slugify(t)
-        slug2tipo[s] = t
-        slug2tipo[s.replace('-', '_')] = t
-    escolhidas = {}
-    for e in personagem.escolhas.select_related('id_opcao').all():
-        escolhidas.setdefault(e.tipo, []).append(e)
-        alt_tipo = e.tipo.replace('-', '_') if '-' in e.tipo else e.tipo.replace('_', '-')
-        if alt_tipo != e.tipo:
-            escolhidas.setdefault(alt_tipo, []).append(e)
-    vistos = set()
-    for c in personagem.classes.select_related('id_classe', 'id_subclasse'):
-        nivel = int(c.nivel or 0)
-        classe = c.id_classe
-        habs = list(TbClassehabilidade.objects.filter(
-            id_classe=classe, id_subclasse__isnull=True, niveladquirido__lte=nivel))
-        from .character_engine import _subclass_unlocked
-        if _subclass_unlocked(c, nivel):
-            habs += list(TbClassehabilidade.objects.filter(
-                id_subclasse=c.id_subclasse, niveladquirido__lte=nivel))
-        picks = {}
-        for h in habs:
-            for t in (h.tags_json or []):
-                t = str(t)
-                for m in _PICK_OPCAO_RE.finditer(t):
-                    slug, expr = m.group(1), m.group(2)
-                    d = picks.setdefault(slug, {'exprs': set(), 'resource': None})
-                    resource_ref = _resource_ref_from_tag(t)
-                    if resource_ref:
-                        d['resource'] = resource_ref
-                    if expr and expr not in ('N', '+'):
-                        d['exprs'].add(expr)
-        for slug, d in picks.items():
-            if (classe.id_classe, slug) in vistos:
-                continue
-            vistos.add((classe.id_classe, slug))
-            limite = None
-            if d['resource']:
-                recursos_qs = TbRecursoclasse.objects.filter(id_classe=classe)
-                exatos = list(recursos_qs.filter(slug=d['resource']))
-                parciais = list(recursos_qs.filter(slug__icontains=d['resource']))
-                candidatos = exatos + [r for r in parciais if r not in exatos]
-                r = next((rec for rec in candidatos if _resource_tipo(rec) == RESOURCE_TIPO_CHOICE), None)
-                if r is None and candidatos:
-                    r = candidatos[0]
-                if r:
-                    limite = _resource_max_at(r, nivel)
-            if limite is None and d['exprs']:
-                soma = sum(v for v in (_pick_count_expr(ex, nivel) for ex in d['exprs']) if v is not None)
-                limite = soma or None
-            if not limite or limite <= 0:
-                continue
-            tipo_disp = slug2tipo.get(slug)
-            if not tipo_disp:
-                continue
-            acc = TbAcessoopcao.objects.filter(nivel_recebimento__lte=nivel).filter(
-                Q(id_classe=classe) | (Q(id_subclasse=c.id_subclasse) if c.id_subclasse_id else Q(pk__in=[])))
-            acc_ids = set(acc.values_list('id_opcao_id', flat=True))
-            qs = TbOpcaojogo.objects.filter(tipo=tipo_disp)
-            if acc_ids:
-                qs = qs.filter(id_opcao__in=acc_ids)
-            escs = sorted(escolhidas.get(slug, []), key=lambda e: e.slot)
-            esc_ids = {e.id_opcao_id for e in escs if e.id_opcao_id}
-            esc_slugs = {e.valor for e in escs if e.valor}
-            disponiveis = [{'id': o.id_opcao, 'nome': o.nome, 'descricao': o.descricao or '',
-                            'pre': o.pre_requisito or ''}
-                           for o in qs.order_by('nome')
-                           if o.id_opcao not in esc_ids and o.slug not in esc_slugs]
-            grupos.append({
-                'classe_id': classe.id_classe, 'classe': classe.nome, 'slug': slug,
-                'tipo': tipo_disp, 'limite': limite, 'usados': len(escs),
-                'pendentes': max(0, limite - len(escs)),
-                'prox_slot': max([e.slot for e in escs], default=-1) + 1,
-                'escolhidas': [{'id': e.id, 'nome': (e.id_opcao.nome if e.id_opcao_id else e.valor)}
-                               for e in escs],
-                'disponiveis': disponiveis,
-            })
+    slug2tipo = _picks._slug2tipo_map()
+    for g in _picks.resolve_personagem(personagem, kinds={'opcao'}):
+        slug = g['persist_tipo']
+        tipo_disp = slug2tipo.get(slug) or slug2tipo.get(_picks.normalize_slug(slug)) or slug
+        escs = g['escolhidas']
+        esc_ids = {e.get('id_opcao') for e in escs if e.get('id_opcao')}
+        esc_slugs = {e.get('valor') for e in escs if e.get('valor')}
+        disponiveis = [{'id': o['id'], 'nome': o['nome'], 'descricao': o.get('descricao') or '',
+                        'pre': o.get('pre') or ''}
+                       for o in g['universo']
+                       if o['id'] not in esc_ids and o['slug'] not in esc_slugs]
+        grupos.append({
+            'classe_id': g['classe_id'], 'classe': g['classe'], 'slug': slug,
+            'tipo': tipo_disp, 'limite': g['n'], 'usados': g['usados'],
+            'pendentes': g['pendentes'], 'prox_slot': g['prox_slot'],
+            'escolhidas': [{'id': e['id'], 'nome': e['nome']} for e in escs],
+            'disponiveis': disponiveis,
+        })
     grupos.sort(key=lambda g: (g['pendentes'] == 0, g['classe'], g['tipo']))
     return grupos
 
@@ -5003,6 +4942,32 @@ def personagem_info_salvar(request, pk):
     return redirect(reverse('ficha_detail', args=[pk]) + '?aba=info')
 
 
+def _criador_incoming_picks(data):
+    """Normaliza as escolhas genéricas recebidas do criador para {(kind, tipo_norm): [valores]}.
+
+    Aceita o formato novo `picks:[{kind,tipo,valores}]` (o que o editar-ficha já usa) E faz
+    a PONTE dos campos legados (`maestrias`, `estilo_luta`) para o mesmo formato — assim os
+    caminhos dedicados de Maestria/Estilo são substituídos pelo genérico sem quebrar clientes
+    (ou testes) que ainda mandam os campos antigos."""
+    from . import picks as _picks
+    out = {}
+    for pk in (data.get('picks') or []):
+        if not isinstance(pk, dict):
+            continue
+        tipo = pk.get('tipo')
+        key = (pk.get('kind'), _picks.normalize_slug(tipo) if tipo else None)
+        out.setdefault(key, [])
+        out[key] += list(pk.get('valores') or [])
+    # ponte dos campos legados (só se o cliente não mandou o pick genérico correspondente)
+    if data.get('maestrias') and ('arma', None) not in out:
+        out[('arma', None)] = list(data.get('maestrias') or [])
+    if data.get('estilo_luta'):
+        k = ('opcao', _picks.normalize_slug('estilo_de_luta'))
+        if k not in out:
+            out[k] = [data.get('estilo_luta')]
+    return out
+
+
 def _criador_resolver(data):
     """Resolve e valida o payload do criador SEM persistir. Retorna (R, erros): R traz
     todos os objetos/valores já resolvidos para persistir; erros é a lista de pendências.
@@ -5067,15 +5032,23 @@ def _criador_resolver(data):
             slug=data.get('linhagem'), id_raca=raca).exists():
         erros.append('A linhagem escolhida não pertence a esta raça.')
 
-    # Maestria de Arma: escolha de ARMAS (não de maestrias). Conhece todas as maestrias de cada arma.
-    mn = _classe_maestria_n(classe, 1) if classe else 0
-    armas_sel = list(dict.fromkeys(data.get('maestrias') or []))  # dedup, preserva ordem
-    if mn:
-        validas = set(TbItemMundano.objects.filter(categoria='arma', slug__in=armas_sel)
-                      .values_list('slug', flat=True))
-        armas_sel = [s for s in armas_sel if s in validas]
-        if len(armas_sel) != mn:
-            erros.append('Escolha %d arma(s) para Maestria de Arma.' % mn)
+    # Escolhas genéricas via pick:* (kinds `arma` + `opcao`) — FONTE ÚNICA (home.picks).
+    # Substitui os caminhos DEDICADOS de Maestria de Arma e Estilo de Luta: o resolvedor
+    # descobre os grupos a partir das tags da classe/habilidades N1, valida contagem +
+    # pertinência pelo REGISTRY, e o MESMO mecanismo cobre qualquer `pick:opcao:<tipo>:N`
+    # novo (inclusive tipos sintéticos) sem tocar no código.
+    from . import picks as _picks
+    generic_groups = _picks.resolve_builder(classe, kinds={'arma', 'opcao'}) if classe else []
+    incoming = _criador_incoming_picks(data)
+    generic_picks = []
+    for g in generic_groups:
+        key = (g['kind'], _picks.normalize_slug(g['tipo']) if g['tipo'] else None)
+        universo_slugs = {str(u.get('slug')) for u in g['universo']}
+        universo_ids = {str(u.get('id')) for u in g['universo'] if u.get('id') is not None}
+        vals = [v for v in dict.fromkeys(incoming.get(key) or [])
+                if str(v) in universo_slugs or str(v) in universo_ids]
+        erros += _picks.PICK_REGISTRY[g['kind']]['validate'](g, vals)
+        generic_picks.append((g, vals))
 
     # Perícias: validar quantidade e pertinência no SERVIDOR (não confiar só no cliente)
     pc = list(dict.fromkeys(data.get('pericias_classe') or []))
@@ -5091,10 +5064,9 @@ def _criador_resolver(data):
     if len(lt_sel) != bg_langtool_n:
         erros.append('Escolha exatamente %d idioma(s)/ferramenta(s).' % bg_langtool_n)
 
-    # Escolhas de classe nv1: estilo de luta (Guerreiro) e expertise (Ladino)
+    # Escolhas de classe nv1 remanescentes (não-migradas ainda): expertise (Ladino/Mago).
+    # Estilo de Luta migrou para o resolvedor genérico (kind `opcao`, acima).
     esc1 = _classe_escolhas_nv1(classe) if classe else {'estilo_n': 0, 'expertise_n': 0, 'expertise_fixa': []}
-    if esc1['estilo_n'] and not TbOpcaojogo.objects.filter(tipo='Estilo de Luta', slug=data.get('estilo_luta')).exists():
-        erros.append('Escolha um Estilo de Luta.')
     exp_sel = [s for s in dict.fromkeys(data.get('expertise') or []) if s in set(pc + pa)]
     if esc1['expertise_n'] and len(exp_sel) != esc1['expertise_n']:
         erros.append('Escolha %d perícia(s) para Especialização (entre as proficientes).' % esc1['expertise_n'])
@@ -5135,7 +5107,7 @@ def _criador_resolver(data):
         'nome': nome, 'base': base, 'mais2': mais2, 'mais1': mais1,
         'asi_major': asi_major, 'asi_minor': asi_minor, 'bg_grants': bg_grants,
         'raca': raca, 'linhagem': linhagem, 'essencia': essencia, 'antec': antec, 'classe': classe,
-        'to': to, 'armas_sel': armas_sel, 'mn': mn, 'pc': pc, 'pa': pa,
+        'to': to, 'generic_picks': generic_picks, 'pc': pc, 'pa': pa,
         'lt_sel': lt_sel, 'bg_langtool_n': bg_langtool_n, 'esc1': esc1, 'exp_sel': exp_sel,
         'classe_prof_validas': classe_prof_validas, 'conj': conj,
         'truques_sel': truques_sel, 'magias_sel': magias_sel,
@@ -5157,7 +5129,7 @@ def _criador_persistir(user, data, R):
     asi_major = R['asi_major']; asi_minor = R['asi_minor']; bg_grants = R['bg_grants']
     raca = R['raca']; linhagem = R['linhagem']; essencia = R['essencia']
     antec = R['antec']; classe = R['classe']; to = R['to']
-    armas_sel = R['armas_sel']; mn = R['mn']; pc = R['pc']; pa = R['pa']
+    generic_picks = R['generic_picks']; pc = R['pc']; pa = R['pa']
     lt_sel = R['lt_sel']; bg_langtool_n = R['bg_langtool_n']; esc1 = R['esc1']
     exp_sel = R['exp_sel']; classe_prof_validas = R['classe_prof_validas']
     conj = R['conj']; truques_sel = R['truques_sel']; magias_sel = R['magias_sel']
@@ -5176,9 +5148,11 @@ def _criador_persistir(user, data, R):
     if essencia and data.get('vertente'):
         TbPersonagemEscolha.objects.create(id_personagem=p, origem='Essência %s' % essencia.nome,
                                            tipo='vertente', valor=data['vertente'])
-    for i, wslug in enumerate(armas_sel[:mn]):
-        TbPersonagemEscolha.objects.create(id_personagem=p, origem='Maestria de Arma (%s)' % classe.nome,
-                                           tipo='maestria', slot=i, valor=wslug)
+    # Escolhas genéricas via pick:* (arma=Maestria, opcao=Estilo de Luta e quaisquer
+    # pick:opcao:<tipo>:N do N1) — persistidas pelo REGISTRY (home.picks), FONTE ÚNICA.
+    from . import picks as _picks
+    for g, vals in generic_picks:
+        _picks.PICK_REGISTRY[g['kind']]['persist'](p, g, vals)
     for sl in set(pc + pa):
         info = _SKILL_INFO.get(sl)
         if info:
@@ -5230,12 +5204,7 @@ def _criador_persistir(user, data, R):
         TbPersonagemTalento.objects.create(id_personagem=p, id_talento=to, categoria='origem', nivel=1, nome=to.nome)
     if data.get('talento_raca'):
         TbPersonagemTalento.objects.create(id_personagem=p, categoria='racial', nivel=1, nome=data['talento_raca'])
-    # Estilo de Luta (Guerreiro)
-    if esc1['estilo_n']:
-        est = TbOpcaojogo.objects.filter(tipo='Estilo de Luta', slug=data.get('estilo_luta')).first()
-        if est:
-            TbPersonagemEscolha.objects.create(id_personagem=p, origem='Estilo de Luta (%s)' % classe.nome,
-                                               tipo='estilo-de-luta', valor=est.slug)
+    # (Estilo de Luta migrou para o loop genérico `generic_picks` acima — kind `opcao`.)
     # Perícia-Especializada (expertise) escolhida — marca nas perícias proficientes
     for sl in exp_sel[:esc1['expertise_n']]:
         info = _SKILL_INFO.get(sl)

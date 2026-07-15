@@ -196,69 +196,108 @@
         var skillsWrap = el('cf-classe-skills');
         var skillCounter = document.querySelector('[data-skill-counter]');
         var equipTexto = el('cf-equip-texto');
-        var maestriaWrap = el('cf-maestria-wrap');
-        var maestriaArmas = el('cf-maestria-armas');
-        var maestriaCounter = document.querySelector('[data-maestria-counter]');
-        var maestriaBusca = el('cf-maestria-busca');
-        if (maestriaBusca) maestriaBusca.addEventListener('input', function () {
-            var q = (maestriaBusca.value || '').toLowerCase().trim();
-            Array.prototype.forEach.call(maestriaArmas.querySelectorAll('.cf-maestria-item'), function (it) {
-                it.style.display = (!q || (it.dataset.nome || '').indexOf(q) !== -1) ? '' : 'none';
-            });
-        });
+        // ---- Escolhas de classe DIRIGIDAS POR TAGS pick:* (Maestria de Arma, Estilo de Luta,
+        // e qualquer pick:opcao:<tipo>:N do N1). Renderizadas GENERICAMENTE a partir de
+        // c.pick_groups (resolvedor home.picks) — um bloco por grupo. Substitui os caminhos
+        // dedicados cf-maestria / cf-estilo. O payload manda picks:[{kind,tipo,valores}].
+        var pickGroupsWrap = el('cf-pick-groups');
+        var pickGroupState = [];  // [{kind, tipo, grid}]
 
-        function maestriaCard(w) {
+        function pickItemCard(item) {
             var lab = document.createElement('label');
-            lab.className = 'cf-maestria-item flex cursor-pointer flex-col gap-0.5 rounded border border-[var(--stroke)] bg-[var(--bg1)] px-2 py-1.5 hover:border-[var(--ember)]';
-            lab.dataset.nome = (w.nome || '').toLowerCase();
+            lab.className = 'cf-pick-item flex cursor-pointer flex-col gap-0.5 rounded border border-[var(--stroke)] bg-[var(--bg1)] px-2 py-1.5 hover:border-[var(--ember)]';
+            lab.dataset.nome = (item.nome || '').toLowerCase();
             var top = document.createElement('div'); top.className = 'flex items-center gap-2';
-            var inp = document.createElement('input'); inp.type = 'checkbox'; inp.value = w.slug;
-            var nm = document.createElement('span'); nm.className = 'text-sm font-semibold text-[var(--text)]'; nm.textContent = w.nome;
-            var dano = document.createElement('span'); dano.className = 'ml-auto text-[11px] text-[var(--muted)]'; dano.textContent = w.dano || '';
-            top.appendChild(inp); top.appendChild(nm); top.appendChild(dano);
+            var inp = document.createElement('input'); inp.type = 'checkbox'; inp.value = item.slug;
+            var nm = document.createElement('span'); nm.className = 'text-sm font-semibold text-[var(--text)]'; nm.textContent = item.nome;
+            top.appendChild(inp); top.appendChild(nm);
+            if (item.dano) {
+                var dano = document.createElement('span'); dano.className = 'ml-auto text-[11px] text-[var(--muted)]'; dano.textContent = item.dano; top.appendChild(dano);
+            }
             lab.appendChild(top);
-            if (w.maestrias && w.maestrias.length) {
+            if (item.chips && item.chips.length) {
                 var chips = document.createElement('div'); chips.className = 'flex flex-wrap gap-1';
-                w.maestrias.forEach(function (m) {
+                item.chips.forEach(function (m) {
                     var ch = document.createElement('span');
                     ch.className = 'rounded bg-[var(--bg0)] px-1.5 py-0.5 text-[10px] text-[var(--spark)]';
                     ch.textContent = m; chips.appendChild(ch);
                 });
                 lab.appendChild(chips);
             }
+            var det = (item.pre ? ('Pré: ' + item.pre) : '') + ((item.pre && item.descricao) ? ' · ' : '') + (item.descricao || '');
+            if (det) {
+                var p = document.createElement('div'); p.className = 'text-[11px] text-[var(--muted)]';
+                p.textContent = det.length > 160 ? det.slice(0, 160) + '…' : det;
+                lab.appendChild(p);
+            }
             return lab;
         }
-        function renderMaestria(c) {
-            maestriaArmas.innerHTML = '';
-            if (maestriaBusca) maestriaBusca.value = '';
-            var n = (c && c.maestria_n) || 0;
-            if (!n) { maestriaWrap.hidden = true; return; }
-            maestriaWrap.hidden = false;
-            // agrupa as armas por categoria (Arma Simples, Marcial, etc.) com cartões + chips de maestria
-            var grupos = {}, ordem = [];
-            (CAT.armas || []).forEach(function (w) {
-                var cat = w.cat || 'Arma';
-                if (!grupos[cat]) { grupos[cat] = []; ordem.push(cat); }
-                grupos[cat].push(w);
-            });
-            ordem.forEach(function (cat) {
-                var h = document.createElement('div');
-                h.className = 'mb-1 mt-3 text-[11px] font-semibold uppercase tracking-wider text-[var(--muted)]/80 first:mt-0';
-                h.textContent = cat;
-                maestriaArmas.appendChild(h);
+
+        function renderPickGroups(c) {
+            pickGroupsWrap.innerHTML = '';
+            pickGroupState = [];
+            var groups = (c && c.pick_groups) || [];
+            if (!groups.length) { pickGroupsWrap.hidden = true; return; }
+            pickGroupsWrap.hidden = false;
+            groups.forEach(function (g) {
+                var sec = document.createElement('div');
+                var head = document.createElement('div');
+                head.className = 'mb-1 text-xs font-semibold uppercase tracking-wider text-[var(--muted)]';
+                head.textContent = 'Escolha ' + g.n + ' ' + (g.label || g.tipo || '') + ' ';
+                var counter = document.createElement('span'); head.appendChild(counter);
+                sec.appendChild(head);
+                var box = document.createElement('div');
+                box.className = 'max-h-80 overflow-y-auto rounded border border-[var(--stroke)] bg-[var(--bg0)] p-1.5';
+                // busca (só faz sentido para universos grandes, ex.: armas)
+                if ((g.universo || []).length > 12) {
+                    var busca = document.createElement('input');
+                    busca.type = 'search'; busca.placeholder = 'Buscar…'; busca.autocomplete = 'off';
+                    busca.className = 'mb-1.5 w-full rounded border border-[var(--stroke)] bg-[var(--bg1)] px-3 py-2 text-sm text-[var(--text)] focus:border-[var(--ember)] focus:outline-none';
+                    busca.addEventListener('input', function () {
+                        var q = (busca.value || '').toLowerCase().trim();
+                        Array.prototype.forEach.call(box.querySelectorAll('.cf-pick-item'), function (it) {
+                            it.style.display = (!q || (it.dataset.nome || '').indexOf(q) !== -1) ? '' : 'none';
+                        });
+                    });
+                    sec.appendChild(busca);
+                }
                 var grid = document.createElement('div');
-                grid.className = 'grid grid-cols-1 gap-1 sm:grid-cols-2';
-                grupos[cat].forEach(function (w) { grid.appendChild(maestriaCard(w)); });
-                maestriaArmas.appendChild(grid);
+                // agrupa por 'cat' quando os itens a declaram (armas por categoria)
+                var cats = {}, ordem = [];
+                (g.universo || []).forEach(function (item) {
+                    var cat = item.cat || '';
+                    if (!(cat in cats)) { cats[cat] = []; ordem.push(cat); }
+                    cats[cat].push(item);
+                });
+                var multiCat = ordem.length > 1 || (ordem.length === 1 && ordem[0]);
+                ordem.forEach(function (cat) {
+                    if (multiCat && cat) {
+                        var h = document.createElement('div');
+                        h.className = 'mb-1 mt-3 text-[11px] font-semibold uppercase tracking-wider text-[var(--muted)]/80 first:mt-0';
+                        h.textContent = cat; grid.appendChild(h);
+                    }
+                    var sub = document.createElement('div');
+                    sub.className = 'grid grid-cols-1 gap-1 sm:grid-cols-2';
+                    cats[cat].forEach(function (item) { sub.appendChild(pickItemCard(item)); });
+                    grid.appendChild(sub);
+                });
+                box.appendChild(grid);
+                sec.appendChild(box);
+                pickGroupsWrap.appendChild(sec);
+                enforceLimit(box, g.n, counter);
+                pickGroupState.push({ kind: g.kind, tipo: g.tipo, grid: box });
             });
-            enforceLimit(maestriaArmas, n, maestriaCounter);
+        }
+        function pickGroupsSel() {
+            return pickGroupState.map(function (g) {
+                return { kind: g.kind, tipo: g.tipo, valores: checkedVals(g.grid) };
+            });
         }
 
         function renderClasseSkills() {
             var c = classeBySlug[classeSel.value];
             skillsWrap.innerHTML = '';
-            renderMaestria(c);
-            renderEstilo(c);
+            renderPickGroups(c);
             refreshExpertise();
             renderClasseProfChoices(c);
             renderMagias(c);
@@ -285,22 +324,11 @@
         }
         classeSel.addEventListener('change', renderClasseSkills);
 
-        // ---- Estilo de Luta (Guerreiro) + Especialização/expertise (Ladino)
-        var estiloWrap = el('cf-estilo-wrap'), estiloSel = el('cf-estilo');
+        // ---- Especialização/expertise (Ladino) — (Estilo de Luta migrou p/ pick-groups genérico)
         var expertiseWrap = el('cf-expertise-wrap'), expertiseBox = el('cf-expertise');
         var expertiseCounter = document.querySelector('[data-expertise-counter]');
         var classeProfWrap = el('cf-classe-prof-wrap'), classeProfBox = el('cf-classe-prof');
         var classeProfGroups = [];
-
-        function renderEstilo(c) {
-            if (c && c.estilo_n) {
-                if (!estiloSel.options.length) {
-                    estiloSel.appendChild(opt('', '— Selecione —'));
-                    (CAT.estilos_luta || []).forEach(function (e) { estiloSel.appendChild(opt(e.slug, e.nome)); });
-                }
-                estiloWrap.hidden = false;
-            } else { estiloWrap.hidden = true; }
-        }
 
         function refreshExpertise() {
             var c = classeBySlug[classeSel.value];
@@ -690,9 +718,13 @@
                 if (!classeSel.value) { e.push('Escolha uma classe.'); return e; }
                 if (c && checkedVals(skillsWrap).length !== c.pericias_n)
                     e.push('Escolha exatamente ' + c.pericias_n + ' perícia(s) de classe.');
-                if (c && c.maestria_n && checkedVals(maestriaArmas).length !== c.maestria_n)
-                    e.push('Escolha ' + c.maestria_n + ' arma(s) para Maestria de Arma.');
-                if (c && c.estilo_n && !estiloSel.value) e.push('Escolha um Estilo de Luta.');
+                // escolhas genéricas dirigidas por tags pick:* (Maestria de Arma, Estilo de Luta, …)
+                pickGroupState.forEach(function (g) {
+                    var meta = ((c && c.pick_groups) || []).filter(function (x) { return x.kind === g.kind && x.tipo === g.tipo; })[0];
+                    var need = meta ? meta.n : 0;
+                    if (need && checkedVals(g.grid).length !== need)
+                        e.push('Escolha ' + need + ' ' + (meta.label || meta.tipo || 'opção(ões)') + '.');
+                });
                 if (c && c.expertise_n && checkedVals(expertiseBox).length !== c.expertise_n)
                     e.push('Escolha ' + c.expertise_n + ' perícia(s) para Especialização.');
                 classeProfGroups.forEach(function (g) {
@@ -950,7 +982,7 @@
                 classe: classeSel.value,
                 pericias_classe: checkedVals(skillsWrap),
                 equip_classe: equip === 'inicial' ? 'inicial' : 'ouro',
-                estilo_luta: estiloWrap.hidden ? '' : estiloSel.value,
+                picks: pickGroupsSel(),
                 expertise: expertiseWrap.hidden ? [] : checkedVals(expertiseBox),
                 escolhas_classe_prof: classeProfChoicesSel(),
                 truques: magiasWrap.hidden ? [] : checkedVals(truquesBox),
@@ -958,7 +990,6 @@
                 antecedente: antSel.value,
                 pericias_antecedente: checkedVals(bgWrap),
                 idiomas_ferramentas: idiomasFerramentasSel(),
-                maestrias: maestriaWrap.hidden ? [] : checkedVals(maestriaArmas),
                 escolhas_raca: racialChoicesSel(),
                 talento_origem: toSel.value || null,
                 talento_raca: trSel.classList.contains('hidden') ? '' : (trSel.value || '')
