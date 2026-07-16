@@ -83,6 +83,13 @@ Apliquei o arquivo via `sincronizar_conteudo` numa **cópia descartável** do db
    **"Merge de conteudo (chave natural)"** (`action=merge_conteudo`), NÃO a
    "Restauracao de backup". Faça upload de
    `ref/backups/restore_consolidado_20260715_013659.json`.
+
+   > ⚠️ **AVISO — use EXCLUSIVAMENTE o painel "Merge de conteudo (dev -> producao)"
+   > para este arquivo.** O painel "Restaurar backup" (upsert por PK) **FALHA** com
+   > este fixture — colisão de slug único (`spells_Slug_key`) — porque os PKs do dev
+   > e da produção estão desalinhados. Foi o erro observado em produção em 16/07/2026
+   > (subiram este arquivo no painel errado). O guard em `home/admin.py` agora recusa
+   > esse upload automaticamente, mas a ação correta continua sendo o merge por slug.
    - Esse fluxo chama `home.deploy_sync.sincronizar_conteudo`: UPSERT por slug
      (preserva PK), SUBSTITUI (delete+reinsert), pula os modelos ausentes (mapa/mundo)
      e roda `sqlsequencereset` no fim (PASSO 3, realinha as sequences do Postgres).

@@ -277,7 +277,7 @@
             <p><a class="console-button secondary" href="{% url 'admin:download_backup' %}">Baixar backup completo (.json)</a></p>
 
             <h2 style="margin-top:24px;">Restaurar backup</h2>
-            <p class="console-note">Carrega um .json de backup completo (upsert por PK). <strong>Sobrescreve</strong> os dados existentes pelos do arquivo.</p>
+            <p class="console-note">Carrega um .json de backup completo (upsert por PK). <strong>Sobrescreve</strong> os dados existentes pelos do arquivo. NAO use para fixtures de conteudo do dev (restore_consolidado/conteudo.json) — para esses use o painel 'Merge de conteudo' ao lado.</p>
             <form method="post" enctype="multipart/form-data">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="restore_backup">

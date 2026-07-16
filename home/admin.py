@@ -346,24 +346,51 @@ def server_logs_view(request):
                     from django.core.management import call_command
                     from django.core import serializers
                     from django.db import connection, transaction
+                    from .deploy_sync import CONTENT_MODELS
                     texto = f.read().decode("utf-8")
-                    n = 0
-                    app_labels = set()
-                    with transaction.atomic():
-                        for obj in serializers.deserialize("json", texto):
-                            app_labels.add(obj.object._meta.app_label)
-                            obj.save()
-                            n += 1
-                        if connection.vendor == "postgresql" and app_labels:
-                            buf = StringIO()
-                            call_command("sqlsequencereset", *sorted(app_labels), stdout=buf)
-                            sql = buf.getvalue().strip()
-                            if sql:
-                                with connection.cursor() as cur:
-                                    cur.execute(sql)
-                    messages.success(request, f"Backup restaurado: {n} registros carregados.")
-                    context["op_result"] = {"titulo": "Restauracao de backup",
-                                            "output": f"{n} registros restaurados de {f.name} (upsert por PK; sequences realinhadas)."}
+
+                    # Guard: um fixture que so tem modelos de CONTEUDO (catalogo, com
+                    # PKs do dev) nao pode ser aplicado por PK aqui — colide com a
+                    # producao. Esse arquivo deve ir pelo painel "Merge de conteudo".
+                    blocked = False
+                    try:
+                        dados = json.loads(texto)
+                    except (ValueError, TypeError):
+                        dados = None
+                    if isinstance(dados, list):
+                        labels = {str(r.get("model", "")).lower() for r in dados if isinstance(r, dict)}
+                        content_labels = {"home." + nome.lower() for nome in CONTENT_MODELS}
+                        if labels and labels <= content_labels:
+                            blocked = True
+                            messages.error(
+                                request,
+                                "Este arquivo e um fixture de CONTEUDO (so catalogo, com PKs do dev). "
+                                "Restaurar por PK colide com a producao — use o painel 'Merge de "
+                                "conteudo (dev -> producao)', que casa por slug.",
+                            )
+                            context["op_result"] = {
+                                "titulo": "Restauracao — RECUSADA",
+                                "output": "Fixture contem apenas modelos de conteudo (catalogo); nada foi aplicado.",
+                            }
+
+                    if not blocked:
+                        n = 0
+                        app_labels = set()
+                        with transaction.atomic():
+                            for obj in serializers.deserialize("json", texto):
+                                app_labels.add(obj.object._meta.app_label)
+                                obj.save()
+                                n += 1
+                            if connection.vendor == "postgresql" and app_labels:
+                                buf = StringIO()
+                                call_command("sqlsequencereset", *sorted(app_labels), stdout=buf)
+                                sql = buf.getvalue().strip()
+                                if sql:
+                                    with connection.cursor() as cur:
+                                        cur.execute(sql)
+                        messages.success(request, f"Backup restaurado: {n} registros carregados.")
+                        context["op_result"] = {"titulo": "Restauracao de backup",
+                                                "output": f"{n} registros restaurados de {f.name} (upsert por PK; sequences realinhadas)."}
                 except Exception as exc:
                     messages.error(request, f"Falha ao restaurar: {exc}")
                     context["op_result"] = {"titulo": "Restauracao — ERRO", "output": str(exc)}

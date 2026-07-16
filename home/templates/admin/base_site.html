@@ -52,8 +52,10 @@
 
 {% block responsive %}
 {{ block.super }}
-{# Recarrega o tema DEPOIS do responsive.css do Django para que os overrides
-   mobile do Bonfire (alvos de toque 44px, sem zoom, etc.) vencam o cascade. #}
+{% comment %}
+Recarrega o tema DEPOIS do responsive.css do Django para que os overrides
+mobile do Bonfire (alvos de toque 44px, sem zoom, etc.) vencam o cascade.
+{% endcomment %}
 <link rel="stylesheet" href="{% static 'css/admin/bonfire_admin.css' %}?v=6">
 {% endblock %}
 
