@@ -1,6 +1,7 @@
 import json
 import re
 import subprocess
+import time
 import types
 import unicodedata
 from datetime import datetime
@@ -61,7 +62,8 @@ from .security import validate_no_sql_danger
 admin.site.site_header = "Bonfire Tales Admin"
 admin.site.site_title = "Bonfire Tales Admin"
 admin.site.index_title = "Painel de Conteudo"
-admin.site.has_permission = lambda request: request.user.is_active and request.user.is_superuser
+# A permissao do site admin (has_permission) e sobrescrita mais abaixo, junto
+# dos outros patches globais — ver _admin_superuser_only.
 
 
 def download_backup_view(request):
@@ -261,11 +263,23 @@ def _write_env_content(path, content):
     path.write_text(content.replace("\r\n", "\n"), encoding="utf-8")
 
 
+CONSOLE_UNLOCK_TTL_SECONDS = 15 * 60
+
+
 def server_logs_view(request):
     from django.contrib.auth.hashers import check_password
 
     console_paths = _admin_console_paths()
-    is_authenticated = bool(request.session.get("admin_console_authenticated"))
+    # Flag legado (sem validade) de sessoes antigas — remover para forcar reautenticacao.
+    request.session.pop("admin_console_authenticated", None)
+    unlocked_at = request.session.get("admin_console_authenticated_at")
+    is_authenticated = isinstance(unlocked_at, (int, float)) and (time.time() - unlocked_at) <= CONSOLE_UNLOCK_TTL_SECONDS
+    if isinstance(unlocked_at, (int, float)) and not is_authenticated:
+        request.session.pop("admin_console_authenticated_at", None)
+        messages.info(request, "A liberacao do console expirou — digite a senha novamente.")
+    elif is_authenticated:
+        # Renovacao deslizante: qualquer request autenticado estende a liberacao.
+        request.session["admin_console_authenticated_at"] = time.time()
     command_result = None
     selected_target = request.POST.get("target") or request.GET.get("target") or "site"
 
@@ -286,7 +300,7 @@ def server_logs_view(request):
             password = request.POST.get("server_password", "")
             expected_hash = getattr(settings, 'SERVER_LOGS_PASSWORD_HASH', '')
             if check_password(password, expected_hash):
-                request.session["admin_console_authenticated"] = True
+                request.session["admin_console_authenticated_at"] = time.time()
                 context["is_authenticated"] = True
                 messages.success(request, "Acesso ao console liberado.")
             else:
@@ -3500,3 +3514,13 @@ def _bonfire_patch_admin_registry():
 
 
 _bonfire_patch_admin_registry()
+
+
+def _admin_superuser_only(request):
+    # Decisao do PO (2026-07-17): admin inteiro e so de superuser; staff usa os recursos inline do site.
+    return bool(request.user and request.user.is_active and request.user.is_superuser)
+
+
+# Assinatura sem self de proposito: o atributo de instancia sombreia o metodo
+# bound de AdminSite, entao a funcao e chamada so com (request).
+admin.site.has_permission = _admin_superuser_only

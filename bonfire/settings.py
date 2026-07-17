@@ -274,7 +274,8 @@ SITE_POSTGRES_TABLES = {
 
 
 # Logs Console Admin
-SERVER_LOGS_PASSWORD_HASH = os.environ.get('SERVER_LOGS_PASSWORD_HASH', 'pbkdf2_sha256$1200000$gTvUJzX0lYFlWEmZJuVz6P$NFoDenHOCIGklcvrwoM4bL/9m8uKCLcXxQU+PrALvP0=')
+# Propositalmente hardcoded (decisao do PO 2026-07-17): o console do admin edita o .env, entao a senha do console NAO pode ser configuravel por env — trocar a senha exige commit.
+SERVER_LOGS_PASSWORD_HASH = 'pbkdf2_sha256$1200000$gTvUJzX0lYFlWEmZJuVz6P$NFoDenHOCIGklcvrwoM4bL/9m8uKCLcXxQU+PrALvP0='
 
 # Google Docs Import
 DOCS_API_KEY = os.environ.get('DOCS_API_KEY', '')

@@ -197,6 +197,7 @@
     <div class="auth-container">
         <h2>Autenticacao Segura</h2>
         <p>Para visualizar logs, executar comandos e editar envs, informe a senha mestre.</p>
+        <p>A liberacao vale por 15 minutos (renovada a cada uso).</p>
         <form method="post" autocomplete="off">
             {% csrf_token %}
             <input type="hidden" name="action" value="authenticate">
