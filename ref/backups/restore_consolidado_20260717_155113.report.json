@@ -1,0 +1,336 @@
+{
+ "output": "ref\\backups\\restore_consolidado_20260717_155113.json",
+ "gerado_em": "20260717_155113",
+ "fonte": "DEV (db.sqlite3) via ORM; Postgres desligado",
+ "aplicador_recomendado": "admin console -> acao 'merge_conteudo' (home.deploy_sync.sincronizar_conteudo)",
+ "base_analise": "ref/backups/backup_completo_20260714_214023.json",
+ "analise": "docs/agentes/relatorio_restore_20260717_155113.md",
+ "rollback": "ref/backups/backup_completo_20260714_214023.json (restore_backup por PK)",
+ "principio": "CONTEUDO dev-vence; MAPA/MUNDO prod-vence (FORA do arquivo); MEMORIA intocada (ausente).",
+ "mudancas_nesta_versao": [
+  "TbClasse: dados de ficha preenchidos/corrigidos nas 13 classes (pericias, armas, ferramentas, armaduras, equipamento, etc.).",
+  "tags_json ajustadas em 3 classes: Artifice, Guerreiro e Mistico.",
+  "Bardo.equipamento traduzido para PT-BR.",
+  "Mudanca e de VALORES de campo — nenhuma linha nova/removida vs 20260715_013659."
+ ],
+ "final_records": 5021,
+ "sha256_arquivo": "ad06c86a906dde9ff610104f1a3ba58c1e3c5558961d16f5b87d88ece0713178",
+ "por_tabela": {
+  "home.tbraca": {
+   "modelo": "TbRaca",
+   "acao": "upsert_por_slug",
+   "linhas_no_arquivo": 4,
+   "contagem_esperada_pos_aplicacao": 4,
+   "sha256_registros": "5049073d7535394b0b2d141d38fbf242d815c64eedef06adbace5af7c63a98fc"
+  },
+  "home.tblinhagem": {
+   "modelo": "TbLinhagem",
+   "acao": "upsert_por_slug",
+   "linhas_no_arquivo": 16,
+   "contagem_esperada_pos_aplicacao": 16,
+   "sha256_registros": "cf64fe172d515e9e7471a49fefb1d4d8d789b1b29d1c30f476fab3f6086429c3"
+  },
+  "home.tbessencia": {
+   "modelo": "TbEssencia",
+   "acao": "upsert_por_slug",
+   "linhas_no_arquivo": 4,
+   "contagem_esperada_pos_aplicacao": 4,
+   "sha256_registros": "1dc7ce25b801d438126b7a710237fbeaa66bdede81985367068eba25826beb58"
+  },
+  "home.tbantecedente": {
+   "modelo": "TbAntecedente",
+   "acao": "upsert_por_slug",
+   "linhas_no_arquivo": 30,
+   "contagem_esperada_pos_aplicacao": 30,
+   "sha256_registros": "a401f5a069a5065146f52ca73744225430eb672a356c3a6661f26b2ceedaf6c5"
+  },
+  "home.tbclasse": {
+   "modelo": "TbClasse",
+   "acao": "upsert_por_slug",
+   "linhas_no_arquivo": 13,
+   "contagem_esperada_pos_aplicacao": 13,
+   "sha256_registros": "10d068baf550e2a6366240cc3fc3fa0df6ee20bd206860c9b9f02e8c26ccfeef"
+  },
+  "home.tbsubclasse": {
+   "modelo": "TbSubclasse",
+   "acao": "upsert_por_slug",
+   "linhas_no_arquivo": 111,
+   "contagem_esperada_pos_aplicacao": 111,
+   "sha256_registros": "921f46c8d7e26eecc883bf79edf9861ae97ffa50467b2cc5a854755501e2b3af"
+  },
+  "home.tbopcaojogo": {
+   "modelo": "TbOpcaojogo",
+   "acao": "upsert_por_slug",
+   "linhas_no_arquivo": 259,
+   "contagem_esperada_pos_aplicacao": 259,
+   "sha256_registros": "df4bfefa4b2927e368ae8d5109601aea39a3772b39f92ba1d0aa76d11b050b3d"
+  },
+  "home.tbmagia": {
+   "modelo": "TbMagia",
+   "acao": "upsert_por_slug",
+   "linhas_no_arquivo": 580,
+   "contagem_esperada_pos_aplicacao": 580,
+   "sha256_registros": "e69846a46b95afa682b21aa9a5e8286a7b7f17008f409775fa9f72ad6bf08c4e"
+  },
+  "home.tbtalento": {
+   "modelo": "TbTalento",
+   "acao": "upsert_por_slug",
+   "linhas_no_arquivo": 139,
+   "contagem_esperada_pos_aplicacao": 139,
+   "sha256_registros": "34f312c1dd11e8201837b40c183e270a7ebe95d5306647b696ff9b6b2c67cb04"
+  },
+  "home.tbitemmagico": {
+   "modelo": "TbItemMagico",
+   "acao": "upsert_por_slug",
+   "linhas_no_arquivo": 954,
+   "contagem_esperada_pos_aplicacao": 954,
+   "sha256_registros": "c6d4bbe0aa26f3e7de54292476c491e3e04fbf6499c6dec5197d858faefe8b57"
+  },
+  "home.tbcosmetico": {
+   "modelo": "TbCosmetico",
+   "acao": "upsert_por_slug",
+   "linhas_no_arquivo": 24,
+   "contagem_esperada_pos_aplicacao": 24,
+   "sha256_registros": "092d02e0050f7e80d256fca8f93fb93029a67868138bc42538690aeee9184d82"
+  },
+  "home.tbconquista": {
+   "modelo": "TbConquista",
+   "acao": "upsert_por_slug",
+   "linhas_no_arquivo": 0,
+   "contagem_esperada_pos_aplicacao": 0,
+   "sha256_registros": null,
+   "obs": "0 no arquivo => modelo ausente no fixture => tabela preservada na prod."
+  },
+  "home.tbclassehabilidade": {
+   "modelo": "TbClassehabilidade",
+   "acao": "substitui",
+   "linhas_no_arquivo": 884,
+   "contagem_esperada_pos_aplicacao": 884,
+   "sha256_registros": "31c837c75a0bda680d023dfaf0ec8905c0e7d165405b32cbae965668a68545d1"
+  },
+  "home.tbrecursoclasse": {
+   "modelo": "TbRecursoclasse",
+   "acao": "substitui",
+   "linhas_no_arquivo": 135,
+   "contagem_esperada_pos_aplicacao": 135,
+   "sha256_registros": "372e6654fdb1756ac79f017b8e7942f4e39c14a91f99835b085b65056fd8121d"
+  },
+  "home.tbacessoopcao": {
+   "modelo": "TbAcessoopcao",
+   "acao": "substitui",
+   "linhas_no_arquivo": 97,
+   "contagem_esperada_pos_aplicacao": 97,
+   "sha256_registros": "3af2b5b67a66dab276317edc07e6a93af01c11f7ff77d6a7ce3905970f0eff9d"
+  },
+  "home.tbtracoracial": {
+   "modelo": "TbTracoracial",
+   "acao": "substitui",
+   "linhas_no_arquivo": 352,
+   "contagem_esperada_pos_aplicacao": 352,
+   "sha256_registros": "757bf717caaa76913f5cc85e2c3ff940e39d731c7d7f1a9b83537e3f9e31bf62"
+  },
+  "home.tbcondicao": {
+   "modelo": "TbCondicao",
+   "acao": "substitui",
+   "linhas_no_arquivo": 27,
+   "contagem_esperada_pos_aplicacao": 27,
+   "sha256_registros": "24d4e8501e8d4e19ad0e922fd0c20a25a1d8202ad0f1b553aa77e0b70188a63b"
+  },
+  "home.tbidioma": {
+   "modelo": "TbIdioma",
+   "acao": "substitui",
+   "linhas_no_arquivo": 22,
+   "contagem_esperada_pos_aplicacao": 22,
+   "sha256_registros": "17187921d3a0680e2f407487ce669261ef678fc2518c7a2b1a883cf7415d84da"
+  },
+  "home.tbregra": {
+   "modelo": "TbRegra",
+   "acao": "substitui",
+   "linhas_no_arquivo": 139,
+   "contagem_esperada_pos_aplicacao": 139,
+   "sha256_registros": "b40f53ddbcb21a519f71d4d4dcd852710b308368b6046b63fe6d2cdf749427dd"
+  },
+  "home.tbrecompensamestre": {
+   "modelo": "TbRecompensaMestre",
+   "acao": "substitui",
+   "linhas_no_arquivo": 9,
+   "contagem_esperada_pos_aplicacao": 9,
+   "sha256_registros": "d8dcd0d405987363e26038914912597924cd393ead6b88e4fa31e091c9b9bdce"
+  },
+  "home.tbitemmundano": {
+   "modelo": "TbItemMundano",
+   "acao": "substitui",
+   "linhas_no_arquivo": 302,
+   "contagem_esperada_pos_aplicacao": 302,
+   "sha256_registros": "0c52195041f199bdd1fd303df5bcdab1d7712cfc516da3f449f14efc0f47d467"
+  },
+  "home.tbbestiario": {
+   "modelo": "TbBestiario",
+   "acao": "substitui",
+   "linhas_no_arquivo": 920,
+   "contagem_esperada_pos_aplicacao": 920,
+   "sha256_registros": "35cf0d1ba5a4f337029a131e111f61541f4d539afa70234e611670b59f0274da"
+  },
+  "home.tbarmadilha": {
+   "modelo": "TbArmadilha",
+   "acao": "substitui",
+   "linhas_no_arquivo": 0,
+   "contagem_esperada_pos_aplicacao": 0,
+   "sha256_registros": null,
+   "obs": "0 no arquivo => modelo ausente no fixture => tabela preservada na prod."
+  },
+  "home.tbregiao": {
+   "modelo": "TbRegiao",
+   "acao": "skip_preserva_prod",
+   "linhas_no_arquivo": 0,
+   "contagem_esperada_pos_aplicacao": 74,
+   "sha256_registros": null,
+   "obs": "FORA do arquivo; prod (74) vence; sincronizar_conteudo preserva (pass2_skipped). Dev agora tambem tem 74 (espelho do mapa de prod), mas continua EXCLUIDO por politica prod-vence."
+  },
+  "home.tbterritorio": {
+   "modelo": "TbTerritorio",
+   "acao": "skip_preserva_prod",
+   "linhas_no_arquivo": 0,
+   "contagem_esperada_pos_aplicacao": 35,
+   "sha256_registros": null,
+   "obs": "FORA do arquivo; prod (35) vence; preservado (pass2_skipped). Dev=35."
+  },
+  "home.tbmapmarker": {
+   "modelo": "TbMapMarker",
+   "acao": "skip_preserva_prod",
+   "linhas_no_arquivo": 0,
+   "contagem_esperada_pos_aplicacao": 74,
+   "sha256_registros": null,
+   "obs": "FORA do arquivo; prod (74) vence; preservado (pass2_skipped). Dev=74."
+  },
+  "home.tbmapdesenho": {
+   "modelo": "TbMapDesenho",
+   "acao": "skip_preserva_prod",
+   "linhas_no_arquivo": 0,
+   "contagem_esperada_pos_aplicacao": 1,
+   "sha256_registros": null,
+   "obs": "FORA do arquivo; prod (1 desenho da staff) vence; preservado. Dev=1."
+  },
+  "home.tborganizacao": {
+   "modelo": "TbOrganizacao",
+   "acao": "skip_fora_do_sync",
+   "linhas_no_arquivo": 0,
+   "contagem_esperada_pos_aplicacao": 81,
+   "sha256_registros": null,
+   "obs": "Nao esta em nenhuma lista do deploy_sync; nunca tocado por merge_conteudo. prod (81) preservado."
+  },
+  "home.tbmaplayer": {
+   "modelo": "TbMapLayer",
+   "acao": "skip_po_decide",
+   "linhas_no_arquivo": 0,
+   "contagem_esperada_pos_aplicacao": 4,
+   "sha256_registros": null,
+   "obs": "FORA; difere so em 'publica' da camada 1 (prod=True/dev=False). PO decide."
+  }
+ },
+ "validacao": {
+  "metodo": "sincronizar_conteudo aplicado dentro de transaction.atomic() revertida (rollback) sobre o proprio db dev; nenhuma linha persistida (pre==pos confirmado: True).",
+  "mem_ok": true,
+  "memoria_tabelas_inalteradas": 21,
+  "mapa_preservado": true,
+  "mapa_antes": {
+   "TbRegiao": 74,
+   "TbTerritorio": 35,
+   "TbMapMarker": 74,
+   "TbMapDesenho": 1
+  },
+  "mapa_depois": {
+   "TbRegiao": 74,
+   "TbTerritorio": 35,
+   "TbMapMarker": 74,
+   "TbMapDesenho": 1
+  },
+  "pass2_skipped": [
+   "TbRegiao",
+   "TbTerritorio",
+   "TbMapMarker",
+   "TbArmadilha",
+   "TbMapDesenho"
+  ],
+  "obs": "Preservacao por AUSENCIA no fixture, independente da contagem. Na prod o mapa (74/35/74/1) fica intacto pelo mesmo mecanismo."
+ },
+ "diff_linhas_vs_20260715_013659": "sem diferenca de linhas (apenas valores de campo mudaram)",
+ "prod_antes_esperado": {
+  "_fonte": "backup_completo_20260714_214023.json = estado da prod ANTES do merge 15/07. Se o merge 15/07 ja foi aplicado, a prod ja esta nas contagens de final_counts. Esta versao muda apenas VALORES de campo, nao numero de linhas.",
+  "home.tbclasse": 13,
+  "home.tbclassehabilidade": 867,
+  "home.tbopcaojogo": 241,
+  "home.tbmagia": 580,
+  "home.tbtalento": 139,
+  "home.tbtracoracial": 352,
+  "home.tbitemmagico": 954,
+  "home.tbitemmundano": 302,
+  "home.tbcondicao": 27,
+  "home.tbantecedente": 30,
+  "home.tbbestiario": 920,
+  "home.tbcosmetico": 24,
+  "home.tbsubclasse": 110,
+  "home.tbrecursoclasse": 131,
+  "home.tbacessoopcao": 97,
+  "home.tbraca": 4,
+  "home.tbessencia": 4,
+  "home.tbregra": 139,
+  "home.tbidioma": 22,
+  "home.tblinhagem": 16,
+  "home.tbrecompensamestre": 9,
+  "home.tbconquista": 0,
+  "home.tbarmadilha": 0
+ },
+ "upsert_post_count_nota": "Para acao=upsert_por_slug, contagem_esperada_pos_aplicacao assume prod SUBSET|IGUAL do dev por slug. Se a prod tiver algum slug ausente no dev, o UPSERT o PRESERVA -> post-count seria MAIOR que linhas_no_arquivo.",
+ "final_counts": {
+  "home.tbacessoopcao": 97,
+  "home.tbantecedente": 30,
+  "home.tbbestiario": 920,
+  "home.tbclasse": 13,
+  "home.tbclassehabilidade": 884,
+  "home.tbcondicao": 27,
+  "home.tbcosmetico": 24,
+  "home.tbessencia": 4,
+  "home.tbidioma": 22,
+  "home.tbitemmagico": 954,
+  "home.tbitemmundano": 302,
+  "home.tblinhagem": 16,
+  "home.tbmagia": 580,
+  "home.tbopcaojogo": 259,
+  "home.tbraca": 4,
+  "home.tbrecompensamestre": 9,
+  "home.tbrecursoclasse": 135,
+  "home.tbregra": 139,
+  "home.tbsubclasse": 111,
+  "home.tbtalento": 139,
+  "home.tbtracoracial": 352
+ },
+ "excluidos_prod_vence": {
+  "home.tbregiao": "Mapa/mundo -> FORA (prod vence). Dev agora espelha prod (74).",
+  "home.tbterritorio": "Mapa/mundo -> FORA (prod vence). Dev=35.",
+  "home.tbmapmarker": "Mapa/mundo -> FORA (prod vence). Dev=74.",
+  "home.tbmapdesenho": "Mapa/mundo -> FORA (prod vence). Dev=1.",
+  "home.tborganizacao": "prod 81 organizacoes; nao esta em nenhuma lista de sync -> nunca tocado.",
+  "home.tbmaplayer": "difere so em 'publica' da camada 1 (prod=True/dev=False) -> PO decide; FORA."
+ },
+ "memoria_nunca_incluida": [
+  "auth.user",
+  "UserProfile",
+  "TbPersonagem*",
+  "TbTransacao*",
+  "TbAventuraMestre",
+  "TbCronica",
+  "TbJornal",
+  "TbReiDaColina",
+  "TbUsuarioCosmetico",
+  "TbUsuarioConquista",
+  "bot* (managed=False)"
+ ],
+ "aguardando_decisao_po": [
+  "Mapa/mundo/organizacoes: confirmar PROD VENCE e retirar TbRegiao/TbTerritorio/TbMapMarker/TbMapDesenho do fluxo SUBSTITUI dev->prod em deploy_sync.py.",
+  "TbMapLayer camada 1 'publica': prod=True vs dev=False.",
+  "TbConquista vazia no dev (0) apesar do seed 0052 — popular antes se catalogo deve existir."
+ ],
+ "note": "Aplicar via merge_conteudo: UPSERT_POR_SLUG casa por slug e PRESERVA PK da prod; SUBSTITUI faz delete-all+reinsert com PK do dev; modelos ausentes (mapa/mundo) sao PRESERVADOS. sqlsequencereset roda no fim (PASSO 3, so Postgres).",
+ "sha256_nota": "hash dos bytes em disco (CRLF); calculo da string LF em memoria daria outro valor."
+}
