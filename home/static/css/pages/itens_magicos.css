@@ -119,6 +119,53 @@
   justify-content: center;
   width: 1.25rem;
 }
+/* Preço na lista (espelha .mu-list-item-price do mundano) */
+.mi-list-item-price {
+  background: var(--bg2);
+  border: 1px solid var(--stroke);
+  border-radius: 999px;
+  color: var(--spark);
+  flex-shrink: 0;
+  font-size: .68rem;
+  font-weight: 700;
+  padding: .2rem .55rem;
+  white-space: nowrap;
+}
+/* Item sem preço = recompensa de missão: rótulo compacto que pode quebrar em 2 linhas */
+.mi-list-item-price.is-mission {
+  color: var(--muted);
+  font-weight: 600;
+  line-height: 1.12;
+  max-width: 6.5rem;
+  text-align: center;
+  white-space: normal;
+}
+/* Linha "Preço" no painel de detalhe */
+.mi-detail-price {
+  align-items: baseline;
+  border: 1px solid var(--stroke);
+  border-radius: 8px;
+  display: flex;
+  gap: .5rem;
+  justify-content: space-between;
+  margin-bottom: .75rem;
+  padding: .4rem .7rem;
+}
+.mi-detail-price-label {
+  color: var(--muted);
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.mi-detail-price-value {
+  color: var(--spark);
+  font-weight: 800;
+}
+.mi-detail-price-value.is-mission {
+  color: var(--muted);
+  font-weight: 600;
+}
 
 /* Borda esquerda colorida por raridade */
 .mi-list-item.rarity-comum { border-left-color: var(--rar-comum); }

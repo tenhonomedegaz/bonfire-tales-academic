@@ -1,0 +1,40 @@
+{% comment %}Lista de inventário da ficha. Usada em editar_ficha.html e re-renderizada
+pela compra via fetch (personagem_comprar_item/_magico) para atualizar sem reload.
+Espera no contexto: ficha (derive), p (personagem).{% endcomment %}
+{% if ficha.inventario %}
+  <ul class="space-y-1 text-sm">
+    {% for it in ficha.inventario %}
+      <li class="flex flex-wrap items-center justify-between gap-1.5 border-b border-[var(--stroke)]/40 py-1">
+        <span class="text-[var(--text)]">{% if it.qtd > 1 %}{{ it.qtd }}× {% endif %}{{ it.nome }}
+          {% if it.raridade %}<span class="ml-1 rounded bg-[var(--ember)]/15 px-1.5 py-0.5 text-xs text-[var(--ember)]">{{ it.raridade }}</span>{% endif %}
+          {% if it.equipado %}<span class="ml-1 rounded bg-[var(--spark)]/20 px-1.5 py-0.5 text-xs text-[var(--spark)]">equipado</span>{% endif %}
+          {% if it.sintonizado %}<span class="ml-1 rounded bg-[var(--flame)]/20 px-1.5 py-0.5 text-xs text-[var(--flame)]">sintonizado</span>{% elif it.requer_sintonizacao %}<span class="ml-1 rounded bg-[var(--stroke)]/40 px-1.5 py-0.5 text-xs text-[var(--muted)]">requer sintonização</span>{% endif %}</span>
+        <span class="flex flex-wrap items-center gap-1">
+          {% if it.pode_equipar %}
+            <form method="post" action="{% url 'personagem_equipar_item' p.id_personagem %}">
+              {% csrf_token %}<input type="hidden" name="item" value="{{ it.id }}">
+              <button type="submit" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-0.5 text-xs text-[var(--muted)] hover:border-[var(--ember)] hover:text-[var(--ember)]">{% if it.equipado %}Desequipar{% else %}Equipar{% endif %}</button>
+            </form>
+          {% endif %}
+          {% if it.requer_sintonizacao %}
+            <form method="post" action="{% url 'personagem_sintonizar_item' p.id_personagem %}">
+              {% csrf_token %}<input type="hidden" name="item" value="{{ it.id }}">
+              <button type="submit" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-0.5 text-xs text-[var(--muted)] hover:border-[var(--flame)] hover:text-[var(--flame)]">{% if it.sintonizado %}Dessintonizar{% else %}Sintonizar{% endif %}</button>
+            </form>
+          {% endif %}
+          {% if it.magico %}
+            <form method="post" action="{% url 'personagem_anunciar_magico' p.id_personagem %}" onsubmit="return confirm('Anunciar {{ it.nome|escapejs }} no Mercado da Comunidade? O item sai do seu inventário até vender ou cancelar.');">
+              {% csrf_token %}<input type="hidden" name="item" value="{{ it.id }}">
+              <button type="submit" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-0.5 text-xs text-[var(--muted)] hover:border-[var(--ember)] hover:text-[var(--ember)]">Anunciar</button>
+            </form>
+          {% elif it.venda_display %}
+            <form method="post" action="{% url 'personagem_vender_item' p.id_personagem %}" onsubmit="return confirm('Vender 1× {{ it.nome|escapejs }} por {{ it.venda_display }} (80%)?');">
+              {% csrf_token %}<input type="hidden" name="item" value="{{ it.id }}"><input type="hidden" name="qtd" value="1">
+              <button type="submit" title="Vende 1 por {{ it.venda_display }}" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-0.5 text-xs text-[var(--muted)] hover:border-[var(--spark)] hover:text-[var(--spark)]">Vender</button>
+            </form>
+          {% endif %}
+        </span>
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}<p class="text-sm text-[var(--muted)]">Inventário vazio.</p>{% endif %}

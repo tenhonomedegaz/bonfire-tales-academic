@@ -2,428 +2,462 @@
 {% load static %}
 
 {% block content %}
-<section class="animate-fade-in max-w-3xl">
+<section class="animate-fade-in">
   <header class="mb-4 flex flex-wrap items-end justify-between gap-2 border-b border-[var(--stroke)] pb-4">
     <div>
       <h1 class="font-serif text-2xl md:text-3xl font-bold text-[var(--ember)]">Editar ficha</h1>
-      <p class="mt-1 text-sm text-[var(--muted)]">{{ p.nome }} · {% if pc %}{{ pc.id_classe.nome }}{% if pc.id_subclasse_id %} ({{ pc.id_subclasse.nome }}){% endif %} Nv {{ nivel }}{% endif %}</p>
+      <p class="mt-1 text-sm text-[var(--muted)]">{{ p.nome }}{% if pc %} · {{ pc.id_classe.nome }}{% if pc.id_subclasse_id %} ({{ pc.id_subclasse.nome }}){% endif %} Nv {{ nivel }}{% endif %}</p>
     </div>
     <a href="{% url 'ficha_detail' p.id_personagem %}" class="rounded border border-[var(--stroke)] px-3 py-1.5 text-sm text-[var(--muted)] hover:text-[var(--text)]">Ver ficha →</a>
   </header>
 
-  <!-- Nível atual + subir + multiclasse -->
-  <div class="mb-4 rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-3">
-    <div class="flex flex-wrap items-center justify-between gap-2">
-      <div>
-        <div class="text-xs uppercase tracking-wider text-[var(--muted)]">Nível total</div>
-        <div class="text-2xl font-bold text-[var(--flame)]">{{ ficha.nivel_total }}
-          <span class="ml-1 rounded bg-[var(--ember)]/15 px-1.5 py-0.5 align-middle text-xs font-normal text-[var(--ember)]">{{ ficha.progressao.rank }}</span></div>
-        <div class="text-xs text-[var(--muted)]">PV {{ ficha.pv.maximo_calculado }} · CA {{ ficha.ca }} · PB +{{ ficha.bonus_proficiencia }}</div>
-        <div class="mt-1 text-xs text-[var(--muted)]">
-          {% for c in classes_atuais %}{{ c.nome }} {{ c.nivel }}{% if c.principal %} <span class="text-[var(--ember)]">★</span>{% endif %}{% if not forloop.last %} · {% endif %}{% endfor %}
+  <div class="cf-layout">
+    <div class="cf-main" id="lvl-main">
+
+      {# ============================ PROGRESSÃO (topo) ============================ #}
+      <div class="lvl-topcard" id="lvl-topcard" data-lvl-card="topo">
+        <div class="lvl-topcard__row">
+          <div>
+            <div class="lvl-level">{{ ficha.nivel_total }}<span class="lvl-rank">{{ ficha.progressao.rank }}</span></div>
+            <div class="lvl-meta">PV <b>{{ ficha.pv.maximo_calculado }}</b> · CA <b>{{ ficha.ca }}</b> · PB <b>+{{ ficha.bonus_proficiencia }}</b></div>
+            <div class="lvl-meta lvl-progline">
+              {% for c in classes_atuais %}{{ c.nome }} {{ c.nivel }}{% if c.principal %} <span class="text-[var(--ember)]">★</span>{% endif %}{% if not forloop.last %} · {% endif %}{% endfor %}
+            </div>
+            <div class="lvl-meta lvl-progline">{{ ficha.progressao.aventuras }} aventura(s) · teto Nv {{ ficha.progressao.nivel_label }} · <span class="spark">{{ ficha.progressao.braseiros }} braseiros 🔥</span></div>
+            <div class="lvl-meta lvl-progline">Ouro de progressão (rank {{ ficha.progressao.rank }}): <span class="flame">{{ ficha.progressao.ouro_esperado_po }} PO</span> acumulados</div>
+          </div>
+
+          <div class="lvl-progtools">
+            {% if ficha.nivel_total >= 20 %}
+              <span class="text-sm text-[var(--muted)]">Nível máximo (20).</span>
+            {% elif ficha.progressao.no_teto %}
+              <span class="text-sm text-[var(--muted)]">No teto de aventuras (Nv {{ ficha.progressao.nivel_max }}). Jogue mais para avançar.</span>
+            {% else %}
+              <div class="lvl-inline" data-lvl-card="subir">
+                {% if classes_atuais|length > 1 %}
+                  <select class="lvl-field" data-lvl-field="classe" aria-label="Classe que sobe de nível">
+                    {% for c in classes_atuais %}<option value="{{ c.id }}">{{ c.nome }} → {{ c.nivel|add:1 }}</option>{% endfor %}
+                  </select>
+                {% endif %}
+                <button type="button" class="cf-btn cf-btn-primary" data-lvl-queue="subir_nivel"
+                        data-label="Subir para Nv {{ ficha.nivel_total|add:1 }}">↑ Subir de nível</button>
+              </div>
+            {% endif %}
+          </div>
         </div>
-        <div class="mt-1 text-xs text-[var(--muted)]">{{ ficha.progressao.aventuras }} aventura(s) · teto Nv {{ ficha.progressao.nivel_label }} · <span class="text-[var(--spark)]">{{ ficha.progressao.braseiros }} braseiros 🔥</span></div>
-        <div class="mt-1 text-xs text-[var(--muted)]">Ouro de progressão (rank {{ ficha.progressao.rank }}): <span class="text-[var(--flame)]">{{ ficha.progressao.ouro_esperado_po }} PO</span> acumulados</div>
-      </div>
-      {% if ficha.nivel_total >= 20 %}
-        <span class="text-sm text-[var(--muted)]">Nível máximo (20).</span>
-      {% elif ficha.progressao.no_teto %}
-        <span class="text-sm text-[var(--muted)]">No teto de aventuras (Nv {{ ficha.progressao.nivel_max }}). Jogue mais para avançar.</span>
-      {% else %}
-        <form method="post" action="{% url 'personagem_subir_nivel' p.id_personagem %}" class="flex items-center gap-1.5">
-          {% csrf_token %}
-          {% if classes_atuais|length > 1 %}
-            <select name="classe" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-1.5 text-sm text-[var(--text)]">
-              {% for c in classes_atuais %}<option value="{{ c.id }}">{{ c.nome }} → {{ c.nivel|add:1 }}</option>{% endfor %}
+
+        {% if request.GET.nivel == 'teto' %}<p class="lvl-note-cap">Você atingiu o nível-teto permitido pelas aventuras. Jogue mais mesas para liberar o próximo nível.</p>{% endif %}
+
+        {% if is_staff %}
+          <div class="lvl-staffbox">
+            <span class="lbl">Staff — registrar aventuras:</span>
+            <form method="post" action="{% url 'personagem_registrar_aventuras' p.id_personagem %}" class="lvl-inline">
+              {% csrf_token %}
+              <input type="number" name="aventuras" min="1" max="200" value="1" class="lvl-field" style="width:5rem" aria-label="Quantidade de aventuras">
+              <label class="lvl-radio"><input type="checkbox" name="evento"> missão de evento (dá braseiros)</label>
+              <button type="submit" class="lvl-add">+ Aventuras (ouro + nível)</button>
+            </form>
+          </div>
+        {% endif %}
+
+        {% if classes_multiclasse %}
+          <div class="lvl-mcbox" data-lvl-card="multiclasse">
+            <span>Multiclasse:</span>
+            <select class="lvl-field lvl-field--grow" data-lvl-field="classe" aria-label="Classe de multiclasse">
+              {% for c in classes_multiclasse %}<option value="{{ c.id }}">{{ c.nome }}{% if c.req %} (req: {{ c.req }}){% endif %}</option>{% endfor %}
             </select>
-          {% endif %}
-          <button type="submit" class="rounded bg-bonfire-gradient px-3 py-2.5 text-sm font-bold text-white hover:opacity-90">↑ Subir de nível</button>
-        </form>
+            <button type="button" class="lvl-add" data-lvl-queue="adicionar_classe" data-label="Multiclasse">+ Adicionar classe</button>
+          </div>
+        {% endif %}
+      </div>
+
+      {# ============================ ESCOLHAS PENDENTES (lote) ============================ #}
+      <h2 class="lvl-sech">Escolhas pendentes</h2>
+      <p class="lvl-secsub">Monte suas escolhas — elas se acumulam num lote e a prévia ao lado mostra a ficha resultante. Nada é gravado até você clicar em <strong>Aplicar</strong>.</p>
+
+      <div id="lvl-pend">
+        {% if sem_pendencias %}
+          <div class="lvl-empty" data-lvl-empty>Nenhuma escolha pendente neste nível.{% if ficha.nivel_total < 20 and not ficha.progressao.no_teto %} Suba de nível para receber as próximas.{% endif %}</div>
+        {% endif %}
+
+        {# ---- Subclasse ---- #}
+        {% if pend.subclasse %}
+          <div class="lvl-card" data-lvl-card="subclasse">
+            <div class="lvl-card__head">
+              <span class="lvl-card__title">Subclasse <span class="sub">nível {{ pend.subclasse_nivel }}</span></span>
+              <span class="lvl-badge" data-lvl-badge>falta 1</span>
+            </div>
+            <div class="lvl-queued" data-lvl-chips hidden></div>
+            <div class="lvl-card__row">
+              <select class="lvl-field lvl-field--grow" data-lvl-field="subclasse" aria-label="Subclasse">
+                <option value="">— Selecione —</option>
+                {% for s in pend.subclasses %}<option value="{{ s.id }}">{{ s.nome }}</option>{% endfor %}
+              </select>
+              <button type="button" class="lvl-add" data-lvl-queue="subclasse" data-single="1">Adicionar ao lote</button>
+            </div>
+          </div>
+        {% endif %}
+
+        {# ---- ASI / Talento ---- #}
+        {% if pend.asi_pendentes > 0 %}
+          <div class="lvl-card" data-lvl-card="asi" data-need="{{ pend.asi_pendentes }}" id="lvl-asi-card">
+            <div class="lvl-card__head">
+              <span class="lvl-card__title">Aprimoramento de Atributo ou Talento</span>
+              <span class="lvl-badge" data-lvl-badge>falta {{ pend.asi_pendentes }}</span>
+            </div>
+            <div class="lvl-queued" data-lvl-chips hidden></div>
+            <label class="lvl-radio"><input type="radio" name="lvl-asi-modo" value="asi" checked data-lvl-field="asi_modo"> Aumentar atributos (+2 distribuível)</label>
+            <div class="lvl-card__row" data-lvl-asi-attrs style="margin:0.4rem 0 0.5rem 1.4rem">
+              <select class="lvl-field" data-lvl-field="asi_attr_1" aria-label="Primeiro atributo do ASI">{% for a in atributos %}<option value="{{ a }}">+1 {{ a }}</option>{% endfor %}</select>
+              <select class="lvl-field" data-lvl-field="asi_attr_2" aria-label="Segundo atributo do ASI">{% for a in atributos %}<option value="{{ a }}">+1 {{ a }}</option>{% endfor %}</select>
+            </div>
+            <label class="lvl-radio"><input type="radio" name="lvl-asi-modo" value="talento"> Escolher um Talento (+1 atributo)</label>
+            <div class="lvl-card__row" data-lvl-asi-tal hidden style="margin:0.4rem 0 0.5rem 1.4rem">
+              <select class="lvl-field lvl-field--grow" data-lvl-field="talento" id="lvl-asi-talento" aria-label="Talento"><option value="">— Talento —</option>{% for t in talentos_normais %}<option value="{{ t.id }}" data-attrs="{{ t.attrs_csv }}">{{ t.nome }}{% if t.pre %} ({{ t.pre }}){% endif %}</option>{% endfor %}</select>
+              <select class="lvl-field" data-lvl-field="talento_attr" id="lvl-asi-talento-attr" aria-label="Atributo do talento">{% for a in atributos %}<option value="{{ a }}">+1 {{ a }}</option>{% endfor %}</select>
+            </div>
+            <div class="lvl-card__row">
+              <button type="button" class="lvl-add" data-lvl-queue="asi">Adicionar ao lote</button>
+            </div>
+          </div>
+        {% endif %}
+
+        {# ---- Talento racial (por marco de nível) ---- #}
+        {% for bloco in talentos_raciais_pend %}
+          <div class="lvl-card" data-lvl-card="talento_racial" data-nivel="{{ bloco.nivel }}">
+            <div class="lvl-card__head">
+              <span class="lvl-card__title">Talento Racial <span class="sub">nível {{ bloco.nivel }}</span></span>
+              <span class="lvl-badge" data-lvl-badge>falta 1</span>
+            </div>
+            <div class="lvl-queued" data-lvl-chips hidden></div>
+            <div class="lvl-card__row">
+              <select class="lvl-field lvl-field--grow" data-lvl-field="talento" aria-label="Talento racial nível {{ bloco.nivel }}"
+                      onchange="var d=this.closest('.lvl-card').querySelector('[data-lvl-desc]');var o=this.options[this.selectedIndex];d.textContent=o.dataset.desc||'';d.hidden=!o.dataset.desc;">
+                <option value="">— Selecione —</option>
+                {% for o in bloco.opcoes %}<option value="{{ o.nome }}" data-desc="{{ o.descricao|striptags|truncatechars:280 }}">{{ o.nome }}{% if o.pre %} ({{ o.pre }}){% endif %}</option>{% endfor %}
+              </select>
+              <button type="button" class="lvl-add" data-lvl-queue="talento_racial" data-single="1">Adicionar ao lote</button>
+            </div>
+            <p class="lvl-card__hint" data-lvl-desc hidden style="margin-top:0.5rem"></p>
+          </div>
+        {% endfor %}
+
+        {# ---- Novas magias (aprender) ---- #}
+        {% if pend_magias and pend_magias.cantrips_pend or pend_magias.known_pend %}
+          <div class="lvl-card" data-lvl-card="aprender_magias"
+               data-cantrips="{{ pend_magias.cantrips_pend }}" data-known="{{ pend_magias.known_pend }}">
+            <div class="lvl-card__head">
+              <span class="lvl-card__title">Novas magias</span>
+              <span class="lvl-badge" data-lvl-badge>—</span>
+            </div>
+            {% if pend_magias.cantrips_pend %}
+              <div style="margin-bottom:0.6rem">
+                <div class="lvl-subhdr">Truques (escolha {{ pend_magias.cantrips_pend }})</div>
+                <div class="lvl-checkgrid" data-lvl-group="truques">
+                  {% for m in pend_magias.lista_truques %}<label class="lvl-check"><input type="checkbox" value="{{ m.slug }}"> {{ m.nome }}</label>{% endfor %}
+                </div>
+              </div>
+            {% endif %}
+            {% if pend_magias.known_pend %}
+              <div>
+                <div class="lvl-subhdr">Magias conhecidas (escolha {{ pend_magias.known_pend }} · até {{ pend_magias.max_nivel }}º nível)</div>
+                <div class="lvl-checkgrid" data-lvl-group="magias">
+                  {% for m in pend_magias.lista_magias %}<label class="lvl-check"><input type="checkbox" value="{{ m.slug }}"> <span>{{ m.nome }} <span class="text-xs text-[var(--muted)]">({{ m.nivel }}º)</span></span></label>{% endfor %}
+                </div>
+              </div>
+            {% endif %}
+          </div>
+        {% endif %}
+
+        {# ---- Escolhas de Classe (opções: metamagia, manobras, perícias de pick, etc.) ---- #}
+        {% for g in opcao_grupos %}
+          <div class="lvl-card{% if not g.pendentes %} is-done{% endif %}" data-lvl-card="opcao"
+               data-classe="{{ g.classe_id }}" data-slug="{{ g.slug }}" data-need="{{ g.pendentes }}">
+            <div class="lvl-card__head">
+              <span class="lvl-card__title">{{ g.tipo }} <span class="sub">{{ g.classe }} · {{ g.usados }}/{{ g.limite }}</span></span>
+              {% if g.pendentes %}<span class="lvl-badge" data-lvl-badge>falta {{ g.pendentes }}</span>{% else %}<span class="lvl-badge is-ok" data-lvl-badge>completo</span>{% endif %}
+            </div>
+            {% if g.escolhidas %}
+              <div class="lvl-queued">
+                {% for e in g.escolhidas %}
+                  <span class="lvl-chip is-saved">{{ e.nome }}
+                    <form method="post" action="{% url 'personagem_escolher_opcoes' p.id_personagem %}" class="inline">
+                      {% csrf_token %}<input type="hidden" name="acao" value="remover"><input type="hidden" name="escolha" value="{{ e.id }}">
+                      <button type="submit" class="lvl-chip__x" title="Remover (grava na hora)" aria-label="Remover {{ e.nome }}">×</button>
+                    </form>
+                  </span>
+                {% endfor %}
+              </div>
+            {% endif %}
+            <div class="lvl-queued" data-lvl-chips hidden></div>
+            {% if g.pendentes and g.disponiveis %}
+              <div class="lvl-card__row">
+                <select class="lvl-field lvl-field--grow" data-lvl-field="val" aria-label="Escolher {{ g.tipo|lower }}">
+                  <option value="">Escolher {{ g.tipo|lower }}…</option>
+                  {% for o in g.disponiveis %}<option value="{{ o.val }}"{% if o.pre %} title="Pré-requisito: {{ o.pre }}"{% endif %}>{{ o.nome }}</option>{% endfor %}
+                </select>
+                <button type="button" class="lvl-add" data-lvl-queue="opcao">Adicionar ao lote</button>
+              </div>
+            {% elif g.pendentes %}
+              <p class="lvl-card__hint">Sem opções disponíveis no catálogo para esta classe/nível.</p>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+
+      {# ---- Barra de ação do lote (sticky) ---- #}
+      <div class="lvl-feedback" id="lvl-feedback" hidden></div>
+      <div class="lvl-actionbar" id="lvl-actionbar" hidden aria-live="polite">
+        <span class="lvl-actionbar__count"><b id="lvl-count">0</b> escolha(s) no lote</span>
+        <span class="lvl-actionbar__spacer"></span>
+        <button type="button" class="lvl-btn-ghost" id="lvl-descartar">Descartar</button>
+        <button type="button" class="cf-btn cf-btn-primary" id="lvl-aplicar">Aplicar</button>
+      </div>
+
+      {# ---- Trocar magia conhecida (opcional, grava na hora) ---- #}
+      {% if pend_magias.swap_level_up and pend_magias.conhecidas %}
+        <div class="lvl-card is-optional" style="margin-top:0.9rem">
+          <div class="lvl-card__head">
+            <span class="lvl-card__title">Trocar magia conhecida <span class="sub">opcional, ao subir de nível</span></span>
+          </div>
+          <p class="lvl-card__hint">Esta classe pode substituir 1 magia conhecida por outra ao subir de nível (truque por truque, magia por magia). Grava na hora.</p>
+          <form method="post" action="{% url 'personagem_trocar_magia' p.id_personagem %}" class="lvl-card__row">
+            {% csrf_token %}
+            <select name="remover" required class="lvl-field" aria-label="Magia a remover">
+              {% for m in pend_magias.conhecidas %}<option value="{{ m.slug }}">{{ m.nome }} ({% if m.nivel == 0 %}truque{% else %}{{ m.nivel }}º{% endif %})</option>{% endfor %}
+            </select>
+            <select name="adicionar" required class="lvl-field" aria-label="Magia a adicionar">
+              {% for m in pend_magias.lista_truques %}<option value="{{ m.slug }}">{{ m.nome }} (truque)</option>{% endfor %}
+              {% for m in pend_magias.lista_magias %}<option value="{{ m.slug }}">{{ m.nome }} ({{ m.nivel }}º)</option>{% endfor %}
+            </select>
+            <button type="submit" class="lvl-add">Trocar</button>
+          </form>
+        </div>
       {% endif %}
-    </div>
-    {% if request.GET.nivel == 'teto' %}<p class="mt-3 text-xs text-[var(--flame)]">Você atingiu o nível-teto permitido pelas aventuras. Jogue mais mesas para liberar o próximo nível.</p>{% endif %}
-    {% if is_staff %}
-      <div class="mt-3 flex flex-wrap items-center gap-1.5 border-t border-[var(--stroke)]/50 pt-3">
-        <span class="text-xs text-[var(--ember)]">Staff — registrar aventuras:</span>
-        <form method="post" action="{% url 'personagem_registrar_aventuras' p.id_personagem %}" class="flex flex-wrap items-center gap-1.5">
-          {% csrf_token %}
-          <input type="number" name="aventuras" min="1" max="200" value="1" class="w-20 rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-1.5 text-sm text-[var(--text)]">
-          <label class="flex items-center gap-1 text-xs text-[var(--muted)]"><input type="checkbox" name="evento" class="accent-[var(--spark)]"> missão de evento (dá braseiros)</label>
-          <button type="submit" class="rounded border border-[var(--ember)]/50 bg-[var(--bg0)] px-3 py-1.5 text-xs font-bold text-[var(--ember)] hover:bg-[var(--ember)]/10">+ Aventuras (ouro + nível)</button>
-        </form>
-      </div>
-    {% endif %}
-    {% with mc=request.GET.mc %}{% if mc %}<p class="mt-3 text-xs {% if mc == 'ok' %}text-[var(--spark)]{% else %}text-[var(--flame)]{% endif %}">{% if mc == 'ok' %}Classe adicionada.{% elif mc == 'prereq' %}Pré-requisito de atributo não atendido.{% elif mc == 'max' %}Nível total máximo (20).{% else %}Não foi possível adicionar.{% endif %}</p>{% endif %}{% endwith %}
-    {% if classes_multiclasse %}
-      <div class="mt-3 flex flex-wrap items-center gap-1.5 border-t border-[var(--stroke)]/50 pt-3">
-        <span class="text-xs text-[var(--muted)]">Multiclasse:</span>
-        <form method="post" action="{% url 'personagem_adicionar_classe' p.id_personagem %}" class="flex items-center gap-1.5">
-          {% csrf_token %}
-          <select name="classe" required class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-1.5 text-sm text-[var(--text)]">
-            {% for c in classes_multiclasse %}<option value="{{ c.id }}">{{ c.nome }}{% if c.req %} (req: {{ c.req }}){% endif %}</option>{% endfor %}
-          </select>
-          <button type="submit" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-1.5 text-xs text-[var(--muted)] hover:border-[var(--ember)] hover:text-[var(--ember)]">+ Adicionar classe</button>
-        </form>
-      </div>
-    {% endif %}
-  </div>
 
-  <!-- Pendências do nível -->
-  <h2 class="mb-2 font-serif text-lg font-bold text-[var(--text)]">Escolhas pendentes</h2>
-
-  {% if sem_pendencias %}
-    <p class="rounded border border-dashed border-[var(--stroke)] bg-[var(--bg1)] px-3 py-4 text-center text-sm text-[var(--muted)]">Nenhuma escolha pendente neste nível. Suba de nível para receber as próximas.</p>
-  {% endif %}
-
-  {% if pend_magias and pend_magias.cantrips_pend or pend_magias.known_pend %}
-    <div class="mb-2.5 rounded-lg border border-[var(--spark)]/40 bg-[var(--bg1)] p-3">
-      <h3 class="mb-1.5 font-semibold text-[var(--spark)]">Novas magias</h3>
-      <form method="post" action="{% url 'personagem_aprender_magias' p.id_personagem %}" data-limit-form class="space-y-2.5">
+      {# ============================ MAGIAS PREPARADAS (grava na hora) ============================ #}
+      {% if magias_preparadas %}
+      <h2 class="lvl-sech" style="margin-top:1.2rem">Magias Preparadas</h2>
+      <p class="lvl-secsub">{{ magias_preparadas.classe }} prepara magias da lista a cada descanso longo — só as preparadas podem ser conjuradas. Limite: <strong class="text-[var(--flame)]" id="prep-count">{{ magias_preparadas.preparadas_count }}</strong>/<strong class="text-[var(--flame)]">{{ magias_preparadas.limite|default:'—' }}</strong>.</p>
+      {% if request.GET.prep == 'ok' %}<div class="lvl-ok" style="margin-bottom:0.6rem">Magias preparadas salvas.</div>{% endif %}
+      <form method="post" action="{% url 'personagem_preparar_magias' p.id_personagem %}" class="lvl-card">
         {% csrf_token %}
-        {% if pend_magias.cantrips_pend %}
-          <div data-group data-max="{{ pend_magias.cantrips_pend }}">
-            <div class="mb-1 text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Truques (escolha {{ pend_magias.cantrips_pend }})</div>
-            <div class="grid max-h-52 grid-cols-1 gap-1 overflow-y-auto rounded border border-[var(--stroke)] bg-[var(--bg0)] p-1.5 sm:grid-cols-2">
-              {% for m in pend_magias.lista_truques %}<label class="flex items-center gap-2 text-sm"><input type="checkbox" name="truques" value="{{ m.slug }}"> {{ m.nome }}</label>{% endfor %}
+        <div class="max-h-96 space-y-2 overflow-y-auto pr-1">
+          {% for g in magias_preparadas.grupos %}
+            <div>
+              <div class="lvl-subhdr">{{ g.nivel }}º Círculo</div>
+              <div class="grid gap-1 sm:grid-cols-2">
+                {% for m in g.magias %}
+                  <label class="lvl-check"><input type="checkbox" name="magia" value="{{ m.slug }}" {% if m.marcada %}checked{% endif %} class="prep-chk"> <span>{{ m.nome }}</span></label>
+                {% endfor %}
+              </div>
             </div>
-          </div>
-        {% endif %}
-        {% if pend_magias.known_pend %}
-          <div data-group data-max="{{ pend_magias.known_pend }}">
-            <div class="mb-1 text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Magias conhecidas (escolha {{ pend_magias.known_pend }} · até {{ pend_magias.max_nivel }}º nível)</div>
-            <div class="grid max-h-52 grid-cols-1 gap-1 overflow-y-auto rounded border border-[var(--stroke)] bg-[var(--bg0)] p-1.5 sm:grid-cols-2">
-              {% for m in pend_magias.lista_magias %}<label class="flex items-center gap-2 text-sm"><input type="checkbox" name="magias" value="{{ m.slug }}"> <span>{{ m.nome }} <span class="text-xs text-[var(--muted)]">({{ m.nivel }}º)</span></span></label>{% endfor %}
-            </div>
-          </div>
-        {% endif %}
-        <button type="submit" class="rounded bg-bonfire-gradient px-3 py-1.5 text-sm font-bold text-white hover:opacity-90">Aprender</button>
-      </form>
-    </div>
-    <script>
-      document.querySelectorAll('[data-limit-form] [data-group]').forEach(function (g) {
-        var max = +g.getAttribute('data-max');
-        g.addEventListener('change', function () {
-          var boxes = g.querySelectorAll('input[type=checkbox]');
-          var n = Array.prototype.filter.call(boxes, function (b) { return b.checked; }).length;
-          boxes.forEach(function (b) { b.disabled = !b.checked && n >= max; });
-        });
-      });
-    </script>
-  {% endif %}
-
-  {% if pend.subclasse %}
-    <div class="mb-2.5 rounded-lg border border-[var(--spark)]/40 bg-[var(--bg1)] p-3">
-      <h3 class="mb-1.5 font-semibold text-[var(--spark)]">Subclasse (nível {{ pend.subclasse_nivel }})</h3>
-      <form method="post" action="{% url 'personagem_escolher_subclasse' p.id_personagem %}" class="flex flex-wrap items-center gap-1.5">
-        {% csrf_token %}
-        <select name="subclasse" required class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-1.5 text-sm text-[var(--text)] focus:border-[var(--ember)] focus:outline-none">
-          <option value="">— Selecione —</option>
-          {% for s in pend.subclasses %}<option value="{{ s.id }}">{{ s.nome }}</option>{% endfor %}
-        </select>
-        <button type="submit" class="rounded bg-bonfire-gradient px-3 py-1.5 text-sm font-bold text-white hover:opacity-90">Confirmar</button>
-      </form>
-    </div>
-  {% endif %}
-
-  {% if pend.asi_pendentes > 0 %}
-    <div class="mb-2.5 rounded-lg border border-[var(--spark)]/40 bg-[var(--bg1)] p-3">
-      <h3 class="mb-1.5 font-semibold text-[var(--spark)]">Aprimoramento de Atributo ou Talento <span class="text-xs font-normal text-[var(--muted)]">({{ pend.asi_pendentes }} pendente{{ pend.asi_pendentes|pluralize }})</span></h3>
-      <form method="post" action="{% url 'personagem_aplicar_asi' p.id_personagem %}" class="space-y-2" id="asi-form">
-        {% csrf_token %}
-        <label class="flex items-center gap-1.5 text-sm"><input type="radio" name="tipo" value="asi" checked onchange="document.getElementById('asi-attrs').hidden=false;document.getElementById('asi-tal').hidden=true;"> Aumentar atributos (+2 distribuivel)</label>
-        <div id="asi-attrs" class="ml-6 flex flex-wrap gap-1.5">
-          <select name="asi_attr_1" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-1.5 text-sm">{% for a in atributos %}<option value="{{ a }}">+1 {{ a }}</option>{% endfor %}</select>
-          <select name="asi_attr_2" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-1.5 text-sm">{% for a in atributos %}<option value="{{ a }}">+1 {{ a }}</option>{% endfor %}</select>
-        </div>
-        <label class="flex items-center gap-1.5 text-sm"><input type="radio" name="tipo" value="talento" onchange="document.getElementById('asi-attrs').hidden=true;document.getElementById('asi-tal').hidden=false;"> Escolher um Talento (+1 atributo)</label>
-        <div id="asi-tal" hidden class="ml-6 flex flex-wrap gap-1.5">
-          <select name="talento" id="asi-talento-select" class="min-w-[14rem] rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-1.5 text-sm"><option value="">— Talento —</option>{% for t in talentos_normais %}<option value="{{ t.id }}" data-attrs="{{ t.attrs_csv }}">{{ t.nome }}{% if t.pre %} ({{ t.pre }}){% endif %}</option>{% endfor %}</select>
-          <select name="talento_attr" id="asi-talento-attr" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-1.5 text-sm">{% for a in atributos %}<option value="{{ a }}">+1 {{ a }}</option>{% endfor %}</select>
-        </div>
-        <script>
-          (function(){
-            var talento = document.getElementById('asi-talento-select');
-            var attr = document.getElementById('asi-talento-attr');
-            if (!talento || !attr) return;
-            function syncTalentAttr(){
-              var opt = talento.options[talento.selectedIndex];
-              var allowed = ((opt && opt.getAttribute('data-attrs')) || '').split(',').filter(Boolean);
-              Array.prototype.forEach.call(attr.options, function(o){ o.disabled = allowed.length && allowed.indexOf(o.value) === -1; });
-              if (attr.options[attr.selectedIndex] && attr.options[attr.selectedIndex].disabled) {
-                for (var i = 0; i < attr.options.length; i++) if (!attr.options[i].disabled) { attr.value = attr.options[i].value; break; }
-              }
-            }
-            talento.addEventListener('change', syncTalentAttr); syncTalentAttr();
-          })();
-        </script>
-        <button type="submit" class="rounded bg-bonfire-gradient px-3 py-1.5 text-sm font-bold text-white hover:opacity-90">Confirmar</button>
-      </form>
-    </div>
-  {% endif %}
-
-  {% if talentos_raciais_pend %}
-    <div id="talentos-raciais" class="mb-2.5 rounded-lg border border-[var(--spark)]/40 bg-[var(--bg1)] p-3">
-      <h3 class="mb-1.5 font-semibold text-[var(--spark)]">Talento Racial <span class="text-xs font-normal text-[var(--muted)]">({{ talentos_raciais_pend|length }} pendente{{ talentos_raciais_pend|length|pluralize }})</span></h3>
-      {% for bloco in talentos_raciais_pend %}
-        <form method="post" action="{% url 'personagem_escolher_talento_racial' p.id_personagem %}" class="mb-2 last:mb-0">
-          {% csrf_token %}
-          <input type="hidden" name="nivel" value="{{ bloco.nivel }}">
-          <p class="mb-1 text-sm text-[var(--muted)]">Escolha um talento racial de <strong>nível {{ bloco.nivel }}</strong>:</p>
-          <div class="flex flex-wrap items-center gap-1.5">
-            <select name="talento" required onchange="var d=this.closest('form').querySelector('.tr-desc');var o=this.options[this.selectedIndex];d.textContent=o.dataset.desc||'';d.hidden=!o.dataset.desc;" class="min-w-[14rem] rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-1.5 text-sm text-[var(--text)] focus:border-[var(--ember)] focus:outline-none">
-              <option value="">— Selecione —</option>
-              {% for o in bloco.opcoes %}<option value="{{ o.nome }}" data-desc="{{ o.descricao|striptags|truncatechars:280 }}">{{ o.nome }}{% if o.pre %} ({{ o.pre }}){% endif %}</option>{% endfor %}
-            </select>
-            <button type="submit" class="rounded bg-bonfire-gradient px-3 py-1.5 text-sm font-bold text-white hover:opacity-90">Confirmar</button>
-          </div>
-          <p class="tr-desc mt-2 text-xs text-[var(--muted)]" hidden></p>
-        </form>
-      {% endfor %}
-    </div>
-  {% endif %}
-
-  {% if pend_magias.swap_level_up and pend_magias.conhecidas %}
-    <div class="mb-2.5 rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-3">
-      <h3 class="mb-1 font-semibold text-[var(--text)]">Trocar magia conhecida <span class="text-xs font-normal text-[var(--muted)]">(opcional, ao subir de nível)</span></h3>
-      <p class="mb-1.5 text-xs text-[var(--muted)]">Esta classe pode substituir 1 magia conhecida por outra ao subir de nível (truque por truque, magia por magia).</p>
-      <form method="post" action="{% url 'personagem_trocar_magia' p.id_personagem %}" class="flex flex-wrap items-end gap-1.5">
-        {% csrf_token %}
-        <label class="text-xs text-[var(--muted)]">Remover
-          <select name="remover" required class="mt-0.5 block rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-1.5 text-sm text-[var(--text)]">
-            {% for m in pend_magias.conhecidas %}<option value="{{ m.slug }}">{{ m.nome }} ({% if m.nivel == 0 %}truque{% else %}{{ m.nivel }}º{% endif %})</option>{% endfor %}
-          </select>
-        </label>
-        <label class="text-xs text-[var(--muted)]">Por
-          <select name="adicionar" required class="mt-0.5 block rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-1.5 text-sm text-[var(--text)]">
-            {% for m in pend_magias.lista_truques %}<option value="{{ m.slug }}">{{ m.nome }} (truque)</option>{% endfor %}
-            {% for m in pend_magias.lista_magias %}<option value="{{ m.slug }}">{{ m.nome }} ({{ m.nivel }}º)</option>{% endfor %}
-          </select>
-        </label>
-        <button type="submit" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-1.5 text-sm font-bold text-[var(--text)] hover:border-[var(--ember)] hover:text-[var(--ember)]">Trocar</button>
-      </form>
-    </div>
-  {% endif %}
-
-  {% if magias_preparadas %}
-  <!-- Magias Preparadas -->
-  <h2 class="mb-1 mt-4 font-serif text-lg font-bold text-[var(--text)]">Magias Preparadas</h2>
-  <p class="mb-2 text-xs text-[var(--muted)]">{{ magias_preparadas.classe }} prepara magias da lista a cada descanso longo — só as preparadas podem ser conjuradas. Limite: <strong class="text-[var(--flame)]" id="prep-count">{{ magias_preparadas.preparadas_count }}</strong>/<strong class="text-[var(--flame)]">{{ magias_preparadas.limite|default:'—' }}</strong>.</p>
-  {% if request.GET.prep == 'ok' %}<p class="mb-2 rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-3 py-1.5 text-sm text-[var(--spark)]">Magias preparadas salvas.</p>{% endif %}
-  <form method="post" action="{% url 'personagem_preparar_magias' p.id_personagem %}" class="rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-3">
-    {% csrf_token %}
-    <div class="max-h-96 space-y-2 overflow-y-auto pr-1">
-      {% for g in magias_preparadas.grupos %}
-        <div>
-          <div class="mb-1 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">{{ g.nivel }}º Círculo</div>
-          <div class="grid gap-1 sm:grid-cols-2">
-            {% for m in g.magias %}
-              <label class="flex items-center gap-1.5 text-sm text-[var(--text)]">
-                <input type="checkbox" name="magia" value="{{ m.slug }}" {% if m.marcada %}checked{% endif %} class="prep-chk accent-[var(--ember)]">
-                <span>{{ m.nome }}</span>
-              </label>
-            {% endfor %}
-          </div>
-        </div>
-      {% endfor %}
-    </div>
-    <button type="submit" class="mt-3 rounded bg-bonfire-gradient px-3 py-1.5 text-sm font-bold text-white hover:opacity-90">Salvar Preparadas</button>
-  </form>
-  {% if magias_preparadas.limite %}
-  <script>
-    (function(){
-      var lim = {{ magias_preparadas.limite }}, cnt = document.getElementById('prep-count');
-      var chks = Array.prototype.slice.call(document.querySelectorAll('.prep-chk'));
-      function upd(){ var n = chks.filter(function(c){return c.checked;}).length; cnt.textContent = n;
-        chks.forEach(function(c){ if(!c.checked) c.disabled = n >= lim; }); }
-      chks.forEach(function(c){ c.addEventListener('change', upd); }); upd();
-    })();
-  </script>
-  {% endif %}
-  {% endif %}
-
-  {% if recursos_consumiveis %}
-  <!-- Recursos de Classe -->
-  <h2 class="mb-2 mt-4 font-serif text-lg font-bold text-[var(--text)]">Recursos de Classe</h2>
-  {% if request.GET.rest == 'longo' %}<p class="mb-2 rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-3 py-1.5 text-sm text-[var(--spark)]">Descanso longo — recursos recuperados.</p>
-  {% elif request.GET.rest == 'curto' %}<p class="mb-2 rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-3 py-1.5 text-sm text-[var(--spark)]">Descanso curto — recursos de recarga curta recuperados.</p>{% endif %}
-  <div class="rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-3">
-    <ul class="space-y-1.5">
-      {% for r in recursos_consumiveis %}
-        <li class="flex flex-wrap items-center justify-between gap-1.5">
-          <span class="text-sm text-[var(--text)]">{{ r.nome }}
-            <span class="ml-1 text-xs text-[var(--muted)]">({{ r.classe }} · recarga {% if r.reset == 'short-or-long' %}curta/longa{% elif r.reset == 'short-rest' %}curta{% elif r.reset == 'long-rest' %}longa{% else %}manual{% endif %})</span>
-          </span>
-          <span class="flex items-center gap-1.5">
-            <span class="font-mono text-sm {% if r.atual == 0 %}text-[var(--flame)]{% else %}text-[var(--spark)]{% endif %}">{{ r.atual }}/{{ r.maximo }}</span>
-            <form method="post" action="{% url 'personagem_usar_recurso' p.id_personagem %}">
-              {% csrf_token %}<input type="hidden" name="recurso" value="{{ r.slug }}">
-              <button type="submit" {% if r.atual == 0 %}disabled{% endif %} class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-0.5 text-xs text-[var(--muted)] hover:border-[var(--ember)] hover:text-[var(--ember)] disabled:opacity-40">Usar</button>
-            </form>
-            <form method="post" action="{% url 'personagem_usar_recurso' p.id_personagem %}">
-              {% csrf_token %}<input type="hidden" name="recurso" value="{{ r.slug }}"><input type="hidden" name="acao" value="desfazer">
-              <button type="submit" {% if r.atual == r.maximo %}disabled{% endif %} class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-0.5 text-xs text-[var(--muted)] hover:border-[var(--spark)] hover:text-[var(--spark)] disabled:opacity-40">+1</button>
-            </form>
-          </span>
-        </li>
-      {% endfor %}
-    </ul>
-    <div class="mt-3 flex gap-1.5 border-t border-[var(--stroke)]/50 pt-3">
-      <form method="post" action="{% url 'personagem_descansar' p.id_personagem %}">
-        {% csrf_token %}<input type="hidden" name="tipo" value="curto">
-        <button type="submit" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-1.5 text-xs text-[var(--muted)] hover:border-[var(--ember)] hover:text-[var(--ember)]">Descanso Curto</button>
-      </form>
-      <form method="post" action="{% url 'personagem_descansar' p.id_personagem %}">
-        {% csrf_token %}<input type="hidden" name="tipo" value="longo">
-        <button type="submit" class="rounded bg-bonfire-gradient px-3 py-1.5 text-xs font-bold text-white hover:opacity-90">Descanso Longo</button>
-      </form>
-    </div>
-  </div>
-  {% endif %}
-
-  {% if opcao_grupos %}
-  <!-- Escolhas de Classe (opções: metamagia, manobras, segredos, estilos, etc.) -->
-  <h2 id="opcoes" class="mb-1 mt-4 font-serif text-lg font-bold text-[var(--text)]">Escolhas de Classe</h2>
-  <p class="mb-2 text-xs text-[var(--muted)]">Opções concedidas pela sua classe/subclasse (metamagia, manobras, segredos místicos, estilos, etc.). As escolhidas passam a valer na ficha.</p>
-  <div class="space-y-2">
-    {% for g in opcao_grupos %}
-      <div class="rounded-lg border {% if g.pendentes %}border-[var(--ember)]/50{% else %}border-[var(--stroke)]{% endif %} bg-[var(--bg1)] p-3">
-        <div class="mb-1.5 flex flex-wrap items-center justify-between gap-1.5">
-          <h3 class="font-serif text-sm font-bold text-[var(--text)]">{{ g.tipo }}
-            <span class="ml-1 text-xs font-normal text-[var(--muted)]">· {{ g.classe }}</span></h3>
-          <span class="text-xs {% if g.pendentes %}text-[var(--ember)]{% else %}text-[var(--muted)]{% endif %}">{{ g.usados }}/{{ g.limite }} escolhida{{ g.limite|pluralize:"s" }}{% if g.pendentes %} · faltam {{ g.pendentes }}{% endif %}</span>
-        </div>
-        {% if g.escolhidas %}
-        <div class="mb-1.5 flex flex-wrap gap-1.5">
-          {% for e in g.escolhidas %}
-            <span class="inline-flex items-center gap-1 rounded-full bg-[var(--bg0)] px-2 py-0.5 text-xs text-[var(--text)]">{{ e.nome }}
-              <form method="post" action="{% url 'personagem_escolher_opcoes' p.id_personagem %}" class="inline">
-                {% csrf_token %}<input type="hidden" name="acao" value="remover"><input type="hidden" name="escolha" value="{{ e.id }}">
-                <button type="submit" title="Remover" class="text-[var(--flame)] hover:text-[var(--ember)]">×</button>
-              </form>
-            </span>
           {% endfor %}
         </div>
-        {% endif %}
-        {% if g.pendentes and g.disponiveis %}
-        <form method="post" action="{% url 'personagem_escolher_opcoes' p.id_personagem %}" class="flex flex-wrap items-center gap-1.5">
-          {% csrf_token %}
-          <input type="hidden" name="classe" value="{{ g.classe_id }}"><input type="hidden" name="slug" value="{{ g.slug }}">
-          <select name="opcao" required class="flex-1 rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-1.5 text-sm text-[var(--text)]">
-            <option value="">Escolher {{ g.tipo|lower }}…</option>
-            {% for o in g.disponiveis %}<option value="{{ o.val }}"{% if o.pre %} title="Pré-requisito: {{ o.pre }}"{% endif %}>{{ o.nome }}</option>{% endfor %}
-          </select>
-          <button type="submit" class="rounded bg-bonfire-gradient px-3 py-1.5 text-xs font-bold text-white hover:opacity-90">Adicionar</button>
-        </form>
-        {% elif g.pendentes %}
-        <p class="text-xs text-[var(--muted)]">Sem opções disponíveis no catálogo para esta classe/nível.</p>
-        {% endif %}
-      </div>
-    {% endfor %}
-  </div>
-  {% endif %}
-
-  <!-- Inventário -->
-  <h2 class="mb-2 mt-4 font-serif text-lg font-bold text-[var(--text)]">Inventário</h2>
-  <p class="mb-1.5 text-xs text-[var(--muted)]">Itens guardados (não equipados) NÃO concedem bônus. Itens mágicos que exigem sintonização só têm efeito quando sintonizados. Sintonização: <strong class="text-[var(--flame)]">{{ sintonizados_usados }}/3</strong>.</p>
-  {% if request.GET.sint == 'limite' %}<p class="mb-2 rounded border border-[var(--flame)]/50 bg-[var(--flame)]/10 px-3 py-1.5 text-sm text-[var(--flame)]">Limite de 3 itens sintonizados atingido.</p>{% endif %}
-  {% if request.GET.anuncio == 'ok' %}<p class="mb-2 rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-3 py-1.5 text-sm text-[var(--spark)]">Item anunciado no <a href="{% url 'mercado_comunidade' %}" class="underline">Mercado da Comunidade</a>.</p>{% endif %}
-  <div class="rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-3">
-    {% if ficha.inventario %}
-      <ul class="space-y-1 text-sm">
-        {% for it in ficha.inventario %}
-          <li class="flex flex-wrap items-center justify-between gap-1.5 border-b border-[var(--stroke)]/40 py-1">
-            <span class="text-[var(--text)]">{% if it.qtd > 1 %}{{ it.qtd }}× {% endif %}{{ it.nome }}
-              {% if it.raridade %}<span class="ml-1 rounded bg-[var(--ember)]/15 px-1.5 py-0.5 text-xs text-[var(--ember)]">{{ it.raridade }}</span>{% endif %}
-              {% if it.equipado %}<span class="ml-1 rounded bg-[var(--spark)]/20 px-1.5 py-0.5 text-xs text-[var(--spark)]">equipado</span>{% endif %}
-              {% if it.sintonizado %}<span class="ml-1 rounded bg-[var(--flame)]/20 px-1.5 py-0.5 text-xs text-[var(--flame)]">sintonizado</span>{% elif it.requer_sintonizacao %}<span class="ml-1 rounded bg-[var(--stroke)]/40 px-1.5 py-0.5 text-xs text-[var(--muted)]">requer sintonização</span>{% endif %}</span>
-            <span class="flex flex-wrap items-center gap-1">
-              {% if it.pode_equipar %}
-                <form method="post" action="{% url 'personagem_equipar_item' p.id_personagem %}">
-                  {% csrf_token %}<input type="hidden" name="item" value="{{ it.id }}">
-                  <button type="submit" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-0.5 text-xs text-[var(--muted)] hover:border-[var(--ember)] hover:text-[var(--ember)]">{% if it.equipado %}Desequipar{% else %}Equipar{% endif %}</button>
-                </form>
-              {% endif %}
-              {% if it.requer_sintonizacao %}
-                <form method="post" action="{% url 'personagem_sintonizar_item' p.id_personagem %}">
-                  {% csrf_token %}<input type="hidden" name="item" value="{{ it.id }}">
-                  <button type="submit" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-0.5 text-xs text-[var(--muted)] hover:border-[var(--flame)] hover:text-[var(--flame)]">{% if it.sintonizado %}Dessintonizar{% else %}Sintonizar{% endif %}</button>
-                </form>
-              {% endif %}
-              {% if it.magico %}
-                <form method="post" action="{% url 'personagem_anunciar_magico' p.id_personagem %}" onsubmit="return confirm('Anunciar {{ it.nome|escapejs }} no Mercado da Comunidade? O item sai do seu inventário até vender ou cancelar.');">
-                  {% csrf_token %}<input type="hidden" name="item" value="{{ it.id }}">
-                  <button type="submit" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-0.5 text-xs text-[var(--muted)] hover:border-[var(--ember)] hover:text-[var(--ember)]">Anunciar</button>
-                </form>
-              {% elif it.venda_display %}
-                <form method="post" action="{% url 'personagem_vender_item' p.id_personagem %}" onsubmit="return confirm('Vender 1× {{ it.nome|escapejs }} por {{ it.venda_display }} (80%)?');">
-                  {% csrf_token %}<input type="hidden" name="item" value="{{ it.id }}"><input type="hidden" name="qtd" value="1">
-                  <button type="submit" title="Vende 1 por {{ it.venda_display }}" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-0.5 text-xs text-[var(--muted)] hover:border-[var(--spark)] hover:text-[var(--spark)]">Vender</button>
-                </form>
-              {% endif %}
-            </span>
-          </li>
-        {% endfor %}
-      </ul>
-    {% else %}<p class="text-sm text-[var(--muted)]">Inventário vazio.</p>{% endif %}
-  </div>
-
-  <!-- Mercado -->
-  <h2 class="mb-2 mt-4 font-serif text-lg font-bold text-[var(--text)]">Mercado</h2>
-  {% if compra_msg == 'ok' %}<p class="mb-2 rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-3 py-1.5 text-sm text-[var(--spark)]">Compra realizada.</p>
-  {% elif compra_msg == 'aventuras' %}<p class="mb-2 rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-3 py-1.5 text-sm text-[var(--spark)]">Aventuras registradas — ouro e braseiros creditados.</p>
-  {% elif compra_msg == 'vendido' %}<p class="mb-2 rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-3 py-1.5 text-sm text-[var(--spark)]">Item vendido por 80% do valor.</p>
-  {% elif compra_msg == 'saldo' %}<p class="mb-2 rounded border border-[var(--flame)]/50 bg-[var(--flame)]/10 px-3 py-1.5 text-sm text-[var(--flame)]">Saldo insuficiente.</p>
-  {% elif compra_msg == 'magico_venda' %}<p class="mb-2 rounded border border-[var(--flame)]/50 bg-[var(--flame)]/10 px-3 py-1.5 text-sm text-[var(--flame)]">Item mágico vende-se pelo <a href="{% url 'mercado_comunidade' %}" class="underline">Mercado da Comunidade</a>.</p>
-  {% elif compra_msg == 'sem_preco' %}<p class="mb-2 rounded border border-[var(--flame)]/50 bg-[var(--flame)]/10 px-3 py-1.5 text-sm text-[var(--flame)]">Este item não tem preço para venda.</p>
-  {% elif compra_msg == 'invalido' %}<p class="mb-2 rounded border border-[var(--flame)]/50 bg-[var(--flame)]/10 px-3 py-1.5 text-sm text-[var(--flame)]">Item indisponível para compra.</p>{% endif %}
-  <div class="rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-3">
-    <div class="mb-1.5 text-sm text-[var(--muted)]">Carteira: <strong class="text-[var(--flame)]">{{ carteira_display }}</strong></div>
-    <form method="post" action="{% url 'personagem_comprar_item' p.id_personagem %}" class="flex flex-wrap items-end gap-1.5">
-      {% csrf_token %}
-      <label class="text-xs text-[var(--muted)]">Item
-        <select name="item" required class="mt-0.5 block w-72 rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-1.5 text-sm text-[var(--text)]">
-          {% for g in itens_compra %}<optgroup label="{{ g.categoria }}">{% for it in g.itens %}<option value="{{ it.slug }}">{{ it.nome }} — {{ it.preco }}</option>{% endfor %}</optgroup>{% endfor %}
-        </select>
-      </label>
-      <label class="text-xs text-[var(--muted)]">Qtd
-        <input type="number" name="qtd" value="1" min="1" max="99" class="mt-0.5 block w-16 rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-1.5 text-sm text-[var(--text)]">
-      </label>
-      <button type="submit" class="rounded bg-bonfire-gradient px-3 py-1.5 text-sm font-bold text-white hover:opacity-90">Comprar</button>
-    </form>
-
-    {% if itens_magicos_compra %}
-    <div class="mt-2.5 border-t border-[var(--stroke)]/50 pt-4">
-      <div class="mb-1.5 text-sm font-semibold text-[var(--ember)]">Itens Mágicos</div>
-      <form method="post" action="{% url 'personagem_comprar_magico' p.id_personagem %}" class="flex flex-wrap items-end gap-1.5">
-        {% csrf_token %}
-        <label class="text-xs text-[var(--muted)]">Item mágico
-          <select name="item" required class="mt-0.5 block w-72 rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-1.5 text-sm text-[var(--text)]">
-            {% for g in itens_magicos_compra %}<optgroup label="{{ g.raridade }}">{% for it in g.itens %}<option value="{{ it.slug }}">{{ it.nome }}{% if it.requer_sintonizacao %} ⟡{% endif %} — {{ it.preco }}</option>{% endfor %}</optgroup>{% endfor %}
-          </select>
-        </label>
-        <button type="submit" class="rounded bg-bonfire-gradient px-3 py-1.5 text-sm font-bold text-white hover:opacity-90">Comprar</button>
+        <button type="submit" class="cf-btn cf-btn-primary" style="margin-top:0.7rem">Salvar Preparadas</button>
       </form>
-      <p class="mt-1 text-xs text-[var(--muted)]">⟡ exige sintonização. O item entra guardado — equipe (e sintonize, se preciso) para ativar os efeitos.</p>
-    </div>
-    {% endif %}
-  </div>
+      {% if magias_preparadas.limite %}
+      <script>
+        (function(){
+          var lim = {{ magias_preparadas.limite }}, cnt = document.getElementById('prep-count');
+          var chks = Array.prototype.slice.call(document.querySelectorAll('.prep-chk'));
+          function upd(){ var n = chks.filter(function(c){return c.checked;}).length; cnt.textContent = n;
+            chks.forEach(function(c){ if(!c.checked) c.disabled = n >= lim; }); }
+          chks.forEach(function(c){ c.addEventListener('change', upd); }); upd();
+        })();
+      </script>
+      {% endif %}
+      {% endif %}
 
-  {% if transacoes %}
-  <!-- Histórico de Transações -->
-  <h2 class="mb-2 mt-4 font-serif text-lg font-bold text-[var(--text)]">Histórico de Transações</h2>
-  <div class="overflow-hidden rounded-lg border border-[var(--stroke)] bg-[var(--bg1)]">
-    <table class="w-full text-sm">
-      <tbody>
-        {% for t in transacoes %}
-          <tr class="border-b border-[var(--stroke)]/40 last:border-0">
-            <td class="px-2.5 py-1.5 text-[var(--text)]">{{ t.descricao }}</td>
-            <td class="px-2.5 py-1.5 text-right font-mono {% if t.valor_pc >= 0 %}text-[var(--spark)]{% else %}text-[var(--flame)]{% endif %}">{% if t.valor_pc >= 0 %}+{% endif %}{{ t.valor_pc }} PC</td>
-            <td class="hidden px-2.5 py-1.5 text-right text-xs text-[var(--muted)] sm:table-cell">{{ t.criado_em|date:"d/m H:i" }}</td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  {% endif %}
+      {# ============================ RECURSOS DE CLASSE (grava na hora) ============================ #}
+      {% if recursos_consumiveis %}
+      <h2 class="lvl-sech" style="margin-top:1.2rem">Recursos de Classe</h2>
+      {% if request.GET.rest == 'longo' %}<div class="lvl-ok" style="margin-bottom:0.6rem">Descanso longo — recursos recuperados.</div>
+      {% elif request.GET.rest == 'curto' %}<div class="lvl-ok" style="margin-bottom:0.6rem">Descanso curto — recursos de recarga curta recuperados.</div>{% endif %}
+      <div class="lvl-card">
+        <ul class="space-y-1.5">
+          {% for r in recursos_consumiveis %}
+            <li class="flex flex-wrap items-center justify-between gap-1.5">
+              <span class="text-sm text-[var(--text)]">{{ r.nome }}
+                <span class="ml-1 text-xs text-[var(--muted)]">({{ r.classe }} · recarga {% if r.reset == 'short-or-long' %}curta/longa{% elif r.reset == 'short-rest' %}curta{% elif r.reset == 'long-rest' %}longa{% else %}manual{% endif %})</span>
+              </span>
+              <span class="flex items-center gap-1.5">
+                <span class="font-mono text-sm {% if r.atual == 0 %}text-[var(--flame)]{% else %}text-[var(--spark)]{% endif %}">{{ r.atual }}/{{ r.maximo }}</span>
+                <form method="post" action="{% url 'personagem_usar_recurso' p.id_personagem %}">
+                  {% csrf_token %}<input type="hidden" name="recurso" value="{{ r.slug }}">
+                  <button type="submit" {% if r.atual == 0 %}disabled{% endif %} class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-0.5 text-xs text-[var(--muted)] hover:border-[var(--ember)] hover:text-[var(--ember)] disabled:opacity-40">Usar</button>
+                </form>
+                <form method="post" action="{% url 'personagem_usar_recurso' p.id_personagem %}">
+                  {% csrf_token %}<input type="hidden" name="recurso" value="{{ r.slug }}"><input type="hidden" name="acao" value="desfazer">
+                  <button type="submit" {% if r.atual == r.maximo %}disabled{% endif %} class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-0.5 text-xs text-[var(--muted)] hover:border-[var(--spark)] hover:text-[var(--spark)] disabled:opacity-40">+1</button>
+                </form>
+              </span>
+            </li>
+          {% endfor %}
+        </ul>
+        <div class="mt-3 flex gap-1.5 border-t border-[var(--stroke)]/50 pt-3">
+          <form method="post" action="{% url 'personagem_descansar' p.id_personagem %}">
+            {% csrf_token %}<input type="hidden" name="tipo" value="curto">
+            <button type="submit" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-1.5 text-xs text-[var(--muted)] hover:border-[var(--ember)] hover:text-[var(--ember)]">Descanso Curto</button>
+          </form>
+          <form method="post" action="{% url 'personagem_descansar' p.id_personagem %}">
+            {% csrf_token %}<input type="hidden" name="tipo" value="longo">
+            <button type="submit" class="cf-btn cf-btn-primary">Descanso Longo</button>
+          </form>
+        </div>
+      </div>
+      {% endif %}
+
+      {# ============================ INVENTÁRIO (grava na hora) ============================ #}
+      <h2 class="lvl-sech" style="margin-top:1.2rem">Inventário</h2>
+      <p class="lvl-secsub">Itens guardados (não equipados) NÃO concedem bônus. Itens mágicos que exigem sintonização só têm efeito quando sintonizados. Sintonização: <strong class="text-[var(--flame)]">{{ sintonizados_usados }}/3</strong>.</p>
+      {% if request.GET.sint == 'limite' %}<div class="lvl-err" style="margin-bottom:0.6rem">Limite de 3 itens sintonizados atingido.</div>{% endif %}
+      {% if request.GET.anuncio == 'ok' %}<div class="lvl-ok" style="margin-bottom:0.6rem">Item anunciado no <a href="{% url 'mercado_comunidade' %}" class="underline">Mercado da Comunidade</a>.</div>{% endif %}
+      <div class="lvl-card" id="lvl-inventario">
+        {% include 'home/partials/_ficha_inventario.html' %}
+      </div>
+
+      {# ============================ MERCADO (catálogo: busca + chips + cards, compra via fetch) ============================ #}
+      <h2 class="lvl-sech" style="margin-top:1.2rem">Mercado</h2>
+      {% if compra_msg == 'ok' %}<div class="lvl-ok" style="margin-bottom:0.6rem">Compra realizada.</div>
+      {% elif compra_msg == 'aventuras' %}<div class="lvl-ok" style="margin-bottom:0.6rem">Aventuras registradas — ouro e braseiros creditados.</div>
+      {% elif compra_msg == 'vendido' %}<div class="lvl-ok" style="margin-bottom:0.6rem">Item vendido por 80% do valor.</div>
+      {% elif compra_msg == 'saldo' %}<div class="lvl-err" style="margin-bottom:0.6rem">Saldo insuficiente.</div>
+      {% elif compra_msg == 'magico_venda' %}<div class="lvl-err" style="margin-bottom:0.6rem">Item mágico vende-se pelo <a href="{% url 'mercado_comunidade' %}" class="underline">Mercado da Comunidade</a>.</div>
+      {% elif compra_msg == 'sem_preco' %}<div class="lvl-err" style="margin-bottom:0.6rem">Este item não tem preço para venda.</div>
+      {% elif compra_msg == 'invalido' %}<div class="lvl-err" style="margin-bottom:0.6rem">Item indisponível para compra.</div>{% endif %}
+      <div class="lvl-card loja-shell" id="loja-shell" data-loja-root>
+        <div class="loja-head">
+          <span class="loja-wallet">Carteira: <strong class="text-[var(--flame)]" id="loja-carteira">{{ carteira_display }}</strong></span>
+          <div class="loja-tabs" role="tablist">
+            <button type="button" class="loja-tab active" data-loja-tab="mundano" aria-selected="true">Mundano</button>
+            <button type="button" class="loja-tab" data-loja-tab="magico" aria-selected="false">Mágico</button>
+          </div>
+        </div>
+        <div class="loja-feedback" id="loja-feedback" hidden aria-live="polite"></div>
+
+        <input type="search" id="loja-busca" placeholder="Buscar item pelo nome…" autocomplete="off" class="loja-search">
+
+        {# chips MUNDANO: por categoria (tipo) #}
+        <div class="loja-chips" data-loja-chipset="mundano">
+          <button type="button" class="mu-cat-chip active" data-cat="todos">Todos</button>
+          {% for c in loja_mundano_cats %}<button type="button" class="mu-cat-chip" data-cat="{{ c.id }}">{{ c.label }}</button>{% endfor %}
+        </div>
+        {# chips MÁGICO: por raridade + por loja #}
+        <div class="loja-chips" data-loja-chipset="magico" hidden>
+          <button type="button" class="mi-rarity-chip active" data-rarity="todos">Todas raridades</button>
+          {% for r in loja_magico_rars %}<button type="button" class="mi-rarity-chip rarity-{{ r.base }}" data-rarity="{{ r.value }}"><span class="mi-rarity-dot rarity-dot-{{ r.base }}"></span>{{ r.label }}</button>{% endfor %}
+          {% if loja_magico_lojas %}<span class="loja-chip-sep" aria-hidden="true"></span>
+          <button type="button" class="mu-cat-chip active" data-loja="todas">Todas lojas</button>
+          {% for l in loja_magico_lojas %}<button type="button" class="mu-cat-chip" data-loja="{{ l }}">{{ l }}</button>{% endfor %}
+          {% endif %}
+        </div>
+
+        <p class="loja-count"><span id="loja-count">0</span> item(ns)</p>
+
+        {# LISTA MUNDANO #}
+        <div class="loja-list custom-scrollbar" data-loja-list="mundano">
+          {% for it in loja_mundano %}
+          <div class="mu-list-item loja-card" data-cat="{{ it.cat }}"
+               data-search="{{ it.nome|lower }} {{ it.meta|lower }} {{ it.cat_label|lower }}">
+            <div class="mu-list-item-main">
+              <h3 class="mu-list-item-name" title="{{ it.nome }}">{{ it.nome }}</h3>
+              <p class="mu-list-item-meta">{{ it.cat_label }}</p>
+            </div>
+            <span class="mu-list-item-price">{{ it.preco }}</span>
+            <form method="post" action="{% url 'personagem_comprar_item' p.id_personagem %}" class="loja-buy" data-loja-form="mundano">
+              {% csrf_token %}
+              <input type="hidden" name="item" value="{{ it.slug }}">
+              <input type="number" name="qtd" min="1" max="99" value="1" class="loja-qty" aria-label="Quantidade" title="Quantidade">
+              <button type="submit" class="loja-buy-btn" data-nome="{{ it.nome }}">Comprar</button>
+            </form>
+          </div>
+          {% empty %}<p class="loja-empty">Nenhum item mundano à venda.</p>{% endfor %}
+          <p class="loja-empty" data-loja-noresult hidden>Nenhum item encontrado.</p>
+        </div>
+
+        {# LISTA MÁGICO #}
+        <div class="loja-list custom-scrollbar" data-loja-list="magico" hidden>
+          {% for it in loja_magico %}
+          <div class="mi-list-item rarity-{{ it.base_rarity }} loja-card" data-rarity="{{ it.raridade }}" data-loja="{{ it.loja }}"
+               data-search="{{ it.nome|lower }} {{ it.raridade_label|lower }} {{ it.tipo|lower }} {{ it.loja|lower }}">
+            <div class="mi-list-item-main">
+              <h3 class="mi-list-item-name" title="{{ it.nome }}">{{ it.nome }}</h3>
+              <p class="mi-list-item-meta">{{ it.raridade_label }}{% if it.tipo %} · {{ it.tipo }}{% endif %}{% if it.loja %} · {{ it.loja }}{% endif %}</p>
+            </div>
+            {% if it.requer_sintonizacao %}<span class="mi-attune-mark" title="Requer sintonização">S</span>{% endif %}
+            <span class="mi-list-item-price">{{ it.preco }}</span>
+            <form method="post" action="{% url 'personagem_comprar_magico' p.id_personagem %}" class="loja-buy" data-loja-form="magico">
+              {% csrf_token %}
+              <input type="hidden" name="item" value="{{ it.slug }}">
+              <button type="submit" class="loja-buy-btn" data-nome="{{ it.nome }}">Comprar</button>
+            </form>
+          </div>
+          {% empty %}<p class="loja-empty">Nenhum item mágico à venda.</p>{% endfor %}
+          <p class="loja-empty" data-loja-noresult hidden>Nenhum item encontrado.</p>
+        </div>
+
+        <p class="mt-2 text-xs text-[var(--muted)]">Item mágico marcado com <span class="mi-attune-mark" style="width:1rem;height:1rem;font-size:.55rem;vertical-align:middle">S</span> exige sintonização — entra guardado; equipe (e sintonize, se preciso) para ativar os efeitos.</p>
+      </div>
+
+      {% if transacoes %}
+      <h2 class="lvl-sech" style="margin-top:1.2rem">Histórico de Transações</h2>
+      <div class="overflow-hidden lvl-card" style="padding:0">
+        <table class="w-full text-sm">
+          <tbody>
+            {% for t in transacoes %}
+              <tr class="border-b border-[var(--stroke)]/40 last:border-0">
+                <td class="px-2.5 py-1.5 text-[var(--text)]">{{ t.descricao }}</td>
+                <td class="px-2.5 py-1.5 text-right font-mono {% if t.valor_pc >= 0 %}text-[var(--spark)]{% else %}text-[var(--flame)]{% endif %}">{% if t.valor_pc >= 0 %}+{% endif %}{{ t.valor_pc }} PC</td>
+                <td class="hidden px-2.5 py-1.5 text-right text-xs text-[var(--muted)] sm:table-cell">{{ t.criado_em|date:"d/m H:i" }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+
+    </div>{# /.cf-main #}
+
+    {# ============================ PRÉVIA AO VIVO ============================ #}
+    <aside class="cf-preview" id="lvl-preview" aria-live="polite">
+      <div class="cf-preview-head">
+        <span class="cf-preview-title">Prévia da ficha</span>
+        <span class="cf-preview-status" id="lvl-prev-status">estado atual</span>
+      </div>
+      <div class="cf-preview-body">
+        <div class="cf-preview-name">{{ p.nome }} <span class="cf-preview-sub">{% if pc %}{{ pc.id_classe.nome }} {% endif %}Nv <span data-prev-nivel>{{ ficha.nivel_total }}</span></span></div>
+        <div class="cf-vitals">
+          <div class="cf-vital accent"><span class="k">PV</span><span class="v" data-prev-pv>{{ ficha.pv.maximo_calculado }}</span></div>
+          <div class="cf-vital accent"><span class="k">CA</span><span class="v" data-prev-ca>{{ ficha.ca }}</span></div>
+          <div class="cf-vital"><span class="k">Prof.</span><span class="v" data-prev-pb>+{{ ficha.bonus_proficiencia }}</span></div>
+        </div>
+        <div class="cf-attrs" data-prev-attrs></div>
+        <div data-prev-extra></div>
+        <div class="cf-prev-sec" data-prev-pend-sec hidden>
+          <div class="h">Pendências restantes</div>
+          <div data-prev-pend class="lvl-prev-pend"></div>
+        </div>
+      </div>
+    </aside>
+  </div>{# /.cf-layout #}
 </section>
+
+<script>
+  window.LVL = {
+    aplicarUrl: "{% url 'personagem_levelup_aplicar' p.id_personagem %}",
+    previewUrl: "{% url 'personagem_levelup_preview' p.id_personagem %}",
+    pageUrl: "{% url 'editar_ficha' p.id_personagem %}",
+    csrf: "{{ csrf_token }}"
+  };
+</script>
+{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/pages/criador.css' %}?v=2">
+<link rel="stylesheet" href="{% static 'css/pages/itens_mundanos.css' %}?v=1">
+<link rel="stylesheet" href="{% static 'css/pages/itens_magicos.css' %}?v=2">
+<link rel="stylesheet" href="{% static 'css/pages/levelup.css' %}?v=3">
+<script src="{% static 'js/levelup.js' %}?v=1" defer></script>
+<script src="{% static 'js/loja_ficha.js' %}?v=1" defer></script>
 {% endblock %}

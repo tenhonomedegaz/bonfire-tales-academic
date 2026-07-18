@@ -33,6 +33,7 @@
           <h3 class="mi-list-item-name" title="{{ item.nome }}">{{ item.nome }}</h3>
           <p class="mi-list-item-meta">{{ item.get_raridade_display }}{% if item.tipo %} · {{ item.tipo }}{% elif item.slot %} · {{ item.get_slot_display }}{% endif %}</p>
         </div>
+        <span class="mi-list-item-price{% if not item.preco_loja %} is-mission{% endif %}" title="{{ item.preco_loja|default:'Recompensa de missão' }}">{{ item.preco_loja|default:"Recompensa de missão" }}</span>
         {% if item.requer_sintonizacao %}<span class="mi-attune-mark" title="Requer sintonização">S</span>{% endif %}
       </div>
       {% endwith %}
@@ -68,6 +69,10 @@
           {% if item.requer_sintonizacao %}
           <span class="mi-pill mi-pill-attune">Sintonização{% if item.detalhes_sintonizacao %} ({{ item.detalhes_sintonizacao }}){% endif %}</span>
           {% endif %}
+        </div>
+        <div class="mi-detail-price">
+          <span class="mi-detail-price-label">Preço</span>
+          <span class="mi-detail-price-value{% if not item.preco_loja %} is-mission{% endif %}">{{ item.preco_loja|default:"Recompensa de missão" }}</span>
         </div>
         {% if item.descricao_markdown %}
           <div class="bonfire-markdown mi-detail-desc text-[13px] leading-[1.45] text-bonfire-muted" data-markdown-source>{{ item.descricao_markdown|escape }}</div>
