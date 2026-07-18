@@ -842,6 +842,9 @@
   const THEME = { {% for key, item in appearance_themes.items %}'{{ key }}':'{{ item.class }}',{% endfor %} };
   const FRAME = { {% for key, item in appearance_frames.items %}'{{ key }}':'{{ item.class }}',{% endfor %} };
   const EFFECT = { {% for key, item in appearance_effects.items %}'{{ key }}':'{{ item.class }}',{% endfor %} };
+  {# Definicao (accent/accent2/surface/deep/gradiente) de cada tema-dado — mesmo dado #}
+  {# usado por tema_swatch.html. Cores ja sanitizadas (^#[0-9a-fA-F]{6}$) no backend. #}
+  const DEFS = { {% for key, item in appearance_themes.items %}'{{ key }}':{% if item.definicao %}{accent:'{{ item.definicao.accent }}',accent2:'{{ item.definicao.accent2 }}',surface:'{{ item.definicao.surface }}',deep:'{{ item.definicao.deep }}',gradiente:{% if item.definicao.gradiente %}true{% else %}false{% endif %}}{% else %}null{% endif %},{% endfor %} };
   const cA = document.getElementById('ficha-custom-accent');
   const cB = document.getElementById('ficha-custom-accent2');
   const cS = document.getElementById('ficha-custom-surface');
@@ -865,7 +868,15 @@
         + '--sheet-accent:' + accent + ';--sheet-accent-solid:' + cA.value
         + ';--sheet-accent-2:' + cB.value + ';--sheet-surface:' + cS.value + ';--sheet-deep:' + cD.value + ';';
     } else {
-      preview.style.cssText = 'margin-top:.7rem';
+      const d = DEFS[t];
+      if (d) {
+        const accent = d.gradiente ? ('linear-gradient(120deg, ' + d.accent + ', ' + d.accent2 + ')') : d.accent;
+        preview.style.cssText = 'margin-top:.7rem;width:56px;'
+          + '--sheet-accent:' + accent + ';--sheet-accent-solid:' + d.accent
+          + ';--sheet-accent-2:' + d.accent2 + ';--sheet-surface:' + d.surface + ';--sheet-deep:' + d.deep + ';';
+      } else {
+        preview.style.cssText = 'margin-top:.7rem';
+      }
     }
   }
   [...themeRadios, frameSel, effectSel, cA, cB, cS, cD, cG].forEach(el => {

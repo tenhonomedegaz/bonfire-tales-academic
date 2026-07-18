@@ -1163,18 +1163,26 @@
 .hist-table .cur { font-size: 0.7em; font-weight: 600; color: var(--muted); }
 .hist-note { margin-top: 0.5rem; font-size: 0.85rem; color: var(--muted); }
 
-/* ---------- Aparencia customizavel ---------- */
+/* ---------- Aparencia customizavel ----------
+   theme-data = qualquer tema-como-dado (5 legados + novos, via definicao_json,
+   ver home/views.py:_appearance_context); theme-custom = tema Personalizado.
+   Ambos emitem as mesmas --sheet-* vars inline, entao um unico bloco de
+   seletores cobre todo tema presente/futuro sem CSS novo (arquitetura normativa). */
 .ficha.theme-ember .ficha-panel,
 .ficha.theme-arcane .ficha-panel,
 .ficha.theme-verdant .ficha-panel,
-.ficha.theme-moonlit .ficha-panel {
+.ficha.theme-moonlit .ficha-panel,
+.ficha.theme-data .ficha-panel,
+.ficha.theme-custom .ficha-panel {
   background: var(--sheet-surface);
 }
 
 .ficha.theme-ember .ficha-header,
 .ficha.theme-arcane .ficha-header,
 .ficha.theme-verdant .ficha-header,
-.ficha.theme-moonlit .ficha-header {
+.ficha.theme-moonlit .ficha-header,
+.ficha.theme-data .ficha-header,
+.ficha.theme-custom .ficha-header {
   background:
     radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--sheet-accent) 20%, transparent), transparent 55%),
     linear-gradient(180deg, var(--sheet-surface), var(--sheet-deep));
@@ -1183,7 +1191,9 @@
 .ficha.theme-ember .banner-scroll,
 .ficha.theme-arcane .banner-scroll,
 .ficha.theme-verdant .banner-scroll,
-.ficha.theme-moonlit .banner-scroll {
+.ficha.theme-moonlit .banner-scroll,
+.ficha.theme-data .banner-scroll,
+.ficha.theme-custom .banner-scroll {
   background:
     radial-gradient(140% 160% at 0% 0%, color-mix(in srgb, var(--sheet-accent) 16%, transparent), transparent 60%),
     linear-gradient(180deg, var(--sheet-deep), var(--sheet-surface));
@@ -1193,10 +1203,14 @@
 .ficha.theme-arcane .ficha-section-title,
 .ficha.theme-verdant .ficha-section-title,
 .ficha.theme-moonlit .ficha-section-title,
+.ficha.theme-data .ficha-section-title,
+.ficha.theme-custom .ficha-section-title,
 .ficha.theme-ember .hist-table th,
 .ficha.theme-arcane .hist-table th,
 .ficha.theme-verdant .hist-table th,
-.ficha.theme-moonlit .hist-table th {
+.ficha.theme-moonlit .hist-table th,
+.ficha.theme-data .hist-table th,
+.ficha.theme-custom .hist-table th {
   color: var(--sheet-accent);
 }
 
