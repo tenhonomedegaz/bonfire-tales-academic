@@ -2,7 +2,7 @@
 
 - **Arquivo de restauração:** `ref/backups/restore_consolidado_20260718_054605.json` (5020 registros, 21 modelos de conteúdo)
 - **Relatório de máquina:** `ref/backups/restore_consolidado_20260718_054605.report.json`
-- **SHA-256 do arquivo (bytes em disco, CRLF):** `11c68dc1f2bd49886064babb1476b00573f64176ca4494b1fdd0754e104fc0c5`
+- **SHA-256 do arquivo (bytes em disco, CRLF):** `ea2afe7e497e37164c026e48f1e45701fa3d4c53020a550c9bc6004471714cbc`
 - **Fonte:** DEV (`db.sqlite3`) via ORM, Postgres desligado.
 - **Base da análise / prod de referência:** `ref/Characterbuilder testes/backup_completo_20260718_015031.json` (backup fresco da prod).
 - **Rollback:** `ref/Characterbuilder testes/backup_completo_20260718_015031.json`.
