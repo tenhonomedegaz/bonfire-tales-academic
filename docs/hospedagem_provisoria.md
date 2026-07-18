@@ -26,13 +26,13 @@ Quando houver domínio/HTTPS fixo, esses valores podem ser endurecidos para `1` 
 
 ## 2. Rodar o servidor
 
-No PowerShell:
+Execute:
 
-```powershell
-.\scripts\run_production.ps1 -HostAddress 0.0.0.0 -Port 8000
+```
+start_server.bat
 ```
 
-O script instala dependências, aplica migrations, coleta arquivos estáticos e sobe o WSGI com Waitress.
+O script verifica `.env`/`.venv`, garante o Cloudflare Tunnel (`cloudflared tunnel run bonfire-site`) rodando, coleta arquivos estáticos, aplica migrations e sobe o WSGI com Waitress em `0.0.0.0:8000`.
 
 ## 3. Expor para outros staffs
 

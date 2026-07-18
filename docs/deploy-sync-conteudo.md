@@ -117,7 +117,7 @@ de memória. Se houver referência, o relatório mostra a deleção como bloquea
 ### 1. Código + schema
 1. `git pull` na produção.
 2. `manage.py migrate` → aplica 0014–0032 (ADITIVO: cria tabelas novas e colunas
-   novas; **não apaga dado**). É o `start_server.bat`/`sync_db.bat` já faz isso.
+   novas; **não apaga dado**). É o que o `start_server.bat` já faz automaticamente.
 
 ### 2. Checagem de alinhamento de PK (antes de carregar!)
 O `loaddata` só é seguro se cada PK de conteúdo aponta para o MESMO registro nos dois
