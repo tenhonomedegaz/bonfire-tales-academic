@@ -8300,7 +8300,7 @@
     "niveladquirido": 5,
     "table_only": false,
     "tags_json": [
-      "pick:pericia:{classlvl=5:1, classlvl=10:2}"
+      "pick:pericia:{classlvl=5:1, classlvl=10:1}"
     ]
   }
 },

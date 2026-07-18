@@ -314,6 +314,125 @@ def _arma_validate(group, valores):
     return []
 
 
+# ---------------------------------------------------------------------------
+# kind 'pericia' — escolha de proficiência em perícia. O universo é a lista da
+# CLASSE da feature (skills_lvl1) menos as já proficientes, ou uma restrição
+# explícita da própria tag; persiste em TbPersonagemEscolha (tipo='pericia') e é
+# relido como proficiência no derive (_pericias_escolhidas em character_engine).
+# ---------------------------------------------------------------------------
+def _pericia_class_pool(classe):
+    """Perícias da lista de nível 1 da classe (`skills_lvl1{ pick:N de [..] }`),
+    slugs canônicos (hífen). [] se a classe não declara a lista."""
+    from .character_engine import _norm_skill_slug
+    for t in (getattr(classe, 'tags_json', None) or []):
+        m = re.search(r'skills_lvl1\s*\{([^}]*)\}', str(t))
+        if not m:
+            continue
+        ml = re.search(r'\[([^\]]*)\]', m.group(1))
+        if ml:
+            return [_norm_skill_slug(x) for x in ml.group(1).split(',') if x.strip()]
+    return []
+
+
+def _pericia_restrict_slugs(ctx):
+    """Restrição explícita de universo declarada na tag (várias sintaxes vistas na
+    base), ou None quando ausente:
+      sub-lista    `pick:pericia:{a|b|c}:1`
+      `(de:[a,b])` / `de:[a,b]` / `{ de:[a,b] }` / ` de [a,b]`
+      `(=skill:{a | b})`
+    Devolve os slugs canônicos na ordem da tag, ou None (herda a lista da classe)."""
+    from .character_engine import _norm_skill_slug, _SKILL_INFO
+    cand = None
+    sub = (ctx.get('tipo') or '').strip()
+    if sub.startswith('{'):                                    # pick:pericia:{a|b|c}:1
+        cand = re.split(r'[|,]', sub.strip('{}'))
+    tag = str(ctx.get('tag_text') or '')
+    if cand is None:
+        m = re.search(r'\bde\s*:?\s*\[([^\]]*)\]', tag)        # de:[..] / de [..] / (de:[..]) / { de:[..] }
+        if m:
+            cand = m.group(1).split(',')
+    if cand is None:
+        m = re.search(r'=\s*skill\s*:\s*\{([^}]*)\}', tag)     # =skill:{a | b}
+        if m:
+            cand = re.split(r'[|,]', m.group(1))
+    if cand is None:
+        return None
+    out = []
+    for c in cand:
+        s = _norm_skill_slug(c.strip())
+        if s in _SKILL_INFO and s not in out:
+            out.append(s)
+    return out or None
+
+
+def _pericia_owned_slugs(personagem):
+    """Perícias que o personagem JÁ possui (proficiência/expertise registrada em
+    TbPersonagemPericia + escolhas pick:pericia já persistidas) — excluídas do
+    universo de uma nova escolha (regra: a lista MENOS as já proficientes)."""
+    from .character_engine import _slug, _norm_skill_slug
+    if personagem is None:
+        return set()
+    owned = set()
+    for per in personagem.pericias.all():
+        if per.proficiente or per.expertise:
+            owned.add(_norm_skill_slug(_slug(per.nome)))
+    for e in personagem.escolhas.filter(tipo='pericia'):
+        if e.valor:
+            owned.add(_norm_skill_slug(e.valor))
+    return owned
+
+
+def _pericia_universe(ctx):
+    from .character_engine import _SKILL_INFO, _norm_skill_slug
+    restrito = _pericia_restrict_slugs(ctx)
+    classe = ctx.get('classe')
+    if restrito:
+        pool = list(restrito)
+    else:
+        pool = _pericia_class_pool(classe) if classe else []
+        if not pool:
+            pool = list(_SKILL_INFO.keys())
+    owned = _pericia_owned_slugs(ctx.get('personagem'))
+    out = []
+    for sl in pool:
+        sl = _norm_skill_slug(sl)
+        info = _SKILL_INFO.get(sl)
+        if not info or sl in owned:
+            continue
+        out.append({'id': None, 'slug': sl, 'nome': info[0], 'descricao': '', 'pre': ''})
+    return out
+
+
+def _pericia_origem(group):
+    """Origem estável POR FEATURE (separa múltiplas features pick:pericia da mesma
+    classe, ex.: Conhecimento Primitivo vs. outra). Casa persist↔readback."""
+    return str(group.get('origem') or group.get('classe') or 'Perícia')[:150]
+
+
+def _pericia_persist(personagem, group, valores):
+    from .models import TbPersonagemEscolha
+    from .character_engine import _norm_skill_slug
+    origem = _pericia_origem(group)
+    base = int(group.get('slot_base') or 0)
+    for i, sl in enumerate(valores):
+        TbPersonagemEscolha.objects.update_or_create(
+            id_personagem=personagem, origem=origem, tipo='pericia', slot=base + i,
+            defaults={'valor': _norm_skill_slug(str(sl))})
+
+
+def _pericia_readback(personagem, group):
+    if personagem is None:
+        return []
+    from .character_engine import _SKILL_INFO, _norm_skill_slug
+    origem = _pericia_origem(group)
+    out = []
+    for e in personagem.escolhas.filter(tipo='pericia', origem=origem).order_by('slot'):
+        sl = _norm_skill_slug(e.valor or '')
+        nome = _SKILL_INFO.get(sl, (e.valor,))[0]
+        out.append({'id': e.id, 'slot': e.slot, 'valor': e.valor, 'nome': nome})
+    return out
+
+
 PICK_REGISTRY = {
     'opcao': {
         'sink': 'escolha',
@@ -324,10 +443,19 @@ PICK_REGISTRY = {
     },
     'arma': {
         'sink': 'escolha',
+        'label': 'Maestria de Arma',
         'universe': _arma_universe,
         'persist': _arma_persist,
         'validate': _arma_validate,
         'readback': _arma_readback,
+    },
+    'pericia': {
+        'sink': 'escolha',
+        'label': 'Perícia',
+        'universe': _pericia_universe,
+        'persist': _pericia_persist,
+        'validate': _default_validate,
+        'readback': _pericia_readback,
     },
 }
 
@@ -337,13 +465,17 @@ PICK_REGISTRY = {
 # ---------------------------------------------------------------------------
 def _persist_tipo_for(kind, tipo):
     """Chave `tipo` gravada em TbPersonagemEscolha. `opcao:<sub>` grava o slug do sub
-    (ex.: 'estilo_de_luta', 'metamagia'); `arma` grava 'maestria' (compat com o engine)."""
+    (ex.: 'estilo_de_luta', 'metamagia'); `arma` grava 'maestria' (compat com o engine);
+    `pericia` grava sempre 'pericia' (o sub, quando existe, é a lista de restrição)."""
     if kind == 'arma':
         return 'maestria'
+    if kind == 'pericia':
+        return 'pericia'
     return tipo or kind
 
 
-def _build_group(token, source, classe, subclasse, nivel, personagem, escolhas_map, entry):
+def _build_group(token, source, classe, subclasse, nivel, personagem, escolhas_map, entry,
+                 tag_text=''):
     tipo = token.sub
     n = count_for(token.count_expr, nivel, classe, token.resource_ref)
     if not n or n <= 0:
@@ -351,14 +483,20 @@ def _build_group(token, source, classe, subclasse, nivel, personagem, escolhas_m
     ctx = {
         'personagem': personagem, 'classe': classe, 'subclasse': subclasse, 'nivel': nivel,
         'kind': token.kind, 'tipo': tipo, 'constraints': token.constraints,
+        'tag_text': tag_text,
     }
     universo = entry['universe'](ctx)
     if not universo:
         return None
     persist_tipo = _persist_tipo_for(token.kind, tipo)
+    # Rótulo: kinds com rótulo FIXO no registry (`arma`, `pericia`) usam-no; `opcao` deriva
+    # o rótulo do tipo exibido. `arma` não expõe tipo_display (tem painel próprio).
+    label_fixo = entry.get('label')
     if token.kind == 'arma':
-        tipo_display, label = None, 'Maestria de Arma'
-    else:  # opcao
+        tipo_display, label = None, label_fixo
+    elif label_fixo:
+        tipo_display, label = label_fixo, label_fixo
+    else:  # opcao — rótulo dinâmico do tipo
         tipo_display = _slug2tipo_map().get(tipo) or tipo
         label = tipo_display
     group = {
@@ -403,7 +541,7 @@ def resolve_groups(sources, *, classe=None, subclasse=None, nivel=1,
                     continue
                 entry = PICK_REGISTRY[tok.kind]
                 g = _build_group(tok, source, classe, subclasse, nivel,
-                                 personagem, escolhas_map, entry)
+                                 personagem, escolhas_map, entry, tag_text=tag)
                 if g is None:
                     continue
                 vistos.add(chave)

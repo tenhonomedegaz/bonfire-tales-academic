@@ -28,7 +28,7 @@ from home.character_engine import (
 from home.models import (
     TbClasse, TbAntecedente, TbTalento, TbItemMundano, TbOpcaojogo,
     TbPersonagem, TbPersonagemClasse, TbPersonagemMagia, TbPersonagemItem,
-    TbPersonagemTalento,
+    TbPersonagemTalento, TbPersonagemPericia, TbClassehabilidade,
 )
 
 # Array-padrão 15/14/13/12/10/8 = exatos 27 pontos de point-buy.
@@ -603,3 +603,107 @@ class PickTipoSinteticoTests(_CriadorBase):
         pl['picks'] = [{'kind': 'opcao', 'tipo': 'tipo_sintetico', 'valores': [self.slugs[0]]}]
         resp = self._post_criar(self._novo_usuario('sintetico-bad', staff=True), pl)
         self.assertEqual(resp.status_code, 400, resp.content)
+
+
+class PickPericiaTests(_CriadorBase):
+    """kind 'pericia' no PICK_REGISTRY: o Bárbaro Conhecimento Primitivo (N5, +1 no N10)
+    passa a CONCEDER a escolha de verdade — pendência no painel genérico do level-up,
+    universo = lista de perícias do Bárbaro menos as já proficientes, contagem pela
+    fórmula classlvl (cumulativa), persistência em TbPersonagemEscolha e readback como
+    proficiência no derive. Ancora a sintaxe de restrição das outras tags pick:pericia."""
+
+    def _barbaro(self, nivel, apelido='dono-per'):
+        p = TbPersonagem.objects.create(
+            dono=self._novo_usuario('%s-%d' % (apelido, nivel)), nome='Bárbaro N%d' % nivel,
+            nivel=nivel, forca=15, destreza=14, constituicao=13,
+            inteligencia=12, sabedoria=10, carisma=8)
+        TbPersonagemClasse.objects.create(
+            id_personagem=p, id_classe=TbClasse.objects.get(slug='barbaro'),
+            nivel=nivel, principal=True)
+        return p
+
+    def _grupo_pericia(self, p):
+        from home import picks
+        return next(g for g in picks.resolve_personagem(p, kinds={'pericia'}))
+
+    def test_conhecimento_primitivo_universo_menos_proficientes(self):
+        # Bárbaro N10: Conhecimento Primitivo abre 2 slots (classlvl=5:1 + classlvl=10:1
+        # cumulativo = 2); universo = perícias de classe do Bárbaro MENOS as já proficientes.
+        p = self._barbaro(10)
+        TbPersonagemPericia.objects.create(
+            id_personagem=p, nome='Atletismo', atributo='FOR', proficiente=True)
+        g = self._grupo_pericia(p)
+        self.assertEqual(g['origem'], 'Conhecimento Primitivo')
+        self.assertEqual(g['n'], 2)
+        slugs = {u['slug'] for u in g['universo']}
+        self.assertEqual(slugs, {'adestrar-animais', 'intimidacao', 'natureza',
+                                 'percepcao', 'sobrevivencia'})
+        self.assertNotIn('atletismo', slugs, 'perícia já proficiente sai do universo')
+
+    def test_conta_por_formula_classlvl(self):
+        # N5 => 1 (só classlvl=5:1); N10 => 2 (cumulativo). Prova a fórmula sem if.
+        self.assertEqual(self._grupo_pericia(self._barbaro(5, 'n5'))['n'], 1)
+        self.assertEqual(self._grupo_pericia(self._barbaro(10, 'n10'))['n'], 2)
+
+    def test_persist_e_readback_como_proficiencia_no_derive(self):
+        from home import picks
+        from home.character_engine import derive
+        p = self._barbaro(10)
+        antes = {x['nome']: x['proficiente'] for x in derive(p)['pericias']}
+        self.assertFalse(antes['Natureza'])
+        self.assertFalse(antes['Sobrevivência'])
+        g = self._grupo_pericia(p)
+        g['slot_base'] = g['prox_slot']
+        picks.PICK_REGISTRY['pericia']['persist'](p, g, ['natureza', 'sobrevivencia'])
+        self.assertEqual(p.escolhas.filter(tipo='pericia').count(), 2)
+        depois = {x['nome']: x['proficiente'] for x in derive(p)['pericias']}
+        self.assertTrue(depois['Natureza'])
+        self.assertTrue(depois['Sobrevivência'])
+        # idempotência do painel: pendência zera e as escolhidas saem do universo
+        g2 = self._grupo_pericia(p)
+        self.assertEqual((g2['usados'], g2['pendentes']), (2, 0))
+        self.assertNotIn('natureza', {u['slug'] for u in g2['universo']})
+
+    def test_validate_conta_e_pertinencia(self):
+        from home import picks
+        reg = picks.PICK_REGISTRY['pericia']
+        g = self._grupo_pericia(self._barbaro(10))
+        self.assertEqual(reg['validate'](g, ['natureza', 'sobrevivencia']), [])
+        self.assertTrue(reg['validate'](g, ['natureza']), 'conta errada rejeitada')
+        self.assertTrue(reg['validate'](g, ['natureza', 'arcanismo']),
+                        'perícia fora do universo do Bárbaro rejeitada')
+
+    def test_painel_generico_lista_e_submete_sem_if_por_tipo(self):
+        # _opcao_grupos (painel genérico do level-up) LISTA a pendência de perícia e o
+        # POST persiste pelo REGISTRY — mesmo caminho das opções, sem ramo por tipo.
+        p = self._barbaro(10)
+        pg = next(g for g in views._opcao_grupos(p) if g['kind'] == 'pericia')
+        self.assertEqual(pg['tipo'], 'Perícia')
+        self.assertEqual(pg['pendentes'], 2)
+        self.assertTrue(all(o['val'] == o['slug'] for o in pg['disponiveis']))
+        val = pg['disponiveis'][0]['val']
+        self.client.force_login(p.dono)
+        resp = self.client.post(reverse('personagem_escolher_opcoes', args=[p.pk]),
+                                {'classe': pg['classe_id'], 'slug': pg['slug'], 'opcao': val})
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(p.escolhas.filter(tipo='pericia', valor=val).count(), 1)
+
+    def test_sintaxes_de_restricao_de_universo(self):
+        # As sintaxes de restrição presentes na base parseiam para o mesmo universo.
+        from home import picks
+        classe = TbClasse.objects.get(slug='mago')
+        casos = {
+            'pick:pericia:1(de:[atletismo, acrobacia])': {'atletismo', 'acrobacia'},
+            'always_active{ pick:pericia:1 de [percepcao, sobrevivencia] }':
+                {'percepcao', 'sobrevivencia'},
+            'pick:pericia:1{ de:[historia, intuicao] }': {'historia', 'intuicao'},
+            'pick:pericia:1(=skill:{persuasao | intimidacao})': {'persuasao', 'intimidacao'},
+            'pick:pericia:{arcanismo|historia|religiao}:1': {'arcanismo', 'historia', 'religiao'},
+            'pick:pericia:1(de:[adestrar_animais, natureza])': {'adestrar-animais', 'natureza'},
+        }
+        for tag, esperado in casos.items():
+            hab = TbClassehabilidade(id_classe=classe, nome='Feature X',
+                                     niveladquirido=1, tags_json=[tag])
+            g = next(x for x in picks.resolve_groups(
+                [hab], classe=classe, nivel=10, personagem=None) if x['kind'] == 'pericia')
+            self.assertEqual({u['slug'] for u in g['universo']}, esperado, tag)

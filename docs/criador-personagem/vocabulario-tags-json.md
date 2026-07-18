@@ -251,7 +251,7 @@ Abre **N slots**; o catálogo vem do schema.
 | `pick:pericia:N` / `pick:idioma:N` / `pick:ferramenta:N` | listas |
 | `pick:<local>:N` | algo definido com `define{}` (ex.: `pick:aspecto-selvagem:1`) |
 
-Progressão acumulada por nível: `pick:pericia:{classlvl=5:1, classlvl=10:2}`.
+Progressão acumulada por nível: `pick:pericia:{classlvl=5:1, classlvl=10:1}` (1 no 5º, +1 no 10º = 2 no total).
 `N` pode vir de recurso: `pick:opcao:maestria-de-arma:N(=recurso maestria-com-armas)`.
 
 ---

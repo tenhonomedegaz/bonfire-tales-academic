@@ -1701,6 +1701,21 @@ def _saves(classes, atributos, pb, tag_prof=None, all_saves_bonus=0, save_bonus=
     return out
 
 
+def _pericias_escolhidas(personagem):
+    """Perícias escolhidas via `pick:pericia` (TbPersonagemEscolha tipo='pericia') como
+    slugs canônicos de proficiência. É o READBACK do kind 'pericia' que alimenta o
+    derive — mesmo papel de _features_de_opcoes para o kind 'opcao', mas o valor
+    persistido é o slug da perícia (não uma TbOpcaojogo), então entra direto no
+    conjunto de proficiências passadas a _pericias."""
+    if personagem is None:
+        return set()
+    out = set()
+    for e in personagem.escolhas.filter(tipo='pericia'):
+        if e.valor:
+            out.add(_norm_skill_slug(e.valor))
+    return out
+
+
 def _pericias(personagem, atributos, pb, tag_skill_prof=None, check_attr=None, check_bonus=None):
     tag_skill_prof = tag_skill_prof or set()
     check_attr = check_attr or {}
@@ -1882,7 +1897,9 @@ def derive(personagem):
     # pós-tags
     tag = state['_tag']
     state['saves'] = _saves(classes, atributos, pb, tag['save_prof'], tag['all_saves'], tag['save_bonus'])
-    state['pericias'] = _pericias(personagem, atributos, pb, tag['skill_prof'], tag['check_attr'], tag['check_bonus'])
+    state['pericias'] = _pericias(personagem, atributos, pb,
+                                  tag['skill_prof'] | _pericias_escolhidas(personagem),
+                                  tag['check_attr'], tag['check_bonus'])
     state['ataques'] = _ataques(tag, atributos, pb, state['recursos'])
     idiomas, ferramentas, outras = _proficiencias(personagem)
     state['idiomas'] = sorted(set(idiomas) | set(tag['idiomas']))

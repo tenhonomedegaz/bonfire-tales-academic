@@ -2123,7 +2123,7 @@
     "pick:pericia:N | pick:idioma:N | pick:ferramenta:N": "escolhe de listas_catálogo",
     "pick:<local>:N": "escolhe de algo definido por define{} (ex.: pick:aspecto_selvagem:1)",
     "pick:pericia_expertise:{<nivel>:<qtd>}": "marca perícias p/ expertise (motor dobra PB — regra global)",
-    "progressao": "pick:pericia:{classlvl=5:1, classlvl=10:2} acumula por nível",
+    "progressao": "pick:pericia:{classlvl=5:1, classlvl=10:1} acumula por nível",
     "N_de_recurso": "pick:arma:N(=recurso maestria_com_armas) — Maestria de Arma escolhe ARMAS (não maestrias abstratas); cada arma dá acesso a todas as maestrias dela, 1 por ataque",
     "pick:spell_mod:{int|wis|cha}": "o jogador escolhe o atributo de conjuração de uma magia concedida por talento (par de spell_mod:asi_attr). Aprovado 2026_06_18."
   },

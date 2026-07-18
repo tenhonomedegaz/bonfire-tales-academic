@@ -310,7 +310,7 @@
           <input type="hidden" name="classe" value="{{ g.classe_id }}"><input type="hidden" name="slug" value="{{ g.slug }}">
           <select name="opcao" required class="flex-1 rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-1.5 text-sm text-[var(--text)]">
             <option value="">Escolher {{ g.tipo|lower }}…</option>
-            {% for o in g.disponiveis %}<option value="{{ o.id }}"{% if o.pre %} title="Pré-requisito: {{ o.pre }}"{% endif %}>{{ o.nome }}</option>{% endfor %}
+            {% for o in g.disponiveis %}<option value="{{ o.val }}"{% if o.pre %} title="Pré-requisito: {{ o.pre }}"{% endif %}>{{ o.nome }}</option>{% endfor %}
           </select>
           <button type="submit" class="rounded bg-bonfire-gradient px-3 py-1.5 text-xs font-bold text-white hover:opacity-90">Adicionar</button>
         </form>

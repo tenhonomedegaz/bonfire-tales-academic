@@ -3846,31 +3846,38 @@ def _pick_count_expr(expr, level):
     return None
 
 
-def _opcao_grupos(personagem):
-    """Grupos de escolha de OPÇÕES de classe de nível alto (metamagia, manobras, segredos
-    místicos/de caçador, infusões, estilos de ki, técnicas de furtividade, estilo de luta).
+# kinds `pick:*` exibidos no painel genérico de Escolhas de Classe do level-up
+# (fora `arma`, que tem painel dedicado de Maestria). Adicionar um kind novo aqui é
+# tudo o que o painel precisa — o shape é montado genericamente a partir do REGISTRY.
+_OPCAO_PANEL_KINDS = {'opcao', 'pericia'}
 
-    ADAPTER: a varredura de `pick:opcao:<slug>:N` (habilidades de classe/subclasse até o
-    nível, limite por recurso/expressão, universo TbAcessoopcao, escolhas já feitas) mora
-    agora no resolvedor genérico (`home.picks`) — FONTE ÚNICA compartilhada com o criador.
-    Aqui só reformatamos os PickGroup no shape que `editar_ficha.html` espera."""
+
+def _opcao_grupos(personagem):
+    """Grupos de escolha de classe de nível alto exibidos no editar-ficha: opções
+    (metamagia, manobras, segredos, estilos…) E perícias (`pick:pericia`, ex.: Bárbaro
+    Conhecimento Primitivo). FONTE ÚNICA: o resolvedor genérico (`home.picks`) descobre
+    os grupos pelas tags; aqui só reformatamos os PickGroup no shape do template, sem
+    ramificar por tipo — o submit token de cada opção é `val` (id da opção OU slug)."""
     from . import picks as _picks
     grupos = []
     if personagem is None:
         return grupos
     slug2tipo = _picks._slug2tipo_map()
-    for g in _picks.resolve_personagem(personagem, kinds={'opcao'}):
+    for g in _picks.resolve_personagem(personagem, kinds=_OPCAO_PANEL_KINDS):
         slug = g['persist_tipo']
-        tipo_disp = slug2tipo.get(slug) or slug2tipo.get(_picks.normalize_slug(slug)) or slug
+        tipo_disp = (g.get('tipo_display') or slug2tipo.get(slug)
+                     or slug2tipo.get(_picks.normalize_slug(slug)) or slug)
         escs = g['escolhidas']
         esc_ids = {e.get('id_opcao') for e in escs if e.get('id_opcao')}
         esc_slugs = {e.get('valor') for e in escs if e.get('valor')}
-        disponiveis = [{'id': o['id'], 'nome': o['nome'], 'descricao': o.get('descricao') or '',
+        disponiveis = [{'id': o['id'], 'slug': o['slug'],
+                        'val': str(o['id']) if o.get('id') is not None else o['slug'],
+                        'nome': o['nome'], 'descricao': o.get('descricao') or '',
                         'pre': o.get('pre') or ''}
                        for o in g['universo']
                        if o['id'] not in esc_ids and o['slug'] not in esc_slugs]
         grupos.append({
-            'classe_id': g['classe_id'], 'classe': g['classe'], 'slug': slug,
+            'classe_id': g['classe_id'], 'classe': g['classe'], 'slug': slug, 'kind': g['kind'],
             'tipo': tipo_disp, 'limite': g['n'], 'usados': g['usados'],
             'pendentes': g['pendentes'], 'prox_slot': g['prox_slot'],
             'escolhidas': [{'id': e['id'], 'nome': e['nome']} for e in escs],
@@ -4246,9 +4253,12 @@ def personagem_escolher_talento_racial(request, pk):
 @login_required(login_url='/login/')
 @require_POST
 def personagem_escolher_opcoes(request, pk):
-    """Adiciona/remove uma OPÇÃO de classe (metamagia, manobra, segredo, estilo de luta…).
-    Valida contra os grupos derivados (limite + lista de acessíveis)."""
-    from .models import TbPersonagemEscolha, TbOpcaojogo
+    """Adiciona/remove uma escolha de classe do painel genérico (opção — metamagia,
+    manobra, segredo, estilo de luta… — OU perícia de `pick:pericia`). Valida contra o
+    grupo derivado (limite + universo) e PERSISTE pelo REGISTRY do kind (FONTE ÚNICA,
+    sem ramificar por tipo): o token submetido `val` é o id da opção OU o slug da perícia."""
+    from .models import TbPersonagemEscolha
+    from . import picks as _picks
     p = _ficha_editavel(request, pk)
     destino = reverse('editar_ficha', args=[pk]) + '#opcoes'
     if request.POST.get('acao') == 'remover':
@@ -4257,18 +4267,28 @@ def personagem_escolher_opcoes(request, pk):
         _refresh_vitais_derivados(p)
         return redirect(destino)
     slug = (request.POST.get('slug') or '').strip()
-    op = TbOpcaojogo.objects.filter(id_opcao=request.POST.get('opcao')).first()
-    if not (slug and op):
+    val = (request.POST.get('opcao') or request.POST.get('val') or '').strip()
+    if not (slug and val):
         return redirect(destino)
-    grupo = next((g for g in _opcao_grupos(p)
-                  if g['slug'] == slug and str(g['classe_id']) == str(request.POST.get('classe'))), None)
+    # grupo BRUTO do resolvedor (traz origem/slot_base/universo p/ o persist do REGISTRY)
+    grupo = next((g for g in _picks.resolve_personagem(p, kinds=_OPCAO_PANEL_KINDS)
+                  if g['persist_tipo'] == slug and str(g['classe_id']) == str(request.POST.get('classe'))), None)
     if not grupo or grupo['pendentes'] < 1:
         return redirect(destino)
-    if op.id_opcao not in {d['id'] for d in grupo['disponiveis']}:
+    universo_tokens = ({str(u['slug']) for u in grupo['universo']}
+                       | {str(u['id']) for u in grupo['universo'] if u.get('id') is not None})
+    # já-escolhidas por QUALQUER forma do token (id da opção ou slug/valor) p/ não duplicar
+    escolhidos = set()
+    for e in grupo['escolhidas']:
+        if e.get('valor') is not None:
+            escolhidos.add(str(e['valor']))
+        if e.get('id_opcao') is not None:
+            escolhidos.add(str(e['id_opcao']))
+    if val not in universo_tokens or val in escolhidos:
         return redirect(destino)
-    TbPersonagemEscolha.objects.update_or_create(
-        id_personagem=p, origem='%s: %s' % (grupo['classe'], grupo['tipo']),
-        tipo=slug, slot=grupo['prox_slot'], defaults={'id_opcao': op, 'valor': op.slug})
+    # anexa no próximo slot livre (não sobrescreve escolhas anteriores)
+    grupo['slot_base'] = grupo['prox_slot']
+    _picks.PICK_REGISTRY[grupo['kind']]['persist'](p, grupo, [val])
     _sync_magias_concedidas(p)
     _refresh_vitais_derivados(p)
     return redirect(destino)
