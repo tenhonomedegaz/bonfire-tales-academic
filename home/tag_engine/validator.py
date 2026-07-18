@@ -450,6 +450,18 @@ def _reference_value_indices(tokens):
                         break
                 elif tj.type == "WORD" and depth >= 1:
                     skip.add(j)
+    # WORD dentro de lista `[...]`: é SLUG de referência (perícias/idiomas/ferramentas/opções
+    # por slug — ex.: skills_lvl1{pick:2 de [adestrar-animais, ...]}). Referência de perícia em
+    # posição de slug é o ÚNICO lugar onde '-' é permitido pela regra do projeto (não é
+    # identificador do DSL), então fica fora do strict-name e da normalização.
+    bdepth = 0
+    for j, tj in enumerate(tokens):
+        if tj.type == "LBRACK":
+            bdepth += 1
+        elif tj.type == "RBRACK":
+            bdepth = max(0, bdepth - 1)
+        elif tj.type == "WORD" and bdepth >= 1:
+            skip.add(j)
     return skip
 
 

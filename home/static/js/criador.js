@@ -498,13 +498,33 @@
         // Perícias de CLASSE e de ANTECEDENTE são mutuamente exclusivas: uma já escolhida
         // num grupo fica bloqueada no outro (além do limite de cada grupo).
         function boxesOf(wrap) { return Array.prototype.slice.call(wrap.querySelectorAll('input[type=checkbox]')); }
+        // Perícias que a raça/linhagem/essência atual concede automaticamente → {slug: fonte}.
+        // Fonte única de bloqueio: alimenta applySkillRules (classe + antecedente) e as escolhas raciais.
+        function grantedSkills() {
+            var out = {};
+            function add(list) { (list || []).forEach(function (g) { if (!(g.slug in out)) out[g.slug] = g.fonte; }); }
+            add((CAT.pericias_concedidas_raca || {})[racaSel.value]);
+            if (!linWrap.hidden && linSel.value) add((CAT.pericias_concedidas_linhagem || {})[linSel.value]);
+            if (!essWrap.hidden && essSel.value) add((CAT.pericias_concedidas_essencia || {})[essSel.value]);
+            return out;
+        }
+        function markGrant(b, fonte) {
+            var lab = b.parentNode;
+            if (fonte) {
+                b.checked = false;
+                if (lab) { lab.title = 'já concedida por ' + fonte; lab.classList.add('cf-skill-granted'); }
+            } else if (lab) { lab.removeAttribute('title'); lab.classList.remove('cf-skill-granted'); }
+        }
         function applySkillRules() {
             var classN = (classeBySlug[classeSel.value] || {}).pericias_n || 0;
+            var granted = grantedSkills();
             var cb = boxesOf(skillsWrap), bb = boxesOf(bgWrap);
+            // 1º passo: desmarca+trava as já concedidas pela raça (não podem ser re-selecionadas)
+            cb.concat(bb).forEach(function (b) { markGrant(b, granted[b.value]); });
             var cChk = cb.filter(function (b) { return b.checked; }), bChk = bb.filter(function (b) { return b.checked; });
             var cSel = cChk.map(function (b) { return b.value; }), bSel = bChk.map(function (b) { return b.value; });
-            cb.forEach(function (b) { b.disabled = !b.checked && (cChk.length >= classN || bSel.indexOf(b.value) !== -1); });
-            bb.forEach(function (b) { b.disabled = !b.checked && (bChk.length >= bgSkillN() || cSel.indexOf(b.value) !== -1); });
+            cb.forEach(function (b) { b.disabled = !b.checked && (!!granted[b.value] || cChk.length >= classN || bSel.indexOf(b.value) !== -1); });
+            bb.forEach(function (b) { b.disabled = !b.checked && (!!granted[b.value] || bChk.length >= bgSkillN() || cSel.indexOf(b.value) !== -1); });
             if (skillCounter) skillCounter.textContent = classN ? '(' + cChk.length + '/' + classN + ')' : '';
             var bgC = document.querySelector('[data-bgskill-counter]'); if (bgC) bgC.textContent = '(' + bChk.length + '/' + bgSkillN() + ')';
         }
@@ -541,10 +561,19 @@
 
         var trSel = el('cf-talento-raca'), trVazio = el('cf-talento-raca-vazio'), trDesc = el('cf-talento-raca-desc');
         var talentoRacaByNome = {};
+        // Talento da RAÇA base restrito a linhagens específicas (via pré-requisito): só aparece
+        // se o personagem tiver uma dessas linhagens. Quem escolheu Essência (sem linhagem) não
+        // vê exclusivos de linhagem, mas continua vendo os que aceitam 'ou Essência'.
+        function talentoRacaVisivel(t) {
+            if (!t.linhagens || !t.linhagens.length) return true;
+            if (!linWrap.hidden && linSel.value && t.linhagens.indexOf(linSel.value) !== -1) return true;
+            if (t.aceita_essencia && !essWrap.hidden && essSel.value) return true;
+            return false;
+        }
         function fillTalentosRaca() {
             // junta talentos da RAÇA (sempre) + da linhagem e da essência atualmente selecionadas
             var lst = [];
-            ((CAT.talentos_raca || {})[racaSel.value] || []).forEach(function (t) { lst.push(t); });
+            ((CAT.talentos_raca || {})[racaSel.value] || []).forEach(function (t) { if (talentoRacaVisivel(t)) lst.push(t); });
             if (!linWrap.hidden && linSel.value)
                 ((CAT.talentos_linhagem || {})[linSel.value] || []).forEach(function (t) { lst.push(t); });
             if (!essWrap.hidden && essSel.value) {
@@ -570,7 +599,9 @@
         var racialGroups = [];
         function racialOptionsFor(tipo, de) {
             if (tipo === 'pericia') {
-                var ps = CAT.pericias;
+                // perícia já concedida pela raça/linhagem/essência não é oferecida de novo
+                var granted = grantedSkills();
+                var ps = CAT.pericias.filter(function (p) { return !(p.slug in granted); });
                 if (de && de.length) ps = ps.filter(function (p) { return de.indexOf(p.slug) !== -1; });
                 return ps.map(function (p) { return { value: p.slug, label: p.nome }; });
             }
@@ -622,7 +653,11 @@
             });
             return out;
         }
-        function refreshRaceDependent() { fillTalentosRaca(); renderRacialChoices(); }
+        function refreshRaceDependent() {
+            fillTalentosRaca(); renderRacialChoices();
+            // as perícias concedidas dependem da raça/linhagem/essência: reavalia bloqueios
+            applySkillRules(); refreshExpertise();
+        }
 
         linSel.addEventListener('change', refreshRaceDependent);
         essSel.addEventListener('change', refreshRaceDependent);
@@ -631,23 +666,56 @@
 
         // ================= Painéis de INFO (escolha informada — U2) =================
         function escHtml(s) { var d = document.createElement('div'); d.textContent = (s == null ? '' : String(s)); return d.innerHTML; }
-        function fillInfo(box, opts) {
-            if (!box) return;
-            if (!opts) { box.hidden = true; box.innerHTML = ''; return; }
+        function infoMetaHtml(meta) {
+            return '<div class="cf-info-meta">' + meta.map(function (m) {
+                return '<span class="cf-chip">' + escHtml(m.k) + ' <b>' + escHtml(m.v) + '</b></span>';
+            }).join('') + '</div>';
+        }
+        function infoLoreHtml(opts) {
             var h = '';
             if (opts.tagline) h += '<div class="cf-info-tagline">' + escHtml(String(opts.tagline).replace(/[*_`>#]/g, '').trim()) + '</div>';
             if (opts.resumo) h += '<div class="cf-info-resumo">' + escHtml(opts.resumo) + '</div>';
-            if (opts.meta && opts.meta.length) {
-                h += '<div class="cf-info-meta">' + opts.meta.map(function (m) {
-                    return '<span class="cf-chip">' + escHtml(m.k) + ' <b>' + escHtml(m.v) + '</b></span>';
-                }).join('') + '</div>';
+            if (opts.meta && opts.meta.length) h += infoMetaHtml(opts.meta);
+            return h;
+        }
+        function infoTraitsHtml(traits) {
+            return '<div class="cf-info-list">' + traits.map(function (t) {
+                return '<div class="cf-info-trait"><b>' + escHtml(t.nome) + '</b>' +
+                    (t.desc ? ' <span>— ' + escHtml(t.desc) + '</span>' : '') + '</div>';
+            }).join('') + '</div>';
+        }
+        var _infoTab = 'tracos';  // preferência de aba (Traços default), persiste entre re-renders
+        function fillInfoTabs(box, opts) {
+            var traitsHtml = (opts.traits && opts.traits.length) ? infoTraitsHtml(opts.traits) : '';
+            var loreHtml = infoLoreHtml(opts);
+            if (!traitsHtml) {  // sem traços mecânicos (ex.: essência sem traços): só a lore, sem abas
+                box.innerHTML = loreHtml || '<div class="cf-info-resumo">Sem descrição cadastrada.</div>';
+                box.hidden = false; return;
             }
-            if (opts.traits && opts.traits.length) {
-                h += '<div class="cf-info-list">' + opts.traits.map(function (t) {
-                    return '<div class="cf-info-trait"><b>' + escHtml(t.nome) + '</b>' +
-                        (t.desc ? ' <span>— ' + escHtml(t.desc) + '</span>' : '') + '</div>';
-                }).join('') + '</div>';
-            }
+            var tab = _infoTab;
+            box.innerHTML =
+                '<div class="cf-info-tabs" role="tablist">' +
+                  '<button type="button" class="cf-info-tab' + (tab === 'tracos' ? ' is-active' : '') + '" data-info-tab="tracos">Traços</button>' +
+                  '<button type="button" class="cf-info-tab' + (tab === 'lore' ? ' is-active' : '') + '" data-info-tab="lore">Lore</button>' +
+                '</div>' +
+                '<div class="cf-info-pane" data-info-pane="tracos"' + (tab === 'tracos' ? '' : ' hidden') + '>' + traitsHtml + '</div>' +
+                '<div class="cf-info-pane" data-info-pane="lore"' + (tab === 'lore' ? '' : ' hidden') + '>' +
+                    (loreHtml || '<div class="cf-info-resumo">Sem lore cadastrada.</div>') + '</div>';
+            box.hidden = false;
+            Array.prototype.forEach.call(box.querySelectorAll('.cf-info-tab'), function (btn) {
+                btn.addEventListener('click', function () {
+                    _infoTab = btn.getAttribute('data-info-tab');
+                    Array.prototype.forEach.call(box.querySelectorAll('.cf-info-tab'), function (b) { b.classList.toggle('is-active', b === btn); });
+                    Array.prototype.forEach.call(box.querySelectorAll('.cf-info-pane'), function (p) { p.hidden = (p.getAttribute('data-info-pane') !== _infoTab); });
+                });
+            });
+        }
+        function fillInfo(box, opts) {
+            if (!box) return;
+            if (!opts) { box.hidden = true; box.innerHTML = ''; return; }
+            if (opts.tabs) { fillInfoTabs(box, opts); return; }
+            var h = infoLoreHtml(opts);
+            if (opts.traits && opts.traits.length) h += infoTraitsHtml(opts.traits);
             box.innerHTML = h || '<div class="cf-info-resumo">Sem descrição cadastrada.</div>';
             box.hidden = false;
         }
@@ -659,11 +727,13 @@
                 var lobj = (r.linhagens || []).filter(function (l) { return l.slug === linSel.value; })[0];
                 if (lobj && lobj.desc) traits.unshift({ nome: 'Linhagem: ' + lobj.nome, desc: lobj.desc });
             }
-            fillInfo(el('cf-raca-info'), { tagline: r.tagline, resumo: r.resumo, traits: traits.slice(0, 6) });
+            // Traços são o conteúdo principal (aba default); lore na segunda aba. Sem corte a 6.
+            fillInfo(el('cf-raca-info'), { tabs: true, tagline: r.tagline, resumo: r.resumo, traits: traits });
         }
         function renderEssenciaInfo() {
             var e = essenciaBySlug[essSel.value];
-            fillInfo(el('cf-essencia-info'), (essWrap.hidden || !e) ? null : { tagline: 'Essência: ' + e.nome, resumo: e.resumo });
+            fillInfo(el('cf-essencia-info'), (essWrap.hidden || !e) ? null
+                : { tabs: true, tagline: 'Essência: ' + e.nome, resumo: e.resumo, traits: (e.tracos || []).slice() });
         }
         function renderClasseInfo() {
             var c = classeBySlug[classeSel.value];

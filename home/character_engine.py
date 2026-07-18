@@ -80,6 +80,18 @@ _SKILL_INFO = {
     'atuacao': ('Atuação', 'CAR'), 'persuasao': ('Persuasão', 'CAR'),
 }
 
+
+def _norm_skill_slug(s):
+    """Normaliza um slug de perícia para a chave canônica de _SKILL_INFO.
+
+    Referência de perícia em posição de slug é o ÚNICO lugar onde '-' é o
+    separador (ex.: 'adestrar-animais'). Conteúdo escrito com '_' por engano
+    (adestrar_animais) casaria None em _SKILL_INFO e a perícia seria descartada
+    em silêncio — normalizar '_'→'-' antes de qualquer lookup blinda contra isso.
+    """
+    s = (s or '').strip().lower()
+    return s.replace('_', '-') if s not in _SKILL_INFO else s
+
 _ACTIVE_BLOCKS = ('while_active', 'while', 'instant', 'cast', 'aura', 'effects')
 _ACTIVE_MARKERS = ('trigger=', 'instant{', 'while_active{', 'while{', 'cast{', 'action=', 'on:')
 # slugs-placeholder/indireção não resolvidos que não devem virar tipo literal
@@ -1288,6 +1300,23 @@ def _parse_defines(text):
     return out
 
 
+def _strip_defines(text):
+    """Remove os spans define{...}/define:weapon{...} do texto (via _match_close).
+    Usado para tirar o CORPO do define da varredura de verbos passivos: o menu
+    (list{}/table{}) de um define não é concessão estática e não deve vazar
+    prof:/resist:/sense:/etc. (ex.: Máscara de Guerra listava as 4 perícias). O
+    define já foi consumido por _parse_defines/_classify_define separadamente."""
+    for _ in range(40):
+        m = re.search(r'define(:weapon)?\s*\{', text)
+        if not m:
+            break
+        bc = _match_close(text, m.end() - 1)
+        if bc < 0:
+            break  # chave não fecha: aborta para não remover demais
+        text = text[:m.start()] + text[bc + 1:]
+    return text
+
+
 def _classify_define(is_weapon, nome, corpo, ctx):
     """Classifica o corpo de um define{}. 'slug'->indireção (resist:elemento),
     'pool'->recurso (max/reset), 'scalar'->número; demais ignorados na ficha."""
@@ -1382,7 +1411,8 @@ def apply_tags(state, features, personagem=None, escolhas=None):
     coll = {'skill_prof': set(), 'save_prof': set(), 'all_saves': 0, 'save_bonus': {}, 'check_attr': {},
             'check_bonus': {}, 'idiomas': [], 'ferramentas': [], 'armaduras': [], 'armas': [],
             'initiative': 0, 'move_modes': {}, 'desvantagens': [],
-            'n_ataques': 0, 'ataque_dado': {}, 'ataque_attr': {}}
+            'n_ataques': 0, 'ataque_dado': {}, 'ataque_attr': {},
+            'atk_bonus': {}, 'dmg_bonus': {}}  # bônus PLANO de acerto/dano por escopo (item)
     hp_bonus, resist, imune, cond_imune, vantagens, notas = [], [], [], [], [], []
     sentidos, ca_cands, recursos_tag = {}, [], {}
     resist_condicionais = []  # (tipo, se_ja_tem, senao) -> avaliados após o loop principal
@@ -1418,6 +1448,12 @@ def apply_tags(state, features, personagem=None, escolhas=None):
                     locais[nm] = corpo
                 elif kind == 'pool' and payload['max'] is not None:
                     recursos_tag['%s: %s' % (feat_nome, nm)] = payload
+        # tira o corpo dos define{} da varredura de verbos: o menu (list{}/table{})
+        # não é concessão estática — sem isto, prof:/resist:/sense:/save_prof:/etc.
+        # dentro de um define vazam para os números fixos (bug da Máscara de Guerra,
+        # que dava Religião/Natureza/Arcanismo/Enganação de uma vez). O slug/pool
+        # útil já foi lido acima; verbos-irmãos FORA do define são preservados.
+        segs = [_strip_defines(seg) for seg in segs]
 
         # gate de ESCUDO no nível da feature (ca= e restriction são tags irmãs). A
         # defesa-sem-armadura é IMPLICITAMENTE vetada por armadura (toda ca= é base
@@ -1488,8 +1524,8 @@ def apply_tags(state, features, personagem=None, escolhas=None):
                                 'tool': coll['ferramentas'], 'idioma': coll['idiomas']}.get(chave)
                         if alvo is not None:
                             alvo.append(valor)
-                    elif chave in _SKILL_INFO:
-                        coll['skill_prof'].add(chave)
+                    elif _norm_skill_slug(chave) in _SKILL_INFO:
+                        coll['skill_prof'].add(_norm_skill_slug(chave))
                     elif chave.startswith('armadura'):
                         coll['armaduras'].append(chave)
                     elif chave.startswith('arma'):
@@ -1546,6 +1582,16 @@ def apply_tags(state, features, personagem=None, escolhas=None):
                 for m in re.finditer(r'(unarmed_strike|natural)\.(?:attr|dmg_attr|check_attr:atk):=\s*([a-z]{3})', seg):
                     if m.group(2) in _EN_SIG:
                         coll['ataque_attr'][m.group(1).replace('_', '-')] = _EN_SIG[m.group(2)]
+                # Bônus PLANO de acerto/dano vindo de item mágico (Envoltórios, Tatuagem,
+                # arma +N): `unarmed(.atk|.dmg):+N`, `unarmed_strike(...)` e `weapon(...)`.
+                # Acumula por escopo — 'unarmed-strike' (casa unarmed/unarmed_strike) e
+                # 'weapon' — para _ataques somar no perfil correspondente.
+                for m in re.finditer(r'(?<![a-z_])(unarmed_strike|unarmed|weapon)\.atk:\s*\+(\d+)', seg):
+                    escopo = 'weapon' if m.group(1) == 'weapon' else 'unarmed-strike'
+                    coll['atk_bonus'][escopo] = coll['atk_bonus'].get(escopo, 0) + int(m.group(2))
+                for m in re.finditer(r'(?<![a-z_])(unarmed_strike|unarmed|weapon)\.dmg:\s*\+(\d+)', seg):
+                    escopo = 'weapon' if m.group(1) == 'weapon' else 'unarmed-strike'
+                    coll['dmg_bonus'][escopo] = coll['dmg_bonus'].get(escopo, 0) + int(m.group(2))
                 # Vantagens / desvantagens / falas
                 for m in re.finditer(r'(?<![a-z_-])adv:([a-z0-9_-]+(?:\{[^}]*\})?(?:\([^)]*\))?)', seg):
                     vantagens.append('%s — %s' % (m.group(1), feat_nome))
@@ -1606,6 +1652,8 @@ def apply_tags(state, features, personagem=None, escolhas=None):
 
 def _ataques(coll, atributos, pb, recursos=None):
     recursos = recursos or {}
+    atk_bonus = coll.get('atk_bonus') or {}
+    dmg_bonus = coll.get('dmg_bonus') or {}
     perfis = []
     for escopo in sorted(set(coll['ataque_dado']) | set(coll['ataque_attr'])):
         sig = coll['ataque_attr'].get(escopo, 'FOR')
@@ -1616,10 +1664,16 @@ def _ataques(coll, atributos, pb, recursos=None):
             slug = mres.group(1)
             achado = next((v for k, v in recursos.items() if _slug(k.split(':')[-1]) == slug), None)
             dado = str(achado) if achado else 'dado de %s' % slug.replace('-', ' ')
+        ab = atk_bonus.get(escopo, 0)  # bônus plano de item (Envoltórios/Tatuagem etc.)
+        db = dmg_bonus.get(escopo, 0)
         perfis.append({'escopo': escopo,
                        'nome': 'Ataque desarmado' if escopo == 'unarmed-strike' else 'Ataque natural',
-                       'atributo': sig, 'dado': dado, 'bonus_ataque': mod + pb,
-                       'dano': '%s %+d' % (dado, mod) if dado != '—' else '—'})
+                       'atributo': sig, 'dado': dado, 'bonus_ataque': mod + pb + ab,
+                       'dano': '%s %+d' % (dado, mod + db) if dado != '—' else '—'})
+    # weapon.atk/weapon.dmg ficam acumulados em coll['atk_bonus']['weapon'] /
+    # coll['dmg_bonus']['weapon']; ainda NÃO há perfil de arma derivado do inventário
+    # (ver aviso abaixo), então esses bônus não são aplicados a nenhum perfil aqui —
+    # ficam prontos para quando o catálogo de armas do inventário for derivado.
     return {'quantidade': coll['n_ataques'] or 1, 'perfis': perfis,
             'avisos': ['ataques com arma do inventário não derivados (sem catálogo de armas)']}
 
@@ -1693,10 +1747,13 @@ def _proficiencias(personagem):
 
 
 def _apply_attr_asi(features, escolhas, atributos):
-    """Pré-passe: ASI passivo via tag (attr:<x>-score+N) — soma em valor+bonus e
-    registra no breakdown (mantém base+Σbreakdown == valor); aplica o teto
-    `attr-max:<x>-score=N`."""
+    """Pré-passe: ASI passivo via tag (attr:<x>_score+N) — soma em valor+bonus e
+    registra no breakdown (mantém base+Σbreakdown == valor); aplica o PISO
+    `attr_set:<x>_score=N` (score := max(atual, N), regra 5e das Manoplas do Poder
+    do Ogro / Cinto de Força de Gigante) DEPOIS dos aditivos; aplica o teto
+    `attr_max:<x>_score=N`."""
     caps = {}
+    floors = {}  # sig -> (N, feat_nome): maior piso pedido por atributo
     for _o, fonte, obj, _cl in features:
         feat_nome = getattr(obj, 'nome', fonte)
         for t in (getattr(obj, 'tags_json', None) or []):
@@ -1711,10 +1768,28 @@ def _apply_attr_asi(features, escolhas, atributos):
                         atributos[sig]['bonus'] += n
                         atributos[sig].setdefault('breakdown', []).append(
                             {'origem': feat_nome + ' (tag)', 'valor': n})
+                # PISO/SET de atributo: fixa o score em N (só eleva; sem efeito se já maior).
+                for m in re.finditer(r'attr_set:([a-z]{3})_score\s*=\s*(\d+)', seg):
+                    sig = _EN_SIG.get(m.group(1))
+                    if sig:
+                        n = int(m.group(2))
+                        atual = floors.get(sig)
+                        if atual is None or n > atual[0]:
+                            floors[sig] = (n, feat_nome)
                 for m in re.finditer(r'attr_max:([a-z]{3})_score\s*=\s*(\d+)', seg):
                     sig = _EN_SIG.get(m.group(1))
                     if sig:
                         caps[sig] = min(caps.get(sig, 999), int(m.group(2)))
+    # PISO aplicado APÓS os aditivos: alvo = max(valor_atual, N), sem ultrapassar um teto
+    # existente; o delta entra no breakdown para manter valor == base + Σbreakdown.
+    for sig, (n, feat_nome) in floors.items():
+        alvo = min(n, caps[sig]) if sig in caps else n
+        if atributos[sig]['valor'] < alvo:
+            delta = alvo - atributos[sig]['valor']
+            atributos[sig]['valor'] = alvo
+            atributos[sig]['bonus'] += delta
+            atributos[sig].setdefault('breakdown', []).append(
+                {'origem': feat_nome + ' (tag)', 'valor': delta})
     for sig, cap in caps.items():
         if atributos[sig]['valor'] > cap:
             ajuste = cap - atributos[sig]['valor']

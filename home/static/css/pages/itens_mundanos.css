@@ -107,6 +107,8 @@
   padding-bottom: .55rem;
   text-shadow: 0 0 18px rgba(210,23,23,.25);
   text-transform: uppercase;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .mu-detail-stats {
   display: grid;

@@ -30,7 +30,7 @@
            data-rarity="{{ item.raridade }}"
            data-search="{{ item.nome|lower }} {{ item.get_raridade_display|lower }} {{ item.tipo|lower }}">
         <div class="mi-list-item-main">
-          <h3 class="mi-list-item-name">{{ item.nome }}</h3>
+          <h3 class="mi-list-item-name" title="{{ item.nome }}">{{ item.nome }}</h3>
           <p class="mi-list-item-meta">{{ item.get_raridade_display }}{% if item.tipo %} · {{ item.tipo }}{% elif item.slot %} · {{ item.get_slot_display }}{% endif %}</p>
         </div>
         {% if item.requer_sintonizacao %}<span class="mi-attune-mark" title="Requer sintonização">S</span>{% endif %}

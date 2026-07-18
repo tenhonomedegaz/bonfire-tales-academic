@@ -2421,12 +2421,14 @@ def colaborador_view(request):
 
 def _parse_skills_lvl1(tags_json):
     """(n, lista) de skills-lvl1{pick:N de [..]}; lista None = qualquer das 18."""
+    from .character_engine import _norm_skill_slug
     for t in (tags_json or []):
         inner = _tag_block(t, 'skills_lvl1')
         if inner is not None:
             mn = re.search(r'pick:\s*(\d+)', inner)
             ml = re.search(r'\[([^\]]*)\]', inner)
-            lista = [x.strip() for x in ml.group(1).split(',') if x.strip()] if ml else None
+            lista = ([_norm_skill_slug(x) for x in ml.group(1).split(',') if x.strip()]
+                     if ml else None)
             return (int(mn.group(1)) if mn else 2, lista)
     return (2, None)
 
@@ -2540,7 +2542,7 @@ def _criador_armas():
 
 
 def _classe_escolhas_nv1(classe):
-    from .character_engine import _SKILL_INFO
+    from .character_engine import _SKILL_INFO, _norm_skill_slug
     estilo_n = expertise_n = 0
     expertise_fixa = []
     opcao_picks = []
@@ -2560,8 +2562,8 @@ def _classe_escolhas_nv1(classe):
                 if n is not None:
                     expertise_n += n
                 elif expr.startswith('{') and 'classlvl' not in expr:
-                    expertise_fixa += [s.strip() for s in re.split(r'[,\s|]+', expr.strip('{} '))
-                                       if s.strip() in _SKILL_INFO]
+                    expertise_fixa += [_norm_skill_slug(s) for s in re.split(r'[,\s|]+', expr.strip('{} '))
+                                       if _norm_skill_slug(s) in _SKILL_INFO]
     return {'estilo_n': estilo_n, 'expertise_n': expertise_n,
             'expertise_fixa': expertise_fixa, 'opcao_picks': opcao_picks}
 
@@ -3199,7 +3201,33 @@ def _criador_catalogos():
     from .character_engine import _SKILL_INFO, _dado_de_vida_classe
 
     def _tracos_de(qs):
-        return [{'nome': t.nome, 'desc': _criador_resumo_md(t.descricao, 200)} for t in qs]
+        # limite generoso: os traços mecânicos são o conteúdo principal do painel de raça
+        # (aba "Traços"), não devem ser cortados curtos como um mero resumo.
+        return [{'nome': t.nome, 'desc': _criador_resumo_md(t.descricao, 400)} for t in qs]
+
+    # Perícias que a raça/linhagem/essência CONCEDE automaticamente (traços não-talento com
+    # tag plana `prof:<skill>`, ex.: Orc/Presença Ameaçadora = ['prof:intimidacao']). O front
+    # bloqueia essas perícias nas listas de classe/antecedente (já são próprias). Ignora tags
+    # de menu/condicionais (define/list/while_active/…) para não contar o que não é estático.
+    _prof_skill_re = re.compile(r'(?<![a-z_-])prof:([a-z0-9_-]+)')
+    _prof_menu_active = ('define{', 'list{', 'table{', 'while_active', 'while{', 'cast{',
+                         'instant{', 'trigger=', 'action=')
+
+    def _pericias_concedidas(qs_traits):
+        from .character_engine import _norm_skill_slug
+        out, seen = [], set()
+        for t in qs_traits:
+            for tag in (t.tags_json or []):
+                s = str(tag)
+                low = s.lower()
+                if any(mk in low for mk in _prof_menu_active):
+                    continue
+                for m in _prof_skill_re.finditer(s):
+                    sl = _norm_skill_slug(m.group(1))
+                    if sl in _SKILL_INFO and sl not in seen:
+                        seen.add(sl)
+                        out.append({'slug': sl, 'fonte': t.nome})
+        return out
 
     def _classe_saves(c):
         out = []
@@ -3283,17 +3311,25 @@ def _criador_catalogos():
                 return v['slug']
         return ''
 
-    def _traco_dict(t):
-        return {'nome': t.nome, 'pre': (t.pre_requisito or '').strip(),
-                'descricao': (t.descricao or '').strip(), 'vertente': _vertente_de(t)}
+    def _traco_dict(t, linhagens=None):
+        d = {'nome': t.nome, 'pre': (t.pre_requisito or '').strip(),
+             'descricao': (t.descricao or '').strip(), 'vertente': _vertente_de(t)}
+        if linhagens is not None:
+            # talentos da RAÇA base podem trazer restrição de sub-raça no pré-requisito
+            # (texto livre). Anota as linhagens exigidas para o front filtrar; [] = qualquer.
+            lins, aceita_ess = _talento_linhagem_info(t, linhagens)
+            d['linhagens'] = lins
+            d['aceita_essencia'] = aceita_ess
+        return d
 
     # Talentos raciais de nível 1, separados por fonte: raça base, linhagem (sub-raça) e
     # essência. O front mostra os da raça SEMPRE e adiciona os da linhagem/essência selecionadas.
     talentos_raca, talentos_linhagem, talentos_essencia = {}, {}, {}
     for r in TbRaca.objects.all():
+        lins_r = list(TbLinhagem.objects.filter(id_raca=r))
         qs = TbTracoracial.objects.filter(id_raca=r, talento_racial=True,
                                           nivel_requisito__lte=1).order_by('nome')
-        talentos_raca[r.slug] = [_traco_dict(t) for t in qs]
+        talentos_raca[r.slug] = [_traco_dict(t, lins_r) for t in qs]
     for l in TbLinhagem.objects.all():
         qs = TbTracoracial.objects.filter(id_linhagem=l, talento_racial=True,
                                           nivel_requisito__lte=1).order_by('nome')
@@ -3334,13 +3370,30 @@ def _criador_catalogos():
         p = _racial_picks(TbTracoracial.objects.filter(id_essencia=e, nivel_requisito__lte=1).exclude(talento_racial=True))
         if p:
             racial_choices_essencia[e.slug] = p
+    # Perícias auto-concedidas (prof:<skill> em traço não-talento) por raça/linhagem/essência.
+    pericias_concedidas_raca, pericias_concedidas_linhagem, pericias_concedidas_essencia = {}, {}, {}
+    for r in TbRaca.objects.all():
+        g = _pericias_concedidas(TbTracoracial.objects.filter(id_raca=r, nivel_requisito__lte=1).exclude(talento_racial=True))
+        if g:
+            pericias_concedidas_raca[r.slug] = g
+    for l in TbLinhagem.objects.all():
+        g = _pericias_concedidas(TbTracoracial.objects.filter(id_linhagem=l, nivel_requisito__lte=1).exclude(talento_racial=True))
+        if g:
+            pericias_concedidas_linhagem[l.slug] = g
+    for e in TbEssencia.objects.all():
+        g = _pericias_concedidas(TbTracoracial.objects.filter(id_essencia=e, nivel_requisito__lte=1).exclude(talento_racial=True))
+        if g:
+            pericias_concedidas_essencia[e.slug] = g
     pericias = sorted(({'slug': sl, 'nome': info[0]} for sl, info in _SKILL_INFO.items()),
                       key=lambda x: x['nome'])
     from .character_engine import background_grants
     return {
         'racas': racas,
         'essencias': [{'slug': e.slug, 'nome': e.nome, 'vertentes': _essencia_vertentes(e),
-                       'resumo': _criador_resumo_md(e.lore_presentation, 240)}
+                       'resumo': _criador_resumo_md(e.lore_presentation, 240),
+                       'tracos': _tracos_de(TbTracoracial.objects.filter(
+                           id_essencia=e, talento_racial=False, id_linhagem__isnull=True,
+                           nivel_requisito__lte=1).order_by('nome'))}
                       for e in TbEssencia.objects.all().order_by('nome')],
         'vertentes': vertentes_catalogo,
         'classes': classes,
@@ -3357,10 +3410,13 @@ def _criador_catalogos():
         'racial_choices_raca': racial_choices_raca,
         'racial_choices_linhagem': racial_choices_linhagem,
         'racial_choices_essencia': racial_choices_essencia,
+        'pericias_concedidas_raca': pericias_concedidas_raca,
+        'pericias_concedidas_linhagem': pericias_concedidas_linhagem,
+        'pericias_concedidas_essencia': pericias_concedidas_essencia,
         'pericias': pericias,
         'idiomas': [{'nome': i.nome, 'desc': (i.categoria or '').strip()}
                     for i in TbIdioma.objects.exclude(nome__iexact='Comum').order_by('categoria', 'ordem', 'nome')],
-        'ferramentas': [{'nome': f.nome, 'desc': (f.descricao_markdown or '').strip(),
+        'ferramentas': [{'nome': f.nome, 'desc': _criador_resumo_md(f.descricao_markdown, 160),
                          'subcategoria': (f.subcategoria or '').strip()}
                         for f in TbItemMundano.objects.filter(categoria='ferramenta').order_by('subcategoria', 'nome')],
         'armas': _criador_armas(),
@@ -3633,6 +3689,24 @@ def _norm_req(texto):
     return unicodedata.normalize('NFKD', str(texto or '')).encode('ascii', 'ignore').decode().lower()
 
 
+def _talento_linhagem_info(traco, linhagens_da_raca):
+    """Linhagens ESPECÍFICAS da raça citadas no pré-requisito do talento (espelha
+    _vertente_de, mas para sub-raças/TbLinhagem). Retorna (slugs, aceita_essencia):
+    slugs=[] => vale para qualquer linhagem/base; aceita_essencia => o pré aceita
+    'ou Essência'. Só varre o pré-requisito (não a descrição) para não restringir um
+    talento por uma menção de linhagem em texto de flavor."""
+    txt = _norm_req(traco.pre_requisito or '')
+    hits = []
+    for l in linhagens_da_raca:
+        # nomes trazem parentético descritivo ("Orc Verde (Espírito da Caça)") que não
+        # aparece no pré-requisito ("Orc Verde."): compara só o núcleo do nome.
+        nome = re.sub(r'\(.*?\)', '', _norm_req(getattr(l, 'nome', '') or ''))
+        nome = re.sub(r'\s+', ' ', nome).strip()
+        if nome and re.search(r'\b%s\b' % re.escape(nome), txt) and l.slug not in hits:
+            hits.append(l.slug)
+    return hits, bool(re.search(r'\bessencia\b', txt))
+
+
 def _talento_prereq_ok(talento, personagem, ficha):
     req = _norm_req(talento.pre_requisito)
     if not req:
@@ -3716,6 +3790,23 @@ def _pendencias_talento_racial(personagem):
     picked = personagem.talentos.filter(categoria='racial')
     picked_nomes = set(picked.values_list('nome', flat=True))
     picked_tiers = set(picked.values_list('nivel', flat=True))
+    # Filtro de linhagem (mesmo critério do criador): talento da RAÇA base restrito a
+    # sub-raças que o personagem não tem some da lista; quem tem só Essência não vê os
+    # exclusivos de linhagem, mas continua vendo os que aceitam 'ou Essência'.
+    from .models import TbLinhagem
+    lins_raca = list(TbLinhagem.objects.filter(id_raca=personagem.id_raca_id)) if personagem.id_raca_id else []
+    lin_sel_slug = getattr(getattr(personagem, 'id_linhagem', None), 'slug', None)
+    tem_essencia = bool(getattr(personagem, 'id_essencia_id', None))
+
+    def _linhagem_ok(o):
+        if getattr(o, 'id_linhagem_id', None) or getattr(o, 'id_essencia_id', None):
+            return True  # já é específico de linhagem/essência: cond já filtrou certo
+        lins, aceita_ess = _talento_linhagem_info(o, lins_raca)
+        if not lins:
+            return True  # sem restrição de linhagem
+        if lin_sel_slug and lin_sel_slug in lins:
+            return True
+        return bool(aceita_ess and tem_essencia)
     out = []
     tiers = sorted({
         n for n in TbTracoracial.objects.filter(cond, talento_racial=True)
@@ -3725,9 +3816,12 @@ def _pendencias_talento_racial(personagem):
     for tier in tiers:
         if tier > total or tier in picked_tiers:
             continue
+        # nivel_requisito__lte=tier: o slot deste marco oferece os talentos deste tier
+        # E os de tiers anteriores ainda não escolhidos (ex.: no nível 5 aparecem os de
+        # nível 1 não pegos na criação + os de nível 5). picked_nomes evita repetir.
         opcoes = [o for o in TbTracoracial.objects.filter(cond, talento_racial=True,
-                                                          nivel_requisito=tier).order_by('nome')
-                  if o.nome not in picked_nomes]
+                                                          nivel_requisito__lte=tier).order_by('nome')
+                  if o.nome not in picked_nomes and _linhagem_ok(o)]
         if opcoes:
             out.append({'nivel': tier, 'opcoes': [
                 {'nome': o.nome, 'descricao': (o.descricao or '').strip(),
@@ -3813,7 +3907,8 @@ def editar_ficha_view(request, pk):
     from .models import TbItemMagico
     rar_label = dict(TbItemMagico.RARIDADE_CHOICES)
     grupos_mag = {}
-    for it in TbItemMagico.objects.exclude(preco__isnull=True).order_by('raridade', 'nome'):
+    # preco__gt=0: itens com preço nulo OU 0 (recompensa de missão) não entram na loja.
+    for it in TbItemMagico.objects.filter(preco__gt=0).order_by('raridade', 'nome'):
         grupos_mag.setdefault(rar_label.get(it.raridade, it.raridade), []).append(
             {'slug': it.slug, 'nome': it.nome, 'preco': '%g PO' % float(it.preco),
              'requer_sintonizacao': it.requer_sintonizacao})
@@ -3901,8 +3996,12 @@ def _refresh_vitais_derivados(personagem, refill=False):
     elif novo_max > 0:
         personagem.pv_atual = min(antigo_atual, novo_max)
     personagem.ca = int(ficha.get('ca') or personagem.ca or 10)
-    personagem.velocidade = ficha.get('velocidade') or personagem.velocidade
-    personagem.save(update_fields=['pv_maximo', 'pv_atual', 'ca', 'velocidade', 'atualizado_em'])
+    # NÃO persistir velocidade: personagem.velocidade é a BASE imutável (semente de
+    # criação). O derive semeia dela e soma os bônus de tags sempre-ativas a cada vez;
+    # gravar a velocidade DERIVADA de volta aqui realimentava o cálculo e inflava a
+    # base a cada refresh (30 -> 50 -> 70 ... ft). CA e PV são recomputados do zero,
+    # por isso não inflam; a velocidade agora segue a mesma regra.
+    personagem.save(update_fields=['pv_maximo', 'pv_atual', 'ca', 'atualizado_em'])
     return ficha
 
 
@@ -4399,9 +4498,12 @@ def personagem_comprar_magico(request, pk):
     """Compra um item mágico do catálogo: debita a carteira e adiciona ao inventário
     (guardado e não sintonizado — efeitos só com equipar/sintonizar)."""
     from .models import TbItemMagico, TbPersonagemItem
+    from .character_engine import _item_consumivel_meta
     p = _ficha_editavel(request, pk)
     item = TbItemMagico.objects.filter(slug=request.POST.get('item')).first()
-    if not item or item.preco is None:
+    # Preço nulo OU <= 0 = item não-comercializável (recompensa de missão). Bloqueia a compra
+    # mesmo por POST direto (a loja também deixa de listá-lo — ver editar_ficha_view).
+    if not item or not item.preco or float(item.preco) <= 0:
         return redirect(reverse('editar_ficha', args=[pk]) + '?compra=invalido')
     custo_pc = int(round(float(item.preco) * 100))  # preço em PO -> PC
     if custo_pc > (p.carteira_pc or 0):
@@ -4409,9 +4511,19 @@ def personagem_comprar_magico(request, pk):
     with transaction.atomic():
         p.carteira_pc = (p.carteira_pc or 0) - custo_pc
         p.save(update_fields=['carteira_pc', 'atualizado_em'])
-        TbPersonagemItem.objects.create(
-            id_personagem=p, qtd=1, nome=item.nome, custo=('%g PO' % float(item.preco)),
-            id_item_magico=item, equipado=False, sintonizado=False)
+        # Consumíveis idênticos (poção/pergaminho) empilham numa só linha (qtd += 1) em vez de
+        # virar N linhas qtd=1. Itens equipáveis/sintonizáveis continuam 1 linha por unidade.
+        consumivel = _item_consumivel_meta(None, item)['consumivel']
+        existente = (TbPersonagemItem.objects.filter(
+            id_personagem=p, id_item_magico=item, equipado=False, sintonizado=False).first()
+            if consumivel else None)
+        if existente:
+            existente.qtd = (existente.qtd or 0) + 1
+            existente.save(update_fields=['qtd'])
+        else:
+            TbPersonagemItem.objects.create(
+                id_personagem=p, qtd=1, nome=item.nome, custo=('%g PO' % float(item.preco)),
+                id_item_magico=item, equipado=False, sintonizado=False)
         _registrar_transacao(p, 'compra', 'Compra mágica: %s' % item.nome, -custo_pc)
     return redirect(reverse('editar_ficha', args=[pk]) + '?compra=ok')
 
@@ -4975,7 +5087,8 @@ def _criador_resolver(data):
     (que ignora pendências de contagem e monta o subconjunto válido)."""
     from .models import (TbItemMundano, TbOpcaojogo,
                          TbRaca, TbLinhagem, TbEssencia, TbClasse, TbAntecedente, TbTalento)
-    from .character_engine import _SKILL_INFO, background_asi_values, background_grants
+    from .character_engine import (_SKILL_INFO, _norm_skill_slug,
+                                    background_asi_values, background_grants)
     from . import point_buy
 
     erros = []
@@ -5050,9 +5163,10 @@ def _criador_resolver(data):
         erros += _picks.PICK_REGISTRY[g['kind']]['validate'](g, vals)
         generic_picks.append((g, vals))
 
-    # Perícias: validar quantidade e pertinência no SERVIDOR (não confiar só no cliente)
-    pc = list(dict.fromkeys(data.get('pericias_classe') or []))
-    pa = list(dict.fromkeys(data.get('pericias_antecedente') or []))
+    # Perícias: validar quantidade e pertinência no SERVIDOR (não confiar só no cliente).
+    # Normaliza o slug ('_'→'-') para casar _SKILL_INFO mesmo se o cliente enviar cru.
+    pc = list(dict.fromkeys(_norm_skill_slug(s) for s in (data.get('pericias_classe') or [])))
+    pa = list(dict.fromkeys(_norm_skill_slug(s) for s in (data.get('pericias_antecedente') or [])))
     lt_sel = list(dict.fromkeys(data.get('idiomas_ferramentas') or []))
     if classe:
         pn, plista = _parse_skills_lvl1(classe.tags_json)
@@ -5067,7 +5181,8 @@ def _criador_resolver(data):
     # Escolhas de classe nv1 remanescentes (não-migradas ainda): expertise (Ladino/Mago).
     # Estilo de Luta migrou para o resolvedor genérico (kind `opcao`, acima).
     esc1 = _classe_escolhas_nv1(classe) if classe else {'estilo_n': 0, 'expertise_n': 0, 'expertise_fixa': []}
-    exp_sel = [s for s in dict.fromkeys(data.get('expertise') or []) if s in set(pc + pa)]
+    exp_sel = [s for s in dict.fromkeys(_norm_skill_slug(x) for x in (data.get('expertise') or []))
+               if s in set(pc + pa)]
     if esc1['expertise_n'] and len(exp_sel) != esc1['expertise_n']:
         erros.append('Escolha %d perícia(s) para Especialização (entre as proficientes).' % esc1['expertise_n'])
     classe_prof_picks = _classe_prof_picks_nv1(classe) if classe else []
@@ -5122,7 +5237,7 @@ def _criador_persistir(user, data, R):
                          TbPersonagemProficiencia, TbPersonagemItem, TbPersonagemTalento,
                          TbPersonagemAtributoBonus, TbPersonagemEscolha, TbItemMundano, TbOpcaojogo,
                          TbPersonagemMagia, TbMagia)
-    from .character_engine import _SKILL_INFO
+    from .character_engine import _SKILL_INFO, _norm_skill_slug
     from . import point_buy
     SIG = point_buy.SIGLAS
     nome = R['nome']; base = R['base']; mais2 = R['mais2']; mais1 = R['mais1']
@@ -5168,7 +5283,7 @@ def _criador_persistir(user, data, R):
     # Escolhas de RAÇA (perícias/idiomas/ferramentas extras da raça/linhagem/essência)
     esc_raca = data.get('escolhas_raca') or {}
     for sl in (esc_raca.get('pericias') or []):
-        info = _SKILL_INFO.get(sl)
+        info = _SKILL_INFO.get(_norm_skill_slug(sl))
         if info:
             TbPersonagemPericia.objects.get_or_create(
                 id_personagem=p, nome=info[0], defaults={'atributo': info[1], 'proficiente': True})

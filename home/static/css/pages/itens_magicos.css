@@ -169,6 +169,8 @@
   line-height: 1.15;
   text-shadow: 0 0 18px rgba(210,23,23,.25);
   text-transform: uppercase;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .mi-detail-pills {
   display: flex;

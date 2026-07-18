@@ -32,7 +32,7 @@
       <div class="mu-list-item" data-id="arma-{{ forloop.counter }}" data-cat="armas"
            data-search="{{ item.nome|lower }} arma {{ item.get_subcategoria_display|default:item.subcategoria|lower }}">
         <div class="mu-list-item-main">
-          <h3 class="mu-list-item-name">{{ item.nome }}</h3>
+          <h3 class="mu-list-item-name" title="{{ item.nome }}">{{ item.nome }}</h3>
           <p class="mu-list-item-meta">{{ item.get_subcategoria_display|default:item.subcategoria }}{% if item.mec_dano %} · {{ item.mec_dano }}{% endif %}</p>
         </div>
         <span class="mu-list-item-price">{{ item.preco|default:"--" }}</span>
@@ -43,7 +43,7 @@
       <div class="mu-list-item" data-id="armadura-{{ forloop.counter }}" data-cat="armaduras"
            data-search="{{ item.nome|lower }} armadura {{ item.get_subcategoria_display|default:item.subcategoria|lower }}">
         <div class="mu-list-item-main">
-          <h3 class="mu-list-item-name">{{ item.nome }}</h3>
+          <h3 class="mu-list-item-name" title="{{ item.nome }}">{{ item.nome }}</h3>
           <p class="mu-list-item-meta">{{ item.get_subcategoria_display|default:item.subcategoria }}{% if item.mec_ca %} · CA {{ item.mec_ca }}{% endif %}</p>
         </div>
         <span class="mu-list-item-price">{{ item.preco|default:"--" }}</span>
@@ -54,7 +54,7 @@
       <div class="mu-list-item" data-id="ferramenta-{{ forloop.counter }}" data-cat="ferramentas"
            data-search="{{ item.nome|lower }} ferramenta">
         <div class="mu-list-item-main">
-          <h3 class="mu-list-item-name">{{ item.nome }}</h3>
+          <h3 class="mu-list-item-name" title="{{ item.nome }}">{{ item.nome }}</h3>
           <p class="mu-list-item-meta">Ferramenta</p>
         </div>
         <span class="mu-list-item-price">{{ item.preco|default:"--" }}</span>
@@ -65,7 +65,7 @@
       <div class="mu-list-item" data-id="pacote-{{ forloop.counter }}" data-cat="pacotes"
            data-search="{{ item.nome|lower }} pacote">
         <div class="mu-list-item-main">
-          <h3 class="mu-list-item-name">{{ item.nome }}</h3>
+          <h3 class="mu-list-item-name" title="{{ item.nome }}">{{ item.nome }}</h3>
           <p class="mu-list-item-meta">Pacote</p>
         </div>
         <span class="mu-list-item-price">{{ item.preco|default:"--" }}</span>
@@ -76,7 +76,7 @@
       <div class="mu-list-item" data-id="equip-{{ forloop.counter }}" data-cat="equipamentos"
            data-search="{{ item.nome|lower }} equipamento aventura">
         <div class="mu-list-item-main">
-          <h3 class="mu-list-item-name">{{ item.nome }}</h3>
+          <h3 class="mu-list-item-name" title="{{ item.nome }}">{{ item.nome }}</h3>
           <p class="mu-list-item-meta">Equipamento de Aventura</p>
         </div>
         <span class="mu-list-item-price">{{ item.preco|default:"--" }}</span>
@@ -88,7 +88,7 @@
       <div class="mu-list-item" data-id="extra-{{ g.id }}-{{ forloop.counter }}" data-cat="{{ g.id }}"
            data-search="{{ item.nome|lower }} {{ g.label|lower }} {{ item.get_subcategoria_display|default:item.subcategoria|lower }}">
         <div class="mu-list-item-main">
-          <h3 class="mu-list-item-name">{{ item.nome }}</h3>
+          <h3 class="mu-list-item-name" title="{{ item.nome }}">{{ item.nome }}</h3>
           <p class="mu-list-item-meta">{{ g.label }}</p>
         </div>
         <span class="mu-list-item-price">{{ item.preco|default:"--" }}</span>
