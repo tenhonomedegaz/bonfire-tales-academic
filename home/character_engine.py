@@ -93,10 +93,43 @@ def _norm_skill_slug(s):
     return s.replace('_', '-') if s not in _SKILL_INFO else s
 
 _ACTIVE_BLOCKS = ('while_active', 'while', 'instant', 'cast', 'aura', 'effects')
-_ACTIVE_MARKERS = ('trigger=', 'instant{', 'while_active{', 'while{', 'cast{', 'action=', 'on:')
-# slugs-placeholder/indireção não resolvidos que não devem virar tipo literal
-# ('pick' vaza de escolhas não resolvidas como resist:pick:{ácido|frio|veneno}).
-_PLACEHOLDERS = ('all', 'source', 'elemento', 'pick')
+# `while:<cond>{...}` (condição de estado — só ATIVA enquanto a condição vale, ex.:
+# `while:in_sunlight{dadv:attack}`, `while:frenesi{...}`, `while:in:ability{...}{...}`)
+# é ativo/runtime, não estático. Convenção do projeto: cada `while:<cond>{...}` vive
+# na PRÓPRIA linha de tag (sem verbo estático irmão), então o marcador dropa só a
+# linha condicional — impede vazamento de dadv/sense/save permanentes (Pressão Solar/
+# Brumas de Velmourn/Segredos Sybaris/Alento Primordial).
+_ACTIVE_MARKERS = ('trigger=', 'instant{', 'while_active{', 'while{', 'while:', 'cast{', 'action=', 'on:')
+# slugs-placeholder/indireção que NÃO devem virar tipo literal na ficha. Incluem os
+# nomes de VARIÁVEL das sub-escolhas de essência (sangue/alento/energia/polo/elemento/
+# vertente) e o resíduo 'match'/'pick': quando a escolha FOI feita, `escolhas.get(v)`
+# resolve o valor real ANTES desta checagem (resist:sangue -> resist:frio); quando NÃO
+# foi feita, o literal cai aqui e é suprimido — a ficha nunca mostra 'sangue'/'alento'/
+# 'match' cru (RELATORIO_R1 item 9). Nenhum é tipo de dano real, então é seguro.
+_PLACEHOLDERS = ('all', 'source', 'elemento', 'pick', 'match', 'vertente',
+                 'sangue', 'alento', 'alento_2', 'alento_3', 'energia', 'polo')
+
+# dot-path de escopo de ataque (item/Estilo de Luta) -> escopo interno do perfil.
+# Genérico (registry, sem if-por-tipo): unarmed/unarmed_strike colapsam em desarmado;
+# weapon = qualquer arma; melee/ranged (e as formas weapon_melee/weapon_ranged) filtram
+# o bônus ao perfil corpo a corpo / à distância.
+_ATK_SCOPE = {
+    'unarmed_strike': 'unarmed-strike', 'unarmed': 'unarmed-strike',
+    'weapon': 'weapon',
+    'melee': 'weapon-melee', 'weapon_melee': 'weapon-melee',
+    'ranged': 'weapon-ranged', 'weapon_ranged': 'weapon-ranged',
+}
+
+# subcategoria de TbItemMundano (categoria='arma') -> (rótulo de proficiência exigido,
+# is_ranged). Usa DES no ataque quando à distância; a proficiência casa contra os
+# rótulos legíveis de _PROF_TOKEN_LABEL ('Armas Simples'/'Armas Marciais'/'Armas de Fogo').
+_WEAPON_CATEGORY = {
+    'arma_simples': ('Armas Simples', False),
+    'arma_simples_dist': ('Armas Simples', True),
+    'arma_marcial': ('Armas Marciais', False),
+    'arma_marcial_dist': ('Armas Marciais', True),
+    'arma_fogo': ('Armas de Fogo', True),
+}
 
 
 def _slug(s):
@@ -548,15 +581,35 @@ def _resource_tipo(r):
     return RESOURCE_TIPO_TABLE_ONLY
 
 
-def _resource_value_at(r, nivel):
+# Total de recurso por FÓRMULA (decisão 9: descrição prevalece). Quando o valor-do-nível
+# é uma fórmula de progressão (pb/lvl/classlvl), o motor a AVALIA em vez de usar uma tabela
+# fixa; PB usa o nível TOTAL do personagem (multiclasse-safe). Valores numéricos/dados/
+# distância ('2','+3','d6','10ft') passam intactos pelo fast-path.
+_RES_FORMULA_RE = re.compile(r'(?<![a-z0-9_])(pb|classlvl|lvl)(?![a-z0-9_])')
+
+
+def _pb_from_nivel(n):
+    return 2 + (max(int(n or 1), 1) - 1) // 4
+
+
+def _resource_value_at(r, nivel, total_nivel=None):
     vj = r.valores_json or {}
+    val = None
     if vj:
         niveis = sorted(int(k) for k in vj if int(k) <= nivel)
         if niveis:
-            return vj[str(niveis[-1])]
-    if r.nivel is not None and r.nivel <= nivel:
-        return r.valor
-    return None
+            val = vj[str(niveis[-1])]
+    if val is None and r.nivel is not None and r.nivel <= nivel:
+        val = r.valor
+    if val is None:
+        return None
+    s = str(val).strip()
+    if _RES_FORMULA_RE.search(s):
+        tn = int(total_nivel) if total_nivel is not None else int(nivel)
+        ev = _eval_formula(s, {'lvl': tn, 'classlvl': int(nivel), 'pb': _pb_from_nivel(tn)})
+        if ev is not None:
+            return str(int(ev)) if float(ev).is_integer() else str(ev)
+    return val
 
 
 def _recursos(classes):
@@ -564,6 +617,7 @@ def _recursos(classes):
     from .models import TbRecursoclasse
     from django.db.models import Q
     recursos = {}
+    total_nivel = sum(int(c.nivel or 0) for c in classes)
 
     def _vazio(v):
         return v is None or str(v).strip() in ('', '-', '0')
@@ -581,7 +635,7 @@ def _recursos(classes):
             chave = f'{c.id_classe.nome}: {r.nome}'
             vj = r.valores_json or {}
             if vj:
-                val = _resource_value_at(r, nivel)
+                val = _resource_value_at(r, nivel, total_nivel)
                 if not _vazio(val):
                     recursos[chave] = val
             elif r.nivel is not None and r.nivel <= nivel and not _vazio(r.valor):
@@ -596,6 +650,7 @@ def _recursos_por_tipo(classes):
     from .models import TbRecursoclasse
     from django.db.models import Q
     out = {tipo: [] for tipo in RESOURCE_TIPOS}
+    total_nivel = sum(int(c.nivel or 0) for c in classes)
 
     def _vazio(v):
         return v is None or str(v).strip() in ('', '-', '0')
@@ -610,7 +665,7 @@ def _recursos_por_tipo(classes):
             _rs = _slug(r.nome)
             if 'bonus' in _rs and 'proficiencia' in _rs:
                 continue
-            val = _resource_value_at(r, nivel)
+            val = _resource_value_at(r, nivel, total_nivel)
             if _vazio(val):
                 continue
             key = (c.id_classe_id, r.id_subclasse_id, r.slug or r.nome)
@@ -630,9 +685,9 @@ def _recursos_por_tipo(classes):
     return out
 
 
-def _resource_max_at(r, nivel):
+def _resource_max_at(r, nivel, total_nivel=None):
     """Máximo NUMÉRICO de um TbRecursoclasse no nível dado (valores_json ou valor). None se não-numérico."""
-    val = _resource_value_at(r, nivel)
+    val = _resource_value_at(r, nivel, total_nivel)
     try:
         return int(str(val).strip())
     except (ValueError, TypeError, AttributeError):
@@ -649,6 +704,7 @@ def _recursos_consumiveis(personagem, classes):
         return []
     atuais = {pr.nome: pr for pr in personagem.recursos.all()}
     out, seen = [], set()
+    total_nivel = sum(int(c.nivel or 0) for c in classes)
     for c in classes:
         nivel = int(c.nivel or 0)
         filtro = Q(id_classe=c.id_classe, id_subclasse__isnull=True)
@@ -657,7 +713,7 @@ def _recursos_consumiveis(personagem, classes):
         for r in TbRecursoclasse.objects.filter(filtro):
             if _resource_tipo(r) != RESOURCE_TIPO_CONSUMABLE:
                 continue
-            mx = _resource_max_at(r, nivel)
+            mx = _resource_max_at(r, nivel, total_nivel)
             if mx is None or mx <= 0 or r.nome in seen:
                 continue
             seen.add(r.nome)
@@ -1139,6 +1195,75 @@ def magias_concedidas(personagem):
 magias_essencia = magias_concedidas
 
 
+# Concessões FIXAS (sem escolha) de opções de jogo e talentos. Regexes ESPECÍFICAS —
+# nunca casam grant:reaction/grant:grapple/grant:move/grant:resource/grant:extra_action
+# (verbos de runtime/combate, inertes na ficha). Slug em snake_case; a ponte _↔- resolve
+# contra o slug hifenado do catálogo (posição de referência).
+_GRANT_OPCAO_SINGLE_RE = re.compile(r'grant:opcao:([a-z0-9_]+):([a-z0-9_-]+)')
+_GRANT_OPCAO_LIST_RE = re.compile(r'grant:opcao\{\s*([a-z0-9_]+)\s*:\s*\[([^\]]*)\]')
+_GRANT_TALENTO_RE = re.compile(r'grant:talento\{\s*([a-z0-9_-]+)\s*((?:,[^}]*)?)\}')
+
+
+def _ref_slug(s):
+    """Slug de REFERÊNCIA canônico (hífen) p/ casar com o slug do catálogo."""
+    return (s or '').strip().replace('_', '-')
+
+
+def grants_fixos(personagem):
+    """Concessões FIXAS (sem pick) das features ativas do personagem — o análogo de
+    `magias_concedidas` para opções de jogo e talentos:
+      grant:opcao:<tipo>:<slug>(mods)       uma opção específica (metamagia/manobra…)
+      grant:opcao{<tipo>: [<slugs>], ...}   adicionada à lista conhecida FORA do painel de
+                                            pick (não conta no limite, 'extra/fora do limite')
+      grant:talento{<slug>[, no_asi]}       os benefícios de um talento específico, sem ASI
+
+    Itera a MESMA lista de features de `derive`/`magias_concedidas` (já filtrada por
+    nível/escolha/talento-pego) e resolve os slugs contra o catálogo ao vivo (TbOpcaojogo.slug
+    / TbTalento.slug, ponte _↔-). Respeita `requires:lvl{N}`. Materialização idempotente e
+    origem-rastreada em views._sync_grants_fixos (padrão de _sync_magias_concedidas). Retorna
+    {'opcoes':[{slug,id_opcao,tipo,nome,fonte}], 'talentos':[{slug,id_talento,nome,no_asi,fonte}]}."""
+    out = {'opcoes': [], 'talentos': []}
+    if personagem is None:
+        return out
+    from .models import TbOpcaojogo, TbTalento
+    classes = list(personagem.classes.select_related('id_classe', 'id_subclasse').order_by('-principal', 'id'))
+    nivel_total = sum(int(c.nivel or 0) for c in classes) or int(personagem.nivel or 1)
+    features = (_features_de_classe(classes) + _tracos_raciais(personagem)
+                + _antecedente(personagem) + _talentos(personagem)
+                + _features_de_itens(personagem) + _features_de_opcoes(personagem))
+    op_por_slug = {_ref_slug(o.slug): o for o in TbOpcaojogo.objects.all()}
+    tal_por_slug = {_ref_slug(t.slug): t for t in TbTalento.objects.all() if t.slug}
+    seen_op, seen_tal = set(), set()
+    for (_o, _f, obj, _cl) in features:
+        fonte = getattr(obj, 'nome', '') or ''
+        for tag in (getattr(obj, 'tags_json', None) or []):
+            s = str(tag)
+            m = re.search(r'requires:lvl\{(\d+)\}', s)
+            if m and nivel_total < int(m.group(1)):
+                continue
+            grants = [(mm.group(1), mm.group(2)) for mm in _GRANT_OPCAO_SINGLE_RE.finditer(s)]
+            for lm in _GRANT_OPCAO_LIST_RE.finditer(s):
+                for sl in re.split(r'[,\s]+', lm.group(2).strip()):
+                    if sl:
+                        grants.append((lm.group(1), sl))
+            for tipo, slug in grants:
+                op = op_por_slug.get(_ref_slug(slug))
+                if not op or op.slug in seen_op:
+                    continue
+                seen_op.add(op.slug)
+                out['opcoes'].append({'slug': op.slug, 'id_opcao': op.id_opcao,
+                                      'tipo': tipo, 'nome': op.nome, 'fonte': fonte})
+            for tm in _GRANT_TALENTO_RE.finditer(s):
+                no_asi = 'no_asi' in (tm.group(2) or '')
+                t = tal_por_slug.get(_ref_slug(tm.group(1)))
+                if not t or t.slug in seen_tal:
+                    continue
+                seen_tal.add(t.slug)
+                out['talentos'].append({'slug': t.slug, 'id_talento': t.id_talento,
+                                        'nome': t.nome, 'no_asi': no_asi, 'fonte': fonte})
+    return out
+
+
 # ───────────────────────── FASE 2: interpretador de tags ────────────────
 _OPS = {ast.Add: operator.add, ast.Sub: operator.sub, ast.Mult: operator.mul,
         ast.Div: operator.truediv, ast.FloorDiv: operator.floordiv,
@@ -1239,10 +1364,13 @@ def _ramo(inner, escolhido):
 
 
 def _resolve_match(text, escolhas):
-    """Substitui match(var){…} pelo ramo escolhido (ou 'default'); recursivo."""
+    """Substitui match(var){…} pelo ramo escolhido (ou 'default'); recursivo. Aceita a
+    forma `match(pick:<var>){…}` (usada nas sub-escolhas de essência, ex.: Nephilim
+    `resist:match(pick:energia){lumen:radiante, umbra:necrotico}`) — o `pick:` é só um
+    prefixo de referência; a variável é a mesma chave de `escolhas`."""
     out = text
     for _ in range(40):
-        m = re.search(r'match\(([a-z0-9_]+)\)\s*\{', out)
+        m = re.search(r'match\((?:pick:)?([a-z0-9_]+)\)\s*\{', out)
         if not m:
             break
         var, bo = m.group(1), m.end() - 1
@@ -1257,6 +1385,215 @@ def _resolve_match(text, escolhas):
             rep = ''
         out = out[:m.start()] + rep + out[bc + 1:]
     return out
+
+
+def _resolve_var(name, locais, escolhas):
+    """Resolve o operando de resist:/immune:/cond_immune: contra as indireções de
+    define{} (`locais`) E as sub-escolhas de essência (`escolhas`). `resist:<var>` onde
+    <var> é uma escolha persistida (sangue/energia/…) vira o valor ESCOLHIDO
+    (`resist:sangue` -> `resist:frio`); sem escolha, o nome cru cai em _PLACEHOLDERS e é
+    suprimido — a ficha nunca mostra o literal."""
+    v = locais.get(name, name)
+    return escolhas.get(v, v)
+
+
+def _apply_choice_subs(text, escolhas):
+    """Materializa REFERÊNCIAS a sub-escolhas persistidas num texto de tag já com
+    `match()` resolvido (roda logo após `_resolve_match`):
+      (a) operando `…:pick:<var>` / `(pick:<var>)` -> valor escolhido
+          (ex.: `resist:pick:elemento` -> `resist:fogo`);
+      (b) DECLARAÇÃO autônoma `pick:<verbo>:<opções>[:N]` -> `<verbo>:<escolhido>`
+          (ex.: `pick:save_prof:{int|wis|cha}:1` -> `save_prof:int`;
+                 `pick:move:1(=move:{swim|climb})` -> `move:swim`).
+    Sem escolha correspondente, o token fica INTACTO (inerte) — zero lixo na ficha.
+    Genérico: o nome do kind é a chave em `escolhas` e, em (b), o próprio verbo-alvo."""
+    if not escolhas:
+        return text
+    # (a) referência-operando (precedida por ':' '=' '('): vira só o valor escolhido.
+    text = re.sub(r'(?<=[:=(])pick:([a-z0-9_]+)(?![:\w])',
+                  lambda m: escolhas.get(m.group(1)) or m.group(0), text)
+    # (b) declaração autônoma (fora de posição de operando): `<kind>:<escolhido>`.
+    def _decl(m):
+        val = escolhas.get(m.group(1))
+        return ('%s:%s' % (m.group(1), val)) if val else m.group(0)
+    return re.sub(
+        r'(?<![:=(a-z0-9_-])pick:([a-z0-9_]+)'
+        r'((?::(?:\{[^}]*\}|[A-Za-z0-9_+\-]+)|\([^)]*\))*)', _decl, text)
+
+
+def _split_top(s, sep=','):
+    """Divide `s` por `sep` só no nível 0 de ()/[]/{} (não quebra dentro de blocos)."""
+    out, depth, buf = [], 0, []
+    for c in s:
+        if c in '([{':
+            depth += 1
+        elif c in ')]}':
+            depth = max(0, depth - 1)
+        if c == sep and depth == 0:
+            out.append(''.join(buf)); buf = []
+        else:
+            buf.append(c)
+    out.append(''.join(buf))
+    return out
+
+
+def _resolve_level_match(text, ctx):
+    """Resolve `match(classlvl|lvl){ <cmp>:val, ..., default:val }` avaliando ramos
+    com operador de comparação (`classlvl>=N`) contra o nível do ctx — o PRIMEIRO ramo
+    satisfeito na ordem de declaração vence (cadeia de condição), senão `default`. Roda
+    ANTES de _resolve_match (que só casa ramos por valor literal de escolha e colapsaria
+    esta forma no default, perdendo a progressão por nível — ex.: sintonização do
+    Artífice `attr_max:sintonizacao=match(classlvl){classlvl>=18:6, classlvl>=14:5,
+    default:4}`). match() sem ramo de comparação é deixado intacto para _resolve_match."""
+    if 'match(' not in text:
+        return text
+    pos = 0
+    for _ in range(40):
+        m = re.search(r'match\((classlvl|lvl)\)\s*\{', text[pos:])
+        if not m:
+            break
+        var = m.group(1)
+        start = pos + m.start()
+        bo = pos + m.end() - 1
+        bc = _match_close(text, bo)
+        if bc < 0:
+            break
+        inner = text[bo + 1:bc]
+        if not re.search(r'(?:classlvl|lvl)\s*(?:>=|<=|=|>|<)\s*\d+\s*:', inner):
+            pos = bo + 1  # não é match de comparação por nível: deixa p/ _resolve_match
+            continue
+        lvl = int(ctx.get(var, ctx.get('lvl', 0)) or 0)
+        chosen, default = None, None
+        for part in _split_top(inner, ','):
+            part = part.strip()
+            mm = re.match(r'(?:classlvl|lvl)\s*(>=|<=|=|>|<)\s*(\d+)\s*:\s*(.+)$', part, re.S)
+            if mm:
+                op, n, val = mm.group(1), int(mm.group(2)), mm.group(3).strip()
+                ok = {'>=': lvl >= n, '<=': lvl <= n, '=': lvl == n, '>': lvl > n, '<': lvl < n}[op]
+                if ok and chosen is None:
+                    chosen = val
+            else:
+                dm = re.match(r'default\s*:\s*(.+)$', part, re.S)
+                if dm:
+                    default = dm.group(1).strip()
+        rep = chosen if chosen is not None else (default if default is not None else '')
+        text = text[:start] + rep + text[bc + 1:]
+        pos = start + len(rep)
+    return text
+
+
+def _split_qualifiers(expr):
+    """Separa uma fórmula de qualificadores parentéticos à direita que carregam ':'
+    (ex.: `(rounddown(pb/2))(unless:proficient)` -> ('(rounddown(pb/2))', {'unless:proficient'}).
+    Um grupo `(...)` de nível 0 cujo interior tem ':' no nível 0 é qualificador; senão
+    (ex.: `rounddown(pb/2)`) faz parte da fórmula e encerra a raspagem."""
+    quals = set()
+    e = expr.strip()
+    while e.endswith(')'):
+        depth = 0
+        op = -1
+        for i in range(len(e) - 1, -1, -1):
+            c = e[i]
+            if c == ')':
+                depth += 1
+            elif c == '(':
+                depth -= 1
+                if depth == 0:
+                    op = i
+                    break
+        if op < 0:
+            break
+        inner = e[op + 1:-1]
+        # qualificador = tem ':' de nível 0 no interior (unless:proficient, if:...)
+        if len(_split_top(inner, ':')) > 1:
+            quals.add(inner.strip())
+            e = e[:op].strip()
+        else:
+            break
+    return e, quals
+
+
+_MODIFY_STATIC_FIELDS = frozenset()  # nenhum campo modify: atinge número ESTÁTICO do PC
+# (todos os achados observados alteram alcance/aura/#ataques/upcast/recurso/companheiro/
+#  ação — combate/runtime/VTT; ver plano_mestre cluster modify:). Deixado como registry
+# vazio para que, se um modify:ability{...classe:<pc>}.<campo-estatico> surgir, baste
+# adicionar o campo aqui — sem if-por-tipo espalhado.
+
+
+def _iter_modify_spans(seg):
+    """Gera (ini, fim) de cada token `modify:...` BALANCEADO em `seg` (para até vírgula
+    de nível 0 ou fechamento do bloco externo). Uma feature altera OUTRA (cross-feature):
+    o span inteiro é uma unidade e é CONSUMIDO (registrado + retirado da varredura) para
+    não vazar seus verbos internos (resist:/str_score:/immune:) nos números estáticos."""
+    for m in re.finditer(r'\bmodify:', seg):
+        i = m.end()
+        depth, j = 0, i
+        while j < len(seg):
+            c = seg[j]
+            if c in '{([':
+                depth += 1
+            elif c in '})]':
+                if depth == 0:
+                    break
+                depth -= 1
+            elif c == ',' and depth == 0:
+                break
+            j += 1
+        yield m.start(), j
+
+
+def _parse_modify(seg, feature, lvl):
+    """Extrai descritores de cada `modify:<tipo>[{ref}][.campo][{corpo}|:=valor](consts)`
+    em `seg`. Cross-feature: NÃO materializa número estático do PC (nenhum campo observado
+    é estático — todos combate/runtime/companheiro/VTT). Registrado inerte (modo=combate)
+    para o VTT futuro (regra da ficha-de-log)."""
+    out = []
+    for a, b in _iter_modify_spans(seg):
+        raw = seg[a:b].strip()
+        mm = re.match(r'modify:([a-z_]+)(?:\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\})?'
+                      r'(?:\.([a-z0-9_.]+))?', raw)
+        if not mm:
+            continue
+        ttype = mm.group(1)
+        ref = (mm.group(2) or '').split(',')[0].strip() or None
+        campo = mm.group(3) or None
+        estatico = bool(campo and campo in _MODIFY_STATIC_FIELDS and ttype in ('ability', 'resource'))
+        out.append({'feature': feature, 'alvo_tipo': ttype, 'alvo_ref': ref,
+                    'campo': campo, 'raw': raw, 'nivel_feature': lvl,
+                    'modo': 'estatico' if estatico else 'combate'})
+    return out
+
+
+def _strip_modify(seg):
+    """Remove os tokens `modify:...` de `seg` (limpando vírgulas residuais). O descritor
+    útil já foi extraído por _parse_modify; retirar o span impede que verbos internos do
+    modify (resist:match, str_score:+4, immune:alento, ignore:resist:...) sejam varridos
+    como estáticos do próprio personagem (vazamento cross-feature)."""
+    spans = list(_iter_modify_spans(seg))
+    if not spans:
+        return seg
+    for a, b in reversed(spans):
+        seg = seg[:a] + seg[b:]
+    seg = re.sub(r',\s*,', ',', seg)
+    seg = re.sub(r'\{\s*,', '{', seg)
+    seg = re.sub(r',\s*\}', '}', seg)
+    seg = re.sub(r'^\s*,\s*', '', seg).strip()
+    return seg
+
+
+def _resource_speed_value(slug, recursos):
+    """Valor numérico (ft) de um recurso de classe pelo slug, no nível já materializado
+    em state['recursos'] (Monge `speed:+resource{passo_veloz}`). Casa pelo último
+    componente da chave 'Classe: Nome' via ponte _<->-; extrai o 1º inteiro do valor."""
+    alvo = _slug(slug)  # ponte _<->- (tag 'passo_veloz' vs chave 'Monge: Passo Veloz')
+    achado = next((v for k, v in (recursos or {}).items() if _slug(k.split(':')[-1]) == alvo), None)
+    if achado is None:
+        return 0
+    m = re.search(r'\d+', str(achado))
+    return int(m.group(0)) if m else 0
+
+
+_RE_NO_ARMOR_RESTRICTION = re.compile(r'restriction\{[^}]*equiped\{\s*(?:armadura|armor|escudo|shield)')
 
 
 def _active_spans(tag):
@@ -1412,13 +1749,23 @@ def apply_tags(state, features, personagem=None, escolhas=None):
             'check_bonus': {}, 'idiomas': [], 'ferramentas': [], 'armaduras': [], 'armas': [],
             'initiative': 0, 'move_modes': {}, 'desvantagens': [],
             'n_ataques': 0, 'ataque_dado': {}, 'ataque_attr': {},
-            'atk_bonus': {}, 'dmg_bonus': {}}  # bônus PLANO de acerto/dano por escopo (item)
+            'atk_bonus': {}, 'dmg_bonus': {},  # bônus PLANO de acerto/dano por escopo (item/Estilo)
+            'armor_ca_bonus': 0, 'off_hand_full_mod': False,  # Defesa (soma na CA armada) / Combate c/ Duas Armas
+            'skill_expertise': set(),  # Especialização por tag (dobro do PB) — espelha skill_prof
+            'check_all': []}  # bônus global de teste de habilidade: (val, sig|None, unless_prof)
     hp_bonus, resist, imune, cond_imune, vantagens, notas = [], [], [], [], [], []
-    sentidos, ca_cands, recursos_tag = {}, [], {}
+    sentidos, sentidos_incr, sentidos_incr_ifp, ca_cands, recursos_tag = {}, {}, {}, [], {}
     resist_condicionais = []  # (tipo, se_ja_tem, senao) -> avaliados após o loop principal
+    modificadores = []  # modify:<X> cross-feature: registrados inertes (combate/VTT)
+    sintonizacao_max = 3  # limite de sintonização (base 5e = 3); attr_max:sintonizacao eleva
     speed_bonus = 0
     brutas = []
     talent_attrs = _talent_attr_map(personagem)
+    # status de armadura/escudo p/ gate de restriction{equiped{armadura|escudo}} nos
+    # movimentos sem armadura (Monge: Passo Veloz / Movimento Acrobático só descalço).
+    _equip0 = _armadura_equipada(personagem, base_ctx['dex_mod']) if personagem is not None else \
+        {'tem_armadura': False, 'tem_escudo': False}
+    _armado = bool(_equip0.get('tem_armadura') or _equip0.get('tem_escudo'))
 
     for origem, fonte, obj, classlvl in features:
         tags = [t for t in (getattr(obj, 'tags_json', None) or []) if isinstance(t, str)]
@@ -1436,7 +1783,10 @@ def apply_tags(state, features, personagem=None, escolhas=None):
                 ctx['asi_attr_mod'] = ctx['talent_attr_mod']
                 ctx['asi_attr_score'] = ctx['talent_attr_score']
         feat_nome = getattr(obj, 'nome', fonte)
-        resolvidas = [_resolve_match(t, escolhas) for t in tags]
+        # _resolve_level_match ANTES de _resolve_match: avalia match(classlvl){cmp:val}
+        # por nível (sintonização do Artífice) — senão _resolve_match colapsaria no default.
+        resolvidas = [_apply_choice_subs(_resolve_match(_resolve_level_match(t, ctx), escolhas), escolhas)
+                      for t in tags]
         segs = [seg for r in resolvidas for seg in _passive_segments(r)]
 
         # defines (só em contexto PASSIVO): slug -> locais (indireção); pool -> recurso
@@ -1455,6 +1805,17 @@ def apply_tags(state, features, personagem=None, escolhas=None):
         # útil já foi lido acima; verbos-irmãos FORA do define são preservados.
         segs = [_strip_defines(seg) for seg in segs]
 
+        # modify:<X> cross-feature (uma feature altera OUTRA): registrado inerte e
+        # RETIRADO da varredura estática — nenhum campo observado (range/aura/upcast/
+        # #ataques/recurso/companheiro/ação) é número estático do PC; consumir o span
+        # também blinda contra vazamento dos verbos internos (resist:match, str_score:+4,
+        # immune:alento) nos números fixos. Computa só se o campo estiver em
+        # _MODIFY_STATIC_FIELDS (hoje vazio) — regra da ficha-de-log (combate inerte).
+        feat_lvl = int(classlvl) if classlvl is not None else ctx.get('lvl', 0)
+        for seg in segs:
+            modificadores.extend(_parse_modify(seg, feat_nome, feat_lvl))
+        segs = [_strip_modify(seg) for seg in segs]
+
         # gate de ESCUDO no nível da feature (ca= e restriction são tags irmãs). A
         # defesa-sem-armadura é IMPLICITAMENTE vetada por armadura (toda ca= é base
         # desarmada), então não precisa de gate de armadura explícito.
@@ -1470,6 +1831,13 @@ def apply_tags(state, features, personagem=None, escolhas=None):
                     vantagens.append((('+%s em todas as salvaguardas' % ms.group(1)) if ms
                                       else 'efeito') + ' (condicional: requer recurso) — %s' % feat_nome)
                     continue
+                # gate de NÍVEL num segmento passivo: `requires:lvl>=N` / `requires:lvl{N}`
+                # abaixo do nível total, o segmento inteiro não materializa (ex.: traço
+                # racial `sense:devilsight(requires:lvl>=5)`). Nível total (mesma semântica
+                # de requires:lvl{N} em _grants_de_tag).
+                mlvl = re.search(r'requires:\s*lvl\s*(?:>=|=)\s*(\d+)|requires:\s*lvl\s*\{\s*(\d+)\s*\}', seg)
+                if mlvl and ctx.get('lvl', 0) < int(mlvl.group(1) or mlvl.group(2)):
+                    continue
                 # PV
                 for m in re.finditer(r'(?:attr:|buff:)?max_hp:?\s*\+\s*([^\s,}]+)', seg):
                     if 'on:' in seg[m.start():m.end() + 12]:
@@ -1483,14 +1851,25 @@ def apply_tags(state, features, personagem=None, escolhas=None):
                     val = _eval_formula(m.group(1), ctx)
                     if val is not None:
                         ca_cands.append((val, feat_nome, feat_gate_shield))
-                # Velocidade / modos
-                # bônus de deslocamento sempre-ativo: `speed:+Nft` (a unidade `ft` é
-                # opcional — ex.: item `speed:+18`). `speed:+resource{…}` não casa (exige dígito).
-                for m in re.finditer(r'speed:\s*\+(\d+)(?:\s*ft)?(?![\w.])', seg):
-                    speed_bonus += int(m.group(1))
-                for m in re.finditer(r'move:(climb|swim|fly|burrow|wall)(?:\(=\s*(?:speed|walk)\)|:=?\s*(?:speed|walk)|:\+?(\d+)\s*ft|\((\d+)\s*ft\))?', seg):
-                    val = m.group(2) or m.group(3)
-                    coll['move_modes'][m.group(1)] = (val + 'ft') if val else 'walk'
+                # Velocidade / modos. Gate de armadura: `restriction{equiped{armadura|
+                # escudo}}` (Monge Passo Veloz / Movimento Acrobático) só vale descalço —
+                # com armadura/escudo o segmento de deslocamento não aplica.
+                _sem_armadura_ok = not (_RE_NO_ARMOR_RESTRICTION.search(seg) and _armado)
+                if _sem_armadura_ok:
+                    # `speed:+<valor>`: dígito (item `speed:+18`), `resource{slug}` (Passo
+                    # Veloz — valor no nível) ou fórmula (`min(5*x,30)`; var runtime -> None).
+                    for m in re.finditer(r'\bspeed:\s*\+\s*', seg):
+                        val_s = _read_expr(seg, m.end())
+                        mr = re.match(r'resource\{([a-z0-9_-]+)\}', val_s)
+                        if mr:
+                            v = _resource_speed_value(mr.group(1), state.get('recursos'))
+                        else:
+                            v = _eval_formula(re.sub(r'\s*ft\s*$', '', val_s), ctx)
+                        if v:
+                            speed_bonus += int(v)
+                    for m in re.finditer(r'move:(climb|swim|fly|burrow|wall|liquid)(?:\(=\s*(?:speed|walk)\)|:=?\s*(?:speed|walk)|:\+?(\d+)\s*ft|\((\d+)\s*ft\))?', seg):
+                        val = m.group(2) or m.group(3)
+                        coll['move_modes'][m.group(1)] = (val + 'ft') if val else 'walk'
                 # Resistências / imunidades
                 # Resistência CONDICIONAL: "if(already:resist{X}): resist:A else: resist:B"
                 # (ex.: Oread "Sangue Elemental"). Avaliada numa 2ª passada (resist_condicionais),
@@ -1500,22 +1879,42 @@ def apply_tags(state, features, personagem=None, escolhas=None):
                 if _cond:
                     resist_condicionais.append((_cond.group(1), _cond.group(2), _cond.group(3)))
                     seg = seg[:_cond.start()] + seg[_cond.end():]
+                # Resistência por FONTE (não por tipo de dano): `resist:source{magical_effect}`
+                # (Mestre da Abjuração). Não é um tipo do catálogo de dano — vira NOTA passiva
+                # ("resistência a dano de <fonte>") e é retirada para o regex genérico de
+                # resist: não capturar o literal 'source'.
+                for m in re.finditer(r'resist:source\{\s*([a-z0-9_, -]+?)\s*\}', seg):
+                    fonte_r = m.group(1).replace('_', ' ').replace('-', ' ').strip()
+                    notas.append('resistência a dano de %s (%s)' % (fonte_r, feat_nome))
+                seg = re.sub(r'resist:source\{[^}]*\}', '', seg)
                 for m in re.finditer(r'(?<![a-z_-])resist:([a-z0-9_-]+)', seg):
-                    v = locais.get(m.group(1), m.group(1))
+                    v = _resolve_var(m.group(1), locais, escolhas)
                     if v not in _PLACEHOLDERS and v not in resist:
                         resist.append(v)
                 for m in re.finditer(r'(?<![a-z_-])immune:([a-z0-9_-]+)', seg):
-                    v = locais.get(m.group(1), m.group(1))
+                    v = _resolve_var(m.group(1), locais, escolhas)
                     if v not in _PLACEHOLDERS and v not in imune:
                         imune.append(v)
                 for m in re.finditer(r'cond_immune:([a-z0-9_-]+)', seg):
-                    v = locais.get(m.group(1), m.group(1))
+                    v = _resolve_var(m.group(1), locais, escolhas)
                     if v not in _PLACEHOLDERS and v not in cond_imune:
                         cond_imune.append(v)
-                # Sentidos (range:/radius:)
-                for m in re.finditer(r'sense:([a-z0-9_-]+)(?:\((?:range|radius):\+?(\d+)\s*ft)?', seg):
-                    t, rng = m.group(1), (int(m.group(2)) if m.group(2) else 0)
-                    sentidos[t] = max(sentidos.get(t, 0), rng)
+                # Sentidos. `sense:X(range:Nft)` = alcance ABSOLUTO (mantém o maior por
+                # tipo). `sense:X(range:+Nft)` = incremento RELATIVO (soma ao alcance do
+                # mesmo tipo já concedido — Vampiro DV/essência); com `if_present` só
+                # aplica se o tipo já existe (senão é descartado).
+                for m in re.finditer(r'sense:([a-z0-9_-]+)(\([^)]*\))?', seg):
+                    t, args = m.group(1), (m.group(2) or '')
+                    mr = re.search(r'(?:range|radius):(\+)?(\d+)\s*ft', args)
+                    if mr and mr.group(1):  # incremento relativo (+Nft)
+                        n = int(mr.group(2))
+                        if 'if_present' in args:
+                            sentidos_incr_ifp[t] = sentidos_incr_ifp.get(t, 0) + n
+                        else:
+                            sentidos_incr[t] = sentidos_incr.get(t, 0) + n
+                    else:
+                        rng = int(mr.group(2)) if mr else 0
+                        sentidos[t] = max(sentidos.get(t, 0), rng)
                 # Proficiências
                 for m in re.finditer(r'(?<![a-z_-])prof:([a-z0-9_-]+)(?:\{([^}]+)\})?', seg):
                     chave, valor = m.group(1), m.group(2)
@@ -1530,6 +1929,15 @@ def apply_tags(state, features, personagem=None, escolhas=None):
                         coll['armaduras'].append(chave)
                     elif chave.startswith('arma'):
                         coll['armas'].append(chave)
+                # Especialização por tag: `expertise:<pericia>` (dobro do PB). Espelha o
+                # caminho de prof: — só perícia canônica (expertise:tool{}/ferramentas caem
+                # fora do catálogo de perícias e ficam inertes, como hoje). expertise IMPLICA
+                # proficiência (regra 5e), então _pericias marca proficiente+expertise. Casa a
+                # forma direta e a condicional `if(prof:X):expertise:X` (Cena é Corpo/Dom de Palco).
+                for m in re.finditer(r'(?<![a-z_-])expertise:([a-z0-9_-]+)', seg):
+                    sl = _norm_skill_slug(m.group(1))
+                    if sl in _SKILL_INFO:
+                        coll['skill_expertise'].add(sl)
                 # Salvaguardas
                 for m in re.finditer(r'(?<![a-z_-])save_prof:([a-z0-9_-]+)', seg):
                     coll['save_prof'].add(m.group(1))
@@ -1555,10 +1963,35 @@ def apply_tags(state, features, personagem=None, escolhas=None):
                 for m in re.finditer(r'check_attr:([a-z0-9_-]+)\s*:?=\s*([a-z]{3})', seg):
                     if m.group(2) in _EN_SIG:
                         coll['check_attr'][m.group(1)] = _EN_SIG[m.group(2)]
-                for m in re.finditer(r'check_bonus:([a-z0-9_-]+)\s*[=:]\s*\+?([^\s,}]+)', seg):
-                    val = _eval_formula(m.group(2), ctx)
+                # `check_bonus:<pericia>[=|:]+<formula>` — a fórmula pode ter vírgula interna
+                # (max(wis_mod, 1) — Ritos Sacros/Ordem Sagrada/Vínculo Natural): lida por
+                # _read_expr (o regex antigo `[^\s,}]+` truncava em 'max(wis_mod' -> None).
+                # `check_bonus:tool{...}` não casa (sem [=:] após 'tool'); dado (1d4 das Marcas)
+                # cai em None por _eval_formula (roll-time -> VTT).
+                for m in re.finditer(r'check_bonus:([a-z0-9_-]+)\s*[=:]\s*\+?', seg):
+                    val = _eval_formula(_read_expr(seg, m.end()), ctx)
                     if val is not None:
                         coll['check_bonus'][m.group(1)] = coll['check_bonus'].get(m.group(1), 0) + val
+                # Bônus GLOBAL de teste de habilidade: `ability_check:+F` / `all_checks:+F`
+                # (todas as perícias) e `<attr>_check:+F` (só as do atributo). `(unless:
+                # proficient)` restringe às NÃO-proficientes (Bardo Pau Pra Toda Obra =
+                # +rounddown(pb/2) nas perícias sem proficiência). Fórmula com var runtime
+                # (infusoes_corporais_ativas) -> None -> inerte.
+                for m in re.finditer(r'(?<![a-z_])(all_checks|ability_check|(?:str|dex|con|int|wis|cha)_check):\+\s*', seg):
+                    formula, quals = _split_qualifiers(_read_expr(seg, m.end()))
+                    val = _eval_formula(formula, ctx)
+                    if val is None:
+                        continue
+                    pref = m.group(1).split('_')[0]
+                    sig = _EN_SIG.get(pref) if pref in _EN_SIG else None  # None = todas as perícias
+                    unless_prof = any('unless' in q and 'proficient' in q for q in quals)
+                    coll['check_all'].append((val, sig, unless_prof))
+                # Limite de sintonização: `attr_max:sintonizacao=<N|match(classlvl){...}>`
+                # (Artífice — base 5e é 3). match(classlvl) já foi avaliado por nível.
+                for m in re.finditer(r'attr_max:sintonizacao\s*=\s*', seg):
+                    v = _eval_formula(_read_expr(seg, m.end()), ctx)
+                    if v is not None:
+                        sintonizacao_max = max(sintonizacao_max, int(v))
                 # Ataques: nº de ataques + perfis desarmado/natural
                 for m in re.finditer(r'attacks:=\s*(\{[^}]*\}|[^,}\s]+)', seg):
                     raw = m.group(1)
@@ -1583,15 +2016,30 @@ def apply_tags(state, features, personagem=None, escolhas=None):
                     if m.group(2) in _EN_SIG:
                         coll['ataque_attr'][m.group(1).replace('_', '-')] = _EN_SIG[m.group(2)]
                 # Bônus PLANO de acerto/dano vindo de item mágico (Envoltórios, Tatuagem,
-                # arma +N): `unarmed(.atk|.dmg):+N`, `unarmed_strike(...)` e `weapon(...)`.
-                # Acumula por escopo — 'unarmed-strike' (casa unarmed/unarmed_strike) e
-                # 'weapon' — para _ataques somar no perfil correspondente.
-                for m in re.finditer(r'(?<![a-z_])(unarmed_strike|unarmed|weapon)\.atk:\s*\+(\d+)', seg):
-                    escopo = 'weapon' if m.group(1) == 'weapon' else 'unarmed-strike'
+                # arma +N) OU de Estilo de Luta passivo (Arquearia/Duelo). Escopo por
+                # dot-path — mapa genérico (sem if-por-tipo): 'unarmed-strike' (desarmado),
+                # 'weapon' (qualquer arma), 'weapon-melee' (só corpo a corpo, Duelo),
+                # 'weapon-ranged' (só à distância, Arquearia). _perfis_de_armas soma o
+                # escopo genérico 'weapon' + o escopo específico do perfil.
+                for m in re.finditer(r'(?<![a-z_])(unarmed_strike|unarmed|weapon|melee|ranged|weapon_melee|weapon_ranged)\.atk:\s*\+(\d+)', seg):
+                    escopo = _ATK_SCOPE.get(m.group(1), 'weapon')
                     coll['atk_bonus'][escopo] = coll['atk_bonus'].get(escopo, 0) + int(m.group(2))
-                for m in re.finditer(r'(?<![a-z_])(unarmed_strike|unarmed|weapon)\.dmg:\s*\+(\d+)', seg):
-                    escopo = 'weapon' if m.group(1) == 'weapon' else 'unarmed-strike'
+                for m in re.finditer(r'(?<![a-z_])(unarmed_strike|unarmed|weapon|melee|ranged|weapon_melee|weapon_ranged)\.dmg:\s*\+(\d+)', seg):
+                    escopo = _ATK_SCOPE.get(m.group(1), 'weapon')
                     coll['dmg_bonus'][escopo] = coll['dmg_bonus'].get(escopo, 0) + int(m.group(2))
+                # Combate com Duas Armas: `off_hand.dmg:+ability_mod` devolve o modificador
+                # à mão secundária (que por padrão não soma mod positivo — regra 5e); um
+                # `off_hand.dmg:+N` literal soma um bônus plano só ao perfil off_hand.
+                for m in re.finditer(r'(?<![a-z_])off_hand\.dmg:\s*\+(ability_mod|\d+)', seg):
+                    if m.group(1) == 'ability_mod':
+                        coll['off_hand_full_mod'] = True
+                    else:
+                        coll['dmg_bonus']['off_hand'] = coll['dmg_bonus'].get('off_hand', 0) + int(m.group(1))
+                # Defesa (Estilo de Luta) / infusões de armadura: `armor.ca:+N` SOMA à CA
+                # armada final (empilha com armadura+escudo), diferente de `ca=` (base
+                # desarmada, descartada com armadura). Aplicado só quando há armadura.
+                for m in re.finditer(r'(?<![a-z_])armor\.ca:\s*\+(\d+)', seg):
+                    coll['armor_ca_bonus'] += int(m.group(1))
                 # Vantagens / desvantagens / falas
                 for m in re.finditer(r'(?<![a-z_-])adv:([a-z0-9_-]+(?:\{[^}]*\})?(?:\([^)]*\))?)', seg):
                     vantagens.append('%s — %s' % (m.group(1), feat_nome))
@@ -1619,8 +2067,12 @@ def apply_tags(state, features, personagem=None, escolhas=None):
     ca_final = melhor[0]
     if equip['tem_escudo']:  # escudo: usa o ca_base do item (+2 padrão), não fixo
         ca_final += equip.get('escudo_bonus') or 2
+    # Bônus plano que EMPILHA com a armadura (Defesa/infusões): só com armadura equipada.
+    if equip['tem_armadura'] and coll.get('armor_ca_bonus'):
+        ca_final += coll['armor_ca_bonus']
     state['ca'] = ca_final
-    state['ca_fonte'] = melhor[1] + (' + escudo' if equip['tem_escudo'] else '')
+    state['ca_fonte'] = melhor[1] + (' + escudo' if equip['tem_escudo'] else '') \
+        + (' + %d (estilo/infusão)' % coll['armor_ca_bonus'] if (equip['tem_armadura'] and coll.get('armor_ca_bonus')) else '')
 
     mft = re.search(r'(\d+)\s*ft', state.get('velocidade') or '')
     if mft:
@@ -1638,7 +2090,18 @@ def apply_tags(state, features, personagem=None, escolhas=None):
     _cn = _cond_nomes()
     state['imunidades'] = imune + ['%s (condição)' % _cn.get(c, c.replace('-', ' ').capitalize()) for c in cond_imune]
     state['imunidades_condicao'] = [{'slug': c, 'nome': _cn.get(c, c.replace('-', ' ').capitalize())} for c in cond_imune]
+    # Sentidos: alcance absoluto + incrementos relativos (incondicionais concedem o tipo;
+    # `if_present` só soma se o tipo já existe por outra fonte). Ex.: base darkvision 60ft
+    # + `sense:darkvision(range:+60ft, if_present)` -> 120ft.
+    for t, add in sentidos_incr.items():
+        sentidos[t] = sentidos.get(t, 0) + add
+    for t, add in sentidos_incr_ifp.items():
+        if t in sentidos:
+            sentidos[t] += add
     state['sentidos'] = ['%s%s' % (t, ' %dft' % r if r else '') for t, r in sentidos.items()]
+    state['sintonizacao_maxima'] = sintonizacao_max
+    if modificadores:  # modify:<X> cross-feature (inertes, modo=combate) — para o VTT futuro
+        state['modificadores'] = modificadores
     state['vantagens'] = vantagens
     if coll['desvantagens']:
         state['desvantagens_impostas'] = coll['desvantagens']
@@ -1650,7 +2113,120 @@ def apply_tags(state, features, personagem=None, escolhas=None):
     return state
 
 
-def _ataques(coll, atributos, pb, recursos=None):
+def _arma_catalogo(nome):
+    """Resolve um item de inventário ao catálogo TbItemMundano (categoria='arma')
+    p/ ler a subcategoria (proficiência + à distância). Mesma ponte slug/nome de
+    _maestrias_armas. None se for arma custom (não catalogada)."""
+    from .models import TbItemMundano
+    val = _slug(nome)
+    return (TbItemMundano.objects.filter(categoria='arma', slug=val).first()
+            or TbItemMundano.objects.filter(categoria='arma', slug='arma-%s' % val).first()
+            or TbItemMundano.objects.filter(categoria='arma', nome__iexact=(nome or '').strip()).first())
+
+
+def _mapa_maestria_por_arma(maestrias):
+    """De state['maestrias_armas'] -> {slug/nome-normalizado: [nomes de maestria]}.
+    Cada arma ESCOLHIDA como maestria dá acesso às maestrias daquela arma; o perfil
+    de uma arma equipada exibe as maestrias se a arma foi escolhida (regra do projeto:
+    a maestria é tag da arma)."""
+    out = {}
+    for w in (maestrias or []):
+        nomes = [m.get('nome') for m in (w.get('maestrias') or []) if m.get('nome')]
+        if not nomes:
+            continue
+        for chave in (w.get('slug'), _slug(w.get('arma') or '')):
+            if chave:
+                out[chave] = nomes
+    return out
+
+
+def _perfil_de_uma_arma(it, mec, atributos, pb, coll, prof_armas, maest_map):
+    """Deriva UM perfil de ataque de arma equipada. Retorna (perfil_display, meta).
+    Atributo: FOR; DES se à distância ou se acuidade (finesse -> maior mod entre
+    FOR/DES). Acerto = mod + PB(se proficiente na categoria) + weapon.atk (genérico +
+    escopo melee/ranged). Dano = dado + mod + weapon.dmg (idem). Maestria vai no perfil.
+    meta carrega o que o perfil off_hand (mão secundária) precisa recomputar."""
+    atk_b, dmg_b = coll.get('atk_bonus') or {}, coll.get('dmg_bonus') or {}
+    props = set(mec.get('propriedades') or [])
+    cat = _arma_catalogo(it.nome)
+    subcat = (getattr(cat, 'subcategoria', '') or '') if cat else ''
+    rot_prof, is_ranged = _WEAPON_CATEGORY.get(subcat, (None, 'municao' in props))
+    finesse = 'acuidade' in props
+    for_mod = atributos.get('FOR', {}).get('mod', 0)
+    dex_mod = atributos.get('DES', {}).get('mod', 0)
+    if is_ranged:
+        sig, mod = 'DES', dex_mod
+    elif finesse:  # acuidade: usa o MAIOR mod (regra 5e permite FOR ou DES)
+        sig, mod = ('DES', dex_mod) if dex_mod >= for_mod else ('FOR', for_mod)
+    else:
+        sig, mod = 'FOR', for_mod
+    proficiente = bool(rot_prof) and rot_prof in (prof_armas or set())
+    escopo = 'weapon-ranged' if is_ranged else 'weapon-melee'
+    ab = atk_b.get('weapon', 0) + atk_b.get(escopo, 0)
+    db = dmg_b.get('weapon', 0) + dmg_b.get(escopo, 0)
+    dado = mec['dano_dado']
+    tipo = mec.get('dano_tipo') or ''
+    slug_arma = getattr(cat, 'slug', None) or _slug(it.nome)
+    maest = maest_map.get(slug_arma) or maest_map.get(_slug(it.nome)) or []
+    cat_desconhecida = not rot_prof
+    nota = ('categoria de arma desconhecida' if cat_desconhecida
+            else ('não proficiente' if not proficiente else ''))
+    perfil = {
+        'escopo': escopo, 'nome': it.nome, 'atributo': sig, 'dado': dado,
+        'tipo_dano': tipo, 'proficiente': proficiente,
+        'bonus_ataque': mod + (pb if proficiente else 0) + ab,
+        'dano': '%s %+d%s' % (dado, mod + db, ' %s' % tipo if tipo else ''),
+        'maestria': ', '.join(maest), 'nota': nota,
+    }
+    meta = {'light_melee': (not is_ranged) and ('leve' in props),
+            'mod': mod, 'ab_gen': atk_b.get('weapon', 0), 'cat_desconhecida': cat_desconhecida}
+    return perfil, meta
+
+
+def _perfis_de_armas(personagem, atributos, pb, coll, prof_armas, maestrias):
+    """Perfis de ataque das ARMAS EQUIPADAS (mundanas ou mágicas com dado de arma).
+    Retorna (perfis, avisos). Duas armas leves corpo a corpo -> perfil off_hand
+    adicional sem mod positivo no dano (regra 5e), salvo Combate com Duas Armas."""
+    if personagem is None:
+        return [], []
+    maest_map = _mapa_maestria_por_arma(maestrias)
+    perfis, avisos, leves = [], [], []
+    for it in personagem.inventario.select_related('id_item_magico').all():
+        if not it.equipado:
+            continue
+        tags = list(it.tags_json or [])
+        mag = it.id_item_magico
+        if mag:  # arma mágica: dado/propriedades podem vir do catálogo mágico
+            tags += [t for t in (mag.tags_json or []) if isinstance(t, str)]
+        mec = mecanica_de_tags(tags)
+        if not mec.get('dano_dado'):
+            continue  # não é arma (escudo/armadura/maravilhoso/consumível)
+        perfil, meta = _perfil_de_uma_arma(it, mec, atributos, pb, coll, prof_armas, maest_map)
+        if meta['cat_desconhecida']:
+            avisos.append('%s: categoria de arma não identificada no catálogo' % it.nome)
+        perfis.append(perfil)
+        if meta['light_melee']:
+            leves.append((perfil, meta))
+    # off_hand: 2+ armas leves corpo a corpo equipadas -> a última vira mão secundária.
+    if len(leves) >= 2:
+        base, meta = leves[-1]
+        mod, dmg_b = meta['mod'], (coll.get('dmg_bonus') or {})
+        off_mod = mod if coll.get('off_hand_full_mod') else min(mod, 0)
+        db = dmg_b.get('weapon', 0) + dmg_b.get('off_hand', 0)
+        tipo = base.get('tipo_dano') or ''
+        dado = base['dado']
+        perfis.append({
+            'escopo': 'off_hand', 'nome': '%s (mão secundária)' % base['nome'],
+            'atributo': base['atributo'], 'dado': dado, 'tipo_dano': tipo,
+            'proficiente': base['proficiente'],
+            'bonus_ataque': mod + (pb if base['proficiente'] else 0) + meta['ab_gen'],
+            'dano': '%s %+d%s' % (dado, off_mod + db, ' %s' % tipo if tipo else ''),
+            'maestria': base.get('maestria', ''), 'nota': base.get('nota', ''),
+        })
+    return perfis, avisos
+
+
+def _ataques(coll, atributos, pb, recursos=None, personagem=None, prof_armas=None, maestrias=None):
     recursos = recursos or {}
     atk_bonus = coll.get('atk_bonus') or {}
     dmg_bonus = coll.get('dmg_bonus') or {}
@@ -1669,13 +2245,13 @@ def _ataques(coll, atributos, pb, recursos=None):
         perfis.append({'escopo': escopo,
                        'nome': 'Ataque desarmado' if escopo == 'unarmed-strike' else 'Ataque natural',
                        'atributo': sig, 'dado': dado, 'bonus_ataque': mod + pb + ab,
-                       'dano': '%s %+d' % (dado, mod + db) if dado != '—' else '—'})
-    # weapon.atk/weapon.dmg ficam acumulados em coll['atk_bonus']['weapon'] /
-    # coll['dmg_bonus']['weapon']; ainda NÃO há perfil de arma derivado do inventário
-    # (ver aviso abaixo), então esses bônus não são aplicados a nenhum perfil aqui —
-    # ficam prontos para quando o catálogo de armas do inventário for derivado.
-    return {'quantidade': coll['n_ataques'] or 1, 'perfis': perfis,
-            'avisos': ['ataques com arma do inventário não derivados (sem catálogo de armas)']}
+                       'dano': '%s %+d' % (dado, mod + db) if dado != '—' else '—',
+                       'maestria': '', 'nota': ''})
+    # Perfis das ARMAS do inventário equipado (consome weapon.atk/weapon.dmg +
+    # os Estilos de Luta melee/ranged/off_hand, e mostra as maestrias da arma).
+    perfis_arma, avisos = _perfis_de_armas(personagem, atributos, pb, coll, prof_armas, maestrias)
+    perfis += perfis_arma
+    return {'quantidade': coll['n_ataques'] or 1, 'perfis': perfis, 'avisos': avisos}
 
 
 def _saves(classes, atributos, pb, tag_prof=None, all_saves_bonus=0, save_bonus=None):
@@ -1716,10 +2292,27 @@ def _pericias_escolhidas(personagem):
     return out
 
 
-def _pericias(personagem, atributos, pb, tag_skill_prof=None, check_attr=None, check_bonus=None):
+def _expertise_escolhidas(personagem):
+    """Perícias marcadas para Especialização via `pick:pericia_expertise` (TbPersonagemEscolha
+    tipo='pericia_expertise') como slugs canônicos. READBACK do kind 'pericia_expertise' —
+    mesmo papel de _pericias_escolhidas para 'pericia', mas materializa expertise (dobro do
+    PB) no derive. Complementa o campo manual TbPersonagemPericia.expertise (criador nv1)."""
+    if personagem is None:
+        return set()
+    out = set()
+    for e in personagem.escolhas.filter(tipo='pericia_expertise'):
+        if e.valor:
+            out.add(_norm_skill_slug(e.valor))
+    return out
+
+
+def _pericias(personagem, atributos, pb, tag_skill_prof=None, check_attr=None, check_bonus=None,
+              tag_skill_expertise=None, check_all=None):
     tag_skill_prof = tag_skill_prof or set()
+    tag_skill_expertise = tag_skill_expertise or set()
     check_attr = check_attr or {}
     check_bonus = check_bonus or {}
+    check_all = check_all or []  # (val, sig|None, unless_prof): bônus global de teste
     base = {}
     # começa com TODAS as perícias canônicas (a ficha lista todas, proficientes ou não)
     for sl, info in _SKILL_INFO.items():
@@ -1739,11 +2332,29 @@ def _pericias(personagem, atributos, pb, tag_skill_prof=None, check_attr=None, c
             base[sl]['proficiente'] = True
         elif sl in _SKILL_INFO:
             base[sl] = {'nome': _SKILL_INFO[sl][0], 'attr_def': None, 'proficiente': True, 'expertise': False}
+    # Especialização por tag (verbo expertise: e readback de pick:pericia_expertise): dobro
+    # do PB. Expertise IMPLICA proficiência (5e), então marca ambos — senão _pericias somaria
+    # só +pb (metade). Complementa o campo TbPersonagemPericia.expertise já lido acima.
+    for sl in tag_skill_expertise:
+        if sl in base:
+            base[sl]['proficiente'] = True
+            base[sl]['expertise'] = True
+        elif sl in _SKILL_INFO:
+            base[sl] = {'nome': _SKILL_INFO[sl][0], 'attr_def': None, 'proficiente': True, 'expertise': True}
     out = []
     for sl, d in base.items():
         sig = check_attr.get(sl) or d['attr_def'] or (_SKILL_INFO[sl][1] if sl in _SKILL_INFO else 'FOR')
         mod = atributos.get(sig, {}).get('mod', 0)
         bonus = mod + (pb if d['proficiente'] else 0) + (pb if d['expertise'] else 0) + check_bonus.get(sl, 0)
+        # bônus GLOBAL de teste (ability_check/all_checks/<attr>_check): aplica ao atributo
+        # da perícia (ou a todas se sig-filtro None); `unless_prof` só nas não-proficientes
+        # (Pau Pra Toda Obra — não empilha com a proficiência).
+        for val, sig_filt, unless_prof in check_all:
+            if sig_filt is not None and sig_filt != sig:
+                continue
+            if unless_prof and (d['proficiente'] or d['expertise']):
+                continue
+            bonus += val
         out.append({'nome': d['nome'], 'atributo': sig, 'proficiente': d['proficiente'],
                     'expertise': d['expertise'], 'bonus': bonus})
     return sorted(out, key=lambda x: x['nome'])
@@ -1899,14 +2510,20 @@ def derive(personagem):
     state['saves'] = _saves(classes, atributos, pb, tag['save_prof'], tag['all_saves'], tag['save_bonus'])
     state['pericias'] = _pericias(personagem, atributos, pb,
                                   tag['skill_prof'] | _pericias_escolhidas(personagem),
-                                  tag['check_attr'], tag['check_bonus'])
-    state['ataques'] = _ataques(tag, atributos, pb, state['recursos'])
+                                  tag['check_attr'], tag['check_bonus'],
+                                  tag_skill_expertise=(tag['skill_expertise'] | _expertise_escolhidas(personagem)),
+                                  check_all=tag['check_all'])
     idiomas, ferramentas, outras = _proficiencias(personagem)
     state['idiomas'] = sorted(set(idiomas) | set(tag['idiomas']))
     _pc = _proficiencias_classe(classes)
     state['ferramentas'] = sorted(set(ferramentas) | set(tag['ferramentas']) | set(_pc['classe_ferramentas']))
     state['proficiencias_armadura'] = _pc['classe_armaduras'] + sorted(set(tag['armaduras']))
     state['proficiencias_arma'] = _pc['classe_armas'] + sorted(set(tag['armas']))
+    # Perfil de ataque de arma precisa do conjunto de proficiências de arma (rótulos de
+    # categoria da classe/multiclasse + concedidas por tag) para decidir se soma o PB.
+    prof_armas = (set(_pc['classe_armas']) | set(_pc['multiclasse_armas']) | set(tag['armas']))
+    state['ataques'] = _ataques(tag, atributos, pb, state['recursos'], personagem,
+                                prof_armas, state.get('maestrias_armas'))
     state['prof_multiclasse_armadura'] = _pc['multiclasse_armaduras']
     state['prof_multiclasse_arma'] = _pc['multiclasse_armas']
     state['prof_multiclasse_ferramenta'] = _pc['multiclasse_ferramentas']

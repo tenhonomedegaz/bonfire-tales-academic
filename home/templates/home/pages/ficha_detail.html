@@ -139,9 +139,13 @@
         <div class="ficha-section-title">Ataques <span class="float-right font-sans text-[11px] normal-case tracking-normal text-[var(--muted)]">{{ ficha.ataques.quantidade }}× por ação</span></div>
         <ul>
           {% for at in ficha.ataques.perfis %}
-            <li class="line-row"><span class="name text-[var(--text)]">{{ at.nome }}</span><span class="val">{% if at.bonus_ataque >= 0 %}+{% endif %}{{ at.bonus_ataque }} · {{ at.dano }}</span></li>
+            <li class="line-row">
+              <span class="name text-[var(--text)]">{{ at.nome }}{% if at.maestria %} <span class="text-[11px] font-normal text-[var(--spark)]">◆ {{ at.maestria }}</span>{% endif %}{% if at.nota %} <span class="text-[11px] font-normal text-[var(--muted)]">({{ at.nota }})</span>{% endif %}</span>
+              <span class="val">{% if at.bonus_ataque >= 0 %}+{% endif %}{{ at.bonus_ataque }} · {{ at.dano }}</span>
+            </li>
           {% empty %}<li class="line-row"><span class="name">—</span></li>{% endfor %}
         </ul>
+        {% if ficha.ataques.avisos %}<p class="mt-1 text-[11px] text-[var(--muted)]">{% for a in ficha.ataques.avisos %}{{ a }}{% if not forloop.last %} · {% endif %}{% endfor %}</p>{% endif %}
       </div>
 
       {% if consumiveis_cards %}

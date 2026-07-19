@@ -19,14 +19,62 @@ resolvível, (ii) tem `kind` registrado no REGISTRY e (iii) não está dentro de
 import re
 
 # ---------------------------------------------------------------------------
-# Gramática — UMA regex/parse (substitui as 5 regexes paralelas de views.py).
+# Gramática — UM parser balanceado (substitui as 5 regexes paralelas de views.py).
 # ---------------------------------------------------------------------------
-# Captura kind + toda a "cauda": sequência de segmentos `:<seg>` e grupos de
-# restrição `(<...>)` intercalados (a ordem sub/count/constraint varia na base).
-_PICK_RE = re.compile(
-    r'pick:([a-z0-9_]+)((?::(?:\{[^}]*\}|[A-Za-z0-9_+\-]+)|\([^)]*\))*)'
-)
-_TAIL_RE = re.compile(r':(\{[^}]*\}|[A-Za-z0-9_+\-]+)|\(([^)]*)\)')
+# `pick:<kind>` localiza o token; a CAUDA (segmentos `:<seg>` + grupos `(...)`) é
+# consumida com casamento BALANCEADO de ()/{} — uma restrição pode conter `match(var)`
+# e `{...}` aninhados (ex.: `pick:sangue:1(=match(vertente){undine:{frio|acido}, ...})`),
+# que uma regex `[^)]*` truncaria no 1º `)` interno.
+_PICK_HEAD_RE = re.compile(r'pick:([a-z0-9_]+)')
+_PAIRS = {'(': ')', '{': '}', '[': ']'}
+
+
+def _match_pair(text, i):
+    """Índice do fechamento que casa o abridor em text[i] (pilha combinada de ()/{}/[])
+    ou -1. Tolerante a par trocado (fecha o topo)."""
+    if text[i] not in _PAIRS:
+        return -1
+    stack = []
+    for k in range(i, len(text)):
+        ch = text[k]
+        if ch in _PAIRS:
+            stack.append(_PAIRS[ch])
+        elif ch in (')', '}', ']'):
+            if not stack:
+                return -1
+            stack.pop()
+            if not stack:
+                return k
+    return -1
+
+
+def _consume_pick_tail(text, pos):
+    """A partir de pos (logo após `pick:<kind>`), consome a cauda balanceada. Devolve
+    (segs, constr_bodies, end_pos): `segs` = segmentos `:<seg>` (seg = `{..}` OU palavra);
+    `constr_bodies` = interior de cada grupo `(...)`."""
+    segs, constrs = [], []
+    n = len(text)
+    while pos < n:
+        c = text[pos]
+        if c == ':':
+            j = pos + 1
+            if j < n and text[j] == '{':
+                close = _match_pair(text, j)
+                segs.append(text[j:close + 1] if close >= 0 else text[j:])
+                pos = (close + 1) if close >= 0 else n
+            else:
+                m = re.match(r'[A-Za-z0-9_+\-]+', text[j:])
+                if not m:
+                    break
+                segs.append(m.group(0))
+                pos = j + m.end()
+        elif c == '(':
+            close = _match_pair(text, pos)
+            constrs.append(text[pos + 1:close] if close >= 0 else text[pos + 1:])
+            pos = (close + 1) if close >= 0 else n
+        else:
+            break
+    return segs, constrs, pos
 
 
 def normalize_slug(s):
@@ -98,18 +146,12 @@ def iter_pick_tokens(text):
     """Yields PickToken para cada `pick:` PAPEL-A em `text` (ignora match/cast/spell:pick)."""
     text = str(text)
     refs = _ref_spans(text)
-    for m in _PICK_RE.finditer(text):
+    for m in _PICK_HEAD_RE.finditer(text):
         start = m.start()
         if any(a <= start <= b for a, b in refs):
             continue  # dentro de match()/cast()/spell:pick{} -> referência, não escolha
         kind = m.group(1)
-        tail = m.group(2) or ''
-        segs, constr_bodies = [], []
-        for tm in _TAIL_RE.finditer(tail):
-            if tm.group(1) is not None:
-                segs.append(tm.group(1))
-            else:
-                constr_bodies.append(tm.group(2) or '')
+        segs, constr_bodies, end = _consume_pick_tail(text, m.end())
         constr_raw = ' '.join('(%s)' % b for b in constr_bodies)
         # separa sub (1º segmento não-contagem) da contagem (1º segmento-contagem)
         sub = None
@@ -121,7 +163,8 @@ def iter_pick_tokens(text):
                 sub = s
         constraints = _parse_constraints(constr_raw)
         resource_ref = _resource_ref_from_text(constr_raw) or _resource_ref_from_text(text)
-        yield PickToken(kind, sub, count_expr, resource_ref, constraints, m.group(0), m.span())
+        yield PickToken(kind, sub, count_expr, resource_ref, constraints,
+                        text[start:end], (start, end))
 
 
 def _parse_constraints(raw):
@@ -434,6 +477,131 @@ def _pericia_readback(personagem, group):
 
 
 # ---------------------------------------------------------------------------
+# kind 'pericia_expertise' — escolha de ESPECIALIZAÇÃO (dobro do PB) entre as perícias em
+# que o personagem já é PROFICIENTE. Universo opcionalmente restrito pela tag: `from:{a|b}`
+# (Monge, Treinamento das Sombras), `de:[a,b]`, sub `{a|b}`, ou `<attr>_based`/`wis_based`
+# (Batedor). Persiste em TbPersonagemEscolha(tipo='pericia_expertise'); relido como expertise
+# no derive (_expertise_escolhidas em character_engine → dobro do PB). Complementa o campo
+# manual TbPersonagemPericia.expertise (criador nv1).
+# ---------------------------------------------------------------------------
+_ATTR_BASED_RE = re.compile(r'\b(str|for|dex|des|con|int|wis|sab|cha|car)_based\b')
+
+
+def _pericia_proficient_slugs(personagem):
+    """Perícias em que o personagem é PROFICIENTE (campo TbPersonagemPericia + escolhas
+    pick:pericia persistidas). Universo-base da escolha de expertise (só se especializa no
+    que já se é proficiente)."""
+    from .character_engine import _slug, _norm_skill_slug
+    if personagem is None:
+        return set()
+    out = set()
+    for per in personagem.pericias.all():
+        if per.proficiente or per.expertise:
+            out.add(_norm_skill_slug(_slug(per.nome)))
+    for e in personagem.escolhas.filter(tipo='pericia'):
+        if e.valor:
+            out.add(_norm_skill_slug(e.valor))
+    return out
+
+
+def _expertise_owned_slugs(personagem):
+    """Perícias JÁ especializadas (campo expertise + escolhas pick:pericia_expertise) —
+    excluídas do universo de uma nova escolha (não se especializa duas vezes na mesma)."""
+    from .character_engine import _slug, _norm_skill_slug
+    if personagem is None:
+        return set()
+    out = set()
+    for per in personagem.pericias.all():
+        if per.expertise:
+            out.add(_norm_skill_slug(_slug(per.nome)))
+    for e in personagem.escolhas.filter(tipo='pericia_expertise'):
+        if e.valor:
+            out.add(_norm_skill_slug(e.valor))
+    return out
+
+
+def _pericia_expertise_restrict(ctx):
+    """Restrição de universo da tag de expertise: `from:{a|b}`, `de:[a,b]`, sub `{a|b}`, ou
+    `<attr>_based`/`wis_based` (perícias cujo atributo-padrão é aquele). Slugs canônicos
+    permitidos, ou None (sem restrição = qualquer perícia proficiente)."""
+    from .character_engine import _norm_skill_slug, _SKILL_INFO, _EN_SIG, _SAVE_TOKEN_EN
+    tag = str(ctx.get('tag_text') or '')
+    cand = None
+    sub = (ctx.get('tipo') or '').strip()
+    if sub.startswith('{'):
+        cand = re.split(r'[|,]', sub.strip('{}'))
+    if cand is None:
+        m = re.search(r'\bfrom\s*:\s*\{([^}]*)\}', tag)          # from:{a | b}
+        if m:
+            cand = re.split(r'[|,]', m.group(1))
+    if cand is None:
+        m = re.search(r'\bde\s*:?\s*\[([^\]]*)\]', tag)          # de:[a, b]
+        if m:
+            cand = m.group(1).split(',')
+    if cand is not None:
+        out = []
+        for c in cand:
+            s = _norm_skill_slug(c.strip())
+            if s in _SKILL_INFO and s not in out:
+                out.append(s)
+        return out or None
+    m = _ATTR_BASED_RE.search(tag)                               # wis_based / int_based …
+    if m:
+        sig = _EN_SIG.get(_SAVE_TOKEN_EN.get(m.group(1)))        # 'wis' -> 'SAB'
+        if sig:
+            return [sl for sl, info in _SKILL_INFO.items() if info[1] == sig] or None
+    return None
+
+
+def _pericia_expertise_universe(ctx):
+    from .character_engine import _SKILL_INFO, _norm_skill_slug
+    personagem = ctx.get('personagem')
+    prof = _pericia_proficient_slugs(personagem)
+    owned = _expertise_owned_slugs(personagem)
+    restrito = _pericia_expertise_restrict(ctx)
+    pool = list(restrito) if restrito is not None else (sorted(prof) if prof else list(_SKILL_INFO.keys()))
+    out = []
+    for sl in pool:
+        sl = _norm_skill_slug(sl)
+        info = _SKILL_INFO.get(sl)
+        if not info or sl in owned:
+            continue
+        if prof and sl not in prof:          # expertise exige proficiência (quando há o dado)
+            continue
+        out.append({'id': None, 'slug': sl, 'nome': info[0], 'descricao': '', 'pre': ''})
+    return out
+
+
+def _pericia_expertise_origem(group):
+    """Origem estável POR FEATURE (separa múltiplas features de expertise). Casa persist↔readback."""
+    return str(group.get('origem') or group.get('classe') or 'Especialização')[:150]
+
+
+def _pericia_expertise_persist(personagem, group, valores):
+    from .models import TbPersonagemEscolha
+    from .character_engine import _norm_skill_slug
+    origem = _pericia_expertise_origem(group)
+    base = int(group.get('slot_base') or 0)
+    for i, sl in enumerate(valores):
+        TbPersonagemEscolha.objects.update_or_create(
+            id_personagem=personagem, origem=origem, tipo='pericia_expertise', slot=base + i,
+            defaults={'valor': _norm_skill_slug(str(sl))})
+
+
+def _pericia_expertise_readback(personagem, group):
+    if personagem is None:
+        return []
+    from .character_engine import _SKILL_INFO, _norm_skill_slug
+    origem = _pericia_expertise_origem(group)
+    out = []
+    for e in personagem.escolhas.filter(tipo='pericia_expertise', origem=origem).order_by('slot'):
+        sl = _norm_skill_slug(e.valor or '')
+        nome = _SKILL_INFO.get(sl, (e.valor,))[0]
+        out.append({'id': e.id, 'slot': e.slot, 'valor': e.valor, 'nome': nome})
+    return out
+
+
+# ---------------------------------------------------------------------------
 # kind GENÉRICO de MENU — `pick:<kind>:<count>` cujo universo vive num
 # `define{<kind>: list{ a:{..}, b:{..} }}` IRMÃO na mesma feature (menu inline).
 # É o padrão de Máscara de Guerra/Comunidade, Evolução Totêmica, mutagênicos… onde
@@ -499,6 +667,92 @@ def _menu_options_from_define(source, kind):
     return []
 
 
+# ---------------------------------------------------------------------------
+# Universo INLINE — quando o menu não vive num `define{list}` irmão e sim na
+# CAUDA do próprio token: `(={a|b|c})`, `(=<rotulo>:{a|b|c})`, `(=define:{a|b})`,
+# sub `:{a|b|c}`, ou `(=match(<var>){k1:{..}, k2:{..}})` (universo DEPENDE de uma
+# escolha anterior, ex.: `pick:sangue` depende de `pick:vertente`). Um único
+# resolvedor serve a TODOS esses kinds — o mesmo _MENU_ENTRY genérico.
+# ---------------------------------------------------------------------------
+def _split_pipe(s):
+    """'a | b, c' -> ['a','b','c'] (slugs canônicos, sem vazios)."""
+    return [t.strip() for t in re.split(r'[|,]', str(s or '')) if t.strip()]
+
+
+def _slugs_to_opts(slugs):
+    out, seen = [], set()
+    for s in slugs:
+        s = s.strip()
+        if s and s not in seen:
+            seen.add(s)
+            out.append({'id': None, 'slug': s, 'nome': _pretty_kind(s), 'descricao': '', 'pre': ''})
+    return out
+
+
+def _menu_branch_options(body, chosen):
+    """De um corpo de ramos `k1:{a | b}, k2:{c}` (usado em `=match(var){...}`),
+    devolve os slugs do ramo `chosen`. [] se o ramo não existe (ex.: vertente
+    'oread' num sangue que só ramifica undine/sylph -> nenhuma sub-escolha)."""
+    if not chosen:
+        return []
+    m = re.search(r'(?<![a-z0-9_-])' + re.escape(chosen) + r'\s*:\s*\{([^}]*)\}', body)
+    if m:
+        return _split_pipe(m.group(1))
+    m = re.search(r'(?<![a-z0-9_-])' + re.escape(chosen) + r'\s*:\s*([a-z0-9_-]+)', body)
+    return [m.group(1)] if m else []
+
+
+def _inline_menu_options(tok, escolhas=None):
+    """Opções inline de um PickToken (universo na cauda do token, não num define
+    irmão). Ordem de tentativa: `=match(var){...}` (ramo da escolha anterior) →
+    `=<rotulo>?:{a|b|c}` / `={a|b}` / `=define:{a|b}` → sub `:{a|b|c}`. [] se nenhum."""
+    escolhas = escolhas or {}
+    raw = ((tok.constraints or {}).get('raw')) or ''
+    # (1) universo DEPENDENTE: =match(<var>){ramo:{..}, ...}
+    m = re.search(r'=\s*match\((?:pick:)?([a-z0-9_]+)\)\s*\{', raw)
+    if m:
+        var = m.group(1)
+        open_idx = m.end() - 1
+        close = _match_brace(raw, open_idx)
+        body = raw[open_idx + 1:close] if close >= 0 else raw[open_idx + 1:]
+        return _slugs_to_opts(_menu_branch_options(body, escolhas.get(var)))
+    # (2) enumeração literal na cauda: ={a|b} | =<rotulo>:{a|b} | =define:{a|b}
+    m = re.search(r'=\s*(?:[a-z0-9_]+\s*:\s*)?\{([^}]*)\}', raw)
+    if m:
+        return _slugs_to_opts(_split_pipe(m.group(1)))
+    # (3) enumeração no SUB do token: pick:<kind>:{a|b|c}:N
+    sub = (tok.sub or '').strip()
+    if sub.startswith('{'):
+        return _slugs_to_opts(_split_pipe(sub.strip('{}')))
+    return []
+
+
+def _menu_universe(ctx):
+    """Universo de um pick de MENU: define{list} irmão OU enumeração inline na cauda."""
+    opts = _menu_options_from_define(ctx.get('source'), ctx.get('kind'))
+    if opts:
+        return opts
+    tok = ctx.get('token')
+    return _inline_menu_options(tok, ctx.get('escolhas')) if tok is not None else []
+
+
+def _strip_define_bodies(text):
+    """Remove os corpos `define{...}` de um texto (contagem balanceada). O menu de um
+    pick (a `list{}`/ramos dentro do define) NÃO deve ser varrido por iter_pick_tokens
+    como se fossem picks IRMÃOS — senão os sub-picks de uma opção (ex.: Doutrina Marcial
+    `armas_treinadas:{pick:arma:3}`) VAZAM como grupos independentes. O pick EXTERNO fica
+    fora do define e é preservado; o universo já é lido por _menu_options_from_define."""
+    for _ in range(40):
+        m = re.search(r'define\s*\{', text)
+        if not m:
+            break
+        close = _match_brace(text, m.end() - 1)
+        if close < 0:
+            break
+        text = text[:m.start()] + text[close + 1:]
+    return text
+
+
 def _menu_persist(personagem, group, valores):
     from .models import TbPersonagemEscolha
     tipo = group['persist_tipo']
@@ -529,11 +783,20 @@ def _menu_readback(personagem, group):
 _MENU_ENTRY = {
     'sink': 'escolha',
     'menu': True,
-    'universe': lambda ctx: _menu_options_from_define(ctx.get('source'), ctx.get('kind')),
+    'universe': _menu_universe,
     'persist': _menu_persist,
     'validate': _default_validate,
     'readback': _menu_readback,
 }
+
+# Kinds ligados por um FLUXO DEDICADO (não pelo painel genérico de escolhas):
+#   `vertente` — escolhida no passo de Essência do CRIADOR, persistida por lá
+#     (tipo='vertente') e lida pelo derive via _collect_escolhas; nunca deve virar
+#     pendência genérica (evita pendência-fantasma p/ quem já a escolheu, ex.: Scar).
+#   `attr` — `pick:attr:{...}:+1` é o Aumento de Atributo (ASI), 100% resolvido pelos
+#     campos booleanos do talento + TbPersonagemAtributoBonus (fluxo _lvl_aplicar_asi),
+#     fora de tags_json; não é um menu de escolha de build.
+_DEDICATED_KINDS = frozenset({'vertente', 'attr'})
 
 
 PICK_REGISTRY = {
@@ -560,25 +823,37 @@ PICK_REGISTRY = {
         'validate': _default_validate,
         'readback': _pericia_readback,
     },
+    'pericia_expertise': {
+        'sink': 'escolha',
+        'label': 'Especialização',
+        'universe': _pericia_expertise_universe,
+        'persist': _pericia_expertise_persist,
+        'validate': _default_validate,
+        'readback': _pericia_expertise_readback,
+    },
 }
 
 
 # ---------------------------------------------------------------------------
 # Resolvedor — varre features e devolve os grupos normalizados.
 # ---------------------------------------------------------------------------
-def _persist_tipo_for(kind, tipo):
+def _persist_tipo_for(kind, tipo, is_menu=False):
     """Chave `tipo` gravada em TbPersonagemEscolha. `opcao:<sub>` grava o slug do sub
     (ex.: 'estilo_de_luta', 'metamagia'); `arma` grava 'maestria' (compat com o engine);
-    `pericia` grava sempre 'pericia' (o sub, quando existe, é a lista de restrição)."""
+    `pericia` grava sempre 'pericia' (o sub, quando existe, é a lista de restrição).
+    MENU inline grava sempre o KIND — para esses o `sub` é a LISTA de opções
+    (`{int|wis|cha}`), não um subuniverso, e não pode virar chave de persistência."""
     if kind == 'arma':
         return 'maestria'
     if kind == 'pericia':
         return 'pericia'
+    if is_menu:
+        return kind
     return tipo or kind
 
 
 def _build_group(token, source, classe, subclasse, nivel, personagem, escolhas_map, entry,
-                 tag_text=''):
+                 tag_text='', choice_values=None):
     tipo = token.sub
     n = count_for(token.count_expr, nivel, classe, token.resource_ref)
     if not n or n <= 0:
@@ -586,12 +861,13 @@ def _build_group(token, source, classe, subclasse, nivel, personagem, escolhas_m
     ctx = {
         'personagem': personagem, 'classe': classe, 'subclasse': subclasse, 'nivel': nivel,
         'kind': token.kind, 'tipo': tipo, 'constraints': token.constraints,
-        'tag_text': tag_text, 'source': source,
+        'tag_text': tag_text, 'source': source, 'token': token,
+        'escolhas': choice_values or {},
     }
     universo = entry['universe'](ctx)
     if not universo:
         return None
-    persist_tipo = _persist_tipo_for(token.kind, tipo)
+    persist_tipo = _persist_tipo_for(token.kind, tipo, is_menu=bool(entry.get('menu')))
     # Rótulo: kinds com rótulo FIXO no registry (`arma`, `pericia`) usam-no; `opcao` deriva
     # o rótulo do tipo exibido; menu inline (`define{list}`) rotula pelo próprio kind.
     # `arma` não expõe tipo_display (tem painel próprio).
@@ -628,22 +904,35 @@ def _build_group(token, source, classe, subclasse, nivel, personagem, escolhas_m
     return group
 
 
-def _entry_for_token(tok, source):
+def _entry_for_token(tok, source, choice_values=None):
     """REGISTRY entry de um token pick papel-A. Kinds fixos vêm do PICK_REGISTRY; um
-    `pick:<kind>` cujo universo mora num `define{<kind>: list{...}}` IRMÃO usa o handler
-    genérico de menu (`_MENU_ENTRY`). Sem registro nem define -> None (ref/efeito/futuro)."""
+    `pick:<kind>` cujo universo mora num `define{<kind>: list{...}}` IRMÃO **ou** numa
+    enumeração INLINE na cauda do token (`(={a|b}), :{a|b|c}, =match(var){...}`) usa o
+    handler genérico de menu (`_MENU_ENTRY`). Kinds de fluxo DEDICADO (`vertente`) e sem
+    universo -> None (ref/efeito/combate/futuro)."""
+    if tok.kind in _DEDICATED_KINDS:
+        return None
     if tok.kind in PICK_REGISTRY:
         return PICK_REGISTRY[tok.kind]
-    if _menu_options_from_define(source, tok.kind):
+    if _menu_options_from_define(source, tok.kind) or _inline_menu_options(tok, choice_values):
         return _MENU_ENTRY
     return None
 
 
+def registry_entry(kind):
+    """Entry (persist/validate/readback) de um grupo JÁ resolvido. Kinds fixos vêm do
+    PICK_REGISTRY; qualquer kind de MENU (define/inline) usa o _MENU_ENTRY genérico. Usado
+    pelas views ao persistir/validar sem re-inspecionar a fonte (o grupo só existe porque
+    _entry_for_token já o admitiu)."""
+    return PICK_REGISTRY.get(kind, _MENU_ENTRY)
+
+
 def resolve_groups(sources, *, classe=None, subclasse=None, nivel=1,
-                   personagem=None, escolhas_map=None, kinds=None):
+                   personagem=None, escolhas_map=None, kinds=None, choice_values=None):
     """Varre `sources` (objetos com .tags_json/.nome), extrai os picks papel-A e devolve
     a lista de grupos normalizados (um por (kind,sub,classe) distinto). `kinds` filtra os
-    kinds considerados; None = todos.
+    kinds considerados; None = todos. `choice_values` = mapa var->valor das escolhas JÁ
+    feitas (p/ resolver o universo DEPENDENTE de `=match(<var>){...}`, ex.: sangue×vertente).
 
     DEDUP POR MAIOR CONTAGEM: quando a MESMA escolha reaparece em várias features/tokens
     da classe (ex.: Metamagia declarada no nv2, nv10 e nv17, cada uma com uma fórmula de
@@ -655,14 +944,19 @@ def resolve_groups(sources, *, classe=None, subclasse=None, nivel=1,
     por_chave = {}  # chave -> índice em `grupos` (dedup pela MAIOR contagem)
     for source in sources:
         for tag in (getattr(source, 'tags_json', None) or []):
-            for tok in iter_pick_tokens(tag):
+            # O corpo dos define{} é o MENU do próprio pick — não deve ser varrido como
+            # picks IRMÃOS (senão sub-picks de uma opção, ex.: Doutrina Marcial
+            # `armas_treinadas:{pick:arma:3}`, vazam como grupos independentes). O pick
+            # EXTERNO fica fora do define e é preservado; o universo é lido da fonte crua.
+            for tok in iter_pick_tokens(_strip_define_bodies(tag)):
                 if kinds is not None and tok.kind not in kinds:
                     continue
-                entry = _entry_for_token(tok, source)
+                entry = _entry_for_token(tok, source, choice_values)
                 if entry is None:
-                    continue  # kind não registrado e sem define -> ignora
+                    continue  # kind não registrado e sem define/inline -> ignora
                 g = _build_group(tok, source, classe, subclasse, nivel,
-                                 personagem, escolhas_map, entry, tag_text=tag)
+                                 personagem, escolhas_map, entry, tag_text=tag,
+                                 choice_values=choice_values)
                 if g is None:
                     continue
                 chave = (tok.kind, tok.sub, classe_id)
@@ -690,15 +984,28 @@ def resolve_builder(classe, *, escolhas_map=None, kinds=None):
                           personagem=None, escolhas_map=escolhas_map, kinds=kinds)
 
 
+def _choice_values(personagem):
+    """Mapa var->valor (1º slot) das escolhas JÁ persistidas do personagem, p/ resolver o
+    universo DEPENDENTE de `=match(<var>){...}` (ex.: `pick:sangue` ramifica pela vertente
+    escolhida). Mesma chave `tipo` que o derive lê em _collect_escolhas."""
+    out = {}
+    if personagem is None:
+        return out
+    for e in personagem.escolhas.all().order_by('tipo', 'slot'):
+        out.setdefault(e.tipo, e.valor)
+    return out
+
+
 def resolve_personagem(personagem, *, kinds=None):
     """Grupos de escolha de um PERSONAGEM (level-up/editar): varre classe+subclasse
-    desbloqueada até o nível de cada classe E os TALENTOS do personagem. Dedup por
-    (kind,sub,classe)."""
+    desbloqueada até o nível de cada classe, os TRAÇOS raciais/essência e os TALENTOS do
+    personagem. Dedup por (kind,sub,classe)."""
     from .models import TbClassehabilidade
-    from .character_engine import _subclass_unlocked, _talentos
+    from .character_engine import _subclass_unlocked, _talentos, _tracos_raciais
     grupos = []
     if personagem is None:
         return grupos
+    cvals = _choice_values(personagem)
     for c in personagem.classes.select_related('id_classe', 'id_subclasse'):
         nivel = int(c.nivel or 0)
         classe = c.id_classe
@@ -710,7 +1017,16 @@ def resolve_personagem(personagem, *, kinds=None):
             habs += list(TbClassehabilidade.objects.filter(
                 id_subclasse=subclasse, niveladquirido__lte=nivel))
         grupos += resolve_groups(habs, classe=classe, subclasse=subclasse, nivel=nivel,
-                                 personagem=personagem, kinds=kinds)
+                                 personagem=personagem, kinds=kinds, choice_values=cvals)
+    # TRAÇOS raciais/linhagem/ESSÊNCIA automáticos (talento_racial=False): sede das
+    # SUB-ESCOLHAS de essência (`pick:sangue`, `pick:energia`, `pick:polo`, `pick:elemento`,
+    # `pick:alento_elemental`) que hoje viram lixo literal na ficha. `_tracos_raciais` já
+    # entrega o objeto-fonte com .tags_json; classe=None (traço não é de classe).
+    fontes_traco = [obj for (_o, _f, obj, _cl) in _tracos_raciais(personagem)]
+    if fontes_traco:
+        grupos += resolve_groups(fontes_traco, classe=None, subclasse=None,
+                                  nivel=int(personagem.nivel or 0),
+                                  personagem=personagem, kinds=kinds, choice_values=cvals)
     # TALENTOS do personagem (origem/gerais/raciais): antes NUNCA varridos, por isso a
     # Máscara de Guerra (pick via define{list}) e 7+ talentos com pick jamais viravam
     # pendência. Mesma varredura genérica, sem ramo por tipo — classe=None (talento não é
@@ -720,5 +1036,5 @@ def resolve_personagem(personagem, *, kinds=None):
     if fontes_talento:
         grupos += resolve_groups(fontes_talento, classe=None, subclasse=None,
                                   nivel=int(personagem.nivel or 0),
-                                  personagem=personagem, kinds=kinds)
+                                  personagem=personagem, kinds=kinds, choice_values=cvals)
     return grupos

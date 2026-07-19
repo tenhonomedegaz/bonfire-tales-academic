@@ -809,3 +809,742 @@ class PickTalentoDefineMenuTests(_CriadorBase):
         self.assertEqual((g2['usados'], g2['pendentes']), (1, 0))
         self.assertEqual([e['valor'] for e in g2['escolhidas']], ['a_magia'])
         self.assertEqual([e['nome'] for e in g2['escolhidas']], ['A Magia'])
+
+
+class PerfilDeArmaTests(_CriadorBase):
+    """Capacidade 1 — perfil de ataque de arma do inventário equipado.
+
+    Cada arma EQUIPADA (mundana ou mágica com dado de arma) vira um perfil: dado/tipo,
+    atributo (FOR; DES p/ acuidade/à distância), acerto = mod + PB(se proficiente na
+    categoria) + weapon.atk, dano = dado + mod + weapon.dmg; escopos melee/ranged/
+    off_hand. Reviva os Estilos de Luta (Arquearia/Duelo/Defesa/Combate com Duas
+    Armas) hoje órfãos. Maestria da arma aparece no perfil. O desarmado NÃO muda.
+    """
+
+    def _cria(self, classe_slug='barbaro', forca=16, destreza=10, sufixo=''):
+        user = self._novo_usuario('arma-%s-%d-%d%s' % (classe_slug, forca, destreza, sufixo), staff=True)
+        resp = self._post_criar(user, self._payload(classe_slug))
+        self.assertEqual(resp.status_code, 200, resp.content)
+        p = TbPersonagem.objects.get(pk=resp.json()['id'])
+        # Atributos determinísticos: zera bônus de ASI/antecedente e fixa o SCORE base.
+        p.atributo_bonus.all().delete()
+        p.forca, p.destreza = forca, destreza
+        p.save(update_fields=['forca', 'destreza'])
+        return p
+
+    def _equipa(self, p, slug, equipado=True):
+        w = TbItemMundano.objects.get(slug=slug)
+        return TbPersonagemItem.objects.create(
+            id_personagem=p, qtd=1, nome=w.nome, equipado=equipado,
+            tags_json=list(w.tags_json or []))
+
+    def _estilo(self, p, tags):
+        """Liga UMA opção 'Estilo de Luta' (com as tags dadas) ao personagem via escolha.
+        Classes usadas aqui (barbaro) não têm Estilo no N1, então não há escolha duplicada."""
+        from home.models import TbPersonagemEscolha
+        op = TbOpcaojogo.objects.filter(tipo='Estilo de Luta').first()
+        op.tags_json = tags
+        op.save(update_fields=['tags_json'])
+        TbPersonagemEscolha.objects.update_or_create(
+            id_personagem=p, origem='Estilo de Luta', tipo='estilo', slot=0,
+            defaults={'id_opcao': op})
+        return op
+
+    def _derive(self, p):
+        from home.character_engine import derive
+        d = derive(p)
+        return d, d['atributos']['FOR']['mod'], d['atributos']['DES']['mod'], d['bonus_proficiencia']
+
+    def _perfil(self, ficha, escopo=None, nome_contem=None):
+        for pf in ficha['ataques']['perfis']:
+            if escopo and pf['escopo'] != escopo:
+                continue
+            if nome_contem and nome_contem.lower() not in pf['nome'].lower():
+                continue
+            return pf
+        return None
+
+    # ── caso base: melee por Força, com/sem proficiência ──
+    def test_espada_longa_melee_por_forca(self):
+        p = self._cria(forca=16, destreza=10)          # FOR +3, DES +0
+        self._equipa(p, 'arma-espada-longa')
+        d, FOR, DES, pb = self._derive(p)
+        pf = self._perfil(d, nome_contem='Espada Longa')
+        self.assertIsNotNone(pf, d['ataques'])
+        self.assertEqual(pf['escopo'], 'weapon-melee')
+        self.assertEqual(pf['atributo'], 'FOR')
+        self.assertTrue(pf['proficiente'])              # bárbaro é proficiente em marciais
+        self.assertEqual(pf['bonus_ataque'], FOR + pb)
+        self.assertEqual(pf['dano'], '1d8 %+d cortante' % FOR)
+        # o aviso 'não derivados' sumiu (perfil derivado de verdade)
+        self.assertEqual(d['ataques']['avisos'], [])
+
+    def test_arma_nao_equipada_nao_gera_perfil(self):
+        p = self._cria()
+        self._equipa(p, 'arma-espada-longa', equipado=False)
+        d, *_ = self._derive(p)
+        self.assertIsNone(self._perfil(d, nome_contem='Espada Longa'))
+
+    def test_desarmado_nao_muda_com_arma_equipada(self):
+        # regressão do Scar: derivar armas não pode mexer no perfil desarmado.
+        p = self._cria()
+        base = self._perfil(self._derive(p)[0], escopo='unarmed-strike')
+        self._equipa(p, 'arma-espada-longa')
+        depois = self._perfil(self._derive(p)[0], escopo='unarmed-strike')
+        self.assertEqual(base, depois)
+
+    def test_firearm_sem_proficiencia_nao_soma_pb(self):
+        p = self._cria(forca=10, destreza=18)           # DES +4
+        self._equipa(p, 'arma-pistola-pederneira')       # à distância, 'Armas de Fogo'
+        d, FOR, DES, pb = self._derive(p)
+        pf = self._perfil(d, nome_contem='Pistola')
+        self.assertIsNotNone(pf, d['ataques'])
+        self.assertEqual(pf['atributo'], 'DES')          # arma à distância -> DES
+        self.assertFalse(pf['proficiente'])              # bárbaro não tem Armas de Fogo
+        self.assertEqual(pf['bonus_ataque'], DES)        # sem PB
+        self.assertTrue(pf['nota'])
+
+    # ── atributo: acuidade e à distância ──
+    def test_rapieira_acuidade_usa_maior_mod(self):
+        p = self._cria(forca=10, destreza=18)           # DES +4 > FOR +0
+        self._equipa(p, 'arma-rapieira')                 # acuidade (finesse)
+        d, FOR, DES, pb = self._derive(p)
+        pf = self._perfil(d, nome_contem='Rapieira')
+        self.assertEqual(pf['atributo'], 'DES')
+        self.assertEqual(pf['bonus_ataque'], DES + pb)
+        self.assertEqual(pf['dano'], '1d8 %+d perfurante' % DES)
+
+    def test_arco_curto_a_distancia_usa_des(self):
+        p = self._cria(forca=16, destreza=14)           # FOR +3, DES +2
+        self._equipa(p, 'arma-arco-curto')
+        d, FOR, DES, pb = self._derive(p)
+        pf = self._perfil(d, escopo='weapon-ranged')
+        self.assertIsNotNone(pf, d['ataques'])
+        self.assertEqual(pf['atributo'], 'DES')
+        self.assertEqual(pf['bonus_ataque'], DES + pb)
+
+    # ── Estilos de Luta revividos ──
+    def test_arquearia_soma_so_no_perfil_a_distancia(self):
+        p = self._cria(forca=14, destreza=14)
+        self._equipa(p, 'arma-arco-curto')               # à distância
+        self._equipa(p, 'arma-espada-longa')             # corpo a corpo
+        self._estilo(p, ['always_active{ ranged.atk:+2 }'])
+        d, FOR, DES, pb = self._derive(p)
+        arco = self._perfil(d, escopo='weapon-ranged')
+        espada = self._perfil(d, escopo='weapon-melee')
+        self.assertEqual(arco['bonus_ataque'], DES + pb + 2)     # +2 no ranged
+        self.assertEqual(espada['bonus_ataque'], FOR + pb)       # melee intocado
+
+    def test_duelo_soma_dano_so_no_corpo_a_corpo(self):
+        p = self._cria(forca=16, destreza=16)
+        self._equipa(p, 'arma-espada-longa')             # melee
+        self._equipa(p, 'arma-arco-curto')               # ranged
+        self._estilo(p, ['always_active{ requires:{ equiped{weapon{melee}} and one_handed and no_other_weapon }, melee.dmg:+2 }'])
+        d, FOR, DES, pb = self._derive(p)
+        espada = self._perfil(d, escopo='weapon-melee')
+        arco = self._perfil(d, escopo='weapon-ranged')
+        self.assertEqual(espada['dano'], '1d8 %+d cortante' % (FOR + 2))
+        self.assertEqual(arco['dano'], '1d6 %+d perfurante' % DES)   # ranged sem +2
+
+    def test_defesa_soma_ca_so_com_armadura(self):
+        p = self._cria()
+        self._estilo(p, ['always_active{ requires:equiped{armor}, armor.ca:+1 }'])
+        sem = self._derive(p)[0]['ca']
+        # equipa uma armadura qualquer que dê CA base (ca= nas tags)
+        arm = next((a for a in TbItemMundano.objects.filter(categoria='armadura')
+                    if any(str(t).strip().startswith('ca=') for t in (a.tags_json or []))), None)
+        if arm is None:
+            self.skipTest('sem armadura no catálogo de teste')
+        TbPersonagemItem.objects.create(id_personagem=p, qtd=1, nome=arm.nome,
+                                        equipado=True, tags_json=list(arm.tags_json or []))
+        com = self._derive(p)[0]
+        self.assertEqual(com['ca'], self._ca_base_armadura(arm, p) + 1)
+        self.assertIn('estilo', com['ca_fonte'])
+
+    def _ca_base_armadura(self, arm, p):
+        from home.item_mecanica import mecanica_de_tags
+        from home.character_engine import _eval_formula, modificador
+        mec = mecanica_de_tags(arm.tags_json, arm.subcategoria)
+        dex = modificador(p.destreza)
+        ca = _eval_formula(mec.get('ca_formula') or '', {'dex_mod': dex})
+        return ca if ca is not None else (mec['ca_base'] or 10) + dex
+
+    def test_duas_armas_leves_gera_offhand_sem_mod_positivo(self):
+        p = self._cria(forca=10, destreza=18)            # mod +4
+        self._equipa(p, 'arma-espada-curta')             # leve, acuidade
+        self._equipa(p, 'arma-adaga')                    # leve, acuidade
+        d, FOR, DES, pb = self._derive(p)
+        off = self._perfil(d, escopo='off_hand')
+        self.assertIsNotNone(off, d['ataques'])
+        # mão secundária: sem modificador POSITIVO no dano (regra 5e)
+        self.assertRegex(off['dano'], r'^1d[46] \+0')
+        # mas o acerto mantém mod + PB
+        self.assertEqual(off['bonus_ataque'], DES + pb)
+
+    def test_combate_com_duas_armas_devolve_mod_ao_offhand(self):
+        p = self._cria(forca=10, destreza=18)            # mod +4
+        self._equipa(p, 'arma-espada-curta')
+        self._equipa(p, 'arma-adaga')
+        self._estilo(p, ['always_active{ requires:weapon{leve}, off_hand.dmg:+ability_mod }'])
+        d, FOR, DES, pb = self._derive(p)
+        off = self._perfil(d, escopo='off_hand')
+        self.assertRegex(off['dano'], r'\+%d' % DES)     # mod positivo devolvido
+
+    # ── item mágico de bônus plano + maestria no perfil ──
+    def test_item_weapon_bonus_soma_no_perfil_de_arma(self):
+        from home.models import TbItemMagico
+        p = self._cria(forca=16, destreza=10)
+        mag = TbItemMagico.objects.create(
+            nome='Espada Longa +1 (teste)', slug='espada-longa-1-teste', raridade='incomum',
+            slot='arma', tags_json=['item:magico', 'weapon.atk:+1', 'weapon.dmg:+1'])
+        w = TbItemMundano.objects.get(slug='arma-espada-longa')
+        TbPersonagemItem.objects.create(id_personagem=p, qtd=1, nome=w.nome, equipado=True,
+                                        tags_json=list(w.tags_json or []), id_item_magico=mag)
+        d, FOR, DES, pb = self._derive(p)
+        pf = self._perfil(d, nome_contem='Espada Longa')
+        self.assertEqual(pf['bonus_ataque'], FOR + pb + 1)
+        self.assertEqual(pf['dano'], '1d8 %+d cortante' % (FOR + 1))
+
+    def test_maestria_da_arma_aparece_no_perfil(self):
+        p = self._cria()
+        # escolhe a maestria da Espada Longa (substitui as escolhas de maestria do bárbaro)
+        p.escolhas.filter(tipo='maestria').delete()
+        from home.models import TbPersonagemEscolha
+        TbPersonagemEscolha.objects.create(id_personagem=p, origem='Maestria em Armas',
+                                           tipo='maestria', slot=0, valor='arma-espada-longa')
+        self._equipa(p, 'arma-espada-longa')
+        d, *_ = self._derive(p)
+        pf = self._perfil(d, nome_contem='Espada Longa')
+        self.assertTrue(pf['maestria'], pf)
+
+
+class _ConcessaoBase(_CriadorBase):
+    """Base p/ Capacidades 2 e 3: cria um bárbaro determinístico (sem expertise/grant
+    próprios) e injeta features sintéticas via opção-fonte (lida por _features_de_opcoes)."""
+
+    _seq = 0
+
+    def _cria(self, forca=16):
+        _ConcessaoBase._seq += 1
+        user = self._novo_usuario('conc-%d' % _ConcessaoBase._seq, staff=True)
+        resp = self._post_criar(user, self._payload('barbaro'))
+        self.assertEqual(resp.status_code, 200, resp.content)
+        p = TbPersonagem.objects.get(pk=resp.json()['id'])
+        p.atributo_bonus.all().delete()
+        p.forca, p.destreza = forca, 10
+        p.save(update_fields=['forca', 'destreza'])
+        return p
+
+    def _feature_opcao(self, p, tags, origem='Feature Teste', tipo='Estilo de Luta', slot=0):
+        """Anexa uma opção-fonte (TbOpcaojogo própria) com as tags dadas como feature ativa
+        do personagem (via TbPersonagemEscolha com id_opcao). É lida por _features_de_opcoes
+        (efeitos passivos + grant:opcao/grant:talento no grants_fixos)."""
+        from home.models import TbPersonagemEscolha
+        _ConcessaoBase._seq += 1
+        op = TbOpcaojogo.objects.create(
+            tipo=tipo, slug='conc-carrier-%d' % _ConcessaoBase._seq, nome=origem,
+            tags_json=list(tags))
+        TbPersonagemEscolha.objects.create(
+            id_personagem=p, origem=origem[:150], tipo='estilo', slot=slot, id_opcao=op)
+        return op
+
+    def _derive(self, p):
+        from home.character_engine import derive
+        d = derive(p)
+        return d, d['atributos']['FOR']['mod'], d['bonus_proficiencia']
+
+    def _per(self, d, nome):
+        return next((x for x in d['pericias'] if x['nome'] == nome), None)
+
+
+class ExpertisePorTagTests(_ConcessaoBase):
+    """Capacidade 2 — Especialização (expertise) por tag: o dobro do PB numa perícia.
+
+    (A) verbo direto `expertise:<pericia>` em segmento passivo (Campeão/Comandante/Cav.
+        Arcano/Ronin/Veterano da Horda/Curandeiro). Expertise IMPLICA proficiência.
+    (B) kind `pick:pericia_expertise` no PICK_REGISTRY (escolha entre as proficientes),
+        persistido em TbPersonagemEscolha e relido no derive (Ladino/Batedor/Monge).
+    """
+
+    # ── (A) verbo direto ──
+    def test_expertise_verbo_direto_dobra_o_pb(self):
+        p = self._cria(forca=16)                       # FOR +3
+        base = self._per(self._derive(p)[0], 'Atletismo')['bonus']
+        self._feature_opcao(p, ['always_active{ expertise:atletismo }'])
+        d, FOR, pb = self._derive(p)
+        per = self._per(d, 'Atletismo')
+        self.assertTrue(per['proficiente'])            # expertise implica proficiência
+        self.assertTrue(per['expertise'])
+        self.assertEqual(per['bonus'], FOR + 2 * pb)   # DOBRO do PB (prova absoluta)
+        self.assertGreater(per['bonus'], base)         # subiu vs. antes da expertise
+
+    def test_expertise_condicional_if_prof(self):
+        # Cena é Corpo / Dom de Palco (slug PT corrigido): always_active{ prof:X, if(prof:X):expertise:X }
+        p = self._cria()
+        self._feature_opcao(p, ['always_active{ prof:atuacao, if(prof:atuacao):expertise:atuacao }'])
+        per = self._per(self._derive(p)[0], 'Atuação')
+        self.assertTrue(per['expertise'], per)
+
+    def test_expertise_de_ferramenta_permanece_inerte(self):
+        # expertise:tool{}/ferramentas não são perícias -> continuam mortas (sem surface).
+        p = self._cria()
+        d0 = self._derive(p)[0]
+        self._feature_opcao(p, ['always_active{ expertise:ferramentas }',
+                                'prof:tool{utensilios_de_cozinha}, expertise:tool{utensilios_de_cozinha}'])
+        d1 = self._derive(p)[0]
+        self.assertEqual([x['expertise'] for x in d0['pericias']],
+                         [x['expertise'] for x in d1['pericias']])
+
+    # ── (B) kind pick:pericia_expertise (universe/persist/readback + derive) ──
+    def _proficiente(self, p, nome, attr):
+        from home.models import TbPersonagemPericia
+        TbPersonagemPericia.objects.update_or_create(
+            id_personagem=p, nome=nome, defaults={'atributo': attr, 'proficiente': True})
+
+    def test_pick_expertise_readback_dobra_o_pb(self):
+        from home.models import TbPersonagemEscolha
+        p = self._cria()
+        self._proficiente(p, 'Intuição', 'SAB')
+        antes = self._per(self._derive(p)[0], 'Intuição')
+        self.assertTrue(antes['proficiente'] and not antes['expertise'])
+        base = antes['bonus']
+        TbPersonagemEscolha.objects.create(id_personagem=p, origem='Perícia Especializada',
+                                           tipo='pericia_expertise', slot=0, valor='intuicao')
+        d, FOR, pb = self._derive(p)
+        depois = self._per(d, 'Intuição')
+        self.assertTrue(depois['expertise'])
+        self.assertEqual(depois['bonus'] - base, pb)   # +1 PB adicional (dobro)
+
+    def test_pick_expertise_grupo_end_to_end(self):
+        """Token -> grupo (registry) -> persist -> derive: prova a máquina do kind inteira."""
+        import types
+        from home import picks
+        p = self._cria()
+        self._proficiente(p, 'Furtividade', 'DES')
+        src = types.SimpleNamespace(
+            nome='Treinamento das Sombras',
+            tags_json=['pick:pericia_expertise:1(from:{furtividade | acrobacia | prestidigitacao})'])
+        grupos = picks.resolve_groups([src], classe=None, subclasse=None,
+                                      nivel=int(p.nivel or 1), personagem=p)
+        g = next((x for x in grupos if x['kind'] == 'pericia_expertise'), None)
+        self.assertIsNotNone(g, grupos)
+        self.assertEqual(g['n'], 1)
+        # universo = só PROFICIENTES DENTRO da restrição from:{...}; Furtividade presente,
+        # nada fora da lista permitida.
+        univ = [u['slug'] for u in g['universo']]
+        self.assertIn('furtividade', univ)
+        self.assertTrue(set(univ) <= {'furtividade', 'acrobacia', 'prestidigitacao'}, univ)
+        picks.PICK_REGISTRY['pericia_expertise']['persist'](p, g, ['furtividade'])
+        per = self._per(self._derive(p)[0], 'Furtividade')
+        self.assertTrue(per['expertise'], per)
+
+    def test_pick_expertise_universo_exclui_ja_especializada(self):
+        from home.models import TbPersonagemPericia
+        from home import picks
+        p = self._cria()
+        TbPersonagemPericia.objects.create(id_personagem=p, nome='Intuição', atributo='SAB',
+                                           proficiente=True, expertise=True)
+        ctx = {'personagem': p, 'tipo': None, 'tag_text': 'pick:pericia_expertise:1'}
+        universo = {u['slug'] for u in picks.PICK_REGISTRY['pericia_expertise']['universe'](ctx)}
+        self.assertNotIn('intuicao', universo)          # já especializada -> fora do universo
+
+
+class GrantsFixosTests(_ConcessaoBase):
+    """Capacidade 3 — concessões FIXAS sem escolha (grant:opcao / grant:talento).
+
+    grant:opcao:<tipo>:<slug> e grant:opcao{<tipo>: [<slugs>]} adicionam uma opção
+    específica à ficha (via _features_de_opcoes) FORA do painel de pick. grant:talento{slug,
+    no_asi} concede os benefícios de um talento sem o incremento de atributo. Materialização
+    idempotente e origem-rastreada (padrão de _sync_magias_concedidas).
+    """
+
+    def _mm_alvo(self):
+        """Metamagia-alvo sintética (slug hifenado, como o catálogo real)."""
+        return TbOpcaojogo.objects.create(tipo='Metamagia', slug='mm-teste-grant',
+                                          nome='MM Teste', tags_json=['modify:spell{ no_verbal }'])
+
+    def test_grant_opcao_single_materializa_e_aparece(self):
+        p = self._cria()
+        self._mm_alvo()
+        self._feature_opcao(p, ['grant:opcao:metamagia:mm_teste_grant(extra, always_prepared)'],
+                            origem='Metamagia Concedida')
+        # engine reporta a concessão
+        from home.character_engine import grants_fixos
+        gf = grants_fixos(p)
+        self.assertIn('mm-teste-grant', [o['slug'] for o in gf['opcoes']])
+        # sync materializa como escolha 'grant-opcao' (NÃO conta no pick)
+        n_op, n_tal = views._sync_grants_fixos(p)
+        self.assertEqual((n_op, n_tal), (1, 0))
+        esc = p.escolhas.filter(tipo='grant-opcao')
+        self.assertEqual(esc.count(), 1)
+        self.assertEqual(esc.first().id_opcao.slug, 'mm-teste-grant')
+        # aparece na ficha (state['features'] via _features_de_opcoes)
+        d = self._derive(p)[0]
+        self.assertIn('MM Teste', [f['nome'] for f in d['features']])
+
+    def test_grant_opcao_lista_materializa_varias(self):
+        p = self._cria()
+        for slug in ('mm-a', 'mm-b'):
+            TbOpcaojogo.objects.create(tipo='Metamagia', slug=slug, nome=slug.upper(),
+                                       tags_json=['modify:spell{ no_verbal }'])
+        self._feature_opcao(p, ['grant:opcao{metamagia: [mm-a, mm-b], fora_do_limite}'],
+                            origem='Lista Concedida')
+        views._sync_grants_fixos(p)
+        slugs = {e.id_opcao.slug for e in p.escolhas.filter(tipo='grant-opcao')}
+        self.assertEqual(slugs, {'mm-a', 'mm-b'})
+
+    def test_grant_opcao_idempotente(self):
+        p = self._cria()
+        self._mm_alvo()
+        self._feature_opcao(p, ['grant:opcao:metamagia:mm_teste_grant(extra)'])
+        views._sync_grants_fixos(p)
+        views._sync_grants_fixos(p)          # 2ª chamada não duplica
+        self.assertEqual(p.escolhas.filter(tipo='grant-opcao').count(), 1)
+
+    def test_grant_opcao_removida_quando_deixa_de_valer(self):
+        p = self._cria()
+        self._mm_alvo()
+        op = self._feature_opcao(p, ['grant:opcao:metamagia:mm_teste_grant(extra)'])
+        views._sync_grants_fixos(p)
+        self.assertEqual(p.escolhas.filter(tipo='grant-opcao').count(), 1)
+        # remove a feature-fonte -> a concessão some (idempotência de remoção)
+        p.escolhas.filter(id_opcao=op).delete()
+        views._sync_grants_fixos(p)
+        self.assertEqual(p.escolhas.filter(tipo='grant-opcao').count(), 0)
+
+    def test_grant_talento_concede_beneficios_sem_asi(self):
+        p = self._cria(forca=16)
+        for_antes = self._derive(p)[0]['atributos']['FOR']['valor']
+        t = TbTalento.objects.create(nome='Talento Teste Grant', slug='talento_teste_grant',
+                                     tipo='geral', tags_json=['prof:historia'], atrib_forca=True)
+        self._feature_opcao(p, ['grant:talento{talento_teste_grant, no_asi}'], origem='Concede Talento')
+        n_op, n_tal = views._sync_grants_fixos(p)
+        self.assertEqual((n_op, n_tal), (0, 1))
+        pt = p.talentos.filter(categoria='concedido')
+        self.assertEqual(pt.count(), 1)
+        self.assertEqual(pt.first().id_talento_id, t.id_talento)
+        d = self._derive(p)[0]
+        # benefício do talento aplicado (proficiência em História)
+        self.assertTrue(self._per(d, 'História')['proficiente'])
+        # no_asi: NENHUM incremento de atributo (a Força não subiu)
+        self.assertEqual(d['atributos']['FOR']['valor'], for_antes)
+
+    def test_grant_nao_casa_verbos_de_runtime(self):
+        # grant:reaction / grant:grapple / grant:move NÃO são concessões fixas.
+        from home.character_engine import grants_fixos
+        p = self._cria()
+        self._feature_opcao(p, ['trigger=hit, instant{ grant:grapple(no_extra_action) }',
+                                'grant:move(no_opportunity)', 'grant:reaction{ attack:1 }'])
+        gf = grants_fixos(p)
+        self.assertEqual(gf['opcoes'], [])
+        self.assertEqual(gf['talentos'], [])
+
+
+class Cap56VerbosNovosTests(_CriadorBase):
+    """Cap 5/6 — verbos novos, provados no DERIVE:
+      A. modify:<X> cross-feature — registrado inerte (modo=combate) e RETIRADO da
+         varredura estática (não vaza resist:/str_score:/immune: internos).
+      B. verbos menores ESTÁTICOS: ability_check/all_checks/<attr>_check (Pau Pra Toda
+         Obra), attr_max:sintonizacao (limite por nível), speed:+resource/+fórmula
+         (gate de armadura), incremento relativo de sentido, move:liquid, check_bonus
+         com vírgula (max(wis_mod,1)); e gate requires:lvl>=N em segmento passivo,
+         resist:source{} nota, while:<cond>{} ativo, max_cr na biblioteca.
+    """
+
+    _seq = 0
+
+    def _mk(self, feats, nivel=11, classe='mago'):
+        Cap56VerbosNovosTests._seq += 1
+        u = self._novo_usuario('cap56-%d' % Cap56VerbosNovosTests._seq)
+        p = TbPersonagem.objects.create(
+            dono=u, nome='Cap56 N%d #%d' % (nivel, Cap56VerbosNovosTests._seq), nivel=nivel,
+            forca=12, destreza=12, constituicao=12, inteligencia=12, sabedoria=14, carisma=12)
+        cl = TbClasse.objects.get(slug=classe)
+        TbPersonagemClasse.objects.create(id_personagem=p, id_classe=cl, nivel=nivel, principal=True)
+        for i, tags in enumerate(feats):
+            TbClassehabilidade.objects.create(
+                id_classe=cl, id_subclasse=None, nome='Cap56 F%d #%d' % (i, Cap56VerbosNovosTests._seq),
+                descricao='.', niveladquirido=1, tags_json=list(tags))
+        return p
+
+    def _relevel(self, p, nivel):
+        p.nivel = nivel
+        p.save(update_fields=['nivel'])
+        c = p.classes.first()
+        c.nivel = nivel
+        c.save(update_fields=['nivel'])
+
+    def _d(self, p):
+        from home.character_engine import derive
+        return derive(p)
+
+    def _per(self, d, nome):
+        return next(x for x in d['pericias'] if x['nome'] == nome)
+
+    # ── A. modify: cross-feature ──
+    def test_modify_registrado_inerte_e_sem_vazamento(self):
+        # modify:companion.resist:... NÃO vaza resistência-lixo no PC; verbo IRMÃO
+        # (prof:atletismo) é preservado; o descritor fica registrado (modo=combate).
+        p = self._mk([['always_active{ modify:companion.resist:match(pick:energia){ '
+                       'lumen:radiante, umbra:necrotico }(target:companion), prof:atletismo }']])
+        d = self._d(p)
+        self.assertEqual(d['resistencias'], [])           # nenhum vazamento (radiante/necrotico/match)
+        self.assertTrue(self._per(d, 'Atletismo')['proficiente'])  # irmão preservado
+        mods = d.get('modificadores') or []
+        self.assertTrue(any(m['alvo_tipo'] == 'companion' and m['modo'] == 'combate' for m in mods))
+
+    def test_modify_ability_bloco_nao_vaza_immune_alento(self):
+        # modify:ability{...}{ ignore:resist:alento, ... } não injeta imunidade/resist lixo.
+        p = self._mk([['always_active{ modify:ability{sopro_draconico, essencia:draconica}{ '
+                       'ignore:resist:alento, dmg_bonus:lvl } }']])
+        d = self._d(p)
+        self.assertEqual(d['resistencias'], [])
+        self.assertEqual([x for x in d['imunidades'] if 'alento' in x.lower()], [])
+
+    # ── B. ability_check / all_checks / <attr>_check (Pau Pra Toda Obra) ──
+    def test_ability_check_meia_proficiencia_nas_nao_proficientes(self):
+        p = self._mk([['always_active{ ability_check:+(rounddown(pb/2))(unless:proficient) }']])
+        d = self._d(p)
+        pb = d['bonus_proficiencia']
+        half = pb // 2
+        self.assertGreater(half, 0)
+        nao_prof = [s for s in d['pericias'] if not s['proficiente'] and not s['expertise']]
+        self.assertTrue(nao_prof)
+        for s in nao_prof:
+            amod = d['atributos'][s['atributo']]['mod']
+            self.assertEqual(s['bonus'], amod + half, 'jack em %s' % s['nome'])
+        for s in d['pericias']:
+            if s['proficiente'] and not s['expertise']:
+                amod = d['atributos'][s['atributo']]['mod']
+                self.assertEqual(s['bonus'], amod + pb, 'proficiente NÃO leva jack: %s' % s['nome'])
+
+    def test_attr_check_filtra_por_atributo(self):
+        # str_check:+3 só nas perícias de Força.
+        p = self._mk([['always_active{ str_check:+3 }']])
+        d = self._d(p)
+        atl = self._per(d, 'Atletismo')          # FOR
+        acr = self._per(d, 'Acrobacia')          # DES
+        self.assertEqual(atl['bonus'], d['atributos']['FOR']['mod'] + 3 + (d['bonus_proficiencia'] if atl['proficiente'] else 0))
+        self.assertEqual(acr['bonus'], d['atributos']['DES']['mod'] + (d['bonus_proficiencia'] if acr['proficiente'] else 0))
+
+    # ── B. attr_max:sintonizacao (limite por nível) ──
+    def test_sintonizacao_maxima_escala_por_nivel(self):
+        p = self._mk([['always_active{ attr_max:sintonizacao=match(classlvl){'
+                       'classlvl>=18:6, classlvl>=14:5, default:4} }']], nivel=10)
+        self.assertEqual(self._d(p)['sintonizacao_maxima'], 4)
+        self._relevel(p, 14)
+        self.assertEqual(self._d(p)['sintonizacao_maxima'], 5)
+        self._relevel(p, 18)
+        self.assertEqual(self._d(p)['sintonizacao_maxima'], 6)
+
+    def test_sintonizacao_base_e_tres(self):
+        self.assertEqual(self._d(self._mk([[]]))['sintonizacao_maxima'], 3)
+
+    # ── B. speed:+resource / +fórmula + gate de armadura ──
+    def test_speed_formula(self):
+        p = self._mk([['always_active{ speed:+min(2*pb, 30) }']])   # pb=4 -> +8
+        self.assertEqual(self._d(p)['velocidade_bonus'], 8)
+
+    def test_speed_resource_no_nivel(self):
+        from home.models import TbRecursoclasse, TbClasse
+        cl = TbClasse.objects.get(slug='mago')
+        TbRecursoclasse.objects.create(id_classe=cl, id_subclasse=None, nome='Passo Veloz',
+                                       slug='passo_veloz', valores_json={'1': '15 ft'})
+        p = self._mk([['always_active{ speed:+resource{passo_veloz} }']])
+        self.assertEqual(self._d(p)['velocidade_bonus'], 15)
+
+    def test_speed_gate_armadura_bloqueia(self):
+        p = self._mk([['always_active{ restriction{equiped{armadura}, equiped{escudo}}, '
+                       'speed:+min(2*pb, 30) }']])
+        # descalço: bônus aplica
+        self.assertEqual(self._d(p)['velocidade_bonus'], 8)
+        # com escudo equipado (tag ca:+2 => is_escudo): gate bloqueia
+        TbPersonagemItem.objects.create(id_personagem=p, nome='Escudo', qtd=1,
+                                        equipado=True, tags_json=['ca:+2'])
+        self.assertEqual(self._d(p)['velocidade_bonus'], 0)
+
+    # ── B. incremento relativo de sentido ──
+    def test_sentido_incremento_relativo_if_present(self):
+        p = self._mk([['always_active{ sense:darkvision(range:60ft) }'],
+                      ['always_active{ sense:darkvision(range:+60ft, if_present) }']])
+        self.assertIn('darkvision 120ft', self._d(p)['sentidos'])
+
+    def test_sentido_if_present_sem_base_e_descartado(self):
+        p = self._mk([['always_active{ sense:tremorsense(range:+30ft, if_present) }']])
+        self.assertNotIn('tremorsense', ' '.join(self._d(p)['sentidos']))
+
+    # ── B. move:liquid ──
+    def test_move_liquid(self):
+        p = self._mk([['always_active{ move:wall, move:liquid }']])
+        modos = self._d(p).get('movimento_modos') or {}
+        self.assertIn('liquid', modos)
+        self.assertIn('wall', modos)
+
+    # ── B. check_bonus com vírgula interna (max(wis_mod, 1)) ──
+    def test_check_bonus_formula_com_virgula(self):
+        p = self._mk([['always_active{ check_bonus:religiao=max(wis_mod, 1) }']])
+        d = self._d(p)
+        rel = self._per(d, 'Religião')
+        base = d['atributos'][rel['atributo']]['mod'] + (d['bonus_proficiencia'] if rel['proficiente'] else 0)
+        self.assertEqual(rel['bonus'], base + 2)          # wis_mod=+2 (SAB 14); regex antigo -> None
+
+    # ── B. gate requires:lvl>=N em segmento passivo ──
+    def test_requires_lvl_gate_passivo(self):
+        feat = ['always_active{ sense:devilsight(requires:lvl>=5) }']
+        p3 = self._mk([feat], nivel=3)
+        self.assertNotIn('devilsight', ' '.join(self._d(p3)['sentidos']))
+        p5 = self._mk([feat], nivel=5)
+        self.assertIn('devilsight', ' '.join(self._d(p5)['sentidos']))
+
+    # ── B. resist:source{} vira nota ──
+    def test_resist_source_vira_nota(self):
+        p = self._mk([['always_active{ adv:save{spell}, resist:source{magical_effect} }']])
+        d = self._d(p)
+        self.assertEqual(d['resistencias'], [])
+        self.assertTrue(any('resistência a dano de magical effect' in n for n in d['notas_passivas']))
+
+    # ── B. while:<cond>{} é ativo (não vaza estático) ──
+    def test_while_cond_nao_vaza_desvantagem_permanente(self):
+        p = self._mk([['while:in_sunlight{dadv:attack, dadv:check, dadv:save}']])
+        d = self._d(p)
+        self.assertEqual(d.get('desvantagens_impostas', []), [])
+
+    # ── B. max_cr registrado na biblioteca (mata WARN 'cr') ──
+    def test_max_cr_conhecido_e_sem_warn(self):
+        from home.tag_engine import Library, validate_tags_json
+        lib = Library()
+        self.assertTrue(lib.head_known('max_cr'))
+        diags = validate_tags_json(['restriction{ forma: creature_type:besta, max_cr:2 }'], lib)
+        self.assertFalse([d for d in diags if d.code == 'verbo-desconhecido'],
+                         'max_cr não deve gerar verbo-desconhecido')
+
+
+# ─────────────────────────── R3 Blocos A/B/C ────────────────────────────
+class BlocoCRecursoFormulaTests(_CriadorBase):
+    """Bloco C (decisão 9): o TOTAL de um recurso pode ser uma FÓRMULA (descrição
+    prevalece). Fúrias do Bárbaro = Bônus de Proficiência — não a tabela fixa
+    2/3/4/5/6. O motor avalia a fórmula (multiclasse-safe pelo nível TOTAL)."""
+
+    def setUp(self):
+        from home.models import TbRecursoclasse
+        # A descrição da Fúria diz "usos = Bônus de Proficiência". Reforça a fórmula no
+        # DB de teste (a fixture pode estar defasada) p/ exercitar a CAPACIDADE do motor.
+        n = TbRecursoclasse.objects.filter(
+            id_classe__slug='barbaro', slug='furias'
+        ).update(valores_json={'1': 'pb'}, tipo='consumable', reset='long-rest')
+        self.assertEqual(n, 1, 'recurso Fúrias do Bárbaro não encontrado na fixture')
+        self.dono = self._novo_usuario('dono-furia')
+
+    def _barbaro(self, nivel, multiclasse=None):
+        p = TbPersonagem.objects.create(
+            dono=self.dono, nome='Fúria N%d' % nivel, nivel=nivel,
+            forca=16, destreza=14, constituicao=15, inteligencia=8, sabedoria=10, carisma=12)
+        TbPersonagemClasse.objects.create(
+            id_personagem=p, id_classe=TbClasse.objects.get(slug='barbaro'),
+            nivel=(multiclasse['barbaro'] if multiclasse else nivel), principal=True)
+        if multiclasse:
+            TbPersonagemClasse.objects.create(
+                id_personagem=p, id_classe=TbClasse.objects.get(slug=multiclasse['classe']),
+                nivel=multiclasse['nivel2'], principal=False)
+        return p
+
+    def _furias_max(self, p):
+        from home.character_engine import _recursos_consumiveis
+        classes = list(p.classes.select_related('id_classe', 'id_subclasse'))
+        for r in _recursos_consumiveis(p, classes):
+            if (r.get('slug') or '') == 'furias' or r['nome'] == 'Fúrias':
+                return r['maximo']
+        return None
+
+    def test_furias_igual_pb_por_nivel(self):
+        from home.character_engine import _pb_from_nivel
+        for nivel in (1, 3, 5, 6, 11, 12, 17, 20):
+            p = self._barbaro(nivel)
+            self.assertEqual(
+                self._furias_max(p), _pb_from_nivel(nivel),
+                'Fúrias N%d deve exibir PB=%d (descrição), não a tabela fixa'
+                % (nivel, _pb_from_nivel(nivel)))
+
+    def test_furias_discrimina_da_tabela_antiga(self):
+        # nv3: PB=2 (a tabela hardcoded antiga dava 3) -> prova que a descrição prevaleceu.
+        self.assertEqual(self._furias_max(self._barbaro(3)), 2)
+        # nv6: PB=3 (tabela antiga dava 4).
+        self.assertEqual(self._furias_max(self._barbaro(6)), 3)
+
+    def test_furias_multiclasse_usa_pb_do_nivel_total(self):
+        # Bárbaro 3 / Guerreiro 8 = nível TOTAL 11 -> PB=4 (não o PB do nível de classe 3).
+        p = self._barbaro(11, multiclasse={'barbaro': 3, 'classe': 'guerreiro', 'nivel2': 8})
+        self.assertEqual(self._furias_max(p), 4)
+
+    def test_resource_value_at_avalia_pb(self):
+        from home.models import TbRecursoclasse
+        from home.character_engine import _resource_value_at
+        r = TbRecursoclasse.objects.get(id_classe__slug='barbaro', slug='furias')
+        self.assertEqual(_resource_value_at(r, 5, 5), '3')    # PB nv5
+        self.assertEqual(_resource_value_at(r, 12, 12), '4')  # PB nv12 (tabela antiga daria 5)
+
+    def test_valores_numericos_e_dados_passam_intactos(self):
+        # Regressão crítica: só fórmulas (pb/lvl/classlvl) são avaliadas; tabela
+        # numérica / dado / distância / +N continuam literais.
+        from home.models import TbRecursoclasse
+        from home.character_engine import _resource_value_at
+        dados = TbRecursoclasse.objects.filter(
+            id_classe__slug='ladino', slug='dados-de-furtividade').first()
+        self.assertIsNotNone(dados)
+        self.assertEqual(str(_resource_value_at(dados, 5, 5)), '3')      # tabela {1:1,3:2,5:3}
+        d6 = TbRecursoclasse.objects.filter(slug='dado-de-furtividade').first()
+        if d6:
+            self.assertEqual(str(_resource_value_at(d6, 5, 5)), 'd6')    # dado passa intacto
+
+
+class BlocoBMagiaRemapTests(_CriadorBase):
+    """Bloco B (decisão 8): slugs de magia em hold existem no catálogo sob OUTRO
+    nome. Confirma que os 4 alvos existem e que a ponte snake_case→hífen resolve."""
+
+    def test_alvos_existem_no_catalogo(self):
+        from home.models import TbMagia
+        for hifen in ('mao-arcana', 'golpe-brilhante', 'aprimoramento-de-pericia',
+                      'derivacao-temporal'):
+            self.assertTrue(TbMagia.objects.filter(slug=hifen).exists(),
+                            'catálogo deve conter %s (destino do remap)' % hifen)
+
+    def test_ponte_snake_para_hifen(self):
+        # o resolvedor casa a ponte '_'<->'-': o slug snake_case remapeado aponta
+        # para o slug hifenado real do catálogo.
+        from home.models import TbMagia
+        from home.character_engine import _ref_slug
+        for snake, hifen in (('mao_arcana', 'mao-arcana'),
+                             ('golpe_brilhante', 'golpe-brilhante'),
+                             ('aprimoramento_de_pericia', 'aprimoramento-de-pericia'),
+                             ('derivacao_temporal', 'derivacao-temporal')):
+            self.assertEqual(_ref_slug(snake), hifen)
+            self.assertTrue(TbMagia.objects.filter(slug=_ref_slug(snake)).exists())
+
+
+class BlocoANarrativoTests(_CriadorBase):
+    """Bloco A (decisão 7): verbos de combate mantidos (inertes) validam limpo; e
+    remover um token narrativo de um passivo misto não quebra o derive."""
+
+    def test_verbos_de_combate_validam_limpo(self):
+        from home.tag_engine import Library
+        from home.tag_engine.validator import validate_tags_json
+        lib = Library()
+        tags = [
+            'always_active{no_adv:attack{vs:self}, unless:incapacitated}',
+            'always_active{ resist:necrotico, immune_effect:max_hp_reduction }',
+            'always_active{ immune_effect:elixir_proprio }',
+            'always_active{ no_surprised }',
+            'always_active{ reduce_forced_movement:half(min:5ft) }',
+        ]
+        diags = validate_tags_json(tags, lib)
+        ruins = [d for d in diags if d.code in ('verbo-desconhecido', 'nome-com-hifen')]
+        self.assertEqual(ruins, [], 'verbos de combate inertes devem validar limpo: %r' % ruins)
+
+    def test_remover_token_narrativo_preserva_mecanica_irma(self):
+        # Visão Umbral: sense:darkvision (real) permanece após remover detect:darkness (RP).
+        from home.tag_engine import Library
+        from home.tag_engine.validator import validate_tags_json
+        lib = Library()
+        pos = 'always_active{ sense:darkvision(range:60ft) }'
+        diags = validate_tags_json([pos], lib)
+        self.assertEqual([d for d in diags if d.code in ('verbo-desconhecido', 'nome-com-hifen')], [])

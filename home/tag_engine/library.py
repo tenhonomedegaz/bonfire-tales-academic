@@ -32,7 +32,7 @@ STRUCTURAL_QUALIFIERS = {
     # escopos-locais de subclasse (define{}/forma) que o validador não resolve
     # por serem chaves de list{} ou redefinições (:=): tratados como locais.
     "weapon_integrada", "weapon_aprimorada", "arqueiro", "calice", "pesadelo",
-    "balsamo", "mao_magica", "runes_known", "mente_aberta", "mente_fechada",
+    "balsamo", "mao_magica", "mao_arcana", "runes_known", "mente_aberta", "mente_fechada",
     "surpreendido", "die_if_0", "force_miss", "opportunity_attack",
     # variáveis de ESCOLHA de essência (set/pick/match/requires sobre elas) e formas
     "alento", "vertente", "descendencia", "sangue", "polo", "energia", "elemento",

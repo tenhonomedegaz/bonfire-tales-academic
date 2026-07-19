@@ -3846,10 +3846,14 @@ def _pick_count_expr(expr, level):
     return None
 
 
-# kinds `pick:*` exibidos no painel genérico de Escolhas de Classe do level-up
-# (fora `arma`, que tem painel dedicado de Maestria). Adicionar um kind novo aqui é
-# tudo o que o painel precisa — o shape é montado genericamente a partir do REGISTRY.
-_OPCAO_PANEL_KINDS = {'opcao', 'pericia'}
+# Painel genérico de Escolhas (level-up/editar): mostra TODOS os grupos `pick:*`
+# resolvíveis — opções (metamagia/estilos/…), perícias, menus inline `define{list}`
+# (Máscara de Guerra, Runas, Doutrina Marcial…) e sub-escolhas de essência
+# (sangue/energia/polo/elemento). `kinds=None` = todos; o resolvedor só emite grupo
+# para kind com universo (registrado ou menu), então nada espúrio entra. Excluímos só
+# `arma` (tem painel dedicado de Maestria). Adicionar capacidade nova não exige mexer aqui.
+_OPCAO_PANEL_KINDS = None
+_OPCAO_PANEL_EXCLUDE = {'arma'}
 
 
 def _opcao_grupos(personagem):
@@ -3864,6 +3868,8 @@ def _opcao_grupos(personagem):
         return grupos
     slug2tipo = _picks._slug2tipo_map()
     for g in _picks.resolve_personagem(personagem, kinds=_OPCAO_PANEL_KINDS):
+        if g['kind'] in _OPCAO_PANEL_EXCLUDE:
+            continue
         slug = g['persist_tipo']
         tipo_disp = (g.get('tipo_display') or slug2tipo.get(slug)
                      or slug2tipo.get(_picks.normalize_slug(slug)) or slug)
@@ -4096,7 +4102,51 @@ def _sync_magias_concedidas(personagem):
     for slug, m in existing.items():
         if slug not in intended:
             m.delete()
+    # Concessões FIXAS não-mágicas (grant:opcao / grant:talento) sincronizam no MESMO ponto
+    # (toda persistência que reavalia magias reavalia grants); mantém a ficha consistente
+    # sem espalhar chamadas por todos os fluxos de save.
+    _sync_grants_fixos(personagem)
     return len(info['pendentes'])
+
+
+def _sync_grants_fixos(personagem):
+    """Materializa as concessões FIXAS reportadas por `character_engine.grants_fixos`
+    (grant:opcao / grant:talento), no padrão idempotente e origem-rastreado de
+    `_sync_magias_concedidas`:
+      • Opções → TbPersonagemEscolha(tipo='grant-opcao', id_opcao) — lidas por
+        `_features_de_opcoes` (efeitos passivos + aparecem em state['features']) SEM contar no
+        limite de pick (o painel de opções filtra por tipo≠'grant-opcao').
+      • Talentos → TbPersonagemTalento(categoria='concedido') — lidos por `_talentos`
+        (proficiências/perícias/tags do talento). SEM ASI: o grant NÃO passa pelo fluxo de
+        level-up, então nenhum TbPersonagemAtributoBonus é criado (as opções em escopo não
+        carregam `attr:` nas tags).
+    Gerência restrita aos registros que ELE cria (tipo='grant-opcao' / categoria='concedido'):
+    reconstrói-os a cada sync (conjunto pequeno) preservando escolhas de pick e talentos de ASI.
+    Retorna (n_opcoes, n_talentos)."""
+    from .models import TbPersonagemEscolha, TbPersonagemTalento, TbOpcaojogo, TbTalento
+    from .character_engine import grants_fixos
+    info = grants_fixos(personagem)
+    # ── opções concedidas ──
+    TbPersonagemEscolha.objects.filter(id_personagem=personagem, tipo='grant-opcao').delete()
+    por_fonte = {}
+    for c in info['opcoes']:
+        por_fonte.setdefault((c['fonte'] or '')[:150], []).append(c)
+    for fonte, itens in por_fonte.items():
+        for slot, c in enumerate(itens):
+            op = TbOpcaojogo.objects.filter(id_opcao=c['id_opcao']).first()
+            if op:
+                TbPersonagemEscolha.objects.create(
+                    id_personagem=personagem, origem=fonte, tipo='grant-opcao',
+                    slot=slot, id_opcao=op, valor=op.slug)
+    # ── talentos concedidos (só os 'concedido'; preserva os de ASI/origem) ──
+    TbPersonagemTalento.objects.filter(id_personagem=personagem, categoria='concedido').delete()
+    for c in info['talentos']:
+        t = TbTalento.objects.filter(id_talento=c['id_talento']).first()
+        if t:
+            TbPersonagemTalento.objects.create(
+                id_personagem=personagem, id_talento=t, nome=t.nome,
+                categoria='concedido', detalhes=('grant:%s' % (c['fonte'] or ''))[:200])
+    return len(info['opcoes']), len(info['talentos'])
 
 
 # compat: nome antigo
@@ -4527,7 +4577,7 @@ def _lvl_aplicar_opcao(personagem, payload):
         return [_ERR_OPCAO_INVALIDA]
     # anexa no próximo slot livre (não sobrescreve escolhas anteriores)
     grupo['slot_base'] = grupo['prox_slot']
-    _picks.PICK_REGISTRY[grupo['kind']]['persist'](personagem, grupo, [val])
+    _picks.registry_entry(grupo['kind'])['persist'](personagem, grupo, [val])
     return []
 
 
@@ -5472,7 +5522,7 @@ def _criador_resolver(data):
         universo_ids = {str(u.get('id')) for u in g['universo'] if u.get('id') is not None}
         vals = [v for v in dict.fromkeys(incoming.get(key) or [])
                 if str(v) in universo_slugs or str(v) in universo_ids]
-        erros += _picks.PICK_REGISTRY[g['kind']]['validate'](g, vals)
+        erros += _picks.registry_entry(g['kind'])['validate'](g, vals)
         generic_picks.append((g, vals))
 
     # Perícias: validar quantidade e pertinência no SERVIDOR (não confiar só no cliente).
@@ -5579,7 +5629,7 @@ def _criador_persistir(user, data, R):
     # pick:opcao:<tipo>:N do N1) — persistidas pelo REGISTRY (home.picks), FONTE ÚNICA.
     from . import picks as _picks
     for g, vals in generic_picks:
-        _picks.PICK_REGISTRY[g['kind']]['persist'](p, g, vals)
+        _picks.registry_entry(g['kind'])['persist'](p, g, vals)
     for sl in set(pc + pa):
         info = _SKILL_INFO.get(sl)
         if info:

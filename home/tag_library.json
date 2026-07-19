@@ -258,6 +258,9 @@
       "grapple": "manobra Agarrar: grapple.contest (ver contest{})",
       "manobra": "perfil de Manobra de Combate (resource{dado_de_combate}): manobra.cd / manobra.<efeito>"
     },
+    "defensivo": {
+      "armor": "bônus plano de CA que EMPILHA com a armadura equipada (armor.ca:+N — Estilo de Luta Defesa / infusões de armadura); distinto de ca= (base sem armadura)."
+    },
     "direcao_ataque": {
       "vs": "CONTRA (o alvo/vítima do ataque): em adv/dadv/no_adv:attack{...} desambigua a direção. no_adv:attack{vs:self} = nenhum ataque feito CONTRA você tem Vantagem. Sem vs:/by:, um 'target:self' fica ambíguo (atacante vs vítima).",
       "by": "POR (quem faz o ataque): no_adv:attack{by:self} = seus próprios ataques não têm Vantagem; dadv:attack{by:enemies} = ataques dos inimigos têm Desvantagem."
@@ -957,6 +960,26 @@
       },
       "doc": "Bônus numérico em TODOS os saves (Aura de Proteção: all_saves:+max(cha_mod,1); Magnum Opus: all_saves:+sintonizacao_ativa)."
     },
+    "all_checks": {
+      "categoria": "A7",
+      "forma": "key_value",
+      "op": "add_modifier",
+      "target": "pericias.bonus",
+      "value": {
+        "type": "formula"
+      },
+      "doc": "Bônus numérico em TODOS os testes de habilidade (perícias). Sinônimo de ability_check:+ (que é roll-id). '(unless:proficient)' restringe às perícias sem proficiência (Bardo Pau Pra Toda Obra = +rounddown(pb/2))."
+    },
+    "max_cr": {
+      "categoria": "A9",
+      "forma": "key_value",
+      "op": "meta",
+      "target": "filtro.max_cr",
+      "value": {
+        "type": "number"
+      },
+      "doc": "Filtro de Nível de Desafio máximo (max_cr:N / cr<=N) para formas assumíveis / criaturas invocáveis (Forma Selvagem, metamorfose, invocações). Inerte na ficha estática (efeito de seleção/combate — ficha-de-log)."
+    },
     "auto_save_success": {
       "categoria": "A7",
       "forma": "flag",
@@ -1366,7 +1389,7 @@
       "categoria": "A9",
       "forma": "key_value",
       "op": "grant_execution",
-      "doc": "Concede algo ao alvo. grant:extra_action = uma ação completa extra no turno (Surto de Ação; não cabe nos 4 custos nem em 'execução'). Aprovado 2026_06_17."
+      "doc": "Concede algo ao alvo. grant:extra_action = uma ação completa extra no turno (Surto de Ação; não cabe nos 4 custos nem em 'execução'). Aprovado 2026_06_17. CONCESSÕES FIXAS consumidas no derive (character_engine.grants_fixos → views._sync_grants_fixos, modo escolha): grant:opcao:<tipo>:<slug>(extra, always_prepared) e grant:opcao{<tipo>: [<slugs>], fora_do_limite} materializam uma opção de jogo (metamagia/manobra) FORA do painel de pick; grant:talento{<slug>, no_asi} concede os benefícios de um talento sem o incremento de atributo. O resto (grant:reaction/grapple/move/extra_action) segue runtime/VTT (inerte)."
     },
     "enhance": {
       "categoria": "A9",
@@ -1625,7 +1648,7 @@
       "value": {
         "dobra_pb": true
       },
-      "doc": "Especialização: dobra PB. Em classe, sinaliza por pick:pericia_expertise (regra global)."
+      "doc": "Especialização (dobro do PB). CONSUMIDO no derive (modo estático): expertise:<perícia> em segmento passivo marca proficiente+expertise na perícia (implica proficiência). Escolha de expertise entre proficientes = pick:pericia_expertise (kind no PICK_REGISTRY, readback no derive). expertise:tool{}/ferramentas ficam inertes (a ficha não deriva teste de ferramenta)."
     },
     "save_prof": {
       "categoria": "efeito",
