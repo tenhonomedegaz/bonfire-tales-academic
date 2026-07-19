@@ -3626,7 +3626,7 @@
     "table_only": false,
     "tags_json": [
       "pick:opcao:metamagia:2",
-      "pick:opcao:metamagia:{classlvl=10:1, classlvl=17:1}",
+      "pick:opcao:metamagia:{classlvl=2:2, classlvl=10:2, classlvl=17:2}",
       "1/spell",
       "resource_cost:pontos_de_feiticaria:N"
     ]
@@ -3644,7 +3644,7 @@
     "table_only": true,
     "tags_json": [
       "pick:opcao:metamagia:2",
-      "pick:opcao:metamagia:{classlvl=10:1, classlvl=17:1}",
+      "pick:opcao:metamagia:{classlvl=2:2, classlvl=10:2, classlvl=17:2}",
       "1/spell",
       "resource_cost:pontos_de_feiticaria:N"
     ]
@@ -3662,7 +3662,7 @@
     "table_only": true,
     "tags_json": [
       "pick:opcao:metamagia:2",
-      "pick:opcao:metamagia:{classlvl=10:1, classlvl=17:1}",
+      "pick:opcao:metamagia:{classlvl=2:2, classlvl=10:2, classlvl=17:2}",
       "1/spell",
       "resource_cost:pontos_de_feiticaria:N"
     ]

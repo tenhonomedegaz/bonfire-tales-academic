@@ -707,3 +707,105 @@ class PickPericiaTests(_CriadorBase):
             g = next(x for x in picks.resolve_groups(
                 [hab], classe=classe, nivel=10, personagem=None) if x['kind'] == 'pericia')
             self.assertEqual({u['slug'] for u in g['universo']}, esperado, tag)
+
+
+class PickMetamagiaProgressaoTests(_CriadorBase):
+    """BUG do dedup de `pick:opcao`: a progressão de Metamagia do Feiticeiro ficava presa em
+    2. A dedup `(kind,sub,classe)` mantinha o PRIMEIRO token visto (o literal
+    `pick:opcao:metamagia:2` das features N2/N10/N17) e descartava a fórmula por nível que
+    concede mais. O resolvedor passa a manter a MAIOR contagem aplicável ao nível
+    (`count_for`) entre os tokens/features repetidos: 2 no N2, 4 no N10, 6 no N17 — exatamente
+    a descrição da classe (escolhe 2; +2 no 10º; +2 no 17º, totalizando 6)."""
+
+    def _feiticeiro(self, nivel):
+        p = TbPersonagem.objects.create(
+            dono=self._novo_usuario('feit-%d' % nivel), nome='Feiticeiro N%d' % nivel,
+            nivel=nivel, forca=8, destreza=14, constituicao=13,
+            inteligencia=12, sabedoria=10, carisma=15)
+        TbPersonagemClasse.objects.create(
+            id_personagem=p, id_classe=TbClasse.objects.get(slug='feiticeiro'),
+            nivel=nivel, principal=True)
+        return p
+
+    def _n_metamagia(self, p):
+        from home import picks
+        g = next(g for g in picks.resolve_personagem(p, kinds={'opcao'})
+                 if g['tipo'] == 'metamagia')
+        return g['n']
+
+    def test_progressao_2_4_6(self):
+        self.assertEqual(self._n_metamagia(self._feiticeiro(2)), 2)
+        self.assertEqual(self._n_metamagia(self._feiticeiro(10)), 4)
+        self.assertEqual(self._n_metamagia(self._feiticeiro(17)), 6)
+
+    def test_maior_formula_vence_o_primeiro_literal(self):
+        # A feature de Metamagia carrega DOIS tokens de contagem: o literal `:2` (primeiro) e
+        # a fórmula cumulativa. Antes o literal (primeiro visto) travava em 2; agora a MAIOR
+        # (=6 no N17) vence. Prova a regra da dedup sem depender do fim-a-fim do personagem.
+        from home import picks
+        classe = TbClasse.objects.get(slug='feiticeiro')
+        habs = list(TbClassehabilidade.objects.filter(
+            id_classe=classe, id_subclasse__isnull=True, niveladquirido__lte=17))
+        tokens = [t for h in habs for t in (h.tags_json or []) if 'pick:opcao:metamagia' in str(t)]
+        self.assertIn('pick:opcao:metamagia:2', tokens)  # o literal "travador" está presente
+        g = next(g for g in picks.resolve_groups(habs, classe=classe, nivel=17, personagem=None)
+                 if g['tipo'] == 'metamagia')
+        self.assertEqual(g['n'], 6)
+
+
+class PickTalentoDefineMenuTests(_CriadorBase):
+    """PICKS DENTRO DE TALENTOS: `resolve_personagem` passa a varrer os TALENTOS do
+    personagem (antes só classe/subclasse). Prova com a Máscara de Guerra (talento racial de
+    Orc): seu `pick:mascara_guerra:1` tem o universo num `define{mascara_guerra: list{...}}`
+    IRMÃO — kind resolvido genericamente pelo handler de menu inline (zero if-por-tipo). A
+    escolha vira pendência (1 de 4) SEM que as perícias do menu vazem como estáticas."""
+
+    def _orc_com_mascara(self, nivel=1):
+        from home.models import TbRaca
+        p = TbPersonagem.objects.create(
+            dono=self._novo_usuario('orc-mascara-%d' % nivel), nome='Orc da Máscara',
+            id_raca=TbRaca.objects.get(slug='orc'), nivel=nivel,
+            forca=15, destreza=13, constituicao=14, inteligencia=8, sabedoria=12, carisma=10)
+        TbPersonagemClasse.objects.create(
+            id_personagem=p, id_classe=TbClasse.objects.get(slug='barbaro'),
+            nivel=nivel, principal=True)
+        # Máscara de Guerra é um talento racial salvo só por NOME (id_talento=None) — como no
+        # Scar de produção; `_talentos` resolve a TbTracoracial pela raça do personagem.
+        TbPersonagemTalento.objects.create(
+            id_personagem=p, id_talento=None, categoria='racial', nivel=1,
+            nome='Máscara de Guerra')
+        return p
+
+    def test_pick_de_talento_vira_pendencia(self):
+        from home import picks
+        g = next(g for g in picks.resolve_personagem(self._orc_com_mascara())
+                 if g['kind'] == 'mascara_guerra')
+        self.assertEqual(g['n'], 1)
+        self.assertEqual(g['pendentes'], 1)
+        self.assertEqual(g['origem'], 'Máscara de Guerra')
+        self.assertEqual(g['persist_tipo'], 'mascara_guerra')
+        # universo = as 4 opções do define{mascara_guerra: list{...}}, na ordem do menu
+        self.assertEqual({u['slug'] for u in g['universo']},
+                         {'o_divino', 'a_terra', 'a_magia', 'a_umbra'})
+
+    def test_talento_nao_concede_pericia_estatica(self):
+        # o define é MENU (stripado dos verbos passivos), não concessão fixa: nenhuma das
+        # perícias listadas nas 4 máscaras (religião/natureza/arcanismo/enganação) vira
+        # proficiência estática — só a escolha, quando feita, aplicaria a do ramo.
+        from home.character_engine import derive
+        prof = {x['nome'] for x in derive(self._orc_com_mascara())['pericias']
+                if x['proficiente'] or x['expertise']}
+        self.assertFalse(prof & {'Religião', 'Natureza', 'Arcanismo', 'Enganação'}, prof)
+
+    def test_persist_e_readback_da_escolha_de_menu(self):
+        from home import picks
+        p = self._orc_com_mascara()
+        g = next(g for g in picks.resolve_personagem(p) if g['kind'] == 'mascara_guerra')
+        g['slot_base'] = g['prox_slot']
+        picks._MENU_ENTRY['persist'](p, g, ['a_magia'])
+        self.assertEqual(p.escolhas.filter(tipo='mascara_guerra', valor='a_magia').count(), 1)
+        # idempotência do painel: a pendência zera e a escolha é relida
+        g2 = next(g for g in picks.resolve_personagem(p) if g['kind'] == 'mascara_guerra')
+        self.assertEqual((g2['usados'], g2['pendentes']), (1, 0))
+        self.assertEqual([e['valor'] for e in g2['escolhidas']], ['a_magia'])
+        self.assertEqual([e['nome'] for e in g2['escolhidas']], ['A Magia'])
