@@ -1759,3 +1759,109 @@ class BlocoANarrativoTests(_CriadorBase):
         pos = 'always_active{ sense:darkvision(range:60ft) }'
         diags = validate_tags_json([pos], lib)
         self.assertEqual([d for d in diags if d.code in ('verbo-desconhecido', 'nome-com-hifen')], [])
+
+
+class CondicionalEmValorEstaticoTests(TestCase):
+    """Bug do print: um `if(...)` condicional em posição de VALOR ESTÁTICO
+    (unarmed_strike.dmg) vazava a expressão CRUA para o painel Ataques — a ficha
+    exibia `if(unarmed_strike.dmg >= 1d6):` como dano. Cobre as 3 defesas:
+      1. GUARD do motor: a string de dano nunca renderiza expressão (só dado NdM +
+         modificador numérico); o resíduo é descartado (com nota de debug).
+      2. VALIDADOR: acusa ERROR `cond-em-valor-estatico` para essa classe de tag.
+      3. Forma consumida (piso de dado) rende dano estático limpo."""
+
+    LEAK = ("unarmed_strike.dmg:= if(unarmed_strike.dmg >= 1d6+str_mod): "
+            "+1 else: 1d6+str_mod (concussao)")
+    CANON = "always_active{ unarmed_strike.dmg:=1d6+str_mod(concussao) }"
+
+    def _derive_unarmed(self, tag, nivel=4, forca=16):
+        """Deriva só o perfil desarmado por um caminho fiel: apply_tags -> _ataques."""
+        from home.character_engine import (apply_tags, _ataques, _build_ctx,
+                                           bonus_proficiencia)
+        fmod = (forca - 10) // 2
+        attrs = {'FOR': {'valor': forca, 'mod': fmod},
+                 'DES': {'valor': 14, 'mod': 2}, 'CON': {'valor': 14, 'mod': 2},
+                 'INT': {'valor': 10, 'mod': 0}, 'SAB': {'valor': 10, 'mod': 0},
+                 'CAR': {'valor': 10, 'mod': 0}}
+        pb = bonus_proficiencia(nivel)
+        feat = type('F', (), {'nome': 'X', 'tags_json': [tag], 'table_only': False})()
+        state = {'_ctx': _build_ctx(nivel, pb, attrs), 'pv': {'maximo_calculado': 30},
+                 'velocidade': '9 m / 30 ft', 'iniciativa': 0, 'recursos': {}, 'ca': 10}
+        apply_tags(state, [('talento', 'X', feat, None)], personagem=None, escolhas={})
+        res = _ataques(state['_tag'], attrs, pb)
+        desarmado = next((p for p in res['perfis'] if p['escopo'] == 'unarmed-strike'), None)
+        return desarmado, res, pb, fmod
+
+    def test_guard_nao_vaza_expressao_na_string_de_dano(self):
+        desarmado, res, pb, fmod = self._derive_unarmed(self.LEAK)
+        self.assertIsNotNone(desarmado, 'perfil desarmado deve existir')
+        # A defesa central: NENHUM resíduo de expressão pode aparecer na string.
+        for proibido in ('if(', 'else', '>=', ':='):
+            self.assertNotIn(proibido, desarmado['dano'],
+                             'expressão vazou na string de dano: %r' % desarmado['dano'])
+        self.assertNotIn('if(', desarmado['dado'])
+        # o acerto continua numérico e correto (mod + PB)
+        self.assertEqual(desarmado['bonus_ataque'], fmod + pb)
+        # e há nota de debug do trecho descartado
+        self.assertTrue(any('não-parseável' in a for a in res['avisos']),
+                        'esperava nota de debug do descarte: %r' % res['avisos'])
+
+    def test_sanitizer_isola_die_e_descarta_expressao(self):
+        from home.character_engine import _sanitize_dano_dado
+        # expressão -> descartada (sem dado que inicie a string) => '—'
+        limpo, desc = _sanitize_dano_dado('if(unarmed_strike.dmg >= 1d6): +1 else: 1d6 (concussao)')
+        self.assertEqual(limpo, '—')
+        self.assertIsNotNone(desc)
+        # forma estática legítima passa intacta (dado + tipo de dano)
+        self.assertEqual(_sanitize_dano_dado('1d6(concussao)'), ('1d6(concussao)', None))
+        # placeholder textual seguro é preservado (fallback de recurso)
+        self.assertEqual(_sanitize_dano_dado('dado de artes marciais'),
+                         ('dado de artes marciais', None))
+
+    def test_forma_consumida_rende_dano_estatico_limpo(self):
+        desarmado, _res, pb, fmod = self._derive_unarmed(self.CANON)
+        self.assertIsNotNone(desarmado)
+        self.assertEqual(desarmado['dado'], '1d6(concussao)')
+        self.assertEqual(desarmado['dano'], '1d6(concussao) %+d' % fmod)
+
+    def test_validador_acusa_condicional_em_dmg(self):
+        from home.tag_engine import Library
+        from home.tag_engine.validator import validate_tag_line
+        lib = Library()
+        diags = validate_tag_line(self.LEAK, lib, data=None)
+        hits = [d for d in diags if d.code == 'cond-em-valor-estatico']
+        self.assertEqual(len(hits), 1, 'validador deve acusar 1x: %r' % diags)
+        self.assertEqual(hits[0].level, 'ERROR')
+
+    def test_validador_pega_if_aninhado_em_instant_dentro_de_always_active(self):
+        # always_active{ ... instant{ unarmed_strike.dmg:= if(...) } }: o corpo do
+        # always_active é tomado inteiro (motor não subtrai o instant aninhado), então
+        # o if( AINDA vaza — o validador precisa acusar.
+        from home.tag_engine import Library
+        from home.tag_engine.validator import validate_tag_line
+        lib = Library()
+        tag = ("always_active{ trigger=hit_melee, attack:unarmed_strike, instant{ "
+               "unarmed_strike.dmg:= if(equiped{weapon} or equiped{shield}): "
+               "1d6+str_mod else: 1d8+str_mod (concussao) } }")
+        hits = [d for d in validate_tag_line(tag, lib, data=None)
+                if d.code == 'cond-em-valor-estatico']
+        self.assertEqual(len(hits), 1)
+
+    def test_validador_nao_falsopositiva_condicional_legitimo(self):
+        # if( em posição CONSUMIDA (expertise/sense/resist) ou dentro de instant+trigger
+        # (inerte) NÃO é o bug — não pode acusar.
+        from home.tag_engine import Library
+        from home.tag_engine.validator import validate_tag_line
+        lib = Library()
+        ok = [
+            'always_active{ prof:atuacao, if(prof:atuacao):expertise:atuacao }',
+            'if(already:sense:darkvision): sense:darkvision(range:+30ft)',
+            'match(vertente){ oread:{ if(already:resist{veneno}): resist:acido else: resist:veneno } }',
+            'trigger=apply{amedrontado}, action=reaction, instant{ dmg:2d8(psiquico), if(crit_or_crit_fail): dmg:=4d8(psiquico) }',
+            self.CANON,
+            'while_active{ trigger=hit{unarmed}, if(unarmed_strike.dmg >= 1d6): unarmed_strike.dmg:+1 }',
+        ]
+        for tag in ok:
+            hits = [d for d in validate_tag_line(tag, lib, data=None)
+                    if d.code == 'cond-em-valor-estatico']
+            self.assertEqual(hits, [], 'falso-positivo em %r' % tag)

@@ -306,6 +306,85 @@ def _check_style(line, lib):
     return out
 
 
+# ───── condicional if( em posição de VALOR ESTÁTICO (dmg/atk/ca/attr) ─────
+# Regra do projeto: número da ficha nunca renderiza expressão. Um valor estático
+# (dado de dano, bônus de acerto, CA, atributo) cujo RHS é um `if(...)` condicional
+# vaza a expressão CRUA para o painel de Ataques/ficha (bug: dano exibido como
+# `if(unarmed_strike.dmg >= 1d6):`). Condicional é coisa de runtime/combate: deve
+# viver em while_active/instant (inerte) ou ser reescrito na forma consumida.
+# Espelha character_engine._passive_segments para só acusar quando o `if(` cai num
+# segmento PASSIVO (o que o motor materializa) — dentro de while_active/instant/cast
+# ele é inerte e legítimo.
+_V_ACTIVE_BLOCKS = ("while_active", "while", "instant", "cast", "aura", "effects")
+_V_ACTIVE_MARKERS = ("trigger=", "instant{", "while_active{", "while{", "while:",
+                     "cast{", "action=", "on:")
+_STATIC_IF_RX = re.compile(
+    r"(?:\.(?:dmg|atk)"
+    r"|(?<![a-z_])(?:ca|str|dex|con|int|wis|cha|for|des|sab|car|forca|destreza|"
+    r"constituicao|inteligencia|sabedoria|carisma)(?:_score|_max|_set)?)"
+    r"\s*[:=]+\s*if\s*\(", re.I)
+
+
+def _v_match_close(s, i):
+    """Índice do '}' que fecha o '{' em s[i]; -1 se não fecha."""
+    depth = 0
+    for j in range(i, len(s)):
+        c = s[j]
+        if c == "{":
+            depth += 1
+        elif c == "}":
+            depth -= 1
+            if depth == 0:
+                return j
+    return -1
+
+
+def _v_active_spans(tag):
+    spans = []
+    for kw in _V_ACTIVE_BLOCKS:
+        for m in re.finditer(r"\b" + kw + r"\s*\{", tag):
+            bc = _v_match_close(tag, m.end() - 1)
+            if bc > 0:
+                spans.append((m.start(), bc))
+    return spans
+
+
+def _v_passive_segments(tag):
+    """always_active{} fora de bloco ativo; ou a tag nua se não tem always_active
+    nem marcador ativo. (Réplica fiel de character_engine._passive_segments — o corpo
+    de always_active{} é tomado INTEIRO, blocos ativos aninhados não são subtraídos:
+    é justamente por isso que um if( dentro de instant{} dentro de always_active{}
+    ainda vaza, e por isso o validador precisa acusá-lo.)"""
+    if not isinstance(tag, str):
+        return []
+    spans = _v_active_spans(tag)
+    segs, has_aa = [], False
+    for m in re.finditer(r"\balways_active\s*\{", tag):
+        if any(a <= m.start() <= b for a, b in spans):
+            continue
+        has_aa = True
+        bc = _v_match_close(tag, m.end() - 1)
+        if bc > 0:
+            segs.append(tag[m.end():bc])
+    if not has_aa and not any(mk in tag for mk in _V_ACTIVE_MARKERS):
+        segs.append(tag)
+    return segs
+
+
+def _check_conditional_static(line):
+    out = []
+    for seg in _v_passive_segments(line):
+        for m in _STATIC_IF_RX.finditer(seg):
+            out.append(Diagnostic(
+                ERROR, "cond-em-valor-estatico",
+                "expressão condicional if( em posição de valor estático "
+                "(dmg/atk/ca/attr): número da ficha nunca pode ser condicional — "
+                "reescreva na forma consumida (ex.: unarmed_strike.dmg:=1d6+str_mod) "
+                "ou mova o condicional para while_active/instant (inerte, VTT)",
+                _frag(seg, m.start())))
+    return out
+
+
 # ───────────────────────── API pública ──────────────────────────────
 _CAST_OPEN_RE = re.compile(r"\bcast\s*\{", re.I)
 _NO_SLOT_RE = re.compile(r"\bno-slot\b", re.I)
@@ -540,6 +619,7 @@ def validate_tag_line(line, lib, data=None, locals_=frozenset(), strict_names=Tr
     diags += _check_source_refs(line, data)
     diags += _check_catalogs(line, lib, locals_)
     diags += _check_style(line, lib)
+    diags += _check_conditional_static(line)
     return diags
 
 

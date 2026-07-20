@@ -1691,6 +1691,47 @@ def _die_size(s):
     return (int(m.group(2)), int(m.group(1) or 1)) if m else (0, 0)
 
 
+# ── Guard do perfil de ATAQUE: a string de dano só pode conter componentes
+# PARSEÁVEIS (dado NdM + modificadores numéricos + tipo de dano). Um valor de dano
+# ESTÁTICO nunca renderiza expressão: `if(...)`/`else:`/comparações são coisa de
+# runtime (combate/VTT). Se um resíduo não-parseável chegar aqui (tag mal-formada
+# que escapou do validador), ele é DESCARTADO da string — jamais renderizado cru
+# (bug do print: `if(unarmed_strike.dmg >= 1d6):` vazando no painel Ataques).
+_DANO_ESTATICO_RX = re.compile(
+    r'^(?P<die>\d*d\d+(?:\s*[+-]\s*\d+)*|\d+)'                 # NdM(+/-N)* ou nº plano
+    r'(?:\s*\((?P<tipo>[a-zà-ÿ][a-zà-ÿ /|]*)\))?$', re.I)      # (tipo) opcional: só letras
+_DANO_EXPR_RX = re.compile(r'if\s*\(|\belse\b|:=|==|>=|<=|[<>]|\bequiped\b')
+
+
+def _sanitize_dano_dado(dado):
+    """(dado_limpo, descartado|None). Só emite componentes parseáveis:
+      • dado NdM (com modificadores numéricos internos) + tipo de dano opcional;
+      • placeholder textual SEGURO (ex.: 'dado de artes marciais') — sem operadores.
+    Expressão condicional / comparação é DESCARTADA (tenta salvar um dado NdM que
+    inicie a string; senão vira '—'). O trecho descartado volta p/ nota de debug."""
+    if not dado or dado == '—':
+        return dado, None
+    s = str(dado).strip()
+    m = _DANO_ESTATICO_RX.match(s)
+    if m:
+        die = re.sub(r'\s+', '', m.group('die'))
+        tipo = (m.group('tipo') or '').strip()
+        return die + ('(%s)' % tipo if tipo else ''), None
+    if _DANO_EXPR_RX.search(s):                    # vazamento de expressão/condicional
+        m2 = re.match(r'(\d*d\d+)', s)             # salva um dado que INICIE a string
+        return (m2.group(1), s) if m2 else ('—', s)
+    return s, None                                 # placeholder textual seguro
+
+
+def _num(x, default=0):
+    """Coerção defensiva a int: o bônus de ACERTO da ficha é sempre numérico —
+    nenhum resíduo não-numérico pode chegar à string de perfil de ataque."""
+    try:
+        return int(x)
+    except (TypeError, ValueError):
+        return default
+
+
 def _collect_escolhas(personagem, features):
     """Devolve (escolhas, listas): `escolhas` = 1º valor por tipo (menor slot, p/
     match()); `listas` = todos os valores por tipo ordenados por slot (p/ pick:).
@@ -2162,9 +2203,9 @@ def _perfil_de_uma_arma(it, mec, atributos, pb, coll, prof_armas, maest_map):
         sig, mod = 'FOR', for_mod
     proficiente = bool(rot_prof) and rot_prof in (prof_armas or set())
     escopo = 'weapon-ranged' if is_ranged else 'weapon-melee'
-    ab = atk_b.get('weapon', 0) + atk_b.get(escopo, 0)
-    db = dmg_b.get('weapon', 0) + dmg_b.get(escopo, 0)
-    dado = mec['dano_dado']
+    ab = _num(atk_b.get('weapon', 0)) + _num(atk_b.get(escopo, 0))
+    db = _num(dmg_b.get('weapon', 0)) + _num(dmg_b.get(escopo, 0))
+    dado, _descartado = _sanitize_dano_dado(mec['dano_dado'])  # guard: só dado NdM parseável
     tipo = mec.get('dano_tipo') or ''
     slug_arma = getattr(cat, 'slug', None) or _slug(it.nome)
     maest = maest_map.get(slug_arma) or maest_map.get(_slug(it.nome)) or []
@@ -2174,8 +2215,8 @@ def _perfil_de_uma_arma(it, mec, atributos, pb, coll, prof_armas, maest_map):
     perfil = {
         'escopo': escopo, 'nome': it.nome, 'atributo': sig, 'dado': dado,
         'tipo_dano': tipo, 'proficiente': proficiente,
-        'bonus_ataque': mod + (pb if proficiente else 0) + ab,
-        'dano': '%s %+d%s' % (dado, mod + db, ' %s' % tipo if tipo else ''),
+        'bonus_ataque': _num(mod) + (_num(pb) if proficiente else 0) + ab,
+        'dano': '%s %+d%s' % (dado, mod + db, ' %s' % tipo if tipo else '') if dado != '—' else '—',
         'maestria': ', '.join(maest), 'nota': nota,
     }
     meta = {'light_melee': (not is_ranged) and ('leve' in props),
@@ -2230,28 +2271,33 @@ def _ataques(coll, atributos, pb, recursos=None, personagem=None, prof_armas=Non
     recursos = recursos or {}
     atk_bonus = coll.get('atk_bonus') or {}
     dmg_bonus = coll.get('dmg_bonus') or {}
-    perfis = []
+    perfis, sanit_avisos = [], []
     for escopo in sorted(set(coll['ataque_dado']) | set(coll['ataque_attr'])):
         sig = coll['ataque_attr'].get(escopo, 'FOR')
-        mod = atributos.get(sig, {}).get('mod', 0)
+        mod = _num(atributos.get(sig, {}).get('mod', 0))
         dado = coll['ataque_dado'].get(escopo, '—')
         mres = re.match(r'resource\{([a-z0-9_-]+)\}', dado or '')
         if mres:  # dado = dado do recurso (ex.: Artes Marciais -> 1d8)
             slug = mres.group(1)
             achado = next((v for k, v in recursos.items() if _slug(k.split(':')[-1]) == slug), None)
             dado = str(achado) if achado else 'dado de %s' % slug.replace('-', ' ')
-        ab = atk_bonus.get(escopo, 0)  # bônus plano de item (Envoltórios/Tatuagem etc.)
-        db = dmg_bonus.get(escopo, 0)
+        # GUARD: nunca renderiza dano cru/expressão. Só dado NdM + modificador numérico.
+        dado, descartado = _sanitize_dano_dado(dado)
+        if descartado is not None:
+            sanit_avisos.append('perfil %s: trecho de dano não-parseável descartado (%r)'
+                                % (escopo, descartado))
+        ab = _num(atk_bonus.get(escopo, 0))  # bônus plano de item (Envoltórios/Tatuagem etc.)
+        db = _num(dmg_bonus.get(escopo, 0))
         perfis.append({'escopo': escopo,
                        'nome': 'Ataque desarmado' if escopo == 'unarmed-strike' else 'Ataque natural',
-                       'atributo': sig, 'dado': dado, 'bonus_ataque': mod + pb + ab,
+                       'atributo': sig, 'dado': dado, 'bonus_ataque': mod + _num(pb) + ab,
                        'dano': '%s %+d' % (dado, mod + db) if dado != '—' else '—',
                        'maestria': '', 'nota': ''})
     # Perfis das ARMAS do inventário equipado (consome weapon.atk/weapon.dmg +
     # os Estilos de Luta melee/ranged/off_hand, e mostra as maestrias da arma).
     perfis_arma, avisos = _perfis_de_armas(personagem, atributos, pb, coll, prof_armas, maestrias)
     perfis += perfis_arma
-    return {'quantidade': coll['n_ataques'] or 1, 'perfis': perfis, 'avisos': avisos}
+    return {'quantidade': coll['n_ataques'] or 1, 'perfis': perfis, 'avisos': avisos + sanit_avisos}
 
 
 def _saves(classes, atributos, pb, tag_prof=None, all_saves_bonus=0, save_bonus=None):
