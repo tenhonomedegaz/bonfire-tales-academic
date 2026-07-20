@@ -4204,23 +4204,27 @@ def personagem_reverter_aventura(request, pk, lancamento_id):
       (b) se a carteira não cobrir o estorno → 'ouro insuficiente para estornar';
       (c) se a linha já estiver revertida."""
     from . import permissions as perms
-    from .models import TbPersonagemAventura
+    from .models import TbPersonagem, TbPersonagemAventura
     from .character_engine import aventuras_para_nivel
     if not perms.is_staff_user(request.user):
         raise Http404
     p = _ficha_editavel(request, pk)
-    lanc = get_object_or_404(TbPersonagemAventura, pk=lancamento_id, id_personagem=p)
     back = reverse('editar_ficha', args=[pk])
-    if lanc.revertido:
-        return redirect(back + '?rollback=ja_revertido')
-    qtd = int(lanc.qtd_aventuras or 0)
-    ouro_pc = int(lanc.ouro_pago_pc or 0)
-    minimo = aventuras_para_nivel(p.nivel or 1)
-    if int(p.aventuras or 0) - qtd < minimo:
-        return redirect(back + '?rollback=teto_nivel')
-    if int(p.carteira_pc or 0) < ouro_pc:
-        return redirect(back + '?rollback=ouro_insuf')
     with transaction.atomic():
+        lanc = get_object_or_404(
+            TbPersonagemAventura.objects.select_for_update(),
+            pk=lancamento_id, id_personagem=p,
+        )
+        p = TbPersonagem.objects.select_for_update().get(pk=p.pk)
+        if lanc.revertido:
+            return redirect(back + '?rollback=ja_revertido')
+        qtd = int(lanc.qtd_aventuras or 0)
+        ouro_pc = int(lanc.ouro_pago_pc or 0)
+        minimo = aventuras_para_nivel(p.nivel or 1)
+        if int(p.aventuras or 0) - qtd < minimo:
+            return redirect(back + '?rollback=teto_nivel')
+        if int(p.carteira_pc or 0) < ouro_pc:
+            return redirect(back + '?rollback=ouro_insuf')
         p.aventuras = int(p.aventuras or 0) - qtd
         p.carteira_pc = int(p.carteira_pc or 0) - ouro_pc
         p.braseiros = max(0, int(p.braseiros or 0) - int(lanc.braseiros_pago or 0))
