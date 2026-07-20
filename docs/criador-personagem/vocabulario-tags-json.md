@@ -504,7 +504,7 @@ Rascunho de trabalho (espelho do banco): `ref/criador_barbaro_tags.md` (regenera
 ## 15. Tags de EFEITO de magia (`TbMagia.tags_json`)
 
 A magia **já tem campos estruturados** (`nivel`, `escola`, `casting_time`, `ritual`,
-`duracao`, `concentracao`, `alcance`, `componentes`, `classes`, `subclasses`) — a tag
+`duracao`, `concentracao`, `alcance`, `componentes`, `classes`) — a tag
 **não os repete**. A `tags_json` carrega só o **efeito mecânico** + escala por slot.
 Reusa os verbos das habilidades; o que é específico de magia:
 

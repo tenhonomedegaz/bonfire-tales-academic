@@ -857,7 +857,6 @@ class TbMagia(models.Model):
     alcance = models.CharField(db_column='Alcance', max_length=120, blank=True, null=True)
     componentes = models.CharField(db_column='Componentes', max_length=300, blank=True, null=True)
     classes = models.TextField(db_column='Classes', blank=True, null=True)
-    subclasses = models.TextField(db_column='Subclasses', blank=True, null=True)
     descricao = models.TextField(db_column='Descricao', blank=True, null=True)
     em_niveis_superiores = models.TextField(db_column='EmNiveisSuperiores', blank=True, null=True)
     tags_json = models.JSONField(db_column='TagsJSON', blank=True, default=list, help_text='Tags estruturadas usadas pelo criador de personagem.')

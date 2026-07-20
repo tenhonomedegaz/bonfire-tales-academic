@@ -791,8 +791,6 @@ def _parse_magias_xlsx(uploaded_file):
         "componentes": "componentes",
         "classes_nome_do_bonfas": "classes",
         "classes": "classes",
-        "subclasses_nome_do_bonfas": "subclasses",
-        "subclasses": "subclasses",
         "descricao": "descricao",
         "higher_lvls": "em_niveis_superiores",
         "em_niveis_superiores": "em_niveis_superiores",
@@ -840,7 +838,6 @@ def _parse_magias_xlsx(uploaded_file):
             "alcance": str(record.get("alcance") or "").strip(),
             "componentes": str(record.get("componentes") or "").strip(),
             "classes": str(record.get("classes") or "").strip(),
-            "subclasses": str(record.get("subclasses") or "").strip(),
             "descricao": str(record.get("descricao") or "").strip(),
             "em_niveis_superiores": str(record.get("em_niveis_superiores") or "").strip(),
         }
@@ -849,7 +846,6 @@ def _parse_magias_xlsx(uploaded_file):
                 item["nivel_display"],
                 item["escola"],
                 *_split_csv_text(item["classes"]),
-                *_split_csv_text(item["subclasses"]),
             )
             if tag
         ]
@@ -2978,13 +2974,13 @@ class TbMagiaAdmin(BonfireAdminMixin, admin.ModelAdmin):
     change_list_template = "admin/home/tbmagia/change_list.html"
     list_display = ("nome", "nivel_display", "escola", "casting_time", "ritual", "concentracao", "alcance", "tags_preview")
     list_filter = ("nivel", "escola", "ritual", "concentracao")
-    search_fields = ("nome", "slug", "escola", "classes", "subclasses", "descricao", "em_niveis_superiores")
+    search_fields = ("nome", "slug", "escola", "classes", "descricao", "em_niveis_superiores")
     prepopulated_fields = {"slug": ("nome",)}
     ordering = ("nivel", "nome")
     fieldsets = (
         (None, {"fields": ("nome", "slug", "nivel", "escola", "tags_json")}),
         ("Conjuracao", {"fields": ("casting_time", "ritual", "duracao", "concentracao", "alcance", "componentes")}),
-        ("Acesso", {"fields": ("classes", "subclasses")}),
+        ("Acesso", {"fields": ("classes",)}),
         ("Texto", {"fields": ("descricao", "em_niveis_superiores")}),
     )
 
@@ -3045,7 +3041,6 @@ class TbMagiaAdmin(BonfireAdminMixin, admin.ModelAdmin):
                         magia.alcance = item["alcance"]
                         magia.componentes = item["componentes"]
                         magia.classes = item["classes"]
-                        magia.subclasses = item["subclasses"]
                         magia.descricao = item["descricao"]
                         magia.em_niveis_superiores = item["em_niveis_superiores"]
                         magia.tags_json = item["tags_json"]
@@ -3064,7 +3059,6 @@ class TbMagiaAdmin(BonfireAdminMixin, admin.ModelAdmin):
                             alcance=item["alcance"],
                             componentes=item["componentes"],
                             classes=item["classes"],
-                            subclasses=item["subclasses"],
                             descricao=item["descricao"],
                             em_niveis_superiores=item["em_niveis_superiores"],
                             tags_json=item["tags_json"],
