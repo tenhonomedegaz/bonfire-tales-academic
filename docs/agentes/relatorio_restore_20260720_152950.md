@@ -1,11 +1,11 @@
-# Restore de conteúdo prod (dev-vence) — 2026-07-20 06:05:51 — PACOTE FINAL DE DEPLOY
+# Restore de conteúdo prod (dev-vence) — 2026-07-20 15:29:50 — PACOTE FINAL DE DEPLOY (escudos +2/+3 corrigidos)
 
-- **Arquivo de restauração:** `ref/backups/restore_consolidado_20260720_060551.json` (5012 registros, 21 modelos de conteúdo)
-- **Relatório de máquina:** `ref/backups/restore_consolidado_20260720_060551.report.json`
-- **SHA-256 do arquivo (bytes em disco, CRLF puro):** `291d1b87b43405e3d189c560bd1cf9b177ae6458f711892142efdba0a5f28116`
+- **Arquivo de restauração:** `ref/backups/restore_consolidado_20260720_152950.json` (5012 registros, 21 modelos de conteúdo)
+- **Relatório de máquina:** `ref/backups/restore_consolidado_20260720_152950.report.json`
+- **SHA-256 do arquivo (bytes em disco, CRLF puro):** `a60919898da6a323c9ae2321adc9c322c55843cb4436898c47a98e14994566ed`
 - **Fonte:** DEV (`db.sqlite3`) via ORM, Postgres desligado.
 - **Base da análise / rollback:** `ref/Characterbuilder testes/backup_completo_20260718_015031.json`.
-- **Substitui (baseline):** `restore_consolidado_20260719_200533.json` (R3 final, 5021 registros).
+- **Substitui (baseline):** `restore_consolidado_20260720_060551.json` (pacote final, 5012 registros — esta versão o supersede, corrigindo os escudos +2/+3).
 
 > **POLÍTICA NOVA DE ENTREGA (PO):** o `.json` e o `.report.json` ficam **SÓ NO DISCO** em
 > `ref/backups/` (pasta **gitignored**) — **não são commitados** e **não** entram com `git add -f`.
@@ -26,7 +26,18 @@
   qualquer lista de sync) e **toda a memória** (usuários, personagens, transações, bot). O
   aplicador **pula e preserva** qualquer modelo ausente no fixture.
 
-## O que mudou nesta versão (vs 20260719_200533)
+## O que mudou nesta versão
+
+**CORREÇÃO FINAL (vs baseline `20260720_060551`) — escudos mágicos +2/+3:** pela semântica do motor
+(`home/item_mecanica.py` `_CA_ADD` + `home/character_engine.py` `_armadura_equipada`/`apply_tags`),
+`ca:+N` de escudo é a **CA TOTAL** que o escudo concede em jogo (um escudo comum já dá +2). Então:
+**`TbItemMagico` pk20 `+2 Escudo (*)` `ca:+2` → `ca:+4`** (base 2 + 2 mágico) e **pk32 `+3 Escudo (*)`
+`ca:+3` → `ca:+5`** (base 2 + 3 mágico). O **pk7 `+1 Escudo (*)`** já estava correto (`ca:+3`) e **não
+foi tocado**. Diff vs 060551: **APENAS `TbItemMagico`, 2 registros de valor (pk20/pk32), 0 mudança de
+linha** — as outras 20 tabelas de conteúdo batem `sha256_registros` exatamente com 060551 (só muda o
+`sha256_arquivo` e o `sha256_registros` de `TbItemMagico`).
+
+### Cumulativo vs `20260719_200533`
 
 Log de conteúdo: **1866 entradas** em `conteudo_final/log_conteudo.jsonl`. As ações:
 
@@ -49,6 +60,9 @@ Detalhamento:
    prod (sem duplicar / sem órfão). Inclui o **escudo pk=7 `+1 Escudo (*)`** com
    `tags_json=['ca:+3']` (era `ca:+1`: um escudo comum já daria +2, então o +1 mágico 5e vira
    **+3** na forma consumida `escudo_bonus`; CA do Scar **19 → 20** casando a planilha).
+   **Nesta versão** o mesmo critério corrige os outros dois escudos mágicos: **pk20 `+2 Escudo (*)`
+   → `ca:+4`** e **pk32 `+3 Escudo (*)` → `ca:+5`** (antes `ca:+2`/`ca:+3`, que subestimavam a CA por
+   ignorar o +2 base do escudo comum).
 2. **Itens mundanos (TbItemMundano, SUBSTITUI):** 302 descrições limpas. Contagem intacta (302).
 3. **Kits de equipamento (TbClasse, UPSERT por slug):** campo `equipamento` preenchido nas 13
    classes (10 via HTML + Bárbaro/Mago existentes + **1 correção pontual do Místico**: kit A/B com
@@ -103,7 +117,7 @@ Detalhamento:
 
 | Tabela | Natureza | sha256_registros (novo) |
 |---|---|---|
-| TbItemMagico | valor (tags/desc/nome/escudo) | `eec729b45cb1c6c84ac5939a4f23e1285a2250ea4296cfe1054953114183a4e2` |
+| TbItemMagico | valor (tags/desc/nome/escudos +1/+2/+3) | `516eacc98e9809ae0bb7825e272b54fd0948d94c0e964dcf8b16e57fec7727ab` |
 | TbItemMundano | valor (descrições) | `8d4c5d2d997063be89ecfae3b6de93093ec74766a1ff1eda8190cbec7e0d7a93` |
 | TbClasse | valor (kits) | `53e8a7ae1050a0ce940f075166f0167e30d9a5135ca8cf22628ae4ad07a21c24` |
 | TbClassehabilidade | valor (pk909 + pk1505) | `df11b95fb118960c0b8165c036ac5b3770a1b042ce5e60f1a09dbaecb1c4a957` |
@@ -130,7 +144,8 @@ Spot-checks no fixture (bytes em disco):
 
 - **Kit do Místico** (TbClasse pk11 `equipamento`): presente, contém `Besta Leve` e `150 PO`.
 - **Item renomeado** (TbItemMagico pk14 `nome`): `+1 Bastão do Guardião do Pacto`.
-- **Escudo** (TbItemMagico pk7): `nome='+1 Escudo (*)'`, `tags_json=['ca:+3']`.
+- **Escudos** (TbItemMagico): pk7 `+1 Escudo (*)` `['ca:+3']`, pk20 `+2 Escudo (*)` `['ca:+4']`,
+  pk32 `+3 Escudo (*)` `['ca:+5']`.
 - **TbMagia SEM `subclasses`**: 580 registros, **0** com o campo `subclasses`.
 - **Rechaço** (TbClassehabilidade pk909): `retaliacao` presente, `rechaco` ausente.
 - **Estilos de Ki** (TbClassehabilidade pk1505): `estilos_de_ki` presente.
@@ -157,7 +172,7 @@ momento, tirado **depois** das migrações.
 ### 3. Merge de conteúdo com o `restore_20260720_060551.json`
 
 No console do admin, ação **"Merge de conteudo (dev -> producao)"** (`action=merge_conteudo`),
-**NÃO** "Restauração de backup". Faça upload do `restore_consolidado_20260720_060551.json` **subido
+**NÃO** "Restauração de backup". Faça upload do `restore_consolidado_20260720_152950.json` **subido
 do disco do dev** (`ref/backups/`, gitignored — não está no repositório).
 
 > O painel "Restaurar backup" (upsert por PK) **FALHA** com este fixture (colisão de slug único —
