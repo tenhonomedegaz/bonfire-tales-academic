@@ -1364,6 +1364,50 @@ class TbTransacao(models.Model):
         return f'{self.get_tipo_display()} {self.valor_pc} PC'
 
 
+class TbPersonagemAventura(models.Model):
+    """Ledger de LANÇAMENTOS de aventuras que a staff registra num personagem. Cada linha
+    é um `personagem_registrar_aventuras`: dá NOME ao lançamento e habilita ROLLBACK de um
+    lançamento errado. Guarda o que AQUELE lançamento pagou (aventuras, ouro em PC, braseiros)
+    para que o estorno devolva exatamente isso — NÃO altera a matemática de ouro/nível de
+    `aplicar_aventuras`, só registra."""
+    id_lancamento = models.AutoField(db_column='Id_Lancamento', primary_key=True)
+    id_personagem = models.ForeignKey('TbPersonagem', models.CASCADE, db_column='Id_Personagem',
+                                      related_name='aventuras_ledger')
+    nome_aventura = models.CharField(db_column='NomeAventura', max_length=200,
+                                     help_text='Nome da mesa/aventura lançada (obrigatório).')
+    qtd_aventuras = models.IntegerField(db_column='QtdAventuras', default=0,
+                                        help_text='Quantas aventuras ESTE lançamento adicionou.')
+    ouro_pago_pc = models.IntegerField(db_column='OuroPagoPC', default=0,
+                                       help_text='Ouro creditado por ESTE lançamento, em peças de cobre (o estorno remove isto).')
+    braseiros_pago = models.IntegerField(db_column='BraseirosPago', default=0,
+                                         help_text='Braseiros creditados por ESTE lançamento (missão de evento).')
+    nivel_no_lancamento = models.IntegerField(db_column='NivelNoLancamento', default=1,
+                                              help_text='Nível do personagem no momento do lançamento.')
+    criado_por = models.ForeignKey('auth.User', models.SET_NULL, db_column='CriadoPor',
+                                   related_name='aventuras_lancadas', blank=True, null=True)
+    criado_em = models.DateTimeField(db_column='CriadoEm', auto_now_add=True)
+    revertido = models.BooleanField(db_column='Revertido', default=False, db_index=True,
+                                    help_text='Lançamento estornado (aventuras/ouro devolvidos).')
+    revertido_em = models.DateTimeField(db_column='RevertidoEm', blank=True, null=True)
+    revertido_por = models.ForeignKey('auth.User', models.SET_NULL, db_column='RevertidoPor',
+                                      related_name='aventuras_revertidas', blank=True, null=True)
+
+    class Meta:
+        db_table = 'TB_PersonagemAventura'
+        verbose_name = 'Lançamento de Aventura'
+        verbose_name_plural = 'Lançamentos de Aventura'
+        ordering = ['-criado_em', '-id_lancamento']
+
+    def __str__(self):
+        marca = ' (revertido)' if self.revertido else ''
+        return '%s ×%d%s' % (self.nome_aventura, self.qtd_aventuras, marca)
+
+    @property
+    def ouro_pago_po(self):
+        """Ouro pago em PO (para exibição na UI/admin)."""
+        return int(self.ouro_pago_pc or 0) // 100
+
+
 # ───────────────────── Mercado de Mestre (Moedas de Mestragem) ─────────────────────
 class TbRecompensaMestre(models.Model):
     """Catálogo de recompensas trocáveis por Moedas de Mestragem (MM). `tipo` define a

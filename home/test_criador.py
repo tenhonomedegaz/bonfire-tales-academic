@@ -23,12 +23,13 @@ from django.urls import reverse
 from home import views, point_buy
 from home.character_engine import (
     background_grants, background_asi_values, _SKILL_INFO,
-    nivel_por_aventuras, ouro_de_progressao, rank_por_nivel,
+    nivel_por_aventuras, ouro_de_progressao, rank_por_nivel, aventuras_para_nivel,
 )
 from home.models import (
     TbClasse, TbAntecedente, TbTalento, TbItemMundano, TbOpcaojogo,
     TbPersonagem, TbPersonagemClasse, TbPersonagemMagia, TbPersonagemItem,
     TbPersonagemTalento, TbPersonagemPericia, TbClassehabilidade,
+    TbPersonagemAventura,
 )
 
 # Array-padrão 15/14/13/12/10/8 = exatos 27 pontos de point-buy.
@@ -369,9 +370,9 @@ class ProgressaoAventurasTests(_CriadorBase):
         self.assertEqual(self.client.post(url, {'aventuras': 5}).status_code, 404)
         self.p.refresh_from_db()
         self.assertEqual(self.p.aventuras, 0)
-        # staff pode
+        # staff pode (agora exige NOME da aventura)
         self.client.force_login(self.staff)
-        resp = self.client.post(url, {'aventuras': 5})
+        resp = self.client.post(url, {'aventuras': 5, 'nome_aventura': 'Mesa de Teste'})
         self.assertEqual(resp.status_code, 302)
         self.p.refresh_from_db()
         self.assertEqual(self.p.aventuras, 5)
@@ -384,6 +385,144 @@ class ProgressaoAventurasTests(_CriadorBase):
             self.client.post(url, {'classe': self.p.classes.first().id_classe_id})
         self.p.refresh_from_db()
         self.assertEqual(self.p.nivel, 5)  # parou no teto
+
+
+class LedgerAventuraRollbackTests(_CriadorBase):
+    """Ledger nomeado de lançamentos (TbPersonagemAventura): o registro grava a linha, e o
+    rollback por linha (staff) devolve aventuras/ouro com os 3 bloqueios + permissão."""
+
+    def setUp(self):
+        self.dono = self._novo_usuario('dono-ledger')
+        self.outro = self._novo_usuario('outro-ledger')
+        self.staff = self._novo_usuario('staff-ledger', staff=True)
+        self.p = TbPersonagem.objects.create(
+            dono=self.dono, nome='Ledgerino', nivel=1,
+            forca=15, destreza=15, constituicao=15, inteligencia=15, sabedoria=15, carisma=15)
+        TbPersonagemClasse.objects.create(
+            id_personagem=self.p, id_classe=TbClasse.objects.get(slug='guerreiro'),
+            nivel=1, principal=True)
+
+    def _registrar(self, **data):
+        self.client.force_login(self.staff)
+        return self.client.post(
+            reverse('personagem_registrar_aventuras', args=[self.p.pk]), data)
+
+    def _reverter_url(self, lanc):
+        return reverse('personagem_reverter_aventura', args=[self.p.pk, lanc.id_lancamento])
+
+    # ── REGISTRO grava a linha do ledger ──────────────────────────────────
+    def test_registro_grava_ledger(self):
+        resp = self._registrar(nome_aventura='A Cripta Gelada', aventuras=3)
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn('compra=aventuras', resp.url)
+        self.p.refresh_from_db()
+        self.assertEqual(self.p.aventuras, 3)
+        ledger = list(self.p.aventuras_ledger.all())
+        self.assertEqual(len(ledger), 1)
+        l = ledger[0]
+        self.assertEqual(l.nome_aventura, 'A Cripta Gelada')
+        self.assertEqual(l.qtd_aventuras, 3)
+        # 1ª carga: todo o ouro da carteira veio deste lançamento
+        self.assertEqual(l.ouro_pago_pc, self.p.carteira_pc)
+        self.assertGreater(l.ouro_pago_pc, 0)
+        self.assertEqual(l.criado_por, self.staff)
+        self.assertFalse(l.revertido)
+
+    def test_registro_exige_nome(self):
+        resp = self._registrar(aventuras=3)  # sem nome_aventura
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn('aventuras_sem_nome', resp.url)
+        self.p.refresh_from_db()
+        self.assertEqual(self.p.aventuras, 0)          # não creditou
+        self.assertEqual(self.p.aventuras_ledger.count(), 0)  # nada no ledger
+
+    # ── ROLLBACK feliz ────────────────────────────────────────────────────
+    def test_rollback_feliz_reverte_contadores(self):
+        self._registrar(nome_aventura='Mesa 1', aventuras=1)
+        self.p.refresh_from_db()
+        self.assertEqual(self.p.aventuras, 1)
+        carteira_antes = self.p.carteira_pc
+        l = self.p.aventuras_ledger.first()
+        self.client.force_login(self.staff)
+        resp = self.client.post(self._reverter_url(l))
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn('rollback=ok', resp.url)
+        self.p.refresh_from_db(); l.refresh_from_db()
+        self.assertEqual(self.p.aventuras, 0)
+        self.assertEqual(self.p.carteira_pc, carteira_antes - l.ouro_pago_pc)
+        self.assertEqual(self.p.carteira_pc, 0)
+        self.assertTrue(l.revertido)
+        self.assertEqual(l.revertido_por, self.staff)
+        self.assertIsNotNone(l.revertido_em)
+
+    # ── BLOQUEIO (c): linha já revertida ──────────────────────────────────
+    def test_rollback_bloqueia_ja_revertido(self):
+        self._registrar(nome_aventura='Mesa dup', aventuras=1)
+        l = self.p.aventuras_ledger.first()
+        self.client.force_login(self.staff)
+        self.client.post(self._reverter_url(l))  # 1ª: reverte
+        self.p.refresh_from_db()
+        aventuras_apos, carteira_apos = self.p.aventuras, self.p.carteira_pc
+        resp = self.client.post(self._reverter_url(l))  # 2ª: recusa
+        self.assertIn('rollback=ja_revertido', resp.url)
+        self.p.refresh_from_db()
+        self.assertEqual(self.p.aventuras, aventuras_apos)   # inalterado
+        self.assertEqual(self.p.carteira_pc, carteira_apos)
+
+    # ── BLOQUEIO (a): já subiu de nível com essas aventuras ───────────────
+    def test_rollback_bloqueia_por_teto_de_nivel(self):
+        self._registrar(nome_aventura='Grinding', aventuras=9)  # teto = nível 5
+        self.assertEqual(aventuras_para_nivel(5), 9)
+        self.p.nivel = 5  # efetivamente subiu de nível consumindo as aventuras
+        self.p.save(update_fields=['nivel'])
+        l = self.p.aventuras_ledger.first()
+        self.client.force_login(self.staff)
+        resp = self.client.post(self._reverter_url(l))
+        self.assertIn('rollback=teto_nivel', resp.url)
+        self.p.refresh_from_db(); l.refresh_from_db()
+        self.assertEqual(self.p.aventuras, 9)   # nada revertido
+        self.assertFalse(l.revertido)
+
+    # ── BLOQUEIO (b): ouro insuficiente para estornar ─────────────────────
+    def test_rollback_bloqueia_por_ouro_insuficiente(self):
+        self._registrar(nome_aventura='Gastão', aventuras=1)
+        self.p.refresh_from_db()
+        l = self.p.aventuras_ledger.first()
+        self.assertGreater(l.ouro_pago_pc, 0)
+        self.p.carteira_pc = 0  # o jogador já gastou o ouro
+        self.p.save(update_fields=['carteira_pc'])
+        self.client.force_login(self.staff)
+        resp = self.client.post(self._reverter_url(l))
+        self.assertIn('rollback=ouro_insuf', resp.url)
+        self.p.refresh_from_db(); l.refresh_from_db()
+        self.assertEqual(self.p.aventuras, 1)   # nada revertido
+        self.assertFalse(l.revertido)
+
+    # ── UI: a ficha renderiza o campo nome + histórico + botão Reverter ───
+    def test_editar_ficha_renderiza_ledger_para_staff(self):
+        self._registrar(nome_aventura='Mesa Visível', aventuras=2)
+        self.client.force_login(self.staff)
+        resp = self.client.get(reverse('editar_ficha', args=[self.p.pk]))
+        self.assertEqual(resp.status_code, 200)
+        html = resp.content.decode('utf-8')
+        l = self.p.aventuras_ledger.first()
+        self.assertIn('name="nome_aventura"', html)   # campo obrigatório no form
+        self.assertIn('Mesa Visível', html)           # linha do histórico
+        self.assertIn('Reverter', html)               # botão de rollback por linha
+        self.assertIn(reverse('personagem_reverter_aventura',
+                              args=[self.p.pk, l.id_lancamento]), html)  # action do form
+
+    # ── PERMISSÃO: rollback é staff-only ──────────────────────────────────
+    def test_rollback_staff_only(self):
+        self._registrar(nome_aventura='Segredo', aventuras=1)
+        l = self.p.aventuras_ledger.first()
+        url = self._reverter_url(l)
+        for u in (self.dono, self.outro):
+            self.client.force_login(u)
+            self.assertEqual(self.client.post(url).status_code, 404)
+        l.refresh_from_db(); self.p.refresh_from_db()
+        self.assertFalse(l.revertido)     # não-staff não reverteu
+        self.assertEqual(self.p.aventuras, 1)
 
 
 class Bug1MulticlasseTetoTests(_CriadorBase):

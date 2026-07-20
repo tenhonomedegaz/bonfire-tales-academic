@@ -84,6 +84,7 @@ urlpatterns = [
     path('jogador/personagens/<int:pk>/magia-essencia/', views.personagem_escolher_magia_essencia, name='personagem_escolher_magia_essencia'),
     path('jogador/personagens/<int:pk>/subir-nivel/', views.personagem_subir_nivel, name='personagem_subir_nivel'),
     path('jogador/personagens/<int:pk>/registrar-aventuras/', views.personagem_registrar_aventuras, name='personagem_registrar_aventuras'),
+    path('jogador/personagens/<int:pk>/aventura/<int:lancamento_id>/reverter/', views.personagem_reverter_aventura, name='personagem_reverter_aventura'),
     path('jogador/personagens/<int:pk>/subclasse/', views.personagem_escolher_subclasse, name='personagem_escolher_subclasse'),
     path('jogador/personagens/<int:pk>/asi/', views.personagem_aplicar_asi, name='personagem_aplicar_asi'),
     path('jogador/personagens/<int:pk>/talento-racial/', views.personagem_escolher_talento_racial, name='personagem_escolher_talento_racial'),

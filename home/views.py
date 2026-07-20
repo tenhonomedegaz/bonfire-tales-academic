@@ -3965,6 +3965,7 @@ def editar_ficha_view(request, pk):
     classes_atuais = [{'id': c.id_classe.id_classe, 'nome': c.id_classe.nome, 'nivel': c.nivel,
                        'principal': c.principal} for c in p.classes.select_related('id_classe').order_by('-principal', 'id')]
     classes_multiclasse = _classes_multiclasse(p, ficha) if (p.nivel or 0) < 20 else []
+    aventura_ledger = list(p.aventuras_ledger.select_related('criado_por', 'revertido_por')[:30])
     return render(request, 'home/pages/editar_ficha.html', {
         'page_title': 'Editar — %s' % p.nome,
         'p': p, 'pc': pc, 'ficha': ficha,
@@ -3992,6 +3993,8 @@ def editar_ficha_view(request, pk):
         'classes_atuais': classes_atuais,
         'classes_multiclasse': classes_multiclasse,
         'compra_msg': request.GET.get('compra'),
+        'aventura_ledger': aventura_ledger,
+        'rollback_msg': request.GET.get('rollback'),
     })
 
 
@@ -4038,13 +4041,20 @@ def _refresh_vitais_derivados(personagem, refill=False):
     return ficha
 
 
-def aplicar_aventuras(personagem, n, evento=False):
+def aplicar_aventuras(personagem, n, evento=False, nome_aventura=None, criado_por=None,
+                      registrar_ledger=True):
     """Aplica `n` aventuras a um personagem (lançado por staff). Regra de SPLIT no rank-up:
     cada aventura é recompensada no rank ANTES de ela contar (a que sobe de rank paga no
     rank antigo; as seguintes no novo). Sempre credita o ouro do rank (PO→PC). BRASEIROS
     (= BP) só em missão de EVENTO (`evento=True`) — jogar evento dá braseiros; aventura
-    normal, não. Retorna (ouro_po, braseiros)."""
+    normal, não.
+
+    Quando `registrar_ledger`, grava UMA linha em TbPersonagemAventura (ledger de
+    lançamentos) na MESMA transação do crédito — dá NOME ao lançamento e habilita o
+    rollback (`personagem_reverter_aventura`). NÃO muda a matemática de ouro/nível; só
+    registra o que foi pago. Retorna (ouro_po, braseiros)."""
     from .character_engine import nivel_por_aventuras, ouro_de_progressao, braseiros_por_aventura
+    from .models import TbPersonagemAventura
     n = max(0, int(n))
     if n == 0:
         return (0, 0)
@@ -4055,12 +4065,19 @@ def aplicar_aventuras(personagem, n, evento=False):
     if evento:
         for k in range(n):
             bras += braseiros_por_aventura(nivel_por_aventuras(base + k))
-    personagem.aventuras = base + n
-    personagem.braseiros = int(personagem.braseiros or 0) + bras
-    personagem.carteira_pc = int(personagem.carteira_pc or 0) + ouro * 100
-    personagem.save(update_fields=['aventuras', 'braseiros', 'carteira_pc', 'atualizado_em'])
-    desc = '%d aventura(s)%s' % (n, (' de evento — +%d braseiros' % bras) if evento else '')
-    _registrar_transacao(personagem, 'aventura', desc, ouro * 100)
+    nome = (nome_aventura or '').strip() or 'Aventura'
+    with transaction.atomic():
+        personagem.aventuras = base + n
+        personagem.braseiros = int(personagem.braseiros or 0) + bras
+        personagem.carteira_pc = int(personagem.carteira_pc or 0) + ouro * 100
+        personagem.save(update_fields=['aventuras', 'braseiros', 'carteira_pc', 'atualizado_em'])
+        desc = '%d aventura(s)%s' % (n, (' de evento — +%d braseiros' % bras) if evento else '')
+        _registrar_transacao(personagem, 'aventura', desc, ouro * 100)
+        if registrar_ledger:
+            TbPersonagemAventura.objects.create(
+                id_personagem=personagem, nome_aventura=nome[:200], qtd_aventuras=n,
+                ouro_pago_pc=ouro * 100, braseiros_pago=bras,
+                nivel_no_lancamento=int(personagem.nivel or 1), criado_por=criado_por)
     return (ouro, bras)
 
 
@@ -4157,17 +4174,63 @@ _sync_magias_essencia = _sync_magias_concedidas
 @require_POST
 def personagem_registrar_aventuras(request, pk):
     """Staff lança N aventuras num personagem → ouro (por rank) + nível-teto, e braseiros
-    (BP) se for missão de EVENTO."""
+    (BP) se for missão de EVENTO. Exige NOME da aventura e grava a linha do ledger
+    (TbPersonagemAventura) na mesma transação — para dar nome ao lançamento e permitir
+    rollback."""
     from . import permissions as perms
     if not perms.is_staff_user(request.user):
         raise Http404
     p = _ficha_editavel(request, pk)
+    nome = (request.POST.get('nome_aventura') or '').strip()
+    if not nome:
+        return redirect(reverse('editar_ficha', args=[pk]) + '?compra=aventuras_sem_nome')
     try:
         n = max(1, min(200, int(request.POST.get('aventuras') or 1)))
     except (TypeError, ValueError):
         n = 1
-    aplicar_aventuras(p, n, evento=(request.POST.get('evento') == 'on'))
+    aplicar_aventuras(p, n, evento=(request.POST.get('evento') == 'on'),
+                      nome_aventura=nome, criado_por=request.user)
     return redirect(reverse('editar_ficha', args=[pk]) + '?compra=aventuras')
+
+
+@login_required(login_url='/login/')
+@require_POST
+def personagem_reverter_aventura(request, pk, lancamento_id):
+    """Staff ESTORNA um lançamento do ledger de aventuras. Em transação única, devolve:
+    personagem.aventuras -= qtd e carteira -= ouro pago (e braseiros, com piso 0), e marca a
+    linha revertida. GUARDAS (recusa com mensagem clara, sem tocar nos contadores):
+      (a) se `aventuras - qtd` ficar abaixo do mínimo exigido pelo NÍVEL ATUAL do
+          personagem → 'o personagem já subiu de nível com essas aventuras';
+      (b) se a carteira não cobrir o estorno → 'ouro insuficiente para estornar';
+      (c) se a linha já estiver revertida."""
+    from . import permissions as perms
+    from .models import TbPersonagemAventura
+    from .character_engine import aventuras_para_nivel
+    if not perms.is_staff_user(request.user):
+        raise Http404
+    p = _ficha_editavel(request, pk)
+    lanc = get_object_or_404(TbPersonagemAventura, pk=lancamento_id, id_personagem=p)
+    back = reverse('editar_ficha', args=[pk])
+    if lanc.revertido:
+        return redirect(back + '?rollback=ja_revertido')
+    qtd = int(lanc.qtd_aventuras or 0)
+    ouro_pc = int(lanc.ouro_pago_pc or 0)
+    minimo = aventuras_para_nivel(p.nivel or 1)
+    if int(p.aventuras or 0) - qtd < minimo:
+        return redirect(back + '?rollback=teto_nivel')
+    if int(p.carteira_pc or 0) < ouro_pc:
+        return redirect(back + '?rollback=ouro_insuf')
+    with transaction.atomic():
+        p.aventuras = int(p.aventuras or 0) - qtd
+        p.carteira_pc = int(p.carteira_pc or 0) - ouro_pc
+        p.braseiros = max(0, int(p.braseiros or 0) - int(lanc.braseiros_pago or 0))
+        p.save(update_fields=['aventuras', 'carteira_pc', 'braseiros', 'atualizado_em'])
+        _registrar_transacao(p, 'ajuste', 'Estorno de aventuras: %s' % lanc.nome_aventura, -ouro_pc)
+        lanc.revertido = True
+        lanc.revertido_em = timezone.now()
+        lanc.revertido_por = request.user
+        lanc.save(update_fields=['revertido', 'revertido_em', 'revertido_por'])
+    return redirect(back + '?rollback=ok')
 
 
 # aceita siglas EN e PT (as tags do banco misturam: 'cha' e 'car', etc.)

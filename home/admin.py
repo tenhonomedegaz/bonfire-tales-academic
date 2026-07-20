@@ -51,6 +51,7 @@ from .models import (
     TbArmadilha,
     TbCondicao,
     TbTransacao,
+    TbPersonagemAventura,
     TbRecompensaMestre,
     TbAventuraMestre,
     TbTransacaoMestre,
@@ -1984,6 +1985,16 @@ class TbTransacaoAdmin(admin.ModelAdmin):
     search_fields = ("descricao", "id_personagem__nome")
     raw_id_fields = ("id_personagem",)
     readonly_fields = ("criado_em",)
+
+
+@admin.register(TbPersonagemAventura)
+class TbPersonagemAventuraAdmin(BonfireAdminMixin, admin.ModelAdmin):
+    list_display = ("id_lancamento", "id_personagem", "nome_aventura", "qtd_aventuras",
+                    "ouro_pago_po", "nivel_no_lancamento", "criado_por", "criado_em", "revertido")
+    list_filter = ("revertido",)
+    search_fields = ("nome_aventura", "id_personagem__nome", "criado_por__username")
+    raw_id_fields = ("id_personagem", "criado_por", "revertido_por")
+    readonly_fields = ("criado_em", "revertido_em", "ouro_pago_po")
 
 
 @admin.register(TbRecompensaMestre)
