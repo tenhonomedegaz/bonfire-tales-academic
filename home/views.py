@@ -5646,6 +5646,12 @@ def _criador_resolver(data):
 
     linhagem = TbLinhagem.objects.filter(slug=data.get('linhagem'), id_raca=raca).first() if data.get('linhagem') else None
     essencia = TbEssencia.objects.filter(slug=data.get('essencia')).first() if (data.get('essencia') and raca and raca.permite_essencia) else None
+    # Linhagem e Essência são MUTUAMENTE EXCLUSIVAS (regra do sistema: o personagem tem
+    # uma OU outra, nunca as duas). O JS já desmarca uma ao escolher a outra, mas isso é
+    # só UI — um POST direto (ou uma corrida de eventos) pode mandar as duas preenchidas,
+    # e sem este guard o servidor persistiria as duas em silêncio.
+    if linhagem and essencia:
+        erros.append('Escolha linhagem ou essência — não os dois.')
 
     R = {
         'nome': nome, 'base': base, 'mais2': mais2, 'mais1': mais1,
@@ -5826,6 +5832,11 @@ def criar_personagem_preview_view(request):
     data = _json_body(request)
     R, _erros = _criador_resolver(data)
     if not (R['raca'] and R['classe'] and R['antec']):
+        return JsonResponse({'ok': True, 'ready': False})
+    # Linhagem×Essência é violação ESTRUTURAL (não uma pendência de contagem que o
+    # preview deva tolerar) — mesmo guard de _criador_resolver, aqui barrando o "ready"
+    # em vez de aparecer só na lista de erros (que este endpoint ignora de propósito).
+    if R['linhagem'] and R['essencia']:
         return JsonResponse({'ok': True, 'ready': False})
     dono = request.user if request.user.is_authenticated else get_user_model().objects.order_by('id').first()
     if dono is None:

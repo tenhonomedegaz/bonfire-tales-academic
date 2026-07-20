@@ -148,14 +148,21 @@ class CriacaoArquetiposTests(_CriadorBase):
         # 3 truques materializados a partir das escolhas
         self.assertEqual(p.magias.filter(nivel=0).count(), 3)
 
-    def test_feiticeiro_hibrido(self):
-        # raça + linhagem + essência + vertente (o caminho híbrido da auditoria)
+    def test_feiticeiro_com_essencia(self):
+        # raça + essência + vertente (linhagem e essência são mutuamente exclusivas —
+        # ver LinhagemEssenciaExclusivasTests — então este caminho usa só essência).
         p, ficha = self._cria_ok(self._payload(
-            'feiticeiro', raca_slug='anao', linhagem_slug='montanha',
-            essencia_slug='draconica', vertente='Vermelho'))
+            'feiticeiro', raca_slug='anao', essencia_slug='draconica', vertente='Vermelho'))
         self.assertEqual(p.id_essencia.slug, 'draconica')
-        self.assertEqual(p.id_linhagem.slug, 'montanha')
+        self.assertIsNone(p.id_linhagem)
         self.assertTrue(p.escolhas.filter(tipo='vertente').exists())
+
+    def test_feiticeiro_com_linhagem(self):
+        # raça + linhagem (sem essência) — o outro lado da exclusividade mútua.
+        p, ficha = self._cria_ok(self._payload(
+            'feiticeiro', raca_slug='anao', linhagem_slug='montanha'))
+        self.assertEqual(p.id_linhagem.slug, 'montanha')
+        self.assertIsNone(p.id_essencia)
 
     def test_talento_de_origem_materializado(self):
         p, _ = self._cria_ok(self._payload('guerreiro'))
@@ -241,7 +248,8 @@ class Bug4VertenteMagiaTests(_CriadorBase):
     def test_sync_bate_com_magias_concedidas(self):
         from home.character_engine import magias_concedidas
         user = self._novo_usuario('dono-bug4', staff=True)
-        payload = self._payload('feiticeiro', raca_slug='anao', linhagem_slug='montanha',
+        # essência (sem linhagem: as duas são mutuamente exclusivas)
+        payload = self._payload('feiticeiro', raca_slug='anao',
                                 essencia_slug='draconica', vertente='Vermelho')
         resp = self._post_criar(user, payload)
         self.assertEqual(resp.status_code, 200, resp.content)
@@ -300,6 +308,69 @@ class ValidacaoServerSideTests(_CriadorBase):
         resp = self._post_criar(self._staff(), payload)
         self.assertEqual(resp.status_code, 400)
         self.assertIn('linhagem', ' '.join(resp.json()['erros']).lower())
+
+
+class LinhagemEssenciaExclusivasTests(_CriadorBase):
+    """BUG (beta da staff): dava para escolher LINHAGEM e ESSÊNCIA ao mesmo tempo e
+    finalizar a criação assim — as duas são mutuamente exclusivas por regra (o
+    personagem tem linhagem OU essência, nunca as duas). O JS já desmarca uma ao
+    escolher a outra (ver home/static/js/criador.js), mas o servidor precisa recusar
+    de qualquer forma — o guard vive em `_criador_resolver`, FONTE ÚNICA compartilhada
+    pelo criar_personagem_view e pelo criar_personagem_preview_view, então cobre os
+    dois. Não há fluxo de EDIÇÃO que troque linhagem/essência depois de criado (os
+    campos só são gravados em `_criador_persistir`, na criação)."""
+
+    def _staff(self):
+        return self._novo_usuario('validador-excl', staff=True)
+
+    def test_ambos_preenchidos_e_recusado_e_nada_persiste(self):
+        payload = self._payload('feiticeiro', raca_slug='anao', linhagem_slug='montanha',
+                                essencia_slug='draconica', vertente='Vermelho')
+        resp = self._post_criar(self._staff(), payload)
+        self.assertEqual(resp.status_code, 400, resp.content)
+        body = resp.json()
+        self.assertFalse(body.get('ok', True))
+        self.assertTrue(any('linhagem' in e.lower() and 'essência' in e.lower()
+                            for e in body.get('erros', [])), body)
+        self.assertFalse(TbPersonagem.objects.exists())
+
+    def test_so_linhagem_e_aceito(self):
+        payload = self._payload('feiticeiro', raca_slug='anao', linhagem_slug='montanha')
+        resp = self._post_criar(self._staff(), payload)
+        self.assertEqual(resp.status_code, 200, resp.content)
+        p = TbPersonagem.objects.get(pk=resp.json()['id'])
+        self.assertEqual(p.id_linhagem.slug, 'montanha')
+        self.assertIsNone(p.id_essencia)
+
+    def test_so_essencia_e_aceito(self):
+        payload = self._payload('feiticeiro', raca_slug='anao',
+                                essencia_slug='draconica', vertente='Vermelho')
+        resp = self._post_criar(self._staff(), payload)
+        self.assertEqual(resp.status_code, 200, resp.content)
+        p = TbPersonagem.objects.get(pk=resp.json()['id'])
+        self.assertEqual(p.id_essencia.slug, 'draconica')
+        self.assertIsNone(p.id_linhagem)
+
+    def test_preview_com_ambos_nao_fica_pronto(self):
+        # a rota de preview aceita subconjuntos inválidos p/ atualizar a cada escolha
+        # (ignora pendências de CONTAGEM de propósito), mas linhagem+essência é uma
+        # violação ESTRUTURAL: o preview barra o "ready" explicitamente (não só o
+        # criar_personagem_view) e, de qualquer forma, a transação é sempre revertida.
+        payload = self._payload('feiticeiro', raca_slug='anao', linhagem_slug='montanha',
+                                essencia_slug='draconica', vertente='Vermelho')
+        self.client.force_login(self._staff())
+        resp = self.client.post(reverse('criar_personagem_preview'),
+                                data=json.dumps(payload), content_type='application/json')
+        self.assertEqual(resp.status_code, 200, resp.content)
+        self.assertFalse(resp.json().get('ready'), resp.json())
+        self.assertFalse(TbPersonagem.objects.exists())
+
+    def test_smoke_pagina_do_criador_carrega(self):
+        # smoke: a página do criador continua respondendo 200 depois da troca
+        # automática linhagem<->essência no JS (nada quebrou o template/contexto).
+        self.client.force_login(self._staff())
+        resp = self.client.get(reverse('criacao_ficha'))
+        self.assertEqual(resp.status_code, 200)
 
 
 class Bug2EquipamentoInicialTests(_CriadorBase):
@@ -617,8 +688,9 @@ class PreviewAoVivoTests(_CriadorBase):
     def test_preview_mago_bate(self):
         self._bate('mago')
 
-    def test_preview_feiticeiro_hibrido_bate(self):
-        self._bate('feiticeiro', raca_slug='anao', linhagem_slug='montanha',
+    def test_preview_feiticeiro_essencia_bate(self):
+        # essência (sem linhagem: as duas são mutuamente exclusivas)
+        self._bate('feiticeiro', raca_slug='anao',
                    essencia_slug='draconica', vertente='Vermelho')
 
     def test_preview_incompleto_nao_pronto(self):

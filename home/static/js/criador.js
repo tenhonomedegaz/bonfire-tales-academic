@@ -158,6 +158,26 @@
         var essWrap = el('cf-essencia-wrap'), essSel = el('cf-essencia');
         var verWrap = el('cf-vertente-wrap'), verSel = el('cf-vertente');
 
+        // Linhagem e Essência são MUTUAMENTE EXCLUSIVAS (regra do sistema: o personagem
+        // tem uma OU outra, nunca as duas). Ao escolher uma, a outra (e a vertente, que só
+        // existe dependurada da essência) é desmarcada NA HORA — troca automática e fluida,
+        // sem bloquear nenhum dos dois selects. Os dois listeners abaixo são registrados
+        // ANTES de qualquer outro listener de linSel/essSel para que os re-renders
+        // dependentes (painéis de info, talentos, perícias, prévia) já vejam o estado
+        // corrigido quando rodarem.
+        function limparEssencia() {
+            if (!essSel.value) return;
+            essSel.value = '';
+            onEssencia();          // oculta/reseta a vertente (dependia da essência)
+            renderEssenciaInfo();  // painel de info da essência reflete a troca
+        }
+        function limparLinhagem() {
+            if (!linSel.value) return;
+            linSel.value = '';
+        }
+        linSel.addEventListener('change', function () { if (linSel.value) limparEssencia(); });
+        essSel.addEventListener('change', function () { if (essSel.value) limparLinhagem(); });
+
         function onEssencia() {
             var ess = essenciaBySlug[essSel.value];
             var vertentes = (ess && ess.vertentes && ess.vertentes.length) ? ess.vertentes : [];
