@@ -51,6 +51,7 @@ from .models import (
     TbArmadilha,
     TbCondicao,
     TbTransacao,
+    TbPersonagem,
     TbPersonagemAventura,
     TbRecompensaMestre,
     TbAventuraMestre,
@@ -1981,6 +1982,67 @@ class TbTransacaoAdmin(admin.ModelAdmin):
     search_fields = ("descricao", "id_personagem__nome")
     raw_id_fields = ("id_personagem",)
     readonly_fields = ("criado_em",)
+
+
+@admin.register(TbPersonagem)
+class TbPersonagemAdmin(BonfireAdminMixin, admin.ModelAdmin):
+    """Ficha de personagem (memoria de usuario). Sem registro, a changelist
+    /admin/home/tbpersonagem/ dava 404 e o modelo nem aparecia no indice do
+    admin ("nao consigo acessar a table de personagens"). FKs em raw_id para
+    nao carregar selects gigantes; timestamps auto em readonly."""
+
+    list_display = (
+        "nome", "dono", "nivel", "raca_display", "aventuras",
+        "carteira_pc", "braseiros", "publico", "arquivado", "atualizado_em",
+    )
+    list_display_links = ("nome",)
+    list_filter = ("arquivado", "publico", "nivel", "ficha_theme")
+    search_fields = ("nome", "dono__username", "jogador", "patente")
+    list_select_related = ("dono", "id_raca")
+    ordering = ("-atualizado_em",)
+    date_hierarchy = "criado_em"
+    raw_id_fields = ("dono", "id_raca", "id_linhagem", "id_essencia", "id_antecedente")
+    readonly_fields = ("criado_em", "atualizado_em")
+    fieldsets = (
+        ("Identidade", {"fields": (
+            ("nome", "dono"),
+            ("publico", "arquivado"),
+            ("tagline", "jogador", "patente"),
+        )}),
+        ("Origem", {"fields": (
+            ("id_raca", "id_linhagem"),
+            ("id_essencia", "id_antecedente"),
+        )}),
+        ("Atributos", {"fields": (
+            ("forca", "destreza", "constituicao"),
+            ("inteligencia", "sabedoria", "carisma"),
+        )}),
+        ("Combate e vitais", {"fields": (
+            ("nivel", "ca", "iniciativa_bonus"),
+            ("pv_maximo", "pv_atual", "pv_temporario"),
+            ("velocidade",),
+        )}),
+        ("Economia e progressao", {"fields": (
+            ("carteira_pc", "braseiros"),
+            ("aventuras",),
+        )}),
+        ("Descricao fisica", {"fields": (
+            ("idade", "altura", "peso", "tamanho"),
+            ("genero", "olhos", "cabelo", "pele"),
+        )}),
+        ("Narrativa", {"fields": ("aparencia", "historia", "anotacoes")}),
+        ("Visual da ficha", {"fields": (
+            ("foto_url", "token_url"),
+            ("banner_url", "ficha_background_url"),
+            ("ficha_theme", "ficha_effect", "foto_frame"),
+            "ficha_theme_custom",
+        )}),
+        ("Metadados", {"fields": (("criado_em", "atualizado_em"),)}),
+    )
+
+    @admin.display(description="Raca", ordering="id_raca__nome")
+    def raca_display(self, obj):
+        return obj.id_raca.nome if obj.id_raca_id else "-"
 
 
 @admin.register(TbPersonagemAventura)
