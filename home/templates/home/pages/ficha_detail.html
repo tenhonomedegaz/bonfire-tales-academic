@@ -27,7 +27,16 @@
       </div>
       <div class="banner-actions">
         <a href="{% url 'personagens' %}" class="banner-btn">← Personagens</a>
-        {% if pode_editar %}<a href="{% url 'editar_ficha' p.id_personagem %}" class="banner-btn primary">Editar / Subir de nível</a>{% endif %}
+        {% if pode_editar %}
+          <a href="{% url 'editar_ficha' p.id_personagem %}" class="banner-btn">Editar ficha</a>
+          {% if levelup_status.mostrar_botao %}
+            <a href="{% url 'personagem_subir_nivel' p.id_personagem %}" class="banner-btn primary banner-btn-levelup" data-levelup-btn>
+              ⬆ {% if levelup_status.pode_subir %}Subir de Nível{% else %}Concluir escolhas de nível{% endif %}
+            </a>
+          {% elif not levelup_status.no_maximo %}
+            <span class="banner-nextlvl" title="Progresso até o próximo nível">Próximo nível em {{ levelup_status.faltam_aventuras }} aventura{{ levelup_status.faltam_aventuras|pluralize }}</span>
+          {% endif %}
+        {% endif %}
       </div>
     </div>
 

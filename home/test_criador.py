@@ -2229,6 +2229,81 @@ class Item6ConjuracaoSubclasseAwareTests(_CriadorBase):
         self.assertTrue(any(r['total'] > 0 for r in sheet['slots']))
 
 
+class ConjuradorDeGuerraPrereqTests(_CriadorBase):
+    """Pré-requisito 'Conjuração ou Magia de Pacto' (talento 'Conjurador de Guerra') deve
+    aceitar QUALQUER fonte de conjuração — não só a classe base. Regressão do gate em
+    _talento_prereq_ok, que consultava a CLASSE BASE e falhava para third-casters por
+    subclasse (Cavaleiro/Trapaceiro Arcano) e para magia concedida por feature."""
+
+    def _char(self, classe_slug, sub_needle=None, nivel=4, magia_origem=None):
+        cl = TbClasse.objects.get(slug=classe_slug)
+        sub = None
+        if sub_needle:
+            from home.models import TbSubclasse
+            sub = TbSubclasse.objects.filter(id_classe=cl, nome__icontains=sub_needle).first()
+            self.assertIsNotNone(sub, 'subclasse %r nao encontrada' % sub_needle)
+        p = TbPersonagem.objects.create(
+            dono=self._novo_usuario('cdg-%s-%s' % (classe_slug[:4], sub_needle or 'base')),
+            nome='CdG', nivel=nivel, forca=13, destreza=14, constituicao=13,
+            inteligencia=15, sabedoria=12, carisma=10)
+        TbPersonagemClasse.objects.create(
+            id_personagem=p, id_classe=cl, id_subclasse=sub, nivel=nivel, principal=True)
+        if magia_origem:
+            from home.models import TbMagia
+            mag = TbMagia.objects.first()
+            TbPersonagemMagia.objects.create(
+                id_personagem=p, id_magia=mag, nome=mag.nome, nivel=1, origem=magia_origem)
+        return p
+
+    def _ve_conjurador_de_guerra(self, p):
+        from home.character_engine import derive
+        nomes = {t['nome'] for t in views._talentos_asi_disponiveis(p, derive(p))}
+        return 'Conjurador de Guerra' in nomes
+
+    def test_cavaleiro_arcano_ve(self):
+        # third-caster por SUBCLASSE: era o caso quebrado (base guerreiro nao conjura).
+        p = self._char('guerreiro', 'Cavaleiro Arcano')
+        self.assertTrue(views._personagem_conjura(p))
+        self.assertTrue(self._ve_conjurador_de_guerra(p))
+
+    def test_trapaceiro_arcano_ve(self):
+        p = self._char('ladino', 'Trapaceiro Arcano')
+        self.assertTrue(views._personagem_conjura(p))
+        self.assertTrue(self._ve_conjurador_de_guerra(p))
+
+    def test_guerreiro_campeao_nao_ve(self):
+        # subclasse NÃO conjuradora: não pode enxergar a habilidade de outra subclasse.
+        p = self._char('guerreiro', 'Campe')
+        self.assertFalse(views._personagem_conjura(p))
+        self.assertFalse(self._ve_conjurador_de_guerra(p))
+
+    def test_mistico_ve(self):
+        # magia de pacto (spellcasting{slots:pact} na classe base).
+        p = self._char('mistico')
+        self.assertTrue(views._personagem_conjura(p))
+        self.assertTrue(self._ve_conjurador_de_guerra(p))
+
+    def test_magia_concedida_por_feature_ve(self):
+        # decisão do PO: quem tem magia persistida de QUALQUER origem (ex.: vertente de
+        # essência) conjura — mesmo numa classe/subclasse sem spellcasting.
+        # controle: a mesma classe/subclasse SEM magia não conjura (test_guerreiro_campeao_nao_ve);
+        # aqui a única diferença é a magia persistida — que passa a habilitar o talento.
+        p = self._char('guerreiro', 'Campe', magia_origem='essencia-vertente')
+        self.assertTrue(views._personagem_conjura(p))
+        self.assertTrue(self._ve_conjurador_de_guerra(p))
+
+    def test_mago_full_continua_vendo(self):
+        p = self._char('mago')
+        self.assertTrue(views._personagem_conjura(p))
+        self.assertTrue(self._ve_conjurador_de_guerra(p))
+
+    def test_subclasse_conjuradora_travada_no_nivel_nao_ve(self):
+        # Cavaleiro Arcano ganha conjuração no N3; abaixo disso a subclasse existe mas a
+        # habilidade de spellcasting ainda não desbloqueou → não conjura.
+        p = self._char('guerreiro', 'Cavaleiro Arcano', nivel=2)
+        self.assertFalse(views._personagem_conjura(p))
+
+
 class Item7AsiFormaAlternativaTests(_CriadorBase):
     """Item 7: ASI do antecedente aceita a forma alternativa +1/+1/+1 (regra de sistema)
     alem do +2/+1 legado — validacao, resolucao e persistencia (2 ou 3 linhas de bonus)."""

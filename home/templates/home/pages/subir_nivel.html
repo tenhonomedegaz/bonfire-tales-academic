@@ -1,0 +1,332 @@
+{% extends 'home/base.html' %}
+{% load static %}
+
+{% block content %}
+<section class="sn-wrap animate-fade-in">
+
+  {# ============================ CABEÇALHO IMERSIVO ============================ #}
+  <header class="sn-hero">
+    <a href="{% url 'ficha_detail' p.id_personagem %}" class="sn-hero-back" aria-label="Voltar para a ficha">← Ficha</a>
+    <div class="sn-hero-core">
+      <p class="sn-hero-kicker">Progressão de {{ p.nome }}</p>
+      {% if pode_subir %}
+        <h1 class="sn-hero-title">Subir de Nível</h1>
+        <div class="sn-leveljump" aria-label="Nível {{ nivel_atual }} para {{ nivel_alvo }}">
+          <span class="sn-lvl-from">{{ nivel_atual }}</span>
+          <span class="sn-lvl-arrow" aria-hidden="true">➜</span>
+          <span class="sn-lvl-to">{{ nivel_alvo }}</span>
+        </div>
+      {% else %}
+        <h1 class="sn-hero-title">Concluir escolhas de nível</h1>
+        <div class="sn-leveljump"><span class="sn-lvl-to">Nível {{ nivel_atual }}</span></div>
+      {% endif %}
+      <div class="sn-hero-classline">
+        {% if classes_atuais|length > 1 %}
+          <label class="sn-classpick">
+            <span>Classe que avança:</span>
+            <select class="lvl-field" id="sn-classe-pick" aria-label="Classe que sobe de nível">
+              {% for c in classes_atuais %}
+                <option value="{{ c.id }}"{% if c.id == classe_id %} selected{% endif %}>{{ c.nome }} {{ c.nivel }}{% if pode_subir %} → {{ c.nivel|add:1 }}{% endif %}{% if c.principal %} ★{% endif %}</option>
+              {% endfor %}
+            </select>
+          </label>
+        {% else %}
+          <span class="sn-class-chip">{{ ganhos.classe }}{% if ganhos.subclasse %} <em>({{ ganhos.subclasse }})</em>{% endif %}</span>
+        {% endif %}
+      </div>
+    </div>
+  </header>
+
+  {% if not pode_subir and sem_pendencias %}
+    {# ---- Nada a fazer: sem folga de teto e sem pendências ---- #}
+    <div class="sn-nothing lvl-card">
+      {% if status.no_maximo %}
+        <p class="sn-nothing-title">Nível máximo atingido</p>
+        <p class="sn-nothing-sub">{{ p.nome }} já está no nível 20 — o topo da progressão.</p>
+      {% else %}
+        <p class="sn-nothing-title">Ainda não é hora de subir</p>
+        <p class="sn-nothing-sub">Faltam <strong class="text-[var(--flame)]">{{ status.faltam_aventuras }}</strong> aventura{{ status.faltam_aventuras|pluralize }} para liberar o nível {{ status.nivel_alvo }}. Jogue mais mesas para avançar.</p>
+      {% endif %}
+      <a href="{% url 'ficha_detail' p.id_personagem %}" class="cf-btn cf-btn-primary" style="margin-top:0.8rem;display:inline-block">Voltar à ficha</a>
+    </div>
+  {% else %}
+
+  <div class="cf-layout">
+    <div class="cf-main" id="sn-main">
+      {# stepper (preenchido pelo JS a partir das etapas presentes) #}
+      <nav class="cf-stepper" aria-label="Etapas do level-up"><ol id="sn-stepper"></ol></nav>
+
+      {# ======================= ETAPA: VISÃO GERAL (ganhos) ======================= #}
+      <section class="cf-step space-y-3" data-step="ganhos" data-step-name="Visão geral">
+        <h2 class="sn-step-title">O que o nível {{ nivel_alvo }} concede</h2>
+        <p class="sn-step-sub">Estes ganhos entram automaticamente ao confirmar. Depois, faça as escolhas passo a passo.</p>
+
+        <div class="sn-grants">
+          {% if ganhos.pv_ganho %}
+            <div class="sn-grant sn-grant--pv">
+              <span class="sn-grant-ico" aria-hidden="true">❤️</span>
+              <div class="sn-grant-body">
+                <div class="sn-grant-name">Pontos de Vida</div>
+                <div class="sn-grant-val">+{{ ganhos.pv_ganho }} PV <span class="sn-grant-note">(máximo)</span></div>
+              </div>
+            </div>
+          {% endif %}
+          {% for r in recursos_delta %}
+            <div class="sn-grant sn-grant--res">
+              <span class="sn-grant-ico" aria-hidden="true">⚡</span>
+              <div class="sn-grant-body">
+                <div class="sn-grant-name">{{ r.nome }}</div>
+                <div class="sn-grant-val">{% if r.novo %}novo · {{ r.para }} uso{{ r.para|pluralize }}{% else %}{{ r.de }} → {{ r.para }}{% endif %}</div>
+              </div>
+            </div>
+          {% endfor %}
+          {% if ganhos.abre_subclasse %}
+            <div class="sn-grant sn-grant--sub">
+              <span class="sn-grant-ico" aria-hidden="true">✦</span>
+              <div class="sn-grant-body">
+                <div class="sn-grant-name">Subclasse desbloqueada</div>
+                <div class="sn-grant-val">Escolha na etapa a seguir</div>
+              </div>
+            </div>
+          {% endif %}
+        </div>
+
+        {% if ganhos.features %}
+          <div class="sn-features">
+            <div class="sn-features-hdr">Novas características</div>
+            {% for f in ganhos.features %}
+              <details class="sn-feature">
+                <summary><span class="sn-feature-name">{{ f.nome }}</span><span class="sn-feature-src">{{ f.fonte }}</span></summary>
+                <div class="sn-feature-desc">{{ f.descricao|striptags|truncatechars:600 }}</div>
+              </details>
+            {% endfor %}
+          </div>
+        {% elif not ganhos.abre_subclasse and not recursos_delta %}
+          <p class="sn-step-sub">Nenhuma característica nova nas tabelas para este nível — os ganhos são numéricos (PV, proficiência, slots).</p>
+        {% endif %}
+
+        {% if pode_subir and classes_multiclasse %}
+          <div class="sn-mc" data-lvl-card="multiclasse">
+            <div class="sn-mc-hdr">Prefere multiclassar?</div>
+            <p class="sn-step-sub">Em vez de avançar em {{ ganhos.classe }}, você pode gastar este nível numa classe nova. As escolhas da nova classe são feitas depois, na ficha.</p>
+            <div class="sn-mc-row">
+              <select class="lvl-field lvl-field--grow" data-lvl-field="classe" aria-label="Classe de multiclasse">
+                {% for c in classes_multiclasse %}<option value="{{ c.id }}">{{ c.nome }}{% if c.req %} (req: {{ c.req }}){% endif %}</option>{% endfor %}
+              </select>
+              <button type="button" class="lvl-add" data-lvl-queue="adicionar_classe" data-label="Multiclasse">+ Multiclassar</button>
+            </div>
+          </div>
+        {% endif %}
+      </section>
+
+      {# ======================= ETAPA: SUBCLASSE ======================= #}
+      {% if pend.subclasse %}
+      <section class="cf-step space-y-3" data-step="subclasse" data-step-name="Subclasse" data-step-required="1" hidden>
+        <h2 class="sn-step-title">Escolha sua subclasse</h2>
+        <p class="sn-step-sub">A subclasse define o caminho especializado da sua classe a partir do nível {{ pend.subclasse_nivel }}.</p>
+        <div class="lvl-card" data-lvl-card="subclasse">
+          <div class="lvl-card__head">
+            <span class="lvl-card__title">Subclasse <span class="sub">nível {{ pend.subclasse_nivel }}</span></span>
+            <span class="lvl-badge" data-lvl-badge>falta 1</span>
+          </div>
+          <div class="lvl-queued" data-lvl-chips hidden></div>
+          <div class="lvl-card__row">
+            <select class="lvl-field lvl-field--grow" data-lvl-field="subclasse" aria-label="Subclasse">
+              <option value="">— Selecione —</option>
+              {% for s in pend.subclasses %}<option value="{{ s.id }}">{{ s.nome }}</option>{% endfor %}
+            </select>
+            <button type="button" class="lvl-add" data-lvl-queue="subclasse" data-single="1">Escolher</button>
+          </div>
+        </div>
+      </section>
+      {% endif %}
+
+      {# ======================= ETAPA: ASI / TALENTO ======================= #}
+      {% if pend.asi_pendentes > 0 %}
+      <section class="cf-step space-y-3" data-step="asi" data-step-name="Atributo/Talento" data-step-required="1" hidden>
+        <h2 class="sn-step-title">Aprimoramento de Atributo ou Talento</h2>
+        <p class="sn-step-sub">Aumente atributos (+2 distribuível) ou escolha um talento que dá +1 num atributo.</p>
+        <div class="lvl-card" data-lvl-card="asi" data-need="{{ pend.asi_pendentes }}" id="lvl-asi-card">
+          <div class="lvl-card__head">
+            <span class="lvl-card__title">Escolha</span>
+            <span class="lvl-badge" data-lvl-badge>falta {{ pend.asi_pendentes }}</span>
+          </div>
+          <div class="lvl-queued" data-lvl-chips hidden></div>
+          <label class="lvl-radio"><input type="radio" name="lvl-asi-modo" value="asi" checked data-lvl-field="asi_modo"> Aumentar atributos (+2 distribuível)</label>
+          <div class="lvl-card__row" data-lvl-asi-attrs style="margin:0.4rem 0 0.5rem 1.4rem">
+            <select class="lvl-field" data-lvl-field="asi_attr_1" aria-label="Primeiro atributo do ASI">{% for a in atributos %}<option value="{{ a }}">+1 {{ a }}</option>{% endfor %}</select>
+            <select class="lvl-field" data-lvl-field="asi_attr_2" aria-label="Segundo atributo do ASI">{% for a in atributos %}<option value="{{ a }}">+1 {{ a }}</option>{% endfor %}</select>
+          </div>
+          <label class="lvl-radio"><input type="radio" name="lvl-asi-modo" value="talento"> Escolher um Talento (+1 atributo)</label>
+          <div class="lvl-card__row" data-lvl-asi-tal hidden style="margin:0.4rem 0 0.5rem 1.4rem">
+            <select class="lvl-field lvl-field--grow" data-lvl-field="talento" id="lvl-asi-talento" aria-label="Talento"><option value="">— Talento —</option>{% for t in talentos_normais %}<option value="{{ t.id }}" data-attrs="{{ t.attrs_csv }}">{{ t.nome }}{% if t.pre %} ({{ t.pre }}){% endif %}</option>{% endfor %}</select>
+            <select class="lvl-field" data-lvl-field="talento_attr" id="lvl-asi-talento-attr" aria-label="Atributo do talento">{% for a in atributos %}<option value="{{ a }}">+1 {{ a }}</option>{% endfor %}</select>
+          </div>
+          <div class="lvl-card__row">
+            <button type="button" class="lvl-add" data-lvl-queue="asi">Escolher</button>
+          </div>
+        </div>
+      </section>
+      {% endif %}
+
+      {# ======================= ETAPA: TALENTO RACIAL ======================= #}
+      {% if talentos_raciais_pend %}
+      <section class="cf-step space-y-3" data-step="talento_racial" data-step-name="Talento racial" data-step-required="1" hidden>
+        <h2 class="sn-step-title">Talento Racial</h2>
+        <p class="sn-step-sub">Marcos raciais oferecem talentos exclusivos da sua linhagem/essência.</p>
+        {% for bloco in talentos_raciais_pend %}
+          <div class="lvl-card" data-lvl-card="talento_racial" data-nivel="{{ bloco.nivel }}">
+            <div class="lvl-card__head">
+              <span class="lvl-card__title">Talento Racial <span class="sub">nível {{ bloco.nivel }}</span></span>
+              <span class="lvl-badge" data-lvl-badge>falta 1</span>
+            </div>
+            <div class="lvl-queued" data-lvl-chips hidden></div>
+            <div class="lvl-card__row">
+              <select class="lvl-field lvl-field--grow" data-lvl-field="talento" aria-label="Talento racial nível {{ bloco.nivel }}"
+                      onchange="var d=this.closest('.lvl-card').querySelector('[data-lvl-desc]');var o=this.options[this.selectedIndex];d.textContent=o.dataset.desc||'';d.hidden=!o.dataset.desc;">
+                <option value="">— Selecione —</option>
+                {% for o in bloco.opcoes %}<option value="{{ o.nome }}" data-desc="{{ o.descricao|striptags|truncatechars:280 }}">{{ o.nome }}{% if o.pre %} ({{ o.pre }}){% endif %}</option>{% endfor %}
+              </select>
+              <button type="button" class="lvl-add" data-lvl-queue="talento_racial" data-single="1">Escolher</button>
+            </div>
+            <p class="lvl-card__hint" data-lvl-desc hidden style="margin-top:0.5rem"></p>
+          </div>
+        {% endfor %}
+      </section>
+      {% endif %}
+
+      {# ======================= ETAPA: OPÇÕES DE CLASSE ======================= #}
+      {% if opcao_grupos %}
+      <section class="cf-step space-y-3" data-step="opcoes" data-step-name="Opções de classe" hidden>
+        <h2 class="sn-step-title">Escolhas de Classe</h2>
+        <p class="sn-step-sub">Metamagias, manobras, estilos, segredos, perícias — o que a sua classe abre neste nível.</p>
+        {% for g in opcao_grupos %}
+          <div class="lvl-card{% if not g.pendentes %} is-done{% endif %}" data-lvl-card="opcao"
+               data-classe="{{ g.classe_id }}" data-slug="{{ g.slug }}" data-need="{{ g.pendentes }}">
+            <div class="lvl-card__head">
+              <span class="lvl-card__title">{{ g.tipo }} <span class="sub">{{ g.classe }} · {{ g.usados }}/{{ g.limite }}</span></span>
+              {% if g.pendentes %}<span class="lvl-badge" data-lvl-badge>falta {{ g.pendentes }}</span>{% else %}<span class="lvl-badge is-ok" data-lvl-badge>completo</span>{% endif %}
+            </div>
+            {% if g.escolhidas %}
+              <div class="lvl-queued">
+                {% for e in g.escolhidas %}<span class="lvl-chip is-saved">{{ e.nome }}</span>{% endfor %}
+              </div>
+            {% endif %}
+            <div class="lvl-queued" data-lvl-chips hidden></div>
+            {% if g.pendentes and g.disponiveis %}
+              <div class="lvl-card__row">
+                <select class="lvl-field lvl-field--grow" data-lvl-field="val" aria-label="Escolher {{ g.tipo|lower }}">
+                  <option value="">Escolher {{ g.tipo|lower }}…</option>
+                  {% for o in g.disponiveis %}<option value="{{ o.val }}"{% if o.pre %} title="Pré-requisito: {{ o.pre }}"{% endif %}>{{ o.nome }}</option>{% endfor %}
+                </select>
+                <button type="button" class="lvl-add" data-lvl-queue="opcao">Escolher</button>
+              </div>
+            {% elif g.pendentes %}
+              <p class="lvl-card__hint">Sem opções disponíveis no catálogo para esta classe/nível.</p>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </section>
+      {% endif %}
+
+      {# ======================= ETAPA: NOVAS MAGIAS ======================= #}
+      {% if pend_magias and pend_magias.cantrips_pend or pend_magias.known_pend %}
+      <section class="cf-step space-y-3" data-step="magias" data-step-name="Magias" hidden>
+        <h2 class="sn-step-title">Novas Magias</h2>
+        <p class="sn-step-sub">Aprenda os truques e magias que este nível concede.</p>
+        <div class="lvl-card" data-lvl-card="aprender_magias"
+             data-cantrips="{{ pend_magias.cantrips_pend }}" data-known="{{ pend_magias.known_pend }}">
+          <div class="lvl-card__head">
+            <span class="lvl-card__title">Aprender</span>
+            <span class="lvl-badge" data-lvl-badge>—</span>
+          </div>
+          {% if pend_magias.cantrips_pend %}
+            <div style="margin-bottom:0.6rem">
+              <div class="lvl-subhdr">Truques (escolha {{ pend_magias.cantrips_pend }})</div>
+              <div class="lvl-checkgrid" data-lvl-group="truques">
+                {% for m in pend_magias.lista_truques %}<label class="lvl-check"><input type="checkbox" value="{{ m.slug }}"> {{ m.nome }}</label>{% endfor %}
+              </div>
+            </div>
+          {% endif %}
+          {% if pend_magias.known_pend %}
+            <div>
+              <div class="lvl-subhdr">Magias conhecidas (escolha {{ pend_magias.known_pend }} · até {{ pend_magias.max_nivel }}º nível)</div>
+              <div class="lvl-checkgrid" data-lvl-group="magias">
+                {% for m in pend_magias.lista_magias %}<label class="lvl-check"><input type="checkbox" value="{{ m.slug }}"> <span>{{ m.nome }} <span class="text-xs text-[var(--muted)]">({{ m.nivel }}º)</span></span></label>{% endfor %}
+              </div>
+            </div>
+          {% endif %}
+        </div>
+      </section>
+      {% endif %}
+
+      {# ======================= ETAPA: REVISAR & CONFIRMAR ======================= #}
+      <section class="cf-step space-y-3" data-step="revisar" data-step-name="Confirmar" hidden>
+        <h2 class="sn-step-title">Revise e confirme</h2>
+        <p class="sn-step-sub">Nada foi gravado ainda. Confira o lote e a prévia da ficha; ao confirmar, tudo é aplicado de uma vez.</p>
+        <div class="lvl-card">
+          <div class="sn-review-hdr">Escolhas no lote</div>
+          <div class="lvl-queued" id="sn-review-list"><span class="cf-prev-empty">Nenhuma escolha adicional — só o avanço de nível.</span></div>
+          <div class="sn-review-pend" id="sn-review-pend" hidden>
+            <div class="sn-review-hdr" style="margin-top:0.7rem">Ainda pendente após confirmar</div>
+            <div class="lvl-prev-pend" id="sn-review-pend-list"></div>
+            <p class="sn-step-sub" style="margin-top:0.3rem">Sem problema — você pode voltar aqui depois para concluir.</p>
+          </div>
+        </div>
+      </section>
+
+      {# feedback + navegação #}
+      <div class="lvl-feedback" id="sn-feedback" hidden></div>
+      <div class="cf-stepnav">
+        <button type="button" class="cf-btn" data-sn-prev disabled>← Voltar</button>
+        <span class="cf-hint" data-sn-hint></span>
+        <a href="{% url 'ficha_detail' p.id_personagem %}" class="lvl-btn-ghost" data-sn-cancel>Cancelar</a>
+        <button type="button" class="cf-btn cf-btn-primary" data-sn-next>Avançar →</button>
+        <button type="button" class="cf-btn cf-btn-primary" data-sn-confirm hidden>✓ Confirmar level-up</button>
+      </div>
+    </div>{# /.cf-main #}
+
+    {# ============================ PRÉVIA AO VIVO ============================ #}
+    <aside class="cf-preview" id="sn-preview" aria-live="polite">
+      <div class="cf-preview-head">
+        <span class="cf-preview-title">Prévia da ficha</span>
+        <span class="cf-preview-status" id="sn-prev-status">nível {{ nivel_alvo }}</span>
+      </div>
+      <div class="cf-preview-body">
+        <div class="cf-preview-name">{{ p.nome }} <span class="cf-preview-sub">{{ ganhos.classe }} Nv <span data-prev-nivel>{{ preview_resumo.nivel }}</span></span></div>
+        <div class="cf-vitals">
+          <div class="cf-vital accent"><span class="k">PV</span><span class="v" data-prev-pv>{{ preview_resumo.pv }}</span></div>
+          <div class="cf-vital accent"><span class="k">CA</span><span class="v" data-prev-ca>{{ preview_resumo.ca }}</span></div>
+          <div class="cf-vital"><span class="k">Prof.</span><span class="v" data-prev-pb>+{{ preview_resumo.pb }}</span></div>
+        </div>
+        <div class="cf-attrs" data-prev-attrs></div>
+        <div data-prev-extra></div>
+        <div class="cf-prev-sec" data-prev-pend-sec hidden>
+          <div class="h">Pendências restantes</div>
+          <div data-prev-pend class="lvl-prev-pend"></div>
+        </div>
+      </div>
+    </aside>
+  </div>{# /.cf-layout #}
+  {% endif %}
+</section>
+
+<script>
+  window.SN = {
+    aplicarUrl: "{% url 'personagem_levelup_aplicar' p.id_personagem %}",
+    previewUrl: "{% url 'personagem_levelup_preview' p.id_personagem %}",
+    fichaUrl: "{% url 'ficha_detail' p.id_personagem %}",
+    pageUrl: "{% url 'personagem_subir_nivel' p.id_personagem %}",
+    csrf: "{{ csrf_token }}",
+    podeSubir: {% if pode_subir %}true{% else %}false{% endif %},
+    classeId: {{ classe_id|default:'null' }}
+  };
+</script>
+{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/pages/criador.css' %}?v=2">
+<link rel="stylesheet" href="{% static 'css/pages/levelup.css' %}?v=3">
+<link rel="stylesheet" href="{% static 'css/pages/subir_nivel.css' %}?v=1">
+<script src="{% static 'js/subir_nivel.js' %}?v=1" defer></script>
+{% endblock %}

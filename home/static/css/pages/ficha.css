@@ -359,6 +359,26 @@
   border-color: transparent;
 }
 .banner-btn.primary:hover { color: #fff; opacity: 0.92; }
+/* Subir de Nível — botão destacado com brilho pulsante quando elegível */
+.banner-btn-levelup {
+  background: linear-gradient(135deg, var(--flame, #e0632b), var(--ember, #d97a34));
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--flame, #e0632b) 55%, transparent);
+  animation: banner-lvl-pulse 2.2s ease-in-out infinite;
+}
+@keyframes banner-lvl-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--flame, #e0632b) 45%, transparent); }
+  50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--flame, #e0632b) 0%, transparent); }
+}
+@media (prefers-reduced-motion: reduce) { .banner-btn-levelup { animation: none; } }
+.banner-nextlvl {
+  font-size: 0.78rem;
+  color: var(--muted);
+  border: 1px dashed var(--stroke);
+  border-radius: 7px;
+  padding: 0.35rem 0.7rem;
+  white-space: nowrap;
+  align-self: center;
+}
 
 /* bloco de identidade à direita */
 .banner-identity {

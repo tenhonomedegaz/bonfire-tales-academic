@@ -39,6 +39,18 @@ class LevelUpLoteBase(_CriadorBase):
         p.save(update_fields=['nivel', 'aventuras'])
         return p
 
+    def _zerar_pendencias(self, p):
+        """Resolve as pendências abertas (o talento racial de marco N1 do anão é a sticky)
+        para exercitar o caminho 'sem pendências'."""
+        for _ in range(6):
+            tr = views._pendencias_talento_racial(p)
+            if not tr:
+                break
+            for bloco in tr:
+                views._lvl_aplicar_talento_racial(
+                    p, {'nivel': bloco['nivel'], 'talento': bloco['opcoes'][0]['nome']})
+        return p
+
 
 class LevelUpAplicarLoteTests(LevelUpLoteBase):
     """O batch aplica subir-nível + escolha (subclasse) + ASI num único POST JSON,
@@ -145,45 +157,119 @@ class LevelUpAplicarLoteTests(LevelUpLoteBase):
 
 
 class EditarFichaRenderTests(LevelUpLoteBase):
-    """A página repaginada (editar_ficha.html) renderiza no design system do criador,
-    com os hooks que o levelup.js consome (lote local + prévia + aplicar)."""
+    """editar_ficha.html AGORA é só inventário/mercado/info/manutenção: o level-up saiu para
+    a página dedicada (personagem_subir_nivel GET). A página de edição só leva o botão."""
 
-    def test_get_200_e_hooks_do_lote_presentes(self):
-        # Guerreiro N4: N3 abre a subclasse e o N4 abre o slot de ASI -> dois cartões
-        # de pendência do lote, além do cartão de progressão e da prévia lateral.
+    def test_editar_sem_secao_de_levelup_com_link_pro_fluxo(self):
         p = self._guerreiro_no_nivel(4)
         self.client.force_login(p.dono)
         resp = self.client.get(reverse('editar_ficha', args=[p.pk]))
         self.assertEqual(resp.status_code, 200)
         html = resp.content.decode('utf-8')
-        # layout + prévia + barra de ação do lote (design do criador)
-        for needle in ('class="cf-layout"', 'id="lvl-topcard"', 'id="lvl-preview"',
-                       'id="lvl-actionbar"', 'id="lvl-aplicar"', 'id="lvl-descartar"'):
-            self.assertIn(needle, html, needle)
-        # cartões de pendência por tipo com os data-hooks do lote
-        self.assertIn('data-lvl-card="asi"', html)
-        self.assertIn('data-lvl-card="subclasse"', html)
-        self.assertIn('data-lvl-queue="subir_nivel"', html)   # subir de nível vira ação do lote
-        self.assertIn('data-prev-attrs', html)                # prévia consome o resumo
-        # wiring de JS/CSS + URLs dos endpoints em lote
-        self.assertIn('js/levelup.js', html)
-        self.assertIn('css/pages/levelup.css', html)
-        self.assertIn('css/pages/criador.css', html)          # reuso do design system
-        self.assertIn(reverse('personagem_levelup_aplicar', args=[p.pk]), html)
-        self.assertIn(reverse('personagem_levelup_preview', args=[p.pk]), html)
-        # o mercado continua como POST normal (não entra no lote nesta fase)
+        # a seção de level-up embutida (lote/prévia/pendências) foi REMOVIDA
+        for gone in ('id="lvl-actionbar"', 'id="lvl-preview"', 'data-lvl-queue="subir_nivel"',
+                     'data-lvl-card="asi"', 'js/levelup.js'):
+            self.assertNotIn(gone, html, gone)
+        # mas há um LINK/BOTÃO destacado para a experiência dedicada
+        self.assertIn(reverse('personagem_subir_nivel', args=[p.pk]), html)
+        # e o resto (mercado/inventário) permanece
         self.assertIn(reverse('personagem_comprar_item', args=[p.pk]), html)
 
-    def test_get_200_sem_pendencias(self):
-        # N1 recém-criado (todas as escolhas de N1 já feitas): página abre 200 e ainda
-        # oferece a ação de subir de nível no cartão de progressão.
+    def test_editar_no_teto_mostra_proximo_nivel(self):
+        # Sem folga de aventuras e sem pendências: nenhum botão de subir, só o aviso discreto.
         p = self._guerreiro_no_nivel(1)
+        self._zerar_pendencias(p)
+        p.aventuras = 0
+        p.save(update_fields=['aventuras'])
+        self.assertTrue(views._levelup_pendencias(p)['sem_pendencias'])
         self.client.force_login(p.dono)
-        resp = self.client.get(reverse('editar_ficha', args=[p.pk]))
-        self.assertEqual(resp.status_code, 200)
-        html = resp.content.decode('utf-8')
-        self.assertIn('id="lvl-preview"', html)
-        self.assertIn('data-lvl-queue="subir_nivel"', html)
+        html = self.client.get(reverse('editar_ficha', args=[p.pk])).content.decode('utf-8')
+        self.assertIn('Próximo nível em', html)
+
+
+class SubirNivelPageTests(LevelUpLoteBase):
+    """A EXPERIÊNCIA DEDICADA de level-up (GET /subir-nivel/): gate de permissão, stepper +
+    prévia + confirmar, e os cartões de escolha derivados do NÍVEL-ALVO."""
+
+    def test_get_200_dono_e_staff_terceiro_404(self):
+        p = self._guerreiro_no_nivel(3)
+        url = reverse('personagem_subir_nivel', args=[p.pk])
+        # dono
+        self.client.force_login(p.dono)
+        self.assertEqual(self.client.get(url).status_code, 200)
+        # staff (não-dono)
+        staff = self._novo_usuario('staff-sn', staff=True)
+        self.client.force_login(staff)
+        self.assertEqual(self.client.get(url).status_code, 200)
+        # terceiro (não-dono, não-staff) -> 404
+        outro = self._novo_usuario('intruso-sn')
+        self.client.force_login(outro)
+        self.assertEqual(self.client.get(url).status_code, 404)
+
+    def test_estrutura_da_pagina_e_alvo(self):
+        # Guerreiro N3 -> alvo N4: o N4 abre ASI (etapa) e o cabeçalho mostra 3 ➜ 4.
+        p = self._guerreiro_no_nivel(3)
+        self.client.force_login(p.dono)
+        html = self.client.get(reverse('personagem_subir_nivel', args=[p.pk])).content.decode('utf-8')
+        # esqueleto BG3: stepper + prévia ao vivo + confirmar/cancelar
+        for needle in ('id="sn-stepper"', 'id="sn-preview"', 'data-sn-confirm',
+                       'data-sn-next', 'data-sn-prev', 'data-prev-attrs',
+                       'data-step="ganhos"', 'data-step="revisar"'):
+            self.assertIn(needle, html, needle)
+        # escolha derivada do nível-ALVO (N4 = slot de ASI) aparece como etapa
+        self.assertIn('data-step="asi"', html)
+        self.assertIn('data-lvl-card="asi"', html)
+        # cabeçalho com o salto de nível 3 -> 4
+        self.assertIn('sn-leveljump', html)
+        self.assertIn('>4<', html)
+        # wiring dos endpoints em lote + assets
+        self.assertIn(reverse('personagem_levelup_aplicar', args=[p.pk]), html)
+        self.assertIn(reverse('personagem_levelup_preview', args=[p.pk]), html)
+        self.assertIn('js/subir_nivel.js', html)
+        self.assertIn('css/pages/subir_nivel.css', html)
+
+    def test_botao_aparece_quando_elegivel(self):
+        # Elegível (teto folgado): a ficha traz o botão destacado de subir de nível.
+        p = self._guerreiro_no_nivel(3)
+        self.client.force_login(p.dono)
+        html = self.client.get(reverse('ficha_detail', args=[p.pk])).content.decode('utf-8')
+        self.assertIn('data-levelup-btn', html)
+        self.assertIn(reverse('personagem_subir_nivel', args=[p.pk]), html)
+
+    def test_botao_some_no_teto(self):
+        # No teto e sem pendências: nada de botão; só o aviso "Próximo nível em X".
+        p = self._guerreiro_no_nivel(1)
+        self._zerar_pendencias(p)
+        p.aventuras = 0
+        p.save(update_fields=['aventuras'])
+        self.client.force_login(p.dono)
+        html = self.client.get(reverse('ficha_detail', args=[p.pk])).content.decode('utf-8')
+        self.assertNotIn('data-levelup-btn', html)
+        self.assertIn('banner-nextlvl', html)
+
+    def test_fluxo_completo_um_nivel_com_escolhas_em_lote(self):
+        # Abre a página (N3->N4), monta o lote como o front faria (subir + subclasse + ASI)
+        # e confirma num ÚNICO POST; o estado final bate.
+        p = self._guerreiro_no_nivel(3)
+        pc = p.classes.first()
+        sub = TbSubclasse.objects.filter(id_classe=pc.id_classe).order_by('id_subclasse').first()
+        self.client.force_login(p.dono)
+        self.assertEqual(self.client.get(reverse('personagem_subir_nivel', args=[p.pk])).status_code, 200)
+        acoes = [
+            {'tipo': 'subir_nivel', 'payload': {'classe': pc.id_classe_id}},
+            {'tipo': 'subclasse', 'payload': {'subclasse': sub.id_subclasse}},
+            {'tipo': 'asi', 'payload': {'modo': 'atributos', 'asi_attr_1': 'FOR', 'asi_attr_2': 'FOR'}},
+        ]
+        resp = self.client.post(
+            reverse('personagem_levelup_aplicar', args=[p.pk]),
+            data=json.dumps({'acoes': acoes}), content_type='application/json')
+        self.assertEqual(resp.status_code, 200, resp.content)
+        self.assertTrue(resp.json()['ok'], resp.content)
+        p.refresh_from_db(); pc.refresh_from_db()
+        self.assertEqual(p.nivel, 4)
+        self.assertEqual(pc.id_subclasse_id, sub.id_subclasse)
+        self.assertTrue(TbPersonagemAtributoBonus.objects.filter(
+            id_personagem=p, origem_tipo='asi-classe', atributo='FOR', valor=2).exists())
 
 
 class LevelUpPreviewTests(LevelUpLoteBase):

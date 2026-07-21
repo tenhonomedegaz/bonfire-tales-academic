@@ -3804,6 +3804,32 @@ def _talentos_raciais_count_as(raca_slugs, nivel_max=None):
     return out
 
 
+def _personagem_conjura(personagem):
+    """True se o personagem tem QUALQUER fonte de conjuração, para os pré-requisitos de
+    talento do tipo 'Conjuração ou Magia de Pacto'. Cobre, universalmente:
+      - classe base conjuradora — full/half (Mago, Clérigo, Paladino…) via
+        `_classe_spellcasting_info` por classe;
+      - SUBCLASSE conjuradora — third-casters (Cavaleiro Arcano, Trapaceiro Arcano) e
+        pactos de subclasse (Monge Elemental) carregam o `spellcasting{}` numa habilidade
+        de subclasse; reusa o pipeline subclasse-aware `_classe_spellcasting_info(classe,
+        subclasse=_caster_subclasse(pc))` — o mesmo que a ficha de magias usa;
+      - magia de pacto — o Místico modela `spellcasting{slots:pact}` na CLASSE BASE, então
+        já cai no primeiro caso;
+      - magias já CONHECIDAS/persistidas de qualquer origem — decisão do PO: quem tem magia
+        de qualquer fonte (vertente/essência, marca, item…) conjura, logo TbPersonagemMagia
+        não-vazia basta.
+    NÃO usa o `_personagem_conjura(classes)` do character_engine: aquele varre TODAS as
+    habilidades da classe sem filtrar por subclasse escolhida (bom para liberar listas de
+    magia, mas daria falso-positivo aqui — um Guerreiro Campeão veria a habilidade de
+    conjuração do Cavaleiro Arcano). Este casa exatamente a subclasse do personagem."""
+    from .models import TbPersonagemMagia
+    for pc in personagem.classes.select_related('id_classe', 'id_subclasse'):
+        if _classe_spellcasting_info(pc.id_classe, nivel_habilidades=int(pc.nivel or 1),
+                                     subclasse=_caster_subclasse(pc)):
+            return True
+    return TbPersonagemMagia.objects.filter(id_personagem=personagem).exists()
+
+
 def _talento_prereq_ok(talento, personagem, ficha):
     req = _norm_req(talento.pre_requisito)
     if not req:
@@ -3821,9 +3847,7 @@ def _talento_prereq_ok(talento, personagem, ficha):
         m = re.search(r'%s\s*(\d+)\s*\+' % nome, req)
         if m and int((attrs.get(sig) or {}).get('valor') or 0) < int(m.group(1)):
             return False
-    if ('conjuracao' in req or 'magia de pacto' in req) and not any(
-            _classe_spellcasting_info(pc.id_classe, nivel_habilidades=pc.nivel or 1)
-            for pc in personagem.classes.select_related('id_classe')):
+    if ('conjuracao' in req or 'magia de pacto' in req) and not _personagem_conjura(personagem):
         return False
     if 'arma marcial' in req and not any('Marcial' in p for p in ficha.get('proficiencias_arma', [])):
         return False
@@ -4011,18 +4035,19 @@ def _opcao_grupos(personagem):
 
 @login_required(login_url='/login/')
 def editar_ficha_view(request, pk):
-    """Edição/level-up de uma ficha: subir de nível e completar as escolhas pendentes."""
+    """Edição de uma ficha: inventário, mercado, informações e manutenção de magias. O
+    LEVEL-UP (subir de nível + escolhas de progressão) vive numa experiência dedicada
+    (personagem_subir_nivel); aqui fica só o botão de acesso a ela."""
     from .character_engine import derive
-    from . import point_buy
     from . import permissions as perms_mod
     p = _ficha_editavel(request, pk)
     pc = p.classes.filter(principal=True).first() or p.classes.first()
     ficha = derive(p)
-    pend = _pendencias_nivel(p)
+    # Level-up saiu daqui: vive numa página dedicada (personagem_subir_nivel GET). Aqui só
+    # o STATUS (fonte do botão) e a manutenção de magias (trocar/preparar) permanecem.
     pendm = _pendencias_magias(p)
-    talentos_raciais_pend = _pendencias_talento_racial(p)
+    levelup_status = _levelup_status(p, ficha)
     from .models import TbTalento, TbItemMundano
-    talentos = _talentos_asi_disponiveis(p, ficha)
     # ── Mercado no formato CATÁLOGO (busca + chips + cards nome/preço) ──
     # Listas planas com metadados por item para busca/filtro no cliente; só itens
     # comercializáveis (preço parseável no mundano; preco>0 no mágico — guard já existe
@@ -4077,10 +4102,8 @@ def editar_ficha_view(request, pk):
             if v:
                 it['venda_pc'], it['venda_display'] = v, _pc_display(v)
     transacoes = list(p.transacoes.all()[:30])
-    opcao_grupos = _opcao_grupos(p)
     classes_atuais = [{'id': c.id_classe.id_classe, 'nome': c.id_classe.nome, 'nivel': c.nivel,
                        'principal': c.principal} for c in p.classes.select_related('id_classe').order_by('-principal', 'id')]
-    classes_multiclasse = _classes_multiclasse(p, ficha) if (p.nivel or 0) < 20 else []
     aventura_ledger = list(p.aventuras_ledger.select_related('criado_por', 'revertido_por')[:30])
     # ── Painel STAFF de CONCESSÃO de item (missão/recompensa sem preço) ──
     # Catálogo COMPLETO (sem o filtro de preço da loja) só é montado para a staff, com
@@ -4106,15 +4129,8 @@ def editar_ficha_view(request, pk):
         'page_title': 'Editar — %s' % p.nome,
         'p': p, 'pc': pc, 'ficha': ficha,
         'nivel': pc.nivel if pc else 1,
-        'pend': pend, 'pend_magias': pendm,
-        'talentos_raciais_pend': talentos_raciais_pend,
-        'opcao_grupos': opcao_grupos,
-        'sem_pendencias': not (pend['subclasse'] or pend['asi_pendentes']
-                               or (pendm and (pendm['cantrips_pend'] or pendm['known_pend']))
-                               or talentos_raciais_pend
-                               or any(g['pendentes'] for g in opcao_grupos)),
-        'atributos': point_buy.SIGLAS,
-        'talentos_normais': talentos,
+        'pend_magias': pendm,
+        'levelup_status': levelup_status,
         'carteira_display': _pc_display(p.carteira_pc),
         'loja_mundano': loja_mundano,
         'loja_mundano_cats': loja_mundano_cats,
@@ -4127,7 +4143,6 @@ def editar_ficha_view(request, pk):
         'transacoes': transacoes,
         'is_staff': is_staff,
         'classes_atuais': classes_atuais,
-        'classes_multiclasse': classes_multiclasse,
         'compra_msg': request.GET.get('compra'),
         'aventura_ledger': aventura_ledger,
         'rollback_msg': request.GET.get('rollback'),
@@ -4139,21 +4154,100 @@ def editar_ficha_view(request, pk):
 
 
 @login_required(login_url='/login/')
-@require_POST
 def personagem_subir_nivel(request, pk):
-    """Wrapper fino do PRG legado: sobe 1 nível da classe escolhida. A lógica pura
-    vive em `_lvl_aplicar_subir_nivel` (FONTE ÚNICA, compartilhada com o batch de
-    level-up); aqui só traduz POST→payload, ressincroniza e redireciona."""
+    """Rota `subir-nivel/` com duas caras (mesmo gate dono/staff via `_ficha_editavel`):
+
+      • GET  → EXPERIÊNCIA DEDICADA de level-up (BG3-like): página imersiva passo-a-passo
+        com os ganhos do nível-alvo, os passos de escolha em sequência, prévia ao vivo e
+        um único "Confirmar" que aplica o LOTE. Toda a mecânica reusa os endpoints em lote
+        `personagem_levelup_preview`/`personagem_levelup_aplicar`.
+      • POST → wrapper PRG LEGADO (1 passo): sobe 1 nível da classe. Mantido por
+        compatibilidade (redireciona pra ficha)."""
     p = _ficha_editavel(request, pk)
-    erros = _lvl_aplicar_subir_nivel(p, {'classe': request.POST.get('classe')})
-    if not erros:
-        # Novos níveis podem desbloquear ciclos de Magia Elemental (nv 5/9/13).
-        _sync_magias_essencia(p)
-        _refresh_vitais_derivados(p)
-        return redirect('editar_ficha', pk=pk)
-    if _ERR_LVL_TETO in erros:
-        return redirect(reverse('editar_ficha', args=[pk]) + '?nivel=teto')
-    return redirect('editar_ficha', pk=pk)
+    if request.method == 'POST':
+        erros = _lvl_aplicar_subir_nivel(p, {'classe': request.POST.get('classe')})
+        if not erros:
+            # Novos níveis podem desbloquear ciclos de Magia Elemental (nv 5/9/13).
+            _sync_magias_essencia(p)
+            _refresh_vitais_derivados(p)
+        return redirect('ficha_detail', pk=pk)
+    return _subir_nivel_experiencia(request, p)
+
+
+def _subir_nivel_experiencia(request, p):
+    """Monta a página dedicada. As pendências/ganhos são derivadas do NÍVEL-ALVO: quando
+    o personagem é elegível, roda `subir_nivel` numa transação REVERTIDA e coleta subclasse/
+    ASI/magias/opções JÁ no nível conquistado (semântica BG3 — escolhe no novo nível). Sem
+    elegibilidade, exibe apenas as pendências ainda abertas do nível atual."""
+    from .character_engine import derive
+    ficha_atual = derive(p)
+    status = _levelup_status(p, ficha_atual)
+    classes_atuais = [{'id': c.id_classe.id_classe, 'nome': c.id_classe.nome, 'nivel': c.nivel,
+                       'principal': c.principal}
+                      for c in p.classes.select_related('id_classe').order_by('-principal', 'id')]
+    sel_id = request.GET.get('classe')
+    pc = (p.classes.filter(id_classe_id=sel_id).first() if sel_id else None) \
+        or p.classes.filter(principal=True).first() or p.classes.first()
+    classe_id = pc.id_classe_id if pc else None
+    con_mod = ((ficha_atual.get('atributos') or {}).get('CON') or {}).get('mod', 0) or 0
+    nivel_atual_total = int(ficha_atual.get('nivel_total') or 0)
+    pode_subir = status['pode_subir']
+    classes_multiclasse = _classes_multiclasse(p, ficha_atual) if nivel_atual_total < 20 else []
+    # recursos ANTES (p/ marcar o que cresce no nível-alvo)
+    from .character_engine import _recursos_consumiveis
+    rec_antes = {r['slug']: r for r in _recursos_consumiveis(
+        p, list(p.classes.select_related('id_classe', 'id_subclasse')))}
+
+    ganhos = recursos_delta = None
+    with transaction.atomic():
+        if pode_subir:
+            _lvl_aplicar_subir_nivel(p, {'classe': classe_id})
+            _sync_magias_concedidas(p)
+        ficha_alvo = derive(p)
+        pend = _pendencias_nivel(p)
+        pendm = _pendencias_magias(p)
+        talentos_raciais_pend = _pendencias_talento_racial(p)
+        opcao_grupos = _opcao_grupos(p)
+        talentos = _talentos_asi_disponiveis(p, ficha_alvo)
+        # nível-alvo da classe: re-lê do banco DENTRO da transação (o `pc` de fora é o nível
+        # atual; `_lvl_aplicar_subir_nivel` gravou o novo nível numa instância própria).
+        pc_alvo = (p.classes.filter(id_classe_id=classe_id).first() if classe_id else None) \
+            or p.classes.filter(principal=True).first() or p.classes.first()
+        nivel_classe_alvo = int(pc_alvo.nivel or 1) if pc_alvo else 1
+        ganhos = _levelup_ganhos(p, classe_id, nivel_classe_alvo, con_mod)
+        # PV real do salto = derive(alvo) - derive(atual): inclui bônus de PV por nível de
+        # talento/traço (Robusto, Sangue Elemental…), não só a média do dado da classe.
+        if pode_subir:
+            cur_pv = (ficha_atual.get('pv') or {}).get('maximo_calculado')
+            tgt_pv = (ficha_alvo.get('pv') or {}).get('maximo_calculado')
+            if cur_pv is not None and tgt_pv is not None:
+                ganhos['pv_ganho'] = max(0, int(tgt_pv) - int(cur_pv))
+        else:
+            ganhos['pv_ganho'] = None
+        recursos_delta = _levelup_recursos_delta(rec_antes, _recursos_consumiveis(
+            p, list(p.classes.select_related('id_classe', 'id_subclasse'))))
+        nivel_alvo_total = int(ficha_alvo.get('nivel_total') or nivel_atual_total)
+        preview_resumo = _criador_preview_resumo(ficha_alvo)
+        transaction.set_rollback(True)
+
+    sem_pendencias = not (pend['subclasse'] or pend['asi_pendentes']
+                          or (pendm and (pendm['cantrips_pend'] or pendm['known_pend']))
+                          or talentos_raciais_pend
+                          or any(g['pendentes'] for g in opcao_grupos))
+    from . import point_buy
+    return render(request, 'home/pages/subir_nivel.html', {
+        'page_title': 'Subir de Nível — %s' % p.nome,
+        'p': p, 'pc': pc, 'ficha': ficha_atual, 'preview_resumo': preview_resumo,
+        'status': status, 'pode_subir': pode_subir,
+        'nivel_atual': nivel_atual_total, 'nivel_alvo': nivel_alvo_total,
+        'classe_id': classe_id, 'classes_atuais': classes_atuais,
+        'classes_multiclasse': classes_multiclasse,
+        'ganhos': ganhos, 'recursos_delta': recursos_delta,
+        'pend': pend, 'pend_magias': pendm,
+        'talentos_raciais_pend': talentos_raciais_pend,
+        'opcao_grupos': opcao_grupos, 'talentos_normais': talentos,
+        'atributos': point_buy.SIGLAS, 'sem_pendencias': sem_pendencias,
+    })
 
 
 def _refresh_vitais_derivados(personagem, refill=False):
@@ -4983,6 +5077,88 @@ def _levelup_pendencias(personagem):
     }
 
 
+def _levelup_status(personagem, ficha):
+    """Elegibilidade de level-up (fonte do BOTÃO da ficha). `pode_subir` = há folga no teto
+    de aventuras e nível < 20; `tem_pendencias` = escolhas do nível atual ainda abertas;
+    `faltam_aventuras` = quanto falta pro próximo nível quando travado no teto."""
+    from .character_engine import aventuras_para_nivel
+    prog = ficha.get('progressao') or {}
+    nivel_total = int(ficha.get('nivel_total') or 0)
+    no_teto = bool(prog.get('no_teto'))
+    pode_subir = nivel_total < 20 and not no_teto
+    resumo = _levelup_pendencias(personagem)
+    tem_pend = not resumo['sem_pendencias']
+    faltam = None
+    if not pode_subir and nivel_total < 20:
+        faltam = max(0, aventuras_para_nivel(min(nivel_total + 1, 22)) - int(prog.get('aventuras') or 0))
+    return {
+        'pode_subir': pode_subir,
+        'tem_pendencias': tem_pend,
+        'mostrar_botao': pode_subir or tem_pend,
+        'faltam_aventuras': faltam,
+        'nivel_alvo': min(nivel_total + 1, 20),
+        'no_maximo': nivel_total >= 20,
+        'no_teto': no_teto,
+    }
+
+
+def _levelup_ganhos(personagem, classe_id, nivel_alvo, con_mod):
+    """Ganhos DETERMINÍSTICOS de levar `classe_id` ao `nivel_alvo` (derivável das tabelas
+    de progressão): aumento de PV (dado//2+1+CON), features novas da classe base + da
+    subclasse já escolhida NAQUELE nível (table_only=False) e a nota de subclasse quando o
+    nível a desbloqueia sem uma escolhida ainda."""
+    from .models import TbClassehabilidade
+    from .character_engine import _dado_de_vida_classe, _subclass_min_level
+    pc = (personagem.classes.filter(id_classe_id=classe_id).first() if classe_id else None) \
+        or personagem.classes.filter(principal=True).first() or personagem.classes.first()
+    ganhos = {'classe': '', 'subclasse': '', 'nivel_alvo': nivel_alvo, 'pv_ganho': None,
+              'features': [], 'abre_subclasse': False, 'subclasse_nivel': None}
+    if not pc:
+        return ganhos
+    classe = pc.id_classe
+    ganhos['classe'] = classe.nome
+    die = _dado_de_vida_classe(classe)
+    if die is not None:
+        ganhos['pv_ganho'] = die // 2 + 1 + int(con_mod or 0)
+    for h in TbClassehabilidade.objects.filter(
+            id_classe=classe, id_subclasse__isnull=True,
+            niveladquirido=nivel_alvo, table_only=False).order_by('nome'):
+        ganhos['features'].append({'fonte': classe.nome, 'nome': h.nome, 'descricao': h.descricao})
+    if pc.id_subclasse_id:
+        ganhos['subclasse'] = pc.id_subclasse.nome
+        for h in TbClassehabilidade.objects.filter(
+                id_subclasse=pc.id_subclasse, niveladquirido=nivel_alvo,
+                table_only=False).order_by('nome'):
+            ganhos['features'].append({'fonte': pc.id_subclasse.nome, 'nome': h.nome,
+                                       'descricao': h.descricao})
+    smin = _subclass_min_level(classe)
+    if smin and nivel_alvo == smin and not pc.id_subclasse_id:
+        ganhos['abre_subclasse'] = True
+        ganhos['subclasse_nivel'] = smin
+    return ganhos
+
+
+def _levelup_recursos_delta(rec_antes, rec_alvo):
+    """Recursos de classe que NASCEM ou CRESCEM no nível-alvo (compara o `maximo` de antes
+    com o do estado já subido). `rec_antes` é {slug: recurso}; `rec_alvo` é a lista do estado
+    subido. Devolve [{nome, classe, de, para, novo}]."""
+    out = []
+    for r in rec_alvo:
+        antes = rec_antes.get(r['slug'])
+        try:
+            mx_alvo = int(r.get('maximo') or 0)
+            mx_antes = int(antes['maximo']) if antes else None
+        except (TypeError, ValueError):
+            continue
+        if antes is None:
+            out.append({'nome': r['nome'], 'classe': r.get('classe', ''),
+                        'de': None, 'para': mx_alvo, 'novo': True})
+        elif mx_antes is not None and mx_alvo > mx_antes:
+            out.append({'nome': r['nome'], 'classe': r.get('classe', ''),
+                        'de': mx_antes, 'para': mx_alvo, 'novo': False})
+    return out
+
+
 def _levelup_aplicar_lote(personagem, acoes):
     """Aplica, EM SEQUÊNCIA e na ordem estável de `_LVL_ORDEM`, o lote de ações
     [{tipo, payload}, …]. Acumula e devolve a lista de erros; NÃO abre transação nem
@@ -5569,6 +5745,9 @@ def ficha_detail_view(request, pk):
     consumiveis_cards = _consumiveis_ficha_cards(p, ficha)
     # Página de Histórico: compras/vendas do personagem.
     transacoes = list(TbTransacao.objects.filter(id_personagem=p).order_by('-pk')[:300])
+    pode_editar = p.dono_id == request.user.id or perms.is_staff_user(request.user)
+    # Botão de level-up: só quem edita, e só quando elegível (ou com pendências abertas).
+    levelup_status = _levelup_status(p, ficha) if pode_editar else None
     return render(request, 'home/pages/ficha_detail.html', {
         'page_title': p.nome,
         'p': p,
@@ -5577,7 +5756,8 @@ def ficha_detail_view(request, pk):
         'magias_info': magias_info,
         'consumiveis_cards': consumiveis_cards,
         'transacoes': transacoes,
-        'pode_editar': p.dono_id == request.user.id or perms.is_staff_user(request.user),
+        'pode_editar': pode_editar,
+        'levelup_status': levelup_status,
         'appearance': _appearance_context(p.ficha_theme, p.foto_frame, p.ficha_effect,
                                           p.ficha_theme_custom, p.ficha_background_url),
         'appearance_themes': _appearance_catalog('theme'),
