@@ -102,39 +102,71 @@
             var a = (typeof antSel !== 'undefined' && antSel) ? antecedenteBySlug[antSel.value] : null;
             return (a && a.grants) || defaultBgGrants || {};
         }
-        function currentAsiParts() {
-            var m = String(currentBgGrants().asi || '+2/+1').match(/\+?\s*(\d+)\s*\/\s*\+?\s*(\d+)/);
-            return { major: m ? parseInt(m[1], 10) : 2, minor: m ? parseInt(m[2], 10) : 1 };
+        // ASI do antecedente em DUAS formas (regra de sistema 5.5e): '2/1' (+2 e +1) e
+        // '1/1/1' (+1 em três atributos). A forma é do jogador, não do antecedente.
+        function asiModo() {
+            var rs = (typeof asiModoRadios !== 'undefined' && asiModoRadios) || [];
+            for (var i = 0; i < rs.length; i++) { if (rs[i].checked) return rs[i].value; }
+            return '2/1';
         }
+        function asiShapeVals() { return asiModo() === '1/1/1' ? [1, 1, 1] : [2, 1]; }
+        function asiActiveSelects() { return asiModo() === '1/1/1' ? [asi2, asi1, asi3] : [asi2, asi1]; }
+        function currentAsiBonus() {
+            var v = asiShapeVals();
+            return asiActiveSelects().map(function (s, i) { return { sig: s.value, val: v[i] }; });
+        }
+        function asiAdd(sig) {
+            var t = 0; currentAsiBonus().forEach(function (b) { if (b.sig === sig) t += b.val; }); return t;
+        }
+        function currentAsiParts() { var v = asiShapeVals(); return { major: v[0], minor: v[1], third: v[2] || 1 }; }
         function bgSkillN() { return toInt(currentBgGrants().pericias, 0); }
         function bgLangToolN() { return toInt(currentBgGrants().idiomas_ou_ferramentas, 0); }
 
-        // ---- ASI (+2 / +1)
-        var asi2 = el('cf-asi2'), asi1 = el('cf-asi1');
-        SIG.forEach(function (p) { asi2.appendChild(opt(p[0], p[1])); asi1.appendChild(opt(p[0], p[1])); });
-        asi2.value = 'DES'; asi1.value = 'CON';
-        // +2 e +1 do antecedente DEVEM ir em atributos diferentes: desabilita no outro select
-        // a opção já escolhida e, se colidirem, empurra o +1 para o próximo atributo livre.
+        // ---- ASI (+2/+1 ou +1/+1/+1 — regra de sistema, forma à escolha do jogador)
+        var asi2 = el('cf-asi2'), asi1 = el('cf-asi1'), asi3 = el('cf-asi3');
+        var asi3Wrap = document.querySelector('[data-asi3-wrap]');
+        var asiModoRadios = Array.prototype.slice.call(document.querySelectorAll('input[name="cf-asi-modo"]'));
+        SIG.forEach(function (p) {
+            asi2.appendChild(opt(p[0], p[1])); asi1.appendChild(opt(p[0], p[1]));
+            if (asi3) asi3.appendChild(opt(p[0], p[1]));
+        });
+        asi2.value = 'DES'; asi1.value = 'CON'; if (asi3) asi3.value = 'FOR';
+        // Os selects ATIVOS (2 no '2/1', 3 no '1/1/1') DEVEM ir em atributos diferentes:
+        // desabilita no outro a opção já escolhida e empurra colisões p/ o próximo atributo livre.
+        // Também mostra/oculta o 3º select e ajusta os rótulos (+2/+1 vs +1/+1/+1).
         function syncAsi() {
-            Array.prototype.forEach.call(asi1.options, function (o) { o.disabled = (o.value === asi2.value); });
-            Array.prototype.forEach.call(asi2.options, function (o) { o.disabled = (o.value === asi1.value); });
-            if (asi1.value === asi2.value) {
-                for (var i = 0; i < asi1.options.length; i++) {
-                    if (asi1.options[i].value !== asi2.value) { asi1.value = asi1.options[i].value; break; }
+            var sels = asiActiveSelects();
+            if (asi3Wrap) asi3Wrap.hidden = (asiModo() !== '1/1/1');
+            var v = asiShapeVals();
+            var l2 = document.querySelector('[data-asi-major-label]'); if (l2) l2.textContent = '+' + v[0];
+            var l1 = document.querySelector('[data-asi-minor-label]'); if (l1) l1.textContent = '+' + v[1];
+            var l3 = document.querySelector('[data-asi-third-label]'); if (l3) l3.textContent = '+' + (v[2] || 1);
+            [asi2, asi1, asi3].forEach(function (s) {
+                if (!s) return;
+                var ativo = sels.indexOf(s) !== -1;
+                Array.prototype.forEach.call(s.options, function (o) {
+                    o.disabled = ativo && sels.some(function (other) { return other !== s && other.value === o.value; });
+                });
+            });
+            for (var i = 0; i < sels.length; i++) {
+                var taken = sels.slice(0, i).map(function (s) { return s.value; });
+                if (taken.indexOf(sels[i].value) !== -1) {
+                    for (var k = 0; k < sels[i].options.length; k++) {
+                        if (taken.indexOf(sels[i].options[k].value) === -1) { sels[i].value = sels[i].options[k].value; break; }
+                    }
                 }
             }
         }
-        asi2.addEventListener('change', syncAsi);
-        asi1.addEventListener('change', syncAsi);
+        function onAsiChange() { syncAsi(); updateMagiaLimit(); }
+        asi2.addEventListener('change', onAsiChange);
+        asi1.addEventListener('change', onAsiChange);
+        if (asi3) asi3.addEventListener('change', onAsiChange);
+        asiModoRadios.forEach(function (r) { r.addEventListener('change', onAsiChange); });
         syncAsi();
 
         function updateBackgroundCopy() {
             var g = currentBgGrants();
-            var asi = currentAsiParts();
-            var majorLabel = document.querySelector('[data-asi-major-label]');
-            var minorLabel = document.querySelector('[data-asi-minor-label]');
-            if (majorLabel) majorLabel.textContent = '+' + asi.major;
-            if (minorLabel) minorLabel.textContent = '+' + asi.minor;
+            // (os rótulos +2/+1 do ASI agora são atualizados por syncAsi, conforme a forma escolhida)
             var equipGold = document.querySelector('[data-equip-gold-alt]');
             if (equipGold) equipGold.textContent = toInt(g.equip_gold_alt, 0);
             var resumo = el('cf-antecedente-resumo');
@@ -462,12 +494,11 @@
         function spellCountNv1(conj) {
             if (conj.magias_n != null) return conj.magias_n;
             if (!conj.magias_formula) return 0;
-            var asi = currentAsiParts();
             var scores = window.PointBuy ? window.PointBuy.scores() : {};
             var ctx = { classlvl: 1, lvl: 1 };
             Object.keys(SIG_AB).forEach(function (ab) {
                 var sig = SIG_AB[ab];
-                var sc = (scores[sig] || 8) + (asi2.value === sig ? asi.major : 0) + (asi1.value === sig ? asi.minor : 0);
+                var sc = (scores[sig] || 8) + asiAdd(sig);
                 ctx[ab + '_mod'] = Math.floor((sc - 10) / 2);
             });
             var abilities = String(conj.ability || 'int').split('|');
@@ -503,10 +534,8 @@
             });
             updateMagiaLimit();
         }
-        // recalcula a contagem de magias quando atributos/ASI mudam
+        // recalcula a contagem de magias quando atributos mudam (o ASI já dispara via onAsiChange)
         if (window.PointBuy) window.PointBuy.onChange(updateMagiaLimit);
-        asi2.addEventListener('change', updateMagiaLimit);
-        asi1.addEventListener('change', updateMagiaLimit);
 
         // ---- Antecedente
         var antSel = el('cf-antecedente');
@@ -539,12 +568,32 @@
             var classN = (classeBySlug[classeSel.value] || {}).pericias_n || 0;
             var granted = grantedSkills();
             var cb = boxesOf(skillsWrap), bb = boxesOf(bgWrap);
-            // 1º passo: desmarca+trava as já concedidas pela raça (não podem ser re-selecionadas)
-            cb.concat(bb).forEach(function (b) { markGrant(b, granted[b.value]); });
+            // Os picks raciais de PERÍCIA entram no bloqueio cruzado (idioma/ferramenta não):
+            // uma perícia escolhida num pick racial trava nas listas de classe/antecedente e
+            // vice-versa. `racialGroups` pode ainda estar indefinido na 1ª chamada (setup).
+            var rGroups = (racialGroups || []).filter(function (g) { return g.tipo === 'pericia'; });
+            // 1º passo: desmarca+trava as já concedidas pela raça em TODAS as listas
+            var allBoxes = cb.concat(bb);
+            rGroups.forEach(function (g) { allBoxes = allBoxes.concat(boxesOf(g.grid)); });
+            allBoxes.forEach(function (b) { markGrant(b, granted[b.value]); });
             var cChk = cb.filter(function (b) { return b.checked; }), bChk = bb.filter(function (b) { return b.checked; });
             var cSel = cChk.map(function (b) { return b.value; }), bSel = bChk.map(function (b) { return b.value; });
-            cb.forEach(function (b) { b.disabled = !b.checked && (!!granted[b.value] || cChk.length >= classN || bSel.indexOf(b.value) !== -1); });
-            bb.forEach(function (b) { b.disabled = !b.checked && (!!granted[b.value] || bChk.length >= bgSkillN() || cSel.indexOf(b.value) !== -1); });
+            // união de TODAS as perícias já escolhidas nos picks raciais
+            var rSelAll = [];
+            rGroups.forEach(function (g) { rSelAll = rSelAll.concat(checkedVals(g.grid)); });
+            function taken(v, arr) { return arr.indexOf(v) !== -1; }
+            cb.forEach(function (b) { b.disabled = !b.checked && (!!granted[b.value] || cChk.length >= classN || taken(b.value, bSel) || taken(b.value, rSelAll)); });
+            bb.forEach(function (b) { b.disabled = !b.checked && (!!granted[b.value] || bChk.length >= bgSkillN() || taken(b.value, cSel) || taken(b.value, rSelAll)); });
+            // cada pick racial de perícia: trava se concedida, grupo cheio, ou a perícia já foi
+            // escolhida em classe/antecedente/OUTRO pick racial (também gerencia seu contador).
+            rGroups.forEach(function (g) {
+                var gb = boxesOf(g.grid);
+                var gChk = gb.filter(function (b) { return b.checked; });
+                var outros = cSel.concat(bSel);
+                rGroups.forEach(function (o) { if (o !== g) outros = outros.concat(checkedVals(o.grid)); });
+                gb.forEach(function (b) { b.disabled = !b.checked && (!!granted[b.value] || gChk.length >= g.n || taken(b.value, outros)); });
+                if (g.counter) g.counter.textContent = '(' + gChk.length + '/' + g.n + ')';
+            });
             if (skillCounter) skillCounter.textContent = classN ? '(' + cChk.length + '/' + classN + ')' : '';
             var bgC = document.querySelector('[data-bgskill-counter]'); if (bgC) bgC.textContent = '(' + bChk.length + '/' + bgSkillN() + ')';
         }
@@ -659,8 +708,15 @@
                 });
                 grp.appendChild(grid);
                 racaEscBox.appendChild(grp);
-                enforceLimit(grid, ch.n, counter);
-                racialGroups.push({ tipo: ch.tipo, n: ch.n, grid: grid });
+                if (ch.tipo === 'pericia') {
+                    // Perícia entra no bloqueio cruzado (classe/antecedente/outros picks):
+                    // applySkillRules gerencia limite + lock + contador deste grupo.
+                    grid.addEventListener('change', applySkillRules);
+                    racialGroups.push({ tipo: ch.tipo, n: ch.n, grid: grid, counter: counter });
+                } else {
+                    enforceLimit(grid, ch.n, counter);
+                    racialGroups.push({ tipo: ch.tipo, n: ch.n, grid: grid });
+                }
             });
         }
         function racialChoicesSel() {
@@ -789,8 +845,9 @@
             function () { // 0 · Identidade + Atributos
                 var e = [];
                 if (!el('cf-nome').value.trim()) e.push('Dê um nome ao personagem.');
-                var asi = currentAsiParts();
-                if (asi2.value === asi1.value) e.push('O +' + asi.major + ' e o +' + asi.minor + ' do ASI devem ir em atributos diferentes.');
+                var vals = asiActiveSelects().map(function (s) { return s.value; });
+                if (vals.some(function (v, i) { return vals.indexOf(v) !== i; }))
+                    e.push('Os aumentos do ASI devem ir em atributos diferentes.');
                 return e;
             },
             function () { // 1 · Raça
@@ -963,10 +1020,9 @@
 
         function localAttrs() {
             var scores = window.PointBuy ? window.PointBuy.scores() : {};
-            var asi = currentAsiParts();
             return SIG.map(function (p) {
                 var sig = p[0];
-                var v = (scores[sig] || 8) + (asi2.value === sig ? asi.major : 0) + (asi1.value === sig ? asi.minor : 0);
+                var v = (scores[sig] || 8) + asiAdd(sig);
                 return { sig: sig, valor: v, mod: Math.floor((v - 10) / 2), save_prof: false };
             });
         }
@@ -1064,7 +1120,7 @@
             return {
                 nome: el('cf-nome').value.trim(),
                 scores: window.PointBuy ? window.PointBuy.scores() : {},
-                asi: { mais2: asi2.value, mais1: asi1.value },
+                asi: { modo: asiModo(), attrs: asiActiveSelects().map(function (s) { return s.value; }) },
                 raca: racaSel.value,
                 linhagem: linWrap.hidden ? '' : linSel.value,
                 essencia: essWrap.hidden ? '' : essSel.value,

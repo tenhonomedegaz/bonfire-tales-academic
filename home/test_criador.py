@@ -1865,3 +1865,210 @@ class CondicionalEmValorEstaticoTests(TestCase):
             hits = [d for d in validate_tag_line(tag, lib, data=None)
                     if d.code == 'cond-em-valor-estatico']
             self.assertEqual(hits, [], 'falso-positivo em %r' % tag)
+
+
+# ======================================================================================
+# Beta da staff (2a rodada) — 7 correcoes do criador/level-up
+# ======================================================================================
+class Item1FiltroLinhagemNasQueriesPorRacaTests(_CriadorBase):
+    """Item 1: as queries POR RACA de _criador_catalogos (talentos_raca, racial_choices_raca,
+    pericias_concedidas_raca) filtram id_linhagem/essencia NULL — tracos de linhagem (que
+    carregam o id_raca do pai) NAO vazam mais para toda a raca-base ('Ameaca Latente' etc.)."""
+
+    def test_humano_nao_vaza_tracos_de_linhagem(self):
+        cat = views._criador_catalogos()
+        fontes = {c['fonte'] for c in cat['racial_choices_raca'].get('humano', [])}
+        self.assertIn('Habilidoso', fontes)              # traco-base legitimo (pick:pericia:2)
+        self.assertNotIn('Ameaca Latente', fontes)
+        self.assertNotIn('Ameaça Latente', fontes)       # traco da linhagem Goruun nao vaza
+        for t in cat['talentos_raca'].get('humano', []):
+            self.assertNotIn('Ameaca', t['nome'])
+            self.assertNotIn('Ameaça', t['nome'])
+        self.assertEqual({c['tipo'] for c in cat['racial_choices_raca'].get('humano', [])},
+                         {'pericia', 'idioma', 'ferramenta'})
+
+    def test_orc_nao_vaza_pericias_de_linhagem(self):
+        cat = views._criador_catalogos()
+        fontes = {g['fonte'] for g in cat['pericias_concedidas_raca'].get('orc', [])}
+        self.assertNotIn('Experiencia do Cacador', fontes)
+        self.assertNotIn('Experiência do Caçador', fontes)
+        self.assertNotIn('Sombra Viva', fontes)
+
+
+class Item2PicksRaciaisPericiaPersistemTests(_CriadorBase):
+    """Item 2: as escolhas raciais de pericia gravam TbPersonagemEscolha(tipo='pericia',
+    origem=<traco>) via o registry — o traco-base 'Habilidoso' (pick:pericia:2) deixa de
+    reaparecer como pendencia nao-resolvida no level-up ('duas pericias extras')."""
+
+    def test_habilidoso_persiste_como_escolha_e_nao_reabre(self):
+        from home import picks
+        payload = self._payload('guerreiro', raca_slug='humano')
+        payload['escolhas_raca'] = {'pericias': ['intimidacao', 'religiao'],
+                                    'idiomas': [], 'ferramentas': []}
+        resp = self._post_criar(self._novo_usuario('hab', staff=True), payload)
+        self.assertEqual(resp.status_code, 200, resp.content)
+        p = TbPersonagem.objects.get(pk=resp.json()['id'])
+        self.assertEqual(p.escolhas.filter(tipo='pericia', origem='Habilidoso').count(), 2)
+        grupos = [g for g in picks.resolve_personagem(p, kinds={'pericia'})
+                  if g['origem'] == 'Habilidoso']
+        self.assertEqual(len(grupos), 1)
+        self.assertEqual((grupos[0]['usados'], grupos[0]['pendentes']), (2, 0))
+
+
+class Item3PickTalentoTests(_CriadorBase):
+    """Item 3: kind 'talento' no PICK_REGISTRY — 'Determinacao Comum' (linhagem Erthari,
+    pick:talento:1(=talento_de_origem)) e 'Raizes Profundas' (pick:talento:1(tipo:origem,
+    requires:prereqs)) passam a conceder a escolha (universo = TbTalento de origem)."""
+
+    def _humano_erthari(self, nivel=1):
+        from home.models import TbRaca, TbLinhagem
+        p = TbPersonagem.objects.create(
+            dono=self._novo_usuario('erth-%d' % nivel), nome='Erthari N%d' % nivel, nivel=nivel,
+            id_raca=TbRaca.objects.get(slug='humano'), id_linhagem=TbLinhagem.objects.get(slug='erthari'),
+            forca=15, destreza=14, constituicao=13, inteligencia=12, sabedoria=10, carisma=8)
+        TbPersonagemClasse.objects.create(
+            id_personagem=p, id_classe=TbClasse.objects.get(slug='guerreiro'), nivel=nivel, principal=True)
+        return p
+
+    def _grupo_determinacao(self, p):
+        from home import picks
+        for x in picks.resolve_personagem(p, kinds={'talento'}):
+            if x['origem'].startswith('Determina'):
+                return x
+        raise AssertionError('grupo Determinacao Comum nao encontrado')
+
+    def test_determinacao_comum_abre_e_persiste(self):
+        from home import picks
+        p = self._humano_erthari()
+        g = self._grupo_determinacao(p)
+        self.assertEqual(g['n'], 1)
+        self.assertTrue(g['universo'])
+        for u in g['universo']:
+            self.assertEqual(TbTalento.objects.get(id_talento=u['id']).tipo.lower(), 'origem')
+        picks.PICK_REGISTRY['talento']['persist'](
+            p, dict(g, slot_base=g['prox_slot']), [str(g['universo'][0]['id'])])
+        self.assertEqual(p.escolhas.filter(tipo='talento').filter(origem__startswith='Determina').count(), 1)
+        self.assertTrue(TbPersonagemTalento.objects.filter(
+            id_personagem=p, id_talento__isnull=False).exists())
+        g2 = self._grupo_determinacao(p)
+        self.assertEqual(g2['pendentes'], 0)
+
+    def test_raizes_profundas_via_asi_lista_no_painel(self):
+        p = self._humano_erthari(nivel=4)
+        rp = TbTalento.objects.get(slug='raizes-profundas')
+        TbPersonagemTalento.objects.create(id_personagem=p, id_talento=rp, categoria='geral',
+                                           nivel=4, nome=rp.nome)
+        pg = [g for g in views._opcao_grupos(p) if g['kind'] == 'talento'
+              and any(TbTalento.objects.filter(slug=o['slug'], tipo__iexact='origem').exists()
+                      for o in g['disponiveis'])]
+        self.assertTrue(pg, 'Raizes Profundas deve listar um grupo de talento de origem')
+        self.assertTrue(any(g['pendentes'] == 1 for g in pg))
+
+
+class Item4CountAsTalentoRacialTests(_CriadorBase):
+    """Item 4: linhagens com trait count_as:<raca>(for:prereq{talento_racial}) herdam os
+    talentos raciais GERAIS da outra raca — no criador e no level-up (Salarin -> Elfo)."""
+
+    def test_criador_salarin_herda_gerais_do_elfo(self):
+        cat = views._criador_catalogos()
+        nomes = {t['nome'] for t in cat['talentos_linhagem'].get('sálarin', [])}
+        self.assertIn('Mente Velada', nomes)
+        self.assertIn('Condutor da Trama', nomes)
+        self.assertNotIn('Passagem Umbral', nomes)  # exige linhagem elfa especifica: nao e geral
+
+    def test_levelup_salarin_oferece_talento_do_elfo(self):
+        from home.models import TbRaca, TbLinhagem
+        p = TbPersonagem.objects.create(
+            dono=self._novo_usuario('sal'), nome='Sal', nivel=5,
+            id_raca=TbRaca.objects.get(slug='humano'), id_linhagem=TbLinhagem.objects.get(slug='sálarin'),
+            forca=15, destreza=14, constituicao=13, inteligencia=12, sabedoria=10, carisma=8)
+        TbPersonagemClasse.objects.create(
+            id_personagem=p, id_classe=TbClasse.objects.get(slug='guerreiro'), nivel=5, principal=True)
+        nomes = {o['nome'] for b in views._pendencias_talento_racial(p) for o in b['opcoes']}
+        self.assertIn('Mente Velada', nomes)
+
+
+class Item6ConjuracaoSubclasseAwareTests(_CriadorBase):
+    """Item 6: o pipeline de magia enxerga a spellcasting/recursos da SUBCLASSE (third-casters
+    Cavaleiro Arcano e Trapaceiro Arcano): pendencia de truques + magias e slots na ficha."""
+
+    def _third(self, classe_slug, sub_nome, nivel=3):
+        from home.models import TbSubclasse
+        cl = TbClasse.objects.get(slug=classe_slug)
+        sub = TbSubclasse.objects.filter(id_classe=cl, nome__icontains=sub_nome).first()
+        p = TbPersonagem.objects.create(
+            dono=self._novo_usuario('third-%s' % sub_nome[:6]), nome='Third', nivel=nivel,
+            forca=13, destreza=14, constituicao=13, inteligencia=15, sabedoria=12, carisma=10)
+        TbPersonagemClasse.objects.create(
+            id_personagem=p, id_classe=cl, id_subclasse=sub, nivel=nivel, principal=True)
+        return p, cl, sub
+
+    def test_cavaleiro_arcano_pendencia_e_lista_mago(self):
+        p, cl, sub = self._third('guerreiro', 'Cavaleiro Arcano')
+        info = views._classe_spellcasting_info(cl, 3, sub)
+        self.assertIsNotNone(info)
+        self.assertEqual(info['slots'], 'third')
+        self.assertIn('Mago', info['lista_nomes'])
+        pend = views._pendencias_magias(p)
+        self.assertEqual(pend['cantrips_pend'], 2)
+        self.assertEqual(pend['known_pend'], 3)
+        self.assertTrue(pend['lista_magias'])
+
+    def test_trapaceiro_arcano_pendencia(self):
+        # a contagem exata varia entre a fixture canônica e o dev; o que importa (e o que
+        # estava quebrado) é o pipeline ENXERGAR a subclasse: truques + magias > 0.
+        p, cl, sub = self._third('ladino', 'Trapaceiro Arcano')
+        info = views._classe_spellcasting_info(cl, 3, sub)
+        self.assertIsNotNone(info)
+        self.assertEqual(info['slots'], 'third')
+        pend = views._pendencias_magias(p)
+        self.assertGreaterEqual(pend['cantrips_pend'], 1)
+        self.assertGreaterEqual(pend['known_pend'], 1)   # needle 'magias-preparadas' casa
+
+    def test_sheet_mostra_conjuracao_e_slots(self):
+        from home.character_engine import derive
+        p, cl, sub = self._third('guerreiro', 'Cavaleiro Arcano')
+        sheet = views._magias_sheet_info(p, derive(p), [])
+        self.assertIsNotNone(sheet.get('spellcasting'))
+        self.assertEqual(sheet['spellcasting']['slots_kind'], 'third')
+        self.assertTrue(any(r['total'] > 0 for r in sheet['slots']))
+
+
+class Item7AsiFormaAlternativaTests(_CriadorBase):
+    """Item 7: ASI do antecedente aceita a forma alternativa +1/+1/+1 (regra de sistema)
+    alem do +2/+1 legado — validacao, resolucao e persistencia (2 ou 3 linhas de bonus)."""
+
+    def test_forma_1_1_1_cria_tres_bonus(self):
+        from home.models import TbPersonagemAtributoBonus
+        from home.character_engine import derive
+        payload = self._payload('guerreiro', raca_slug='humano')
+        payload['asi'] = {'modo': '1/1/1', 'attrs': ['CON', 'DES', 'FOR']}
+        resp = self._post_criar(self._novo_usuario('asi111', staff=True), payload)
+        self.assertEqual(resp.status_code, 200, resp.content)
+        p = TbPersonagem.objects.get(pk=resp.json()['id'])
+        bonus = TbPersonagemAtributoBonus.objects.filter(id_personagem=p)
+        self.assertEqual(bonus.count(), 3)
+        self.assertEqual(set(bonus.values_list('valor', flat=True)), {1})
+        self.assertEqual(set(bonus.values_list('atributo', flat=True)), {'CON', 'DES', 'FOR'})
+        at = derive(p)['atributos']
+        self.assertEqual(at['FOR']['valor'], payload['scores']['FOR'] + 1)
+
+    def test_forma_2_1_legada_continua(self):
+        from home.models import TbPersonagemAtributoBonus
+        payload = self._payload('guerreiro')  # asi legado {mais2, mais1}
+        resp = self._post_criar(self._novo_usuario('asi21', staff=True), payload)
+        self.assertEqual(resp.status_code, 200, resp.content)
+        p = TbPersonagem.objects.get(pk=resp.json()['id'])
+        self.assertEqual(TbPersonagemAtributoBonus.objects.filter(id_personagem=p).count(), 2)
+
+    def test_forma_1_1_1_com_atributo_repetido_rejeitada(self):
+        payload = self._payload('guerreiro')
+        payload['asi'] = {'modo': '1/1/1', 'attrs': ['CON', 'CON', 'FOR']}
+        resp = self._post_criar(self._novo_usuario('asibad', staff=True), payload)
+        self.assertEqual(resp.status_code, 400, resp.content)
+
+    def test_forma_1_1_1_com_atributos_faltando_rejeitada(self):
+        payload = self._payload('guerreiro')
+        payload['asi'] = {'modo': '1/1/1', 'attrs': ['CON', 'DES']}
+        resp = self._post_criar(self._novo_usuario('asifalta', staff=True), payload)
+        self.assertEqual(resp.status_code, 400, resp.content)

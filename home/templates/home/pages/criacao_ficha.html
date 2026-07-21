@@ -78,7 +78,16 @@
             </div>
 
             <!-- ASI do antecedente -->
-            <div class="mt-2.5 grid gap-2 sm:grid-cols-2">
+            <div class="mt-2.5 mb-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+              <span class="font-semibold uppercase tracking-wider text-[var(--muted)]">Forma do aumento</span>
+              <label class="inline-flex cursor-pointer items-center gap-1.5">
+                <input type="radio" name="cf-asi-modo" value="2/1" checked class="accent-[var(--ember)]"> <span class="text-[var(--text)]">+2 e +1</span>
+              </label>
+              <label class="inline-flex cursor-pointer items-center gap-1.5">
+                <input type="radio" name="cf-asi-modo" value="1/1/1" class="accent-[var(--ember)]"> <span class="text-[var(--text)]">+1 / +1 / +1</span>
+              </label>
+            </div>
+            <div class="grid gap-2 sm:grid-cols-3">
               <div>
                 <label for="cf-asi2" class="mb-1 block text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Aumento <span data-asi-major-label>+2</span> (antecedente)</label>
                 <select id="cf-asi2" class="w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)] focus:border-[var(--ember)] focus:outline-none"></select>
@@ -87,8 +96,12 @@
                 <label for="cf-asi1" class="mb-1 block text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Aumento <span data-asi-minor-label>+1</span> (antecedente)</label>
                 <select id="cf-asi1" class="w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)] focus:border-[var(--ember)] focus:outline-none"></select>
               </div>
+              <div data-asi3-wrap hidden>
+                <label for="cf-asi3" class="mb-1 block text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Aumento <span data-asi-third-label>+1</span> (antecedente)</label>
+                <select id="cf-asi3" class="w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)] focus:border-[var(--ember)] focus:outline-none"></select>
+              </div>
             </div>
-            <p class="mt-2 text-xs text-[var(--muted)]">O +2 e o +1 devem ir em atributos diferentes e somam por cima do point-buy.</p>
+            <p class="mt-2 text-xs text-[var(--muted)]">Cada aumento vai num atributo diferente e soma por cima do point-buy.</p>
           </div>
           <div class="cf-step-err" data-step-err="0" hidden></div>
         </div>

@@ -66,6 +66,12 @@ DEFAULT_BACKGROUND_GRANT_TAG = (
 DEFAULT_GRANTS_ANTECEDENTE = dict(GRANTS_ANTECEDENTE, equip_gold_alt=150)
 GRANTS_ANTECEDENTE = DEFAULT_GRANTS_ANTECEDENTE
 
+# Formas aceitas do ASI do antecedente (regra de SISTEMA 5.5e/2024 — vale p/ QUALQUER
+# antecedente, não é por-antecedente). '2/1' = +2 num atributo e +1 noutro; '1/1/1' = +1
+# em três atributos distintos. O valor é a lista de incrementos; o nº de atributos a
+# escolher = len da lista. O derive já soma Σ TbPersonagemAtributoBonus sem supor quantidade.
+ASI_SHAPES = {'2/1': [2, 1], '1/1/1': [1, 1, 1]}
+
 _SKILL_INFO = {
     'atletismo': ('Atletismo', 'FOR'),
     'acrobacia': ('Acrobacia', 'DES'), 'furtividade': ('Furtividade', 'DES'),

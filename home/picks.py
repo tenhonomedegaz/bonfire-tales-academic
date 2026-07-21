@@ -602,6 +602,106 @@ def _pericia_expertise_readback(personagem, group):
 
 
 # ---------------------------------------------------------------------------
+# kind 'talento' — escolha de um TALENTO (TbTalento) concedido por uma feature
+# (`pick:talento:1(=talento_de_origem...)` da linhagem Erthari 'Determinação Comum';
+# `pick:talento:1(tipo:origem, requires:prereqs)` do talento 'Raízes Profundas'). O
+# universo é TbTalento honrando as constraints da tag: `=talento_de_origem`/`tipo:origem`
+# restringe a tipo='origem'; `requires:prereq` valida pré-requisitos (views._talento_prereq_ok);
+# exclui os já possuídos. Persiste em TbPersonagemTalento (materialização, p/ o derive aplicar
+# o efeito) E em TbPersonagemEscolha(tipo='talento', origem=<feature>) para o READBACK
+# per-feature (uma TbPersonagemTalento sozinha não distingue de qual feature veio o talento —
+# ex.: o talento de origem do antecedente NÃO deve satisfazer o pick de 'Determinação Comum').
+# ---------------------------------------------------------------------------
+_TALENTO_ORIGEM_RE = re.compile(r'talento_de_origem|\btipo\s*:\s*origem\b')
+_TALENTO_PREREQ_RE = re.compile(r'requires\s*:\s*prereq')
+
+
+def _talento_constraint_text(ctx):
+    return '%s %s' % (ctx.get('tag_text') or '', (ctx.get('constraints') or {}).get('raw') or '')
+
+
+def _talento_owned_slugs(personagem):
+    """Talentos que o personagem JÁ possui (TbPersonagemTalento materializado + escolhas
+    pick:talento persistidas) — excluídos do universo de uma nova escolha."""
+    if personagem is None:
+        return set()
+    out = set()
+    for pt in personagem.talentos.select_related('id_talento').all():
+        if pt.id_talento_id and getattr(pt.id_talento, 'slug', None):
+            out.add(pt.id_talento.slug)
+    for e in personagem.escolhas.filter(tipo='talento'):
+        if e.valor:
+            out.add(e.valor)
+    return out
+
+
+def _talento_universe(ctx):
+    from .models import TbTalento
+    text = _talento_constraint_text(ctx)
+    qs = TbTalento.objects.all()
+    if _TALENTO_ORIGEM_RE.search(text) or (ctx.get('kind') or '') == 'talento_de_origem':
+        qs = qs.filter(tipo__iexact='origem')
+    personagem = ctx.get('personagem')
+    owned = _talento_owned_slugs(personagem)
+    # `requires:prereq` → filtra pelo mesmo checador do ASI (views._talento_prereq_ok, que
+    # precisa da ficha derivada). Sem personagem (criador nv1) não há como avaliar → aceita
+    # todos (talentos de origem não têm pré de nível > 1).
+    ficha = None
+    if _TALENTO_PREREQ_RE.search(text) and personagem is not None:
+        from .character_engine import derive
+        ficha = derive(personagem)
+        from . import views as _views
+    out = []
+    for t in qs.order_by('nome'):
+        if getattr(t, 'slug', None) in owned:
+            continue
+        if ficha is not None and not _views._talento_prereq_ok(t, personagem, ficha):
+            continue
+        out.append({'id': t.id_talento, 'slug': t.slug, 'nome': t.nome,
+                    'descricao': (t.descricao or ''), 'pre': (t.pre_requisito or '')})
+    return out
+
+
+def _talento_origem(group):
+    """Origem estável POR FEATURE (separa múltiplos pick:talento). Casa persist↔readback."""
+    return str(group.get('origem') or group.get('classe') or 'Talento')[:150]
+
+
+def _talento_persist(personagem, group, valores):
+    from .models import TbPersonagemEscolha, TbPersonagemTalento, TbTalento
+    origem = _talento_origem(group)
+    base = int(group.get('slot_base') or 0)
+    nivel = int(group.get('nivel') or getattr(personagem, 'nivel', 1) or 1)
+    for i, v in enumerate(valores):
+        t = (TbTalento.objects.filter(id_talento=v).first() if str(v).isdigit() else None) \
+            or TbTalento.objects.filter(slug=v).first()
+        if not t:
+            continue
+        # categoria conforme a fonte/tipo do talento escolhido (origem vs geral).
+        categoria = 'origem' if (t.tipo or '').lower() == 'origem' else 'geral'
+        TbPersonagemEscolha.objects.update_or_create(
+            id_personagem=personagem, origem=origem, tipo='talento', slot=base + i,
+            defaults={'valor': t.slug})
+        TbPersonagemTalento.objects.get_or_create(
+            id_personagem=personagem, id_talento=t,
+            defaults={'categoria': categoria, 'nivel': nivel, 'nome': t.nome,
+                      'detalhes': origem[:200]})
+
+
+def _talento_readback(personagem, group):
+    if personagem is None:
+        return []
+    from .models import TbTalento
+    origem = _talento_origem(group)
+    out = []
+    for e in personagem.escolhas.filter(tipo='talento', origem=origem).order_by('slot'):
+        t = TbTalento.objects.filter(slug=e.valor).first()
+        out.append({'id': e.id, 'slot': e.slot, 'valor': e.valor,
+                    'nome': (t.nome if t else e.valor)})
+    return out
+
+
+# ---------------------------------------------------------------------------
 # kind GENÉRICO de MENU — `pick:<kind>:<count>` cujo universo vive num
 # `define{<kind>: list{ a:{..}, b:{..} }}` IRMÃO na mesma feature (menu inline).
 # É o padrão de Máscara de Guerra/Comunidade, Evolução Totêmica, mutagênicos… onde
@@ -830,6 +930,25 @@ PICK_REGISTRY = {
         'persist': _pericia_expertise_persist,
         'validate': _default_validate,
         'readback': _pericia_expertise_readback,
+    },
+    # kind 'talento' (+ alias 'talento_de_origem'): escolha de um TbTalento concedido por
+    # feature (Determinação Comum, Raízes Profundas, Aprendizado dos Antigos…). O universo
+    # honra as constraints da tag; persiste em TbPersonagemTalento + TbPersonagemEscolha.
+    'talento': {
+        'sink': 'escolha',
+        'label': 'Talento',
+        'universe': _talento_universe,
+        'persist': _talento_persist,
+        'validate': _default_validate,
+        'readback': _talento_readback,
+    },
+    'talento_de_origem': {
+        'sink': 'escolha',
+        'label': 'Talento de Origem',
+        'universe': _talento_universe,
+        'persist': _talento_persist,
+        'validate': _default_validate,
+        'readback': _talento_readback,
     },
 }
 

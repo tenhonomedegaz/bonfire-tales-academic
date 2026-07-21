@@ -41,13 +41,28 @@ def validar(scores):
     return (not erros, erros)
 
 
-def validar_asi(mais2, mais1):
-    """ASI do antecedente: +2 num atributo e +1 noutro (distintos). (ok, erros)."""
+def validar_asi(modo, attrs=None):
+    """ASI do antecedente. Duas formas (regra de SISTEMA 5.5e):
+      - '2/1'   → +2 num atributo e +1 noutro (2 siglas distintas)
+      - '1/1/1' → +1 em três atributos distintos
+    Forma canônica: `validar_asi(modo, attrs)` com `modo in ASI_SHAPES` e `attrs` = lista de
+    2 ou 3 siglas. COMPAT (legado): `validar_asi(mais2, mais1)` com duas siglas soltas é
+    interpretado como a forma '2/1'. Retorna (ok, erros)."""
+    from .character_engine import ASI_SHAPES
+    # compat: duas siglas soltas (mais2, mais1) → forma '2/1'
+    if isinstance(attrs, str) and modo in SIGLAS:
+        modo, attrs = '2/1', [modo, attrs]
+    shape = ASI_SHAPES.get(modo)
     erros = []
-    if mais2 not in SIGLAS or mais1 not in SIGLAS:
+    if not shape:
+        return (False, ['Forma de ASI inválida (use +2/+1 ou +1/+1/+1).'])
+    attrs = list(attrs or [])
+    if any(a not in SIGLAS for a in attrs):
         erros.append('Atributos do ASI inválidos.')
-    elif mais2 == mais1:
-        erros.append('O +2 e o +1 do ASI devem ser em atributos diferentes.')
+    elif len(attrs) != len(shape):
+        erros.append('Escolha exatamente %d atributo(s) para o ASI %s.' % (len(shape), modo))
+    elif len(set(attrs)) != len(attrs):
+        erros.append('Os atributos do ASI devem ser diferentes entre si.')
     return (not erros, erros)
 
 
