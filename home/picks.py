@@ -293,46 +293,99 @@ def _opcao_readback(personagem, group):
     return out
 
 
+# ---------------------------------------------------------------------------
+# kind 'arma' — Maestria de Arma em DOIS NÍVEIS: por slot de `pick:arma` o jogador
+# escolhe a ARMA e, dentre as maestrias{...} DAQUELA arma, UMA maestria. A tag
+# `maestrias{...}` da própria arma mundana é a AUTORIDADE das maestrias (regra do
+# projeto). O valor persistido é `'<arma-slug>|<maestria-slug>'` (1 linha por slot,
+# TbPersonagemEscolha tipo='maestria'); o derive concede/mostra SÓ a maestria escolhida.
+# Linhas LEGADAS só-arma (`'<arma-slug>'`, sem `|`) ficam com a maestria PENDENTE — a
+# ficha não quebra e o painel de Maestria reabre a sub-escolha (nunca escolhemos por elas).
+# ---------------------------------------------------------------------------
+_MAESTRIA_TAG_RE = re.compile(r'maestrias\{([^}]*)\}')
+
+
+def weapon_mastery_slugs(weapon):
+    """Slugs das maestrias declaradas na tag `maestrias{...}` da arma (a arma mundana é a
+    autoridade). [] se a arma não declara nenhuma (essa arma não pede sub-escolha)."""
+    for t in (getattr(weapon, 'tags_json', None) or []):
+        m = _MAESTRIA_TAG_RE.search(str(t))
+        if m:
+            return [x.strip() for x in m.group(1).split(',') if x.strip()]
+    return []
+
+
+def split_arma_maestria(valor):
+    """Valor de um slot de Maestria de Arma -> (arma_slug, maestria_slug|None). Formato NOVO:
+    `'<arma-slug>|<maestria-slug>'` (arma + A maestria dela escolhida). Linha LEGADA só-arma
+    (`'<arma-slug>'`, sem `|`) -> maestria=None (a escolher)."""
+    s = (valor or '').strip()
+    if '|' in s:
+        a, m = s.split('|', 1)
+        return a.strip(), (m.strip() or None)
+    return s, None
+
+
 def _arma_universe(ctx):
-    """Armas (TbItemMundano categoria='arma') — escolhe a arma; ganha todas as maestrias dela."""
-    import re as _re
+    """Armas (TbItemMundano categoria='arma'). Cada arma expõe `maestrias:[{slug,nome,efeito}]`
+    como SUB-OPÇÕES da 2ª escolha (a maestria única que se ganha ao pegar a arma). `chips` fica
+    para exibição resumida quando a arma não abre sub-escolha (sem maestrias)."""
     from .models import TbItemMundano, TbOpcaojogo
     from .item_mecanica import mecanica_de_tags, dano_display
-    mast = {o.slug: o.nome for o in TbOpcaojogo.objects.filter(tipo='Maestria de Arma')}
+    # tags `maestrias{...}` da arma usam '_' (minar_sap) e são a AUTORIDADE; o catálogo
+    # TbOpcaojogo usa '-' (minar-sap) — normaliza '_'→'-' NO LOOKUP p/ nome/efeito legíveis.
+    mast = {normalize_slug(o.slug): o for o in TbOpcaojogo.objects.filter(tipo='Maestria de Arma')}
     sub_label = {'arma_simples': 'Arma Simples', 'arma_simples_dist': 'Arma Simples à Distância',
                  'arma_marcial': 'Arma Marcial', 'arma_marcial_dist': 'Arma Marcial à Distância',
                  'arma_fogo': 'Arma de Fogo'}
     out = []
     for w in TbItemMundano.objects.filter(categoria='arma').order_by('subcategoria', 'nome'):
-        mslugs = []
-        for t in (w.tags_json or []):
-            m = _re.search(r'maestrias\{([^}]*)\}', str(t))
-            if m:
-                mslugs = [x.strip() for x in m.group(1).split(',') if x.strip()]
+        maestrias = []
+        for s in weapon_mastery_slugs(w):
+            o = mast.get(normalize_slug(s))               # 's' cru (autoridade); lookup normalizado
+            maestrias.append({'slug': s, 'nome': (o.nome if o else s),
+                              'efeito': ((o.descricao if o else '') or '')})
         _mec = mecanica_de_tags(w.tags_json, w.subcategoria)
         out.append({'slug': w.slug, 'nome': w.nome, 'dano': dano_display(_mec),
                     'cat': sub_label.get(w.subcategoria, w.subcategoria or 'Arma'),
-                    'chips': [mast.get(s, s) for s in mslugs]})
+                    'maestrias': maestrias,
+                    'chips': [m['nome'] for m in maestrias]})
     return out
 
 
 def _arma_persist(personagem, group, valores):
+    """1 linha por SLOT (tipo='maestria', slot=i) com o valor combinado `'<arma>|<maestria>'`
+    (arma + a maestria dela escolhida). Arma sem maestrias cadastradas grava só o slug da arma."""
     from .models import TbPersonagemEscolha
     # rótulo estável (independe de qual feature carregou o pick:arma) — compat com o
     # criador antigo, que gravava origem='Maestria de Arma (<Classe>)'.
     origem = 'Maestria de Arma (%s)' % (group.get('classe') or '')
     base = int(group.get('slot_base') or 0)
-    for i, wslug in enumerate(valores):
+    for i, v in enumerate(valores):
         TbPersonagemEscolha.objects.update_or_create(
             id_personagem=personagem, origem=origem[:150], tipo='maestria', slot=base + i,
-            defaults={'valor': wslug})
+            defaults={'valor': str(v)})
 
 
 def _arma_readback(personagem, group):
     if personagem is None:
         return []
-    return [{'id': e.id, 'slot': e.slot, 'valor': e.valor, 'nome': e.valor}
-            for e in personagem.escolhas.filter(tipo='maestria').order_by('slot')]
+    from .models import TbItemMundano, TbOpcaojogo
+    # catálogo por slug NORMALIZADO ('-'); a maestria persistida vem da tag da arma ('_').
+    mast = {normalize_slug(o.slug): o.nome for o in TbOpcaojogo.objects.filter(tipo='Maestria de Arma')}
+    out = []
+    for e in personagem.escolhas.filter(tipo='maestria').order_by('slot'):
+        arma, maestria = split_arma_maestria(e.valor)
+        w = (TbItemMundano.objects.filter(categoria='arma', slug=arma).first()
+             or TbItemMundano.objects.filter(categoria='arma', nome__iexact=arma).first())
+        arma_nome = w.nome if w else arma
+        maest_nome = mast.get(normalize_slug(maestria)) if maestria else None
+        pendente = bool(w and weapon_mastery_slugs(w) and maestria is None)
+        rot = arma_nome + (' — ' + (maest_nome or maestria) if maestria
+                           else (' — (maestria a escolher)' if pendente else ''))
+        out.append({'id': e.id, 'slot': e.slot, 'valor': e.valor, 'nome': rot,
+                    'arma': arma, 'maestria': maestria, 'pendente': pendente})
+    return out
 
 
 def _default_validate(group, valores):
@@ -349,10 +402,23 @@ def _default_validate(group, valores):
 
 
 def _arma_validate(group, valores):
+    """Cada slot = ARMA + (se a arma tiver maestrias) UMA maestria DELA. Valida contagem exata,
+    arma pertencente ao universo e a maestria pertencente à arma (formato `'<arma>|<maestria>'`)."""
     n = int(group.get('n') or 0)
-    universo = {str(u.get('slug')) for u in group.get('universo', [])}
-    vals = [v for v in dict.fromkeys(valores or []) if str(v) in universo]
-    if len(vals) != n:
+    by_slug = {str(u.get('slug')): u for u in group.get('universo', [])}
+    ok = []
+    for v in dict.fromkeys(valores or []):
+        arma, maestria = split_arma_maestria(v)
+        u = by_slug.get(str(arma))
+        if not u:
+            continue
+        masteries = {m['slug'] for m in (u.get('maestrias') or [])}
+        if masteries:                    # arma com maestrias: exige UMA delas
+            if maestria in masteries:
+                ok.append(v)
+        elif maestria is None:           # arma sem maestrias: só a arma já completa o slot
+            ok.append(v)
+    if len(ok) != n:
         return ['Escolha %d arma(s) para Maestria de Arma.' % n]
     return []
 

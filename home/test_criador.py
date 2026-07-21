@@ -84,8 +84,12 @@ class _CriadorBase(TestCase):
 
         mn = views._classe_maestria_n(classe, 1)
         if mn:
-            payload['maestrias'] = list(
-                TbItemMundano.objects.filter(categoria='arma').values_list('slug', flat=True))[:mn]
+            # Maestria de Arma em 2 níveis: cada slot é `'<arma>|<maestria>'` (arma + UMA
+            # maestria dela). Usa a 1ª maestria de cada arma do universo do REGISTRY.
+            from home.picks import _arma_universe
+            payload['maestrias'] = [
+                (w['slug'] + '|' + w['maestrias'][0]['slug']) if w.get('maestrias') else w['slug']
+                for w in _arma_universe({})[:mn]]
 
         esc1 = views._classe_escolhas_nv1(classe)
         if esc1['estilo_n']:
@@ -197,6 +201,10 @@ class Bug3MaestriaDeArmaTests(_CriadorBase):
         self.assertEqual(p.escolhas.filter(tipo='maestria').count(), 3)
         self.assertEqual(len(ficha['maestrias_armas']), 3)
         self.assertTrue(all(m['encontrada'] for m in ficha['maestrias_armas']), ficha['maestrias_armas'])
+        # 2 níveis: UMA maestria escolhida por arma (não todas), nenhuma pendente.
+        self.assertTrue(all(m['maestria'] for m in ficha['maestrias_armas']), ficha['maestrias_armas'])
+        self.assertFalse(ficha['maestria_pendente'])
+        self.assertTrue(all('|' in e.valor for e in p.escolhas.filter(tipo='maestria')))
         self.assertTrue(any(f['nome'] == 'Disciplina Marcial' for f in ficha['features']), ficha['features'])
 
     def test_barbaro_maestria_de_arma(self):
@@ -234,6 +242,184 @@ class Bug3MaestriaDeArmaTests(_CriadorBase):
         body = resp.json()
         self.assertFalse(body.get('ok', True))
         self.assertTrue(any('Maestria de Arma' in e for e in body.get('erros', [])), body)
+
+
+class Maestria2NiveisTests(_CriadorBase):
+    """Bug do beta (achado 5): `pick:arma` concedia TODAS as maestrias da arma. Regra real:
+    escolher a ARMA e UMA maestria DELA. Contrato do kind 'arma' em 2 níveis — universo expõe as
+    maestrias como sub-opções; valor persistido = `'<arma>|<maestria>'`; derive/perfil mostram SÓ
+    a maestria escolhida; escolhas legadas só-arma ficam PENDENTES e reabrem no painel."""
+
+    def _guerreiro(self, nivel=1, apelido='m2n'):
+        p = TbPersonagem.objects.create(
+            dono=self._novo_usuario('%s-%d' % (apelido, nivel)), nome='Guerreiro M2N',
+            nivel=nivel, forca=15, destreza=14, constituicao=13,
+            inteligencia=12, sabedoria=10, carisma=8)
+        TbPersonagemClasse.objects.create(
+            id_personagem=p, id_classe=TbClasse.objects.get(slug='guerreiro'),
+            nivel=nivel, principal=True)
+        return p
+
+    def _armas_com_maestrias(self):
+        from home.picks import _arma_universe
+        return [w for w in _arma_universe({}) if w.get('maestrias')]
+
+    def _arma_com_maestrias(self):
+        armas = self._armas_com_maestrias()
+        return next((w for w in armas if len(w['maestrias']) >= 2), armas[0])
+
+    # ── universo: 2º nível exposto ────────────────────────────────────────
+    def test_universe_expoe_maestrias_como_subopcoes(self):
+        from home.picks import _arma_universe, weapon_mastery_slugs
+        from home.models import TbItemMundano
+        univ = _arma_universe({})
+        self.assertTrue(univ)
+        for w in univ:
+            arma = TbItemMundano.objects.get(slug=w['slug'])
+            slugs = [m['slug'] for m in w['maestrias']]
+            self.assertEqual(slugs, weapon_mastery_slugs(arma), w['slug'])
+            self.assertTrue(all('slug' in m and 'nome' in m for m in w['maestrias']))
+
+    # ── ponte de slug: nome/efeito legíveis apesar do '_' na tag da arma ──
+    def test_universe_resolve_nome_e_efeito_pela_ponte_de_slug(self):
+        """As tags `maestrias{...}` das armas usam '_' (minar_sap) — AUTORIDADE do projeto — e
+        o catálogo TbOpcaojogo usa '-' (minar-sap). O seletor tem de resolver o NOME legível e o
+        EFEITO no LOOKUP (ponte '_'→'-'); nunca exibir o slug cru com campos vazios."""
+        from home.picks import _arma_universe
+        from home.models import TbOpcaojogo
+        w = next(w for w in _arma_universe({}) if w['slug'] == 'arma-espada-longa')
+        m = next(m for m in w['maestrias'] if m['slug'] == 'minar_sap')   # slug cru = autoridade
+        self.assertIn('Minar', m['nome'])                 # radio mostra 'Minar' (nome legível)
+        self.assertNotEqual(m['nome'], m['slug'])         # não é o slug cru 'minar_sap'
+        self.assertEqual(m['nome'], TbOpcaojogo.objects.get(slug='minar-sap').nome)
+        self.assertTrue(m['efeito'].strip())              # efeito resolvido, não-vazio
+
+    # ── validate: exige UMA maestria da arma ──────────────────────────────
+    def test_validate_exige_maestria_pertencente_a_arma(self):
+        from home import picks
+        g = next(x for x in picks.resolve_builder(
+            TbClasse.objects.get(slug='guerreiro'), kinds={'arma'}))
+        self.assertEqual(g['n'], 3)
+        w = self._arma_com_maestrias()
+        outra = next(x for x in g['universo'] if x['slug'] != w['slug'] and x['maestrias'])
+        terceira = next(x for x in g['universo']
+                        if x['slug'] not in (w['slug'], outra['slug']) and x['maestrias'])
+        m0 = w['maestrias'][0]['slug']
+        bons = ['%s|%s' % (w['slug'], m0),
+                '%s|%s' % (outra['slug'], outra['maestrias'][0]['slug']),
+                '%s|%s' % (terceira['slug'], terceira['maestrias'][0]['slug'])]
+        self.assertEqual(picks.PICK_REGISTRY['arma']['validate'](g, bons), [])
+        # arma sem a maestria (só-arma) é rejeitada — a 2ª escolha é obrigatória
+        so_arma = [w['slug'], outra['slug'], terceira['slug']]
+        self.assertTrue(picks.PICK_REGISTRY['arma']['validate'](g, so_arma))
+        # maestria que não pertence à arma é rejeitada
+        ruim = ['%s|%s' % (w['slug'], 'maestria-inexistente-xyz'), bons[1], bons[2]]
+        self.assertTrue(picks.PICK_REGISTRY['arma']['validate'](g, ruim))
+
+    # ── persist + readback: 1 linha por slot, valor combinado ─────────────
+    def test_persist_e_readback_combinado(self):
+        from home import picks
+        p = self._guerreiro()
+        g = next(x for x in picks.resolve_builder(
+            TbClasse.objects.get(slug='guerreiro'), kinds={'arma'}))
+        w = self._arma_com_maestrias()
+        val = '%s|%s' % (w['slug'], w['maestrias'][0]['slug'])
+        picks.PICK_REGISTRY['arma']['persist'](p, g, [val])
+        e = p.escolhas.filter(tipo='maestria').get()
+        self.assertEqual(e.valor, val)
+        rb = picks.PICK_REGISTRY['arma']['readback'](p, g)[0]
+        self.assertEqual(rb['arma'], w['slug'])
+        self.assertEqual(rb['maestria'], w['maestrias'][0]['slug'])
+        self.assertFalse(rb['pendente'])
+
+    # ── derive: SÓ a maestria escolhida (não todas) ───────────────────────
+    def test_derive_mostra_so_a_maestria_escolhida(self):
+        from home.character_engine import derive, _mapa_maestria_por_arma
+        from home.models import TbPersonagemEscolha
+        p = self._guerreiro()
+        w = self._arma_com_maestrias()
+        self.assertGreaterEqual(len(w['maestrias']), 2, 'arma de teste com 2+ maestrias')
+        escolhida = w['maestrias'][0]
+        TbPersonagemEscolha.objects.create(
+            id_personagem=p, tipo='maestria', slot=0,
+            valor='%s|%s' % (w['slug'], escolhida['slug']))
+        ficha = derive(p)
+        ma = ficha['maestrias_armas'][0]
+        self.assertEqual(ma['maestria']['slug'], escolhida['slug'])
+        self.assertFalse(ma['maestria_pendente'])
+        self.assertEqual([m['slug'] for m in ma['maestrias']], [escolhida['slug']])
+        # o mapa que alimenta o perfil de ataque traz SÓ a escolhida
+        mp = _mapa_maestria_por_arma(ficha['maestrias_armas'])
+        self.assertEqual(mp.get(w['slug']), [escolhida['nome']])
+        self.assertFalse(ficha['maestria_pendente'])
+
+    # ── legado: escolha só-arma vira PENDENTE, ficha não quebra ───────────
+    def test_legado_so_arma_fica_pendente(self):
+        from home.character_engine import derive, _mapa_maestria_por_arma
+        from home.models import TbPersonagemEscolha
+        p = self._guerreiro()
+        w = self._arma_com_maestrias()
+        TbPersonagemEscolha.objects.create(
+            id_personagem=p, tipo='maestria', slot=0, valor=w['slug'])  # LEGADO: sem '|'
+        ficha = derive(p)                                               # não lança
+        ma = ficha['maestrias_armas'][0]
+        self.assertTrue(ma['encontrada'])
+        self.assertIsNone(ma['maestria'])
+        self.assertTrue(ma['maestria_pendente'])
+        self.assertTrue(ficha['maestria_pendente'])
+        # perfil de ataque não recebe maestria de arma pendente
+        self.assertEqual(_mapa_maestria_por_arma(ficha['maestrias_armas']), {})
+
+    # ── painel reabre a sub-escolha da maestria pendente ──────────────────
+    def test_painel_reabre_e_completa_pendente(self):
+        from home.character_engine import derive
+        from home.models import TbPersonagemEscolha
+        p = self._guerreiro()
+        w = self._arma_com_maestrias()
+        escolhida = w['maestrias'][0]
+        TbPersonagemEscolha.objects.create(
+            id_personagem=p, tipo='maestria', slot=0, valor=w['slug'])  # legado pendente
+        url = reverse('personagem_trocar_maestria', args=[p.pk])
+        self.client.force_login(p.dono)
+        # reachable mesmo sem 'trocavel' porque há maestria pendente
+        self.assertEqual(self.client.get(url).status_code, 200)
+        resp = self.client.post(url, {'arma_0': w['slug'], 'maestria_0': escolhida['slug']})
+        self.assertEqual(resp.status_code, 302)
+        e = p.escolhas.filter(tipo='maestria').get()
+        self.assertEqual(e.valor, '%s|%s' % (w['slug'], escolhida['slug']))
+        self.assertFalse(derive(p)['maestria_pendente'])
+
+    def test_painel_completar_recusa_maestria_de_outra_arma(self):
+        from home.models import TbPersonagemEscolha
+        p = self._guerreiro()
+        w = self._arma_com_maestrias()
+        w_slugs = {m['slug'] for m in w['maestrias']}
+        outra = next(x for x in self._armas_com_maestrias()
+                     if x['slug'] != w['slug'] and x['maestrias'][0]['slug'] not in w_slugs)
+        TbPersonagemEscolha.objects.create(
+            id_personagem=p, tipo='maestria', slot=0, valor=w['slug'])
+        url = reverse('personagem_trocar_maestria', args=[p.pk])
+        self.client.force_login(p.dono)
+        # maestria de OUTRA arma não pertence a esta -> não persiste, continua pendente
+        resp = self.client.post(url, {'arma_0': w['slug'],
+                                      'maestria_0': outra['maestrias'][0]['slug']})
+        self.assertEqual(resp.status_code, 200)  # re-renderiza com erro
+        e = p.escolhas.filter(tipo='maestria').get()
+        self.assertEqual(e.valor, w['slug'])     # inalterado (segue pendente)
+
+    # ── ponta-a-ponta pelo criador: nasce com a maestria escolhida ────────
+    def test_criador_persiste_par_arma_maestria(self):
+        from home.character_engine import derive
+        payload = self._payload('guerreiro')       # já monta 'maestrias' combinado
+        resp = self._post_criar(self._novo_usuario('e2e-m2n', staff=True), payload)
+        self.assertEqual(resp.status_code, 200, resp.content)
+        p = TbPersonagem.objects.get(pk=resp.json()['id'])
+        escs = p.escolhas.filter(tipo='maestria')
+        self.assertEqual(escs.count(), 3)
+        self.assertTrue(all('|' in e.valor for e in escs))
+        ficha = derive(p)
+        self.assertTrue(all(m['maestria'] and not m['maestria_pendente']
+                            for m in ficha['maestrias_armas']))
 
 
 class Bug4VertenteMagiaTests(_CriadorBase):
@@ -1217,16 +1403,25 @@ class PerfilDeArmaTests(_CriadorBase):
         self.assertEqual(pf['dano'], '1d8 %+d cortante' % (FOR + 1))
 
     def test_maestria_da_arma_aparece_no_perfil(self):
+        # Maestria de Arma em DOIS NÍVEIS (desenho correto): a escolha é ARMA + UMA maestria
+        # dela, no formato combinado `'<arma>|<maestria>'`. O perfil de ataque traz SÓ a
+        # maestria escolhida (minar_sap), resolvida ao NOME legível do catálogo pela ponte de
+        # slug '_'→'-' (a tag da arma usa 'minar_sap'; TbOpcaojogo usa 'minar-sap').
+        from home.models import TbPersonagemEscolha, TbOpcaojogo
         p = self._cria()
-        # escolhe a maestria da Espada Longa (substitui as escolhas de maestria do bárbaro)
         p.escolhas.filter(tipo='maestria').delete()
-        from home.models import TbPersonagemEscolha
         TbPersonagemEscolha.objects.create(id_personagem=p, origem='Maestria em Armas',
-                                           tipo='maestria', slot=0, valor='arma-espada-longa')
+                                           tipo='maestria', slot=0,
+                                           valor='arma-espada-longa|minar_sap')
         self._equipa(p, 'arma-espada-longa')
         d, *_ = self._derive(p)
         pf = self._perfil(d, nome_contem='Espada Longa')
-        self.assertTrue(pf['maestria'], pf)
+        nome_minar = TbOpcaojogo.objects.get(slug='minar-sap').nome
+        # EXATAMENTE a escolhida: o perfil mostra o nome legível de minar_sap e nada mais.
+        self.assertEqual(pf['maestria'], nome_minar, pf)
+        self.assertNotIn('minar_sap', pf['maestria'])              # não vaza o slug cru
+        for outra in ('raspar-graze', 'debilitar-weaken'):         # nem as outras da espada longa
+            self.assertNotIn(TbOpcaojogo.objects.get(slug=outra).nome, pf['maestria'], pf)
 
 
 class _ConcessaoBase(_CriadorBase):

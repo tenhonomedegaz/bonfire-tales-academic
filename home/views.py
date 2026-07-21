@@ -2522,7 +2522,10 @@ def _classe_maestria_n(classe, nivel=1):
 def _criador_armas():
     """Catálogo de armas (TbItemMundano categoria=arma) com suas maestrias resolvidas."""
     from .models import TbItemMundano, TbOpcaojogo
-    mast = {o.slug: o.nome for o in TbOpcaojogo.objects.filter(tipo='Maestria de Arma')}
+    from .picks import normalize_slug
+    # tags `maestrias{...}` da arma usam '_'; o catálogo TbOpcaojogo usa '-'. Normaliza
+    # '_'→'-' NO LOOKUP p/ nome legível (sem reescrever a referência da arma).
+    mast = {normalize_slug(o.slug): o.nome for o in TbOpcaojogo.objects.filter(tipo='Maestria de Arma')}
     sub_label = {'arma_simples': 'Arma Simples', 'arma_simples_dist': 'Arma Simples à Distância',
                  'arma_marcial': 'Arma Marcial', 'arma_marcial_dist': 'Arma Marcial à Distância',
                  'arma_fogo': 'Arma de Fogo'}
@@ -2537,7 +2540,7 @@ def _criador_armas():
         out.append({'slug': w.slug, 'nome': w.nome, 'dano': dano_display(_mec),
                     'propriedades': propriedades_display(_mec),
                     'cat': sub_label.get(w.subcategoria, w.subcategoria or 'Arma'),
-                    'maestrias': [mast.get(s, s) for s in mslugs]})
+                    'maestrias': [mast.get(normalize_slug(s), s) for s in mslugs]})
     return out
 
 
@@ -4079,6 +4082,26 @@ def editar_ficha_view(request, pk):
                        'principal': c.principal} for c in p.classes.select_related('id_classe').order_by('-principal', 'id')]
     classes_multiclasse = _classes_multiclasse(p, ficha) if (p.nivel or 0) < 20 else []
     aventura_ledger = list(p.aventuras_ledger.select_related('criado_por', 'revertido_por')[:30])
+    # ── Painel STAFF de CONCESSÃO de item (missão/recompensa sem preço) ──
+    # Catálogo COMPLETO (sem o filtro de preço da loja) só é montado para a staff, com
+    # um flag `sem_preco` por item para sinalizar recompensa de missão. A trilha das
+    # concessões já feitas (linhas de inventário com concedido_em) sai numa mini-lista.
+    is_staff = perms_mod.is_staff_user(request.user)
+    conceder_magico = conceder_mundano = concessoes = None
+    if is_staff:
+        conceder_magico = [
+            {'slug': it.slug, 'nome': it.nome,
+             'meta': rar_label.get(it.raridade, it.raridade),
+             'sem_preco': not (it.preco and float(it.preco) > 0)}
+            for it in TbItemMagico.objects.order_by('nome')]
+        conceder_mundano = [
+            {'slug': it.slug, 'nome': it.nome,
+             'meta': cat_label.get(it.categoria, it.categoria),
+             'sem_preco': _preco_em_pc(it.preco) is None}
+            for it in TbItemMundano.objects.order_by('nome')]
+        concessoes = list(p.inventario.filter(concedido_em__isnull=False)
+                          .select_related('concedido_por', 'id_item_magico')
+                          .order_by('-concedido_em', '-id')[:40])
     return render(request, 'home/pages/editar_ficha.html', {
         'page_title': 'Editar — %s' % p.nome,
         'p': p, 'pc': pc, 'ficha': ficha,
@@ -4102,12 +4125,16 @@ def editar_ficha_view(request, pk):
         'recursos_consumiveis': recursos_consumiveis,
         'magias_preparadas': magias_preparadas,
         'transacoes': transacoes,
-        'is_staff': perms_mod.is_staff_user(request.user),
+        'is_staff': is_staff,
         'classes_atuais': classes_atuais,
         'classes_multiclasse': classes_multiclasse,
         'compra_msg': request.GET.get('compra'),
         'aventura_ledger': aventura_ledger,
         'rollback_msg': request.GET.get('rollback'),
+        'conceder_magico': conceder_magico,
+        'conceder_mundano': conceder_mundano,
+        'concessoes': concessoes,
+        'concessao_msg': request.GET.get('concessao'),
     })
 
 
@@ -4348,6 +4375,108 @@ def personagem_reverter_aventura(request, pk, lancamento_id):
         lanc.revertido_por = request.user
         lanc.save(update_fields=['revertido', 'revertido_em', 'revertido_por'])
     return redirect(back + '?rollback=ok')
+
+
+@login_required(login_url='/login/')
+@require_POST
+def personagem_conceder_item(request, pk):
+    """STAFF concede um item do CATÁLOGO COMPLETO (mágico OU mundano, INCLUSIVE os itens
+    de missão sem preço, que a loja não vende) ao inventário do personagem. NÃO debita
+    ouro e NÃO registra transação — não é compra, é recompensa. Empilha consumível
+    idêntico da MESMA origem (qtd) como a compra faz; item equipável/sintonizável vira
+    uma linha própria. Grava a trilha (quem/quando/origem) na linha de inventário — o
+    item concedido aparece no inventário normal e pode ser equipado/sintonizado.
+
+    Gate `is_staff_user` idêntico ao registrar-aventuras: o DONO (não-staff) não concede.
+    """
+    from . import permissions as perms
+    from .models import TbItemMagico, TbItemMundano, TbPersonagemItem
+    from .character_engine import _item_consumivel_meta
+    if not perms.is_staff_user(request.user):
+        raise Http404
+    p = _ficha_editavel(request, pk)
+    back = reverse('editar_ficha', args=[pk])
+    tipo = (request.POST.get('tipo') or 'magico').strip().lower()
+    slug = (request.POST.get('item') or '').strip()
+    nota = (request.POST.get('nota_origem') or '').strip()[:255]
+    try:
+        qtd = max(1, min(99, int(request.POST.get('qtd') or 1)))
+    except (TypeError, ValueError):
+        qtd = 1
+    agora = timezone.now()
+    if tipo == 'mundano':
+        item = TbItemMundano.objects.filter(slug=slug).first()
+        if not item:
+            return redirect(back + '?concessao=invalido')
+        with transaction.atomic():
+            mec = mecanica_de_tags(item.tags_json, item.subcategoria)
+            # empilha só em outra CONCESSÃO da mesma origem (mantém a trilha coerente e a
+            # reversão precisa); item equipável (armadura/escudo) nunca empilha.
+            existente = (TbPersonagemItem.objects.filter(
+                id_personagem=p, nome=item.nome, id_item_magico__isnull=True,
+                equipado=False, concedido_em__isnull=False, origem_nota=nota).first()
+                if not mec['tipo_equip'] else None)
+            if existente:
+                existente.qtd = (existente.qtd or 0) + qtd
+                existente.concedido_por = request.user
+                existente.concedido_em = agora
+                existente.save(update_fields=['qtd', 'concedido_por', 'concedido_em'])
+            else:
+                TbPersonagemItem.objects.create(
+                    id_personagem=p, qtd=qtd, nome=item.nome, custo=(item.preco or ''),
+                    tags_json=list(item.tags_json or []),
+                    concedido_por=request.user, concedido_em=agora, origem_nota=nota)
+    else:
+        item = TbItemMagico.objects.filter(slug=slug).first()
+        if not item:
+            return redirect(back + '?concessao=invalido')
+        with transaction.atomic():
+            consumivel = _item_consumivel_meta(None, item)['consumivel']
+            existente = (TbPersonagemItem.objects.filter(
+                id_personagem=p, id_item_magico=item, equipado=False, sintonizado=False,
+                concedido_em__isnull=False, origem_nota=nota).first()
+                if consumivel else None)
+            if existente:
+                existente.qtd = (existente.qtd or 0) + qtd
+                existente.concedido_por = request.user
+                existente.concedido_em = agora
+                existente.save(update_fields=['qtd', 'concedido_por', 'concedido_em'])
+            else:
+                custo = ('%g PO' % float(item.preco)) if item.preco and float(item.preco) > 0 else ''
+                TbPersonagemItem.objects.create(
+                    id_personagem=p, qtd=qtd, nome=item.nome, custo=custo,
+                    id_item_magico=item, equipado=False, sintonizado=False,
+                    concedido_por=request.user, concedido_em=agora, origem_nota=nota)
+    return redirect(back + '?concessao=ok')
+
+
+@login_required(login_url='/login/')
+@require_POST
+def personagem_reverter_concessao(request, pk, item_id):
+    """STAFF reverte uma concessão errada removendo a LINHA de inventário concedida.
+    Como a concessão não mexeu em ouro, a reversão também não — só apaga a linha.
+    GUARDA mínima e sensata (recusa com mensagem, sem apagar nada):
+      (a) a linha precisa SER uma concessão (concedido_em não-nulo) — reversão não
+          apaga item comprado/normal;
+      (b) o item NÃO pode estar equipado nem sintonizado (o personagem já está usando):
+          desequipe/dessintonize antes. Não rastreamos consumo parcial além do `qtd`,
+          então reverter remove o restante daquela concessão (documentado).
+    """
+    from . import permissions as perms
+    from .models import TbPersonagemItem
+    if not perms.is_staff_user(request.user):
+        raise Http404
+    p = _ficha_editavel(request, pk)
+    back = reverse('editar_ficha', args=[pk])
+    with transaction.atomic():
+        it = (TbPersonagemItem.objects.select_for_update()
+              .filter(id=item_id, id_personagem=p).first())
+        if not it or it.concedido_em is None:
+            return redirect(back + '?concessao=rev_invalido')
+        if it.equipado or it.sintonizado:
+            return redirect(back + '?concessao=rev_em_uso')
+        it.delete()
+    return redirect(back + '?concessao=revertido')
 
 
 # aceita siglas EN e PT (as tags do banco misturam: 'cha' e 'car', etc.)
@@ -5459,37 +5588,66 @@ def ficha_detail_view(request, pk):
 
 @login_required(login_url='/login/')
 def personagem_trocar_maestria(request, pk):
-    """Troca as armas de Maestria do personagem (a habilidade tem a tag `trocavel`).
-    Nº de slots = quantas maestrias o personagem já tem. Reaproveita o catálogo de armas."""
-    from .models import TbPersonagem, TbPersonagemEscolha, TbItemMundano
+    """Painel de Maestria de Arma em DOIS NÍVEIS: por slot, a ARMA e UMA maestria DELA. Fica
+    acessível quando a feature é TROCÁVEL (tag `trocavel` — pode trocar a arma) OU quando há
+    maestria PENDENTE a completar (escolhas legadas só-arma). Nº de slots = quantas maestrias o
+    personagem já tem. Persiste `'<arma>|<maestria>'` (1 linha por slot, tipo='maestria')."""
+    from .models import TbPersonagem, TbPersonagemEscolha
     from . import permissions as perms
     from .character_engine import derive
+    from . import picks as _picks
     p = get_object_or_404(TbPersonagem, pk=pk)
     if not (p.dono_id == request.user.id or perms.is_staff_user(request.user)):
         raise Http404()
     atuais = list(p.escolhas.filter(tipo='maestria').order_by('slot'))
     n_slots = len(atuais)
     ficha = derive(p)
-    if n_slots == 0 or not ficha.get('maestria_trocavel'):
+    trocavel = bool(ficha.get('maestria_trocavel'))
+    pendente = bool(ficha.get('maestria_pendente'))
+    # sem slots, e sem poder trocar arma nem completar maestria pendente -> nada a fazer aqui.
+    if n_slots == 0 or not (trocavel or pendente):
         return redirect(reverse('ficha_detail', args=[pk]))
+    universo = _picks._arma_universe({})
+    by_slug = {u['slug']: u for u in universo}
     erro = None
     if request.method == 'POST':
-        armas_validas = set(TbItemMundano.objects.filter(categoria='arma').values_list('slug', flat=True))
-        escolhidas, vistos = [], set()
-        for s in request.POST.getlist('arma'):
-            if s in armas_validas and s not in vistos:
-                escolhidas.append(s)
-                vistos.add(s)
-        if len(escolhidas) == n_slots:
+        pares = [((request.POST.get('arma_%d' % i) or '').strip(),
+                  (request.POST.get('maestria_%d' % i) or '').strip()) for i in range(n_slots)]
+        # sem `trocavel`, as ARMAS ficam travadas nas atuais (só a maestria é completada).
+        if not trocavel:
+            atuais_armas = [_picks.split_arma_maestria(e.valor)[0] for e in atuais]
+            pares = [(atuais_armas[i], m) for i, (_a, m) in enumerate(pares)]
+        valores, vistos, ok = [], set(), True
+        for arma, maestria in pares:
+            u = by_slug.get(arma)
+            if not u or arma in vistos:
+                ok = False
+                break
+            vistos.add(arma)
+            ms = {m['slug'] for m in (u.get('maestrias') or [])}
+            if ms:
+                if maestria not in ms:
+                    ok = False
+                    break
+                valores.append('%s|%s' % (arma, maestria))
+            else:
+                valores.append(arma)
+        if ok and len(valores) == n_slots:
             p.escolhas.filter(tipo='maestria').delete()
-            for i, slug in enumerate(escolhidas):
-                TbPersonagemEscolha.objects.create(id_personagem=p, tipo='maestria', valor=slug, slot=i)
+            for i, val in enumerate(valores):
+                TbPersonagemEscolha.objects.create(id_personagem=p, tipo='maestria', valor=val, slot=i)
             return redirect(reverse('ficha_detail', args=[pk]))
-        erro = 'Escolha exatamente %d arma(s).' % n_slots
+        erro = 'Escolha exatamente %d arma(s), cada uma com a sua maestria.' % n_slots
+    slots = []
+    for i, e in enumerate(atuais):
+        a, m = _picks.split_arma_maestria(e.valor)
+        u = by_slug.get(a)
+        slots.append({'idx': i, 'arma': a, 'arma_nome': (u['nome'] if u else a),
+                      'maestria': m, 'maestrias': (u['maestrias'] if u else [])})
     return render(request, 'home/pages/trocar_maestria.html', {
-        'page_title': 'Trocar Maestrias — %s' % p.nome,
-        'p': p, 'armas': _criador_armas(), 'n_slots': n_slots,
-        'atuais': [e.valor for e in atuais], 'erro': erro,
+        'page_title': 'Maestrias de Arma — %s' % p.nome,
+        'p': p, 'armas': universo, 'n_slots': n_slots,
+        'slots': slots, 'trocavel': trocavel, 'erro': erro,
     })
 
 
@@ -5724,8 +5882,12 @@ def _criador_resolver(data):
         key = (g['kind'], _picks.normalize_slug(g['tipo']) if g['tipo'] else None)
         universo_slugs = {str(u.get('slug')) for u in g['universo']}
         universo_ids = {str(u.get('id')) for u in g['universo'] if u.get('id') is not None}
+        # o pré-filtro descarta lixo antes do validate; a Maestria de Arma manda o valor
+        # combinado `'<arma>|<maestria>'`, então casa a membresia pela PARTE-ARMA (antes do `|`).
+        # A checagem da maestria (pertence à arma) e a contagem ficam no validate do REGISTRY.
         vals = [v for v in dict.fromkeys(incoming.get(key) or [])
-                if str(v) in universo_slugs or str(v) in universo_ids]
+                if str(v) in universo_slugs or str(v) in universo_ids
+                or str(v).split('|', 1)[0] in universo_slugs]
         erros += _picks.registry_entry(g['kind'])['validate'](g, vals)
         generic_picks.append((g, vals))
 

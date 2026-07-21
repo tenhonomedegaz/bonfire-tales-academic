@@ -355,6 +355,66 @@
         {% include 'home/partials/_ficha_inventario.html' %}
       </div>
 
+      {# ===================== STAFF — CONCEDER ITEM (missão/recompensa, sem custo de ouro) ===================== #}
+      {% if is_staff %}
+        <div class="lvl-staffbox" style="margin-top:1.2rem">
+          <span class="lbl">Staff — conceder item (missão/recompensa):</span>
+          {% if concessao_msg == 'ok' %}<p class="lvl-note-ok" style="flex:1 1 100%">Item concedido ao inventário (sem custo de ouro).</p>{% endif %}
+          {% if concessao_msg == 'revertido' %}<p class="lvl-note-ok" style="flex:1 1 100%">Concessão revertida: item removido do inventário.</p>{% endif %}
+          {% if concessao_msg == 'invalido' %}<p class="lvl-note-cap" style="flex:1 1 100%">Item não encontrado no catálogo.</p>{% endif %}
+          {% if concessao_msg == 'rev_invalido' %}<p class="lvl-note-cap" style="flex:1 1 100%">Essa linha não é uma concessão reversível.</p>{% endif %}
+          {% if concessao_msg == 'rev_em_uso' %}<p class="lvl-note-cap" style="flex:1 1 100%">Desequipe/dessintonize o item antes de reverter a concessão.</p>{% endif %}
+          <form method="post" action="{% url 'personagem_conceder_item' p.id_personagem %}" class="lvl-inline" style="flex:1 1 100%" data-conceder-form>
+            {% csrf_token %}
+            <select name="tipo" class="lvl-field" data-conceder-tipo aria-label="Tipo de item">
+              <option value="magico">Mágico</option>
+              <option value="mundano">Mundano</option>
+            </select>
+            <input type="search" placeholder="Filtrar por nome…" class="lvl-field lvl-field--grow" data-conceder-busca aria-label="Filtrar item por nome" autocomplete="off">
+            <select name="item" class="lvl-field lvl-field--grow" data-conceder-select="magico" aria-label="Item mágico" required>
+              {% for it in conceder_magico %}<option value="{{ it.slug }}" data-nome="{{ it.nome|lower }}">{{ it.nome }} · {{ it.meta }}{% if it.sem_preco %} · missão{% endif %}</option>{% endfor %}
+            </select>
+            <select name="item" class="lvl-field lvl-field--grow" data-conceder-select="mundano" aria-label="Item mundano" disabled hidden>
+              {% for it in conceder_mundano %}<option value="{{ it.slug }}" data-nome="{{ it.nome|lower }}">{{ it.nome }} · {{ it.meta }}{% if it.sem_preco %} · sem preço{% endif %}</option>{% endfor %}
+            </select>
+            <input type="number" name="qtd" min="1" max="99" value="1" class="lvl-field" style="width:5rem" aria-label="Quantidade">
+            <input type="text" name="nota_origem" maxlength="255" placeholder="Origem (ex.: Missão do Ookami)" class="lvl-field lvl-field--grow" aria-label="Origem da concessão">
+            <button type="submit" class="lvl-add">+ Conceder item</button>
+          </form>
+
+          {% if concessoes %}
+            <div class="lvl-ledger">
+              <table class="lvl-ledger__table">
+                <thead>
+                  <tr><th>Item</th><th>Qtd</th><th>Origem</th><th>Quando</th><th>Por</th><th></th></tr>
+                </thead>
+                <tbody>
+                  {% for c in concessoes %}
+                    <tr>
+                      <td>{{ c.nome }}{% if c.id_item_magico_id %} <span class="lvl-revtag">(mágico)</span>{% endif %}</td>
+                      <td>{{ c.qtd }}</td>
+                      <td>{{ c.origem_nota|default:"—" }}</td>
+                      <td>{{ c.concedido_em|date:"d/m/y H:i" }}</td>
+                      <td>{{ c.concedido_por.username|default:"—" }}</td>
+                      <td>
+                        {% if c.equipado or c.sintonizado %}
+                          <span class="lvl-revtag" title="Desequipe/dessintonize antes de reverter">em uso</span>
+                        {% else %}
+                          <form method="post" action="{% url 'personagem_reverter_concessao' p.id_personagem c.id %}" style="display:inline" onsubmit="return confirm('Reverter a concessão de {{ c.qtd }}× “{{ c.nome|escapejs }}”? O item sai do inventário do personagem.');">
+                            {% csrf_token %}
+                            <button type="submit" class="lvl-revbtn">Reverter</button>
+                          </form>
+                        {% endif %}
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% endif %}
+        </div>
+      {% endif %}
+
       {# ============================ MERCADO (catálogo: busca + chips + cards, compra via fetch) ============================ #}
       <h2 class="lvl-sech" style="margin-top:1.2rem">Mercado</h2>
       {% if compra_msg == 'ok' %}<div class="lvl-ok" style="margin-bottom:0.6rem">Compra realizada.</div>
@@ -498,4 +558,5 @@
 <link rel="stylesheet" href="{% static 'css/pages/levelup.css' %}?v=3">
 <script src="{% static 'js/levelup.js' %}?v=1" defer></script>
 <script src="{% static 'js/loja_ficha.js' %}?v=1" defer></script>
+<script src="{% static 'js/conceder_item.js' %}?v=1" defer></script>
 {% endblock %}

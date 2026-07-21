@@ -8,7 +8,8 @@ Espera no contexto: ficha (derive), p (personagem).{% endcomment %}
         <span class="text-[var(--text)]">{% if it.qtd > 1 %}{{ it.qtd }}× {% endif %}{{ it.nome }}
           {% if it.raridade %}<span class="ml-1 rounded bg-[var(--ember)]/15 px-1.5 py-0.5 text-xs text-[var(--ember)]">{{ it.raridade }}</span>{% endif %}
           {% if it.equipado %}<span class="ml-1 rounded bg-[var(--spark)]/20 px-1.5 py-0.5 text-xs text-[var(--spark)]">equipado</span>{% endif %}
-          {% if it.sintonizado %}<span class="ml-1 rounded bg-[var(--flame)]/20 px-1.5 py-0.5 text-xs text-[var(--flame)]">sintonizado</span>{% elif it.requer_sintonizacao %}<span class="ml-1 rounded bg-[var(--stroke)]/40 px-1.5 py-0.5 text-xs text-[var(--muted)]">requer sintonização</span>{% endif %}</span>
+          {% if it.sintonizado %}<span class="ml-1 rounded bg-[var(--flame)]/20 px-1.5 py-0.5 text-xs text-[var(--flame)]">sintonizado</span>{% elif it.requer_sintonizacao %}<span class="ml-1 rounded bg-[var(--stroke)]/40 px-1.5 py-0.5 text-xs text-[var(--muted)]">requer sintonização</span>{% endif %}
+          {% if it.concedido %}<span class="ml-1 rounded bg-[var(--ember)]/10 px-1.5 py-0.5 text-xs text-[var(--muted)]" title="Concedido pela staff{% if it.origem_nota %} — {{ it.origem_nota }}{% endif %}">concedido</span>{% endif %}</span>
         <span class="flex flex-wrap items-center gap-1">
           {% if it.pode_equipar %}
             <form method="post" action="{% url 'personagem_equipar_item' p.id_personagem %}">

@@ -1307,6 +1307,16 @@ class TbPersonagemItem(models.Model):
     # requer_sintonizacao. Itens mundanos ficam com este campo nulo.
     id_item_magico = models.ForeignKey('TbItemMagico', models.SET_NULL, db_column='Id_ItemMagico',
                                        blank=True, null=True, related_name='posses')
+    # Trilha de CONCESSÃO pela staff (item de missão/recompensa que não tem preço e por
+    # isso não pode ser comprado). Linhas COMPRADAS/normais ficam com estes campos nulos;
+    # linhas CONCEDIDAS registram quem/quando/origem (ex.: nome da missão). Isso dá a
+    # trilha e a reversão SEM tabela nova — a própria linha de inventário é o registro,
+    # espelhando a filosofia enxuta do ledger de aventuras.
+    concedido_por = models.ForeignKey('auth.User', models.SET_NULL, db_column='ConcedidoPor',
+                                      blank=True, null=True, related_name='itens_concedidos')
+    concedido_em = models.DateTimeField(db_column='ConcedidoEm', blank=True, null=True, db_index=True)
+    origem_nota = models.CharField(db_column='OrigemNota', max_length=255, blank=True, default='',
+                                   help_text='Origem da concessão (ex.: nome da missão).')
 
     class Meta:
         db_table = 'TB_PersonagemItem'

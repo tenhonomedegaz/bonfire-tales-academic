@@ -256,33 +256,56 @@
         var pickGroupState = [];  // [{kind, tipo, grid}]
 
         function pickItemCard(item) {
-            var lab = document.createElement('label');
-            lab.className = 'cf-pick-item flex cursor-pointer flex-col gap-0.5 rounded border border-[var(--stroke)] bg-[var(--bg1)] px-2 py-1.5 hover:border-[var(--ember)]';
-            lab.dataset.nome = (item.nome || '').toLowerCase();
-            var top = document.createElement('div'); top.className = 'flex items-center gap-2';
+            // Container é <div> (não <label>): quando há SUB-ESCOLHA de maestria (radios), um
+            // <label> pai faria o clique no radio alternar também o checkbox da arma. Só a linha
+            // do topo (checkbox + nome) é um <label>.
+            var card = document.createElement('div');
+            card.className = 'cf-pick-item flex flex-col gap-0.5 rounded border border-[var(--stroke)] bg-[var(--bg1)] px-2 py-1.5 hover:border-[var(--ember)]';
+            card.dataset.nome = (item.nome || '').toLowerCase();
+            var top = document.createElement('label'); top.className = 'flex cursor-pointer items-center gap-2';
             var inp = document.createElement('input'); inp.type = 'checkbox'; inp.value = item.slug;
             var nm = document.createElement('span'); nm.className = 'text-sm font-semibold text-[var(--text)]'; nm.textContent = item.nome;
             top.appendChild(inp); top.appendChild(nm);
             if (item.dano) {
                 var dano = document.createElement('span'); dano.className = 'ml-auto text-[11px] text-[var(--muted)]'; dano.textContent = item.dano; top.appendChild(dano);
             }
-            lab.appendChild(top);
-            if (item.chips && item.chips.length) {
+            card.appendChild(top);
+            var hasSub = item.maestrias && item.maestrias.length;
+            // SUB-ESCOLHA (2º nível): ao marcar a arma, escolher UMA maestria dela (radio).
+            if (hasSub) {
+                var sub = document.createElement('div');
+                sub.className = 'cf-maestria-sub mt-1 flex-col gap-1 border-t border-[var(--stroke)]/50 pt-1';
+                sub.style.display = 'none';
+                var slbl = document.createElement('div');
+                slbl.className = 'text-[10px] font-semibold uppercase tracking-wider text-[var(--muted)]';
+                slbl.textContent = 'Maestria — escolha 1'; sub.appendChild(slbl);
+                item.maestrias.forEach(function (m) {
+                    var rl = document.createElement('label'); rl.className = 'flex cursor-pointer items-center gap-1.5 text-[11px] text-[var(--spark)]';
+                    var r = document.createElement('input'); r.type = 'radio'; r.name = 'cf-maestria-' + item.slug; r.value = m.slug;
+                    var s = document.createElement('span'); s.textContent = m.nome; if (m.efeito) s.title = m.efeito;
+                    rl.appendChild(r); rl.appendChild(s); sub.appendChild(rl);
+                });
+                card.appendChild(sub);
+                inp.addEventListener('change', function () {
+                    sub.style.display = inp.checked ? 'flex' : 'none';
+                    if (!inp.checked) { var c = sub.querySelector('input[type=radio]:checked'); if (c) c.checked = false; }
+                });
+            } else if (item.chips && item.chips.length) {
                 var chips = document.createElement('div'); chips.className = 'flex flex-wrap gap-1';
                 item.chips.forEach(function (m) {
                     var ch = document.createElement('span');
                     ch.className = 'rounded bg-[var(--bg0)] px-1.5 py-0.5 text-[10px] text-[var(--spark)]';
                     ch.textContent = m; chips.appendChild(ch);
                 });
-                lab.appendChild(chips);
+                card.appendChild(chips);
             }
             var det = (item.pre ? ('Pré: ' + item.pre) : '') + ((item.pre && item.descricao) ? ' · ' : '') + (item.descricao || '');
             if (det) {
                 var p = document.createElement('div'); p.className = 'text-[11px] text-[var(--muted)]';
                 p.textContent = det.length > 160 ? det.slice(0, 160) + '…' : det;
-                lab.appendChild(p);
+                card.appendChild(p);
             }
-            return lab;
+            return card;
         }
 
         function renderPickGroups(c) {
@@ -341,8 +364,18 @@
             });
         }
         function pickGroupsSel() {
+            // Para cada arma marcada com SUB-ESCOLHA de maestria, o valor é combinado
+            // `'<arma>|<maestria>'`; sem sub-escolha (ou sem maestria marcada), vai só a arma.
             return pickGroupState.map(function (g) {
-                return { kind: g.kind, tipo: g.tipo, valores: checkedVals(g.grid) };
+                var vals = [];
+                Array.prototype.forEach.call(g.grid.querySelectorAll('.cf-pick-item'), function (card) {
+                    var cb = card.querySelector('input[type=checkbox]');
+                    if (!cb || !cb.checked) return;
+                    var sel = card.querySelector('input[type=radio]:checked');
+                    var hasSub = card.querySelector('input[type=radio]');
+                    vals.push(hasSub && sel ? (cb.value + '|' + sel.value) : cb.value);
+                });
+                return { kind: g.kind, tipo: g.tipo, valores: vals };
             });
         }
 
@@ -869,8 +902,16 @@
                 pickGroupState.forEach(function (g) {
                     var meta = ((c && c.pick_groups) || []).filter(function (x) { return x.kind === g.kind && x.tipo === g.tipo; })[0];
                     var need = meta ? meta.n : 0;
-                    if (need && checkedVals(g.grid).length !== need)
+                    var marcados = Array.prototype.slice.call(g.grid.querySelectorAll('.cf-pick-item')).filter(function (card) {
+                        var cb = card.querySelector('input[type=checkbox]'); return cb && cb.checked;
+                    });
+                    if (need && marcados.length !== need)
                         e.push('Escolha ' + need + ' ' + (meta.label || meta.tipo || 'opção(ões)') + '.');
+                    // 2º nível: cada arma marcada precisa de UMA maestria (quando a arma tem maestrias)
+                    var faltaMaestria = marcados.some(function (card) {
+                        return card.querySelector('input[type=radio]') && !card.querySelector('input[type=radio]:checked');
+                    });
+                    if (faltaMaestria) e.push('Escolha a maestria de cada arma selecionada.');
                 });
                 if (c && c.expertise_n && checkedVals(expertiseBox).length !== c.expertise_n)
                     e.push('Escolha ' + c.expertise_n + ' perícia(s) para Especialização.');

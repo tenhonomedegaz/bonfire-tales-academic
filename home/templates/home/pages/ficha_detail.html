@@ -311,19 +311,21 @@
 
   {% if ficha.maestrias_armas %}
   <div class="ficha-panel">
-    <div class="ficha-section-title">Maestrias de Arma{% if pode_editar and ficha.maestria_trocavel %}<a href="{% url 'personagem_trocar_maestria' p.id_personagem %}" class="float-right font-sans text-[11px] normal-case tracking-normal text-[var(--ember)] hover:underline">↻ Trocar</a>{% endif %}</div>
-    <p class="mb-2 text-xs text-[var(--muted)]">Você conhece as maestrias de cada arma escolhida e aplica <strong>1 por ataque</strong> (escolhida ao atacar).{% if ficha.maestria_trocavel %} <span class="text-[var(--spark)]">Trocável.</span>{% endif %}</p>
+    <div class="ficha-section-title">Maestrias de Arma{% if pode_editar and ficha.maestria_pendente %}<a href="{% url 'personagem_trocar_maestria' p.id_personagem %}" class="float-right font-sans text-[11px] normal-case tracking-normal text-[var(--flame)] hover:underline">⚠ Completar maestria</a>{% elif pode_editar and ficha.maestria_trocavel %}<a href="{% url 'personagem_trocar_maestria' p.id_personagem %}" class="float-right font-sans text-[11px] normal-case tracking-normal text-[var(--ember)] hover:underline">↻ Trocar</a>{% endif %}</div>
+    <p class="mb-2 text-xs text-[var(--muted)]">Cada arma escolhida concede <strong>uma</strong> maestria (escolhida ao pegar a arma), aplicada no ataque.{% if ficha.maestria_trocavel %} <span class="text-[var(--spark)]">Trocável.</span>{% endif %}</p>
     <ul class="grid gap-1.5 sm:grid-cols-2">
       {% for w in ficha.maestrias_armas %}
         <li class="rounded border border-[var(--stroke)] bg-[var(--bg0)] p-2.5">
           <div class="font-semibold text-[var(--text)]">{{ w.arma }}{% if w.dano %} <span class="text-xs font-normal text-[var(--muted)]">— {{ w.dano }}</span>{% endif %}{% if not w.encontrada %} <span class="text-xs text-[var(--flame)]">(arma não cadastrada)</span>{% endif %}</div>
           <div class="mt-1.5 space-y-1.5">
-            {% for m in w.maestrias %}
+            {% if w.maestria %}
               <details class="maestria-card rounded border border-[var(--stroke)]/60 bg-[var(--bg1)]">
-                <summary class="flex cursor-pointer items-center gap-2 px-2 py-1.5 text-xs font-bold text-[var(--spark)] hover:text-[var(--flame)]"><span class="maestria-chevron text-[var(--muted)]">▸</span>{{ m.nome }}</summary>
-                {% if m.efeito %}<div class="border-t border-[var(--stroke)]/40 px-2 py-1.5 text-[11px] leading-snug text-[var(--muted)]">{{ m.efeito }}</div>{% endif %}
+                <summary class="flex cursor-pointer items-center gap-2 px-2 py-1.5 text-xs font-bold text-[var(--spark)] hover:text-[var(--flame)]"><span class="maestria-chevron text-[var(--muted)]">▸</span>{{ w.maestria.nome }}</summary>
+                {% if w.maestria.efeito %}<div class="border-t border-[var(--stroke)]/40 px-2 py-1.5 text-[11px] leading-snug text-[var(--muted)]">{{ w.maestria.efeito }}</div>{% endif %}
               </details>
-            {% empty %}<span class="text-xs text-[var(--muted)]">—</span>{% endfor %}
+            {% elif w.maestria_pendente %}
+              <span class="text-xs text-[var(--flame)]">Maestria a escolher{% if pode_editar %} — <a href="{% url 'personagem_trocar_maestria' p.id_personagem %}" class="text-[var(--ember)] hover:underline">completar</a>{% endif %}</span>
+            {% else %}<span class="text-xs text-[var(--muted)]">—</span>{% endif %}
           </div>
         </li>
       {% endfor %}

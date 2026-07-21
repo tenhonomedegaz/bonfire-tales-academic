@@ -731,37 +731,46 @@ def _recursos_consumiveis(personagem, classes):
 
 
 def _maestrias_armas(personagem):
-    """Maestria de Arma = escolha de ARMA, não de maestria abstrata. Cada slot
-    (TbPersonagemEscolha tipo='maestria', valor=slug/nome da arma) dá acesso a
-    TODAS as maestrias daquela arma; no ataque o jogador usa 1. Retorna a lista de
-    armas escolhidas com suas maestrias resolvidas (nome + efeito de TbOpcaojogo)."""
+    """Maestria de Arma em DOIS NÍVEIS: por slot escolhe-se a ARMA e UMA maestria DELA. Cada
+    slot (TbPersonagemEscolha tipo='maestria', valor='<arma>|<maestria>') concede SÓ a maestria
+    escolhida daquela arma (no ataque é a que aparece). Linhas LEGADAS só-arma (sem `|`) ficam
+    com a maestria PENDENTE ('a escolher') — a ficha não quebra e o painel reabre a sub-escolha.
+    Devolve por arma: `maestria` (a escolhida, {slug,nome,efeito} ou None), `maestria_pendente`
+    e `maestrias_disponiveis` (todas as da arma, p/ completar a escolha)."""
     from .models import TbItemMundano, TbOpcaojogo
+    from .picks import split_arma_maestria, weapon_mastery_slugs, normalize_slug
     if personagem is None:
         return []
     picks = list(personagem.escolhas.filter(tipo='maestria').order_by('slot'))
     if not picks:
         return []
-    mast = {o.slug: o for o in TbOpcaojogo.objects.filter(tipo='Maestria de Arma')}
+    # As tags `maestrias{...}` das armas (AUTORIDADE do projeto) usam '_' (minar_sap); o
+    # catálogo TbOpcaojogo usa '-' (minar-sap). Normaliza '_'→'-' NO LOOKUP p/ resolver
+    # nome/efeito — sem reescrever as referências das armas.
+    mast = {normalize_slug(o.slug): o for o in TbOpcaojogo.objects.filter(tipo='Maestria de Arma')}
     out = []
     for e in picks:
-        val = (e.valor or '').strip()
-        arma = (TbItemMundano.objects.filter(categoria='arma', slug=val).first()
-                or TbItemMundano.objects.filter(categoria='arma', slug='arma-%s' % _slug(val)).first()
-                or TbItemMundano.objects.filter(categoria='arma', nome__iexact=val).first())
+        arma_slug, maestria_slug = split_arma_maestria(e.valor)
+        arma = (TbItemMundano.objects.filter(categoria='arma', slug=arma_slug).first()
+                or TbItemMundano.objects.filter(categoria='arma', slug='arma-%s' % _slug(arma_slug)).first()
+                or TbItemMundano.objects.filter(categoria='arma', nome__iexact=arma_slug).first())
         if not arma:
-            out.append({'arma': val, 'encontrada': False, 'maestrias': []})
+            out.append({'arma': arma_slug, 'encontrada': False, 'maestrias': [],
+                        'maestria': None, 'maestria_pendente': False, 'maestrias_disponiveis': []})
             continue
-        mslugs = []
-        for t in (arma.tags_json or []):
-            m = re.search(r'maestrias\{([^}]*)\}', str(t))
-            if m:
-                mslugs = [x.strip() for x in m.group(1).split(',') if x.strip()]
-        maestrias = [{'slug': s, 'nome': mast[s].nome if s in mast else s,
-                      'efeito': (mast[s].descricao if s in mast else '') or ''} for s in mslugs]
+        disp = []
+        for s in weapon_mastery_slugs(arma):
+            o = mast.get(normalize_slug(s))               # 's' cru (autoridade); lookup normalizado
+            disp.append({'slug': s, 'nome': o.nome if o else s,
+                         'efeito': (o.descricao if o else '') or ''})
+        escolhida = next((m for m in disp if m['slug'] == maestria_slug), None)
+        pendente = bool(disp) and escolhida is None
         _mec = mecanica_de_tags(arma.tags_json, arma.subcategoria)
         out.append({'arma': arma.nome, 'slug': arma.slug, 'encontrada': True,
                     'dano': dano_display(_mec), 'propriedades': propriedades_display(_mec),
-                    'maestrias': maestrias})
+                    'maestria': escolhida, 'maestria_pendente': pendente,
+                    'maestrias_disponiveis': disp,
+                    'maestrias': [escolhida] if escolhida else []})
     return out
 
 
@@ -802,7 +811,9 @@ def _inventario(personagem):
                     'sintonizado': bool(it.sintonizado),
                     'tem_efeito': bool(magico and (magico.tags_json or [])),
                     'consumivel': cons['consumivel'],
-                    'consumivel_tipo': cons['consumivel_tipo']})
+                    'consumivel_tipo': cons['consumivel_tipo'],
+                    'concedido': bool(it.concedido_em),
+                    'origem_nota': it.origem_nota or ''})
     return out
 
 
@@ -2172,18 +2183,18 @@ def _arma_catalogo(nome):
 
 
 def _mapa_maestria_por_arma(maestrias):
-    """De state['maestrias_armas'] -> {slug/nome-normalizado: [nomes de maestria]}.
-    Cada arma ESCOLHIDA como maestria dá acesso às maestrias daquela arma; o perfil
-    de uma arma equipada exibe as maestrias se a arma foi escolhida (regra do projeto:
-    a maestria é tag da arma)."""
+    """De state['maestrias_armas'] -> {slug/nome-normalizado: [nome da maestria ESCOLHIDA]}.
+    Regra: 1 arma = 1 maestria (escolhida ao pegar a arma). Só a maestria escolhida vai para
+    o perfil de ataque; arma com maestria pendente (legado) não injeta maestria no perfil."""
     out = {}
     for w in (maestrias or []):
-        nomes = [m.get('nome') for m in (w.get('maestrias') or []) if m.get('nome')]
-        if not nomes:
+        escolhida = w.get('maestria')
+        nome = escolhida.get('nome') if escolhida else None
+        if not nome:
             continue
         for chave in (w.get('slug'), _slug(w.get('arma') or '')):
             if chave:
-                out[chave] = nomes
+                out[chave] = [nome]
     return out
 
 
@@ -2587,6 +2598,10 @@ def derive(personagem):
         any('pick:arma' in str(t) for t in (getattr(obj, 'tags_json', None) or []))
         and any(str(t).strip() == 'trocavel' for t in (getattr(obj, 'tags_json', None) or []))
         for (_o, _f, obj, _cl) in features)
+    # Alguma arma escolhida está com a maestria PENDENTE (escolha legada só-arma, sem a 2ª etapa)?
+    # Sinaliza a ficha para reabrir a sub-escolha da maestria sem quebrar a exibição.
+    state['maestria_pendente'] = any(
+        w.get('maestria_pendente') for w in (state.get('maestrias_armas') or []))
 
     # Mochila: carteira (PC -> PO/PP/PC) + peso total carregado.
     _cpc = int(getattr(personagem, 'carteira_pc', 0) or 0)

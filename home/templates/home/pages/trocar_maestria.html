@@ -4,35 +4,37 @@
 {% block content %}
 <section class="animate-fade-in mx-auto max-w-3xl">
   <header class="mb-4 border-b border-[var(--stroke)] pb-4">
-    <h1 class="font-serif text-2xl font-bold text-[var(--ember)]">Trocar Maestrias de Arma</h1>
-    <p class="mt-1 text-sm text-[var(--muted)]">{{ p.nome }} — escolha exatamente <strong>{{ n_slots }}</strong> arma(s). Você conhece todas as maestrias de cada arma escolhida e aplica 1 por ataque.</p>
+    <h1 class="font-serif text-2xl font-bold text-[var(--ember)]">Maestrias de Arma</h1>
+    <p class="mt-1 text-sm text-[var(--muted)]">{{ p.nome }} — {% if trocavel %}escolha <strong>{{ n_slots }}</strong> arma(s){% else %}complete a maestria de cada uma das suas <strong>{{ n_slots }}</strong> arma(s){% endif %} e, para cada arma, <strong>uma</strong> maestria dela.</p>
   </header>
 
   {% if erro %}<div class="mb-2.5 rounded border border-[var(--flame)]/50 bg-[var(--flame)]/10 px-3 py-1.5 text-sm text-[var(--flame)]">{{ erro }}</div>{% endif %}
 
   <form method="post" action="{% url 'personagem_trocar_maestria' p.id_personagem %}">
     {% csrf_token %}
-    <div class="mb-2 flex flex-wrap items-center justify-between gap-1.5">
-      <input id="tm-busca" type="search" placeholder="Buscar arma…" autocomplete="off"
-             class="w-full max-w-xs rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-1.5 text-sm text-[var(--text)] focus:border-[var(--ember)] focus:outline-none">
-      <span class="text-sm font-semibold text-[var(--muted)]">Selecionadas: <strong id="tm-count" class="text-[var(--text)]">0</strong>/{{ n_slots }}</span>
-    </div>
-
-    <div id="tm-armas" class="max-h-[60vh] overflow-y-auto rounded border border-[var(--stroke)] bg-[var(--bg0)] p-2">
-      {% regroup armas by cat as grupos %}
-      {% for g in grupos %}
-        <div class="mb-1 mt-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--muted)]/80 first:mt-0">{{ g.grouper }}</div>
-        <div class="grid grid-cols-1 gap-1 sm:grid-cols-2">
-          {% for w in g.list %}
-            <label class="tm-item flex cursor-pointer flex-col gap-0.5 rounded border border-[var(--stroke)] bg-[var(--bg1)] px-2 py-1.5 hover:border-[var(--ember)]" data-nome="{{ w.nome|lower }}">
-              <div class="flex items-center gap-1.5">
-                <input type="checkbox" name="arma" value="{{ w.slug }}" {% if w.slug in atuais %}checked{% endif %}>
-                <span class="text-sm font-semibold text-[var(--text)]">{{ w.nome }}</span>
-                <span class="ml-auto text-[11px] text-[var(--muted)]">{{ w.dano }}</span>
-              </div>
-              {% if w.maestrias %}<div class="flex flex-wrap gap-1">{% for m in w.maestrias %}<span class="rounded bg-[var(--bg0)] px-1.5 py-0.5 text-[10px] text-[var(--spark)]">{{ m }}</span>{% endfor %}</div>{% endif %}
-            </label>
-          {% endfor %}
+    <div id="tm-slots" class="space-y-3">
+      {% for s in slots %}
+        <div class="tm-slot rounded border border-[var(--stroke)] bg-[var(--bg0)] p-3" data-idx="{{ s.idx }}">
+          <div class="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--muted)]">Arma {{ forloop.counter }}</div>
+          {% if trocavel %}
+            <select name="arma_{{ s.idx }}" class="tm-arma mb-2 w-full rounded border border-[var(--stroke)] bg-[var(--bg1)] px-3 py-2 text-sm text-[var(--text)] focus:border-[var(--ember)] focus:outline-none" data-idx="{{ s.idx }}">
+              {% for w in armas %}<option value="{{ w.slug }}" {% if w.slug == s.arma %}selected{% endif %}>{{ w.cat }} — {{ w.nome }}{% if w.dano %} ({{ w.dano }}){% endif %}</option>{% endfor %}
+            </select>
+          {% else %}
+            <input type="hidden" name="arma_{{ s.idx }}" value="{{ s.arma }}">
+            <div class="mb-2 font-semibold text-[var(--text)]">{{ s.arma_nome }}</div>
+          {% endif %}
+          <div class="tm-maestrias space-y-1" data-idx="{{ s.idx }}">
+            {% for m in s.maestrias %}
+              <label class="flex cursor-pointer items-start gap-2 rounded border border-[var(--stroke)]/60 bg-[var(--bg1)] px-2 py-1.5 text-sm hover:border-[var(--ember)]">
+                <input type="radio" name="maestria_{{ s.idx }}" value="{{ m.slug }}" class="mt-0.5" {% if m.slug == s.maestria %}checked{% endif %}>
+                <span class="min-w-0">
+                  <span class="block font-semibold text-[var(--spark)]">{{ m.nome }}</span>
+                  {% if m.efeito %}<span class="mt-0.5 block text-[11px] leading-snug text-[var(--muted)]">{{ m.efeito }}</span>{% endif %}
+                </span>
+              </label>
+            {% empty %}<span class="text-xs text-[var(--muted)]">Esta arma não possui maestrias cadastradas.</span>{% endfor %}
+          </div>
         </div>
       {% endfor %}
     </div>
@@ -44,28 +46,55 @@
   </form>
 </section>
 
+{{ armas|json_script:"tm-armas-data" }}
 <script>
 (function(){
-  var N = {{ n_slots }};
-  var wrap = document.getElementById('tm-armas');
-  var counter = document.getElementById('tm-count');
+  var TROCAVEL = {{ trocavel|yesno:"true,false" }};
+  var MAP = {};
+  try { JSON.parse(document.getElementById('tm-armas-data').textContent).forEach(function(w){ MAP[w.slug] = w; }); } catch(e){}
   var submit = document.getElementById('tm-submit');
-  var busca = document.getElementById('tm-busca');
-  var boxes = Array.prototype.slice.call(wrap.querySelectorAll('input[type=checkbox]'));
-  function upd(){
-    var n = boxes.filter(function(b){return b.checked;}).length;
-    counter.textContent = n;
-    boxes.forEach(function(b){ b.disabled = !b.checked && n >= N; });
-    submit.disabled = (n !== N);
+
+  function radioRow(idx, m, checked){
+    var lab = document.createElement('label');
+    lab.className = 'flex cursor-pointer items-start gap-2 rounded border border-[var(--stroke)]/60 bg-[var(--bg1)] px-2 py-1.5 text-sm hover:border-[var(--ember)]';
+    var r = document.createElement('input'); r.type='radio'; r.name='maestria_'+idx; r.value=m.slug; r.className='mt-0.5'; if(checked) r.checked=true;
+    r.addEventListener('change', upd);
+    var box = document.createElement('span'); box.className='min-w-0';
+    var t = document.createElement('span'); t.className='block font-semibold text-[var(--spark)]'; t.textContent=m.nome; box.appendChild(t);
+    if(m.efeito){ var d=document.createElement('span'); d.className='mt-0.5 block text-[11px] leading-snug text-[var(--muted)]'; d.textContent=m.efeito; box.appendChild(d); }
+    lab.appendChild(r); lab.appendChild(box);
+    return lab;
   }
-  boxes.forEach(function(b){ b.addEventListener('change', upd); });
-  upd();
-  if (busca) busca.addEventListener('input', function(){
-    var q = (busca.value||'').toLowerCase().trim();
-    Array.prototype.forEach.call(wrap.querySelectorAll('.tm-item'), function(it){
-      it.style.display = (!q || (it.dataset.nome||'').indexOf(q) !== -1) ? '' : 'none';
-    });
+  function rebuild(slot){
+    var sel = slot.querySelector('.tm-arma');
+    if(!sel) return;
+    var w = MAP[sel.value] || {maestrias:[]};
+    var box = slot.querySelector('.tm-maestrias');
+    box.innerHTML = '';
+    var idx = slot.getAttribute('data-idx');
+    (w.maestrias||[]).forEach(function(m){ box.appendChild(radioRow(idx, m, false)); });
+    if(!(w.maestrias||[]).length){ var s=document.createElement('span'); s.className='text-xs text-[var(--muted)]'; s.textContent='Esta arma não possui maestrias cadastradas.'; box.appendChild(s); }
+  }
+  function slotComplete(slot){
+    var sel = slot.querySelector('.tm-arma');
+    var slug = sel ? sel.value : (slot.querySelector('input[name^=arma_]')||{}).value;
+    var w = MAP[slug] || {maestrias:[]};
+    if(!(w.maestrias||[]).length) return true;            // arma sem maestria: completa
+    return !!slot.querySelector('input[type=radio]:checked');
+  }
+  function upd(){
+    var slots = Array.prototype.slice.call(document.querySelectorAll('.tm-slot'));
+    submit.disabled = !slots.every(slotComplete);
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll('.tm-slot'), function(slot){
+    if(TROCAVEL){
+      var sel = slot.querySelector('.tm-arma');
+      if(sel) sel.addEventListener('change', function(){ rebuild(slot); upd(); });
+    }
+    Array.prototype.forEach.call(slot.querySelectorAll('input[type=radio]'), function(r){ r.addEventListener('change', upd); });
   });
+  upd();
 })();
 </script>
 {% endblock %}
