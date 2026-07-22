@@ -75,16 +75,46 @@
     (w.maestrias||[]).forEach(function(m){ box.appendChild(radioRow(idx, m, false)); });
     if(!(w.maestrias||[]).length){ var s=document.createElement('span'); s.className='text-xs text-[var(--muted)]'; s.textContent='Esta arma não possui maestrias cadastradas.'; box.appendChild(s); }
   }
-  function slotComplete(slot){
+  function slotArma(slot){
     var sel = slot.querySelector('.tm-arma');
-    var slug = sel ? sel.value : (slot.querySelector('input[name^=arma_]')||{}).value;
-    var w = MAP[slug] || {maestrias:[]};
+    return sel ? sel.value : (slot.querySelector('input[name^=arma_]')||{}).value;
+  }
+  function slotComplete(slot){
+    var w = MAP[slotArma(slot)] || {maestrias:[]};
     if(!(w.maestrias||[]).length) return true;            // arma sem maestria: completa
     return !!slot.querySelector('input[type=radio]:checked');
   }
-  function upd(){
+  // A MESMA ARMA pode ocupar mais de um slot (aprender uma 2ª maestria dela); o que não pode
+  // repetir é o PAR (arma, maestria). Para cada slot, desabilita as maestrias já escolhidas
+  // por OUTRO slot da mesma arma — o 2º slot só oferece as maestrias ainda não aprendidas.
+  function syncAvailability(){
     var slots = Array.prototype.slice.call(document.querySelectorAll('.tm-slot'));
-    submit.disabled = !slots.every(slotComplete);
+    slots.forEach(function(slot){
+      var arma = slotArma(slot);
+      var taken = {};
+      slots.forEach(function(other){
+        if(other === slot || slotArma(other) !== arma) return;
+        var r = other.querySelector('input[type=radio]:checked');
+        if(r) taken[r.value] = true;
+      });
+      Array.prototype.forEach.call(slot.querySelectorAll('input[type=radio]'), function(r){
+        var block = taken[r.value] && !r.checked;
+        r.disabled = block;
+        if(r.parentNode) r.parentNode.style.opacity = block ? '0.4' : '';
+      });
+    });
+  }
+  function upd(){
+    syncAvailability();
+    var slots = Array.prototype.slice.call(document.querySelectorAll('.tm-slot'));
+    var seen = {}, dup = false;
+    slots.forEach(function(slot){
+      var arma = slotArma(slot);
+      var r = slot.querySelector('input[type=radio]:checked');
+      var key = arma + '|' + (r ? r.value : '');
+      if(seen[key]) dup = true; seen[key] = true;
+    });
+    submit.disabled = !slots.every(slotComplete) || dup;
   }
 
   Array.prototype.forEach.call(document.querySelectorAll('.tm-slot'), function(slot){

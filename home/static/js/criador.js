@@ -210,10 +210,16 @@
         linSel.addEventListener('change', function () { if (linSel.value) limparEssencia(); });
         essSel.addEventListener('change', function () { if (essSel.value) limparLinhagem(); });
 
+        // rótulo do seletor de sub-escolha da essência: "Vertente elemental" (elementais) OU
+        // "Clã / Herança" (Vampirismo) — vem do catálogo por essência (subescolha_label).
+        var verLabel = document.querySelector('label[for="cf-vertente"]');
+        // sub-escolha (vertente/clã) atualmente selecionada, ou '' se o seletor está oculto.
+        function currentVertente() { return verWrap.hidden ? '' : verSel.value; }
         function onEssencia() {
             var ess = essenciaBySlug[essSel.value];
             var vertentes = (ess && ess.vertentes && ess.vertentes.length) ? ess.vertentes : [];
             if (vertentes.length) {
+                if (verLabel && ess && ess.subescolha_label) verLabel.textContent = ess.subescolha_label;
                 verSel.innerHTML = '';
                 verSel.appendChild(opt('', '— Selecione —'));
                 vertentes.forEach(function (v) { verSel.appendChild(opt(v.slug, v.nome)); });
@@ -255,13 +261,41 @@
         var pickGroupsWrap = el('cf-pick-groups');
         var pickGroupState = [];  // [{kind, tipo, grid}]
 
-        function pickItemCard(item) {
-            // Container é <div> (não <label>): quando há SUB-ESCOLHA de maestria (radios), um
-            // <label> pai faria o clique no radio alternar também o checkbox da arma. Só a linha
-            // do topo (checkbox + nome) é um <label>.
+        function pickItemCard(item, kind) {
+            // Container é <div> (não <label>): quando há SUB-ESCOLHA de maestria, um <label>
+            // pai faria o clique numa maestria alternar também o cabeçalho. Só a linha do topo
+            // (checkbox + nome), quando existe, é um <label>.
             var card = document.createElement('div');
             card.className = 'cf-pick-item flex flex-col gap-0.5 rounded border border-[var(--stroke)] bg-[var(--bg1)] px-2 py-1.5 hover:border-[var(--ember)]';
             card.dataset.nome = (item.nome || '').toLowerCase();
+            // Maestria de Arma (kind 'arma'): a MESMA ARMA pode aprender mais de uma maestria
+            // (regra da staff — p.ex. lentidão E exposição no mesmo arco). Cada maestria é um
+            // CHECKBOX independente cujo valor é o PAR `'<arma>|<maestria>'`; contam para o
+            // limite do grupo (enforceLimit conta checkboxes). A unicidade do par é natural
+            // (cada maestria é um checkbox), e o 2º slot "oferece só as ainda não aprendidas"
+            // porque marcar uma maestria já a aprende (não há como marcá-la de novo).
+            var armaSub = kind === 'arma' && item.maestrias && item.maestrias.length;
+            if (armaSub) {
+                var head = document.createElement('div'); head.className = 'flex items-center gap-2';
+                var hn = document.createElement('span'); hn.className = 'text-sm font-semibold text-[var(--text)]'; hn.textContent = item.nome; head.appendChild(hn);
+                if (item.dano) { var hd = document.createElement('span'); hd.className = 'ml-auto text-[11px] text-[var(--muted)]'; hd.textContent = item.dano; head.appendChild(hd); }
+                card.appendChild(head);
+                var sub = document.createElement('div');
+                sub.className = 'cf-maestria-sub mt-1 flex flex-col gap-1 border-t border-[var(--stroke)]/50 pt-1';
+                var slbl = document.createElement('div');
+                slbl.className = 'text-[10px] font-semibold uppercase tracking-wider text-[var(--muted)]';
+                slbl.textContent = 'Maestrias'; sub.appendChild(slbl);
+                item.maestrias.forEach(function (m) {
+                    var rl = document.createElement('label'); rl.className = 'flex cursor-pointer items-center gap-1.5 text-[11px] text-[var(--spark)]';
+                    var cb = document.createElement('input'); cb.type = 'checkbox'; cb.className = 'cf-pick-arma-cb'; cb.value = item.slug + '|' + m.slug;
+                    var s = document.createElement('span'); s.textContent = m.nome; if (m.efeito) s.title = m.efeito;
+                    rl.appendChild(cb); rl.appendChild(s); sub.appendChild(rl);
+                });
+                card.appendChild(sub);
+                var det0 = (item.pre ? ('Pré: ' + item.pre) : '') + ((item.pre && item.descricao) ? ' · ' : '') + (item.descricao || '');
+                if (det0) { var p0 = document.createElement('div'); p0.className = 'text-[11px] text-[var(--muted)]'; p0.textContent = det0.length > 160 ? det0.slice(0, 160) + '…' : det0; card.appendChild(p0); }
+                return card;
+            }
             var top = document.createElement('label'); top.className = 'flex cursor-pointer items-center gap-2';
             var inp = document.createElement('input'); inp.type = 'checkbox'; inp.value = item.slug;
             var nm = document.createElement('span'); nm.className = 'text-sm font-semibold text-[var(--text)]'; nm.textContent = item.nome;
@@ -270,27 +304,7 @@
                 var dano = document.createElement('span'); dano.className = 'ml-auto text-[11px] text-[var(--muted)]'; dano.textContent = item.dano; top.appendChild(dano);
             }
             card.appendChild(top);
-            var hasSub = item.maestrias && item.maestrias.length;
-            // SUB-ESCOLHA (2º nível): ao marcar a arma, escolher UMA maestria dela (radio).
-            if (hasSub) {
-                var sub = document.createElement('div');
-                sub.className = 'cf-maestria-sub mt-1 flex-col gap-1 border-t border-[var(--stroke)]/50 pt-1';
-                sub.style.display = 'none';
-                var slbl = document.createElement('div');
-                slbl.className = 'text-[10px] font-semibold uppercase tracking-wider text-[var(--muted)]';
-                slbl.textContent = 'Maestria — escolha 1'; sub.appendChild(slbl);
-                item.maestrias.forEach(function (m) {
-                    var rl = document.createElement('label'); rl.className = 'flex cursor-pointer items-center gap-1.5 text-[11px] text-[var(--spark)]';
-                    var r = document.createElement('input'); r.type = 'radio'; r.name = 'cf-maestria-' + item.slug; r.value = m.slug;
-                    var s = document.createElement('span'); s.textContent = m.nome; if (m.efeito) s.title = m.efeito;
-                    rl.appendChild(r); rl.appendChild(s); sub.appendChild(rl);
-                });
-                card.appendChild(sub);
-                inp.addEventListener('change', function () {
-                    sub.style.display = inp.checked ? 'flex' : 'none';
-                    if (!inp.checked) { var c = sub.querySelector('input[type=radio]:checked'); if (c) c.checked = false; }
-                });
-            } else if (item.chips && item.chips.length) {
+            if (item.chips && item.chips.length) {
                 var chips = document.createElement('div'); chips.className = 'flex flex-wrap gap-1';
                 item.chips.forEach(function (m) {
                     var ch = document.createElement('span');
@@ -353,7 +367,7 @@
                     }
                     var sub = document.createElement('div');
                     sub.className = 'grid grid-cols-1 gap-1 sm:grid-cols-2';
-                    cats[cat].forEach(function (item) { sub.appendChild(pickItemCard(item)); });
+                    cats[cat].forEach(function (item) { sub.appendChild(pickItemCard(item, g.kind)); });
                     grid.appendChild(sub);
                 });
                 box.appendChild(grid);
@@ -364,16 +378,13 @@
             });
         }
         function pickGroupsSel() {
-            // Para cada arma marcada com SUB-ESCOLHA de maestria, o valor é combinado
-            // `'<arma>|<maestria>'`; sem sub-escolha (ou sem maestria marcada), vai só a arma.
+            // Cada checkbox marcado JÁ carrega o valor final: para Maestria de Arma é o PAR
+            // combinado `'<arma>|<maestria>'` (uma maestria por checkbox, a mesma arma pode
+            // aparecer em vários), para arma sem maestrias e p/ opções é o próprio slug.
             return pickGroupState.map(function (g) {
                 var vals = [];
-                Array.prototype.forEach.call(g.grid.querySelectorAll('.cf-pick-item'), function (card) {
-                    var cb = card.querySelector('input[type=checkbox]');
-                    if (!cb || !cb.checked) return;
-                    var sel = card.querySelector('input[type=radio]:checked');
-                    var hasSub = card.querySelector('input[type=radio]');
-                    vals.push(hasSub && sel ? (cb.value + '|' + sel.value) : cb.value);
+                Array.prototype.forEach.call(g.grid.querySelectorAll('input[type=checkbox]'), function (cb) {
+                    if (cb.checked) vals.push(cb.value);
                 });
                 return { kind: g.kind, tipo: g.tipo, valores: vals };
             });
@@ -585,9 +596,19 @@
         function grantedSkills() {
             var out = {};
             function add(list) { (list || []).forEach(function (g) { if (!(g.slug in out)) out[g.slug] = g.fonte; }); }
+            // Perícia concedida por traço de CLÃ/herança (vertente) só entra quando o clã
+            // escolhido casa (Furtividade só p/ Tenebrus, Acrobacia só p/ Sybaris…). As
+            // compartilhadas (vertente vazia, ex.: Percepção da maldição) entram sempre.
+            function addEss(list) {
+                var vert = currentVertente();
+                (list || []).forEach(function (g) {
+                    if (g.vertente && g.vertente !== vert) return;
+                    if (!(g.slug in out)) out[g.slug] = g.fonte;
+                });
+            }
             add((CAT.pericias_concedidas_raca || {})[racaSel.value]);
             if (!linWrap.hidden && linSel.value) add((CAT.pericias_concedidas_linhagem || {})[linSel.value]);
-            if (!essWrap.hidden && essSel.value) add((CAT.pericias_concedidas_essencia || {})[essSel.value]);
+            if (!essWrap.hidden && essSel.value) addEss((CAT.pericias_concedidas_essencia || {})[essSel.value]);
             return out;
         }
         function markGrant(b, fonte) {
@@ -640,16 +661,49 @@
         var langWrap = el('cf-idiomas-lang'), toolWrap = el('cf-idiomas-tool');
         (CAT.idiomas || []).forEach(function (it) { langWrap.appendChild(checkboxDesc(it.nome, it.nome, it.desc)); });
         (CAT.ferramentas || []).forEach(function (it) { toolWrap.appendChild(checkboxDesc(it.nome, it.nome, it.desc)); });
-        var updateLangToolLimit = enforceLimitGroup([langWrap, toolWrap], bgLangToolN, document.querySelector('[data-langtool-counter]'));
         function idiomasFerramentasSel() { return checkedVals(langWrap).concat(checkedVals(toolWrap)); }
+        // Cross-lock de IDIOMAS/FERRAMENTAS (mesmo padrão do de perícias): um idioma escolhido
+        // numa fonte (pick racial de idioma OU lista do antecedente) trava o MESMO idioma na
+        // outra fonte — o antecedente não deixa mais repetir um idioma já ganho na raça, e a
+        // realocação é livre (desmarcou lá, reabre aqui). Gere também os limites (combinado do
+        // antecedente lang+tool; próprio de cada pick racial). Ferramentas: cross-lock simétrico.
+        function applyLangToolRules() {
+            var lim = bgLangToolN();
+            var langBoxes = boxesOf(langWrap), toolBoxes = boxesOf(toolWrap);
+            var antChosen = langBoxes.concat(toolBoxes).filter(function (b) { return b.checked; }).length;
+            var rLang = (racialGroups || []).filter(function (g) { return g.tipo === 'idioma'; });
+            var rTool = (racialGroups || []).filter(function (g) { return g.tipo === 'ferramenta'; });
+            function unionVals(antBoxes, rgs) {
+                var v = antBoxes.filter(function (b) { return b.checked; }).map(function (b) { return b.value; });
+                rgs.forEach(function (g) { v = v.concat(checkedVals(g.grid)); });
+                return v;
+            }
+            var idiomaSel = unionVals(langBoxes, rLang), ferrSel = unionVals(toolBoxes, rTool);
+            function has(v, arr) { return arr.indexOf(v) !== -1; }
+            langBoxes.forEach(function (b) { b.disabled = !b.checked && (antChosen >= lim || has(b.value, idiomaSel)); });
+            toolBoxes.forEach(function (b) { b.disabled = !b.checked && (antChosen >= lim || has(b.value, ferrSel)); });
+            rLang.forEach(function (g) {
+                var gChk = checkedVals(g.grid);
+                boxesOf(g.grid).forEach(function (b) { b.disabled = !b.checked && (gChk.length >= g.n || has(b.value, idiomaSel)); });
+                if (g.counter) g.counter.textContent = '(' + gChk.length + '/' + g.n + ')';
+            });
+            rTool.forEach(function (g) {
+                var gChk = checkedVals(g.grid);
+                boxesOf(g.grid).forEach(function (b) { b.disabled = !b.checked && (gChk.length >= g.n || has(b.value, ferrSel)); });
+                if (g.counter) g.counter.textContent = '(' + gChk.length + '/' + g.n + ')';
+            });
+            var c = document.querySelector('[data-langtool-counter]'); if (c) c.textContent = '(' + antChosen + '/' + lim + ')';
+        }
+        langWrap.addEventListener('change', applyLangToolRules);
+        toolWrap.addEventListener('change', applyLangToolRules);
         antSel.addEventListener('change', function () {
             updateBackgroundCopy();
             applySkillRules();
-            updateLangToolLimit();
+            applyLangToolRules();
             updateMagiaLimit();
         });
         updateBackgroundCopy();
-        updateLangToolLimit();
+        applyLangToolRules();
 
         // ---- Talentos
         var toSel = el('cf-talento-origem'), toDesc = el('cf-talento-origem-desc');
@@ -718,8 +772,15 @@
             ((CAT.racial_choices_raca || {})[racaSel.value] || []).forEach(function (c) { choices.push(c); });
             if (!linWrap.hidden && linSel.value)
                 ((CAT.racial_choices_linhagem || {})[linSel.value] || []).forEach(function (c) { choices.push(c); });
-            if (!essWrap.hidden && essSel.value)
-                ((CAT.racial_choices_essencia || {})[essSel.value] || []).forEach(function (c) { choices.push(c); });
+            if (!essWrap.hidden && essSel.value) {
+                // Escolha de PERÍCIA de um traço de clã (Educação Rubedo, Sangue Ruim…) só
+                // aparece p/ o clã escolhido — senão o wizard obrigava a escolher a perícia do
+                // Rubedo E a do Sangue Ruim juntas, sendo que são heranças MUTUAMENTE EXCLUSIVAS.
+                var vert = currentVertente();
+                ((CAT.racial_choices_essencia || {})[essSel.value] || []).forEach(function (c) {
+                    if (!c.vertente || c.vertente === vert) choices.push(c);
+                });
+            }
             if (!choices.length) { racaEscWrap.hidden = true; return; }
             racaEscWrap.hidden = false;
             var lbl = { pericia: 'perícia(s)', idioma: 'idioma(s)', ferramenta: 'ferramenta(s)' };
@@ -747,10 +808,13 @@
                     grid.addEventListener('change', applySkillRules);
                     racialGroups.push({ tipo: ch.tipo, n: ch.n, grid: grid, counter: counter });
                 } else {
-                    enforceLimit(grid, ch.n, counter);
-                    racialGroups.push({ tipo: ch.tipo, n: ch.n, grid: grid });
+                    // Idioma/ferramenta: cross-lock com a lista do antecedente (applyLangToolRules
+                    // gerencia limite + trava de valor duplicado + contador deste grupo).
+                    grid.addEventListener('change', applyLangToolRules);
+                    racialGroups.push({ tipo: ch.tipo, n: ch.n, grid: grid, counter: counter });
                 }
             });
+            applyLangToolRules();
         }
         function racialChoicesSel() {
             var out = { pericias: [], idiomas: [], ferramentas: [] };
@@ -762,15 +826,38 @@
             });
             return out;
         }
+        // Painel "Perícias concedidas": lista as perícias que a raça/linhagem/essência (clã)
+        // concede automaticamente, com a fonte — MESMO padrão dos traços que concedem perícia.
+        // Antes, uma perícia auto-concedida (ex.: Percepção da Maldição Vampírica) só aparecia
+        // depois, na prévia da ficha; o wizard não indicava que ela já era garantida.
+        var periciaNomeBySlug = {}; (CAT.pericias || []).forEach(function (p) { periciaNomeBySlug[p.slug] = p.nome; });
+        var concedidasWrap = el('cf-pericias-concedidas-wrap'), concedidasBox = el('cf-pericias-concedidas');
+        function renderPericiasConcedidas() {
+            if (!concedidasWrap || !concedidasBox) return;
+            var granted = grantedSkills(), slugs = Object.keys(granted);
+            if (!slugs.length) { concedidasWrap.hidden = true; concedidasBox.innerHTML = ''; return; }
+            slugs.sort(function (a, b) { return (periciaNomeBySlug[a] || a).localeCompare(periciaNomeBySlug[b] || b); });
+            concedidasBox.innerHTML = '';
+            slugs.forEach(function (sl) {
+                var chip = document.createElement('span');
+                chip.className = 'cf-skill-granted inline-flex items-center gap-1 rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-0.5 text-xs';
+                chip.innerHTML = '<span class="text-[var(--text)]">' + escHtml(periciaNomeBySlug[sl] || sl) + '</span>' +
+                                 '<span class="text-[var(--muted)]">— ' + escHtml(granted[sl]) + '</span>';
+                concedidasBox.appendChild(chip);
+            });
+            concedidasWrap.hidden = false;
+        }
         function refreshRaceDependent() {
             fillTalentosRaca(); renderRacialChoices();
             // as perícias concedidas dependem da raça/linhagem/essência: reavalia bloqueios
-            applySkillRules(); refreshExpertise();
+            applySkillRules(); refreshExpertise(); renderPericiasConcedidas();
         }
 
         linSel.addEventListener('change', refreshRaceDependent);
         essSel.addEventListener('change', refreshRaceDependent);
-        verSel.addEventListener('change', fillTalentosRaca);
+        // trocar a sub-escolha (vertente/clã) muda os talentos, as escolhas de perícia da
+        // herança E as perícias concedidas — reavalia tudo que depende da raça/essência.
+        verSel.addEventListener('change', refreshRaceDependent);
         refreshRaceDependent();
 
         // ================= Painéis de INFO (escolha informada — U2) =================
@@ -886,7 +973,10 @@
             function () { // 1 · Raça
                 var e = [];
                 if (!racaSel.value) e.push('Escolha uma raça.');
-                if (!verWrap.hidden && !verSel.value) e.push('Escolha a vertente elemental.');
+                if (!verWrap.hidden && !verSel.value) {
+                    var _es = essenciaBySlug[essSel.value];
+                    e.push('Escolha ' + ((_es && _es.subescolha_label) ? ('o ' + _es.subescolha_label) : 'a vertente elemental') + '.');
+                }
                 racialGroups.forEach(function (g) {
                     if (checkedVals(g.grid).length !== g.n)
                         e.push('Escolhas de raça: selecione ' + g.n + ' ' + (_lblEsc[g.tipo] || g.tipo) + '.');
@@ -902,16 +992,11 @@
                 pickGroupState.forEach(function (g) {
                     var meta = ((c && c.pick_groups) || []).filter(function (x) { return x.kind === g.kind && x.tipo === g.tipo; })[0];
                     var need = meta ? meta.n : 0;
-                    var marcados = Array.prototype.slice.call(g.grid.querySelectorAll('.cf-pick-item')).filter(function (card) {
-                        var cb = card.querySelector('input[type=checkbox]'); return cb && cb.checked;
-                    });
+                    // cada checkbox marcado = uma escolha (para Maestria de Arma, um PAR
+                    // arma+maestria; a mesma arma pode contribuir com mais de um).
+                    var marcados = Array.prototype.slice.call(g.grid.querySelectorAll('input[type=checkbox]')).filter(function (cb) { return cb.checked; });
                     if (need && marcados.length !== need)
                         e.push('Escolha ' + need + ' ' + (meta.label || meta.tipo || 'opção(ões)') + '.');
-                    // 2º nível: cada arma marcada precisa de UMA maestria (quando a arma tem maestrias)
-                    var faltaMaestria = marcados.some(function (card) {
-                        return card.querySelector('input[type=radio]') && !card.querySelector('input[type=radio]:checked');
-                    });
-                    if (faltaMaestria) e.push('Escolha a maestria de cada arma selecionada.');
                 });
                 if (c && c.expertise_n && checkedVals(expertiseBox).length !== c.expertise_n)
                     e.push('Escolha ' + c.expertise_n + ' perícia(s) para Especialização.');

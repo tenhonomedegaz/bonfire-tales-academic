@@ -3230,11 +3230,44 @@ def _criador_resumo_md(txt, limit=320):
     return ''
 
 
+def _vertentes_catalogo():
+    """Catálogo global de VERTENTES elementais, colhido de 'Vertente X' no texto dos traços."""
+    from .models import TbTracoracial
+    nomes = set()
+    for tr in TbTracoracial.objects.all():
+        txt = '%s\n%s' % (tr.pre_requisito or '', tr.descricao or '')
+        nomes.update(m.group(1).strip() for m in re.finditer(r'Vertente\s+([A-ZÀ-Ý][A-Za-zÀ-ÿ-]+)', txt))
+        if 'vertente' in txt.lower():
+            nomes.update(m.group(1).strip() for m in re.finditer(r'^\s*[-*]\s*\*\*([A-Za-zÀ-ÿ-]+)\b', txt, re.M))
+    return [{'slug': slugify(n), 'nome': n} for n in sorted(nomes, key=lambda x: x.lower()) if slugify(n)]
+
+
+def _essencia_vertentes(e, catalogo=None):
+    from .models import TbTracoracial
+    catalogo = catalogo if catalogo is not None else _vertentes_catalogo()
+    txt = '\n'.join('%s\n%s' % (t.pre_requisito or '', t.descricao or '')
+                    for t in TbTracoracial.objects.filter(id_essencia=e))
+    norm = _norm_req(txt)
+    return [v for v in catalogo if re.search(r'\b%s\b' % re.escape(v['slug']), norm)]
+
+
+def _essencia_subescolha(e, catalogo=None):
+    """Sub-escolha da essência: CLÃ/herança (via 'Clã X' no pré-requisito, ex.: Vampirismo)
+    ou VERTENTE elemental (via 'Vertente X' na descrição). {'opcoes','label','tipo'} — 'opcoes'
+    alimenta o mesmo seletor `cf-vertente` no criador."""
+    from .character_engine import clas_de_essencia
+    clas = clas_de_essencia(e)
+    if clas:
+        return {'opcoes': clas, 'label': 'Clã / Herança', 'tipo': 'cla'}
+    return {'opcoes': _essencia_vertentes(e, catalogo), 'label': 'Vertente elemental', 'tipo': 'vertente'}
+
+
 def _criador_catalogos():
     from .models import (TbRaca, TbLinhagem, TbEssencia, TbClasse, TbAntecedente,
                          TbTalento, TbTracoracial, TbIdioma, TbItemMundano, TbOpcaojogo,
                          TbClassehabilidade)
-    from .character_engine import _SKILL_INFO, _dado_de_vida_classe
+    from .character_engine import (_SKILL_INFO, _dado_de_vida_classe,
+                                   clas_de_essencia, cla_de_traco)
 
     def _tracos_de(qs):
         # limite generoso: os traços mecânicos são o conteúdo principal do painel de raça
@@ -3249,10 +3282,13 @@ def _criador_catalogos():
     _prof_menu_active = ('define{', 'list{', 'table{', 'while_active', 'while{', 'cast{',
                          'instant{', 'trigger=', 'action=')
 
-    def _pericias_concedidas(qs_traits):
+    def _pericias_concedidas(qs_traits, clas=None):
+        # `clas` (heranças da essência) marca cada perícia com o clã do traço-fonte, p/ o
+        # front só a exibir/bloquear quando o clã casa com o escolhido. clã='' = compartilhada.
         from .character_engine import _norm_skill_slug
         out, seen = [], set()
         for t in qs_traits:
+            _cla = cla_de_traco(t, clas) if clas else ''
             for tag in (t.tags_json or []):
                 s = str(tag)
                 low = s.lower()
@@ -3262,7 +3298,7 @@ def _criador_catalogos():
                     sl = _norm_skill_slug(m.group(1))
                     if sl in _SKILL_INFO and sl not in seen:
                         seen.add(sl)
-                        out.append({'slug': sl, 'fonte': t.nome})
+                        out.append({'slug': sl, 'fonte': t.nome, 'vertente': _cla})
         return out
 
     def _classe_saves(c):
@@ -3322,22 +3358,9 @@ def _criador_catalogos():
                         # em loop — substitui os catálogos dedicados maestria_n/estilo.
                         'pick_groups': _picks.resolve_builder(c, kinds={'arma', 'opcao'}),
                         'subclasse_nivel': min(sub) if sub else None})
-    def _vertentes_catalogo():
-        nomes = set()
-        for tr in TbTracoracial.objects.all():
-            txt = '%s\n%s' % (tr.pre_requisito or '', tr.descricao or '')
-            nomes.update(m.group(1).strip() for m in re.finditer(r'Vertente\s+([A-ZÀ-Ý][A-Za-zÀ-ÿ-]+)', txt))
-            if 'vertente' in txt.lower():
-                nomes.update(m.group(1).strip() for m in re.finditer(r'^\s*[-*]\s*\*\*([A-Za-zÀ-ÿ-]+)\b', txt, re.M))
-        return [{'slug': slugify(n), 'nome': n} for n in sorted(nomes, key=lambda x: x.lower()) if slugify(n)]
-
+    # catálogo global de vertentes + sub-escolha por essência: helpers no nível do módulo
+    # (compartilhados com _criador_resolver, que valida a sub-escolha no POST).
     vertentes_catalogo = _vertentes_catalogo()
-
-    def _essencia_vertentes(e):
-        txt = '\n'.join('%s\n%s' % (t.pre_requisito or '', t.descricao or '')
-                        for t in TbTracoracial.objects.filter(id_essencia=e))
-        norm = _norm_req(txt)
-        return [v for v in vertentes_catalogo if re.search(r'\b%s\b' % re.escape(v['slug']), norm)]
 
     def _vertente_de(t):
         # talentos elementais trazem "Vertente Sylph/Oread/Ifrit/Undine" no pré-requisito/descrição
@@ -3382,25 +3405,44 @@ def _criador_catalogos():
         if entries:
             talentos_linhagem[l.slug] = entries
     for e in TbEssencia.objects.all():
+        _clas = clas_de_essencia(e)
         qs = TbTracoracial.objects.filter(id_essencia=e, talento_racial=True,
                                           nivel_requisito__lte=1).order_by('nome')
         if qs:
-            talentos_essencia[e.slug] = [_traco_dict(t) for t in qs]
+            ents = []
+            for t in qs:
+                d = _traco_dict(t)
+                # essência com clã: o talento traz o clã (herança) no lugar da vertente,
+                # p/ o front só oferecê-lo quando o clã escolhido casa (mesmo filtro).
+                if _clas:
+                    d['vertente'] = cla_de_traco(t, _clas)
+                ents.append(d)
+            talentos_essencia[e.slug] = ents
 
     # Escolhas de RAÇA automáticas: traços (não-talento) que concedem perícia/idioma/ferramenta
     # extra via tag pick:<tipo>:<n>[ de [lista]] (ex.: humano Habilidoso pick:pericia:2). O front
     # renderiza um seletor por escolha, reativo à raça/linhagem/essência, igual às escolhas de classe.
-    _pick_re = re.compile(r'pick:(pericia|idioma|ferramenta):(\{[^}]*\}|[A-Za-z0-9_+\-]+)(?:\([^)]*\))?(?:\s+de\s+\[([^\]]*)\])?')
+    # group(3) = conteúdo do modificador `(...)` (ex.: `de:[arcanismo, intuicao]`, `swap:long_rest`);
+    # group(4) = lista pós-parêntese ` de [a, b]`. A lista `de` pode vir DENTRO dos parênteses
+    # (`pick:pericia:1(de:[arcanismo, intuicao, persuasao])`, Educação Rubedo) — antes o grupo
+    # `(?:\(...\))?` engolia isso e a lista era perdida (o front então oferecia QUALQUER perícia).
+    _pick_re = re.compile(r'pick:(pericia|idioma|ferramenta):(\{[^}]*\}|[A-Za-z0-9_+\-]+)(?:\(([^)]*)\))?(?:\s+de\s+\[([^\]]*)\])?')
 
-    def _racial_picks(qs_traits):
+    def _racial_picks(qs_traits, clas=None):
         out = []
         for t in qs_traits:
+            _cla = cla_de_traco(t, clas) if clas else ''
             for tag in (t.tags_json or []):
                 for m in _pick_re.finditer(str(tag)):
-                    de = [s.strip() for s in (m.group(3) or '').split(',') if s.strip()]
+                    de = [s.strip() for s in (m.group(4) or '').split(',') if s.strip()]
+                    if not de and m.group(3):  # forma parentética: pick:pericia:1(de:[a, b, c])
+                        md = re.search(r'de:\[([^\]]*)\]', m.group(3))
+                        if md:
+                            de = [s.strip() for s in md.group(1).split(',') if s.strip()]
                     n = _count_expr_for_level(m.group(2), 1) or 0
                     if n > 0:
-                        out.append({'tipo': m.group(1), 'n': n, 'de': de, 'fonte': t.nome})
+                        out.append({'tipo': m.group(1), 'n': n, 'de': de,
+                                    'fonte': t.nome, 'vertente': _cla})
         return out
 
     racial_choices_raca, racial_choices_linhagem, racial_choices_essencia = {}, {}, {}
@@ -3416,7 +3458,8 @@ def _criador_catalogos():
         if p:
             racial_choices_linhagem[l.slug] = p
     for e in TbEssencia.objects.all():
-        p = _racial_picks(TbTracoracial.objects.filter(id_essencia=e, nivel_requisito__lte=1).exclude(talento_racial=True))
+        p = _racial_picks(TbTracoracial.objects.filter(id_essencia=e, nivel_requisito__lte=1).exclude(talento_racial=True),
+                          clas=clas_de_essencia(e))
         if p:
             racial_choices_essencia[e.slug] = p
     # Perícias auto-concedidas (prof:<skill> em traço não-talento) por raça/linhagem/essência.
@@ -3433,20 +3476,30 @@ def _criador_catalogos():
         if g:
             pericias_concedidas_linhagem[l.slug] = g
     for e in TbEssencia.objects.all():
-        g = _pericias_concedidas(TbTracoracial.objects.filter(id_essencia=e, nivel_requisito__lte=1).exclude(talento_racial=True))
+        g = _pericias_concedidas(TbTracoracial.objects.filter(id_essencia=e, nivel_requisito__lte=1).exclude(talento_racial=True),
+                                 clas=clas_de_essencia(e))
         if g:
             pericias_concedidas_essencia[e.slug] = g
     pericias = sorted(({'slug': sl, 'nome': info[0]} for sl, info in _SKILL_INFO.items()),
                       key=lambda x: x['nome'])
+    essencias_out = []
+    for e in TbEssencia.objects.all().order_by('nome'):
+        # sub-escolha da essência: vertente elemental OU clã/herança (Vampirismo). `vertentes`
+        # mantém o nome da chave (o front já a consome); `subescolha_*` dá o rótulo dinâmico.
+        sub = _essencia_subescolha(e, vertentes_catalogo)
+        essencias_out.append({
+            'slug': e.slug, 'nome': e.nome,
+            'resumo': _criador_resumo_md(e.lore_presentation, 240),
+            'tracos': _tracos_de(TbTracoracial.objects.filter(
+                id_essencia=e, talento_racial=False, id_linhagem__isnull=True,
+                nivel_requisito__lte=1).order_by('nome')),
+            'vertentes': sub['opcoes'],
+            'subescolha_label': sub['label'],
+            'subescolha_tipo': sub['tipo']})
     from .character_engine import background_grants
     return {
         'racas': racas,
-        'essencias': [{'slug': e.slug, 'nome': e.nome, 'vertentes': _essencia_vertentes(e),
-                       'resumo': _criador_resumo_md(e.lore_presentation, 240),
-                       'tracos': _tracos_de(TbTracoracial.objects.filter(
-                           id_essencia=e, talento_racial=False, id_linhagem__isnull=True,
-                           nivel_requisito__lte=1).order_by('nome'))}
-                      for e in TbEssencia.objects.all().order_by('nome')],
+        'essencias': essencias_out,
         'vertentes': vertentes_catalogo,
         'classes': classes,
         'antecedentes': [{'slug': a.slug, 'nome': a.nome, 'grants': background_grants(a),
@@ -3938,6 +3991,19 @@ def _pendencias_talento_racial(personagem):
         if lin_sel_slug and lin_sel_slug in lins:
             return True
         return bool(aceita_ess and tem_essencia)
+    # Clã/herança de essência (Vampirismo): um talento racial de clã (Segredos Rubedo,
+    # Evolução Sybaris…) só entra no pool do clã ESCOLHIDO — senão o vampiro veria os
+    # Segredos dos cinco clãs de uma vez. Talentos compartilhados (Brumas de Velmourn,
+    # Espreitador Noturno…) valem para qualquer clã.
+    from .character_engine import clas_de_essencia, cla_de_traco, cla_escolhido
+    _clas = clas_de_essencia(personagem.id_essencia) if getattr(personagem, 'id_essencia_id', None) else []
+    _cla_sel = cla_escolhido(personagem) if _clas else ''
+
+    def _cla_ok(o):
+        if not _clas or getattr(o, 'id_essencia_id', None) != personagem.id_essencia_id:
+            return True  # traço não é da essência com clã: não filtra
+        c = cla_de_traco(o, _clas)
+        return not c or c == _cla_sel
     # count_as: raças que o personagem conta-como p/ talento_racial (Sálarin→elfo etc.),
     # herdando os talentos raciais GERAIS delas — no criador e AQUI (level-up). Os marcos
     # (tiers) passam a incluir os das raças emprestadas; as opções emprestadas já vêm
@@ -3969,6 +4035,8 @@ def _pendencias_talento_racial(personagem):
             if o.nome in seen:
                 continue
             if o.pk not in borrowed_pks and not _linhagem_ok(o):
+                continue
+            if not _cla_ok(o):
                 continue
             seen.add(o.nome)
             opcoes.append(o)
@@ -4215,7 +4283,9 @@ def _subir_nivel_experiencia(request, p):
             _sync_magias_concedidas(p)
         ficha_alvo = derive(p)
         pend = _pendencias_nivel(p)
-        pendm = _pendencias_magias(p)
+        # ciente da subclasse que será escolhida NESTE passo (third-casters: a conjuração
+        # vem da subclasse, ainda não atribuída no nível em que ela é adquirida).
+        pendm = _pendencias_magias_levelup(p, pend)
         talentos_raciais_pend = _pendencias_talento_racial(p)
         opcao_grupos = _opcao_grupos(p)
         talentos = _talentos_asi_disponiveis(p, ficha_alvo)
@@ -4705,15 +4775,20 @@ def personagem_escolher_opcoes(request, pk):
     return redirect(destino)
 
 
-def _pendencias_magias(personagem):
+def _pendencias_magias(personagem, subclasse_override=None):
     """Magias a aprender no nível atual: truques (todos casters) e magias conhecidas
-    (só known casters, com recurso 'Magias Conhecidas'), até o nível máximo conjurável."""
+    (só known casters, com recurso 'Magias Conhecidas'), até o nível máximo conjurável.
+
+    `subclasse_override`: força a subclasse-fonte da conjuração (em vez da já atribuída ao
+    personagem). Usado no level-up para computar a pendência PROSPECTIVA de um third-caster
+    (Cavaleiro/Trapaceiro Arcano) cuja subclasse ainda está sendo ESCOLHIDA no mesmo passo —
+    a conjuração vem da subclasse, e sem isto os truques do nível-alvo não apareceriam."""
     from .models import TbMagia, TbRecursoclasse, TbClassehabilidade, TbPersonagemEscolha
     pc = personagem.classes.filter(principal=True).first() or personagem.classes.first()
     if not pc:
         return None
     classe, nivel = pc.id_classe, (pc.nivel or 1)
-    subclasse = _caster_subclasse(pc)
+    subclasse = subclasse_override if subclasse_override is not None else _caster_subclasse(pc)
     spell_info = _classe_spellcasting_info(classe, nivel_habilidades=nivel, subclasse=subclasse)
     if not spell_info:
         return None
@@ -4778,7 +4853,63 @@ def _pendencias_magias(personagem):
     return {'cantrips_pend': cant_pend, 'known_pend': known_pend, 'max_nivel': maxlv,
             'lista_truques': lt, 'lista_magias': lm, 'lista_nomes': spell_info['lista_nomes'],
             'swap_level_up': swap_lvl, 'swap_disponivel': bool(swap_lvl) and not swap_usada,
-            'conhecidas': conhecidas}
+            'conhecidas': conhecidas, 'prospectiva': False, 'subclasses_prospectivas': []}
+
+
+def _pendencias_magias_levelup(personagem, pend_nivel):
+    """Pendência de magias para o WIZARD de level-up, ciente da subclasse que está prestes a
+    ser escolhida NESTE passo. Regressão do print 'Cavaleiro Arcano não deixa escolher truque':
+    para third-casters (Cavaleiro/Trapaceiro Arcano) a conjuração vem da SUBCLASSE, e no nível
+    em que a subclasse é adquirida ela ainda NÃO está atribuída — `_pendencias_magias` via
+    None e o passo de truques nunca era renderizado (a classe BASE não conjura).
+
+    Estratégia: se a pendência normal existe (classe base conjura, ou a subclasse já foi
+    atribuída), devolve-a. Senão, se há uma subclasse PENDENTE no nível-alvo, calcula a
+    pendência PROSPECTIVA para cada subclasse candidata que conjure — unindo os pools (o
+    validador de `_lvl_aplicar_aprender_magias` filtra depois pela subclasse de fato escolhida)
+    — e a marca `prospectiva=True` com a lista de slugs de subclasse que a destravam. O cliente
+    só revela o passo quando a prévia ao vivo (subclasse já no lote) confirma truques/conhecidas > 0."""
+    from .models import TbSubclasse
+    pendm = _pendencias_magias(personagem)
+    if pendm is not None:
+        return pendm
+    if not pend_nivel.get('subclasse'):
+        return None
+    pc = personagem.classes.filter(principal=True).first() or personagem.classes.first()
+    if not pc or pc.id_subclasse_id:
+        return None
+    base = None
+    truques, magias, nomes, slugs = {}, {}, [], []
+    for opt in pend_nivel.get('subclasses') or []:
+        sub = TbSubclasse.objects.filter(pk=opt['id']).first()
+        if not sub or not _classe_spellcasting_info(
+                pc.id_classe, nivel_habilidades=int(pc.nivel or 1), subclasse=sub):
+            continue
+        cand = _pendencias_magias(personagem, subclasse_override=sub)
+        if not cand or not (cand['cantrips_pend'] or cand['known_pend']):
+            continue
+        slugs.append(sub.slug)
+        if base is None:
+            base = cand
+        else:  # une contagens/pools de múltiplas subclasses conjuradoras (raro)
+            base['cantrips_pend'] = max(base['cantrips_pend'], cand['cantrips_pend'])
+            base['known_pend'] = max(base['known_pend'], cand['known_pend'])
+            base['max_nivel'] = max(base['max_nivel'], cand['max_nivel'])
+        for m in cand['lista_truques']:
+            truques.setdefault(m['slug'], m)
+        for m in cand['lista_magias']:
+            magias.setdefault(m['slug'], m)
+        for n in cand['lista_nomes']:
+            if n not in nomes:
+                nomes.append(n)
+    if base is None:
+        return None
+    base['lista_truques'] = sorted(truques.values(), key=lambda m: m['nome'])
+    base['lista_magias'] = sorted(magias.values(), key=lambda m: (m['nivel'], m['nome']))
+    base['lista_nomes'] = nomes
+    base['prospectiva'] = True
+    base['subclasses_prospectivas'] = slugs
+    return base
 
 
 _ABIL_EN = {'FOR': 'str', 'DES': 'dex', 'CON': 'con', 'INT': 'int', 'SAB': 'wis', 'CAR': 'cha'}
@@ -5755,16 +5886,23 @@ def ficha_detail_view(request, pk):
              .values_list('valor', flat=True).first()) or ''
     _vert_disp = _vert.replace('-', ' ').title()
     if _vert and p.id_essencia_id:
-        from .models import TbTracoracial
-        for tr in TbTracoracial.objects.filter(id_essencia=p.id_essencia):
-            txt = '%s\n%s' % (tr.pre_requisito or '', tr.descricao or '')
-            nomes = [m.group(1).strip() for m in re.finditer(r'Vertente\s+([A-ZÀ-Ý][A-Za-zÀ-ÿ-]+)', txt)]
-            if 'vertente' in txt.lower():
-                nomes += [m.group(1).strip() for m in re.finditer(r'^\s*[-*]\s*\*\*([A-Za-zÀ-ÿ-]+)\b', txt, re.M)]
-            achado = next((n for n in nomes if slugify(n) == _vert), None)
-            if achado:
-                _vert_disp = achado
-                break
+        # essência com clã/herança (Vampirismo): o nome bonito vem do catálogo de clãs;
+        # essência elemental: varre 'Vertente X' nos traços. Um OU outro, nunca ambos.
+        from .character_engine import clas_de_essencia
+        _cla_nome = next((c['nome'] for c in clas_de_essencia(p.id_essencia) if c['slug'] == _vert), None)
+        if _cla_nome:
+            _vert_disp = _cla_nome
+        else:
+            from .models import TbTracoracial
+            for tr in TbTracoracial.objects.filter(id_essencia=p.id_essencia):
+                txt = '%s\n%s' % (tr.pre_requisito or '', tr.descricao or '')
+                nomes = [m.group(1).strip() for m in re.finditer(r'Vertente\s+([A-ZÀ-Ý][A-Za-zÀ-ÿ-]+)', txt)]
+                if 'vertente' in txt.lower():
+                    nomes += [m.group(1).strip() for m in re.finditer(r'^\s*[-*]\s*\*\*([A-Za-zÀ-ÿ-]+)\b', txt, re.M)]
+                achado = next((n for n in nomes if slugify(n) == _vert), None)
+                if achado:
+                    _vert_disp = achado
+                    break
     _raca = p.id_raca.nome if p.id_raca_id else ''
     if p.id_essencia_id:
         _ess = re.sub(r'^ess[êe]ncia\s+', '', p.id_essencia.nome or '', flags=re.I).strip()
@@ -5849,27 +5987,36 @@ def personagem_trocar_maestria(request, pk):
         if not trocavel:
             atuais_armas = [_picks.split_arma_maestria(e.valor)[0] for e in atuais]
             pares = [(atuais_armas[i], m) for i, (_a, m) in enumerate(pares)]
+        # A duplicata proibida é o PAR (arma, maestria) — a MESMA ARMA pode repetir entre
+        # slots para aprender uma 2ª maestria dela (regra confirmada pela staff). Uma arma
+        # SEM maestrias cadastradas não tem par distinto, então aí a própria arma não repete.
         valores, vistos, ok = [], set(), True
         for arma, maestria in pares:
             u = by_slug.get(arma)
-            if not u or arma in vistos:
+            if not u:
                 ok = False
                 break
-            vistos.add(arma)
             ms = {m['slug'] for m in (u.get('maestrias') or [])}
             if ms:
-                if maestria not in ms:
+                par = (arma, maestria)
+                if maestria not in ms or par in vistos:
                     ok = False
                     break
+                vistos.add(par)
                 valores.append('%s|%s' % (arma, maestria))
             else:
+                if (arma, None) in vistos:
+                    ok = False
+                    break
+                vistos.add((arma, None))
                 valores.append(arma)
         if ok and len(valores) == n_slots:
             p.escolhas.filter(tipo='maestria').delete()
             for i, val in enumerate(valores):
                 TbPersonagemEscolha.objects.create(id_personagem=p, tipo='maestria', valor=val, slot=i)
             return redirect(reverse('ficha_detail', args=[pk]))
-        erro = 'Escolha exatamente %d arma(s), cada uma com a sua maestria.' % n_slots
+        erro = ('Escolha exatamente %d arma(s), cada uma com a sua maestria (a mesma arma pode '
+                'repetir com maestrias diferentes; não repita o mesmo par arma+maestria).' % n_slots)
     slots = []
     for i, e in enumerate(atuais):
         a, m = _picks.split_arma_maestria(e.valor)
@@ -6028,7 +6175,7 @@ def _criador_resolver(data):
     todos os objetos/valores já resolvidos para persistir; erros é a lista de pendências.
     Compartilhado por criar_personagem_view (que exige erros==[]) e pelo preview ao vivo
     (que ignora pendências de contagem e monta o subconjunto válido)."""
-    from .models import (TbItemMundano, TbOpcaojogo,
+    from .models import (TbItemMundano, TbOpcaojogo, TbTracoracial,
                          TbRaca, TbLinhagem, TbEssencia, TbClasse, TbAntecedente, TbTalento)
     from .character_engine import (_SKILL_INFO, _norm_skill_slug,
                                     background_asi_values, background_grants, ASI_SHAPES)
@@ -6183,6 +6330,49 @@ def _criador_resolver(data):
     # e sem este guard o servidor persistiria as duas em silêncio.
     if linhagem and essencia:
         erros.append('Escolha linhagem ou essência — não os dois.')
+    # Sub-escolha da essência (vertente elemental OU clã/herança do Vampirismo) é obrigatória
+    # quando a essência a define, e o valor precisa ser uma opção real — senão a ficha nasceria
+    # sem a herança (traços de clã não aplicam) ou com um clã inválido.
+    if essencia:
+        sub = _essencia_subescolha(essencia)
+        opcoes_slugs = {o['slug'] for o in sub['opcoes']}
+        if opcoes_slugs:
+            if not data.get('vertente'):
+                erros.append('Escolha %s da essência.' % sub['label'])
+            elif data.get('vertente') not in opcoes_slugs:
+                erros.append('%s inválido para esta essência.' % sub['label'])
+
+    # Cross-lock de IDIOMA no SERVIDOR (espelha o de perícias e o bloqueio do criador.js):
+    # um idioma já CONCEDIDO pela raça/traços — grant fixo `prof:idioma{X}` de um traço da
+    # raça/linhagem/essência escolhidas OU pick racial de idioma da PRÓPRIA submissão
+    # (escolhas_raca.idiomas) — NÃO pode ser re-escolhido na lista idioma/ferramenta do
+    # antecedente: senão o jogador gastaria um slot do antecedente num idioma que já tem.
+    # Antes isso só era barrado no cliente (applyLangToolRules), então um POST direto passava.
+    idiomas_raciais = set()
+    if raca:
+        _prof_idioma_re = re.compile(r'(?<![a-z_-])prof:idioma\{([^}]+)\}')
+        _menu_mk = ('define{', 'list{', 'table{', 'while_active', 'while{',
+                    'cast{', 'instant{', 'trigger=', 'action=')
+        trait_q = Q(id_raca=raca, id_linhagem__isnull=True, id_essencia__isnull=True)
+        if linhagem:
+            trait_q |= Q(id_linhagem=linhagem)
+        if essencia:
+            trait_q |= Q(id_essencia=essencia)
+        for t in TbTracoracial.objects.filter(trait_q, talento_racial=False, nivel_requisito__lte=1):
+            for tag in (t.tags_json or []):
+                s = str(tag)
+                if any(mk in s.lower() for mk in _menu_mk):
+                    continue
+                for m in _prof_idioma_re.finditer(s):
+                    idiomas_raciais.add(m.group(1).strip())
+    for nm in ((data.get('escolhas_raca') or {}).get('idiomas') or []):
+        if isinstance(nm, str) and nm.strip():
+            idiomas_raciais.add(nm.strip())
+    dup_idiomas = sorted({x.strip() for x in lt_sel
+                          if isinstance(x, str) and x.strip() in idiomas_raciais})
+    if dup_idiomas:
+        erros.append('Idioma(s) já concedido(s) pela raça/traços: %s. '
+                     'Escolha outro(s) na lista do antecedente.' % ', '.join(dup_idiomas))
 
     R = {
         'nome': nome, 'base': base, 'mais2': mais2, 'mais1': mais1, 'asi_bonus': asi_bonus,

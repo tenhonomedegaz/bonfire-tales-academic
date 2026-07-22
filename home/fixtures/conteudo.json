@@ -1360,7 +1360,7 @@
       "asi_choices{4, 8, 12, 16, 19}",
       "multiclass_req{str>=13, cha>=13}",
       "multiclass_prof{armadura_pesada, escudos, armas_simples, armas_marciais}",
-      "spellcasting{ability:cha, slots:half, lista:paladino, prepara:conhecidas, foco:simbolo_sagrado}",
+      "spellcasting{ability:cha, slots:half, lista:paladino, prepara:preparadas, foco:simbolo_sagrado, prep_limite:cha_mod+rounddown(classlvl/2)}",
       "prof{armadura_leve, armadura_media, armadura_pesada, escudos, armas_simples, armas_marciais}"
     ]
   }
@@ -9806,7 +9806,7 @@
     "id_classe": 4,
     "id_subclasse": null,
     "nome": "Domínio da Caçada",
-    "descricao": "*Caçar nunca foi só encontrar a presa; é aceitar que ela já estava morta desde o momento em que eu a escolhi. As presas não lutam contra mim — elas tentam escapar de um fim que já está escrito. Sou o ponto final da trilha.*\n  Você se torna a força de eliminação definitiva. Estas características aplicam-se contra qualquer criatura que esteja atualmente afetada por um dos seus **[Segredos de Caçador](tbClassehabilidade, cacador, segredos-de-cacador)** (armadilhas, venenos, marcas, etc).\n- **Pressão Constante:** A criatura afetada tem **Desvantagem** em todas as jogadas de ataque contra você.\n- **Terceiro [Golpe Certeiro](tbMagia, golpe-certeiro):** Quando você usar a **Ação de Ataque** e atacar a criatura afetada, você pode realizar **1 ataque adicional** como parte da mesma ação (totalizando 3 ataques). Este [ataque extra](tbClassehabilidade, guerreiro, ataque-extra) deve ser direcionado a uma criatura sob efeito de seus Segredos.\n- **Instinto Acima de Tudo:** Sempre que a criatura afetada forçar você a realizar um **Teste de Resistência** ou um **Teste de Habilidade** (como tentar agarrá-lo ou empurrá-lo), você tem **Vantagem** no teste.",
+    "descricao": "*Caçar nunca foi só encontrar a presa; é aceitar que ela já estava morta desde o momento em que eu a escolhi. As presas não lutam contra mim — elas tentam escapar de um fim que já está escrito. Sou o ponto final da trilha.*\n  Você se torna a força de eliminação definitiva. Estas características aplicam-se contra qualquer criatura que esteja atualmente afetada por um dos seus **[Segredos de Caçador](tbClassehabilidade, cacador, segredos-de-cacador)** (armadilhas, venenos, marcas, etc).\n- **Pressão Constante:** A criatura afetada tem **Desvantagem** em todas as jogadas de ataque contra você.\n- **Terceiro Golpe Certeiro:** Quando você usar a **Ação de Ataque** e atacar a criatura afetada, você pode realizar **1 ataque adicional** como parte da mesma ação (totalizando 3 ataques). Este [ataque extra](tbClassehabilidade, guerreiro, ataque-extra) deve ser direcionado a uma criatura sob efeito de seus Segredos.\n- **Instinto Acima de Tudo:** Sempre que a criatura afetada forçar você a realizar um **Teste de Resistência** ou um **Teste de Habilidade** (como tentar agarrá-lo ou empurrá-lo), você tem **Vantagem** no teste.",
     "niveladquirido": 20,
     "table_only": false,
     "tags_json": [
@@ -19735,34 +19735,6 @@
       "18": "20",
       "19": "21",
       "20": "22"
-    },
-    "tipo": "choice",
-    "reset": null
-  }
-},
-{
-  "model": "home.tbrecursoclasse",
-  "pk": 3774,
-  "fields": {
-    "id_classe": 13,
-    "id_subclasse": null,
-    "nome": "Magias Conhecidas",
-    "slug": "magias-conhecidas",
-    "nivel": null,
-    "valor": null,
-    "valores_json": {
-      "1": "2",
-      "2": "3",
-      "3": "4",
-      "4": "5",
-      "5": "6",
-      "7": "7",
-      "9": "9",
-      "11": "10",
-      "13": "11",
-      "15": "12",
-      "17": "14",
-      "19": "15"
     },
     "tipo": "choice",
     "reset": null
@@ -38035,7 +38007,7 @@
     "etiqueta": "combate",
     "etiquetas_adicionais": "Dano, Ataque Desarmado",
     "pre_requisito": "",
-    "descricao": "*\"Para alguns, uma cadeira quebrada é lixo; para mim, é uma oportunidade. Eu não preciso de uma espada para vencer uma guerra, eu só preciso que você esteja ao alcance das minhas mãos.\"*\r\nVocê é naturalmente inato a utilizar objetos simples como armas, o que lhe confere os seguintes benefícios:\r\n\r\n- **Golpe Desarmado Aprimorado.** Quando você acerta com seu Golpe Desarmado Aprimorado e causa dano, você pode causar dano Contundente igual a 1d6 + seu modificador de Força em vez do dano normal de um Golpe Desarmado. Caso seus ataques desarmados já causem dano igual ou superior a essa quantidade, ao invés disso eles passam a causar +1 de dano adicional.\r\n- **Armamento improvisado.** Você tem proficiência com armas improvisadas.\r\n- **[Golpe Certeiro](tbMagia, golpe-certeiro):** Sempre que você rolar um dado de dano do seu Golpe Desarmado, você pode rolar novamente o dado de dano se o resultado da rolagem for 1 e deve usar o novo resultado da rolagem.\r\n- **Maestria Desarmada:** Você ganha a maestria de arma Push (Empurrar) para seus ataques desarmados.",
+    "descricao": "*\"Para alguns, uma cadeira quebrada é lixo; para mim, é uma oportunidade. Eu não preciso de uma espada para vencer uma guerra, eu só preciso que você esteja ao alcance das minhas mãos.\"*\r\nVocê é naturalmente inato a utilizar objetos simples como armas, o que lhe confere os seguintes benefícios:\r\n\r\n- **Golpe Desarmado Aprimorado.** Quando você acerta com seu Golpe Desarmado Aprimorado e causa dano, você pode causar dano Contundente igual a 1d6 + seu modificador de Força em vez do dano normal de um Golpe Desarmado. Caso seus ataques desarmados já causem dano igual ou superior a essa quantidade, ao invés disso eles passam a causar +1 de dano adicional.\r\n- **Armamento improvisado.** Você tem proficiência com armas improvisadas.\r\n- **Golpe Certeiro:** Sempre que você rolar um dado de dano do seu Golpe Desarmado, você pode rolar novamente o dado de dano se o resultado da rolagem for 1 e deve usar o novo resultado da rolagem.\r\n- **Maestria Desarmada:** Você ganha a maestria de arma Push (Empurrar) para seus ataques desarmados.",
     "atrib_forca": false,
     "atrib_destreza": false,
     "atrib_constituicao": false,

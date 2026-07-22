@@ -30,6 +30,13 @@
   var statusEl = document.getElementById('sn-prev-status');
   var allSteps = Array.prototype.slice.call(main.querySelectorAll('.cf-step[data-step]'));
 
+  // Passo de MAGIAS prospectivo (third-caster: Cavaleiro/Trapaceiro Arcano). A conjuração vem
+  // da subclasse escolhida NESTE passo, então o passo já é renderizado com o pool, mas fica
+  // FORA do fluxo até a prévia ao vivo (subclasse no lote) confirmar truques/conhecidas > 0.
+  var magiasStep = main.querySelector('.cf-step[data-step="magias"]');
+  var magiasProspectiva = !!(magiasStep && magiasStep.dataset.prospectiva === '1');
+  var magiasUnlocked = !magiasProspectiva;   // passo não-prospectivo já nasce ativo
+
   // ================= helpers =================
   function esc(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
   function optText(sel) { var o = sel && sel.options[sel.selectedIndex]; return o ? o.text.trim() : (sel ? sel.value : ''); }
@@ -52,6 +59,8 @@
     return allSteps.filter(function (s) {
       var slug = s.dataset.step;
       if (mode === 'mc' && CHOICE_STEPS.indexOf(slug) !== -1) return false;
+      // passo de magias prospectivo só entra no fluxo quando destravado pela prévia ao vivo
+      if (slug === 'magias' && magiasProspectiva && !magiasUnlocked) return false;
       return true;
     });
   }
@@ -318,7 +327,32 @@
     if (pend.known_pend) items.push(pend.known_pend + ' magia(s)');
     return items;
   }
+  // Destrava/atualiza o passo de magias prospectivo conforme a prévia ao vivo (que já aplicou
+  // a subclasse escolhida no lote). Sem subclasse conjuradora, cantrips/known voltam a 0 e o
+  // passo some do fluxo — a seleção pendente é limpa p/ não vazar no lote.
+  function syncMagiasProspectiva(pend) {
+    if (!magiasProspectiva || !magiasStep) return;
+    var card = magiasStep.querySelector('[data-lvl-card="aprender_magias"]');
+    var cant = pend ? (+pend.cantrips_pend || 0) : 0;
+    var known = pend ? (+pend.known_pend || 0) : 0;
+    if (card) { card.dataset.cantrips = cant; card.dataset.known = known; }
+    var unlock = cant > 0 || known > 0;
+    if (unlock !== magiasUnlocked) {
+      magiasUnlocked = unlock;
+      if (!unlock) {  // trocou p/ subclasse não-conjuradora: limpa seleção e tira do lote
+        if (card) [].forEach.call(card.querySelectorAll('input[type="checkbox"]:checked'),
+          function (b) { b.checked = false; });
+        lote = lote.filter(function (a) { return a.key !== 'aprender_magias'; });
+        renderReview();
+      }
+      if (current >= activeSteps().length) current = activeSteps().length - 1;
+      renderStepper(); showCurrent();
+    }
+    renderCards();  // re-enforça contagens/badge com os novos data-cantrips/known
+  }
+
   function applyPend(pend) {
+    syncMagiasProspectiva(pend);
     var secEl = document.querySelector('[data-prev-pend-sec]'), box = document.querySelector('[data-prev-pend]');
     var items = pendItems(pend);
     if (box) box.innerHTML = items.length ? items.map(function (x) { return '<span class="lvl-badge">' + esc(x) + '</span>'; }).join('') : '<span class="lvl-prev-ok">Sem pendências ✓</span>';

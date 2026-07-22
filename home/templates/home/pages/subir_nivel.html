@@ -231,7 +231,15 @@
 
       {# ======================= ETAPA: NOVAS MAGIAS ======================= #}
       {% if pend_magias and pend_magias.cantrips_pend or pend_magias.known_pend %}
-      <section class="cf-step space-y-3" data-step="magias" data-step-name="Magias" hidden>
+      {% comment %}
+        PROSPECTIVA: para third-casters (Cavaleiro/Trapaceiro Arcano) cuja subclasse é
+        escolhida NESTE mesmo passo, o passo já é renderizado (com o pool da lista da
+        subclasse), mas fica FORA do fluxo até a prévia ao vivo confirmar truques/conhecidas
+        > 0 — só destrava quando a subclasse conjuradora entra no lote. data-subclasses guarda
+        os slugs que o destravam (informativo).
+      {% endcomment %}
+      <section class="cf-step space-y-3" data-step="magias" data-step-name="Magias" hidden
+               {% if pend_magias.prospectiva %}data-prospectiva="1" data-subclasses="{{ pend_magias.subclasses_prospectivas|join:',' }}"{% endif %}>
         <h2 class="sn-step-title">Novas Magias</h2>
         <p class="sn-step-sub">Aprenda os truques e magias que este nível concede.</p>
         <div class="lvl-card" data-lvl-card="aprender_magias"
@@ -261,10 +269,12 @@
       {% endif %}
 
       {# ======================= ETAPA: TROCAR MAGIA (opcional) ======================= #}
-      {# Só o conjurador CONHECIDO (swap_level_up) com magia na estante (conhecidas) vê a etapa.
-         Conjurador PREPARADO (Mago) não tem swap_level_up → nada aqui. Quando a troca do nível
-         já foi usada, mostra o aviso no lugar do seletor. É opcional/pulável — o `trocar_magia`
-         entra no LOTE e o orquestrador o aplica (truque↔truque, conhecida↔conhecida, teto). #}
+      {% comment %}
+        Só o conjurador CONHECIDO (swap_level_up) com magia na estante (conhecidas) vê a etapa.
+        Conjurador PREPARADO (Mago) não tem swap_level_up → nada aqui. Quando a troca do nível
+        já foi usada, mostra o aviso no lugar do seletor. É opcional/pulável — o `trocar_magia`
+        entra no LOTE e o orquestrador o aplica (truque↔truque, conhecida↔conhecida, teto).
+      {% endcomment %}
       {% if pend_magias.swap_level_up and pend_magias.conhecidas %}
       <section class="cf-step space-y-3" data-step="troca_magia" data-step-name="Trocar magia" hidden>
         <h2 class="sn-step-title">Trocar uma magia conhecida</h2>

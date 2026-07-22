@@ -13,8 +13,9 @@ Cobre as três correções do laudo:
      O APPLY (validação do lote) lê o MESMO `_pendencias_magias` — logo o mesmo teto.
 
   2. Troca de magia ao subir de nível: INFERIDA quando o spellcasting é `prepara:conhecidas`
-     (Cavaleiro Arcano — sem tag `swap:level_up` no dado) e NÃO quando é `prepara:preparadas`
-     (Mago). A tag explícita (Paladino) coexiste com a inferência.
+     (Cavaleiro Arcano — sem tag `swap:level_up` no dado; Bardo — caster conhecido) e NÃO
+     quando é `prepara:preparadas` (Mago; Paladino — decisão do PO: conjurador PREPARADO que
+     re-prepara livre a cada descanso, sem swap e sem coluna de "magias conhecidas").
 
   3. Adepto da Veste Negra: `spell_selection:any{nivel:2, escola:{encantamento | necromancia}}`
      + `cast{spell:spell_selection}` oferece a escolha de 1 magia de 2º ciclo de encantamento
@@ -111,9 +112,11 @@ class SwapInferidoTests(_MagiaBase):
         # prepara:preparadas (re-prepara livre a cada descanso) → NÃO troca ao subir.
         self.assertFalse(self._swap(self._com_classe('mago', 7, nome='magoswap')))
 
-    def test_paladino_tag_e_inferencia_concordam(self):
-        # Paladino tem tag swap:level_up E é prepara:conhecidas — ambos apontam True.
-        self.assertTrue(self._swap(self._com_classe('paladino', 9, nome='palswap')))
+    def test_paladino_preparadas_nao_ve_swap(self):
+        # Decisão do PO: Paladino é conjurador PREPARADO (prepara:preparadas, re-prepara a cada
+        # descanso longo) → NÃO troca ao subir de nível. O swap saiu junto com a coluna de
+        # "magias conhecidas"; a inferência por prepara:preparadas já garante o False.
+        self.assertFalse(self._swap(self._com_classe('paladino', 9, nome='palnoswap')))
 
 
 class AdeptoDasVestesTests(_MagiaBase):
@@ -195,18 +198,20 @@ class TrocaMagiaGateTests(_MagiaBase):
     libera outra troca; personagens ANTIGOS (sem registro) ganham a troca do nível atual."""
 
     def _caster(self, nivel=9, nome='swapper'):
-        """Paladino (known caster: swap:level_up + prepara:conhecidas) com 1 magia conhecida
+        """Bardo (known caster: prepara:conhecidas → swap por inferência) com 1 magia conhecida
         pronta para trocar. Devolve (p, old_slug, new_slug): `old` é a conhecida a remover,
-        `new` uma magia da lista da classe ainda não conhecida (dentro do teto)."""
-        p = self._com_classe('paladino', nivel, nome=nome)
+        `new` uma magia da lista da classe ainda não conhecida (dentro do teto). (Antes usava
+        Paladino; após a decisão do PO ele virou PREPARADO — sem swap — então o veículo do
+        gate de troca passou a um caster que ainda CONHECE magias.)"""
+        p = self._com_classe('bardo', nivel, nome=nome)
         pend = views._pendencias_magias(p)
-        self.assertTrue(pend['swap_level_up'], 'paladino deveria permitir troca ao subir de nível')
+        self.assertTrue(pend['swap_level_up'], 'bardo deveria permitir troca ao subir de nível')
         opcoes = [m['slug'] for m in pend['lista_magias']]
         self.assertGreaterEqual(len(opcoes), 2, 'pool de magias insuficiente para o teste')
         old_slug, new_slug = opcoes[0], opcoes[1]
         mg = TbMagia.objects.get(slug=old_slug)
         TbPersonagemMagia.objects.create(id_personagem=p, id_magia=mg, nivel=mg.nivel,
-                                         nome=mg.nome, preparada=True, origem='Paladino')
+                                         nome=mg.nome, preparada=True, origem='Bardo')
         return p, old_slug, new_slug
 
     def test_primeira_troca_aplica_e_registra(self):
@@ -289,3 +294,102 @@ class TrocaMagiaGateTests(_MagiaBase):
         p.nivel += 1
         p.save(update_fields=['nivel'])
         self.assertTrue(views._pendencias_magias(p)['swap_disponivel'])
+
+
+class PaladinoPreparadoTests(_MagiaBase):
+    """Decisão do PO: o Paladino é conjurador PREPARADO, não "conhecido". A tag virou
+    `spellcasting{... prepara:preparadas, prep_limite:cha_mod+rounddown(classlvl/2)}` (fórmula
+    extraída da DESCRIÇÃO: "modificador de Carisma + metade do nível de Paladino, mínimo de
+    uma magia") e a coluna de recurso "magias-conhecidas" saiu do catálogo. Verificado aqui:
+      • painel de PREPARADAS mostra o limite REAL da fórmula (Carisma + metade do nível);
+      • sem pendência de "magias conhecidas" no level-up (known_pend == 0);
+      • sem troca de magia ao subir de nível (swap_level_up False — o swap saiu junto);
+      • RECONCILIAÇÃO: paladino com MAIS magias que o limite (era "conhecido") não é deletado —
+        o painel marca todas (deixa desmarcar) e só o SAVE trunca ao limite."""
+
+    def _paladino(self, nivel=5, carisma=16, nome='pal'):
+        u = self._novo_usuario('pal-%s' % nome, staff=False)
+        p = TbPersonagem.objects.create(
+            dono=u, nome=nome, nivel=nivel,
+            forca=13, destreza=12, constituicao=14, inteligencia=10, sabedoria=10, carisma=carisma)
+        classe = TbClasse.objects.get(slug='paladino')
+        TbPersonagemClasse.objects.create(
+            id_personagem=p, id_classe=classe, nivel=nivel, principal=True)
+        return p
+
+    def _prep_info(self, p):
+        from home.character_engine import derive
+        info = views._magias_preparadas_info(p, derive(p))
+        self.assertIsNotNone(info, 'Paladino deveria expor o painel de magias PREPARADAS')
+        return info
+
+    def test_spellcasting_e_preparado_com_formula(self):
+        classe = TbClasse.objects.get(slug='paladino')
+        info = views._classe_spellcasting_info(classe, nivel_habilidades=5)
+        self.assertEqual(info['prepara'], 'preparadas')
+        self.assertEqual(info['prep_formula'], 'cha_mod+rounddown(classlvl/2)')
+
+    def test_limite_formula_carisma_mais_metade_nivel(self):
+        # N5, CAR 16 (mod +3): limite = 3 + rounddown(5/2)=2 -> 5. Teto de círculo = 2 (half@nv5).
+        info = self._prep_info(self._paladino(nivel=5, carisma=16))
+        self.assertEqual(info['classe'], 'Paladino')
+        self.assertEqual(info['limite'], 5)
+        self.assertEqual(info['max_nivel'], 2)
+        self.assertTrue(info['grupos'])
+        self.assertTrue(all(g['nivel'] <= 2 for g in info['grupos']))
+
+    def test_limite_minimo_uma_magia(self):
+        # CAR baixo em nível baixo não zera: piso de 1 magia (max(1, ...) da fórmula/PHB).
+        # N2, CAR 8 (mod -1): -1 + rounddown(2/2)=1 -> 0 -> piso 1.
+        info = self._prep_info(self._paladino(nivel=2, carisma=8, nome='minimo'))
+        self.assertEqual(info['limite'], 1)
+
+    def test_sem_pendencia_de_conhecidas_e_sem_swap(self):
+        pend = views._pendencias_magias(self._paladino(nivel=5, carisma=16, nome='pend'))
+        self.assertIsNotNone(pend)
+        self.assertEqual(pend['known_pend'], 0)     # a coluna "magias conhecidas" saiu
+        self.assertFalse(pend['swap_level_up'])     # preparado re-prepara, não troca ao subir
+
+    def test_preparar_ate_o_limite_pelo_endpoint(self):
+        p = self._paladino(nivel=5, carisma=16, nome='save')
+        info = self._prep_info(p)
+        pool = [m['slug'] for g in info['grupos'] for m in g['magias']]
+        self.assertGreaterEqual(len(pool), info['limite'])
+        self.client.force_login(p.dono)
+        resp = self.client.post(reverse('personagem_preparar_magias', args=[p.pk]),
+                                data={'magia': pool[:info['limite']]})
+        self.assertEqual(resp.status_code, 302, resp.content)
+        self.assertEqual(
+            p.magias.filter(nivel__gte=1, preparada=True, sempre_preparada=False).count(),
+            info['limite'])
+
+    def test_endpoint_trunca_excesso_no_save(self):
+        p = self._paladino(nivel=5, carisma=16, nome='trunca')
+        info = self._prep_info(p)
+        pool = [m['slug'] for g in info['grupos'] for m in g['magias']]
+        excesso = info['limite'] + 3
+        self.assertGreaterEqual(len(pool), excesso)
+        self.client.force_login(p.dono)
+        self.client.post(reverse('personagem_preparar_magias', args=[p.pk]),
+                         data={'magia': pool[:excesso]})
+        self.assertEqual(
+            p.magias.filter(nivel__gte=1, preparada=True, sempre_preparada=False).count(),
+            info['limite'])   # o SAVE trunca ao limite
+
+    def test_reconciliacao_excesso_nao_deleta_e_aparece_marcado(self):
+        # Simula um paladino ANTIGO (era "conhecido") com MAIS magias que o novo limite: as magias
+        # atuais viram o conjunto preparado. Só LER o painel NÃO deleta nada; todas vêm marcadas.
+        p = self._paladino(nivel=5, carisma=16, nome='reconc')
+        info = self._prep_info(p)
+        pool = [m['slug'] for g in info['grupos'] for m in g['magias']]
+        excesso = info['limite'] + 2
+        self.assertGreaterEqual(len(pool), excesso)
+        for slug in pool[:excesso]:
+            mg = TbMagia.objects.get(slug=slug)
+            TbPersonagemMagia.objects.create(id_personagem=p, id_magia=mg, nivel=mg.nivel,
+                                             nome=mg.nome, preparada=True, origem='Paladino')
+        info2 = self._prep_info(p)
+        self.assertEqual(info2['preparadas_count'], excesso)          # nada deletado ao ler
+        self.assertGreater(info2['preparadas_count'], info2['limite'])
+        marcadas = {m['slug'] for g in info2['grupos'] for m in g['magias'] if m['marcada']}
+        self.assertEqual(marcadas, set(pool[:excesso]))               # painel marca todas

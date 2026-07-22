@@ -421,6 +421,108 @@ class Maestria2NiveisTests(_CriadorBase):
         self.assertTrue(all(m['maestria'] and not m['maestria_pendente']
                             for m in ficha['maestrias_armas']))
 
+    # ══ regra da staff (Gaz+Arna): a MESMA ARMA pode ocupar slots diferentes p/ aprender
+    #    uma 2ª maestria dela; a duplicata proibida é o PAR (arma, maestria), não a arma. ══
+    def test_validate_mesma_arma_duas_maestrias_ok(self):
+        from home import picks
+        from home.picks import _arma_universe
+        w = self._arma_com_maestrias()
+        self.assertGreaterEqual(len(w['maestrias']), 2)
+        m0, m1 = w['maestrias'][0]['slug'], w['maestrias'][1]['slug']
+        g = {'n': 2, 'universo': _arma_universe({})}
+        # mesma arma, maestrias DIFERENTES -> aceito (aprende as duas, uma por ataque)
+        self.assertEqual(picks.PICK_REGISTRY['arma']['validate'](
+            g, ['%s|%s' % (w['slug'], m0), '%s|%s' % (w['slug'], m1)]), [])
+
+    def test_validate_mesmo_par_duas_vezes_recusado(self):
+        from home import picks
+        from home.picks import _arma_universe
+        w = self._arma_com_maestrias()
+        m0 = w['maestrias'][0]['slug']
+        g = {'n': 2, 'universo': _arma_universe({})}
+        # mesmo PAR (arma+maestria) repetido -> recusado (não completa 2 pares distintos)
+        self.assertTrue(picks.PICK_REGISTRY['arma']['validate'](
+            g, ['%s|%s' % (w['slug'], m0), '%s|%s' % (w['slug'], m0)]))
+
+    def test_validate_legado_uma_arma_uma_maestria_intacto(self):
+        from home import picks
+        from home.picks import _arma_universe
+        w = self._arma_com_maestrias()
+        m0 = w['maestrias'][0]['slug']
+        g = {'n': 1, 'universo': _arma_universe({})}
+        self.assertEqual(picks.PICK_REGISTRY['arma']['validate'](
+            g, ['%s|%s' % (w['slug'], m0)]), [])
+
+    def test_derive_e_perfil_listam_as_duas_maestrias_da_mesma_arma(self):
+        from home.character_engine import derive, _mapa_maestria_por_arma
+        from home.models import TbPersonagemEscolha
+        p = self._guerreiro()
+        w = self._arma_com_maestrias()
+        m0, m1 = w['maestrias'][0], w['maestrias'][1]
+        TbPersonagemEscolha.objects.create(id_personagem=p, tipo='maestria', slot=0,
+                                           valor='%s|%s' % (w['slug'], m0['slug']))
+        TbPersonagemEscolha.objects.create(id_personagem=p, tipo='maestria', slot=1,
+                                           valor='%s|%s' % (w['slug'], m1['slug']))
+        ficha = derive(p)
+        entradas = [e for e in ficha['maestrias_armas'] if e.get('slug') == w['slug']]
+        self.assertEqual(len(entradas), 2)                      # a arma aparece nos 2 slots
+        self.assertTrue(all(e['encontrada'] and e['maestria'] for e in entradas))
+        self.assertFalse(ficha['maestria_pendente'])
+        # perfil de ataque lista AS DUAS maestrias aprendidas da arma
+        mp = _mapa_maestria_por_arma(ficha['maestrias_armas'])
+        self.assertEqual(set(mp.get(w['slug']) or []), {m0['nome'], m1['nome']})
+
+    def _dois_slots_legado(self, p, w):
+        from home.models import TbPersonagemEscolha
+        TbPersonagemEscolha.objects.create(id_personagem=p, tipo='maestria', slot=0, valor=w['slug'])
+        TbPersonagemEscolha.objects.create(id_personagem=p, tipo='maestria', slot=1, valor=w['slug'])
+
+    def test_painel_mesma_arma_dois_slots_maestrias_diferentes(self):
+        from home.character_engine import derive
+        p = self._guerreiro()
+        w = self._arma_com_maestrias()
+        m0, m1 = w['maestrias'][0]['slug'], w['maestrias'][1]['slug']
+        self._dois_slots_legado(p, w)                          # 2 slots pendentes, MESMA arma
+        url = reverse('personagem_trocar_maestria', args=[p.pk])
+        self.client.force_login(p.dono)
+        self.assertEqual(self.client.get(url).status_code, 200)
+        resp = self.client.post(url, {'arma_0': w['slug'], 'maestria_0': m0,
+                                      'arma_1': w['slug'], 'maestria_1': m1})
+        self.assertEqual(resp.status_code, 302)
+        vals = sorted(e.valor for e in p.escolhas.filter(tipo='maestria'))
+        self.assertEqual(vals, sorted(['%s|%s' % (w['slug'], m0), '%s|%s' % (w['slug'], m1)]))
+        self.assertFalse(derive(p)['maestria_pendente'])
+
+    def test_painel_recusa_par_duplicado(self):
+        p = self._guerreiro()
+        w = self._arma_com_maestrias()
+        m0 = w['maestrias'][0]['slug']
+        self._dois_slots_legado(p, w)
+        url = reverse('personagem_trocar_maestria', args=[p.pk])
+        self.client.force_login(p.dono)
+        resp = self.client.post(url, {'arma_0': w['slug'], 'maestria_0': m0,
+                                      'arma_1': w['slug'], 'maestria_1': m0})
+        self.assertEqual(resp.status_code, 200)                # re-renderiza com erro
+        vals = [e.valor for e in p.escolhas.filter(tipo='maestria').order_by('slot')]
+        self.assertEqual(vals, [w['slug'], w['slug']])         # inalterado (segue legado)
+
+    def test_criador_e2e_mesma_arma_duas_maestrias(self):
+        from home.character_engine import derive
+        payload = self._payload('guerreiro')                   # guerreiro: 3 slots de maestria
+        w = self._arma_com_maestrias()
+        outra = next(x for x in self._armas_com_maestrias() if x['slug'] != w['slug'])
+        payload['maestrias'] = ['%s|%s' % (w['slug'], w['maestrias'][0]['slug']),
+                                '%s|%s' % (w['slug'], w['maestrias'][1]['slug']),
+                                '%s|%s' % (outra['slug'], outra['maestrias'][0]['slug'])]
+        resp = self._post_criar(self._novo_usuario('e2e-2mast', staff=True), payload)
+        self.assertEqual(resp.status_code, 200, resp.content)
+        p = TbPersonagem.objects.get(pk=resp.json()['id'])
+        self.assertEqual(p.escolhas.filter(tipo='maestria').count(), 3)
+        ficha = derive(p)
+        entradas = [e for e in ficha['maestrias_armas'] if e.get('slug') == w['slug']]
+        self.assertEqual(len(entradas), 2)                     # a mesma arma nasceu com 2 maestrias
+        self.assertTrue(all(e['maestria'] and not e['maestria_pendente'] for e in entradas))
+
 
 class Bug4VertenteMagiaTests(_CriadorBase):
     """BUG-4 (verificação): o caminho essência/vertente → magia é CONSISTENTE no N1.
@@ -2110,6 +2212,51 @@ class Item2PicksRaciaisPericiaPersistemTests(_CriadorBase):
         self.assertEqual((grupos[0]['usados'], grupos[0]['pendentes']), (2, 0))
 
 
+class CrossLockIdiomaServerTests(_CriadorBase):
+    """Cross-lock de IDIOMA no SERVIDOR (não só no criador.js): um idioma escolhido como
+    pick racial (escolhas_raca.idiomas) NÃO pode ser re-escolhido na lista idioma/ferramenta
+    do antecedente — o POST direto que furava o bloqueio do cliente agora é recusado com
+    mensagem clara; um idioma NOVO no antecedente continua passando.
+
+    (humano tem picks raciais de idioma: 'Poliglota' pick:idioma:2 e 'Prodígio Nato'
+    pick:{ferramenta|idioma}:2 — o cenário real do bug reportado.)"""
+
+    def _payload_humano_idioma(self, racial_idioma, antec_idiomas):
+        # acolito concede 2 idiomas/ferramentas — antec_idiomas deve ter exatamente 2.
+        payload = self._payload('guerreiro', raca_slug='humano', antec_slug='acolito')
+        payload['idiomas_ferramentas'] = list(antec_idiomas)
+        payload['escolhas_raca'] = {'pericias': ['intimidacao', 'religiao'],
+                                    'idiomas': list(racial_idioma), 'ferramentas': []}
+        return payload
+
+    def test_idioma_duplicado_raca_x_antecedente_recusado(self):
+        # 'Élfico' pego como pick racial E de novo na lista do antecedente → recusado (400).
+        payload = self._payload_humano_idioma(['Élfico'], ['Élfico', 'Anão'])
+        resp = self._post_criar(self._novo_usuario('xlock-dup', staff=True), payload)
+        self.assertEqual(resp.status_code, 400, resp.content)
+        body = resp.json()
+        self.assertFalse(body.get('ok'), body)
+        self.assertTrue(any('já concedido' in e and 'Élfico' in e for e in body.get('erros', [])), body)
+
+    def test_idioma_novo_no_antecedente_ok(self):
+        # Mesmo pick racial ('Élfico'), mas o antecedente escolhe idiomas DIFERENTES → passa (200).
+        payload = self._payload_humano_idioma(['Élfico'], ['Enânico', 'Órquico'])
+        resp = self._post_criar(self._novo_usuario('xlock-ok', staff=True), payload)
+        self.assertEqual(resp.status_code, 200, resp.content)
+        body = resp.json()
+        self.assertTrue(body.get('ok'), body)
+        p = TbPersonagem.objects.get(pk=body['id'])
+        # o idioma do antecedente e o pick racial coexistem, sem colisão
+        idiomas = set(p.proficiencias.filter(tipo='idioma').values_list('nome', flat=True))
+        self.assertTrue({'Enânico', 'Órquico'} <= idiomas, idiomas)
+
+    def test_resolver_marca_erro_de_idioma_duplicado(self):
+        # Unidade direta no _criador_resolver: o erro de idioma duplicado é acumulado.
+        payload = self._payload_humano_idioma(['Élfico'], ['Élfico', 'Anão'])
+        _R, erros = views._criador_resolver(payload)
+        self.assertTrue(any('já concedido' in e for e in erros), erros)
+
+
 class Item3PickTalentoTests(_CriadorBase):
     """Item 3: kind 'talento' no PICK_REGISTRY — 'Determinacao Comum' (linhagem Erthari,
     pick:talento:1(=talento_de_origem)) e 'Raizes Profundas' (pick:talento:1(tipo:origem,
@@ -2306,13 +2453,16 @@ class ConjuradorDeGuerraPrereqTests(_CriadorBase):
 
 class MarcasArcanasPipelineTests(_CriadorBase):
     """Pipeline das Marcas Arcanas/Anomalas ponta-a-ponta (laudo das Marcas). Consolida os
-    quatro achados:
-      1. DETECTOR UNICO (character_engine._personagem_conjura): falso-positivo do Ladino
-         morto (subclasse que ele NAO tem), conjurador por essencia reconhecido, delegacao
-         de views intacta.
-      2. TWO-PASS em magias_concedidas: um NAO-conjurador que pega a Marca materializa a
-         magia sempre-preparada E ve a lista expandida (requires:spellcasting) NO MESMO
-         derive — sem esperar o ciclo de persistencia.
+    achados:
+      1. DETECTOR UNIVERSAL (character_engine._personagem_conjura, pre-requisito de talento):
+         falso-positivo do Ladino morto (subclasse que ele NAO tem), conjurador por essencia
+         reconhecido, delegacao de views intacta.
+      2. GATE `requires:spellcasting` das LISTAS DE DECRETO = CONJURACAO REAL
+         (character_engine._conjuracao_real): um NAO-conjurador que pega a Marca recebe SO as
+         `cast{}` diretas — a lista expandida fica VAZIA (magia meramente concedida NAO abre o
+         portao). Conjurador REAL abre o portao MAS respeita o TETO de nivel conjuravel
+         (`_teto_nivel_conjuravel`): so materializa magia da lista ate o nivel que ele consegue
+         conjurar; ao subir de nivel, as novas que passam a caber entram.
       3. PONTE DE SLUG _<->-: a magia multi-palavra `fogo-das-fadas` da lista de decreto
          (que vinha como `fogo_das_fadas`) deixa de sumir em silencio.
       4. GATES DE PRE-REQUISITO: 2a Marca recusada (exclusao mutua) e Superior sem/ com base.
@@ -2341,30 +2491,76 @@ class MarcasArcanasPipelineTests(_CriadorBase):
         TbPersonagemTalento.objects.create(id_personagem=p, id_talento=t, nome=t.nome)
         return t
 
-    # ── 2 + 3: pipeline completo de um NAO-conjurador ──
-    def test_marca_nao_conjurador_pipeline_completo(self):
-        from home.character_engine import magias_concedidas, _personagem_conjura
+    def _caster(self, nivel=3, classe='mago'):
+        """Conjurador REAL single-class (classe base conjuradora), sem magia persistida ainda."""
+        cl = TbClasse.objects.get(slug=classe)
+        p = TbPersonagem.objects.create(
+            dono=self._usr(), nome='Caster', nivel=nivel,
+            forca=8, destreza=13, constituicao=14, inteligencia=15, sabedoria=12, carisma=10)
+        TbPersonagemClasse.objects.create(
+            id_personagem=p, id_classe=cl, nivel=nivel, principal=True)
+        return p
+
+    # ── 2 + 3: NAO-conjurador com Marca → SO as cast{} diretas, lista expandida VAZIA ──
+    def test_marca_nao_conjurador_so_casts_diretas(self):
+        from home.character_engine import (magias_concedidas, _personagem_conjura,
+                                            _conjuracao_real)
         p = self._marcial(nivel=4)                       # barbaro N4: NAO conjura
         self._pega_talento(p, 'Marca Arcana da Busca')   # via Raizes Profundas (origem)
-        # detector permanece FALSE (sem magia persistida ainda): quem abre o portao e o
-        # two-pass (a propria Marca concede magia), nao o detector.
-        self.assertFalse(_personagem_conjura(p))
+        self.assertFalse(_conjuracao_real(p))            # sem conjuracao REAL
+        self.assertFalse(_personagem_conjura(p))         # e sem magia persistida ainda
         info = magias_concedidas(p)
         slugs = {c['slug'] for c in info['concedidas']}
-        # (2) grant NAO-gateado da propria Marca (cast always_prepared)
-        self.assertIn('marca-do-cacador', slugs)
-        # (2) lista expandida (requires:spellcasting) LIBERADA no mesmo derive
-        self.assertIn('clarividencia', slugs)            # single-word
-        # (3) magia MULTI-PALAVRA sobrevive a ponte de slug _<->-
-        self.assertIn('fogo-das-fadas', slugs)
-        for extra in ('passos-longos', 'localizar-animais-ou-plantas', 'comunhao-com-a-natureza'):
-            self.assertIn(extra, slugs, extra)
-        # end-to-end: o sync materializa a lista INTEIRA em TbPersonagemMagia
+        # cast{} DIRETAS da Marca (nao-gateadas) — sempre concedidas
+        self.assertIn('marca-do-cacador', slugs)         # cast always_prepared
+        self.assertIn('localizar-objeto', slugs)         # cast requires:lvl{3}, N4 ok
+        # LISTA EXPANDIDA (requires:spellcasting) VAZIA — nenhuma abriu o portao
+        for gated in ('fogo-das-fadas', 'passos-longos', 'localizar-animais-ou-plantas',
+                      'espinho-mental', 'clarividencia', 'falar-com-plantas', 'adivinhacao',
+                      'localizar-criatura', 'comunhao-com-a-natureza'):
+            self.assertNotIn(gated, slugs, gated)
+        # end-to-end: o sync materializa SO as diretas
         views._sync_magias_concedidas(p)
         mat = {m.id_magia.slug for m in TbPersonagemMagia.objects.filter(
             id_personagem=p, sempre_preparada=True).select_related('id_magia')}
-        self.assertIn('fogo-das-fadas', mat)
-        self.assertIn('marca-do-cacador', mat)
+        self.assertEqual(mat, {'marca-do-cacador', 'localizar-objeto'})
+
+    # ── 2 + 3: conjurador REAL N3 → lista expandida SO ate o teto dele ──
+    def test_marca_conjurador_real_respeita_teto(self):
+        from home.character_engine import (magias_concedidas, _conjuracao_real,
+                                            _teto_nivel_conjuravel)
+        p = self._caster(nivel=3)                        # mago N3: conjura de verdade, teto=2
+        self._pega_talento(p, 'Marca Arcana da Busca')
+        self.assertTrue(_conjuracao_real(p))
+        self.assertEqual(_teto_nivel_conjuravel(p), 2)
+        slugs = {c['slug'] for c in magias_concedidas(p)['concedidas']}
+        # gateadas ate o teto (nivel <= 2) ENTRAM — inclui a multi-palavra (ponte _<->-)
+        for dentro in ('fogo-das-fadas', 'passos-longos',            # nivel 1
+                       'localizar-animais-ou-plantas', 'espinho-mental'):  # nivel 2
+            self.assertIn(dentro, slugs, dentro)
+        # acima do teto (nivel >= 3) FICAM DE FORA
+        for fora in ('clarividencia', 'falar-com-plantas',           # nivel 3
+                     'adivinhacao', 'localizar-criatura',            # nivel 4
+                     'comunhao-com-a-natureza'):                     # nivel 5
+            self.assertNotIn(fora, slugs, fora)
+
+    # ── 2: sobe de nivel → novas magias da lista entram ──
+    def test_marca_conjurador_sobe_nivel_novas_magias(self):
+        from home.character_engine import magias_concedidas, _teto_nivel_conjuravel
+        p = self._caster(nivel=3)
+        self._pega_talento(p, 'Marca Arcana da Busca')
+        antes = {c['slug'] for c in magias_concedidas(p)['concedidas']}
+        self.assertNotIn('clarividencia', antes)         # nivel 3 travado no teto 2
+        # SOBE para N5 (full caster: teto passa a 3) — o _sync materializa as novas que cabem
+        pc = p.classes.first(); pc.nivel = 5; pc.save(update_fields=['nivel'])
+        p.nivel = 5; p.save(update_fields=['nivel'])
+        self.assertEqual(_teto_nivel_conjuravel(p), 3)
+        views._sync_magias_concedidas(p)
+        mat = {m.id_magia.slug for m in TbPersonagemMagia.objects.filter(
+            id_personagem=p, sempre_preparada=True).select_related('id_magia')}
+        self.assertIn('clarividencia', mat)              # nivel 3 agora cabe
+        self.assertIn('falar-com-plantas', mat)          # nivel 3 agora cabe
+        self.assertNotIn('adivinhacao', mat)             # nivel 4 ainda acima do teto
 
     def test_sem_marca_lista_fechada(self):
         # controle: barbaro puro (sem Marca) nao conjura e nao recebe magia nenhuma.

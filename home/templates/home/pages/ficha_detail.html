@@ -321,7 +321,7 @@
   {% if ficha.maestrias_armas %}
   <div class="ficha-panel">
     <div class="ficha-section-title">Maestrias de Arma{% if pode_editar and ficha.maestria_pendente %}<a href="{% url 'personagem_trocar_maestria' p.id_personagem %}" class="float-right font-sans text-[11px] normal-case tracking-normal text-[var(--flame)] hover:underline">⚠ Completar maestria</a>{% elif pode_editar and ficha.maestria_trocavel %}<a href="{% url 'personagem_trocar_maestria' p.id_personagem %}" class="float-right font-sans text-[11px] normal-case tracking-normal text-[var(--ember)] hover:underline">↻ Trocar</a>{% endif %}</div>
-    <p class="mb-2 text-xs text-[var(--muted)]">Cada arma escolhida concede <strong>uma</strong> maestria (escolhida ao pegar a arma), aplicada no ataque.{% if ficha.maestria_trocavel %} <span class="text-[var(--spark)]">Trocável.</span>{% endif %}</p>
+    <p class="mb-2 text-xs text-[var(--muted)]">Cada slot concede <strong>uma</strong> maestria de uma arma, aplicada no ataque. A mesma arma pode aparecer em mais de um slot para aprender maestrias diferentes dela.{% if ficha.maestria_trocavel %} <span class="text-[var(--spark)]">Trocável.</span>{% endif %}</p>
     <ul class="grid gap-1.5 sm:grid-cols-2">
       {% for w in ficha.maestrias_armas %}
         <li class="rounded border border-[var(--stroke)] bg-[var(--bg0)] p-2.5">

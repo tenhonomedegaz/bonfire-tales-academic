@@ -299,6 +299,10 @@ def _opcao_readback(personagem, group):
 # `maestrias{...}` da própria arma mundana é a AUTORIDADE das maestrias (regra do
 # projeto). O valor persistido é `'<arma-slug>|<maestria-slug>'` (1 linha por slot,
 # TbPersonagemEscolha tipo='maestria'); o derive concede/mostra SÓ a maestria escolhida.
+# A MESMA ARMA PODE ocupar mais de um slot para aprender uma 2ª maestria dela (regra da
+# staff: p.ex. lentidão e exposição no mesmo arco — uma por ataque); a unicidade que se
+# exige é a do PAR (arma, maestria), NÃO a da arma. O perfil de ataque lista TODAS as
+# maestrias aprendidas de cada arma.
 # Linhas LEGADAS só-arma (`'<arma-slug>'`, sem `|`) ficam com a maestria PENDENTE — a
 # ficha não quebra e o painel de Maestria reabre a sub-escolha (nunca escolhemos por elas).
 # ---------------------------------------------------------------------------
@@ -402,24 +406,33 @@ def _default_validate(group, valores):
 
 
 def _arma_validate(group, valores):
-    """Cada slot = ARMA + (se a arma tiver maestrias) UMA maestria DELA. Valida contagem exata,
-    arma pertencente ao universo e a maestria pertencente à arma (formato `'<arma>|<maestria>'`)."""
+    """Cada slot = ARMA + (se a arma tiver maestrias) UMA maestria DELA. A MESMA ARMA PODE
+    repetir entre slots para aprender uma 2ª maestria dela (regra confirmada pela staff: p.ex.
+    lentidão e exposição no mesmo arco, uma por ataque); o que NÃO pode repetir é o PAR
+    `(arma, maestria)`. Valida contagem exata, arma no universo, a maestria pertencente à arma
+    (formato `'<arma>|<maestria>'`) e a unicidade do PAR (a duplicata é do par, não da arma)."""
     n = int(group.get('n') or 0)
     by_slug = {str(u.get('slug')): u for u in group.get('universo', [])}
-    ok = []
-    for v in dict.fromkeys(valores or []):
+    ok, vistos = [], set()
+    for v in (valores or []):
         arma, maestria = split_arma_maestria(v)
         u = by_slug.get(str(arma))
         if not u:
             continue
         masteries = {m['slug'] for m in (u.get('maestrias') or [])}
+        par = (str(arma), maestria)      # a chave de duplicata é o PAR (arma+maestria)
+        if par in vistos:                # par repetido: recusado (mas a arma pode repetir)
+            continue
         if masteries:                    # arma com maestrias: exige UMA delas
             if maestria in masteries:
+                vistos.add(par)
                 ok.append(v)
         elif maestria is None:           # arma sem maestrias: só a arma já completa o slot
+            vistos.add(par)
             ok.append(v)
     if len(ok) != n:
-        return ['Escolha %d arma(s) para Maestria de Arma.' % n]
+        return ['Escolha %d arma(s) para Maestria de Arma (a mesma arma pode repetir com '
+                'maestrias diferentes; não repita o mesmo par arma+maestria).' % n]
     return []
 
 

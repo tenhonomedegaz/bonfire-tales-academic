@@ -475,6 +475,57 @@ def _features_de_classe(classes):
     return out
 
 
+# ── Heranças/Clãs de essência (Vampirismo) ──────────────────────────────────
+# Algumas essências não têm "vertentes" descritas no texto, e sim HERANÇAS (clãs)
+# modeladas pelo PRÉ-REQUISITO "Clã <Nome>" dos seus traços — Educação Rubedo → "Clã
+# Rubedo", Sangue Ruim → "Clã Mestiços", Segredos X → "Clã X"… O clã é uma sub-escolha
+# da essência, análoga à vertente elemental, e é persistido do mesmo jeito
+# (TbPersonagemEscolha tipo='vertente'). Um traço "de clã" (Educação/Sangue Ruim/
+# Segredos/Evolução/Lorde) só vale para o clã escolhido; os demais traços da essência
+# (Natureza Morta-Viva, Presença da Noite…) são compartilhados por todos os clãs.
+_CLA_RE = re.compile(r'cl[ãa]s?\s+([a-zà-ÿ]+)', re.I)
+
+
+def _norm_txt(s):
+    return unicodedata.normalize('NFKD', str(s or '')).encode('ascii', 'ignore').decode().lower()
+
+
+def clas_de_essencia(essencia):
+    """[{'slug','nome'}] das heranças/clãs de uma essência (via 'Clã <Nome>' nos
+    pré-requisitos dos traços). Vazio quando a essência não usa clãs (ex.: elementais,
+    que usam vertentes na descrição)."""
+    from .models import TbTracoracial
+    vistos = {}
+    for t in TbTracoracial.objects.filter(id_essencia=essencia):
+        for m in _CLA_RE.finditer(t.pre_requisito or ''):
+            nome = m.group(1).strip()
+            sl = _slug(nome)
+            if sl and sl not in vistos:
+                vistos[sl] = nome if nome[:1].isupper() else nome.title()
+    return [{'slug': s, 'nome': n} for s, n in sorted(vistos.items(), key=lambda kv: kv[1].lower())]
+
+
+def cla_de_traco(traco, clas):
+    """Slug do clã a que o traço pertence (detectado pela menção do NOME do clã no
+    pré-requisito — cobre 'Clã X', 'Segredos X', 'Evolução X'…), ou '' quando o traço é
+    compartilhado por todos os clãs. `clas` = saída de clas_de_essencia."""
+    txt = _norm_txt(getattr(traco, 'pre_requisito', '') or '')
+    for c in clas:
+        if re.search(r'\b%s\b' % re.escape(_norm_txt(c['nome'])), txt):
+            return c['slug']
+    return ''
+
+
+def cla_escolhido(personagem):
+    """Slug do clã/herança (ou vertente) escolhido — persistido como
+    TbPersonagemEscolha tipo='vertente'. '' se ainda não escolhido."""
+    if personagem is None or not getattr(personagem, 'pk', None):
+        return ''
+    val = (personagem.escolhas.filter(tipo='vertente').order_by('slot')
+           .values_list('valor', flat=True).first())
+    return val or ''
+
+
 def _tracos_raciais(personagem):
     from .models import TbTracoracial
     out = []
@@ -487,7 +538,15 @@ def _tracos_raciais(personagem):
         for t in TbTracoracial.objects.filter(id_linhagem=personagem.id_linhagem, talento_racial=False):
             out.append(('linhagem', personagem.id_linhagem.nome, t, None))
     if personagem.id_essencia_id:
+        # Traços de essência com HERANÇA/clã (Educação Rubedo, Sangue Ruim…) só valem para
+        # o clã escolhido — senão um vampiro herdaria os benefícios dos CINCO clãs de uma vez
+        # (Sybaris + Tenebrus + Rubedo + …). Os compartilhados (clã='') valem sempre.
+        clas = clas_de_essencia(personagem.id_essencia)
+        cla_sel = cla_escolhido(personagem) if clas else ''
         for t in TbTracoracial.objects.filter(id_essencia=personagem.id_essencia, talento_racial=False):
+            c = cla_de_traco(t, clas) if clas else ''
+            if c and c != cla_sel:
+                continue
             out.append(('essencia', personagem.id_essencia.nome, t, None))
     return out
 
@@ -1003,7 +1062,8 @@ def _grants_de_tag(tag, escolhas, catalog, nivel_total, casts_selection=False):
       {'pool':{'classes':[Nome], 'nivel':N|None, 'escola':E|None}, 'qtd':K, 'rotulo':str}
     gated=[(slug,nivel)] — LISTAS DE DECRETO atrás de `requires:spellcasting`. O gate NÃO é
     decidido aqui: as magias voltam em `gated` e o chamador (magias_concedidas) abre o portão
-    se o personagem conjura OU acabou de ganhar magia por grant não-gateado (two-pass).
+    SÓ se o personagem tem CONJURAÇÃO REAL (`_conjuracao_real`), e ainda respeita o TETO de
+    nível conjurável — magia meramente concedida NÃO abre o portão.
 
     Concede: `cast{… spell:X … always-prepared}` (Marcas), `spell-selection:match(var){…}`
     (vertente/veste-lunar…), `spell-selection:<slug>{… always-prepared}` (magia única),
@@ -1085,7 +1145,7 @@ def _grants_de_tag(tag, escolhas, catalog, nivel_total, casts_selection=False):
         # lista entram como conhecidas/sempre-preparadas. PONTE DE SLUG _↔- (o catálogo é
         # hifenado; a lista às vezes vem com underscore — sem a ponte, magia multi-palavra
         # como `fogo_das_fadas` sumia em silêncio). Gate `requires:spellcasting`: NÃO decidido
-        # aqui — volta em `gated`; o chamador abre o portão (two-pass).
+        # aqui — volta em `gated`; o chamador abre o portão só com CONJURAÇÃO REAL + teto.
         if scope == 'any' and 'spell:' not in full and 'pick' not in full and 'efeito' not in full:
             lista = [c for c in (_cat(x.strip()) for x in re.split(r'[,|]', body)) if c]
             if lista:
@@ -1159,10 +1219,9 @@ def _resolve_pool(pool, catalog_rich):
     return sorted(out)
 
 
-def _personagem_conjura(personagem):
-    """DETECTOR ÚNICO de conjuração (regra do PO) — camada baixa, fonte de verdade para a
-    ficha (views._personagem_conjura delega aqui) E para liberar as listas de decreto.
-    Conjura se QUALQUER destes vale:
+def _conjuracao_real(personagem):
+    """CONJURAÇÃO REAL — o gate `requires:spellcasting` das LISTAS DE DECRETO (Marcas etc.).
+    True SÓ quando o personagem tem uma FONTE DE CONJURAÇÃO PRÓPRIA:
       • CLASSE BASE conjuradora — `spellcasting{…slots|lista…}` numa habilidade de classe
         SEM subclasse (id_subclasse null) até o nível, ou na própria TbClasse;
       • SUBCLASSE DO PERSONAGEM conjuradora — só a subclasse que ele TEM e já desbloqueou
@@ -1170,10 +1229,13 @@ def _personagem_conjura(personagem):
         subclasse que ele não escolheu → mata o falso-positivo (Ladino sem subclasse via a
         `Magia do Trapaceiro`);
       • MAGIA DE PACTO — modelada como `spellcasting{slots:pact}` na classe base (Místico) →
-        já cai no 1º caso;
-      • TbPersonagemMagia NÃO-VAZIA — magia persistida de QUALQUER origem (essência/vertente,
-        marca, item) basta (decisão do PO)."""
-    from .models import TbClassehabilidade, TbPersonagemMagia
+        já cai no 1º caso.
+    NÃO conta magia meramente CONCEDIDA (a própria `cast{}` da Marca, essência, item): magia
+    concedida NÃO é conjuração e não pode abrir o portão da lista expandida da MESMA feature que
+    a concedeu — senão uma Marca despejaria toda a lista num marcial. Regra DIFERENTE do
+    pré-requisito de talento: para aquilo use `_personagem_conjura` (detector universal, que
+    TAMBÉM aceita TbPersonagemMagia de qualquer origem)."""
+    from .models import TbClassehabilidade
     from django.db.models import Q
     for c in personagem.classes.select_related('id_classe', 'id_subclasse'):
         cl = c.id_classe
@@ -1189,7 +1251,51 @@ def _personagem_conjura(personagem):
                 body = _tag_block(t, 'spellcasting')
                 if body is not None and re.search(r'\b(?:slots|lista)\s*:', body):
                     return True
-    return TbPersonagemMagia.objects.filter(id_personagem=personagem).exists()
+    return False
+
+
+def _personagem_conjura(personagem):
+    """DETECTOR UNIVERSAL de conjuração para PRÉ-REQUISITO DE TALENTO (regra do PO) — camada
+    baixa, fonte de verdade da ficha (views._personagem_conjura delega aqui). Conjura se houver
+    CONJURAÇÃO REAL (`_conjuracao_real`: classe base / subclasse do personagem / pacto) OU
+    TbPersonagemMagia NÃO-VAZIA — magia persistida de QUALQUER origem (essência/vertente, marca,
+    item) basta para o pré-requisito de talento (decisão do PO).
+    ATENÇÃO: para o gate `requires:spellcasting` das LISTAS DE DECRETO use `_conjuracao_real` —
+    regra DIFERENTE, a magia meramente CONCEDIDA NÃO abre aquele portão."""
+    from .models import TbPersonagemMagia
+    return (_conjuracao_real(personagem)
+            or TbPersonagemMagia.objects.filter(id_personagem=personagem).exists())
+
+
+def _teto_nivel_conjuravel(personagem):
+    """MAIOR nível de magia que o personagem CONSEGUE conjurar = topo da tabela de slots
+    (recursos table-only `1o`..`9o`) entre as classes/subclasses DELE — a MESMA fonte do teto
+    de nível de magia usada por views._classe_slot_table / _pendencias_magias. Subclasse conta
+    só quando desbloqueada (third-caster). 0 se ainda não há nenhum slot.
+    Usado como TETO das LISTAS DE DECRETO (`requires:spellcasting`): mesmo conjurando de verdade,
+    a feature só materializa magia da lista até o nível que ele já consegue conjurar; ao subir de
+    nível, novos níveis de slot abrem e o _sync materializa as que agora cabem."""
+    from .models import TbRecursoclasse
+    from django.db.models import Q
+    teto = 0
+    for c in personagem.classes.select_related('id_classe', 'id_subclasse'):
+        cl = c.id_classe
+        if not cl:
+            continue
+        nivel = int(c.nivel or 0)
+        cond = Q(id_classe=cl, id_subclasse__isnull=True)
+        if c.id_subclasse_id and _subclass_unlocked(c, nivel):
+            cond |= Q(id_subclasse=c.id_subclasse_id)
+        for r in TbRecursoclasse.objects.filter(cond):
+            slug = (r.slug or '').strip().lower()
+            if not re.match(r'^[1-9]o$', slug):
+                continue
+            if _resource_tipo(r) != RESOURCE_TIPO_TABLE_ONLY:
+                continue
+            val = _resource_max_at(r, nivel)
+            if val and val > 0:
+                teto = max(teto, int(slug[0]))
+    return teto
 
 
 def _spell_mod(classes, atributos):
@@ -1238,7 +1344,7 @@ def magias_concedidas(personagem):
     from .models import TbMagia, TbPersonagemEscolha
     classes = list(personagem.classes.select_related('id_classe', 'id_subclasse').order_by('-principal', 'id'))
     nivel_total = sum(int(c.nivel or 0) for c in classes) or int(personagem.nivel or 1)
-    is_caster = _personagem_conjura(personagem)
+    is_caster = _conjuracao_real(personagem)   # gate das listas de decreto = CONJURAÇÃO REAL
     features = (_features_de_classe(classes) + _tracos_raciais(personagem)
                 + _antecedente(personagem) + _talentos(personagem)
                 + _features_de_itens(personagem) + _features_de_opcoes(personagem))
@@ -1288,13 +1394,17 @@ def magias_concedidas(personagem):
             if len(chosen) < escolha['qtd']:
                 out['pendentes'].append({'fonte': fonte, 'slot': slot, 'rotulo': escolha['rotulo'],
                                          'qtd': escolha['qtd'], 'opcoes': opcoes, 'escolhidos': chosen})
-    # TWO-PASS — o portão `requires:spellcasting` abre se o detector já diz que conjura OU se o
-    # personagem ganhou QUALQUER magia no passo não-gateado acima (a própria Marca concede uma
-    # magia sempre-preparada, tornando um marcial conjurador NO MESMO derive — sem esperar o
-    # ciclo seguinte de persistência).
-    if is_caster or out['concedidas']:
+    # PORTÃO `requires:spellcasting` das LISTAS DE DECRETO: abre SÓ com CONJURAÇÃO REAL
+    # (`_conjuracao_real` — classe/subclasse conjuradora do personagem ou pacto). Magia
+    # meramente CONCEDIDA (a própria `cast{}` da Marca, essência, item) NÃO abre o portão —
+    # senão uma Marca despejaria a lista inteira num marcial sem conjuração (bug reportado).
+    # TETO: mesmo conjurando de verdade, só materializa magia da lista até o MAIOR nível que ele
+    # já consegue conjurar (`_teto_nivel_conjuravel`); ao subir de nível, o _sync materializa as
+    # novas que passam a caber. Truques (nível 0) sempre cabem (0 <= teto).
+    if is_caster and gated_all:
+        teto = _teto_nivel_conjuravel(personagem)
         for fonte, slug, nivel in gated_all:
-            if slug not in seen:
+            if nivel <= teto and slug not in seen:
                 seen.add(slug)
                 out['concedidas'].append({'slug': slug, 'nivel': nivel, 'fonte': fonte})
     return out
@@ -1909,6 +2019,12 @@ def apply_tags(state, features, personagem=None, escolhas=None):
     modificadores = []  # modify:<X> cross-feature: registrados inertes (combate/VTT)
     sintonizacao_max = 3  # limite de sintonização (base 5e = 3); attr_max:sintonizacao eleva
     speed_bonus = 0
+    # Bug C: bumps condicionais ESTÁTICOS do dano desarmado (Brigão de Taverna / Luchador).
+    # `unarmed_cond_bumps` acumula (dado_limiar, +N); `unarmed_die_base` é o maior dado do
+    # desarmado vindo de features SEM bump (exclui o piso 1d6 do próprio talento) — é ele que
+    # satisfaz (ou não) a condição "já causa >= limiar". Resolvidos após o loop de features.
+    unarmed_cond_bumps = []
+    unarmed_die_base = None
     brutas = []
     talent_attrs = _talent_attr_map(personagem)
     # status de armadura/escudo p/ gate de restriction{equiped{armadura|escudo}} nos
@@ -1937,6 +2053,19 @@ def apply_tags(state, features, personagem=None, escolhas=None):
         # por nível (sintonização do Artífice) — senão _resolve_match colapsaria no default.
         resolvidas = [_apply_choice_subs(_resolve_match(_resolve_level_match(t, ctx), escolhas), escolhas)
                       for t in tags]
+        # Bug C: detecta o bump condicional do desarmado desta feature. O par
+        # `if(unarmed_strike.dmg >= <dado>): unarmed_strike.dmg:+<N>` vive num while_active
+        # (bloco ATIVO, fora dos segmentos passivos), mas é 100% avaliável no derive. Guarda
+        # (limiar, +N) p/ resolver após o loop e marca a feature p/ não contar o próprio piso
+        # como "dado base" (a regra é "+N SÓ SE o desarmado JÁ causa >= limiar por outra fonte").
+        feat_unarmed_bump = None
+        for _r in resolvidas:
+            _mb = re.search(r'if\(\s*unarmed_strike\.dmg\s*>=\s*(\d*d\d+)\s*\)\s*:\s*'
+                            r'unarmed_strike\.dmg\s*:\s*\+\s*(\d+)', _r)
+            if _mb:
+                feat_unarmed_bump = (_mb.group(1), int(_mb.group(2)))
+                unarmed_cond_bumps.append(feat_unarmed_bump)
+                break
         segs = [seg for r in resolvidas for seg in _passive_segments(r)]
 
         # defines (só em contexto PASSIVO): slug -> locais (indireção); pool -> recurso
@@ -2162,6 +2291,11 @@ def apply_tags(state, features, personagem=None, escolhas=None):
                     ant = coll['ataque_dado'].get(escopo)
                     if ant is None or _die_size(dado) > _die_size(ant):
                         coll['ataque_dado'][escopo] = dado
+                    # Bug C: dado BASE do desarmado (p/ a condição do +N). Só features SEM
+                    # bump entram — o piso 1d6 do próprio talento não satisfaz a própria condição.
+                    if escopo == 'unarmed-strike' and feat_unarmed_bump is None \
+                            and (unarmed_die_base is None or _die_size(dado) > _die_size(unarmed_die_base)):
+                        unarmed_die_base = dado
                 for m in re.finditer(r'(unarmed_strike|natural)\.(?:attr|dmg_attr|check_attr:atk):=\s*([a-z]{3})', seg):
                     if m.group(2) in _EN_SIG:
                         coll['ataque_attr'][m.group(1).replace('_', '-')] = _EN_SIG[m.group(2)]
@@ -2197,6 +2331,17 @@ def apply_tags(state, features, personagem=None, escolhas=None):
                     coll['desvantagens'].append('%s — %s' % (m.group(1), feat_nome))
                 for m in re.finditer(r'(?<![a-z_-])speak:([a-z0-9_-]+)', seg):
                     notas.append('falar com %s (%s)' % (m.group(1), feat_nome))
+
+    # Bug C: resolve os bumps condicionais estáticos do desarmado agora que o DADO BASE
+    # (de outras features) está consolidado. `>=` por tamanho de dado (_die_size), mesmo
+    # critério do piso. Sem dado base >= limiar, o talento só aplica o piso (sem +N) — é o
+    # caso do personagem "cru" (Brigão sobe o desarmado p/ 1d6, mas não soma +1); com dado
+    # próprio >= limiar (Bárbaro/Monge), soma o +N ao dano do perfil desarmado.
+    if unarmed_cond_bumps:
+        base_sz = _die_size(unarmed_die_base) if unarmed_die_base else (0, 0)
+        for _thr, _amt in unarmed_cond_bumps:
+            if base_sz >= _die_size(_thr):
+                coll['dmg_bonus']['unarmed-strike'] = coll['dmg_bonus'].get('unarmed-strike', 0) + _amt
 
     # ── aplica no state ──
     state['tags_brutas'] = brutas
@@ -2275,9 +2420,12 @@ def _arma_catalogo(nome):
 
 
 def _mapa_maestria_por_arma(maestrias):
-    """De state['maestrias_armas'] -> {slug/nome-normalizado: [nome da maestria ESCOLHIDA]}.
-    Regra: 1 arma = 1 maestria (escolhida ao pegar a arma). Só a maestria escolhida vai para
-    o perfil de ataque; arma com maestria pendente (legado) não injeta maestria no perfil."""
+    """De state['maestrias_armas'] -> {slug/nome-normalizado: [nomes das maestrias ESCOLHIDAS]}.
+    Uma arma PODE ter MAIS DE UMA maestria (regra da staff: a mesma arma pode ocupar slots
+    diferentes — p.ex. lentidão e exposição no mesmo arco). Cada slot vira uma entrada em
+    state['maestrias_armas']; aqui ACUMULAMOS todas as maestrias escolhidas por arma (sem
+    duplicar) para o perfil de ataque listá-las. Arma com maestria pendente (legado) não
+    injeta maestria no perfil."""
     out = {}
     for w in (maestrias or []):
         escolhida = w.get('maestria')
@@ -2286,7 +2434,9 @@ def _mapa_maestria_por_arma(maestrias):
             continue
         for chave in (w.get('slug'), _slug(w.get('arma') or '')):
             if chave:
-                out[chave] = [nome]
+                lst = out.setdefault(chave, [])
+                if nome not in lst:
+                    lst.append(nome)
     return out
 
 
