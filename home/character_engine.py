@@ -927,11 +927,29 @@ def _nivel_filtro(body):
     return int(m.group(1)) if m else None
 
 
+def _parse_escolas(body):
+    """Escola(s) exigida(s) pelo body de um `spell_selection`: `escola:{A | B}` → CONJUNTO
+    {A, B} (Adepto da Veste Negra: encantamento OU necromancia); `escola:X` → {X}. Devolve
+    None quando ausente ou meta (`pick`/`ability`, placeholders resolvidos noutro lugar)."""
+    m = re.search(r'escola\s*:\s*\{([^{}]*)\}', body)
+    if m:
+        escolas = {x.strip() for x in re.split(r'[|,]', m.group(1)) if x.strip()}
+        return escolas or None
+    m = re.search(r'escola\s*:\s*([a-z_-]+)', body)
+    if m and m.group(1) not in ('pick', 'ability'):
+        return {m.group(1)}
+    return None
+
+
 def _rotulo_escolha(nivel, qtd, classes=None, escola=None):
     nv = 'truque(s)' if nivel == 0 else (('magia(s) de %sº ciclo' % nivel) if nivel else 'magia(s)')
     extra = ''
     if escola:
-        extra += ' de %s' % escola.title()
+        if isinstance(escola, (set, frozenset, list, tuple)):
+            nomes = ' ou '.join(sorted(e.title() for e in escola))
+        else:
+            nomes = escola.title()
+        extra += ' de %s' % nomes
     if classes:
         extra += ' de %s' % '/'.join(classes)
     return '%d %s%s' % (qtd, nv, extra)
@@ -978,7 +996,7 @@ def _iter_spell_selections(s):
     return out
 
 
-def _grants_de_tag(tag, escolhas, catalog, nivel_total):
+def _grants_de_tag(tag, escolhas, catalog, nivel_total, casts_selection=False):
     """(fixas, escolha, gated) de UMA tag. fixas=[(slug,nivel)] (magia específica garantida);
     escolha=None | dict normalizado:
       {'opcoes':[slug], 'qtd':K, 'rotulo':str}                 (lista concreta de opções)
@@ -992,7 +1010,13 @@ def _grants_de_tag(tag, escolhas, catalog, nivel_total):
     `spell:X` concreto, e as LISTAS DE DECRETO `any{ a, b, … }, fora-do-limite`. Escolhas:
     `spell-selection:<classe>{… qtd:K …}` (pool de classe), `pick{lista:{a|b}}{… qtd:K}`
     (união), e a Marca Planar (`any{spell:pick{… match(pick:…)}}`). IGNORA cast ativo e
-    `spell:pick{…}` não resolvido. Respeita `requires:lvl{N}`."""
+    `spell:pick{…}` não resolvido. Respeita `requires:lvl{N}`.
+
+    `casts_selection` (flag de FEATURE, não da tag): a feature conjura a magia escolhida via
+    `cast{spell:spell_selection}` numa tag IRMÃ — habilita o `qtd` implícito=1 do
+    `spell_selection:<escopo>{filtros}` sem `qtd:` (Adepto das Vestes/Místico, Iniciado
+    Artífice, Tocado pelo X: "você aprende 1 magia…"). O escopo `any` gera pool SEM filtro de
+    classe; `escola:{A | B}` vira CONJUNTO de escolas."""
     s = str(tag)
 
     def _cat(sl):
@@ -1069,13 +1093,13 @@ def _grants_de_tag(tag, escolhas, catalog, nivel_total):
                 for sl in lista:
                     bucket.append((sl, catalog[sl]))
                 continue
-        # (d) escolha qtd:K de uma classe / união de classes
+        # (d) escolha qtd:K de uma classe / união de classes / `any` (sem filtro de classe)
         qtd = _qtd_de(body, nivel_total)
-        if not qtd:
-            continue
         classes = None
         scope_map = _spell_class_scope_map()
-        if scope in scope_map:
+        if scope == 'any':
+            classes = []          # pool SEM filtro de classe (Adepto das Vestes/Tocado pelo X)
+        elif scope in scope_map:
             classes = [scope_map[scope]]
         elif scope == 'pick':
             lm = re.search(r'lista\s*:\s*\{([^{}]*)\}', scope_extra)
@@ -1088,13 +1112,21 @@ def _grants_de_tag(tag, escolhas, catalog, nivel_total):
                     cl = _resolve_match('match(%s)%s' % (var, rm.group(2)),
                                         {var: escolhas.get(var)}).strip()
                     classes = spell_scope_names([cl])
-        if classes:
-            me = re.search(r'escola\s*:\s*([a-z_-]+)', body)
-            esc = me.group(1) if (me and me.group(1) not in ('pick', 'ability')) else None
-            nv = _nivel_filtro(body)
-            escolha = {'pool': {'classes': sorted(set(classes)), 'nivel': nv, 'escola': esc},
-                       'qtd': qtd, 'rotulo': _rotulo_escolha(nv, qtd, classes, esc)}
-            break
+        # `any` gera pool aberto (classes=[]); os demais escopos precisam resolver p/ pelo menos
+        # uma classe — pick não resolvido / self-ref `spell_selection.lista` continuam ignorados.
+        if scope != 'any' and not classes:
+            continue
+        if not qtd:
+            # qtd IMPLÍCITO=1 quando a MESMA feature conjura a magia via `cast{spell:spell_selection}`
+            # (Adepto das Vestes/Místico, Iniciado Artífice…: "você aprende 1 magia à sua escolha").
+            if not casts_selection:
+                continue
+            qtd = 1
+        esc = _parse_escolas(body)
+        nv = _nivel_filtro(body)
+        escolha = {'pool': {'classes': sorted(set(classes)), 'nivel': nv, 'escola': esc},
+                   'qtd': qtd, 'rotulo': _rotulo_escolha(nv, qtd, classes, esc)}
+        break
     return fixas, escolha, gated
 
 
@@ -1104,13 +1136,22 @@ def _norm_escola(e):
 
 
 def _resolve_pool(pool, catalog_rich):
-    """Resolve um pool {classes, nivel, escola} para a lista ordenada de slugs candidatos."""
-    cls, nv, esc = set(pool['classes']), pool['nivel'], _norm_escola(pool['escola']) if pool['escola'] else None
+    """Resolve um pool {classes, nivel, escola} para a lista ordenada de slugs candidatos.
+    `escola` pode ser None, uma string (1 escola) ou um CONJUNTO de escolas (Adepto da Veste
+    Negra: encantamento OU necromancia) — o filtro aceita QUALQUER uma do conjunto. `classes`
+    vazio = pool aberto (sem filtro de classe, escopo `any`)."""
+    cls, nv, esc_raw = set(pool['classes']), pool['nivel'], pool['escola']
+    if not esc_raw:
+        escolas = None
+    elif isinstance(esc_raw, (set, frozenset, list, tuple)):
+        escolas = {_norm_escola(e) for e in esc_raw}
+    else:
+        escolas = {_norm_escola(esc_raw)}
     out = []
     for slug, (nivel, escola, classes) in catalog_rich.items():
         if nv is not None and nivel != nv:
             continue
-        if esc and escola != esc:
+        if escolas and escola not in escolas:
             continue
         if cls and not (cls & classes):
             continue
@@ -1215,8 +1256,14 @@ def magias_concedidas(personagem):
     gated_all = []   # [(fonte, slug, nivel)] — listas de decreto atrás de requires:spellcasting
     for (_o, _f, obj, _cl) in features:
         fonte = getattr(obj, 'nome', '') or ''
-        for tag in (getattr(obj, 'tags_json', None) or []):
-            fixas, escolha, gated = _grants_de_tag(tag, escolhas, catalog, nivel_total)
+        feat_tags = getattr(obj, 'tags_json', None) or []
+        # A feature conjura a magia ESCOLHIDA via `cast{spell:spell_selection}` (numa tag irmã)?
+        # Habilita o `qtd` implícito=1 do `spell_selection` sem `qtd:` (Adepto das Vestes/Místico,
+        # Iniciado Artífice, Tocado pelo X: "você aprende 1 magia à sua escolha").
+        casts_selection = bool(re.search(r'cast\s*\{[^{}]*\bspell\s*:\s*spell_selection\b',
+                                         ' '.join(str(t) for t in feat_tags)))
+        for tag in feat_tags:
+            fixas, escolha, gated = _grants_de_tag(tag, escolhas, catalog, nivel_total, casts_selection)
             for slug, nivel in fixas:
                 if slug not in seen:
                     seen.add(slug)

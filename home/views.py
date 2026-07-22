@@ -2659,8 +2659,13 @@ def _spell_list_q(lista_nomes):
 
 
 def _max_spell_level_for_slots(nivel, slots):
+    """FALLBACK documentado. O teto REAL de nível de magia conjurável vem do TOPO da tabela de
+    slots da PRÓPRIA classe (ver `_pendencias_magias`/`_magias_preparadas_info`, que leem
+    `_classe_slot_table`). Estas fórmulas fechadas só valem como rede de segurança quando não
+    houver tabela de slots carregada — daí o ramo `half` seguir a mesma escada da tabela
+    (1º@nv2, 2º@nv5, 3º@nv9, 4º@nv13, 5º@nv17)."""
     if slots == 'half':
-        return min(5, (nivel + 5) // 4)
+        return min(5, ((nivel + 1) // 2 + 1) // 2)
     if slots == 'third':
         if nivel >= 19:
             return 4
@@ -4731,7 +4736,11 @@ def _pendencias_magias(personagem):
                         pass
         return None
 
-    maxlv = _max_spell_level_for_slots(nivel, spell_info['slots'])
+    # TETO DE NÍVEL DE MAGIA = topo da tabela de slots DA PRÓPRIA CLASSE (single-class de
+    # propósito). Regra 5e: o nível máximo conhecível/preparável vem do nível NAQUELA classe,
+    # não dos slots *pooled* de multiclasse — por isso lemos a tabela desta classe/subclasse.
+    _slot_tbl = _classe_slot_table(classe, nivel, subclasse)
+    maxlv = max([lv for lv, t in _slot_tbl.items() if t > 0], default=0)
     conhecidos = set(personagem.magias.values_list('id_magia__slug', flat=True))
     truques_exp = res_at(['truque']) or 0
     # third-casters (Cavaleiro/Trapaceiro Arcano) chamam o recurso de 'magias-preparadas'
@@ -4747,9 +4756,16 @@ def _pendencias_magias(personagem):
     _swap_cond = Q(id_classe=classe, id_subclasse__isnull=True)
     if subclasse is not None:
         _swap_cond |= Q(id_subclasse=subclasse)
-    swap_lvl = any(re.search(r'swap\s*:\s*level_up', str(t))
-                   for h in TbClassehabilidade.objects.filter(_swap_cond)
-                   for t in (h.tags_json or []))
+    # TROCA DE MAGIA AO SUBIR DE NÍVEL: tag explícita `swap:level_up` OU inferida quando o
+    # spellcasting da classe/subclasse é do tipo `prepara:conhecidas`. Regra 5e: o caster que
+    # CONHECE magias troca 1 conhecida por outra ao subir de nível; o caster que PREPARA
+    # re-prepara livre a cada descanso e NÃO usa swap. A inferência cobre o Cavaleiro Arcano
+    # (prepara:conhecidas) sem editar o dado; tags `swap:level_up` já existentes continuam
+    # válidas (redundantes, inofensivas).
+    swap_lvl = (spell_info.get('prepara') == 'conhecidas'
+                or any(re.search(r'swap\s*:\s*level_up', str(t))
+                       for h in TbClassehabilidade.objects.filter(_swap_cond)
+                       for t in (h.tags_json or [])))
     conhecidas = [{'slug': m.id_magia.slug, 'nome': m.nome, 'nivel': m.nivel}
                   for m in personagem.magias.select_related('id_magia').filter(id_magia__isnull=False).order_by('nivel', 'nome')]
     return {'cantrips_pend': cant_pend, 'known_pend': known_pend, 'max_nivel': maxlv,
@@ -4769,7 +4785,8 @@ def _magias_preparadas_info(personagem, ficha):
     if not pc:
         return None
     classe, nivel = pc.id_classe, (pc.nivel or 1)
-    spell_info = _classe_spellcasting_info(classe, nivel_habilidades=nivel, subclasse=_caster_subclasse(pc))
+    subclasse = _caster_subclasse(pc)
+    spell_info = _classe_spellcasting_info(classe, nivel_habilidades=nivel, subclasse=subclasse)
     if not spell_info or spell_info.get('prepara') != 'preparadas' or not spell_info.get('prep_formula'):
         return None
     ats = ficha['atributos']
@@ -4781,7 +4798,10 @@ def _magias_preparadas_info(personagem, ficha):
                         else ctx.get(abil + '_mod', 0))
     limite = _eval_formula(spell_info['prep_formula'].strip(), ctx)
     limite = max(1, limite) if limite is not None else None
-    maxlv = _max_spell_level_for_slots(nivel, spell_info['slots'])
+    # Mesmo teto de nível de magia do caminho conhecido: topo da tabela de slots DA PRÓPRIA
+    # classe (single-class de propósito — regra 5e do nível NAQUELA classe).
+    _slot_tbl = _classe_slot_table(classe, nivel, subclasse)
+    maxlv = max([lv for lv, t in _slot_tbl.items() if t > 0], default=0)
     preparadas = set(personagem.magias.filter(nivel__gte=1, preparada=True, sempre_preparada=False)
                      .values_list('id_magia__slug', flat=True))
     por_nivel = {}
