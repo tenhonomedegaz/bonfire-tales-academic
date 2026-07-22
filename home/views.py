@@ -4708,7 +4708,7 @@ def personagem_escolher_opcoes(request, pk):
 def _pendencias_magias(personagem):
     """Magias a aprender no nível atual: truques (todos casters) e magias conhecidas
     (só known casters, com recurso 'Magias Conhecidas'), até o nível máximo conjurável."""
-    from .models import TbMagia, TbRecursoclasse, TbClassehabilidade
+    from .models import TbMagia, TbRecursoclasse, TbClassehabilidade, TbPersonagemEscolha
     pc = personagem.classes.filter(principal=True).first() or personagem.classes.first()
     if not pc:
         return None
@@ -4766,11 +4766,19 @@ def _pendencias_magias(personagem):
                 or any(re.search(r'swap\s*:\s*level_up', str(t))
                        for h in TbClassehabilidade.objects.filter(_swap_cond)
                        for t in (h.tags_json or [])))
+    # QUOTA DE TROCA (regra do PO): o caster CONHECIDO troca UMA magia por nível. `swap_disponivel`
+    # = a classe permite troca (`swap_lvl`) E ainda NÃO houve troca registrada no NÍVEL TOTAL atual
+    # (`TbPersonagemEscolha` tipo='troca_magia', valor=str(nível total)). Personagens antigos, sem
+    # registro, caem naturalmente no ramo "disponível". Enforcement em `_lvl_aplicar_trocar_magia`.
+    nivel_total = sum(int(c.nivel or 0) for c in personagem.classes.all()) or int(personagem.nivel or 1)
+    swap_usada = TbPersonagemEscolha.objects.filter(
+        id_personagem=personagem, tipo='troca_magia', valor=str(nivel_total)).exists()
     conhecidas = [{'slug': m.id_magia.slug, 'nome': m.nome, 'nivel': m.nivel}
                   for m in personagem.magias.select_related('id_magia').filter(id_magia__isnull=False).order_by('nivel', 'nome')]
     return {'cantrips_pend': cant_pend, 'known_pend': known_pend, 'max_nivel': maxlv,
             'lista_truques': lt, 'lista_magias': lm, 'lista_nomes': spell_info['lista_nomes'],
-            'swap_level_up': swap_lvl, 'conhecidas': conhecidas}
+            'swap_level_up': swap_lvl, 'swap_disponivel': bool(swap_lvl) and not swap_usada,
+            'conhecidas': conhecidas}
 
 
 _ABIL_EN = {'FOR': 'str', 'DES': 'dex', 'CON': 'con', 'INT': 'int', 'SAB': 'wis', 'CAR': 'cha'}
@@ -4865,6 +4873,7 @@ _ERR_OPCAO_INVALIDA = 'Escolha de opção inválida (fora do universo, duplicada
 _ERR_MAGIAS_SEM_PEND = 'Nada a aprender: nenhuma magia pendente neste nível.'
 _ERR_TROCA_INDISPONIVEL = 'Troca de magia indisponível para esta classe/nível.'
 _ERR_TROCA_INVALIDA = 'Troca de magia inválida (regra de nível/truque não satisfeita).'
+_ERR_TROCA_JA_USADA = 'Você já trocou uma magia neste nível.'
 
 _MC_ERRO_CODE = {_ERR_MC_MAX: 'max', _ERR_MC_TETO: 'teto',
                  _ERR_MC_INVALIDO: 'invalido', _ERR_MC_PREREQ: 'prereq'}
@@ -5042,12 +5051,25 @@ def _lvl_aplicar_aprender_magias(personagem, payload):
 
 def _lvl_aplicar_trocar_magia(personagem, payload):
     """Troca 1 magia CONHECIDA por outra ao subir de nível (tag swap:level_up).
-    Truque↔truque, conhecida↔conhecida (nível 1..máx conjurável)."""
-    from .models import TbMagia, TbPersonagemMagia
+    Truque↔truque, conhecida↔conhecida (nível 1..máx conjurável).
+
+    GATE (regra do PO): UMA troca por NÍVEL TOTAL. Cada troca aplicada grava o nível em que
+    foi usada como `TbPersonagemEscolha` (tipo='troca_magia', origem='swap', slot/valor = nível
+    total). Uma SEGUNDA troca no MESMO nível é recusada com `_ERR_TROCA_JA_USADA`. Subir de
+    nível libera outra troca naturalmente: o nível gravado passa a ser MENOR que o novo, então a
+    checagem por `valor=str(nível_atual)` não acha registro. Personagens ANTIGOS (sem nenhum
+    registro) ganham a troca do nível atual de graça — sem registro do nível → o gate deixa passar.
+    Vale para o POST direto, para o endpoint legado (`personagem_trocar_magia`) e para o lote."""
+    from .models import TbMagia, TbPersonagemMagia, TbPersonagemEscolha
     payload = payload or {}
     pend = _pendencias_magias(personagem)
     if not pend or not pend['swap_level_up']:
         return [_ERR_TROCA_INDISPONIVEL]
+    # UMA por nível: se já há registro de troca no nível total atual, recusa antes de aplicar.
+    nivel_atual = sum(int(c.nivel or 0) for c in personagem.classes.all()) or int(personagem.nivel or 1)
+    if TbPersonagemEscolha.objects.filter(
+            id_personagem=personagem, tipo='troca_magia', valor=str(nivel_atual)).exists():
+        return [_ERR_TROCA_JA_USADA]
     classe = (personagem.classes.filter(principal=True).first() or personagem.classes.first()).id_classe
     conhecidas = {m['slug'] for m in pend['conhecidas']}
     disponiveis = {m['slug'] for m in pend['lista_truques']} | {m['slug'] for m in pend['lista_magias']}
@@ -5060,6 +5082,11 @@ def _lvl_aplicar_trocar_magia(personagem, payload):
         old.delete()
         TbPersonagemMagia.objects.create(id_personagem=personagem, id_magia=new_mg, nivel=new_mg.nivel,
                                          nome=new_mg.nome, preparada=True, origem=classe.nome)
+        # Registra o nível em que a troca foi usada (slot=nível → um registro por nível, sem
+        # colidir no unique_together (personagem, origem, tipo, slot)).
+        TbPersonagemEscolha.objects.get_or_create(
+            id_personagem=personagem, origem='swap', tipo='troca_magia', slot=nivel_atual,
+            defaults={'valor': str(nivel_atual)})
         return []
     return [_ERR_TROCA_INVALIDA]
 

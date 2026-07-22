@@ -99,7 +99,8 @@
           <div class="lvl-card__head">
             <span class="lvl-card__title">Trocar magia conhecida <span class="sub">opcional, ao subir de nível</span></span>
           </div>
-          <p class="lvl-card__hint">Esta classe pode substituir 1 magia conhecida por outra ao subir de nível (truque por truque, magia por magia). Grava na hora.</p>
+          {% if pend_magias.swap_disponivel %}
+          <p class="lvl-card__hint">Esta classe pode substituir 1 magia conhecida por outra ao subir de nível (truque por truque, magia por magia). Grava na hora. Uma troca por nível.</p>
           <form method="post" action="{% url 'personagem_trocar_magia' p.id_personagem %}" class="lvl-card__row">
             {% csrf_token %}
             <select name="remover" required class="lvl-field" aria-label="Magia a remover">
@@ -111,6 +112,9 @@
             </select>
             <button type="submit" class="lvl-add">Trocar</button>
           </form>
+          {% else %}
+          <p class="lvl-card__hint">Troca já usada neste nível. Suba de nível para trocar outra magia.</p>
+          {% endif %}
         </div>
       {% endif %}
 

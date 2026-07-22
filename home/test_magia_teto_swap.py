@@ -185,3 +185,107 @@ class AdeptoDasVestesTests(_MagiaBase):
         _fx, esc_off, _g = _grants_de_tag(tag, {}, catalog, 20, casts_selection=False)
         self.assertIsNotNone(esc_on)      # com o cast irmão → escolha
         self.assertIsNone(esc_off)        # sem o cast irmão → nada
+
+
+class TrocaMagiaGateTests(_MagiaBase):
+    """Regra do PO: o caster CONHECIDO troca UMA magia por NÍVEL. Cada troca registra o nível
+    total em que foi usada (TbPersonagemEscolha tipo='troca_magia'); a SEGUNDA troca no MESMO
+    nível é recusada com `_ERR_TROCA_JA_USADA` — vale para o POST direto, para o endpoint
+    legado (`personagem_trocar_magia`) e para o lote (`_levelup_aplicar_lote`). Subir de nível
+    libera outra troca; personagens ANTIGOS (sem registro) ganham a troca do nível atual."""
+
+    def _caster(self, nivel=9, nome='swapper'):
+        """Paladino (known caster: swap:level_up + prepara:conhecidas) com 1 magia conhecida
+        pronta para trocar. Devolve (p, old_slug, new_slug): `old` é a conhecida a remover,
+        `new` uma magia da lista da classe ainda não conhecida (dentro do teto)."""
+        p = self._com_classe('paladino', nivel, nome=nome)
+        pend = views._pendencias_magias(p)
+        self.assertTrue(pend['swap_level_up'], 'paladino deveria permitir troca ao subir de nível')
+        opcoes = [m['slug'] for m in pend['lista_magias']]
+        self.assertGreaterEqual(len(opcoes), 2, 'pool de magias insuficiente para o teste')
+        old_slug, new_slug = opcoes[0], opcoes[1]
+        mg = TbMagia.objects.get(slug=old_slug)
+        TbPersonagemMagia.objects.create(id_personagem=p, id_magia=mg, nivel=mg.nivel,
+                                         nome=mg.nome, preparada=True, origem='Paladino')
+        return p, old_slug, new_slug
+
+    def test_primeira_troca_aplica_e_registra(self):
+        # 1ª troca no nível: aplica (old sai, new entra) E grava o nível da troca.
+        p, old_slug, new_slug = self._caster()
+        self.assertEqual(views._lvl_aplicar_trocar_magia(
+            p, {'remover': old_slug, 'adicionar': new_slug}), [])
+        self.assertFalse(p.magias.filter(id_magia__slug=old_slug).exists())
+        self.assertTrue(p.magias.filter(id_magia__slug=new_slug).exists())
+        self.assertTrue(TbPersonagemEscolha.objects.filter(
+            id_personagem=p, tipo='troca_magia', valor='9').exists())
+
+    def test_segunda_troca_no_mesmo_nivel_recusada(self):
+        # 2ª troca no MESMO nível (params válidos em isolamento) → recusada pelo gate; nada muda.
+        p, old_slug, new_slug = self._caster()
+        self.assertEqual(views._lvl_aplicar_trocar_magia(
+            p, {'remover': old_slug, 'adicionar': new_slug}), [])
+        erros = views._lvl_aplicar_trocar_magia(p, {'remover': new_slug, 'adicionar': old_slug})
+        self.assertEqual(erros, [views._ERR_TROCA_JA_USADA])
+        self.assertTrue(p.magias.filter(id_magia__slug=new_slug).exists())
+        self.assertFalse(p.magias.filter(id_magia__slug=old_slug).exists())
+        self.assertEqual(TbPersonagemEscolha.objects.filter(
+            id_personagem=p, tipo='troca_magia').count(), 1)
+
+    def test_subir_de_nivel_libera_nova_troca(self):
+        # Sobe 1 nível → o registro antigo (nível menor) não trava a troca do nível novo.
+        p, old_slug, new_slug = self._caster()
+        self.assertEqual(views._lvl_aplicar_trocar_magia(
+            p, {'remover': old_slug, 'adicionar': new_slug}), [])
+        pc = p.classes.first()
+        pc.nivel += 1
+        pc.save(update_fields=['nivel'])
+        p.nivel += 1
+        p.save(update_fields=['nivel'])
+        self.assertEqual(views._lvl_aplicar_trocar_magia(
+            p, {'remover': new_slug, 'adicionar': old_slug}), [])
+        self.assertTrue(p.magias.filter(id_magia__slug=old_slug).exists())
+        self.assertFalse(p.magias.filter(id_magia__slug=new_slug).exists())
+        self.assertEqual(set(TbPersonagemEscolha.objects.filter(
+            id_personagem=p, tipo='troca_magia').values_list('valor', flat=True)), {'9', '10'})
+
+    def test_endpoint_legado_respeita_o_gate(self):
+        # `personagem_trocar_magia` (wrapper PRG) passa pelo MESMO gate: 1ª aplica, 2ª não.
+        p, old_slug, new_slug = self._caster(nome='legado')
+        self.client.force_login(p.dono)
+        url = reverse('personagem_trocar_magia', args=[p.pk])
+        self.assertEqual(self.client.post(
+            url, data={'remover': old_slug, 'adicionar': new_slug}).status_code, 302)
+        self.assertTrue(p.magias.filter(id_magia__slug=new_slug).exists())
+        self.assertEqual(self.client.post(
+            url, data={'remover': new_slug, 'adicionar': old_slug}).status_code, 302)
+        self.assertTrue(p.magias.filter(id_magia__slug=new_slug).exists())
+        self.assertFalse(p.magias.filter(id_magia__slug=old_slug).exists())
+        self.assertEqual(TbPersonagemEscolha.objects.filter(
+            id_personagem=p, tipo='troca_magia').count(), 1)
+
+    def test_lote_duas_trocas_so_a_primeira_aplica(self):
+        # Lote com 2 trocar_magia (ordem 7, sort estável): a 1ª aplica, a 2ª bate no gate.
+        p, old_slug, new_slug = self._caster(nome='lote')
+        acoes = [
+            {'tipo': 'trocar_magia', 'payload': {'remover': old_slug, 'adicionar': new_slug}},
+            {'tipo': 'trocar_magia', 'payload': {'remover': new_slug, 'adicionar': old_slug}},
+        ]
+        self.assertEqual(views._levelup_aplicar_lote(p, acoes), [views._ERR_TROCA_JA_USADA])
+        self.assertTrue(p.magias.filter(id_magia__slug=new_slug).exists())
+        self.assertFalse(p.magias.filter(id_magia__slug=old_slug).exists())
+        self.assertEqual(TbPersonagemEscolha.objects.filter(
+            id_personagem=p, tipo='troca_magia').count(), 1)
+
+    def test_swap_disponivel_reflete_o_gate(self):
+        # A flag da UI (`swap_disponivel`): antigo/novo sem registro = disponível; usada = não;
+        # subir de nível = disponível de novo.
+        p, old_slug, new_slug = self._caster(nome='flag')
+        self.assertTrue(views._pendencias_magias(p)['swap_disponivel'])
+        views._lvl_aplicar_trocar_magia(p, {'remover': old_slug, 'adicionar': new_slug})
+        self.assertFalse(views._pendencias_magias(p)['swap_disponivel'])
+        pc = p.classes.first()
+        pc.nivel += 1
+        pc.save(update_fields=['nivel'])
+        p.nivel += 1
+        p.save(update_fields=['nivel'])
+        self.assertTrue(views._pendencias_magias(p)['swap_disponivel'])
