@@ -2304,6 +2304,140 @@ class ConjuradorDeGuerraPrereqTests(_CriadorBase):
         self.assertFalse(views._personagem_conjura(p))
 
 
+class MarcasArcanasPipelineTests(_CriadorBase):
+    """Pipeline das Marcas Arcanas/Anomalas ponta-a-ponta (laudo das Marcas). Consolida os
+    quatro achados:
+      1. DETECTOR UNICO (character_engine._personagem_conjura): falso-positivo do Ladino
+         morto (subclasse que ele NAO tem), conjurador por essencia reconhecido, delegacao
+         de views intacta.
+      2. TWO-PASS em magias_concedidas: um NAO-conjurador que pega a Marca materializa a
+         magia sempre-preparada E ve a lista expandida (requires:spellcasting) NO MESMO
+         derive — sem esperar o ciclo de persistencia.
+      3. PONTE DE SLUG _<->-: a magia multi-palavra `fogo-das-fadas` da lista de decreto
+         (que vinha como `fogo_das_fadas`) deixa de sumir em silencio.
+      4. GATES DE PRE-REQUISITO: 2a Marca recusada (exclusao mutua) e Superior sem/ com base.
+    """
+    _seq = 0
+
+    def _usr(self):
+        MarcasArcanasPipelineTests._seq += 1
+        return self._novo_usuario('marca-%d' % MarcasArcanasPipelineTests._seq, staff=True)
+
+    def _marcial(self, nivel=4, classe='barbaro', sub_needle=None):
+        cl = TbClasse.objects.get(slug=classe)
+        sub = None
+        if sub_needle:
+            from home.models import TbSubclasse
+            sub = TbSubclasse.objects.filter(id_classe=cl, nome__icontains=sub_needle).first()
+        p = TbPersonagem.objects.create(
+            dono=self._usr(), nome='Marcial', nivel=nivel,
+            forca=15, destreza=13, constituicao=14, inteligencia=10, sabedoria=12, carisma=8)
+        TbPersonagemClasse.objects.create(
+            id_personagem=p, id_classe=cl, id_subclasse=sub, nivel=nivel, principal=True)
+        return p
+
+    def _pega_talento(self, p, nome):
+        t = TbTalento.objects.get(nome=nome)
+        TbPersonagemTalento.objects.create(id_personagem=p, id_talento=t, nome=t.nome)
+        return t
+
+    # ── 2 + 3: pipeline completo de um NAO-conjurador ──
+    def test_marca_nao_conjurador_pipeline_completo(self):
+        from home.character_engine import magias_concedidas, _personagem_conjura
+        p = self._marcial(nivel=4)                       # barbaro N4: NAO conjura
+        self._pega_talento(p, 'Marca Arcana da Busca')   # via Raizes Profundas (origem)
+        # detector permanece FALSE (sem magia persistida ainda): quem abre o portao e o
+        # two-pass (a propria Marca concede magia), nao o detector.
+        self.assertFalse(_personagem_conjura(p))
+        info = magias_concedidas(p)
+        slugs = {c['slug'] for c in info['concedidas']}
+        # (2) grant NAO-gateado da propria Marca (cast always_prepared)
+        self.assertIn('marca-do-cacador', slugs)
+        # (2) lista expandida (requires:spellcasting) LIBERADA no mesmo derive
+        self.assertIn('clarividencia', slugs)            # single-word
+        # (3) magia MULTI-PALAVRA sobrevive a ponte de slug _<->-
+        self.assertIn('fogo-das-fadas', slugs)
+        for extra in ('passos-longos', 'localizar-animais-ou-plantas', 'comunhao-com-a-natureza'):
+            self.assertIn(extra, slugs, extra)
+        # end-to-end: o sync materializa a lista INTEIRA em TbPersonagemMagia
+        views._sync_magias_concedidas(p)
+        mat = {m.id_magia.slug for m in TbPersonagemMagia.objects.filter(
+            id_personagem=p, sempre_preparada=True).select_related('id_magia')}
+        self.assertIn('fogo-das-fadas', mat)
+        self.assertIn('marca-do-cacador', mat)
+
+    def test_sem_marca_lista_fechada(self):
+        # controle: barbaro puro (sem Marca) nao conjura e nao recebe magia nenhuma.
+        from home.character_engine import magias_concedidas, _personagem_conjura
+        p = self._marcial(nivel=4)
+        self.assertFalse(_personagem_conjura(p))
+        self.assertEqual(magias_concedidas(p)['concedidas'], [])
+
+    # ── 1: detector unico ──
+    def test_falso_positivo_ladino_morto(self):
+        from home.character_engine import _personagem_conjura
+        # Ladino N5 SEM subclasse: a 'Magia do Trapaceiro' fica sob id_classe=ladino,
+        # id_subclasse=Trapaceiro Arcano — o detector NAO pode enxergar subclasse que ele
+        # nao tem. Antes do fix o detector do engine dava True (falso-positivo).
+        p = self._marcial(nivel=5, classe='ladino')       # sem subclasse
+        self.assertFalse(_personagem_conjura(p))
+        self.assertFalse(views._personagem_conjura(p))     # delegacao identica
+
+    def test_conjurador_por_essencia_reconhecido(self):
+        from home.character_engine import _personagem_conjura
+        from home.models import TbMagia
+        p = self._marcial(nivel=4)                         # barbaro: nao conjura
+        self.assertFalse(_personagem_conjura(p))
+        mag = TbMagia.objects.first()
+        TbPersonagemMagia.objects.create(id_personagem=p, id_magia=mag, nome=mag.nome,
+                                         nivel=1, origem='essencia-vertente')
+        self.assertTrue(_personagem_conjura(p))            # magia de QUALQUER origem basta
+        self.assertTrue(views._personagem_conjura(p))
+
+    # ── 4: gates de pre-requisito ──
+    def test_segunda_marca_recusada(self):
+        from home.character_engine import derive
+        p = self._marcial(nivel=4)
+        self._pega_talento(p, 'Marca Arcana da Busca')
+        criacao = TbTalento.objects.get(nome='Marca Arcana da Criação')
+        self.assertFalse(views._talento_prereq_ok(criacao, p, derive(p)))   # exclusao mutua
+        # controle: personagem SEM marca aceita a mesma base
+        p2 = self._marcial(nivel=4)
+        self.assertTrue(views._talento_prereq_ok(criacao, p2, derive(p2)))
+
+    def test_marca_anomala_exclui_arcana(self):
+        from home.character_engine import derive
+        p = self._marcial(nivel=4)
+        self._pega_talento(p, 'Marca Arcana da Busca')
+        anomala = TbTalento.objects.get(nome='Marca Anômala')
+        # 'Marca Anomala' exige 'nao possuir outra Marca Arcana' → recusada
+        self.assertFalse(views._talento_prereq_ok(anomala, p, derive(p)))
+
+    def test_superior_exige_base(self):
+        from home.character_engine import derive
+        p = self._marcial(nivel=4)
+        superior = TbTalento.objects.get(nome='Marca Arcana Superior da Busca')
+        self.assertFalse(views._talento_prereq_ok(superior, p, derive(p)))   # sem base
+        self._pega_talento(p, 'Marca Arcana da Busca')
+        self.assertTrue(views._talento_prereq_ok(superior, p, derive(p)))    # com base
+
+    def test_superior_exige_a_base_certa(self):
+        # a base ERRADA (Criacao) NAO habilita a Superior da Busca.
+        from home.character_engine import derive
+        p = self._marcial(nivel=4)
+        self._pega_talento(p, 'Marca Arcana da Criação')
+        superior = TbTalento.objects.get(nome='Marca Arcana Superior da Busca')
+        self.assertFalse(views._talento_prereq_ok(superior, p, derive(p)))
+
+    def test_marca_potente_permissiva_por_categoria(self):
+        # 'qualquer Marca Superior ou Marca Anomala Maior' e clausula de CATEGORIA →
+        # permanece permissiva por design (o gate nomeado nao trava clausula generica).
+        from home.character_engine import derive
+        p = self._marcial(nivel=4)
+        potente = TbTalento.objects.get(nome='Marca Potente')
+        self.assertTrue(views._talento_prereq_ok(potente, p, derive(p)))
+
+
 class Item7AsiFormaAlternativaTests(_CriadorBase):
     """Item 7: ASI do antecedente aceita a forma alternativa +1/+1/+1 (regra de sistema)
     alem do +2/+1 legado — validacao, resolucao e persistencia (2 ou 3 linhas de bonus)."""

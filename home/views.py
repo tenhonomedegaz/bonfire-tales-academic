@@ -3805,29 +3805,13 @@ def _talentos_raciais_count_as(raca_slugs, nivel_max=None):
 
 
 def _personagem_conjura(personagem):
-    """True se o personagem tem QUALQUER fonte de conjuração, para os pré-requisitos de
-    talento do tipo 'Conjuração ou Magia de Pacto'. Cobre, universalmente:
-      - classe base conjuradora — full/half (Mago, Clérigo, Paladino…) via
-        `_classe_spellcasting_info` por classe;
-      - SUBCLASSE conjuradora — third-casters (Cavaleiro Arcano, Trapaceiro Arcano) e
-        pactos de subclasse (Monge Elemental) carregam o `spellcasting{}` numa habilidade
-        de subclasse; reusa o pipeline subclasse-aware `_classe_spellcasting_info(classe,
-        subclasse=_caster_subclasse(pc))` — o mesmo que a ficha de magias usa;
-      - magia de pacto — o Místico modela `spellcasting{slots:pact}` na CLASSE BASE, então
-        já cai no primeiro caso;
-      - magias já CONHECIDAS/persistidas de qualquer origem — decisão do PO: quem tem magia
-        de qualquer fonte (vertente/essência, marca, item…) conjura, logo TbPersonagemMagia
-        não-vazia basta.
-    NÃO usa o `_personagem_conjura(classes)` do character_engine: aquele varre TODAS as
-    habilidades da classe sem filtrar por subclasse escolhida (bom para liberar listas de
-    magia, mas daria falso-positivo aqui — um Guerreiro Campeão veria a habilidade de
-    conjuração do Cavaleiro Arcano). Este casa exatamente a subclasse do personagem."""
-    from .models import TbPersonagemMagia
-    for pc in personagem.classes.select_related('id_classe', 'id_subclasse'):
-        if _classe_spellcasting_info(pc.id_classe, nivel_habilidades=int(pc.nivel or 1),
-                                     subclasse=_caster_subclasse(pc)):
-            return True
-    return TbPersonagemMagia.objects.filter(id_personagem=personagem).exists()
+    """Delega ao DETECTOR ÚNICO em character_engine._personagem_conjura (camada baixa) — a
+    MESMA regra do PO que libera as listas de decreto, para nunca divergir. Cobre: classe
+    base conjuradora, subclasse conjuradora DO PERSONAGEM (subclasse-aware — sem o
+    falso-positivo do Ladino que via a Magia do Trapaceiro), magia de pacto (spellcasting
+    {slots:pact} na base) e TbPersonagemMagia não-vazia (magia de qualquer origem)."""
+    from .character_engine import _personagem_conjura as _ce_personagem_conjura
+    return _ce_personagem_conjura(personagem)
 
 
 def _talento_prereq_ok(talento, personagem, ficha):
@@ -3856,6 +3840,27 @@ def _talento_prereq_ok(talento, personagem, ficha):
         trecho = req.split('talento ', 1)[1]
         if not owned or not any(nome and nome in trecho for nome in owned):
             return False
+    # ── MARCAS: cláusulas que o avaliador genérico ignorava (exclusão mútua + Marca-base
+    # nomeada nas Superiores) — não citam a palavra 'talento', então escapavam do branch acima.
+    if 'marca' in req:
+        owned_marcas = {_norm_req(t.nome) for t in personagem.talentos.all()}
+        if 'nao possuir outra' in req:
+            # (a) EXCLUSÃO MÚTUA — "não possuir outra Marca Arcana [ou Marca Anômala]": falha
+            # se já tem QUALQUER talento da(s) família(s) citada(s) (Arcana vs Anômala,
+            # precisamente conforme o texto — a base Anômala só exclui Arcana).
+            depois = req.split('nao possuir outra', 1)[1]
+            familias = [f for f in ('marca arcana', 'marca anomala') if f in depois]
+            if any(fam in nome for fam in familias for nome in owned_marcas):
+                return False
+        elif 'qualquer' not in req:
+            # (b) MARCA-BASE NOMEADA — as Superiores/Maior citam o nome EXATO de um TbTalento
+            # de Marca ("Marca Arcana da Busca."): exige possuí-lo. Cláusulas de CATEGORIA
+            # ("qualquer Marca Superior…", Marca Potente) ficam permissivas.
+            from .models import TbTalento
+            nomes_marca = [_norm_req(t.nome) for t in TbTalento.objects.filter(nome__icontains='marca')]
+            exigidos = [n for n in nomes_marca if n and n in req]
+            if exigidos and not any(n in owned_marcas for n in exigidos):
+                return False
     return True
 
 

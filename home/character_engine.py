@@ -978,53 +978,68 @@ def _iter_spell_selections(s):
     return out
 
 
-def _grants_de_tag(tag, escolhas, catalog, nivel_total, is_spellcaster=False):
-    """(fixas, escolha) de UMA tag. fixas=[(slug,nivel)] (magia específica garantida);
+def _grants_de_tag(tag, escolhas, catalog, nivel_total):
+    """(fixas, escolha, gated) de UMA tag. fixas=[(slug,nivel)] (magia específica garantida);
     escolha=None | dict normalizado:
       {'opcoes':[slug], 'qtd':K, 'rotulo':str}                 (lista concreta de opções)
       {'pool':{'classes':[Nome], 'nivel':N|None, 'escola':E|None}, 'qtd':K, 'rotulo':str}
+    gated=[(slug,nivel)] — LISTAS DE DECRETO atrás de `requires:spellcasting`. O gate NÃO é
+    decidido aqui: as magias voltam em `gated` e o chamador (magias_concedidas) abre o portão
+    se o personagem conjura OU acabou de ganhar magia por grant não-gateado (two-pass).
 
     Concede: `cast{… spell:X … always-prepared}` (Marcas), `spell-selection:match(var){…}`
     (vertente/veste-lunar…), `spell-selection:<slug>{… always-prepared}` (magia única),
-    `spell:X` concreto, e as LISTAS DE DECRETO `any{ a, b, … }, fora-do-limite` — adicionadas
-    como conhecidas/sempre-preparadas se o personagem for conjurador (gate requires:spellcasting,
-    `is_spellcaster`). Escolhas: `spell-selection:<classe>{… qtd:K …}` (pool de classe),
-    `pick{lista:{a|b}}{… qtd:K}` (união), e a Marca Planar (`any{spell:pick{… match(pick:…)}}`).
-    IGNORA cast ativo e `spell:pick{…}` não resolvido. Respeita `requires:lvl{N}`."""
+    `spell:X` concreto, e as LISTAS DE DECRETO `any{ a, b, … }, fora-do-limite`. Escolhas:
+    `spell-selection:<classe>{… qtd:K …}` (pool de classe), `pick{lista:{a|b}}{… qtd:K}`
+    (união), e a Marca Planar (`any{spell:pick{… match(pick:…)}}`). IGNORA cast ativo e
+    `spell:pick{…}` não resolvido. Respeita `requires:lvl{N}`."""
     s = str(tag)
+
+    def _cat(sl):
+        """PONTE DE SLUG _↔- contra o catálogo hifenado. As tags (formato do fixture que o
+        engine lê) escrevem magia com underscore (`fogo_das_fadas`, `marca_do_cacador`); o
+        catálogo TbMagia é hifenado. Devolve o slug CANÔNICO (do catálogo) ou None. Sem a
+        ponte, magia multi-palavra sumia em silêncio (cast e lista de decreto)."""
+        if sl in catalog:
+            return sl
+        h = sl.replace('_', '-')
+        return h if h in catalog else None
+
     m = re.search(r'requires:lvl\{(\d+)\}', s)
     if m and nivel_total < int(m.group(1)):
-        return [], None
+        return [], None, []
     # match(var){…} — concessão por escolha já feita (vertente, veste-lunar…)
     if re.search(r'spell_selection:match\(', s):
         slugs, nivel, qtd = _parse_spell_selection(_resolve_match(s, escolhas))
-        slugs = [sl for sl in slugs if sl in catalog]
+        slugs = [c for c in (_cat(sl) for sl in slugs) if c]
         if not slugs or nivel is None:
-            return [], None
+            return [], None, []
         if qtd >= len(slugs):
-            return [(sl, nivel) for sl in slugs], None
-        return [], {'opcoes': slugs, 'qtd': qtd, 'rotulo': _rotulo_escolha(nivel, qtd)}
-    fixas, escolha = [], None
+            return [(sl, nivel) for sl in slugs], None, []
+        return [], {'opcoes': slugs, 'qtd': qtd, 'rotulo': _rotulo_escolha(nivel, qtd)}, []
+    fixas, escolha, gated = [], None, []
     for cm in _CAST_BLOCK_RE.finditer(s):
         blk = cm.group(1)
         if re.search(r'always_prepared', blk):
-            for sm in re.finditer(r'spell:([a-z0-9-]+)', blk):
-                if sm.group(1) in catalog:
-                    fixas.append((sm.group(1), catalog[sm.group(1)]))
+            for sm in re.finditer(r'spell:([a-z0-9_-]+)', blk):
+                c = _cat(sm.group(1))
+                if c:
+                    fixas.append((c, catalog[c]))
     s_wo = _CAST_BLOCK_RE.sub('', s)
     for scope, scope_extra, body in _iter_spell_selections(s_wo):
         full = scope_extra + ' ' + body
         # (a) escopo é uma MAGIA concreta sempre-preparada
-        if scope in catalog:
+        scope_cat = _cat(scope)
+        if scope_cat:
             if re.search(r'always_prepared', body):
-                fixas.append((scope, catalog[scope]))
-            for sm in re.finditer(r'spell:([a-z0-9-]+)', full):   # magia-conhecida(spell:X)
-                if sm.group(1) in catalog:
-                    fixas.append((sm.group(1), catalog[sm.group(1)]))
+                fixas.append((scope_cat, catalog[scope_cat]))
+            for sm in re.finditer(r'spell:([a-z0-9_-]+)', full):   # magia-conhecida(spell:X)
+                c = _cat(sm.group(1))
+                if c:
+                    fixas.append((c, catalog[c]))
             continue
         # (b) spell:X concreto (any{spell:X}, paladino{spell:X}) sem pick → grant
-        concretos = [sm.group(1) for sm in re.finditer(r'spell:([a-z0-9-]+)', full)
-                     if sm.group(1) in catalog]
+        concretos = [c for c in (_cat(sm.group(1)) for sm in re.finditer(r'spell:([a-z0-9_-]+)', full)) if c]
         if concretos and 'pick' not in full:
             for sl in concretos:
                 fixas.append((sl, catalog[sl]))
@@ -1036,23 +1051,23 @@ def _grants_de_tag(tag, escolhas, catalog, nivel_total, is_spellcaster=False):
                 bo = full.find('{', mv.end() - 1)
                 ramo = _ramo(full[bo + 1:_match_close(full, bo)], escolhas[mv.group(1)])
                 if ramo and ramo is not _NO_BRANCH:
-                    opt = [x.strip() for x in re.split(r'[|,]', ramo.strip('{} '))
-                           if x.strip() in catalog]
+                    opt = [c for c in (_cat(x.strip()) for x in re.split(r'[|,]', ramo.strip('{} '))) if c]
                     if opt:
                         escolha = {'opcoes': opt, 'qtd': 1,
                                    'rotulo': _rotulo_escolha(0, 1)}
                         break
             continue
-        # (c2) LISTA DE DECRETO: any{ slug, slug, … } (fora-do-limite) — todas as magias
-        # da lista entram como conhecidas/sempre-preparadas. Gate: se a tag exige
-        # `requires:spellcasting`, só concede a conjuradores.
+        # (c2) LISTA DE DECRETO: any{ slug, slug, … } (fora-do-limite) — todas as magias da
+        # lista entram como conhecidas/sempre-preparadas. PONTE DE SLUG _↔- (o catálogo é
+        # hifenado; a lista às vezes vem com underscore — sem a ponte, magia multi-palavra
+        # como `fogo_das_fadas` sumia em silêncio). Gate `requires:spellcasting`: NÃO decidido
+        # aqui — volta em `gated`; o chamador abre o portão (two-pass).
         if scope == 'any' and 'spell:' not in full and 'pick' not in full and 'efeito' not in full:
-            lista = [x.strip() for x in re.split(r'[,|]', body) if x.strip() in catalog]
+            lista = [c for c in (_cat(x.strip()) for x in re.split(r'[,|]', body)) if c]
             if lista:
-                if re.search(r'requires\s*:\s*spell_?casting', s) and not is_spellcaster:
-                    continue
+                bucket = gated if re.search(r'requires\s*:\s*spell_?casting', s) else fixas
                 for sl in lista:
-                    fixas.append((sl, catalog[sl]))
+                    bucket.append((sl, catalog[sl]))
                 continue
         # (d) escolha qtd:K de uma classe / união de classes
         qtd = _qtd_de(body, nivel_total)
@@ -1080,7 +1095,7 @@ def _grants_de_tag(tag, escolhas, catalog, nivel_total, is_spellcaster=False):
             escolha = {'pool': {'classes': sorted(set(classes)), 'nivel': nv, 'escola': esc},
                        'qtd': qtd, 'rotulo': _rotulo_escolha(nv, qtd, classes, esc)}
             break
-    return fixas, escolha
+    return fixas, escolha, gated
 
 
 def _norm_escola(e):
@@ -1103,19 +1118,37 @@ def _resolve_pool(pool, catalog_rich):
     return sorted(out)
 
 
-def _personagem_conjura(classes):
-    """True se alguma classe/subclasse do personagem (ou habilidade de classe até o nível
-    atual) carrega tag `spellcasting{…}` — i.e., é conjurador (p/ liberar as listas de
-    decreto, que só entram na lista de magias de quem conjura)."""
-    from .models import TbClassehabilidade
-    for c in classes:
+def _personagem_conjura(personagem):
+    """DETECTOR ÚNICO de conjuração (regra do PO) — camada baixa, fonte de verdade para a
+    ficha (views._personagem_conjura delega aqui) E para liberar as listas de decreto.
+    Conjura se QUALQUER destes vale:
+      • CLASSE BASE conjuradora — `spellcasting{…slots|lista…}` numa habilidade de classe
+        SEM subclasse (id_subclasse null) até o nível, ou na própria TbClasse;
+      • SUBCLASSE DO PERSONAGEM conjuradora — só a subclasse que ele TEM e já desbloqueou
+        (third-casters: Cavaleiro/Trapaceiro Arcano). NUNCA varre habilidades de uma
+        subclasse que ele não escolheu → mata o falso-positivo (Ladino sem subclasse via a
+        `Magia do Trapaceiro`);
+      • MAGIA DE PACTO — modelada como `spellcasting{slots:pact}` na classe base (Místico) →
+        já cai no 1º caso;
+      • TbPersonagemMagia NÃO-VAZIA — magia persistida de QUALQUER origem (essência/vertente,
+        marca, item) basta (decisão do PO)."""
+    from .models import TbClassehabilidade, TbPersonagemMagia
+    from django.db.models import Q
+    for c in personagem.classes.select_related('id_classe', 'id_subclasse'):
         cl = c.id_classe
-        srcs = [cl] + ([c.id_subclasse] if c.id_subclasse_id else [])
-        srcs += list(TbClassehabilidade.objects.filter(id_classe=cl, niveladquirido__lte=(c.nivel or 1)))
+        nivel = int(c.nivel or 1)
+        cond = Q(id_classe=cl, id_subclasse__isnull=True)
+        srcs = [cl]
+        if c.id_subclasse_id and _subclass_unlocked(c, nivel):
+            cond |= Q(id_classe=cl, id_subclasse=c.id_subclasse_id)
+            srcs.append(c.id_subclasse)
+        srcs += list(TbClassehabilidade.objects.filter(cond, niveladquirido__lte=nivel))
         for src in srcs:
-            if any(_tag_block(t, 'spellcasting') is not None for t in (getattr(src, 'tags_json', None) or [])):
-                return True
-    return False
+            for t in (getattr(src, 'tags_json', None) or []):
+                body = _tag_block(t, 'spellcasting')
+                if body is not None and re.search(r'\b(?:slots|lista)\s*:', body):
+                    return True
+    return TbPersonagemMagia.objects.filter(id_personagem=personagem).exists()
 
 
 def _spell_mod(classes, atributos):
@@ -1164,7 +1197,7 @@ def magias_concedidas(personagem):
     from .models import TbMagia, TbPersonagemEscolha
     classes = list(personagem.classes.select_related('id_classe', 'id_subclasse').order_by('-principal', 'id'))
     nivel_total = sum(int(c.nivel or 0) for c in classes) or int(personagem.nivel or 1)
-    is_caster = _personagem_conjura(classes)
+    is_caster = _personagem_conjura(personagem)
     features = (_features_de_classe(classes) + _tracos_raciais(personagem)
                 + _antecedente(personagem) + _talentos(personagem)
                 + _features_de_itens(personagem) + _features_de_opcoes(personagem))
@@ -1179,14 +1212,17 @@ def magias_concedidas(personagem):
         escolhidos.setdefault((e.origem or '', e.slot), set()).update(
             x for x in (e.valor or '').split(',') if x)
     seen, ordem = set(), {}
+    gated_all = []   # [(fonte, slug, nivel)] — listas de decreto atrás de requires:spellcasting
     for (_o, _f, obj, _cl) in features:
         fonte = getattr(obj, 'nome', '') or ''
         for tag in (getattr(obj, 'tags_json', None) or []):
-            fixas, escolha = _grants_de_tag(tag, escolhas, catalog, nivel_total, is_caster)
+            fixas, escolha, gated = _grants_de_tag(tag, escolhas, catalog, nivel_total)
             for slug, nivel in fixas:
                 if slug not in seen:
                     seen.add(slug)
                     out['concedidas'].append({'slug': slug, 'nivel': nivel, 'fonte': fonte})
+            for slug, nivel in gated:
+                gated_all.append((fonte, slug, nivel))
             if not escolha:
                 continue
             opcoes = escolha.get('opcoes')
@@ -1205,6 +1241,15 @@ def magias_concedidas(personagem):
             if len(chosen) < escolha['qtd']:
                 out['pendentes'].append({'fonte': fonte, 'slot': slot, 'rotulo': escolha['rotulo'],
                                          'qtd': escolha['qtd'], 'opcoes': opcoes, 'escolhidos': chosen})
+    # TWO-PASS — o portão `requires:spellcasting` abre se o detector já diz que conjura OU se o
+    # personagem ganhou QUALQUER magia no passo não-gateado acima (a própria Marca concede uma
+    # magia sempre-preparada, tornando um marcial conjurador NO MESMO derive — sem esperar o
+    # ciclo seguinte de persistência).
+    if is_caster or out['concedidas']:
+        for fonte, slug, nivel in gated_all:
+            if slug not in seen:
+                seen.add(slug)
+                out['concedidas'].append({'slug': slug, 'nivel': nivel, 'fonte': fonte})
     return out
 
 
