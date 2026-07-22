@@ -260,6 +260,46 @@
       </section>
       {% endif %}
 
+      {# ======================= ETAPA: TROCAR MAGIA (opcional) ======================= #}
+      {# Só o conjurador CONHECIDO (swap_level_up) com magia na estante (conhecidas) vê a etapa.
+         Conjurador PREPARADO (Mago) não tem swap_level_up → nada aqui. Quando a troca do nível
+         já foi usada, mostra o aviso no lugar do seletor. É opcional/pulável — o `trocar_magia`
+         entra no LOTE e o orquestrador o aplica (truque↔truque, conhecida↔conhecida, teto). #}
+      {% if pend_magias.swap_level_up and pend_magias.conhecidas %}
+      <section class="cf-step space-y-3" data-step="troca_magia" data-step-name="Trocar magia" hidden>
+        <h2 class="sn-step-title">Trocar uma magia conhecida</h2>
+        <p class="sn-step-sub">Ao subir de nível, quem <em>conhece</em> magias pode substituir uma das que já sabe por outra da lista da classe. Etapa opcional — uma troca por nível.</p>
+        {% if pend_magias.swap_disponivel %}
+        <div class="lvl-card" data-lvl-card="trocar_magia">
+          <div class="lvl-card__head">
+            <span class="lvl-card__title">Substituir <span class="sub">1 sai · 1 entra · até {{ pend_magias.max_nivel }}º nível</span></span>
+          </div>
+          <div class="lvl-queued" data-lvl-chips hidden></div>
+          <div class="lvl-card__row">
+            <select class="lvl-field lvl-field--grow" data-lvl-field="remover" aria-label="Magia a desaprender">
+              <option value="">— Desaprender —</option>
+              {% for m in pend_magias.conhecidas %}<option value="{{ m.slug }}" data-truque="{% if m.nivel == 0 %}1{% else %}0{% endif %}">{{ m.nome }} ({% if m.nivel == 0 %}truque{% else %}{{ m.nivel }}º{% endif %})</option>{% endfor %}
+            </select>
+            <span aria-hidden="true" style="align-self:center">➜</span>
+            <select class="lvl-field lvl-field--grow" data-lvl-field="adicionar" aria-label="Magia a aprender">
+              <option value="">— Aprender —</option>
+              {% for m in pend_magias.lista_truques %}<option value="{{ m.slug }}" data-truque="1">{{ m.nome }} (truque)</option>{% endfor %}
+              {% for m in pend_magias.lista_magias %}<option value="{{ m.slug }}" data-truque="0">{{ m.nome }} ({{ m.nivel }}º)</option>{% endfor %}
+            </select>
+            <button type="button" class="lvl-add" data-lvl-queue="trocar_magia">Trocar</button>
+          </div>
+          <div class="lvl-card__row" style="margin-top:0.5rem">
+            <button type="button" class="lvl-btn-ghost" data-sn-skip>Pular esta etapa</button>
+          </div>
+        </div>
+        {% else %}
+        <div class="lvl-card is-optional" data-sn-swap-usada>
+          <p class="lvl-card__hint">Você já trocou uma magia neste nível. Suba de nível para liberar outra troca.</p>
+        </div>
+        {% endif %}
+      </section>
+      {% endif %}
+
       {# ======================= ETAPA: REVISAR & CONFIRMAR ======================= #}
       <section class="cf-step space-y-3" data-step="revisar" data-step-name="Confirmar" hidden>
         <h2 class="sn-step-title">Revise e confirme</h2>
@@ -328,5 +368,5 @@
 <link rel="stylesheet" href="{% static 'css/pages/criador.css' %}?v=2">
 <link rel="stylesheet" href="{% static 'css/pages/levelup.css' %}?v=3">
 <link rel="stylesheet" href="{% static 'css/pages/subir_nivel.css' %}?v=1">
-<script src="{% static 'js/subir_nivel.js' %}?v=1" defer></script>
+<script src="{% static 'js/subir_nivel.js' %}?v=2" defer></script>
 {% endblock %}

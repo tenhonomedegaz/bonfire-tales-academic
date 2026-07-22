@@ -93,30 +93,7 @@
         {% endif %}
 
       </div>
-      {# ---- Trocar magia conhecida (opcional, grava na hora) ---- #}
-      {% if pend_magias.swap_level_up and pend_magias.conhecidas %}
-        <div class="lvl-card is-optional" style="margin-top:0.9rem">
-          <div class="lvl-card__head">
-            <span class="lvl-card__title">Trocar magia conhecida <span class="sub">opcional, ao subir de nível</span></span>
-          </div>
-          {% if pend_magias.swap_disponivel %}
-          <p class="lvl-card__hint">Esta classe pode substituir 1 magia conhecida por outra ao subir de nível (truque por truque, magia por magia). Grava na hora. Uma troca por nível.</p>
-          <form method="post" action="{% url 'personagem_trocar_magia' p.id_personagem %}" class="lvl-card__row">
-            {% csrf_token %}
-            <select name="remover" required class="lvl-field" aria-label="Magia a remover">
-              {% for m in pend_magias.conhecidas %}<option value="{{ m.slug }}">{{ m.nome }} ({% if m.nivel == 0 %}truque{% else %}{{ m.nivel }}º{% endif %})</option>{% endfor %}
-            </select>
-            <select name="adicionar" required class="lvl-field" aria-label="Magia a adicionar">
-              {% for m in pend_magias.lista_truques %}<option value="{{ m.slug }}">{{ m.nome }} (truque)</option>{% endfor %}
-              {% for m in pend_magias.lista_magias %}<option value="{{ m.slug }}">{{ m.nome }} ({{ m.nivel }}º)</option>{% endfor %}
-            </select>
-            <button type="submit" class="lvl-add">Trocar</button>
-          </form>
-          {% else %}
-          <p class="lvl-card__hint">Troca já usada neste nível. Suba de nível para trocar outra magia.</p>
-          {% endif %}
-        </div>
-      {% endif %}
+      {# Troca de magia saiu daqui: virou ETAPA do wizard dedicado (personagem_subir_nivel); endpoint personagem_trocar_magia segue por compat. #}
 
       {# ============================ MAGIAS PREPARADAS (grava na hora) ============================ #}
       {% if magias_preparadas %}

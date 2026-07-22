@@ -19,6 +19,7 @@ from home import views
 from home.models import (
     TbClasse, TbSubclasse, TbPersonagem, TbPersonagemClasse,
     TbPersonagemAtributoBonus, TbPersonagemTalento,
+    TbMagia, TbPersonagemMagia, TbPersonagemEscolha,
 )
 from home.test_criador import _CriadorBase
 
@@ -38,6 +39,41 @@ class LevelUpLoteBase(_CriadorBase):
         p.aventuras = 500  # teto = 20 (min(nivel_por_aventuras, 20)); não trava a subida
         p.save(update_fields=['nivel', 'aventuras'])
         return p
+
+    def _promover(self, p, nivel):
+        """Sobe o nível da classe (e do personagem) sem resolver as escolhas intermediárias,
+        com aventuras de sobra para o teto não travar a próxima subida."""
+        pc = p.classes.first()
+        pc.nivel = nivel
+        pc.save(update_fields=['nivel'])
+        p.nivel = nivel
+        p.aventuras = 500
+        p.save(update_fields=['nivel', 'aventuras'])
+        return p
+
+    def _ek(self, nivel=7, apelido='ek', com_conhecida=True):
+        """Guerreiro REAL (criador N1) promovido a `nivel` e apontado para a subclasse
+        Cavaleiro Arcano — caster CONHECIDO (swap por inferência de `prepara:conhecidas`).
+        Com `com_conhecida`, materializa 1 magia na estante e devolve (p, pc, old, new):
+        `old` é a conhecida (candidata a sair), `new` uma da lista da classe ainda não sabida."""
+        p = self._guerreiro_no_nivel(nivel, apelido=apelido)
+        pc = p.classes.first()
+        sub = TbSubclasse.objects.get(id_classe=pc.id_classe, nome__icontains='Arcano')
+        pc.id_subclasse = sub
+        pc.save(update_fields=['id_subclasse'])
+        old = new = None
+        if com_conhecida:
+            pend = views._pendencias_magias(p)
+            self.assertTrue(pend and pend['swap_level_up'],
+                            'Cavaleiro Arcano deveria permitir troca ao subir de nível')
+            magias = [m['slug'] for m in pend['lista_magias']]
+            self.assertGreaterEqual(len(magias), 2, 'pool de magias insuficiente para a troca')
+            old, new = magias[0], magias[1]
+            mg = TbMagia.objects.get(slug=old)
+            TbPersonagemMagia.objects.create(
+                id_personagem=p, id_magia=mg, nivel=mg.nivel, nome=mg.nome,
+                preparada=True, origem=pc.id_classe.nome)
+        return p, pc, old, new
 
     def _zerar_pendencias(self, p):
         """Resolve as pendências abertas (o talento racial de marco N1 do anão é a sticky)
@@ -174,6 +210,17 @@ class EditarFichaRenderTests(LevelUpLoteBase):
         self.assertIn(reverse('personagem_subir_nivel', args=[p.pk]), html)
         # e o resto (mercado/inventário) permanece
         self.assertIn(reverse('personagem_comprar_item', args=[p.pk]), html)
+
+    def test_editar_sem_form_legado_de_troca_de_magia(self):
+        # Caster CONHECIDO com magia na estante: ANTES o form legado de troca vivia aqui;
+        # agora a etapa é do wizard dedicado (o endpoint `personagem_trocar_magia` segue por compat).
+        p, pc, old, new = self._ek(apelido='editveto')
+        self.client.force_login(p.dono)
+        html = self.client.get(reverse('editar_ficha', args=[p.pk])).content.decode('utf-8')
+        self.assertNotIn(reverse('personagem_trocar_magia', args=[p.pk]), html)
+        self.assertNotIn('Trocar magia conhecida', html)
+        # mas a ficha de edição segue funcional e leva ao wizard dedicado
+        self.assertIn(reverse('personagem_subir_nivel', args=[p.pk]), html)
 
     def test_editar_no_teto_mostra_proximo_nivel(self):
         # Sem folga de aventuras e sem pendências: nenhum botão de subir, só o aviso discreto.
@@ -334,3 +381,69 @@ class LevelUpPreviewTests(LevelUpLoteBase):
         by_sig_ap = {a['sig']: a for a in aplicado['atributos']}
         for sig in by_sig_ap:
             self.assertEqual(by_sig_prev[sig]['valor'], by_sig_ap[sig]['valor'], 'valor %s' % sig)
+
+
+class SubirNivelTrocaMagiaTests(LevelUpLoteBase):
+    """A ETAPA de trocar magia no wizard dedicado (queixa do Rhogar: a opção não aparecia ao
+    subir de nível). Só o caster CONHECIDO com magia na estante a vê; o PREPARADO (Mago) não;
+    quando a troca do nível já foi usada, o wizard mostra o aviso no lugar do seletor; e o
+    `trocar_magia` entra no LOTE junto do `subir_nivel` (o orquestrador aplica os dois)."""
+
+    def test_ek_elegivel_ve_o_passo_de_troca(self):
+        # Cavaleiro Arcano elegível: a etapa e o cartão de troca aparecem com os data-* do lote.
+        p, pc, old, new = self._ek()
+        self.client.force_login(p.dono)
+        html = self.client.get(reverse('personagem_subir_nivel', args=[p.pk])).content.decode('utf-8')
+        for needle in ('data-step="troca_magia"', 'data-lvl-card="trocar_magia"',
+                       'data-lvl-queue="trocar_magia"', 'data-lvl-field="remover"',
+                       'data-lvl-field="adicionar"', 'data-sn-skip'):
+            self.assertIn(needle, html, needle)
+        # swap disponível → é o SELETOR, não o aviso
+        self.assertNotIn('data-sn-swap-usada', html)
+        # a magia conhecida aparece como opção a desaprender
+        self.assertIn('value="%s"' % old, html)
+
+    def test_mago_preparado_nao_ve_o_passo(self):
+        # Mago (prepara:preparadas) NÃO troca ao subir — a etapa nem existe no wizard.
+        user = self._novo_usuario('mago-troca', staff=True)
+        resp = self._post_criar(user, self._payload('mago'))
+        self.assertEqual(resp.status_code, 200, resp.content)
+        p = TbPersonagem.objects.get(pk=resp.json()['id'])
+        self._promover(p, 7)
+        self.client.force_login(p.dono)
+        html = self.client.get(reverse('personagem_subir_nivel', args=[p.pk])).content.decode('utf-8')
+        self.assertNotIn('data-step="troca_magia"', html)
+        self.assertNotIn('data-lvl-card="trocar_magia"', html)
+
+    def test_swap_ja_usada_mostra_o_aviso(self):
+        # Troca já registrada no NÍVEL-ALVO (7->8 → nivel_total-alvo = 8): swap_disponivel=False.
+        # A seção existe (é caster conhecido), mas mostra o AVISO no lugar do seletor.
+        p, pc, old, new = self._ek(apelido='usada')
+        TbPersonagemEscolha.objects.create(
+            id_personagem=p, origem='swap', tipo='troca_magia', slot=8, valor='8')
+        self.client.force_login(p.dono)
+        html = self.client.get(reverse('personagem_subir_nivel', args=[p.pk])).content.decode('utf-8')
+        self.assertIn('data-step="troca_magia"', html)
+        self.assertIn('data-sn-swap-usada', html)
+        self.assertNotIn('data-lvl-card="trocar_magia"', html)
+
+    def test_lote_subir_nivel_e_trocar_magia_aplica_ambos(self):
+        # O front monta o lote [subir_nivel, trocar_magia]; o orquestrador sobe o nível PRIMEIRO
+        # (ordem estável) e então aplica a troca no nível novo — ambos persistem num POST só.
+        p, pc, old, new = self._ek(apelido='lote')
+        self.client.force_login(p.dono)
+        acoes = [
+            {'tipo': 'subir_nivel', 'payload': {'classe': pc.id_classe_id}},
+            {'tipo': 'trocar_magia', 'payload': {'remover': old, 'adicionar': new}},
+        ]
+        resp = self.client.post(
+            reverse('personagem_levelup_aplicar', args=[p.pk]),
+            data=json.dumps({'acoes': acoes}), content_type='application/json')
+        self.assertEqual(resp.status_code, 200, resp.content)
+        self.assertTrue(resp.json()['ok'], resp.content)
+        p.refresh_from_db()
+        self.assertEqual(p.nivel, 8)                                     # subiu de nível
+        self.assertFalse(p.magias.filter(id_magia__slug=old).exists())   # a antiga saiu
+        self.assertTrue(p.magias.filter(id_magia__slug=new).exists())    # a nova entrou
+        self.assertTrue(TbPersonagemEscolha.objects.filter(              # troca registrada no nível 8
+            id_personagem=p, tipo='troca_magia', valor='8').exists())

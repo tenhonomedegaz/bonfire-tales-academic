@@ -12,7 +12,7 @@
   var main = document.getElementById('sn-main');
   if (!main || !SN.previewUrl) return;
 
-  var CHOICE_STEPS = ['subclasse', 'asi', 'talento_racial', 'opcoes', 'magias'];
+  var CHOICE_STEPS = ['subclasse', 'asi', 'talento_racial', 'opcoes', 'magias', 'troca_magia'];
   var lote = [];       // [{tipo, payload, key, label, card, fixed}]
   var uid = 0;
   var seq = 0;
@@ -195,11 +195,19 @@
       addAction({ tipo: 'opcao', payload: { classe: card.dataset.classe, slug: card.dataset.slug, val: vs.value }, key: key, label: optText(vs), card: card });
       return;
     }
+    if (tipo === 'trocar_magia') {
+      var rem = fieldOf(card, 'remover'), add = fieldOf(card, 'adicionar');
+      if (!rem || !rem.value) { flash(rem); return; }
+      if (!add || !add.value) { flash(add); return; }
+      addOrReplace({ tipo: 'trocar_magia', payload: { remover: rem.value, adicionar: add.value },
+        key: 'trocar_magia', label: 'Troca: ' + optText(rem) + ' → ' + optText(add), card: card });
+      return;
+    }
   }
   // uma ação pertence a um cartão de escolha do nível? (p/ limpar ao multiclassar)
   function CHOICE_STEP_CARDS(a) {
     if (!a.card) return true;   // âncoras já removidas antes
-    return ['subclasse', 'talento_racial', 'asi', 'opcao', 'aprender_magias'].indexOf(a.card.dataset.lvlCard) === -1;
+    return ['subclasse', 'talento_racial', 'asi', 'opcao', 'aprender_magias', 'trocar_magia'].indexOf(a.card.dataset.lvlCard) === -1;
   }
 
   function rebuildMagias(card) {
@@ -401,6 +409,27 @@
     }
     main.querySelectorAll('[data-lvl-card="aprender_magias"]').forEach(function (card) {
       card.addEventListener('change', function (e) { if (e.target && e.target.type === 'checkbox') rebuildMagias(card); });
+    });
+    // TROCA DE MAGIA: espelha o gate do backend (truque↔truque, conhecida↔conhecida). Ao escolher
+    // a magia que SAI, restringe o pool que ENTRA à mesma natureza (truque vs. conhecida).
+    main.querySelectorAll('[data-lvl-card="trocar_magia"]').forEach(function (card) {
+      var rem = fieldOf(card, 'remover'), add = fieldOf(card, 'adicionar');
+      if (!rem || !add) return;
+      var filtrar = function () {
+        var o = rem.options[rem.selectedIndex];
+        var t = o ? o.getAttribute('data-truque') : '';
+        [].forEach.call(add.options, function (op) {
+          if (!op.value) return;
+          op.disabled = (t !== '' && t != null) && op.getAttribute('data-truque') !== t;
+        });
+        var cur = add.options[add.selectedIndex];
+        if (cur && cur.disabled) add.value = '';
+      };
+      rem.addEventListener('change', filtrar); filtrar();
+    });
+    // Etapas opcionais: botão "Pular" só avança sem semear ação.
+    main.querySelectorAll('[data-sn-skip]').forEach(function (b) {
+      b.addEventListener('click', function () { goNext(); });
     });
   }
 
