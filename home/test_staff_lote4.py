@@ -26,6 +26,7 @@ from home.character_engine import derive, proficient_skill_slugs
 from home.models import (
     TbClasse, TbRaca, TbMagia, TbItemMagico,
     TbPersonagem, TbPersonagemClasse, TbPersonagemItem, TbPersonagemMagia,
+    TbPersonagemEscolha,
 )
 from home.test_criador import _CriadorBase
 
@@ -185,3 +186,35 @@ class DescansoBotaoCSSTests(TestCase):
         self.assertIn('.resource-rest-actions form', css)
         # e os botões ganham min-height consistente com o design system
         self.assertRegex(css, r'\.resource-rest-actions button\s*\{[^}]*min-height')
+
+
+# ======================================================================================
+# FIX 6 — troca de maestria lê swap/reset:long_rest do catálogo real
+# ======================================================================================
+class TrocaMaestriaDescansoTests(_CriadorBase):
+    def _personagem_com_maestria(self):
+        u = self._novo_usuario('troca-maestria-descanso')
+        classe = TbClasse.objects.get(pk=13)
+        p = TbPersonagem.objects.create(
+            dono=u, nome='Mestre de Armas', nivel=1,
+            forca=15, destreza=14, constituicao=14,
+            inteligencia=10, sabedoria=12, carisma=8)
+        TbPersonagemClasse.objects.create(
+            id_personagem=p, id_classe=classe, nivel=1, principal=True)
+        arma = picks._arma_universe({})[0]
+        maestria = (arma.get('maestrias') or [{}])[0].get('slug')
+        valor = arma['slug'] + (('|%s' % maestria) if maestria else '')
+        TbPersonagemEscolha.objects.create(
+            id_personagem=p, tipo='maestria', valor=valor, slot=0)
+        return p
+
+    def test_derive_reconhece_swap_long_rest_como_trocavel(self):
+        p = self._personagem_com_maestria()
+        self.assertTrue(derive(p)['maestria_trocavel'])
+
+    def test_fluxo_de_troca_volta_a_abrir(self):
+        p = self._personagem_com_maestria()
+        self.client.force_login(p.dono)
+        resp = self.client.get(reverse('personagem_trocar_maestria', args=[p.pk]))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'Maestrias de Arma')

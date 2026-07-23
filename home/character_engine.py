@@ -840,15 +840,34 @@ def _item_consumivel_meta(item, magico=None):
     tags explicitas permitem novos consumiveis sem mexer na ficha.
     """
     magico = magico if magico is not None else getattr(item, 'id_item_magico', None)
-    tags = [str(t).lower() for t in (getattr(magico, 'tags_json', None) or [])]
+    tags = [str(t).lower() for t in (
+        getattr(magico, 'tags_json', None) if magico is not None
+        else getattr(item, 'tags_json', None)) or []]
     slot = (getattr(magico, 'slot', '') or '').strip().lower()
     tipo = _slug(getattr(magico, 'tipo', '') or '')
     explicit = any(('consumable' in t or 'consumivel' in t or 'consume:item' in t) for t in tags)
-    catalog = bool(magico and (slot in {'pocao', 'pergaminho'} or tipo in {'pocao', 'pergaminho'}))
+    catalog = bool(magico and (
+        slot in {'pocao', 'pergaminho'}
+        or tipo in {'pocao', 'pergaminho', 'consumivel'}))
     return {
-        'consumivel': bool(explicit or catalog),
+        # Para item mágico, slot/tipo são autoritativos. Tags antigas carregam
+        # ``consumable`` espúrio até em amuletos e não podem sobrepor o catálogo.
+        'consumivel': bool(catalog if magico is not None else explicit),
         'consumivel_tipo': slot or tipo,
     }
+
+
+def _item_magico_equipavel(magico):
+    """Classificação segura de equipabilidade pelos metadados autoritativos.
+
+    Slots de consumo/uso independente nunca entram como equipamento. Os demais
+    continuam como estão até a auditoria de catálogo resolver os slots ambíguos
+    (notadamente ``empunhado``) com a fonte EN.
+    """
+    if magico is None or _item_consumivel_meta(None, magico)['consumivel']:
+        return False
+    slot = (getattr(magico, 'slot', '') or '').strip().lower()
+    return slot not in {'municao', 'veiculo', 'edificacao', 'objeto', 'item_menor'}
 
 
 def _inventario(personagem):
@@ -861,9 +880,11 @@ def _inventario(personagem):
         magico = it.id_item_magico
         cons = _item_consumivel_meta(it, magico)
         _mec_inv = mecanica_de_tags(it.tags_json)
+        magico_equipavel = _item_magico_equipavel(magico)
+        equipado_efetivo = bool(it.equipado and (not magico or magico_equipavel))
         out.append({'id': it.id, 'nome': it.nome, 'qtd': it.qtd, 'custo': it.custo, 'peso': it.peso,
-                    'equipado': bool(it.equipado), 'tipo_equip': _mec_inv['tipo_equip'],
-                    'pode_equipar': bool(_mec_inv['tipo_equip']) or bool(magico),
+                    'equipado': equipado_efetivo, 'tipo_equip': _mec_inv['tipo_equip'],
+                    'pode_equipar': bool(_mec_inv['tipo_equip']) or magico_equipavel,
                     'magico': bool(magico),
                     'raridade': magico.get_raridade_display() if magico else None,
                     'requer_sintonizacao': bool(magico and magico.requer_sintonizacao),
@@ -884,7 +905,7 @@ def _features_de_itens(personagem):
     feats = []
     for it in personagem.inventario.select_related('id_item_magico').all():
         magico = it.id_item_magico
-        if not magico or not it.equipado:
+        if not magico or not it.equipado or not _item_magico_equipavel(magico):
             continue
         if magico.requer_sintonizacao and not it.sintonizado:
             continue
@@ -1998,6 +2019,8 @@ def _armadura_equipada(personagem, dex_mod):
     ca_arm, fonte = None, None
     esc_bonus = 0
     for it in personagem.inventario.filter(equipado=True).select_related('id_item_magico'):
+        if it.id_item_magico and not _item_magico_equipavel(it.id_item_magico):
+            continue
         mec = mecanica_de_tags(_tags_mecanicas_item(it))
         if mec['is_escudo']:
             tem_esc = True
@@ -2512,6 +2535,8 @@ def _perfis_de_armas(personagem, atributos, pb, coll, prof_armas, maestrias):
             continue
         tags = list(it.tags_json or [])
         mag = it.id_item_magico
+        if mag and not _item_magico_equipavel(mag):
+            continue
         if mag:  # arma mágica: dado/propriedades podem vir do catálogo mágico
             tags += [t for t in (mag.tags_json or []) if isinstance(t, str)]
         mec = mecanica_de_tags(tags)
@@ -2540,6 +2565,31 @@ def _perfis_de_armas(personagem, atributos, pb, coll, prof_armas, maestrias):
             'maestria': base.get('maestria', ''), 'nota': base.get('nota', ''),
         })
     return perfis, avisos
+
+
+def _pick_trocavel_no_descanso(source, kind):
+    """Se ``source`` permite trocar um pick permanente ao fim do descanso longo.
+
+    O catálogo usa as duas formas normativas: constraint no próprio token
+    (``pick:arma:2(swap:long_rest)``/``reset:long_rest``) e marcador irmão
+    ``swap:long_rest``. A leitura fica estrutural e vale para qualquer feature, sem
+    ramificar por classe ou nome de habilidade.
+    """
+    from . import picks
+
+    tags = [str(t) for t in (getattr(source, 'tags_json', None) or [])]
+    encontrou = False
+    for tag in tags:
+        for token in picks.iter_pick_tokens(tag):
+            if token.kind != kind:
+                continue
+            encontrou = True
+            if token.constraints.get('swap') == 'long_rest':
+                return True
+            if token.constraints.get('reset') == 'long_rest':
+                return True
+    return encontrou and any(
+        re.search(r'\b(?:swap|reset)\s*:\s*long_rest\b', tag) for tag in tags)
 
 
 def _ataques(coll, atributos, pb, recursos=None, personagem=None, prof_armas=None, maestrias=None):
@@ -2872,10 +2922,10 @@ def derive(personagem):
     state['outras_proficiencias'] = outras
     state['iniciativa'] += tag['initiative']
 
-    # Maestria de arma é TROCÁVEL se a habilidade que a concede (pick:arma) tiver a tag 'trocavel'.
+    # Maestria de arma é TROCÁVEL no descanso longo conforme o contrato real das tags:
+    # constraint no pick OU marcador irmão swap/reset:long_rest.
     state['maestria_trocavel'] = any(
-        any('pick:arma' in str(t) for t in (getattr(obj, 'tags_json', None) or []))
-        and any(str(t).strip() == 'trocavel' for t in (getattr(obj, 'tags_json', None) or []))
+        _pick_trocavel_no_descanso(obj, 'arma')
         for (_o, _f, obj, _cl) in features)
     # Alguma arma escolhida está com a maestria PENDENTE (escolha legada só-arma, sem a 2ª etapa)?
     # Sinaliza a ficha para reabrir a sub-escolha da maestria sem quebrar a exibição.

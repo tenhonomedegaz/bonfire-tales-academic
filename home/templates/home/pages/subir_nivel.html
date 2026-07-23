@@ -215,12 +215,13 @@
             <div class="lvl-queued" data-lvl-chips hidden></div>
             {% if g.pendentes and g.disponiveis %}
               <div class="lvl-card__row">
-                <select class="lvl-field lvl-field--grow" data-lvl-field="val" aria-label="Escolher {{ g.tipo|lower }}">
+                <select class="lvl-field lvl-field--grow" data-lvl-field="val"
+                        data-lvl-auto-queue="opcao" aria-label="Escolher {{ g.tipo|lower }}">
                   <option value="">Escolher {{ g.tipo|lower }}…</option>
-                  {% for o in g.disponiveis %}<option value="{{ o.val }}"{% if o.pre %} title="Pré-requisito: {{ o.pre }}"{% endif %}>{{ o.nome }}</option>{% endfor %}
+                  {% for o in g.disponiveis %}<option value="{{ o.val }}" data-desc="{{ o.descricao|striptags }}"{% if o.pre %} title="Pré-requisito: {{ o.pre }}"{% endif %}>{{ o.nome }}</option>{% endfor %}
                 </select>
-                <button type="button" class="lvl-add" data-lvl-queue="opcao">Escolher</button>
               </div>
+              <p class="lvl-card__hint" data-lvl-desc hidden style="margin-top:0.5rem"></p>
             {% elif g.pendentes %}
               <p class="lvl-card__hint">Sem opções disponíveis no catálogo para esta classe/nível.</p>
             {% endif %}

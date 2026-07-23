@@ -1,0 +1,51 @@
+<div class="lvl-staffbox" id="lvl-aventuras-staffbox">
+  <span class="lbl">Staff — registrar aventuras:</span>
+  {% if compra_msg == 'aventuras' %}<p class="lvl-note-ok" style="flex:1 1 100%">Aventuras registradas — ouro e braseiros creditados.</p>{% endif %}
+  {% if compra_msg == 'aventuras_sem_nome' %}<p class="lvl-note-cap" style="flex:1 1 100%">Informe o NOME da aventura para registrar o lançamento.</p>{% endif %}
+  {% if rollback_msg == 'ok' %}<p class="lvl-note-ok" style="flex:1 1 100%">Lançamento revertido: aventuras e ouro devolvidos.</p>{% endif %}
+  {% if rollback_msg == 'ja_revertido' %}<p class="lvl-note-cap" style="flex:1 1 100%">Este lançamento já foi revertido.</p>{% endif %}
+  {% if rollback_msg == 'teto_nivel' %}<p class="lvl-note-cap" style="flex:1 1 100%">Estorno impossível: o personagem já subiu de nível com essas aventuras.</p>{% endif %}
+  {% if rollback_msg == 'ouro_insuf' %}<p class="lvl-note-cap" style="flex:1 1 100%">Ouro insuficiente para estornar este lançamento.</p>{% endif %}
+  <form method="post" action="{% url 'personagem_registrar_aventuras' p.id_personagem %}"
+        class="lvl-inline" style="flex:1 1 100%" data-aventura-form>
+    {% csrf_token %}
+    <input type="text" name="nome_aventura" required maxlength="200" placeholder="Nome da aventura" class="lvl-field lvl-field--grow" aria-label="Nome da aventura">
+    <input type="number" name="aventuras" min="1" max="200" value="1" class="lvl-field" style="width:5rem" aria-label="Quantidade de aventuras">
+    <label class="lvl-radio"><input type="checkbox" name="evento"> missão de evento (dá braseiros)</label>
+    <button type="submit" class="lvl-add">+ Aventuras (ouro + nível)</button>
+  </form>
+
+  {% if aventura_ledger %}
+    <div class="lvl-ledger">
+      <table class="lvl-ledger__table">
+        <thead>
+          <tr><th>Aventura</th><th>Qtd</th><th>Ouro</th><th>Nv</th><th>Quando</th><th>Por</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for l in aventura_ledger %}
+            <tr{% if l.revertido %} class="is-reverted"{% endif %}>
+              <td>{{ l.nome_aventura }}</td>
+              <td>{{ l.qtd_aventuras }}</td>
+              <td>{{ l.ouro_pago_po }} PO</td>
+              <td>{{ l.nivel_no_lancamento }}</td>
+              <td>{{ l.criado_em|date:"d/m/y H:i" }}</td>
+              <td>{{ l.criado_por.username|default:"—" }}</td>
+              <td>
+                {% if l.revertido %}
+                  <span class="lvl-revtag" title="Revertido{% if l.revertido_por %} por {{ l.revertido_por.username }}{% endif %}{% if l.revertido_em %} em {{ l.revertido_em|date:'d/m/y H:i' }}{% endif %}">revertido</span>
+                {% else %}
+                  <form method="post" action="{% url 'personagem_reverter_aventura' p.id_personagem l.id_lancamento %}"
+                        style="display:inline" data-aventura-reverter
+                        onsubmit="return confirm('Reverter o lançamento “{{ l.nome_aventura|escapejs }}” (x{{ l.qtd_aventuras }}, {{ l.ouro_pago_po }} PO)? Isso devolve aventuras e ouro ao personagem.');">
+                    {% csrf_token %}
+                    <button type="submit" class="lvl-revbtn">Reverter</button>
+                  </form>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+</div>

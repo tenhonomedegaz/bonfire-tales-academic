@@ -4542,6 +4542,44 @@ def _sync_grants_fixos(personagem):
 _sync_magias_essencia = _sync_magias_concedidas
 
 
+def _aventuras_staff_resposta(request, p, *, compra_msg='', rollback_msg='', ok=True):
+    """Fragmento atualizado do ledger para fetch, preservando redirect no POST clássico."""
+    back = reverse('editar_ficha', args=[p.pk])
+    if not is_ajax(request):
+        query = ('?compra=' + compra_msg) if compra_msg else ('?rollback=' + rollback_msg)
+        return redirect(back + query)
+
+    from django.template.loader import render_to_string
+    from .character_engine import derive
+
+    p.refresh_from_db()
+    ficha = derive(p)
+    ledger = list(p.aventuras_ledger.select_related(
+        'criado_por', 'revertido_por')[:30])
+    html = render_to_string(
+        'home/partials/_ficha_aventuras_staff.html',
+        {
+            'p': p,
+            'aventura_ledger': ledger,
+            'compra_msg': compra_msg,
+            'rollback_msg': rollback_msg,
+        },
+        request=request,
+    )
+    prog = ficha.get('progressao') or {}
+    return JsonResponse({
+        'ok': ok,
+        'msg': compra_msg or rollback_msg,
+        'staffbox_html': html,
+        'progressao': {
+            'aventuras': int(prog.get('aventuras') or 0),
+            'nivel_label': prog.get('nivel_label') or p.nivel,
+            'braseiros': int(prog.get('braseiros') or 0),
+        },
+        'carteira_display': _pc_display(p.carteira_pc or 0),
+    }, status=200 if ok else 400)
+
+
 @login_required(login_url='/login/')
 @require_POST
 def personagem_registrar_aventuras(request, pk):
@@ -4555,14 +4593,15 @@ def personagem_registrar_aventuras(request, pk):
     p = _ficha_editavel(request, pk)
     nome = (request.POST.get('nome_aventura') or '').strip()
     if not nome:
-        return redirect(reverse('editar_ficha', args=[pk]) + '?compra=aventuras_sem_nome')
+        return _aventuras_staff_resposta(
+            request, p, compra_msg='aventuras_sem_nome', ok=False)
     try:
         n = max(1, min(200, int(request.POST.get('aventuras') or 1)))
     except (TypeError, ValueError):
         n = 1
     aplicar_aventuras(p, n, evento=(request.POST.get('evento') == 'on'),
                       nome_aventura=nome, criado_por=request.user)
-    return redirect(reverse('editar_ficha', args=[pk]) + '?compra=aventuras')
+    return _aventuras_staff_resposta(request, p, compra_msg='aventuras')
 
 
 @login_required(login_url='/login/')
@@ -4581,7 +4620,7 @@ def personagem_reverter_aventura(request, pk, lancamento_id):
     if not perms.is_staff_user(request.user):
         raise Http404
     p = _ficha_editavel(request, pk)
-    back = reverse('editar_ficha', args=[pk])
+    erro = None
     with transaction.atomic():
         lanc = get_object_or_404(
             TbPersonagemAventura.objects.select_for_update(),
@@ -4589,24 +4628,30 @@ def personagem_reverter_aventura(request, pk, lancamento_id):
         )
         p = TbPersonagem.objects.select_for_update().get(pk=p.pk)
         if lanc.revertido:
-            return redirect(back + '?rollback=ja_revertido')
-        qtd = int(lanc.qtd_aventuras or 0)
-        ouro_pc = int(lanc.ouro_pago_pc or 0)
-        minimo = aventuras_para_nivel(p.nivel or 1)
-        if int(p.aventuras or 0) - qtd < minimo:
-            return redirect(back + '?rollback=teto_nivel')
-        if int(p.carteira_pc or 0) < ouro_pc:
-            return redirect(back + '?rollback=ouro_insuf')
-        p.aventuras = int(p.aventuras or 0) - qtd
-        p.carteira_pc = int(p.carteira_pc or 0) - ouro_pc
-        p.braseiros = max(0, int(p.braseiros or 0) - int(lanc.braseiros_pago or 0))
-        p.save(update_fields=['aventuras', 'carteira_pc', 'braseiros', 'atualizado_em'])
-        _registrar_transacao(p, 'ajuste', 'Estorno de aventuras: %s' % lanc.nome_aventura, -ouro_pc)
-        lanc.revertido = True
-        lanc.revertido_em = timezone.now()
-        lanc.revertido_por = request.user
-        lanc.save(update_fields=['revertido', 'revertido_em', 'revertido_por'])
-    return redirect(back + '?rollback=ok')
+            erro = 'ja_revertido'
+        else:
+            qtd = int(lanc.qtd_aventuras or 0)
+            ouro_pc = int(lanc.ouro_pago_pc or 0)
+            minimo = aventuras_para_nivel(p.nivel or 1)
+            if int(p.aventuras or 0) - qtd < minimo:
+                erro = 'teto_nivel'
+            elif int(p.carteira_pc or 0) < ouro_pc:
+                erro = 'ouro_insuf'
+            else:
+                p.aventuras = int(p.aventuras or 0) - qtd
+                p.carteira_pc = int(p.carteira_pc or 0) - ouro_pc
+                p.braseiros = max(0, int(p.braseiros or 0) - int(lanc.braseiros_pago or 0))
+                p.save(update_fields=['aventuras', 'carteira_pc', 'braseiros', 'atualizado_em'])
+                _registrar_transacao(
+                    p, 'ajuste', 'Estorno de aventuras: %s' % lanc.nome_aventura, -ouro_pc)
+                lanc.revertido = True
+                lanc.revertido_em = timezone.now()
+                lanc.revertido_por = request.user
+                lanc.save(update_fields=['revertido', 'revertido_em', 'revertido_por'])
+    if erro:
+        return _aventuras_staff_resposta(
+            request, p, rollback_msg=erro, ok=False)
+    return _aventuras_staff_resposta(request, p, rollback_msg='ok')
 
 
 @login_required(login_url='/login/')
@@ -5446,8 +5491,19 @@ def personagem_levelup_aplicar(request, pk):
     if erros:
         return JsonResponse({'ok': False, 'erros': erros}, status=400)
     ficha = derive(p)
-    return JsonResponse({'ok': True, 'ficha': _criador_preview_resumo(ficha),
-                         'pendencias': _levelup_pendencias(p)})
+    pendencias = _levelup_pendencias(p)
+    status = _levelup_status(p, ficha)
+    # O próximo GET reabre o wizard já no novo estado: ele inclui tanto eventuais
+    # escolhas recém-liberadas quanto a âncora do nível seguinte. Não exigir
+    # ``sem_pendencias`` aqui, senão justamente essas escolhas quebram o encadeamento.
+    continuar = bool(status['pode_subir'])
+    return JsonResponse({
+        'ok': True,
+        'ficha': _criador_preview_resumo(ficha),
+        'pendencias': pendencias,
+        'continuar': continuar,
+        'proximo_nivel': status['nivel_alvo'] if continuar else None,
+    })
 
 
 @login_required(login_url='/login/')
@@ -5539,10 +5595,18 @@ def personagem_comprar_item(request, pk):
 def personagem_equipar_item(request, pk):
     """Equipa/desequipa um item. Item possuído mas não equipado NÃO concede benefícios.
     Só 1 armadura e 1 escudo equipados por vez."""
+    from .character_engine import _item_magico_equipavel
     from .models import TbPersonagemItem
     p = _ficha_editavel(request, pk)
     it = TbPersonagemItem.objects.filter(id=request.POST.get('item'), id_personagem=p).first()
     if not it:
+        return redirect('editar_ficha', pk=pk)
+    if it.id_item_magico and not _item_magico_equipavel(it.id_item_magico):
+        # Compatibilidade graciosa: uma flag antiga inválida deixa de surtir efeito e
+        # pode ser limpa sem remover a linha do inventário.
+        if it.equipado:
+            it.equipado = False
+            it.save(update_fields=['equipado'])
         return redirect('editar_ficha', pk=pk)
     novo = not it.equipado
     _mec = mecanica_de_tags(it.tags_json)
@@ -5794,8 +5858,12 @@ def personagem_usar_item_consumivel(request, pk):
     if not it or not _item_consumivel_meta(it, it.id_item_magico)['consumivel']:
         return _redirect_next_or(request, reverse('ficha_detail', args=[pk]) + '?aba=ficha')
     delta = 1 if request.POST.get('acao') == 'desfazer' else -1
-    it.qtd = max(0, min(999, int(it.qtd or 0) + delta))
-    it.save(update_fields=['qtd'])
+    nova_qtd = max(0, min(999, int(it.qtd or 0) + delta))
+    if nova_qtd == 0:
+        it.delete()
+    else:
+        it.qtd = nova_qtd
+        it.save(update_fields=['qtd'])
     return _redirect_next_or(request, reverse('ficha_detail', args=[pk]) + '?aba=ficha')
 
 

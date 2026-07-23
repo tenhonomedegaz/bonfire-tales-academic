@@ -50739,7 +50739,7 @@
     "raridade": "raro_maior",
     "requer_sintonizacao": false,
     "detalhes_sintonizacao": "",
-    "slot": "empunhado",
+    "slot": "objeto",
     "loja": "Item Mágico",
     "preco": "9000.00",
     "tipo": "item maravilhoso",
@@ -50748,7 +50748,7 @@
     "tags_json": [
       "item:magico",
       "raridade:raro_maior",
-      "slot:empunhado",
+      "slot:objeto",
       "loja:item_magico",
       "tipo:item_maravilhoso"
     ]

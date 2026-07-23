@@ -147,7 +147,7 @@
 
   // ================= construção de ações por cartão =================
   function handleQueue(btn) {
-    var tipo = btn.dataset.lvlQueue;
+    var tipo = btn.dataset.lvlQueue || btn.dataset.lvlAutoQueue;
     var card = btn.closest('[data-lvl-card]');
     if (!card) return;
 
@@ -400,7 +400,27 @@
     if (statusEl) { statusEl.textContent = 'aplicando…'; statusEl.classList.add('is-live'); }
     post(SN.aplicarUrl, { acoes: acoesPayload() }).then(function (res) {
       if (res.status === 200 && res.json && res.json.ok) {
-        window.location.href = SN.fichaUrl + '?levelup=ok';
+        if (res.json.continuar) {
+          if (feedbackEl) {
+            feedbackEl.dataset.kind = 'ok';
+            feedbackEl.innerHTML =
+              '<div class="lvl-ok"><strong>Nível concluído.</strong> Você ainda tem aventuras ' +
+              'para avançar novamente.<div style="margin-top:.7rem;display:flex;gap:.55rem;flex-wrap:wrap">' +
+              '<a class="cf-btn cf-btn-primary" href="' + esc(SN.pageUrl) + '">Continuar para o nível ' +
+              esc(res.json.proximo_nivel) + '</a>' +
+              '<a class="cf-btn" href="' + esc(SN.fichaUrl + '?levelup=ok') + '">Voltar à ficha</a></div></div>';
+            feedbackEl.hidden = false;
+          }
+          confirmBtn.hidden = true;
+          if (prevBtn) prevBtn.hidden = true;
+          if (nextBtn) nextBtn.hidden = true;
+          if (statusEl) {
+            statusEl.classList.remove('is-live');
+            statusEl.textContent = 'nível concluído';
+          }
+        } else {
+          window.location.href = SN.fichaUrl + '?levelup=ok';
+        }
       } else {
         showErr((res.json && res.json.erros) || ['Erro desconhecido.'], false);
         confirmBtn.disabled = false; if (prevBtn) prevBtn.disabled = current === 0;
@@ -417,6 +437,23 @@
   function initCards() {
     main.querySelectorAll('[data-lvl-queue]').forEach(function (btn) {
       btn.addEventListener('click', function () { handleQueue(btn); });
+    });
+    // Menus simples enfileiram na própria seleção, sem um segundo clique "Escolher".
+    // Mantém a descrição integral visível e limpa o menu para grupos com mais de um slot.
+    main.querySelectorAll('[data-lvl-auto-queue]').forEach(function (field) {
+      field.addEventListener('change', function () {
+        if (!field.value) return;
+        var option = field.options[field.selectedIndex];
+        var card = field.closest('[data-lvl-card]');
+        var desc = card && card.querySelector('[data-lvl-desc]');
+        if (desc) {
+          var body = option.dataset.desc || '';
+          desc.textContent = option.text.trim() + (body ? (' — ' + body) : '');
+          desc.hidden = false;
+        }
+        handleQueue(field);
+        field.value = '';
+      });
     });
     var asi = document.getElementById('lvl-asi-card');
     if (asi) {

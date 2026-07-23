@@ -787,6 +787,19 @@ class LedgerAventuraRollbackTests(_CriadorBase):
         self.assertEqual(l.criado_por, self.staff)
         self.assertFalse(l.revertido)
 
+    def test_registro_fetch_atualiza_fragmento_sem_redirect(self):
+        self.client.force_login(self.staff)
+        resp = self.client.post(
+            reverse('personagem_registrar_aventuras', args=[self.p.pk]),
+            {'nome_aventura': 'Mesa via Fetch', 'aventuras': 2},
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(resp.status_code, 200, resp.content)
+        body = resp.json()
+        self.assertTrue(body['ok'], body)
+        self.assertIn('Mesa via Fetch', body['staffbox_html'])
+        self.assertEqual(body['progressao']['aventuras'], 2)
+        self.assertIn('carteira_display', body)
+
     def test_registro_exige_nome(self):
         resp = self._registrar(aventuras=3)  # sem nome_aventura
         self.assertEqual(resp.status_code, 302)
@@ -813,6 +826,19 @@ class LedgerAventuraRollbackTests(_CriadorBase):
         self.assertTrue(l.revertido)
         self.assertEqual(l.revertido_por, self.staff)
         self.assertIsNotNone(l.revertido_em)
+
+    def test_rollback_fetch_atualiza_fragmento_sem_redirect(self):
+        self._registrar(nome_aventura='Mesa Fetch Reversão', aventuras=1)
+        lanc = self.p.aventuras_ledger.first()
+        self.client.force_login(self.staff)
+        resp = self.client.post(
+            self._reverter_url(lanc),
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(resp.status_code, 200, resp.content)
+        body = resp.json()
+        self.assertTrue(body['ok'], body)
+        self.assertIn('revertido', body['staffbox_html'])
+        self.assertEqual(body['progressao']['aventuras'], 0)
 
     # ── BLOQUEIO (c): linha já revertida ──────────────────────────────────
     def test_rollback_bloqueia_ja_revertido(self):

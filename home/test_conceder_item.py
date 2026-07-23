@@ -21,7 +21,9 @@ Reusa a fixture real (`conteudo.json`) e o `_guerreiro_no_nivel` do test_levelup
 """
 from django.urls import reverse
 
-from home.character_engine import _item_consumivel_meta
+from home.character_engine import (
+    _item_consumivel_meta, _item_magico_equipavel, derive,
+)
 from home.models import (
     TbItemMagico, TbItemMundano, TbPersonagem, TbPersonagemItem,
 )
@@ -132,6 +134,50 @@ class ConcederItemTests(ConcederItemBase):
         self.client.post(url, data={'tipo': 'magico', 'item': item.slug, 'nota_origem': 'X'})
         self.assertEqual(
             TbPersonagemItem.objects.filter(id_personagem=p, id_item_magico=item).count(), 2)
+
+
+class ConsumivelInventarioTests(ConcederItemBase):
+    def test_apito_da_aguia_e_item_de_uso_nao_equipavel(self):
+        item = TbItemMagico.objects.get(slug='apito-da-aguia')
+        self.assertEqual(item.slot, 'objeto')
+        self.assertFalse(_item_magico_equipavel(item))
+
+    def test_slot_autoritativo_ignora_consumable_espurio(self):
+        item = TbItemMagico.objects.create(
+            nome='Amuleto não consumível', slug='amuleto-nao-consumivel',
+            slot='pescoco', tipo='item maravilhoso',
+            tags_json=['slot:pescoco', 'consumable'])
+        self.assertFalse(_item_consumivel_meta(None, item)['consumivel'])
+        self.assertTrue(_item_magico_equipavel(item))
+
+    def test_pocao_nao_pode_equipar_e_flag_antiga_e_ignorada(self):
+        p = self._char_dono_staff(apelido='pocao-equip')
+        item = TbItemMagico.objects.create(
+            nome='Poção de Teste', slug='pocao-de-teste',
+            slot='pocao', tipo='poção', tags_json=['always_active{ca:+99}'])
+        linha = TbPersonagemItem.objects.create(
+            id_personagem=p, id_item_magico=item, nome=item.nome,
+            qtd=1, equipado=True)
+        inv = next(i for i in derive(p)['inventario'] if i['id'] == linha.id)
+        self.assertFalse(inv['equipado'])
+        self.assertFalse(inv['pode_equipar'])
+        self.client.force_login(p.dono)
+        self.client.post(
+            reverse('personagem_equipar_item', args=[p.pk]),
+            data={'item': linha.id})
+        linha.refresh_from_db()
+        self.assertFalse(linha.equipado)
+
+    def test_usar_ultima_unidade_remove_linha_sem_recurso_recuperavel(self):
+        p = self._char_dono_staff(apelido='pocao-consome')
+        item = self._item_magico_consumivel()
+        linha = TbPersonagemItem.objects.create(
+            id_personagem=p, id_item_magico=item, nome=item.nome, qtd=1)
+        self.client.force_login(p.dono)
+        self.client.post(
+            reverse('personagem_usar_item_consumivel', args=[p.pk]),
+            data={'item': linha.id, 'acao': 'usar'})
+        self.assertFalse(TbPersonagemItem.objects.filter(pk=linha.pk).exists())
 
 
 class ReverterConcessaoTests(ConcederItemBase):

@@ -146,6 +146,22 @@ class LevelUpAplicarLoteTests(LevelUpLoteBase):
         self.assertTrue(TbPersonagemAtributoBonus.objects.filter(
             id_personagem=p, origem_tipo='asi-classe').exists())
 
+    def test_resposta_oferece_continuar_quando_ainda_ha_nivel_disponivel(self):
+        p = self._guerreiro_no_nivel(1, apelido='encadeado')
+        self._zerar_pendencias(p)
+        pc = p.classes.first()
+        self.client.force_login(p.dono)
+        resp = self.client.post(
+            reverse('personagem_levelup_aplicar', args=[p.pk]),
+            data=json.dumps({'acoes': [
+                {'tipo': 'subir_nivel', 'payload': {'classe': pc.id_classe_id}},
+            ]}),
+            content_type='application/json')
+        self.assertEqual(resp.status_code, 200, resp.content)
+        body = resp.json()
+        self.assertTrue(body['continuar'], body)
+        self.assertEqual(body['proximo_nivel'], 3)
+
     def test_batch_invalido_reverte_tudo(self):
         # Um lote com uma ação inválida (subclasse inexistente) devolve 400 e NÃO grava
         # NADA — nem o subir-nível que veio junto (transação atômica).
@@ -274,6 +290,22 @@ class SubirNivelPageTests(LevelUpLoteBase):
         self.assertIn(reverse('personagem_levelup_preview', args=[p.pk]), html)
         self.assertIn('js/subir_nivel.js', html)
         self.assertIn('css/pages/subir_nivel.css', html)
+
+    def test_opcao_exibe_descricao_completa_e_enfileira_na_selecao(self):
+        u = self._novo_usuario('sn-opcao-direta')
+        classe = TbClasse.objects.get(slug='feiticeiro')
+        p = TbPersonagem.objects.create(
+            dono=u, nome='Feiticeiro das Opções', nivel=2, aventuras=500,
+            forca=8, destreza=14, constituicao=14,
+            inteligencia=10, sabedoria=12, carisma=16)
+        TbPersonagemClasse.objects.create(
+            id_personagem=p, id_classe=classe, nivel=2, principal=True)
+        self.client.force_login(u)
+        html = self.client.get(
+            reverse('personagem_subir_nivel', args=[p.pk])).content.decode('utf-8')
+        self.assertIn('data-lvl-auto-queue="opcao"', html)
+        self.assertIn('data-desc="', html)
+        self.assertNotIn('data-lvl-queue="opcao"', html)
 
     def test_botao_aparece_quando_elegivel(self):
         # Elegível (teto folgado): a ficha traz o botão destacado de subir de nível.
