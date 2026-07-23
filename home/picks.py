@@ -14,7 +14,8 @@ O que este módulo NÃO faz (por design, §0 do contrato):
   - pick-EFEITO (C): `pick:creature`, `pick:allies` — alvos de combate. Ignorado aqui.
 A disambiguação é estrutural: só vira grupo o token que (i) tem contagem numérica
 resolvível, (ii) tem `kind` registrado no REGISTRY e (iii) não está dentro de um span
-`match(...)`/`cast(...)`/`spell:pick{...}`.
+de referência (`match(...)`/`cast(...)`/`spell:pick{...}`) nem de runtime
+(`trigger=...`/`instant{...}`/`while_active{...}`).
 """
 import re
 
@@ -102,30 +103,37 @@ def _resource_ref_from_text(text):
     return m.group(1) if m else None
 
 
-def _ref_spans(text):
-    """Spans (start,end) de contextos de REFERÊNCIA (papel B) onde um pick: NÃO é escolha:
-    `match(...)`, `cast(...)`, `spell:pick{...}`. Varredura com parênteses/chaves balanceados."""
+def _balanced_context_spans(text, patterns):
+    """Spans balanceados iniciados pelos regexes de ``patterns``.
+
+    Cada padrão deve terminar no delimitador de abertura. `_match_pair` usa a mesma
+    pilha combinada da gramática de picks, portanto blocos aninhados não são truncados.
+    """
     spans = []
-    for kw, op, cl in (('match(', '(', ')'), ('cast(', '(', ')'), ('spell:pick{', '{', '}')):
-        start = 0
-        while True:
-            i = text.find(kw, start)
-            if i < 0:
-                break
-            j = i + len(kw) - 1  # posição do delimitador de abertura
-            depth = 0
-            k = j
-            while k < len(text):
-                if text[k] == op:
-                    depth += 1
-                elif text[k] == cl:
-                    depth -= 1
-                    if depth == 0:
-                        break
-                k += 1
-            spans.append((i, k))
-            start = k + 1
+    for pattern in patterns:
+        for m in re.finditer(pattern, text):
+            opening = m.end() - 1
+            closing = _match_pair(text, opening)
+            spans.append((m.start(), closing if closing >= 0 else len(text) - 1))
     return spans
+
+
+def _non_choice_spans(text):
+    """Contextos em que ``pick:`` não declara estado permanente da ficha.
+
+    Referências são papel B. Escolhas feitas ao resolver um gatilho/efeito ativo são
+    papel C (runtime/VTT), mesmo quando têm contagem e um ``define{list}`` capaz de
+    fazê-las parecer um menu persistível.
+    """
+    return _balanced_context_spans(text, (
+        r'\bmatch\s*\(',
+        r'\bcast\s*\(',
+        r'\bspell:pick\s*\{',
+        r'\binstant\s*\{',
+        r'\bwhile_active\s*\{',
+        r'\btrigger\s*=\s*[a-z0-9_.-]+\s*[\{\(]',
+        r'\btrigger\s*[\{\(]',
+    ))
 
 
 class PickToken(object):
@@ -143,13 +151,13 @@ class PickToken(object):
 
 
 def iter_pick_tokens(text):
-    """Yields PickToken para cada `pick:` PAPEL-A em `text` (ignora match/cast/spell:pick)."""
+    """Yields ``PickToken`` papel A; ignora referências e escolhas de runtime."""
     text = str(text)
-    refs = _ref_spans(text)
+    non_choices = _non_choice_spans(text)
     for m in _PICK_HEAD_RE.finditer(text):
         start = m.start()
-        if any(a <= start <= b for a, b in refs):
-            continue  # dentro de match()/cast()/spell:pick{} -> referência, não escolha
+        if any(a <= start <= b for a, b in non_choices):
+            continue
         kind = m.group(1)
         segs, constr_bodies, end = _consume_pick_tail(text, m.end())
         constr_raw = ' '.join('(%s)' % b for b in constr_bodies)

@@ -1253,11 +1253,12 @@ class PickMetamagiaProgressaoTests(_CriadorBase):
 
 
 class PickTalentoDefineMenuTests(_CriadorBase):
-    """PICKS DENTRO DE TALENTOS: `resolve_personagem` passa a varrer os TALENTOS do
-    personagem (antes só classe/subclasse). Prova com a Máscara de Guerra (talento racial de
-    Orc): seu `pick:mascara_guerra:1` tem o universo num `define{mascara_guerra: list{...}}`
-    IRMÃO — kind resolvido genericamente pelo handler de menu inline (zero if-por-tipo). A
-    escolha vira pendência (1 de 4) SEM que as perícias do menu vazem como estáticas."""
+    """Picks de talento só persistem quando representam estado fixo da ficha.
+
+    Máscara de Guerra escolhe sua modalidade no descanso longo e, portanto, seu
+    ``pick`` dentro de ``instant{}`` é runtime: não abre pendência e não relê escolhas
+    antigas. O ``define{list}`` irmão também não pode vazar perícias estáticas.
+    """
 
     def _orc_com_mascara(self, nivel=1):
         from home.models import TbRaca
@@ -1275,17 +1276,10 @@ class PickTalentoDefineMenuTests(_CriadorBase):
             nome='Máscara de Guerra')
         return p
 
-    def test_pick_de_talento_vira_pendencia(self):
+    def test_pick_de_uso_nao_vira_pendencia(self):
         from home import picks
-        g = next(g for g in picks.resolve_personagem(self._orc_com_mascara())
-                 if g['kind'] == 'mascara_guerra')
-        self.assertEqual(g['n'], 1)
-        self.assertEqual(g['pendentes'], 1)
-        self.assertEqual(g['origem'], 'Máscara de Guerra')
-        self.assertEqual(g['persist_tipo'], 'mascara_guerra')
-        # universo = as 4 opções do define{mascara_guerra: list{...}}, na ordem do menu
-        self.assertEqual({u['slug'] for u in g['universo']},
-                         {'o_divino', 'a_terra', 'a_magia', 'a_umbra'})
+        grupos = picks.resolve_personagem(self._orc_com_mascara())
+        self.assertNotIn('mascara_guerra', {g['kind'] for g in grupos})
 
     def test_talento_nao_concede_pericia_estatica(self):
         # o define é MENU (stripado dos verbos passivos), não concessão fixa: nenhuma das
@@ -1296,18 +1290,17 @@ class PickTalentoDefineMenuTests(_CriadorBase):
                 if x['proficiente'] or x['expertise']}
         self.assertFalse(prof & {'Religião', 'Natureza', 'Arcanismo', 'Enganação'}, prof)
 
-    def test_persist_e_readback_da_escolha_de_menu(self):
+    def test_escolha_antiga_e_ignorada_sem_apagar_dado(self):
         from home import picks
         p = self._orc_com_mascara()
-        g = next(g for g in picks.resolve_personagem(p) if g['kind'] == 'mascara_guerra')
-        g['slot_base'] = g['prox_slot']
-        picks._MENU_ENTRY['persist'](p, g, ['a_magia'])
+        p.escolhas.create(
+            origem='Máscara de Guerra', tipo='mascara_guerra', valor='a_magia', slot=0)
         self.assertEqual(p.escolhas.filter(tipo='mascara_guerra', valor='a_magia').count(), 1)
-        # idempotência do painel: a pendência zera e a escolha é relida
-        g2 = next(g for g in picks.resolve_personagem(p) if g['kind'] == 'mascara_guerra')
-        self.assertEqual((g2['usados'], g2['pendentes']), (1, 0))
-        self.assertEqual([e['valor'] for e in g2['escolhidas']], ['a_magia'])
-        self.assertEqual([e['nome'] for e in g2['escolhidas']], ['A Magia'])
+        self.assertNotIn('mascara_guerra',
+                         {g['kind'] for g in picks.resolve_personagem(p)})
+        # Compatibilidade: parar de ler não significa destruir escolhas existentes.
+        self.assertTrue(p.escolhas.filter(
+            tipo='mascara_guerra', valor='a_magia').exists())
 
 
 class PerfilDeArmaTests(_CriadorBase):

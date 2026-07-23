@@ -77,6 +77,27 @@ class ParserBalanceadoTests(TestCase):
         self.assertEqual(sylph, ['raio', 'trovejante'])
         self.assertEqual(oread, [])          # oread não ramifica -> sem sub-escolha
 
+    def test_picks_de_runtime_nao_viram_escolha_persistente(self):
+        tags = (
+            'trigger=long_rest, instant{pick:mascara_guerra:1}',
+            'while_active{pick:aspecto_selvagem:1}',
+            'trigger=hit{pick:mordida_lacerante:1}',
+        )
+        for tag in tags:
+            with self.subTest(tag=tag):
+                self.assertEqual(list(picks.iter_pick_tokens(tag)), [])
+
+    def test_picks_legitimos_fora_de_runtime_continuam_sendo_papel_a(self):
+        tags = (
+            'pick:opcao:metamagia:2',
+            'pick:arma:2',
+            'pick:pericia:1',
+        )
+        self.assertEqual(
+            [next(picks.iter_pick_tokens(tag)).kind for tag in tags],
+            ['opcao', 'arma', 'pericia'],
+        )
+
 
 class ChoiceSubsUnitTests(TestCase):
     """Unidades da resolução de referências no derive (_apply_choice_subs/_resolve_var)."""
