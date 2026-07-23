@@ -1976,13 +1976,29 @@ def _cond_nomes():
     return {c.slug: c.nome for c in TbCondicao.objects.all()}
 
 
+def _tags_mecanicas_item(it):
+    """Tags mecânicas efetivas de uma linha de inventário: o snapshot próprio
+    (itens mundanos) UNIDO às tags do item mágico vinculado. A mecânica de CA de
+    itens mágicos (ex.: '+1 Escudo' com `ca:+3`) vive só no catálogo TbItemMagico,
+    não no snapshot da linha — sem uni-las o escudo/armadura mágico sumia da CA."""
+    tags = list(it.tags_json or [])
+    mag = getattr(it, 'id_item_magico', None)
+    if mag is not None:
+        for t in (mag.tags_json or []):
+            if t not in tags:
+                tags.append(t)
+    return tags
+
+
 def _armadura_equipada(personagem, dex_mod):
-    """CA derivada de armadura/escudo equipados, lida das tags do item (mecanica_de_tags)."""
+    """CA derivada de armadura/escudo equipados, lida das tags do item (mecanica_de_tags).
+    Considera itens MUNDANOS (snapshot) e MÁGICOS (tags do catálogo). Escudos NÃO
+    empilham (regra 5e): com mais de um escudo equipado, só o de maior bônus conta."""
     tem_arm = tem_esc = False
     ca_arm, fonte = None, None
     esc_bonus = 0
-    for it in personagem.inventario.filter(equipado=True):
-        mec = mecanica_de_tags(it.tags_json)
+    for it in personagem.inventario.filter(equipado=True).select_related('id_item_magico'):
+        mec = mecanica_de_tags(_tags_mecanicas_item(it))
         if mec['is_escudo']:
             tem_esc = True
             esc_bonus = max(esc_bonus, mec['ca_base'] if mec['ca_base'] is not None else 2)
@@ -2663,6 +2679,27 @@ def _pericias(personagem, atributos, pb, tag_skill_prof=None, check_attr=None, c
         out.append({'nome': d['nome'], 'atributo': sig, 'proficiente': d['proficiente'],
                     'expertise': d['expertise'], 'bonus': bonus})
     return sorted(out, key=lambda x: x['nome'])
+
+
+def proficient_skill_slugs(personagem):
+    """Slugs canônicos de perícia em que o personagem é proficiente OU especializado,
+    agregando TODAS as origens (TbPersonagemPericia + tags de raça/classe/feature/
+    antecedente automáticas + escolhas pick:pericia) via `derive`. Fonte única do
+    'bloqueio universal' de perícia nos picks (home.picks): uma perícia já obtida por
+    QUALQUER fonte não pode ser reescolhida em NENHUMA lista."""
+    if personagem is None:
+        return set()
+    nome2slug = {info[0]: sl for sl, info in _SKILL_INFO.items()}
+    out = set()
+    try:
+        for pr in derive(personagem).get('pericias', []) or []:
+            if pr.get('proficiente') or pr.get('expertise'):
+                sl = nome2slug.get(pr.get('nome'))
+                if sl:
+                    out.add(sl)
+    except Exception:
+        pass
+    return out
 
 
 def _proficiencias(personagem):

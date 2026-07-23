@@ -997,9 +997,28 @@
 }
 .resource-card-actions button:hover, .spell-slot-actions button:hover { border-color: var(--ember); color: var(--ember); }
 .resource-card-actions button:disabled, .spell-slot-actions button:disabled { cursor: not-allowed; opacity: 0.35; }
-.resource-rest-actions { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid rgba(82, 82, 91, 0.45); }
-.resource-rest-actions button { border: 1px solid var(--stroke); border-radius: 5px; background: var(--bg0); color: var(--muted); padding: 0.35rem 0.7rem; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; }
-.resource-rest-actions button.primary { border-color: rgba(242, 112, 7, 0.55); color: var(--ember); }
+.resource-rest-actions { display: flex; flex-wrap: wrap; align-items: stretch; gap: 0.45rem; margin-top: 0.55rem; padding-top: 0.55rem; border-top: 1px solid rgba(82, 82, 91, 0.45); }
+.resource-rest-actions form { display: flex; flex: 1 1 8rem; }
+.resource-rest-actions button {
+  flex: 1 1 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0 0.85rem;
+  border: 1px solid var(--stroke);
+  border-radius: 6px;
+  background: var(--bg1);
+  color: var(--text);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.resource-rest-actions button:hover { border-color: var(--ember); color: var(--ember); }
+.resource-rest-actions button.primary { border-color: rgba(242, 112, 7, 0.55); color: var(--ember); background: rgba(242, 112, 7, 0.08); }
+.resource-rest-actions button.primary:hover { background: rgba(242, 112, 7, 0.16); }
 
 /* ============================================================
    SPELLBOOK
@@ -1086,6 +1105,27 @@
 .spell-inline-actions button:hover { border-color: #ff4057; color: #ffb3bd; }
 .spell-inline-actions button:disabled { cursor: not-allowed; opacity: 0.35; }
 .spell-empty { color: var(--muted); font-size: 0.85rem; padding: 0.35rem 0; }
+/* Nome como toggle de descrição (card expansível na aba Magias) */
+button.spell-name-toggle {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+button.spell-name-toggle:hover { color: var(--ember); }
+.spell-caret { flex: none; align-self: center; width: 0; height: 0; border-left: 4px solid currentColor; border-top: 3.5px solid transparent; border-bottom: 3.5px solid transparent; opacity: 0.55; transition: transform 0.15s ease; }
+button.spell-name-toggle.open .spell-caret { transform: rotate(90deg); opacity: 0.9; }
+.spell-desc { grid-column: 2; margin-top: 0.35rem; padding: 0.4rem 0.55rem; border: 1px solid var(--stroke); border-radius: 6px; background: rgba(9, 9, 11, 0.55); color: var(--text); font-size: 0.78rem; line-height: 1.45; }
+.spell-desc-meta { display: flex; flex-wrap: wrap; gap: 0.25rem 0.8rem; margin-bottom: 0.4rem; color: var(--muted); font-size: 0.66rem; }
+.spell-desc-meta b { color: var(--text); font-weight: 800; }
+.spell-desc-up { margin-top: 0.4rem; padding-top: 0.35rem; border-top: 1px dashed rgba(82, 82, 91, 0.5); }
+.spell-desc .bonfire-markdown p { margin: 0 0 0.4rem; }
+.spell-desc .bonfire-markdown p:last-child { margin-bottom: 0; }
 
 @media (max-width: 760px) {
   .spellbook-head { flex-direction: column; }

@@ -609,6 +609,10 @@
             add((CAT.pericias_concedidas_raca || {})[racaSel.value]);
             if (!linWrap.hidden && linSel.value) add((CAT.pericias_concedidas_linhagem || {})[linSel.value]);
             if (!essWrap.hidden && essSel.value) addEss((CAT.pericias_concedidas_essencia || {})[essSel.value]);
+            // Perícia GANHA (fixa) pela CLASSE (ex.: Mago/Arcanismo via 'Estudo Arcano'): entra no
+            // mesmo bloqueio universal — trava nas listas de classe, antecedente e picks raciais.
+            var _cls = classeBySlug[classeSel.value];
+            if (_cls) add(_cls.pericias_concedidas);
             return out;
         }
         function markGrant(b, fonte) {

@@ -666,7 +666,11 @@
               {% else %}
                 <span class="spell-marker readonly {% if m.preparada %}prepared{% endif %}"></span>
               {% endif %}
+              {% if m.descricao or m.em_niveis_superiores %}
+              <button type="button" class="spell-name spell-name-toggle" data-spell-toggle="{{ m.id }}" aria-expanded="false" title="Ver descrição">{{ m.nome }}<span class="spell-caret" aria-hidden="true"></span></button>
+              {% else %}
               <span class="spell-name">{{ m.nome }}</span>
+              {% endif %}
               <span class="spell-tags">
                 {% if m.innate_label %}
                   <span class="spell-tag innate">{{ m.innate_label }}</span>
@@ -689,6 +693,7 @@
                 {% if m.escola %}<span class="spell-tag muted">{{ m.escola }}</span>{% endif %}
                 {% if m.origem %}<span class="spell-tag source">{{ m.origem }}</span>{% endif %}
               </span>
+              {% if m.descricao or m.em_niveis_superiores %}<div class="spell-desc" data-spell-body="{{ m.id }}" hidden></div>{% endif %}
             </li>
             {% empty %}
             <li class="spell-empty">-</li>
@@ -735,6 +740,11 @@
   {# ===================== Dados das descrições para os cards ===================== #}
   <script type="application/json" id="ficha-feat-desc">{% autoescape off %}{
     {% for f in ficha.features %}"{{ forloop.counter0 }}": "{{ f.descricao|escapejs }}"{% if not forloop.last %},
+    {% endif %}{% endfor %}
+  }{% endautoescape %}</script>
+  {# Descrição das magias da aba Magias (card expansível): id -> texto/meta #}
+  <script type="application/json" id="ficha-magia-desc">{% autoescape off %}{
+    {% for m in magias_info.lista %}"{{ m.id }}": {"d": "{{ m.descricao|escapejs }}", "u": "{{ m.em_niveis_superiores|escapejs }}", "ct": "{{ m.casting_time|escapejs }}", "al": "{{ m.alcance|escapejs }}", "du": "{{ m.duracao|escapejs }}", "co": "{{ m.componentes|escapejs }}", "conc": {% if m.concentracao %}1{% else %}0{% endif %}, "rit": {% if m.ritual %}1{% else %}0{% endif %}}{% if not forloop.last %},
     {% endif %}{% endfor %}
   }{% endautoescape %}</script>
 </section>
@@ -791,6 +801,45 @@
       }
       card.classList.toggle('open', willOpen);
       head.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+    });
+  });
+
+  // ---------- Descrição das magias (aba Magias): clicar no nome expande o card ----------
+  let magiaMap = {};
+  try { magiaMap = JSON.parse(document.getElementById('ficha-magia-desc').textContent || '{}'); } catch (e) { magiaMap = {}; }
+
+  function renderMagia(info) {
+    if (!info) return '<p class="feat-desc empty">Sem descrição detalhada.</p>';
+    const metaBits = [];
+    if (info.ct) metaBits.push('<span><b>Execução:</b> ' + escText(info.ct) + '</span>');
+    if (info.al) metaBits.push('<span><b>Alcance:</b> ' + escText(info.al) + '</span>');
+    if (info.du) metaBits.push('<span><b>Duração:</b> ' + escText(info.du) + (info.conc ? ' (concentração)' : '') + '</span>');
+    if (info.co) metaBits.push('<span><b>Componentes:</b> ' + escText(info.co) + '</span>');
+    if (info.rit) metaBits.push('<span><b>Ritual</b></span>');
+    let html = '';
+    if (metaBits.length) html += '<div class="spell-desc-meta">' + metaBits.join('') + '</div>';
+    if (info.d) html += '<div class="bonfire-markdown">' + renderMd(info.d) + '</div>';
+    if (info.u) html += '<div class="spell-desc-up"><b>Em níveis superiores.</b> <div class="bonfire-markdown">' + renderMd(info.u) + '</div></div>';
+    return html || '<p class="feat-desc empty">Sem descrição detalhada.</p>';
+  }
+  function renderMd(raw) {
+    const value = String(raw || '').trim();
+    if (typeof window.renderBonfireMarkdown === 'function') return window.renderBonfireMarkdown(value);
+    return '<p>' + escText(value).replace(/\n/g, '<br>') + '</p>';
+  }
+  function escText(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+  document.querySelectorAll('[data-spell-toggle]').forEach(function (btn) {
+    const id = btn.getAttribute('data-spell-toggle');
+    const body = document.querySelector('[data-spell-body="' + id + '"]');
+    if (!body) return;
+    let rendered = false;
+    btn.addEventListener('click', function () {
+      const willOpen = body.hidden;
+      if (willOpen && !rendered) { body.innerHTML = renderMagia(magiaMap[id]); rendered = true; }
+      body.hidden = !willOpen;
+      btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+      btn.classList.toggle('open', willOpen);
     });
   });
 

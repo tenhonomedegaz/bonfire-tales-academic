@@ -491,7 +491,7 @@ def _pericia_owned_slugs(personagem):
     """Perícias que o personagem JÁ possui (proficiência/expertise registrada em
     TbPersonagemPericia + escolhas pick:pericia já persistidas) — excluídas do
     universo de uma nova escolha (regra: a lista MENOS as já proficientes)."""
-    from .character_engine import _slug, _norm_skill_slug
+    from .character_engine import _slug, _norm_skill_slug, proficient_skill_slugs
     if personagem is None:
         return set()
     owned = set()
@@ -501,6 +501,10 @@ def _pericia_owned_slugs(personagem):
     for e in personagem.escolhas.filter(tipo='pericia'):
         if e.valor:
             owned.add(_norm_skill_slug(e.valor))
+    # Bloqueio UNIVERSAL: perícias concedidas por tags (raça/essência/feature/antecedente
+    # automáticas) não vivem em TbPersonagemPericia — só o derive as agrega. Sem isto o
+    # level-up ofereceria uma perícia que o personagem já tinha por essas fontes.
+    owned |= proficient_skill_slugs(personagem)
     return owned
 
 

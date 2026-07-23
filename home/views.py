@@ -2433,6 +2433,33 @@ def _parse_skills_lvl1(tags_json):
     return (2, None)
 
 
+_PROF_SKILL_RE = re.compile(r'(?<![a-z0-9_-])prof:([a-z0-9_-]+)')
+_PROF_MENU_MARKERS = ('define{', 'list{', 'table{', 'while_active', 'while{',
+                      'cast{', 'instant{', 'trigger=', 'action=')
+
+
+def _classe_pericias_fixas(classe):
+    """Slugs canônicos de perícia que FEATURES de nível 1 da classe concedem FIXAS (tag
+    plana `prof:<skill>`, ex.: Mago/'Estudo Arcano' -> arcanismo). Bloqueio universal:
+    perícia ganha pela classe não pode ser reescolhida em nenhuma lista do criador."""
+    from .character_engine import _SKILL_INFO, _norm_skill_slug
+    from .models import TbClassehabilidade
+    if classe is None:
+        return set()
+    out = set()
+    for h in TbClassehabilidade.objects.filter(
+            id_classe=classe, id_subclasse__isnull=True, niveladquirido__lte=1):
+        for tag in (h.tags_json or []):
+            s = str(tag)
+            if any(mk in s.lower() for mk in _PROF_MENU_MARKERS):
+                continue
+            for m in _PROF_SKILL_RE.finditer(s):
+                sl = _norm_skill_slug(m.group(1))
+                if sl in _SKILL_INFO:
+                    out.add(sl)
+    return out
+
+
 _ARMADURA_PROF_TOKEN = {
     'armadura_leve': 'leve',
     'armadura_media': 'media',
@@ -2962,11 +2989,20 @@ def _magias_sheet_info(personagem, ficha, essencia_pendentes):
                           and not m.sempre_preparada
                           and ((m.origem or '') in ('', primary['pc'].id_classe.nome)))
         always_display = bool(m.sempre_preparada or known_auto)
+        _mag = m.id_magia
         lista.append({
             'id': m.id, 'slug': slug, 'nivel': m.nivel, 'nome': m.nome,
             'preparada': bool(m.preparada), 'sempre_preparada': always_display,
             'known_auto': known_auto,
             'origem': m.origem or '', 'escola': getattr(m.id_magia, 'escola', '') or '',
+            'descricao': (getattr(_mag, 'descricao', '') or '').strip(),
+            'em_niveis_superiores': (getattr(_mag, 'em_niveis_superiores', '') or '').strip(),
+            'alcance': (getattr(_mag, 'alcance', '') or '').strip(),
+            'duracao': (getattr(_mag, 'duracao', '') or '').strip(),
+            'casting_time': (getattr(_mag, 'casting_time', '') or '').strip(),
+            'componentes': (getattr(_mag, 'componentes', '') or '').strip(),
+            'concentracao': bool(getattr(_mag, 'concentracao', False)),
+            'ritual': bool(getattr(_mag, 'ritual', False)),
             'innate_label': innate_label,
             'innate_key': innate_key,
             'innate_max': innate_max,
@@ -3301,6 +3337,27 @@ def _criador_catalogos():
                         out.append({'slug': sl, 'fonte': t.nome, 'vertente': _cla})
         return out
 
+    def _classe_pericias_concedidas(c):
+        # Perícia que uma FEATURE de classe de nível 1 concede FIXA (tag plana `prof:<skill>`,
+        # ex.: Mago/Estudo Arcano = ['always_active{prof:arcanismo}']). É uma perícia "ganha
+        # pela classe" (não escolhida), então o front a bloqueia em TODAS as listas de perícia
+        # (classe/antecedente/picks raciais) — mesmo tratamento das concedidas por raça.
+        from .character_engine import _norm_skill_slug
+        out, seen = [], set()
+        habs = TbClassehabilidade.objects.filter(
+            id_classe=c, id_subclasse__isnull=True, niveladquirido__lte=1)
+        for h in habs:
+            for tag in (h.tags_json or []):
+                s = str(tag)
+                if any(mk in s.lower() for mk in _prof_menu_active):
+                    continue
+                for m in _prof_skill_re.finditer(s):
+                    sl = _norm_skill_slug(m.group(1))
+                    if sl in _SKILL_INFO and sl not in seen:
+                        seen.add(sl)
+                        out.append({'slug': sl, 'fonte': h.nome, 'vertente': ''})
+        return out
+
     def _classe_saves(c):
         out = []
         for tag in (c.tags_json or []):
@@ -3340,6 +3397,7 @@ def _criador_catalogos():
         sub = _tag_levels(c.tags_json, 'subclass-choices')
         esc1 = _classe_escolhas_nv1(c)
         classes.append({'slug': c.slug, 'nome': c.nome, 'pericias_n': n, 'pericias_lista': lista,
+                        'pericias_concedidas': _classe_pericias_concedidas(c),
                         'equipamento': (c.equipamento or '').strip(),
                         'tagline': (c.tagline or '').strip(),
                         'hit_die': _dado_de_vida_classe(c) or 0,
@@ -6282,6 +6340,13 @@ def _criador_resolver(data):
             erros.append('Escolha exatamente %d perícia(s) de classe válida(s).' % pn)
     if len(pa) != bg_skill_n or any(s not in _SKILL_INFO for s in pa):
         erros.append('Escolha exatamente %d perícia(s) de antecedente válida(s).' % bg_skill_n)
+    # Bloqueio UNIVERSAL de perícia: a perícia do ANTECEDENTE não pode duplicar uma perícia
+    # da classe — nem uma ESCOLHIDA (pc) nem uma GANHA fixa por feature de nível 1 (ex.:
+    # Mago/Arcanismo via 'Estudo Arcano'). O cross-lock do cliente é só UI; um POST direto
+    # (ou corrida de eventos) furaria e o servidor gravaria a proficiência em duplicidade.
+    fixas_classe = _classe_pericias_fixas(classe) if classe else set()
+    if set(pa) & (set(pc) | fixas_classe):
+        erros.append('Perícia do antecedente duplicada com uma perícia da classe — escolha outra.')
     if len(lt_sel) != bg_langtool_n:
         erros.append('Escolha exatamente %d idioma(s)/ferramenta(s).' % bg_langtool_n)
 
