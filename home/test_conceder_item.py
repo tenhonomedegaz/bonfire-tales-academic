@@ -179,6 +179,23 @@ class ConsumivelInventarioTests(ConcederItemBase):
             data={'item': linha.id, 'acao': 'usar'})
         self.assertFalse(TbPersonagemItem.objects.filter(pk=linha.pk).exists())
 
+    def test_descanso_longo_nao_recupera_quantidade_de_consumivel(self):
+        p = self._char_dono_staff(apelido='pocao-nao-recupera')
+        item = self._item_magico_consumivel()
+        linha = TbPersonagemItem.objects.create(
+            id_personagem=p, id_item_magico=item, nome=item.nome, qtd=3)
+        self.client.force_login(p.dono)
+
+        self.client.post(
+            reverse('personagem_usar_item_consumivel', args=[p.pk]),
+            data={'item': linha.id, 'acao': 'usar'})
+        self.client.post(
+            reverse('personagem_descansar', args=[p.pk]),
+            data={'tipo': 'longo'})
+
+        linha.refresh_from_db()
+        self.assertEqual(linha.qtd, 2)
+
 
 class ReverterConcessaoTests(ConcederItemBase):
     def _concede(self, p, item, **extra):

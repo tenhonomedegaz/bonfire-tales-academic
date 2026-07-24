@@ -17,6 +17,8 @@
 ## Gates (saídas reais da rodada)
 
 - Suíte completa: **328 testes, OK** (323 na validação da onda + 5 novos do Multitalentoso).
+- Auditoria de continuidade: **330 testes, OK**, incluindo regressões explícitas dos
+  itens 3, 5, 6 e 7 que haviam sido classificados incorretamente como pendentes.
 - `manage.py validate_tags`: **ERROR=0 WARN=0 INFO=0** (3.479 registros, 8.740 linhas de tag).
 - `manage.py check`: sem problemas.
 - Invariantes do Scar no espelho preservados (FOR 19, desarmado +11 / `1d10 +8`,
@@ -40,19 +42,25 @@
 |---|---|
 | 1. Picks de uso fora do wizard | ✅ `ecef27b` |
 | 2. Auditoria dos equipáveis | ✅ 266 corrigidos; **20 holds esperando o PO** (`scratch/equipaveis_aplicacao_log.json`) |
-| 3. Consumível ≠ recurso recuperável | ❌ **pendente** |
+| 3. Consumível ≠ recurso recuperável | ✅ `a77ecf9`: quantidade vem de `TbPersonagemItem.qtd`, usar decrementa/remove em zero e descanso não repõe inventário |
 | 4. Fetch-ificar a ficha | ✅ `a77ecf9` + `2395d26` |
-| 5. Subir de nível encadeado (N2→N3) | ❌ **pendente** |
-| 6. Trocar maestria no descanso longo | ❌ **pendente** |
-| 7. UX das escolhas (descrição completa + sem clique "Escolher") | ❌ **pendente** |
+| 5. Subir de nível encadeado (N2→N3) | ✅ `a77ecf9`: resposta oferece continuação e reabre o wizard no próximo nível, preservando a classe |
+| 6. Trocar maestria no descanso longo | ✅ `a77ecf9`: lê `swap/reset:long_rest`, reabre o painel e persiste o novo par arma+maestria |
+| 7. UX das escolhas (descrição completa + sem clique "Escolher") | ✅ `a77ecf9`: descrição integral em `data-desc` e seleção simples enfileira automaticamente |
 | 8. Housekeeping (rollback novo etc.) | ✅ |
 
 **Extras entregues além do briefing:** contexto de classe no level-up multiclasse,
 cotas de magia por classe, fix do `::toggle`, gerador oficial do restore.
 
+### Retificação da auditoria
+
+Os itens 3, 5, 6 e 7 haviam sido marcados como pendentes por erro de verificação. A
+auditoria de continuidade confirmou implementação, rotas, UI e persistência já presentes
+no commit `a77ecf9`; regressões específicas cobrem descanso sem reposição de item,
+encadeamento até o próximo GET e persistência da troca de maestria.
+
 ## Próxima rodada (quando o PO liberar)
 
-1. Itens 3, 5, 6 e 7 do briefing (que segue válido como especificação).
-2. Decisão do PO nos 20 holds de equipabilidade.
-3. Pendências de fora: itens fungal (fonte da staff), Axe Beak (bestiário),
+1. Decisão do PO nos 20 holds de equipabilidade.
+2. Pendências de fora: itens fungal (fonte da staff), Axe Beak (bestiário),
    rework Vampiro/Bestial/Folken.

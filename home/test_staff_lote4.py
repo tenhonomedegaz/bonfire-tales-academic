@@ -218,3 +218,29 @@ class TrocaMaestriaDescansoTests(_CriadorBase):
         resp = self.client.get(reverse('personagem_trocar_maestria', args=[p.pk]))
         self.assertEqual(resp.status_code, 200)
         self.assertContains(resp, 'Maestrias de Arma')
+
+    def test_fluxo_persiste_novo_par_arma_maestria(self):
+        p = self._personagem_com_maestria()
+        atual = p.escolhas.get(tipo='maestria')
+        candidato = next(
+            (
+                (arma, maestria)
+                for arma in picks._arma_universe({})
+                for maestria in (arma.get('maestrias') or [])
+                if '%s|%s' % (arma['slug'], maestria['slug']) != atual.valor
+            ),
+            None,
+        )
+        self.assertIsNotNone(candidato, 'fixture precisa de outro par arma+maestria')
+        arma, maestria = candidato
+        self.client.force_login(p.dono)
+
+        resp = self.client.post(
+            reverse('personagem_trocar_maestria', args=[p.pk]),
+            data={'arma_0': arma['slug'], 'maestria_0': maestria['slug']})
+
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(
+            p.escolhas.get(tipo='maestria').valor,
+            '%s|%s' % (arma['slug'], maestria['slug']),
+        )

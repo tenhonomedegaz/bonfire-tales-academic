@@ -14,6 +14,7 @@ Reaproveita o `_CriadorBase` de test_criador.py (mesma fixture `conteudo.json` r
 import json
 
 from django.urls import reverse
+from django.utils.html import conditional_escape, strip_tags
 
 from home import views
 from home.models import (
@@ -162,6 +163,14 @@ class LevelUpAplicarLoteTests(LevelUpLoteBase):
         self.assertTrue(body['continuar'], body)
         self.assertEqual(body['proximo_nivel'], 3)
 
+        proxima_etapa = self.client.get(
+            reverse('personagem_subir_nivel', args=[p.pk]),
+            {'classe': pc.id_classe_id},
+        )
+        self.assertEqual(proxima_etapa.status_code, 200)
+        self.assertContains(proxima_etapa, 'sn-leveljump')
+        self.assertContains(proxima_etapa, '>3<', html=False)
+
     def test_batch_invalido_reverte_tudo(self):
         # Um lote com uma ação inválida (subclasse inexistente) devolve 400 e NÃO grava
         # NADA — nem o subir-nível que veio junto (transação atômica).
@@ -301,11 +310,20 @@ class SubirNivelPageTests(LevelUpLoteBase):
         TbPersonagemClasse.objects.create(
             id_personagem=p, id_classe=classe, nivel=2, principal=True)
         self.client.force_login(u)
-        html = self.client.get(
-            reverse('personagem_subir_nivel', args=[p.pk])).content.decode('utf-8')
+        response = self.client.get(
+            reverse('personagem_subir_nivel', args=[p.pk]))
+        html = response.content.decode('utf-8')
         self.assertIn('data-lvl-auto-queue="opcao"', html)
         self.assertIn('data-desc="', html)
         self.assertNotIn('data-lvl-queue="opcao"', html)
+        opcao = next(
+            o
+            for grupo in response.context['opcao_grupos']
+            for o in grupo['disponiveis']
+            if o.get('descricao')
+        )
+        descricao_completa = str(conditional_escape(strip_tags(opcao['descricao'])))
+        self.assertIn(descricao_completa, html)
 
     def test_escolhas_simples_nao_exigem_botao_escolher(self):
         p = self._guerreiro_no_nivel(2, apelido='sn-direto')
