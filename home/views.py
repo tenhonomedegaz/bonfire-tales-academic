@@ -5332,21 +5332,38 @@ def _lvl_aplicar_opcao(personagem, payload):
     val = (payload.get('val') or payload.get('opcao') or '').strip()
     if not (slug and val):
         return [_ERR_OPCAO_INVALIDA]
-    # grupo BRUTO do resolvedor (traz origem/slot_base/universo p/ o persist do REGISTRY)
-    grupo = next((g for g in _picks.resolve_personagem(personagem, kinds=_OPCAO_PANEL_KINDS)
-                  if g['persist_tipo'] == slug and str(g['classe_id']) == str(payload.get('classe'))), None)
-    if not grupo or grupo['pendentes'] < 1:
-        return [_ERR_OPCAO_INVALIDA]
-    universo_tokens = ({str(u['slug']) for u in grupo['universo']}
-                       | {str(u['id']) for u in grupo['universo'] if u.get('id') is not None})
-    # já-escolhidas por QUALQUER forma do token (id da opção ou slug/valor) p/ não duplicar
-    escolhidos = set()
-    for e in grupo['escolhidas']:
-        if e.get('valor') is not None:
-            escolhidos.add(str(e['valor']))
-        if e.get('id_opcao') is not None:
-            escolhidos.add(str(e['id_opcao']))
-    if val not in universo_tokens or val in escolhidos:
+    # classe do grupo: features raciais/antecedente têm classe_id=None e o front manda ''
+    # (ou 'None' renderizado por template) — normaliza os dois lados antes de comparar.
+    alvo_classe = str(payload.get('classe') or '')
+    if alvo_classe == 'None':
+        alvo_classe = ''
+
+    def _grp_universo(g):
+        return ({str(u['slug']) for u in g['universo']}
+                | {str(u['id']) for u in g['universo'] if u.get('id') is not None})
+
+    def _grp_escolhidos(g):
+        # já-escolhidas por QUALQUER forma do token (id da opção ou slug/valor) p/ não duplicar
+        out = set()
+        for e in g['escolhidas']:
+            if e.get('valor') is not None:
+                out.add(str(e['valor']))
+            if e.get('id_opcao') is not None:
+                out.add(str(e['id_opcao']))
+        return out
+
+    # Um MESMO persist_tipo pode render VÁRIOS grupos com a mesma classe (ex.: humano Erthari
+    # com talento de ORIGEM 'Determinação Comum' E talento GERAL 'Multitalentoso', ambos
+    # persist_tipo='talento', classe_id=None). Desambigua pelo grupo cujo UNIVERSO contém o
+    # `val`, com slot livre e sem duplicar — assim o talento geral cai no grupo geral e não é
+    # recusado contra o universo (só-origem) do outro pick. Um único grupo mantém o comportamento.
+    candidatos = [g for g in _picks.resolve_personagem(personagem, kinds=_OPCAO_PANEL_KINDS)
+                  if g['persist_tipo'] == slug
+                  and ('' if g['classe_id'] is None else str(g['classe_id'])) == alvo_classe]
+    grupo = next((g for g in candidatos
+                  if g['pendentes'] >= 1
+                  and val in _grp_universo(g) and val not in _grp_escolhidos(g)), None)
+    if grupo is None:
         return [_ERR_OPCAO_INVALIDA]
     # anexa no próximo slot livre (não sobrescreve escolhas anteriores)
     grupo['slot_base'] = grupo['prox_slot']

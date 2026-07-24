@@ -695,15 +695,22 @@ def _pericia_expertise_readback(personagem, group):
 # ---------------------------------------------------------------------------
 # kind 'talento' — escolha de um TALENTO (TbTalento) concedido por uma feature
 # (`pick:talento:1(=talento_de_origem...)` da linhagem Erthari 'Determinação Comum';
-# `pick:talento:1(tipo:origem, requires:prereqs)` do talento 'Raízes Profundas'). O
-# universo é TbTalento honrando as constraints da tag: `=talento_de_origem`/`tipo:origem`
-# restringe a tipo='origem'; `requires:prereq` valida pré-requisitos (views._talento_prereq_ok);
-# exclui os já possuídos. Persiste em TbPersonagemTalento (materialização, p/ o derive aplicar
-# o efeito) E em TbPersonagemEscolha(tipo='talento', origem=<feature>) para o READBACK
-# per-feature (uma TbPersonagemTalento sozinha não distingue de qual feature veio o talento —
-# ex.: o talento de origem do antecedente NÃO deve satisfazer o pick de 'Determinação Comum').
+# `pick:talento:1(tipo:origem, requires:prereqs)` do talento 'Raízes Profundas';
+# `pick:talento:1(from:any_raca, requires:prereq, no_asi)` do traço humano 'Multitalentoso').
+# O universo é TbTalento honrando as constraints da tag: `=talento_de_origem`/`tipo:origem`
+# restringe a tipo='origem'; `from:any_raca`/`tipo:geral` restringe a tipo='geral' (talento
+# "de qualquer raça" — Multitalentoso concede um talento GERAL, nunca de origem/antecedente);
+# `requires:prereq` valida pré-requisitos (views._talento_prereq_ok); exclui os já possuídos.
+# Persiste em TbPersonagemTalento (materialização, p/ o derive aplicar o efeito) E em
+# TbPersonagemEscolha(tipo='talento', origem=<feature>) para o READBACK per-feature (uma
+# TbPersonagemTalento sozinha não distingue de qual feature veio o talento — ex.: o talento
+# de origem do antecedente NÃO deve satisfazer o pick de 'Determinação Comum').
 # ---------------------------------------------------------------------------
 _TALENTO_ORIGEM_RE = re.compile(r'talento_de_origem|\btipo\s*:\s*origem\b')
+# GERAL: `from:any_raca` (Multitalentoso — "Talento (Feat) de qualquer raça para a qual
+# cumpra os pré-requisitos") ou um `tipo:geral` explícito. No modelo de dados só existem
+# talentos 'origem' e 'geral' (não há talentos "raciais"), então "de qualquer raça" = GERAL.
+_TALENTO_GERAL_RE = re.compile(r'\bfrom\s*:\s*any_raca\b|\btipo\s*:\s*geral\b')
 _TALENTO_PREREQ_RE = re.compile(r'requires\s*:\s*prereq')
 
 
@@ -732,6 +739,13 @@ def _talento_universe(ctx):
     qs = TbTalento.objects.all()
     if _TALENTO_ORIGEM_RE.search(text) or (ctx.get('kind') or '') == 'talento_de_origem':
         qs = qs.filter(tipo__iexact='origem')
+    elif _TALENTO_GERAL_RE.search(text):
+        # `from:any_raca`/`tipo:geral` (Multitalentoso): pool = talentos GERAIS que o
+        # personagem qualifica (requires:prereq abaixo) — NUNCA os de origem. Sem este
+        # ramo o universo caía no `all()` e misturava os 43 de origem, e — quando o
+        # personagem tinha TAMBÉM um pick de origem (Erthari) — o grupo de origem vencia
+        # o desempate por persist_tipo e o talento geral acusava "fora do universo".
+        qs = qs.filter(tipo__iexact='geral')
     personagem = ctx.get('personagem')
     owned = _talento_owned_slugs(personagem)
     # `requires:prereq` → filtra pelo mesmo checador do ASI (views._talento_prereq_ok, que
