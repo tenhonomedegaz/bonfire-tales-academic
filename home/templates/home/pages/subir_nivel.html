@@ -131,12 +131,13 @@
           </div>
           <div class="lvl-queued" data-lvl-chips hidden></div>
           <div class="lvl-card__row">
-            <select class="lvl-field lvl-field--grow" data-lvl-field="subclasse" aria-label="Subclasse">
+            <select class="lvl-field lvl-field--grow" data-lvl-field="subclasse"
+                    data-lvl-auto-queue="subclasse" aria-label="Subclasse">
               <option value="">— Selecione —</option>
-              {% for s in pend.subclasses %}<option value="{{ s.id }}">{{ s.nome }}</option>{% endfor %}
+              {% for s in pend.subclasses %}<option value="{{ s.id }}" data-desc="{{ s.descricao|striptags }}">{{ s.nome }}</option>{% endfor %}
             </select>
-            <button type="button" class="lvl-add" data-lvl-queue="subclasse" data-single="1">Escolher</button>
           </div>
+          <p class="lvl-card__hint" data-lvl-desc hidden style="margin-top:0.5rem"></p>
         </div>
       </section>
       {% endif %}
@@ -159,9 +160,10 @@
           </div>
           <label class="lvl-radio"><input type="radio" name="lvl-asi-modo" value="talento"> Escolher um Talento (+1 atributo)</label>
           <div class="lvl-card__row" data-lvl-asi-tal hidden style="margin:0.4rem 0 0.5rem 1.4rem">
-            <select class="lvl-field lvl-field--grow" data-lvl-field="talento" id="lvl-asi-talento" aria-label="Talento"><option value="">— Talento —</option>{% for t in talentos_normais %}<option value="{{ t.id }}" data-attrs="{{ t.attrs_csv }}">{{ t.nome }}{% if t.pre %} ({{ t.pre }}){% endif %}</option>{% endfor %}</select>
+            <select class="lvl-field lvl-field--grow" data-lvl-field="talento" data-lvl-describe id="lvl-asi-talento" aria-label="Talento"><option value="">— Talento —</option>{% for t in talentos_normais %}<option value="{{ t.id }}" data-attrs="{{ t.attrs_csv }}" data-desc="{{ t.descricao|striptags }}">{{ t.nome }}{% if t.pre %} ({{ t.pre }}){% endif %}</option>{% endfor %}</select>
             <select class="lvl-field" data-lvl-field="talento_attr" id="lvl-asi-talento-attr" aria-label="Atributo do talento">{% for a in atributos %}<option value="{{ a }}">+1 {{ a }}</option>{% endfor %}</select>
           </div>
+          <p class="lvl-card__hint" data-lvl-desc hidden style="margin:0.5rem 0 0 1.4rem"></p>
           <div class="lvl-card__row">
             <button type="button" class="lvl-add" data-lvl-queue="asi">Escolher</button>
           </div>
@@ -182,12 +184,11 @@
             </div>
             <div class="lvl-queued" data-lvl-chips hidden></div>
             <div class="lvl-card__row">
-              <select class="lvl-field lvl-field--grow" data-lvl-field="talento" aria-label="Talento racial nível {{ bloco.nivel }}"
-                      onchange="var d=this.closest('.lvl-card').querySelector('[data-lvl-desc]');var o=this.options[this.selectedIndex];d.textContent=o.dataset.desc||'';d.hidden=!o.dataset.desc;">
+              <select class="lvl-field lvl-field--grow" data-lvl-field="talento"
+                      data-lvl-auto-queue="talento_racial" aria-label="Talento racial nível {{ bloco.nivel }}">
                 <option value="">— Selecione —</option>
-                {% for o in bloco.opcoes %}<option value="{{ o.nome }}" data-desc="{{ o.descricao|striptags|truncatechars:280 }}">{{ o.nome }}{% if o.pre %} ({{ o.pre }}){% endif %}</option>{% endfor %}
+                {% for o in bloco.opcoes %}<option value="{{ o.nome }}" data-desc="{{ o.descricao|striptags }}">{{ o.nome }}{% if o.pre %} ({{ o.pre }}){% endif %}</option>{% endfor %}
               </select>
-              <button type="button" class="lvl-add" data-lvl-queue="talento_racial" data-single="1">Escolher</button>
             </div>
             <p class="lvl-card__hint" data-lvl-desc hidden style="margin-top:0.5rem"></p>
           </div>
@@ -379,5 +380,5 @@
 <link rel="stylesheet" href="{% static 'css/pages/criador.css' %}?v=2">
 <link rel="stylesheet" href="{% static 'css/pages/levelup.css' %}?v=3">
 <link rel="stylesheet" href="{% static 'css/pages/subir_nivel.css' %}?v=1">
-<script src="{% static 'js/subir_nivel.js' %}?v=2" defer></script>
+<script src="{% static 'js/subir_nivel.js' %}?v=3" defer></script>
 {% endblock %}

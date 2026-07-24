@@ -478,23 +478,10 @@ function parseToggleBlock(content, options = {}) {
         const stContentHtml = renderBonfireMarkdown(st.contentLines.join('\n'), options);
         
         buttonsHtml += `<button type="button" class="subtopic-btn ${activeClass}" data-group-id="${groupId}" data-subtopic-toggle="${st.slug}">${parseInlineMarkdown(st.title)}</button>`;
-        panelsHtml += `
-            <div class="h1-group-panel ${visibleClass}" data-group-parent="${groupId}" data-sub-slug="${st.slug}">
-                <div class="bonfire-markdown"><strong class="subtopic-body-title">${st.title}</strong><br>${stContentHtml}</div>
-            </div>
-        `;
+        panelsHtml += `<div class="h1-group-panel ${visibleClass}" data-group-parent="${groupId}" data-sub-slug="${st.slug}"><div class="bonfire-markdown"><strong class="subtopic-body-title">${parseInlineMarkdown(st.title)}</strong><br>${stContentHtml}</div></div>`;
     });
     
-    return `
-        <div class="h1-section-group mb-12" id="${groupId}">
-            <h1 class="bonfire-h1-lore">${parseInlineMarkdown(title)}</h1>
-            <div class="bonfire-markdown mb-6">${introHtml}</div>
-            ${subtopics.length > 0 ? `<div class="subtopic-nav mb-6 flex flex-wrap gap-2">${buttonsHtml}</div>` : ''}
-            <div class="h1-group-body">
-                ${panelsHtml}
-            </div>
-        </div>
-    `;
+    return `<div class="h1-section-group mb-12" id="${groupId}"><h1 class="bonfire-h1-lore">${parseInlineMarkdown(title)}</h1><div class="bonfire-markdown mb-6">${introHtml}</div>${subtopics.length > 0 ? `<div class="subtopic-nav mb-6 flex flex-wrap gap-2">${buttonsHtml}</div>` : ''}<div class="h1-group-body">${panelsHtml}</div></div>`;
 }
 
 function buildBonfireMarkdownSource(value, options = {}) {

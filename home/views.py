@@ -3988,16 +3988,31 @@ def _talentos_asi_disponiveis(personagem, ficha):
         if t.id_talento in owned_ids or not _talento_prereq_ok(t, personagem, ficha):
             continue
         attrs = _talento_attr_options(t)
-        out.append({'id': t.id_talento, 'nome': t.nome, 'pre': (t.pre_requisito or '').strip(),
-                    'attrs': attrs, 'attrs_csv': ','.join(attrs)})
+        out.append({
+            'id': t.id_talento,
+            'nome': t.nome,
+            'pre': (t.pre_requisito or '').strip(),
+            'descricao': (t.descricao or '').strip(),
+            'attrs': attrs,
+            'attrs_csv': ','.join(attrs),
+        })
     return out
 
 
-def _pendencias_nivel(personagem):
+def _personagem_classe_contexto(personagem, classe_id=None):
+    """Resolve a classe alvo; endpoints legados continuam caindo na principal."""
+    if classe_id:
+        pc = personagem.classes.filter(id_classe_id=classe_id).first()
+        if pc:
+            return pc
+    return personagem.classes.filter(principal=True).first() or personagem.classes.first()
+
+
+def _pendencias_nivel(personagem, classe_id=None):
     """Escolhas que faltam no nível atual: subclasse (N>=nível-da-subclasse) e ASIs."""
     from .models import TbSubclasse
     pend = {'subclasse': False, 'asi_pendentes': 0, 'subclasse_nivel': None, 'subclasses': []}
-    pc = personagem.classes.filter(principal=True).first() or personagem.classes.first()
+    pc = _personagem_classe_contexto(personagem, classe_id)
     if not pc:
         return pend
     nivel = pc.nivel or 1
@@ -4006,7 +4021,8 @@ def _pendencias_nivel(personagem):
     pend['subclasse_nivel'] = _subclass_min_level(classe)
     if pend['subclasse_nivel'] and nivel >= pend['subclasse_nivel'] and not pc.id_subclasse_id:
         pend['subclasse'] = True
-        pend['subclasses'] = [{'id': s.id_subclasse, 'nome': s.nome}
+        pend['subclasses'] = [{'id': s.id_subclasse, 'nome': s.nome,
+                               'descricao': (s.tagline or '').strip()}
                               for s in TbSubclasse.objects.filter(id_classe=classe).order_by('nome')]
     pend['asi_pendentes'] = max(0, len(_asi_slots(personagem)) - _asi_aplicados(personagem))
     return pend
@@ -4132,7 +4148,7 @@ _OPCAO_PANEL_KINDS = None
 _OPCAO_PANEL_EXCLUDE = {'arma'}
 
 
-def _opcao_grupos(personagem):
+def _opcao_grupos(personagem, classe_id=None):
     """Grupos de escolha de classe de nível alto exibidos no editar-ficha: opções
     (metamagia, manobras, segredos, estilos…) E perícias (`pick:pericia`, ex.: Bárbaro
     Conhecimento Primitivo). FONTE ÚNICA: o resolvedor genérico (`home.picks`) descobre
@@ -4145,6 +4161,8 @@ def _opcao_grupos(personagem):
     slug2tipo = _picks._slug2tipo_map()
     for g in _picks.resolve_personagem(personagem, kinds=_OPCAO_PANEL_KINDS):
         if g['kind'] in _OPCAO_PANEL_EXCLUDE:
+            continue
+        if classe_id and str(g['classe_id']) != str(classe_id):
             continue
         slug = g['persist_tipo']
         tipo_disp = (g.get('tipo_display') or slug2tipo.get(slug)
@@ -4340,12 +4358,12 @@ def _subir_nivel_experiencia(request, p):
             _lvl_aplicar_subir_nivel(p, {'classe': classe_id})
             _sync_magias_concedidas(p)
         ficha_alvo = derive(p)
-        pend = _pendencias_nivel(p)
+        pend = _pendencias_nivel(p, classe_id)
         # ciente da subclasse que será escolhida NESTE passo (third-casters: a conjuração
         # vem da subclasse, ainda não atribuída no nível em que ela é adquirida).
-        pendm = _pendencias_magias_levelup(p, pend)
+        pendm = _pendencias_magias_levelup(p, pend, classe_id)
         talentos_raciais_pend = _pendencias_talento_racial(p)
-        opcao_grupos = _opcao_grupos(p)
+        opcao_grupos = _opcao_grupos(p, classe_id)
         talentos = _talentos_asi_disponiveis(p, ficha_alvo)
         # nível-alvo da classe: re-lê do banco DENTRO da transação (o `pc` de fora é o nível
         # atual; `_lvl_aplicar_subir_nivel` gravou o novo nível numa instância própria).
@@ -4580,6 +4598,68 @@ def _aventuras_staff_resposta(request, p, *, compra_msg='', rollback_msg='', ok=
     }, status=200 if ok else 400)
 
 
+def _inventario_ajax_payload(request, p, *, msg='ok', ok=True):
+    """Estado mínimo para mutações da edição sem recarregar a página."""
+    from django.template.loader import render_to_string
+    from .character_engine import derive
+
+    p.refresh_from_db()
+    ficha = derive(p)
+    for item in ficha.get('inventario', []):
+        if not item.get('magico'):
+            venda = _preco_venda_mundano_pc(item.get('custo'))
+            if venda:
+                item['venda_pc'], item['venda_display'] = venda, _pc_display(venda)
+    return {
+        'ok': ok,
+        'msg': msg,
+        'carteira_display': _pc_display(p.carteira_pc or 0),
+        'carteira_pc': int(p.carteira_pc or 0),
+        'sintonizados_usados': p.inventario.filter(sintonizado=True).count(),
+        'inventario_html': render_to_string(
+            'home/partials/_ficha_inventario.html',
+            {'ficha': ficha, 'p': p},
+            request=request,
+        ),
+        'ficha': {
+            'ca': ficha.get('ca'),
+            'pv_maximo': (ficha.get('pv') or {}).get('maximo_calculado'),
+        },
+    }
+
+
+def _inventario_mutacao_resposta(request, p, fallback, *, msg='ok', ok=True):
+    if is_ajax(request):
+        return JsonResponse(_inventario_ajax_payload(request, p, msg=msg, ok=ok),
+                            status=200 if ok else 400)
+    return redirect(fallback)
+
+
+def _concessao_resposta(request, p, msg, *, ok=True):
+    """Atualiza inventário e ledger da staff; POST clássico preserva o PRG."""
+    back = reverse('editar_ficha', args=[p.pk])
+    if not is_ajax(request):
+        return redirect(back + '?concessao=' + msg)
+
+    from django.template.loader import render_to_string
+
+    payload = _inventario_ajax_payload(request, p, msg=msg, ok=ok)
+    payload['concessoes_html'] = render_to_string(
+        'home/partials/_ficha_concessoes_staff.html',
+        {
+            'p': p,
+            'concessao_msg': msg,
+            'concessoes': list(
+                p.inventario.filter(concedido_em__isnull=False)
+                .select_related('concedido_por', 'id_item_magico')
+                .order_by('-concedido_em', '-id')[:40]
+            ),
+        },
+        request=request,
+    )
+    return JsonResponse(payload, status=200 if ok else 400)
+
+
 @login_required(login_url='/login/')
 @require_POST
 def personagem_registrar_aventuras(request, pk):
@@ -4684,7 +4764,7 @@ def personagem_conceder_item(request, pk):
     if tipo == 'mundano':
         item = TbItemMundano.objects.filter(slug=slug).first()
         if not item:
-            return redirect(back + '?concessao=invalido')
+            return _concessao_resposta(request, p, 'invalido', ok=False)
         with transaction.atomic():
             mec = mecanica_de_tags(item.tags_json, item.subcategoria)
             # empilha só em outra CONCESSÃO da mesma origem (mantém a trilha coerente e a
@@ -4706,7 +4786,7 @@ def personagem_conceder_item(request, pk):
     else:
         item = TbItemMagico.objects.filter(slug=slug).first()
         if not item:
-            return redirect(back + '?concessao=invalido')
+            return _concessao_resposta(request, p, 'invalido', ok=False)
         with transaction.atomic():
             consumivel = _item_consumivel_meta(None, item)['consumivel']
             existente = (TbPersonagemItem.objects.filter(
@@ -4724,7 +4804,7 @@ def personagem_conceder_item(request, pk):
                     id_personagem=p, qtd=qtd, nome=item.nome, custo=custo,
                     id_item_magico=item, equipado=False, sintonizado=False,
                     concedido_por=request.user, concedido_em=agora, origem_nota=nota)
-    return redirect(back + '?concessao=ok')
+    return _concessao_resposta(request, p, 'ok')
 
 
 @login_required(login_url='/login/')
@@ -4749,11 +4829,11 @@ def personagem_reverter_concessao(request, pk, item_id):
         it = (TbPersonagemItem.objects.select_for_update()
               .filter(id=item_id, id_personagem=p).first())
         if not it or it.concedido_em is None:
-            return redirect(back + '?concessao=rev_invalido')
+            return _concessao_resposta(request, p, 'rev_invalido', ok=False)
         if it.equipado or it.sintonizado:
-            return redirect(back + '?concessao=rev_em_uso')
+            return _concessao_resposta(request, p, 'rev_em_uso', ok=False)
         it.delete()
-    return redirect(back + '?concessao=revertido')
+    return _concessao_resposta(request, p, 'revertido')
 
 
 # aceita siglas EN e PT (as tags do banco misturam: 'cha' e 'car', etc.)
@@ -4878,7 +4958,7 @@ def personagem_escolher_opcoes(request, pk):
     return redirect(destino)
 
 
-def _pendencias_magias(personagem, subclasse_override=None):
+def _pendencias_magias(personagem, subclasse_override=None, classe_id=None):
     """Magias a aprender no nível atual: truques (todos casters) e magias conhecidas
     (só known casters, com recurso 'Magias Conhecidas'), até o nível máximo conjurável.
 
@@ -4887,7 +4967,7 @@ def _pendencias_magias(personagem, subclasse_override=None):
     (Cavaleiro/Trapaceiro Arcano) cuja subclasse ainda está sendo ESCOLHIDA no mesmo passo —
     a conjuração vem da subclasse, e sem isto os truques do nível-alvo não apareceriam."""
     from .models import TbMagia, TbRecursoclasse, TbClassehabilidade, TbPersonagemEscolha
-    pc = personagem.classes.filter(principal=True).first() or personagem.classes.first()
+    pc = _personagem_classe_contexto(personagem, classe_id)
     if not pc:
         return None
     classe, nivel = pc.id_classe, (pc.nivel or 1)
@@ -4920,12 +5000,18 @@ def _pendencias_magias(personagem, subclasse_override=None):
     _slot_tbl = _classe_slot_table(classe, nivel, subclasse)
     maxlv = max([lv for lv, t in _slot_tbl.items() if t > 0], default=0)
     conhecidos = set(personagem.magias.values_list('id_magia__slug', flat=True))
+    magias_classe = personagem.magias.filter(origem__iexact=classe.nome)
+    if personagem.classes.count() == 1:
+        magias_classe = personagem.magias.filter(
+            Q(origem__iexact=classe.nome) | Q(origem__isnull=True) | Q(origem=''))
     truques_exp = res_at(['truque']) or 0
     # third-casters (Cavaleiro/Trapaceiro Arcano) chamam o recurso de 'magias-preparadas'
     # (apesar de prepara:conhecidas) — o needle precisa cobrir os dois rótulos, como o criador.
     known_exp = res_at(['magias-conhecidas', 'magias-preparadas'])
-    cant_pend = max(0, truques_exp - personagem.magias.filter(nivel=0).count())
-    known_pend = max(0, (known_exp - personagem.magias.filter(nivel__gte=1).count())) if known_exp is not None else 0
+    cant_pend = max(0, truques_exp - magias_classe.filter(nivel=0).count())
+    known_pend = max(
+        0, known_exp - magias_classe.filter(nivel__gte=1).count()
+    ) if known_exp is not None else 0
     lt = [{'slug': m.slug, 'nome': m.nome} for m in
           TbMagia.objects.filter(_spell_list_q(spell_info['lista_nomes']), nivel=0).order_by('nome') if m.slug not in conhecidos]
     lm = [{'slug': m.slug, 'nome': m.nome, 'nivel': m.nivel} for m in
@@ -4952,14 +5038,15 @@ def _pendencias_magias(personagem, subclasse_override=None):
     swap_usada = TbPersonagemEscolha.objects.filter(
         id_personagem=personagem, tipo='troca_magia', valor=str(nivel_total)).exists()
     conhecidas = [{'slug': m.id_magia.slug, 'nome': m.nome, 'nivel': m.nivel}
-                  for m in personagem.magias.select_related('id_magia').filter(id_magia__isnull=False).order_by('nivel', 'nome')]
+                  for m in magias_classe.select_related('id_magia').filter(
+                      id_magia__isnull=False).order_by('nivel', 'nome')]
     return {'cantrips_pend': cant_pend, 'known_pend': known_pend, 'max_nivel': maxlv,
             'lista_truques': lt, 'lista_magias': lm, 'lista_nomes': spell_info['lista_nomes'],
             'swap_level_up': swap_lvl, 'swap_disponivel': bool(swap_lvl) and not swap_usada,
             'conhecidas': conhecidas, 'prospectiva': False, 'subclasses_prospectivas': []}
 
 
-def _pendencias_magias_levelup(personagem, pend_nivel):
+def _pendencias_magias_levelup(personagem, pend_nivel, classe_id=None):
     """Pendência de magias para o WIZARD de level-up, ciente da subclasse que está prestes a
     ser escolhida NESTE passo. Regressão do print 'Cavaleiro Arcano não deixa escolher truque':
     para third-casters (Cavaleiro/Trapaceiro Arcano) a conjuração vem da SUBCLASSE, e no nível
@@ -4973,12 +5060,12 @@ def _pendencias_magias_levelup(personagem, pend_nivel):
     — e a marca `prospectiva=True` com a lista de slugs de subclasse que a destravam. O cliente
     só revela o passo quando a prévia ao vivo (subclasse já no lote) confirma truques/conhecidas > 0."""
     from .models import TbSubclasse
-    pendm = _pendencias_magias(personagem)
+    pendm = _pendencias_magias(personagem, classe_id=classe_id)
     if pendm is not None:
         return pendm
     if not pend_nivel.get('subclasse'):
         return None
-    pc = personagem.classes.filter(principal=True).first() or personagem.classes.first()
+    pc = _personagem_classe_contexto(personagem, classe_id)
     if not pc or pc.id_subclasse_id:
         return None
     base = None
@@ -4988,7 +5075,8 @@ def _pendencias_magias_levelup(personagem, pend_nivel):
         if not sub or not _classe_spellcasting_info(
                 pc.id_classe, nivel_habilidades=int(pc.nivel or 1), subclasse=sub):
             continue
-        cand = _pendencias_magias(personagem, subclasse_override=sub)
+        cand = _pendencias_magias(
+            personagem, subclasse_override=sub, classe_id=classe_id)
         if not cand or not (cand['cantrips_pend'] or cand['known_pend']):
             continue
         slugs.append(sub.slug)
@@ -5061,7 +5149,8 @@ def _magias_preparadas_info(personagem, ficha):
 def personagem_aprender_magias(request, pk):
     """Wrapper fino do PRG legado: aprende truques/magias conhecidas no nível atual."""
     p = _ficha_editavel(request, pk)
-    _lvl_aplicar_aprender_magias(p, {'truques': request.POST.getlist('truques'),
+    _lvl_aplicar_aprender_magias(p, {'classe': request.POST.get('classe'),
+                                     'truques': request.POST.getlist('truques'),
                                      'magias': request.POST.getlist('magias')})
     return redirect('editar_ficha', pk=pk)
 
@@ -5071,7 +5160,8 @@ def personagem_aprender_magias(request, pk):
 def personagem_trocar_magia(request, pk):
     """Wrapper fino do PRG legado: troca 1 magia conhecida por outra (tag swap:level_up)."""
     p = _ficha_editavel(request, pk)
-    _lvl_aplicar_trocar_magia(p, {'remover': request.POST.get('remover'),
+    _lvl_aplicar_trocar_magia(p, {'classe': request.POST.get('classe'),
+                                  'remover': request.POST.get('remover'),
                                   'adicionar': request.POST.get('adicionar')})
     return redirect('editar_ficha', pk=pk)
 
@@ -5153,13 +5243,14 @@ def _lvl_aplicar_adicionar_classe(personagem, payload):
 
 
 def _lvl_aplicar_subclasse(personagem, payload):
-    """Escolhe a subclasse da classe principal (só se ainda não houver uma)."""
+    """Escolhe a subclasse da classe indicada; o legado cai na principal."""
     from .models import TbSubclasse
-    pc = personagem.classes.filter(principal=True).first() or personagem.classes.first()
+    payload = payload or {}
+    pc = _personagem_classe_contexto(personagem, payload.get('classe'))
     if not pc:
         return [_ERR_SUB_INVALIDA]
     sub = TbSubclasse.objects.filter(
-        id_subclasse=(payload or {}).get('subclasse'), id_classe=pc.id_classe).first()
+        id_subclasse=payload.get('subclasse'), id_classe=pc.id_classe).first()
     if not sub or pc.id_subclasse_id:
         return [_ERR_SUB_INVALIDA]
     pc.id_subclasse = sub
@@ -5267,10 +5358,13 @@ def _lvl_aplicar_aprender_magias(personagem, payload):
     """Aprende truques + magias conhecidas do nível atual (limitado às pendências)."""
     from .models import TbMagia, TbPersonagemMagia
     payload = payload or {}
-    pend = _pendencias_magias(personagem)
+    pc = _personagem_classe_contexto(personagem, payload.get('classe'))
+    if not pc:
+        return [_ERR_MAGIAS_SEM_PEND]
+    pend = _pendencias_magias(personagem, classe_id=pc.id_classe_id)
     if not pend:
         return [_ERR_MAGIAS_SEM_PEND]
-    classe = (personagem.classes.filter(principal=True).first() or personagem.classes.first()).id_classe
+    classe = pc.id_classe
     tslugs = {m['slug'] for m in pend['lista_truques']}
     mslugs = {m['slug'] for m in pend['lista_magias']}
     novos_t = [s for s in dict.fromkeys(payload.get('truques') or []) if s in tslugs][:pend['cantrips_pend']]
@@ -5296,7 +5390,10 @@ def _lvl_aplicar_trocar_magia(personagem, payload):
     Vale para o POST direto, para o endpoint legado (`personagem_trocar_magia`) e para o lote."""
     from .models import TbMagia, TbPersonagemMagia, TbPersonagemEscolha
     payload = payload or {}
-    pend = _pendencias_magias(personagem)
+    pc = _personagem_classe_contexto(personagem, payload.get('classe'))
+    if not pc:
+        return [_ERR_TROCA_INDISPONIVEL]
+    pend = _pendencias_magias(personagem, classe_id=pc.id_classe_id)
     if not pend or not pend['swap_level_up']:
         return [_ERR_TROCA_INDISPONIVEL]
     # UMA por nível: se já há registro de troca no nível total atual, recusa antes de aplicar.
@@ -5304,11 +5401,18 @@ def _lvl_aplicar_trocar_magia(personagem, payload):
     if TbPersonagemEscolha.objects.filter(
             id_personagem=personagem, tipo='troca_magia', valor=str(nivel_atual)).exists():
         return [_ERR_TROCA_JA_USADA]
-    classe = (personagem.classes.filter(principal=True).first() or personagem.classes.first()).id_classe
+    classe = pc.id_classe
     conhecidas = {m['slug'] for m in pend['conhecidas']}
     disponiveis = {m['slug'] for m in pend['lista_truques']} | {m['slug'] for m in pend['lista_magias']}
     novo_slug = payload.get('adicionar')
-    old = personagem.magias.select_related('id_magia').filter(id_magia__slug=payload.get('remover')).first()
+    old_qs = personagem.magias.select_related('id_magia').filter(
+        id_magia__slug=payload.get('remover'))
+    if personagem.classes.count() == 1:
+        old_qs = old_qs.filter(
+            Q(origem__iexact=classe.nome) | Q(origem__isnull=True) | Q(origem=''))
+    else:
+        old_qs = old_qs.filter(origem__iexact=classe.nome)
+    old = old_qs.first()
     new_mg = TbMagia.objects.filter(slug=novo_slug).first() if novo_slug in disponiveis else None
     if (old and new_mg and new_mg.slug not in conhecidas
             and (old.nivel == 0) == (new_mg.nivel == 0)        # truque↔truque
@@ -5342,12 +5446,12 @@ _LVL_ORDEM = {'subir_nivel': 0, 'adicionar_classe': 1, 'subclasse': 2, 'asi': 3,
               'talento_racial': 4, 'opcao': 5, 'aprender_magias': 6, 'trocar_magia': 7}
 
 
-def _levelup_pendencias(personagem):
+def _levelup_pendencias(personagem, classe_id=None):
     """Resumo das pendências de progressão restantes (mesmos critérios de editar_ficha_view)."""
-    pend = _pendencias_nivel(personagem)
-    pendm = _pendencias_magias(personagem)
+    pend = _pendencias_nivel(personagem, classe_id)
+    pendm = _pendencias_magias(personagem, classe_id=classe_id)
     tr = _pendencias_talento_racial(personagem)
-    grupos = _opcao_grupos(personagem)
+    grupos = _opcao_grupos(personagem, classe_id)
     cant = int(pendm['cantrips_pend']) if pendm else 0
     known = int(pendm['known_pend']) if pendm else 0
     opcoes_pend = sum(g['pendentes'] for g in grupos)
@@ -5470,6 +5574,17 @@ def _levelup_acoes_do_body(request):
     return (body.get('acoes') if isinstance(body, dict) else None) or []
 
 
+def _levelup_classe_id_acoes(acoes):
+    """Extrai a classe ancora do lote para recalcular as mesmas pendencias."""
+    for tipo in ('subir_nivel', 'adicionar_classe'):
+        for acao in acoes:
+            if isinstance(acao, dict) and acao.get('tipo') == tipo:
+                payload = acao.get('payload') or {}
+                if payload.get('classe'):
+                    return payload['classe']
+    return None
+
+
 @login_required(login_url='/login/')
 @require_POST
 def personagem_levelup_aplicar(request, pk):
@@ -5480,6 +5595,7 @@ def personagem_levelup_aplicar(request, pk):
     from .character_engine import derive
     p = _ficha_editavel(request, pk)
     acoes = _levelup_acoes_do_body(request)
+    classe_id = _levelup_classe_id_acoes(acoes)
     with transaction.atomic():
         erros = _levelup_aplicar_lote(p, acoes)
         if erros:
@@ -5491,7 +5607,7 @@ def personagem_levelup_aplicar(request, pk):
     if erros:
         return JsonResponse({'ok': False, 'erros': erros}, status=400)
     ficha = derive(p)
-    pendencias = _levelup_pendencias(p)
+    pendencias = _levelup_pendencias(p, classe_id)
     status = _levelup_status(p, ficha)
     # O próximo GET reabre o wizard já no novo estado: ele inclui tanto eventuais
     # escolhas recém-liberadas quanto a âncora do nível seguinte. Não exigir
@@ -5515,6 +5631,7 @@ def personagem_levelup_preview(request, pk):
     reflete o subconjunto válido, como no criador)."""
     p = _ficha_editavel(request, pk)
     acoes = _levelup_acoes_do_body(request)
+    classe_id = _levelup_classe_id_acoes(acoes)
     preview = pend = None
     erros = []
     try:
@@ -5523,7 +5640,7 @@ def personagem_levelup_preview(request, pk):
             _sync_magias_concedidas(p)
             ficha = _refresh_vitais_derivados(p)
             preview = _criador_preview_resumo(ficha)
-            pend = _levelup_pendencias(p)
+            pend = _levelup_pendencias(p, classe_id)
             transaction.set_rollback(True)
     except Exception:
         return JsonResponse({'ok': True, 'ready': False, 'erros': erros})
@@ -5539,22 +5656,7 @@ def _compra_resposta(request, pk, p, msg, ok):
     if is_ajax(request):
         if not ok:
             return JsonResponse({'ok': False, 'msg': msg})
-        from django.template.loader import render_to_string
-        from .character_engine import derive
-        ficha = derive(p)
-        for it in ficha.get('inventario', []):  # anota venda_display (80%) p/ o botão Vender
-            if not it.get('magico'):
-                v = _preco_venda_mundano_pc(it.get('custo'))
-                if v:
-                    it['venda_pc'], it['venda_display'] = v, _pc_display(v)
-        html = render_to_string('home/partials/_ficha_inventario.html',
-                                {'ficha': ficha, 'p': p}, request=request)
-        return JsonResponse({
-            'ok': True, 'msg': msg,
-            'carteira_display': _pc_display(p.carteira_pc),
-            'carteira_pc': int(p.carteira_pc or 0),
-            'sintonizados_usados': p.inventario.filter(sintonizado=True).count(),
-            'inventario_html': html})
+        return JsonResponse(_inventario_ajax_payload(request, p, msg=msg))
     return redirect(reverse('editar_ficha', args=[pk]) + '?compra=' + msg)
 
 
@@ -5600,14 +5702,16 @@ def personagem_equipar_item(request, pk):
     p = _ficha_editavel(request, pk)
     it = TbPersonagemItem.objects.filter(id=request.POST.get('item'), id_personagem=p).first()
     if not it:
-        return redirect('editar_ficha', pk=pk)
+        return _inventario_mutacao_resposta(
+            request, p, reverse('editar_ficha', args=[pk]), msg='item_invalido', ok=False)
     if it.id_item_magico and not _item_magico_equipavel(it.id_item_magico):
         # Compatibilidade graciosa: uma flag antiga inválida deixa de surtir efeito e
         # pode ser limpa sem remover a linha do inventário.
         if it.equipado:
             it.equipado = False
             it.save(update_fields=['equipado'])
-        return redirect('editar_ficha', pk=pk)
+        return _inventario_mutacao_resposta(
+            request, p, reverse('editar_ficha', args=[pk]), msg='nao_equipavel', ok=False)
     novo = not it.equipado
     _mec = mecanica_de_tags(it.tags_json)
     if novo and _mec['tipo_equip']:  # equipar: tira o que ocupa o mesmo "slot"
@@ -5619,7 +5723,9 @@ def personagem_equipar_item(request, pk):
                 outro.save(update_fields=['equipado'])
     it.equipado = novo
     it.save(update_fields=['equipado'])
-    return redirect('editar_ficha', pk=pk)
+    return _inventario_mutacao_resposta(
+        request, p, reverse('editar_ficha', args=[pk]),
+        msg='equipado' if novo else 'desequipado')
 
 
 @login_required(login_url='/login/')
@@ -5701,11 +5807,14 @@ def personagem_sintonizar_item(request, pk):
     it = (TbPersonagemItem.objects.filter(id=request.POST.get('item'), id_personagem=p)
           .select_related('id_item_magico').first())
     if not it or not it.id_item_magico or not it.id_item_magico.requer_sintonizacao:
-        return redirect('editar_ficha', pk=pk)
+        return _inventario_mutacao_resposta(
+            request, p, reverse('editar_ficha', args=[pk]), msg='item_invalido', ok=False)
     if not it.sintonizado:
         usados = TbPersonagemItem.objects.filter(id_personagem=p, sintonizado=True).count()
         if usados >= 3:
-            return redirect(reverse('editar_ficha', args=[pk]) + '?sint=limite')
+            return _inventario_mutacao_resposta(
+                request, p, reverse('editar_ficha', args=[pk]) + '?sint=limite',
+                msg='limite_sintonizacao', ok=False)
         it.sintonizado = True
         if not it.equipado:          # sintonizar implica portar o item
             it.equipado = True
@@ -5713,7 +5822,9 @@ def personagem_sintonizar_item(request, pk):
     else:
         it.sintonizado = False
         it.save(update_fields=['sintonizado'])
-    return redirect('editar_ficha', pk=pk)
+    return _inventario_mutacao_resposta(
+        request, p, reverse('editar_ficha', args=[pk]),
+        msg='sintonizado' if it.sintonizado else 'dessintonizado')
 
 
 # ───────────────────────── Mercado da Comunidade ─────────────────────────────
@@ -5821,6 +5932,21 @@ def _redirect_next_or(request, fallback_url):
     return redirect(fallback_url)
 
 
+def _recursos_ajax_payload(p):
+    """Snapshot dos recursos recuperáveis exibidos no editor da ficha."""
+    from .character_engine import _recursos_consumiveis
+
+    classes = list(p.classes.select_related('id_classe', 'id_subclasse'))
+    return [
+        {
+            'slug': r['slug'],
+            'atual': int(r.get('atual') or 0),
+            'maximo': int(r.get('maximo') or 0),
+        }
+        for r in _recursos_consumiveis(p, classes)
+    ]
+
+
 @login_required(login_url='/login/')
 @require_POST
 def personagem_usar_recurso(request, pk):
@@ -5835,6 +5961,8 @@ def personagem_usar_recurso(request, pk):
             cons[r_tag['id']] = r_tag
     r = cons.get(request.POST.get('recurso'))
     if not r:
+        if is_ajax(request):
+            return JsonResponse({'ok': False, 'msg': 'recurso_invalido'}, status=400)
         return _redirect_next_or(request, reverse('editar_ficha', args=[pk]))
     delta = 1 if request.POST.get('acao') == 'desfazer' else -1
     novo = max(0, min(r['maximo'], r['atual'] + delta))
@@ -5843,6 +5971,11 @@ def personagem_usar_recurso(request, pk):
         defaults={'maximo': r['maximo'], 'atual': r['maximo']})
     pr.atual, pr.maximo = novo, r['maximo']
     pr.save(update_fields=['atual', 'maximo'])
+    if is_ajax(request):
+        return JsonResponse({
+            'ok': True,
+            'recursos': _recursos_ajax_payload(p),
+        })
     return _redirect_next_or(request, reverse('editar_ficha', args=[pk]))
 
 
@@ -5965,6 +6098,12 @@ def personagem_descansar(request, pk):
             id_personagem=p, nome=key, defaults={'maximo': total, 'atual': total})
         pr.atual, pr.maximo = total, total
         pr.save(update_fields=['atual', 'maximo'])
+    if is_ajax(request):
+        return JsonResponse({
+            'ok': True,
+            'descanso': 'longo' if longo else 'curto',
+            'recursos': _recursos_ajax_payload(p),
+        })
     return _redirect_next_or(request, reverse('editar_ficha', args=[pk]) + ('?rest=longo' if longo else '?rest=curto'))
 
 
@@ -6267,6 +6406,17 @@ def personagem_info_salvar(request, pk):
     p.ficha_effect = None if ficha_effect == 'none' else ficha_effect
     campos += ['ficha_theme', 'ficha_theme_custom', 'foto_frame', 'ficha_effect']
     p.save(update_fields=campos)
+    if is_ajax(request):
+        return JsonResponse({
+            'ok': True,
+            'msg': 'informacoes_salvas',
+            'imagens': {
+                'foto_url': p.foto_url or '',
+                'token_url': p.token_url or '',
+                'banner_url': p.banner_url or '',
+                'background_url': p.ficha_background_url or '',
+            },
+        })
     return redirect(reverse('ficha_detail', args=[pk]) + '?aba=info')
 
 

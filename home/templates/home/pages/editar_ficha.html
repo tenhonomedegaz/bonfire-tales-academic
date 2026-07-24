@@ -18,7 +18,7 @@
         <div class="lvl-topcard__row">
           <div>
             <div class="lvl-level">{{ ficha.nivel_total }}<span class="lvl-rank">{{ ficha.progressao.rank }}</span></div>
-            <div class="lvl-meta">PV <b>{{ ficha.pv.maximo_calculado }}</b> · CA <b>{{ ficha.ca }}</b> · PB <b>+{{ ficha.bonus_proficiencia }}</b></div>
+            <div class="lvl-meta">PV <b data-ficha-pv>{{ ficha.pv.maximo_calculado }}</b> · CA <b data-ficha-ca>{{ ficha.ca }}</b> · PB <b>+{{ ficha.bonus_proficiencia }}</b></div>
             <div class="lvl-meta lvl-progline">
               {% for c in classes_atuais %}{{ c.nome }} {{ c.nivel }}{% if c.principal %} <span class="text-[var(--ember)]">★</span>{% endif %}{% if not forloop.last %} · {% endif %}{% endfor %}
             </div>
@@ -95,26 +95,26 @@
               <span class="text-sm text-[var(--text)]">{{ r.nome }}
                 <span class="ml-1 text-xs text-[var(--muted)]">({{ r.classe }} · recarga {% if r.reset == 'short-or-long' %}curta/longa{% elif r.reset == 'short-rest' %}curta{% elif r.reset == 'long-rest' %}longa{% else %}manual{% endif %})</span>
               </span>
-              <span class="flex items-center gap-1.5">
-                <span class="font-mono text-sm {% if r.atual == 0 %}text-[var(--flame)]{% else %}text-[var(--spark)]{% endif %}">{{ r.atual }}/{{ r.maximo }}</span>
-                <form method="post" action="{% url 'personagem_usar_recurso' p.id_personagem %}">
+              <span class="flex items-center gap-1.5" data-resource-row="{{ r.slug }}">
+                <span class="font-mono text-sm {% if r.atual == 0 %}text-[var(--flame)]{% else %}text-[var(--spark)]{% endif %}" data-resource-count>{{ r.atual }}/{{ r.maximo }}</span>
+                <form method="post" action="{% url 'personagem_usar_recurso' p.id_personagem %}" data-resource-form>
                   {% csrf_token %}<input type="hidden" name="recurso" value="{{ r.slug }}">
-                  <button type="submit" {% if r.atual == 0 %}disabled{% endif %} class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-0.5 text-xs text-[var(--muted)] hover:border-[var(--ember)] hover:text-[var(--ember)] disabled:opacity-40">Usar</button>
+                  <button type="submit" data-resource-use {% if r.atual == 0 %}disabled{% endif %} class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-0.5 text-xs text-[var(--muted)] hover:border-[var(--ember)] hover:text-[var(--ember)] disabled:opacity-40">Usar</button>
                 </form>
-                <form method="post" action="{% url 'personagem_usar_recurso' p.id_personagem %}">
+                <form method="post" action="{% url 'personagem_usar_recurso' p.id_personagem %}" data-resource-form>
                   {% csrf_token %}<input type="hidden" name="recurso" value="{{ r.slug }}"><input type="hidden" name="acao" value="desfazer">
-                  <button type="submit" {% if r.atual == r.maximo %}disabled{% endif %} class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-0.5 text-xs text-[var(--muted)] hover:border-[var(--spark)] hover:text-[var(--spark)] disabled:opacity-40">+1</button>
+                  <button type="submit" data-resource-undo {% if r.atual == r.maximo %}disabled{% endif %} class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-0.5 text-xs text-[var(--muted)] hover:border-[var(--spark)] hover:text-[var(--spark)] disabled:opacity-40">+1</button>
                 </form>
               </span>
             </li>
           {% endfor %}
         </ul>
         <div class="mt-3 flex gap-1.5 border-t border-[var(--stroke)]/50 pt-3">
-          <form method="post" action="{% url 'personagem_descansar' p.id_personagem %}">
+          <form method="post" action="{% url 'personagem_descansar' p.id_personagem %}" data-rest-form>
             {% csrf_token %}<input type="hidden" name="tipo" value="curto">
             <button type="submit" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-1.5 text-xs text-[var(--muted)] hover:border-[var(--ember)] hover:text-[var(--ember)]">Descanso Curto</button>
           </form>
-          <form method="post" action="{% url 'personagem_descansar' p.id_personagem %}">
+          <form method="post" action="{% url 'personagem_descansar' p.id_personagem %}" data-rest-form>
             {% csrf_token %}<input type="hidden" name="tipo" value="longo">
             <button type="submit" class="cf-btn cf-btn-primary">Descanso Longo</button>
           </form>
@@ -124,9 +124,10 @@
 
       {# ============================ INVENTÁRIO (grava na hora) ============================ #}
       <h2 class="lvl-sech" style="margin-top:1.2rem">Inventário</h2>
-      <p class="lvl-secsub">Itens guardados (não equipados) NÃO concedem bônus. Itens mágicos que exigem sintonização só têm efeito quando sintonizados. Sintonização: <strong class="text-[var(--flame)]">{{ sintonizados_usados }}/3</strong>.</p>
+      <p class="lvl-secsub">Itens guardados (não equipados) NÃO concedem bônus. Itens mágicos que exigem sintonização só têm efeito quando sintonizados. Sintonização: <strong class="text-[var(--flame)]" data-sintonizados-count>{{ sintonizados_usados }}/3</strong>.</p>
       {% if request.GET.sint == 'limite' %}<div class="lvl-err" style="margin-bottom:0.6rem">Limite de 3 itens sintonizados atingido.</div>{% endif %}
       {% if request.GET.anuncio == 'ok' %}<div class="lvl-ok" style="margin-bottom:0.6rem">Item anunciado no <a href="{% url 'mercado_comunidade' %}" class="underline">Mercado da Comunidade</a>.</div>{% endif %}
+      <div class="loja-feedback" id="inventario-feedback" hidden aria-live="polite"></div>
       <div class="lvl-card" id="lvl-inventario">
         {% include 'home/partials/_ficha_inventario.html' %}
       </div>
@@ -135,11 +136,6 @@
       {% if is_staff %}
         <div class="lvl-staffbox" style="margin-top:1.2rem">
           <span class="lbl">Staff — conceder item (missão/recompensa):</span>
-          {% if concessao_msg == 'ok' %}<p class="lvl-note-ok" style="flex:1 1 100%">Item concedido ao inventário (sem custo de ouro).</p>{% endif %}
-          {% if concessao_msg == 'revertido' %}<p class="lvl-note-ok" style="flex:1 1 100%">Concessão revertida: item removido do inventário.</p>{% endif %}
-          {% if concessao_msg == 'invalido' %}<p class="lvl-note-cap" style="flex:1 1 100%">Item não encontrado no catálogo.</p>{% endif %}
-          {% if concessao_msg == 'rev_invalido' %}<p class="lvl-note-cap" style="flex:1 1 100%">Essa linha não é uma concessão reversível.</p>{% endif %}
-          {% if concessao_msg == 'rev_em_uso' %}<p class="lvl-note-cap" style="flex:1 1 100%">Desequipe/dessintonize o item antes de reverter a concessão.</p>{% endif %}
           <form method="post" action="{% url 'personagem_conceder_item' p.id_personagem %}" class="lvl-inline" style="flex:1 1 100%" data-conceder-form>
             {% csrf_token %}
             <select name="tipo" class="lvl-field" data-conceder-tipo aria-label="Tipo de item">
@@ -158,36 +154,7 @@
             <button type="submit" class="lvl-add">+ Conceder item</button>
           </form>
 
-          {% if concessoes %}
-            <div class="lvl-ledger">
-              <table class="lvl-ledger__table">
-                <thead>
-                  <tr><th>Item</th><th>Qtd</th><th>Origem</th><th>Quando</th><th>Por</th><th></th></tr>
-                </thead>
-                <tbody>
-                  {% for c in concessoes %}
-                    <tr>
-                      <td>{{ c.nome }}{% if c.id_item_magico_id %} <span class="lvl-revtag">(mágico)</span>{% endif %}</td>
-                      <td>{{ c.qtd }}</td>
-                      <td>{{ c.origem_nota|default:"—" }}</td>
-                      <td>{{ c.concedido_em|date:"d/m/y H:i" }}</td>
-                      <td>{{ c.concedido_por.username|default:"—" }}</td>
-                      <td>
-                        {% if c.equipado or c.sintonizado %}
-                          <span class="lvl-revtag" title="Desequipe/dessintonize antes de reverter">em uso</span>
-                        {% else %}
-                          <form method="post" action="{% url 'personagem_reverter_concessao' p.id_personagem c.id %}" style="display:inline" onsubmit="return confirm('Reverter a concessão de {{ c.qtd }}× “{{ c.nome|escapejs }}”? O item sai do inventário do personagem.');">
-                            {% csrf_token %}
-                            <button type="submit" class="lvl-revbtn">Reverter</button>
-                          </form>
-                        {% endif %}
-                      </td>
-                    </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-            </div>
-          {% endif %}
+          {% include 'home/partials/_ficha_concessoes_staff.html' %}
         </div>
       {% endif %}
 

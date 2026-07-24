@@ -1,5 +1,5 @@
 /* Mutações rápidas da edição da ficha. Mantém POST clássico como fallback e usa
- * fetch quando JS está disponível, começando pelo ledger de aventuras da staff. */
+ * fetch quando JS está disponível. */
 (function () {
   'use strict';
 
@@ -8,14 +8,9 @@
     if (el && value !== undefined && value !== null) el.textContent = value;
   }
 
-  document.addEventListener('submit', function (event) {
-    var form = event.target.closest('form[data-aventura-form], form[data-aventura-reverter]');
-    if (!form || event.defaultPrevented) return;
-    event.preventDefault();
-    var button = form.querySelector('button[type="submit"]');
-    if (button) button.disabled = true;
+  function submitForm(form) {
     var data = new FormData(form);
-    fetch(form.action, {
+    return fetch(form.action, {
       method: 'POST',
       headers: {
         'X-Requested-With': 'XMLHttpRequest',
@@ -27,7 +22,55 @@
       return response.json().then(function (json) {
         return { ok: response.ok, json: json };
       });
-    }).then(function (result) {
+    });
+  }
+
+  function setFeedback(id, message, ok) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = message || '';
+    el.hidden = !message;
+    el.classList.toggle('is-ok', !!ok);
+    el.classList.toggle('is-err', !ok);
+  }
+
+  function applyInventory(payload) {
+    var inv = document.getElementById('lvl-inventario');
+    if (inv && typeof payload.inventario_html === 'string') {
+      inv.innerHTML = payload.inventario_html;
+    }
+    setText('[data-sintonizados-count]', String(payload.sintonizados_usados || 0) + '/3');
+    setText('#loja-carteira', payload.carteira_display);
+    if (payload.ficha) {
+      setText('[data-ficha-ca]', payload.ficha.ca);
+      setText('[data-ficha-pv]', payload.ficha.pv_maximo);
+    }
+  }
+
+  function applyResources(payload) {
+    (payload.recursos || []).forEach(function (r) {
+      var row = document.querySelector('[data-resource-row="' + CSS.escape(r.slug) + '"]');
+      if (!row) return;
+      var count = row.querySelector('[data-resource-count]');
+      if (count) {
+        count.textContent = r.atual + '/' + r.maximo;
+        count.classList.toggle('text-[var(--flame)]', r.atual === 0);
+        count.classList.toggle('text-[var(--spark)]', r.atual !== 0);
+      }
+      var use = row.querySelector('[data-resource-use]');
+      var undo = row.querySelector('[data-resource-undo]');
+      if (use) use.disabled = r.atual <= 0;
+      if (undo) undo.disabled = r.atual >= r.maximo;
+    });
+  }
+
+  document.addEventListener('submit', function (event) {
+    var form = event.target.closest('form[data-aventura-form], form[data-aventura-reverter]');
+    if (!form || event.defaultPrevented) return;
+    event.preventDefault();
+    var button = form.querySelector('button[type="submit"]');
+    if (button) button.disabled = true;
+    submitForm(form).then(function (result) {
       var payload = result.json || {};
       if (typeof payload.staffbox_html === 'string') {
         var box = document.getElementById('lvl-aventuras-staffbox');
@@ -42,6 +85,49 @@
       if (!result.ok && button) button.disabled = false;
     }).catch(function () {
       if (button) button.disabled = false;
+    });
+  });
+
+  document.addEventListener('submit', function (event) {
+    var form = event.target.closest(
+      'form[data-inventory-form], form[data-resource-form], form[data-rest-form], ' +
+      'form[data-conceder-form], form[data-concessao-reverter]'
+    );
+    if (!form || event.defaultPrevented) return;
+    event.preventDefault();
+    var button = form.querySelector('button[type="submit"]');
+    if (button) button.disabled = true;
+
+    submitForm(form).then(function (result) {
+      var payload = result.json || {};
+      if (typeof payload.inventario_html === 'string') applyInventory(payload);
+      if (payload.recursos) applyResources(payload);
+      if (typeof payload.concessoes_html === 'string') {
+        var ledger = document.getElementById('ficha-concessoes-dinamico');
+        if (ledger) ledger.outerHTML = payload.concessoes_html;
+      }
+      if (form.matches('[data-inventory-form]')) {
+        var inventoryMessages = {
+          equipado: 'Item equipado.',
+          desequipado: 'Item desequipado.',
+          sintonizado: 'Item sintonizado.',
+          dessintonizado: 'Item dessintonizado.',
+          limite_sintonizacao: 'Limite de 3 itens sintonizados atingido.',
+          nao_equipavel: 'Este item não é equipável.'
+        };
+        setFeedback('inventario-feedback',
+          inventoryMessages[payload.msg] || (result.ok ? 'Inventário atualizado.' : 'Não foi possível atualizar o item.'),
+          result.ok);
+      }
+      if (form.matches('[data-rest-form]') && result.ok) {
+        setFeedback('inventario-feedback',
+          payload.descanso === 'longo' ? 'Descanso longo concluído.' : 'Descanso curto concluído.',
+          true);
+      }
+      if (button && document.body.contains(button)) button.disabled = false;
+    }).catch(function () {
+      if (button) button.disabled = false;
+      setFeedback('inventario-feedback', 'Falha de rede ao atualizar a ficha.', false);
     });
   });
 })();

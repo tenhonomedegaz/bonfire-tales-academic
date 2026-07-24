@@ -510,6 +510,7 @@
 
       <div class="info-actions">
         <button type="submit" class="banner-btn primary">Salvar Informações</button>
+        <span id="ficha-info-feedback" class="text-sm text-[var(--muted)]" aria-live="polite"></span>
       </div>
     </form>
 
@@ -948,6 +949,51 @@
     if (el) el.addEventListener('change', apply);
   });
   apply();
+})();
+</script>
+
+<script>
+(function () {
+  const form = document.getElementById('ficha-appearance-form');
+  if (!form) return;
+  const feedback = document.getElementById('ficha-info-feedback');
+  form.addEventListener('submit', async function (event) {
+    event.preventDefault();
+    const button = form.querySelector('button[type="submit"]');
+    const data = new FormData(form);
+    if (button) button.disabled = true;
+    if (feedback) {
+      feedback.textContent = 'Salvando…';
+      feedback.className = 'text-sm text-[var(--muted)]';
+    }
+    try {
+      const response = await fetch(form.action, {
+        method: 'POST',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRFToken': data.get('csrfmiddlewaretoken') || ''
+        },
+        body: data,
+        credentials: 'same-origin'
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload.ok) throw new Error('save');
+      if (feedback) {
+        feedback.textContent = 'Informações salvas.';
+        feedback.className = 'text-sm text-[var(--spark)]';
+      }
+      form.querySelectorAll('input[type="file"]').forEach(function (field) {
+        field.value = '';
+      });
+    } catch (error) {
+      if (feedback) {
+        feedback.textContent = 'Não foi possível salvar.';
+        feedback.className = 'text-sm text-[var(--flame)]';
+      }
+    } finally {
+      if (button) button.disabled = false;
+    }
+  });
 })();
 </script>
 {% endblock %}

@@ -170,7 +170,7 @@
     if (tipo === 'subclasse') {
       var ss = fieldOf(card, 'subclasse');
       if (!ss.value) { flash(ss); return; }
-      addOrReplace({ tipo: tipo, payload: { subclasse: ss.value }, key: 'subclasse', label: 'Subclasse: ' + optText(ss), card: card });
+      addOrReplace({ tipo: tipo, payload: { classe: SN.classeId, subclasse: ss.value }, key: 'subclasse', label: 'Subclasse: ' + optText(ss), card: card });
       return;
     }
     if (tipo === 'talento_racial') {
@@ -208,7 +208,7 @@
       var rem = fieldOf(card, 'remover'), add = fieldOf(card, 'adicionar');
       if (!rem || !rem.value) { flash(rem); return; }
       if (!add || !add.value) { flash(add); return; }
-      addOrReplace({ tipo: 'trocar_magia', payload: { remover: rem.value, adicionar: add.value },
+      addOrReplace({ tipo: 'trocar_magia', payload: { classe: SN.classeId, remover: rem.value, adicionar: add.value },
         key: 'trocar_magia', label: 'Troca: ' + optText(rem) + ' → ' + optText(add), card: card });
       return;
     }
@@ -222,7 +222,7 @@
   function rebuildMagias(card) {
     var t = [].map.call(card.querySelectorAll('[data-lvl-group="truques"] input:checked'), function (i) { return i.value; });
     var m = [].map.call(card.querySelectorAll('[data-lvl-group="magias"] input:checked'), function (i) { return i.value; });
-    if (t.length || m.length) addOrReplace({ tipo: 'aprender_magias', payload: { truques: t, magias: m }, key: 'aprender_magias', label: 'Magias: ' + (t.length + m.length), card: card });
+    if (t.length || m.length) addOrReplace({ tipo: 'aprender_magias', payload: { classe: SN.classeId, truques: t, magias: m }, key: 'aprender_magias', label: 'Magias: ' + (t.length + m.length), card: card });
     else removeKey('aprender_magias');
   }
 
@@ -406,7 +406,7 @@
             feedbackEl.innerHTML =
               '<div class="lvl-ok"><strong>Nível concluído.</strong> Você ainda tem aventuras ' +
               'para avançar novamente.<div style="margin-top:.7rem;display:flex;gap:.55rem;flex-wrap:wrap">' +
-              '<a class="cf-btn cf-btn-primary" href="' + esc(SN.pageUrl) + '">Continuar para o nível ' +
+              '<a class="cf-btn cf-btn-primary" href="' + esc(SN.pageUrl + (SN.classeId != null ? '?classe=' + encodeURIComponent(SN.classeId) : '')) + '">Continuar para o nível ' +
               esc(res.json.proximo_nivel) + '</a>' +
               '<a class="cf-btn" href="' + esc(SN.fichaUrl + '?levelup=ok') + '">Voltar à ficha</a></div></div>';
             feedbackEl.hidden = false;
@@ -453,6 +453,16 @@
         }
         handleQueue(field);
         field.value = '';
+      });
+    });
+    main.querySelectorAll('[data-lvl-describe]').forEach(function (field) {
+      field.addEventListener('change', function () {
+        var option = field.options[field.selectedIndex];
+        var card = field.closest('[data-lvl-card]');
+        var desc = card && card.querySelector('[data-lvl-desc]');
+        if (!desc) return;
+        desc.textContent = (option && option.dataset.desc) || '';
+        desc.hidden = !desc.textContent;
       });
     });
     var asi = document.getElementById('lvl-asi-card');

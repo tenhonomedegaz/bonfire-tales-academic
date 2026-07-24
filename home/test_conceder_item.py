@@ -22,7 +22,7 @@ Reusa a fixture real (`conteudo.json`) e o `_guerreiro_no_nivel` do test_levelup
 from django.urls import reverse
 
 from home.character_engine import (
-    _item_consumivel_meta, _item_magico_equipavel, derive,
+    _item_consumivel_meta, _item_magico_equipavel, _recursos_consumiveis, derive,
 )
 from home.models import (
     TbItemMagico, TbItemMundano, TbPersonagem, TbPersonagemItem,
@@ -247,6 +247,75 @@ class ConcederItemPermissoesTests(ConcederItemBase):
             reverse('personagem_reverter_concessao', args=[p.pk, linha.id]))
         self.assertEqual(resp.status_code, 404)
         self.assertTrue(TbPersonagemItem.objects.filter(id=linha.id).exists())
+
+
+class EditarFichaFetchTests(ConcederItemBase):
+    AJAX = {'HTTP_X_REQUESTED_WITH': 'XMLHttpRequest'}
+
+    def test_equipar_retorna_fragmento_sem_redirect(self):
+        p = self._char_dono_staff(apelido='fetch-equip')
+        item = TbItemMagico.objects.create(
+            nome='Anel Fetch', slug='anel-fetch', slot='aneis',
+            tipo='item maravilhoso', tags_json=['always_active{ca:+1}'])
+        linha = TbPersonagemItem.objects.create(
+            id_personagem=p, id_item_magico=item, nome=item.nome)
+        self.client.force_login(p.dono)
+        resp = self.client.post(
+            reverse('personagem_equipar_item', args=[p.pk]),
+            data={'item': linha.id}, **self.AJAX)
+        self.assertEqual(resp.status_code, 200, resp.content)
+        body = resp.json()
+        self.assertTrue(body['ok'])
+        self.assertEqual(body['msg'], 'equipado')
+        self.assertIn('inventario_html', body)
+        linha.refresh_from_db()
+        self.assertTrue(linha.equipado)
+
+    def test_conceder_e_reverter_atualizam_ledger_sem_redirect(self):
+        p = self._char_dono_staff(apelido='fetch-concede')
+        item = self._item_magico_missao()
+        self.client.force_login(p.dono)
+        resp = self.client.post(
+            reverse('personagem_conceder_item', args=[p.pk]),
+            data={'tipo': 'magico', 'item': item.slug, 'nota_origem': 'Fetch'},
+            **self.AJAX)
+        self.assertEqual(resp.status_code, 200, resp.content)
+        self.assertIn('ficha-concessoes-dinamico', resp.json()['concessoes_html'])
+        linha = TbPersonagemItem.objects.get(id_personagem=p, id_item_magico=item)
+        resp = self.client.post(
+            reverse('personagem_reverter_concessao', args=[p.pk, linha.id]),
+            **self.AJAX)
+        self.assertEqual(resp.status_code, 200, resp.content)
+        self.assertEqual(resp.json()['msg'], 'revertido')
+        self.assertFalse(TbPersonagemItem.objects.filter(pk=linha.pk).exists())
+
+    def test_usar_recurso_retorna_snapshot_atualizado(self):
+        p = self._char_dono_staff(apelido='fetch-recurso')
+        recursos = _recursos_consumiveis(
+            p, list(p.classes.select_related('id_classe', 'id_subclasse')))
+        self.assertTrue(recursos, 'personagem de teste deve ter recurso consumível')
+        recurso = recursos[0]
+        self.client.force_login(p.dono)
+        resp = self.client.post(
+            reverse('personagem_usar_recurso', args=[p.pk]),
+            data={'recurso': recurso['slug']}, **self.AJAX)
+        self.assertEqual(resp.status_code, 200, resp.content)
+        atualizado = next(
+            r for r in resp.json()['recursos'] if r['slug'] == recurso['slug'])
+        self.assertEqual(atualizado['atual'], max(0, recurso['atual'] - 1))
+
+    def test_salvar_informacoes_retorna_json(self):
+        p = self._char_dono_staff(apelido='fetch-info')
+        self.client.force_login(p.dono)
+        resp = self.client.post(
+            reverse('personagem_info_salvar', args=[p.pk]),
+            data={'idade': '37', 'historia': 'Salvo sem reload.'},
+            **self.AJAX)
+        self.assertEqual(resp.status_code, 200, resp.content)
+        self.assertTrue(resp.json()['ok'])
+        p.refresh_from_db()
+        self.assertEqual(p.idade, '37')
+        self.assertEqual(p.historia, 'Salvo sem reload.')
 
     def test_get_ficha_staff_mostra_painel_conceder(self):
         p = self._char_dono_staff()

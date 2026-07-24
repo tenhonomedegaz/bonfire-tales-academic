@@ -12,13 +12,13 @@ Espera no contexto: ficha (derive), p (personagem).{% endcomment %}
           {% if it.concedido %}<span class="ml-1 rounded bg-[var(--ember)]/10 px-1.5 py-0.5 text-xs text-[var(--muted)]" title="Concedido pela staff{% if it.origem_nota %} — {{ it.origem_nota }}{% endif %}">concedido</span>{% endif %}</span>
         <span class="flex flex-wrap items-center gap-1">
           {% if it.pode_equipar %}
-            <form method="post" action="{% url 'personagem_equipar_item' p.id_personagem %}">
+            <form method="post" action="{% url 'personagem_equipar_item' p.id_personagem %}" data-inventory-form>
               {% csrf_token %}<input type="hidden" name="item" value="{{ it.id }}">
               <button type="submit" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-0.5 text-xs text-[var(--muted)] hover:border-[var(--ember)] hover:text-[var(--ember)]">{% if it.equipado %}Desequipar{% else %}Equipar{% endif %}</button>
             </form>
           {% endif %}
           {% if it.requer_sintonizacao %}
-            <form method="post" action="{% url 'personagem_sintonizar_item' p.id_personagem %}">
+            <form method="post" action="{% url 'personagem_sintonizar_item' p.id_personagem %}" data-inventory-form>
               {% csrf_token %}<input type="hidden" name="item" value="{{ it.id }}">
               <button type="submit" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-0.5 text-xs text-[var(--muted)] hover:border-[var(--flame)] hover:text-[var(--flame)]">{% if it.sintonizado %}Dessintonizar{% else %}Sintonizar{% endif %}</button>
             </form>

@@ -307,6 +307,14 @@ class SubirNivelPageTests(LevelUpLoteBase):
         self.assertIn('data-desc="', html)
         self.assertNotIn('data-lvl-queue="opcao"', html)
 
+    def test_escolhas_simples_nao_exigem_botao_escolher(self):
+        p = self._guerreiro_no_nivel(2, apelido='sn-direto')
+        self.client.force_login(p.dono)
+        html = self.client.get(
+            reverse('personagem_subir_nivel', args=[p.pk])).content.decode('utf-8')
+        self.assertIn('data-lvl-auto-queue="subclasse"', html)
+        self.assertNotIn('data-lvl-queue="subclasse"', html)
+
     def test_botao_aparece_quando_elegivel(self):
         # Elegível (teto folgado): a ficha traz o botão destacado de subir de nível.
         p = self._guerreiro_no_nivel(3)
@@ -349,6 +357,83 @@ class SubirNivelPageTests(LevelUpLoteBase):
         self.assertEqual(pc.id_subclasse_id, sub.id_subclasse)
         self.assertTrue(TbPersonagemAtributoBonus.objects.filter(
             id_personagem=p, origem_tipo='asi-classe', atributo='FOR', valor=2).exists())
+
+    def test_multiclasse_exibe_e_aplica_subclasse_na_classe_escolhida(self):
+        user = self._novo_usuario('rhogar-subclasse', staff=True)
+        paladino = TbClasse.objects.get(slug='paladino')
+        feiticeiro = TbClasse.objects.get(slug='feiticeiro')
+        p = TbPersonagem.objects.create(
+            dono=user, nome='Caelyra Thar', nivel=8, aventuras=500,
+            forca=14, destreza=10, constituicao=14,
+            inteligencia=10, sabedoria=12, carisma=16)
+        pc_paladino = TbPersonagemClasse.objects.create(
+            id_personagem=p, id_classe=paladino, nivel=6, principal=True)
+        pc_feiticeiro = TbPersonagemClasse.objects.create(
+            id_personagem=p, id_classe=feiticeiro, nivel=2, principal=False)
+        sub = TbSubclasse.objects.filter(id_classe=feiticeiro).order_by(
+            'id_subclasse').first()
+        self.assertIsNotNone(sub)
+
+        self.client.force_login(user)
+        url = reverse('personagem_subir_nivel', args=[p.pk])
+        html = self.client.get(
+            url, {'classe': feiticeiro.id_classe}).content.decode('utf-8')
+        self.assertIn('data-step="subclasse"', html)
+        self.assertIn('value="%s"' % sub.id_subclasse, html)
+
+        resp = self.client.post(
+            reverse('personagem_levelup_aplicar', args=[p.pk]),
+            data=json.dumps({'acoes': [
+                {'tipo': 'subir_nivel',
+                 'payload': {'classe': feiticeiro.id_classe}},
+                {'tipo': 'subclasse',
+                 'payload': {'classe': feiticeiro.id_classe,
+                             'subclasse': sub.id_subclasse}},
+            ]}),
+            content_type='application/json')
+        self.assertEqual(resp.status_code, 200, resp.content)
+        pc_paladino.refresh_from_db()
+        pc_feiticeiro.refresh_from_db()
+        self.assertIsNone(pc_paladino.id_subclasse_id)
+        self.assertEqual(pc_feiticeiro.nivel, 3)
+        self.assertEqual(pc_feiticeiro.id_subclasse_id, sub.id_subclasse)
+
+    def test_magias_de_outra_classe_nao_preenchem_cota_do_feiticeiro(self):
+        user = self._novo_usuario('rhogar-magias', staff=True)
+        paladino = TbClasse.objects.get(slug='paladino')
+        feiticeiro = TbClasse.objects.get(slug='feiticeiro')
+        p = TbPersonagem.objects.create(
+            dono=user, nome='Caelyra Magias', nivel=8, aventuras=500,
+            forca=14, destreza=10, constituicao=14,
+            inteligencia=10, sabedoria=12, carisma=16)
+        TbPersonagemClasse.objects.create(
+            id_personagem=p, id_classe=paladino, nivel=6, principal=True)
+        TbPersonagemClasse.objects.create(
+            id_personagem=p, id_classe=feiticeiro, nivel=2, principal=False)
+        for magia in TbMagia.objects.order_by('nivel', 'id_magia')[:8]:
+            TbPersonagemMagia.objects.create(
+                id_personagem=p, id_magia=magia, nivel=magia.nivel,
+                nome=magia.nome, preparada=True, origem=paladino.nome)
+
+        pend = views._pendencias_magias(
+            p, classe_id=feiticeiro.id_classe)
+        self.assertIsNotNone(pend)
+        self.assertGreater(pend['cantrips_pend'], 0)
+        self.assertGreater(pend['known_pend'], 0)
+
+        truques = [m['slug'] for m in pend['lista_truques']][
+            :pend['cantrips_pend']]
+        magias = [m['slug'] for m in pend['lista_magias']][
+            :pend['known_pend']]
+        erros = views._lvl_aplicar_aprender_magias(p, {
+            'classe': feiticeiro.id_classe,
+            'truques': truques,
+            'magias': magias,
+        })
+        self.assertEqual(erros, [])
+        aprendidas = p.magias.filter(origem=feiticeiro.nome)
+        self.assertEqual(aprendidas.filter(nivel=0).count(), len(truques))
+        self.assertEqual(aprendidas.filter(nivel__gte=1).count(), len(magias))
 
 
 class LevelUpPreviewTests(LevelUpLoteBase):
