@@ -1913,6 +1913,10 @@ def _resource_speed_value(slug, recursos):
 
 _RE_NO_ARMOR_RESTRICTION = re.compile(r'restriction\{[^}]*equiped\{\s*(?:armadura|armor|escudo|shield)')
 
+# Qualificador `on:<evento>` = QUANDO/COMO o efeito ocorre (momento de acúmulo,
+# recarga, gatilho) — nunca um valor passivo do derive.
+_RE_EVENT_QUALIFIER = re.compile(r'^\s*on\s*:', re.IGNORECASE)
+
 
 def _active_spans(tag):
     spans = []
@@ -2196,6 +2200,14 @@ def _dsl_static_adapter(operations, ctx, feature_name, coll, hp_bonus, ca_cands,
         category = category_of(operation)
         if category:
             expected[category] = expected.get(category, 0) + 1
+        # REGRA: operando qualificado com `on:<evento>` descreve o MOMENTO/ACÚMULO
+        # do efeito, não um valor estático — a linha irmã com a fórmula por nível já
+        # entrega o total, e somar as duas conta o mesmo bônus duas vezes. Consome a
+        # categoria para o fallback textual não reprocessar a mesma feature.
+        if any(_RE_EVENT_QUALIFIER.match(q) for q in operation.qualifiers):
+            if category:
+                mark(category)
+            continue
         gate_status = qualifier_gate_status(operation)
         if gate_status == 'block':
             if category:

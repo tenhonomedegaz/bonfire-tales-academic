@@ -2873,3 +2873,64 @@ class Item7AsiFormaAlternativaTests(_CriadorBase):
         payload['asi'] = {'modo': '1/1/1', 'attrs': ['CON', 'DES']}
         resp = self._post_criar(self._novo_usuario('asifalta', staff=True), payload)
         self.assertEqual(resp.status_code, 400, resp.content)
+
+
+class QualificadorOnLevelUpTests(TestCase):
+    """QUIRK do Robusto: PV contado em dobro pelo qualificador `on:level_up`.
+
+    O talento traz DUAS linhas de PV — `buff:max_hp:+(2*lvl)` (a fórmula, o total)
+    e `buff:max_hp:+2(on:level_up)` (o texto "+2 ao subir de nível", que descreve
+    COMO o bônus acumula). O adaptador estático somava as duas (N11 => +24 em vez
+    de +22). A regra do motor: operando com qualificador `on:<evento>` é momento/
+    acúmulo, nunca valor passivo do derive.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        call_command('loaddata', 'home/fixtures/conteudo.json', verbosity=0)
+
+    def _hp_bonus(self, tags, nivel=11):
+        """Roda apply_tags com uma feature sintética e devolve os bônus de PV."""
+        from home.character_engine import apply_tags, _build_ctx, bonus_proficiencia
+        attrs = {'FOR': {'valor': 10, 'mod': 0}, 'DES': {'valor': 14, 'mod': 2},
+                 'CON': {'valor': 14, 'mod': 2}, 'INT': {'valor': 10, 'mod': 0},
+                 'SAB': {'valor': 10, 'mod': 0}, 'CAR': {'valor': 10, 'mod': 0}}
+        feat = type('F', (), {'nome': 'X', 'tags_json': list(tags),
+                              'table_only': False})()
+        state = {'_ctx': _build_ctx(nivel, bonus_proficiencia(nivel), attrs),
+                 'pv': {'maximo_calculado': 100}, 'velocidade': '9 m / 30 ft',
+                 'iniciativa': 0, 'recursos': {}, 'ca': 10}
+        apply_tags(state, [('talento', 'X', feat, None)], personagem=None,
+                   escolhas={})
+        return state['pv']
+
+    def test_robusto_real_conta_so_a_formula(self):
+        # Tags REAIS do talento (fixture), não uma paráfrase.
+        robusto = TbTalento.objects.get(pk=27)
+        self.assertEqual(robusto.nome, 'Robusto')
+        self.assertIn('buff:max_hp:+(2*lvl)', robusto.tags_json)
+        self.assertIn('buff:max_hp:+2(on:level_up)', robusto.tags_json)
+
+        pv = self._hp_bonus(robusto.tags_json, nivel=11)
+        self.assertEqual([v for _, v in pv['bonus_tags']], [22],
+                         'N11 deve somar só a fórmula 2*lvl: %r' % (pv['bonus_tags'],))
+        self.assertEqual(pv['maximo_calculado'], 122)
+
+    def test_on_level_up_sozinho_nao_e_valor_estatico(self):
+        # Caso sintético: a nota de acúmulo SEM a fórmula irmã não concede PV.
+        pv = self._hp_bonus(['buff:max_hp:+2(on:level_up)'], nivel=11)
+        self.assertEqual(pv['bonus_tags'], [])
+        self.assertEqual(pv['maximo_calculado'], 100)
+
+    def test_buff_estatico_sem_qualificador_continua_somando(self):
+        # Guarda contra skip cego: buff de PV sem `on:` não pode ser engolido.
+        pv = self._hp_bonus(['buff:max_hp:+5'], nivel=11)
+        self.assertEqual([v for _, v in pv['bonus_tags']], [5])
+        self.assertEqual(pv['maximo_calculado'], 105)
+
+    def test_fallback_textual_nao_ressuscita_a_formula(self):
+        # A categoria max_hp precisa continuar CONSUMIDA quando a linha `on:` é
+        # pulada — senão o varredor textual legado reaplicaria a fórmula (+22 x2).
+        pv = self._hp_bonus(['buff:max_hp:+(2*lvl)',
+                             'buff:max_hp:+2(on:level_up)'], nivel=11)
+        self.assertEqual(len(pv['bonus_tags']), 1, repr(pv['bonus_tags']))
