@@ -55267,8 +55267,8 @@
   "model": "home.tbitemmagico",
   "pk": 164,
   "fields": {
-    "nome": "Babador de açougueiro",
-    "slug": "babador-de-acougueiro",
+    "nome": "Avental de Açougueiro",
+    "slug": "avental-de-acougueiro",
     "raridade": "raro_maior",
     "requer_sintonizacao": true,
     "detalhes_sintonizacao": "",
@@ -55276,11 +55276,9 @@
     "loja": "Item Mágico",
     "preco": "9000.00",
     "tipo": "item maravilhoso",
-    "descricao_markdown": "Este avental de couro preto fica perpetuamente coberto de sangue, mesmo depois de lavado. Você ganha os seguintes benefícios ao usar o avental: Uma vez por turno, quando você rola o dano de um ataque corpo a corpo com uma arma, você pode rolar novamente os dados de dano da arma. Se você fizer isso, você deve usar o segundo total. Seus ataques com armas que causam dano cortante obtêm um acerto crítico em uma jogada de 19 ou 20 no d20.",
+    "descricao_markdown": "Este avental de couro preto fica perpetuamente coberto de sangue, mesmo depois de lavado.\n\nVocê ganha os seguintes benefícios ao usar o avental: Uma vez por turno, quando você rola o dano de um ataque corpo a corpo com uma arma, você pode rolar novamente os dados de dano da arma. Se você fizer isso, você deve usar o segundo total. Seus ataques com armas que causam dano cortante obtêm um acerto crítico em uma jogada de 19 ou 20 no d20.",
     "imagem_url": null,
-    "tags_json": [
-      "sintonizacao"
-    ]
+    "tags_json": []
   }
 },
 {
@@ -65181,26 +65179,6 @@
 },
 {
   "model": "home.tbitemmagico",
-  "pk": 718,
-  "fields": {
-    "nome": "Poção de Cura (*)",
-    "slug": "pocao-de-cura-2",
-    "raridade": "comum_menor",
-    "requer_sintonizacao": false,
-    "detalhes_sintonizacao": "",
-    "slot": "pocao",
-    "loja": "Alquimia",
-    "preco": "50.00",
-    "tipo": "poção",
-    "descricao_markdown": "Esta poção é um item mágico. Como uma Ação bônus, você pode bebê-lo ou administrá-lo a outra criatura a até 1,5 metro de você. A criatura que beber o fluido vermelho mágico deste frasco recupera 2d4 + 2 Pontos de Vida. O líquido vermelho da poção brilha quando agitado.",
-    "imagem_url": null,
-    "tags_json": [
-      "consumable"
-    ]
-  }
-},
-{
-  "model": "home.tbitemmagico",
   "pk": 947,
   "fields": {
     "nome": "Soqueiras de Pedra de Titã (Exaltadas)",
@@ -65273,24 +65251,6 @@
     "tags_json": [
       "consumable"
     ]
-  }
-},
-{
-  "model": "home.tbitemmagico",
-  "pk": 955,
-  "fields": {
-    "nome": "Avental de Açougueiro",
-    "slug": "avental-de-acougueiro",
-    "raridade": "raro_maior",
-    "requer_sintonizacao": true,
-    "detalhes_sintonizacao": "",
-    "slot": "empunhado",
-    "loja": "Item Mágico",
-    "preco": "9000.00",
-    "tipo": "item maravilhoso",
-    "descricao_markdown": "Este avental de couro preto fica perpetuamente coberto de sangue, mesmo depois de lavado.\n\nVocê ganha os seguintes benefícios ao usar o avental: Uma vez por turno, quando você rola o dano de um ataque corpo a corpo com uma arma, você pode rolar novamente os dados de dano da arma. Se você fizer isso, você deve usar o segundo total. Seus ataques com armas que causam dano cortante obtêm um acerto crítico em uma jogada de 19 ou 20 no d20.",
-    "imagem_url": null,
-    "tags_json": []
   }
 },
 {
