@@ -1,0 +1,169 @@
+{% extends 'home/base.html' %}
+{% load static %}
+
+{% block content %}
+<main class="pathbuilder" id="pathbuilder-app">
+  <header class="pb-header">
+    <div>
+      <p class="pb-eyebrow">Laboratório de builds</p>
+      <h1>Pathbuilder</h1>
+      <p>Teste progressões, equipamentos, talentos e magias sem criar um personagem.</p>
+    </div>
+    <div class="pb-header-actions">
+      <select id="pb-saved-builds" class="pb-header-select" aria-label="Builds salvas">
+        <option value="">Builds salvas</option>
+      </select>
+      <button type="button" class="pb-button" id="pb-save">Salvar versão</button>
+      <button type="button" class="pb-button" id="pb-delete-save" disabled>Excluir versão</button>
+      <button type="button" class="pb-button" id="pb-export">Exportar</button>
+      <label class="pb-button pb-file-button" for="pb-import">Importar</label>
+      <input type="file" id="pb-import" accept="application/json,.json" hidden>
+      <a href="{% url 'pathbuilder' %}" class="pb-button">Nova base</a>
+      <button type="button" class="pb-button" id="pb-reset">Restaurar builds</button>
+    </div>
+  </header>
+
+  <div class="pb-empty" id="pb-empty" hidden>
+    <h2>Nenhuma base nesta aba</h2>
+    <p>Monte primeiro os atributos, raça, classe e antecedente do nível 1.</p>
+    <a href="{% url 'pathbuilder' %}" class="pb-button pb-primary">Montar base</a>
+  </div>
+
+  <div class="pb-workspace" id="pb-workspace" hidden>
+    <aside class="pb-editor" aria-label="Editor da build">
+      <div class="pb-build-switch" role="tablist" aria-label="Build ativa">
+        <button type="button" role="tab" data-build-tab="0">Build A</button>
+        <button type="button" role="tab" data-build-tab="1">Build B</button>
+      </div>
+      <div class="pb-editor-tools">
+        <strong id="pb-active-label">Build A</strong>
+        <button type="button" class="pb-text-button" id="pb-clone">Copiar para Build B</button>
+      </div>
+
+      <section class="pb-section pb-mode-section">
+        <div class="pb-section-head"><h2>Modo</h2></div>
+        <div class="pb-segmented" id="pb-mode">
+          <button type="button" data-build-mode="sandbox">Livre</button>
+          <button type="button" data-build-mode="regras">Validar regras</button>
+        </div>
+      </section>
+
+      <section class="pb-section">
+        <div class="pb-section-head">
+          <div>
+            <h2>Progressão</h2>
+            <p>Níveis por classe e caminho de subclasse.</p>
+          </div>
+          <span class="pb-total-level" id="pb-total-level">Nível 1</span>
+        </div>
+        <div id="pb-classes" class="pb-rows"></div>
+        <div class="pb-add-row">
+          <select id="pb-class-select" aria-label="Classe para multiclasse"></select>
+          <button type="button" class="pb-button" id="pb-add-class">Adicionar classe</button>
+        </div>
+      </section>
+
+      <section class="pb-section" id="pb-choices-section" hidden>
+        <div class="pb-section-head">
+          <div><h2>Escolhas da build</h2></div>
+          <span class="pb-total-level" id="pb-choice-count">0 pendentes</span>
+        </div>
+        <div id="pb-choices" class="pb-rows"></div>
+      </section>
+
+      <section class="pb-section">
+        <div class="pb-section-head">
+          <div>
+            <h2>Bônus de atributos</h2>
+            <p>Distribua os aumentos obtidos depois do nível 1.</p>
+          </div>
+        </div>
+        <div id="pb-attributes" class="pb-attribute-grid"></div>
+      </section>
+
+      <section class="pb-section">
+        <div class="pb-section-head">
+          <div>
+            <h2>Talentos</h2>
+            <p>Adicione qualquer talento para testar seus efeitos.</p>
+          </div>
+        </div>
+        <input type="search" id="pb-talent-search" class="pb-search" placeholder="Filtrar talentos">
+        <div class="pb-add-row">
+          <select id="pb-talent-select" aria-label="Talento"></select>
+          <button type="button" class="pb-button" id="pb-add-talent">Adicionar</button>
+        </div>
+        <div id="pb-talents" class="pb-selected-list"></div>
+      </section>
+
+      <section class="pb-section">
+        <div class="pb-section-head">
+          <div>
+            <h2>Itens</h2>
+            <p>Itens equipados e sintonizados afetam a ficha derivada.</p>
+          </div>
+        </div>
+        <div class="pb-segmented" id="pb-item-kind">
+          <button type="button" data-item-kind="mundano">Mundanos</button>
+          <button type="button" data-item-kind="magico">Mágicos</button>
+        </div>
+        <input type="search" id="pb-item-search" class="pb-search" placeholder="Filtrar itens">
+        <div class="pb-add-row">
+          <select id="pb-item-select" aria-label="Item"></select>
+          <button type="button" class="pb-button" id="pb-add-item">Adicionar</button>
+        </div>
+        <div id="pb-items" class="pb-selected-list"></div>
+      </section>
+
+      <section class="pb-section">
+        <div class="pb-section-head">
+          <div>
+            <h2>Magias</h2>
+            <p>Inclua magias conhecidas ou preparadas para comparar repertórios.</p>
+          </div>
+        </div>
+        <input type="search" id="pb-spell-search" class="pb-search" placeholder="Filtrar magias">
+        <div class="pb-add-row">
+          <select id="pb-spell-select" aria-label="Magia"></select>
+          <button type="button" class="pb-button" id="pb-add-spell">Adicionar</button>
+        </div>
+        <div id="pb-spells" class="pb-selected-list"></div>
+      </section>
+    </aside>
+
+    <section class="pb-results" aria-label="Comparação das builds">
+      <div class="pb-status" id="pb-status">Calculando builds...</div>
+      <div class="pb-comparison">
+        <article class="pb-build-result" id="pb-result-0"></article>
+        <article class="pb-build-result" id="pb-result-1"></article>
+      </div>
+      <section class="pb-detail">
+        <div class="pb-detail-head">
+          <h2 id="pb-detail-title">Detalhes da Build A</h2>
+          <div class="pb-detail-tabs" role="tablist">
+            <button type="button" data-detail-tab="diff">Diferenças</button>
+            <button type="button" data-detail-tab="progression">Progressão</button>
+            <button type="button" data-detail-tab="features">Habilidades</button>
+            <button type="button" data-detail-tab="combat">Combate</button>
+            <button type="button" data-detail-tab="inventory">Inventário</button>
+            <button type="button" data-detail-tab="spells">Magias</button>
+          </div>
+        </div>
+        <div id="pb-detail-body"></div>
+      </section>
+    </section>
+  </div>
+</main>
+
+{{ catalogos|json_script:"pb-catalogs" }}
+<script>
+  window.PATHBUILDER_PREVIEW_URL = "{% url 'pathbuilder_preview' %}";
+  window.PATHBUILDER_START_URL = "{% url 'pathbuilder' %}";
+  window.CSRF_TOKEN = "{{ csrf_token }}";
+</script>
+{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/pages/pathbuilder.css' %}?v=2">
+<script src="{% static 'js/pathbuilder.js' %}?v=2" defer></script>
+{% endblock %}

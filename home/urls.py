@@ -66,6 +66,10 @@ urlpatterns = [
     path('sistemas/criacao-de-ficha/', views.criacao_ficha_view, name='criacao_ficha'),
     path('sistemas/criacao-de-ficha/salvar/', views.criar_personagem_view, name='criar_personagem'),
     path('sistemas/criacao-de-ficha/preview/', views.criar_personagem_preview_view, name='criar_personagem_preview'),
+    path('sistemas/pathbuilder/', views.pathbuilder_view, name='pathbuilder'),
+    path('sistemas/pathbuilder/iniciar/', views.pathbuilder_iniciar, name='pathbuilder_iniciar'),
+    path('sistemas/pathbuilder/laboratorio/', views.pathbuilder_laboratorio, name='pathbuilder_laboratorio'),
+    path('sistemas/pathbuilder/preview/', views.pathbuilder_preview, name='pathbuilder_preview'),
     path('sistemas/glossario/', views.glossario_view, name='sistemas_glossario'),
     path('sistemas/missoes/', views.sistemas_missoes_view, name='sistemas_missoes'),
     
