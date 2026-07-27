@@ -112,16 +112,7 @@
             </li>
           {% endfor %}
         </ul>
-        <div class="mt-3 flex gap-1.5 border-t border-[var(--stroke)]/50 pt-3">
-          <form method="post" action="{% url 'personagem_descansar' p.id_personagem %}" data-rest-form>
-            {% csrf_token %}<input type="hidden" name="tipo" value="curto">
-            <button type="submit" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-1.5 text-xs text-[var(--muted)] hover:border-[var(--ember)] hover:text-[var(--ember)]">Descanso Curto</button>
-          </form>
-          <form method="post" action="{% url 'personagem_descansar' p.id_personagem %}" data-rest-form>
-            {% csrf_token %}<input type="hidden" name="tipo" value="longo">
-            <button type="submit" class="cf-btn cf-btn-primary">Descanso Longo</button>
-          </form>
-        </div>
+        <p class="mt-3 border-t border-[var(--stroke)]/50 pt-3 text-xs text-[var(--muted)]">Descanso curto/longo fica na <a href="{% url 'ficha_detail' p.id_personagem %}" class="underline hover:text-[var(--ember)]">ficha</a>, sob os contadores de recurso.</p>
       </div>
       {% endif %}
 
@@ -252,7 +243,7 @@
             {% for t in transacoes %}
               <tr class="border-b border-[var(--stroke)]/40 last:border-0">
                 <td class="px-2.5 py-1.5 text-[var(--text)]">{{ t.descricao }}</td>
-                <td class="px-2.5 py-1.5 text-right font-mono {% if t.valor_pc >= 0 %}text-[var(--spark)]{% else %}text-[var(--flame)]{% endif %}">{% if t.valor_pc >= 0 %}+{% endif %}{{ t.valor_pc }} PC</td>
+                <td class="px-2.5 py-1.5 text-right font-mono {% if t.valor_pc >= 0 %}text-[var(--spark)]{% else %}text-[var(--flame)]{% endif %}">{% if t.valor_pc >= 0 %}+{% endif %}{{ t.valor_display }}</td>
                 <td class="hidden px-2.5 py-1.5 text-right text-xs text-[var(--muted)] sm:table-cell">{{ t.criado_em|date:"d/m H:i" }}</td>
               </tr>
             {% endfor %}

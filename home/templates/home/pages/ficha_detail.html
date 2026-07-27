@@ -4,7 +4,7 @@
 {% block title %}{{ p.nome }} · Ficha · Bonfire Tales RPG{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/pages/ficha.css' %}?v=6">
+<link rel="stylesheet" href="{% static 'css/pages/ficha.css' %}?v=7">
 <link rel="stylesheet" href="{% static 'css/pages/perfil-fx.css' %}?v=3">
 {% if appearance.theme_css_href %}<link rel="stylesheet" href="{{ appearance.theme_css_href }}">{% endif %}
 {% endblock %}
@@ -144,6 +144,18 @@
         {% if ficha.pv.bonus_tags %}<p class="mt-1 text-center text-[11px] text-[var(--muted)]">{% for b in ficha.pv.bonus_tags %}{{ b.0 }} +{{ b.1 }}{% if not forloop.last %} · {% endif %}{% endfor %}</p>{% endif %}
       </div>
 
+      {% comment %}Itens Sintonizados: informativo (entre PV e Ataques). Equipar/sintonizar vive na Mochila.{% endcomment %}
+      {% if itens_sintonizados %}
+      <div class="ficha-panel">
+        <div class="ficha-section-title">Itens Sintonizados <span class="float-right font-sans text-[11px] normal-case tracking-normal text-[var(--muted)]">{{ itens_sintonizados|length }}/{{ ficha.sintonizacao_maxima|default:3 }}</span></div>
+        <ul data-attuned-list>
+          {% for it in itens_sintonizados %}
+            <li class="line-row"><span class="name text-[var(--text)]">{{ it.nome }}</span><span class="pill attuned">sintonizado</span></li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+
       <div class="ficha-panel">
         <div class="ficha-section-title">Ataques <span class="float-right font-sans text-[11px] normal-case tracking-normal text-[var(--muted)]">{{ ficha.ataques.quantidade }}× por ação</span></div>
         <ul>
@@ -157,59 +169,8 @@
         {% if ficha.ataques.avisos %}<p class="mt-1 text-[11px] text-[var(--muted)]">{% for a in ficha.ataques.avisos %}{{ a }}{% if not forloop.last %} · {% endif %}{% endfor %}</p>{% endif %}
       </div>
 
-      {% if consumiveis_cards %}
       <div class="ficha-panel">
-        <div class="ficha-section-title">Recursos Consumiveis</div>
-        <div class="resource-cards">
-          {% for r in consumiveis_cards %}
-          <article class="resource-card {% if r.atual == 0 %}is-empty{% endif %}">
-            <div class="resource-card-top"><span>Total</span><strong>{{ r.maximo }}</strong></div>
-            <div class="resource-card-value">{{ r.atual }}</div>
-            <div class="resource-card-name">{{ r.nome }}</div>
-            {% if r.subtitulo %}<div class="resource-card-sub">{{ r.subtitulo }}</div>{% endif %}
-            {% if pode_editar %}
-            <div class="resource-card-actions">
-              {% if r.kind == 'recurso' %}
-              <form method="post" action="{% url 'personagem_usar_recurso' p.id_personagem %}">
-                {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><input type="hidden" name="recurso" value="{{ r.id }}">
-                <button type="submit" {% if r.atual == 0 %}disabled{% endif %} title="Usar">-</button>
-              </form>
-              <form method="post" action="{% url 'personagem_usar_recurso' p.id_personagem %}">
-                {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><input type="hidden" name="recurso" value="{{ r.id }}"><input type="hidden" name="acao" value="desfazer">
-                <button type="submit" {% if r.atual == r.maximo %}disabled{% endif %} title="Devolver uso">+</button>
-              </form>
-              {% else %}
-              <form method="post" action="{% url 'personagem_usar_item_consumivel' p.id_personagem %}">
-                {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><input type="hidden" name="item" value="{{ r.id }}">
-                <button type="submit" {% if r.atual == 0 %}disabled{% endif %} title="Consumir">-</button>
-              </form>
-              <form method="post" action="{% url 'personagem_usar_item_consumivel' p.id_personagem %}">
-                {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><input type="hidden" name="item" value="{{ r.id }}"><input type="hidden" name="acao" value="desfazer">
-                <button type="submit" title="Adicionar unidade">+</button>
-              </form>
-              {% endif %}
-            </div>
-            {% endif %}
-          </article>
-          {% endfor %}
-        </div>
-        {% if pode_editar %}
-        <div class="resource-rest-actions">
-          <form method="post" action="{% url 'personagem_descansar' p.id_personagem %}">
-            {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><input type="hidden" name="tipo" value="curto">
-            <button type="submit">Descanso Curto</button>
-          </form>
-          <form method="post" action="{% url 'personagem_descansar' p.id_personagem %}">
-            {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><input type="hidden" name="tipo" value="longo">
-            <button type="submit" class="primary">Descanso Longo</button>
-          </form>
-        </div>
-        {% endif %}
-      </div>
-      {% endif %}
-
-      <div class="ficha-panel">
-        <div class="ficha-section-title">Equipados / Sintonizados</div>
+        <div class="ficha-section-title">Equipados</div>
         <ul>
           {% for it in ficha.inventario %}{% if it.equipado %}
             <li class="line-row"><span class="name text-[var(--text)]">{% if it.qtd > 1 %}{{ it.qtd }}× {% endif %}{{ it.nome }}</span><span class="pill">equipado</span></li>
@@ -218,8 +179,61 @@
       </div>
     </div>
 
-    {# -------- COLUNA DIREITA: CARDS DE HABILIDADE -------- #}
-    <div>
+    {# -------- COLUNA DIREITA: contadores de recurso + cards de habilidade -------- #}
+    <div class="space-y-2.5">
+
+      {% comment %}Recursos consumíveis como CONTADORES pequenos (ficha D&D clássica), acima de Características. Descanso (canônico) na mesma faixa.{% endcomment %}
+      {% if consumiveis_cards or pode_editar %}
+      <div class="ficha-panel res-panel">
+        <div class="ficha-section-title">Recursos</div>
+        <div class="res-strip">
+          {% for r in consumiveis_cards %}
+          <div class="res-counter {% if r.atual == 0 %}is-empty{% endif %}" title="{{ r.nome }}{% if r.subtitulo %} · {{ r.subtitulo }}{% endif %}">
+            <span class="res-counter-value">{{ r.atual }}<span class="res-counter-max">/{{ r.maximo }}</span></span>
+            <span class="res-counter-name">{{ r.nome }}</span>
+            {% if pode_editar %}
+            <span class="res-counter-actions">
+              {% if r.kind == 'recurso' %}
+              <form method="post" action="{% url 'personagem_usar_recurso' p.id_personagem %}">
+                {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><input type="hidden" name="recurso" value="{{ r.id }}">
+                <button type="submit" {% if r.atual == 0 %}disabled{% endif %} title="Usar">−</button>
+              </form>
+              <form method="post" action="{% url 'personagem_usar_recurso' p.id_personagem %}">
+                {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><input type="hidden" name="recurso" value="{{ r.id }}"><input type="hidden" name="acao" value="desfazer">
+                <button type="submit" {% if r.atual == r.maximo %}disabled{% endif %} title="Devolver uso">+</button>
+              </form>
+              {% else %}
+              <form method="post" action="{% url 'personagem_usar_item_consumivel' p.id_personagem %}">
+                {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><input type="hidden" name="item" value="{{ r.id }}">
+                <button type="submit" {% if r.atual == 0 %}disabled{% endif %} title="Consumir">−</button>
+              </form>
+              <form method="post" action="{% url 'personagem_usar_item_consumivel' p.id_personagem %}">
+                {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><input type="hidden" name="item" value="{{ r.id }}"><input type="hidden" name="acao" value="desfazer">
+                <button type="submit" title="Adicionar unidade">+</button>
+              </form>
+              {% endif %}
+            </span>
+            {% endif %}
+          </div>
+          {% empty %}
+          <p class="res-empty">Sem recursos consumíveis.</p>
+          {% endfor %}
+          {% if pode_editar %}
+          <div class="res-rest">
+            <form method="post" action="{% url 'personagem_descansar' p.id_personagem %}">
+              {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><input type="hidden" name="tipo" value="curto">
+              <button type="submit" title="Descanso curto">Desc. Curto</button>
+            </form>
+            <form method="post" action="{% url 'personagem_descansar' p.id_personagem %}">
+              {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><input type="hidden" name="tipo" value="longo">
+              <button type="submit" class="primary" title="Descanso longo">Desc. Longo</button>
+            </form>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
       <div class="ficha-panel">
         <div class="ficha-section-title">Características &amp; Habilidades <span class="float-right font-sans text-[11px] normal-case tracking-normal text-[var(--muted)]">{{ ficha.features|length }}</span></div>
 
@@ -296,12 +310,38 @@
 
   {# ===================== LARGURA CHEIA ===================== #}
 
+  {% comment %}As 4 caixinhas de RP do PDF da ficha. Edição inline (fetch) só para o dono/staff.{% endcomment %}
+  <div class="ficha-panel pers-panel" data-personalidade-panel>
+    <div class="ficha-section-title">Personalidade{% if pode_editar %}<span class="float-right font-sans text-[11px] normal-case tracking-normal text-[var(--muted)]" data-pers-feedback aria-live="polite"></span>{% endif %}</div>
+    {% if pode_editar %}
+    <form method="post" action="{% url 'personagem_personalidade_salvar' p.id_personagem %}" class="pers-form" data-pers-form>
+      {% csrf_token %}
+      <div class="pers-grid">
+        {% for campo in personalidade %}
+        <label class="pers-box">
+          <span class="pers-lbl">{{ campo.rotulo }}</span>
+          <textarea name="{{ campo.tipo }}" rows="3" placeholder="—">{{ campo.texto }}</textarea>
+        </label>
+        {% endfor %}
+      </div>
+      <div class="pers-actions"><button type="submit" class="banner-btn primary">Salvar Personalidade</button></div>
+    </form>
+    {% else %}
+    <div class="pers-grid">
+      {% for campo in personalidade %}
+      <div class="pers-box is-read">
+        <span class="pers-lbl">{{ campo.rotulo }}</span>
+        {% if campo.texto %}<p class="pers-text">{{ campo.texto|linebreaksbr }}</p>{% else %}<p class="pers-text is-empty">—</p>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
   <div class="ficha-panel">
     <div class="ficha-section-title">Mochila &amp; Equipamento</div>
     <div class="mb-2 flex flex-wrap gap-1.5">
-      <div class="flex min-w-[3.2rem] flex-col items-center rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-1.5"><span class="text-[9px] font-bold uppercase tracking-wider text-[var(--muted)]">PO</span><span class="font-bold text-[var(--spark)]">{{ ficha.carteira.po|default:0 }}</span></div>
-      <div class="flex min-w-[3.2rem] flex-col items-center rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-1.5"><span class="text-[9px] font-bold uppercase tracking-wider text-[var(--muted)]">PP</span><span class="font-bold text-[var(--text)]">{{ ficha.carteira.pp|default:0 }}</span></div>
-      <div class="flex min-w-[3.2rem] flex-col items-center rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-1.5"><span class="text-[9px] font-bold uppercase tracking-wider text-[var(--muted)]">PC</span><span class="font-bold text-[var(--text)]">{{ ficha.carteira.pc|default:0 }}</span></div>
+      <div class="flex min-w-[3.2rem] flex-col items-center rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-1.5" data-carteira><span class="text-[9px] font-bold uppercase tracking-wider text-[var(--muted)]">Dinheiro</span><span class="font-bold text-[var(--spark)]">{{ ficha.carteira.display|default:"0 PO" }}</span></div>
       <div class="ml-auto flex min-w-[3.2rem] flex-col items-center rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-1.5"><span class="text-[9px] font-bold uppercase tracking-wider text-[var(--muted)]">Peso</span><span class="font-bold text-[var(--text)]">{{ ficha.peso_total|default:0 }}</span></div>
     </div>
     {% if ficha.inventario %}
@@ -309,7 +349,7 @@
       {% for it in ficha.inventario %}
         <li class="flex items-center justify-between gap-1.5 border-b border-[var(--stroke)]/40 py-1 text-sm">
           <span class="min-w-0 text-[var(--text)]">{% if it.qtd > 1 %}{{ it.qtd }}× {% endif %}{{ it.nome }}{% if it.equipado %} <span class="pill">equipado</span>{% elif it.pode_equipar %} <span class="pill muted">guardado</span>{% endif %}</span>
-          <span class="flex shrink-0 gap-2 text-xs text-[var(--muted)]">{% if it.custo %}<span>{{ it.custo }}</span>{% endif %}{% if it.peso %}<span>{{ it.peso }}</span>{% endif %}</span>
+          <span class="flex shrink-0 gap-2 text-xs text-[var(--muted)]">{% if it.custo_display %}<span>{{ it.custo_display }}</span>{% endif %}{% if it.peso %}<span>{{ it.peso }}</span>{% endif %}</span>
         </li>
       {% endfor %}
     </ul>
@@ -342,23 +382,9 @@
   </div>
   {% endif %}
 
+  {% comment %}O resumo de magias saiu do rodapé desta aba — a aba Magias é o lugar canônico. Fica só o atalho.{% endcomment %}
   {% if ficha.magias %}
-  <div class="ficha-panel">
-    <div class="ficha-section-title">Magias</div>
-    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      {% regroup ficha.magias by nivel as magias_por_nivel %}
-      {% for grupo in magias_por_nivel %}
-      <div>
-        <h3 class="mb-1 text-xs font-semibold uppercase tracking-wider text-[var(--ember)]">{% if grupo.grouper == 0 %}Truques{% else %}{{ grupo.grouper }}º nível{% endif %}</h3>
-        <ul>
-          {% for m in grupo.list %}
-            <li class="line-row"><span class="name text-[var(--text)]">{{ m.nome }}</span><span class="text-xs text-[var(--muted)]">{{ m.escola }}</span></li>
-          {% endfor %}
-        </ul>
-      </div>
-      {% endfor %}
-    </div>
-  </div>
+  <p class="ficha-jump"><button type="button" class="ficha-jump-chip" data-tab-jump="magias">Magias, espaços e CD na aba <strong>Magias</strong> →</button></p>
   {% endif %}
 
   <div class="ficha-panel">
@@ -727,14 +753,14 @@
               <td class="hist-date">{{ t.criado_em|date:'d/m/Y H:i' }}</td>
               <td>{{ t.get_tipo_display }}</td>
               <td class="hist-desc">{{ t.descricao|default:'—' }}</td>
-              <td class="num hist-val">{% if t.valor_pc > 0 %}+{% endif %}{{ t.valor_pc|floatformat:0 }} <span class="cur">PC</span></td>
-              <td class="num hist-saldo">{{ t.saldo_pc|floatformat:0 }} <span class="cur">PC</span></td>
+              <td class="num hist-val">{% if t.valor_pc > 0 %}+{% endif %}{{ t.valor_display }}</td>
+              <td class="num hist-saldo">{{ t.saldo_display }}</td>
             </tr>
             {% endfor %}
           </tbody>
         </table>
       </div>
-      <p class="hist-note">Valores em peças de cobre (PC). 100 PC = 1 PO.</p>
+      <p class="hist-note">Valores em peças de ouro (PO).</p>
       {% else %}
       <p class="info-empty">Nenhuma transação registrada.</p>
       {% endif %}
@@ -889,6 +915,20 @@
     });
   });
 
+  // Atalhos "ver aba X" espalhados pelo conteúdo (ex.: chip de Magias no fim da aba 1).
+  document.querySelectorAll('[data-tab-jump]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      const name = btn.getAttribute('data-tab-jump');
+      activateTab(name);
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.set('aba', name);
+        history.replaceState(null, '', url);
+      } catch (e) {}
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  });
+
   // Aba inicial via ?aba=info|magias|historico (padrão: ficha)
   let initial = 'ficha';
   try { initial = (new URL(window.location.href)).searchParams.get('aba') || 'ficha'; } catch (e) {}
@@ -952,6 +992,40 @@
     if (el) el.addEventListener('change', apply);
   });
   apply();
+})();
+</script>
+
+{# Personalidade/Ideais/Vínculos/Defeitos: salva sem recarregar (mesmo padrão da aba Informações). #}
+<script>
+(function () {
+  const form = document.querySelector('[data-pers-form]');
+  if (!form) return;
+  const feedback = document.querySelector('[data-pers-feedback]');
+  form.addEventListener('submit', async function (event) {
+    event.preventDefault();
+    const button = form.querySelector('button[type="submit"]');
+    const data = new FormData(form);
+    if (button) button.disabled = true;
+    if (feedback) { feedback.textContent = 'Salvando…'; feedback.style.color = ''; }
+    try {
+      const response = await fetch(form.action, {
+        method: 'POST',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRFToken': data.get('csrfmiddlewaretoken') || ''
+        },
+        body: data,
+        credentials: 'same-origin'
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload.ok) throw new Error('save');
+      if (feedback) { feedback.textContent = 'Salvo.'; feedback.style.color = 'var(--spark)'; }
+    } catch (error) {
+      if (feedback) { feedback.textContent = 'Não foi possível salvar.'; feedback.style.color = 'var(--flame)'; }
+    } finally {
+      if (button) button.disabled = false;
+    }
+  });
 })();
 </script>
 

@@ -26,6 +26,8 @@ import re
 import unicodedata
 
 from .item_mecanica import mecanica_de_tags, dano_display, propriedades_display
+# Moeda: interno em PC, exibição SEMPRE em PO (fonte única em home/moeda.py).
+from .moeda import po_display, preco_display
 
 # (campo no modelo, sigla PT, rótulo)
 ATRIBUTOS = [
@@ -960,7 +962,9 @@ def _inventario(personagem):
         _mec_inv = mecanica_de_tags(it.tags_json)
         magico_equipavel = _item_magico_equipavel(magico)
         equipado_efetivo = bool(it.equipado and (not magico or magico_equipavel))
-        out.append({'id': it.id, 'nome': it.nome, 'qtd': it.qtd, 'custo': it.custo, 'peso': it.peso,
+        out.append({'id': it.id, 'nome': it.nome, 'qtd': it.qtd, 'custo': it.custo,
+                    # Exibição do valor SEMPRE em PO (o `custo` cru do catálogo pode vir em PP/PC).
+                    'custo_display': preco_display(it.custo), 'peso': it.peso,
                     'equipado': equipado_efetivo, 'tipo_equip': _mec_inv['tipo_equip'],
                     'pode_equipar': bool(_mec_inv['tipo_equip']) or magico_equipavel,
                     'magico': bool(magico),
@@ -3367,9 +3371,11 @@ def derive(personagem):
     state['maestria_pendente'] = any(
         w.get('maestria_pendente') for w in (state.get('maestrias_armas') or []))
 
-    # Mochila: carteira (PC -> PO/PP/PC) + peso total carregado.
+    # Mochila: carteira + peso total carregado. Armazenamento em PC; EXIBIÇÃO sempre em PO
+    # (`display`) — PP/PC seguem no dict só para cálculo/compat, nunca para a interface.
     _cpc = int(getattr(personagem, 'carteira_pc', 0) or 0)
-    state['carteira'] = {'pc_total': _cpc, 'po': _cpc // 100, 'pp': (_cpc % 100) // 10, 'pc': _cpc % 10}
+    state['carteira'] = {'pc_total': _cpc, 'po': _cpc // 100, 'pp': (_cpc % 100) // 10,
+                         'pc': _cpc % 10, 'display': po_display(_cpc)}
 
     def _peso_item(it):
         try:

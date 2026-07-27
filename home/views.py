@@ -4,6 +4,9 @@ import re
 import unicodedata
 from urllib.parse import unquote, urlsplit
 from .item_mecanica import mecanica_de_tags, dano_display, propriedades_display, ca_display
+# Moeda (fonte única): armazenamento interno em PC, exibição SEMPRE em PO — PP/PC fora da UI.
+from .moeda import (preco_em_pc as _preco_em_pc, po_display as _po_display,
+                    preco_display as _preco_display)
 from . import badges as _badges
 from . import conquistas as _conquistas
 from datetime import datetime, timezone as datetime_timezone
@@ -3161,39 +3164,8 @@ def _classe_conjuracao(classe):
 
 _AB_SIG = {'str': 'FOR', 'dex': 'DES', 'con': 'CON', 'int': 'INT', 'wis': 'SAB', 'cha': 'CAR'}
 
-# Moedas em peças de cobre (PC). 1 PO = 100 PC, 1 PP = 10 PC, 1 PL = 1000 PC, 1 PE = 50 PC.
-_MOEDA_PC = {'PC': 1, 'PP': 10, 'PO': 100, 'PL': 1000, 'PE': 50, 'CP': 1, 'SP': 10, 'GP': 100}
-
-
-def _preco_em_pc(preco):
-    """'5 PO' / '1 PP' / '1.500 PO' / '0,2 PC' -> peças de cobre (int). None se não comprável."""
-    if not preco:
-        return None
-    m = re.match(r'\s*([\d.,]+)\s*(PC|PP|PO|PL|PE|CP|SP|GP)', str(preco).strip(), re.I)
-    if not m:
-        return None
-    try:
-        val = float(m.group(1).replace('.', '').replace(',', '.'))
-    except ValueError:
-        return None
-    return int(round(val * _MOEDA_PC.get(m.group(2).upper(), 0)))
-
-
-def _pc_display(pc):
-    """Peças de cobre -> 'X PO, Y PP, Z PC'."""
-    pc = int(pc or 0)
-    po, resto = divmod(pc, 100)
-    pp, pc2 = divmod(resto, 10)
-    parts = []
-    if po:
-        parts.append('%d PO' % po)
-    if pp:
-        parts.append('%d PP' % pp)
-    if pc2:
-        parts.append('%d PC' % pc2)
-    return ', '.join(parts) or '0 PC'
-
-
+# Moeda: conversão e exibição vivem em home/moeda.py (fonte única, importada no topo).
+# O armazenamento interno continua em peças de cobre (PC); a EXIBIÇÃO é SEMPRE em PO.
 _PRECO_VENDA_RATIO = 0.5  # itens mágicos vendem por 50% do preço de compra do mercado
 _PRECO_VENDA_MUNDANO_RATIO = 0.8  # itens mundanos vendem por 80% do valor de compra
 
@@ -3209,6 +3181,16 @@ def _preco_venda_mundano_pc(custo_str):
     """Preço de VENDA (PC) de um item mundano = 80% do valor de compra. None se sem preço."""
     base = _preco_em_pc(custo_str)
     return int(round(base * _PRECO_VENDA_MUNDANO_RATIO)) if base is not None else None
+
+
+def _transacoes_em_po(qs):
+    """Anota `valor_display`/`saldo_display` (sempre em PO) nas linhas do extrato. Os campos
+    gravados seguem em PC — só a EXIBIÇÃO muda."""
+    linhas = list(qs)
+    for t in linhas:
+        t.valor_display = _po_display(t.valor_pc)
+        t.saldo_display = _po_display(t.saldo_pc)
+    return linhas
 
 
 def _registrar_transacao(personagem, tipo, descricao, delta_pc):
@@ -4410,7 +4392,7 @@ def editar_ficha_view(request, pk):
         if it.categoria not in _cats_seen:
             _cats_seen.append(it.categoria)
         loja_mundano.append({
-            'slug': it.slug, 'nome': it.nome, 'preco': it.preco,
+            'slug': it.slug, 'nome': it.nome, 'preco': _preco_display(it.preco),
             'cat': it.categoria, 'cat_label': cat_label.get(it.categoria, it.categoria),
             'meta': it.subcategoria or cat_label.get(it.categoria, it.categoria)})
     loja_mundano_cats = [{'id': c, 'label': cat_label.get(c, c)}
@@ -4449,8 +4431,8 @@ def editar_ficha_view(request, pk):
         if not it.get('magico'):
             v = _preco_venda_mundano_pc(it.get('custo'))
             if v:
-                it['venda_pc'], it['venda_display'] = v, _pc_display(v)
-    transacoes = list(p.transacoes.all()[:30])
+                it['venda_pc'], it['venda_display'] = v, _po_display(v)
+    transacoes = _transacoes_em_po(p.transacoes.all()[:30])
     classes_atuais = [{'id': c.id_classe.id_classe, 'nome': c.id_classe.nome, 'nivel': c.nivel,
                        'principal': c.principal} for c in p.classes.select_related('id_classe').order_by('-principal', 'id')]
     aventura_ledger = list(p.aventuras_ledger.select_related('criado_por', 'revertido_por')[:30])
@@ -4480,7 +4462,7 @@ def editar_ficha_view(request, pk):
         'nivel': pc.nivel if pc else 1,
         'pend_magias': pendm,
         'levelup_status': levelup_status,
-        'carteira_display': _pc_display(p.carteira_pc),
+        'carteira_display': _po_display(p.carteira_pc),
         'loja_mundano': loja_mundano,
         'loja_mundano_cats': loja_mundano_cats,
         'loja_magico': loja_magico,
@@ -4789,7 +4771,7 @@ def _aventuras_staff_resposta(request, p, *, compra_msg='', rollback_msg='', ok=
             'nivel_label': prog.get('nivel_label') or p.nivel,
             'braseiros': int(prog.get('braseiros') or 0),
         },
-        'carteira_display': _pc_display(p.carteira_pc or 0),
+        'carteira_display': _po_display(p.carteira_pc or 0),
     }, status=200 if ok else 400)
 
 
@@ -4804,11 +4786,11 @@ def _inventario_ajax_payload(request, p, *, msg='ok', ok=True):
         if not item.get('magico'):
             venda = _preco_venda_mundano_pc(item.get('custo'))
             if venda:
-                item['venda_pc'], item['venda_display'] = venda, _pc_display(venda)
+                item['venda_pc'], item['venda_display'] = venda, _po_display(venda)
     return {
         'ok': ok,
         'msg': msg,
-        'carteira_display': _pc_display(p.carteira_pc or 0),
+        'carteira_display': _po_display(p.carteira_pc or 0),
         'carteira_pc': int(p.carteira_pc or 0),
         'sintonizados_usados': p.inventario.filter(sintonizado=True).count(),
         'inventario_html': render_to_string(
@@ -6111,12 +6093,12 @@ def mercado_comunidade_view(request):
         card = {'id': a.id, 'nome': a.nome,
                 'raridade': im.get_raridade_display() if im else '',
                 'requer_sintonizacao': bool(im and im.requer_sintonizacao),
-                'preco_display': _pc_display(a.preco_pc), 'vendedor': a.vendedor.nome}
+                'preco_display': _po_display(a.preco_pc), 'vendedor': a.vendedor.nome}
         (meus_anuncios if a.vendedor_id in meus_ids else lista).append(card)
     return render(request, 'home/pages/mercado_comunidade.html', {
         'page_title': 'Mercado da Comunidade',
         'anuncios': lista, 'meus_anuncios': meus_anuncios,
-        'meus_personagens': [{'id': p.id_personagem, 'nome': p.nome, 'carteira': _pc_display(p.carteira_pc)} for p in meus],
+        'meus_personagens': [{'id': p.id_personagem, 'nome': p.nome, 'carteira': _po_display(p.carteira_pc)} for p in meus],
         'msg': request.GET.get('m'),
     })
 
@@ -6449,8 +6431,12 @@ def ficha_detail_view(request, pk):
     # As sempre_preparada (raça/outros) NÃO contam no total de preparadas da classe.
     magias_info = _magias_sheet_info(p, ficha, essencia_pendentes)
     consumiveis_cards = _consumiveis_ficha_cards(p, ficha)
-    # Página de Histórico: compras/vendas do personagem.
-    transacoes = list(TbTransacao.objects.filter(id_personagem=p).order_by('-pk')[:300])
+    # Página de Histórico: compras/vendas do personagem (extrato exibido em PO).
+    transacoes = _transacoes_em_po(
+        TbTransacao.objects.filter(id_personagem=p).order_by('-pk')[:300])
+    # Bloco informativo "Itens Sintonizados" (entre PV e Ataques): só leitura — equipar/
+    # sintonizar vive na Mochila (onda B).
+    itens_sintonizados = [it for it in (ficha.get('inventario') or []) if it.get('sintonizado')]
     pode_editar = p.dono_id == request.user.id or perms.is_staff_user(request.user)
     # Botão de level-up: só quem edita, e só quando elegível (ou com pendências abertas).
     levelup_status = _levelup_status(p, ficha) if pode_editar else None
@@ -6461,6 +6447,8 @@ def ficha_detail_view(request, pk):
         'raca_linha': raca_linha,
         'magias_info': magias_info,
         'consumiveis_cards': consumiveis_cards,
+        'itens_sintonizados': itens_sintonizados,
+        'personalidade': _personalidade_ficha(p),
         'transacoes': transacoes,
         'pode_editar': pode_editar,
         'levelup_status': levelup_status,
@@ -6618,6 +6606,52 @@ def personagem_escolher_magia_essencia(request, pk):
                                                origem=fonte, slot=slot, valor=','.join(sel))
     _sync_magias_concedidas(p)
     return redirect(reverse('ficha_detail', args=[pk]) + '?aba=magias')
+
+
+# As 4 caixinhas de RP do PDF da ficha (Traços/Ideais/Vínculos/Defeitos). O `tipo` gravado
+# em TbPersonagemPersonalidade é o slug da esquerda; o rótulo é só exibição.
+PERSONALIDADE_CAMPOS = (
+    ('traco', 'Traços de Personalidade'),
+    ('ideal', 'Ideais'),
+    ('vinculo', 'Vínculos'),
+    ('defeito', 'Defeitos'),
+)
+
+
+def _personalidade_ficha(personagem):
+    """[{tipo, rotulo, texto}] das 4 caixinhas de RP, na ordem do PDF. Linhas repetidas do
+    mesmo tipo (dado legado) viram parágrafos de um texto só."""
+    por_tipo = {}
+    for linha in personagem.personalidade.all().order_by('id'):
+        por_tipo.setdefault((linha.tipo or '').strip().lower(), []).append(
+            (linha.texto or '').strip())
+    return [{'tipo': tipo, 'rotulo': rotulo,
+             'texto': '\n'.join(t for t in por_tipo.get(tipo, []) if t)}
+            for tipo, rotulo in PERSONALIDADE_CAMPOS]
+
+
+@login_required(login_url='/login/')
+@require_POST
+def personagem_personalidade_salvar(request, pk):
+    """Salva as 4 caixinhas de RP da ficha (1 linha por tipo; vazio apaga a linha)."""
+    from .models import TbPersonagem, TbPersonagemPersonalidade
+    from . import permissions as perms
+    p = get_object_or_404(TbPersonagem, pk=pk)
+    if not (p.dono_id == request.user.id or perms.is_staff_user(request.user)):
+        raise Http404()
+    with transaction.atomic():
+        for tipo, _rotulo in PERSONALIDADE_CAMPOS:
+            if tipo not in request.POST:
+                continue
+            texto = (request.POST.get(tipo) or '').strip()[:5000]
+            TbPersonagemPersonalidade.objects.filter(id_personagem=p, tipo=tipo).delete()
+            if texto:
+                TbPersonagemPersonalidade.objects.create(
+                    id_personagem=p, tipo=tipo, texto=texto)
+    if is_ajax(request):
+        return JsonResponse({'ok': True, 'msg': 'personalidade_salva',
+                             'personalidade': _personalidade_ficha(p)})
+    return redirect(reverse('ficha_detail', args=[pk]))
 
 
 @login_required(login_url='/login/')

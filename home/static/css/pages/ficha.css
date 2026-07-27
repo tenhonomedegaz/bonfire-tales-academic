@@ -791,6 +791,7 @@
   color: var(--spark);
 }
 .pill.muted { color: var(--muted); }
+.pill.attuned { color: var(--flame); border-color: rgba(242, 112, 7, 0.45); background: rgba(242, 112, 7, 0.08); }
 
 /* ---------- Grid principal de 3 colunas ---------- */
 .ficha-columns {
@@ -971,54 +972,138 @@
 .info-empty { color: var(--muted); font-style: italic; font-size: 0.85rem; }
 
 /* ============================================================
-   CONTADORES DE RECURSOS
+   CONTADORES DE RECURSO (estilo ficha D&D clássica)
+   Contador pequeno: número grande, rótulo miúdo, +/- discretos. Fica ACIMA de
+   "Características & Habilidades"; o descanso (canônico) mora na mesma faixa.
    ============================================================ */
-.resource-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 0.5rem; }
-.resource-card {
-  min-height: 84px;
+.res-panel { padding-bottom: 0.7rem; }
+.res-strip { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 0.4rem; }
+.res-counter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.08rem;
+  min-width: 4.4rem;
+  max-width: 7.5rem;
   border: 1px solid rgba(82, 82, 91, 0.78);
   border-radius: 6px;
-  background: linear-gradient(180deg, rgba(39, 39, 42, 0.98), rgba(24, 24, 27, 0.98));
+  background: linear-gradient(180deg, var(--bg1), var(--bg0));
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
-  padding: 0.45rem 0.55rem 0.45rem;
+  padding: 0.3rem 0.4rem 0.32rem;
   text-align: center;
 }
-.resource-card.is-empty { border-color: rgba(220, 38, 38, 0.45); }
-.resource-card-top { display: flex; justify-content: space-between; gap: 0.35rem; color: var(--muted); font-size: 9px; font-weight: 700; text-transform: uppercase; }
-.resource-card-top strong { color: var(--text); font-size: 0.85rem; }
-.resource-card-value { margin-top: 0.1rem; color: #fff; font-family: 'Cinzel', serif; font-size: 1.72rem; font-weight: 800; line-height: 1; }
-.resource-card-name { margin-top: 0.1rem; color: var(--text); font-size: 0.66rem; font-weight: 800; line-height: 1.1; text-transform: uppercase; }
-.resource-card-sub { margin-top: 0.18rem; color: var(--muted); font-size: 0.58rem; font-weight: 700; line-height: 1.1; text-transform: uppercase; }
-.resource-card-actions, .spell-slot-actions { display: flex; justify-content: center; gap: 0.25rem; margin-top: 0.45rem; }
-.resource-card-actions button, .spell-slot-actions button {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 1.35rem; height: 1.25rem; border: 1px solid var(--stroke); border-radius: 4px;
-  background: var(--bg0); color: var(--text); font-size: 0.8rem; font-weight: 900; line-height: 1;
+.res-counter.is-empty { border-color: rgba(220, 38, 38, 0.45); }
+.res-counter.is-empty .res-counter-value { color: var(--flame); }
+.res-counter-value {
+  font-family: 'Cinzel', serif;
+  font-size: 1.35rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--spark);
 }
-.resource-card-actions button:hover, .spell-slot-actions button:hover { border-color: var(--ember); color: var(--ember); }
-.resource-card-actions button:disabled, .spell-slot-actions button:disabled { cursor: not-allowed; opacity: 0.35; }
-.resource-rest-actions { display: flex; flex-wrap: wrap; align-items: stretch; gap: 0.45rem; margin-top: 0.55rem; padding-top: 0.55rem; border-top: 1px solid rgba(82, 82, 91, 0.45); }
-.resource-rest-actions form { display: flex; flex: 1 1 8rem; }
-.resource-rest-actions button {
-  flex: 1 1 auto;
+.res-counter-max { font-size: 0.7rem; font-weight: 700; color: var(--muted); }
+.res-counter-name {
+  max-width: 100%;
+  color: var(--muted);
+  font-size: 0.54rem;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+.res-counter-actions { display: flex; gap: 0.18rem; margin-top: 0.15rem; }
+.res-counter-actions button, .spell-slot-actions button {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 1.2rem; height: 1.05rem; border: 1px solid var(--stroke); border-radius: 3px;
+  background: var(--bg0); color: var(--muted); font-size: 0.72rem; font-weight: 900; line-height: 1;
+  cursor: pointer;
+}
+.res-counter-actions button:hover, .spell-slot-actions button:hover { border-color: var(--ember); color: var(--ember); }
+.res-counter-actions button:disabled, .spell-slot-actions button:disabled { cursor: not-allowed; opacity: 0.3; }
+.spell-slot-actions { display: flex; justify-content: center; gap: 0.25rem; margin-top: 0.45rem; }
+.spell-slot-actions button { width: 1.35rem; height: 1.25rem; border-radius: 4px; color: var(--text); font-size: 0.8rem; }
+
+/* descanso: mesma faixa dos contadores, em botão-pílula discreto */
+.res-rest { display: flex; align-items: center; gap: 0.3rem; margin-left: auto; }
+.res-rest button {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  min-height: 36px;
-  padding: 0 0.85rem;
+  min-height: 1.7rem;
+  padding: 0 0.6rem;
   border: 1px solid var(--stroke);
-  border-radius: 6px;
-  background: var(--bg1);
-  color: var(--text);
-  font-size: 0.72rem;
+  border-radius: 999px;
+  background: var(--bg0);
+  color: var(--muted);
+  font-size: 0.58rem;
   font-weight: 800;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   cursor: pointer;
 }
-.resource-rest-actions button:hover { border-color: var(--ember); color: var(--ember); }
-.resource-rest-actions button.primary { border-color: rgba(242, 112, 7, 0.55); color: var(--ember); background: rgba(242, 112, 7, 0.08); }
-.resource-rest-actions button.primary:hover { background: rgba(242, 112, 7, 0.16); }
+.res-rest button:hover { border-color: var(--ember); color: var(--ember); }
+.res-rest button.primary { border-color: rgba(242, 112, 7, 0.55); color: var(--ember); background: rgba(242, 112, 7, 0.08); }
+.res-rest button.primary:hover { background: rgba(242, 112, 7, 0.16); }
+.res-empty { color: var(--muted); font-size: 0.76rem; font-style: italic; }
+
+/* ============================================================
+   ATALHO DE ABA (chip discreto no fim da aba Ficha)
+   ============================================================ */
+.ficha-jump { display: flex; justify-content: center; }
+.ficha-jump-chip {
+  border: 1px dashed var(--stroke);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  padding: 0.28rem 0.9rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+.ficha-jump-chip strong { color: var(--ember); font-weight: 800; }
+.ficha-jump-chip:hover { border-color: var(--ember); color: var(--text); }
+
+/* ============================================================
+   PERSONALIDADE / IDEAIS / VÍNCULOS / DEFEITOS (4 caixinhas do PDF)
+   ============================================================ */
+.pers-grid { display: grid; grid-template-columns: 1fr; gap: 0.5rem; }
+@media (min-width: 640px) { .pers-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1100px) { .pers-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.pers-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+  min-width: 0;
+  border: 1px solid var(--stroke);
+  border-radius: 8px;
+  background: var(--bg0);
+  padding: 0.5rem 0.6rem 0.55rem;
+}
+.pers-lbl {
+  font-family: 'Cinzel', serif;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ember);
+}
+.pers-box textarea {
+  width: 100%;
+  resize: vertical;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  font-size: 0.84rem;
+  line-height: 1.4;
+  padding: 0.15rem 0.2rem;
+}
+.pers-box textarea:focus { outline: none; border-color: var(--ember); background: var(--bg1); }
+.pers-box textarea::placeholder { color: var(--muted); opacity: 0.6; }
+.pers-text { color: var(--text); font-size: 0.84rem; line-height: 1.4; overflow-wrap: anywhere; }
+.pers-text.is-empty { color: var(--muted); font-style: italic; }
+.pers-actions { display: flex; justify-content: flex-end; margin-top: 0.55rem; }
+.pers-actions .banner-btn { font-size: 0.78rem; padding: 0.3rem 0.9rem; }
 
 /* ============================================================
    SPELLBOOK

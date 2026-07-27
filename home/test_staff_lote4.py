@@ -182,10 +182,11 @@ class DescansoBotaoCSSTests(TestCase):
                             'static', 'css', 'pages', 'ficha.css')
         with open(path, encoding='utf-8') as f:
             css = f.read()
-        # os <form> viram flex items (os dois botões dividem a linha do painel)
-        self.assertIn('.resource-rest-actions form', css)
+        # Ficha v2 (onda A): o descanso vive na MESMA faixa dos contadores de recurso
+        # (.res-strip > .res-rest), em vez do antigo rodapé .resource-rest-actions.
+        self.assertRegex(css, r'\.res-rest\s*\{[^}]*display:\s*flex')
         # e os botões ganham min-height consistente com o design system
-        self.assertRegex(css, r'\.resource-rest-actions button\s*\{[^}]*min-height')
+        self.assertRegex(css, r'\.res-rest button\s*\{[^}]*min-height')
 
 
 # ======================================================================================
