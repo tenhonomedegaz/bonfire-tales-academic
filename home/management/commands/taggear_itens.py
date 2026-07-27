@@ -35,8 +35,8 @@ DAMAGE_MAP = {
     "Thunder": "trovejante",
 }
 
-# Itens que FIXAM um atributo num valor (Manoplas do Poder do Ogro, Cinto de Força
-# de Gigante, etc.) -> verbo de PISO attr_set:<x>_score=N (o motor faz max(atual, N)).
+# Itens que fixam um piso de atributo usam atribuicao e a funcao generica max:
+# attr:<x>_score:=max(<x>_score,N).
 ATTR_SET_EN = {
     "strength": "str", "dexterity": "dex", "constitution": "con",
     "intelligence": "int", "wisdom": "wis", "charisma": "cha",
@@ -358,13 +358,12 @@ def magic_tags(item, row, spell_map):
     for n in sorted({int(x) for x in re.findall(r"\+(\d+) bonus to spell attack rolls", text, re.I)}):
         tags.append(f"spell.atk:+{n}")
     for n in sorted({int(x) for x in re.findall(r"\+(\d+) bonus .*?(?:saving throw DCs|spell save DC)", text, re.I)}):
-        tags.append(f"spell-save-cd:+{n}")
-    # PISO de atributo: 'Your Strength score is 19' (EN) / 'Sua Força passa a ser 19'
-    # ou 'Seu valor de Força é 19' (PT) -> attr_set:str_score=19 (motor: max(atual, N)).
+        tags.append(f"spell.cd:+{n}")
+    # Piso de atributo: "Your Strength score is 19" vira uma formula max().
     for name, sig in ATTR_SET_EN.items():
         m = re.search(r"\byour\s+%s\s+score\s+(?:is|becomes)\s+(\d+)" % name, low)
         if m:
-            t = f"attr_set:{sig}_score={m.group(1)}"
+            t = f"attr:{sig}_score:=max({sig}_score,{m.group(1)})"
             if t not in tags:
                 tags.append(t)
     low_pt = desc_pt.lower()
@@ -374,7 +373,7 @@ def magic_tags(item, row, spell_map):
             low_pt,
         )
         if m:
-            t = f"attr_set:{sig}_score={m.group(1)}"
+            t = f"attr:{sig}_score:=max({sig}_score,{m.group(1)})"
             if t not in tags:
                 tags.append(t)
     m = re.search(r"\b(?:has|have|starts with)\s+(\d+)\s+charges?", text, re.I)
@@ -395,7 +394,7 @@ def magic_tags(item, row, spell_map):
     generated_prefixes = (
         "item:", "raridade:", "slot:", "loja:", "tipo:",
         "requires:", "consumable", "ca:", "weapon.", "unarmed.", "spell.",
-        "spell-save-cd:", "charges:", "cast{", "attr_set:",
+        "spell-save-cd:", "spell_save_cd:", "charges:", "cast{", "attr_set:",
     )
     for t in item.tags_json or []:
         if isinstance(t, str) and t not in tags and not t.startswith(generated_prefixes):

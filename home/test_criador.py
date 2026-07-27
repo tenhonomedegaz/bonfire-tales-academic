@@ -14,6 +14,7 @@ Roda contra o conteúdo real (fixture `conteudo.json`) — as mesmas 4 raças / 
 30 antecedentes / 580 magias usadas pela auditoria.
 """
 import json
+import re
 
 from django.contrib.auth.models import User
 from django.core.management import call_command
@@ -82,6 +83,18 @@ class _CriadorBase(TestCase):
             'equip_classe': equip_classe,
         }
 
+        from home.models import TbRaca, TbLinhagem, TbEssencia
+        raca = TbRaca.objects.get(slug=raca_slug)
+        linhagem = (TbLinhagem.objects.filter(
+            slug=linhagem_slug, id_raca=raca).first()
+            if linhagem_slug else None)
+        essencia = (TbEssencia.objects.filter(slug=essencia_slug).first()
+                    if essencia_slug and raca.permite_essencia else None)
+        talentos_raciais = views._talentos_raciais_criador(
+            raca, linhagem, essencia, vertente)
+        if talentos_raciais:
+            payload['talento_raca'] = talentos_raciais[0].nome
+
         mn = views._classe_maestria_n(classe, 1)
         if mn:
             # Maestria de Arma em 2 níveis: cada slot é `'<arma>|<maestria>'` (arma + UMA
@@ -97,6 +110,30 @@ class _CriadorBase(TestCase):
         if esc1['expertise_n']:
             payload['expertise'] = (pericias_classe + pericias_antec)[:esc1['expertise_n']]
 
+        # Demais escolhas declaradas em pick:* saem do mesmo registry usado pelo
+        # criador. Arma, estilo e expertise continuam nos campos legados acima
+        # porque parte desta suíte prova a compatibilidade desses clientes.
+        from home import picks as pick_registry
+        generic_payload = []
+        for group in pick_registry.resolve_builder(classe):
+            if group['kind'] == 'arma' or group['kind'] == 'pericia_expertise':
+                continue
+            if (group['kind'] == 'opcao'
+                    and pick_registry.normalize_slug(group.get('tipo'))
+                    == pick_registry.normalize_slug('estilo_de_luta')):
+                continue
+            values = [
+                str(option.get('slug') if option.get('slug') is not None else option.get('id'))
+                for option in group['universo'][:int(group['n'])]
+            ]
+            generic_payload.append({
+                'kind': group['kind'],
+                'tipo': group.get('tipo'),
+                'valores': values,
+            })
+        if generic_payload:
+            payload['picks'] = generic_payload
+
         picks = views._classe_prof_picks_nv1(classe)
         if picks:
             sel = []
@@ -111,6 +148,26 @@ class _CriadorBase(TestCase):
             n_mag = views._spell_count_nv1(conj, base, 'CON', 'DES', (asi_major, asi_minor))
             payload['truques'] = [t['slug'] for t in conj['truques']][:conj['truques_n']]
             payload['magias'] = [m['slug'] for m in conj['magias_nv1']][:n_mag]
+
+        # Picks raciais de FERRAMENTA de traços-base NÃO-talento (ex.: Humano 'Jeitinho
+        # Humano' pick:ferramenta:2) precisam ser resolvidos na criação — o front manda
+        # NOMES em escolhas_raca. Sem isso o traço reaparece como pendência no level-up.
+        # (Traços-TALENTO como o Anão 'Artesão Primoroso' são resolvidos na seleção do
+        # talento racial, não aqui.)
+        from home.models import TbTracoracial, TbItemMundano
+        ferr_n = 0
+        for tr in TbTracoracial.objects.filter(
+                id_raca=raca, id_linhagem__isnull=True, id_essencia__isnull=True,
+                nivel_requisito__lte=1).exclude(talento_racial=True):
+            for tag in (tr.tags_json or []):
+                for m in re.finditer(r'pick:ferramenta:(\d+)\b', str(tag)):
+                    ferr_n += int(m.group(1))
+        if ferr_n and 'escolhas_raca' not in overrides:
+            tool_names = list(TbItemMundano.objects.filter(
+                categoria='ferramenta').order_by('nome').values_list('nome', flat=True)[:ferr_n])
+            er = dict(payload.get('escolhas_raca') or {})
+            er.setdefault('ferramentas', tool_names)
+            payload['escolhas_raca'] = er
 
         payload.update(overrides)
         return payload
@@ -172,6 +229,15 @@ class CriacaoArquetiposTests(_CriadorBase):
         p, _ = self._cria_ok(self._payload('guerreiro'))
         self.assertTrue(TbPersonagemTalento.objects.filter(
             id_personagem=p, categoria='origem').exists())
+
+    def test_bardo_persiste_tres_ferramentas_via_pick_generico(self):
+        p, _ = self._cria_ok(self._payload('bardo'))
+        self.assertEqual(p.escolhas.filter(tipo='ferramenta').count(), 3)
+        self.assertEqual(p.proficiencias.filter(tipo='ferramenta').count(), 3)
+
+    def test_clerigo_persiste_ordem_sagrada_via_menu_generico(self):
+        p, _ = self._cria_ok(self._payload('clerigo'))
+        self.assertTrue(p.escolhas.filter(tipo='ordem_sagrada').exists())
 
 
 class Bug3MaestriaDeArmaTests(_CriadorBase):
@@ -567,6 +633,14 @@ class ValidacaoServerSideTests(_CriadorBase):
         self.assertIn('Talento de Origem', ' '.join(resp.json()['erros']))
         self.assertFalse(TbPersonagem.objects.exists())
 
+    def test_talento_racial_obrigatorio(self):
+        payload = self._payload('guerreiro')
+        payload['talento_raca'] = ''
+        resp = self._post_criar(self._staff(), payload)
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn('Talento Racial', ' '.join(resp.json()['erros']))
+        self.assertFalse(TbPersonagem.objects.exists())
+
     def test_point_buy_incompleto_rejeitado(self):
         payload = self._payload('guerreiro')
         payload['scores'].pop('INT')  # atributo faltando
@@ -660,14 +734,108 @@ class LinhagemEssenciaExclusivasTests(_CriadorBase):
         resp = self.client.get(reverse('criacao_ficha'))
         self.assertEqual(resp.status_code, 200)
 
+    def test_criador_exige_login_desde_a_primeira_etapa(self):
+        self.client.logout()
+        resp = self.client.get(reverse('criacao_ficha'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn('/login/', resp['Location'])
+
+
+class VampirismoCriadorTests(_CriadorBase):
+    def test_essencia_suprime_talento_racial_da_raca_por_tag(self):
+        from home.models import TbRaca, TbEssencia, TbTracoracial
+
+        raca = TbRaca.objects.get(slug='humano')
+        essencia = TbEssencia.objects.get(slug='vampirismo')
+        policy = 'suppress:pick{talento_racial, source:raca}'
+        self.assertIn(policy, essencia.tags_json)
+        # SQLite não suporta o lookup JSONField `__contains`; checa em Python (o dado é a
+        # política CRUA `suppress:pick{...}` na essência, não embrulhada em always_active{}).
+        wrapped = 'always_active{ %s }' % policy
+        self.assertFalse(any(
+            wrapped in (tr.tags_json or [])
+            for tr in TbTracoracial.objects.filter(id_essencia=essencia)))
+        self.assertEqual(
+            views._talentos_raciais_criador(
+                raca, essencia=essencia, escolha_essencia='corvinus'),
+            [],
+        )
+        policies = views._criador_catalogos()[
+            'pick_suppressions_essencia']['vampirismo']
+        self.assertIn(
+            {'pick': 'talento_racial', 'source': 'raca', 'vertente': ''},
+            policies,
+        )
+
+    def test_nova_maldicao_usa_a_mesma_politica_sem_slug_especial(self):
+        from home.models import TbRaca, TbEssencia
+
+        maldicao = TbEssencia.objects.create(
+            nome='Licantropia de Teste',
+            slug='licantropia-de-teste',
+            tags_json=['suppress:pick{talento_racial, source:raca}'],
+        )
+        raca = TbRaca.objects.get(slug='humano')
+
+        self.assertEqual(
+            views._talentos_raciais_criador(raca, essencia=maldicao),
+            [],
+        )
+        self.assertIn(
+            {'pick': 'talento_racial', 'source': 'raca', 'vertente': ''},
+            views._criador_catalogos()['pick_suppressions_essencia'][
+                maldicao.slug],
+        )
+
+    def _vampiro(self, race_slug):
+        from home.character_engine import derive
+        from home.models import (
+            TbRaca, TbEssencia, TbPersonagemEscolha,
+        )
+
+        p = TbPersonagem.objects.create(
+            dono=self._novo_usuario('vamp-' + race_slug),
+            nome='Vampiro ' + race_slug,
+            nivel=1,
+            id_raca=TbRaca.objects.get(slug=race_slug),
+            id_essencia=TbEssencia.objects.get(slug='vampirismo'),
+            forca=10, destreza=14, constituicao=14,
+            inteligencia=10, sabedoria=12, carisma=14,
+        )
+        TbPersonagemClasse.objects.create(
+            id_personagem=p,
+            id_classe=TbClasse.objects.get(slug='guerreiro'),
+            nivel=1,
+            principal=True,
+        )
+        TbPersonagemEscolha.objects.create(
+            id_personagem=p,
+            origem='Essência: Vampirismo',
+            tipo='vertente',
+            slot=0,
+            valor='corvinus',
+        )
+        return derive(p)
+
+    def test_visao_vampirica_sem_visao_anterior_fica_em_60ft(self):
+        self.assertIn('darkvision 60ft', self._vampiro('humano')['sentidos'])
+
+    def test_visao_vampirica_com_visao_anterior_recebe_mais_30ft(self):
+        self.assertIn('darkvision 90ft', self._vampiro('anao')['sentidos'])
+
 
 class Bug2EquipamentoInicialTests(_CriadorBase):
     """BUG-2: 'equipamento inicial' em classe sem kit vira ouro — mas agora explícito."""
 
     def test_inicial_sem_kit_credita_ouro_transparente(self):
         classe = TbClasse.objects.get(slug='guerreiro')
+        # Hoje TODAS as 13 classes têm kit cadastrado (correto). Para exercitar o caminho
+        # "sem kit → ouro alternativo transparente", zera o kit desta classe SÓ no banco de
+        # teste (não reverte o dado real do guerreiro; é uma pré-condição sintética).
+        classe.equipamento = ''
+        classe.save(update_fields=['equipamento'])
         self.assertFalse((classe.equipamento or '').strip(),
-                         'pré-condição do teste: guerreiro sem kit cadastrado')
+                         'pré-condição do teste: classe sem kit cadastrado')
         user = self._novo_usuario('dono-equip', staff=True)
         payload = self._payload('guerreiro', equip_classe='inicial')
         resp = self._post_criar(user, payload)
@@ -1030,7 +1198,7 @@ class PicksGenericoTests(_CriadorBase):
         """Converte os campos legados (maestrias/estilo_luta) para o payload genérico
         `picks:[...]` — exatamente o que o JS do wizard passa a enviar."""
         pl = dict(payload)
-        picks = []
+        picks = list(pl.get('picks') or [])
         armas = pl.pop('maestrias', None)
         if armas:
             picks.append({'kind': 'arma', 'tipo': None, 'valores': list(armas)})
@@ -1071,6 +1239,12 @@ class PicksGenericoTests(_CriadorBase):
     def test_ladino_via_picks(self):
         p = self._prova_identico('ladino')
         self.assertEqual(p.escolhas.filter(tipo='maestria').count(), 2)
+        from home import picks
+        expertise = next(
+            group for group in picks.resolve_personagem(p)
+            if group['kind'] == 'pericia_expertise'
+        )
+        self.assertEqual(expertise['pendentes'], 0)
 
     def test_maestria_obrigatoria_no_generico(self):
         # sem o pick de arma, a validação genérica (server-side) rejeita com a msg correta.
@@ -1457,7 +1631,7 @@ class PerfilDeArmaTests(_CriadorBase):
         p = self._cria(forca=16, destreza=16)
         self._equipa(p, 'arma-espada-longa')             # melee
         self._equipa(p, 'arma-arco-curto')               # ranged
-        self._estilo(p, ['always_active{ requires:{ equiped{weapon{melee}} and one_handed and no_other_weapon }, melee.dmg:+2 }'])
+        self._estilo(p, ['always_active{ requires:{ equiped{weapon{melee}} and one_handed and without{other_weapon} }, melee.dmg:+2 }'])
         d, FOR, DES, pb = self._derive(p)
         espada = self._perfil(d, escopo='weapon-melee')
         arco = self._perfil(d, escopo='weapon-ranged')
@@ -1681,14 +1855,14 @@ class GrantsFixosTests(_ConcessaoBase):
 
     grant:opcao:<tipo>:<slug> e grant:opcao{<tipo>: [<slugs>]} adicionam uma opção
     específica à ficha (via _features_de_opcoes) FORA do painel de pick. grant:talento{slug,
-    no_asi} concede os benefícios de um talento sem o incremento de atributo. Materialização
+    without{asi}} concede os benefícios de um talento sem o incremento de atributo. Materialização
     idempotente e origem-rastreada (padrão de _sync_magias_concedidas).
     """
 
     def _mm_alvo(self):
         """Metamagia-alvo sintética (slug hifenado, como o catálogo real)."""
         return TbOpcaojogo.objects.create(tipo='Metamagia', slug='mm-teste-grant',
-                                          nome='MM Teste', tags_json=['modify:spell{ no_verbal }'])
+                                          nome='MM Teste', tags_json=['modify:spell{ without{verbal} }'])
 
     def test_grant_opcao_single_materializa_e_aparece(self):
         p = self._cria()
@@ -1713,7 +1887,7 @@ class GrantsFixosTests(_ConcessaoBase):
         p = self._cria()
         for slug in ('mm-a', 'mm-b'):
             TbOpcaojogo.objects.create(tipo='Metamagia', slug=slug, nome=slug.upper(),
-                                       tags_json=['modify:spell{ no_verbal }'])
+                                       tags_json=['modify:spell{ without{verbal} }'])
         self._feature_opcao(p, ['grant:opcao{metamagia: [mm-a, mm-b], fora_do_limite}'],
                             origem='Lista Concedida')
         views._sync_grants_fixos(p)
@@ -1744,7 +1918,7 @@ class GrantsFixosTests(_ConcessaoBase):
         for_antes = self._derive(p)[0]['atributos']['FOR']['valor']
         t = TbTalento.objects.create(nome='Talento Teste Grant', slug='talento_teste_grant',
                                      tipo='geral', tags_json=['prof:historia'], atrib_forca=True)
-        self._feature_opcao(p, ['grant:talento{talento_teste_grant, no_asi}'], origem='Concede Talento')
+        self._feature_opcao(p, ['grant:talento{talento_teste_grant, without{asi}}'], origem='Concede Talento')
         n_op, n_tal = views._sync_grants_fixos(p)
         self.assertEqual((n_op, n_tal), (0, 1))
         pt = p.talentos.filter(categoria='concedido')
@@ -1753,15 +1927,15 @@ class GrantsFixosTests(_ConcessaoBase):
         d = self._derive(p)[0]
         # benefício do talento aplicado (proficiência em História)
         self.assertTrue(self._per(d, 'História')['proficiente'])
-        # no_asi: NENHUM incremento de atributo (a Força não subiu)
+        # without{asi}: NENHUM incremento de atributo (a Força não subiu)
         self.assertEqual(d['atributos']['FOR']['valor'], for_antes)
 
     def test_grant_nao_casa_verbos_de_runtime(self):
         # grant:reaction / grant:grapple / grant:move NÃO são concessões fixas.
         from home.character_engine import grants_fixos
         p = self._cria()
-        self._feature_opcao(p, ['trigger=hit, instant{ grant:grapple(no_extra_action) }',
-                                'grant:move(no_opportunity)', 'grant:reaction{ attack:1 }'])
+        self._feature_opcao(p, ['trigger=hit, instant{ grant:grapple(without{extra_action}) }',
+                                'grant:move(without{opportunity})', 'grant:reaction{ attack:1 }'])
         gf = grants_fixos(p)
         self.assertEqual(gf['opcoes'], [])
         self.assertEqual(gf['talentos'], [])
@@ -1899,6 +2073,14 @@ class Cap56VerbosNovosTests(_CriadorBase):
     def test_sentido_if_present_sem_base_e_descartado(self):
         p = self._mk([['always_active{ sense:tremorsense(range:+30ft, if_present) }']])
         self.assertNotIn('tremorsense', ' '.join(self._d(p)['sentidos']))
+
+    def test_sentido_if_present_nao_usa_base_da_propria_feature(self):
+        p = self._mk([[
+            'always_active{ sense:darkvision(range:60ft), '
+            'sense:darkvision(range:+30ft, if_present) }',
+        ]])
+        self.assertIn('darkvision 60ft', self._d(p)['sentidos'])
+        self.assertNotIn('darkvision 90ft', self._d(p)['sentidos'])
 
     # ── B. move:liquid ──
     def test_move_liquid(self):
@@ -2057,10 +2239,10 @@ class BlocoANarrativoTests(_CriadorBase):
         from home.tag_engine.validator import validate_tags_json
         lib = Library()
         tags = [
-            'always_active{no_adv:attack{vs:self}, unless:incapacitated}',
+            'always_active{without{adv:attack{vs:self}}, unless:incapacitated}',
             'always_active{ resist:necrotico, immune_effect:max_hp_reduction }',
             'always_active{ immune_effect:elixir_proprio }',
-            'always_active{ no_surprised }',
+            'always_active{ without{surprised} }',
             'always_active{ reduce_forced_movement:half(min:5ft) }',
         ]
         diags = validate_tags_json(tags, lib)

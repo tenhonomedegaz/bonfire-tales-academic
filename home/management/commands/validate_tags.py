@@ -63,6 +63,11 @@ def _iter_models(only=None):
         for a in TbAntecedente.objects.all():
             yield (a.nome, a.tags_json)
 
+    def essencia():
+        from home.models import TbEssencia
+        for e in TbEssencia.objects.all():
+            yield (e.nome, e.tags_json)
+
     def magia():
         from home.models import TbMagia
         for m in TbMagia.objects.all():
@@ -88,6 +93,7 @@ def _iter_models(only=None):
     add("opcao", opcao)
     add("traco", traco)
     add("antecedente", antecedente)
+    add("essencia", essencia)
     add("classe", classe_meta)
     add("magia", magia)
     add("bestiario", bestiario)
@@ -102,7 +108,7 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("--lint", action="store_true", help="Só audita a biblioteca.")
         parser.add_argument("--model", default=None,
-                            help="classe-hab | talento | opcao | traco | classe | antecedente | magia | bestiario | item-mundano | item-magico")
+                            help="classe-hab | talento | opcao | traco | classe | antecedente | essencia | magia | bestiario | item-mundano | item-magico")
         parser.add_argument("--errors-only", action="store_true")
         parser.add_argument("--no-db", action="store_true", help="Não checa referências (#REF!).")
         parser.add_argument("--strict-names", action="store_true",

@@ -10,7 +10,7 @@ formulas de Excel ou como uma pequena linguagem de programacao de regras de RPG.
 - Identificadores usam `snake_case`: `while_active`, `resource_cost`,
   `dex_mod`, `dmg_bonus`, `armadura_pesada`.
 - O caractere `-` fica reservado para operador matematico/unario em formulas,
-  como `classlvl - 3`, `speed:-10ft` ou `hp:+(con_mod - 1)`.
+3
 - O retagging deve mudar tags, biblioteca e docs juntos, mas nao precisa mudar
   os slugs reais das tabelas do banco na mesma etapa.
 
@@ -149,6 +149,65 @@ Antes de criar verbo novo, pergunte:
   `save`, `roll`, `aura`, `aoe`, `apply`, `modify`, `define`?
 - O dado ja existe como coluna no banco? Se existe, nao repita como tag.
 
+## Operadores fazem parte da semantica
+
+O operador nao e decoracao. O mesmo target pode receber atribuicao ou
+modificador:
+
+```text
+ca=10+dex_mod       # set_value: define uma formula-base
+ca:+2               # add_modifier: soma 2 ao valor resultante
+speed:-10ft         # add_modifier negativo
+attacks:=2          # substituicao explicita
+```
+
+Nunca normalize `=`, `:=` e `:+` como se fossem equivalentes. Um consumidor
+deve despachar pelo trio `op`, `target` e operando tipado emitido pelo evaluator.
+Ele nao deve procurar o nome literal da primitiva por regex.
+
+Operandos compostos tambem sao dados estruturados:
+
+```text
+prof:armor{light}
+sense:darkvision(range:120ft, if_present)
+check_bonus:religiao=max(wis_mod,1)
+```
+
+O AST representa esses exemplos como nome, argumentos posicionais, kwargs,
+flags e binding. Nao crie um regex por habilidade para extrai-los novamente.
+
+## Escopos declarativos e de runtime
+
+Blocos declarativos ou ainda nao executados nao concedem seus efeitos internos:
+
+```text
+define{opcoes:list{a:{resist:fogo}, b:{immune:frio}}}
+match(tipo){a:{speed:+10}, b:{speed:+20}}
+trigger=hit{instant{dmg:+1d6}}
+```
+
+`define`, `list`, `table`, `pick`, `match`, `if/else`, `trigger`, `instant`,
+`while_active`, `cast`, `save`, `aura` e `aoe` preservam os efeitos para o
+runtime ou ate uma escolha resolver o ramo. O character builder nao pode
+materializar todos os filhos desses blocos como passivos.
+
+`always_active` e a excecao intencional: seus filhos sao materializados quando
+os gates do proprio escopo forem satisfeitos.
+
+## Condicoes relacionais
+
+Uma condicao e um valor do catalogo; quem a causa ou sofre e argumento:
+
+```text
+condition{amedrontado, source:self}
+condition{agarrado, source:self, target:creature}
+condition{incapacitado, target:self}
+```
+
+Sao invalidos identificadores como `amedrontado_by_self`,
+`agarrado_por_self` e `incapacitado_self`. Se surgir uma nova relacao, amplie
+os argumentos de `condition`; nao crie uma condicao nova para cada combinacao.
+
 ## Condicionais
 
 Use condicionais genericos, nunca verbos de caso unico.
@@ -168,6 +227,78 @@ instant{if(save{dex, cd=8+pb+dex_mod}): dmg:half}
 
 Se a regra exigir `elif`, prefira `match` quando estiver escolhendo entre casos
 nomeados. Use `if/else` para condicoes booleanas.
+
+## Negacao, omissao e proibicao
+
+Essas operacoes nao sao sinonimos. A escolha do verbo determina quem produz a
+regra e por quanto tempo ela existe.
+
+`without{...}` e somente um modificador de uma execucao concreta. A execucao
+acontece, mas omite algo que normalmente faria parte dela:
+
+```text
+cast{spell:escuridao, without{slot}, without{material}}
+move:30ft(without{opportunity_attack})
+dmg:ability_mod(without{roll})
+```
+
+`restricts{...}` e uma proibicao imposta por um efeito ativo:
+
+```text
+while_active{restricts{spellcasting, concentration}}
+aura{target:enemies, effects{restricts{heal, teleport}}}
+```
+
+`suppress{...}` desliga um efeito, modificador ou regra, sem proibir a acao:
+
+```text
+suppress{adv:attack{vs:self}}
+suppress{condition{inconsciente}, trigger:hp=0}
+suppress{penalty:passive_perception}
+```
+
+`immune_effect:` torna o alvo imune a um efeito externo:
+
+```text
+immune_effect:surprise
+immune_effect:forced_movement(except:teleport)
+immune_effect:sleep(source:magia)
+```
+
+`not{...}` nega somente um predicado booleano:
+
+```text
+requires{not{condition{incapacitado, target:self}}}
+restriction{not{equipped{mascara_da_piedade}}}
+if(not{space:available}): reroll
+```
+
+Nunca use `without{heal}` para dizer que uma criatura nao pode recuperar PV,
+nem `without{adv:attack}` para remover uma vantagem ativa. O primeiro caso e
+`restricts{heal}`; o segundo e `suppress{adv:attack}`.
+
+Necessidades fisiologicas usam a propriedade generica `need`:
+
+```text
+need:air=false
+need:food=false
+need:water=false
+need:sleep=false
+```
+
+## Sentidos
+
+`darkvision` e `devilsight` sempre sao sentidos independentes. Uma regra que
+concede Visao no Escuro comum declara apenas `darkvision`. Se a mesma regra
+tambem permite enxergar atraves de escuridao magica, ela declara ambos:
+
+```text
+sense:darkvision(range:120ft)
+sense:devilsight(range:120ft)
+```
+
+E invalido escrever `sense:darkvision(range:120ft, magical)` ou tratar
+`devilsight` como melhoria embutida em `darkvision`.
 
 ## Ordem canonica recomendada
 
@@ -194,8 +325,8 @@ bonus-action       -> bonus_action
 long-rest          -> long_rest
 short-rest         -> short_rest
 spell-slot         -> spell_slot
-no-slot            -> no_slot
-no-concentration   -> no_concentration
+no-slot            -> cast{..., without{slot}}
+no-concentration   -> cast{..., without{concentration}}
 str-atk            -> str_atk
 dex-check          -> dex_check
 unarmed-strike     -> unarmed_strike
@@ -231,5 +362,8 @@ ser considerado pronto.
 - `restricts` usado para proibicoes impostas por efeitos ativos.
 - Nenhum dado estrutural do banco repetido como tag.
 - Nenhuma primitiva especifica demais criada sem necessidade.
+- `=`, `:=`, `:+` e `:-` preservam semanticas distintas.
+- Blocos declarativos/runtime nao vazam efeitos estaticos para a ficha.
+- Condicoes relacionais usam `source`/`target`, nunca sufixos no identificador.
 - `tag_library.json`, docs e tags do banco usam a mesma nomenclatura.
 - Relatorio com contagem de linhas alteradas por tabela e lista de pendencias.

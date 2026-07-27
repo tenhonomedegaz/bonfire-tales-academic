@@ -721,6 +721,7 @@
 
         var trSel = el('cf-talento-raca'), trVazio = el('cf-talento-raca-vazio'), trDesc = el('cf-talento-raca-desc');
         var talentoRacaByNome = {};
+        var talentoRacaVazioPadrao = trVazio ? trVazio.textContent : '';
         // Talento da RAÇA base restrito a linhagens específicas (via pré-requisito): só aparece
         // se o personagem tiver uma dessas linhagens. Quem escolheu Essência (sem linhagem) não
         // vê exclusivos de linhagem, mas continua vendo os que aceitam 'ou Essência'.
@@ -731,12 +732,30 @@
             return false;
         }
         function fillTalentosRaca() {
-            // junta talentos da RAÇA (sempre) + da linhagem e da essência atualmente selecionadas
-            var lst = [];
-            ((CAT.talentos_raca || {})[racaSel.value] || []).forEach(function (t) { if (talentoRacaVisivel(t)) lst.push(t); });
+            // Fontes podem suprimir picks de outras fontes por
+            // suppress:pick{talento_racial, source:raca}. A interface só aplica a
+            // política declarada no catálogo; não conhece essências específicas.
+            var suppressed = {};
+            function addSuppressions(entries) {
+                (entries || []).forEach(function (entry) {
+                    var vert = currentVertente();
+                    if (entry.pick === 'talento_racial'
+                        && (!entry.vertente || entry.vertente === vert))
+                        suppressed[entry.source] = true;
+                });
+            }
+            addSuppressions(((CAT.pick_suppressions_raca || {})[racaSel.value] || []));
             if (!linWrap.hidden && linSel.value)
+                addSuppressions(((CAT.pick_suppressions_linhagem || {})[linSel.value] || []));
+            if (!essWrap.hidden && essSel.value)
+                addSuppressions(((CAT.pick_suppressions_essencia || {})[essSel.value] || []));
+
+            var lst = [];
+            if (!suppressed.raca)
+                ((CAT.talentos_raca || {})[racaSel.value] || []).forEach(function (t) { if (talentoRacaVisivel(t)) lst.push(t); });
+            if (!suppressed.linhagem && !linWrap.hidden && linSel.value)
                 ((CAT.talentos_linhagem || {})[linSel.value] || []).forEach(function (t) { lst.push(t); });
-            if (!essWrap.hidden && essSel.value) {
+            if (!suppressed.essencia && !essWrap.hidden && essSel.value) {
                 var vert = verWrap.hidden ? '' : verSel.value;
                 ((CAT.talentos_essencia || {})[essSel.value] || []).forEach(function (t) {
                     // talento de vertente específica só aparece se casar com a vertente escolhida
@@ -747,7 +766,13 @@
             lst.forEach(function (t) { talentoRacaByNome[t.nome] = t; });
             trSel.innerHTML = '';
             if (trDesc) { trDesc.classList.add('hidden'); trDesc.innerHTML = ''; }
-            if (!lst.length) { trVazio.classList.remove('hidden'); trSel.classList.add('hidden'); return; }
+            if (!lst.length) {
+                if (trVazio) trVazio.textContent = Object.keys(suppressed).length
+                    ? 'A fonte selecionada substitui esta escolha por uma característica fixa.'
+                    : talentoRacaVazioPadrao;
+                trVazio.classList.remove('hidden'); trSel.classList.add('hidden'); return;
+            }
+            if (trVazio) trVazio.textContent = talentoRacaVazioPadrao;
             trVazio.classList.add('hidden'); trSel.classList.remove('hidden');
             trSel.appendChild(opt('', '— Selecione —'));
             lst.forEach(function (t) { trSel.appendChild(opt(t.nome, t.nome + (t.pre ? ' — req: ' + t.pre : ''))); });
@@ -1027,6 +1052,8 @@
                 var e = [];
                 if (antSel.value && toSel.options.length > 1 && !toSel.value)
                     e.push('Escolha o Talento de Origem concedido pelo antecedente.');
+                if (!trSel.classList.contains('hidden') && trSel.options.length > 1 && !trSel.value)
+                    e.push('Escolha o Talento Racial concedido no nível 1.');
                 return e;
             },
             function () { return []; } // 5 · Revisão
@@ -1129,10 +1156,15 @@
             }).join('');
             var pend = clientValidate();
             if (pend.length) {
-                h += '<div class="cf-step-err" style="display:block;margin-top:.7rem"><strong>Pendências antes de criar:</strong><ul>' +
+                h += '<div class="cf-step-err" style="display:block;margin-top:.7rem"><strong>' +
+                    (window.CRIAR_PATHBUILDER ? 'Pendências antes de simular:' : 'Pendências antes de criar:') +
+                    '</strong><ul>' +
                     pend.map(function (x) { return '<li>' + escHtml(x) + '</li>'; }).join('') + '</ul></div>';
             } else {
-                h += '<p class="mt-2 text-xs text-[var(--spark)]">Tudo certo — a ficha bate com a prévia ao lado.</p>';
+                h += '<p class="mt-2 text-xs text-[var(--spark)]">' +
+                    (window.CRIAR_PATHBUILDER
+                        ? 'Tudo certo — esta base pode ser levada ao laboratório.'
+                        : 'Tudo certo — a ficha bate com a prévia ao lado.') + '</p>';
             }
             box.innerHTML = h;
         }
@@ -1289,19 +1321,30 @@
             }
             if (!window.CRIAR_LOGADO) { showErros(['Você precisa estar logado para salvar. Faça login e tente novamente.']); return; }
             showErros([]);
-            submitBtn.disabled = true; submitBtn.textContent = 'Salvando…';
+            var submittedPayload = payload();
+            submitBtn.disabled = true;
+            submitBtn.textContent = window.CRIAR_PATHBUILDER ? 'Abrindo…' : 'Salvando…';
             fetch(window.CRIAR_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': window.CSRF_TOKEN },
-                body: JSON.stringify(payload())
+                body: JSON.stringify(submittedPayload)
             }).then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
               .then(function (res) {
-                  if (res.ok && res.j.ok) { window.location.href = res.j.redirect; return; }
+                  if (res.ok && res.j.ok) {
+                      if (window.CRIAR_PATHBUILDER) {
+                          sessionStorage.setItem('bonfire:pathbuilder:base', JSON.stringify(submittedPayload));
+                          sessionStorage.removeItem('bonfire:pathbuilder:builds');
+                      }
+                      window.location.href = res.j.redirect;
+                      return;
+                  }
                   showErros((res.j && res.j.erros) || ['Erro ao salvar a ficha.']);
-                  submitBtn.disabled = false; submitBtn.textContent = 'Criar Personagem';
+                  submitBtn.disabled = false;
+                  submitBtn.textContent = window.CRIAR_SUBMIT_LABEL || 'Criar Personagem';
               }).catch(function () {
                   showErros(['Erro de rede ao salvar.']);
-                  submitBtn.disabled = false; submitBtn.textContent = 'Criar Personagem';
+                  submitBtn.disabled = false;
+                  submitBtn.textContent = window.CRIAR_SUBMIT_LABEL || 'Criar Personagem';
               });
         });
     }

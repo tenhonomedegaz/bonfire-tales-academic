@@ -77,8 +77,10 @@ class LevelUpLoteBase(_CriadorBase):
         return p, pc, old, new
 
     def _zerar_pendencias(self, p):
-        """Resolve as pendências abertas (o talento racial de marco N1 do anão é a sticky)
-        para exercitar o caminho 'sem pendências'."""
+        """Resolve as pendências abertas (o talento racial de marco N1 do anão é a sticky,
+        e o talento 'Artesão Primoroso' embute um pick:ferramenta:2 que também precisa ser
+        escolhido) para exercitar o caminho 'sem pendências'."""
+        from home import picks as _picks
         for _ in range(6):
             tr = views._pendencias_talento_racial(p)
             if not tr:
@@ -86,6 +88,25 @@ class LevelUpLoteBase(_CriadorBase):
             for bloco in tr:
                 views._lvl_aplicar_talento_racial(
                     p, {'nivel': bloco['nivel'], 'talento': bloco['opcoes'][0]['nome']})
+        # Demais escolhas pendentes (perícia/ferramenta/opção de qualquer origem — inclui a
+        # ferramenta embutida num talento racial já escolhido): resolve pelo registry genérico,
+        # pegando as primeiras opções livres de cada grupo.
+        for _ in range(8):
+            grupos = [g for g in _picks.resolve_personagem(p, kinds=views._OPCAO_PANEL_KINDS)
+                      if g['kind'] not in views._OPCAO_PANEL_EXCLUDE and g['pendentes'] >= 1]
+            if not grupos:
+                break
+            for g in grupos:
+                escolhidos = {str(e.get('valor')) for e in g['escolhidas']}
+                escolhidos |= {str(e.get('id_opcao')) for e in g['escolhidas']}
+                livres = [u for u in g['universo']
+                          if str(u['slug']) not in escolhidos
+                          and str(u.get('id')) not in escolhidos]
+                vals = [(str(u['id']) if u.get('id') is not None else u['slug'])
+                        for u in livres[:g['pendentes']]]
+                if vals:
+                    g['slot_base'] = g['prox_slot']
+                    _picks.registry_entry(g['kind'])['persist'](p, g, vals)
         return p
 
 
@@ -438,6 +459,19 @@ class SubirNivelPageTests(LevelUpLoteBase):
         self.assertIsNotNone(pend)
         self.assertGreater(pend['cantrips_pend'], 0)
         self.assertGreater(pend['known_pend'], 0)
+        repetida = pend['lista_truques'][0]
+        magia_repetida = TbMagia.objects.get(slug=repetida['slug'])
+        TbPersonagemMagia.objects.create(
+            id_personagem=p, id_magia=magia_repetida,
+            nivel=magia_repetida.nivel, nome=magia_repetida.nome,
+            preparada=True, origem=paladino.nome)
+        pend = views._pendencias_magias(
+            p, classe_id=feiticeiro.id_classe)
+        self.assertIn(
+            repetida['slug'],
+            {magia['slug'] for magia in pend['lista_truques']},
+            'a mesma magia em outra origem deve continuar disponível',
+        )
 
         truques = [m['slug'] for m in pend['lista_truques']][
             :pend['cantrips_pend']]
@@ -452,6 +486,68 @@ class SubirNivelPageTests(LevelUpLoteBase):
         aprendidas = p.magias.filter(origem=feiticeiro.nome)
         self.assertEqual(aprendidas.filter(nivel=0).count(), len(truques))
         self.assertEqual(aprendidas.filter(nivel__gte=1).count(), len(magias))
+
+    def test_multiclasse_exige_requisito_da_classe_atual_e_da_nova(self):
+        user = self._novo_usuario('multiclasse-dois-lados', staff=True)
+        paladino = TbClasse.objects.get(slug='paladino')
+        mago = TbClasse.objects.get(slug='mago')
+        p = TbPersonagem.objects.create(
+            dono=user, nome='Paladino sem requisito', nivel=1, aventuras=500,
+            forca=8, destreza=10, constituicao=12,
+            inteligencia=15, sabedoria=10, carisma=8)
+        TbPersonagemClasse.objects.create(
+            id_personagem=p, id_classe=paladino, nivel=1, principal=True)
+
+        erros = views._lvl_aplicar_adicionar_classe(
+            p, {'classe': mago.id_classe})
+
+        self.assertTrue(any('requisito' in erro.lower() for erro in erros), erros)
+        self.assertFalse(p.classes.filter(id_classe=mago).exists())
+
+    def test_multiclasse_expoe_apenas_picks_do_bloco_multiclass_prof(self):
+        from home import picks
+        user = self._novo_usuario('multiclasse-picks', staff=True)
+        paladino = TbClasse.objects.get(slug='paladino')
+        artifice = TbClasse.objects.get(slug='artifice')
+        p = TbPersonagem.objects.create(
+            dono=user, nome='Artífice secundário', nivel=2, aventuras=500,
+            forca=13, destreza=10, constituicao=12,
+            inteligencia=15, sabedoria=10, carisma=13)
+        TbPersonagemClasse.objects.create(
+            id_personagem=p, id_classe=paladino, nivel=1, principal=True)
+        TbPersonagemClasse.objects.create(
+            id_personagem=p, id_classe=artifice, nivel=1, principal=False)
+
+        groups = [
+            group for group in picks.resolve_personagem(p)
+            if group['classe_id'] == artifice.id_classe
+        ]
+
+        self.assertEqual(
+            [(group['kind'], group['n']) for group in groups],
+            [('pericia', 1)],
+        )
+
+    def test_paineis_de_preparo_incluem_cada_classe_preparada(self):
+        from home.character_engine import derive
+        user = self._novo_usuario('multiclasse-preparo', staff=True)
+        druida = TbClasse.objects.get(slug='druida')
+        mago = TbClasse.objects.get(slug='mago')
+        p = TbPersonagem.objects.create(
+            dono=user, nome='Dois preparadores', nivel=10, aventuras=500,
+            forca=10, destreza=12, constituicao=14,
+            inteligencia=16, sabedoria=16, carisma=10)
+        TbPersonagemClasse.objects.create(
+            id_personagem=p, id_classe=druida, nivel=5, principal=True)
+        TbPersonagemClasse.objects.create(
+            id_personagem=p, id_classe=mago, nivel=5, principal=False)
+
+        infos = views._magias_preparadas_infos(p, derive(p))
+
+        self.assertEqual(
+            {info['classe'] for info in infos},
+            {druida.nome, mago.nome},
+        )
 
 
 class LevelUpPreviewTests(LevelUpLoteBase):

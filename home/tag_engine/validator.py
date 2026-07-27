@@ -17,6 +17,7 @@ import unicodedata
 from collections import namedtuple
 
 from .lexer import tokenize, check_balance, find_other
+from .parser import ParseError, parse_tag
 
 ERROR, WARN, INFO = "ERROR", "WARN", "INFO"
 
@@ -296,6 +297,47 @@ def _check_catalogs(line, lib, locals_=frozenset()):
 
 
 _RE_MAGICO = re.compile(r"(attack\s*:\s*magico|\.magico)\b")
+_DARKVISION_MAGICAL_RE = re.compile(
+    r"\bsense\s*:\s*darkvision\s*\([^)]*"
+    r"(?:\bmagical\b|\bescuridao_magica\b)",
+    re.I,
+)
+_WITHOUT_PREDICATE_RE = re.compile(
+    r"(?:"
+    r"(?:\brequires\s*:\s*|\bif\s*\(\s*|\brestriction\s*\{\s*|"
+    r"\bunless\s*\([^)]*\)\s*:\s*)without\s*\{"
+    r")",
+    re.I,
+)
+_REQUIRES_BLOCK_OPEN_RE = re.compile(r"\brequires\s*:\s*\{", re.I)
+_WITHOUT_DIRECT_PARENTS = frozenset({"cast", "modifiers"})
+
+
+def _check_without_placement(line):
+    out = []
+    try:
+        program = parse_tag(line)
+    except ParseError:
+        return out
+
+    def walk(node):
+        if node.name == "without":
+            parent = node.scope[-1] if node.scope else None
+            if parent not in _WITHOUT_DIRECT_PARENTS:
+                out.append(Diagnostic(
+                    ERROR,
+                    "without-sem-execucao",
+                    "without{} deve pertencer lexicalmente a uma execucao "
+                    "concreta; anexe-o ao operando ou coloque-o dentro de "
+                    "cast/modifiers",
+                    node.raw,
+                ))
+        for child in node.children:
+            walk(child)
+
+    for node in program.nodes:
+        walk(node)
+    return out
 
 
 def _check_style(line, lib):
@@ -387,16 +429,16 @@ def _check_conditional_static(line):
 
 # ───────────────────────── API pública ──────────────────────────────
 _CAST_OPEN_RE = re.compile(r"\bcast\s*\{", re.I)
-_NO_SLOT_RE = re.compile(r"\bno-slot\b", re.I)
-_AT_WILL_RE = re.compile(r"\bat-will\b", re.I)
+_WITHOUT_SLOT_RE = re.compile(r"\bwithout\s*\{\s*slot\b", re.I)
+_AT_WILL_RE = re.compile(r"\bat[_-]will\b", re.I)
 _INNATE_USES_RE = re.compile(
     r"\buses\s*\{\s*[^,{}]+\s*,\s*reset\s*:\s*"
-    r"(?:long-rest|short-rest|short-or-long|rest|day)\b",
+    r"(?:long[_-]rest|short[_-]rest|short[_-]or[_-]long|rest|day)\b",
     re.I,
 )
 _INNATE_REST_LIMIT_RE = re.compile(
-    r"(?:\bresource-cost\s*:\s*)?[^,\s{}|:]+\s*/\s*"
-    r"(?:long-rest|short-rest|short-or-long|rest|day)\b",
+    r"(?:\bresource[_-]cost\s*:\s*)?[^,\s{}|:]+\s*/\s*"
+    r"(?:long[_-]rest|short[_-]rest|short[_-]or[_-]long|rest|day)\b",
     re.I,
 )
 
@@ -446,7 +488,7 @@ def _check_innate_casting_tags(tags):
     missing = []
     for line in lines:
         for start, end, body in _iter_cast_blocks(line):
-            if not _NO_SLOT_RE.search(body):
+            if not _WITHOUT_SLOT_RE.search(body):
                 continue
             spells = _concrete_spells_in_cast(body)
             if not spells:
@@ -463,11 +505,11 @@ def _check_innate_casting_tags(tags):
     if generic_limit:
         slugs = ", ".join(sorted({s for s, _fragm in missing})[:4])
         return [Diagnostic(WARN, "innate-cast-ambiguous-uses",
-                "varios cast{... no-slot ...} compartilham limite generico; prefira uses{N, reset:...} no cast de cada magia",
+                "varios cast{... without{slot} ...} compartilham limite generico; prefira uses{N, reset:...} no cast de cada magia",
                 slugs)]
     return [
         Diagnostic(WARN, "innate-cast-uses",
-                   "cast{... no-slot ...} sem at-will, uses{N, reset:...} ou N/long-rest; a ficha nao consegue rastrear usos inatos",
+                   "cast{... without{slot} ...} sem at_will, uses{N, reset:...} ou N/long_rest; a ficha nao consegue rastrear usos inatos",
                    frag)
         for _slug, frag in missing
     ]
@@ -555,6 +597,72 @@ def _check_strict_names(tokens, line):
                 "identificador mecanico deve usar snake_case; '-' fica reservado para operador matematico",
                 _frag(line, tok.pos),
             ))
+    match = _DARKVISION_MAGICAL_RE.search(line)
+    if match:
+        out.append(Diagnostic(
+            ERROR,
+            "darkvision-magica-agregada",
+            "darkvision e devilsight sao sentidos independentes; remova o "
+            "qualificador de darkvision e declare sense:devilsight(...) "
+            "separadamente",
+            match.group(0),
+        ))
+    match = _WITHOUT_PREDICATE_RE.search(line)
+    if match:
+        out.append(Diagnostic(
+            ERROR,
+            "without-como-predicado",
+            "without{} omite parte de uma execucao; negacao booleana usa "
+            "not{} dentro de requires/if/restriction",
+            match.group(0),
+        ))
+    for requires_match in _REQUIRES_BLOCK_OPEN_RE.finditer(line):
+        block_end = _v_match_close(line, requires_match.end() - 1)
+        if block_end < 0:
+            continue
+        block = line[requires_match.start():block_end + 1]
+        if "without{" not in block:
+            continue
+        out.append(Diagnostic(
+            ERROR,
+            "without-como-predicado",
+            "without{} omite parte de uma execucao; negacao booleana usa "
+            "not{} dentro de requires/if/restriction",
+            block,
+        ))
+    return out
+
+
+def _check_relational_condition_names(line, lib):
+    """Relations are arguments, never condition-specific identifiers."""
+    out = []
+    conditions = set((lib.catalogs or {}).get("condition") or ())
+    words = re.finditer(r"\b[a-z][a-z0-9_]*\b", line, re.I)
+    for match in words:
+        word = match.group(0).lower()
+        condition = next((
+            name for name in sorted(conditions, key=len, reverse=True)
+            if word.startswith(name + "_")
+        ), None)
+        if not condition:
+            continue
+        suffix = word[len(condition) + 1:]
+        relation_match = re.fullmatch(
+            r"(?:by|por)_(self|source|target|ally|enemy)", suffix)
+        target_match = re.fullmatch(r"(self|target|ally|enemy)", suffix)
+        if not relation_match and not target_match:
+            continue
+        relation = (relation_match or target_match).group(1)
+        selector = {"target": "creature", "ally": "allies",
+                    "enemy": "enemies"}.get(relation, relation)
+        argument = "source" if relation_match else "target"
+        out.append(Diagnostic(
+            ERROR,
+            "condicao-relacional-especifica",
+            ("condicao relacional deve usar argumentos; use "
+             "condition{%s, %s:%s}" % (condition, argument, selector)),
+            _frag(line, match.start()),
+        ))
     return out
 
 
@@ -599,6 +707,7 @@ def validate_tag_line(line, lib, data=None, locals_=frozenset(), strict_names=Tr
     tokens = tokenize(line)
     if strict_names:
         diags.extend(_check_strict_names(tokens, line))
+        diags.extend(_check_relational_condition_names(line, lib))
 
     bal = check_balance(tokens, line)
     for pos, msg in bal:
@@ -608,6 +717,45 @@ def validate_tag_line(line, lib, data=None, locals_=frozenset(), strict_names=Tr
 
     for pos, ch in find_other(tokens):
         diags.append(Diagnostic(INFO, "char-inesperado", f"caractere inesperado '{ch}'", _frag(line, pos)))
+
+    for token in tokens:
+        if token.type != "WORD":
+            continue
+        head = token.value.lower().rstrip("-")
+        if head in lib.forbidden_heads:
+            diags.append(Diagnostic(
+                ERROR, "primitiva-nao-mecanica",
+                f"'{head}' foi removida do DSL: {lib.forbidden_heads[head]}",
+                _frag(line, token.pos)))
+        if head in lib.forbidden_operands:
+            diags.append(Diagnostic(
+                ERROR, "operando-nao-mecanico",
+                f"'{head}' foi removido do DSL: {lib.forbidden_operands[head]}",
+                _frag(line, token.pos)))
+        for prefix, reason in lib.forbidden_prefixes.items():
+            if head.startswith(prefix):
+                diags.append(Diagnostic(
+                    ERROR, "prefixo-legado",
+                    f"'{head}' usa o prefixo proibido '{prefix}': {reason}",
+                    _frag(line, token.pos)))
+                break
+
+    # ``for:uma_frase_de_rp`` transforma cada situação narrativa em uma
+    # pseudo-função específica. O DSL só aceita predicados/ações compostos e
+    # observáveis; vantagem social ou de conhecimento fica na descrição.
+    if (re.search(r"\b(?:adv|dadv)\s*:\s*check(?:\{[^}]*\})?\s*\([^)]*\bfor\s*:", line)
+            or re.search(r"\bcheck_attr\s*:[^,}]*\([^)]*\bfor\s*:", line)):
+        diags.append(Diagnostic(
+            ERROR, "contexto-rp-nao-executavel",
+            "não use for:<frase> em teste; represente um predicado/ação mecânica "
+            "com argumentos genéricos ou mantenha a regra somente na descrição",
+            line))
+    if re.search(r"\bcheck\s*\{\s*social\s*\}", line):
+        diags.append(Diagnostic(
+            ERROR, "contexto-rp-nao-executavel",
+            "check{social} não é um tipo de rolagem determinístico; use uma perícia "
+            "real ou mantenha a regra somente na descrição",
+            line))
 
     unknown = {}
     _walk_heads(build_tree(tokens), lib, unknown, locals_)
@@ -619,6 +767,7 @@ def validate_tag_line(line, lib, data=None, locals_=frozenset(), strict_names=Tr
     diags += _check_source_refs(line, data)
     diags += _check_catalogs(line, lib, locals_)
     diags += _check_style(line, lib)
+    diags += _check_without_placement(line)
     diags += _check_conditional_static(line)
     return diags
 

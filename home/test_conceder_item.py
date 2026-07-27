@@ -334,6 +334,20 @@ class EditarFichaFetchTests(ConcederItemBase):
         self.assertEqual(p.idade, '37')
         self.assertEqual(p.historia, 'Salvo sem reload.')
 
+    def test_formulario_aceita_caminhos_internos_de_imagem(self):
+        p = self._char_dono_staff(apelido='relative-media')
+        p.foto_url = '/media/character_uploads/teste/retrato.gif'
+        p.token_url = '/media/character_uploads/teste/token.png'
+        p.save(update_fields=['foto_url', 'token_url'])
+        self.client.force_login(p.dono)
+
+        html = self.client.get(
+            reverse('ficha_detail', args=[p.pk]) + '?aba=info'
+        ).content.decode('utf-8')
+        self.assertIn('type="text" inputmode="url" name="foto_url"', html)
+        self.assertIn('type="text" inputmode="url" name="token_url"', html)
+        self.assertNotIn('type="url" name="foto_url"', html)
+
     def test_get_ficha_staff_mostra_painel_conceder(self):
         p = self._char_dono_staff()
         self.client.force_login(p.dono)  # staff

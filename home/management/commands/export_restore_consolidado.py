@@ -11,7 +11,7 @@ from django.conf import settings
 from django.core import serializers
 from django.core.management.base import BaseCommand
 from django.core.serializers.json import DjangoJSONEncoder
-from django.db import transaction
+from django.db import connection, transaction
 
 from home.deploy_sync import (
     CONTENT_MODELS,
@@ -188,7 +188,7 @@ class Command(BaseCommand):
         report = {
             "output": str(output.relative_to(root)),
             "gerado_em": stamp,
-            "fonte": "DEV (db.sqlite3) via ORM; Postgres desligado",
+            "fonte": f"DEV ({connection.vendor}) via ORM",
             "aplicador_recomendado": (
                 "admin console -> acao 'merge_conteudo' "
                 "(home.deploy_sync.sincronizar_conteudo)"),
@@ -210,7 +210,7 @@ class Command(BaseCommand):
                 ],
                 "memory_models_in_fixture": memory_overlap,
                 "line_endings": "CRLF",
-                "bom": False,
+                "bom": True,
             },
         }
         report_path.write_bytes(_json_bytes(report))

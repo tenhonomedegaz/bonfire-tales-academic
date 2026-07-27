@@ -52,17 +52,19 @@
       {# ============================ MAGIAS PREPARADAS (grava na hora) ============================ #}
       {% if magias_preparadas %}
       <h2 class="lvl-sech" style="margin-top:1.2rem">Magias Preparadas</h2>
-      <p class="lvl-secsub">{{ magias_preparadas.classe }} prepara magias da lista a cada descanso longo — só as preparadas podem ser conjuradas. Limite: <strong class="text-[var(--flame)]" id="prep-count">{{ magias_preparadas.preparadas_count }}</strong>/<strong class="text-[var(--flame)]">{{ magias_preparadas.limite|default:'—' }}</strong>.</p>
       {% if request.GET.prep == 'ok' %}<div class="lvl-ok" style="margin-bottom:0.6rem">Magias preparadas salvas.</div>{% endif %}
+      {% for prep in magias_preparadas %}
+      <p class="lvl-secsub">{{ prep.classe }} prepara magias da própria lista a cada descanso longo. Limite: <strong class="text-[var(--flame)]" id="prep-count-{{ prep.classe_id }}">{{ prep.preparadas_count }}</strong>/<strong class="text-[var(--flame)]">{{ prep.limite|default:'—' }}</strong>.</p>
       <form method="post" action="{% url 'personagem_preparar_magias' p.id_personagem %}" class="lvl-card">
         {% csrf_token %}
+        <input type="hidden" name="classe" value="{{ prep.classe_id }}">
         <div class="max-h-96 space-y-2 overflow-y-auto pr-1">
-          {% for g in magias_preparadas.grupos %}
+          {% for g in prep.grupos %}
             <div>
               <div class="lvl-subhdr">{{ g.nivel }}º Círculo</div>
               <div class="grid gap-1 sm:grid-cols-2">
                 {% for m in g.magias %}
-                  <label class="lvl-check"><input type="checkbox" name="magia" value="{{ m.slug }}" {% if m.marcada %}checked{% endif %} class="prep-chk"> <span>{{ m.nome }}</span></label>
+                  <label class="lvl-check"><input type="checkbox" name="magia" value="{{ m.slug }}" {% if m.marcada %}checked{% endif %} class="prep-chk-{{ prep.classe_id }}"> <span>{{ m.nome }}</span></label>
                 {% endfor %}
               </div>
             </div>
@@ -70,17 +72,18 @@
         </div>
         <button type="submit" class="cf-btn cf-btn-primary" style="margin-top:0.7rem">Salvar Preparadas</button>
       </form>
-      {% if magias_preparadas.limite %}
+      {% if prep.limite %}
       <script>
         (function(){
-          var lim = {{ magias_preparadas.limite }}, cnt = document.getElementById('prep-count');
-          var chks = Array.prototype.slice.call(document.querySelectorAll('.prep-chk'));
+          var lim = {{ prep.limite }}, cnt = document.getElementById('prep-count-{{ prep.classe_id }}');
+          var chks = Array.prototype.slice.call(document.querySelectorAll('.prep-chk-{{ prep.classe_id }}'));
           function upd(){ var n = chks.filter(function(c){return c.checked;}).length; cnt.textContent = n;
             chks.forEach(function(c){ if(!c.checked) c.disabled = n >= lim; }); }
           chks.forEach(function(c){ c.addEventListener('change', upd); }); upd();
         })();
       </script>
       {% endif %}
+      {% endfor %}
       {% endif %}
 
       {# ============================ RECURSOS DE CLASSE (grava na hora) ============================ #}

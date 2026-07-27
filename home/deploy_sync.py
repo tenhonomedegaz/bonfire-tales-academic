@@ -183,7 +183,14 @@ def sincronizar_conteudo(fixture_text):
             from django.core.management import call_command
             buf = StringIO()
             call_command("sqlsequencereset", "home", stdout=buf)
-            sql = buf.getvalue().strip()
+            # O backend PostgreSQL envolve o script em BEGIN/COMMIT. Aqui ja
+            # estamos dentro de transaction.atomic(); executar esses comandos
+            # encerraria a transacao externa e invalidaria o savepoint usado
+            # pela simulacao do restore.
+            sql = "\n".join(
+                line for line in buf.getvalue().splitlines()
+                if line.strip().upper() not in {"BEGIN;", "COMMIT;"}
+            ).strip()
             if sql:
                 with connection.cursor() as cur:
                     cur.execute(sql)

@@ -333,6 +333,15 @@ class TbEssencia(models.Model):
     id_essencia = models.AutoField(db_column='Id_Essencia', primary_key=True)
     nome = models.CharField(db_column='Nome', max_length=100)
     slug = models.CharField(db_column='Slug', max_length=100, unique=True)
+    tags_json = models.JSONField(
+        db_column='TagsJSON',
+        blank=True,
+        default=list,
+        help_text=(
+            'Politicas mecanicas da essencia. Toda maldicao deve declarar '
+            'suppress:pick{talento_racial, source:raca}.'
+        ),
+    )
     lore_presentation = models.TextField(db_column='LorePresentation', blank=True, null=True)
     lore_roleplay = models.TextField(db_column='LoreRoleplay', blank=True, null=True)
     lore_society = models.TextField(db_column='LoreSociety', blank=True, null=True)

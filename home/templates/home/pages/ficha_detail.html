@@ -435,9 +435,9 @@
               <figcaption>Token</figcaption>
             </figure>
           </div>
-          <label class="info-field full"><span class="lbl">URL do retrato <span class="hint">link de imagem</span></span><input type="url" name="foto_url" value="{{ p.foto_url|default:'' }}" placeholder="https://..."></label>
+          <label class="info-field full"><span class="lbl">URL do retrato <span class="hint">link de imagem</span></span><input type="text" inputmode="url" name="foto_url" value="{{ p.foto_url|default:'' }}" placeholder="https://..."></label>
           <label class="info-field full"><span class="lbl">Enviar retrato <span class="hint">PNG/JPG/WEBP/GIF · até 8MB · substitui a URL</span></span><input type="file" name="foto_file" accept="image/png,image/jpeg,image/webp,image/gif"></label>
-          <label class="info-field full"><span class="lbl">URL do token <span class="hint">link de imagem</span></span><input type="url" name="token_url" value="{{ p.token_url|default:'' }}" placeholder="https://..."></label>
+          <label class="info-field full"><span class="lbl">URL do token <span class="hint">link de imagem</span></span><input type="text" inputmode="url" name="token_url" value="{{ p.token_url|default:'' }}" placeholder="https://..."></label>
           <label class="info-field full"><span class="lbl">Enviar token <span class="hint">PNG/JPG/WEBP/GIF · até 8MB · substitui a URL</span></span><input type="file" name="token_file" accept="image/png,image/jpeg,image/webp,image/gif"></label>
         </div>
       </div>
@@ -445,9 +445,9 @@
       <div class="ficha-panel">
         <div class="ficha-section-title">Tema da Ficha</div>
         <div class="info-grid appearance-controls">
-          <label class="info-field full"><span class="lbl">URL do banner <span class="hint">imagem ou GIF</span></span><input type="url" name="banner_url" value="{{ p.banner_url|default:'' }}" placeholder="https://.../banner.gif"></label>
+          <label class="info-field full"><span class="lbl">URL do banner <span class="hint">imagem ou GIF</span></span><input type="text" inputmode="url" name="banner_url" value="{{ p.banner_url|default:'' }}" placeholder="https://.../banner.gif"></label>
           <label class="info-field full"><span class="lbl">Enviar banner <span class="hint">até 12MB · substitui a URL</span></span><input type="file" name="banner_file" accept="image/png,image/jpeg,image/webp,image/gif"></label>
-          <label class="info-field full"><span class="lbl">URL do fundo da página <span class="hint">imagem ou GIF (cover, fixo)</span></span><input type="url" name="ficha_background_url" value="{{ p.ficha_background_url|default:'' }}" placeholder="https://.../fundo.jpg"></label>
+          <label class="info-field full"><span class="lbl">URL do fundo da página <span class="hint">imagem ou GIF (cover, fixo)</span></span><input type="text" inputmode="url" name="ficha_background_url" value="{{ p.ficha_background_url|default:'' }}" placeholder="https://.../fundo.jpg"></label>
           <label class="info-field full"><span class="lbl">Enviar fundo <span class="hint">até 12MB · substitui a URL</span></span><input type="file" name="background_file" accept="image/png,image/jpeg,image/webp,image/gif"></label>
         </div>
         <div class="info-field full">
@@ -569,14 +569,14 @@
     <div class="spellbook-head">
       <div class="spell-title">
         <span>Magias</span>
-        {% if magias_info.spellcasting %}<strong>{{ magias_info.spellcasting.classe }}</strong>{% endif %}
+        {% if magias_info.spellcasters %}
+          <strong>{% for caster in magias_info.spellcasters %}{{ caster.classe }}{% if not forloop.last %} · {% endif %}{% endfor %}</strong>
+        {% endif %}
       </div>
       <div class="spell-stats">
-        {% if magias_info.spellcasting %}
-        <div class="spell-stat"><span>Atributo</span><strong>{{ magias_info.spellcasting.ability_nome }}</strong></div>
-        <div class="spell-stat"><span>CD</span><strong>{{ magias_info.spellcasting.cd }}</strong></div>
-        <div class="spell-stat"><span>Ataque</span><strong>{% if magias_info.spellcasting.ataque >= 0 %}+{% endif %}{{ magias_info.spellcasting.ataque }}</strong></div>
-        {% endif %}
+        {% for caster in magias_info.spellcasters %}
+        <div class="spell-stat"><span>{{ caster.classe }} · {{ caster.ability_nome }}</span><strong>CD {{ caster.cd }} · {% if caster.ataque >= 0 %}+{% endif %}{{ caster.ataque }}</strong></div>
+        {% endfor %}
         <div class="spell-stat"><span>Preparadas</span><strong>{{ magias_info.n_preparadas }}</strong></div>
         <div class="spell-stat alt"><span>Sempre</span><strong>{{ magias_info.n_sempre }}</strong></div>
       </div>
@@ -585,22 +585,25 @@
     <div class="spell-alert">Limite de magias preparadas atingido.</div>
     {% endif %}
 
-    {% if magias_info.spellcasting.slots_kind == 'pact' %}
+    {% for caster in magias_info.spellcasters %}
+    {% if caster.slots_kind == 'pact' %}
     <div class="mystic-casting">
-      {% if magias_info.spellcasting.mystic_resource %}
+      {% if caster.mystic_resource %}
       <article class="mystic-points">
-        <span>{{ magias_info.spellcasting.mystic_resource.nome }}</span>
-        <strong>{{ magias_info.spellcasting.mystic_resource.atual }}/{{ magias_info.spellcasting.mystic_resource.maximo }}</strong>
+        <span>{{ caster.classe }} · {{ caster.mystic_resource.nome }}</span>
+        <strong>{{ caster.mystic_resource.atual }}/{{ caster.mystic_resource.maximo }}</strong>
       </article>
       {% endif %}
-      {% if magias_info.spellcasting.max_cycle %}
+      {% if caster.max_cycle %}
       <article class="mystic-points subtle">
         <span>Ciclo Maximo</span>
-        <strong>{{ magias_info.spellcasting.max_cycle }}</strong>
+        <strong>{{ caster.max_cycle }}</strong>
       </article>
       {% endif %}
     </div>
-    {% elif magias_info.slots %}
+    {% endif %}
+    {% endfor %}
+    {% if magias_info.slots %}
     <div class="spell-slots-grid">
       {% for s in magias_info.slots %}
       <article class="spell-slot-card {% if s.total == 0 %}is-zero{% endif %}">
@@ -978,6 +981,16 @@
       });
       const payload = await response.json();
       if (!response.ok || !payload.ok) throw new Error('save');
+      const imageFields = {
+        foto_url: 'foto_url',
+        token_url: 'token_url',
+        banner_url: 'banner_url',
+        background_url: 'ficha_background_url'
+      };
+      Object.keys(payload.imagens || {}).forEach(function (key) {
+        const field = form.elements[imageFields[key]];
+        if (field) field.value = payload.imagens[key] || '';
+      });
       if (feedback) {
         feedback.textContent = 'Informações salvas.';
         feedback.className = 'text-sm text-[var(--spark)]';

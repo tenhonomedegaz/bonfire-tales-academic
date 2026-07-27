@@ -8,18 +8,24 @@ from django.db import migrations
 
 
 def reset_postgresql_sequences(apps, schema_editor):
-    from django.db import connection
+    from django.db import transaction
+    connection = schema_editor.connection
     if connection.vendor == 'postgresql':
         from io import StringIO
         from django.core.management import call_command
         buf = StringIO()
         try:
-            call_command("sqlsequencereset", "home", stdout=buf)
-            sql = buf.getvalue().strip()
-            if sql:
-                with connection.cursor() as cur:
-                    cur.execute(sql)
-        except Exception as e:
+            # A migration externa já é atômica. O savepoint interno garante
+            # rollback do SQL opcional antes de ignorar uma incompatibilidade;
+            # sem ele, capturar a exceção deixa toda a transação PostgreSQL
+            # abortada e impede o Django de registrar esta migration.
+            with transaction.atomic(using=connection.alias):
+                call_command("sqlsequencereset", "home", stdout=buf)
+                sql = buf.getvalue().strip()
+                if sql:
+                    with connection.cursor() as cur:
+                        cur.execute(sql)
+        except Exception:
             pass
 
 

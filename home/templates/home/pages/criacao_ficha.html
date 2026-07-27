@@ -4,8 +4,8 @@
 {% block content %}
 <section class="animate-fade-in">
   <header class="mb-4 border-b border-[var(--stroke)] pb-4">
-    <h1 class="font-serif text-2xl md:text-3xl font-bold text-[var(--ember)]">Criação de Ficha</h1>
-    <p class="mt-1 text-[var(--muted)] text-sm">Monte seu personagem de nível 1, passo a passo — a prévia da ficha acompanha cada escolha.</p>
+    <h1 class="font-serif text-2xl md:text-3xl font-bold text-[var(--ember)]">{% if pathbuilder %}Pathbuilder{% else %}Criação de Ficha{% endif %}</h1>
+    <p class="mt-1 text-[var(--muted)] text-sm">{% if pathbuilder %}Monte a base de nível 1 para abrir o laboratório. A build ficará apenas nesta aba e não criará uma ficha.{% else %}Monte seu personagem de nível 1, passo a passo — a prévia da ficha acompanha cada escolha.{% endif %}</p>
   </header>
 
   {% if not logado %}
@@ -258,7 +258,7 @@
         <div class="cf-step space-y-3" data-step="5" hidden>
           <div class="rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-3">
             <h2 class="mb-2 font-serif text-lg font-bold text-[var(--ember)]">Revisão</h2>
-            <p class="mb-2 text-xs text-[var(--muted)]">Confira a prévia ao lado — ela reflete exatamente a ficha que será criada. Pendências abaixo impedem o salvamento.</p>
+            <p class="mb-2 text-xs text-[var(--muted)]">{% if pathbuilder %}Confira a base que será usada na simulação. Pendências abaixo impedem a abertura do laboratório.{% else %}Confira a prévia ao lado — ela reflete exatamente a ficha que será criada. Pendências abaixo impedem o salvamento.{% endif %}</p>
             <div id="cf-review" class="space-y-1 text-sm text-[var(--text)]"></div>
           </div>
           <div id="cf-erros" class="hidden rounded border border-[var(--flame)]/50 bg-[var(--flame)]/10 px-3 py-2 text-sm text-[var(--flame)]"></div>
@@ -267,12 +267,12 @@
 
         <!-- Navegação de etapas -->
         <div class="cf-stepnav">
-          <a href="{% url 'personagens' %}" class="rounded border border-[var(--stroke)] px-3 py-2 text-sm text-[var(--muted)] hover:text-[var(--text)]">Cancelar</a>
+          <a href="{% if pathbuilder %}{% url 'home' %}{% else %}{% url 'personagens' %}{% endif %}" class="rounded border border-[var(--stroke)] px-3 py-2 text-sm text-[var(--muted)] hover:text-[var(--text)]">Cancelar</a>
           <button type="button" class="cf-btn" data-prev disabled>← Voltar</button>
           <span class="cf-hint" id="cf-nav-hint"></span>
           <span class="flex-1"></span>
           <button type="button" class="cf-btn cf-btn-primary" data-next>Avançar →</button>
-          <button type="submit" id="cf-submit" class="cf-btn cf-btn-primary" hidden>Criar Personagem</button>
+          <button type="submit" id="cf-submit" class="cf-btn cf-btn-primary" hidden>{% if pathbuilder %}Abrir laboratório{% else %}Criar Personagem{% endif %}</button>
         </div>
       </form>
     </div>
@@ -300,9 +300,11 @@
 {{ catalogos|json_script:"cf-catalogos" }}
 <script>
   window.POINT_BUY = { custo: {{ pb_custo|safe }}, maxPontos: {{ pb_max_pontos }}, min: {{ pb_min }}, max: {{ pb_max }} };
-  window.CRIAR_URL = "{% url 'criar_personagem' %}";
+  window.CRIAR_URL = "{% if pathbuilder %}{% url 'pathbuilder_iniciar' %}{% else %}{% url 'criar_personagem' %}{% endif %}";
   window.CRIAR_PREVIEW_URL = "{% url 'criar_personagem_preview' %}";
   window.CRIAR_LOGADO = {{ logado|yesno:"true,false" }};
+  window.CRIAR_PATHBUILDER = {{ pathbuilder|yesno:"true,false" }};
+  window.CRIAR_SUBMIT_LABEL = "{% if pathbuilder %}Abrir laboratório{% else %}Criar Personagem{% endif %}";
   window.CSRF_TOKEN = "{{ csrf_token }}";
 </script>
 {% endblock %}
@@ -310,5 +312,5 @@
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'css/pages/criador.css' %}?v=2">
 <script src="{% static 'js/point_buy.js' %}?v=2" defer></script>
-<script src="{% static 'js/criador.js' %}?v=10" defer></script>
+<script src="{% static 'js/criador.js' %}?v=11" defer></script>
 {% endblock %}

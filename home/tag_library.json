@@ -1,7 +1,7 @@
 {
   "_doc": {
     "titulo": "Biblioteca de interpretação das tags_json (Bonfire Tales)",
-    "status": "v0.2 — vocabulário de classes/opções/talentos formalizado; motor interpretador em home/tag_engine/ (lexer+parser+validador estilo Excel).",
+    "status": "v0.4 — AST ordenada, operandos tipados, operadores semânticos, gates por escopo e evaluator por op/target integrados ao character builder.",
     "proposito": [
       "Tirar a lógica das tags de dentro do backend. O motor (home/character_engine.py)",
       "passa a LER este arquivo para saber interpretar cada tag, em vez de conhecer cada",
@@ -24,11 +24,26 @@
     "regra_de_idioma": "keyword estrutural = inglês; valor de catálogo do jogo = português; nome próprio/define/slug = português."
   },
   "meta": {
-    "versao": "0.2",
-    "atualizado_em": "2026-07-01",
-    "compativel_com_vocabulario": "0.3_snake_case",
-    "regra_identificadores": "Identificadores mecanicos canonicos usam snake_case ([a_z][a_z0_9_]*). Hifen em nomes e legado; '-' fica reservado para formulas matematicas. Use validate_tags --strict_names no retagging.",
+    "versao": "0.4",
+    "atualizado_em": "2026-07-25",
+    "compativel_com_vocabulario": "0.4_ast_tipada",
+    "regra_identificadores": "Identificadores mecanicos canonicos usam snake_case ([a_z][a_z0_9_]*). Hifen em nomes e legado; '-' fica reservado para formulas matematicas. Use validate_tags --strict-names no retagging.",
     "unidade_distancia": "ft (pés) — padrão canônico (decisão 2026_06_17). Converter tags antigas em metros: 5ft=1.5m · 10ft=3m · 15ft=4.5m · 20ft=6m · 30ft=9m · 60ft=18m · 90ft=27m."
+  },
+  "forbidden_heads": {
+    "_doc": "Tombstones de nomes removidos. O validador gera ERRO para impedir que primitivas puramente narrativas voltem ao DSL mecânico.",
+    "rede": "Rede social, contatos e favores dependem de interpretação de RP; ficam apenas na descrição.",
+    "recall": "Conhecimento narrativo de tema não produz operação determinística; fica apenas na descrição.",
+    "patente": "Autoridade social e acesso institucional dependem do mestre; ficam apenas na descrição."
+  },
+  "forbidden_operands": {
+    "_doc": "Tombstones de argumentos narrativos ou específicos demais. Use ação, evento, condição, alvo ou outro predicado mecânico genérico.",
+    "conversar_com_nobres": "Conversa e status social dependem de interpretação de RP; a perícia é escolhida pelo mestre.",
+    "recall_info": "Lembrar informação é coberto pela ação genérica study; não crie um contexto exclusivo para uma frase."
+  },
+  "forbidden_prefixes": {
+    "no_": "Classifique a regra como omissão, proibição, supressão, imunidade ou predicado; não crie um verbo negativo para cada mecânica.",
+    "not_": "Use a negação booleana genérica not{<predicado>}; não incorpore a negação ao nome do predicado."
   },
   "token_forms": {
     "flag": {
@@ -148,6 +163,22 @@
       "doc": "Impõe uma proibição enquanto o escopo ativo durar. Diferente de gate: não bloqueia a ativação do próprio efeito, cria uma restrição no personagem/alvo. Ex.: restricts{spellcasting, concentration}.",
       "assina": "(target_selector, capacidades[])"
     },
+    "omit": {
+      "doc": "Remove uma etapa, custo, componente, rolagem ou consequência da execução que contém without{}, sem criar estado persistente.",
+      "assina": "(execution_scope, omitted_rule)"
+    },
+    "predicate_not": {
+      "doc": "Inverte o valor lógico de um predicado dentro de requires/restriction/if/unless. Não produz efeito no estado.",
+      "assina": "(predicate)"
+    },
+    "suppress": {
+      "doc": "Desativa um efeito, modificador ou regra no escopo atual, sem impedir a ação que poderia produzi-lo.",
+      "assina": "(scope, effect_selector)"
+    },
+    "set_property": {
+      "doc": "Define uma propriedade nomeada de um objeto de estado usando operando chave=valor, sem criar uma operação específica para cada propriedade.",
+      "assina": "(target_path, property_name, value)"
+    },
     "declare_caster": {
       "doc": "Declara a conjuração da classe (fração de caster p/ multiclasse).",
       "assina": "(ability, slots, lista, prepara, foco)"
@@ -203,6 +234,12 @@
       "sintaxe": "<nome_local>",
       "resolve": "algo criado por define{} na mesma habilidade.",
       "exemplo": "magia_selvagem"
+    },
+    "condition": {
+      "sintaxe": "condition{<condicao>, source:<seletor>, target:<seletor>}",
+      "resolve": "Predicado relacional de condição. O primeiro argumento vem do catálogo condition; source identifica quem causa, mantém ou referencia a condição, e target identifica quem está sob ela.",
+      "exemplo": "requires:condition{amedrontado, source:self} | end:condition{incapacitado, target:self}",
+      "nota": "Nunca crie nomes específicos como amedrontado_by_self, agarrado_por_self ou incapacitado_self. Relações pertencem aos argumentos."
     },
     "identidade": {
       "_doc": "Filtros resolvidos contra o banco (substituem tags_slug redundantes).",
@@ -262,8 +299,8 @@
       "armor": "bônus plano de CA que EMPILHA com a armadura equipada (armor.ca:+N — Estilo de Luta Defesa / infusões de armadura); distinto de ca= (base sem armadura)."
     },
     "direcao_ataque": {
-      "vs": "CONTRA (o alvo/vítima do ataque): em adv/dadv/no_adv:attack{...} desambigua a direção. no_adv:attack{vs:self} = nenhum ataque feito CONTRA você tem Vantagem. Sem vs:/by:, um 'target:self' fica ambíguo (atacante vs vítima).",
-      "by": "POR (quem faz o ataque): no_adv:attack{by:self} = seus próprios ataques não têm Vantagem; dadv:attack{by:enemies} = ataques dos inimigos têm Desvantagem."
+      "vs": "CONTRA (o alvo/vítima do ataque): em adv/dadv desambigua a direção. without{adv:attack{vs:self}} = nenhum ataque feito CONTRA você tem Vantagem. Sem vs:/by:, um target:self fica ambíguo (atacante vs vítima).",
+      "by": "POR (quem faz o ataque): without{adv:attack{by:self}} = seus próprios ataques não têm Vantagem; dadv:attack{by:enemies} = ataques dos inimigos têm Desvantagem."
     },
     "pendencia": "No banco existem 'attack:magico' (PT) vindos do tagueamento de magia — padronizar para 'attack:magic'."
   },
@@ -279,6 +316,7 @@
     "bound": "criatura vinculada",
     "wielded": "arma/objeto empunhado",
     "chosen_enemies": "inimigos escolhidos",
+    "away_from": "destino na direção oposta à fonte indicada; usado por movimento forçado sem criar uma condição específica",
     "source": "a fonte do dano/efeito recebido",
     "last_damage_type": "o último tipo de dano sofrido (muda em runtime)",
     "magic_object": "objeto mágico",
@@ -288,20 +326,19 @@
   "conditions": {
     "_doc": "Condições de runtime p/ requires:/if()/trigger= (aprovadas 2026_06_17). Distâncias em ft.",
     "adv": "você tem Vantagem na rolagem",
-    "no_dadv": "você NÃO tem Desvantagem",
-    "not_moved": "você não se moveu neste turno",
     "ally(range:<dist>)": "há um aliado a até <dist> ft",
     "target{acted}": "o alvo já agiu no combate",
     "target{!acted}": "o alvo ainda não agiu no combate",
     "target{surprised}": "o alvo está Surpreso",
     "in_dim_light": "você está em Luz Fraca ou Escuridão (par de in_light)",
     "banished": "o alvo está banido/removido do mapa (até um evento)",
+    "route_exists": "há uma rota válida para executar o movimento forçado ou concedido",
     "in:ability{<nome>}": "você está sob efeito ativo de uma habilidade própria referenciada (ex.: in:ability{forma_do_terror})",
     "next_attack": "escopo: a próxima jogada de ataque deste turno",
     "target{same}": "a MESMA criatura do gatilho (ex.: Ataque Estudado — vantagem contra quem você errou)",
     "sangrando": "a criatura está Sangrando (Bloodied — metade ou menos do PV máximo). Predicado: requires:target{sangrando} (Atacante Selvagem). Aprovado 2026_06_18.",
     "moved_by_other": "você foi movido por uma força/criatura externa neste turno (predicado defensivo). Aprovado 2026_06_18.",
-    "combinadores": "requires:{a and b | c} — AND/OR entre condições (ex.: Ataque Furtivo: {adv | ally(range:5ft) and no_dadv})"
+    "combinadores": "requires:{a and b | c} — AND/OR entre condições (ex.: Ataque Furtivo: {adv | ally(range:5ft) and not{dadv}})"
   },
   "events": {
     "_doc": "Eventos GENÉRICOS do jogo p/ trigger= (valem pra qualquer personagem). Específico de classe NÃO é evento: use trigger=ability{...} (vocabulario §4).",
@@ -430,9 +467,6 @@
       "ft_moved": "pés percorridos nesta ação (ex.: dmg = 2*ft_moved)",
       "owner_max_hp": "PV máximo do invocador/dono (ex.: threshold:owner_max_hp do Selo de Céssira)",
       "spent": "quantidade efetivamente gasta de um recurso nesta ativação (par de ciclo_gasto; Virtudes/Metamagia)",
-      "dado_de_combate": "valor rolado do recurso_dado de manobra (resource{dado_de_combate}, análogo a artes_marciais/dado_de_cacador)",
-      "dado_de_cacador": "valor rolado do Dado de Caçador; os Pontos de Segredo usam o recurso consumível pontos_de_segredo",
-      "dado_de_furtividade": "valor de cada dado de Ataque Furtivo; dados_de_furtividade guarda a quantidade de dados",
       "talent_attr": "o atributo que ESTE talento aumenta (asi_attr); usado na CD da habilidade do talento: cd=8+pb+talent_attr_mod. Sufixos -mod/-score. Aprovado 2026_06_18.",
       "grau": "nível/grau de uma trilha de opção (Virtudes: grau>=2). Gate de progressão, análogo a classlvl. Aprovado 2026_06_18.",
       "ciclo": "contador de ciclo de gasto de recurso (Conjuração Elemental); par de 'spent' e do limiter 1/<reset>{per:ciclo}. Aprovado 2026_06_18."
@@ -443,25 +477,7 @@
       "categoria": "A12",
       "forma": "flag",
       "op": "add_modifier",
-      "doc": "Qualificador de cast{}: conjura À VONTADE (sem custo de recurso nem limite de usos). Atalho consagrado, mantido de propósito: equivale a cast{no_slot} sem uses{}/resource_cost, mas o volume de uso (~627) e a clareza justificam a primitiva."
-    },
-    "rede": {
-      "categoria": "A_util",
-      "forma": "key_value",
-      "op": null,
-      "doc": "Rede de contatos sociais (utilidade narrativa de antecedente, não_mecânica): rede:contatos_criminais, rede:agentes_de_espionagem, rede:contratantes_mercenarios. Acesso a abrigo/hospedagem/informação a critério do mestre. Aprovado 2026_06_19."
-    },
-    "recall": {
-      "categoria": "A_util",
-      "forma": "key_value",
-      "op": null,
-      "doc": "Conhecimento/memória passiva de um tema (narrativa): recall:terreno_e_geografia, recall:contratos_e_eventos_locais. O personagem sempre lembra/sabe o assunto. Aprovado 2026_06_19."
-    },
-    "patente": {
-      "categoria": "A_util",
-      "forma": "key_value",
-      "op": null,
-      "doc": "Patente/autoridade militar (narrativa): patente:militar — influência sobre soldados de patente inferior, requisição de equipamento simples/montaria e acesso a fortalezas amigas. Aprovado 2026_06_19."
+      "doc": "Qualificador de cast{}: conjura À VONTADE (sem custo de recurso nem limite de usos). Atalho consagrado, mantido de propósito: equivale a cast{without{slot}} sem uses{}/resource_cost, mas o volume de uso e a clareza justificam a primitiva."
     },
     "marcha_forcada": {
       "categoria": "A_util",
@@ -504,6 +520,7 @@
       "categoria": "A4",
       "forma": "key_value",
       "op": "add_modifier",
+      "target": "ataque.bonus",
       "doc": "Bonus em jogadas de ataque concedido por item/efeito. Escopo pode refinar: weapon.atk:+1, spell.atk:+1, unarmed.atk:+1."
     },
     "log_castable": {
@@ -594,6 +611,41 @@
       "op": "override",
       "doc": "modify:<entidade_ref>.<prop>{...} — override genérico numa entidade referenciada."
     },
+    "sustain": {
+      "categoria": "A3",
+      "forma": "key_value",
+      "op": "grant_execution",
+      "target": "execucao.sustentacao",
+      "doc": "Mantém um efeito ativo sem reiniciá-lo. Ex.: sustain:presentation(without{action}) ou sustain:concentration. O custo e as condições ficam nos argumentos."
+    },
+    "activate": {
+      "categoria": "A3",
+      "forma": "key_value",
+      "op": "grant_execution",
+      "target": "efeitos.ativos",
+      "doc": "Ativa uma habilidade, opção ou definição referenciada. A identidade do efeito fica na referência, nunca em uma condição específica: activate:ability{frenesi_de_sangue, essencia:vampirismo}."
+    },
+    "end": {
+      "categoria": "A3",
+      "forma": "key_value",
+      "op": "grant_execution",
+      "target": "efeitos.ativos",
+      "doc": "Encerra uma instância ativa referenciada: end:ability{receptaculo_do_genio, classe:mistico} ou end:defined{mutagenico_preparado}(pick:1)."
+    },
+    "draw": {
+      "categoria": "A3",
+      "forma": "key_value",
+      "op": "roll_table",
+      "target": "tabela.resultados",
+      "doc": "Compra ou sorteia N resultados de uma tabela ou baralho definido. Ex.: draw:3(from:ability{arcanos_do_veu, classe:bardo}, unique)."
+    },
+    "play": {
+      "categoria": "A3",
+      "forma": "key_value",
+      "op": "grant_execution",
+      "target": "execucao.opcao_preparada",
+      "doc": "Executa e consome uma opcao previamente preparada. Ex.: play:prepared_arcano(target:creature(range:30ft), discard_after)."
+    },
     "add_to_set": {
       "categoria": "A9",
       "forma": "key_value",
@@ -615,7 +667,7 @@
         "type": "dice|formula",
         "elemento": "catalog:damage_type (PT)"
       },
-      "doc": "Dano (verbo E valor; nunca 'damage'). dmg:+1d6, dmg:8d6(fogo), dmg:+(roundup(classlvl/2)). (auto) = sem rolagem. Tipo escolhido inline: dmg:+1d8(pick:{raio | fogo | frio | trovejante}). 'no_crit_mult' marca dano não_multiplicado no crítico."
+      "doc": "Dano (verbo E valor; nunca 'damage'). dmg:+1d6, dmg:8d6(fogo), dmg:+(roundup(classlvl/2)). (auto) = sem rolagem. Tipo escolhido inline: dmg:+1d8(pick:{raio | fogo | frio | trovejante}). without{crit_mult} marca dano não multiplicado no crítico."
     },
     "crit_dmg": {
       "categoria": "A4",
@@ -960,6 +1012,16 @@
       },
       "doc": "Bônus numérico em TODOS os saves (Aura de Proteção: all_saves:+max(cha_mod,1); Magnum Opus: all_saves:+sintonizacao_ativa)."
     },
+    "initiative": {
+      "categoria": "A7",
+      "forma": "key_value",
+      "op": "add_modifier",
+      "target": "iniciativa",
+      "value": {
+        "type": "formula"
+      },
+      "doc": "Soma um modificador à iniciativa. Ex.: initiative:+pb. Vantagem ou Desvantagem continuam em adv:initiative e dadv:initiative."
+    },
     "all_checks": {
       "categoria": "A7",
       "forma": "key_value",
@@ -1185,12 +1247,6 @@
       "target": "terreno",
       "doc": "Torna a área terreno difícil para os alvos (effects de aura/aoe)."
     },
-    "no_difficult_terrain": {
-      "categoria": "A8",
-      "forma": "flag",
-      "op": "set_value",
-      "doc": "Ignora terreno difícil no movimento próprio."
-    },
     "redirect_damage": {
       "categoria": "A5",
       "forma": "key_value",
@@ -1252,7 +1308,7 @@
       "forma": "flag",
       "op": "set_value",
       "target": "defesa.crit",
-      "doc": "Transforma um crítico recebido em acerto comum (anula o crítico inteiro; mais forte que no_crit_mult)."
+      "doc": "Transforma um crítico recebido em acerto comum (anula o crítico inteiro; mais forte que without{crit_mult})."
     },
     "crit": {
       "categoria": "A4",
@@ -1288,18 +1344,6 @@
       "op": "grant_execution",
       "doc": "Substitui um dos ataques da Ação de Ataque por outra execução (truque — Segundo Ataque Mágico)."
     },
-    "no_surprised": {
-      "categoria": "A5",
-      "forma": "flag",
-      "op": "set_value",
-      "doc": "Não pode ser Surpreendido (par defensivo de target{surprised})."
-    },
-    "no_adv": {
-      "categoria": "A7",
-      "forma": "key_value",
-      "op": "grant_roll_mod",
-      "doc": "Nega Vantagem numa rolagem. Em ATAQUES, desambigue a direção com vs:/by: (scopes.direcao_ataque): no_adv:attack{vs:self} = nenhum ataque feito CONTRA você tem Vantagem (defensivo — substitui o antigo 'no_adv_against_self', ex_Inatingível); no_adv:attack{vs:enemies} = ataques contra inimigos não têm Vantagem (aura); no_adv:attack{by:self} = seus próprios ataques não têm Vantagem. Par de no_dadv."
-    },
     "allow_concentration": {
       "categoria": "A12",
       "forma": "key_value",
@@ -1319,9 +1363,10 @@
     },
     "suppress": {
       "categoria": "A9",
-      "forma": "key_value",
-      "op": "apply_condition",
-      "doc": "Suprime temporariamente um sub_efeito de um efeito ativo próprio sem removê_lo (Supressão Alquímica)."
+      "forma": "block_or_key_value",
+      "op": "suppress",
+      "target": "efeitos.suprimidos",
+      "doc": "Desativa um efeito, modificador ou regra que normalmente estaria ativo, sem proibir a ação que o originaria. Exemplos: suppress{adv:attack{vs:self}}, suppress{condition{inconsciente}, trigger:hp=0}, suppress{penalty:passive_perception}. Não use without{} para esta semântica."
     },
     "drop_held_item": {
       "categoria": "A9",
@@ -1342,24 +1387,11 @@
       },
       "doc": "Concede propriedade de arma a um perfil (Armas Integradas → acuidade). Difere de define:weapon...add_property{}."
     },
-    "no_unconscious_at_0": {
-      "categoria": "A5",
-      "forma": "flag",
-      "op": "set_value",
-      "target": "defesa.unconscious_at_0",
-      "doc": "Não cai Inconsciente ao chegar a 0 PV (Anjo Vingativo: só morre quando a forma acaba). Costuma vir com on:end -> die_if_0."
-    },
     "ignore": {
       "categoria": "A9",
       "forma": "key_value",
       "op": "set_value",
-      "doc": "Ignora um benefício/propriedade do alvo (ignore:speed_bonus, ignore:resist, ignore:invisivel). Lado ofensivo."
-    },
-    "no_opportunity_attack": {
-      "categoria": "A8",
-      "forma": "flag",
-      "op": "grant_execution",
-      "doc": "Movimento concedido NÃO provoca Ataque de Oportunidade (vs disengage blanket; pode ser no_opportunity_attack:from{<sel>})."
+      "doc": "Ignora uma propriedade ou regra durante uma interação, sem removê-la do alvo. Exemplos: ignore:resist, ignore:cover, ignore:difficult_terrain. Pode ser qualificado por escopo: weapon.ignore:resist ou move.ignore:difficult_terrain."
     },
     "contest": {
       "categoria": "A7",
@@ -1389,7 +1421,7 @@
       "categoria": "A9",
       "forma": "key_value",
       "op": "grant_execution",
-      "doc": "Concede algo ao alvo. grant:extra_action = uma ação completa extra no turno (Surto de Ação; não cabe nos 4 custos nem em 'execução'). Aprovado 2026_06_17. CONCESSÕES FIXAS consumidas no derive (character_engine.grants_fixos → views._sync_grants_fixos, modo escolha): grant:opcao:<tipo>:<slug>(extra, always_prepared) e grant:opcao{<tipo>: [<slugs>], fora_do_limite} materializam uma opção de jogo (metamagia/manobra) FORA do painel de pick; grant:talento{<slug>, no_asi} concede os benefícios de um talento sem o incremento de atributo. O resto (grant:reaction/grapple/move/extra_action) segue runtime/VTT (inerte)."
+      "doc": "Concede algo ao alvo. grant:extra_action = uma ação completa extra no turno (Surto de Ação; não cabe nos 4 custos nem em execução). CONCESSÕES FIXAS consumidas no derive: grant:opcao:<tipo>:<slug>(extra, always_prepared) e grant:opcao{<tipo>: [<slugs>], fora_do_limite} materializam uma opção fora do painel de pick; grant:talento{<slug>, without{asi}} concede os benefícios de um talento sem o incremento de atributo. O resto segue runtime/VTT."
     },
     "enhance": {
       "categoria": "A9",
@@ -1456,7 +1488,7 @@
         "catalog": "sense_type",
         "lang": "en"
       },
-      "doc": "Sentido/visão que a criatura POSSUI (catálogo sense_type, INGLÊS, universais do D&D: darkvision/blindsight/devilsight/truesight/tremorsense). Para DETECTAR algo do mundo use detect:."
+      "doc": "Sentido/visão que a criatura POSSUI. darkvision cobre escuridão comum; devilsight é declarado separadamente quando também atravessa escuridão mágica. Para detectar algo do mundo use detect:."
     },
     "detect": {
       "categoria": "A9",
@@ -1552,6 +1584,17 @@
         "fonte": "selectors"
       }
     },
+    "exclude": {
+      "categoria": "A10",
+      "forma": "key_value",
+      "op": "add_to_set",
+      "target": "alvo.exclusoes",
+      "value": {
+        "type": "selector",
+        "fonte": "selectors"
+      },
+      "doc": "Remove seletores do conjunto de alvos de um efeito ou área. Ex.: exclude:creature{self, chosen, qtd:max(int_mod,wis_mod)}."
+    },
     "effects": {
       "categoria": "A10",
       "forma": "block",
@@ -1583,7 +1626,7 @@
       "value": {
         "type": "ref|cond"
       },
-      "doc": "Condição POSITIVA exigida (inverso de restriction)."
+      "doc": "Condição POSITIVA exigida (inverso de restriction). Relações usam referência genérica: requires:condition{amedrontado, source:self}; nunca predicados específicos *_by_self, *_por_self ou *_self."
     },
     "willing": {
       "categoria": "A13",
@@ -1635,6 +1678,7 @@
       "categoria": "A6/efeito",
       "forma": "key_value",
       "op": "grant_proficiency",
+      "target": "proficiencias",
       "value": {
         "type": "categoria_valor",
         "doc": "prof:<perícia> | prof:armor{X} | prof:weapon{X} | prof:tool{X}"
@@ -1709,11 +1753,26 @@
       "forma": "flag",
       "op": "add_modifier"
     },
-    "no_*": {
+    "without": {
       "categoria": "A11",
-      "forma": "flag",
-      "op": "override",
-      "doc": "Remove uma exigência/marca: no_slot, no_material, no_concentration, no_atk_roll, no_space, no_inconsciente, no_los, no_somatic, no_verbal, no_sleep, no_crit_mult, no_stack:<x> (não acumula com outra característica, ex.: no_stack:truque_potente)."
+      "forma": "block",
+      "op": "omit",
+      "target": "execucao.omissoes",
+      "doc": "Omissão ligada a uma execução concreta: a execução acontece sem um custo, componente, rolagem, requisito operacional ou consequência que normalmente teria. Exemplos: cast{spell:x, without{slot}}, move:30ft(without{opportunity_attack}), dmg:ability_mod(without{roll}). Não representa proibição persistente, imunidade, supressão de bônus nem predicado negativo."
+    },
+    "not": {
+      "categoria": "A11",
+      "forma": "block",
+      "op": "predicate_not",
+      "target": "predicados",
+      "doc": "Negação booleana de um predicado, válida dentro de requires{}, restriction{}, if(), unless() e filtros. Exemplos: requires{not{condition{incapacitado, target:self}}}, restriction{not{equipped{mascara_da_piedade}}}. Não produz efeito e não substitui restricts{}, suppress{} ou immune_effect:."
+    },
+    "need": {
+      "categoria": "A9",
+      "forma": "key_value",
+      "op": "set_property",
+      "target": "corpo.necessidades",
+      "doc": "Declara necessidades fisiológicas de forma genérica. Exemplos: need:air=false, need:food=false, need:water=false, need:sleep=false. Não crie verbos no_breathe, no_eat ou no_sleep."
     },
     "spell_mod": {
       "categoria": "A14",
@@ -1807,7 +1866,7 @@
       "categoria": "A8",
       "forma": "key_value",
       "op": "grant_execution",
-      "doc": "Manipula equipamento sem ação extra: equip:draw (sacar) | equip:stow (guardar) | equip:reload (recarregar). 'no_loading' via no_*."
+      "doc": "Manipula equipamento sem ação extra: equip:draw (sacar) | equip:stow (guardar) | equip:reload (recarregar). Para ignorar Carregar use without{loading}."
     },
     "reload": {
       "categoria": "A8",
@@ -2094,7 +2153,7 @@
       "categoria": "A11",
       "forma": "flag",
       "op": "override",
-      "doc": "Conjura com METADE dos componentes materiais (Última Rodada). Família de no_*."
+      "doc": "Conjura com METADE dos componentes materiais (Última Rodada)."
     },
     "color_vision": {
       "categoria": "A9",
@@ -2107,7 +2166,7 @@
       "categoria": "A1",
       "forma": "block",
       "op": "gate",
-      "doc": "Bloco ativo CONDICIONAL: while:<cond>{<efeitos>} — efeitos valem ENQUANTO a condição se mantém (while:in_sunlight{...}, while:frenesi{...}). while_active gateado por condição inline; também qualificador (resist:all(while:petrificado))."
+      "doc": "Bloco ativo CONDICIONAL: while:<cond>{<efeitos>} — efeitos valem ENQUANTO a condição se mantém (while:in_sunlight{...}). Estados de habilidades usam while:in:ability{...}{...}; não viram condições globais."
     },
     "force": {
       "categoria": "A9",
@@ -2213,7 +2272,8 @@
     },
     "multiclass_prof": {
       "sintaxe": "multiclass_prof{escudos, armas_simples}",
-      "op": "grant_proficiency"
+      "op": "grant_proficiency",
+      "target": "multiclasse.proficiencias"
     }
   },
   "recursos_universais": {
@@ -2270,28 +2330,10 @@
         "invisivel",
         "possuido",
         "banido",
-        "afastado",
         "silenciado",
-        "enlarge",
-        "incorporeo",
-        "queimando",
-        "mutagenico",
-        "marca_guardiao",
-        "debilitante",
-        "vibracoes_letais",
-        "golpe_fantasmagorico",
-        "no_reaction",
-        "no_heal",
-        "no_camuflagem",
-        "in_receptaculo",
-        "restricao_de_acao",
-        "frenesi",
-        "frenesi_de_sangue",
-        "seduzido",
-        "half_speed",
-        "no_invisivel"
+        "queimando"
       ],
-      "nota": "Os 5e + homebrew. possuido = dominação; banido = banish; afastado = turned; silenciado = sem verbal. Estados homebrew (enlarge/incorporeo/queimando/mutagenico/marca_guardiao/debilitante/vibracoes_letais/golpe_fantasmagorico/no_reaction/no_heal/no_camuflagem) aplicados por características específicas. Adicionados 2026_06_17/18."
+      "nota": "Condições compartilhadas pelo sistema. Modos, marcas e efeitos pertencentes a uma habilidade são referenciados com ability{}, defined{} ou mark{} e não entram neste catálogo."
     },
     "creature_type": {
       "lang": "pt",
@@ -2349,8 +2391,7 @@
         "armas_simples",
         "armas_marciais",
         "escudos",
-        "instrumento_musical",
-        "ferreiro"
+        "instrumento_musical"
       ]
     },
     "weapon_property": {
@@ -2387,17 +2428,6 @@
       ],
       "nota": "fração de caster p/ somar nível de conjurador no multiclasse. pact = caster por pontos (Místico), não soma na tabela padrão."
     },
-    "raridade": {
-      "lang": "pt",
-      "valores": [
-        "comum",
-        "incomum",
-        "raro",
-        "muito_raro",
-        "lendario"
-      ],
-      "nota": "raridade de item mágico (Replicar Item Mágico escala por nível). Adicionado 2026_06_17."
-    },
     "idioma": {
       "lang": "pt",
       "fonte": "lista de idiomas do sistema",
@@ -2424,7 +2454,7 @@
         "tremorsense",
         "ethereal"
       ],
-      "nota": "tipos de sentido/visão (universais do D&D, INGLÊS como a taxonomia de ataque); valor de sense:. Detecção de coisas do mundo usa detect: (PT). Adicionado 2026_06_18."
+      "nota": "Tipos de sentido/visão universais e independentes. darkvision nunca recebe o qualificador magical. Quando uma regra concede darkvision e também permite enxergar através de escuridão mágica, declare duas instâncias: sense:darkvision(...) e sense:devilsight(...). Devilsight não substitui nem altera darkvision."
     },
     "referencias_de_banco": {
       "spell": "TbMagia.slug",
@@ -2437,8 +2467,7 @@
     }
   },
   "open_questions": [
-    "Parser string -> AST: IMPLEMENTADO em home/tag_engine/ (lexer.py + parser.py + validator.py). Falta o EVALUATOR (contrato exato de cada op aplicando em state[target]).",
     "Forma final de prereq=<ref> (pré_requisito de atributo/entidade).",
-    "Mapear todos os targets de estado no character_engine (resistencias, ataque, movimento, recursos...) e fechar a lista de 'ops'."
+    "Ampliar os consumidores de runtime/VTT para operações já preservadas no AST (ataques, saves, áreas, condições, recursos e gatilhos); o character builder já materializa apenas targets estáticos."
   ]
 }

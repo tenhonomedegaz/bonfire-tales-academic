@@ -2307,7 +2307,7 @@ class TbEssenciaAdmin(BonfireAdminMixin, admin.ModelAdmin):
     prepopulated_fields = {"slug": ("nome",)}
     ordering = ("nome",)
     fieldsets = (
-        (None, {"fields": ("nome", "slug")}),
+        (None, {"fields": ("nome", "slug", "tags_json")}),
         ("Lore", {"classes": ("collapse",), "fields": ("lore_presentation", "lore_roleplay", "lore_society")}),
     )
 

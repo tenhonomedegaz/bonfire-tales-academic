@@ -296,12 +296,17 @@ def _proficiencias_classe(classes):
     legíveis. A regra de save (só da principal) é a mesma — ver _saves."""
     principal = _classe_principal(classes)
 
-    def _toks(tags, key):
+    def _toks(tags, target):
+        from .tag_engine import evaluate_tags
         out = []
-        for t in (tags or []):
-            body = _tag_block(t, key)
-            if body is not None:
-                out += [x.strip() for x in body.split(',') if x.strip()]
+        for operation in evaluate_tags(tags or []).operations:
+            if (not operation.active
+                    or operation.op != 'grant_proficiency'
+                    or operation.target != target):
+                continue
+            values = (operation.value if isinstance(operation.value, list)
+                      else [operation.value])
+            out.extend(str(value).strip() for value in values if str(value).strip())
         return out
 
     c_arm, c_wpn, c_tool, mc_arm, mc_wpn, mc_tool = [], [], [], [], [], []
@@ -309,7 +314,9 @@ def _proficiencias_classe(classes):
         tags = getattr(c.id_classe, 'tags_json', None) or []
         primaria = bool(principal) and c.id_classe_id == principal.id_classe_id
         alvo_arm, alvo_wpn, alvo_tool = (c_arm, c_wpn, c_tool) if primaria else (mc_arm, mc_wpn, mc_tool)
-        for tk in _toks(tags, 'prof' if primaria else 'multiclass-prof'):
+        target = ('proficiencias' if primaria
+                  else 'multiclasse.proficiencias')
+        for tk in _toks(tags, target):
             lab = _PROF_TOKEN_LABEL.get(tk)
             if lab:
                 {'armadura': alvo_arm, 'arma': alvo_wpn, 'ferramenta': alvo_tool}[lab[0]].append(lab[1])
@@ -422,15 +429,21 @@ def _dado_de_vida(texto):
 
 
 def _hit_dice_from_tag(classe):
-    for tag in (getattr(classe, 'tags_json', None) or []):
-        m = re.search(r'hit_dice:\s*\d*d(\d+)', str(tag))
-        if m:
-            return int(m.group(1))
+    from .tag_engine import evaluate_tags
+    result = evaluate_tags(getattr(classe, 'tags_json', None) or [])
+    for operation in result.operations:
+        if (operation.active
+                and (operation.op, operation.target)
+                == ('set_value', 'classe.dado_vida')):
+            die = _dado_de_vida(operation.value)
+            if die is not None:
+                return die
     return None
 
 
 def _dado_de_vida_classe(classe):
-    return _dado_de_vida(getattr(classe, 'dado_vida', None)) or _hit_dice_from_tag(classe)
+    return _hit_dice_from_tag(classe) or _dado_de_vida(
+        getattr(classe, 'dado_vida', None))
 
 
 def _classe_principal(classes):
@@ -593,6 +606,71 @@ _TALENT_ATTR_FIELDS = {
     'SAB': 'atrib_sabedoria',
     'CAR': 'atrib_carisma',
 }
+
+
+_ROLL_DISPLAY = {
+    'death_save': 'salvaguardas contra a morte',
+    'initiative': 'iniciativa',
+    'ability_check': 'testes de habilidade',
+    'spell_attack': 'ataques de magia',
+    'spell_save': 'salvaguardas contra magias',
+    'attack': 'jogadas de ataque',
+    'save': 'salvaguardas',
+    'check': 'testes de habilidade',
+}
+_DISPLAY_TOKEN = {
+    'str': 'Força', 'dex': 'Destreza', 'con': 'Constituição',
+    'int': 'Inteligência', 'wis': 'Sabedoria', 'cha': 'Carisma',
+    'in_dim_light': 'em penumbra', 'in_darkness': 'na escuridão',
+    'sangrando': 'Sangrando', 'magia': 'magias',
+}
+
+
+def _display_token(token):
+    token = str(token or '').strip().lower()
+    if not token:
+        return ''
+    return _DISPLAY_TOKEN.get(
+        token, token.replace('_', ' ').strip().capitalize())
+
+
+def _roll_modifier_display(raw, feature_name, disadvantage=False):
+    """Traduz a expressão mecânica de adv/dadv sem expor o DSL na ficha."""
+    raw = str(raw or '').strip()
+    match = re.match(r'([a-z0-9_]+)(?:\{([^}]*)\})?(?:\((.*)\))?$', raw)
+    if not match:
+        subject = _display_token(raw)
+        return '%s em %s — %s' % (
+            'Desvantagem' if disadvantage else 'Vantagem', subject, feature_name)
+
+    head, selected, qualifiers = match.groups()
+    if head == 'check' and selected:
+        subject = 'testes de %s' % _display_token(selected)
+    elif head == 'save' and selected:
+        subject = 'salvaguardas de %s' % _display_token(selected)
+    else:
+        subject = _ROLL_DISPLAY.get(head, _display_token(head))
+
+    contexts = []
+    if qualifiers:
+        target = re.search(r'(?:requires:)?target\{([^}]*)\}', qualifiers)
+        if target:
+            contexts.append('alvo: %s' % ', '.join(
+                _display_token(value.lstrip('!'))
+                for value in target.group(1).split(',')
+                if value.strip() and not value.strip().startswith('!')))
+        vs = re.search(r'\bvs:([a-z0-9_]+)', qualifiers)
+        if vs:
+            contexts.append('contra %s' % _display_token(vs.group(1)).lower())
+        for flag in ('in_dim_light', 'in_darkness'):
+            if re.search(r'\b%s\b' % flag, qualifiers):
+                contexts.append(_display_token(flag))
+
+    label = '%s em %s' % (
+        'Desvantagem' if disadvantage else 'Vantagem', subject)
+    if contexts:
+        label += ' (%s)' % '; '.join(contexts)
+    return '%s — %s' % (label, feature_name)
 
 
 def _parse_talent_attr_details(texto):
@@ -1455,7 +1533,7 @@ def grants_fixos(personagem):
       grant:opcao:<tipo>:<slug>(mods)       uma opção específica (metamagia/manobra…)
       grant:opcao{<tipo>: [<slugs>], ...}   adicionada à lista conhecida FORA do painel de
                                             pick (não conta no limite, 'extra/fora do limite')
-      grant:talento{<slug>[, no_asi]}       os benefícios de um talento específico, sem ASI
+      grant:talento{<slug>[, without{asi}]} os benefícios de um talento específico, sem ASI
 
     Itera a MESMA lista de features de `derive`/`magias_concedidas` (já filtrada por
     nível/escolha/talento-pego) e resolve os slugs contra o catálogo ao vivo (TbOpcaojogo.slug
@@ -1494,7 +1572,7 @@ def grants_fixos(personagem):
                 out['opcoes'].append({'slug': op.slug, 'id_opcao': op.id_opcao,
                                       'tipo': tipo, 'nome': op.nome, 'fonte': fonte})
             for tm in _GRANT_TALENTO_RE.finditer(s):
-                no_asi = 'no_asi' in (tm.group(2) or '')
+                no_asi = bool(re.search(r'without\s*\{\s*asi\b', tm.group(2) or ''))
                 t = tal_por_slug.get(_ref_slug(tm.group(1)))
                 if not t or t.slug in seen_tal:
                     continue
@@ -2037,9 +2115,269 @@ def _armadura_equipada(personagem, dex_mod):
             'fonte': fonte, 'escudo_bonus': esc_bonus}
 
 
+def _dsl_static_adapter(operations, ctx, feature_name, coll, hp_bonus, ca_cands,
+                        resist, imune, cond_imune, sentidos, sentidos_incr,
+                        sentidos_incr_ifp, source_kind=None,
+                        existing_senses=frozenset()):
+    """Materializa destinos estáticos do DSL no shape legado da ficha.
+
+    O dispatch usa apenas ``(op, target)`` definidos em tag_library.json. Nomes
+    de classes, habilidades e primitivas nunca decidem o comportamento.
+    """
+    expected, applied = {}, {}
+    speed_delta = 0
+    proficiency_sinks = {
+        'armor': coll['armaduras'],
+        'weapon': coll['armas'],
+        'tool': coll['ferramentas'],
+        'idioma': coll['idiomas'],
+        'language': coll['idiomas'],
+    }
+
+    categories = {
+        ('set_value', 'ca'): 'ca',
+        ('add_modifier', 'ca'): 'ca_bonus',
+        ('add_modifier', 'iniciativa'): 'initiative',
+        ('add_modifier', 'saves.bonus'): 'all_saves',
+        ('grant_proficiency', 'saves'): 'save_prof',
+        ('grant_proficiency', 'proficiencias'): 'prof',
+        ('add_to_set', 'resistencias'): 'resist',
+        ('add_to_set', 'imunidades'): 'immune',
+        ('add_to_set', 'imunidades_condicao'): 'cond_immune',
+        ('emit_area', 'sentidos'): 'sense',
+        ('add_modifier', 'movimento.deslocamento'): 'speed',
+        ('add_to_set', 'movimento.modos'): 'move',
+        ('add_modifier', 'pericia.bonus'): 'check_bonus',
+        ('set_value', 'pericia.atributo'): 'check_attr',
+        ('set_value', 'ataque.qtd'): 'attacks',
+    }
+
+    def category_of(operation):
+        scope = set(operation.scope)
+        if operation.op == 'add_modifier' and 'spell' in scope:
+            if operation.target == 'ataque.bonus':
+                return 'spell_attack_bonus'
+            if operation.target == 'save.cd':
+                return 'spell_save_dc_bonus'
+        category = categories.get((operation.op, operation.target))
+        if category is None and operation.op == 'add_modifier':
+            if operation.params.get('name') == 'max_hp':
+                return 'max_hp'
+        return category
+
+    def mark(category):
+        applied[category] = applied.get(category, 0) + 1
+
+    def qualifier_gate_status(operation):
+        """Retorna ``allow``, ``block`` ou ``unknown`` para gates inline."""
+        controls = {'requires', 'restriction', 'unless', 'if', 'if_not'}
+        params = operation.params
+        kwargs = params.get('kwargs', {})
+        present = controls.intersection(kwargs)
+        for control in present:
+            truth = kwargs[control]
+            if not isinstance(truth, bool):
+                return 'unknown'
+            if control in {'requires', 'if'} and not truth:
+                return 'block'
+            if control in {'restriction', 'unless', 'if_not'} and truth:
+                return 'block'
+        if controls.intersection(params.get('flags', ())):
+            return 'unknown'
+        if (not present and any(
+                re.search(r'\b(?:requires|restriction|unless|if)\b', value)
+                for value in operation.qualifiers)):
+            return 'unknown'
+        return 'allow'
+
+    for operation in operations:
+        if not operation.active:
+            continue
+        category = category_of(operation)
+        if category:
+            expected[category] = expected.get(category, 0) + 1
+        gate_status = qualifier_gate_status(operation)
+        if gate_status == 'block':
+            if category:
+                mark(category)
+            continue
+        if gate_status == 'unknown':
+            continue
+        key = (operation.op, operation.target)
+        value = operation.value
+        params = operation.params
+
+        if key == ('set_value', 'ca') and isinstance(value, (int, float)):
+            ca_cands.append((value, feature_name, False))
+            mark('ca')
+            continue
+        if key == ('add_modifier', 'ca') and isinstance(value, (int, float)):
+            # `armor.ca:+N` (Estilo Defesa / infusão de armadura) é um bônus
+            # CONDICIONAL à armadura equipada — já resolvido pelo compilador de
+            # equipamento via `armor_ca_bonus` (leitura textual, aplicado só com
+            # armadura). Contá-lo aqui TAMBÉM somaria o mesmo +N duas vezes
+            # (bug do off-by-one da CA). Só o `ca:+N` PLANO (incondicional, sem
+            # escopo de armadura) alimenta o bônus geral. Itens equipados também
+            # ficam com o compilador próprio (evita dupla contagem).
+            if 'armor' not in operation.scope and source_kind != 'item':
+                coll['ca_bonus'] += value
+            mark('ca_bonus')
+            continue
+        if key == ('add_modifier', 'iniciativa') and isinstance(value, (int, float)):
+            coll['initiative'] += value
+            mark('initiative')
+            continue
+        if key == ('add_modifier', 'saves.bonus') and isinstance(value, (int, float)):
+            coll['all_saves'] += value
+            mark('all_saves')
+            continue
+        if key == ('grant_proficiency', 'saves') and isinstance(value, str):
+            token = value.strip().lower()
+            if re.fullmatch(r'[a-z_]+', token) and token not in _PLACEHOLDERS:
+                coll['save_prof'].add(token)
+                mark('save_prof')
+            continue
+        if key == ('grant_proficiency', 'proficiencias') and isinstance(value, str):
+            prof_category = params.get('name')
+            prof_args = params.get('args') or []
+            item = str(prof_args[0]).strip() if prof_args else value.strip()
+            sink = proficiency_sinks.get(prof_category if prof_args else None)
+            if sink is not None:
+                sink.append(item)
+                mark('prof')
+            else:
+                skill = _norm_skill_slug(item)
+                if skill in _SKILL_INFO:
+                    coll['skill_prof'].add(skill)
+                    mark('prof')
+            continue
+        if key in {
+                ('add_to_set', 'resistencias'),
+                ('add_to_set', 'imunidades'),
+                ('add_to_set', 'imunidades_condicao')}:
+            token = params.get('name') or (
+                value.strip() if isinstance(value, str) else None)
+            destination = {
+                'resistencias': resist,
+                'imunidades': imune,
+                'imunidades_condicao': cond_imune,
+            }[operation.target]
+            target_category = {
+                'resistencias': 'resist',
+                'imunidades': 'immune',
+                'imunidades_condicao': 'cond_immune',
+            }[operation.target]
+            if (token and re.fullmatch(r'[a-z_]+', token)
+                    and token not in _PLACEHOLDERS
+                    and token not in {'source', 'selector', 'last_damage_type'}):
+                if token not in destination:
+                    destination.append(token)
+                mark(target_category)
+            continue
+        if key == ('emit_area', 'sentidos'):
+            sense_name = params.get('name')
+            raw_range = params.get('raw_kwargs', {}).get(
+                'range', params.get('raw_kwargs', {}).get('radius', ''))
+            distance = params.get('kwargs', {}).get(
+                'range', params.get('kwargs', {}).get('radius', 0))
+            if (sense_name and re.fullmatch(r'[a-z_]+', sense_name)
+                    and isinstance(distance, (int, float))):
+                distance = int(distance)
+                if str(raw_range).strip().startswith('+'):
+                    if 'if_present' in params.get('flags', ()):
+                        # "por outra fonte" consulta o snapshot anterior à
+                        # habilidade. Um alcance absoluto concedido pela própria
+                        # feature não pode satisfazer seu incremento condicional.
+                        if sense_name in existing_senses:
+                            sentidos_incr[sense_name] = sentidos_incr.get(
+                                sense_name, 0) + distance
+                    else:
+                        sentidos_incr[sense_name] = sentidos_incr.get(
+                            sense_name, 0) + distance
+                else:
+                    sentidos[sense_name] = max(
+                        sentidos.get(sense_name, 0), distance)
+                mark('sense')
+            continue
+        if key == ('add_modifier', 'movimento.deslocamento'):
+            if isinstance(value, (int, float)):
+                speed_delta += int(value)
+                mark('speed')
+            continue
+        if key == ('add_to_set', 'movimento.modos'):
+            mode = params.get('name')
+            binding = params.get('binding')
+            amount = binding.get('value') if binding else None
+            if amount is None and params.get('args'):
+                amount = params['args'][0]
+            if mode and re.fullmatch(r'[a-z_]+', mode):
+                if amount in {'=speed', '=walk', 'speed', 'walk', None}:
+                    coll['move_modes'][mode] = 'walk'
+                    mark('move')
+                elif isinstance(amount, (int, float)):
+                    coll['move_modes'][mode] = '%dft' % amount
+                    mark('move')
+            continue
+        if key == ('add_modifier', 'pericia.bonus'):
+            binding = params.get('binding') or {}
+            skill = _norm_skill_slug(params.get('name') or '')
+            amount = binding.get('value')
+            if skill in _SKILL_INFO and isinstance(amount, (int, float)):
+                coll['check_bonus'][skill] = (
+                    coll['check_bonus'].get(skill, 0) + amount)
+                mark('check_bonus')
+            continue
+        if key == ('set_value', 'pericia.atributo'):
+            binding = params.get('binding') or {}
+            skill = _norm_skill_slug(params.get('name') or '')
+            attr = str(binding.get('value') or '').lower()
+            canonical_attr = _SAVE_TOKEN_EN.get(attr, attr)
+            if skill in _SKILL_INFO and canonical_attr in _EN_SIG:
+                coll['check_attr'][skill] = _EN_SIG[canonical_attr]
+                mark('check_attr')
+            continue
+        if key == ('set_value', 'ataque.qtd') and isinstance(value, (int, float)):
+            coll['n_ataques'] = max(coll['n_ataques'], int(value))
+            mark('attacks')
+            continue
+        if (key == ('add_modifier', 'ataque.bonus')
+                and 'spell' in operation.scope
+                and isinstance(value, (int, float))):
+            coll['spell_attack_bonus'] += value
+            mark('spell_attack_bonus')
+            continue
+        if (key == ('add_modifier', 'save.cd')
+                and 'spell' in operation.scope
+                and isinstance(value, (int, float))):
+            coll['spell_save_dc_bonus'] += value
+            mark('spell_save_dc_bonus')
+            continue
+
+        # Operações sem target fixo podem carregar um destino no operando.
+        # Ex.: buff:max_hp:+lvl. O formato é genérico; não existe um verbo
+        # específico como bonus_de_pv_por_nivel.
+        if operation.op == 'add_modifier':
+            binding = params.get('binding') or {}
+            dynamic_target = params.get('name')
+            amount = binding.get('value')
+            if dynamic_target == 'max_hp' and isinstance(amount, (int, float)):
+                hp_bonus.append((feature_name, amount))
+                mark('max_hp')
+
+    consumed = {
+        category for category, count in expected.items()
+        if count and applied.get(category, 0) == count
+    }
+    return consumed, speed_delta
+
+
 def apply_tags(state, features, personagem=None, escolhas=None):
-    """Interpreta as tags_json e aplica os efeitos PASSIVOS. Coleta o que
-    perícias/saves/idiomas/ataques precisam em state['_tag']."""
+    """Interpreta as tags_json e aplica os efeitos passivos.
+
+    O parser/evaluator generico produz a representacao canonica em ``tag_dsl``.
+    O restante desta funcao e o adaptador de compatibilidade entre os targets da
+    DSL e o shape historico consumido pela ficha.
+    """
     base_ctx = state['_ctx']
     if escolhas is None:
         escolhas, _ = _collect_escolhas(personagem, features)
@@ -2047,9 +2385,10 @@ def apply_tags(state, features, personagem=None, escolhas=None):
     coll = {'skill_prof': set(), 'save_prof': set(), 'all_saves': 0, 'save_bonus': {}, 'check_attr': {},
             'check_bonus': {}, 'idiomas': [], 'ferramentas': [], 'armaduras': [], 'armas': [],
             'initiative': 0, 'move_modes': {}, 'desvantagens': [],
+            'spell_attack_bonus': 0, 'spell_save_dc_bonus': 0,
             'n_ataques': 0, 'ataque_dado': {}, 'ataque_attr': {},
             'atk_bonus': {}, 'dmg_bonus': {},  # bônus PLANO de acerto/dano por escopo (item/Estilo)
-            'armor_ca_bonus': 0, 'off_hand_full_mod': False,  # Defesa (soma na CA armada) / Combate c/ Duas Armas
+            'ca_bonus': 0, 'armor_ca_bonus': 0, 'off_hand_full_mod': False,
             'skill_expertise': set(),  # Especialização por tag (dobro do PB) — espelha skill_prof
             'check_all': []}  # bônus global de teste de habilidade: (val, sig|None, unless_prof)
     hp_bonus, resist, imune, cond_imune, vantagens, notas = [], [], [], [], [], []
@@ -2071,6 +2410,12 @@ def apply_tags(state, features, personagem=None, escolhas=None):
     _equip0 = _armadura_equipada(personagem, base_ctx['dex_mod']) if personagem is not None else \
         {'tem_armadura': False, 'tem_escudo': False}
     _armado = bool(_equip0.get('tem_armadura') or _equip0.get('tem_escudo'))
+    _equipped_dsl = set()
+    if _equip0.get('tem_armadura'):
+        _equipped_dsl.add('armor')
+    if _equip0.get('tem_escudo'):
+        _equipped_dsl.add('shield')
+    dsl_features, dsl_operations, dsl_errors = [], [], []
 
     for origem, fonte, obj, classlvl in features:
         tags = [t for t in (getattr(obj, 'tags_json', None) or []) if isinstance(t, str)]
@@ -2088,6 +2433,47 @@ def apply_tags(state, features, personagem=None, escolhas=None):
                 ctx['asi_attr_mod'] = ctx['talent_attr_mod']
                 ctx['asi_attr_score'] = ctx['talent_attr_score']
         feat_nome = getattr(obj, 'nome', fonte)
+        # Uma habilidade inteira e um unico programa. Isso faz uma restriction no
+        # topo valer para todas as linhas da habilidade, enquanto uma restriction
+        # aninhada permanece limitada ao bloco pai.
+        try:
+            from .tag_engine import evaluate_tags
+            dsl_result = evaluate_tags(tags, dict(ctx, equipped=_equipped_dsl))
+            dsl_features.append({
+                'origem': origem,
+                'fonte': fonte,
+                'nome': feat_nome,
+                'state': dsl_result.state,
+                'blocked': dsl_result.blocked,
+                'blocked_by': dsl_result.blocked_by,
+            })
+            dsl_operations.extend({
+                'feature': feat_nome,
+                'op': op.op,
+                'target': op.target,
+                'value': op.value,
+                'verb': op.verb,
+                'scope': list(op.scope),
+                'qualifiers': list(op.qualifiers),
+                'params': op.params,
+                'value_type': op.value_type,
+                'active': op.active,
+                'raw': op.raw,
+            } for op in dsl_result.operations)
+            if dsl_result.blocked:
+                continue
+            senses_before_feature = frozenset(sentidos)
+            dsl_consumed, dsl_speed = _dsl_static_adapter(
+                dsl_result.operations, ctx, feat_nome, coll,
+                hp_bonus, ca_cands, resist, imune, cond_imune, sentidos,
+                sentidos_incr, sentidos_incr_ifp, source_kind=origem,
+                existing_senses=senses_before_feature)
+            speed_bonus += dsl_speed
+        except Exception as exc:
+            # Conteudo legado continua legivel, mas o erro estrutural fica visivel
+            # para a auditoria em vez de desaparecer silenciosamente.
+            dsl_errors.append({'feature': feat_nome, 'error': str(exc)})
+            dsl_consumed = set()
         # _resolve_level_match ANTES de _resolve_match: avalia match(classlvl){cmp:val}
         # por nível (sintonização do Artífice) — senão _resolve_match colapsaria no default.
         resolvidas = [_apply_choice_subs(_resolve_match(_resolve_level_match(t, ctx), escolhas), escolhas)
@@ -2146,8 +2532,10 @@ def apply_tags(state, features, personagem=None, escolhas=None):
                 # do Ladino/Trilha do Fantasma, aplicado incondicionalmente antes.)
                 if re.search(r'requires:\s*resource\{', seg):
                     ms = re.search(r'all_saves:\s*\+([^\s,}]+)', seg)
-                    vantagens.append((('+%s em todas as salvaguardas' % ms.group(1)) if ms
-                                      else 'efeito') + ' (condicional: requer recurso) — %s' % feat_nome)
+                    if ms:
+                        vantagens.append(
+                            '+%s em todas as salvaguardas (requer recurso) — %s'
+                            % (ms.group(1), feat_nome))
                     continue
                 # gate de NÍVEL num segmento passivo: `requires:lvl>=N` / `requires:lvl{N}`
                 # abaixo do nível total, o segmento inteiro não materializa (ex.: traço
@@ -2157,18 +2545,20 @@ def apply_tags(state, features, personagem=None, escolhas=None):
                 if mlvl and ctx.get('lvl', 0) < int(mlvl.group(1) or mlvl.group(2)):
                     continue
                 # PV
-                for m in re.finditer(r'(?:attr:|buff:)?max_hp:?\s*\+\s*([^\s,}]+)', seg):
-                    if 'on:' in seg[m.start():m.end() + 12]:
-                        continue
-                    val = _eval_formula(m.group(1), ctx)
-                    if val is not None:
-                        hp_bonus.append((feat_nome, val))
+                if 'max_hp' not in dsl_consumed:
+                    for m in re.finditer(r'(?:attr:|buff:)?max_hp:?\s*\+\s*([^\s,}]+)', seg):
+                        if 'on:' in seg[m.start():m.end() + 12]:
+                            continue
+                        val = _eval_formula(m.group(1), ctx)
+                        if val is not None:
+                            hp_bonus.append((feat_nome, val))
                 # CA (defesa sem armadura) — candidata com gates da feature
-                m = re.search(r'\bca\s*=\s*([0-9a-z_+\-*/(). ]+?)(?=[,}]|$)', seg)
-                if m:
-                    val = _eval_formula(m.group(1), ctx)
-                    if val is not None:
-                        ca_cands.append((val, feat_nome, feat_gate_shield))
+                if 'ca' not in dsl_consumed:
+                    m = re.search(r'\bca\s*=\s*([0-9a-z_+\-*/(). ]+?)(?=[,}]|$)', seg)
+                    if m:
+                        val = _eval_formula(m.group(1), ctx)
+                        if val is not None:
+                            ca_cands.append((val, feat_nome, feat_gate_shield))
                 # Velocidade / modos. Gate de armadura: `restriction{equiped{armadura|
                 # escudo}}` (Monge Passo Veloz / Movimento Acrobático) só vale descalço —
                 # com armadura/escudo o segmento de deslocamento não aplica.
@@ -2176,18 +2566,20 @@ def apply_tags(state, features, personagem=None, escolhas=None):
                 if _sem_armadura_ok:
                     # `speed:+<valor>`: dígito (item `speed:+18`), `resource{slug}` (Passo
                     # Veloz — valor no nível) ou fórmula (`min(5*x,30)`; var runtime -> None).
-                    for m in re.finditer(r'\bspeed:\s*\+\s*', seg):
-                        val_s = _read_expr(seg, m.end())
-                        mr = re.match(r'resource\{([a-z0-9_-]+)\}', val_s)
-                        if mr:
-                            v = _resource_speed_value(mr.group(1), state.get('recursos'))
-                        else:
-                            v = _eval_formula(re.sub(r'\s*ft\s*$', '', val_s), ctx)
-                        if v:
-                            speed_bonus += int(v)
-                    for m in re.finditer(r'move:(climb|swim|fly|burrow|wall|liquid)(?:\(=\s*(?:speed|walk)\)|:=?\s*(?:speed|walk)|:\+?(\d+)\s*ft|\((\d+)\s*ft\))?', seg):
-                        val = m.group(2) or m.group(3)
-                        coll['move_modes'][m.group(1)] = (val + 'ft') if val else 'walk'
+                    if 'speed' not in dsl_consumed:
+                        for m in re.finditer(r'\bspeed:\s*\+\s*', seg):
+                            val_s = _read_expr(seg, m.end())
+                            mr = re.match(r'resource\{([a-z0-9_-]+)\}', val_s)
+                            if mr:
+                                v = _resource_speed_value(mr.group(1), state.get('recursos'))
+                            else:
+                                v = _eval_formula(re.sub(r'\s*ft\s*$', '', val_s), ctx)
+                            if v:
+                                speed_bonus += int(v)
+                    if 'move' not in dsl_consumed:
+                        for m in re.finditer(r'move:(climb|swim|fly|burrow|wall|liquid)(?:\(=\s*(?:speed|walk)\)|:=?\s*(?:speed|walk)|:\+?(\d+)\s*ft|\((\d+)\s*ft\))?', seg):
+                            val = m.group(2) or m.group(3)
+                            coll['move_modes'][m.group(1)] = (val + 'ft') if val else 'walk'
                 # Resistências / imunidades
                 # Resistência CONDICIONAL: "if(already:resist{X}): resist:A else: resist:B"
                 # (ex.: Oread "Sangue Elemental"). Avaliada numa 2ª passada (resist_condicionais),
@@ -2205,48 +2597,53 @@ def apply_tags(state, features, personagem=None, escolhas=None):
                     fonte_r = m.group(1).replace('_', ' ').replace('-', ' ').strip()
                     notas.append('resistência a dano de %s (%s)' % (fonte_r, feat_nome))
                 seg = re.sub(r'resist:source\{[^}]*\}', '', seg)
-                for m in re.finditer(r'(?<![a-z_-])resist:([a-z0-9_-]+)', seg):
-                    v = _resolve_var(m.group(1), locais, escolhas)
-                    if v not in _PLACEHOLDERS and v not in resist:
-                        resist.append(v)
-                for m in re.finditer(r'(?<![a-z_-])immune:([a-z0-9_-]+)', seg):
-                    v = _resolve_var(m.group(1), locais, escolhas)
-                    if v not in _PLACEHOLDERS and v not in imune:
-                        imune.append(v)
-                for m in re.finditer(r'cond_immune:([a-z0-9_-]+)', seg):
-                    v = _resolve_var(m.group(1), locais, escolhas)
-                    if v not in _PLACEHOLDERS and v not in cond_imune:
-                        cond_imune.append(v)
+                if 'resist' not in dsl_consumed:
+                    for m in re.finditer(r'(?<![a-z_-])resist:([a-z0-9_-]+)', seg):
+                        v = _resolve_var(m.group(1), locais, escolhas)
+                        if v not in _PLACEHOLDERS and v not in resist:
+                            resist.append(v)
+                if 'immune' not in dsl_consumed:
+                    for m in re.finditer(r'(?<![a-z_-])immune:([a-z0-9_-]+)', seg):
+                        v = _resolve_var(m.group(1), locais, escolhas)
+                        if v not in _PLACEHOLDERS and v not in imune:
+                            imune.append(v)
+                if 'cond_immune' not in dsl_consumed:
+                    for m in re.finditer(r'cond_immune:([a-z0-9_-]+)', seg):
+                        v = _resolve_var(m.group(1), locais, escolhas)
+                        if v not in _PLACEHOLDERS and v not in cond_imune:
+                            cond_imune.append(v)
                 # Sentidos. `sense:X(range:Nft)` = alcance ABSOLUTO (mantém o maior por
                 # tipo). `sense:X(range:+Nft)` = incremento RELATIVO (soma ao alcance do
                 # mesmo tipo já concedido — Vampiro DV/essência); com `if_present` só
                 # aplica se o tipo já existe (senão é descartado).
-                for m in re.finditer(r'sense:([a-z0-9_-]+)(\([^)]*\))?', seg):
-                    t, args = m.group(1), (m.group(2) or '')
-                    mr = re.search(r'(?:range|radius):(\+)?(\d+)\s*ft', args)
-                    if mr and mr.group(1):  # incremento relativo (+Nft)
-                        n = int(mr.group(2))
-                        if 'if_present' in args:
-                            sentidos_incr_ifp[t] = sentidos_incr_ifp.get(t, 0) + n
+                if 'sense' not in dsl_consumed:
+                    for m in re.finditer(r'sense:([a-z0-9_-]+)(\([^)]*\))?', seg):
+                        t, args = m.group(1), (m.group(2) or '')
+                        mr = re.search(r'(?:range|radius):(\+)?(\d+)\s*ft', args)
+                        if mr and mr.group(1):  # incremento relativo (+Nft)
+                            n = int(mr.group(2))
+                            if 'if_present' in args:
+                                sentidos_incr_ifp[t] = sentidos_incr_ifp.get(t, 0) + n
+                            else:
+                                sentidos_incr[t] = sentidos_incr.get(t, 0) + n
                         else:
-                            sentidos_incr[t] = sentidos_incr.get(t, 0) + n
-                    else:
-                        rng = int(mr.group(2)) if mr else 0
-                        sentidos[t] = max(sentidos.get(t, 0), rng)
+                            rng = int(mr.group(2)) if mr else 0
+                            sentidos[t] = max(sentidos.get(t, 0), rng)
                 # Proficiências
-                for m in re.finditer(r'(?<![a-z_-])prof:([a-z0-9_-]+)(?:\{([^}]+)\})?', seg):
-                    chave, valor = m.group(1), m.group(2)
-                    if valor:
-                        alvo = {'armor': coll['armaduras'], 'weapon': coll['armas'],
-                                'tool': coll['ferramentas'], 'idioma': coll['idiomas']}.get(chave)
-                        if alvo is not None:
-                            alvo.append(valor)
-                    elif _norm_skill_slug(chave) in _SKILL_INFO:
-                        coll['skill_prof'].add(_norm_skill_slug(chave))
-                    elif chave.startswith('armadura'):
-                        coll['armaduras'].append(chave)
-                    elif chave.startswith('arma'):
-                        coll['armas'].append(chave)
+                if 'prof' not in dsl_consumed:
+                    for m in re.finditer(r'(?<![a-z_-])prof:([a-z0-9_-]+)(?:\{([^}]+)\})?', seg):
+                        chave, valor = m.group(1), m.group(2)
+                        if valor:
+                            alvo = {'armor': coll['armaduras'], 'weapon': coll['armas'],
+                                    'tool': coll['ferramentas'], 'idioma': coll['idiomas']}.get(chave)
+                            if alvo is not None:
+                                alvo.append(valor)
+                        elif _norm_skill_slug(chave) in _SKILL_INFO:
+                            coll['skill_prof'].add(_norm_skill_slug(chave))
+                        elif chave.startswith('armadura'):
+                            coll['armaduras'].append(chave)
+                        elif chave.startswith('arma'):
+                            coll['armas'].append(chave)
                 # Especialização por tag: `expertise:<pericia>` (dobro do PB). Espelha o
                 # caminho de prof: — só perícia canônica (expertise:tool{}/ferramentas caem
                 # fora do catálogo de perícias e ficam inertes, como hoje). expertise IMPLICA
@@ -2257,12 +2654,14 @@ def apply_tags(state, features, personagem=None, escolhas=None):
                     if sl in _SKILL_INFO:
                         coll['skill_expertise'].add(sl)
                 # Salvaguardas
-                for m in re.finditer(r'(?<![a-z_-])save_prof:([a-z0-9_-]+)', seg):
-                    coll['save_prof'].add(m.group(1))
-                for m in re.finditer(r'all_saves:\s*\+([^\s,}]+)', seg):
-                    val = _eval_formula(m.group(1), ctx)
-                    if val is not None:
-                        coll['all_saves'] += val
+                if 'save_prof' not in dsl_consumed:
+                    for m in re.finditer(r'(?<![a-z_-])save_prof:([a-z0-9_-]+)', seg):
+                        coll['save_prof'].add(m.group(1))
+                if 'all_saves' not in dsl_consumed:
+                    for m in re.finditer(r'all_saves:\s*\+([^\s,}]+)', seg):
+                        val = _eval_formula(m.group(1), ctx)
+                        if val is not None:
+                            coll['all_saves'] += val
                 # Salvaguarda de UMA habilidade: `<attr>_save:+<formula>` (ex.: Caçador/Instinto
                 # Afiado `str_save:+max(1, spell_mod)`). Aceita siglas PT/EN (snake_case);
                 # a fórmula pode ter vírgula interna (args de max/min) → lida por _read_expr.
@@ -2273,23 +2672,26 @@ def apply_tags(state, features, personagem=None, escolhas=None):
                     val = _eval_formula(_read_expr(seg, m.end()), ctx)
                     if val is not None:
                         coll['save_bonus'][sig] = coll['save_bonus'].get(sig, 0) + val
-                for m in re.finditer(r'(?<![a-z-])(?:buff:)?initiative:\s*\+([^\s,}]+)', seg):
-                    val = _eval_formula(m.group(1), ctx)
-                    if val is not None:
-                        coll['initiative'] += val
+                if 'initiative' not in dsl_consumed:
+                    for m in re.finditer(r'(?<![a-z-])(?:buff:)?initiative:\s*\+([^\s,}]+)', seg):
+                        val = _eval_formula(m.group(1), ctx)
+                        if val is not None:
+                            coll['initiative'] += val
                 # Perícias (troca de atributo / bônus)
-                for m in re.finditer(r'check_attr:([a-z0-9_-]+)\s*:?=\s*([a-z]{3})', seg):
-                    if m.group(2) in _EN_SIG:
-                        coll['check_attr'][m.group(1)] = _EN_SIG[m.group(2)]
+                if 'check_attr' not in dsl_consumed:
+                    for m in re.finditer(r'check_attr:([a-z0-9_-]+)\s*:?=\s*([a-z]{3})', seg):
+                        if m.group(2) in _EN_SIG:
+                            coll['check_attr'][m.group(1)] = _EN_SIG[m.group(2)]
                 # `check_bonus:<pericia>[=|:]+<formula>` — a fórmula pode ter vírgula interna
                 # (max(wis_mod, 1) — Ritos Sacros/Ordem Sagrada/Vínculo Natural): lida por
                 # _read_expr (o regex antigo `[^\s,}]+` truncava em 'max(wis_mod' -> None).
                 # `check_bonus:tool{...}` não casa (sem [=:] após 'tool'); dado (1d4 das Marcas)
                 # cai em None por _eval_formula (roll-time -> VTT).
-                for m in re.finditer(r'check_bonus:([a-z0-9_-]+)\s*[=:]\s*\+?', seg):
-                    val = _eval_formula(_read_expr(seg, m.end()), ctx)
-                    if val is not None:
-                        coll['check_bonus'][m.group(1)] = coll['check_bonus'].get(m.group(1), 0) + val
+                if 'check_bonus' not in dsl_consumed:
+                    for m in re.finditer(r'check_bonus:([a-z0-9_-]+)\s*[=:]\s*\+?', seg):
+                        val = _eval_formula(_read_expr(seg, m.end()), ctx)
+                        if val is not None:
+                            coll['check_bonus'][m.group(1)] = coll['check_bonus'].get(m.group(1), 0) + val
                 # Bônus GLOBAL de teste de habilidade: `ability_check:+F` / `all_checks:+F`
                 # (todas as perícias) e `<attr>_check:+F` (só as do atributo). `(unless:
                 # proficient)` restringe às NÃO-proficientes (Bardo Pau Pra Toda Obra =
@@ -2311,15 +2713,16 @@ def apply_tags(state, features, personagem=None, escolhas=None):
                     if v is not None:
                         sintonizacao_max = max(sintonizacao_max, int(v))
                 # Ataques: nº de ataques + perfis desarmado/natural
-                for m in re.finditer(r'attacks:=\s*(\{[^}]*\}|[^,}\s]+)', seg):
-                    raw = m.group(1)
-                    if raw.startswith('{'):
-                        v = _prog(raw, ctx['classlvl'])
-                        val = int(v) if v and v.isdigit() else None
-                    else:
-                        val = _eval_formula(raw, ctx)
-                    if val is not None:
-                        coll['n_ataques'] = max(coll['n_ataques'], val)
+                if 'attacks' not in dsl_consumed:
+                    for m in re.finditer(r'attacks:=\s*(\{[^}]*\}|[^,}\s]+)', seg):
+                        raw = m.group(1)
+                        if raw.startswith('{'):
+                            v = _prog(raw, ctx['classlvl'])
+                            val = int(v) if v and v.isdigit() else None
+                        else:
+                            val = _eval_formula(raw, ctx)
+                        if val is not None:
+                            coll['n_ataques'] = max(coll['n_ataques'], val)
                 for m in re.finditer(r'(unarmed_strike|natural)\.dmg\s*[:=]+\s*(\{[^}]*\}[^,}]*|resource\{[^}]*\}|[^,}]+)', seg):
                     escopo, dado = m.group(1), m.group(2).strip()
                     escopo = escopo.replace('_', '-')
@@ -2365,9 +2768,10 @@ def apply_tags(state, features, personagem=None, escolhas=None):
                     coll['armor_ca_bonus'] += int(m.group(1))
                 # Vantagens / desvantagens / falas
                 for m in re.finditer(r'(?<![a-z_-])adv:([a-z0-9_-]+(?:\{[^}]*\})?(?:\([^)]*\))?)', seg):
-                    vantagens.append('%s — %s' % (m.group(1), feat_nome))
+                    vantagens.append(_roll_modifier_display(m.group(1), feat_nome))
                 for m in re.finditer(r'(?<![a-z_-])(?:no_)?dadv:([a-z0-9_-]+(?:\{[^}]*\})?(?:\([^)]*\))?)', seg):
-                    coll['desvantagens'].append('%s — %s' % (m.group(1), feat_nome))
+                    coll['desvantagens'].append(
+                        _roll_modifier_display(m.group(1), feat_nome, disadvantage=True))
                 for m in re.finditer(r'(?<![a-z_-])speak:([a-z0-9_-]+)', seg):
                     notas.append('falar com %s (%s)' % (m.group(1), feat_nome))
 
@@ -2384,6 +2788,11 @@ def apply_tags(state, features, personagem=None, escolhas=None):
 
     # ── aplica no state ──
     state['tags_brutas'] = brutas
+    state['tag_dsl'] = {
+        'features': dsl_features,
+        'operations': dsl_operations,
+        'errors': dsl_errors,
+    }
     state['pv']['bonus_tags'] = hp_bonus
     state['pv']['maximo_calculado'] += sum(v for _, v in hp_bonus)
 
@@ -2404,6 +2813,7 @@ def apply_tags(state, features, personagem=None, escolhas=None):
     # Bônus plano que EMPILHA com a armadura (Defesa/infusões): só com armadura equipada.
     if equip['tem_armadura'] and coll.get('armor_ca_bonus'):
         ca_final += coll['armor_ca_bonus']
+    ca_final += coll.get('ca_bonus', 0)
     state['ca'] = ca_final
     state['ca_fonte'] = melhor[1] + (' + escudo' if equip['tem_escudo'] else '') \
         + (' + %d (estilo/infusão)' % coll['armor_ca_bonus'] if (equip['tem_armadura'] and coll.get('armor_ca_bonus')) else '')
@@ -2630,11 +3040,18 @@ def _saves(classes, atributos, pb, tag_prof=None, all_saves_bonus=0, save_bonus=
     save_bonus = save_bonus or {}
     principal = _classe_principal(classes)
     if principal:
-        for tag in (getattr(principal.id_classe, 'tags_json', None) or []):
-            body = _tag_block(tag, 'saves_prof')
-            if body is not None:
-                raw = {x.strip().lower() for x in body.split(',') if x.strip()}
-                prof = {_SAVE_TOKEN_EN.get(t, t) for t in raw}  # normaliza PT-BR/EN -> EN
+        from .tag_engine import evaluate_tags
+        tags = getattr(principal.id_classe, 'tags_json', None) or []
+        for operation in evaluate_tags(tags).operations:
+            if (not operation.active
+                    or (operation.op, operation.target)
+                    != ('grant_proficiency', 'saves')):
+                continue
+            values = (operation.value if isinstance(operation.value, list)
+                      else [operation.value])
+            raw = {str(value).strip().lower() for value in values
+                   if str(value).strip()}
+            prof |= {_SAVE_TOKEN_EN.get(token, token) for token in raw}
     tag_prof = tag_prof or set()
     if 'all' in tag_prof:
         prof |= set(_ATTR_EN.values())
@@ -2765,11 +3182,11 @@ def _proficiencias(personagem):
 
 
 def _apply_attr_asi(features, escolhas, atributos):
-    """Pré-passe: ASI passivo via tag (attr:<x>_score+N) — soma em valor+bonus e
-    registra no breakdown (mantém base+Σbreakdown == valor); aplica o PISO
-    `attr_set:<x>_score=N` (score := max(atual, N), regra 5e das Manoplas do Poder
-    do Ogro / Cinto de Força de Gigante) DEPOIS dos aditivos; aplica o teto
-    `attr_max:<x>_score=N`."""
+    """Pre-passe de alteracoes passivas de atributo.
+
+    Incrementos usam ``attr:<x>_score+N``; pisos usam a formula generica
+    ``attr:<x>_score:=max(<x>_score,N)``; tetos usam ``attr_max``.
+    """
     caps = {}
     floors = {}  # sig -> (N, feat_nome): maior piso pedido por atributo
     for _o, fonte, obj, _cl in features:
@@ -2786,11 +3203,17 @@ def _apply_attr_asi(features, escolhas, atributos):
                         atributos[sig]['bonus'] += n
                         atributos[sig].setdefault('breakdown', []).append(
                             {'origem': feat_nome + ' (tag)', 'valor': n})
-                # PISO/SET de atributo: fixa o score em N (só eleva; sem efeito se já maior).
-                for m in re.finditer(r'attr_set:([a-z]{3})_score\s*=\s*(\d+)', seg):
+                # Piso pela operacao generica de atribuicao + funcao max.
+                floor_rx = (
+                    r'attr:([a-z]{3})_score\s*:=\s*max\(\s*'
+                    r'([a-z]{3})_score\s*,\s*(\d+)\s*\)'
+                )
+                for m in re.finditer(floor_rx, seg):
+                    if m.group(1) != m.group(2):
+                        continue
                     sig = _EN_SIG.get(m.group(1))
                     if sig:
-                        n = int(m.group(2))
+                        n = int(m.group(3))
                         atual = floors.get(sig)
                         if atual is None or n > atual[0]:
                             floors[sig] = (n, feat_nome)

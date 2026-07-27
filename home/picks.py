@@ -18,6 +18,7 @@ de referência (`match(...)`/`cast(...)`/`spell:pick{...}`) nem de runtime
 (`trigger=...`/`instant{...}`/`while_active{...}`).
 """
 import re
+from types import SimpleNamespace
 
 # ---------------------------------------------------------------------------
 # Gramática — UM parser balanceado (substitui as 5 regexes paralelas de views.py).
@@ -693,10 +694,68 @@ def _pericia_expertise_readback(personagem, group):
 
 
 # ---------------------------------------------------------------------------
+# kind 'ferramenta' - a categoria fica no argumento, nao no nome do verbo.
+# Ex.: pick:ferramenta:instrumento:1. O mesmo handler cobre instrumentos,
+# ferramentas de artesao ou o catalogo inteiro.
+# ---------------------------------------------------------------------------
+def _ferramenta_universe(ctx):
+    from .models import TbItemMundano
+    sub = normalize_slug(ctx.get('tipo') or '').replace('-', '_')
+    qs = TbItemMundano.objects.filter(categoria='ferramenta')
+    subcategorias = {
+        'instrumento': {'instrumento'},
+        'instrumento_musical': {'instrumento'},
+        'ferramenta_artesao': {'ferramenta_artesao'},
+        'ferramenta_artesao_ou_instrumento': {'ferramenta_artesao', 'instrumento'},
+    }.get(sub)
+    if subcategorias:
+        qs = qs.filter(subcategoria__in=subcategorias)
+    return [{'id': item.id_item, 'slug': item.slug, 'nome': item.nome,
+             'descricao': item.descricao_markdown or '', 'pre': ''}
+            for item in qs.order_by('nome')]
+
+
+def _ferramenta_origem(group):
+    return str(group.get('origem') or group.get('classe') or 'Ferramenta')[:150]
+
+
+def _ferramenta_persist(personagem, group, valores):
+    from .models import TbItemMundano, TbPersonagemEscolha, TbPersonagemProficiencia
+    origem = _ferramenta_origem(group)
+    base = int(group.get('slot_base') or 0)
+    for i, value in enumerate(valores):
+        item = (TbItemMundano.objects.filter(id_item=value).first()
+                if str(value).isdigit() else None)
+        item = item or TbItemMundano.objects.filter(
+            categoria='ferramenta', slug=value).first()
+        if item is None:
+            continue
+        TbPersonagemEscolha.objects.update_or_create(
+            id_personagem=personagem, origem=origem, tipo='ferramenta',
+            slot=base + i, defaults={'valor': item.slug})
+        TbPersonagemProficiencia.objects.get_or_create(
+            id_personagem=personagem, tipo='ferramenta', nome=item.nome,
+            defaults={'origem': origem[:100]})
+
+
+def _ferramenta_readback(personagem, group):
+    if personagem is None:
+        return []
+    from .models import TbItemMundano
+    origem = _ferramenta_origem(group)
+    nomes = dict(TbItemMundano.objects.filter(categoria='ferramenta')
+                 .values_list('slug', 'nome'))
+    return [{'id': row.id, 'slot': row.slot, 'valor': row.valor,
+             'nome': nomes.get(row.valor, row.valor)}
+            for row in personagem.escolhas.filter(
+                tipo='ferramenta', origem=origem).order_by('slot')]
+
+
+# ---------------------------------------------------------------------------
 # kind 'talento' — escolha de um TALENTO (TbTalento) concedido por uma feature
 # (`pick:talento:1(=talento_de_origem...)` da linhagem Erthari 'Determinação Comum';
 # `pick:talento:1(tipo:origem, requires:prereqs)` do talento 'Raízes Profundas';
-# `pick:talento:1(from:any_raca, requires:prereq, no_asi)` do traço humano 'Multitalentoso').
+# `pick:talento:1(from:any_raca, requires:prereq, without{asi})` do traço humano 'Multitalentoso').
 # O universo é TbTalento honrando as constraints da tag: `=talento_de_origem`/`tipo:origem`
 # restringe a tipo='origem'; `from:any_raca`/`tipo:geral` restringe a tipo='geral' (talento
 # "de qualquer raça" — Multitalentoso concede um talento GERAL, nunca de origem/antecedente);
@@ -1036,6 +1095,14 @@ PICK_REGISTRY = {
         'validate': _default_validate,
         'readback': _pericia_expertise_readback,
     },
+    'ferramenta': {
+        'sink': 'proficiencia',
+        'label': 'Ferramenta',
+        'universe': _ferramenta_universe,
+        'persist': _ferramenta_persist,
+        'validate': _default_validate,
+        'readback': _ferramenta_readback,
+    },
     # kind 'talento' (+ alias 'talento_de_origem'): escolha de um TbTalento concedido por
     # feature (Determinação Comum, Raízes Profundas, Aprendizado dos Antigos…). O universo
     # honra as constraints da tag; persiste em TbPersonagemTalento + TbPersonagemEscolha.
@@ -1071,6 +1138,8 @@ def _persist_tipo_for(kind, tipo, is_menu=False):
         return 'maestria'
     if kind == 'pericia':
         return 'pericia'
+    if kind == 'ferramenta':
+        return 'ferramenta'
     if is_menu:
         return kind
     return tipo or kind
@@ -1196,10 +1265,40 @@ def resolve_groups(sources, *, classe=None, subclasse=None, nivel=1,
 def builder_sources(classe):
     """Features de nível 1 de uma classe (classe + habilidades N1 sem subclasse)."""
     from .models import TbClassehabilidade
+    from .tag_engine import evaluate_tags, parse_tags
     if not classe:
         return []
-    return [classe] + list(TbClassehabilidade.objects.filter(
+    source_tags = getattr(classe, 'tags_json', None) or []
+    multiclass_raw = {
+        operation.raw for operation in evaluate_tags(source_tags).operations
+        if (operation.op, operation.target)
+        == ('grant_proficiency', 'multiclasse.proficiencias')
+    }
+    class_tags = [
+        node.raw for node in parse_tags(source_tags).nodes
+        if node.raw and node.raw not in multiclass_raw
+    ]
+    initial_class = SimpleNamespace(nome=classe.nome, tags_json=class_tags)
+    return [initial_class] + list(TbClassehabilidade.objects.filter(
         id_classe=classe, id_subclasse__isnull=True, niveladquirido=1))
+
+
+def multiclass_sources(classe):
+    """Expose only picks nested in multiclass_prof for a secondary class."""
+    from .tag_engine import evaluate_tags
+    tags = []
+    for operation in evaluate_tags(
+            getattr(classe, 'tags_json', None) or []).operations:
+        if ((operation.op, operation.target)
+                != ('grant_proficiency', 'multiclasse.proficiencias')):
+            continue
+        values = (operation.value if isinstance(operation.value, list)
+                  else [operation.value])
+        tags.extend(str(value) for value in values if value)
+    return [SimpleNamespace(
+        nome='Multiclasse: %s' % classe.nome,
+        tags_json=tags,
+    )] if tags else []
 
 
 def resolve_builder(classe, *, escolhas_map=None, kinds=None):
@@ -1240,7 +1339,10 @@ def resolve_personagem(personagem, *, kinds=None):
             subclasse = c.id_subclasse
             habs += list(TbClassehabilidade.objects.filter(
                 id_subclasse=subclasse, niveladquirido__lte=nivel))
-        grupos += resolve_groups(habs, classe=classe, subclasse=subclasse, nivel=nivel,
+        # Para classe secundaria entram somente os picks de multiclass_prof;
+        # picks de proficiencia inicial da classe nao podem vazar na multiclasse.
+        sources = (multiclass_sources(classe) if not c.principal else []) + habs
+        grupos += resolve_groups(sources, classe=classe, subclasse=subclasse, nivel=nivel,
                                  personagem=personagem, kinds=kinds, choice_values=cvals)
     # TRAÇOS raciais/linhagem/ESSÊNCIA automáticos (talento_racial=False): sede das
     # SUB-ESCOLHAS de essência (`pick:sangue`, `pick:energia`, `pick:polo`, `pick:elemento`,

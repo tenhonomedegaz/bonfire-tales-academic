@@ -2,7 +2,7 @@
 """Regressão do talento racial humano 'Multitalentoso'.
 
 BUG (print do PO): o traço humano ``Multitalentoso``
-(``pick:talento:1(from:any_raca, requires:prereq, no_asi)``) concede um talento GERAL
+(``pick:talento:1(from:any_raca, requires:prereq, without{asi})``) concede um talento GERAL
 "de qualquer raça". Ao escolher um talento geral elegível (ex.: 'Precisão') o painel
 acusava *"Escolha de opção inválida (fora do universo, duplicada ou sem slot)."*.
 

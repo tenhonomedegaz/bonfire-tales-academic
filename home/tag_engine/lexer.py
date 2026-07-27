@@ -24,7 +24,7 @@ _TOKEN_RE = re.compile(
     | (?P<LBRACE>\{) | (?P<RBRACE>\})
     | (?P<LPAREN>\() | (?P<RPAREN>\))
     | (?P<LBRACK>\[) | (?P<RBRACK>\])
-    | (?P<COMMA>,)
+    | (?P<COMMA>,) | (?P<SEMICOLON>;)
     | (?P<CMP><=|>=|<|>)
     | (?P<COLON>:) | (?P<EQ>=) | (?P<DOT>\.)
     | (?P<PIPE>\|) | (?P<BANG>!) | (?P<AT>@)

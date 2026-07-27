@@ -25,10 +25,10 @@ STRUCTURAL_QUALIFIERS = {
     "source", "of", "in", "out", "self", "active", "concentration", "reaction",
     "restriction", "requires", "max", "min", "and", "or", "not", "elemento",
     "pericias", "results", "table", "list", "always_prepared", "extra",
-    "fora_do_limite", "incapacitated", "hidden", "no_los", "plano_nativo",
+    "fora_do_limite", "incapacitated", "hidden", "plano_nativo",
     # chaves de modifiers{}/qualificadores e sinônimos (triagem 2026-06-18)
     "except", "also", "origem", "forma", "attacker", "instant_death",
-    "spell_marca", "marked", "distinct", "no_attack", "no_atk_roll",
+    "spell_marca", "marked", "distinct",
     # escopos-locais de subclasse (define{}/forma) que o validador não resolve
     # por serem chaves de list{} ou redefinições (:=): tratados como locais.
     "weapon_integrada", "weapon_aprimorada", "arqueiro", "calice", "pesadelo",
@@ -102,6 +102,18 @@ class Library:
         self.tags_de_classe = set(self._keys("tags_de_classe"))
         self.recursos_universais = set(self._keys("recursos_universais"))
         self.conditions = {_base(k) for k in self._keys("conditions")}
+        self.forbidden_heads = {
+            k: v for k, v in (raw.get("forbidden_heads") or {}).items()
+            if not k.startswith("_")
+        }
+        self.forbidden_operands = {
+            k: v for k, v in (raw.get("forbidden_operands") or {}).items()
+            if not k.startswith("_")
+        }
+        self.forbidden_prefixes = {
+            k: v for k, v in (raw.get("forbidden_prefixes") or {}).items()
+            if not k.startswith("_")
+        }
 
         fns = raw.get("functions", {})
         self.functions = {
