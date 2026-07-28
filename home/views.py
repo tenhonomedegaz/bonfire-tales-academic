@@ -4319,10 +4319,207 @@ def _pick_count_expr(expr, level):
 # resolvíveis — opções (metamagia/estilos/…), perícias, menus inline `define{list}`
 # (Máscara de Guerra, Runas, Doutrina Marcial…) e sub-escolhas de essência
 # (sangue/energia/polo/elemento). `kinds=None` = todos; o resolvedor só emite grupo
-# para kind com universo (registrado ou menu), então nada espúrio entra. Excluímos só
-# `arma` (tem painel dedicado de Maestria). Adicionar capacidade nova não exige mexer aqui.
+# para kind com universo (registrado ou menu), então nada espúrio entra. Adicionar
+# capacidade nova não exige mexer aqui.
 _OPCAO_PANEL_KINDS = None
-_OPCAO_PANEL_EXCLUDE = {'arma'}
+
+# ── Seção OPÇÕES DE CLASSE da ficha (onda D) ──────────────────────────────────────
+# Escopos de troca que a FICHA resolve agora. `long_rest`/`short_or_long`/`rest` ficam
+# ativos sempre que o dono pode editar — o descanso é ficção de mesa, não estado do
+# sistema, então nunca houve registro de descanso a exigir.
+# `level_up` é passo do WIZARD: aparece marcado, sem botão.
+_SWAP_NO_WIZARD = {'level_up'}
+_SWAP_LABEL = {
+    'long_rest': 'trocável no descanso longo',
+    'short_or_long': 'trocável no descanso',
+    'rest': 'trocável no descanso',
+    'level_up': 'trocável ao subir de nível',
+}
+
+
+def _opcao_chave(grupo):
+    """Identidade estável de um grupo resolvido, para o cliente devolver na troca.
+    (kind, tipo persistido, classe, feature de origem) — o mesmo par que o resolvedor
+    usa para deduplicar, mais a origem, que separa duas features do mesmo tipo."""
+    return '%s|%s|%s|%s' % (grupo['kind'], grupo['persist_tipo'],
+                            grupo['classe_id'] or '', grupo['origem'])
+
+
+def _sub_opcoes(op):
+    """SUB-OPÇÕES de uma entrada do universo, detectadas pela ESTRUTURA: qualquer lista de
+    dicts com `slug` pendurada na opção (é assim que a arma declara suas `maestrias`).
+    Lista de strings (`chips`) e campos escalares não contam. [] = escolha de UM nível.
+
+    Nenhum nome de kind aparece aqui de propósito: um universo novo que passe a declarar
+    sub-opções ganha o seletor de dois níveis sozinho."""
+    for valor in (op or {}).values():
+        if not isinstance(valor, list):
+            continue
+        subs = [s for s in valor if isinstance(s, dict) and s.get('slug')]
+        if subs:
+            return subs
+    return []
+
+
+def _grupo_em_dois_niveis(grupo):
+    """O universo do grupo é de DOIS NÍVEIS (pai → sub-opção)? Estrutural, ver `_sub_opcoes`."""
+    return any(_sub_opcoes(op) for op in (grupo.get('universo') or []))
+
+
+def _opcao_alternativas(universo):
+    """Universo NORMALIZADO nas ALTERNATIVAS que se podem escolher, preservando a estrutura.
+
+    Uma entrada por opção de 1º nível, com:
+      * `val`    — o token de submissão dela (id quando o kind persiste por id, senão slug);
+      * `subs`   — as sub-opções, já com o VALOR COMPOSTO `'<pai>|<filho>'` que é o que se
+                   persiste nesses kinds (a arma grava `'<arma>|<maestria>'`);
+      * `formas` — as chaves que IDENTIFICAM aquela alternativa numa linha já gravada.
+
+    `formas` é onde mora a REGRA DE DOMÍNIO da unicidade, e é por isso que ela é uma só
+    função para a seção (filtro de disponíveis) e para o endpoint de troca (recusa de
+    duplicata): a identidade de uma alternativa de 2º nível é o PAR INTEIRO — o mesmo pai
+    PODE repetir em slots diferentes com filhos diferentes (consenso da staff para Maestria
+    de Arma: mesma arma, maestrias distintas) —, enquanto a de 1º nível são as duas formas
+    da própria opção (slug e id), porque cada kind persiste numa delas."""
+    alts = []
+    for op in universo or []:
+        subs = _sub_opcoes(op)
+        alts.append({
+            'val': str(op['id']) if op.get('id') is not None else str(op.get('slug')),
+            'nome': op.get('nome') or op.get('slug'),
+            'descricao': _descricao_de_opcao(op),
+            'pre': op.get('pre') or '',
+            'formas': {str(op.get('slug')), str(op.get('id'))} - {'None'},
+            'subs': [{'val': '%s|%s' % (op.get('slug'), s.get('slug')),
+                      'nome': s.get('nome') or s.get('slug'),
+                      'descricao': _descricao_de_opcao(s),
+                      'formas': {'%s|%s' % (op.get('slug'), s.get('slug'))}}
+                     for s in subs],
+        })
+    return alts
+
+
+def _opcao_alternativa(grupo, val):
+    """A alternativa SELECIONÁVEL do grupo cujo token de submissão é `val`, ou None.
+
+    Numa entrada de dois níveis quem se escolhe são as SUB-opções — o pai sozinho não
+    completa a escolha (arma com maestrias exige uma delas, mesma regra do
+    `picks._arma_validate`); numa entrada de um nível, a própria opção."""
+    for alt in _opcao_alternativas(grupo.get('universo')):
+        if alt['subs']:
+            achado = next((s for s in alt['subs'] if s['val'] == val), None)
+            if achado:
+                return achado
+        elif alt['val'] == val:
+            return alt
+    return None
+
+
+def _indice_universo(universo):
+    """Índice VALOR→opção do universo de um grupo, para achar nome/descrição do que já
+    está persistido. ESTRUTURAL, sem ramo por kind: indexa cada entrada por `slug` e por
+    `id` e — quando a entrada declara SUB-OPÇÕES (`_sub_opcoes`, o caso da arma e suas
+    `maestrias`) — também pelo par `'<pai>|<filho>'`, que é exatamente o formato do valor
+    gravado nesses kinds."""
+    idx = {}
+    for op in universo or []:
+        if op.get('slug'):
+            idx.setdefault(str(op['slug']), op)
+        if op.get('id') is not None:
+            idx.setdefault(str(op['id']), op)
+        for sub in _sub_opcoes(op):
+            idx.setdefault('%s|%s' % (op.get('slug'), sub['slug']), sub)
+    return idx
+
+
+def _descricao_de_opcao(op):
+    """Texto longo de uma opção do universo. O NOME DO CAMPO varia com a fonte que o
+    registry usou (`descricao` no catálogo de opções/talentos/ferramentas, `efeito` na
+    maestria declarada pela arma); a escolha é por campo, não por tipo de opção."""
+    for campo in ('descricao', 'efeito'):
+        texto = (op or {}).get(campo)
+        if texto:
+            return str(texto).strip()
+    return ''
+
+
+def _opcoes_ficha(personagem):
+    """Contexto da seção OPÇÕES DE CLASSE (Ficha v2, onda D — aba Magias & Opções).
+
+    FONTE ÚNICA: `picks.resolve_personagem`. Cada grupo que o registry emite (kind +
+    origem) vira um cartão com o rótulo que o próprio registry dá, as escolhas
+    persistidas (nome legível + descrição completa) e o universo restante. Não existe
+    lista de tipos aqui: metamagia, manobra, segredo, estilo de luta, estilo de ki,
+    maestria, runa, doutrina… entram porque a TAG declarou o pick — um kind novo aparece
+    sozinho, sem tocar nesta função.
+
+    `swap` (trocabilidade) também vem da tag (`picks.swap_scope`); esta função só traduz
+    o escopo em UI: botão ativo, marcação inerte (level-up) ou nada.
+
+    Universo de DOIS NÍVEIS (a entrada carrega sub-opções — a arma e as maestrias dela)
+    também é detectado pela ESTRUTURA (`_grupo_em_dois_niveis`): o cartão ganha seletor
+    pai→filho e o valor submetido é o par `'<pai>|<filho>'`, no MESMO endpoint de troca."""
+    from . import picks as _picks
+    grupos = []
+    if personagem is None:
+        return grupos
+    for g in _picks.resolve_personagem(personagem):
+        universo = g.get('universo') or []
+        idx = _indice_universo(universo)
+        escolhidas = []
+        for e in g['escolhidas']:
+            chaves = [k for k in (e.get('valor'), e.get('id_opcao')) if k is not None]
+            op = next((idx[str(k)] for k in chaves if str(k) in idx), None)
+            escolhidas.append({
+                'id': e.get('id'), 'slot': e.get('slot'), 'valor': e.get('valor'),
+                'nome': e.get('nome') or (op or {}).get('nome') or e.get('valor') or '—',
+                'descricao': _descricao_de_opcao(op),
+                'pre': (op or {}).get('pre') or '',
+                # sub-escolha incompleta (hoje: maestria a completar numa linha legada)
+                'pendente': bool(e.get('pendente')),
+            })
+        usados = {str(e['valor']) for e in g['escolhidas'] if e.get('valor') is not None}
+        usados |= {str(e['id_opcao']) for e in g['escolhidas'] if e.get('id_opcao') is not None}
+        # DISPONÍVEIS: o que ainda cabe no grupo, pela identidade de cada alternativa
+        # (`_opcao_alternativas`). Entrada de DOIS NÍVEIS some do seletor só quando TODAS as
+        # sub-opções dela já foram tomadas — a arma já usada continua no select pai, porque
+        # o que se repete é o PAR, não a arma.
+        disponiveis = []
+        for alt in _opcao_alternativas(universo):
+            livres = [s for s in alt['subs'] if not (s['formas'] & usados)]
+            if alt['subs'] and not livres:
+                continue
+            if not alt['subs'] and (alt['formas'] & usados):
+                continue
+            disponiveis.append({'val': alt['val'], 'nome': alt['nome'],
+                                'descricao': alt['descricao'],
+                                'subs': [{'val': s['val'], 'nome': s['nome'],
+                                          'descricao': s['descricao']} for s in livres]})
+        escopo = g.get('swap') or ''
+        incompleta = any(e['pendente'] for e in escolhidas)
+        grupos.append({
+            'chave': _opcao_chave(g),
+            'kind': g['kind'], 'tipo': g['persist_tipo'], 'label': g['label'],
+            'classe': g['classe'], 'classe_id': g['classe_id'], 'origem': g['origem'],
+            'n': g['n'], 'usados': g['usados'], 'pendentes': g['pendentes'],
+            'incompleta': incompleta,
+            'swap': escopo,
+            'swap_label': _SWAP_LABEL.get(escopo, 'trocável (%s)' % escopo.replace('_', ' ')) if escopo else '',
+            # trocável AGORA (botão ativo) × marcado-e-inerte (passo do wizard)
+            'trocavel': bool(escopo) and escopo not in _SWAP_NO_WIZARD,
+            'so_no_levelup': escopo in _SWAP_NO_WIZARD,
+            # seletor de DOIS NÍVEIS (pai → sub-opção) quando o universo é assim; a decisão
+            # é ESTRUTURAL, o template não conhece kind nenhum.
+            'dois_niveis': _grupo_em_dois_niveis(g),
+            'pendencia_url': reverse('personagem_subir_nivel', args=[personagem.pk]),
+            'pendencia_label': 'Resolver em Subir de Nível',
+            'escolhidas': escolhidas,
+            'disponiveis': disponiveis,
+        })
+    # pendência primeiro (é o que pede ação), depois classe/rótulo — ordem estável.
+    grupos.sort(key=lambda g: (not (g['pendentes'] or g['incompleta']),
+                               g['classe'] or g['origem'], g['label']))
+    return grupos
 
 
 def _opcao_grupos(personagem, classe_id=None):
@@ -4330,14 +4527,19 @@ def _opcao_grupos(personagem, classe_id=None):
     (metamagia, manobras, segredos, estilos…) E perícias (`pick:pericia`, ex.: Bárbaro
     Conhecimento Primitivo). FONTE ÚNICA: o resolvedor genérico (`home.picks`) descobre
     os grupos pelas tags; aqui só reformatamos os PickGroup no shape do template, sem
-    ramificar por tipo — o submit token de cada opção é `val` (id da opção OU slug)."""
+    ramificar por tipo — o submit token de cada opção é `val` (id da opção OU slug).
+
+    Fora ficam os grupos de DOIS NÍVEIS (universo cuja entrada declara sub-opções): este
+    painel é de UM valor por slot e não expressa o par pai+filho. O corte é ESTRUTURAL
+    (`_grupo_em_dois_niveis`), não por nome de kind — hoje ele pega só a Maestria de Arma,
+    que se resolve no seletor de dois níveis da aba Magias & Opções."""
     from . import picks as _picks
     grupos = []
     if personagem is None:
         return grupos
     slug2tipo = _picks._slug2tipo_map()
     for g in _picks.resolve_personagem(personagem, kinds=_OPCAO_PANEL_KINDS):
-        if g['kind'] in _OPCAO_PANEL_EXCLUDE:
+        if _grupo_em_dois_niveis(g):
             continue
         if classe_id and str(g['classe_id']) != str(classe_id):
             continue
@@ -6475,6 +6677,9 @@ def ficha_detail_view(request, pk):
     # O bloco "Itens Sintonizados" da aba Ficha (entre PV e Ataques) é só leitura — o
     # equipar/desequipar/sintonizar vive na Mochila.
     mochila = _mochila_ficha(p, ficha)
+    # Aba MAGIAS & OPÇÕES (onda D): as escolhas de classe persistidas, agrupadas pelo
+    # registry de picks (nunca por lista de tipos), com troca só onde a tag permite.
+    opcoes = _opcoes_ficha(p)
     pode_editar = p.dono_id == request.user.id or perms.is_staff_user(request.user)
     # Botão de level-up: só quem edita, e só quando elegível (ou com pendências abertas).
     levelup_status = _levelup_status(p, ficha) if pode_editar else None
@@ -6486,6 +6691,7 @@ def ficha_detail_view(request, pk):
         'magias_info': magias_info,
         'consumiveis_cards': consumiveis_cards,
         'mochila': mochila,
+        'opcoes': opcoes,
         'personalidade': _personalidade_ficha(p),
         'transacoes': transacoes,
         'pode_editar': pode_editar,
@@ -6501,76 +6707,112 @@ def ficha_detail_view(request, pk):
 
 @login_required(login_url='/login/')
 def personagem_trocar_maestria(request, pk):
-    """Painel de Maestria de Arma em DOIS NÍVEIS: por slot, a ARMA e UMA maestria DELA. Fica
-    acessível quando a feature é TROCÁVEL (tag `trocavel` — pode trocar a arma) OU quando há
-    maestria PENDENTE a completar (escolhas legadas só-arma). Nº de slots = quantas maestrias o
-    personagem já tem. Persiste `'<arma>|<maestria>'` (1 linha por slot, tipo='maestria')."""
-    from .models import TbPersonagem, TbPersonagemEscolha
-    from . import permissions as perms
-    from .character_engine import derive
+    """APOSENTADA (onda D). A Maestria de Arma deixou de ter fluxo próprio: ela se troca
+    como QUALQUER outra escolha de classe, no seletor de dois níveis da seção Opções de
+    Classe (aba Magias & Opções), que posta em `personagem_trocar_opcao`. A rota fica de pé
+    só para não quebrar link/marcador antigo e redireciona PERMANENTEMENTE para lá — o
+    formulário POST do painel foi aposentado junto com a página (validação de par válido e
+    de par único vive agora numa função só, `_opcao_alternativas`, usada pelo endpoint
+    genérico e pelo seletor que ele atende)."""
+    return redirect(reverse('ficha_detail', args=[pk]) + '?aba=magias#ficha-opcoes',
+                    permanent=True)
+
+
+_OPCAO_TROCA_MSG = {
+    'trocada': 'Opção trocada.',
+    'grupo_invalido': 'Escolha indisponível nesta ficha.',
+    'nao_trocavel': 'Esta escolha não é trocável agora.',
+    'escolha_invalida': 'Escolha indisponível nesta ficha.',
+    'fora_do_universo': 'Opção fora do universo desta escolha.',
+    'duplicada': 'O personagem já tem essa opção.',
+}
+
+
+def _opcoes_resposta(request, p, fallback, *, msg='ok', ok=True):
+    """Resposta das mutações da seção de opções: por fetch devolve a SEÇÃO já
+    re-renderizada pelo servidor (zero regra duplicada no cliente); sem JS, PRG de volta
+    para a aba Magias & Opções."""
+    if not is_ajax(request):
+        return redirect('%s&opcao=%s' % (fallback, msg))
+    from django.template.loader import render_to_string
+    p.refresh_from_db()
+    html = render_to_string('home/partials/_ficha_opcoes.html',
+                            {'p': p, 'opcoes': _opcoes_ficha(p), 'pode_editar': True},
+                            request=request)
+    return JsonResponse({'ok': ok, 'msg': msg,
+                         'detalhe': _OPCAO_TROCA_MSG.get(msg, ''),
+                         'opcoes_html': html}, status=200 if ok else 400)
+
+
+@login_required(login_url='/login/')
+@require_POST
+def personagem_trocar_opcao(request, pk):
+    """TROCA uma escolha de classe já feita por outra do MESMO universo (aba Magias &
+    Opções, onda D).
+
+    Genérico por construção — nenhum ramo por tipo de opção:
+      * o grupo vem de `picks.resolve_personagem` (identificado pela chave estável
+        kind|tipo|classe|origem que a própria seção renderizou);
+      * a TROCABILIDADE vem da TAG (`picks.swap_scope`), e só escopos que a ficha resolve
+        agora passam — `swap:level_up` é passo do wizard e é recusado aqui;
+      * a gravação é o `persist` do REGISTRY no MESMO slot da linha trocada, então
+        readback, derive e level-up continuam lendo o que sempre leram.
+
+    Vale também para escolha de DOIS NÍVEIS (universo cuja entrada declara sub-opções — a
+    arma e as maestrias dela): o cliente manda o PAR `'<pai>|<filho>'` neste mesmo `val`, e
+    quem sabe o que é par válido e o que é duplicata é `_opcao_alternativa`, a mesma função
+    que monta o seletor. Não existe rota separada por kind."""
+    from .models import TbPersonagemEscolha
     from . import picks as _picks
-    p = get_object_or_404(TbPersonagem, pk=pk)
-    if not (p.dono_id == request.user.id or perms.is_staff_user(request.user)):
-        raise Http404()
-    atuais = list(p.escolhas.filter(tipo='maestria').order_by('slot'))
-    n_slots = len(atuais)
-    ficha = derive(p)
-    trocavel = bool(ficha.get('maestria_trocavel'))
-    pendente = bool(ficha.get('maestria_pendente'))
-    # sem slots, e sem poder trocar arma nem completar maestria pendente -> nada a fazer aqui.
-    if n_slots == 0 or not (trocavel or pendente):
-        return redirect(reverse('ficha_detail', args=[pk]))
-    universo = _picks._arma_universe({})
-    by_slug = {u['slug']: u for u in universo}
-    erro = None
-    if request.method == 'POST':
-        pares = [((request.POST.get('arma_%d' % i) or '').strip(),
-                  (request.POST.get('maestria_%d' % i) or '').strip()) for i in range(n_slots)]
-        # sem `trocavel`, as ARMAS ficam travadas nas atuais (só a maestria é completada).
-        if not trocavel:
-            atuais_armas = [_picks.split_arma_maestria(e.valor)[0] for e in atuais]
-            pares = [(atuais_armas[i], m) for i, (_a, m) in enumerate(pares)]
-        # A duplicata proibida é o PAR (arma, maestria) — a MESMA ARMA pode repetir entre
-        # slots para aprender uma 2ª maestria dela (regra confirmada pela staff). Uma arma
-        # SEM maestrias cadastradas não tem par distinto, então aí a própria arma não repete.
-        valores, vistos, ok = [], set(), True
-        for arma, maestria in pares:
-            u = by_slug.get(arma)
-            if not u:
-                ok = False
-                break
-            ms = {m['slug'] for m in (u.get('maestrias') or [])}
-            if ms:
-                par = (arma, maestria)
-                if maestria not in ms or par in vistos:
-                    ok = False
-                    break
-                vistos.add(par)
-                valores.append('%s|%s' % (arma, maestria))
-            else:
-                if (arma, None) in vistos:
-                    ok = False
-                    break
-                vistos.add((arma, None))
-                valores.append(arma)
-        if ok and len(valores) == n_slots:
-            p.escolhas.filter(tipo='maestria').delete()
-            for i, val in enumerate(valores):
-                TbPersonagemEscolha.objects.create(id_personagem=p, tipo='maestria', valor=val, slot=i)
-            return redirect(reverse('ficha_detail', args=[pk]))
-        erro = ('Escolha exatamente %d arma(s), cada uma com a sua maestria (a mesma arma pode '
-                'repetir com maestrias diferentes; não repita o mesmo par arma+maestria).' % n_slots)
-    slots = []
-    for i, e in enumerate(atuais):
-        a, m = _picks.split_arma_maestria(e.valor)
-        u = by_slug.get(a)
-        slots.append({'idx': i, 'arma': a, 'arma_nome': (u['nome'] if u else a),
-                      'maestria': m, 'maestrias': (u['maestrias'] if u else [])})
-    return render(request, 'home/pages/trocar_maestria.html', {
-        'page_title': 'Maestrias de Arma — %s' % p.nome,
-        'p': p, 'armas': universo, 'n_slots': n_slots,
-        'slots': slots, 'trocavel': trocavel, 'erro': erro,
-    })
+    p = _ficha_editavel(request, pk)
+    back = reverse('ficha_detail', args=[pk]) + '?aba=magias'
+    chave = (request.POST.get('grupo') or '').strip()
+    val = (request.POST.get('val') or '').strip()
+    try:
+        escolha_id = int(request.POST.get('escolha') or 0)
+    except (TypeError, ValueError):
+        escolha_id = 0
+
+    grupo = next((g for g in _picks.resolve_personagem(p) if _opcao_chave(g) == chave), None)
+    if grupo is None or not val:
+        return _opcoes_resposta(request, p, back, msg='grupo_invalido', ok=False)
+    escopo = grupo.get('swap') or ''
+    if not escopo or escopo in _SWAP_NO_WIZARD:
+        return _opcoes_resposta(request, p, back, msg='nao_trocavel', ok=False)
+
+    linha = TbPersonagemEscolha.objects.filter(id=escolha_id, id_personagem=p).first()
+    if linha is None or not any(e.get('id') == linha.id for e in grupo['escolhidas']):
+        return _opcoes_resposta(request, p, back, msg='escolha_invalida', ok=False)
+
+    # `val` é o token de uma alternativa SELECIONÁVEL do universo: a opção em si (um nível)
+    # ou o PAR '<pai>|<filho>' (dois níveis). Par cujo filho não é sub-opção daquele pai
+    # simplesmente não existe como alternativa -> fora_do_universo.
+    alvo = _opcao_alternativa(grupo, val)
+    if alvo is None:
+        return _opcoes_resposta(request, p, back, msg='fora_do_universo', ok=False)
+    # a mesma escolha não pode ocupar dois slots do grupo. O que conta como "a mesma" vem
+    # das `formas` da alternativa (regra de domínio única, em `_opcao_alternativas`): num
+    # universo de dois níveis é o PAR INTEIRO — o mesmo pai PODE repetir com filho
+    # diferente —, e num de um nível são o slug e o id (cada kind persiste numa das duas).
+    formas = set(alvo['formas'])
+    ocupadas = set()
+    for e in grupo['escolhidas']:
+        if e.get('id') == linha.id:
+            continue
+        ocupadas |= {str(x) for x in (e.get('valor'), e.get('id_opcao')) if x is not None}
+    if formas & ocupadas:
+        return _opcoes_resposta(request, p, back, msg='duplicada', ok=False)
+
+    grupo['slot_base'] = int(linha.slot or 0)   # sobrescreve a linha trocada, não anexa
+    with transaction.atomic():
+        _picks.registry_entry(grupo['kind'])['persist'](p, grupo, [val])
+        # O `persist` casa a linha por (origem, tipo, slot). Linha gravada por um fluxo
+        # ANTIGO pode ter outra `origem` — aí o persist criou uma linha NOVA nesse slot em
+        # vez de reescrever aquela. Se foi o caso, some com a velha: o slot é um só.
+        if TbPersonagemEscolha.objects.filter(id_personagem=p, tipo=linha.tipo,
+                                              slot=linha.slot).exclude(id=linha.id).exists():
+            linha.delete()
+    return _opcoes_resposta(request, p, back, msg='trocada')
 
 
 @login_required(login_url='/login/')

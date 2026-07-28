@@ -176,6 +176,36 @@ def iter_pick_tokens(text):
                         text[start:end], (start, end))
 
 
+# Marcador IRMÃO de troca: uma tag que é SÓ `swap:<escopo>` / `reset:<escopo>` ao lado do
+# pick, na mesma feature (forma normativa do catálogo em Guerreiro 'Maestria em Armas',
+# Bardo 'Segredos Místicos'…). O casamento é ANCORADO de propósito: `teleport:swap{...}`
+# ou `uses{pb, reset:long_rest}` são efeito/recurso, não trocabilidade de escolha.
+_SWAP_MARKER_RE = re.compile(r'^(?:swap|reset)\s*:\s*([a-z0-9_]+)$')
+
+
+def swap_scope(token, source):
+    """Escopo de TROCA que a TAG declara para um pick papel-A, ou None.
+
+    Duas formas normativas, as mesmas que o engine já lê em
+    `character_engine._pick_trocavel_no_descanso`: constraint no próprio token
+    (`pick:arma:N(swap:long_rest)`, `pick:pilar_draconico:1(swap:short_or_long)`) e
+    MARCADOR IRMÃO na mesma feature (`"swap:level_up"` como tag solta).
+
+    Devolve o escopo CRU (`long_rest`, `level_up`, `short_or_long`, `rest`…): quem decide
+    o que fica ativo agora e o que é passo do wizard é o gate da UI — aqui não há política,
+    só leitura da tag. Sem marcador -> None (opção fixa, só leitura na ficha).
+    """
+    constraints = token.constraints or {}
+    escopo = constraints.get('swap') or constraints.get('reset')
+    if escopo:
+        return escopo
+    for tag in (getattr(source, 'tags_json', None) or []):
+        m = _SWAP_MARKER_RE.match(str(tag).strip())
+        if m:
+            return m.group(1)
+    return None
+
+
 def _parse_constraints(raw):
     raw = raw or ''
     return {
@@ -1178,6 +1208,9 @@ def _build_group(token, source, classe, subclasse, nivel, personagem, escolhas_m
         'origem': getattr(source, 'nome', None) or (classe.nome if classe else ''),
         'kind': token.kind, 'tipo': tipo, 'persist_tipo': persist_tipo,
         'tipo_display': tipo_display, 'label': label,
+        # TROCABILIDADE: sai da TAG (constraint do token ou marcador irmão), nunca de uma
+        # lista de tipos trocáveis. `None` = escolha fixa.
+        'swap': swap_scope(token, source),
         'n': n, 'universo': universo, 'constraints': token.constraints,
         'classe_id': (classe.id_classe if classe else None),
         'classe': (classe.nome if classe else ''),

@@ -214,13 +214,22 @@ class TrocaMaestriaDescansoTests(_CriadorBase):
         self.assertTrue(derive(p)['maestria_trocavel'])
 
     def test_fluxo_de_troca_volta_a_abrir(self):
+        """O fluxo é UM só desde a onda D: o cartão da Maestria de Arma na aba Magias &
+        Opções, com o seletor de dois níveis. A rota do painel antigo só redireciona."""
+        from home import views
         p = self._personagem_com_maestria()
         self.client.force_login(p.dono)
-        resp = self.client.get(reverse('personagem_trocar_maestria', args=[p.pk]))
+        grupo = next(g for g in views._opcoes_ficha(p) if g['kind'] == 'arma')
+        self.assertTrue(grupo['trocavel'])
+        self.assertTrue(grupo['dois_niveis'])
+        resp = self.client.get(reverse('ficha_detail', args=[p.pk]), {'aba': 'magias'})
         self.assertEqual(resp.status_code, 200)
-        self.assertContains(resp, 'Maestrias de Arma')
+        self.assertContains(resp, 'data-opcao-grupo="%s"' % grupo['chave'])
+        antiga = self.client.get(reverse('personagem_trocar_maestria', args=[p.pk]))
+        self.assertEqual(antiga.status_code, 301)
 
     def test_fluxo_persiste_novo_par_arma_maestria(self):
+        from home import views
         p = self._personagem_com_maestria()
         atual = p.escolhas.get(tipo='maestria')
         candidato = next(
@@ -234,13 +243,16 @@ class TrocaMaestriaDescansoTests(_CriadorBase):
         )
         self.assertIsNotNone(candidato, 'fixture precisa de outro par arma+maestria')
         arma, maestria = candidato
+        grupo = next(g for g in views._opcoes_ficha(p) if g['kind'] == 'arma')
         self.client.force_login(p.dono)
 
         resp = self.client.post(
-            reverse('personagem_trocar_maestria', args=[p.pk]),
-            data={'arma_0': arma['slug'], 'maestria_0': maestria['slug']})
+            reverse('personagem_trocar_opcao', args=[p.pk]),
+            data={'grupo': grupo['chave'], 'escolha': grupo['escolhidas'][0]['id'],
+                  'val': '%s|%s' % (arma['slug'], maestria['slug'])},
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest')
 
-        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.status_code, 200, resp.content[:400])
         self.assertEqual(
             p.escolhas.get(tipo='maestria').valor,
             '%s|%s' % (arma['slug'], maestria['slug']),

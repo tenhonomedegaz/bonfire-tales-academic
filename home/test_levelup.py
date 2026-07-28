@@ -90,10 +90,12 @@ class LevelUpLoteBase(_CriadorBase):
                     p, {'nivel': bloco['nivel'], 'talento': bloco['opcoes'][0]['nome']})
         # Demais escolhas pendentes (perícia/ferramenta/opção de qualquer origem — inclui a
         # ferramenta embutida num talento racial já escolhido): resolve pelo registry genérico,
-        # pegando as primeiras opções livres de cada grupo.
+        # pegando as primeiras opções livres de cada grupo. Grupo de DOIS NÍVEIS (universo com
+        # sub-opções, ex.: arma+maestria) fica de fora — um valor solto não completa o par,
+        # e é o mesmo corte que o painel do wizard faz.
         for _ in range(8):
             grupos = [g for g in _picks.resolve_personagem(p, kinds=views._OPCAO_PANEL_KINDS)
-                      if g['kind'] not in views._OPCAO_PANEL_EXCLUDE and g['pendentes'] >= 1]
+                      if not views._grupo_em_dois_niveis(g) and g['pendentes'] >= 1]
             if not grupos:
                 break
             for g in grupos:

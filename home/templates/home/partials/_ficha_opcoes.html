@@ -1,0 +1,105 @@
+{% comment %}Seção OPÇÕES DE CLASSE (Ficha v2, onda D) — vive na aba "Magias & Opções".
+
+Um cartão por GRUPO resolvido pelo registry de picks (home/picks.py + views._opcoes_ficha):
+rótulo, universo e TROCABILIDADE saem da tag, nunca de uma lista de tipos aqui. Por isso
+Maestria de Arma, Estilo de Luta, Estilos de Ki, Segredos, Manobras, Metamagia, Runas…
+aparecem sem que este template os conheça — e um kind novo aparece sozinho.
+
+A troca é UMA só: todo grupo trocável posta em `personagem_trocar_opcao`. Quando o universo
+é de DOIS NÍVEIS (a entrada declara sub-opções, como a arma e suas maestrias), o seletor
+vira pai→filho e o valor vai composto (`<pai>|<filho>`) — mesma rota, mesmo form, sem
+página dedicada por kind.
+
+Sem JS a troca continua funcionando: cada linha trocável tem um <details> com um form
+POST clássico (PRG). Com JS (js/ficha_opcoes.js) o mesmo form vai por fetch e esta seção
+é substituída pelo HTML re-renderizado pelo servidor.{% endcomment %}
+<div class="ficha-panel" id="ficha-opcoes" data-opcoes-root>
+  <div class="ficha-section-title">Opções de Classe
+    <span class="float-right font-sans text-[11px] normal-case tracking-normal text-[var(--muted)]">{{ opcoes|length }} grupo{{ opcoes|length|pluralize }}</span>
+  </div>
+
+  {% if opcoes %}
+  <p class="opt-hint">Cada bloco é uma escolha que a ficha guarda. As trocáveis trazem o
+    botão <strong>Trocar</strong>; as demais são só leitura — a troca só existe onde a
+    habilidade diz que existe.</p>
+  <div class="opt-feedback" data-opcoes-feedback hidden aria-live="polite"></div>
+
+  <div class="opt-grid">
+    {% for g in opcoes %}
+    <section class="opt-card{% if g.pendentes or g.incompleta %} is-pendente{% endif %}" data-opcao-grupo="{{ g.chave }}">
+      <header class="opt-head">
+        <div class="opt-title">
+          <strong>{{ g.label }}</strong>
+          <span class="opt-source">{{ g.classe|default:g.origem }}{% if g.classe and g.origem and g.classe != g.origem %} · {{ g.origem }}{% endif %}</span>
+        </div>
+        <div class="opt-badges">
+          <span class="opt-count">{{ g.usados }}/{{ g.n }}</span>
+          {% if g.swap %}<span class="opt-swap-tag{% if g.trocavel %} is-on{% endif %}" title="Declarado na tag da habilidade">{{ g.swap_label }}</span>{% endif %}
+        </div>
+      </header>
+
+      <ul class="opt-list">
+        {% for e in g.escolhidas %}
+        <li class="opt-row{% if e.pendente %} is-incompleta{% endif %}">
+          <div class="opt-row-head">
+            {% if e.descricao %}
+            <button type="button" class="opt-name" data-opcao-toggle="{{ g.kind }}-{{ e.id }}" aria-expanded="false">{{ e.nome }}<span class="opt-caret" aria-hidden="true"></span></button>
+            {% else %}
+            <span class="opt-name is-plain">{{ e.nome }}</span>
+            {% endif %}
+            {% if pode_editar and g.trocavel %}
+              <details class="opt-swapbox">
+                <summary class="opt-action">↻ Trocar</summary>
+                <form method="post" action="{% url 'personagem_trocar_opcao' p.id_personagem %}" class="opt-swapform" data-opcao-form>
+                  {% csrf_token %}
+                  <input type="hidden" name="grupo" value="{{ g.chave }}">
+                  <input type="hidden" name="escolha" value="{{ e.id }}">
+                  <label class="opt-swap-lbl" for="opt-sel-{{ g.kind }}-{{ e.id }}">Trocar por</label>
+                  {% if not g.disponiveis %}
+                  <select id="opt-sel-{{ g.kind }}-{{ e.id }}" name="val" class="opt-select" disabled><option value="">— sem opções livres —</option></select>
+                  {% elif g.dois_niveis %}
+                  {% comment %}Universo de DOIS NÍVEIS (a entrada declara sub-opções — a arma e
+                  as maestrias dela): o 1º select escolhe o PAI e filtra o 2º, que é quem manda
+                  o valor composto `<pai>|<filho>` para o MESMO endpoint. Sem JS o 2º select já
+                  vem com TUDO agrupado por pai, então a troca continua possível.{% endcomment %}
+                  <select class="opt-select" data-opcao-pai aria-label="{{ g.label }} — primeira escolha">
+                    {% for o in g.disponiveis %}<option value="{{ o.val }}">{{ o.nome }}</option>{% endfor %}
+                  </select>
+                  <select id="opt-sel-{{ g.kind }}-{{ e.id }}" name="val" class="opt-select" data-opcao-filho>
+                    {% for o in g.disponiveis %}<optgroup label="{{ o.nome }}" data-opcao-de="{{ o.val }}">{% for s in o.subs %}<option value="{{ s.val }}">{{ s.nome }}</option>{% endfor %}</optgroup>{% endfor %}
+                  </select>
+                  {% else %}
+                  <select id="opt-sel-{{ g.kind }}-{{ e.id }}" name="val" class="opt-select">
+                    {% for o in g.disponiveis %}<option value="{{ o.val }}">{{ o.nome }}</option>{% endfor %}
+                  </select>
+                  {% endif %}
+                  <button type="submit" class="opt-confirm"{% if not g.disponiveis %} disabled{% endif %}>Confirmar</button>
+                </form>
+              </details>
+            {% endif %}
+          </div>
+          {% if e.pre %}<p class="opt-pre">Pré-requisito: {{ e.pre }}</p>{% endif %}
+          {% if e.descricao %}<div class="opt-desc" data-opcao-body="{{ g.kind }}-{{ e.id }}" hidden>{{ e.descricao }}</div>{% endif %}
+        </li>
+        {% empty %}
+        <li class="opt-row is-vazia"><span class="opt-name is-plain">Nenhuma escolha feita ainda.</span></li>
+        {% endfor %}
+      </ul>
+
+      {% if g.pendentes %}
+      <p class="opt-pendencia">⚠ {{ g.pendentes }} escolha{{ g.pendentes|pluralize }} em aberto{% if pode_editar %} — <a href="{{ g.pendencia_url }}">{{ g.pendencia_label }}</a>{% endif %}</p>
+      {% elif g.incompleta %}
+      {% comment %}Escolha de dois níveis pela metade (linha legada só com o pai): se o grupo é
+      trocável ela se completa no próprio ↻ Trocar da linha — não há painel à parte.{% endcomment %}
+      <p class="opt-pendencia">⚠ Escolha incompleta{% if pode_editar %}{% if g.trocavel %} — complete no <strong>↻ Trocar</strong> da linha{% else %} — <a href="{{ g.pendencia_url }}">{{ g.pendencia_label }}</a>{% endif %}{% endif %}</p>
+      {% endif %}
+      {% if g.so_no_levelup %}
+      <p class="opt-nota">Esta escolha se troca no wizard de <strong>subir de nível</strong>.</p>
+      {% endif %}
+    </section>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="info-empty">Este personagem não tem opções de classe a escolher.</p>
+  {% endif %}
+</div>

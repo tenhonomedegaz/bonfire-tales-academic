@@ -436,8 +436,30 @@ class Maestria2NiveisTests(_CriadorBase):
         # perfil de ataque não recebe maestria de arma pendente
         self.assertEqual(_mapa_maestria_por_arma(ficha['maestrias_armas']), {})
 
-    # ── painel reabre a sub-escolha da maestria pendente ──────────────────
-    def test_painel_reabre_e_completa_pendente(self):
+    # ── a sub-escolha se completa/troca no ENDPOINT GENÉRICO ──────────────
+    # O painel dedicado /trocar-maestria/ foi aposentado na onda D: a Maestria de Arma é
+    # uma escolha como as outras, no seletor de dois níveis da aba Magias & Opções.
+    def _grupo_arma(self, p):
+        from home import views
+        return next(g for g in views._opcoes_ficha(p) if g['kind'] == 'arma')
+
+    def _trocar_opcao(self, p, grupo, escolha_id, val, esperado=200):
+        self.client.force_login(p.dono)
+        resp = self.client.post(
+            reverse('personagem_trocar_opcao', args=[p.pk]),
+            {'grupo': grupo['chave'], 'escolha': escolha_id, 'val': val},
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(resp.status_code, esperado, resp.content[:400])
+        return resp.json()
+
+    def test_rota_antiga_do_painel_redireciona_para_a_ficha(self):
+        p = self._guerreiro()
+        self.client.force_login(p.dono)
+        resp = self.client.get(reverse('personagem_trocar_maestria', args=[p.pk]))
+        self.assertEqual(resp.status_code, 301)          # aposentada, permanente
+        self.assertIn('aba=magias', resp['Location'])
+
+    def test_endpoint_generico_completa_pendente(self):
         from home.character_engine import derive
         from home.models import TbPersonagemEscolha
         p = self._guerreiro()
@@ -445,17 +467,18 @@ class Maestria2NiveisTests(_CriadorBase):
         escolhida = w['maestrias'][0]
         TbPersonagemEscolha.objects.create(
             id_personagem=p, tipo='maestria', slot=0, valor=w['slug'])  # legado pendente
-        url = reverse('personagem_trocar_maestria', args=[p.pk])
-        self.client.force_login(p.dono)
-        # reachable mesmo sem 'trocavel' porque há maestria pendente
-        self.assertEqual(self.client.get(url).status_code, 200)
-        resp = self.client.post(url, {'arma_0': w['slug'], 'maestria_0': escolhida['slug']})
-        self.assertEqual(resp.status_code, 302)
+        grupo = self._grupo_arma(p)
+        linha = grupo['escolhidas'][0]
+        self.assertTrue(linha['pendente'])
+        body = self._trocar_opcao(p, grupo, linha['id'],
+                                  '%s|%s' % (w['slug'], escolhida['slug']))
+        self.assertTrue(body['ok'], body)
+        # a linha LEGADA (gravada sem `origem`) é reescrita, não duplicada
         e = p.escolhas.filter(tipo='maestria').get()
         self.assertEqual(e.valor, '%s|%s' % (w['slug'], escolhida['slug']))
         self.assertFalse(derive(p)['maestria_pendente'])
 
-    def test_painel_completar_recusa_maestria_de_outra_arma(self):
+    def test_endpoint_generico_recusa_maestria_de_outra_arma(self):
         from home.models import TbPersonagemEscolha
         p = self._guerreiro()
         w = self._arma_com_maestrias()
@@ -464,12 +487,12 @@ class Maestria2NiveisTests(_CriadorBase):
                      if x['slug'] != w['slug'] and x['maestrias'][0]['slug'] not in w_slugs)
         TbPersonagemEscolha.objects.create(
             id_personagem=p, tipo='maestria', slot=0, valor=w['slug'])
-        url = reverse('personagem_trocar_maestria', args=[p.pk])
-        self.client.force_login(p.dono)
-        # maestria de OUTRA arma não pertence a esta -> não persiste, continua pendente
-        resp = self.client.post(url, {'arma_0': w['slug'],
-                                      'maestria_0': outra['maestrias'][0]['slug']})
-        self.assertEqual(resp.status_code, 200)  # re-renderiza com erro
+        grupo = self._grupo_arma(p)
+        # o PAR não existe no universo (a maestria é de outra arma) -> recusado, nada muda
+        body = self._trocar_opcao(p, grupo, grupo['escolhidas'][0]['id'],
+                                  '%s|%s' % (w['slug'], outra['maestrias'][0]['slug']),
+                                  esperado=400)
+        self.assertEqual(body['msg'], 'fora_do_universo')
         e = p.escolhas.filter(tipo='maestria').get()
         self.assertEqual(e.valor, w['slug'])     # inalterado (segue pendente)
 
@@ -543,34 +566,38 @@ class Maestria2NiveisTests(_CriadorBase):
         TbPersonagemEscolha.objects.create(id_personagem=p, tipo='maestria', slot=0, valor=w['slug'])
         TbPersonagemEscolha.objects.create(id_personagem=p, tipo='maestria', slot=1, valor=w['slug'])
 
-    def test_painel_mesma_arma_dois_slots_maestrias_diferentes(self):
+    def test_endpoint_generico_mesma_arma_dois_slots_maestrias_diferentes(self):
         from home.character_engine import derive
         p = self._guerreiro()
         w = self._arma_com_maestrias()
         m0, m1 = w['maestrias'][0]['slug'], w['maestrias'][1]['slug']
         self._dois_slots_legado(p, w)                          # 2 slots pendentes, MESMA arma
-        url = reverse('personagem_trocar_maestria', args=[p.pk])
-        self.client.force_login(p.dono)
-        self.assertEqual(self.client.get(url).status_code, 200)
-        resp = self.client.post(url, {'arma_0': w['slug'], 'maestria_0': m0,
-                                      'arma_1': w['slug'], 'maestria_1': m1})
-        self.assertEqual(resp.status_code, 302)
+        for maestria in (m0, m1):
+            grupo = self._grupo_arma(p)
+            linha = next(e for e in grupo['escolhidas'] if e['pendente'])
+            body = self._trocar_opcao(p, grupo, linha['id'],
+                                      '%s|%s' % (w['slug'], maestria))
+            self.assertTrue(body['ok'], body)
         vals = sorted(e.valor for e in p.escolhas.filter(tipo='maestria'))
         self.assertEqual(vals, sorted(['%s|%s' % (w['slug'], m0), '%s|%s' % (w['slug'], m1)]))
         self.assertFalse(derive(p)['maestria_pendente'])
 
-    def test_painel_recusa_par_duplicado(self):
+    def test_endpoint_generico_recusa_par_duplicado(self):
         p = self._guerreiro()
         w = self._arma_com_maestrias()
         m0 = w['maestrias'][0]['slug']
         self._dois_slots_legado(p, w)
-        url = reverse('personagem_trocar_maestria', args=[p.pk])
-        self.client.force_login(p.dono)
-        resp = self.client.post(url, {'arma_0': w['slug'], 'maestria_0': m0,
-                                      'arma_1': w['slug'], 'maestria_1': m0})
-        self.assertEqual(resp.status_code, 200)                # re-renderiza com erro
-        vals = [e.valor for e in p.escolhas.filter(tipo='maestria').order_by('slot')]
-        self.assertEqual(vals, [w['slug'], w['slug']])         # inalterado (segue legado)
+        grupo = self._grupo_arma(p)
+        self.assertTrue(self._trocar_opcao(p, grupo, grupo['escolhidas'][0]['id'],
+                                           '%s|%s' % (w['slug'], m0))['ok'])
+        # o PAR (arma, maestria) é único: repetir o mesmo par no outro slot é recusado
+        grupo = self._grupo_arma(p)
+        outra_linha = next(e for e in grupo['escolhidas'] if e['pendente'])
+        body = self._trocar_opcao(p, grupo, outra_linha['id'],
+                                  '%s|%s' % (w['slug'], m0), esperado=400)
+        self.assertEqual(body['msg'], 'duplicada')
+        vals = sorted(e.valor for e in p.escolhas.filter(tipo='maestria'))
+        self.assertEqual(vals, sorted(['%s|%s' % (w['slug'], m0), w['slug']]))
 
     def test_criador_e2e_mesma_arma_duas_maestrias(self):
         from home.character_engine import derive

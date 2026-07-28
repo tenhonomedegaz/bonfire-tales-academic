@@ -4,10 +4,11 @@
 {% block title %}{{ p.nome }} · Ficha · Bonfire Tales RPG{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/pages/ficha.css' %}?v=9">
+<link rel="stylesheet" href="{% static 'css/pages/ficha.css' %}?v=10">
 <link rel="stylesheet" href="{% static 'css/pages/perfil-fx.css' %}?v=3">
 {% if appearance.theme_css_href %}<link rel="stylesheet" href="{{ appearance.theme_css_href }}">{% endif %}
 <script src="{% static 'js/mochila.js' %}?v=1" defer></script>
+<script src="{% static 'js/ficha_opcoes.js' %}?v=2" defer></script>
 {% endblock %}
 
 {% block content %}
@@ -69,7 +70,9 @@
     <button type="button" class="ficha-tab is-active" role="tab" data-tab="ficha" aria-selected="true">Ficha</button>
     <button type="button" class="ficha-tab" role="tab" data-tab="mochila" aria-selected="false">Mochila</button>
     <button type="button" class="ficha-tab" role="tab" data-tab="info" aria-selected="false">Informações</button>
-    <button type="button" class="ficha-tab" role="tab" data-tab="magias" aria-selected="false">Magias</button>
+    {% comment %}Onda D: a aba de magias virou MAGIAS & OPÇÕES (as escolhas de classe moram
+    lá). O identificador `magias` NÃO muda — `?aba=magias` e os atalhos continuam válidos.{% endcomment %}
+    <button type="button" class="ficha-tab" role="tab" data-tab="magias" aria-selected="false">Magias &amp; Opções</button>
     <button type="button" class="ficha-tab" role="tab" data-tab="historico" aria-selected="false">Histórico</button>
   </nav>
 
@@ -333,7 +336,11 @@
 
   {% if ficha.maestrias_armas %}
   <div class="ficha-panel">
-    <div class="ficha-section-title">Maestrias de Arma{% if pode_editar and ficha.maestria_pendente %}<a href="{% url 'personagem_trocar_maestria' p.id_personagem %}" class="float-right font-sans text-[11px] normal-case tracking-normal text-[var(--flame)] hover:underline">⚠ Completar maestria</a>{% elif pode_editar and ficha.maestria_trocavel %}<a href="{% url 'personagem_trocar_maestria' p.id_personagem %}" class="float-right font-sans text-[11px] normal-case tracking-normal text-[var(--ember)] hover:underline">↻ Trocar</a>{% endif %}</div>
+    {% comment %}Onda D: o ponto de entrada da TROCA saiu daqui — todas as escolhas de
+    classe (maestria inclusive) se trocam no cartão do grupo na aba Magias & Opções; o
+    painel dedicado de maestria deixou de existir. Aqui fica só a leitura, ao lado dos
+    ataques.{% endcomment %}
+    <div class="ficha-section-title">Maestrias de Arma{% if pode_editar and ficha.maestria_pendente %}<button type="button" class="float-right font-sans text-[11px] normal-case tracking-normal text-[var(--flame)] hover:underline" data-tab-jump="magias">⚠ Completar maestria</button>{% elif pode_editar and ficha.maestria_trocavel %}<button type="button" class="float-right font-sans text-[11px] normal-case tracking-normal text-[var(--ember)] hover:underline" data-tab-jump="magias">↻ Trocar em Magias &amp; Opções</button>{% endif %}</div>
     <p class="mb-2 text-xs text-[var(--muted)]">Cada slot concede <strong>uma</strong> maestria de uma arma, aplicada no ataque. A mesma arma pode aparecer em mais de um slot para aprender maestrias diferentes dela.{% if ficha.maestria_trocavel %} <span class="text-[var(--spark)]">Trocável.</span>{% endif %}</p>
     <ul class="grid gap-1.5 sm:grid-cols-2">
       {% for w in ficha.maestrias_armas %}
@@ -346,7 +353,7 @@
                 {% if w.maestria.efeito %}<div class="border-t border-[var(--stroke)]/40 px-2 py-1.5 text-[11px] leading-snug text-[var(--muted)]">{{ w.maestria.efeito }}</div>{% endif %}
               </details>
             {% elif w.maestria_pendente %}
-              <span class="text-xs text-[var(--flame)]">Maestria a escolher{% if pode_editar %} — <a href="{% url 'personagem_trocar_maestria' p.id_personagem %}" class="text-[var(--ember)] hover:underline">completar</a>{% endif %}</span>
+              <span class="text-xs text-[var(--flame)]">Maestria a escolher{% if pode_editar %} — <button type="button" class="text-[var(--ember)] hover:underline" data-tab-jump="magias">completar</button>{% endif %}</span>
             {% else %}<span class="text-xs text-[var(--muted)]">—</span>{% endif %}
           </div>
         </li>
@@ -355,10 +362,9 @@
   </div>
   {% endif %}
 
-  {% comment %}O resumo de magias saiu do rodapé desta aba — a aba Magias é o lugar canônico. Fica só o atalho.{% endcomment %}
-  {% if ficha.magias %}
-  <p class="ficha-jump"><button type="button" class="ficha-jump-chip" data-tab-jump="magias">Magias, espaços e CD na aba <strong>Magias</strong> →</button></p>
-  {% endif %}
+  {% comment %}O resumo de magias saiu do rodapé desta aba — a aba Magias & Opções é o lugar
+  canônico (dela e das escolhas de classe, desde a onda D). Fica só o atalho.{% endcomment %}
+  <p class="ficha-jump"><button type="button" class="ficha-jump-chip" data-tab-jump="magias">{% if ficha.magias %}Magias, espaços e CD{% else %}Escolhas de classe{% endif %} na aba <strong>Magias &amp; Opções</strong> →</button></p>
 
   <div class="ficha-panel">
     <div class="ficha-section-title">Defesas &amp; Sentidos</div>
@@ -610,7 +616,7 @@
     {% endif %}
   </div>{# /ABA 3: INFORMAÇÕES #}
 
-  {# ===================== ABA 4: MAGIAS ===================== #}
+  {# ===================== ABA 4: MAGIAS & OPÇÕES ===================== #}
   <div class="ficha-tabpanel space-y-3" data-tabpanel="magias" role="tabpanel" hidden>
     <div class="spellbook-head">
       <div class="spell-title">
@@ -755,7 +761,12 @@
     {% else %}
       <div class="ficha-panel"><p class="info-empty">Este personagem ainda não tem magias selecionadas.</p></div>
     {% endif %}
-  </div>{# /ABA 4: MAGIAS #}
+
+    {# --- OPÇÕES DE CLASSE (onda D): grupos do registry de picks, troca só onde a tag deixa --- #}
+    <div data-opcoes-slot>
+      {% include 'home/partials/_ficha_opcoes.html' %}
+    </div>
+  </div>{# /ABA 4: MAGIAS & OPÇÕES #}
 
   {# ===================== ABA 5: HISTÓRICO ===================== #}
   <div class="ficha-tabpanel space-y-3" data-tabpanel="historico" role="tabpanel" hidden>
