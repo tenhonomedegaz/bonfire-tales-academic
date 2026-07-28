@@ -1,15 +1,38 @@
+{% comment %}STAFFBOX de missões (Ficha v2, onda E). O ledger deixou de ser só "nome + qtd":
+cada linha guarda a DATA DA MISSÃO, o MESTRE (do cadastro real — select, nunca string livre)
+e os CONSUMOS da missão (item consumível gasto, ouro de RP) em `detalhes_json`, com trilha de
+edição. Correção de lançamento é EDIÇÃO — não existe apagar linha; o rollback continua sendo o
+caminho para desfazer os CONTADORES (aventuras/ouro/braseiros).{% endcomment %}
 <div class="lvl-staffbox" id="lvl-aventuras-staffbox">
-  <span class="lbl">Staff — registrar aventuras:</span>
+  <span class="lbl">Staff — registrar missão:</span>
   {% if compra_msg == 'aventuras' %}<p class="lvl-note-ok" style="flex:1 1 100%">Aventuras registradas — ouro e braseiros creditados.</p>{% endif %}
   {% if compra_msg == 'aventuras_sem_nome' %}<p class="lvl-note-cap" style="flex:1 1 100%">Informe o NOME da aventura para registrar o lançamento.</p>{% endif %}
+  {% if compra_msg == 'aventuras_sem_mestre' %}<p class="lvl-note-cap" style="flex:1 1 100%">Escolha o MESTRE da missão — lançamento novo não é mais aceito sem mestre do cadastro.</p>{% endif %}
+  {% if compra_msg == 'aventuras_data_invalida' %}<p class="lvl-note-cap" style="flex:1 1 100%">Data da missão inválida.</p>{% endif %}
   {% if rollback_msg == 'ok' %}<p class="lvl-note-ok" style="flex:1 1 100%">Lançamento revertido: aventuras e ouro devolvidos.</p>{% endif %}
   {% if rollback_msg == 'ja_revertido' %}<p class="lvl-note-cap" style="flex:1 1 100%">Este lançamento já foi revertido.</p>{% endif %}
   {% if rollback_msg == 'teto_nivel' %}<p class="lvl-note-cap" style="flex:1 1 100%">Estorno impossível: o personagem já subiu de nível com essas aventuras.</p>{% endif %}
   {% if rollback_msg == 'ouro_insuf' %}<p class="lvl-note-cap" style="flex:1 1 100%">Ouro insuficiente para estornar este lançamento.</p>{% endif %}
+  {% if edicao_msg == 'ok' %}<p class="lvl-note-ok" style="flex:1 1 100%">Lançamento corrigido — a trilha registrou a edição.</p>{% endif %}
+  {% if edicao_msg == 'consumo_ok' %}<p class="lvl-note-ok" style="flex:1 1 100%">Consumo registrado na missão.</p>{% endif %}
+  {% if edicao_msg == 'sem_nome' %}<p class="lvl-note-cap" style="flex:1 1 100%">O nome da missão não pode ficar vazio.</p>{% endif %}
+  {% if edicao_msg == 'sem_mestre' %}<p class="lvl-note-cap" style="flex:1 1 100%">Escolha o mestre da missão para salvar a correção.</p>{% endif %}
+  {% if edicao_msg == 'data_invalida' %}<p class="lvl-note-cap" style="flex:1 1 100%">Data da missão inválida.</p>{% endif %}
+  {% if edicao_msg == 'item_invalido' %}<p class="lvl-note-cap" style="flex:1 1 100%">Item indisponível ou não consumível no inventário deste personagem.</p>{% endif %}
+  {% if edicao_msg == 'qtd_insuficiente' %}<p class="lvl-note-cap" style="flex:1 1 100%">O personagem não tem essa quantidade do item.</p>{% endif %}
+  {% if edicao_msg == 'valor_invalido' %}<p class="lvl-note-cap" style="flex:1 1 100%">Informe um valor de ouro (PO) maior que zero.</p>{% endif %}
+  {% if edicao_msg == 'ouro_insuf' %}<p class="lvl-note-cap" style="flex:1 1 100%">Carteira insuficiente para debitar esse gasto de RP.</p>{% endif %}
+  {% if edicao_msg == 'consumo_tipo' %}<p class="lvl-note-cap" style="flex:1 1 100%">Tipo de consumo desconhecido.</p>{% endif %}
+
   <form method="post" action="{% url 'personagem_registrar_aventuras' p.id_personagem %}"
         class="lvl-inline" style="flex:1 1 100%" data-aventura-form>
     {% csrf_token %}
     <input type="text" name="nome_aventura" required maxlength="200" placeholder="Nome da aventura" class="lvl-field lvl-field--grow" aria-label="Nome da aventura">
+    <select name="mestre" class="lvl-field lvl-field--grow" required aria-label="Mestre da missão" data-aventura-mestre>
+      <option value="">Mestre da missão…</option>
+      {% for m in mestres %}<option value="{{ m.pk }}">{{ m.get_full_name|default:m.username }}</option>{% endfor %}
+    </select>
+    <input type="date" name="data_missao" class="lvl-field" aria-label="Data da missão" title="Data em que a missão aconteceu (não a do lançamento)">
     <input type="number" name="aventuras" min="1" max="200" value="1" class="lvl-field" style="width:5rem" aria-label="Quantidade de aventuras">
     <label class="lvl-radio"><input type="checkbox" name="evento"> missão de evento (dá braseiros)</label>
     <button type="submit" class="lvl-add">+ Aventuras (ouro + nível)</button>
@@ -19,12 +42,14 @@
     <div class="lvl-ledger">
       <table class="lvl-ledger__table">
         <thead>
-          <tr><th>Aventura</th><th>Qtd</th><th>Ouro</th><th>Nv</th><th>Quando</th><th>Por</th><th></th></tr>
+          <tr><th>Aventura</th><th>Data da missão</th><th>Mestre</th><th>Qtd</th><th>Ouro</th><th>Nv</th><th>Lançado</th><th>Por</th><th></th></tr>
         </thead>
         <tbody>
           {% for l in aventura_ledger %}
             <tr{% if l.revertido %} class="is-reverted"{% endif %}>
               <td>{{ l.nome_aventura }}</td>
+              <td>{% if l.data_missao %}{{ l.data_missao|date:"d/m/Y" }}{% else %}<span class="lvl-legado" title="Lançamento anterior à onda E: a data da missão nunca foi registrada">(legado)</span>{% endif %}</td>
+              <td>{% if l.eh_legado %}<span class="lvl-legado" title="Lançamento anterior ao cadastro obrigatório de mestre">{{ l.mestre_display }}</span>{% else %}{{ l.mestre_display }}{% endif %}</td>
               <td>{{ l.qtd_aventuras }}</td>
               <td>{{ l.ouro_pago_po }} PO</td>
               <td>{{ l.nivel_no_lancamento }}</td>
@@ -41,6 +66,69 @@
                     <button type="submit" class="lvl-revbtn">Reverter</button>
                   </form>
                 {% endif %}
+              </td>
+            </tr>
+
+            {# ── Correção do lançamento + consumos da missão, na PRÓPRIA linha ── #}
+            <tr class="lvl-ledger__detail">
+              <td colspan="9">
+                <details class="lvl-missao">
+                  <summary>Corrigir lançamento · consumos da missão</summary>
+
+                  <form method="post" action="{% url 'personagem_editar_aventura' p.id_personagem l.id_lancamento %}"
+                        class="lvl-inline" data-aventura-editar>
+                    {% csrf_token %}
+                    <input type="text" name="nome_aventura" required maxlength="200" value="{{ l.nome_aventura }}" class="lvl-field lvl-field--grow" aria-label="Nome da missão">
+                    <select name="mestre" class="lvl-field lvl-field--grow" required aria-label="Mestre da missão">
+                      <option value="">Mestre da missão…</option>
+                      {% for m in mestres %}<option value="{{ m.pk }}"{% if m.pk == l.id_mestre_id %} selected{% endif %}>{{ m.get_full_name|default:m.username }}</option>{% endfor %}
+                    </select>
+                    <input type="date" name="data_missao" value="{{ l.data_missao|date:'Y-m-d' }}" class="lvl-field" aria-label="Data da missão">
+                    <input type="text" name="observacoes" maxlength="1000" value="{{ l.observacoes }}" placeholder="Observações da missão" class="lvl-field lvl-field--grow" aria-label="Observações">
+                    <button type="submit" class="lvl-add">Salvar correção</button>
+                  </form>
+
+                  <form method="post" action="{% url 'personagem_aventura_consumo' p.id_personagem l.id_lancamento %}"
+                        class="lvl-inline" data-aventura-consumo>
+                    {% csrf_token %}
+                    <input type="hidden" name="tipo" value="item">
+                    <select name="item" class="lvl-field lvl-field--grow" required aria-label="Item consumível gasto na missão">
+                      <option value="">Item consumível gasto…</option>
+                      {% for it in ledger_consumiveis %}<option value="{{ it.id }}">{{ it.nome }} (x{{ it.qtd }})</option>{% endfor %}
+                    </select>
+                    <input type="number" name="qtd" min="1" max="99" value="1" class="lvl-field" style="width:4.5rem" aria-label="Quantidade gasta">
+                    <button type="submit" class="lvl-add">Registrar item gasto</button>
+                  </form>
+
+                  <form method="post" action="{% url 'personagem_aventura_consumo' p.id_personagem l.id_lancamento %}"
+                        class="lvl-inline" data-aventura-consumo>
+                    {% csrf_token %}
+                    <input type="hidden" name="tipo" value="ouro">
+                    <input type="number" name="ouro_po" min="1" class="lvl-field" style="width:7rem" placeholder="PO" aria-label="Ouro gasto em RP (em PO)">
+                    <input type="text" name="motivo" maxlength="200" placeholder="Motivo do gasto (RP)" class="lvl-field lvl-field--grow" aria-label="Motivo do gasto de RP">
+                    <button type="submit" class="lvl-add">Debitar ouro de RP</button>
+                  </form>
+
+                  {% if l.consumos %}
+                    <ul class="lvl-missao__list" data-missao-consumos>
+                      {% for c in l.consumos %}
+                        <li>
+                          {% if c.tipo == 'item' %}<b>Item</b>: {{ c.nome }} ×{{ c.qtd }} (restou {{ c.depois }})
+                          {% else %}<b>Ouro de RP</b>: {{ c.valor_po }} PO{% if c.motivo %} — {{ c.motivo }}{% endif %}{% endif %}
+                          <span class="lvl-missao__meta">por {{ c.quem }} · {{ c.quando }}</span>
+                        </li>
+                      {% endfor %}
+                    </ul>
+                  {% endif %}
+
+                  {% if l.trilha %}
+                    <ul class="lvl-missao__list lvl-missao__list--trilha" data-missao-trilha>
+                      {% for t in l.trilha %}
+                        <li><span class="lvl-missao__meta">{{ t.quando }} · {{ t.quem }}</span> — {{ t.o_que_mudou }}</li>
+                      {% endfor %}
+                    </ul>
+                  {% endif %}
+                </details>
               </td>
             </tr>
           {% endfor %}

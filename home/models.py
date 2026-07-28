@@ -1387,7 +1387,13 @@ class TbPersonagemAventura(models.Model):
     é um `personagem_registrar_aventuras`: dá NOME ao lançamento e habilita ROLLBACK de um
     lançamento errado. Guarda o que AQUELE lançamento pagou (aventuras, ouro em PC, braseiros)
     para que o estorno devolva exatamente isso — NÃO altera a matemática de ouro/nível de
-    `aplicar_aventuras`, só registra."""
+    `aplicar_aventuras`, só registra.
+
+    Onda E (Ficha v2): a linha passa a ser o registro COMPLETO da missão — `data_missao`
+    (quando a mesa aconteceu, ≠ `criado_em`, que é quando a staff lançou), `id_mestre`
+    (o mestre que conduziu, do cadastro real do Mercado de Mestre = `auth.User`) e
+    `detalhes_json` (consumos da missão + trilha de edição). 1 linha/missão continua sendo
+    a unidade auditável; nada de JSON no personagem."""
     id_lancamento = models.AutoField(db_column='Id_Lancamento', primary_key=True)
     id_personagem = models.ForeignKey('TbPersonagem', models.CASCADE, db_column='Id_Personagem',
                                       related_name='aventuras_ledger')
@@ -1401,6 +1407,20 @@ class TbPersonagemAventura(models.Model):
                                          help_text='Braseiros creditados por ESTE lançamento (missão de evento).')
     nivel_no_lancamento = models.IntegerField(db_column='NivelNoLancamento', default=1,
                                               help_text='Nível do personagem no momento do lançamento.')
+    data_missao = models.DateField(db_column='DataMissao', blank=True, null=True, db_index=True,
+                                   help_text='Data em que a MISSÃO aconteceu (≠ CriadoEm, que é a data do lançamento). '
+                                             'Linhas legadas ficam nulas; lançamento novo preenche.')
+    # Mestre que conduziu a missão. O "cadastro de mestres" já existe e é `auth.User` — é o
+    # mesmo alvo de TbAventuraMestre.mestre / TbTransacaoMestre.mestre no Mercado de Mestre.
+    # No SCHEMA é nulo (o legado não tinha esse dado) e PROTECT (mestre com lançamento não
+    # é apagável); na CAMADA DE APLICAÇÃO é obrigatório para criar/editar lançamento novo.
+    id_mestre = models.ForeignKey('auth.User', models.PROTECT, db_column='Id_Mestre',
+                                  related_name='aventuras_mestradas_ledger', blank=True, null=True,
+                                  help_text='Mestre da missão (cadastro do Mercado de Mestre). '
+                                            'Nulo só em linha LEGADA, anterior à onda E.')
+    detalhes_json = models.JSONField(db_column='DetalhesJSON', default=dict, blank=True,
+                                     help_text='Consumos da missão (itens gastos, ouro de RP, observações) + '
+                                               'trilha de edição da staff — tudo NA LINHA.')
     criado_por = models.ForeignKey('auth.User', models.SET_NULL, db_column='CriadoPor',
                                    related_name='aventuras_lancadas', blank=True, null=True)
     criado_em = models.DateTimeField(db_column='CriadoEm', auto_now_add=True)
@@ -1424,6 +1444,50 @@ class TbPersonagemAventura(models.Model):
     def ouro_pago_po(self):
         """Ouro pago em PO (para exibição na UI/admin)."""
         return int(self.ouro_pago_pc or 0) // 100
+
+    # ── leitura de `detalhes_json` (sempre por aqui; nada de indexar o dict no template) ──
+    LEGADO_LABEL = '(legado)'
+
+    @property
+    def mestre_display(self):
+        """Nome do mestre para exibição. Linha ANTERIOR à onda E não tem mestre gravado —
+        aparece como `(legado)`, nunca como vazio (o dado não existe, não é "sem mestre")."""
+        if self.id_mestre_id:
+            u = self.id_mestre
+            return (u.get_full_name() or u.username) if u else self.LEGADO_LABEL
+        return self.LEGADO_LABEL
+
+    @property
+    def eh_legado(self):
+        """True quando a linha nasceu antes da onda E (sem mestre gravado)."""
+        return not self.id_mestre_id
+
+    def _bloco(self, chave, vazio):
+        val = (self.detalhes_json or {}).get(chave)
+        return val if isinstance(val, type(vazio)) else vazio
+
+    @property
+    def consumos(self):
+        """Consumos registrados NA LINHA: [{tipo, ...}] (item consumível gasto, ouro de RP)."""
+        return self._bloco('consumos', [])
+
+    @property
+    def trilha(self):
+        """Trilha de edição da staff: [{quem, quando, o_que_mudou}] — append-only."""
+        return self._bloco('trilha', [])
+
+    @property
+    def observacoes(self):
+        return (self.detalhes_json or {}).get('observacoes') or ''
+
+    @property
+    def ouro_rp_pc(self):
+        """Total de ouro gasto em RP nesta missão (PC), somado dos consumos."""
+        return sum(int(c.get('valor_pc') or 0) for c in self.consumos if c.get('tipo') == 'ouro')
+
+    @property
+    def ouro_rp_po(self):
+        return int(self.ouro_rp_pc) // 100
 
 
 # ───────────────────── Mercado de Mestre (Moedas de Mestragem) ─────────────────────

@@ -46,8 +46,13 @@
     }
   }
 
+  // Todo formulário do staffbox de missões (lançar, reverter, corrigir, consumo) devolve
+  // o MESMO fragmento re-renderizado — um handler só cobre os quatro.
   document.addEventListener('submit', function (event) {
-    var form = event.target.closest('form[data-aventura-form], form[data-aventura-reverter]');
+    var form = event.target.closest(
+      'form[data-aventura-form], form[data-aventura-reverter],' +
+      'form[data-aventura-editar], form[data-aventura-consumo]'
+    );
     if (!form || event.defaultPrevented) return;
     event.preventDefault();
     var button = form.querySelector('button[type="submit"]');

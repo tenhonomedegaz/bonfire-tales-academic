@@ -4588,7 +4588,8 @@ def editar_ficha_view(request, pk):
     transacoes = _transacoes_em_po(p.transacoes.all()[:30])
     classes_atuais = [{'id': c.id_classe.id_classe, 'nome': c.id_classe.nome, 'nivel': c.nivel,
                        'principal': c.principal} for c in p.classes.select_related('id_classe').order_by('-principal', 'id')]
-    aventura_ledger = list(p.aventuras_ledger.select_related('criado_por', 'revertido_por')[:30])
+    # ── Staffbox de aventuras (onda E): ledger + cadastro de mestres + consumíveis ──
+    ledger_ctx = _ledger_staff_contexto(p)
     # ── Painel STAFF de CONCESSÃO de item (missão/recompensa sem preço) ──
     # Catálogo COMPLETO (sem o filtro de preço da loja), com um flag `sem_preco` por item
     # para sinalizar recompensa de missão. A trilha das concessões já feitas (linhas de
@@ -4606,7 +4607,7 @@ def editar_ficha_view(request, pk):
     concessoes = list(p.inventario.filter(concedido_em__isnull=False)
                       .select_related('concedido_por', 'id_item_magico')
                       .order_by('-concedido_em', '-id')[:40])
-    return render(request, 'home/pages/editar_ficha.html', {
+    return render(request, 'home/pages/editar_ficha.html', dict(ledger_ctx, **{
         'page_title': 'Staff — %s' % p.nome,
         'p': p, 'pc': pc, 'ficha': ficha,
         'nivel': pc.nivel if pc else 1,
@@ -4614,13 +4615,14 @@ def editar_ficha_view(request, pk):
         'transacoes': transacoes,
         'is_staff': True,
         'classes_atuais': classes_atuais,
-        'aventura_ledger': aventura_ledger,
         'rollback_msg': request.GET.get('rollback'),
+        'compra_msg': request.GET.get('compra'),
+        'edicao_msg': request.GET.get('edicao'),
         'conceder_magico': conceder_magico,
         'conceder_mundano': conceder_mundano,
         'concessoes': concessoes,
         'concessao_msg': request.GET.get('concessao'),
-    })
+    }))
 
 
 @login_required(login_url='/login/')
@@ -4747,8 +4749,88 @@ def _refresh_vitais_derivados(personagem, refill=False):
     return ficha
 
 
+def mestres_cadastrados(extra_ids=()):
+    """CADASTRO DE MESTRES (onda E) — não existe modelo novo: o cadastro que o Mercado de
+    Mestre já usa é o próprio `auth.User` (é o alvo de `TbAventuraMestre.mestre`,
+    `TbTransacaoMestre.mestre` e da carteira de MM no `UserProfile`). Este helper devolve o
+    conjunto que o select da staff oferece, derivado dessa pegada real:
+
+      • staff/superuser (sempre `permissions.is_mestre`);
+      • quem já registrou mesa mestrada ou moveu Moedas de Mestragem;
+      • quem tem carteira/assinatura de mestre no perfil (MM, Mestre Ouro);
+      • `extra_ids` — o mestre JÁ gravado numa linha em edição, para o select nunca perder
+        o valor corrente (mesmo que a pessoa tenha saído dos critérios acima).
+
+    Ordenado por username. Nenhum cadastro paralelo é criado."""
+    from django.contrib.auth.models import User
+    from django.db.models import Q
+    cond = (Q(is_staff=True) | Q(is_superuser=True)
+            | Q(aventuras_mestradas__isnull=False)
+            | Q(transacoes_mm__isnull=False)
+            | Q(profile__moedas_mestragem__gt=0)
+            | Q(profile__mm_ganhas_total__gt=0)
+            | Q(profile__mestre_ouro_ativo=True))
+    ids = [int(i) for i in (extra_ids or ()) if i]
+    if ids:
+        cond |= Q(pk__in=ids)
+    return User.objects.filter(cond).distinct().order_by('username')
+
+
+def _mestre_valido(valor, extra_ids=()):
+    """Resolve o `mestre` postado (pk) contra o cadastro real. None se ausente/inválido —
+    quem chama decide a recusa (a obrigatoriedade é de APLICAÇÃO, não de schema)."""
+    try:
+        pk = int(valor)
+    except (TypeError, ValueError):
+        return None
+    return mestres_cadastrados(extra_ids=extra_ids).filter(pk=pk).first()
+
+
+def _data_missao_valida(valor):
+    """Parse do input `type=date` (ISO). Devolve (date|None, ok) — string suja não vira
+    silenciosamente `None`, para o endpoint poder recusar em vez de gravar errado."""
+    from django.utils.dateparse import parse_date
+    txt = (valor or '').strip()
+    if not txt:
+        return (None, True)
+    try:
+        d = parse_date(txt)
+    except ValueError:      # data sintaticamente ISO mas impossível (ex.: 2026-02-31)
+        d = None
+    return (d, d is not None)
+
+
+def _trilha_append(lanc, user, o_que_mudou):
+    """APPEND na trilha de edição da LINHA (`detalhes_json['trilha']`). Append-only: nada
+    aqui reescreve entrada anterior — a trilha é o histórico de quem mexeu no lançamento."""
+    detalhes = lanc.detalhes_json if isinstance(lanc.detalhes_json, dict) else {}
+    trilha = detalhes.get('trilha')
+    if not isinstance(trilha, list):
+        trilha = []
+    trilha.append({
+        'quem': getattr(user, 'username', '') or '—',
+        'quando': timezone.now().isoformat(timespec='seconds'),
+        'o_que_mudou': str(o_que_mudou)[:500],
+    })
+    detalhes['trilha'] = trilha
+    lanc.detalhes_json = detalhes
+    return detalhes
+
+
+def _consumo_append(lanc, registro):
+    """APPEND de um consumo da missão em `detalhes_json['consumos']` (item gasto / ouro de RP)."""
+    detalhes = lanc.detalhes_json if isinstance(lanc.detalhes_json, dict) else {}
+    consumos = detalhes.get('consumos')
+    if not isinstance(consumos, list):
+        consumos = []
+    consumos.append(registro)
+    detalhes['consumos'] = consumos
+    lanc.detalhes_json = detalhes
+    return detalhes
+
+
 def aplicar_aventuras(personagem, n, evento=False, nome_aventura=None, criado_por=None,
-                      registrar_ledger=True):
+                      registrar_ledger=True, data_missao=None, mestre=None):
     """Aplica `n` aventuras a um personagem (lançado por staff). Regra de SPLIT no rank-up:
     cada aventura é recompensada no rank ANTES de ela contar (a que sobe de rank paga no
     rank antigo; as seguintes no novo). Sempre credita o ouro do rank (PO→PC). BRASEIROS
@@ -4757,8 +4839,10 @@ def aplicar_aventuras(personagem, n, evento=False, nome_aventura=None, criado_po
 
     Quando `registrar_ledger`, grava UMA linha em TbPersonagemAventura (ledger de
     lançamentos) na MESMA transação do crédito — dá NOME ao lançamento e habilita o
-    rollback (`personagem_reverter_aventura`). NÃO muda a matemática de ouro/nível; só
-    registra o que foi pago. Retorna (ouro_po, braseiros)."""
+    rollback (`personagem_reverter_aventura`). `data_missao` (quando a mesa aconteceu) e
+    `mestre` (quem conduziu) vão na mesma linha; a exigência do mestre é do ENDPOINT da
+    staff, não desta função (chamadas internas/legadas seguem podendo omitir). NÃO muda a
+    matemática de ouro/nível; só registra o que foi pago. Retorna (ouro_po, braseiros)."""
     from .character_engine import nivel_por_aventuras, ouro_de_progressao, braseiros_por_aventura
     from .models import TbPersonagemAventura
     n = max(0, int(n))
@@ -4783,7 +4867,8 @@ def aplicar_aventuras(personagem, n, evento=False, nome_aventura=None, criado_po
             TbPersonagemAventura.objects.create(
                 id_personagem=personagem, nome_aventura=nome[:200], qtd_aventuras=n,
                 ouro_pago_pc=ouro * 100, braseiros_pago=bras,
-                nivel_no_lancamento=int(personagem.nivel or 1), criado_por=criado_por)
+                nivel_no_lancamento=int(personagem.nivel or 1), criado_por=criado_por,
+                data_missao=data_missao, id_mestre=mestre, detalhes_json={})
     return (ouro, bras)
 
 
@@ -4876,11 +4961,35 @@ def _sync_grants_fixos(personagem):
 _sync_magias_essencia = _sync_magias_concedidas
 
 
-def _aventuras_staff_resposta(request, p, *, compra_msg='', rollback_msg='', ok=True):
+def _ledger_staff_contexto(p):
+    """Contexto do STAFFBOX de aventuras: as linhas do ledger (com mestre e consumíveis do
+    inventário para os formulários por linha) + o cadastro de mestres do select. Uma função
+    só, usada pela página inteira e pelo fragmento do fetch."""
+    from .character_engine import _item_consumivel_meta
+    ledger = list(p.aventuras_ledger.select_related(
+        'criado_por', 'revertido_por', 'id_mestre')[:30])
+    consumiveis = [
+        {'id': it.id, 'nome': it.nome, 'qtd': int(it.qtd or 0)}
+        for it in p.inventario.select_related('id_item_magico').order_by('nome')
+        if _item_consumivel_meta(it, it.id_item_magico)['consumivel'] and int(it.qtd or 0) > 0]
+    mestres_extra = [l.id_mestre_id for l in ledger if l.id_mestre_id]
+    return {
+        'aventura_ledger': ledger,
+        'ledger_consumiveis': consumiveis,
+        'mestres': list(mestres_cadastrados(extra_ids=mestres_extra)),
+    }
+
+
+def _aventuras_staff_resposta(request, p, *, compra_msg='', rollback_msg='', edicao_msg='', ok=True):
     """Fragmento atualizado do ledger para fetch, preservando redirect no POST clássico."""
     back = reverse('editar_ficha', args=[p.pk])
     if not is_ajax(request):
-        query = ('?compra=' + compra_msg) if compra_msg else ('?rollback=' + rollback_msg)
+        if compra_msg:
+            query = '?compra=' + compra_msg
+        elif rollback_msg:
+            query = '?rollback=' + rollback_msg
+        else:
+            query = '?edicao=' + edicao_msg
         return redirect(back + query)
 
     from django.template.loader import render_to_string
@@ -4888,22 +4997,13 @@ def _aventuras_staff_resposta(request, p, *, compra_msg='', rollback_msg='', ok=
 
     p.refresh_from_db()
     ficha = derive(p)
-    ledger = list(p.aventuras_ledger.select_related(
-        'criado_por', 'revertido_por')[:30])
-    html = render_to_string(
-        'home/partials/_ficha_aventuras_staff.html',
-        {
-            'p': p,
-            'aventura_ledger': ledger,
-            'compra_msg': compra_msg,
-            'rollback_msg': rollback_msg,
-        },
-        request=request,
-    )
+    ctx = dict(_ledger_staff_contexto(p), p=p, compra_msg=compra_msg,
+               rollback_msg=rollback_msg, edicao_msg=edicao_msg)
+    html = render_to_string('home/partials/_ficha_aventuras_staff.html', ctx, request=request)
     prog = ficha.get('progressao') or {}
     return JsonResponse({
         'ok': ok,
-        'msg': compra_msg or rollback_msg,
+        'msg': compra_msg or rollback_msg or edicao_msg,
         'staffbox_html': html,
         'progressao': {
             'aventuras': int(prog.get('aventuras') or 0),
@@ -5028,7 +5128,8 @@ def _concessao_resposta(request, p, msg, *, ok=True):
 @require_POST
 def personagem_registrar_aventuras(request, pk):
     """Staff lança N aventuras num personagem → ouro (por rank) + nível-teto, e braseiros
-    (BP) se for missão de EVENTO. Exige NOME da aventura e grava a linha do ledger
+    (BP) se for missão de EVENTO. Exige NOME da aventura, o MESTRE (onda E: fim da string
+    livre — vem do cadastro real) e aceita a DATA DA MISSÃO; grava a linha do ledger
     (TbPersonagemAventura) na mesma transação — para dar nome ao lançamento e permitir
     rollback."""
     from . import permissions as perms
@@ -5039,12 +5140,22 @@ def personagem_registrar_aventuras(request, pk):
     if not nome:
         return _aventuras_staff_resposta(
             request, p, compra_msg='aventuras_sem_nome', ok=False)
+    # MESTRE obrigatório na camada de aplicação (o schema aceita nulo só pelo legado).
+    mestre = _mestre_valido(request.POST.get('mestre'))
+    if mestre is None:
+        return _aventuras_staff_resposta(
+            request, p, compra_msg='aventuras_sem_mestre', ok=False)
+    data_missao, data_ok = _data_missao_valida(request.POST.get('data_missao'))
+    if not data_ok:
+        return _aventuras_staff_resposta(
+            request, p, compra_msg='aventuras_data_invalida', ok=False)
     try:
         n = max(1, min(200, int(request.POST.get('aventuras') or 1)))
     except (TypeError, ValueError):
         n = 1
     aplicar_aventuras(p, n, evento=(request.POST.get('evento') == 'on'),
-                      nome_aventura=nome, criado_por=request.user)
+                      nome_aventura=nome, criado_por=request.user,
+                      data_missao=data_missao, mestre=mestre)
     return _aventuras_staff_resposta(request, p, compra_msg='aventuras')
 
 
@@ -5096,6 +5207,142 @@ def personagem_reverter_aventura(request, pk, lancamento_id):
         return _aventuras_staff_resposta(
             request, p, rollback_msg=erro, ok=False)
     return _aventuras_staff_resposta(request, p, rollback_msg='ok')
+
+
+@login_required(login_url='/login/')
+@require_POST
+def personagem_editar_aventura(request, pk, lancamento_id):
+    """Staff CORRIGE um lançamento do ledger (onda E): nome, data da missão, mestre e
+    observações. Correção é EDIÇÃO, não apagamento — não existe delete de linha; cada
+    passada APENDA uma entrada na trilha (`detalhes_json['trilha']`) com quem/quando/o quê.
+
+    Só os campos DESCRITIVOS mudam: qtd de aventuras, ouro pago e braseiros continuam
+    imutáveis (quem errou o valor reverte a linha e lança de novo — o estorno é que sabe
+    devolver os contadores). O MESTRE é obrigatório aqui como no lançamento novo."""
+    from . import permissions as perms
+    from .models import TbPersonagemAventura
+    if not perms.is_staff_user(request.user):
+        raise Http404
+    p = _ficha_editavel(request, pk)
+    erro, mudancas = None, []
+    with transaction.atomic():
+        lanc = get_object_or_404(
+            TbPersonagemAventura.objects.select_for_update(),
+            pk=lancamento_id, id_personagem=p)
+        nome = (request.POST.get('nome_aventura') or '').strip()
+        mestre = _mestre_valido(request.POST.get('mestre'), extra_ids=[lanc.id_mestre_id])
+        data_missao, data_ok = _data_missao_valida(request.POST.get('data_missao'))
+        obs = (request.POST.get('observacoes') or '').strip()[:1000]
+        if not nome:
+            erro = 'sem_nome'
+        elif mestre is None:
+            erro = 'sem_mestre'
+        elif not data_ok:
+            erro = 'data_invalida'
+        else:
+            if nome != lanc.nome_aventura:
+                mudancas.append('nome: "%s" → "%s"' % (lanc.nome_aventura, nome))
+                lanc.nome_aventura = nome[:200]
+            if data_missao != lanc.data_missao:
+                mudancas.append('data da missão: %s → %s' % (
+                    lanc.data_missao or '—', data_missao or '—'))
+                lanc.data_missao = data_missao
+            if mestre.pk != lanc.id_mestre_id:
+                antigo = lanc.mestre_display
+                lanc.id_mestre = mestre
+                mudancas.append('mestre: %s → %s' % (antigo, lanc.mestre_display))
+            detalhes = lanc.detalhes_json if isinstance(lanc.detalhes_json, dict) else {}
+            if obs != (detalhes.get('observacoes') or ''):
+                mudancas.append('observações atualizadas')
+                detalhes['observacoes'] = obs
+                lanc.detalhes_json = detalhes
+            # A trilha registra TODA passada da staff — inclusive um "salvar" sem diferença
+            # (é informação de auditoria: alguém revisou a linha e a deixou como estava).
+            _trilha_append(lanc, request.user, '; '.join(mudancas) or 'revisão sem alteração')
+            lanc.save(update_fields=['nome_aventura', 'data_missao', 'id_mestre', 'detalhes_json'])
+    if erro:
+        return _aventuras_staff_resposta(request, p, edicao_msg=erro, ok=False)
+    return _aventuras_staff_resposta(request, p, edicao_msg='ok')
+
+
+def _consumo_item(request, p, lanc):
+    """Consumo (a): ITEM CONSUMÍVEL gasto na missão → decrementa o inventário do personagem
+    (mesmíssima baixa do botão de uso da Mochila, via `_mover_consumivel`) e registra o
+    gasto NA LINHA da missão."""
+    try:
+        qtd = max(1, min(99, int(request.POST.get('qtd') or 1)))
+    except (TypeError, ValueError):
+        qtd = 1
+    info, err = _mover_consumivel(p, request.POST.get('item'), -qtd)
+    if err:
+        return (None, err)
+    registro = dict(info, tipo='item')
+    return (registro, None)
+
+
+def _consumo_ouro(request, p, lanc):
+    """Consumo (b): OURO gasto em RP na missão → debita a carteira (pc interno; exibição em
+    PO) com uma transação de ajuste rastreável, e registra o gasto NA LINHA da missão."""
+    from .models import TbPersonagem
+    try:
+        po = int(request.POST.get('ouro_po') or 0)
+    except (TypeError, ValueError):
+        po = 0
+    if po <= 0:
+        return (None, 'valor_invalido')
+    valor_pc = po * 100
+    alvo = TbPersonagem.objects.select_for_update().get(pk=p.pk)
+    if int(alvo.carteira_pc or 0) < valor_pc:
+        return (None, 'ouro_insuf')
+    alvo.carteira_pc = int(alvo.carteira_pc or 0) - valor_pc
+    alvo.save(update_fields=['carteira_pc', 'atualizado_em'])
+    motivo = (request.POST.get('motivo') or '').strip()[:200]
+    _registrar_transacao(
+        alvo, 'ajuste',
+        'Gasto de RP na missão “%s”%s' % (lanc.nome_aventura, (' — %s' % motivo) if motivo else ''),
+        -valor_pc)
+    p.carteira_pc = alvo.carteira_pc
+    return ({'tipo': 'ouro', 'valor_pc': valor_pc, 'valor_po': po, 'motivo': motivo}, None)
+
+
+# REGISTRY de consumos de missão (sem if-por-tipo): tipo do POST → handler que aplica o
+# efeito no personagem e devolve o registro a gravar na linha.
+_CONSUMO_MISSAO = {
+    'item': _consumo_item,
+    'ouro': _consumo_ouro,
+}
+
+
+@login_required(login_url='/login/')
+@require_POST
+def personagem_aventura_consumo(request, pk, lancamento_id):
+    """Staff registra um CONSUMO DA MISSÃO na linha do ledger (onda E): item consumível
+    gasto (decrementa o inventário) ou ouro gasto em RP (debita a carteira). O efeito e o
+    registro acontecem na MESMA transação, e a trilha da linha ganha uma entrada — o
+    consumo é auditável junto do lançamento que o originou."""
+    from . import permissions as perms
+    from .models import TbPersonagemAventura
+    if not perms.is_staff_user(request.user):
+        raise Http404
+    p = _ficha_editavel(request, pk)
+    handler = _CONSUMO_MISSAO.get((request.POST.get('tipo') or '').strip().lower())
+    if handler is None:
+        return _aventuras_staff_resposta(request, p, edicao_msg='consumo_tipo', ok=False)
+    erro = None
+    with transaction.atomic():
+        lanc = get_object_or_404(
+            TbPersonagemAventura.objects.select_for_update(),
+            pk=lancamento_id, id_personagem=p)
+        registro, erro = handler(request, p, lanc)
+        if not erro:
+            registro['quem'] = request.user.username
+            registro['quando'] = timezone.now().isoformat(timespec='seconds')
+            _consumo_append(lanc, registro)
+            _trilha_append(lanc, request.user, 'consumo %s registrado' % registro['tipo'])
+            lanc.save(update_fields=['detalhes_json'])
+    if erro:
+        return _aventuras_staff_resposta(request, p, edicao_msg=erro, ok=False)
+    return _aventuras_staff_resposta(request, p, edicao_msg='consumo_ok')
 
 
 @login_required(login_url='/login/')
@@ -6442,6 +6689,35 @@ def personagem_usar_recurso(request, pk):
     return _redirect_next_or(request, reverse('editar_ficha', args=[pk]))
 
 
+def _mover_consumivel(personagem, item_id, delta):
+    """MOTOR ÚNICO de baixa/devolução de item CONSUMÍVEL do inventário (`delta` assinado:
+    −N gasta, +N devolve). Passam por aqui o botão de uso da ficha/Mochila (jogador) E o
+    consumo de missão registrado pela staff (onda E) — a regra de "o que é consumível" e o
+    "sumiu ao zerar" moram num lugar só.
+
+    Retorna `(info, erro)`: `info` é o registro do movimento (nome, qtd, antes/depois),
+    `erro` um slug ('item_invalido' | 'qtd_insuficiente') quando nada foi tocado."""
+    from .character_engine import _item_consumivel_meta
+    from .models import TbPersonagemItem
+    it = (TbPersonagemItem.objects.filter(id=item_id, id_personagem=personagem)
+          .select_related('id_item_magico').first())
+    if not it or not _item_consumivel_meta(it, it.id_item_magico)['consumivel']:
+        return (None, 'item_invalido')
+    antes = int(it.qtd or 0)
+    depois = antes + int(delta)
+    if depois < 0:
+        return (None, 'qtd_insuficiente')
+    depois = min(999, depois)
+    info = {'item_id': it.id, 'nome': it.nome, 'qtd': abs(int(delta)),
+            'antes': antes, 'depois': depois}
+    if depois == 0:
+        it.delete()
+    else:
+        it.qtd = depois
+        it.save(update_fields=['qtd'])
+    return (info, None)
+
+
 @login_required(login_url='/login/')
 @require_POST
 def personagem_usar_item_consumivel(request, pk):
@@ -6449,21 +6725,11 @@ def personagem_usar_item_consumivel(request, pk):
 
     POST clássico com `next` (o botão de uso existe nos contadores da aba Ficha E na
     lista da Mochila) — o recarregamento mantém os dois em sincronia sem duplicar
-    lógica de atualização parcial."""
-    from .character_engine import _item_consumivel_meta
-    from .models import TbPersonagemItem
+    lógica de atualização parcial. A baixa em si é a de `_mover_consumivel` (mesma do
+    consumo de missão da staff)."""
     p = _ficha_editavel(request, pk)
-    it = (TbPersonagemItem.objects.filter(id=request.POST.get('item'), id_personagem=p)
-          .select_related('id_item_magico').first())
-    if not it or not _item_consumivel_meta(it, it.id_item_magico)['consumivel']:
-        return _redirect_next_or(request, reverse('ficha_detail', args=[pk]) + '?aba=ficha')
     delta = 1 if request.POST.get('acao') == 'desfazer' else -1
-    nova_qtd = max(0, min(999, int(it.qtd or 0) + delta))
-    if nova_qtd == 0:
-        it.delete()
-    else:
-        it.qtd = nova_qtd
-        it.save(update_fields=['qtd'])
+    _mover_consumivel(p, request.POST.get('item'), delta)
     return _redirect_next_or(request, reverse('ficha_detail', args=[pk]) + '?aba=ficha')
 
 
@@ -6673,6 +6939,9 @@ def ficha_detail_view(request, pk):
     # Página de Histórico: compras/vendas do personagem (extrato exibido em PO).
     transacoes = _transacoes_em_po(
         TbTransacao.objects.filter(id_personagem=p).order_by('-pk')[:300])
+    # Histórico de MISSÕES (onda E): o ledger de aventuras com data da missão e mestre —
+    # linha legada (anterior à onda E) aparece marcada `(legado)` via `mestre_display`.
+    aventuras_hist = list(p.aventuras_ledger.select_related('id_mestre', 'criado_por')[:100])
     # Aba MOCHILA (onda B): grade de slots derivada do catálogo + inventário + totais.
     # O bloco "Itens Sintonizados" da aba Ficha (entre PV e Ataques) é só leitura — o
     # equipar/desequipar/sintonizar vive na Mochila.
@@ -6694,6 +6963,7 @@ def ficha_detail_view(request, pk):
         'opcoes': opcoes,
         'personalidade': _personalidade_ficha(p),
         'transacoes': transacoes,
+        'aventuras_hist': aventuras_hist,
         'pode_editar': pode_editar,
         'is_staff': perms.is_staff_user(request.user),
         'levelup_status': levelup_status,

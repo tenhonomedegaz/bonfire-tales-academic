@@ -924,9 +924,10 @@ class ProgressaoAventurasTests(_CriadorBase):
         self.assertEqual(self.client.post(url, {'aventuras': 5}).status_code, 404)
         self.p.refresh_from_db()
         self.assertEqual(self.p.aventuras, 0)
-        # staff pode (agora exige NOME da aventura)
+        # staff pode (agora exige NOME da aventura e o MESTRE — onda E)
         self.client.force_login(self.staff)
-        resp = self.client.post(url, {'aventuras': 5, 'nome_aventura': 'Mesa de Teste'})
+        resp = self.client.post(url, {'aventuras': 5, 'nome_aventura': 'Mesa de Teste',
+                                      'mestre': self.staff.pk})
         self.assertEqual(resp.status_code, 302)
         self.p.refresh_from_db()
         self.assertEqual(self.p.aventuras, 5)
@@ -957,6 +958,9 @@ class LedgerAventuraRollbackTests(_CriadorBase):
             nivel=1, principal=True)
 
     def _registrar(self, **data):
+        # Onda E: o lançamento novo exige mestre do cadastro (o staff serve de mestre nos
+        # testes de rollback, que não são sobre o mestre em si).
+        data.setdefault('mestre', self.staff.pk)
         self.client.force_login(self.staff)
         return self.client.post(
             reverse('personagem_registrar_aventuras', args=[self.p.pk]), data)
@@ -986,7 +990,7 @@ class LedgerAventuraRollbackTests(_CriadorBase):
         self.client.force_login(self.staff)
         resp = self.client.post(
             reverse('personagem_registrar_aventuras', args=[self.p.pk]),
-            {'nome_aventura': 'Mesa via Fetch', 'aventuras': 2},
+            {'nome_aventura': 'Mesa via Fetch', 'aventuras': 2, 'mestre': self.staff.pk},
             HTTP_X_REQUESTED_WITH='XMLHttpRequest')
         self.assertEqual(resp.status_code, 200, resp.content)
         body = resp.json()

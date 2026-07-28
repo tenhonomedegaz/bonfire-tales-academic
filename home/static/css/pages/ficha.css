@@ -1307,6 +1307,9 @@ button.spell-name-toggle.open .spell-caret { transform: rotate(90deg); opacity: 
 .hist-saldo { color: var(--text); }
 .hist-table .cur { font-size: 0.7em; font-weight: 600; color: var(--muted); }
 .hist-note { margin-top: 0.5rem; font-size: 0.85rem; color: var(--muted); }
+/* Onda E: missões sem dado da era pré-cadastro (data/mestre) e linha estornada. */
+.hist-legado { color: var(--muted); font-style: italic; }
+.hist-table tr.is-reverted td { opacity: 0.55; }
 
 /* ---------- Aparencia customizavel ----------
    theme-data = qualquer tema-como-dado (5 legados + novos, via definicao_json,

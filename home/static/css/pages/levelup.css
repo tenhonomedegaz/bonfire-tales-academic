@@ -72,6 +72,23 @@
 .lvl-revbtn:focus-visible { outline: 2px solid var(--flame); outline-offset: 1px; }
 .lvl-revtag { color: var(--muted); font-style: italic; }
 
+/* ---- Onda E: missão na linha (correção + consumos + trilha) ------------ */
+.lvl-legado { color: var(--muted); font-style: italic; }
+.lvl-ledger__detail > td { white-space: normal; padding-top: 0; }
+.lvl-ledger__detail .lvl-inline { flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.35rem; }
+.lvl-missao > summary {
+  cursor: pointer; color: var(--muted); font-size: 11px; padding: 0.15rem 0;
+}
+.lvl-missao > summary:hover { color: var(--ember); }
+.lvl-missao[open] > summary { color: var(--ember); }
+.lvl-missao__list {
+  list-style: none; margin: 0.35rem 0 0; padding: 0;
+  font-size: 11px; color: var(--text);
+}
+.lvl-missao__list li { padding: 0.15rem 0; border-top: 1px dashed color-mix(in srgb, var(--stroke) 55%, transparent); }
+.lvl-missao__list--trilha li { color: var(--muted); }
+.lvl-missao__meta { color: var(--muted); font-size: 10.5px; }
+
 /* ---- Seção de pendências --------------------------------------------- */
 .lvl-sech {
   font-family: 'Cinzel', serif; font-weight: 700; font-size: 1.05rem;

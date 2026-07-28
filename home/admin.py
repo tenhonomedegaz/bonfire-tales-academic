@@ -2047,12 +2047,18 @@ class TbPersonagemAdmin(BonfireAdminMixin, admin.ModelAdmin):
 
 @admin.register(TbPersonagemAventura)
 class TbPersonagemAventuraAdmin(BonfireAdminMixin, admin.ModelAdmin):
-    list_display = ("id_lancamento", "id_personagem", "nome_aventura", "qtd_aventuras",
-                    "ouro_pago_po", "nivel_no_lancamento", "criado_por", "criado_em", "revertido")
-    list_filter = ("revertido",)
-    search_fields = ("nome_aventura", "id_personagem__nome", "criado_por__username")
-    raw_id_fields = ("id_personagem", "criado_por", "revertido_por")
-    readonly_fields = ("criado_em", "revertido_em", "ouro_pago_po")
+    list_display = ("id_lancamento", "id_personagem", "nome_aventura", "data_missao",
+                    "mestre_display", "qtd_aventuras", "ouro_pago_po", "nivel_no_lancamento",
+                    "criado_por", "criado_em", "revertido")
+    list_filter = ("revertido", "data_missao")
+    search_fields = ("nome_aventura", "id_personagem__nome", "criado_por__username",
+                     "id_mestre__username")
+    raw_id_fields = ("id_personagem", "id_mestre", "criado_por", "revertido_por")
+    readonly_fields = ("criado_em", "revertido_em", "ouro_pago_po", "mestre_display")
+
+    @admin.display(description="Mestre")
+    def mestre_display(self, obj):
+        return obj.mestre_display
 
 
 @admin.register(TbRecompensaMestre)

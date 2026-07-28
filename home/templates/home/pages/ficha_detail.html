@@ -770,6 +770,38 @@
 
   {# ===================== ABA 5: HISTÓRICO ===================== #}
   <div class="ficha-tabpanel space-y-3" data-tabpanel="historico" role="tabpanel" hidden>
+    {% comment %}Onda E: as MISSÕES viraram registro completo — data da missão, mestre e
+    consumos. Linha lançada antes da onda E não tem esses dados e sai marcada "(legado)".
+    {% endcomment %}
+    <div class="ficha-panel" data-hist-missoes>
+      <div class="ficha-section-title">Missões</div>
+      {% if aventuras_hist %}
+      <div class="hist-scroll">
+        <table class="hist-table">
+          <thead>
+            <tr><th>Data da missão</th><th>Missão</th><th>Mestre</th><th class="num">Aventuras</th><th class="num">Ouro</th><th>Consumos</th></tr>
+          </thead>
+          <tbody>
+            {% for a in aventuras_hist %}
+            <tr class="{% if a.revertido %}is-reverted{% endif %}">
+              <td class="hist-date">{% if a.data_missao %}{{ a.data_missao|date:'d/m/Y' }}{% else %}<span class="hist-legado" title="Lançamento anterior ao registro de data da missão">(legado)</span>{% endif %}</td>
+              <td class="hist-desc">{{ a.nome_aventura }}{% if a.revertido %} <span class="hist-legado">— revertido</span>{% endif %}</td>
+              <td>{% if a.eh_legado %}<span class="hist-legado" title="Lançamento anterior ao cadastro obrigatório de mestre">{{ a.mestre_display }}</span>{% else %}{{ a.mestre_display }}{% endif %}</td>
+              <td class="num">{{ a.qtd_aventuras }}</td>
+              <td class="num hist-val">{{ a.ouro_pago_po }} PO</td>
+              <td class="hist-desc">
+                {% for c in a.consumos %}{% if c.tipo == 'item' %}{{ c.nome }} ×{{ c.qtd }}{% else %}{{ c.valor_po }} PO (RP){% endif %}{% if not forloop.last %} · {% endif %}{% empty %}—{% endfor %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="info-empty">Nenhuma missão registrada.</p>
+      {% endif %}
+    </div>
+
     <div class="ficha-panel">
       <div class="ficha-section-title">Histórico de Transações</div>
       {% if transacoes %}
