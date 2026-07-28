@@ -94,7 +94,7 @@ class VitrineDeLojaTests(_MercadoBase):
 
     def test_balcao_lista_so_personagens_do_usuario_e_mostra_carteira(self):
         p = self._char('balcao')
-        p.carteira_pc = 123_450          # 1234,5 PO
+        p.carteira_pc = 123_450          # 1234 PO 5 PP
         p.save(update_fields=['carteira_pc'])
         alheio = self._char('balcao-alheio')
         alheio.nome = 'Personagem Alheio'
@@ -103,7 +103,7 @@ class VitrineDeLojaTests(_MercadoBase):
         self.assertIn('data-shop-personagem', html)
         self.assertIn(p.nome, html)
         self.assertNotIn('Personagem Alheio', html)   # é de outro dono
-        self.assertIn('1234,5 PO', html)              # carteira do ativo, em PO
+        self.assertIn('1234 PO 5 PP', html)           # carteira do ativo, decomposta
 
     def test_personagem_ativo_vem_do_parametro_e_persiste_na_sessao(self):
         p1 = self._char('ativo-1')
@@ -139,8 +139,8 @@ class CompraNoMercadoTests(_MercadoBase):
         p.refresh_from_db()
         self.assertEqual(p.carteira_pc, antes - custo * 2)
         # o payload traz o que a vitrine precisa trocar sem recarregar
-        from home.moeda import po_display
-        self.assertEqual(body['carteira_display'], po_display(p.carteira_pc))
+        from home.moeda import moeda_display
+        self.assertEqual(body['carteira_display'], moeda_display(p.carteira_pc))
         self.assertIn('venda_html', body)
         self.assertIn(item.nome, body['inventario_html'])
         self.assertTrue(TbPersonagemItem.objects.filter(id_personagem=p, nome=item.nome).exists())
@@ -215,9 +215,9 @@ class VendaNoMercadoTests(_MercadoBase):
         self.assertIn('data-shop-venda', html)
         self.assertIn(linha.nome, html)
         self.assertIn('data-shop-sell', html)
-        # 80% do preço de catálogo, exibido em PO
-        from home.moeda import po_display
-        self.assertIn(po_display(venda_pc), html)
+        # 80% do preço de catálogo, exibido em moeda composta (PO/PP/PC)
+        from home.moeda import moeda_display
+        self.assertIn(moeda_display(venda_pc), html)
         self.assertEqual(venda_pc, int(round(_preco_em_pc(linha.custo) * 0.8)))
 
     def test_venda_por_fetch_credita_a_carteira_e_some_do_inventario(self):

@@ -4,9 +4,11 @@ import re
 import unicodedata
 from urllib.parse import unquote, urlsplit
 from .item_mecanica import mecanica_de_tags, dano_display, propriedades_display, ca_display
-# Moeda (fonte única): armazenamento interno em PC, exibição SEMPRE em PO — PP/PC fora da UI.
-from .moeda import (preco_em_pc as _preco_em_pc, po_display as _po_display,
-                    preco_display as _preco_display)
+# Moeda (fonte única): armazenamento interno EXATO em PC, exibição SEMPRE composta em
+# PO/PP/PC (não existe meio PO — ver home/moeda.py).
+from .moeda import (preco_em_pc as _preco_em_pc, moeda_display as _moeda_display,
+                    preco_display as _preco_display, preco_po_display as _preco_po_display,
+                    po_para_pc as _po_para_pc)
 from . import badges as _badges
 from . import conquistas as _conquistas
 from datetime import datetime, timezone as datetime_timezone
@@ -3165,7 +3167,8 @@ def _classe_conjuracao(classe):
 _AB_SIG = {'str': 'FOR', 'dex': 'DES', 'con': 'CON', 'int': 'INT', 'wis': 'SAB', 'cha': 'CAR'}
 
 # Moeda: conversão e exibição vivem em home/moeda.py (fonte única, importada no topo).
-# O armazenamento interno continua em peças de cobre (PC); a EXIBIÇÃO é SEMPRE em PO.
+# O armazenamento interno continua EXATO em peças de cobre (PC); a EXIBIÇÃO é SEMPRE a
+# decomposição composta PO/PP/PC — não existe meio PO.
 _PRECO_VENDA_RATIO = 0.5  # itens mágicos vendem por 50% do preço de compra do mercado
 _PRECO_VENDA_MUNDANO_RATIO = 0.8  # itens mundanos vendem por 80% do valor de compra
 
@@ -3174,7 +3177,7 @@ def _preco_venda_pc(item_magico):
     """Preço de VENDA (em PC) de um item mágico do catálogo."""
     if not item_magico or item_magico.preco is None:
         return 0
-    return int(round(float(item_magico.preco) * 100 * _PRECO_VENDA_RATIO))
+    return int(round(_po_para_pc(item_magico.preco) * _PRECO_VENDA_RATIO))
 
 
 def _preco_venda_mundano_pc(custo_str):
@@ -3183,13 +3186,13 @@ def _preco_venda_mundano_pc(custo_str):
     return int(round(base * _PRECO_VENDA_MUNDANO_RATIO)) if base is not None else None
 
 
-def _transacoes_em_po(qs):
-    """Anota `valor_display`/`saldo_display` (sempre em PO) nas linhas do extrato. Os campos
-    gravados seguem em PC — só a EXIBIÇÃO muda."""
+def _transacoes_com_display(qs):
+    """Anota `valor_display`/`saldo_display` (composto PO/PP/PC) nas linhas do extrato. Os
+    campos gravados seguem em PC — só a EXIBIÇÃO muda."""
     linhas = list(qs)
     for t in linhas:
-        t.valor_display = _po_display(t.valor_pc)
-        t.saldo_display = _po_display(t.saldo_pc)
+        t.valor_display = _moeda_display(t.valor_pc)
+        t.saldo_display = _moeda_display(t.saldo_pc)
     return linhas
 
 
@@ -4585,7 +4588,7 @@ def editar_ficha_view(request, pk):
     from .models import TbItemMundano, TbItemMagico
     cat_label = dict(TbItemMundano.CATEGORIA_CHOICES)
     rar_label = dict(TbItemMagico.RARIDADE_CHOICES)
-    transacoes = _transacoes_em_po(p.transacoes.all()[:30])
+    transacoes = _transacoes_com_display(p.transacoes.all()[:30])
     classes_atuais = [{'id': c.id_classe.id_classe, 'nome': c.id_classe.nome, 'nivel': c.nivel,
                        'principal': c.principal} for c in p.classes.select_related('id_classe').order_by('-principal', 'id')]
     # ── Staffbox de aventuras (onda E): ledger + cadastro de mestres + consumíveis ──
@@ -4611,7 +4614,7 @@ def editar_ficha_view(request, pk):
         'page_title': 'Staff — %s' % p.nome,
         'p': p, 'pc': pc, 'ficha': ficha,
         'nivel': pc.nivel if pc else 1,
-        'carteira_display': _po_display(p.carteira_pc),
+        'carteira_display': _moeda_display(p.carteira_pc),
         'transacoes': transacoes,
         'is_staff': True,
         'classes_atuais': classes_atuais,
@@ -4718,6 +4721,9 @@ def _subir_nivel_experiencia(request, p):
         'classes_multiclasse': classes_multiclasse,
         'ganhos': ganhos, 'recursos_delta': recursos_delta,
         'pend': pend, 'pend_magias': pendm,
+        # Um cartão de ASI por slot pendente: sem botão "Escolher", é o CARTÃO que delimita
+        # cada aprimoramento (a seleção nos controles já enfileira — ver subir_nivel.js).
+        'asi_slots': list(range(int(pend['asi_pendentes'] or 0))),
         'talentos_raciais_pend': talentos_raciais_pend,
         'opcao_grupos': opcao_grupos, 'talentos_normais': talentos,
         'atributos': point_buy.SIGLAS, 'sem_pendencias': sem_pendencias,
@@ -5010,7 +5016,7 @@ def _aventuras_staff_resposta(request, p, *, compra_msg='', rollback_msg='', edi
             'nivel_label': prog.get('nivel_label') or p.nivel,
             'braseiros': int(prog.get('braseiros') or 0),
         },
-        'carteira_display': _po_display(p.carteira_pc or 0),
+        'carteira_display': _moeda_display(p.carteira_pc or 0),
     }, status=200 if ok else 400)
 
 
@@ -5029,7 +5035,7 @@ def _mochila_ficha(p, ficha):
         if not item.get('magico'):
             venda = _preco_venda_mundano_pc(item.get('custo'))
             if venda:
-                item['venda_pc'], item['venda_display'] = venda, _po_display(venda)
+                item['venda_pc'], item['venda_display'] = venda, _moeda_display(venda)
     # Valor total da mochila: soma do preço de catálogo × quantidade (interno em PC).
     total_pc = sum((_preco_em_pc(it.get('custo')) or 0) * int(it.get('qtd') or 1)
                    for it in itens)
@@ -5040,7 +5046,7 @@ def _mochila_ficha(p, ficha):
         'itens': itens,
         'equipados': [it for it in itens if it.get('equipado')],
         'total_pc': total_pc,
-        'total_display': _po_display(total_pc),
+        'total_display': _moeda_display(total_pc),
         'peso_total': ficha.get('peso_total') or 0,
         'sintonizados': sintonizados,
         'sintonizados_usados': len(sintonizados),
@@ -5064,8 +5070,11 @@ def _inventario_ajax_payload(request, p, *, msg='ok', ok=True, detalhe=''):
         'ok': ok,
         'msg': msg,
         'detalhe': detalhe,
-        'carteira_display': _po_display(p.carteira_pc or 0),
+        'carteira_display': _moeda_display(p.carteira_pc or 0),
         'carteira_pc': int(p.carteira_pc or 0),
+        # Caixinhas PO | PP | PC da ficha: o servidor decompõe (uma regra só, em moeda.py)
+        # e o JS só troca os três números.
+        'carteira_moedas': (ficha.get('carteira') or {}),
         'sintonizados_usados': mochila['sintonizados_usados'],
         'sintonizacao_maxima': mochila['sintonizacao_maxima'],
         'total_display': mochila['total_display'],
@@ -5281,8 +5290,9 @@ def _consumo_item(request, p, lanc):
 
 
 def _consumo_ouro(request, p, lanc):
-    """Consumo (b): OURO gasto em RP na missão → debita a carteira (pc interno; exibição em
-    PO) com uma transação de ajuste rastreável, e registra o gasto NA LINHA da missão."""
+    """Consumo (b): OURO gasto em RP na missão → debita a carteira (PC interno; exibição
+    composta PO/PP/PC) com uma transação de ajuste rastreável, e registra o gasto NA LINHA
+    da missão. O formulário da staff cobra em PO inteiro — daí `valor_pc = po * 100`."""
     from .models import TbPersonagem
     try:
         po = int(request.POST.get('ouro_po') or 0)
@@ -6451,7 +6461,7 @@ def personagem_vender_item(request, pk):
         _registrar_transacao(p, 'venda', 'Venda: %s x%d' % (nome, qtd), credito)
     if is_ajax(request):
         payload = _inventario_ajax_payload(request, p, msg='vendido')
-        payload['credito_display'] = _po_display(credito)
+        payload['credito_display'] = _moeda_display(credito)
         payload['item_nome'] = nome
         return JsonResponse(payload)
     return _mercado_voltar(request, 'vendido')
@@ -6467,10 +6477,11 @@ def personagem_comprar_magico(request, pk):
     p = _ficha_editavel(request, pk)
     item = TbItemMagico.objects.filter(slug=request.POST.get('item')).first()
     # Preço nulo OU <= 0 = item não-comercializável (recompensa de missão). Bloqueia a compra
-    # mesmo por POST direto (a loja também deixa de listá-lo — ver editar_ficha_view).
+    # mesmo por POST direto (as vitrines do Mercado — `itens_magicos_view` /
+    # `itens_mundanos_view` — também deixam de oferecer o botão de compra).
     if not item or not item.preco or float(item.preco) <= 0:
         return _compra_resposta(request, pk, p, 'invalido', False)
-    custo_pc = int(round(float(item.preco) * 100))  # preço em PO -> PC
+    custo_pc = _po_para_pc(item.preco)   # catálogo mágico guarda o preço em PO
     if custo_pc > (p.carteira_pc or 0):
         return _compra_resposta(request, pk, p, 'saldo', False)
     with transaction.atomic():
@@ -6575,12 +6586,12 @@ def mercado_comunidade_view(request):
         card = {'id': a.id, 'nome': a.nome,
                 'raridade': im.get_raridade_display() if im else '',
                 'requer_sintonizacao': bool(im and im.requer_sintonizacao),
-                'preco_display': _po_display(a.preco_pc), 'vendedor': a.vendedor.nome}
+                'preco_display': _moeda_display(a.preco_pc), 'vendedor': a.vendedor.nome}
         (meus_anuncios if a.vendedor_id in meus_ids else lista).append(card)
     return render(request, 'home/pages/mercado_comunidade.html', {
         'page_title': 'Mercado da Comunidade',
         'anuncios': lista, 'meus_anuncios': meus_anuncios,
-        'meus_personagens': [{'id': p.id_personagem, 'nome': p.nome, 'carteira': _po_display(p.carteira_pc)} for p in meus],
+        'meus_personagens': [{'id': p.id_personagem, 'nome': p.nome, 'carteira': _moeda_display(p.carteira_pc)} for p in meus],
         'msg': request.GET.get('m'),
     })
 
@@ -6936,8 +6947,8 @@ def ficha_detail_view(request, pk):
     # As sempre_preparada (raça/outros) NÃO contam no total de preparadas da classe.
     magias_info = _magias_sheet_info(p, ficha, essencia_pendentes)
     consumiveis_cards = _consumiveis_ficha_cards(p, ficha)
-    # Página de Histórico: compras/vendas do personagem (extrato exibido em PO).
-    transacoes = _transacoes_em_po(
+    # Página de Histórico: compras/vendas do personagem (extrato composto PO/PP/PC).
+    transacoes = _transacoes_com_display(
         TbTransacao.objects.filter(id_personagem=p).order_by('-pk')[:300])
     # Histórico de MISSÕES (onda E): o ledger de aventuras com data da missão e mestre —
     # linha legada (anterior à onda E) aparece marcada `(legado)` via `mestre_display`.
@@ -11322,13 +11333,13 @@ def _mercado_vendaveis(p):
             continue
         linhas.append({'id': it.id, 'nome': it.nome, 'qtd': int(it.qtd or 1),
                        'custo_display': _preco_display(it.custo),
-                       'venda_pc': venda, 'venda_display': _po_display(venda)})
+                       'venda_pc': venda, 'venda_display': _moeda_display(venda)})
     return linhas
 
 
 def _mercado_contexto(request):
     """Contexto do BALCÃO (comum às duas vitrines): personagens do usuário, o ATIVO, a
-    carteira em PO e a lista de venda. A escolha do personagem vem de `?personagem=` e fica
+    carteira composta (PO/PP/PC) e a lista de venda. A escolha vem de `?personagem=` e fica
     na sessão — o seletor persiste entre Mundano/Mágico e entre visitas."""
     from .models import TbPersonagem
     personagens, ativo = [], None
@@ -11345,7 +11356,7 @@ def _mercado_contexto(request):
         'mercado_logado': request.user.is_authenticated,
         'mercado_personagens': personagens,
         'mercado_ativo': ativo,
-        'mercado_carteira': _po_display(ativo.carteira_pc) if ativo else None,
+        'mercado_carteira': _moeda_display(ativo.carteira_pc) if ativo else None,
         'mercado_venda': _mercado_vendaveis(ativo),
         # PRG sem JS: os forms de compra/venda voltam para a vitrine de onde partiram.
         'mercado_next': request.path,
@@ -11368,7 +11379,7 @@ def itens_mundanos_view(request):
         # `subcategoria` é campo livre (arma_marcial, ferramenta_artesao…): vira etiqueta
         # legível na vitrine sem virar dicionário hardcoded.
         i.sub_label = (i.subcategoria or '').replace('_', ' ').strip().capitalize()
-        # Preço SEMPRE em PO (home/moeda.py). Sem preço = recompensa de missão: fica na
+        # Preço SEMPRE composto em PO/PP/PC (home/moeda.py). Sem preço = recompensa: fica na
         # vitrine para consulta, mas sem botão de compra (guarda também no backend).
         i.preco_display = _preco_display(i.preco)
         itens.append(i)
@@ -11401,7 +11412,7 @@ def itens_magicos_view(request):
     for i in itens:
         # Preço da loja: item sem preço OU preço <= 0 é recompensa de missão (não
         # comercializável) — a vitrine mostra o rótulo no lugar do número e não dá botão.
-        i.preco_display = ('%g PO' % float(i.preco)) if (i.preco is not None and float(i.preco) > 0) else None
+        i.preco_display = _preco_po_display(i.preco) if (i.preco is not None and float(i.preco) > 0) else None
         i.base_rarity = re.sub(r'_(menor|maior)$', '', i.raridade or '')
         i.raridade_label = _rar_labels.get(i.raridade, i.raridade)
         i.tipo_label = i.tipo or _slot_labels.get(i.slot, i.slot)

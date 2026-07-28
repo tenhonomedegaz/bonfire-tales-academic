@@ -359,6 +359,36 @@ class SubirNivelPageTests(LevelUpLoteBase):
         self.assertIn('data-lvl-auto-queue="subclasse"', html)
         self.assertNotIn('data-lvl-queue="subclasse"', html)
 
+    def test_asi_sem_botao_escolher_com_um_cartao_por_pendencia(self):
+        # Leva 4, item 7: o cartão de ASI perdeu o botão "Escolher" — a seleção nos
+        # controles já enfileira. Como a escolha passou a ser delimitada pelo CARTÃO,
+        # o passo rende um cartão por aprimoramento pendente (N3 -> N4 abre exatamente 1).
+        p = self._guerreiro_no_nivel(3, apelido='sn-asi-direto')
+        self.client.force_login(p.dono)
+        response = self.client.get(reverse('personagem_subir_nivel', args=[p.pk]))
+        html = response.content.decode('utf-8')
+        self.assertNotIn('data-lvl-queue="asi"', html)
+        self.assertNotIn('>Escolher</button>', html)
+        self.assertEqual(response.context['asi_slots'], [0])
+        self.assertEqual(html.count('data-lvl-card="asi"'), 1)
+        self.assertIn('data-lvl-card="asi" data-need="1" data-slot="0"', html)
+
+    def test_asi_multiplo_rende_um_cartao_por_slot_com_radios_independentes(self):
+        # Guerreiro N7 -> N8 acumula VÁRIOS ASI não aplicados: um cartão por slot, cada um
+        # com seu próprio grupo de rádios (senão marcar "talento" num vazaria nos outros).
+        p = self._guerreiro_no_nivel(7, apelido='sn-asi-multi')
+        self.client.force_login(p.dono)
+        response = self.client.get(reverse('personagem_subir_nivel', args=[p.pk]))
+        html = response.content.decode('utf-8')
+        pendentes = response.context['pend']['asi_pendentes']
+        self.assertGreater(pendentes, 1, 'cenário precisa de mais de um ASI pendente')
+        self.assertEqual(response.context['asi_slots'], list(range(pendentes)))
+        self.assertEqual(html.count('data-lvl-card="asi"'), pendentes)
+        for slot in range(pendentes):
+            self.assertIn('data-slot="%d"' % slot, html)
+            self.assertIn('name="lvl-asi-modo-%d"' % slot, html)
+        self.assertNotIn('data-lvl-queue="asi"', html)
+
     def test_botao_aparece_quando_elegivel(self):
         # Elegível (teto folgado): a ficha traz o botão destacado de subir de nível.
         p = self._guerreiro_no_nivel(3)

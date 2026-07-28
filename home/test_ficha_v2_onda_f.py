@@ -132,6 +132,30 @@ class NotasDoJogadorTests(LevelUpLoteBase):
         self.assertIn(reverse('personagem_notas_salvar', args=[p.pk]), html)
         self.assertIn('Notas do Jogador', html)
 
+    def test_autosave_tem_rede_de_seguranca_ao_sair_da_pagina(self):
+        # Sair da aba / trocar de janela com texto sujo não pode perder a nota: além do
+        # blur, o script salva em beforeunload e visibilitychange, por um caminho que
+        # SOBREVIVE ao unload (sendBeacon, com fallback fetch keepalive).
+        p = self._guerreiro_no_nivel(1, apelido='notas-unload')
+        self.client.force_login(p.dono)
+        html = self.client.get(reverse('ficha_detail', args=[p.pk])).content.decode('utf-8')
+        self.assertIn("addEventListener('beforeunload', salvarAoSair)", html)
+        self.assertIn("addEventListener('visibilitychange'", html)
+        self.assertIn("document.visibilityState === 'hidden'", html)
+        self.assertIn('navigator.sendBeacon(form.action, data)', html)
+        self.assertIn('keepalive: true', html)
+
+    def test_endpoint_de_notas_aceita_post_classico_do_beacon(self):
+        # O beacon não manda cabeçalho de XHR: o endpoint precisa aceitar POST clássico
+        # (redirect) e ainda assim gravar — senão a rede de segurança não salva nada.
+        p = self._guerreiro_no_nivel(1, apelido='notas-beacon')
+        self.client.force_login(p.dono)
+        resp = self.client.post(reverse('personagem_notas_salvar', args=[p.pk]),
+                                data={'notas_jogador': 'nota salva pelo beacon'})
+        self.assertEqual(resp.status_code, 302)
+        p.refresh_from_db()
+        self.assertEqual(p.notas_jogador, 'nota salva pelo beacon')
+
 
 class DisposicaoDaFolhaTests(LevelUpLoteBase):
     """A ordem do HTML É a disposição: as colunas do desktop e a coluna única do celular

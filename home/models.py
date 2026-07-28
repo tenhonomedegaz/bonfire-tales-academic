@@ -1447,8 +1447,14 @@ class TbPersonagemAventura(models.Model):
 
     @property
     def ouro_pago_po(self):
-        """Ouro pago em PO (para exibição na UI/admin)."""
+        """Ouro pago em PO inteiro (a coluna numérica do admin ordena por isto)."""
         return int(self.ouro_pago_pc or 0) // 100
+
+    @property
+    def ouro_pago_display(self):
+        """Ouro pago DECOMPOSTO para a UI ('12 PO', '1 PO 5 PP') — home/moeda.py."""
+        from .moeda import moeda_display
+        return moeda_display(self.ouro_pago_pc)
 
     # ── leitura de `detalhes_json` (sempre por aqui; nada de indexar o dict no template) ──
     LEGADO_LABEL = '(legado)'
@@ -1473,8 +1479,20 @@ class TbPersonagemAventura(models.Model):
 
     @property
     def consumos(self):
-        """Consumos registrados NA LINHA: [{tipo, ...}] (item consumível gasto, ouro de RP)."""
-        return self._bloco('consumos', [])
+        """Consumos registrados NA LINHA: [{tipo, ...}] (item consumível gasto, ouro de RP).
+
+        O gasto de ouro sai daqui já DECOMPOSTO em `valor_display` (PO/PP/PC), derivado do
+        `valor_pc` gravado — o template não formata dinheiro, e linhas antigas (que só têm
+        `valor_po`) continuam legíveis."""
+        from .moeda import moeda_display
+        saida = []
+        for c in self._bloco('consumos', []):
+            if isinstance(c, dict) and c.get('tipo') == 'ouro':
+                c = dict(c, valor_display=moeda_display(
+                    c.get('valor_pc') if c.get('valor_pc') is not None
+                    else int(c.get('valor_po') or 0) * 100))
+            saida.append(c)
+        return saida
 
     @property
     def trilha(self):

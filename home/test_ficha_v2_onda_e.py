@@ -380,10 +380,12 @@ class ConsumoDeMissaoTests(_OndaEBase):
         self.assertEqual(payload['msg'], 'consumo_ok')
         self.p.refresh_from_db()
         self.assertEqual(self.p.carteira_pc, (500 - 75) * 100)   # débito interno em PC
-        self.assertIn('425', payload['carteira_display'])        # exibição em PO
+        self.assertEqual(payload['carteira_display'], '425 PO')  # exibição composta
         self.lanc.refresh_from_db()
         c = self.lanc.consumos[0]
         self.assertEqual((c['tipo'], c['valor_po'], c['valor_pc']), ('ouro', 75, 7500))
+        # o consumo já sai do modelo com o gasto DECOMPOSTO para a UI
+        self.assertEqual(c['valor_display'], '75 PO')
         self.assertEqual(c['motivo'], 'suborno ao doqueiro')
         self.assertEqual(c['quem'], self.staff.username)
         self.assertEqual(self.lanc.ouro_rp_po, 75)
@@ -490,6 +492,31 @@ class ExibicaoDataMestreELegadoTests(_OndaEBase):
                               args=[self.p.pk, legado.id_lancamento]), html)
         self.assertIn(reverse('personagem_aventura_consumo',
                               args=[self.p.pk, legado.id_lancamento]), html)
+
+    def test_linha_do_ledger_e_identificavel_para_reabrir_apos_o_fetch(self):
+        # Depois de corrigir/consumir, o staffbox volta INTEIRO do servidor. Sem uma âncora
+        # por linha o <details> aberto fechava na cara da staff; o fragmento carrega o id do
+        # lançamento e o JS reabre o mesmo bloco.
+        legado = self._legado('Mesa com detalhe')
+        self.client.force_login(self.staff)
+        html = self.client.get(reverse('editar_ficha', args=[self.p.pk])).content.decode()
+        self.assertIn('data-missao-details="%d"' % legado.id_lancamento, html)
+        # e o fragmento devolvido pelo fetch traz a mesma âncora (é o mesmo partial)
+        self.p.carteira_pc = 1000
+        self.p.save(update_fields=['carteira_pc'])
+        resp = self._consumo(legado, tipo='ouro', ouro_po=1, motivo='reabrir')
+        self.assertEqual(resp.status_code, 200, resp.content)
+        self.assertIn('data-missao-details="%d"' % legado.id_lancamento,
+                      resp.json()['staffbox_html'])
+
+    def test_ouro_do_ledger_e_exibido_decomposto(self):
+        # Moeda composta: o ledger não escreve mais "{{ ouro_pago_po }} PO" no template —
+        # a decomposição vem do modelo (home/moeda.py).
+        legado = self._legado('Mesa do ouro')       # ouro_pago_pc = 12000
+        self.assertEqual(legado.ouro_pago_display, '120 PO')
+        self.client.force_login(self.staff)
+        html = self.client.get(reverse('editar_ficha', args=[self.p.pk])).content.decode()
+        self.assertIn('<td>120 PO</td>', html)
 
     def test_aba_historico_da_ficha_lista_missoes_com_data_mestre_e_legado(self):
         self._legado()

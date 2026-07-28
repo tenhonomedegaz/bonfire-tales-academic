@@ -8,7 +8,8 @@ from home.tag_engine import evaluate_tags, parse_tags
 from home.tag_engine.evaluator import Evaluator
 from home.tag_engine.library import Library
 from home.tag_engine.parser import ParseError, parse_tag
-from home.tag_engine.validator import ERROR, validate_tag_line
+from home.tag_engine.validator import (ERROR, _check_innate_casting_tags,
+                                      validate_tag_line)
 
 
 class TagParserTests(SimpleTestCase):
@@ -711,3 +712,78 @@ class TagNamingTests(SimpleTestCase):
                 and diagnostic.code == "condicao-relacional-especifica"
                 for diagnostic in diagnostics
             ), tag)
+
+
+class InnateCastUsesTests(SimpleTestCase):
+    """Rastreabilidade de conjuração inata: `cast{… without{slot} …}` precisa dizer
+    QUANTAS vezes (at_will / uses{N, reset:R} / N/reset), senão a ficha não mete o uso."""
+
+    def _codes(self, tags):
+        return [d.code for d in _check_innate_casting_tags(tags)]
+
+    def test_conjuracao_permanente_sem_limite_avisa(self):
+        self.assertEqual(
+            self._codes(["always_active{cast{spell:voo, modifiers{without{slot}}}}"]),
+            ["innate-cast-uses"],
+        )
+
+    def test_at_will_satisfaz_o_limite(self):
+        self.assertEqual(
+            self._codes(["always_active{cast{spell:voo, modifiers{without{slot}, at_will}}}"]),
+            [],
+        )
+
+    def test_uses_com_formula_entre_parenteses_satisfaz_o_limite(self):
+        # `max(wis_mod,1)` tem vírgula DENTRO dos parênteses (Mapa Estelar, Clarão de
+        # Guarda…): o N de uses{} é fórmula, não átomo.
+        self.assertEqual(
+            self._codes([
+                "cast{ spell:raio-guiador, modifiers{ without{slot} } }",
+                "uses{ max(wis_mod,1), reset:long_rest }",
+            ]),
+            [],
+        )
+
+    def test_uses_sem_reset_nao_conta_como_limite(self):
+        self.assertEqual(
+            self._codes([
+                "cast{spell:voo, without{slot}}",
+                "uses{ max(wis_mod,1) }",
+            ]),
+            ["innate-cast-uses"],
+        )
+
+    def test_cast_dentro_de_instant_e_efeito_roteirizado_e_nao_avisa(self):
+        # Quem mede o uso é o gate da feature (trigger=/resource_cost:), não o cast.
+        self.assertEqual(
+            self._codes([
+                "trigger=ability{magias_do_terreno, classe:druida}",
+                "instant{ cast{ spell:comunhao-com-a-natureza, modifiers{ without{slot} } } }",
+            ]),
+            [],
+        )
+
+    def test_instant_na_linha_nao_isenta_cast_irmao_fora_dele(self):
+        self.assertEqual(
+            self._codes(["instant{ dmg:1d6 }, cast{ spell:voo, modifiers{ without{slot} } }"]),
+            ["innate-cast-uses"],
+        )
+
+    def test_limite_generico_com_duas_magias_e_ambiguo(self):
+        self.assertEqual(
+            self._codes([
+                "cast{spell:fome-de-umbral, without{slot}}",
+                "cast{spell:manto-das-sombras, without{slot}}",
+                "uses{1, reset:long_rest}",
+            ]),
+            ["innate-cast-ambiguous-uses"],
+        )
+
+    def test_uses_por_magia_desfaz_a_ambiguidade(self):
+        self.assertEqual(
+            self._codes([
+                "cast{spell:fome-de-umbral, without{slot}, uses{1, reset:long_rest}}",
+                "cast{spell:manto-das-sombras, without{slot}, uses{1, reset:long_rest}}",
+            ]),
+            [],
+        )

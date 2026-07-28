@@ -146,28 +146,31 @@
       {% if pend.asi_pendentes > 0 %}
       <section class="cf-step space-y-3" data-step="asi" data-step-name="Atributo/Talento" data-step-required="1" hidden>
         <h2 class="sn-step-title">Aprimoramento de Atributo ou Talento</h2>
-        <p class="sn-step-sub">Aumente atributos (+2 distribuível) ou escolha um talento que dá +1 num atributo.</p>
-        <div class="lvl-card" data-lvl-card="asi" data-need="{{ pend.asi_pendentes }}" id="lvl-asi-card">
+        <p class="sn-step-sub">Aumente atributos (+2 distribuível) ou escolha um talento que dá +1 num atributo.{% if pend.asi_pendentes > 1 %} Há {{ pend.asi_pendentes }} aprimoramentos pendentes — um cartão para cada.{% endif %}</p>
+        {% comment %}Leva 4 (item 7): NÃO existe mais botão "Escolher" — mexer em qualquer
+        controle do cartão já enfileira aquele aprimoramento (e ajustar de novo substitui a
+        escolha, sem duplicar). Por isso o passo rende UM cartão por slot pendente, cada um
+        identificado por `data-slot`: é o cartão, não o clique, que delimita a escolha.{% endcomment %}
+        {% for slot in asi_slots %}
+        <div class="lvl-card" data-lvl-card="asi" data-need="1" data-slot="{{ slot }}">
           <div class="lvl-card__head">
-            <span class="lvl-card__title">Escolha</span>
-            <span class="lvl-badge" data-lvl-badge>falta {{ pend.asi_pendentes }}</span>
+            <span class="lvl-card__title">Escolha{% if pend.asi_pendentes > 1 %} <span class="sub">{{ forloop.counter }} de {{ pend.asi_pendentes }}</span>{% endif %}</span>
+            <span class="lvl-badge" data-lvl-badge>falta 1</span>
           </div>
           <div class="lvl-queued" data-lvl-chips hidden></div>
-          <label class="lvl-radio"><input type="radio" name="lvl-asi-modo" value="asi" checked data-lvl-field="asi_modo"> Aumentar atributos (+2 distribuível)</label>
+          <label class="lvl-radio"><input type="radio" name="lvl-asi-modo-{{ slot }}" value="asi" checked> Aumentar atributos (+2 distribuível)</label>
           <div class="lvl-card__row" data-lvl-asi-attrs style="margin:0.4rem 0 0.5rem 1.4rem">
             <select class="lvl-field" data-lvl-field="asi_attr_1" aria-label="Primeiro atributo do ASI">{% for a in atributos %}<option value="{{ a }}">+1 {{ a }}</option>{% endfor %}</select>
             <select class="lvl-field" data-lvl-field="asi_attr_2" aria-label="Segundo atributo do ASI">{% for a in atributos %}<option value="{{ a }}">+1 {{ a }}</option>{% endfor %}</select>
           </div>
-          <label class="lvl-radio"><input type="radio" name="lvl-asi-modo" value="talento"> Escolher um Talento (+1 atributo)</label>
+          <label class="lvl-radio"><input type="radio" name="lvl-asi-modo-{{ slot }}" value="talento"> Trocar por um Talento (+1 atributo)</label>
           <div class="lvl-card__row" data-lvl-asi-tal hidden style="margin:0.4rem 0 0.5rem 1.4rem">
-            <select class="lvl-field lvl-field--grow" data-lvl-field="talento" data-lvl-describe id="lvl-asi-talento" aria-label="Talento"><option value="">— Talento —</option>{% for t in talentos_normais %}<option value="{{ t.id }}" data-attrs="{{ t.attrs_csv }}" data-desc="{{ t.descricao|striptags }}">{{ t.nome }}{% if t.pre %} ({{ t.pre }}){% endif %}</option>{% endfor %}</select>
-            <select class="lvl-field" data-lvl-field="talento_attr" id="lvl-asi-talento-attr" aria-label="Atributo do talento">{% for a in atributos %}<option value="{{ a }}">+1 {{ a }}</option>{% endfor %}</select>
+            <select class="lvl-field lvl-field--grow" data-lvl-field="talento" data-lvl-describe aria-label="Talento"><option value="">— Talento —</option>{% for t in talentos_normais %}<option value="{{ t.id }}" data-attrs="{{ t.attrs_csv }}" data-desc="{{ t.descricao|striptags }}">{{ t.nome }}{% if t.pre %} ({{ t.pre }}){% endif %}</option>{% endfor %}</select>
+            <select class="lvl-field" data-lvl-field="talento_attr" aria-label="Atributo do talento">{% for a in atributos %}<option value="{{ a }}">+1 {{ a }}</option>{% endfor %}</select>
           </div>
           <p class="lvl-card__hint" data-lvl-desc hidden style="margin:0.5rem 0 0 1.4rem"></p>
-          <div class="lvl-card__row">
-            <button type="button" class="lvl-add" data-lvl-queue="asi">Escolher</button>
-          </div>
         </div>
+        {% endfor %}
       </section>
       {% endif %}
 

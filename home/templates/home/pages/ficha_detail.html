@@ -377,7 +377,7 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
   e a staff veem: é anotação pessoal, não vitrine — ficha pública não expõe.{% endcomment %}
   {% if pode_editar %}
   <div class="ficha-panel notas-panel" data-notas-panel>
-    <div class="ficha-section-title">Notas do Jogador<span class="float-right font-sans text-[11px] normal-case tracking-normal text-[var(--muted)]" data-notas-feedback aria-live="polite">salva ao sair do campo</span></div>
+    <div class="ficha-section-title">Notas do Jogador<span class="float-right font-sans text-[11px] normal-case tracking-normal text-[var(--muted)]" data-notas-feedback aria-live="polite">salva sozinha ao sair do campo</span></div>
     <form method="post" action="{% url 'personagem_notas_salvar' p.id_personagem %}" class="notas-form" data-notas-form>
       {% csrf_token %}
       <label class="notas-box">
@@ -469,9 +469,16 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
   <div class="ficha-tabpanel space-y-3" data-tabpanel="mochila" role="tabpanel" hidden>
 
     <div class="bag-head">
-      <div class="bag-stat" data-carteira>
-        <span class="lbl">Dinheiro</span>
-        <strong class="v spark" data-carteira-valor>{{ ficha.carteira.display|default:"0 PO" }}</strong>
+      {% comment %}Carteira em TRÊS CAIXINHAS (PO | PP | PC), como na ficha clássica de mesa.
+      O saldo exato mora em `carteira_pc`; a decomposição chega pronta do derive
+      (home/moeda.py) — o template não faz conta de moeda.{% endcomment %}
+      <div class="bag-stat bag-coins" data-carteira title="{{ ficha.carteira.display|default:'0 PO' }}">
+        <span class="lbl">Dinheiro{% if ficha.carteira.negativo %} <span class="coin-neg">(negativo)</span>{% endif %}</span>
+        <div class="coin-row">
+          <span class="coin-box"><span class="coin-val" data-carteira-po>{{ ficha.carteira.po|default:"0" }}</span><span class="coin-sig">PO</span></span>
+          <span class="coin-box"><span class="coin-val" data-carteira-pp>{{ ficha.carteira.pp|default:"0" }}</span><span class="coin-sig">PP</span></span>
+          <span class="coin-box"><span class="coin-val" data-carteira-pc>{{ ficha.carteira.pc|default:"0" }}</span><span class="coin-sig">PC</span></span>
+        </div>
       </div>
       <div class="bag-stat">
         <span class="lbl">Valor da mochila</span>
@@ -846,9 +853,9 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
               <td class="hist-desc">{{ a.nome_aventura }}{% if a.revertido %} <span class="hist-legado">— revertido</span>{% endif %}</td>
               <td>{% if a.eh_legado %}<span class="hist-legado" title="Lançamento anterior ao cadastro obrigatório de mestre">{{ a.mestre_display }}</span>{% else %}{{ a.mestre_display }}{% endif %}</td>
               <td class="num">{{ a.qtd_aventuras }}</td>
-              <td class="num hist-val">{{ a.ouro_pago_po }} PO</td>
+              <td class="num hist-val">{{ a.ouro_pago_display }}</td>
               <td class="hist-desc">
-                {% for c in a.consumos %}{% if c.tipo == 'item' %}{{ c.nome }} ×{{ c.qtd }}{% else %}{{ c.valor_po }} PO (RP){% endif %}{% if not forloop.last %} · {% endif %}{% empty %}—{% endfor %}
+                {% for c in a.consumos %}{% if c.tipo == 'item' %}{{ c.nome }} ×{{ c.qtd }}{% else %}{{ c.valor_display }} (RP){% endif %}{% if not forloop.last %} · {% endif %}{% empty %}—{% endfor %}
               </td>
             </tr>
             {% endfor %}
@@ -881,7 +888,7 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
           </tbody>
         </table>
       </div>
-      <p class="hist-note">Valores em peças de ouro (PO).</p>
+      <p class="hist-note">Valores em PO / PP / PC (1 PO = 10 PP = 100 PC).</p>
       {% else %}
       <p class="info-empty">Nenhuma transação registrada.</p>
       {% endif %}
@@ -1153,7 +1160,9 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
 })();
 </script>
 
-{# Notas do jogador (onda F): autosave no blur — sem botão, sem recarregar. #}
+{% comment %}Notas do jogador (onda F): autosave no blur — sem botão, sem recarregar.
+Fechar a aba ou trocar de janela com texto sujo TAMBÉM salva (beacon/keepalive): a nota
+nunca some porque o jogador saiu sem tirar o cursor do campo.{% endcomment %}
 <script>
 (function () {
   const form = document.querySelector('[data-notas-form]');
@@ -1192,8 +1201,34 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
     }
   }
 
+  // Rede de segurança para quem sai da página SEM tirar o cursor do campo (fechar aba,
+  // trocar de janela, navegar). O fetch normal é abortado no unload; `sendBeacon` e o
+  // `keepalive` sobrevivem. Sem resposta para ler — o endpoint aceita POST clássico e o
+  // CSRF viaja no corpo do próprio form, então não é preciso cabeçalho de XHR.
+  function salvarAoSair() {
+    if (input.value === salvo) return;               // nada sujo: não bate no servidor
+    const pendente = input.value;
+    const data = new FormData(form);
+    if (navigator.sendBeacon && navigator.sendBeacon(form.action, data)) {
+      salvo = pendente;
+      return;
+    }
+    try {
+      fetch(form.action, { method: 'POST', body: data, credentials: 'same-origin', keepalive: true });
+      salvo = pendente;
+    } catch (error) {
+      /* saindo da página: não há UI para avisar; o blur continua sendo o caminho normal */
+    }
+  }
+
   input.addEventListener('blur', salvar);
   form.addEventListener('submit', function (event) { event.preventDefault(); salvar(); });
+  window.addEventListener('beforeunload', salvarAoSair);
+  // `visibilitychange` é o único evento confiável em mobile (o beforeunload não dispara
+  // quando o sistema mata a aba em segundo plano).
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'hidden') salvarAoSair();
+  });
 })();
 </script>
 

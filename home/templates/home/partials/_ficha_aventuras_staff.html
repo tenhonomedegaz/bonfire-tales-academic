@@ -51,7 +51,7 @@ caminho para desfazer os CONTADORES (aventuras/ouro/braseiros).{% endcomment %}
               <td>{% if l.data_missao %}{{ l.data_missao|date:"d/m/Y" }}{% else %}<span class="lvl-legado" title="Lançamento anterior à onda E: a data da missão nunca foi registrada">(legado)</span>{% endif %}</td>
               <td>{% if l.eh_legado %}<span class="lvl-legado" title="Lançamento anterior ao cadastro obrigatório de mestre">{{ l.mestre_display }}</span>{% else %}{{ l.mestre_display }}{% endif %}</td>
               <td>{{ l.qtd_aventuras }}</td>
-              <td>{{ l.ouro_pago_po }} PO</td>
+              <td>{{ l.ouro_pago_display }}</td>
               <td>{{ l.nivel_no_lancamento }}</td>
               <td>{{ l.criado_em|date:"d/m/y H:i" }}</td>
               <td>{{ l.criado_por.username|default:"—" }}</td>
@@ -61,7 +61,7 @@ caminho para desfazer os CONTADORES (aventuras/ouro/braseiros).{% endcomment %}
                 {% else %}
                   <form method="post" action="{% url 'personagem_reverter_aventura' p.id_personagem l.id_lancamento %}"
                         style="display:inline" data-aventura-reverter
-                        onsubmit="return confirm('Reverter o lançamento “{{ l.nome_aventura|escapejs }}” (x{{ l.qtd_aventuras }}, {{ l.ouro_pago_po }} PO)? Isso devolve aventuras e ouro ao personagem.');">
+                        onsubmit="return confirm('Reverter o lançamento “{{ l.nome_aventura|escapejs }}” (x{{ l.qtd_aventuras }}, {{ l.ouro_pago_display|escapejs }})? Isso devolve aventuras e ouro ao personagem.');">
                     {% csrf_token %}
                     <button type="submit" class="lvl-revbtn">Reverter</button>
                   </form>
@@ -72,7 +72,10 @@ caminho para desfazer os CONTADORES (aventuras/ouro/braseiros).{% endcomment %}
             {# ── Correção do lançamento + consumos da missão, na PRÓPRIA linha ── #}
             <tr class="lvl-ledger__detail">
               <td colspan="9">
-                <details class="lvl-missao">
+                {% comment %}`data-missao-details` identifica a linha para o fetch REABRIR
+                este bloco depois de re-renderizar o staffbox (ver editar_ficha.js): quem
+                estava corrigindo a missão continua exatamente onde estava.{% endcomment %}
+                <details class="lvl-missao" data-missao-details="{{ l.id_lancamento }}">
                   <summary>Corrigir lançamento · consumos da missão</summary>
 
                   <form method="post" action="{% url 'personagem_editar_aventura' p.id_personagem l.id_lancamento %}"
@@ -114,7 +117,7 @@ caminho para desfazer os CONTADORES (aventuras/ouro/braseiros).{% endcomment %}
                       {% for c in l.consumos %}
                         <li>
                           {% if c.tipo == 'item' %}<b>Item</b>: {{ c.nome }} ×{{ c.qtd }} (restou {{ c.depois }})
-                          {% else %}<b>Ouro de RP</b>: {{ c.valor_po }} PO{% if c.motivo %} — {{ c.motivo }}{% endif %}{% endif %}
+                          {% else %}<b>Ouro de RP</b>: {{ c.valor_display }}{% if c.motivo %} — {{ c.motivo }}{% endif %}{% endif %}
                           <span class="lvl-missao__meta">por {{ c.quem }} · {{ c.quando }}</span>
                         </li>
                       {% endfor %}

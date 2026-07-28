@@ -46,6 +46,22 @@
     }
   }
 
+  // Quais <details> de missão estão ABERTOS agora (por id de lançamento). O staffbox volta
+  // do servidor inteiro e fechado; sem isto, corrigir/consumir fechava o bloco na cara da
+  // staff no meio do trabalho.
+  function missoesAbertas() {
+    return Array.prototype.filter.call(
+      document.querySelectorAll('[data-missao-details]'), function (d) { return d.open; }
+    ).map(function (d) { return d.getAttribute('data-missao-details'); });
+  }
+
+  function reabrirMissoes(ids) {
+    (ids || []).forEach(function (id) {
+      var el = document.querySelector('[data-missao-details="' + id + '"]');
+      if (el) el.open = true;
+    });
+  }
+
   // Todo formulário do staffbox de missões (lançar, reverter, corrigir, consumo) devolve
   // o MESMO fragmento re-renderizado — um handler só cobre os quatro.
   document.addEventListener('submit', function (event) {
@@ -57,11 +73,19 @@
     event.preventDefault();
     var button = form.querySelector('button[type="submit"]');
     if (button) button.disabled = true;
+    // A linha EDITADA reabre mesmo que estivesse fechada (o staff acabou de agir nela).
+    var editada = form.closest('[data-missao-details]');
+    var abertas = missoesAbertas();
+    if (editada) {
+      var idEditada = editada.getAttribute('data-missao-details');
+      if (abertas.indexOf(idEditada) === -1) abertas.push(idEditada);
+    }
     submitForm(form).then(function (result) {
       var payload = result.json || {};
       if (typeof payload.staffbox_html === 'string') {
         var box = document.getElementById('lvl-aventuras-staffbox');
         if (box) box.outerHTML = payload.staffbox_html;
+        reabrirMissoes(abertas);
       }
       if (payload.progressao) {
         setText('[data-ficha-aventuras]', payload.progressao.aventuras);

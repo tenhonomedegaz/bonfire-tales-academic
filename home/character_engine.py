@@ -26,8 +26,8 @@ import re
 import unicodedata
 
 from .item_mecanica import mecanica_de_tags, dano_display, propriedades_display
-# Moeda: interno em PC, exibição SEMPRE em PO (fonte única em home/moeda.py).
-from .moeda import po_display, preco_display
+# Moeda: interno EXATO em PC, exibição SEMPRE composta em PO/PP/PC (fonte: home/moeda.py).
+from .moeda import decompor as moeda_decompor, moeda_display, preco_display
 # Slots corporais (o que é vestível e em que vaga) — fonte única em home/slots.py.
 from . import slots as _slots
 
@@ -968,7 +968,8 @@ def _inventario(personagem):
                     # slot corporal que o item ocupa na grade da Mochila (None = não veste)
                     'slot': _slot,
                     'slot_rotulo': _slots.rotulo_do_slot(_slot) if _slot else None,
-                    # Exibição do valor SEMPRE em PO (o `custo` cru do catálogo pode vir em PP/PC).
+                    # Exibição do valor SEMPRE composta em PO/PP/PC (o `custo` cru do
+                    # catálogo vem em uma moeda só: '2 PP', '15 PC'…).
                     'custo_display': preco_display(it.custo), 'peso': it.peso,
                     'equipado': equipado_efetivo, 'tipo_equip': _mec_inv['tipo_equip'],
                     'pode_equipar': bool(_mec_inv['tipo_equip']) or magico_equipavel,
@@ -3376,11 +3377,13 @@ def derive(personagem):
     state['maestria_pendente'] = any(
         w.get('maestria_pendente') for w in (state.get('maestrias_armas') or []))
 
-    # Mochila: carteira + peso total carregado. Armazenamento em PC; EXIBIÇÃO sempre em PO
-    # (`display`) — PP/PC seguem no dict só para cálculo/compat, nunca para a interface.
+    # Mochila: carteira + peso total carregado. Armazenamento EXATO em PC; a EXIBIÇÃO é
+    # composta — `po`/`pp`/`pc` alimentam as três caixinhas da ficha clássica e `display`
+    # é a mesma decomposição em texto ("1 PO 3 PP 4 PC") para mochila/mercado.
     _cpc = int(getattr(personagem, 'carteira_pc', 0) or 0)
-    state['carteira'] = {'pc_total': _cpc, 'po': _cpc // 100, 'pp': (_cpc % 100) // 10,
-                         'pc': _cpc % 10, 'display': po_display(_cpc)}
+    _neg, _po, _pp, _pcs = moeda_decompor(_cpc)
+    state['carteira'] = {'pc_total': _cpc, 'negativo': _neg, 'po': _po, 'pp': _pp,
+                         'pc': _pcs, 'display': moeda_display(_cpc)}
 
     def _peso_item(it):
         try:

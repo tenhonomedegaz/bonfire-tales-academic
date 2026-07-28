@@ -1568,6 +1568,29 @@ button.spell-name-toggle.open .spell-caret { transform: rotate(90deg); opacity: 
 .bag-stat .v.flame { color: var(--flame); }
 .bag-market { margin-left: auto; align-self: center; }
 
+/* ---------- carteira: três caixinhas PO | PP | PC (ficha clássica) ---------- */
+.bag-coins .coin-row { display: flex; gap: 0.3rem; margin-top: 0.1rem; }
+.bag-coins .coin-box {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.18rem;
+  min-width: 3rem;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--bag-accent) 35%, var(--stroke));
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--bag-accent) 7%, transparent);
+  padding: 0.12rem 0.35rem;
+}
+.bag-coins .coin-val { font-size: 1.02rem; font-weight: 800; line-height: 1.1; color: var(--spark); }
+.bag-coins .coin-sig {
+  font-family: 'Cinzel', serif;
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+.bag-coins .coin-neg { color: var(--flame); letter-spacing: 0; }
+
 .bag-alert {
   border: 1px solid color-mix(in srgb, var(--bag-accent) 45%, transparent);
   border-radius: 8px;

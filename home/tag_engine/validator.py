@@ -429,10 +429,14 @@ def _check_conditional_static(line):
 
 # ───────────────────────── API pública ──────────────────────────────
 _CAST_OPEN_RE = re.compile(r"\bcast\s*\{", re.I)
+_INSTANT_OPEN_RE = re.compile(r"\binstant\s*\{", re.I)
 _WITHOUT_SLOT_RE = re.compile(r"\bwithout\s*\{\s*slot\b", re.I)
 _AT_WILL_RE = re.compile(r"\bat[_-]will\b", re.I)
+# O N de uses{} é uma FÓRMULA, não um átomo: `uses{ max(wis_mod,1), reset:long_rest }`
+# (Mapa Estelar, Toque Purificador, Clarão de Guarda…) tem vírgula DENTRO dos parênteses.
+# `[^{}]*?` (não-guloso, sem cruzar chave) casa a fórmula inteira e para no `, reset:`.
 _INNATE_USES_RE = re.compile(
-    r"\buses\s*\{\s*[^,{}]+\s*,\s*reset\s*:\s*"
+    r"\buses\s*\{\s*[^{}]*?,\s*reset\s*:\s*"
     r"(?:long[_-]rest|short[_-]rest|short[_-]or[_-]long|rest|day)\b",
     re.I,
 )
@@ -443,10 +447,10 @@ _INNATE_REST_LIMIT_RE = re.compile(
 )
 
 
-def _iter_cast_blocks(line):
+def _iter_blocks(line, open_re):
     pos = 0
     while True:
-        m = _CAST_OPEN_RE.search(line, pos)
+        m = open_re.search(line, pos)
         if not m:
             return
         open_pos = m.end() - 1
@@ -464,6 +468,10 @@ def _iter_cast_blocks(line):
             return
         yield m.start(), end + 1, line[open_pos + 1:end]
         pos = end + 1
+
+
+def _iter_cast_blocks(line):
+    return _iter_blocks(line, _CAST_OPEN_RE)
 
 
 def _has_innate_limit(text):
@@ -487,8 +495,17 @@ def _check_innate_casting_tags(tags):
                         for line in lines)
     missing = []
     for line in lines:
+        # cast DENTRO de instant{} é efeito ROTEIRIZADO da ativação que o contém (Sonho
+        # Lúcido gasta Dados de Sonho, Salto de Arqui gasta Pontos de Feitiçaria, Mago
+        # Ancestral dispara no fim do ritual de Magias do Terreno). Quem mede o uso é o
+        # gate da própria feature (trigger=/resource_cost:/requires:), já nas tags irmãs —
+        # a ficha nunca oferece essa magia como conjuração inata avulsa. Só a conjuração
+        # PERMANENTE (always_active{cast{}} ou cast{} solto) precisa de at_will/uses{}.
+        instants = [(a, b) for a, b, _body in _iter_blocks(line, _INSTANT_OPEN_RE)]
         for start, end, body in _iter_cast_blocks(line):
             if not _WITHOUT_SLOT_RE.search(body):
+                continue
+            if any(a <= start < b for a, b in instants):
                 continue
             spells = _concrete_spells_in_cast(body)
             if not spells:

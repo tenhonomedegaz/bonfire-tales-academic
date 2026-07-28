@@ -14,7 +14,6 @@
 
   var CHOICE_STEPS = ['subclasse', 'asi', 'talento_racial', 'opcoes', 'magias', 'troca_magia'];
   var lote = [];       // [{tipo, payload, key, label, card, fixed}]
-  var uid = 0;
   var seq = 0;
   var mode = 'subir';  // 'subir' (nível na classe) | 'mc' (multiclassar)
   var previewTimer = null, okTimer = null;
@@ -180,22 +179,6 @@
       addOrReplace({ tipo: tipo, payload: { nivel: parseInt(nivel, 10), talento: ts.value }, key: 'talento_racial#' + nivel, label: 'Talento N' + nivel + ': ' + optText(ts), card: card });
       return;
     }
-    if (tipo === 'asi') {
-      var modoEl = card.querySelector('input[name="lvl-asi-modo"]:checked');
-      var m = modoEl ? modoEl.value : 'asi', payload, label;
-      if (m === 'talento') {
-        var tal = fieldOf(card, 'talento'), tat = fieldOf(card, 'talento_attr');
-        if (!tal.value) { flash(tal); return; }
-        payload = { modo: 'talento', talento: tal.value, talento_attr: tat.value };
-        label = optText(tal) + ' (+1 ' + tat.value + ')';
-      } else {
-        var a1 = fieldOf(card, 'asi_attr_1'), a2 = fieldOf(card, 'asi_attr_2');
-        payload = { asi_attr_1: a1.value, asi_attr_2: a2.value };
-        label = a1.value === a2.value ? ('+2 ' + a1.value) : ('+1 ' + a1.value + ' / +1 ' + a2.value);
-      }
-      addAction({ tipo: 'asi', payload: payload, key: 'asi#' + (++uid), label: label, card: card });
-      return;
-    }
     if (tipo === 'opcao') {
       var vs = fieldOf(card, 'val');
       if (!vs.value) { flash(vs); return; }
@@ -213,6 +196,28 @@
       return;
     }
   }
+
+  // ASI/Talento SEM botão "Escolher" (leva 4, item 7): cada cartão vale UM aprimoramento e
+  // mexer em qualquer controle dele já enfileira — reajustar substitui, nunca duplica.
+  // Cartão ainda incompleto (modo talento sem talento escolhido) simplesmente sai do lote,
+  // sem piscar erro: quem está no meio da escolha não levou clique nenhum para chegar aqui.
+  function queueAsi(card) {
+    var key = 'asi#' + (card.dataset.slot || '0');
+    var modoEl = card.querySelector('input[type="radio"]:checked');
+    var payload, label;
+    if (modoEl && modoEl.value === 'talento') {
+      var tal = fieldOf(card, 'talento'), tat = fieldOf(card, 'talento_attr');
+      if (!tal || !tal.value) { if (inLote(key)) removeKey(key); return; }
+      payload = { modo: 'talento', talento: tal.value, talento_attr: tat.value };
+      label = optText(tal) + ' (+1 ' + tat.value + ')';
+    } else {
+      var a1 = fieldOf(card, 'asi_attr_1'), a2 = fieldOf(card, 'asi_attr_2');
+      payload = { asi_attr_1: a1.value, asi_attr_2: a2.value };
+      label = a1.value === a2.value ? ('+2 ' + a1.value) : ('+1 ' + a1.value + ' / +1 ' + a2.value);
+    }
+    addOrReplace({ tipo: 'asi', payload: payload, key: key, label: label, card: card });
+  }
+
   // uma ação pertence a um cartão de escolha do nível? (p/ limpar ao multiclassar)
   function CHOICE_STEP_CARDS(a) {
     if (!a.card) return true;   // âncoras já removidas antes
@@ -440,7 +445,7 @@
     });
     // Menus simples enfileiram na própria seleção, sem um segundo clique "Escolher".
     // Mantém a descrição integral visível e limpa o menu para grupos com mais de um slot.
-    main.querySelectorAll('[data-lvl-auto-queue]').forEach(function (field) {
+    main.querySelectorAll('select[data-lvl-auto-queue]').forEach(function (field) {
       field.addEventListener('change', function () {
         if (!field.value) return;
         var option = field.options[field.selectedIndex];
@@ -465,17 +470,18 @@
         desc.hidden = !desc.textContent;
       });
     });
-    var asi = document.getElementById('lvl-asi-card');
-    if (asi) {
+    // Um cartão por aprimoramento pendente: alternância atributo↔talento, atributos que o
+    // talento permite e ENFILEIRAMENTO na própria seleção (sem botão "Escolher").
+    main.querySelectorAll('[data-lvl-card="asi"]').forEach(function (asi) {
       var attrsBlock = asi.querySelector('[data-lvl-asi-attrs]'), talBlock = asi.querySelector('[data-lvl-asi-tal]');
-      asi.querySelectorAll('input[name="lvl-asi-modo"]').forEach(function (r) {
+      asi.querySelectorAll('input[type="radio"]').forEach(function (r) {
         r.addEventListener('change', function () {
           var talMode = r.value === 'talento' && r.checked;
           if (attrsBlock) attrsBlock.hidden = talMode;
           if (talBlock) talBlock.hidden = !talMode;
         });
       });
-      var talSel = document.getElementById('lvl-asi-talento'), attrSel = document.getElementById('lvl-asi-talento-attr');
+      var talSel = fieldOf(asi, 'talento'), attrSel = fieldOf(asi, 'talento_attr');
       if (talSel && attrSel) {
         var syncAttr = function () {
           var o = talSel.options[talSel.selectedIndex];
@@ -487,7 +493,9 @@
         };
         talSel.addEventListener('change', syncAttr); syncAttr();
       }
-    }
+      // Depois dos ajustes acima (o listener do cartão roda por último na fase de bolha).
+      asi.addEventListener('change', function () { queueAsi(asi); });
+    });
     main.querySelectorAll('[data-lvl-card="aprender_magias"]').forEach(function (card) {
       card.addEventListener('change', function (e) { if (e.target && e.target.type === 'checkbox') rebuildMagias(card); });
     });

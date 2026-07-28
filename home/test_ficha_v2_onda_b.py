@@ -292,7 +292,7 @@ class TotaisDaMochilaTests(_MochilaBase):
                                         qtd=1, custo='2 PP')
         html = self._html(p)
         self.assertIn('data-mochila-total', html)
-        self.assertIn('10,2 PO', html)            # 2×5 PO + 0,2 PO, exibido em PO
+        self.assertIn('10 PO 2 PP', html)         # 2×5 PO + 2 PP, exibido decomposto
         self.assertIn('data-sintonizados-count', html)
         self.assertIn('0/3', html)
 

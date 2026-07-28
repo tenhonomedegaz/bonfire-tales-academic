@@ -50,7 +50,16 @@
     var equipados = document.querySelector('[data-equipados-block]');
     if (equipados && typeof payload.equipados_html === 'string') equipados.outerHTML = payload.equipados_html;
 
-    setText('[data-carteira-valor]', payload.carteira_display);
+    // Carteira: três caixinhas PO | PP | PC. Quem decompõe é o servidor (home/moeda.py) —
+    // o JS só escreve os números que vieram em `carteira_moedas`.
+    var moedas = payload.carteira_moedas;
+    if (moedas) {
+      setText('[data-carteira-po]', moedas.po);
+      setText('[data-carteira-pp]', moedas.pp);
+      setText('[data-carteira-pc]', moedas.pc);
+      var carteira = document.querySelector('[data-carteira]');
+      if (carteira && payload.carteira_display) carteira.title = payload.carteira_display;
+    }
     setText('[data-mochila-total]', payload.total_display);
     setText('[data-mochila-peso]', payload.peso_total);
     if (payload.sintonizacao_maxima) {
