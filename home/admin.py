@@ -2030,7 +2030,9 @@ class TbPersonagemAdmin(BonfireAdminMixin, admin.ModelAdmin):
             ("idade", "altura", "peso", "tamanho"),
             ("genero", "olhos", "cabelo", "pele"),
         )}),
-        ("Narrativa", {"fields": ("aparencia", "historia", "anotacoes")}),
+        # `notas_jogador` (onda F) é o bloco de mesa da aba Ficha; `anotacoes` segue sendo
+        # a lore da aba Informações. Os dois no mesmo fieldset porque a staff edita ambos.
+        ("Narrativa", {"fields": ("aparencia", "historia", "anotacoes", "notas_jogador")}),
         ("Visual da ficha", {"fields": (
             ("foto_url", "token_url"),
             ("banner_url", "ficha_background_url"),

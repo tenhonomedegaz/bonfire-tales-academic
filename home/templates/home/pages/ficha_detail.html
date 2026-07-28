@@ -3,8 +3,17 @@
 
 {% block title %}{{ p.nome }} · Ficha · Bonfire Tales RPG{% endblock %}
 
+{% comment %}Onda F: a folha usa 3 colunas de verdade (atributos | combate | características),
+então esta página abre mão do `max-w-5xl` padrão e ganha a largura de uma ficha de mesa —
+o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% endcomment %}
+{% block main_class %}ficha-main flex-1 w-full mx-auto px-3 md:px-5 py-4{% endblock %}
+
+{% comment %}Anúncios saem no papel: o wrapper .ficha-noprint é o gancho do @media print.{% endcomment %}
+{% block mobile_ad_top %}<div class="ficha-noprint">{{ block.super }}</div>{% endblock %}
+{% block mobile_ad %}<div class="ficha-noprint">{{ block.super }}</div>{% endblock %}
+
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/pages/ficha.css' %}?v=10">
+<link rel="stylesheet" href="{% static 'css/pages/ficha.css' %}?v=11">
 <link rel="stylesheet" href="{% static 'css/pages/perfil-fx.css' %}?v=3">
 {% if appearance.theme_css_href %}<link rel="stylesheet" href="{{ appearance.theme_css_href }}">{% endif %}
 <script src="{% static 'js/mochila.js' %}?v=1" defer></script>
@@ -79,24 +88,29 @@
   {# ===================== ABA 1: FICHA ===================== #}
   <div class="ficha-tabpanel is-active space-y-3" data-tabpanel="ficha" role="tabpanel">
 
-  {# ===================== GRID 3 COLUNAS ===================== #}
+  {% comment %}Onda F — DISPOSIÇÃO DA FOLHA CLÁSSICA. Três colunas de verdade, sem
+  espalhar bloco por linha nenhuma: ATRIBUTOS (estreita, à esquerda) · CENTRO (selos de
+  combate + PV no topo, depois sintonizados/ataques/recursos) · CARACTERÍSTICAS (larga, à
+  direita). No celular a coluna do centro se dissolve (`display: contents`) e a ordem de
+  consulta em sessão é montada com `order`: PV → atributos → ataques → recursos →
+  características.{% endcomment %}
   <div class="ficha-columns">
 
-    {# -------- COLUNA ESQUERDA: atributos (vertical) | saves + perícias -------- #}
-    <div class="attr-skills">
+    {# -------- COLUNA ESQUERDA (estreita): atributos empilhados, saves e perícias -------- #}
+    <div class="ficha-col-attrs attr-skills">
 
-      {# coluna interna esquerda: 6 atributos empilhados #}
+      {# os 6 atributos empilhados: valor grande na caixa, modificador no selo da base #}
       <div class="attr-stack">
         {% for sig, a in ficha.atributos.items %}
           <div class="attr-box" title="base {{ a.base }}{% for b in a.breakdown %} · {{ b.valor }} {{ b.origem }}{% endfor %}">
             <div class="attr-sig">{{ sig }}</div>
-            <div class="attr-mod">{% if a.mod >= 0 %}+{% endif %}{{ a.mod }}</div>
-            <span class="attr-score">{{ a.valor }}</span>
+            <div class="attr-score">{{ a.valor }}</div>
+            <span class="attr-mod">{% if a.mod >= 0 %}+{% endif %}{{ a.mod }}</span>
           </div>
         {% endfor %}
       </div>
 
-      {# coluna interna direita: prof, saves, perícias, percepção passiva #}
+      {# abaixo dos atributos: prof, percepção passiva, saves e perícias #}
       <div class="attr-side space-y-2.5">
         <div class="attr-stat-row">
           <div class="attr-stat">
@@ -138,20 +152,44 @@
       </div>
     </div>
 
-    {# -------- COLUNA CENTRAL: combate, PV, ataques, recursos, equipados -------- #}
-    <div class="space-y-2.5">
-      <div class="ficha-panel">
-        <div class="combat-grid">
-          <div class="combat-box ca"><div class="lbl">CA</div><div class="big" data-ficha-ca>{{ ficha.ca }}</div></div>
-          <div class="combat-box"><div class="lbl">Inic.</div><div class="big">{% if ficha.iniciativa >= 0 %}+{% endif %}{{ ficha.iniciativa }}</div></div>
-          <div class="combat-box vel"><div class="lbl">Vel.</div><div class="big">{{ ficha.velocidade }}</div></div>
+    {# -------- COLUNA CENTRAL: topo de combate + corpo (a ordem aprovada na onda A) -------- #}
+    <div class="ficha-col-center">
+
+    {# -------- TOPO CENTRAL: selos de CA/iniciativa/deslocamento + cartão de PV -------- #}
+    <div class="ficha-col-vitals">
+      <div class="ficha-panel vitals-panel">
+        <div class="vital-seals">
+          <div class="seal seal-ca" title="Classe de Armadura{% if ficha.ca_fonte %} — {{ ficha.ca_fonte }}{% endif %}">
+            <div class="seal-face">
+              <span class="seal-lbl">Armadura</span>
+              <span class="seal-num" data-ficha-ca>{{ ficha.ca }}</span>
+            </div>
+          </div>
+          <div class="seal seal-init" title="Iniciativa">
+            <div class="seal-face">
+              <span class="seal-lbl">Iniciativa</span>
+              <span class="seal-num">{% if ficha.iniciativa >= 0 %}+{% endif %}{{ ficha.iniciativa }}</span>
+            </div>
+          </div>
+          <div class="seal seal-vel" title="Deslocamento">
+            <div class="seal-face">
+              <span class="seal-lbl">Deslocamento</span>
+              <span class="seal-num is-unit">{{ ficha.velocidade }}</span>
+            </div>
+          </div>
         </div>
-        {% if ficha.ca_fonte %}<p class="mt-1.5 text-center text-[11px] text-[var(--muted)]">{{ ficha.ca_fonte }}</p>{% endif %}
+        {% if ficha.ca_fonte %}<p class="vital-note">{{ ficha.ca_fonte }}</p>{% endif %}
+
+        {% comment %}Cartão de PV: DISPLAY ESTÁTICO do derive (PV atual/temporário e testes contra a morte são do VTT, não desta ficha — decisão do PO).{% endcomment %}
         <div class="hp-track single">
           <div class="hp-cell max"{% if ficha.pv.bonus_tags %} title="{% for b in ficha.pv.bonus_tags %}+{{ b.1 }} {{ b.0 }}{% if not forloop.last %} · {% endif %}{% endfor %}"{% endif %}><div class="lbl">Pontos de Vida Máximos</div><div class="v" data-ficha-pv>{{ ficha.pv.maximo_calculado }}</div></div>
         </div>
-        {% if ficha.pv.bonus_tags %}<p class="mt-1 text-center text-[11px] text-[var(--muted)]">{% for b in ficha.pv.bonus_tags %}{{ b.0 }} +{{ b.1 }}{% if not forloop.last %} · {% endif %}{% endfor %}</p>{% endif %}
+        {% if ficha.pv.bonus_tags %}<p class="vital-note">{% for b in ficha.pv.bonus_tags %}{{ b.0 }} +{{ b.1 }}{% if not forloop.last %} · {% endif %}{% endfor %}</p>{% endif %}
       </div>
+    </div>
+
+    {# -------- CENTRO: sintonizados > ataques > recursos > equipados -------- #}
+    <div class="ficha-col-body space-y-2.5">
 
       {% comment %}Itens Sintonizados: informativo (entre PV e Ataques). Equipar/sintonizar vive na Mochila.{% endcomment %}
       {% include 'home/partials/_ficha_sintonizados.html' %}
@@ -169,13 +207,7 @@
         {% if ficha.ataques.avisos %}<p class="mt-1 text-[11px] text-[var(--muted)]">{% for a in ficha.ataques.avisos %}{{ a }}{% if not forloop.last %} · {% endif %}{% endfor %}</p>{% endif %}
       </div>
 
-      {% include 'home/partials/_ficha_equipados.html' %}
-    </div>
-
-    {# -------- COLUNA DIREITA: contadores de recurso + cards de habilidade -------- #}
-    <div class="space-y-2.5">
-
-      {% comment %}Recursos consumíveis como CONTADORES pequenos (ficha D&D clássica), acima de Características. Descanso (canônico) na mesma faixa.{% endcomment %}
+      {% comment %}Recursos consumíveis como CONTADORES pequenos (ficha D&D clássica): descem para a faixa dos ataques (onda F) e seguem ACIMA de Características. Descanso (canônico) na mesma faixa.{% endcomment %}
       {% if consumiveis_cards or pode_editar %}
       <div class="ficha-panel res-panel">
         <div class="ficha-section-title">Recursos</div>
@@ -227,7 +259,15 @@
       </div>
       {% endif %}
 
-      <div class="ficha-panel">
+      {% include 'home/partials/_ficha_equipados.html' %}
+    </div>{# /ficha-col-body #}
+    </div>{# /ficha-col-center #}
+
+    {% comment %}-------- DIREITA (larga): Características & Habilidades. SEM div rolável:
+    os cartões se distribuem em colunas (feat-grid auto-fill) e quem rola é a PÁGINA —
+    reclamação explícita do PO sobre a caixinha de scroll interno.{% endcomment %}
+    <div class="ficha-col-feats">
+      <div class="ficha-panel feats-panel">
         <div class="ficha-section-title">Características &amp; Habilidades <span class="float-right font-sans text-[11px] normal-case tracking-normal text-[var(--muted)]">{{ ficha.features|length }}</span></div>
 
         {% comment %} Grupo: Características de Classe (classe, subclasse) {% endcomment %}
@@ -330,6 +370,24 @@
     </div>
     {% endif %}
   </div>
+
+  {% comment %}NOTAS DO JOGADOR (onda F) — rascunho de mesa na própria folha, largura cheia
+  logo abaixo da Personalidade (as duas caixas de RP ficam lado a lado no papel, nenhuma
+  espremida). Salva sozinho ao SAIR do campo (blur); o <noscript> mantém o botão. Só o dono
+  e a staff veem: é anotação pessoal, não vitrine — ficha pública não expõe.{% endcomment %}
+  {% if pode_editar %}
+  <div class="ficha-panel notas-panel" data-notas-panel>
+    <div class="ficha-section-title">Notas do Jogador<span class="float-right font-sans text-[11px] normal-case tracking-normal text-[var(--muted)]" data-notas-feedback aria-live="polite">salva ao sair do campo</span></div>
+    <form method="post" action="{% url 'personagem_notas_salvar' p.id_personagem %}" class="notas-form" data-notas-form>
+      {% csrf_token %}
+      <label class="notas-box">
+        <span class="sr-only">Notas do jogador</span>
+        <textarea name="notas_jogador" rows="5" data-notas-input placeholder="Pistas, nomes de NPC, combinados da mesa, lembretes de sessão…">{{ p.notas_jogador }}</textarea>
+      </label>
+      <noscript><div class="pers-actions"><button type="submit" class="banner-btn primary">Salvar Notas</button></div></noscript>
+    </form>
+  </div>
+  {% endif %}
 
   {% comment %}O inventário saiu daqui: a aba Mochila é o lugar canônico (onda B).{% endcomment %}
   <p class="ficha-jump"><button type="button" class="ficha-jump-chip" data-tab-jump="mochila">Inventário, slots e sintonização na aba <strong>Mochila</strong> →</button></p>
@@ -1092,6 +1150,50 @@
       if (button) button.disabled = false;
     }
   });
+})();
+</script>
+
+{# Notas do jogador (onda F): autosave no blur — sem botão, sem recarregar. #}
+<script>
+(function () {
+  const form = document.querySelector('[data-notas-form]');
+  if (!form) return;
+  const input = form.querySelector('[data-notas-input]');
+  const feedback = document.querySelector('[data-notas-feedback]');
+  if (!input) return;
+  let salvo = input.value;
+
+  function aviso(texto, cor) {
+    if (!feedback) return;
+    feedback.textContent = texto;
+    feedback.style.color = cor || '';
+  }
+
+  async function salvar() {
+    if (input.value === salvo) return;            // nada mudou: não bate no servidor
+    const data = new FormData(form);
+    aviso('Salvando…');
+    try {
+      const response = await fetch(form.action, {
+        method: 'POST',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRFToken': data.get('csrfmiddlewaretoken') || ''
+        },
+        body: data,
+        credentials: 'same-origin'
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload.ok) throw new Error('save');
+      salvo = payload.notas_jogador;
+      aviso('Notas salvas.', 'var(--spark)');
+    } catch (error) {
+      aviso('Não foi possível salvar.', 'var(--flame)');
+    }
+  }
+
+  input.addEventListener('blur', salvar);
+  form.addEventListener('submit', function (event) { event.preventDefault(); salvar(); });
 })();
 </script>
 

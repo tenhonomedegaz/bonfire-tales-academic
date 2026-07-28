@@ -10,8 +10,16 @@
   --sheet-accent-2: var(--flame);
   --sheet-surface: var(--bg1);
   --sheet-deep: var(--bg0);
+  /* Cor SÓLIDA do acento: --sheet-accent pode chegar como linear-gradient (tema com
+     gradiente) e aí não serve em `color`/`border-color`. Todo filete, selo e foco novo
+     usa esta var — assim tema-dado/custom continuam mandando sem CSS extra. */
+  --ficha-accent: var(--sheet-accent-solid, var(--sheet-accent));
   width: 100%;
 }
+
+/* A folha de mesa precisa de três colunas de verdade: esta página abre mão do teto
+   `max-w-5xl` do site (ver {% block main_class %} em ficha_detail.html). */
+.ficha-main { max-width: 1180px; }
 
 .ficha.theme-ember { --sheet-accent: #f59e0b; --sheet-accent-2: #7c2d12; --sheet-surface: #1b120f; --sheet-deep: #0e0a08; }
 .ficha.theme-arcane { --sheet-accent: #a78bfa; --sheet-accent-2: #06b6d4; --sheet-surface: #151223; --sheet-deep: #090914; }
@@ -477,67 +485,85 @@
   margin-bottom: 0.6rem;
 }
 
-/* ---------- Atributos | Saves+Perícias (2 colunas) ---------- */
+/* ---------- COLUNA DOS ATRIBUTOS (onda F) ----------
+   A folha clássica tem UMA coluna estreita à esquerda: os seis atributos empilhados e,
+   logo abaixo, salvaguardas e perícias. Aqui isso é um empilhamento simples — as duas
+   subcolunas antigas só sobrevivem em telas médias, onde a coluna vira faixa larga. */
 .attr-skills {
   display: grid;
-  grid-template-columns: minmax(0, 0.62fr) minmax(0, 1fr);
+  grid-template-columns: 1fr;
   gap: 0.55rem;
   align-items: start;
 }
-@media (max-width: 420px) {
-  .attr-skills { grid-template-columns: 1fr; }
+
+.attr-stack {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.95rem 0.5rem;
+}
+@media (min-width: 520px) { .attr-stack { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+/* na coluna estreita do desktop os seis voltam a ser uma pilha vertical */
+@media (min-width: 1024px) { .attr-stack { grid-template-columns: 1fr; } }
+
+.attr-side { display: grid; grid-template-columns: 1fr; gap: 0.55rem; }
+@media (min-width: 680px) and (max-width: 1023px) {
+  .attr-side { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+  .attr-side .attr-stat-row { grid-column: 1 / -1; }
 }
 
-/* coluna vertical de atributos (6 caixas empilhadas) */
-.attr-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 0.7rem;
-}
 .attr-box {
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 0.12rem;
+  gap: 0.1rem;
   border: 1px solid var(--stroke);
-  border-radius: 10px;
+  border-radius: 12px;
   background: linear-gradient(180deg, var(--bg1), var(--bg0));
   text-align: center;
-  padding: 0.5rem 0.4rem 0.95rem;
-  min-height: 76px;
+  padding: 0.42rem 0.4rem 1.05rem;
+  min-height: 82px;
+}
+/* filete de acento no topo da caixa — mesma assinatura do cabeçalho da ficha */
+.attr-box::before {
+  content: "";
+  position: absolute;
+  inset: 0 26% auto;
+  height: 2px;
+  border-radius: 0 0 3px 3px;
+  background: linear-gradient(90deg, transparent, var(--ficha-accent), transparent);
+  opacity: 0.8;
 }
 .attr-box .attr-sig {
   font-size: 10px;
   font-weight: 800;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--muted);
 }
-.attr-box .attr-mod {
+/* VALOR grande no miolo (como no PDF); o modificador é o selo oval da base */
+.attr-box .attr-score {
   font-family: 'Cinzel', serif;
-  font-size: 1.95rem;
+  font-size: 1.85rem;
   font-weight: 800;
   color: var(--text);
-  line-height: 1;
-  text-align: center;
+  line-height: 1.05;
 }
-/* valor do atributo num quadradinho na base do box (estilo planilha) */
-.attr-box .attr-score {
+.attr-box .attr-mod {
   position: absolute;
-  bottom: -0.7rem;
+  bottom: -0.72rem;
   left: 50%;
   transform: translateX(-50%);
-  min-width: 2.3rem;
+  min-width: 2.6rem;
   border: 1px solid var(--stroke);
-  border-radius: 7px;
+  border-radius: 999px;
   background: var(--bg0);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
   text-align: center;
-  font-size: 0.85rem;
-  font-weight: 700;
+  font-size: 0.88rem;
+  font-weight: 800;
   color: var(--spark);
-  padding: 0.1rem 0.45rem;
+  padding: 0.08rem 0.5rem;
 }
 
 /* mini stats (prof / percepção passiva) acima das listas */
@@ -598,63 +624,110 @@
 .prof-dot.on { background: var(--ember); border-color: var(--ember); box-shadow: 0 0 6px rgba(242, 112, 7, 0.6); }
 .prof-dot.exp { background: var(--spark); border-color: var(--spark); box-shadow: 0 0 6px rgba(247, 177, 19, 0.7); }
 
-/* ---------- Caixas de combate (CA/Inic/Vel) ---------- */
-.combat-grid {
+/* ---------- SELOS DE COMBATE (onda F): CA, iniciativa e deslocamento ----------
+   Topo central da folha. Não são "cards": são selos recortados — escudo para a CA e
+   octógono lacrado para iniciativa/deslocamento. A borda é o próprio acento do tema
+   (o elemento externo pinta, o interno recorta 2px menor), então tema-dado e tema
+   Personalizado passam a valer aqui sem uma linha de CSS nova. */
+.vitals-panel { padding-top: 0.75rem; }
+.vital-seals {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.45rem;
+  gap: 0.5rem;
+  align-items: stretch;
 }
-.combat-box {
-  border: 1px solid var(--stroke);
-  border-radius: 10px;
+.seal {
+  --seal-cut: 11px;
+  padding: 2px;
+  min-height: 5.9rem;
+  background: linear-gradient(165deg,
+              var(--ficha-accent),
+              color-mix(in srgb, var(--ficha-accent) 28%, var(--stroke)));
+}
+.seal-face {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  height: 100%;
+  padding: 0.5rem 0.35rem 0.55rem;
   background: linear-gradient(180deg, var(--bg1), var(--bg0));
   text-align: center;
-  padding: 0.6rem 0.3rem;
 }
-.combat-box .lbl {
-  font-size: 9px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--muted);
-  font-weight: 700;
-}
-.combat-box .big {
+.seal-lbl {
   font-family: 'Cinzel', serif;
-  font-size: 1.45rem;
-  font-weight: 800;
-  color: var(--text);
-  line-height: 1.1;
-  white-space: nowrap;
+  font-size: 0.52rem;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--muted);
 }
-.combat-box.ca .big { color: var(--spark); }
-/* velocidade tem unidade (ex.: "9 m" / "30 ft") — fonte menor pra caber */
-.combat-box.vel .big {
-  font-size: 0.92rem;
-  line-height: 1.1;
-  letter-spacing: -0.01em;
-  white-space: normal;
-  word-break: break-word;
+.seal-num {
+  font-family: 'Cinzel', serif;
+  font-size: 1.75rem;
+  font-weight: 800;
+  line-height: 1.05;
+  color: var(--text);
+  margin-top: auto;
+  margin-bottom: auto;
+}
+/* deslocamento vem com unidade ("9 m / 30 ft") — quebra em vez de estourar o selo */
+.seal-num.is-unit {
+  font-size: 0.9rem;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  overflow-wrap: anywhere;
+}
+/* escudo (CA): ponta pra baixo, número acima da ponta */
+.seal-ca, .seal-ca .seal-face {
+  clip-path: polygon(0 0, 100% 0, 100% 62%, 50% 100%, 0 62%);
+}
+.seal-ca .seal-face { padding-bottom: 1.5rem; }
+.seal-ca .seal-num { color: var(--spark); font-size: 2rem; margin-bottom: 0; }
+/* lacre octogonal (iniciativa / deslocamento) */
+.seal-init, .seal-init .seal-face,
+.seal-vel, .seal-vel .seal-face {
+  clip-path: polygon(var(--seal-cut) 0, calc(100% - var(--seal-cut)) 0,
+                     100% var(--seal-cut), 100% calc(100% - var(--seal-cut)),
+                     calc(100% - var(--seal-cut)) 100%, var(--seal-cut) 100%,
+                     0 calc(100% - var(--seal-cut)), 0 var(--seal-cut));
+}
+.vital-note {
+  margin-top: 0.45rem;
+  text-align: center;
+  font-size: 11px;
+  color: var(--muted);
 }
 
-/* PV — apenas máximo (esta ficha é um log, não ficha de combate) */
+/* PV — só o MÁXIMO (display estático do derive; PV atual/temporário é assunto do VTT) */
 .hp-track {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.5rem;
-  margin-top: 0.6rem;
+  margin-top: 0.7rem;
 }
 .hp-track.single { grid-template-columns: 1fr; }
 .hp-cell {
+  position: relative;
   border: 1px solid var(--stroke);
-  border-radius: 8px;
-  background: var(--bg0);
+  border-radius: 10px;
+  background:
+    radial-gradient(120% 140% at 50% 0%, color-mix(in srgb, var(--flame) 12%, transparent), transparent 70%),
+    var(--bg0);
   text-align: center;
   padding: 0.45rem 0.2rem;
 }
-.hp-cell .lbl { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 700; }
-.hp-cell .v { font-size: 1.05rem; font-weight: 800; color: var(--text); }
-.hp-cell.max .v { color: var(--flame); font-size: 1.4rem; }
-.hp-track.single .hp-cell.max { padding: 0.6rem 0.4rem; }
+.hp-cell .lbl {
+  font-family: 'Cinzel', serif;
+  font-size: 0.54rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--muted);
+  font-weight: 700;
+}
+.hp-cell .v { font-family: 'Cinzel', serif; font-size: 1.05rem; font-weight: 800; color: var(--text); }
+.hp-cell.max .v { color: var(--flame); font-size: 2rem; line-height: 1.1; }
+.hp-track.single .hp-cell.max { padding: 0.55rem 0.4rem 0.65rem; }
 
 /* ---------- CARDS DE HABILIDADE (acordeão) ---------- */
 .feat-group + .feat-group { margin-top: 0.85rem; }
@@ -686,11 +759,14 @@
   font-weight: 600;
 }
 
-/* cards de habilidade em UMA coluna só (largura cheia da seção) */
+/* Onda F — DISTRIBUIÇÃO das habilidades: os cartões se espalham em quantas colunas
+   couberem na largura do painel (ficha de nível 17 deixa de ser uma fita infinita).
+   NÃO existe caixa rolável aqui: nada de max-height/overflow — quem rola é a página. */
 .feat-grid {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(auto-fill, minmax(14.5rem, 1fr));
   gap: 0.45rem;
+  align-items: start;
 }
 
 .feat-card {
@@ -793,15 +869,42 @@
 .pill.muted { color: var(--muted); }
 .pill.attuned { color: var(--flame); border-color: rgba(242, 112, 7, 0.45); background: rgba(242, 112, 7, 0.08); }
 
-/* ---------- Grid principal de 3 colunas ---------- */
+/* ---------- Grid principal da folha (onda F) ----------
+   Três colunas de verdade e UMA linha só: atributos (estreita) · centro · características
+   (larga). Nada de bloco atravessando linhas — item que ocupa duas faixas de um grid de
+   altura automática empurra a faixa vizinha e abre buraco no meio da folha.
+   A coluna do centro é um empilhamento próprio (selos+PV, depois ataques/recursos). */
 .ficha-columns {
   display: grid;
   grid-template-columns: 1fr;
   gap: 0.55rem;
 }
+.ficha-col-center { display: flex; flex-direction: column; gap: 0.55rem; min-width: 0; }
+
+/* CELULAR: a coluna do centro se dissolve e os quatro blocos viram itens diretos do grid,
+   na ordem de consulta em sessão — PV, atributos, ataques/recursos, características. */
+@media (max-width: 679px) {
+  .ficha-col-center { display: contents; }
+  .ficha-col-vitals { order: 1; }
+  .ficha-col-attrs  { order: 2; }
+  .ficha-col-body   { order: 3; }   /* o espaçamento interno já vem do space-y do markup */
+  .ficha-col-feats  { order: 4; }
+}
+
+/* TABLET: atributos ao lado do centro; características abrem a largura inteira embaixo. */
+@media (min-width: 680px) and (max-width: 1023px) {
+  .ficha-columns {
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+    align-items: start;
+  }
+  .ficha-col-feats { grid-column: 1 / -1; }
+}
+
+/* DESKTOP: a folha clássica — coluna estreita de atributos, centro de combate e a
+   coluna larga das características (onde os cartões se distribuem em 2 colunas). */
 @media (min-width: 1024px) {
   .ficha-columns {
-    grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.85fr) minmax(0, 1.1fr);
+    grid-template-columns: minmax(11.5rem, 0.72fr) minmax(0, 1.05fr) minmax(0, 1.55fr);
     align-items: start;
   }
 }
@@ -1104,6 +1207,42 @@
 .pers-text.is-empty { color: var(--muted); font-style: italic; }
 .pers-actions { display: flex; justify-content: flex-end; margin-top: 0.55rem; }
 .pers-actions .banner-btn { font-size: 0.78rem; padding: 0.3rem 0.9rem; }
+
+/* ============================================================
+   NOTAS DO JOGADOR (onda F) — o campo livre da folha
+   Papel pautado: as linhas do fundo acompanham o texto (background-attachment: local),
+   como o verso da ficha impressa. Salva no blur; sem botão na tela.
+   ============================================================ */
+.notas-box { display: block; }
+.notas-box textarea {
+  width: 100%;
+  min-height: 8.4rem;
+  resize: vertical;
+  border: 1px solid var(--stroke);
+  border-radius: 8px;
+  background-color: var(--bg0);
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent calc(1.5rem - 1px),
+    color-mix(in srgb, var(--stroke) 70%, transparent) calc(1.5rem - 1px),
+    color-mix(in srgb, var(--stroke) 70%, transparent) 1.5rem);
+  background-position: 0 0.62rem;
+  background-attachment: local;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.88rem;
+  line-height: 1.5rem;
+  padding: 0.62rem 0.75rem;
+}
+.notas-box textarea:focus {
+  outline: none;
+  border-color: var(--ficha-accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ficha-accent) 18%, transparent);
+}
+.notas-box textarea::placeholder { color: var(--muted); opacity: 0.6; }
+.notas-text { color: var(--text); font-size: 0.86rem; line-height: 1.5; overflow-wrap: anywhere; }
+.notas-text.is-empty { color: var(--muted); font-style: italic; }
 
 /* ============================================================
    SPELLBOOK
@@ -1755,4 +1894,127 @@ button.opt-name.open .opt-caret { transform: rotate(90deg); }
   padding: 0.3rem 0.6rem;
   color: var(--muted);
   font-size: 0.7rem;
+}
+
+/* =====================================================================
+   CELULAR — ALVOS DE TOQUE (Ficha v2, onda F)
+   A folha é consultada com o dedo, em mesa. Os controles da aba Ficha (abas, contadores
+   de recurso, descanso, chip de atalho) crescem para a faixa confortável sem engordar
+   nada no desktop. Fica no FIM do arquivo de propósito: precisa vir depois das
+   definições base para vencer por ordem, sem `!important`.
+   ===================================================================== */
+@media (max-width: 679px) {
+  .ficha-tab { padding: 0.62rem 0.95rem; font-size: 0.9rem; }
+  .res-counter { min-width: 5.2rem; }
+  .res-counter-actions { gap: 0.35rem; margin-top: 0.3rem; }
+  .res-counter-actions button { flex: none; width: 2.3rem; height: 2.1rem; font-size: 1rem; border-radius: 5px; }
+  .res-rest { width: 100%; margin-left: 0; }
+  .res-rest button { flex: 1; justify-content: center; min-height: 2.6rem; }
+  .ficha-jump-chip { padding: 0.5rem 1.1rem; font-size: 0.78rem; }
+  .banner-btn { padding: 0.55rem 0.9rem; }
+}
+
+/* =====================================================================
+   VERSÃO IMPRIMÍVEL (Ficha v2, onda F) — @media print
+   A ficha vira folha de papel: preto no branco, sem cromo do site, sem controle
+   interativo, e com a paginação da ficha clássica — atributos + combate + ataques na
+   primeira página, características a seguir. Só a aba ATIVA vai ao papel (as outras
+   trazem o atributo `hidden`), então imprimir a Ficha não despeja mochila e histórico.
+   Truque central: em vez de repintar cada regra, o bloco reescreve as VARIÁVEIS do tema
+   — como todo o arquivo desenha com var(--…), uma linha de override zera as cores do
+   tema (inclusive as inline do tema-dado/Personalizado, que `!important` supera).
+   ===================================================================== */
+@media print {
+  @page { size: A4 portrait; margin: 11mm; }
+
+  /* --- fora do papel: cromo do site, anúncios, navegação e controles --- */
+  header, footer,
+  .support-sidebar-left, .support-sidebar-right,
+  .ficha-noprint,
+  .ficha-tabs,
+  .banner-actions, .banner-nextlvl,
+  .ficha-jump,
+  .res-counter-actions, .res-rest,
+  .pers-actions, .notas-form noscript,
+  .ficha-link-chip, .spell-slot-actions, .spell-inline-actions,
+  .feat-chevron,
+  .ficha-bg-media, .ficha-banner-media,
+  [data-pers-feedback], [data-notas-feedback],
+  [vw] { display: none !important; }
+
+  /* o site inteiro é uma coluna de papel: sem sticky, sem altura de viewport */
+  #root > div { padding-top: 0 !important; min-height: 0 !important; }
+  .ficha-main { max-width: none !important; margin: 0 !important; padding: 0 !important; }
+
+  /* --- preto no branco (as vars mandam em todo o arquivo, inclusive nos temas) --- */
+  .ficha {
+    --text: #000 !important; --muted: #333 !important;
+    --bg0: #fff !important; --bg1: #fff !important; --bg2: #fff !important;
+    --stroke: #000 !important; --line: #000 !important;
+    --ember: #000 !important; --flame: #000 !important; --spark: #000 !important;
+    --gold: #000 !important;
+    --sheet-accent: #000 !important; --sheet-accent-solid: #000 !important;
+    --sheet-accent-2: #000 !important;
+    --sheet-surface: #fff !important; --sheet-deep: #fff !important;
+    --ficha-accent: #000 !important; --bag-accent: #000 !important;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  /* fundos decorativos (gradiente/imagem/pauta) somem — no papel eles só sujam */
+  .ficha *, .ficha *::before, .ficha *::after {
+    background-image: none !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    animation: none !important;
+    transition: none !important;
+    color: #000 !important;
+  }
+  .ficha-header::before { background: #000 !important; }
+  /* proficiência sobrevive mesmo com "imprimir imagens de fundo" DESLIGADO: o ponto
+     cheio é feito de BORDA grossa, não de preenchimento */
+  .prof-dot { border-color: #000 !important; }
+  .prof-dot.on, .prof-dot.exp { border-width: 3px !important; background: #000 !important; }
+  /* pela mesma razão os selos trocam o recorte pintado por moldura de verdade */
+  .seal { background: none !important; padding: 0 !important; }
+  .seal, .seal .seal-face { clip-path: none !important; }
+  .seal-face {
+    background: #fff !important;
+    border: 1px solid #000 !important;
+    border-radius: 6px;
+    padding-bottom: 0.5rem !important;
+  }
+
+  /* --- paginação: página 1 = identidade + atributos + combate + ataques --- */
+  .ficha-columns {
+    display: grid !important;
+    grid-template-columns: 32% minmax(0, 1fr) !important;
+    gap: 4mm !important;
+    align-items: start !important;
+  }
+  .ficha-col-center { display: flex !important; flex-direction: column; gap: 4mm; }
+  /* características abrem a página seguinte, em duas colunas, como o verso da ficha */
+  .ficha-col-feats {
+    grid-column: 1 / -1 !important;
+    break-before: page;
+  }
+  .feat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  .attr-stack { grid-template-columns: 1fr !important; }
+
+  .ficha-panel, .feat-card, .attr-box, .seal, .res-counter, .hp-cell,
+  .pers-box, .notas-panel { break-inside: avoid; }
+  .feat-group { break-inside: auto; }
+  /* descrição já aberta na tela vai junto; a fechada continua fechada (nada de despejar
+     o compêndio inteiro no papel) */
+  .feat-card.open .feat-body { grid-template-rows: 1fr !important; }
+
+  /* campos de texto viram linhas escritas, não caixas de formulário */
+  .ficha textarea, .ficha input {
+    border: 1px solid #000 !important;
+    background: #fff !important;
+    resize: none !important;
+    overflow: visible !important;
+  }
+  .notas-box textarea { min-height: 26mm !important; }
+  .pers-box textarea { min-height: 14mm !important; }
+
+  a { text-decoration: none !important; }
 }

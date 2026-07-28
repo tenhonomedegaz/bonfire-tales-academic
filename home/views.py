@@ -7205,6 +7205,30 @@ def personagem_personalidade_salvar(request, pk):
     return redirect(reverse('ficha_detail', args=[pk]))
 
 
+# Onda F: notas do jogador — o único DADO novo da onda (o resto é redistribuição). Campo
+# livre de mesa, na própria folha (ao lado da Personalidade), salvo no blur do textarea.
+NOTAS_JOGADOR_MAX = 8000
+
+
+@login_required(login_url='/login/')
+@require_POST
+def personagem_notas_salvar(request, pk):
+    """Salva as notas de mesa do jogador (aba Ficha). Dono ou staff, mesmo guarda da
+    personalidade; campo ausente no POST não mexe no valor gravado."""
+    from .models import TbPersonagem
+    from . import permissions as perms
+    p = get_object_or_404(TbPersonagem, pk=pk)
+    if not (p.dono_id == request.user.id or perms.is_staff_user(request.user)):
+        raise Http404()
+    if 'notas_jogador' in request.POST:
+        p.notas_jogador = (request.POST.get('notas_jogador') or '').strip()[:NOTAS_JOGADOR_MAX]
+        p.save(update_fields=['notas_jogador', 'atualizado_em'])
+    if is_ajax(request):
+        return JsonResponse({'ok': True, 'msg': 'notas_salvas',
+                             'notas_jogador': p.notas_jogador})
+    return redirect(reverse('ficha_detail', args=[pk]))
+
+
 @login_required(login_url='/login/')
 @require_POST
 def personagem_info_salvar(request, pk):

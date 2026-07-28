@@ -83,6 +83,7 @@ urlpatterns = [
     path('jogador/personagens/<int:pk>/editar/', views.editar_ficha_view, name='editar_ficha'),
     path('jogador/personagens/<int:pk>/info/', views.personagem_info_salvar, name='personagem_info_salvar'),
     path('jogador/personagens/<int:pk>/personalidade/', views.personagem_personalidade_salvar, name='personagem_personalidade_salvar'),
+    path('jogador/personagens/<int:pk>/notas/', views.personagem_notas_salvar, name='personagem_notas_salvar'),
     path('jogador/personagens/<int:pk>/trocar-maestria/', views.personagem_trocar_maestria, name='personagem_trocar_maestria'),
     path('jogador/personagens/<int:pk>/trocar-opcao/', views.personagem_trocar_opcao, name='personagem_trocar_opcao'),
     path('jogador/personagens/<int:pk>/magia/<int:magia_id>/toggle/', views.personagem_toggle_magia, name='personagem_toggle_magia'),

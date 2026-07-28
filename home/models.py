@@ -1195,6 +1195,11 @@ class TbPersonagem(models.Model):
     aparencia = models.TextField(db_column='Aparencia', blank=True, null=True)
     historia = models.TextField(db_column='Historia', blank=True, null=True)
     anotacoes = models.TextField(db_column='Anotacoes', blank=True, null=True)
+    # Onda F: bloco de mesa da ABA FICHA (rascunho de sessão, salvo no blur). Não confundir
+    # com `anotacoes`, que é o campo de lore da aba Informações — este fica ao lado da
+    # Personalidade, na folha, e por isso nunca é nulo (string vazia = sem nota).
+    notas_jogador = models.TextField(db_column='NotasJogador', blank=True, default='',
+                                     help_text='Notas de mesa do jogador, exibidas na aba Ficha (a lore fica em Anotacoes).')
     foto_url = models.CharField(db_column='FotoUrl', max_length=500, blank=True, null=True, help_text='Link da imagem do retrato do personagem.')
     token_url = models.CharField(db_column='TokenUrl', max_length=500, blank=True, null=True, help_text='Link da imagem do token do personagem.')
     banner_url = models.CharField(db_column='BannerUrl', max_length=500, blank=True, null=True, help_text='Link do banner visual da ficha. Aceita imagens animadas.')

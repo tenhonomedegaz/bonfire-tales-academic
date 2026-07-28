@@ -99,7 +99,17 @@ class MigracaoLedgerOndaETests(TransactionTestCase):
     sem detalhes) e migra para frente — a linha tem de sobreviver íntegra, só com os
     campos novos em branco."""
     ANTES = ('home', '0085_alter_tbitemmagico_slot')
-    DEPOIS = ('home', '0086_ledger_aventura_onda_e')
+
+    @property
+    def DEPOIS(self):
+        """A CABEÇA REAL do app, não uma migração fixa. Depois do `_migrar` para frente o
+        teste volta a usar os MODELOS ATUAIS: parar numa migração intermediária deixaria o
+        banco sem alguma coluna que uma onda posterior acrescentou (foi o que aconteceu com
+        `TB_Personagem.NotasJogador`, da onda F). Seguindo a cabeça, cada onda nova entra
+        no caminho de ida sem editar este teste."""
+        executor = MigrationExecutor(connection)
+        executor.loader.build_graph()
+        return executor.loader.graph.leaf_nodes('home')[0]
 
     def _migrar(self, alvo):
         executor = MigrationExecutor(connection)
