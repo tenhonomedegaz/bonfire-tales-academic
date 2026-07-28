@@ -116,15 +116,11 @@
       </div>
       {% endif %}
 
-      {# ============================ INVENTÁRIO (grava na hora) ============================ #}
-      <h2 class="lvl-sech" style="margin-top:1.2rem">Inventário</h2>
-      <p class="lvl-secsub">Itens guardados (não equipados) NÃO concedem bônus. Itens mágicos que exigem sintonização só têm efeito quando sintonizados. Sintonização: <strong class="text-[var(--flame)]" data-sintonizados-count>{{ sintonizados_usados }}/3</strong>.</p>
-      {% if request.GET.sint == 'limite' %}<div class="lvl-err" style="margin-bottom:0.6rem">Limite de 3 itens sintonizados atingido.</div>{% endif %}
-      {% if request.GET.anuncio == 'ok' %}<div class="lvl-ok" style="margin-bottom:0.6rem">Item anunciado no <a href="{% url 'mercado_comunidade' %}" class="underline">Mercado da Comunidade</a>.</div>{% endif %}
-      <div class="loja-feedback" id="inventario-feedback" hidden aria-live="polite"></div>
-      <div class="lvl-card" id="lvl-inventario">
-        {% include 'home/partials/_ficha_inventario.html' %}
-      </div>
+      {% comment %}INVENTÁRIO saiu daqui (Ficha v2, onda B): equipar/desequipar/sintonizar/usar
+      vivem na ABA MOCHILA da ficha, que é do JOGADOR. Este editor caminha para ser ferramenta
+      só-da-staff: sobram o painel de aventuras, conceder/reverter item e a loja (até a onda C
+      migrar a compra/venda para o Mercado).{% endcomment %}
+      <p class="lvl-secsub" style="margin-top:1.2rem">Inventário, slots e sintonização ficam na <a href="{% url 'ficha_detail' p.id_personagem %}?aba=mochila" class="underline hover:text-[var(--ember)]">Mochila da ficha</a>.</p>
 
       {# ===================== STAFF — CONCEDER ITEM (missão/recompensa, sem custo de ouro) ===================== #}
       {% if is_staff %}

@@ -1385,3 +1385,189 @@ button.spell-name-toggle.open .spell-caret { transform: rotate(90deg); opacity: 
     grid-template-columns: 1fr;
   }
 }
+
+/* ============================================================
+   ABA MOCHILA (Ficha v2, onda B)
+   Grade de slots no espírito da coluna de equipamento da ficha de mesa: cartõezinhos
+   emoldurados, rótulo em Cinzel, vaga livre em traço pontilhado. Os slots vêm do
+   catálogo (home/slots.py) — o CSS não conhece nome de slot nenhum.
+   ============================================================ */
+.ficha {
+  /* --sheet-accent pode vir como linear-gradient (tema com gradiente): em contexto
+     de COR use sempre o *-solid, como o resto do arquivo já faz. */
+  --bag-accent: var(--sheet-accent-solid, var(--sheet-accent));
+}
+.bag-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 0.45rem;
+}
+.bag-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 6.5rem;
+  border: 1px solid var(--stroke);
+  border-radius: 8px;
+  background: linear-gradient(180deg, var(--bg1), var(--bg0));
+  padding: 0.4rem 0.75rem 0.45rem;
+}
+.bag-stat .lbl {
+  font-family: 'Cinzel', serif;
+  font-size: 0.56rem;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.bag-stat .v { font-size: 1.05rem; font-weight: 800; line-height: 1.1; color: var(--text); }
+.bag-stat .v.spark { color: var(--spark); }
+.bag-stat .v.flame { color: var(--flame); }
+.bag-market { margin-left: auto; align-self: center; }
+
+.bag-alert {
+  border: 1px solid color-mix(in srgb, var(--bag-accent) 45%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bag-accent) 8%, transparent);
+  color: var(--text);
+  font-size: 0.8rem;
+  padding: 0.45rem 0.7rem;
+}
+.bag-alert.is-ok { border-color: rgba(52, 211, 153, 0.45); background: rgba(52, 211, 153, 0.08); }
+.bag-alert a { color: var(--bag-accent); text-decoration: underline; }
+.bag-hint { margin-bottom: 0.6rem; color: var(--muted); font-size: 0.76rem; line-height: 1.45; }
+.bag-hint strong { color: var(--bag-accent); font-weight: 700; }
+
+/* ---------- grade de slots ---------- */
+.slot-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8.6rem, 1fr));
+  gap: 0.4rem;
+}
+.slot-cell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-height: 4.1rem;
+  border: 1px solid var(--stroke);
+  border-radius: 7px;
+  background: linear-gradient(180deg, var(--bg1), var(--bg0));
+  padding: 0.38rem 0.5rem 0.42rem;
+}
+.slot-name {
+  font-family: 'Cinzel', serif;
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding-right: 1.7rem;
+}
+.slot-items { display: flex; flex-direction: column; gap: 0.1rem; margin: 0; }
+.slot-item {
+  color: var(--text);
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.slot-attuned { color: var(--flame); font-size: 0.62rem; }
+.slot-empty { color: var(--muted); font-size: 0.72rem; font-style: italic; opacity: 0.75; }
+.slot-cap {
+  position: absolute;
+  top: 0.3rem;
+  right: 0.42rem;
+  color: var(--muted);
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+/* vaga livre: moldura vazada; vaga ocupada: barra de destaque do tema */
+.slot-cell.is-free { border-style: dashed; border-color: color-mix(in srgb, var(--stroke) 80%, transparent); }
+.slot-cell.is-filled {
+  border-color: color-mix(in srgb, var(--bag-accent) 50%, var(--stroke));
+  box-shadow: inset 2px 0 0 var(--bag-accent);
+}
+.slot-cell.is-filled .slot-name { color: var(--bag-accent); }
+.slot-cell.is-filled .slot-cap { color: var(--bag-accent); }
+/* acessório: lista aberta — não consome vaga (regra do PO) */
+.slot-cell.is-open { grid-column: span 2; border-style: dotted; }
+@media (max-width: 480px) { .slot-cell.is-open { grid-column: span 1; } }
+.slot-cell.is-open .slot-cap { color: var(--spark); }
+
+/* ---------- lista da mochila ---------- */
+.bag-feedback {
+  margin-bottom: 0.5rem;
+  border: 1px solid var(--stroke);
+  border-radius: 6px;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+.bag-feedback.is-ok { border-color: rgba(52, 211, 153, 0.45); color: var(--spark); }
+.bag-feedback.is-err { border-color: rgba(220, 38, 38, 0.5); color: var(--flame); }
+
+.bag-list { display: flex; flex-direction: column; }
+.bag-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.6rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--stroke) 45%, transparent);
+  padding: 0.42rem 0.3rem 0.42rem 0.45rem;
+}
+.bag-row:last-child { border-bottom: 0; }
+.bag-row:hover { background: color-mix(in srgb, var(--bag-accent) 5%, transparent); }
+.bag-row.is-equipped { box-shadow: inset 2px 0 0 var(--bag-accent); }
+.bag-main { display: flex; min-width: 12rem; flex: 1 1 16rem; flex-wrap: wrap; align-items: center; gap: 0.3rem 0.45rem; }
+.bag-name { color: var(--text); font-size: 0.87rem; font-weight: 600; overflow-wrap: anywhere; }
+.bag-qtd { color: var(--spark); font-weight: 800; }
+.bag-badges { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem; }
+.bag-slot {
+  border: 1px solid color-mix(in srgb, var(--bag-accent) 35%, var(--stroke));
+  border-radius: 6px;
+  padding: 0.05rem 0.42rem;
+  color: var(--bag-accent);
+  font-family: 'Cinzel', serif;
+  font-size: 0.56rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.bag-meta { display: flex; gap: 0.7rem; color: var(--muted); font-size: 0.74rem; }
+.bag-price { color: var(--spark); font-weight: 700; }
+.bag-actions { display: flex; flex-wrap: wrap; gap: 0.25rem; margin-left: auto; }
+.bag-btn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.65rem;
+  border: 1px solid var(--stroke);
+  border-radius: 999px;
+  background: var(--bg0);
+  color: var(--muted);
+  padding: 0 0.7rem;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.bag-btn:hover { border-color: var(--bag-accent); color: var(--bag-accent); }
+.bag-btn:disabled { cursor: not-allowed; opacity: 0.4; }
+.bag-btn.on { border-color: color-mix(in srgb, var(--bag-accent) 55%, transparent); color: var(--bag-accent); background: color-mix(in srgb, var(--bag-accent) 10%, transparent); }
+.bag-btn.attune:hover, .bag-btn.attune.on { border-color: rgba(242, 112, 7, 0.55); color: var(--flame); }
+.bag-btn.use:hover { border-color: rgba(52, 211, 153, 0.55); color: var(--spark); }
+.bag-empty { color: var(--muted); font-size: 0.82rem; font-style: italic; }
+
+/* chip "gerenciar na Mochila" no cabeçalho do painel Equipados */
+.ficha-link-chip {
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+.ficha-link-chip:hover { color: var(--bag-accent); text-decoration: underline; }

@@ -1,41 +1,64 @@
-{% comment %}Lista de inventário da ficha. Usada em editar_ficha.html e re-renderizada
-pela compra via fetch (personagem_comprar_item/_magico) para atualizar sem reload.
-Espera no contexto: ficha (derive), p (personagem).{% endcomment %}
-{% if ficha.inventario %}
-  <ul class="space-y-1 text-sm">
-    {% for it in ficha.inventario %}
-      <li class="flex flex-wrap items-center justify-between gap-1.5 border-b border-[var(--stroke)]/40 py-1">
-        <span class="text-[var(--text)]">{% if it.qtd > 1 %}{{ it.qtd }}× {% endif %}{{ it.nome }}
-          {% if it.raridade %}<span class="ml-1 rounded bg-[var(--ember)]/15 px-1.5 py-0.5 text-xs text-[var(--ember)]">{{ it.raridade }}</span>{% endif %}
-          {% if it.equipado %}<span class="ml-1 rounded bg-[var(--spark)]/20 px-1.5 py-0.5 text-xs text-[var(--spark)]">equipado</span>{% endif %}
-          {% if it.sintonizado %}<span class="ml-1 rounded bg-[var(--flame)]/20 px-1.5 py-0.5 text-xs text-[var(--flame)]">sintonizado</span>{% elif it.requer_sintonizacao %}<span class="ml-1 rounded bg-[var(--stroke)]/40 px-1.5 py-0.5 text-xs text-[var(--muted)]">requer sintonização</span>{% endif %}
-          {% if it.concedido %}<span class="ml-1 rounded bg-[var(--ember)]/10 px-1.5 py-0.5 text-xs text-[var(--muted)]" title="Concedido pela staff{% if it.origem_nota %} — {{ it.origem_nota }}{% endif %}">concedido</span>{% endif %}</span>
-        <span class="flex flex-wrap items-center gap-1">
+{% comment %}LISTA DA MOCHILA (Ficha v2, onda B). Uma linha por item: nome + selos, slot,
+quantidade, valor em PO (home/moeda.py), peso e as ações.
+
+Equipar/desequipar/sintonizar vão por fetch (mochila.js) — os endpoints são os mesmos de
+sempre, só a UI mudou de lugar. Uso de consumível segue o fluxo clássico (POST + `next`),
+porque o mesmo botão existe nos contadores da aba Ficha e o reload mantém os dois em pé.
+Espera no contexto: mochila, p, pode_editar.{% endcomment %}
+{% if mochila.itens %}
+  <ul class="bag-list">
+    {% for it in mochila.itens %}
+      <li class="bag-row{% if it.equipado %} is-equipped{% endif %}">
+        <span class="bag-main">
+          <span class="bag-name" title="{{ it.nome }}">{% if it.qtd > 1 %}<span class="bag-qtd">{{ it.qtd }}×</span> {% endif %}{{ it.nome }}</span>
+          <span class="bag-badges">
+            {% if it.slot_rotulo %}<span class="bag-slot">{{ it.slot_rotulo }}</span>{% endif %}
+            {% if it.raridade %}<span class="pill muted">{{ it.raridade }}</span>{% endif %}
+            {% if it.equipado %}<span class="pill">equipado</span>{% endif %}
+            {% if it.sintonizado %}<span class="pill attuned">sintonizado</span>{% elif it.requer_sintonizacao %}<span class="pill muted">requer sintonização</span>{% endif %}
+            {% if it.consumivel %}<span class="pill muted">consumível</span>{% endif %}
+            {% if it.concedido %}<span class="pill muted" title="Concedido pela staff{% if it.origem_nota %} — {{ it.origem_nota }}{% endif %}">concedido</span>{% endif %}
+          </span>
+        </span>
+        <span class="bag-meta">
+          {% if it.custo_display %}<span class="bag-price">{{ it.custo_display }}</span>{% endif %}
+          {% if it.peso %}<span class="bag-weight">{{ it.peso }}</span>{% endif %}
+        </span>
+        {% if pode_editar %}
+        <span class="bag-actions">
+          {% if it.consumivel %}
+            <form method="post" action="{% url 'personagem_usar_item_consumivel' p.id_personagem %}">
+              {% csrf_token %}<input type="hidden" name="next" value="{% url 'ficha_detail' p.id_personagem %}?aba=mochila"><input type="hidden" name="item" value="{{ it.id }}">
+              <button type="submit" class="bag-btn use" title="Usar 1 unidade">Usar</button>
+            </form>
+          {% endif %}
           {% if it.pode_equipar %}
-            <form method="post" action="{% url 'personagem_equipar_item' p.id_personagem %}" data-inventory-form>
+            <form method="post" action="{% url 'personagem_equipar_item' p.id_personagem %}" data-mochila-form>
               {% csrf_token %}<input type="hidden" name="item" value="{{ it.id }}">
-              <button type="submit" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-0.5 text-xs text-[var(--muted)] hover:border-[var(--ember)] hover:text-[var(--ember)]">{% if it.equipado %}Desequipar{% else %}Equipar{% endif %}</button>
+              <button type="submit" class="bag-btn{% if it.equipado %} on{% endif %}">{% if it.equipado %}Desequipar{% else %}Equipar{% endif %}</button>
             </form>
           {% endif %}
           {% if it.requer_sintonizacao %}
-            <form method="post" action="{% url 'personagem_sintonizar_item' p.id_personagem %}" data-inventory-form>
+            <form method="post" action="{% url 'personagem_sintonizar_item' p.id_personagem %}" data-mochila-form>
               {% csrf_token %}<input type="hidden" name="item" value="{{ it.id }}">
-              <button type="submit" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-0.5 text-xs text-[var(--muted)] hover:border-[var(--flame)] hover:text-[var(--flame)]">{% if it.sintonizado %}Dessintonizar{% else %}Sintonizar{% endif %}</button>
+              <button type="submit" class="bag-btn attune{% if it.sintonizado %} on{% endif %}">{% if it.sintonizado %}Dessintonizar{% else %}Sintonizar{% endif %}</button>
             </form>
           {% endif %}
+          {% comment %}Venda/anúncio ficam aqui até a onda C mudar a venda para o Mercado.{% endcomment %}
           {% if it.magico %}
-            <form method="post" action="{% url 'personagem_anunciar_magico' p.id_personagem %}" onsubmit="return confirm('Anunciar {{ it.nome|escapejs }} no Mercado da Comunidade? O item sai do seu inventário até vender ou cancelar.');">
+            <form method="post" action="{% url 'personagem_anunciar_magico' p.id_personagem %}" onsubmit="return confirm('Anunciar {{ it.nome|escapejs }} no Mercado da Comunidade? O item sai da mochila até vender ou cancelar.');">
               {% csrf_token %}<input type="hidden" name="item" value="{{ it.id }}">
-              <button type="submit" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-0.5 text-xs text-[var(--muted)] hover:border-[var(--ember)] hover:text-[var(--ember)]">Anunciar</button>
+              <button type="submit" class="bag-btn">Anunciar</button>
             </form>
           {% elif it.venda_display %}
             <form method="post" action="{% url 'personagem_vender_item' p.id_personagem %}" onsubmit="return confirm('Vender 1× {{ it.nome|escapejs }} por {{ it.venda_display }} (80%)?');">
               {% csrf_token %}<input type="hidden" name="item" value="{{ it.id }}"><input type="hidden" name="qtd" value="1">
-              <button type="submit" title="Vende 1 por {{ it.venda_display }}" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-0.5 text-xs text-[var(--muted)] hover:border-[var(--spark)] hover:text-[var(--spark)]">Vender</button>
+              <button type="submit" class="bag-btn" title="Vende 1 por {{ it.venda_display }}">Vender</button>
             </form>
           {% endif %}
         </span>
+        {% endif %}
       </li>
     {% endfor %}
   </ul>
-{% else %}<p class="text-sm text-[var(--muted)]">Inventário vazio.</p>{% endif %}
+{% else %}<p class="bag-empty">Mochila vazia. Compre no Mercado ou receba itens da staff.</p>{% endif %}

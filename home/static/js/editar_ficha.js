@@ -35,11 +35,8 @@
   }
 
   function applyInventory(payload) {
-    var inv = document.getElementById('lvl-inventario');
-    if (inv && typeof payload.inventario_html === 'string') {
-      inv.innerHTML = payload.inventario_html;
-    }
-    setText('[data-sintonizados-count]', String(payload.sintonizados_usados || 0) + '/3');
+    // O inventário saiu daqui na onda B (vive na aba Mochila da ficha); esta página só
+    // precisa refletir carteira e os derivados que a concessão/compra mexem.
     setText('#loja-carteira', payload.carteira_display);
     if (payload.ficha) {
       setText('[data-ficha-ca]', payload.ficha.ca);
@@ -90,8 +87,7 @@
 
   document.addEventListener('submit', function (event) {
     var form = event.target.closest(
-      'form[data-inventory-form], form[data-resource-form], form[data-rest-form], ' +
-      'form[data-conceder-form], form[data-concessao-reverter]'
+      'form[data-resource-form], form[data-conceder-form], form[data-concessao-reverter]'
     );
     if (!form || event.defaultPrevented) return;
     event.preventDefault();
@@ -106,28 +102,9 @@
         var ledger = document.getElementById('ficha-concessoes-dinamico');
         if (ledger) ledger.outerHTML = payload.concessoes_html;
       }
-      if (form.matches('[data-inventory-form]')) {
-        var inventoryMessages = {
-          equipado: 'Item equipado.',
-          desequipado: 'Item desequipado.',
-          sintonizado: 'Item sintonizado.',
-          dessintonizado: 'Item dessintonizado.',
-          limite_sintonizacao: 'Limite de 3 itens sintonizados atingido.',
-          nao_equipavel: 'Este item não é equipável.'
-        };
-        setFeedback('inventario-feedback',
-          inventoryMessages[payload.msg] || (result.ok ? 'Inventário atualizado.' : 'Não foi possível atualizar o item.'),
-          result.ok);
-      }
-      if (form.matches('[data-rest-form]') && result.ok) {
-        setFeedback('inventario-feedback',
-          payload.descanso === 'longo' ? 'Descanso longo concluído.' : 'Descanso curto concluído.',
-          true);
-      }
       if (button && document.body.contains(button)) button.disabled = false;
     }).catch(function () {
       if (button) button.disabled = false;
-      setFeedback('inventario-feedback', 'Falha de rede ao atualizar a ficha.', false);
     });
   });
 })();

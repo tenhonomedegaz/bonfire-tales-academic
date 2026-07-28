@@ -14,7 +14,9 @@
   var countEl = root.querySelector('#loja-count');
   var walletEl = document.getElementById('loja-carteira');
   var feedback = document.getElementById('loja-feedback');
-  var invContainer = document.getElementById('lvl-inventario');
+  // A lista de itens saiu desta página na onda B (vive na aba Mochila da ficha); se um dia
+  // a loja for embutida ao lado de uma mochila, o container reaparece e volta a atualizar.
+  var invContainer = document.querySelector('[data-mochila-lista]');
   var tabs = toArr(root.querySelectorAll('[data-loja-tab]'));
   var chipsets = {
     mundano: root.querySelector('[data-loja-chipset="mundano"]'),

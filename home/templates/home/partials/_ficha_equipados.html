@@ -1,0 +1,13 @@
+{% comment %}Painel "Equipados" da aba Ficha — resumo só-leitura do que está vestido, com o
+slot ao lado. O contêiner existe sempre para o fetch da Mochila trocar o bloco sem reload.
+Espera no contexto: mochila, p.{% endcomment %}
+<div data-equipados-block>
+  <div class="ficha-panel">
+    <div class="ficha-section-title">Equipados <span class="float-right font-sans text-[11px] normal-case tracking-normal text-[var(--muted)]"><button type="button" class="ficha-link-chip" data-tab-jump="mochila">gerenciar na Mochila →</button></span></div>
+    <ul>
+      {% for it in mochila.equipados %}
+        <li class="line-row"><span class="name text-[var(--text)]">{% if it.qtd > 1 %}{{ it.qtd }}× {% endif %}{{ it.nome }}</span><span class="pill">{{ it.slot_rotulo|default:"equipado" }}</span></li>
+      {% empty %}<li class="line-row"><span class="name">—</span></li>{% endfor %}
+    </ul>
+  </div>
+</div>

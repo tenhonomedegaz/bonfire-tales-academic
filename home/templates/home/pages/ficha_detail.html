@@ -4,9 +4,10 @@
 {% block title %}{{ p.nome }} · Ficha · Bonfire Tales RPG{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/pages/ficha.css' %}?v=7">
+<link rel="stylesheet" href="{% static 'css/pages/ficha.css' %}?v=9">
 <link rel="stylesheet" href="{% static 'css/pages/perfil-fx.css' %}?v=3">
 {% if appearance.theme_css_href %}<link rel="stylesheet" href="{{ appearance.theme_css_href }}">{% endif %}
+<script src="{% static 'js/mochila.js' %}?v=1" defer></script>
 {% endblock %}
 
 {% block content %}
@@ -62,6 +63,7 @@
   {# ===================== BARRA DE ABAS ===================== #}
   <nav class="ficha-tabs" role="tablist" aria-label="Seções da ficha">
     <button type="button" class="ficha-tab is-active" role="tab" data-tab="ficha" aria-selected="true">Ficha</button>
+    <button type="button" class="ficha-tab" role="tab" data-tab="mochila" aria-selected="false">Mochila</button>
     <button type="button" class="ficha-tab" role="tab" data-tab="info" aria-selected="false">Informações</button>
     <button type="button" class="ficha-tab" role="tab" data-tab="magias" aria-selected="false">Magias</button>
     <button type="button" class="ficha-tab" role="tab" data-tab="historico" aria-selected="false">Histórico</button>
@@ -133,28 +135,19 @@
     <div class="space-y-2.5">
       <div class="ficha-panel">
         <div class="combat-grid">
-          <div class="combat-box ca"><div class="lbl">CA</div><div class="big">{{ ficha.ca }}</div></div>
+          <div class="combat-box ca"><div class="lbl">CA</div><div class="big" data-ficha-ca>{{ ficha.ca }}</div></div>
           <div class="combat-box"><div class="lbl">Inic.</div><div class="big">{% if ficha.iniciativa >= 0 %}+{% endif %}{{ ficha.iniciativa }}</div></div>
           <div class="combat-box vel"><div class="lbl">Vel.</div><div class="big">{{ ficha.velocidade }}</div></div>
         </div>
         {% if ficha.ca_fonte %}<p class="mt-1.5 text-center text-[11px] text-[var(--muted)]">{{ ficha.ca_fonte }}</p>{% endif %}
         <div class="hp-track single">
-          <div class="hp-cell max"{% if ficha.pv.bonus_tags %} title="{% for b in ficha.pv.bonus_tags %}+{{ b.1 }} {{ b.0 }}{% if not forloop.last %} · {% endif %}{% endfor %}"{% endif %}><div class="lbl">Pontos de Vida Máximos</div><div class="v">{{ ficha.pv.maximo_calculado }}</div></div>
+          <div class="hp-cell max"{% if ficha.pv.bonus_tags %} title="{% for b in ficha.pv.bonus_tags %}+{{ b.1 }} {{ b.0 }}{% if not forloop.last %} · {% endif %}{% endfor %}"{% endif %}><div class="lbl">Pontos de Vida Máximos</div><div class="v" data-ficha-pv>{{ ficha.pv.maximo_calculado }}</div></div>
         </div>
         {% if ficha.pv.bonus_tags %}<p class="mt-1 text-center text-[11px] text-[var(--muted)]">{% for b in ficha.pv.bonus_tags %}{{ b.0 }} +{{ b.1 }}{% if not forloop.last %} · {% endif %}{% endfor %}</p>{% endif %}
       </div>
 
       {% comment %}Itens Sintonizados: informativo (entre PV e Ataques). Equipar/sintonizar vive na Mochila.{% endcomment %}
-      {% if itens_sintonizados %}
-      <div class="ficha-panel">
-        <div class="ficha-section-title">Itens Sintonizados <span class="float-right font-sans text-[11px] normal-case tracking-normal text-[var(--muted)]">{{ itens_sintonizados|length }}/{{ ficha.sintonizacao_maxima|default:3 }}</span></div>
-        <ul data-attuned-list>
-          {% for it in itens_sintonizados %}
-            <li class="line-row"><span class="name text-[var(--text)]">{{ it.nome }}</span><span class="pill attuned">sintonizado</span></li>
-          {% endfor %}
-        </ul>
-      </div>
-      {% endif %}
+      {% include 'home/partials/_ficha_sintonizados.html' %}
 
       <div class="ficha-panel">
         <div class="ficha-section-title">Ataques <span class="float-right font-sans text-[11px] normal-case tracking-normal text-[var(--muted)]">{{ ficha.ataques.quantidade }}× por ação</span></div>
@@ -169,14 +162,7 @@
         {% if ficha.ataques.avisos %}<p class="mt-1 text-[11px] text-[var(--muted)]">{% for a in ficha.ataques.avisos %}{{ a }}{% if not forloop.last %} · {% endif %}{% endfor %}</p>{% endif %}
       </div>
 
-      <div class="ficha-panel">
-        <div class="ficha-section-title">Equipados</div>
-        <ul>
-          {% for it in ficha.inventario %}{% if it.equipado %}
-            <li class="line-row"><span class="name text-[var(--text)]">{% if it.qtd > 1 %}{{ it.qtd }}× {% endif %}{{ it.nome }}</span><span class="pill">equipado</span></li>
-          {% endif %}{% empty %}<li class="line-row"><span class="name">—</span></li>{% endfor %}
-        </ul>
-      </div>
+      {% include 'home/partials/_ficha_equipados.html' %}
     </div>
 
     {# -------- COLUNA DIREITA: contadores de recurso + cards de habilidade -------- #}
@@ -338,25 +324,8 @@
     {% endif %}
   </div>
 
-  <div class="ficha-panel">
-    <div class="ficha-section-title">Mochila &amp; Equipamento</div>
-    <div class="mb-2 flex flex-wrap gap-1.5">
-      <div class="flex min-w-[3.2rem] flex-col items-center rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-1.5" data-carteira><span class="text-[9px] font-bold uppercase tracking-wider text-[var(--muted)]">Dinheiro</span><span class="font-bold text-[var(--spark)]">{{ ficha.carteira.display|default:"0 PO" }}</span></div>
-      <div class="ml-auto flex min-w-[3.2rem] flex-col items-center rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-1.5"><span class="text-[9px] font-bold uppercase tracking-wider text-[var(--muted)]">Peso</span><span class="font-bold text-[var(--text)]">{{ ficha.peso_total|default:0 }}</span></div>
-    </div>
-    {% if ficha.inventario %}
-    <ul class="space-y-0.5">
-      {% for it in ficha.inventario %}
-        <li class="flex items-center justify-between gap-1.5 border-b border-[var(--stroke)]/40 py-1 text-sm">
-          <span class="min-w-0 text-[var(--text)]">{% if it.qtd > 1 %}{{ it.qtd }}× {% endif %}{{ it.nome }}{% if it.equipado %} <span class="pill">equipado</span>{% elif it.pode_equipar %} <span class="pill muted">guardado</span>{% endif %}</span>
-          <span class="flex shrink-0 gap-2 text-xs text-[var(--muted)]">{% if it.custo_display %}<span>{{ it.custo_display }}</span>{% endif %}{% if it.peso %}<span>{{ it.peso }}</span>{% endif %}</span>
-        </li>
-      {% endfor %}
-    </ul>
-    {% else %}
-    <p class="text-sm text-[var(--muted)]">Mochila vazia. Compre itens no mercado e equipe pela ficha.</p>
-    {% endif %}
-  </div>
+  {% comment %}O inventário saiu daqui: a aba Mochila é o lugar canônico (onda B).{% endcomment %}
+  <p class="ficha-jump"><button type="button" class="ficha-jump-chip" data-tab-jump="mochila">Inventário, slots e sintonização na aba <strong>Mochila</strong> →</button></p>
 
   {% if ficha.maestrias_armas %}
   <div class="ficha-panel">
@@ -426,7 +395,54 @@
 
   </div>{# /ABA 1: FICHA #}
 
-  {# ===================== ABA 2: INFORMAÇÕES ===================== #}
+  {# ===================== ABA 2: MOCHILA ===================== #}
+  {% comment %}Mochila (onda B): grade de SLOTS derivada do catálogo + inventário completo.
+  Equipar/desequipar/sintonizar por fetch (js/mochila.js) — os endpoints são os antigos.{% endcomment %}
+  <div class="ficha-tabpanel space-y-3" data-tabpanel="mochila" role="tabpanel" hidden>
+
+    <div class="bag-head">
+      <div class="bag-stat" data-carteira>
+        <span class="lbl">Dinheiro</span>
+        <strong class="v spark" data-carteira-valor>{{ ficha.carteira.display|default:"0 PO" }}</strong>
+      </div>
+      <div class="bag-stat">
+        <span class="lbl">Valor da mochila</span>
+        <strong class="v" data-mochila-total>{{ mochila.total_display }}</strong>
+      </div>
+      <div class="bag-stat">
+        <span class="lbl">Peso</span>
+        <strong class="v" data-mochila-peso>{{ mochila.peso_total }}</strong>
+      </div>
+      <div class="bag-stat">
+        <span class="lbl">Sintonização</span>
+        <strong class="v flame" data-sintonizados-count>{{ mochila.sintonizados_usados }}/{{ mochila.sintonizacao_maxima }}</strong>
+      </div>
+      <a href="{% url 'mercado_itens_mundanos' %}" class="banner-btn bag-market">Ir ao Mercado →</a>
+    </div>
+
+    {% if request.GET.compra == 'vendido' %}<div class="bag-alert is-ok">Item vendido por 80% do valor.</div>
+    {% elif request.GET.compra == 'magico_venda' %}<div class="bag-alert">Item mágico vende-se pelo <a href="{% url 'mercado_comunidade' %}">Mercado da Comunidade</a>.</div>
+    {% elif request.GET.compra == 'sem_preco' %}<div class="bag-alert">Este item não tem preço de venda.</div>{% endif %}
+    {% if request.GET.anuncio == 'ok' %}<div class="bag-alert is-ok">Item anunciado no <a href="{% url 'mercado_comunidade' %}">Mercado da Comunidade</a>.</div>
+    {% elif request.GET.anuncio == 'invalido' %}<div class="bag-alert">Só item mágico vai para o Mercado da Comunidade.</div>{% endif %}
+    {% if request.GET.sint == 'limite' %}<div class="bag-alert">Limite de itens sintonizados atingido.</div>{% endif %}
+
+    <div class="ficha-panel">
+      <div class="ficha-section-title">Slots de Equipamento <span class="float-right font-sans text-[11px] normal-case tracking-normal text-[var(--muted)]" data-slots-livres>{{ mochila.slots_livres }} livre{{ mochila.slots_livres|pluralize }}</span></div>
+      <p class="bag-hint">Cada vaga aceita um item vestido; <strong>acessório</strong> concede o efeito sem ocupar o corpo. Poções, pergaminhos e objetos de uso não entram na grade — vivem na mochila abaixo.</p>
+      {% include 'home/partials/_ficha_slots.html' %}
+    </div>
+
+    <div class="ficha-panel">
+      <div class="ficha-section-title">Mochila <span class="float-right font-sans text-[11px] normal-case tracking-normal text-[var(--muted)]">{{ mochila.itens|length }} item{{ mochila.itens|length|pluralize:"ns" }}</span></div>
+      <div class="bag-feedback" data-mochila-feedback hidden aria-live="polite"></div>
+      <div data-mochila-lista>
+        {% include 'home/partials/_ficha_inventario.html' %}
+      </div>
+    </div>
+  </div>{# /ABA 2: MOCHILA #}
+
+  {# ===================== ABA 3: INFORMAÇÕES ===================== #}
   <div class="ficha-tabpanel space-y-3" data-tabpanel="info" role="tabpanel" hidden>
     {% if pode_editar %}
     <form method="post" action="{% url 'personagem_info_salvar' p.id_personagem %}" class="info-form space-y-3" enctype="multipart/form-data" id="ficha-appearance-form">
@@ -588,9 +604,9 @@
     </div>
     {% endif %}
     {% endif %}
-  </div>{# /ABA 2: INFORMAÇÕES #}
+  </div>{# /ABA 3: INFORMAÇÕES #}
 
-  {# ===================== ABA 3: MAGIAS ===================== #}
+  {# ===================== ABA 4: MAGIAS ===================== #}
   <div class="ficha-tabpanel space-y-3" data-tabpanel="magias" role="tabpanel" hidden>
     <div class="spellbook-head">
       <div class="spell-title">
@@ -735,9 +751,9 @@
     {% else %}
       <div class="ficha-panel"><p class="info-empty">Este personagem ainda não tem magias selecionadas.</p></div>
     {% endif %}
-  </div>{# /ABA 3: MAGIAS #}
+  </div>{# /ABA 4: MAGIAS #}
 
-  {# ===================== ABA 4: HISTÓRICO ===================== #}
+  {# ===================== ABA 5: HISTÓRICO ===================== #}
   <div class="ficha-tabpanel space-y-3" data-tabpanel="historico" role="tabpanel" hidden>
     <div class="ficha-panel">
       <div class="ficha-section-title">Histórico de Transações</div>
@@ -765,7 +781,7 @@
       <p class="info-empty">Nenhuma transação registrada.</p>
       {% endif %}
     </div>
-  </div>{# /ABA 4: HISTÓRICO #}
+  </div>{# /ABA 5: HISTÓRICO #}
 
   {# ===================== Dados das descrições para os cards ===================== #}
   <script type="application/json" id="ficha-feat-desc">{% autoescape off %}{

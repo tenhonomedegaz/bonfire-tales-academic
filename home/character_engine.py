@@ -28,6 +28,8 @@ import unicodedata
 from .item_mecanica import mecanica_de_tags, dano_display, propriedades_display
 # Moeda: interno em PC, exibição SEMPRE em PO (fonte única em home/moeda.py).
 from .moeda import po_display, preco_display
+# Slots corporais (o que é vestível e em que vaga) — fonte única em home/slots.py.
+from . import slots as _slots
 
 # (campo no modelo, sigla PT, rótulo)
 ATRIBUTOS = [
@@ -927,7 +929,7 @@ def _item_consumivel_meta(item, magico=None):
     tipo = _slug(getattr(magico, 'tipo', '') or '')
     explicit = any(('consumable' in t or 'consumivel' in t or 'consume:item' in t) for t in tags)
     catalog = bool(magico and (
-        slot in {'pocao', 'pergaminho'}
+        slot in _slots.SLOTS_CONSUMIVEIS
         or tipo in {'pocao', 'pergaminho', 'consumivel'}))
     return {
         # Para item mágico, slot/tipo são autoritativos. Tags antigas carregam
@@ -940,14 +942,13 @@ def _item_consumivel_meta(item, magico=None):
 def _item_magico_equipavel(magico):
     """Classificação segura de equipabilidade pelos metadados autoritativos.
 
-    Slots de consumo/uso independente nunca entram como equipamento. Os demais
-    continuam como estão até a auditoria de catálogo resolver os slots ambíguos
-    (notadamente ``empunhado``) com a fonte EN.
+    Slots de consumo/uso independente nunca entram como equipamento — o vocabulário
+    dos que ficam de fora vive em `home/slots.py` (mesma fonte que monta a grade de
+    slots da Mochila), não duplicado aqui.
     """
     if magico is None or _item_consumivel_meta(None, magico)['consumivel']:
         return False
-    slot = (getattr(magico, 'slot', '') or '').strip().lower()
-    return slot not in {'municao', 'veiculo', 'edificacao', 'objeto', 'item_menor'}
+    return _slots.slot_e_vestivel(getattr(magico, 'slot', '') or '')
 
 
 def _inventario(personagem):
@@ -962,7 +963,11 @@ def _inventario(personagem):
         _mec_inv = mecanica_de_tags(it.tags_json)
         magico_equipavel = _item_magico_equipavel(magico)
         equipado_efetivo = bool(it.equipado and (not magico or magico_equipavel))
+        _slot = _slots.slot_de_item(it)
         out.append({'id': it.id, 'nome': it.nome, 'qtd': it.qtd, 'custo': it.custo,
+                    # slot corporal que o item ocupa na grade da Mochila (None = não veste)
+                    'slot': _slot,
+                    'slot_rotulo': _slots.rotulo_do_slot(_slot) if _slot else None,
                     # Exibição do valor SEMPRE em PO (o `custo` cru do catálogo pode vir em PP/PC).
                     'custo_display': preco_display(it.custo), 'peso': it.peso,
                     'equipado': equipado_efetivo, 'tipo_equip': _mec_inv['tipo_equip'],

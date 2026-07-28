@@ -89,9 +89,9 @@ class DescansoCanonicoNaFichaTests(LevelUpLoteBase):
         self.assertNotIn(reverse('personagem_descansar', args=[p.pk]), html)
         self.assertNotIn('data-rest-form', html)
         self.assertNotIn('Descanso Curto', html)
-        # o editar_ficha não perde mais nada nesta onda: recursos/inventário/mercado seguem
+        # recursos e mercado seguem no editar_ficha (o inventário saiu na onda B —
+        # ver test_ficha_v2_onda_b.EditarFichaSemInventarioTests)
         self.assertIn('Recursos de Classe', html)
-        self.assertIn('id="lvl-inventario"', html)
         self.assertIn('id="loja-shell"', html)
 
     def test_ficha_mantem_o_descanso_canonico(self):
@@ -156,8 +156,11 @@ class ItensSintonizadosTests(LevelUpLoteBase):
         # ordem: Pontos de Vida  <  Itens Sintonizados  <  Ataques
         self.assertLess(html.index('Pontos de Vida Máximos'), html.index('Itens Sintonizados'))
         self.assertLess(html.index('Itens Sintonizados'), html.index('>Ataques'))
-        # só leitura: nenhum form de equipar/sintonizar na ficha (isso é da Mochila, onda B)
-        self.assertNotIn(reverse('personagem_sintonizar_item', args=[p.pk]), html)
+        # só leitura: o form de sintonizar não está NESTE bloco — ele vive na aba Mochila
+        # (onda B), que só começa depois do fim da aba Ficha.
+        sint = reverse('personagem_sintonizar_item', args=[p.pk])
+        self.assertLess(html.index('data-tabpanel="mochila"'), html.index(sint))
+        self.assertNotIn(sint, html[html.index('data-attuned-list'):html.index('>Ataques')])
 
     def test_sem_sintonizados_nao_renderiza_o_bloco(self):
         p = self._guerreiro_no_nivel(1)

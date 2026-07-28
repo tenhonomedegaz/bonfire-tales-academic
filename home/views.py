@@ -4422,16 +4422,9 @@ def editar_ficha_view(request, pk):
     loja_magico_rars = [{'value': r, 'label': rar_label.get(r, r), 'base': re.sub(r'_(menor|maior)$', '', r or '')}
                         for r in sorted(_rars_seen, key=_rar_key)]
     loja_magico_lojas = sorted(_lojas_seen)
-    sintonizados_usados = p.inventario.filter(sintonizado=True).count()
     from .character_engine import _recursos_consumiveis, derive
     recursos_consumiveis = _recursos_consumiveis(p, list(p.classes.select_related('id_classe', 'id_subclasse')))
     magias_preparadas = _magias_preparadas_infos(p, ficha)
-    # preço de venda (80%) dos itens mundanos com custo parseável
-    for it in ficha.get('inventario', []):
-        if not it.get('magico'):
-            v = _preco_venda_mundano_pc(it.get('custo'))
-            if v:
-                it['venda_pc'], it['venda_display'] = v, _po_display(v)
     transacoes = _transacoes_em_po(p.transacoes.all()[:30])
     classes_atuais = [{'id': c.id_classe.id_classe, 'nome': c.id_classe.nome, 'nivel': c.nivel,
                        'principal': c.principal} for c in p.classes.select_related('id_classe').order_by('-principal', 'id')]
@@ -4468,7 +4461,6 @@ def editar_ficha_view(request, pk):
         'loja_magico': loja_magico,
         'loja_magico_rars': loja_magico_rars,
         'loja_magico_lojas': loja_magico_lojas,
-        'sintonizados_usados': sintonizados_usados,
         'recursos_consumiveis': recursos_consumiveis,
         'magias_preparadas': magias_preparadas,
         'transacoes': transacoes,
@@ -4775,29 +4767,70 @@ def _aventuras_staff_resposta(request, p, *, compra_msg='', rollback_msg='', ok=
     }, status=200 if ok else 400)
 
 
-def _inventario_ajax_payload(request, p, *, msg='ok', ok=True):
-    """Estado mínimo para mutações da edição sem recarregar a página."""
+def _mochila_ficha(p, ficha):
+    """Contexto da ABA MOCHILA (Ficha v2, onda B): grade de slots + inventário + totais.
+
+    A GRADE não é lista fixa: vem de `home/slots.py`, que a deriva dos slots reais do
+    catálogo. Consumível/objeto/item menor não aparecem na grade (não são vestíveis) —
+    vivem só na lista de inventário, com o botão de uso."""
+    from . import slots as _slots
+
+    equipados = list(p.inventario.filter(equipado=True).select_related('id_item_magico'))
+    grade = _slots.grade_de_slots(equipados)
+    itens = ficha.get('inventario') or []
+    for item in itens:
+        if not item.get('magico'):
+            venda = _preco_venda_mundano_pc(item.get('custo'))
+            if venda:
+                item['venda_pc'], item['venda_display'] = venda, _po_display(venda)
+    # Valor total da mochila: soma do preço de catálogo × quantidade (interno em PC).
+    total_pc = sum((_preco_em_pc(it.get('custo')) or 0) * int(it.get('qtd') or 1)
+                   for it in itens)
+    sintonizados = [it for it in itens if it.get('sintonizado')]
+    return {
+        'slots': grade,
+        'slots_livres': sum(1 for s in grade if s['livre']),
+        'itens': itens,
+        'equipados': [it for it in itens if it.get('equipado')],
+        'total_pc': total_pc,
+        'total_display': _po_display(total_pc),
+        'peso_total': ficha.get('peso_total') or 0,
+        'sintonizados': sintonizados,
+        'sintonizados_usados': len(sintonizados),
+        'sintonizacao_maxima': ficha.get('sintonizacao_maxima') or 3,
+    }
+
+
+def _inventario_ajax_payload(request, p, *, msg='ok', ok=True, detalhe=''):
+    """Estado mínimo para as mutações de mochila/loja sem recarregar a página.
+
+    Devolve os MESMOS partials usados no template (grade de slots, lista da mochila e os
+    dois blocos informativos da aba Ficha), para o fetch trocar tudo em sincronia."""
     from django.template.loader import render_to_string
     from .character_engine import derive
 
     p.refresh_from_db()
     ficha = derive(p)
-    for item in ficha.get('inventario', []):
-        if not item.get('magico'):
-            venda = _preco_venda_mundano_pc(item.get('custo'))
-            if venda:
-                item['venda_pc'], item['venda_display'] = venda, _po_display(venda)
+    mochila = _mochila_ficha(p, ficha)
+    ctx = {'ficha': ficha, 'p': p, 'mochila': mochila, 'pode_editar': True}
     return {
         'ok': ok,
         'msg': msg,
+        'detalhe': detalhe,
         'carteira_display': _po_display(p.carteira_pc or 0),
         'carteira_pc': int(p.carteira_pc or 0),
-        'sintonizados_usados': p.inventario.filter(sintonizado=True).count(),
+        'sintonizados_usados': mochila['sintonizados_usados'],
+        'sintonizacao_maxima': mochila['sintonizacao_maxima'],
+        'total_display': mochila['total_display'],
+        'peso_total': mochila['peso_total'],
         'inventario_html': render_to_string(
-            'home/partials/_ficha_inventario.html',
-            {'ficha': ficha, 'p': p},
-            request=request,
-        ),
+            'home/partials/_ficha_inventario.html', ctx, request=request),
+        'slots_html': render_to_string(
+            'home/partials/_ficha_slots.html', ctx, request=request),
+        'sintonizados_html': render_to_string(
+            'home/partials/_ficha_sintonizados.html', ctx, request=request),
+        'equipados_html': render_to_string(
+            'home/partials/_ficha_equipados.html', ctx, request=request),
         'ficha': {
             'ca': ficha.get('ca'),
             'pv_maximo': (ficha.get('pv') or {}).get('maximo_calculado'),
@@ -4805,9 +4838,9 @@ def _inventario_ajax_payload(request, p, *, msg='ok', ok=True):
     }
 
 
-def _inventario_mutacao_resposta(request, p, fallback, *, msg='ok', ok=True):
+def _inventario_mutacao_resposta(request, p, fallback, *, msg='ok', ok=True, detalhe=''):
     if is_ajax(request):
-        return JsonResponse(_inventario_ajax_payload(request, p, msg=msg, ok=ok),
+        return JsonResponse(_inventario_ajax_payload(request, p, msg=msg, ok=ok, detalhe=detalhe),
                             status=200 if ok else 400)
     return redirect(fallback)
 
@@ -5924,36 +5957,42 @@ def personagem_comprar_item(request, pk):
 @require_POST
 def personagem_equipar_item(request, pk):
     """Equipa/desequipa um item. Item possuído mas não equipado NÃO concede benefícios.
-    Só 1 armadura e 1 escudo equipados por vez."""
+
+    GUARDA DE SLOT (Ficha v2, onda B): o corpo tem vagas — não se veste duas armaduras,
+    dois elmos, dois escudos. A conta das vagas é do `home/slots.py`, derivada do
+    catálogo (acessório é ilimitado por regra do PO; anéis e mãos têm 2). Slot cheio
+    RECUSA com mensagem nomeando o slot e o item que já está lá — em vez de desequipar
+    silenciosamente o que o jogador tinha posto."""
     from .character_engine import _item_magico_equipavel
     from .models import TbPersonagemItem
+    from . import slots as _slots
     p = _ficha_editavel(request, pk)
+    back = reverse('ficha_detail', args=[pk]) + '?aba=mochila'
     it = TbPersonagemItem.objects.filter(id=request.POST.get('item'), id_personagem=p).first()
     if not it:
-        return _inventario_mutacao_resposta(
-            request, p, reverse('editar_ficha', args=[pk]), msg='item_invalido', ok=False)
+        return _inventario_mutacao_resposta(request, p, back, msg='item_invalido', ok=False)
     if it.id_item_magico and not _item_magico_equipavel(it.id_item_magico):
         # Compatibilidade graciosa: uma flag antiga inválida deixa de surtir efeito e
         # pode ser limpa sem remover a linha do inventário.
         if it.equipado:
             it.equipado = False
             it.save(update_fields=['equipado'])
-        return _inventario_mutacao_resposta(
-            request, p, reverse('editar_ficha', args=[pk]), msg='nao_equipavel', ok=False)
+        return _inventario_mutacao_resposta(request, p, back, msg='nao_equipavel', ok=False)
     novo = not it.equipado
-    _mec = mecanica_de_tags(it.tags_json)
-    if novo and _mec['tipo_equip']:  # equipar: tira o que ocupa o mesmo "slot"
-        alvo_escudo = _mec['is_escudo']
-        for outro in TbPersonagemItem.objects.filter(id_personagem=p, equipado=True):
-            om = mecanica_de_tags(outro.tags_json)
-            if (alvo_escudo and om['is_escudo']) or (not alvo_escudo and om['is_armadura']):
-                outro.equipado = False
-                outro.save(update_fields=['equipado'])
+    if novo:
+        equipados = list(TbPersonagemItem.objects.filter(id_personagem=p, equipado=True)
+                         .select_related('id_item_magico'))
+        conflito = _slots.conflito_de_slot(it, equipados)
+        if conflito:
+            _slot, rotulo, ocupante = conflito
+            return _inventario_mutacao_resposta(
+                request, p, back, msg='slot_ocupado', ok=False,
+                detalhe='Slot %s já ocupado por %s — desequipe antes de vestir %s.'
+                        % (rotulo, ocupante.nome, it.nome))
     it.equipado = novo
     it.save(update_fields=['equipado'])
     return _inventario_mutacao_resposta(
-        request, p, reverse('editar_ficha', args=[pk]),
-        msg='equipado' if novo else 'desequipado')
+        request, p, back, msg='equipado' if novo else 'desequipado')
 
 
 @login_required(login_url='/login/')
@@ -5963,14 +6002,16 @@ def personagem_vender_item(request, pk):
     Mercado da Comunidade (50%), não por aqui."""
     from .models import TbPersonagemItem
     p = _ficha_editavel(request, pk)
+    # A venda é acionada pela MOCHILA da ficha (onda B) — é para lá que o PRG volta.
+    back = reverse('ficha_detail', args=[pk]) + '?aba=mochila'
     it = TbPersonagemItem.objects.filter(id=request.POST.get('item'), id_personagem=p).first()
     if not it:
-        return redirect('editar_ficha', pk=pk)
+        return redirect(back)
     if it.id_item_magico_id:
-        return redirect(reverse('editar_ficha', args=[pk]) + '?compra=magico_venda')
+        return redirect(back + '&compra=magico_venda')
     unit = _preco_venda_mundano_pc(it.custo)
     if unit is None:
-        return redirect(reverse('editar_ficha', args=[pk]) + '?compra=sem_preco')
+        return redirect(back + '&compra=sem_preco')
     try:
         qtd = max(1, min(int(it.qtd or 1), int(request.POST.get('qtd') or 1)))
     except (TypeError, ValueError):
@@ -5986,7 +6027,7 @@ def personagem_vender_item(request, pk):
         else:
             it.delete()
         _registrar_transacao(p, 'venda', 'Venda: %s x%d' % (nome, qtd), credito)
-    return redirect(reverse('editar_ficha', args=[pk]) + '?compra=vendido')
+    return redirect(back + '&compra=vendido')
 
 
 @login_required(login_url='/login/')
@@ -6028,31 +6069,44 @@ def personagem_comprar_magico(request, pk):
 @login_required(login_url='/login/')
 @require_POST
 def personagem_sintonizar_item(request, pk):
-    """Sintoniza/dessintoniza um item mágico. Só itens que exigem sintonização;
-    limite de 3 itens sintonizados por personagem (regra 5e)."""
+    """Sintoniza/dessintoniza um item mágico. Só itens que exigem sintonização; o limite
+    é o `sintonizacao_maxima` DERIVADO (3 na regra 5e, mas features podem subir o teto —
+    `attr_max:sintonizacao`), não mais um 3 cravado aqui."""
+    from .character_engine import derive
     from .models import TbPersonagemItem
     p = _ficha_editavel(request, pk)
+    back = reverse('ficha_detail', args=[pk]) + '?aba=mochila'
     it = (TbPersonagemItem.objects.filter(id=request.POST.get('item'), id_personagem=p)
           .select_related('id_item_magico').first())
     if not it or not it.id_item_magico or not it.id_item_magico.requer_sintonizacao:
-        return _inventario_mutacao_resposta(
-            request, p, reverse('editar_ficha', args=[pk]), msg='item_invalido', ok=False)
+        return _inventario_mutacao_resposta(request, p, back, msg='item_invalido', ok=False)
     if not it.sintonizado:
+        limite = int(derive(p).get('sintonizacao_maxima') or 3)
         usados = TbPersonagemItem.objects.filter(id_personagem=p, sintonizado=True).count()
-        if usados >= 3:
+        if usados >= limite:
             return _inventario_mutacao_resposta(
-                request, p, reverse('editar_ficha', args=[pk]) + '?sint=limite',
-                msg='limite_sintonizacao', ok=False)
-        it.sintonizado = True
-        if not it.equipado:          # sintonizar implica portar o item
+                request, p, back + '&sint=limite', msg='limite_sintonizacao', ok=False,
+                detalhe='Limite de %d itens sintonizados atingido.' % limite)
+        if not it.equipado:
+            # Sintonizar implica PORTAR o item — logo passa pela mesma guarda de slot.
+            from . import slots as _slots
+            conflito = _slots.conflito_de_slot(
+                it, list(TbPersonagemItem.objects.filter(id_personagem=p, equipado=True)
+                         .select_related('id_item_magico')))
+            if conflito:
+                _slot, rotulo, ocupante = conflito
+                return _inventario_mutacao_resposta(
+                    request, p, back, msg='slot_ocupado', ok=False,
+                    detalhe='Slot %s já ocupado por %s — desequipe antes de sintonizar %s.'
+                            % (rotulo, ocupante.nome, it.nome))
             it.equipado = True
+        it.sintonizado = True
         it.save(update_fields=['sintonizado', 'equipado'])
     else:
         it.sintonizado = False
         it.save(update_fields=['sintonizado'])
     return _inventario_mutacao_resposta(
-        request, p, reverse('editar_ficha', args=[pk]),
-        msg='sintonizado' if it.sintonizado else 'dessintonizado')
+        request, p, back, msg='sintonizado' if it.sintonizado else 'dessintonizado')
 
 
 # ───────────────────────── Mercado da Comunidade ─────────────────────────────
@@ -6063,10 +6117,11 @@ def personagem_anunciar_magico(request, pk):
     venda do mercado. O item sai do inventário (escrow) até vender ou ser cancelado."""
     from .models import TbPersonagemItem, TbAnuncioItemMagico
     p = _ficha_editavel(request, pk)
+    back = reverse('ficha_detail', args=[pk]) + '?aba=mochila'
     it = (TbPersonagemItem.objects.filter(id=request.POST.get('item'), id_personagem=p)
           .select_related('id_item_magico').first())
     if not it or not it.id_item_magico:
-        return redirect(reverse('editar_ficha', args=[pk]) + '?anuncio=invalido')
+        return redirect(back + '&anuncio=invalido')
     preco_pc = _preco_venda_pc(it.id_item_magico)
     with transaction.atomic():
         TbAnuncioItemMagico.objects.create(
@@ -6077,7 +6132,7 @@ def personagem_anunciar_magico(request, pk):
             it.save(update_fields=['qtd'])
         else:
             it.delete()
-    return redirect(reverse('editar_ficha', args=[pk]) + '?anuncio=ok')
+    return redirect(back + '&anuncio=ok')
 
 
 @login_required(login_url='/login/')
@@ -6210,7 +6265,11 @@ def personagem_usar_recurso(request, pk):
 @login_required(login_url='/login/')
 @require_POST
 def personagem_usar_item_consumivel(request, pk):
-    """Gasta (-1) ou devolve (+1) a quantidade de um item consumivel do inventario."""
+    """Gasta (-1) ou devolve (+1) a quantidade de um item consumivel do inventario.
+
+    POST clássico com `next` (o botão de uso existe nos contadores da aba Ficha E na
+    lista da Mochila) — o recarregamento mantém os dois em sincronia sem duplicar
+    lógica de atualização parcial."""
     from .character_engine import _item_consumivel_meta
     from .models import TbPersonagemItem
     p = _ficha_editavel(request, pk)
@@ -6434,9 +6493,10 @@ def ficha_detail_view(request, pk):
     # Página de Histórico: compras/vendas do personagem (extrato exibido em PO).
     transacoes = _transacoes_em_po(
         TbTransacao.objects.filter(id_personagem=p).order_by('-pk')[:300])
-    # Bloco informativo "Itens Sintonizados" (entre PV e Ataques): só leitura — equipar/
-    # sintonizar vive na Mochila (onda B).
-    itens_sintonizados = [it for it in (ficha.get('inventario') or []) if it.get('sintonizado')]
+    # Aba MOCHILA (onda B): grade de slots derivada do catálogo + inventário + totais.
+    # O bloco "Itens Sintonizados" da aba Ficha (entre PV e Ataques) é só leitura — o
+    # equipar/desequipar/sintonizar vive na Mochila.
+    mochila = _mochila_ficha(p, ficha)
     pode_editar = p.dono_id == request.user.id or perms.is_staff_user(request.user)
     # Botão de level-up: só quem edita, e só quando elegível (ou com pendências abertas).
     levelup_status = _levelup_status(p, ficha) if pode_editar else None
@@ -6447,7 +6507,7 @@ def ficha_detail_view(request, pk):
         'raca_linha': raca_linha,
         'magias_info': magias_info,
         'consumiveis_cards': consumiveis_cards,
-        'itens_sintonizados': itens_sintonizados,
+        'mochila': mochila,
         'personalidade': _personalidade_ficha(p),
         'transacoes': transacoes,
         'pode_editar': pode_editar,

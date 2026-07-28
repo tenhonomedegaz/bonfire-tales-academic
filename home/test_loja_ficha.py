@@ -33,7 +33,6 @@ class LojaFichaCatalogoTests(LevelUpLoteBase):
                        'data-loja-list="mundano"', 'data-loja-list="magico"',
                        'data-loja-form="mundano"', 'data-loja-form="magico"',
                        'mu-list-item-price', 'mi-list-item-price',
-                       'id="lvl-inventario"',
                        'js/loja_ficha.js', 'css/pages/itens_magicos.css',
                        'css/pages/itens_mundanos.css'):
             self.assertIn(needle, html, needle)
