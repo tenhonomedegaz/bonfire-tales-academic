@@ -1,187 +1,91 @@
 {% load static %}
-<div class="mi-shell" data-mi-root>
+{% comment %}VITRINE MÁGICA (Ficha v2, onda C) — loja, não wiki.
 
-  <!-- Filtros -->
-  <div id="miSearchBar" class="mi-filters">
-    <input id="mi-busca" type="search" placeholder="Buscar item mágico…" autocomplete="off"
-           class="w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)] outline-none focus:border-[var(--ember)]">
-    <div class="mt-3 flex flex-wrap gap-2" id="mi-rarity-filters">
-      <button type="button" class="mi-rarity-chip active" data-rarity="todos">Todos</button>
-      {% for r in raridades_filtro %}
-      <button type="button" class="mi-rarity-chip rarity-{{ r.value|cut:'_menor'|cut:'_maior' }}" data-rarity="{{ r.value }}">
-        <span class="mi-rarity-dot rarity-dot-{{ r.value|cut:'_menor'|cut:'_maior' }}"></span>{{ r.label }}
-      </button>
-      {% endfor %}
+Prateleiras = o campo `loja` do catálogo (Alquimia, Forja, Joalheria, Estábulos…), com o
+Bazar Geral recolhendo o que não declara loja. A raridade pinta moldura e selo; o preço em
+PO é a manchete do card. Comprar posta em `personagem_comprar_magico` para o personagem
+ativo do balcão. Sem preço (ou preço 0) = recompensa de missão: fica na vitrine sem botão,
+mesma guarda que o backend aplica.{% endcomment %}
+<div class="shop" data-shop-root data-shop-kind="magico">
+
+  {% include 'home/partials/_mercado_balcao.html' with balcao_titulo='Casa dos Arcanos' %}
+
+  <div class="shop-main">
+    <div class="shop-filters">
+      <input type="search" class="shop-search" data-shop-search autocomplete="off"
+             placeholder="Buscar item mágico pelo nome…" aria-label="Buscar item mágico">
+      <div class="shop-chips" data-shop-chips>
+        <button type="button" class="shop-chip is-active" data-rarity-filter="todas">Todas as raridades</button>
+        {% for r in raridades_filtro %}
+        <button type="button" class="shop-chip" data-rarity-filter="{{ r.value }}"><span class="shop-chip-dot rarity-{{ r.base }}"></span>{{ r.label }}</button>
+        {% endfor %}
+      </div>
+      <p class="shop-count"><strong data-shop-count>0</strong> mercadorias na vitrine</p>
     </div>
-    <p class="mt-3 text-xs text-[var(--muted)]"><span id="mi-count">0</span> item(ns)</p>
+
+    {% for g in prateleiras %}
+    <section class="shop-shelf" data-shelf="{{ g.id }}">
+      <header class="shelf-head">
+        <h2 class="shelf-name">{{ g.label }}</h2>
+        <span class="shelf-count">{{ g.a_venda }} à venda · {{ g.itens|length }} no catálogo</span>
+      </header>
+      <div class="shelf-grid">
+        {% for item in g.itens %}
+        <article class="goods rarity-{{ item.base_rarity }}" data-goods data-rarity="{{ item.raridade }}"
+                 data-search="{{ item.nome|lower }} {{ item.raridade_label|lower }} {{ item.tipo_label|lower }} {{ item.loja|lower }}">
+          {% if item.requer_sintonizacao %}<span class="goods-attune" title="Requer sintonização">S</span>{% endif %}
+          <button type="button" class="goods-face" data-goods-open="mi-{{ item.id_item }}">
+            <span class="goods-rarity">{{ item.raridade_label }}</span>
+            <h3 class="goods-name">{{ item.nome }}</h3>
+            <p class="goods-meta">{{ item.tipo_label }}</p>
+          </button>
+          <div class="goods-foot">
+            {% if item.preco_display %}
+              <span class="goods-price">{{ item.preco_display }}</span>
+              {% if mercado_ativo %}
+              <form method="post" action="{% url 'personagem_comprar_magico' mercado_ativo.id_personagem %}" class="goods-buy" data-shop-buy>
+                {% csrf_token %}
+                <input type="hidden" name="item" value="{{ item.slug }}">
+                <input type="hidden" name="next" value="{{ mercado_next }}">
+                <button type="submit" class="shop-btn buy" data-nome="{{ item.nome }}">Comprar</button>
+              </form>
+              {% endif %}
+            {% else %}
+              <span class="goods-price is-mission">Recompensa de missão</span>
+            {% endif %}
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+      <p class="shelf-empty" data-shelf-empty hidden>Nada nesta prateleira com o filtro atual.</p>
+    </section>
+    {% empty %}
+    <p class="shop-empty">Nenhum item mágico foi catalogado ainda.</p>
+    {% endfor %}
+
+    <p class="shop-empty" data-shop-noresult hidden>Nenhuma mercadoria encontrada.</p>
   </div>
 
-  <div class="talent-main-grid grid gap-3 border-t border-bonfire-stroke pt-4 flex-1">
-    <button type="button" class="talent-mobile-menu-button" id="miMobileMenuButton" aria-label="Abrir lista de itens">
-      <svg xmlns="http://www.w3.org/2000/svg" class="open-icon h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 5 7 7-7 7"/></svg>
-      <svg xmlns="http://www.w3.org/2000/svg" class="close-icon h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 19-7-7 7-7"/></svg>
-    </button>
-    <button type="button" class="talent-mobile-backdrop" id="miMobileBackdrop" aria-label="Fechar lista"></button>
-
-    <aside class="talent-list-panel xl:sticky xl:top-24 h-full max-h-[calc(100vh-140px)] overflow-y-auto custom-scrollbar flex flex-col gap-1.5 pr-2" id="miList">
-      {% for item in itens %}
-      {% with base_rarity=item.raridade|cut:'_menor'|cut:'_maior' %}
-      <div class="mi-list-item rarity-{{ base_rarity }}" data-id="item-{{ forloop.counter }}"
-           data-rarity="{{ item.raridade }}"
-           data-search="{{ item.nome|lower }} {{ item.get_raridade_display|lower }} {{ item.tipo|lower }}">
-        <div class="mi-list-item-main">
-          <h3 class="mi-list-item-name" title="{{ item.nome }}">{{ item.nome }}</h3>
-          <p class="mi-list-item-meta">{{ item.get_raridade_display }}{% if item.tipo %} · {{ item.tipo }}{% elif item.slot %} · {{ item.get_slot_display }}{% endif %}</p>
-        </div>
-        <span class="mi-list-item-price{% if not item.preco_loja %} is-mission{% endif %}" title="{{ item.preco_loja|default:'Recompensa de missão' }}">{{ item.preco_loja|default:"Recompensa de missão" }}</span>
-        {% if item.requer_sintonizacao %}<span class="mi-attune-mark" title="Requer sintonização">S</span>{% endif %}
-      </div>
-      {% endwith %}
-      {% endfor %}
-      {% if not itens %}
-      <p class="text-bonfire-muted text-sm p-3 text-center">Nenhum item mágico foi catalogado ainda.</p>
-      {% endif %}
-    </aside>
-
-    <main class="talent-detail-panel hidden mt-4 md:mt-0 md:pl-4" id="miDetail">
-      <div class="flex items-center justify-center h-full text-bonfire-muted flex-col gap-4">
-        <svg class="w-16 h-16 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-        </svg>
-        <p class="text-sm">Selecione um item para ver os detalhes.</p>
-      </div>
-    </main>
-  </div>
-
-  <!-- Loja de detalhe: cada item renderizado server-side, oculto, popula o painel ao clicar -->
-  <div class="mi-data-store" hidden>
+  {# Detalhe de cada mercadoria, renderizado server-side e mostrado no balcão ao clicar. #}
+  <div class="shop-store" hidden>
     {% for item in itens %}
-    {% with base_rarity=item.raridade|cut:'_menor'|cut:'_maior' %}
-    <template id="item-{{ forloop.counter }}-tpl">
-      <div class="mi-detail rarity-{{ base_rarity }}">
-        <div class="mi-detail-head">
-          <span class="mi-detail-rarity rarity-{{ base_rarity }}">{{ item.get_raridade_display }}</span>
-          <h2 class="mi-detail-title">{{ item.nome }}</h2>
-        </div>
-        <div class="mi-detail-pills">
-          <span class="mi-pill">{{ item.tipo|default:"Item Maravilhoso" }}</span>
-          {% if item.slot %}<span class="mi-pill">{{ item.get_slot_display }}</span>{% endif %}
-          {% if item.requer_sintonizacao %}
-          <span class="mi-pill mi-pill-attune">Sintonização{% if item.detalhes_sintonizacao %} ({{ item.detalhes_sintonizacao }}){% endif %}</span>
-          {% endif %}
-        </div>
-        <div class="mi-detail-price">
-          <span class="mi-detail-price-label">Preço</span>
-          <span class="mi-detail-price-value{% if not item.preco_loja %} is-mission{% endif %}">{{ item.preco_loja|default:"Recompensa de missão" }}</span>
+    <template id="mi-{{ item.id_item }}-tpl">
+      <div class="shop-detail-card rarity-{{ item.base_rarity }}">
+        <span class="goods-rarity">{{ item.raridade_label }}</span>
+        <h3 class="shop-detail-name">{{ item.nome }}</h3>
+        <span class="shop-detail-eyebrow">{{ item.tipo_label }}{% if item.loja %} · {{ item.loja }}{% endif %}</span>
+        <div class="shop-detail-stats">
+          <span class="shop-stat is-price"><span>Preço</span><strong>{{ item.preco_display|default:"Recompensa de missão" }}</strong></span>
+          {% if item.slot %}<span class="shop-stat"><span>Slot</span><strong>{{ item.get_slot_display }}</strong></span>{% endif %}
+          {% if item.requer_sintonizacao %}<span class="shop-stat"><span>Sintonização</span><strong>{{ item.detalhes_sintonizacao|default:"Exigida" }}</strong></span>{% endif %}
         </div>
         {% if item.descricao_markdown %}
-          <div class="bonfire-markdown mi-detail-desc text-[13px] leading-[1.45] text-bonfire-muted" data-markdown-source>{{ item.descricao_markdown|escape }}</div>
+        <div class="bonfire-markdown shop-detail-desc" data-markdown-source>{{ item.descricao_markdown|escape }}</div>
         {% else %}
-          <p class="text-[var(--muted)] italic text-sm mt-4">Nenhuma descrição disponível.</p>
+        <p class="shop-detail-line"><em>Sem descrição catalogada.</em></p>
         {% endif %}
       </div>
     </template>
-    {% endwith %}
     {% endfor %}
   </div>
 </div>
-
-<script>
-(function(){
-  var root = document.querySelector('[data-mi-root]');
-  if (!root || root.dataset.miInit === '1') return;
-  root.dataset.miInit = '1';
-
-  var listContainer = root.querySelector('#miList');
-  var detailContainer = root.querySelector('#miDetail');
-  var countEl = root.querySelector('#mi-count');
-  var busca = root.querySelector('#mi-busca');
-  var rarityFilters = root.querySelector('#mi-rarity-filters');
-  var mobileMenuButton = root.querySelector('#miMobileMenuButton');
-  var mobileBackdrop = root.querySelector('#miMobileBackdrop');
-
-  var items = Array.prototype.slice.call(listContainer.querySelectorAll('.mi-list-item'));
-  var activeRarity = 'todos';
-
-  function norm(s){ return (s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase(); }
-
-  function renderMarkdownIn(node){
-    node.querySelectorAll('[data-markdown-source]').forEach(function(el){
-      if (el.dataset.rendered === '1') return;
-      var source = el.textContent || '';
-      if (typeof renderBonfireMarkdown === 'function') el.innerHTML = renderBonfireMarkdown(source);
-      else if (window.marked && window.marked.parse) el.innerHTML = window.marked.parse(source, { gfm:true, breaks:true });
-      el.dataset.rendered = '1';
-    });
-  }
-
-  function openMenu(){ document.body.classList.add('talent-menu-open'); }
-  function closeMenu(){ document.body.classList.remove('talent-menu-open'); }
-
-  function applyFilters(){
-    var q = norm(busca.value.trim());
-    var shown = 0;
-    items.forEach(function(it){
-      var r = it.getAttribute('data-rarity') || '';
-      var matchRarity = activeRarity === 'todos' || r === activeRarity;
-      var matchSearch = !q || norm(it.getAttribute('data-search')).indexOf(q) !== -1;
-      if (matchRarity && matchSearch){ it.style.display = ''; shown++; }
-      else it.style.display = 'none';
-    });
-    countEl.textContent = shown;
-  }
-
-  function selectItem(id){
-    var tpl = root.querySelector('#' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '-tpl');
-    if (!tpl) return;
-    items.forEach(function(it){ it.classList.toggle('selected', it.getAttribute('data-id') === id); });
-    closeMenu();
-
-    detailContainer.classList.remove('hidden');
-    detailContainer.classList.add('flex', 'flex-col');
-    detailContainer.innerHTML = '';
-    detailContainer.appendChild(tpl.content.cloneNode(true));
-    renderMarkdownIn(detailContainer);
-
-    detailContainer.classList.remove('talent-detail-enter');
-    void detailContainer.offsetWidth;
-    detailContainer.classList.add('talent-detail-enter');
-  }
-
-  items.forEach(function(it){
-    it.addEventListener('click', function(){ selectItem(it.getAttribute('data-id')); });
-  });
-
-  rarityFilters.addEventListener('click', function(e){
-    var btn = e.target.closest('.mi-rarity-chip');
-    if (!btn) return;
-    activeRarity = btn.getAttribute('data-rarity');
-    rarityFilters.querySelectorAll('.mi-rarity-chip').forEach(function(b){ b.classList.toggle('active', b === btn); });
-    closeMenu();
-    applyFilters();
-  });
-
-  busca.addEventListener('input', applyFilters);
-
-  mobileMenuButton && mobileMenuButton.addEventListener('click', openMenu);
-  mobileBackdrop && mobileBackdrop.addEventListener('click', closeMenu);
-  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeMenu(); });
-
-  // Move a barra de busca para dentro do drawer no mobile (mesmo padrão de talentos.html)
-  (function(){
-    var mq = window.matchMedia('(max-width: 1100px)');
-    var searchBar = root.querySelector('#miSearchBar');
-    if (!searchBar) return;
-    var originalParent = searchBar.parentElement;
-    var originalNext = searchBar.nextElementSibling;
-    function handleLayout(e){
-      if (e.matches) listContainer.insertBefore(searchBar, listContainer.firstChild);
-      else if (originalParent) originalParent.insertBefore(searchBar, originalNext);
-    }
-    if (mq.addEventListener) mq.addEventListener('change', handleLayout); else mq.addListener(handleLayout);
-    handleLayout(mq);
-  })();
-
-  applyFilters();
-})();
-</script>

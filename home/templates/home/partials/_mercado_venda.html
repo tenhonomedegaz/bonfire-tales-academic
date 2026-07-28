@@ -1,0 +1,34 @@
+{% comment %}Painel VENDER do Mercado (Ficha v2, onda C).
+
+A venda a 80% morava na ficha/editar_ficha; agora vive aqui, ao lado da compra, com o
+PERSONAGEM ATIVO do balcão. A REGRA não mudou de lugar: quem calcula os 80% e credita a
+carteira continua sendo `personagem_vender_item` (via `_preco_venda_mundano_pc`).
+
+Só item MUNDANO com preço aparece — item mágico vai a leilão no Mercado da Comunidade,
+por outra regra (50%, com escrow).
+
+Espera no contexto: mercado_ativo (personagem), mercado_venda (linhas), mercado_next.
+Este partial também volta re-renderizado no JSON das mutações (`venda_html`), para a
+vitrine atualizar compra e venda sem reload.{% endcomment %}
+{% if mercado_venda %}
+<ul class="shop-sell-list">
+  {% for it in mercado_venda %}
+  <li class="shop-sell-row">
+    <span class="shop-sell-main">
+      <span class="shop-sell-name" title="{{ it.nome }}">{% if it.qtd > 1 %}<em>{{ it.qtd }}×</em> {% endif %}{{ it.nome }}</span>
+      <span class="shop-sell-meta">catálogo {{ it.custo_display }} · 80%</span>
+    </span>
+    <span class="shop-sell-price">{{ it.venda_display }}</span>
+    <form method="post" action="{% url 'personagem_vender_item' mercado_ativo.id_personagem %}" class="shop-sell-form" data-shop-sell>
+      {% csrf_token %}
+      <input type="hidden" name="item" value="{{ it.id }}">
+      <input type="hidden" name="qtd" value="1">
+      <input type="hidden" name="next" value="{{ mercado_next }}">
+      <button type="submit" class="shop-btn sell" data-nome="{{ it.nome }}" data-valor="{{ it.venda_display }}">Vender 1</button>
+    </form>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="shop-note">Nada a vender: entram aqui os itens mundanos com preço de catálogo. Item mágico se anuncia no <a href="{% url 'mercado_comunidade' %}">Mercado da Comunidade</a>, pela Mochila.</p>
+{% endif %}

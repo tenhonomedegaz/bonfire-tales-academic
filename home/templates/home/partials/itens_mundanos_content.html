@@ -1,307 +1,92 @@
 {% load static %}
-<div class="mu-shell" data-mu-root>
+{% comment %}VITRINE MUNDANA (Ficha v2, onda C) — loja, não wiki.
 
-  <!-- Filtros -->
-  <div id="muSearchBar" class="mu-filters">
-    <input id="mu-busca" type="search" placeholder="Buscar item mundano…" autocomplete="off"
-           class="w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)] outline-none focus:border-[var(--ember)]">
-    <div class="mt-3 flex flex-wrap gap-2" id="mu-cat-filters">
-      <button type="button" class="mu-cat-chip active" data-cat="todos">Todos</button>
-      <button type="button" class="mu-cat-chip" data-cat="armas">Armas</button>
-      <button type="button" class="mu-cat-chip" data-cat="armaduras">Armaduras</button>
-      <button type="button" class="mu-cat-chip" data-cat="ferramentas">Ferramentas</button>
-      <button type="button" class="mu-cat-chip" data-cat="pacotes">Pacotes</button>
-      <button type="button" class="mu-cat-chip" data-cat="equipamentos">Equipamentos</button>
-      {% for g in grupos_extra %}
-      <button type="button" class="mu-cat-chip" data-cat="{{ g.id }}">{{ g.label }}</button>
-      {% endfor %}
+Prateleiras = as CATEGORIAS do catálogo (dado, nunca lista fixa no template): cada seção é
+uma banca com sua grade de mercadorias. O card destaca NOME → META → PREÇO EM PO, e o botão
+Comprar posta nos endpoints de sempre (`personagem_comprar_item`) para o personagem ativo do
+balcão. Item sem preço fica exposto para consulta, com o rótulo "Recompensa de missão" e sem
+botão — a mesma guarda existe no backend.{% endcomment %}
+<div class="shop" data-shop-root data-shop-kind="mundano">
+
+  {% include 'home/partials/_mercado_balcao.html' with balcao_titulo='Armaria & Provisões' %}
+
+  <div class="shop-main">
+    <div class="shop-filters">
+      <input type="search" class="shop-search" data-shop-search autocomplete="off"
+             placeholder="Buscar mercadoria pelo nome…" aria-label="Buscar mercadoria">
+      <div class="shop-chips" data-shop-chips>
+        <button type="button" class="shop-chip is-active" data-shelf-filter="todas">Todas as prateleiras</button>
+        {% for c in categorias_filtro %}
+        <button type="button" class="shop-chip" data-shelf-filter="{{ c.value }}">{{ c.label }}</button>
+        {% endfor %}
+      </div>
+      <p class="shop-count"><strong data-shop-count>0</strong> mercadorias na vitrine</p>
     </div>
-    <p class="mt-3 text-xs text-[var(--muted)]"><span id="mu-count">0</span> item(ns)</p>
+
+    {% for g in prateleiras %}
+    <section class="shop-shelf" data-shelf="{{ g.id }}">
+      <header class="shelf-head">
+        <h2 class="shelf-name">{{ g.label }}</h2>
+        <span class="shelf-count">{{ g.a_venda }} à venda · {{ g.itens|length }} no catálogo</span>
+      </header>
+      <div class="shelf-grid">
+        {% for item in g.itens %}
+        <article class="goods" data-goods
+                 data-search="{{ item.nome|lower }} {{ item.cat_label|lower }} {{ item.sub_label|lower }}">
+          <button type="button" class="goods-face" data-goods-open="mu-{{ item.id_item }}">
+            <h3 class="goods-name">{{ item.nome }}</h3>
+            <p class="goods-meta">{{ item.sub_label|default:item.cat_label }}{% if item.mec_dano %} · {{ item.mec_dano }}{% elif item.mec_ca %} · CA {{ item.mec_ca }}{% endif %}</p>
+          </button>
+          <div class="goods-foot">
+            {% if item.preco_display %}
+              <span class="goods-price">{{ item.preco_display }}</span>
+              {% if mercado_ativo %}
+              <form method="post" action="{% url 'personagem_comprar_item' mercado_ativo.id_personagem %}" class="goods-buy" data-shop-buy>
+                {% csrf_token %}
+                <input type="hidden" name="item" value="{{ item.slug }}">
+                <input type="hidden" name="next" value="{{ mercado_next }}">
+                <input type="number" name="qtd" min="1" max="99" value="1" class="goods-qty" aria-label="Quantidade de {{ item.nome }}">
+                <button type="submit" class="shop-btn buy" data-nome="{{ item.nome }}">Comprar</button>
+              </form>
+              {% endif %}
+            {% else %}
+              <span class="goods-price is-mission">Recompensa de missão</span>
+            {% endif %}
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+      <p class="shelf-empty" data-shelf-empty hidden>Nada nesta prateleira com o filtro atual.</p>
+    </section>
+    {% empty %}
+    <p class="shop-empty">Nenhum item mundano foi catalogado ainda.</p>
+    {% endfor %}
+
+    <p class="shop-empty" data-shop-noresult hidden>Nenhuma mercadoria encontrada.</p>
   </div>
 
-  <div class="talent-main-grid grid gap-3 border-t border-bonfire-stroke pt-4 flex-1">
-    <button type="button" class="talent-mobile-menu-button" id="muMobileMenuButton" aria-label="Abrir lista de itens">
-      <svg xmlns="http://www.w3.org/2000/svg" class="open-icon h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 5 7 7-7 7"/></svg>
-      <svg xmlns="http://www.w3.org/2000/svg" class="close-icon h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 19-7-7 7-7"/></svg>
-    </button>
-    <button type="button" class="talent-mobile-backdrop" id="muMobileBackdrop" aria-label="Fechar lista"></button>
-
-    <aside class="talent-list-panel xl:sticky xl:top-24 h-full max-h-[calc(100vh-140px)] overflow-y-auto custom-scrollbar flex flex-col gap-1.5 pr-2" id="muList">
-
-      {% for item in armas %}
-      <div class="mu-list-item" data-id="arma-{{ forloop.counter }}" data-cat="armas"
-           data-search="{{ item.nome|lower }} arma {{ item.get_subcategoria_display|default:item.subcategoria|lower }}">
-        <div class="mu-list-item-main">
-          <h3 class="mu-list-item-name" title="{{ item.nome }}">{{ item.nome }}</h3>
-          <p class="mu-list-item-meta">{{ item.get_subcategoria_display|default:item.subcategoria }}{% if item.mec_dano %} · {{ item.mec_dano }}{% endif %}</p>
+  {# Detalhe de cada mercadoria, renderizado server-side e mostrado no balcão ao clicar. #}
+  <div class="shop-store" hidden>
+    {% for item in itens %}
+    <template id="mu-{{ item.id_item }}-tpl">
+      <div class="shop-detail-card">
+        <span class="shop-detail-eyebrow">{{ item.cat_label }}{% if item.sub_label %} · {{ item.sub_label }}{% endif %}</span>
+        <h3 class="shop-detail-name">{{ item.nome }}</h3>
+        <div class="shop-detail-stats">
+          <span class="shop-stat is-price"><span>Preço</span><strong>{{ item.preco_display|default:"Recompensa de missão" }}</strong></span>
+          {% if item.mec_dano %}<span class="shop-stat"><span>Dano</span><strong>{{ item.mec_dano }}</strong></span>{% endif %}
+          {% if item.mec_ca %}<span class="shop-stat"><span>Armadura</span><strong>CA {{ item.mec_ca }}</strong></span>{% endif %}
+          {% if item.peso %}<span class="shop-stat"><span>Peso</span><strong>{{ item.peso }} kg</strong></span>{% endif %}
+          {% if item.mec_forca_minima %}<span class="shop-stat"><span>Força mín.</span><strong>{{ item.mec_forca_minima }}</strong></span>{% endif %}
         </div>
-        <span class="mu-list-item-price">{{ item.preco|default:"--" }}</span>
-      </div>
-      {% endfor %}
-
-      {% for item in armaduras %}
-      <div class="mu-list-item" data-id="armadura-{{ forloop.counter }}" data-cat="armaduras"
-           data-search="{{ item.nome|lower }} armadura {{ item.get_subcategoria_display|default:item.subcategoria|lower }}">
-        <div class="mu-list-item-main">
-          <h3 class="mu-list-item-name" title="{{ item.nome }}">{{ item.nome }}</h3>
-          <p class="mu-list-item-meta">{{ item.get_subcategoria_display|default:item.subcategoria }}{% if item.mec_ca %} · CA {{ item.mec_ca }}{% endif %}</p>
-        </div>
-        <span class="mu-list-item-price">{{ item.preco|default:"--" }}</span>
-      </div>
-      {% endfor %}
-
-      {% for item in ferramentas %}
-      <div class="mu-list-item" data-id="ferramenta-{{ forloop.counter }}" data-cat="ferramentas"
-           data-search="{{ item.nome|lower }} ferramenta">
-        <div class="mu-list-item-main">
-          <h3 class="mu-list-item-name" title="{{ item.nome }}">{{ item.nome }}</h3>
-          <p class="mu-list-item-meta">Ferramenta</p>
-        </div>
-        <span class="mu-list-item-price">{{ item.preco|default:"--" }}</span>
-      </div>
-      {% endfor %}
-
-      {% for item in pacotes %}
-      <div class="mu-list-item" data-id="pacote-{{ forloop.counter }}" data-cat="pacotes"
-           data-search="{{ item.nome|lower }} pacote">
-        <div class="mu-list-item-main">
-          <h3 class="mu-list-item-name" title="{{ item.nome }}">{{ item.nome }}</h3>
-          <p class="mu-list-item-meta">Pacote</p>
-        </div>
-        <span class="mu-list-item-price">{{ item.preco|default:"--" }}</span>
-      </div>
-      {% endfor %}
-
-      {% for item in equipamentos %}
-      <div class="mu-list-item" data-id="equip-{{ forloop.counter }}" data-cat="equipamentos"
-           data-search="{{ item.nome|lower }} equipamento aventura">
-        <div class="mu-list-item-main">
-          <h3 class="mu-list-item-name" title="{{ item.nome }}">{{ item.nome }}</h3>
-          <p class="mu-list-item-meta">Equipamento de Aventura</p>
-        </div>
-        <span class="mu-list-item-price">{{ item.preco|default:"--" }}</span>
-      </div>
-      {% endfor %}
-
-      {% for g in grupos_extra %}
-      {% for item in g.itens %}
-      <div class="mu-list-item" data-id="extra-{{ g.id }}-{{ forloop.counter }}" data-cat="{{ g.id }}"
-           data-search="{{ item.nome|lower }} {{ g.label|lower }} {{ item.get_subcategoria_display|default:item.subcategoria|lower }}">
-        <div class="mu-list-item-main">
-          <h3 class="mu-list-item-name" title="{{ item.nome }}">{{ item.nome }}</h3>
-          <p class="mu-list-item-meta">{{ g.label }}</p>
-        </div>
-        <span class="mu-list-item-price">{{ item.preco|default:"--" }}</span>
-      </div>
-      {% endfor %}
-      {% endfor %}
-
-      <p class="mu-empty text-bonfire-muted text-sm p-3 text-center" hidden>Nenhum item encontrado.</p>
-    </aside>
-
-    <main class="talent-detail-panel hidden mt-4 md:mt-0 md:pl-4" id="muDetail">
-      <div class="flex items-center justify-center h-full text-bonfire-muted flex-col gap-4">
-        <svg class="w-16 h-16 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-        </svg>
-        <p class="text-sm">Selecione um item para ver os detalhes.</p>
-      </div>
-    </main>
-  </div>
-
-  <!-- Loja de detalhe -->
-  <div class="mu-data-store" hidden>
-    {% for item in armas %}
-    <template id="arma-{{ forloop.counter }}-tpl">
-      <div class="mu-detail">
-        <span class="mu-detail-cat">Arma · {{ item.get_subcategoria_display|default:item.subcategoria }}</span>
-        <h2 class="mu-detail-title">{{ item.nome }}</h2>
-        <div class="mu-detail-stats">
-          {% if item.mec_dano %}<div class="mu-stat"><span class="mu-stat-label">Dano</span><span class="mu-stat-value mu-stat-accent">{{ item.mec_dano }}</span></div>{% endif %}
-          <div class="mu-stat"><span class="mu-stat-label">Preço</span><span class="mu-stat-value">{{ item.preco|default:"--" }}</span></div>
-          <div class="mu-stat"><span class="mu-stat-label">Peso</span><span class="mu-stat-value">{{ item.peso|default:"--" }} kg</span></div>
-        </div>
-        {% if item.mec_propriedades %}<p class="mu-detail-line"><strong>Propriedades:</strong> {{ item.mec_propriedades }}</p>{% endif %}
-        {% if item.mec_maestrias %}<p class="mu-detail-line"><strong>Maestria:</strong> <span class="text-[var(--spark)]">{{ item.mec_maestrias }}</span></p>{% endif %}
-        {% if item.descricao_markdown %}<div class="bonfire-markdown mu-detail-desc text-sm" data-markdown-source>{{ item.descricao_markdown|escape }}</div>{% endif %}
+        {% if item.mec_propriedades %}<p class="shop-detail-line"><strong>Propriedades:</strong> {{ item.mec_propriedades }}</p>{% endif %}
+        {% if item.mec_maestrias %}<p class="shop-detail-line"><strong>Maestria:</strong> {{ item.mec_maestrias }}</p>{% endif %}
+        {% if item.mec_furtividade %}<p class="shop-detail-line" style="color:var(--flame)"><strong>Desvantagem em Furtividade</strong></p>{% endif %}
+        {% if item.descricao_markdown %}
+        <div class="bonfire-markdown shop-detail-desc" data-markdown-source>{{ item.descricao_markdown|escape }}</div>
+        {% endif %}
       </div>
     </template>
-    {% endfor %}
-
-    {% for item in armaduras %}
-    <template id="armadura-{{ forloop.counter }}-tpl">
-      <div class="mu-detail">
-        <span class="mu-detail-cat">Armadura · {{ item.get_subcategoria_display|default:item.subcategoria }}</span>
-        <h2 class="mu-detail-title">{{ item.nome }}</h2>
-        <div class="mu-detail-stats">
-          {% if item.mec_ca %}<div class="mu-stat"><span class="mu-stat-label">Classe de Armadura</span><span class="mu-stat-value mu-stat-stat">CA {{ item.mec_ca }}</span></div>{% endif %}
-          <div class="mu-stat"><span class="mu-stat-label">Preço</span><span class="mu-stat-value">{{ item.preco|default:"--" }}</span></div>
-          <div class="mu-stat"><span class="mu-stat-label">Peso</span><span class="mu-stat-value">{{ item.peso|default:"--" }} kg</span></div>
-          {% if item.mec_forca_minima %}<div class="mu-stat"><span class="mu-stat-label">Força Mínima</span><span class="mu-stat-value">{{ item.mec_forca_minima }}</span></div>{% endif %}
-        </div>
-        {% if item.mec_furtividade %}<p class="mu-detail-line text-[var(--flame)]"><strong>Desvantagem em Furtividade</strong></p>{% endif %}
-        {% if item.descricao_markdown %}<div class="bonfire-markdown mu-detail-desc text-sm" data-markdown-source>{{ item.descricao_markdown|escape }}</div>{% endif %}
-      </div>
-    </template>
-    {% endfor %}
-
-    {% for item in ferramentas %}
-    <template id="ferramenta-{{ forloop.counter }}-tpl">
-      <div class="mu-detail">
-        <span class="mu-detail-cat">Ferramenta</span>
-        <h2 class="mu-detail-title">{{ item.nome }}</h2>
-        <div class="mu-detail-stats">
-          <div class="mu-stat"><span class="mu-stat-label">Preço</span><span class="mu-stat-value">{{ item.preco|default:"--" }}</span></div>
-          <div class="mu-stat"><span class="mu-stat-label">Peso</span><span class="mu-stat-value">{{ item.peso|default:"--" }} kg</span></div>
-        </div>
-        {% if item.descricao_markdown %}<div class="bonfire-markdown mu-detail-desc text-sm" data-markdown-source>{{ item.descricao_markdown|escape }}</div>{% endif %}
-      </div>
-    </template>
-    {% endfor %}
-
-    {% for item in pacotes %}
-    <template id="pacote-{{ forloop.counter }}-tpl">
-      <div class="mu-detail">
-        <span class="mu-detail-cat">Pacote</span>
-        <h2 class="mu-detail-title">{{ item.nome }}</h2>
-        <div class="mu-detail-stats">
-          <div class="mu-stat"><span class="mu-stat-label">Preço</span><span class="mu-stat-value">{{ item.preco|default:"--" }}</span></div>
-        </div>
-        {% if item.descricao_markdown %}<div class="bonfire-markdown mu-detail-desc text-sm" data-markdown-source>{{ item.descricao_markdown|escape }}</div>{% endif %}
-      </div>
-    </template>
-    {% endfor %}
-
-    {% for item in equipamentos %}
-    <template id="equip-{{ forloop.counter }}-tpl">
-      <div class="mu-detail">
-        <span class="mu-detail-cat">Equipamento de Aventura</span>
-        <h2 class="mu-detail-title">{{ item.nome }}</h2>
-        <div class="mu-detail-stats">
-          <div class="mu-stat"><span class="mu-stat-label">Preço</span><span class="mu-stat-value">{{ item.preco|default:"--" }}</span></div>
-          <div class="mu-stat"><span class="mu-stat-label">Peso</span><span class="mu-stat-value">{{ item.peso|default:"--" }} kg</span></div>
-        </div>
-        {% if item.descricao_markdown %}<div class="bonfire-markdown mu-detail-desc text-sm" data-markdown-source>{{ item.descricao_markdown|escape }}</div>{% endif %}
-      </div>
-    </template>
-    {% endfor %}
-
-    {% for g in grupos_extra %}
-    {% for item in g.itens %}
-    <template id="extra-{{ g.id }}-{{ forloop.counter }}-tpl">
-      <div class="mu-detail">
-        <span class="mu-detail-cat">{{ g.label }}{% if item.get_subcategoria_display or item.subcategoria %} · {{ item.get_subcategoria_display|default:item.subcategoria }}{% endif %}</span>
-        <h2 class="mu-detail-title">{{ item.nome }}</h2>
-        <div class="mu-detail-stats">
-          <div class="mu-stat"><span class="mu-stat-label">Preço</span><span class="mu-stat-value">{{ item.preco|default:"--" }}</span></div>
-          {% if item.peso %}<div class="mu-stat"><span class="mu-stat-label">Peso</span><span class="mu-stat-value">{{ item.peso }} lb</span></div>{% endif %}
-        </div>
-        {% if item.descricao_markdown %}<div class="bonfire-markdown mu-detail-desc text-sm" data-markdown-source>{{ item.descricao_markdown|escape }}</div>{% else %}<p class="text-sm text-[var(--muted)] mt-3">Regras conforme o padrão do livro de origem.</p>{% endif %}
-      </div>
-    </template>
-    {% endfor %}
     {% endfor %}
   </div>
 </div>
-
-<script>
-(function(){
-  var root = document.querySelector('[data-mu-root]');
-  if (!root || root.dataset.muInit === '1') return;
-  root.dataset.muInit = '1';
-
-  var listContainer = root.querySelector('#muList');
-  var detailContainer = root.querySelector('#muDetail');
-  var countEl = root.querySelector('#mu-count');
-  var busca = root.querySelector('#mu-busca');
-  var catFilters = root.querySelector('#mu-cat-filters');
-  var emptyMsg = root.querySelector('.mu-empty');
-  var mobileMenuButton = root.querySelector('#muMobileMenuButton');
-  var mobileBackdrop = root.querySelector('#muMobileBackdrop');
-
-  var items = Array.prototype.slice.call(listContainer.querySelectorAll('.mu-list-item'));
-  var activeCat = 'todos';
-
-  function norm(s){ return (s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase(); }
-
-  function renderMarkdownIn(node){
-    node.querySelectorAll('[data-markdown-source]').forEach(function(el){
-      if (el.dataset.rendered === '1') return;
-      var source = el.textContent || '';
-      if (typeof renderBonfireMarkdown === 'function') el.innerHTML = renderBonfireMarkdown(source);
-      else if (window.marked && window.marked.parse) el.innerHTML = window.marked.parse(source, { gfm:true, breaks:true });
-      el.dataset.rendered = '1';
-    });
-  }
-
-  function openMenu(){ document.body.classList.add('talent-menu-open'); }
-  function closeMenu(){ document.body.classList.remove('talent-menu-open'); }
-
-  function applyFilters(){
-    var q = norm(busca.value.trim());
-    var shown = 0;
-    items.forEach(function(it){
-      var cat = it.getAttribute('data-cat') || '';
-      var matchCat = activeCat === 'todos' || cat === activeCat;
-      var matchSearch = !q || norm(it.getAttribute('data-search')).indexOf(q) !== -1;
-      if (matchCat && matchSearch){ it.style.display = ''; shown++; }
-      else it.style.display = 'none';
-    });
-    countEl.textContent = shown;
-    if (emptyMsg) emptyMsg.hidden = shown !== 0;
-  }
-
-  function selectItem(id){
-    var tpl = root.querySelector('#' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '-tpl');
-    if (!tpl) return;
-    items.forEach(function(it){ it.classList.toggle('selected', it.getAttribute('data-id') === id); });
-    closeMenu();
-
-    detailContainer.classList.remove('hidden');
-    detailContainer.classList.add('flex', 'flex-col');
-    detailContainer.innerHTML = '';
-    detailContainer.appendChild(tpl.content.cloneNode(true));
-    renderMarkdownIn(detailContainer);
-
-    detailContainer.classList.remove('talent-detail-enter');
-    void detailContainer.offsetWidth;
-    detailContainer.classList.add('talent-detail-enter');
-  }
-
-  items.forEach(function(it){
-    it.addEventListener('click', function(){ selectItem(it.getAttribute('data-id')); });
-  });
-
-  catFilters.addEventListener('click', function(e){
-    var btn = e.target.closest('.mu-cat-chip');
-    if (!btn) return;
-    activeCat = btn.getAttribute('data-cat');
-    catFilters.querySelectorAll('.mu-cat-chip').forEach(function(b){ b.classList.toggle('active', b === btn); });
-    closeMenu();
-    applyFilters();
-  });
-
-  busca.addEventListener('input', applyFilters);
-
-  mobileMenuButton && mobileMenuButton.addEventListener('click', openMenu);
-  mobileBackdrop && mobileBackdrop.addEventListener('click', closeMenu);
-  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeMenu(); });
-
-  // Move a barra de busca para dentro do drawer no mobile (mesmo padrão de talentos.html)
-  (function(){
-    var mq = window.matchMedia('(max-width: 1100px)');
-    var searchBar = root.querySelector('#muSearchBar');
-    if (!searchBar) return;
-    var originalParent = searchBar.parentElement;
-    var originalNext = searchBar.nextElementSibling;
-    function handleLayout(e){
-      if (e.matches) listContainer.insertBefore(searchBar, listContainer.firstChild);
-      else if (originalParent) originalParent.insertBefore(searchBar, originalNext);
-    }
-    if (mq.addEventListener) mq.addEventListener('change', handleLayout); else mq.addListener(handleLayout);
-    handleLayout(mq);
-  })();
-
-  applyFilters();
-})();
-</script>

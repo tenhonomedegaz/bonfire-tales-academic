@@ -68,17 +68,17 @@ class MoedaEmPoTests(LevelUpLoteBase):
         self.assertIn('0,2 PO', html)
         self.assertNotIn('>2 PP<', html)
 
-    def test_loja_do_editar_ficha_lista_precos_em_po(self):
+    def test_loja_lista_precos_em_po(self):
+        # A loja migrou para o Mercado na onda C — a regra da moeda é a mesma: preço e
+        # carteira SEMPRE em PO, nunca em PP/PC.
         p = self._guerreiro_no_nivel(1)
         p.carteira_pc = 100_000
         p.save(update_fields=['carteira_pc'])
         self.client.force_login(p.dono)
-        html = self.client.get(reverse('editar_ficha', args=[p.pk])).content.decode('utf-8')
-        self.assertIn('1000 PO', html)  # carteira em PO
-        # nenhum card de preço da loja em PP/PC
-        self.assertNotIn('mu-list-item-price">0 PC', html)
+        html = self.client.get(reverse('mercado_itens_mundanos')).content.decode('utf-8')
+        self.assertIn('1000 PO', html)  # carteira do personagem ativo, em PO
         for moeda in (' PP<', ' PC<'):
-            self.assertNotIn('mu-list-item-price">%s' % moeda, html)
+            self.assertNotIn('goods-price">%s' % moeda, html)
 
 
 class DescansoCanonicoNaFichaTests(LevelUpLoteBase):
@@ -89,10 +89,9 @@ class DescansoCanonicoNaFichaTests(LevelUpLoteBase):
         self.assertNotIn(reverse('personagem_descansar', args=[p.pk]), html)
         self.assertNotIn('data-rest-form', html)
         self.assertNotIn('Descanso Curto', html)
-        # recursos e mercado seguem no editar_ficha (o inventário saiu na onda B —
-        # ver test_ficha_v2_onda_b.EditarFichaSemInventarioTests)
-        self.assertIn('Recursos de Classe', html)
-        self.assertIn('id="loja-shell"', html)
+        # (na onda C a página virou painel da staff: recursos, inventário e loja saíram —
+        # ver test_ficha_v2_onda_b/onda_c)
+        self.assertIn('lvl-aventuras-staffbox', html)
 
     def test_ficha_mantem_o_descanso_canonico(self):
         p = self._guerreiro_no_nivel(5)

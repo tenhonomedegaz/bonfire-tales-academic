@@ -4366,107 +4366,52 @@ def _opcao_grupos(personagem, classe_id=None):
 
 @login_required(login_url='/login/')
 def editar_ficha_view(request, pk):
-    """Edição de uma ficha: inventário, mercado, informações e manutenção de magias. O
-    LEVEL-UP (subir de nível + escolhas de progressão) vive numa experiência dedicada
-    (personagem_subir_nivel); aqui fica só o botão de acesso a ela."""
+    """FERRAMENTA DA STAFF sobre uma ficha (Ficha v2, onda C): lançamento/reversão de
+    aventuras e concessão/reversão de itens de missão.
+
+    Nada aqui é do jogador: level-up (página dedicada), inventário/equipar (aba Mochila),
+    magias preparadas (aba Magias), recursos e descanso (aba Ficha) e agora a LOJA (páginas
+    do Mercado) já vivem em lugares próprios. Por isso o acesso é fechado à staff — o dono
+    não-staff é devolvido para a própria ficha."""
     from .character_engine import derive
     from . import permissions as perms_mod
     p = _ficha_editavel(request, pk)
+    if not perms_mod.is_staff_user(request.user):
+        return redirect('ficha_detail', pk=pk)
     pc = p.classes.filter(principal=True).first() or p.classes.first()
     ficha = derive(p)
-    # Level-up saiu daqui: vive numa página dedicada (personagem_subir_nivel GET). Aqui só
-    # o STATUS (fonte do botão) e a manutenção de magias (trocar/preparar) permanecem.
-    pendm = _pendencias_magias(p)
-    levelup_status = _levelup_status(p, ficha)
-    from .models import TbTalento, TbItemMundano
-    # ── Mercado no formato CATÁLOGO (busca + chips + cards nome/preço) ──
-    # Listas planas com metadados por item para busca/filtro no cliente; só itens
-    # comercializáveis (preço parseável no mundano; preco>0 no mágico — guard já existe
-    # no backend, recompensa de missão/preço 0 fica de fora).
-    from .models import TbItemMagico
+    from .models import TbItemMundano, TbItemMagico
     cat_label = dict(TbItemMundano.CATEGORIA_CHOICES)
-    loja_mundano, _cats_seen = [], []
-    for it in TbItemMundano.objects.order_by('nome'):
-        if _preco_em_pc(it.preco) is None:
-            continue
-        if it.categoria not in _cats_seen:
-            _cats_seen.append(it.categoria)
-        loja_mundano.append({
-            'slug': it.slug, 'nome': it.nome, 'preco': _preco_display(it.preco),
-            'cat': it.categoria, 'cat_label': cat_label.get(it.categoria, it.categoria),
-            'meta': it.subcategoria or cat_label.get(it.categoria, it.categoria)})
-    loja_mundano_cats = [{'id': c, 'label': cat_label.get(c, c)}
-                         for c in sorted(_cats_seen, key=lambda c: cat_label.get(c, c))]
-
     rar_label = dict(TbItemMagico.RARIDADE_CHOICES)
-    slot_label = dict(TbItemMagico.SLOT_CHOICES)
-    _base_order = ['comum', 'incomum', 'raro', 'muito_raro', 'lendario', 'artefato']
-
-    def _rar_key(r):
-        base = re.sub(r'_(menor|maior)$', '', r or '')
-        return (_base_order.index(base) if base in _base_order else 99,
-                1 if (r or '').endswith('_maior') else 0, r or '')
-    loja_magico, _rars_seen, _lojas_seen = [], [], []
-    for it in TbItemMagico.objects.filter(preco__gt=0).order_by('raridade', 'nome'):
-        base_rar = re.sub(r'_(menor|maior)$', '', it.raridade or '')
-        if it.raridade not in _rars_seen:
-            _rars_seen.append(it.raridade)
-        loja_nome = (it.loja or '').strip()
-        if loja_nome and loja_nome not in _lojas_seen:
-            _lojas_seen.append(loja_nome)
-        loja_magico.append({
-            'slug': it.slug, 'nome': it.nome, 'preco': '%g PO' % float(it.preco),
-            'raridade': it.raridade, 'raridade_label': rar_label.get(it.raridade, it.raridade),
-            'base_rarity': base_rar, 'tipo': it.tipo or slot_label.get(it.slot, it.slot),
-            'loja': loja_nome, 'requer_sintonizacao': it.requer_sintonizacao})
-    loja_magico_rars = [{'value': r, 'label': rar_label.get(r, r), 'base': re.sub(r'_(menor|maior)$', '', r or '')}
-                        for r in sorted(_rars_seen, key=_rar_key)]
-    loja_magico_lojas = sorted(_lojas_seen)
-    from .character_engine import _recursos_consumiveis, derive
-    recursos_consumiveis = _recursos_consumiveis(p, list(p.classes.select_related('id_classe', 'id_subclasse')))
-    magias_preparadas = _magias_preparadas_infos(p, ficha)
     transacoes = _transacoes_em_po(p.transacoes.all()[:30])
     classes_atuais = [{'id': c.id_classe.id_classe, 'nome': c.id_classe.nome, 'nivel': c.nivel,
                        'principal': c.principal} for c in p.classes.select_related('id_classe').order_by('-principal', 'id')]
     aventura_ledger = list(p.aventuras_ledger.select_related('criado_por', 'revertido_por')[:30])
     # ── Painel STAFF de CONCESSÃO de item (missão/recompensa sem preço) ──
-    # Catálogo COMPLETO (sem o filtro de preço da loja) só é montado para a staff, com
-    # um flag `sem_preco` por item para sinalizar recompensa de missão. A trilha das
-    # concessões já feitas (linhas de inventário com concedido_em) sai numa mini-lista.
-    is_staff = perms_mod.is_staff_user(request.user)
-    conceder_magico = conceder_mundano = concessoes = None
-    if is_staff:
-        conceder_magico = [
-            {'slug': it.slug, 'nome': it.nome,
-             'meta': rar_label.get(it.raridade, it.raridade),
-             'sem_preco': not (it.preco and float(it.preco) > 0)}
-            for it in TbItemMagico.objects.order_by('nome')]
-        conceder_mundano = [
-            {'slug': it.slug, 'nome': it.nome,
-             'meta': cat_label.get(it.categoria, it.categoria),
-             'sem_preco': _preco_em_pc(it.preco) is None}
-            for it in TbItemMundano.objects.order_by('nome')]
-        concessoes = list(p.inventario.filter(concedido_em__isnull=False)
-                          .select_related('concedido_por', 'id_item_magico')
-                          .order_by('-concedido_em', '-id')[:40])
+    # Catálogo COMPLETO (sem o filtro de preço da loja), com um flag `sem_preco` por item
+    # para sinalizar recompensa de missão. A trilha das concessões já feitas (linhas de
+    # inventário com concedido_em) sai numa mini-lista.
+    conceder_magico = [
+        {'slug': it.slug, 'nome': it.nome,
+         'meta': rar_label.get(it.raridade, it.raridade),
+         'sem_preco': not (it.preco and float(it.preco) > 0)}
+        for it in TbItemMagico.objects.order_by('nome')]
+    conceder_mundano = [
+        {'slug': it.slug, 'nome': it.nome,
+         'meta': cat_label.get(it.categoria, it.categoria),
+         'sem_preco': _preco_em_pc(it.preco) is None}
+        for it in TbItemMundano.objects.order_by('nome')]
+    concessoes = list(p.inventario.filter(concedido_em__isnull=False)
+                      .select_related('concedido_por', 'id_item_magico')
+                      .order_by('-concedido_em', '-id')[:40])
     return render(request, 'home/pages/editar_ficha.html', {
-        'page_title': 'Editar — %s' % p.nome,
+        'page_title': 'Staff — %s' % p.nome,
         'p': p, 'pc': pc, 'ficha': ficha,
         'nivel': pc.nivel if pc else 1,
-        'pend_magias': pendm,
-        'levelup_status': levelup_status,
         'carteira_display': _po_display(p.carteira_pc),
-        'loja_mundano': loja_mundano,
-        'loja_mundano_cats': loja_mundano_cats,
-        'loja_magico': loja_magico,
-        'loja_magico_rars': loja_magico_rars,
-        'loja_magico_lojas': loja_magico_lojas,
-        'recursos_consumiveis': recursos_consumiveis,
-        'magias_preparadas': magias_preparadas,
         'transacoes': transacoes,
-        'is_staff': is_staff,
+        'is_staff': True,
         'classes_atuais': classes_atuais,
-        'compra_msg': request.GET.get('compra'),
         'aventura_ledger': aventura_ledger,
         'rollback_msg': request.GET.get('rollback'),
         'conceder_magico': conceder_magico,
@@ -4831,6 +4776,13 @@ def _inventario_ajax_payload(request, p, *, msg='ok', ok=True, detalhe=''):
             'home/partials/_ficha_sintonizados.html', ctx, request=request),
         'equipados_html': render_to_string(
             'home/partials/_ficha_equipados.html', ctx, request=request),
+        # Painel VENDER do Mercado (onda C): compra e venda mexem no mesmo inventário, então
+        # a lista de venda volta junto e a vitrine se atualiza sem reload.
+        'venda_html': render_to_string(
+            'home/partials/_mercado_venda.html',
+            {'p': p, 'mercado_ativo': p, 'mercado_venda': _mercado_vendaveis(p),
+             'mercado_next': reverse('mercado_itens_mundanos')},
+            request=request),
         'ficha': {
             'ca': ficha.get('ca'),
             'pv_maximo': (ficha.get('pv') or {}).get('maximo_calculado'),
@@ -5909,16 +5861,29 @@ def personagem_levelup_preview(request, pk):
                          'pendencias': pend, 'erros': erros})
 
 
+def _mercado_voltar(request, msg):
+    """Destino do PRG clássico (sem JS) das mutações do Mercado. A loja vive nas páginas do
+    Mercado (onda C) — o `next` do form diz de qual vitrine veio; validado contra o host
+    para não virar redirect aberto."""
+    from django.utils.http import url_has_allowed_host_and_scheme
+    destino = request.POST.get('next') or request.GET.get('next')
+    if not (destino and url_has_allowed_host_and_scheme(
+            destino, allowed_hosts={request.get_host()}, require_https=request.is_secure())):
+        destino = reverse('mercado_itens_mundanos')
+    return redirect('%s%scompra=%s' % (destino, '&' if '?' in destino else '?', msg))
+
+
 def _compra_resposta(request, pk, p, msg, ok):
     """Resposta de compra: JSON (quando fetch/XHR) ou redirect PRG clássico (no-JS).
 
-    No caso AJAX bem-sucedido devolve carteira + inventário re-renderizado para a loja da
-    ficha atualizar a página sem reload. O partial de inventário é o MESMO usado no template."""
+    No caso AJAX bem-sucedido devolve carteira + inventário + painel de venda re-renderizados
+    para a vitrine do Mercado atualizar a página sem reload. Os partials são os MESMOS usados
+    nos templates."""
     if is_ajax(request):
         if not ok:
             return JsonResponse({'ok': False, 'msg': msg})
         return JsonResponse(_inventario_ajax_payload(request, p, msg=msg))
-    return redirect(reverse('editar_ficha', args=[pk]) + '?compra=' + msg)
+    return _mercado_voltar(request, msg)
 
 
 @login_required(login_url='/login/')
@@ -5999,19 +5964,27 @@ def personagem_equipar_item(request, pk):
 @require_POST
 def personagem_vender_item(request, pk):
     """Vende um item MUNDANO do inventário por 80% do valor. Item mágico vai pro
-    Mercado da Comunidade (50%), não por aqui."""
+    Mercado da Comunidade (50%), não por aqui.
+
+    A UI da venda migrou para o painel VENDER do Mercado (onda C): por fetch devolve o
+    mesmo payload da compra (carteira + inventário + lista de venda); sem JS, PRG de volta
+    pra vitrine de onde veio."""
     from .models import TbPersonagemItem
     p = _ficha_editavel(request, pk)
-    # A venda é acionada pela MOCHILA da ficha (onda B) — é para lá que o PRG volta.
-    back = reverse('ficha_detail', args=[pk]) + '?aba=mochila'
+
+    def _falha(msg):
+        if is_ajax(request):
+            return JsonResponse({'ok': False, 'msg': msg}, status=400)
+        return _mercado_voltar(request, msg)
+
     it = TbPersonagemItem.objects.filter(id=request.POST.get('item'), id_personagem=p).first()
     if not it:
-        return redirect(back)
+        return _falha('invalido')
     if it.id_item_magico_id:
-        return redirect(back + '&compra=magico_venda')
+        return _falha('magico_venda')
     unit = _preco_venda_mundano_pc(it.custo)
     if unit is None:
-        return redirect(back + '&compra=sem_preco')
+        return _falha('sem_preco')
     try:
         qtd = max(1, min(int(it.qtd or 1), int(request.POST.get('qtd') or 1)))
     except (TypeError, ValueError):
@@ -6027,7 +6000,12 @@ def personagem_vender_item(request, pk):
         else:
             it.delete()
         _registrar_transacao(p, 'venda', 'Venda: %s x%d' % (nome, qtd), credito)
-    return redirect(back + '&compra=vendido')
+    if is_ajax(request):
+        payload = _inventario_ajax_payload(request, p, msg='vendido')
+        payload['credito_display'] = _po_display(credito)
+        payload['item_nome'] = nome
+        return JsonResponse(payload)
+    return _mercado_voltar(request, 'vendido')
 
 
 @login_required(login_url='/login/')
@@ -6511,6 +6489,7 @@ def ficha_detail_view(request, pk):
         'personalidade': _personalidade_ficha(p),
         'transacoes': transacoes,
         'pode_editar': pode_editar,
+        'is_staff': perms.is_staff_user(request.user),
         'levelup_status': levelup_status,
         'appearance': _appearance_context(p.ficha_theme, p.foto_frame, p.ficha_effect,
                                           p.ficha_theme_custom, p.ficha_background_url),
@@ -10748,10 +10727,100 @@ def cronica_review_action(request, cronica_id):
     return JsonResponse({'error': 'Ação inválida.'}, status=400)
 
 
+# ══════════════ MERCADO — vitrine de LOJA (Ficha v2, onda C) ═══════════════════
+# As páginas do Mercado deixam de ser catálogo-wiki e viram LOJA DE RPG: o jogador escolhe
+# o PERSONAGEM ATIVO (seletor persistido em sessão, só personagens dele), vê a carteira em
+# PO e compra/vende dali. A MECÂNICA não muda de lugar — os endpoints continuam sendo
+# `personagem_comprar_item` / `personagem_comprar_magico` / `personagem_vender_item`; o que
+# migrou foi a UI (a loja saiu do editar_ficha, que virou ferramenta só-da-staff).
+_MERCADO_SESSAO = 'mercado_personagem'
+_MERCADO_BAZAR = 'Bazar Geral'   # prateleira dos itens sem loja declarada no catálogo
+
+
+def _mercado_chave(nome):
+    """Chave de agrupamento de PRATELEIRA a partir de um campo livre do catálogo.
+
+    Só normaliza (espaço/acento/caixa) para que 'Somente via Quest' e 'Somente Via Quest'
+    caiam na mesma prateleira. A LISTA de lojas é dado do catálogo — nunca hardcode."""
+    txt = re.sub(r'\s+', ' ', (nome or '').strip())
+    if not txt:
+        return ''
+    base = unicodedata.normalize('NFD', txt)
+    return ''.join(c for c in base if unicodedata.category(c) != 'Mn').lower()
+
+
+def _mercado_prateleiras(itens, loja_de):
+    """Agrupa itens em PRATELEIRAS (seções da vitrine) pela loja/categoria de cada um.
+
+    `loja_de(item)` devolve o rótulo cru; itens sem rótulo caem no Bazar Geral. A ordem é
+    alfabética pelo rótulo, com o bazar por último."""
+    grupos = {}
+    for it in itens:
+        rotulo = (loja_de(it) or '').strip()
+        chave = _mercado_chave(rotulo)
+        g = grupos.get(chave)
+        if g is None:
+            g = grupos[chave] = {
+                'id': slugify(chave) or 'bazar',
+                'label': rotulo or _MERCADO_BAZAR,
+                'itens': [],
+                'a_venda': 0,
+            }
+        g['itens'].append(it)
+        if getattr(it, 'preco_display', None):
+            g['a_venda'] += 1
+    return sorted(grupos.values(), key=lambda g: (g['label'] == _MERCADO_BAZAR,
+                                                  g['label'].lower()))
+
+
+def _mercado_vendaveis(p):
+    """Inventário VENDÁVEL do personagem ativo: itens mundanos com preço, ao valor de venda
+    de sempre (80% — `_preco_venda_mundano_pc`). Item mágico não entra: ele vai a leilão no
+    Mercado da Comunidade, por outra regra."""
+    linhas = []
+    if not p:
+        return linhas
+    for it in p.inventario.filter(id_item_magico__isnull=True).order_by('nome'):
+        venda = _preco_venda_mundano_pc(it.custo)
+        if not venda:
+            continue
+        linhas.append({'id': it.id, 'nome': it.nome, 'qtd': int(it.qtd or 1),
+                       'custo_display': _preco_display(it.custo),
+                       'venda_pc': venda, 'venda_display': _po_display(venda)})
+    return linhas
+
+
+def _mercado_contexto(request):
+    """Contexto do BALCÃO (comum às duas vitrines): personagens do usuário, o ATIVO, a
+    carteira em PO e a lista de venda. A escolha do personagem vem de `?personagem=` e fica
+    na sessão — o seletor persiste entre Mundano/Mágico e entre visitas."""
+    from .models import TbPersonagem
+    personagens, ativo = [], None
+    if request.user.is_authenticated:
+        personagens = list(TbPersonagem.objects.filter(dono=request.user, arquivado=False)
+                           .order_by('nome'))
+        if personagens:
+            escolhido = request.GET.get('personagem') or request.session.get(_MERCADO_SESSAO)
+            ativo = (next((p for p in personagens if str(p.pk) == str(escolhido)), None)
+                     or personagens[0])
+            if request.session.get(_MERCADO_SESSAO) != ativo.pk:
+                request.session[_MERCADO_SESSAO] = ativo.pk
+    return {
+        'mercado_logado': request.user.is_authenticated,
+        'mercado_personagens': personagens,
+        'mercado_ativo': ativo,
+        'mercado_carteira': _po_display(ativo.carteira_pc) if ativo else None,
+        'mercado_venda': _mercado_vendaveis(ativo),
+        # PRG sem JS: os forms de compra/venda voltam para a vitrine de onde partiram.
+        'mercado_next': request.path,
+    }
+
+
 def itens_mundanos_view(request):
-    itens = TbItemMundano.objects.all().order_by('nome')
-    by = {}
-    for i in itens:
+    """Vitrine MUNDANA: prateleiras por categoria do catálogo (Armas, Alquimia, Forja…)."""
+    cat_label = dict(TbItemMundano.CATEGORIA_CHOICES)
+    itens = []
+    for i in TbItemMundano.objects.all().order_by('nome'):
         mec = mecanica_de_tags(i.tags_json, i.subcategoria)
         i.mec_dano = dano_display(mec)
         i.mec_ca = ca_display(mec)
@@ -10759,53 +10828,62 @@ def itens_mundanos_view(request):
         i.mec_maestrias = ", ".join(mec.get("maestrias") or [])
         i.mec_forca_minima = mec.get("forca_minima")
         i.mec_furtividade = mec.get("furtividade_desvantagem")
-        by.setdefault(i.categoria, []).append(i)
-    EXTRA = [('municao', 'Munição'), ('foco', 'Focos de Conjuração'), ('comida', 'Comida e Bebida'),
-             ('montaria', 'Montarias'), ('veiculo', 'Veículos'), ('mercadoria', 'Mercadorias'),
-             ('veneno', 'Venenos'), ('explosivo', 'Explosivos')]
-    grupos_extra = [{'id': cat, 'label': label, 'itens': by.get(cat, [])}
-                    for cat, label in EXTRA if by.get(cat)]
+        i.cat_label = cat_label.get(i.categoria, i.categoria)
+        # `subcategoria` é campo livre (arma_marcial, ferramenta_artesao…): vira etiqueta
+        # legível na vitrine sem virar dicionário hardcoded.
+        i.sub_label = (i.subcategoria or '').replace('_', ' ').strip().capitalize()
+        # Preço SEMPRE em PO (home/moeda.py). Sem preço = recompensa de missão: fica na
+        # vitrine para consulta, mas sem botão de compra (guarda também no backend).
+        i.preco_display = _preco_display(i.preco)
+        itens.append(i)
+    prateleiras = _mercado_prateleiras(itens, lambda i: i.cat_label)
     context = {
         'title': 'Itens Mundanos',
-        'armas': by.get('arma', []),
-        'armaduras': by.get('armadura', []),
-        'ferramentas': by.get('ferramenta', []),
-        'pacotes': by.get('pacote', []),
-        'equipamentos': by.get('equipamento_aventura', []),
-        'grupos_extra': grupos_extra,
+        'itens': itens,
+        'prateleiras': prateleiras,
+        'categorias_filtro': [{'value': g['id'], 'label': g['label']} for g in prateleiras],
     }
-    
+    context.update(_mercado_contexto(request))
     if is_ajax(request):
         return render(request, 'home/partials/itens_mundanos_content.html', context)
     return render(request, 'home/pages/itens_mundanos.html', context)
 
 
 def itens_magicos_view(request):
-    itens = list(TbItemMagico.objects.all().order_by('raridade', 'nome'))
-    # Preço da loja para exibição: item sem preço OU preço <= 0 é recompensa de missão
-    # (não comercializável) — o template mostra "Recompensa de missão" no lugar do número.
-    for i in itens:
-        i.preco_loja = ('%g PO' % float(i.preco)) if (i.preco is not None and float(i.preco) > 0) else None
-
-    # Botões de filtro = as raridades COMPLETAS realmente presentes (com _menor/_maior),
-    # ordenadas por base e tier (ex.: "Raro Menor" antes de "Raro Maior"). Rótulo vem das choices.
+    """Vitrine MÁGICA: prateleiras pelo campo `loja` do catálogo (Alquimia, Forja,
+    Joalheria…), com filtro de raridade por cima."""
     _rar_labels = dict(TbItemMagico._meta.get_field('raridade').choices)
+    _slot_labels = dict(TbItemMagico.SLOT_CHOICES)
     _base_order = ['comum', 'incomum', 'raro', 'muito_raro', 'lendario', 'artefato']
 
     def _rar_key(r):
-        base = re.sub(r'_(menor|maior)$', '', r)
-        tier = 1 if r.endswith('_maior') else 0
-        return (_base_order.index(base) if base in _base_order else 99, tier, r)
+        base = re.sub(r'_(menor|maior)$', '', r or '')
+        tier = 1 if (r or '').endswith('_maior') else 0
+        return (_base_order.index(base) if base in _base_order else 99, tier, r or '')
+
+    itens = list(TbItemMagico.objects.all().order_by('raridade', 'nome'))
+    for i in itens:
+        # Preço da loja: item sem preço OU preço <= 0 é recompensa de missão (não
+        # comercializável) — a vitrine mostra o rótulo no lugar do número e não dá botão.
+        i.preco_display = ('%g PO' % float(i.preco)) if (i.preco is not None and float(i.preco) > 0) else None
+        i.base_rarity = re.sub(r'_(menor|maior)$', '', i.raridade or '')
+        i.raridade_label = _rar_labels.get(i.raridade, i.raridade)
+        i.tipo_label = i.tipo or _slot_labels.get(i.slot, i.slot)
+
+    # Botões de filtro = as raridades COMPLETAS realmente presentes (com _menor/_maior),
+    # ordenadas por base e tier (ex.: "Raro Menor" antes de "Raro Maior"). Rótulo vem das choices.
     _present = [r for r in TbItemMagico.objects.values_list('raridade', flat=True).distinct() if r]
-    raridades_filtro = [{'value': r, 'label': _rar_labels.get(r, r.replace('_', ' ').title())}
+    raridades_filtro = [{'value': r, 'label': _rar_labels.get(r, r.replace('_', ' ').title()),
+                         'base': re.sub(r'_(menor|maior)$', '', r)}
                         for r in sorted(_present, key=_rar_key)]
 
     context = {
         'title': 'Itens Mágicos',
         'itens': itens,
+        'prateleiras': _mercado_prateleiras(itens, lambda i: i.loja),
         'raridades_filtro': raridades_filtro,
     }
-
+    context.update(_mercado_contexto(request))
     if is_ajax(request):
         return render(request, 'home/partials/itens_magicos_content.html', context)
     return render(request, 'home/pages/itens_magicos.html', context)

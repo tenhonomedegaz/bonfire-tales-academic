@@ -301,7 +301,7 @@ class EditarFichaSemInventarioTests(_MochilaBase):
     def test_inventario_e_equipar_sairam_do_editar_ficha(self):
         p = self._char('editor')
         self._linha(p, self._item_no_slot('cintura', nome='Cinto de Prova'))
-        self.client.force_login(p.dono)
+        self.client.force_login(p.dono)   # `_guerreiro_no_nivel` cria o dono já staff
         html = self.client.get(reverse('editar_ficha', args=[p.pk])).content.decode('utf-8')
         self.assertNotIn('id="lvl-inventario"', html)
         self.assertNotIn('data-inventory-form', html)
@@ -313,10 +313,11 @@ class EditarFichaSemInventarioTests(_MochilaBase):
         # catálogo mágico inteiro — o que sumiu é a LINHA DE INVENTÁRIO do personagem)
         # e aponta o jogador para a Mochila
         self.assertIn('?aba=mochila', html)
-        # o que fica: staffbox de aventuras, conceder item e a loja (até a onda C)
+        # o que fica: staffbox de aventuras e conceder item. A LOJA saiu na onda C —
+        # compra/venda vivem nas páginas do Mercado (ver test_ficha_v2_onda_c.py).
         self.assertIn('lvl-aventuras-staffbox', html)
         self.assertIn(reverse('personagem_conceder_item', args=[p.pk]), html)
-        self.assertIn('id="loja-shell"', html)
+        self.assertNotIn('id="loja-shell"', html)
 
     def test_js_do_editor_sem_seletor_morto(self):
         # gate da onda A: o seletor form[data-rest-form] não tinha mais nenhum form

@@ -6,8 +6,8 @@
 {% block title %}{{ title }} | Bonfire Tales{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/pages/talentos.css' %}?v=3">
-<link rel="stylesheet" href="{% static 'css/pages/itens_magicos.css' %}?v=5">
+<link rel="stylesheet" href="{% static 'css/pages/mercado_loja.css' %}?v=1">
+<script src="{% static 'js/mercado_loja.js' %}?v=1" defer></script>
 {% endblock %}
 
 {% block content %}
@@ -15,7 +15,7 @@
 
   <div class="mb-2.5">
     <h1 class="font-cinzel text-xl font-bold text-bonfire-text uppercase">{{ title|default:"Itens Mágicos" }}</h1>
-    <p class="text-bonfire-muted text-[11px] mt-1">Consulte itens mágicos formidáveis de Cinéria. Filtre por raridade, busque pelo nome e selecione para ver os detalhes.</p>
+    <p class="text-bonfire-muted text-[11px] mt-1">Relíquias formidáveis de Cinéria, dispostas por loja. Escolha o personagem no balcão para comprar com o ouro dele; o que só vem de missão fica exposto sem preço.</p>
   </div>
 
   <div id="content-container">

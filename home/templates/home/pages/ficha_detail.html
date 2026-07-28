@@ -29,7 +29,11 @@
       <div class="banner-actions">
         <a href="{% url 'personagens' %}" class="banner-btn">← Personagens</a>
         {% if pode_editar %}
-          <a href="{% url 'editar_ficha' p.id_personagem %}" class="banner-btn">Editar ficha</a>
+          {% comment %}Onda C: editar_ficha virou PAINEL DA STAFF (aventuras + concessão de
+          item) — o jogador não tem mais o que fazer lá, então o atalho só aparece para a
+          staff. O Mercado entra no lugar: é onde ele compra e vende.{% endcomment %}
+          {% if is_staff %}<a href="{% url 'editar_ficha' p.id_personagem %}" class="banner-btn">Painel da staff</a>{% endif %}
+          <a href="{% url 'mercado_itens_mundanos' %}" class="banner-btn">Mercado</a>
           {% if levelup_status.mostrar_botao %}
             <a href="{% url 'personagem_subir_nivel' p.id_personagem %}" class="banner-btn primary banner-btn-levelup" data-levelup-btn>
               ⬆ {% if levelup_status.pode_subir %}Subir de Nível{% else %}Concluir escolhas de nível{% endif %}
@@ -932,17 +936,20 @@
   });
 
   // Atalhos "ver aba X" espalhados pelo conteúdo (ex.: chip de Magias no fim da aba 1).
-  document.querySelectorAll('[data-tab-jump]').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      const name = btn.getAttribute('data-tab-jump');
-      activateTab(name);
-      try {
-        const url = new URL(window.location.href);
-        url.searchParams.set('aba', name);
-        history.replaceState(null, '', url);
-      } catch (e) {}
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
+  // DELEGAÇÃO no document (fix da onda B): estes chips vivem dentro de partials que o
+  // fetch da Mochila troca por outerHTML — um listener por elemento morreria na primeira
+  // troca. Delegando, o atalho sobrevive a qualquer re-render.
+  document.addEventListener('click', function (ev) {
+    const btn = ev.target.closest('[data-tab-jump]');
+    if (!btn) return;
+    const name = btn.getAttribute('data-tab-jump');
+    activateTab(name);
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('aba', name);
+      history.replaceState(null, '', url);
+    } catch (e) {}
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   });
 
   // Aba inicial via ?aba=info|magias|historico (padrão: ficha)

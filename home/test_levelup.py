@@ -239,8 +239,9 @@ class LevelUpAplicarLoteTests(LevelUpLoteBase):
 
 
 class EditarFichaRenderTests(LevelUpLoteBase):
-    """editar_ficha.html AGORA é só inventário/mercado/info/manutenção: o level-up saiu para
-    a página dedicada (personagem_subir_nivel GET). A página de edição só leva o botão."""
+    """O level-up saiu do editar_ficha para a página dedicada (personagem_subir_nivel GET).
+    Na onda C a própria editar_ficha virou PAINEL DA STAFF: o ponto de entrada do level-up
+    (e o do Mercado) passou a viver na FICHA, que é do jogador."""
 
     def test_editar_sem_secao_de_levelup_com_link_pro_fluxo(self):
         p = self._guerreiro_no_nivel(4)
@@ -252,10 +253,11 @@ class EditarFichaRenderTests(LevelUpLoteBase):
         for gone in ('id="lvl-actionbar"', 'id="lvl-preview"', 'data-lvl-queue="subir_nivel"',
                      'data-lvl-card="asi"', 'js/levelup.js'):
             self.assertNotIn(gone, html, gone)
-        # mas há um LINK/BOTÃO destacado para a experiência dedicada
-        self.assertIn(reverse('personagem_subir_nivel', args=[p.pk]), html)
-        # e o resto (mercado/inventário) permanece
-        self.assertIn(reverse('personagem_comprar_item', args=[p.pk]), html)
+        # a loja também saiu (onda C) — compra/venda vivem no Mercado
+        self.assertNotIn(reverse('personagem_comprar_item', args=[p.pk]), html)
+        # e o LINK/BOTÃO destacado para a experiência dedicada está na ficha
+        ficha = self.client.get(reverse('ficha_detail', args=[p.pk])).content.decode('utf-8')
+        self.assertIn(reverse('personagem_subir_nivel', args=[p.pk]), ficha)
 
     def test_editar_sem_form_legado_de_troca_de_magia(self):
         # Caster CONHECIDO com magia na estante: ANTES o form legado de troca vivia aqui;
@@ -265,10 +267,11 @@ class EditarFichaRenderTests(LevelUpLoteBase):
         html = self.client.get(reverse('editar_ficha', args=[p.pk])).content.decode('utf-8')
         self.assertNotIn(reverse('personagem_trocar_magia', args=[p.pk]), html)
         self.assertNotIn('Trocar magia conhecida', html)
-        # mas a ficha de edição segue funcional e leva ao wizard dedicado
-        self.assertIn(reverse('personagem_subir_nivel', args=[p.pk]), html)
+        # e o wizard dedicado segue alcançável pela ficha
+        ficha = self.client.get(reverse('ficha_detail', args=[p.pk])).content.decode('utf-8')
+        self.assertIn(reverse('personagem_subir_nivel', args=[p.pk]), ficha)
 
-    def test_editar_no_teto_mostra_proximo_nivel(self):
+    def test_ficha_no_teto_mostra_proximo_nivel(self):
         # Sem folga de aventuras e sem pendências: nenhum botão de subir, só o aviso discreto.
         p = self._guerreiro_no_nivel(1)
         self._zerar_pendencias(p)
@@ -276,7 +279,7 @@ class EditarFichaRenderTests(LevelUpLoteBase):
         p.save(update_fields=['aventuras'])
         self.assertTrue(views._levelup_pendencias(p)['sem_pendencias'])
         self.client.force_login(p.dono)
-        html = self.client.get(reverse('editar_ficha', args=[p.pk])).content.decode('utf-8')
+        html = self.client.get(reverse('ficha_detail', args=[p.pk])).content.decode('utf-8')
         self.assertIn('Próximo nível em', html)
 
 

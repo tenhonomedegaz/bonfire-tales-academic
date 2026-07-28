@@ -1,5 +1,7 @@
-/* Mutações rápidas da edição da ficha. Mantém POST clássico como fallback e usa
- * fetch quando JS está disponível. */
+/* Mutações rápidas do PAINEL DA STAFF (aventuras + concessão de item). Mantém POST
+ * clássico como fallback e usa fetch quando JS está disponível.
+ * Onda C: recursos, magias preparadas e a LOJA saíram desta página — o que sobrou aqui
+ * mexe só no ledger de aventuras, nas concessões e nos derivados que elas alteram. */
 (function () {
   'use strict';
 
@@ -36,29 +38,12 @@
 
   function applyInventory(payload) {
     // O inventário saiu daqui na onda B (vive na aba Mochila da ficha); esta página só
-    // precisa refletir carteira e os derivados que a concessão/compra mexem.
-    setText('#loja-carteira', payload.carteira_display);
+    // precisa refletir carteira e os derivados que a concessão mexe.
+    setText('[data-carteira-display]', payload.carteira_display);
     if (payload.ficha) {
       setText('[data-ficha-ca]', payload.ficha.ca);
       setText('[data-ficha-pv]', payload.ficha.pv_maximo);
     }
-  }
-
-  function applyResources(payload) {
-    (payload.recursos || []).forEach(function (r) {
-      var row = document.querySelector('[data-resource-row="' + CSS.escape(r.slug) + '"]');
-      if (!row) return;
-      var count = row.querySelector('[data-resource-count]');
-      if (count) {
-        count.textContent = r.atual + '/' + r.maximo;
-        count.classList.toggle('text-[var(--flame)]', r.atual === 0);
-        count.classList.toggle('text-[var(--spark)]', r.atual !== 0);
-      }
-      var use = row.querySelector('[data-resource-use]');
-      var undo = row.querySelector('[data-resource-undo]');
-      if (use) use.disabled = r.atual <= 0;
-      if (undo) undo.disabled = r.atual >= r.maximo;
-    });
   }
 
   document.addEventListener('submit', function (event) {
@@ -78,7 +63,7 @@
         setText('[data-ficha-teto]', payload.progressao.nivel_label);
         setText('[data-ficha-braseiros]', payload.progressao.braseiros);
       }
-      setText('#loja-carteira', payload.carteira_display);
+      setText('[data-carteira-display]', payload.carteira_display);
       if (!result.ok && button) button.disabled = false;
     }).catch(function () {
       if (button) button.disabled = false;
@@ -87,7 +72,7 @@
 
   document.addEventListener('submit', function (event) {
     var form = event.target.closest(
-      'form[data-resource-form], form[data-conceder-form], form[data-concessao-reverter]'
+      'form[data-conceder-form], form[data-concessao-reverter]'
     );
     if (!form || event.defaultPrevented) return;
     event.preventDefault();
@@ -97,7 +82,6 @@
     submitForm(form).then(function (result) {
       var payload = result.json || {};
       if (typeof payload.inventario_html === 'string') applyInventory(payload);
-      if (payload.recursos) applyResources(payload);
       if (typeof payload.concessoes_html === 'string') {
         var ledger = document.getElementById('ficha-concessoes-dinamico');
         if (ledger) ledger.outerHTML = payload.concessoes_html;

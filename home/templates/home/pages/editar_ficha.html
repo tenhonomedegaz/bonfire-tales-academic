@@ -1,11 +1,19 @@
 {% extends 'home/base.html' %}
 {% load static %}
 
+{% comment %}FERRAMENTA DA STAFF (Ficha v2, onda C). Esta página não é mais "editar ficha":
+tudo que é do JOGADOR migrou — level-up (página dedicada), inventário/slots/sintonização
+(aba Mochila), magias preparadas (aba Magias), recursos e descanso (aba Ficha) e a LOJA
+(páginas do Mercado, com personagem ativo e carteira). O que sobra aqui é o trabalho da
+staff sobre a ficha: lançar/reverter AVENTURAS e conceder/reverter ITENS de missão. O
+acesso é fechado por is_staff na view (dono não-staff é redirecionado para a ficha).
+{% endcomment %}
+
 {% block content %}
 <section class="animate-fade-in">
   <header class="mb-4 flex flex-wrap items-end justify-between gap-2 border-b border-[var(--stroke)] pb-4">
     <div>
-      <h1 class="font-serif text-2xl md:text-3xl font-bold text-[var(--ember)]">Editar ficha</h1>
+      <h1 class="font-serif text-2xl md:text-3xl font-bold text-[var(--ember)]">Painel da staff</h1>
       <p class="mt-1 text-sm text-[var(--muted)]">{{ p.nome }}{% if pc %} · {{ pc.id_classe.nome }}{% if pc.id_subclasse_id %} ({{ pc.id_subclasse.nome }}){% endif %} Nv {{ nivel }}{% endif %}</p>
     </div>
     <a href="{% url 'ficha_detail' p.id_personagem %}" class="rounded border border-[var(--stroke)] px-3 py-1.5 text-sm text-[var(--muted)] hover:text-[var(--text)]">Ver ficha →</a>
@@ -13,7 +21,7 @@
 
   <div class="ef-main space-y-3">
 
-      {# ============================ PROGRESSÃO (topo) ============================ #}
+      {# ============================ PROGRESSÃO (contexto do lançamento) ============================ #}
       <div class="lvl-topcard" id="lvl-topcard" data-lvl-card="topo">
         <div class="lvl-topcard__row">
           <div>
@@ -23,213 +31,46 @@
               {% for c in classes_atuais %}{{ c.nome }} {{ c.nivel }}{% if c.principal %} <span class="text-[var(--ember)]">★</span>{% endif %}{% if not forloop.last %} · {% endif %}{% endfor %}
             </div>
             <div class="lvl-meta lvl-progline"><span data-ficha-aventuras>{{ ficha.progressao.aventuras }}</span> aventura(s) · teto Nv <span data-ficha-teto>{{ ficha.progressao.nivel_label }}</span> · <span class="spark"><span data-ficha-braseiros>{{ ficha.progressao.braseiros }}</span> braseiros 🔥</span></div>
-            <div class="lvl-meta lvl-progline">Ouro de progressão (rank {{ ficha.progressao.rank }}): <span class="flame">{{ ficha.progressao.ouro_esperado_po }} PO</span> acumulados</div>
+            <div class="lvl-meta lvl-progline">Ouro de progressão (rank {{ ficha.progressao.rank }}): <span class="flame">{{ ficha.progressao.ouro_esperado_po }} PO</span> acumulados · carteira <span class="flame" data-carteira-display>{{ carteira_display }}</span></div>
           </div>
 
           <div class="lvl-progtools">
-            {% if levelup_status.mostrar_botao %}
-              <a href="{% url 'personagem_subir_nivel' p.id_personagem %}" class="cf-btn cf-btn-primary banner-btn-levelup" data-levelup-btn>
-                ⬆ {% if levelup_status.pode_subir %}Subir de Nível{% else %}Concluir escolhas de nível{% endif %}
-              </a>
-              <span class="text-xs text-[var(--muted)]">Level-up acontece numa experiência dedicada.</span>
-            {% elif ficha.nivel_total >= 20 %}
-              <span class="text-sm text-[var(--muted)]">Nível máximo (20).</span>
-            {% else %}
-              <span class="text-sm text-[var(--muted)]">Próximo nível em {{ levelup_status.faltam_aventuras }} aventura{{ levelup_status.faltam_aventuras|pluralize }}.</span>
-            {% endif %}
+            <span class="text-xs text-[var(--muted)]">O level-up é do jogador e acontece na <a href="{% url 'ficha_detail' p.id_personagem %}" class="underline hover:text-[var(--ember)]">ficha</a>.</span>
           </div>
         </div>
 
-        {% if request.GET.nivel == 'teto' %}<p class="lvl-note-cap">Você atingiu o nível-teto permitido pelas aventuras. Jogue mais mesas para liberar o próximo nível.</p>{% endif %}
-
-        {% if is_staff %}
-          {% include 'home/partials/_ficha_aventuras_staff.html' %}
-        {% endif %}
+        {% include 'home/partials/_ficha_aventuras_staff.html' %}
 
       </div>
-      {# Troca de magia saiu daqui: virou ETAPA do wizard dedicado (personagem_subir_nivel); endpoint personagem_trocar_magia segue por compat. #}
-
-      {# ============================ MAGIAS PREPARADAS (grava na hora) ============================ #}
-      {% if magias_preparadas %}
-      <h2 class="lvl-sech" style="margin-top:1.2rem">Magias Preparadas</h2>
-      {% if request.GET.prep == 'ok' %}<div class="lvl-ok" style="margin-bottom:0.6rem">Magias preparadas salvas.</div>{% endif %}
-      {% for prep in magias_preparadas %}
-      <p class="lvl-secsub">{{ prep.classe }} prepara magias da própria lista a cada descanso longo. Limite: <strong class="text-[var(--flame)]" id="prep-count-{{ prep.classe_id }}">{{ prep.preparadas_count }}</strong>/<strong class="text-[var(--flame)]">{{ prep.limite|default:'—' }}</strong>.</p>
-      <form method="post" action="{% url 'personagem_preparar_magias' p.id_personagem %}" class="lvl-card">
-        {% csrf_token %}
-        <input type="hidden" name="classe" value="{{ prep.classe_id }}">
-        <div class="max-h-96 space-y-2 overflow-y-auto pr-1">
-          {% for g in prep.grupos %}
-            <div>
-              <div class="lvl-subhdr">{{ g.nivel }}º Círculo</div>
-              <div class="grid gap-1 sm:grid-cols-2">
-                {% for m in g.magias %}
-                  <label class="lvl-check"><input type="checkbox" name="magia" value="{{ m.slug }}" {% if m.marcada %}checked{% endif %} class="prep-chk-{{ prep.classe_id }}"> <span>{{ m.nome }}</span></label>
-                {% endfor %}
-              </div>
-            </div>
-          {% endfor %}
-        </div>
-        <button type="submit" class="cf-btn cf-btn-primary" style="margin-top:0.7rem">Salvar Preparadas</button>
-      </form>
-      {% if prep.limite %}
-      <script>
-        (function(){
-          var lim = {{ prep.limite }}, cnt = document.getElementById('prep-count-{{ prep.classe_id }}');
-          var chks = Array.prototype.slice.call(document.querySelectorAll('.prep-chk-{{ prep.classe_id }}'));
-          function upd(){ var n = chks.filter(function(c){return c.checked;}).length; cnt.textContent = n;
-            chks.forEach(function(c){ if(!c.checked) c.disabled = n >= lim; }); }
-          chks.forEach(function(c){ c.addEventListener('change', upd); }); upd();
-        })();
-      </script>
-      {% endif %}
-      {% endfor %}
-      {% endif %}
-
-      {# ============================ RECURSOS DE CLASSE (grava na hora) ============================ #}
-      {% if recursos_consumiveis %}
-      <h2 class="lvl-sech" style="margin-top:1.2rem">Recursos de Classe</h2>
-      {% if request.GET.rest == 'longo' %}<div class="lvl-ok" style="margin-bottom:0.6rem">Descanso longo — recursos recuperados.</div>
-      {% elif request.GET.rest == 'curto' %}<div class="lvl-ok" style="margin-bottom:0.6rem">Descanso curto — recursos de recarga curta recuperados.</div>{% endif %}
-      <div class="lvl-card">
-        <ul class="space-y-1.5">
-          {% for r in recursos_consumiveis %}
-            <li class="flex flex-wrap items-center justify-between gap-1.5">
-              <span class="text-sm text-[var(--text)]">{{ r.nome }}
-                <span class="ml-1 text-xs text-[var(--muted)]">({{ r.classe }} · recarga {% if r.reset == 'short-or-long' %}curta/longa{% elif r.reset == 'short-rest' %}curta{% elif r.reset == 'long-rest' %}longa{% else %}manual{% endif %})</span>
-              </span>
-              <span class="flex items-center gap-1.5" data-resource-row="{{ r.slug }}">
-                <span class="font-mono text-sm {% if r.atual == 0 %}text-[var(--flame)]{% else %}text-[var(--spark)]{% endif %}" data-resource-count>{{ r.atual }}/{{ r.maximo }}</span>
-                <form method="post" action="{% url 'personagem_usar_recurso' p.id_personagem %}" data-resource-form>
-                  {% csrf_token %}<input type="hidden" name="recurso" value="{{ r.slug }}">
-                  <button type="submit" data-resource-use {% if r.atual == 0 %}disabled{% endif %} class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-0.5 text-xs text-[var(--muted)] hover:border-[var(--ember)] hover:text-[var(--ember)] disabled:opacity-40">Usar</button>
-                </form>
-                <form method="post" action="{% url 'personagem_usar_recurso' p.id_personagem %}" data-resource-form>
-                  {% csrf_token %}<input type="hidden" name="recurso" value="{{ r.slug }}"><input type="hidden" name="acao" value="desfazer">
-                  <button type="submit" data-resource-undo {% if r.atual == r.maximo %}disabled{% endif %} class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-0.5 text-xs text-[var(--muted)] hover:border-[var(--spark)] hover:text-[var(--spark)] disabled:opacity-40">+1</button>
-                </form>
-              </span>
-            </li>
-          {% endfor %}
-        </ul>
-        <p class="mt-3 border-t border-[var(--stroke)]/50 pt-3 text-xs text-[var(--muted)]">Descanso curto/longo fica na <a href="{% url 'ficha_detail' p.id_personagem %}" class="underline hover:text-[var(--ember)]">ficha</a>, sob os contadores de recurso.</p>
-      </div>
-      {% endif %}
-
-      {% comment %}INVENTÁRIO saiu daqui (Ficha v2, onda B): equipar/desequipar/sintonizar/usar
-      vivem na ABA MOCHILA da ficha, que é do JOGADOR. Este editor caminha para ser ferramenta
-      só-da-staff: sobram o painel de aventuras, conceder/reverter item e a loja (até a onda C
-      migrar a compra/venda para o Mercado).{% endcomment %}
-      <p class="lvl-secsub" style="margin-top:1.2rem">Inventário, slots e sintonização ficam na <a href="{% url 'ficha_detail' p.id_personagem %}?aba=mochila" class="underline hover:text-[var(--ember)]">Mochila da ficha</a>.</p>
 
       {# ===================== STAFF — CONCEDER ITEM (missão/recompensa, sem custo de ouro) ===================== #}
-      {% if is_staff %}
-        <div class="lvl-staffbox" style="margin-top:1.2rem">
-          <span class="lbl">Staff — conceder item (missão/recompensa):</span>
-          <form method="post" action="{% url 'personagem_conceder_item' p.id_personagem %}" class="lvl-inline" style="flex:1 1 100%" data-conceder-form>
-            {% csrf_token %}
-            <select name="tipo" class="lvl-field" data-conceder-tipo aria-label="Tipo de item">
-              <option value="magico">Mágico</option>
-              <option value="mundano">Mundano</option>
-            </select>
-            <input type="search" placeholder="Filtrar por nome…" class="lvl-field lvl-field--grow" data-conceder-busca aria-label="Filtrar item por nome" autocomplete="off">
-            <select name="item" class="lvl-field lvl-field--grow" data-conceder-select="magico" aria-label="Item mágico" required>
-              {% for it in conceder_magico %}<option value="{{ it.slug }}" data-nome="{{ it.nome|lower }}">{{ it.nome }} · {{ it.meta }}{% if it.sem_preco %} · missão{% endif %}</option>{% endfor %}
-            </select>
-            <select name="item" class="lvl-field lvl-field--grow" data-conceder-select="mundano" aria-label="Item mundano" disabled hidden>
-              {% for it in conceder_mundano %}<option value="{{ it.slug }}" data-nome="{{ it.nome|lower }}">{{ it.nome }} · {{ it.meta }}{% if it.sem_preco %} · sem preço{% endif %}</option>{% endfor %}
-            </select>
-            <input type="number" name="qtd" min="1" max="99" value="1" class="lvl-field" style="width:5rem" aria-label="Quantidade">
-            <input type="text" name="nota_origem" maxlength="255" placeholder="Origem (ex.: Missão do Ookami)" class="lvl-field lvl-field--grow" aria-label="Origem da concessão">
-            <button type="submit" class="lvl-add">+ Conceder item</button>
-          </form>
+      <div class="lvl-staffbox" style="margin-top:1.2rem">
+        <span class="lbl">Staff — conceder item (missão/recompensa):</span>
+        <form method="post" action="{% url 'personagem_conceder_item' p.id_personagem %}" class="lvl-inline" style="flex:1 1 100%" data-conceder-form>
+          {% csrf_token %}
+          <select name="tipo" class="lvl-field" data-conceder-tipo aria-label="Tipo de item">
+            <option value="magico">Mágico</option>
+            <option value="mundano">Mundano</option>
+          </select>
+          <input type="search" placeholder="Filtrar por nome…" class="lvl-field lvl-field--grow" data-conceder-busca aria-label="Filtrar item por nome" autocomplete="off">
+          <select name="item" class="lvl-field lvl-field--grow" data-conceder-select="magico" aria-label="Item mágico" required>
+            {% for it in conceder_magico %}<option value="{{ it.slug }}" data-nome="{{ it.nome|lower }}">{{ it.nome }} · {{ it.meta }}{% if it.sem_preco %} · missão{% endif %}</option>{% endfor %}
+          </select>
+          <select name="item" class="lvl-field lvl-field--grow" data-conceder-select="mundano" aria-label="Item mundano" disabled hidden>
+            {% for it in conceder_mundano %}<option value="{{ it.slug }}" data-nome="{{ it.nome|lower }}">{{ it.nome }} · {{ it.meta }}{% if it.sem_preco %} · sem preço{% endif %}</option>{% endfor %}
+          </select>
+          <input type="number" name="qtd" min="1" max="99" value="1" class="lvl-field" style="width:5rem" aria-label="Quantidade">
+          <input type="text" name="nota_origem" maxlength="255" placeholder="Origem (ex.: Missão do Ookami)" class="lvl-field lvl-field--grow" aria-label="Origem da concessão">
+          <button type="submit" class="lvl-add">+ Conceder item</button>
+        </form>
 
-          {% include 'home/partials/_ficha_concessoes_staff.html' %}
-        </div>
-      {% endif %}
-
-      {# ============================ MERCADO (catálogo: busca + chips + cards, compra via fetch) ============================ #}
-      <h2 class="lvl-sech" style="margin-top:1.2rem">Mercado</h2>
-      {% if compra_msg == 'ok' %}<div class="lvl-ok" style="margin-bottom:0.6rem">Compra realizada.</div>
-      {% elif compra_msg == 'aventuras' %}<div class="lvl-ok" style="margin-bottom:0.6rem">Aventuras registradas — ouro e braseiros creditados.</div>
-      {% elif compra_msg == 'vendido' %}<div class="lvl-ok" style="margin-bottom:0.6rem">Item vendido por 80% do valor.</div>
-      {% elif compra_msg == 'saldo' %}<div class="lvl-err" style="margin-bottom:0.6rem">Saldo insuficiente.</div>
-      {% elif compra_msg == 'magico_venda' %}<div class="lvl-err" style="margin-bottom:0.6rem">Item mágico vende-se pelo <a href="{% url 'mercado_comunidade' %}" class="underline">Mercado da Comunidade</a>.</div>
-      {% elif compra_msg == 'sem_preco' %}<div class="lvl-err" style="margin-bottom:0.6rem">Este item não tem preço para venda.</div>
-      {% elif compra_msg == 'invalido' %}<div class="lvl-err" style="margin-bottom:0.6rem">Item indisponível para compra.</div>{% endif %}
-      <div class="lvl-card loja-shell" id="loja-shell" data-loja-root>
-        <div class="loja-head">
-          <span class="loja-wallet">Carteira: <strong class="text-[var(--flame)]" id="loja-carteira">{{ carteira_display }}</strong></span>
-          <div class="loja-tabs" role="tablist">
-            <button type="button" class="loja-tab active" data-loja-tab="mundano" aria-selected="true">Mundano</button>
-            <button type="button" class="loja-tab" data-loja-tab="magico" aria-selected="false">Mágico</button>
-          </div>
-        </div>
-        <div class="loja-feedback" id="loja-feedback" hidden aria-live="polite"></div>
-
-        <input type="search" id="loja-busca" placeholder="Buscar item pelo nome…" autocomplete="off" class="loja-search">
-
-        {# chips MUNDANO: por categoria (tipo) #}
-        <div class="loja-chips" data-loja-chipset="mundano">
-          <button type="button" class="mu-cat-chip active" data-cat="todos">Todos</button>
-          {% for c in loja_mundano_cats %}<button type="button" class="mu-cat-chip" data-cat="{{ c.id }}">{{ c.label }}</button>{% endfor %}
-        </div>
-        {# chips MÁGICO: por raridade + por loja #}
-        <div class="loja-chips" data-loja-chipset="magico" hidden>
-          <button type="button" class="mi-rarity-chip active" data-rarity="todos">Todas raridades</button>
-          {% for r in loja_magico_rars %}<button type="button" class="mi-rarity-chip rarity-{{ r.base }}" data-rarity="{{ r.value }}"><span class="mi-rarity-dot rarity-dot-{{ r.base }}"></span>{{ r.label }}</button>{% endfor %}
-          {% if loja_magico_lojas %}<span class="loja-chip-sep" aria-hidden="true"></span>
-          <button type="button" class="mu-cat-chip active" data-loja="todas">Todas lojas</button>
-          {% for l in loja_magico_lojas %}<button type="button" class="mu-cat-chip" data-loja="{{ l }}">{{ l }}</button>{% endfor %}
-          {% endif %}
-        </div>
-
-        <p class="loja-count"><span id="loja-count">0</span> item(ns)</p>
-
-        {# LISTA MUNDANO #}
-        <div class="loja-list custom-scrollbar" data-loja-list="mundano">
-          {% for it in loja_mundano %}
-          <div class="mu-list-item loja-card" data-cat="{{ it.cat }}"
-               data-search="{{ it.nome|lower }} {{ it.meta|lower }} {{ it.cat_label|lower }}">
-            <div class="mu-list-item-main">
-              <h3 class="mu-list-item-name" title="{{ it.nome }}">{{ it.nome }}</h3>
-              <p class="mu-list-item-meta">{{ it.cat_label }}</p>
-            </div>
-            <span class="mu-list-item-price">{{ it.preco }}</span>
-            <form method="post" action="{% url 'personagem_comprar_item' p.id_personagem %}" class="loja-buy" data-loja-form="mundano">
-              {% csrf_token %}
-              <input type="hidden" name="item" value="{{ it.slug }}">
-              <input type="number" name="qtd" min="1" max="99" value="1" class="loja-qty" aria-label="Quantidade" title="Quantidade">
-              <button type="submit" class="loja-buy-btn" data-nome="{{ it.nome }}">Comprar</button>
-            </form>
-          </div>
-          {% empty %}<p class="loja-empty">Nenhum item mundano à venda.</p>{% endfor %}
-          <p class="loja-empty" data-loja-noresult hidden>Nenhum item encontrado.</p>
-        </div>
-
-        {# LISTA MÁGICO #}
-        <div class="loja-list custom-scrollbar" data-loja-list="magico" hidden>
-          {% for it in loja_magico %}
-          <div class="mi-list-item rarity-{{ it.base_rarity }} loja-card" data-rarity="{{ it.raridade }}" data-loja="{{ it.loja }}"
-               data-search="{{ it.nome|lower }} {{ it.raridade_label|lower }} {{ it.tipo|lower }} {{ it.loja|lower }}">
-            <div class="mi-list-item-main">
-              <h3 class="mi-list-item-name" title="{{ it.nome }}">{{ it.nome }}</h3>
-              <p class="mi-list-item-meta">{{ it.raridade_label }}{% if it.tipo %} · {{ it.tipo }}{% endif %}{% if it.loja %} · {{ it.loja }}{% endif %}</p>
-            </div>
-            {% if it.requer_sintonizacao %}<span class="mi-attune-mark" title="Requer sintonização">S</span>{% endif %}
-            <span class="mi-list-item-price">{{ it.preco }}</span>
-            <form method="post" action="{% url 'personagem_comprar_magico' p.id_personagem %}" class="loja-buy" data-loja-form="magico">
-              {% csrf_token %}
-              <input type="hidden" name="item" value="{{ it.slug }}">
-              <button type="submit" class="loja-buy-btn" data-nome="{{ it.nome }}">Comprar</button>
-            </form>
-          </div>
-          {% empty %}<p class="loja-empty">Nenhum item mágico à venda.</p>{% endfor %}
-          <p class="loja-empty" data-loja-noresult hidden>Nenhum item encontrado.</p>
-        </div>
-
-        <p class="mt-2 text-xs text-[var(--muted)]">Item mágico marcado com <span class="mi-attune-mark" style="width:1rem;height:1rem;font-size:.55rem;vertical-align:middle">S</span> exige sintonização — entra guardado; equipe (e sintonize, se preciso) para ativar os efeitos.</p>
+        {% include 'home/partials/_ficha_concessoes_staff.html' %}
       </div>
+
+      <p class="lvl-secsub" style="margin-top:1.2rem">
+        Inventário, slots e sintonização ficam na <a href="{% url 'ficha_detail' p.id_personagem %}?aba=mochila" class="underline hover:text-[var(--ember)]">Mochila da ficha</a>;
+        compra e venda ficam no <a href="{% url 'mercado_itens_mundanos' %}" class="underline hover:text-[var(--ember)]">Mercado</a>.
+      </p>
 
       {% if transacoes %}
       <h2 class="lvl-sech" style="margin-top:1.2rem">Histórico de Transações</h2>
@@ -254,10 +95,7 @@
 
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'css/pages/criador.css' %}?v=2">
-<link rel="stylesheet" href="{% static 'css/pages/itens_mundanos.css' %}?v=1">
-<link rel="stylesheet" href="{% static 'css/pages/itens_magicos.css' %}?v=2">
 <link rel="stylesheet" href="{% static 'css/pages/levelup.css' %}?v=3">
-<script src="{% static 'js/loja_ficha.js' %}?v=1" defer></script>
 <script src="{% static 'js/editar_ficha.js' %}?v=1" defer></script>
 <script src="{% static 'js/conceder_item.js' %}?v=1" defer></script>
 {% endblock %}

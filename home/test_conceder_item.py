@@ -356,8 +356,13 @@ class EditarFichaFetchTests(ConcederItemBase):
         self.assertIn(reverse('personagem_conceder_item', args=[p.pk]), html)
 
     def test_get_ficha_dono_nao_staff_esconde_painel(self):
+        # Onda C: a página inteira virou ferramenta da staff — o dono não-staff nem entra,
+        # é devolvido para a própria ficha (logo, painel de concessão nenhum).
         p = self._char_dono_staff()
         self._rebind_dono_nao_staff(p, 'dono-plebeu-get')
         self.client.force_login(p.dono)
-        html = self.client.get(reverse('editar_ficha', args=[p.pk])).content.decode('utf-8')
+        resp = self.client.get(reverse('editar_ficha', args=[p.pk]))
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp['Location'], reverse('ficha_detail', args=[p.pk]))
+        html = self.client.get(reverse('ficha_detail', args=[p.pk])).content.decode('utf-8')
         self.assertNotIn('data-conceder-form', html)

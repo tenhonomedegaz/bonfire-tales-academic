@@ -44,16 +44,13 @@ Espera no contexto: mochila, p, pode_editar.{% endcomment %}
               <button type="submit" class="bag-btn attune{% if it.sintonizado %} on{% endif %}">{% if it.sintonizado %}Dessintonizar{% else %}Sintonizar{% endif %}</button>
             </form>
           {% endif %}
-          {% comment %}Venda/anúncio ficam aqui até a onda C mudar a venda para o Mercado.{% endcomment %}
+          {% comment %}A VENDA a 80% saiu daqui na onda C: vive no painel "Vender" do Mercado,
+          junto da compra e do personagem ativo. O anúncio de item mágico continua aqui — é
+          outra regra (escrow no Mercado da Comunidade, 50%).{% endcomment %}
           {% if it.magico %}
             <form method="post" action="{% url 'personagem_anunciar_magico' p.id_personagem %}" onsubmit="return confirm('Anunciar {{ it.nome|escapejs }} no Mercado da Comunidade? O item sai da mochila até vender ou cancelar.');">
               {% csrf_token %}<input type="hidden" name="item" value="{{ it.id }}">
               <button type="submit" class="bag-btn">Anunciar</button>
-            </form>
-          {% elif it.venda_display %}
-            <form method="post" action="{% url 'personagem_vender_item' p.id_personagem %}" onsubmit="return confirm('Vender 1× {{ it.nome|escapejs }} por {{ it.venda_display }} (80%)?');">
-              {% csrf_token %}<input type="hidden" name="item" value="{{ it.id }}"><input type="hidden" name="qtd" value="1">
-              <button type="submit" class="bag-btn" title="Vende 1 por {{ it.venda_display }}">Vender</button>
             </form>
           {% endif %}
         </span>
@@ -61,4 +58,5 @@ Espera no contexto: mochila, p, pode_editar.{% endcomment %}
       </li>
     {% endfor %}
   </ul>
-{% else %}<p class="bag-empty">Mochila vazia. Compre no Mercado ou receba itens da staff.</p>{% endif %}
+  {% if pode_editar %}<p class="bag-note">Comprar e vender (80% do valor) é no <a href="{% url 'mercado_itens_mundanos' %}?personagem={{ p.id_personagem }}">Mercado</a>, com este personagem no balcão.</p>{% endif %}
+{% else %}<p class="bag-empty">Mochila vazia. Compre no <a href="{% url 'mercado_itens_mundanos' %}?personagem={{ p.id_personagem }}" class="underline">Mercado</a> ou receba itens da staff.</p>{% endif %}

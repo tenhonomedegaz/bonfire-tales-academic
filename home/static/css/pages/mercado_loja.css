@@ -1,0 +1,458 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   MERCADO — vitrine de LOJA DE RPG (Ficha v2, onda C)
+
+   Nada de lista-wiki: a página é uma loja. À direita, o BALCÃO (personagem
+   ativo, carteira em PO, comprar/vender, detalhe da mercadoria); à esquerda,
+   as PRATELEIRAS — uma seção por loja/categoria do catálogo (Alquimia, Forja,
+   Joalheria…), cada uma com sua grade de mercadorias.
+
+   Identidade do site: Cinzel nos títulos, paleta ember/flame/spark, molduras
+   e brilho de brasa. Os TEMAS aplicam por cima (só variáveis são usadas).
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Cores canônicas por raridade (base, sem _menor/_maior) — a vitrine mágica
+   pinta moldura, selo e brilho a partir daqui. */
+.shop {
+  --rar-comum: #94a3b8;
+  --rar-incomum: #22c55e;
+  --rar-raro: #3b82f6;
+  --rar-muito_raro: #a855f7;
+  --rar-lendario: #f97316;
+  --rar-artefato: #ef4444;
+  --shelf-wood: color-mix(in srgb, var(--ember) 12%, var(--bg1));
+}
+
+.shop {
+  align-items: start;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 1100px) {
+  .shop { grid-template-columns: minmax(0, 1fr) 21rem; }
+  .shop-counter { order: 2; position: sticky; top: 5.5rem; }
+  .shop-main { order: 1; }
+}
+
+/* ═══════════════════════ BALCÃO (aside) ═══════════════════════ */
+.shop-counter {
+  background:
+    radial-gradient(120% 60% at 50% 0%, rgba(242, 112, 7, .12), transparent 70%),
+    var(--bg1);
+  border: 1px solid var(--stroke);
+  border-radius: 12px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .04), 0 10px 30px rgba(0, 0, 0, .35);
+  display: flex;
+  flex-direction: column;
+  gap: .7rem;
+  padding: .9rem;
+}
+.shop-counter-head { border-bottom: 1px solid var(--stroke); padding-bottom: .6rem; }
+.shop-counter-eyebrow {
+  color: var(--ember);
+  display: block;
+  font-size: .62rem;
+  font-weight: 800;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+}
+.shop-counter-title {
+  color: var(--text);
+  font-family: 'Cinzel', serif;
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: .04em;
+  line-height: 1.15;
+  text-transform: uppercase;
+}
+
+.shop-picker { display: flex; flex-wrap: wrap; gap: .4rem; }
+.shop-picker label {
+  color: var(--muted);
+  flex: 1 1 100%;
+  font-size: .62rem;
+  font-weight: 800;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+.shop-picker select {
+  background: var(--bg0);
+  border: 1px solid var(--stroke);
+  border-radius: 8px;
+  color: var(--text);
+  flex: 1 1 8rem;
+  font-size: .85rem;
+  outline: none;
+  padding: .4rem .5rem;
+}
+.shop-picker select:focus { border-color: var(--ember); }
+.shop-picker-go {
+  background: var(--bg2, var(--bg0));
+  border: 1px solid var(--stroke);
+  border-radius: 8px;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: .75rem;
+  font-weight: 700;
+  padding: .4rem .6rem;
+}
+.shop-picker-go:hover { border-color: var(--ember); color: var(--text); }
+
+.shop-wallet {
+  align-items: baseline;
+  background: var(--bg0);
+  border: 1px solid var(--stroke);
+  border-left: 3px solid var(--spark);
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  padding: .45rem .65rem;
+}
+.shop-wallet-label {
+  color: var(--muted);
+  font-size: .62rem;
+  font-weight: 800;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+.shop-wallet-value {
+  color: var(--spark);
+  font-family: 'Cinzel', serif;
+  font-size: 1.05rem;
+  font-weight: 800;
+  text-shadow: 0 0 14px rgba(247, 177, 19, .35);
+}
+
+.shop-note { color: var(--muted); font-size: .78rem; line-height: 1.45; }
+.shop-note a { color: var(--spark); text-decoration: underline; }
+
+.shop-feedback {
+  border-radius: 8px;
+  font-size: .8rem;
+  line-height: 1.35;
+  padding: .45rem .6rem;
+}
+.shop-feedback.is-ok { background: rgba(34, 197, 94, .12); border: 1px solid rgba(34, 197, 94, .4); color: #4ade80; }
+.shop-feedback.is-err { background: rgba(210, 23, 23, .12); border: 1px solid rgba(210, 23, 23, .45); color: var(--flame); }
+
+.shop-tabs {
+  border: 1px solid var(--stroke);
+  border-radius: 999px;
+  display: flex;
+  overflow: hidden;
+}
+.shop-tab {
+  background: transparent;
+  border: 0;
+  color: var(--muted);
+  cursor: pointer;
+  flex: 1 1 50%;
+  font-size: .74rem;
+  font-weight: 800;
+  letter-spacing: .08em;
+  padding: .38rem .6rem;
+  text-transform: uppercase;
+  transition: background .2s ease, color .2s ease;
+}
+.shop-tab.is-active { background: var(--ember); color: #fff; }
+
+/* ── detalhe da mercadoria (dentro do balcão) ── */
+.shop-detail-empty { color: var(--muted); font-size: .78rem; font-style: italic; padding: .6rem 0; }
+.shop-detail-card { display: flex; flex-direction: column; gap: .45rem; }
+.shop-detail-eyebrow {
+  color: var(--muted);
+  font-size: .62rem;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.shop-detail-name {
+  color: var(--text);
+  font-family: 'Cinzel', serif;
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+  text-transform: uppercase;
+}
+.shop-detail-stats { display: flex; flex-wrap: wrap; gap: .35rem; }
+.shop-stat {
+  background: var(--bg0);
+  border: 1px solid var(--stroke);
+  border-radius: 6px;
+  display: inline-flex;
+  flex-direction: column;
+  gap: .1rem;
+  padding: .28rem .5rem;
+}
+.shop-stat span { color: var(--muted); font-size: .58rem; letter-spacing: .1em; text-transform: uppercase; }
+.shop-stat strong { color: var(--text); font-size: .82rem; font-weight: 800; }
+.shop-stat.is-price strong { color: var(--spark); }
+.shop-detail-line { color: var(--muted); font-size: .78rem; line-height: 1.4; }
+.shop-detail-line strong { color: var(--text); }
+.shop-detail-desc { font-size: .78rem; line-height: 1.5; max-height: 18rem; overflow-y: auto; }
+
+/* ── painel VENDER ── */
+.shop-sell-list { display: flex; flex-direction: column; gap: .35rem; max-height: 24rem; overflow-y: auto; }
+.shop-sell-row {
+  align-items: center;
+  background: var(--bg0);
+  border: 1px solid var(--stroke);
+  border-left: 3px solid var(--spark);
+  border-radius: 8px;
+  display: flex;
+  gap: .4rem;
+  justify-content: space-between;
+  padding: .35rem .5rem;
+}
+.shop-sell-main { min-width: 0; }
+.shop-sell-name {
+  color: var(--text);
+  display: block;
+  font-size: .82rem;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.shop-sell-name em { color: var(--ember); font-style: normal; }
+.shop-sell-meta { color: var(--muted); font-size: .62rem; }
+.shop-sell-price { color: var(--spark); flex-shrink: 0; font-size: .8rem; font-weight: 800; }
+.shop-sell-form { margin: 0; }
+
+/* ═══════════════════════ FILTROS ═══════════════════════ */
+.shop-filters { display: flex; flex-direction: column; gap: .6rem; margin-bottom: 1rem; }
+.shop-search {
+  background: var(--bg0);
+  border: 1px solid var(--stroke);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: .88rem;
+  outline: none;
+  padding: .55rem .75rem;
+  width: 100%;
+}
+.shop-search:focus { border-color: var(--ember); box-shadow: 0 0 0 3px rgba(242, 112, 7, .12); }
+.shop-chips { display: flex; flex-wrap: wrap; gap: .35rem; }
+.shop-chip {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--stroke);
+  border-radius: 999px;
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: .66rem;
+  font-weight: 800;
+  gap: .3rem;
+  letter-spacing: .04em;
+  padding: .25rem .62rem;
+  text-transform: uppercase;
+  transition: border-color .2s ease, color .2s ease, background .2s ease, transform .2s ease;
+}
+.shop-chip:hover { border-color: var(--ember); color: var(--text); transform: translateY(-1px); }
+.shop-chip.is-active {
+  background: linear-gradient(90deg, rgba(242, 112, 7, .18), transparent 75%);
+  border-color: var(--ember);
+  color: var(--spark);
+}
+.shop-chip-dot { border-radius: 999px; box-shadow: 0 0 6px currentColor; height: .5rem; width: .5rem; }
+.shop-count { color: var(--muted); font-size: .7rem; letter-spacing: .06em; text-transform: uppercase; }
+.shop-count strong { color: var(--ember); }
+
+/* ═══════════════════════ PRATELEIRAS ═══════════════════════ */
+.shop-shelf { margin-bottom: 1.4rem; }
+.shelf-head {
+  align-items: baseline;
+  border-bottom: 2px solid var(--stroke);
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  justify-content: space-between;
+  margin-bottom: .7rem;
+  padding-bottom: .35rem;
+  position: relative;
+}
+.shelf-head::after {
+  background: linear-gradient(90deg, var(--flame), var(--ember) 60%, transparent);
+  bottom: -2px;
+  content: '';
+  height: 2px;
+  left: 0;
+  position: absolute;
+  width: min(9rem, 40%);
+}
+.shelf-name {
+  color: var(--text);
+  font-family: 'Cinzel', serif;
+  font-size: 1.02rem;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-shadow: 0 0 18px rgba(242, 112, 7, .22);
+  text-transform: uppercase;
+}
+.shelf-count { color: var(--muted); font-size: .66rem; letter-spacing: .08em; text-transform: uppercase; }
+.shelf-grid {
+  display: grid;
+  gap: .55rem;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+}
+.shelf-empty { color: var(--muted); font-size: .78rem; font-style: italic; padding: .5rem 0; }
+.shop-empty { color: var(--muted); font-size: .85rem; padding: 1.5rem; text-align: center; }
+
+/* ═══════════════════════ MERCADORIA (card) ═══════════════════════ */
+.goods {
+  background: linear-gradient(180deg, var(--bg1), var(--bg0));
+  border: 1px solid var(--stroke);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+}
+.goods::before {
+  background: var(--stroke);
+  content: '';
+  inset: 0 auto 0 0;
+  position: absolute;
+  width: 3px;
+}
+.goods:hover { border-color: var(--ember); box-shadow: 0 6px 22px rgba(210, 23, 23, .16); transform: translateY(-2px); }
+.goods.is-selected { border-color: var(--ember); box-shadow: inset 0 0 0 1px rgba(242, 112, 7, .35); }
+.goods-face {
+  background: none;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  display: block;
+  flex: 1 1 auto;
+  padding: .55rem .7rem .35rem .8rem;
+  text-align: left;
+  width: 100%;
+}
+.goods-name {
+  color: var(--text);
+  font-family: 'Cinzel', serif;
+  font-size: .86rem;
+  font-weight: 700;
+  letter-spacing: .02em;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.goods-meta {
+  color: var(--muted);
+  font-size: .63rem;
+  letter-spacing: .05em;
+  margin-top: .2rem;
+  text-transform: uppercase;
+}
+.goods-foot {
+  align-items: center;
+  border-top: 1px dashed color-mix(in srgb, var(--stroke) 80%, transparent);
+  display: flex;
+  flex-wrap: wrap;
+  gap: .35rem;
+  justify-content: space-between;
+  padding: .4rem .7rem .5rem .8rem;
+}
+/* O PREÇO é a estrela do card: Cinzel, dourado, tamanho de manchete. */
+.goods-price {
+  color: var(--spark);
+  font-family: 'Cinzel', serif;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: .02em;
+  text-shadow: 0 0 12px rgba(247, 177, 19, .3);
+  white-space: nowrap;
+}
+.goods-price.is-mission {
+  color: var(--muted);
+  font-family: inherit;
+  font-size: .66rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-shadow: none;
+  text-transform: uppercase;
+  white-space: normal;
+}
+.goods-buy { align-items: center; display: flex; gap: .3rem; margin: 0; }
+.goods-qty {
+  background: var(--bg0);
+  border: 1px solid var(--stroke);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: .78rem;
+  padding: .22rem .3rem;
+  width: 3rem;
+}
+.shop-btn {
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: .72rem;
+  font-weight: 800;
+  letter-spacing: .06em;
+  padding: .3rem .7rem;
+  text-transform: uppercase;
+  transition: filter .2s ease, opacity .2s ease;
+  white-space: nowrap;
+}
+.shop-btn.buy { background: var(--ember); color: #fff; }
+.shop-btn.sell { background: transparent; border-color: var(--spark); color: var(--spark); }
+.shop-btn:hover { filter: brightness(1.12); }
+.shop-btn:disabled { cursor: default; opacity: .45; }
+
+.goods-attune {
+  align-items: center;
+  background: rgba(239, 68, 68, .12);
+  border: 1px solid rgba(239, 68, 68, .4);
+  border-radius: 999px;
+  color: #ef4444;
+  display: inline-flex;
+  font-size: .58rem;
+  font-weight: 900;
+  height: 1.1rem;
+  justify-content: center;
+  position: absolute;
+  right: .45rem;
+  top: .45rem;
+  width: 1.1rem;
+}
+
+/* Moldura por raridade (vitrine mágica) */
+.goods.rarity-comum::before { background: var(--rar-comum); }
+.goods.rarity-incomum::before { background: var(--rar-incomum); }
+.goods.rarity-raro::before { background: var(--rar-raro); }
+.goods.rarity-muito_raro::before { background: var(--rar-muito_raro); }
+.goods.rarity-lendario::before { background: var(--rar-lendario); }
+.goods.rarity-artefato::before { background: var(--rar-artefato); }
+
+.goods-rarity {
+  border-radius: 999px;
+  display: inline-block;
+  font-size: .58rem;
+  font-weight: 800;
+  letter-spacing: .1em;
+  margin-bottom: .2rem;
+  padding: .08rem .4rem;
+  text-transform: uppercase;
+}
+.rarity-comum .goods-rarity { background: rgba(148, 163, 184, .12); color: var(--rar-comum); }
+.rarity-incomum .goods-rarity { background: rgba(34, 197, 94, .12); color: var(--rar-incomum); }
+.rarity-raro .goods-rarity { background: rgba(59, 130, 246, .12); color: var(--rar-raro); }
+.rarity-muito_raro .goods-rarity { background: rgba(168, 85, 247, .14); color: #c084fc; }
+.rarity-lendario .goods-rarity { background: rgba(249, 115, 22, .14); color: var(--rar-lendario); }
+.rarity-artefato .goods-rarity { background: rgba(239, 68, 68, .14); color: var(--rar-artefato); }
+
+.shop-chip-dot.rarity-comum { background: var(--rar-comum); color: var(--rar-comum); }
+.shop-chip-dot.rarity-incomum { background: var(--rar-incomum); color: var(--rar-incomum); }
+.shop-chip-dot.rarity-raro { background: var(--rar-raro); color: var(--rar-raro); }
+.shop-chip-dot.rarity-muito_raro { background: var(--rar-muito_raro); color: var(--rar-muito_raro); }
+.shop-chip-dot.rarity-lendario { background: var(--rar-lendario); color: var(--rar-lendario); }
+.shop-chip-dot.rarity-artefato { background: var(--rar-artefato); color: var(--rar-artefato); }
+
+@media (max-width: 480px) {
+  .shelf-grid { grid-template-columns: minmax(0, 1fr); }
+  .goods-foot { justify-content: space-between; }
+}

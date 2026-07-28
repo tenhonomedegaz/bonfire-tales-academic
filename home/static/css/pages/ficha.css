@@ -1560,6 +1560,9 @@ button.spell-name-toggle.open .spell-caret { transform: rotate(90deg); opacity: 
 .bag-btn.attune:hover, .bag-btn.attune.on { border-color: rgba(242, 112, 7, 0.55); color: var(--flame); }
 .bag-btn.use:hover { border-color: rgba(52, 211, 153, 0.55); color: var(--spark); }
 .bag-empty { color: var(--muted); font-size: 0.82rem; font-style: italic; }
+/* Rodapé da mochila apontando o Mercado (a venda migrou pra lá na onda C). */
+.bag-note { color: var(--muted); font-size: 0.74rem; margin-top: 0.5rem; }
+.bag-note a { color: var(--spark); text-decoration: underline; }
 
 /* chip "gerenciar na Mochila" no cabeçalho do painel Equipados */
 .ficha-link-chip {
