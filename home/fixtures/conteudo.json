@@ -55653,7 +55653,7 @@
   "model": "home.tbitemmagico",
   "pk": 331,
   "fields": {
-    "nome": "Distintivo da Guarda",
+    "nome": "Insígnia da Vigília",
     "slug": "distintivo-da-guarda",
     "raridade": "muito_raro_menor",
     "requer_sintonizacao": false,
@@ -57253,7 +57253,7 @@
   "pk": 411,
   "fields": {
     "nome": "Ficha de Pena de Quaal: Leque",
-    "slug": "ficha-de-pena-de-quaal-arvore",
+    "slug": "token-de-pena-de-quaal-leque",
     "raridade": "incomum_menor",
     "requer_sintonizacao": false,
     "detalhes_sintonizacao": "",
@@ -65308,7 +65308,7 @@
   "pk": 818,
   "fields": {
     "nome": "Ficha de Pena de Quaal: Árvore",
-    "slug": "token-de-pena-de-quaal-leque",
+    "slug": "ficha-de-pena-de-quaal-arvore",
     "raridade": "incomum_menor",
     "requer_sintonizacao": false,
     "detalhes_sintonizacao": "",
