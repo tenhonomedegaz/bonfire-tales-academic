@@ -169,18 +169,26 @@ def _ordena_por_destaque(badges, destaque_slugs):
     return destaque + resto
 
 
-def badges_do_usuario(user, is_colaborador=None):
-    """Derivadas + concedidas, com as FIXADAS (badges_destaque) primeiro.
-    As derivadas vêm sempre na frente das concedidas não-fixadas."""
+def badges_com_destaque(user, destaque_slugs, is_colaborador=None):
+    """Derivadas + concedidas do usuário, com as fixadas em `destaque_slugs` primeiro.
+
+    Caminho ÚNICO de montagem da vitrine: o perfil público passa o que está SALVO
+    (UserProfile.badges_destaque) e a prévia viva passa o candidato do formulário
+    (já filtrado por posse em _validated_badges_destaque) — mesmo código, zero drift."""
     if not user or not getattr(user, 'pk', None):
         return []
-    perfil = getattr(user, 'profile', None)
-    destaque = list(getattr(perfil, 'badges_destaque', None) or [])
     derivadas = badges_derivadas(user, is_colaborador)
     concedidas = badges_concedidas(user)
     # Fixadas primeiro (dentre TODAS as badges), preservando derivadas na frente.
-    ordenadas = _ordena_por_destaque(derivadas + concedidas, destaque)
-    return ordenadas
+    return _ordena_por_destaque(derivadas + concedidas, list(destaque_slugs or []))
+
+
+def badges_do_usuario(user, is_colaborador=None):
+    """Derivadas + concedidas, com as FIXADAS (badges_destaque) primeiro.
+    As derivadas vêm sempre na frente das concedidas não-fixadas."""
+    perfil = getattr(user, 'profile', None)
+    destaque = list(getattr(perfil, 'badges_destaque', None) or [])
+    return badges_com_destaque(user, destaque, is_colaborador)
 
 
 def user_possui_cosmetico(user, slug, tipo):
@@ -198,19 +206,8 @@ def user_possui_cosmetico(user, slug, tipo):
     return TbUsuarioCosmetico.objects.filter(user=user, cosmetico=cos).exists()
 
 
-def titulo_do_usuario(user):
-    """Cosmético tipo='titulo' equipado (UserProfile.titulo_equipado) que o usuário
-    POSSUI. Retorna dict {slug, nome, raridade, classe, descricao} ou None."""
-    if not user or not getattr(user, 'pk', None):
-        return None
-    perfil = getattr(user, 'profile', None)
-    slug = (getattr(perfil, 'titulo_equipado', '') or '').strip()
-    if not slug or not user_possui_cosmetico(user, slug, 'titulo'):
-        return None
-    from .models import TbCosmetico
-    cos = TbCosmetico.objects.filter(tipo='titulo', slug=slug, ativo=True).first()
-    if not cos:
-        return None
+def _titulo_dict(cos):
+    """Cosmético tipo='titulo' → dict uniforme pro template (formato ÚNICO)."""
     return {
         'slug': cos.slug,
         'nome': cos.nome,
@@ -218,6 +215,29 @@ def titulo_do_usuario(user):
         'classe': 'profile-title rar-%s' % (cos.raridade or 'comum'),
         'descricao': cos.descricao or '',
     }
+
+
+def titulo_por_slug(user, slug):
+    """Dict do título de `slug` SE o usuário o possui; senão None.
+
+    Caminho ÚNICO de resolução de título: o perfil público passa o slug SALVO e a
+    prévia viva passa o slug candidato do formulário (já filtrado por posse em
+    _validated_titulo_equipado). Um slug não-possuído devolve None nos dois casos."""
+    slug = (slug or '').strip()
+    if not user or not getattr(user, 'pk', None) or not slug:
+        return None
+    if not user_possui_cosmetico(user, slug, 'titulo'):
+        return None
+    from .models import TbCosmetico
+    cos = TbCosmetico.objects.filter(tipo='titulo', slug=slug, ativo=True).first()
+    return _titulo_dict(cos) if cos else None
+
+
+def titulo_do_usuario(user):
+    """Cosmético tipo='titulo' equipado (UserProfile.titulo_equipado) que o usuário
+    POSSUI. Retorna dict {slug, nome, raridade, classe, descricao} ou None."""
+    perfil = getattr(user, 'profile', None)
+    return titulo_por_slug(user, getattr(perfil, 'titulo_equipado', ''))
 
 
 def titulos_disponiveis(user):
@@ -325,13 +345,7 @@ def _titulos_equipados_batch(users):
     for pk, slug in desejado.items():
         cos = cos_por_slug.get(slug)
         if cos and (pk, slug) in possui:
-            out[pk] = {
-                'slug': cos.slug,
-                'nome': cos.nome,
-                'raridade': cos.raridade or 'comum',
-                'classe': 'profile-title rar-%s' % (cos.raridade or 'comum'),
-                'descricao': cos.descricao or '',
-            }
+            out[pk] = _titulo_dict(cos)
     return out
 
 

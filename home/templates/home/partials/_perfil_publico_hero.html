@@ -1,0 +1,119 @@
+{% comment %}
+HERO/CARTÃO DO PERFIL PÚBLICO — partial ÚNICO (render único, sem duplicação de markup).
+
+Renderizado por DOIS caminhos, com o MESMO contexto:
+  1. public_profile_view  → página /perfil/<username>/ (resultado real);
+  2. perfil_preview_view  → POST /perfil/previa/ (prévia viva do editor de aparência).
+
+Zero drift: os dois passam por _appearance_context (+ _theme_vars_style) e pelos
+MESMOS validadores de posse. O que o usuário vê na prévia é literalmente o mesmo
+HTML que a página pública emite depois de salvar.
+
+Contexto esperado:
+  appearance    dict de _appearance_context (theme_class/effect_class/frame_class/
+                custom_style/fx_particula/fx_vel/background_url)
+  profile       UserProfile (página real) OU dict sintético {avatar_url, banner_url,
+                bio} montado pela prévia — NADA é persistido na prévia
+  viewed_user   auth.User dono do perfil
+  titulo        dict de badges.titulo_* ou None
+  badges        lista de badges (destaque primeiro)
+  conquistas    dict de conquistas.conquistas_do_usuario
+  personagens   lista de _personagem_card
+  preview_mode  bool — na prévia: sem link de volta, fundo escopado na área da prévia
+
+Ganchos da prévia (JS): as imagens escolhidas no <input type=file> ainda NÃO existem
+no servidor, então o cliente sobrepõe .public-profile-banner-media,
+.public-profile-avatar img e .perfil-preview-bg por cima deste HTML (URL.createObjectURL).
+{% endcomment %}
+<section class="public-profile-page {{ appearance.theme_class }} {{ appearance.effect_class }}{% if appearance.background_url %} profile-has-bg{% endif %}{% if preview_mode %} is-preview{% endif %}"{% if appearance.fx_particula %} data-fx-particula="{{ appearance.fx_particula }}" data-fx-vel="{{ appearance.fx_vel }}"{% endif %}{% if appearance.custom_style %} style="{{ appearance.custom_style }}"{% endif %}>
+  {% if preview_mode %}
+  <div class="perfil-preview-bg"{% if appearance.background_url %} style="background-image:url('{{ appearance.background_url }}');"{% else %} style="display:none"{% endif %}></div>
+  {% else %}
+  <a href="{% url 'jogadores' %}" class="public-profile-back">← Jogadores</a>
+  {% endif %}
+  <div class="public-profile-card">
+    <div class="public-profile-banner">
+      {% if profile.banner_url %}<div class="public-profile-banner-media" style="background-image:url('{{ profile.banner_url }}');"></div>{% elif preview_mode %}<div class="public-profile-banner-media" style="display:none"></div>{% endif %}
+    </div>
+
+    <div class="public-profile-body">
+      <div class="public-profile-avatar {{ appearance.frame_class }}">
+        {% if profile.avatar_url %}
+        <img src="{{ profile.avatar_url }}" alt="Avatar de {{ viewed_user.username }}" loading="lazy">
+        {% else %}
+        <span>{{ viewed_user.username|first|upper }}</span>
+        {% endif %}
+      </div>
+
+      <div class="public-profile-main">
+        <div class="public-profile-name-row">
+          <h1>{{ viewed_user.username }}</h1>
+          {% if viewed_user.is_superuser %}
+          <span class="profile-role is-staff">Administrador</span>
+          {% elif viewed_user.is_staff %}
+          <span class="profile-role is-staff">Staff</span>
+          {% else %}
+          <span class="profile-role">Jogador</span>
+          {% endif %}
+        </div>
+        {% if titulo %}<p class="{{ titulo.classe }}" title="{{ titulo.descricao }}">{{ titulo.nome }}</p>{% endif %}
+        <p class="public-profile-handle">@{{ viewed_user.username }}</p>
+        {% if badges %}
+        <ul class="profile-badges" aria-label="Insígnias de {{ viewed_user.username }}">
+          {% for b in badges %}
+          <li class="profile-badge {{ b.classe }}" title="{{ b.tooltip }}">
+            {% if b.icone_asset %}<img class="profile-badge-icon" src="{{ b.icone_asset }}" alt="" loading="lazy">{% elif b.icone %}<span class="profile-badge-emoji" aria-hidden="true">{{ b.icone }}</span>{% endif %}
+            <span class="profile-badge-name">{{ b.nome }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+        {% if profile.bio %}<p class="public-profile-bio">{{ profile.bio }}</p>{% endif %}
+      </div>
+    </div>
+  </div>
+
+  {% if conquistas.total or conquistas.obtidas_count %}
+  <div class="public-profile-section">
+    <div class="public-profile-section-head">
+      <h2>Conquistas</h2>
+      <span>{{ conquistas.obtidas_count }} / {{ conquistas.total }}</span>
+    </div>
+    <ul class="conquista-grid" aria-label="Conquistas de {{ viewed_user.username }}">
+      {% for c in conquistas.obtidas %}
+      <li class="conquista-item is-obtida" title="{{ c.nome }}{% if c.descricao %} — {{ c.descricao }}{% endif %} · {{ c.concedida_em|date:'d/m/Y' }}">
+        {% if c.icone_url %}<img class="conquista-icone" src="{{ c.icone_url }}" alt="" loading="lazy">{% else %}<span class="conquista-icone conquista-icone-fallback" aria-hidden="true">🏆</span>{% endif %}
+        <span class="conquista-nome">{{ c.nome }}</span>
+      </li>
+      {% endfor %}
+      {% for c in conquistas.bloqueadas %}
+      <li class="conquista-item is-bloqueada" title="{{ c.nome }} — bloqueada">
+        <span class="conquista-icone conquista-icone-lock" aria-hidden="true">🔒</span>
+        <span class="conquista-nome">{{ c.nome }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <div class="public-profile-section">
+    <div class="public-profile-section-head">
+      <h2>Personagens</h2>
+      <span>{{ personagens|length }}</span>
+    </div>
+    {% if personagens %}
+    <div class="public-character-grid">
+      {% for c in personagens %}
+      <a href="{% url 'ficha_detail' c.obj.id_personagem %}" class="public-character-card"{% if preview_mode %} tabindex="-1"{% endif %}>
+        {% if c.obj.banner_url %}<span class="public-character-banner" style="background-image:url('{{ c.obj.banner_url }}');"></span>{% endif %}
+        <strong>{{ c.obj.nome }}</strong>
+        <span>{{ c.raca }} · {{ c.classe }}</span>
+        <em>Nivel {{ c.nivel }}</em>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="public-profile-empty">Nenhum personagem publico por enquanto.</p>
+    {% endif %}
+  </div>
+</section>

@@ -1057,11 +1057,30 @@ def profile_view(request):
         'badges_destaque_slugs': list(profile.badges_destaque or []),
         # F3 — progresso das próprias conquistas (obtidas + bloqueadas não-secretas).
         'conquistas': _conquistas.conquistas_do_usuario(user),
+        # PRÉVIA VIVA — estado INICIAL do painel: a aparência ATUALMENTE SALVA,
+        # renderizada pelo mesmo partial do perfil público. Dali em diante quem
+        # atualiza é o POST /perfil/previa/ (perfil_preview_view).
+        'preview_badges': _badges.badges_do_usuario(user),
+        'preview_titulo': _badges.titulo_do_usuario(user),
+        'preview_personagens': _perfil_personagens(user, True),
     })
 
 
+def _perfil_personagens(viewed_user, pode_ver_privados):
+    """Cards de personagem da vitrine do perfil público. Caminho ÚNICO — a página
+    pública e a prévia viva do editor listam exatamente o mesmo conjunto."""
+    from .models import TbPersonagem
+    qs = (TbPersonagem.objects.filter(dono=viewed_user)
+          .select_related('id_raca')
+          .prefetch_related('classes__id_classe')
+          .order_by('-atualizado_em'))
+    if not pode_ver_privados:
+        qs = qs.filter(publico=True, arquivado=False)
+    return [_personagem_card(p) for p in qs]
+
+
 def public_profile_view(request, username):
-    from .models import UserProfile, TbPersonagem
+    from .models import UserProfile
     from . import permissions as perms
 
     User = get_user_model()
@@ -1070,13 +1089,7 @@ def public_profile_view(request, username):
     pode_ver_privados = request.user.is_authenticated and (
         request.user.pk == viewed_user.pk or perms.is_staff_user(request.user)
     )
-    personagens_qs = (TbPersonagem.objects.filter(dono=viewed_user)
-                      .select_related('id_raca')
-                      .prefetch_related('classes__id_classe')
-                      .order_by('-atualizado_em'))
-    if not pode_ver_privados:
-        personagens_qs = personagens_qs.filter(publico=True, arquivado=False)
-    personagens = [_personagem_card(p) for p in personagens_qs]
+    personagens = _perfil_personagens(viewed_user, pode_ver_privados)
     return render(request, 'home/pages/perfil_publico.html', {
         'page_title': viewed_user.username,
         'viewed_user': viewed_user,
@@ -1091,6 +1104,114 @@ def public_profile_view(request, username):
         'titulo': _badges.titulo_do_usuario(viewed_user),
         # F3 — vitrine de conquistas (compacta). Secretas não-obtidas nunca aparecem.
         'conquistas': _conquistas.conquistas_do_usuario(viewed_user),
+    })
+
+
+# Campos de imagem do formulário de aparência: <campo>_url + clear_<campo>.
+_PERFIL_IMAGENS = ('avatar', 'banner', 'background')
+
+
+def _perfil_imagem_candidata(request, nome, atual):
+    """URL de imagem CANDIDATA (prévia), com a mesma precedência do salvamento:
+    `clear_<nome>` marcado zera; senão vale o que veio no campo `<nome>_url`; se o
+    campo nem veio no POST, mantém o valor salvo. O arquivo do <input type=file>
+    NÃO participa — ele ainda não existe no servidor e é sobreposto no cliente."""
+    if request.POST.get('clear_' + nome) == 'on':
+        return ''
+    campo = nome + '_url'
+    if campo in request.POST:
+        return (request.POST.get(campo) or '').strip()
+    return (atual or '').strip()
+
+
+@login_required(login_url='/login/')
+@require_POST
+def perfil_preview_view(request):
+    """PRÉVIA VIVA do perfil inteiro (editor de aparência) — NADA é persistido.
+
+    Recebe o ESTADO CANDIDATO do formulário de aparência (tema/moldura/efeito/
+    título/badges/cores custom/URLs/bio), valida com os MESMOS validadores do
+    salvar (`_appearance_validated` → catálogo+posse, `_validated_titulo_equipado`,
+    `_validated_badges_destaque`, `_custom_theme_from_post` → sanitize hex-only) e
+    devolve o HTML do perfil público renderizado pelo MESMO partial
+    (`partials/_perfil_publico_hero.html`) com `_appearance_context` sintético +
+    `_theme_vars_style`. Padrão do projeto (igual `criar_personagem_preview_view`):
+    a prévia passa pelo MESMO code path do render real → zero drift.
+
+    Candidato NÃO-POSSUÍDO é recusado exatamente como no salvar (cai no default do
+    tipo / título vira '' / badge some da lista) e volta listado em `recusados`,
+    para a UI dizer por que a escolha não pegou.
+
+    Escrita: nenhuma. Só leitura de catálogo/inventário — o UserProfile do usuário
+    não é salvo (nem `get_or_create`), então N prévias deixam a aparência salva
+    intacta."""
+    from django.template.loader import render_to_string
+    from .models import UserProfile
+
+    user = request.user
+    profile = getattr(user, 'profile', None) or UserProfile(user=user)
+
+    # ── Validação idêntica à do POST de salvamento (action=update_profile) ──────
+    theme = _appearance_validated(user, 'theme', request.POST.get('profile_theme'), 'perfil')
+    frame = _appearance_validated(user, 'frame', request.POST.get('avatar_frame'), 'perfil')
+    effect = _appearance_validated(user, 'effect', request.POST.get('profile_effect'), 'perfil')
+    theme_custom = _custom_theme_from_post(request)
+    titulo_slug = _validated_titulo_equipado(user, request.POST.get('titulo_equipado'))
+    badges_destaque = _validated_badges_destaque(user, request.POST.getlist('badges_destaque'))
+
+    # O que o servidor RECUSOU (candidato não-possuído/inexistente) — mesma recusa
+    # que o salvamento aplicaria, só que visível antes de salvar.
+    recusados = []
+    for campo, aceito in (('profile_theme', theme), ('avatar_frame', frame),
+                          ('profile_effect', effect)):
+        bruto = (request.POST.get(campo) or '').strip()
+        if bruto and bruto != aceito:
+            recusados.append(campo)
+    if (request.POST.get('titulo_equipado') or '').strip() and not titulo_slug:
+        recusados.append('titulo_equipado')
+    if set(s.strip() for s in request.POST.getlist('badges_destaque') if s.strip()) - set(badges_destaque):
+        recusados.append('badges_destaque')
+
+    # ── Estado candidato de imagens/bio (sintético, jamais salvo) ──────────────
+    imagens = {nome: _perfil_imagem_candidata(request, nome, getattr(profile, nome + '_url', ''))
+               for nome in _PERFIL_IMAGENS}
+    if 'bio' in request.POST:
+        bio = (request.POST.get('bio') or '').strip()[:800]
+    else:
+        bio = (profile.bio or '')
+
+    appearance = _appearance_context(theme, frame, effect, theme_custom,
+                                     imagens['background'])
+    # `profile` sintético: dict puro (não é model), impossível de persistir por acidente.
+    profile_candidato = {
+        'avatar_url': imagens['avatar'],
+        'banner_url': imagens['banner'],
+        'background_url': imagens['background'],
+        'bio': bio,
+    }
+
+    html = render_to_string('home/partials/_perfil_publico_hero.html', {
+        'appearance': appearance,
+        'profile': profile_candidato,
+        'viewed_user': user,
+        'badges': _badges.badges_com_destaque(user, badges_destaque),
+        'titulo': _badges.titulo_por_slug(user, titulo_slug),
+        'conquistas': _conquistas.conquistas_do_usuario(user),
+        'personagens': _perfil_personagens(user, True),
+        'preview_mode': True,
+    }, request=request)
+
+    return JsonResponse({
+        'ok': True,
+        'html': html,
+        'theme_key': appearance['theme_key'],
+        'frame_key': appearance['frame_key'],
+        'effect_key': appearance['effect_key'],
+        'is_custom': appearance['is_custom'],
+        'theme_css_href': appearance['theme_css_href'],
+        'titulo_equipado': titulo_slug,
+        'badges_destaque': badges_destaque,
+        'recusados': recusados,
     })
 
 

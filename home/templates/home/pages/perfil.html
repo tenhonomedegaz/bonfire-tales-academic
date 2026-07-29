@@ -2,9 +2,9 @@
 {% load static %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/pages/perfil.css' %}?v=3">
-<link rel="stylesheet" href="{% static 'css/pages/perfil-fx.css' %}?v=3">
-{% if appearance.theme_css_href %}<link rel="stylesheet" href="{{ appearance.theme_css_href }}">{% endif %}
+<link rel="stylesheet" href="{% static 'css/pages/perfil.css' %}?v=4">
+<link rel="stylesheet" href="{% static 'css/pages/perfil-fx.css' %}?v=4">
+{% if appearance.theme_css_href %}<link rel="stylesheet" id="perfil-preview-theme-css" href="{{ appearance.theme_css_href }}">{% endif %}
 <title>Meu Perfil — Bonfire Tales RPG</title>
 {% endblock %}
 
@@ -55,10 +55,13 @@
         <a href="{% url 'public_profile' user.username %}" class="profile-public-link">Ver perfil publico</a>
     </div>
 
-    <!-- Seção: Dados do Perfil -->
-    <form method="post" class="profile-section" enctype="multipart/form-data">
+    <!-- Seção: Dados do Perfil + PRÉVIA VIVA (coluna sticky à direita) -->
+    <form method="post" class="profile-section profile-editor" enctype="multipart/form-data" id="perfil-form">
         {% csrf_token %}
         <input type="hidden" name="action" value="update_profile">
+
+        <div class="perfil-editor-layout">
+        <div class="perfil-editor-main">
 
         <h2 class="profile-section-title">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -171,14 +174,6 @@
             <label class="profile-inline-check" style="grid-column:1/-1"><input type="checkbox" name="custom_gradiente" id="id_custom_gradiente" {% if appearance.custom.gradiente %}checked{% endif %}> Degradê animado no destaque</label>
         </div>
 
-        {# Preview ao vivo #}
-        <div class="profile-header profile-live-preview {{ appearance.theme_class }} {{ appearance.effect_class }}" id="profile-preview"{% if appearance.fx_particula %} data-fx-particula="{{ appearance.fx_particula }}" data-fx-vel="{{ appearance.fx_vel }}"{% endif %} style="margin-top:.7rem;padding:.85rem;{{ appearance.custom_style }}">
-            <div class="profile-avatar-wrapper {{ appearance.frame_class }}" id="profile-preview-frame" style="width:64px;height:64px">
-                {% if profile.avatar_url %}<img src="{{ profile.avatar_url }}" alt="">{% else %}<div class="profile-avatar-fallback"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>{% endif %}
-            </div>
-            <span class="profile-username" style="font-size:1rem">Prévia do tema</span>
-        </div>
-
         <div class="profile-field">
             <div class="profile-checkbox-group">
                 <input type="checkbox" id="id_vlibras_enabled" name="vlibras_enabled" {% if profile.vlibras_enabled %}checked{% endif %}>
@@ -264,6 +259,26 @@
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
             Salvar Perfil
         </button>
+
+        </div>{# /.perfil-editor-main #}
+
+        {# PRÉVIA VIVA: o perfil público inteiro, pelo MESMO partial que a página real. #}
+        <aside class="perfil-preview-pane" id="perfil-preview-pane" aria-label="Prévia do seu perfil público">
+            <div class="perfil-preview-head">
+                <button type="button" class="perfil-preview-toggle" id="perfil-preview-toggle" aria-expanded="true" aria-controls="perfil-preview-stage">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+                    <span class="perfil-preview-title">Prévia ao vivo</span>
+                    <span class="perfil-preview-chevron" aria-hidden="true"></span>
+                </button>
+                <span class="perfil-preview-status" id="perfil-preview-status" role="status" aria-live="polite"></span>
+            </div>
+            <p class="perfil-preview-hint">Este é o seu perfil público de verdade — tema, partículas, moldura, título e insígnias. Reage a cada ajuste; nada é gravado até você clicar em <strong>Salvar Perfil</strong>.</p>
+            <div class="perfil-preview-stage" id="perfil-preview-stage">
+                {% include 'home/partials/_perfil_publico_hero.html' with viewed_user=user profile=profile appearance=appearance badges=preview_badges titulo=preview_titulo conquistas=conquistas personagens=preview_personagens preview_mode=True %}
+            </div>
+        </aside>
+
+        </div>{# /.perfil-editor-layout #}
     </form>
 
     {% if user.email and not profile.email_verified %}
@@ -439,49 +454,167 @@ document.addEventListener('DOMContentLoaded', () => {
         if (file) setBg(URL.createObjectURL(file));
     });
 
-    // --- Preview ao vivo do tema/moldura/efeito/custom ---
-    const pv = document.getElementById('profile-preview');
-    if (pv) {
-        const pvFrame = document.getElementById('profile-preview-frame');
-        // Tema agora é um grupo de radios (cards-swatch) em vez de <select> —
-        // lê o valor marcado do grupo (mesmo name="profile_theme" de antes).
-        const themeRadios = document.querySelectorAll('input[name="profile_theme"]');
-        const frameSel = document.getElementById('id_avatar_frame');
-        const effectSel = document.getElementById('id_profile_effect');
-        const customBox = document.getElementById('profile-custom-controls');
-        const THEME = { {% for key, item in appearance_themes.items %}'{{ key }}':'{{ item.class }}',{% endfor %} };
-        const FRAME = { {% for key, item in appearance_frames.items %}'{{ key }}':'{{ item.class }}',{% endfor %} };
-        const EFFECT = { {% for key, item in appearance_effects.items %}'{{ key }}':'{{ item.class }}',{% endfor %} };
-        const cA = document.getElementById('id_custom_accent');
-        const cB = document.getElementById('id_custom_accent2');
-        const cS = document.getElementById('id_custom_surface');
-        const cD = document.getElementById('id_custom_deep');
-        const cG = document.getElementById('id_custom_gradiente');
-        const getThemeValue = () => {
-            const checked = document.querySelector('input[name="profile_theme"]:checked');
-            return checked ? checked.value : 'bonfire';
+    // =================================================================
+    // PRÉVIA VIVA DO PERFIL INTEIRO
+    // O servidor renderiza o MESMO partial do perfil público a cada ajuste
+    // (POST /perfil/previa/, nada persistido) e devolve o HTML pronto. Aqui só
+    // trocamos o nó e sobrepomos os arquivos escolhidos localmente — que ainda
+    // NÃO existem no servidor (URL.createObjectURL).
+    // =================================================================
+    const form = document.getElementById('perfil-form');
+    const stage = document.getElementById('perfil-preview-stage');
+    const statusEl = document.getElementById('perfil-preview-status');
+    const PREVIEW_URL = '{% url "perfil_preview" %}';
+
+    // Painel de cores só aparece com o tema Personalizado (comportamento antigo).
+    const customBox = document.getElementById('profile-custom-controls');
+    const sincronizaCustomBox = () => {
+        if (!customBox) return;
+        const marcado = document.querySelector('input[name="profile_theme"]:checked');
+        customBox.style.display = (marcado && marcado.value === 'custom') ? '' : 'none';
+    };
+
+    if (form && stage) {
+        // Arquivo escolhido no <input type=file> → blob local por "slot".
+        const blobs = { avatar: '', banner: '', background: '' };
+        const SLOT_DE_ARQUIVO = { avatar_file: 'avatar', banner_file: 'banner', background_file: 'background' };
+
+        const trocaBlob = (slot, file) => {
+            if (blobs[slot]) URL.revokeObjectURL(blobs[slot]);
+            blobs[slot] = file ? URL.createObjectURL(file) : '';
         };
-        const applyTheme = () => {
-            const t = getThemeValue();
-            pv.className = 'profile-header profile-live-preview ' + (THEME[t] || '') + ' ' + (EFFECT[effectSel.value] || '');
-            pvFrame.className = 'profile-avatar-wrapper ' + (FRAME[frameSel.value] || '');
-            const isCustom = t === 'custom';
-            if (customBox) customBox.style.display = isCustom ? '' : 'none';
-            if (isCustom) {
-                const accent = cG && cG.checked ? `linear-gradient(120deg, ${cA.value}, ${cB.value})` : cA.value;
-                pv.style.cssText = 'margin-top:.7rem;padding:.85rem;'
-                    + `--profile-accent:${accent};--profile-accent-solid:${cA.value};`
-                    + `--profile-accent-2:${cB.value};--profile-surface:${cS.value};--profile-deep:${cD.value};`;
-            } else {
-                pv.style.cssText = 'margin-top:.7rem;padding:.85rem';
+
+        // Sobrepõe os blobs locais por cima do HTML que veio do servidor.
+        const aplicaArquivosLocais = () => {
+            const root = stage.querySelector('.public-profile-page');
+            if (!root) return;
+            if (blobs.avatar) {
+                const box = root.querySelector('.public-profile-avatar');
+                if (box) {
+                    let img = box.querySelector('img');
+                    if (!img) { box.textContent = ''; img = document.createElement('img'); img.alt = ''; box.appendChild(img); }
+                    img.src = blobs.avatar;
+                }
+            }
+            if (blobs.banner) {
+                const banner = root.querySelector('.public-profile-banner');
+                if (banner) {
+                    let media = banner.querySelector('.public-profile-banner-media');
+                    if (!media) { media = document.createElement('div'); media.className = 'public-profile-banner-media'; banner.appendChild(media); }
+                    media.style.display = '';
+                    media.style.backgroundImage = `url("${blobs.banner}")`;
+                }
+            }
+            if (blobs.background) {
+                const bg = root.querySelector('.perfil-preview-bg');
+                if (bg) { bg.style.display = ''; bg.style.backgroundImage = `url("${blobs.background}")`; }
+                root.classList.add('profile-has-bg');
             }
         };
-        [...themeRadios, frameSel, effectSel, cA, cB, cS, cD, cG].forEach(el => {
-            if (!el) return;
-            el.addEventListener('input', applyTheme);
-            el.addEventListener('change', applyTheme);
+
+        // <link> do CSS avançado do tema (TbCosmetico.css_file), quando houver.
+        const aplicaTemaCss = (href) => {
+            let link = document.getElementById('perfil-preview-theme-css');
+            if (href) {
+                if (!link) {
+                    link = document.createElement('link');
+                    link.rel = 'stylesheet';
+                    link.id = 'perfil-preview-theme-css';
+                    document.head.appendChild(link);
+                }
+                if (link.getAttribute('href') !== href) link.setAttribute('href', href);
+            } else if (link) {
+                link.remove();
+            }
+        };
+
+        const RECUSA_LABEL = {
+            profile_theme: 'tema', avatar_frame: 'moldura', profile_effect: 'efeito',
+            titulo_equipado: 'título', badges_destaque: 'insígnias',
+        };
+        const mostraRecusa = (recusados) => {
+            if (!statusEl) return;
+            if (recusados && recusados.length) {
+                statusEl.textContent = 'Bloqueado: ' + recusados.map(r => RECUSA_LABEL[r] || r).join(', ');
+                statusEl.classList.add('is-recusa');
+            } else {
+                statusEl.textContent = '';
+                statusEl.classList.remove('is-recusa');
+            }
+        };
+
+        let timer = null;
+        let seq = 0;
+        const atualizaPrevia = () => {
+            const meuSeq = ++seq;
+            const dados = new FormData();
+            // Só texto/seleção. O binário do arquivo NUNCA vai no preview — o
+            // servidor não salva nada e a imagem local é sobreposta aqui.
+            form.querySelectorAll('input, select, textarea').forEach(el => {
+                if (!el.name || el.type === 'file' || el.disabled) return;
+                if ((el.type === 'checkbox' || el.type === 'radio') && !el.checked) return;
+                dados.append(el.name, el.value);
+            });
+            stage.classList.add('is-carregando');
+            fetch(PREVIEW_URL, {
+                method: 'POST', body: dados, credentials: 'same-origin',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            })
+                .then(r => (r.ok ? r.json() : Promise.reject(r.status)))
+                .then(json => {
+                    if (meuSeq !== seq || !json || !json.html) return;  // resposta velha
+                    const atual = stage.querySelector('.public-profile-page');
+                    // outerHTML: o nó inteiro é substituído, então as partículas
+                    // (CSS por data-fx-*) reiniciam sozinhas no nó novo.
+                    if (atual) { atual.outerHTML = json.html; } else { stage.innerHTML = json.html; }
+                    aplicaTemaCss(json.theme_css_href);
+                    aplicaArquivosLocais();
+                    mostraRecusa(json.recusados);
+                })
+                .catch(() => { if (statusEl) statusEl.textContent = 'Prévia indisponível'; })
+                .finally(() => { if (meuSeq === seq) stage.classList.remove('is-carregando'); });
+        };
+
+        const agenda = () => { clearTimeout(timer); timer = setTimeout(atualizaPrevia, 250); };
+
+        form.addEventListener('input', agenda);
+        form.addEventListener('change', (ev) => {
+            const el = ev.target;
+            if (el && el.type === 'file') {
+                const slot = SLOT_DE_ARQUIVO[el.name];
+                if (slot) { trocaBlob(slot, el.files && el.files[0]); aplicaArquivosLocais(); }
+            }
+            // "Remover X" derruba também a sobreposição local do arquivo.
+            if (el && el.name && el.name.indexOf('clear_') === 0 && el.checked) {
+                const slot = el.name.slice('clear_'.length);
+                if (slot in blobs) {
+                    trocaBlob(slot, null);
+                    const fileInput = form.querySelector('[name="' + slot + '_file"]');
+                    if (fileInput) fileInput.value = '';
+                }
+            }
+            if (el && el.name === 'profile_theme') sincronizaCustomBox();
+            agenda();
         });
-        applyTheme();
+    }
+
+    sincronizaCustomBox();
+
+    // Mobile: a prévia vira bloco COLAPSÁVEL acima do formulário (nunca escondida).
+    const pane = document.getElementById('perfil-preview-pane');
+    const toggle = document.getElementById('perfil-preview-toggle');
+    if (pane && toggle) {
+        const larga = () => window.matchMedia('(min-width: 900px)').matches;
+        toggle.addEventListener('click', () => {
+            const fechado = pane.classList.toggle('is-collapsed');
+            toggle.setAttribute('aria-expanded', fechado ? 'false' : 'true');
+        });
+        window.addEventListener('resize', () => {
+            if (larga() && pane.classList.contains('is-collapsed')) {
+                pane.classList.remove('is-collapsed');
+                toggle.setAttribute('aria-expanded', 'true');
+            }
+        });
     }
 });
 </script>

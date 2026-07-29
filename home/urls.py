@@ -23,6 +23,9 @@ urlpatterns = [
         template_name='home/password_reset_complete.html'
     ), name='password_reset_complete'),
     path('perfil/', views.profile_view, name='profile'),
+    # Prévia viva do editor de aparência (POST, dono logado, nada persistido).
+    # ANTES de 'perfil/<username>/' — senão 'previa' seria lido como username.
+    path('perfil/previa/', views.perfil_preview_view, name='perfil_preview'),
     path('webhooks/asaas/', views.asaas_webhook, name='asaas_webhook'),
     path('discord/login/', views.discord_login, name='discord_login'),
     path('discord/callback/', views.discord_callback, name='discord_callback'),

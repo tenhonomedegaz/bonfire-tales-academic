@@ -1635,3 +1635,192 @@
         transition: none;
     }
 }
+
+/* =====================================================================
+   PRÉVIA VIVA DO PERFIL (editor de aparência)
+   O painel mostra o PERFIL PÚBLICO DE VERDADE — mesmo partial, mesmo
+   `appearance`, mesmas partículas (data-fx-*). Este bloco é ADITIVO: só
+   posiciona/emoldura a área da prévia; NADA aqui redefine a aparência do
+   perfil público em si (o tema continua mandando por cima, como na página
+   real). Identidade Cinzel/ember, sem cromo genérico.
+   ===================================================================== */
+
+/* Larguras em px de propósito: a raiz do site usa 13px, então `rem` aqui daria
+   medidas surpreendentes. O <main> do site já limita a coluna (~800px) — a
+   prévia divide ESSE espaço com o formulário, sem estourar o gabarito da página
+   nem invadir as trilhas laterais de apoio.
+
+   Só o CARTÃO DO EDITOR usa a largura cheia do <main>; o resto da página de
+   perfil (hero, e-mail, senha, Discord, toasts) continua na coluna de leitura
+   de 680px — ou seja, nada mudou de lugar fora do editor. */
+@media (min-width: 900px) {
+    .profile-page:has(.perfil-editor-layout) {
+        max-width: none;
+    }
+    .profile-page:has(.perfil-editor-layout) > .profile-header,
+    .profile-page:has(.perfil-editor-layout) > .profile-toast,
+    .profile-page:has(.perfil-editor-layout) > .profile-section:not(.profile-editor) {
+        max-width: 680px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+}
+
+.perfil-editor-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+    align-items: start;
+}
+
+.perfil-editor-main {
+    min-width: 0;
+}
+
+/* MOBILE: a prévia NÃO some — vira bloco colapsável ACIMA do formulário. */
+.perfil-preview-pane {
+    order: -1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+@media (min-width: 900px) {
+    .perfil-editor-layout {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 340px);
+    }
+    .perfil-preview-pane {
+        order: 0;
+        position: sticky;
+        top: 69px;                     /* header fixo do site tem 57px */
+        max-height: calc(100vh - 81px);
+        overflow: auto;
+        scrollbar-width: thin;
+    }
+    /* Desktop: o cabeçalho é rótulo, não botão de colapsar. */
+    .perfil-preview-toggle {
+        pointer-events: none;
+    }
+    .perfil-preview-chevron {
+        display: none;
+    }
+}
+
+.perfil-preview-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.perfil-preview-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--profile-accent);
+    cursor: pointer;
+    font-family: 'Cinzel', serif;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+}
+
+.perfil-preview-chevron {
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 5px solid currentColor;
+    transition: transform 0.2s ease;
+}
+
+.perfil-preview-pane.is-collapsed .perfil-preview-chevron {
+    transform: rotate(-90deg);
+}
+
+.perfil-preview-status {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+}
+
+.perfil-preview-status.is-recusa {
+    color: var(--flame);
+}
+
+.perfil-preview-hint {
+    font-size: 0.7rem;
+    line-height: 1.45;
+    color: var(--muted);
+}
+
+.perfil-preview-hint strong {
+    color: var(--profile-accent);
+}
+
+/* Palco da prévia: recorta o perfil público como se fosse a janela do site. */
+.perfil-preview-stage {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--stroke);
+    border-radius: 10px;
+    padding: 0.6rem;
+    background: var(--profile-deep);
+    transition: opacity 0.18s ease;
+}
+
+.perfil-preview-stage.is-carregando {
+    opacity: 0.75;
+}
+
+.perfil-preview-pane.is-collapsed .perfil-preview-stage,
+.perfil-preview-pane.is-collapsed .perfil-preview-hint {
+    display: none;
+}
+
+/* O perfil público dentro do palco: mesma marcação, só sem a margem de página. */
+.perfil-preview-stage .public-profile-page {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    position: relative;
+    isolation: isolate;
+}
+
+/* Fundo da página (background_url) ESCOPADO na área da prévia — na página real
+   ele é um `.profile-bg-media` fixo cobrindo a viewport; aqui vira a "parede"
+   do palco, com o mesmo overlay do tema pra legibilidade não mentir. */
+.perfil-preview-bg {
+    position: absolute;
+    inset: -0.6rem;
+    z-index: -1;
+    background-position: center;
+    background-size: cover;
+}
+
+.perfil-preview-bg::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(120% 90% at 50% -10%, color-mix(in srgb, var(--profile-accent-solid, var(--profile-accent)) 22%, transparent), transparent 60%),
+        linear-gradient(180deg, color-mix(in srgb, var(--profile-deep) 78%, transparent), color-mix(in srgb, var(--profile-deep) 94%, transparent));
+}
+
+/* Prévia é vitrine, não navegação: os cartões de personagem não levam embora. */
+.public-profile-page.is-preview .public-character-card {
+    pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .perfil-preview-chevron,
+    .perfil-preview-stage {
+        transition: none;
+    }
+}
