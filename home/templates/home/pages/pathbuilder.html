@@ -1,169 +1,226 @@
 {% extends 'home/base.html' %}
 {% load static %}
 
+{% comment %}LABORATÓRIO DE BUILDS (redesenho de julho).
+
+Fluxo = o padrão do CRIADOR: stepper no topo, cartões de escolha com descrição expansível
+no lugar, contadores/orçamento inline, erro na própria etapa. Nada de "busca → select →
+Adicionar".
+
+Prévia = A FICHA. O servidor devolve o markup dos partials da aba Ficha
+(`_pathbuilder_folha.html`) e o cliente só injeta em `#pb-folha`. O laboratório não tem
+markup de ficha nenhum — é impossível haver drift.{% endcomment %}
+
+{% block main_class %}pb-main flex-1 w-full mx-auto px-3 md:px-5 py-4{% endblock %}
+
 {% block content %}
-<main class="pathbuilder" id="pathbuilder-app">
-  <header class="pb-header">
-    <div>
+<section class="pb animate-fade-in" id="pathbuilder-app">
+
+  <header class="pb-head">
+    <div class="pb-head-id">
       <p class="pb-eyebrow">Laboratório de builds</p>
       <h1>Pathbuilder</h1>
-      <p>Teste progressões, equipamentos, talentos e magias sem criar um personagem.</p>
     </div>
-    <div class="pb-header-actions">
-      <select id="pb-saved-builds" class="pb-header-select" aria-label="Builds salvas">
-        <option value="">Builds salvas</option>
+    <div class="pb-head-tools">
+      <div class="pb-variant" role="tablist" aria-label="Variante da build">
+        <button type="button" role="tab" class="pb-variant-tab" data-build-tab="0">Build A</button>
+        <button type="button" role="tab" class="pb-variant-tab" data-build-tab="1">Build B</button>
+      </div>
+      <button type="button" class="pb-btn" id="pb-clone" title="Copiar a build ativa para a outra variante">Duplicar</button>
+      <select id="pb-saved-builds" class="pb-select-inline" aria-label="Versões salvas">
+        <option value="">Versões salvas</option>
       </select>
-      <button type="button" class="pb-button" id="pb-save">Salvar versão</button>
-      <button type="button" class="pb-button" id="pb-delete-save" disabled>Excluir versão</button>
-      <button type="button" class="pb-button" id="pb-export">Exportar</button>
-      <label class="pb-button pb-file-button" for="pb-import">Importar</label>
+      <button type="button" class="pb-btn" id="pb-save">Salvar</button>
+      <button type="button" class="pb-btn" id="pb-delete-save" disabled>Excluir</button>
+      <button type="button" class="pb-btn" id="pb-export">Exportar</button>
+      <label class="pb-btn pb-file-btn" for="pb-import">Importar</label>
       <input type="file" id="pb-import" accept="application/json,.json" hidden>
-      <a href="{% url 'pathbuilder' %}" class="pb-button">Nova base</a>
-      <button type="button" class="pb-button" id="pb-reset">Restaurar builds</button>
+      <button type="button" class="pb-btn" id="pb-reset">Zerar</button>
     </div>
   </header>
 
+  {# ---------- sem base nesta aba: não é beco sem saída, é um convite ---------- #}
   <div class="pb-empty" id="pb-empty" hidden>
-    <h2>Nenhuma base nesta aba</h2>
-    <p>Monte primeiro os atributos, raça, classe e antecedente do nível 1.</p>
-    <a href="{% url 'pathbuilder' %}" class="pb-button pb-primary">Montar base</a>
+    <h2>Este laboratório precisa de uma base</h2>
+    <p>A base é o nível 1 do personagem: atributos, raça, classe e antecedente. Ela é montada
+       no criador e fica só neste navegador — nenhuma ficha é salva.</p>
+    <a href="{% url 'pathbuilder' %}" class="pb-btn pb-btn-primary">Montar base no criador</a>
   </div>
 
   <div class="pb-workspace" id="pb-workspace" hidden>
-    <aside class="pb-editor" aria-label="Editor da build">
-      <div class="pb-build-switch" role="tablist" aria-label="Build ativa">
-        <button type="button" role="tab" data-build-tab="0">Build A</button>
-        <button type="button" role="tab" data-build-tab="1">Build B</button>
+
+    {# =============== COLUNA DO EDITOR =============== #}
+    <div class="pb-editor">
+
+      {# stepper (mesmo padrão do criador: etapa clicável, badge de estado, erro na etapa) #}
+      <nav class="pb-stepper" aria-label="Etapas da build">
+        <ol id="pb-stepper">
+          <li class="pb-step-tab" data-step-tab="0" role="button" tabindex="0"><span class="pb-step-badge"><span>1</span></span><span class="pb-step-name">Base</span></li>
+          <li class="pb-step-tab" data-step-tab="1" role="button" tabindex="0"><span class="pb-step-badge"><span>2</span></span><span class="pb-step-name">Progressão</span></li>
+          <li class="pb-step-tab" data-step-tab="2" role="button" tabindex="0"><span class="pb-step-badge"><span>3</span></span><span class="pb-step-name">Escolhas</span></li>
+          <li class="pb-step-tab" data-step-tab="3" role="button" tabindex="0"><span class="pb-step-badge"><span>4</span></span><span class="pb-step-name">Aumentos</span></li>
+          <li class="pb-step-tab" data-step-tab="4" role="button" tabindex="0"><span class="pb-step-badge"><span>5</span></span><span class="pb-step-name">Equipamento</span></li>
+          <li class="pb-step-tab" data-step-tab="5" role="button" tabindex="0"><span class="pb-step-badge"><span>6</span></span><span class="pb-step-name">Magias</span></li>
+        </ol>
+      </nav>
+
+      {# ---------- ETAPA 1 · Base ---------- #}
+      <div class="pb-step" data-step="0">
+        <div class="pb-card">
+          <div class="pb-card-head">
+            <h2>Base de nível 1</h2>
+            <a href="{% url 'pathbuilder' %}" class="pb-text-btn">Trocar base →</a>
+          </div>
+          <p class="pb-card-hint">Montada no criador e guardada neste navegador. Todo preview
+             parte daqui e é desfeito no fim do request.</p>
+          <div class="pb-base-grid" id="pb-base-grid"></div>
+        </div>
+        <div class="pb-card">
+          <div class="pb-card-head"><h2>Modo de validação</h2></div>
+          <div class="pb-segmented" id="pb-mode">
+            <button type="button" data-build-mode="sandbox">Livre</button>
+            <button type="button" data-build-mode="regras">Pelas regras</button>
+          </div>
+          <p class="pb-card-hint" id="pb-mode-hint"></p>
+        </div>
       </div>
-      <div class="pb-editor-tools">
-        <strong id="pb-active-label">Build A</strong>
-        <button type="button" class="pb-text-button" id="pb-clone">Copiar para Build B</button>
+
+      {# ---------- ETAPA 2 · Progressão ---------- #}
+      <div class="pb-step" data-step="1" hidden>
+        <div class="pb-card">
+          <div class="pb-card-head">
+            <h2>Níveis por classe</h2>
+            <span class="pb-counter" id="pb-total-level">Nível 1 / 20</span>
+          </div>
+          <p class="pb-card-hint">A classe inicial vem da base. Cada linha sobe/desce o nível
+             da classe; a subclasse aparece como escolha direta no nível em que libera.</p>
+          <div id="pb-classes" class="pb-stack"></div>
+        </div>
+        <div class="pb-card">
+          <div class="pb-card-head"><h2>Multiclasse</h2></div>
+          <div class="pb-picker" data-picker="classe">
+            <input type="search" class="pb-search" data-picker-search placeholder="Filtrar classes" aria-label="Filtrar classes">
+            <div class="pb-options" data-picker-list></div>
+          </div>
+        </div>
       </div>
 
-      <section class="pb-section pb-mode-section">
-        <div class="pb-section-head"><h2>Modo</h2></div>
-        <div class="pb-segmented" id="pb-mode">
-          <button type="button" data-build-mode="sandbox">Livre</button>
-          <button type="button" data-build-mode="regras">Validar regras</button>
-        </div>
-      </section>
-
-      <section class="pb-section">
-        <div class="pb-section-head">
-          <div>
-            <h2>Progressão</h2>
-            <p>Níveis por classe e caminho de subclasse.</p>
+      {# ---------- ETAPA 3 · Escolhas declaradas pelas tags ---------- #}
+      <div class="pb-step" data-step="2" hidden>
+        <div class="pb-card">
+          <div class="pb-card-head">
+            <h2>Escolhas da build</h2>
+            <span class="pb-counter" id="pb-choice-count">—</span>
           </div>
-          <span class="pb-total-level" id="pb-total-level">Nível 1</span>
+          <p class="pb-card-hint">As mesmas escolhas que a ficha pede (estilo de luta, maestria,
+             metamagia, manobras…), servidas pelo resolvedor de picks. Clique para escolher.</p>
+          <div id="pb-choices" class="pb-stack"></div>
         </div>
-        <div id="pb-classes" class="pb-rows"></div>
-        <div class="pb-add-row">
-          <select id="pb-class-select" aria-label="Classe para multiclasse"></select>
-          <button type="button" class="pb-button" id="pb-add-class">Adicionar classe</button>
-        </div>
-      </section>
-
-      <section class="pb-section" id="pb-choices-section" hidden>
-        <div class="pb-section-head">
-          <div><h2>Escolhas da build</h2></div>
-          <span class="pb-total-level" id="pb-choice-count">0 pendentes</span>
-        </div>
-        <div id="pb-choices" class="pb-rows"></div>
-      </section>
-
-      <section class="pb-section">
-        <div class="pb-section-head">
-          <div>
-            <h2>Bônus de atributos</h2>
-            <p>Distribua os aumentos obtidos depois do nível 1.</p>
-          </div>
-        </div>
-        <div id="pb-attributes" class="pb-attribute-grid"></div>
-      </section>
-
-      <section class="pb-section">
-        <div class="pb-section-head">
-          <div>
-            <h2>Talentos</h2>
-            <p>Adicione qualquer talento para testar seus efeitos.</p>
-          </div>
-        </div>
-        <input type="search" id="pb-talent-search" class="pb-search" placeholder="Filtrar talentos">
-        <div class="pb-add-row">
-          <select id="pb-talent-select" aria-label="Talento"></select>
-          <button type="button" class="pb-button" id="pb-add-talent">Adicionar</button>
-        </div>
-        <div id="pb-talents" class="pb-selected-list"></div>
-      </section>
-
-      <section class="pb-section">
-        <div class="pb-section-head">
-          <div>
-            <h2>Itens</h2>
-            <p>Itens equipados e sintonizados afetam a ficha derivada.</p>
-          </div>
-        </div>
-        <div class="pb-segmented" id="pb-item-kind">
-          <button type="button" data-item-kind="mundano">Mundanos</button>
-          <button type="button" data-item-kind="magico">Mágicos</button>
-        </div>
-        <input type="search" id="pb-item-search" class="pb-search" placeholder="Filtrar itens">
-        <div class="pb-add-row">
-          <select id="pb-item-select" aria-label="Item"></select>
-          <button type="button" class="pb-button" id="pb-add-item">Adicionar</button>
-        </div>
-        <div id="pb-items" class="pb-selected-list"></div>
-      </section>
-
-      <section class="pb-section">
-        <div class="pb-section-head">
-          <div>
-            <h2>Magias</h2>
-            <p>Inclua magias conhecidas ou preparadas para comparar repertórios.</p>
-          </div>
-        </div>
-        <input type="search" id="pb-spell-search" class="pb-search" placeholder="Filtrar magias">
-        <div class="pb-add-row">
-          <select id="pb-spell-select" aria-label="Magia"></select>
-          <button type="button" class="pb-button" id="pb-add-spell">Adicionar</button>
-        </div>
-        <div id="pb-spells" class="pb-selected-list"></div>
-      </section>
-    </aside>
-
-    <section class="pb-results" aria-label="Comparação das builds">
-      <div class="pb-status" id="pb-status">Calculando builds...</div>
-      <div class="pb-comparison">
-        <article class="pb-build-result" id="pb-result-0"></article>
-        <article class="pb-build-result" id="pb-result-1"></article>
       </div>
-      <section class="pb-detail">
-        <div class="pb-detail-head">
-          <h2 id="pb-detail-title">Detalhes da Build A</h2>
-          <div class="pb-detail-tabs" role="tablist">
-            <button type="button" data-detail-tab="diff">Diferenças</button>
-            <button type="button" data-detail-tab="progression">Progressão</button>
-            <button type="button" data-detail-tab="features">Habilidades</button>
-            <button type="button" data-detail-tab="combat">Combate</button>
-            <button type="button" data-detail-tab="inventory">Inventário</button>
-            <button type="button" data-detail-tab="spells">Magias</button>
+
+      {# ---------- ETAPA 4 · Aumentos e talentos (orçamento gasto aqui) ---------- #}
+      <div class="pb-step" data-step="3" hidden>
+        <div class="pb-card">
+          <div class="pb-card-head">
+            <h2>Aumentos de atributo</h2>
+            <span class="pb-counter" id="pb-asi-counter">—</span>
+          </div>
+          <p class="pb-card-hint" id="pb-asi-hint">Cada slot de ASI vale 2 pontos — ou um talento livre no lugar.</p>
+          <div id="pb-attributes" class="pb-attr-grid"></div>
+        </div>
+        <div class="pb-card">
+          <div class="pb-card-head">
+            <h2>Talentos livres</h2>
+            <span class="pb-counter" id="pb-talent-counter">—</span>
+          </div>
+          <div class="pb-picker" data-picker="talento">
+            <input type="search" class="pb-search" data-picker-search placeholder="Filtrar talentos por nome ou tipo" aria-label="Filtrar talentos">
+            <div class="pb-options" data-picker-list></div>
           </div>
         </div>
-        <div id="pb-detail-body"></div>
-      </section>
-    </section>
+      </div>
+
+      {# ---------- ETAPA 5 · Equipamento ---------- #}
+      <div class="pb-step" data-step="4" hidden>
+        <div class="pb-card">
+          <div class="pb-card-head">
+            <h2>Itens da build</h2>
+            <span class="pb-counter" id="pb-attune-counter">—</span>
+          </div>
+          <p class="pb-card-hint">Equipar e sintonizar muda a ficha derivada (CA, ataques,
+             bônus de item). Clique no item para adicionar; os controles ficam na linha dele.</p>
+          <div id="pb-items" class="pb-stack"></div>
+        </div>
+        <div class="pb-card">
+          <div class="pb-card-head">
+            <h2>Catálogo de itens</h2>
+            <div class="pb-segmented pb-segmented-sm" id="pb-item-kind">
+              <button type="button" data-item-kind="mundano">Mundanos</button>
+              <button type="button" data-item-kind="magico">Mágicos</button>
+            </div>
+          </div>
+          <div class="pb-picker" data-picker="item">
+            <input type="search" class="pb-search" data-picker-search placeholder="Filtrar itens" aria-label="Filtrar itens">
+            <div class="pb-options" data-picker-list></div>
+          </div>
+        </div>
+      </div>
+
+      {# ---------- ETAPA 6 · Magias ---------- #}
+      <div class="pb-step" data-step="5" hidden>
+        <div class="pb-card">
+          <div class="pb-card-head">
+            <h2>Magias da build</h2>
+            <span class="pb-counter" id="pb-spell-counter">—</span>
+          </div>
+          <div id="pb-spells" class="pb-stack"></div>
+        </div>
+        <div class="pb-card">
+          <div class="pb-card-head"><h2>Grimório</h2></div>
+          <div class="pb-picker" data-picker="magia">
+            <input type="search" class="pb-search" data-picker-search placeholder="Filtrar magias por nome, escola ou nível" aria-label="Filtrar magias">
+            <div class="pb-options" data-picker-list></div>
+          </div>
+        </div>
+      </div>
+
+      {# validação da etapa: erro fica ONDE se resolve, como no criador #}
+      <div class="pb-step-err" id="pb-step-err" hidden></div>
+
+      <div class="pb-stepnav">
+        <button type="button" class="pb-btn" data-step-prev disabled>← Voltar</button>
+        <span class="pb-stepnav-hint" id="pb-stepnav-hint"></span>
+        <span class="pb-stepnav-fill"></span>
+        <button type="button" class="pb-btn pb-btn-primary" data-step-next>Avançar →</button>
+      </div>
+    </div>
+
+    {# =============== COLUNA DA FICHA (markup do servidor) =============== #}
+    <div class="pb-sheet" id="pb-sheet">
+      <div class="pb-sheet-bar">
+        <span class="pb-sheet-title">Ficha simulada</span>
+        <span class="pb-sheet-status" id="pb-status">Derivando…</span>
+        <button type="button" class="pb-text-btn" id="pb-sheet-collapse" aria-expanded="true">ocultar</button>
+      </div>
+      <div class="pb-sheet-diff" id="pb-diff" hidden></div>
+      <div class="pb-sheet-body" id="pb-folha"></div>
+    </div>
   </div>
-</main>
+</section>
 
 {{ catalogos|json_script:"pb-catalogs" }}
 <script>
   window.PATHBUILDER_PREVIEW_URL = "{% url 'pathbuilder_preview' %}";
+  window.PATHBUILDER_DETALHE_URL = "{% url 'pathbuilder_detalhe' %}";
   window.PATHBUILDER_START_URL = "{% url 'pathbuilder' %}";
   window.CSRF_TOKEN = "{{ csrf_token }}";
 </script>
 {% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/pages/pathbuilder.css' %}?v=2">
-<script src="{% static 'js/pathbuilder.js' %}?v=2" defer></script>
+{% comment %}A prévia É a ficha: o CSS da ficha vem inteiro, sem cópia. pathbuilder.css só
+tem o cromo do laboratório (stepper, cartões de escolha, painel).{% endcomment %}
+<link rel="stylesheet" href="{% static 'css/pages/ficha.css' %}?v=12">
+<link rel="stylesheet" href="{% static 'css/pages/pathbuilder.css' %}?v=4">
+<script src="{% static 'js/pathbuilder.js' %}?v=4" defer></script>
 {% endblock %}

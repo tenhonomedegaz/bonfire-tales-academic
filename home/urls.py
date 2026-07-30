@@ -73,6 +73,7 @@ urlpatterns = [
     path('sistemas/pathbuilder/iniciar/', views.pathbuilder_iniciar, name='pathbuilder_iniciar'),
     path('sistemas/pathbuilder/laboratorio/', views.pathbuilder_laboratorio, name='pathbuilder_laboratorio'),
     path('sistemas/pathbuilder/preview/', views.pathbuilder_preview, name='pathbuilder_preview'),
+    path('sistemas/pathbuilder/detalhe/', views.pathbuilder_detalhe, name='pathbuilder_detalhe'),
     path('sistemas/glossario/', views.glossario_view, name='sistemas_glossario'),
     path('sistemas/missoes/', views.sistemas_missoes_view, name='sistemas_missoes'),
     

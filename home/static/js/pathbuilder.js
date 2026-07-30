@@ -1,10 +1,20 @@
+/* Laboratório de builds — cliente.
+ *
+ * Duas regras que definem este arquivo:
+ *   1. NÃO existe markup de ficha aqui. A prévia vem pronta do servidor
+ *      (`build.ficha_html`, os partials da aba Ficha) e só é injetada em #pb-folha.
+ *   2. Seleção é DIRETA: clicar no cartão adiciona/remove. Nada de "buscar → escolher no
+ *      select → clicar em Adicionar". A descrição abre no próprio cartão, sob demanda.
+ */
 (function () {
     'use strict';
 
     var STORAGE_BASE = 'bonfire:pathbuilder:base';
+    var STORAGE_BASE_FP = 'bonfire:pathbuilder:base_fp';
     var STORAGE_BUILDS = 'bonfire:pathbuilder:builds';
     var STORAGE_SAVED = 'bonfire:pathbuilder:saved';
     var SIGLAS = ['FOR', 'DES', 'CON', 'INT', 'SAB', 'CAR'];
+    var STEPS = ['Base', 'Progressão', 'Escolhas', 'Aumentos', 'Equipamento', 'Magias'];
 
     function byId(id) { return document.getElementById(id); }
     function clone(value) { return JSON.parse(JSON.stringify(value)); }
@@ -17,21 +27,48 @@
         value = Number(value || 0);
         return (value >= 0 ? '+' : '') + value;
     }
+    /* Filtro insensível a acento: "pocao" acha "Poção". */
+    var DIACRITICOS = new RegExp('[\\u0300-\\u036f]', 'g');
+    function fold(value) {
+        return String(value == null ? '' : value).toLocaleLowerCase('pt-BR')
+            .normalize('NFD').replace(DIACRITICOS, '');
+    }
     function readJson(id) {
         try { return JSON.parse(byId(id).textContent || '{}'); } catch (err) { return {}; }
     }
-    function readStorage(key) {
-        try { return JSON.parse(sessionStorage.getItem(key) || 'null'); } catch (err) { return null; }
+    /* A base sobrevive ao fechar a aba (localStorage) mas continua LOCAL: o antigo
+       sessionStorage transformava um F5 em "monte tudo de novo". */
+    function readStore(key) {
+        try {
+            var raw = sessionStorage.getItem(key);
+            if (raw == null) raw = localStorage.getItem(key);
+            return JSON.parse(raw || 'null');
+        } catch (err) { return null; }
+    }
+    function writeStore(key, value) {
+        var raw = JSON.stringify(value);
+        try { sessionStorage.setItem(key, raw); } catch (err) { /* cota */ }
+        try { localStorage.setItem(key, raw); } catch (err) { /* cota */ }
     }
     function readLocal(key) {
         try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch (err) { return null; }
+    }
+    /* Impressão digital da base do criador: muda quando o personagem-base muda. */
+    function baseFingerprint(b) {
+        b = b || {};
+        return JSON.stringify([b.nome, b.classe, b.raca, b.linhagem, b.essencia,
+                               b.antecedente, b.scores]);
+    }
+    function markBase(b) {
+        try { localStorage.setItem(STORAGE_BASE_FP, JSON.stringify(baseFingerprint(b))); }
+        catch (err) { /* cota */ }
     }
 
     function init() {
         var app = byId('pathbuilder-app');
         if (!app) return;
-        var base = readStorage(STORAGE_BASE);
-        if (!base) {
+        var base = readStore(STORAGE_BASE);
+        if (!base || !base.classe) {
             byId('pb-empty').hidden = false;
             return;
         }
@@ -60,14 +97,16 @@
                 magias: []
             };
         }
-        var builds = readStorage(STORAGE_BUILDS);
-        if (!Array.isArray(builds) || builds.length !== 2) {
-            builds = [emptyBuild(), emptyBuild()];
-        }
         function normalizeBuild(build) {
             build = build && typeof build === 'object' ? build : emptyBuild();
             build.classes = Array.isArray(build.classes) && build.classes.length
                 ? build.classes : emptyBuild().classes;
+            /* Base nova + build antiga guardada = "a classe inicial precisa permanecer na
+               build" em todo preview. Se a build não fala da classe da base, ela é de outro
+               personagem: começa limpa em vez de travar o laboratório. */
+            if (!build.classes.some(function (row) { return row.slug === base.classe; })) {
+                return emptyBuild();
+            }
             build.modo = build.modo === 'regras' ? 'regras' : 'sandbox';
             build.atributos_bonus = build.atributos_bonus || {};
             build.escolhas = build.escolhas && typeof build.escolhas === 'object'
@@ -77,19 +116,26 @@
             build.magias = Array.isArray(build.magias) ? build.magias : [];
             return build;
         }
+        /* Base trocada no criador = builds antigas descartadas. Sem esta impressão digital,
+           uma build guardada de OUTRO personagem reaparecia por cima da base nova (o
+           criador só limpa a cópia de sessão). */
+        var builds = readStore(STORAGE_BUILDS);
+        if (readLocal(STORAGE_BASE_FP) !== baseFingerprint(base)) builds = null;
+        markBase(base);
+        if (!Array.isArray(builds) || builds.length !== 2) builds = [emptyBuild(), emptyBuild()];
         builds = builds.map(normalizeBuild);
 
         var active = 0;
+        var step = 0;
         var itemKind = 'mundano';
-        var detailTab = 'diff';
         var results = [null, null];
         var errors = [null, null];
         var timer = null;
         var requestSeq = 0;
+        var detailCache = Object.create(null);
+        var queries = { classe: '', talento: '', item: '', magia: '' };
 
-        function persist() {
-            sessionStorage.setItem(STORAGE_BUILDS, JSON.stringify(builds));
-        }
+        function persist() { writeStore(STORAGE_BUILDS, builds); }
         function current() { return builds[active]; }
         function totalLevel(build) {
             return (build.classes || []).reduce(function (sum, row) {
@@ -103,439 +149,551 @@
             schedulePreview();
         }
 
-        function optionHtml(value, label, selected) {
-            return '<option value="' + esc(value) + '"' + (selected ? ' selected' : '') +
-                '>' + esc(label) + '</option>';
+        /* ---------------------------------------------------------------- cartões */
+        /* UM componente para tudo que se escolhe: nome + meta + chevron que busca a
+           descrição no servidor e a mostra NO LUGAR (padrão dos cards da ficha). */
+        function optionCard(kind, slug, nome, meta, selected, extra) {
+            return '<div class="pb-opt' + (selected ? ' is-on' : '') + '"' +
+                ' data-opt-kind="' + esc(kind) + '" data-opt-slug="' + esc(slug) + '">' +
+                '<button type="button" class="pb-opt-pick" data-opt-pick title="' +
+                  (selected ? 'Remover da build' : 'Adicionar à build') + '">' +
+                  '<span class="pb-opt-mark" aria-hidden="true"></span>' +
+                  '<span class="pb-opt-main"><span class="pb-opt-name">' + esc(nome) + '</span>' +
+                  (meta ? '<span class="pb-opt-meta">' + esc(meta) + '</span>' : '') + '</span>' +
+                '</button>' +
+                (extra || '') +
+                '<button type="button" class="pb-opt-more" data-opt-more aria-expanded="false"' +
+                  ' title="Ver descrição">' +
+                  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"' +
+                  ' stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>' +
+                '</button>' +
+                '<div class="pb-opt-desc" data-opt-desc hidden></div>' +
+                '</div>';
         }
+        function renderMd(raw) {
+            var value = String(raw || '').trim();
+            if (!value) return '';
+            if (typeof window.renderBonfireMarkdown === 'function') {
+                return '<div class="bonfire-markdown">' + window.renderBonfireMarkdown(value) + '</div>';
+            }
+            return '<p>' + esc(value).replace(/\n/g, '<br>') + '</p>';
+        }
+        function detailHtml(payload) {
+            var html = '';
+            if ((payload.linhas || []).length) {
+                html += '<div class="pb-opt-lines">' + payload.linhas.map(function (row) {
+                    return '<span><b>' + esc(row[0]) + ':</b> ' + esc(row[1]) + '</span>';
+                }).join('') + '</div>';
+            }
+            html += renderMd(payload.descricao);
+            if (payload.extra) {
+                html += '<div class="pb-opt-extra">' + renderMd(payload.extra) + '</div>';
+            }
+            return html || '<p class="pb-muted">Sem descrição cadastrada.</p>';
+        }
+        var DETAIL_TIPO = {
+            talento: 'talento', magia: 'magia', subclasse: 'subclasse',
+            mundano: 'item_mundano', magico: 'item_magico'
+        };
+        function loadDetail(kind, slug, target) {
+            var tipo = DETAIL_TIPO[kind];
+            if (!tipo) { target.innerHTML = '<p class="pb-muted">Sem descrição cadastrada.</p>'; return; }
+            var key = tipo + ':' + slug;
+            if (detailCache[key]) { target.innerHTML = detailCache[key]; return; }
+            target.innerHTML = '<p class="pb-muted">Carregando…</p>';
+            fetch(window.PATHBUILDER_DETALHE_URL + '?tipo=' + encodeURIComponent(tipo) +
+                  '&slug=' + encodeURIComponent(slug))
+                .then(function (r) { return r.json(); })
+                .then(function (json) {
+                    var html = json && json.ok ? detailHtml(json.detalhe)
+                        : '<p class="pb-muted">Sem descrição cadastrada.</p>';
+                    detailCache[key] = html;
+                    target.innerHTML = html;
+                })
+                .catch(function () {
+                    target.innerHTML = '<p class="pb-muted">Não foi possível carregar a descrição.</p>';
+                });
+        }
+
+        /* --------------------------------------------------------------- pickers */
+        function filterCatalog(rows, query, selected) {
+            var q = fold(query);
+            var out = [];
+            for (var i = 0; i < rows.length && out.length < 160; i += 1) {
+                var row = rows[i];
+                if (selected && selected[row.slug]) continue;
+                if (q && fold(row.nome + ' ' + (row.meta || '') + ' ' + (row.grupo || '')).indexOf(q) < 0) continue;
+                out.push(row);
+            }
+            return out;
+        }
+        function pickerHtml(kind, rows, total) {
+            if (!rows.length) {
+                return '<p class="pb-muted pb-opt-empty">Nenhum resultado para este filtro.</p>';
+            }
+            var html = '';
+            var group = null;
+            rows.forEach(function (row) {
+                if (row.grupo && row.grupo !== group) {
+                    group = row.grupo;
+                    html += '<div class="pb-opt-group">' + esc(group) + '</div>';
+                }
+                html += optionCard(kind, row.slug, row.nome, row.meta, false);
+            });
+            if (total > rows.length) {
+                html += '<p class="pb-muted pb-opt-empty">' + (total - rows.length) +
+                    ' resultado(s) além destes — refine o filtro.</p>';
+            }
+            return html;
+        }
+        function renderPicker(kind) {
+            var host = document.querySelector('[data-picker="' + kind + '"]');
+            if (!host) return;
+            var list = host.querySelector('[data-picker-list]');
+            var build = current();
+            var owned = Object.create(null);
+            var source = [];
+            if (kind === 'classe') {
+                build.classes.forEach(function (row) { owned[row.slug] = true; });
+                source = (catalogs.classes || []).map(function (row) {
+                    return { slug: row.slug, nome: row.nome, grupo: 'Classes',
+                             meta: row.subclasse_nivel ? 'subclasse no nível ' + row.subclasse_nivel : '' };
+                });
+            } else if (kind === 'talento') {
+                build.talentos.forEach(function (slug) { owned[slug] = true; });
+                source = catalogs.talentos || [];
+            } else if (kind === 'item') {
+                source = itemKind === 'magico' ? (catalogs.itens_magicos || []) : (catalogs.itens_mundanos || []);
+            } else {
+                build.magias.forEach(function (row) { owned[row.slug] = true; });
+                source = catalogs.magias || [];
+            }
+            /* Item pode repetir na build (3 poções), então o catálogo de itens não esconde
+               o que já foi escolhido; classe/talento/magia são únicos e saem da lista. */
+            var hide = kind === 'item' ? null : owned;
+            var rows = filterCatalog(source, queries[kind], hide);
+            var totalMatching = 0;
+            var q = fold(queries[kind]);
+            source.forEach(function (row) {
+                if (hide && hide[row.slug]) return;
+                if (!q || fold(row.nome + ' ' + (row.meta || '') + ' ' + (row.grupo || '')).indexOf(q) >= 0) {
+                    totalMatching += 1;
+                }
+            });
+            list.innerHTML = pickerHtml(kind === 'item' ? itemKind : kind, rows, totalMatching);
+        }
+
+        /* ------------------------------------------------------------- progressão */
         function renderClasses() {
             var build = current();
             var total = totalLevel(build);
-            byId('pb-total-level').textContent = 'Nível ' + total;
+            byId('pb-total-level').textContent = 'Nível ' + total + ' / 20';
             byId('pb-classes').innerHTML = build.classes.map(function (row, index) {
                 var info = classBySlug[row.slug] || { nome: row.slug, subclasses: [] };
                 var min = Number(info.subclasse_nivel || 0);
                 var unlocked = min && Number(row.nivel) >= min;
-                var options = '<option value="">' +
-                    (min ? (unlocked ? 'Sem subclasse' : 'Desbloqueia no nível ' + min) : 'Sem subclasse') +
-                    '</option>';
-                if (unlocked) {
-                    options += (info.subclasses || []).map(function (sub) {
-                        return optionHtml(sub.slug, sub.nome, sub.slug === row.subclasse);
-                    }).join('');
+                var subs = '';
+                if (unlocked && (info.subclasses || []).length) {
+                    subs = '<div class="pb-subclass" data-subclass-for="' + index + '">' +
+                        (info.subclasses || []).map(function (sub) {
+                            return optionCard('subclasse', sub.slug, sub.nome, sub.meta,
+                                sub.slug === row.subclasse,
+                                '<input type="hidden" data-subclass-index="' + index + '">');
+                        }).join('') + '</div>';
+                } else if (min) {
+                    subs = '<p class="pb-row-note">Subclasse libera no nível ' + min +
+                        ' desta classe.</p>';
                 }
-                var remove = index === 0
-                    ? '<button type="button" class="pb-icon-button" disabled title="Classe inicial">-</button>'
-                    : '<button type="button" class="pb-icon-button" data-remove-class="' + index +
-                      '" title="Remover classe">x</button>';
-                return '<div class="pb-class-row">' +
-                    '<span class="pb-class-name">' + esc(info.nome) + '</span>' +
-                    '<span class="pb-class-level">' +
-                      '<button type="button" data-class-level="' + index + '" data-delta="-1" title="Reduzir nível">-</button>' +
-                      '<output>' + Number(row.nivel || 1) + '</output>' +
-                      '<button type="button" data-class-level="' + index + '" data-delta="1" title="Aumentar nível">+</button>' +
-                    '</span>' +
-                    '<select data-subclass="' + index + '"' + (unlocked ? '' : ' disabled') + '>' +
-                      options + '</select>' + remove + '</div>';
-            }).join('');
-            var owned = {};
-            build.classes.forEach(function (row) { owned[row.slug] = true; });
-            var available = (catalogs.classes || []).filter(function (row) { return !owned[row.slug]; });
-            byId('pb-class-select').innerHTML = available.length
-                ? available.map(function (row) { return optionHtml(row.slug, row.nome, false); }).join('')
-                : '<option value="">Todas as classes adicionadas</option>';
-            byId('pb-add-class').disabled = !available.length || total >= 20;
-        }
-
-        function renderAttributes() {
-            var values = current().atributos_bonus;
-            byId('pb-attributes').innerHTML = SIGLAS.map(function (sig) {
-                return '<div class="pb-attribute"><strong>' + sig + ' <output>+' +
-                    Number(values[sig] || 0) + '</output></strong>' +
-                    '<button type="button" data-attr="' + sig + '" data-delta="-1" title="Reduzir bônus">-</button>' +
-                    '<button type="button" data-attr="' + sig + '" data-delta="1" title="Aumentar bônus">+</button></div>';
+                return '<div class="pb-row">' +
+                    '<div class="pb-row-head">' +
+                      '<span class="pb-row-name">' + esc(info.nome) +
+                        (index === 0 ? '<small>classe inicial</small>' : '') + '</span>' +
+                      '<span class="pb-stepper-num">' +
+                        '<button type="button" data-class-level="' + index + '" data-delta="-1"' +
+                          (Number(row.nivel) <= 1 ? ' disabled' : '') + ' aria-label="Reduzir nível">−</button>' +
+                        '<output>' + Number(row.nivel || 1) + '</output>' +
+                        '<button type="button" data-class-level="' + index + '" data-delta="1"' +
+                          (total >= 20 ? ' disabled' : '') + ' aria-label="Aumentar nível">+</button>' +
+                      '</span>' +
+                      (index === 0 ? ''
+                        : '<button type="button" class="pb-x" data-remove-class="' + index +
+                          '" title="Remover classe">×</button>') +
+                    '</div>' + subs + '</div>';
             }).join('');
         }
 
-        function renderMode() {
-            document.querySelectorAll('[data-build-mode]').forEach(function (button) {
-                button.classList.toggle('is-active', button.dataset.buildMode === current().modo);
-            });
-        }
-
-        function renderChoices() {
+        /* -------------------------------------------------------------- aumentos */
+        function orcamento() {
             var result = results[active];
-            var groups = result ? (result.escolhas_grupos || []) : [];
-            var visible = groups.filter(function (group) {
-                return group.pendentes || (group.selecionadas || []).length;
-            });
-            byId('pb-choices-section').hidden = !visible.length;
-            if (!visible.length) {
-                byId('pb-choices').innerHTML = '';
+            return (result && result.orcamento) || null;
+        }
+        function renderAttributes() {
+            var build = current();
+            var values = build.atributos_bonus;
+            var budget = orcamento();
+            var result = results[active];
+            var attrs = result ? (result.atributos || []) : [];
+            var restantes = budget ? Number(budget.pontos_restantes) : null;
+            byId('pb-attributes').innerHTML = SIGLAS.map(function (sig) {
+                var bonus = Number(values[sig] || 0);
+                var final = attrs.find(function (row) { return row.sig === sig; });
+                return '<div class="pb-attr' + (bonus ? ' is-on' : '') + '">' +
+                    '<span class="pb-attr-sig">' + sig + '</span>' +
+                    '<span class="pb-attr-final">' + (final && final.valor != null ? final.valor : '—') +
+                      '<small>' + (final ? signed(final.mod) : '') + '</small></span>' +
+                    '<span class="pb-stepper-num sm">' +
+                      '<button type="button" data-attr="' + sig + '" data-delta="-1"' +
+                        (bonus <= 0 ? ' disabled' : '') + ' aria-label="Reduzir ' + sig + '">−</button>' +
+                      '<output>+' + bonus + '</output>' +
+                      '<button type="button" data-attr="' + sig + '" data-delta="1"' +
+                        (restantes !== null && restantes <= 0 ? ' disabled' : '') +
+                        ' aria-label="Aumentar ' + sig + '">+</button>' +
+                    '</span></div>';
+            }).join('');
+
+            if (!budget) {
+                byId('pb-asi-counter').textContent = '—';
+                byId('pb-talent-counter').textContent = '—';
                 return;
             }
-            var pending = visible.reduce(function (sum, group) {
-                return sum + Number(group.pendentes || 0);
-            }, 0);
-            byId('pb-choice-count').textContent = pending + ' pendente' + (pending === 1 ? '' : 's');
-            byId('pb-choices').innerHTML = visible.map(function (group) {
-                var selected = Array.isArray(current().escolhas[group.key])
-                    ? current().escolhas[group.key] : [];
-                var slotCount = selected.length + Number(group.pendentes || 0);
-                var controls = [];
-                for (var slot = 0; slot < slotCount; slot += 1) {
-                    var chosen = selected[slot] || '';
-                    var options = '<option value="">Escolher</option>' +
-                        (group.opcoes || []).map(function (option) {
-                            return optionHtml(option.valor,
-                                option.nome + (option.meta ? ' · ' + option.meta : ''),
-                                option.valor === chosen);
-                        }).join('');
-                    controls.push('<select data-choice-key="' + esc(group.key) +
-                        '" data-choice-slot="' + slot + '">' + options + '</select>');
-                }
-                return '<div class="pb-choice-group"><div class="pb-choice-title"><strong>' +
-                    esc(group.label) + '</strong><small>' +
-                    esc([group.classe, group.origem].filter(Boolean).join(' · ')) +
-                    '</small></div><div class="pb-choice-controls">' + controls.join('') +
-                    '</div></div>';
-            }).join('');
+            var counter = byId('pb-asi-counter');
+            counter.textContent = budget.pontos_usados + '/' + budget.pontos_disponiveis + ' pontos';
+            counter.classList.toggle('is-bad', budget.pontos_restantes !== 0);
+            counter.classList.toggle('is-ok', budget.pontos_disponiveis > 0 && budget.pontos_restantes === 0);
+            byId('pb-asi-hint').textContent = budget.asi_slots
+                ? 'A build tem ' + budget.asi_slots + ' slot(s) de ASI: ' + budget.asi_em_talento +
+                  ' gasto(s) em talento e ' + budget.asi_em_pontos + ' em pontos (2 cada).'
+                : 'Nenhum slot de ASI neste nível — suba a progressão para liberar aumentos.';
+            var talents = byId('pb-talent-counter');
+            talents.textContent = budget.asi_em_talento + '/' + budget.asi_slots + ' slots';
+            talents.classList.toggle('is-bad', budget.asi_em_talento > budget.asi_slots);
         }
 
         function renderTalents() {
-            byId('pb-talents').innerHTML = current().talentos.map(function (slug, index) {
-                var row = talentBySlug[slug] || { nome: slug, tipo: '' };
-                return '<div class="pb-selected-row"><span class="pb-selected-name">' +
-                    esc(row.nome) + '<small class="pb-selected-meta">' + esc(row.tipo || 'Talento') +
-                    '</small></span><button type="button" class="pb-icon-button" data-remove-talent="' +
-                    index + '" title="Remover talento">x</button></div>';
+            renderPicker('talento');
+            var build = current();
+            var selectedHost = document.querySelector('[data-picker="talento"] [data-picker-list]');
+            if (!selectedHost) return;
+            var chosen = build.talentos.map(function (slug) {
+                var row = talentBySlug[slug] || { nome: slug, meta: '' };
+                return optionCard('talento', slug, row.nome, row.meta || 'Talento', true);
             }).join('');
-            filterTalentSelect();
+            if (chosen) {
+                selectedHost.insertAdjacentHTML('afterbegin',
+                    '<div class="pb-opt-group">Na build</div>' + chosen);
+            }
         }
 
+        /* -------------------------------------------------------------- escolhas */
+        function renderChoices() {
+            var result = results[active];
+            var groups = result ? (result.escolhas_grupos || []) : [];
+            var host = byId('pb-choices');
+            if (!groups.length) {
+                byId('pb-choice-count').textContent = 'nenhuma';
+                host.innerHTML = '<p class="pb-muted">Esta build não declara escolhas por tag ' +
+                    'neste nível. Suba a progressão ou escolha uma subclasse.</p>';
+                return;
+            }
+            var pending = groups.reduce(function (sum, g) { return sum + Number(g.pendentes || 0); }, 0);
+            var counter = byId('pb-choice-count');
+            counter.textContent = pending ? pending + ' pendente' + (pending === 1 ? '' : 's') : 'tudo resolvido';
+            counter.classList.toggle('is-bad', pending > 0);
+            counter.classList.toggle('is-ok', pending === 0);
+
+            var build = current();
+            host.innerHTML = groups.map(function (group) {
+                var picked = Array.isArray(build.escolhas[group.key]) ? build.escolhas[group.key] : [];
+                var pickedSet = Object.create(null);
+                picked.forEach(function (v) { pickedSet[v] = true; });
+                var fixed = (group.resolvidas || []).filter(function (row) { return !pickedSet[row.valor]; });
+                var opts = (group.opcoes || []).map(function (option) {
+                    return '<div class="pb-opt' + (pickedSet[option.valor] ? ' is-on' : '') + '"' +
+                        ' data-choice-key="' + esc(group.key) + '" data-choice-val="' + esc(option.valor) + '">' +
+                        '<button type="button" class="pb-opt-pick" data-choice-pick>' +
+                          '<span class="pb-opt-mark" aria-hidden="true"></span>' +
+                          '<span class="pb-opt-main"><span class="pb-opt-name">' + esc(option.nome) + '</span>' +
+                          (option.meta ? '<span class="pb-opt-meta">' + esc(option.meta) + '</span>' : '') +
+                          '</span></button>' +
+                        (option.descricao
+                          ? '<button type="button" class="pb-opt-more" data-choice-more aria-expanded="false"' +
+                            ' title="Ver efeito"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"' +
+                            ' stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">' +
+                            '<path d="m6 9 6 6 6-6"/></svg></button>' +
+                            '<div class="pb-opt-desc" hidden>' + renderMd(option.descricao) + '</div>'
+                          : '') +
+                        '</div>';
+                }).join('');
+                var restam = Number(group.pendentes || 0) - picked.length;
+                /* Grupo grande (Maestria de Arma tem 128 opções) ganha filtro próprio —
+                   sem isso a etapa vira um paredão de cartões. */
+                var filtro = (group.opcoes || []).length > 12
+                    ? '<input type="search" class="pb-search pb-choice-search"' +
+                      ' data-choice-filter placeholder="Filtrar ' +
+                      esc(String(group.label).toLocaleLowerCase('pt-BR')) + ' (' +
+                      (group.opcoes || []).length + ' opções)" aria-label="Filtrar opções">'
+                    : '';
+                return '<div class="pb-row pb-choice' + (group.pendentes ? ' is-pending' : '') + '">' +
+                    '<div class="pb-row-head">' +
+                      '<span class="pb-row-name">' + esc(group.label) +
+                        '<small>' + esc([group.classe, group.origem].filter(Boolean).join(' · ')) + '</small></span>' +
+                      '<span class="pb-counter' + (restam > 0 ? ' is-bad' : ' is-ok') + '">' +
+                        (restam > 0 ? 'escolha ' + restam : 'ok') + '</span>' +
+                    '</div>' +
+                    (fixed.length ? '<p class="pb-row-note">Já na ficha: ' +
+                       esc(fixed.map(function (r) { return r.nome; }).join(', ')) + '</p>' : '') +
+                    filtro +
+                    '<div class="pb-opts-inline' + (filtro ? ' is-long' : '') +
+                      '" data-choice-opts>' + opts + '</div></div>';
+            }).join('');
+        }
+
+        /* ------------------------------------------------------------ equipamento */
         function renderItems() {
             document.querySelectorAll('[data-item-kind]').forEach(function (button) {
                 button.classList.toggle('is-active', button.dataset.itemKind === itemKind);
             });
-            byId('pb-items').innerHTML = current().itens.map(function (row, index) {
-                var info = row.tipo === 'magico' ? magicBySlug[row.slug] : mundaneBySlug[row.slug];
-                info = info || { nome: row.slug };
-                var meta = row.tipo === 'magico'
-                    ? ((info.raridade || 'Item mágico') + (info.slot ? ' · ' + info.slot : ''))
-                    : (info.categoria || 'Item mundano');
-                var attune = row.tipo === 'magico' && info.requer_sintonizacao
-                    ? '<label class="pb-check"><input type="checkbox" data-item-attuned="' + index + '"' +
-                      (row.sintonizado ? ' checked' : '') + '> Sintonizado</label>' : '';
-                return '<div class="pb-selected-row"><span class="pb-selected-name">' + esc(info.nome) +
-                    '<small class="pb-selected-meta">' + esc(meta) + '</small></span>' +
-                    '<input type="number" min="1" max="999" value="' + Number(row.qtd || 1) +
-                    '" data-item-qty="' + index + '" aria-label="Quantidade">' +
-                    '<label class="pb-check"><input type="checkbox" data-item-equipped="' + index + '"' +
-                    (row.equipado ? ' checked' : '') + '> Equipado</label>' + attune +
-                    '<button type="button" class="pb-icon-button" data-remove-item="' + index +
-                    '" title="Remover item">x</button></div>';
-            }).join('');
-            filterItemSelect();
+            var build = current();
+            var host = byId('pb-items');
+            if (!build.itens.length) {
+                host.innerHTML = '<p class="pb-muted">Nenhum item na build. Escolha no catálogo abaixo.</p>';
+            } else {
+                host.innerHTML = build.itens.map(function (row, index) {
+                    var info = (row.tipo === 'magico' ? magicBySlug[row.slug] : mundaneBySlug[row.slug])
+                        || { nome: row.slug, meta: '' };
+                    var attune = row.tipo === 'magico' && info.requer_sintonizacao
+                        ? '<label class="pb-check"><input type="checkbox" data-item-attuned="' + index + '"' +
+                          (row.sintonizado ? ' checked' : '') + '> sintonizado</label>' : '';
+                    return '<div class="pb-line">' +
+                        '<span class="pb-line-name">' + esc(info.nome) +
+                          '<small>' + esc(info.meta || '') + '</small></span>' +
+                        '<span class="pb-line-tools">' +
+                          '<span class="pb-stepper-num sm"><button type="button" data-item-qty-delta="' + index +
+                            '" data-delta="-1" aria-label="Menos">−</button><output>' + Number(row.qtd || 1) +
+                            '</output><button type="button" data-item-qty-delta="' + index +
+                            '" data-delta="1" aria-label="Mais">+</button></span>' +
+                          '<label class="pb-check"><input type="checkbox" data-item-equipped="' + index + '"' +
+                            (row.equipado ? ' checked' : '') + '> equipado</label>' + attune +
+                          '<button type="button" class="pb-x" data-remove-item="' + index +
+                            '" title="Remover">×</button>' +
+                        '</span></div>';
+                }).join('');
+            }
+            var budget = orcamento();
+            var counter = byId('pb-attune-counter');
+            if (budget) {
+                counter.textContent = budget.sintonizacao_usada + '/' + budget.sintonizacao_maxima + ' sintonizados';
+                counter.classList.toggle('is-bad', budget.sintonizacao_usada > budget.sintonizacao_maxima);
+            } else {
+                counter.textContent = '—';
+            }
+            renderPicker('item');
         }
 
+        /* ---------------------------------------------------------------- magias */
         function renderSpells() {
-            byId('pb-spells').innerHTML = current().magias.map(function (row, index) {
-                var info = spellBySlug[row.slug] || { nome: row.slug, nivel: 0 };
-                var level = Number(info.nivel || 0) === 0 ? 'Truque' : info.nivel + 'º nível';
-                return '<div class="pb-selected-row"><span class="pb-selected-name">' + esc(info.nome) +
-                    '<small class="pb-selected-meta">' + esc(level + (info.escola ? ' · ' + info.escola : '')) +
-                    '</small></span><label class="pb-check"><input type="checkbox" data-spell-prepared="' +
-                    index + '"' + (row.preparada ? ' checked' : '') + '> Preparada</label>' +
-                    '<button type="button" class="pb-icon-button" data-remove-spell="' + index +
-                    '" title="Remover magia">x</button></div>';
-            }).join('');
-            filterSpellSelect();
+            var build = current();
+            var host = byId('pb-spells');
+            if (!build.magias.length) {
+                host.innerHTML = '<p class="pb-muted">Nenhuma magia adicionada à mão. ' +
+                    'As magias concedidas por classe/raça já aparecem na ficha.</p>';
+            } else {
+                host.innerHTML = build.magias.map(function (row, index) {
+                    var info = spellBySlug[row.slug] || { nome: row.slug, nivel: 0, meta: '' };
+                    var level = Number(info.nivel || 0) === 0 ? 'Truque' : info.nivel + 'º nível';
+                    return '<div class="pb-line">' +
+                        '<span class="pb-line-name">' + esc(info.nome) +
+                          '<small>' + esc(level + (info.meta ? ' · ' + info.meta : '')) + '</small></span>' +
+                        '<span class="pb-line-tools">' +
+                          '<label class="pb-check"><input type="checkbox" data-spell-prepared="' + index + '"' +
+                            (row.preparada ? ' checked' : '') + '> preparada</label>' +
+                          '<button type="button" class="pb-x" data-remove-spell="' + index +
+                            '" title="Remover">×</button>' +
+                        '</span></div>';
+                }).join('');
+            }
+            byId('pb-spell-counter').textContent = build.magias.length
+                ? build.magias.length + ' na build' : 'nenhuma';
+            renderPicker('magia');
         }
 
-        function filterRows(rows, query, label) {
-            query = String(query || '').trim().toLocaleLowerCase('pt-BR');
-            return rows.filter(function (row) {
-                return !query || label(row).toLocaleLowerCase('pt-BR').indexOf(query) >= 0;
-            }).slice(0, 250);
-        }
-        function filterTalentSelect() {
-            var owned = {};
-            current().talentos.forEach(function (slug) { owned[slug] = true; });
-            var rows = filterRows(catalogs.talentos || [], byId('pb-talent-search').value,
-                function (row) { return row.nome + ' ' + row.tipo; })
-                .filter(function (row) { return !owned[row.slug]; });
-            byId('pb-talent-select').innerHTML = rows.length
-                ? rows.map(function (row) {
-                    return optionHtml(row.slug, row.nome + (row.tipo ? ' · ' + row.tipo : ''), false);
-                }).join('') : '<option value="">Nenhum resultado</option>';
-        }
-        function filterItemSelect() {
-            var source = itemKind === 'magico'
-                ? (catalogs.itens_magicos || []) : (catalogs.itens_mundanos || []);
-            var rows = filterRows(source, byId('pb-item-search').value, function (row) {
-                return row.nome + ' ' + (row.categoria || row.raridade || '') + ' ' + (row.slot || '');
+        /* ----------------------------------------------------------------- base */
+        function renderBase() {
+            var info = classBySlug[base.classe];
+            var rows = [
+                ['Nome', base.nome || '—'],
+                ['Classe', info ? info.nome : base.classe],
+                ['Raça', [base.raca, base.linhagem, base.essencia, base.vertente]
+                    .filter(Boolean).join(' · ') || '—'],
+                ['Antecedente', base.antecedente || '—']
+            ];
+            SIGLAS.forEach(function (sig) {
+                rows.push([sig, String((base.scores || {})[sig] == null ? '—' : base.scores[sig])]);
             });
-            byId('pb-item-select').innerHTML = rows.length
-                ? rows.map(function (row) {
-                    var meta = row.categoria || row.raridade || '';
-                    return optionHtml(row.slug, row.nome + (meta ? ' · ' + meta : ''), false);
-                }).join('') : '<option value="">Nenhum resultado</option>';
-        }
-        function filterSpellSelect() {
-            var rows = filterRows(catalogs.magias || [], byId('pb-spell-search').value,
-                function (row) { return row.nome + ' ' + row.escola + ' nivel ' + row.nivel; });
-            byId('pb-spell-select').innerHTML = rows.length
-                ? rows.map(function (row) {
-                    var level = Number(row.nivel || 0) === 0 ? 'Truque' : row.nivel + 'º';
-                    return optionHtml(row.slug, row.nome + ' · ' + level, false);
-                }).join('') : '<option value="">Nenhum resultado</option>';
+            byId('pb-base-grid').innerHTML = rows.map(function (row) {
+                return '<div class="pb-base-cell"><span class="k">' + esc(row[0]) +
+                    '</span><span class="v">' + esc(row[1]) + '</span></div>';
+            }).join('');
+            var modo = current().modo;
+            byId('pb-mode-hint').textContent = modo === 'regras'
+                ? 'A ficha aponta toda divergência de regra (ASI não gasto, subclasse em falta, sintonização acima do limite).'
+                : 'Livre: a ficha deriva mesmo com escolhas em aberto — bom para testar teto de dano e combinações.';
         }
 
-        function renderEditor() {
+        /* ----------------------------------------------------------------- passos */
+        function stepPending(index) {
+            var result = results[active];
+            if (!result) return 0;
+            var budget = result.orcamento || {};
+            if (index === 1) {
+                return (result.validacao && result.validacao.problemas || []).filter(function (p) {
+                    return p.indexOf('subclasse') >= 0;
+                }).length;
+            }
+            if (index === 2) {
+                return (result.escolhas_pendentes || []).reduce(function (s, g) {
+                    return s + Number(g.pendentes || 0);
+                }, 0);
+            }
+            if (index === 3) {
+                return Number(budget.pontos_restantes || 0) !== 0 ? 1 : 0;
+            }
+            if (index === 4) {
+                return Number(budget.sintonizacao_usada || 0) > Number(budget.sintonizacao_maxima || 3) ? 1 : 0;
+            }
+            return 0;
+        }
+        function renderStepper() {
+            document.querySelectorAll('[data-step-tab]').forEach(function (tab) {
+                var index = Number(tab.dataset.stepTab);
+                tab.classList.toggle('is-current', index === step);
+                var pending = stepPending(index);
+                tab.classList.toggle('is-error', pending > 0);
+                tab.classList.toggle('is-complete', pending === 0 && index !== step && !!results[active]);
+                var badge = tab.querySelector('.pb-step-badge');
+                if (badge) badge.setAttribute('data-pending', pending > 0 ? String(pending) : '');
+            });
+            document.querySelectorAll('[data-step]').forEach(function (panel) {
+                panel.hidden = Number(panel.dataset.step) !== step;
+            });
+            document.querySelector('[data-step-prev]').disabled = step === 0;
+            document.querySelector('[data-step-next]').disabled = step === STEPS.length - 1;
+            byId('pb-stepnav-hint').textContent = 'Etapa ' + (step + 1) + ' de ' + STEPS.length +
+                ' · ' + STEPS[step];
+
+            var result = results[active];
+            var problems = result && result.validacao && result.validacao.modo === 'regras'
+                ? (result.validacao.problemas || []) : [];
+            var errBox = byId('pb-step-err');
+            if (problems.length) {
+                errBox.hidden = false;
+                errBox.innerHTML = '<strong>Pelas regras, ajuste:</strong><ul>' +
+                    problems.map(function (p) { return '<li>' + esc(p) + '</li>'; }).join('') + '</ul>';
+            } else {
+                errBox.hidden = true;
+                errBox.innerHTML = '';
+            }
+        }
+
+        function renderVariant() {
             document.querySelectorAll('[data-build-tab]').forEach(function (button) {
                 var selected = Number(button.dataset.buildTab) === active;
                 button.classList.toggle('is-active', selected);
                 button.setAttribute('aria-selected', selected ? 'true' : 'false');
             });
-            byId('pb-active-label').textContent = active === 0 ? 'Build A' : 'Build B';
-            byId('pb-clone').textContent = active === 0 ? 'Copiar para Build B' : 'Copiar para Build A';
-            byId('pb-detail-title').textContent = 'Detalhes da ' + (active === 0 ? 'Build A' : 'Build B');
-            renderMode();
+            byId('pb-clone').textContent = active === 0 ? 'Duplicar em B' : 'Duplicar em A';
+        }
+
+        function renderEditor() {
+            renderVariant();
+            renderBase();
+            document.querySelectorAll('[data-build-mode]').forEach(function (button) {
+                button.classList.toggle('is-active', button.dataset.buildMode === current().modo);
+            });
             renderClasses();
-            renderAttributes();
+            renderPicker('classe');
             renderChoices();
+            renderAttributes();
             renderTalents();
             renderItems();
             renderSpells();
-            renderDetail();
+            renderStepper();
         }
 
-        function chips(rows) {
-            if (!rows || !rows.length) return '<span class="pb-muted">Nenhum</span>';
-            return '<div class="pb-chips">' + rows.map(function (value) {
-                return '<span class="pb-chip">' + esc(value) + '</span>';
-            }).join('') + '</div>';
-        }
-        function vital(label, value, different) {
-            return '<div class="pb-vital' + (different ? ' is-different' : '') +
-                '"><small>' + esc(label) + '</small><strong>' + esc(value) + '</strong></div>';
-        }
-        function differs(index, key) {
-            var other = results[index === 0 ? 1 : 0];
-            return !!(results[index] && other && String(results[index][key]) !== String(other[key]));
-        }
-        function validationHtml(result) {
-            if (!result || !result.validacao || result.validacao.modo !== 'regras') return '';
-            var validation = result.validacao;
-            if (validation.valida) {
-                return '<div class="pb-validation is-valid"><strong>Build válida</strong></div>';
-            }
-            return '<div class="pb-validation"><strong>Ajustes pelas regras</strong><ul>' +
-                (validation.problemas || []).map(function (problem) {
-                    return '<li>' + esc(problem) + '</li>';
-                }).join('') + '</ul></div>';
-        }
-        function renderResult(index) {
-            var target = byId('pb-result-' + index);
-            var result = results[index];
-            if (errors[index]) {
-                target.innerHTML = '<div class="pb-result-header"><span>Build ' +
-                    (index === 0 ? 'A' : 'B') + '</span><h2>Build inválida</h2></div>' +
-                    '<div class="pb-result-body pb-muted">' + esc(errors[index]) + '</div>';
-                return;
-            }
-            if (!result) {
-                target.innerHTML = '<div class="pb-result-body pb-muted">Calculando...</div>';
-                return;
-            }
-            var classes = (result.classes || []).map(function (row) {
-                return row.classe + ' ' + row.nivel + (row.subclasse ? ' · ' + row.subclasse : '');
+        /* ------------------------------------------------------------ ficha/diff */
+        function bindFolha(root) {
+            /* Cards de característica da ficha: o markup vem do servidor com o JSON das
+               descrições dentro do fragmento — reaproveita o mesmo contrato da aba Ficha. */
+            var map = {};
+            var script = root.querySelector('#ficha-feat-desc');
+            if (script) { try { map = JSON.parse(script.textContent || '{}'); } catch (e) { map = {}; } }
+            root.querySelectorAll('[data-feat-group]').forEach(function (group) {
+                var n = group.querySelectorAll('[data-feat-card]').length;
+                if (!n) { group.style.display = 'none'; return; }
+                var badge = group.querySelector('[data-feat-count]');
+                if (badge) badge.textContent = n;
             });
-            var skills = (result.pericias || []).slice(0, 12).map(function (row) {
-                return row.nome + ' ' + signed(row.bonus) + (row.expertise ? ' · expertise' : '');
+            root.querySelectorAll('.feat-card').forEach(function (card) {
+                var head = card.querySelector('.feat-head');
+                var inner = card.querySelector('.feat-body-inner');
+                if (!head || !inner) return;
+                var rendered = false;
+                head.addEventListener('click', function () {
+                    var willOpen = !card.classList.contains('open');
+                    if (willOpen && !rendered) {
+                        inner.innerHTML = renderMd(map[card.getAttribute('data-feat-key')]) ||
+                            '<p class="feat-desc empty">Sem descrição detalhada.</p>';
+                        rendered = true;
+                    }
+                    card.classList.toggle('open', willOpen);
+                    head.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+                });
             });
-            var attrs = (result.atributos || []).map(function (row) {
-                var other = results[index === 0 ? 1 : 0];
-                var otherAttr = other && (other.atributos || []).find(function (x) { return x.sig === row.sig; });
-                var changed = otherAttr && Number(otherAttr.valor) !== Number(row.valor);
-                return '<div class="pb-attr' + (changed ? ' is-different' : '') + '"><span>' +
-                    esc(row.sig) + '</span><strong>' + esc(row.valor) + '</strong><small>' +
-                    signed(row.mod) + '</small></div>';
-            }).join('');
-            var pending = result.escolhas_pendentes || [];
-            target.innerHTML =
-                '<div class="pb-result-header"><span>Build ' + (index === 0 ? 'A' : 'B') +
-                '</span><h2>' + esc(result.nome) + '</h2></div>' +
-                '<div class="pb-vitals">' +
-                  vital('Nível', result.nivel, differs(index, 'nivel')) +
-                  vital('PV', result.pv, differs(index, 'pv')) +
-                  vital('CA', result.ca, differs(index, 'ca')) +
-                  vital('Prof.', signed(result.pb), differs(index, 'pb')) +
-                '</div><div class="pb-result-body">' +
-                  '<div class="pb-class-summary">' + chips(classes) + '</div>' +
-                  '<div class="pb-attrs">' + attrs + '</div>' +
-                  '<div class="pb-result-section"><h3>Perícias</h3>' + chips(skills) + '</div>' +
-                  '<div class="pb-result-section"><h3>Defesas e sentidos</h3>' +
-                    chips([].concat(result.resistencias || [], result.imunidades || [], result.sentidos || [])) +
-                  '</div>' +
-                  validationHtml(result) +
-                  (pending.length ? '<div class="pb-pending"><strong>Escolhas pendentes:</strong> ' +
-                    esc(pending.map(function (row) {
-                        return row.label + ' (' + row.pendentes + ')';
-                    }).join(', ')) + '</div>' : '') +
-                '</div>';
-        }
-
-        function table(headers, rows) {
-            if (!rows.length) return '<p class="pb-muted">Nenhum registro nesta build.</p>';
-            return '<div class="overflow-x-auto"><table class="pb-table"><thead><tr>' +
-                headers.map(function (head) { return '<th>' + esc(head) + '</th>'; }).join('') +
-                '</tr></thead><tbody>' + rows.join('') + '</tbody></table></div>';
-        }
-        function keyedRows(rows, keyFn) {
-            var out = Object.create(null);
-            (rows || []).forEach(function (row) { out[keyFn(row)] = row; });
-            return out;
+            var pp = root.querySelector('[data-passive-perception]');
+            if (pp) {
+                var percRaw = (pp.getAttribute('data-perc-bonus') || '').trim();
+                var sabMod = parseInt(pp.getAttribute('data-sab-mod') || '0', 10) || 0;
+                var out = pp.querySelector('[data-pp-value]') || pp;
+                out.textContent = percRaw !== '' ? (parseInt(percRaw, 10) + 10) : (10 + sabMod);
+            }
         }
         function renderDiff() {
-            var left = results[active];
-            var right = results[active === 0 ? 1 : 0];
-            if (!left || !right) return '<p class="pb-muted">As duas builds precisam estar calculadas.</p>';
-            var rows = [];
-            [
-                ['PV', left.pv, right.pv],
-                ['CA', left.ca, right.ca],
-                ['Iniciativa', left.iniciativa, right.iniciativa],
-                ['Deslocamento', left.velocidade, right.velocidade],
-                ['Bônus de proficiência', signed(left.pb), signed(right.pb)]
-            ].forEach(function (row) {
-                if (String(row[1]) !== String(row[2])) {
-                    rows.push('<tr><td><strong>' + esc(row[0]) + '</strong></td><td>' +
-                        esc(row[1]) + '</td><td>' + esc(row[2]) + '</td></tr>');
-                }
-            });
-            var leftFeatures = keyedRows(left.features, function (row) {
-                return [row.nome, row.origem, row.nivel].join('|');
-            });
-            var rightFeatures = keyedRows(right.features, function (row) {
-                return [row.nome, row.origem, row.nivel].join('|');
-            });
-            Object.keys(leftFeatures).forEach(function (key) {
-                if (!rightFeatures[key]) {
-                    rows.push('<tr><td><strong>Habilidade</strong></td><td>' +
-                        esc(leftFeatures[key].nome) + '</td><td class="pb-muted">—</td></tr>');
-                }
-            });
-            Object.keys(rightFeatures).forEach(function (key) {
-                if (!leftFeatures[key]) {
-                    rows.push('<tr><td><strong>Habilidade</strong></td><td class="pb-muted">—</td><td>' +
-                        esc(rightFeatures[key].nome) + '</td></tr>');
-                }
-            });
-            return table(['Diferença', active === 0 ? 'Build A' : 'Build B',
-                active === 0 ? 'Build B' : 'Build A'], rows);
+            var box = byId('pb-diff');
+            var mine = results[active];
+            var other = results[active === 0 ? 1 : 0];
+            if (!mine || !other) { box.hidden = true; box.innerHTML = ''; return; }
+            var pairs = [
+                ['Nível', mine.nivel, other.nivel],
+                ['PV', mine.pv, other.pv],
+                ['CA', mine.ca, other.ca],
+                ['Ataque', (mine.metricas_combate || {}).melhor_bonus_ataque,
+                    (other.metricas_combate || {}).melhor_bonus_ataque],
+                ['Dano méd.', (mine.metricas_combate || {}).maior_dano_medio,
+                    (other.metricas_combate || {}).maior_dano_medio]
+            ].filter(function (row) { return String(row[1]) !== String(row[2]); });
+            if (!pairs.length) { box.hidden = true; box.innerHTML = ''; return; }
+            box.hidden = false;
+            box.innerHTML = '<span class="pb-diff-lbl">vs Build ' + (active === 0 ? 'B' : 'A') + '</span>' +
+                pairs.map(function (row) {
+                    var a = row[1] == null ? '—' : row[1];
+                    var b = row[2] == null ? '—' : row[2];
+                    return '<span class="pb-diff-cell"><small>' + esc(row[0]) + '</small><b>' +
+                        esc(a) + '</b><i>' + esc(b) + '</i></span>';
+                }).join('');
         }
-        function renderProgression(result) {
-            var grouped = {};
-            (result.features || []).forEach(function (row) {
-                var level = Number(row.nivel || 0);
-                var key = level > 0 ? level : 0;
-                grouped[key] = grouped[key] || [];
-                grouped[key].push(row);
-            });
-            var levels = Object.keys(grouped).map(Number).sort(function (a, b) { return a - b; });
-            if (!levels.length) return '<p class="pb-muted">Nenhuma progressão disponível.</p>';
-            return '<div class="pb-timeline">' + levels.map(function (level) {
-                return '<div class="pb-timeline-row"><strong>' +
-                    (level ? 'Nível ' + level : 'Base') + '</strong><div>' +
-                    grouped[level].map(function (row) {
-                        return '<span class="pb-timeline-feature">' + esc(row.nome) +
-                            '<small>' + esc(row.origem || row.fonte) + '</small></span>';
-                    }).join('') + '</div></div>';
-            }).join('') + '</div>';
-        }
-        function spellcastingHtml(result) {
-            var casting = result.conjuracao || {};
-            if (!(casting.spellcasters || []).length) return '';
-            var casters = (casting.spellcasters || []).map(function (caster) {
-                return '<div class="pb-caster"><strong>' + esc(caster.classe) +
-                    '</strong><span>' + esc(caster.ability) + '</span><span>CD ' +
-                    esc(caster.cd) + '</span><span>Ataque ' + signed(caster.ataque) +
-                    '</span></div>';
-            }).join('');
-            var slots = (casting.slots || []).map(function (slot) {
-                return '<span class="pb-slot"><small>' + slot.nivel + 'º</small><strong>' +
-                    esc(slot.total) + '</strong></span>';
-            }).join('');
-            return '<div class="pb-casting-summary">' + casters +
-                (slots ? '<div class="pb-slots">' + slots + '</div>' : '') + '</div>';
-        }
-        function renderDetail() {
-            document.querySelectorAll('[data-detail-tab]').forEach(function (button) {
-                button.classList.toggle('is-active', button.dataset.detailTab === detailTab);
-            });
+        function renderSheet() {
+            var host = byId('pb-folha');
             var result = results[active];
-            var body = byId('pb-detail-body');
-            if (!result) {
-                body.innerHTML = '<p class="pb-muted">Aguardando a build ativa.</p>';
+            if (errors[active]) {
+                host.innerHTML = '<div class="pb-sheet-error"><strong>Build inválida</strong><p>' +
+                    esc(errors[active]) + '</p></div>';
+                renderDiff();
                 return;
             }
-            if (detailTab === 'diff') {
-                body.innerHTML = renderDiff();
-            } else if (detailTab === 'progression') {
-                body.innerHTML = renderProgression(result);
-            } else if (detailTab === 'features') {
-                body.innerHTML = table(['Habilidade', 'Origem', 'Nível'],
-                    (result.features || []).map(function (row) {
-                        return '<tr><td><strong>' + esc(row.nome) + '</strong></td><td>' +
-                            esc(row.origem || row.fonte) + '</td><td>' + esc(row.nivel || '—') + '</td></tr>';
-                    }));
-            } else if (detailTab === 'inventory') {
-                body.innerHTML = table(['Item', 'Qtd.', 'Uso', 'Tipo'],
-                    (result.inventario || []).map(function (row) {
-                        var use = row.equipado ? 'Equipado' : 'Guardado';
-                        if (row.sintonizado) use += ' · Sintonizado';
-                        return '<tr><td><strong>' + esc(row.nome) + '</strong></td><td>' +
-                            esc(row.qtd) + '</td><td>' + esc(use) + '</td><td>' +
-                            esc(row.raridade || row.consumivel_tipo || row.tipo_equip || 'Mundano') + '</td></tr>';
-                    }));
-            } else if (detailTab === 'spells') {
-                body.innerHTML = spellcastingHtml(result) + table(['Magia', 'Nível', 'Preparada', 'Origem'],
-                    (result.magias || []).map(function (row) {
-                        return '<tr><td><strong>' + esc(row.nome) + '</strong></td><td>' +
-                            esc(row.nivel === 0 ? 'Truque' : row.nivel) + '</td><td>' +
-                            (row.preparada ? 'Sim' : 'Não') + '</td><td>' +
-                            esc(row.origem || 'Pathbuilder') + '</td></tr>';
-                    }));
-            } else {
-                var attacks = (result.ataques || []).map(function (row) {
-                    return '<tr><td><strong>' + esc(row.nome || row.escopo || 'Ataque') +
-                        '</strong></td><td>' + esc(signed(row.bonus_ataque)) + '</td><td>' +
-                        esc(row.dano || row.dado || '—') + '</td><td>' +
-                        esc(row.maestria || row.tipo_dano || '—') + '</td></tr>';
-                });
-                var resources = Object.keys(result.recursos || {}).map(function (key) {
-                    return '<tr><td><strong>' + esc(key) + '</strong></td><td colspan="3">' +
-                        esc(result.recursos[key]) + '</td></tr>';
-                });
-                var metrics = result.metricas_combate || {};
-                body.innerHTML = '<div class="pb-combat-metrics">' +
-                    vital('Melhor ataque', metrics.melhor_bonus_ataque == null
-                        ? '—' : signed(metrics.melhor_bonus_ataque), false) +
-                    vital('Maior dano médio', metrics.maior_dano_medio == null
-                        ? '—' : metrics.maior_dano_medio, false) +
-                    vital('Perfis de ataque', metrics.quantidade_ataques || 0, false) +
-                    vital('Iniciativa', signed(result.iniciativa), false) +
-                    '</div>' +
-                    table(['Ataque/Recurso', 'Bônus', 'Dano/Valor', 'Maestria'],
-                        attacks.concat(resources));
-            }
-        }
-
-        function renderResults() {
-            renderResult(0);
-            renderResult(1);
-            renderChoices();
-            renderDetail();
+            if (!result) { return; }
+            host.innerHTML = result.ficha_html || '';
+            bindFolha(host);
+            renderDiff();
         }
 
         function fetchBuild(index, seq) {
@@ -562,41 +720,132 @@
             }).catch(function () {
                 if (seq !== requestSeq) return;
                 results[index] = null;
-                errors[index] = 'Não foi possível calcular esta build.';
+                errors[index] = 'Não foi possível derivar esta build.';
             });
         }
-        function runPreview() {
+        /* Só a build ATIVA é derivada a cada edição. O antigo laboratório materializava as
+           duas fichas a cada tecla — dobro de custo para uma comparação que ninguém pediu. */
+        function runPreview(alsoOther) {
             var seq = ++requestSeq;
             var status = byId('pb-status');
-            status.textContent = 'Calculando as duas builds...';
+            status.textContent = 'Derivando…';
             status.classList.remove('is-error');
-            Promise.all([fetchBuild(0, seq), fetchBuild(1, seq)]).then(function () {
+            var jobs = [fetchBuild(active, seq)];
+            if (alsoOther) jobs.push(fetchBuild(active === 0 ? 1 : 0, seq));
+            Promise.all(jobs).then(function () {
                 if (seq !== requestSeq) return;
-                renderResults();
-                if (errors[0] || errors[1]) {
-                    status.textContent = 'Uma das builds precisa de ajuste.';
+                renderSheet();
+                renderEditor();
+                if (errors[active]) {
+                    status.textContent = 'Corrija a build para ver a ficha.';
                     status.classList.add('is-error');
                 } else {
-                    status.textContent = 'Builds calculadas pelo motor real da ficha. Nenhum personagem foi salvo.';
+                    var result = results[active];
+                    status.textContent = 'Nível ' + (result ? result.nivel : '?') +
+                        ' · nenhum personagem salvo';
                 }
             });
         }
         function schedulePreview() {
             clearTimeout(timer);
-            timer = setTimeout(runPreview, 240);
+            timer = setTimeout(function () { runPreview(false); }, 260);
         }
 
-        document.addEventListener('click', function (event) {
-            var button = event.target.closest('button');
-            if (!button || !app.contains(button)) return;
+        /* ---------------------------------------------------------------- eventos */
+        function toggleDesc(card, descEl, moreBtn, kind, slug) {
+            var willOpen = descEl.hidden;
+            descEl.hidden = !willOpen;
+            card.classList.toggle('is-open', willOpen);
+            moreBtn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+            if (willOpen && kind && !descEl.dataset.loaded) {
+                descEl.dataset.loaded = '1';
+                loadDetail(kind, slug, descEl);
+            }
+        }
+
+        app.addEventListener('click', function (event) {
+            var target = event.target;
+
+            var stepTab = target.closest('[data-step-tab]');
+            if (stepTab) { step = Number(stepTab.dataset.stepTab); renderStepper(); return; }
+
+            var more = target.closest('[data-opt-more]');
+            if (more) {
+                var card = more.closest('.pb-opt');
+                toggleDesc(card, card.querySelector('[data-opt-desc]'), more,
+                    card.dataset.optKind, card.dataset.optSlug);
+                return;
+            }
+            var choiceMore = target.closest('[data-choice-more]');
+            if (choiceMore) {
+                var cCard = choiceMore.closest('.pb-opt');
+                toggleDesc(cCard, cCard.querySelector('.pb-opt-desc'), choiceMore, '', '');
+                return;
+            }
+
+            var choicePick = target.closest('[data-choice-pick]');
+            if (choicePick) {
+                var box = choicePick.closest('[data-choice-key]');
+                var key = box.dataset.choiceKey;
+                var val = box.dataset.choiceVal;
+                mutate(function (build) {
+                    var values = Array.isArray(build.escolhas[key]) ? build.escolhas[key].slice() : [];
+                    var at = values.indexOf(val);
+                    if (at >= 0) values.splice(at, 1); else values.push(val);
+                    build.escolhas[key] = values;
+                });
+                return;
+            }
+
+            var pick = target.closest('[data-opt-pick]');
+            if (pick) {
+                var optCard = pick.closest('.pb-opt');
+                var kind = optCard.dataset.optKind;
+                var slug = optCard.dataset.optSlug;
+                if (kind === 'classe') {
+                    mutate(function (build) {
+                        if (totalLevel(build) >= 20) return;
+                        if (!build.classes.some(function (r) { return r.slug === slug; })) {
+                            build.classes.push({ slug: slug, nivel: 1, subclasse: '' });
+                        }
+                    });
+                } else if (kind === 'subclasse') {
+                    var holder = optCard.querySelector('[data-subclass-index]');
+                    var idx = Number(holder ? holder.dataset.subclassIndex : optCard
+                        .closest('[data-subclass-for]').dataset.subclassFor);
+                    mutate(function (build) {
+                        var row = build.classes[idx];
+                        if (!row) return;
+                        row.subclasse = row.subclasse === slug ? '' : slug;
+                    });
+                } else if (kind === 'talento') {
+                    mutate(function (build) {
+                        var at = build.talentos.indexOf(slug);
+                        if (at >= 0) build.talentos.splice(at, 1); else build.talentos.push(slug);
+                    });
+                } else if (kind === 'mundano' || kind === 'magico') {
+                    mutate(function (build) {
+                        build.itens.push({ tipo: kind, slug: slug, qtd: 1,
+                                           equipado: false, sintonizado: false });
+                    });
+                } else if (kind === 'magia') {
+                    mutate(function (build) {
+                        var at = -1;
+                        build.magias.forEach(function (r, i) { if (r.slug === slug) at = i; });
+                        if (at >= 0) build.magias.splice(at, 1);
+                        else build.magias.push({ slug: slug, preparada: true });
+                    });
+                }
+                return;
+            }
+
+            var button = target.closest('button');
+            if (!button) return;
+
             if (button.dataset.buildTab != null) {
                 active = Number(button.dataset.buildTab);
                 renderEditor();
-                return;
-            }
-            if (button.dataset.detailTab) {
-                detailTab = button.dataset.detailTab;
-                renderDetail();
+                if (results[active] || errors[active]) { renderSheet(); } else { runPreview(false); }
                 return;
             }
             if (button.dataset.itemKind) {
@@ -636,8 +885,12 @@
                 });
                 return;
             }
-            if (button.dataset.removeTalent != null) {
-                mutate(function (build) { build.talentos.splice(Number(button.dataset.removeTalent), 1); });
+            if (button.dataset.itemQtyDelta != null) {
+                mutate(function (build) {
+                    var row = build.itens[Number(button.dataset.itemQtyDelta)];
+                    if (!row) return;
+                    row.qtd = Math.max(1, Math.min(999, Number(row.qtd || 1) + Number(button.dataset.delta)));
+                });
                 return;
             }
             if (button.dataset.removeItem != null) {
@@ -648,21 +901,50 @@
                 mutate(function (build) { build.magias.splice(Number(button.dataset.removeSpell), 1); });
                 return;
             }
+            if (button.hasAttribute('data-step-prev')) { step = Math.max(0, step - 1); renderStepper(); return; }
+            if (button.hasAttribute('data-step-next')) {
+                step = Math.min(STEPS.length - 1, step + 1); renderStepper(); return;
+            }
         });
 
-        document.addEventListener('change', function (event) {
+        app.addEventListener('keydown', function (event) {
+            if (event.key !== 'Enter' && event.key !== ' ') return;
+            var stepTab = event.target.closest('[data-step-tab]');
+            if (!stepTab) return;
+            event.preventDefault();
+            step = Number(stepTab.dataset.stepTab);
+            renderStepper();
+        });
+
+        app.addEventListener('input', function (event) {
+            /* Filtro de um grupo de escolha: esconde/mostra os cartões já renderizados.
+               Nada de re-render — o cursor do campo não pode ser perdido a cada tecla. */
+            var choiceFilter = event.target.closest('[data-choice-filter]');
+            if (choiceFilter) {
+                var q = fold(choiceFilter.value);
+                var box = choiceFilter.closest('.pb-choice').querySelector('[data-choice-opts]');
+                Array.prototype.forEach.call(box.children, function (card) {
+                    var name = card.querySelector('.pb-opt-name');
+                    var meta = card.querySelector('.pb-opt-meta');
+                    var text = fold((name ? name.textContent : '') + ' ' +
+                                    (meta ? meta.textContent : ''));
+                    card.hidden = !!q && text.indexOf(q) < 0 &&
+                        !card.classList.contains('is-on');
+                });
+                return;
+            }
+            var search = event.target.closest('[data-picker-search]');
+            if (!search) return;
+            var kind = search.closest('[data-picker]').dataset.picker;
+            queries[kind] = search.value;
+            /* renderTalents() já chama renderPicker('talento') e prende os escolhidos no
+               topo — chamar os dois renderizaria a lista duas vezes por tecla. */
+            if (kind === 'talento') { renderTalents(); } else { renderPicker(kind); }
+        });
+
+        app.addEventListener('change', function (event) {
             var target = event.target;
-            if (!app.contains(target)) return;
-            if (target.dataset.subclass != null) {
-                mutate(function (build) {
-                    build.classes[Number(target.dataset.subclass)].subclasse = target.value;
-                });
-            } else if (target.dataset.itemQty != null) {
-                mutate(function (build) {
-                    build.itens[Number(target.dataset.itemQty)].qtd =
-                        Math.max(1, Math.min(999, Number(target.value || 1)));
-                });
-            } else if (target.dataset.itemEquipped != null) {
+            if (target.dataset.itemEquipped != null) {
                 mutate(function (build) {
                     build.itens[Number(target.dataset.itemEquipped)].equipado = target.checked;
                 });
@@ -674,81 +956,38 @@
                 mutate(function (build) {
                     build.magias[Number(target.dataset.spellPrepared)].preparada = target.checked;
                 });
-            } else if (target.dataset.choiceKey != null) {
-                mutate(function (build) {
-                    var key = target.dataset.choiceKey;
-                    var slot = Number(target.dataset.choiceSlot || 0);
-                    var values = Array.isArray(build.escolhas[key])
-                        ? build.escolhas[key].slice() : [];
-                    values[slot] = target.value;
-                    build.escolhas[key] = values.filter(Boolean);
-                });
             }
         });
 
-        byId('pb-add-class').addEventListener('click', function () {
-            var slug = byId('pb-class-select').value;
-            if (!slug) return;
-            mutate(function (build) {
-                if (!build.classes.some(function (row) { return row.slug === slug; })) {
-                    build.classes.push({ slug: slug, nivel: 1, subclasse: '' });
-                }
-            });
+        byId('pb-sheet-collapse').addEventListener('click', function () {
+            var collapsed = byId('pb-sheet').classList.toggle('is-collapsed');
+            this.textContent = collapsed ? 'mostrar' : 'ocultar';
+            this.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
         });
-        byId('pb-add-talent').addEventListener('click', function () {
-            var slug = byId('pb-talent-select').value;
-            if (!slug) return;
-            mutate(function (build) {
-                if (build.talentos.indexOf(slug) < 0) build.talentos.push(slug);
-            });
-        });
-        byId('pb-add-item').addEventListener('click', function () {
-            var slug = byId('pb-item-select').value;
-            if (!slug) return;
-            mutate(function (build) {
-                build.itens.push({
-                    tipo: itemKind,
-                    slug: slug,
-                    qtd: 1,
-                    equipado: false,
-                    sintonizado: false
-                });
-            });
-        });
-        byId('pb-add-spell').addEventListener('click', function () {
-            var slug = byId('pb-spell-select').value;
-            if (!slug) return;
-            mutate(function (build) {
-                if (!build.magias.some(function (row) { return row.slug === slug; })) {
-                    build.magias.push({ slug: slug, preparada: true });
-                }
-            });
-        });
-        byId('pb-talent-search').addEventListener('input', filterTalentSelect);
-        byId('pb-item-search').addEventListener('input', filterItemSelect);
-        byId('pb-spell-search').addEventListener('input', filterSpellSelect);
         byId('pb-clone').addEventListener('click', function () {
             builds[active === 0 ? 1 : 0] = clone(current());
             persist();
             renderEditor();
-            schedulePreview();
+            runPreview(true);
         });
         byId('pb-reset').addEventListener('click', function () {
             builds = [emptyBuild(), emptyBuild()];
             persist();
             renderEditor();
-            schedulePreview();
+            runPreview(false);
         });
 
+        /* --------------------------------------------------------- versões salvas */
         function savedVersions() {
             var saved = readLocal(STORAGE_SAVED);
             return Array.isArray(saved) ? saved : [];
         }
         function renderSavedVersions(selectedId) {
             var rows = savedVersions();
-            byId('pb-saved-builds').innerHTML = '<option value="">Builds salvas</option>' +
+            byId('pb-saved-builds').innerHTML = '<option value="">Versões salvas</option>' +
                 rows.map(function (row) {
-                    return optionHtml(row.id, row.nome, row.id === selectedId);
+                    return '<option value="' + esc(row.id) + '"' +
+                        (row.id === selectedId ? ' selected' : '') + '>' + esc(row.nome) + '</option>';
                 }).join('');
             byId('pb-delete-save').disabled = !selectedId;
         }
@@ -759,10 +998,13 @@
             }
             base = clone(bundle.base);
             builds = clone(bundle.builds).map(normalizeBuild);
-            sessionStorage.setItem(STORAGE_BASE, JSON.stringify(base));
+            writeStore(STORAGE_BASE, base);
+            /* nova impressão digital: sem isso o próximo carregamento acharia que a base
+               mudou e jogaria fora justamente as builds que acabaram de ser importadas. */
+            markBase(base);
             persist();
             renderEditor();
-            runPreview();
+            runPreview(false);
         }
         byId('pb-save').addEventListener('click', function () {
             var name = window.prompt('Nome desta versão:', 'Build ' +
@@ -790,8 +1032,8 @@
         byId('pb-delete-save').addEventListener('click', function () {
             var id = byId('pb-saved-builds').value;
             if (!id) return;
-            var rows = savedVersions().filter(function (row) { return row.id !== id; });
-            localStorage.setItem(STORAGE_SAVED, JSON.stringify(rows));
+            localStorage.setItem(STORAGE_SAVED, JSON.stringify(
+                savedVersions().filter(function (row) { return row.id !== id; })));
             renderSavedVersions('');
         });
         byId('pb-export').addEventListener('click', function () {
@@ -820,8 +1062,9 @@
                 try {
                     loadBundle(JSON.parse(reader.result));
                 } catch (error) {
-                    byId('pb-status').textContent = error.message;
-                    byId('pb-status').classList.add('is-error');
+                    var status = byId('pb-status');
+                    status.textContent = error.message;
+                    status.classList.add('is-error');
                 }
             };
             reader.readAsText(file);
@@ -830,7 +1073,7 @@
 
         renderSavedVersions('');
         renderEditor();
-        runPreview();
+        runPreview(false);
     }
 
     if (document.readyState === 'loading') {

@@ -1,8 +1,13 @@
 """Laboratorio de builds sem persistencia.
 
 O estado autoral vive no navegador. Cada preview materializa uma ficha real dentro de
-uma transacao marcada para rollback, executa o mesmo ``derive`` da ficha e devolve apenas
-dados serializaveis. Nenhum TbPersonagem sobrevive ao request.
+uma transacao marcada para rollback, executa o mesmo ``derive`` da ficha e devolve
+
+  1. o HTML da FOLHA (os mesmos partials da aba Ficha, em modo leitura) e
+  2. so os numeros que o EDITOR precisa (orcamento de ASI, grupos de escolha, avisos).
+
+Nenhum TbPersonagem sobrevive ao request. O redesenho de julho tirou daqui a montagem
+paralela da ficha em JSON: a visualizacao e a ficha real, renderizada no servidor.
 """
 
 from django.db import transaction
@@ -13,7 +18,21 @@ class PathbuilderError(ValueError):
     pass
 
 
+# tipos aceitos pelo endpoint de descricao (catalogo enxuto no cliente, texto sob demanda)
+DETALHE_TIPOS = ("talento", "magia", "item_mundano", "item_magico", "subclasse")
+
+
+def _preco_txt(value):
+    value = str(value or "").strip()
+    return value
+
+
 def catalogos():
+    """Catalogo do laboratorio: SO o suficiente para desenhar os cartoes de escolha.
+
+    Descricao NAO vem aqui (580 magias + 954 itens magicos passariam de 1 MB): o cartao
+    busca o texto sob demanda em ``pathbuilder_detalhe`` e guarda em cache no cliente.
+    """
     from .character_engine import _subclass_min_level
     from .models import (
         TbClasse,
@@ -30,6 +49,7 @@ def catalogos():
         subclasses.setdefault(sub.id_classe.slug, []).append({
             "slug": sub.slug,
             "nome": sub.nome,
+            "meta": (sub.tagline or "").strip(),
         })
 
     classes = []
@@ -41,32 +61,47 @@ def catalogos():
             "subclasses": subclasses.get(classe.slug, []),
         })
 
+    # `grupo` = cabecalho da lista (nao se repete em `meta`, senao o payload dobra de peso)
     mundanos = [{
         "slug": item.slug,
         "nome": item.nome,
-        "categoria": item.get_categoria_display(),
+        "grupo": item.get_categoria_display(),
+        "meta": " · ".join(x for x in [
+            (item.subcategoria or "").strip(),
+            _preco_txt(item.preco),
+        ] if x),
         "equipavel": item.categoria in {"arma", "armadura"},
     } for item in TbItemMundano.objects.all().order_by("categoria", "nome")]
 
     magicos = [{
         "slug": item.slug,
         "nome": item.nome,
-        "raridade": item.get_raridade_display(),
-        "slot": item.get_slot_display(),
+        "grupo": item.get_raridade_display(),
+        "meta": " · ".join(x for x in [
+            item.get_slot_display(),
+            "sintonização" if item.requer_sintonizacao else "",
+        ] if x),
+        "equipavel": True,
         "requer_sintonizacao": bool(item.requer_sintonizacao),
     } for item in TbItemMagico.objects.all().order_by("raridade", "nome")]
 
     talentos = [{
         "slug": talento.slug,
         "nome": talento.nome,
-        "tipo": talento.tipo or "",
+        "grupo": (talento.tipo or "Talento").strip() or "Talento",
+        "meta": (talento.pre_requisito or "").strip()[:80],
     } for talento in TbTalento.objects.all().order_by("tipo", "nome")]
 
     magias = [{
         "slug": magia.slug,
         "nome": magia.nome,
         "nivel": int(magia.nivel or 0),
-        "escola": magia.escola or "",
+        "grupo": "Truques" if int(magia.nivel or 0) == 0 else "%dº nível" % magia.nivel,
+        "meta": " · ".join(x for x in [
+            (magia.escola or "").strip(),
+            "concentração" if magia.concentracao else "",
+            "ritual" if magia.ritual else "",
+        ] if x),
     } for magia in TbMagia.objects.all().order_by("nivel", "nome")]
 
     return {
@@ -76,6 +111,78 @@ def catalogos():
         "itens_magicos": magicos,
         "magias": magias,
     }
+
+
+def detalhe(tipo, slug):
+    """Descricao de UMA entrada do catalogo (cartao expandido, sob demanda)."""
+    from .models import (
+        TbItemMagico,
+        TbItemMundano,
+        TbMagia,
+        TbSubclasse,
+        TbTalento,
+    )
+
+    slug = str(slug or "").strip()
+    if tipo not in DETALHE_TIPOS or not slug:
+        raise PathbuilderError("Detalhe indisponivel para este item.")
+
+    if tipo == "talento":
+        obj = TbTalento.objects.filter(slug=slug).first()
+        if not obj:
+            raise PathbuilderError("Talento nao encontrado.")
+        return {"nome": obj.nome, "descricao": (obj.descricao or "").strip(),
+                "linhas": [x for x in [
+                    ("Tipo", (obj.tipo or "").strip()),
+                    ("Pré-requisito", (obj.pre_requisito or "").strip()),
+                ] if x[1]]}
+
+    if tipo == "magia":
+        obj = TbMagia.objects.filter(slug=slug).first()
+        if not obj:
+            raise PathbuilderError("Magia nao encontrada.")
+        nivel = int(obj.nivel or 0)
+        return {"nome": obj.nome, "descricao": (obj.descricao or "").strip(),
+                "extra": (obj.em_niveis_superiores or "").strip(),
+                "linhas": [x for x in [
+                    ("Nível", "Truque" if nivel == 0 else "%dº" % nivel),
+                    ("Escola", (obj.escola or "").strip()),
+                    ("Execução", (obj.casting_time or "").strip()),
+                    ("Alcance", (obj.alcance or "").strip()),
+                    ("Duração", "%s%s" % ((obj.duracao or "").strip(),
+                                          " (concentração)" if obj.concentracao else "")),
+                    ("Componentes", (obj.componentes or "").strip()),
+                ] if x[1]]}
+
+    if tipo == "item_mundano":
+        obj = TbItemMundano.objects.filter(slug=slug).first()
+        if not obj:
+            raise PathbuilderError("Item nao encontrado.")
+        return {"nome": obj.nome, "descricao": (obj.descricao_markdown or "").strip(),
+                "linhas": [x for x in [
+                    ("Categoria", obj.get_categoria_display()),
+                    ("Subcategoria", (obj.subcategoria or "").strip()),
+                    ("Preço", _preco_txt(obj.preco)),
+                    ("Peso", str(obj.peso or "").strip()),
+                ] if x[1]]}
+
+    if tipo == "item_magico":
+        obj = TbItemMagico.objects.filter(slug=slug).first()
+        if not obj:
+            raise PathbuilderError("Item nao encontrado.")
+        return {"nome": obj.nome, "descricao": (obj.descricao_markdown or "").strip(),
+                "extra": (obj.detalhes_sintonizacao or "").strip(),
+                "linhas": [x for x in [
+                    ("Raridade", obj.get_raridade_display()),
+                    ("Slot", obj.get_slot_display()),
+                    ("Sintonização", "exige" if obj.requer_sintonizacao else ""),
+                    ("Preço", _preco_txt(obj.preco)),
+                ] if x[1]]}
+
+    obj = TbSubclasse.objects.filter(slug=slug).first()
+    if not obj:
+        raise PathbuilderError("Subclasse nao encontrada.")
+    return {"nome": obj.nome, "descricao": (obj.tagline or "").strip(), "linhas": []}
 
 
 def default_build(creator_data):
@@ -290,23 +397,6 @@ def _apply_spells(personagem, build):
         existing.add(spell.id_magia)
 
 
-def _pending_choices(personagem):
-    from . import picks
-
-    out = []
-    for group in picks.resolve_personagem(personagem):
-        if not group.get("pendentes"):
-            continue
-        out.append({
-            "origem": group.get("origem") or "",
-            "label": group.get("label") or group.get("tipo_display")
-                     or group.get("tipo") or group.get("kind"),
-            "pendentes": int(group.get("pendentes") or 0),
-            "classe": group.get("classe") or "",
-        })
-    return out
-
-
 def _groups_with_keys(personagem):
     from . import picks
 
@@ -407,11 +497,16 @@ def _choice_groups(personagem, build):
     for group in _groups_with_keys(personagem):
         options = _choice_options(group)
         known = {row["valor"] for row in options}
+        resolvidas = []
         for chosen in group.get("escolhidas") or []:
             value = chosen.get("valor")
             if value is None and chosen.get("id_opcao") is not None:
                 value = chosen["id_opcao"]
-            if value is not None and str(value) not in known:
+            if value is None:
+                continue
+            resolvidas.append({"valor": str(value),
+                               "nome": chosen.get("nome") or str(value)})
+            if str(value) not in known:
                 options.append({
                     "valor": str(value),
                     "nome": chosen.get("nome") or str(value),
@@ -428,6 +523,7 @@ def _choice_groups(personagem, build):
             "usados": int(group.get("usados") or 0),
             "pendentes": int(group.get("pendentes") or 0),
             "classe": group.get("classe") or "",
+            "resolvidas": resolvidas,
             "selecionadas": list(dict.fromkeys(
                 str(value) for value in incoming.get(group["pathbuilder_key"], []) if value)),
             "opcoes": options,
@@ -466,9 +562,36 @@ def _combat_metrics(ficha):
     }
 
 
-def _rules_diagnostics(personagem, ficha, build, groups):
-    from .character_engine import _subclass_min_level
+def _orcamento(personagem, ficha, build):
+    """ORCAMENTO da build — o editor gasta, nao adivinha.
+
+    O antigo laboratorio deixava o jogador somar +1 de atributo a mao e SO DEPOIS
+    reclamava ("os ASIs restantes representam 4 pontos; a build distribuiu 2"). Aqui o
+    numero de slots de ASI, quantos foram gastos em talento e quantos pontos sobram vem
+    do servidor, e a UI bloqueia o botao quando o saldo zera.
+    """
     from .views import _asi_slots
+
+    slots = len(_asi_slots(personagem))
+    talentos = len(build.get("talentos") or [])
+    pontos_usados = sum(int(value or 0)
+                        for value in (build.get("atributos_bonus") or {}).values())
+    slots_em_pontos = max(0, slots - talentos)
+    sint_usada = sum(1 for item in (build.get("itens") or []) if item.get("sintonizado"))
+    return {
+        "asi_slots": slots,
+        "asi_em_talento": talentos,
+        "asi_em_pontos": slots_em_pontos,
+        "pontos_disponiveis": slots_em_pontos * 2,
+        "pontos_usados": pontos_usados,
+        "pontos_restantes": slots_em_pontos * 2 - pontos_usados,
+        "sintonizacao_usada": sint_usada,
+        "sintonizacao_maxima": int(ficha.get("sintonizacao_maxima") or 3),
+    }
+
+
+def _rules_diagnostics(personagem, ficha, build, groups, orcamento):
+    from .character_engine import _subclass_min_level
 
     issues = []
     for pc in personagem.classes.select_related("id_classe", "id_subclasse"):
@@ -479,22 +602,15 @@ def _rules_diagnostics(personagem, ficha, build, groups):
     pending = sum(int(group.get("pendentes") or 0) for group in groups)
     if pending:
         issues.append("Resolva %d escolha(s) declarada(s) pelas tags." % pending)
-    slots = len(_asi_slots(personagem))
-    talents = len(build.get("talentos") or [])
-    points = sum(int(value or 0)
-                 for value in (build.get("atributos_bonus") or {}).values())
-    if talents > slots:
+    if orcamento["asi_em_talento"] > orcamento["asi_slots"]:
         issues.append("A build usa %d talento(s) livre(s), mas possui %d slot(s) de ASI."
-                      % (talents, slots))
-    expected = max(0, slots - talents) * 2
-    if points != expected:
+                      % (orcamento["asi_em_talento"], orcamento["asi_slots"]))
+    if orcamento["pontos_usados"] != orcamento["pontos_disponiveis"]:
         issues.append("Os ASIs restantes representam %d ponto(s); a build distribuiu %d."
-                      % (expected, points))
-    attuned = sum(1 for item in (build.get("itens") or []) if item.get("sintonizado"))
-    attunement_max = int(ficha.get("sintonizacao_maxima") or 3)
-    if attuned > attunement_max:
+                      % (orcamento["pontos_disponiveis"], orcamento["pontos_usados"]))
+    if orcamento["sintonizacao_usada"] > orcamento["sintonizacao_maxima"]:
         issues.append("A build sintoniza %d itens; o limite derivado e %d."
-                      % (attuned, attunement_max))
+                      % (orcamento["sintonizacao_usada"], orcamento["sintonizacao_maxima"]))
     armor = [item for item in (ficha.get("inventario") or [])
              if item.get("equipado")
              and str(item.get("tipo_equip") or "").startswith("armadura")]
@@ -508,32 +624,36 @@ def _rules_diagnostics(personagem, ficha, build, groups):
             "valida": not issues, "problemas": issues}
 
 
+def _folha_html(personagem, ficha, magias_info):
+    """A PREVIA E A FICHA: renderiza os partials da aba Ficha em modo leitura.
+
+    Roda DENTRO da transacao desfeita (as querysets do template sao avaliadas aqui), e
+    devolve exatamente o markup denso da folha real — banner, atributos, selos de CA/PV,
+    ataques, caracteristicas. Zero markup paralelo, zero drift."""
+    from django.template.loader import render_to_string
+
+    from .views import _consumiveis_ficha_cards, _mochila_ficha, _raca_linha_ficha
+
+    return render_to_string("home/partials/_pathbuilder_folha.html", {
+        "p": personagem,
+        "ficha": ficha,
+        "mochila": _mochila_ficha(personagem, ficha),
+        "consumiveis_cards": _consumiveis_ficha_cards(personagem, ficha),
+        "magias_info": magias_info,
+        "raca_linha": _raca_linha_ficha(personagem),
+        "pode_editar": False,
+        "folha_readonly": True,
+        "appearance": {},
+    })
+
+
 def _summary(ficha, personagem, build):
+    """SO o que o EDITOR consome. A folha vai em `ficha_html` (markup da ficha real)."""
     from .views import _magias_sheet_info
-    attributes = []
-    for sigla in ("FOR", "DES", "CON", "INT", "SAB", "CAR"):
-        attr = (ficha.get("atributos") or {}).get(sigla) or {}
-        save = (ficha.get("saves") or {}).get(sigla) or {}
-        attributes.append({
-            "sig": sigla,
-            "valor": attr.get("valor"),
-            "mod": attr.get("mod", 0),
-            "save": save.get("bonus", 0),
-            "save_prof": bool(save.get("proficiente")),
-        })
-    skills = [{
-        "nome": row.get("nome"),
-        "bonus": row.get("bonus"),
-        "expertise": bool(row.get("expertise")),
-    } for row in (ficha.get("pericias") or [])
-        if row.get("proficiente") or row.get("expertise")]
-    features = [{
-        "nome": row.get("nome") or "",
-        "origem": row.get("origem") or "",
-        "fonte": row.get("fonte") or "",
-        "nivel": row.get("nivel"),
-    } for row in (ficha.get("features") or [])]
+
+    magias_info = _magias_sheet_info(personagem, ficha, [])
     choice_groups = _choice_groups(personagem, build)
+    orcamento = _orcamento(personagem, ficha, build)
     summary = {
         "nome": personagem.nome,
         "nivel": ficha.get("nivel_total"),
@@ -543,28 +663,52 @@ def _summary(ficha, personagem, build):
         "iniciativa": ficha.get("iniciativa"),
         "velocidade": ficha.get("velocidade"),
         "classes": ficha.get("classes") or [],
-        "atributos": attributes,
-        "pericias": skills,
-        "features": features,
-        "recursos": ficha.get("recursos") or {},
+        # Atributos e talentos: o editor precisa do valor final para mostrar o efeito da
+        # distribuicao no proprio botao (+1 mostra 16 -> 17), nao para desenhar ficha.
+        "atributos": [{
+            "sig": sigla,
+            "valor": ((ficha.get("atributos") or {}).get(sigla) or {}).get("valor"),
+            "mod": ((ficha.get("atributos") or {}).get(sigla) or {}).get("mod", 0),
+        } for sigla in ("FOR", "DES", "CON", "INT", "SAB", "CAR")],
+        "features": [{
+            "nome": row.get("nome") or "",
+            "origem": row.get("origem") or "",
+            "fonte": row.get("fonte") or "",
+            "nivel": row.get("nivel"),
+        } for row in (ficha.get("features") or [])],
         "inventario": ficha.get("inventario") or [],
         "magias": ficha.get("magias") or [],
         "ataques": _attack_rows(ficha),
-        "resistencias": ficha.get("resistencias") or [],
-        "imunidades": ficha.get("imunidades") or [],
-        "sentidos": ficha.get("sentidos") or [],
-        "prof_armadura": ficha.get("proficiencias_armadura") or [],
-        "prof_arma": ficha.get("proficiencias_arma") or [],
         "avisos": ficha.get("avisos") or [],
         "escolhas_grupos": choice_groups,
-        "escolhas_pendentes": [
-            group for group in choice_groups if group.get("pendentes")
-        ],
-        "conjuracao": _magias_sheet_info(personagem, ficha, []),
+        # Resumo das pendencias: SEM repetir o universo de opcoes (o grupo da Maestria de
+        # Arma tem 128 — duplicar dobrava o payload de cada preview a troco de nada).
+        "escolhas_pendentes": [{
+            "key": group["key"],
+            "label": group["label"],
+            "classe": group["classe"],
+            "origem": group["origem"],
+            "pendentes": group["pendentes"],
+        } for group in choice_groups if group.get("pendentes")],
+        # SO o cabecalho da conjuracao: a lista completa (com descricao de cada magia)
+        # ficaria em ~120 KB por request e ja esta renderizada na folha.
+        "conjuracao": {
+            "spellcasters": [{
+                "classe": row.get("classe"),
+                "ability": row.get("ability"),
+                "cd": row.get("cd"),
+                "ataque": row.get("ataque"),
+                "prepara": row.get("prepara"),
+            } for row in (magias_info.get("spellcasters") or [])],
+            "slots": magias_info.get("slots") or [],
+            "total": magias_info.get("total") or 0,
+        },
+        "orcamento": orcamento,
         "metricas_combate": _combat_metrics(ficha),
+        "ficha_html": _folha_html(personagem, ficha, magias_info),
     }
     summary["validacao"] = _rules_diagnostics(
-        personagem, ficha, build, choice_groups)
+        personagem, ficha, build, choice_groups, orcamento)
     return summary
 
 
