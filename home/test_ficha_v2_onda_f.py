@@ -270,14 +270,46 @@ class CaracteristicasSemScrollInternoTests(SimpleTestCase):
         self.assertEqual(achados, [],
                          'seção de Características com scroll/teto interno:\n' + '\n'.join(achados))
 
-    def test_cartoes_se_distribuem_em_colunas(self):
-        # distribuição em nível alto = mais de uma coluna quando a largura permite
-        self.assertRegex(_css(), r'\.feat-grid\s*\{[^}]*grid-template-columns:\s*repeat\(auto-fill')
+    def test_blocos_ocupam_a_largura_cheia_da_coluna(self):
+        """DENSIDADE (segunda rodada de feedback do PO sobre a onda F): a grade de cartõezinhos
+        `auto-fill minmax(14.5rem)` deixava blocos de ~250px cheios de ar dentro de uma coluna
+        de ~530px. O contrato passa a ser o da ficha antiga — UM bloco por linha, largura cheia
+        da coluna. Duas colunas só onde o painel abre a largura inteira da folha."""
+        css = _css()
+        self.assertRegex(css, r'\.feat-grid\s*\{[^}]*grid-template-columns:\s*1fr')
+        self.assertNotRegex(css, r'\.feat-grid\s*\{[^}]*auto-fill')
+        # a segunda coluna vive no bloco de tablet (onde `.ficha-col-feats` é largura cheia)
+        self.assertRegex(
+            css,
+            r'@media \(min-width: 680px\) and \(max-width: 1023px\) \{\s*'
+            r'\.feat-grid \{ grid-template-columns: repeat\(2, minmax\(0, 1fr\)\); \}')
 
     def test_accordion_mantem_apenas_o_clip_da_animacao(self):
         # `overflow: hidden` no cartão/corpo é o clip do acordeão — não é área rolável
         regras = dict(_regras(_css()))
         self.assertIn('hidden', regras['.feat-body-inner'])
+
+
+class DensidadeDaFolhaTests(SimpleTestCase):
+    """"Tudo precisa ser compacto em ficha de RPG" — o arranjo da onda F fica, o AR não.
+    Guarda os tetos que o PO reprovou: coluna com piso em rem (estica para preencher),
+    selo de combate alto e caixa de atributo grande."""
+
+    def test_colunas_do_desktop_sao_fluidas_sem_piso_em_rem(self):
+        css = _css()
+        desktop = css[css.index('@media (min-width: 1024px)'):]
+        regra = re.search(r'\.ficha-columns\s*\{([^}]*)\}', desktop).group(1)
+        self.assertNotIn('rem', regra, 'coluna com piso em rem volta a esticar: %s' % regra)
+        self.assertRegex(regra, r'minmax\(0,\s*0\.8fr\)\s+minmax\(0,\s*0\.9fr\)\s+minmax\(0,\s*1\.2fr\)')
+
+    def test_selo_de_combate_e_caixa_de_atributo_no_tamanho_antigo(self):
+        css = _css()
+        # só a folha de TELA: o @media print redeclara `.seal` (moldura no papel)
+        tela = dict(_regras(css[:css.index('@media print')]))
+        # selo: piso de ~4.1rem (a onda F pedia 5.9rem = 40% mais alto)
+        self.assertRegex(tela['.seal'], r'min-height:\s*4\.1\d*rem')
+        # caixa de atributo: os 76px da ficha anterior (a onda F subiu para 82px)
+        self.assertRegex(tela['.attr-box'], r'min-height:\s*76px')
 
 
 class MobileColunaUnicaTests(SimpleTestCase):

@@ -78,6 +78,11 @@ POST clássico (PRG). Com JS (js/ficha_opcoes.js) o mesmo form vai por fetch e e
               </details>
             {% endif %}
           </div>
+          {% if e.sem_proficiencia %}
+          {% comment %}Escolha gravada antes do filtro de proficiência: fica visível (não se
+          apaga o que o jogador já tem), mas sai do universo de escolha nova.{% endcomment %}
+          <p class="opt-pre">⚠ O personagem não tem proficiência nesta arma — escolha antiga, mantida por compatibilidade.</p>
+          {% endif %}
           {% if e.pre %}<p class="opt-pre">Pré-requisito: {{ e.pre }}</p>{% endif %}
           {% if e.descricao %}<div class="opt-desc" data-opcao-body="{{ g.kind }}-{{ e.id }}" hidden>{{ e.descricao }}</div>{% endif %}
         </li>

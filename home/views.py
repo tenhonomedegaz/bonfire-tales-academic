@@ -3463,10 +3463,17 @@ def _criador_catalogos():
     from .character_engine import (_SKILL_INFO, _dado_de_vida_classe,
                                    clas_de_essencia, cla_de_traco)
 
-    def _tracos_de(qs):
+    def _tracos_de(qs, clas=None):
         # limite generoso: os traços mecânicos são o conteúdo principal do painel de raça
         # (aba "Traços"), não devem ser cortados curtos como um mero resumo.
-        return [{'nome': t.nome, 'desc': _criador_resumo_md(t.descricao, 400)} for t in qs]
+        # `clas` (heranças/clãs da essência) marca cada traço com o clã da sua FONTE — as
+        # heranças são MUTUAMENTE EXCLUSIVAS, então o painel só pode exibir o traço do clã
+        # escolhido (senão as cinco "Educação <clã>" apareciam juntas). Clã '' = compartilhado
+        # por todos. MESMO critério (pré-requisito "Clã X") dos talentos/perícias/picks; NÃO
+        # usa `_vertente_de`, que varre a DESCRIÇÃO e casaria 'ifrit' citado como exemplo num
+        # traço elemental genérico.
+        return [{'nome': t.nome, 'desc': _criador_resumo_md(t.descricao, 400),
+                 'vertente': (cla_de_traco(t, clas) if clas else '')} for t in qs]
 
     # Perícias que a raça/linhagem/essência CONCEDE automaticamente (traços não-talento com
     # tag plana `prof:<skill>`, ex.: Orc/Presença Ameaçadora = ['prof:intimidacao']). O front
@@ -3725,7 +3732,7 @@ def _criador_catalogos():
             'resumo': _criador_resumo_md(e.lore_presentation, 240),
             'tracos': _tracos_de(TbTracoracial.objects.filter(
                 id_essencia=e, talento_racial=False, id_linhagem__isnull=True,
-                nivel_requisito__lte=1).order_by('nome')),
+                nivel_requisito__lte=1).order_by('nome'), clas_de_essencia(e)),
             'vertentes': sub['opcoes'],
             'subescolha_label': sub['label'],
             'subescolha_tipo': sub['tipo']})
@@ -3945,6 +3952,9 @@ def pathbuilder_laboratorio(request):
 @login_required(login_url='/login/')
 @require_POST
 def pathbuilder_preview(request):
+    """Deriva a build e devolve A FICHA (markup dos partials da aba Ficha) + os números
+    que o editor consome. `build.ficha_html` é o fragmento pronto — o cliente injeta, não
+    remonta."""
     from .pathbuilder import PathbuilderError, default_build, simulate_build
 
     data = _json_body(request)
@@ -3957,6 +3967,21 @@ def pathbuilder_preview(request):
     except PathbuilderError as exc:
         return JsonResponse({'ok': False, 'erros': [str(exc)]}, status=400)
     return JsonResponse({'ok': True, 'build': result})
+
+
+@login_required(login_url='/login/')
+def pathbuilder_detalhe(request):
+    """Descrição de UMA entrada do catálogo, para o cartão expandir no lugar.
+
+    O catálogo do laboratório vai enxuto no HTML (nome + meta); o texto só desce quando o
+    jogador abre o cartão — é o que permite "escolha informada" sem 1 MB de payload."""
+    from .pathbuilder import PathbuilderError, detalhe
+
+    try:
+        payload = detalhe(request.GET.get('tipo') or '', request.GET.get('slug') or '')
+    except PathbuilderError as exc:
+        return JsonResponse({'ok': False, 'erros': [str(exc)]}, status=404)
+    return JsonResponse({'ok': True, 'detalhe': payload})
 
 
 def _personagem_card(p, com_dono=False):
@@ -4601,6 +4626,9 @@ def _opcoes_ficha(personagem):
                 'pre': (op or {}).get('pre') or '',
                 # sub-escolha incompleta (hoje: maestria a completar numa linha legada)
                 'pendente': bool(e.get('pendente')),
+                # escolha LEGADA fora do universo atual (hoje: maestria numa arma sem
+                # proficiência) — continua listada, com aviso, e só não pode ser reescolhida
+                'sem_proficiencia': bool(e.get('sem_proficiencia')),
             })
         usados = {str(e['valor']) for e in g['escolhidas'] if e.get('valor') is not None}
         usados |= {str(e['id_opcao']) for e in g['escolhidas'] if e.get('id_opcao') is not None}
@@ -7003,20 +7031,13 @@ def personagem_preparar_magias(request, pk):
     return redirect(reverse('editar_ficha', args=[pk]) + '?prep=ok')
 
 
-@login_required(login_url='/login/')
-def ficha_detail_view(request, pk):
-    """Ficha derivada (character_engine.derive) de um personagem."""
-    from .models import TbPersonagem, TbPersonagemEscolha
-    from . import permissions as perms
-    from .character_engine import derive, aventuras_para_nivel
-    p = get_object_or_404(
-        TbPersonagem.objects.select_related('id_raca', 'id_linhagem', 'id_essencia', 'id_antecedente'),
-        pk=pk)
-    if not perms.pode_ver_ficha(request.user, p):
-        raise Http404()
-    ficha = derive(p)
-    # Linha de raça para a ficha: "Anão Elemental Oread" (raça + essência SEM a palavra
-    # "Essência" + a vertente escolhida). Linhagem (sub-raça) vira "Raça (Linhagem)".
+def _raca_linha_ficha(p):
+    """Linha de raça do BANNER da ficha: "Anão Elemental Oread" (raça + essência SEM a
+    palavra "Essência" + a vertente escolhida). Linhagem (sub-raça) vira "Raça (Linhagem)".
+
+    Extraída da view para o banner ser um partial de verdade — a prévia do Pathbuilder
+    renderiza o MESMO banner e precisa da MESMA linha (nenhuma regra duplicada)."""
+    from .models import TbPersonagemEscolha
     _vert = (TbPersonagemEscolha.objects.filter(id_personagem=p, tipo='vertente')
              .values_list('valor', flat=True).first()) or ''
     _vert_disp = _vert.replace('-', ' ').title()
@@ -7041,11 +7062,25 @@ def ficha_detail_view(request, pk):
     _raca = p.id_raca.nome if p.id_raca_id else ''
     if p.id_essencia_id:
         _ess = re.sub(r'^ess[êe]ncia\s+', '', p.id_essencia.nome or '', flags=re.I).strip()
-        raca_linha = ' '.join(x for x in [_raca, _ess, _vert_disp] if x)
-    elif p.id_linhagem_id:
-        raca_linha = '%s (%s)' % (_raca, p.id_linhagem.nome)
-    else:
-        raca_linha = _raca
+        return ' '.join(x for x in [_raca, _ess, _vert_disp] if x)
+    if p.id_linhagem_id:
+        return '%s (%s)' % (_raca, p.id_linhagem.nome)
+    return _raca
+
+
+@login_required(login_url='/login/')
+def ficha_detail_view(request, pk):
+    """Ficha derivada (character_engine.derive) de um personagem."""
+    from .models import TbPersonagem
+    from . import permissions as perms
+    from .character_engine import derive, aventuras_para_nivel
+    p = get_object_or_404(
+        TbPersonagem.objects.select_related('id_raca', 'id_linhagem', 'id_essencia', 'id_antecedente'),
+        pk=pk)
+    if not perms.pode_ver_ficha(request.user, p):
+        raise Http404()
+    ficha = derive(p)
+    raca_linha = _raca_linha_ficha(p)
     # Aventuras necessárias para o PRÓXIMO nível (Excel: "PRÓXIMO NÍVEL")
     prog = ficha.get('progressao') or {}
     prog['proximo_nivel_aventuras'] = aventuras_para_nivel(min((prog.get('nivel_aventuras') or 0) + 1, 22))

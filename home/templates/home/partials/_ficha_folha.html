@@ -1,0 +1,266 @@
+{% comment %}CORPO DA FOLHA — as tres colunas da onda F (atributos/saves/pericias · selos de
+combate, PV, ataques e recursos · caracteristicas). Extraido de ficha_detail.html e FONTE
+UNICA deste markup. Quem consome: a aba Ficha (ficha_detail) e a PREVIA do Pathbuilder
+(_pathbuilder_folha.html), que renderiza a MESMA folha em modo leitura. Nada de markup
+paralelo: melhoria aqui aparece nos dois lugares.
+Contexto esperado: ficha, p, mochila, consumiveis_cards, pode_editar.
+`folha_readonly` (Pathbuilder) esconde o que so existe na ficha salva: botoes de acao,
+progressao de aventuras e atalhos para outras abas.{% endcomment %}
+  {% comment %}Onda F — DISPOSIÇÃO DA FOLHA CLÁSSICA. Três colunas de verdade, sem
+  espalhar bloco por linha nenhuma: ATRIBUTOS (estreita, à esquerda) · CENTRO (selos de
+  combate + PV no topo, depois sintonizados/ataques/recursos) · CARACTERÍSTICAS (larga, à
+  direita). No celular a coluna do centro se dissolve (`display: contents`) e a ordem de
+  consulta em sessão é montada com `order`: PV → atributos → ataques → recursos →
+  características.{% endcomment %}
+  <div class="ficha-columns">
+
+    {# -------- COLUNA ESQUERDA (estreita): atributos empilhados, saves e perícias -------- #}
+    <div class="ficha-col-attrs attr-skills">
+
+      {# os 6 atributos empilhados: valor grande na caixa, modificador no selo da base #}
+      <div class="attr-stack">
+        {% for sig, a in ficha.atributos.items %}
+          <div class="attr-box" title="base {{ a.base }}{% for b in a.breakdown %} · {{ b.valor }} {{ b.origem }}{% endfor %}">
+            <div class="attr-sig">{{ sig }}</div>
+            <div class="attr-score">{{ a.valor }}</div>
+            <span class="attr-mod">{% if a.mod >= 0 %}+{% endif %}{{ a.mod }}</span>
+          </div>
+        {% endfor %}
+      </div>
+
+      {# abaixo dos atributos: prof, percepção passiva, saves e perícias #}
+      <div class="attr-side space-y-2.5">
+        <div class="attr-stat-row">
+          <div class="attr-stat">
+            <span class="lbl">Bônus de Prof.</span>
+            <span class="v spark">+{{ ficha.bonus_proficiencia }}</span>
+          </div>
+          <div class="attr-stat"
+               data-passive-perception
+               data-sab-mod="{{ ficha.atributos.SAB.mod|default:0 }}"
+               data-perc-bonus="{% for per in ficha.pericias %}{% if per.nome == 'Percepção' %}{{ per.bonus }}{% endif %}{% endfor %}">
+            <span class="lbl">Percepção Passiva</span>
+            <span class="v" data-pp-value>—</span>
+          </div>
+        </div>
+
+        <div class="ficha-panel">
+          <div class="ficha-section-title">Testes de Resistência</div>
+          <ul>
+            {% for sig, s in ficha.saves.items %}
+              <li class="line-row">
+                <span class="name"><span class="prof-dot {% if s.proficiente %}on{% endif %}"></span>{{ sig }}</span>
+                <span class="val">{% if s.bonus >= 0 %}+{% endif %}{{ s.bonus }}</span>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+
+        <div class="ficha-panel">
+          <div class="ficha-section-title">Perícias</div>
+          <ul>
+            {% for per in ficha.pericias %}
+              <li class="line-row">
+                <span class="name"><span class="prof-dot {% if per.expertise %}exp{% elif per.proficiente %}on{% endif %}"></span>{{ per.nome }}{% if per.expertise %} <span class="text-[var(--spark)] text-[10px]">◆◆</span>{% elif per.proficiente %} <span class="text-[var(--ember)] text-[10px]">◆</span>{% endif %}</span>
+                <span class="val">{% if per.bonus >= 0 %}+{% endif %}{{ per.bonus }}</span>
+              </li>
+            {% empty %}<li class="line-row"><span class="name">—</span></li>{% endfor %}
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    {# -------- COLUNA CENTRAL: topo de combate + corpo (a ordem aprovada na onda A) -------- #}
+    <div class="ficha-col-center">
+
+    {# -------- TOPO CENTRAL: selos de CA/iniciativa/deslocamento + cartão de PV -------- #}
+    <div class="ficha-col-vitals">
+      <div class="ficha-panel vitals-panel">
+        <div class="vital-seals">
+          <div class="seal seal-ca" title="Classe de Armadura{% if ficha.ca_fonte %} — {{ ficha.ca_fonte }}{% endif %}">
+            <div class="seal-face">
+              <span class="seal-lbl">Armadura</span>
+              <span class="seal-num" data-ficha-ca>{{ ficha.ca }}</span>
+            </div>
+          </div>
+          <div class="seal seal-init" title="Iniciativa">
+            <div class="seal-face">
+              <span class="seal-lbl">Iniciativa</span>
+              <span class="seal-num">{% if ficha.iniciativa >= 0 %}+{% endif %}{{ ficha.iniciativa }}</span>
+            </div>
+          </div>
+          <div class="seal seal-vel" title="Deslocamento">
+            <div class="seal-face">
+              <span class="seal-lbl">Deslocamento</span>
+              <span class="seal-num is-unit">{{ ficha.velocidade }}</span>
+            </div>
+          </div>
+        </div>
+        {% if ficha.ca_fonte %}<p class="vital-note">{{ ficha.ca_fonte }}</p>{% endif %}
+
+        {% comment %}Cartão de PV: DISPLAY ESTÁTICO do derive (PV atual/temporário e testes contra a morte são do VTT, não desta ficha — decisão do PO).{% endcomment %}
+        <div class="hp-track single">
+          <div class="hp-cell max"{% if ficha.pv.bonus_tags %} title="{% for b in ficha.pv.bonus_tags %}+{{ b.1 }} {{ b.0 }}{% if not forloop.last %} · {% endif %}{% endfor %}"{% endif %}><div class="lbl">Pontos de Vida Máximos</div><div class="v" data-ficha-pv>{{ ficha.pv.maximo_calculado }}</div></div>
+        </div>
+        {% if ficha.pv.bonus_tags %}<p class="vital-note">{% for b in ficha.pv.bonus_tags %}{{ b.0 }} +{{ b.1 }}{% if not forloop.last %} · {% endif %}{% endfor %}</p>{% endif %}
+      </div>
+    </div>
+
+    {# -------- CENTRO: sintonizados > ataques > recursos > equipados -------- #}
+    <div class="ficha-col-body space-y-2.5">
+
+      {% comment %}Itens Sintonizados: informativo (entre PV e Ataques). Equipar/sintonizar vive na Mochila.{% endcomment %}
+      {% include 'home/partials/_ficha_sintonizados.html' %}
+
+      <div class="ficha-panel">
+        <div class="ficha-section-title">Ataques <span class="float-right font-sans text-[11px] normal-case tracking-normal text-[var(--muted)]">{{ ficha.ataques.quantidade }}× por ação</span></div>
+        <ul>
+          {% for at in ficha.ataques.perfis %}
+            <li class="line-row">
+              <span class="name text-[var(--text)]">{{ at.nome }}{% if at.maestria %} <span class="text-[11px] font-normal text-[var(--spark)]">◆ {{ at.maestria }}</span>{% endif %}{% if at.nota %} <span class="text-[11px] font-normal text-[var(--muted)]">({{ at.nota }})</span>{% endif %}</span>
+              <span class="val">{% if at.bonus_ataque >= 0 %}+{% endif %}{{ at.bonus_ataque }} · {{ at.dano }}</span>
+            </li>
+          {% empty %}<li class="line-row"><span class="name">—</span></li>{% endfor %}
+        </ul>
+        {% if ficha.ataques.avisos %}<p class="mt-1 text-[11px] text-[var(--muted)]">{% for a in ficha.ataques.avisos %}{{ a }}{% if not forloop.last %} · {% endif %}{% endfor %}</p>{% endif %}
+      </div>
+
+      {% comment %}Recursos consumíveis como CONTADORES pequenos (ficha D&D clássica): descem para a faixa dos ataques (onda F) e seguem ACIMA de Características. Descanso (canônico) na mesma faixa.{% endcomment %}
+      {% if consumiveis_cards or pode_editar %}
+      <div class="ficha-panel res-panel">
+        <div class="ficha-section-title">Recursos</div>
+        <div class="res-strip">
+          {% for r in consumiveis_cards %}
+          <div class="res-counter {% if r.atual == 0 %}is-empty{% endif %}" title="{{ r.nome }}{% if r.subtitulo %} · {{ r.subtitulo }}{% endif %}">
+            <span class="res-counter-value">{{ r.atual }}<span class="res-counter-max">/{{ r.maximo }}</span></span>
+            <span class="res-counter-name">{{ r.nome }}</span>
+            {% if pode_editar %}
+            <span class="res-counter-actions">
+              {% if r.kind == 'recurso' %}
+              <form method="post" action="{% url 'personagem_usar_recurso' p.id_personagem %}">
+                {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><input type="hidden" name="recurso" value="{{ r.id }}">
+                <button type="submit" {% if r.atual == 0 %}disabled{% endif %} title="Usar">−</button>
+              </form>
+              <form method="post" action="{% url 'personagem_usar_recurso' p.id_personagem %}">
+                {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><input type="hidden" name="recurso" value="{{ r.id }}"><input type="hidden" name="acao" value="desfazer">
+                <button type="submit" {% if r.atual == r.maximo %}disabled{% endif %} title="Devolver uso">+</button>
+              </form>
+              {% else %}
+              <form method="post" action="{% url 'personagem_usar_item_consumivel' p.id_personagem %}">
+                {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><input type="hidden" name="item" value="{{ r.id }}">
+                <button type="submit" {% if r.atual == 0 %}disabled{% endif %} title="Consumir">−</button>
+              </form>
+              <form method="post" action="{% url 'personagem_usar_item_consumivel' p.id_personagem %}">
+                {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><input type="hidden" name="item" value="{{ r.id }}"><input type="hidden" name="acao" value="desfazer">
+                <button type="submit" title="Adicionar unidade">+</button>
+              </form>
+              {% endif %}
+            </span>
+            {% endif %}
+          </div>
+          {% empty %}
+          <p class="res-empty">Sem recursos consumíveis.</p>
+          {% endfor %}
+          {% if pode_editar %}
+          <div class="res-rest">
+            <form method="post" action="{% url 'personagem_descansar' p.id_personagem %}">
+              {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><input type="hidden" name="tipo" value="curto">
+              <button type="submit" title="Descanso curto">Desc. Curto</button>
+            </form>
+            <form method="post" action="{% url 'personagem_descansar' p.id_personagem %}">
+              {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><input type="hidden" name="tipo" value="longo">
+              <button type="submit" class="primary" title="Descanso longo">Desc. Longo</button>
+            </form>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+      {% include 'home/partials/_ficha_equipados.html' %}
+    </div>{# /ficha-col-body #}
+    </div>{# /ficha-col-center #}
+
+    {% comment %}-------- DIREITA (larga): Características & Habilidades. SEM div rolável:
+    os cartões se distribuem em colunas (feat-grid auto-fill) e quem rola é a PÁGINA —
+    reclamação explícita do PO sobre a caixinha de scroll interno.{% endcomment %}
+    <div class="ficha-col-feats">
+      <div class="ficha-panel feats-panel">
+        <div class="ficha-section-title">Características &amp; Habilidades <span class="float-right font-sans text-[11px] normal-case tracking-normal text-[var(--muted)]">{{ ficha.features|length }}</span></div>
+
+        {% comment %} Grupo: Características de Classe (classe, subclasse) {% endcomment %}
+        <div class="feat-group" data-feat-group>
+          <div class="feat-group-title">Características de Classe <span class="count" data-feat-count>0</span></div>
+          <div class="feat-grid">
+            {% for f in ficha.features %}{% if f.origem == "classe" or f.origem == "subclasse" %}
+              <article class="feat-card" data-feat-card data-feat-key="{{ forloop.counter0 }}">
+                <button type="button" class="feat-head" aria-expanded="false">
+                  <span class="feat-main"><span class="feat-name">{{ f.nome }}</span><span class="feat-meta">{{ f.fonte|default:f.origem }}</span></span>
+                  {% if f.nivel %}<span class="feat-badge">Nv {{ f.nivel }}</span>{% endif %}
+                  <svg class="feat-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                </button>
+                <div class="feat-body"><div class="feat-body-inner"></div></div>
+              </article>
+            {% endif %}{% endfor %}
+          </div>
+        </div>
+
+        {% comment %} Grupo: Características de Raça (raca, essencia, linhagem) {% endcomment %}
+        <div class="feat-group" data-feat-group>
+          <div class="feat-group-title">Características de Raça <span class="count" data-feat-count>0</span></div>
+          <div class="feat-grid">
+            {% for f in ficha.features %}{% if f.origem == "raca" or f.origem == "essencia" or f.origem == "linhagem" %}
+              <article class="feat-card" data-feat-card data-feat-key="{{ forloop.counter0 }}">
+                <button type="button" class="feat-head" aria-expanded="false">
+                  <span class="feat-main"><span class="feat-name">{{ f.nome }}</span><span class="feat-meta">{{ f.fonte|default:f.origem }}</span></span>
+                  {% if f.nivel %}<span class="feat-badge">Nv {{ f.nivel }}</span>{% endif %}
+                  <svg class="feat-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                </button>
+                <div class="feat-body"><div class="feat-body-inner"></div></div>
+              </article>
+            {% endif %}{% endfor %}
+          </div>
+        </div>
+
+        {% comment %} Grupo: Antecedente {% endcomment %}
+        <div class="feat-group" data-feat-group>
+          <div class="feat-group-title">Antecedente <span class="count" data-feat-count>0</span></div>
+          <div class="feat-grid">
+            {% for f in ficha.features %}{% if f.origem == "antecedente" %}
+              <article class="feat-card" data-feat-card data-feat-key="{{ forloop.counter0 }}">
+                <button type="button" class="feat-head" aria-expanded="false">
+                  <span class="feat-main"><span class="feat-name">{{ f.nome }}</span><span class="feat-meta">{{ f.fonte|default:f.origem }}</span></span>
+                  {% if f.nivel %}<span class="feat-badge">Nv {{ f.nivel }}</span>{% endif %}
+                  <svg class="feat-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                </button>
+                <div class="feat-body"><div class="feat-body-inner"></div></div>
+              </article>
+            {% endif %}{% endfor %}
+          </div>
+        </div>
+
+        {% comment %} Grupo: Talentos (talento, talento-racial) {% endcomment %}
+        <div class="feat-group" data-feat-group>
+          <div class="feat-group-title">Talentos <span class="count" data-feat-count>0</span></div>
+          <div class="feat-grid">
+            {% for f in ficha.features %}{% if f.origem == "talento" or f.origem == "talento-racial" %}
+              <article class="feat-card" data-feat-card data-feat-key="{{ forloop.counter0 }}">
+                <button type="button" class="feat-head" aria-expanded="false">
+                  <span class="feat-main"><span class="feat-name">{{ f.nome }}</span><span class="feat-meta">{{ f.fonte|default:f.origem }}</span></span>
+                  {% if f.nivel %}<span class="feat-badge">Nv {{ f.nivel }}</span>{% endif %}
+                  <svg class="feat-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                </button>
+                <div class="feat-body"><div class="feat-body-inner"></div></div>
+              </article>
+            {% endif %}{% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# Descricoes markdown dos cards de caracteristica (chave = indice em ficha.features). #}
+  <script type="application/json" id="ficha-feat-desc">{% autoescape off %}{
+    {% for f in ficha.features %}"{{ forloop.counter0 }}": "{{ f.descricao|escapejs }}"{% if not forloop.last %},
+    {% endif %}{% endfor %}
+  }{% endautoescape %}</script>

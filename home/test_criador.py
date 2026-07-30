@@ -99,10 +99,13 @@ class _CriadorBase(TestCase):
         if mn:
             # Maestria de Arma em 2 níveis: cada slot é `'<arma>|<maestria>'` (arma + UMA
             # maestria dela). Usa a 1ª maestria de cada arma do universo do REGISTRY.
+            # o universo é o da CLASSE (só armas com que ela tem proficiência — regra 5e:
+            # maestria só em arma que se sabe empunhar); sem o ctx o helper montaria um
+            # payload com armas de fogo e o próprio servidor recusaria.
             from home.picks import _arma_universe
             payload['maestrias'] = [
                 (w['slug'] + '|' + w['maestrias'][0]['slug']) if w.get('maestrias') else w['slug']
-                for w in _arma_universe({})[:mn]]
+                for w in _arma_universe({'classe': classe, 'nivel': 1})[:mn]]
 
         esc1 = views._classe_escolhas_nv1(classe)
         if esc1['estilo_n']:
@@ -327,8 +330,12 @@ class Maestria2NiveisTests(_CriadorBase):
         return p
 
     def _armas_com_maestrias(self):
+        # universo do GUERREIRO (a classe destes testes): só armas com que ele tem
+        # proficiência — é o mesmo recorte que o criador e o wizard oferecem.
         from home.picks import _arma_universe
-        return [w for w in _arma_universe({}) if w.get('maestrias')]
+        classe = TbClasse.objects.get(slug='guerreiro')
+        return [w for w in _arma_universe({'classe': classe, 'nivel': 1})
+                if w.get('maestrias')]
 
     def _arma_com_maestrias(self):
         armas = self._armas_com_maestrias()
@@ -615,6 +622,199 @@ class Maestria2NiveisTests(_CriadorBase):
         entradas = [e for e in ficha['maestrias_armas'] if e.get('slug') == w['slug']]
         self.assertEqual(len(entradas), 2)                     # a mesma arma nasceu com 2 maestrias
         self.assertTrue(all(e['maestria'] and not e['maestria_pendente'] for e in entradas))
+
+
+class MaestriaExigeProficienciaTests(_CriadorBase):
+    """BUG (staff): o Bárbaro escolhendo Maestria de Arma via ARMAS DE FOGO (Bacamarte,
+    Mosquete, Pistolas) — armas com que não tem proficiência nenhuma.
+
+    Regra 5e/PO: maestria só se aprende em arma com que se TEM proficiência. O universo do
+    `pick:arma` passa a ser filtrado pela proficiência REAL do motor (categorias da
+    classe/multiclasse + grants `prof:weapon{...}` das tags ativas) — nunca por uma lista
+    fixa de categorias por classe. Vale para os três clientes do MESMO registry: criador
+    (`resolve_builder`), wizard de level-up e aba Magias & Opções (`resolve_personagem`).
+
+    Escolha JÁ persistida numa arma sem proficiência (dado legado) continua na ficha, com
+    aviso; só o universo de escolha NOVA é filtrado."""
+
+    # ── helpers ──────────────────────────────────────────────────────────
+    def _fogo(self):
+        return {w.slug for w in TbItemMundano.objects.filter(categoria='arma',
+                                                             subcategoria='arma_fogo')}
+
+    def _de_subcat(self, subcat):
+        return {w.slug for w in TbItemMundano.objects.filter(categoria='arma',
+                                                             subcategoria=subcat)}
+
+    def _universo_criador(self, classe_slug):
+        from home import picks
+        classe = TbClasse.objects.get(slug=classe_slug)
+        g = next(g for g in picks.resolve_builder(classe, kinds={'arma'}))
+        return {w['slug'] for w in g['universo']}
+
+    def _universo_personagem(self, p):
+        from home import picks
+        g = next(g for g in picks.resolve_personagem(p, kinds={'arma'}))
+        return {w['slug'] for w in g['universo']}
+
+    def _criar(self, classe_slug, raca_slug='anao', apelido=''):
+        user = self._novo_usuario('prof-%s-%s' % (classe_slug, apelido or 'x'), staff=True)
+        resp = self._post_criar(user, self._payload(classe_slug, raca_slug=raca_slug))
+        self.assertEqual(resp.status_code, 200, resp.content[:400])
+        return TbPersonagem.objects.get(pk=resp.json()['id'])
+
+    # ── o bug ────────────────────────────────────────────────────────────
+    def test_barbaro_nao_ve_armas_de_fogo_no_universo(self):
+        """Bárbaro é proficiente em simples + marciais (tag `prof{...}` da classe) — e em
+        NENHUMA arma de fogo. As 4+ armas de fogo do catálogo saem do seletor, nos dois
+        clientes (criador e personagem/level-up), e o resto do catálogo continua lá."""
+        fogo = self._fogo()
+        self.assertTrue(fogo, 'catálogo precisa ter armas de fogo para o teste valer')
+        criador = self._universo_criador('barbaro')
+        self.assertFalse(criador & fogo, sorted(criador & fogo))
+        self.assertTrue(self._de_subcat('arma_marcial') <= criador)
+        self.assertTrue(self._de_subcat('arma_simples') <= criador)
+
+        p = self._criar('barbaro')
+        do_personagem = self._universo_personagem(p)
+        self.assertFalse(do_personagem & fogo, sorted(do_personagem & fogo))
+        self.assertEqual(criador, do_personagem,
+                         'criador e ficha/level-up vêm do MESMO registry')
+
+    def test_bacamarte_nao_entra_nem_por_post_direto(self):
+        """O cliente não é a autoridade: POST direto pedindo maestria numa arma de fogo é
+        recusado pelo servidor (a arma não está no universo, o validate não fecha a conta)."""
+        bacamarte = TbItemMundano.objects.get(slug='arma-bacamarte')
+        from home.picks import weapon_mastery_slugs
+        maestria = weapon_mastery_slugs(bacamarte)[0]
+        payload = self._payload('barbaro')
+        payload['maestrias'] = ['%s|%s' % (bacamarte.slug, maestria)] * 2
+        resp = self._post_criar(self._novo_usuario('post-fogo', staff=True), payload)
+        self.assertEqual(resp.status_code, 400, resp.content[:400])
+        self.assertTrue(any('Maestria de Arma' in e for e in resp.json().get('erros', [])),
+                        resp.json())
+
+    # ── controles positivos: a proficiência é LIDA, não assumida ─────────
+    def test_guerreiro_com_prof_marcial_ve_todas_as_marciais(self):
+        criador = self._universo_criador('guerreiro')
+        self.assertTrue(self._de_subcat('arma_marcial') <= criador)
+        self.assertTrue(self._de_subcat('arma_marcial_dist') <= criador)
+        self.assertFalse(criador & self._fogo())
+
+    def test_cacador_ve_armas_de_fogo_porque_a_classe_concede(self):
+        """Prova que não há blacklist de armas de fogo: o Caçador declara `armas_fogo` na
+        tag `prof{...}` e vê as mesmas armas que o Bárbaro não vê."""
+        criador = self._universo_criador('cacador')
+        self.assertTrue(self._fogo() <= criador, sorted(self._fogo() - criador))
+
+    def test_ladino_so_ve_marciais_com_acuidade_ou_leves(self):
+        """Proficiência COMPOSTA (`armas_marciais_acuidade_ou_leves`): a categoria vem da
+        tag e a propriedade também — Rapieira (acuidade) entra, Alabarda (nem acuidade nem
+        leve) não, e nada de arma de fogo."""
+        criador = self._universo_criador('ladino')
+        self.assertIn('arma-rapieira', criador)
+        self.assertNotIn('arma-alabarda', criador)
+        self.assertNotIn('arma-espada-longa', criador)     # marcial sem acuidade/leve
+        self.assertTrue(self._de_subcat('arma_simples') <= criador)
+        self.assertFalse(criador & self._fogo())
+
+    def test_proficiencia_especifica_de_traco_racial_entra_no_universo(self):
+        """Grant de ARMA ESPECÍFICA por traço (`prof:weapon{espada_longa}` da 'Disciplina das
+        Lâminas Ancestrais' élfica) abre exatamente aquelas armas para um Ladino, que pela
+        categoria não as teria — sem abrir as outras marciais."""
+        from home.models import TbPersonagemTalento
+        p = self._criar('ladino', raca_slug='elfo', apelido='elfo')
+        sem_traco = self._universo_personagem(p)
+        self.assertNotIn('arma-espada-longa', sem_traco)
+        self.assertNotIn('arma-arco-longo', sem_traco)
+
+        TbPersonagemTalento.objects.create(
+            id_personagem=p, nome='Disciplina das Lâminas Ancestrais',
+            categoria='talento-racial')
+        com_traco = self._universo_personagem(p)
+        self.assertIn('arma-espada-longa', com_traco)          # concedida nominalmente
+        self.assertIn('arma-arco-longo', com_traco)            # idem (marcial à distância)
+        self.assertNotIn('arma-alabarda', com_traco)           # não foi concedida
+        self.assertFalse(com_traco & self._fogo())
+
+    def test_talento_de_categoria_abre_armas_de_fogo_para_o_barbaro(self):
+        """Mesmo caminho pela CATEGORIA: o talento 'Mestre Pistoleiro' declara
+        `prof:weapon{armas_de_fogo}` e o Bárbaro passa a poder aprender maestria nelas."""
+        from home.models import TbPersonagemTalento
+        p = self._criar('barbaro', apelido='pistoleiro')
+        self.assertFalse(self._universo_personagem(p) & self._fogo())
+        TbPersonagemTalento.objects.create(
+            id_personagem=p, id_talento=TbTalento.objects.get(nome='Mestre Pistoleiro'),
+            categoria='geral')
+        self.assertTrue(self._fogo() <= self._universo_personagem(p))
+
+    def test_grant_composto_da_subclasse_respeita_escopo_e_exclusoes(self):
+        """`prof:weapon{marcial, melee, not:{pesada, duas_maos}}` (Mago Dança da Lâmina) é
+        lido inteiro: só marciais CORPO A CORPO e sem as propriedades proibidas."""
+        from home.character_engine import weapon_allowed, weapon_proficiency_matchers
+        from home.item_mecanica import mecanica_de_tags
+        hab = TbClassehabilidade.objects.get(nome='Treinamento Marcial e Coreográfico')
+        matchers = weapon_proficiency_matchers(
+            classe=TbClasse.objects.get(slug='mago'),
+            sources=[('classe', hab.nome, hab, 3)])
+
+        def permite(slug):
+            w = TbItemMundano.objects.get(slug=slug)
+            return weapon_allowed(matchers, w.subcategoria, w.slug, w.nome,
+                                  mecanica_de_tags(w.tags_json, w.subcategoria)
+                                  .get('propriedades'))
+        self.assertTrue(permite('arma-espada-longa'))    # marcial, melee, sem exclusões
+        self.assertTrue(permite('arma-adaga'))           # simples (proficiência-base do Mago)
+        self.assertFalse(permite('arma-alabarda'))       # pesada + duas mãos
+        self.assertFalse(permite('arma-arco-longo'))     # à distância (escopo `melee`)
+
+    # ── dado legado + guardas ────────────────────────────────────────────
+    def test_escolha_legada_sem_proficiencia_continua_na_ficha_com_aviso(self):
+        """Linha JÁ gravada numa arma sem proficiência não explode e não desaparece: o
+        readback a devolve marcada (`sem_proficiencia`), o derive continua listando a
+        maestria e a arma só não volta ao universo de escolha nova."""
+        from home import picks, views
+        from home.character_engine import derive
+        from home.models import TbPersonagemEscolha
+        p = self._criar('barbaro', apelido='legado')
+        bacamarte = TbItemMundano.objects.get(slug='arma-bacamarte')
+        maestria = picks.weapon_mastery_slugs(bacamarte)[0]
+        legada = TbPersonagemEscolha.objects.filter(id_personagem=p, tipo='maestria').first()
+        legada.valor = '%s|%s' % (bacamarte.slug, maestria)
+        legada.save(update_fields=['valor'])
+
+        grupo = next(g for g in picks.resolve_personagem(p, kinds={'arma'}))
+        linha = next(e for e in grupo['escolhidas'] if e['id'] == legada.id)
+        self.assertTrue(linha['sem_proficiencia'])
+        self.assertIn(bacamarte.nome, linha['nome'])
+        self.assertFalse(linha['pendente'], 'o par está completo; o que falta é proficiência')
+        # as demais linhas (armas legítimas) NÃO são marcadas
+        self.assertFalse(any(e['sem_proficiencia'] for e in grupo['escolhidas']
+                             if e['id'] != legada.id))
+        # derive segue de pé e mostra a maestria da arma legada
+        ficha = derive(p)
+        self.assertTrue(any(m.get('slug') == bacamarte.slug
+                            for m in ficha['maestrias_armas']), ficha['maestrias_armas'])
+        # e a seção da ficha renderiza o aviso sem quebrar
+        cartao = next(g for g in views._opcoes_ficha(p) if g['kind'] == 'arma')
+        self.assertTrue(any(e['sem_proficiencia'] for e in cartao['escolhidas']))
+
+    def test_proficiencia_ilegivel_nao_zera_o_universo(self):
+        """FAIL-OPEN: proficiência declarada que não casa com arma nenhuma do catálogo
+        (grant opaco tipo `prof:weapon{bound}`) não pode fazer o grupo — e a pendência —
+        desaparecer da ficha. Aí o universo volta a ser o catálogo inteiro."""
+        from types import SimpleNamespace
+        from home.picks import _arma_universe
+        total = len(_arma_universe({}))
+        fake = SimpleNamespace(nome='Classe Opaca', tags_json=['prof{armas_de_ectoplasma}'])
+        self.assertEqual(len(_arma_universe({'classe': fake, 'nivel': 1})), total)
+
+    def test_sem_contexto_o_universo_continua_completo(self):
+        """Sem personagem nem classe não há proficiência para ler — o universo é o catálogo
+        inteiro (é o que os chamadores de inspeção/catálogo esperam)."""
+        from home.picks import _arma_universe
+        self.assertEqual(len(_arma_universe({})),
+                         TbItemMundano.objects.filter(categoria='arma').count())
 
 
 class Bug4VertenteMagiaTests(_CriadorBase):

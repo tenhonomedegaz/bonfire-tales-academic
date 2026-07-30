@@ -904,9 +904,13 @@
             return h;
         }
         function infoTraitsHtml(traits) {
+            // NOME como TÍTULO em linha própria (peso forte) + descrição embaixo. O formato
+            // corrido "Nome — descrição" era ilegível com traços longos (pedido da staff).
             return '<div class="cf-info-list">' + traits.map(function (t) {
-                return '<div class="cf-info-trait"><b>' + escHtml(t.nome) + '</b>' +
-                    (t.desc ? ' <span>— ' + escHtml(t.desc) + '</span>' : '') + '</div>';
+                return '<div class="cf-info-trait">' +
+                    '<b class="cf-info-trait-nome">' + escHtml(t.nome) + '</b>' +
+                    (t.desc ? '<span class="cf-info-trait-desc">' + escHtml(t.desc) + '</span>' : '') +
+                    '</div>';
             }).join('') + '</div>';
         }
         var _infoTab = 'tracos';  // preferência de aba (Traços default), persiste entre re-renders
@@ -957,8 +961,16 @@
         }
         function renderEssenciaInfo() {
             var e = essenciaBySlug[essSel.value];
+            // Traço de HERANÇA/clã (Educação Corvinus, Sangue Ruim…) só entra quando casa com o
+            // clã escolhido: as heranças são MUTUAMENTE EXCLUSIVAS, então listar as cinco
+            // "Educações" de uma vez descrevia um vampiro que não existe. Traço compartilhado
+            // (clã '') entra sempre — MESMO filtro dos talentos, perícias concedidas e picks.
+            var vert = currentVertente();
+            var traits = ((e && e.tracos) || []).filter(function (t) {
+                return !t.vertente || t.vertente === vert;
+            });
             fillInfo(el('cf-essencia-info'), (essWrap.hidden || !e) ? null
-                : { tabs: true, tagline: 'Essência: ' + e.nome, resumo: e.resumo, traits: (e.tracos || []).slice() });
+                : { tabs: true, tagline: 'Essência: ' + e.nome, resumo: e.resumo, traits: traits });
         }
         function renderClasseInfo() {
             var c = classeBySlug[classeSel.value];
@@ -978,10 +990,17 @@
                         { k: 'ASI', v: (g.asi || '+2/+1') }];
             fillInfo(el('cf-antecedente-info'), { resumo: a.resumo, meta: meta });
         }
-        racaSel.addEventListener('change', renderRacaInfo);
-        linSel.addEventListener('change', renderRacaInfo);
-        essSel.addEventListener('change', function () { renderEssenciaInfo(); renderRacaInfo(); });
-        verSel.addEventListener('change', renderRacaInfo);
+        // Os DOIS painéis (raça e essência) são caixas IRMÃS da mesma etapa e são redesenhados
+        // JUNTOS a cada troca de raça/linhagem/essência/sub-escolha. Antes, o painel da essência
+        // só era redesenhado no 'change' do select de essência — mas `onRaca()` reconstrói esse
+        // select por innerHTML, o que ZERA a seleção SEM disparar 'change': trocar Anão+Vampirismo
+        // por Elfo/Lunareth deixava a caixa da essência congelada com os traços do vampiro
+        // ("Educação Corvinus" listada embaixo dos traços do elfo — bug da staff).
+        function renderRaceInfoPanels() { renderRacaInfo(); renderEssenciaInfo(); }
+        racaSel.addEventListener('change', renderRaceInfoPanels);
+        linSel.addEventListener('change', renderRaceInfoPanels);
+        essSel.addEventListener('change', renderRaceInfoPanels);
+        verSel.addEventListener('change', renderRaceInfoPanels);
         classeSel.addEventListener('change', renderClasseInfo);
         antSel.addEventListener('change', renderAntecedenteInfo);
         renderRacaInfo(); renderEssenciaInfo(); renderClasseInfo(); renderAntecedenteInfo();

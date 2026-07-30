@@ -369,11 +369,38 @@ def split_arma_maestria(valor):
     return s, None
 
 
+def _arma_prof_matchers(ctx):
+    """Proficiência de arma do dono da escolha, no formato de matchers do motor. Vem do
+    `character_engine` (a MESMA leitura que o perfil de ataque usa: categorias da
+    classe/multiclasse + grants `prof:weapon{...}` das tags ativas), nunca de uma lista
+    fixa de categorias por classe. `[]` = não há como saber (não filtra)."""
+    from .character_engine import weapon_proficiency_matchers
+    personagem = ctx.get('personagem')
+    if personagem is not None:
+        return weapon_proficiency_matchers(personagem=personagem)
+    classe = ctx.get('classe')
+    if classe is None:
+        return []
+    # CRIADOR (nível 1, personagem ainda não existe): a classe é a principal e a própria
+    # feature que declarou o pick pode conceder proficiência junto (Erudito da Guerra).
+    source = ctx.get('source')
+    sources = [('classe', getattr(source, 'nome', ''), source, int(ctx.get('nivel') or 1))] \
+        if source is not None else []
+    return weapon_proficiency_matchers(classe=classe, sources=sources)
+
+
 def _arma_universe(ctx):
-    """Armas (TbItemMundano categoria='arma'). Cada arma expõe `maestrias:[{slug,nome,efeito}]`
-    como SUB-OPÇÕES da 2ª escolha (a maestria única que se ganha ao pegar a arma). `chips` fica
-    para exibição resumida quando a arma não abre sub-escolha (sem maestrias)."""
+    """Armas (TbItemMundano categoria='arma') EM QUE O PERSONAGEM TEM PROFICIÊNCIA — regra
+    5e/PO: maestria só se aprende em arma que se sabe empunhar (era por isso que um Bárbaro
+    via Bacamarte/Mosquete no seletor). O filtro lê a proficiência REAL do motor
+    (`_arma_prof_matchers`); sem proficiência legível o universo fica inteiro, para a
+    escolha nunca desaparecer em silêncio.
+
+    Cada arma expõe `maestrias:[{slug,nome,efeito}]` como SUB-OPÇÕES da 2ª escolha (a
+    maestria única que se ganha ao pegar a arma). `chips` fica para exibição resumida
+    quando a arma não abre sub-escolha (sem maestrias)."""
     from .models import TbItemMundano, TbOpcaojogo
+    from .character_engine import weapon_allowed
     from .item_mecanica import mecanica_de_tags, dano_display
     # tags `maestrias{...}` da arma usam '_' (minar_sap) e são a AUTORIDADE; o catálogo
     # TbOpcaojogo usa '-' (minar-sap) — normaliza '_'→'-' NO LOOKUP p/ nome/efeito legíveis.
@@ -381,7 +408,8 @@ def _arma_universe(ctx):
     sub_label = {'arma_simples': 'Arma Simples', 'arma_simples_dist': 'Arma Simples à Distância',
                  'arma_marcial': 'Arma Marcial', 'arma_marcial_dist': 'Arma Marcial à Distância',
                  'arma_fogo': 'Arma de Fogo'}
-    out = []
+    matchers = _arma_prof_matchers(ctx)
+    todas, proficientes = [], []
     for w in TbItemMundano.objects.filter(categoria='arma').order_by('subcategoria', 'nome'):
         maestrias = []
         for s in weapon_mastery_slugs(w):
@@ -389,11 +417,18 @@ def _arma_universe(ctx):
             maestrias.append({'slug': s, 'nome': (o.nome if o else s),
                               'efeito': ((o.descricao if o else '') or '')})
         _mec = mecanica_de_tags(w.tags_json, w.subcategoria)
-        out.append({'slug': w.slug, 'nome': w.nome, 'dano': dano_display(_mec),
-                    'cat': sub_label.get(w.subcategoria, w.subcategoria or 'Arma'),
-                    'maestrias': maestrias,
-                    'chips': [m['nome'] for m in maestrias]})
-    return out
+        entrada = {'slug': w.slug, 'nome': w.nome, 'dano': dano_display(_mec),
+                   'cat': sub_label.get(w.subcategoria, w.subcategoria or 'Arma'),
+                   'maestrias': maestrias,
+                   'chips': [m['nome'] for m in maestrias]}
+        todas.append(entrada)
+        if not matchers or weapon_allowed(matchers, w.subcategoria, w.slug, w.nome,
+                                          _mec.get('propriedades')):
+            proficientes.append(entrada)
+    # FAIL-OPEN: proficiência declarada que não casa com arma nenhuma do catálogo (grant
+    # opaco tipo `prof:weapon{bound}` sem categoria por trás) não pode ZERAR o grupo — a
+    # pendência sumiria da ficha e do wizard. Aí volta o catálogo inteiro, como antes.
+    return proficientes or todas
 
 
 def _arma_persist(personagem, group, valores):
@@ -411,11 +446,15 @@ def _arma_persist(personagem, group, valores):
 
 
 def _arma_readback(personagem, group):
+    """Linhas de Maestria de Arma JÁ persistidas. Dado LEGADO (gravado antes do filtro de
+    proficiência) continua listado: a arma some do UNIVERSO de escolha nova, não da ficha.
+    `sem_proficiencia` marca essas linhas para a ficha avisar sem quebrar a exibição."""
     if personagem is None:
         return []
     from .models import TbItemMundano, TbOpcaojogo
     # catálogo por slug NORMALIZADO ('-'); a maestria persistida vem da tag da arma ('_').
     mast = {normalize_slug(o.slug): o.nome for o in TbOpcaojogo.objects.filter(tipo='Maestria de Arma')}
+    permitidas = {str(u.get('slug')) for u in (group.get('universo') or [])}
     out = []
     for e in personagem.escolhas.filter(tipo='maestria').order_by('slot'):
         arma, maestria = split_arma_maestria(e.valor)
@@ -424,10 +463,15 @@ def _arma_readback(personagem, group):
         arma_nome = w.nome if w else arma
         maest_nome = mast.get(normalize_slug(maestria)) if maestria else None
         pendente = bool(w and weapon_mastery_slugs(w) and maestria is None)
+        # arma que EXISTE no catálogo mas ficou fora do universo = proficiência que o
+        # personagem não tem (escolha legada). Arma inexistente não entra aqui: ali o
+        # problema é outro (slug morto) e o rótulo já mostra o valor cru.
+        sem_prof = bool(w) and str(w.slug) not in permitidas
         rot = arma_nome + (' — ' + (maest_nome or maestria) if maestria
                            else (' — (maestria a escolher)' if pendente else ''))
         out.append({'id': e.id, 'slot': e.slot, 'valor': e.valor, 'nome': rot,
-                    'arma': arma, 'maestria': maestria, 'pendente': pendente})
+                    'arma': arma, 'maestria': maestria, 'pendente': pendente,
+                    'sem_proficiencia': sem_prof})
     return out
 
 

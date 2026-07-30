@@ -485,10 +485,11 @@
   margin-bottom: 0.6rem;
 }
 
-/* ---------- COLUNA DOS ATRIBUTOS (onda F) ----------
-   A folha clássica tem UMA coluna estreita à esquerda: os seis atributos empilhados e,
-   logo abaixo, salvaguardas e perícias. Aqui isso é um empilhamento simples — as duas
-   subcolunas antigas só sobrevivem em telas médias, onde a coluna vira faixa larga. */
+/* ---------- COLUNA DOS ATRIBUTOS (onda F, densidade restaurada) ----------
+   A folha clássica tem UMA coluna estreita à esquerda: os atributos no alto e, logo
+   abaixo, salvaguardas e perícias. As CAIXAS mantêm o tamanho da ficha antiga (~150px,
+   min-height 76px): numa coluna de ~310px isso dá DUAS por linha — três fileiras curtas
+   em vez de uma tira de seis caixas esticadas (feedback do PO: tudo compacto). */
 .attr-skills {
   display: grid;
   grid-template-columns: 1fr;
@@ -499,11 +500,11 @@
 .attr-stack {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.95rem 0.5rem;
+  /* row-gap é o MÍNIMO que acomoda o selo do modificador: ele vaza ~8px abaixo da caixa,
+     então abaixo de ~0.8rem a pílula encosta na fileira seguinte (medido: 1px de folga). */
+  gap: 0.85rem 0.45rem;
 }
-@media (min-width: 520px) { .attr-stack { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-/* na coluna estreita do desktop os seis voltam a ser uma pilha vertical */
-@media (min-width: 1024px) { .attr-stack { grid-template-columns: 1fr; } }
+@media (min-width: 520px) and (max-width: 1023px) { .attr-stack { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 
 .attr-side { display: grid; grid-template-columns: 1fr; gap: 0.55rem; }
 @media (min-width: 680px) and (max-width: 1023px) {
@@ -518,11 +519,11 @@
   align-items: center;
   gap: 0.1rem;
   border: 1px solid var(--stroke);
-  border-radius: 12px;
+  border-radius: 10px;
   background: linear-gradient(180deg, var(--bg1), var(--bg0));
   text-align: center;
-  padding: 0.42rem 0.4rem 1.05rem;
-  min-height: 82px;
+  padding: 0.5rem 0.4rem 0.95rem;
+  min-height: 76px;
 }
 /* filete de acento no topo da caixa — mesma assinatura do cabeçalho da ficha */
 .attr-box::before {
@@ -537,33 +538,33 @@
 .attr-box .attr-sig {
   font-size: 10px;
   font-weight: 800;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--muted);
 }
 /* VALOR grande no miolo (como no PDF); o modificador é o selo oval da base */
 .attr-box .attr-score {
   font-family: 'Cinzel', serif;
-  font-size: 1.85rem;
+  font-size: 1.7rem;
   font-weight: 800;
   color: var(--text);
   line-height: 1.05;
 }
 .attr-box .attr-mod {
   position: absolute;
-  bottom: -0.72rem;
+  bottom: -0.7rem;
   left: 50%;
   transform: translateX(-50%);
-  min-width: 2.6rem;
+  min-width: 2.3rem;
   border: 1px solid var(--stroke);
   border-radius: 999px;
   background: var(--bg0);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
   text-align: center;
-  font-size: 0.88rem;
+  font-size: 0.85rem;
   font-weight: 800;
   color: var(--spark);
-  padding: 0.08rem 0.5rem;
+  padding: 0.1rem 0.45rem;
 }
 
 /* mini stats (prof / percepção passiva) acima das listas */
@@ -629,17 +630,19 @@
    octógono lacrado para iniciativa/deslocamento. A borda é o próprio acento do tema
    (o elemento externo pinta, o interno recorta 2px menor), então tema-dado e tema
    Personalizado passam a valer aqui sem uma linha de CSS nova. */
-.vitals-panel { padding-top: 0.75rem; }
+.vitals-panel { padding-top: 0.7rem; }
+/* Os selos NÃO esticam para preencher a coluna: a linha tem a altura do conteúdo (o
+   min-height é o piso da ficha antiga, ~4.1rem), como as caixas CA/Inic/Vel de antes. */
 .vital-seals {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.5rem;
+  gap: 0.4rem;
   align-items: stretch;
 }
 .seal {
-  --seal-cut: 11px;
+  --seal-cut: 9px;
   padding: 2px;
-  min-height: 5.9rem;
+  min-height: 4.15rem;
   background: linear-gradient(165deg,
               var(--ficha-accent),
               color-mix(in srgb, var(--ficha-accent) 28%, var(--stroke)));
@@ -648,23 +651,23 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.15rem;
+  gap: 0.1rem;
   height: 100%;
-  padding: 0.5rem 0.35rem 0.55rem;
+  padding: 0.34rem 0.3rem 0.38rem;
   background: linear-gradient(180deg, var(--bg1), var(--bg0));
   text-align: center;
 }
 .seal-lbl {
   font-family: 'Cinzel', serif;
-  font-size: 0.52rem;
+  font-size: 0.5rem;
   font-weight: 700;
-  letter-spacing: 0.13em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--muted);
 }
 .seal-num {
   font-family: 'Cinzel', serif;
-  font-size: 1.75rem;
+  font-size: 1.45rem;
   font-weight: 800;
   line-height: 1.05;
   color: var(--text);
@@ -673,8 +676,8 @@
 }
 /* deslocamento vem com unidade ("9 m / 30 ft") — quebra em vez de estourar o selo */
 .seal-num.is-unit {
-  font-size: 0.9rem;
-  line-height: 1.2;
+  font-size: 0.86rem;
+  line-height: 1.15;
   letter-spacing: 0.01em;
   overflow-wrap: anywhere;
 }
@@ -682,8 +685,8 @@
 .seal-ca, .seal-ca .seal-face {
   clip-path: polygon(0 0, 100% 0, 100% 62%, 50% 100%, 0 62%);
 }
-.seal-ca .seal-face { padding-bottom: 1.5rem; }
-.seal-ca .seal-num { color: var(--spark); font-size: 2rem; margin-bottom: 0; }
+.seal-ca .seal-face { padding-bottom: 1rem; }
+.seal-ca .seal-num { color: var(--spark); font-size: 1.55rem; margin-bottom: 0; }
 /* lacre octogonal (iniciativa / deslocamento) */
 .seal-init, .seal-init .seal-face,
 .seal-vel, .seal-vel .seal-face {
@@ -693,7 +696,7 @@
                      0 calc(100% - var(--seal-cut)), 0 var(--seal-cut));
 }
 .vital-note {
-  margin-top: 0.45rem;
+  margin-top: 0.3rem;
   text-align: center;
   font-size: 11px;
   color: var(--muted);
@@ -703,8 +706,8 @@
 .hp-track {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.5rem;
-  margin-top: 0.7rem;
+  gap: 0.45rem;
+  margin-top: 0.5rem;
 }
 .hp-track.single { grid-template-columns: 1fr; }
 .hp-cell {
@@ -715,37 +718,37 @@
     radial-gradient(120% 140% at 50% 0%, color-mix(in srgb, var(--flame) 12%, transparent), transparent 70%),
     var(--bg0);
   text-align: center;
-  padding: 0.45rem 0.2rem;
+  padding: 0.4rem 0.2rem;
 }
 .hp-cell .lbl {
   font-family: 'Cinzel', serif;
   font-size: 0.54rem;
   text-transform: uppercase;
-  letter-spacing: 0.15em;
+  letter-spacing: 0.12em;
   color: var(--muted);
   font-weight: 700;
 }
 .hp-cell .v { font-family: 'Cinzel', serif; font-size: 1.05rem; font-weight: 800; color: var(--text); }
-.hp-cell.max .v { color: var(--flame); font-size: 2rem; line-height: 1.1; }
-.hp-track.single .hp-cell.max { padding: 0.55rem 0.4rem 0.65rem; }
+.hp-cell.max .v { color: var(--flame); font-size: 1.45rem; line-height: 1.1; }
+.hp-track.single .hp-cell.max { padding: 0.42rem 0.4rem 0.48rem; }
 
 /* ---------- CARDS DE HABILIDADE (acordeão) ---------- */
-.feat-group + .feat-group { margin-top: 0.85rem; }
+.feat-group + .feat-group { margin-top: 0.6rem; }
 .feat-group-title {
   font-family: 'Cinzel', serif;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.16em;
-  font-size: 0.78rem;
+  letter-spacing: 0.14em;
+  font-size: 0.72rem;
   color: var(--text);
   display: flex;
   align-items: center;
-  gap: 0.45rem;
-  margin-bottom: 0.5rem;
+  gap: 0.35rem;
+  margin-bottom: 0.3rem;
 }
 .feat-group-title::before {
   content: "";
-  width: 14px; height: 14px;
+  width: 11px; height: 11px;
   border-radius: 3px;
   background: linear-gradient(135deg, var(--flame), var(--ember));
   box-shadow: 0 0 10px rgba(242, 112, 7, 0.5);
@@ -759,19 +762,24 @@
   font-weight: 600;
 }
 
-/* Onda F — DISTRIBUIÇÃO das habilidades: os cartões se espalham em quantas colunas
-   couberem na largura do painel (ficha de nível 17 deixa de ser uma fita infinita).
-   NÃO existe caixa rolável aqui: nada de max-height/overflow — quem rola é a página. */
+/* Habilidades em BLOCOS DENSOS de largura cheia da coluna (título forte + texto corrido),
+   como na ficha antiga: cartão estreito sobra ar e quebra o nome em três linhas. A segunda
+   coluna só existe onde o painel abre a largura INTEIRA da folha (tablet e impressão), e lá
+   cada bloco ainda tem ~420px. NÃO existe caixa rolável aqui: nada de max-height/overflow —
+   quem rola é a página. */
 .feat-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(14.5rem, 1fr));
-  gap: 0.45rem;
+  grid-template-columns: 1fr;
+  gap: 0.3rem;
   align-items: start;
+}
+@media (min-width: 680px) and (max-width: 1023px) {
+  .feat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 .feat-card {
   border: 1px solid var(--stroke);
-  border-radius: 10px;
+  border-radius: 8px;
   background: linear-gradient(180deg, var(--bg1), var(--bg0));
   overflow: hidden;
   transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
@@ -786,9 +794,9 @@
   width: 100%;
   display: flex;
   align-items: flex-start;
-  gap: 0.45rem;
+  gap: 0.4rem;
   text-align: left;
-  padding: 0.5rem 0.7rem;
+  padding: 0.42rem 0.6rem;
   background: transparent;
   cursor: pointer;
   border: 0;
@@ -799,15 +807,15 @@
 .feat-head .feat-name {
   display: block;
   font-weight: 700;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   color: var(--text);
-  line-height: 1.25;
+  line-height: 1.2;
 }
 /* FONTE/ORIGEM da habilidade — sempre numa linha ABAIXO do nome */
 .feat-head .feat-meta {
   display: block;
-  margin-top: 0.2rem;
-  font-size: 0.7rem;
+  margin-top: 0.1rem;
+  font-size: 0.66rem;
   text-transform: uppercase;
   letter-spacing: 0.07em;
   color: var(--ember);
@@ -849,9 +857,9 @@
   border-top: 1px solid var(--stroke);
 }
 .feat-desc {
-  padding: 0.6rem 0.75rem 0.75rem;
-  font-size: 0.85rem;
-  line-height: 1.45;
+  padding: 0.45rem 0.6rem 0.55rem;
+  font-size: 0.82rem;
+  line-height: 1.4;
   color: var(--muted);
 }
 .feat-desc.empty { color: var(--muted); font-style: italic; opacity: 0.7; }
@@ -900,11 +908,12 @@
   .ficha-col-feats { grid-column: 1 / -1; }
 }
 
-/* DESKTOP: a folha clássica — coluna estreita de atributos, centro de combate e a
-   coluna larga das características (onde os cartões se distribuem em 2 colunas). */
+/* DESKTOP: a folha clássica — atributos, centro de combate e a coluna das características.
+   Proporção FLUIDA (minmax(0, fr)) como sempre foi: nenhuma coluna tem piso em rem, então
+   ninguém estica para preencher e a folha não engorda de ar. */
 @media (min-width: 1024px) {
   .ficha-columns {
-    grid-template-columns: minmax(11.5rem, 0.72fr) minmax(0, 1.05fr) minmax(0, 1.55fr);
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 0.9fr) minmax(0, 1.2fr);
     align-items: start;
   }
 }
@@ -2020,7 +2029,8 @@ button.opt-name.open .opt-caret { transform: rotate(90deg); }
     break-before: page;
   }
   .feat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
-  .attr-stack { grid-template-columns: 1fr !important; }
+  /* no papel os atributos seguem em duas colunas, como na tela — caixa larga é desperdício */
+  .attr-stack { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
 
   .ficha-panel, .feat-card, .attr-box, .seal, .res-counter, .hp-cell,
   .pers-box, .notas-panel { break-inside: avoid; }

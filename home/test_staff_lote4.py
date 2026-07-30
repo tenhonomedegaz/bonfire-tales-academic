@@ -202,7 +202,8 @@ class TrocaMaestriaDescansoTests(_CriadorBase):
             inteligencia=10, sabedoria=12, carisma=8)
         TbPersonagemClasse.objects.create(
             id_personagem=p, id_classe=classe, nivel=1, principal=True)
-        arma = picks._arma_universe({})[0]
+        # universo da CLASSE: só armas com proficiência (regra 5e da maestria)
+        arma = picks._arma_universe({'classe': classe, 'nivel': 1})[0]
         maestria = (arma.get('maestrias') or [{}])[0].get('slug')
         valor = arma['slug'] + (('|%s' % maestria) if maestria else '')
         TbPersonagemEscolha.objects.create(
@@ -235,7 +236,7 @@ class TrocaMaestriaDescansoTests(_CriadorBase):
         candidato = next(
             (
                 (arma, maestria)
-                for arma in picks._arma_universe({})
+                for arma in picks._arma_universe({'personagem': p})
                 for maestria in (arma.get('maestrias') or [])
                 if '%s|%s' % (arma['slug'], maestria['slug']) != atual.valor
             ),

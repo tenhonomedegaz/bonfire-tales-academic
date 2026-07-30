@@ -122,10 +122,12 @@
 .cf-info[hidden] { display: none; }
 .cf-info-tagline { font-size: 12px; color: var(--spark); font-style: italic; margin-bottom: 0.25rem; }
 .cf-info-resumo { font-size: 12.5px; color: var(--muted); line-height: 1.45; }
-.cf-info-list { margin-top: 0.5rem; display: flex; flex-direction: column; gap: 0.3rem; }
+.cf-info-list { margin-top: 0.5rem; display: flex; flex-direction: column; gap: 0.45rem; }
+/* Card de traço: NOME como título em linha própria, descrição embaixo (pedido da staff —
+   o formato corrido "Nome — descrição" ficava ilegível com traços longos). */
 .cf-info-trait { font-size: 12px; }
-.cf-info-trait b { color: var(--text); font-weight: 700; }
-.cf-info-trait span { color: var(--muted); }
+.cf-info-trait-nome { display: block; color: var(--text); font-weight: 700; line-height: 1.3; }
+.cf-info-trait-desc { display: block; margin-top: 0.12rem; color: var(--muted); line-height: 1.45; }
 .cf-info-meta { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.5rem; }
 .cf-chip {
   display: inline-flex;

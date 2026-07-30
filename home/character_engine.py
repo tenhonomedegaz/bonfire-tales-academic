@@ -294,24 +294,28 @@ _PROF_TOKEN_LABEL = {
 }
 
 
+def _prof_tokens(tags, target):
+    """Tokens de proficiência declarados nas tags, para um `target` da DSL
+    (`proficiencias` = tag `prof{...}` da classe principal; `multiclasse.proficiencias`
+    = `multiclass_prof{...}`). Só o texto cru dos tokens — quem traduz é quem chama."""
+    from .tag_engine import evaluate_tags
+    out = []
+    for operation in evaluate_tags(tags or []).operations:
+        if (not operation.active
+                or operation.op != 'grant_proficiency'
+                or operation.target != target):
+            continue
+        values = (operation.value if isinstance(operation.value, list)
+                  else [operation.value])
+        out.extend(str(value).strip() for value in values if str(value).strip())
+    return out
+
+
 def _proficiencias_classe(classes):
     """Proficiências de arma/armadura: PLENAS da classe PRINCIPAL (tag `prof{...}`) +
     subconjunto de MULTICLASSE das demais classes (tag `multiclass-prof{...}`), em rótulos
     legíveis. A regra de save (só da principal) é a mesma — ver _saves."""
     principal = _classe_principal(classes)
-
-    def _toks(tags, target):
-        from .tag_engine import evaluate_tags
-        out = []
-        for operation in evaluate_tags(tags or []).operations:
-            if (not operation.active
-                    or operation.op != 'grant_proficiency'
-                    or operation.target != target):
-                continue
-            values = (operation.value if isinstance(operation.value, list)
-                      else [operation.value])
-            out.extend(str(value).strip() for value in values if str(value).strip())
-        return out
 
     c_arm, c_wpn, c_tool, mc_arm, mc_wpn, mc_tool = [], [], [], [], [], []
     for c in classes:
@@ -320,7 +324,7 @@ def _proficiencias_classe(classes):
         alvo_arm, alvo_wpn, alvo_tool = (c_arm, c_wpn, c_tool) if primaria else (mc_arm, mc_wpn, mc_tool)
         target = ('proficiencias' if primaria
                   else 'multiclasse.proficiencias')
-        for tk in _toks(tags, target):
+        for tk in _prof_tokens(tags, target):
             lab = _PROF_TOKEN_LABEL.get(tk)
             if lab:
                 {'armadura': alvo_arm, 'arma': alvo_wpn, 'ferramenta': alvo_tool}[lab[0]].append(lab[1])
@@ -1021,6 +1025,209 @@ def _features_de_opcoes(personagem):
     return feats
 
 
+def _features_do_personagem(personagem, classes=None):
+    """TODAS as features que alimentam o motor, na ordem canônica: classe/subclasse,
+    traços raciais, antecedente, talentos, itens e as opções escolhidas. FONTE ÚNICA —
+    o `derive` e os leitores parciais (magias concedidas, grants fixos, proficiência de
+    arma) varrem exatamente o MESMO conjunto, senão divergem em silêncio."""
+    if personagem is None:
+        return []
+    if classes is None:
+        classes = list(personagem.classes.select_related('id_classe', 'id_subclasse')
+                       .order_by('-principal', 'id'))
+    return (_features_de_classe(classes) + _tracos_raciais(personagem)
+            + _antecedente(personagem) + _talentos(personagem)
+            + _features_de_itens(personagem) + _features_de_opcoes(personagem))
+
+
+# ---------------------------------------------------------------------------
+# Proficiência de ARMA — QUAIS armas do catálogo o personagem pode empunhar.
+#
+# É o mesmo conjunto que o perfil de ataque usa para decidir se soma o PB, agora
+# legível item a item: categorias da classe/multiclasse (`_proficiencias_classe`,
+# tags `prof{...}`/`multiclass_prof{...}`) + os grants `prof:weapon{...}` das tags
+# ATIVAS (traço, talento, habilidade de subclasse, opção escolhida) — o gate de
+# `requires`/`restriction` é o do tag_engine, o mesmo do `apply_tags`.
+#
+# Nenhuma lista de "categorias por classe" é assumida aqui: a categoria de cada arma
+# sai da SUBCATEGORIA do catálogo e a do personagem sai da proficiência declarada.
+# Consumidor principal: o universo do `pick:arma` (Maestria de Arma) — regra 5e/PO:
+# só se aprende maestria em arma com que se TEM proficiência.
+# ---------------------------------------------------------------------------
+
+# subcategoria do catálogo -> chave de categoria, derivada de _WEAPON_CATEGORY (o
+# "à distância" é propriedade da arma, não categoria de proficiência).
+_WEAPON_SUBCAT_KEY = {sub: _slug(rot) for sub, (rot, _rng) in _WEAPON_CATEGORY.items()}
+
+# apelidos de CATEGORIA aceitos: os rótulos de _PROF_TOKEN_LABEL, os tokens das tags
+# de classe (`armas_simples`) e as formas curtas usadas em `prof:weapon{...}`
+# (`marcial`, `marciais`, `armas_de_fogo`…). Tudo normalizado por _slug.
+_WEAPON_PROF_ALIAS = {
+    'armas-simples': 'armas-simples', 'simples': 'armas-simples', 'simple': 'armas-simples',
+    'armas-marciais': 'armas-marciais', 'marciais': 'armas-marciais',
+    'marcial': 'armas-marciais', 'martial': 'armas-marciais',
+    'armas-de-fogo': 'armas-de-fogo', 'armas-fogo': 'armas-de-fogo', 'fogo': 'armas-de-fogo',
+    'firearm': 'armas-de-fogo', 'firearms': 'armas-de-fogo',
+}
+
+# proficiências COMPOSTAS (_PROF_TOKEN_LABEL: Ladino, Monge) -> (categoria, propriedades
+# das quais a arma precisa ter ao menos UMA). Chaveado no token da tag E no rótulo legível.
+_WEAPON_PROF_COMPOSTO = {
+    'armas-marciais-acuidade-ou-leves': ('armas-marciais', ('acuidade', 'leve')),
+    'armas-marciais-com-acuidade-ou-leves': ('armas-marciais', ('acuidade', 'leve')),
+    'armas-marciais-leves': ('armas-marciais', ('leve',)),
+}
+
+# escopo de alcance declarado no grant (`prof:weapon{marcial, melee, ...}`).
+_WEAPON_PROF_ESCOPO = {'melee': False, 'corpo-a-corpo': False,
+                       'ranged': True, 'distancia': True, 'a-distancia': True}
+
+
+def _weapon_matcher(tokens, excluir=()):
+    """UM grant de proficiência de arma -> matcher, ou None quando não há nada de
+    aproveitável. `tokens` são os argumentos do grant (`prof:weapon{marcial, melee}` ->
+    ['marcial', 'melee']) ou um rótulo de categoria da classe ('Armas Marciais');
+    `excluir` são as propriedades proibidas de `not:{pesada, duas_maos}`.
+
+    Token que não é categoria nem escopo é tratado como ARMA ESPECÍFICA (é assim que
+    'Disciplina das Lâminas Ancestrais' concede `prof:weapon{espada_longa}`). Token
+    opaco (`bound`, `kensei_melee`) vira um matcher que simplesmente não casa com arma
+    nenhuma do catálogo — nunca ALARGA o universo."""
+    cat, props_any, ranged, slug = None, (), None, None
+    for raw in tokens:
+        t = _slug(raw)
+        if not t:
+            continue
+        composto = _WEAPON_PROF_COMPOSTO.get(t)
+        if composto:
+            cat, props_any = composto
+            continue
+        alias = _WEAPON_PROF_ALIAS.get(t)
+        if alias:
+            cat = alias
+            continue
+        if t in _WEAPON_PROF_ESCOPO:
+            ranged = _WEAPON_PROF_ESCOPO[t]
+            continue
+        if slug is not None:
+            return None      # dois tokens livres no mesmo grant: ilegível, não arrisca
+        slug = t
+    if cat is None and slug is None:
+        return None
+    return {'cat': cat, 'slug': slug, 'props_any': tuple(props_any), 'ranged': ranged,
+            'props_not': tuple(x for x in (_slug(e) for e in excluir) if x)}
+
+
+_RE_WEAPON_NOT = re.compile(r'[{}|,]+')
+
+
+def _weapon_prof_grants(features, ctx=None):
+    """Matchers vindos dos grants `prof:weapon{...}` das features ATIVAS. Usa o mesmo
+    `evaluate_tags` do apply_tags (com o gate de bloco), então uma proficiência atrás de
+    `requires:` só entra quando de fato vale."""
+    from .tag_engine import evaluate_tags
+    out = []
+    for _origem, fonte, obj, classlvl in (features or []):
+        tags = [t for t in (getattr(obj, 'tags_json', None) or []) if isinstance(t, str)]
+        if not any('weapon' in t for t in tags):
+            continue
+        feat_ctx = dict(ctx or {})
+        if classlvl is not None:
+            feat_ctx['classlvl'] = int(classlvl)
+        try:
+            resultado = evaluate_tags(tags, feat_ctx)
+        except Exception:
+            continue
+        if resultado.blocked:
+            continue
+        for operation in resultado.operations:
+            if (not operation.active
+                    or (operation.op, operation.target) != ('grant_proficiency', 'proficiencias')
+                    or (operation.params.get('name') or '') != 'weapon'):
+                continue
+            args = [str(a) for a in (operation.params.get('args') or [])]
+            if not args:
+                continue
+            nao = str((operation.params.get('kwargs') or {}).get('not') or '')
+            m = _weapon_matcher(args, _RE_WEAPON_NOT.split(nao))
+            if m:
+                out.append(m)
+    return out
+
+
+def _ctx_de_proficiencia(personagem, nivel_total):
+    """ctx numérico mínimo (nível/PB/mods) para avaliar tags fora do derive completo. Os
+    atributos são base + Σ TbPersonagemAtributoBonus; o pré-passe de ASI por tag não entra
+    porque nenhuma proficiência de arma depende dele."""
+    somas = {}
+    for b in personagem.atributo_bonus.all():
+        somas[b.atributo] = somas.get(b.atributo, 0) + int(b.valor or 0)
+    atributos = {}
+    for campo, sig, _rot in ATRIBUTOS:
+        valor = int(getattr(personagem, campo) or 10) + somas.get(sig, 0)
+        atributos[sig] = {'valor': valor, 'mod': modificador(valor)}
+    return _build_ctx(nivel_total, bonus_proficiencia(nivel_total), atributos)
+
+
+def weapon_proficiency_matchers(personagem=None, classe=None, sources=()):
+    """Matchers de proficiência de ARMA. Dois modos, a MESMA leitura:
+
+      * `personagem`: categorias de `_proficiencias_classe` (classe + multiclasse, o
+        conjunto que o perfil de ataque usa) + grants das tags de todas as features;
+      * `classe` (criador, nível 1, sem personagem ainda): tokens da tag `prof{...}` da
+        classe — que ali é a PRINCIPAL — + grants das tags de `sources`.
+
+    Lista VAZIA = não há de onde saber a proficiência; quem chama não deve filtrar."""
+    matchers, features, ctx = [], list(sources or []), None
+    if personagem is not None:
+        classes = list(personagem.classes.select_related('id_classe', 'id_subclasse')
+                       .order_by('-principal', 'id'))
+        pc = _proficiencias_classe(classes)
+        for rotulo in (pc['classe_armas'] + pc['multiclasse_armas']):
+            m = _weapon_matcher([rotulo])
+            if m:
+                matchers.append(m)
+        features = _features_do_personagem(personagem, classes) + features
+        nivel_total = (sum(int(c.nivel or 0) for c in classes)
+                       or int(personagem.nivel or 1))
+        ctx = _ctx_de_proficiencia(personagem, nivel_total)
+    elif classe is not None:
+        for token in _prof_tokens(getattr(classe, 'tags_json', None) or [], 'proficiencias'):
+            rotulo = _PROF_TOKEN_LABEL.get(token)
+            if rotulo and rotulo[0] != 'arma':
+                continue            # armadura/ferramenta não fala de arma
+            m = _weapon_matcher([token])
+            if m:
+                matchers.append(m)
+    matchers += _weapon_prof_grants(features, ctx)
+    return matchers
+
+
+def weapon_allowed(matchers, subcategoria, slug='', nome='', propriedades=()):
+    """A arma do catálogo cai em ALGUMA das proficiências de `matchers`? Sem matchers
+    não há resposta possível -> False (quem chama decide o que fazer com isso)."""
+    cat = _WEAPON_SUBCAT_KEY.get(subcategoria)
+    props = {_slug(p) for p in (propriedades or [])}
+    _rot, distancia = _WEAPON_CATEGORY.get(subcategoria, (None, False))
+    sl = _slug(slug)
+    nomes = {x for x in (sl, re.sub(r'^arma-', '', sl), _slug(nome)) if x}
+    for m in matchers:
+        if m['props_not'] and props & set(m['props_not']):
+            continue
+        if m['ranged'] is not None and bool(m['ranged']) != bool(distancia):
+            continue
+        if m['slug']:
+            if m['slug'] in nomes:
+                return True
+            continue
+        if m['cat'] and m['cat'] != cat:
+            continue
+        if m['props_any'] and not (props & set(m['props_any'])):
+            continue
+        return True
+    return False
+
+
 def _magias_personagem(personagem):
     """Magias conhecidas/preparadas (TbPersonagemMagia) agrupadas por nível, p/ a ficha."""
     if personagem is None:
@@ -1454,9 +1661,7 @@ def magias_concedidas(personagem):
     classes = list(personagem.classes.select_related('id_classe', 'id_subclasse').order_by('-principal', 'id'))
     nivel_total = sum(int(c.nivel or 0) for c in classes) or int(personagem.nivel or 1)
     is_caster = _conjuracao_real(personagem)   # gate das listas de decreto = CONJURAÇÃO REAL
-    features = (_features_de_classe(classes) + _tracos_raciais(personagem)
-                + _antecedente(personagem) + _talentos(personagem)
-                + _features_de_itens(personagem) + _features_de_opcoes(personagem))
+    features = _features_do_personagem(personagem, classes)
     escolhas, _listas = _collect_escolhas(personagem, features)
     catalog, catalog_rich = {}, {}
     for sl, nv, esc, cl in TbMagia.objects.values_list('slug', 'nivel', 'escola', 'classes'):
@@ -1556,9 +1761,7 @@ def grants_fixos(personagem):
     from .models import TbOpcaojogo, TbTalento
     classes = list(personagem.classes.select_related('id_classe', 'id_subclasse').order_by('-principal', 'id'))
     nivel_total = sum(int(c.nivel or 0) for c in classes) or int(personagem.nivel or 1)
-    features = (_features_de_classe(classes) + _tracos_raciais(personagem)
-                + _antecedente(personagem) + _talentos(personagem)
-                + _features_de_itens(personagem) + _features_de_opcoes(personagem))
+    features = _features_do_personagem(personagem, classes)
     op_por_slug = {_ref_slug(o.slug): o for o in TbOpcaojogo.objects.all()}
     tal_por_slug = {_ref_slug(t.slug): t for t in TbTalento.objects.all() if t.slug}
     seen_op, seen_tal = set(), set()
@@ -3280,9 +3483,7 @@ def derive(personagem):
     # 2. Classes / nível / features (inclui antecedente)
     classes = list(personagem.classes.select_related('id_classe', 'id_subclasse').order_by('-principal', 'id'))
     nivel_total = sum(int(c.nivel or 0) for c in classes) or int(personagem.nivel or 1)
-    features = (_features_de_classe(classes) + _tracos_raciais(personagem)
-                + _antecedente(personagem) + _talentos(personagem)
-                + _features_de_itens(personagem) + _features_de_opcoes(personagem))
+    features = _features_do_personagem(personagem, classes)
     escolhas, listas = _collect_escolhas(personagem, features)
 
     # 3. Pré-passe de ASI passivo (tag) → mods / PB / PV / ctx

@@ -1,0 +1,76 @@
+{% comment %}RODAPE DA FOLHA (extraido de ficha_detail.html): maestrias de arma, defesas e
+sentidos, vantagens/desvantagens e avisos — FONTE UNICA deste markup.
+Quem consome: a aba Ficha (ficha_detail) e a PREVIA do Pathbuilder
+(_pathbuilder_folha.html), que renderiza a MESMA folha em modo leitura. Nada de markup
+paralelo: melhoria aqui aparece nos dois lugares.
+Contexto esperado: ficha, pode_editar.
+`folha_readonly` (Pathbuilder) esconde o que so existe na ficha salva: botoes de acao,
+progressao de aventuras e atalhos para outras abas.{% endcomment %}
+  {% if ficha.maestrias_armas %}
+  <div class="ficha-panel">
+    {% comment %}Onda D: o ponto de entrada da TROCA saiu daqui — todas as escolhas de
+    classe (maestria inclusive) se trocam no cartão do grupo na aba Magias & Opções; o
+    painel dedicado de maestria deixou de existir. Aqui fica só a leitura, ao lado dos
+    ataques.{% endcomment %}
+    <div class="ficha-section-title">Maestrias de Arma{% if pode_editar and ficha.maestria_pendente %}<button type="button" class="float-right font-sans text-[11px] normal-case tracking-normal text-[var(--flame)] hover:underline" data-tab-jump="magias">⚠ Completar maestria</button>{% elif pode_editar and ficha.maestria_trocavel %}<button type="button" class="float-right font-sans text-[11px] normal-case tracking-normal text-[var(--ember)] hover:underline" data-tab-jump="magias">↻ Trocar em Magias &amp; Opções</button>{% endif %}</div>
+    <p class="mb-2 text-xs text-[var(--muted)]">Cada slot concede <strong>uma</strong> maestria de uma arma, aplicada no ataque. A mesma arma pode aparecer em mais de um slot para aprender maestrias diferentes dela.{% if ficha.maestria_trocavel %} <span class="text-[var(--spark)]">Trocável.</span>{% endif %}</p>
+    <ul class="grid gap-1.5 sm:grid-cols-2">
+      {% for w in ficha.maestrias_armas %}
+        <li class="rounded border border-[var(--stroke)] bg-[var(--bg0)] p-2.5">
+          <div class="font-semibold text-[var(--text)]">{{ w.arma }}{% if w.dano %} <span class="text-xs font-normal text-[var(--muted)]">— {{ w.dano }}</span>{% endif %}{% if not w.encontrada %} <span class="text-xs text-[var(--flame)]">(arma não cadastrada)</span>{% endif %}</div>
+          <div class="mt-1.5 space-y-1.5">
+            {% if w.maestria %}
+              <details class="maestria-card rounded border border-[var(--stroke)]/60 bg-[var(--bg1)]">
+                <summary class="flex cursor-pointer items-center gap-2 px-2 py-1.5 text-xs font-bold text-[var(--spark)] hover:text-[var(--flame)]"><span class="maestria-chevron text-[var(--muted)]">▸</span>{{ w.maestria.nome }}</summary>
+                {% if w.maestria.efeito %}<div class="border-t border-[var(--stroke)]/40 px-2 py-1.5 text-[11px] leading-snug text-[var(--muted)]">{{ w.maestria.efeito }}</div>{% endif %}
+              </details>
+            {% elif w.maestria_pendente %}
+              <span class="text-xs text-[var(--flame)]">Maestria a escolher{% if pode_editar %} — <button type="button" class="text-[var(--ember)] hover:underline" data-tab-jump="magias">completar</button>{% endif %}</span>
+            {% else %}<span class="text-xs text-[var(--muted)]">—</span>{% endif %}
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  {% comment %}O resumo de magias saiu do rodapé desta aba — a aba Magias & Opções é o lugar
+  canônico (dela e das escolhas de classe, desde a onda D). Fica só o atalho.{% endcomment %}
+  {% if not folha_readonly %}<p class="ficha-jump"><button type="button" class="ficha-jump-chip" data-tab-jump="magias">{% if ficha.magias %}Magias, espaços e CD{% else %}Escolhas de classe{% endif %} na aba <strong>Magias &amp; Opções</strong> →</button></p>{% endif %}
+
+  <div class="ficha-panel">
+    <div class="ficha-section-title">Defesas &amp; Sentidos</div>
+    <dl class="grid gap-x-4 sm:grid-cols-2">
+      <div class="def-row"><dt>Resistências</dt><dd>{{ ficha.resistencias|join:", "|default:"—" }}</dd></div>
+      <div class="def-row"><dt>Imunidades</dt><dd>{{ ficha.imunidades|join:", "|default:"—" }}</dd></div>
+      <div class="def-row"><dt>Imun. condição</dt><dd>{% for c in ficha.imunidades_condicao %}{{ c.nome }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</dd></div>
+      <div class="def-row"><dt>Sentidos</dt><dd>{{ ficha.sentidos|join:", "|default:"—" }}</dd></div>
+      {% if ficha.movimento_modos %}<div class="def-row"><dt>Deslocamentos</dt><dd>{% for modo, val in ficha.movimento_modos.items %}{% if modo == 'climb' %}Escalada{% elif modo == 'swim' %}Natação{% elif modo == 'fly' %}Voo{% elif modo == 'burrow' %}Escavação{% elif modo == 'wall' %}Parede{% else %}{{ modo|capfirst }}{% endif %}{% if val and val != 'walk' %} {{ val }}{% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}</dd></div>{% endif %}
+      <div class="def-row"><dt>Idiomas</dt><dd>{{ ficha.idiomas|join:", "|default:"—" }}</dd></div>
+      <div class="def-row"><dt>Ferramentas</dt><dd>{{ ficha.ferramentas|join:", "|default:"—" }}{% if ficha.prof_multiclasse_ferramenta %} <span class="text-[var(--spark)]" title="Ganhas por multiclasse">+ {{ ficha.prof_multiclasse_ferramenta|join:", " }} <span class="text-[10px] uppercase">(multiclasse)</span></span>{% endif %}</dd></div>
+      <div class="def-row"><dt>Prof. arma</dt><dd>{{ ficha.proficiencias_arma|join:", "|default:"—" }}{% if ficha.prof_multiclasse_arma %} <span class="text-[var(--spark)]" title="Ganhas por multiclasse">+ {{ ficha.prof_multiclasse_arma|join:", " }} <span class="text-[10px] uppercase">(multiclasse)</span></span>{% endif %}</dd></div>
+      <div class="def-row"><dt>Prof. armadura</dt><dd>{{ ficha.proficiencias_armadura|join:", "|default:"—" }}{% if ficha.prof_multiclasse_armadura %} <span class="text-[var(--spark)]" title="Ganhas por multiclasse">+ {{ ficha.prof_multiclasse_armadura|join:", " }} <span class="text-[10px] uppercase">(multiclasse)</span></span>{% endif %}</dd></div>
+      {% if ficha.outras_proficiencias %}<div class="def-row"><dt>Outras prof.</dt><dd>{{ ficha.outras_proficiencias|join:", " }}</dd></div>{% endif %}
+      {% if ficha.notas_passivas %}<div class="def-row"><dt>Notas passivas</dt><dd>{{ ficha.notas_passivas|join:", " }}</dd></div>{% endif %}
+    </dl>
+  </div>
+
+  {% if ficha.vantagens %}
+  <div class="ficha-panel">
+    <div class="ficha-section-title">Vantagens Condicionais</div>
+    <ul class="list-inside list-disc text-sm text-[var(--muted)] space-y-0.5">{% for v in ficha.vantagens %}<li>{{ v }}</li>{% endfor %}</ul>
+  </div>
+  {% endif %}
+
+  {% if ficha.desvantagens_impostas %}
+  <div class="ficha-panel">
+    <div class="ficha-section-title">Desvantagens Impostas</div>
+    <ul class="list-inside list-disc text-sm text-[var(--muted)] space-y-0.5">{% for d in ficha.desvantagens_impostas %}<li>{{ d }}</li>{% endfor %}</ul>
+  </div>
+  {% endif %}
+
+  {% if ficha.avisos %}
+  <div class="rounded-lg border border-[var(--spark)]/40 bg-[var(--spark)]/5 p-2 text-xs text-[var(--spark)] space-y-0.5">
+    {% for a in ficha.avisos %}<p>{{ a }}</p>{% endfor %}
+  </div>
+  {% endif %}

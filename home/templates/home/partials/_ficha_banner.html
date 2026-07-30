@@ -1,0 +1,59 @@
+{% comment %}BANNER da ficha (extraido de ficha_detail.html) — FONTE UNICA deste markup.
+Quem consome: a aba Ficha (ficha_detail) e a PREVIA do Pathbuilder
+(_pathbuilder_folha.html), que renderiza a MESMA folha em modo leitura. Nada de markup
+paralelo: melhoria aqui aparece nos dois lugares.
+Contexto esperado: p, ficha, appearance, raca_linha, pode_editar, is_staff, levelup_status.
+`folha_readonly` (Pathbuilder) esconde o que so existe na ficha salva: botoes de acao,
+progressao de aventuras e atalhos para outras abas.{% endcomment %}
+  <header class="ficha-header ficha-banner">
+    {% if p.banner_url %}<div class="ficha-banner-media" style="background-image:url('{{ p.banner_url }}');"></div>{% endif %}
+    {# --- pergaminho à esquerda: nome + classes --- #}
+    <div class="banner-scroll">
+      <div class="banner-character-avatar {{ appearance.frame_class }}">
+        {% if p.foto_url %}<img src="{{ p.foto_url }}" alt="Retrato de {{ p.nome }}" loading="lazy">{% else %}<span>{{ p.nome|first|upper }}</span>{% endif %}
+      </div>
+      <h1 class="ficha-name">{{ p.nome }}</h1>
+      <div class="banner-classes">
+        {% for c in ficha.classes %}<span class="banner-class">{{ c.classe }}{% if c.subclasse %} <em>({{ c.subclasse }})</em>{% endif %} {{ c.nivel }}</span>{% if not forloop.last %}<span class="banner-sep">/</span>{% endif %}{% empty %}<span class="banner-class">—</span>{% endfor %}
+      </div>
+      {% if not folha_readonly %}
+      <div class="banner-actions">
+        <a href="{% url 'personagens' %}" class="banner-btn">← Personagens</a>
+        {% if pode_editar %}
+          {% comment %}Onda C: editar_ficha virou PAINEL DA STAFF (aventuras + concessão de
+          item) — o jogador não tem mais o que fazer lá, então o atalho só aparece para a
+          staff. O Mercado entra no lugar: é onde ele compra e vende.{% endcomment %}
+          {% if is_staff %}<a href="{% url 'editar_ficha' p.id_personagem %}" class="banner-btn">Painel da staff</a>{% endif %}
+          <a href="{% url 'mercado_itens_mundanos' %}" class="banner-btn">Mercado</a>
+          {% if levelup_status.mostrar_botao %}
+            <a href="{% url 'personagem_subir_nivel' p.id_personagem %}" class="banner-btn primary banner-btn-levelup" data-levelup-btn>
+              ⬆ {% if levelup_status.pode_subir %}Subir de Nível{% else %}Concluir escolhas de nível{% endif %}
+            </a>
+          {% elif not levelup_status.no_maximo %}
+            <span class="banner-nextlvl" title="Progresso até o próximo nível">Próximo nível em {{ levelup_status.faltam_aventuras }} aventura{{ levelup_status.faltam_aventuras|pluralize }}</span>
+          {% endif %}
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+
+    {# --- bloco de identidade à direita: campos rotulados + selo de nível --- #}
+    <div class="banner-identity">
+      <div class="banner-fields">
+        {% if p.dono_id %}<div class="banner-field"><span class="lbl">Jogador</span><span class="val">{{ p.dono.username }}</span></div>{% endif %}
+        <div class="banner-field wide"><span class="lbl">Raça</span><span class="val">{{ raca_linha|default:"—" }}{% if p.id_antecedente_id %} <span class="val-muted">· {{ p.id_antecedente.nome }}</span>{% endif %}</span></div>
+        {% if not folha_readonly %}
+        <div class="banner-field"><span class="lbl">Rank / Patente</span><span class="val">{{ ficha.progressao.rank|default:"—" }}</span></div>
+        <div class="banner-field"><span class="lbl">Aventuras</span><span class="val">{{ ficha.progressao.aventuras|default:"0" }}</span></div>
+        <div class="banner-field"><span class="lbl">Ouro de progressão</span><span class="val">{{ ficha.progressao.ouro_esperado_po|default:"0" }} <span class="val-muted">PO</span></span></div>
+        <div class="banner-field"><span class="lbl">Braseiros</span><span class="val">{{ ficha.progressao.braseiros|default:"0" }}</span></div>
+        <div class="banner-field"><span class="lbl">Próximo nível</span><span class="val">{{ ficha.progressao.proximo_nivel_aventuras|default:"—" }}{% if ficha.progressao.proximo_nivel_aventuras %} <span class="val-muted">av.</span>{% endif %}</span></div>
+        {% endif %}
+      </div>
+
+      <div class="banner-level" title="Nível total">
+        <span class="lvl-lbl">Nível</span>
+        <span class="lvl-num">{{ ficha.nivel_total|default:ficha.progressao.nivel_aventuras }}</span>
+      </div>
+    </div>
+  </header>

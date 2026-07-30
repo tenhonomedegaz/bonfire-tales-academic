@@ -23,7 +23,8 @@ from django.urls import reverse
 from django.utils.html import conditional_escape
 
 from home import picks, views
-from home.models import TbOpcaojogo, TbPersonagem, TbPersonagemEscolha
+from home.models import (TbItemMundano, TbOpcaojogo, TbPersonagem,
+                         TbPersonagemEscolha)
 from home.test_levelup import LevelUpLoteBase
 
 
@@ -402,6 +403,58 @@ class PendenciasNaSecaoTests(_OpcoesBase):
         self.assertIn('Escolha incompleta', cartao)
         self.assertIn('complete no', cartao)
         self.assertNotIn(reverse('personagem_subir_nivel', args=[p.pk]), cartao)
+
+
+class MaestriaExigeProficienciaNaAbaTests(_OpcoesBase):
+    """BUG (staff): o seletor de Maestria de Arma da aba oferecia ARMAS DE FOGO a quem não
+    tem proficiência nelas. O universo do cartão é o mesmo do registry, agora filtrado pela
+    proficiência real — e a escolha LEGADA numa arma sem proficiência continua renderizada,
+    com aviso, em vez de sumir ou quebrar a seção."""
+
+    def _fogo(self):
+        return {w.slug for w in TbItemMundano.objects.filter(categoria='arma',
+                                                            subcategoria='arma_fogo')}
+
+    def test_seletor_da_aba_nao_oferece_arma_de_fogo(self):
+        p = self._personagem('guerreiro')
+        grupo = self._grupo(p, kind='arma')
+        pais = {o['val'] for o in grupo['disponiveis']}
+        self.assertTrue(pais, 'o cartão precisa oferecer alternativas')
+        self.assertFalse(pais & self._fogo(), sorted(pais & self._fogo()))
+        cartao = self._cartao(self._html(p), grupo['chave'])
+        for slug in self._fogo():
+            self.assertNotIn('value="%s"' % slug, cartao)
+
+    def test_troca_para_arma_sem_proficiencia_e_recusada_pelo_endpoint(self):
+        """A arma fora do universo não existe como alternativa — o endpoint genérico
+        responde `fora_do_universo` e nada é gravado."""
+        p = self._personagem('guerreiro')
+        grupo = self._grupo(p, kind='arma')
+        linha = grupo['escolhidas'][0]
+        antes = TbPersonagemEscolha.objects.get(id=linha['id']).valor
+        bacamarte = TbItemMundano.objects.get(slug='arma-bacamarte')
+        maestria = picks.weapon_mastery_slugs(bacamarte)[0]
+        body = self._trocar(p, grupo['chave'], linha['id'],
+                            '%s|%s' % (bacamarte.slug, maestria), esperado=400)
+        self.assertEqual(body['msg'], 'fora_do_universo')
+        self.assertEqual(TbPersonagemEscolha.objects.get(id=linha['id']).valor, antes)
+
+    def test_escolha_legada_sem_proficiencia_renderiza_com_aviso(self):
+        """Dado legado (gravado antes do filtro): a linha continua listada e ganha o aviso
+        de proficiência; a seção inteira segue renderizando."""
+        p = self._personagem('guerreiro')
+        bacamarte = TbItemMundano.objects.get(slug='arma-bacamarte')
+        maestria = picks.weapon_mastery_slugs(bacamarte)[0]
+        legada = TbPersonagemEscolha.objects.filter(id_personagem=p, tipo='maestria').first()
+        legada.valor = '%s|%s' % (bacamarte.slug, maestria)
+        legada.save(update_fields=['valor'])
+
+        grupo = self._grupo(p, kind='arma')
+        alvo = next(e for e in grupo['escolhidas'] if e['id'] == legada.id)
+        self.assertTrue(alvo['sem_proficiencia'])
+        cartao = self._cartao(self._html(p), grupo['chave'])
+        self.assertIn(conditional_escape(bacamarte.nome), cartao)
+        self.assertIn('não tem proficiência nesta arma', cartao)
 
 
 class SwapVemDaTagTests(_OpcoesBase):
