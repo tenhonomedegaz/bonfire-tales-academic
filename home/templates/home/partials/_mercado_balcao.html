@@ -1,57 +1,38 @@
-{% comment %}BALCÃO do Mercado (Ficha v2, onda C) — o mesmo nas duas vitrines.
+{% comment %}BALCÃO do Mercado — o mesmo nas duas vitrines.
 
-Aqui ficam o PERSONAGEM ATIVO (seletor persistente: só personagens do usuário, escolha
-guardada em sessão), a CARTEIRA composta (PO/PP/PC), o retorno das compras/vendas e o painel VENDER.
-O detalhe da mercadoria clicada na vitrine também abre aqui — como um atendente mostrando
-a peça no balcão em vez de abrir uma página nova.
+Redesign master-detail: o balcão deixou de ser uma coluna lateral e virou a BARRA DO TOPO,
+porque a coluna da direita agora é do painel de destaque do item. Aqui ficam o PERSONAGEM
+ATIVO (seletor persistente: só personagens do usuário, escolha guardada em sessão), a
+CARTEIRA composta (PO/PP/PC) e o retorno das compras/vendas.
 
 Espera no contexto: mercado_logado, mercado_personagens, mercado_ativo, mercado_carteira,
-mercado_venda, mercado_next, balcao_titulo.{% endcomment %}
-<aside class="shop-counter" data-shop-counter>
-  <div class="shop-counter-head">
-    <span class="shop-counter-eyebrow">Balcão</span>
-    <h2 class="shop-counter-title">{{ balcao_titulo|default:"Mercado" }}</h2>
+balcao_titulo.{% endcomment %}
+<header class="mkt-bar" data-shop-counter>
+  <div class="mkt-bar-id">
+    <span class="mkt-bar-eyebrow">Balcão</span>
+    <h2 class="mkt-bar-title">{{ balcao_titulo|default:"Mercado" }}</h2>
   </div>
 
   {% if not mercado_logado %}
-    <p class="shop-note"><a href="{% url 'login' %}">Entre na sua conta</a> para comprar e vender com seus personagens. A vitrine fica aberta para consulta.</p>
+    <p class="mkt-note"><a href="{% url 'login' %}">Entre na sua conta</a> para comprar e vender com seus personagens. A vitrine fica aberta para consulta.</p>
   {% elif not mercado_personagens %}
-    <p class="shop-note">Você ainda não tem personagens. <a href="{% url 'criacao_ficha' %}">Crie um</a> para abrir a bolsa no balcão.</p>
+    <p class="mkt-note">Você ainda não tem personagens. <a href="{% url 'criacao_ficha' %}">Crie um</a> para abrir a bolsa no balcão.</p>
   {% else %}
-    <form method="get" class="shop-picker" data-shop-picker>
-      <label for="shop-personagem">Personagem ativo</label>
+    <form method="get" class="mkt-picker" data-shop-picker>
+      <label for="shop-personagem">Personagem</label>
       <select id="shop-personagem" name="personagem" data-shop-personagem>
         {% for c in mercado_personagens %}
           <option value="{{ c.id_personagem }}"{% if c.id_personagem == mercado_ativo.id_personagem %} selected{% endif %}>{{ c.nome }}</option>
         {% endfor %}
       </select>
-      <button type="submit" class="shop-picker-go">Trocar</button>
+      <button type="submit" class="mkt-picker-go">Trocar</button>
     </form>
 
-    <div class="shop-wallet">
-      <span class="shop-wallet-label">Carteira</span>
-      <strong class="shop-wallet-value" data-shop-carteira>{{ mercado_carteira }}</strong>
+    <div class="mkt-wallet">
+      <span class="mkt-wallet-label">Carteira</span>
+      <strong class="mkt-wallet-value" data-shop-carteira>{{ mercado_carteira }}</strong>
     </div>
   {% endif %}
 
-  <p class="shop-feedback" data-shop-feedback hidden aria-live="polite"></p>
-
-  {% if mercado_ativo %}
-  <div class="shop-tabs" role="tablist">
-    <button type="button" class="shop-tab is-active" role="tab" data-shop-tab="comprar" aria-selected="true">Comprar</button>
-    <button type="button" class="shop-tab" role="tab" data-shop-tab="vender" aria-selected="false">Vender</button>
-  </div>
-  {% endif %}
-
-  <div class="shop-pane" data-shop-pane="comprar" role="tabpanel">
-    <div class="shop-detail" data-shop-detail>
-      <p class="shop-detail-empty">Escolha uma mercadoria na vitrine para ver os detalhes aqui.</p>
-    </div>
-  </div>
-
-  {% if mercado_ativo %}
-  <div class="shop-pane" data-shop-pane="vender" role="tabpanel" hidden>
-    <div data-shop-venda>{% include 'home/partials/_mercado_venda.html' %}</div>
-  </div>
-  {% endif %}
-</aside>
+  <p class="mkt-feedback" data-shop-feedback hidden aria-live="polite"></p>
+</header>

@@ -6,8 +6,8 @@
 {% block title %}{{ title }} | Bonfire Tales{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/pages/mercado_loja.css' %}?v=1">
-<script src="{% static 'js/mercado_loja.js' %}?v=1" defer></script>
+<link rel="stylesheet" href="{% static 'css/pages/mercado_loja.css' %}?v=2">
+<script src="{% static 'js/mercado_loja.js' %}?v=2" defer></script>
 {% endblock %}
 
 {% block content %}
@@ -15,7 +15,7 @@
 
   <div class="mb-2.5">
     <h1 class="font-cinzel text-xl font-bold text-bonfire-text uppercase">{{ title|default:"Itens Mundanos" }}</h1>
-    <p class="text-bonfire-muted text-[11px] mt-1">Armas, armaduras, ferramentas e provisões de Cinéria — expostas por prateleira. Escolha o personagem no balcão para comprar com o ouro dele.</p>
+    <p class="text-bonfire-muted text-[11px] mt-1">Armas, armaduras, ferramentas e provisões de Cinéria. Clique num item da lista para ver a prévia completa e comprar com o ouro do personagem ativo.</p>
   </div>
 
   <div id="content-container">

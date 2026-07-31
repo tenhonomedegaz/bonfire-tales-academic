@@ -96,7 +96,7 @@ class MoedaCompostaTests(LevelUpLoteBase):
         html = self.client.get(reverse('mercado_itens_mundanos')).content.decode('utf-8')
         self.assertIn('1000 PO', html)   # carteira do personagem ativo
         # item barato de verdade do catálogo aparece em PP/PC, não arredondado para PO
-        self.assertRegex(html, r'goods-price">\d+ P[PC]')
+        self.assertRegex(html, r'mkt-row-price">\d+ P[PC]')
 
 
 class DescansoCanonicoNaFichaTests(LevelUpLoteBase):

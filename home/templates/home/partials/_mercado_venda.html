@@ -1,34 +1,56 @@
-{% comment %}Painel VENDER do Mercado (Ficha v2, onda C).
+{% comment %}Painel VENDER do Mercado.
 
-A venda a 80% morava na ficha/editar_ficha; agora vive aqui, ao lado da compra, com o
-PERSONAGEM ATIVO do balcão. A REGRA não mudou de lugar: quem calcula os 80% e credita a
-carteira continua sendo `personagem_vender_item` (via `_preco_venda_mundano_pc`).
+Mesma lista compacta da compra, mesmo painel de destaque: a linha só mostra nome, o preço de
+catálogo e quanto o balcão paga; o botão de venda (com quantidade) vive no painel da direita,
+igual ao botão de compra.
 
-Só item MUNDANO com preço aparece — item mágico vai a leilão no Mercado da Comunidade,
-por outra regra (50%, com escrow).
+A REGRA não mudou de lugar: quem calcula os 80% e credita a carteira continua sendo
+`personagem_vender_item` (via `_preco_venda_mundano_pc`). Só item MUNDANO com preço aparece —
+item mágico vai a leilão no Mercado da Comunidade, por outra regra (50%, com escrow).
 
 Espera no contexto: mercado_ativo (personagem), mercado_venda (linhas), mercado_next.
-Este partial também volta re-renderizado no JSON das mutações (`venda_html`), para a
-vitrine atualizar compra e venda sem reload.{% endcomment %}
+Este partial volta re-renderizado no JSON das mutações (`venda_html`), com as linhas E os
+templates do painel — a vitrine atualiza compra e venda sem reload.{% endcomment %}
 {% if mercado_venda %}
-<ul class="shop-sell-list">
+<ul class="mkt-list" data-shop-list>
   {% for it in mercado_venda %}
-  <li class="shop-sell-row">
-    <span class="shop-sell-main">
-      <span class="shop-sell-name" title="{{ it.nome }}">{% if it.qtd > 1 %}<em>{{ it.qtd }}×</em> {% endif %}{{ it.nome }}</span>
-      <span class="shop-sell-meta">catálogo {{ it.custo_display }} · 80%</span>
-    </span>
-    <span class="shop-sell-price">{{ it.venda_display }}</span>
-    <form method="post" action="{% url 'personagem_vender_item' mercado_ativo.id_personagem %}" class="shop-sell-form" data-shop-sell>
-      {% csrf_token %}
-      <input type="hidden" name="item" value="{{ it.id }}">
-      <input type="hidden" name="qtd" value="1">
-      <input type="hidden" name="next" value="{{ mercado_next }}">
-      <button type="submit" class="shop-btn sell" data-nome="{{ it.nome }}" data-valor="{{ it.venda_display }}">Vender 1</button>
-    </form>
+  <li>
+    <button type="button" class="mkt-row" data-mkt-row data-target="sell-{{ it.id }}"
+            data-search="{{ it.nome|lower }}" aria-selected="false">
+      <span class="mkt-row-name" title="{{ it.nome }}">{% if it.qtd > 1 %}<em class="mkt-row-qtd">{{ it.qtd }}×</em> {% endif %}{{ it.nome }}</span>
+      <span class="mkt-row-meta">catálogo {{ it.custo_display }}</span>
+      <span class="mkt-row-price">{{ it.venda_display }}</span>
+    </button>
+    <template id="sell-{{ it.id }}-tpl">
+      <article class="mkt-card">
+        <figure class="mkt-figure">
+          <span class="mkt-sigil"><span class="mkt-sigil-letter">{{ it.nome|first|upper }}</span></span>
+          <figcaption>Sua mochila</figcaption>
+        </figure>
+        <p class="mkt-card-kind">Venda no balcão{% if it.qtd > 1 %} · {{ it.qtd }} na mochila{% endif %}</p>
+        <h3 class="mkt-card-name">{{ it.nome }}</h3>
+        <div class="mkt-deal">
+          <span class="mkt-price">{{ it.venda_display }}</span>
+          <form method="post" action="{% url 'personagem_vender_item' mercado_ativo.id_personagem %}" class="mkt-buy" data-shop-sell>
+            {% csrf_token %}
+            <input type="hidden" name="item" value="{{ it.id }}">
+            <input type="hidden" name="next" value="{{ mercado_next }}">
+            {% if it.qtd > 1 %}<input type="number" name="qtd" min="1" max="{{ it.qtd }}" value="1" class="mkt-qty" aria-label="Quantidade de {{ it.nome }} a vender">
+            {% else %}<input type="hidden" name="qtd" value="1">{% endif %}
+            <button type="submit" class="mkt-btn is-sell" data-nome="{{ it.nome }}" data-valor="{{ it.venda_display }}">Vender</button>
+          </form>
+        </div>
+        <dl class="mkt-stats">
+          <div><dt>Catálogo</dt><dd>{{ it.custo_display }}</dd></div>
+          <div><dt>O balcão paga</dt><dd>80%</dd></div>
+          <div><dt>Na mochila</dt><dd>{{ it.qtd }}</dd></div>
+        </dl>
+        <p class="mkt-card-note">O ouro entra na carteira do personagem ativo na hora. Item mágico não se vende aqui: ele vai a leilão no <a href="{% url 'mercado_comunidade' %}">Mercado da Comunidade</a>.</p>
+      </article>
+    </template>
   </li>
   {% endfor %}
 </ul>
 {% else %}
-<p class="shop-note">Nada a vender: entram aqui os itens mundanos com preço de catálogo. Item mágico se anuncia no <a href="{% url 'mercado_comunidade' %}">Mercado da Comunidade</a>, pela Mochila.</p>
+<p class="mkt-note mkt-note-pad">Nada a vender: entram aqui os itens mundanos com preço de catálogo. Item mágico se anuncia no <a href="{% url 'mercado_comunidade' %}">Mercado da Comunidade</a>, pela Mochila.</p>
 {% endif %}

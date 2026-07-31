@@ -11492,10 +11492,13 @@ def cronica_review_action(request, cronica_id):
     return JsonResponse({'error': 'Ação inválida.'}, status=400)
 
 
-# ══════════════ MERCADO — vitrine de LOJA (Ficha v2, onda C) ═══════════════════
-# As páginas do Mercado deixam de ser catálogo-wiki e viram LOJA DE RPG: o jogador escolhe
-# o PERSONAGEM ATIVO (seletor persistido em sessão, só personagens dele), vê a carteira em
-# PO e compra/vende dali. A MECÂNICA não muda de lugar — os endpoints continuam sendo
+# ══════════════ MERCADO — vitrine de LOJA (master-detail) ═══════════════════
+# As páginas do Mercado não são catálogo-wiki nem vitrine em prateleiras (as duas foram
+# reprovadas pelos jogadores): são LOJA DE RPG master-detail — uma LISTA compacta de itens
+# à esquerda e o PAINEL DE DESTAQUE à direita com a prévia completa da peça selecionada
+# (retrato, preço, ficha, descrição e o botão de compra). O jogador escolhe o PERSONAGEM
+# ATIVO na barra do topo (seletor persistido em sessão, só personagens dele) e vê a carteira
+# composta em PO/PP/PC. A MECÂNICA não muda de lugar — os endpoints continuam sendo
 # `personagem_comprar_item` / `personagem_comprar_magico` / `personagem_vender_item`; o que
 # migrou foi a UI (a loja saiu do editar_ficha, que virou ferramenta só-da-staff).
 _MERCADO_SESSAO = 'mercado_personagem'
@@ -11514,11 +11517,14 @@ def _mercado_chave(nome):
     return ''.join(c for c in base if unicodedata.category(c) != 'Mn').lower()
 
 
-def _mercado_prateleiras(itens, loja_de):
-    """Agrupa itens em PRATELEIRAS (seções da vitrine) pela loja/categoria de cada um.
+def _mercado_grupos(itens, loja_de):
+    """Marca cada item com o GRUPO de filtro (loja/categoria do catálogo) e devolve as
+    opções do seletor.
 
-    `loja_de(item)` devolve o rótulo cru; itens sem rótulo caem no Bazar Geral. A ordem é
-    alfabética pelo rótulo, com o bazar por último."""
+    A vitrine é uma LISTA só — prateleiras em blocos não sobreviveram ao teste dos
+    jogadores. O agrupamento continua sendo dado do catálogo, mas agora vira filtro:
+    `loja_de(item)` devolve o rótulo cru, item sem rótulo cai no Bazar Geral, e a ordem é
+    alfabética pelo rótulo com o bazar por último."""
     grupos = {}
     for it in itens:
         rotulo = (loja_de(it) or '').strip()
@@ -11526,14 +11532,16 @@ def _mercado_prateleiras(itens, loja_de):
         g = grupos.get(chave)
         if g is None:
             g = grupos[chave] = {
-                'id': slugify(chave) or 'bazar',
+                'value': slugify(chave) or 'bazar',
                 'label': rotulo or _MERCADO_BAZAR,
-                'itens': [],
+                'total': 0,
                 'a_venda': 0,
             }
-        g['itens'].append(it)
+        g['total'] += 1
         if getattr(it, 'preco_display', None):
             g['a_venda'] += 1
+        it.grupo_id = g['value']
+        it.grupo_label = g['label']
     return sorted(grupos.values(), key=lambda g: (g['label'] == _MERCADO_BAZAR,
                                                   g['label'].lower()))
 
@@ -11582,7 +11590,7 @@ def _mercado_contexto(request):
 
 
 def itens_mundanos_view(request):
-    """Vitrine MUNDANA: prateleiras por categoria do catálogo (Armas, Alquimia, Forja…)."""
+    """Vitrine MUNDANA: lista alfabética única, filtrada pela categoria do catálogo."""
     cat_label = dict(TbItemMundano.CATEGORIA_CHOICES)
     itens = []
     for i in TbItemMundano.objects.all().order_by('nome'):
@@ -11601,12 +11609,10 @@ def itens_mundanos_view(request):
         # vitrine para consulta, mas sem botão de compra (guarda também no backend).
         i.preco_display = _preco_display(i.preco)
         itens.append(i)
-    prateleiras = _mercado_prateleiras(itens, lambda i: i.cat_label)
     context = {
         'title': 'Itens Mundanos',
         'itens': itens,
-        'prateleiras': prateleiras,
-        'categorias_filtro': [{'value': g['id'], 'label': g['label']} for g in prateleiras],
+        'grupos_filtro': _mercado_grupos(itens, lambda i: i.cat_label),
     }
     context.update(_mercado_contexto(request))
     if is_ajax(request):
@@ -11615,8 +11621,8 @@ def itens_mundanos_view(request):
 
 
 def itens_magicos_view(request):
-    """Vitrine MÁGICA: prateleiras pelo campo `loja` do catálogo (Alquimia, Forja,
-    Joalheria…), com filtro de raridade por cima."""
+    """Vitrine MÁGICA: lista alfabética única, com dois filtros — a loja do catálogo
+    (Alquimia, Forja, Joalheria…) e a raridade."""
     _rar_labels = dict(TbItemMagico._meta.get_field('raridade').choices)
     _slot_labels = dict(TbItemMagico.SLOT_CHOICES)
     _base_order = ['comum', 'incomum', 'raro', 'muito_raro', 'lendario', 'artefato']
@@ -11626,7 +11632,9 @@ def itens_magicos_view(request):
         tier = 1 if (r or '').endswith('_maior') else 0
         return (_base_order.index(base) if base in _base_order else 99, tier, r or '')
 
-    itens = list(TbItemMagico.objects.all().order_by('raridade', 'nome'))
+    # Lista ALFABÉTICA: a régua é "o jogador acha o item em 5 segundos" — quem quiser cortar
+    # por raridade usa o filtro.
+    itens = list(TbItemMagico.objects.all().order_by('nome'))
     for i in itens:
         # Preço da loja: item sem preço OU preço <= 0 é recompensa de missão (não
         # comercializável) — a vitrine mostra o rótulo no lugar do número e não dá botão.
@@ -11645,7 +11653,7 @@ def itens_magicos_view(request):
     context = {
         'title': 'Itens Mágicos',
         'itens': itens,
-        'prateleiras': _mercado_prateleiras(itens, lambda i: i.loja),
+        'grupos_filtro': _mercado_grupos(itens, lambda i: i.loja),
         'raridades_filtro': raridades_filtro,
     }
     context.update(_mercado_contexto(request))

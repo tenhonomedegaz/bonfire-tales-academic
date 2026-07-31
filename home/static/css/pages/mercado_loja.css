@@ -1,458 +1,573 @@
 /* ══════════════════════════════════════════════════════════════════════════
-   MERCADO — vitrine de LOJA DE RPG (Ficha v2, onda C)
+   MERCADO — loja MASTER-DETAIL
 
-   Nada de lista-wiki: a página é uma loja. À direita, o BALCÃO (personagem
-   ativo, carteira em PO, comprar/vender, detalhe da mercadoria); à esquerda,
-   as PRATELEIRAS — uma seção por loja/categoria do catálogo (Alquimia, Forja,
-   Joalheria…), cada uma com sua grade de mercadorias.
+   O layout em prateleiras/blocos foi reprovado pelos jogadores: era bonito de
+   longe e inútil de perto. Voltamos ao que loja de RPG/videogame faz há trinta
+   anos e funciona: uma LISTA densa à esquerda (nome · meta · preço) e um PAINEL
+   DE DESTAQUE à direita com a peça inteira — retrato, preço grande, ficha e
+   descrição. A régua: achar o item e entender o que ele faz em 5 segundos.
 
-   Identidade do site: Cinzel nos títulos, paleta ember/flame/spark, molduras
-   e brilho de brasa. Os TEMAS aplicam por cima (só variáveis são usadas).
+   Anatomia:
+     .mkt-bar      barra do topo — personagem ativo, carteira, feedback
+     .mkt-browse   coluna esquerda — abas Comprar/Vender, busca, filtros, lista
+     .mkt-preview  coluna direita  — o painel de destaque (sticky)
+
+   Identidade do site: Cinzel nos títulos, paleta ember/flame/spark. Só variáveis
+   são usadas, então os TEMAS aplicam por cima sem tocar aqui.
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* Cores canônicas por raridade (base, sem _menor/_maior) — a vitrine mágica
-   pinta moldura, selo e brilho a partir daqui. */
 .shop {
+  /* Cores canônicas por raridade (base, sem _menor/_maior) — pintam o ponto da
+     lista, o selo e a moldura do retrato no painel. */
   --rar-comum: #94a3b8;
   --rar-incomum: #22c55e;
   --rar-raro: #3b82f6;
   --rar-muito_raro: #a855f7;
   --rar-lendario: #f97316;
   --rar-artefato: #ef4444;
-  --shelf-wood: color-mix(in srgb, var(--ember) 12%, var(--bg1));
-}
+  /* Cor de acento do item selecionado — a raridade sobrescreve na vitrine mágica. */
+  --mkt-accent: var(--ember);
 
-.shop {
   align-items: start;
   display: grid;
-  gap: 1rem;
+  gap: .75rem 1rem;
   grid-template-columns: minmax(0, 1fr);
 }
-@media (min-width: 1100px) {
-  .shop { grid-template-columns: minmax(0, 1fr) 21rem; }
-  .shop-counter { order: 2; position: sticky; top: 5.5rem; }
-  .shop-main { order: 1; }
+@media (min-width: 1024px) {
+  .shop { grid-template-columns: minmax(0, 1fr) minmax(21rem, 26rem); }
+  .mkt-bar { grid-column: 1 / -1; }
+  .mkt-preview { position: sticky; top: 4.5rem; }
 }
 
-/* ═══════════════════════ BALCÃO (aside) ═══════════════════════ */
-.shop-counter {
+/* ═══════════════════════ BARRA DO BALCÃO ═══════════════════════ */
+.mkt-bar {
+  align-items: center;
   background:
-    radial-gradient(120% 60% at 50% 0%, rgba(242, 112, 7, .12), transparent 70%),
+    linear-gradient(90deg, color-mix(in srgb, var(--ember) 10%, transparent), transparent 45%),
     var(--bg1);
   border: 1px solid var(--stroke);
-  border-radius: 12px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .04), 0 10px 30px rgba(0, 0, 0, .35);
+  border-radius: 10px;
+  column-gap: 1rem;
   display: flex;
-  flex-direction: column;
-  gap: .7rem;
-  padding: .9rem;
+  flex-wrap: wrap;
+  padding: .5rem .75rem;
+  row-gap: .5rem;
 }
-.shop-counter-head { border-bottom: 1px solid var(--stroke); padding-bottom: .6rem; }
-.shop-counter-eyebrow {
+.mkt-bar-id { margin-right: auto; }
+.mkt-bar-eyebrow {
   color: var(--ember);
   display: block;
-  font-size: .62rem;
+  font-size: .58rem;
   font-weight: 800;
-  letter-spacing: .22em;
+  letter-spacing: .24em;
   text-transform: uppercase;
 }
-.shop-counter-title {
+.mkt-bar-title {
   color: var(--text);
   font-family: 'Cinzel', serif;
-  font-size: 1.05rem;
+  font-size: 1rem;
   font-weight: 800;
-  letter-spacing: .04em;
+  letter-spacing: .05em;
   line-height: 1.15;
   text-transform: uppercase;
 }
 
-.shop-picker { display: flex; flex-wrap: wrap; gap: .4rem; }
-.shop-picker label {
+.mkt-picker { align-items: center; display: flex; gap: .4rem; }
+.mkt-picker label {
   color: var(--muted);
-  flex: 1 1 100%;
-  font-size: .62rem;
+  font-size: .58rem;
   font-weight: 800;
-  letter-spacing: .14em;
+  letter-spacing: .16em;
   text-transform: uppercase;
 }
-.shop-picker select {
+.mkt-picker select {
   background: var(--bg0);
   border: 1px solid var(--stroke);
-  border-radius: 8px;
+  border-radius: 7px;
   color: var(--text);
-  flex: 1 1 8rem;
-  font-size: .85rem;
+  font-size: .82rem;
+  max-width: 12rem;
   outline: none;
-  padding: .4rem .5rem;
+  padding: .32rem .45rem;
 }
-.shop-picker select:focus { border-color: var(--ember); }
-.shop-picker-go {
-  background: var(--bg2, var(--bg0));
+.mkt-picker select:focus { border-color: var(--ember); }
+/* Sem JS o seletor precisa de um submit; com JS o change já troca sozinho. */
+.mkt-picker-go {
+  background: transparent;
   border: 1px solid var(--stroke);
-  border-radius: 8px;
+  border-radius: 7px;
   color: var(--muted);
   cursor: pointer;
-  font-size: .75rem;
+  font-size: .68rem;
   font-weight: 700;
-  padding: .4rem .6rem;
+  padding: .3rem .5rem;
 }
-.shop-picker-go:hover { border-color: var(--ember); color: var(--text); }
+.mkt-picker-go:hover { border-color: var(--ember); color: var(--text); }
 
-.shop-wallet {
-  align-items: baseline;
+.mkt-wallet {
+  align-items: center;
   background: var(--bg0);
   border: 1px solid var(--stroke);
   border-left: 3px solid var(--spark);
-  border-radius: 8px;
+  border-radius: 7px;
   display: flex;
-  justify-content: space-between;
-  padding: .45rem .65rem;
+  gap: .5rem;
+  padding: .3rem .6rem;
 }
-.shop-wallet-label {
+.mkt-wallet-label {
   color: var(--muted);
-  font-size: .62rem;
+  font-size: .58rem;
   font-weight: 800;
-  letter-spacing: .14em;
+  letter-spacing: .16em;
   text-transform: uppercase;
 }
-.shop-wallet-value {
+.mkt-wallet-value {
   color: var(--spark);
   font-family: 'Cinzel', serif;
-  font-size: 1.05rem;
+  font-size: 1rem;
   font-weight: 800;
-  text-shadow: 0 0 14px rgba(247, 177, 19, .35);
+  text-shadow: 0 0 14px rgba(247, 177, 19, .3);
+  white-space: nowrap;
 }
 
-.shop-note { color: var(--muted); font-size: .78rem; line-height: 1.45; }
-.shop-note a { color: var(--spark); text-decoration: underline; }
-
-.shop-feedback {
-  border-radius: 8px;
-  font-size: .8rem;
+.mkt-feedback {
+  border-radius: 7px;
+  flex: 1 1 100%;
+  font-size: .78rem;
   line-height: 1.35;
-  padding: .45rem .6rem;
+  padding: .38rem .6rem;
 }
-.shop-feedback.is-ok { background: rgba(34, 197, 94, .12); border: 1px solid rgba(34, 197, 94, .4); color: #4ade80; }
-.shop-feedback.is-err { background: rgba(210, 23, 23, .12); border: 1px solid rgba(210, 23, 23, .45); color: var(--flame); }
+.mkt-feedback.is-ok { background: rgba(34, 197, 94, .1); border: 1px solid rgba(34, 197, 94, .38); color: #4ade80; }
+.mkt-feedback.is-err { background: rgba(210, 23, 23, .1); border: 1px solid rgba(210, 23, 23, .45); color: var(--flame); }
 
-.shop-tabs {
+.mkt-note { color: var(--muted); font-size: .78rem; line-height: 1.45; }
+.mkt-note a { color: var(--spark); text-decoration: underline; }
+.mkt-note-pad { padding: .8rem .2rem; }
+
+/* ═══════════════════════ COLUNA DA LISTA ═══════════════════════ */
+.mkt-browse { display: flex; flex-direction: column; gap: .55rem; min-width: 0; }
+
+.mkt-tabs {
+  align-self: start;
   border: 1px solid var(--stroke);
   border-radius: 999px;
   display: flex;
   overflow: hidden;
 }
-.shop-tab {
+.mkt-tab {
   background: transparent;
   border: 0;
   color: var(--muted);
   cursor: pointer;
-  flex: 1 1 50%;
-  font-size: .74rem;
+  font-size: .7rem;
   font-weight: 800;
-  letter-spacing: .08em;
-  padding: .38rem .6rem;
+  letter-spacing: .1em;
+  padding: .3rem 1.1rem;
   text-transform: uppercase;
-  transition: background .2s ease, color .2s ease;
+  transition: background .18s ease, color .18s ease;
 }
-.shop-tab.is-active { background: var(--ember); color: #fff; }
+.mkt-tab:hover { color: var(--text); }
+.mkt-tab.is-active { background: var(--ember); color: #fff; }
 
-/* ── detalhe da mercadoria (dentro do balcão) ── */
-.shop-detail-empty { color: var(--muted); font-size: .78rem; font-style: italic; padding: .6rem 0; }
-.shop-detail-card { display: flex; flex-direction: column; gap: .45rem; }
-.shop-detail-eyebrow {
-  color: var(--muted);
-  font-size: .62rem;
-  font-weight: 800;
-  letter-spacing: .12em;
-  text-transform: uppercase;
-}
-.shop-detail-name {
-  color: var(--text);
-  font-family: 'Cinzel', serif;
-  font-size: 1rem;
-  font-weight: 800;
-  line-height: 1.15;
-  overflow-wrap: anywhere;
-  text-transform: uppercase;
-}
-.shop-detail-stats { display: flex; flex-wrap: wrap; gap: .35rem; }
-.shop-stat {
+.mkt-pane { display: flex; flex-direction: column; gap: .5rem; min-width: 0; }
+
+.mkt-tools { display: flex; flex-wrap: wrap; gap: .4rem; }
+.mkt-search {
   background: var(--bg0);
   border: 1px solid var(--stroke);
-  border-radius: 6px;
-  display: inline-flex;
-  flex-direction: column;
-  gap: .1rem;
-  padding: .28rem .5rem;
-}
-.shop-stat span { color: var(--muted); font-size: .58rem; letter-spacing: .1em; text-transform: uppercase; }
-.shop-stat strong { color: var(--text); font-size: .82rem; font-weight: 800; }
-.shop-stat.is-price strong { color: var(--spark); }
-.shop-detail-line { color: var(--muted); font-size: .78rem; line-height: 1.4; }
-.shop-detail-line strong { color: var(--text); }
-.shop-detail-desc { font-size: .78rem; line-height: 1.5; max-height: 18rem; overflow-y: auto; }
-
-/* ── painel VENDER ── */
-.shop-sell-list { display: flex; flex-direction: column; gap: .35rem; max-height: 24rem; overflow-y: auto; }
-.shop-sell-row {
-  align-items: center;
-  background: var(--bg0);
-  border: 1px solid var(--stroke);
-  border-left: 3px solid var(--spark);
   border-radius: 8px;
-  display: flex;
-  gap: .4rem;
-  justify-content: space-between;
-  padding: .35rem .5rem;
-}
-.shop-sell-main { min-width: 0; }
-.shop-sell-name {
   color: var(--text);
-  display: block;
-  font-size: .82rem;
-  font-weight: 700;
+  flex: 2 1 14rem;
+  font-size: .85rem;
+  outline: none;
+  padding: .45rem .65rem;
+}
+.mkt-search:focus { border-color: var(--ember); box-shadow: 0 0 0 3px rgba(242, 112, 7, .1); }
+.mkt-select {
+  background: var(--bg0);
+  border: 1px solid var(--stroke);
+  border-radius: 8px;
+  color: var(--text);
+  flex: 1 1 9rem;
+  font-size: .8rem;
+  outline: none;
+  padding: .45rem .5rem;
+}
+.mkt-select:focus { border-color: var(--ember); }
+
+.mkt-count { color: var(--muted); font-size: .66rem; letter-spacing: .07em; text-transform: uppercase; }
+.mkt-count strong { color: var(--ember); }
+
+/* ── a LISTA: linhas densas, rolagem natural da página ── */
+.mkt-list {
+  border: 1px solid var(--stroke);
+  border-radius: 9px;
+  list-style: none;
+  margin: 0;
+  overflow: hidden;
+  padding: 0;
+}
+.mkt-list > li + li .mkt-row { border-top: 1px solid color-mix(in srgb, var(--stroke) 70%, transparent); }
+
+.mkt-row {
+  align-items: baseline;
+  background: transparent;
+  border: 0;
+  border-left: 3px solid transparent;
+  color: inherit;
+  cursor: pointer;
+  display: grid;
+  gap: 0 .55rem;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: .3rem .6rem .3rem .5rem;
+  text-align: left;
+  transition: background .12s ease, border-color .12s ease;
+  width: 100%;
+}
+.mkt-list > li:nth-child(odd) .mkt-row { background: color-mix(in srgb, var(--bg1) 55%, transparent); }
+.mkt-row:hover { background: color-mix(in srgb, var(--ember) 9%, var(--bg1)); }
+.mkt-row:focus-visible { outline: 2px solid var(--ember); outline-offset: -2px; }
+.mkt-row.is-selected {
+  background: color-mix(in srgb, var(--mkt-accent) 16%, var(--bg1));
+  border-left-color: var(--mkt-accent);
+}
+
+/* Ponto de raridade: discreto, cabe na primeira coluna sem empurrar o nome. */
+.mkt-row-dot {
+  border-radius: 999px;
+  display: inline-block;
+  height: .42rem;
+  margin-right: .35rem;
+  vertical-align: middle;
+  width: .42rem;
+}
+.mkt-row-name {
+  color: var(--text);
+  font-size: .84rem;
+  font-weight: 600;
+  grid-column: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.shop-sell-name em { color: var(--ember); font-style: normal; }
-.shop-sell-meta { color: var(--muted); font-size: .62rem; }
-.shop-sell-price { color: var(--spark); flex-shrink: 0; font-size: .8rem; font-weight: 800; }
-.shop-sell-form { margin: 0; }
+.mkt-row-qtd { color: var(--ember); font-style: normal; font-weight: 800; }
+.mkt-row-attune { color: var(--muted); font-size: .72rem; }
+.mkt-row-meta {
+  color: var(--muted);
+  font-size: .64rem;
+  grid-column: 1;
+  grid-row: 2;
+  letter-spacing: .04em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.mkt-row-price {
+  color: var(--spark);
+  font-family: 'Cinzel', serif;
+  font-size: .82rem;
+  font-weight: 700;
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+  white-space: nowrap;
+}
+.mkt-row-price.is-mission {
+  color: var(--muted);
+  font-family: inherit;
+  font-size: .6rem;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+.mkt-row.is-selected .mkt-row-name { color: #fff; }
 
-/* ═══════════════════════ FILTROS ═══════════════════════ */
-.shop-filters { display: flex; flex-direction: column; gap: .6rem; margin-bottom: 1rem; }
-.shop-search {
+.mkt-empty { color: var(--muted); font-size: .82rem; padding: 1.5rem .5rem; text-align: center; }
+
+/* ═══════════════════════ PAINEL DE DESTAQUE ═══════════════════════ */
+.mkt-preview {
+  background:
+    radial-gradient(120% 55% at 50% 0%, color-mix(in srgb, var(--mkt-accent) 14%, transparent), transparent 72%),
+    var(--bg1);
+  border: 1px solid var(--stroke);
+  border-radius: 12px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .04), 0 12px 34px rgba(0, 0, 0, .38);
+  min-width: 0;
+}
+.mkt-preview-inner { max-height: calc(100vh - 6rem); overflow-y: auto; padding: .9rem; }
+.mkt-preview-empty { color: var(--muted); font-size: .8rem; font-style: italic; padding: 2rem .5rem; text-align: center; }
+.mkt-sheet-close { display: none; }
+
+.mkt-card { display: flex; flex-direction: column; gap: .5rem; }
+
+/* ── retrato do item: imagem do catálogo ou selo temático ── */
+.mkt-figure {
+  align-items: center;
+  background:
+    repeating-linear-gradient(135deg, transparent 0 7px, rgba(255, 255, 255, .022) 7px 8px),
+    radial-gradient(75% 70% at 50% 42%, color-mix(in srgb, var(--mkt-accent) 22%, transparent), transparent 72%),
+    var(--bg0);
+  border: 1px solid color-mix(in srgb, var(--mkt-accent) 35%, var(--stroke));
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: .35rem;
+  justify-content: center;
+  margin: 0;
+  min-height: 10rem;
+  overflow: hidden;
+  padding: .8rem;
+  position: relative;
+}
+.mkt-figure img { display: block; margin: 0 auto; max-height: 13rem; max-width: 100%; object-fit: contain; }
+.mkt-figure figcaption {
+  color: color-mix(in srgb, var(--mkt-accent) 70%, var(--muted));
+  font-size: .56rem;
+  font-weight: 800;
+  letter-spacing: .22em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+/* Selo temático (99% do catálogo não tem imagem): losango + anel + inicial em
+   Cinzel, tingido pelo acento do item. Tudo em pseudo-elemento — uma linha de
+   HTML por item, sem SVG repetido mil vezes. */
+.mkt-sigil {
+  align-items: center;
+  display: flex;
+  height: 6.4rem;
+  justify-content: center;
+  margin: 0 auto;
+  position: relative;
+  width: 6.4rem;
+}
+.mkt-sigil::before,
+.mkt-sigil::after { content: ''; position: absolute; }
+.mkt-sigil::before {
+  border: 1px solid color-mix(in srgb, var(--mkt-accent) 55%, transparent);
+  inset: .55rem;
+  transform: rotate(45deg);
+}
+.mkt-sigil::after {
+  border: 1px solid color-mix(in srgb, var(--mkt-accent) 30%, transparent);
+  border-radius: 50%;
+  inset: .1rem;
+}
+.mkt-sigil-letter {
+  color: color-mix(in srgb, var(--mkt-accent) 78%, var(--text));
+  font-family: 'Cinzel', serif;
+  font-size: 2.6rem;
+  font-weight: 800;
+  line-height: 1;
+  text-shadow: 0 0 22px color-mix(in srgb, var(--mkt-accent) 55%, transparent);
+}
+
+.mkt-card-kind {
+  align-items: center;
+  color: var(--muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: .62rem;
+  gap: .35rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.mkt-card-name {
+  color: var(--text);
+  font-family: 'Cinzel', serif;
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: .01em;
+  line-height: 1.12;
+  overflow-wrap: anywhere;
+}
+.mkt-rarity-tag {
+  border: 1px solid color-mix(in srgb, var(--mkt-accent) 45%, transparent);
+  border-radius: 999px;
+  color: var(--mkt-accent);
+  font-weight: 800;
+  padding: .06rem .45rem;
+}
+
+/* ── o NEGÓCIO: preço grande + botão, sempre juntos ── */
+.mkt-deal {
+  align-items: center;
   background: var(--bg0);
   border: 1px solid var(--stroke);
-  border-radius: 8px;
-  color: var(--text);
-  font-size: .88rem;
-  outline: none;
-  padding: .55rem .75rem;
-  width: 100%;
-}
-.shop-search:focus { border-color: var(--ember); box-shadow: 0 0 0 3px rgba(242, 112, 7, .12); }
-.shop-chips { display: flex; flex-wrap: wrap; gap: .35rem; }
-.shop-chip {
-  align-items: center;
-  background: transparent;
-  border: 1px solid var(--stroke);
-  border-radius: 999px;
-  color: var(--muted);
-  cursor: pointer;
-  display: inline-flex;
-  font-size: .66rem;
-  font-weight: 800;
-  gap: .3rem;
-  letter-spacing: .04em;
-  padding: .25rem .62rem;
-  text-transform: uppercase;
-  transition: border-color .2s ease, color .2s ease, background .2s ease, transform .2s ease;
-}
-.shop-chip:hover { border-color: var(--ember); color: var(--text); transform: translateY(-1px); }
-.shop-chip.is-active {
-  background: linear-gradient(90deg, rgba(242, 112, 7, .18), transparent 75%);
-  border-color: var(--ember);
-  color: var(--spark);
-}
-.shop-chip-dot { border-radius: 999px; box-shadow: 0 0 6px currentColor; height: .5rem; width: .5rem; }
-.shop-count { color: var(--muted); font-size: .7rem; letter-spacing: .06em; text-transform: uppercase; }
-.shop-count strong { color: var(--ember); }
-
-/* ═══════════════════════ PRATELEIRAS ═══════════════════════ */
-.shop-shelf { margin-bottom: 1.4rem; }
-.shelf-head {
-  align-items: baseline;
-  border-bottom: 2px solid var(--stroke);
+  border-left: 3px solid var(--spark);
+  border-radius: 9px;
   display: flex;
   flex-wrap: wrap;
   gap: .5rem;
   justify-content: space-between;
-  margin-bottom: .7rem;
-  padding-bottom: .35rem;
-  position: relative;
+  padding: .5rem .65rem;
 }
-.shelf-head::after {
-  background: linear-gradient(90deg, var(--flame), var(--ember) 60%, transparent);
-  bottom: -2px;
-  content: '';
-  height: 2px;
-  left: 0;
-  position: absolute;
-  width: min(9rem, 40%);
-}
-.shelf-name {
-  color: var(--text);
-  font-family: 'Cinzel', serif;
-  font-size: 1.02rem;
-  font-weight: 800;
-  letter-spacing: .06em;
-  text-shadow: 0 0 18px rgba(242, 112, 7, .22);
-  text-transform: uppercase;
-}
-.shelf-count { color: var(--muted); font-size: .66rem; letter-spacing: .08em; text-transform: uppercase; }
-.shelf-grid {
-  display: grid;
-  gap: .55rem;
-  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
-}
-.shelf-empty { color: var(--muted); font-size: .78rem; font-style: italic; padding: .5rem 0; }
-.shop-empty { color: var(--muted); font-size: .85rem; padding: 1.5rem; text-align: center; }
-
-/* ═══════════════════════ MERCADORIA (card) ═══════════════════════ */
-.goods {
-  background: linear-gradient(180deg, var(--bg1), var(--bg0));
-  border: 1px solid var(--stroke);
-  border-radius: 10px;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  position: relative;
-  transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
-}
-.goods::before {
-  background: var(--stroke);
-  content: '';
-  inset: 0 auto 0 0;
-  position: absolute;
-  width: 3px;
-}
-.goods:hover { border-color: var(--ember); box-shadow: 0 6px 22px rgba(210, 23, 23, .16); transform: translateY(-2px); }
-.goods.is-selected { border-color: var(--ember); box-shadow: inset 0 0 0 1px rgba(242, 112, 7, .35); }
-.goods-face {
-  background: none;
-  border: 0;
-  color: inherit;
-  cursor: pointer;
-  display: block;
-  flex: 1 1 auto;
-  padding: .55rem .7rem .35rem .8rem;
-  text-align: left;
-  width: 100%;
-}
-.goods-name {
-  color: var(--text);
-  font-family: 'Cinzel', serif;
-  font-size: .86rem;
-  font-weight: 700;
-  letter-spacing: .02em;
-  line-height: 1.2;
-  overflow-wrap: anywhere;
-}
-.goods-meta {
-  color: var(--muted);
-  font-size: .63rem;
-  letter-spacing: .05em;
-  margin-top: .2rem;
-  text-transform: uppercase;
-}
-.goods-foot {
-  align-items: center;
-  border-top: 1px dashed color-mix(in srgb, var(--stroke) 80%, transparent);
-  display: flex;
-  flex-wrap: wrap;
-  gap: .35rem;
-  justify-content: space-between;
-  padding: .4rem .7rem .5rem .8rem;
-}
-/* O PREÇO é a estrela do card: Cinzel, dourado, tamanho de manchete. */
-.goods-price {
+.mkt-price {
   color: var(--spark);
   font-family: 'Cinzel', serif;
-  font-size: 1rem;
+  font-size: 1.25rem;
   font-weight: 800;
-  letter-spacing: .02em;
-  text-shadow: 0 0 12px rgba(247, 177, 19, .3);
+  line-height: 1.1;
+  text-shadow: 0 0 16px rgba(247, 177, 19, .32);
+}
+.mkt-seal {
+  border: 1px dashed color-mix(in srgb, var(--muted) 60%, transparent);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: .66rem;
+  font-weight: 800;
+  letter-spacing: .12em;
+  padding: .28rem .7rem;
+  text-transform: uppercase;
+}
+.mkt-buy { align-items: center; display: flex; gap: .35rem; margin: 0; }
+.mkt-qty {
+  background: var(--bg1);
+  border: 1px solid var(--stroke);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: .8rem;
+  padding: .3rem .35rem;
+  width: 3.2rem;
+}
+.mkt-btn {
+  border: 1px solid transparent;
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: .76rem;
+  font-weight: 800;
+  letter-spacing: .08em;
+  padding: .4rem 1.1rem;
+  text-transform: uppercase;
+  transition: filter .18s ease, opacity .18s ease;
   white-space: nowrap;
 }
-.goods-price.is-mission {
-  color: var(--muted);
-  font-family: inherit;
-  font-size: .66rem;
-  font-weight: 700;
-  letter-spacing: .06em;
-  text-shadow: none;
-  text-transform: uppercase;
-  white-space: normal;
-}
-.goods-buy { align-items: center; display: flex; gap: .3rem; margin: 0; }
-.goods-qty {
+.mkt-btn.is-buy { background: linear-gradient(180deg, var(--ember), var(--flame)); color: #fff; }
+.mkt-btn.is-sell { background: transparent; border-color: var(--spark); color: var(--spark); }
+.mkt-btn:hover { filter: brightness(1.14); }
+.mkt-btn:disabled { cursor: default; opacity: .45; }
+
+/* ── ficha mecânica ── */
+.mkt-stats { display: flex; flex-wrap: wrap; gap: .35rem; margin: 0; }
+.mkt-stats > div {
   background: var(--bg0);
   border: 1px solid var(--stroke);
   border-radius: 6px;
-  color: var(--text);
-  font-size: .78rem;
-  padding: .22rem .3rem;
-  width: 3rem;
+  padding: .28rem .5rem;
 }
-.shop-btn {
-  border: 1px solid transparent;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: .72rem;
+.mkt-stats dt { color: var(--muted); font-size: .55rem; letter-spacing: .12em; text-transform: uppercase; }
+.mkt-stats dd { color: var(--text); font-size: .8rem; font-weight: 700; margin: 0; }
+
+.mkt-card-line { color: var(--muted); font-size: .78rem; line-height: 1.45; }
+.mkt-card-line strong { color: var(--text); }
+.mkt-card-line.is-warn { color: var(--flame); }
+.mkt-card-note {
+  border-top: 1px dashed color-mix(in srgb, var(--stroke) 85%, transparent);
+  color: var(--muted);
+  font-size: .7rem;
+  line-height: 1.45;
+  padding-top: .5rem;
+}
+.mkt-card-note a { color: var(--spark); text-decoration: underline; }
+
+/* Descrição COMPLETA — sem recorte, sem scroll interno: o painel inteiro rola. */
+.mkt-desc {
+  border-top: 1px solid color-mix(in srgb, var(--stroke) 85%, transparent);
+  font-size: .82rem;
+  line-height: 1.55;
+  padding-top: .55rem;
+}
+.mkt-desc :is(h1, h2, h3, h4) {
+  color: var(--ember);
+  font-family: 'Cinzel', serif;
+  font-size: .88rem;
   font-weight: 800;
-  letter-spacing: .06em;
-  padding: .3rem .7rem;
-  text-transform: uppercase;
-  transition: filter .2s ease, opacity .2s ease;
-  white-space: nowrap;
-}
-.shop-btn.buy { background: var(--ember); color: #fff; }
-.shop-btn.sell { background: transparent; border-color: var(--spark); color: var(--spark); }
-.shop-btn:hover { filter: brightness(1.12); }
-.shop-btn:disabled { cursor: default; opacity: .45; }
-
-.goods-attune {
-  align-items: center;
-  background: rgba(239, 68, 68, .12);
-  border: 1px solid rgba(239, 68, 68, .4);
-  border-radius: 999px;
-  color: #ef4444;
-  display: inline-flex;
-  font-size: .58rem;
-  font-weight: 900;
-  height: 1.1rem;
-  justify-content: center;
-  position: absolute;
-  right: .45rem;
-  top: .45rem;
-  width: 1.1rem;
-}
-
-/* Moldura por raridade (vitrine mágica) */
-.goods.rarity-comum::before { background: var(--rar-comum); }
-.goods.rarity-incomum::before { background: var(--rar-incomum); }
-.goods.rarity-raro::before { background: var(--rar-raro); }
-.goods.rarity-muito_raro::before { background: var(--rar-muito_raro); }
-.goods.rarity-lendario::before { background: var(--rar-lendario); }
-.goods.rarity-artefato::before { background: var(--rar-artefato); }
-
-.goods-rarity {
-  border-radius: 999px;
-  display: inline-block;
-  font-size: .58rem;
-  font-weight: 800;
-  letter-spacing: .1em;
-  margin-bottom: .2rem;
-  padding: .08rem .4rem;
+  margin: .6rem 0 .25rem;
   text-transform: uppercase;
 }
-.rarity-comum .goods-rarity { background: rgba(148, 163, 184, .12); color: var(--rar-comum); }
-.rarity-incomum .goods-rarity { background: rgba(34, 197, 94, .12); color: var(--rar-incomum); }
-.rarity-raro .goods-rarity { background: rgba(59, 130, 246, .12); color: var(--rar-raro); }
-.rarity-muito_raro .goods-rarity { background: rgba(168, 85, 247, .14); color: #c084fc; }
-.rarity-lendario .goods-rarity { background: rgba(249, 115, 22, .14); color: var(--rar-lendario); }
-.rarity-artefato .goods-rarity { background: rgba(239, 68, 68, .14); color: var(--rar-artefato); }
+.mkt-desc p { margin: .35rem 0; }
+.mkt-desc ul, .mkt-desc ol { margin: .35rem 0 .35rem 1.1rem; }
+.mkt-desc li { margin: .15rem 0; }
+.mkt-desc strong { color: var(--text); }
+.mkt-desc table { display: block; max-width: 100%; overflow-x: auto; }
 
-.shop-chip-dot.rarity-comum { background: var(--rar-comum); color: var(--rar-comum); }
-.shop-chip-dot.rarity-incomum { background: var(--rar-incomum); color: var(--rar-incomum); }
-.shop-chip-dot.rarity-raro { background: var(--rar-raro); color: var(--rar-raro); }
-.shop-chip-dot.rarity-muito_raro { background: var(--rar-muito_raro); color: var(--rar-muito_raro); }
-.shop-chip-dot.rarity-lendario { background: var(--rar-lendario); color: var(--rar-lendario); }
-.shop-chip-dot.rarity-artefato { background: var(--rar-artefato); color: var(--rar-artefato); }
+/* ═══════════════════════ RARIDADE ═══════════════════════ */
+.mkt-row.rarity-comum, .mkt-card.rarity-comum { --mkt-accent: var(--rar-comum); }
+.mkt-row.rarity-incomum, .mkt-card.rarity-incomum { --mkt-accent: var(--rar-incomum); }
+.mkt-row.rarity-raro, .mkt-card.rarity-raro { --mkt-accent: var(--rar-raro); }
+.mkt-row.rarity-muito_raro, .mkt-card.rarity-muito_raro { --mkt-accent: #c084fc; }
+.mkt-row.rarity-lendario, .mkt-card.rarity-lendario { --mkt-accent: var(--rar-lendario); }
+.mkt-row.rarity-artefato, .mkt-card.rarity-artefato { --mkt-accent: var(--rar-artefato); }
+.mkt-row-dot { background: var(--mkt-accent); box-shadow: 0 0 5px var(--mkt-accent); }
 
-@media (max-width: 480px) {
-  .shelf-grid { grid-template-columns: minmax(0, 1fr); }
-  .goods-foot { justify-content: space-between; }
+/* O acento do item selecionado vaza para o painel (brilho de fundo e moldura do
+   retrato) — a coluna da direita "veste" a raridade do que está em destaque. */
+.mkt-preview:has(.mkt-card.rarity-comum) { --mkt-accent: var(--rar-comum); }
+.mkt-preview:has(.mkt-card.rarity-incomum) { --mkt-accent: var(--rar-incomum); }
+.mkt-preview:has(.mkt-card.rarity-raro) { --mkt-accent: var(--rar-raro); }
+.mkt-preview:has(.mkt-card.rarity-muito_raro) { --mkt-accent: #c084fc; }
+.mkt-preview:has(.mkt-card.rarity-lendario) { --mkt-accent: var(--rar-lendario); }
+.mkt-preview:has(.mkt-card.rarity-artefato) { --mkt-accent: var(--rar-artefato); }
+
+/* ═══════════════════════ MOBILE ═══════════════════════ */
+@media (max-width: 1023px) {
+  /* Sem espaço para coluna: o painel vira uma FOLHA que sobe de baixo quando o
+     jogador toca num item — a lista continua inteira atrás dela. O painel já
+     nasce preenchido (primeiro item), só não aparece até alguém escolher. */
+  .mkt-preview {
+    border-radius: 14px 14px 0 0;
+    bottom: 0;
+    box-shadow: 0 -14px 40px rgba(0, 0, 0, .6);
+    left: 0;
+    max-height: 84vh;
+    position: fixed;
+    right: 0;
+    transform: translateY(101%);
+    transition: transform .22s ease;
+    visibility: hidden;
+    z-index: 60;
+  }
+  .shop.is-sheet-open .mkt-preview { transform: translateY(0); visibility: visible; }
+  .mkt-preview::before {
+    background: var(--stroke);
+    border-radius: 999px;
+    content: '';
+    height: 4px;
+    left: 50%;
+    position: absolute;
+    top: .4rem;
+    transform: translateX(-50%);
+    width: 2.5rem;
+  }
+  .mkt-preview-inner { max-height: 84vh; padding: 1.2rem .9rem .9rem; }
+  .mkt-sheet-close {
+    background: var(--bg0);
+    border: 1px solid var(--stroke);
+    border-radius: 999px;
+    color: var(--muted);
+    cursor: pointer;
+    display: block;
+    font-size: .62rem;
+    font-weight: 800;
+    letter-spacing: .12em;
+    padding: .2rem .6rem;
+    position: absolute;
+    right: .6rem;
+    text-transform: uppercase;
+    top: .55rem;
+    z-index: 1;
+  }
+  .mkt-card-name { font-size: 1.2rem; }
+  .mkt-figure { min-height: 7rem; }
+  .mkt-sigil { height: 4.8rem; width: 4.8rem; }
+  .mkt-sigil-letter { font-size: 2rem; }
+}
+@media (max-width: 520px) {
+  .mkt-bar-id { flex: 1 1 100%; }
+  .mkt-picker { flex: 1 1 100%; }
+  .mkt-picker select { flex: 1 1 auto; max-width: none; }
+  .mkt-wallet { flex: 1 1 100%; justify-content: space-between; }
+  .mkt-tools { flex-direction: column; }
+  .mkt-search, .mkt-select { flex: 1 1 auto; width: 100%; }
 }

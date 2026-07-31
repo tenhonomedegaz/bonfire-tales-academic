@@ -1,91 +1,120 @@
 {% load static %}
-{% comment %}VITRINE MÁGICA (Ficha v2, onda C) — loja, não wiki.
+{% comment %}VITRINE MÁGICA — loja MASTER-DETAIL.
 
-Prateleiras = o campo `loja` do catálogo (Alquimia, Forja, Joalheria, Estábulos…), com o
-Bazar Geral recolhendo o que não declara loja. A raridade pinta moldura e selo; o preço em
-PO é a manchete do card. Comprar posta em `personagem_comprar_magico` para o personagem
-ativo do balcão. Sem preço (ou preço 0) = recompensa de missão: fica na vitrine sem botão,
-mesma guarda que o backend aplica.{% endcomment %}
+Mesma anatomia da vitrine mundana: LISTA compacta à esquerda (raridade discreta em ponto +
+nome + tipo + preço) e o PAINEL DE DESTAQUE à direita com a prévia completa — imagem (ou
+selo temático pintado pela raridade quando o catálogo não tem `imagem_url`), preço grande,
+sintonização, descrição em markdown e o botão de compra.
+
+O campo `loja` do catálogo (Alquimia, Forja, Joalheria…) e a raridade deixaram de ser
+prateleiras e viraram dois filtros. Sem preço (ou preço 0) = recompensa de missão: fica na
+vitrine com o selo e sem botão, mesma guarda que o backend aplica.{% endcomment %}
 <div class="shop" data-shop-root data-shop-kind="magico">
 
   {% include 'home/partials/_mercado_balcao.html' with balcao_titulo='Casa dos Arcanos' %}
 
-  <div class="shop-main">
-    <div class="shop-filters">
-      <input type="search" class="shop-search" data-shop-search autocomplete="off"
-             placeholder="Buscar item mágico pelo nome…" aria-label="Buscar item mágico">
-      <div class="shop-chips" data-shop-chips>
-        <button type="button" class="shop-chip is-active" data-rarity-filter="todas">Todas as raridades</button>
-        {% for r in raridades_filtro %}
-        <button type="button" class="shop-chip" data-rarity-filter="{{ r.value }}"><span class="shop-chip-dot rarity-{{ r.base }}"></span>{{ r.label }}</button>
-        {% endfor %}
+  <div class="mkt-browse">
+    {% if mercado_ativo %}
+    <div class="mkt-tabs" role="tablist">
+      <button type="button" class="mkt-tab is-active" role="tab" data-shop-tab="comprar" aria-selected="true">Comprar</button>
+      <button type="button" class="mkt-tab" role="tab" data-shop-tab="vender" aria-selected="false">Vender</button>
+    </div>
+    {% endif %}
+
+    <div class="mkt-pane" data-shop-pane="comprar" role="tabpanel">
+      <div class="mkt-tools">
+        <input type="search" class="mkt-search" data-shop-search autocomplete="off"
+               placeholder="Buscar item mágico pelo nome…" aria-label="Buscar item mágico">
+        <select class="mkt-select" data-shop-group aria-label="Filtrar por loja">
+          <option value="todas">Todas as lojas</option>
+          {% for g in grupos_filtro %}
+          <option value="{{ g.value }}">{{ g.label }} ({{ g.total }})</option>
+          {% endfor %}
+        </select>
+        <select class="mkt-select" data-shop-rarity aria-label="Filtrar por raridade">
+          <option value="todas">Todas as raridades</option>
+          {% for r in raridades_filtro %}
+          <option value="{{ r.value }}">{{ r.label }}</option>
+          {% endfor %}
+        </select>
       </div>
-      <p class="shop-count"><strong data-shop-count>0</strong> mercadorias na vitrine</p>
+      <p class="mkt-count"><strong data-shop-count>0</strong> itens · setas ↑↓ navegam</p>
+
+      <ul class="mkt-list" data-shop-list>
+        {% for item in itens %}
+        <li>
+          <button type="button" class="mkt-row rarity-{{ item.base_rarity }}" data-mkt-row data-target="mi-{{ item.id_item }}"
+                  data-group="{{ item.grupo_id }}" data-rarity="{{ item.raridade }}" aria-selected="false"
+                  data-search="{{ item.nome|lower }} {{ item.raridade_label|lower }} {{ item.tipo_label|lower }} {{ item.loja|lower }}">
+            <span class="mkt-row-dot" title="{{ item.raridade_label }}" aria-hidden="true"></span>
+            <span class="mkt-row-name" title="{{ item.nome }}">{{ item.nome }}{% if item.requer_sintonizacao %} <span class="mkt-row-attune" title="Requer sintonização">⟡</span>{% endif %}</span>
+            <span class="mkt-row-meta">{{ item.raridade_label }}{% if item.tipo_label %} · {{ item.tipo_label }}{% endif %}</span>
+            {% if item.preco_display %}<span class="mkt-row-price">{{ item.preco_display }}</span>
+            {% else %}<span class="mkt-row-price is-mission">missão</span>{% endif %}
+          </button>
+        </li>
+        {% endfor %}
+      </ul>
+      <p class="mkt-empty" data-shop-noresult hidden>Nenhum item encontrado com esse filtro.</p>
+      {% if not itens %}<p class="mkt-empty">Nenhum item mágico foi catalogado ainda.</p>{% endif %}
     </div>
 
-    {% for g in prateleiras %}
-    <section class="shop-shelf" data-shelf="{{ g.id }}">
-      <header class="shelf-head">
-        <h2 class="shelf-name">{{ g.label }}</h2>
-        <span class="shelf-count">{{ g.a_venda }} à venda · {{ g.itens|length }} no catálogo</span>
-      </header>
-      <div class="shelf-grid">
-        {% for item in g.itens %}
-        <article class="goods rarity-{{ item.base_rarity }}" data-goods data-rarity="{{ item.raridade }}"
-                 data-search="{{ item.nome|lower }} {{ item.raridade_label|lower }} {{ item.tipo_label|lower }} {{ item.loja|lower }}">
-          {% if item.requer_sintonizacao %}<span class="goods-attune" title="Requer sintonização">S</span>{% endif %}
-          <button type="button" class="goods-face" data-goods-open="mi-{{ item.id_item }}">
-            <span class="goods-rarity">{{ item.raridade_label }}</span>
-            <h3 class="goods-name">{{ item.nome }}</h3>
-            <p class="goods-meta">{{ item.tipo_label }}</p>
-          </button>
-          <div class="goods-foot">
-            {% if item.preco_display %}
-              <span class="goods-price">{{ item.preco_display }}</span>
-              {% if mercado_ativo %}
-              <form method="post" action="{% url 'personagem_comprar_magico' mercado_ativo.id_personagem %}" class="goods-buy" data-shop-buy>
-                {% csrf_token %}
-                <input type="hidden" name="item" value="{{ item.slug }}">
-                <input type="hidden" name="next" value="{{ mercado_next }}">
-                <button type="submit" class="shop-btn buy" data-nome="{{ item.nome }}">Comprar</button>
-              </form>
-              {% endif %}
-            {% else %}
-              <span class="goods-price is-mission">Recompensa de missão</span>
-            {% endif %}
-          </div>
-        </article>
-        {% endfor %}
-      </div>
-      <p class="shelf-empty" data-shelf-empty hidden>Nada nesta prateleira com o filtro atual.</p>
-    </section>
-    {% empty %}
-    <p class="shop-empty">Nenhum item mágico foi catalogado ainda.</p>
-    {% endfor %}
-
-    <p class="shop-empty" data-shop-noresult hidden>Nenhuma mercadoria encontrada.</p>
+    {% if mercado_ativo %}
+    <div class="mkt-pane" data-shop-pane="vender" role="tabpanel" hidden>
+      <div data-shop-venda>{% include 'home/partials/_mercado_venda.html' %}</div>
+    </div>
+    {% endif %}
   </div>
 
-  {# Detalhe de cada mercadoria, renderizado server-side e mostrado no balcão ao clicar. #}
-  <div class="shop-store" hidden>
+  {# PAINEL DE DESTAQUE: prévia do item — coluna sticky no desktop, folha no mobile. #}
+  <aside class="mkt-preview" data-shop-preview>
+    <button type="button" class="mkt-sheet-close" data-shop-sheet-close>Fechar</button>
+    <div class="mkt-preview-inner" data-shop-detail>
+      <p class="mkt-preview-empty">Escolha um item na lista para ver a prévia completa aqui.</p>
+    </div>
+  </aside>
+
+  {# Prévia de cada item, server-side, clonada no painel ao selecionar. #}
+  {# `spaceless` porque isto repete por item: a indentação sozinha custaria mais de cem KB. #}
+  <div class="mkt-store" hidden>
+    {% spaceless %}
     {% for item in itens %}
     <template id="mi-{{ item.id_item }}-tpl">
-      <div class="shop-detail-card rarity-{{ item.base_rarity }}">
-        <span class="goods-rarity">{{ item.raridade_label }}</span>
-        <h3 class="shop-detail-name">{{ item.nome }}</h3>
-        <span class="shop-detail-eyebrow">{{ item.tipo_label }}{% if item.loja %} · {{ item.loja }}{% endif %}</span>
-        <div class="shop-detail-stats">
-          <span class="shop-stat is-price"><span>Preço</span><strong>{{ item.preco_display|default:"Recompensa de missão" }}</strong></span>
-          {% if item.slot %}<span class="shop-stat"><span>Slot</span><strong>{{ item.get_slot_display }}</strong></span>{% endif %}
-          {% if item.requer_sintonizacao %}<span class="shop-stat"><span>Sintonização</span><strong>{{ item.detalhes_sintonizacao|default:"Exigida" }}</strong></span>{% endif %}
+      <article class="mkt-card rarity-{{ item.base_rarity }}">
+        <figure class="mkt-figure">
+          {% if item.imagem_url %}<img src="{{ item.imagem_url }}" alt="{{ item.nome }}" loading="lazy">
+          {% else %}<span class="mkt-sigil"><span class="mkt-sigil-letter">{{ item.nome|first|upper }}</span></span>{% endif %}
+          <figcaption>{{ item.raridade_label }}</figcaption>
+        </figure>
+        <p class="mkt-card-kind"><span class="mkt-rarity-tag">{{ item.raridade_label }}</span>{% if item.tipo_label %} {{ item.tipo_label }}{% endif %}{% if item.loja %} · {{ item.loja }}{% endif %}</p>
+        <h3 class="mkt-card-name">{{ item.nome }}</h3>
+        <div class="mkt-deal">
+          {% if item.preco_display %}
+            <span class="mkt-price">{{ item.preco_display }}</span>
+            {% if mercado_ativo %}
+            <form method="post" action="{% url 'personagem_comprar_magico' mercado_ativo.id_personagem %}" class="mkt-buy" data-shop-buy>
+              {% csrf_token %}
+              <input type="hidden" name="item" value="{{ item.slug }}">
+              <input type="hidden" name="next" value="{{ mercado_next }}">
+              <button type="submit" class="mkt-btn is-buy" data-nome="{{ item.nome }}">Comprar</button>
+            </form>
+            {% endif %}
+          {% else %}
+            <span class="mkt-seal">Recompensa de missão</span>
+          {% endif %}
         </div>
+        <dl class="mkt-stats">
+          {% if item.slot %}<div><dt>Slot</dt><dd>{{ item.get_slot_display }}</dd></div>{% endif %}
+          <div><dt>Sintonização</dt><dd>{% if item.requer_sintonizacao %}{{ item.detalhes_sintonizacao|default:"Exigida" }}{% else %}Não exige{% endif %}</dd></div>
+        </dl>
         {% if item.descricao_markdown %}
-        <div class="bonfire-markdown shop-detail-desc" data-markdown-source>{{ item.descricao_markdown|escape }}</div>
+        <div class="bonfire-markdown mkt-desc" data-markdown-source>{{ item.descricao_markdown|escape }}</div>
         {% else %}
-        <p class="shop-detail-line"><em>Sem descrição catalogada.</em></p>
+        <p class="mkt-card-line"><em>Sem descrição catalogada.</em></p>
         {% endif %}
-      </div>
+      </article>
     </template>
     {% endfor %}
+    {% endspaceless %}
   </div>
 </div>

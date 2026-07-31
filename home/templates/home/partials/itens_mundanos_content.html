@@ -1,92 +1,121 @@
 {% load static %}
-{% comment %}VITRINE MUNDANA (Ficha v2, onda C) — loja, não wiki.
+{% comment %}VITRINE MUNDANA — loja MASTER-DETAIL.
 
-Prateleiras = as CATEGORIAS do catálogo (dado, nunca lista fixa no template): cada seção é
-uma banca com sua grade de mercadorias. O card destaca NOME → META → PREÇO EM PO, e o botão
-Comprar posta nos endpoints de sempre (`personagem_comprar_item`) para o personagem ativo do
-balcão. Item sem preço fica exposto para consulta, com o rótulo "Recompensa de missão" e sem
-botão — a mesma guarda existe no backend.{% endcomment %}
+As prateleiras em blocos morreram: a vitrine é uma LISTA compacta (nome · meta · preço em
+PO/PP/PC) com busca e um filtro de categoria, e ao lado o PAINEL DE DESTAQUE com a prévia
+completa do item selecionado — imagem (ou selo temático quando o catálogo não tem
+`imagem_url`), preço grande, ficha mecânica, descrição em markdown e o botão de compra.
+
+A categoria continua vindo do catálogo (dado, nunca lista fixa): ela só deixou de ser seção
+e virou opção de filtro. Item sem preço fica exposto para consulta com o selo "Recompensa de
+missão" no lugar do botão — a mesma guarda existe no backend.{% endcomment %}
 <div class="shop" data-shop-root data-shop-kind="mundano">
 
   {% include 'home/partials/_mercado_balcao.html' with balcao_titulo='Armaria & Provisões' %}
 
-  <div class="shop-main">
-    <div class="shop-filters">
-      <input type="search" class="shop-search" data-shop-search autocomplete="off"
-             placeholder="Buscar mercadoria pelo nome…" aria-label="Buscar mercadoria">
-      <div class="shop-chips" data-shop-chips>
-        <button type="button" class="shop-chip is-active" data-shelf-filter="todas">Todas as prateleiras</button>
-        {% for c in categorias_filtro %}
-        <button type="button" class="shop-chip" data-shelf-filter="{{ c.value }}">{{ c.label }}</button>
-        {% endfor %}
+  <div class="mkt-browse">
+    {% if mercado_ativo %}
+    <div class="mkt-tabs" role="tablist">
+      <button type="button" class="mkt-tab is-active" role="tab" data-shop-tab="comprar" aria-selected="true">Comprar</button>
+      <button type="button" class="mkt-tab" role="tab" data-shop-tab="vender" aria-selected="false">Vender</button>
+    </div>
+    {% endif %}
+
+    <div class="mkt-pane" data-shop-pane="comprar" role="tabpanel">
+      <div class="mkt-tools">
+        <input type="search" class="mkt-search" data-shop-search autocomplete="off"
+               placeholder="Buscar item pelo nome…" aria-label="Buscar item">
+        <select class="mkt-select" data-shop-group aria-label="Filtrar por categoria">
+          <option value="todas">Todas as categorias</option>
+          {% for g in grupos_filtro %}
+          <option value="{{ g.value }}">{{ g.label }} ({{ g.total }})</option>
+          {% endfor %}
+        </select>
       </div>
-      <p class="shop-count"><strong data-shop-count>0</strong> mercadorias na vitrine</p>
+      <p class="mkt-count"><strong data-shop-count>0</strong> itens · setas ↑↓ navegam</p>
+
+      <ul class="mkt-list" data-shop-list>
+        {% for item in itens %}
+        <li>
+          <button type="button" class="mkt-row" data-mkt-row data-target="mu-{{ item.id_item }}"
+                  data-group="{{ item.grupo_id }}" aria-selected="false"
+                  data-search="{{ item.nome|lower }} {{ item.cat_label|lower }} {{ item.sub_label|lower }}">
+            <span class="mkt-row-name" title="{{ item.nome }}">{{ item.nome }}</span>
+            <span class="mkt-row-meta">{{ item.sub_label|default:item.cat_label }}{% if item.mec_dano %} · {{ item.mec_dano }}{% elif item.mec_ca %} · CA {{ item.mec_ca }}{% endif %}</span>
+            {% if item.preco_display %}<span class="mkt-row-price">{{ item.preco_display }}</span>
+            {% else %}<span class="mkt-row-price is-mission">missão</span>{% endif %}
+          </button>
+        </li>
+        {% endfor %}
+      </ul>
+      <p class="mkt-empty" data-shop-noresult hidden>Nenhum item encontrado com esse filtro.</p>
+      {% if not itens %}<p class="mkt-empty">Nenhum item mundano foi catalogado ainda.</p>{% endif %}
     </div>
 
-    {% for g in prateleiras %}
-    <section class="shop-shelf" data-shelf="{{ g.id }}">
-      <header class="shelf-head">
-        <h2 class="shelf-name">{{ g.label }}</h2>
-        <span class="shelf-count">{{ g.a_venda }} à venda · {{ g.itens|length }} no catálogo</span>
-      </header>
-      <div class="shelf-grid">
-        {% for item in g.itens %}
-        <article class="goods" data-goods
-                 data-search="{{ item.nome|lower }} {{ item.cat_label|lower }} {{ item.sub_label|lower }}">
-          <button type="button" class="goods-face" data-goods-open="mu-{{ item.id_item }}">
-            <h3 class="goods-name">{{ item.nome }}</h3>
-            <p class="goods-meta">{{ item.sub_label|default:item.cat_label }}{% if item.mec_dano %} · {{ item.mec_dano }}{% elif item.mec_ca %} · CA {{ item.mec_ca }}{% endif %}</p>
-          </button>
-          <div class="goods-foot">
-            {% if item.preco_display %}
-              <span class="goods-price">{{ item.preco_display }}</span>
-              {% if mercado_ativo %}
-              <form method="post" action="{% url 'personagem_comprar_item' mercado_ativo.id_personagem %}" class="goods-buy" data-shop-buy>
-                {% csrf_token %}
-                <input type="hidden" name="item" value="{{ item.slug }}">
-                <input type="hidden" name="next" value="{{ mercado_next }}">
-                <input type="number" name="qtd" min="1" max="99" value="1" class="goods-qty" aria-label="Quantidade de {{ item.nome }}">
-                <button type="submit" class="shop-btn buy" data-nome="{{ item.nome }}">Comprar</button>
-              </form>
-              {% endif %}
-            {% else %}
-              <span class="goods-price is-mission">Recompensa de missão</span>
-            {% endif %}
-          </div>
-        </article>
-        {% endfor %}
-      </div>
-      <p class="shelf-empty" data-shelf-empty hidden>Nada nesta prateleira com o filtro atual.</p>
-    </section>
-    {% empty %}
-    <p class="shop-empty">Nenhum item mundano foi catalogado ainda.</p>
-    {% endfor %}
-
-    <p class="shop-empty" data-shop-noresult hidden>Nenhuma mercadoria encontrada.</p>
+    {% if mercado_ativo %}
+    <div class="mkt-pane" data-shop-pane="vender" role="tabpanel" hidden>
+      <div data-shop-venda>{% include 'home/partials/_mercado_venda.html' %}</div>
+    </div>
+    {% endif %}
   </div>
 
-  {# Detalhe de cada mercadoria, renderizado server-side e mostrado no balcão ao clicar. #}
-  <div class="shop-store" hidden>
+  {# PAINEL DE DESTAQUE: prévia do item — coluna sticky no desktop, folha no mobile. #}
+  <aside class="mkt-preview" data-shop-preview>
+    <button type="button" class="mkt-sheet-close" data-shop-sheet-close>Fechar</button>
+    <div class="mkt-preview-inner" data-shop-detail>
+      <p class="mkt-preview-empty">Escolha um item na lista para ver a prévia completa aqui.</p>
+    </div>
+  </aside>
+
+  {# Prévia de cada item, server-side, clonada no painel ao selecionar. #}
+  {# `spaceless` porque isto repete por item: a indentação sozinha custaria dezenas de KB. #}
+  <div class="mkt-store" hidden>
+    {% spaceless %}
     {% for item in itens %}
     <template id="mu-{{ item.id_item }}-tpl">
-      <div class="shop-detail-card">
-        <span class="shop-detail-eyebrow">{{ item.cat_label }}{% if item.sub_label %} · {{ item.sub_label }}{% endif %}</span>
-        <h3 class="shop-detail-name">{{ item.nome }}</h3>
-        <div class="shop-detail-stats">
-          <span class="shop-stat is-price"><span>Preço</span><strong>{{ item.preco_display|default:"Recompensa de missão" }}</strong></span>
-          {% if item.mec_dano %}<span class="shop-stat"><span>Dano</span><strong>{{ item.mec_dano }}</strong></span>{% endif %}
-          {% if item.mec_ca %}<span class="shop-stat"><span>Armadura</span><strong>CA {{ item.mec_ca }}</strong></span>{% endif %}
-          {% if item.peso %}<span class="shop-stat"><span>Peso</span><strong>{{ item.peso }} kg</strong></span>{% endif %}
-          {% if item.mec_forca_minima %}<span class="shop-stat"><span>Força mín.</span><strong>{{ item.mec_forca_minima }}</strong></span>{% endif %}
+      <article class="mkt-card">
+        <figure class="mkt-figure">
+          {% if item.imagem_url %}<img src="{{ item.imagem_url }}" alt="{{ item.nome }}" loading="lazy">
+          {% else %}<span class="mkt-sigil"><span class="mkt-sigil-letter">{{ item.nome|first|upper }}</span></span>{% endif %}
+          <figcaption>{{ item.cat_label }}</figcaption>
+        </figure>
+        <p class="mkt-card-kind">{{ item.cat_label }}{% if item.sub_label %} · {{ item.sub_label }}{% endif %}</p>
+        <h3 class="mkt-card-name">{{ item.nome }}</h3>
+        <div class="mkt-deal">
+          {% if item.preco_display %}
+            <span class="mkt-price">{{ item.preco_display }}</span>
+            {% if mercado_ativo %}
+            <form method="post" action="{% url 'personagem_comprar_item' mercado_ativo.id_personagem %}" class="mkt-buy" data-shop-buy>
+              {% csrf_token %}
+              <input type="hidden" name="item" value="{{ item.slug }}">
+              <input type="hidden" name="next" value="{{ mercado_next }}">
+              <input type="number" name="qtd" min="1" max="99" value="1" class="mkt-qty" aria-label="Quantidade de {{ item.nome }}">
+              <button type="submit" class="mkt-btn is-buy" data-nome="{{ item.nome }}">Comprar</button>
+            </form>
+            {% endif %}
+          {% else %}
+            <span class="mkt-seal">Recompensa de missão</span>
+          {% endif %}
         </div>
-        {% if item.mec_propriedades %}<p class="shop-detail-line"><strong>Propriedades:</strong> {{ item.mec_propriedades }}</p>{% endif %}
-        {% if item.mec_maestrias %}<p class="shop-detail-line"><strong>Maestria:</strong> {{ item.mec_maestrias }}</p>{% endif %}
-        {% if item.mec_furtividade %}<p class="shop-detail-line" style="color:var(--flame)"><strong>Desvantagem em Furtividade</strong></p>{% endif %}
-        {% if item.descricao_markdown %}
-        <div class="bonfire-markdown shop-detail-desc" data-markdown-source>{{ item.descricao_markdown|escape }}</div>
+        {% if item.mec_dano or item.mec_ca or item.peso or item.mec_forca_minima %}
+        <dl class="mkt-stats">
+          {% if item.mec_dano %}<div><dt>Dano</dt><dd>{{ item.mec_dano }}</dd></div>{% endif %}
+          {% if item.mec_ca %}<div><dt>Armadura</dt><dd>CA {{ item.mec_ca }}</dd></div>{% endif %}
+          {% if item.peso %}<div><dt>Peso</dt><dd>{{ item.peso }} kg</dd></div>{% endif %}
+          {% if item.mec_forca_minima %}<div><dt>Força mín.</dt><dd>{{ item.mec_forca_minima }}</dd></div>{% endif %}
+        </dl>
         {% endif %}
-      </div>
+        {% if item.mec_propriedades %}<p class="mkt-card-line"><strong>Propriedades:</strong> {{ item.mec_propriedades }}</p>{% endif %}
+        {% if item.mec_maestrias %}<p class="mkt-card-line"><strong>Maestria:</strong> {{ item.mec_maestrias }}</p>{% endif %}
+        {% if item.mec_furtividade %}<p class="mkt-card-line is-warn"><strong>Desvantagem em Furtividade</strong></p>{% endif %}
+        {% if item.descricao_markdown %}
+        <div class="bonfire-markdown mkt-desc" data-markdown-source>{{ item.descricao_markdown|escape }}</div>
+        {% else %}
+        <p class="mkt-card-line"><em>Sem descrição catalogada.</em></p>
+        {% endif %}
+      </article>
     </template>
     {% endfor %}
+    {% endspaceless %}
   </div>
 </div>
