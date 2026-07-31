@@ -7,6 +7,17 @@
     --profile-accent-2: var(--flame);
     --profile-surface: var(--bg1);
     --profile-deep: var(--bg0);
+    /* Espelho SÓLIDO/semântico do tema para uso interno deste arquivo. --profile-accent
+       pode chegar como linear-gradient (tema com gradiente) e aí não serve em `color`,
+       `border-color` nem dentro de color-mix(); --pf-accent resolve isso de uma vez.
+       As semânticas (ok/err/info) ficam fora do tema de propósito. */
+    --pf-accent: var(--profile-accent-solid, var(--profile-accent));
+    --pf-accent-2: var(--profile-accent-2);
+    --pf-gold: var(--profile-gold, var(--spark));
+    --pf-ok: #22c55e;
+    --pf-err: #ef4444;
+    --pf-info: #3b82f6;
+    --pf-info-fg: #93c5fd;
     max-width: 680px;
     margin: 0 auto;
     padding: 1.25rem 0;
@@ -58,7 +69,7 @@
     inset: 0;
     z-index: -1;
     background:
-        radial-gradient(120% 90% at 50% -10%, color-mix(in srgb, var(--profile-accent-solid, var(--profile-accent)) 22%, transparent), transparent 60%),
+        radial-gradient(120% 90% at 50% -10%, color-mix(in srgb, var(--pf-accent) 22%, transparent), transparent 60%),
         linear-gradient(180deg, color-mix(in srgb, var(--profile-deep) 78%, transparent), color-mix(in srgb, var(--profile-deep) 94%, transparent));
 }
 
@@ -105,7 +116,7 @@
     left: 0;
     right: 0;
     height: 4px;
-    background: linear-gradient(to right, var(--profile-accent-2), var(--profile-accent));
+    background: linear-gradient(to right, var(--profile-accent-2), var(--pf-accent));
 }
 
 .profile-avatar-wrapper {
@@ -116,7 +127,7 @@
     border: 3px solid var(--stroke);
     overflow: hidden;
     background: var(--bg0);
-    box-shadow: 0 0 20px rgba(210, 23, 23, 0.15);
+    box-shadow: 0 0 20px color-mix(in srgb, var(--pf-accent-2) 15%, transparent);
     transition: border-color 0.3s;
 }
 
@@ -126,7 +137,7 @@
 }
 
 .profile-avatar-wrapper:hover {
-    border-color: var(--profile-accent);
+    border-color: var(--pf-accent);
 }
 
 /* Base para molduras animadas: pseudo-elemento que gira/pulsa por cima da borda. */
@@ -275,15 +286,15 @@
 }
 
 .profile-role.is-staff {
-    background: linear-gradient(135deg, var(--profile-accent-2), var(--profile-accent));
+    background: linear-gradient(135deg, var(--profile-accent-2), var(--pf-accent));
     border: none;
     color: #fff;
-    box-shadow: 0 0 12px rgba(210, 23, 23, 0.3);
+    box-shadow: 0 0 12px color-mix(in srgb, var(--pf-accent-2) 30%, transparent);
 }
 
 .profile-public-link {
     z-index: 1;
-    color: var(--profile-accent);
+    color: var(--pf-accent);
     font-size: 0.76rem;
     font-weight: 800;
     text-transform: uppercase;
@@ -301,7 +312,7 @@
 }
 
 .profile-section:hover {
-    border-color: color-mix(in srgb, var(--stroke) 70%, var(--ember));
+    border-color: color-mix(in srgb, var(--stroke) 70%, var(--pf-accent));
 }
 
 .profile-section-title {
@@ -310,7 +321,7 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.12em;
-    color: var(--profile-accent);
+    color: var(--pf-accent);
     margin-bottom: 0.75rem;
     padding-bottom: 0.5rem;
     border-bottom: 1px solid var(--stroke);
@@ -361,8 +372,8 @@
 }
 
 .profile-input:focus {
-    border-color: var(--profile-accent);
-    box-shadow: 0 0 0 2px rgba(242, 112, 7, 0.15);
+    border-color: var(--pf-accent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--pf-accent) 15%, transparent);
 }
 
 .profile-input::placeholder {
@@ -400,10 +411,10 @@
     justify-content: center;
     min-height: 36px;
     margin-top: 0.45rem;
-    border: 1px dashed color-mix(in srgb, var(--profile-accent) 45%, var(--stroke));
+    border: 1px dashed color-mix(in srgb, var(--pf-accent) 45%, var(--stroke));
     border-radius: 6px;
-    background: color-mix(in srgb, var(--profile-accent) 8%, var(--bg0));
-    color: var(--profile-accent);
+    background: color-mix(in srgb, var(--pf-accent) 8%, var(--bg0));
+    color: var(--pf-accent);
     font-size: 0.78rem;
     font-weight: 800;
     text-transform: uppercase;
@@ -412,8 +423,8 @@
 }
 
 .profile-file-drop:hover {
-    border-color: var(--profile-accent);
-    background: color-mix(in srgb, var(--profile-accent) 13%, var(--bg0));
+    border-color: var(--pf-accent);
+    background: color-mix(in srgb, var(--pf-accent) 13%, var(--bg0));
 }
 
 .profile-file-drop input {
@@ -446,7 +457,7 @@
 }
 
 .profile-inline-check input {
-    accent-color: var(--profile-accent);
+    accent-color: var(--pf-accent);
 }
 
 /* Botão */
@@ -459,18 +470,18 @@
     font-size: 0.85rem;
     font-weight: 700;
     color: #fff;
-    background: linear-gradient(135deg, var(--profile-accent-2), var(--profile-accent));
+    background: linear-gradient(135deg, var(--profile-accent-2), var(--pf-accent));
     border: none;
     border-radius: 4px;
     cursor: pointer;
     margin-top: 0.7rem;
     transition: filter 0.2s, box-shadow 0.2s;
-    box-shadow: 0 0 12px rgba(210, 23, 23, 0.2);
+    box-shadow: 0 0 12px color-mix(in srgb, var(--pf-accent-2) 20%, transparent);
 }
 
 .profile-btn:hover {
     filter: brightness(1.15);
-    box-shadow: 0 0 20px rgba(210, 23, 23, 0.4);
+    box-shadow: 0 0 20px color-mix(in srgb, var(--pf-accent-2) 40%, transparent);
 }
 
 /* Toasts */
@@ -487,15 +498,15 @@
 }
 
 .profile-toast.success {
-    background: rgba(34, 197, 94, 0.1);
-    border: 1px solid rgba(34, 197, 94, 0.3);
-    color: #22c55e;
+    background: color-mix(in srgb, var(--pf-ok) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--pf-ok) 30%, transparent);
+    color: var(--pf-ok);
 }
 
 .profile-toast.error {
-    background: rgba(239, 68, 68, 0.1);
-    border: 1px solid rgba(239, 68, 68, 0.3);
-    color: #ef4444;
+    background: color-mix(in srgb, var(--pf-err) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--pf-err) 30%, transparent);
+    color: var(--pf-err);
 }
 
 @keyframes profile-toast-in {
@@ -535,7 +546,7 @@
 }
 
 .profile-checkbox-group:hover {
-    border-color: var(--profile-accent);
+    border-color: var(--pf-accent);
 }
 
 .profile-checkbox-group input[type="checkbox"] {
@@ -556,8 +567,8 @@
 }
 
 .profile-checkbox-group input[type="checkbox"]:checked {
-    background-color: var(--profile-accent);
-    border-color: var(--profile-accent);
+    background-color: var(--pf-accent);
+    border-color: var(--pf-accent);
 }
 
 .profile-checkbox-group input[type="checkbox"]::before {
@@ -596,7 +607,7 @@
 
 .effect-soft-glow .profile-header,
 .effect-soft-glow .public-profile-card {
-    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.35), 0 0 36px color-mix(in srgb, var(--profile-accent) 24%, transparent);
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.35), 0 0 36px color-mix(in srgb, var(--pf-accent) 24%, transparent);
 }
 
 .effect-glass .profile-header,
@@ -617,9 +628,9 @@
     inset: 0;
     pointer-events: none;
     background-image:
-        radial-gradient(circle at 15% 100%, color-mix(in srgb, var(--profile-accent) 60%, transparent) 0 1.5px, transparent 2.5px),
+        radial-gradient(circle at 15% 100%, color-mix(in srgb, var(--pf-accent) 60%, transparent) 0 1.5px, transparent 2.5px),
         radial-gradient(circle at 42% 100%, color-mix(in srgb, var(--profile-accent-2) 55%, transparent) 0 1.5px, transparent 2.5px),
-        radial-gradient(circle at 68% 100%, color-mix(in srgb, var(--profile-accent) 55%, transparent) 0 1.5px, transparent 2.5px),
+        radial-gradient(circle at 68% 100%, color-mix(in srgb, var(--pf-accent) 55%, transparent) 0 1.5px, transparent 2.5px),
         radial-gradient(circle at 88% 100%, color-mix(in srgb, var(--profile-accent-2) 55%, transparent) 0 1.5px, transparent 2.5px);
     background-size: 90px 160px, 130px 200px, 110px 180px, 150px 220px;
     background-repeat: repeat-x;
@@ -642,7 +653,7 @@
     pointer-events: none;
     background: linear-gradient(115deg,
         transparent 10%,
-        color-mix(in srgb, var(--profile-accent) 26%, transparent) 30%,
+        color-mix(in srgb, var(--pf-accent) 26%, transparent) 30%,
         transparent 45%,
         color-mix(in srgb, var(--profile-accent-2) 26%, transparent) 65%,
         transparent 85%);
@@ -667,7 +678,7 @@
     pointer-events: none;
     background-image:
         radial-gradient(circle at 20% 30%, #fff 0 1px, transparent 1.5px),
-        radial-gradient(circle at 70% 20%, color-mix(in srgb, var(--profile-accent) 80%, #fff) 0 1px, transparent 1.5px),
+        radial-gradient(circle at 70% 20%, color-mix(in srgb, var(--pf-accent) 80%, #fff) 0 1px, transparent 1.5px),
         radial-gradient(circle at 45% 70%, #fff 0 1px, transparent 1.5px),
         radial-gradient(circle at 85% 60%, color-mix(in srgb, var(--profile-accent-2) 80%, #fff) 0 1px, transparent 1.5px);
     background-size: 200px 200px, 240px 240px, 180px 180px, 220px 220px;
@@ -709,6 +720,17 @@
     --profile-accent-2: var(--flame);
     --profile-surface: var(--bg1);
     --profile-deep: var(--bg0);
+    /* Espelho SÓLIDO/semântico do tema para uso interno deste arquivo. --profile-accent
+       pode chegar como linear-gradient (tema com gradiente) e aí não serve em `color`,
+       `border-color` nem dentro de color-mix(); --pf-accent resolve isso de uma vez.
+       As semânticas (ok/err/info) ficam fora do tema de propósito. */
+    --pf-accent: var(--profile-accent-solid, var(--profile-accent));
+    --pf-accent-2: var(--profile-accent-2);
+    --pf-gold: var(--profile-gold, var(--spark));
+    --pf-ok: #22c55e;
+    --pf-err: #ef4444;
+    --pf-info: #3b82f6;
+    --pf-info-fg: #93c5fd;
     max-width: 900px;
     margin: 0 auto;
     padding: 1.25rem 0 2rem;
@@ -717,7 +739,7 @@
 .public-profile-back {
     display: inline-flex;
     margin-bottom: 0.5rem;
-    color: var(--profile-accent);
+    color: var(--pf-accent);
     font-size: 0.78rem;
     font-weight: 800;
     letter-spacing: 0.06em;
@@ -736,7 +758,7 @@
 
 .public-profile-banner {
     min-height: 170px;
-    background: radial-gradient(circle at 20% 0%, color-mix(in srgb, var(--profile-accent) 24%, transparent), transparent 48%),
+    background: radial-gradient(circle at 20% 0%, color-mix(in srgb, var(--pf-accent) 24%, transparent), transparent 48%),
                 linear-gradient(135deg, var(--profile-deep), var(--profile-surface));
 }
 
@@ -775,7 +797,7 @@
     border: 4px solid var(--profile-surface);
     background: var(--profile-deep);
     overflow: hidden;
-    color: var(--profile-accent);
+    color: var(--pf-accent);
     font-family: 'Cinzel', serif;
     font-size: 2.8rem;
     font-weight: 800;
@@ -828,7 +850,7 @@
 
 .public-profile-section-head h2 {
     font-family: 'Cinzel', serif;
-    color: var(--profile-accent);
+    color: var(--pf-accent);
     font-weight: 800;
 }
 
@@ -902,6 +924,17 @@
     --profile-accent-2: var(--flame);
     --profile-surface: var(--bg1);
     --profile-deep: var(--bg0);
+    /* Espelho SÓLIDO/semântico do tema para uso interno deste arquivo. --profile-accent
+       pode chegar como linear-gradient (tema com gradiente) e aí não serve em `color`,
+       `border-color` nem dentro de color-mix(); --pf-accent resolve isso de uma vez.
+       As semânticas (ok/err/info) ficam fora do tema de propósito. */
+    --pf-accent: var(--profile-accent-solid, var(--profile-accent));
+    --pf-accent-2: var(--profile-accent-2);
+    --pf-gold: var(--profile-gold, var(--spark));
+    --pf-ok: #22c55e;
+    --pf-err: #ef4444;
+    --pf-info: #3b82f6;
+    --pf-info-fg: #93c5fd;
     max-width: 1120px;
     margin: 0 auto;
     padding: 1rem 0 2rem;
@@ -917,7 +950,7 @@
 
 .players-kicker {
     margin-bottom: 0.25rem;
-    color: var(--ember);
+    color: var(--pf-accent);
     font-size: 0.72rem;
     font-weight: 800;
     letter-spacing: 0.14em;
@@ -958,10 +991,10 @@
 
 .players-search button,
 .players-pagination a {
-    border: 1px solid color-mix(in srgb, var(--ember) 44%, var(--stroke));
+    border: 1px solid color-mix(in srgb, var(--pf-accent) 44%, var(--stroke));
     border-radius: 4px;
-    background: color-mix(in srgb, var(--ember) 14%, var(--bg0));
-    color: var(--ember);
+    background: color-mix(in srgb, var(--pf-accent) 14%, var(--bg0));
+    color: var(--pf-accent);
     font-size: 0.76rem;
     font-weight: 800;
     letter-spacing: 0.04em;
@@ -1002,9 +1035,9 @@
 }
 
 .players-tabs a.is-active {
-    border-color: color-mix(in srgb, var(--ember) 54%, var(--stroke));
-    background: color-mix(in srgb, var(--ember) 16%, var(--bg0));
-    color: var(--ember);
+    border-color: color-mix(in srgb, var(--pf-accent) 54%, var(--stroke));
+    background: color-mix(in srgb, var(--pf-accent) 16%, var(--bg0));
+    color: var(--pf-accent);
 }
 
 .players-order {
@@ -1050,7 +1083,7 @@
 }
 
 .players-meta a {
-    color: var(--ember);
+    color: var(--pf-accent);
     font-weight: 700;
 }
 
@@ -1065,6 +1098,17 @@
     --profile-accent-2: var(--flame);
     --profile-surface: var(--bg1);
     --profile-deep: var(--bg0);
+    /* Espelho SÓLIDO/semântico do tema para uso interno deste arquivo. --profile-accent
+       pode chegar como linear-gradient (tema com gradiente) e aí não serve em `color`,
+       `border-color` nem dentro de color-mix(); --pf-accent resolve isso de uma vez.
+       As semânticas (ok/err/info) ficam fora do tema de propósito. */
+    --pf-accent: var(--profile-accent-solid, var(--profile-accent));
+    --pf-accent-2: var(--profile-accent-2);
+    --pf-gold: var(--profile-gold, var(--spark));
+    --pf-ok: #22c55e;
+    --pf-err: #ef4444;
+    --pf-info: #3b82f6;
+    --pf-info-fg: #93c5fd;
     position: relative;
     overflow: hidden;
     min-height: 230px;
@@ -1082,7 +1126,7 @@
     position: relative;
     display: block;
     height: 86px;
-    background: radial-gradient(circle at 15% 0%, color-mix(in srgb, var(--profile-accent) 26%, transparent), transparent 52%),
+    background: radial-gradient(circle at 15% 0%, color-mix(in srgb, var(--pf-accent) 26%, transparent), transparent 52%),
                 linear-gradient(135deg, var(--profile-deep), var(--profile-surface));
 }
 
@@ -1120,7 +1164,7 @@
     border: 3px solid var(--profile-surface);
     border-radius: 50%;
     background: var(--profile-deep);
-    color: var(--profile-accent);
+    color: var(--pf-accent);
     font-family: 'Cinzel', serif;
     font-size: 2rem;
     font-weight: 800;
@@ -1157,7 +1201,7 @@
 .player-card-count {
     display: block;
     margin-top: 0.35rem;
-    color: var(--profile-accent);
+    color: var(--pf-accent);
     font-size: 0.72rem;
     font-weight: 800;
     letter-spacing: 0.06em;
@@ -1173,7 +1217,7 @@
 .player-card-characters a {
     min-height: 44px;
     padding: 0.5rem;
-    border: 1px solid color-mix(in srgb, var(--stroke) 80%, var(--profile-accent));
+    border: 1px solid color-mix(in srgb, var(--stroke) 80%, var(--pf-accent));
     border-radius: 6px;
     background: var(--profile-deep);
 }
@@ -1204,10 +1248,10 @@
     justify-content: center;
     min-height: 30px;
     padding: 0.35rem 0.6rem;
-    border: 1px solid color-mix(in srgb, var(--profile-accent) 54%, var(--stroke));
+    border: 1px solid color-mix(in srgb, var(--pf-accent) 54%, var(--stroke));
     border-radius: 4px;
-    background: color-mix(in srgb, var(--profile-accent) 13%, var(--profile-deep));
-    color: var(--profile-accent);
+    background: color-mix(in srgb, var(--pf-accent) 13%, var(--profile-deep));
+    color: var(--pf-accent);
     font-size: 0.72rem;
     font-weight: 800;
     letter-spacing: 0.05em;
@@ -1274,18 +1318,18 @@
     font-weight: 700;
     font-size: 0.92rem;
     letter-spacing: 0.04em;
-    color: var(--spark);
-    text-shadow: 0 0 10px color-mix(in srgb, var(--spark) 30%, transparent);
+    color: var(--pf-gold);
+    text-shadow: 0 0 10px color-mix(in srgb, var(--pf-gold) 30%, transparent);
 }
 .profile-title.rar-comum { color: var(--muted); text-shadow: none; }
-.profile-title.rar-raro { color: var(--ember); text-shadow: 0 0 10px color-mix(in srgb, var(--ember) 28%, transparent); }
-.profile-title.rar-epico { color: var(--spark); }
+.profile-title.rar-raro { color: var(--pf-accent); text-shadow: 0 0 10px color-mix(in srgb, var(--pf-accent) 28%, transparent); }
+.profile-title.rar-epico { color: var(--pf-gold); }
 .profile-title.rar-lendario {
-    background: linear-gradient(100deg, var(--spark), var(--ember), var(--flame));
+    background: linear-gradient(100deg, var(--pf-gold), var(--pf-accent), var(--pf-accent-2));
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
-    color: var(--spark);
+    color: var(--pf-gold);
 }
 .profile-title-mini { font-size: 0.78rem; margin-top: 0.25rem; }
 
@@ -1319,35 +1363,35 @@
 /* Derivadas (estado do usuário) — paleta real. */
 .badge-derivada { color: var(--text); }
 .badge-staff {
-    border-color: color-mix(in srgb, #3b82f6 55%, var(--stroke));
-    background: color-mix(in srgb, #3b82f6 16%, var(--bg0));
-    color: #93c5fd;
+    border-color: color-mix(in srgb, var(--pf-info) 55%, var(--stroke));
+    background: color-mix(in srgb, var(--pf-info) 16%, var(--bg0));
+    color: var(--pf-info-fg);
 }
 .badge-apoiador {
-    border-color: color-mix(in srgb, var(--ember) 55%, var(--stroke));
-    background: color-mix(in srgb, var(--ember) 16%, var(--bg0));
-    color: var(--ember);
+    border-color: color-mix(in srgb, var(--pf-accent) 55%, var(--stroke));
+    background: color-mix(in srgb, var(--pf-accent) 16%, var(--bg0));
+    color: var(--pf-accent);
 }
 .badge-mestre-ouro {
-    border-color: color-mix(in srgb, var(--spark) 60%, var(--stroke));
-    background: color-mix(in srgb, var(--spark) 16%, var(--bg0));
-    color: var(--spark);
+    border-color: color-mix(in srgb, var(--pf-gold) 60%, var(--stroke));
+    background: color-mix(in srgb, var(--pf-gold) 16%, var(--bg0));
+    color: var(--pf-gold);
 }
 .badge-fundador {
-    border-color: color-mix(in srgb, var(--flame) 50%, var(--stroke));
-    background: color-mix(in srgb, var(--flame) 14%, var(--bg0));
-    color: color-mix(in srgb, var(--flame) 70%, var(--text));
+    border-color: color-mix(in srgb, var(--pf-accent-2) 50%, var(--stroke));
+    background: color-mix(in srgb, var(--pf-accent-2) 14%, var(--bg0));
+    color: color-mix(in srgb, var(--pf-accent-2) 70%, var(--text));
 }
 
 /* Concedidas (inventário) — cor da borda por raridade. */
 .badge-concedida { color: var(--text); }
 .badge-rar-comum { border-color: var(--stroke); }
-.badge-rar-raro { border-color: color-mix(in srgb, var(--ember) 50%, var(--stroke)); }
-.badge-rar-epico { border-color: color-mix(in srgb, var(--spark) 55%, var(--stroke)); color: var(--spark); }
+.badge-rar-raro { border-color: color-mix(in srgb, var(--pf-accent) 50%, var(--stroke)); }
+.badge-rar-epico { border-color: color-mix(in srgb, var(--pf-gold) 55%, var(--stroke)); color: var(--pf-gold); }
 .badge-rar-lendario {
-    border-color: color-mix(in srgb, var(--flame) 55%, var(--stroke));
-    background: color-mix(in srgb, var(--flame) 12%, var(--bg0));
-    color: color-mix(in srgb, var(--spark) 70%, var(--text));
+    border-color: color-mix(in srgb, var(--pf-accent-2) 55%, var(--stroke));
+    background: color-mix(in srgb, var(--pf-accent-2) 12%, var(--bg0));
+    color: color-mix(in srgb, var(--pf-gold) 70%, var(--text));
 }
 
 /* Variante mini para os cards de /jogadores/. */
@@ -1371,7 +1415,7 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    color: var(--profile-accent);
+    color: var(--pf-accent);
     margin-bottom: 0.6rem;
 }
 .profile-badge-picker {
@@ -1395,17 +1439,17 @@
     transition: border-color 0.2s, background 0.2s, color 0.2s;
 }
 .profile-badge-pick:hover {
-    border-color: color-mix(in srgb, var(--ember) 45%, var(--stroke));
+    border-color: color-mix(in srgb, var(--pf-accent) 45%, var(--stroke));
 }
 .profile-badge-pick input {
-    accent-color: var(--ember);
+    accent-color: var(--pf-accent);
     width: 0.9rem;
     height: 0.9rem;
     margin: 0;
 }
 .profile-badge-pick:has(input:checked) {
-    border-color: var(--ember);
-    background: color-mix(in srgb, var(--ember) 14%, var(--bg0));
+    border-color: var(--pf-accent);
+    background: color-mix(in srgb, var(--pf-accent) 14%, var(--bg0));
     color: var(--text);
 }
 
@@ -1433,8 +1477,8 @@
     cursor: default;
 }
 .conquista-item.is-obtida {
-    border-color: color-mix(in srgb, var(--spark) 50%, var(--stroke));
-    background: color-mix(in srgb, var(--spark) 10%, var(--bg0));
+    border-color: color-mix(in srgb, var(--pf-gold) 50%, var(--stroke));
+    background: color-mix(in srgb, var(--pf-gold) 10%, var(--bg0));
     color: var(--text);
 }
 .conquista-item.is-bloqueada {
@@ -1457,7 +1501,7 @@
     background: color-mix(in srgb, var(--stroke) 60%, var(--bg0));
 }
 .conquista-item.is-obtida .conquista-icone-fallback {
-    background: color-mix(in srgb, var(--spark) 22%, var(--bg0));
+    background: color-mix(in srgb, var(--pf-gold) 22%, var(--bg0));
 }
 .conquista-nome {
     overflow: hidden;
@@ -1505,7 +1549,7 @@
 }
 
 .tema-swatch:hover {
-    border-color: color-mix(in srgb, var(--ember) 45%, var(--stroke));
+    border-color: color-mix(in srgb, var(--pf-accent) 45%, var(--stroke));
 }
 
 /* Radio escondido visualmente mas focável (técnica sr-only/clip) — o estado
@@ -1523,13 +1567,13 @@
 }
 
 .tema-swatch:has(input:focus-visible) {
-    outline: 2px solid var(--ember);
+    outline: 2px solid var(--pf-accent);
     outline-offset: 2px;
 }
 
 .tema-swatch:has(input:checked) {
-    border-color: var(--ember);
-    background: color-mix(in srgb, var(--ember) 14%, var(--bg0));
+    border-color: var(--pf-accent);
+    background: color-mix(in srgb, var(--pf-accent) 14%, var(--bg0));
 }
 
 .tema-swatch-preview {
@@ -1721,7 +1765,7 @@
     padding: 0;
     border: 0;
     background: none;
-    color: var(--profile-accent);
+    color: var(--pf-accent);
     cursor: pointer;
     font-family: 'Cinzel', serif;
     font-size: 0.75rem;
@@ -1751,7 +1795,7 @@
 }
 
 .perfil-preview-status.is-recusa {
-    color: var(--flame);
+    color: var(--pf-accent-2);
 }
 
 .perfil-preview-hint {
@@ -1761,7 +1805,7 @@
 }
 
 .perfil-preview-hint strong {
-    color: var(--profile-accent);
+    color: var(--pf-accent);
 }
 
 /* Palco da prévia: recorta o perfil público como se fosse a janela do site. */
@@ -1809,7 +1853,7 @@
     position: absolute;
     inset: 0;
     background:
-        radial-gradient(120% 90% at 50% -10%, color-mix(in srgb, var(--profile-accent-solid, var(--profile-accent)) 22%, transparent), transparent 60%),
+        radial-gradient(120% 90% at 50% -10%, color-mix(in srgb, var(--pf-accent) 22%, transparent), transparent 60%),
         linear-gradient(180deg, color-mix(in srgb, var(--profile-deep) 78%, transparent), color-mix(in srgb, var(--profile-deep) 94%, transparent));
 }
 
@@ -1823,4 +1867,259 @@
     .perfil-preview-stage {
         transition: none;
     }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SOCIAL DO PERFIL — curtir & seguir (regras NOVAS, nada acima foi tocado).
+   Espírito ember: a chama do "curtir" acende no accent do tema do dono do
+   perfil (--profile-accent), então cada perfil curte na própria cor.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.profile-social {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.45rem 0.85rem;
+    margin-top: 0.65rem;
+}
+
+.profile-social-stat {
+    color: var(--muted);
+    font-size: 0.78rem;
+    letter-spacing: 0.02em;
+}
+
+.profile-social-stat strong {
+    color: var(--pf-accent);
+    font-size: 0.92rem;
+    font-weight: 800;
+}
+
+.profile-social-actions {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.profile-social-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.32rem 0.8rem;
+    border: 1px solid var(--stroke);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--muted);
+    font: inherit;
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: border-color 0.18s ease, color 0.18s ease, background 0.18s ease;
+}
+
+.profile-social-btn:hover:not(:disabled) {
+    border-color: var(--pf-accent);
+    color: var(--pf-accent);
+}
+
+.profile-social-btn:disabled {
+    opacity: 0.55;
+    cursor: progress;
+}
+
+.profile-social-btn.is-on {
+    border-color: var(--pf-accent);
+    background: color-mix(in srgb, var(--pf-accent) 16%, transparent);
+    color: var(--pf-accent);
+}
+
+/* A chama só "queima" quando a curtida está ligada; apagada fica dessaturada. */
+.profile-social-btn .profile-social-flame {
+    filter: grayscale(1);
+    opacity: 0.65;
+    transition: filter 0.18s ease, opacity 0.18s ease, transform 0.18s ease;
+}
+
+.profile-social-btn.is-curtir.is-on .profile-social-flame {
+    filter: none;
+    opacity: 1;
+    transform: scale(1.12);
+}
+
+.profile-social-msg {
+    color: var(--muted);
+    font-size: 0.72rem;
+}
+
+.profile-social-signin {
+    color: var(--pf-accent);
+    font-size: 0.74rem;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.profile-social-signin:hover {
+    text-decoration: underline;
+}
+
+/* /jogadores/ — contagens discretas no rodapé do corpo do cartão. */
+.player-card-social {
+    display: flex;
+    gap: 0.7rem;
+    margin-top: 0.3rem;
+    color: var(--muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+/* Editor de perfil: a MESMA linha de contagens do hero público, mas aqui ela abre
+   uma seção (é o resumo das listas logo abaixo) em vez de acompanhar o avatar. Sem
+   botões de ação — o dono não curte nem segue a si mesmo —, então a linha ganha o
+   filete de base do bloco e cola no topo da própria caixa. */
+.profile-social-own {
+    margin-top: 0.15rem;
+    padding-bottom: 0.55rem;
+    border-bottom: 1px solid var(--stroke);
+}
+
+/* Editor de perfil: listas colapsáveis de seguidores/seguindo/curtidas. */
+.profile-social-lists {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin-top: 0.6rem;
+}
+
+.profile-social-list {
+    border: 1px solid var(--stroke);
+    border-radius: 0.5rem;
+    padding: 0.4rem 0.6rem;
+}
+
+.profile-social-list > summary {
+    cursor: pointer;
+    color: var(--pf-accent);
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.profile-social-list ul {
+    list-style: none;
+    margin: 0.5rem 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    max-height: 16rem;
+    overflow-y: auto;
+}
+
+.profile-social-list li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.profile-social-list li > a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    color: inherit;
+    text-decoration: none;
+    min-width: 0;
+}
+
+.profile-social-list li > a:hover {
+    color: var(--pf-accent);
+}
+
+.profile-social-list li img,
+.profile-social-list li .profile-social-initial {
+    width: 1.6rem;
+    height: 1.6rem;
+    border-radius: 50%;
+    object-fit: cover;
+    flex: 0 0 auto;
+}
+
+.profile-social-list li .profile-social-initial {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--stroke);
+    font-size: 0.72rem;
+    font-weight: 800;
+}
+
+.profile-social-list li em {
+    color: var(--muted);
+    font-size: 0.7rem;
+    font-style: normal;
+    flex: 0 0 auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .profile-social-btn,
+    .profile-social-btn .profile-social-flame {
+        transition: none;
+    }
+}
+
+/* =====================================================================
+   ACENTO DO TEMA NAS SUPERFÍCIES DE DESTAQUE (perfil público + editor)
+   Bloco ADITIVO e puramente cromático — só `color`, `border-color` e
+   `background`. Nenhuma métrica muda: mesma caixa, mesma posição.
+
+   Antes daqui o tema pintava basicamente o filete do topo do header, os
+   títulos e os botões; o resto do perfil (seções, cartões de personagem,
+   badges do editor, palco da prévia) ficava numa borda cinza fixa, igual
+   em todo tema. Tudo abaixo sai de var(--pf-accent), então no basal
+   continua ember e em qualquer outro tema o perfil inteiro acompanha.
+
+   Fica no FIM do arquivo de propósito: vence as regras base por ORDEM,
+   sem `!important`, e continua abaixo das regras de tema/`:hover`.
+   ===================================================================== */
+
+/* --- molduras das superfícies --- */
+.profile-header,
+.profile-section,
+.public-profile-card,
+.public-profile-section,
+.player-card,
+.players-empty {
+    border-color: color-mix(in srgb, var(--pf-accent) 22%, var(--stroke));
+}
+
+.public-character-card,
+.profile-role,
+.avatar-preview-small,
+.banner-preview-box,
+.profile-social-list,
+.perfil-preview-stage {
+    border-color: color-mix(in srgb, var(--pf-accent) 26%, var(--stroke));
+}
+
+/* --- filetes de seção: a régua sob o título deixa de ser cinza morto --- */
+.profile-section-title {
+    border-bottom-color: color-mix(in srgb, var(--pf-accent) 34%, var(--stroke));
+}
+
+.profile-badges-editor {
+    border-top-color: color-mix(in srgb, var(--pf-accent) 30%, var(--stroke));
+}
+
+/* --- estados vivos --- */
+.players-tabs a:hover,
+.profile-badge:hover,
+.tema-swatch:hover {
+    border-color: color-mix(in srgb, var(--pf-accent) 45%, var(--stroke));
+}
+
+.profile-social-list > summary:hover {
+    color: var(--pf-accent);
 }

@@ -217,7 +217,7 @@
 
 /* Conquistas OBTIDAS — glow discreto (mantém tamanho compacto; sem ícone grande). */
 .conquista-item.is-obtida {
-    box-shadow: 0 0 12px color-mix(in srgb, var(--spark) 18%, transparent);
+    box-shadow: 0 0 12px color-mix(in srgb, var(--fx-gold, var(--spark)) 18%, transparent);
 }
 
 /* Vidro fosco com brilho superior (realça o efeito-glass existente). */
