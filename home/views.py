@@ -11,6 +11,7 @@ from .moeda import (preco_em_pc as _preco_em_pc, moeda_display as _moeda_display
                     po_para_pc as _po_para_pc)
 from . import badges as _badges
 from . import conquistas as _conquistas
+from . import social as _social
 from datetime import datetime, timezone as datetime_timezone
 from types import SimpleNamespace
 
@@ -1063,6 +1064,11 @@ def profile_view(request):
         'preview_badges': _badges.badges_do_usuario(user),
         'preview_titulo': _badges.titulo_do_usuario(user),
         'preview_personagens': _perfil_personagens(user, True),
+        # Social do PRÓPRIO perfil: contagens + listas simples (sem feed por ora).
+        'social': _social.estado_social(user, user),
+        'social_seguidores': _social.lista_seguidores(user),
+        'social_seguindo': _social.lista_seguindo(user),
+        'social_curtidas': _social.lista_curtidas(user),
     })
 
 
@@ -1104,6 +1110,9 @@ def public_profile_view(request, username):
         'titulo': _badges.titulo_do_usuario(viewed_user),
         # F3 — vitrine de conquistas (compacta). Secretas não-obtidas nunca aparecem.
         'conquistas': _conquistas.conquistas_do_usuario(viewed_user),
+        # Social — contagens de curtidas/seguidores + o estado do VISITANTE (curtiu/
+        # segue). Anônimo recebe só as contagens (curtiu/segue=False, sem botões).
+        'social': _social.estado_social(viewed_user, request.user),
     })
 
 
@@ -1198,6 +1207,10 @@ def perfil_preview_view(request):
         'titulo': _badges.titulo_por_slug(user, titulo_slug),
         'conquistas': _conquistas.conquistas_do_usuario(user),
         'personagens': _perfil_personagens(user, True),
+        # Social na prévia: as contagens REAIS do próprio perfil. Como o visitante é
+        # o dono, `pode_interagir` é False → o partial não emite botão (nem no
+        # preview_mode, que já os suprime) e a prévia não vira um jeito de curtir.
+        'social': _social.estado_social(user, user),
         'preview_mode': True,
     }, request=request)
 
@@ -1213,6 +1226,52 @@ def perfil_preview_view(request):
         'badges_destaque': badges_destaque,
         'recusados': recusados,
     })
+
+
+# ──────────────────────────── Social do perfil (fetch) ────────────────────────
+# Dois endpoints POST-only e login_required. Ambos são TOGGLE idempotente: o
+# mesmo endpoint curte e descurte (segue e deixa de seguir), e a resposta traz o
+# ESTADO resultante + as contagens, no mesmo formato de `social.estado_social` —
+# o cliente só reescreve o que veio, sem recalcular nada.
+# Anônimo cai no 302 do login_required; a si mesmo é 400 (não é erro do servidor,
+# é pedido inválido) e nada é gravado.
+
+def _social_alvo(username):
+    User = get_user_model()
+    return get_object_or_404(User, username__iexact=username, is_active=True)
+
+
+def _social_payload(alvo, visitante, extra=None):
+    dados = _social.estado_social(alvo, visitante)
+    dados['ok'] = True
+    dados['username'] = alvo.username
+    if extra:
+        dados.update(extra)
+    return JsonResponse(dados)
+
+
+@login_required(login_url='/login/')
+@require_POST
+def perfil_curtir_view(request, username):
+    """Toggle de CURTIDA no perfil de `username`. 400 no próprio perfil."""
+    alvo = _social_alvo(username)
+    if not _social.pode_interagir(request.user, alvo):
+        return JsonResponse({'ok': False, 'erro': 'Você não pode curtir o próprio perfil.'},
+                            status=400)
+    _social.toggle_curtida(request.user, alvo)
+    return _social_payload(alvo, request.user)
+
+
+@login_required(login_url='/login/')
+@require_POST
+def perfil_seguir_view(request, username):
+    """Toggle de SEGUIR no perfil de `username`. 400 no próprio perfil."""
+    alvo = _social_alvo(username)
+    if not _social.pode_interagir(request.user, alvo):
+        return JsonResponse({'ok': False, 'erro': 'Você não pode seguir o próprio perfil.'},
+                            status=400)
+    _social.toggle_seguidor(request.user, alvo)
+    return _social_payload(alvo, request.user)
 
 
 # ───────────────────────── Discord OAuth2 (custom enxuto) ─────────────────────
@@ -1307,6 +1366,8 @@ def jogadores_view(request):
             UserProfile.objects.get_or_create(user=u)
     # F2 — badges/títulos de TODOS os usuários da página em lote (sem N+1).
     perfil_badges = _badges.perfil_badges_batch(users_list)
+    # Social — curtidas/seguidores da página em 2 queries agregadas (mesmo padrão).
+    social_counts = _social.social_counts_batch(users_list)
     cards = []
     for u in users_list:
         profile = getattr(u, 'profile', None) or UserProfile.objects.get_or_create(user=u)[0]
@@ -1320,6 +1381,7 @@ def jogadores_view(request):
             'characters': public_chars.get(u.pk, []),
             'badges': info.get('badges', []),
             'titulo': info.get('titulo'),
+            'social': social_counts.get(u.pk, {'curtidas': 0, 'seguidores': 0}),
         })
 
     def _querystring(**updates):

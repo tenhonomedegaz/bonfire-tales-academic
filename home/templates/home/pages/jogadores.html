@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/pages/perfil.css' %}?v=3">
+<link rel="stylesheet" href="{% static 'css/pages/perfil.css' %}?v=5">
 <link rel="stylesheet" href="{% static 'css/pages/perfil-fx.css' %}?v=3">
 <title>Jogadores - Bonfire Tales RPG</title>
 {% endblock %}
@@ -88,6 +88,11 @@
           {% endif %}
           {% if card.profile.bio %}<p>{{ card.profile.bio|truncatechars:150 }}</p>{% endif %}
           <span class="player-card-count">{{ card.public_count }} personagem{% if card.public_count != 1 %}s{% endif %} publico{% if card.public_count != 1 %}s{% endif %}</span>
+          {# Social discreto: contagens vindas do batch (2 queries pra pagina toda). #}
+          <span class="player-card-social">
+            <span title="Curtidas no perfil"><span aria-hidden="true">🔥</span> {{ card.social.curtidas }}</span>
+            <span title="Seguidores"><span aria-hidden="true">👥</span> {{ card.social.seguidores }}</span>
+          </span>
         </div>
       </div>
 

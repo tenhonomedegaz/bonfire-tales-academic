@@ -2010,6 +2010,55 @@ class TbUsuarioConquista(models.Model):
         return '%s → %s' % (self.user.username, self.conquista.slug)
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Social do perfil — CURTIR e SEGUIR (pedido dos usuários).
+# As DUAS tabelas são dado de USUÁRIO ("memória"): entram em MEMORY_MODELS no
+# home/deploy_sync.py e NUNCA no sync de conteúdo. Sumiu o usuário (dos dois
+# lados), some a relação → on_delete=CASCADE nas duas pontas.
+# Idempotência é do banco: unique_together garante que "curtir duas vezes" não
+# duplica linha mesmo com corrida entre dois cliques.
+# ─────────────────────────────────────────────────────────────────────────────
+
+class TbPerfilCurtida(models.Model):
+    """Uma curtida de `quem` no perfil de `alvo` (like simples, sem peso/valor).
+    Relação sem estado extra: existe = curtido; deletada = descurtido."""
+    quem = models.ForeignKey('auth.User', on_delete=models.CASCADE,
+                             related_name='curtidas_dadas', db_column='QuemId')
+    alvo = models.ForeignKey('auth.User', on_delete=models.CASCADE,
+                             related_name='curtidas_recebidas', db_column='AlvoId')
+    criado_em = models.DateTimeField(db_column='CriadoEm', auto_now_add=True)
+
+    class Meta:
+        db_table = 'TB_PerfilCurtida'
+        verbose_name = 'Curtida de perfil'
+        verbose_name_plural = 'Curtidas de perfil'
+        unique_together = [('quem', 'alvo')]
+        ordering = ['-criado_em']
+
+    def __str__(self):
+        return '%s ♥ %s' % (self.quem.username, self.alvo.username)
+
+
+class TbPerfilSeguidor(models.Model):
+    """`seguidor` segue o perfil de `alvo`. Direcional (seguir não é mútuo).
+    related_name: user.seguindo = quem ELE segue; user.seguidores = quem o segue."""
+    seguidor = models.ForeignKey('auth.User', on_delete=models.CASCADE,
+                                 related_name='seguindo', db_column='SeguidorId')
+    alvo = models.ForeignKey('auth.User', on_delete=models.CASCADE,
+                             related_name='seguidores', db_column='AlvoId')
+    criado_em = models.DateTimeField(db_column='CriadoEm', auto_now_add=True)
+
+    class Meta:
+        db_table = 'TB_PerfilSeguidor'
+        verbose_name = 'Seguidor de perfil'
+        verbose_name_plural = 'Seguidores de perfil'
+        unique_together = [('seguidor', 'alvo')]
+        ordering = ['-criado_em']
+
+    def __str__(self):
+        return '%s → %s' % (self.seguidor.username, self.alvo.username)
+
+
 class TbMapDesenho(models.Model):
     """Marcação de desenho sobre o mapa criada pela staff no editor (WP1).
 

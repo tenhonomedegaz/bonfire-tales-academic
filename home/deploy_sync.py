@@ -48,6 +48,9 @@ MEMORY_MODELS = [
     # Concessão de conquistas (F3): dado de USUÁRIO — nunca sincroniza, e protege
     # conquistas referenciadas contra deleção por tombstone.
     "TbUsuarioConquista",
+    # Social do perfil (curtir/seguir): relação user↔user criada pelos jogadores em
+    # produção. É memória pura — jamais entra em CONTENT_MODELS.
+    "TbPerfilCurtida", "TbPerfilSeguidor",
 ]
 CONTENT_MODELS = UPSERT_POR_SLUG + SUBSTITUI
 DELETIONS_PATH = os.path.join("home", "content_deletions.json")

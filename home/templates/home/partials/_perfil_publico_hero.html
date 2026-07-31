@@ -19,6 +19,9 @@ Contexto esperado:
   badges        lista de badges (destaque primeiro)
   conquistas    dict de conquistas.conquistas_do_usuario
   personagens   lista de _personagem_card
+  social        dict de social.estado_social (curtidas/seguidores/seguindo +
+                curtiu/segue/pode_interagir) — contagens sempre, botões só fora da
+                prévia; ausente = bloco social inteiro não renderiza
   preview_mode  bool — na prévia: sem link de volta, fundo escopado na área da prévia
 
 Ganchos da prévia (JS): as imagens escolhidas no <input type=file> ainda NÃO existem
@@ -69,6 +72,42 @@ no servidor, então o cliente sobrepõe .public-profile-banner-media,
         </ul>
         {% endif %}
         {% if profile.bio %}<p class="public-profile-bio">{{ profile.bio }}</p>{% endif %}
+
+        {% comment %}
+        SOCIAL — contagens SEMPRE (inclusive pra visitante anônimo e na prévia);
+        botões só FORA do preview_mode e só pra quem pode interagir (logado e não
+        sendo o dono). Assim a prévia do editor renderiza o mesmo bloco sem virar
+        um caminho de curtir/seguir.
+        {% endcomment %}
+        {% if social %}
+        <div class="profile-social" data-social-username="{{ viewed_user.username }}">
+          <span class="profile-social-stat" data-social-stat="curtidas">
+            <strong data-social-count="curtidas">{{ social.curtidas }}</strong> curtida{{ social.curtidas|pluralize }}
+          </span>
+          <span class="profile-social-stat" data-social-stat="seguidores">
+            <strong data-social-count="seguidores">{{ social.seguidores }}</strong> seguidor{{ social.seguidores|pluralize:"es" }}
+          </span>
+          <span class="profile-social-stat" data-social-stat="seguindo">
+            <strong data-social-count="seguindo">{{ social.seguindo }}</strong> seguindo
+          </span>
+          {% if social.pode_interagir and not preview_mode %}
+          <span class="profile-social-actions">
+            <button type="button" class="profile-social-btn is-curtir{% if social.curtiu %} is-on{% endif %}"
+                    data-social-action="curtir" aria-pressed="{% if social.curtiu %}true{% else %}false{% endif %}">
+              <span class="profile-social-flame" aria-hidden="true">🔥</span>
+              <span class="profile-social-label">{% if social.curtiu %}Curtido{% else %}Curtir{% endif %}</span>
+            </button>
+            <button type="button" class="profile-social-btn is-seguir{% if social.segue %} is-on{% endif %}"
+                    data-social-action="seguir" aria-pressed="{% if social.segue %}true{% else %}false{% endif %}">
+              <span class="profile-social-label">{% if social.segue %}Seguindo{% else %}Seguir{% endif %}</span>
+            </button>
+            <span class="profile-social-msg" role="status" aria-live="polite" data-social-msg></span>
+          </span>
+          {% elif not social.autenticado and not preview_mode %}
+          <a class="profile-social-signin" href="{% url 'login' %}?next={% url 'public_profile' viewed_user.username %}">Entre para curtir e seguir</a>
+          {% endif %}
+        </div>
+        {% endif %}
       </div>
     </div>
   </div>

@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/pages/perfil.css' %}?v=4">
+<link rel="stylesheet" href="{% static 'css/pages/perfil.css' %}?v=5">
 <link rel="stylesheet" href="{% static 'css/pages/perfil-fx.css' %}?v=4">
 {% if appearance.theme_css_href %}<link rel="stylesheet" id="perfil-preview-theme-css" href="{{ appearance.theme_css_href }}">{% endif %}
 <title>Meu Perfil — Bonfire Tales RPG</title>
@@ -253,6 +253,73 @@
             {% else %}
             <span class="avatar-preview-hint">Nenhuma conquista disponível ainda. Elas são concedidas pela equipe.</span>
             {% endif %}
+        </div>
+
+        {% comment %}Seção: Social (curtir/seguir) — só leitura. Contagens + listas simples,
+        colapsáveis. Sem feed por enquanto: aqui o dono vê QUEM interagiu.{% endcomment %}
+        <div class="profile-badges-editor">
+            <h3 class="profile-subsection-title">Curtidas &amp; Seguidores</h3>
+            <div class="profile-social profile-social-own">
+                <span class="profile-social-stat"><strong>{{ social.curtidas }}</strong> curtida{{ social.curtidas|pluralize }}</span>
+                <span class="profile-social-stat"><strong>{{ social.seguidores }}</strong> seguidor{{ social.seguidores|pluralize:"es" }}</span>
+                <span class="profile-social-stat"><strong>{{ social.seguindo }}</strong> seguindo</span>
+            </div>
+            <div class="profile-social-lists">
+                <details class="profile-social-list">
+                    <summary>Seguidores ({{ social.seguidores }})</summary>
+                    {% if social_seguidores %}
+                    <ul>
+                        {% for p in social_seguidores %}
+                        <li>
+                            <a href="{% url 'public_profile' p.username %}">
+                                {% if p.avatar_url %}<img src="{{ p.avatar_url }}" alt="" loading="lazy">{% else %}<span class="profile-social-initial" aria-hidden="true">{{ p.username|first|upper }}</span>{% endif %}
+                                <span>{{ p.username }}</span>
+                            </a>
+                            <em>{{ p.desde|date:'d/m/Y' }}</em>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="avatar-preview-hint">Ninguém te segue ainda.</p>
+                    {% endif %}
+                </details>
+                <details class="profile-social-list">
+                    <summary>Seguindo ({{ social.seguindo }})</summary>
+                    {% if social_seguindo %}
+                    <ul>
+                        {% for p in social_seguindo %}
+                        <li>
+                            <a href="{% url 'public_profile' p.username %}">
+                                {% if p.avatar_url %}<img src="{{ p.avatar_url }}" alt="" loading="lazy">{% else %}<span class="profile-social-initial" aria-hidden="true">{{ p.username|first|upper }}</span>{% endif %}
+                                <span>{{ p.username }}</span>
+                            </a>
+                            <em>{{ p.desde|date:'d/m/Y' }}</em>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="avatar-preview-hint">Você ainda não segue ninguém. Visite o <a href="{% url 'jogadores' %}">catálogo de jogadores</a>.</p>
+                    {% endif %}
+                </details>
+                <details class="profile-social-list">
+                    <summary>Curtiram seu perfil ({{ social.curtidas }})</summary>
+                    {% if social_curtidas %}
+                    <ul>
+                        {% for p in social_curtidas %}
+                        <li>
+                            <a href="{% url 'public_profile' p.username %}">
+                                {% if p.avatar_url %}<img src="{{ p.avatar_url }}" alt="" loading="lazy">{% else %}<span class="profile-social-initial" aria-hidden="true">{{ p.username|first|upper }}</span>{% endif %}
+                                <span>{{ p.username }}</span>
+                            </a>
+                            <em>{{ p.desde|date:'d/m/Y' }}</em>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="avatar-preview-hint">Nenhuma curtida ainda.</p>
+                    {% endif %}
+                </details>
+            </div>
         </div>
 
         <button type="submit" class="profile-btn">

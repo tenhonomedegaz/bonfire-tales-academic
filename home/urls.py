@@ -31,6 +31,10 @@ urlpatterns = [
     path('discord/callback/', views.discord_callback, name='discord_callback'),
     path('perfil/discord/desvincular/', views.discord_unlink, name='discord_unlink'),
     path('jogadores/', views.jogadores_view, name='jogadores'),
+    # Social do perfil (fetch, POST, toggle). ANTES do catch-all de username por
+    # clareza — o padrão de 2 segmentos não colide com 'perfil/<username>/'.
+    path('perfil/<str:username>/curtir/', views.perfil_curtir_view, name='perfil_curtir'),
+    path('perfil/<str:username>/seguir/', views.perfil_seguir_view, name='perfil_seguir'),
     path('perfil/<str:username>/', views.public_profile_view, name='public_profile'),
     path('verificar-email/<str:token>/', views.verify_email, name='verify_email'),
     path('wiki/talentos/<int:talent_id>/editar/', views.wiki_update_talent, name='wiki_update_talent'),
