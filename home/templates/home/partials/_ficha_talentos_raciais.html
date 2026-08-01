@@ -1,0 +1,22 @@
+{% if talentos_raciais_troca %}
+<div class="ficha-panel" id="ficha-talentos-raciais">
+  <div class="ficha-section-title">Caracter&#237;sticas Raciais</div>
+  <p class="opt-hint">Rework restrito &#224; staff: substitui uma escolha antiga por outra op&#231;&#227;o eleg&#237;vel do mesmo marco.</p>
+  <div class="opt-grid">
+    {% for talento in talentos_raciais_troca %}
+    <section class="opt-card">
+      <header class="opt-head"><div class="opt-title"><strong>{{ talento.nome }}</strong><span class="opt-source">N&#237;vel {{ talento.nivel }}</span></div></header>
+      {% if talento.descricao %}<div class="opt-desc bonfire-markdown" data-markdown-source>{{ talento.descricao }}</div>{% endif %}
+      {% if talento.opcoes %}
+      <form method="post" action="{% url 'personagem_trocar_talento_racial' p.id_personagem %}" class="opt-swapform">
+        {% csrf_token %}<input type="hidden" name="talento_atual" value="{{ talento.id }}">
+        <label class="opt-swap-lbl">Trocar por</label>
+        <select name="val" class="opt-select">{% for opcao in talento.opcoes %}<option value="{{ opcao.val }}">{{ opcao.nome }}</option>{% endfor %}</select>
+        <button type="submit" class="opt-confirm">Confirmar</button>
+      </form>
+      {% endif %}
+    </section>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}

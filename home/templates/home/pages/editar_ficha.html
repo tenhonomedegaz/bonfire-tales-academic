@@ -67,6 +67,28 @@ acesso é fechado por is_staff na view (dono não-staff é redirecionado para a 
         {% include 'home/partials/_ficha_concessoes_staff.html' %}
       </div>
 
+      <div class="lvl-staffbox" style="margin-top:1.2rem">
+        <span class="lbl">Staff &mdash; treinamento de idioma ou ferramenta:</span>
+        <form method="post" action="{% url 'personagem_treinamento' p.id_personagem %}" class="lvl-inline">
+          {% csrf_token %}
+          <select name="treinamento" class="lvl-field lvl-field--grow" required>
+            <option value="">&mdash; selecione um idioma ou ferramenta &mdash;</option>
+            {% regroup treinamentos_disponiveis by grupo as grupos_treinamento %}
+            {% for grupo in grupos_treinamento %}<optgroup label="{{ grupo.grouper }}">{% for opcao in grupo.list %}<option value="{{ opcao.token }}">{{ opcao.nome }}</option>{% endfor %}</optgroup>{% endfor %}
+          </select>
+          <button type="submit" class="lvl-add"{% if not treinamentos_disponiveis %} disabled{% endif %}>+ Registrar treinamento</button>
+        </form>
+        {% if treinamento_msg == 'ok' %}<p class="lvl-secsub">Profici&#234;ncia registrada.</p>{% elif treinamento_msg == 'removido' %}<p class="lvl-secsub">Treinamento removido.</p>{% elif treinamento_msg == 'invalido' %}<p class="lvl-secsub">Idioma ou ferramenta inv&#225;lido ou j&#225; conhecido.</p>{% endif %}
+        {% if treinamentos %}<div class="lvl-queued" style="margin-top:.6rem">
+          {% for treino in treinamentos %}<form method="post" action="{% url 'personagem_treinamento' p.id_personagem %}" class="inline-flex items-center gap-1">
+            {% csrf_token %}<input type="hidden" name="acao" value="remover"><input type="hidden" name="proficiencia" value="{{ treino.id }}">
+            <span class="lvl-chip is-saved">{{ treino.nome }} ({{ treino.tipo }}) <button type="submit" title="Remover treinamento">&times;</button></span>
+          </form>{% endfor %}
+        </div>{% endif %}
+      </div>
+
+      {% include 'home/partials/_ficha_talentos_raciais.html' %}
+
       <p class="lvl-secsub" style="margin-top:1.2rem">
         Inventário, slots e sintonização ficam na <a href="{% url 'ficha_detail' p.id_personagem %}?aba=mochila" class="underline hover:text-[var(--ember)]">Mochila da ficha</a>;
         compra e venda ficam no <a href="{% url 'mercado_itens_mundanos' %}" class="underline hover:text-[var(--ember)]">Mercado</a>.

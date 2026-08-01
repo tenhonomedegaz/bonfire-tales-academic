@@ -168,6 +168,7 @@
             <select class="lvl-field lvl-field--grow" data-lvl-field="talento" data-lvl-describe aria-label="Talento"><option value="">— Talento —</option>{% for t in talentos_normais %}<option value="{{ t.id }}" data-attrs="{{ t.attrs_csv }}" data-desc="{{ t.descricao|striptags }}">{{ t.nome }}{% if t.pre %} ({{ t.pre }}){% endif %}</option>{% endfor %}</select>
             <select class="lvl-field" data-lvl-field="talento_attr" aria-label="Atributo do talento">{% for a in atributos %}<option value="{{ a }}">+1 {{ a }}</option>{% endfor %}</select>
           </div>
+          <div data-lvl-talento-picks hidden style="margin:0.4rem 0 0.5rem 1.4rem"></div>
           <p class="lvl-card__hint" data-lvl-desc hidden style="margin:0.5rem 0 0 1.4rem"></p>
         </div>
         {% endfor %}
@@ -365,6 +366,8 @@
   </div>{# /.cf-layout #}
   {% endif %}
 </section>
+
+{{ talentos_picks_json|json_script:"sn-talento-picks" }}
 
 <script>
   window.SN = {

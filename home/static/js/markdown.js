@@ -508,7 +508,31 @@ function renderBonfireMarkdown(value, options = {}) {
     if (typeof marked !== 'undefined' && marked && typeof marked.parse === 'function') {
         return applyMarkdownColorsToHtml(marked.parse(source, { breaks: true, gfm: true }));
     }
-    return applyMarkdownColorsToHtml(escapeHtml(source)).replace(/\n/g, '<br>');
+    // Fallback offline: se a CDN do `marked` falhar, formata o subconjunto da ficha.
+    // A entrada e escapada antes da formatacao.
+    const inline = text => text
+        .replace(/\*\*\*([^*]+)\*\*\*/g, '<strong><em>$1</em></strong>')
+        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<span class="md-ref" title="$2">$1</span>');
+    const lines = escapeHtml(source).split(/\r?\n/);
+    let html = '', inList = false;
+    lines.forEach(line => {
+        const item = line.match(/^\s*[-*]\s+(.+)$/);
+        if (item) {
+            if (!inList) { html += '<ul>'; inList = true; }
+            html += '<li>' + inline(item[1]) + '</li>';
+            return;
+        }
+        if (inList) { html += '</ul>'; inList = false; }
+        if (!line.trim()) return;
+        const heading = line.match(/^(#{1,6})\s+(.+)$/);
+        html += heading
+            ? '<h' + heading[1].length + '>' + inline(heading[2]) + '</h' + heading[1].length + '>'
+            : '<p>' + inline(line) + '</p>';
+    });
+    if (inList) html += '</ul>';
+    return applyMarkdownColorsToHtml(html);
 }
 
 /* ═══════════════════════════════════════════════

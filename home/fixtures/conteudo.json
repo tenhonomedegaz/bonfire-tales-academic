@@ -7308,6 +7308,7 @@
     "niveladquirido": 10,
     "table_only": false,
     "tags_json": [
+      "pick:pericia:1(replace:intimidacao)",
       "while_active{trigger=crit_melee, apply:amedrontado(save{wis, cd=8+pb+str_mod}, duration:100)}",
       "trigger=ability{furia, classe:barbaro}"
     ]
@@ -42059,7 +42060,7 @@
     "slug": "resiliente",
     "tipo": "geral",
     "tags_json": [
-      "save_prof:pick:{str|dex|con|int|wis|cha}(requires:not{prof})"
+      "pick:save_prof:{str|dex|con|int|wis|cha}:1(requires:not{prof})"
     ],
     "etiqueta": "suporte",
     "etiquetas_adicionais": "Resistência",
@@ -45395,6 +45396,7 @@
     "talento_racial": true,
     "pre_requisito": "Qualquer Linhagem Humana ou Essência.",
     "tags_json": [
+      "character_prereq:any{lineage:*|essence:*}",
       "pick:escola:1(=escola_de_magia:{abjuracao | conjuracao | encantamento | evocacao | ilusao | necromancia | transmutacao})",
       "spell_selection:pick{lista:{clerigo | druida | mago}}{truque, escola:pick:escola, qtd:1, spell_mod:int|wis|cha}",
       "spell_selection:pick{lista:{clerigo | druida | mago}}{nivel:1, escola:pick:escola, not{concentration}, qtd:1, spell_mod:int|wis|cha}",
@@ -45417,6 +45419,7 @@
     "talento_racial": true,
     "pre_requisito": "Qualquer Linhagem Humana ou Essência.",
     "tags_json": [
+      "character_prereq:any{lineage:*|essence:*}",
       "pick:{ferramenta | idioma}:2"
     ]
   }
@@ -45434,6 +45437,7 @@
     "talento_racial": true,
     "pre_requisito": "Qualquer Linhagem Humana ou Essência.",
     "tags_json": [
+      "character_prereq:any{lineage:*|essence:*}",
       "trigger=fail_check",
       "action=reaction",
       "instant{ roll_add:+1d4 }",
@@ -45454,6 +45458,7 @@
     "talento_racial": true,
     "pre_requisito": "Qualquer Linhagem Humana.",
     "tags_json": [
+      "character_prereq:any{lineage:*}",
       "trigger=hit_by_attack",
       "action=reaction",
       "instant{ move:roundup(speed/2)(without{opportunity_attack}) }",
@@ -45512,6 +45517,7 @@
     "talento_racial": true,
     "pre_requisito": "Nível 5+; Qualquer Linhagem Humana.",
     "tags_json": [
+      "character_prereq:any{lineage:*}",
       "always_active{ suppress{penalty:clima_extremo} }",
       "pick:move:1(=move:{swim | climb})"
     ]
@@ -45530,6 +45536,7 @@
     "talento_racial": true,
     "pre_requisito": "Nível 5+; Qualquer Linhagem Humana ou Essência.",
     "tags_json": [
+      "character_prereq:any{lineage:*|essence:*}",
       "always_active{ target:allies(range:60ft, willing), ignore:invisivel(for:cast{spell:{cura | suporte}}) }",
       "help, action=bonus_action"
     ]
@@ -45548,6 +45555,7 @@
     "talento_racial": true,
     "pre_requisito": "Nível 5+; Qualquer Linhagem Humana.",
     "tags_json": [
+      "character_prereq:any{lineage:*}",
       "trigger=heal{source:{magia | pocao | feature_classe | feature_talento}}",
       "instant{ heal:+con_mod }",
       "trigger=stabilized",
@@ -45588,6 +45596,7 @@
     "talento_racial": true,
     "pre_requisito": "Nível 9+; Qualquer Linhagem Humana ou Essência.",
     "tags_json": [
+      "character_prereq:any{lineage:*|essence:*}",
       "trigger=help{target:ally(for:attack|check)}",
       "instant{ roll_add:+1d4(target:ally), if(expertise:pericia_ajudada): roll_add:+1d6(target:ally) }"
     ]
@@ -45606,6 +45615,7 @@
     "talento_racial": true,
     "pre_requisito": "Nível 9+; Qualquer Linhagem Humana ou Essência.",
     "tags_json": [
+      "character_prereq:any{lineage:*|essence:*}",
       "while_active{ requires:self{sangrando}, speed:+10ft, adv:save(vs:amedrontado) }",
       "while_active{ requires:self{sangrando}, dash, action=bonus_action }"
     ]
@@ -45641,6 +45651,7 @@
     "talento_racial": true,
     "pre_requisito": "Nível 9+; Qualquer Linhagem Humana ou Essência.",
     "tags_json": [
+      "character_prereq:any{lineage:*|essence:*}",
       "while_active{ requires:ally(range:5ft) and enemy(range:5ft), target:{self | ally(marked)}, melee.adv:next_attack(target:enemy(marked), first_attack, 1/turn) }",
       "trigger=turn_start, instant{ mark:ally:1, mark:enemy:1 }"
     ]
@@ -45676,6 +45687,7 @@
     "talento_racial": true,
     "pre_requisito": "Nível 13+; Qualquer Linhagem Humana ou Essência.",
     "tags_json": [
+      "character_prereq:any{lineage:*|essence:*}",
       "adv:save(vs:enfeiticado)",
       "adv:save(vs:paralisado)"
     ]
@@ -45732,6 +45744,7 @@
     "talento_racial": true,
     "pre_requisito": "Nível 13+; Qualquer Linhagem Humana ou Essência.",
     "tags_json": [
+      "character_prereq:any{lineage:*|essence:*}",
       "save_prof:wis",
       "if(already_prof): save_prof:pick:{int | cha}"
     ]
@@ -45750,6 +45763,7 @@
     "talento_racial": true,
     "pre_requisito": "Nível 17+; Qualquer Linhagem Humana ou Essência.",
     "tags_json": [
+      "character_prereq:any{lineage:*|essence:*}",
       "action=bonus_action",
       "instant{ target:{self | allies(range:60ft, max:10)}, grant:inspiracao_heroica, temp_hp:+lvl, duration:until_rest }",
       "uses{1, reset:rest}"
@@ -45769,6 +45783,7 @@
     "talento_racial": true,
     "pre_requisito": "Nível 17+; Qualquer Linhagem Humana.",
     "tags_json": [
+      "character_prereq:any{lineage:*}",
       "initiative:+max(int_mod, wis_mod)",
       "dodge, action=bonus_action"
     ]

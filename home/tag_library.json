@@ -473,6 +473,12 @@
     }
   },
   "primitives": {
+    "character_prereq": {
+      "categoria": "A1",
+      "forma": "key_value",
+      "op": "meta",
+      "doc": "Filtro declarativo de identidade. Sintaxe: character_prereq:any{race:<slug>|lineage:<slug>|essence:*}. O curinga de essence inclui essencias e maldicoes; all exige todas as identidades listadas."
+    },
     "at_will": {
       "categoria": "A12",
       "forma": "flag",

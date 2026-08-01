@@ -18,6 +18,11 @@
   var mode = 'subir';  // 'subir' (nível na classe) | 'mc' (multiclassar)
   var previewTimer = null, okTimer = null;
   var current = 0;
+  var talentoPicks = {};
+  var talentoPicksEl = document.getElementById('sn-talento-picks');
+  if (talentoPicksEl) {
+    try { talentoPicks = JSON.parse(talentoPicksEl.textContent || '{}'); } catch (_e) { talentoPicks = {}; }
+  }
 
   // ---- refs ----
   var stepperEl = document.getElementById('sn-stepper');
@@ -208,7 +213,15 @@
     if (modoEl && modoEl.value === 'talento') {
       var tal = fieldOf(card, 'talento'), tat = fieldOf(card, 'talento_attr');
       if (!tal || !tal.value) { if (inLote(key)) removeKey(key); return; }
-      payload = { modo: 'talento', talento: tal.value, talento_attr: tat.value };
+      var picks = {}, incompleto = false;
+      card.querySelectorAll('[data-talento-pick]').forEach(function (sel) {
+        if (!sel.value) incompleto = true;
+        var k = sel.dataset.pickKey;
+        if (!picks[k]) picks[k] = [];
+        if (sel.value) picks[k].push(sel.value);
+      });
+      if (incompleto) { if (inLote(key)) removeKey(key); return; }
+      payload = { modo: 'talento', talento: tal.value, talento_attr: tat.value, talento_picks: picks };
       label = optText(tal) + ' (+1 ' + tat.value + ')';
     } else {
       var a1 = fieldOf(card, 'asi_attr_1'), a2 = fieldOf(card, 'asi_attr_2');
@@ -216,6 +229,33 @@
       label = a1.value === a2.value ? ('+2 ' + a1.value) : ('+1 ' + a1.value + ' / +1 ' + a2.value);
     }
     addOrReplace({ tipo: 'asi', payload: payload, key: key, label: label, card: card });
+  }
+
+  function renderTalentoPicks(card, talentoId) {
+    var host = card.querySelector('[data-lvl-talento-picks]');
+    if (!host) return;
+    host.innerHTML = '';
+    var grupos = talentoPicks[String(talentoId || '')] || [];
+    grupos.forEach(function (g) {
+      for (var i = 0; i < (+g.n || 0); i++) {
+        var label = document.createElement('label');
+        label.className = 'lvl-card__row';
+        label.textContent = g.label + ((+g.n || 0) > 1 ? ' ' + (i + 1) : '') + ' ';
+        var sel = document.createElement('select');
+        sel.className = 'lvl-field lvl-field--grow';
+        sel.dataset.talentoPick = '1';
+        sel.dataset.pickKey = g.key;
+        var empty = document.createElement('option');
+        empty.value = ''; empty.textContent = '— Escolha —'; sel.appendChild(empty);
+        (g.options || []).forEach(function (o) {
+          var option = document.createElement('option');
+          option.value = o.val; option.textContent = o.nome; sel.appendChild(option);
+        });
+        label.appendChild(sel);
+        host.appendChild(label);
+      }
+    });
+    host.hidden = !grupos.length;
   }
 
   // uma ação pertence a um cartão de escolha do nível? (p/ limpar ao multiclassar)
@@ -492,6 +532,8 @@
           }
         };
         talSel.addEventListener('change', syncAttr); syncAttr();
+        talSel.addEventListener('change', function () { renderTalentoPicks(asi, talSel.value); });
+        renderTalentoPicks(asi, talSel.value);
       }
       // Depois dos ajustes acima (o listener do cartão roda por último na fase de bolha).
       asi.addEventListener('change', function () { queueAsi(asi); });

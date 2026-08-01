@@ -552,6 +552,16 @@ def _pericia_restrict_slugs(ctx):
     if sub.startswith('{'):                                    # pick:pericia:{a|b|c}:1
         cand = re.split(r'[|,]', sub.strip('{}'))
     tag = str(ctx.get('tag_text') or '')
+    # Regra padrÃ£o "ganha X; se jÃ¡ tiver X, escolha qualquer outra perÃ­cia". Sem a
+    # proficiÃªncia anterior, o universo Ã© somente X; com ela, cai no pool completo menos
+    # as jÃ¡ possuÃ­das. Usado por PresenÃ§a Intimidante do Berserker.
+    replacement = re.search(r'\breplace\s*:\s*([a-z0-9_-]+)', tag)
+    if replacement:
+        target = _norm_skill_slug(replacement.group(1))
+        if not _pericia_owned_before_source(
+                ctx.get('personagem'), target, ctx.get('source')):
+            return [target] if target in _SKILL_INFO else None
+        return list(_SKILL_INFO.keys())
     if cand is None:
         m = re.search(r'\bde\s*:?\s*\[([^\]]*)\]', tag)        # de:[..] / de [..] / (de:[..]) / { de:[..] }
         if m:
@@ -591,6 +601,26 @@ def _pericia_owned_slugs(personagem):
     return owned
 
 
+def _pericia_owned_before_source(personagem, slug, source):
+    """Se `slug` jÃ¡ era proficiente sem contar a feature `source` que oferece troca."""
+    from .character_engine import (_norm_skill_slug, _slug, _features_do_personagem)
+    if personagem is None:
+        return False
+    if any(_norm_skill_slug(_slug(p.nome)) == slug and (p.proficiente or p.expertise)
+           for p in personagem.pericias.all()):
+        return True
+    if personagem.escolhas.filter(tipo='pericia', valor=slug).exists():
+        return True
+    classes = list(personagem.classes.select_related('id_classe', 'id_subclasse'))
+    for (_origem, _fonte, obj, _classe) in _features_do_personagem(personagem, classes):
+        if obj is source or (obj.__class__ is source.__class__ and obj.pk == source.pk):
+            continue
+        for tag in (getattr(obj, 'tags_json', None) or []):
+            if re.search(r'(?<![a-z_-])prof:%s\b' % re.escape(slug), str(tag)):
+                return True
+    return False
+
+
 def _pericia_universe(ctx):
     from .character_engine import _SKILL_INFO, _norm_skill_slug
     restrito = _pericia_restrict_slugs(ctx)
@@ -602,6 +632,13 @@ def _pericia_universe(ctx):
         if not pool:
             pool = list(_SKILL_INFO.keys())
     owned = _pericia_owned_slugs(ctx.get('personagem'))
+    replacement = re.search(r'\breplace\s*:\s*([a-z0-9_-]+)', str(ctx.get('tag_text') or ''))
+    if replacement:
+        target = _norm_skill_slug(replacement.group(1))
+        if not _pericia_owned_before_source(ctx.get('personagem'), target, ctx.get('source')):
+            # O avaliador genÃ©rico enxerga o alvo dentro do prÃ³prio token de replacement;
+            # ele nÃ£o pode bloquear a opÃ§Ã£o que esta feature ainda precisa conceder.
+            owned.discard(target)
     out = []
     for sl in pool:
         sl = _norm_skill_slug(sl)
@@ -1074,6 +1111,24 @@ def _menu_universe(ctx):
     return _inline_menu_options(tok, ctx.get('escolhas')) if tok is not None else []
 
 
+def _save_prof_universe(ctx):
+    """Inline save choices, optionally excluding saves already proficient."""
+    options = _menu_universe(ctx)
+    raw = str(ctx.get('tag_text') or '')
+    personagem = ctx.get('personagem')
+    if personagem is None or not re.search(
+            r'requires\s*:\s*not\s*\{\s*prof\s*\}', raw):
+        return options
+    from .character_engine import derive
+    key_by_slug = {
+        'str': 'FOR', 'dex': 'DES', 'con': 'CON',
+        'int': 'INT', 'wis': 'SAB', 'cha': 'CAR',
+    }
+    saves = derive(personagem).get('saves') or {}
+    return [option for option in options
+            if not (saves.get(key_by_slug.get(option.get('slug'))) or {}).get('proficiente')]
+
+
 def _strip_define_bodies(text):
     """Remove os corpos `define{...}` de um texto (contagem balanceada). O menu de um
     pick (a `list{}`/ramos dentro do define) NÃO deve ser varrido por iter_pick_tokens
@@ -1195,6 +1250,15 @@ PICK_REGISTRY = {
         'persist': _talento_persist,
         'validate': _default_validate,
         'readback': _talento_readback,
+    },
+    'save_prof': {
+        'sink': 'escolha',
+        'label': 'Salvaguarda',
+        'menu': True,
+        'universe': _save_prof_universe,
+        'persist': _menu_persist,
+        'validate': _default_validate,
+        'readback': _menu_readback,
     },
 }
 
@@ -1329,7 +1393,12 @@ def resolve_groups(sources, *, classe=None, subclasse=None, nivel=1,
                                  choice_values=choice_values)
                 if g is None:
                     continue
-                chave = (tok.kind, tok.sub, classe_id)
+                # Picks de perÃ­cia pertencem Ã  FEATURE que os concedeu: Conhecimento
+                # Primitivo e PresenÃ§a Intimidante, por exemplo, sÃ£o dois slots distintos.
+                # OpÃ§Ãµes de progressÃ£o (Metamagia etc.) continuam deduplicadas por kind/sub.
+                source_key = getattr(source, 'pk', id(source)) \
+                    if tok.kind in ('pericia', 'pericia_expertise') else None
+                chave = (tok.kind, tok.sub, classe_id, source_key)
                 idx = por_chave.get(chave)
                 if idx is None:
                     por_chave[chave] = len(grupos)
