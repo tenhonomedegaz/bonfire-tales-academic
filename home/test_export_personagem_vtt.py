@@ -9,17 +9,24 @@ no compilador do VTT):
   - dados de vida por classe e recurso consumível com PK de TbRecursoclasse;
   - magias concedidas (sempre_preparada) saem com origem='concedida'.
 
+E a evolução ADITIVA v1.1 (versao_contrato continua 1; versao_menor=1):
+  - derive.salvaguardas: 6 entradas em ordem canônica, a MESMA conta da ficha
+    (character_engine._saves — proficiência via saves_prof{} da classe principal);
+  - derive.pericias: as 18 canônicas SEMPRE saem, cada uma com o atributo base;
+  - derive.idiomas: proficiências tipo='idioma' do personagem.
+
 Conteúdo SINTÉTICO mínimo (sem fixture pesada): duas classes full-caster com a
 tabela de slots em TbRecursoclasse — suficiente para exercitar o caminho real.
 """
 from django.contrib.auth.models import User
 from django.test import TestCase
 
+from home.character_engine import _SKILL_INFO
 from home.management.commands.export_personagem_vtt import (
     exportar_personagem, serializar)
 from home.models import (
     TbClasse, TbClassehabilidade, TbMagia, TbPersonagem, TbPersonagemClasse,
-    TbPersonagemMagia, TbRecursoclasse,
+    TbPersonagemMagia, TbPersonagemProficiencia, TbRecursoclasse,
 )
 
 
@@ -29,10 +36,13 @@ class ExportPersonagemVttTests(TestCase):
         cls.user = User.objects.create_user(username='vtt-tester', password='x')
 
         # duas classes conjuradoras FULL (o multiclasse soma níveis e lê a tabela
-        # do primeiro full-caster — views._spell_slot_totals/_full_caster_slot_source)
+        # do primeiro full-caster — views._spell_slot_totals/_full_caster_slot_source).
+        # O mago (classe PRINCIPAL) declara saves_prof — a regra da ficha só lê a
+        # tag da principal (character_engine._saves), então é o mago quem manda.
         cls.mago = TbClasse.objects.create(
             nome='Mago Teste', slug='mago-teste-vtt', dado_vida='d6',
-            tags_json=['spellcasting{ability:int, lista:mago-teste-vtt, '
+            tags_json=['saves_prof{int, wis}',
+                       'spellcasting{ability:int, lista:mago-teste-vtt, '
                        'prepara:preparadas, slots:full}'])
         cls.clerigo = TbClasse.objects.create(
             nome='Clérigo Teste', slug='clerigo-teste-vtt', dado_vida='d8',
@@ -73,6 +83,13 @@ class ExportPersonagemVttTests(TestCase):
         TbPersonagemClasse.objects.create(
             id_personagem=cls.p, id_classe=cls.clerigo, nivel=2)
 
+        # idiomas do personagem (TbPersonagemProficiencia tipo='idioma' — a mesma
+        # fonte de derive.idiomas via character_engine._proficiencias)
+        TbPersonagemProficiencia.objects.create(
+            id_personagem=cls.p, tipo='idioma', nome='Comum')
+        TbPersonagemProficiencia.objects.create(
+            id_personagem=cls.p, tipo='idioma', nome='Élfico')
+
         # magia de classe (preparada) + magia CONCEDIDA (materializada pelo
         # _sync_magias_concedidas: sempre_preparada=True, origem=nome da feature)
         TbPersonagemMagia.objects.create(
@@ -86,7 +103,10 @@ class ExportPersonagemVttTests(TestCase):
     # ── forma ────────────────────────────────────────────────────────────────
     def test_forma_do_contrato(self):
         data = exportar_personagem(self.p)
+        # topo FIXO em 1 (o compilador valida com z.literal(1) — igualdade exata);
+        # a evolução aditiva v1.1 é sinalizada por versao_menor.
         self.assertEqual(data['versao_contrato'], 1)
+        self.assertEqual(data['versao_menor'], 1)
         for chave in ('personagem', 'derive', 'recursos', 'habilidades',
                       'magias', 'estado_mesa', 'moedas', 'inspiracao', 'avisos'):
             self.assertIn(chave, data)
@@ -110,7 +130,8 @@ class ExportPersonagemVttTests(TestCase):
         self.assertEqual(len(d['pericias']), 18)
         perc = next(p for p in d['pericias'] if p['id'] == 'percepcao')
         self.assertEqual(perc, {'id': 'percepcao', 'nome': 'Percepção',
-                                'proficiente': False, 'bonus': 1})
+                                'atributo': 'SAB', 'proficiente': False,
+                                'bonus': 1})
 
         # estado de mesa neutro semeado do derive
         self.assertEqual(data['estado_mesa'],
@@ -122,6 +143,41 @@ class ExportPersonagemVttTests(TestCase):
         # habilidade de classe com PK do modelo
         fontes = [h['fonte'] for h in data['habilidades']]
         self.assertIn('TbClassehabilidade:%d' % self.hab_mago.pk, fontes)
+
+    # ── v1.1: salvaguardas ───────────────────────────────────────────────────
+    def test_salvaguardas_com_proficiencia_de_classe(self):
+        d = exportar_personagem(self.p)['derive']
+        # 6 entradas SEMPRE, em ordem canônica de siglas (determinismo)
+        self.assertEqual([s['atributo'] for s in d['salvaguardas']],
+                         ['FOR', 'DES', 'CON', 'INT', 'SAB', 'CAR'])
+        por_sig = {s['atributo']: s for s in d['salvaguardas']}
+        # saves_prof{int, wis} do mago (principal): mod + PB(3) nos proficientes
+        self.assertEqual(por_sig['INT'], {'atributo': 'INT', 'proficiente': True,
+                                          'bonus': 6})   # mod 3 + pb 3
+        self.assertEqual(por_sig['SAB'], {'atributo': 'SAB', 'proficiente': True,
+                                          'bonus': 4})   # mod 1 + pb 3
+        # não-proficientes: só o mod do atributo
+        self.assertEqual(por_sig['FOR'], {'atributo': 'FOR', 'proficiente': False,
+                                          'bonus': 0})
+        self.assertEqual(por_sig['CAR'], {'atributo': 'CAR', 'proficiente': False,
+                                          'bonus': -1})
+
+    # ── v1.1: 18 perícias canônicas com atributo base ────────────────────────
+    def test_pericias_completas_18_com_atributo(self):
+        d = exportar_personagem(self.p)['derive']
+        # TODAS as 18 canônicas saem (proficientes ou não), id = slug estável
+        self.assertEqual({p['id'] for p in d['pericias']}, set(_SKILL_INFO))
+        # sem override manual/tag no fixture, o atributo é o padrão de _SKILL_INFO
+        for p in d['pericias']:
+            self.assertEqual(p['atributo'], _SKILL_INFO[p['id']][1])
+            self.assertIn('bonus', p)
+            self.assertIn('proficiente', p)
+
+    # ── v1.1: idiomas ────────────────────────────────────────────────────────
+    def test_idiomas(self):
+        d = exportar_personagem(self.p)['derive']
+        # TbPersonagemProficiencia tipo='idioma', ordenados (determinismo)
+        self.assertEqual(d['idiomas'], ['Comum', 'Élfico'])
 
     # ── espaços de magia multiclasse + dados de vida + consumível ────────────
     def test_recursos_multiclasse(self):

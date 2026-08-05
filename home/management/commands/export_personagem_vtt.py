@@ -12,6 +12,13 @@ FINO e estável (versao_contrato=1) e NADA aqui reprocessa tags — quem deriva 
 `character_engine.derive` (a MESMA fonte da ficha), e os totais multiclasse de
 espaços de magia vêm de `views._spell_slot_totals` (a MESMA conta da aba Magias).
 
+Evolução v1.1 (ADITIVA — pedidos B5 do VTT): derive.salvaguardas (6 entradas, a
+MESMA conta da ficha em character_engine._saves), derive.pericias ganha o
+atributo base de cada perícia (as 18 canônicas já saíam) e derive.idiomas (já
+saía na v1 — mantido). O consumidor (personagem.mts do compilador) valida
+versao_contrato com z.literal(1) — igualdade EXATA, não "mínimo compatível" —
+então o topo continua 1 e a evolução aditiva é sinalizada por `versao_menor`.
+
 Determinismo: chaves ordenadas, listas em ordem estável (por pk/id_fonte),
 ensure_ascii=False, indent 2 e LF — re-exportar dado inalterado é byte-idêntico.
 
@@ -26,6 +33,15 @@ from django.core.management.base import BaseCommand, CommandError
 from django.utils.text import slugify
 
 VERSAO_CONTRATO = 1
+# versao_menor: 0 = contrato v1 original; 1 = +salvaguardas, +atributo nas
+# perícias. Só cresce em mudança ADITIVA (o consumidor zod é não-estrito e
+# ignora campos que não conhece; breaking change exigiria subir VERSAO_CONTRATO
+# em conjunto com o schema do compilador).
+VERSAO_MENOR = 1
+
+# Ordem CANÔNICA das siglas de atributo (a mesma da ficha/_ATTR_EN do derive):
+# listas do contrato precisam de ordem estável para o re-export byte-idêntico.
+_ORDEM_SIGLAS = ('FOR', 'DES', 'CON', 'INT', 'SAB', 'CAR')
 
 # id_fonte sintéticos (recursos derivados sem linha própria no banco). O prefixo
 # identifica a origem para o compilador: modelo real usa 'TbRecursoclasse:<pk>',
@@ -61,9 +77,19 @@ def _bloco_derive(state):
     """Serializa a fatia FINA do derive que o token precisa (números prontos)."""
     atributos = {sig: {'valor': a['valor'], 'mod': a['mod']}
                  for sig, a in (state.get('atributos') or {}).items()}
+    # v1.1: cada perícia leva o atributo BASE efetivo (o mesmo `sig` que a ficha
+    # usa na conta — já considera override manual e check_attr de tag).
     pericias = [{'id': _slug_pericia(p['nome']), 'nome': p['nome'],
+                 'atributo': p.get('atributo'),
                  'proficiente': bool(p['proficiente']), 'bonus': int(p['bonus'])}
                 for p in (state.get('pericias') or [])]
+    # v1.1: salvaguardas — a MESMA conta da ficha (character_engine._saves:
+    # mod + PB se proficiente + bônus de tag), em ordem canônica de siglas.
+    saves = state.get('saves') or {}
+    salvaguardas = [{'atributo': sig,
+                     'proficiente': bool(saves[sig].get('proficiente')),
+                     'bonus': int(saves[sig].get('bonus') or 0)}
+                    for sig in _ORDEM_SIGLAS if sig in saves]
     # Percepção passiva = 10 + bônus da perícia Percepção (mesma conta do JS da
     # ficha); sem a perícia na lista, cai em 10 + mod de SAB.
     sab_mod = int(((state.get('atributos') or {}).get('SAB') or {}).get('mod') or 0)
@@ -76,6 +102,7 @@ def _bloco_derive(state):
         'percepcao_passiva': 10 + int(perc),
         'deslocamento': state.get('velocidade') or '',
         'iniciativa': int(state.get('iniciativa') or 0),
+        'salvaguardas': salvaguardas,
         'pericias': pericias,
         'idiomas': list(state.get('idiomas') or []),
         'resistencias': list(state.get('resistencias') or []),
@@ -253,6 +280,7 @@ def exportar_personagem(personagem, gerado_de=None):
 
     data = {
         'versao_contrato': VERSAO_CONTRATO,
+        'versao_menor': VERSAO_MENOR,
         'personagem': bloco_personagem,
         'derive': _bloco_derive(state) if state else None,
         'recursos': recursos,
