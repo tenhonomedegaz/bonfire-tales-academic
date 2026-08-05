@@ -2,8 +2,10 @@
 {% load static %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/pages/perfil.css' %}?v=5">
+<link rel="stylesheet" href="{% static 'css/pages/perfil.css' %}?v=6">
+<link rel="stylesheet" href="{% static 'css/components/tema_swatch.css' %}?v=1">
 <link rel="stylesheet" href="{% static 'css/pages/perfil-fx.css' %}?v=4">
+<script src="{% static 'js/tema_swatch.js' %}?v=1" defer></script>
 {% if appearance.theme_css_href %}<link rel="stylesheet" id="perfil-preview-theme-css" href="{{ appearance.theme_css_href }}">{% endif %}
 <title>Meu Perfil — Bonfire Tales RPG</title>
 {% endblock %}
@@ -139,9 +141,9 @@
 
         <div class="profile-field">
             <span class="profile-label">Tema</span>
-            <div class="tema-swatch-grid" id="id_profile_theme_group">
+            <div class="tema-swatch-grid" id="id_profile_theme_group" role="radiogroup" aria-label="Tema do perfil">
                 {% for key, item in appearance_themes.items %}
-                {% include 'home/includes/tema_swatch.html' with key=key item=item input_name='profile_theme' input_id='id_profile_theme_'|add:key selected_value=appearance.theme_key disabled=False %}
+                {% include 'home/includes/tema_swatch.html' with key=key item=item input_name='profile_theme' input_id='id_profile_theme_'|add:key selected_value=appearance.theme_key disabled=False custom=appearance.custom %}
                 {% endfor %}
             </div>
         </div>
@@ -643,8 +645,36 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         const agenda = () => { clearTimeout(timer); timer = setTimeout(atualizaPrevia, 250); };
+        // Sem espera: escolher um tema é uma decisão inteira, não digitação.
+        const agora = () => { clearTimeout(timer); atualizaPrevia(); };
 
-        form.addEventListener('input', agenda);
+        // PINTURA IMEDIATA (0 ms): antes mesmo do servidor responder, o palco já
+        // recebe as vars do cartão clicado (data-* de tema_swatch_card.html). O
+        // fetch que vem em seguida traz o HTML definitivo — este passo só mata a
+        // latência entre o clique e a cor mudar.
+        const CORES_CUSTOM = {
+            accent: document.getElementById('id_custom_accent'),
+            accent2: document.getElementById('id_custom_accent2'),
+            surface: document.getElementById('id_custom_surface'),
+            deep: document.getElementById('id_custom_deep'),
+            gradiente: document.getElementById('id_custom_gradiente'),
+        };
+        const grades = document.getElementById('id_profile_theme_group');
+        const pintaTemaNoPalco = () => {
+            if (!window.TemaSwatch || !grades) return;
+            const tema = window.TemaSwatch.cartaoMarcado(grades, 'profile_theme');
+            const alvo = stage.querySelector('.public-profile-page');
+            if (tema && alvo) {
+                window.TemaSwatch.aplica(alvo, window.TemaSwatch.comCoresDoFormulario(tema, CORES_CUSTOM));
+            }
+        };
+
+        form.addEventListener('input', (ev) => {
+            const el = ev.target;
+            // Cores do tema Personalizado também pintam na hora (e seguem no debounce).
+            if (el && el.name && el.name.indexOf('custom_') === 0) pintaTemaNoPalco();
+            agenda();
+        });
         form.addEventListener('change', (ev) => {
             const el = ev.target;
             if (el && el.type === 'file') {
@@ -660,7 +690,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (fileInput) fileInput.value = '';
                 }
             }
-            if (el && el.name === 'profile_theme') sincronizaCustomBox();
+            if (el && el.name === 'profile_theme') {
+                sincronizaCustomBox();
+                pintaTemaNoPalco();
+                agora();   // selecionar tema = refresh instantâneo do pane
+                return;
+            }
+            if (el && el.name && el.name.indexOf('custom_') === 0) pintaTemaNoPalco();
             agenda();
         });
     }

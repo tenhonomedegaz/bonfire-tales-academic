@@ -1,0 +1,304 @@
+/* =====================================================================
+   tema_swatch.css — SELETOR DE TEMA POR PRÉVIA VISUAL (perfil + ficha)
+
+   O pedido do PO: "o ideal é não ter o NOME do tema pra escolher e sim uma
+   PRÉVIA do tema". Então cada opção é um CARTÃO que é uma MINIATURA REAL do
+   tema — fundo = surface/deep, faixa = degradê do accent, avatar/linhas =
+   superfície tingida, pontinhos = accent2, e uma dica de partícula quando o
+   tema tem uma. O nome fica só como legenda pequena (acessibilidade).
+
+   DATA-DRIVEN: todas as cores chegam por CSS vars (--tsw-*) escritas no
+   `style` inline do cartão a partir de TbCosmetico.definicao_json (já
+   sanitizada server-side, hex-only). Tema novo = linha nova no banco, zero
+   CSS aqui. O fallback estático dos 5 basais legados existe só para o caso
+   de definicao_json vazia (pré-backfill).
+
+   COMPARTILHADO: este arquivo é carregado por perfil.html E ficha_detail.html
+   (antes vivia dentro de perfil.css, e por isso a grade da FICHA saía sem
+   estilo nenhum). O acento da UI do seletor (anel de seleção/foco) sai do
+   namespace de cada página via --tsw-ui.
+   ===================================================================== */
+
+.tema-swatch-grid {
+    /* Perfil expõe --pf-accent; a ficha, --ficha-accent (override logo abaixo).
+       Sem nenhum dos dois, cai no ember da marca. */
+    --tsw-ui: var(--pf-accent, var(--ember));
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr));
+    gap: 0.5rem;
+    margin-top: 0.35rem;
+}
+
+.ficha .tema-swatch-grid {
+    --tsw-ui: var(--ficha-accent, var(--ember));
+}
+
+.tema-swatch {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem;
+    border: 1px solid var(--stroke);
+    border-radius: 8px;
+    background: var(--bg0);
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s, transform 0.15s, box-shadow 0.2s;
+}
+
+.tema-swatch:hover {
+    border-color: color-mix(in srgb, var(--tsw-ui) 45%, var(--stroke));
+    transform: translateY(-1px);
+}
+
+/* Radio escondido visualmente mas focável (técnica sr-only/clip) — o estado
+   ativo/foco é comunicado pelo próprio cartão, não pelo input nativo. O
+   name/value continuam EXATAMENTE os do <select> antigo: o POST não muda. */
+.tema-swatch input[type="radio"] {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.tema-swatch:has(input:focus-visible) {
+    outline: 2px solid var(--tsw-ui);
+    outline-offset: 2px;
+}
+
+/* Selecionado: ANEL claro (não só uma borda) + marca de conferido. */
+.tema-swatch:has(input:checked) {
+    border-color: var(--tsw-ui);
+    background: color-mix(in srgb, var(--tsw-ui) 14%, var(--bg0));
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--tsw-ui) 55%, transparent),
+                0 0 18px color-mix(in srgb, var(--tsw-ui) 22%, transparent);
+}
+
+.tema-swatch:has(input:checked)::after {
+    content: "✓";
+    position: absolute;
+    top: -0.45rem;
+    right: -0.45rem;
+    width: 1.05rem;
+    height: 1.05rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-size: 0.62rem;
+    font-weight: 900;
+    line-height: 1;
+    color: var(--bg0);
+    background: var(--tsw-ui);
+    box-shadow: 0 0 0 2px var(--bg0);
+}
+
+/* ---------------------------------------------------------------------
+   A MINIATURA — um "perfil/ficha em miniatura" pintado com as cores do tema
+   --------------------------------------------------------------------- */
+.tema-swatch-preview {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 11;
+    border-radius: 5px;
+    overflow: hidden;
+    /* Fallback neutro (tema desconhecido, sem definição e sem match legado). */
+    background: #26262b;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Com definição: o FUNDO da página do tema é o `deep`. */
+.tema-swatch-preview[style*="--tsw-deep"] {
+    background: var(--tsw-deep, #26262b);
+}
+
+/* O "cartão" interno = a superfície (surface) sobre o fundo (deep). */
+.tema-swatch-mini {
+    position: absolute;
+    inset: 12% 8% 10% 8%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.14rem;
+    padding: 0 0 0.16rem;
+    border-radius: 3px;
+    overflow: hidden;
+    background: var(--tsw-surface, #101012);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+/* Faixa do topo = o degradê do accent (accent → accent2), a assinatura do tema. */
+.tema-swatch-bar {
+    flex: 0 0 auto;
+    height: 0.24rem;
+    background: linear-gradient(90deg, var(--tsw-accent, #888), var(--tsw-accent2, #666));
+}
+
+/* Tema com `gradiente: true` mostra o degradê VIVO, igual à página real. */
+.tema-swatch-bar.is-gradiente {
+    background: linear-gradient(120deg, var(--tsw-accent, #888), var(--tsw-accent2, #666), var(--tsw-accent, #888));
+    background-size: 220% 100%;
+    animation: tsw-shift 5s ease-in-out infinite;
+}
+
+@keyframes tsw-shift {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+.tema-swatch-body {
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+    padding: 0.16rem 0.2rem 0;
+}
+
+/* Avatar redondo com o aro do accent — o elemento que mais identifica o tema. */
+.tema-swatch-avatar {
+    flex: 0 0 auto;
+    width: 0.62rem;
+    height: 0.62rem;
+    border-radius: 50%;
+    background: var(--tsw-deep, #09090a);
+    border: 1px solid var(--tsw-accent, #888);
+}
+
+.tema-swatch-lines {
+    display: flex;
+    flex-direction: column;
+    gap: 0.13rem;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.tema-swatch-line {
+    height: 0.13rem;
+    border-radius: 999px;
+    width: 78%;
+    background: color-mix(in srgb, var(--tsw-accent2, #666) 45%, transparent);
+}
+
+.tema-swatch-line.is-strong {
+    width: 55%;
+    background: var(--tsw-accent, #888);
+}
+
+.tema-swatch-dots {
+    display: flex;
+    gap: 0.18rem;
+    margin-top: auto;
+    padding: 0 0.2rem;
+}
+
+.tema-swatch-dot {
+    width: 0.22rem;
+    height: 0.22rem;
+    border-radius: 50%;
+    background: var(--tsw-accent2, #666);
+}
+
+.tema-swatch-dot:first-child { background: var(--tsw-accent, #888); }
+
+/* Dica de PARTÍCULA — o tema que tem partícula mostra motas subindo/caindo.
+   `nenhuma` simplesmente não renderiza este nó (server-side). */
+.tema-swatch-fx {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    mix-blend-mode: screen;
+    opacity: 0.85;
+    background-image:
+        radial-gradient(circle at 16% 108%, var(--tsw-accent, #888) 0 1.4px, transparent 2.4px),
+        radial-gradient(circle at 50% 108%, var(--tsw-accent2, #666) 0 1.2px, transparent 2.2px),
+        radial-gradient(circle at 84% 108%, var(--tsw-accent, #888) 0 1.5px, transparent 2.6px);
+    background-size: 30px 42px, 44px 54px, 24px 36px;
+    background-repeat: repeat-x;
+    animation: tsw-rise 6s linear infinite;
+}
+
+.tema-swatch-fx[data-fx="cair"] { animation-name: tsw-fall; }
+.tema-swatch-fx[data-fx="flutuar"] { animation-duration: 10s; animation-timing-function: ease-in-out; }
+
+@keyframes tsw-rise {
+    from { background-position: 0 0, 0 0, 0 0; }
+    to   { background-position: 0 -42px, 0 -54px, 0 -36px; }
+}
+
+@keyframes tsw-fall {
+    from { background-position: 0 -42px, 0 -54px, 0 -36px; }
+    to   { background-position: 0 0, 0 0, 0 0; }
+}
+
+.tema-swatch-lock {
+    position: absolute;
+    top: 0.2rem;
+    right: 0.3rem;
+    font-size: 0.75rem;
+    z-index: 2;
+}
+
+/* O NOME é legenda, nunca o elemento principal (pedido do PO). */
+.tema-swatch-name {
+    font-size: 0.66rem;
+    font-weight: 700;
+    color: var(--muted);
+    text-align: center;
+    letter-spacing: 0.02em;
+    line-height: 1.15;
+}
+
+.tema-swatch:has(input:checked) .tema-swatch-name {
+    color: var(--text);
+}
+
+.tema-swatch.is-locked {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+/* ---------------------------------------------------------------------
+   Fallback estático dos 5 temas basais legados — só entra em jogo quando o
+   item do catálogo ainda não tem definicao_json (pré-backfill, ver doc §4).
+   --------------------------------------------------------------------- */
+.tema-swatch-preview:not([style*="--tsw-deep"]) { background: #09090a; }
+.tema-swatch-preview:not([style*="--tsw-deep"]) .tema-swatch-mini { background: #101012; }
+
+.tema-swatch--bonfire .tema-swatch-preview:not([style*="--tsw-deep"]) .tema-swatch-bar { background: linear-gradient(90deg, #f27007, #d21717); }
+.tema-swatch--bonfire .tema-swatch-preview:not([style*="--tsw-deep"]) .tema-swatch-dot { background: #f27007; }
+
+.tema-swatch--ember .tema-swatch-preview:not([style*="--tsw-deep"]) { background: #0e0a08; }
+.tema-swatch--ember .tema-swatch-preview:not([style*="--tsw-deep"]) .tema-swatch-mini { background: #1b120f; }
+.tema-swatch--ember .tema-swatch-preview:not([style*="--tsw-deep"]) .tema-swatch-bar { background: linear-gradient(90deg, #f59e0b, #7c2d12); }
+.tema-swatch--ember .tema-swatch-preview:not([style*="--tsw-deep"]) .tema-swatch-dot { background: #f59e0b; }
+
+.tema-swatch--arcane .tema-swatch-preview:not([style*="--tsw-deep"]) { background: #090914; }
+.tema-swatch--arcane .tema-swatch-preview:not([style*="--tsw-deep"]) .tema-swatch-mini { background: #151223; }
+.tema-swatch--arcane .tema-swatch-preview:not([style*="--tsw-deep"]) .tema-swatch-bar { background: linear-gradient(90deg, #a78bfa, #06b6d4); }
+.tema-swatch--arcane .tema-swatch-preview:not([style*="--tsw-deep"]) .tema-swatch-dot { background: #a78bfa; }
+
+.tema-swatch--verdant .tema-swatch-preview:not([style*="--tsw-deep"]) { background: #07110c; }
+.tema-swatch--verdant .tema-swatch-preview:not([style*="--tsw-deep"]) .tema-swatch-mini { background: #0e1a14; }
+.tema-swatch--verdant .tema-swatch-preview:not([style*="--tsw-deep"]) .tema-swatch-bar { background: linear-gradient(90deg, #34d399, #84cc16); }
+.tema-swatch--verdant .tema-swatch-preview:not([style*="--tsw-deep"]) .tema-swatch-dot { background: #34d399; }
+
+.tema-swatch--moonlit .tema-swatch-preview:not([style*="--tsw-deep"]) { background: #080b10; }
+.tema-swatch--moonlit .tema-swatch-preview:not([style*="--tsw-deep"]) .tema-swatch-mini { background: #10151f; }
+.tema-swatch--moonlit .tema-swatch-preview:not([style*="--tsw-deep"]) .tema-swatch-bar { background: linear-gradient(90deg, #cbd5e1, #60a5fa); }
+.tema-swatch--moonlit .tema-swatch-preview:not([style*="--tsw-deep"]) .tema-swatch-dot { background: #cbd5e1; }
+
+@media (prefers-reduced-motion: reduce) {
+    .tema-swatch { transition: none; }
+    .tema-swatch:hover { transform: none; }
+    .tema-swatch-bar.is-gradiente,
+    .tema-swatch-fx { animation: none !important; }
+}
+
+@media print {
+    .tema-swatch-grid { display: none !important; }
+}

@@ -78,6 +78,55 @@
         linear-gradient(180deg, color-mix(in srgb, var(--sheet-deep) 76%, transparent), color-mix(in srgb, var(--sheet-deep) 93%, transparent));
 }
 
+/* ===== Folha central com DESFOQUE do fundo ==============================
+   Pedido do PO: "a div principal (parte mais ao centro) precisa de um blur
+   desfocando a imagem de fundo, pra não desviar atenção".
+
+   `ficha-has-bg` é classe CONDICIONAL no template (só com ficha_background_url):
+   sem imagem de fundo a folha continua exatamente sólida como hoje.
+
+   O backdrop-filter vive na FOLHA inteira (o container central), não em cada
+   painel — assim as frestas entre os painéis também saem desfocadas; com o
+   blur por painel, os vãos mostrariam a imagem nítida, que é justamente o que
+   desvia a atenção. Os painéis ficam translúcidos só o bastante pra o desfoque
+   atravessar sem lavar o texto.
+
+   Vars continuam mandando: tudo deriva de --sheet-deep/--sheet-surface, que o
+   tema-dado/custom reescrevem inline. As partículas (::before dos painéis,
+   z-index 2) seguem por cima, intactas. */
+.ficha.ficha-has-bg {
+    -webkit-backdrop-filter: blur(12px) saturate(115%);
+    backdrop-filter: blur(12px) saturate(115%);
+    background-color: color-mix(in srgb, var(--sheet-deep) 34%, transparent);
+    border-radius: 14px;
+    padding: 0.55rem;
+}
+
+.ficha.ficha-has-bg .ficha-panel {
+    /* background-COLOR (e não o atalho): preserva as camadas de
+       background-image que o perfil-fx.css põe nesses mesmos painéis. */
+    background-color: color-mix(in srgb, var(--sheet-surface) 86%, transparent);
+}
+
+.ficha.ficha-has-bg .ficha-header {
+    background:
+        radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--ficha-accent-2) 14%, transparent), transparent 55%),
+        linear-gradient(180deg, color-mix(in srgb, var(--sheet-surface) 86%, transparent), color-mix(in srgb, var(--sheet-deep) 88%, transparent));
+}
+
+/* Fallback: navegador sem backdrop-filter recebe superfície mais opaca — o
+   fundo continua nítido atrás, então quem garante legibilidade é a opacidade. */
+@supports not ((backdrop-filter: blur(2px)) or (-webkit-backdrop-filter: blur(2px))) {
+    .ficha.ficha-has-bg { background-color: color-mix(in srgb, var(--sheet-deep) 80%, transparent); }
+    .ficha.ficha-has-bg .ficha-panel { background-color: color-mix(in srgb, var(--sheet-surface) 97%, transparent); }
+}
+
+/* O desligamento na IMPRESSÃO mora no bloco de impressão do fim do arquivo.
+   Este CSS tem um único bloco de impressão, e ele é o último de propósito: os
+   testes de layout fatiam o arquivo nesse ponto para separar tela de papel —
+   um segundo bloco (ou até esta menção literal) cortaria a folha no lugar
+   errado e sumiria com metade das regras de tela. */
+
 /* ---------- Cabeçalho ---------- */
 .ficha-header {
   position: relative;
@@ -2124,6 +2173,15 @@ button.opt-name.open .opt-caret { transform: rotate(90deg); }
     color: #000 !important;
   }
   .ficha-header::before { background: #000 !important; }
+  /* no papel não existe fundo: o desfoque/translucidez da folha (.ficha-has-bg)
+     só sujariam a tinta */
+  .ficha.ficha-has-bg {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    background-color: transparent !important;
+    padding: 0 !important;
+  }
+  .ficha.ficha-has-bg .ficha-panel { background-color: transparent !important; }
   /* proficiência sobrevive mesmo com "imprimir imagens de fundo" DESLIGADO: o ponto
      cheio é feito de BORDA grossa, não de preenchimento */
   .prof-dot { border-color: #000 !important; }

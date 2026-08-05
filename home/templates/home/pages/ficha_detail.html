@@ -13,16 +13,20 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
 {% block mobile_ad %}<div class="ficha-noprint">{{ block.super }}</div>{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/pages/ficha.css' %}?v=12">
+<link rel="stylesheet" href="{% static 'css/pages/ficha.css' %}?v=13">
+<link rel="stylesheet" href="{% static 'css/components/tema_swatch.css' %}?v=1">
 <link rel="stylesheet" href="{% static 'css/pages/perfil-fx.css' %}?v=3">
 {% if appearance.theme_css_href %}<link rel="stylesheet" href="{{ appearance.theme_css_href }}">{% endif %}
+<script src="{% static 'js/tema_swatch.js' %}?v=1" defer></script>
 <script src="{% static 'js/mochila.js' %}?v=1" defer></script>
 <script src="{% static 'js/ficha_opcoes.js' %}?v=2" defer></script>
 {% endblock %}
 
 {% block content %}
 {% if appearance.background_url %}<div class="ficha-bg-media" style="background-image:url('{{ appearance.background_url }}');"></div>{% endif %}
-<section class="ficha animate-fade-in space-y-3 {{ appearance.theme_class }} {{ appearance.effect_class }}"{% if appearance.fx_particula %} data-fx-particula="{{ appearance.fx_particula }}" data-fx-vel="{{ appearance.fx_vel }}"{% endif %}{% if appearance.custom_style %} style="{{ appearance.custom_style }}"{% endif %}>
+{% comment %}`ficha-has-bg` só sai COM imagem de fundo: é ela que liga o desfoque
+(backdrop-filter) da folha central em ficha.css. Sem imagem, folha sólida como sempre.{% endcomment %}
+<section class="ficha animate-fade-in space-y-3 {{ appearance.theme_class }} {{ appearance.effect_class }}{% if appearance.background_url %} ficha-has-bg{% endif %}"{% if appearance.fx_particula %} data-fx-particula="{{ appearance.fx_particula }}" data-fx-vel="{{ appearance.fx_vel }}"{% endif %}{% if appearance.custom_style %} style="{{ appearance.custom_style }}"{% endif %}>
 
   {# ===================== CABEÇALHO (banner estilo planilha) ===================== #}
   {% include 'home/partials/_ficha_banner.html' %}
@@ -204,11 +208,12 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
         </div>
         <div class="info-field full">
           <span class="lbl">Tema</span>
-          <div class="tema-swatch-grid" id="ficha-theme-group">
+          <div class="tema-swatch-grid" id="ficha-theme-group" role="radiogroup" aria-label="Tema da ficha">
             {% for key, item in appearance_themes.items %}
-            {% include 'home/includes/tema_swatch.html' with key=key item=item input_name='ficha_theme' input_id='ficha_theme_'|add:key selected_value=appearance.theme_key disabled=False %}
+            {% include 'home/includes/tema_swatch.html' with key=key item=item input_name='ficha_theme' input_id='ficha_theme_'|add:key selected_value=appearance.theme_key disabled=False custom=appearance.custom %}
             {% endfor %}
           </div>
+          <span class="hint">Clique num cartão: a ficha inteira muda na hora. Nada é gravado até você salvar.</span>
         </div>
         <div class="info-grid appearance-controls">
           <label class="info-field"><span class="lbl">Moldura</span>
@@ -236,8 +241,10 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
           <label class="info-field full appearance-toggle"><input type="checkbox" name="custom_gradiente" id="ficha-custom-gradiente" {% if appearance.custom.gradiente %}checked{% endif %}> <span class="lbl">Degradê animado no destaque</span></label>
         </div>
 
-        {# Preview ao vivo do tema/moldura/efeito #}
-        <div class="ficha-header ficha-live-preview {{ appearance.theme_class }} {{ appearance.effect_class }}" id="ficha-preview" style="margin-top:.7rem;{{ appearance.custom_style }}">
+        {% comment %}Preview de moldura/efeito. O TEMA não vive mais aqui: ele é aplicado
+        na folha inteira (section.ficha), e este bloco só HERDA as vars — se repetisse as
+        vars inline, elas venceriam a herança e o mini-preview congelaria no tema salvo.{% endcomment %}
+        <div class="ficha-header ficha-live-preview {{ appearance.effect_class }}" id="ficha-preview" style="margin-top:.7rem">
           <div class="banner-character-avatar {{ appearance.frame_class }}" id="ficha-preview-frame" style="width:56px;height:56px">
             {% if p.foto_url %}<img src="{{ p.foto_url }}" alt="" loading="lazy">{% else %}<span>{{ p.nome|first|upper }}</span>{% endif %}
           </div>
@@ -697,63 +704,58 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
 })();
 </script>
 
-{# Preview ao vivo do seletor de aparência da ficha #}
+{% comment %}
+TEMA EM TEMPO REAL NA FICHA (pedido do PO: "ao escolher muda em tempo real").
+
+A ficha não tem pane de prévia como o perfil — então a PRÓPRIA FOLHA VISÍVEL é a
+prévia: clicar num cartão repinta `section.ficha` na hora. Nada é persistido; só
+o "Salvar Informações" grava (o POST continua sendo o mesmo radio ficha_theme).
+
+As cores saem dos data-* do cartão (definicao_json sanitizada no backend), lidas
+por static/js/tema_swatch.js — o MESMO módulo que o perfil usa, com o mesmo mapa
+de vars do `_theme_vars_style`. Por isso este bloco não monta mais um dicionário
+DEFS/THEME em JS gerado por template: o dado já viaja no HTML do cartão.
+
+Fora do alcance: o <link> do css_file do tema (theme_css_href) só troca depois de
+salvar — trocar folha de estilo no meio da sessão não é prévia, é navegação.
+{% endcomment %}
 <script>
-(function () {
+{% comment %}DOMContentLoaded, não IIFE solta: tema_swatch.js é `defer` e só existe
+depois do parse — um IIFE inline rodaria ANTES dele e sairia pela porta dos fundos.{% endcomment %}
+document.addEventListener('DOMContentLoaded', function () {
+  const folha = document.querySelector('section.ficha');
+  const grade = document.getElementById('ficha-theme-group');
+  if (!folha || !grade || !window.TemaSwatch) return;
+
   const preview = document.getElementById('ficha-preview');
-  if (!preview) return;
   const frameEl = document.getElementById('ficha-preview-frame');
-  // Tema agora é um grupo de radios (cards-swatch) em vez de <select>.
-  const themeRadios = document.querySelectorAll('input[name="ficha_theme"]');
   const frameSel = document.getElementById('ficha-frame-select');
   const effectSel = document.getElementById('ficha-effect-select');
   const customBox = document.getElementById('ficha-custom-controls');
-  const THEME = { {% for key, item in appearance_themes.items %}'{{ key }}':'{{ item.class }}',{% endfor %} };
   const FRAME = { {% for key, item in appearance_frames.items %}'{{ key }}':'{{ item.class }}',{% endfor %} };
   const EFFECT = { {% for key, item in appearance_effects.items %}'{{ key }}':'{{ item.class }}',{% endfor %} };
-  {# Definicao (accent/accent2/surface/deep/gradiente) de cada tema-dado — mesmo dado #}
-  {# usado por tema_swatch.html. Cores ja sanitizadas (^#[0-9a-fA-F]{6}$) no backend. #}
-  const DEFS = { {% for key, item in appearance_themes.items %}'{{ key }}':{% if item.definicao %}{accent:'{{ item.definicao.accent }}',accent2:'{{ item.definicao.accent2 }}',surface:'{{ item.definicao.surface }}',deep:'{{ item.definicao.deep }}',gradiente:{% if item.definicao.gradiente %}true{% else %}false{% endif %}}{% else %}null{% endif %},{% endfor %} };
-  const cA = document.getElementById('ficha-custom-accent');
-  const cB = document.getElementById('ficha-custom-accent2');
-  const cS = document.getElementById('ficha-custom-surface');
-  const cD = document.getElementById('ficha-custom-deep');
-  const cG = document.getElementById('ficha-custom-gradiente');
-
-  function getThemeValue() {
-    const checked = document.querySelector('input[name="ficha_theme"]:checked');
-    return checked ? checked.value : 'bonfire';
-  }
+  const CORES = {
+    accent: document.getElementById('ficha-custom-accent'),
+    accent2: document.getElementById('ficha-custom-accent2'),
+    surface: document.getElementById('ficha-custom-surface'),
+    deep: document.getElementById('ficha-custom-deep'),
+    gradiente: document.getElementById('ficha-custom-gradiente'),
+  };
 
   function apply() {
-    const t = getThemeValue();
-    preview.className = 'ficha-header ficha-live-preview ' + (THEME[t] || '') + ' ' + (EFFECT[effectSel.value] || '');
-    frameEl.className = 'banner-character-avatar ' + (FRAME[frameSel.value] || '');
-    const isCustom = t === 'custom';
-    if (customBox) customBox.style.display = isCustom ? '' : 'none';
-    if (isCustom) {
-      const accent = cG && cG.checked ? ('linear-gradient(120deg, ' + cA.value + ', ' + cB.value + ')') : cA.value;
-      preview.style.cssText = 'margin-top:.7rem;width:56px;'
-        + '--sheet-accent:' + accent + ';--sheet-accent-solid:' + cA.value
-        + ';--sheet-accent-2:' + cB.value + ';--sheet-surface:' + cS.value + ';--sheet-deep:' + cD.value + ';';
-    } else {
-      const d = DEFS[t];
-      if (d) {
-        const accent = d.gradiente ? ('linear-gradient(120deg, ' + d.accent + ', ' + d.accent2 + ')') : d.accent;
-        preview.style.cssText = 'margin-top:.7rem;width:56px;'
-          + '--sheet-accent:' + accent + ';--sheet-accent-solid:' + d.accent
-          + ';--sheet-accent-2:' + d.accent2 + ';--sheet-surface:' + d.surface + ';--sheet-deep:' + d.deep + ';';
-      } else {
-        preview.style.cssText = 'margin-top:.7rem';
-      }
-    }
+    const marcado = window.TemaSwatch.cartaoMarcado(grade, 'ficha_theme');
+    if (customBox) customBox.style.display = (marcado && marcado.chave === 'custom') ? '' : 'none';
+    // A folha inteira (e com ela o mini-preview, que só herda as vars).
+    window.TemaSwatch.aplica(folha, window.TemaSwatch.comCoresDoFormulario(marcado, CORES));
+    if (preview && effectSel) preview.className = 'ficha-header ficha-live-preview ' + (EFFECT[effectSel.value] || '');
+    if (frameEl && frameSel) frameEl.className = 'banner-character-avatar ' + (FRAME[frameSel.value] || '');
   }
-  [...themeRadios, frameSel, effectSel, cA, cB, cS, cD, cG].forEach(el => {
-    if (el) el.addEventListener('input', apply);
-    if (el) el.addEventListener('change', apply);
-  });
+
+  grade.addEventListener('change', apply);
+  [frameSel, effectSel, CORES.accent, CORES.accent2, CORES.surface, CORES.deep, CORES.gradiente]
+    .forEach(el => { if (el) { el.addEventListener('input', apply); el.addEventListener('change', apply); } });
   apply();
-})();
+});
 </script>
 
 {# Personalidade/Ideais/Vínculos/Defeitos: salva sem recarregar (mesmo padrão da aba Informações). #}

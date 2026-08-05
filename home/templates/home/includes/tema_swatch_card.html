@@ -1,0 +1,49 @@
+{% comment %}
+CORPO do cartão-prévia de tema — render ÚNICO usado por perfil e ficha.
+Sempre chamado por `tema_swatch.html`, que decide de qual dict saem as cores
+(`d`): definicao_json do catálogo, ou as cores do usuário no cartão 'custom'.
+
+A MINIATURA é 100% data-driven: as cores vão para CSS vars --tsw-* no `style`
+inline (já sanitizadas server-side, ^#[0-9a-fA-F]{6}$ — nenhuma string livre
+sobrevive a sanitize_definicao_tema / _sanitize_custom_theme).
+
+Os MESMOS valores saem também como data-* no <label>: é daí que o JS
+(static/js/tema_swatch.js) pinta o tema escolhido EM TEMPO REAL, sem round-trip
+e sem persistir nada. Contrato dos data-*:
+  data-tema-card    valor bruto do tema (mesmo do radio)
+  data-tema-classe  classe legada do catálogo (usada quando NÃO há definição)
+  data-accent / -accent2 / -surface / -deep   cores hex
+  data-gradiente    "1" quando o accent é degradê animado
+  data-particula / -vel   contrato data-fx-* do perfil-fx.css
+Sem definição (legado pré-backfill) os data-* de cor não são emitidos: o JS cai
+na classe legada e o CSS cai no fallback estático — regressão zero.
+
+O <input type="radio"> mantém name/value idênticos aos do <select> antigo:
+o POST do formulário não muda em nada.
+{% endcomment %}
+<label class="tema-swatch tema-swatch--{{ key|default:'default' }}{% if disabled %} is-locked{% endif %}"
+       title="{{ item.label }}{% if disabled %} (bloqueado){% endif %}"
+       data-tema-card="{{ key }}" data-tema-classe="{{ item.class }}"
+       {% if d.accent %}data-accent="{{ d.accent }}" data-accent2="{{ d.accent2 }}" data-surface="{{ d.surface }}" data-deep="{{ d.deep }}" data-gradiente="{% if d.gradiente %}1{% else %}0{% endif %}" data-particula="{{ d.particula|default:'subir' }}" data-vel="{{ d.vel|default:'media' }}"{% endif %}>
+    <input type="radio" name="{{ input_name }}" id="{{ input_id }}" value="{{ key }}"
+           {% if key == selected_value %}checked{% endif %} {% if disabled %}disabled{% endif %}>
+    <span class="tema-swatch-preview"
+          {% if d.accent %}style="--tsw-accent:{{ d.accent }};--tsw-accent2:{{ d.accent2 }};--tsw-surface:{{ d.surface }};--tsw-deep:{{ d.deep }};"{% endif %}>
+        <span class="tema-swatch-mini" aria-hidden="true">
+            <span class="tema-swatch-bar{% if d.gradiente %} is-gradiente{% endif %}"></span>
+            <span class="tema-swatch-body">
+                <span class="tema-swatch-avatar"></span>
+                <span class="tema-swatch-lines">
+                    <span class="tema-swatch-line is-strong"></span>
+                    <span class="tema-swatch-line"></span>
+                </span>
+            </span>
+            <span class="tema-swatch-dots">
+                <span class="tema-swatch-dot"></span><span class="tema-swatch-dot"></span><span class="tema-swatch-dot"></span>
+            </span>
+        </span>
+        {% if d.particula and d.particula != 'nenhuma' %}<span class="tema-swatch-fx" data-fx="{{ d.particula }}" aria-hidden="true"></span>{% endif %}
+        {% if disabled %}<span class="tema-swatch-lock" aria-hidden="true">🔒</span>{% endif %}
+    </span>
+    <span class="tema-swatch-name">{{ item.label }}</span>
+</label>
