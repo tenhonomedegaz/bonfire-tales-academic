@@ -13,9 +13,9 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
 {% block mobile_ad %}<div class="ficha-noprint">{{ block.super }}</div>{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/pages/ficha.css' %}?v=13">
+<link rel="stylesheet" href="{% static 'css/pages/ficha.css' %}?v=14">
 <link rel="stylesheet" href="{% static 'css/components/tema_swatch.css' %}?v=1">
-<link rel="stylesheet" href="{% static 'css/pages/perfil-fx.css' %}?v=3">
+<link rel="stylesheet" href="{% static 'css/pages/perfil-fx.css' %}?v=4">
 {% if appearance.theme_css_href %}<link rel="stylesheet" href="{{ appearance.theme_css_href }}">{% endif %}
 <script src="{% static 'js/tema_swatch.js' %}?v=1" defer></script>
 <script src="{% static 'js/mochila.js' %}?v=1" defer></script>
@@ -118,6 +118,10 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
           <span class="coin-box"><span class="coin-val" data-carteira-pp>{{ ficha.carteira.pp|default:"0" }}</span><span class="coin-sig">PP</span></span>
           <span class="coin-box"><span class="coin-val" data-carteira-pc>{{ ficha.carteira.pc|default:"0" }}</span><span class="coin-sig">PC</span></span>
         </div>
+      </div>
+      <div class="bag-stat bag-braseiros">
+        <span class="lbl">Braseiros</span>
+        <strong class="v flame">{{ ficha.progressao.braseiros|default:"0" }}</strong>
       </div>
       <div class="bag-stat">
         <span class="lbl">Valor da mochila</span>

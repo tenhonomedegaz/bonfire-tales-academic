@@ -6,13 +6,16 @@ Contexto esperado: p, ficha, appearance, raca_linha, pode_editar, is_staff, leve
 `folha_readonly` (Pathbuilder) esconde o que so existe na ficha salva: botoes de acao,
 progressao de aventuras e atalhos para outras abas.{% endcomment %}
   <header class="ficha-header ficha-banner">
-    {% if p.banner_url %}<div class="ficha-banner-media" style="background-image:url('{{ p.banner_url }}');"></div>{% endif %}
     {# --- pergaminho à esquerda: nome + classes --- #}
     <div class="banner-scroll">
+      {% if p.banner_url %}<div class="ficha-banner-media" style="background-image:url('{{ p.banner_url }}');"></div>{% endif %}
       <div class="banner-character-avatar {{ appearance.frame_class }}">
         {% if p.foto_url %}<img src="{{ p.foto_url }}" alt="Retrato de {{ p.nome }}" loading="lazy">{% else %}<span>{{ p.nome|first|upper }}</span>{% endif %}
       </div>
-      <h1 class="ficha-name">{{ p.nome }}</h1>
+      <div class="ficha-title-line">
+        <h1 class="ficha-name">{{ p.nome }}</h1>
+        <span class="banner-level-inline" title="Nível total">Nível {{ ficha.nivel_total|default:ficha.progressao.nivel_aventuras }}</span>
+      </div>
       <div class="banner-classes">
         {% for c in ficha.classes %}<span class="banner-class">{{ c.classe }}{% if c.subclasse %} <em>({{ c.subclasse }})</em>{% endif %} {{ c.nivel }}</span>{% if not forloop.last %}<span class="banner-sep">/</span>{% endif %}{% empty %}<span class="banner-class">—</span>{% endfor %}
       </div>
@@ -29,8 +32,6 @@ progressao de aventuras e atalhos para outras abas.{% endcomment %}
             <a href="{% url 'personagem_subir_nivel' p.id_personagem %}" class="banner-btn primary banner-btn-levelup" data-levelup-btn>
               ⬆ {% if levelup_status.pode_subir %}Subir de Nível{% else %}Concluir escolhas de nível{% endif %}
             </a>
-          {% elif not levelup_status.no_maximo %}
-            <span class="banner-nextlvl" title="Progresso até o próximo nível">Próximo nível em {{ levelup_status.faltam_aventuras }} aventura{{ levelup_status.faltam_aventuras|pluralize }}</span>
           {% endif %}
         {% endif %}
       </div>
@@ -43,17 +44,16 @@ progressao de aventuras e atalhos para outras abas.{% endcomment %}
         {% if p.dono_id %}<div class="banner-field"><span class="lbl">Jogador</span><span class="val">{{ p.dono.username }}</span></div>{% endif %}
         <div class="banner-field wide"><span class="lbl">Raça</span><span class="val">{{ raca_linha|default:"—" }}{% if p.id_antecedente_id %} <span class="val-muted">· {{ p.id_antecedente.nome }}</span>{% endif %}</span></div>
         {% if not folha_readonly %}
-        <div class="banner-field"><span class="lbl">Rank / Patente</span><span class="val">{{ ficha.progressao.rank|default:"—" }}</span></div>
-        <div class="banner-field"><span class="lbl">Aventuras</span><span class="val">{{ ficha.progressao.aventuras|default:"0" }}</span></div>
+        <div class="banner-field banner-rank-field">
+          {% if ficha.progressao.rank_icone_url %}<img class="banner-rank-icon" src="{{ ficha.progressao.rank_icone_url }}" alt="Patente {{ ficha.progressao.rank }}" loading="lazy">{% endif %}
+          <span><span class="lbl">Rank / Patente</span><span class="val">{{ ficha.progressao.rank|default:"—" }}</span></span>
+        </div>
+        <div class="banner-field banner-progress-field">
+          <span><span class="lbl">Aventuras</span><span class="val">{{ ficha.progressao.aventuras|default:"0" }}</span></span>
+          <span><span class="lbl">Próximo nível</span><span class="val">{{ ficha.progressao.proximo_nivel_aventuras|default:"—" }}{% if ficha.progressao.proximo_nivel_aventuras %} <span class="val-muted">av.</span>{% endif %}</span></span>
+        </div>
         <div class="banner-field"><span class="lbl">Ouro de progressão</span><span class="val">{{ ficha.progressao.ouro_esperado_po|default:"0" }} <span class="val-muted">PO</span></span></div>
-        <div class="banner-field"><span class="lbl">Braseiros</span><span class="val">{{ ficha.progressao.braseiros|default:"0" }}</span></div>
-        <div class="banner-field"><span class="lbl">Próximo nível</span><span class="val">{{ ficha.progressao.proximo_nivel_aventuras|default:"—" }}{% if ficha.progressao.proximo_nivel_aventuras %} <span class="val-muted">av.</span>{% endif %}</span></div>
         {% endif %}
-      </div>
-
-      <div class="banner-level" title="Nível total">
-        <span class="lvl-lbl">Nível</span>
-        <span class="lvl-num">{{ ficha.nivel_total|default:ficha.progressao.nivel_aventuras }}</span>
       </div>
     </div>
   </header>

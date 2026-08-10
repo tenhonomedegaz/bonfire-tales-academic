@@ -169,7 +169,7 @@ def _ordena_por_destaque(badges, destaque_slugs):
     return destaque + resto
 
 
-def badges_com_destaque(user, destaque_slugs, is_colaborador=None):
+def badges_com_destaque(user, destaque_slugs, is_colaborador=None, ocultas_derivadas=None):
     """Derivadas + concedidas do usuário, com as fixadas em `destaque_slugs` primeiro.
 
     Caminho ÚNICO de montagem da vitrine: o perfil público passa o que está SALVO
@@ -177,7 +177,9 @@ def badges_com_destaque(user, destaque_slugs, is_colaborador=None):
     (já filtrado por posse em _validated_badges_destaque) — mesmo código, zero drift."""
     if not user or not getattr(user, 'pk', None):
         return []
-    derivadas = badges_derivadas(user, is_colaborador)
+    ocultas = set(ocultas_derivadas or []) - {'staff'}
+    derivadas = [b for b in badges_derivadas(user, is_colaborador)
+                 if b['slug'] not in ocultas]
     concedidas = badges_concedidas(user)
     # Fixadas primeiro (dentre TODAS as badges), preservando derivadas na frente.
     return _ordena_por_destaque(derivadas + concedidas, list(destaque_slugs or []))
@@ -188,7 +190,8 @@ def badges_do_usuario(user, is_colaborador=None):
     As derivadas vêm sempre na frente das concedidas não-fixadas."""
     perfil = getattr(user, 'profile', None)
     destaque = list(getattr(perfil, 'badges_destaque', None) or [])
-    return badges_com_destaque(user, destaque, is_colaborador)
+    ocultas = list(getattr(perfil, 'badges_derivadas_ocultas', None) or [])
+    return badges_com_destaque(user, destaque, is_colaborador, ocultas)
 
 
 def user_possui_cosmetico(user, slug, tipo):
@@ -363,7 +366,9 @@ def perfil_badges_batch(users):
     for u in users:
         perfil = getattr(u, 'profile', None)
         destaque = list(getattr(perfil, 'badges_destaque', None) or [])
-        derivadas = badges_derivadas(u, colab_map.get(u.pk, False))
+        ocultas = set(getattr(perfil, 'badges_derivadas_ocultas', None) or []) - {'staff'}
+        derivadas = [b for b in badges_derivadas(u, colab_map.get(u.pk, False))
+                     if b['slug'] not in ocultas]
         concedidas = concedidas_map.get(u.pk, [])
         badges = _ordena_por_destaque(derivadas + concedidas, destaque)
         out[u.pk] = {'badges': badges, 'titulo': titulos_map.get(u.pk)}

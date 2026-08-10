@@ -3,7 +3,7 @@
 
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'css/pages/perfil.css' %}?v=6">
-<link rel="stylesheet" href="{% static 'css/pages/perfil-fx.css' %}?v=3">
+<link rel="stylesheet" href="{% static 'css/pages/perfil-fx.css' %}?v=4">
 <title>Jogadores - Bonfire Tales RPG</title>
 {% endblock %}
 
@@ -16,7 +16,7 @@
     </div>
     <form action="{% url 'jogadores' %}" method="get" class="players-search">
       {% if filtro != 'todos' %}<input type="hidden" name="filtro" value="{{ filtro }}">{% endif %}
-      {% if ordem != 'nome' %}<input type="hidden" name="ordem" value="{{ ordem }}">{% endif %}
+      {% if ordem != 'popular' %}<input type="hidden" name="ordem" value="{{ ordem }}">{% endif %}
       <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
       <input type="search" name="q" value="{{ q }}" placeholder="Buscar jogador ou personagem publico">
       <button type="submit">Buscar</button>
@@ -44,7 +44,7 @@
   <div class="players-meta">
     <span>{{ total_encontrados }} perfil{% if total_encontrados != 1 %}s{% endif %}</span>
     <span class="players-meta-actions">
-      {% if q or filtro != 'todos' or ordem != 'nome' %}<a href="{% url 'jogadores' %}">Limpar filtros</a>{% endif %}
+      {% if q or filtro != 'todos' or ordem != 'popular' %}<a href="{% url 'jogadores' %}">Limpar filtros</a>{% endif %}
       {% if user.is_authenticated %}
       <a href="{% url 'public_profile' user.username %}">Meu perfil publico</a>
       {% endif %}

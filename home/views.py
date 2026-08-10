@@ -702,6 +702,17 @@ def _validated_badges_destaque(user, slugs):
     return out[:BADGES_DESTAQUE_LIMITE]
 
 
+def _badges_derivadas_ocultas(user, slugs_visiveis):
+    """Converte a seleção visual nas badges automáticas ocultas.
+
+    A badge de equipe é institucional e obrigatória. As demais só podem ser
+    ocultadas quando de fato pertencem ao usuário.
+    """
+    disponiveis = {b['slug'] for b in _badges.badges_derivadas(user)} - {'staff'}
+    visiveis = {str(slug).strip() for slug in (slugs_visiveis or [])}
+    return sorted(disponiveis - visiveis)
+
+
 def _sanitize_custom_theme(raw):
     """Normaliza o dict do tema Personalizado: só cores ^#[0-9a-fA-F]{6}$ passam;
     valor inválido cai no default. `gradiente` vira bool. Blindado contra injeção
@@ -904,6 +915,8 @@ def profile_view(request):
             theme_custom = _custom_theme_from_post(request)
             titulo_equipado = _validated_titulo_equipado(user, request.POST.get('titulo_equipado'))
             badges_destaque = _validated_badges_destaque(user, request.POST.getlist('badges_destaque'))
+            badges_derivadas_ocultas = _badges_derivadas_ocultas(
+                user, request.POST.getlist('badges_derivadas_visiveis'))
             vlibras_enabled = request.POST.get('vlibras_enabled') == 'on'
             User = get_user_model()
             user_changed = False
@@ -982,6 +995,7 @@ def profile_view(request):
             profile.profile_effect = None if profile_effect == 'none' else profile_effect
             profile.titulo_equipado = titulo_equipado
             profile.badges_destaque = badges_destaque
+            profile.badges_derivadas_ocultas = badges_derivadas_ocultas
             profile.vlibras_enabled = vlibras_enabled
             if email_mudou:
                 profile.email_verified = False
@@ -1056,6 +1070,7 @@ def profile_view(request):
         'badges_derivadas': _badges.badges_derivadas(user),
         'titulo_equipado_slug': (profile.titulo_equipado or '').strip(),
         'badges_destaque_slugs': list(profile.badges_destaque or []),
+        'badges_derivadas_ocultas_slugs': list(profile.badges_derivadas_ocultas or []),
         # F3 — progresso das próprias conquistas (obtidas + bloqueadas não-secretas).
         'conquistas': _conquistas.conquistas_do_usuario(user),
         # PRÉVIA VIVA — estado INICIAL do painel: a aparência ATUALMENTE SALVA,
@@ -1167,6 +1182,8 @@ def perfil_preview_view(request):
     theme_custom = _custom_theme_from_post(request)
     titulo_slug = _validated_titulo_equipado(user, request.POST.get('titulo_equipado'))
     badges_destaque = _validated_badges_destaque(user, request.POST.getlist('badges_destaque'))
+    badges_derivadas_ocultas = _badges_derivadas_ocultas(
+        user, request.POST.getlist('badges_derivadas_visiveis'))
 
     # O que o servidor RECUSOU (candidato não-possuído/inexistente) — mesma recusa
     # que o salvamento aplicaria, só que visível antes de salvar.
@@ -1203,7 +1220,8 @@ def perfil_preview_view(request):
         'appearance': appearance,
         'profile': profile_candidato,
         'viewed_user': user,
-        'badges': _badges.badges_com_destaque(user, badges_destaque),
+        'badges': _badges.badges_com_destaque(
+            user, badges_destaque, ocultas_derivadas=badges_derivadas_ocultas),
         'titulo': _badges.titulo_por_slug(user, titulo_slug),
         'conquistas': _conquistas.conquistas_do_usuario(user),
         'personagens': _perfil_personagens(user, True),
@@ -1281,7 +1299,7 @@ def jogadores_view(request):
     User = get_user_model()
     q = (request.GET.get('q') or '').strip()
     filtro = (request.GET.get('filtro') or 'todos').strip()
-    ordem = (request.GET.get('ordem') or 'nome').strip()
+    ordem = (request.GET.get('ordem') or 'popular').strip()
     filtros_validos = {
         'todos': 'Todos',
         'personagens': 'Com personagens',
@@ -1289,6 +1307,7 @@ def jogadores_view(request):
         'equipe': 'Equipe',
     }
     ordens_validas = {
+        'popular': 'Mais populares',
         'nome': 'Nome',
         'personagens': 'Mais personagens',
         'atividade': 'Atividade recente',
@@ -1318,19 +1337,17 @@ def jogadores_view(request):
             .annotate(public_character_updated=Max(
                 'personagens__atualizado_em',
                 filter=public_character_q,
-            )))
+            ))
+            .annotate(
+                profile_like_count=Count('curtidas_recebidas', distinct=True),
+                profile_follower_count=Count('seguidores', distinct=True),
+            ))
     if q:
         base = base.filter(
             Q(username__icontains=q)
             | Q(profile__bio__icontains=q)
             | Q(personagens__nome__icontains=q, personagens__publico=True, personagens__arquivado=False)
         ).distinct()
-    else:
-        base = base.filter(
-            Q(public_character_count__gt=0)
-            | custom_profile_q
-            | Q(is_staff=True)
-        )
 
     if filtro == 'personagens':
         base = base.filter(public_character_count__gt=0)
@@ -1339,7 +1356,10 @@ def jogadores_view(request):
     elif filtro == 'equipe':
         base = base.filter(is_staff=True)
 
-    if ordem == 'personagens':
+    if ordem == 'popular':
+        base = base.order_by('-profile_follower_count', '-profile_like_count',
+                             '-public_character_count', 'username')
+    elif ordem == 'personagens':
         base = base.order_by('-public_character_count', 'username')
     elif ordem == 'atividade':
         base = base.order_by('-public_character_updated', 'username')
@@ -1390,7 +1410,7 @@ def jogadores_view(request):
         for key, value in updates.items():
             if value in (None, '', 'todos') and key == 'filtro':
                 params.pop(key, None)
-            elif value in (None, '', 'nome') and key == 'ordem':
+            elif value in (None, '', 'popular') and key == 'ordem':
                 params.pop(key, None)
             elif value in (None, '') and key == 'q':
                 params.pop(key, None)

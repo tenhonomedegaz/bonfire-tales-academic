@@ -915,6 +915,9 @@ class UserProfile(models.Model):
                                        help_text='Slug de um cosmético tipo=titulo equipado sob o nome.')
     badges_destaque = models.JSONField(db_column='BadgesDestaque', default=list, blank=True,
                                        help_text='Slugs de badges concedidas que o usuário fixa na vitrine (até 6).')
+    badges_derivadas_ocultas = models.JSONField(
+        db_column='BadgesDerivadasOcultas', default=list, blank=True,
+        help_text='Badges automáticas opcionais que o usuário decidiu ocultar. Equipe nunca é ocultável.')
 
     class Meta:
         db_table = 'TB_UserProfile'
@@ -937,6 +940,13 @@ class UserProfile(models.Model):
                 seen.add(slug)
                 limpos.append(slug)
         self.badges_destaque = limpos[:BADGES_DESTAQUE_LIMITE]
+        raw_ocultas = self.badges_derivadas_ocultas
+        if not isinstance(raw_ocultas, list):
+            raw_ocultas = []
+        self.badges_derivadas_ocultas = list(dict.fromkeys(
+            str(slug).strip() for slug in raw_ocultas
+            if str(slug).strip() and str(slug).strip() != 'staff'
+        ))
         self.titulo_equipado = (self.titulo_equipado or '').strip()
         super().save(*args, **kwargs)
 

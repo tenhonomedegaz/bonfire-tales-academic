@@ -372,6 +372,18 @@ _RANK_FAIXA = [(1, 4, 'Obsidiana'), (5, 8, 'Ametista'), (9, 12, 'Topázio'), (13
 _RANK_OURO = {'Obsidiana': 120, 'Ametista': 250, 'Topázio': 400, 'Esmeralda': 650,
               'Âmbar': 800, 'Rubi': 1000, 'Diamante': 1200, 'Lenda': 1200}
 
+# Identidade visual das patentes. Mantida no motor de progressão para que ficha,
+# Pathbuilder e futuras vitrines consumam o mesmo dado, sem mapas em templates.
+_RANK_ICON_URL = {
+    'Obsidiana': 'https://i.imgur.com/qGyiU87.png',
+    'Ametista': 'https://i.imgur.com/BcEwj4f.png',
+    'Topázio': 'https://i.imgur.com/XDubFYE.png',
+    'Esmeralda': 'https://i.imgur.com/i5CiTbS.png',
+    'Âmbar': 'https://i.imgur.com/1SVmQAz.png',
+    'Rubi': 'https://i.imgur.com/GNcQiwM.png',
+    'Diamante': 'https://i.imgur.com/w6Iaeey.png',
+}
+
 
 def nivel_por_aventuras(n):
     """Nº de aventuras → nível (1..20; 21 = Epic Boon; 22 = Lenda)."""
@@ -398,6 +410,11 @@ def rank_por_nivel(nivel):
         if lo <= int(nivel) <= hi:
             return nome
     return 'Obsidiana'
+
+
+def rank_icone_url(rank):
+    """URL do ícone oficial da patente, ou vazio quando a patente não tem arte."""
+    return _RANK_ICON_URL.get(str(rank or '').strip(), '')
 
 
 def nivel_label(nivel):
@@ -3531,9 +3548,10 @@ def derive(personagem):
     # Progressão por aventuras: nº de aventuras define o nível-TETO + rank.
     av = int(getattr(personagem, 'aventuras', 0) or 0)
     nivel_av = nivel_por_aventuras(av)
+    rank = rank_por_nivel(nivel_av)
     state['progressao'] = {
         'aventuras': av, 'nivel_aventuras': nivel_av, 'nivel_label': nivel_label(nivel_av),
-        'nivel_max': min(nivel_av, 20), 'rank': rank_por_nivel(nivel_av),
+        'nivel_max': min(nivel_av, 20), 'rank': rank, 'rank_icone_url': rank_icone_url(rank),
         'braseiros': int(getattr(personagem, 'braseiros', 0) or 0),
         'no_teto': nivel_total >= min(nivel_av, 20),
         # Ouro (PO) acumulado esperado pela progressão de aventuras (linha informativa;

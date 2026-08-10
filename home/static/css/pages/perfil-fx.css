@@ -45,7 +45,7 @@
 }
 
 /* ---------------------------------------------------------------------
-   1) PARTÍCULAS AMBIENTES POR TEMA (sempre ativas, BEM visíveis)
+   1) PARTÍCULAS AMBIENTES POR EFEITO (inativas por padrão)
    Camada em ::before ACIMA do conteúdo (z-index:2) com mix-blend-mode:screen
    — os pontos ADICIONAM luz, brilhando sobre o card escuro sem escurecer o
    texto (dots minúsculos). pointer-events:none => não intercepta cliques.
@@ -80,8 +80,31 @@
         radial-gradient(circle at 96% 106%, var(--fx-glow) 0 1.6px, transparent 3px);
     background-size: 130px 250px, 190px 320px, 150px 280px, 210px 350px, 120px 230px, 240px 380px, 100px 210px;
     background-repeat: repeat-x;
+    opacity: 0;
+    animation: none;
+}
+
+/* O tema fornece as cores; somente o EFEITO escolhido cria movimento. */
+.effect-embers .public-profile-card::before,
+.effect-embers .public-profile-section::before,
+.effect-embers .ficha-panel::before,
+.player-card.effect-embers::before {
     opacity: 0.62;
     animation: fx-rise 9s linear infinite;
+}
+.effect-aurora .public-profile-card::before,
+.effect-aurora .public-profile-section::before,
+.effect-aurora .ficha-panel::before,
+.player-card.effect-aurora::before {
+    opacity: 0.46;
+    animation: fx-rise 14s ease-in-out infinite;
+}
+.effect-starfall .public-profile-card::before,
+.effect-starfall .public-profile-section::before,
+.effect-starfall .ficha-panel::before,
+.player-card.effect-starfall::before {
+    opacity: 0.66;
+    animation: fx-fall 15s linear infinite;
 }
 
 /* Sobe (brasas) — padrão ember/bonfire/custom. */
@@ -173,6 +196,15 @@
 .ficha[data-fx-vel="rapida"] .ficha-panel::before,
 .player-card[data-fx-vel="rapida"]::before {
     animation-duration: 6s;
+}
+
+/* Brilho, vidro e "sem efeito" nunca herdam partículas do tema dinâmico. */
+.public-profile-page:not(.effect-embers):not(.effect-aurora):not(.effect-starfall) .public-profile-card::before,
+.public-profile-page:not(.effect-embers):not(.effect-aurora):not(.effect-starfall) .public-profile-section::before,
+.ficha:not(.effect-embers):not(.effect-aurora):not(.effect-starfall) .ficha-panel::before,
+.player-card:not(.effect-embers):not(.effect-aurora):not(.effect-starfall)::before {
+    opacity: 0;
+    animation: none;
 }
 
 /* ---------------------------------------------------------------------

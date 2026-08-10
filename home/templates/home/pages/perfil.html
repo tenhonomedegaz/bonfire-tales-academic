@@ -219,15 +219,18 @@
                 <span class="avatar-preview-hint">Você ainda não tem insígnias concedidas. As automáticas (Equipe, Apoiador, Mestre Ouro, Fundador) já aparecem sozinhas no seu perfil.</span>
                 {% endif %}
                 {% if badges_derivadas %}
-                <div class="profile-badges profile-badges-derivadas-preview" style="margin-top:.5rem">
+                <input type="hidden" name="badges_visibilidade_enviada" value="1">
+                <span class="profile-label" style="margin-top:.65rem">Insígnias automáticas visíveis</span>
+                <div class="profile-badge-picker profile-badges-derivadas-preview">
                     {% for b in badges_derivadas %}
-                    <span class="profile-badge {{ b.classe }}" title="{{ b.tooltip }}">
+                    <label class="profile-badge-pick {{ b.classe }}" title="{{ b.tooltip }}">
+                        <input type="checkbox" name="badges_derivadas_visiveis" value="{{ b.slug }}" {% if b.slug == 'staff' or b.slug not in badges_derivadas_ocultas_slugs %}checked{% endif %} {% if b.slug == 'staff' %}disabled{% endif %}>
                         {% if b.icone %}<span class="profile-badge-emoji" aria-hidden="true">{{ b.icone }}</span>{% endif %}
                         <span class="profile-badge-name">{{ b.nome }}</span>
-                    </span>
+                    </label>
                     {% endfor %}
                 </div>
-                <span class="avatar-preview-hint">Insígnias automáticas (sempre visíveis conforme seu status).</span>
+                <span class="avatar-preview-hint">Equipe é obrigatória. Fundador e as demais automáticas podem ser ocultadas.</span>
                 {% endif %}
             </div>
         </div>
