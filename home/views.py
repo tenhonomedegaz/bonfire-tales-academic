@@ -1,5 +1,6 @@
 import json
 import hashlib
+import logging
 import re
 import unicodedata
 from urllib.parse import unquote, urlsplit
@@ -14,6 +15,8 @@ from . import conquistas as _conquistas
 from . import social as _social
 from datetime import datetime, timezone as datetime_timezone
 from types import SimpleNamespace
+
+logger = logging.getLogger(__name__)
 
 from django import forms
 from django.conf import settings
@@ -8279,6 +8282,9 @@ def criar_personagem_preview_view(request):
             ficha = derive(p)
             transaction.set_rollback(True)
     except Exception:
+        logger.exception(
+            'Falha ao montar preview do criador para user_id=%s classe=%s raca=%s',
+            getattr(dono, 'pk', None), data.get('classe'), data.get('raca'))
         return JsonResponse({'ok': True, 'ready': False})
     return JsonResponse({'ok': True, 'ready': True, 'preview': _criador_preview_resumo(ficha)})
 
@@ -8298,8 +8304,19 @@ def criar_personagem_view(request):
     if erros:
         return JsonResponse({'ok': False, 'erros': erros}, status=400)
 
-    with transaction.atomic():
-        p = _criador_persistir(request.user, data, R)
+    try:
+        with transaction.atomic():
+            p = _criador_persistir(request.user, data, R)
+    except Exception:
+        # O contrato do criador é JSON inclusive em falhas inesperadas. Sem este
+        # guard, o Django devolve HTML 500 e o cliente o mascara como "erro de rede".
+        logger.exception(
+            'Falha ao persistir personagem para user_id=%s classe=%s raca=%s',
+            request.user.pk, data.get('classe'), data.get('raca'))
+        return JsonResponse({
+            'ok': False,
+            'erros': ['Não foi possível gravar a ficha. O erro foi registrado; tente novamente.'],
+        }, status=500)
 
     return JsonResponse({'ok': True, 'id': p.id_personagem,
                          'redirect': reverse('ficha_detail', args=[p.id_personagem])})

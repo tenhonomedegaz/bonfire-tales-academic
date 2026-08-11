@@ -29,6 +29,7 @@
       </nav>
 
       <form id="criador-form" class="space-y-3">
+        {% csrf_token %}
 
         <!-- ============ ETAPA 1 · Identidade + Atributos ============ -->
         <div class="cf-step space-y-3" data-step="0">
@@ -312,5 +313,5 @@
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'css/pages/criador.css' %}?v=3">
 <script src="{% static 'js/point_buy.js' %}?v=2" defer></script>
-<script src="{% static 'js/criador.js' %}?v=12" defer></script>
+<script src="{% static 'js/criador.js' %}?v=13" defer></script>
 {% endblock %}

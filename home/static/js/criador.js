@@ -1341,13 +1341,34 @@
             if (!window.CRIAR_LOGADO) { showErros(['Você precisa estar logado para salvar. Faça login e tente novamente.']); return; }
             showErros([]);
             var submittedPayload = payload();
+            var csrfInput = form.querySelector('input[name="csrfmiddlewaretoken"]');
             submitBtn.disabled = true;
             submitBtn.textContent = window.CRIAR_PATHBUILDER ? 'Abrindo…' : 'Salvando…';
             fetch(window.CRIAR_URL, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': window.CSRF_TOKEN },
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'fetch',
+                    'X-CSRFToken': csrfInput ? csrfInput.value : window.CSRF_TOKEN
+                },
                 body: JSON.stringify(submittedPayload)
-            }).then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+            }).then(function (r) {
+                var contentType = (r.headers.get('content-type') || '').toLowerCase();
+                if (r.redirected && /\/login\/?(?:\?|$)/.test(r.url)) {
+                    return { ok: false, j: { erros: ['Sua sessão expirou. Entre novamente e retome a criação.'] } };
+                }
+                if (contentType.indexOf('application/json') !== -1) {
+                    return r.json().then(function (j) { return { ok: r.ok, j: j }; });
+                }
+                return r.text().then(function () {
+                    var msg = r.status === 403
+                        ? 'A sessão de segurança expirou. Recarregue a página e tente novamente.'
+                        : 'O servidor respondeu em formato inesperado (HTTP ' + r.status + ').';
+                    return { ok: false, j: { erros: [msg] } };
+                });
+            })
               .then(function (res) {
                   if (res.ok && res.j.ok) {
                       if (window.CRIAR_PATHBUILDER) {
@@ -1361,7 +1382,7 @@
                   submitBtn.disabled = false;
                   submitBtn.textContent = window.CRIAR_SUBMIT_LABEL || 'Criar Personagem';
               }).catch(function () {
-                  showErros(['Erro de rede ao salvar.']);
+                  showErros(['Não foi possível alcançar o servidor. Verifique a conexão e tente novamente.']);
                   submitBtn.disabled = false;
                   submitBtn.textContent = window.CRIAR_SUBMIT_LABEL || 'Criar Personagem';
               });
