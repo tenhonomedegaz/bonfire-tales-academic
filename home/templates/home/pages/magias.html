@@ -101,7 +101,7 @@
       if(nv!=='' && String(m.nivel)!==nv) return false;
       if(conc && !m.concentracao) return false;
       if(rit && !m.ritual) return false;
-      if(q && norm(m.nome+' '+m.descricao+' '+(m.tags||[]).join(' ')).indexOf(q)===-1) return false;
+      if(q && norm(m.nome+' '+(m.nome_ingles||'')+' '+m.descricao+' '+(m.tags||[]).join(' ')).indexOf(q)===-1) return false;
       return true;
     });
   }
@@ -130,6 +130,7 @@
     item.innerHTML =
       '<div class="flex justify-between items-start gap-2">'
         + '<h3 class="font-bold text-[13px] '+textClass+' transition-colors">'+esc(m.nome)+'</h3>'
+        + (m.nome_ingles ? '<p class="text-[10px] text-bonfire-muted">'+esc(m.nome_ingles)+'</p>' : '')
         + (badges ? '<span class="flex gap-1 shrink-0">'+badges+'</span>' : '')
       + '</div>'
       + '<p class="text-xs text-bonfire-muted uppercase tracking-wider">'+sub+'</p>';
@@ -182,6 +183,7 @@
 
     detailContainer.innerHTML =
       '<h2 class="font-cinzel text-xl font-bold text-bonfire-text uppercase mb-1">'+esc(m.nome)+'</h2>'
+      +(m.nome_ingles?'<p class="mb-1 text-xs text-bonfire-muted">'+esc(m.nome_ingles)+'</p>':'')
       + '<p class="text-xs text-bonfire-muted mb-3">'+subtitulo+'</p>'
       + '<div class="grid grid-cols-2 gap-x-2.5 gap-y-1.5 text-sm sm:grid-cols-3 mb-2.5">'+metaHtml+'</div>'
       + (tagsHtml ? '<div class="mb-3 flex flex-wrap gap-1">'+tagsHtml+'</div>' : '')

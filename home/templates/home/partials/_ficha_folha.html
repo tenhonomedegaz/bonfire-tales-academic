@@ -195,7 +195,7 @@ progressao de aventuras e atalhos para outras abas.{% endcomment %}
             {% for f in ficha.features %}{% if f.origem == "classe" or f.origem == "subclasse" %}
               <article class="feat-card" data-feat-card data-feat-key="{{ forloop.counter0 }}">
                 <button type="button" class="feat-head" aria-expanded="false">
-                  <span class="feat-main"><span class="feat-name">{{ f.nome }}</span><span class="feat-meta">{{ f.fonte|default:f.origem }}</span></span>
+                  <span class="feat-main"><span class="feat-name">{{ f.nome }}</span>{% if f.nome_ingles %}<span class="feat-meta">{{ f.nome_ingles }}</span>{% endif %}<span class="feat-meta">{{ f.fonte|default:f.origem }}</span></span>
                   {% if f.nivel %}<span class="feat-badge">Nv {{ f.nivel }}</span>{% endif %}
                   <svg class="feat-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
                 </button>
@@ -212,7 +212,7 @@ progressao de aventuras e atalhos para outras abas.{% endcomment %}
             {% for f in ficha.features %}{% if f.origem == "raca" or f.origem == "essencia" or f.origem == "linhagem" %}
               <article class="feat-card" data-feat-card data-feat-key="{{ forloop.counter0 }}">
                 <button type="button" class="feat-head" aria-expanded="false">
-                  <span class="feat-main"><span class="feat-name">{{ f.nome }}</span><span class="feat-meta">{{ f.fonte|default:f.origem }}</span></span>
+                  <span class="feat-main"><span class="feat-name">{{ f.nome }}</span>{% if f.nome_ingles %}<span class="feat-meta">{{ f.nome_ingles }}</span>{% endif %}<span class="feat-meta">{{ f.fonte|default:f.origem }}</span></span>
                   {% if f.nivel %}<span class="feat-badge">Nv {{ f.nivel }}</span>{% endif %}
                   <svg class="feat-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
                 </button>
@@ -229,7 +229,7 @@ progressao de aventuras e atalhos para outras abas.{% endcomment %}
             {% for f in ficha.features %}{% if f.origem == "antecedente" %}
               <article class="feat-card" data-feat-card data-feat-key="{{ forloop.counter0 }}">
                 <button type="button" class="feat-head" aria-expanded="false">
-                  <span class="feat-main"><span class="feat-name">{{ f.nome }}</span><span class="feat-meta">{{ f.fonte|default:f.origem }}</span></span>
+                  <span class="feat-main"><span class="feat-name">{{ f.nome }}</span>{% if f.nome_ingles %}<span class="feat-meta">{{ f.nome_ingles }}</span>{% endif %}<span class="feat-meta">{{ f.fonte|default:f.origem }}</span></span>
                   {% if f.nivel %}<span class="feat-badge">Nv {{ f.nivel }}</span>{% endif %}
                   <svg class="feat-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
                 </button>
@@ -246,7 +246,7 @@ progressao de aventuras e atalhos para outras abas.{% endcomment %}
             {% for f in ficha.features %}{% if f.origem == "talento" or f.origem == "talento-racial" %}
               <article class="feat-card" data-feat-card data-feat-key="{{ forloop.counter0 }}">
                 <button type="button" class="feat-head" aria-expanded="false">
-                  <span class="feat-main"><span class="feat-name">{{ f.nome }}</span><span class="feat-meta">{{ f.fonte|default:f.origem }}</span></span>
+                  <span class="feat-main"><span class="feat-name">{{ f.nome }}</span>{% if f.nome_ingles %}<span class="feat-meta">{{ f.nome_ingles }}</span>{% endif %}<span class="feat-meta">{{ f.fonte|default:f.origem }}</span></span>
                   {% if f.nivel %}<span class="feat-badge">Nv {{ f.nivel }}</span>{% endif %}
                   <svg class="feat-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
                 </button>

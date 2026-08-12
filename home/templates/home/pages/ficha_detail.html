@@ -434,9 +434,9 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
                 <span class="spell-marker readonly {% if m.preparada %}prepared{% endif %}"></span>
               {% endif %}
               {% if m.descricao or m.em_niveis_superiores %}
-              <button type="button" class="spell-name spell-name-toggle" data-spell-toggle="{{ m.id }}" aria-expanded="false" title="Ver descrição">{{ m.nome }}<span class="spell-caret" aria-hidden="true"></span></button>
+              <button type="button" class="spell-name spell-name-toggle" data-spell-toggle="{{ m.id }}" aria-expanded="false" title="Ver descrição">{{ m.nome }}{% if m.nome_ingles %} <small>({{ m.nome_ingles }})</small>{% endif %}<span class="spell-caret" aria-hidden="true"></span></button>
               {% else %}
-              <span class="spell-name">{{ m.nome }}</span>
+              <span class="spell-name">{{ m.nome }}{% if m.nome_ingles %} <small>({{ m.nome_ingles }})</small>{% endif %}</span>
               {% endif %}
               <span class="spell-tags">
                 {% if m.innate_label %}

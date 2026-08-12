@@ -25,6 +25,8 @@
   var busca = root.querySelector('[data-shop-search]');
   var selGrupo = root.querySelector('[data-shop-group]');
   var selRaridade = root.querySelector('[data-shop-rarity]');
+  var selSintonizacao = root.querySelector('[data-shop-attunement]');
+  var selOrdem = root.querySelector('[data-shop-sort]');
   var countEl = root.querySelector('[data-shop-count]');
   var noResult = root.querySelector('[data-shop-noresult]');
   var detalhe = root.querySelector('[data-shop-detail]');
@@ -98,15 +100,36 @@
     var q = norm((busca && busca.value || '').trim());
     var grupo = selGrupo ? selGrupo.value : 'todas';
     var raridade = selRaridade ? selRaridade.value : 'todas';
+    var sintonizacao = selSintonizacao ? selSintonizacao.value : 'todas';
     var total = 0;
     linhasDe(pane).forEach(function (row) {
       var ok = true;
       if (grupo !== 'todas') ok = row.getAttribute('data-group') === grupo;
       if (ok && raridade !== 'todas') ok = row.getAttribute('data-rarity') === raridade;
+      if (ok && sintonizacao !== 'todas') ok = row.getAttribute('data-attunement') === sintonizacao;
       if (ok && q) ok = norm(row.getAttribute('data-search')).indexOf(q) !== -1;
       row.closest('li').hidden = !ok;
       if (ok) total++;
     });
+    if (selOrdem) {
+      var list = pane.querySelector('[data-shop-list]');
+      var ordem = selOrdem.value || 'nome-asc';
+      linhasDe(pane).sort(function (a, b) {
+        var av, bv;
+        if (ordem.indexOf('preco-') === 0) {
+          av = Number(a.getAttribute('data-price') || 0);
+          bv = Number(b.getAttribute('data-price') || 0);
+        } else if (ordem.indexOf('raridade-') === 0) {
+          av = Number(a.getAttribute('data-rarity-rank') || 0);
+          bv = Number(b.getAttribute('data-rarity-rank') || 0);
+        } else {
+          av = norm(a.getAttribute('data-name'));
+          bv = norm(b.getAttribute('data-name'));
+        }
+        var cmp = av < bv ? -1 : av > bv ? 1 : 0;
+        return ordem.slice(-4) === 'desc' ? -cmp : cmp;
+      }).forEach(function (row) { if (list) list.appendChild(row.closest('li')); });
+    }
     if (countEl) countEl.textContent = total;
     if (noResult) noResult.hidden = total !== 0;
     if (aba === 'comprar') garantirSelecao();
@@ -115,6 +138,8 @@
   if (busca) busca.addEventListener('input', aplicarFiltros);
   if (selGrupo) selGrupo.addEventListener('change', aplicarFiltros);
   if (selRaridade) selRaridade.addEventListener('change', aplicarFiltros);
+  if (selSintonizacao) selSintonizacao.addEventListener('change', aplicarFiltros);
+  if (selOrdem) selOrdem.addEventListener('change', aplicarFiltros);
 
   /* ─────────────────────── abas Comprar / Vender ─────────────────────── */
   function abrirAba(nome) {

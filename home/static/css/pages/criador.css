@@ -162,6 +162,22 @@
 
 /* perícia já concedida pela raça: bloqueada nas listas de classe/antecedente */
 .cf-skill-granted { opacity: 0.5; cursor: not-allowed; text-decoration: line-through; }
+.cf-choice-disabled { cursor: not-allowed; opacity: 0.56; }
+.cf-choice-duplicate {
+  opacity: 0.78;
+  border-color: color-mix(in srgb, var(--flame) 55%, var(--stroke));
+  background: color-mix(in srgb, var(--flame) 8%, var(--bg0));
+  color: var(--muted);
+}
+.cf-choice-duplicate::after {
+  content: 'já escolhida';
+  margin-left: auto;
+  color: var(--flame);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.cf-choice-duplicate input { accent-color: var(--flame); }
 
 /* ---- Erros inline por etapa ------------------------------------------- */
 .cf-step-err {

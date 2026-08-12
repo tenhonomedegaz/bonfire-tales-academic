@@ -258,7 +258,7 @@
             <div style="margin-bottom:0.6rem">
               <div class="lvl-subhdr">Truques (escolha {{ pend_magias.cantrips_pend }})</div>
               <div class="lvl-checkgrid" data-lvl-group="truques">
-                {% for m in pend_magias.lista_truques %}<label class="lvl-check"><input type="checkbox" value="{{ m.slug }}"> {{ m.nome }}</label>{% endfor %}
+                {% for m in pend_magias.lista_truques %}<label class="lvl-check"><input type="checkbox" value="{{ m.slug }}"> {{ m.nome }}{% if m.nome_ingles %} <span class="text-xs text-[var(--muted)]">({{ m.nome_ingles }})</span>{% endif %}</label>{% endfor %}
               </div>
             </div>
           {% endif %}
@@ -266,7 +266,7 @@
             <div>
               <div class="lvl-subhdr">Magias conhecidas (escolha {{ pend_magias.known_pend }} · até {{ pend_magias.max_nivel }}º nível)</div>
               <div class="lvl-checkgrid" data-lvl-group="magias">
-                {% for m in pend_magias.lista_magias %}<label class="lvl-check"><input type="checkbox" value="{{ m.slug }}"> <span>{{ m.nome }} <span class="text-xs text-[var(--muted)]">({{ m.nivel }}º)</span></span></label>{% endfor %}
+                {% for m in pend_magias.lista_magias %}<label class="lvl-check"><input type="checkbox" value="{{ m.slug }}"> <span>{{ m.nome }}{% if m.nome_ingles %} <span class="text-xs text-[var(--muted)]">({{ m.nome_ingles }})</span>{% endif %} <span class="text-xs text-[var(--muted)]">({{ m.nivel }}º)</span></span></label>{% endfor %}
               </div>
             </div>
           {% endif %}
@@ -299,8 +299,8 @@
             <span aria-hidden="true" style="align-self:center">➜</span>
             <select class="lvl-field lvl-field--grow" data-lvl-field="adicionar" aria-label="Magia a aprender">
               <option value="">— Aprender —</option>
-              {% for m in pend_magias.lista_truques %}<option value="{{ m.slug }}" data-truque="1">{{ m.nome }} (truque)</option>{% endfor %}
-              {% for m in pend_magias.lista_magias %}<option value="{{ m.slug }}" data-truque="0">{{ m.nome }} ({{ m.nivel }}º)</option>{% endfor %}
+              {% for m in pend_magias.lista_truques %}<option value="{{ m.slug }}" data-truque="1">{{ m.nome }}{% if m.nome_ingles %} ({{ m.nome_ingles }}){% endif %} (truque)</option>{% endfor %}
+              {% for m in pend_magias.lista_magias %}<option value="{{ m.slug }}" data-truque="0">{{ m.nome }}{% if m.nome_ingles %} ({{ m.nome_ingles }}){% endif %} ({{ m.nivel }}º)</option>{% endfor %}
             </select>
             <button type="button" class="lvl-add" data-lvl-queue="trocar_magia">Trocar</button>
           </div>

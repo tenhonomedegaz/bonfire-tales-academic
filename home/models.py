@@ -115,6 +115,7 @@ class TbClassehabilidade(models.Model):
     id_subclasse = models.ForeignKey('TbSubclasse', models.DO_NOTHING, db_column='Id_Subclasse', blank=True, null=True)  
 
     nome = models.CharField(db_column='Nome')  
+    nome_ingles = models.CharField(db_column='NomeIngles', max_length=200, blank=True, null=True)
 
     descricao = models.TextField(db_column='Descricao')  
 
@@ -360,6 +361,7 @@ class TbTracoracial(models.Model):
     id_linhagem = models.ForeignKey(TbLinhagem, models.CASCADE, db_column='Id_Linhagem', blank=True, null=True, related_name='tracos_linhagem')
     id_essencia = models.ForeignKey(TbEssencia, models.CASCADE, db_column='Id_Essencia', blank=True, null=True, related_name='tracos')
     nome = models.CharField(db_column='Nome', max_length=150)
+    nome_ingles = models.CharField(db_column='NomeIngles', max_length=200, blank=True, null=True)
     descricao = models.TextField(db_column='Descricao')
     nivel_requisito = models.IntegerField(db_column='NivelRequisito', default=0)
     talento_racial = models.BooleanField(db_column='TalentoRacial', default=False, help_text='Marca tracos opcionais de raca que podem ser escolhidos como talentos raciais.')
@@ -533,6 +535,7 @@ class TbTalento(models.Model):
 
     id_talento = models.AutoField(db_column='Id_Talento', primary_key=True)
     nome = models.CharField(db_column='Nome', max_length=150)
+    nome_ingles = models.CharField(db_column='NomeIngles', max_length=200, blank=True, null=True)
     slug = models.SlugField(db_column='Slug', max_length=150, unique=True, help_text="Ex: guerreiro-nato (usado para links)")
     tipo = models.CharField(db_column='Tipo', max_length=50, choices=TIPO_CHOICES, default='geral')
     tags_json = models.JSONField(db_column='TagsJSON', blank=True, default=list, help_text='Tags estruturadas usadas pelo criador de personagem.')
@@ -831,6 +834,7 @@ class TbItemMagico(models.Model):
 
     id_item = models.AutoField(db_column='Id_Item', primary_key=True)
     nome = models.CharField(db_column='Nome', max_length=150)
+    nome_ingles = models.CharField(db_column='NomeIngles', max_length=200, blank=True, null=True)
     slug = models.SlugField(db_column='Slug', max_length=150, unique=True)
     raridade = models.CharField(db_column='Raridade', max_length=50, choices=RARIDADE_CHOICES, default='incomum')
     requer_sintonizacao = models.BooleanField(db_column='RequerSintonizacao', default=False)
@@ -856,6 +860,7 @@ class TbItemMagico(models.Model):
 class TbMagia(models.Model):
     id_magia = models.AutoField(db_column='Id_Magia', primary_key=True)
     nome = models.CharField(db_column='Nome', max_length=200)
+    nome_ingles = models.CharField(db_column='NomeIngles', max_length=200, blank=True, null=True)
     slug = models.SlugField(db_column='Slug', max_length=220, unique=True)
     nivel = models.IntegerField(db_column='Nivel', default=0, help_text='Use 0 para truques.')
     casting_time = models.CharField(db_column='CastingTime', max_length=120, blank=True, null=True)

@@ -1252,6 +1252,7 @@ def _magias_personagem(personagem):
     out = []
     for mg in personagem.magias.select_related('id_magia').order_by('nivel', 'nome'):
         out.append({'nivel': mg.nivel, 'nome': mg.nome,
+                    'nome_ingles': getattr(mg.id_magia, 'nome_ingles', '') or '',
                     'escola': getattr(mg.id_magia, 'escola', '') or '', 'preparada': mg.preparada})
     return out
 
@@ -3532,6 +3533,7 @@ def derive(personagem):
         'classes': [{'classe': c.id_classe.nome, 'subclasse': c.id_subclasse.nome if c.id_subclasse_id else None,
                      'nivel': c.nivel, 'principal': c.principal} for c in classes],
         'features': [{'origem': o, 'fonte': f, 'nome': getattr(obj, 'nome', ''),
+                      'nome_ingles': getattr(obj, 'nome_ingles', '') or '',
                       'nivel': getattr(obj, 'niveladquirido', getattr(obj, 'nivel_requisito', None)),
                       'descricao': (getattr(obj, 'descricao', '') or getattr(obj, 'descricao_markdown', '') or '')}
                      for (o, f, obj, _cl) in features if not getattr(obj, 'table_only', False)],

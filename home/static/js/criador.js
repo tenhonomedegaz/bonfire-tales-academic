@@ -27,6 +27,15 @@
             lab.appendChild(inp); lab.appendChild(span);
             return lab;
         }
+        function setChoiceState(input, disabled, duplicate, title) {
+            input.disabled = !!disabled;
+            var lab = input.closest ? input.closest('label') : input.parentNode;
+            if (!lab) return;
+            lab.classList.toggle('cf-choice-disabled', !!disabled);
+            lab.classList.toggle('cf-choice-duplicate', !!duplicate);
+            if (duplicate && title) lab.title = title;
+            else if (!lab.classList.contains('cf-skill-granted')) lab.removeAttribute('title');
+        }
         function limitValue(n) { return (typeof n === 'function') ? n() : n; }
         function enforceLimit(wrap, n, counterEl) {
             var boxes = Array.prototype.slice.call(wrap.querySelectorAll('input[type=checkbox]'));
@@ -570,11 +579,14 @@
             magiasWrap.hidden = false;
             truquesSec.hidden = !conj.truques_n;
             if (conj.truques_n) {
-                conj.truques.forEach(function (t) { truquesBox.appendChild(checkbox(t.slug, t.nome)); });
+                conj.truques.forEach(function (t) {
+                    truquesBox.appendChild(checkbox(t.slug, t.nome + (t.nome_ingles ? ' (' + t.nome_ingles + ')' : '')));
+                });
                 enforceLimit(truquesBox, conj.truques_n, truqueCounter);
             }
             conj.magias_nv1.forEach(function (m) {
-                magiasBox.appendChild(checkbox(m.slug, m.nome + (m.escola ? ' · ' + m.escola : '')));
+                magiasBox.appendChild(checkbox(m.slug, m.nome + (m.nome_ingles ? ' (' + m.nome_ingles + ')' : '') +
+                    (m.escola ? ' · ' + m.escola : '')));
             });
             updateMagiaLimit();
         }
@@ -640,8 +652,16 @@
             var rSelAll = [];
             rGroups.forEach(function (g) { rSelAll = rSelAll.concat(checkedVals(g.grid)); });
             function taken(v, arr) { return arr.indexOf(v) !== -1; }
-            cb.forEach(function (b) { b.disabled = !b.checked && (!!granted[b.value] || cChk.length >= classN || taken(b.value, bSel) || taken(b.value, rSelAll)); });
-            bb.forEach(function (b) { b.disabled = !b.checked && (!!granted[b.value] || bChk.length >= bgSkillN() || taken(b.value, cSel) || taken(b.value, rSelAll)); });
+            cb.forEach(function (b) {
+                var duplicate = !!granted[b.value] || taken(b.value, bSel) || taken(b.value, rSelAll);
+                setChoiceState(b, !b.checked && (duplicate || cChk.length >= classN), !b.checked && duplicate,
+                    granted[b.value] ? ('Já concedida por ' + granted[b.value]) : 'Já escolhida em outra origem');
+            });
+            bb.forEach(function (b) {
+                var duplicate = !!granted[b.value] || taken(b.value, cSel) || taken(b.value, rSelAll);
+                setChoiceState(b, !b.checked && (duplicate || bChk.length >= bgSkillN()), !b.checked && duplicate,
+                    granted[b.value] ? ('Já concedida por ' + granted[b.value]) : 'Já escolhida em outra origem');
+            });
             // cada pick racial de perícia: trava se concedida, grupo cheio, ou a perícia já foi
             // escolhida em classe/antecedente/OUTRO pick racial (também gerencia seu contador).
             rGroups.forEach(function (g) {
@@ -649,7 +669,11 @@
                 var gChk = gb.filter(function (b) { return b.checked; });
                 var outros = cSel.concat(bSel);
                 rGroups.forEach(function (o) { if (o !== g) outros = outros.concat(checkedVals(o.grid)); });
-                gb.forEach(function (b) { b.disabled = !b.checked && (!!granted[b.value] || gChk.length >= g.n || taken(b.value, outros)); });
+                gb.forEach(function (b) {
+                    var duplicate = !!granted[b.value] || taken(b.value, outros);
+                    setChoiceState(b, !b.checked && (duplicate || gChk.length >= g.n), !b.checked && duplicate,
+                        granted[b.value] ? ('Já concedida por ' + granted[b.value]) : 'Já escolhida em outra origem');
+                });
                 if (g.counter) g.counter.textContent = '(' + gChk.length + '/' + g.n + ')';
             });
             if (skillCounter) skillCounter.textContent = classN ? '(' + cChk.length + '/' + classN + ')' : '';
@@ -684,16 +708,32 @@
             }
             var idiomaSel = unionVals(langBoxes, rLang), ferrSel = unionVals(toolBoxes, rTool);
             function has(v, arr) { return arr.indexOf(v) !== -1; }
-            langBoxes.forEach(function (b) { b.disabled = !b.checked && (antChosen >= lim || has(b.value, idiomaSel)); });
-            toolBoxes.forEach(function (b) { b.disabled = !b.checked && (antChosen >= lim || has(b.value, ferrSel)); });
+            langBoxes.forEach(function (b) {
+                var duplicate = has(b.value, idiomaSel);
+                setChoiceState(b, !b.checked && (antChosen >= lim || duplicate), !b.checked && duplicate,
+                    'Já escolhido ou concedido por outra origem');
+            });
+            toolBoxes.forEach(function (b) {
+                var duplicate = has(b.value, ferrSel);
+                setChoiceState(b, !b.checked && (antChosen >= lim || duplicate), !b.checked && duplicate,
+                    'Já escolhido ou concedido por outra origem');
+            });
             rLang.forEach(function (g) {
                 var gChk = checkedVals(g.grid);
-                boxesOf(g.grid).forEach(function (b) { b.disabled = !b.checked && (gChk.length >= g.n || has(b.value, idiomaSel)); });
+                boxesOf(g.grid).forEach(function (b) {
+                    var duplicate = has(b.value, idiomaSel);
+                    setChoiceState(b, !b.checked && (gChk.length >= g.n || duplicate), !b.checked && duplicate,
+                        'Já escolhido ou concedido por outra origem');
+                });
                 if (g.counter) g.counter.textContent = '(' + gChk.length + '/' + g.n + ')';
             });
             rTool.forEach(function (g) {
                 var gChk = checkedVals(g.grid);
-                boxesOf(g.grid).forEach(function (b) { b.disabled = !b.checked && (gChk.length >= g.n || has(b.value, ferrSel)); });
+                boxesOf(g.grid).forEach(function (b) {
+                    var duplicate = has(b.value, ferrSel);
+                    setChoiceState(b, !b.checked && (gChk.length >= g.n || duplicate), !b.checked && duplicate,
+                        'Já escolhido ou concedido por outra origem');
+                });
                 if (g.counter) g.counter.textContent = '(' + gChk.length + '/' + g.n + ')';
             });
             var c = document.querySelector('[data-langtool-counter]'); if (c) c.textContent = '(' + antChosen + '/' + lim + ')';
@@ -720,6 +760,8 @@
         toSel.addEventListener('change', function () { showTalentoDesc(toDesc, talentoOrigemById[toSel.value]); });
 
         var trSel = el('cf-talento-raca'), trVazio = el('cf-talento-raca-vazio'), trDesc = el('cf-talento-raca-desc');
+        var talentoMagiasWrap = el('cf-talento-magias-wrap'), talentoMagiasBox = el('cf-talento-magias');
+        var talentoMagiaGroups = [];
         var talentoRacaByNome = {};
         var talentoRacaVazioPadrao = trVazio ? trVazio.textContent : '';
         // Talento da RAÇA base restrito a linhagens específicas (via pré-requisito): só aparece
@@ -763,7 +805,7 @@
                 });
             }
             talentoRacaByNome = {};
-            lst.forEach(function (t) { talentoRacaByNome[t.nome] = t; });
+            lst.forEach(function (t) { talentoRacaByNome[t.nome_chave || t.nome] = t; });
             trSel.innerHTML = '';
             if (trDesc) { trDesc.classList.add('hidden'); trDesc.innerHTML = ''; }
             if (!lst.length) {
@@ -775,9 +817,47 @@
             if (trVazio) trVazio.textContent = talentoRacaVazioPadrao;
             trVazio.classList.add('hidden'); trSel.classList.remove('hidden');
             trSel.appendChild(opt('', '— Selecione —'));
-            lst.forEach(function (t) { trSel.appendChild(opt(t.nome, t.nome + (t.pre ? ' — req: ' + t.pre : ''))); });
+                lst.forEach(function (t) {
+                    trSel.appendChild(opt(t.nome_chave || t.nome, t.nome + (t.pre ? ' — req: ' + t.pre : '')));
+                });
         }
         trSel.addEventListener('change', function () { showTalentoDesc(trDesc, talentoRacaByNome[trSel.value]); });
+
+        function talentoMagiaKey(g) { return (g.fonte || '') + '|' + String(g.slot || 0); }
+        function talentoMagiasSel() {
+            return talentoMagiaGroups.map(function (g) {
+                var grid = talentoMagiasBox.querySelector('[data-talent-spells="' + CSS.escape(talentoMagiaKey(g)) + '"]');
+                return { fonte: g.fonte, slot: g.slot, magias: grid ? checkedVals(grid) : [] };
+            });
+        }
+        function renderTalentoMagias(groups) {
+            if (!talentoMagiasWrap || !talentoMagiasBox) return;
+            var previous = {};
+            talentoMagiasSel().forEach(function (row) { previous[(row.fonte || '') + '|' + row.slot] = row.magias; });
+            talentoMagiaGroups = groups || [];
+            talentoMagiasBox.innerHTML = '';
+            talentoMagiasWrap.classList.toggle('hidden', !talentoMagiaGroups.length);
+            talentoMagiaGroups.forEach(function (g) {
+                var key = talentoMagiaKey(g);
+                var chosen = previous[key] || g.escolhidos || [];
+                var card = document.createElement('section');
+                card.className = 'rounded border border-[var(--stroke)] bg-[var(--bg0)] p-2';
+                card.innerHTML = '<div class="mb-1 flex items-center justify-between gap-2 text-xs"><strong>' +
+                    escHtml(g.fonte) + '</strong><span class="text-[var(--muted)]">' + escHtml(g.rotulo) + '</span></div>';
+                var grid = document.createElement('div');
+                grid.className = 'grid grid-cols-1 gap-1 sm:grid-cols-2';
+                grid.setAttribute('data-talent-spells', key);
+                (g.opcoes || []).forEach(function (spell) {
+                    var node = checkbox(spell.slug, spell.nome + (spell.nome_ingles ? ' (' + spell.nome_ingles + ')' : ''));
+                    var input = node.querySelector('input');
+                    input.checked = chosen.indexOf(spell.slug) !== -1;
+                    grid.appendChild(node);
+                });
+                card.appendChild(grid);
+                talentoMagiasBox.appendChild(card);
+                enforceLimit(grid, Number(g.qtd || 0));
+            });
+        }
 
         // ---- Escolhas de Raça (perícia/idioma/ferramenta extras), reativas à raça/linhagem/essência
         var racaEscWrap = el('cf-raca-escolhas-wrap'), racaEscBox = el('cf-raca-escolhas');
@@ -1073,6 +1153,11 @@
                     e.push('Escolha o Talento de Origem concedido pelo antecedente.');
                 if (!trSel.classList.contains('hidden') && trSel.options.length > 1 && !trSel.value)
                     e.push('Escolha o Talento Racial concedido no nível 1.');
+                talentoMagiaGroups.forEach(function (g) {
+                    var grid = talentoMagiasBox.querySelector('[data-talent-spells="' + CSS.escape(talentoMagiaKey(g)) + '"]');
+                    if (!grid || checkedVals(grid).length !== Number(g.qtd || 0))
+                        e.push('Escolha ' + g.qtd + ' magia(s) concedida(s) por ' + g.fonte + '.');
+                });
                 return e;
             },
             function () { return []; } // 5 · Revisão
@@ -1268,6 +1353,7 @@
                 statusEl.textContent = 'nível ' + (pv.nivel || 1) + (pv.pv_completo ? '' : ' (PV parcial)');
                 renderAttrs(pv.atributos || localAttrs());
                 extraEl.innerHTML = buildExtra(pv);
+                renderTalentoMagias(j.pending_spell_choices || []);
             }).catch(function () {
                 if (seq !== previewSeq) return;
                 statusEl.classList.remove('is-live'); statusEl.textContent = 'nível 1';
@@ -1319,7 +1405,8 @@
                 idiomas_ferramentas: idiomasFerramentasSel(),
                 escolhas_raca: racialChoicesSel(),
                 talento_origem: toSel.value || null,
-                talento_raca: trSel.classList.contains('hidden') ? '' : (trSel.value || '')
+                talento_raca: trSel.classList.contains('hidden') ? '' : (trSel.value || ''),
+                magias_concedidas: talentoMagiasSel()
             };
         }
 

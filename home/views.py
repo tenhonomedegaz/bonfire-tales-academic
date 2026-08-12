@@ -3212,6 +3212,7 @@ def _magias_sheet_info(personagem, ficha, essencia_pendentes):
         _mag = m.id_magia
         lista.append({
             'id': m.id, 'slug': slug, 'nivel': m.nivel, 'nome': m.nome,
+            'nome_ingles': getattr(_mag, 'nome_ingles', '') or '',
             'preparada': bool(m.preparada), 'sempre_preparada': always_display,
             'known_auto': known_auto,
             'origem': m.origem or '', 'escola': getattr(m.id_magia, 'escola', '') or '',
@@ -3362,8 +3363,10 @@ def _classe_conjuracao(classe):
         return TbMagia.objects.filter(_spell_list_q(info['lista_nomes']), nivel=nivel).order_by('nome')
 
     magias_n = res_v1(['magias-conhecidas', 'magias-preparadas'])
-    truques = [{'slug': m.slug, 'nome': m.nome} for m in magia_qs(0)]
-    nv1 = [{'slug': m.slug, 'nome': m.nome, 'escola': m.escola or ''} for m in magia_qs(1)]
+    truques = [{'slug': m.slug, 'nome': m.nome,
+                'nome_ingles': (m.nome_ingles or '').strip()} for m in magia_qs(0)]
+    nv1 = [{'slug': m.slug, 'nome': m.nome, 'nome_ingles': (m.nome_ingles or '').strip(),
+            'escola': m.escola or ''} for m in magia_qs(1)]
     return {'ability': info['ability'], 'lista': info['lista'], 'lista_nomes': info['lista_nomes'],
             'truques_n': res_v1(['truque']) or 0, 'magias_n': magias_n,
             'magias_formula': None if magias_n is not None else info['prep_formula'],
@@ -3548,6 +3551,11 @@ def _criador_catalogos():
     from .character_engine import (_SKILL_INFO, _dado_de_vida_classe,
                                    clas_de_essencia, cla_de_traco)
 
+    def _nome_duplo(obj):
+        nome = obj.nome
+        ingles = (getattr(obj, 'nome_ingles', '') or '').strip()
+        return '%s (%s)' % (nome, ingles) if ingles and ingles.casefold() != nome.casefold() else nome
+
     def _tracos_de(qs, clas=None):
         # limite generoso: os traços mecânicos são o conteúdo principal do painel de raça
         # (aba "Traços"), não devem ser cortados curtos como um mero resumo.
@@ -3557,7 +3565,7 @@ def _criador_catalogos():
         # por todos. MESMO critério (pré-requisito "Clã X") dos talentos/perícias/picks; NÃO
         # usa `_vertente_de`, que varre a DESCRIÇÃO e casaria 'ifrit' citado como exemplo num
         # traço elemental genérico.
-        return [{'nome': t.nome, 'desc': _criador_resumo_md(t.descricao, 400),
+        return [{'nome': _nome_duplo(t), 'desc': _criador_resumo_md(t.descricao, 400),
                  'vertente': (cla_de_traco(t, clas) if clas else '')} for t in qs]
 
     # Perícias que a raça/linhagem/essência CONCEDE automaticamente (traços não-talento com
@@ -3621,7 +3629,7 @@ def _criador_catalogos():
         return out
 
     def _classe_features1(c):
-        return [{'nome': h.nome, 'desc': _criador_resumo_md(h.descricao, 200)}
+        return [{'nome': _nome_duplo(h), 'desc': _criador_resumo_md(h.descricao, 200)}
                 for h in TbClassehabilidade.objects.filter(
                     id_classe=c, id_subclasse__isnull=True, niveladquirido__lte=1,
                     table_only=False).order_by('niveladquirido', 'nome')]
@@ -3681,7 +3689,7 @@ def _criador_catalogos():
         return ''
 
     def _traco_dict(t, linhagens=None):
-        d = {'nome': t.nome, 'pre': (t.pre_requisito or '').strip(),
+        d = {'nome': _nome_duplo(t), 'nome_chave': t.nome, 'pre': (t.pre_requisito or '').strip(),
              'descricao': (t.descricao or '').strip(), 'vertente': _vertente_de(t)}
         if linhagens is not None:
             # talentos da RAÇA base podem trazer restrição de sub-raça no pré-requisito
@@ -3831,7 +3839,7 @@ def _criador_catalogos():
                           'resumo': _criador_resumo_md(a.resumo or a.descricao, 280)}
                          for a in TbAntecedente.objects.all().order_by('nome')],
         'grants_antecedente': background_grants(),
-        'talentos_origem': [{'id': t.id_talento, 'nome': t.nome, 'pre': (t.pre_requisito or '').strip(),
+        'talentos_origem': [{'id': t.id_talento, 'nome': _nome_duplo(t), 'pre': (t.pre_requisito or '').strip(),
                              'descricao': (t.descricao or '').strip()}
                             for t in TbTalento.objects.filter(tipo__iexact='origem').order_by('nome')],
         'talentos_raca': talentos_raca,
@@ -6079,9 +6087,9 @@ def _pendencias_magias(personagem, subclasse_override=None, classe_id=None):
     known_pend = max(
         0, known_exp - magias_classe.filter(nivel__gte=1).count()
     ) if known_exp is not None else 0
-    lt = [{'slug': m.slug, 'nome': m.nome} for m in
+    lt = [{'slug': m.slug, 'nome': m.nome, 'nome_ingles': (m.nome_ingles or '')} for m in
           TbMagia.objects.filter(_spell_list_q(spell_info['lista_nomes']), nivel=0).order_by('nome') if m.slug not in conhecidos]
-    lm = [{'slug': m.slug, 'nome': m.nome, 'nivel': m.nivel} for m in
+    lm = [{'slug': m.slug, 'nome': m.nome, 'nome_ingles': (m.nome_ingles or ''), 'nivel': m.nivel} for m in
           TbMagia.objects.filter(_spell_list_q(spell_info['lista_nomes']), nivel__gte=1,
                                   nivel__lte=maxlv).order_by('nivel', 'nome') if m.slug not in conhecidos]
     _swap_cond = Q(id_classe=classe, id_subclasse__isnull=True)
@@ -6104,7 +6112,8 @@ def _pendencias_magias(personagem, subclasse_override=None, classe_id=None):
     nivel_total = sum(int(c.nivel or 0) for c in personagem.classes.all()) or int(personagem.nivel or 1)
     swap_usada = TbPersonagemEscolha.objects.filter(
         id_personagem=personagem, tipo='troca_magia', valor=str(nivel_total)).exists()
-    conhecidas = [{'slug': m.id_magia.slug, 'nome': m.nome, 'nivel': m.nivel}
+    conhecidas = [{'slug': m.id_magia.slug, 'nome': m.nome,
+                   'nome_ingles': (m.id_magia.nome_ingles or ''), 'nivel': m.nivel}
                   for m in magias_classe.select_related('id_magia').filter(
                       id_magia__isnull=False).order_by('nivel', 'nome')]
     return {'cantrips_pend': cant_pend, 'known_pend': known_pend, 'max_nivel': maxlv,
@@ -6208,6 +6217,7 @@ def _magias_preparadas_infos(personagem, ficha):
                 nivel__lte=maxlv).order_by('nivel', 'nome'):
             por_nivel.setdefault(magia.nivel, []).append({
                 'slug': magia.slug, 'nome': magia.nome,
+                'nome_ingles': magia.nome_ingles or '',
                 'marcada': magia.slug in preparadas,
             })
         infos.append({
@@ -8058,7 +8068,76 @@ def _criador_resolver(data):
     return R, erros
 
 
-def _criador_persistir(user, data, R):
+class CriadorEscolhasError(ValueError):
+    def __init__(self, erros):
+        self.erros = list(erros or [])
+        super().__init__('; '.join(self.erros))
+
+
+def _criador_magias_pendentes(personagem):
+    """Serializa escolhas de magia declaradas por features ativas para o criador."""
+    from .character_engine import magias_concedidas
+    from .models import TbMagia
+    pendentes = magias_concedidas(personagem)['pendentes']
+    slugs = {slug for bloco in pendentes for slug in bloco.get('opcoes', [])}
+    nomes = {
+        slug: (nome, ingles or '')
+        for slug, nome, ingles in TbMagia.objects.filter(slug__in=slugs).values_list(
+            'slug', 'nome', 'nome_ingles')
+    }
+    return [{
+        'fonte': bloco['fonte'],
+        'slot': bloco['slot'],
+        'rotulo': bloco['rotulo'],
+        'qtd': bloco['qtd'],
+        'opcoes': [{
+            'slug': slug,
+            'nome': nomes.get(slug, (slug, ''))[0],
+            'nome_ingles': nomes.get(slug, ('', ''))[1],
+        } for slug in bloco['opcoes']],
+        'escolhidos': list(bloco.get('escolhidos') or []),
+    } for bloco in pendentes]
+
+
+def _criador_aplicar_magias_concedidas(personagem, data, strict=False):
+    """Valida e grava escolhas de ``spell_selection`` concedidas por talentos/features.
+
+    O universo vem de ``magias_concedidas``; o criador apenas transporta a escolha. Assim,
+    talentos novos entram no fluxo sem ganhar tratamento específico na view ou no JS.
+    """
+    from .models import TbPersonagemEscolha
+    pendentes = _criador_magias_pendentes(personagem)
+    incoming = {}
+    for row in (data.get('magias_concedidas') or []):
+        if not isinstance(row, dict):
+            continue
+        try:
+            key = ((row.get('fonte') or '').strip(), int(row.get('slot') or 0))
+        except (TypeError, ValueError):
+            continue
+        incoming[key] = list(dict.fromkeys(str(x) for x in (row.get('magias') or []) if x))
+
+    erros = []
+    for bloco in pendentes:
+        key = (bloco['fonte'], int(bloco['slot']))
+        allowed = {row['slug'] for row in bloco['opcoes']}
+        selected = [slug for slug in incoming.get(key, []) if slug in allowed]
+        bloco['escolhidos'] = selected
+        if len(selected) != int(bloco['qtd']):
+            if strict:
+                erros.append('Escolha %d magia(s) concedida(s) por %s.' % (
+                    int(bloco['qtd']), bloco['fonte']))
+            continue
+        TbPersonagemEscolha.objects.update_or_create(
+            id_personagem=personagem, tipo='magia-concedida', origem=bloco['fonte'],
+            slot=int(bloco['slot']), defaults={'valor': ','.join(selected)})
+    if erros:
+        raise CriadorEscolhasError(erros)
+    _sync_magias_concedidas(personagem)
+    return pendentes
+
+
+def _criador_persistir(user, data, R, *, strict_spell_choices=False):
     """Cria o TbPersonagem + relacionados a partir de R (já resolvido por _criador_resolver).
     DEVE rodar dentro de transaction.atomic(). Retorna o personagem criado."""
     from .models import (TbPersonagem, TbPersonagemClasse, TbPersonagemPericia,
@@ -8217,7 +8296,8 @@ def _criador_persistir(user, data, R):
                         nome=mg.nome, preparada=True, origem=classe.nome)
     # Magias da Essência (vertente): concede as fixas do nível atual (cantrips + 1º
     # ciclo no nível 1). As de escolha (2º ciclo) ficam pendentes até o nível 5.
-    _sync_magias_essencia(p)
+    p._criador_spell_groups = _criador_aplicar_magias_concedidas(
+        p, data, strict=strict_spell_choices)
     _refresh_vitais_derivados(p, refill=True)
     return p
 
@@ -8280,13 +8360,15 @@ def criar_personagem_preview_view(request):
         with transaction.atomic():
             p = _criador_persistir(dono, data, R)
             ficha = derive(p)
+            pending_spell_choices = getattr(p, '_criador_spell_groups', [])
             transaction.set_rollback(True)
     except Exception:
         logger.exception(
             'Falha ao montar preview do criador para user_id=%s classe=%s raca=%s',
             getattr(dono, 'pk', None), data.get('classe'), data.get('raca'))
         return JsonResponse({'ok': True, 'ready': False})
-    return JsonResponse({'ok': True, 'ready': True, 'preview': _criador_preview_resumo(ficha)})
+    return JsonResponse({'ok': True, 'ready': True, 'preview': _criador_preview_resumo(ficha),
+                         'pending_spell_choices': pending_spell_choices})
 
 
 @login_required(login_url='/login/')
@@ -8306,7 +8388,9 @@ def criar_personagem_view(request):
 
     try:
         with transaction.atomic():
-            p = _criador_persistir(request.user, data, R)
+            p = _criador_persistir(request.user, data, R, strict_spell_choices=True)
+    except CriadorEscolhasError as exc:
+        return JsonResponse({'ok': False, 'erros': exc.erros}, status=400)
     except Exception:
         # O contrato do criador é JSON inclusive em falhas inesperadas. Sem este
         # guard, o Django devolve HTML 500 e o cliente o mascara como "erro de rede".
@@ -10030,7 +10114,8 @@ def magias_view(request):
         if m.escola:
             escolas.add(m.escola)
         magias.append({
-            'id': m.id_magia, 'nome': m.nome, 'slug': m.slug, 'nivel': m.nivel,
+            'id': m.id_magia, 'nome': m.nome, 'nome_ingles': (m.nome_ingles or ''),
+            'slug': m.slug, 'nivel': m.nivel,
             'nivel_label': 'Truque' if m.nivel == 0 else 'Nível %d' % m.nivel,
             'escola': m.escola or '', 'casting_time': m.casting_time or '',
             'alcance': m.alcance or '', 'componentes': m.componentes or '',
@@ -11936,6 +12021,8 @@ def itens_magicos_view(request):
         i.base_rarity = re.sub(r'_(menor|maior)$', '', i.raridade or '')
         i.raridade_label = _rar_labels.get(i.raridade, i.raridade)
         i.tipo_label = i.tipo or _slot_labels.get(i.slot, i.slot)
+        i.preco_ordem = float(i.preco or 0)
+        i.raridade_ordem = _rar_key(i.raridade)[0] * 2 + _rar_key(i.raridade)[1]
 
     # Botões de filtro = as raridades COMPLETAS realmente presentes (com _menor/_maior),
     # ordenadas por base e tier (ex.: "Raro Menor" antes de "Raro Maior"). Rótulo vem das choices.

@@ -1903,9 +1903,11 @@ class TbSubclasseAdmin(BonfireAdminMixin, admin.ModelAdmin):
 class TbClassehabilidadeAdmin(BonfireAdminMixin, admin.ModelAdmin):
     list_display = ("nome", "classe_nome", "subclasse_nome", "niveladquirido", "table_only", "tags_preview", "short_description")
     list_filter = ("id_classe", "id_subclasse", "niveladquirido", "table_only")
-    search_fields = ("nome", "descricao", "id_classe__nome", "id_subclasse__nome")
+    search_fields = ("nome", "nome_ingles", "descricao", "id_classe__nome", "id_subclasse__nome")
     autocomplete_fields = ("id_classe", "id_subclasse")
     ordering = ("id_classe__nome", "niveladquirido", "nome")
+    fields = ("id_classe", "id_subclasse", "nome", "nome_ingles", "niveladquirido",
+              "table_only", "tags_json", "descricao")
 
     @admin.display(description="Classe", ordering="id_classe__nome")
     def classe_nome(self, obj):
@@ -2438,11 +2440,11 @@ class TbTracoracialAdmin(BonfireAdminMixin, admin.ModelAdmin):
     change_list_template = "admin/home/tbtracoracial/change_list.html"
     list_display = ("nome", "origem_badge", "nivel_requisito", "talento_racial", "pre_requisito_curto", "tags_preview", "short_description")
     list_filter = ("talento_racial", "nivel_requisito", "id_raca", "id_linhagem", "id_essencia")
-    search_fields = ("nome", "descricao", "pre_requisito", "id_raca__nome", "id_linhagem__nome", "id_essencia__nome")
+    search_fields = ("nome", "nome_ingles", "descricao", "pre_requisito", "id_raca__nome", "id_linhagem__nome", "id_essencia__nome")
     autocomplete_fields = ("id_raca", "id_linhagem", "id_essencia")
     ordering = ("nivel_requisito", "nome")
     fieldsets = (
-        (None, {"fields": ("nome", "nivel_requisito", "talento_racial", "pre_requisito", "tags_json")}),
+        (None, {"fields": ("nome", "nome_ingles", "nivel_requisito", "talento_racial", "pre_requisito", "tags_json")}),
         ("Origem", {"fields": ("id_raca", "id_linhagem", "id_essencia")}),
         ("Texto em Markdown", {"fields": ("descricao",)}),
     )
@@ -2602,11 +2604,11 @@ class TbTalentoAdmin(BonfireAdminMixin, admin.ModelAdmin):
     change_list_template = "admin/home/tbtalento/change_list.html"
     list_display = ("nome", "tipo_badge", "etiquetas_badges", "tags_preview", "pre_requisito_curto", "atributos_badges", "descricao_curta")
     list_filter = ("tipo", "etiqueta", "atrib_forca", "atrib_destreza", "atrib_constituicao", "atrib_inteligencia", "atrib_sabedoria", "atrib_carisma")
-    search_fields = ("nome", "slug", "descricao", "etiqueta", "etiquetas_adicionais", "pre_requisito")
+    search_fields = ("nome", "nome_ingles", "slug", "descricao", "etiqueta", "etiquetas_adicionais", "pre_requisito")
     prepopulated_fields = {"slug": ("nome",)}
     ordering = ("nome",)
     fieldsets = (
-        (None, {"fields": ("nome", "slug", "tipo", "etiqueta", "etiquetas_adicionais", "tags_json", "pre_requisito")}),
+        (None, {"fields": ("nome", "nome_ingles", "slug", "tipo", "etiqueta", "etiquetas_adicionais", "tags_json", "pre_requisito")}),
         ("Aumento de atributo", {"fields": ("atrib_forca", "atrib_destreza", "atrib_constituicao", "atrib_inteligencia", "atrib_sabedoria", "atrib_carisma")}),
         ("Texto em Markdown", {"fields": ("descricao",)}),
     )
@@ -2967,7 +2969,7 @@ class TbOrganizacaoAdmin(BonfireAdminMixin, admin.ModelAdmin):
 class TbItemMundanoAdmin(BonfireAdminMixin, admin.ModelAdmin):
     list_display = ("nome", "categoria", "subcategoria", "preco", "peso", "tags_preview")
     list_filter = ("categoria", "subcategoria")
-    search_fields = ("nome", "slug", "descricao_markdown")
+    search_fields = ("nome", "nome_ingles", "slug", "descricao_markdown")
     prepopulated_fields = {"slug": ("nome",)}
     readonly_fields = ("mecanica_resumo",)
     fieldsets = (
@@ -3020,7 +3022,7 @@ class TbItemMagicoAdmin(BonfireAdminMixin, admin.ModelAdmin):
     prepopulated_fields = {"slug": ("nome",)}
     fieldsets = (
         (None, {
-            "fields": ("nome", "slug", "tipo", "raridade", "slot", "imagem_url", "tags_json")
+            "fields": ("nome", "nome_ingles", "slug", "tipo", "raridade", "slot", "imagem_url", "tags_json")
         }),
         ("Sintonização", {
             "fields": ("requer_sintonizacao", "detalhes_sintonizacao"),
@@ -3044,11 +3046,11 @@ class TbMagiaAdmin(BonfireAdminMixin, admin.ModelAdmin):
     change_list_template = "admin/home/tbmagia/change_list.html"
     list_display = ("nome", "nivel_display", "escola", "casting_time", "ritual", "concentracao", "alcance", "tags_preview")
     list_filter = ("nivel", "escola", "ritual", "concentracao")
-    search_fields = ("nome", "slug", "escola", "classes", "descricao", "em_niveis_superiores")
+    search_fields = ("nome", "nome_ingles", "slug", "escola", "classes", "descricao", "em_niveis_superiores")
     prepopulated_fields = {"slug": ("nome",)}
     ordering = ("nivel", "nome")
     fieldsets = (
-        (None, {"fields": ("nome", "slug", "nivel", "escola", "tags_json")}),
+        (None, {"fields": ("nome", "nome_ingles", "slug", "nivel", "escola", "tags_json")}),
         ("Conjuracao", {"fields": ("casting_time", "ritual", "duracao", "concentracao", "alcance", "componentes")}),
         ("Acesso", {"fields": ("classes",)}),
         ("Texto", {"fields": ("descricao", "em_niveis_superiores")}),

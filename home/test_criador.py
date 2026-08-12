@@ -212,6 +212,37 @@ class CriacaoArquetiposTests(_CriadorBase):
         # 3 truques materializados a partir das escolhas
         self.assertEqual(p.magias.filter(nivel=0).count(), 3)
 
+    def test_mistico_salva_pela_rota_json(self):
+        p, ficha = self._cria_ok(self._payload('mistico'))
+        self.assertEqual(p.classes.first().id_classe.slug, 'mistico')
+        self.assertGreaterEqual(p.magias.count(), 1)
+
+    def test_talento_com_escolha_de_magia_e_persistido(self):
+        talento = TbTalento.objects.create(
+            nome='Talento de Teste Arcano', slug='talento-teste-arcano', tipo='origem',
+            etiqueta='conjuracao', descricao='Escolha uma magia.',
+            tags_json=['spell_selection:mago{nivel:1, qtd:1, always_prepared, spell_mod:int}'])
+        payload = self._payload('mistico', talento_origem=talento.id_talento)
+        resolved, erros = views._criador_resolver(payload)
+        self.assertFalse(erros, erros)
+        user = self._novo_usuario('talento-magia')
+
+        from django.db import transaction
+        with transaction.atomic():
+            temp = views._criador_persistir(user, payload, resolved)
+            grupos = temp._criador_spell_groups
+            self.assertTrue(grupos)
+            transaction.set_rollback(True)
+
+        payload['magias_concedidas'] = [{
+            'fonte': grupo['fonte'], 'slot': grupo['slot'],
+            'magias': [grupo['opcoes'][0]['slug']],
+        } for grupo in grupos]
+        resp = self._post_criar(user, payload)
+        self.assertEqual(resp.status_code, 200, resp.content)
+        personagem = TbPersonagem.objects.get(pk=resp.json()['id'])
+        self.assertTrue(personagem.escolhas.filter(tipo='magia-concedida').exists())
+
     def test_feiticeiro_com_essencia(self):
         # raça + essência + vertente (linhagem e essência são mutuamente exclusivas —
         # ver LinhagemEssenciaExclusivasTests — então este caminho usa só essência).
