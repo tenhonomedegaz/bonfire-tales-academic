@@ -1088,11 +1088,24 @@
         // ================= Validação por etapa (U3) =================
         var erroBox = el('cf-erros'), submitBtn = el('cf-submit');
         var _lblEsc = { pericia: 'perícia(s)', idioma: 'idioma(s)', ferramenta: 'ferramenta(s)' };
+        var STEP_LABELS = ['Atributos', 'Raça', 'Classe', 'Antecedente', 'Talentos', 'Revisão'];
+        function pointBuyRemainingText(remaining) {
+            return remaining === 1 ? 'falta 1 ponto' : 'faltam ' + remaining + ' pontos';
+        }
 
         var STEP_VALIDATORS = [
             function () { // 0 · Identidade + Atributos
                 var e = [];
                 if (!el('cf-nome').value.trim()) e.push('Dê um nome ao personagem.');
+                if (!window.PointBuy || typeof window.PointBuy.state !== 'function') {
+                    e.push('Não foi possível validar a compra de pontos. Recarregue a página.');
+                } else {
+                    var pbState = window.PointBuy.state();
+                    if (!pbState.complete) {
+                        e.push('Você não concluiu a compra de pontos: ' +
+                            pointBuyRemainingText(pbState.remaining) + ' para distribuir.');
+                    }
+                }
                 var vals = asiActiveSelects().map(function (s) { return s.value; });
                 if (vals.some(function (v, i) { return vals.indexOf(v) !== i; }))
                     e.push('Os aumentos do ASI devem ir em atributos diferentes.');
@@ -1162,11 +1175,27 @@
             },
             function () { return []; } // 5 · Revisão
         ];
-        function stepErrors(i) { try { return STEP_VALIDATORS[i] ? STEP_VALIDATORS[i]() : []; } catch (err) { return []; } }
+        function stepErrors(i) {
+            try {
+                return STEP_VALIDATORS[i] ? STEP_VALIDATORS[i]() : [];
+            } catch (err) {
+                if (window.console && console.error) console.error('Falha ao validar etapa ' + i, err);
+                return ['Não foi possível validar esta etapa. Recarregue a página e tente novamente.'];
+            }
+        }
+        function clientPending() {
+            var pending = [];
+            for (var i = 0; i < STEP_VALIDATORS.length; i++) {
+                stepErrors(i).forEach(function (message) {
+                    pending.push({ step: i, label: STEP_LABELS[i], message: message });
+                });
+            }
+            return pending;
+        }
         function clientValidate() {
-            var all = [];
-            for (var i = 0; i < STEP_VALIDATORS.length; i++) all = all.concat(stepErrors(i));
-            return all;
+            return clientPending().map(function (item) {
+                return item.label + ': ' + item.message;
+            });
         }
 
         // ================= Stepper (U1) =================
@@ -1192,20 +1221,23 @@
             tabs.forEach(function (t, idx) {
                 var errs = stepErrors(idx);
                 t.classList.toggle('is-current', idx === current);
-                t.classList.toggle('is-complete', errs.length === 0);
+                t.classList.toggle('is-complete', !!touched[idx] && errs.length === 0);
                 t.classList.toggle('is-error', !!touched[idx] && errs.length > 0);
             });
             var e = stepErrors(current);
-            var totalPend = clientValidate().length;
+            var totalPend = clientPending().length;
             if (current === LAST) {
                 navHint.textContent = totalPend ? ('faltam ' + totalPend + ' item(ns) para criar') : 'tudo pronto — pode criar!';
                 submitBtn.textContent = totalPend ? ('Criar (faltam ' + totalPend + ')') : 'Criar Personagem';
+                submitBtn.disabled = totalPend > 0;
+                submitBtn.title = totalPend ? 'Conclua as pendências listadas antes de criar a ficha.' : '';
             } else {
                 navHint.textContent = e.length ? ('faltam ' + e.length + ' nesta etapa') : '';
             }
         }
         function refreshCurrentErrors() {
             if (touched[current]) showStepErr(current, stepErrors(current));
+            if (current === LAST) renderReview();
             updateStepper();
         }
         function goTo(i, noscroll) {
@@ -1258,12 +1290,14 @@
                 return '<div class="flex justify-between gap-3 border-b border-[var(--stroke)] py-1"><span class="text-[var(--muted)]">' +
                     escHtml(r[0]) + '</span><span class="text-right font-semibold">' + escHtml(r[1]) + '</span></div>';
             }).join('');
-            var pend = clientValidate();
+            var pend = clientPending();
             if (pend.length) {
-                h += '<div class="cf-step-err" style="display:block;margin-top:.7rem"><strong>' +
-                    (window.CRIAR_PATHBUILDER ? 'Pendências antes de simular:' : 'Pendências antes de criar:') +
+                h += '<div class="cf-step-err" style="display:block;margin-top:.7rem"><strong>Você ainda tem pendências ' +
+                    (window.CRIAR_PATHBUILDER ? 'antes de simular:' : 'antes de criar a ficha:') +
                     '</strong><ul>' +
-                    pend.map(function (x) { return '<li>' + escHtml(x) + '</li>'; }).join('') + '</ul></div>';
+                    pend.map(function (item) {
+                        return '<li><b>' + escHtml(item.label) + ':</b> ' + escHtml(item.message) + '</li>';
+                    }).join('') + '</ul></div>';
             } else {
                 h += '<p class="mt-2 text-xs text-[var(--spark)]">' +
                     (window.CRIAR_PATHBUILDER
@@ -1327,7 +1361,23 @@
         }
         function renderLocal() { renderAttrs(localAttrs()); updateName(); }
         function runPreview() {
+            // Invalida imediatamente qualquer resposta anterior, inclusive quando o
+            // estado atual ainda não permite enviar uma nova prévia ao servidor.
+            var seq = ++previewSeq;
             renderLocal();
+            var pbState = (window.PointBuy && typeof window.PointBuy.state === 'function')
+                ? window.PointBuy.state() : null;
+            if (!pbState || !pbState.complete) {
+                pvEl.textContent = '—'; caEl.textContent = '—';
+                statusEl.textContent = 'atributos pendentes';
+                statusEl.classList.remove('is-live');
+                var pbMessage = pbState
+                    ? 'Conclua a compra de pontos para calcular PV e CA. Ainda ' +
+                        pointBuyRemainingText(pbState.remaining) + ' para distribuir.'
+                    : 'Recarregue a página para validar a compra de pontos e calcular PV e CA.';
+                extraEl.innerHTML = '<p class="cf-preview-placeholder">' + escHtml(pbMessage) + '</p>';
+                return;
+            }
             var ready = racaSel.value && classeSel.value && antSel.value;
             if (!ready) {
                 pvEl.textContent = '—'; caEl.textContent = '—';
@@ -1336,7 +1386,6 @@
                 extraEl.innerHTML = '<p class="cf-preview-placeholder">Assim que você escolher raça, classe e antecedente, a prévia mostra PV, CA, perícias e proficiências — exatamente como a ficha final.</p>';
                 return;
             }
-            var seq = ++previewSeq;
             statusEl.textContent = 'atualizando…'; statusEl.classList.add('is-live');
             fetch(window.CRIAR_PREVIEW_URL, {
                 method: 'POST',
@@ -1345,7 +1394,14 @@
             }).then(function (r) { return r.json(); }).then(function (j) {
                 if (seq !== previewSeq) return; // resposta obsoleta
                 statusEl.classList.remove('is-live');
-                if (!j || !j.ready || !j.preview) { statusEl.textContent = 'nível 1'; return; }
+                if (!j || !j.ready || !j.preview) {
+                    statusEl.textContent = 'prévia pendente';
+                    var previewErrors = (j && Array.isArray(j.erros)) ? j.erros : [];
+                    extraEl.innerHTML = '<p class="cf-preview-placeholder">' + escHtml(
+                        previewErrors[0] || 'Não foi possível calcular PV e CA com as escolhas atuais.'
+                    ) + '</p>';
+                    return;
+                }
                 var pv = j.preview;
                 pvEl.textContent = pv.pv == null ? '—' : pv.pv;
                 caEl.textContent = pv.ca == null ? '—' : pv.ca;
@@ -1356,7 +1412,8 @@
                 renderTalentoMagias(j.pending_spell_choices || []);
             }).catch(function () {
                 if (seq !== previewSeq) return;
-                statusEl.classList.remove('is-live'); statusEl.textContent = 'nível 1';
+                statusEl.classList.remove('is-live'); statusEl.textContent = 'prévia indisponível';
+                extraEl.innerHTML = '<p class="cf-preview-placeholder">Não foi possível atualizar a prévia. Tente novamente.</p>';
             });
         }
         function schedulePreview() {
@@ -1367,7 +1424,12 @@
         }
         form.addEventListener('change', schedulePreview);
         form.addEventListener('input', function (ev) { if (ev.target && ev.target.id === 'cf-nome') { updateName(); refreshCurrentErrors(); } });
-        if (window.PointBuy) window.PointBuy.onChange(function () { renderLocal(); clearTimeout(previewTimer); previewTimer = setTimeout(runPreview, 280); });
+        if (window.PointBuy) window.PointBuy.onChange(function () {
+            renderLocal();
+            refreshCurrentErrors();
+            clearTimeout(previewTimer);
+            previewTimer = setTimeout(runPreview, 280);
+        });
 
         // legado: alguns caminhos ainda chamam showErros (submit agregado)
         function showErros(arr) {

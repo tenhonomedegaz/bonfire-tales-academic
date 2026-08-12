@@ -7853,12 +7853,19 @@ def _criador_resolver(data):
         erros.append('Nome muito longo (máximo de 150 caracteres).')
 
     scores = data.get('scores') or {}
+    if not isinstance(scores, dict):
+        scores = {}
+        erros.append('A compra de pontos foi enviada em formato inválido.')
     # Exige os seis atributos: sem isso um POST incompleto criaria a ficha com 8 em
     # silêncio no atributo faltante (o JS deveria mandar todos).
     if any(s not in scores for s in SIG):
         erros.append('Distribua os seis atributos (point-buy incompleto).')
-    base = {s: int(scores.get(s, 8) or 8) for s in SIG}
-    _, e = point_buy.validar([base[s] for s in SIG]); erros += e
+    try:
+        base = {s: int(scores.get(s, 8) or 8) for s in SIG}
+    except (TypeError, ValueError):
+        base = {s: 8 for s in SIG}
+        erros.append('Os valores da compra de pontos devem ser números inteiros.')
+    point_buy_ok, e = point_buy.validar([base[s] for s in SIG]); erros += e
     asi = data.get('asi') or {}
     # ASI do antecedente em DUAS formas (regra de sistema): a nova {modo, attrs} e a legada
     # {mais2, mais1} (= forma '2/1'). O front pode mandar qualquer uma; o resolver normaliza.
@@ -8056,7 +8063,8 @@ def _criador_resolver(data):
                      'Escolha outro(s) na lista do antecedente.' % ', '.join(dup_idiomas))
 
     R = {
-        'nome': nome, 'base': base, 'mais2': mais2, 'mais1': mais1, 'asi_bonus': asi_bonus,
+        'nome': nome, 'base': base, 'point_buy_ok': point_buy_ok,
+        'mais2': mais2, 'mais1': mais1, 'asi_bonus': asi_bonus,
         'asi_major': asi_major, 'asi_minor': asi_minor, 'bg_grants': bg_grants,
         'raca': raca, 'linhagem': linhagem, 'essencia': essencia, 'antec': antec, 'classe': classe,
         'to': to, 'talento_racial_nome': talento_racial_nome,
@@ -8346,16 +8354,19 @@ def criar_personagem_preview_view(request):
     from django.contrib.auth import get_user_model
     data = _json_body(request)
     R, _erros = _criador_resolver(data)
+    if not R['point_buy_ok']:
+        return JsonResponse({'ok': True, 'ready': False, 'erros': _erros})
     if not (R['raca'] and R['classe'] and R['antec']):
-        return JsonResponse({'ok': True, 'ready': False})
+        return JsonResponse({'ok': True, 'ready': False, 'erros': _erros})
     # Linhagem×Essência é violação ESTRUTURAL (não uma pendência de contagem que o
     # preview deva tolerar) — mesmo guard de _criador_resolver, aqui barrando o "ready"
     # em vez de aparecer só na lista de erros (que este endpoint ignora de propósito).
     if R['linhagem'] and R['essencia']:
-        return JsonResponse({'ok': True, 'ready': False})
+        return JsonResponse({'ok': True, 'ready': False, 'erros': _erros})
     dono = request.user if request.user.is_authenticated else get_user_model().objects.order_by('id').first()
     if dono is None:
-        return JsonResponse({'ok': True, 'ready': False})
+        return JsonResponse({'ok': True, 'ready': False,
+                             'erros': ['Não foi possível montar a prévia sem um usuário disponível.']})
     try:
         with transaction.atomic():
             p = _criador_persistir(dono, data, R)
@@ -8366,7 +8377,11 @@ def criar_personagem_preview_view(request):
         logger.exception(
             'Falha ao montar preview do criador para user_id=%s classe=%s raca=%s',
             getattr(dono, 'pk', None), data.get('classe'), data.get('raca'))
-        return JsonResponse({'ok': True, 'ready': False})
+        return JsonResponse({
+            'ok': True,
+            'ready': False,
+            'erros': ['Não foi possível calcular PV e CA com as escolhas atuais.'],
+        })
     return JsonResponse({'ok': True, 'ready': True, 'preview': _criador_preview_resumo(ficha),
                          'pending_spell_choices': pending_spell_choices})
 

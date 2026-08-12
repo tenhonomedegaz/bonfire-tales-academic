@@ -1,8 +1,8 @@
 /* Point-buy nativo dos atributos-base.
    Regras (de window.POINT_BUY, fornecido pela view / home/point_buy.py):
    - cada atributo começa em 8, máximo 15; custo cumulativo em POINT_BUY.custo;
-   - total gasto não pode passar de POINT_BUY.maxPontos (27).
-   Expõe window.PointBuy.scores() -> {FOR,DES,...} e window.PointBuy.onChange(cb). */
+   - os POINT_BUY.maxPontos (27) devem ser distribuídos por completo.
+   Expõe scores(), state(), isComplete() e onChange(cb). */
 (function () {
     'use strict';
 
@@ -26,7 +26,26 @@
             return out;
         }
 
-        function emit() { listeners.forEach(function (cb) { try { cb(scores()); } catch (e) {} }); }
+        function state() {
+            var spent = gasto();
+            return {
+                spent: spent,
+                remaining: PB.maxPontos - spent,
+                complete: spent === PB.maxPontos
+            };
+        }
+
+        function remainingLabel(remaining) {
+            return remaining === 1 ? 'Falta 1 ponto' : 'Faltam ' + remaining + ' pontos';
+        }
+
+        function emit() {
+            var currentScores = scores();
+            var currentState = state();
+            listeners.forEach(function (cb) {
+                try { cb(currentScores, currentState); } catch (e) {}
+            });
+        }
 
         function render() {
             var total = gasto();
@@ -44,8 +63,18 @@
             var pts = document.querySelector('[data-points]');
             if (pts) {
                 pts.textContent = total;
-                pts.classList.toggle('text-[var(--flame)]', total > PB.maxPontos);
+                pts.classList.toggle('text-[var(--spark)]', total === PB.maxPontos);
             }
+            var status = root.querySelector('[data-points-status]');
+            var remaining = PB.maxPontos - total;
+            if (status) {
+                status.textContent = remaining === 0
+                    ? 'Compra concluída'
+                    : remainingLabel(remaining);
+                status.classList.toggle('text-[var(--spark)]', remaining === 0);
+                status.classList.toggle('text-[var(--flame)]', remaining !== 0);
+            }
+            root.setAttribute('aria-invalid', remaining === 0 ? 'false' : 'true');
             emit();
         }
 
@@ -73,7 +102,9 @@
 
         window.PointBuy = {
             scores: scores,
-            onChange: function (cb) { listeners.push(cb); cb(scores()); }
+            state: state,
+            isComplete: function () { return state().complete; },
+            onChange: function (cb) { listeners.push(cb); cb(scores(), state()); }
         };
 
         render();

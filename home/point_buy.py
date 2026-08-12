@@ -29,14 +29,26 @@ SIGLAS = ('FOR', 'DES', 'CON', 'INT', 'SAB', 'CAR')
 
 
 def validar(scores):
-    """`scores`: iterável de valores-base. Retorna (ok, lista_de_erros)."""
+    """Valida os seis valores-base e exige que os 27 pontos sejam distribuídos."""
     erros = []
-    for s in scores:
-        v = int(s)
+    try:
+        valores = [int(s) for s in scores]
+    except (TypeError, ValueError):
+        return False, ['Os valores da compra de pontos devem ser números inteiros.']
+
+    for v in valores:
         if v < MIN_SCORE or v > MAX_SCORE:
             erros.append(f'Atributo {v} fora da faixa de point-buy [{MIN_SCORE}, {MAX_SCORE}].')
-    tot = total_pontos(scores)
-    if tot > MAX_PONTOS:
+    tot = total_pontos(valores)
+    if tot < MAX_PONTOS:
+        faltam = MAX_PONTOS - tot
+        verbo = 'falta' if faltam == 1 else 'faltam'
+        unidade = 'ponto' if faltam == 1 else 'pontos'
+        erros.append(
+            f'Compra de pontos incompleta: {verbo} {faltam} {unidade} para distribuir '
+            f'(use os {MAX_PONTOS} pontos).'
+        )
+    elif tot > MAX_PONTOS:
         erros.append(f'{tot} pontos gastos — máximo {MAX_PONTOS}.')
     return (not erros, erros)
 

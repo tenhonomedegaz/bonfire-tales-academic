@@ -75,6 +75,7 @@
               </table>
               <div class="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--stroke)] bg-[var(--bg2)]/50 px-3 py-2">
                 <button type="button" data-reset class="rounded border border-[var(--stroke)] bg-[var(--bg1)] px-3 py-2 text-sm font-semibold text-[var(--text)] hover:border-[var(--ember)] hover:text-[var(--ember)]">Reset</button>
+                <span data-points-status role="status" class="text-xs font-semibold text-[var(--flame)]">Faltam {{ pb_max_pontos }} pontos</span>
                 <span class="text-sm font-semibold text-[var(--muted)]">Pontos: <strong data-points class="text-[var(--text)]">0</strong><span class="text-[var(--muted)]">/{{ pb_max_pontos }}</span></span>
               </div>
             </div>
@@ -318,6 +319,6 @@
 
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'css/pages/criador.css' %}?v=4">
-<script src="{% static 'js/point_buy.js' %}?v=2" defer></script>
-<script src="{% static 'js/criador.js' %}?v=14" defer></script>
+<script src="{% static 'js/point_buy.js' %}?v=3" defer></script>
+<script src="{% static 'js/criador.js' %}?v=15" defer></script>
 {% endblock %}

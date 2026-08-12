@@ -906,6 +906,79 @@ class ValidacaoServerSideTests(_CriadorBase):
         self.assertEqual(resp.status_code, 400)
         self.assertIn('seis atributos', ' '.join(resp.json()['erros']))
 
+    def test_point_buy_sem_pontos_distribuidos_rejeitado(self):
+        payload = self._payload('guerreiro')
+        payload['scores'] = {sigla: 8 for sigla in point_buy.SIGLAS}
+        resp = self._post_criar(self._staff(), payload)
+        self.assertEqual(resp.status_code, 400)
+        erros = ' '.join(resp.json()['erros'])
+        self.assertIn('Compra de pontos incompleta', erros)
+        self.assertIn('faltam 27 pontos', erros)
+        self.assertFalse(TbPersonagem.objects.exists())
+
+    def test_point_buy_generico_com_um_ponto_restante_rejeitado(self):
+        payload = self._payload(
+            'cacador', raca_slug='elfo', antec_slug='guardiao-da-natureza',
+            linhagem_slug='lunareth',
+        )
+        # Uma distribuição visualmente plausível, mas ainda em 26/27. Este era o
+        # caso que recebia check verde mesmo sem concluir a etapa.
+        payload['scores'] = {
+            'FOR': 13, 'DES': 12, 'CON': 12,
+            'INT': 12, 'SAB': 12, 'CAR': 13,
+        }
+        payload['asi'] = {'modo': '2/1', 'attrs': ['DES', 'CON']}
+        resp = self._post_criar(self._staff(), payload)
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn('falta 1 ponto', ' '.join(resp.json()['erros']))
+        self.assertFalse(TbPersonagem.objects.exists())
+
+    def test_finalizar_point_buy_libera_pv_e_ca_na_mesma_build(self):
+        from home.models import TbTalento
+
+        payload = self._payload(
+            'cacador', raca_slug='elfo', antec_slug='guardiao-da-natureza',
+            linhagem_slug='lunareth',
+        )
+        # Reproduz exatamente os atributos finais e o talento mostrados no relato:
+        # 13/15/13/12/12/13 após +2 DES/+1 CON, com base 27/27.
+        payload['scores'] = {
+            'FOR': 13, 'DES': 13, 'CON': 12,
+            'INT': 12, 'SAB': 12, 'CAR': 13,
+        }
+        payload['asi'] = {'modo': '2/1', 'attrs': ['DES', 'CON']}
+        payload['talento_origem'] = TbTalento.objects.get(
+            slug='assecla-do-reinado-draconico').id_talento
+        user = self._staff()
+        self.client.force_login(user)
+        resp = self.client.post(
+            reverse('criar_personagem_preview'),
+            data=json.dumps(payload),
+            content_type='application/json',
+        )
+        self.assertEqual(resp.status_code, 200, resp.content)
+        body = resp.json()
+        self.assertTrue(body['ready'], body)
+        self.assertEqual(body['preview']['pv'], 11)
+        self.assertEqual(body['preview']['ca'], 12)
+        self.assertFalse(TbPersonagem.objects.exists())
+
+    def test_preview_nao_calcula_pv_ca_com_point_buy_incompleto(self):
+        payload = self._payload('guerreiro')
+        payload['scores'] = {sigla: 8 for sigla in point_buy.SIGLAS}
+        user = self._staff()
+        self.client.force_login(user)
+        resp = self.client.post(
+            reverse('criar_personagem_preview'),
+            data=json.dumps(payload),
+            content_type='application/json',
+        )
+        self.assertEqual(resp.status_code, 200, resp.content)
+        body = resp.json()
+        self.assertFalse(body['ready'])
+        self.assertIn('Compra de pontos incompleta', ' '.join(body['erros']))
+        self.assertFalse(TbPersonagem.objects.exists())
+
     def test_nome_longo_rejeitado(self):
         payload = self._payload('guerreiro')
         payload['nome'] = 'x' * 151
