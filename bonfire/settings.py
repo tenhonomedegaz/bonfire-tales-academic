@@ -310,3 +310,4 @@ DISCORD_OAUTH_REDIRECT_URI = os.environ.get("DISCORD_OAUTH_REDIRECT_URI", "").st
 ASAAS_WEBHOOK_TOKEN = os.environ.get("ASAAS_WEBHOOK_TOKEN", "").strip()
 ASAAS_API_KEY = os.environ.get("ASAAS_API_KEY", "").strip()
 ASAAS_API_BASE = os.environ.get("ASAAS_API_BASE", "https://api-sandbox.asaas.com/v3").strip().rstrip("/")
+BONFIRE_CHECKOUT_SIGNING_SECRET = os.environ.get("BONFIRE_CHECKOUT_SIGNING_SECRET", "").strip()

@@ -196,6 +196,8 @@ urlpatterns = [
     path('mapa/', views.mapa_view, name='mapa'),
     path('mapa', views.mapa_view),
     path('colaborador/', views.colaborador_view, name='colaborador'),
+    path('colaborador/checkout/', views.colaborador_checkout, name='colaborador_checkout'),
+    path('colaborador/discord/', views.colaborador_discord_checkout, name='colaborador_discord_checkout'),
     path('catarse/', views.redirect_conteudo_indisponivel, {'destino': 'colaborador'}, name='catarse'),
     path('quem-somos/', views.pagina_institucional_view, {'pagina': 'sobre'}, name='quem_somos'),
 ]

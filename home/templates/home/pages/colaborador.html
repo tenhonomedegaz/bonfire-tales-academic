@@ -23,6 +23,28 @@
 
 <div class="container mx-auto px-2 sm:px-3 pb-12">
 
+  {% if checkout_feedback %}
+  <div class="mb-4 border px-4 py-3 text-sm {% if checkout_feedback.0 == 'error' %}border-red-500/50 bg-red-950/30 text-red-200{% elif checkout_feedback.0 == 'success' %}border-emerald-500/50 bg-emerald-950/30 text-emerald-100{% else %}border-[var(--stroke)] bg-[var(--bg1)] text-[var(--muted)]{% endif %}" role="status">
+    {{ checkout_feedback.1 }}
+  </div>
+  {% endif %}
+
+  {% if not checkout_account_ready %}
+  <div class="mb-5 flex flex-wrap items-center justify-between gap-3 border border-[var(--stroke)] bg-[var(--bg1)] px-4 py-3">
+    <p class="text-sm text-[var(--muted)]">
+      {% if user.is_authenticated %}
+      Adicione um e-mail ou vincule o Discord para que a compra seja entregue automaticamente na conta correta.
+      {% else %}
+      Entre na sua conta antes de comprar. Assim o pagamento já nasce vinculado ao seu perfil.
+      {% endif %}
+    </p>
+    <a href="{% if user.is_authenticated %}{% url 'profile' %}{% else %}/login/?next={% url 'colaborador' %}{% endif %}"
+       class="inline-flex items-center justify-center rounded-lg border border-[var(--ember)] px-3 py-2 text-sm font-bold text-[var(--ember)] hover:bg-[var(--ember)] hover:text-black">
+      {% if user.is_authenticated %}Preparar minha conta{% else %}Entrar para comprar{% endif %}
+    </a>
+  </div>
+  {% endif %}
+
   <!-- ░░░ PACOTES DE COLABORADOR ░░░ -->
   <div class="mb-4 text-center">
     <h2 class="font-rpg text-2xl md:text-3xl font-bold text-[var(--text)]">Pacotes de Colaborador</h2>
@@ -61,26 +83,45 @@
 
       <!-- CTAs (empurra o bloco de planos pro rodapé do card) -->
       <div class="mt-auto space-y-2">
-        <a href="{{ tier.assinatura }}" target="_blank" rel="noopener noreferrer"
-           aria-label="Assinar {{ tier.titulo }} no cartão por R$ {{ tier.preco_mes }} por mês (abre em nova aba)"
-           class="flex w-full items-center justify-center gap-1.5 rounded-lg bg-bonfire-gradient px-3 py-2 text-sm font-bold text-white transition-all hover:-translate-y-0.5 hover:brightness-110 shadow-[0_0_15px_rgba(210,23,23,0.25)]">
+        {% if checkout_account_ready %}
+        <form action="{% url 'colaborador_checkout' %}" method="post" target="_blank">
+          {% csrf_token %}
+          <input type="hidden" name="product" value="{{ tier.product_code }}">
+          <input type="hidden" name="mode" value="recurring">
+          <button type="submit" aria-label="Assinar {{ tier.titulo }} no cartão por R$ {{ tier.preco_mes }} por mês"
+             class="flex w-full items-center justify-center gap-1.5 rounded-lg bg-bonfire-gradient px-3 py-2 text-sm font-bold text-white transition-all hover:-translate-y-0.5 hover:brightness-110 shadow-[0_0_15px_rgba(210,23,23,0.25)]">
           Assinar no cartão
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+          </button>
+        </form>
+        <form action="{% url 'colaborador_checkout' %}" method="post" target="_blank">
+          {% csrf_token %}
+          <input type="hidden" name="product" value="{{ tier.product_code }}">
+          <input type="hidden" name="mode" value="single">
+          <button type="submit" aria-label="Pagamento único de {{ tier.titulo }} via Pix ou cartão"
+             class="flex w-full items-center justify-center gap-1.5 rounded-lg border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm font-semibold text-[var(--text)] transition-all hover:border-[var(--ember)]">
+            Pagamento único · Pix / Cartão
+          </button>
+        </form>
+        {% else %}
+        <a href="{% if user.is_authenticated %}{% url 'profile' %}{% else %}/login/?next={% url 'colaborador' %}{% endif %}"
+           class="flex w-full items-center justify-center rounded-lg bg-bonfire-gradient px-3 py-2 text-sm font-bold text-white">
+          Vincular conta para comprar
         </a>
-        <a href="{{ tier.unico }}" target="_blank" rel="noopener noreferrer"
-           aria-label="Pagamento único de {{ tier.titulo }} via Pix, boleto ou cartão (abre em nova aba)"
-           class="flex w-full items-center justify-center gap-1.5 rounded-lg border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm font-semibold text-[var(--text)] transition-all hover:border-[var(--ember)]">
-          Pagamento único · Pix / Boleto
-        </a>
+        {% endif %}
 
         <!-- Planos longos -->
         <div class="pt-2">
           <p class="mb-1.5 text-center text-xs font-bold uppercase tracking-wide text-[var(--muted)]">Planos longos · mais desconto</p>
           <div class="space-y-1.5">
             {% for plano in tier.planos %}
-            <a href="{{ plano.url }}" target="_blank" rel="noopener noreferrer"
-               aria-label="Assinar plano {{ plano.label }} de {{ tier.titulo }} por R$ {{ plano.preco }} — {{ plano.off }} (abre em nova aba)"
-               class="group flex items-center justify-between gap-1.5 rounded-lg border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-1.5 transition-all hover:border-[var(--spark)]/60">
+            {% if checkout_account_ready %}
+            <form action="{% url 'colaborador_checkout' %}" method="post" target="_blank">
+              {% csrf_token %}
+              <input type="hidden" name="product" value="{{ plano.product_code }}">
+              <input type="hidden" name="mode" value="single">
+              <button type="submit" aria-label="Comprar plano {{ plano.label }} de {{ tier.titulo }} por R$ {{ plano.preco }}"
+               class="group flex w-full items-center justify-between gap-1.5 rounded-lg border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-1.5 transition-all hover:border-[var(--spark)]/60">
               <span class="flex items-center gap-1.5">
                 <span class="text-sm font-semibold text-[var(--text)]">{{ plano.label }}</span>
                 <span class="rounded bg-[var(--spark)]/20 px-1.5 py-0.5 text-[11px] font-bold text-[var(--spark)]">{{ plano.off }}</span>
@@ -89,7 +130,14 @@
                 R$ {{ plano.preco }}
                 <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="opacity-50 transition-transform group-hover:translate-x-0.5"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
               </span>
-            </a>
+              </button>
+            </form>
+            {% else %}
+            <span class="flex items-center justify-between gap-1.5 rounded-lg border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-1.5 opacity-60">
+              <span class="text-sm font-semibold text-[var(--text)]">{{ plano.label }} · {{ plano.off }}</span>
+              <span class="text-sm text-[var(--muted)]">R$ {{ plano.preco }}</span>
+            </span>
+            {% endif %}
             {% endfor %}
           </div>
         </div>
@@ -113,12 +161,23 @@
       <h3 class="mt-2 font-rpg text-lg font-bold text-[var(--text)]">{{ token.nome }}</h3>
       <p class="mt-2 flex-1 text-sm text-[var(--muted)]">{{ token.desc }}</p>
       <div class="my-2.5 font-rpg text-2xl font-bold text-[var(--ember)]">R$ {{ token.preco }}</div>
-      <a href="{{ token.url }}" target="_blank" rel="noopener noreferrer"
-         aria-label="Comprar token {{ token.nome }} por R$ {{ token.preco }} (abre em nova aba)"
+      {% if checkout_account_ready %}
+      <form action="{% url 'colaborador_checkout' %}" method="post" target="_blank">
+        {% csrf_token %}
+        <input type="hidden" name="product" value="{{ token.product_code }}">
+        <input type="hidden" name="mode" value="single">
+        <button type="submit" aria-label="Comprar token {{ token.nome }} por R$ {{ token.preco }}"
          class="flex w-full items-center justify-center gap-1.5 rounded-lg border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm font-bold text-[var(--text)] transition-all hover:border-[var(--ember)] hover:-translate-y-0.5">
         Comprar token
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </button>
+      </form>
+      {% else %}
+      <a href="{% if user.is_authenticated %}{% url 'profile' %}{% else %}/login/?next={% url 'colaborador' %}{% endif %}"
+         class="flex w-full items-center justify-center rounded-lg border border-[var(--stroke)] px-3 py-2 text-sm font-bold text-[var(--muted)]">
+        Vincular conta para comprar
       </a>
+      {% endif %}
     </div>
     {% endfor %}
   </div>
@@ -134,21 +193,21 @@
         <span class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-bonfire-gradient text-sm font-bold text-white" aria-hidden="true">1</span>
         <div>
           <h3 class="text-sm font-bold text-[var(--text)]">Escolha e pague</h3>
-          <p class="mt-1 text-sm text-[var(--muted)]">Você é levado ao checkout seguro do Asaas (Pix, boleto ou cartão).</p>
+          <p class="mt-1 text-sm text-[var(--muted)]">Você é levado ao checkout seguro do Asaas (Pix ou cartão).</p>
         </div>
       </div>
       <div class="flex gap-2">
         <span class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-bonfire-gradient text-sm font-bold text-white" aria-hidden="true">2</span>
         <div>
-          <h3 class="text-sm font-bold text-[var(--text)]">Use o mesmo e-mail</h3>
-          <p class="mt-1 text-sm text-[var(--muted)]">No pagamento, informe o e-mail vinculado à sua conta do Discord para o bot reconhecer você.</p>
+          <h3 class="text-sm font-bold text-[var(--text)]">Conta vinculada</h3>
+          <p class="mt-1 text-sm text-[var(--muted)]">O checkout recebe sua conta e seu e-mail automaticamente. Você não precisa digitar o e-mail para resgatar.</p>
         </div>
       </div>
       <div class="flex gap-2">
         <span class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-bonfire-gradient text-sm font-bold text-white" aria-hidden="true">3</span>
         <div>
-          <h3 class="text-sm font-bold text-[var(--text)]">Resgate no Discord</h3>
-          <p class="mt-1 text-sm text-[var(--muted)]">Após a confirmação, use <code class="rounded bg-[var(--bg0)] px-1.5 py-0.5 text-xs text-[var(--spark)]">/resgatar</code> no bot para liberar os benefícios.</p>
+          <h3 class="text-sm font-bold text-[var(--text)]">Entrega automática</h3>
+          <p class="mt-1 text-sm text-[var(--muted)]">Quando o Asaas confirmar o pagamento, tokens e benefícios são creditados no Discord vinculado.</p>
         </div>
       </div>
     </div>

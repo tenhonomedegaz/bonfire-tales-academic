@@ -13,7 +13,8 @@ from .moeda import (preco_em_pc as _preco_em_pc, moeda_display as _moeda_display
 from . import badges as _badges
 from . import conquistas as _conquistas
 from . import social as _social
-from datetime import datetime, timezone as datetime_timezone
+from datetime import datetime, timedelta, timezone as datetime_timezone
+from decimal import Decimal, InvalidOperation
 from types import SimpleNamespace
 
 logger = logging.getLogger(__name__)
@@ -28,7 +29,7 @@ from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.http import Http404, JsonResponse, HttpResponseBadRequest, HttpResponse
 from django.shortcuts import get_object_or_404, render, redirect
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_POST, require_http_methods
 from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from django.views.decorators.cache import never_cache
 from django.core.paginator import Paginator
@@ -1730,11 +1731,13 @@ def discord_callback(request):
             prof.discord_user_id = discord_id
             prof.discord_username = discord_name
             prof.save(update_fields=['discord_user_id', 'discord_username'])
+        _reconcile_user_payment_identity(request.user)
         return redirect('/perfil/?discord=vinculado')
 
     # 2) Não logado → achar conta pelo discord_user_id
     prof = UserProfile.objects.filter(discord_user_id=discord_id).select_related('user').first()
     if prof:
+        _reconcile_user_payment_identity(prof.user)
         login(request, prof.user)
         return redirect(nxt)
 
@@ -1754,6 +1757,7 @@ def discord_callback(request):
         user__email__iexact=discord_email, email_verified=True).exclude(user=user).exists()
     prof.email_verified = bool(discord_email and duser.get('verified') and not ja_verif)
     prof.save(update_fields=['discord_user_id', 'discord_username', 'email_verified'])
+    _reconcile_user_payment_identity(user)
     login(request, user)
     return redirect(nxt)
 
@@ -2743,14 +2747,13 @@ def placeholder_view(request, title='Notas de Atualizacao'):
 
 
 # ════════════════════════ Página de Colaborador (Asaas) ════════════════════════
-# Vitrine de doação/assinatura que espelha o embed do comando `/colab-info` do bot
-# (src/modules/discord/commands/bonfire/subscription/subscriptionEmbeds.ts). Usa os
-# MESMOS links de checkout do Asaas. Os benefícios são concedidos no Discord pelo bot
-# após o pagamento (webhook → tabela `transactions` → claim). Os preços trimestral/
-# semestral/anual vêm de `bonfireSubscriptionOffers` (config do bot).
+# Vitrine de doação/assinatura que espelha o embed do comando `/colab-info` do bot.
+# Contas autenticadas geram um Checkout Asaas exclusivo, vinculado por UUID a um pedido
+# local. Os links estáticos permanecem apenas como referência e fallback legado.
 COLABORADOR_TIERS = [
     {
         'key': 'conde',
+        'product_code': 'colaborador-conde-1m',
         'titulo': 'Conde / Condessa',
         'emoji': '👑',
         'preco_mes': '19,90',
@@ -2761,13 +2764,14 @@ COLABORADOR_TIERS = [
         'assinatura': 'https://www.asaas.com/c/8875kbi9lmlnbpbs',
         'unico': 'https://www.asaas.com/c/0d19cyn73or5ee4m',
         'planos': [
-            {'label': 'Trimestral', 'off': '10% OFF', 'preco': '53,73', 'url': 'https://www.asaas.com/c/gggvz2l87g6ah4rs'},
-            {'label': 'Semestral', 'off': '15% OFF', 'preco': '101,49', 'url': 'https://www.asaas.com/c/74zeloshnmy8qf6d'},
-            {'label': 'Anual', 'off': '25% OFF', 'preco': '179,10', 'url': 'https://www.asaas.com/c/8kbe3dbsjx5tl9c5'},
+            {'label': 'Trimestral', 'off': '10% OFF', 'preco': '53,73', 'product_code': 'colaborador-conde-3m', 'url': 'https://www.asaas.com/c/gggvz2l87g6ah4rs'},
+            {'label': 'Semestral', 'off': '15% OFF', 'preco': '101,49', 'product_code': 'colaborador-conde-6m', 'url': 'https://www.asaas.com/c/74zeloshnmy8qf6d'},
+            {'label': 'Anual', 'off': '25% OFF', 'preco': '179,10', 'product_code': 'colaborador-conde-12m', 'url': 'https://www.asaas.com/c/8kbe3dbsjx5tl9c5'},
         ],
     },
     {
         'key': 'marques',
+        'product_code': 'colaborador-marques-1m',
         'titulo': 'Marquês / Marquesa',
         'emoji': '👑',
         'preco_mes': '29,90',
@@ -2780,13 +2784,14 @@ COLABORADOR_TIERS = [
         'assinatura': 'https://www.asaas.com/c/2icusjwxwyth44dl',
         'unico': 'https://www.asaas.com/c/vdc8h0lg9c6ni55z',
         'planos': [
-            {'label': 'Trimestral', 'off': '10% OFF', 'preco': '80,73', 'url': 'https://www.asaas.com/c/ckm5u78s3yhkztf4'},
-            {'label': 'Semestral', 'off': '15% OFF', 'preco': '152,49', 'url': 'https://www.asaas.com/c/js1wn7vwapvcis2k'},
-            {'label': 'Anual', 'off': '25% OFF', 'preco': '269,10', 'url': 'https://www.asaas.com/c/mo3xjc7myj5q67g7'},
+            {'label': 'Trimestral', 'off': '10% OFF', 'preco': '80,73', 'product_code': 'colaborador-marques-3m', 'url': 'https://www.asaas.com/c/ckm5u78s3yhkztf4'},
+            {'label': 'Semestral', 'off': '15% OFF', 'preco': '152,49', 'product_code': 'colaborador-marques-6m', 'url': 'https://www.asaas.com/c/js1wn7vwapvcis2k'},
+            {'label': 'Anual', 'off': '25% OFF', 'preco': '269,10', 'product_code': 'colaborador-marques-12m', 'url': 'https://www.asaas.com/c/mo3xjc7myj5q67g7'},
         ],
     },
     {
         'key': 'duque',
+        'product_code': 'colaborador-duque-1m',
         'titulo': 'Duque / Duquesa',
         'emoji': '👑',
         'preco_mes': '39,90',
@@ -2801,33 +2806,425 @@ COLABORADOR_TIERS = [
         'assinatura': 'https://www.asaas.com/c/p7ne3agr03yphhqx',
         'unico': 'https://www.asaas.com/c/ir2nwmgt3s950e02',
         'planos': [
-            {'label': 'Trimestral', 'off': '10% OFF', 'preco': '107,73', 'url': 'https://www.asaas.com/c/m7uakneidrvso7a9'},
-            {'label': 'Semestral', 'off': '15% OFF', 'preco': '203,49', 'url': 'https://www.asaas.com/c/en2ibwj3r29s77ig'},
-            {'label': 'Anual', 'off': '25% OFF', 'preco': '359,10', 'url': 'https://www.asaas.com/c/hojk0lk7zssxsa8w'},
+            {'label': 'Trimestral', 'off': '10% OFF', 'preco': '107,73', 'product_code': 'colaborador-duque-3m', 'url': 'https://www.asaas.com/c/m7uakneidrvso7a9'},
+            {'label': 'Semestral', 'off': '15% OFF', 'preco': '203,49', 'product_code': 'colaborador-duque-6m', 'url': 'https://www.asaas.com/c/en2ibwj3r29s77ig'},
+            {'label': 'Anual', 'off': '25% OFF', 'preco': '359,10', 'product_code': 'colaborador-duque-12m', 'url': 'https://www.asaas.com/c/hojk0lk7zssxsa8w'},
         ],
     },
 ]
 
 COLABORADOR_TOKENS = [
-    {'emoji': '⚔️', 'nome': 'Missão Especial', 'preco': '14,90',
+    {'emoji': '⚔️', 'nome': 'Missão Especial', 'preco': '14,90', 'product_code': 'token-missao',
      'desc': 'Garante +1 missão especial para você participar.',
      'url': 'https://www.asaas.com/c/4i2hskg41p4mszkg'},
-    {'emoji': '💥', 'nome': 'Boost', 'preco': '19,90',
+    {'emoji': '💥', 'nome': 'Boost', 'preco': '19,90', 'product_code': 'token-boost',
      'desc': 'Aumenta as recompensas de uma missão.',
      'url': 'https://www.asaas.com/c/seyli68v427zvbds'},
-    {'emoji': '🚀', 'nome': 'Superboost', 'preco': '69,90',
+    {'emoji': '🚀', 'nome': 'Superboost', 'preco': '69,90', 'product_code': 'token-superboost',
      'desc': 'Turbina ainda mais as recompensas de uma missão.',
      'url': 'https://www.asaas.com/c/69cthesmlfcu15th'},
 ]
 
 
+_ASAAS_CHECKOUT_PRODUCTS = {
+    'token-missao': {
+        'name': 'Token de Missão Especial', 'description': 'Um token de Missão Especial.',
+        'amount': Decimal('14.90'), 'modes': {'single'},
+    },
+    'token-boost': {
+        'name': 'Token de Boost', 'description': 'Um token de Boost.',
+        'amount': Decimal('19.90'), 'modes': {'single'},
+    },
+    'token-superboost': {
+        'name': 'Token de Superboost', 'description': 'Um token de Superboost.',
+        'amount': Decimal('69.90'), 'modes': {'single'},
+    },
+    'colaborador-conde-1m': {
+        'name': 'Colaborador Conde - mensal', 'description': 'Benefícios de Conde por um mês.',
+        'amount': Decimal('19.90'), 'modes': {'single', 'recurring'},
+    },
+    'colaborador-conde-3m': {
+        'name': 'Colaborador Conde - trimestral', 'description': 'Benefícios de Conde por três meses.',
+        'amount': Decimal('53.73'), 'modes': {'single'},
+    },
+    'colaborador-conde-6m': {
+        'name': 'Colaborador Conde - semestral', 'description': 'Benefícios de Conde por seis meses.',
+        'amount': Decimal('101.49'), 'modes': {'single'},
+    },
+    'colaborador-conde-12m': {
+        'name': 'Colaborador Conde - anual', 'description': 'Benefícios de Conde por doze meses.',
+        'amount': Decimal('179.10'), 'modes': {'single'},
+    },
+    'colaborador-marques-1m': {
+        'name': 'Colaborador Marquês - mensal', 'description': 'Benefícios de Marquês por um mês.',
+        'amount': Decimal('29.90'), 'modes': {'single', 'recurring'},
+    },
+    'colaborador-marques-3m': {
+        'name': 'Colaborador Marquês - trimestral', 'description': 'Benefícios de Marquês por três meses.',
+        'amount': Decimal('80.73'), 'modes': {'single'},
+    },
+    'colaborador-marques-6m': {
+        'name': 'Colaborador Marquês - semestral', 'description': 'Benefícios de Marquês por seis meses.',
+        'amount': Decimal('152.49'), 'modes': {'single'},
+    },
+    'colaborador-marques-12m': {
+        'name': 'Colaborador Marquês - anual', 'description': 'Benefícios de Marquês por doze meses.',
+        'amount': Decimal('269.10'), 'modes': {'single'},
+    },
+    'colaborador-duque-1m': {
+        'name': 'Colaborador Duque - mensal', 'description': 'Benefícios de Duque por um mês.',
+        'amount': Decimal('39.90'), 'modes': {'single', 'recurring'},
+    },
+    'colaborador-duque-3m': {
+        'name': 'Colaborador Duque - trimestral', 'description': 'Benefícios de Duque por três meses.',
+        'amount': Decimal('107.73'), 'modes': {'single'},
+    },
+    'colaborador-duque-6m': {
+        'name': 'Colaborador Duque - semestral', 'description': 'Benefícios de Duque por seis meses.',
+        'amount': Decimal('203.49'), 'modes': {'single'},
+    },
+    'colaborador-duque-12m': {
+        'name': 'Colaborador Duque - anual', 'description': 'Benefícios de Duque por doze meses.',
+        'amount': Decimal('359.10'), 'modes': {'single'},
+    },
+}
+
+
 def colaborador_view(request):
-    """Vitrine de pacotes de colaborador e tokens (links de checkout do Asaas)."""
+    """Vitrine de pacotes de colaborador e tokens."""
+    feedback = {
+        'success': ('success', 'Checkout concluído. O benefício será aplicado assim que o Asaas confirmar o pagamento.'),
+        'cancel': ('neutral', 'Checkout cancelado. Nenhuma cobrança foi confirmada.'),
+        'expired': ('neutral', 'O checkout expirou. Escolha o produto novamente para gerar outro.'),
+        'account': ('error', 'Adicione um e-mail ou vincule o Discord antes de comprar.'),
+        'conflict': ('error', 'O Discord ou e-mail desta conta já está ligado a outro cadastro. Fale com a staff.'),
+        'error': ('error', 'Não foi possível iniciar o checkout. Tente novamente em alguns instantes.'),
+    }.get((request.GET.get('checkout') or '').strip())
+    profile = getattr(request.user, 'profile', None) if request.user.is_authenticated else None
     return render(request, 'home/pages/colaborador.html', {
         'page_title': 'Seja um Colaborador',
         'tiers': COLABORADOR_TIERS,
         'tokens': COLABORADOR_TOKENS,
+        'checkout_feedback': feedback,
+        'checkout_account_ready': bool(
+            request.user.is_authenticated
+            and (request.user.email or (profile and profile.discord_user_id))
+        ),
     })
+
+
+def _bot_member_for_identity(discord_id='', email='', username='', create=False):
+    """Resolve identidades parciais sem trocar o dono de um e-mail ou Discord."""
+    from .models import BotMember
+    import uuid
+
+    discord_id = str(discord_id or '').strip()
+    email = str(email or '').strip().lower()
+    member = BotMember.objects.filter(discordUserId=discord_id).first() if discord_id else None
+    if member:
+        return member
+
+    email_owner = BotMember.objects.filter(email__iexact=email).first() if email else None
+    if email_owner:
+        if discord_id and email_owner.discordUserId != discord_id:
+            raise ValueError('conflict')
+        return email_owner
+
+    if not create or not discord_id or not email:
+        return None
+
+    now = timezone.now()
+    return BotMember.objects.create(
+        id='site_%s' % uuid.uuid4().hex[:24],
+        discordUserId=discord_id,
+        discordUserTag=(username or ('discord_%s' % discord_id))[:200],
+        email=email,
+        tokenSuperboost=0,
+        tokenXpBoost=0,
+        tokenMission=0,
+        isModerator=False,
+        isAdmin=False,
+        skipValidation=False,
+        createdAt=now,
+        updatedAt=now,
+    )
+
+
+def _claim_transactions_for_member(member, emails):
+    """Entrega compras pendentes pertencentes aos e-mails confirmados desta identidade."""
+    from .models import BotMember, BotTransaction
+
+    normalized = {str(value or '').strip().lower() for value in emails}
+    normalized.discard('')
+    if not normalized:
+        return 0
+
+    now = timezone.now()
+    claimed_ids = []
+    with transaction.atomic():
+        locked_member = BotMember.objects.select_for_update().get(pk=member.pk)
+        email_query = Q()
+        for email in normalized:
+            email_query |= Q(email__iexact=email)
+        pending = list(BotTransaction.objects.select_for_update().filter(
+            email_query,
+            claimed=False,
+        ))
+        totals = {}
+        for purchase in pending:
+            grants = _ASAAS_PRODUCT_GRANTS.get(purchase.subscriptionPlan)
+            if grants is None:
+                continue
+            for field, quantity in grants.items():
+                totals[field] = totals.get(field, 0) + quantity
+            claimed_ids.append(purchase.pk)
+
+        if totals:
+            updates = {field: F(field) + quantity for field, quantity in totals.items()}
+            updates['updatedAt'] = now
+            BotMember.objects.filter(pk=locked_member.pk).update(**updates)
+        if claimed_ids:
+            BotTransaction.objects.filter(pk__in=claimed_ids).update(
+                email=locked_member.email,
+                claimed=True,
+                claimedAt=now,
+                updatedAt=now,
+            )
+    return len(claimed_ids)
+
+
+def _reconcile_user_payment_identity(user):
+    """Liga compras por e-mail ao Discord quando a conta passa a ter as duas identidades."""
+    from .models import AsaasCheckoutOrder
+
+    profile = getattr(user, 'profile', None)
+    discord_id = str(getattr(profile, 'discord_user_id', '') or '').strip()
+    if not discord_id:
+        return None
+
+    emails = set(AsaasCheckoutOrder.objects.filter(
+        user=user,
+        status=AsaasCheckoutOrder.Status.PAID,
+    ).exclude(email='').values_list('email', flat=True))
+    if user.email:
+        emails.add(user.email)
+    emails = {str(value).strip().lower() for value in emails if str(value).strip()}
+    preferred_email = sorted(emails)[0] if emails else ''
+    username = getattr(profile, 'discord_username', '') or user.get_full_name() or user.username
+    try:
+        member = _bot_member_for_identity(
+            discord_id=discord_id,
+            email=preferred_email,
+            username=username,
+            create=bool(preferred_email),
+        )
+    except ValueError:
+        logger.warning('Conflito ao conciliar pagamentos do usuario %s com Discord %s.', user.pk, discord_id)
+        return None
+    if member:
+        emails.add(member.email)
+        _claim_transactions_for_member(member, emails)
+    return member
+
+
+def _site_checkout_identity(user):
+    profile = getattr(user, 'profile', None)
+    email = (user.email or '').strip().lower()
+    discord_id = str(getattr(profile, 'discord_user_id', '') or '').strip()
+    if not email and not discord_id:
+        raise ValueError('account')
+    return {
+        'user': user,
+        'discord_user_id': discord_id,
+        'email': email,
+        'name': (user.get_full_name() or getattr(profile, 'discord_username', '') or user.username)[:100],
+    }
+
+
+def _create_asaas_checkout(order, product, display_name, callback_base):
+    payload = {
+        'billingTypes': ['CREDIT_CARD'] if order.mode == 'recurring' else ['PIX', 'CREDIT_CARD'],
+        'chargeTypes': ['RECURRENT'] if order.mode == 'recurring' else ['DETACHED'],
+        'minutesToExpire': 60,
+        'externalReference': order.external_reference,
+        'callback': {
+            'successUrl': '%s?checkout=success' % callback_base,
+            'cancelUrl': '%s?checkout=cancel' % callback_base,
+            'expiredUrl': '%s?checkout=expired' % callback_base,
+        },
+        'items': [{
+            'externalReference': order.product_code,
+            'name': product['name'],
+            'description': product['description'],
+            'quantity': 1,
+            'value': float(product['amount']),
+        }],
+    }
+    customer_data = {}
+    if display_name:
+        customer_data['name'] = display_name[:100]
+    if order.email:
+        customer_data['email'] = order.email
+    if customer_data:
+        payload['customerData'] = customer_data
+    if order.mode == 'recurring':
+        payload['subscription'] = {
+            'cycle': 'MONTHLY',
+            'nextDueDate': timezone.localtime().strftime('%Y-%m-%d %H:%M:%S'),
+        }
+
+    checkout = _asaas_api_request('POST', 'checkouts', payload)
+    checkout_id = str((checkout or {}).get('id') or '').strip()
+    if not checkout_id:
+        raise AsaasAPIError('Checkout sem identificador.')
+    checkout_url = 'https://asaas.com/checkoutSession/show?id=%s' % checkout_id
+    order.asaas_checkout_id = checkout_id
+    order.asaas_checkout_url = checkout_url
+    order.save(update_fields=['asaas_checkout_id', 'asaas_checkout_url', 'updated_at'])
+    return checkout_url
+
+
+@login_required(login_url='/login/')
+@require_POST
+def colaborador_checkout(request):
+    """Cria um Checkout Asaas exclusivo e conciliavel para a conta autenticada."""
+    from .models import AsaasCheckoutOrder
+
+    product_code = (request.POST.get('product') or '').strip()
+    mode = (request.POST.get('mode') or '').strip()
+    product = _ASAAS_CHECKOUT_PRODUCTS.get(product_code)
+    if not product or mode not in product['modes']:
+        return redirect('%s?checkout=error' % reverse('colaborador'))
+
+    try:
+        identity = _site_checkout_identity(request.user)
+    except ValueError:
+        reason = 'account'
+        return redirect('%s?checkout=%s' % (reverse('colaborador'), reason))
+
+    reusable_order = AsaasCheckoutOrder.objects.filter(
+        user=request.user,
+        product_code=product_code,
+        mode=mode,
+        status=AsaasCheckoutOrder.Status.PENDING,
+        created_at__gte=timezone.now() - timedelta(minutes=55),
+    ).exclude(asaas_checkout_url='').first()
+    if reusable_order:
+        return redirect(reusable_order.asaas_checkout_url)
+
+    order = AsaasCheckoutOrder.objects.create(
+        user=identity['user'],
+        discord_user_id=identity['discord_user_id'],
+        email=identity['email'],
+        product_code=product_code,
+        mode=mode,
+        amount=product['amount'],
+    )
+    base_url = request.build_absolute_uri(reverse('colaborador'))
+    try:
+        return redirect(_create_asaas_checkout(order, product, identity['name'], base_url))
+    except AsaasAPIError as exc:
+        logger.warning('Falha ao criar checkout Asaas para pedido %s: %s', order.pk, exc)
+        order.status = AsaasCheckoutOrder.Status.ERROR
+        order.error_message = str(exc)[:500]
+        order.save(update_fields=['status', 'error_message', 'updated_at'])
+        return redirect('%s?checkout=error' % reverse('colaborador'))
+
+
+def _decode_discord_checkout_token(token):
+    import base64
+    import hmac
+    import time
+
+    secret = settings.BONFIRE_CHECKOUT_SIGNING_SECRET
+    if not secret or not token or '.' not in token:
+        raise ValueError('invalid')
+    payload_part, signature_part = token.rsplit('.', 1)
+    expected = hmac.new(secret.encode('utf-8'), payload_part.encode('ascii'), hashlib.sha256).digest()
+    expected_part = base64.urlsafe_b64encode(expected).decode('ascii').rstrip('=')
+    if not hmac.compare_digest(expected_part, signature_part):
+        raise ValueError('invalid')
+    try:
+        padded = payload_part + '=' * (-len(payload_part) % 4)
+        payload = json.loads(base64.urlsafe_b64decode(padded).decode('utf-8'))
+    except (ValueError, UnicodeDecodeError, TypeError):
+        raise ValueError('invalid')
+    if int(payload.get('exp') or 0) < int(time.time()):
+        raise ValueError('expired')
+    discord_id = str(payload.get('discord_id') or '').strip()
+    product_code = str(payload.get('product') or '').strip()
+    mode = str(payload.get('mode') or '').strip()
+    product = _ASAAS_CHECKOUT_PRODUCTS.get(product_code)
+    if not discord_id.isdigit() or not product or mode not in product['modes']:
+        raise ValueError('invalid')
+    return {
+        'discord_user_id': discord_id,
+        'discord_username': str(payload.get('discord_name') or '')[:100],
+        'product_code': product_code,
+        'mode': mode,
+        'product': product,
+        'amount_display': str(product['amount']).replace('.', ','),
+    }
+
+
+@require_http_methods(['GET', 'POST'])
+def colaborador_discord_checkout(request):
+    """Confirma e cria um checkout assinado pelo bot, sem exigir conta no site."""
+    from .models import AsaasCheckoutOrder
+
+    token = (request.POST.get('token') or request.GET.get('token') or '').strip()
+    try:
+        intent = _decode_discord_checkout_token(token)
+    except ValueError as exc:
+        return render(request, 'home/pages/colaborador_checkout_discord.html', {
+            'page_title': 'Checkout indisponível',
+            'checkout_error': 'Este link expirou.' if str(exc) == 'expired' else 'Este link de compra é inválido.',
+        }, status=400)
+
+    if request.method == 'GET':
+        return render(request, 'home/pages/colaborador_checkout_discord.html', {
+            'page_title': 'Confirmar compra',
+            'intent': intent,
+            'token': token,
+        })
+
+    reusable_order = AsaasCheckoutOrder.objects.filter(
+        user__isnull=True,
+        discord_user_id=intent['discord_user_id'],
+        product_code=intent['product_code'],
+        mode=intent['mode'],
+        status=AsaasCheckoutOrder.Status.PENDING,
+        created_at__gte=timezone.now() - timedelta(minutes=55),
+    ).exclude(asaas_checkout_url='').first()
+    if reusable_order:
+        return redirect(reusable_order.asaas_checkout_url)
+
+    member = _bot_member_for_identity(discord_id=intent['discord_user_id'])
+    order = AsaasCheckoutOrder.objects.create(
+        discord_user_id=intent['discord_user_id'],
+        email=(member.email if member else ''),
+        product_code=intent['product_code'],
+        mode=intent['mode'],
+        amount=intent['product']['amount'],
+    )
+    base_url = request.build_absolute_uri(reverse('colaborador'))
+    try:
+        checkout_url = _create_asaas_checkout(
+            order,
+            intent['product'],
+            intent['discord_username'] or (member.discordUserTag if member else ''),
+            base_url,
+        )
+        return redirect(checkout_url)
+    except AsaasAPIError as exc:
+        logger.warning('Falha ao criar checkout Discord para pedido %s: %s', order.pk, exc)
+        order.status = AsaasCheckoutOrder.Status.ERROR
+        order.error_message = str(exc)[:500]
+        order.save(update_fields=['status', 'error_message', 'updated_at'])
+        return render(request, 'home/pages/colaborador_checkout_discord.html', {
+            'page_title': 'Checkout indisponível',
+            'checkout_error': 'Não foi possível iniciar o checkout. Tente gerar outro link no Discord.',
+        }, status=502)
 
 
 def _parse_skills_lvl1(tags_json):
@@ -12310,8 +12707,9 @@ def itens_magicos_view(request):
 
 # ════════════════════════ Webhook Asaas (pagamentos) ════════════════════════
 # Recebe os eventos do Asaas e cria a transação (idempotente) na MESMA tabela
-# `transactions` que o bot lê (BotTransaction, managed=False / Postgres). O fluxo de
-# claim/produtos do bot concede os tokens — nada muda no bot. Config no painel do
+# `transactions` que o bot lê (BotTransaction, managed=False / Postgres). Pedidos
+# autenticados creditam tokens imediatamente; o bot reconcilia o cargo de colaborador.
+# Config no painel do
 # Asaas: webhook URL = https://bonfiretales.com.br/webhooks/asaas/, com um token forte
 # no campo de autenticação (= ASAAS_WEBHOOK_TOKEN no .env), eventos PAYMENT_CONFIRMED
 # e PAYMENT_RECEIVED. Cada assinatura/link no Asaas deve setar `externalReference` = a
@@ -12342,21 +12740,70 @@ _ASAAS_PAYMENT_LINK_PRODUCTS = {
 }
 _ASAAS_PERIODO = {'1m': 'MONTHLY', '3m': 'QUARTERLY', '6m': 'SEMIANNUALLY', '12m': 'YEARLY'}
 _ASAAS_MESES = {'1m': 1, '3m': 3, '6m': 6, '12m': 12}
+_ASAAS_PRODUCT_GRANTS = {
+    'token-missao': {'tokenMission': 1},
+    'token-boost': {'tokenXpBoost': 1},
+    'token-superboost': {'tokenSuperboost': 1},
+    'colaborador-conde-1m': {},
+    'colaborador-conde-3m': {},
+    'colaborador-conde-6m': {},
+    'colaborador-conde-12m': {},
+    'colaborador-marques-1m': {'tokenMission': 1},
+    'colaborador-marques-3m': {'tokenMission': 3},
+    'colaborador-marques-6m': {'tokenMission': 6},
+    'colaborador-marques-12m': {'tokenMission': 12},
+    'colaborador-duque-1m': {'tokenMission': 1, 'tokenXpBoost': 1},
+    'colaborador-duque-3m': {'tokenMission': 3, 'tokenXpBoost': 3},
+    'colaborador-duque-6m': {'tokenMission': 6, 'tokenXpBoost': 6},
+    'colaborador-duque-12m': {'tokenMission': 12, 'tokenXpBoost': 12},
+}
 
 
-def _asaas_api_get(path):
-    """GET autenticado na API do Asaas. Retorna dict ou None."""
+class AsaasAPIError(Exception):
+    pass
+
+
+def _asaas_api_request(method, path, payload=None):
+    """Requisicao autenticada na API do Asaas, sem expor credenciais em erros."""
     import urllib.request
     import urllib.error
     if not settings.ASAAS_API_KEY:
-        return None
-    req = urllib.request.Request('%s/%s' % (settings.ASAAS_API_BASE, path.lstrip('/')),
-                                 headers={'access_token': settings.ASAAS_API_KEY,
-                                          'User-Agent': 'BonfireSite'})
+        raise AsaasAPIError('Integracao de pagamento indisponivel.')
+    data = json.dumps(payload).encode('utf-8') if payload is not None else None
+    headers = {
+        'access_token': settings.ASAAS_API_KEY,
+        'User-Agent': 'BonfireSite',
+        'Accept': 'application/json',
+    }
+    if data is not None:
+        headers['Content-Type'] = 'application/json'
+    req = urllib.request.Request(
+        '%s/%s' % (settings.ASAAS_API_BASE, path.lstrip('/')),
+        data=data,
+        headers=headers,
+        method=method.upper(),
+    )
     try:
         with urllib.request.urlopen(req, timeout=10) as resp:
             return json.loads(resp.read().decode('utf-8'))
-    except (urllib.error.URLError, ValueError, TimeoutError, OSError):
+    except urllib.error.HTTPError as exc:
+        description = ''
+        try:
+            error_body = json.loads(exc.read().decode('utf-8'))
+            errors = error_body.get('errors') or []
+            description = '; '.join(str(item.get('description') or '') for item in errors if item)
+        except (ValueError, UnicodeDecodeError, AttributeError):
+            pass
+        raise AsaasAPIError(description or 'Asaas respondeu HTTP %s.' % exc.code) from exc
+    except (urllib.error.URLError, ValueError, TimeoutError, OSError) as exc:
+        raise AsaasAPIError('Nao foi possivel comunicar com o Asaas.') from exc
+
+
+def _asaas_api_get(path):
+    """GET autenticado na API do Asaas. Retorna dict ou None para o webhook retentavel."""
+    try:
+        return _asaas_api_request('GET', path)
+    except AsaasAPIError:
         return None
 
 
@@ -12381,14 +12828,15 @@ def _add_meses(dt, meses):
     return dt.replace(year=ano, month=mes, day=min(dt.day, calendar.monthrange(ano, mes)[1]))
 
 
-def _asaas_map_transacao(payment, event):
+def _asaas_map_transacao(payment, event, product_code=''):
     """Pagamento Asaas → campos da tabela `transactions`. Plano vem do externalReference
     (chave: colaborador-<conde|marques|duque>-<1m|3m|6m|12m>). Função PURA (testável)."""
     payment_link = payment.get('paymentLink')
     if isinstance(payment_link, dict):
         payment_link = payment_link.get('id')
     plano = (
-        (payment.get('externalReference') or '').strip()
+        (product_code or '').strip()
+        or (payment.get('externalReference') or '').strip()
         or _ASAAS_PAYMENT_LINK_PRODUCTS.get(str(payment_link or ''), '')
     )
     sufixo = plano.rsplit('-', 1)[-1] if '-' in plano else ''
@@ -12411,12 +12859,26 @@ def _asaas_map_transacao(payment, event):
     }
 
 
+def _asaas_order_from_payment(payment):
+    from .models import AsaasCheckoutOrder
+
+    reference = str(payment.get('externalReference') or '').strip()
+    prefix = 'bonfire_order:'
+    if not reference.startswith(prefix):
+        return None
+    order_id = reference[len(prefix):]
+    try:
+        return AsaasCheckoutOrder.objects.select_related('user__profile').get(pk=order_id)
+    except (AsaasCheckoutOrder.DoesNotExist, ValueError, TypeError):
+        return None
+
+
 @csrf_exempt
 @require_POST
 def asaas_webhook(request):
     """Endpoint do webhook do Asaas. Valida o token, busca o pagamento completo (fonte
     da verdade) e cria a transação não-claimed na tabela compartilhada (idempotente)."""
-    from .models import BotTransaction
+    from .models import AsaasCheckoutOrder, BotMember, BotTransaction
     import uuid
     # 1. autenticação do webhook (header asaas-access-token == token do .env)
     if not settings.ASAAS_WEBHOOK_TOKEN or request.headers.get('asaas-access-token', '') != settings.ASAAS_WEBHOOK_TOKEN:
@@ -12437,22 +12899,101 @@ def asaas_webhook(request):
     # 4. idempotência (Asaas reentrega "at least once")
     if BotTransaction.objects.filter(transactionCode=payment_id).exists():
         return HttpResponse('already processed', status=200)
-    # 5. busca o pagamento completo + e-mail do cliente (p/ o claim casar por email)
+    # 5. busca o pagamento completo e resolve primeiro o pedido autenticado do site.
     payment = _asaas_api_get('payments/%s' % payment_id) or pay_ref
-    campos = _asaas_map_transacao(payment, event)
-    if payment.get('customer'):
-        cust = _asaas_api_get('customers/%s' % payment['customer'])
-        if cust:
-            campos['email'] = (cust.get('email') or '').strip()
-            campos['name'] = cust.get('name')
+    order = _asaas_order_from_payment(payment)
+    if str(payment.get('externalReference') or '').startswith('bonfire_order:') and not order:
+        logger.error('Pagamento Asaas %s referencia pedido inexistente.', payment_id)
+        return HttpResponse('unknown order', status=200)
+
+    if order:
+        try:
+            paid_amount = Decimal(str(payment.get('value') or '0')).quantize(Decimal('0.01'))
+        except (InvalidOperation, ValueError):
+            paid_amount = Decimal('0')
+        if paid_amount != order.amount:
+            order.status = AsaasCheckoutOrder.Status.VALUE_MISMATCH
+            order.asaas_payment_id = payment_id
+            order.error_message = 'Esperado %s; recebido %s.' % (order.amount, paid_amount)
+            order.save(update_fields=['status', 'asaas_payment_id', 'error_message', 'updated_at'])
+            logger.error('Pagamento Asaas %s com valor divergente no pedido %s.', payment_id, order.pk)
+            return HttpResponse('value mismatch', status=200)
+
+    customer = _asaas_api_get('customers/%s' % payment['customer']) if payment.get('customer') else None
+    customer_email = str((customer or {}).get('email') or '').strip().lower()
+    customer_name = str((customer or {}).get('name') or '').strip()
+    campos = _asaas_map_transacao(payment, event, order.product_code if order else '')
+    member = None
+    resolved_email = customer_email
+    resolved_discord_id = ''
+    resolved_name = customer_name
+    if order:
+        profile = getattr(order.user, 'profile', None) if order.user_id else None
+        resolved_email = (order.email or customer_email).strip().lower()
+        resolved_discord_id = (
+            order.discord_user_id
+            or str(getattr(profile, 'discord_user_id', '') or '')
+        ).strip()
+        if order.user_id:
+            resolved_name = order.user.get_full_name() or order.user.username or customer_name
+        try:
+            member = _bot_member_for_identity(
+                discord_id=resolved_discord_id,
+                email=resolved_email,
+                username=resolved_name,
+                create=bool(resolved_discord_id and resolved_email),
+            )
+        except ValueError:
+            logger.warning('Conflito de identidade no pedido Asaas %s.', order.pk)
+            member = None
+        campos['comments'] = '%s; pedido=%s' % (campos['comments'], order.pk)
+        order_updates = {}
+        if resolved_email and not order.email:
+            order_updates['email'] = resolved_email
+        if resolved_discord_id and not order.discord_user_id:
+            order_updates['discord_user_id'] = resolved_discord_id
+        if order_updates:
+            AsaasCheckoutOrder.objects.filter(pk=order.pk).update(**order_updates)
+    elif resolved_email:
+        member = BotMember.objects.filter(email__iexact=resolved_email).first()
+
+    if member:
+        resolved_email = member.email
+        resolved_name = member.discordUserTag or resolved_name
+    if not resolved_email:
+        logger.warning('Pagamento Asaas %s ainda sem e-mail conciliavel; solicitando reentrega.', payment_id)
+        return HttpResponse('customer unavailable', status=503)
+    campos['email'] = resolved_email
+    campos['name'] = resolved_name
     pdate, meses = campos.pop('_paymentDate'), campos.pop('_meses')
-    # 6. cria a transação não-claimed (o bot concede os tokens no claim)
+    # 6. Pedido autenticado credita direto. Link legado fica pendente para claim manual.
     agora = timezone.now()
+    grants = _ASAAS_PRODUCT_GRANTS.get(campos['subscriptionPlan'])
+    auto_claim = bool(member and grants is not None)
     try:
-        BotTransaction.objects.create(
-            id='asaas_%s' % uuid.uuid4().hex, paymentDate=pdate,
-            expirationDate=_add_meses(pdate, meses), claimed=False,
-            createdAt=agora, updatedAt=agora, **campos)
+        with transaction.atomic():
+            if BotTransaction.objects.select_for_update().filter(transactionCode=payment_id).exists():
+                return HttpResponse('race-already', status=200)
+            if auto_claim:
+                increments = {
+                    field: F(field) + quantity
+                    for field, quantity in grants.items()
+                }
+                increments['updatedAt'] = agora
+                BotMember.objects.filter(pk=member.pk).update(**increments)
+            BotTransaction.objects.create(
+                id='asaas_%s' % uuid.uuid4().hex, paymentDate=pdate,
+                expirationDate=_add_meses(pdate, meses), claimed=auto_claim,
+                claimedAt=agora if auto_claim else None,
+                createdAt=agora, updatedAt=agora, **campos)
+            if order:
+                AsaasCheckoutOrder.objects.filter(pk=order.pk).update(
+                    status=AsaasCheckoutOrder.Status.PAID,
+                    asaas_payment_id=payment_id,
+                    paid_at=agora,
+                    error_message='',
+                    updated_at=agora,
+                )
     except Exception:
         if BotTransaction.objects.filter(transactionCode=payment_id).exists():
             return HttpResponse('race-already', status=200)  # corrida: ok

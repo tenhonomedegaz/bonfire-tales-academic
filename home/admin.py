@@ -26,6 +26,7 @@ from django.utils.safestring import mark_safe
 from django.utils.text import Truncator, slugify
 
 from .models import (
+    AsaasCheckoutOrder,
     TbAcessoopcao,
     TbClasse,
     TbClassehabilidade,
@@ -67,6 +68,18 @@ admin.site.site_title = "Bonfire Tales Admin"
 admin.site.index_title = "Painel de Conteudo"
 # A permissao do site admin (has_permission) e sobrescrita mais abaixo, junto
 # dos outros patches globais — ver _admin_superuser_only.
+
+
+@admin.register(AsaasCheckoutOrder)
+class AsaasCheckoutOrderAdmin(admin.ModelAdmin):
+    list_display = ('id', 'user', 'discord_user_id', 'email', 'product_code', 'mode', 'amount', 'status',
+                    'asaas_payment_id', 'created_at')
+    list_filter = ('status', 'mode', 'product_code')
+    search_fields = ('id', 'user__username', 'user__email', 'discord_user_id', 'email', 'asaas_checkout_id',
+                     'asaas_payment_id')
+    readonly_fields = ('id', 'user', 'discord_user_id', 'email', 'product_code', 'mode', 'amount',
+                       'asaas_checkout_id', 'asaas_checkout_url', 'asaas_payment_id',
+                       'paid_at', 'created_at', 'updated_at')
 
 
 def download_backup_view(request):

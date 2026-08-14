@@ -21,6 +21,7 @@
 
 
 import json
+import uuid
 
 from django.db import models
 from django.utils import timezone
@@ -957,6 +958,62 @@ class UserProfile(models.Model):
         ))
         self.titulo_equipado = (self.titulo_equipado or '').strip()
         super().save(*args, **kwargs)
+
+
+class AsaasCheckoutOrder(models.Model):
+    class Status(models.TextChoices):
+        PENDING = 'pending', 'Pendente'
+        PAID = 'paid', 'Pago'
+        ERROR = 'error', 'Erro'
+        VALUE_MISMATCH = 'value_mismatch', 'Valor divergente'
+
+    class Mode(models.TextChoices):
+        SINGLE = 'single', 'Pagamento único'
+        RECURRING = 'recurring', 'Assinatura recorrente'
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey('auth.User', on_delete=models.PROTECT, blank=True, null=True,
+                             related_name='asaas_checkout_orders')
+    discord_user_id = models.CharField(max_length=32, blank=True, default='')
+    email = models.EmailField(max_length=254, blank=True, default='')
+    product_code = models.CharField(max_length=80)
+    mode = models.CharField(max_length=12, choices=Mode.choices)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    status = models.CharField(max_length=20, choices=Status.choices,
+                              default=Status.PENDING)
+    asaas_checkout_id = models.CharField(max_length=100, blank=True, default='')
+    asaas_checkout_url = models.URLField(max_length=500, blank=True, default='')
+    asaas_payment_id = models.CharField(max_length=100, blank=True, default='')
+    error_message = models.CharField(max_length=500, blank=True, default='')
+    paid_at = models.DateTimeField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'home_asaascheckoutorder'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', 'status']),
+            models.Index(fields=['discord_user_id', 'status']),
+            models.Index(fields=['email', 'status']),
+            models.Index(fields=['asaas_checkout_id']),
+        ]
+        constraints = [
+            models.CheckConstraint(
+                condition=(models.Q(user__isnull=False)
+                           | ~models.Q(discord_user_id='')
+                           | ~models.Q(email='')),
+                name='asaas_order_has_identity',
+            ),
+        ]
+
+    @property
+    def external_reference(self):
+        return 'bonfire_order:%s' % self.pk
+
+    def __str__(self):
+        identity = self.user or self.discord_user_id or self.email
+        return '%s - %s' % (self.product_code, identity)
 
 
 @receiver(post_save, sender='auth.User')
