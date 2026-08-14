@@ -43,7 +43,7 @@ _FUNCTIONS = {
 _RUNTIME_SCOPES = {
     "aoe", "aura", "cast", "define", "effects", "else", "if", "instant",
     "list", "mark", "match", "on", "on_fail", "on_success", "pick", "save",
-    "table", "trigger", "upcast", "while", "while_active",
+    "scaling", "table", "trigger", "upcast", "while", "while_active",
 }
 
 

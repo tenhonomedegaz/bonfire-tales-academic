@@ -51,15 +51,26 @@
     <button type="button" class="talent-mobile-backdrop" id="mgMobileBackdrop" aria-label="Fechar lista"></button>
 
     <aside class="talent-list-panel xl:sticky xl:top-24 h-full max-h-[calc(100vh-140px)] overflow-y-auto custom-scrollbar flex flex-col gap-1.5 pr-2" id="mgList">
+      {% for magia in magias %}
+      <a href="#magia-{{ magia.slug }}" class="block rounded border border-transparent p-2.5 transition-colors hover:border-bonfire-stroke hover:bg-bonfire-bg1">
+        <h3 class="text-[13px] font-bold text-bonfire-muted">{{ magia.nome }}</h3>
+        {% if magia.nome_ingles %}<p class="text-[10px] text-bonfire-muted">{{ magia.nome_ingles }}</p>{% endif %}
+        <p class="mt-0.5 text-xs uppercase tracking-wider text-bonfire-muted">{{ magia.nivel_label }} · {{ magia.escola }}</p>
+      </a>
+      {% endfor %}
     </aside>
 
-    <main class="talent-detail-panel hidden mt-4 md:mt-0 md:pl-4" id="mgDetail">
-      <div class="flex items-center justify-center h-full text-bonfire-muted flex-col gap-4">
-        <svg class="w-16 h-16 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18s-3.332.477-4.5 1.253" />
-        </svg>
-        <p class="text-sm">Selecione uma magia para ver os detalhes.</p>
-      </div>
+    <main class="talent-detail-panel mt-4 md:mt-0 md:pl-4" id="mgDetail">
+      {% with magia=magias.0 %}
+      {% if magia %}
+      <h2 id="magia-{{ magia.slug }}" class="mb-1 font-cinzel text-xl font-bold uppercase text-bonfire-text">{{ magia.nome }}</h2>
+      {% if magia.nome_ingles %}<p class="mb-1 text-xs text-bonfire-muted">{{ magia.nome_ingles }}</p>{% endif %}
+      <p class="mb-3 text-xs text-bonfire-muted">{{ magia.nivel_label }} · {{ magia.escola }}{% if magia.classes %} · {{ magia.classes }}{% endif %}</p>
+      <div class="bonfire-markdown text-[13px] leading-[1.45] text-bonfire-muted">{{ magia.descricao|linebreaks }}</div>
+      {% else %}
+      <p class="text-bonfire-muted">Nenhuma magia cadastrada.</p>
+      {% endif %}
+      {% endwith %}
     </main>
   </div>
 </div>

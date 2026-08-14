@@ -215,9 +215,18 @@
       </div>
     </section>
     {% else %}
-    <section class="rounded border border-[var(--stroke)] bg-[var(--bg1)] p-5 text-center">
-      <h2 class="font-rpg text-xl font-bold text-[var(--text)]">Nenhuma classe selecionada</h2>
-      <p class="mt-2 text-[13px] text-[var(--muted)]">Use a busca ou a lista lateral para abrir uma classe.</p>
+    <section class="rounded border border-[var(--stroke)] bg-[var(--bg1)] p-5">
+      <h2 class="font-rpg text-xl font-bold text-[var(--text)]">Escolha sua classe</h2>
+      <p class="mt-2 text-[13px] text-[var(--muted)]">Cada classe reúne progressão, recursos, habilidades e subclasses. Abra uma delas para consultar a ficha completa.</p>
+      <div class="mt-4 grid gap-2 sm:grid-cols-2">
+        {% for item in all_classes %}
+        <a href="{% url 'classe_detail' slug=item.slug %}" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] p-3 transition-colors hover:border-[var(--ember)]">
+          <h3 class="font-rpg text-base font-bold text-[var(--flame)]">{{ item.nome }}</h3>
+          <p class="mt-1 text-[12px] leading-relaxed text-[var(--muted)]">{{ item.tagline }}</p>
+          <p class="mt-2 text-[10px] font-bold uppercase tracking-wider text-[var(--spark)]">Dado de vida {{ item.dado_vida }} · Atributo {{ item.atributo_principal }}</p>
+        </a>
+        {% endfor %}
+      </div>
     </section>
     {% endif %}
   </section>

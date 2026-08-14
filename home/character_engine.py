@@ -63,11 +63,11 @@ GRANTS_ANTECEDENTE = {
 
 # 18 perícias: slug -> (nome PT, atributo padrão)
 DEFAULT_BACKGROUND_GRANT_TAG = (
-    'background-grants{asi:+2/+1, pericia:2, idioma-fixo:Comum, '
-    'idioma-ou-ferramenta:2, po:100, po-mundano-min:50, talento-origem:1, '
-    'habilidade:1, equip-gold-alt:150}'
+    'background_grants{asi:+2/+1, pericia:2, idioma_fixo:Comum, '
+    'idioma_ou_ferramenta:2, po:100, po_mundano_min:50, talento_origem:1, '
+    'habilidade:1}'
 )
-DEFAULT_GRANTS_ANTECEDENTE = dict(GRANTS_ANTECEDENTE, equip_gold_alt=150)
+DEFAULT_GRANTS_ANTECEDENTE = dict(GRANTS_ANTECEDENTE)
 GRANTS_ANTECEDENTE = DEFAULT_GRANTS_ANTECEDENTE
 
 # Formas aceitas do ASI do antecedente (regra de SISTEMA 5.5e/2024 — vale p/ QUALQUER
@@ -242,9 +242,6 @@ _BACKGROUND_GRANT_KEYS = {
     'po-mundano-min': 'po_mundano_min',
     'talento-origem': 'talento_origem',
     'habilidade': 'habilidade',
-    'equip-gold-alt': 'equip_gold_alt',
-    'equip-ouro-alt': 'equip_gold_alt',
-    'equipamento-ouro': 'equip_gold_alt',
 }
 
 

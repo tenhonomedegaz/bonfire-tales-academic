@@ -4,10 +4,10 @@
 <div class="mx-auto max-w-7xl px-3 py-4 sm:px-5 lg:px-5">
   <header class="mb-4 flex flex-col gap-3 border-b border-[var(--stroke)] pb-3 lg:flex-row lg:items-end lg:justify-between">
     <div>
-      <p class="mb-1.5 text-xs font-bold uppercase tracking-[0.35em] text-[var(--ember)]">Discord / PostgreSQL</p>
+      <p class="mb-1.5 text-xs font-bold uppercase tracking-[0.35em] text-[var(--ember)]">Aventuras da comunidade</p>
       <h1 class="font-rpg text-4xl font-extrabold uppercase tracking-wide text-[var(--text)] md:text-5xl">Missões</h1>
       <p class="mt-2 max-w-3xl text-sm leading-relaxed text-[var(--muted)]">
-        Lista lida diretamente do banco PostgreSQL usado pelo bot do Discord.
+        Encontre mesas abertas, acompanhe sua inscrição e acesse o canal em que a aventura será organizada.
       </p>
     </div>
 
@@ -31,9 +31,21 @@
     </form>
   </header>
 
+  {% if user.is_authenticated and not discord_linked %}
+  <aside class="mb-4 flex flex-col gap-3 rounded border border-[var(--ember)]/50 bg-[var(--ember)]/10 p-3 sm:flex-row sm:items-center sm:justify-between">
+    <div>
+      <strong class="text-sm text-[var(--text)]">Vincule sua conta do Discord</strong>
+      <p class="mt-1 text-xs leading-relaxed text-[var(--muted)]">Assim o site reconhece suas inscrições, confirmações e posições na fila.</p>
+    </div>
+    <a href="{% url 'discord_login' %}?next={% url 'sistemas_missoes' %}" class="shrink-0 rounded border border-[var(--ember)] px-3 py-2 text-xs font-bold uppercase text-[var(--ember)] hover:bg-[var(--ember)] hover:text-white">Vincular Discord</a>
+  </aside>
+  {% elif discord_linked %}
+  <p class="mb-4 text-xs text-[var(--muted)]">Conta vinculada{% if discord_username %} como <strong class="text-[var(--text)]">{{ discord_username }}</strong>{% endif %}. Seu estado aparece em cada missão.</p>
+  {% endif %}
+
   {% if db_error %}
   <section class="rounded border border-[var(--flame)]/70 bg-[var(--flame)]/10 p-3 text-sm text-[var(--text)]">
-    <h2 class="font-rpg text-xl font-bold text-[var(--flame)]">Banco do bot indisponível</h2>
+    <h2 class="font-rpg text-xl font-bold text-[var(--flame)]">Missões indisponíveis</h2>
     <p class="mt-2 text-[var(--muted)]">{{ db_error }}</p>
   </section>
   {% elif quests %}
@@ -47,9 +59,12 @@
             {% if quest.type %}
             <span class="rounded border border-[var(--ember)]/60 px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-[var(--ember)]">{{ quest.type }}</span>
             {% endif %}
-            <span class="rounded border border-[var(--stroke)] px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">{{ quest.status }}</span>
+            <span class="rounded border border-[var(--stroke)] px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">{{ quest.status_label }}</span>
             {% if quest.is_full %}
             <span class="rounded border border-red-700/70 px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-red-400">Lotada</span>
+            {% endif %}
+            {% if quest.viewer_state_label %}
+            <span class="rounded border border-[var(--spark)]/70 bg-[var(--spark)]/10 px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-[var(--spark)]">{{ quest.viewer_state_label }}</span>
             {% endif %}
           </div>
         </div>
@@ -90,7 +105,7 @@
 
         <div class="flex flex-wrap gap-2 border-t border-[var(--stroke)] pt-2.5">
           {% if quest.discord_url %}
-          <a href="{{ quest.discord_url }}" target="_blank" rel="noopener noreferrer" class="text-xs font-bold uppercase tracking-wider text-[var(--ember)] hover:text-[var(--spark)]">Abrir no Discord</a>
+          <a href="{{ quest.discord_url }}" target="_blank" rel="noopener noreferrer" class="text-xs font-bold uppercase tracking-wider text-[var(--ember)] hover:text-[var(--spark)]">Ver missão no Discord</a>
           {% endif %}
           {% if quest.table_url %}
           <a href="{{ quest.table_url }}" target="_blank" rel="noopener noreferrer" class="text-xs font-bold uppercase tracking-wider text-[var(--ember)] hover:text-[var(--spark)]">Abrir mesa</a>
@@ -103,7 +118,7 @@
   {% else %}
   <section class="rounded border border-[var(--stroke)] bg-[var(--bg1)] p-5 text-center">
     <h2 class="font-rpg text-2xl font-bold text-[var(--text)]">Nenhuma missão encontrada</h2>
-    <p class="mt-2 text-sm text-[var(--muted)]">Tente outro filtro ou verifique se existem missões publicadas no bot.</p>
+    <p class="mt-2 text-sm text-[var(--muted)]">Tente outro filtro ou volte quando novas aventuras forem publicadas.</p>
   </section>
   {% endif %}
 </div>

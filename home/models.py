@@ -302,6 +302,7 @@ class TbRaca(models.Model):
     lore_presentation = models.TextField(db_column='LorePresentation', blank=True, null=True)
     lore_roleplay = models.TextField(db_column='LoreRoleplay', blank=True, null=True)
     lore_society = models.TextField(db_column='LoreSociety', blank=True, null=True)
+    imagem_url = models.CharField(db_column='ImagemUrl', max_length=500, blank=True, null=True)
     permite_essencia = models.BooleanField(db_column='PermiteEssencia', default=True)
 
     class Meta:
@@ -321,6 +322,7 @@ class TbLinhagem(models.Model):
     lore_roleplay = models.TextField(db_column='LoreRoleplay', blank=True, null=True)
     lore_society = models.TextField(db_column='LoreSociety', blank=True, null=True)
     descricao = models.TextField(db_column='Descricao', blank=True, null=True)
+    imagem_url = models.CharField(db_column='ImagemUrl', max_length=500, blank=True, null=True)
 
     class Meta:
         db_table = 'TB_Linhagem'
@@ -346,6 +348,7 @@ class TbEssencia(models.Model):
     lore_presentation = models.TextField(db_column='LorePresentation', blank=True, null=True)
     lore_roleplay = models.TextField(db_column='LoreRoleplay', blank=True, null=True)
     lore_society = models.TextField(db_column='LoreSociety', blank=True, null=True)
+    imagem_url = models.CharField(db_column='ImagemUrl', max_length=500, blank=True, null=True)
 
     class Meta:
         db_table = 'TB_Essencia'
@@ -1332,6 +1335,12 @@ class TbPersonagemItem(models.Model):
     # antigo (tipo_equip/ca_base/ca_limite_des) foi migrado pra cá. Ver item_mecanica.py.
     tags_json = models.JSONField(db_column='TagsJSON', blank=True, default=list,
                                  help_text='Snapshot da mecânica do item equipado (CA/dano/propriedades). Fonte única da mecânica.')
+    # Vínculo ao catálogo mundano. O snapshot acima continua sendo a fonte estável da
+    # posse: se o catálogo for substituído durante uma sincronização, SET_NULL preserva
+    # o item que já estava no inventário do personagem.
+    id_item_mundano = models.ForeignKey(
+        'TbItemMundano', models.SET_NULL, db_column='IdItemMundano', blank=True,
+        null=True, related_name='posses')
     # Vínculo ao catálogo de itens mágicos: traz tags_json (efeitos), raridade e
     # requer_sintonizacao. Itens mundanos ficam com este campo nulo.
     id_item_magico = models.ForeignKey('TbItemMagico', models.SET_NULL, db_column='Id_ItemMagico',
@@ -2114,3 +2123,42 @@ class TbMapDesenho(models.Model):
     def __str__(self):
         rotulo = self.nome or '(sem rótulo)'
         return '%s [%s] camada %s' % (rotulo, self.tipo, self.camada)
+
+
+class TbConteudoEstatico(models.Model):
+    """Bloco editorial administrável usado por páginas institucionais e pela home.
+
+    A estrutura visual continua no template; o texto publicado fica no banco. Isso
+    permite corrigir chamadas, instruções e páginas institucionais sem novo deploy.
+    """
+
+    id_conteudo = models.AutoField(db_column='Id_Conteudo', primary_key=True)
+    chave = models.SlugField(
+        db_column='Chave', max_length=100, unique=True,
+        help_text='Identificador estável do bloco, por exemplo home-hero.',
+    )
+    pagina = models.SlugField(
+        db_column='Pagina', max_length=60, db_index=True,
+        help_text='Página proprietária do bloco, por exemplo home ou privacidade.',
+    )
+    titulo = models.CharField(db_column='Titulo', max_length=220, blank=True)
+    subtitulo = models.TextField(db_column='Subtitulo', blank=True)
+    conteudo_markdown = models.TextField(
+        db_column='ConteudoMarkdown', blank=True,
+        help_text='Corpo em Markdown Bonfire. Referências em card continuam disponíveis.',
+    )
+    cta_texto = models.CharField(db_column='CtaTexto', max_length=100, blank=True)
+    cta_url = models.CharField(db_column='CtaUrl', max_length=500, blank=True)
+    imagem_url = models.CharField(db_column='ImagemUrl', max_length=500, blank=True)
+    ativo = models.BooleanField(db_column='Ativo', default=True)
+    ordem = models.PositiveIntegerField(db_column='Ordem', default=0)
+    atualizado_em = models.DateTimeField(db_column='AtualizadoEm', auto_now=True)
+
+    class Meta:
+        db_table = 'TB_ConteudoEstatico'
+        verbose_name = 'Conteúdo estático'
+        verbose_name_plural = 'Conteúdos estáticos'
+        ordering = ['pagina', 'ordem', 'chave']
+
+    def __str__(self):
+        return '%s · %s' % (self.pagina, self.titulo or self.chave)

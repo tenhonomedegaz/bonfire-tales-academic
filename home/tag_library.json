@@ -225,6 +225,11 @@
       "resolve": "TB_ItemMundano (Categoria='arma'). Maestria de Arma = escolher ARMA(s); o personagem conhece TODAS as maestrias da arma e aplica 1 por ataque (escolhida ao atacar). As maestrias da arma ficam em TB_OpcaoJogo[Maestria de Arma].",
       "exemplo": "pick:arma:N(=resource maestria_com_armas)"
     },
+    "item": {
+      "sintaxe": "item{slug:<slug>, qty:<quantidade>}",
+      "resolve": "TbItemMundano.slug. O slug identifica o registro; preço, peso, categoria e demais dados vêm do banco.",
+      "exemplo": "item{slug:chain-mail, qty:1}"
+    },
     "classe": {
       "sintaxe": "classe:<slug>",
       "resolve": "TbClasse.slug",
@@ -331,7 +336,6 @@
     "target{!acted}": "o alvo ainda não agiu no combate",
     "target{surprised}": "o alvo está Surpreso",
     "in_dim_light": "você está em Luz Fraca ou Escuridão (par de in_light)",
-    "banished": "o alvo está banido/removido do mapa (até um evento)",
     "route_exists": "há uma rota válida para executar o movimento forçado ou concedido",
     "in:ability{<nome>}": "você está sob efeito ativo de uma habilidade própria referenciada (ex.: in:ability{forma_do_terror})",
     "next_attack": "escopo: a próxima jogada de ataque deste turno",
@@ -630,6 +634,13 @@
       "op": "grant_execution",
       "target": "efeitos.ativos",
       "doc": "Ativa uma habilidade, opção ou definição referenciada. A identidade do efeito fica na referência, nunca em uma condição específica: activate:ability{frenesi_de_sangue, essencia:vampirismo}."
+    },
+    "effect": {
+      "categoria": "A3",
+      "forma": "block",
+      "op": "define",
+      "target": "efeitos.locais",
+      "doc": "Declara ou referencia um efeito local que não pertence ao catálogo global de condições. Identidade, source, target e duração ficam nos argumentos. Ex.: effect{possession, source:self, target:active}."
     },
     "end": {
       "categoria": "A3",
@@ -1737,7 +1748,20 @@
       "categoria": "A12",
       "forma": "block",
       "op": "add_modifier",
-      "doc": "Escala por nível de espaço de magia (upcast:{dmg:+1d6/nivel})."
+      "doc": "Escala exclusivamente pela diferença entre o nível do espaço gasto e o nível base da magia. Forma canônica: upcast{per:slot_level_above_base, dmg:+1d6}."
+    },
+    "scaling": {
+      "categoria": "A12",
+      "forma": "block",
+      "op": null,
+      "doc": "Escala declarativa com eixo explícito, sem sobrecarregar upcast. Exemplos: scaling{by:character_level, at{5:dmg:+1d6, 11:dmg:+1d6, 17:dmg:+1d6}} e scaling{per:charge_spent, dmg:+1d6}."
+    },
+    "banish": {
+      "categoria": "A9",
+      "forma": "block",
+      "op": "grant_execution",
+      "target": "execucao.banimento",
+      "doc": "Remove temporariamente um alvo do campo/plano sem criar uma condição global. Ex.: banish{target:hit, duration:until_turn_end}."
     },
     "buff": {
       "categoria": "A12",
@@ -2267,10 +2291,16 @@
       "op": "set_value",
       "doc": "Níveis com Incremento de Atributo/Talento. ÚNICA fonte de ASI — não existe choice:asi por habilidade; a feature é detectada por nome (_eh_feature_asi)."
     },
+    "starting_equipment": {
+      "sintaxe": "starting_equipment{item{slug:<slug>, qty:N}, pick{count:N, option{...}}, currency{po:N}, alternative{currency{po:N}}}",
+      "op": "pick",
+      "target": "classe.equipamento_inicial",
+      "doc": "Plano de equipamento inicial consumido pelo criador. item referencia TbItemMundano; pick/option descrevem escolhas; currency é dinheiro junto do kit; alternative é a alternativa de ouro. Dados do item nunca são duplicados na tag."
+    },
     "background_grants": {
-      "sintaxe": "background_grants{asi:+2/+1, pericia:2, idioma_fixo:Comum, idioma_ou_ferramenta:2, po:100, po_mundano_min:50, talento_origem:1, habilidade:1, equip_gold_alt:150}",
+      "sintaxe": "background_grants{asi:+2/+1, pericia:2, idioma_fixo:Comum, idioma_ou_ferramenta:2, po:100, po_mundano_min:50, talento_origem:1, habilidade:1}",
       "op": "set_value",
-      "doc": "Metadado de criacao de personagem para antecedentes: ASI, pericias, idioma fixo, escolhas idioma/ferramenta, dinheiro inicial e alternativa de ouro do equipamento."
+      "doc": "Metadado de criação de personagem para antecedentes: ASI, perícias, idioma fixo, escolhas idioma/ferramenta e dinheiro inicial. Equipamento e sua alternativa em ouro pertencem a starting_equipment da classe."
     },
     "multiclass_req": {
       "sintaxe": "multiclass_req{str>=13}",
@@ -2332,12 +2362,7 @@
         "petrificado",
         "restringido",
         "surdo",
-        "doente",
-        "invisivel",
-        "possuido",
-        "banido",
-        "silenciado",
-        "queimando"
+        "invisivel"
       ],
       "nota": "Condições compartilhadas pelo sistema. Modos, marcas e efeitos pertencentes a uma habilidade são referenciados com ability{}, defined{} ou mark{} e não entram neste catálogo."
     },

@@ -57,6 +57,7 @@ from .models import (
     TbAventuraMestre,
     TbTransacaoMestre,
     TbReiDaColina,
+    TbConteudoEstatico,
 )
 from .security import validate_no_sql_danger
 
@@ -362,7 +363,7 @@ def server_logs_view(request):
                     from django.core.management import call_command
                     from django.core import serializers
                     from django.db import connection, transaction
-                    from .deploy_sync import CONTENT_MODELS
+                    from .deploy_sync import RESTORE_GUARDED_MODELS
                     texto = f.read().decode("utf-8")
 
                     # Guard: um fixture que so tem modelos de CONTEUDO (catalogo, com
@@ -375,7 +376,10 @@ def server_logs_view(request):
                         dados = None
                     if isinstance(dados, list):
                         labels = {str(r.get("model", "")).lower() for r in dados if isinstance(r, dict)}
-                        content_labels = {"home." + nome.lower() for nome in CONTENT_MODELS}
+                        content_labels = {
+                            "home." + nome.lower()
+                            for nome in RESTORE_GUARDED_MODELS
+                        }
                         if labels and labels <= content_labels:
                             blocked = True
                             messages.error(
@@ -400,7 +404,10 @@ def server_logs_view(request):
                             if connection.vendor == "postgresql" and app_labels:
                                 buf = StringIO()
                                 call_command("sqlsequencereset", *sorted(app_labels), stdout=buf)
-                                sql = buf.getvalue().strip()
+                                sql = "\n".join(
+                                    line for line in buf.getvalue().splitlines()
+                                    if line.strip().upper() not in {"BEGIN;", "COMMIT;"}
+                                ).strip()
                                 if sql:
                                     with connection.cursor() as cur:
                                         cur.execute(sql)
@@ -2120,7 +2127,7 @@ class TbCondicaoAdmin(BonfireAdminMixin, admin.ModelAdmin):
 class TbLinhagemInline(admin.StackedInline):
     model = TbLinhagem
     extra = 0
-    fields = ("nome", "slug", "descricao")
+    fields = ("nome", "slug", "imagem_url", "descricao")
     prepopulated_fields = {"slug": ("nome",)}
     show_change_link = True
 
@@ -2143,7 +2150,7 @@ class TbRacaAdmin(BonfireAdminMixin, admin.ModelAdmin):
     prepopulated_fields = {"slug": ("nome",)}
     ordering = ("nome",)
     fieldsets = (
-        (None, {"fields": ("nome", "slug", "tagline", "permite_essencia")}),
+        (None, {"fields": ("nome", "slug", "tagline", "imagem_url", "permite_essencia")}),
         ("Lore", {"classes": ("collapse",), "fields": ("lore_presentation", "lore_roleplay", "lore_society")}),
     )
     inlines = (TbLinhagemInline, TbTracoracialInline)
@@ -2300,7 +2307,7 @@ class TbLinhagemAdmin(BonfireAdminMixin, admin.ModelAdmin):
     prepopulated_fields = {"slug": ("nome",)}
     ordering = ("id_raca__nome", "nome")
     fieldsets = (
-        (None, {"fields": ("id_raca", "nome", "slug", "descricao")}),
+        (None, {"fields": ("id_raca", "nome", "slug", "imagem_url", "descricao")}),
         ("Lore", {"classes": ("collapse",), "fields": ("lore_presentation", "lore_roleplay", "lore_society")}),
     )
 
@@ -2317,7 +2324,7 @@ class TbEssenciaAdmin(BonfireAdminMixin, admin.ModelAdmin):
     prepopulated_fields = {"slug": ("nome",)}
     ordering = ("nome",)
     fieldsets = (
-        (None, {"fields": ("nome", "slug", "tags_json")}),
+        (None, {"fields": ("nome", "slug", "imagem_url", "tags_json")}),
         ("Lore", {"classes": ("collapse",), "fields": ("lore_presentation", "lore_roleplay", "lore_society")}),
     )
 
@@ -3310,6 +3317,28 @@ def _bonfire_admin_get_app_list(request, app_label=None):
     return sorted(app_dict.values(), key=lambda x: x['name'].lower())
 
 admin.site.get_app_list = _bonfire_admin_get_app_list
+
+
+@admin.register(TbConteudoEstatico)
+class TbConteudoEstaticoAdmin(admin.ModelAdmin):
+    list_display = ('pagina', 'ordem', 'titulo', 'chave', 'ativo', 'atualizado_em')
+    list_filter = ('pagina', 'ativo')
+    list_editable = ('ordem', 'ativo')
+    search_fields = ('titulo', 'subtitulo', 'conteudo_markdown', 'chave')
+    ordering = ('pagina', 'ordem', 'chave')
+    readonly_fields = ('atualizado_em',)
+    fieldsets = (
+        ('Identificação', {'fields': ('pagina', 'chave', 'titulo', 'subtitulo')}),
+        ('Conteúdo', {
+            'fields': ('conteudo_markdown', 'imagem_url'),
+            'description': (
+                'Aceita Markdown Bonfire. A chave é o contrato estável usado pelo '
+                'template; editar texto, imagem ou CTA não exige deploy.'
+            ),
+        }),
+        ('Ação', {'fields': ('cta_texto', 'cta_url')}),
+        ('Publicação', {'fields': ('ativo', 'ordem', 'atualizado_em')}),
+    )
 
 
 # ─────────────────────────────────────────────────────────────────────────────

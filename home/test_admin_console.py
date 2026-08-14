@@ -23,7 +23,7 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from home.admin import CONSOLE_UNLOCK_TTL_SECONDS
-from home.models import TbRegra
+from home.models import TbRegiao, TbRegra
 
 
 class RestoreBackupGuardTests(TestCase):
@@ -95,6 +95,23 @@ class RestoreBackupGuardTests(TestCase):
         response = self._post_restore(payload)
 
         self.assertNotContains(response, "Merge de conteudo (dev -&gt; producao)")
+
+    def test_world_only_fixture_is_also_refused(self):
+        payload = [
+            {
+                "model": "home.tbregiao",
+                "pk": 999003,
+                "fields": {
+                    "nome": "Região por PK",
+                    "slug": "regiao-por-pk",
+                },
+            }
+        ]
+
+        response = self._post_restore(payload)
+
+        self.assertContains(response, "Merge de conteudo (dev -&gt; producao)")
+        self.assertFalse(TbRegiao.objects.filter(pk=999003).exists())
 
 
 class ConsoleUnlockTTLTests(TestCase):

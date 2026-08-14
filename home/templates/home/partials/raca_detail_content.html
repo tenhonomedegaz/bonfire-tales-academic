@@ -20,7 +20,7 @@
       <!-- ============ HERO / CABEÇALHO DA RAÇA ============ -->
       <header class="race-hero">
         <div class="race-hero-media">
-          <div id="racePreviewImage" class="race-hero-thumb" style="background-image: url('{{ raca.image_url }}')"></div>
+          <div id="racePreviewImage" class="race-hero-thumb"{% if raca.image_url %} style="background-image: url('{{ raca.image_url }}')"{% endif %}></div>
         </div>
         <div class="race-hero-body">
           <h1 data-race-title class="race-hero-title font-rpg">{{ raca.nome }}</h1>
@@ -37,6 +37,7 @@
       <form class="wiki-inline-editor" data-race-form data-race-id="{{ raca.id_raca }}">
         <label>Nome <input name="nome" value="{{ raca.nome }}"></label>
         <label>Tagline <input name="tagline" value="{{ raca.tagline|default:'' }}"></label>
+        <label>Imagem <input name="imagem_url" type="url" value="{{ raca.imagem_url|default:'' }}"></label>
         <label>Visão Geral <textarea name="lore_presentation">{{ raca.lore_presentation|default:'' }}</textarea></label>
         <label>Roleplay <textarea name="lore_roleplay">{{ raca.lore_roleplay|default:'' }}</textarea></label>
         <label>Sociedade <textarea name="lore_society">{{ raca.lore_society|default:'' }}</textarea></label>
@@ -404,8 +405,19 @@
 {% endif %}
 {% else %}
 <section class="rounded border border-[var(--stroke)] bg-[var(--bg1)] p-5 text-center" id="ajax-content-inner">
-  <h2 class="font-rpg text-2xl font-bold text-[var(--text)]">Nenhuma raça selecionada</h2>
-  <p class="mt-2 text-sm text-[var(--muted)]">Use a busca ou a lista lateral para abrir uma raça.</p>
+  <h1 class="font-rpg text-2xl font-bold text-[var(--text)]">Povos de Cinéria</h1>
+  <p class="mt-2 text-sm text-[var(--muted)]">Escolha uma raça para conhecer sua história, linhagens, traços e talentos raciais.</p>
+  <div class="mt-4 grid gap-3 text-left sm:grid-cols-2">
+    {% for item in all_racas %}
+    <a href="{% url 'raca_detail' slug=item.slug %}" class="overflow-hidden rounded border border-[var(--stroke)] bg-[var(--bg0)] transition-colors hover:border-[var(--ember)]">
+      {% if item.imagem_url %}<div class="aspect-[16/7] bg-cover bg-center" style="background-image:url('{{ item.imagem_url }}')"></div>{% endif %}
+      <div class="p-3">
+        <h3 class="font-rpg text-lg font-bold text-[var(--flame)]">{{ item.nome }}</h3>
+        <p class="mt-1 text-[12px] leading-relaxed text-[var(--muted)]">{{ item.tagline|cut:'*'|cut:'"' }}</p>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
 </section>
 {% endif %}
 

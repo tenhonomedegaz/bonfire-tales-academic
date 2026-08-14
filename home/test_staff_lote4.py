@@ -195,7 +195,7 @@ class DescansoBotaoCSSTests(TestCase):
 class TrocaMaestriaDescansoTests(_CriadorBase):
     def _personagem_com_maestria(self):
         u = self._novo_usuario('troca-maestria-descanso')
-        classe = TbClasse.objects.get(pk=13)
+        classe = TbClasse.objects.get(slug='guerreiro')
         p = TbPersonagem.objects.create(
             dono=u, nome='Mestre de Armas', nivel=1,
             forca=15, destreza=14, constituicao=14,

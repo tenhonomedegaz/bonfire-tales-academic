@@ -9,6 +9,16 @@
         var form = document.getElementById('criador-form');
         if (!dataEl || !form) return;
         var CAT = JSON.parse(dataEl.textContent);
+        var formMode = form.getAttribute('data-mode') === 'pathbuilder' ? 'pathbuilder' : 'creator';
+        var isPathbuilder = formMode === 'pathbuilder';
+        var submitUrl = form.getAttribute('action');
+        var previewUrl = form.getAttribute('data-preview-url');
+        var submitLabel = form.getAttribute('data-submit-label') || (isPathbuilder ? 'Abrir laboratório' : 'Criar Personagem');
+        var isLoggedIn = form.getAttribute('data-authenticated') === 'true';
+        function csrfToken() {
+            var input = form.querySelector('input[name="csrfmiddlewaretoken"]');
+            return input ? input.value : '';
+        }
 
         var SIG = [['FOR', 'Força'], ['DES', 'Destreza'], ['CON', 'Constituição'],
                    ['INT', 'Inteligência'], ['SAB', 'Sabedoria'], ['CAR', 'Carisma']];
@@ -176,8 +186,6 @@
         function updateBackgroundCopy() {
             var g = currentBgGrants();
             // (os rótulos +2/+1 do ASI agora são atualizados por syncAsi, conforme a forma escolhida)
-            var equipGold = document.querySelector('[data-equip-gold-alt]');
-            if (equipGold) equipGold.textContent = toInt(g.equip_gold_alt, 0);
             var resumo = el('cf-antecedente-resumo');
             if (resumo) {
                 resumo.textContent = 'Concede ' + toInt(g.po_inicial, 0) + ' PO, '
@@ -263,6 +271,67 @@
         var skillsWrap = el('cf-classe-skills');
         var skillCounter = document.querySelector('[data-skill-counter]');
         var equipTexto = el('cf-equip-texto');
+        var equipChoicesWrap = el('cf-equip-choices');
+        var equipRadios = Array.prototype.slice.call(form.querySelectorAll('input[name=equip_classe]'));
+
+        function equipMode() {
+            var selected = form.querySelector('input[name=equip_classe]:checked');
+            return selected && selected.value === 'ouro' ? 'ouro' : 'inicial';
+        }
+        function equipmentChoiceValues() {
+            var values = {};
+            if (!equipChoicesWrap) return values;
+            Array.prototype.forEach.call(equipChoicesWrap.querySelectorAll('[data-equip-choice]'), function (select) {
+                values[select.dataset.equipChoice] = Array.prototype.slice.call(select.selectedOptions)
+                    .map(function (option) { return option.value; }).filter(Boolean);
+            });
+            return values;
+        }
+        function syncEquipmentChoiceVisibility() {
+            if (!equipChoicesWrap) return;
+            var hasChoices = !!equipChoicesWrap.querySelector('[data-equip-choice]');
+            equipChoicesWrap.hidden = equipMode() !== 'inicial' || !hasChoices;
+        }
+        equipRadios.forEach(function (radio) {
+            radio.addEventListener('change', syncEquipmentChoiceVisibility);
+        });
+
+        function renderStartingEquipment(c) {
+            var schema = c && c.equipamento_inicial;
+            equipChoicesWrap.innerHTML = '';
+            var gold = document.querySelector('[data-equip-gold-alt]');
+            if (!schema || !schema.valid) {
+                equipTexto.textContent = 'Configuração indisponível.';
+                if (gold) gold.textContent = '0';
+                syncEquipmentChoiceVisibility();
+                return;
+            }
+            var parts = (schema.items || []).map(function (item) {
+                return (Number(item.qty || 1) > 1 ? item.qty + 'x ' : '') + item.nome;
+            });
+            if (schema.currency_po) parts.push(schema.currency_po + ' PO');
+            equipTexto.textContent = parts.join(', ') || 'Itens escolhidos abaixo.';
+            if (gold) gold.textContent = schema.alternative_po || 0;
+
+            (schema.choices || []).forEach(function (group) {
+                var field = document.createElement('label');
+                field.className = 'block';
+                var title = document.createElement('span');
+                title.className = 'mb-1 block text-xs font-semibold text-[var(--text)]';
+                title.textContent = group.label + (group.count > 1 ? ' (' + group.count + ')' : '');
+                var select = document.createElement('select');
+                select.dataset.equipChoice = group.key;
+                select.multiple = Number(group.count || 1) > 1;
+                if (select.multiple) select.size = Math.min(6, Math.max(3, group.options.length));
+                select.className = 'w-full rounded border border-[var(--stroke)] bg-[var(--bg1)] px-3 py-2 text-sm text-[var(--text)] focus:border-[var(--ember)] focus:outline-none';
+                if (!select.multiple) select.appendChild(opt('', '— Selecione —'));
+                (group.options || []).forEach(function (option) {
+                    select.appendChild(opt(option.value, option.label));
+                });
+                field.appendChild(title); field.appendChild(select); equipChoicesWrap.appendChild(field);
+            });
+            syncEquipmentChoiceVisibility();
+        }
         // ---- Escolhas de classe DIRIGIDAS POR TAGS pick:* (Maestria de Arma, Estilo de Luta,
         // e qualquer pick:opcao:<tipo>:N do N1). Renderizadas GENERICAMENTE a partir de
         // c.pick_groups (resolvedor home.picks) — um bloco por grupo. Substitui os caminhos
@@ -404,9 +473,11 @@
             skillsWrap.innerHTML = '';
             renderPickGroups(c);
             refreshExpertise();
-            renderClasseProfChoices(c);
             renderMagias(c);
-            if (!c) { skillCounter.textContent = ''; equipTexto.textContent = ''; return; }
+            if (!c) {
+                skillCounter.textContent = ''; equipTexto.textContent = '';
+                equipChoicesWrap.innerHTML = ''; syncEquipmentChoiceVisibility(); return;
+            }
             var lista = (c.pericias_lista && c.pericias_lista.length) ? c.pericias_lista
                         : CAT.pericias.map(function (p) { return p.slug; });
             lista.forEach(function (sl) {
@@ -414,7 +485,7 @@
                 skillsWrap.appendChild(checkbox(sl, info ? info.nome : sl));
             });
             applySkillRules();
-            equipTexto.textContent = c.equipamento ? c.equipamento : '(sem texto cadastrado)';
+            renderStartingEquipment(c);
             renderArmadurasProf(c);
         }
         // Preview (informativo) das proficiências de armadura que a classe concede.
@@ -432,9 +503,6 @@
         // ---- Especialização/expertise (Ladino) — (Estilo de Luta migrou p/ pick-groups genérico)
         var expertiseWrap = el('cf-expertise-wrap'), expertiseBox = el('cf-expertise');
         var expertiseCounter = document.querySelector('[data-expertise-counter]');
-        var classeProfWrap = el('cf-classe-prof-wrap'), classeProfBox = el('cf-classe-prof');
-        var classeProfGroups = [];
-
         function refreshExpertise() {
             var c = classeBySlug[classeSel.value];
             if (!c || !c.expertise_n) { expertiseWrap.hidden = true; expertiseBox.innerHTML = ''; return; }
@@ -450,68 +518,6 @@
                 expertiseBox.appendChild(lab);
             });
             enforceLimit(expertiseBox, c.expertise_n, expertiseCounter);
-        }
-
-        function classeProfOptions(tipo) {
-            var ferramentas = CAT.ferramentas || [];
-            if (tipo === 'instrumento') {
-                ferramentas = ferramentas.filter(function (f) { return f.subcategoria === 'instrumento'; });
-            } else if (tipo === 'ferramenta_artesao') {
-                ferramentas = ferramentas.filter(function (f) { return f.subcategoria === 'ferramenta_artesao'; });
-            } else if (tipo === 'ferramenta_artesao_ou_instrumento') {
-                ferramentas = ferramentas.filter(function (f) {
-                    return f.subcategoria === 'ferramenta_artesao' || f.subcategoria === 'instrumento';
-                });
-            }
-            return ferramentas.map(function (f) { return { value: f.nome, label: f.nome, desc: f.desc }; });
-        }
-
-        function classeProfLabel(tipo) {
-            return {
-                instrumento: 'instrumento(s)',
-                ferramenta: 'ferramenta(s)',
-                ferramenta_artesao: 'ferramenta(s) de artesão',
-                ferramenta_ou_instrumento: 'ferramenta(s) ou instrumento(s)',
-                ferramenta_artesao_ou_instrumento: 'ferramenta(s) de artesão ou instrumento(s)'
-            }[tipo] || 'proficiência(s)';
-        }
-
-        function renderClasseProfChoices(c) {
-            classeProfBox.innerHTML = '';
-            classeProfGroups = [];
-            var picks = (c && c.classe_prof_picks) || [];
-            if (!picks.length) { classeProfWrap.hidden = true; return; }
-            classeProfWrap.hidden = false;
-            picks.forEach(function (pick) {
-                var grp = document.createElement('div');
-                var head = document.createElement('div');
-                head.className = 'mb-1 text-xs font-semibold uppercase tracking-wider text-[var(--muted)]';
-                head.textContent = 'Escolha ' + pick.n + ' ' + classeProfLabel(pick.tipo) + ' ';
-                if (pick.fonte) {
-                    var f = document.createElement('span');
-                    f.className = 'font-normal normal-case text-[var(--muted)]';
-                    f.textContent = '— ' + pick.fonte + ' ';
-                    head.appendChild(f);
-                }
-                var counter = document.createElement('span');
-                head.appendChild(counter);
-                grp.appendChild(head);
-                var grid = document.createElement('div');
-                grid.className = 'grid max-h-64 grid-cols-1 gap-1 overflow-y-auto rounded border border-[var(--stroke)] bg-[var(--bg0)] p-2 sm:grid-cols-2';
-                classeProfOptions(pick.tipo).forEach(function (o) {
-                    grid.appendChild(o.desc ? checkboxDesc(o.value, o.label, o.desc) : checkbox(o.value, o.label));
-                });
-                grp.appendChild(grid);
-                classeProfBox.appendChild(grp);
-                enforceLimit(grid, pick.n, counter);
-                classeProfGroups.push({ tipo: pick.tipo, n: pick.n, grid: grid });
-            });
-        }
-
-        function classeProfChoicesSel() {
-            return classeProfGroups.map(function (g) {
-                return { tipo: g.tipo, valores: checkedVals(g.grid) };
-            });
         }
 
         // ---- Magias (truques + 1º nível) — contagem reativa ao mod de conjuração
@@ -1141,10 +1147,18 @@
                 });
                 if (c && c.expertise_n && checkedVals(expertiseBox).length !== c.expertise_n)
                     e.push('Escolha ' + c.expertise_n + ' perícia(s) para Especialização.');
-                classeProfGroups.forEach(function (g) {
-                    if (checkedVals(g.grid).length !== g.n)
-                        e.push('Escolha ' + g.n + ' ' + classeProfLabel(g.tipo) + ' de classe.');
-                });
+                if (c && equipMode() === 'inicial') {
+                    var schema = c.equipamento_inicial;
+                    if (!schema || !schema.valid) {
+                        e.push('O equipamento inicial desta classe ainda não está configurado.');
+                    } else {
+                        var selectedEquipment = equipmentChoiceValues();
+                        (schema.choices || []).forEach(function (group) {
+                            if ((selectedEquipment[group.key] || []).length !== Number(group.count || 1))
+                                e.push(group.label + ': escolha ' + group.count + ' opção(ões).');
+                        });
+                    }
+                }
                 if (c && c.conjuracao) {
                     if (c.conjuracao.truques_n && checkedVals(truquesBox).length !== c.conjuracao.truques_n)
                         e.push('Escolha ' + c.conjuracao.truques_n + ' truque(s).');
@@ -1228,7 +1242,9 @@
             var totalPend = clientPending().length;
             if (current === LAST) {
                 navHint.textContent = totalPend ? ('faltam ' + totalPend + ' item(ns) para criar') : 'tudo pronto — pode criar!';
-                submitBtn.textContent = totalPend ? ('Criar (faltam ' + totalPend + ')') : 'Criar Personagem';
+                submitBtn.textContent = totalPend
+                    ? ((isPathbuilder ? 'Abrir' : 'Criar') + ' (faltam ' + totalPend + ')')
+                    : submitLabel;
                 submitBtn.disabled = totalPend > 0;
                 submitBtn.title = totalPend ? 'Conclua as pendências listadas antes de criar a ficha.' : '';
             } else {
@@ -1252,17 +1268,34 @@
             updateStepper();
             if (!noscroll) { try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) { window.scrollTo(0, 0); } }
         }
+        function tryGoTo(i) {
+            var target = Math.max(0, Math.min(LAST, i));
+            if (target <= current) { goTo(target); return true; }
+
+            // Avançar pelos números obedece exatamente às mesmas guardas do botão.
+            // Valida desde o início porque uma escolha anterior pode ter sido
+            // invalidada ao trocar raça, classe ou antecedente.
+            for (var idx = 0; idx < target; idx++) {
+                touched[idx] = true;
+                var errs = stepErrors(idx);
+                if (errs.length) {
+                    goTo(idx);
+                    showStepErr(idx, errs);
+                    updateStepper();
+                    return false;
+                }
+                showStepErr(idx, []);
+            }
+            goTo(target);
+            return true;
+        }
         tabs.forEach(function (t) {
-            function jump() { goTo(parseInt(t.getAttribute('data-step-tab'), 10)); }
+            function jump() { tryGoTo(parseInt(t.getAttribute('data-step-tab'), 10)); }
             t.addEventListener('click', jump);
             t.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); jump(); } });
         });
         nextBtn.addEventListener('click', function () {
-            var e = stepErrors(current);
-            touched[current] = true;
-            if (e.length) { showStepErr(current, e); updateStepper(); return; }
-            showStepErr(current, []);
-            goTo(current + 1);
+            tryGoTo(current + 1);
         });
         prevBtn.addEventListener('click', function () { goTo(current - 1); });
 
@@ -1293,14 +1326,14 @@
             var pend = clientPending();
             if (pend.length) {
                 h += '<div class="cf-step-err" style="display:block;margin-top:.7rem"><strong>Você ainda tem pendências ' +
-                    (window.CRIAR_PATHBUILDER ? 'antes de simular:' : 'antes de criar a ficha:') +
+                    (isPathbuilder ? 'antes de simular:' : 'antes de criar a ficha:') +
                     '</strong><ul>' +
                     pend.map(function (item) {
                         return '<li><b>' + escHtml(item.label) + ':</b> ' + escHtml(item.message) + '</li>';
                     }).join('') + '</ul></div>';
             } else {
                 h += '<p class="mt-2 text-xs text-[var(--spark)]">' +
-                    (window.CRIAR_PATHBUILDER
+                    (isPathbuilder
                         ? 'Tudo certo — esta base pode ser levada ao laboratório.'
                         : 'Tudo certo — a ficha bate com a prévia ao lado.') + '</p>';
             }
@@ -1387,14 +1420,20 @@
                 return;
             }
             statusEl.textContent = 'atualizando…'; statusEl.classList.add('is-live');
-            fetch(window.CRIAR_PREVIEW_URL, {
+            fetch(previewUrl, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': window.CSRF_TOKEN },
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() },
                 body: JSON.stringify(payload())
             }).then(function (r) { return r.json(); }).then(function (j) {
                 if (seq !== previewSeq) return; // resposta obsoleta
                 statusEl.classList.remove('is-live');
                 if (!j || !j.ready || !j.preview) {
+                    pvEl.textContent = '—';
+                    caEl.textContent = '—';
+                    pbEl.textContent = '+2';
+                    renderAttrs(localAttrs());
+                    renderTalentoMagias([]);
                     statusEl.textContent = 'prévia pendente';
                     var previewErrors = (j && Array.isArray(j.erros)) ? j.erros : [];
                     extraEl.innerHTML = '<p class="cf-preview-placeholder">' + escHtml(
@@ -1412,6 +1451,11 @@
                 renderTalentoMagias(j.pending_spell_choices || []);
             }).catch(function () {
                 if (seq !== previewSeq) return;
+                pvEl.textContent = '—';
+                caEl.textContent = '—';
+                pbEl.textContent = '+2';
+                renderAttrs(localAttrs());
+                renderTalentoMagias([]);
                 statusEl.classList.remove('is-live'); statusEl.textContent = 'prévia indisponível';
                 extraEl.innerHTML = '<p class="cf-preview-placeholder">Não foi possível atualizar a prévia. Tente novamente.</p>';
             });
@@ -1457,9 +1501,9 @@
                 classe: classeSel.value,
                 pericias_classe: checkedVals(skillsWrap),
                 equip_classe: equip === 'inicial' ? 'inicial' : 'ouro',
+                equip_choices: equipmentChoiceValues(),
                 picks: pickGroupsSel(),
                 expertise: expertiseWrap.hidden ? [] : checkedVals(expertiseBox),
-                escolhas_classe_prof: classeProfChoicesSel(),
                 truques: magiasWrap.hidden ? [] : checkedVals(truquesBox),
                 magias: magiasWrap.hidden ? [] : checkedVals(magiasBox),
                 antecedente: antSel.value,
@@ -1487,20 +1531,19 @@
                 if (bad >= 0 && bad !== current) goTo(bad); else { renderReview(); updateStepper(); }
                 return;
             }
-            if (!window.CRIAR_LOGADO) { showErros(['Você precisa estar logado para salvar. Faça login e tente novamente.']); return; }
+            if (!isLoggedIn) { showErros(['Você precisa estar logado para salvar. Faça login e tente novamente.']); return; }
             showErros([]);
             var submittedPayload = payload();
-            var csrfInput = form.querySelector('input[name="csrfmiddlewaretoken"]');
             submitBtn.disabled = true;
-            submitBtn.textContent = window.CRIAR_PATHBUILDER ? 'Abrindo…' : 'Salvando…';
-            fetch(window.CRIAR_URL, {
+            submitBtn.textContent = isPathbuilder ? 'Abrindo…' : 'Salvando…';
+            fetch(submitUrl, {
                 method: 'POST',
                 credentials: 'same-origin',
                 headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
                     'X-Requested-With': 'fetch',
-                    'X-CSRFToken': csrfInput ? csrfInput.value : window.CSRF_TOKEN
+                    'X-CSRFToken': csrfToken()
                 },
                 body: JSON.stringify(submittedPayload)
             }).then(function (r) {
@@ -1520,7 +1563,13 @@
             })
               .then(function (res) {
                   if (res.ok && res.j.ok) {
-                      if (window.CRIAR_PATHBUILDER) {
+                      if (res.j.mode !== formMode) {
+                          showErros(['A resposta do servidor não corresponde a esta página. Recarregue e tente novamente.']);
+                          submitBtn.disabled = false;
+                          submitBtn.textContent = submitLabel;
+                          return;
+                      }
+                      if (isPathbuilder) {
                           sessionStorage.setItem('bonfire:pathbuilder:base', JSON.stringify(submittedPayload));
                           sessionStorage.removeItem('bonfire:pathbuilder:builds');
                       }
@@ -1529,11 +1578,11 @@
                   }
                   showErros((res.j && res.j.erros) || ['Erro ao salvar a ficha.']);
                   submitBtn.disabled = false;
-                  submitBtn.textContent = window.CRIAR_SUBMIT_LABEL || 'Criar Personagem';
+                  submitBtn.textContent = submitLabel;
               }).catch(function () {
                   showErros(['Não foi possível alcançar o servidor. Verifique a conexão e tente novamente.']);
                   submitBtn.disabled = false;
-                  submitBtn.textContent = window.CRIAR_SUBMIT_LABEL || 'Criar Personagem';
+                  submitBtn.textContent = submitLabel;
               });
         });
     }

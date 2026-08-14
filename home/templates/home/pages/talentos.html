@@ -102,16 +102,24 @@
         <button type="button" class="talent-mobile-backdrop" id="talentMobileBackdrop" aria-label="Fechar lista"></button>
 
         <aside class="talent-list-panel xl:sticky xl:top-24 h-full max-h-[calc(100vh-140px)] overflow-y-auto custom-scrollbar flex flex-col gap-1.5 pr-2" id="talentosList">
-
+            {% for talento in json_talentos %}
+            <a href="#talento-{{ talento.slug }}" class="block rounded border border-transparent p-2.5 transition-colors hover:border-bonfire-stroke hover:bg-bonfire-bg1">
+                <h3 class="text-[13px] font-bold text-bonfire-muted">{{ talento.nome }}</h3>
+                <p class="mt-0.5 text-xs uppercase tracking-wider text-bonfire-muted">{{ talento.etiqueta }}</p>
+            </a>
+            {% endfor %}
         </aside>
 
-        <main class="talent-detail-panel hidden mt-4 md:mt-0 md:pl-4" id="talentoDetail">
-            <div class="flex items-center justify-center h-full text-bonfire-muted flex-col gap-4">
-                <svg class="w-16 h-16 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
-                </svg>
-                <p>Selecione um talento para ver os detalhes.</p>
-            </div>
+        <main class="talent-detail-panel mt-4 md:mt-0 md:pl-4" id="talentoDetail">
+            {% with talento=json_talentos.0 %}
+            {% if talento %}
+            <h2 id="talento-{{ talento.slug }}" class="mb-2.5 font-cinzel text-xl font-bold uppercase text-bonfire-text">{{ talento.nome }}</h2>
+            <p class="mb-3 text-xs uppercase tracking-wider text-bonfire-muted">{{ talento.tipo }} · {{ talento.etiqueta }}</p>
+            <div class="bonfire-markdown text-[13px] leading-[1.45] text-bonfire-muted">{{ talento.descricao|linebreaks }}</div>
+            {% else %}
+            <p class="text-bonfire-muted">Nenhum talento cadastrado.</p>
+            {% endif %}
+            {% endwith %}
         </main>
 
 {{ json_talentos|json_script:'talentos-data' }}

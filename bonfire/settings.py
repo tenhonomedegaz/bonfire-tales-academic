@@ -110,6 +110,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'home.context_processors.user_profile',
+                'home.context_processors.site_presentation',
             ],
         },
     },
@@ -240,6 +241,18 @@ DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", EMAIL_HOST_USER or "no
 EMAIL_CONFIGURADO = bool(EMAIL_HOST_USER and EMAIL_HOST_PASSWORD)
 EMAIL_BACKEND = ("django.core.mail.backends.smtp.EmailBackend" if EMAIL_CONFIGURADO
                  else "django.core.mail.backends.console.EmailBackend")
+
+# Apresentação pública e publicidade. Anúncios são habilitados em duas camadas:
+# globalmente por ambiente e explicitamente por view editorial. Assim ferramentas,
+# login, erros e páginas vazias nunca viram inventário publicitário por acidente.
+SITE_ORIGIN = os.environ.get("SITE_ORIGIN", "https://bonfiretales.com.br").rstrip("/")
+ADSENSE_PUBLISHER_ID = os.environ.get("ADSENSE_PUBLISHER_ID", "ca-pub-1634793837919535").strip()
+# Em produção o código de Auto Ads acompanha as páginas editoriais que fazem
+# opt-in. Em desenvolvimento ele fica desligado; a env continua permitindo
+# desativação imediata sem deploy.
+ADSENSE_ENABLED = _env_bool("ADSENSE_ENABLED", not DEBUG) and bool(ADSENSE_PUBLISHER_ID)
+ADSENSE_SIDEBAR_SLOT = os.environ.get("ADSENSE_SIDEBAR_SLOT", "").strip()
+ADSENSE_HORIZONTAL_SLOT = os.environ.get("ADSENSE_HORIZONTAL_SLOT", "").strip()
 
 BOT_POSTGRES_TABLES = {
     'quests': os.environ.get('BOT_POSTGRES_QUESTS_TABLE', 'rpg_quests'),

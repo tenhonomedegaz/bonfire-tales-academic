@@ -5,8 +5,18 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>{% block title %}{% if page_title %}{{ page_title }} · {% endif %}Bonfire Tales RPG{% endblock %}</title>
-  <meta name="description" content="Mundo vivo, missões e RPG via Discord." />
-  <meta name="google-adsense-account" content="ca-pub-1634793837919535">
+  <meta name="description" content="{% block meta_description %}{{ meta_description|default:'Bonfire Tales: RPG contínuo de fantasia sombria, fichas digitais, missões e atlas interativo de Cinéria.' }}{% endblock %}" />
+  <meta name="robots" content="{% block meta_robots %}{% if noindex or default_noindex %}noindex, nofollow{% else %}index, follow, max-image-preview:large{% endif %}{% endblock %}" />
+  <link rel="canonical" href="{% if canonical_path %}{{ site_origin }}{{ canonical_path }}{% else %}{{ site_origin }}{{ request.path }}{% endif %}" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Bonfire Tales RPG" />
+  <meta property="og:title" content="{% if page_title %}{{ page_title }} · {% endif %}Bonfire Tales RPG" />
+  <meta property="og:description" content="{{ meta_description|default:'RPG contínuo de fantasia sombria, fichas digitais, missões e atlas interativo de Cinéria.' }}" />
+  <meta property="og:url" content="{% if canonical_path %}{{ site_origin }}{{ canonical_path }}{% else %}{{ site_origin }}{{ request.path }}{% endif %}" />
+  {% if adsense_publisher_id %}<meta name="google-adsense-account" content="{{ adsense_publisher_id }}">{% endif %}
+  {% if adsense_enabled and ads_enabled %}
+  <script async crossorigin="anonymous" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{ adsense_publisher_id }}"></script>
+  {% endif %}
   <link rel="icon" type="image/png" href="{% static 'assets/logo.png' %}" />
   <link rel="shortcut icon" type="image/png" href="{% static 'assets/logo.png' %}" />
 
@@ -74,40 +84,44 @@
       
       <div class="flex-1 flex flex-row w-full justify-center">
           {% block ad_containers %}
-          
+          {% if adsense_enabled and ads_enabled and adsense_sidebar_slot %}
           <aside class="support-sidebar-left hidden min-[1340px]:flex flex-col gap-2.5 w-[160px] 2xl:w-[250px] flex-shrink-0 pt-4 sticky top-[57px] h-[calc(100vh-57px)] overflow-hidden z-30">
               <div class="h-full w-full">
                   {% include 'home/components/sidebar_support.html' %}
               </div>
           </aside>
+          {% endif %}
           {% endblock %}
 
           <main class="{% block main_class %}flex-1 w-full max-w-5xl mx-auto px-3 md:px-5 py-4{% endblock %} relative z-10 min-w-0">
               {% block mobile_ad_top %}
-              
+              {% if adsense_enabled and ads_enabled and adsense_horizontal_slot %}
               <div class="block min-[1340px]:hidden mb-4 w-full">
                   {% include 'home/components/horizontal_support.html' %}
               </div>
+              {% endif %}
               {% endblock %}
 
               {% block content %}
               {% endblock %}
 
               {% block mobile_ad %}
-              
+              {% if adsense_enabled and ads_enabled and adsense_horizontal_slot %}
               <div class="block mt-8 mb-2.5 w-full px-3 md:px-0">
                   {% include 'home/components/horizontal_support.html' %}
               </div>
+              {% endif %}
               {% endblock %}
           </main>
 
           {% block ad_containers_right %}
-          
+          {% if adsense_enabled and ads_enabled and adsense_sidebar_slot %}
           <aside class="support-sidebar-right hidden min-[1340px]:flex flex-col gap-2.5 w-[160px] 2xl:w-[250px] flex-shrink-0 pt-4 sticky top-[57px] h-[calc(100vh-57px)] overflow-hidden z-30">
               <div class="h-full w-full">
                   {% include 'home/components/sidebar_support.html' %}
               </div>
           </aside>
+          {% endif %}
           {% endblock %}
       </div>
 

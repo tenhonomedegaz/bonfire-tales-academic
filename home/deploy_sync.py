@@ -8,17 +8,19 @@ PRESERVAM o PK da produção; as demais são substituídas inteiras com remapeam
 Ver docs/deploy-sync-conteudo.md.
 """
 from collections import defaultdict
+import hashlib
 import json
 import os
 
 from django.apps import apps
 from django.core import serializers
 from django.db import connection, models, transaction
+from django.db.models import Q
 
 # Referenciadas por FK de usuário → casa por slug, PRESERVA PK. (ordem: pais antes)
 UPSERT_POR_SLUG = [
     "TbRaca", "TbEssencia", "TbAntecedente", "TbClasse", "TbOpcaojogo",
-    "TbMagia", "TbTalento", "TbItemMagico", "TbLinhagem", "TbSubclasse",
+    "TbMagia", "TbTalento", "TbItemMundano", "TbItemMagico", "TbLinhagem", "TbSubclasse",
     # Catálogo de cosméticos (F1): referenciado por TbUsuarioCosmetico (inventário
     # do usuário) → casa por slug e preserva PK pra não quebrar o inventário.
     "TbCosmetico",
@@ -29,19 +31,28 @@ UPSERT_POR_SLUG = [
 # Não referenciadas por FK de usuário → substitui inteiras (delete + reinsert).
 SUBSTITUI = [
     "TbClassehabilidade", "TbRecursoclasse", "TbAcessoopcao", "TbTracoracial",
-    "TbCondicao", "TbIdioma", "TbRegra", "TbRecompensaMestre", "TbItemMundano",
-    "TbRegiao", "TbTerritorio", "TbMapMarker", "TbBestiario", "TbArmadilha",
-    # Desenhos do mapa (WP1): mesma natureza do TbMapMarker — dado de mundo
-    # editado pela staff direto em produção, sem FK de usuário.
-    "TbMapDesenho",
+    "TbCondicao", "TbIdioma", "TbRegra", "TbRecompensaMestre",
+    "TbBestiario", "TbArmadilha",
+]
+OFFICIAL_REPLACE_MODELS = ["TbBestiario", "TbArmadilha"]
+
+# Mundo/wiki são autorais e editados diretamente em produção. Eles nunca entram
+# no merge mecânico, mesmo se um fixture antigo os trouxer por engano.
+PRODUCTION_PRESERVED_MODELS = [
+    "TbMapLayer", "TbRegiao", "TbTerritorio", "TbOrganizacao",
+    "TbMapMarker", "TbMapDesenho",
 ]
 MEMORY_MODELS = [
     "TbPersonagem", "TbPersonagemAtributoBonus", "TbPersonagemClasse",
     "TbPersonagemEscolha", "TbPersonagemItem", "TbPersonagemMagia",
     "TbPersonagemPericia", "TbPersonagemPersonalidade", "TbPersonagemProficiencia",
-    "TbPersonagemRecurso", "TbPersonagemTalento", "TbTransacao", "TbTransacaoMestre",
+    "TbPersonagemRecurso", "TbPersonagemTalento", "TbPersonagemAventura",
+    "TbTransacao", "TbTransacaoMestre",
     "TbAventuraMestre", "TbAnuncioItemMagico", "TbCronica", "TbJornal",
     "TbReiDaColina", "UserProfile",
+    # Textos institucionais/home são editados no admin de cada ambiente. O seed
+    # da migration cria a base, mas deploy de catálogo não pisa em ajustes editoriais.
+    "TbConteudoEstatico",
     # Inventário de cosméticos (F1): dado de USUÁRIO — nunca sincroniza, e protege
     # cosméticos referenciados contra deleção por tombstone (_memory_references).
     "TbUsuarioCosmetico",
@@ -53,6 +64,7 @@ MEMORY_MODELS = [
     "TbPerfilCurtida", "TbPerfilSeguidor",
 ]
 CONTENT_MODELS = UPSERT_POR_SLUG + SUBSTITUI
+RESTORE_GUARDED_MODELS = CONTENT_MODELS + PRODUCTION_PRESERVED_MODELS
 DELETIONS_PATH = os.path.join("home", "content_deletions.json")
 
 
@@ -71,6 +83,36 @@ def _label(model):
 
 def contagem(nomes):
     return {nm: _m(nm).objects.count() for nm in nomes}
+
+
+def estado_modelos(nomes):
+    """Retorna contagem e assinatura determinística de cada tabela."""
+    estado = {}
+    for nome in nomes:
+        M = _m(nome)
+        queryset = M.objects.all().order_by(M._meta.pk.name)
+        payload = serializers.serialize("json", queryset).encode("utf-8")
+        estado[nome] = {
+            "count": queryset.count(),
+            "sha256": hashlib.sha256(payload).hexdigest(),
+        }
+    return estado
+
+
+def estado_conteudo_comunitario():
+    """Assina só bestiário/armadilhas criados na produção pela comunidade."""
+    estado = {}
+    for nome in OFFICIAL_REPLACE_MODELS:
+        M = _m(nome)
+        queryset = M.objects.filter(
+            Q(comunidade=True) | Q(autor__isnull=False)
+        ).order_by(M._meta.pk.name)
+        payload = serializers.serialize("json", queryset).encode("utf-8")
+        estado[nome] = {
+            "count": queryset.count(),
+            "sha256": hashlib.sha256(payload).hexdigest(),
+        }
+    return estado
 
 
 def _load_content_deletions():
@@ -117,10 +159,13 @@ def sincronizar_conteudo(fixture_text):
             if mp is not None and val in mp:
                 setattr(obj, attname, mp[val])
 
-    mem_antes = contagem(MEMORY_MODELS)
     rel = {"pass1": [], "pass2": [], "pass2_skipped": [], "deletions": []}
 
     with transaction.atomic():
+        mem_estado_antes = estado_modelos(MEMORY_MODELS)
+        prod_estado_antes = estado_modelos(PRODUCTION_PRESERVED_MODELS)
+        comunidade_estado_antes = estado_conteudo_comunitario()
+
         # PASSO 1: upsert por slug (preserva PK da produção)
         for nome in UPSERT_POR_SLUG:
             M = _m(nome)
@@ -150,10 +195,46 @@ def sincronizar_conteudo(fixture_text):
             if _label(M) not in por_modelo:
                 rel["pass2_skipped"].append((nome, "modelo ausente no fixture; tabela preservada"))
                 continue
-            M.objects.all().delete()
-            for obj in novos:
-                remapear_fks(obj)
-                obj.save(force_insert=True)
+            if nome in OFFICIAL_REPLACE_MODELS:
+                invalidos = [
+                    obj for obj in novos
+                    if obj.comunidade or obj.autor_id is not None
+                ]
+                if invalidos:
+                    raise ValueError(
+                        "%s contém %d registro(s) comunitário(s); o merge aceita "
+                        "apenas conteúdo oficial desse modelo." % (nome, len(invalidos))
+                    )
+                slugs = [obj.slug for obj in novos]
+                M.objects.filter(
+                    comunidade=False, autor__isnull=True,
+                ).exclude(slug__in=slugs).delete()
+
+                campos = [
+                    field.attname for field in M._meta.fields
+                    if not field.primary_key
+                ]
+                for obj in novos:
+                    remapear_fks(obj)
+                    existente = M.objects.filter(slug=obj.slug).first()
+                    if existente:
+                        if existente.comunidade or existente.autor_id is not None:
+                            raise ValueError(
+                                "%s oficial colide com slug comunitário da produção: %s"
+                                % (nome, obj.slug)
+                            )
+                        for campo in campos:
+                            setattr(existente, campo, getattr(obj, campo))
+                        existente.save()
+                    else:
+                        # O PK da dev pode colidir com um registro comunitário.
+                        obj.pk = None
+                        obj.save(force_insert=True)
+            else:
+                M.objects.all().delete()
+                for obj in novos:
+                    remapear_fks(obj)
+                    obj.save(force_insert=True)
             rel["pass2"].append((nome, len(novos)))
 
         # PASSO 2.5: deleções explícitas de conteúdo removido da dev.
@@ -198,10 +279,37 @@ def sincronizar_conteudo(fixture_text):
                 with connection.cursor() as cur:
                     cur.execute(sql)
 
-    mem_depois = contagem(MEMORY_MODELS)
-    rel["mem_antes"] = mem_antes
-    rel["mem_depois"] = mem_depois
-    rel["mem_ok"] = mem_antes == mem_depois
+        mem_estado_depois = estado_modelos(MEMORY_MODELS)
+        prod_estado_depois = estado_modelos(PRODUCTION_PRESERVED_MODELS)
+        comunidade_estado_depois = estado_conteudo_comunitario()
+        if mem_estado_antes != mem_estado_depois:
+            raise RuntimeError(
+                "Merge abortado: dados de usuário/personagem foram alterados."
+            )
+        if prod_estado_antes != prod_estado_depois:
+            raise RuntimeError(
+                "Merge abortado: dados de mapa/wiki da produção foram alterados."
+            )
+        if comunidade_estado_antes != comunidade_estado_depois:
+            raise RuntimeError(
+                "Merge abortado: bestiário/armadilhas da comunidade foram alterados."
+            )
+
+    rel["mem_antes"] = {
+        nome: data["count"] for nome, data in mem_estado_antes.items()
+    }
+    rel["mem_depois"] = {
+        nome: data["count"] for nome, data in mem_estado_depois.items()
+    }
+    rel["mem_estado_antes"] = mem_estado_antes
+    rel["mem_estado_depois"] = mem_estado_depois
+    rel["mem_ok"] = mem_estado_antes == mem_estado_depois
+    rel["prod_preservada_antes"] = prod_estado_antes
+    rel["prod_preservada_depois"] = prod_estado_depois
+    rel["prod_preservada_ok"] = prod_estado_antes == prod_estado_depois
+    rel["comunidade_antes"] = comunidade_estado_antes
+    rel["comunidade_depois"] = comunidade_estado_depois
+    rel["comunidade_ok"] = comunidade_estado_antes == comunidade_estado_depois
     return rel
 
 
@@ -224,9 +332,13 @@ def relatorio_texto(rel):
             if details:
                 linhas.append("    %s" % details)
     if rel["mem_ok"]:
-        linhas.append("MEMÓRIA INTACTA: %d tabelas de usuário/missão com a mesma contagem." % len(rel["mem_antes"]))
+        linhas.append("MEMÓRIA INTACTA: %d tabelas com contagem e conteúdo idênticos." % len(rel["mem_antes"]))
     else:
         mudou = {k: (rel["mem_antes"][k], rel["mem_depois"][k])
                  for k in rel["mem_antes"] if rel["mem_antes"][k] != rel["mem_depois"][k]}
         linhas.append("ATENÇÃO: memória mudou! %s" % mudou)
+    if rel.get("prod_preservada_ok"):
+        linhas.append("MAPA/WIKI INTACTOS: %d tabelas preservadas por assinatura." % len(rel["prod_preservada_antes"]))
+    if rel.get("comunidade_ok"):
+        linhas.append("CONTEÚDO COMUNITÁRIO INTACTO: bestiário e armadilhas preservados.")
     return "\n".join(linhas)

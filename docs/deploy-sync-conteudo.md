@@ -1,7 +1,7 @@
 # Deploy: sincronizar CONTEÚDO sem prejudicar usuários/missões
 
-Objetivo: levar o **catálogo do jogo** que editamos no banco de TRABALHO (SQLite de
-dev) para a **PRODUÇÃO** (PostgreSQL), **sem tocar** na "memória" da produção
+Objetivo: levar o **catálogo do jogo** que editamos no banco de trabalho para a
+**PRODUÇÃO** (PostgreSQL), **sem tocar** na "memória" da produção
 (usuários, personagens, missões, mercado, jornal/crônicas).
 
 ## Política de versionamento (2026-07-20): restores NÃO vão mais pro git
@@ -53,7 +53,8 @@ TbRecompensaMestre. → `manage.py dump_conteudo`.
 
 ### B) USUÁRIO / RUNTIME — NUNCA sobrescrever (a "memória")
 UserProfile; TbPersonagem + todas as TbPersonagem* (AtributoBonus, Classe, Escolha,
-Item, Magia, Pericia, Personalidade, Proficiencia, Recurso, Talento); TbTransacao,
+Item, Magia, Pericia, Personalidade, Proficiencia, Recurso, Talento e o ledger
+TbPersonagemAventura); TbTransacao,
 TbTransacaoMestre, TbAventuraMestre (missões); TbAnuncioItemMagico (mercado);
 TbCronica, TbJornal; TbReiDaColina; auth (User/Session). Não entram no fixture → ficam
 intactas.
@@ -62,19 +63,22 @@ intactas.
 Bot* são `managed=False` (tabelas `transactions`, `discord_subscribers`, etc.,
 COMPARTILHADAS com o bot). Nunca tocar via Django.
 
-### D) Decidido pelo PO (2026-06-26) — entram no conteúdo
-- **TbBestiario / TbArmadilha**: sincronizar **inteiros**. (Hoje os 28 bestiários são
-  todos oficiais — autor nulo — e Armadilhas está vazia, então não há conteúdo de
-  comunidade na produção a preservar. ⚠️ Se no futuro houver itens de comunidade na
-  prod, revisar para `--bestiario-oficial`, senão eles seriam sobrescritos.)
-- **TbRegiao / TbTerritorio / TbMapMarker**: sincronizar do dev (fonte de verdade = dev).
+### D) Política atual (2026-08-13) — conteúdo compartilhado e mundo
+- **TbBestiario / TbArmadilha**: sincronizar somente os registros oficiais
+  (`comunidade=False`, autor nulo), preservando por slug os IDs oficiais existentes.
+  Registros comunitários da produção nunca entram no fixture e são protegidos por
+  assinatura antes/depois do merge.
+- **TbMapLayer / TbRegiao / TbTerritorio / TbOrganizacao / TbMapMarker /
+  TbMapDesenho**: produção vence. São dados autorais editados pela staff e ficam fora
+  do merge mecânico.
 
-Ambos já estão em `CONTENT_MODELS` do `dump_conteudo` (24 modelos, ~4118 registros).
+## Aplicação recomendada
 
-## Deploy de UM COMANDO (recomendado)
+Há dois caminhos que usam o mesmo núcleo seguro por chave natural:
 
-O fixture vai **no git** (`home/fixtures/conteudo.json` + `conteudo_manifest.json`), então
-na produção basta, após `git pull`:
+1. **Upload manual:** no console do admin, ação **Merge de conteúdo (dev ->
+   produção)**. É o caminho dos arquivos `restore_consolidado_*.json`.
+2. **Fixture versionado:** depois do `git pull` e das migrations, executar:
 
 ```
 deploy_conteudo.bat
@@ -84,12 +88,13 @@ ou
 manage.py migrate && manage.py sync_conteudo
 ```
 
-`sync_conteudo` (por CHAVE NATURAL) faz tudo com segurança: (1) backup da memória em
+`sync_conteudo`/`merge_conteudo` (por CHAVE NATURAL) faz tudo com segurança: (1) backup da memória em
 `backups/` (restaurável com `loaddata`); (2) **upsert por slug** das tabelas referenciadas
 por usuário (preserva o PK da prod); (3) **substitui inteiras** as demais (delete+reinsert,
 remapeando FKs de pai); (4) aplica deleções explícitas versionadas em
 `home/content_deletions.json` somente quando não há FK de memória bloqueando; (5) realinha as sequences; (6) confirma que as tabelas de
-usuário/missão ficaram com a MESMA contagem. Use `--dry-run` p/ ver o plano (quantos
+usuário/missão, mapa/wiki e conteúdo comunitário ficaram com a MESMA contagem e a
+MESMA assinatura SHA-256. Use `--dry-run` p/ ver o plano (quantos
 atualizar/inserir/substituir) sem alterar nada.
 
 Para gerar/atualizar o fixture (no dev, antes de commitar): `manage.py dump_conteudo
@@ -129,49 +134,16 @@ Exemplo:
 Durante o sync, a deleção só acontece se o registro não estiver referenciado por tabelas
 de memória. Se houver referência, o relatório mostra a deleção como bloqueada.
 
-## Procedimento manual (passo a passo, equivalente)
+## Procedimentos proibidos para fixture de conteúdo
 
-### 0. Backups (a rede de segurança)
-- **Produção (obrigatório):** `pg_dump` completo →
-  `ref/backups/prod_AAAA-MM-DD.sql`. É o snapshot da "memória" (usuários/missões).
-- **Conteúdo (fonte):** já gerado em `ref/backups/conteudo_AAAA-MM-DD.json`
-  (`manage.py dump_conteudo`).
+- Não usar `loaddata` diretamente: PKs de dev e produção podem representar slugs
+  diferentes.
+- Não enviar fixture mecânico no painel **Restauração de backup**, que grava por PK.
+- Não incluir mapa/wiki em um merge mecânico. O mundo é produção-vence.
 
-### 1. Código + schema
-1. `git pull` na produção.
-2. `manage.py migrate` → aplica 0014–0032 (ADITIVO: cria tabelas novas e colunas
-   novas; **não apaga dado**). É o que o `start_server.bat` já faz automaticamente.
-
-### 2. Checagem de alinhamento de PK (antes de carregar!)
-O `loaddata` só é seguro se cada PK de conteúdo aponta para o MESMO registro nos dois
-bancos. Gere o manifesto nos dois e compare:
-```
-# no dev (SQLite):
-POSTGRES_URL="" manage.py dump_conteudo --manifest ref/backups/manifest_local.json
-# na produção:
-manage.py dump_conteudo --manifest manifest_prod.json
-# comparar: para cada modelo, pk->chave-natural deve bater. Divergência = NÃO carregar.
-```
-Se houver divergência de PK, NÃO usar loaddata cego — sincronizar por chave natural
-(slug/nome) só nos campos editáveis.
-
-### 3. Carregar o conteúdo na produção
-```
-manage.py loaddata ref/backups/conteudo_AAAA-MM-DD.json
-```
-Faz UPDATE dos registros existentes (por PK) e INSERT dos novos, em transação. As
-tabelas de usuário não estão no fixture → intactas.
-
-### 4. Resetar sequências de PK (PostgreSQL)
-Depois do loaddata, alinhe os sequences para inserts futuros não colidirem:
-```
-manage.py sqlsequencereset home | manage.py dbshell
-```
-
-### 5. Verificar
-- Contagens das tabelas de conteúdo conferem com o dev.
-- Spot-check: um talento/traço editado aparece com a tag/descrição nova.
-- `TbPersonagem`/`UserProfile`/transações com a MESMA contagem de antes (memória intacta).
+O painel de restauração por PK possui um guard para recusar fixtures compostos apenas
+por catálogo ou mundo, mas o procedimento correto continua sendo o merge por chave
+natural.
 
 ## Resumo das mudanças desta leva
 - **Schema (migrations 0014–0032):** tabelas novas (Bestiário, Condição/Idioma/Regra,

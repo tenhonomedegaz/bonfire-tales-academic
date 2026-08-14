@@ -1,0 +1,129 @@
+{% extends 'home/base.html' %}
+
+{% block title %}Idiomas - Bonfire Tales RPG{% endblock %}
+
+{% block content %}
+<section class="mx-auto w-full max-w-6xl px-2 py-4 sm:px-4">
+  <header class="border-b border-[var(--stroke)] pb-4">
+    <p class="text-xs font-bold uppercase text-[var(--ember)]">Referência de jogo</p>
+    <h1 class="mt-1 font-rpg text-3xl font-bold uppercase text-[var(--text)]">Idiomas</h1>
+    <p class="mt-2 max-w-3xl text-sm leading-relaxed text-[var(--muted)]">Línguas basais, derivadas e exóticas faladas em Cinéria.</p>
+  </header>
+
+  <div class="grid gap-6 py-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(320px,.9fr)]">
+    <section aria-labelledby="translator-title" class="border border-[var(--stroke)] bg-[var(--bg1)] p-4">
+      <div class="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 id="translator-title" class="font-rpg text-xl font-bold text-[var(--text)]">Tradutor de ambientação</h2>
+          <p class="mt-1 text-xs text-[var(--muted)]">Transcrição consistente para falas, cartas e inscrições de mesa.</p>
+        </div>
+        <select id="languageTarget" class="min-w-48 border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)]">
+          {% for idioma in idiomas %}<option value="{{ idioma.slug }}">{{ idioma.nome }}{% if idioma.nome_mundo %} · {{ idioma.nome_mundo }}{% endif %}</option>{% endfor %}
+        </select>
+      </div>
+
+      <label for="languageSource" class="mt-4 block text-xs font-bold uppercase text-[var(--muted)]">Texto em comum</label>
+      <textarea id="languageSource" rows="6" maxlength="1200" placeholder="Digite a mensagem..." class="mt-1 w-full resize-y border border-[var(--stroke)] bg-[var(--bg0)] p-3 text-sm leading-relaxed text-[var(--text)] outline-none focus:border-[var(--ember)]"></textarea>
+
+      <div class="mt-3 flex items-center justify-between gap-3">
+        <span id="languageWriting" class="text-xs text-[var(--muted)]"></span>
+        <button id="copyTranslation" type="button" class="border border-[var(--stroke)] px-3 py-1.5 text-xs font-bold text-[var(--text)] hover:border-[var(--ember)] hover:text-[var(--ember)]">Copiar</button>
+      </div>
+      <output id="languageResult" class="mt-2 block min-h-36 whitespace-pre-wrap border border-[var(--stroke)] bg-[var(--bg0)] p-3 text-sm leading-relaxed text-[var(--text)]" aria-live="polite"></output>
+      <p class="mt-2 text-[11px] leading-relaxed text-[var(--muted)]">A transcrição mantém nomes próprios, números e pontuação. Não substitui um dicionário canônico.</p>
+    </section>
+
+    <aside>
+      <div class="mb-3 flex flex-wrap items-center gap-2">
+        <input id="languageSearch" type="search" placeholder="Buscar idioma..." class="min-w-0 flex-1 border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)] outline-none focus:border-[var(--ember)]">
+        <select id="languageCategory" class="border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)]">
+          <option value="">Todas as categorias</option>
+          {% for slug, label in categorias %}<option value="{{ slug }}">{{ label }}</option>{% endfor %}
+        </select>
+      </div>
+      <div id="languageList" class="max-h-[640px] space-y-2 overflow-y-auto pr-1">
+        {% for idioma in idiomas %}
+        <article class="language-row border border-[var(--stroke)] bg-[var(--bg1)] p-3" data-search="{{ idioma.nome|lower }} {{ idioma.nome_mundo|lower }} {{ idioma.idioma_caracteristico|lower }}" data-category="{{ idioma.categoria }}">
+          <div class="flex items-baseline justify-between gap-3">
+            <h2 class="font-bold text-[var(--text)]">{{ idioma.nome }}</h2>
+            <span class="text-[10px] font-bold uppercase text-[var(--ember)]">{{ idioma.categoria_label }}</span>
+          </div>
+          {% if idioma.nome_mundo %}<p class="mt-1 text-sm text-[var(--muted)]">{{ idioma.nome_mundo }}</p>{% endif %}
+          <dl class="mt-2 grid grid-cols-2 gap-2 text-xs">
+            <div><dt class="text-[var(--muted)]">Referência sonora</dt><dd class="text-[var(--text)]">{{ idioma.idioma_caracteristico|default:'Própria' }}</dd></div>
+            <div><dt class="text-[var(--muted)]">Escrita</dt><dd class="text-[var(--text)]">{{ idioma.transcricao|default:'Oral' }}</dd></div>
+          </dl>
+        </article>
+        {% endfor %}
+      </div>
+      <p id="languageEmpty" class="hidden border border-dashed border-[var(--stroke)] p-4 text-center text-sm text-[var(--muted)]">Nenhum idioma encontrado.</p>
+    </aside>
+  </div>
+</section>
+
+{{ idiomas_json|json_script:"language-data" }}
+<script>
+(function(){
+  const languages = JSON.parse(document.getElementById('language-data').textContent || '[]');
+  const bySlug = Object.fromEntries(languages.map(item => [item.slug, item]));
+  const source = document.getElementById('languageSource');
+  const target = document.getElementById('languageTarget');
+  const result = document.getElementById('languageResult');
+  const writing = document.getElementById('languageWriting');
+  const vowels = ['a', 'e', 'i', 'o', 'u'];
+  const syllables = ['ka','ra','th','el','or','is','va','en','ul','dra','mir','sa','lo','ven','ae','um','tor','shi','na','yr'];
+
+  function hash(value){
+    let number = 2166136261;
+    for(let i=0;i<value.length;i++) number = Math.imul(number ^ value.charCodeAt(i), 16777619);
+    return number >>> 0;
+  }
+
+  function transformWord(word, language){
+    if(!word || language.slug === 'comum' || /^\d+$/.test(word)) return word;
+    const seed = hash(language.slug + ':' + word.toLocaleLowerCase('pt-BR'));
+    const count = Math.max(1, Math.min(5, Math.ceil(word.length / 3)));
+    let output = '';
+    for(let index=0; index<count; index++){
+      const shift = (seed >>> ((index % 4) * 7)) + index * 13;
+      output += syllables[shift % syllables.length];
+      if(index === 0 && word.length > 7) output += vowels[(shift >>> 3) % vowels.length];
+    }
+    if(word[0] === word[0].toLocaleUpperCase('pt-BR')) output = output[0].toLocaleUpperCase('pt-BR') + output.slice(1);
+    return output;
+  }
+
+  function translate(){
+    const language = bySlug[target.value] || languages[0];
+    const text = source.value || '';
+    result.textContent = text.replace(/[\p{L}\p{M}\d]+/gu, word => transformWord(word, language));
+    writing.textContent = language ? ('Escrita: ' + (language.transcricao || 'oral')) : '';
+  }
+
+  source.addEventListener('input', translate);
+  target.addEventListener('change', translate);
+  document.getElementById('copyTranslation').addEventListener('click', async function(){
+    if(!result.textContent) return;
+    await navigator.clipboard.writeText(result.textContent);
+    this.textContent = 'Copiado';
+    setTimeout(() => { this.textContent = 'Copiar'; }, 1200);
+  });
+
+  const search = document.getElementById('languageSearch');
+  const category = document.getElementById('languageCategory');
+  function filter(){
+    const query = search.value.trim().toLocaleLowerCase('pt-BR');
+    let visible = 0;
+    document.querySelectorAll('.language-row').forEach(row => {
+      const show = (!query || row.dataset.search.includes(query)) && (!category.value || row.dataset.category === category.value);
+      row.hidden = !show;
+      if(show) visible++;
+    });
+    document.getElementById('languageEmpty').classList.toggle('hidden', visible !== 0);
+  }
+  search.addEventListener('input', filter);
+  category.addEventListener('change', filter);
+  translate();
+})();
+</script>
+{% endblock %}

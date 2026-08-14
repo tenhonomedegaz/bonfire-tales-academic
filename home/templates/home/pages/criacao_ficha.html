@@ -29,7 +29,12 @@
         </ol>
       </nav>
 
-      <form id="criador-form" class="space-y-3">
+      <form id="criador-form" class="space-y-3" method="post"
+            action="{% if pathbuilder %}{% url 'pathbuilder_iniciar' %}{% else %}{% url 'criar_personagem' %}{% endif %}"
+            data-mode="{% if pathbuilder %}pathbuilder{% else %}creator{% endif %}"
+            data-preview-url="{% url 'criar_personagem_preview' %}"
+            data-submit-label="{% if pathbuilder %}Abrir laboratório{% else %}Criar Personagem{% endif %}"
+            data-authenticated="{{ logado|yesno:'true,false' }}">
         {% csrf_token %}
 
         <!-- ============ ETAPA 1 · Identidade + Atributos ============ -->
@@ -171,6 +176,7 @@
                 <input type="radio" name="equip_classe" value="inicial" checked class="mt-1">
                 <span><strong class="text-[var(--text)]">Equipamento inicial da classe</strong><span id="cf-equip-texto" class="block text-xs text-[var(--muted)]"></span></span>
               </label>
+              <div id="cf-equip-choices" hidden class="mt-2 space-y-2 rounded border border-[var(--stroke)] bg-[var(--bg0)] p-2"></div>
               <label class="mt-2 flex cursor-pointer items-center gap-1.5 rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm">
                 <input type="radio" name="equip_classe" value="ouro">
                 <span class="text-[var(--text)]"><span data-equip-gold-alt>150</span> PO no lugar do equipamento</span>
@@ -184,10 +190,6 @@
               <div class="mb-1 text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Especialização <span data-expertise-counter></span></div>
               <p class="mb-1.5 text-xs text-[var(--muted)]">Escolha perícias <strong>proficientes</strong> para dobrar o bônus de proficiência (expertise).</p>
               <div id="cf-expertise" class="grid grid-cols-1 gap-1 sm:grid-cols-2"></div>
-            </div>
-            <div id="cf-classe-prof-wrap" hidden class="mt-2.5">
-              <div class="mb-1 text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Proficiências de Classe</div>
-              <div id="cf-classe-prof" class="space-y-2.5"></div>
             </div>
             <p id="cf-armaduras-prof" hidden class="mt-2.5 text-xs text-[var(--muted)]"><span class="font-semibold uppercase tracking-wider text-[var(--muted)]">Proficiências de armadura:</span> <span data-armaduras-prof class="text-[var(--text)]"></span></p>
             <p class="mt-2.5 text-xs text-[var(--muted)]">A CA é derivada da armadura/escudo que você <strong>comprar e equipar na ficha</strong>. Sem armadura, usa a defesa da classe (ou 10 + Des).</p>
@@ -308,17 +310,11 @@
 {{ catalogos|json_script:"cf-catalogos" }}
 <script>
   window.POINT_BUY = { custo: {{ pb_custo|safe }}, maxPontos: {{ pb_max_pontos }}, min: {{ pb_min }}, max: {{ pb_max }} };
-  window.CRIAR_URL = "{% if pathbuilder %}{% url 'pathbuilder_iniciar' %}{% else %}{% url 'criar_personagem' %}{% endif %}";
-  window.CRIAR_PREVIEW_URL = "{% url 'criar_personagem_preview' %}";
-  window.CRIAR_LOGADO = {{ logado|yesno:"true,false" }};
-  window.CRIAR_PATHBUILDER = {{ pathbuilder|yesno:"true,false" }};
-  window.CRIAR_SUBMIT_LABEL = "{% if pathbuilder %}Abrir laboratório{% else %}Criar Personagem{% endif %}";
-  window.CSRF_TOKEN = "{{ csrf_token }}";
 </script>
 {% endblock %}
 
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'css/pages/criador.css' %}?v=4">
 <script src="{% static 'js/point_buy.js' %}?v=3" defer></script>
-<script src="{% static 'js/criador.js' %}?v=15" defer></script>
+<script src="{% static 'js/criador.js' %}?v=17" defer></script>
 {% endblock %}

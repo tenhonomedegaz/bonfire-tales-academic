@@ -208,11 +208,17 @@ def swap_scope(token, source):
 
 def _parse_constraints(raw):
     raw = raw or ''
+    source_match = re.search(
+        r'from\s*:\s*(classe|subclasse)\s*\{\s*([a-z0-9_\-]+)\s*\}',
+        raw,
+    )
     return {
         'raw': raw,
         'swap': (re.search(r'swap\s*:\s*([a-z0-9_]+)', raw) or [None, None])[1],
         'reset': (re.search(r'reset\s*:\s*([a-z0-9_]+)', raw) or [None, None])[1],
         'from': (re.search(r'from\s*:\s*([a-z0-9_]+)', raw) or [None, None])[1],
+        'from_kind': source_match.group(1) if source_match else None,
+        'from_slug': source_match.group(2) if source_match else None,
         'requires': (re.search(r'requires\s*:\s*([a-z0-9_]+)', raw) or [None, None])[1],
         'define': [tok.strip() for body in re.findall(r'=\s*define\s*:\s*\{([^}]*)\}', raw)
                    for tok in body.split('|') if tok.strip()] or None,
@@ -279,19 +285,29 @@ def _slug2tipo_map():
 def _opcao_universe(ctx):
     """Opções acessíveis (TbOpcaojogo do tipo ∩ TbAcessoopcao p/ classe/subclasse/nível)."""
     from django.db.models import Q
-    from .models import TbOpcaojogo, TbAcessoopcao
+    from .models import TbOpcaojogo, TbAcessoopcao, TbClasse, TbSubclasse
     tipo_disp = ctx.get('tipo_display') or _slug2tipo_map().get(ctx['tipo'])
     if not tipo_disp:
         return []
     classe = ctx.get('classe')
     subclasse = ctx.get('subclasse')
+    constraints = ctx.get('constraints') or {}
+    source_kind = constraints.get('from_kind')
+    source_slug = constraints.get('from_slug')
+    explicit_source = bool(source_kind and source_slug)
+    if source_kind == 'classe':
+        classe = TbClasse.objects.filter(slug=source_slug).first()
+        subclasse = None
+    elif source_kind == 'subclasse':
+        subclasse = TbSubclasse.objects.filter(slug=source_slug).first()
+        classe = subclasse.id_classe if subclasse else None
     nivel = int(ctx.get('nivel') or 1)
     acc = TbAcessoopcao.objects.filter(nivel_recebimento__lte=nivel).filter(
         (Q(id_classe=classe) if classe else Q(pk__in=[]))
         | (Q(id_subclasse=subclasse) if subclasse else Q(pk__in=[])))
     acc_ids = set(acc.values_list('id_opcao_id', flat=True))
     qs = TbOpcaojogo.objects.filter(tipo=tipo_disp)
-    if acc_ids:
+    if explicit_source or acc_ids:
         qs = qs.filter(id_opcao__in=acc_ids)
     return [{'id': o.id_opcao, 'slug': o.slug, 'nome': o.nome,
              'descricao': o.descricao or '', 'pre': o.pre_requisito or ''}

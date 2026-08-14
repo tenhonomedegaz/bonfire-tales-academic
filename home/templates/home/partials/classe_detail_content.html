@@ -105,11 +105,17 @@
         <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-[var(--muted)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3 8 4.5-8 4.5-8-4.5L12 3Z"/><path d="m4 12 8 4.5 8-4.5"/><path d="m4 16.5 8 4.5 8-4.5"/></svg>
         Subclasses {% if subclasses %}(selecione para ver){% endif %}
       </h2>
-      <div class="flex flex-wrap gap-1.5">
+      <div class="flex flex-wrap gap-1.5 items-center">
         <button type="button" data-subclass-toggle="" class="subclass-toggle rounded border border-[var(--flame)] bg-[var(--flame)]/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--text)]">Base</button>
         {% for sub in subclasses %}
         <button type="button" data-subclass-toggle="{{ sub.slug }}" class="subclass-toggle rounded border border-[var(--stroke)] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--muted)] hover:border-[var(--spark)] hover:text-[var(--text)]">{{ sub.nome }}</button>
         {% endfor %}
+        {% if subclasses %}
+        <label data-subclass-only-toggle class="hidden ml-1.5 flex items-center gap-1.5 cursor-pointer select-none rounded border border-[var(--stroke)] px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--muted)] hover:border-[var(--spark)] hover:text-[var(--text)] transition-colors" title="Mostrar apenas habilidades da subclasse selecionada">
+          <input type="checkbox" data-subclass-only-check class="accent-[var(--spark)]" style="width: 12px; height: 12px;">
+          Só Subclasse
+        </label>
+        {% endif %}
       </div>
     </section>
 
@@ -117,7 +123,7 @@
       <h2 class="mb-2 font-rpg text-[17px] font-bold text-[var(--text)] bonfire-underline">Habilidades</h2>
       <div class="space-y-2" data-feature-list>
         {% for item in habilidade_sections %}
-        <article class="{% if item.is_subclass %}hidden subclass-content{% endif %} overflow-hidden rounded border border-[var(--stroke)] bg-[var(--bg1)]" {% if item.is_subclass %}data-subclass-slug="{{ item.subclasse_slug }}"{% endif %} data-feature-card data-feature-id="{{ item.habilidade.id_habilidade }}">
+        <article class="{% if item.is_subclass %}hidden subclass-content{% endif %} overflow-hidden rounded border border-[var(--stroke)] bg-[var(--bg1)]" {% if item.is_subclass %}data-subclass-slug="{{ item.subclasse_slug }}"{% else %}data-base-feature{% endif %} data-feature-card data-feature-id="{{ item.habilidade.id_habilidade }}">
           <header class="flex items-center justify-between border-b px-2.5 py-1.5 {% if item.is_subclass %}border-[var(--spark)]/70 bg-[var(--spark)]/5{% else %}border-[var(--flame)]/40 bg-[var(--flame)]/5{% endif %}">
             <h3 data-feature-title class="font-rpg text-[14px] font-bold {% if item.is_subclass %}text-[var(--spark)]{% else %}text-[var(--flame)]{% endif %}">Nivel {{ item.habilidade.niveladquirido }}: {{ item.habilidade.nome }}</h3>
             <div class="flex items-center gap-2">

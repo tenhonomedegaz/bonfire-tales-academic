@@ -1,0 +1,93 @@
+from django.test import TestCase, override_settings
+from django.urls import reverse
+
+from .models import TbConteudoEstatico, TbMapLayer, TbRegiao, TbTerritorio
+
+
+class PublicPresentationTests(TestCase):
+    def test_home_uses_managed_content_without_fake_ads(self):
+        bloco = TbConteudoEstatico.objects.get(chave='home-hero')
+        bloco.titulo = 'Título editado no admin'
+        bloco.imagem_url = 'https://example.com/banner-editado.webp'
+        bloco.save(update_fields=['titulo', 'imagem_url'])
+
+        response = self.client.get(reverse('home'))
+
+        self.assertContains(response, 'Título editado no admin')
+        self.assertContains(response, 'https://example.com/banner-editado.webp')
+        self.assertNotContains(response, 'Advertisement')
+        self.assertContains(response, 'name="description"')
+        self.assertContains(response, 'rel="canonical"')
+
+    @override_settings(
+        ADSENSE_ENABLED=True,
+        ADSENSE_SIDEBAR_SLOT='1234567890',
+        ADSENSE_HORIZONTAL_SLOT='0987654321',
+    )
+    def test_ads_are_opt_in_and_never_render_on_login(self):
+        home = self.client.get(reverse('home'))
+        login = self.client.get(reverse('login'))
+
+        self.assertContains(home, 'data-ad-slot="1234567890"')
+        self.assertContains(home, 'data-ad-slot="0987654321"')
+        self.assertNotContains(login, 'adsbygoogle')
+        self.assertContains(login, 'noindex, nofollow')
+
+    def test_institutional_pages_have_real_content(self):
+        for name in ('sobre', 'contato', 'privacidade', 'termos'):
+            with self.subTest(name=name):
+                response = self.client.get(reverse(name))
+                self.assertEqual(response.status_code, 200)
+                self.assertNotContains(response, 'Esta página está em construção')
+                self.assertNotContains(response, 'Advertisement')
+
+    def test_sitemap_ads_txt_and_robots(self):
+        sitemap = self.client.get(reverse('sitemap_xml'))
+        robots = self.client.get(reverse('robots_txt'))
+        ads = self.client.get(reverse('ads_txt'))
+
+        self.assertEqual(sitemap.status_code, 200)
+        self.assertEqual(sitemap['Content-Type'], 'application/xml; charset=utf-8')
+        self.assertContains(sitemap, '/privacidade/')
+        self.assertNotContains(sitemap, '/login/')
+        self.assertNotContains(sitemap, '/mapa/')
+        self.assertContains(robots, 'Disallow: /admin/')
+        self.assertContains(robots, 'Sitemap: http://testserver/sitemap.xml')
+        self.assertContains(ads, 'google.com, ca-pub-1634793837919535, DIRECT')
+
+    def test_sitemap_only_promotes_world_pages_with_lore(self):
+        TbMapLayer.objects.update_or_create(
+            id_layer=0,
+            defaults={'nome': 'Cinéria', 'ordem': 0, 'publica': True},
+        )
+        TbRegiao.objects.create(nome='Com Lore', slug='com-lore', camada=0, lore_markdown='Lore própria e completa.')
+        TbRegiao.objects.create(nome='Sem Lore', slug='sem-lore', camada=0, lore_markdown='')
+        TbTerritorio.objects.create(nome='Território Com Lore', slug='territorio-com-lore', camada=0, lore_markdown='Lore própria.')
+        TbTerritorio.objects.create(nome='Território Sem Lore', slug='territorio-sem-lore', camada=0, lore_markdown='')
+
+        sitemap = self.client.get(reverse('sitemap_xml'))
+
+        self.assertContains(sitemap, '/mundo/regioes/com-lore/')
+        self.assertNotContains(sitemap, '/mundo/regioes/sem-lore/')
+        self.assertContains(sitemap, '/mundo/territorios/territorio-com-lore/')
+        self.assertNotContains(sitemap, '/mundo/territorios/territorio-sem-lore/')
+
+    def test_map_is_public_but_not_indexed(self):
+        response = self.client.get(reverse('mapa'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'noindex, nofollow')
+
+    def test_old_placeholder_urls_redirect_to_real_content(self):
+        cases = {
+            'magias_congregacao': reverse('magias_listas'),
+            'mundo_cosmo': reverse('mundo_regioes'),
+            'mundo_linha_tempo': reverse('mundo_cronicas'),
+            'mundo_faccoes': reverse('mundo_organizacoes'),
+            'catarse': reverse('colaborador'),
+        }
+        for route_name, target in cases.items():
+            with self.subTest(route_name=route_name):
+                response = self.client.get(reverse(route_name))
+                self.assertEqual(response.status_code, 301)
+                self.assertEqual(response.url, target)

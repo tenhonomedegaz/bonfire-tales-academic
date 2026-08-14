@@ -30,6 +30,7 @@ from django.http import Http404, JsonResponse, HttpResponseBadRequest, HttpRespo
 from django.shortcuts import get_object_or_404, render, redirect
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
+from django.views.decorators.cache import never_cache
 from django.core.paginator import Paginator
 from django.db.models import Count, Q, F, Max
 from django.templatetags.static import static
@@ -510,15 +511,167 @@ def _site_traco(doc):
 
 
 def home_view(request):
+    from .models import TbConteudoEstatico
+
     try:
         from .models import TbJornal
         ultimas_noticias = TbJornal.objects.all().order_by('-data_publicacao')[:3]
     except Exception:
         ultimas_noticias = []
-        
+
+    blocos = {
+        bloco.chave: bloco
+        for bloco in TbConteudoEstatico.objects.filter(pagina='home', ativo=True)
+    }
     return render(request, 'home/pages/home.html', {
-        'ultimas_noticias': ultimas_noticias
+        'page_title': 'Bonfire Tales',
+        'meta_description': (
+            'RPG contínuo de fantasia sombria: crie personagens, encontre missões '
+            'e explore o atlas interativo de Cinéria.'
+        ),
+        'canonical_path': '/',
+        'ads_enabled': True,
+        'ultimas_noticias': ultimas_noticias,
+        'hero': blocos.get('home-hero'),
+        'jornada': blocos.get('home-jornada'),
+        'atlas': blocos.get('home-atlas'),
+        'apoio': blocos.get('home-apoio'),
     })
+
+
+def pagina_institucional_view(request, pagina):
+    """Renderiza páginas de confiança a partir do conteúdo administrável."""
+    from .models import TbConteudoEstatico
+
+    configuracao = {
+        'sobre': {
+            'titulo': 'Sobre o Bonfire Tales',
+            'descricao': 'Conheça o projeto, o cenário compartilhado e as ferramentas do Bonfire Tales.',
+        },
+        'contato': {
+            'titulo': 'Contato',
+            'descricao': 'Canais oficiais para suporte, privacidade e contato com a equipe do Bonfire Tales.',
+        },
+        'privacidade': {
+            'titulo': 'Política de Privacidade',
+            'descricao': 'Saiba quais dados o Bonfire Tales trata e como exercer seus direitos.',
+        },
+        'termos': {
+            'titulo': 'Termos de Uso',
+            'descricao': 'Termos aplicáveis ao uso do site e da comunidade Bonfire Tales.',
+        },
+    }
+    meta = configuracao.get(pagina)
+    if not meta:
+        raise Http404
+    blocos = list(TbConteudoEstatico.objects.filter(pagina=pagina, ativo=True))
+    if not blocos:
+        raise Http404
+    return render(request, 'home/pages/institucional.html', {
+        'page_title': meta['titulo'],
+        'meta_description': meta['descricao'],
+        'canonical_path': request.path,
+        'ads_enabled': False,
+        'pagina': pagina,
+        'blocos': blocos,
+    })
+
+
+def redirect_conteudo_indisponivel(request, destino):
+    """Mantém URLs antigas sem expor ao índice uma página em construção."""
+    return redirect(destino, permanent=True)
+
+
+def robots_txt_view(request):
+    """Complementa as regras do proxy com as áreas que não devem ser indexadas."""
+    linhas = [
+        'User-agent: *',
+        'Allow: /',
+        'Disallow: /admin/',
+        'Disallow: /api/',
+        'Disallow: /wiki/',
+        'Disallow: /login/',
+        'Disallow: /logout/',
+        'Disallow: /cadastro/',
+        'Disallow: /perfil/',
+        'Disallow: /sistemas/criacao-de-ficha/',
+        'Disallow: /sistemas/pathbuilder/',
+        'Disallow: /jogador/personagens/',
+        'Sitemap: %s/sitemap.xml' % request.build_absolute_uri('/').rstrip('/'),
+    ]
+    return HttpResponse('\n'.join(linhas) + '\n', content_type='text/plain; charset=utf-8')
+
+
+def ads_txt_view(request):
+    from django.conf import settings
+
+    publisher_id = getattr(settings, 'ADSENSE_PUBLISHER_ID', '').strip()
+    if not publisher_id:
+        raise Http404
+    return HttpResponse(
+        'google.com, %s, DIRECT, f08c47fec0942fa0\n' % publisher_id,
+        content_type='text/plain; charset=utf-8',
+    )
+
+
+def sitemap_xml_view(request):
+    """Sitemap enxuto: só conteúdo público real, sem ferramentas ou placeholders."""
+    from django.utils.html import escape
+    from .models import TbArmadilha, TbOrganizacao
+
+    paths = [
+        '/', '/sobre/', '/contato/', '/privacidade/', '/termos/',
+        '/sistemas/regras-e-punicoes/', '/sistemas/glossario/',
+        '/mestre/se-tornando-mestre/', '/jogador/classes/', '/jogador/raca/',
+        '/jogador/antecedentes/', '/jogador/talentos/', '/jogador/idiomas/',
+        '/magias/listas/', '/magias/escolas/', '/mestre/bestiario/',
+        '/mestre/condicoes/',
+        '/mercado/itens-mundanos/', '/mercado/itens-magicos/',
+        '/mundo/regioes/', '/atualizacoes/', '/colaborador/',
+    ]
+    if TbArmadilha.objects.exclude(descricao_markdown__isnull=True).exclude(descricao_markdown='').exists():
+        paths.append('/mestre/armadilhas-e-perigos/')
+    if TbOrganizacao.objects.exclude(descricao__isnull=True).exclude(descricao='').exists():
+        paths.append('/mundo/organizacoes/')
+    if TbJornal.objects.exclude(conteudo_markdown__isnull=True).exclude(conteudo_markdown='').exists():
+        paths.append('/mundo/jornal/')
+    if TbCronica.objects.filter(status='aprovada').exclude(conteudo_markdown='').exists():
+        paths.append('/mundo/cronicas/')
+
+    public_layers = list(TbMapLayer.objects.filter(publica=True).values_list('id_layer', flat=True)) or [0]
+    paths.extend(reverse('classe_detail', args=[slug]) for slug in TbClasse.objects.values_list('slug', flat=True))
+    paths.extend(reverse('raca_detail', args=[slug]) for slug in TbRaca.objects.values_list('slug', flat=True))
+    paths.extend(
+        reverse('regiao_detail', args=[slug])
+        for slug in TbRegiao.objects.filter(camada__in=public_layers)
+        .exclude(lore_markdown__isnull=True).exclude(lore_markdown='')
+        .values_list('slug', flat=True)
+    )
+    paths.extend(
+        reverse('territorio_detail', args=[slug])
+        for slug in TbTerritorio.objects.filter(camada__in=public_layers)
+        .exclude(lore_markdown__isnull=True).exclude(lore_markdown='')
+        .values_list('slug', flat=True)
+    )
+    paths.extend(
+        reverse('jornal_detail', args=[slug])
+        for slug in TbJornal.objects.exclude(conteudo_markdown__isnull=True)
+        .exclude(conteudo_markdown='').values_list('slug', flat=True)
+    )
+    paths.extend(
+        reverse('cronica_detail', args=[slug])
+        for slug in TbCronica.objects.filter(status='aprovada')
+        .exclude(conteudo_markdown='').values_list('slug', flat=True)
+    )
+    urls = ''.join(
+        '<url><loc>%s</loc></url>' % escape(request.build_absolute_uri(path))
+        for path in dict.fromkeys(paths)
+    )
+    return HttpResponse(
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">%s</urlset>' % urls,
+        content_type='application/xml; charset=utf-8',
+    )
 
 
 def register_view(request):
@@ -1320,6 +1473,7 @@ def jogadores_view(request):
     if ordem not in ordens_validas:
         ordem = 'nome'
 
+    character_q = Q(personagens__arquivado=False)
     public_character_q = Q(personagens__publico=True, personagens__arquivado=False)
     custom_profile_q = (
         Q(profile__bio__gt='')
@@ -1332,14 +1486,19 @@ def jogadores_view(request):
     )
     base = (User.objects.filter(is_active=True)
             .select_related('profile')
+            .annotate(character_count=Count(
+                'personagens',
+                filter=character_q,
+                distinct=True,
+            ))
             .annotate(public_character_count=Count(
                 'personagens',
                 filter=public_character_q,
                 distinct=True,
             ))
-            .annotate(public_character_updated=Max(
+            .annotate(character_updated=Max(
                 'personagens__atualizado_em',
-                filter=public_character_q,
+                filter=character_q,
             ))
             .annotate(
                 profile_like_count=Count('curtidas_recebidas', distinct=True),
@@ -1353,7 +1512,7 @@ def jogadores_view(request):
         ).distinct()
 
     if filtro == 'personagens':
-        base = base.filter(public_character_count__gt=0)
+        base = base.filter(character_count__gt=0)
     elif filtro == 'customizados':
         base = base.filter(custom_profile_q)
     elif filtro == 'equipe':
@@ -1361,11 +1520,11 @@ def jogadores_view(request):
 
     if ordem == 'popular':
         base = base.order_by('-profile_follower_count', '-profile_like_count',
-                             '-public_character_count', 'username')
+                             '-character_count', 'username')
     elif ordem == 'personagens':
-        base = base.order_by('-public_character_count', 'username')
+        base = base.order_by('-character_count', 'username')
     elif ordem == 'atividade':
-        base = base.order_by('-public_character_updated', 'username')
+        base = base.order_by('-character_updated', 'username')
     else:
         base = base.order_by('username')
 
@@ -1400,6 +1559,7 @@ def jogadores_view(request):
             'profile': profile,
             'appearance': _appearance_context(profile.profile_theme, profile.avatar_frame,
                                               profile.profile_effect, profile.theme_custom),
+            'character_count': int(getattr(u, 'character_count', 0) or 0),
             'public_count': int(getattr(u, 'public_character_count', 0) or 0),
             'characters': public_chars.get(u.pk, []),
             'badges': info.get('badges', []),
@@ -1619,6 +1779,9 @@ def _postgres_classes_view(request):
     total_habilidades = TbClassehabilidade.objects.count()
     total_subclasses = TbSubclasse.objects.count()
     context = {
+        'page_title': 'Classes',
+        'meta_description': 'Conheça as classes, subclasses, progressões e habilidades usadas para criar personagens em Bonfire Tales.',
+        'canonical_path': '/jogador/classes/',
         'classe': None,
         'all_classes': classes,
         'class_traits': [],
@@ -1973,6 +2136,9 @@ def _postgres_classe_detail_view(request, slug):
         })
 
     context = {
+        'page_title': classe.nome,
+        'meta_description': 'Progressão, habilidades, proficiências e subclasses da classe %s em Bonfire Tales.' % classe.nome,
+        'canonical_path': '/jogador/classes/%s/' % classe.slug,
         'classe': classe,
         'all_classes': all_classes,
         'habilidades': habilidades,
@@ -2218,6 +2384,9 @@ def racas_view(request):
 def _postgres_racas_view(request):
     racas = TbRaca.objects.all().order_by('nome')
     context = {
+        'page_title': 'Raças',
+        'meta_description': 'Conheça os povos de Cinéria, suas linhagens, histórias, traços e talentos raciais.',
+        'canonical_path': '/jogador/raca/',
         'raca': None,
         'all_racas': racas,
         'selected_raca_id': None,
@@ -2243,30 +2412,6 @@ def _postgres_raca_detail_view(request, slug):
     tracos_base = raca.tracos.all().order_by('nivel_requisito', 'nome')
     linhagens = raca.linhagens.all().prefetch_related('tracos_linhagem').order_by('nome')
     essencias = TbEssencia.objects.all().prefetch_related('tracos').order_by('nome')
-
-    # Image mapping
-    RACE_IMAGES = {
-        'anao': 'https://i.imgur.com/base-dwarf-placeholder.png',
-        'humano': 'https://i.imgur.com/base-human-placeholder.png',
-        'elfo': 'https://i.imgur.com/base-elf-placeholder.png',
-        'orc': 'https://i.imgur.com/base-orc-placeholder.png',
-    }
-
-    LINEAGE_IMAGES = {
-        'montanha': 'https://i.imgur.com/mountain-dwarf-placeholder.png',
-        'profundezas': 'https://i.imgur.com/deep-dwarf-placeholder.png',
-        'erthari': 'https://i.imgur.com/erthari-human-placeholder.png',
-        'salarin': 'https://i.imgur.com/salarin-human-placeholder.png',
-        'durkarn': 'https://i.imgur.com/durkarn-human-placeholder.png',
-        'goruun': 'https://i.imgur.com/goruun-human-placeholder.png',
-    }
-
-    ESSENCE_IMAGES = {
-        'vampirismo': 'https://i.imgur.com/vampire-essence-placeholder.png',
-        'nephilim': 'https://i.imgur.com/nephilim-essence-placeholder.png',
-        'draconica': 'https://i.imgur.com/draconic-essence-placeholder.png',
-        'elemental': 'https://i.imgur.com/elemental-essence-placeholder.png',
-    }
 
     # Stat mapping
     RACE_STATS_MAP = {
@@ -2304,13 +2449,13 @@ def _postgres_raca_detail_view(request, slug):
     }
 
     stats = RACE_STATS_MAP.get(raca.slug, default_stats)
-    raca.image_url = RACE_IMAGES.get(raca.slug, 'https://i.imgur.com/base-human-placeholder.png')
-
     for lin in linhagens:
-        lin.image_url = LINEAGE_IMAGES.get(lin.slug, raca.image_url)
+        lin.image_url = lin.imagem_url or raca.imagem_url or ''
 
     for ess in essencias:
-        ess.image_url = ESSENCE_IMAGES.get(ess.slug, 'https://i.imgur.com/nephilim-essence-placeholder.png')
+        ess.image_url = ess.imagem_url or raca.imagem_url or ''
+
+    raca.image_url = raca.imagem_url or ''
 
     # Collect talents
     talents = []
@@ -2356,6 +2501,9 @@ def _postgres_raca_detail_view(request, slug):
     talents.sort(key=lambda x: x.nome)
 
     context = {
+        'page_title': raca.nome,
+        'meta_description': 'História, linhagens, traços e talentos raciais de %s em Bonfire Tales.' % raca.nome,
+        'canonical_path': '/jogador/raca/%s/' % raca.slug,
         'raca': raca,
         'all_racas': racas,
         'selected_raca_id': raca.id_raca,
@@ -2449,14 +2597,49 @@ def _parse_site_date(value):
 
 
 def _quest_discord_url(quest):
-    guild_id = quest.get('guildId')
-    channel_id = quest.get('channelId')
+    getter = quest.get if isinstance(quest, dict) else lambda key: getattr(quest, key, None)
+    guild_id = getter('guildId')
+    channel_id = getter('channelId')
     if guild_id and channel_id:
         return f'https://discord.com/channels/{guild_id}/{channel_id}'
     return ''
 
 
+def _quest_list(value):
+    """Normaliza JSON e arrays PostgreSQL sem acoplar a tela ao driver usado."""
+    if value in (None, ''):
+        return []
+    if isinstance(value, (list, tuple)):
+        return list(value)
+    if isinstance(value, str):
+        raw = value.strip()
+        if not raw:
+            return []
+        try:
+            parsed = json.loads(raw)
+            return parsed if isinstance(parsed, list) else []
+        except (TypeError, ValueError):
+            if raw.startswith('{') and raw.endswith('}'):
+                import csv
+                return [item for item in next(csv.reader([raw[1:-1]]), []) if item]
+    return []
+
+
+def _quest_user_ids(entries):
+    ids = set()
+    for entry in _quest_list(entries):
+        if isinstance(entry, dict):
+            value = entry.get('userId') or entry.get('user_id') or entry.get('id')
+        else:
+            value = entry
+        if value not in (None, ''):
+            ids.add(str(value))
+    return ids
+
+
 def sistemas_missoes_view(request):
+    from .models import BotQuest
+
     search = request.GET.get('q', '').strip()
     status = request.GET.get('status', '').strip()
     allowed_status = {'idle', 'running', 'paused', 'frozen', 'finished'}
@@ -2465,67 +2648,84 @@ def sistemas_missoes_view(request):
 
     quests = []
     db_error = ''
+    profile = getattr(request.user, 'profile', None) if request.user.is_authenticated else None
+    discord_user_id = str(profile.discord_user_id or '') if profile else ''
+    status_labels = {
+        'idle': 'Aberta',
+        'running': 'Em andamento',
+        'paused': 'Pausada',
+        'frozen': 'Congelada',
+        'finished': 'Finalizada',
+    }
     try:
-        with connection.cursor() as cursor:
-            query = """
-                SELECT id, name, description, "questDate", "playersAmount",
-                       "subscribedPlayers", "questPlayers", status, type, tags,
-                       "questMaster", "tableUrl", "guildId", "channelId"
-                FROM "Quest"
-                WHERE "isPublished" = true
-            """
-            params = []
-            if status:
-                query += ' AND status = %s'
-                params.append(status)
-            if search:
-                query += ' AND name ILIKE %s'
-                params.append(f'%{search}%')
-            
-            query += ' ORDER BY "questDate" DESC LIMIT 100'
-            cursor.execute(query, params)
-            columns = [col[0] for col in cursor.description]
-            for row in cursor.fetchall():
-                quest = dict(zip(columns, row))
-                
-                # Parse JSON arrays safely
-                def parse_json(val):
-                    if isinstance(val, list): return val
-                    if isinstance(val, str):
-                        try:
-                            return json.loads(val)
-                        except:
-                            return []
-                    return []
-                
-                subscribed_players = parse_json(quest['subscribedPlayers'])
-                quest_players = parse_json(quest['questPlayers'])
-                players_amount = quest['playersAmount'] or 0
-                
-                quests.append({
-                    'id': quest['id'],
-                    'name': quest['name'] or 'Missao sem nome',
-                    'description': quest['description'] or '',
-                    'quest_date': quest['questDate'],
-                    'players_amount': players_amount,
-                    'filled_slots': len(quest_players),
-                    'queue_amount': len(subscribed_players),
-                    'status': quest['status'] or 'idle',
-                    'type': quest['type'] or '',
-                    'tags': parse_json(quest['tags']),
-                    'quest_master': quest['questMaster'] or '',
-                    'table_url': quest['tableUrl'] or '',
-                    'discord_url': f"https://discord.com/channels/{quest['guildId']}/{quest['channelId']}" if quest.get('guildId') and quest.get('channelId') else "",
-                    'is_full': bool(players_amount and len(quest_players) >= players_amount),
-                })
+        queryset = BotQuest.objects.filter(isPublished=True)
+        if status:
+            queryset = queryset.filter(status=status)
+        else:
+            queryset = queryset.exclude(status='finished')
+        if search:
+            queryset = queryset.filter(
+                Q(name__icontains=search)
+                | Q(description__icontains=search)
+                | Q(questMaster__icontains=search)
+                | Q(type__icontains=search)
+            )
+
+        for quest in queryset.order_by('-questDate')[:100]:
+            quest_players = _quest_list(quest.questPlayers)
+            requests = _quest_list(quest.participationRequests)
+            subscribed = _quest_list(quest.subscribedPlayers)
+            confirmed_ids = _quest_user_ids(quest_players)
+            request_ids = _quest_user_ids(requests)
+            subscribed_ids = _quest_user_ids(subscribed)
+            mandatory_ids = _quest_user_ids(quest.mandatoryPlayers)
+            priority_ids = _quest_user_ids(quest.highPriorityPlayers)
+            viewer_state = ''
+            viewer_state_label = ''
+            if discord_user_id:
+                if discord_user_id in confirmed_ids:
+                    viewer_state, viewer_state_label = 'confirmed', 'Você está confirmado'
+                elif discord_user_id in request_ids:
+                    viewer_state, viewer_state_label = 'pending', 'Sua inscrição aguarda aprovação'
+                elif discord_user_id in subscribed_ids:
+                    viewer_state, viewer_state_label = 'queued', 'Você está na fila'
+                elif discord_user_id in mandatory_ids:
+                    viewer_state, viewer_state_label = 'mandatory', 'Sua presença é obrigatória'
+                elif discord_user_id in priority_ids:
+                    viewer_state, viewer_state_label = 'priority', 'Você tem prioridade nesta missão'
+
+            players_amount = quest.playersAmount or 0
+            queue_ids = request_ids | subscribed_ids
+            quests.append({
+                'id': quest.id,
+                'name': quest.name or 'Missão sem nome',
+                'description': quest.description or '',
+                'quest_date': quest.questDate,
+                'players_amount': players_amount,
+                'filled_slots': len(quest_players),
+                'queue_amount': len(queue_ids - confirmed_ids),
+                'status': quest.status or 'idle',
+                'status_label': status_labels.get(quest.status, quest.status or 'Aberta'),
+                'type': quest.type or '',
+                'tags': _quest_list(quest.tags),
+                'quest_master': quest.questMaster or '',
+                'table_url': quest.tableUrl or '',
+                'discord_url': _quest_discord_url(quest),
+                'is_full': bool(players_amount and len(quest_players) >= players_amount),
+                'viewer_state': viewer_state,
+                'viewer_state_label': viewer_state_label,
+            })
     except Exception as exc:
-        db_error = str(exc)
+        logger.exception('Falha ao listar missões do bot: %s', exc)
+        db_error = 'As missões estão temporariamente indisponíveis. Tente novamente em instantes.'
 
     context = {
         'quests': quests,
         'search': search,
         'status': status,
         'db_error': db_error,
+        'discord_linked': bool(discord_user_id),
+        'discord_username': profile.discord_username if profile else '',
         'status_options': [
             ('', 'Ativas'),
             ('idle', 'Abertas'),
@@ -2680,10 +2880,6 @@ _ARMADURA_PROF_TOKEN = {
 _PICK_ARMA_RE = re.compile(r'pick:arma:(\{[^}]*\}|[A-Za-z0-9_+\-]+)(?:\([^)]*\))*')
 _PICK_OPCAO_NV_RE = re.compile(r'pick:opcao:([a-z0-9_-]+)(?:\([^)]*\))?(?::(\{[^}]*\}|[A-Za-z0-9_+\-]+))?(?:\([^)]*\))*')
 _PICK_EXPERTISE_RE = re.compile(r'pick:pericia_expertise:(\{[^}]*\}|[A-Za-z0-9_+\-]+)(?:\([^)]*\))*')
-_PICK_CLASSE_PROF_RE = re.compile(
-    r'pick:(instrumento|ferramenta|ferramenta_artesao|ferramenta_ou_instrumento|ferramenta_artesao_ou_instrumento):'
-    r'(\{[^}]*\}|[A-Za-z0-9_+\-]+)(?:\([^)]*\))*'
-)
 
 
 def _classe_armaduras_prof(classe):
@@ -2807,34 +3003,6 @@ def _classe_escolhas_nv1(classe):
                                        if _norm_skill_slug(s) in _SKILL_INFO]
     return {'estilo_n': estilo_n, 'expertise_n': expertise_n,
             'expertise_fixa': expertise_fixa, 'opcao_picks': opcao_picks}
-
-
-def _classe_prof_picks_nv1(classe):
-    """Escolhas de proficiencia em ferramenta/instrumento declaradas por tags."""
-    out = []
-    for src in _classe_nv1_sources(classe):
-        for tag in (getattr(src, 'tags_json', None) or []):
-            body = _tag_block(tag, 'prof')
-            if body is None and _tag_block(tag, 'multiclass_prof') is not None:
-                continue
-            text = body if body is not None else str(tag)
-            for m in _PICK_CLASSE_PROF_RE.finditer(text):
-                tipo, expr = m.group(1), (m.group(2) or '').strip()
-                n = _pick_count_for_tag(classe, 1, expr, text) or 0
-                if n > 0:
-                    out.append({'tipo': tipo, 'n': n, 'fonte': getattr(src, 'nome', classe.nome)})
-    return out
-
-
-def _classe_prof_pick_options(tipo):
-    qs = TbItemMundano.objects.filter(categoria='ferramenta')
-    if tipo == 'instrumento':
-        qs = qs.filter(subcategoria='instrumento')
-    elif tipo == 'ferramenta_artesao':
-        qs = qs.filter(subcategoria='ferramenta_artesao')
-    elif tipo == 'ferramenta_artesao_ou_instrumento':
-        qs = qs.filter(subcategoria__in=['ferramenta_artesao', 'instrumento'])
-    return set(qs.values_list('nome', flat=True))
 
 
 def _caster_subclasse(pc):
@@ -3550,6 +3718,7 @@ def _criador_catalogos():
                          TbClassehabilidade)
     from .character_engine import (_SKILL_INFO, _dado_de_vida_classe,
                                    clas_de_essencia, cla_de_traco)
+    from .starting_equipment import starting_equipment_for_class
 
     def _nome_duplo(obj):
         nome = obj.nome
@@ -3657,6 +3826,7 @@ def _criador_catalogos():
         classes.append({'slug': c.slug, 'nome': c.nome, 'pericias_n': n, 'pericias_lista': lista,
                         'pericias_concedidas': _classe_pericias_concedidas(c),
                         'equipamento': (c.equipamento or '').strip(),
+                        'equipamento_inicial': starting_equipment_for_class(c),
                         'tagline': (c.tagline or '').strip(),
                         'hit_die': _dado_de_vida_classe(c) or 0,
                         'atributo_principal': (c.atributo_principal or '').strip(),
@@ -3667,7 +3837,6 @@ def _criador_catalogos():
                         'estilo_n': esc1['estilo_n'], 'expertise_n': esc1['expertise_n'],
                         'expertise_fixa': esc1['expertise_fixa'],
                         'opcao_picks': esc1.get('opcao_picks', []),
-                        'classe_prof_picks': _classe_prof_picks_nv1(c),
                         'conjuracao': _classe_conjuracao(c),
                         'armaduras_prof': _classe_armaduras_prof(c),
                         # Todos os picks resolviveis usam o mesmo registry. Expertise
@@ -3982,6 +4151,7 @@ def glossario_view(request):
     })
 
 
+@never_cache
 @login_required(login_url='/login/')
 def criacao_ficha_view(request):
     """Criação de Ficha — point-buy + identidade + classe + antecedente + talentos."""
@@ -3997,9 +4167,11 @@ def criacao_ficha_view(request):
         'pb_max': point_buy.MAX_SCORE,
         'catalogos': _criador_catalogos(),
         'logado': request.user.is_authenticated,
+        'pathbuilder': False,
     })
 
 
+@never_cache
 @login_required(login_url='/login/')
 def pathbuilder_view(request):
     """Entrada do laboratório: reutiliza o criador, mas nunca oferece persistência."""
@@ -4029,6 +4201,7 @@ def pathbuilder_iniciar(request):
         return JsonResponse({'ok': False, 'erros': errors}, status=400)
     return JsonResponse({
         'ok': True,
+        'mode': 'pathbuilder',
         'redirect': reverse('pathbuilder_laboratorio'),
     })
 
@@ -6827,12 +7000,15 @@ def personagem_comprar_item(request, pk):
         p.carteira_pc = (p.carteira_pc or 0) - total
         p.save(update_fields=['carteira_pc', 'atualizado_em'])
         _mec = mecanica_de_tags(item.tags_json, item.subcategoria)
-        existente = TbPersonagemItem.objects.filter(id_personagem=p, nome=item.nome, equipado=False).first()
+        existente = TbPersonagemItem.objects.filter(
+            id_personagem=p, id_item_mundano=item, equipado=False).first()
         if existente and not _mec['tipo_equip']:
             existente.qtd = (existente.qtd or 0) + qtd
             existente.save(update_fields=['qtd'])
         else:
-            TbPersonagemItem.objects.create(id_personagem=p, qtd=qtd, nome=item.nome, custo=item.preco,
+            TbPersonagemItem.objects.create(
+                id_personagem=p, id_item_mundano=item, qtd=qtd, nome=item.nome,
+                custo=item.preco, peso=str(item.peso) if item.peso is not None else None,
                 tags_json=list(item.tags_json or []))
         _registrar_transacao(p, 'compra', 'Compra: %s x%d' % (item.nome, qtd), -total)
     return _compra_resposta(request, pk, p, 'ok', True)
@@ -7897,6 +8073,14 @@ def _criador_resolver(data):
     bg_skill_n = int(bg_grants.get('pericias') or 0)
     bg_langtool_n = int(bg_grants.get('idiomas_ou_ferramentas') or 0)
 
+    from .starting_equipment import resolve_starting_equipment
+    equip_mode = 'ouro' if data.get('equip_classe') == 'ouro' else 'inicial'
+    equipment_plan = None
+    if classe:
+        equipment_plan, equipment_errors = resolve_starting_equipment(
+            classe, equip_mode, data.get('equip_choices'))
+        erros += equipment_errors
+
     # Talento de Origem: TODO antecedente concede 1 (talento_origem:1). É obrigatório —
     # antes o server só criava `if data.get('talento_origem')`, deixando a ficha nascer
     # sem o feat garantido pelo antecedente, em silêncio.
@@ -7920,6 +8104,15 @@ def _criador_resolver(data):
     from . import picks as _picks
     generic_groups = _picks.resolve_builder(classe) if classe else []
     incoming = _criador_incoming_picks(data)
+    # Compatibilidade para clientes anteriores ao registry genérico. Eles enviavam
+    # escolhas de ferramenta por NOME em `escolhas_classe_prof`; o contrato atual usa
+    # o slug do item dentro de `picks`. A ponte fica só na entrada e não cria um segundo
+    # grupo, uma segunda validação nem uma segunda persistência.
+    legacy_tool_values = []
+    for raw_group in (data.get('escolhas_classe_prof') or []):
+        if isinstance(raw_group, dict):
+            legacy_tool_values.extend(raw_group.get('valores') or [])
+    legacy_tool_cursor = 0
     incoming_proficient_skills = {
         _norm_skill_slug(value)
         for value in ((data.get('pericias_classe') or [])
@@ -7933,7 +8126,17 @@ def _criador_resolver(data):
         # o pré-filtro descarta lixo antes do validate; a Maestria de Arma manda o valor
         # combinado `'<arma>|<maestria>'`, então casa a membresia pela PARTE-ARMA (antes do `|`).
         # A checagem da maestria (pertence à arma) e a contagem ficam no validate do REGISTRY.
-        vals = [v for v in dict.fromkeys(incoming.get(key) or [])
+        raw_vals = incoming.get(key) or []
+        legacy_slice = []
+        if g['kind'] == 'ferramenta' and legacy_tool_values:
+            legacy_slice = legacy_tool_values[
+                legacy_tool_cursor:legacy_tool_cursor + int(g.get('n') or 0)
+            ]
+            legacy_tool_cursor += int(g.get('n') or 0)
+        if not raw_vals and legacy_slice:
+            slug_by_name = {str(u.get('nome')): str(u.get('slug')) for u in g['universo']}
+            raw_vals = [slug_by_name.get(str(value), value) for value in legacy_slice]
+        vals = [v for v in dict.fromkeys(raw_vals)
                 if str(v) in universo_slugs or str(v) in universo_ids
                 or str(v).split('|', 1)[0] in universo_slugs]
         if g['kind'] == 'pericia_expertise':
@@ -7971,22 +8174,6 @@ def _criador_resolver(data):
     has_generic_expertise = any(g['kind'] == 'pericia_expertise' for g in generic_groups)
     if esc1['expertise_n'] and not has_generic_expertise and len(exp_sel) != esc1['expertise_n']:
         erros.append('Escolha %d perícia(s) para Especialização (entre as proficientes).' % esc1['expertise_n'])
-    classe_prof_picks = _classe_prof_picks_nv1(classe) if classe else []
-    classe_prof_sel = data.get('escolhas_classe_prof') or []
-    if not isinstance(classe_prof_sel, list):
-        classe_prof_sel = []
-    classe_prof_validas = []
-    for idx, pick in enumerate(classe_prof_picks):
-        raw = classe_prof_sel[idx] if idx < len(classe_prof_sel) else {}
-        vals = raw.get('valores') if isinstance(raw, dict) else []
-        vals = list(dict.fromkeys(vals or []))
-        allowed = _classe_prof_pick_options(pick['tipo'])
-        vals = [v for v in vals if v in allowed]
-        n_pick = int(pick.get('n') or 0)
-        if len(vals) != n_pick:
-            erros.append('Escolha %d proficiência(s) de classe em ferramenta/instrumento.' % n_pick)
-        classe_prof_validas.append((pick, vals))
-
     # Conjuração nv1: truques + magias de 1º nível
     conj = _classe_conjuracao(classe) if classe else None
     truques_sel, magias_sel = [], []
@@ -8070,8 +8257,9 @@ def _criador_resolver(data):
         'to': to, 'talento_racial_nome': talento_racial_nome,
         'generic_picks': generic_picks, 'pc': pc, 'pa': pa,
         'lt_sel': lt_sel, 'bg_langtool_n': bg_langtool_n, 'esc1': esc1, 'exp_sel': exp_sel,
-        'classe_prof_validas': classe_prof_validas, 'conj': conj,
+        'conj': conj,
         'truques_sel': truques_sel, 'magias_sel': magias_sel,
+        'equipment_plan': equipment_plan,
     }
     return R, erros
 
@@ -8162,8 +8350,9 @@ def _criador_persistir(user, data, R, *, strict_spell_choices=False):
     antec = R['antec']; classe = R['classe']; to = R['to']
     generic_picks = R['generic_picks']; pc = R['pc']; pa = R['pa']
     lt_sel = R['lt_sel']; bg_langtool_n = R['bg_langtool_n']; esc1 = R['esc1']
-    exp_sel = R['exp_sel']; classe_prof_validas = R['classe_prof_validas']
+    exp_sel = R['exp_sel']
     conj = R['conj']; truques_sel = R['truques_sel']; magias_sel = R['magias_sel']
+    equipment_plan = R.get('equipment_plan') or {'items': [], 'currency_po': 0}
     campo = {'FOR': 'forca', 'DES': 'destreza', 'CON': 'constituicao',
              'INT': 'inteligencia', 'SAB': 'sabedoria', 'CAR': 'carisma'}
 
@@ -8247,23 +8436,25 @@ def _criador_persistir(user, data, R, *, strict_spell_choices=False):
                     _picks.registry_entry('ferramenta')['persist'](p, _g, _vals)
     # Dinheiro inicial vai para a carteira (PC) conforme as grants do antecedente.
     carteira = int(bg_grants.get('po_inicial') or 0) * 100
-    equip_txt = (classe.equipamento or '').strip()
-    ouro_alt = int(bg_grants.get('equip_gold_alt') or 0)
-    if data.get('equip_classe') == 'inicial' and equip_txt:
-        TbPersonagemItem.objects.create(id_personagem=p, qtd=1,
-                                        nome='Equipamento inicial da classe: %s' % equip_txt[:170])
-    else:
-        carteira += ouro_alt * 100
-        # BUG-2: 10/13 classes não têm kit cadastrado. Se o jogador escolheu
-        # "equipamento inicial" e não há texto, a escolha vira ouro — antes isso
-        # acontecia em silêncio (ficava parecendo que pegou itens). Registra o
-        # ouro alternativo explicitamente no inventário para não enganar.
-        if data.get('equip_classe') == 'inicial' and not equip_txt:
+    carteira += int(equipment_plan.get('currency_po') or 0) * 100
+    if data.get('equip_classe') != 'ouro':
+        item_ids = [row['id'] for row in equipment_plan.get('items', [])]
+        catalog = {item.pk: item for item in TbItemMundano.objects.filter(pk__in=item_ids)}
+        for row in equipment_plan.get('items', []):
+            item = catalog.get(row['id'])
+            if item is None:
+                raise CriadorEscolhasError([
+                    'Um item do equipamento inicial deixou de existir. Recarregue a página.'])
             TbPersonagemItem.objects.create(
-                id_personagem=p, qtd=1,
-                nome='Ouro inicial (+%d PO) — classe sem kit de equipamento cadastrado' % ouro_alt)
-    # Sem armadura inicial: o jogador compra e equipa a armadura na própria ficha,
-    # e a CA é derivada do equipamento equipado (não se pré-equipa nada no criador).
+                id_personagem=p,
+                id_item_mundano=item,
+                qtd=int(row['qty']),
+                nome=item.nome,
+                custo=item.preco,
+                peso=(str(item.peso) if item.peso is not None else None),
+                equipado=(item.categoria == 'armadura'),
+                tags_json=list(item.tags_json or []),
+            )
     p.carteira_pc = carteira
     p.save(update_fields=['carteira_pc'])
     # `to` já foi resolvido e validado como obrigatório na fase de validação acima.
@@ -8282,11 +8473,6 @@ def _criador_persistir(user, data, R, *, strict_spell_choices=False):
             if info:
                 TbPersonagemPericia.objects.filter(
                     id_personagem=p, nome=info[0]).update(expertise=True)
-    for pick, vals in classe_prof_validas:
-        for nm in vals[:int(pick.get('n') or 0)]:
-            TbPersonagemProficiencia.objects.get_or_create(
-                id_personagem=p, tipo='ferramenta', nome=nm,
-                defaults={'origem': 'classe'})
     # Expertise FIXA (Mago: Arcanismo) — proficiência + expertise automáticas
     for sl in esc1['expertise_fixa']:
         info = _SKILL_INFO.get(sl)
@@ -8417,7 +8603,7 @@ def criar_personagem_view(request):
             'erros': ['Não foi possível gravar a ficha. O erro foi registrado; tente novamente.'],
         }, status=500)
 
-    return JsonResponse({'ok': True, 'id': p.id_personagem,
+    return JsonResponse({'ok': True, 'mode': 'creator', 'id': p.id_personagem,
                          'redirect': reverse('ficha_detail', args=[p.id_personagem])})
 
 
@@ -8588,6 +8774,7 @@ def wiki_update_race(request, race_id):
     race = get_object_or_404(TbRaca, pk=race_id)
     race.nome = (data.get('nome') or race.nome).strip()
     race.tagline = (data.get('tagline') or '').strip() or None
+    race.imagem_url = (data.get('imagem_url') or '').strip() or None
     race.lore_presentation = data.get('lore_presentation') or ''
     race.lore_roleplay = data.get('lore_roleplay') or ''
     race.lore_society = data.get('lore_society') or ''
@@ -8599,6 +8786,7 @@ def wiki_update_race(request, race_id):
             'id': race.id_raca,
             'nome': race.nome,
             'tagline': race.tagline or '',
+            'imagem_url': race.imagem_url or '',
             'lore_presentation': race.lore_presentation or '',
             'lore_roleplay': race.lore_roleplay or '',
             'lore_society': race.lore_society or '',
@@ -9290,6 +9478,7 @@ def regiao_detail_view(request, slug):
         'is_territory': False,
         'layer_options': layer_options,
         'active_layer': active_layer,
+        'noindex': not bool((regiao.lore_markdown or '').strip()),
     }
     return render(request, 'home/pages/regiao_detail.html', context)
 
@@ -9453,6 +9642,7 @@ def territorio_detail_view(request, slug):
         'is_territory': True,
         'layer_options': layer_options,
         'active_layer': active_layer,
+        'noindex': not bool((territory.lore_markdown or '').strip()),
     }
     return render(request, 'home/pages/regiao_detail.html', context)
 
@@ -9885,6 +10075,9 @@ def talentos_view(request):
                 'descricao': t.get('Descricao') or '',
             })
         return render(request, 'home/pages/talentos.html', {
+            'page_title': 'Talentos',
+            'meta_description': 'Consulte talentos, pré-requisitos, benefícios e opções de personalização de personagens.',
+            'canonical_path': '/jogador/talentos/',
             'json_talentos': talentos_lista,
             'can_edit_wiki': request.user.is_staff,
             'talent_tipo_choices': TbTalento.TIPO_CHOICES,
@@ -9914,6 +10107,9 @@ def talentos_view(request):
         talentos_lista.append(_talent_payload(t))
 
     context = {
+        'page_title': 'Talentos',
+        'meta_description': 'Consulte talentos, pré-requisitos, benefícios e opções de personalização de personagens.',
+        'canonical_path': '/jogador/talentos/',
         'json_talentos': talentos_lista,
         'can_edit_wiki': request.user.is_staff,
         'talent_tipo_choices': TbTalento.TIPO_CHOICES,
@@ -10078,6 +10274,7 @@ def _render_catalog(request, title, subtitle, kind, key, mapper):
         'items': items,
         'db_error': db_error,
         'can_edit_wiki': request.user.is_staff,
+        'noindex': not any((item.get('descricao') or '').strip() for item in items),
     })
 
 
@@ -10111,6 +10308,9 @@ def antecedentes_view(request):
         })
         
     return render(request, 'home/pages/catalogo.html', {
+        'page_title': 'Antecedentes',
+        'meta_description': 'Explore origens, ofícios, vínculos, proficiências e equipamentos para personagens de Bonfire Tales.',
+        'canonical_path': '/jogador/antecedente/',
         'title': 'Antecedentes',
         'subtitle': 'Origens, ofícios, vínculos e escolhas de história para personagens.',
         'kind': 'antecedentes',
@@ -10123,6 +10323,7 @@ def antecedentes_view(request):
 def magias_view(request):
     """Catálogo de magias com filtros avançados (escola, nível, concentração, ritual) e
     modal de detalhe. Página dedicada (não usa o catálogo genérico)."""
+    can_edit = request.user.is_staff
     escolas = set()
     magias = []
     for m in TbMagia.objects.all().order_by('nivel', 'nome'):
@@ -10137,49 +10338,42 @@ def magias_view(request):
             'duracao': m.duracao or '', 'concentracao': bool(m.concentracao),
             'ritual': bool(m.ritual), 'classes': m.classes or '',
             'descricao': m.descricao or '', 'em_niveis': m.em_niveis_superiores or '',
-            'tags': [t for t in _split_catalog_list(m.tags_json) if t],
+            # Tags são a linguagem interna do motor. Jogadores recebem somente o
+            # resultado editorial e mecânico já interpretado.
+            'tags': ([t for t in _split_catalog_list(m.tags_json) if t]
+                     if can_edit else []),
         })
     return render(request, 'home/pages/magias.html', {
-        'page_title': 'Magias', 'magias': magias,
+        'page_title': 'Magias',
+        'meta_description': 'Consulte magias em português e inglês por escola, nível, classe, ritual e concentração.',
+        'canonical_path': '/magias/listas/',
+        'magias': magias,
         'escolas': sorted(escolas), 'niveis': list(range(0, 10)),
-        'can_edit': request.user.is_staff,
+        'can_edit': can_edit,
         'magia_inicial': (request.GET.get('magia') or '').strip(),
     })
 
 
 def idiomas_view(request):
-    """Catálogo de Idiomas do mundo (TbIdioma)."""
+    """Catálogo e transcritor determinístico de idiomas do mundo."""
     from .models import TbIdioma
     CAT = {'basal': 'Basal', 'derivado': 'Derivado', 'exotico': 'Exótico'}
-    items = []
+    idiomas = []
     for i in TbIdioma.objects.all().order_by('categoria', 'ordem', 'nome'):
         cat = CAT.get(i.categoria, (i.categoria or 'Basal').title())
-        tags = [cat]
-        if i.idioma_caracteristico:
-            tags.append(i.idioma_caracteristico)
-        if i.transcricao:
-            tags.append(i.transcricao)
-        items.append({
+        idiomas.append({
             'nome': i.nome,
             'slug': i.slug or slugify(i.nome),
-            'tipo': cat,
-            'tags': tags,
-            'resumo': (f'Conhecido no mundo como "{i.nome_mundo}".' if i.nome_mundo else ''),
-            'descricao': '',
-            'meta': {
-                'Nome no mundo': i.nome_mundo or '',
-                'Categoria': cat,
-                'Idioma análogo': i.idioma_caracteristico or '',
-                'Sistema de escrita': i.transcricao or '',
-            },
+            'nome_mundo': i.nome_mundo or '',
+            'categoria': i.categoria or 'basal',
+            'categoria_label': cat,
+            'idioma_caracteristico': i.idioma_caracteristico or '',
+            'transcricao': i.transcricao or '',
         })
-    return render(request, 'home/pages/catalogo.html', {
-        'title': 'Idiomas',
-        'subtitle': 'Línguas de Bonfire Tales — basais, derivadas e exóticas.',
-        'kind': 'idiomas',
-        'items': items,
-        'db_error': '',
-        'can_edit_wiki': False,
+    return render(request, 'home/pages/idiomas.html', {
+        'idiomas': idiomas,
+        'idiomas_json': idiomas,
+        'categorias': list(CAT.items()),
     })
 
 
@@ -10223,6 +10417,9 @@ def magias_escolas_view(request):
             'meta': {'Total de magias': str(len(magias))},
         })
     return render(request, 'home/pages/catalogo.html', {
+        'page_title': 'Escolas de Magia',
+        'meta_description': 'Conheça as oito escolas de magia e consulte as magias agrupadas por círculo.',
+        'canonical_path': '/magias/escolas/',
         'title': 'Escolas de Magia',
         'subtitle': 'As oito escolas de magia e as magias que pertencem a cada uma.',
         'kind': 'escolas',
@@ -10599,6 +10796,8 @@ def bestiario_view(request):
     tamanhos_all = sorted({(x.tamanho or '').strip() for x in all_qs if (x.tamanho or '').strip()})
     return render(request, 'home/pages/bestiario.html', {
         'page_title': 'Bestiário',
+        'meta_description': 'Consulte criaturas completas por nome, tipo, tamanho e nível de desafio no bestiário de Bonfire Tales.',
+        'canonical_path': '/mundo/bestiario/',
         'criaturas': criaturas, 'filtro': filtro, 'nd_sel': nd_sel, 'tipo_sel': tipo_sel,
         'tam_sel': tam_sel, 'ordem': ordem, 'nds': nds_all,
         'tipos': tipos_all, 'tamanhos': tamanhos_all,
@@ -10808,6 +11007,7 @@ def armadilhas_view(request):
         'filtro': filtro, 'nd_sel': nd_sel, 'ordem': ordem, 'nds': nds,
         'pode_criar': perms.is_mestre(request.user), 'is_staff': is_staff,
         'msg': request.GET.get('m'),
+        'noindex': not any((item.get('descricao') or '').strip() for item in armadilhas),
     })
 
 
@@ -11102,11 +11302,19 @@ def organizacoes_view(request):
 
 
 def api_opcoes(request):
-    
     tipo_filter = request.GET.get('tipo', '').strip()
+    classe_filter = request.GET.get('classe', '').strip()
     subclasse_filter = request.GET.get('subclasse', '').strip()
-
     try:
+        nivel_filter = max(1, int(request.GET.get('nivel') or 20))
+    except (TypeError, ValueError):
+        nivel_filter = 20
+
+    # Documentos antigos não carregam a relação de acesso. Quando há filtro de
+    # fonte, a tabela relacional é a autoridade para não misturar catálogos.
+    try:
+        if classe_filter or subclasse_filter:
+            raise SiteDataUnavailable
         query = {} if not tipo_filter else {'Tipo': tipo_filter}
         opcoes_docs = _site_docs('options', [('Nome', 1)], query=query if tipo_filter else None)
         opcoes_lista = []
@@ -11127,7 +11335,22 @@ def api_opcoes(request):
     qs = TbOpcaojogo.objects.all().order_by('nome')
     if tipo_filter:
         qs = qs.filter(tipo__iexact=tipo_filter)
-    if subclasse_filter:
+    if classe_filter or subclasse_filter:
+        access_filter = Q(tbacessoopcao__nivel_recebimento__lte=nivel_filter)
+        source_filter = Q()
+        has_source = False
+        if classe_filter:
+            source_filter |= Q(tbacessoopcao__id_classe__slug=classe_filter)
+            has_source = True
+        if subclasse_filter:
+            if subclasse_filter.lower() == 'null':
+                source_filter |= Q(tbacessoopcao__id_subclasse__isnull=True)
+            else:
+                source_filter |= Q(tbacessoopcao__id_subclasse__slug=subclasse_filter)
+            has_source = True
+        if has_source:
+            qs = qs.filter(access_filter & source_filter).distinct()
+    elif subclasse_filter:
         if subclasse_filter.lower() == 'null':
             qs = qs.filter(tbacessoopcao__id_subclasse__isnull=True)
         else:
@@ -11154,7 +11377,7 @@ def api_card_preview(request):
     from django.utils.html import escape as esc
     from home.models import (
         TbClasse, TbSubclasse, TbClassehabilidade, TbTalento, TbRaca, TbRegiao,
-        TbTerritorio, TbOrganizacao, TbMagia, TbBestiario
+        TbTerritorio, TbOrganizacao, TbMagia, TbBestiario, TbRegra, TbCondicao
     )
 
     table = request.GET.get('table', '').strip().lower()
@@ -11308,6 +11531,31 @@ def api_card_preview(request):
             description = organizacao.descricao or ""
             card_width = 420
             read_more_url = f"/mundo/organizacoes/#{organizacao.slug}"
+
+    # Regra do glossário
+    elif table in ['tbregra', 'regra', 'regras', 'glossario']:
+        regra = TbRegra.objects.filter(slug=args[0]).first()
+        if regra:
+            title = regra.nome
+            subtitle = regra.nome_en or regra.categoria or 'Regra do sistema'
+            kind = 'rule'
+            description = regra.definicao or ''
+            read_more_url = f"/jogador/glossario/#regra-{regra.slug}"
+
+    # Condição oficial
+    elif table in ['tbcondicao', 'condicao', 'condicoes']:
+        condicao = TbCondicao.objects.filter(slug=args[0]).first()
+        if condicao:
+            title = condicao.nome
+            subtitle = condicao.nome_en or 'Condição'
+            kind = 'condition'
+            description = condicao.definicao or condicao.resumo or ''
+            if condicao.efeitos_json:
+                description += '\n\n' + '\n'.join(
+                    '**%s.** %s' % (item.get('titulo', ''), item.get('texto', ''))
+                    for item in condicao.efeitos_json if isinstance(item, dict)
+                )
+            read_more_url = f"/jogador/glossario/#condicao-{condicao.slug}"
 
     # 9. Magia
     elif table in ['tbmagia', 'magia', 'magias']:
@@ -11620,6 +11868,7 @@ def jornal_list_view(request):
     return render(request, 'home/pages/jornal_list.html', {
         'artigos': artigos,
         'can_edit_wiki': request.user.is_staff,
+        'noindex': not artigos.exclude(conteudo_markdown__isnull=True).exclude(conteudo_markdown='').exists(),
     })
 
 
@@ -11765,6 +12014,7 @@ def cronicas_list_view(request):
         'minhas_cronicas': minhas,
         'can_edit_wiki': request.user.is_staff,
         'is_authenticated': request.user.is_authenticated,
+        'noindex': not qs.exclude(conteudo_markdown='').exists(),
     })
 
 
@@ -12066,6 +12316,30 @@ def itens_magicos_view(request):
 # no campo de autenticação (= ASAAS_WEBHOOK_TOKEN no .env), eventos PAYMENT_CONFIRMED
 # e PAYMENT_RECEIVED. Cada assinatura/link no Asaas deve setar `externalReference` = a
 # chave do plano (ex.: colaborador-marques-3m) — é assim que o webhook sabe o plano.
+_ASAAS_PAYMENT_LINK_PRODUCTS = {
+    # Tokens avulsos
+    '4i2hskg41p4mszkg': 'token-missao',
+    'seyli68v427zvbds': 'token-boost',
+    '69cthesmlfcu15th': 'token-superboost',
+    # Conde / Condessa
+    '8875kbi9lmlnbpbs': 'colaborador-conde-1m',
+    '0d19cyn73or5ee4m': 'colaborador-conde-1m',
+    'gggvz2l87g6ah4rs': 'colaborador-conde-3m',
+    '74zeloshnmy8qf6d': 'colaborador-conde-6m',
+    '8kbe3dbsjx5tl9c5': 'colaborador-conde-12m',
+    # Marquês / Marquesa
+    '2icusjwxwyth44dl': 'colaborador-marques-1m',
+    'vdc8h0lg9c6ni55z': 'colaborador-marques-1m',
+    'ckm5u78s3yhkztf4': 'colaborador-marques-3m',
+    'js1wn7vwapvcis2k': 'colaborador-marques-6m',
+    'mo3xjc7myj5q67g7': 'colaborador-marques-12m',
+    # Duque / Duquesa
+    'p7ne3agr03yphhqx': 'colaborador-duque-1m',
+    'ir2nwmgt3s950e02': 'colaborador-duque-1m',
+    'm7uakneidrvso7a9': 'colaborador-duque-3m',
+    'en2ibwj3r29s77ig': 'colaborador-duque-6m',
+    'hojk0lk7zssxsa8w': 'colaborador-duque-12m',
+}
 _ASAAS_PERIODO = {'1m': 'MONTHLY', '3m': 'QUARTERLY', '6m': 'SEMIANNUALLY', '12m': 'YEARLY'}
 _ASAAS_MESES = {'1m': 1, '3m': 3, '6m': 6, '12m': 12}
 
@@ -12110,7 +12384,13 @@ def _add_meses(dt, meses):
 def _asaas_map_transacao(payment, event):
     """Pagamento Asaas → campos da tabela `transactions`. Plano vem do externalReference
     (chave: colaborador-<conde|marques|duque>-<1m|3m|6m|12m>). Função PURA (testável)."""
-    plano = (payment.get('externalReference') or '').strip()
+    payment_link = payment.get('paymentLink')
+    if isinstance(payment_link, dict):
+        payment_link = payment_link.get('id')
+    plano = (
+        (payment.get('externalReference') or '').strip()
+        or _ASAAS_PAYMENT_LINK_PRODUCTS.get(str(payment_link or ''), '')
+    )
     sufixo = plano.rsplit('-', 1)[-1] if '-' in plano else ''
     pdate = _asaas_parse_dt(payment.get('paymentDate') or payment.get('confirmedDate')
                             or payment.get('clientPaymentDate')) or timezone.now()

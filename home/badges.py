@@ -24,6 +24,7 @@ Formato uniforme de badge (dict):
 Perf: helpers `_batch` fazem UMA query pro conjunto de usuários da página
 (/jogadores/) — sem N+1.
 """
+from django.db import transaction
 from django.utils import timezone
 
 
@@ -264,43 +265,51 @@ def is_colaborador_batch(users):
     Default: todos False se a tabela do bot estiver ausente (SQLite dev)."""
     resultado = {u.pk: False for u in users}
     try:
-        from django.db.models import Q
-        from .models import BotTransaction, BotMember
-        # e-mail direto do auth.User + e-mails ligados via discord_user_id do perfil.
-        email_para_pks = {}
-        did_para_pks = {}
-        for u in users:
-            email = (getattr(u, 'email', '') or '').strip().lower()
-            if email:
-                email_para_pks.setdefault(email, []).append(u.pk)
-            perfil = getattr(u, 'profile', None)
-            did = getattr(perfil, 'discord_user_id', None)
-            if did:
-                did_para_pks.setdefault(str(did), []).append(u.pk)
-        # discord_user_id → e-mails do BotMember (uma query).
-        if did_para_pks:
-            membros = BotMember.objects.filter(
-                discordUserId__in=list(did_para_pks.keys())
-            ).values_list('discordUserId', 'email')
-            for did, email in membros:
-                if email:
-                    for pk in did_para_pks.get(str(did), []):
-                        email_para_pks.setdefault(email.strip().lower(), []).append(pk)
-        if not email_para_pks:
-            return resultado
-        cond = Q()
-        for e in email_para_pks:
-            cond |= Q(email__iexact=e)
-        ativos = (BotTransaction.objects
-                  .filter(cond, subscriptionPlan__startswith='colaborador',
-                          status=1, expirationDate__gt=timezone.now())
-                  .values_list('email', flat=True))
-        for email in ativos:
-            for pk in email_para_pks.get((email or '').strip().lower(), []):
-                resultado[pk] = True
+        # As tabelas do bot são opcionais em dev/teste. O ``atomic`` interno cria
+        # um savepoint quando a view já está em transação; se a tabela não existe,
+        # o rollback fica restrito a esta leitura e as consultas seguintes seguem.
+        with transaction.atomic():
+            return _is_colaborador_batch_from_bot(users, resultado)
     except Exception:
-        # Tabela do bot ausente/erro → ninguém marcado como colaborador (seguro).
-        return {u.pk: False for u in users}
+        return resultado
+
+
+def _is_colaborador_batch_from_bot(users, resultado):
+    from django.db.models import Q
+    from .models import BotTransaction, BotMember
+
+    # e-mail direto do auth.User + e-mails ligados via discord_user_id do perfil.
+    email_para_pks = {}
+    did_para_pks = {}
+    for u in users:
+        email = (getattr(u, 'email', '') or '').strip().lower()
+        if email:
+            email_para_pks.setdefault(email, []).append(u.pk)
+        perfil = getattr(u, 'profile', None)
+        did = getattr(perfil, 'discord_user_id', None)
+        if did:
+            did_para_pks.setdefault(str(did), []).append(u.pk)
+    # discord_user_id → e-mails do BotMember (uma query).
+    if did_para_pks:
+        membros = BotMember.objects.filter(
+            discordUserId__in=list(did_para_pks.keys())
+        ).values_list('discordUserId', 'email')
+        for did, email in membros:
+            if email:
+                for pk in did_para_pks.get(str(did), []):
+                    email_para_pks.setdefault(email.strip().lower(), []).append(pk)
+    if not email_para_pks:
+        return resultado
+    cond = Q()
+    for email in email_para_pks:
+        cond |= Q(email__iexact=email)
+    ativos = (BotTransaction.objects
+              .filter(cond, subscriptionPlan__startswith='colaborador',
+                      status=1, expirationDate__gt=timezone.now())
+              .values_list('email', flat=True))
+    for email in ativos:
+        for pk in email_para_pks.get((email or '').strip().lower(), []):
+            resultado[pk] = True
     return resultado
 
 

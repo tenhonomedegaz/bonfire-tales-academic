@@ -3,6 +3,9 @@ from django.contrib.auth import views as auth_views
 from . import views
 
 urlpatterns = [
+    path('robots.txt', views.robots_txt_view, name='robots_txt'),
+    path('sitemap.xml', views.sitemap_xml_view, name='sitemap_xml'),
+    path('ads.txt', views.ads_txt_view, name='ads_txt'),
     path('cadastro/', views.register_view, name='register'),
     path('login/', auth_views.LoginView.as_view(template_name='home/login.html', authentication_form=views.EmailOrUsernameAuthenticationForm), name='login'),
     path('logout/', auth_views.LogoutView.as_view(next_page='/'), name='logout'),
@@ -56,6 +59,10 @@ urlpatterns = [
     path('wiki/mapa/desenhos/upload-imagem/', views.wiki_upload_map_image, name='wiki_upload_map_image'),
 
     path('', views.home_view, name='home'),
+    path('sobre/', views.pagina_institucional_view, {'pagina': 'sobre'}, name='sobre'),
+    path('contato/', views.pagina_institucional_view, {'pagina': 'contato'}, name='contato'),
+    path('privacidade/', views.pagina_institucional_view, {'pagina': 'privacidade'}, name='privacidade'),
+    path('termos/', views.pagina_institucional_view, {'pagina': 'termos'}, name='termos'),
     path('busca/', views.busca_global, name='busca'),
     path('jogador/classes/', views.classes_view, name='classes'),
     path('jogador/classes', views.classes_view),
@@ -161,16 +168,15 @@ urlpatterns = [
 
     path('magias/escolas/', views.magias_escolas_view, name='magias_escolas'),
     path('magias/listas/', views.magias_view, name='magias_listas'),
-    path('magias/congregacao/', views.placeholder_view, {'title': 'Congregação Mágica'}, name='magias_congregacao'),
-    
-    path('mundo/cosmo/', views.placeholder_view, {'title': 'Cosmologia'}, name='mundo_cosmo'),
-    path('mundo/linha-do-tempo/', views.placeholder_view, {'title': 'Linha do Tempo'}, name='mundo_linha_tempo'),
+    path('magias/congregacao/', views.redirect_conteudo_indisponivel, {'destino': 'magias_listas'}, name='magias_congregacao'),
+    path('mundo/cosmo/', views.redirect_conteudo_indisponivel, {'destino': 'mundo_regioes'}, name='mundo_cosmo'),
+    path('mundo/linha-do-tempo/', views.redirect_conteudo_indisponivel, {'destino': 'mundo_cronicas'}, name='mundo_linha_tempo'),
     path('mundo/regioes/', views.mundo_regioes_view, name='mundo_regioes'),
     path('mundo/territorios/<slug:slug>/', views.territorio_detail_view, name='territorio_detail'),
     path('mundo/regioes/<slug:slug>/', views.regiao_detail_view, name='regiao_detail'),
     path('mundo/organizacoes/', views.organizacoes_view, name='mundo_organizacoes'),
     path('mundo/bestiario/', views.bestiario_view, name='mundo_bestiario'),
-    path('mundo/faccoes/', views.placeholder_view, {'title': 'Facções'}, name='mundo_faccoes'),
+    path('mundo/faccoes/', views.redirect_conteudo_indisponivel, {'destino': 'mundo_organizacoes'}, name='mundo_faccoes'),
 
     
     path('mundo/jornal/', views.jornal_list_view, name='mundo_jornal'),
@@ -190,6 +196,6 @@ urlpatterns = [
     path('mapa/', views.mapa_view, name='mapa'),
     path('mapa', views.mapa_view),
     path('colaborador/', views.colaborador_view, name='colaborador'),
-    path('catarse/', views.placeholder_view, {'title': 'Apoie no Catarse'}, name='catarse'),
-    path('quem-somos/', views.placeholder_view, {'title': 'Quem Somos'}, name='quem_somos'),
+    path('catarse/', views.redirect_conteudo_indisponivel, {'destino': 'colaborador'}, name='catarse'),
+    path('quem-somos/', views.pagina_institucional_view, {'pagina': 'sobre'}, name='quem_somos'),
 ]

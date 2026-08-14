@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """Importa/atualiza criaturas oficiais a partir dos CSVs em ref/Livros.
 
-O comando evita copiar prosa longa do livro para o banco. Em vez disso, ele
-gera uma descricao tecnica em PT-BR a partir dos campos estruturados e cria
-referencias mecanicas para magias encontradas no statblock.
+O texto completo de cada traco e acao e preservado em ``entries_en`` e em
+``entries``. Uma etapa editorial pode traduzir ``entries`` depois sem perder a
+fonte mecanica usada para conferencias e futuras reimportacoes.
 """
 
 import csv
@@ -188,6 +188,12 @@ FEATURE_PT = {
     "Longship": "Dracar",
     "Warhammer": "Martelo de Guerra",
     "Cold Breath": "Sopro de Frio",
+    "Bash": "Pancada",
+    "Drone": "Zumbido",
+    "Glaive": "Alabarda",
+    "Howdah": "Palanquim",
+    "Maul": "Malho",
+    "Peck": "Bicada",
     "Fire Aura": "Aura de Fogo",
     "Lightning Strike": "Golpe de Relâmpago",
     "Psychic Beam": "Feixe Psíquico",
@@ -1174,8 +1180,23 @@ def _slug_criatura(nome_en):
 
 
 def _traduz_feature(nome):
-    base = re.sub(r"\s*\([^)]*\)\s*$", "", nome or "").strip()
-    return FEATURE_PT.get(base, base)
+    match = re.match(r"^(.*?)(\s*\([^)]*\))?$", (nome or "").strip())
+    base = (match.group(1) if match else nome or "").strip()
+    suffix = (match.group(2) if match else "") or ""
+    suffix = re.sub(r"\bRecharge\b", "Recarga", suffix, flags=re.I)
+    suffix = re.sub(
+        r"\bCosts?\s+(\d+)\s+Actions?\b",
+        r"Custa \1 Ações",
+        suffix,
+        flags=re.I,
+    )
+    suffix = re.sub(
+        r"/(Day|Rest)\b",
+        lambda m: "/Dia" if m.group(1).lower() == "day" else "/Descanso",
+        suffix,
+        flags=re.I,
+    )
+    return f"{FEATURE_PT.get(base, base)}{suffix}"
 
 
 def _linha_pt(rotulo, valor):
@@ -1337,12 +1358,17 @@ def _split_secao(texto, catalog):
 
     blocos = []
     atual = None
-    partes = re.split(r"(?m)(?=^[A-Z][A-Za-z' -]+(?:\s*\([^)]*\))?\.\s+)", texto)
+    # Um bloco oficial sempre começa como ``Nome. descrição`` na mesma linha.
+    # Usar ``\s`` aqui fazia parágrafos como ``Claw attack.\n\nBite. ...``
+    # virarem ações falsas, pois a quebra de linha era aceita como separador.
+    sentence_start = r"(?:The|It|This|That|These|Those|When|While|If|On)\b"
+    header = rf"(?!{sentence_start})[A-Z][A-Za-z' -]+(?:\s*\([^)]*\))?"
+    partes = re.split(rf"(?m)(?=^{header}\.[ \t]+(?=\S))", texto)
     for parte in partes:
         parte = parte.strip()
         if not parte:
             continue
-        match = re.match(r"^([A-Z][A-Za-z' -]+(?:\s*\([^)]*\))?)\.\s*(.*)$", parte, re.S)
+        match = re.match(rf"^({header})\.[ \t]+(.+)$", parte, re.S)
         if match:
             if atual:
                 blocos.append(atual)
@@ -1352,7 +1378,8 @@ def _split_secao(texto, catalog):
             atual = {
                 "name_en": nome_en,
                 "name": _traduz_feature(nome_en),
-                "entries": _entries_resumo(nome_en, refs),
+                "entries_en": [corpo],
+                "entries": [corpo],
             }
             if refs:
                 atual["spell_refs"] = refs
@@ -1370,6 +1397,8 @@ def _split_secao(texto, catalog):
                     if tag not in {f"cast{{spell:{slug}}}" for slug in uso_slugs}
                 ]
         elif atual:
+            atual.setdefault("entries_en", []).append(parte)
+            atual.setdefault("entries", []).append(parte)
             refs = _extract_spell_refs(parte, catalog)
             if refs:
                 atual.setdefault("spell_refs", []).extend(refs)
@@ -1384,13 +1413,6 @@ def _split_secao(texto, catalog):
         if "spell_refs" in bloco:
             bloco["spell_refs"] = _dedupe_refs(bloco["spell_refs"])
     return blocos
-
-
-def _entries_resumo(nome_en, refs):
-    if refs:
-        nomes = ", ".join(ref["name"] for ref in refs)
-        return [f"Referencia magica importada: {nomes}."]
-    return [f"Efeito importado como bloco tecnico: {_traduz_feature(nome_en)}."]
 
 
 def _dedupe_refs(refs):

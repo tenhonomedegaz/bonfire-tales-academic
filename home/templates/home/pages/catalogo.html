@@ -65,10 +65,28 @@
           <option value="">Todos os tipos</option>
         </select>
       </div>
-      <div class="catalog-list custom-scrollbar" id="catalogList"></div>
+      <div class="catalog-list custom-scrollbar" id="catalogList">
+        {% for item in items %}
+        <a class="catalog-card" href="#{{ item.slug }}">
+          <div class="catalog-card-title">{{ item.nome }}</div>
+          <div class="catalog-card-meta">{{ item.tipo }}</div>
+        </a>
+        {% empty %}
+        <div class="catalog-empty">Nenhum conteúdo cadastrado.</div>
+        {% endfor %}
+      </div>
     </aside>
     <article class="catalog-detail" id="catalogDetail">
-      <p class="catalog-empty">Selecione um item na lista.</p>
+      {% with first=items.0 %}
+      {% if first %}
+      <div class="catalog-card-meta">{{ first.tipo }}</div>
+      <h2 class="detail-title" id="{{ first.slug }}">{{ first.nome }}</h2>
+      {% if first.resumo %}<p class="catalog-subtitle">{{ first.resumo }}</p>{% endif %}
+      <div class="bonfire-markdown prose prose-invert max-w-none" style="margin-top:0.75rem;">{{ first.descricao|linebreaks }}</div>
+      {% else %}
+      <p class="catalog-empty">Nenhum conteúdo cadastrado.</p>
+      {% endif %}
+      {% endwith %}
     </article>
   </div>
 </section>

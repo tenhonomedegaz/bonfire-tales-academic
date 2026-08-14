@@ -415,13 +415,19 @@
     
     const _cache = {};
 
-    async function fetchOpcoes(tipo, subclasse = '') {
-        const key = `${tipo.toLowerCase()}::${subclasse.toLowerCase()}`;
+    async function fetchOpcoes(tipo, classe = '', subclasse = '', nivel = '') {
+        const key = [tipo, classe, subclasse, nivel].map(v => String(v || '').toLowerCase()).join('::');
         if (_cache[key]) return _cache[key];
         try {
             let url = `/api/opcoes/?tipo=${encodeURIComponent(tipo)}`;
+            if (classe) {
+                url += `&classe=${encodeURIComponent(classe)}`;
+            }
             if (subclasse) {
                 url += `&subclasse=${encodeURIComponent(subclasse)}`;
+            }
+            if (nivel) {
+                url += `&nivel=${encodeURIComponent(nivel)}`;
             }
             const res = await fetch(url);
             if (!res.ok) throw new Error(res.statusText);
@@ -646,15 +652,17 @@
         const byKey = {};
         widgets.forEach(el => {
             const tipo = el.dataset.tipo || '';
+            const classe = el.dataset.classe || '';
             const subclasse = el.dataset.subclasse || '';
-            const key = `${tipo}::${subclasse}`;
-            if (!byKey[key]) byKey[key] = { tipo, subclasse, els: [] };
+            const nivel = el.dataset.nivel || '';
+            const key = `${tipo}::${classe}::${subclasse}::${nivel}`;
+            if (!byKey[key]) byKey[key] = { tipo, classe, subclasse, nivel, els: [] };
             byKey[key].els.push(el);
         });
 
         await Promise.all(
-            Object.values(byKey).map(async ({ tipo, subclasse, els }) => {
-                const opcoes = await fetchOpcoes(tipo, subclasse);
+            Object.values(byKey).map(async ({ tipo, classe, subclasse, nivel, els }) => {
+                const opcoes = await fetchOpcoes(tipo, classe, subclasse, nivel);
                 els.forEach(el => {
                     if (el.dataset.hydrated) return; 
                     renderWidget(el, tipo, opcoes);

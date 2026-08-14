@@ -137,14 +137,6 @@ class _CriadorBase(TestCase):
         if generic_payload:
             payload['picks'] = generic_payload
 
-        picks = views._classe_prof_picks_nv1(classe)
-        if picks:
-            sel = []
-            for pick in picks:
-                allowed = list(views._classe_prof_pick_options(pick['tipo']))
-                sel.append({'valores': allowed[:int(pick.get('n') or 0)]})
-            payload['escolhas_classe_prof'] = sel
-
         conj = views._classe_conjuracao(classe)
         if conj:
             base = {s: int(_SCORES[s]) for s in point_buy.SIGLAS}
@@ -963,6 +955,71 @@ class ValidacaoServerSideTests(_CriadorBase):
         self.assertEqual(body['preview']['ca'], 12)
         self.assertFalse(TbPersonagem.objects.exists())
 
+    def test_preview_cacador_calcula_vitais_com_escolhas_futuras_pendentes(self):
+        """A prévia de PV/CA não depende de o jogador ter preenchido a etapa Classe.
+
+        Reproduz o fluxo que antes era alcançável pelos números do stepper: raça,
+        classe e antecedente definidos, mas perícias, maestrias e ferramenta do
+        Caçador ainda vazias. Essas pendências bloqueiam avançar/criar, não o cálculo
+        dos vitais que orienta as escolhas seguintes.
+        """
+        payload = self._payload('cacador', raca_slug='anao')
+        payload.update({
+            'pericias_classe': [],
+            'picks': [],
+            'maestrias': [],
+            'escolhas_classe_prof': [],
+            'truques': [],
+            'magias': [],
+            'talento_origem': None,
+            'talento_raca': '',
+        })
+        user = self._staff()
+        self.client.force_login(user)
+        resp = self.client.post(
+            reverse('criar_personagem_preview'),
+            data=json.dumps(payload),
+            content_type='application/json',
+        )
+        self.assertEqual(resp.status_code, 200, resp.content)
+        body = resp.json()
+        self.assertTrue(body['ready'], body)
+        self.assertIsInstance(body['preview']['pv'], int)
+        self.assertIsInstance(body['preview']['ca'], int)
+        self.assertFalse(TbPersonagem.objects.exists())
+
+    def test_criador_e_pathbuilder_tem_contratos_de_destino_isolados(self):
+        user = self._staff()
+        self.client.force_login(user)
+
+        creator_page = self.client.get(reverse('criacao_ficha'))
+        self.assertContains(creator_page, 'data-mode="creator"')
+        self.assertContains(creator_page, 'action="%s"' % reverse('criar_personagem'))
+        self.assertIn('no-store', creator_page.get('Cache-Control', ''))
+
+        pathbuilder_page = self.client.get(reverse('pathbuilder'))
+        self.assertContains(pathbuilder_page, 'data-mode="pathbuilder"')
+        self.assertContains(pathbuilder_page, 'action="%s"' % reverse('pathbuilder_iniciar'))
+        self.assertIn('no-store', pathbuilder_page.get('Cache-Control', ''))
+
+        path_response = self.client.post(
+            reverse('pathbuilder_iniciar'),
+            data=json.dumps(self._payload('cacador')),
+            content_type='application/json',
+        )
+        self.assertEqual(path_response.status_code, 200, path_response.content)
+        self.assertEqual(path_response.json()['mode'], 'pathbuilder')
+        self.assertFalse(TbPersonagem.objects.exists())
+
+        create_response = self.client.post(
+            reverse('criar_personagem'),
+            data=json.dumps(self._payload('cacador')),
+            content_type='application/json',
+        )
+        self.assertEqual(create_response.status_code, 200, create_response.content)
+        self.assertEqual(create_response.json()['mode'], 'creator')
+        self.assertTrue(TbPersonagem.objects.filter(pk=create_response.json()['id']).exists())
+
     def test_preview_nao_calcula_pv_ca_com_point_buy_incompleto(self):
         payload = self._payload('guerreiro')
         payload['scores'] = {sigla: 8 for sigla in point_buy.SIGLAS}
@@ -1155,28 +1212,42 @@ class VampirismoCriadorTests(_CriadorBase):
         self.assertIn('darkvision 90ft', self._vampiro('anao')['sentidos'])
 
 
-class Bug2EquipamentoInicialTests(_CriadorBase):
-    """BUG-2: 'equipamento inicial' em classe sem kit vira ouro — mas agora explícito."""
+class EquipamentoInicialTests(_CriadorBase):
+    """Equipamento de classe é resolvido pelas tags e vira inventário real."""
 
-    def test_inicial_sem_kit_credita_ouro_transparente(self):
-        classe = TbClasse.objects.get(slug='guerreiro')
-        # Hoje TODAS as 13 classes têm kit cadastrado (correto). Para exercitar o caminho
-        # "sem kit → ouro alternativo transparente", zera o kit desta classe SÓ no banco de
-        # teste (não reverte o dado real do guerreiro; é uma pré-condição sintética).
-        classe.equipamento = ''
-        classe.save(update_fields=['equipamento'])
-        self.assertFalse((classe.equipamento or '').strip(),
-                         'pré-condição do teste: classe sem kit cadastrado')
+    def test_kit_inicial_cria_itens_do_catalogo_e_equipa_armadura(self):
         user = self._novo_usuario('dono-equip', staff=True)
         payload = self._payload('guerreiro', equip_classe='inicial')
         resp = self._post_criar(user, payload)
         self.assertEqual(resp.status_code, 200, resp.content)
-        p = TbPersonagem.objects.get(pk=resp.json()['id'])
-        # ouro alternativo creditado (po_inicial 100 + equip_gold_alt 150 = 250 PO)
-        self.assertEqual(p.carteira_pc, 250 * 100)
-        # e há um item transparente explicando que virou ouro (não fica em silêncio)
-        self.assertTrue(TbPersonagemItem.objects.filter(
-            id_personagem=p, nome__icontains='sem kit de equipamento').exists())
+        personagem = TbPersonagem.objects.get(pk=resp.json()['id'])
+        itens = TbPersonagemItem.objects.filter(id_personagem=personagem)
+        self.assertTrue(itens.filter(id_item_mundano__slug='chain-mail', equipado=True).exists())
+        self.assertTrue(itens.filter(id_item_mundano__slug='shield', equipado=True).exists())
+        self.assertFalse(itens.filter(nome__icontains='Equipamento inicial da classe').exists())
+        self.assertEqual(personagem.carteira_pc, 112 * 100)  # antecedente 100 + kit 12
+
+    def test_classe_sem_schema_bloqueia_criacao(self):
+        classe = TbClasse.objects.get(slug='guerreiro')
+        classe.tags_json = [
+            tag for tag in (classe.tags_json or [])
+            if not str(tag).startswith('starting_equipment{')
+        ]
+        classe.save(update_fields=['tags_json'])
+        user = self._novo_usuario('dono-equip-invalido', staff=True)
+        payload = self._payload('guerreiro', equip_classe='inicial')
+        resp = self._post_criar(user, payload)
+        self.assertEqual(resp.status_code, 400, resp.content)
+        self.assertIn('equipamento inicial', ' '.join(resp.json()['erros']).lower())
+        self.assertFalse(TbPersonagem.objects.filter(dono=user).exists())
+
+    def test_alternativa_em_ouro_nao_duplica_valor_do_antecedente(self):
+        user = self._novo_usuario('dono-equip-ouro', staff=True)
+        resp = self._post_criar(user, self._payload('guerreiro', equip_classe='ouro'))
+        self.assertEqual(resp.status_code, 200, resp.content)
+        personagem = TbPersonagem.objects.get(pk=resp.json()['id'])
+        self.assertEqual(personagem.carteira_pc, 250 * 100)  # antecedente 100 + classe 150
+        self.assertFalse(TbPersonagemItem.objects.filter(id_personagem=personagem).exists())
 
 
 class ProgressaoAventurasTests(_CriadorBase):
@@ -1570,6 +1641,37 @@ class PicksGenericoTests(_CriadorBase):
     def test_cacador_via_picks(self):
         p = self._prova_identico('cacador')
         self.assertEqual(p.escolhas.filter(tipo='maestria').count(), 3)
+        self.assertEqual(p.escolhas.filter(tipo='ferramenta').count(), 1)
+        self.assertEqual(p.proficiencias.filter(tipo='ferramenta').count(), 1)
+
+    def test_cacador_expoe_um_unico_grupo_de_ferramenta(self):
+        from home import picks
+
+        classe = TbClasse.objects.get(slug='cacador')
+        grupos = [g for g in picks.resolve_builder(classe) if g['kind'] == 'ferramenta']
+        self.assertEqual(len(grupos), 1)
+        self.assertEqual(grupos[0]['n'], 1)
+
+        catalogo = views._criador_catalogos()
+        cacador = next(c for c in catalogo['classes'] if c['slug'] == 'cacador')
+        grupos_catalogo = [g for g in cacador['pick_groups'] if g['kind'] == 'ferramenta']
+        self.assertEqual(len(grupos_catalogo), 1)
+        self.assertNotIn('classe_prof_picks', cacador)
+
+    def test_payload_antigo_de_ferramenta_continua_compativel(self):
+        """Uma aba antiga ainda aberta pode enviar o formato removido por NOME."""
+        payload = self._payload('cacador')
+        tool_group = next(g for g in payload['picks'] if g['kind'] == 'ferramenta')
+        tool_slug = tool_group['valores'][0]
+        tool = TbItemMundano.objects.get(slug=tool_slug)
+        # O JS anterior já enviava o grupo genérico, porém vazio, ao mesmo tempo em
+        # que enviava a escolha preenchida pelo componente duplicado legado.
+        tool_group['valores'] = []
+        payload['escolhas_classe_prof'] = [{'tipo': 'ferramenta', 'valores': [tool.nome]}]
+
+        p = self._cria('cacador-legado-ferramenta', payload)
+        self.assertEqual(p.escolhas.filter(tipo='ferramenta', valor=tool.slug).count(), 1)
+        self.assertEqual(p.proficiencias.filter(tipo='ferramenta', nome=tool.nome).count(), 1)
 
     def test_ladino_via_picks(self):
         p = self._prova_identico('ladino')

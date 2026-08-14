@@ -10,6 +10,14 @@ Copie `production.env.example` para `.env.production` e ajuste:
 - `DJANGO_ALLOWED_HOSTS`
 - `DJANGO_CSRF_TRUSTED_ORIGINS`
 - `POSTGRES_URL`
+- `SITE_ORIGIN` (na produção: `https://bonfiretales.com.br`)
+- `ADSENSE_ENABLED` (`1` para habilitar publicidade nas páginas elegíveis)
+- `ADSENSE_PUBLISHER_ID` (por padrão, `ca-pub-1634793837919535`)
+
+Os anúncios automáticos funcionam somente com o publisher configurado. Caso a equipe
+crie unidades manuais no AdSense, informe também `ADSENSE_SIDEBAR_SLOT` e
+`ADSENSE_HORIZONTAL_SLOT`. Telas privadas, ferramentas e páginas sem conteúdo
+editorial não carregam inventário de anúncios.
 
 Para túnel provisório via Cloudflare, coloque o domínio `trycloudflare.com` gerado em `DJANGO_ALLOWED_HOSTS` e a URL completa com `https://` em `DJANGO_CSRF_TRUSTED_ORIGINS`.
 

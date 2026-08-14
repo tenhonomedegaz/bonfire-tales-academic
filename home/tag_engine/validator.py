@@ -155,6 +155,10 @@ _SPELL_NONSLUG = {"pick", "lista", "truque", "escola", "ability", "nivel", "qual
 _RE_MASTERY = re.compile(r"add[_-]mastery\s*:\s*([a-z0-9_-]+)")
 _RE_OPCAO = re.compile(r"\bopcao\s*:\s*([a-z0-9_-]+)")
 _RE_BESTIARY = re.compile(r"bestiary\s*\{\s*([a-z0-9_-]+)\s*\}")
+_RE_STARTING_ITEM = re.compile(
+    r"\bitem\s*\{\s*[^{}]*?\bslug\s*:\s*([a-z0-9][a-z0-9_-]*)",
+    re.I,
+)
 _RE_CLASSE = re.compile(r"\bclasse\s*:\s*([a-z0-9_-]+)")
 _RE_SOURCE = re.compile(r"\b(talento|raca|linhagem|essencia|subclasse)\s*:\s*([a-z][a-z0-9_-]*)")
 
@@ -240,6 +244,15 @@ def _check_references(line, lib, data, locals_=frozenset()):
         if data.bestiary_slugs and slug not in data.bestiary_slugs:
             out.append(Diagnostic(ERROR, "ref-bestiary",
                        f"criatura '{m.group(1)}' não existe no Bestiário (#REF!)", m.group(0)))
+    # item{slug:...} usado pelo equipamento inicial e outras concessões.
+    for m in _RE_STARTING_ITEM.finditer(line):
+        slug = _slug(m.group(1))
+        if slug not in data.item_slugs:
+            out.append(Diagnostic(
+                ERROR, "ref-item",
+                f"item mundano '{m.group(1)}' não existe em TbItemMundano (#REF!)",
+                m.group(0),
+            ))
     # classe:slug (fora de ability{}, já coberto lá)
     for m in _RE_CLASSE.finditer(line):
         slug = _slug(m.group(1))
@@ -547,6 +560,7 @@ _COLON_REF_KEYS = frozenset({
     "opcao",            # opcao:tipo
     "pick",             # pick:usos-de-disparo-silvestre (opção/seleção por slug)
     "resource_cost", "resource_restore",  # resource-cost:<recurso>
+    "slug",              # slug:<item-do-catalogo> dentro de item{}/option{}
 })
 # Chaves cujo CORPO entre chaves é um slug/nome de referência (não bloco de efeitos).
 _BRACE_REF_KEYS = frozenset({
@@ -820,6 +834,7 @@ class DataIndex:
         self.masteries = set()
         self.opcao_tipos = set()
         self.bestiary_slugs = set()
+        self.item_slugs = set()
         self.internal_pools = set()   # pools de fórmula/fixos declarados nas tags
 
     def resource_exists(self, slug, lib):
@@ -920,6 +935,13 @@ class DataIndex:
                 if getattr(b, "slug", None):
                     self.bestiary_slugs.add(_slug(b.slug))
         safe(bestiary)
+
+        def items():
+            from home.models import TbItemMundano
+            for item in TbItemMundano.objects.all():
+                if getattr(item, "slug", None):
+                    self.item_slugs.add(_slug(item.slug))
+        safe(items)
 
         def pools():
             from home.models import TbClassehabilidade, TbTalento, TbOpcaojogo
