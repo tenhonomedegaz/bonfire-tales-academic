@@ -68,7 +68,8 @@ class PathbuilderContratoClienteTests(_CriadorBase):
                        'pb-line-name', 'pb-line-tools', 'pb-stepper-num', 'pb-attr',
                        'pb-attr-sig', 'pb-attr-final', 'pb-base-cell', 'pb-check', 'pb-x',
                        'pb-counter', 'pb-diff-cell', 'pb-diff-lbl', 'pb-sheet-error',
-                       'pb-choice-search', 'pb-muted'):
+                       'pb-choice-search', 'pb-opt-control', 'pb-racial-select',
+                       'pb-muted'):
             self.assertIn('.%s' % classe, css, classe)
 
     def test_o_laboratorio_nao_reimplementa_a_folha_no_css_nem_no_js(self):
@@ -102,6 +103,7 @@ class PathbuilderTests(_CriadorBase):
             "atributos_bonus": {},
             "escolhas": {},
             "talentos": [],
+            "talentos_raciais": [],
             "itens": [],
             "magias": [],
         }
@@ -290,6 +292,55 @@ class PathbuilderTests(_CriadorBase):
             self.assertIn("meta", linha, chave)    # subtitulo do cartao
             self.assertNotIn("descricao", linha, chave)  # texto so sob demanda
         self.assertTrue(cat["classes"][0]["subclasses"] is not None)
+        self.assertTrue(all(row["grupo"].lower() == "geral" for row in cat["talentos"]))
+        self.assertTrue(all(row["atributos"] for row in cat["talentos"]))
+
+    def test_talento_livre_aplica_seu_mais_um_no_atributo_escolhido(self):
+        payload = self._payload("guerreiro")
+        talento = TbTalento.objects.filter(tipo__iexact="geral").first()
+        from home.views import _talento_attr_options
+        atributo = _talento_attr_options(talento)[0]
+        classes = [{"slug": "guerreiro", "nivel": 4, "subclasse": ""}]
+        base = self._post_preview(payload, self._build("guerreiro", classes=classes)).json()["build"]
+        response = self._post_preview(payload, self._build("guerreiro", **{
+            "classes": classes,
+            "talentos": [{"slug": talento.slug, "atributo": atributo}],
+        }))
+        self.assertEqual(response.status_code, 200, response.content)
+        result = response.json()["build"]
+        before = next(row["valor"] for row in base["atributos"] if row["sig"] == atributo)
+        after = next(row["valor"] for row in result["atributos"] if row["sig"] == atributo)
+        self.assertEqual(after, before + 1)
+        self.assertNotIn("Escolha o atributo", " ".join(result["validacao"]["problemas"]))
+
+    def test_talento_legado_sem_atributo_continua_editavel_mas_e_sinalizado(self):
+        payload = self._payload("guerreiro")
+        talento = TbTalento.objects.filter(tipo__iexact="geral").first()
+        response = self._post_preview(payload, self._build("guerreiro", **{
+            "classes": [{"slug": "guerreiro", "nivel": 4, "subclasse": ""}],
+            "talentos": [talento.slug],
+        }))
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assertIn("Escolha o atributo", " ".join(
+            response.json()["build"]["validacao"]["problemas"]))
+
+    def test_marcos_de_talento_racial_usam_o_resolvedor_do_levelup(self):
+        payload = self._payload("guerreiro")
+        classes = [{"slug": "guerreiro", "nivel": 17, "subclasse": ""}]
+        first = self._post_preview(payload, self._build("guerreiro", classes=classes))
+        self.assertEqual(first.status_code, 200, first.content)
+        groups = first.json()["build"]["talentos_raciais_grupos"]
+        self.assertTrue(groups, "a raca da fixture deve possuir marco racial acima do nivel 1")
+        group = groups[0]
+        choice = group["opcoes"][0]["nome"]
+        second = self._post_preview(payload, self._build("guerreiro", **{
+            "classes": classes,
+            "talentos_raciais": [{"nivel": group["nivel"], "nome": choice}],
+        }))
+        self.assertEqual(second.status_code, 200, second.content)
+        resolved = next(row for row in second.json()["build"]["talentos_raciais_grupos"]
+                        if row["nivel"] == group["nivel"])
+        self.assertEqual(resolved["selecionado"], choice)
 
     def test_preview_deriva_niveis_subclasse_itens_talentos_e_magias_sem_persistir(self):
         payload = self._payload("guerreiro")

@@ -305,9 +305,14 @@ def _opcao_universe(ctx):
     acc = TbAcessoopcao.objects.filter(nivel_recebimento__lte=nivel).filter(
         (Q(id_classe=classe) if classe else Q(pk__in=[]))
         | (Q(id_subclasse=subclasse) if subclasse else Q(pk__in=[])))
-    acc_ids = set(acc.values_list('id_opcao_id', flat=True))
     qs = TbOpcaojogo.objects.filter(tipo=tipo_disp)
-    if explicit_source or acc_ids:
+    # ACL e por UNIVERSO. A classe pode ter acessos de outro tipo (por exemplo,
+    # Estilos de Luta) sem que isso esconda um catalogo global sem ACL (Manobras).
+    universe_ids = qs.values_list('id_opcao', flat=True)
+    has_universe_acl = TbAcessoopcao.objects.filter(id_opcao_id__in=universe_ids).exists()
+    acc_ids = set(acc.filter(id_opcao_id__in=universe_ids).values_list(
+        'id_opcao_id', flat=True))
+    if explicit_source or has_universe_acl:
         qs = qs.filter(id_opcao__in=acc_ids)
     return [{'id': o.id_opcao, 'slug': o.slug, 'nome': o.nome,
              'descricao': o.descricao or '', 'pre': o.pre_requisito or ''}

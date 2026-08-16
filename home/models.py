@@ -1380,6 +1380,14 @@ class TbPersonagemProficiencia(models.Model):
 
 
 class TbPersonagemItem(models.Model):
+    ORIGEM_CHOICES = [
+        ('legado', 'Legado'),
+        ('criacao', 'Criacao de ficha'),
+        ('compra', 'Compra oficial'),
+        ('comunidade', 'Mercado da comunidade'),
+        ('concessao', 'Concessao da staff'),
+        ('pathbuilder', 'Pathbuilder'),
+    ]
     id = models.AutoField(db_column='Id', primary_key=True)
     id_personagem = models.ForeignKey('TbPersonagem', models.CASCADE, db_column='Id_Personagem', related_name='inventario')
     qtd = models.IntegerField(db_column='Qtd', default=1)
@@ -1412,6 +1420,12 @@ class TbPersonagemItem(models.Model):
     concedido_em = models.DateTimeField(db_column='ConcedidoEm', blank=True, null=True, db_index=True)
     origem_nota = models.CharField(db_column='OrigemNota', max_length=255, blank=True, default='',
                                    help_text='Origem da concessão (ex.: nome da missão).')
+
+    origem_tipo = models.CharField(
+        db_column='OrigemTipo', max_length=20, choices=ORIGEM_CHOICES,
+        default='legado', db_index=True,
+        help_text='Origem auditavel da linha para rebuild e reembolso seguro.',
+    )
 
     class Meta:
         db_table = 'TB_PersonagemItem'
@@ -1456,7 +1470,17 @@ class TbTransacao(models.Model):
     descricao = models.CharField(db_column='Descricao', max_length=255, blank=True, null=True)
     valor_pc = models.IntegerField(db_column='ValorPC', default=0, help_text='Assinado: + recebido, − gasto (em peças de cobre).')
     saldo_pc = models.IntegerField(db_column='SaldoPC', default=0, help_text='Carteira (PC) após o movimento.')
+    detalhes_json = models.JSONField(
+        db_column='DetalhesJSON', default=dict, blank=True,
+        help_text='Vinculo auditavel com item, quantidade e contexto da operacao.',
+    )
     criado_em = models.DateTimeField(db_column='CriadoEm', auto_now_add=True)
+    revertida = models.BooleanField(db_column='Revertida', default=False, db_index=True)
+    revertida_em = models.DateTimeField(db_column='RevertidaEm', blank=True, null=True)
+    revertida_por = models.ForeignKey(
+        'auth.User', models.SET_NULL, db_column='RevertidaPor', blank=True, null=True,
+        related_name='transacoes_personagem_revertidas',
+    )
 
     class Meta:
         db_table = 'TB_Transacao'
@@ -1466,6 +1490,46 @@ class TbTransacao(models.Model):
 
     def __str__(self):
         return f'{self.get_tipo_display()} {self.valor_pc} PC'
+
+
+class TbPersonagemRevisao(models.Model):
+    """Snapshot mecanico anterior a uma mudanca reversivel da build.
+
+    Dinheiro, aventuras, narrativa e cosmeticos ficam fora do snapshot. Assim, restaurar
+    uma build nao sobrescreve memoria de jogo pertencente a outros fluxos.
+    """
+    TIPO_CHOICES = [
+        ('nivel_1', 'Recriacao do nivel 1'),
+        ('level_up', 'Subida de nivel'),
+    ]
+    id_revisao = models.AutoField(db_column='Id_Revisao', primary_key=True)
+    id_personagem = models.ForeignKey(
+        'TbPersonagem', models.CASCADE, db_column='Id_Personagem', related_name='revisoes_build')
+    tipo = models.CharField(db_column='Tipo', max_length=20, choices=TIPO_CHOICES)
+    descricao = models.CharField(db_column='Descricao', max_length=255, blank=True, default='')
+    snapshot_json = models.JSONField(db_column='SnapshotJSON', default=dict)
+    nivel_antes = models.IntegerField(db_column='NivelAntes', default=1)
+    nivel_depois = models.IntegerField(db_column='NivelDepois', default=1)
+    aventuras_no_momento = models.IntegerField(db_column='AventurasNoMomento', default=0)
+    aventura_marker_id = models.IntegerField(db_column='AventuraMarkerId', blank=True, null=True)
+    criado_por = models.ForeignKey(
+        'auth.User', models.SET_NULL, db_column='CriadoPor', blank=True, null=True,
+        related_name='revisoes_personagem_criadas')
+    criado_em = models.DateTimeField(db_column='CriadoEm', auto_now_add=True, db_index=True)
+    revertida = models.BooleanField(db_column='Revertida', default=False, db_index=True)
+    revertida_em = models.DateTimeField(db_column='RevertidaEm', blank=True, null=True)
+    revertida_por = models.ForeignKey(
+        'auth.User', models.SET_NULL, db_column='RevertidaPor', blank=True, null=True,
+        related_name='revisoes_personagem_revertidas')
+
+    class Meta:
+        db_table = 'TB_PersonagemRevisao'
+        verbose_name = 'Revisao de build'
+        verbose_name_plural = 'Revisoes de build'
+        ordering = ['-criado_em', '-id_revisao']
+
+    def __str__(self):
+        return '%s: %s' % (self.id_personagem, self.get_tipo_display())
 
 
 class TbPersonagemAventura(models.Model):

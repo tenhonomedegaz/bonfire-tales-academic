@@ -16,16 +16,20 @@
     <div class="flex flex-wrap items-end justify-between gap-2">
       <div>
         <h1 class="font-cinzel text-xl font-bold text-bonfire-text uppercase">Magias</h1>
-        <p class="text-bonfire-muted text-[11px] mt-1">Filtre por escola, nível, concentração e ritual. Selecione para ver os detalhes.</p>
+        <p class="text-bonfire-muted text-[11px] mt-1">Filtre por classe, escola, nível, concentração e ritual. Selecione para ver os detalhes.</p>
       </div>
       {% if can_edit and user.is_superuser %}<a href="{% url 'admin:home_tbmagia_importar_excel' %}" class="rounded border border-[var(--stroke)] px-3 py-1.5 text-xs text-[var(--muted)] hover:border-[var(--ember)] hover:text-[var(--ember)]">Importar por Excel</a>{% endif %}
     </div>
 
     <!-- Filtros -->
     <div id="mgSearchBar" class="mt-2.5">
-      <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+      <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-6">
         <input id="mg-busca" type="search" placeholder="Buscar nome ou texto…" autocomplete="off"
                class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)] outline-none focus:border-[var(--ember)] lg:col-span-2">
+        <select id="mg-classe" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-2 text-sm text-[var(--text)]">
+          <option value="">Todas as classes</option>
+          {% for classe in classes_magia %}<option value="{{ classe }}">{{ classe }}</option>{% endfor %}
+        </select>
         <select id="mg-escola" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-2 text-sm text-[var(--text)]">
           <option value="">Todas as escolas</option>
           {% for e in escolas %}<option value="{{ e }}">{{ e }}</option>{% endfor %}
@@ -86,7 +90,7 @@
   var listContainer = document.getElementById('mgList');
   var detailContainer = document.getElementById('mgDetail');
   var count = document.getElementById('mg-count');
-  var fBusca = document.getElementById('mg-busca'), fEscola = document.getElementById('mg-escola'),
+  var fBusca = document.getElementById('mg-busca'), fClasse = document.getElementById('mg-classe'), fEscola = document.getElementById('mg-escola'),
       fNivel = document.getElementById('mg-nivel'), fConc = document.getElementById('mg-conc'), fRitual = document.getElementById('mg-ritual');
   var mobileMenuButton = document.getElementById('mgMobileMenuButton');
   var mobileBackdrop = document.getElementById('mgMobileBackdrop');
@@ -106,8 +110,9 @@
   function meta(label,val){return val?'<div><span class="text-[var(--muted)]">'+label+'</span> <span class="text-[var(--text)]">'+esc(val)+'</span></div>':'';}
 
   function filtra(){
-    var q=norm(fBusca.value.trim()), esc_=fEscola.value, nv=fNivel.value, conc=fConc.checked, rit=fRitual.checked;
+    var q=norm(fBusca.value.trim()), classe=fClasse.value, esc_=fEscola.value, nv=fNivel.value, conc=fConc.checked, rit=fRitual.checked;
     return MAGIAS.filter(function(m){
+      if(classe && (m.classes_lista||[]).indexOf(classe)===-1) return false;
       if(esc_ && m.escola!==esc_) return false;
       if(nv!=='' && String(m.nivel)!==nv) return false;
       if(conc && !m.concentracao) return false;
@@ -258,7 +263,7 @@
   });
 
   // ---- Eventos de filtro ----
-  [fBusca, fEscola, fNivel, fConc, fRitual].forEach(function(el){
+  [fBusca, fClasse, fEscola, fNivel, fConc, fRitual].forEach(function(el){
     el.addEventListener('input', render);
     el.addEventListener('change', render);
   });

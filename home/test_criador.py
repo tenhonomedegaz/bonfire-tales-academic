@@ -30,7 +30,7 @@ from home.models import (
     TbClasse, TbAntecedente, TbTalento, TbItemMundano, TbOpcaojogo,
     TbPersonagem, TbPersonagemClasse, TbPersonagemMagia, TbPersonagemItem,
     TbPersonagemTalento, TbPersonagemPericia, TbClassehabilidade,
-    TbPersonagemAventura,
+    TbPersonagemAventura, TbRegra,
 )
 
 # Array-padrão 15/14/13/12/10/8 = exatos 27 pontos de point-buy.
@@ -44,6 +44,9 @@ class _CriadorBase(TestCase):
     # export de produção). O engine só entende underscore, então fixamos o arquivo bom.
     @classmethod
     def setUpTestData(cls):
+        # A migration 0093 cria esta regra com PK local; o fixture possui a mesma slug
+        # com o PK oficial. Remover a semente evita conflito de unicidade no banco de teste.
+        TbRegra.objects.filter(slug='aumento-de-atributo').delete()
         call_command('loaddata', 'home/fixtures/conteudo.json', verbosity=0)
 
     def _novo_usuario(self, username, staff=False):

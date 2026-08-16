@@ -93,9 +93,16 @@
                 atributos_bonus: {},
                 escolhas: {},
                 talentos: [],
+                talentos_raciais: [],
                 itens: [],
                 magias: []
             };
+        }
+        function normalizeTalent(raw) {
+            if (raw && typeof raw === 'object') {
+                return { slug: String(raw.slug || ''), atributo: String(raw.atributo || '').toUpperCase() };
+            }
+            return { slug: String(raw || ''), atributo: '' };
         }
         function normalizeBuild(build) {
             build = build && typeof build === 'object' ? build : emptyBuild();
@@ -111,7 +118,23 @@
             build.atributos_bonus = build.atributos_bonus || {};
             build.escolhas = build.escolhas && typeof build.escolhas === 'object'
                 ? build.escolhas : {};
-            build.talentos = Array.isArray(build.talentos) ? build.talentos : [];
+            var seenTalents = Object.create(null);
+            build.talentos = (Array.isArray(build.talentos) ? build.talentos : [])
+                .map(normalizeTalent).filter(function (row) {
+                    if (!row.slug || seenTalents[row.slug]) return false;
+                    seenTalents[row.slug] = true;
+                    return true;
+                });
+            var seenRacial = Object.create(null);
+            build.talentos_raciais = (Array.isArray(build.talentos_raciais)
+                ? build.talentos_raciais : []).filter(function (row) {
+                    var level = Number(row && row.nivel || 0);
+                    if (!row || !row.nome || !level || seenRacial[level]) return false;
+                    row.nivel = level;
+                    row.nome = String(row.nome);
+                    seenRacial[level] = true;
+                    return true;
+                });
             build.itens = Array.isArray(build.itens) ? build.itens : [];
             build.magias = Array.isArray(build.magias) ? build.magias : [];
             return build;
@@ -161,12 +184,12 @@
                   '<span class="pb-opt-main"><span class="pb-opt-name">' + esc(nome) + '</span>' +
                   (meta ? '<span class="pb-opt-meta">' + esc(meta) + '</span>' : '') + '</span>' +
                 '</button>' +
-                (extra || '') +
                 '<button type="button" class="pb-opt-more" data-opt-more aria-expanded="false"' +
                   ' title="Ver descrição">' +
                   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"' +
                   ' stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>' +
                 '</button>' +
+                (extra || '') +
                 '<div class="pb-opt-desc" data-opt-desc hidden></div>' +
                 '</div>';
         }
@@ -260,7 +283,7 @@
                              meta: row.subclasse_nivel ? 'subclasse no nível ' + row.subclasse_nivel : '' };
                 });
             } else if (kind === 'talento') {
-                build.talentos.forEach(function (slug) { owned[slug] = true; });
+                build.talentos.forEach(function (row) { owned[row.slug] = true; });
                 source = catalogs.talentos || [];
             } else if (kind === 'item') {
                 source = itemKind === 'magico' ? (catalogs.itens_magicos || []) : (catalogs.itens_mundanos || []);
@@ -327,16 +350,46 @@
             var result = results[active];
             return (result && result.orcamento) || null;
         }
+        function normalAttributePoints(build) {
+            return SIGLAS.reduce(function (sum, sig) {
+                return sum + Math.max(0, Number((build.atributos_bonus || {})[sig] || 0));
+            }, 0);
+        }
+        function localAsiBudget(build) {
+            var budget = orcamento();
+            if (!budget) return null;
+            var slots = Number(budget.asi_slots || 0);
+            var available = Math.max(0, slots - build.talentos.length) * 2;
+            var used = normalAttributePoints(build);
+            return { slots: slots, available: available, used: used, remaining: available - used };
+        }
+        function localFeatBonus(build, sig) {
+            return build.talentos.reduce(function (sum, row) {
+                return sum + (row.atributo === sig ? 1 : 0);
+            }, 0);
+        }
+        function projectedAttribute(build, sig, normalBonus) {
+            var result = results[active];
+            if (!result) return null;
+            var attr = (result.atributos || []).find(function (row) { return row.sig === sig; });
+            if (!attr || attr.valor == null) return null;
+            var applied = Number((result.atributos_pathbuilder_aplicados || {})[sig] || 0);
+            return Number(attr.valor) - applied + Number(normalBonus || 0) + localFeatBonus(build, sig);
+        }
         function renderAttributes() {
             var build = current();
             var values = build.atributos_bonus;
             var budget = orcamento();
             var result = results[active];
             var attrs = result ? (result.atributos || []) : [];
-            var restantes = budget ? Number(budget.pontos_restantes) : null;
+            var localBudget = localAsiBudget(build);
+            var restantes = localBudget ? localBudget.remaining : null;
             byId('pb-attributes').innerHTML = SIGLAS.map(function (sig) {
                 var bonus = Number(values[sig] || 0);
                 var final = attrs.find(function (row) { return row.sig === sig; });
+                var projectedNext = projectedAttribute(build, sig, bonus + 1);
+                var plusDisabled = (restantes !== null && restantes <= 0) ||
+                    (projectedNext !== null && projectedNext > 20);
                 return '<div class="pb-attr' + (bonus ? ' is-on' : '') + '">' +
                     '<span class="pb-attr-sig">' + sig + '</span>' +
                     '<span class="pb-attr-final">' + (final && final.valor != null ? final.valor : '—') +
@@ -346,7 +399,7 @@
                         (bonus <= 0 ? ' disabled' : '') + ' aria-label="Reduzir ' + sig + '">−</button>' +
                       '<output>+' + bonus + '</output>' +
                       '<button type="button" data-attr="' + sig + '" data-delta="1"' +
-                        (restantes !== null && restantes <= 0 ? ' disabled' : '') +
+                        (plusDisabled ? ' disabled' : '') +
                         ' aria-label="Aumentar ' + sig + '">+</button>' +
                     '</span></div>';
             }).join('');
@@ -357,16 +410,17 @@
                 return;
             }
             var counter = byId('pb-asi-counter');
-            counter.textContent = budget.pontos_usados + '/' + budget.pontos_disponiveis + ' pontos';
-            counter.classList.toggle('is-bad', budget.pontos_restantes !== 0);
-            counter.classList.toggle('is-ok', budget.pontos_disponiveis > 0 && budget.pontos_restantes === 0);
+            counter.textContent = localBudget.used + '/' + localBudget.available + ' pontos';
+            counter.classList.toggle('is-bad', localBudget.remaining !== 0);
+            counter.classList.toggle('is-ok', localBudget.available > 0 && localBudget.remaining === 0);
             byId('pb-asi-hint').textContent = budget.asi_slots
-                ? 'A build tem ' + budget.asi_slots + ' slot(s) de ASI: ' + budget.asi_em_talento +
-                  ' gasto(s) em talento e ' + budget.asi_em_pontos + ' em pontos (2 cada).'
+                ? 'A build tem ' + localBudget.slots + ' slot(s) de ASI: ' + build.talentos.length +
+                  ' gasto(s) em talento e ' + Math.max(0, localBudget.slots - build.talentos.length) +
+                  ' em pontos (2 cada).'
                 : 'Nenhum slot de ASI neste nível — suba a progressão para liberar aumentos.';
             var talents = byId('pb-talent-counter');
-            talents.textContent = budget.asi_em_talento + '/' + budget.asi_slots + ' slots';
-            talents.classList.toggle('is-bad', budget.asi_em_talento > budget.asi_slots);
+            talents.textContent = build.talentos.length + '/' + localBudget.slots + ' slots';
+            talents.classList.toggle('is-bad', build.talentos.length > localBudget.slots);
         }
 
         function renderTalents() {
@@ -374,14 +428,61 @@
             var build = current();
             var selectedHost = document.querySelector('[data-picker="talento"] [data-picker-list]');
             if (!selectedHost) return;
-            var chosen = build.talentos.map(function (slug) {
-                var row = talentBySlug[slug] || { nome: slug, meta: '' };
-                return optionCard('talento', slug, row.nome, row.meta || 'Talento', true);
+            var chosen = build.talentos.map(function (selected) {
+                var row = talentBySlug[selected.slug] || {
+                    nome: selected.slug, meta: '', atributos: SIGLAS
+                };
+                var options = (row.atributos || SIGLAS).map(function (sig) {
+                    return '<option value="' + esc(sig) + '"' +
+                        (selected.atributo === sig ? ' selected' : '') + '>' + esc(sig) + '</option>';
+                }).join('');
+                var extra = '<label class="pb-opt-control"><span>+1 em atributo</span>' +
+                    '<select class="pb-select-inline" data-talent-attr="' + esc(selected.slug) + '">' +
+                    '<option value="">Escolha</option>' + options + '</select></label>';
+                return optionCard('talento', selected.slug, row.nome, row.meta || 'Talento', true, extra);
             }).join('');
             if (chosen) {
                 selectedHost.insertAdjacentHTML('afterbegin',
                     '<div class="pb-opt-group">Na build</div>' + chosen);
             }
+        }
+
+        function renderRacialTalents() {
+            var host = byId('pb-racial-talents');
+            if (!host) return;
+            var build = current();
+            var result = results[active];
+            var groups = result ? (result.talentos_raciais_grupos || []) : [];
+            var knownLevels = Object.create(null);
+            groups.forEach(function (group) { knownLevels[Number(group.nivel)] = true; });
+            build.talentos_raciais.forEach(function (row) {
+                if (!knownLevels[Number(row.nivel)]) {
+                    groups.push({ nivel: Number(row.nivel), selecionado: row.nome,
+                                  opcoes: [{ nome: row.nome }] });
+                }
+            });
+            groups.sort(function (a, b) { return Number(a.nivel) - Number(b.nivel); });
+            if (!groups.length) {
+                host.innerHTML = '<p class="pb-muted">Nenhum marco racial adicional foi liberado neste nivel.</p>';
+                return;
+            }
+            host.innerHTML = groups.map(function (group) {
+                var selected = build.talentos_raciais.find(function (row) {
+                    return Number(row.nivel) === Number(group.nivel);
+                });
+                var value = selected ? selected.nome : '';
+                var options = (group.opcoes || []).map(function (row) {
+                    return '<option value="' + esc(row.nome) + '"' +
+                        (row.nome === value ? ' selected' : '') + '>' + esc(row.nome) + '</option>';
+                }).join('');
+                return '<div class="pb-row' + (value ? '' : ' is-pending') + '">' +
+                    '<div class="pb-row-head"><span class="pb-row-name">Talento racial' +
+                    '<small>Marco de nivel ' + Number(group.nivel) + '</small></span>' +
+                    '<span class="pb-counter' + (value ? ' is-ok' : ' is-bad') + '">' +
+                    (value ? 'escolhido' : 'pendente') + '</span></div>' +
+                    '<select class="pb-racial-select" data-racial-level="' + Number(group.nivel) + '">' +
+                    '<option value="">Escolha um talento racial</option>' + options + '</select></div>';
+            }).join('');
         }
 
         /* -------------------------------------------------------------- escolhas */
@@ -424,7 +525,9 @@
                           : '') +
                         '</div>';
                 }).join('');
-                var restam = Number(group.pendentes || 0) - picked.length;
+                var fixedCount = fixed.length;
+                var maxSelectable = Math.max(0, Number(group.limite || 0) - fixedCount);
+                var restam = Math.max(0, maxSelectable - picked.length);
                 /* Grupo grande (Maestria de Arma tem 128 opções) ganha filtro próprio —
                    sem isso a etapa vira um paredão de cartões. */
                 var filtro = (group.opcoes || []).length > 12
@@ -615,6 +718,7 @@
             renderChoices();
             renderAttributes();
             renderTalents();
+            renderRacialTalents();
             renderItems();
             renderSpells();
             renderStepper();
@@ -788,10 +892,23 @@
                 var box = choicePick.closest('[data-choice-key]');
                 var key = box.dataset.choiceKey;
                 var val = box.dataset.choiceVal;
+                var result = results[active];
+                var group = result && (result.escolhas_grupos || []).find(function (row) {
+                    return row.key === key;
+                });
                 mutate(function (build) {
                     var values = Array.isArray(build.escolhas[key]) ? build.escolhas[key].slice() : [];
                     var at = values.indexOf(val);
-                    if (at >= 0) values.splice(at, 1); else values.push(val);
+                    if (at >= 0) {
+                        values.splice(at, 1);
+                    } else {
+                        var fixed = group ? (group.resolvidas || []).filter(function (row) {
+                            return values.indexOf(row.valor) < 0;
+                        }).length : 0;
+                        var limit = group ? Math.max(0, Number(group.limite || 0) - fixed) : null;
+                        if (limit !== null && values.length >= limit) return;
+                        values.push(val);
+                    }
                     build.escolhas[key] = values;
                 });
                 return;
@@ -820,8 +937,16 @@
                     });
                 } else if (kind === 'talento') {
                     mutate(function (build) {
-                        var at = build.talentos.indexOf(slug);
-                        if (at >= 0) build.talentos.splice(at, 1); else build.talentos.push(slug);
+                        var at = build.talentos.findIndex(function (row) { return row.slug === slug; });
+                        if (at >= 0) {
+                            build.talentos.splice(at, 1);
+                        } else {
+                            var localBudget = localAsiBudget(build);
+                            if (localBudget && (build.talentos.length >= localBudget.slots ||
+                                    localBudget.used > Math.max(0, localBudget.slots -
+                                        build.talentos.length - 1) * 2)) return;
+                            build.talentos.push({ slug: slug, atributo: '' });
+                        }
                     });
                 } else if (kind === 'mundano' || kind === 'magico') {
                     mutate(function (build) {
@@ -870,17 +995,33 @@
                     if (info && info.subclasse_nivel && next < Number(info.subclasse_nivel)) {
                         row.subclasse = '';
                     }
+                    var newTotal = totalLevel(build);
+                    build.talentos_raciais = build.talentos_raciais.filter(function (racial) {
+                        return Number(racial.nivel || 0) <= newTotal;
+                    });
                 });
                 return;
             }
             if (button.dataset.removeClass != null) {
-                mutate(function (build) { build.classes.splice(Number(button.dataset.removeClass), 1); });
+                mutate(function (build) {
+                    build.classes.splice(Number(button.dataset.removeClass), 1);
+                    var newTotal = totalLevel(build);
+                    build.talentos_raciais = build.talentos_raciais.filter(function (racial) {
+                        return Number(racial.nivel || 0) <= newTotal;
+                    });
+                });
                 return;
             }
             if (button.dataset.attr) {
                 mutate(function (build) {
                     var sig = button.dataset.attr;
-                    var next = Number(build.atributos_bonus[sig] || 0) + Number(button.dataset.delta);
+                    var currentBonus = Number(build.atributos_bonus[sig] || 0);
+                    var delta = Number(button.dataset.delta);
+                    var next = currentBonus + delta;
+                    var budget = localAsiBudget(build);
+                    if (delta > 0 && budget && budget.remaining <= 0) return;
+                    var projected = projectedAttribute(build, sig, next);
+                    if (delta > 0 && projected !== null && projected > 20) return;
                     build.atributos_bonus[sig] = Math.max(0, Math.min(10, next));
                 });
                 return;
@@ -955,6 +1096,27 @@
             } else if (target.dataset.spellPrepared != null) {
                 mutate(function (build) {
                     build.magias[Number(target.dataset.spellPrepared)].preparada = target.checked;
+                });
+            } else if (target.dataset.talentAttr != null) {
+                mutate(function (build) {
+                    var row = build.talentos.find(function (talent) {
+                        return talent.slug === target.dataset.talentAttr;
+                    });
+                    if (row) row.atributo = target.value;
+                });
+            } else if (target.dataset.racialLevel != null) {
+                mutate(function (build) {
+                    var level = Number(target.dataset.racialLevel);
+                    var at = build.talentos_raciais.findIndex(function (row) {
+                        return Number(row.nivel) === level;
+                    });
+                    if (!target.value) {
+                        if (at >= 0) build.talentos_raciais.splice(at, 1);
+                    } else if (at >= 0) {
+                        build.talentos_raciais[at].nome = target.value;
+                    } else {
+                        build.talentos_raciais.push({ nivel: level, nome: target.value });
+                    }
                 });
             }
         });

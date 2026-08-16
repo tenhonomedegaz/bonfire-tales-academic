@@ -50,7 +50,7 @@ progressao de aventuras e atalhos para outras abas.{% endcomment %}
         </div>
         <div class="banner-field banner-progress-field">
           <span><span class="lbl">Aventuras</span><span class="val">{{ ficha.progressao.aventuras|default:"0" }}</span></span>
-          <span><span class="lbl">Próximo nível</span><span class="val">{{ ficha.progressao.proximo_nivel_aventuras|default:"—" }}{% if ficha.progressao.proximo_nivel_aventuras %} <span class="val-muted">av.</span>{% endif %}</span></span>
+          <span class="banner-nextlvl"><span class="lbl">Próximo nível em</span><span class="val">{{ ficha.progressao.proximo_nivel_aventuras|default:"—" }}{% if ficha.progressao.proximo_nivel_aventuras %} <span class="val-muted">av.</span>{% endif %}</span></span>
         </div>
         <div class="banner-field"><span class="lbl">Ouro de progressão</span><span class="val">{{ ficha.progressao.ouro_esperado_po|default:"0" }} <span class="val-muted">PO</span></span></div>
         {% endif %}

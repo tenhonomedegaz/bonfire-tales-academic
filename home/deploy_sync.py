@@ -47,6 +47,7 @@ MEMORY_MODELS = [
     "TbPersonagemEscolha", "TbPersonagemItem", "TbPersonagemMagia",
     "TbPersonagemPericia", "TbPersonagemPersonalidade", "TbPersonagemProficiencia",
     "TbPersonagemRecurso", "TbPersonagemTalento", "TbPersonagemAventura",
+    "TbPersonagemRevisao",
     "TbTransacao", "TbTransacaoMestre",
     "TbAventuraMestre", "TbAnuncioItemMagico", "TbCronica", "TbJornal",
     "TbReiDaColina", "UserProfile",

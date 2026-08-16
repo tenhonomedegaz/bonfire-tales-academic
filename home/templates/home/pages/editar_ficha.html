@@ -16,7 +16,10 @@ acesso é fechado por is_staff na view (dono não-staff é redirecionado para a 
       <h1 class="font-serif text-2xl md:text-3xl font-bold text-[var(--ember)]">Painel da staff</h1>
       <p class="mt-1 text-sm text-[var(--muted)]">{{ p.nome }}{% if pc %} · {{ pc.id_classe.nome }}{% if pc.id_subclasse_id %} ({{ pc.id_subclasse.nome }}){% endif %} Nv {{ nivel }}{% endif %}</p>
     </div>
-    <a href="{% url 'ficha_detail' p.id_personagem %}" class="rounded border border-[var(--stroke)] px-3 py-1.5 text-sm text-[var(--muted)] hover:text-[var(--text)]">Ver ficha →</a>
+    <div class="flex flex-wrap gap-2">
+      <a href="{% url 'criacao_ficha' %}?recriar={{ p.id_personagem }}" class="rounded border border-[var(--ember)] px-3 py-1.5 text-sm font-semibold text-[var(--ember)] hover:bg-[var(--ember)]/10">Recriar nível 1</a>
+      <a href="{% url 'ficha_detail' p.id_personagem %}" class="rounded border border-[var(--stroke)] px-3 py-1.5 text-sm text-[var(--muted)] hover:text-[var(--text)]">Ver ficha →</a>
+    </div>
   </header>
 
   <div class="ef-main space-y-3">
@@ -104,6 +107,11 @@ acesso é fechado por is_staff na view (dono não-staff é redirecionado para a 
                 <td class="px-2.5 py-1.5 text-[var(--text)]">{{ t.descricao }}</td>
                 <td class="px-2.5 py-1.5 text-right font-mono {% if t.valor_pc >= 0 %}text-[var(--spark)]{% else %}text-[var(--flame)]{% endif %}">{% if t.valor_pc >= 0 %}+{% endif %}{{ t.valor_display }}</td>
                 <td class="hidden px-2.5 py-1.5 text-right text-xs text-[var(--muted)] sm:table-cell">{{ t.criado_em|date:"d/m H:i" }}</td>
+                <td class="px-2.5 py-1.5 text-right">
+                  {% if t.revertida %}<span class="text-xs text-[var(--muted)]">revertida</span>
+                  {% elif t.pode_reembolsar %}<form method="post" action="{% url 'personagem_reembolsar_compra' p.id_personagem t.id_transacao %}" class="inline" onsubmit="return confirm('Reembolsar esta compra e remover o item da mochila?');">{% csrf_token %}<button type="submit" class="lvl-add">Reembolsar</button></form>
+                  {% endif %}
+                </td>
               </tr>
             {% endfor %}
           </tbody>

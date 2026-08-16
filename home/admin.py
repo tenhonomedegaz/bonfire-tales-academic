@@ -54,6 +54,7 @@ from .models import (
     TbTransacao,
     TbPersonagem,
     TbPersonagemAventura,
+    TbPersonagemRevisao,
     TbRecompensaMestre,
     TbAventuraMestre,
     TbTransacaoMestre,
@@ -2083,6 +2084,16 @@ class TbPersonagemAventuraAdmin(BonfireAdminMixin, admin.ModelAdmin):
     @admin.display(description="Mestre")
     def mestre_display(self, obj):
         return obj.mestre_display
+
+
+@admin.register(TbPersonagemRevisao)
+class TbPersonagemRevisaoAdmin(BonfireAdminMixin, admin.ModelAdmin):
+    list_display = ('id_revisao', 'id_personagem', 'tipo', 'nivel_antes', 'nivel_depois',
+                    'aventuras_no_momento', 'criado_por', 'criado_em', 'revertida')
+    list_filter = ('tipo', 'revertida')
+    search_fields = ('id_personagem__nome', 'descricao', 'criado_por__username')
+    raw_id_fields = ('id_personagem', 'criado_por', 'revertida_por')
+    readonly_fields = ('snapshot_json', 'criado_em', 'revertida_em')
 
 
 @admin.register(TbRecompensaMestre)

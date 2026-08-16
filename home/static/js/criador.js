@@ -9,8 +9,11 @@
         var form = document.getElementById('criador-form');
         if (!dataEl || !form) return;
         var CAT = JSON.parse(dataEl.textContent);
-        var formMode = form.getAttribute('data-mode') === 'pathbuilder' ? 'pathbuilder' : 'creator';
+        var requestedMode = form.getAttribute('data-mode');
+        var formMode = requestedMode === 'pathbuilder' || requestedMode === 'rebuild'
+            ? requestedMode : 'creator';
         var isPathbuilder = formMode === 'pathbuilder';
+        var isRebuild = formMode === 'rebuild';
         var submitUrl = form.getAttribute('action');
         var previewUrl = form.getAttribute('data-preview-url');
         var submitLabel = form.getAttribute('data-submit-label') || (isPathbuilder ? 'Abrir laboratório' : 'Criar Personagem');
@@ -1241,12 +1244,13 @@
             var e = stepErrors(current);
             var totalPend = clientPending().length;
             if (current === LAST) {
-                navHint.textContent = totalPend ? ('faltam ' + totalPend + ' item(ns) para criar') : 'tudo pronto — pode criar!';
+                var actionVerb = isPathbuilder ? 'abrir' : (isRebuild ? 'recriar' : 'criar');
+                navHint.textContent = totalPend ? ('faltam ' + totalPend + ' item(ns) para ' + actionVerb) : ('tudo pronto — pode ' + actionVerb + '!');
                 submitBtn.textContent = totalPend
-                    ? ((isPathbuilder ? 'Abrir' : 'Criar') + ' (faltam ' + totalPend + ')')
+                    ? ((isPathbuilder ? 'Abrir' : (isRebuild ? 'Recriar' : 'Criar')) + ' (faltam ' + totalPend + ')')
                     : submitLabel;
                 submitBtn.disabled = totalPend > 0;
-                submitBtn.title = totalPend ? 'Conclua as pendências listadas antes de criar a ficha.' : '';
+                submitBtn.title = totalPend ? 'Conclua as pendências listadas antes de continuar.' : '';
             } else {
                 navHint.textContent = e.length ? ('faltam ' + e.length + ' nesta etapa') : '';
             }
@@ -1326,7 +1330,7 @@
             var pend = clientPending();
             if (pend.length) {
                 h += '<div class="cf-step-err" style="display:block;margin-top:.7rem"><strong>Você ainda tem pendências ' +
-                    (isPathbuilder ? 'antes de simular:' : 'antes de criar a ficha:') +
+                    (isPathbuilder ? 'antes de simular:' : (isRebuild ? 'antes de recriar a ficha:' : 'antes de criar a ficha:')) +
                     '</strong><ul>' +
                     pend.map(function (item) {
                         return '<li><b>' + escHtml(item.label) + ':</b> ' + escHtml(item.message) + '</li>';
@@ -1335,7 +1339,9 @@
                 h += '<p class="mt-2 text-xs text-[var(--spark)]">' +
                     (isPathbuilder
                         ? 'Tudo certo — esta base pode ser levada ao laboratório.'
-                        : 'Tudo certo — a ficha bate com a prévia ao lado.') + '</p>';
+                        : (isRebuild
+                            ? 'Tudo certo — a nova build bate com a prévia ao lado.'
+                            : 'Tudo certo — a ficha bate com a prévia ao lado.')) + '</p>';
             }
             box.innerHTML = h;
         }
@@ -1535,7 +1541,7 @@
             showErros([]);
             var submittedPayload = payload();
             submitBtn.disabled = true;
-            submitBtn.textContent = isPathbuilder ? 'Abrindo…' : 'Salvando…';
+            submitBtn.textContent = isPathbuilder ? 'Abrindo…' : (isRebuild ? 'Recriando…' : 'Salvando…');
             fetch(submitUrl, {
                 method: 'POST',
                 credentials: 'same-origin',

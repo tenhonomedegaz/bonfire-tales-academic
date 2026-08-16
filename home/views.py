@@ -1849,6 +1849,87 @@ def _spell_slot_level(column_name):
     return level if 1 <= level <= 9 else None
 
 
+def _trim_embedded_option_catalog(description, group):
+    """Remove apenas o apendice que duplica um catalogo ``TbOpcaojogo``.
+
+    A decisao usa o universo resolvido do proprio ``pick:opcao``. Assim, uma habilidade
+    nova ganha o mesmo comportamento sem entrar numa lista por nome de classe ou feature.
+    O texto mecanico anterior ao catalogo continua intacto no banco e no editor.
+    """
+    text = str(description or '')
+    options = group.get('universo') or []
+    option_keys = {
+        _normalize_key(option.get('nome') or '')
+        for option in options if option.get('nome')
+    }
+    if len(option_keys) < 2:
+        return text
+    target = _normalize_key(group.get('tipo_display') or group.get('label') or '')
+    headings = list(re.finditer(r'(?m)^\s*#{1,6}\s+(.+?)\s*$', text))
+    cut_at = None
+    for match in headings:
+        title = _normalize_key(re.sub(r'[*_`]', '', match.group(1)))
+        tail_key = _normalize_key(text[match.start():])
+        found = sum(1 for key in option_keys if key and key in tail_key)
+        is_catalog_title = bool(target and (
+            title == target or title.startswith(target + '_')
+            or title.endswith('_' + target)
+        ))
+        is_first_option = title in option_keys
+        if found >= 2 and (is_catalog_title or is_first_option):
+            cut_at = match.start()
+            break
+    if cut_at is None:
+        return text
+
+    prefix = text[:cut_at].rstrip()
+    lines = prefix.splitlines()
+    while lines and not lines[-1].strip():
+        lines.pop()
+    if lines:
+        previous = _normalize_key(re.sub(r'[*_`]', '', lines[-1]))
+        generic_labels = {
+            target + '_disponiveis', target + '_disponivel',
+            'opcoes_disponiveis', 'lista_de_' + target,
+        }
+        if previous in generic_labels:
+            lines.pop()
+    return '\n'.join(lines).rstrip()
+
+
+def _class_feature_display_description(habilidade, classe):
+    """Projeta widgets inferidos de ``pick:opcao`` somente na pagina da classe."""
+    from . import picks as _picks
+    subclasse = habilidade.id_subclasse if habilidade.id_subclasse_id else None
+    groups = _picks.resolve_groups(
+        [habilidade], classe=classe, subclasse=subclasse,
+        nivel=max(1, int(habilidade.niveladquirido or 1)), kinds={'opcao'},
+    )
+    description = str(habilidade.descricao or '')
+    widgets = []
+    seen = set()
+    for group in groups:
+        label = str(group.get('tipo_display') or group.get('label') or '').strip()
+        if not label or not group.get('universo'):
+            continue
+        key = (_normalize_key(label), subclasse.slug if subclasse else '')
+        if key in seen:
+            continue
+        seen.add(key)
+        description = _trim_embedded_option_catalog(description, group)
+        attrs = [
+            'classe=%s' % classe.slug,
+            'nivel=%d' % max(1, int(habilidade.niveladquirido or 1)),
+        ]
+        if subclasse:
+            attrs.append('subclasse=%s' % subclasse.slug)
+        widgets.append('#### %s\n::options=%s; %s' % (
+            label, label, '; '.join(attrs)))
+    if not widgets:
+        return description
+    return '%s\n\n%s' % (description.rstrip(), '\n\n'.join(widgets))
+
+
 def _display_column_name(column_name):
     if _is_feature_column(column_name):
         return 'Habilidades'
@@ -1963,6 +2044,9 @@ def _postgres_classe_detail_view(request, slug):
             item['habilidade'].nome,
         )
     )
+    for item in habilidade_sections:
+        item['descricao_render'] = _class_feature_display_description(
+            item['habilidade'], classe)
 
     class_traits = [
         ('Atributo Principal', classe.atributo_principal),
@@ -3960,22 +4044,61 @@ def _preco_venda_mundano_pc(custo_str):
     return int(round(base * _PRECO_VENDA_MUNDANO_RATIO)) if base is not None else None
 
 
-def _transacoes_com_display(qs):
+def _reembolso_status(personagem, transacao, *, staff=False):
+    """Valida se uma compra oficial ainda pode ser desfeita sem adivinhar pelo texto."""
+    from .character_history import had_adventure_after
+    if transacao.tipo != 'compra' or transacao.revertida or int(transacao.valor_pc or 0) >= 0:
+        return False, 'Esta transacao nao e uma compra reembolsavel.'
+    detalhes = transacao.detalhes_json if isinstance(transacao.detalhes_json, dict) else {}
+    try:
+        item_id = int(detalhes.get('inventario_id') or 0)
+        catalogo_id = int(detalhes.get('catalogo_id') or 0)
+        qtd = int(detalhes.get('qtd') or 0)
+    except (TypeError, ValueError):
+        return False, 'Compra legada sem vinculo auditavel com o inventario.'
+    if not item_id or not catalogo_id or qtd < 1:
+        return False, 'Compra legada sem vinculo auditavel com o inventario.'
+    if not staff and had_adventure_after(
+            personagem, adventures=detalhes.get('aventuras_no_momento'),
+            moment=transacao.criado_em):
+        return False, 'O personagem ja jogou uma mesa depois desta compra.'
+    item = personagem.inventario.filter(pk=item_id, origem_tipo='compra').first()
+    if item is None or int(item.qtd or 0) < qtd:
+        return False, 'O item foi vendido, consumido ou alterado depois da compra.'
+    if item.equipado or item.sintonizado:
+        return False, 'Desequipe e dessintonize o item antes do reembolso.'
+    catalogo = detalhes.get('catalogo')
+    if catalogo == 'mundano' and item.id_item_mundano_id != catalogo_id:
+        return False, 'O item do inventario nao corresponde a esta compra.'
+    if catalogo == 'magico' and item.id_item_magico_id != catalogo_id:
+        return False, 'O item do inventario nao corresponde a esta compra.'
+    if catalogo not in {'mundano', 'magico'}:
+        return False, 'Catalogo da compra nao reconhecido.'
+    return True, ''
+
+
+def _transacoes_com_display(qs, personagem=None, *, staff=False):
     """Anota `valor_display`/`saldo_display` (composto PO/PP/PC) nas linhas do extrato. Os
     campos gravados seguem em PC — só a EXIBIÇÃO muda."""
     linhas = list(qs)
     for t in linhas:
         t.valor_display = _moeda_display(t.valor_pc)
         t.saldo_display = _moeda_display(t.saldo_pc)
+        if personagem is not None:
+            t.pode_reembolsar, t.reembolso_motivo = _reembolso_status(
+                personagem, t, staff=staff)
     return linhas
 
 
-def _registrar_transacao(personagem, tipo, descricao, delta_pc):
+def _registrar_transacao(personagem, tipo, descricao, delta_pc, detalhes=None):
     """Registra um movimento de carteira (chamar DEPOIS de atualizar carteira_pc)."""
     from .models import TbTransacao
-    TbTransacao.objects.create(
+    payload = dict(detalhes or {})
+    payload.setdefault('aventuras_no_momento', int(personagem.aventuras or 0))
+    return TbTransacao.objects.create(
         id_personagem=personagem, tipo=tipo, descricao=(descricao or '')[:255],
-        valor_pc=int(delta_pc), saldo_pc=int(personagem.carteira_pc or 0))
+        valor_pc=int(delta_pc), saldo_pc=int(personagem.carteira_pc or 0),
+        detalhes_json=payload)
 
 def _spell_count_nv1(conj, base, mais2, mais1, asi_vals=(2, 1), asi_bonus=None):
     if conj.get('magias_n') is not None:
@@ -4553,10 +4676,23 @@ def glossario_view(request):
 def criacao_ficha_view(request):
     """Criação de Ficha — point-buy + identidade + classe + antecedente + talentos."""
     from . import point_buy
+    from . import permissions as perms
+    from .character_history import level_one_rebuild_status
+    recriar = None
+    try:
+        recriar_id = int(request.GET.get('recriar') or 0)
+    except (TypeError, ValueError):
+        recriar_id = 0
+    if recriar_id:
+        recriar = _ficha_editavel(request, recriar_id)
+        permitido, _motivo = level_one_rebuild_status(
+            recriar, staff=perms.is_staff_user(request.user))
+        if not permitido:
+            return redirect(reverse('ficha_detail', args=[recriar.pk]) + '?recriar=bloqueado')
     atributos = [('FOR', 'Força'), ('DES', 'Destreza'), ('CON', 'Constituição'),
                  ('INT', 'Inteligência'), ('SAB', 'Sabedoria'), ('CAR', 'Carisma')]
     return render(request, 'home/pages/criacao_ficha.html', {
-        'page_title': 'Criação de Ficha',
+        'page_title': ('Recriar nível 1 — %s' % recriar.nome) if recriar else 'Criação de Ficha',
         'atributos': atributos,
         'pb_custo': json.dumps(point_buy.CUSTO),
         'pb_max_pontos': point_buy.MAX_PONTOS,
@@ -4565,6 +4701,7 @@ def criacao_ficha_view(request):
         'catalogos': _criador_catalogos(),
         'logado': request.user.is_authenticated,
         'pathbuilder': False,
+        'recriar_personagem': recriar,
     })
 
 
@@ -5544,7 +5681,7 @@ def editar_ficha_view(request, pk):
     from .models import TbIdioma, TbItemMundano, TbItemMagico
     cat_label = dict(TbItemMundano.CATEGORIA_CHOICES)
     rar_label = dict(TbItemMagico.RARIDADE_CHOICES)
-    transacoes = _transacoes_com_display(p.transacoes.all()[:30])
+    transacoes = _transacoes_com_display(p.transacoes.all()[:30], p, staff=True)
     classes_atuais = [{'id': c.id_classe.id_classe, 'nome': c.id_classe.nome, 'nivel': c.nivel,
                        'principal': c.principal} for c in p.classes.select_related('id_classe').order_by('-principal', 'id')]
     # ── Staffbox de aventuras (onda E): ledger + cadastro de mestres + consumíveis ──
@@ -5650,11 +5787,25 @@ def personagem_subir_nivel(request, pk):
         compatibilidade (redireciona pra ficha)."""
     p = _ficha_editavel(request, pk)
     if request.method == 'POST':
-        erros = _lvl_aplicar_subir_nivel(p, {'classe': request.POST.get('classe')})
-        if not erros:
-            # Novos níveis podem desbloquear ciclos de Magia Elemental (nv 5/9/13).
-            _sync_magias_essencia(p)
-            _refresh_vitais_derivados(p)
+        from .character_history import capture_build, register_revision
+        from .models import TbPersonagem
+        with transaction.atomic():
+            p = TbPersonagem.objects.select_for_update().get(pk=p.pk)
+            snapshot_antes = capture_build(p)
+            nivel_antes = int(p.nivel or 1)
+            erros = _lvl_aplicar_subir_nivel(p, {'classe': request.POST.get('classe')})
+            if not erros:
+                # Novos níveis podem desbloquear ciclos de Magia Elemental (nv 5/9/13).
+                _sync_magias_essencia(p)
+                _refresh_vitais_derivados(p)
+                p.refresh_from_db(fields=['nivel'])
+                register_revision(
+                    p, tipo='level_up', snapshot=snapshot_antes, user=request.user,
+                    descricao='Progressao do nivel %d para o nivel %d' % (
+                        nivel_antes, int(p.nivel or nivel_antes)),
+                    nivel_antes=nivel_antes,
+                    nivel_depois=int(p.nivel or nivel_antes),
+                )
         return redirect('ficha_detail', pk=pk)
     return _subir_nivel_experiencia(request, p)
 
@@ -6414,7 +6565,8 @@ def personagem_conceder_item(request, pk):
                 TbPersonagemItem.objects.create(
                     id_personagem=p, qtd=qtd, nome=item.nome, custo=(item.preco or ''),
                     tags_json=list(item.tags_json or []),
-                    concedido_por=request.user, concedido_em=agora, origem_nota=nota)
+                    concedido_por=request.user, concedido_em=agora, origem_nota=nota,
+                    origem_tipo='concessao')
     else:
         item = TbItemMagico.objects.filter(slug=slug).first()
         if not item:
@@ -6435,7 +6587,8 @@ def personagem_conceder_item(request, pk):
                 TbPersonagemItem.objects.create(
                     id_personagem=p, qtd=qtd, nome=item.nome, custo=custo,
                     id_item_magico=item, equipado=False, sintonizado=False,
-                    concedido_por=request.user, concedido_em=agora, origem_nota=nota)
+                    concedido_por=request.user, concedido_em=agora, origem_nota=nota,
+                    origem_tipo='concessao')
     return _concessao_resposta(request, p, 'ok')
 
 
@@ -7299,7 +7452,12 @@ def personagem_levelup_aplicar(request, pk):
     p = _ficha_editavel(request, pk)
     acoes = _levelup_acoes_do_body(request)
     classe_id = _levelup_classe_id_acoes(acoes)
+    from .character_history import capture_build, register_revision
+    from .models import TbPersonagem
     with transaction.atomic():
+        p = TbPersonagem.objects.select_for_update().get(pk=p.pk)
+        snapshot_antes = capture_build(p)
+        nivel_antes = int(p.nivel or 1)
         erros = _levelup_aplicar_lote(p, acoes)
         if erros:
             transaction.set_rollback(True)
@@ -7307,6 +7465,13 @@ def personagem_levelup_aplicar(request, pk):
             # ordem idêntica aos wrappers legados: materializa concedidas, depois vitais.
             _sync_magias_concedidas(p)
             _refresh_vitais_derivados(p)
+            p.refresh_from_db(fields=['nivel'])
+            register_revision(
+                p, tipo='level_up', snapshot=snapshot_antes, user=request.user,
+                descricao='Progressao do nivel %d para o nivel %d' % (
+                    nivel_antes, int(p.nivel or nivel_antes)),
+                nivel_antes=nivel_antes, nivel_depois=int(p.nivel or nivel_antes),
+            )
     if erros:
         return JsonResponse({'ok': False, 'erros': erros}, status=400)
     ficha = derive(p)
@@ -7349,6 +7514,72 @@ def personagem_levelup_preview(request, pk):
         return JsonResponse({'ok': True, 'ready': False, 'erros': erros})
     return JsonResponse({'ok': True, 'ready': True, 'preview': preview,
                          'pendencias': pend, 'erros': erros})
+
+
+@login_required(login_url='/login/')
+@require_POST
+def personagem_reverter_revisao(request, pk, revisao_id):
+    """Desfaz a alteracao mais recente da build se nenhuma mesa aconteceu depois."""
+    from . import permissions as perms
+    from .character_history import restore_build, revision_status
+    from .models import TbPersonagem, TbPersonagemRevisao
+
+    p = _ficha_editavel(request, pk)
+    staff = perms.is_staff_user(request.user)
+    with transaction.atomic():
+        p = TbPersonagem.objects.select_for_update().get(pk=p.pk)
+        revisao = get_object_or_404(
+            TbPersonagemRevisao.objects.select_for_update(),
+            pk=revisao_id, id_personagem=p)
+        ok, motivo = revision_status(p, revisao, staff=staff)
+        if not ok:
+            return redirect(reverse('ficha_detail', args=[pk]) + '?aba=historico&revisao=bloqueada')
+        restore_build(p, revisao.snapshot_json)
+        _sync_magias_concedidas(p)
+        _refresh_vitais_derivados(p)
+        revisao.revertida = True
+        revisao.revertida_em = timezone.now()
+        revisao.revertida_por = request.user
+        revisao.save(update_fields=['revertida', 'revertida_em', 'revertida_por'])
+    return redirect(reverse('ficha_detail', args=[pk]) + '?aba=historico&revisao=ok')
+
+
+@login_required(login_url='/login/')
+@require_POST
+def personagem_reembolsar_compra(request, pk, transacao_id):
+    """Reembolsa uma compra oficial rastreada e remove exatamente a quantidade comprada."""
+    from . import permissions as perms
+    from .models import TbPersonagem, TbTransacao
+
+    p = _ficha_editavel(request, pk)
+    staff = perms.is_staff_user(request.user)
+    with transaction.atomic():
+        p = TbPersonagem.objects.select_for_update().get(pk=p.pk)
+        transacao_obj = get_object_or_404(
+            TbTransacao.objects.select_for_update(),
+            pk=transacao_id, id_personagem=p)
+        ok, motivo = _reembolso_status(p, transacao_obj, staff=staff)
+        if not ok:
+            return redirect(reverse('ficha_detail', args=[pk]) + '?aba=historico&reembolso=bloqueado')
+        detalhes = transacao_obj.detalhes_json
+        item = p.inventario.select_for_update().get(pk=int(detalhes['inventario_id']))
+        qtd = int(detalhes['qtd'])
+        if int(item.qtd or 0) == qtd:
+            item.delete()
+        else:
+            item.qtd = int(item.qtd or 0) - qtd
+            item.save(update_fields=['qtd'])
+        credito = -int(transacao_obj.valor_pc or 0)
+        p.carteira_pc = int(p.carteira_pc or 0) + credito
+        p.save(update_fields=['carteira_pc', 'atualizado_em'])
+        transacao_obj.revertida = True
+        transacao_obj.revertida_em = timezone.now()
+        transacao_obj.revertida_por = request.user
+        transacao_obj.save(update_fields=['revertida', 'revertida_em', 'revertida_por'])
+        _registrar_transacao(
+            p, 'ajuste', 'Reembolso: %s' % (transacao_obj.descricao or 'compra'), credito,
+            {'reverte_transacao': transacao_obj.pk})
+    return redirect(reverse('ficha_detail', args=[pk]) + '?aba=historico&reembolso=ok')
 
 
 def _mercado_voltar(request, msg):
@@ -7398,16 +7629,21 @@ def personagem_comprar_item(request, pk):
         p.save(update_fields=['carteira_pc', 'atualizado_em'])
         _mec = mecanica_de_tags(item.tags_json, item.subcategoria)
         existente = TbPersonagemItem.objects.filter(
-            id_personagem=p, id_item_mundano=item, equipado=False).first()
+            id_personagem=p, id_item_mundano=item, equipado=False,
+            origem_tipo='compra').first()
         if existente and not _mec['tipo_equip']:
             existente.qtd = (existente.qtd or 0) + qtd
             existente.save(update_fields=['qtd'])
+            inventario = existente
         else:
-            TbPersonagemItem.objects.create(
+            inventario = TbPersonagemItem.objects.create(
                 id_personagem=p, id_item_mundano=item, qtd=qtd, nome=item.nome,
                 custo=item.preco, peso=str(item.peso) if item.peso is not None else None,
-                tags_json=list(item.tags_json or []))
-        _registrar_transacao(p, 'compra', 'Compra: %s x%d' % (item.nome, qtd), -total)
+                tags_json=list(item.tags_json or []), origem_tipo='compra')
+        _registrar_transacao(
+            p, 'compra', 'Compra: %s x%d' % (item.nome, qtd), -total,
+            {'catalogo': 'mundano', 'catalogo_id': item.pk,
+             'inventario_id': inventario.pk, 'qtd': qtd})
     return _compra_resposta(request, pk, p, 'ok', True)
 
 
@@ -7525,16 +7761,22 @@ def personagem_comprar_magico(request, pk):
         # virar N linhas qtd=1. Itens equipáveis/sintonizáveis continuam 1 linha por unidade.
         consumivel = _item_consumivel_meta(None, item)['consumivel']
         existente = (TbPersonagemItem.objects.filter(
-            id_personagem=p, id_item_magico=item, equipado=False, sintonizado=False).first()
+            id_personagem=p, id_item_magico=item, equipado=False, sintonizado=False,
+            origem_tipo='compra').first()
             if consumivel else None)
         if existente:
             existente.qtd = (existente.qtd or 0) + 1
             existente.save(update_fields=['qtd'])
+            inventario = existente
         else:
-            TbPersonagemItem.objects.create(
+            inventario = TbPersonagemItem.objects.create(
                 id_personagem=p, qtd=1, nome=item.nome, custo=('%g PO' % float(item.preco)),
-                id_item_magico=item, equipado=False, sintonizado=False)
-        _registrar_transacao(p, 'compra', 'Compra mágica: %s' % item.nome, -custo_pc)
+                id_item_magico=item, equipado=False, sintonizado=False,
+                origem_tipo='compra')
+        _registrar_transacao(
+            p, 'compra', 'Compra mágica: %s' % item.nome, -custo_pc,
+            {'catalogo': 'magico', 'catalogo_id': item.pk,
+             'inventario_id': inventario.pk, 'qtd': 1})
     return _compra_resposta(request, pk, p, 'ok', True)
 
 
@@ -7654,7 +7896,8 @@ def comprar_anuncio(request, anuncio_id):
         vend.carteira_pc = (vend.carteira_pc or 0) + a.preco_pc
         vend.save(update_fields=['carteira_pc', 'atualizado_em'])
         TbPersonagemItem.objects.create(id_personagem=comprador, qtd=1, nome=a.nome, custo=a.custo,
-            id_item_magico=a.id_item_magico, equipado=False, sintonizado=False)
+            id_item_magico=a.id_item_magico, equipado=False, sintonizado=False,
+            origem_tipo='comunidade')
         a.status, a.comprador, a.vendido_em = 'vendido', comprador, timezone.now()
         a.save(update_fields=['status', 'comprador', 'vendido_em'])
         _registrar_transacao(comprador, 'mercado-compra', 'Comprou (comunidade): %s' % a.nome, -a.preco_pc)
@@ -7673,7 +7916,8 @@ def cancelar_anuncio(request, anuncio_id):
         if not a or a.vendedor.dono_id != request.user.id:
             return redirect(reverse('mercado_comunidade') + '?m=invalido')
         TbPersonagemItem.objects.create(id_personagem=a.vendedor, qtd=1, nome=a.nome, custo=a.custo,
-            id_item_magico=a.id_item_magico, equipado=False, sintonizado=False)
+            id_item_magico=a.id_item_magico, equipado=False, sintonizado=False,
+            origem_tipo='comunidade')
         a.status = 'cancelado'
         a.save(update_fields=['status'])
     return redirect(reverse('mercado_comunidade') + '?m=cancelado')
@@ -7965,6 +8209,7 @@ def ficha_detail_view(request, pk):
     if not perms.pode_ver_ficha(request.user, p):
         raise Http404()
     ficha = derive(p)
+    is_staff = perms.is_staff_user(request.user)
     raca_linha = _raca_linha_ficha(p)
     # Aventuras necessárias para o PRÓXIMO nível (Excel: "PRÓXIMO NÍVEL")
     prog = ficha.get('progressao') or {}
@@ -7990,7 +8235,8 @@ def ficha_detail_view(request, pk):
     consumiveis_cards = _consumiveis_ficha_cards(p, ficha)
     # Página de Histórico: compras/vendas do personagem (extrato composto PO/PP/PC).
     transacoes = _transacoes_com_display(
-        TbTransacao.objects.filter(id_personagem=p).order_by('-pk')[:300])
+        TbTransacao.objects.filter(id_personagem=p).order_by('-pk')[:300],
+        p, staff=is_staff)
     # Histórico de MISSÕES (onda E): o ledger de aventuras com data da missão e mestre —
     # linha legada (anterior à onda E) aparece marcada `(legado)` via `mestre_display`.
     aventuras_hist = list(p.aventuras_ledger.select_related('id_mestre', 'criado_por')[:100])
@@ -8001,7 +8247,22 @@ def ficha_detail_view(request, pk):
     # Aba MAGIAS & OPÇÕES (onda D): as escolhas de classe persistidas, agrupadas pelo
     # registry de picks (nunca por lista de tipos), com troca só onde a tag permite.
     opcoes = _opcoes_ficha(p)
-    pode_editar = p.dono_id == request.user.id or perms.is_staff_user(request.user)
+    pode_editar = p.dono_id == request.user.id or is_staff
+    from .character_history import (
+        latest_active_revision, level_one_rebuild_status, revision_status,
+    )
+    revisoes_build = list(p.revisoes_build.select_related(
+        'criado_por', 'revertida_por').all()[:50]) if pode_editar else []
+    revisao_ativa = latest_active_revision(p) if pode_editar else None
+    pode_reverter_revisao = False
+    revisao_motivo = ''
+    if revisao_ativa:
+        pode_reverter_revisao, revisao_motivo = revision_status(
+            p, revisao_ativa, staff=is_staff)
+    pode_recriar_nivel1, recriar_nivel1_motivo = (
+        level_one_rebuild_status(p, staff=is_staff) if pode_editar
+        else (False, '')
+    )
     # Botão de level-up: só quem edita, e só quando elegível (ou com pendências abertas).
     levelup_status = _levelup_status(p, ficha) if pode_editar else None
     return render(request, 'home/pages/ficha_detail.html', {
@@ -8016,8 +8277,14 @@ def ficha_detail_view(request, pk):
         'personalidade': _personalidade_ficha(p),
         'transacoes': transacoes,
         'aventuras_hist': aventuras_hist,
+        'revisoes_build': revisoes_build,
+        'revisao_ativa': revisao_ativa,
+        'pode_reverter_revisao': pode_reverter_revisao,
+        'revisao_motivo': revisao_motivo,
+        'pode_recriar_nivel1': pode_recriar_nivel1,
+        'recriar_nivel1_motivo': recriar_nivel1_motivo,
         'pode_editar': pode_editar,
-        'is_staff': perms.is_staff_user(request.user),
+        'is_staff': is_staff,
         'levelup_status': levelup_status,
         'appearance': _appearance_context(p.ficha_theme, p.foto_frame, p.ficha_effect,
                                           p.ficha_theme_custom, p.ficha_background_url),
@@ -8851,6 +9118,7 @@ def _criador_persistir(user, data, R, *, strict_spell_choices=False):
                 peso=(str(item.peso) if item.peso is not None else None),
                 equipado=(item.categoria == 'armadura'),
                 tags_json=list(item.tags_json or []),
+                origem_tipo='criacao',
             )
     p.carteira_pc = carteira
     p.save(update_fields=['carteira_pc'])
@@ -9002,6 +9270,65 @@ def criar_personagem_view(request):
 
     return JsonResponse({'ok': True, 'mode': 'creator', 'id': p.id_personagem,
                          'redirect': reverse('ficha_detail', args=[p.id_personagem])})
+
+
+@login_required(login_url='/login/')
+@require_POST
+def personagem_recriar_nivel_1(request, pk):
+    """Substitui atomicamente apenas a build por uma nova ficha de nivel 1.
+
+    Aventuras, carteira, braseiros, narrativa e aparencia permanecem no personagem
+    original. Equipamento de criacao rastreado e substituido; itens comprados, concedidos
+    ou legados permanecem intactos.
+    """
+    from . import permissions as perms
+    from .character_history import (
+        capture_build, level_one_rebuild_status, register_revision, restore_build,
+    )
+    from .models import TbPersonagem
+
+    original = _ficha_editavel(request, pk)
+    staff = perms.is_staff_user(request.user)
+    permitido, motivo = level_one_rebuild_status(original, staff=staff)
+    if not permitido:
+        return JsonResponse({'ok': False, 'erros': [motivo]}, status=400)
+    data = _json_body(request)
+    resolved, erros = _criador_resolver(data)
+    if erros:
+        return JsonResponse({'ok': False, 'erros': erros}, status=400)
+
+    try:
+        with transaction.atomic():
+            original = TbPersonagem.objects.select_for_update().get(pk=original.pk)
+            permitido, motivo = level_one_rebuild_status(original, staff=staff)
+            if not permitido:
+                raise CriadorEscolhasError([motivo])
+            snapshot_antes = capture_build(original, include_creation_items=True)
+            nivel_antes = int(original.nivel or 1)
+            temporario = _criador_persistir(
+                original.dono, data, resolved, strict_spell_choices=True)
+            snapshot_novo = capture_build(temporario, include_creation_items=True)
+            restore_build(original, snapshot_novo)
+            temporario.delete()
+            _sync_magias_concedidas(original)
+            _refresh_vitais_derivados(original, refill=True)
+            register_revision(
+                original, tipo='nivel_1', snapshot=snapshot_antes, user=request.user,
+                descricao='Recriacao completa do nivel 1', nivel_antes=nivel_antes,
+                nivel_depois=1,
+            )
+    except CriadorEscolhasError as exc:
+        return JsonResponse({'ok': False, 'erros': exc.erros}, status=400)
+    except Exception:
+        logger.exception('Falha ao recriar nivel 1 do personagem_id=%s', pk)
+        return JsonResponse({
+            'ok': False,
+            'erros': ['Nao foi possivel recriar o nivel 1. Nada foi alterado.'],
+        }, status=500)
+    return JsonResponse({
+        'ok': True, 'mode': 'rebuild', 'id': original.id_personagem,
+        'redirect': reverse('ficha_detail', args=[original.id_personagem]),
+    })
 
 
 
@@ -10718,14 +11045,17 @@ def antecedentes_view(request):
 
 
 def magias_view(request):
-    """Catálogo de magias com filtros avançados (escola, nível, concentração, ritual) e
+    """Catálogo de magias com filtros avançados (classe, escola, nível, concentração, ritual) e
     modal de detalhe. Página dedicada (não usa o catálogo genérico)."""
     can_edit = request.user.is_staff
     escolas = set()
+    classes_magia = set()
     magias = []
     for m in TbMagia.objects.all().order_by('nivel', 'nome'):
         if m.escola:
             escolas.add(m.escola)
+        classes_lista = _split_catalog_list(m.classes)
+        classes_magia.update(classes_lista)
         magias.append({
             'id': m.id_magia, 'nome': m.nome, 'nome_ingles': (m.nome_ingles or ''),
             'slug': m.slug, 'nivel': m.nivel,
@@ -10734,6 +11064,7 @@ def magias_view(request):
             'alcance': m.alcance or '', 'componentes': m.componentes or '',
             'duracao': m.duracao or '', 'concentracao': bool(m.concentracao),
             'ritual': bool(m.ritual), 'classes': m.classes or '',
+            'classes_lista': classes_lista,
             'descricao': m.descricao or '', 'em_niveis': m.em_niveis_superiores or '',
             # Tags são a linguagem interna do motor. Jogadores recebem somente o
             # resultado editorial e mecânico já interpretado.
@@ -10745,7 +11076,8 @@ def magias_view(request):
         'meta_description': 'Consulte magias em português e inglês por escola, nível, classe, ritual e concentração.',
         'canonical_path': '/magias/listas/',
         'magias': magias,
-        'escolas': sorted(escolas), 'niveis': list(range(0, 10)),
+        'escolas': sorted(escolas), 'classes_magia': sorted(classes_magia),
+        'niveis': list(range(0, 10)),
         'can_edit': can_edit,
         'magia_inicial': (request.GET.get('magia') or '').strip(),
     })
@@ -11699,6 +12031,8 @@ def organizacoes_view(request):
 
 
 def api_opcoes(request):
+    from .models import TbAcessoopcao
+
     tipo_filter = request.GET.get('tipo', '').strip()
     classe_filter = request.GET.get('classe', '').strip()
     subclasse_filter = request.GET.get('subclasse', '').strip()
@@ -11746,13 +12080,14 @@ def api_opcoes(request):
                 source_filter |= Q(tbacessoopcao__id_subclasse__slug=subclasse_filter)
             has_source = True
         if has_source:
-            qs = qs.filter(access_filter & source_filter).distinct()
-    elif subclasse_filter:
-        if subclasse_filter.lower() == 'null':
-            qs = qs.filter(tbacessoopcao__id_subclasse__isnull=True)
-        else:
-            qs = qs.filter(tbacessoopcao__id_subclasse__slug=subclasse_filter)
-        qs = qs.distinct()
+            # Acesso e uma regra do universo da opcao, nao da pagina inteira. Um
+            # Guerreiro ter ACL para Estilos de Luta nao torna o catalogo global de
+            # Manobras privado. Este e o mesmo criterio usado por picks._opcao_universe.
+            has_universe_acl = (not tipo_filter) or TbAcessoopcao.objects.filter(
+                id_opcao_id__in=qs.values('id_opcao')
+            ).exists()
+            if has_universe_acl:
+                qs = qs.filter(access_filter & source_filter).distinct()
     opcoes_lista = [
         {
             'id': op.id_opcao,

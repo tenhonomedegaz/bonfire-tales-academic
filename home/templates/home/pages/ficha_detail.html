@@ -481,6 +481,55 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
 
   {# ===================== ABA 5: HISTÓRICO ===================== #}
   <div class="ficha-tabpanel space-y-3" data-tabpanel="historico" role="tabpanel" hidden>
+    {% if pode_editar %}
+    <div class="ficha-panel">
+      <div class="ficha-section-title">Ajustes da build</div>
+      {% if request.GET.revisao == 'ok' %}<p class="bag-alert is-ok">A última alteração da build foi desfeita.</p>{% endif %}
+      {% if request.GET.revisao == 'bloqueada' %}<p class="bag-alert">Esta alteração não pode mais ser desfeita porque a ficha já foi usada ou existe uma alteração posterior.</p>{% endif %}
+      {% if request.GET.reembolso == 'ok' %}<p class="bag-alert is-ok">Compra reembolsada e item removido da mochila.</p>{% endif %}
+      {% if request.GET.reembolso == 'bloqueado' %}<p class="bag-alert">A compra não pode ser reembolsada: ela foi alterada ou houve uma mesa depois dela.</p>{% endif %}
+      {% if request.GET.recriar == 'bloqueado' %}<p class="bag-alert">{{ recriar_nivel1_motivo|default:'O nível 1 não pode mais ser recriado.' }}</p>{% endif %}
+
+      <div class="flex flex-wrap items-center gap-2">
+        {% if pode_recriar_nivel1 %}
+        <a href="{% url 'criacao_ficha' %}?recriar={{ p.id_personagem }}" class="banner-btn primary">Refazer escolhas do nível 1</a>
+        {% else %}
+        <button type="button" class="banner-btn" disabled title="{{ recriar_nivel1_motivo }}">Refazer escolhas do nível 1</button>
+        {% endif %}
+
+        {% if revisao_ativa and pode_reverter_revisao %}
+        <form method="post" action="{% url 'personagem_reverter_revisao' p.id_personagem revisao_ativa.id_revisao %}" onsubmit="return confirm('Desfazer a alteração mais recente da build? Registros de mesa e economia não serão alterados.');">
+          {% csrf_token %}
+          <button type="submit" class="banner-btn">Desfazer última alteração</button>
+        </form>
+        {% elif revisao_ativa %}
+        <button type="button" class="banner-btn" disabled title="{{ revisao_motivo }}">Desfazer última alteração</button>
+        {% endif %}
+      </div>
+      {% if not pode_recriar_nivel1 and recriar_nivel1_motivo %}<p class="hist-note">{{ recriar_nivel1_motivo }}</p>{% endif %}
+      {% if revisao_ativa and not pode_reverter_revisao and revisao_motivo %}<p class="hist-note">{{ revisao_motivo }}</p>{% endif %}
+
+      {% if revisoes_build %}
+      <div class="hist-scroll mt-3">
+        <table class="hist-table">
+          <thead><tr><th>Data</th><th>Alteração</th><th>Níveis</th><th>Status</th></tr></thead>
+          <tbody>
+            {% for r in revisoes_build %}
+            <tr class="{% if r.revertida %}is-reverted{% endif %}">
+              <td class="hist-date">{{ r.criado_em|date:'d/m/Y H:i' }}</td>
+              <td class="hist-desc">{{ r.descricao|default:r.get_tipo_display }}</td>
+              <td>{{ r.nivel_antes }} → {{ r.nivel_depois }}</td>
+              <td>{% if r.revertida %}desfeita{% elif revisao_ativa.id_revisao == r.id_revisao %}mais recente{% else %}aguardando rollback anterior{% endif %}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+      <p class="hist-note">O jogador só pode desfazer escolhas enquanto não houver uma mesa posterior. A staff pode reconstruir o nível 1 sem apagar progressão, histórico ou moedas.</p>
+    </div>
+    {% endif %}
+
     {% comment %}Onda E: as MISSÕES viraram registro completo — data da missão, mestre e
     consumos. Linha lançada antes da onda E não tem esses dados e sai marcada "(legado)".
     {% endcomment %}
@@ -519,16 +568,27 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
       <div class="hist-scroll">
         <table class="hist-table">
           <thead>
-            <tr><th>Data</th><th>Tipo</th><th>Descrição</th><th class="num">Valor</th><th class="num">Saldo</th></tr>
+            <tr><th>Data</th><th>Tipo</th><th>Descrição</th><th class="num">Valor</th><th class="num">Saldo</th>{% if pode_editar %}<th>Ação</th>{% endif %}</tr>
           </thead>
           <tbody>
             {% for t in transacoes %}
-            <tr class="{% if t.valor_pc < 0 %}is-debit{% elif t.valor_pc > 0 %}is-credit{% endif %}">
+            <tr class="{% if t.revertida %}is-reverted{% elif t.valor_pc < 0 %}is-debit{% elif t.valor_pc > 0 %}is-credit{% endif %}">
               <td class="hist-date">{{ t.criado_em|date:'d/m/Y H:i' }}</td>
               <td>{{ t.get_tipo_display }}</td>
               <td class="hist-desc">{{ t.descricao|default:'—' }}</td>
               <td class="num hist-val">{% if t.valor_pc > 0 %}+{% endif %}{{ t.valor_display }}</td>
               <td class="num hist-saldo">{{ t.saldo_display }}</td>
+              {% if pode_editar %}
+              <td>
+                {% if t.revertida %}<span class="hist-legado">revertida</span>
+                {% elif t.pode_reembolsar %}
+                <form method="post" action="{% url 'personagem_reembolsar_compra' p.id_personagem t.id_transacao %}" onsubmit="return confirm('Reembolsar esta compra e remover a quantidade correspondente da mochila?');">
+                  {% csrf_token %}<button type="submit" class="banner-btn">Reembolsar</button>
+                </form>
+                {% elif t.tipo == 'compra' and t.valor_pc < 0 %}<span class="hist-legado" title="{{ t.reembolso_motivo }}">indisponível</span>
+                {% else %}—{% endif %}
+              </td>
+              {% endif %}
             </tr>
             {% endfor %}
           </tbody>

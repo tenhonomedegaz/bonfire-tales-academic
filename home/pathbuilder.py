@@ -85,12 +85,15 @@ def catalogos():
         "requer_sintonizacao": bool(item.requer_sintonizacao),
     } for item in TbItemMagico.objects.all().order_by("raridade", "nome")]
 
+    from .views import _talento_attr_options
+
     talentos = [{
         "slug": talento.slug,
         "nome": talento.nome,
         "grupo": (talento.tipo or "Talento").strip() or "Talento",
         "meta": (talento.pre_requisito or "").strip()[:80],
-    } for talento in TbTalento.objects.all().order_by("tipo", "nome")]
+        "atributos": _talento_attr_options(talento),
+    } for talento in TbTalento.objects.filter(tipo__iexact="geral").order_by("nome")]
 
     magias = [{
         "slug": magia.slug,
@@ -290,18 +293,42 @@ def _apply_attribute_bonus(personagem, build):
             )
 
 
-def _apply_talents(personagem, build):
-    from .models import TbPersonagemTalento, TbTalento
-
-    slugs = list(dict.fromkeys(str(value) for value in (build.get("talentos") or [])))
-    if len(slugs) > 30:
+def _normalize_talents(build):
+    rows = build.get("talentos") or []
+    if not isinstance(rows, list) or len(rows) > 30:
         raise PathbuilderError("A build excede o limite de talentos do laboratorio.")
-    talents = {obj.slug: obj for obj in TbTalento.objects.filter(slug__in=slugs)}
+    normalized = []
+    seen = set()
+    for raw in rows:
+        if isinstance(raw, dict):
+            slug = str(raw.get("slug") or "").strip()
+            atributo = str(raw.get("atributo") or "").strip().upper()
+        else:
+            # Compatibilidade com builds salvas antes de o +1 do talento ser modelado.
+            slug = str(raw or "").strip()
+            atributo = ""
+        if not slug or slug in seen:
+            continue
+        seen.add(slug)
+        normalized.append({"slug": slug, "atributo": atributo})
+    return normalized
+
+
+def _apply_talents(personagem, build):
+    from .models import TbPersonagemAtributoBonus, TbPersonagemTalento, TbTalento
+    from .views import _talento_attr_options
+
+    rows = _normalize_talents(build)
+    slugs = [row["slug"] for row in rows]
+    talents = {obj.slug: obj for obj in TbTalento.objects.filter(
+        slug__in=slugs, tipo__iexact="geral")}
     if len(talents) != len(slugs):
-        raise PathbuilderError("Um dos talentos selecionados nao existe.")
+        raise PathbuilderError("Um dos talentos livres selecionados nao existe.")
     owned = set(personagem.talentos.exclude(
         id_talento__isnull=True).values_list("id_talento_id", flat=True))
-    for slug in slugs:
+    issues = []
+    for row in rows:
+        slug = row["slug"]
         talento = talents[slug]
         if talento.id_talento in owned:
             continue
@@ -312,6 +339,71 @@ def _apply_talents(personagem, build):
             nivel=personagem.nivel,
             nome=talento.nome,
         )
+        atributo = row["atributo"]
+        permitidos = _talento_attr_options(talento)
+        if not atributo:
+            issues.append("Escolha o atributo de +1 concedido por %s." % talento.nome)
+        elif atributo not in permitidos:
+            issues.append("%s nao pode aumentar %s." % (talento.nome, atributo))
+        else:
+            TbPersonagemAtributoBonus.objects.create(
+                id_personagem=personagem,
+                atributo=atributo,
+                valor=1,
+                origem="Talento %s (Pathbuilder)" % talento.nome,
+                origem_tipo="pathbuilder",
+            )
+    return issues
+
+
+def _normalize_racial_talents(build):
+    rows = build.get("talentos_raciais") or []
+    if not isinstance(rows, list) or len(rows) > 20:
+        raise PathbuilderError("Talentos raciais do laboratorio invalidos.")
+    normalized = []
+    seen = set()
+    for raw in rows:
+        if not isinstance(raw, dict):
+            continue
+        nivel = _int_between(raw.get("nivel"), 1, 20, "Nivel do talento racial")
+        nome = str(raw.get("nome") or "").strip()
+        if nivel in seen or not nome:
+            continue
+        seen.add(nivel)
+        normalized.append({"nivel": nivel, "nome": nome})
+    return sorted(normalized, key=lambda row: row["nivel"])
+
+
+def _apply_racial_talents(personagem, build):
+    """Aplica marcos raciais usando o mesmo resolvedor do level-up real."""
+    from .views import _lvl_aplicar_talento_racial, _pendencias_talento_racial
+
+    selected = {row["nivel"]: row["nome"] for row in _normalize_racial_talents(build)}
+    initial = _pendencias_talento_racial(personagem)
+    available_levels = {int(group["nivel"]) for group in initial}
+    groups = []
+    issues = []
+    for initial_group in initial:
+        nivel = int(initial_group["nivel"])
+        # Recalcula a cada marco: uma escolha anterior remove duplicatas do universo
+        # seguinte exatamente como no fluxo de level-up.
+        current_group = next((group for group in _pendencias_talento_racial(personagem)
+                              if int(group["nivel"]) == nivel), initial_group)
+        nome = selected.get(nivel, "")
+        groups.append({
+            "nivel": nivel,
+            "selecionado": nome,
+            "opcoes": current_group.get("opcoes") or [],
+        })
+        if not nome:
+            continue
+        errors = _lvl_aplicar_talento_racial(
+            personagem, {"nivel": nivel, "talento": nome})
+        if errors:
+            issues.append("Talento racial invalido no nivel %d: %s." % (nivel, nome))
+    for nivel in sorted(set(selected) - available_levels):
+        issues.append("O talento racial escolhido para o nivel %d nao esta liberado." % nivel)
+    return groups, issues
 
 
 def _apply_items(personagem, build):
@@ -351,6 +443,7 @@ def _apply_items(personagem, build):
                 equipado=equipped,
                 sintonizado=False,
                 tags_json=item.tags_json or [],
+                origem_tipo="pathbuilder",
             )
         elif row.get("tipo") == "magico":
             item = magic[slug]
@@ -362,6 +455,7 @@ def _apply_items(personagem, build):
                 equipado=equipped,
                 sintonizado=attuned,
                 id_item_magico=item,
+                origem_tipo="pathbuilder",
             )
         else:
             raise PathbuilderError("Tipo de item invalido.")
@@ -573,7 +667,7 @@ def _orcamento(personagem, ficha, build):
     from .views import _asi_slots
 
     slots = len(_asi_slots(personagem))
-    talentos = len(build.get("talentos") or [])
+    talentos = len(_normalize_talents(build))
     pontos_usados = sum(int(value or 0)
                         for value in (build.get("atributos_bonus") or {}).values())
     slots_em_pontos = max(0, slots - talentos)
@@ -590,10 +684,11 @@ def _orcamento(personagem, ficha, build):
     }
 
 
-def _rules_diagnostics(personagem, ficha, build, groups, orcamento):
+def _rules_diagnostics(personagem, ficha, build, groups, racial_groups, orcamento,
+                       extra_issues=None):
     from .character_engine import _subclass_min_level
 
-    issues = []
+    issues = list(extra_issues or [])
     for pc in personagem.classes.select_related("id_classe", "id_subclasse"):
         minimum = _subclass_min_level(pc.id_classe)
         if minimum and int(pc.nivel or 0) >= minimum and not pc.id_subclasse_id:
@@ -602,6 +697,9 @@ def _rules_diagnostics(personagem, ficha, build, groups, orcamento):
     pending = sum(int(group.get("pendentes") or 0) for group in groups)
     if pending:
         issues.append("Resolva %d escolha(s) declarada(s) pelas tags." % pending)
+    racial_pending = sum(1 for group in racial_groups if not group.get("selecionado"))
+    if racial_pending:
+        issues.append("Escolha %d talento(s) racial(is) liberado(s) por nivel." % racial_pending)
     if orcamento["asi_em_talento"] > orcamento["asi_slots"]:
         issues.append("A build usa %d talento(s) livre(s), mas possui %d slot(s) de ASI."
                       % (orcamento["asi_em_talento"], orcamento["asi_slots"]))
@@ -620,6 +718,9 @@ def _rules_diagnostics(personagem, ficha, build, groups, orcamento):
         issues.append("Ha mais de uma armadura equipada.")
     if len(shields) > 1:
         issues.append("Ha mais de um escudo equipado.")
+    for sigla, data in (ficha.get("atributos") or {}).items():
+        if int((data or {}).get("valor") or 0) > 20:
+            issues.append("%s ultrapassa o limite normal de atributo 20." % sigla)
     return {"modo": str(build.get("modo") or "sandbox"),
             "valida": not issues, "problemas": issues}
 
@@ -647,13 +748,19 @@ def _folha_html(personagem, ficha, magias_info):
     })
 
 
-def _summary(ficha, personagem, build):
+def _summary(ficha, personagem, build, racial_groups=None, extra_issues=None):
     """SO o que o EDITOR consome. A folha vai em `ficha_html` (markup da ficha real)."""
     from .views import _magias_sheet_info
 
     magias_info = _magias_sheet_info(personagem, ficha, [])
     choice_groups = _choice_groups(personagem, build)
     orcamento = _orcamento(personagem, ficha, build)
+    pathbuilder_bonus = {sigla: 0 for sigla in ("FOR", "DES", "CON", "INT", "SAB", "CAR")}
+    for atributo, valor in personagem.atributo_bonus.filter(
+            origem_tipo="pathbuilder").values_list("atributo", "valor"):
+        if atributo in pathbuilder_bonus:
+            pathbuilder_bonus[atributo] += int(valor or 0)
+
     summary = {
         "nome": personagem.nome,
         "nivel": ficha.get("nivel_total"),
@@ -670,6 +777,11 @@ def _summary(ficha, personagem, build):
             "valor": ((ficha.get("atributos") or {}).get(sigla) or {}).get("valor"),
             "mod": ((ficha.get("atributos") or {}).get(sigla) or {}).get("mod", 0),
         } for sigla in ("FOR", "DES", "CON", "INT", "SAB", "CAR")],
+        "atributos_bonus_aplicados": {
+            sigla: int((build.get("atributos_bonus") or {}).get(sigla) or 0)
+            for sigla in ("FOR", "DES", "CON", "INT", "SAB", "CAR")
+        },
+        "atributos_pathbuilder_aplicados": pathbuilder_bonus,
         "features": [{
             "nome": row.get("nome") or "",
             "origem": row.get("origem") or "",
@@ -681,6 +793,7 @@ def _summary(ficha, personagem, build):
         "ataques": _attack_rows(ficha),
         "avisos": ficha.get("avisos") or [],
         "escolhas_grupos": choice_groups,
+        "talentos_raciais_grupos": racial_groups or [],
         # Resumo das pendencias: SEM repetir o universo de opcoes (o grupo da Maestria de
         # Arma tem 128 — duplicar dobrava o payload de cada preview a troco de nada).
         "escolhas_pendentes": [{
@@ -708,7 +821,8 @@ def _summary(ficha, personagem, build):
         "ficha_html": _folha_html(personagem, ficha, magias_info),
     }
     summary["validacao"] = _rules_diagnostics(
-        personagem, ficha, build, choice_groups, orcamento)
+        personagem, ficha, build, choice_groups, racial_groups or [], orcamento,
+        extra_issues=extra_issues)
     return summary
 
 
@@ -725,13 +839,16 @@ def simulate_build(user, creator_data, build):
         with transaction.atomic():
             personagem = _criador_persistir(user, creator_data, resolved)
             _apply_classes(personagem, creator_data, build)
+            talent_issues = _apply_talents(personagem, build)
             _apply_attribute_bonus(personagem, build)
-            _apply_talents(personagem, build)
+            racial_groups, racial_issues = _apply_racial_talents(personagem, build)
             _apply_items(personagem, build)
             _apply_spells(personagem, build)
             _apply_choices(personagem, build)
             ficha = derive(personagem)
-            result = _summary(ficha, personagem, build)
+            result = _summary(
+                ficha, personagem, build, racial_groups,
+                extra_issues=talent_issues + racial_issues)
             transaction.set_rollback(True)
     except PathbuilderError:
         raise
