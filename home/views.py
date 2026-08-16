@@ -1849,87 +1849,6 @@ def _spell_slot_level(column_name):
     return level if 1 <= level <= 9 else None
 
 
-def _trim_embedded_option_catalog(description, group):
-    """Remove apenas o apendice que duplica um catalogo ``TbOpcaojogo``.
-
-    A decisao usa o universo resolvido do proprio ``pick:opcao``. Assim, uma habilidade
-    nova ganha o mesmo comportamento sem entrar numa lista por nome de classe ou feature.
-    O texto mecanico anterior ao catalogo continua intacto no banco e no editor.
-    """
-    text = str(description or '')
-    options = group.get('universo') or []
-    option_keys = {
-        _normalize_key(option.get('nome') or '')
-        for option in options if option.get('nome')
-    }
-    if len(option_keys) < 2:
-        return text
-    target = _normalize_key(group.get('tipo_display') or group.get('label') or '')
-    headings = list(re.finditer(r'(?m)^\s*#{1,6}\s+(.+?)\s*$', text))
-    cut_at = None
-    for match in headings:
-        title = _normalize_key(re.sub(r'[*_`]', '', match.group(1)))
-        tail_key = _normalize_key(text[match.start():])
-        found = sum(1 for key in option_keys if key and key in tail_key)
-        is_catalog_title = bool(target and (
-            title == target or title.startswith(target + '_')
-            or title.endswith('_' + target)
-        ))
-        is_first_option = title in option_keys
-        if found >= 2 and (is_catalog_title or is_first_option):
-            cut_at = match.start()
-            break
-    if cut_at is None:
-        return text
-
-    prefix = text[:cut_at].rstrip()
-    lines = prefix.splitlines()
-    while lines and not lines[-1].strip():
-        lines.pop()
-    if lines:
-        previous = _normalize_key(re.sub(r'[*_`]', '', lines[-1]))
-        generic_labels = {
-            target + '_disponiveis', target + '_disponivel',
-            'opcoes_disponiveis', 'lista_de_' + target,
-        }
-        if previous in generic_labels:
-            lines.pop()
-    return '\n'.join(lines).rstrip()
-
-
-def _class_feature_display_description(habilidade, classe):
-    """Projeta widgets inferidos de ``pick:opcao`` somente na pagina da classe."""
-    from . import picks as _picks
-    subclasse = habilidade.id_subclasse if habilidade.id_subclasse_id else None
-    groups = _picks.resolve_groups(
-        [habilidade], classe=classe, subclasse=subclasse,
-        nivel=max(1, int(habilidade.niveladquirido or 1)), kinds={'opcao'},
-    )
-    description = str(habilidade.descricao or '')
-    widgets = []
-    seen = set()
-    for group in groups:
-        label = str(group.get('tipo_display') or group.get('label') or '').strip()
-        if not label or not group.get('universo'):
-            continue
-        key = (_normalize_key(label), subclasse.slug if subclasse else '')
-        if key in seen:
-            continue
-        seen.add(key)
-        description = _trim_embedded_option_catalog(description, group)
-        attrs = [
-            'classe=%s' % classe.slug,
-            'nivel=%d' % max(1, int(habilidade.niveladquirido or 1)),
-        ]
-        if subclasse:
-            attrs.append('subclasse=%s' % subclasse.slug)
-        widgets.append('#### %s\n::options=%s; %s' % (
-            label, label, '; '.join(attrs)))
-    if not widgets:
-        return description
-    return '%s\n\n%s' % (description.rstrip(), '\n\n'.join(widgets))
-
-
 def _display_column_name(column_name):
     if _is_feature_column(column_name):
         return 'Habilidades'
@@ -2044,10 +1963,6 @@ def _postgres_classe_detail_view(request, slug):
             item['habilidade'].nome,
         )
     )
-    for item in habilidade_sections:
-        item['descricao_render'] = _class_feature_display_description(
-            item['habilidade'], classe)
-
     class_traits = [
         ('Atributo Principal', classe.atributo_principal),
         ('Dado de Vida', classe.dado_vida),
@@ -12031,8 +11946,6 @@ def organizacoes_view(request):
 
 
 def api_opcoes(request):
-    from .models import TbAcessoopcao
-
     tipo_filter = request.GET.get('tipo', '').strip()
     classe_filter = request.GET.get('classe', '').strip()
     subclasse_filter = request.GET.get('subclasse', '').strip()
@@ -12080,14 +11993,13 @@ def api_opcoes(request):
                 source_filter |= Q(tbacessoopcao__id_subclasse__slug=subclasse_filter)
             has_source = True
         if has_source:
-            # Acesso e uma regra do universo da opcao, nao da pagina inteira. Um
-            # Guerreiro ter ACL para Estilos de Luta nao torna o catalogo global de
-            # Manobras privado. Este e o mesmo criterio usado por picks._opcao_universe.
-            has_universe_acl = (not tipo_filter) or TbAcessoopcao.objects.filter(
-                id_opcao_id__in=qs.values('id_opcao')
-            ).exists()
-            if has_universe_acl:
-                qs = qs.filter(access_filter & source_filter).distinct()
+            qs = qs.filter(access_filter & source_filter).distinct()
+    elif subclasse_filter:
+        if subclasse_filter.lower() == 'null':
+            qs = qs.filter(tbacessoopcao__id_subclasse__isnull=True)
+        else:
+            qs = qs.filter(tbacessoopcao__id_subclasse__slug=subclasse_filter)
+        qs = qs.distinct()
     opcoes_lista = [
         {
             'id': op.id_opcao,

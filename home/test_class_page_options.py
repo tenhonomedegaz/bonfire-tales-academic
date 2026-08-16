@@ -1,4 +1,4 @@
-from home import picks, views
+from home import picks
 from home.models import TbClasse, TbClassehabilidade
 from home.test_criador import _CriadorBase
 
@@ -15,29 +15,17 @@ class ClassPageOptionWidgetTests(_CriadorBase):
         self.assertEqual(maneuvers['n'], 2)
         self.assertGreater(len(maneuvers['universo']), 10)
 
-    def test_api_do_widget_aplica_acl_somente_ao_tipo_que_a_declara(self):
-        response = self.client.get('/api/opcoes/', {
-            'tipo': 'Manobras de Combate',
-            'classe': 'guerreiro',
-            'nivel': 2,
-        })
-        self.assertEqual(response.status_code, 200)
-        self.assertGreater(len(response.json()['opcoes']), 10)
-
-    def test_pagina_da_classe_substitui_catalogo_embutido_por_widget_sem_mudar_banco(self):
+    def test_fundamentos_de_batalha_armazena_widget_sem_catalogo_embutido(self):
         fighter = TbClasse.objects.get(slug='guerreiro')
         feature = TbClassehabilidade.objects.get(
             id_classe=fighter, nome='Fundamentos de Batalha')
-        original = feature.descricao
-        rendered = views._class_feature_display_description(feature, fighter)
-        self.assertIn('::options=Manobras de Combate', rendered)
-        self.assertNotIn('#### Emboscada', rendered)
-        self.assertIn('#### Emboscada', original)
-        feature.refresh_from_db()
-        self.assertEqual(feature.descricao, original)
+        self.assertIn('::options=Manobras de Combate', feature.descricao)
+        self.assertNotIn('#### Emboscada', feature.descricao)
 
-    def test_normalizador_separa_center_da_tabela_markdown_seguinte(self):
-        with open('home/static/js/markdown.js', encoding='utf-8') as fh:
-            source = fh.read()
-        self.assertIn('return `\\n\\n<span class="bonfire-center">${html}</span>\\n\\n`', source)
-        self.assertIn('parseInlineMarkdownLabel(st.title)', source)
+    def test_manifestacao_mistica_armazena_tabelas_com_limites_validos(self):
+        mystic = TbClasse.objects.get(slug='mistico')
+        feature = TbClassehabilidade.objects.get(
+            id_classe=mystic, nome='Manifestação Mística')
+        self.assertNotIn('::\n| Nível de Místico', feature.descricao)
+        self.assertNotIn('### [Marca Mística](', feature.descricao)
+        self.assertEqual(feature.descricao.count('::\n\n| Nível de Místico'), 4)

@@ -127,15 +127,6 @@ function parseInlineMarkdown(value) {
         .replace(/\*(.*?)\*/g, '<em>$1</em>');
 }
 
-function parseInlineMarkdownLabel(value) {
-    // Titulos de abas viram botoes e nao podem conter um link/card interativo.
-    // Aceita tanto o Markdown cru quanto a ancora gerada pela primeira normalizacao.
-    const label = String(value || '')
-        .replace(/<a\b[^>]*>([\s\S]*?)<\/a>/gi, '$1')
-        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
-    return parseInlineMarkdown(label);
-}
-
 function bonfireImageStyleFromModifiers(modifiers) {
     const allowed = new Set([
         'position', 'bottom', 'top', 'left', 'right', 'width', 'height', 'max-width', 'max-height',
@@ -385,10 +376,7 @@ function normalizeMarkdown(value, options = {}) {
                 .split('\n')
                 .map(line => parseInlineMarkdown(line.trim()))
                 .join('<br>');
-            // `span` nao abre um bloco HTML cru no CommonMark. Isso permite que uma
-            // tabela logo depois do ::center continue sendo interpretada como tabela,
-            // inclusive quando o trecho esta dentro de ::toggle.
-            return `\n\n<span class="bonfire-center">${html}</span>\n\n`;
+            return `<div class="bonfire-center">${html}</div>`;
         });
 
     if (enableOptions) {
@@ -489,8 +477,8 @@ function parseToggleBlock(content, options = {}) {
         const visibleClass = idx === 0 ? 'is-visible' : '';
         const stContentHtml = renderBonfireMarkdown(st.contentLines.join('\n'), options);
         
-        buttonsHtml += `<button type="button" class="subtopic-btn ${activeClass}" data-group-id="${groupId}" data-subtopic-toggle="${st.slug}">${parseInlineMarkdownLabel(st.title)}</button>`;
-        panelsHtml += `<div class="h1-group-panel ${visibleClass}" data-group-parent="${groupId}" data-sub-slug="${st.slug}"><div class="bonfire-markdown"><strong class="subtopic-body-title">${parseInlineMarkdownLabel(st.title)}</strong><br>${stContentHtml}</div></div>`;
+        buttonsHtml += `<button type="button" class="subtopic-btn ${activeClass}" data-group-id="${groupId}" data-subtopic-toggle="${st.slug}">${parseInlineMarkdown(st.title)}</button>`;
+        panelsHtml += `<div class="h1-group-panel ${visibleClass}" data-group-parent="${groupId}" data-sub-slug="${st.slug}"><div class="bonfire-markdown"><strong class="subtopic-body-title">${parseInlineMarkdown(st.title)}</strong><br>${stContentHtml}</div></div>`;
     });
     
     return `<div class="h1-section-group mb-12" id="${groupId}"><h1 class="bonfire-h1-lore">${parseInlineMarkdown(title)}</h1><div class="bonfire-markdown mb-6">${introHtml}</div>${subtopics.length > 0 ? `<div class="subtopic-nav mb-6 flex flex-wrap gap-2">${buttonsHtml}</div>` : ''}<div class="h1-group-body">${panelsHtml}</div></div>`;

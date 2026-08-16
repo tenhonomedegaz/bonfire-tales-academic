@@ -191,7 +191,7 @@
               {% endif %}
             </div>
           </header>
-          <div class="bonfire-markdown p-2.5 text-[12px] leading-[1.4] text-[var(--muted)] max-w-none" data-markdown>{{ item.descricao_render }}</div>
+          <div class="bonfire-markdown p-2.5 text-[12px] leading-[1.4] text-[var(--muted)] max-w-none" data-markdown>{{ item.habilidade.descricao }}</div>
           {% if can_edit_wiki %}
           <form class="wiki-inline-editor" data-feature-form>
             <div class="wiki-inline-row">
