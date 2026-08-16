@@ -527,9 +527,12 @@
         var SIG_AB = { str: 'FOR', dex: 'DES', con: 'CON', int: 'INT', wis: 'SAB', cha: 'CAR' };
         var magiasWrap = el('cf-magias-wrap'), truquesSec = el('cf-truques-sec');
         var truquesBox = el('cf-truques'), magiasBox = el('cf-magias');
+        var preparadasSec = el('cf-preparadas-sec'), preparadasBox = el('cf-preparadas');
         var truqueCounter = document.querySelector('[data-truque-counter]');
         var magiaCounter = document.querySelector('[data-magia-counter]');
-        var magiaLimit = 0;
+        var preparadaCounter = document.querySelector('[data-preparada-counter]');
+        var magiaLabel = document.querySelector('[data-magia-label]');
+        var magiaLimit = 0, preparadaLimit = 0;
 
         function escapeRegExp(s) { return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
         function evalFormula(expr, ctx) {
@@ -568,24 +571,67 @@
             var n = evalFormula(conj.magias_formula, ctx);
             return n == null ? 0 : Math.max(1, n);
         }
+        function preparedCountNv1(conj) {
+            if (conj.preparadas_n != null) return Number(conj.preparadas_n) || 0;
+            if (!conj.preparadas_formula) return 0;
+            var shadow = Object.assign({}, conj, {
+                magias_n: null,
+                magias_formula: conj.preparadas_formula
+            });
+            return spellCountNv1(shadow);
+        }
+        function enforcePreparadas() {
+            if (!preparadasBox) return;
+            var boxes = Array.prototype.slice.call(preparadasBox.querySelectorAll('input[type=checkbox]'));
+            var chosen = boxes.filter(function (b) { return b.checked; }).length;
+            boxes.forEach(function (b) { b.disabled = !b.checked && chosen >= preparadaLimit; });
+            if (preparadaCounter) preparadaCounter.textContent = '(' + chosen + '/' + preparadaLimit + ')';
+        }
+        function renderPreparadas() {
+            var c = classeBySlug[classeSel.value], conj = c && c.conjuracao;
+            if (!preparadasSec || !preparadasBox || !conj || conj.pool !== 'spellbook') {
+                if (preparadasSec) preparadasSec.hidden = true;
+                if (preparadasBox) preparadasBox.innerHTML = '';
+                preparadaLimit = 0;
+                return;
+            }
+            var previous = checkedVals(preparadasBox);
+            var selected = checkedVals(magiasBox);
+            var bySlug = {};
+            (conj.magias_nv1 || []).forEach(function (m) { bySlug[m.slug] = m; });
+            preparadasBox.innerHTML = '';
+            selected.forEach(function (slug) {
+                var m = bySlug[slug] || { slug: slug, nome: slug };
+                var label = checkbox(m.slug, m.nome + (m.nome_ingles ? ' (' + m.nome_ingles + ')' : ''));
+                if (previous.indexOf(slug) !== -1) label.querySelector('input').checked = true;
+                preparadasBox.appendChild(label);
+            });
+            preparadaLimit = Math.min(preparedCountNv1(conj), selected.length);
+            preparadasSec.hidden = false;
+            enforcePreparadas();
+        }
         function enforceMagias() {
             var boxes = Array.prototype.slice.call(magiasBox.querySelectorAll('input[type=checkbox]'));
             var chosen = boxes.filter(function (b) { return b.checked; }).length;
             boxes.forEach(function (b) { b.disabled = !b.checked && chosen >= magiaLimit; });
             if (magiaCounter) magiaCounter.textContent = '(' + chosen + '/' + magiaLimit + ')';
         }
-        magiasBox.addEventListener('change', enforceMagias);
+        magiasBox.addEventListener('change', function () { enforceMagias(); renderPreparadas(); });
+        if (preparadasBox) preparadasBox.addEventListener('change', enforcePreparadas);
         function updateMagiaLimit() {
             var c = classeBySlug[classeSel.value];
             if (!c || !c.conjuracao) return;
             magiaLimit = spellCountNv1(c.conjuracao);
             enforceMagias();
+            renderPreparadas();
         }
         function renderMagias(c) {
             truquesBox.innerHTML = ''; magiasBox.innerHTML = '';
+            if (preparadasBox) preparadasBox.innerHTML = '';
             var conj = c && c.conjuracao;
             if (!conj) { magiasWrap.hidden = true; return; }
             magiasWrap.hidden = false;
+            if (magiaLabel) magiaLabel.textContent = conj.pool === 'spellbook' ? 'Magias no grimório' : 'Magias de 1º nível';
             truquesSec.hidden = !conj.truques_n;
             if (conj.truques_n) {
                 conj.truques.forEach(function (t) {
@@ -1166,7 +1212,9 @@
                     if (c.conjuracao.truques_n && checkedVals(truquesBox).length !== c.conjuracao.truques_n)
                         e.push('Escolha ' + c.conjuracao.truques_n + ' truque(s).');
                     if (checkedVals(magiasBox).length !== magiaLimit)
-                        e.push('Escolha ' + magiaLimit + ' magia(s) de 1º nível.');
+                        e.push('Escolha ' + magiaLimit + (c.conjuracao.pool === 'spellbook' ? ' magia(s) para o grimório.' : ' magia(s) de 1º nível.'));
+                    if (c.conjuracao.pool === 'spellbook' && checkedVals(preparadasBox).length !== preparadaLimit)
+                        e.push('Escolha ' + preparadaLimit + ' magia(s) do grimório para preparar.');
                 }
                 return e;
             },
@@ -1512,6 +1560,7 @@
                 expertise: expertiseWrap.hidden ? [] : checkedVals(expertiseBox),
                 truques: magiasWrap.hidden ? [] : checkedVals(truquesBox),
                 magias: magiasWrap.hidden ? [] : checkedVals(magiasBox),
+                magias_preparadas: (magiasWrap.hidden || preparadasSec.hidden) ? [] : checkedVals(preparadasBox),
                 antecedente: antSel.value,
                 pericias_antecedente: checkedVals(bgWrap),
                 idiomas_ferramentas: idiomasFerramentasSel(),

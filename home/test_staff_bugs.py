@@ -16,12 +16,13 @@ Roda contra o conteúdo real (fixture `conteudo.json`).
 """
 import json
 
+from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
 
 from home import views
 from home.models import (
-    TbClasse, TbSubclasse, TbTalento, TbClassehabilidade,
+    TbClasse, TbSubclasse, TbTalento, TbClassehabilidade, TbItemMagico,
     TbPersonagem, TbPersonagemClasse, TbPersonagemMagia,
 )
 from home.test_criador import _CriadorBase
@@ -99,14 +100,23 @@ class BugACavaleiroArcanoTruquesTests(LevelUpLoteBase):
 
     def test_lote_ek_mais_truques_persiste_os_truques(self):
         # Fluxo completo num POST: subir + subclasse (Cavaleiro Arcano) + aprender_magias
-        # com 2 truques da lista do Mago → os truques ficam materializados na ficha.
+        # com todas as escolhas do NÍVEL-ALVO → as magias ficam materializadas na ficha.
+        from django.db import transaction
+
         p = self._guerreiro_no_nivel(3, apelido='bugA-lote')
         pc = p.classes.first()
         ek = self._sub(pc.id_classe, 'Cavaleiro Arcano')
-        # pool prospectivo p/ escolher 2 truques válidos
-        pend = views._pendencias_nivel(p)
-        pm = views._pendencias_magias_levelup(p, pend)
-        truques = [m['slug'] for m in pm['lista_truques']][:2]
+        # O lote sobe para N4 antes de escolher a subclasse pendente. Calcula o contrato
+        # exatamente nesse estado, em transação revertida, como a página de level-up faz.
+        with transaction.atomic():
+            views._lvl_aplicar_subir_nivel(p, {'classe': pc.id_classe_id})
+            views._lvl_aplicar_subclasse(
+                p, {'classe': pc.id_classe_id, 'subclasse': ek.id_subclasse})
+            pm = views._pendencias_magias(p, classe_id=pc.id_classe_id)
+            transaction.set_rollback(True)
+        p.refresh_from_db()
+        truques = [m['slug'] for m in pm['lista_truques']][:pm['cantrips_pend']]
+        magias = [m['slug'] for m in pm['lista_magias']][:pm['known_pend']]
         self.assertEqual(len(truques), 2)
         self.client.force_login(p.dono)
         resp = self.client.post(
@@ -114,12 +124,16 @@ class BugACavaleiroArcanoTruquesTests(LevelUpLoteBase):
             data=json.dumps({'acoes': [
                 {'tipo': 'subir_nivel', 'payload': {'classe': pc.id_classe_id}},
                 {'tipo': 'subclasse', 'payload': {'subclasse': ek.id_subclasse}},
-                {'tipo': 'aprender_magias', 'payload': {'truques': truques, 'magias': []}}]}),
+                {'tipo': 'aprender_magias', 'payload': {
+                    'truques': truques, 'magias': magias}}]}),
             content_type='application/json')
         self.assertEqual(resp.status_code, 200, resp.content)
         self.assertTrue(resp.json()['ok'], resp.content)
         p.refresh_from_db()
         self.assertEqual(p.magias.filter(nivel=0).count(), 2, 'os 2 truques deviam persistir')
+        self.assertEqual(
+            p.magias.filter(nivel__gt=0, origem__icontains='guerreiro').count(),
+            len(magias))
 
     def test_barbaro_sem_subclasse_conjuradora_nao_tem_passo_de_magias(self):
         # Bárbaro (nenhuma subclasse conjuradora): nada de seção de magias no wizard.
@@ -171,6 +185,89 @@ class BugBGolpeCerteiroCardTests(_CriadorBase):
         self.assertEqual(resp.status_code, 200)
         self.assertTrue(resp.json().get('success'))
         self.assertEqual(resp.json()['title'], 'Chama Sagrada')
+
+
+class AbilityCardScopeTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='card-scope', password='x')
+        self.client.force_login(self.user)
+        self.base = TbClasse.objects.create(nome='Classe Card', slug='classe-card')
+        self.other = TbClasse.objects.create(nome='Outra Card', slug='outra-card')
+        self.sub = TbSubclasse.objects.create(
+            id_classe=self.base, nome='Subclasse Card', slug='subclasse-card')
+        self.base_ability = TbClassehabilidade.objects.create(
+            id_classe=self.base, nome='Nome Igual', descricao='base correta', niveladquirido=1)
+        TbClassehabilidade.objects.create(
+            id_classe=self.other, nome='Nome Igual', descricao='outra errada', niveladquirido=1)
+        TbClassehabilidade.objects.create(
+            id_classe=self.base, id_subclasse=self.sub, nome='Nome Igual',
+            descricao='sub correta', niveladquirido=3)
+
+    def _card(self, owner, ability='nome-igual'):
+        return self.client.get(reverse('api_card_preview'), {
+            'table': 'tbClasseHabilidade', 'args': '%s,%s' % (owner, ability)})
+
+    def test_classe_nao_captura_habilidade_homonima_da_subclasse(self):
+        response = self._card('classe-card')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['description'], 'base correta')
+
+    def test_subclasse_resolve_apenas_o_proprio_escopo(self):
+        response = self._card('subclasse-card')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['description'], 'sub correta')
+
+    def test_table_only_nao_pode_ser_referenciada_como_card(self):
+        TbClassehabilidade.objects.create(
+            id_classe=self.base, nome='Linha de Tabela', descricao='não renderizar',
+            niveladquirido=2, table_only=True)
+        response = self._card('classe-card', 'linha-de-tabela')
+        self.assertEqual(response.status_code, 404)
+
+    def test_sem_origem_exata_nao_faz_fallback_global(self):
+        response = self._card('classe-inexistente')
+        self.assertEqual(response.status_code, 404)
+
+
+# ======================================================================================
+# CATÁLOGO — correções reportadas pela staff precisam sobreviver ao dump/restore
+# ======================================================================================
+class CatalogoItemReportadoTests(_CriadorBase):
+    PISOS = {
+        'cinto-da-forca-do-gigante-da-colina': 21,
+        'cinto-da-forca-do-gigante-de-gelo': 23,
+        'cinto-da-forca-do-gigante-de-pedra': 23,
+        'cinto-de-fogo-forca-gigante': 25,
+        'cinto-da-forca-gigante-da-tempestade': 29,
+        'cinturao-da-tempestade-dormente': 21,
+        'cinto-da-tempestade-desperto': 23,
+        'cinto-da-tempestade-exaltado': 25,
+    }
+
+    def test_itens_de_forca_usam_o_piso_generico_de_atributo(self):
+        for slug, valor in self.PISOS.items():
+            with self.subTest(slug=slug):
+                item = TbItemMagico.objects.get(slug=slug)
+                self.assertIn(
+                    'attr:str_score:=max(str_score,%d)' % valor,
+                    item.tags_json)
+
+    def test_pisos_de_constituicao_e_inteligencia_apontam_o_atributo_correto(self):
+        self.assertIn(
+            'attr:con_score:=max(con_score,19)',
+            TbItemMagico.objects.get(slug='amuleto-da-saude').tags_json)
+        self.assertIn(
+            'attr:int_score:=max(int_score,19)',
+            TbItemMagico.objects.get(
+                slug='tiara-do-intelecto').tags_json)
+
+    def test_mizzium_declara_armadura_base_e_pocao_tem_preco_oficial(self):
+        mizzium = TbItemMagico.objects.get(slug='armadura-mizzium')
+        self.assertIn(
+            'base_item{catalog:mundane, category:armor, subtype:medium|heavy}',
+            mizzium.tags_json)
+        pocao = TbItemMagico.objects.get(slug='pocao-de-invulnerabilidade')
+        self.assertEqual(float(pocao.preco), 2500.0)
 
 
 # ======================================================================================

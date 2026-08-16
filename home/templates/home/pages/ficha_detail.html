@@ -139,10 +139,10 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
     </div>
 
     {% if request.GET.compra == 'vendido' %}<div class="bag-alert is-ok">Item vendido por 80% do valor.</div>
-    {% elif request.GET.compra == 'magico_venda' %}<div class="bag-alert">Item mágico vende-se pelo <a href="{% url 'mercado_comunidade' %}">Mercado da Comunidade</a>.</div>
     {% elif request.GET.compra == 'sem_preco' %}<div class="bag-alert">Este item não tem preço de venda.</div>{% endif %}
     {% if request.GET.anuncio == 'ok' %}<div class="bag-alert is-ok">Item anunciado no <a href="{% url 'mercado_comunidade' %}">Mercado da Comunidade</a>.</div>
-    {% elif request.GET.anuncio == 'invalido' %}<div class="bag-alert">Só item mágico vai para o Mercado da Comunidade.</div>{% endif %}
+    {% elif request.GET.anuncio == 'invalido' %}<div class="bag-alert">Só item mágico vai para o Mercado da Comunidade.</div>
+    {% elif request.GET.anuncio == 'variante' %}<div class="bag-alert">Variantes com item-base devem ser vendidas diretamente no balcão para preservar a base escolhida.</div>{% endif %}
     {% if request.GET.sint == 'limite' %}<div class="bag-alert">Limite de itens sintonizados atingido.</div>{% endif %}
 
     <div class="ficha-panel">
@@ -152,7 +152,7 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
     </div>
 
     <div class="ficha-panel">
-      <div class="ficha-section-title">Mochila <span class="float-right font-sans text-[11px] normal-case tracking-normal text-[var(--muted)]">{{ mochila.itens|length }} item{{ mochila.itens|length|pluralize:"ns" }}</span></div>
+      <div class="ficha-section-title">Mochila <span class="float-right font-sans text-[11px] normal-case tracking-normal text-[var(--muted)]">{{ mochila.itens|length }} {% if mochila.itens|length == 1 %}item{% else %}itens{% endif %}</span></div>
       <div class="bag-feedback" data-mochila-feedback hidden aria-live="polite"></div>
       <div data-mochila-lista>
         {% include 'home/partials/_ficha_inventario.html' %}
@@ -338,7 +338,7 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
       </div>
       <div class="spell-stats">
         {% for caster in magias_info.spellcasters %}
-        <div class="spell-stat"><span>{{ caster.classe }} · {{ caster.ability_nome }}</span><strong>CD {{ caster.cd }} · {% if caster.ataque >= 0 %}+{% endif %}{{ caster.ataque }}</strong></div>
+        <div class="spell-stat"><span>{{ caster.classe }} · {{ caster.ability_nome }}</span><strong>CD {{ caster.cd }} · {% if caster.ataque >= 0 %}+{% endif %}{{ caster.ataque }}{% if caster.mode == 'prepared' and caster.limite_preparadas is not None %} · {{ caster.preparadas_count }}/{{ caster.limite_preparadas }} prep.{% endif %}</strong></div>
         {% endfor %}
         <div class="spell-stat"><span>Preparadas</span><strong>{{ magias_info.n_preparadas }}</strong></div>
         <div class="spell-stat alt"><span>Sempre</span><strong>{{ magias_info.n_sempre }}</strong></div>
@@ -346,6 +346,17 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
     </div>
     {% if request.GET.prep == 'limite' %}
     <div class="spell-alert">Limite de magias preparadas atingido.</div>
+    {% elif request.GET.prep == 'invalida' %}
+    <div class="spell-alert">Esta magia não pertence ao catálogo que a classe pode preparar.</div>
+    {% endif %}
+    {% if request.GET.transcricao == 'ok' %}
+    <div class="spell-alert">Magia transcrita para o grimório.</div>
+    {% elif request.GET.transcricao == 'saldo' %}
+    <div class="spell-alert">Não há ouro suficiente para concluir a transcrição.</div>
+    {% elif request.GET.transcricao == 'duplicada' %}
+    <div class="spell-alert">Essa magia já está registrada no grimório.</div>
+    {% elif request.GET.transcricao == 'invalida' %}
+    <div class="spell-alert">O pergaminho não pode ser transcrito por esta classe ou neste nível.</div>
     {% endif %}
 
     {% for caster in magias_info.spellcasters %}
@@ -414,6 +425,26 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
     </div>
     {% endif %}
 
+    {% if magias_info.transcricoes and pode_editar %}
+    <div class="ficha-panel">
+      <div class="ficha-section-title">Transcrever para o grimório</div>
+      <p class="magias-help mb-2">Pergaminhos compatíveis encontrados na mochila.</p>
+      <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        {% for t in magias_info.transcricoes %}
+        <form method="post" action="{% url 'personagem_transcrever_magia' p.id_personagem %}" class="rounded border border-[var(--line)] p-3">
+          {% csrf_token %}
+          <input type="hidden" name="classe" value="{{ t.classe_id }}">
+          <input type="hidden" name="item" value="{{ t.item_id }}">
+          <strong class="block text-sm">{{ t.magia_nome }}{% if t.magia_nome_ingles %} <span class="text-xs text-[var(--muted)]">({{ t.magia_nome_ingles }})</span>{% endif %}</strong>
+          <span class="block text-xs text-[var(--muted)]">{{ t.classe }} · {{ t.nivel }}º nível · {{ t.item_nome }}{% if t.item_qtd > 1 %} ×{{ t.item_qtd }}{% endif %}</span>
+          <span class="mt-1 block text-xs">{{ t.custo }} · {{ t.tempo_horas }} hora{% if t.tempo_horas != 1 %}s{% endif %}</span>
+          <button type="submit" class="btn-ember mt-2 text-sm" {% if not t.pode_pagar %}disabled title="Ouro insuficiente"{% endif %}>Transcrever</button>
+        </form>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
     {% if magias_info.lista or magias_info.spellcasting %}
       <div class="spell-level-grid">
       {% for grupo in magias_info.grupos %}
@@ -428,13 +459,13 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
             <li class="spell-row {% if not m.preparada and not m.sempre_preparada %}is-unprepared{% endif %}">
               {% if m.sempre_preparada %}
                 <span class="spell-marker {% if m.innate_label %}innate{% else %}always{% endif %}" title="{% if m.innate_label %}Conjuracao inata{% elif m.known_auto %}Conhecida{% else %}Sempre preparada{% endif %}"></span>
-              {% elif pode_editar %}
-                <form method="post" action="{% url 'personagem_toggle_magia' p.id_personagem m.id %}" class="contents">{% csrf_token %}<button type="submit" class="spell-marker toggle {% if m.preparada %}prepared{% endif %}" title="{% if m.preparada %}Preparada{% else %}Nao preparada{% endif %}"></button></form>
+              {% elif pode_editar and m.pode_alternar %}
+                <form method="post" action="{% url 'personagem_toggle_magia_catalogo' p.id_personagem m.classe_id m.slug %}" class="contents">{% csrf_token %}<button type="submit" class="spell-marker toggle {% if m.preparada %}prepared{% endif %}" title="{% if m.preparada %}Preparada{% else %}Não preparada{% endif %}"></button></form>
               {% else %}
                 <span class="spell-marker readonly {% if m.preparada %}prepared{% endif %}"></span>
               {% endif %}
               {% if m.descricao or m.em_niveis_superiores %}
-              <button type="button" class="spell-name spell-name-toggle" data-spell-toggle="{{ m.id }}" aria-expanded="false" title="Ver descrição">{{ m.nome }}{% if m.nome_ingles %} <small>({{ m.nome_ingles }})</small>{% endif %}<span class="spell-caret" aria-hidden="true"></span></button>
+              <button type="button" class="spell-name spell-name-toggle" data-spell-toggle="{{ m.uid }}" aria-expanded="false" title="Ver descrição">{{ m.nome }}{% if m.nome_ingles %} <small>({{ m.nome_ingles }})</small>{% endif %}<span class="spell-caret" aria-hidden="true"></span></button>
               {% else %}
               <span class="spell-name">{{ m.nome }}{% if m.nome_ingles %} <small>({{ m.nome_ingles }})</small>{% endif %}</span>
               {% endif %}
@@ -460,7 +491,7 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
                 {% if m.escola %}<span class="spell-tag muted">{{ m.escola }}</span>{% endif %}
                 {% if m.origem %}<span class="spell-tag source">{{ m.origem }}</span>{% endif %}
               </span>
-              {% if m.descricao or m.em_niveis_superiores %}<div class="spell-desc" data-spell-body="{{ m.id }}" hidden></div>{% endif %}
+              {% if m.descricao or m.em_niveis_superiores %}<div class="spell-desc" data-spell-body="{{ m.uid }}" hidden></div>{% endif %}
             </li>
             {% empty %}
             <li class="spell-empty">-</li>
@@ -603,7 +634,7 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
 
   {# Descrição das magias da aba Magias (card expansível): id -> texto/meta #}
   <script type="application/json" id="ficha-magia-desc">{% autoescape off %}{
-    {% for m in magias_info.lista %}"{{ m.id }}": {"d": "{{ m.descricao|escapejs }}", "u": "{{ m.em_niveis_superiores|escapejs }}", "ct": "{{ m.casting_time|escapejs }}", "al": "{{ m.alcance|escapejs }}", "du": "{{ m.duracao|escapejs }}", "co": "{{ m.componentes|escapejs }}", "conc": {% if m.concentracao %}1{% else %}0{% endif %}, "rit": {% if m.ritual %}1{% else %}0{% endif %}}{% if not forloop.last %},
+    {% for m in magias_info.lista %}"{{ m.uid }}": {"d": "{{ m.descricao|escapejs }}", "u": "{{ m.em_niveis_superiores|escapejs }}", "ct": "{{ m.casting_time|escapejs }}", "al": "{{ m.alcance|escapejs }}", "du": "{{ m.duracao|escapejs }}", "co": "{{ m.componentes|escapejs }}", "conc": {% if m.concentracao %}1{% else %}0{% endif %}, "rit": {% if m.ritual %}1{% else %}0{% endif %}}{% if not forloop.last %},
     {% endif %}{% endfor %}
   }{% endautoescape %}</script>
 </section>

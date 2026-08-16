@@ -51,6 +51,9 @@ MEMORY_MODELS = [
     "TbTransacao", "TbTransacaoMestre",
     "TbAventuraMestre", "TbAnuncioItemMagico", "TbCronica", "TbJornal",
     "TbReiDaColina", "UserProfile",
+    # Pedido e retorno financeiro do gateway: dado transacional da producao.
+    # Nunca deve entrar em fixture de conteudo nem ser apagado por restauracao.
+    "AsaasCheckoutOrder",
     # Textos institucionais/home são editados no admin de cada ambiente. O seed
     # da migration cria a base, mas deploy de catálogo não pisa em ajustes editoriais.
     "TbConteudoEstatico",
@@ -67,6 +70,7 @@ MEMORY_MODELS = [
 CONTENT_MODELS = UPSERT_POR_SLUG + SUBSTITUI
 RESTORE_GUARDED_MODELS = CONTENT_MODELS + PRODUCTION_PRESERVED_MODELS
 DELETIONS_PATH = os.path.join("home", "content_deletions.json")
+RENAMES_PATH = os.path.join("home", "content_renames.json")
 
 
 def _m(nome):
@@ -127,6 +131,48 @@ def _load_content_deletions():
             for model, slugs in data.items() if isinstance(slugs, list)}
 
 
+def _load_content_renames():
+    """Carrega renomeacoes de chaves naturais que devem preservar o PK da prod."""
+    if not os.path.exists(RENAMES_PATH):
+        return {}
+    with open(RENAMES_PATH, encoding="utf-8") as fh:
+        data = json.load(fh)
+    if not isinstance(data, dict):
+        raise ValueError("content_renames.json deve conter um objeto por modelo.")
+
+    renames = {}
+    for model_name, mapping in data.items():
+        if model_name not in UPSERT_POR_SLUG:
+            raise ValueError(
+                "Renomeacao de slug so e permitida em modelos de upsert: %s"
+                % model_name
+            )
+        if not isinstance(mapping, dict):
+            raise ValueError(
+                "Renomeacoes de %s devem ser um objeto {slug_antigo: slug_novo}."
+                % model_name
+            )
+        normalized = {}
+        targets = set()
+        for old_slug, new_slug in mapping.items():
+            old_slug = str(old_slug).strip()
+            new_slug = str(new_slug).strip()
+            if not old_slug or not new_slug or old_slug == new_slug:
+                raise ValueError(
+                    "Renomeacao de slug invalida em %s: %r -> %r"
+                    % (model_name, old_slug, new_slug)
+                )
+            if new_slug in targets:
+                raise ValueError(
+                    "Mais de um slug antigo aponta para %s.%s"
+                    % (model_name, new_slug)
+                )
+            normalized[old_slug] = new_slug
+            targets.add(new_slug)
+        renames[model_name] = normalized
+    return renames
+
+
 def _memory_references(obj):
     refs = []
     target_model = obj._meta.model
@@ -160,7 +206,11 @@ def sincronizar_conteudo(fixture_text):
             if mp is not None and val in mp:
                 setattr(obj, attname, mp[val])
 
-    rel = {"pass1": [], "pass2": [], "pass2_skipped": [], "deletions": []}
+    content_renames = _load_content_renames()
+    rel = {
+        "pass1": [], "pass2": [], "pass2_skipped": [],
+        "renames": [], "deletions": [],
+    }
 
     with transaction.atomic():
         mem_estado_antes = estado_modelos(MEMORY_MODELS)
@@ -171,16 +221,41 @@ def sincronizar_conteudo(fixture_text):
         for nome in UPSERT_POR_SLUG:
             M = _m(nome)
             campos = [f.attname for f in M._meta.fields if not f.primary_key]
+            legacy_by_target = defaultdict(list)
+            for old_slug, new_slug in content_renames.get(nome, {}).items():
+                legacy_by_target[new_slug].append(old_slug)
             up = ins = 0
             for obj in por_modelo.get(_label(M), []):
                 dev_pk = obj.pk
                 remapear_fks(obj)
                 prod = M.objects.filter(slug=obj.slug).first()
+                legacy_slugs = legacy_by_target.get(obj.slug, [])
+                legacy_matches = list(M.objects.filter(slug__in=legacy_slugs))
+                if prod and legacy_matches:
+                    raise ValueError(
+                        "%s possui simultaneamente o slug canonico %s e legado(s) %s; "
+                        "merge abortado para evitar duplicidade."
+                        % (nome, obj.slug, ", ".join(
+                            sorted(item.slug for item in legacy_matches)))
+                    )
+                if len(legacy_matches) > 1:
+                    raise ValueError(
+                        "%s possui mais de um registro legado para %s: %s"
+                        % (nome, obj.slug, ", ".join(
+                            sorted(item.slug for item in legacy_matches)))
+                    )
+                if not prod and legacy_matches:
+                    prod = legacy_matches[0]
                 if prod:
+                    old_slug = prod.slug
                     for c in campos:
                         setattr(prod, c, getattr(obj, c))
                     prod.save()
                     remap[_label(M)][dev_pk] = prod.pk
+                    if old_slug != obj.slug:
+                        rel["renames"].append(
+                            (nome, old_slug, obj.slug, prod.pk)
+                        )
                     up += 1
                 else:
                     obj.pk = None
@@ -319,6 +394,13 @@ def relatorio_texto(rel):
     linhas = ["== Conteúdo referenciado (upsert por slug, preserva PK) =="]
     for nome, up, ins in rel["pass1"]:
         linhas.append("  %-20s %d atualizados, %d inseridos" % (nome, up, ins))
+    if rel.get("renames"):
+        linhas.append("== Slugs renomeados (PK preservado) ==")
+        for nome, old_slug, new_slug, pk in rel["renames"]:
+            linhas.append(
+                "  %-20s %s -> %s (pk=%s)"
+                % (nome, old_slug, new_slug, pk)
+            )
     linhas.append("== Demais tabelas (substituídas inteiras) ==")
     for nome, n in rel["pass2"]:
         linhas.append("  %-20s %d registros" % (nome, n))

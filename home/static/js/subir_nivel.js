@@ -12,7 +12,7 @@
   var main = document.getElementById('sn-main');
   if (!main || !SN.previewUrl) return;
 
-  var CHOICE_STEPS = ['subclasse', 'asi', 'talento_racial', 'opcoes', 'magias', 'troca_magia'];
+  var CHOICE_STEPS = ['subclasse', 'asi', 'talento_racial', 'opcoes', 'magias', 'magias_concedidas', 'troca_magia'];
   var lote = [];       // [{tipo, payload, key, label, card, fixed}]
   var seq = 0;
   var mode = 'subir';  // 'subir' (nível na classe) | 'mc' (multiclassar)
@@ -140,6 +140,28 @@
         if (addBtn) addBtn.disabled = rem <= 0;
       } else if (type === 'aprender_magias') {
         renderMagias(card, badge);
+      } else if (type === 'magias_concedidas') {
+        setBadge(badge, (+card.dataset.need || 0) - enforceGroup(
+          card, 'concedidas', +card.dataset.need || 0));
+      } else if (type === 'trocar_magia') {
+        var quota = +card.dataset.swapRestantes || 0;
+        var usadosRem = {}, usadosAdd = {};
+        mine.forEach(function (a) {
+          usadosRem[a.payload.remover] = true;
+          usadosAdd[a.payload.adicionar] = true;
+        });
+        var remSel = fieldOf(card, 'remover'), addSel = fieldOf(card, 'adicionar');
+        if (remSel) [].forEach.call(remSel.options, function (op) {
+          op.dataset.queued = usadosRem[op.value] ? '1' : '0';
+          if (op.value) op.disabled = !!usadosRem[op.value];
+        });
+        if (addSel) [].forEach.call(addSel.options, function (op) {
+          op.dataset.queued = usadosAdd[op.value] ? '1' : '0';
+          if (op.value && usadosAdd[op.value]) op.disabled = true;
+        });
+        if (remSel && remSel.options[remSel.selectedIndex] && remSel.options[remSel.selectedIndex].disabled) remSel.value = '';
+        if (addSel && addSel.options[addSel.selectedIndex] && addSel.options[addSel.selectedIndex].disabled) addSel.value = '';
+        if (addBtn) addBtn.disabled = mine.length >= quota;
       } else if (type === 'multiclasse') {
         if (addBtn) {
           if (mode === 'mc') { addBtn.classList.add('is-queued-btn'); addBtn.textContent = '✓ multiclassando (cancelar)'; }
@@ -196,8 +218,15 @@
       var rem = fieldOf(card, 'remover'), add = fieldOf(card, 'adicionar');
       if (!rem || !rem.value) { flash(rem); return; }
       if (!add || !add.value) { flash(add); return; }
-      addOrReplace({ tipo: 'trocar_magia', payload: { classe: SN.classeId, remover: rem.value, adicionar: add.value },
-        key: 'trocar_magia', label: 'Troca: ' + optText(rem) + ' → ' + optText(add), card: card });
+      var swaps = lote.filter(function (a) { return a.card === card && a.tipo === 'trocar_magia'; });
+      var quota = +card.dataset.swapRestantes || 0;
+      if (swaps.length >= quota) { flash(btn); return; }
+      if (swaps.some(function (a) { return a.payload.remover === rem.value || a.payload.adicionar === add.value; })) {
+        flash(rem); flash(add); return;
+      }
+      addAction({ tipo: 'trocar_magia', payload: { classe: SN.classeId, remover: rem.value, adicionar: add.value },
+        key: 'trocar_magia#' + rem.value, label: 'Troca: ' + optText(rem) + ' → ' + optText(add), card: card });
+      rem.value = ''; add.value = '';
       return;
     }
   }
@@ -261,7 +290,7 @@
   // uma ação pertence a um cartão de escolha do nível? (p/ limpar ao multiclassar)
   function CHOICE_STEP_CARDS(a) {
     if (!a.card) return true;   // âncoras já removidas antes
-    return ['subclasse', 'talento_racial', 'asi', 'opcao', 'aprender_magias', 'trocar_magia'].indexOf(a.card.dataset.lvlCard) === -1;
+    return ['subclasse', 'talento_racial', 'asi', 'opcao', 'aprender_magias', 'magias_concedidas', 'trocar_magia'].indexOf(a.card.dataset.lvlCard) === -1;
   }
 
   function rebuildMagias(card) {
@@ -269,6 +298,22 @@
     var m = [].map.call(card.querySelectorAll('[data-lvl-group="magias"] input:checked'), function (i) { return i.value; });
     if (t.length || m.length) addOrReplace({ tipo: 'aprender_magias', payload: { classe: SN.classeId, truques: t, magias: m }, key: 'aprender_magias', label: 'Magias: ' + (t.length + m.length), card: card });
     else removeKey('aprender_magias');
+  }
+
+  function rebuildMagiasConcedidas(card) {
+    var escolhidas = [].map.call(
+      card.querySelectorAll('[data-lvl-group="concedidas"] input:checked'),
+      function (input) { return input.value; });
+    var key = 'magias_concedidas#' + card.dataset.fonte + '#' + card.dataset.slot;
+    if (escolhidas.length) {
+      addOrReplace({
+        tipo: 'magias_concedidas',
+        payload: { fonte: card.dataset.fonte, slot: +card.dataset.slot, magias: escolhidas },
+        key: key,
+        label: card.dataset.fonte + ': ' + escolhidas.length + ' magia(s)',
+        card: card
+      });
+    } else removeKey(key);
   }
 
   // ================= stepper =================
@@ -321,7 +366,12 @@
   function renderReview() {
     var list = document.getElementById('sn-review-list');
     if (!list) return;
-    if (!lote.length) { list.innerHTML = '<span class="cf-prev-empty">Nenhuma escolha adicional — só o avanço de nível.</span>'; return; }
+    if (!lote.length) {
+      list.innerHTML = '<span class="cf-prev-empty">' +
+        (SN.podeSubir ? 'Nenhuma escolha adicional — só o avanço de nível.' : 'Nenhuma escolha pendente selecionada.') +
+        '</span>';
+      return;
+    }
     list.innerHTML = lote.map(function (a) {
       if (a.fixed) return '<span class="lvl-chip is-anchor">' + esc(a.label) + '</span>';
       return '<span class="lvl-chip">' + esc(a.label) +
@@ -370,6 +420,7 @@
     if (pend.opcoes_pendentes) items.push(pend.opcoes_pendentes + ' opção(ões)');
     if (pend.cantrips_pend) items.push(pend.cantrips_pend + ' truque(s)');
     if (pend.known_pend) items.push(pend.known_pend + ' magia(s)');
+    if (pend.magias_concedidas_pend) items.push(pend.magias_concedidas_pend + ' magia(s) concedida(s)');
     return items;
   }
   // Destrava/atualiza o passo de magias prospectivo conforme a prévia ao vivo (que já aplicou
@@ -441,18 +492,24 @@
   // ================= confirmar =================
   function doConfirm() {
     if (confirmBtn.disabled) return;
+    if (!SN.podeSubir && !lote.length) {
+      showErr(['Selecione ao menos uma das escolhas pendentes antes de confirmar.'], false);
+      return;
+    }
     confirmBtn.disabled = true; if (prevBtn) prevBtn.disabled = true;
     if (statusEl) { statusEl.textContent = 'aplicando…'; statusEl.classList.add('is-live'); }
     post(SN.aplicarUrl, { acoes: acoesPayload() }).then(function (res) {
       if (res.status === 200 && res.json && res.json.ok) {
         if (res.json.continuar) {
+          var temPendencias = !!res.json.continuar_pendencias;
           if (feedbackEl) {
             feedbackEl.dataset.kind = 'ok';
             feedbackEl.innerHTML =
-              '<div class="lvl-ok"><strong>Nível concluído.</strong> Você ainda tem aventuras ' +
-              'para avançar novamente.<div style="margin-top:.7rem;display:flex;gap:.55rem;flex-wrap:wrap">' +
-              '<a class="cf-btn cf-btn-primary" href="' + esc(SN.pageUrl + (SN.classeId != null ? '?classe=' + encodeURIComponent(SN.classeId) : '')) + '">Continuar para o nível ' +
-              esc(res.json.proximo_nivel) + '</a>' +
+              '<div class="lvl-ok"><strong>' + (temPendencias ? 'Escolhas salvas.' : 'Nível concluído.') + '</strong> ' +
+              (temPendencias ? 'A escolha abriu novas decisões que ainda precisam ser concluídas.' : 'Você ainda tem aventuras para avançar novamente.') +
+              '<div style="margin-top:.7rem;display:flex;gap:.55rem;flex-wrap:wrap">' +
+              '<a class="cf-btn cf-btn-primary" href="' + esc(SN.pageUrl + (SN.classeId != null ? '?classe=' + encodeURIComponent(SN.classeId) : '')) + '">' +
+              (temPendencias ? 'Resolver escolhas restantes' : ('Continuar para o nível ' + esc(res.json.proximo_nivel))) + '</a>' +
               '<a class="cf-btn" href="' + esc(SN.fichaUrl + '?levelup=ok') + '">Voltar à ficha</a></div></div>';
             feedbackEl.hidden = false;
           }
@@ -461,7 +518,7 @@
           if (nextBtn) nextBtn.hidden = true;
           if (statusEl) {
             statusEl.classList.remove('is-live');
-            statusEl.textContent = 'nível concluído';
+            statusEl.textContent = temPendencias ? 'escolhas pendentes' : 'nível concluído';
           }
         } else {
           window.location.href = SN.fichaUrl + '?levelup=ok';
@@ -541,6 +598,11 @@
     main.querySelectorAll('[data-lvl-card="aprender_magias"]').forEach(function (card) {
       card.addEventListener('change', function (e) { if (e.target && e.target.type === 'checkbox') rebuildMagias(card); });
     });
+    main.querySelectorAll('[data-lvl-card="magias_concedidas"]').forEach(function (card) {
+      card.addEventListener('change', function (e) {
+        if (e.target && e.target.type === 'checkbox') rebuildMagiasConcedidas(card);
+      });
+    });
     // TROCA DE MAGIA: espelha o gate do backend (truque↔truque, conhecida↔conhecida). Ao escolher
     // a magia que SAI, restringe o pool que ENTRA à mesma natureza (truque vs. conhecida).
     main.querySelectorAll('[data-lvl-card="trocar_magia"]').forEach(function (card) {
@@ -551,7 +613,8 @@
         var t = o ? o.getAttribute('data-truque') : '';
         [].forEach.call(add.options, function (op) {
           if (!op.value) return;
-          op.disabled = (t !== '' && t != null) && op.getAttribute('data-truque') !== t;
+          var naturezaDiferente = (t !== '' && t != null) && op.getAttribute('data-truque') !== t;
+          op.disabled = naturezaDiferente || op.dataset.queued === '1';
         });
         var cur = add.options[add.selectedIndex];
         if (cur && cur.disabled) add.value = '';

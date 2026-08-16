@@ -23,6 +23,7 @@ STRUCTURAL_QUALIFIERS = {
     "willing", "nonmagical", "magical", "see_or_hear", "can_see_or_hear",
     "can_see", "can_hear", "one_way", "two_way", "half", "none", "weapon_type",
     "source", "of", "in", "out", "self", "active", "concentration", "reaction",
+    "catalog", "category", "subtype", "mundane", "armor", "weapon", "light", "medium", "heavy",
     "restriction", "requires", "max", "min", "and", "or", "not", "elemento",
     "pericias", "results", "table", "list", "always_prepared", "extra",
     "fora_do_limite", "incapacitated", "hidden", "plano_nativo",

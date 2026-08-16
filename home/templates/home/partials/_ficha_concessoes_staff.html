@@ -2,6 +2,7 @@
   {% if concessao_msg == 'ok' %}<p class="lvl-note-ok">Item concedido ao inventário (sem custo de ouro).</p>{% endif %}
   {% if concessao_msg == 'revertido' %}<p class="lvl-note-ok">Concessão revertida: item removido do inventário.</p>{% endif %}
   {% if concessao_msg == 'invalido' %}<p class="lvl-note-cap">Item não encontrado no catálogo.</p>{% endif %}
+  {% if concessao_msg == 'base_item' %}<p class="lvl-note-cap">Escolha o item-base exigido por esta variante mágica.</p>{% endif %}
   {% if concessao_msg == 'rev_invalido' %}<p class="lvl-note-cap">Essa linha não é uma concessão reversível.</p>{% endif %}
   {% if concessao_msg == 'rev_em_uso' %}<p class="lvl-note-cap">Desequipe/dessintonize o item antes de reverter a concessão.</p>{% endif %}
   {% if concessoes %}

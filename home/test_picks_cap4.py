@@ -23,12 +23,14 @@ from home import picks, character_engine as ce
 from home.models import (
     TbPersonagem, TbPersonagemClasse, TbPersonagemEscolha,
     TbEssencia, TbClasse, TbRaca, TbClassehabilidade,
+    TbRegra,
 )
 
 
 class _EssenciaBase(TestCase):
     @classmethod
     def setUpTestData(cls):
+        TbRegra.objects.filter(slug='aumento-de-atributo').delete()
         call_command('loaddata', 'home/fixtures/conteudo.json', verbosity=0)
         cls.user = User.objects.create_user('dono-cap4', password='x')
         cls.classe = TbClasse.objects.first()

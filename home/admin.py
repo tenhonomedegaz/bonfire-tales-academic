@@ -3039,7 +3039,7 @@ class TbItemMundanoAdmin(BonfireAdminMixin, admin.ModelAdmin):
         if mec.get("forca_minima"):
             partes.append(format_html("<strong>Força mínima:</strong> {}", mec["forca_minima"]))
         if mec.get("furtividade_desvantagem"):
-            partes.append(format_html("<strong>Furtividade:</strong> desvantagem"))
+            partes.append(format_html("<strong>Furtividade:</strong> {}", "desvantagem"))
         if not partes:
             return "(sem mecânica derivada das tags)"
         return mark_safe("<br>".join(partes))

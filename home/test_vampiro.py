@@ -20,13 +20,15 @@ from home import views
 from home.character_engine import (derive, _tracos_raciais, clas_de_essencia,
                                    cla_de_traco, cla_escolhido)
 from home.models import (TbEssencia, TbRaca, TbClasse, TbPersonagem,
-                         TbPersonagemClasse, TbPersonagemEscolha, TbTracoracial)
+                         TbPersonagemClasse, TbPersonagemEscolha, TbTracoracial,
+                         TbRegra)
 from home.test_criador import _CriadorBase
 
 
 class _VampBase(TestCase):
     @classmethod
     def setUpTestData(cls):
+        TbRegra.objects.filter(slug='aumento-de-atributo').delete()
         call_command('loaddata', 'home/fixtures/conteudo.json', verbosity=0)
         cls.ess = TbEssencia.objects.get(slug='vampirismo')
         cls.raca = TbRaca.objects.filter(permite_essencia=True).first()

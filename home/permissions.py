@@ -22,15 +22,23 @@ def is_rank_esmeralda(user):
     """HOOK: True se o jogador tem algum personagem no rank Esmeralda.
     Tenta via e-mail (auth.User.email → bot Discord); default False em qualquer falha."""
     try:
+        from django.db import transaction
         from .models import BotMember, BotCharacterLog
-        email = (getattr(user, 'email', '') or '').strip().lower()
-        if not email:
-            return False
-        discord_ids = list(BotMember.objects.filter(email__iexact=email).values_list('discordUserId', flat=True))
-        if not discord_ids:
-            return False
-        return BotCharacterLog.objects.filter(
-            discordUserId__in=discord_ids, rankName__icontains='esmeralda').exists()
+        # As tabelas do bot são opcionais em dev/teste. O savepoint interno evita
+        # que uma relação ausente invalide a transação externa do request/teste.
+        with transaction.atomic():
+            email = (getattr(user, 'email', '') or '').strip().lower()
+            if not email:
+                return False
+            discord_ids = list(BotMember.objects.filter(
+                email__iexact=email,
+            ).values_list('discordUserId', flat=True))
+            if not discord_ids:
+                return False
+            return BotCharacterLog.objects.filter(
+                discordUserId__in=discord_ids,
+                rankName__icontains='esmeralda',
+            ).exists()
     except Exception:
         return False
 
@@ -41,25 +49,27 @@ def is_colaborador(user):
     Expira sozinho via `expirationDate` — a revogação no Discord o bot faz no ValidadeMembersJob.
     Default False em qualquer falha (ex.: tabela ausente no SQLite local)."""
     try:
+        from django.db import transaction
         from django.db.models import Q
         from django.utils import timezone
         from .models import BotTransaction, BotMember
-        emails = set()
-        if getattr(user, 'email', ''):
-            emails.add(user.email.strip())
-        perfil = getattr(user, 'profile', None) or getattr(user, 'userprofile', None)
-        did = getattr(perfil, 'discord_user_id', None)
-        if did:
-            emails |= {e for e in BotMember.objects.filter(discordUserId=did)
-                       .values_list('email', flat=True) if e}
-        if not emails:
-            return False
-        cond = Q()
-        for e in emails:
-            cond |= Q(email__iexact=e)
-        return BotTransaction.objects.filter(
-            cond, subscriptionPlan__startswith='colaborador',
-            status=1, expirationDate__gt=timezone.now()).exists()
+        with transaction.atomic():
+            emails = set()
+            if getattr(user, 'email', ''):
+                emails.add(user.email.strip())
+            perfil = getattr(user, 'profile', None) or getattr(user, 'userprofile', None)
+            did = getattr(perfil, 'discord_user_id', None)
+            if did:
+                emails |= {e for e in BotMember.objects.filter(discordUserId=did)
+                           .values_list('email', flat=True) if e}
+            if not emails:
+                return False
+            cond = Q()
+            for e in emails:
+                cond |= Q(email__iexact=e)
+            return BotTransaction.objects.filter(
+                cond, subscriptionPlan__startswith='colaborador',
+                status=1, expirationDate__gt=timezone.now()).exists()
     except Exception:
         return False
 

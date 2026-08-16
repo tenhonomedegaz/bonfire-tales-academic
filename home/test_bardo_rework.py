@@ -11,6 +11,7 @@ from home.models import (
     TbClasse,
     TbClassehabilidade,
     TbOpcaojogo,
+    TbRegra,
     TbRecursoclasse,
     TbSubclasse,
 )
@@ -19,6 +20,7 @@ from home.models import (
 class BardoReworkTests(TestCase):
     @classmethod
     def setUpTestData(cls):
+        TbRegra.objects.filter(slug="aumento-de-atributo").delete()
         call_command(
             "loaddata", "home/fixtures/conteudo.json", verbosity=0)
         cls.classe = TbClasse.objects.get(slug="bardo")
@@ -88,7 +90,7 @@ class BardoReworkTests(TestCase):
         resources = TbRecursoclasse.objects.filter(id_classe=self.classe)
         self.assertEqual(resources.count(), 14)
         acordes = resources.get(slug="acordes")
-        conhecidas = resources.get(slug="magias-conhecidas")
+        conhecidas = resources.get(slug="magias_conhecidas")
         dado = resources.get(slug="dado-de-inspiracao")
 
         self.assertEqual(acordes.tipo, "choice")

@@ -24,6 +24,31 @@ _CA_ADD = re.compile(r"^ca\s*:\s*\+\s*([0-9]+)", re.I)      # escudo ca:+N
 _DEXMAX = re.compile(r"^dex_ca_max:\s*([0-9]+)", re.I)      # legado (retrocompat): sintetiza a formula
 _FORCA = re.compile(r"^requires:\s*str_score\s*>=\s*([0-9]+)", re.I)
 _FURT = re.compile(r"^dadv:\s*furtividade\b", re.I)
+_BASE_ITEM = re.compile(r"^base_item\s*\{(.+)\}\s*$", re.I | re.S)
+
+
+def contrato_item_base(tags):
+    """Retorna o contrato genérico de uma variante que precisa de um item-base.
+
+    Ex.: ``base_item{catalog:mundane, category:armor, subtype:medium|heavy}``.
+    O parser só conhece a estrutura; a adaptação de catálogo fica no consumidor.
+    """
+    for tag in (tags or []):
+        if not isinstance(tag, str):
+            continue
+        match = _BASE_ITEM.match(tag.strip())
+        if not match:
+            continue
+        params = {}
+        for part in match.group(1).split(','):
+            key, sep, value = part.partition(':')
+            if sep and key.strip() and value.strip():
+                params[key.strip().lower()] = value.strip().lower()
+        if params.get('catalog'):
+            params['subtypes'] = [v.strip() for v in params.pop('subtype', '').split('|')
+                                  if v.strip()]
+            return params
+    return None
 
 
 def mecanica_de_tags(tags, subcategoria=None):

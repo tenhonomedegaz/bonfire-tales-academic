@@ -7,7 +7,13 @@ from django.core import serializers
 from django.test import TestCase
 
 from home import deploy_sync
-from home.models import TbBestiario, TbRegiao
+from home.models import (
+    TbBestiario,
+    TbItemMagico,
+    TbPersonagem,
+    TbPersonagemItem,
+    TbRegiao,
+)
 
 
 class DeploySyncContractTests(TestCase):
@@ -114,3 +120,48 @@ class DeploySyncContractTests(TestCase):
         self.assertEqual(production.lore_markdown, "Lore viva da produção.")
         self.assertFalse(TbRegiao.objects.filter(slug="regiao-da-dev-sync").exists())
         self.assertTrue(report["prod_preservada_ok"])
+
+    def test_slug_rename_updates_catalog_and_preserves_inventory_fk(self):
+        user = User.objects.create_user(username="inventario-rename-sync")
+        personagem = TbPersonagem.objects.create(dono=user, nome="Heroi do Rename")
+        production_item = TbItemMagico.objects.create(
+            nome="Tiara do Intelecto",
+            nome_ingles="Headband of Intellect",
+            slug="Tiara-do-Intelecto",
+            tags_json=["attr:str_score:=max(int_score,19)"],
+        )
+        production_pk = production_item.pk
+        inventory = TbPersonagemItem.objects.create(
+            id_personagem=personagem,
+            id_item_magico=production_item,
+            nome=production_item.nome,
+        )
+        source = TbItemMagico.objects.create(
+            nome="Tiara do Intelecto",
+            nome_ingles="Headband of Intellect",
+            slug="tiara-do-intelecto",
+            tags_json=["attr:int_score:=max(int_score,19)"],
+        )
+        fixture_text = serializers.serialize("json", [source])
+        source.delete()
+
+        report = deploy_sync.sincronizar_conteudo(fixture_text)
+
+        canonical = TbItemMagico.objects.get(slug="tiara-do-intelecto")
+        inventory.refresh_from_db()
+        self.assertEqual(canonical.pk, production_pk)
+        self.assertEqual(inventory.id_item_magico_id, production_pk)
+        self.assertEqual(
+            canonical.tags_json,
+            ["attr:int_score:=max(int_score,19)"],
+        )
+        self.assertFalse(
+            TbItemMagico.objects.filter(slug="Tiara-do-Intelecto").exists()
+        )
+        self.assertIn(
+            (
+                "TbItemMagico", "Tiara-do-Intelecto",
+                "tiara-do-intelecto", production_pk,
+            ),
+            report["renames"],
+        )

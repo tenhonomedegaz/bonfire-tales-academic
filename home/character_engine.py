@@ -975,7 +975,8 @@ def _inventario(personagem):
     if personagem is None:
         return []
     out = []
-    for it in personagem.inventario.select_related('id_item_magico').all().order_by('-equipado', 'nome'):
+    for it in personagem.inventario.select_related(
+            'id_item_magico', 'id_item_mundano').all().order_by('-equipado', 'nome'):
         magico = it.id_item_magico
         cons = _item_consumivel_meta(it, magico)
         _mec_inv = mecanica_de_tags(it.tags_json)
@@ -992,6 +993,7 @@ def _inventario(personagem):
                     'equipado': equipado_efetivo, 'tipo_equip': _mec_inv['tipo_equip'],
                     'pode_equipar': bool(_mec_inv['tipo_equip']) or magico_equipavel,
                     'magico': bool(magico),
+                    'variante_base': bool(it.id_item_mundano_id and magico),
                     'raridade': magico.get_raridade_display() if magico else None,
                     'requer_sintonizacao': bool(magico and magico.requer_sintonizacao),
                     'sintonizado': bool(it.sintonizado),
@@ -1566,22 +1568,16 @@ def _conjuracao_real(personagem):
     a concedeu — senão uma Marca despejaria toda a lista num marcial. Regra DIFERENTE do
     pré-requisito de talento: para aquilo use `_personagem_conjura` (detector universal, que
     TAMBÉM aceita TbPersonagemMagia de qualquer origem)."""
-    from .models import TbClassehabilidade
-    from django.db.models import Q
+    from .spellcasting import class_spellcasting_contract
+
     for c in personagem.classes.select_related('id_classe', 'id_subclasse'):
         cl = c.id_classe
+        if cl is None:
+            continue
         nivel = int(c.nivel or 1)
-        cond = Q(id_classe=cl, id_subclasse__isnull=True)
-        srcs = [cl]
-        if c.id_subclasse_id and _subclass_unlocked(c, nivel):
-            cond |= Q(id_classe=cl, id_subclasse=c.id_subclasse_id)
-            srcs.append(c.id_subclasse)
-        srcs += list(TbClassehabilidade.objects.filter(cond, niveladquirido__lte=nivel))
-        for src in srcs:
-            for t in (getattr(src, 'tags_json', None) or []):
-                body = _tag_block(t, 'spellcasting')
-                if body is not None and re.search(r'\b(?:slots|lista)\s*:', body):
-                    return True
+        subclass = c.id_subclasse if _subclass_unlocked(c, nivel) else None
+        if class_spellcasting_contract(cl, level=nivel, subclass=subclass):
+            return True
     return False
 
 
@@ -1606,26 +1602,19 @@ def _teto_nivel_conjuravel(personagem):
     Usado como TETO das LISTAS DE DECRETO (`requires:spellcasting`): mesmo conjurando de verdade,
     a feature só materializa magia da lista até o nível que ele já consegue conjurar; ao subir de
     nível, novos níveis de slot abrem e o _sync materializa as que agora cabem."""
-    from .models import TbRecursoclasse
-    from django.db.models import Q
+    from .spellcasting import class_spellcasting_contract, max_spell_level_at
+
     teto = 0
     for c in personagem.classes.select_related('id_classe', 'id_subclasse'):
         cl = c.id_classe
         if not cl:
             continue
         nivel = int(c.nivel or 0)
-        cond = Q(id_classe=cl, id_subclasse__isnull=True)
-        if c.id_subclasse_id and _subclass_unlocked(c, nivel):
-            cond |= Q(id_subclasse=c.id_subclasse_id)
-        for r in TbRecursoclasse.objects.filter(cond):
-            slug = (r.slug or '').strip().lower()
-            if not re.match(r'^[1-9]o$', slug):
-                continue
-            if _resource_tipo(r) != RESOURCE_TIPO_TABLE_ONLY:
-                continue
-            val = _resource_max_at(r, nivel)
-            if val and val > 0:
-                teto = max(teto, int(slug[0]))
+        subclass = c.id_subclasse if _subclass_unlocked(c, nivel) else None
+        contract = class_spellcasting_contract(cl, level=nivel, subclass=subclass)
+        teto = max(teto, max_spell_level_at(
+            contract, cl, level=nivel, subclass=subclass,
+            context={'classlvl': nivel}))
     return teto
 
 
@@ -1635,28 +1624,26 @@ def _spell_mod(classes, atributos):
     `str_save:+max(1, spell_mod)`). Se a classe oferece escolha (`ability:int|wis`), usa o
     MAIOR modificador; multiclasse: o maior entre as classes conjuradoras. 0 se não conjura.
     Só lê a habilidade de conjuração ATÉ o nível da classe (mesma janela de _personagem_conjura)."""
-    from .models import TbClassehabilidade
+    from .spellcasting import class_spellcasting_contract
+
     best = None
     for c in classes:
         cl = c.id_classe
-        srcs = [cl] + ([c.id_subclasse] if c.id_subclasse_id else [])
-        srcs += list(TbClassehabilidade.objects.filter(id_classe=cl, niveladquirido__lte=(c.nivel or 1)))
-        for src in srcs:
-            for t in (getattr(src, 'tags_json', None) or []):
-                body = _tag_block(t, 'spellcasting')
-                if body is None:
-                    continue
-                m = re.search(r'ability\s*:\s*([a-z|]+)', body)
-                if not m:
-                    continue
-                mods = []
-                for tok in m.group(1).split('|'):
-                    sig = _EN_SIG.get(_SAVE_TOKEN_EN.get(tok.strip()))
-                    if sig:
-                        mods.append(atributos[sig]['mod'])
-                if mods:
-                    cand = max(mods)
-                    best = cand if best is None else max(best, cand)
+        if cl is None:
+            continue
+        nivel = int(c.nivel or 1)
+        subclass = c.id_subclasse if _subclass_unlocked(c, nivel) else None
+        contract = class_spellcasting_contract(cl, level=nivel, subclass=subclass)
+        if not contract:
+            continue
+        mods = []
+        for token in str(contract.get('ability') or '').split('|'):
+            sig = _EN_SIG.get(_SAVE_TOKEN_EN.get(token.strip()))
+            if sig and sig in atributos:
+                mods.append(atributos[sig]['mod'])
+        if mods:
+            candidate = max(mods)
+            best = candidate if best is None else max(best, candidate)
     return best or 0
 
 

@@ -58,6 +58,7 @@
 
       {# ======================= ETAPA: VISÃO GERAL (ganhos) ======================= #}
       <section class="cf-step space-y-3" data-step="ganhos" data-step-name="Visão geral">
+        {% if pode_subir %}
         <h2 class="sn-step-title">O que o nível {{ nivel_alvo }} concede</h2>
         <p class="sn-step-sub">Estes ganhos entram automaticamente ao confirmar. Depois, faça as escolhas passo a passo.</p>
 
@@ -117,6 +118,10 @@
             </div>
           </div>
         {% endif %}
+        {% else %}
+        <h2 class="sn-step-title">Conclua as escolhas do nível {{ nivel_atual }}</h2>
+        <p class="sn-step-sub">Estas escolhas já pertencem ao personagem. Confirmá-las não concede nível, não consome aventuras e não altera o progresso para o próximo nível.</p>
+        {% endif %}
       </section>
 
       {# ======================= ETAPA: SUBCLASSE ======================= #}
@@ -165,7 +170,7 @@
           </div>
           <label class="lvl-radio"><input type="radio" name="lvl-asi-modo-{{ slot }}" value="talento"> Trocar por um Talento (+1 atributo)</label>
           <div class="lvl-card__row" data-lvl-asi-tal hidden style="margin:0.4rem 0 0.5rem 1.4rem">
-            <select class="lvl-field lvl-field--grow" data-lvl-field="talento" data-lvl-describe aria-label="Talento"><option value="">— Talento —</option>{% for t in talentos_normais %}<option value="{{ t.id }}" data-attrs="{{ t.attrs_csv }}" data-desc="{{ t.descricao|striptags }}">{{ t.nome }}{% if t.pre %} ({{ t.pre }}){% endif %}</option>{% endfor %}</select>
+            <select class="lvl-field lvl-field--grow" data-lvl-field="talento" data-lvl-describe aria-label="Talento"><option value="">— Talento —</option>{% for t in talentos_normais %}<option value="{{ t.id }}" data-attrs="{{ t.attrs_csv }}" data-desc="{{ t.descricao|striptags }}" data-elegivel="{% if t.elegivel %}1{% else %}0{% endif %}"{% if not t.elegivel %} disabled title="{{ t.estado }}{% if t.pre %}: {{ t.pre }}{% endif %}"{% endif %}>{{ t.nome }}{% if t.pre %} ({{ t.pre }}){% endif %}{% if t.estado %} — {{ t.estado }}{% endif %}</option>{% endfor %}</select>
             <select class="lvl-field" data-lvl-field="talento_attr" aria-label="Atributo do talento">{% for a in atributos %}<option value="{{ a }}">+1 {{ a }}</option>{% endfor %}</select>
           </div>
           <div data-lvl-talento-picks hidden style="margin:0.4rem 0 0.5rem 1.4rem"></div>
@@ -264,7 +269,7 @@
           {% endif %}
           {% if pend_magias.known_pend %}
             <div>
-              <div class="lvl-subhdr">Magias conhecidas (escolha {{ pend_magias.known_pend }} · até {{ pend_magias.max_nivel }}º nível)</div>
+              <div class="lvl-subhdr">{{ pend_magias.spell_pick_label }} (escolha {{ pend_magias.known_pend }} · até {{ pend_magias.max_nivel }}º nível)</div>
               <div class="lvl-checkgrid" data-lvl-group="magias">
                 {% for m in pend_magias.lista_magias %}<label class="lvl-check"><input type="checkbox" value="{{ m.slug }}"> <span>{{ m.nome }}{% if m.nome_ingles %} <span class="text-xs text-[var(--muted)]">({{ m.nome_ingles }})</span>{% endif %} <span class="text-xs text-[var(--muted)]">({{ m.nivel }}º)</span></span></label>{% endfor %}
               </div>
@@ -274,21 +279,43 @@
       </section>
       {% endif %}
 
+      {# Magias abertas por qualquer talento, raça, essência, classe ou item. #}
+      {% if magias_concedidas_pend %}
+      <section class="cf-step space-y-3" data-step="magias_concedidas" data-step-name="Magias concedidas" hidden>
+        <h2 class="sn-step-title">Magias concedidas</h2>
+        <p class="sn-step-sub">Complete as escolhas de magia abertas pelas características da build.</p>
+        {% for bloco in magias_concedidas_pend %}
+        <div class="lvl-card" data-lvl-card="magias_concedidas"
+             data-fonte="{{ bloco.fonte }}" data-slot="{{ bloco.slot }}" data-need="{{ bloco.qtd }}">
+          <div class="lvl-card__head">
+            <span class="lvl-card__title">{{ bloco.fonte }} <span class="sub">{{ bloco.rotulo }}</span></span>
+            <span class="lvl-badge" data-lvl-badge>falta {{ bloco.qtd }}</span>
+          </div>
+          <div class="lvl-checkgrid" data-lvl-group="concedidas">
+            {% for magia in bloco.opcoes %}
+            <label class="lvl-check"><input type="checkbox" value="{{ magia.slug }}"> <span>{{ magia.nome }}{% if magia.nome_ingles %} <span class="text-xs text-[var(--muted)]">({{ magia.nome_ingles }})</span>{% endif %}</span></label>
+            {% endfor %}
+          </div>
+        </div>
+        {% endfor %}
+      </section>
+      {% endif %}
+
       {# ======================= ETAPA: TROCAR MAGIA (opcional) ======================= #}
       {% comment %}
         Só o conjurador CONHECIDO (swap_level_up) com magia na estante (conhecidas) vê a etapa.
-        Conjurador PREPARADO (Mago) não tem swap_level_up → nada aqui. Quando a troca do nível
+        Conjurador PREPARADO não tem swap_level_up → nada aqui. Quando a quota do nível
         já foi usada, mostra o aviso no lugar do seletor. É opcional/pulável — o `trocar_magia`
         entra no LOTE e o orquestrador o aplica (truque↔truque, conhecida↔conhecida, teto).
       {% endcomment %}
       {% if pend_magias.swap_level_up and pend_magias.conhecidas %}
       <section class="cf-step space-y-3" data-step="troca_magia" data-step-name="Trocar magia" hidden>
-        <h2 class="sn-step-title">Trocar uma magia conhecida</h2>
-        <p class="sn-step-sub">Ao subir de nível, quem <em>conhece</em> magias pode substituir uma das que já sabe por outra da lista da classe. Etapa opcional — uma troca por nível.</p>
+        <h2 class="sn-step-title">Trocar magias conhecidas</h2>
+        <p class="sn-step-sub">Ao subir de nível, você pode substituir até {{ pend_magias.swap_restantes }} magia{% if pend_magias.swap_restantes != 1 %}s{% endif %}, conforme a característica de conjuração da classe. Esta etapa é opcional.</p>
         {% if pend_magias.swap_disponivel %}
-        <div class="lvl-card" data-lvl-card="trocar_magia">
+        <div class="lvl-card" data-lvl-card="trocar_magia" data-swap-restantes="{{ pend_magias.swap_restantes }}">
           <div class="lvl-card__head">
-            <span class="lvl-card__title">Substituir <span class="sub">1 sai · 1 entra · até {{ pend_magias.max_nivel }}º nível</span></span>
+            <span class="lvl-card__title">Substituir <span class="sub">1 sai · 1 entra por troca · até {{ pend_magias.max_nivel }}º nível</span></span>
           </div>
           <div class="lvl-queued" data-lvl-chips hidden></div>
           <div class="lvl-card__row">
@@ -310,7 +337,7 @@
         </div>
         {% else %}
         <div class="lvl-card is-optional" data-sn-swap-usada>
-          <p class="lvl-card__hint">Você já trocou uma magia neste nível. Suba de nível para liberar outra troca.</p>
+          <p class="lvl-card__hint">Você já usou todas as trocas de magia permitidas neste nível.</p>
         </div>
         {% endif %}
       </section>
@@ -338,7 +365,7 @@
         <span class="cf-hint" data-sn-hint></span>
         <a href="{% url 'ficha_detail' p.id_personagem %}" class="lvl-btn-ghost" data-sn-cancel>Cancelar</a>
         <button type="button" class="cf-btn cf-btn-primary" data-sn-next>Avançar →</button>
-        <button type="button" class="cf-btn cf-btn-primary" data-sn-confirm hidden>✓ Confirmar level-up</button>
+        <button type="button" class="cf-btn cf-btn-primary" data-sn-confirm hidden>{% if pode_subir %}✓ Confirmar level-up{% else %}✓ Confirmar escolhas{% endif %}</button>
       </div>
     </div>{# /.cf-main #}
 
@@ -386,5 +413,5 @@
 <link rel="stylesheet" href="{% static 'css/pages/criador.css' %}?v=3">
 <link rel="stylesheet" href="{% static 'css/pages/levelup.css' %}?v=3">
 <link rel="stylesheet" href="{% static 'css/pages/subir_nivel.css' %}?v=1">
-<script src="{% static 'js/subir_nivel.js' %}?v=3" defer></script>
+<script src="{% static 'js/subir_nivel.js' %}?v=4" defer></script>
 {% endblock %}

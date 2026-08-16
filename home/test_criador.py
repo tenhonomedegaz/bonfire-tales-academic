@@ -146,6 +146,10 @@ class _CriadorBase(TestCase):
             n_mag = views._spell_count_nv1(conj, base, 'CON', 'DES', (asi_major, asi_minor))
             payload['truques'] = [t['slug'] for t in conj['truques']][:conj['truques_n']]
             payload['magias'] = [m['slug'] for m in conj['magias_nv1']][:n_mag]
+            if conj.get('pool') == 'spellbook':
+                n_preparadas = views._prepared_count_nv1(
+                    conj, base, 'CON', 'DES', (asi_major, asi_minor))
+                payload['magias_preparadas'] = payload['magias'][:n_preparadas]
 
         # Picks raciais de FERRAMENTA de traços-base NÃO-talento (ex.: Humano 'Jeitinho
         # Humano' pick:ferramenta:2) precisam ser resolvidos na criação — o front manda
@@ -203,9 +207,18 @@ class CriacaoArquetiposTests(_CriadorBase):
         self.assertTrue(p.escolhas.filter(tipo='estilo_de_luta').exists())
 
     def test_mago_conjurador(self):
-        p, ficha = self._cria_ok(self._payload('mago'))
+        payload = self._payload('mago')
+        p, ficha = self._cria_ok(payload)
         # 3 truques materializados a partir das escolhas
         self.assertEqual(p.magias.filter(nivel=0).count(), 3)
+        # O contrato do grimório separa aquisição de preparação: seis magias
+        # pertencem ao livro, mas somente o subconjunto escolhido começa preparado.
+        livro = p.magias.filter(nivel=1, origem='Mago')
+        self.assertEqual(livro.count(), 6)
+        self.assertEqual(
+            set(livro.filter(preparada=True).values_list('id_magia__slug', flat=True)),
+            set(payload['magias_preparadas']))
+        self.assertEqual(livro.filter(preparada=False).count(), 3)
 
     def test_mistico_salva_pela_rota_json(self):
         p, ficha = self._cria_ok(self._payload('mistico'))
@@ -2998,15 +3011,17 @@ class Item6ConjuracaoSubclasseAwareTests(_CriadorBase):
         self.assertTrue(pend['lista_magias'])
 
     def test_trapaceiro_arcano_pendencia(self):
-        # a contagem exata varia entre a fixture canônica e o dev; o que importa (e o que
-        # estava quebrado) é o pipeline ENXERGAR a subclasse: truques + magias > 0.
+        # O Trapaceiro Arcano prepara magias por uma cota tabelada: o level-up exige os
+        # truques novos, mas não transforma as preparadas em "magias conhecidas".
         p, cl, sub = self._third('ladino', 'Trapaceiro Arcano')
         info = views._classe_spellcasting_info(cl, 3, sub)
         self.assertIsNotNone(info)
         self.assertEqual(info['slots'], 'third')
+        self.assertEqual(info['mode'], 'prepared')
+        self.assertEqual(info['spell_limit']['value'], 'magias_preparadas')
         pend = views._pendencias_magias(p)
         self.assertGreaterEqual(pend['cantrips_pend'], 1)
-        self.assertGreaterEqual(pend['known_pend'], 1)   # needle 'magias-preparadas' casa
+        self.assertEqual(pend['known_pend'], 0)
 
     def test_sheet_mostra_conjuracao_e_slots(self):
         from home.character_engine import derive
@@ -3266,12 +3281,12 @@ class MarcasArcanasPipelineTests(_CriadorBase):
         superior = TbTalento.objects.get(nome='Marca Arcana Superior da Busca')
         self.assertFalse(views._talento_prereq_ok(superior, p, derive(p)))
 
-    def test_marca_potente_permissiva_por_categoria(self):
-        # 'qualquer Marca Superior ou Marca Anomala Maior' e clausula de CATEGORIA →
-        # permanece permissiva por design (o gate nomeado nao trava clausula generica).
+    def test_marca_potente_exige_categoria_possuida(self):
         from home.character_engine import derive
         p = self._marcial(nivel=4)
         potente = TbTalento.objects.get(nome='Marca Potente')
+        self.assertFalse(views._talento_prereq_ok(potente, p, derive(p)))
+        self._pega_talento(p, 'Marca Arcana Superior da Busca')
         self.assertTrue(views._talento_prereq_ok(potente, p, derive(p)))
 
 
@@ -3327,6 +3342,8 @@ class QualificadorOnLevelUpTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
+        # A migration semeia a mesma regra que existe no fixture oficial.
+        TbRegra.objects.filter(slug='aumento-de-atributo').delete()
         call_command('loaddata', 'home/fixtures/conteudo.json', verbosity=0)
 
     def _hp_bonus(self, tags, nivel=11):

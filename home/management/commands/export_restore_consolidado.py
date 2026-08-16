@@ -20,6 +20,7 @@ from home.deploy_sync import (
     PRODUCTION_PRESERVED_MODELS,
     SUBSTITUI,
     UPSERT_POR_SLUG,
+    _load_content_renames,
     sincronizar_conteudo,
 )
 
@@ -136,6 +137,34 @@ def _index_records(records):
     return indexed, duplicates
 
 
+def _normalize_baseline_renames(records):
+    """Casa slugs legados da producao com a identidade canonica atual."""
+    mappings = {}
+    for model_name, renames in _load_content_renames().items():
+        model = apps.get_app_config("home").get_model(model_name)
+        mappings[model._meta.label_lower] = renames
+
+    normalized = []
+    applied = []
+    for record in records:
+        clone = dict(record)
+        fields = dict(record.get("fields") or {})
+        clone["fields"] = fields
+        label = str(record.get("model", "")).lower()
+        old_slug = fields.get("slug")
+        new_slug = mappings.get(label, {}).get(old_slug)
+        if new_slug:
+            fields["slug"] = new_slug
+            applied.append({
+                "modelo": label,
+                "pk_producao": record.get("pk"),
+                "slug_antigo": old_slug,
+                "slug_novo": new_slug,
+            })
+        normalized.append(clone)
+    return normalized, applied
+
+
 def _compare_baseline(path, records):
     if not path:
         return None
@@ -161,6 +190,7 @@ def _compare_baseline(path, records):
             )
         )
     ]
+    old_records, normalized_renames = _normalize_baseline_renames(old_records)
     old_by_model, old_duplicates = _index_records(old_records)
     new_by_model, new_duplicates = _index_records(records)
     upsert_labels = {
@@ -209,6 +239,7 @@ def _compare_baseline(path, records):
         "modelos_com_diferenca": changed_models,
         "chaves_duplicadas_producao": dict(old_duplicates),
         "chaves_duplicadas_dev": dict(new_duplicates),
+        "renomeacoes_de_slug": normalized_renames,
         "politica": {
             "upsert": sorted(upsert_labels),
             "substituicao": sorted(replace_labels),

@@ -135,12 +135,55 @@ class ConcederItemTests(ConcederItemBase):
         self.assertEqual(
             TbPersonagemItem.objects.filter(id_personagem=p, id_item_magico=item).count(), 2)
 
+    def test_variante_magica_exige_e_preserva_item_base(self):
+        p = self._char_dono_staff(apelido='conc-variante')
+        base = TbItemMundano.objects.filter(
+            categoria='armadura', subcategoria__in=['media', 'pesada']).first()
+        self.assertIsNotNone(base)
+        variante = TbItemMagico.objects.create(
+            nome='Armadura Mágica Variável', slug='armadura-magica-variavel-concessao',
+            tipo='variante genérica', slot='armadura', preco=0,
+            tags_json=['base_item{catalog:mundane, category:armor, subtype:medium|heavy}',
+                       'ca:+1'])
+        self.client.force_login(p.dono)
+        url = reverse('personagem_conceder_item', args=[p.pk])
+
+        sem_base = self.client.post(
+            url, data={'tipo': 'magico', 'item': variante.slug})
+        self.assertIn('concessao=base_item', sem_base['Location'])
+        self.assertFalse(TbPersonagemItem.objects.filter(
+            id_personagem=p, id_item_magico=variante).exists())
+
+        concedido = self.client.post(
+            url, data={'tipo': 'magico', 'item': variante.slug,
+                       'base_item': base.slug, 'nota_origem': 'Missão'})
+        self.assertIn('concessao=ok', concedido['Location'])
+        linha = TbPersonagemItem.objects.get(
+            id_personagem=p, id_item_magico=variante)
+        self.assertEqual(linha.id_item_mundano, base)
+        self.assertEqual(linha.tags_json, base.tags_json)
+        self.assertIn(base.nome, linha.nome)
+
+    def test_painel_expoe_as_bases_de_variantes_sem_nome_hardcoded(self):
+        p = self._char_dono_staff(apelido='conc-variante-ui')
+        base = TbItemMundano.objects.filter(
+            categoria='armadura', subcategoria='media').first()
+        self.assertIsNotNone(base)
+        variante = TbItemMagico.objects.create(
+            nome='Variante UI', slug='variante-ui', tipo='variante', slot='armadura',
+            tags_json=['base_item{catalog:mundane, category:armor, subtype:medium}'])
+        self.client.force_login(p.dono)
+        html = self.client.get(reverse('editar_ficha', args=[p.pk])).content.decode('utf-8')
+        self.assertIn('data-conceder-base', html)
+        self.assertIn('data-item-magico="%s"' % variante.slug, html)
+        self.assertIn('value="%s"' % base.slug, html)
+
 
 class ConsumivelInventarioTests(ConcederItemBase):
-    def test_apito_da_aguia_e_item_de_uso_nao_equipavel(self):
+    def test_apito_da_aguia_ocupa_a_mao_enquanto_e_usado(self):
         item = TbItemMagico.objects.get(slug='apito-da-aguia')
-        self.assertEqual(item.slot, 'objeto')
-        self.assertFalse(_item_magico_equipavel(item))
+        self.assertEqual(item.slot, 'empunhado')
+        self.assertTrue(_item_magico_equipavel(item))
 
     def test_slot_autoritativo_ignora_consumable_espurio(self):
         item = TbItemMagico.objects.create(

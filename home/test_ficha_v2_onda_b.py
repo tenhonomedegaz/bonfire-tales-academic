@@ -17,6 +17,7 @@ from django.urls import reverse
 
 from home import slots as _slots
 from home.models import TbItemMagico, TbPersonagemItem
+from home.character_engine import derive
 from home.test_levelup import LevelUpLoteBase
 
 
@@ -119,6 +120,18 @@ class AcessorioNaoConsomeVagaTests(_MochilaBase):
         self.assertIsNone(_slots.vagas_do_slot('acessorio'))
         self.assertEqual(_slots.vagas_do_slot('cabeca'), 1)
         self.assertEqual(_slots.vagas_do_slot('aneis'), 2)   # decidido sobre o dado real
+
+    def test_item_magico_equipado_aplica_piso_de_atributo_do_catalogo(self):
+        p = self._char('piso-atributo')
+        p.forca = 15
+        p.save(update_fields=['forca'])
+        cinto = TbItemMagico.objects.create(
+            nome='Cinto de Teste', slug='cinto-piso-teste', slot='cintura',
+            tipo='item maravilhoso', requer_sintonizacao=True,
+            tags_json=['attr:str_score:=max(str_score,25)'],
+        )
+        self._linha(p, cinto, equipado=True, sintonizado=True)
+        self.assertEqual(derive(p)['atributos']['FOR']['valor'], 25)
 
     def test_varios_acessorios_equipados_ao_mesmo_tempo(self):
         p = self._char('acessorio')

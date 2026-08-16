@@ -514,6 +514,12 @@
       "op": "meta",
       "doc": "Marca item consumivel: pocao, pergaminho, municao, veneno, explosivo ou item gasto/descartado no uso."
     },
+    "base_item": {
+      "categoria": "A1",
+      "forma": "block",
+      "op": "meta",
+      "doc": "Declara que uma variante mágica exige a escolha de um item-base do catálogo. Ex.: base_item{catalog:mundane, category:armor, subtype:medium|heavy}. O item comprado preserva o vínculo e as tags mecânicas da base; nenhum slug de item mágico é tratado no código."
+    },
     "charges": {
       "categoria": "A6",
       "forma": "key_value",
@@ -1736,7 +1742,13 @@
       "categoria": "A12",
       "forma": "block",
       "op": "declare_caster",
-      "doc": "Declara a conjuração da classe. slots:full|half|third|pact(resource:<slug>) (pact = caster por pontos, recupera em descanso curto — Místico). ability:<attr> (ou int|wis se escolhível). Ver 'tags_de_classe' e vocabulario §16."
+      "doc": "Declara todo o contrato de conjuração sem depender do nome da classe. Campos canônicos: ability:<attr> (ou int|wis quando escolhível); slots{progression:full|half|third|pact, resource:<slug opcional>}; list:<slug da lista>; mode:known|prepared; spell_limit{resource:<slug>|formula:<expressão>|fixed:<N>}; spell_level_limit com a mesma forma para classes cujo círculo máximo vem de recurso próprio; cantrip_limit com a mesma forma; pool:class_list|spellbook; swap{event:level_up, max:1|all}; acquire{initial:<N>, level_up:<N>, transcribe{source:<protocolo de item>, cost_po:<fórmula>, time_hours:<fórmula>}}; focus:<tipo>. mode:known exige aquisição no criador/subir de nível e só permite troca quando swap{} declarar. mode:prepared com pool:class_list permite remanejar livremente a lista na ficha. pool:spellbook limita a preparação às magias adquiridas e acquire{} define como o grimório cresce. Recursos e fórmulas são resolvidos pelas tags; rótulos e nomes de classes nunca definem comportamento.",
+      "sintaxe": "spellcasting{ability:<attr>, slots{progression:<tipo>, resource:<slug?>}, list:<lista>, mode:<known|prepared>, spell_limit{resource:<slug>|formula:<expr>|fixed:<N>}, spell_level_limit{...}, cantrip_limit{...}, pool:<class_list|spellbook>, swap{event:level_up, max:<N|all>}, acquire{initial:<N>, level_up:<N>, transcribe{source:<protocolo>, cost_po:<expr>, time_hours:<expr>}}, focus:<tipo>}",
+      "exemplos": [
+        "spellcasting{ability:cha, slots{progression:full}, list:bardo, mode:known, spell_limit{resource:magias_conhecidas}, cantrip_limit{resource:truques}, pool:class_list, swap{event:level_up, max:all}, focus:instrumento_musical}",
+        "spellcasting{ability:wis, slots{progression:full}, list:clerigo, mode:prepared, spell_limit{resource:magias_preparadas}, cantrip_limit{resource:truques}, pool:class_list, focus:simbolo_sagrado}",
+        "spellcasting{ability:int, slots{progression:full}, list:mago, mode:prepared, spell_limit{formula:classlvl+int_mod}, cantrip_limit{resource:truques}, pool:spellbook, acquire{initial:6, level_up:2, transcribe{source:spell_scroll, cost_po:50*spell_level, time_hours:2*spell_level}}, focus:spellbook}"
+      ]
     },
     "spell_selection": {
       "categoria": "A12",

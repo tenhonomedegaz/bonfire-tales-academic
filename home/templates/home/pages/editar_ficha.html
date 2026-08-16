@@ -57,10 +57,14 @@ acesso é fechado por is_staff na view (dono não-staff é redirecionado para a 
           </select>
           <input type="search" placeholder="Filtrar por nome…" class="lvl-field lvl-field--grow" data-conceder-busca aria-label="Filtrar item por nome" autocomplete="off">
           <select name="item" class="lvl-field lvl-field--grow" data-conceder-select="magico" aria-label="Item mágico" required>
-            {% for it in conceder_magico %}<option value="{{ it.slug }}" data-nome="{{ it.nome|lower }}">{{ it.nome }} · {{ it.meta }}{% if it.sem_preco %} · missão{% endif %}</option>{% endfor %}
+            {% for it in conceder_magico %}<option value="{{ it.slug }}" data-nome="{{ it.nome|lower }}" data-requer-base="{% if it.requer_base %}1{% else %}0{% endif %}">{{ it.nome }} · {{ it.meta }}{% if it.sem_preco %} · missão{% endif %}</option>{% endfor %}
           </select>
           <select name="item" class="lvl-field lvl-field--grow" data-conceder-select="mundano" aria-label="Item mundano" disabled hidden>
             {% for it in conceder_mundano %}<option value="{{ it.slug }}" data-nome="{{ it.nome|lower }}">{{ it.nome }} · {{ it.meta }}{% if it.sem_preco %} · sem preço{% endif %}</option>{% endfor %}
+          </select>
+          <select name="base_item" class="lvl-field lvl-field--grow" data-conceder-base aria-label="Item mundano usado como base" disabled hidden>
+            <option value="">— escolha o item-base —</option>
+            {% for base in conceder_bases %}<option value="{{ base.slug }}" data-item-magico="{{ base.item_slug }}" hidden>{{ base.nome }}</option>{% endfor %}
           </select>
           <input type="number" name="qtd" min="1" max="99" value="1" class="lvl-field" style="width:5rem" aria-label="Quantidade">
           <input type="text" name="nota_origem" maxlength="255" placeholder="Origem (ex.: Missão do Ookami)" class="lvl-field lvl-field--grow" aria-label="Origem da concessão">

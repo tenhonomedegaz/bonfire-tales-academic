@@ -45,9 +45,9 @@ Espera no contexto: mochila, p, pode_editar.{% endcomment %}
             </form>
           {% endif %}
           {% comment %}A VENDA a 80% saiu daqui na onda C: vive no painel "Vender" do Mercado,
-          junto da compra e do personagem ativo. O anúncio de item mágico continua aqui — é
-          outra regra (escrow no Mercado da Comunidade, 50%).{% endcomment %}
-          {% if it.magico %}
+          junto da compra e do personagem ativo. O anúncio de item mágico continua aqui.
+          Variantes com item-base ficam no balcão para não perder o snapshot da base.{% endcomment %}
+          {% if it.magico and not it.variante_base %}
             <form method="post" action="{% url 'personagem_anunciar_magico' p.id_personagem %}" onsubmit="return confirm('Anunciar {{ it.nome|escapejs }} no Mercado da Comunidade? O item sai da mochila até vender ou cancelar.');">
               {% csrf_token %}<input type="hidden" name="item" value="{{ it.id }}">
               <button type="submit" class="bag-btn">Anunciar</button>

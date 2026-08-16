@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """Regressão do laudo de magia: TETO de nível de magia pela TABELA DE SLOTS da própria classe,
-SWAP inferido de `prepara:conhecidas`, e ADEPTO DAS VESTES (spell_selection `any`/classe com
+SWAP declarado no contrato `spellcasting`, e ADEPTO DAS VESTES (spell_selection `any`/classe com
 `qtd` implícito e `escola:{A | B}` em conjunto).
 
 Cobre as três correções do laudo:
@@ -12,10 +12,9 @@ Cobre as três correções do laudo:
        Cavaleiro Arcano (third): nv3 → 1,  nv7 → 2,  nv13 → 3  (tabela guardada na SUBCLASSE).
      O APPLY (validação do lote) lê o MESMO `_pendencias_magias` — logo o mesmo teto.
 
-  2. Troca de magia ao subir de nível: INFERIDA quando o spellcasting é `prepara:conhecidas`
-     (Cavaleiro Arcano — sem tag `swap:level_up` no dado; Bardo — caster conhecido) e NÃO
-     quando é `prepara:preparadas` (Mago; Paladino — decisão do PO: conjurador PREPARADO que
-     re-prepara livre a cada descanso, sem swap e sem coluna de "magias conhecidas").
+  2. Troca de magia ao subir de nível: EXPLÍCITA em `swap{event:level_up,max:1|all}`.
+     Cavaleiro Arcano/Místico trocam uma; Bardo/Feiticeiro podem trocar todo o repertório;
+     conjuradores preparados não recebem troca de repertório no level-up.
 
   3. Adepto da Veste Negra: `spell_selection:any{nivel:2, escola:{encantamento | necromancia}}`
      + `cast{spell:spell_selection}` oferece a escolha de 1 magia de 2º ciclo de encantamento
@@ -96,17 +95,34 @@ class TetoNivelMagiaTests(_MagiaBase):
         self.assertEqual([f(n) for n in (2, 5, 7, 9, 13, 17, 20)], [1, 2, 2, 3, 4, 5, 5])
 
 
-class SwapInferidoTests(_MagiaBase):
-    """Troca de magia ao subir de nível: inferida por `prepara:conhecidas`."""
+class SwapDeclaradoTests(_MagiaBase):
+    """Troca de magia ao subir de nível vem somente do contrato declarativo."""
 
     def _swap(self, p):
         pend = views._pendencias_magias(p)
         self.assertIsNotNone(pend, 'sem pendências de magia para %s' % p.nome)
         return pend['swap_level_up']
 
-    def test_cavaleiro_arcano_conhecidas_ve_swap_por_inferencia(self):
-        # prepara:conhecidas, SEM tag swap:level_up no dado → troca INFERIDA.
-        self.assertTrue(self._swap(self._com_classe('guerreiro', 7, 'Arcano', 'ekswap')))
+    def test_cavaleiro_arcano_e_mistico_declaram_uma_troca(self):
+        ek = self._com_classe('guerreiro', 7, 'Arcano', 'ekswap')
+        mistico = self._com_classe('mistico', 7, nome='misticswap')
+        for personagem in (ek, mistico):
+            pend = views._pendencias_magias(personagem)
+            self.assertTrue(pend['swap_level_up'])
+            self.assertEqual(pend['swap_limite'], 1)
+            self.assertEqual(
+                views._classe_spellcasting_info(
+                    personagem.classes.first().id_classe,
+                    nivel_habilidades=personagem.classes.first().nivel,
+                    subclasse=views._caster_subclasse(personagem.classes.first()))['swap']['max'],
+                1)
+
+    def test_bardo_e_feiticeiro_declaram_troca_de_todo_repertorio(self):
+        for slug in ('bardo', 'feiticeiro'):
+            p = self._com_classe(slug, 7, nome='%sswap' % slug)
+            info = views._classe_spellcasting_info(
+                p.classes.first().id_classe, nivel_habilidades=7)
+            self.assertEqual(info['swap'], {'event': 'level_up', 'max': 'all'})
 
     def test_mago_preparadas_nao_ve_swap(self):
         # prepara:preparadas (re-prepara livre a cada descanso) → NÃO troca ao subir.
@@ -191,27 +207,24 @@ class AdeptoDasVestesTests(_MagiaBase):
 
 
 class TrocaMagiaGateTests(_MagiaBase):
-    """Regra do PO: o caster CONHECIDO troca UMA magia por NÍVEL. Cada troca registra o nível
+    """Um contrato com ``max:1`` troca UMA magia por nível. Cada troca registra o nível
     total em que foi usada (TbPersonagemEscolha tipo='troca_magia'); a SEGUNDA troca no MESMO
     nível é recusada com `_ERR_TROCA_JA_USADA` — vale para o POST direto, para o endpoint
     legado (`personagem_trocar_magia`) e para o lote (`_levelup_aplicar_lote`). Subir de nível
     libera outra troca; personagens ANTIGOS (sem registro) ganham a troca do nível atual."""
 
     def _caster(self, nivel=9, nome='swapper'):
-        """Bardo (known caster: prepara:conhecidas → swap por inferência) com 1 magia conhecida
-        pronta para trocar. Devolve (p, old_slug, new_slug): `old` é a conhecida a remover,
-        `new` uma magia da lista da classe ainda não conhecida (dentro do teto). (Antes usava
-        Paladino; após a decisão do PO ele virou PREPARADO — sem swap — então o veículo do
-        gate de troca passou a um caster que ainda CONHECE magias.)"""
-        p = self._com_classe('bardo', nivel, nome=nome)
+        """Místico (`swap.max:1`) com uma magia conhecida pronta para trocar."""
+        p = self._com_classe('mistico', nivel, nome=nome)
         pend = views._pendencias_magias(p)
-        self.assertTrue(pend['swap_level_up'], 'bardo deveria permitir troca ao subir de nível')
+        self.assertTrue(pend['swap_level_up'], 'místico deveria permitir troca ao subir de nível')
         opcoes = [m['slug'] for m in pend['lista_magias']]
         self.assertGreaterEqual(len(opcoes), 2, 'pool de magias insuficiente para o teste')
         old_slug, new_slug = opcoes[0], opcoes[1]
         mg = TbMagia.objects.get(slug=old_slug)
+        origem = p.classes.first().id_classe.nome
         TbPersonagemMagia.objects.create(id_personagem=p, id_magia=mg, nivel=mg.nivel,
-                                         nome=mg.nome, preparada=True, origem='Bardo')
+                                         nome=mg.nome, preparada=True, origem=origem)
         return p, old_slug, new_slug
 
     def test_primeira_troca_aplica_e_registra(self):
@@ -296,12 +309,38 @@ class TrocaMagiaGateTests(_MagiaBase):
         self.assertTrue(views._pendencias_magias(p)['swap_disponivel'])
 
 
+class TrocaTodoRepertorioTests(_MagiaBase):
+    """``max:all`` permite uma troca para cada magia conhecida no mesmo nível."""
+
+    def test_bardo_pode_trocar_duas_magias_no_mesmo_level_up(self):
+        p = self._com_classe('bardo', 9, nome='bardo-troca-todas')
+        pend = views._pendencias_magias(p)
+        slugs = [m['slug'] for m in pend['lista_magias']]
+        self.assertGreaterEqual(len(slugs), 4)
+        origem = p.classes.first().id_classe.nome
+        for slug in slugs[:2]:
+            magia = TbMagia.objects.get(slug=slug)
+            TbPersonagemMagia.objects.create(
+                id_personagem=p, id_magia=magia, nivel=magia.nivel,
+                nome=magia.nome, preparada=True, origem=origem)
+
+        self.assertEqual(views._pendencias_magias(p)['swap_limite'], 2)
+        self.assertEqual(views._lvl_aplicar_trocar_magia(
+            p, {'remover': slugs[0], 'adicionar': slugs[2]}), [])
+        self.assertEqual(views._lvl_aplicar_trocar_magia(
+            p, {'remover': slugs[1], 'adicionar': slugs[3]}), [])
+        self.assertEqual(views._lvl_aplicar_trocar_magia(
+            p, {'remover': slugs[2], 'adicionar': slugs[0]}),
+            [views._ERR_TROCA_JA_USADA])
+        self.assertEqual(TbPersonagemEscolha.objects.filter(
+            id_personagem=p, tipo='troca_magia').count(), 2)
+
+
 class PaladinoPreparadoTests(_MagiaBase):
     """Decisão do PO: o Paladino é conjurador PREPARADO, não "conhecido". A tag virou
-    `spellcasting{... prepara:preparadas, prep_limite:cha_mod+rounddown(classlvl/2)}` (fórmula
-    extraída da DESCRIÇÃO: "modificador de Carisma + metade do nível de Paladino, mínimo de
-    uma magia") e a coluna de recurso "magias-conhecidas" saiu do catálogo. Verificado aqui:
-      • painel de PREPARADAS mostra o limite REAL da fórmula (Carisma + metade do nível);
+    `spellcasting{... mode:prepared, spell_limit{resource:magias_preparadas}}`; a quantidade
+    vem da progressão da classe e não de atributo. Verificado aqui:
+      • painel de PREPARADAS mostra o limite da tabela;
       • sem pendência de "magias conhecidas" no level-up (known_pend == 0);
       • sem troca de magia ao subir de nível (swap_level_up False — o swap saiu junto);
       • RECONCILIAÇÃO: paladino com MAIS magias que o limite (era "conhecido") não é deletado —
@@ -323,26 +362,27 @@ class PaladinoPreparadoTests(_MagiaBase):
         self.assertIsNotNone(info, 'Paladino deveria expor o painel de magias PREPARADAS')
         return info
 
-    def test_spellcasting_e_preparado_com_formula(self):
+    def test_spellcasting_e_preparado_com_recurso_tabelado(self):
         classe = TbClasse.objects.get(slug='paladino')
         info = views._classe_spellcasting_info(classe, nivel_habilidades=5)
         self.assertEqual(info['prepara'], 'preparadas')
-        self.assertEqual(info['prep_formula'], 'cha_mod+rounddown(classlvl/2)')
+        self.assertIsNone(info['prep_formula'])
+        self.assertEqual(
+            info['spell_limit'], {'kind': 'resource', 'value': 'magias_preparadas'})
 
-    def test_limite_formula_carisma_mais_metade_nivel(self):
-        # N5, CAR 16 (mod +3): limite = 3 + rounddown(5/2)=2 -> 5. Teto de círculo = 2 (half@nv5).
+    def test_limite_vem_da_tabela(self):
+        # N5: tabela do Paladino informa 6, independentemente de Carisma.
         info = self._prep_info(self._paladino(nivel=5, carisma=16))
         self.assertEqual(info['classe'], 'Paladino')
-        self.assertEqual(info['limite'], 5)
+        self.assertEqual(info['limite'], 6)
         self.assertEqual(info['max_nivel'], 2)
         self.assertTrue(info['grupos'])
         self.assertTrue(all(g['nivel'] <= 2 for g in info['grupos']))
 
-    def test_limite_minimo_uma_magia(self):
-        # CAR baixo em nível baixo não zera: piso de 1 magia (max(1, ...) da fórmula/PHB).
-        # N2, CAR 8 (mod -1): -1 + rounddown(2/2)=1 -> 0 -> piso 1.
+    def test_limite_nao_muda_com_carisma(self):
+        # N2 informa 3 na tabela mesmo com Carisma 8.
         info = self._prep_info(self._paladino(nivel=2, carisma=8, nome='minimo'))
-        self.assertEqual(info['limite'], 1)
+        self.assertEqual(info['limite'], 3)
 
     def test_sem_pendencia_de_conhecidas_e_sem_swap(self):
         pend = views._pendencias_magias(self._paladino(nivel=5, carisma=16, nome='pend'))

@@ -27,7 +27,7 @@ from django.conf import settings
 from django.urls import reverse
 
 from home.models import TbItemMagico, TbItemMundano, TbPersonagem, TbPersonagemItem
-from home.views import _preco_em_pc, _preco_venda_mundano_pc
+from home.views import _preco_em_pc, _preco_venda_mundano_pc, _preco_venda_pc
 from home.test_levelup import LevelUpLoteBase
 
 
@@ -362,7 +362,7 @@ class VendaNoMercadoTests(_MercadoBase):
         # e a transação ficou no extrato
         self.assertTrue(p.transacoes.filter(tipo='venda').exists())
 
-    def test_item_magico_nao_vende_pelo_balcao(self):
+    def test_item_magico_vende_pelo_balcao_por_80_porcento(self):
         p = self._char('venda-magico')
         magico = TbItemMagico.objects.filter(preco__gt=0).first()
         linha = TbPersonagemItem.objects.create(id_personagem=p, nome=magico.nome, qtd=1,
@@ -371,9 +371,37 @@ class VendaNoMercadoTests(_MercadoBase):
         self.client.force_login(p.dono)
         resp = self.client.post(reverse('personagem_vender_item', args=[p.pk]),
                                 data={'item': linha.id}, **self.AJAX)
-        self.assertEqual(resp.status_code, 400, resp.content)
-        self.assertEqual(resp.json()['msg'], 'magico_venda')
-        self.assertTrue(TbPersonagemItem.objects.filter(pk=linha.pk).exists())
+        self.assertEqual(resp.status_code, 200, resp.content)
+        self.assertEqual(resp.json()['msg'], 'vendido')
+        self.assertFalse(TbPersonagemItem.objects.filter(pk=linha.pk).exists())
+        p.refresh_from_db()
+        self.assertEqual(p.carteira_pc, 1_000_000 + _preco_venda_pc(magico))
+
+    def test_variante_magica_exige_base_declarada_na_tag_e_preserva_mecanica(self):
+        p = self._char('variante-base')
+        base = TbItemMundano.objects.filter(
+            categoria='armadura', subcategoria__in=['media', 'pesada']).first()
+        self.assertIsNotNone(base)
+        variante = TbItemMagico.objects.create(
+            nome='Armadura Variável de Teste', slug='armadura-variavel-de-teste',
+            tipo='variante genérica', slot='armadura', preco=100,
+            tags_json=['base_item{catalog:mundane, category:armor, subtype:medium|heavy}',
+                       'ca:+1'],
+        )
+        self.client.force_login(p.dono)
+        url = reverse('personagem_comprar_magico', args=[p.pk])
+        sem_base = self.client.post(url, data={'item': variante.slug}, **self.AJAX)
+        self.assertEqual(sem_base.status_code, 200, sem_base.content)
+        self.assertFalse(sem_base.json()['ok'])
+        self.assertEqual(sem_base.json()['msg'], 'base_item')
+
+        comprado = self.client.post(
+            url, data={'item': variante.slug, 'base_item': base.slug}, **self.AJAX)
+        self.assertEqual(comprado.status_code, 200, comprado.content)
+        linha = TbPersonagemItem.objects.get(id_personagem=p, id_item_magico=variante)
+        self.assertEqual(linha.id_item_mundano, base)
+        self.assertEqual(linha.tags_json, base.tags_json)
+        self.assertIn(base.nome, linha.nome)
 
     def test_item_sem_preco_nao_entra_no_painel_nem_vende(self):
         p = self._char('venda-sem-preco')

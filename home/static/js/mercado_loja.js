@@ -202,7 +202,7 @@
     saldo: 'Saldo insuficiente para esta compra.',
     invalido: 'Mercadoria indisponível para negócio.',
     sem_preco: 'Este item não tem preço de catálogo — não dá para vender.',
-    magico_venda: 'Item mágico se anuncia no Mercado da Comunidade, pela Mochila.'
+    base_item: 'Escolha o item-base antes de comprar esta variante.'
   };
 
   function avisar(texto, ok) {

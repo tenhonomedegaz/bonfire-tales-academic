@@ -270,3 +270,7 @@
 
 /* A LOJA da ficha saiu daqui na onda C (Ficha v2): compra e venda vivem nas paginas
    do Mercado, com CSS proprio em css/pages/mercado_loja.css. */
+.lvl-field option:disabled {
+  color: #9b7f83;
+  background: #1d1618;
+}

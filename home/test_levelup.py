@@ -20,7 +20,7 @@ from home import views
 from home.models import (
     TbClasse, TbSubclasse, TbPersonagem, TbPersonagemClasse,
     TbPersonagemAtributoBonus, TbPersonagemTalento,
-    TbMagia, TbPersonagemMagia, TbPersonagemEscolha,
+    TbMagia, TbPersonagemMagia, TbPersonagemEscolha, TbEssencia, TbRaca, TbTalento,
 )
 from home.test_criador import _CriadorBase
 
@@ -303,6 +303,279 @@ class SubirNivelPageTests(LevelUpLoteBase):
         outro = self._novo_usuario('intruso-sn')
         self.client.force_login(outro)
         self.assertEqual(self.client.get(url).status_code, 404)
+
+    def test_conclui_pick_global_legado_sem_aventura_e_sem_subir_nivel(self):
+        """Regressão de produção: uma escolha de Essência aberta no N1 deve aparecer
+        mesmo com o wizard focado na classe e com zero aventuras. Confirmá-la apenas
+        completa o estado atual; não concede o N2."""
+        user = self._novo_usuario('aarly-pendencia')
+        clerigo = TbClasse.objects.get(slug='clerigo')
+        essencia = TbEssencia.objects.get(slug='draconica')
+        raca = TbRaca.objects.get(pk=33)
+        p = TbPersonagem.objects.create(
+            dono=user, nome='Aarly', nivel=1, aventuras=0,
+            id_raca=raca, id_essencia=essencia,
+            forca=8, destreza=14, constituicao=14,
+            inteligencia=10, sabedoria=15, carisma=10,
+        )
+        TbPersonagemClasse.objects.create(
+            id_personagem=p, id_classe=clerigo, nivel=1, principal=True)
+        TbPersonagemEscolha.objects.create(
+            id_personagem=p, origem='Ordem Sagrada', tipo='ordem_sagrada',
+            slot=0, valor='taumaturgo')
+
+        globais = views._opcao_grupos(p, clerigo.id_classe)
+        alento = next(g for g in globais if g['slug'] == 'alento_elemental')
+        self.assertIsNone(alento['classe_id'])
+        self.assertEqual(alento['pendentes'], 1)
+        self.assertTrue(alento['disponiveis'])
+
+        self.client.force_login(user)
+        url = reverse('personagem_subir_nivel', args=[p.pk])
+        response = self.client.get(url, {'classe': clerigo.id_classe})
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context['pode_subir'])
+        self.assertFalse(response.context['sem_pendencias'])
+        self.assertContains(response, 'Concluir escolhas de nível')
+        self.assertContains(response, 'Alento Elemental')
+        self.assertNotContains(response, 'Ainda não é hora de subir')
+
+        opcao = alento['disponiveis'][0]
+        aplicar = self.client.post(
+            reverse('personagem_levelup_aplicar', args=[p.pk]),
+            data=json.dumps({'acoes': [{
+                'tipo': 'opcao',
+                'payload': {
+                    'classe': '',
+                    'slug': alento['slug'],
+                    'val': opcao['val'],
+                },
+            }]}),
+            content_type='application/json',
+        )
+        self.assertEqual(aplicar.status_code, 200, aplicar.content)
+        self.assertTrue(aplicar.json()['ok'])
+        self.assertEqual(aplicar.json()['pendencias']['opcoes_pendentes'], 0)
+        p.refresh_from_db()
+        self.assertEqual(p.nivel, 1)
+        self.assertEqual(p.aventuras, 0)
+        self.assertTrue(TbPersonagemEscolha.objects.filter(
+            id_personagem=p, tipo='alento_elemental').exists())
+
+    def test_pick_global_abre_magias_concedidas_e_wizard_conclui_em_dois_passos(self):
+        """Regressão do Rhogar: um talento global pode abrir outra escolha dependente.
+
+        O primeiro lote salva a Veste Lunar sem conceder nível; o wizard permanece aberto
+        e o segundo lote valida as duas magias contra o ``spell_selection`` da própria tag.
+        """
+        p = self._guerreiro_no_nivel(1, apelido='tres-luas')
+        p.aventuras = 0
+        p.save(update_fields=['aventuras'])
+        talento = TbTalento.objects.get(nome__icontains='Três Luas')
+        TbPersonagemTalento.objects.create(
+            id_personagem=p, id_talento=talento, categoria='origem', nivel=1,
+            nome=talento.nome,
+        )
+
+        # O truque independente já estava escolhido na ficha real; deixa somente a
+        # dependência da Veste Lunar para reproduzir o estado salvo em produção.
+        primeiro = views._criador_magias_pendentes(p)[0]
+        TbPersonagemEscolha.objects.create(
+            id_personagem=p, tipo='magia-concedida', origem=primeiro['fonte'],
+            slot=primeiro['slot'], valor=primeiro['opcoes'][0]['slug'],
+        )
+        views._sync_magias_concedidas(p)
+
+        classe_id = p.classes.first().id_classe_id
+        veste = next(g for g in views._opcao_grupos(p, classe_id)
+                     if g['slug'] == 'veste_lunar')
+        self.client.force_login(p.dono)
+        aplicar_veste = self.client.post(
+            reverse('personagem_levelup_aplicar', args=[p.pk]),
+            data=json.dumps({'acoes': [{
+                'tipo': 'opcao',
+                'payload': {'classe': '', 'slug': veste['slug'],
+                            'val': veste['disponiveis'][0]['val']},
+            }]}), content_type='application/json')
+        self.assertEqual(aplicar_veste.status_code, 200, aplicar_veste.content)
+        body = aplicar_veste.json()
+        self.assertTrue(body['continuar'])
+        self.assertTrue(body['continuar_pendencias'])
+        self.assertEqual(body['pendencias']['magias_concedidas_pend'], 2)
+        p.refresh_from_db()
+        self.assertEqual(p.nivel, 1)
+
+        pagina = self.client.get(reverse('personagem_subir_nivel', args=[p.pk]))
+        self.assertContains(pagina, 'data-lvl-card="magias_concedidas"')
+        bloco = pagina.context['magias_concedidas_pend'][0]
+        escolhidas = [row['slug'] for row in bloco['opcoes'][:2]]
+        aplicar_magias = self.client.post(
+            reverse('personagem_levelup_aplicar', args=[p.pk]),
+            data=json.dumps({'acoes': [{
+                'tipo': 'magias_concedidas',
+                'payload': {'fonte': bloco['fonte'], 'slot': bloco['slot'],
+                            'magias': escolhidas},
+            }]}), content_type='application/json')
+        self.assertEqual(aplicar_magias.status_code, 200, aplicar_magias.content)
+        self.assertEqual(aplicar_magias.json()['pendencias']['magias_concedidas_pend'], 0)
+        self.assertTrue(set(escolhidas).issubset(set(
+            p.magias.values_list('id_magia__slug', flat=True))))
+
+    def test_catalogo_mostra_talentos_bloqueados_e_servidor_os_recusa(self):
+        """Talentos com pré-requisito não somem: ficam visíveis e desabilitados.
+
+        A apresentação não enfraquece o gate do servidor.
+        """
+        p = self._guerreiro_no_nivel(3, apelido='talentos-bloqueados')
+        p.forca = 8
+        p.destreza = 8
+        p.aventuras = 500
+        p.save(update_fields=['forca', 'destreza', 'aventuras'])
+        self.client.force_login(p.dono)
+
+        pagina = self.client.get(reverse('personagem_subir_nivel', args=[p.pk]))
+        self.assertEqual(pagina.status_code, 200)
+        html = pagina.content.decode('utf-8')
+        relatados_pela_staff = (
+            'Mestre de Armas Versáteis',
+            'Mestre de Armas Duplas',
+            'Mestre de Armas de Haste',
+            'Mestre da Ambidestria',
+            'Investida',
+            'Luchador',
+            'Senhor da Guerra de Escamas',
+            'Sentinela',
+            'Adepto Marcial',
+            'Estigma Dracônico',
+            'Ritualista',
+            'Atleta',
+            'Observador',
+            'Curandeiro de Batalha',
+            'Mente Afiada',
+        )
+        for nome in relatados_pela_staff:
+            self.assertIn(nome, html)
+        marcas_avancadas = TbTalento.objects.filter(tipo__iexact='geral').filter(
+            nome__startswith='Marca Arcana Superior',
+        ).values_list('nome', flat=True)
+        marcas_avancadas = list(marcas_avancadas) + list(
+            TbTalento.objects.filter(
+                tipo__iexact='geral', nome='Marca Anômala Maior',
+            ).values_list('nome', flat=True)
+        )
+        self.assertGreater(len(marcas_avancadas), 1)
+        for nome in marcas_avancadas:
+            self.assertIn(nome, html)
+        self.assertIn('Pré-requisito não atendido', html)
+
+        bloqueado = TbTalento.objects.get(slug='mestre-de-armas-de-haste')
+        opcao = next(row for row in pagina.context['talentos_normais']
+                     if row['id'] == bloqueado.pk)
+        self.assertFalse(opcao['elegivel'])
+        self.assertEqual(opcao['estado'], 'Pré-requisito não atendido')
+
+        resposta = self.client.post(
+            reverse('personagem_levelup_aplicar', args=[p.pk]),
+            data=json.dumps({'acoes': [{
+                'tipo': 'asi',
+                'payload': {'modo': 'talento', 'talento': bloqueado.pk,
+                            'talento_attr': 'FOR'},
+            }]}), content_type='application/json')
+        self.assertEqual(resposta.status_code, 400)
+        self.assertFalse(TbPersonagemTalento.objects.filter(
+            id_personagem=p, id_talento=bloqueado).exists())
+
+    def test_linguista_exibe_requisito_de_nivel(self):
+        p = self._guerreiro_no_nivel(3, apelido='linguista-requisito')
+        p.aventuras = 500
+        p.save(update_fields=['aventuras'])
+        self.client.force_login(p.dono)
+        pagina = self.client.get(reverse('personagem_subir_nivel', args=[p.pk]))
+        linguista = next(row for row in pagina.context['talentos_normais']
+                         if row['nome'] == 'Linguista')
+        self.assertEqual(linguista['pre'], 'Nível 4+.')
+        self.assertTrue(
+            linguista['elegivel'],
+            'o requisito de nível deve considerar a prévia do N4, não o N3 persistido',
+        )
+        self.assertContains(pagina, 'Linguista (Nível 4+.)')
+
+    def test_prerequisitos_com_ou_aceitam_uma_alternativa(self):
+        p = self._guerreiro_no_nivel(3, apelido='talentos-ou')
+        p.forca = 13
+        p.destreza = 8
+        p.inteligencia = 13
+        p.sabedoria = 8
+        p.carisma = 8
+        p.aventuras = 500
+        p.save(update_fields=[
+            'forca', 'destreza', 'inteligencia', 'sabedoria', 'carisma', 'aventuras',
+        ])
+        self.client.force_login(p.dono)
+        pagina = self.client.get(reverse('personagem_subir_nivel', args=[p.pk]))
+        catalogo = {row['nome']: row for row in pagina.context['talentos_normais']}
+
+        self.assertTrue(catalogo['Mestre de Armas de Haste']['elegivel'])
+        self.assertTrue(catalogo['Ritualista']['elegivel'])
+        self.assertTrue(
+            catalogo['Senhor da Guerra de Escamas']['elegivel'],
+            'proficiência marcial satisfaz a alternativa sem exigir Porta-Estandarte',
+        )
+
+    def test_prerequisito_qualificado_exige_a_escolha_correta(self):
+        p = self._guerreiro_no_nivel(3, apelido='talentos-qualificados')
+        p.aventuras = 500
+        p.save(update_fields=['aventuras'])
+        iniciado = TbTalento.objects.get(slug='iniciado-no-juramento-das-tres-luas')
+        TbPersonagemTalento.objects.create(
+            id_personagem=p, id_talento=iniciado, categoria='origem', nivel=1,
+            nome=iniciado.nome,
+        )
+        self.client.force_login(p.dono)
+
+        def catalogo():
+            pagina = self.client.get(reverse('personagem_subir_nivel', args=[p.pk]))
+            return {row['nome']: row for row in pagina.context['talentos_normais']}
+
+        self.assertFalse(catalogo()['Adepto da Veste Negra']['elegivel'])
+        TbPersonagemEscolha.objects.create(
+            id_personagem=p, origem=iniciado.nome, tipo='veste_lunar', slot=0,
+            valor='lua_negra',
+        )
+        atualizado = catalogo()
+        self.assertTrue(atualizado['Adepto da Veste Negra']['elegivel'])
+        self.assertFalse(atualizado['Adepto da Veste Branca']['elegivel'])
+        self.assertFalse(atualizado['Adepto da Veste Vermelha']['elegivel'])
+
+    def test_mestre_de_escudo_exige_proficiencia_real(self):
+        p = self._guerreiro_no_nivel(3, apelido='talento-escudo')
+        p.aventuras = 500
+        p.save(update_fields=['aventuras'])
+        self.client.force_login(p.dono)
+        pagina = self.client.get(reverse('personagem_subir_nivel', args=[p.pk]))
+        mestre = next(row for row in pagina.context['talentos_normais']
+                      if row['nome'] == 'Mestre de Escudo')
+        self.assertEqual(mestre['pre'], 'Nível 4+, proficiência com Escudos.')
+        self.assertTrue(mestre['elegivel'])
+
+    def test_qualquer_marca_superior_exige_uma_marca_possuida(self):
+        p = self._guerreiro_no_nivel(3, apelido='talento-marca-potente')
+        p.aventuras = 500
+        p.save(update_fields=['aventuras'])
+        self.client.force_login(p.dono)
+
+        def marca_potente():
+            pagina = self.client.get(reverse('personagem_subir_nivel', args=[p.pk]))
+            return next(row for row in pagina.context['talentos_normais']
+                        if row['nome'] == 'Marca Potente')
+
+        self.assertFalse(marca_potente()['elegivel'])
+        superior = TbTalento.objects.get(nome='Marca Arcana Superior da Busca')
+        TbPersonagemTalento.objects.create(
+            id_personagem=p, id_talento=superior, categoria='geral', nivel=4,
+            nome=superior.nome,
+        )
+        self.assertTrue(marca_potente()['elegivel'])
 
     def test_estrutura_da_pagina_e_alvo(self):
         # Guerreiro N3 -> alvo N4: o N4 abre ASI (etapa) e o cabeçalho mostra 3 ➜ 4.

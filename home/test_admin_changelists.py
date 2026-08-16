@@ -19,7 +19,7 @@ from django.db import connection
 from django.test import TestCase
 from django.urls import reverse
 
-from home.models import TbPersonagem
+from home.models import TbItemMundano, TbPersonagem
 
 
 class TbPersonagemChangelistTests(TestCase):
@@ -45,6 +45,12 @@ class TbPersonagemChangelistTests(TestCase):
     def test_tbpersonagem_add_form_opens(self):
         response = self.client.get(reverse("admin:home_tbpersonagem_add"))
         self.assertEqual(response.status_code, 200)
+
+    def test_todas_as_armaduras_abrem_no_formulario_de_edicao(self):
+        for item in TbItemMundano.objects.filter(categoria='armadura'):
+            url = reverse('admin:home_tbitemmundano_change', args=[item.pk])
+            response = self.client.get(url)
+            self.assertEqual(response.status_code, 200, '%s -> %s' % (item.slug, response.status_code))
 
 
 class AllChangelistsSmokeTests(TestCase):

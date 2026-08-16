@@ -5,8 +5,8 @@ catálogo e quanto o balcão paga; o botão de venda (com quantidade) vive no pa
 igual ao botão de compra.
 
 A REGRA não mudou de lugar: quem calcula os 80% e credita a carteira continua sendo
-`personagem_vender_item` (via `_preco_venda_mundano_pc`). Só item MUNDANO com preço aparece —
-item mágico vai a leilão no Mercado da Comunidade, por outra regra (50%, com escrow).
+`personagem_vender_item`. Itens mundanos e mágicos comercializáveis aparecem; o Mercado
+da Comunidade continua disponível para quem preferir vender a outro jogador.
 
 Espera no contexto: mercado_ativo (personagem), mercado_venda (linhas), mercado_next.
 Este partial volta re-renderizado no JSON das mutações (`venda_html`), com as linhas E os
@@ -25,7 +25,7 @@ templates do painel — a vitrine atualiza compra e venda sem reload.{% endcomme
       <article class="mkt-card">
         <figure class="mkt-figure">
           <span class="mkt-sigil"><span class="mkt-sigil-letter">{{ it.nome|first|upper }}</span></span>
-          <figcaption>Sua mochila</figcaption>
+          <figcaption>{% if it.magico %}Item mágico{% else %}Sua mochila{% endif %}</figcaption>
         </figure>
         <p class="mkt-card-kind">Venda no balcão{% if it.qtd > 1 %} · {{ it.qtd }} na mochila{% endif %}</p>
         <h3 class="mkt-card-name">{{ it.nome }}</h3>
@@ -45,12 +45,12 @@ templates do painel — a vitrine atualiza compra e venda sem reload.{% endcomme
           <div><dt>O balcão paga</dt><dd>80%</dd></div>
           <div><dt>Na mochila</dt><dd>{{ it.qtd }}</dd></div>
         </dl>
-        <p class="mkt-card-note">O ouro entra na carteira do personagem ativo na hora. Item mágico não se vende aqui: ele vai a leilão no <a href="{% url 'mercado_comunidade' %}">Mercado da Comunidade</a>.</p>
+        <p class="mkt-card-note">O ouro entra na carteira do personagem ativo na hora.{% if it.magico %} Você também pode anunciar itens mágicos no <a href="{% url 'mercado_comunidade' %}">Mercado da Comunidade</a>.{% endif %}</p>
       </article>
     </template>
   </li>
   {% endfor %}
 </ul>
 {% else %}
-<p class="mkt-note mkt-note-pad">Nada a vender: entram aqui os itens mundanos com preço de catálogo. Item mágico se anuncia no <a href="{% url 'mercado_comunidade' %}">Mercado da Comunidade</a>, pela Mochila.</p>
+<p class="mkt-note mkt-note-pad">Nada a vender: entram aqui os itens com preço de catálogo. Itens mágicos também podem ser anunciados no <a href="{% url 'mercado_comunidade' %}">Mercado da Comunidade</a>, pela Mochila.</p>
 {% endif %}

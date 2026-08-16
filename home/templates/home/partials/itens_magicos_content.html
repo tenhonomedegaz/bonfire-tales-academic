@@ -113,6 +113,12 @@ vitrine com o selo e sem botão, mesma guarda que o backend aplica.{% endcomment
               {% csrf_token %}
               <input type="hidden" name="item" value="{{ item.slug }}">
               <input type="hidden" name="next" value="{{ mercado_next }}">
+              {% if item.opcoes_item_base %}
+              <select name="base_item" class="mkt-select" required aria-label="Escolher item-base de {{ item.nome }}">
+                <option value="">Escolha a armadura-base</option>
+                {% for base in item.opcoes_item_base %}<option value="{{ base.slug }}">{{ base.nome }}</option>{% endfor %}
+              </select>
+              {% endif %}
               <button type="submit" class="mkt-btn is-buy" data-nome="{{ item.nome }}">Comprar</button>
             </form>
             {% endif %}

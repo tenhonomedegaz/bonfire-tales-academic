@@ -9,6 +9,7 @@
 
   var tipo = form.querySelector('[data-conceder-tipo]');
   var busca = form.querySelector('[data-conceder-busca]');
+  var base = form.querySelector('[data-conceder-base]');
   var selects = {
     magico: form.querySelector('[data-conceder-select="magico"]'),
     mundano: form.querySelector('[data-conceder-select="mundano"]')
@@ -18,6 +19,31 @@
     return (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
   }
   function activeSelect() { return (tipo && selects[tipo.value]) || selects.magico; }
+
+  function syncBase() {
+    if (!base) return;
+    var magico = selects.magico;
+    var opcao = magico && magico.options[magico.selectedIndex];
+    var itemSlug = opcao ? opcao.value : '';
+    var requer = Boolean(tipo && tipo.value === 'magico' && opcao &&
+      opcao.getAttribute('data-requer-base') === '1');
+    var primeira = null;
+    Array.prototype.forEach.call(base.options, function (o, index) {
+      if (index === 0) return;
+      var pertence = requer && o.getAttribute('data-item-magico') === itemSlug;
+      o.hidden = !pertence;
+      o.disabled = !pertence;
+      if (pertence && primeira === null) primeira = o;
+    });
+    base.hidden = !requer;
+    base.disabled = !requer;
+    base.required = requer;
+    if (requer && (!base.value || !base.options[base.selectedIndex] ||
+        base.options[base.selectedIndex].disabled)) {
+      base.value = primeira ? primeira.value : '';
+    }
+    if (!requer) base.value = '';
+  }
 
   function filter() {
     var s = activeSelect();
@@ -34,6 +60,7 @@
         s.selectedOptions[0].hidden && firstVisible) {
       s.value = firstVisible.value;
     }
+    syncBase();
   }
 
   function syncTipo() {
@@ -45,9 +72,11 @@
       s.hidden = !on;
     });
     filter();
+    syncBase();
   }
 
   if (tipo) tipo.addEventListener('change', syncTipo);
   if (busca) busca.addEventListener('input', filter);
+  if (selects.magico) selects.magico.addEventListener('change', syncBase);
   syncTipo();
 })();

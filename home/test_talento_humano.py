@@ -67,12 +67,16 @@ class TalentoHumanoMultitalentosoTests(_CriadorBase):
                       "talento geral elegível 'Precisão' (Nível 4+) presente em N13")
 
     def test_talento_nivel4_fora_do_pool_no_n1(self):
-        # Sem Erthari: pool honra requires:prereq — em N1 só entram gerais SEM gate de nível.
+        # Sem Erthari: o pool honra requires:prereq e não oferece talentos de N4 no N1.
         p = self._humano(1, erthari=False)
         self._add_multitalentoso(p)
-        slugs = {u['slug'] for u in self._grupo(p, 'Multitalentoso')['universo']}
-        self.assertNotIn('precisao', slugs, 'Precisão (Nível 4+) fora do pool em N1')
-        self.assertIn('linguista', slugs, 'talento geral sem gate de nível entra em N1')
+        grupos = [g for g in picks.resolve_personagem(p)
+                  if g['kind'] in ('talento', 'talento_de_origem')
+                  and g['origem'] == 'Multitalentoso']
+        self.assertEqual(
+            grupos, [],
+            'sem talento geral elegível no N1, não deve existir uma pendência vazia',
+        )
 
     # -- apply / persistência ---------------------------------------------------
     def test_talento_geral_elegivel_aceito_e_persiste(self):

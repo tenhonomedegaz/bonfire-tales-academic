@@ -134,6 +134,25 @@ Exemplo:
 Durante o sync, a deleção só acontece se o registro não estiver referenciado por tabelas
 de memória. Se houver referência, o relatório mostra a deleção como bloqueada.
 
+### Renomeações de slug
+
+Quando a identidade canônica de um conteúdo muda, o registro antigo da produção não
+deve ser apagado nem inserido novamente: isso quebraria ou duplicaria referências de
+personagens e do mercado. Registre a troca em `home/content_renames.json`:
+
+```
+{
+  "TbItemMagico": {
+    "Tiara-do-Intelecto": "tiara-do-intelecto"
+  }
+}
+```
+
+O merge localiza o slug antigo, atualiza o mesmo registro com os dados atuais e preserva
+seu PK. Se os slugs antigo e novo já coexistirem na produção, a operação é abortada para
+que a duplicidade seja examinada em vez de mesclada silenciosamente. O código contendo
+essa regra precisa estar publicado antes do upload do restore que usa a renomeação.
+
 ## Procedimentos proibidos para fixture de conteúdo
 
 - Não usar `loaddata` diretamente: PKs de dev e produção podem representar slugs
