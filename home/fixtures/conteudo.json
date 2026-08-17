@@ -19528,7 +19528,7 @@
       "check_bonus:arcanismo=+1d4, check_bonus:tool{ferramentas_de_artesao}=+1d4",
       "cast{ spell:consertar, without{slot} }",
       "cast{ spell:arma-magica, without{slot}, always_prepared }, resource_cost:1/long_rest, pick:spell_mod:{int|wis|cha}",
-      "requires:spellcasting, spell_selection:any{ identificar, disco_flutuante, chama_continua, arma_espiritual, conjurar_barragem, arma_elemental, fabricar, moldar_pedra, criacao }, extra, fora_do_limite"
+      "requires:spellcasting, modify:spellcasting{list}.add{spell:identificar, spell:disco_flutuante, spell:chama_continua, spell:arma_espiritual, spell:conjurar_barragem, spell:arma_elemental, spell:fabricar, spell:moldar_pedra, spell:criacao}"
     ],
     "etiqueta": "marcas",
     "etiquetas_adicionais": "Magia Inata, Criação",
@@ -19554,7 +19554,7 @@
       "speed:+5ft",
       "check_bonus:atletismo=+1d4, check_bonus:acrobacia=+1d4",
       "cast{ spell:passo-nebuloso, without{slot}, always_prepared }, resource_cost:1/long_rest, pick:spell_mod:{int|wis|cha}",
-      "requires:spellcasting, spell_selection:any{ recuo_acelerado, salto, encontrar_montaria, passos_sem_pegadas, piscar, corcel_fantasma, porta_dimensional, movimentacao_livre, circulo_de_teletransporte }, extra, fora_do_limite"
+      "requires:spellcasting, modify:spellcasting{list}.add{spell:recuo_acelerado, spell:salto, spell:encontrar_montaria, spell:passos_sem_pegadas, spell:piscar, spell:corcel_fantasma, spell:porta_dimensional, spell:movimentacao_livre, spell:circulo_de_teletransporte}"
     ],
     "etiqueta": "marcas",
     "etiquetas_adicionais": "Magia Inata, Mobilidade",
@@ -19580,7 +19580,7 @@
       "check_bonus:intuicao=+1d4, check_bonus:percepcao=+1d4",
       "cast{ spell:escudo-arcano, without{slot}, always_prepared }, resource_cost:1/long_rest, pick:spell_mod:{int|wis|cha}",
       "trigger=hit_by_attack{ target:creature(range:5ft) }, action=reaction, instant{ teleport:swap(target:active), redirect_damage:self }, requires:target{can_see:self}, uses{pb, reset:long_rest}",
-      "requires:spellcasting, spell_selection:any{ duelo_compelido, escudo_da_fe, vinculo_protetor, zona_da_verdade, contramagica, protecao_contra_energia, protecao_contra_a_morte, guardiao_da_fe, grande_mao_arcana }, extra, fora_do_limite"
+      "requires:spellcasting, modify:spellcasting{list}.add{spell:duelo_compelido, spell:escudo_da_fe, spell:vinculo_protetor, spell:zona_da_verdade, spell:contramagica, spell:protecao_contra_energia, spell:protecao_contra_a_morte, spell:guardiao_da_fe, spell:grande_mao_arcana}"
     ],
     "etiqueta": "marcas",
     "etiquetas_adicionais": "Magia Inata, Defesa, Percepção",
@@ -19606,7 +19606,7 @@
       "check_bonus:investigacao=+1d4, check_bonus:tool{ferramentas_de_ladino}=+1d4",
       "cast{ spell:alarme, without{slot}, always_prepared }, resource_cost:1/long_rest, cast{ spell:armadura-arcana, without{slot}, always_prepared }, resource_cost:1/long_rest, pick:spell_mod:{int|wis|cha}",
       "requires:lvl{3}, cast{ spell:fechadura-arcana, without{slot}, always_prepared }, resource_cost:1/long_rest",
-      "requires:spellcasting, spell_selection:any{ armadura_gelida, santuario, arrombar, aura_magica_falsa, glifo_de_protecao, circulo_magico, bau_secreto, cao_fiel, cupula_antivida }, extra, fora_do_limite"
+      "requires:spellcasting, modify:spellcasting{list}.add{spell:armadura_gelida, spell:santuario, spell:arrombar, spell:aura_magica_falsa, spell:glifo_de_protecao, spell:circulo_magico, spell:bau_secreto, spell:cao_fiel, spell:cupula_antivida}"
     ],
     "etiqueta": "marcas",
     "etiquetas_adicionais": "Magia Inata, Defesa, Investigação",
@@ -19659,7 +19659,7 @@
       "check_bonus:medicina=+1d4, check_bonus:tool{kit_de_herbalismo}=+1d4",
       "cast{ spell:curar-ferimentos, without{slot}, always_prepared }, resource_cost:1/long_rest, pick:spell_mod:{int|wis|cha}",
       "requires:lvl{3}, cast{ spell:restauracao-menor, without{slot}, always_prepared }, resource_cost:1/long_rest",
-      "requires:spellcasting, spell_selection:any{ vida_falsa, palavra_curativa, vigor_arcano, prece_curativa, aura_de_vitalidade, palavra_curativa_em_massa, aura_da_vida, aura_de_pureza, restauracao_maior }, extra, fora_do_limite"
+      "requires:spellcasting, modify:spellcasting{list}.add{spell:vida_falsa, spell:palavra_curativa, spell:vigor_arcano, spell:prece_curativa, spell:aura_de_vitalidade, spell:palavra_curativa_em_massa, spell:aura_da_vida, spell:aura_de_pureza, spell:restauracao_maior}"
     ],
     "etiqueta": "marcas",
     "etiquetas_adicionais": "Magia Inata, Cura,",
@@ -20347,7 +20347,7 @@
       "resist:raio",
       "cast{ spell:estrondo-trovejante, without{slot} }",
       "requires:lvl{3}, cast{ spell:lufada-de-vento, without{slot}, always_prepared }, resource_cost:1/long_rest, pick:spell_mod:{int|wis|cha}",
-      "requires:spellcasting, spell_selection:any{ queda_suave, nevoa_obscurecente, levitar, estilhacar, tempestade_de_granizo, muralha_de_vento, invocar_elementais_menores, controlar_agua, manifestar_elemental }, extra, fora_do_limite"
+      "requires:spellcasting, modify:spellcasting{list}.add{spell:queda_suave, spell:nevoa_obscurecente, spell:levitar, spell:estilhacar, spell:tempestade_de_granizo, spell:muralha_de_vento, spell:invocar_elementais_menores, spell:controlar_agua, spell:manifestar_elemental}"
     ],
     "etiqueta": "marcas",
     "etiquetas_adicionais": "Magia Inata, Resistência",
@@ -20373,7 +20373,7 @@
       "check_bonus:furtividade=+1d4, check_bonus:atuacao=+1d4",
       "cast{ spell:ilusao-menor, without{slot} }",
       "cast{ spell:invisibilidade, without{slot}, always_prepared }, resource_cost:1/long_rest, pick:spell_mod:{int|wis|cha}",
-      "requires:spellcasting, spell_selection:any{ disfarce_se, imagem_silenciosa, escuridao, passos_sem_pegadas, clarividencia, imagem_maior, invisibilidade_maior, terreno_alucinogeno, despistar }, extra, fora_do_limite"
+      "requires:spellcasting, modify:spellcasting{list}.add{spell:disfarce_se, spell:imagem_silenciosa, spell:escuridao, spell:passos_sem_pegadas, spell:clarividencia, spell:imagem_maior, spell:invisibilidade_maior, spell:terreno_alucinogeno, spell:despistar}"
     ],
     "etiqueta": "marcas",
     "etiquetas_adicionais": "Magia Inata, Furtividade",
@@ -21059,7 +21059,7 @@
       "check_bonus:investigacao=+1d4, check_bonus:intuicao=+1d4",
       "cast{ spell:detectar-magia, without{slot}, always_prepared }, resource_cost:1/long_rest, cast{ spell:detectar-veneno-e-doenca, without{slot}, always_prepared }, resource_cost:1/long_rest, pick:spell_mod:{int|wis|cha}",
       "requires:lvl{3}, cast{ spell:ver-invisibilidade, without{slot}, always_prepared }, resource_cost:1/long_rest",
-      "requires:spellcasting, spell_selection:any{ detectar_o_bem_e_o_mal, identificar, detectar_pensamentos, encontrar_armadilhas, clarividencia, nao_deteccao, olho_arcano, adivinhacao, lendas_e_tradicoes }, extra, fora_do_limite"
+      "requires:spellcasting, modify:spellcasting{list}.add{spell:detectar_o_bem_e_o_mal, spell:identificar, spell:detectar_pensamentos, spell:encontrar_armadilhas, spell:clarividencia, spell:nao_deteccao, spell:olho_arcano, spell:adivinhacao, spell:lendas_e_tradicoes}"
     ],
     "etiqueta": "marcas",
     "etiquetas_adicionais": "Magia Inata, Investigação",
@@ -21110,7 +21110,7 @@
       "check_bonus:percepcao=+1d4, check_bonus:sobrevivencia=+1d4",
       "cast{ spell:marca-do-cacador, without{slot}, always_prepared }, resource_cost:1/long_rest, pick:spell_mod:{int|wis|cha}",
       "requires:lvl{3}, cast{ spell:localizar-objeto, without{slot}, always_prepared }, resource_cost:1/long_rest",
-      "requires:spellcasting, spell_selection:any{ fogo_das_fadas, passos_longos, localizar_animais_ou_plantas, espinho_mental, clarividencia, falar_com_plantas, adivinhacao, localizar_criatura, comunhao_com_a_natureza }, extra, fora_do_limite"
+      "requires:spellcasting, modify:spellcasting{list}.add{spell:fogo_das_fadas, spell:passos_longos, spell:localizar_animais_ou_plantas, spell:espinho_mental, spell:clarividencia, spell:falar_com_plantas, spell:adivinhacao, spell:localizar_criatura, spell:comunhao_com_a_natureza}"
     ],
     "etiqueta": "marcas",
     "etiquetas_adicionais": "Magia Inata, Percepção",
@@ -21136,7 +21136,7 @@
       "check_bonus:natureza=+1d4, check_bonus:adestrar_animais=+1d4",
       "cast{ spell:amizade-animal, without{slot}, always_prepared }, resource_cost:1/long_rest, cast{ spell:falar-com-animais, without{slot}, always_prepared }, resource_cost:1/long_rest, pick:spell_mod:{int|wis|cha}",
       "requires:lvl{3}, modify:cast{spell:{amizade_animal|falar_com_animais}}.target{ :+creature_type:monstruosidade(int<=3) }",
-      "requires:spellcasting, spell_selection:any{ comando, encontrar_familiar, sentido_bestial, acalmar_emocoes, farol_da_esperanca, conjurar_animais, aura_da_vida, dominar_besta, despertar }, extra, fora_do_limite"
+      "requires:spellcasting, modify:spellcasting{list}.add{spell:comando, spell:encontrar_familiar, spell:sentido_bestial, spell:acalmar_emocoes, spell:farol_da_esperanca, spell:conjurar_animais, spell:aura_da_vida, spell:dominar_besta, spell:despertar}"
     ],
     "etiqueta": "marcas",
     "etiquetas_adicionais": "Magia Inata",
@@ -21162,7 +21162,7 @@
       "check_bonus:persuasao=+1d4, check_bonus:tool{ suprimentos_de_cervejeiro | utensilios_de_cozinha }=+1d4",
       "cast{ spell:purificar-comida-e-bebida, without{slot}, always_prepared }, resource_cost:1/long_rest, cast{ spell:servo-invisivel, without{slot}, always_prepared }, resource_cost:1/long_rest, pick:spell_mod:{int|wis|cha}",
       "requires:lvl{3}, cast{ spell:acalmar-emocoes, without{slot}, always_prepared }, resource_cost:1/long_rest",
-      "requires:spellcasting, spell_selection:any{ bom_fruto, sono, auxilio, aprimorar_habilidades, criar_comida_e_agua, cabana_minuscula, aura_de_pureza, santuario_privado, santificar }, extra, fora_do_limite"
+      "requires:spellcasting, modify:spellcasting{list}.add{spell:bom_fruto, spell:sono, spell:auxilio, spell:aprimorar_habilidades, spell:criar_comida_e_agua, spell:cabana_minuscula, spell:aura_de_pureza, spell:santuario_privado, spell:santificar}"
     ],
     "etiqueta": "marcas",
     "etiquetas_adicionais": "Magia Inata",
@@ -21189,7 +21189,7 @@
       "cast{ spell:mensagem, without{slot} }",
       "cast{ spell:compreender-idiomas, without{slot}, always_prepared }, resource_cost:1/long_rest, pick:spell_mod:{int|wis|cha}",
       "requires:lvl{3}, cast{ spell:boca-magica, without{slot}, always_prepared }, resource_cost:1/long_rest",
-      "requires:spellcasting, spell_selection:any{ comando, escrita_ilusoria, mensageiro_animal, silencio, enviar_mensagem, idiomas, olho_arcano, confusao, sonhar }, extra, fora_do_limite"
+      "requires:spellcasting, modify:spellcasting{list}.add{spell:comando, spell:escrita_ilusoria, spell:mensageiro_animal, spell:silencio, spell:enviar_mensagem, spell:idiomas, spell:olho_arcano, spell:confusao, spell:sonhar}"
     ],
     "etiqueta": "marcas",
     "etiquetas_adicionais": "Magia Inata, Comunicação",
