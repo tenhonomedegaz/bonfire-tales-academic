@@ -3730,18 +3730,30 @@ def _personagem_item_tags(item):
     return tags
 
 
-def _spell_transcription_options(personagem, casters):
+def _spell_transcription_options(
+        personagem, casters, *, spells=None, access_map=None, inventory=None):
     """Pergaminhos elegíveis para contratos ``pool:spellbook``.
 
     Não há ramo por classe ou por nome de item: o contrato declara o protocolo da
     fonte e cada posse implementa esse protocolo por tag.
     """
     from .models import TbMagia
-    from .magic_workshop import resolve_spell_token, transcription_terms_for_character
+    from .magic_workshop import (
+        focus_schools, resolve_spell_token, spell_token,
+        transcription_terms_for_character,
+    )
     from .spellcasting import spell_scroll_slug
 
-    inventory = list(personagem.inventario.filter(qtd__gt=0).select_related(
-        'id_item_magico', 'id_item_mundano'))
+    inventory = (list(inventory) if inventory is not None else list(
+        personagem.inventario.filter(qtd__gt=0).select_related(
+            'id_item_magico', 'id_item_mundano')))
+    spell_index = ({spell_token(spell): spell for spell in spells}
+                   if spells is not None else None)
+    accessible_classes = ({
+        spell_id: {row['pc'].id_classe_id for row in rows}
+        for spell_id, rows in access_map.items()
+    } if access_map is not None else None)
+    focus_school_values = focus_schools(personagem)
     options = []
     for caster in casters:
         info = caster['info']
@@ -3759,21 +3771,28 @@ def _spell_transcription_options(personagem, casters):
         by_slug = {}
         for item in inventory:
             token = spell_scroll_slug(_personagem_item_tags(item), source=source)
-            resolved = resolve_spell_token(token) if token else None
+            resolved = (spell_index.get(spell_token(token)) if spell_index is not None
+                        else resolve_spell_token(token)) if token else None
             if resolved:
                 by_slug.setdefault(resolved.slug, []).append(item)
-        spells = {
-            spell.slug: spell
-            for spell in _spell_catalog_queryset(
+        if accessible_classes is None:
+            eligible_spells = _spell_catalog_queryset(
                 info['lista_nomes'], personagem).filter(
                     slug__in=by_slug, nivel__gte=1, nivel__lte=max_level)
-        }
+        else:
+            eligible_spells = [
+                spell for spell in (spells or ())
+                if (spell.slug in by_slug and 1 <= int(spell.nivel or 0) <= max_level
+                    and pc.id_classe_id in accessible_classes.get(spell.pk, set()))
+            ]
+        spells_by_slug = {spell.slug: spell for spell in eligible_spells}
         for slug, items in by_slug.items():
-            spell = spells.get(slug)
+            spell = spells_by_slug.get(slug)
             if spell is None or slug in owned:
                 continue
             terms = transcription_terms_for_character(
-                personagem, {'pc': pc, 'contract': info}, spell)
+                personagem, {'pc': pc, 'contract': info}, spell,
+                focus_school_values=focus_school_values)
             if terms is None:
                 continue
             cost_pc = _po_para_pc(terms['cost_po'])
@@ -8487,12 +8506,9 @@ def personagem_preparar_magias(request, pk):
 def personagem_transcrever_magia(request, pk):
     """Copia um pergaminho para um grimório segundo o contrato da classe.
 
-    O custo é pago quando a tentativa começa e o pergaminho é destruído em
-    sucesso ou falha. A rolagem segue a regra do item: Inteligência
-    (Arcanismo), CD 10 + círculo da magia.
+    Validado o contrato, a magia e o saldo, a transcrição é automática: paga o
+    custo, consome o pergaminho e registra a magia no grimório.
     """
-    import secrets
-    from .character_engine import derive
     from .magic_workshop import resolve_spell_token, transcription_terms_for_character
     from .models import TbMagia, TbPersonagem, TbPersonagemItem, TbPersonagemMagia
     from .spellcasting import spell_scroll_slug
@@ -8551,17 +8567,6 @@ def personagem_transcrever_magia(request, pk):
         if int(personagem.carteira_pc or 0) < cost_pc:
             return finish('saldo')
 
-        sheet = derive(personagem)
-        arcana_bonus = next((
-            int(skill.get('bonus') or 0)
-            for skill in (sheet.get('pericias') or [])
-            if slugify(skill.get('nome') or '') == 'arcanismo'
-        ), int((sheet.get('atributos', {}).get('INT') or {}).get('mod') or 0))
-        roll = secrets.randbelow(20) + 1
-        total = roll + arcana_bonus
-        dc = 10 + int(spell.nivel or 0)
-        success = total >= dc
-
         personagem.carteira_pc = int(personagem.carteira_pc or 0) - cost_pc
         personagem.save(update_fields=['carteira_pc', 'atualizado_em'])
         if int(item.qtd or 0) > 1:
@@ -8569,19 +8574,17 @@ def personagem_transcrever_magia(request, pk):
             item.save(update_fields=['qtd'])
         else:
             item.delete()
-        if success:
-            TbPersonagemMagia.objects.create(
-                id_personagem=personagem, id_magia=spell, nivel=spell.nivel,
-                nome=spell.nome, preparada=False, origem=pc.id_classe.nome)
+        TbPersonagemMagia.objects.create(
+            id_personagem=personagem, id_magia=spell, nivel=spell.nivel,
+            nome=spell.nome, preparada=False, origem=pc.id_classe.nome)
         _registrar_transacao(
-            personagem, 'ajuste', 'Tentativa de transcrição: %s' % spell.nome, -cost_pc,
+            personagem, 'ajuste', 'Transcrição: %s' % spell.nome, -cost_pc,
             {'operacao': 'transcricao_magia', 'magia': spell.slug,
              'classe_id': pc.id_classe_id, 'item_id': item_id,
              'tempo_horas': terms['time_hours'],
              'desconto_escola_foco': bool(terms.get('focus_discount')),
-             'd20': roll, 'bonus_arcanismo': arcana_bonus,
-             'total': total, 'cd': dc, 'sucesso': success})
-    return finish('ok' if success else 'falha')
+             'sucesso': True})
+    return finish('ok')
 
 
 def _raca_linha_ficha(p):
@@ -13737,7 +13740,9 @@ def _oficina_consume_one(item):
 
 
 def _oficina_castable_spells(personagem, casters):
-    """Magias persistidas que podem ser usadas fora de combate agora."""
+    """Magias persistentes que podem ser registradas fora de combate agora."""
+    from .magic_workshop import spell_is_log_castable
+
     by_origin = {
         row['pc'].id_classe.nome.casefold(): row for row in casters
     }
@@ -13745,6 +13750,8 @@ def _oficina_castable_spells(personagem, casters):
     for owned in personagem.magias.select_related('id_magia').filter(
             id_magia__isnull=False).order_by('nivel', 'nome'):
         spell = owned.id_magia
+        if not spell_is_log_castable(spell):
+            continue
         caster = by_origin.get((owned.origem or '').casefold())
         if caster:
             contract = caster['contract']
@@ -13765,18 +13772,26 @@ def _oficina_castable_spells(personagem, casters):
     return out
 
 
-def _oficina_other_spellbooks(personagem, requester_casters):
-    from .models import TbPersonagem
-    from .magic_workshop import character_casters, spell_accessible_to_character
+def _oficina_other_spellbooks(
+        personagem, requester_access, *, contract_cache=None):
+    from django.db.models import Prefetch
+
+    from .models import TbPersonagem, TbPersonagemClasse, TbPersonagemMagia
+    from .magic_workshop import character_casters
 
     requester_owned = set(personagem.magias.filter(
         id_magia__isnull=False).values_list('id_magia_id', flat=True))
     rows = []
     others = TbPersonagem.objects.exclude(dono=personagem.dono).filter(
         arquivado=False).select_related('dono').prefetch_related(
-            'classes__id_classe', 'classes__id_subclasse', 'magias__id_magia')
+            Prefetch('classes', queryset=TbPersonagemClasse.objects.select_related(
+                'id_classe', 'id_subclasse')),
+            Prefetch('magias', queryset=TbPersonagemMagia.objects.filter(
+                id_magia__isnull=False).select_related('id_magia')),
+        )
     for source in others.order_by('nome'):
-        source_books = [row for row in character_casters(source)
+        source_books = [row for row in character_casters(
+            source, contract_cache=contract_cache)
                         if row['contract'].get('pool') == 'spellbook']
         if not source_books:
             continue
@@ -13788,8 +13803,7 @@ def _oficina_other_spellbooks(personagem, requester_casters):
                 continue
             if (owned.origem or '').casefold() not in origins:
                 continue
-            eligible = [row for row in spell_accessible_to_character(
-                personagem, spell, casters=requester_casters)
+            eligible = [row for row in requester_access.get(spell.pk, ())
                 if row['contract'].get('pool') == 'spellbook'
                 and int(spell.nivel or 0) <= int(row['max_spell_level'] or 0)]
             for caster in eligible:
@@ -13805,8 +13819,8 @@ def _oficina_other_spellbooks(personagem, requester_casters):
 @ensure_csrf_cookie
 def oficina_magia_view(request):
     from .magic_workshop import (
-        character_casters, component_offers, resolve_spell_token, scroll_item_info,
-        scroll_offer, spell_accessible_to_character,
+        character_casters, character_spell_access_map, component_offers,
+        scroll_item_info, scroll_offer, spell_token,
     )
     from .models import TbSolicitacaoTranscricao
 
@@ -13817,12 +13831,17 @@ def oficina_magia_view(request):
     owned_scrolls = []
     casters = []
     if personagem:
-        casters = character_casters(personagem)
+        contract_cache = {}
+        casters = character_casters(
+            personagem, contract_cache=contract_cache)
+        spells = list(TbMagia.objects.all().order_by('nivel', 'nome'))
+        spell_index = {spell_token(spell): spell for spell in spells}
+        access_map = character_spell_access_map(
+            personagem, spells, casters=casters)
         owned_ids = set(personagem.magias.filter(
             id_magia__isnull=False).values_list('id_magia_id', flat=True))
-        for spell in TbMagia.objects.all().order_by('nivel', 'nome'):
-            access = spell_accessible_to_character(
-                personagem, spell, casters=casters)
+        for spell in spells:
+            access = access_map.get(spell.pk, ())
             if access:
                 offer = scroll_offer(spell)
                 if offer:
@@ -13838,11 +13857,17 @@ def oficina_magia_view(request):
         legacy_casters = [
             {'pc': row['pc'], 'info': row['contract']} for row in casters
         ]
-        transcricoes = _spell_transcription_options(personagem, legacy_casters)
-        spellbooks = _oficina_other_spellbooks(personagem, casters)
-        for item in personagem.inventario.filter(qtd__gt=0).order_by('nome'):
+        inventory = list(personagem.inventario.filter(qtd__gt=0).select_related(
+            'id_item_magico', 'id_item_mundano').order_by('nome'))
+        transcricoes = _spell_transcription_options(
+            personagem, legacy_casters, spells=spells,
+            access_map=access_map, inventory=inventory)
+        spellbooks = _oficina_other_spellbooks(
+            personagem, access_map,
+            contract_cache=contract_cache)
+        for item in inventory:
             info = scroll_item_info(_personagem_item_tags(item))
-            spell = resolve_spell_token((info or {}).get('spell'))
+            spell = spell_index.get(spell_token((info or {}).get('spell')))
             if spell:
                 owned_scrolls.append({'item': item, 'spell': spell})
 
@@ -14001,7 +14026,7 @@ def _oficina_cast_caster(personagem, owned, casters):
 @require_POST
 def oficina_conjurar_magia(request, pk):
     from .magic_workshop import (
-        character_casters, parse_priced_materials)
+        character_casters, parse_priced_materials, spell_is_log_castable)
     from .models import TbPersonagemMagia
     p = _ficha_editavel(request, pk)
     owned = get_object_or_404(
@@ -14009,6 +14034,8 @@ def oficina_conjurar_magia(request, pk):
         pk=request.POST.get('magia_personagem'), id_personagem=p,
         id_magia__isnull=False)
     spell = owned.id_magia
+    if not spell_is_log_castable(spell):
+        return _oficina_redirect(request, 'nao_persistente')
     casters = character_casters(p)
     caster = _oficina_cast_caster(p, owned, casters)
     ritual = request.POST.get('ritual') in {'1', 'on', 'true'}

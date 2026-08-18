@@ -133,11 +133,10 @@ class SpellTranscriptionFlowTests(TestCase):
         self.client.force_login(self.user)
 
     def test_transcricao_consumo_custo_e_grimorio(self):
-        with mock.patch('secrets.randbelow', return_value=19):
-            response = self.client.post(
-                reverse('personagem_transcrever_magia', args=[self.personagem.pk]),
-                {'classe': self.classe.pk, 'item': self.item.pk},
-            )
+        response = self.client.post(
+            reverse('personagem_transcrever_magia', args=[self.personagem.pk]),
+            {'classe': self.classe.pk, 'item': self.item.pk},
+        )
         self.assertRedirects(
             response,
             reverse('ficha_detail', args=[self.personagem.pk]) +
@@ -154,20 +153,21 @@ class SpellTranscriptionFlowTests(TestCase):
         self.assertEqual(movement.detalhes_json['operacao'], 'transcricao_magia')
         self.assertTrue(movement.detalhes_json['sucesso'])
 
-    def test_falha_consume_custo_e_pergaminho_sem_aprender(self):
-        with mock.patch('secrets.randbelow', return_value=0):
+    def test_transcricao_nao_executa_teste_de_arcanismo(self):
+        with mock.patch(
+                'secrets.randbelow',
+                side_effect=AssertionError('transcrição não deve rolar d20')):
             response = self.client.post(
                 reverse('personagem_transcrever_magia', args=[self.personagem.pk]),
                 {'classe': self.classe.pk, 'item': self.item.pk},
             )
-        self.assertIn('transcricao=falha', response['Location'])
-        self.personagem.refresh_from_db()
-        self.assertEqual(self.personagem.carteira_pc, 0)
-        self.assertFalse(TbPersonagemItem.objects.filter(pk=self.item.pk).exists())
-        self.assertFalse(self.personagem.magias.exists())
+        self.assertIn('transcricao=ok', response['Location'])
+        self.assertTrue(self.personagem.magias.filter(
+            id_magia=self.spell, origem=self.classe.nome).exists())
         movement = self.personagem.transacoes.get()
-        self.assertFalse(movement.detalhes_json['sucesso'])
-        self.assertEqual(movement.detalhes_json['cd'], 11)
+        self.assertTrue(movement.detalhes_json['sucesso'])
+        self.assertNotIn('cd', movement.detalhes_json)
+        self.assertNotIn('d20', movement.detalhes_json)
 
     def test_saldo_insuficiente_nao_consume_item(self):
         self.personagem.carteira_pc = 4999

@@ -5,7 +5,7 @@
 - Base de comparação: `C:\Users\helio\Downloads\backup_completo_20260817_235225.json`
 - Restore: `ref/backups/restore_consolidado_oficina_magia_20260818.json`
 - Relatório técnico: `ref/backups/restore_consolidado_oficina_magia_20260818.report.json`
-- SHA-256 do restore: `0f05471f9a7c920c4335db1c4d8095bb44edd6cd019f660b128b11d25aee105d`
+- SHA-256 do restore: `aa21617b1fa76638f97638a62f604f42987a2503fbbddfe675063f5f973e775d`
 
 ## Ordem obrigatória na produção
 
@@ -19,7 +19,7 @@ coluna `ClassesSlugs`, e os pedidos entre grimórios usam a nova tabela
 
 ## Diferenças contra a produção
 
-- `home.tbmagia`: 580 registros recebem somente `classes_slugs`, mantendo o texto de `classes` já existente na produção.
+- `home.tbmagia`: 580 registros recebem `classes_slugs`, mantendo o texto de `classes` já existente na produção. Nove deles também recebem `log_castable` para declarar magias cujo efeito pode se tornar persistente mesmo sem duração-base "Até ser dissipada".
 - `home.tbclassehabilidade`: 10 tags alteradas, correspondentes a Escolas de Foco do Mago e ao custo por círculo do Místico.
 - `home.tbopcaojogo`: 8 Escolas de Foco novas.
 

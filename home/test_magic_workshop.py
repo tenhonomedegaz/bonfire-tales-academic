@@ -4,15 +4,19 @@ from decimal import Decimal
 from unittest import mock
 
 from django.contrib.auth.models import User
+from django.db import connection
 from django.test import TestCase
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
 from home.character_engine import magias_concedidas
 from home.magic_workshop import (
     character_casters,
+    character_spell_access_map,
     parse_priced_materials,
     scroll_offer,
     spell_accessible_to_character,
+    spell_is_log_castable,
     transcription_terms_for_character,
 )
 from home.models import (
@@ -125,6 +129,45 @@ class MagicWorkshopTests(TestCase):
             self.personagem)['concedidas']}
         self.assertNotIn(self.spell.slug, granted)
 
+    def test_mapa_de_acesso_nao_repete_consultas_por_magia(self):
+        extra = [TbMagia(
+            nome='Magia %02d' % index, slug='magia-%02d' % index, nivel=1,
+            classes=self.classe.nome, classes_slugs=[self.classe.slug])
+            for index in range(30)]
+        TbMagia.objects.bulk_create(extra)
+        spells = list(TbMagia.objects.order_by('pk'))
+        casters = character_casters(self.personagem)
+        with CaptureQueriesContext(connection) as queries:
+            access = character_spell_access_map(
+                self.personagem, spells, casters=casters)
+        self.assertLess(len(queries), 25)
+        self.assertTrue(all(spell.pk in access for spell in extra))
+
+    def test_conjuracao_da_oficina_exige_persistencia_declarada(self):
+        transient = TbMagia.objects.create(
+            nome='Clarão Breve', slug='clarao-breve', nivel=1,
+            duracao='1 minuto')
+        direct = TbMagia.objects.create(
+            nome='Selo Duradouro', slug='selo-duradouro', nivel=1,
+            duracao='Até ser dissipado')
+        tagged = TbMagia.objects.create(
+            nome='Vínculo Duradouro', slug='vinculo-duradouro', nivel=1,
+            duracao='Instantâneo', tags_json=[
+                'while_active{duration:indefinite, log_castable}'])
+        self.assertFalse(spell_is_log_castable(transient))
+        self.assertTrue(spell_is_log_castable(direct))
+        self.assertTrue(spell_is_log_castable(tagged))
+        owned = self.personagem.magias.create(
+            id_magia=transient, nivel=1, nome=transient.nome,
+            preparada=True, origem=self.classe.nome)
+        self.client.force_login(self.user)
+        response = self.client.post(
+            reverse('oficina_conjurar_magia', args=[self.personagem.pk]),
+            {'personagem': self.personagem.pk,
+             'magia_personagem': owned.pk, 'slot': 1})
+        self.assertIn('status=nao_persistente', response['Location'])
+        self.assertFalse(self.personagem.transacoes.exists())
+
     def test_marca_nao_cria_conjuracao_em_nao_conjurador(self):
         martial = TbClasse.objects.create(nome='Marcial', slug='marcial')
         personagem = TbPersonagem.objects.create(
@@ -172,7 +215,8 @@ class MagicWorkshopTests(TestCase):
             componentes=(
                 'M (pó de prata de 10 PO, consumido pela magia, e um foco '
                 'de cristal de 50 PO, reutilizável)'),
-            classes='Arquivista', classes_slugs=['arquivista'])
+            classes='Arquivista', classes_slugs=['arquivista'],
+            tags_json=['log_castable'])
         owned = self.personagem.magias.create(
             id_magia=spell, nivel=0, nome=spell.nome, preparada=True,
             origem=self.classe.nome)

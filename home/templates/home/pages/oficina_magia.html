@@ -22,11 +22,11 @@
   {% if oficina_status == 'ja_solicitado' %}<div class="workshop-alert is-error">Já existe um pedido pendente para essa mesma transcrição.</div>{% endif %}
   {% if oficina_status == 'aceita' %}<div class="workshop-alert is-ok">A transcrição foi autorizada e registrada.</div>{% endif %}
   {% if oficina_status == 'recusada' %}<div class="workshop-alert is-error">O pedido de transcrição foi recusado.</div>{% endif %}
-  {% if oficina_status == 'ok' %}<div class="workshop-alert is-ok">A magia foi copiada para o grimório e a tentativa foi registrada.</div>{% endif %}
-  {% if oficina_status == 'falha' %}<div class="workshop-alert is-error">O teste de Arcanismo falhou. O custo foi pago e o pergaminho foi destruído.</div>{% endif %}
+  {% if oficina_status == 'ok' %}<div class="workshop-alert is-ok">A magia foi copiada para o grimório.</div>{% endif %}
   {% if oficina_status == 'fonte_invalida' or oficina_status == 'transcricao_invalida' or oficina_status == 'invalido' %}<div class="workshop-alert is-error">A operação deixou de ser válida. Atualize a página e confira a origem escolhida.</div>{% endif %}
   {% if oficina_status == 'nao_preparada' %}<div class="workshop-alert is-error">Essa magia precisa estar preparada para ser conjurada.</div>{% endif %}
   {% if oficina_status == 'ritual_invalido' %}<div class="workshop-alert is-error">Essa magia não pode ser registrada como ritual nessa build.</div>{% endif %}
+  {% if oficina_status == 'nao_persistente' %}<div class="workshop-alert is-error">Somente magias com efeito persistente podem ser registradas pela oficina.</div>{% endif %}
   {% if oficina_status == 'slot' or oficina_status == 'slot_gasto' %}<div class="workshop-alert is-error">Não há um espaço de magia válido disponível para essa conjuração.</div>{% endif %}
   {% if oficina_status == 'recurso' or oficina_status == 'recurso_gasto' %}<div class="workshop-alert is-error">O recurso de conjuração declarado pela classe é insuficiente.</div>{% endif %}
 
@@ -125,7 +125,7 @@
   </section>
 
   <section class="workshop-panel" data-workshop-panel="casting" hidden>
-    <header class="workshop-heading"><div><h1>Conjuração fora de combate</h1><p>Registre conjurações duradouras, rituais e outras ações realizadas entre aventuras.</p></div><input type="search" placeholder="Buscar magia..." data-workshop-search="casting"></header>
+    <header class="workshop-heading"><div><h1>Conjuração fora de combate</h1><p>Registre efeitos que duram até serem dissipados ou que podem se tornar permanentes.</p></div><input type="search" placeholder="Buscar magia..." data-workshop-search="casting"></header>
     {% if mercado_ativo %}<div class="workshop-list" data-workshop-list="casting">
       {% for row in magias_conjuraveis %}<article class="workshop-row" data-search="{{ row.spell.nome|lower }} {{ row.spell.nome_ingles|default:''|lower }}">
         <div class="workshop-row-main"><strong>{{ row.spell.nome }}</strong><span>{{ row.spell.nome_ingles }}</span><small>{% if row.spell.nivel == 0 %}Truque{% else %}{{ row.spell.nivel }}º círculo{% endif %}{% if row.spell.componentes %} · {{ row.spell.componentes }}{% endif %}</small></div>
@@ -134,7 +134,7 @@
           {% if row.spell.nivel > 0 %}<select name="slot">{% for n in row.slot_levels %}<option value="{{ n }}">Espaço {{ n }}º</option>{% endfor %}</select>{% endif %}
           {% if row.ritual_available %}<label><input type="checkbox" name="ritual" value="1"> Ritual</label>{% endif %}<button type="submit">Registrar</button>
         </form>
-      </article>{% empty %}<p class="workshop-empty">Nenhuma magia disponível para conjuração.</p>{% endfor %}
+      </article>{% empty %}<p class="workshop-empty">Nenhuma magia persistente disponível para conjuração.</p>{% endfor %}
     </div>{% else %}<p class="workshop-empty">Escolha um personagem no balcão.</p>{% endif %}
   </section>
 

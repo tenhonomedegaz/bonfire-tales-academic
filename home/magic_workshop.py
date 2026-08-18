@@ -1,6 +1,7 @@
 """Produtos virtuais e regras mecânicas da Oficina de Magia."""
 from __future__ import annotations
 
+import copy
 import re
 import unicodedata
 from decimal import Decimal, InvalidOperation
@@ -141,6 +142,33 @@ def resolve_spell_token(token):
         if spell_token(spell) == wanted), None)
 
 
+def spell_is_log_castable(spell):
+    """Indica se a magia produz um estado persistente gerenciável fora de jogo.
+
+    A duração oficial cobre o caso normal. Efeitos instantâneos ou condicionais
+    (como Encontrar Familiar) precisam declarar ``log_castable`` nas próprias
+    tags, mantendo a exceção auditável no conteúdo em vez de uma lista no código.
+    """
+    if 'ate ser dissip' in _ascii(getattr(spell, 'duracao', '')):
+        return True
+
+    def contains_marker(nodes):
+        for node in nodes:
+            if node.name == 'log_castable':
+                return True
+            if contains_marker(node.children or []):
+                return True
+        return False
+
+    for tag in getattr(spell, 'tags_json', None) or ():
+        try:
+            if contains_marker(parse_tag(tag).nodes):
+                return True
+        except ParseError:
+            continue
+    return False
+
+
 def scroll_offer(spell):
     level = int(spell.nivel or 0)
     if level not in SCROLL_PRICE_PO:
@@ -211,25 +239,80 @@ def component_item_info(tags):
     return _block_info(tags, 'spell_component')
 
 
-def character_casters(personagem):
+def character_casters(personagem, *, contract_cache=None):
     from .character_engine import _subclass_unlocked, spell_scope_names
     from .spellcasting import class_spellcasting_contract, max_spell_level_at
 
     rows = []
-    for pc in personagem.classes.select_related('id_classe', 'id_subclasse'):
+    prefetched = getattr(personagem, '_prefetched_objects_cache', {}).get('classes')
+    classes = (prefetched if prefetched is not None else
+               personagem.classes.select_related('id_classe', 'id_subclasse'))
+    for pc in classes:
         level = int(pc.nivel or 1)
         subclass = pc.id_subclasse if _subclass_unlocked(pc, level) else None
-        contract = class_spellcasting_contract(pc.id_classe, level=level, subclass=subclass)
+        cache_key = (pc.id_classe_id, getattr(subclass, 'pk', None), level)
+        cached = contract_cache.get(cache_key) if contract_cache is not None else None
+        if cached is None:
+            contract = class_spellcasting_contract(
+                pc.id_classe, level=level, subclass=subclass)
+            maximum = (max_spell_level_at(
+                contract, pc.id_classe, level=level, subclass=subclass,
+                context={'classlvl': level}) if contract else 0)
+            if contract_cache is not None:
+                contract_cache[cache_key] = (copy.deepcopy(contract), maximum)
+        else:
+            contract, maximum = copy.deepcopy(cached[0]), cached[1]
         if not contract:
             continue
         contract['lista_nomes'] = spell_scope_names(contract.get('list') or []) or [pc.id_classe.nome]
         rows.append({
             'pc': pc, 'contract': contract,
-            'max_spell_level': max_spell_level_at(
-                contract, pc.id_classe, level=level, subclass=subclass,
-                context={'classlvl': level}),
+            'max_spell_level': maximum,
         })
     return rows
+
+
+def character_spell_access_map(personagem, spells, *, casters=None):
+    """Resolve o acesso de todo o catálogo sem repetir consultas por magia."""
+    from .models import TbMagia
+    from .spell_access import spell_class_query
+    from .spellcasting import character_spell_list_delta
+
+    spells = list(spells)
+    casters = character_casters(personagem) if casters is None else casters
+    delta = character_spell_list_delta(personagem)
+    spell_ids = {spell.pk for spell in spells}
+    origins = {}
+    for spell_id, origin in personagem.magias.filter(
+            id_magia_id__in=spell_ids).values_list('id_magia_id', 'origem'):
+        origins.setdefault(spell_id, set()).add(str(origin or '').casefold())
+
+    base_ids = []
+    scopes_cache = {}
+    for caster in casters:
+        raw_scopes = caster['contract'].get('list') or ()
+        scopes = ((raw_scopes,) if isinstance(raw_scopes, str)
+                  else tuple(raw_scopes))
+        if scopes not in scopes_cache:
+            scopes_cache[scopes] = set(
+                TbMagia.objects.filter(spell_class_query(scopes)).values_list(
+                    'pk', flat=True)) if spells else set()
+        base_ids.append((caster, scopes_cache[scopes]))
+
+    access = {}
+    for spell in spells:
+        if spell.slug in delta['remove']:
+            continue
+        added = spell.slug in delta['add']
+        spell_origins = origins.get(spell.pk, set())
+        eligible = [
+            caster for caster, ids in base_ids
+            if (added or spell.pk in ids
+                or caster['pc'].id_classe.nome.casefold() in spell_origins)
+        ]
+        if eligible:
+            access[spell.pk] = eligible
+    return access
 
 
 def spell_accessible_to_character(personagem, spell, *, casters=None):
@@ -272,13 +355,16 @@ def focus_schools(personagem):
     return schools
 
 
-def transcription_terms_for_character(personagem, caster, spell):
+def transcription_terms_for_character(
+        personagem, caster, spell, *, focus_school_values=None):
     from .spellcasting import transcription_terms
     terms = transcription_terms(caster['contract'], spell_level=spell.nivel)
     if terms is None:
         return None
     school = _ascii(spell.escola).replace(' ', '_')
-    discounted = bool(school and school in focus_schools(personagem))
+    schools = (focus_schools(personagem) if focus_school_values is None
+               else focus_school_values)
+    discounted = bool(school and school in schools)
     if discounted:
         terms = dict(terms)
         terms['cost_po'] = terms['cost_po'] / 2
