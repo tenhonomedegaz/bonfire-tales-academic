@@ -40,6 +40,12 @@ _MODE_ALIASES = {
     "preparadas": "prepared",
 }
 
+_MODIFY_CHAIN_RE = re.compile(
+    r'^\s*(?P<target>[a-z_][a-z0-9_]*)\s*\{\s*(?P<path>[a-z_][a-z0-9_]*)\s*\}'
+    r'\s*\.\s*(?P<operation>add|remove)\s*\{(?P<body>.*)\}\s*$',
+    re.I,
+)
+
 
 def _identifier(value):
     return str(value or "").strip().lower().replace("-", "_")
@@ -107,9 +113,11 @@ def _slots_spec(node):
         children = _children(node)
         progression = _scalar(_first(children, "progression", "type", "tipo"))
         resource = _scalar(_first(children, "resource", "recurso"))
+        cost = _scalar(_first(children, "cost", "custo"))
         return {
             "slots": _identifier(progression) if progression else None,
             "slots_resource": _identifier(resource) if resource else None,
+            "slots_cost": cost,
         }
 
     progression = _identifier(_scalar(node))
@@ -119,7 +127,8 @@ def _slots_spec(node):
         if match:
             resource = _identifier(match.group(1))
             break
-    return {"slots": progression or None, "slots_resource": resource}
+    return {"slots": progression or None, "slots_resource": resource,
+            "slots_cost": None}
 
 
 def _swap_spec(node):
@@ -210,6 +219,7 @@ def _merge(contract, patch, *, declaration=False):
             "ability": "int",
             "slots": "full",
             "slots_resource": None,
+            "slots_cost": None,
             "list": [],
             "mode": None,
             "focus": None,
@@ -271,6 +281,84 @@ def parse_spellcasting_sources(sources):
     contract["swap_level_up"] = bool(
         contract.get("swap") and contract["swap"].get("event") == "level_up")
     return contract
+
+
+def parse_spellcasting_list_operations(sources, *, has_spellcasting=True):
+    """Interpreta modificadores composáveis da lista de uma fonte de feature.
+
+    A forma canônica é ``modify:spellcasting{list}.add{spell:<slug>, ...}``.
+    ``remove`` usa o mesmo contrato. A ordem das fontes, tags e operandos é
+    preservada; um requisito de conjuração bloqueia o modificador sem conceder
+    conjuração por conta própria.
+    """
+    operations = []
+    for source in sources or ():
+        for tag in (getattr(source, 'tags_json', None) or []):
+            try:
+                program = parse_tag(tag)
+            except ParseError:
+                continue
+            requirements = [
+                _identifier(node.value)
+                for node in program.nodes
+                if node.name == 'requires' and node.operator == ':'
+            ]
+            if 'spellcasting' in requirements and not has_spellcasting:
+                continue
+            # Requisitos desconhecidos não podem ser presumidos como satisfeitos.
+            if any(req != 'spellcasting' for req in requirements):
+                continue
+            for node in program.nodes:
+                if node.name != 'modify' or node.operator != ':':
+                    continue
+                match = _MODIFY_CHAIN_RE.match(str(node.value or ''))
+                if not match:
+                    continue
+                if (_identifier(match.group('target')) != 'spellcasting'
+                        or _identifier(match.group('path')) != 'list'):
+                    continue
+                try:
+                    operands = parse_tag(match.group('body')).nodes
+                except ParseError:
+                    continue
+                for operand in operands:
+                    if operand.name != 'spell' or operand.operator != ':' or not operand.value:
+                        continue
+                    operations.append({
+                        'operation': match.group('operation').lower(),
+                        'spell': str(operand.value).strip(),
+                        'source': source,
+                        'raw': str(tag),
+                    })
+    return operations
+
+
+def character_spell_list_delta(personagem):
+    """Adições/remoções efetivas que as features do personagem fazem na lista."""
+    if personagem is None or not getattr(personagem, 'pk', None):
+        return {'add': set(), 'remove': set(), 'operations': []}
+    from .character_engine import _conjuracao_real, _features_do_personagem
+    from .models import TbMagia
+
+    features = [row[2] for row in _features_do_personagem(personagem)]
+    operations = parse_spellcasting_list_operations(
+        features, has_spellcasting=_conjuracao_real(personagem))
+    by_token = {}
+    for magia in TbMagia.objects.only('slug'):
+        by_token[_identifier(magia.slug)] = magia.slug
+    added, removed, resolved = set(), set(), []
+    for operation in operations:
+        slug = by_token.get(_identifier(operation['spell']))
+        if not slug:
+            continue
+        if operation['operation'] == 'add':
+            added.add(slug)
+            removed.discard(slug)
+        else:
+            removed.add(slug)
+            added.discard(slug)
+        resolved.append({**operation, 'spell': slug})
+    return {'add': added, 'remove': removed, 'operations': resolved}
 
 
 def class_spellcasting_contract(classe, *, level=1, subclass=None):

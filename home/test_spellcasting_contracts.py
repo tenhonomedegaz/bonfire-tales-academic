@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from unittest import mock
+
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
@@ -131,10 +133,11 @@ class SpellTranscriptionFlowTests(TestCase):
         self.client.force_login(self.user)
 
     def test_transcricao_consumo_custo_e_grimorio(self):
-        response = self.client.post(
-            reverse('personagem_transcrever_magia', args=[self.personagem.pk]),
-            {'classe': self.classe.pk, 'item': self.item.pk},
-        )
+        with mock.patch('secrets.randbelow', return_value=19):
+            response = self.client.post(
+                reverse('personagem_transcrever_magia', args=[self.personagem.pk]),
+                {'classe': self.classe.pk, 'item': self.item.pk},
+            )
         self.assertRedirects(
             response,
             reverse('ficha_detail', args=[self.personagem.pk]) +
@@ -149,6 +152,22 @@ class SpellTranscriptionFlowTests(TestCase):
         movement = self.personagem.transacoes.get()
         self.assertEqual(movement.valor_pc, -5000)
         self.assertEqual(movement.detalhes_json['operacao'], 'transcricao_magia')
+        self.assertTrue(movement.detalhes_json['sucesso'])
+
+    def test_falha_consume_custo_e_pergaminho_sem_aprender(self):
+        with mock.patch('secrets.randbelow', return_value=0):
+            response = self.client.post(
+                reverse('personagem_transcrever_magia', args=[self.personagem.pk]),
+                {'classe': self.classe.pk, 'item': self.item.pk},
+            )
+        self.assertIn('transcricao=falha', response['Location'])
+        self.personagem.refresh_from_db()
+        self.assertEqual(self.personagem.carteira_pc, 0)
+        self.assertFalse(TbPersonagemItem.objects.filter(pk=self.item.pk).exists())
+        self.assertFalse(self.personagem.magias.exists())
+        movement = self.personagem.transacoes.get()
+        self.assertFalse(movement.detalhes_json['sucesso'])
+        self.assertEqual(movement.detalhes_json['cd'], 11)
 
     def test_saldo_insuficiente_nao_consume_item(self):
         self.personagem.carteira_pc = 4999

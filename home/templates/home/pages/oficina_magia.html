@@ -1,0 +1,162 @@
+{% extends 'home/base.html' %}
+{% load static %}
+
+{% block title %}Oficina de Magia - Bonfire Tales RPG{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/pages/mercado_loja.css' %}?v=2">
+<link rel="stylesheet" href="{% static 'css/pages/oficina_magia.css' %}?v=1">
+{% endblock %}
+
+{% block content %}
+<div class="workshop-shell">
+  {% include 'home/partials/_mercado_balcao.html' with balcao_titulo='Oficina de Magia' %}
+
+  {% if oficina_resultado %}<div class="workshop-alert is-ok">{{ oficina_resultado }}</div>{% endif %}
+  {% if oficina_status == 'comprado' %}<div class="workshop-alert is-ok">Compra concluída e adicionada à mochila.</div>{% endif %}
+  {% if oficina_status == 'saldo' or oficina_status == 'saldo_solicitante' %}<div class="workshop-alert is-error">O personagem não possui ouro suficiente.</div>{% endif %}
+  {% if oficina_status == 'sem_acesso' or oficina_status == 'pergaminho_ilegivel' %}<div class="workshop-alert is-error">Essa magia não pertence a nenhuma lista de classe disponível para o personagem.</div>{% endif %}
+  {% if oficina_status == 'componente_consumivel' %}<div class="workshop-alert is-error">Faltam os componentes consumíveis dessa magia.</div>{% endif %}
+  {% if oficina_status == 'componente_reutilizavel' %}<div class="workshop-alert is-error">Falta o foco material reutilizável dessa magia.</div>{% endif %}
+  {% if oficina_status == 'solicitado' %}<div class="workshop-alert is-ok">Pedido enviado ao dono do outro grimório.</div>{% endif %}
+  {% if oficina_status == 'ja_solicitado' %}<div class="workshop-alert is-error">Já existe um pedido pendente para essa mesma transcrição.</div>{% endif %}
+  {% if oficina_status == 'aceita' %}<div class="workshop-alert is-ok">A transcrição foi autorizada e registrada.</div>{% endif %}
+  {% if oficina_status == 'recusada' %}<div class="workshop-alert is-error">O pedido de transcrição foi recusado.</div>{% endif %}
+  {% if oficina_status == 'ok' %}<div class="workshop-alert is-ok">A magia foi copiada para o grimório e a tentativa foi registrada.</div>{% endif %}
+  {% if oficina_status == 'falha' %}<div class="workshop-alert is-error">O teste de Arcanismo falhou. O custo foi pago e o pergaminho foi destruído.</div>{% endif %}
+  {% if oficina_status == 'fonte_invalida' or oficina_status == 'transcricao_invalida' or oficina_status == 'invalido' %}<div class="workshop-alert is-error">A operação deixou de ser válida. Atualize a página e confira a origem escolhida.</div>{% endif %}
+  {% if oficina_status == 'nao_preparada' %}<div class="workshop-alert is-error">Essa magia precisa estar preparada para ser conjurada.</div>{% endif %}
+  {% if oficina_status == 'ritual_invalido' %}<div class="workshop-alert is-error">Essa magia não pode ser registrada como ritual nessa build.</div>{% endif %}
+  {% if oficina_status == 'slot' or oficina_status == 'slot_gasto' %}<div class="workshop-alert is-error">Não há um espaço de magia válido disponível para essa conjuração.</div>{% endif %}
+  {% if oficina_status == 'recurso' or oficina_status == 'recurso_gasto' %}<div class="workshop-alert is-error">O recurso de conjuração declarado pela classe é insuficiente.</div>{% endif %}
+
+  <nav class="workshop-tabs" aria-label="Serviços da oficina">
+    <button type="button" class="is-active" data-workshop-tab="scrolls">Pergaminhos</button>
+    <button type="button" data-workshop-tab="transcription">Grimório</button>
+    <button type="button" data-workshop-tab="casting">Conjuração</button>
+    <button type="button" data-workshop-tab="components">Componentes</button>
+  </nav>
+
+  <section class="workshop-panel is-active" data-workshop-panel="scrolls">
+    <header class="workshop-heading">
+      <div><h1>Pergaminhos de Magia</h1><p>O catálogo mostra somente magias que pertencem às listas efetivas do personagem, incluindo expansões concedidas por features.</p></div>
+      <div class="workshop-filters">
+        <input type="search" placeholder="Buscar magia..." data-workshop-search="scrolls">
+        <select data-workshop-level="scrolls"><option value="">Todos os círculos</option>{% for n in '123456789' %}<option value="{{ n }}">{{ n }}º círculo</option>{% endfor %}</select>
+      </div>
+    </header>
+
+    {% if not mercado_ativo %}<p class="workshop-empty">Escolha um personagem no balcão para consultar o catálogo compatível.</p>{% else %}
+    <div class="workshop-list" data-workshop-list="scrolls">
+      {% for offer in scrolls %}
+      <article class="workshop-row" data-search="{{ offer.name|lower }} {{ offer.spell.nome_ingles|default:''|lower }} {{ offer.classes|lower }}" data-level="{{ offer.level }}">
+        <div class="workshop-row-main">
+          <strong>{{ offer.name }}</strong>
+          {% if offer.spell.nome_ingles %}<span>{{ offer.spell.nome_ingles }}</span>{% endif %}
+          <small>{{ offer.level }}º círculo · {{ offer.classes }} · CD {{ offer.save_dc }} · ataque +{{ offer.attack_bonus }}</small>
+        </div>
+        <div class="workshop-price">
+          <strong>{{ offer.price_display }}</strong>
+          {% if offer.material_price_po %}<small>inclui {{ offer.material_price_po }} PO consumidos</small>{% endif %}
+        </div>
+        <form method="post" action="{% url 'oficina_comprar_pergaminho' mercado_ativo.id_personagem %}">
+          {% csrf_token %}<input type="hidden" name="personagem" value="{{ mercado_ativo.id_personagem }}"><input type="hidden" name="magia" value="{{ offer.slug }}">
+          <button type="submit">Comprar</button>
+        </form>
+      </article>
+      {% empty %}<p class="workshop-empty">Nenhum pergaminho disponível para esta build.</p>{% endfor %}
+    </div>
+
+    <div class="workshop-subsection">
+      <h2>Pergaminhos na mochila</h2>
+      {% for row in pergaminhos_possuidos %}
+      <article class="workshop-row is-owned">
+        <div class="workshop-row-main"><strong>{{ row.item.nome }}</strong><small>{{ row.item.qtd }} unidade(s) · {{ row.spell.nivel }}º círculo</small></div>
+        <form method="post" action="{% url 'oficina_usar_pergaminho' mercado_ativo.id_personagem %}">
+          {% csrf_token %}<input type="hidden" name="personagem" value="{{ mercado_ativo.id_personagem }}"><input type="hidden" name="item" value="{{ row.item.id }}">
+          <button type="submit">Ler e conjurar</button>
+        </form>
+      </article>
+      {% empty %}<p class="workshop-empty">Nenhum pergaminho na mochila.</p>{% endfor %}
+    </div>
+    {% endif %}
+  </section>
+
+  <section class="workshop-panel" data-workshop-panel="transcription" hidden>
+    <header class="workshop-heading"><div><h1>Grimório</h1><p>Copie uma magia de um pergaminho próprio ou solicite acesso ao grimório de outro jogador.</p></div></header>
+    {% if mercado_ativo %}
+    <div class="workshop-columns">
+      <div class="workshop-subsection">
+        <h2>Dos seus pergaminhos</h2>
+        {% for row in transcricoes %}
+        <article class="workshop-row">
+          <div class="workshop-row-main"><strong>{{ row.magia_nome }}</strong><span>{{ row.classe }} · {{ row.nivel }}º círculo</span><small>{{ row.custo }} · {{ row.tempo_horas }} hora(s){% if row.desconto_escola_foco %} · desconto de Escola de Foco{% endif %}</small></div>
+          <form method="post" action="{% url 'personagem_transcrever_magia' mercado_ativo.id_personagem %}">
+            {% csrf_token %}<input type="hidden" name="personagem" value="{{ mercado_ativo.id_personagem }}"><input type="hidden" name="classe" value="{{ row.classe_id }}"><input type="hidden" name="item" value="{{ row.item_id }}"><input type="hidden" name="next" value="oficina"><button type="submit"{% if not row.pode_pagar %} disabled{% endif %}>Transcrever</button>
+          </form>
+        </article>
+        {% empty %}<p class="workshop-empty">Nenhum pergaminho elegível para o seu grimório.</p>{% endfor %}
+      </div>
+
+      <div class="workshop-subsection">
+        <h2>De outros grimórios</h2>
+        {% for book in grimorios_disponiveis %}
+        <details class="workshop-book"><summary>{{ book.personagem.nome }} <span>{{ book.personagem.dono.username }}</span></summary>
+          {% for row in book.spells %}
+          <form method="post" action="{% url 'oficina_solicitar_transcricao' mercado_ativo.id_personagem %}" class="workshop-book-spell">
+            {% csrf_token %}<input type="hidden" name="personagem" value="{{ mercado_ativo.id_personagem }}"><input type="hidden" name="fonte" value="{{ book.personagem.id_personagem }}"><input type="hidden" name="magia" value="{{ row.spell.id_magia }}"><input type="hidden" name="classe" value="{{ row.classe.id_classe }}">
+            <span><strong>{{ row.spell.nome }}</strong><small>{{ row.classe.nome }} · {{ row.spell.nivel }}º círculo</small></span><button type="submit">Solicitar</button>
+          </form>
+          {% endfor %}
+        </details>
+        {% empty %}<p class="workshop-empty">Nenhum grimório compatível está disponível.</p>{% endfor %}
+      </div>
+    </div>
+
+    <div class="workshop-columns">
+      <div class="workshop-subsection"><h2>Pedidos recebidos</h2>
+        {% for row in solicitacoes_recebidas %}<article class="workshop-request"><div><strong>{{ row.magia.nome }}</strong><span>{{ row.solicitante.nome }} solicita copiar de {{ row.fonte.nome }}</span><small>{{ row.custo_po }} PO · {{ row.tempo_horas }} hora(s)</small></div><form method="post" action="{% url 'oficina_responder_transcricao' row.id_solicitacao %}">{% csrf_token %}<input type="hidden" name="personagem" value="{{ mercado_ativo.id_personagem }}"><button name="acao" value="recusar" class="is-muted">Recusar</button><button name="acao" value="aceitar">Autorizar</button></form></article>{% empty %}<p class="workshop-empty">Nenhum pedido aguardando resposta.</p>{% endfor %}
+      </div>
+      <div class="workshop-subsection"><h2>Pedidos enviados</h2>
+        {% for row in solicitacoes_enviadas %}<article class="workshop-request"><div><strong>{{ row.magia.nome }}</strong><span>Grimório de {{ row.fonte.nome }}</span></div><span class="workshop-status">{{ row.get_status_display }}</span></article>{% empty %}<p class="workshop-empty">Nenhum pedido enviado.</p>{% endfor %}
+      </div>
+    </div>
+    {% else %}<p class="workshop-empty">Escolha um personagem no balcão.</p>{% endif %}
+  </section>
+
+  <section class="workshop-panel" data-workshop-panel="casting" hidden>
+    <header class="workshop-heading"><div><h1>Conjuração fora de combate</h1><p>Registre conjurações duradouras, rituais e outras ações realizadas entre aventuras.</p></div><input type="search" placeholder="Buscar magia..." data-workshop-search="casting"></header>
+    {% if mercado_ativo %}<div class="workshop-list" data-workshop-list="casting">
+      {% for row in magias_conjuraveis %}<article class="workshop-row" data-search="{{ row.spell.nome|lower }} {{ row.spell.nome_ingles|default:''|lower }}">
+        <div class="workshop-row-main"><strong>{{ row.spell.nome }}</strong><span>{{ row.spell.nome_ingles }}</span><small>{% if row.spell.nivel == 0 %}Truque{% else %}{{ row.spell.nivel }}º círculo{% endif %}{% if row.spell.componentes %} · {{ row.spell.componentes }}{% endif %}</small></div>
+        <form method="post" action="{% url 'oficina_conjurar_magia' mercado_ativo.id_personagem %}" class="workshop-cast-form">
+          {% csrf_token %}<input type="hidden" name="personagem" value="{{ mercado_ativo.id_personagem }}"><input type="hidden" name="magia_personagem" value="{{ row.owned.id }}">
+          {% if row.spell.nivel > 0 %}<select name="slot">{% for n in row.slot_levels %}<option value="{{ n }}">Espaço {{ n }}º</option>{% endfor %}</select>{% endif %}
+          {% if row.ritual_available %}<label><input type="checkbox" name="ritual" value="1"> Ritual</label>{% endif %}<button type="submit">Registrar</button>
+        </form>
+      </article>{% empty %}<p class="workshop-empty">Nenhuma magia disponível para conjuração.</p>{% endfor %}
+    </div>{% else %}<p class="workshop-empty">Escolha um personagem no balcão.</p>{% endif %}
+  </section>
+
+  <section class="workshop-panel" data-workshop-panel="components" hidden>
+    <header class="workshop-heading"><div><h1>Componentes materiais</h1><p>Componentes consumíveis e focos reutilizáveis são tratados separadamente.</p></div><input type="search" placeholder="Buscar componente..." data-workshop-search="components"></header>
+    {% if mercado_ativo %}<div class="workshop-list" data-workshop-list="components">
+      {% for offer in componentes_ofertas %}<article class="workshop-row" data-search="{{ offer.name|lower }} {{ offer.spell.nome_ingles|default:''|lower }}">
+        <div class="workshop-row-main"><strong>{{ offer.name }}</strong><span>{% if offer.consumed %}Consumido na conjuração{% else %}Reutilizável{% endif %}</span><small>{{ offer.description }}</small></div><div class="workshop-price"><strong>{{ offer.price_display }}</strong></div>
+        <form method="post" action="{% url 'oficina_comprar_componente' mercado_ativo.id_personagem %}">{% csrf_token %}<input type="hidden" name="personagem" value="{{ mercado_ativo.id_personagem }}"><input type="hidden" name="magia" value="{{ offer.spell.slug }}"><input type="hidden" name="tipo" value="{{ offer.kind }}"><button type="submit">Comprar</button></form>
+      </article>{% empty %}<p class="workshop-empty">Nenhum componente com preço explícito foi encontrado.</p>{% endfor %}
+    </div>{% else %}<p class="workshop-empty">Escolha um personagem no balcão.</p>{% endif %}
+  </section>
+</div>
+
+<script>
+(function(){
+  var tabs=document.querySelectorAll('[data-workshop-tab]'), panels=document.querySelectorAll('[data-workshop-panel]');
+  function show(name){tabs.forEach(function(t){t.classList.toggle('is-active',t.dataset.workshopTab===name)});panels.forEach(function(p){var on=p.dataset.workshopPanel===name;p.hidden=!on;p.classList.toggle('is-active',on)});}
+  tabs.forEach(function(t){t.addEventListener('click',function(){show(t.dataset.workshopTab)})});
+  document.querySelectorAll('[data-workshop-search]').forEach(function(input){input.addEventListener('input',filter);});
+  document.querySelectorAll('[data-workshop-level]').forEach(function(input){input.addEventListener('change',filter);});
+  function filter(e){var key=e.target.dataset.workshopSearch||e.target.dataset.workshopLevel;var list=document.querySelector('[data-workshop-list="'+key+'"]');if(!list)return;var q=(document.querySelector('[data-workshop-search="'+key+'"]')||{}).value||'';var level=(document.querySelector('[data-workshop-level="'+key+'"]')||{}).value||'';q=q.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();list.querySelectorAll('[data-search]').forEach(function(row){var text=(row.dataset.search||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();row.hidden=!!((q&&!text.includes(q))||(level&&row.dataset.level!==level));});}
+})();
+</script>
+{% endblock %}

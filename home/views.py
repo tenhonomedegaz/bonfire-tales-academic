@@ -320,6 +320,24 @@ def _tags_json_value(data):
     return _split_catalog_list(value)
 
 
+def _strict_tag_list(value):
+    """Normaliza um editor de tags sem quebrar vírgulas internas da DSL."""
+    if isinstance(value, str):
+        raw = value.strip()
+        if not raw:
+            return []
+        if raw.startswith('['):
+            try:
+                value = json.loads(raw)
+            except json.JSONDecodeError as exc:
+                raise ValueError('Tags JSON inválidas.') from exc
+        else:
+            value = [line.strip() for line in raw.splitlines() if line.strip()]
+    if not isinstance(value, list) or any(not isinstance(tag, str) for tag in value):
+        raise ValueError('Tags devem ser uma lista de textos, uma por linha.')
+    return [tag.strip() for tag in value if tag.strip()]
+
+
 def _slug_match_values(value):
     values = _split_catalog_list(value)
     matches = set()
@@ -3425,10 +3443,23 @@ def _classe_spellcasting_info(classe, nivel_habilidades=1, subclasse=None):
 
 
 def _spell_list_q(lista_nomes):
-    q = Q(pk__in=[])
-    for nome in lista_nomes or []:
-        q |= Q(classes__icontains=nome)
-    return q
+    from .spell_access import spell_class_query
+    return spell_class_query(lista_nomes)
+
+
+def _spell_catalog_queryset(lista_nomes, personagem=None):
+    """Catálogo base mais modificadores de lista vindos das features do portador."""
+    queryset = TbMagia.objects.filter(_spell_list_q(lista_nomes))
+    if personagem is None:
+        return queryset
+    from .spellcasting import character_spell_list_delta
+    delta = character_spell_list_delta(personagem)
+    if delta['add']:
+        queryset = TbMagia.objects.filter(
+            _spell_list_q(lista_nomes) | Q(slug__in=delta['add']))
+    if delta['remove']:
+        queryset = queryset.exclude(slug__in=delta['remove'])
+    return queryset
 
 
 def _max_spell_level_for_slots(nivel, slots):
@@ -3706,7 +3737,8 @@ def _spell_transcription_options(personagem, casters):
     fonte e cada posse implementa esse protocolo por tag.
     """
     from .models import TbMagia
-    from .spellcasting import spell_scroll_slug, transcription_terms
+    from .magic_workshop import resolve_spell_token, transcription_terms_for_character
+    from .spellcasting import spell_scroll_slug
 
     inventory = list(personagem.inventario.filter(qtd__gt=0).select_related(
         'id_item_magico', 'id_item_mundano'))
@@ -3726,23 +3758,25 @@ def _spell_transcription_options(personagem, casters):
         ).values_list('id_magia__slug', flat=True))
         by_slug = {}
         for item in inventory:
-            slug = spell_scroll_slug(_personagem_item_tags(item), source=source)
-            if slug:
-                by_slug.setdefault(slug, []).append(item)
+            token = spell_scroll_slug(_personagem_item_tags(item), source=source)
+            resolved = resolve_spell_token(token) if token else None
+            if resolved:
+                by_slug.setdefault(resolved.slug, []).append(item)
         spells = {
             spell.slug: spell
-            for spell in TbMagia.objects.filter(
-                _spell_list_q(info['lista_nomes']), slug__in=by_slug,
-                nivel__gte=1, nivel__lte=max_level)
+            for spell in _spell_catalog_queryset(
+                info['lista_nomes'], personagem).filter(
+                    slug__in=by_slug, nivel__gte=1, nivel__lte=max_level)
         }
         for slug, items in by_slug.items():
             spell = spells.get(slug)
             if spell is None or slug in owned:
                 continue
-            terms = transcription_terms(info, spell_level=spell.nivel)
+            terms = transcription_terms_for_character(
+                personagem, {'pc': pc, 'contract': info}, spell)
             if terms is None:
                 continue
-            cost_pc = int(terms['cost_po']) * 100
+            cost_pc = _po_para_pc(terms['cost_po'])
             for item in items:
                 options.append({
                     'classe_id': pc.id_classe_id,
@@ -3756,7 +3790,8 @@ def _spell_transcription_options(personagem, casters):
                     'nivel': int(spell.nivel or 0),
                     'custo_pc': cost_pc,
                     'custo': _moeda_display(cost_pc),
-                    'tempo_horas': int(terms['time_hours']),
+                    'tempo_horas': terms['time_hours'],
+                    'desconto_escola_foco': terms['focus_discount'],
                     'pode_pagar': int(personagem.carteira_pc or 0) >= cost_pc,
                 })
     options.sort(key=lambda row: (row['classe'].casefold(), row['nivel'], row['magia_nome'].casefold()))
@@ -4084,17 +4119,33 @@ def _reembolso_status(personagem, transacao, *, staff=False):
             personagem, adventures=detalhes.get('aventuras_no_momento'),
             moment=transacao.criado_em):
         return False, 'O personagem ja jogou uma mesa depois desta compra.'
-    item = personagem.inventario.filter(pk=item_id, origem_tipo='compra').first()
+    catalogo = detalhes.get('catalogo')
+    origem_esperada = 'oficina' if catalogo == 'oficina' else 'compra'
+    item = personagem.inventario.filter(
+        pk=item_id, origem_tipo=origem_esperada).first()
     if item is None or int(item.qtd or 0) < qtd:
         return False, 'O item foi vendido, consumido ou alterado depois da compra.'
     if item.equipado or item.sintonizado:
         return False, 'Desequipe e dessintonize o item antes do reembolso.'
-    catalogo = detalhes.get('catalogo')
     if catalogo == 'mundano' and item.id_item_mundano_id != catalogo_id:
         return False, 'O item do inventario nao corresponde a esta compra.'
     if catalogo == 'magico' and item.id_item_magico_id != catalogo_id:
         return False, 'O item do inventario nao corresponde a esta compra.'
-    if catalogo not in {'mundano', 'magico'}:
+    if catalogo == 'oficina':
+        from .magic_workshop import (
+            component_item_info, resolve_spell_token, scroll_item_info)
+        produto = detalhes.get('produto')
+        info = (scroll_item_info(_personagem_item_tags(item))
+                if produto == 'pergaminho'
+                else component_item_info(_personagem_item_tags(item)))
+        spell = resolve_spell_token((info or {}).get('spell'))
+        if (produto not in {'pergaminho', 'componente'} or spell is None
+                or spell.pk != catalogo_id):
+            return False, 'O produto da oficina nao corresponde a esta compra.'
+        if (produto == 'componente'
+                and info.get('kind') != detalhes.get('componente_tipo')):
+            return False, 'O componente foi alterado depois da compra.'
+    elif catalogo not in {'mundano', 'magico'}:
         return False, 'Catalogo da compra nao reconhecido.'
     return True, ''
 
@@ -6992,10 +7043,11 @@ def _pendencias_magias(personagem, subclasse_override=None, classe_id=None):
     cant_pend = max(0, truques_exp - magias_classe.filter(nivel=0).count())
     spell_pend = max(0, spell_exp - magias_classe.filter(nivel__gte=1).count())
     lt = [{'slug': m.slug, 'nome': m.nome, 'nome_ingles': (m.nome_ingles or '')} for m in
-          TbMagia.objects.filter(_spell_list_q(spell_info['lista_nomes']), nivel=0).order_by('nome') if m.slug not in conhecidos]
+          _spell_catalog_queryset(spell_info['lista_nomes'], personagem).filter(
+              nivel=0).order_by('nome') if m.slug not in conhecidos]
     lm = [{'slug': m.slug, 'nome': m.nome, 'nome_ingles': (m.nome_ingles or ''), 'nivel': m.nivel} for m in
-          TbMagia.objects.filter(_spell_list_q(spell_info['lista_nomes']), nivel__gte=1,
-                                  nivel__lte=maxlv).order_by('nivel', 'nome') if m.slug not in conhecidos]
+          _spell_catalog_queryset(spell_info['lista_nomes'], personagem).filter(
+              nivel__gte=1, nivel__lte=maxlv).order_by('nivel', 'nome') if m.slug not in conhecidos]
     # Troca existe apenas quando declarada no contrato. Nada é inferido pelo modo ou
     # pelo nome da classe; ``max:1`` e ``max:all`` compartilham o mesmo fluxo.
     swap_lvl = bool(
@@ -7121,8 +7173,9 @@ def _magias_preparadas_infos(personagem, ficha):
         owned = set(rows.values_list('id_magia__slug', flat=True))
         preparadas = set(rows.filter(preparada=True).values_list('id_magia__slug', flat=True))
         pool = spell_info.get('pool') or 'class_list'
-        catalog = TbMagia.objects.filter(
-            _spell_list_q(spell_info['lista_nomes']), nivel__gte=1, nivel__lte=maxlv)
+        catalog = _spell_catalog_queryset(
+            spell_info['lista_nomes'], personagem).filter(
+                nivel__gte=1, nivel__lte=maxlv)
         if pool == 'spellbook':
             catalog = catalog.filter(slug__in=owned)
         por_nivel = {}
@@ -8432,17 +8485,34 @@ def personagem_preparar_magias(request, pk):
 @login_required(login_url='/login/')
 @require_POST
 def personagem_transcrever_magia(request, pk):
-    """Consome um item-fonte e registra uma magia num grimório orientado por tags."""
+    """Copia um pergaminho para um grimório segundo o contrato da classe.
+
+    O custo é pago quando a tentativa começa e o pergaminho é destruído em
+    sucesso ou falha. A rolagem segue a regra do item: Inteligência
+    (Arcanismo), CD 10 + círculo da magia.
+    """
+    import secrets
+    from .character_engine import derive
+    from .magic_workshop import resolve_spell_token, transcription_terms_for_character
     from .models import TbMagia, TbPersonagem, TbPersonagemItem, TbPersonagemMagia
-    from .spellcasting import spell_scroll_slug, transcription_terms
+    from .spellcasting import spell_scroll_slug
 
     personagem = _ficha_editavel(request, pk)
-    back = reverse('ficha_detail', args=[pk]) + '?aba=magias'
+    in_workshop = request.POST.get('next') == 'oficina'
+
+    def finish(status):
+        if in_workshop:
+            return redirect('%s?personagem=%s&status=%s' % (
+                reverse('oficina_magia'), personagem.pk, status))
+        return redirect(
+            reverse('ficha_detail', args=[pk]) +
+            '?aba=magias&transcricao=%s' % status)
+
     try:
         classe_id = int(request.POST.get('classe') or 0)
         item_id = int(request.POST.get('item') or 0)
     except (TypeError, ValueError):
-        return redirect(back + '&transcricao=invalida')
+        return finish('invalida')
 
     with transaction.atomic():
         personagem = TbPersonagem.objects.select_for_update().get(pk=personagem.pk)
@@ -8453,31 +8523,44 @@ def personagem_transcrever_magia(request, pk):
         item = TbPersonagemItem.objects.select_for_update().filter(
             pk=item_id, id_personagem=personagem, qtd__gt=0).first()
         if pc is None or item is None:
-            return redirect(back + '&transcricao=invalida')
+            return finish('invalida')
 
         info = _classe_spellcasting_info(
             pc.id_classe, nivel_habilidades=int(pc.nivel or 1),
             subclasse=_caster_subclasse(pc))
         transcribe = (((info or {}).get('acquire') or {}).get('transcribe') or {})
         if (not info or info.get('pool') != 'spellbook' or not transcribe):
-            return redirect(back + '&transcricao=invalida')
-        spell_slug = spell_scroll_slug(
+            return finish('invalida')
+        spell_token = spell_scroll_slug(
             _personagem_item_tags(item), source=transcribe.get('source') or 'spell_scroll')
-        spell = TbMagia.objects.filter(
-            _spell_list_q(info['lista_nomes']), slug=spell_slug, nivel__gte=1).first()
+        resolved = resolve_spell_token(spell_token)
+        spell = (_spell_catalog_queryset(info['lista_nomes'], personagem).filter(
+                 pk=resolved.pk, nivel__gte=1).first()) if resolved else None
         max_level = _class_max_spell_level(
             pc.id_classe, int(pc.nivel or 1), info, _caster_subclasse(pc))
         if spell is None or int(spell.nivel or 0) > max_level:
-            return redirect(back + '&transcricao=invalida')
+            return finish('invalida')
         if personagem.magias.filter(
                 id_magia=spell, origem__iexact=pc.id_classe.nome).exists():
-            return redirect(back + '&transcricao=duplicada')
-        terms = transcription_terms(info, spell_level=spell.nivel)
+            return finish('duplicada')
+        terms = transcription_terms_for_character(
+            personagem, {'pc': pc, 'contract': info}, spell)
         if terms is None:
-            return redirect(back + '&transcricao=invalida')
-        cost_pc = int(terms['cost_po']) * 100
+            return finish('invalida')
+        cost_pc = _po_para_pc(terms['cost_po'])
         if int(personagem.carteira_pc or 0) < cost_pc:
-            return redirect(back + '&transcricao=saldo')
+            return finish('saldo')
+
+        sheet = derive(personagem)
+        arcana_bonus = next((
+            int(skill.get('bonus') or 0)
+            for skill in (sheet.get('pericias') or [])
+            if slugify(skill.get('nome') or '') == 'arcanismo'
+        ), int((sheet.get('atributos', {}).get('INT') or {}).get('mod') or 0))
+        roll = secrets.randbelow(20) + 1
+        total = roll + arcana_bonus
+        dc = 10 + int(spell.nivel or 0)
+        success = total >= dc
 
         personagem.carteira_pc = int(personagem.carteira_pc or 0) - cost_pc
         personagem.save(update_fields=['carteira_pc', 'atualizado_em'])
@@ -8486,15 +8569,19 @@ def personagem_transcrever_magia(request, pk):
             item.save(update_fields=['qtd'])
         else:
             item.delete()
-        TbPersonagemMagia.objects.create(
-            id_personagem=personagem, id_magia=spell, nivel=spell.nivel,
-            nome=spell.nome, preparada=False, origem=pc.id_classe.nome)
+        if success:
+            TbPersonagemMagia.objects.create(
+                id_personagem=personagem, id_magia=spell, nivel=spell.nivel,
+                nome=spell.nome, preparada=False, origem=pc.id_classe.nome)
         _registrar_transacao(
-            personagem, 'ajuste', 'Transcrição: %s' % spell.nome, -cost_pc,
+            personagem, 'ajuste', 'Tentativa de transcrição: %s' % spell.nome, -cost_pc,
             {'operacao': 'transcricao_magia', 'magia': spell.slug,
              'classe_id': pc.id_classe_id, 'item_id': item_id,
-             'tempo_horas': int(terms['time_hours'])})
-    return redirect(back + '&transcricao=ok')
+             'tempo_horas': terms['time_hours'],
+             'desconto_escola_foco': bool(terms.get('focus_discount')),
+             'd20': roll, 'bonus_arcanismo': arcana_bonus,
+             'total': total, 'cd': dc, 'sucesso': success})
+    return finish('ok' if success else 'falha')
 
 
 def _raca_linha_ficha(p):
@@ -9826,6 +9913,143 @@ def wiki_update_option(request, id):
     opcao.save()
     _log_wiki_edit(request, opcao, f"Edição inline de opção de jogo: {opcao.nome}")
     return JsonResponse({'ok': True, 'opcao': _option_payload(opcao)})
+
+
+@login_required(login_url='/login/')
+@require_POST
+def wiki_update_mundane_item(request, item_id):
+    """Editor completo do catálogo mundano, deliberadamente superuser-only."""
+    if not request.user.is_superuser:
+        raise Http404
+    item = get_object_or_404(TbItemMundano, pk=item_id)
+    data = request.POST.dict()
+    validate_no_sql_danger(data, 'item mundano')
+    try:
+        tags = _strict_tag_list(request.POST.get('tags_json', ''))
+        categoria = request.POST.get('categoria') or item.categoria
+        if categoria not in dict(TbItemMundano.CATEGORIA_CHOICES):
+            raise ValueError('Categoria inválida.')
+        peso_raw = (request.POST.get('peso') or '').strip().replace(',', '.')
+        peso = float(peso_raw) if peso_raw else None
+        slug = (request.POST.get('slug') or item.slug).strip()
+        if slugify(slug) != slug:
+            raise ValueError('O slug deve usar somente letras minúsculas, números e hífens.')
+        if TbItemMundano.objects.exclude(pk=item.pk).filter(slug=slug).exists():
+            raise ValueError('Já existe um item com esse slug.')
+    except (TypeError, ValueError) as exc:
+        return HttpResponseBadRequest(str(exc))
+    item.nome = (request.POST.get('nome') or item.nome).strip()
+    item.slug = slug
+    item.categoria = categoria
+    item.subcategoria = (request.POST.get('subcategoria') or '').strip() or None
+    item.peso = peso
+    item.preco = (request.POST.get('preco') or '').strip() or None
+    item.imagem_url = (request.POST.get('imagem_url') or '').strip() or None
+    item.descricao_markdown = request.POST.get('descricao_markdown') or ''
+    item.tags_json = tags
+    item.save()
+    _log_wiki_edit(request, item, 'Edição inline de item mundano: %s' % item.nome)
+    return redirect(reverse('mercado_itens_mundanos') + '?editado=%s' % item.slug)
+
+
+@login_required(login_url='/login/')
+@require_POST
+def wiki_update_magic_item(request, item_id):
+    """Editor completo do catálogo mágico, deliberadamente superuser-only."""
+    if not request.user.is_superuser:
+        raise Http404
+    item = get_object_or_404(TbItemMagico, pk=item_id)
+    data = request.POST.dict()
+    validate_no_sql_danger(data, 'item mágico')
+    try:
+        tags = _strict_tag_list(request.POST.get('tags_json', ''))
+        raridade = request.POST.get('raridade') or item.raridade
+        slot = request.POST.get('slot') or item.slot
+        if raridade not in dict(TbItemMagico.RARIDADE_CHOICES):
+            raise ValueError('Raridade inválida.')
+        if slot not in dict(TbItemMagico.SLOT_CHOICES):
+            raise ValueError('Slot inválido.')
+        preco_raw = (request.POST.get('preco') or '').strip().replace(',', '.')
+        preco = Decimal(preco_raw) if preco_raw else None
+        slug = (request.POST.get('slug') or item.slug).strip()
+        if slugify(slug) != slug:
+            raise ValueError('O slug deve usar somente letras minúsculas, números e hífens.')
+        if TbItemMagico.objects.exclude(pk=item.pk).filter(slug=slug).exists():
+            raise ValueError('Já existe um item com esse slug.')
+    except (InvalidOperation, TypeError, ValueError) as exc:
+        return HttpResponseBadRequest(str(exc))
+    item.nome = (request.POST.get('nome') or item.nome).strip()
+    item.nome_ingles = (request.POST.get('nome_ingles') or '').strip() or None
+    item.slug = slug
+    item.raridade = raridade
+    item.requer_sintonizacao = request.POST.get('requer_sintonizacao') in {'1', 'on', 'true'}
+    item.detalhes_sintonizacao = (
+        request.POST.get('detalhes_sintonizacao') or '').strip() or None
+    item.slot = slot
+    item.loja = (request.POST.get('loja') or '').strip() or None
+    item.preco = preco
+    item.tipo = (request.POST.get('tipo') or '').strip() or None
+    item.imagem_url = (request.POST.get('imagem_url') or '').strip() or None
+    item.descricao_markdown = request.POST.get('descricao_markdown') or ''
+    item.tags_json = tags
+    item.save()
+    _log_wiki_edit(request, item, 'Edição inline de item mágico: %s' % item.nome)
+    return redirect(reverse('mercado_itens_magicos') + '?editado=%s' % item.slug)
+
+
+@staff_member_required
+@require_POST
+def wiki_update_spell(request, spell_id):
+    """Editor inline de magia com acesso base limitado a classes cadastradas."""
+    from .spell_access import set_spell_class_access
+
+    data = _json_body(request)
+    validate_no_sql_danger(data, 'magia')
+    spell = get_object_or_404(TbMagia, pk=spell_id)
+    try:
+        tags = _strict_tag_list(data.get('tags_json', []))
+        level = int(data.get('nivel', spell.nivel))
+        if not 0 <= level <= 9:
+            raise ValueError('O círculo deve estar entre 0 e 9.')
+        slug = str(data.get('slug') or spell.slug).strip()
+        if slugify(slug) != slug:
+            raise ValueError('O slug deve usar somente letras minúsculas, números e hífens.')
+        if TbMagia.objects.exclude(pk=spell.pk).filter(slug=slug).exists():
+            raise ValueError('Já existe uma magia com esse slug.')
+        requested_slugs = list(dict.fromkeys(
+            str(value).strip() for value in (data.get('classes_slugs') or [])
+            if str(value).strip()))
+        classes = list(TbClasse.objects.filter(slug__in=requested_slugs))
+        if {classe.slug for classe in classes} != set(requested_slugs):
+            raise ValueError('A seleção contém uma classe que não existe.')
+    except (TypeError, ValueError) as exc:
+        return JsonResponse({'ok': False, 'error': str(exc)}, status=400)
+
+    spell.nome = str(data.get('nome') or spell.nome).strip()
+    spell.nome_ingles = str(data.get('nome_ingles') or '').strip() or None
+    spell.slug = slug
+    spell.nivel = level
+    spell.escola = str(data.get('escola') or '').strip() or None
+    spell.casting_time = str(data.get('casting_time') or '').strip() or None
+    spell.alcance = str(data.get('alcance') or '').strip() or None
+    spell.componentes = str(data.get('componentes') or '').strip() or None
+    spell.duracao = str(data.get('duracao') or '').strip() or None
+    spell.concentracao = bool(data.get('concentracao'))
+    spell.ritual = bool(data.get('ritual'))
+    spell.descricao = data.get('descricao') or ''
+    spell.em_niveis_superiores = data.get('em_niveis_superiores') or ''
+    spell.tags_json = tags
+    with transaction.atomic():
+        spell.save()
+        set_spell_class_access(spell, classes, save=True)
+    _log_wiki_edit(request, spell, 'Edição inline de magia: %s' % spell.nome)
+    return JsonResponse({
+        'ok': True, 'spell': {
+            'id': spell.pk, 'slug': spell.slug, 'nome': spell.nome,
+            'classes_slugs': spell.classes_slugs,
+            'classes': spell.classes or '',
+        },
+    })
 
 
 def _option_payload(o):
@@ -11459,13 +11683,15 @@ def magias_view(request):
     """Catálogo de magias com filtros avançados (classe, escola, nível, concentração, ritual) e
     modal de detalhe. Página dedicada (não usa o catálogo genérico)."""
     can_edit = request.user.is_staff
+    from .spell_access import spell_class_names, spell_class_slugs
     escolas = set()
     classes_magia = set()
     magias = []
+    classes_validas = list(TbClasse.objects.all().order_by('nome'))
     for m in TbMagia.objects.all().order_by('nivel', 'nome'):
         if m.escola:
             escolas.add(m.escola)
-        classes_lista = _split_catalog_list(m.classes)
+        classes_lista = spell_class_names(m, classes=classes_validas)
         classes_magia.update(classes_lista)
         magias.append({
             'id': m.id_magia, 'nome': m.nome, 'nome_ingles': (m.nome_ingles or ''),
@@ -11474,9 +11700,11 @@ def magias_view(request):
             'escola': m.escola or '', 'casting_time': m.casting_time or '',
             'alcance': m.alcance or '', 'componentes': m.componentes or '',
             'duracao': m.duracao or '', 'concentracao': bool(m.concentracao),
-            'ritual': bool(m.ritual), 'classes': m.classes or '',
+            'ritual': bool(m.ritual), 'classes': ', '.join(classes_lista),
+            'classes_slugs': spell_class_slugs(m, classes=classes_validas),
             'classes_lista': classes_lista,
             'descricao': m.descricao or '', 'em_niveis': m.em_niveis_superiores or '',
+            'update_url': (reverse('wiki_update_spell', args=[m.pk]) if can_edit else ''),
             # Tags são a linguagem interna do motor. Jogadores recebem somente o
             # resultado editorial e mecânico já interpretado.
             'tags': ([t for t in _split_catalog_list(m.tags_json) if t]
@@ -11488,6 +11716,11 @@ def magias_view(request):
         'canonical_path': '/magias/listas/',
         'magias': magias,
         'escolas': sorted(escolas), 'classes_magia': sorted(classes_magia),
+        'classes_validas': classes_validas,
+        'classes_catalogo': [
+            {'slug': classe.slug, 'nome': classe.nome}
+            for classe in classes_validas
+        ],
         'niveis': list(range(0, 10)),
         'can_edit': can_edit,
         'magia_inicial': (request.GET.get('magia') or '').strip(),
@@ -13392,6 +13625,7 @@ def itens_mundanos_view(request):
         'title': 'Itens Mundanos',
         'itens': itens,
         'grupos_filtro': _mercado_grupos(itens, lambda i: i.cat_label),
+        'categorias_item_mundano': TbItemMundano.CATEGORIA_CHOICES,
     }
     context.update(_mercado_contexto(request))
     if is_ajax(request):
@@ -13437,11 +13671,575 @@ def itens_magicos_view(request):
         'itens': itens,
         'grupos_filtro': _mercado_grupos(itens, lambda i: i.loja),
         'raridades_filtro': raridades_filtro,
+        'raridades_item_magico': TbItemMagico.RARIDADE_CHOICES,
+        'slots_item_magico': TbItemMagico.SLOT_CHOICES,
     }
     context.update(_mercado_contexto(request))
     if is_ajax(request):
         return render(request, 'home/partials/itens_magicos_content.html', context)
     return render(request, 'home/pages/itens_magicos.html', context)
+
+
+def _oficina_redirect(request, status):
+    personagem = request.POST.get('personagem') or request.GET.get('personagem')
+    url = reverse('oficina_magia')
+    query = []
+    if personagem:
+        query.append('personagem=%s' % personagem)
+    if status:
+        query.append('status=%s' % status)
+    return redirect(url + (('?' + '&'.join(query)) if query else ''))
+
+
+def _oficina_virtual_item(personagem, offer):
+    """Empilha um produto derivado sem criar uma linha arbitrária no catálogo."""
+    from .models import TbPersonagemItem
+    wanted = list(offer['tags'])
+    existing = None
+    for item in personagem.inventario.filter(
+            nome=offer['name'], origem_tipo='oficina', equipado=False,
+            sintonizado=False, id_item_mundano__isnull=True,
+            id_item_magico__isnull=True):
+        if list(item.tags_json or []) == wanted:
+            existing = item
+            break
+    if existing:
+        existing.qtd = int(existing.qtd or 0) + 1
+        existing.save(update_fields=['qtd'])
+        return existing
+    return TbPersonagemItem.objects.create(
+        id_personagem=personagem, nome=offer['name'], qtd=1,
+        custo='%s PO' % format(offer['price_po'], 'f'),
+        tags_json=wanted, origem_tipo='oficina')
+
+
+def _oficina_find_component(personagem, spell, kind, *, lock=False):
+    from .magic_workshop import component_item_info, spell_token
+    wanted = spell_token(spell)
+    queryset = personagem.inventario.filter(qtd__gt=0).order_by('id')
+    if lock:
+        queryset = queryset.select_for_update()
+    for item in queryset:
+        info = component_item_info(_personagem_item_tags(item))
+        if not info:
+            continue
+        if spell_token(info.get('spell')) == wanted and info.get('kind') == kind:
+            return item
+    return None
+
+
+def _oficina_consume_one(item):
+    if int(item.qtd or 0) > 1:
+        item.qtd = int(item.qtd) - 1
+        item.save(update_fields=['qtd'])
+    else:
+        item.delete()
+
+
+def _oficina_castable_spells(personagem, casters):
+    """Magias persistidas que podem ser usadas fora de combate agora."""
+    by_origin = {
+        row['pc'].id_classe.nome.casefold(): row for row in casters
+    }
+    out = []
+    for owned in personagem.magias.select_related('id_magia').filter(
+            id_magia__isnull=False).order_by('nivel', 'nome'):
+        spell = owned.id_magia
+        caster = by_origin.get((owned.origem or '').casefold())
+        if caster:
+            contract = caster['contract']
+            prepared = contract.get('mode') != 'prepared' or owned.preparada or owned.sempre_preparada
+            ritual_only = bool(
+                spell.ritual and contract.get('pool') == 'spellbook')
+            if not prepared and not ritual_only:
+                continue
+        elif not (owned.preparada or owned.sempre_preparada):
+            continue
+        out.append({
+            'owned': owned, 'spell': spell, 'caster': caster,
+            'ritual_available': bool(
+                spell.ritual and (owned.preparada or (
+                    caster and caster['contract'].get('pool') == 'spellbook'))),
+            'slot_levels': list(range(max(1, int(spell.nivel or 0)), 10)),
+        })
+    return out
+
+
+def _oficina_other_spellbooks(personagem, requester_casters):
+    from .models import TbPersonagem
+    from .magic_workshop import character_casters, spell_accessible_to_character
+
+    requester_owned = set(personagem.magias.filter(
+        id_magia__isnull=False).values_list('id_magia_id', flat=True))
+    rows = []
+    others = TbPersonagem.objects.exclude(dono=personagem.dono).filter(
+        arquivado=False).select_related('dono').prefetch_related(
+            'classes__id_classe', 'classes__id_subclasse', 'magias__id_magia')
+    for source in others.order_by('nome'):
+        source_books = [row for row in character_casters(source)
+                        if row['contract'].get('pool') == 'spellbook']
+        if not source_books:
+            continue
+        origins = {row['pc'].id_classe.nome.casefold() for row in source_books}
+        spells = []
+        for owned in source.magias.all():
+            spell = owned.id_magia
+            if not spell or spell.pk in requester_owned:
+                continue
+            if (owned.origem or '').casefold() not in origins:
+                continue
+            eligible = [row for row in spell_accessible_to_character(
+                personagem, spell, casters=requester_casters)
+                if row['contract'].get('pool') == 'spellbook'
+                and int(spell.nivel or 0) <= int(row['max_spell_level'] or 0)]
+            for caster in eligible:
+                spells.append({
+                    'spell': spell, 'classe': caster['pc'].id_classe,
+                    'origem': owned.origem,
+                })
+        if spells:
+            rows.append({'personagem': source, 'spells': spells})
+    return rows
+
+
+@ensure_csrf_cookie
+def oficina_magia_view(request):
+    from .magic_workshop import (
+        character_casters, component_offers, resolve_spell_token, scroll_item_info,
+        scroll_offer, spell_accessible_to_character,
+    )
+    from .models import TbSolicitacaoTranscricao
+
+    context = _mercado_contexto(request)
+    personagem = context['mercado_ativo']
+    scrolls, components, castable, spellbooks = [], [], [], []
+    transcricoes = []
+    owned_scrolls = []
+    casters = []
+    if personagem:
+        casters = character_casters(personagem)
+        owned_ids = set(personagem.magias.filter(
+            id_magia__isnull=False).values_list('id_magia_id', flat=True))
+        for spell in TbMagia.objects.all().order_by('nivel', 'nome'):
+            access = spell_accessible_to_character(
+                personagem, spell, casters=casters)
+            if access:
+                offer = scroll_offer(spell)
+                if offer:
+                    offer['price_display'] = _preco_po_display(offer['price_po'])
+                    offer['classes'] = ', '.join(
+                        row['pc'].id_classe.nome for row in access)
+                    scrolls.append(offer)
+            if access or spell.pk in owned_ids:
+                for offer in component_offers(spell):
+                    offer['price_display'] = _preco_po_display(offer['price_po'])
+                    components.append(offer)
+        castable = _oficina_castable_spells(personagem, casters)
+        legacy_casters = [
+            {'pc': row['pc'], 'info': row['contract']} for row in casters
+        ]
+        transcricoes = _spell_transcription_options(personagem, legacy_casters)
+        spellbooks = _oficina_other_spellbooks(personagem, casters)
+        for item in personagem.inventario.filter(qtd__gt=0).order_by('nome'):
+            info = scroll_item_info(_personagem_item_tags(item))
+            spell = resolve_spell_token((info or {}).get('spell'))
+            if spell:
+                owned_scrolls.append({'item': item, 'spell': spell})
+
+    incoming = []
+    outgoing = []
+    if request.user.is_authenticated:
+        incoming = list(TbSolicitacaoTranscricao.objects.filter(
+            fonte__dono=request.user, status='pendente').select_related(
+                'solicitante__dono', 'fonte', 'magia', 'classe_solicitante'))
+        if personagem:
+            outgoing = list(TbSolicitacaoTranscricao.objects.filter(
+                solicitante=personagem).select_related(
+                    'fonte__dono', 'magia', 'classe_solicitante')[:30])
+
+    context.update({
+        'title': 'Oficina de Magia', 'scrolls': scrolls,
+        'componentes_ofertas': components, 'magias_conjuraveis': castable,
+        'transcricoes': transcricoes, 'grimorios_disponiveis': spellbooks,
+        'pergaminhos_possuidos': owned_scrolls,
+        'solicitacoes_recebidas': incoming, 'solicitacoes_enviadas': outgoing,
+        'oficina_status': (request.GET.get('status') or '').strip(),
+        'oficina_resultado': request.session.pop('oficina_resultado', ''),
+    })
+    return render(request, 'home/pages/oficina_magia.html', context)
+
+
+@login_required(login_url='/login/')
+@require_POST
+def oficina_comprar_pergaminho(request, pk):
+    from .magic_workshop import (
+        character_casters, scroll_offer, spell_accessible_to_character)
+    p = _ficha_editavel(request, pk)
+    spell = TbMagia.objects.filter(slug=request.POST.get('magia')).first()
+    offer = scroll_offer(spell) if spell else None
+    if not offer or not spell_accessible_to_character(
+            p, spell, casters=character_casters(p)):
+        return _oficina_redirect(request, 'sem_acesso')
+    cost_pc = _po_para_pc(offer['price_po'])
+    from .models import TbPersonagem
+    with transaction.atomic():
+        p = TbPersonagem.objects.select_for_update().get(pk=p.pk)
+        if cost_pc > int(p.carteira_pc or 0):
+            return _oficina_redirect(request, 'saldo')
+        p.carteira_pc = int(p.carteira_pc or 0) - cost_pc
+        p.save(update_fields=['carteira_pc', 'atualizado_em'])
+        item = _oficina_virtual_item(p, offer)
+        _registrar_transacao(
+            p, 'compra', 'Oficina: %s' % offer['name'], -cost_pc,
+            {'catalogo': 'oficina', 'produto': 'pergaminho',
+             'catalogo_id': spell.pk, 'magia_id': spell.pk,
+             'inventario_id': item.pk, 'qtd': 1})
+    return _oficina_redirect(request, 'comprado')
+
+
+@login_required(login_url='/login/')
+@require_POST
+def oficina_comprar_componente(request, pk):
+    from .magic_workshop import component_offers
+    p = _ficha_editavel(request, pk)
+    spell = TbMagia.objects.filter(slug=request.POST.get('magia')).first()
+    kind = (request.POST.get('tipo') or '').strip()
+    offer = next((row for row in component_offers(spell) if row['kind'] == kind), None) if spell else None
+    if not offer:
+        return _oficina_redirect(request, 'invalido')
+    cost_pc = _po_para_pc(offer['price_po'])
+    from .models import TbPersonagem
+    with transaction.atomic():
+        p = TbPersonagem.objects.select_for_update().get(pk=p.pk)
+        if cost_pc > int(p.carteira_pc or 0):
+            return _oficina_redirect(request, 'saldo')
+        p.carteira_pc = int(p.carteira_pc or 0) - cost_pc
+        p.save(update_fields=['carteira_pc', 'atualizado_em'])
+        item = _oficina_virtual_item(p, offer)
+        _registrar_transacao(
+            p, 'compra', 'Oficina: %s' % offer['name'], -cost_pc,
+            {'catalogo': 'oficina', 'produto': 'componente',
+             'catalogo_id': spell.pk, 'magia_id': spell.pk,
+             'componente_tipo': kind,
+             'inventario_id': item.pk, 'qtd': 1})
+    return _oficina_redirect(request, 'comprado')
+
+
+def _oficina_casting_resource(personagem, caster, spell, slot_level):
+    """Valida e gasta o recurso declarado no contrato de conjuração."""
+    from .character_engine import _eval_formula
+    from .magic_workshop import character_casters
+    from .models import TbPersonagemRecurso
+    from .spellcasting import resource_limit_at
+
+    contract = caster['contract']
+    level = int(spell.nivel or 0)
+    if level == 0:
+        return True, {'kind': 'cantrip'}
+    progression = contract.get('slots')
+    if progression in {'full', 'half', 'third'}:
+        try:
+            chosen = int(slot_level or level)
+        except (TypeError, ValueError):
+            return False, {'error': 'slot'}
+        if chosen < level or chosen > 9:
+            return False, {'error': 'slot'}
+        legacy = [{'pc': row['pc'], 'info': row['contract']}
+                  for row in character_casters(personagem)]
+        total = int(_spell_slot_totals(legacy).get(chosen) or 0)
+        if total <= 0:
+            return False, {'error': 'slot'}
+        key = 'spell-slot:%d' % chosen
+        resource, _ = TbPersonagemRecurso.objects.get_or_create(
+            id_personagem=personagem, nome=key,
+            defaults={'maximo': total, 'atual': total})
+        resource = TbPersonagemRecurso.objects.select_for_update().get(pk=resource.pk)
+        current = min(int(resource.atual or 0), total)
+        if current <= 0:
+            return False, {'error': 'slot_gasto'}
+        resource.atual = current - 1
+        resource.maximo = total
+        resource.save(update_fields=['atual', 'maximo'])
+        return True, {'kind': 'slot', 'level': chosen, 'resource': key}
+
+    resource_slug = contract.get('slots_resource')
+    if not resource_slug:
+        return False, {'error': 'recurso'}
+    formula = contract.get('slots_cost') or 'spell_level'
+    cost = _eval_formula(str(formula), {
+        'spell_level': level,
+        'classlvl': int(caster['pc'].nivel or 1),
+    })
+    try:
+        cost = max(1, int(cost))
+    except (TypeError, ValueError):
+        return False, {'error': 'recurso'}
+    total = resource_limit_at(
+        {'kind': 'resource', 'value': resource_slug},
+        caster['pc'].id_classe, level=int(caster['pc'].nivel or 1),
+        subclass=_caster_subclasse(caster['pc'])) or 0
+    resource, _ = TbPersonagemRecurso.objects.get_or_create(
+        id_personagem=personagem, nome=resource_slug,
+        defaults={'maximo': total, 'atual': total})
+    resource = TbPersonagemRecurso.objects.select_for_update().get(pk=resource.pk)
+    current = min(int(resource.atual or 0), int(total or resource.maximo or 0))
+    if current < cost:
+        return False, {'error': 'recurso_gasto'}
+    resource.atual = current - cost
+    resource.maximo = int(total or resource.maximo or current)
+    resource.save(update_fields=['atual', 'maximo'])
+    return True, {'kind': 'resource', 'resource': resource_slug, 'cost': cost}
+
+
+def _oficina_cast_caster(personagem, owned, casters):
+    origin = (owned.origem or '').casefold()
+    return next((row for row in casters
+                 if row['pc'].id_classe.nome.casefold() == origin), None)
+
+
+@login_required(login_url='/login/')
+@require_POST
+def oficina_conjurar_magia(request, pk):
+    from .magic_workshop import (
+        character_casters, parse_priced_materials)
+    from .models import TbPersonagemMagia
+    p = _ficha_editavel(request, pk)
+    owned = get_object_or_404(
+        TbPersonagemMagia.objects.select_related('id_magia'),
+        pk=request.POST.get('magia_personagem'), id_personagem=p,
+        id_magia__isnull=False)
+    spell = owned.id_magia
+    casters = character_casters(p)
+    caster = _oficina_cast_caster(p, owned, casters)
+    ritual = request.POST.get('ritual') in {'1', 'on', 'true'}
+    if caster:
+        contract = caster['contract']
+        prepared = contract.get('mode') != 'prepared' or owned.preparada or owned.sempre_preparada
+        ritual_allowed = bool(spell.ritual and (
+            owned.preparada or contract.get('pool') == 'spellbook'))
+    else:
+        prepared = bool(owned.preparada or owned.sempre_preparada)
+        ritual_allowed = bool(spell.ritual and prepared)
+    if ritual and not ritual_allowed:
+        return _oficina_redirect(request, 'ritual_invalido')
+    if not ritual and (not prepared or caster is None):
+        return _oficina_redirect(request, 'nao_preparada')
+
+    materials = parse_priced_materials(spell.componentes)
+    with transaction.atomic():
+        consumed = (_oficina_find_component(p, spell, 'consumable', lock=True)
+                    if materials['consumed_cost_po'] > 0 else None)
+        focus = (_oficina_find_component(p, spell, 'focus', lock=True)
+                 if materials['reusable_cost_po'] > 0 else None)
+        if materials['consumed_cost_po'] > 0 and consumed is None:
+            return _oficina_redirect(request, 'componente_consumivel')
+        if materials['reusable_cost_po'] > 0 and focus is None:
+            return _oficina_redirect(request, 'componente_reutilizavel')
+        spending = {'kind': 'ritual'}
+        if not ritual:
+            ok, spending = _oficina_casting_resource(
+                p, caster, spell, request.POST.get('slot'))
+            if not ok:
+                transaction.set_rollback(True)
+                return _oficina_redirect(request, spending['error'])
+        if consumed is not None:
+            _oficina_consume_one(consumed)
+        _registrar_transacao(
+            p, 'ajuste', 'Conjuração na Oficina: %s' % spell.nome, 0,
+            {'operacao': 'conjuracao_fora_combate', 'magia_id': spell.pk,
+             'ritual': ritual, 'gasto': spending,
+             'componente_consumido': bool(consumed)})
+    request.session['oficina_resultado'] = '%s foi registrada%s.' % (
+        spell.nome, ' como ritual' if ritual else '')
+    return _oficina_redirect(request, 'conjurada')
+
+
+@login_required(login_url='/login/')
+@require_POST
+def oficina_usar_pergaminho(request, pk):
+    import secrets
+    from .character_engine import derive
+    from .magic_workshop import (
+        SCROLL_STATS, character_casters, resolve_spell_token, scroll_item_info,
+        spell_accessible_to_character)
+    from .models import TbPersonagem, TbPersonagemItem
+
+    editable = _ficha_editavel(request, pk)
+    with transaction.atomic():
+        p = TbPersonagem.objects.select_for_update().get(pk=editable.pk)
+        item = get_object_or_404(
+            TbPersonagemItem.objects.select_for_update(),
+            pk=request.POST.get('item'), id_personagem=p, qtd__gt=0)
+        info = scroll_item_info(_personagem_item_tags(item))
+        spell = resolve_spell_token((info or {}).get('spell'))
+        casters = spell_accessible_to_character(
+            p, spell, casters=character_casters(p)) if spell else []
+        if not spell or not casters:
+            return _oficina_redirect(request, 'pergaminho_ilegivel')
+        try:
+            declared_level = int(info.get('level')) if info.get('level') is not None else None
+        except (TypeError, ValueError):
+            return _oficina_redirect(request, 'pergaminho_ilegivel')
+        if declared_level is not None and declared_level != int(spell.nivel or 0):
+            return _oficina_redirect(request, 'pergaminho_ilegivel')
+        _rarity, default_dc, default_attack = SCROLL_STATS[int(spell.nivel or 0)]
+        try:
+            scroll_dc = int(info.get('save_dc') or default_dc)
+            scroll_attack = int(info.get('attack_bonus') or default_attack)
+        except (TypeError, ValueError):
+            return _oficina_redirect(request, 'pergaminho_ilegivel')
+        caster = max(casters, key=lambda row: int(row['max_spell_level'] or 0))
+        check_required = int(spell.nivel or 0) > int(caster['max_spell_level'] or 0)
+        roll = total = None
+        success = True
+        if check_required:
+            sheet = derive(p)
+            attrs = sheet.get('atributos') or {}
+            sig = {'str': 'FOR', 'dex': 'DES', 'con': 'CON', 'int': 'INT',
+                   'wis': 'SAB', 'cha': 'CAR'}
+            abilities = str(caster['contract'].get('ability') or 'int').split('|')
+            modifier = max(int((attrs.get(sig.get(ability, 'INT')) or {}).get('mod') or 0)
+                           for ability in abilities)
+            roll = secrets.randbelow(20) + 1
+            total = roll + modifier
+            success = total >= 10 + int(spell.nivel or 0)
+        _oficina_consume_one(item)
+        _registrar_transacao(
+            p, 'ajuste', 'Pergaminho: %s' % spell.nome, 0,
+            {'operacao': 'usar_pergaminho', 'magia_id': spell.pk,
+             'sucesso': success, 'teste_exigido': check_required,
+             'd20': roll, 'total': total,
+             'cd': 10 + int(spell.nivel or 0) if check_required else None,
+             'scroll_save_dc': scroll_dc,
+             'scroll_attack_bonus': scroll_attack})
+    request.session['oficina_resultado'] = (
+        '%s foi conjurada pelo pergaminho.' % spell.nome if success else
+        'O teste para %s falhou (%s contra CD %s); o pergaminho foi consumido.' % (
+            spell.nome, total, 10 + int(spell.nivel or 0)))
+    return _oficina_redirect(request, 'pergaminho_usado')
+
+
+def _oficina_source_has_spell(source, spell):
+    from .magic_workshop import character_casters
+    origins = {
+        row['pc'].id_classe.nome.casefold()
+        for row in character_casters(source)
+        if row['contract'].get('pool') == 'spellbook'
+    }
+    return source.magias.filter(
+        id_magia=spell, origem__in=[name for name in origins]).exists() or any(
+            (row.origem or '').casefold() in origins
+            for row in source.magias.filter(id_magia=spell))
+
+
+@login_required(login_url='/login/')
+@require_POST
+def oficina_solicitar_transcricao(request, pk):
+    from decimal import Decimal
+    from .magic_workshop import (
+        character_casters, spell_accessible_to_character,
+        transcription_terms_for_character)
+    from .models import TbPersonagem, TbSolicitacaoTranscricao
+    p = _ficha_editavel(request, pk)
+    source = get_object_or_404(TbPersonagem, pk=request.POST.get('fonte'), arquivado=False)
+    spell = get_object_or_404(TbMagia, pk=request.POST.get('magia'))
+    try:
+        class_id = int(request.POST.get('classe') or 0)
+    except (TypeError, ValueError):
+        class_id = 0
+    if source.dono_id == p.dono_id or not _oficina_source_has_spell(source, spell):
+        return _oficina_redirect(request, 'fonte_invalida')
+    caster = next((row for row in spell_accessible_to_character(
+        p, spell, casters=character_casters(p))
+        if row['pc'].id_classe_id == class_id
+        and row['contract'].get('pool') == 'spellbook'
+        and int(spell.nivel or 0) <= int(row['max_spell_level'] or 0)), None)
+    if caster is None or p.magias.filter(
+            id_magia=spell, origem__iexact=caster['pc'].id_classe.nome).exists():
+        return _oficina_redirect(request, 'transcricao_invalida')
+    terms = transcription_terms_for_character(p, caster, spell)
+    if terms is None:
+        return _oficina_redirect(request, 'transcricao_invalida')
+    _, created = TbSolicitacaoTranscricao.objects.get_or_create(
+        solicitante=p, fonte=source, magia=spell,
+        classe_solicitante=caster['pc'].id_classe, status='pendente',
+        defaults={
+            'custo_po': Decimal(str(terms['cost_po'])),
+            'tempo_horas': Decimal(str(terms['time_hours'])),
+            'detalhes_json': {'desconto_escola_foco': terms['focus_discount']},
+        })
+    return _oficina_redirect(request, 'solicitado' if created else 'ja_solicitado')
+
+
+@login_required(login_url='/login/')
+@require_POST
+def oficina_responder_transcricao(request, solicitacao_id):
+    from .magic_workshop import (
+        character_casters, spell_accessible_to_character,
+        transcription_terms_for_character)
+    from .models import TbPersonagemMagia, TbSolicitacaoTranscricao
+    action = (request.POST.get('acao') or '').strip()
+    with transaction.atomic():
+        row = get_object_or_404(
+            TbSolicitacaoTranscricao.objects.select_for_update().select_related(
+                'solicitante', 'fonte', 'magia', 'classe_solicitante'),
+            pk=solicitacao_id, fonte__dono=request.user, status='pendente')
+        if action == 'recusar':
+            row.status = 'recusada'
+            row.respondido_em = timezone.now()
+            row.respondido_por = request.user
+            row.save(update_fields=['status', 'respondido_em', 'respondido_por'])
+            return _oficina_redirect(request, 'recusada')
+        if action != 'aceitar' or not _oficina_source_has_spell(row.fonte, row.magia):
+            row.status = 'invalida'
+            row.respondido_em = timezone.now()
+            row.respondido_por = request.user
+            row.save(update_fields=['status', 'respondido_em', 'respondido_por'])
+            return _oficina_redirect(request, 'fonte_invalida')
+        from .models import TbPersonagem
+        requester = TbPersonagem.objects.select_for_update().get(
+            pk=row.solicitante_id)
+        caster = next((item for item in spell_accessible_to_character(
+            requester, row.magia, casters=character_casters(requester))
+            if item['pc'].id_classe_id == row.classe_solicitante_id
+            and item['contract'].get('pool') == 'spellbook'
+            and int(row.magia.nivel or 0) <= int(item['max_spell_level'] or 0)), None)
+        if caster is None or requester.magias.filter(
+                id_magia=row.magia,
+                origem__iexact=row.classe_solicitante.nome).exists():
+            row.status = 'invalida'
+            row.respondido_em = timezone.now()
+            row.respondido_por = request.user
+            row.save(update_fields=['status', 'respondido_em', 'respondido_por'])
+            return _oficina_redirect(request, 'transcricao_invalida')
+        terms = transcription_terms_for_character(requester, caster, row.magia)
+        cost_pc = _po_para_pc(terms['cost_po']) if terms else 0
+        if not terms or int(requester.carteira_pc or 0) < cost_pc:
+            return _oficina_redirect(request, 'saldo_solicitante')
+        requester.carteira_pc = int(requester.carteira_pc or 0) - cost_pc
+        requester.save(update_fields=['carteira_pc', 'atualizado_em'])
+        TbPersonagemMagia.objects.create(
+            id_personagem=requester, id_magia=row.magia,
+            nivel=row.magia.nivel, nome=row.magia.nome,
+            preparada=False, sempre_preparada=False,
+            origem=row.classe_solicitante.nome)
+        row.status = 'aceita'
+        row.custo_po = terms['cost_po']
+        row.tempo_horas = terms['time_hours']
+        row.respondido_em = timezone.now()
+        row.respondido_por = request.user
+        row.save(update_fields=[
+            'status', 'custo_po', 'tempo_horas',
+            'respondido_em', 'respondido_por'])
+        details = {'operacao': 'transcricao_grimorio', 'solicitacao_id': row.pk,
+                   'magia_id': row.magia_id, 'fonte_id': row.fonte_id}
+        _registrar_transacao(
+            requester, 'ajuste', 'Transcrição autorizada: %s' % row.magia.nome,
+            -cost_pc, details)
+        _registrar_transacao(
+            row.fonte, 'ajuste', 'Transcrição cedida: %s' % row.magia.nome,
+            0, details)
+    return _oficina_redirect(request, 'aceita')
 
 
 # ════════════════════════ Webhook Asaas (pagamentos) ════════════════════════

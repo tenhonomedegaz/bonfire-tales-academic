@@ -52,6 +52,7 @@ from .models import (
     TbArmadilha,
     TbCondicao,
     TbTransacao,
+    TbSolicitacaoTranscricao,
     TbPersonagem,
     TbPersonagemAventura,
     TbPersonagemRevisao,
@@ -2007,6 +2008,21 @@ class TbTransacaoAdmin(admin.ModelAdmin):
     readonly_fields = ("criado_em",)
 
 
+@admin.register(TbSolicitacaoTranscricao)
+class TbSolicitacaoTranscricaoAdmin(admin.ModelAdmin):
+    list_display = (
+        'id_solicitacao', 'solicitante', 'fonte', 'magia',
+        'classe_solicitante', 'status', 'custo_po', 'criado_em')
+    list_filter = ('status', 'classe_solicitante')
+    search_fields = (
+        'solicitante__nome', 'fonte__nome', 'magia__nome',
+        'solicitante__dono__username', 'fonte__dono__username')
+    raw_id_fields = (
+        'solicitante', 'fonte', 'magia', 'classe_solicitante',
+        'respondido_por')
+    readonly_fields = ('criado_em', 'respondido_em')
+
+
 @admin.register(TbPersonagem)
 class TbPersonagemAdmin(BonfireAdminMixin, admin.ModelAdmin):
     """Ficha de personagem (memoria de usuario). Sem registro, a changelist
@@ -3072,8 +3088,40 @@ class TbItemMagicoAdmin(BonfireAdminMixin, admin.ModelAdmin):
 # Tabelas do Bot (Prisma) — somente leitura no admin
 # ─────────────────────────────────────────────────────────────────────────────
 
+class TbMagiaAdminForm(forms.ModelForm):
+    classes_selecionadas = forms.ModelMultipleChoiceField(
+        label='Classes com acesso base', queryset=TbClasse.objects.none(),
+        required=False, widget=forms.SelectMultiple(attrs={'size': 13}),
+        help_text='Somente classes cadastradas. Expansões por talentos e habilidades continuam nas tags.',
+    )
+
+    class Meta:
+        model = TbMagia
+        fields = '__all__'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        queryset = TbClasse.objects.all().order_by('nome')
+        self.fields['classes_selecionadas'].queryset = queryset
+        if self.instance and self.instance.pk:
+            from .spell_access import spell_class_slugs
+            self.fields['classes_selecionadas'].initial = queryset.filter(
+                slug__in=spell_class_slugs(self.instance, classes=queryset))
+
+    def save(self, commit=True):
+        from .spell_access import set_spell_class_access
+        instance = super().save(commit=False)
+        set_spell_class_access(
+            instance, self.cleaned_data.get('classes_selecionadas') or [])
+        if commit:
+            instance.save()
+            self.save_m2m()
+        return instance
+
+
 @admin.register(TbMagia)
 class TbMagiaAdmin(BonfireAdminMixin, admin.ModelAdmin):
+    form = TbMagiaAdminForm
     change_list_template = "admin/home/tbmagia/change_list.html"
     list_display = ("nome", "nivel_display", "escola", "casting_time", "ritual", "concentracao", "alcance", "tags_preview")
     list_filter = ("nivel", "escola", "ritual", "concentracao")
@@ -3083,7 +3131,7 @@ class TbMagiaAdmin(BonfireAdminMixin, admin.ModelAdmin):
     fieldsets = (
         (None, {"fields": ("nome", "nome_ingles", "slug", "nivel", "escola", "tags_json")}),
         ("Conjuracao", {"fields": ("casting_time", "ritual", "duracao", "concentracao", "alcance", "componentes")}),
-        ("Acesso", {"fields": ("classes",)}),
+        ("Acesso", {"fields": ("classes_selecionadas",)}),
         ("Texto", {"fields": ("descricao", "em_niveis_superiores")}),
     )
 
@@ -3148,9 +3196,10 @@ class TbMagiaAdmin(BonfireAdminMixin, admin.ModelAdmin):
                         magia.em_niveis_superiores = item["em_niveis_superiores"]
                         magia.tags_json = item["tags_json"]
                         magia.save()
+                        self._sync_imported_classes(magia, item["classes"])
                         updated += 1
                     else:
-                        TbMagia.objects.create(
+                        magia = TbMagia.objects.create(
                             nome=item["nome"],
                             slug=_unique_spell_slug(item["slug"]),
                             nivel=item["nivel"],
@@ -3166,6 +3215,7 @@ class TbMagiaAdmin(BonfireAdminMixin, admin.ModelAdmin):
                             em_niveis_superiores=item["em_niveis_superiores"],
                             tags_json=item["tags_json"],
                         )
+                        self._sync_imported_classes(magia, item["classes"])
                         created += 1
 
             messages.success(request, f"Importacao concluida: {created} magias criadas, {updated} atualizadas.")
@@ -3185,7 +3235,22 @@ class TbMagiaAdmin(BonfireAdminMixin, admin.ModelAdmin):
                 "payload": json.dumps(magias, ensure_ascii=False),
                 "atualizar_existentes": form.cleaned_data["atualizar_existentes"],
             })
+            return render(request, "admin/spell_import.html", context)
         return render(request, "admin/spell_import.html", context)
+
+    @staticmethod
+    def _sync_imported_classes(magia, raw_classes):
+        from .spell_access import access_key, set_spell_class_access
+        lookup = {}
+        for classe in TbClasse.objects.all():
+            lookup[access_key(classe.nome)] = classe
+            lookup[access_key(classe.slug)] = classe
+        classes = []
+        for token in re.split(r'[,;|]', raw_classes or ''):
+            classe = lookup.get(access_key(token))
+            if classe and classe not in classes:
+                classes.append(classe)
+        set_spell_class_access(magia, classes, save=True)
 
     @admin.display(description="Nivel", ordering="nivel")
     def nivel_display(self, obj):

@@ -81,9 +81,12 @@
 
 {{ magias|json_script:"mg-data" }}
 {{ magia_inicial|json_script:"mg-inicial" }}
+{{ classes_catalogo|json_script:"mg-classes" }}
 <script>
 (function(){
   var MAGIAS = JSON.parse(document.getElementById('mg-data').textContent || '[]');
+  var CLASSES = JSON.parse(document.getElementById('mg-classes').textContent || '[]');
+  var CAN_EDIT = {{ can_edit|yesno:"true,false" }};
   var MAGIA_INICIAL = '';
   try { MAGIA_INICIAL = JSON.parse(document.getElementById('mg-inicial').textContent || '""') || ''; } catch (e) { MAGIA_INICIAL = ''; }
 
@@ -101,6 +104,7 @@
   // ---- Helpers (reaproveitados do arquivo original) ----
   function norm(s){return (s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();}
   function esc(v){var d=document.createElement('div'); d.textContent=v==null?'':String(v); return d.innerHTML;}
+  function attr(v){return esc(v).replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
   function md(v){
     if(!v) return '<p class="text-[var(--muted)]">Sem descrição.</p>';
     if(typeof renderBonfireMarkdown==='function') return renderBonfireMarkdown(v);
@@ -108,6 +112,28 @@
     return esc(v).replace(/\n/g,'<br>');
   }
   function meta(label,val){return val?'<div><span class="text-[var(--muted)]">'+label+'</span> <span class="text-[var(--text)]">'+esc(val)+'</span></div>':'';}
+  function cookie(name){var row=document.cookie.split('; ').find(function(v){return v.indexOf(name+'=')===0;});return row?decodeURIComponent(row.split('=').slice(1).join('=')):'';}
+  function editor(m){
+    if(!CAN_EDIT) return '';
+    var levels=''; for(var n=0;n<=9;n++) levels+='<option value="'+n+'"'+(Number(m.nivel)===n?' selected':'')+'>'+(n===0?'Truque':n+'º círculo')+'</option>';
+    var classes=CLASSES.map(function(c){return '<option value="'+attr(c.slug)+'"'+((m.classes_slugs||[]).indexOf(c.slug)>=0?' selected':'')+'>'+esc(c.nome)+'</option>';}).join('');
+    function input(label,name,value,wide){return '<label class="flex flex-col gap-1 text-[11px] text-[var(--muted)] '+(wide?'sm:col-span-2':'')+'">'+label+'<input class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-1.5 text-[var(--text)]" name="'+name+'" value="'+attr(value||'')+'"></label>';}
+    return '<details class="mt-5 border-t border-[var(--stroke)] pt-3"><summary class="cursor-pointer text-xs font-bold uppercase text-[var(--ember)]">Editar magia</summary>'
+      +'<form class="mt-3 grid gap-2 sm:grid-cols-2" data-spell-editor data-url="'+attr(m.update_url)+'">'
+      +input('Nome','nome',m.nome)+input('Nome em inglês','nome_ingles',m.nome_ingles)
+      +input('Slug','slug',m.slug)+input('Escola','escola',m.escola)
+      +'<label class="flex flex-col gap-1 text-[11px] text-[var(--muted)]">Círculo<select name="nivel" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-1.5 text-[var(--text)]">'+levels+'</select></label>'
+      +input('Tempo de conjuração','casting_time',m.casting_time)+input('Alcance','alcance',m.alcance)+input('Duração','duracao',m.duracao)
+      +input('Componentes','componentes',m.componentes,true)
+      +'<label class="flex items-center gap-2 text-xs text-[var(--muted)]"><input type="checkbox" name="concentracao"'+(m.concentracao?' checked':'')+'> Concentração</label>'
+      +'<label class="flex items-center gap-2 text-xs text-[var(--muted)]"><input type="checkbox" name="ritual"'+(m.ritual?' checked':'')+'> Ritual</label>'
+      +'<label class="flex flex-col gap-1 text-[11px] text-[var(--muted)] sm:col-span-2">Classes com acesso base<select name="classes_slugs" multiple size="8" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-1.5 text-[var(--text)]">'+classes+'</select></label>'
+      +'<label class="flex flex-col gap-1 text-[11px] text-[var(--muted)] sm:col-span-2">Descrição<textarea name="descricao" rows="10" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] p-2 text-[var(--text)]">'+esc(m.descricao||'')+'</textarea></label>'
+      +'<label class="flex flex-col gap-1 text-[11px] text-[var(--muted)] sm:col-span-2">Em níveis superiores<textarea name="em_niveis_superiores" rows="5" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] p-2 text-[var(--text)]">'+esc(m.em_niveis||'')+'</textarea></label>'
+      +'<label class="flex flex-col gap-1 text-[11px] text-[var(--muted)] sm:col-span-2">Tags, uma por linha<textarea name="tags_json" rows="9" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] p-2 font-mono text-[11px] text-[var(--text)]">'+esc((m.tags||[]).join('\n'))+'</textarea></label>'
+      +'<div class="flex items-center gap-3 sm:col-span-2"><button type="submit" class="rounded border border-[var(--ember)] px-3 py-2 text-xs font-bold text-[var(--ember)]">Salvar magia</button><span data-editor-status class="text-xs text-[var(--muted)]"></span></div>'
+      +'</form></details>';
+  }
 
   function filtra(){
     var q=norm(fBusca.value.trim()), classe=fClasse.value, esc_=fEscola.value, nv=fNivel.value, conc=fConc.checked, rit=fRitual.checked;
@@ -204,7 +230,23 @@
       + '<div class="grid grid-cols-2 gap-x-2.5 gap-y-1.5 text-sm sm:grid-cols-3 mb-2.5">'+metaHtml+'</div>'
       + (tagsHtml ? '<div class="mb-3 flex flex-wrap gap-1">'+tagsHtml+'</div>' : '')
       + '<div class="bonfire-markdown max-w-none text-[13px] leading-[1.45] text-bonfire-muted">'+md(m.descricao)+'</div>'
-      + niveisHtml;
+      + niveisHtml + editor(m);
+
+    var editForm=detailContainer.querySelector('[data-spell-editor]');
+    if(editForm) editForm.addEventListener('submit',function(event){
+      event.preventDefault();
+      var status=editForm.querySelector('[data-editor-status]'), fd=new FormData(editForm);
+      var payload={};
+      ['nome','nome_ingles','slug','escola','casting_time','alcance','componentes','duracao','descricao','em_niveis_superiores'].forEach(function(key){payload[key]=fd.get(key)||'';});
+      payload.nivel=Number(fd.get('nivel')||0); payload.concentracao=fd.has('concentracao'); payload.ritual=fd.has('ritual');
+      payload.classes_slugs=Array.from(editForm.querySelector('[name="classes_slugs"]').selectedOptions).map(function(o){return o.value;});
+      payload.tags_json=(fd.get('tags_json')||'').split(/\r?\n/).map(function(v){return v.trim();}).filter(Boolean);
+      status.textContent='Salvando...';
+      fetch(editForm.dataset.url,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRFToken':cookie('csrftoken')},body:JSON.stringify(payload)})
+        .then(function(response){return response.json().then(function(data){if(!response.ok)throw new Error(data.error||'Não foi possível salvar.');return data;});})
+        .then(function(data){location.href=location.pathname+'?magia='+encodeURIComponent(data.spell.slug)+'&editado=1';})
+        .catch(function(error){status.textContent=error.message;});
+    });
 
     detailContainer.classList.remove('talent-detail-enter');
     void detailContainer.offsetWidth;

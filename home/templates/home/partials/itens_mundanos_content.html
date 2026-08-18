@@ -113,6 +113,25 @@ missão" no lugar do botão — a mesma guarda existe no backend.{% endcomment %
         {% else %}
         <p class="mkt-card-line"><em>Sem descrição catalogada.</em></p>
         {% endif %}
+        {% if request.user.is_superuser %}
+        <details class="mkt-inline-editor">
+          <summary>Editar item</summary>
+          <form method="post" action="{% url 'wiki_update_mundane_item' item.id_item %}">
+            {% csrf_token %}
+            <label>Nome<input name="nome" value="{{ item.nome }}" required></label>
+            <label>Slug<input name="slug" value="{{ item.slug }}" required></label>
+            <label>Categoria<select name="categoria">{% for value,label in categorias_item_mundano %}<option value="{{ value }}"{% if item.categoria == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+            <label>Subcategoria<input name="subcategoria" value="{{ item.subcategoria|default:'' }}"></label>
+            <label>Peso<input name="peso" type="number" step="0.001" value="{{ item.peso|default_if_none:'' }}"></label>
+            <label>Preço<input name="preco" value="{{ item.preco|default:'' }}"></label>
+            <label class="is-wide">Imagem<input name="imagem_url" value="{{ item.imagem_url|default:'' }}"></label>
+            <label class="is-wide">Descrição<textarea name="descricao_markdown" rows="8">{{ item.descricao_markdown|default:'' }}</textarea></label>
+            <label class="is-wide">Tags, uma por linha<textarea name="tags_json" rows="8">{% for tag in item.tags_json %}{{ tag }}{% if not forloop.last %}
+{% endif %}{% endfor %}</textarea></label>
+            <button type="submit" class="mkt-btn is-buy">Salvar item</button>
+          </form>
+        </details>
+        {% endif %}
       </article>
     </template>
     {% endfor %}

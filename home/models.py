@@ -875,6 +875,13 @@ class TbMagia(models.Model):
     alcance = models.CharField(db_column='Alcance', max_length=120, blank=True, null=True)
     componentes = models.CharField(db_column='Componentes', max_length=300, blank=True, null=True)
     classes = models.TextField(db_column='Classes', blank=True, null=True)
+    classes_slugs = models.JSONField(
+        db_column='ClassesSlugs', blank=True, default=list,
+        help_text=(
+            'Fonte mecanica do acesso base: slugs validos de TbClasse. '
+            'O campo Classes permanece apenas como rotulo legivel e compatibilidade.'
+        ),
+    )
     descricao = models.TextField(db_column='Descricao', blank=True, null=True)
     em_niveis_superiores = models.TextField(db_column='EmNiveisSuperiores', blank=True, null=True)
     tags_json = models.JSONField(db_column='TagsJSON', blank=True, default=list, help_text='Tags estruturadas usadas pelo criador de personagem.')
@@ -1385,6 +1392,7 @@ class TbPersonagemItem(models.Model):
         ('criacao', 'Criacao de ficha'),
         ('compra', 'Compra oficial'),
         ('comunidade', 'Mercado da comunidade'),
+        ('oficina', 'Oficina de Magia'),
         ('concessao', 'Concessao da staff'),
         ('pathbuilder', 'Pathbuilder'),
     ]
@@ -1490,6 +1498,61 @@ class TbTransacao(models.Model):
 
     def __str__(self):
         return f'{self.get_tipo_display()} {self.valor_pc} PC'
+
+
+class TbSolicitacaoTranscricao(models.Model):
+    """Pedido auditavel para copiar uma magia do grimorio de outro jogador."""
+
+    STATUS_CHOICES = [
+        ('pendente', 'Pendente'),
+        ('aceita', 'Aceita'),
+        ('recusada', 'Recusada'),
+        ('cancelada', 'Cancelada'),
+        ('invalida', 'Invalidada'),
+    ]
+
+    id_solicitacao = models.AutoField(db_column='Id_Solicitacao', primary_key=True)
+    solicitante = models.ForeignKey(
+        'TbPersonagem', models.CASCADE, db_column='Id_Solicitante',
+        related_name='solicitacoes_transcricao_enviadas')
+    fonte = models.ForeignKey(
+        'TbPersonagem', models.CASCADE, db_column='Id_Fonte',
+        related_name='solicitacoes_transcricao_recebidas')
+    magia = models.ForeignKey(
+        'TbMagia', models.PROTECT, db_column='Id_Magia',
+        related_name='solicitacoes_transcricao')
+    classe_solicitante = models.ForeignKey(
+        'TbClasse', models.PROTECT, db_column='Id_ClasseSolicitante',
+        related_name='solicitacoes_transcricao')
+    status = models.CharField(
+        db_column='Status', max_length=12, choices=STATUS_CHOICES,
+        default='pendente', db_index=True)
+    custo_po = models.DecimalField(
+        db_column='CustoPO', max_digits=10, decimal_places=2, default=0)
+    tempo_horas = models.DecimalField(
+        db_column='TempoHoras', max_digits=8, decimal_places=2, default=0)
+    criado_em = models.DateTimeField(db_column='CriadoEm', auto_now_add=True)
+    respondido_em = models.DateTimeField(db_column='RespondidoEm', blank=True, null=True)
+    respondido_por = models.ForeignKey(
+        'auth.User', models.SET_NULL, db_column='RespondidoPor', blank=True, null=True,
+        related_name='solicitacoes_transcricao_respondidas')
+    detalhes_json = models.JSONField(db_column='DetalhesJSON', default=dict, blank=True)
+
+    class Meta:
+        db_table = 'TB_SolicitacaoTranscricao'
+        verbose_name = 'Solicitacao de transcricao'
+        verbose_name_plural = 'Solicitacoes de transcricao'
+        ordering = ['-criado_em', '-id_solicitacao']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['solicitante', 'fonte', 'magia', 'classe_solicitante'],
+                condition=models.Q(status='pendente'),
+                name='uniq_transcricao_pendente',
+            ),
+        ]
+
+    def __str__(self):
+        return f'{self.solicitante} <- {self.fonte}: {self.magia} ({self.status})'
 
 
 class TbPersonagemRevisao(models.Model):

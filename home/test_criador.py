@@ -3181,42 +3181,38 @@ class MarcasArcanasPipelineTests(_CriadorBase):
             id_personagem=p, sempre_preparada=True).select_related('id_magia')}
         self.assertEqual(mat, {'marca-do-cacador', 'localizar-objeto'})
 
-    # ── 2 + 3: conjurador REAL N3 → lista expandida SO ate o teto dele ──
-    def test_marca_conjurador_real_respeita_teto(self):
-        from home.character_engine import (magias_concedidas, _conjuracao_real,
-                                            _teto_nivel_conjuravel)
-        p = self._caster(nivel=3)                        # mago N3: conjura de verdade, teto=2
-        self._pega_talento(p, 'Marca Arcana da Busca')
-        self.assertTrue(_conjuracao_real(p))
-        self.assertEqual(_teto_nivel_conjuravel(p), 2)
-        slugs = {c['slug'] for c in magias_concedidas(p)['concedidas']}
-        # gateadas ate o teto (nivel <= 2) ENTRAM — inclui a multi-palavra (ponte _<->-)
-        for dentro in ('fogo-das-fadas', 'passos-longos',            # nivel 1
-                       'localizar-animais-ou-plantas', 'espinho-mental'):  # nivel 2
-            self.assertIn(dentro, slugs, dentro)
-        # acima do teto (nivel >= 3) FICAM DE FORA
-        for fora in ('clarividencia', 'falar-com-plantas',           # nivel 3
-                     'adivinhacao', 'localizar-criatura',            # nivel 4
-                     'comunhao-com-a-natureza'):                     # nivel 5
-            self.assertNotIn(fora, slugs, fora)
-
-    # ── 2: sobe de nivel → novas magias da lista entram ──
-    def test_marca_conjurador_sobe_nivel_novas_magias(self):
-        from home.character_engine import magias_concedidas, _teto_nivel_conjuravel
+    # A Marca expande a lista de classe. Ela não concede, prepara ou materializa
+    # essas magias; o teto só é aplicado quando a classe escolhe/aprende uma delas.
+    def test_marca_conjurador_real_expande_lista_sem_conceder(self):
+        from home.character_engine import magias_concedidas, _conjuracao_real
+        from home.spellcasting import character_spell_list_delta
         p = self._caster(nivel=3)
         self._pega_talento(p, 'Marca Arcana da Busca')
-        antes = {c['slug'] for c in magias_concedidas(p)['concedidas']}
-        self.assertNotIn('clarividencia', antes)         # nivel 3 travado no teto 2
-        # SOBE para N5 (full caster: teto passa a 3) — o _sync materializa as novas que cabem
+        self.assertTrue(_conjuracao_real(p))
+        granted = {c['slug'] for c in magias_concedidas(p)['concedidas']}
+        expanded = character_spell_list_delta(p)['add']
+        mark_list = {
+            'fogo-das-fadas', 'passos-longos',
+            'localizar-animais-ou-plantas', 'espinho-mental',
+            'clarividencia', 'falar-com-plantas', 'adivinhacao',
+            'localizar-criatura', 'comunhao-com-a-natureza',
+        }
+        self.assertTrue(mark_list <= expanded)
+        self.assertFalse(mark_list & granted)
+
+    def test_marca_nao_materializa_lista_ao_subir_nivel(self):
+        from home.spellcasting import character_spell_list_delta
+        p = self._caster(nivel=3)
+        self._pega_talento(p, 'Marca Arcana da Busca')
+        before = set(character_spell_list_delta(p)['add'])
         pc = p.classes.first(); pc.nivel = 5; pc.save(update_fields=['nivel'])
         p.nivel = 5; p.save(update_fields=['nivel'])
-        self.assertEqual(_teto_nivel_conjuravel(p), 3)
         views._sync_magias_concedidas(p)
+        after = set(character_spell_list_delta(p)['add'])
         mat = {m.id_magia.slug for m in TbPersonagemMagia.objects.filter(
             id_personagem=p, sempre_preparada=True).select_related('id_magia')}
-        self.assertIn('clarividencia', mat)              # nivel 3 agora cabe
-        self.assertIn('falar-com-plantas', mat)          # nivel 3 agora cabe
-        self.assertNotIn('adivinhacao', mat)             # nivel 4 ainda acima do teto
+        self.assertEqual(before, after)
+        self.assertFalse(after & mat)
 
     def test_sem_marca_lista_fechada(self):
         # controle: barbaro puro (sem Marca) nao conjura e nao recebe magia nenhuma.

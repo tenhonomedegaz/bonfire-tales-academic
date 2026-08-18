@@ -602,6 +602,18 @@
       "op": null,
       "doc": "Referência a magia (references.spell)."
     },
+    "spell_scroll": {
+      "categoria": "A12",
+      "forma": "block",
+      "op": "meta",
+      "doc": "Protocolo de item virtual para pergaminho. spell identifica a magia; level, save_dc e attack_bonus congelam os valores do pergaminho. A Oficina deriva esse produto do catálogo de magias; não se cria um item de catálogo por magia. Ex.: spell_scroll{spell:bola_de_fogo, level:3, save_dc:15, attack_bonus:7}."
+    },
+    "spell_component": {
+      "categoria": "A12",
+      "forma": "block",
+      "op": "meta",
+      "doc": "Protocolo de componente material virtual comprado na Oficina. kind:consumable é gasto ao conjurar; kind:focus permanece na mochila. cost_po registra o preço derivado do texto da magia. Ex.: spell_component{spell:encontrar_familiar, kind:consumable, cost_po:10}."
+    },
     "any_bestiary": {
       "categoria": "A3",
       "forma": "reference",
@@ -1742,8 +1754,8 @@
       "categoria": "A12",
       "forma": "block",
       "op": "declare_caster",
-      "doc": "Declara todo o contrato de conjuração sem depender do nome da classe. Campos canônicos: ability:<attr> (ou int|wis quando escolhível); slots{progression:full|half|third|pact, resource:<slug opcional>}; list:<slug da lista>; mode:known|prepared; spell_limit{resource:<slug>|formula:<expressão>|fixed:<N>}; spell_level_limit com a mesma forma para classes cujo círculo máximo vem de recurso próprio; cantrip_limit com a mesma forma; pool:class_list|spellbook; swap{event:level_up, max:1|all}; acquire{initial:<N>, level_up:<N>, transcribe{source:<protocolo de item>, cost_po:<fórmula>, time_hours:<fórmula>}}; focus:<tipo>. Em uma feature, requires:spellcasting, modify:spellcasting{list}.add{spell:<slug>, ...} amplia a lista efetiva de qualquer classe conjuradora do portador; não concede, não prepara e não conta como escolha própria. mode:known exige aquisição no criador/subir de nível e só permite troca quando swap{} declarar. mode:prepared com pool:class_list permite remanejar livremente a lista na ficha. pool:spellbook limita a preparação às magias adquiridas e acquire{} define como o grimório cresce. Recursos e fórmulas são resolvidos pelas tags; rótulos e nomes de classes nunca definem comportamento.",
-      "sintaxe": "spellcasting{ability:<attr>, slots{progression:<tipo>, resource:<slug?>}, list:<lista>, mode:<known|prepared>, spell_limit{resource:<slug>|formula:<expr>|fixed:<N>}, spell_level_limit{...}, cantrip_limit{...}, pool:<class_list|spellbook>, swap{event:level_up, max:<N|all>}, acquire{initial:<N>, level_up:<N>, transcribe{source:<protocolo>, cost_po:<expr>, time_hours:<expr>}}, focus:<tipo>} | requires:spellcasting, modify:spellcasting{list}.add{spell:<slug>, ...}",
+      "doc": "Declara todo o contrato de conjuração sem depender do nome da classe. Campos canônicos: ability:<attr> (ou int|wis quando escolhível); slots{progression:full|half|third|pact, resource:<slug opcional>, cost:<fórmula opcional>}; list:<slug da lista>; mode:known|prepared; spell_limit{resource:<slug>|formula:<expressão>|fixed:<N>}; spell_level_limit com a mesma forma para classes cujo círculo máximo vem de recurso próprio; cantrip_limit com a mesma forma; pool:class_list|spellbook; swap{event:level_up, max:1|all}; acquire{initial:<N>, level_up:<N>, transcribe{source:<protocolo de item>, cost_po:<fórmula>, time_hours:<fórmula>}}; focus:<tipo>. Em uma feature, requires:spellcasting, modify:spellcasting{list}.add{spell:<slug>, ...} amplia a lista efetiva de qualquer classe conjuradora do portador; não concede, não prepara e não conta como escolha própria. mode:known exige aquisição no criador/subir de nível e só permite troca quando swap{} declarar. mode:prepared com pool:class_list permite remanejar livremente a lista na ficha. pool:spellbook limita a preparação às magias adquiridas e acquire{} define como o grimório cresce. Em conjuração por recurso, slots.cost calcula o gasto com spell_level e classlvl. Recursos e fórmulas são resolvidos pelas tags; rótulos e nomes de classes nunca definem comportamento.",
+      "sintaxe": "spellcasting{ability:<attr>, slots{progression:<tipo>, resource:<slug?>, cost:<expr?>}, list:<lista>, mode:<known|prepared>, spell_limit{resource:<slug>|formula:<expr>|fixed:<N>}, spell_level_limit{...}, cantrip_limit{...}, pool:<class_list|spellbook>, swap{event:level_up, max:<N|all>}, acquire{initial:<N>, level_up:<N>, transcribe{source:<protocolo>, cost_po:<expr>, time_hours:<expr>}}, focus:<tipo>} | requires:spellcasting, modify:spellcasting{list}.add{spell:<slug>, ...}",
       "exemplos": [
         "spellcasting{ability:cha, slots{progression:full}, list:bardo, mode:known, spell_limit{resource:magias_conhecidas}, cantrip_limit{resource:truques}, pool:class_list, swap{event:level_up, max:all}, focus:instrumento_musical}",
         "spellcasting{ability:wis, slots{progression:full}, list:clerigo, mode:prepared, spell_limit{resource:magias_preparadas}, cantrip_limit{resource:truques}, pool:class_list, focus:simbolo_sagrado}",

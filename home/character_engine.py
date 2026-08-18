@@ -1389,18 +1389,17 @@ def _iter_spell_selections(s):
 
 
 def _grants_de_tag(tag, escolhas, catalog, nivel_total, casts_selection=False):
-    """(fixas, escolha, gated) de UMA tag. fixas=[(slug,nivel)] (magia específica garantida);
+    """(fixas, escolha, reservado) de UMA tag. fixas=[(slug,nivel)] (magia específica garantida);
     escolha=None | dict normalizado:
       {'opcoes':[slug], 'qtd':K, 'rotulo':str}                 (lista concreta de opções)
       {'pool':{'classes':[Nome], 'nivel':N|None, 'escola':E|None}, 'qtd':K, 'rotulo':str}
-    gated=[(slug,nivel)] — LISTAS DE DECRETO atrás de `requires:spellcasting`. O gate NÃO é
-    decidido aqui: as magias voltam em `gated` e o chamador (magias_concedidas) abre o portão
-    SÓ se o personagem tem CONJURAÇÃO REAL (`_conjuracao_real`), e ainda respeita o TETO de
-    nível conjurável — magia meramente concedida NÃO abre o portão.
+    O terceiro item permanece vazio por compatibilidade com consumidores antigos. Expansões
+    de lista NÃO são concessões: `modify:spellcasting{list}.add/remove{...}` é interpretado
+    exclusivamente por `spellcasting.character_spell_list_delta`.
 
-    Concede: `cast{… spell:X … always-prepared}` (Marcas), `spell-selection:match(var){…}`
+    Concede: `cast{… spell:X … always-prepared}`, `spell-selection:match(var){…}`
     (vertente/veste-lunar…), `spell-selection:<slug>{… always-prepared}` (magia única),
-    `spell:X` concreto, e as LISTAS DE DECRETO `any{ a, b, … }, fora-do-limite`. Escolhas:
+    `spell:X` concreto. Escolhas:
     `spell-selection:<classe>{… qtd:K …}` (pool de classe), `pick{lista:{a|b}}{… qtd:K}`
     (união), e a Marca Planar (`any{spell:pick{… match(pick:…)}}`). IGNORA cast ativo e
     `spell:pick{…}` não resolvido. Respeita `requires:lvl{N}`.
@@ -1434,7 +1433,7 @@ def _grants_de_tag(tag, escolhas, catalog, nivel_total, casts_selection=False):
         if qtd >= len(slugs):
             return [(sl, nivel) for sl in slugs], None, []
         return [], {'opcoes': slugs, 'qtd': qtd, 'rotulo': _rotulo_escolha(nivel, qtd)}, []
-    fixas, escolha, gated = [], None, []
+    fixas, escolha = [], None
     for cm in _CAST_BLOCK_RE.finditer(s):
         blk = cm.group(1)
         if re.search(r'always_prepared', blk):
@@ -1474,18 +1473,6 @@ def _grants_de_tag(tag, escolhas, catalog, nivel_total, casts_selection=False):
                                    'rotulo': _rotulo_escolha(0, 1)}
                         break
             continue
-        # (c2) LISTA DE DECRETO: any{ slug, slug, … } (fora-do-limite) — todas as magias da
-        # lista entram como conhecidas/sempre-preparadas. PONTE DE SLUG _↔- (o catálogo é
-        # hifenado; a lista às vezes vem com underscore — sem a ponte, magia multi-palavra
-        # como `fogo_das_fadas` sumia em silêncio). Gate `requires:spellcasting`: NÃO decidido
-        # aqui — volta em `gated`; o chamador abre o portão só com CONJURAÇÃO REAL + teto.
-        if scope == 'any' and 'spell:' not in full and 'pick' not in full and 'efeito' not in full:
-            lista = [c for c in (_cat(x.strip()) for x in re.split(r'[,|]', body)) if c]
-            if lista:
-                bucket = gated if re.search(r'requires\s*:\s*spell_?casting', s) else fixas
-                for sl in lista:
-                    bucket.append((sl, catalog[sl]))
-                continue
         # (d) escolha qtd:K de uma classe / união de classes / `any` (sem filtro de classe)
         qtd = _qtd_de(body, nivel_total)
         classes = None
@@ -1520,7 +1507,7 @@ def _grants_de_tag(tag, escolhas, catalog, nivel_total, casts_selection=False):
         escolha = {'pool': {'classes': sorted(set(classes)), 'nivel': nv, 'escola': esc},
                    'qtd': qtd, 'rotulo': _rotulo_escolha(nv, qtd, classes, esc)}
         break
-    return fixas, escolha, gated
+    return fixas, escolha, []
 
 
 def _norm_escola(e):
@@ -1553,7 +1540,7 @@ def _resolve_pool(pool, catalog_rich):
 
 
 def _conjuracao_real(personagem):
-    """CONJURAÇÃO REAL — o gate `requires:spellcasting` das LISTAS DE DECRETO (Marcas etc.).
+    """CONJURAÇÃO REAL — usada por requisitos e modificadores de lista de magia.
     True SÓ quando o personagem tem uma FONTE DE CONJURAÇÃO PRÓPRIA:
       • CLASSE BASE conjuradora — `spellcasting{…slots|lista…}` numa habilidade de classe
         SEM subclasse (id_subclasse null) até o nível, ou na própria TbClasse;
@@ -1564,8 +1551,8 @@ def _conjuracao_real(personagem):
       • MAGIA DE PACTO — modelada como `spellcasting{slots:pact}` na classe base (Místico) →
         já cai no 1º caso.
     NÃO conta magia meramente CONCEDIDA (a própria `cast{}` da Marca, essência, item): magia
-    concedida NÃO é conjuração e não pode abrir o portão da lista expandida da MESMA feature que
-    a concedeu — senão uma Marca despejaria toda a lista num marcial. Regra DIFERENTE do
+    concedida NÃO é conjuração e não pode satisfazer `requires:spellcasting` da MESMA feature.
+    Regra DIFERENTE do
     pré-requisito de talento: para aquilo use `_personagem_conjura` (detector universal, que
     TAMBÉM aceita TbPersonagemMagia de qualquer origem)."""
     from .spellcasting import class_spellcasting_contract
@@ -1662,7 +1649,6 @@ def magias_concedidas(personagem):
     from .models import TbMagia, TbPersonagemEscolha
     classes = list(personagem.classes.select_related('id_classe', 'id_subclasse').order_by('-principal', 'id'))
     nivel_total = sum(int(c.nivel or 0) for c in classes) or int(personagem.nivel or 1)
-    is_caster = _conjuracao_real(personagem)   # gate das listas de decreto = CONJURAÇÃO REAL
     features = _features_do_personagem(personagem, classes)
     escolhas, _listas = _collect_escolhas(personagem, features)
     catalog, catalog_rich = {}, {}
@@ -1675,7 +1661,6 @@ def magias_concedidas(personagem):
         escolhidos.setdefault((e.origem or '', e.slot), set()).update(
             x for x in (e.valor or '').split(',') if x)
     seen, ordem = set(), {}
-    gated_all = []   # [(fonte, slug, nivel)] — listas de decreto atrás de requires:spellcasting
     for (_o, _f, obj, _cl) in features:
         fonte = getattr(obj, 'nome', '') or ''
         feat_tags = getattr(obj, 'tags_json', None) or []
@@ -1685,13 +1670,12 @@ def magias_concedidas(personagem):
         casts_selection = bool(re.search(r'cast\s*\{[^{}]*\bspell\s*:\s*spell_selection\b',
                                          ' '.join(str(t) for t in feat_tags)))
         for tag in feat_tags:
-            fixas, escolha, gated = _grants_de_tag(tag, escolhas, catalog, nivel_total, casts_selection)
+            fixas, escolha, _reserved = _grants_de_tag(
+                tag, escolhas, catalog, nivel_total, casts_selection)
             for slug, nivel in fixas:
                 if slug not in seen:
                     seen.add(slug)
                     out['concedidas'].append({'slug': slug, 'nivel': nivel, 'fonte': fonte})
-            for slug, nivel in gated:
-                gated_all.append((fonte, slug, nivel))
             if not escolha:
                 continue
             opcoes = escolha.get('opcoes')
@@ -1710,19 +1694,6 @@ def magias_concedidas(personagem):
             if len(chosen) < escolha['qtd']:
                 out['pendentes'].append({'fonte': fonte, 'slot': slot, 'rotulo': escolha['rotulo'],
                                          'qtd': escolha['qtd'], 'opcoes': opcoes, 'escolhidos': chosen})
-    # PORTÃO `requires:spellcasting` das LISTAS DE DECRETO: abre SÓ com CONJURAÇÃO REAL
-    # (`_conjuracao_real` — classe/subclasse conjuradora do personagem ou pacto). Magia
-    # meramente CONCEDIDA (a própria `cast{}` da Marca, essência, item) NÃO abre o portão —
-    # senão uma Marca despejaria a lista inteira num marcial sem conjuração (bug reportado).
-    # TETO: mesmo conjurando de verdade, só materializa magia da lista até o MAIOR nível que ele
-    # já consegue conjurar (`_teto_nivel_conjuravel`); ao subir de nível, o _sync materializa as
-    # novas que passam a caber. Truques (nível 0) sempre cabem (0 <= teto).
-    if is_caster and gated_all:
-        teto = _teto_nivel_conjuravel(personagem)
-        for fonte, slug, nivel in gated_all:
-            if nivel <= teto and slug not in seen:
-                seen.add(slug)
-                out['concedidas'].append({'slug': slug, 'nivel': nivel, 'fonte': fonte})
     return out
 
 

@@ -571,3 +571,14 @@
   .mkt-tools { flex-direction: column; }
   .mkt-search, .mkt-select { flex: 1 1 auto; width: 100%; }
 }
+
+.mkt-inline-editor { border-top: 1px solid var(--stroke); margin-top: 1rem; padding-top: .7rem; }
+.mkt-inline-editor > summary { color: var(--ember); cursor: pointer; font-size: .72rem; font-weight: 800; text-transform: uppercase; }
+.mkt-inline-editor form { display: grid; gap: .65rem; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: .75rem; }
+.mkt-inline-editor label { color: var(--muted); display: flex; flex-direction: column; font-size: .68rem; gap: .25rem; }
+.mkt-inline-editor label.is-wide { grid-column: 1 / -1; }
+.mkt-inline-editor input:not([type="checkbox"]), .mkt-inline-editor select, .mkt-inline-editor textarea { background: var(--bg0); border: 1px solid var(--stroke); color: var(--text); min-width: 0; padding: .45rem .5rem; }
+.mkt-inline-editor textarea { font-family: inherit; resize: vertical; }
+.mkt-inline-editor .mkt-inline-check { align-items: center; flex-direction: row; }
+.mkt-inline-editor button { justify-self: start; }
+@media (max-width: 520px) { .mkt-inline-editor form { grid-template-columns: 1fr; } .mkt-inline-editor label.is-wide { grid-column: auto; } }

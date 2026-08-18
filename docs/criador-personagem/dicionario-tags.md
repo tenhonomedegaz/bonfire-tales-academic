@@ -76,6 +76,25 @@ Usados em `attack:<tipo>` e como **escopo** (`melee.`, `ranged.`, `unarmed-strik
 `focus:` · `ritual` · `upcast{}` · `known-caster` · `prepared-caster` · `known-spell` ·
 `targets` · `buff`
 
+#### Contrato canônico do motor de conjuração
+
+As formas abaixo são as formas novas e mecânicas. Elas têm precedência sobre os
+nomes legados desta seção; nenhum consumidor deve inferir comportamento pelo nome
+da classe, habilidade ou recurso.
+
+- `spellcasting{ability:<atributo>, slots{progression:<full|half|third|pact>, resource:<slug opcional>, cost:<formula opcional>}, list:<slug>, mode:<known|prepared>, spell_limit{resource:<slug>|formula:<expr>|fixed:<N>}, spell_level_limit{...}, cantrip_limit{...}, pool:<class_list|spellbook>, swap{event:level_up, max:<N|all>}, acquire{initial:<N>, level_up:<N>, transcribe{source:spell_scroll, cost_po:<expr>, time_hours:<expr>}}, focus:<tipo>}` declara o contrato inteiro da classe.
+- `requires:spellcasting, modify:spellcasting{list}.add{spell:<slug>, ...}` amplia a lista efetiva de todas as classes conjuradoras do portador. Não concede, não prepara e não conta a magia como escolha feita.
+- `modify:spellcasting{list}.remove{spell:<slug>, ...}` remove da lista efetiva na ordem em que o modificador aparece.
+- `spell_scroll{spell:<slug>, level:<N>, save_dc:<N>, attack_bonus:<N>}` é o protocolo de pergaminho virtual. O catálogo da Oficina o deriva de `TbMagia`; não existe um item arbitrário por magia.
+- `spell_component{spell:<slug>, kind:<consumable|focus>, cost_po:<N>}` é o protocolo de componente virtual. `consumable` é gasto; `focus` continua na mochila.
+- `pick:opcao:escola_de_foco:{classlvl=1:1,classlvl=10:+1,classlvl=18:+1}` declara as escolhas progressivas de Escola de Foco. A transcrição consulta a opção escolhida para reduzir custo e tempo, sem testar o nome da subclasse.
+
+Exemplo de conjurador por pontos:
+
+```text
+spellcasting{ability:int, slots{progression:pact, resource:pontos_de_misticismo, cost:spell_level}, list:mistico, mode:known, spell_level_limit{resource:ciclo_de_magia}}
+```
+
 ### A13. Escolha / pré-requisito / restrição
 `pick:` · `requires:` · `willing` · `restriction{}` · `restricts{}` · `equiped{}`
 
