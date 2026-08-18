@@ -1,7 +1,7 @@
 {% extends "admin/base_site.html" %}
 {% load i18n static %}
 
-{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'admin/css/dashboard.css' %}">{% endblock %}
+{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'admin/css/dashboard.css' %}"><link rel="stylesheet" href="{% static 'css/admin/tag_library.css' %}">{% endblock %}
 
 {% block coltype %}colMS{% endblock %}
 
@@ -15,6 +15,24 @@
         <h1>Bem-vindo ao Painel de Conteúdo</h1>
         <p>Escolha uma tabela abaixo para gerenciar. No computador, o menu lateral também está sempre disponível.</p>
     </div>
+
+    <section class="bonfire-admin-tools" aria-labelledby="admin-tools-title">
+        <h2 id="admin-tools-title">Ferramentas do sistema</h2>
+        <div class="bonfire-admin-tools-grid">
+            <a href="{% url 'admin:tag_library' %}">
+                <strong>Biblioteca de Tags</strong>
+                <span>Consultar verbos, alterar a interpretação e revisar o histórico.</span>
+            </a>
+            <a href="{% url 'admin:markdown_editor' %}">
+                <strong>Editor Markdown</strong>
+                <span>Validar a apresentação de textos e referências.</span>
+            </a>
+            <a href="{% url 'admin:server_logs' %}">
+                <strong>Console</strong>
+                <span>Logs, configuração e restauração controlada.</span>
+            </a>
+        </div>
+    </section>
 
     {# Lista de apps/modelos renderizada aqui (navegacao empilhada, essencial no celular) #}
     <div class="app-list">

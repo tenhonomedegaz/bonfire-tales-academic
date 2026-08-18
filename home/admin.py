@@ -1,3 +1,4 @@
+import copy
 import json
 import re
 import subprocess
@@ -21,6 +22,7 @@ from django.db import models, transaction
 from django.shortcuts import get_object_or_404, redirect, render
 from django.core.serializers.json import DjangoJSONEncoder
 from django.urls import path, reverse
+from django.utils import timezone
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 from django.utils.text import Truncator, slugify
@@ -61,6 +63,7 @@ from .models import (
     TbTransacaoMestre,
     TbReiDaColina,
     TbConteudoEstatico,
+    TbTagLibraryRevision,
 )
 from .security import validate_no_sql_danger
 
@@ -142,6 +145,286 @@ def markdown_editor_view(request):
         "title": "Editor Markdown",
     }
     return render(request, "admin/markdown_editor.html", context)
+
+
+def _tag_library_activate(raw, request, *, name, reason):
+    from .tag_engine.governance import audit_library
+    from .tag_engine.library import Library, clear_library_cache
+
+    reason = str(reason or '').strip()
+    if len(reason) < 5:
+        raise ValueError('Informe o motivo da alteração para manter a auditoria.')
+    report = audit_library(raw, baseline=Library(), scan_usage=True)
+    if not report['valid']:
+        return None, report
+    with transaction.atomic():
+        TbTagLibraryRevision.objects.select_for_update().filter(
+            ativa=True).update(ativa=False)
+        revision = TbTagLibraryRevision.objects.create(
+            nome=(str(name or '').strip() or 'Revisão da biblioteca')[:160],
+            motivo=reason,
+            conteudo_json=raw,
+            checksum=report['checksum'],
+            ativa=True,
+            validacao_json=report,
+            criada_por=request.user,
+            ativada_por=request.user,
+            ativada_em=timezone.now(),
+        )
+    clear_library_cache()
+    return revision, report
+
+
+def _tag_library_primitive_rows(raw):
+    rows = []
+    for name, spec in (raw.get('primitives') or {}).items():
+        if name.startswith('_') or not isinstance(spec, dict):
+            continue
+        examples = spec.get('exemplos') or spec.get('examples') or []
+        if isinstance(examples, str):
+            examples = [examples]
+        value = spec.get('value') if isinstance(spec.get('value'), dict) else {}
+        rows.append({
+            'name': name,
+            'category': spec.get('categoria') or '',
+            'form': spec.get('forma') or '',
+            'op': spec.get('op') or '',
+            'target': spec.get('target') or '',
+            'value_type': value.get('type') or '',
+            'catalog': value.get('catalog') or '',
+            'doc': spec.get('doc') or '',
+            'examples': examples,
+        })
+    return sorted(rows, key=lambda row: row['name'])
+
+
+def _tag_library_context(
+        request, raw, *, report=None, selected_revision=None, test_result=None):
+    from .tag_engine.governance import library_checksum
+    from .tag_engine.library import Library
+
+    active_library = Library()
+    operations = []
+    for name, spec in (raw.get('ops') or {}).items():
+        if name.startswith('_') or not isinstance(spec, dict):
+            continue
+        operations.append({
+            'name': name,
+            'doc': spec.get('doc') or '',
+            'signature': spec.get('assina') or '',
+        })
+    forms = [
+        {'name': name, 'doc': (spec or {}).get('doc') or ''}
+        for name, spec in (raw.get('token_forms') or {}).items()
+        if not name.startswith('_') and isinstance(spec, dict)
+    ]
+    catalogs = sorted(
+        name for name in (raw.get('catalogs') or {}) if not name.startswith('_'))
+    active_revision = TbTagLibraryRevision.objects.filter(ativa=True).select_related(
+        'criada_por', 'ativada_por').first()
+    return {
+        **admin.site.each_context(request),
+        'title': 'Biblioteca de Tags',
+        'library_source': active_library.source,
+        'active_revision': active_revision,
+        'selected_revision': selected_revision,
+        'editor_json': json.dumps(raw, ensure_ascii=False, indent=2),
+        'editor_checksum': library_checksum(raw),
+        'primitive_rows': _tag_library_primitive_rows(raw),
+        'primitive_rows_json': _tag_library_primitive_rows(raw),
+        'operations': sorted(operations, key=lambda row: row['name']),
+        'token_forms': sorted(forms, key=lambda row: row['name']),
+        'catalogs': catalogs,
+        'report': report,
+        'test_result': test_result,
+        'revisions': TbTagLibraryRevision.objects.select_related(
+            'criada_por', 'ativada_por').all()[:30],
+    }
+
+
+def tag_library_view(request):
+    """Consulta, edita, valida e versiona o DSL usado pelo motor."""
+    from .tag_engine.governance import audit_library, parse_library_json
+    from .tag_engine.library import LIB_PATH, Library
+
+    selected_revision = None
+    revision_id = request.GET.get('revision')
+    if revision_id:
+        selected_revision = get_object_or_404(TbTagLibraryRevision, pk=revision_id)
+        raw = copy.deepcopy(selected_revision.conteudo_json)
+    else:
+        raw = copy.deepcopy(Library().raw)
+    report = None
+    test_result = None
+
+    if request.method == 'POST':
+        action = request.POST.get('action') or 'validate_json'
+        try:
+            if action == 'test_tags':
+                from .tag_engine import evaluate_tags, validate_tags_json
+                test_tags = [
+                    line.strip() for line in str(
+                        request.POST.get('test_tags') or '').splitlines()
+                    if line.strip()
+                ]
+                if not test_tags:
+                    raise ValueError('Informe ao menos uma tag para testar.')
+                library = Library()
+                diagnostics = validate_tags_json(
+                    test_tags, library, data=None, strict_names=True)
+                evaluated = evaluate_tags(test_tags, library=library)
+                test_result = {
+                    'tags': test_tags,
+                    'tags_text': '\n'.join(test_tags),
+                    'diagnostics': [
+                        {
+                            'level': row.level, 'code': row.code,
+                            'message': row.message, 'fragment': row.fragment,
+                        }
+                        for row in diagnostics
+                    ],
+                    'operations': [
+                        {
+                            'verb': row.verb, 'op': row.op,
+                            'target': row.target, 'value': row.value,
+                            'active': row.active, 'scope': list(row.scope),
+                            'qualifiers': list(row.qualifiers),
+                        }
+                        for row in evaluated.operations
+                    ],
+                    'state_json': json.dumps(
+                        evaluated.state, ensure_ascii=False, indent=2,
+                        cls=DjangoJSONEncoder,
+                    ),
+                }
+            elif action in {'validate_json', 'activate_json'}:
+                raw = parse_library_json(request.POST.get('library_json') or '')
+                report = audit_library(raw, baseline=Library(), scan_usage=True)
+                if action == 'activate_json':
+                    revision, report = _tag_library_activate(
+                        raw, request,
+                        name=request.POST.get('revision_name'),
+                        reason=request.POST.get('reason'),
+                    )
+                    if revision:
+                        messages.success(
+                            request,
+                            'Biblioteca validada e ativada. O motor já está lendo a revisão %s.'
+                            % revision.pk,
+                        )
+                        return redirect('%s?revision=%s' % (
+                            reverse('admin:tag_library'), revision.pk))
+                    messages.error(request, 'A revisão foi recusada; nada foi alterado.')
+                elif report['valid']:
+                    messages.success(request, 'JSON válido e sem novas regressões nas tags cadastradas.')
+                else:
+                    messages.error(request, 'A validação encontrou problemas; nada foi ativado.')
+            elif action in {'save_primitive', 'delete_primitive'}:
+                raw = copy.deepcopy(Library().raw)
+                primitives = raw.setdefault('primitives', {})
+                original = str(request.POST.get('primitive_original') or '').strip()
+                if action == 'delete_primitive':
+                    if not original or original not in primitives:
+                        raise ValueError('Primitiva não encontrada na revisão ativa.')
+                    primitives.pop(original)
+                    default_name = 'Remover primitiva %s' % original
+                else:
+                    name = str(request.POST.get('primitive_name') or '').strip()
+                    if not re.fullmatch(r'[a-z][a-z0-9_]*', name):
+                        raise ValueError('O verbo deve usar somente snake_case, sem hífen.')
+                    operation = str(request.POST.get('primitive_op') or '').strip()
+                    if operation and operation not in (raw.get('ops') or {}):
+                        raise ValueError('Escolha uma operação genérica cadastrada.')
+                    if original and original != name:
+                        primitives.pop(original, None)
+                    spec = copy.deepcopy(primitives.get(name) or {})
+                    spec.update({
+                        'categoria': str(request.POST.get('primitive_category') or '').strip(),
+                        'forma': str(request.POST.get('primitive_form') or '').strip(),
+                        'op': operation or None,
+                        'doc': str(request.POST.get('primitive_doc') or '').strip(),
+                    })
+                    target = str(request.POST.get('primitive_target') or '').strip()
+                    if target:
+                        spec['target'] = target
+                    else:
+                        spec.pop('target', None)
+                    value_type = str(request.POST.get('primitive_value_type') or '').strip()
+                    catalog = str(request.POST.get('primitive_catalog') or '').strip()
+                    if value_type or catalog:
+                        spec['value'] = {
+                            **({'type': value_type} if value_type else {}),
+                            **({'catalog': catalog} if catalog else {}),
+                        }
+                    else:
+                        spec.pop('value', None)
+                    examples = [
+                        line.strip() for line in str(
+                            request.POST.get('primitive_examples') or '').splitlines()
+                        if line.strip()
+                    ]
+                    if examples:
+                        spec['exemplos'] = examples
+                    else:
+                        spec.pop('exemplos', None)
+                    primitives[name] = spec
+                    default_name = '%s primitiva %s' % (
+                        'Editar' if original else 'Criar', name)
+                revision, report = _tag_library_activate(
+                    raw, request,
+                    name=request.POST.get('revision_name') or default_name,
+                    reason=request.POST.get('reason'),
+                )
+                if revision:
+                    messages.success(request, 'Primitiva salva e revisão ativada.')
+                    return redirect('%s?revision=%s' % (
+                        reverse('admin:tag_library'), revision.pk))
+                messages.error(request, 'A alteração quebraria tags existentes e foi recusada.')
+            elif action in {'activate_revision', 'activate_file'}:
+                if action == 'activate_revision':
+                    selected_revision = get_object_or_404(
+                        TbTagLibraryRevision, pk=request.POST.get('revision_id'))
+                    raw = copy.deepcopy(selected_revision.conteudo_json)
+                    default_name = 'Reativar: %s' % selected_revision.nome
+                else:
+                    raw = copy.deepcopy(Library(path=LIB_PATH, prefer_db=False).raw)
+                    default_name = 'Restaurar biblioteca distribuída com o código'
+                revision, report = _tag_library_activate(
+                    raw, request,
+                    name=request.POST.get('revision_name') or default_name,
+                    reason=request.POST.get('reason'),
+                )
+                if revision:
+                    messages.success(request, 'Revisão validada e ativada.')
+                    return redirect('%s?revision=%s' % (
+                        reverse('admin:tag_library'), revision.pk))
+                messages.error(request, 'A revisão não passou na validação atual.')
+            else:
+                raise ValueError('Ação administrativa desconhecida.')
+        except (json.JSONDecodeError, TypeError, ValueError) as exc:
+            messages.error(request, str(exc))
+
+    return render(
+        request, 'admin/tag_library.html',
+        _tag_library_context(
+            request, raw, report=report,
+            selected_revision=selected_revision,
+            test_result=test_result,
+        ),
+    )
+
+
+def tag_library_download_view(request):
+    from django.http import HttpResponse
+    from .tag_engine.library import Library
+
+    library = Library()
+    response = HttpResponse(
+        json.dumps(library.raw, ensure_ascii=False, indent=2),
+        content_type='application/json; charset=utf-8',
+    )
+    response['Content-Disposition'] = 'attachment; filename="tag_library_ativa.json"'
+    return response
 
 
 def _admin_console_paths():
@@ -3344,6 +3627,16 @@ def _bonfire_admin_get_urls():
             "markdown-editor/",
             admin.site.admin_view(markdown_editor_view),
             name="markdown_editor",
+        ),
+        path(
+            "tag-library/",
+            admin.site.admin_view(tag_library_view),
+            name="tag_library",
+        ),
+        path(
+            "tag-library/download/",
+            admin.site.admin_view(tag_library_download_view),
+            name="tag_library_download",
         ),
         path(
             "download-backup/",

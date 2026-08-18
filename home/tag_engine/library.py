@@ -4,11 +4,20 @@
 A biblioteca é a ÚNICA fonte de verdade do vocabulário. O validador/motor não
 conhece nenhum verbo: ele pergunta aqui. Adicionar um verbo = editar o JSON.
 """
+import copy
 import json
 import os
 import re
+import time
 
 LIB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "tag_library.json")
+
+_DB_LIBRARY_CACHE = {
+    "signature": None,
+    "raw": None,
+    "checked_at": 0.0,
+}
+_DB_LIBRARY_CHECK_INTERVAL = 2.0
 
 _WORD = re.compile(r"[a-z0-9][a-z0-9_-]*")
 
@@ -73,11 +82,77 @@ def _base(token_key):
     return m.group(0) if m else token_key.strip().lower()
 
 
+def clear_library_cache():
+    """Descarta a cópia local após uma ativação feita pelo painel."""
+    _DB_LIBRARY_CACHE["signature"] = None
+    _DB_LIBRARY_CACHE["raw"] = None
+    _DB_LIBRARY_CACHE["checked_at"] = 0.0
+
+
+def _active_database_library():
+    """Lê a revisão ativa sem tornar o banco obrigatório no bootstrap.
+
+    Comandos de instalação e a própria migration executam antes da tabela
+    existir. Nesses casos o chamador simplesmente continua com o arquivo.
+    Cada processo consulta apenas ``id/checksum``; o JSON grande só é baixado
+    novamente quando a revisão muda.
+    """
+    if os.environ.get("BONFIRE_TAG_LIBRARY_FILE_ONLY") == "1":
+        return None
+    try:
+        now = time.monotonic()
+        if (_DB_LIBRARY_CACHE["raw"] is not None
+                and now - _DB_LIBRARY_CACHE["checked_at"] < _DB_LIBRARY_CHECK_INTERVAL):
+            return (
+                copy.deepcopy(_DB_LIBRARY_CACHE["raw"]),
+                _DB_LIBRARY_CACHE["signature"][0],
+            )
+        from django.apps import apps
+        if not apps.ready:
+            return None
+        revision_model = apps.get_model("home", "TbTagLibraryRevision")
+        signature = revision_model.objects.filter(ativa=True).values_list(
+            "pk", "checksum").first()
+        _DB_LIBRARY_CACHE["checked_at"] = now
+        if not signature:
+            return None
+        if (_DB_LIBRARY_CACHE["signature"] == signature
+                and _DB_LIBRARY_CACHE["raw"] is not None):
+            return copy.deepcopy(_DB_LIBRARY_CACHE["raw"]), signature[0]
+        row = revision_model.objects.filter(pk=signature[0], ativa=True).values(
+            "conteudo_json").first()
+        if not row:
+            return None
+        _DB_LIBRARY_CACHE["signature"] = signature
+        _DB_LIBRARY_CACHE["raw"] = copy.deepcopy(row["conteudo_json"])
+        return copy.deepcopy(row["conteudo_json"]), signature[0]
+    except Exception:
+        # O arquivo é um fallback deliberado para banco indisponível, migration
+        # incompleta e comandos executados antes de django.setup().
+        return None
+
+
 class Library:
-    def __init__(self, path=LIB_PATH):
+    def __init__(self, path=LIB_PATH, *, raw=None, prefer_db=True):
         self.path = path
-        with open(path, encoding="utf-8") as fh:
-            self.raw = json.load(fh)
+        self.source = "memory" if raw is not None else "file"
+        self.revision_id = None
+        if raw is not None:
+            if not isinstance(raw, dict):
+                raise ValueError("A biblioteca de tags deve ser um objeto JSON.")
+            self.raw = copy.deepcopy(raw)
+        else:
+            database_value = (
+                _active_database_library()
+                if prefer_db and os.path.abspath(path) == os.path.abspath(LIB_PATH)
+                else None
+            )
+            if database_value:
+                self.raw, self.revision_id = database_value
+                self.source = "database"
+            else:
+                with open(path, encoding="utf-8") as fh:
+                    self.raw = json.load(fh)
         self._index()
 
     # ---- helpers -----------------------------------------------------------

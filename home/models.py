@@ -2346,3 +2346,51 @@ class TbConteudoEstatico(models.Model):
 
     def __str__(self):
         return '%s · %s' % (self.pagina, self.titulo or self.chave)
+
+
+class TbTagLibraryRevision(models.Model):
+    """Versão auditável da especificação do DSL mecânico.
+
+    O arquivo ``home/tag_library.json`` continua sendo o fallback distribuído
+    com o código. Quando existe uma revisão ativa, o interpretador passa a ler
+    ``conteudo_json`` diretamente do banco.
+    """
+
+    id_revisao = models.AutoField(db_column='Id_Revisao', primary_key=True)
+    nome = models.CharField(db_column='Nome', max_length=160)
+    motivo = models.TextField(db_column='Motivo', blank=True)
+    conteudo_json = models.JSONField(db_column='ConteudoJson')
+    checksum = models.CharField(db_column='Checksum', max_length=64, db_index=True)
+    ativa = models.BooleanField(db_column='Ativa', default=False, db_index=True)
+    validacao_json = models.JSONField(
+        db_column='ValidacaoJson', default=dict, blank=True,
+        help_text='Resumo do lint e da comparação com as tags cadastradas.',
+    )
+    criada_por = models.ForeignKey(
+        'auth.User', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='revisoes_biblioteca_tags_criadas',
+        db_column='CriadaPorId',
+    )
+    criada_em = models.DateTimeField(db_column='CriadaEm', auto_now_add=True)
+    ativada_por = models.ForeignKey(
+        'auth.User', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='revisoes_biblioteca_tags_ativadas',
+        db_column='AtivadaPorId',
+    )
+    ativada_em = models.DateTimeField(db_column='AtivadaEm', null=True, blank=True)
+
+    class Meta:
+        db_table = 'TB_TagLibraryRevision'
+        verbose_name = 'Revisão da biblioteca de tags'
+        verbose_name_plural = 'Revisões da biblioteca de tags'
+        ordering = ['-criada_em', '-id_revisao']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['ativa'], condition=models.Q(ativa=True),
+                name='home_tag_library_single_active',
+            ),
+        ]
+
+    def __str__(self):
+        estado = 'ativa' if self.ativa else 'histórica'
+        return '%s (%s)' % (self.nome, estado)
