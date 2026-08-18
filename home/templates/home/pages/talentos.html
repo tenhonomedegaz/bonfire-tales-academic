@@ -111,15 +111,9 @@
         </aside>
 
         <main class="talent-detail-panel mt-4 md:mt-0 md:pl-4" id="talentoDetail">
-            {% with talento=json_talentos.0 %}
-            {% if talento %}
-            <h2 id="talento-{{ talento.slug }}" class="mb-2.5 font-cinzel text-xl font-bold uppercase text-bonfire-text">{{ talento.nome }}</h2>
-            <p class="mb-3 text-xs uppercase tracking-wider text-bonfire-muted">{{ talento.tipo }} · {{ talento.etiqueta }}</p>
-            <div class="bonfire-markdown text-[13px] leading-[1.45] text-bonfire-muted">{{ talento.descricao|linebreaks }}</div>
-            {% else %}
+            {% if not json_talentos %}
             <p class="text-bonfire-muted">Nenhum talento cadastrado.</p>
             {% endif %}
-            {% endwith %}
         </main>
 
 {{ json_talentos|json_script:'talentos-data' }}
@@ -489,7 +483,7 @@
                 ${canEditWiki ? `<button type="button" class="wiki-edit-button" onclick="openTalentEditor(${talento.id})">Editar wiki</button>` : ''}
             </div>
 
-            <h2 data-talent-title class="font-cinzel text-xl font-bold text-bonfire-text uppercase mb-2.5">${talento.nome}</h2>
+            <h2 id="talento-${talento.slug}" data-talent-title class="font-cinzel text-xl font-bold text-bonfire-text uppercase mb-2.5">${talento.nome}</h2>
             <div data-talent-editor></div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-4">
@@ -743,6 +737,10 @@
     // Inicialização
     populateFilters();
     applyFilters(false);
+    const initialTalentSlug = decodeURIComponent(window.location.hash.replace(/^#talento-/, ''));
+    const initialTalent = talentosData.find(talento => talento.slug === initialTalentSlug)
+        || filteredTalentos[0];
+    if (initialTalent) selectTalento(initialTalent.id);
 
     // Move search bar into drawer on mobile
     (function() {
