@@ -1,0 +1,489 @@
+/* Shared mobile ergonomics. Loaded after page styles so page-specific layouts
+   keep their desktop behavior while narrow screens follow one contract. */
+
+:where(main, section, article, form, fieldset, .bonfire-markdown) {
+  min-width: 0;
+}
+
+:where(img, video, canvas) {
+  height: auto;
+  max-width: 100%;
+}
+
+.bonfire-markdown pre {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.workshop-tabs,
+.ficha-tabs,
+.cf-stepper ol,
+.pb-stepper ol {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: none;
+}
+
+.workshop-tabs::-webkit-scrollbar,
+.ficha-tabs::-webkit-scrollbar,
+.cf-stepper ol::-webkit-scrollbar,
+.pb-stepper ol::-webkit-scrollbar {
+  display: none;
+}
+
+@media screen and (max-width: 1099px) {
+  body.site-mobile-menu-open {
+    overflow: hidden;
+  }
+
+  .site-mobile-menu-panel {
+    bottom: max(0.5rem, env(safe-area-inset-bottom));
+    left: 0.5rem;
+    max-height: none;
+    overscroll-behavior: contain;
+    position: fixed;
+    right: 0.5rem;
+    top: calc(57px + 0.5rem);
+    width: auto;
+  }
+}
+
+@media screen and (max-width: 800px) {
+  html {
+    scroll-padding-top: 7.5rem;
+  }
+
+  body {
+    overflow-x: clip;
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    font-size: 16px;
+    max-width: 100%;
+  }
+
+  .bonfire-markdown table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    white-space: normal;
+  }
+
+  .bonfire-toggle summary {
+    max-width: 100%;
+    white-space: normal;
+  }
+
+  /* Navigation strips stay reachable without consuming several text rows. */
+  .workshop-tabs,
+  .ficha-tabs {
+    background: color-mix(in srgb, var(--bg0) 94%, transparent);
+    flex-wrap: nowrap;
+    margin-inline: -0.25rem;
+    overflow-x: auto;
+    padding-inline: 0.25rem;
+    position: sticky;
+    top: 57px;
+    z-index: 24;
+  }
+
+  .workshop-tabs > button,
+  .ficha-tab {
+    flex: 0 0 auto;
+    min-height: 44px;
+    scroll-snap-align: start;
+  }
+
+  /* Magic workshop. */
+  .workshop-shell {
+    padding: 0 0 calc(2rem + env(safe-area-inset-bottom));
+  }
+
+  .workshop-panel {
+    padding-top: 0.9rem;
+  }
+
+  .workshop-heading,
+  .workshop-filters,
+  .signature-editor-head,
+  .signature-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .workshop-heading > input,
+  .workshop-filters > input,
+  .workshop-filters > select,
+  .workshop-cast-form > select {
+    width: 100%;
+  }
+
+  .workshop-columns,
+  .signature-basics,
+  .signature-grid,
+  .signature-pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .signature-limits {
+    justify-content: flex-start;
+  }
+
+  .signature-toggle,
+  .signature-chip {
+    max-width: none;
+  }
+
+  .signature-footer button {
+    min-height: 44px;
+    width: 100%;
+  }
+
+  /* Creator and level-up share the same navigation and preview shell. */
+  .cf-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cf-stepper,
+  .pb-stepper {
+    border-radius: 0.45rem;
+    top: 57px;
+  }
+
+  .cf-stepper ol,
+  .pb-stepper ol {
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+  }
+
+  .cf-step-tab,
+  .pb-step-tab {
+    flex: 0 0 auto;
+    min-height: 44px;
+    scroll-snap-align: start;
+  }
+
+  .cf-stepnav,
+  .pb-stepnav,
+  .lvl-actionbar {
+    bottom: 0;
+    margin-inline: -0.5rem;
+    padding: 0.65rem 0.5rem calc(0.65rem + env(safe-area-inset-bottom));
+    z-index: 22;
+  }
+
+  .cf-btn,
+  .pb-btn,
+  .lvl-btn-ghost,
+  .lvl-add {
+    min-height: 44px;
+  }
+
+  .lvl-progtools {
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .lvl-inline,
+  .sn-mc-row {
+    align-items: stretch;
+  }
+
+  .lvl-inline > .lvl-field,
+  .sn-mc-row > .lvl-field {
+    flex: 1 1 13rem;
+  }
+
+  /* Pathbuilder tools can wrap without squeezing labels or selects. */
+  .pb-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .pb-head-tools {
+    align-items: stretch;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .pb-head-tools > *,
+  .pb-select-inline {
+    max-width: none;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .pb-variant,
+  .pb-segmented {
+    overflow-x: auto;
+  }
+
+  .pb-sheet-body {
+    padding: 0.45rem;
+  }
+
+  /* Character sheet. */
+  .ficha-header {
+    padding: 0.55rem;
+  }
+
+  .banner-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .banner-actions .banner-btn,
+  .banner-actions .banner-nextlvl {
+    align-items: center;
+    display: inline-flex;
+    justify-content: center;
+    min-height: 44px;
+    text-align: center;
+    white-space: normal;
+  }
+
+  .banner-nextlvl {
+    grid-column: 1 / -1;
+  }
+
+  .def-row {
+    display: grid;
+    grid-template-columns: minmax(6.5rem, 34%) minmax(0, 1fr);
+  }
+
+  .def-row dt {
+    width: auto;
+  }
+
+  /* Market bottom sheet respects dynamic viewport and device safe area. */
+  .mkt-preview,
+  .mkt-preview-inner {
+    max-height: calc(100dvh - 57px);
+  }
+
+  .mkt-preview-inner {
+    padding-bottom: calc(0.9rem + env(safe-area-inset-bottom));
+  }
+
+  .mkt-picker-go,
+  .mkt-action,
+  .mkt-sheet-close {
+    min-height: 44px;
+  }
+
+  /* Player directory uses the same compact, horizontally reachable tabs. */
+  .players-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .players-tabs {
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
+  }
+
+  .players-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .players-tabs > a {
+    flex: 0 0 auto;
+    min-height: 44px;
+  }
+}
+
+@media screen and (max-width: 600px) {
+  /* Workshop rows become readable action blocks instead of compressed tables. */
+  .workshop-row {
+    gap: 0.55rem;
+    grid-template-columns: minmax(0, 1fr);
+    padding: 0.75rem 0.25rem;
+  }
+
+  .workshop-price,
+  .workshop-row form,
+  .workshop-cast-form {
+    grid-column: auto;
+    grid-row: auto;
+    justify-content: stretch;
+    text-align: left;
+    width: 100%;
+  }
+
+  .workshop-row form > button,
+  .workshop-cast-form > button {
+    min-height: 44px;
+    width: 100%;
+  }
+
+  .workshop-book-spell,
+  .workshop-request {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .workshop-request form {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .workshop-request button,
+  .workshop-book-spell button {
+    min-height: 44px;
+  }
+
+  /* Point-buy no longer requires dragging a desktop-width table. */
+  [data-point-buy] {
+    overflow: visible;
+  }
+
+  [data-point-buy] table {
+    display: block;
+    min-width: 0;
+    width: 100%;
+  }
+
+  [data-point-buy] thead {
+    display: none;
+  }
+
+  [data-point-buy] tbody {
+    display: grid;
+    gap: 0.4rem;
+    padding: 0.45rem;
+  }
+
+  [data-point-buy] tbody tr {
+    align-items: center;
+    border: 1px solid var(--stroke);
+    border-radius: 0.45rem;
+    display: grid;
+    grid-template-columns: minmax(5.5rem, 1fr) minmax(4.8rem, auto) minmax(3rem, auto) minmax(3rem, auto);
+    overflow: hidden;
+  }
+
+  [data-point-buy] tbody td {
+    min-width: 0;
+    padding: 0.45rem 0.35rem;
+  }
+
+  [data-point-buy] tbody td:not(:first-child) {
+    text-align: center;
+  }
+
+  [data-point-buy] tbody td:nth-child(2)::before,
+  [data-point-buy] tbody td:nth-child(3)::before,
+  [data-point-buy] tbody td:nth-child(4)::before {
+    color: var(--muted);
+    display: block;
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0;
+    margin-bottom: 0.15rem;
+    text-transform: uppercase;
+  }
+
+  [data-point-buy] tbody td:nth-child(2)::before { content: "Valor"; }
+  [data-point-buy] tbody td:nth-child(3)::before { content: "Mod."; }
+  [data-point-buy] tbody td:nth-child(4)::before { content: "Custo"; }
+
+  [data-point-buy] > div:last-child {
+    align-items: stretch;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  [data-point-buy] > div:last-child > :nth-child(2) {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    text-align: center;
+  }
+
+  .cf-stepnav,
+  .pb-stepnav {
+    flex-wrap: wrap;
+  }
+
+  .cf-stepnav .cf-hint,
+  .pb-stepnav-hint {
+    flex-basis: 100%;
+    order: 3;
+    text-align: center;
+  }
+
+  .cf-stepnav .cf-btn,
+  .pb-stepnav .pb-btn {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+
+  .sn-hero {
+    padding-top: 3.2rem;
+  }
+
+  .lvl-card__row,
+  .sn-mc-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .lvl-card__row .lvl-field,
+  .lvl-card__row .lvl-add,
+  .sn-mc-row .lvl-field,
+  .sn-mc-row .lvl-add {
+    width: 100%;
+  }
+
+  /* Wider catalog drawer: 60vw made names and filters nearly unusable. */
+  .talent-list-panel {
+    width: min(86vw, 340px);
+  }
+
+  body.talent-menu-open .talent-mobile-menu-button {
+    left: calc(min(86vw, 340px) + 8px);
+  }
+
+  .jornal-grid,
+  .cronicas-grid,
+  .players-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .jornal-grid,
+  .cronicas-grid {
+    padding-inline: 0.75rem;
+  }
+}
+
+@media screen and (max-width: 390px) {
+  .site-mobile-menu-panel .grid-cols-2 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pb-head-tools,
+  .banner-actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .banner-nextlvl {
+    grid-column: auto;
+  }
+
+  [data-point-buy] tbody tr {
+    grid-template-columns: minmax(4.8rem, 1fr) minmax(4.6rem, auto) minmax(2.7rem, auto) minmax(2.7rem, auto);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobile-menu-enter,
+  .mobile-cat-enter {
+    animation: none;
+  }
+}

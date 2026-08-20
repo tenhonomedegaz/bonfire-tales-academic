@@ -277,13 +277,13 @@
             </details>
         {% endif %}
         
-        <details class="min-[1100px]:hidden relative group/mob-menu">
+        <details class="site-mobile-menu min-[1100px]:hidden relative group/mob-menu">
           <summary class="list-none cursor-pointer rounded border border-[var(--stroke)] bg-[var(--bg0)] p-2 text-[var(--text)] hover:border-[var(--ember)] transition-all">
             <span class="sr-only">Abrir menu</span>
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 group-open/mob-menu:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 hidden group-open/mob-menu:block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
           </summary>
-          <div class="absolute right-0 top-12 w-[min(92vw,360px)] max-h-[80vh] overflow-y-auto rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] shadow-[0_20px_50px_rgba(0,0,0,0.8)] z-[100] mobile-menu-enter">
+          <div class="site-mobile-menu-panel absolute right-0 top-12 w-[min(92vw,360px)] max-h-[80vh] overflow-y-auto rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] shadow-[0_20px_50px_rgba(0,0,0,0.8)] z-[100] mobile-menu-enter">
             
             <div class="p-4 border-b border-[var(--stroke)] bg-[var(--bg0)]/50">
               <form action="{% url 'busca' %}" method="get" class="relative block">
@@ -421,6 +421,7 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+    const mobileMenu = document.querySelector('.site-mobile-menu');
     const mobCats = document.querySelectorAll('details.group\\/mob-cat');
     mobCats.forEach(cat => {
         const summary = cat.querySelector('summary');
@@ -432,6 +433,29 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             cat.setAttribute('open', '');
         });
+    });
+
+    if (!mobileMenu) return;
+
+    const syncMenuState = () => {
+        document.body.classList.toggle('site-mobile-menu-open', mobileMenu.open);
+    };
+    mobileMenu.addEventListener('toggle', syncMenuState);
+    mobileMenu.addEventListener('click', (event) => {
+        if (event.target.closest('a')) {
+            mobileMenu.removeAttribute('open');
+        }
+    });
+    document.addEventListener('click', (event) => {
+        if (mobileMenu.open && !mobileMenu.contains(event.target)) {
+            mobileMenu.removeAttribute('open');
+        }
+    });
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && mobileMenu.open) {
+            mobileMenu.removeAttribute('open');
+            mobileMenu.querySelector('summary')?.focus();
+        }
     });
 });
 </script>
