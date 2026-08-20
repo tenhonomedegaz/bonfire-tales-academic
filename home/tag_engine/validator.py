@@ -458,6 +458,10 @@ _INNATE_REST_LIMIT_RE = re.compile(
     r"(?:long[_-]rest|short[_-]rest|short[_-]or[_-]long|rest|day)\b",
     re.I,
 )
+_INNATE_RESOURCE_COST_RE = re.compile(
+    r"\bresource[_-]cost\s*:\s*(?:\{[^{}]+\}|[a-z_][a-z0-9_]*)",
+    re.I,
+)
 
 
 def _iter_blocks(line, open_re):
@@ -489,7 +493,8 @@ def _iter_cast_blocks(line):
 
 def _has_innate_limit(text):
     return bool(_AT_WILL_RE.search(text) or _INNATE_USES_RE.search(text)
-                or _INNATE_REST_LIMIT_RE.search(text))
+                or _INNATE_REST_LIMIT_RE.search(text)
+                or _INNATE_RESOURCE_COST_RE.search(text))
 
 
 def _concrete_spells_in_cast(body):

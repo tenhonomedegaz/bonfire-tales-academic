@@ -51,13 +51,14 @@ def contrato_item_base(tags):
     return None
 
 
-def mecanica_de_tags(tags, subcategoria=None):
+def mecanica_de_tags(tags, subcategoria=None, equipment_kind=None):
     """tags_json (list[str]) -> dict com a mecanica derivada."""
     dano_dado = dano_tipo = None
     propriedades = []
     prop_params = {}
     maestrias = []
     ca_base = ca_limite_des = forca_minima = None
+    ca_bonus = 0
     ca_rhs = None
     is_escudo = is_armadura = furtividade_desv = False
 
@@ -83,8 +84,9 @@ def mecanica_de_tags(tags, subcategoria=None):
             continue
         m = _CA_ADD.match(t)
         if m:
-            is_escudo = True
-            ca_base = int(m.group(1))
+            ca_bonus = max(ca_bonus, int(m.group(1)))
+            if equipment_kind == 'shield' or equipment_kind is None:
+                is_escudo = True
             continue
         m = _CA_SET.match(t)
         if m:
@@ -104,9 +106,9 @@ def mecanica_de_tags(tags, subcategoria=None):
 
     # tipo_equip derivado (escudo / armadura-<sub>)
     tipo_equip = None
-    if is_escudo:
+    if equipment_kind == 'shield' or is_escudo:
         tipo_equip = "escudo"
-    elif is_armadura:
+    elif equipment_kind == 'armor' or is_armadura:
         sub = (subcategoria or "").strip().lower()
         tipo_equip = "armadura-" + sub if sub else "armadura"
 
@@ -137,13 +139,14 @@ def mecanica_de_tags(tags, subcategoria=None):
         "adaptavel_tipo": prop_params.get("adaptavel"),
         "maestrias": maestrias,
         "ca_base": ca_base,
+        "ca_bonus": ca_bonus,
         "ca_formula": ca_formula,
         "ca_limite_des": ca_limite_des,
         "forca_minima": forca_minima,
         "furtividade_desvantagem": furtividade_desv,
         "tipo_equip": tipo_equip,
-        "is_escudo": is_escudo,
-        "is_armadura": is_armadura,
+        "is_escudo": equipment_kind == 'shield' or is_escudo,
+        "is_armadura": equipment_kind == 'armor' or is_armadura,
     }
 
 
@@ -172,7 +175,7 @@ def propriedades_display(mec):
 def ca_display(mec):
     """String tipo '14 + mod Des (máx 2)' / '18' / '+2' a partir da ca_formula."""
     if mec.get("is_escudo"):
-        return "+%s" % mec.get("ca_base")
+        return "+%s" % (mec.get("ca_bonus") or mec.get("ca_base") or 2)
     if not mec.get("is_armadura"):
         return ""
     f = (mec.get("ca_formula") or "").replace(" ", "")

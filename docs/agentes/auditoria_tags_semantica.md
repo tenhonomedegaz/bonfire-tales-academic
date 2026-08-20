@@ -14,6 +14,19 @@
 
 ---
 
+## Auditoria pragmática pendente
+
+Uma tag pode ser sintaticamente válida e ainda materializar uma regra diferente
+da descrição. A próxima aferição ampla deve comparar, habilidade por habilidade,
+o texto normativo com as operações realmente consumidas pelo motor. A prioridade
+é localizar fórmulas aceitas mas inertes, filtros invertidos, referências a
+escolhas não resolvidas e efeitos aplicados no nível errado (personagem, classe,
+alvo ou evento). O trabalho deve cobrir classes, subclasses, raça, antecedentes,
+talentos, itens e bestiário, com amostras executáveis por família mecânica; não
+deve virar uma coleção de correções por nome de habilidade.
+
+---
+
 ## 1. Metodologia
 
 A auditoria seguiu quatro fases:

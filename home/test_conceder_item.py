@@ -185,13 +185,27 @@ class ConsumivelInventarioTests(ConcederItemBase):
         self.assertEqual(item.slot, 'empunhado')
         self.assertTrue(_item_magico_equipavel(item))
 
-    def test_slot_autoritativo_ignora_consumable_espurio(self):
+    def test_consumable_explicito_e_autoritativo(self):
         item = TbItemMagico.objects.create(
-            nome='Amuleto não consumível', slug='amuleto-nao-consumivel',
+            nome='Amuleto consumivel', slug='amuleto-consumivel',
             slot='pescoco', tipo='item maravilhoso',
             tags_json=['slot:pescoco', 'consumable'])
+        self.assertTrue(_item_consumivel_meta(None, item)['consumivel'])
+        self.assertFalse(_item_magico_equipavel(item))
+
+    def test_item_com_cargas_nao_consumido_sem_tag_consumable(self):
+        item = TbItemMagico.objects.create(
+            nome='Cajado com cargas', slug='cajado-com-cargas',
+            slot='arma', tipo='cajado', tags_json=['charges:10(reset:dawn)'])
         self.assertFalse(_item_consumivel_meta(None, item)['consumivel'])
         self.assertTrue(_item_magico_equipavel(item))
+
+    def test_municao_e_consumivel_por_catalogo(self):
+        item = TbItemMagico.objects.create(
+            nome='Flecha de teste', slug='flecha-de-teste',
+            slot='municao', tipo='municao', tags_json=[])
+        self.assertTrue(_item_consumivel_meta(None, item)['consumivel'])
+        self.assertFalse(_item_magico_equipavel(item))
 
     def test_pocao_nao_pode_equipar_e_flag_antiga_e_ignorada(self):
         p = self._char_dono_staff(apelido='pocao-equip')

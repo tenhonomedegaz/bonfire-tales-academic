@@ -2645,9 +2645,27 @@ class BlocoCRecursoFormulaTests(_CriadorBase):
         self.assertEqual(_resource_value_at(r, 5, 5), '3')    # PB nv5
         self.assertEqual(_resource_value_at(r, 12, 12), '4')  # PB nv12 (tabela antiga daria 5)
 
+    def test_resource_value_at_avalia_modificador_de_atributo(self):
+        from home.models import TbRecursoclasse
+        from home.character_engine import _resource_value_at
+        chama = TbRecursoclasse.objects.get(slug='chama-angelical')
+        disparo = TbRecursoclasse.objects.get(slug='usos-de-disparo-silvestre')
+        self.assertEqual(_resource_value_at(chama, 3, 3, {'cha_mod': 4}), '5')
+        self.assertEqual(_resource_value_at(disparo, 3, 3, {'wis_mod': -1}), '1')
+        self.assertEqual(_resource_value_at(disparo, 3, 3, {'wis_mod': 3}), '3')
+
+    def test_attr_max_de_recurso_e_generico(self):
+        from types import SimpleNamespace
+        from home.character_engine import _resource_max_overrides
+        feature = SimpleNamespace(tags_json=[
+            'attr_max:recurso_caseiro=roundup(classlvl/2)'])
+        self.assertEqual(
+            _resource_max_overrides([('classe', 'Teste', feature, 7)], {'lvl': 7}),
+            {'recurso_caseiro': 4})
+
     def test_valores_numericos_e_dados_passam_intactos(self):
-        # Regressão crítica: só fórmulas (pb/lvl/classlvl) são avaliadas; tabela
-        # numérica / dado / distância / +N continuam literais.
+        # Regressao critica: formulas com variaveis conhecidas sao avaliadas; tabela
+        # numerica, dado, distancia e +N continuam literais.
         from home.models import TbRecursoclasse
         from home.character_engine import _resource_value_at
         dados = TbRecursoclasse.objects.filter(

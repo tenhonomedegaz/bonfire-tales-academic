@@ -171,6 +171,10 @@ progressao de aventuras e atalhos para outras abas.{% endcomment %}
               {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><input type="hidden" name="tipo" value="longo">
               <button type="submit" class="primary" title="Descanso longo">Desc. Longo</button>
             </form>
+            <form method="post" action="{% url 'personagem_descansar' p.id_personagem %}">
+              {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><input type="hidden" name="tipo" value="amanhecer">
+              <button type="submit" title="Recuperar recursos que recarregam ao amanhecer">Amanhecer</button>
+            </form>
           </div>
           {% endif %}
         </div>

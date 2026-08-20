@@ -746,18 +746,17 @@ def _resource_tipo(r):
     return RESOURCE_TIPO_TABLE_ONLY
 
 
-# Total de recurso por FÓRMULA (decisão 9: descrição prevalece). Quando o valor-do-nível
-# é uma fórmula de progressão (pb/lvl/classlvl), o motor a AVALIA em vez de usar uma tabela
-# fixa; PB usa o nível TOTAL do personagem (multiclasse-safe). Valores numéricos/dados/
-# distância ('2','+3','d6','10ft') passam intactos pelo fast-path.
-_RES_FORMULA_RE = re.compile(r'(?<![a-z0-9_])(pb|classlvl|lvl)(?![a-z0-9_])')
+# Total de recurso por FORMULA. O motor aceita qualquer variavel numerica do contexto
+# (nivel/PB, atributos e spell_mod); PB usa o nivel TOTAL do personagem. Valores
+# numericos, dados e distancias ('2', '+3', 'd6', '10ft') passam intactos.
+_RES_FORMULA_NAME_RE = re.compile(r'(?<![a-z0-9_])([a-z_][a-z0-9_]*)(?![a-z0-9_])')
 
 
 def _pb_from_nivel(n):
     return 2 + (max(int(n or 1), 1) - 1) // 4
 
 
-def _resource_value_at(r, nivel, total_nivel=None):
+def _resource_value_at(r, nivel, total_nivel=None, formula_ctx=None):
     vj = r.valores_json or {}
     val = None
     if vj:
@@ -769,15 +768,66 @@ def _resource_value_at(r, nivel, total_nivel=None):
     if val is None:
         return None
     s = str(val).strip()
-    if _RES_FORMULA_RE.search(s):
-        tn = int(total_nivel) if total_nivel is not None else int(nivel)
-        ev = _eval_formula(s, {'lvl': tn, 'classlvl': int(nivel), 'pb': _pb_from_nivel(tn)})
+    tn = int(total_nivel) if total_nivel is not None else int(nivel)
+    ctx = {'lvl': tn, 'classlvl': int(nivel), 'pb': _pb_from_nivel(tn)}
+    ctx.update(formula_ctx or {})
+    ctx['classlvl'] = int(nivel)
+    names = set(_RES_FORMULA_NAME_RE.findall(s)) - set(_FUNCS)
+    if names and names.issubset(ctx):
+        ev = _eval_formula(s, ctx)
         if ev is not None:
             return str(int(ev)) if float(ev).is_integer() else str(ev)
     return val
 
 
-def _recursos(classes):
+def _resource_key(value):
+    return _slug(value).replace('-', '_')
+
+
+def _resource_formula_context(personagem, classes):
+    """Monta o contexto completo de atributos para formulas de recurso."""
+    bonus_por_attr = {}
+    for bonus in personagem.atributo_bonus.all():
+        bonus_por_attr.setdefault(bonus.atributo, []).append(int(bonus.valor or 0))
+    atributos = {}
+    for campo, sigla, _rotulo in ATRIBUTOS:
+        base = int(getattr(personagem, campo) or 10)
+        valor = base + sum(bonus_por_attr.get(sigla, ()))
+        atributos[sigla] = {'base': base, 'bonus': valor - base, 'valor': valor,
+                            'mod': modificador(valor), 'breakdown': []}
+    nivel_total = sum(int(c.nivel or 0) for c in classes) or int(personagem.nivel or 1)
+    features = _features_do_personagem(personagem, classes)
+    escolhas, _listas = _collect_escolhas(personagem, features)
+    _apply_attr_asi(features, escolhas, atributos)
+    for atributo in atributos.values():
+        atributo['mod'] = modificador(atributo['valor'])
+    ctx = _build_ctx(nivel_total, bonus_proficiencia(nivel_total), atributos)
+    ctx['spell_mod'] = _spell_mod(classes, atributos)
+    return ctx, features
+
+
+def _resource_max_overrides(features, base_ctx):
+    """Compila attr_max:<recurso>=<formula> sem conhecer recursos por nome."""
+    overrides = {}
+    for _origem, _fonte, obj, classlvl in (features or []):
+        ctx = dict(base_ctx or {})
+        if classlvl is not None:
+            ctx['classlvl'] = int(classlvl)
+        for raw in (getattr(obj, 'tags_json', None) or []):
+            if not isinstance(raw, str) or 'attr_max:' not in raw:
+                continue
+            resolved = _resolve_level_match(raw, ctx)
+            for match in re.finditer(r'attr_max:([a-z_][a-z0-9_]*)\s*=\s*', resolved):
+                key = _resource_key(match.group(1))
+                if key.endswith('_score') or key == 'sintonizacao':
+                    continue
+                value = _eval_formula(_read_expr(resolved, match.end()), ctx)
+                if value is not None:
+                    overrides[key] = max(overrides.get(key, 0), int(value))
+    return overrides
+
+
+def _recursos(classes, formula_ctx=None, max_overrides=None):
     """Recursos de CLASSE (TbRecursoclasse). Ignora placeholders '-'/vazio/0."""
     from .models import TbRecursoclasse
     from django.db.models import Q
@@ -800,7 +850,9 @@ def _recursos(classes):
             chave = f'{c.id_classe.nome}: {r.nome}'
             vj = r.valores_json or {}
             if vj:
-                val = _resource_value_at(r, nivel, total_nivel)
+                val = (max_overrides or {}).get(
+                    _resource_key(r.slug or r.nome),
+                    _resource_value_at(r, nivel, total_nivel, formula_ctx))
                 if not _vazio(val):
                     recursos[chave] = val
             elif r.nivel is not None and r.nivel <= nivel and not _vazio(r.valor):
@@ -811,7 +863,7 @@ def _recursos(classes):
     return recursos
 
 
-def _recursos_por_tipo(classes):
+def _recursos_por_tipo(classes, formula_ctx=None, max_overrides=None):
     from .models import TbRecursoclasse
     from django.db.models import Q
     out = {tipo: [] for tipo in RESOURCE_TIPOS}
@@ -830,7 +882,9 @@ def _recursos_por_tipo(classes):
             _rs = _slug(r.nome)
             if 'bonus' in _rs and 'proficiencia' in _rs:
                 continue
-            val = _resource_value_at(r, nivel, total_nivel)
+            val = (max_overrides or {}).get(
+                _resource_key(r.slug or r.nome),
+                _resource_value_at(r, nivel, total_nivel, formula_ctx))
             if _vazio(val):
                 continue
             key = (c.id_classe_id, r.id_subclasse_id, r.slug or r.nome)
@@ -850,9 +904,9 @@ def _recursos_por_tipo(classes):
     return out
 
 
-def _resource_max_at(r, nivel, total_nivel=None):
+def _resource_max_at(r, nivel, total_nivel=None, formula_ctx=None):
     """Máximo NUMÉRICO de um TbRecursoclasse no nível dado (valores_json ou valor). None se não-numérico."""
-    val = _resource_value_at(r, nivel, total_nivel)
+    val = _resource_value_at(r, nivel, total_nivel, formula_ctx)
     try:
         return int(str(val).strip())
     except (ValueError, TypeError, AttributeError):
@@ -860,14 +914,20 @@ def _resource_max_at(r, nivel, total_nivel=None):
         return int(m.group(1)) if m else None
 
 
-def _recursos_consumiveis(personagem, classes):
+def _recursos_consumiveis(personagem, classes, formula_ctx=None, max_overrides=None):
     """Recursos CONSUMIVEIS (TbRecursoclasse tipo=consumable) com maximo numerico,
     mesclados com o uso atual (TbPersonagemRecurso). Para o tracker usar/recuperar da ficha."""
     from .models import TbRecursoclasse
     from django.db.models import Q
     if personagem is None:
         return []
-    atuais = {pr.nome: pr for pr in personagem.recursos.all()}
+    if formula_ctx is None or max_overrides is None:
+        computed_ctx, features = _resource_formula_context(personagem, classes)
+        formula_ctx = formula_ctx or computed_ctx
+        if max_overrides is None:
+            max_overrides = _resource_max_overrides(features, formula_ctx)
+    atuais_nome = {pr.nome: pr for pr in personagem.recursos.all()}
+    atuais_chave = {pr.chave: pr for pr in personagem.recursos.all() if pr.chave}
     out, seen = [], set()
     total_nivel = sum(int(c.nivel or 0) for c in classes)
     for c in classes:
@@ -878,14 +938,21 @@ def _recursos_consumiveis(personagem, classes):
         for r in TbRecursoclasse.objects.filter(filtro):
             if _resource_tipo(r) != RESOURCE_TIPO_CONSUMABLE:
                 continue
-            mx = _resource_max_at(r, nivel, total_nivel)
+            mx = (max_overrides or {}).get(_resource_key(r.slug or r.nome))
+            if mx is None:
+                mx = _resource_max_at(r, nivel, total_nivel, formula_ctx)
             if mx is None or mx <= 0 or r.nome in seen:
                 continue
             seen.add(r.nome)
-            pr = atuais.get(r.nome)
+            chave = 'class:%s:%s:%s' % (
+                c.id_classe_id, c.id_subclasse_id or 0,
+                _resource_key(r.slug or r.nome))
+            pr = atuais_chave.get(chave) or atuais_nome.get(r.nome)
             atual = min(pr.atual, mx) if pr else mx
             out.append({'slug': r.slug, 'nome': r.nome, 'classe': c.id_classe.nome,
-                        'maximo': mx, 'atual': atual, 'reset': r.reset or 'manual'})
+                        'maximo': mx, 'atual': atual, 'reset': r.reset or 'manual',
+                        'db_chave': chave, 'db_nome': r.nome,
+                        'origem': 'classe:%s' % c.id_classe.slug})
     return out
 
 
@@ -950,9 +1017,9 @@ def _item_consumivel_meta(item, magico=None):
         slot in _slots.SLOTS_CONSUMIVEIS
         or tipo in {'pocao', 'pergaminho', 'consumivel'}))
     return {
-        # Para item mágico, slot/tipo são autoritativos. Tags antigas carregam
-        # ``consumable`` espúrio até em amuletos e não podem sobrepor o catálogo.
-        'consumivel': bool(catalog if magico is not None else explicit),
+        # A tag e a autoridade mecanica; slot/tipo mantem compatibilidade com
+        # pocoes e pergaminhos antigos que ainda nao possuem a tag explicita.
+        'consumivel': bool(explicit or catalog),
         'consumivel_tipo': slot or tipo,
     }
 
@@ -1319,7 +1386,7 @@ def _nivel_filtro(body):
     return int(m.group(1)) if m else None
 
 
-def _parse_escolas(body):
+def _parse_escolas(body, escolhas=None):
     """Escola(s) exigida(s) pelo body de um `spell_selection`: `escola:{A | B}` → CONJUNTO
     {A, B} (Adepto da Veste Negra: encantamento OU necromancia); `escola:X` → {X}. Devolve
     None quando ausente ou meta (`pick`/`ability`, placeholders resolvidos noutro lugar)."""
@@ -1327,6 +1394,9 @@ def _parse_escolas(body):
     if m:
         escolas = {x.strip() for x in re.split(r'[|,]', m.group(1)) if x.strip()}
         return escolas or None
+    m = re.search(r'escola\s*:\s*pick:([a-z0-9_]+)', body)
+    if m and escolhas and escolhas.get(m.group(1)):
+        return {str(escolhas[m.group(1)]).strip()}
     m = re.search(r'escola\s*:\s*([a-z_-]+)', body)
     if m and m.group(1) not in ('pick', 'ability'):
         return {m.group(1)}
@@ -1388,7 +1458,36 @@ def _iter_spell_selections(s):
     return out
 
 
-def _grants_de_tag(tag, escolhas, catalog, nivel_total, casts_selection=False):
+_ABILITY_CHOICE_REF_RE = re.compile(
+    r'ability\{\s*([a-z0-9_-]+)(?:\s*,[^}]*)?\}\s*\.\s*([a-z0-9_]+)')
+
+
+def _choice_source_key(value):
+    return _slug(str(value or '')).replace('-', '_')
+
+
+def _resolve_ability_choice_refs(text, feature_choices):
+    """Resolve campos escolhidos por outra feature sem conhecer a feature.
+
+    ``ability{centelha_arcana, raca:humano}.escola`` consulta a escolha cujo
+    ``origem`` e campo ``tipo`` foram persistidos em ``TbPersonagemEscolha``.
+    A entidade da referência continua explícita na tag; o motor só implementa
+    a operação genérica de dereferenciar uma escolha de habilidade.
+    """
+    if not feature_choices:
+        return str(text)
+
+    def replace(match):
+        source = feature_choices.get(_choice_source_key(match.group(1)), {})
+        value = source.get(match.group(2))
+        return str(value) if value not in (None, '') else match.group(0)
+
+    return _ABILITY_CHOICE_REF_RE.sub(replace, str(text))
+
+
+def _grants_de_tag(
+        tag, escolhas, catalog, nivel_total, casts_selection=False,
+        feature_choices=None):
     """(fixas, escolha, reservado) de UMA tag. fixas=[(slug,nivel)] (magia específica garantida);
     escolha=None | dict normalizado:
       {'opcoes':[slug], 'qtd':K, 'rotulo':str}                 (lista concreta de opções)
@@ -1409,7 +1508,7 @@ def _grants_de_tag(tag, escolhas, catalog, nivel_total, casts_selection=False):
     `spell_selection:<escopo>{filtros}` sem `qtd:` (Adepto das Vestes/Místico, Iniciado
     Artífice, Tocado pelo X: "você aprende 1 magia…"). O escopo `any` gera pool SEM filtro de
     classe; `escola:{A | B}` vira CONJUNTO de escolas."""
-    s = str(tag)
+    s = _resolve_ability_choice_refs(tag, feature_choices)
 
     def _cat(sl):
         """PONTE DE SLUG _↔- contra o catálogo hifenado. As tags (formato do fixture que o
@@ -1502,9 +1601,13 @@ def _grants_de_tag(tag, escolhas, catalog, nivel_total, casts_selection=False):
             if not casts_selection:
                 continue
             qtd = 1
-        esc = _parse_escolas(body)
+        esc = _parse_escolas(body, escolhas)
         nv = _nivel_filtro(body)
-        escolha = {'pool': {'classes': sorted(set(classes)), 'nivel': nv, 'escola': esc},
+        concentration = False if re.search(r'not\s*\{\s*concentration\s*\}', body) else None
+        escolha = {'pool': {
+            'classes': sorted(set(classes)), 'nivel': nv, 'escola': esc,
+            'concentration': concentration,
+        },
                    'qtd': qtd, 'rotulo': _rotulo_escolha(nv, qtd, classes, esc)}
         break
     return fixas, escolha, []
@@ -1521,6 +1624,7 @@ def _resolve_pool(pool, catalog_rich):
     Negra: encantamento OU necromancia) — o filtro aceita QUALQUER uma do conjunto. `classes`
     vazio = pool aberto (sem filtro de classe, escopo `any`)."""
     cls, nv, esc_raw = set(pool['classes']), pool['nivel'], pool['escola']
+    concentration = pool.get('concentration')
     if not esc_raw:
         escolas = None
     elif isinstance(esc_raw, (set, frozenset, list, tuple)):
@@ -1528,12 +1632,14 @@ def _resolve_pool(pool, catalog_rich):
     else:
         escolas = {_norm_escola(esc_raw)}
     out = []
-    for slug, (nivel, escola, classes) in catalog_rich.items():
+    for slug, (nivel, escola, classes, requires_concentration) in catalog_rich.items():
         if nv is not None and nivel != nv:
             continue
         if escolas and escola not in escolas:
             continue
         if cls and not (cls & classes):
+            continue
+        if concentration is not None and bool(requires_concentration) != concentration:
             continue
         out.append(slug)
     return sorted(out)
@@ -1652,10 +1758,17 @@ def magias_concedidas(personagem):
     features = _features_do_personagem(personagem, classes)
     escolhas, _listas = _collect_escolhas(personagem, features)
     catalog, catalog_rich = {}, {}
-    for sl, nv, esc, cl in TbMagia.objects.values_list('slug', 'nivel', 'escola', 'classes'):
+    for sl, nv, esc, cl, concentration in TbMagia.objects.values_list(
+            'slug', 'nivel', 'escola', 'classes', 'concentracao'):
         catalog[sl] = nv
         catalog_rich[sl] = (nv, _norm_escola(esc),
-                            {x.strip() for x in (cl or '').split(',') if x.strip()})
+                            {x.strip() for x in (cl or '').split(',') if x.strip()},
+                            bool(concentration))
+    feature_choices = {}
+    for choice in personagem.escolhas.all().order_by('origem', 'tipo', 'slot'):
+        feature_choices.setdefault(
+            _choice_source_key(choice.origem), {}).setdefault(
+                choice.tipo, choice.valor)
     escolhidos = {}
     for e in TbPersonagemEscolha.objects.filter(id_personagem=personagem, tipo='magia-concedida'):
         escolhidos.setdefault((e.origem or '', e.slot), set()).update(
@@ -1671,7 +1784,8 @@ def magias_concedidas(personagem):
                                          ' '.join(str(t) for t in feat_tags)))
         for tag in feat_tags:
             fixas, escolha, _reserved = _grants_de_tag(
-                tag, escolhas, catalog, nivel_total, casts_selection)
+                tag, escolhas, catalog, nivel_total, casts_selection,
+                feature_choices=feature_choices)
             for slug, nivel in fixas:
                 if slug not in seen:
                     seen.add(slug)
@@ -2286,18 +2400,44 @@ def _armadura_equipada(personagem, dex_mod):
     tem_arm = tem_esc = False
     ca_arm, fonte = None, None
     esc_bonus = 0
-    for it in personagem.inventario.filter(equipado=True).select_related('id_item_magico'):
+    for it in personagem.inventario.filter(equipado=True).select_related(
+            'id_item_magico', 'id_item_mundano'):
         if it.id_item_magico and not _item_magico_equipavel(it.id_item_magico):
             continue
-        mec = mecanica_de_tags(_tags_mecanicas_item(it))
-        if mec['is_escudo']:
+        magico = it.id_item_magico
+        mundano = it.id_item_mundano
+        slot = (getattr(magico, 'slot', '') or '').strip().lower()
+        categoria = _slug(getattr(mundano, 'categoria', '') or '')
+        subcategoria = _slug(getattr(mundano, 'subcategoria', '') or '')
+        if slot == 'escudo' or subcategoria == 'escudo':
+            equipment_kind = 'shield'
+        elif slot == 'armadura' or categoria == 'armadura':
+            equipment_kind = 'armor'
+        elif magico is None and mundano is None:
+            legacy = mecanica_de_tags(_tags_mecanicas_item(it))
+            if legacy.get('is_escudo'):
+                equipment_kind = 'shield'
+            elif legacy.get('is_armadura'):
+                equipment_kind = 'armor'
+            else:
+                continue
+        else:
+            continue
+        mec = mecanica_de_tags(
+            _tags_mecanicas_item(it), subcategoria=subcategoria,
+            equipment_kind=equipment_kind)
+        if equipment_kind == 'shield':
             tem_esc = True
-            esc_bonus = max(esc_bonus, mec['ca_base'] if mec['ca_base'] is not None else 2)
-        elif mec['is_armadura']:
+            esc_bonus = max(esc_bonus, mec.get('ca_bonus') or 2)
+        elif equipment_kind == 'armor':
             tem_arm = True
             # CA = fórmula do item avaliada com o DES do personagem (ex.: 14+min(dex_mod,2)).
             ca = _eval_formula(mec.get('ca_formula') or '', {'dex_mod': dex_mod})
-            if ca is None:
+            if ca is None and mec['ca_base'] is not None:
+                ca = mec['ca_base'] + dex_mod
+            if ca is not None:
+                ca += int(mec.get('ca_bonus') or 0)
+            else:
                 ca = (mec['ca_base'] if mec['ca_base'] is not None else 10) + dex_mod
             if ca_arm is None or ca > ca_arm:
                 ca_arm, fonte = ca, it.nome
@@ -2308,6 +2448,7 @@ def _armadura_equipada(personagem, dex_mod):
 def _dsl_static_adapter(operations, ctx, feature_name, coll, hp_bonus, ca_cands,
                         resist, imune, cond_imune, sentidos, sentidos_incr,
                         sentidos_incr_ifp, source_kind=None,
+                        source_object=None,
                         existing_senses=frozenset()):
     """Materializa destinos estáticos do DSL no shape legado da ficha.
 
@@ -2417,7 +2558,9 @@ def _dsl_static_adapter(operations, ctx, feature_name, coll, hp_bonus, ca_cands,
             # (bug do off-by-one da CA). Só o `ca:+N` PLANO (incondicional, sem
             # escopo de armadura) alimenta o bônus geral. Itens equipados também
             # ficam com o compilador próprio (evita dupla contagem).
-            if 'armor' not in operation.scope and source_kind != 'item':
+            item_slot = (getattr(source_object, 'slot', '') or '').strip().lower()
+            item_handles_ca = source_kind == 'item' and item_slot in {'armadura', 'escudo'}
+            if 'armor' not in operation.scope and not item_handles_ca:
                 coll['ca_bonus'] += value
             mark('ca_bonus')
             continue
@@ -2665,6 +2808,7 @@ def apply_tags(state, features, personagem=None, escolhas=None):
                 dsl_result.operations, ctx, feat_nome, coll,
                 hp_bonus, ca_cands, resist, imune, cond_imune, sentidos,
                 sentidos_incr, sentidos_incr_ifp, source_kind=origem,
+                source_object=obj,
                 existing_senses=senses_before_feature)
             speed_bonus += dsl_speed
         except Exception as exc:
@@ -3051,6 +3195,14 @@ def apply_tags(state, features, personagem=None, escolhas=None):
     if recursos_tag:  # pools de talento/subclasse via define{} -> recursos
         for k, v in recursos_tag.items():
             state['recursos'][k] = '%s%s' % (v['max'], ' (reset %s)' % v['reset'] if v['reset'] else '')
+            state.setdefault('recursos_estruturados', []).append({
+                'key': 'tag_resource:%s' % _slug(k),
+                'name': k,
+                'maximum': int(v['max']),
+                'reset': v['reset'] or '',
+                'recovery': '',
+                'origin': k.split(':', 1)[0].strip(),
+            })
     state['_tag'] = coll
     return state
 
@@ -3469,6 +3621,7 @@ def derive(personagem):
     ctx = _build_ctx(nivel_total, pb, atributos)
     _sm = _spell_mod(classes, atributos)
     ctx['spell_mod'] = _sm
+    resource_max_overrides = _resource_max_overrides(features, ctx)
 
     # aviso: antecedente preenchido mas sem tags (habilidade não aplicada)
     if personagem.id_antecedente_id and not (personagem.id_antecedente.tags_json or []):
@@ -3492,8 +3645,9 @@ def derive(personagem):
                       'nivel': getattr(obj, 'niveladquirido', getattr(obj, 'nivel_requisito', None)),
                       'descricao': (getattr(obj, 'descricao', '') or getattr(obj, 'descricao_markdown', '') or '')}
                      for (o, f, obj, _cl) in features if not getattr(obj, 'table_only', False)],
-        'recursos': _recursos(classes),
-        'recursos_por_tipo': _recursos_por_tipo(classes),
+        'recursos': _recursos(classes, ctx, resource_max_overrides),
+        'recursos_estruturados': [],
+        'recursos_por_tipo': _recursos_por_tipo(classes, ctx, resource_max_overrides),
         'maestrias_armas': _maestrias_armas(personagem),
         'magias': _magias_personagem(personagem),
         'inventario': _inventario(personagem),

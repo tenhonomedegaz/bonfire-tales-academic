@@ -355,6 +355,206 @@ def focus_schools(personagem):
     return schools
 
 
+def _spell_damage_types(spell, known=None):
+    """Tipos de dano mecanicamente declarados nas tags de uma magia."""
+    if known is None:
+        from .tag_engine.library import Library
+        known = Library().catalogs.get('damage_type', set())
+    text = _ascii(' '.join(
+        tag for tag in (getattr(spell, 'tags_json', None) or ())
+        if isinstance(tag, str)))
+    return sorted(
+        damage for damage in known
+        if re.search(r'(?<![a-z0-9_])%s(?![a-z0-9_])' % re.escape(damage), text)
+    )
+
+
+def _spell_components(spell):
+    raw = str(getattr(spell, 'componentes', '') or '')
+    letters = []
+    for match in re.finditer(r'(?<![A-Za-z])([VSM])(?![A-Za-z])', raw, re.I):
+        letter = match.group(1).upper()
+        if letter not in letters:
+            letters.append(letter)
+    materials = parse_priced_materials(raw)
+    protected = set()
+    normalized = _ascii(raw)
+    if 'M' in letters and (
+            materials['total_cost_po'] > 0 or 'consum' in normalized):
+        protected.add('M')
+    return {
+        'all': letters,
+        'removable': [letter for letter in letters if letter not in protected],
+        'protected': sorted(protected),
+    }
+
+
+def _spell_has_area(spell):
+    text = _ascii(' '.join(
+        tag for tag in (getattr(spell, 'tags_json', None) or ())
+        if isinstance(tag, str)))
+    return bool(re.search(r'(?<![a-z0-9_])(?:aoe|area)\s*\{', text))
+
+
+def _spellcraft_node_values(node):
+    values = {}
+    for child in node.children or ():
+        if child.operator == 'block':
+            values[child.name] = [
+                str(item.value if item.name == '_literal' else item.name)
+                for item in child.children or ()
+            ]
+        else:
+            values[child.name] = child.value
+    return values
+
+
+def signature_spell_rules(personagem, *, casters=None):
+    """Contratos ``spellcraft`` ativos e seus catálogos para a Oficina.
+
+    A oficina não conhece Mago, níveis ou nomes de habilidades. Cada feature
+    declara slot, fonte, escola, limites e marcos de remodelagem na própria tag.
+    """
+    from .character_engine import _features_do_personagem
+    from .models import TbPersonagemMagiaAssinatura
+    from .tag_engine.library import Library
+
+    casters = character_casters(personagem) if casters is None else casters
+    caster_by_class = {row['pc'].id_classe_id: row for row in casters}
+    focus = focus_schools(personagem)
+    signatures = {
+        (row.id_classe_id, int(row.slot)): row
+        for row in TbPersonagemMagiaAssinatura.objects.filter(
+            id_personagem=personagem).select_related(
+                'id_magia_base', 'id_magia_personagem', 'id_classe')
+    }
+    signature_spell_ids = {
+        row.id_magia_personagem_id for row in signatures.values()
+    }
+    owned = list(personagem.magias.filter(
+        id_magia__isnull=False).select_related('id_magia'))
+    damage_catalog = Library().catalogs.get('damage_type', set())
+
+    rules = []
+    for _origin, _source, feature, classlvl in _features_do_personagem(personagem):
+        class_id = getattr(feature, 'id_classe_id', None)
+        caster = caster_by_class.get(class_id)
+        if caster is None:
+            continue
+        for tag in getattr(feature, 'tags_json', None) or ():
+            if not isinstance(tag, str) or 'spellcraft' not in tag:
+                continue
+            try:
+                nodes = parse_tag(tag).nodes
+            except ParseError:
+                continue
+            for node in nodes:
+                if node.name != 'spellcraft' or node.operator != 'block':
+                    continue
+                values = _spellcraft_node_values(node)
+                if values.get('kind') != 'signature_spell':
+                    continue
+                try:
+                    slot = int(values.get('slot'))
+                    max_base = int(values.get('max_base_level'))
+                except (TypeError, ValueError):
+                    continue
+                if values.get('source') != 'spellbook' \
+                        or caster['contract'].get('pool') != 'spellbook':
+                    continue
+                max_final_raw = values.get('max_final_level')
+                try:
+                    max_final = (int(caster['max_spell_level'])
+                                 if max_final_raw == 'spell_slot_max'
+                                 else int(max_final_raw))
+                except (TypeError, ValueError):
+                    continue
+                remodel_at = sorted({
+                    int(level) for level in values.get('remodel_at', [])
+                    if str(level).isdigit()
+                })
+                existing = signatures.get((class_id, slot))
+                existing_mods = (
+                    existing.modificacoes_json if existing is not None else {}) or {}
+                current_level = int(classlvl or caster['pc'].nivel or 0)
+                pending_levels = [
+                    level for level in remodel_at
+                    if level <= current_level and (
+                        existing is None
+                        or level > int(existing.ultima_reforma_nivel or 0))
+                ]
+                pending_remodel = max(pending_levels, default=None)
+                can_edit = existing is None or pending_remodel is not None
+                spell_rows = []
+                class_owned = [
+                    row for row in owned
+                    if row.pk not in signature_spell_ids
+                    and str(row.origem or '').casefold()
+                    == caster['pc'].id_classe.nome.casefold()
+                ]
+                damage_types = {
+                    damage for row in class_owned
+                    for damage in _spell_damage_types(
+                        row.id_magia, damage_catalog)
+                }
+                for row in class_owned:
+                    spell = row.id_magia
+                    if not 1 <= int(spell.nivel or 0) <= max_base:
+                        continue
+                    school = _ascii(spell.escola).replace(' ', '_')
+                    if values.get('school') == 'focus' and school not in focus:
+                        continue
+                    damages = _spell_damage_types(spell, damage_catalog)
+                    spell_rows.append({
+                        'owned': row,
+                        'spell': spell,
+                        'components': _spell_components(spell),
+                        'casting_action': _ascii(spell.casting_time).strip() in {
+                            'acao', '1 acao'},
+                        'damage_types': damages,
+                        'has_area': _spell_has_area(spell),
+                        'selected': bool(
+                            existing is not None
+                            and existing.id_magia_base_id == spell.pk),
+                    })
+                spell_rows.sort(key=lambda item: (
+                    int(item['spell'].nivel or 0),
+                    item['spell'].nome.casefold()))
+                rules.append({
+                    'slot': slot,
+                    'feature': feature,
+                    'class_id': class_id,
+                    'class_name': caster['pc'].id_classe.nome,
+                    'class_level': current_level,
+                    'max_base_level': max_base,
+                    'max_final_level': max_final,
+                    'remodel_at': remodel_at,
+                    'pending_remodel': pending_remodel,
+                    'can_edit': can_edit,
+                    'existing': existing,
+                    'form': {
+                        'name': existing.nome if existing is not None else '',
+                        'bonus_action': bool(existing_mods.get('bonus_action')),
+                        'removed_components': set(
+                            existing_mods.get('removed_components') or ()),
+                        'concentration_guard': bool(
+                            existing_mods.get('concentration_guard')),
+                        'damage_from': (
+                            existing_mods.get('damage') or {}).get('from', ''),
+                        'damage_to': (
+                            existing_mods.get('damage') or {}).get('to', ''),
+                        'area_shape': (
+                            existing_mods.get('area') or {}).get('shape', ''),
+                        'area_squares': (
+                            existing_mods.get('area') or {}).get('squares', ''),
+                    },
+                    'spells': spell_rows,
+                    'damage_types': sorted(damage_types),
+                })
+    rules.sort(key=lambda rule: (rule['class_name'].casefold(), rule['slot']))
+    return rules
+
+
 def transcription_terms_for_character(
         personagem, caster, spell, *, focus_school_values=None):
     from .spellcasting import transcription_terms

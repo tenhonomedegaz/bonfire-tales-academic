@@ -17,6 +17,7 @@ Espera no contexto: mochila, p, pode_editar.{% endcomment %}
             {% if it.equipado %}<span class="pill">equipado</span>{% endif %}
             {% if it.sintonizado %}<span class="pill attuned">sintonizado</span>{% elif it.requer_sintonizacao %}<span class="pill muted">requer sintonização</span>{% endif %}
             {% if it.consumivel %}<span class="pill muted">consumível</span>{% endif %}
+            {% for carga in it.cargas %}<span class="pill muted" title="{% if carga.reset %}Recupera: {{ carga.reset }}{% else %}Recuperação manual{% endif %}">{{ carga.nome }} {{ carga.atual }}/{{ carga.maximo }}</span>{% endfor %}
             {% if it.concedido %}<span class="pill muted" title="Concedido pela staff{% if it.origem_nota %} — {{ it.origem_nota }}{% endif %}">concedido</span>{% endif %}
           </span>
         </span>

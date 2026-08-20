@@ -45,9 +45,11 @@ PRODUCTION_PRESERVED_MODELS = [
 MEMORY_MODELS = [
     "TbPersonagem", "TbPersonagemAtributoBonus", "TbPersonagemClasse",
     "TbPersonagemEscolha", "TbPersonagemItem", "TbPersonagemMagia",
+    "TbPersonagemMagiaAssinatura",
     "TbPersonagemPericia", "TbPersonagemPersonalidade", "TbPersonagemProficiencia",
     "TbPersonagemRecurso", "TbPersonagemTalento", "TbPersonagemAventura",
     "TbPersonagemRevisao",
+    "TbTagLibraryRevision",
     "TbSolicitacaoTranscricao",
     "TbTransacao", "TbTransacaoMestre",
     "TbAventuraMestre", "TbAnuncioItemMagico", "TbCronica", "TbJornal",

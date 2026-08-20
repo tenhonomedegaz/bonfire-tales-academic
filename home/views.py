@@ -3818,7 +3818,8 @@ def _spell_transcription_options(
 
 
 def _magias_sheet_info(personagem, ficha, essencia_pendentes):
-    from .models import TbMagia, TbPersonagemMagia
+    from .models import (
+        TbMagia, TbPersonagemMagia, TbPersonagemMagiaAssinatura)
     classes = list(personagem.classes.select_related('id_classe', 'id_subclasse').order_by('-principal', 'id'))
     casters = []
     for pc in classes:
@@ -3864,6 +3865,11 @@ def _magias_sheet_info(personagem, ficha, essencia_pendentes):
     innate_rows = {r.nome: r for r in personagem.recursos.filter(nome__startswith=_INNATE_RESOURCE_PREFIX)}
     magias_pers = list(TbPersonagemMagia.objects.filter(id_personagem=personagem)
                        .select_related('id_magia').order_by('nivel', 'nome'))
+    assinaturas = {
+        row.id_magia_personagem_id: row
+        for row in TbPersonagemMagiaAssinatura.objects.filter(
+            id_personagem=personagem).select_related('id_magia_base')
+    }
     lista = []
     seen = set()
     for m in magias_pers:
@@ -3904,6 +3910,38 @@ def _magias_sheet_info(personagem, ficha, essencia_pendentes):
             'innate_reset': innate_meta.get('reset', '') if innate_meta else '',
         }
         row.update(_spell_catalog_fields(_mag))
+        assinatura = assinaturas.get(m.pk)
+        if assinatura is not None:
+            mods = assinatura.modificacoes_json or {}
+            removed = set(mods.get('removed_components') or ())
+            details = [
+                '**Magia Assinatura.** Baseada em %s.'
+                % assinatura.id_magia_base.nome,
+            ]
+            if mods.get('bonus_action'):
+                row['casting_time'] = 'Ação Bônus'
+                details.append('O tempo de conjuração foi alterado para Ação Bônus.')
+            if removed:
+                row['componentes'] = _signature_component_display(
+                    row['componentes'], removed)
+                details.append(
+                    'Componentes removidos: %s.' % ', '.join(sorted(removed)))
+            if mods.get('concentration_guard'):
+                details.append(
+                    'Ao falhar para manter Concentração, você pode usar sua Reação '
+                    'para obter sucesso automático.')
+            damage = mods.get('damage') or {}
+            if damage:
+                details.append('Dano alterado de %s para %s.' % (
+                    damage.get('from'), damage.get('to')))
+            area = mods.get('area') or {}
+            if area:
+                details.append(
+                    'Área remodelada como %s, preservando %s quadrados.' % (
+                        area.get('shape'), area.get('squares')))
+            row['descricao'] = '\n\n'.join(details + [row['descricao']])
+            row['assinatura'] = True
+            row['magia_base_nome'] = assinatura.id_magia_base.nome
         lista.append(row)
 
     # Classes preparadas de lista inteira precisam enxergar também o que AINDA não
@@ -3999,40 +4037,62 @@ def _magias_sheet_info(personagem, ficha, essencia_pendentes):
 
 
 def _consumiveis_ficha_cards(personagem, ficha):
-    from .character_engine import _recursos_consumiveis, derive
+    from .character_engine import _recursos_consumiveis
+    from .resource_engine import ensure_resource, sync_item_charges
     classes = list(personagem.classes.select_related('id_classe', 'id_subclasse'))
-    atuais = {pr.nome: pr for pr in personagem.recursos.all()}
     cards = []
     seen_names = set()
     seen_slugs = set()
     for r in _recursos_consumiveis(personagem, classes):
+        contract = {
+            'key': r['db_chave'], 'legacy_name': r['db_nome'],
+            'name': r['nome'], 'maximum': r['maximo'],
+            'reset': r.get('reset') or '', 'origin': r.get('origem') or '',
+        }
+        resource = ensure_resource(personagem, contract)
         seen_names.add(r['nome'])
         seen_slugs.add(r.get('slug') or '')
         cards.append({
-            'kind': 'recurso', 'id': r['slug'], 'nome': r['nome'],
-            'subtitulo': r.get('classe') or '', 'atual': r['atual'], 'maximo': r['maximo'],
+            'kind': 'recurso', 'id': contract['key'], 'nome': r['nome'],
+            'slug': r.get('slug') or contract['key'],
+            'subtitulo': r.get('classe') or '', 'atual': resource.atual,
+            'maximo': resource.maximo,
             'reset': r.get('reset') or 'manual',
         })
-    for nome, val in (ficha.get('recursos') or {}).items():
-        nome_limpo = str(nome or '').strip()
-        if not nome_limpo or nome_limpo in seen_names or nome_limpo.split(':')[-1].strip() in seen_names:
+    for spec in (ficha.get('recursos_estruturados') or []):
+        nome_limpo = str(spec.get('name') or '').strip()
+        if (not nome_limpo or nome_limpo in seen_names
+                or nome_limpo.split(':')[-1].strip() in seen_names):
             continue
         tag_slug = slugify(nome_limpo.split(':')[-1].strip() or nome_limpo)
         if tag_slug in seen_slugs:
             continue
-        m = re.match(r'^\s*(\d+)\s*\(reset\s+([^)]+)\)\s*$', str(val or '').strip())
-        if not m:
-            continue
-        mx = int(m.group(1))
+        mx = int(spec.get('maximum') or 0)
         if mx <= 0:
             continue
-        key = 'tag-resource:%s' % slugify(nome_limpo)[:82]
-        pr = atuais.get(key)
-        atual = min(int(pr.atual or 0), mx) if pr else mx
+        contract = {
+            'key': spec.get('key') or 'tag_resource:%s' % tag_slug,
+            'legacy_name': 'tag-resource:%s' % slugify(nome_limpo)[:82],
+            'name': nome_limpo, 'maximum': mx,
+            'reset': spec.get('reset') or '',
+            'recovery': spec.get('recovery') or '',
+            'origin': spec.get('origin') or '',
+        }
+        resource = ensure_resource(personagem, contract)
         cards.append({
-            'kind': 'recurso', 'id': 'tag:%s' % slugify(nome_limpo),
-            'db_nome': key, 'nome': nome_limpo, 'subtitulo': 'habilidade',
-            'atual': max(0, atual), 'maximo': mx, 'reset': m.group(2),
+            'kind': 'recurso', 'id': contract['key'],
+            'slug': tag_slug,
+            'nome': nome_limpo, 'subtitulo': 'habilidade',
+            'atual': resource.atual, 'maximo': resource.maximo,
+            'reset': contract['reset'],
+        })
+    for charge in sync_item_charges(personagem):
+        cards.append({
+            'kind': 'recurso', 'id': charge['key'],
+            'nome': '%s - %s' % (charge['item'].nome, charge['name']),
+            'subtitulo': 'item magico' if charge['item'].id_item_magico_id else 'item',
+            'atual': charge['current'], 'maximo': charge['maximum'],
+            'reset': charge['reset'] or 'manual',
         })
     for it in (ficha.get('inventario') or []):
         if not it.get('consumivel'):
@@ -6436,11 +6496,19 @@ def _mochila_ficha(p, ficha):
     catálogo. Consumível/objeto/item menor não aparecem na grade (não são vestíveis) —
     vivem só na lista de inventário, com o botão de uso."""
     from . import slots as _slots
+    from .resource_engine import sync_item_charges
 
     equipados = list(p.inventario.filter(equipado=True).select_related('id_item_magico'))
     grade = _slots.grade_de_slots(equipados)
     itens = ficha.get('inventario') or []
+    cargas_por_item = {}
+    for charge in sync_item_charges(p):
+        cargas_por_item.setdefault(charge['item'].pk, []).append({
+            'nome': charge['name'], 'atual': charge['current'],
+            'maximo': charge['maximum'], 'reset': charge['reset'],
+        })
     for item in itens:
+        item['cargas'] = cargas_por_item.get(item['id'], [])
         if not item.get('magico'):
             venda = _preco_venda_mundano_pc(item.get('custo'))
             if venda:
@@ -8161,6 +8229,7 @@ def personagem_anunciar_magico(request, pk):
     """Anuncia um item mágico do inventário no Mercado da Comunidade pelo preço de
     venda do mercado. O item sai do inventário (escrow) até vender ou ser cancelado."""
     from .models import TbPersonagemItem, TbAnuncioItemMagico
+    from .resource_engine import item_resource_state, sync_item_charges
     p = _ficha_editavel(request, pk)
     back = reverse('ficha_detail', args=[pk]) + '?aba=mochila'
     it = (TbPersonagemItem.objects.filter(id=request.POST.get('item'), id_personagem=p)
@@ -8174,9 +8243,10 @@ def personagem_anunciar_magico(request, pk):
         return redirect(back + '&anuncio=variante')
     preco_pc = _preco_venda_pc(it.id_item_magico)
     with transaction.atomic():
+        sync_item_charges(p, [it])
         TbAnuncioItemMagico.objects.create(
             vendedor=p, id_item_magico=it.id_item_magico, nome=it.nome, custo=it.custo,
-            preco_pc=preco_pc, status='ativo')
+            preco_pc=preco_pc, status='ativo', estado_json=item_resource_state(it))
         if (it.qtd or 1) > 1:        # anuncia 1 unidade
             it.qtd -= 1
             it.save(update_fields=['qtd'])
@@ -8213,6 +8283,7 @@ def mercado_comunidade_view(request):
 def comprar_anuncio(request, anuncio_id):
     """Compra um anúncio: debita o comprador, credita o vendedor, move o item."""
     from .models import TbAnuncioItemMagico, TbPersonagem, TbPersonagemItem
+    from .resource_engine import restore_item_resource_state
     comprador = TbPersonagem.objects.filter(id_personagem=request.POST.get('comprador'),
                                             dono=request.user, arquivado=False).first()
     if not comprador:
@@ -8231,9 +8302,10 @@ def comprar_anuncio(request, anuncio_id):
         vend = a.vendedor
         vend.carteira_pc = (vend.carteira_pc or 0) + a.preco_pc
         vend.save(update_fields=['carteira_pc', 'atualizado_em'])
-        TbPersonagemItem.objects.create(id_personagem=comprador, qtd=1, nome=a.nome, custo=a.custo,
+        item = TbPersonagemItem.objects.create(id_personagem=comprador, qtd=1, nome=a.nome, custo=a.custo,
             id_item_magico=a.id_item_magico, equipado=False, sintonizado=False,
             origem_tipo='comunidade')
+        restore_item_resource_state(comprador, item, a.estado_json)
         a.status, a.comprador, a.vendido_em = 'vendido', comprador, timezone.now()
         a.save(update_fields=['status', 'comprador', 'vendido_em'])
         _registrar_transacao(comprador, 'mercado-compra', 'Comprou (comunidade): %s' % a.nome, -a.preco_pc)
@@ -8246,14 +8318,16 @@ def comprar_anuncio(request, anuncio_id):
 def cancelar_anuncio(request, anuncio_id):
     """Cancela um anúncio próprio: devolve o item ao vendedor."""
     from .models import TbAnuncioItemMagico, TbPersonagemItem
+    from .resource_engine import restore_item_resource_state
     with transaction.atomic():
         a = (TbAnuncioItemMagico.objects.select_for_update()
              .filter(id=anuncio_id, status='ativo').select_related('vendedor').first())
         if not a or a.vendedor.dono_id != request.user.id:
             return redirect(reverse('mercado_comunidade') + '?m=invalido')
-        TbPersonagemItem.objects.create(id_personagem=a.vendedor, qtd=1, nome=a.nome, custo=a.custo,
+        item = TbPersonagemItem.objects.create(id_personagem=a.vendedor, qtd=1, nome=a.nome, custo=a.custo,
             id_item_magico=a.id_item_magico, equipado=False, sintonizado=False,
             origem_tipo='comunidade')
+        restore_item_resource_state(a.vendedor, item, a.estado_json)
         a.status = 'cancelado'
         a.save(update_fields=['status'])
     return redirect(reverse('mercado_comunidade') + '?m=cancelado')
@@ -8269,16 +8343,16 @@ def _redirect_next_or(request, fallback_url):
 
 def _recursos_ajax_payload(p):
     """Snapshot dos recursos recuperáveis exibidos no editor da ficha."""
-    from .character_engine import _recursos_consumiveis
-
-    classes = list(p.classes.select_related('id_classe', 'id_subclasse'))
+    from .character_engine import derive
     return [
         {
-            'slug': r['slug'],
+            'slug': r.get('slug') or r['id'],
+            'key': r['id'],
             'atual': int(r.get('atual') or 0),
             'maximo': int(r.get('maximo') or 0),
         }
-        for r in _recursos_consumiveis(p, classes)
+        for r in _consumiveis_ficha_cards(p, derive(p))
+        if r.get('kind') == 'recurso'
     ]
 
 
@@ -8286,26 +8360,28 @@ def _recursos_ajax_payload(p):
 @require_POST
 def personagem_usar_recurso(request, pk):
     """Gasta (−1) ou desfaz (+1) um uso de um recurso consumível do personagem."""
-    from .character_engine import _recursos_consumiveis, derive
-    from .models import TbPersonagemRecurso
+    from .character_engine import derive
+    from .resource_engine import contract_for_key, mutate_resource
     p = _ficha_editavel(request, pk)
-    classes = list(p.classes.select_related('id_classe', 'id_subclasse'))
-    cons = {r['slug']: r for r in _recursos_consumiveis(p, classes)}
-    for r_tag in _consumiveis_ficha_cards(p, derive(p)):
-        if r_tag.get('db_nome'):
-            cons[r_tag['id']] = r_tag
-    r = cons.get(request.POST.get('recurso'))
-    if not r:
+    card_list = [r for r in _consumiveis_ficha_cards(p, derive(p))
+                 if r.get('kind') == 'recurso']
+    cards = {r['id']: r for r in card_list}
+    key = request.POST.get('recurso') or ''
+    selected = cards.get(key)
+    if selected is None:
+        # Compatibilidade com formulários e bookmarks anteriores ao namespace
+        # estrutural: aceita o slug somente quando ele identifica um único pool.
+        wanted = slugify(key).replace('-', '_')
+        matches = [row for row in card_list
+                   if row['id'].rsplit(':', 1)[-1] == wanted]
+        selected = matches[0] if len(matches) == 1 else None
+    contract = contract_for_key(p, selected['id']) if selected else None
+    if not contract:
         if is_ajax(request):
             return JsonResponse({'ok': False, 'msg': 'recurso_invalido'}, status=400)
         return _redirect_next_or(request, reverse('editar_ficha', args=[pk]))
     delta = 1 if request.POST.get('acao') == 'desfazer' else -1
-    novo = max(0, min(r['maximo'], r['atual'] + delta))
-    pr, _ = TbPersonagemRecurso.objects.get_or_create(
-        id_personagem=p, nome=r.get('db_nome') or r['nome'],
-        defaults={'maximo': r['maximo'], 'atual': r['maximo']})
-    pr.atual, pr.maximo = novo, r['maximo']
-    pr.save(update_fields=['atual', 'maximo'])
+    mutate_resource(p, contract, delta)
     if is_ajax(request):
         return JsonResponse({
             'ok': True,
@@ -8324,23 +8400,25 @@ def _mover_consumivel(personagem, item_id, delta):
     `erro` um slug ('item_invalido' | 'qtd_insuficiente') quando nada foi tocado."""
     from .character_engine import _item_consumivel_meta
     from .models import TbPersonagemItem
-    it = (TbPersonagemItem.objects.filter(id=item_id, id_personagem=personagem)
-          .select_related('id_item_magico').first())
-    if not it or not _item_consumivel_meta(it, it.id_item_magico)['consumivel']:
-        return (None, 'item_invalido')
-    antes = int(it.qtd or 0)
-    depois = antes + int(delta)
-    if depois < 0:
-        return (None, 'qtd_insuficiente')
-    depois = min(999, depois)
-    info = {'item_id': it.id, 'nome': it.nome, 'qtd': abs(int(delta)),
-            'antes': antes, 'depois': depois}
-    if depois == 0:
-        it.delete()
-    else:
-        it.qtd = depois
-        it.save(update_fields=['qtd'])
-    return (info, None)
+    with transaction.atomic():
+        it = (TbPersonagemItem.objects.select_for_update(of=('self',))
+              .filter(id=item_id, id_personagem=personagem)
+              .select_related('id_item_magico', 'id_item_mundano').first())
+        if not it or not _item_consumivel_meta(it, it.id_item_magico)['consumivel']:
+            return (None, 'item_invalido')
+        antes = int(it.qtd or 0)
+        depois = antes + int(delta)
+        if depois < 0:
+            return (None, 'qtd_insuficiente')
+        depois = min(999, depois)
+        info = {'item_id': it.id, 'nome': it.nome, 'qtd': abs(int(delta)),
+                'antes': antes, 'depois': depois}
+        if depois == 0:
+            it.delete()
+        else:
+            it.qtd = depois
+            it.save(update_fields=['qtd'])
+        return (info, None)
 
 
 @login_required(login_url='/login/')
@@ -8363,7 +8441,7 @@ def personagem_usar_item_consumivel(request, pk):
 def personagem_usar_slot_magia(request, pk):
     """Gasta (-1) ou devolve (+1) um slot de magia rastreado na aba Magias."""
     from .character_engine import derive
-    from .models import TbPersonagemRecurso
+    from .resource_engine import mutate_resource
     p = _ficha_editavel(request, pk)
     try:
         nivel = int(request.POST.get('nivel') or 0)
@@ -8377,13 +8455,11 @@ def personagem_usar_slot_magia(request, pk):
     if total <= 0:
         return _redirect_next_or(request, reverse('ficha_detail', args=[pk]) + '?aba=magias')
     key = 'spell-slot:%d' % nivel
-    pr, _ = TbPersonagemRecurso.objects.get_or_create(
-        id_personagem=p, nome=key, defaults={'maximo': total, 'atual': total})
-    atual_base = min(int(pr.atual or 0), total)
     delta = 1 if request.POST.get('acao') == 'desfazer' else -1
-    pr.atual = max(0, min(total, atual_base + delta))
-    pr.maximo = total
-    pr.save(update_fields=['atual', 'maximo'])
+    mutate_resource(p, {
+        'key': key, 'legacy_name': key, 'name': key,
+        'maximum': total, 'reset': 'long_rest', 'origin': 'spellcasting',
+    }, delta)
     return _redirect_next_or(request, reverse('ficha_detail', args=[pk]) + '?aba=magias')
 
 
@@ -8392,7 +8468,8 @@ def personagem_usar_slot_magia(request, pk):
 def personagem_usar_magia_inata(request, pk, magia_id):
     """Gasta (-1) ou devolve (+1) o uso oculto de uma magia inata/concedida."""
     from .character_engine import derive
-    from .models import TbPersonagemMagia, TbPersonagemRecurso
+    from .models import TbPersonagemMagia
+    from .resource_engine import mutate_resource
     p = _ficha_editavel(request, pk)
     m = get_object_or_404(TbPersonagemMagia, pk=magia_id, id_personagem=p)
     if not m.sempre_preparada:
@@ -8403,13 +8480,12 @@ def personagem_usar_magia_inata(request, pk, magia_id):
     total = int((row or {}).get('innate_max') or 0)
     if not key or total <= 0:
         return _redirect_next_or(request, reverse('ficha_detail', args=[pk]) + '?aba=magias')
-    pr, _ = TbPersonagemRecurso.objects.get_or_create(
-        id_personagem=p, nome=key, defaults={'maximo': total, 'atual': total})
-    atual_base = min(int(pr.atual or 0), total)
     delta = 1 if request.POST.get('acao') == 'desfazer' else -1
-    pr.atual = max(0, min(total, atual_base + delta))
-    pr.maximo = total
-    pr.save(update_fields=['atual', 'maximo'])
+    mutate_resource(p, {
+        'key': key, 'legacy_name': key, 'name': m.nome,
+        'maximum': total, 'reset': (row or {}).get('innate_reset') or 'long_rest',
+        'origin': 'magia_inata:%s' % m.pk,
+    }, delta)
     return _redirect_next_or(request, reverse('ficha_detail', args=[pk]) + '?aba=magias')
 
 
@@ -8417,52 +8493,45 @@ def personagem_usar_magia_inata(request, pk, magia_id):
 @require_POST
 def personagem_descansar(request, pk):
     """Descanso: recupera recursos conforme o reset declarado no recurso."""
-    from .character_engine import _recursos_consumiveis, derive
-    from .models import TbPersonagemRecurso
+    from .character_engine import derive
+    from .resource_engine import (
+        end_states_on, ensure_resource, reset_resources)
     p = _ficha_editavel(request, pk)
-    longo = request.POST.get('tipo') == 'longo'
-    classes = list(p.classes.select_related('id_classe', 'id_subclasse'))
+    tipo = (request.POST.get('tipo') or 'curto').strip().lower()
+    event = {
+        'curto': 'short_rest', 'longo': 'long_rest',
+        'amanhecer': 'dawn',
+    }.get(tipo, 'short_rest')
     ficha = derive(p)
-    for r in _recursos_consumiveis(p, classes):
-        reset = r.get('reset') or ''
-        if _resource_resets_on_rest(reset, longo):
-            pr, _ = TbPersonagemRecurso.objects.get_or_create(
-                id_personagem=p, nome=r['nome'], defaults={'maximo': r['maximo'], 'atual': r['maximo']})
-            pr.atual, pr.maximo = r['maximo'], r['maximo']
-            pr.save(update_fields=['atual', 'maximo'])
-    for r in _consumiveis_ficha_cards(p, ficha):
-        if not r.get('db_nome') or not _resource_resets_on_rest(r.get('reset'), longo):
-            continue
-        pr, _ = TbPersonagemRecurso.objects.get_or_create(
-            id_personagem=p, nome=r['db_nome'], defaults={'maximo': r['maximo'], 'atual': r['maximo']})
-        pr.atual, pr.maximo = r['maximo'], r['maximo']
-        pr.save(update_fields=['atual', 'maximo'])
+    # Materializa contratos de classe, habilidade e item antes de disparar o evento.
+    _consumiveis_ficha_cards(p, ficha)
     magias_info = _magias_sheet_info(p, ficha, [])
-    if longo:
-        for s in magias_info.get('slots', []):
-            total = int(s.get('total') or 0)
-            if total <= 0:
-                continue
-            pr, _ = TbPersonagemRecurso.objects.get_or_create(
-                id_personagem=p, nome=s['key'], defaults={'maximo': total, 'atual': total})
-            pr.atual, pr.maximo = total, total
-            pr.save(update_fields=['atual', 'maximo'])
+    for s in magias_info.get('slots', []):
+        total = int(s.get('total') or 0)
+        if total > 0:
+            ensure_resource(p, {
+                'key': s['key'], 'legacy_name': s['key'], 'name': s['key'],
+                'maximum': total, 'reset': 'long_rest', 'origin': 'spellcasting',
+            })
     for m in magias_info.get('lista', []):
         key = m.get('innate_key') or ''
         total = int(m.get('innate_max') or 0)
-        if not key or total <= 0 or not _resource_resets_on_rest(m.get('innate_reset'), longo):
-            continue
-        pr, _ = TbPersonagemRecurso.objects.get_or_create(
-            id_personagem=p, nome=key, defaults={'maximo': total, 'atual': total})
-        pr.atual, pr.maximo = total, total
-        pr.save(update_fields=['atual', 'maximo'])
+        if key and total > 0:
+            ensure_resource(p, {
+                'key': key, 'legacy_name': key, 'name': m.get('nome') or key,
+                'maximum': total, 'reset': m.get('innate_reset') or 'long_rest',
+                'origin': 'magia_inata:%s' % (m.get('id') or ''),
+            })
+    reset_resources(p, event)
+    end_states_on(p, event)
     if is_ajax(request):
         return JsonResponse({
             'ok': True,
-            'descanso': 'longo' if longo else 'curto',
+            'descanso': tipo,
             'recursos': _recursos_ajax_payload(p),
         })
-    return _redirect_next_or(request, reverse('editar_ficha', args=[pk]) + ('?rest=longo' if longo else '?rest=curto'))
+    return _redirect_next_or(
+        request, reverse('editar_ficha', args=[pk]) + '?rest=' + tipo)
 
 
 @login_required(login_url='/login/')
@@ -8877,11 +8946,13 @@ def personagem_toggle_magia(request, pk, magia_id):
         pc = p.classes.first()
     if pc is None:
         return redirect(url)
-    code = _toggle_magia_preparada(p, pc.id_classe_id, m.id_magia.slug)
+    code = _toggle_magia_preparada(
+        p, pc.id_classe_id, m.id_magia.slug, owned_id=m.pk)
     return redirect(url + (('&prep=' + code) if code != 'ok' else ''))
 
 
-def _toggle_magia_preparada(personagem, classe_id, magia_slug):
+def _toggle_magia_preparada(
+        personagem, classe_id, magia_slug, *, owned_id=None):
     """Marca uma magia preparada respeitando ``mode``, ``pool`` e ``spell_limit``."""
     from .character_engine import derive
     from .models import TbMagia, TbPersonagemMagia
@@ -8897,11 +8968,16 @@ def _toggle_magia_preparada(personagem, classe_id, magia_slug):
     if magia is None or pc is None or int(magia.nivel or 0) < 1:
         return 'invalida'
     origin = pc.id_classe.nome
-    rows = personagem.magias.filter(
-        id_magia=magia, sempre_preparada=False, origem__iexact=origin)
-    if personagem.classes.count() == 1:
-        rows = personagem.magias.filter(id_magia=magia, sempre_preparada=False).filter(
-            Q(origem__iexact=origin) | Q(origem__isnull=True) | Q(origem=''))
+    if owned_id is not None:
+        rows = personagem.magias.filter(
+            pk=owned_id, id_magia=magia, sempre_preparada=False)
+    else:
+        rows = personagem.magias.filter(
+            id_magia=magia, sempre_preparada=False, origem__iexact=origin)
+        if personagem.classes.count() == 1:
+            rows = personagem.magias.filter(
+                id_magia=magia, sempre_preparada=False).filter(
+                    Q(origem__iexact=origin) | Q(origem__isnull=True) | Q(origem=''))
     row = rows.order_by('-preparada', 'id').first()
     with transaction.atomic():
         if row is not None and row.preparada:
@@ -13691,6 +13767,9 @@ def _oficina_redirect(request, status):
         query.append('personagem=%s' % personagem)
     if status:
         query.append('status=%s' % status)
+    tab = request.POST.get('tab') or request.GET.get('tab')
+    if tab in {'scrolls', 'transcription', 'casting', 'components', 'signature'}:
+        query.append('tab=%s' % tab)
     return redirect(url + (('?' + '&'.join(query)) if query else ''))
 
 
@@ -13820,13 +13899,14 @@ def _oficina_other_spellbooks(
 def oficina_magia_view(request):
     from .magic_workshop import (
         character_casters, character_spell_access_map, component_offers,
-        scroll_item_info, scroll_offer, spell_token,
+        scroll_item_info, scroll_offer, signature_spell_rules, spell_token,
     )
     from .models import TbSolicitacaoTranscricao
 
     context = _mercado_contexto(request)
     personagem = context['mercado_ativo']
-    scrolls, components, castable, spellbooks = [], [], [], []
+    scrolls, components, castable, spellbooks, signature_rules = [], [], [], [], []
+    active_states = []
     transcricoes = []
     owned_scrolls = []
     casters = []
@@ -13865,6 +13945,9 @@ def oficina_magia_view(request):
         spellbooks = _oficina_other_spellbooks(
             personagem, access_map,
             contract_cache=contract_cache)
+        signature_rules = signature_spell_rules(personagem, casters=casters)
+        active_states = list(personagem.estados.filter(
+            ativo=True, origem__startswith='magia:').order_by('-iniciado_em'))
         for item in inventory:
             info = scroll_item_info(_personagem_item_tags(item))
             spell = spell_index.get(spell_token((info or {}).get('spell')))
@@ -13886,12 +13969,152 @@ def oficina_magia_view(request):
         'title': 'Oficina de Magia', 'scrolls': scrolls,
         'componentes_ofertas': components, 'magias_conjuraveis': castable,
         'transcricoes': transcricoes, 'grimorios_disponiveis': spellbooks,
+        'magias_assinatura': signature_rules,
+        'efeitos_persistentes': active_states,
+        'formas_magia_assinatura': (
+            ('esfera', 'Esfera'), ('cone', 'Cone'), ('cubo', 'Cubo'),
+            ('cilindro', 'Cilindro'), ('linha', 'Linha de 1,5 metro [5 pés]')),
         'pergaminhos_possuidos': owned_scrolls,
         'solicitacoes_recebidas': incoming, 'solicitacoes_enviadas': outgoing,
         'oficina_status': (request.GET.get('status') or '').strip(),
         'oficina_resultado': request.session.pop('oficina_resultado', ''),
     })
     return render(request, 'home/pages/oficina_magia.html', context)
+
+
+def _signature_component_display(raw, removed):
+    letters = [letter for letter in ('V', 'S', 'M')
+               if re.search(r'(?<![A-Za-z])%s(?![A-Za-z])' % letter,
+                            str(raw or ''), re.I)
+               and letter not in removed]
+    material = ''
+    if 'M' in letters:
+        match = re.search(r'M\s*(\([^)]*\))', str(raw or ''), re.I)
+        material = (' ' + match.group(1)) if match else ''
+    return ', '.join(letters) + material
+
+
+@login_required(login_url='/login/')
+@require_POST
+def oficina_salvar_magia_assinatura(request, pk):
+    """Cria ou remodela uma magia conforme o contrato ``spellcraft`` ativo."""
+    from .magic_workshop import character_casters, signature_spell_rules
+    from .models import (
+        TbPersonagemMagia, TbPersonagemMagiaAssinatura)
+
+    p = _ficha_editavel(request, pk)
+    try:
+        class_id = int(request.POST.get('classe') or 0)
+        slot = int(request.POST.get('slot') or 0)
+        base_owned_id = int(request.POST.get('magia_base') or 0)
+    except (TypeError, ValueError):
+        return _oficina_redirect(request, 'assinatura_invalida')
+    rule = next((row for row in signature_spell_rules(
+        p, casters=character_casters(p))
+        if row['class_id'] == class_id and row['slot'] == slot), None)
+    if rule is None:
+        return _oficina_redirect(request, 'assinatura_invalida')
+    if not rule['can_edit']:
+        return _oficina_redirect(request, 'assinatura_bloqueada')
+    base_row = next((row for row in rule['spells']
+                     if row['owned'].pk == base_owned_id), None)
+    if base_row is None:
+        return _oficina_redirect(request, 'assinatura_base')
+
+    spell = base_row['spell']
+    name = re.sub(r'\s+', ' ', request.POST.get('nome') or '').strip()
+    if len(name) < 3 or len(name) > 200:
+        return _oficina_redirect(request, 'assinatura_nome')
+
+    removed = list(dict.fromkeys(
+        value.upper() for value in request.POST.getlist('remover_componente')
+        if value.upper() in {'V', 'S', 'M'}))
+    component_info = base_row['components']
+    if (not set(removed).issubset(set(component_info['removable']))
+            or not (set(component_info['all']) - set(removed))):
+        return _oficina_redirect(request, 'assinatura_componentes')
+
+    bonus_action = request.POST.get('acao_bonus') in {'1', 'on', 'true'}
+    if bonus_action and not base_row['casting_action']:
+        return _oficina_redirect(request, 'assinatura_modificacao')
+    concentration_guard = request.POST.get('concentracao_segura') in {'1', 'on', 'true'}
+    if concentration_guard and not spell.concentracao:
+        return _oficina_redirect(request, 'assinatura_modificacao')
+
+    damage_from = (request.POST.get('dano_de') or '').strip()
+    damage_to = (request.POST.get('dano_para') or '').strip()
+    if bool(damage_from) != bool(damage_to):
+        return _oficina_redirect(request, 'assinatura_dano')
+    if damage_from and (
+            damage_from not in base_row['damage_types']
+            or damage_to not in rule['damage_types']
+            or damage_from == damage_to):
+        return _oficina_redirect(request, 'assinatura_dano')
+
+    area_shape = (request.POST.get('forma_area') or '').strip()
+    area_squares = None
+    if area_shape:
+        if not base_row['has_area'] or area_shape not in {
+                'esfera', 'cone', 'cubo', 'cilindro', 'linha'}:
+            return _oficina_redirect(request, 'assinatura_area')
+        try:
+            area_squares = int(request.POST.get('quadrados_area') or 0)
+        except (TypeError, ValueError):
+            area_squares = 0
+        if not 1 <= area_squares <= 10000:
+            return _oficina_redirect(request, 'assinatura_area')
+
+    final_level = (int(spell.nivel or 0) + int(bonus_action)
+                   + len(removed) + int(concentration_guard))
+    if final_level > int(rule['max_final_level'] or 0):
+        return _oficina_redirect(request, 'assinatura_circulo')
+
+    modifications = {
+        'bonus_action': bonus_action,
+        'removed_components': removed,
+        'concentration_guard': concentration_guard,
+        'damage': ({'from': damage_from, 'to': damage_to}
+                   if damage_from else {}),
+        'area': ({'shape': area_shape, 'squares': area_squares}
+                 if area_shape else {}),
+    }
+    with transaction.atomic():
+        existing = TbPersonagemMagiaAssinatura.objects.select_for_update().filter(
+            id_personagem=p, id_classe_id=class_id, slot=slot).first()
+        if existing is not None:
+            if not rule['pending_remodel']:
+                return _oficina_redirect(request, 'assinatura_bloqueada')
+            owned = existing.id_magia_personagem
+            reform_level = int(rule['pending_remodel'])
+        else:
+            owned = TbPersonagemMagia.objects.create(
+                id_personagem=p, id_magia=spell, nivel=final_level,
+                nome=name, preparada=False, sempre_preparada=False,
+                origem=rule['class_name'])
+            reform_level = int(rule['class_level'])
+        owned.id_magia = spell
+        owned.nivel = final_level
+        owned.nome = name
+        owned.origem = rule['class_name']
+        owned.save(update_fields=['id_magia', 'nivel', 'nome', 'origem'])
+        if existing is None:
+            existing = TbPersonagemMagiaAssinatura(
+                id_personagem=p, id_magia_personagem=owned,
+                id_classe_id=class_id, slot=slot)
+        existing.id_magia_base = spell
+        existing.nome = name
+        existing.nivel_base = int(spell.nivel or 0)
+        existing.nivel_final = final_level
+        existing.modificacoes_json = modifications
+        existing.ultima_reforma_nivel = reform_level
+        existing.save()
+        _registrar_transacao(
+            p, 'ajuste', 'Magia Assinatura: %s' % name, 0,
+            {'operacao': 'magia_assinatura', 'slot': slot,
+             'classe_id': class_id, 'magia_base_id': spell.pk,
+             'nivel_final': final_level, 'modificacoes': modifications})
+    request.session['oficina_resultado'] = '%s foi registrada no grimório.' % name
+    return _oficina_redirect(request, 'assinatura_ok')
 
 
 @login_required(login_url='/login/')
@@ -13952,9 +14175,9 @@ def oficina_comprar_componente(request, pk):
 
 def _oficina_casting_resource(personagem, caster, spell, slot_level):
     """Valida e gasta o recurso declarado no contrato de conjuração."""
-    from .character_engine import _eval_formula
+    from .character_engine import _eval_formula, _recursos_consumiveis
     from .magic_workshop import character_casters
-    from .models import TbPersonagemRecurso
+    from .resource_engine import spend_resource
     from .spellcasting import resource_limit_at
 
     contract = caster['contract']
@@ -13975,16 +14198,12 @@ def _oficina_casting_resource(personagem, caster, spell, slot_level):
         if total <= 0:
             return False, {'error': 'slot'}
         key = 'spell-slot:%d' % chosen
-        resource, _ = TbPersonagemRecurso.objects.get_or_create(
-            id_personagem=personagem, nome=key,
-            defaults={'maximo': total, 'atual': total})
-        resource = TbPersonagemRecurso.objects.select_for_update().get(pk=resource.pk)
-        current = min(int(resource.atual or 0), total)
-        if current <= 0:
+        ok, _snapshot = spend_resource(personagem, {
+            'key': key, 'legacy_name': key, 'name': key,
+            'maximum': total, 'reset': 'long_rest', 'origin': 'spellcasting',
+        }, 1)
+        if not ok:
             return False, {'error': 'slot_gasto'}
-        resource.atual = current - 1
-        resource.maximo = total
-        resource.save(update_fields=['atual', 'maximo'])
         return True, {'kind': 'slot', 'level': chosen, 'resource': key}
 
     resource_slug = contract.get('slots_resource')
@@ -14003,16 +14222,27 @@ def _oficina_casting_resource(personagem, caster, spell, slot_level):
         {'kind': 'resource', 'value': resource_slug},
         caster['pc'].id_classe, level=int(caster['pc'].nivel or 1),
         subclass=_caster_subclasse(caster['pc'])) or 0
-    resource, _ = TbPersonagemRecurso.objects.get_or_create(
-        id_personagem=personagem, nome=resource_slug,
-        defaults={'maximo': total, 'atual': total})
-    resource = TbPersonagemRecurso.objects.select_for_update().get(pk=resource.pk)
-    current = min(int(resource.atual or 0), int(total or resource.maximo or 0))
-    if current < cost:
+    classes = list(personagem.classes.select_related('id_classe', 'id_subclasse'))
+    tracked = next((row for row in _recursos_consumiveis(personagem, classes)
+                    if row.get('slug') == resource_slug), None)
+    contract_resource = tracked or {
+        'db_chave': 'class:%s:%s:%s' % (
+            caster['pc'].id_classe_id, caster['pc'].id_subclasse_id or 0,
+            resource_slug),
+        'db_nome': resource_slug, 'nome': resource_slug,
+        'maximo': int(total or 0), 'reset': 'long_rest',
+        'origem': 'classe:%s' % caster['pc'].id_classe.slug,
+    }
+    ok, _snapshot = spend_resource(personagem, {
+        'key': contract_resource['db_chave'],
+        'legacy_name': contract_resource['db_nome'],
+        'name': contract_resource['nome'],
+        'maximum': contract_resource['maximo'],
+        'reset': contract_resource.get('reset') or '',
+        'origin': contract_resource.get('origem') or '',
+    }, cost)
+    if not ok:
         return False, {'error': 'recurso_gasto'}
-    resource.atual = current - cost
-    resource.maximo = int(total or resource.maximo or current)
-    resource.save(update_fields=['atual', 'maximo'])
     return True, {'kind': 'resource', 'resource': resource_slug, 'cost': cost}
 
 
@@ -14028,6 +14258,7 @@ def oficina_conjurar_magia(request, pk):
     from .magic_workshop import (
         character_casters, parse_priced_materials, spell_is_log_castable)
     from .models import TbPersonagemMagia
+    from .resource_engine import activate_state
     p = _ficha_editavel(request, pk)
     owned = get_object_or_404(
         TbPersonagemMagia.objects.select_related('id_magia'),
@@ -14076,9 +14307,36 @@ def oficina_conjurar_magia(request, pk):
             {'operacao': 'conjuracao_fora_combate', 'magia_id': spell.pk,
              'ritual': ritual, 'gasto': spending,
              'componente_consumido': bool(consumed)})
+        activate_state(
+            p, 'spell:%s' % owned.pk,
+            origin='magia:%s' % spell.slug,
+            payload={
+                'spell_id': spell.pk, 'spell_slug': spell.slug,
+                'spell_name': spell.nome, 'owned_id': owned.pk,
+                'ritual': ritual, 'spending': spending,
+            },
+            ends_on=['dispelled', 'dismissed'])
     request.session['oficina_resultado'] = '%s foi registrada%s.' % (
         spell.nome, ' como ritual' if ritual else '')
     return _oficina_redirect(request, 'conjurada')
+
+
+@login_required(login_url='/login/')
+@require_POST
+def oficina_encerrar_efeito(request, pk):
+    """Encerra um estado persistente fora de combate pertencente ao personagem."""
+    from .resource_engine import end_state
+
+    p = _ficha_editavel(request, pk)
+    key = request.POST.get('estado') or ''
+    if not key or not p.estados.filter(
+            chave=key, ativo=True, origem__startswith='magia:').exists():
+        return _oficina_redirect(request, 'estado_invalido')
+    end_state(p, key)
+    _registrar_transacao(
+        p, 'ajuste', 'Efeito persistente encerrado', 0,
+        {'operacao': 'encerrar_estado', 'estado': key})
+    return _oficina_redirect(request, 'estado_encerrado')
 
 
 @login_required(login_url='/login/')

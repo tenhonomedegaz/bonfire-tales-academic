@@ -33,11 +33,11 @@ Quem quiser mudar isso mexe em `VAGAS_POR_SLOT` — não em `if` espalhado por v
 
 # Slots de CONSUMO (gastos por quantidade, nunca vestidos). Fonte única também para
 # character_engine._item_consumivel_meta.
-SLOTS_CONSUMIVEIS = {'pocao', 'pergaminho'}
+SLOTS_CONSUMIVEIS = {'pocao', 'pergaminho', 'municao'}
 
 # Slots de USO/posse que não são equipamento vestível (o item existe na mochila, mas
 # não ocupa o corpo). Fonte única também para character_engine._item_magico_equipavel.
-SLOTS_NAO_VESTIVEIS = {'municao', 'veiculo', 'edificacao', 'objeto', 'item_menor'}
+SLOTS_NAO_VESTIVEIS = {'veiculo', 'edificacao', 'objeto', 'item_menor'}
 
 # Slot que concede efeito SEM consumir vaga (regra do PO).
 SLOT_SEM_VAGA = 'acessorio'

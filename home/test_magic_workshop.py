@@ -17,6 +17,7 @@ from home.magic_workshop import (
     scroll_offer,
     spell_accessible_to_character,
     spell_is_log_castable,
+    signature_spell_rules,
     transcription_terms_for_character,
 )
 from home.models import (
@@ -27,6 +28,7 @@ from home.models import (
     TbPersonagem,
     TbPersonagemClasse,
     TbPersonagemEscolha,
+    TbPersonagemMagiaAssinatura,
     TbPersonagemTalento,
     TbSolicitacaoTranscricao,
     TbTalento,
@@ -242,6 +244,16 @@ class MagicWorkshopTests(TestCase):
         movement = self.personagem.transacoes.get()
         self.assertEqual(
             movement.detalhes_json['operacao'], 'conjuracao_fora_combate')
+        state = self.personagem.estados.get(ativo=True)
+        self.assertEqual(state.origem, 'magia:ritual-de-teste')
+        self.assertEqual(state.payload_json['spell_id'], spell.pk)
+        response = self.client.post(
+            reverse('oficina_encerrar_efeito', args=[self.personagem.pk]),
+            {'personagem': self.personagem.pk, 'estado': state.chave,
+             'tab': 'casting'})
+        self.assertIn('status=estado_encerrado', response['Location'])
+        state.refresh_from_db()
+        self.assertFalse(state.ativo)
         self.assertTrue(movement.detalhes_json['componente_consumido'])
 
     def test_pergaminho_acima_do_teto_exige_teste_e_e_consumido_na_falha(self):
@@ -315,3 +327,116 @@ class MagicWorkshopTests(TestCase):
             id_magia=self.spell, origem=self.classe.nome).exists())
         self.assertEqual(self.personagem.transacoes.count(), 1)
         self.assertEqual(source.transacoes.count(), 1)
+
+    def test_centelha_referencia_escolhas_da_habilidade_base(self):
+        from home.character_engine import (
+            _grants_de_tag, _norm_escola, _resolve_pool)
+
+        for name, slug in (
+                ('Clérigo', 'clerigo'), ('Druida', 'druida'), ('Mago', 'mago')):
+            TbClasse.objects.create(nome=name, slug=slug)
+        eligible = TbMagia.objects.create(
+            nome='Explosão Elegível', slug='explosao-elegivel', nivel=2,
+            escola='Evocação', concentracao=False, classes='Mago')
+        concentration = TbMagia.objects.create(
+            nome='Explosão Concentrada', slug='explosao-concentrada', nivel=2,
+            escola='Evocação', concentracao=True, classes='Mago')
+        wrong_school = TbMagia.objects.create(
+            nome='Ilusão Incorreta', slug='ilusao-incorreta', nivel=2,
+            escola='Ilusão', concentracao=False, classes='Mago')
+        spells = [eligible, concentration, wrong_school]
+        catalog = {spell.slug: spell.nivel for spell in spells}
+        rich = {
+            spell.slug: (
+                spell.nivel, _norm_escola(spell.escola), {spell.classes},
+                bool(spell.concentracao))
+            for spell in spells
+        }
+        tag = (
+            'spell_selection:pick{lista:{clerigo | druida | mago}}'
+            '{nivel:2, escola:ability{centelha_arcana, raca:humano}.escola, '
+            'not{concentration}, qtd:1, '
+            'spell_mod:ability{centelha_arcana, raca:humano}.spell_mod}')
+        _fixed, choice, _reserved = _grants_de_tag(
+            tag, {}, catalog, 5, casts_selection=True,
+            feature_choices={
+                'centelha_arcana': {'escola': 'evocacao', 'spell_mod': 'int'}})
+        self.assertIsNotNone(choice)
+        self.assertEqual(_resolve_pool(choice['pool'], rich), [eligible.slug])
+
+    def test_bonus_de_pv_draconico_usa_nivel_da_classe(self):
+        from home.character_engine import (
+            _build_ctx, apply_tags, bonus_proficiencia)
+
+        attrs = {
+            sig: {'valor': 10, 'mod': 0}
+            for sig in ('FOR', 'DES', 'CON', 'INT', 'SAB', 'CAR')
+        }
+        feature = type('Feature', (), {
+            'nome': 'Sangue da Estirpe', 'table_only': False,
+            'tags_json': ['always_active{ buff:max_hp:+classlvl }'],
+        })()
+        state = {
+            '_ctx': _build_ctx(10, bonus_proficiencia(10), attrs),
+            'pv': {'maximo_calculado': 50}, 'velocidade': '9 m / 30 ft',
+            'iniciativa': 0, 'recursos': {}, 'ca': 10,
+        }
+        apply_tags(
+            state, [('subclasse', 'Feiticeiro', feature, 6)], escolhas={})
+        self.assertEqual(state['pv']['maximo_calculado'], 56)
+
+    def test_criador_de_assinatura_grava_nova_magia_no_grimorio(self):
+        pc = self.personagem.classes.get(id_classe=self.classe)
+        pc.nivel = 7
+        pc.save(update_fields=['nivel'])
+        self.personagem.nivel = 7
+        self.personagem.save(update_fields=['nivel'])
+        TbClassehabilidade.objects.create(
+            id_classe=self.classe, nome='Magia Assinatura', descricao='Crie.',
+            niveladquirido=7, tags_json=[
+                'spellcraft{kind:signature_spell, slot:1, source:spellbook, '
+                'school:focus, max_base_level:2, '
+                'max_final_level:spell_slot_max, remodel_at{11,15}}'])
+        focus = TbOpcaojogo.objects.create(
+            nome='Evocação', slug='evocacao', tipo='Escola de Foco')
+        TbPersonagemEscolha.objects.create(
+            id_personagem=self.personagem, origem='Escolas de Foco',
+            tipo='escola_de_foco', slot=0, id_opcao=focus,
+            valor=focus.nome)
+        self.spell.escola = 'Evocação'
+        self.spell.casting_time = '1 Ação'
+        self.spell.componentes = 'V, S'
+        self.spell.save(update_fields=['escola', 'casting_time', 'componentes'])
+        owned = self.personagem.magias.create(
+            id_magia=self.spell, nivel=1, nome=self.spell.nome,
+            origem=self.classe.nome)
+
+        rules = signature_spell_rules(self.personagem)
+        self.assertEqual(len(rules), 1)
+        self.assertEqual(rules[0]['remodel_at'], [11, 15])
+        self.assertEqual([row['owned'].pk for row in rules[0]['spells']], [owned.pk])
+
+        self.client.force_login(self.user)
+        page = self.client.get(
+            reverse('oficina_magia'), {'personagem': self.personagem.pk})
+        self.assertEqual(page.status_code, 200)
+        self.assertContains(page, 'Criador de Magia Assinatura')
+        response = self.client.post(reverse(
+            'oficina_salvar_magia_assinatura', args=[self.personagem.pk]), {
+                'personagem': self.personagem.pk, 'classe': self.classe.pk,
+                'slot': 1, 'magia_base': owned.pk,
+                'nome': 'Fórmula Ígnea do Escriba', 'acao_bonus': '1',
+                'remover_componente': ['V'], 'tab': 'signature',
+            })
+        self.assertIn('status=assinatura_ok', response['Location'])
+        signature = TbPersonagemMagiaAssinatura.objects.get()
+        self.assertEqual(signature.nivel_final, 3)
+        self.assertEqual(signature.modificacoes_json['removed_components'], ['V'])
+        self.assertEqual(signature.id_magia_personagem.nome, 'Fórmula Ígnea do Escriba')
+        self.client.post(reverse(
+            'personagem_toggle_magia', args=[
+                self.personagem.pk, signature.id_magia_personagem_id]))
+        signature.id_magia_personagem.refresh_from_db()
+        owned.refresh_from_db()
+        self.assertTrue(signature.id_magia_personagem.preparada)
+        self.assertFalse(owned.preparada)

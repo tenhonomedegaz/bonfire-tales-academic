@@ -460,7 +460,11 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
               {% if m.sempre_preparada %}
                 <span class="spell-marker {% if m.innate_label %}innate{% else %}always{% endif %}" title="{% if m.innate_label %}Conjuracao inata{% elif m.known_auto %}Conhecida{% else %}Sempre preparada{% endif %}"></span>
               {% elif pode_editar and m.pode_alternar %}
+                {% if m.catalog_only %}
                 <form method="post" action="{% url 'personagem_toggle_magia_catalogo' p.id_personagem m.classe_id m.slug %}" class="contents">{% csrf_token %}<button type="submit" class="spell-marker toggle {% if m.preparada %}prepared{% endif %}" title="{% if m.preparada %}Preparada{% else %}Não preparada{% endif %}"></button></form>
+                {% else %}
+                <form method="post" action="{% url 'personagem_toggle_magia' p.id_personagem m.id %}" class="contents">{% csrf_token %}<button type="submit" class="spell-marker toggle {% if m.preparada %}prepared{% endif %}" title="{% if m.preparada %}Preparada{% else %}Não preparada{% endif %}"></button></form>
+                {% endif %}
               {% else %}
                 <span class="spell-marker readonly {% if m.preparada %}prepared{% endif %}"></span>
               {% endif %}
@@ -488,6 +492,7 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
                   {% endif %}
                   {% endif %}
                 {% elif m.known_auto %}<span class="spell-tag always">conhecida</span>{% elif m.sempre_preparada %}<span class="spell-tag always">sempre</span>{% elif m.preparada %}<span class="spell-tag prepared">prep</span>{% endif %}
+                {% if m.assinatura %}<span class="spell-tag source">assinatura</span>{% endif %}
                 {% if m.escola %}<span class="spell-tag muted">{{ m.escola }}</span>{% endif %}
                 {% if m.origem %}<span class="spell-tag source">{{ m.origem }}</span>{% endif %}
               </span>

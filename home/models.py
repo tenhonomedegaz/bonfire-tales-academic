@@ -1362,6 +1362,43 @@ class TbPersonagemMagia(models.Model):
         db_table = 'TB_PersonagemMagia'
 
 
+class TbPersonagemMagiaAssinatura(models.Model):
+    """Personalizacao de uma magia-base criada por uma feature ``spellcraft``."""
+    id_assinatura = models.AutoField(
+        db_column='Id_Assinatura', primary_key=True)
+    id_personagem = models.ForeignKey(
+        'TbPersonagem', models.CASCADE, db_column='Id_Personagem',
+        related_name='magias_assinatura')
+    id_magia_personagem = models.OneToOneField(
+        'TbPersonagemMagia', models.CASCADE, db_column='Id_PersonagemMagia',
+        related_name='assinatura')
+    id_magia_base = models.ForeignKey(
+        'TbMagia', models.PROTECT, db_column='Id_MagiaBase',
+        related_name='assinaturas_personagem')
+    id_classe = models.ForeignKey(
+        'TbClasse', models.PROTECT, db_column='Id_Classe',
+        related_name='magias_assinatura_personagem')
+    slot = models.PositiveSmallIntegerField(db_column='Slot')
+    nome = models.CharField(db_column='Nome', max_length=200)
+    nivel_base = models.PositiveSmallIntegerField(db_column='NivelBase')
+    nivel_final = models.PositiveSmallIntegerField(db_column='NivelFinal')
+    modificacoes_json = models.JSONField(
+        db_column='ModificacoesJSON', blank=True, default=dict)
+    ultima_reforma_nivel = models.PositiveSmallIntegerField(
+        db_column='UltimaReformaNivel', default=0)
+    criado_em = models.DateTimeField(db_column='CriadoEm', auto_now_add=True)
+    atualizado_em = models.DateTimeField(db_column='AtualizadoEm', auto_now=True)
+
+    class Meta:
+        db_table = 'TB_PersonagemMagiaAssinatura'
+        ordering = ('slot', 'id_assinatura')
+        constraints = [
+            models.UniqueConstraint(
+                fields=('id_personagem', 'id_classe', 'slot'),
+                name='uniq_magia_assinatura_personagem_classe_slot'),
+        ]
+
+
 class TbPersonagemTalento(models.Model):
     id = models.AutoField(db_column='Id', primary_key=True)
     id_personagem = models.ForeignKey('TbPersonagem', models.CASCADE, db_column='Id_Personagem', related_name='talentos')
@@ -1452,6 +1489,9 @@ class TbAnuncioItemMagico(models.Model):
     preco_pc = models.IntegerField(db_column='PrecoPC', default=0, help_text='Preço de venda em peças de cobre.')
     status = models.CharField(db_column='Status', max_length=12, choices=STATUS_CHOICES, default='ativo')
     comprador = models.ForeignKey('TbPersonagem', models.SET_NULL, db_column='Id_Comprador', blank=True, null=True, related_name='compras_comunidade')
+    estado_json = models.JSONField(
+        db_column='EstadoJSON', blank=True, default=dict,
+        help_text='Snapshot de estado persistente da instancia, como cargas restantes.')
     criado_em = models.DateTimeField(db_column='CriadoEm', auto_now_add=True)
     vendido_em = models.DateTimeField(db_column='VendidoEm', blank=True, null=True)
 
@@ -1850,9 +1890,58 @@ class TbPersonagemRecurso(models.Model):
     nome = models.CharField(db_column='Nome', max_length=100)
     atual = models.IntegerField(db_column='Atual', default=0)
     maximo = models.IntegerField(db_column='Maximo', default=0)
+    chave = models.CharField(
+        db_column='Chave', max_length=180, blank=True, default='', db_index=True,
+        help_text='Identidade mecanica estavel; o nome e apenas apresentacao.')
+    origem = models.CharField(
+        db_column='Origem', max_length=180, blank=True, default='',
+        help_text='Fonte declarativa do recurso: classe, habilidade, magia ou item.')
+    reset = models.CharField(
+        db_column='Reset', max_length=40, blank=True, default='',
+        help_text='Evento de recuperacao declarado pela tag.')
+    recuperacao = models.CharField(
+        db_column='Recuperacao', max_length=80, blank=True, default='',
+        help_text='Formula recuperada no evento; vazio significa recuperar ate o maximo.')
+    id_item = models.ForeignKey(
+        'TbPersonagemItem', models.CASCADE, db_column='Id_Item', blank=True,
+        null=True, related_name='recursos',
+        help_text='Instancia dona do recurso quando ele representa cargas de item.')
 
     class Meta:
         db_table = 'TB_PersonagemRecurso'
+        constraints = [
+            models.UniqueConstraint(
+                fields=('id_personagem', 'chave'),
+                condition=~models.Q(chave=''),
+                name='uniq_recurso_personagem_chave'),
+        ]
+
+
+class TbPersonagemEstado(models.Model):
+    """Estado persistente fora de combate declarado pelo DSL.
+
+    O payload continua vocabulario-neutro. Combate nao escreve aqui: turnos, alvos,
+    salvaguardas e condicoes momentaneas pertencem ao runtime do VTT.
+    """
+    id = models.AutoField(db_column='Id', primary_key=True)
+    id_personagem = models.ForeignKey(
+        'TbPersonagem', models.CASCADE, db_column='Id_Personagem',
+        related_name='estados')
+    chave = models.CharField(db_column='Chave', max_length=180)
+    origem = models.CharField(db_column='Origem', max_length=180, blank=True, default='')
+    payload_json = models.JSONField(db_column='PayloadJSON', blank=True, default=dict)
+    ends_on_json = models.JSONField(db_column='EndsOnJSON', blank=True, default=list)
+    ativo = models.BooleanField(db_column='Ativo', default=True, db_index=True)
+    iniciado_em = models.DateTimeField(db_column='IniciadoEm', auto_now_add=True)
+    encerrado_em = models.DateTimeField(db_column='EncerradoEm', blank=True, null=True)
+
+    class Meta:
+        db_table = 'TB_PersonagemEstado'
+        constraints = [
+            models.UniqueConstraint(
+                fields=('id_personagem', 'chave'),
+                name='uniq_estado_personagem_chave'),
+        ]
 
 
 class TbBestiario(models.Model):

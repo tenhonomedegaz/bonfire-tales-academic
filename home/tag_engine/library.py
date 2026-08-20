@@ -26,6 +26,7 @@ _WORD = re.compile(r"[a-z0-9][a-z0-9_-]*")
 # no JSON; listá-los aqui evita falso-positivo de "verbo desconhecido".
 STRUCTURAL_QUALIFIERS = {
     "range", "target", "from", "by", "vs", "duration", "reset", "scope",
+    "ends_on", "overflow",
     "on_success", "on_fail", "on_hit", "on_miss", "keep", "dice", "unless",
     "until", "per", "threshold", "max_nivel", "same_roll", "same_cd", "step",
     "cost", "lista", "slots", "foco", "known_caster", "prepara", "qtd",
@@ -33,6 +34,7 @@ STRUCTURAL_QUALIFIERS = {
     "can_see", "can_hear", "one_way", "two_way", "half", "none", "weapon_type",
     "source", "of", "in", "out", "self", "active", "concentration", "reaction",
     "level", "save_dc", "attack_bonus", "kind", "cost_po", "spell_level",
+    "slot", "school", "max_base_level", "max_final_level", "remodel_at",
     "catalog", "category", "subtype", "mundane", "armor", "weapon", "light", "medium", "heavy",
     "restriction", "requires", "max", "min", "and", "or", "not", "elemento",
     "pericias", "results", "table", "list", "always_prepared", "extra",

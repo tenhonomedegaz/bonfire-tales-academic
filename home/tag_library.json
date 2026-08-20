@@ -489,18 +489,6 @@
       "op": "add_modifier",
       "doc": "Qualificador de cast{}: conjura À VONTADE (sem custo de recurso nem limite de usos). Atalho consagrado, mantido de propósito: equivale a cast{without{slot}} sem uses{}/resource_cost, mas o volume de uso e a clareza justificam a primitiva."
     },
-    "marcha_forcada": {
-      "categoria": "A_util",
-      "forma": "key_value",
-      "op": null,
-      "doc": "Ritmo de viagem estendido (não é o move: de combate): marcha_forcada(max:16h) — marcha o dobro do tempo antes do efeito de marcha forçada. Aprovado 2026_06_19."
-    },
-    "forrageio": {
-      "categoria": "A_util",
-      "forma": "key_value",
-      "op": null,
-      "doc": "Encontrar recursos naturais na terra: forrageio:comida_e_agua(target:6) — para si e até N pessoas por dia, se houver fonte natural. Aprovado 2026_06_19."
-    },
     "_doc": "Cada verbo do vocabulário -> op do motor + onde escreve (target) + tipagem do valor. ESBOÇO: cobre o que já aparece nas tags; itens marcados 'todo' faltam detalhar.",
     "always_active": {
       "categoria": "A1",
@@ -666,6 +654,13 @@
       "op": "grant_execution",
       "target": "efeitos.ativos",
       "doc": "Encerra uma instância ativa referenciada: end:ability{receptaculo_do_genio, classe:mistico} ou end:defined{mutagenico_preparado}(pick:1)."
+    },
+    "ends_on": {
+      "categoria": "A3",
+      "forma": "key_value",
+      "op": "grant_execution",
+      "target": "efeitos.ativos",
+      "doc": "Declara eventos que encerram a instancia ativa sem criar um verbo especifico por habilidade. Exemplos: ends_on:incapacitado|morte|dismiss_bonus_action; summon(..., ends_on:short_rest|hp_zero, overflow:replace_oldest)."
     },
     "draw": {
       "categoria": "A3",
@@ -1767,6 +1762,12 @@
       "forma": "key_value",
       "op": "pick",
       "doc": "Adiciona magia escolhida de uma lista; 'extra, fora_do_limite' = não conta no total; 'always_prepared' = sempre preparada (Montaria Heróica); 'qtd:<formula>' = N preparadas por fórmula."
+    },
+    "spellcraft": {
+      "categoria": "A12",
+      "forma": "block",
+      "op": "meta",
+      "doc": "Declara criação parametrizada de uma magia personalizada pela Oficina, sem criar exceção por classe. Ex.: spellcraft{kind:signature_spell, slot:1, source:spellbook, school:focus, max_base_level:2, max_final_level:spell_slot_max, remodel_at{11,15}}. A aplicação valida fonte, limites e marcos declarados."
     },
     "upcast": {
       "categoria": "A12",

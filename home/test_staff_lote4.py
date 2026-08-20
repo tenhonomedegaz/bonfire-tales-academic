@@ -80,6 +80,16 @@ class CAEscudoMagicoTests(_CriadorBase):
         self._escudo_magico(p, 3)
         self.assertEqual(self._ca(p), 21)        # 18 + 3
 
+    def test_bonus_de_ca_em_anel_nao_vira_escudo(self):
+        p = self._barbaro(sufixo='-anel')
+        item = TbItemMagico.objects.create(
+            nome='Anel de CA', slug='anel-de-ca', raridade='incomum',
+            slot='aneis', tags_json=['ca:+1'])
+        TbPersonagemItem.objects.create(
+            id_personagem=p, qtd=1, nome=item.nome, equipado=True,
+            sintonizado=True, id_item_magico=item)
+        self.assertEqual(self._ca(p), 19)
+
 
 # ======================================================================================
 # FIX 2a — guard server-side do criador: perícia de antecedente x classe
