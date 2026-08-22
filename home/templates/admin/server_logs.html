@@ -286,6 +286,16 @@
                 <div class="console-form-row"><input type="text" name="confirmar" placeholder="Digite RESTAURAR para confirmar" autocomplete="off"></div>
                 <button type="submit" class="console-button">Restaurar backup</button>
             </form>
+
+            <h2 style="margin-top:24px;">Restaurar geometria do mapa</h2>
+            <p class="console-note">Aceita apenas um patch de <code>home.tbterritorio</code> e atualiza somente <code>CoordenadasPoligono</code>. Usuarios, missoes, catalogo, lore e demais campos nao sao alterados.</p>
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="restore_map_geometry">
+                <div class="console-form-row"><input type="file" name="arquivo" accept=".json" required></div>
+                <div class="console-form-row"><input type="text" name="confirmar" placeholder="Digite RESTAURAR MAPA para confirmar" autocomplete="off"></div>
+                <button type="submit" class="console-button">Restaurar geometria</button>
+            </form>
         </section>
 
         <section class="console-panel">

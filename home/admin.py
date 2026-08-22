@@ -649,6 +649,80 @@ def server_logs_view(request):
                     messages.success(request, f".env do {console_paths[env_target]['label']} salvo com backup automatico.")
                 except OSError as exc:
                     messages.error(request, f"Falha ao salvar .env: {exc}")
+        elif action == "restore_map_geometry":
+            f = request.FILES.get("arquivo")
+            if not f:
+                messages.error(request, "Selecione um arquivo .json de geometria do mapa.")
+            elif request.POST.get("confirmar") != "RESTAURAR MAPA":
+                messages.error(request, "Digite RESTAURAR MAPA para confirmar.")
+            else:
+                try:
+                    from django.core import serializers
+                    from django.db import transaction
+                    from .models import TbTerritorio
+
+                    texto = f.read().decode("utf-8")
+                    dados = json.loads(texto)
+                    if not isinstance(dados, list) or not dados:
+                        raise ValueError("O patch deve ser uma lista JSON nao vazia.")
+                    if len(dados) > 50:
+                        raise ValueError("O patch de mapa excede o limite de 50 territorios.")
+
+                    labels = {
+                        str(row.get("model", "")).lower()
+                        for row in dados
+                        if isinstance(row, dict)
+                    }
+                    if labels != {"home.tbterritorio"} or len(labels) != 1:
+                        raise ValueError(
+                            "Este painel aceita exclusivamente registros home.tbterritorio."
+                        )
+
+                    objetos = list(serializers.deserialize("json", texto))
+                    pks = [wrapper.object.pk for wrapper in objetos]
+                    if len(pks) != len(set(pks)):
+                        raise ValueError("O patch contem territorios duplicados.")
+
+                    alterados = []
+                    with transaction.atomic():
+                        for wrapper in objetos:
+                            patch = wrapper.object
+                            atual = TbTerritorio.objects.select_for_update().filter(pk=patch.pk).first()
+                            if atual is None:
+                                raise ValueError(
+                                    f"Territorio PK {patch.pk} nao existe na producao."
+                                )
+                            if atual.nome != patch.nome:
+                                raise ValueError(
+                                    f"PK {patch.pk} pertence a {atual.nome!r}, nao a {patch.nome!r}."
+                                )
+                            if not isinstance(patch.coordenadas_poligono, list) or not patch.coordenadas_poligono:
+                                raise ValueError(
+                                    f"Geometria vazia ou invalida para {atual.nome}."
+                                )
+                            TbTerritorio.objects.filter(pk=atual.pk).update(
+                                coordenadas_poligono=patch.coordenadas_poligono
+                            )
+                            alterados.append(atual.nome)
+
+                    nomes = ", ".join(alterados)
+                    messages.success(
+                        request,
+                        f"Geometria restaurada em {len(alterados)} territorio(s).",
+                    )
+                    context["op_result"] = {
+                        "titulo": "Restauracao de geometria do mapa",
+                        "output": (
+                            f"Somente CoordenadasPoligono foi atualizado em: {nomes}. "
+                            "Usuarios, missoes, catalogo e demais campos permaneceram intactos."
+                        ),
+                    }
+                except Exception as exc:
+                    messages.error(request, f"Falha ao restaurar geometria: {exc}")
+                    context["op_result"] = {
+                        "titulo": "Restauracao de geometria - ERRO",
+                        "output": str(exc),
+                    }
         elif action == "restore_backup":
             f = request.FILES.get("arquivo")
             if not f:

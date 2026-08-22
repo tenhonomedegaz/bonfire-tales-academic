@@ -23,7 +23,7 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from home.admin import CONSOLE_UNLOCK_TTL_SECONDS
-from home.models import TbRegiao, TbRegra
+from home.models import TbRegiao, TbRegra, TbTerritorio
 
 
 class RestoreBackupGuardTests(TestCase):
@@ -54,6 +54,21 @@ class RestoreBackupGuardTests(TestCase):
             {
                 "action": "restore_backup",
                 "confirmar": "RESTAURAR",
+                "arquivo": arquivo,
+            },
+        )
+
+    def _post_map_restore(self, payload, confirmation="RESTAURAR MAPA"):
+        arquivo = SimpleUploadedFile(
+            "mapa.json",
+            json.dumps(payload).encode("utf-8"),
+            content_type="application/json",
+        )
+        return self.client.post(
+            self.url,
+            {
+                "action": "restore_map_geometry",
+                "confirmar": confirmation,
                 "arquivo": arquivo,
             },
         )
@@ -112,6 +127,49 @@ class RestoreBackupGuardTests(TestCase):
 
         self.assertContains(response, "Merge de conteudo (dev -&gt; producao)")
         self.assertFalse(TbRegiao.objects.filter(pk=999003).exists())
+
+    def test_map_geometry_restore_updates_only_polygon_coordinates(self):
+        territorio = TbTerritorio.objects.create(
+            nome="Territorio de Teste",
+            slug="territorio-de-teste",
+            lore_markdown="Lore preservada",
+            coordenadas_poligono=[[[0, 0], [0, 1], [1, 1]]],
+        )
+        nova_geometria = [[[10, 10], [10, 20], [20, 20]]]
+        payload = [
+            {
+                "model": "home.tbterritorio",
+                "pk": territorio.pk,
+                "fields": {
+                    "nome": territorio.nome,
+                    "slug": "slug-do-patch-ignorado",
+                    "lore_markdown": "Lore que nao pode sobrescrever",
+                    "coordenadas_poligono": nova_geometria,
+                },
+            }
+        ]
+
+        response = self._post_map_restore(payload)
+
+        territorio.refresh_from_db()
+        self.assertContains(response, "Somente CoordenadasPoligono")
+        self.assertEqual(territorio.coordenadas_poligono, nova_geometria)
+        self.assertEqual(territorio.slug, "territorio-de-teste")
+        self.assertEqual(territorio.lore_markdown, "Lore preservada")
+
+    def test_map_geometry_restore_rejects_other_models(self):
+        payload = [
+            {
+                "model": "home.tbregiao",
+                "pk": 999004,
+                "fields": {"nome": "Regiao indevida", "slug": "regiao-indevida"},
+            }
+        ]
+
+        response = self._post_map_restore(payload)
+
+        self.assertContains(response, "exclusivamente registros home.tbterritorio")
+        self.assertFalse(TbRegiao.objects.filter(pk=999004).exists())
 
 
 class ConsoleUnlockTTLTests(TestCase):
