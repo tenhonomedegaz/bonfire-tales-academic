@@ -175,12 +175,15 @@ def scroll_offer(spell):
         return None
     rarity, save_dc, attack_bonus = SCROLL_STATS[level]
     materials = parse_priced_materials(spell.componentes)
-    price = SCROLL_PRICE_PO[level] + materials['consumed_cost_po']
+    # O componente consumido ja foi gasto ao criar o pergaminho. Ele nao e somado
+    # novamente: apenas estabelece o piso quando custa mais que o pergaminho-base.
+    price = max(SCROLL_PRICE_PO[level], materials['consumed_cost_po'])
     return {
         'kind': 'scroll', 'slug': spell.slug, 'spell': spell,
         'name': f'Pergaminho de {spell.nome}', 'level': level,
         'price_po': price, 'base_price_po': SCROLL_PRICE_PO[level],
         'material_price_po': materials['consumed_cost_po'],
+        'material_sets_price': materials['consumed_cost_po'] > SCROLL_PRICE_PO[level],
         'rarity': rarity, 'save_dc': save_dc, 'attack_bonus': attack_bonus,
         'tags': [
             ('spell_scroll{spell:%s, level:%d, save_dc:%d, attack_bonus:%d}'

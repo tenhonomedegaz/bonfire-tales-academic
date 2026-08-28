@@ -68,7 +68,7 @@
         </div>
         <div class="workshop-price">
           <strong>{{ offer.price_display }}</strong>
-          {% if offer.material_price_po %}<small>inclui {{ offer.material_price_po }} PO consumidos</small>{% endif %}
+          {% if offer.material_price_po %}<small>{{ offer.material_price_po }} PO em componentes já incluídos{% if offer.material_sets_price %} · define o preço{% endif %}</small>{% endif %}
         </div>
         <form method="post" action="{% url 'oficina_comprar_pergaminho' mercado_ativo.id_personagem %}">
           {% csrf_token %}<input type="hidden" name="personagem" value="{{ mercado_ativo.id_personagem }}"><input type="hidden" name="magia" value="{{ offer.slug }}">

@@ -54,6 +54,8 @@ from .models import (
     TbArmadilha,
     TbCondicao,
     TbTransacao,
+    TbEmprestimoPersonagem,
+    TbPersonagemTreinamento,
     TbSolicitacaoTranscricao,
     TbPersonagem,
     TbPersonagemAventura,
@@ -2363,6 +2365,30 @@ class TbTransacaoAdmin(admin.ModelAdmin):
     search_fields = ("descricao", "id_personagem__nome")
     raw_id_fields = ("id_personagem",)
     readonly_fields = ("criado_em",)
+
+
+@admin.register(TbPersonagemTreinamento)
+class TbPersonagemTreinamentoAdmin(admin.ModelAdmin):
+    list_display = (
+        'id_treinamento', 'id_personagem', 'tipo', 'nome', 'status',
+        'custo_pc', 'iniciado_em', 'conclui_em')
+    list_filter = ('status', 'tipo')
+    search_fields = ('id_personagem__nome', 'id_personagem__dono__username', 'nome')
+    raw_id_fields = ('id_personagem',)
+    readonly_fields = ('iniciado_em', 'concluido_em')
+
+
+@admin.register(TbEmprestimoPersonagem)
+class TbEmprestimoPersonagemAdmin(admin.ModelAdmin):
+    list_display = (
+        'id_emprestimo', 'credor', 'devedor', 'valor_original_pc',
+        'valor_pago_pc', 'status', 'multa_aplicada', 'vence_em')
+    list_filter = ('status', 'multa_aplicada')
+    search_fields = (
+        'credor__nome', 'devedor__nome', 'credor__dono__username',
+        'devedor__dono__username')
+    raw_id_fields = ('credor', 'devedor', 'proponente')
+    readonly_fields = ('solicitado_em', 'aceito_em', 'encerrado_em')
 
 
 @admin.register(TbSolicitacaoTranscricao)

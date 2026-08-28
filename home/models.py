@@ -1423,6 +1423,46 @@ class TbPersonagemProficiencia(models.Model):
         db_table = 'TB_PersonagemProficiencia'
 
 
+class TbPersonagemTreinamento(models.Model):
+    """Treinamento pago no Mercado; a proficiencia nasce somente no vencimento."""
+
+    TIPO_CHOICES = [('idioma', 'Idioma'), ('ferramenta', 'Ferramenta')]
+    STATUS_CHOICES = [
+        ('ativo', 'Em andamento'),
+        ('concluido', 'Concluido'),
+        ('cancelado', 'Cancelado'),
+    ]
+
+    id_treinamento = models.AutoField(
+        db_column='Id_Treinamento', primary_key=True)
+    id_personagem = models.ForeignKey(
+        'TbPersonagem', models.CASCADE, db_column='Id_Personagem',
+        related_name='treinamentos_mercado')
+    tipo = models.CharField(
+        db_column='Tipo', max_length=20, choices=TIPO_CHOICES)
+    nome = models.CharField(db_column='Nome', max_length=100)
+    custo_pc = models.PositiveIntegerField(db_column='CustoPC', default=10000)
+    status = models.CharField(
+        db_column='Status', max_length=12, choices=STATUS_CHOICES,
+        default='ativo', db_index=True)
+    iniciado_em = models.DateTimeField(db_column='IniciadoEm', auto_now_add=True)
+    conclui_em = models.DateTimeField(db_column='ConcluiEm', db_index=True)
+    concluido_em = models.DateTimeField(
+        db_column='ConcluidoEm', blank=True, null=True)
+
+    class Meta:
+        db_table = 'TB_PersonagemTreinamento'
+        ordering = ('-iniciado_em', '-id_treinamento')
+        constraints = [
+            models.UniqueConstraint(
+                fields=('id_personagem',), condition=models.Q(status='ativo'),
+                name='uniq_treinamento_ativo_personagem'),
+        ]
+
+    def __str__(self):
+        return '%s: %s (%s)' % (self.id_personagem, self.nome, self.status)
+
+
 class TbPersonagemItem(models.Model):
     ORIGEM_CHOICES = [
         ('legado', 'Legado'),
@@ -1511,7 +1551,9 @@ class TbTransacao(models.Model):
     `saldo_pc` = carteira logo após o movimento."""
     TIPO_CHOICES = [('compra', 'Compra'), ('venda', 'Venda'),
                     ('mercado-compra', 'Compra (Comunidade)'), ('mercado-venda', 'Venda (Comunidade)'),
-                    ('aventura', 'Ouro de aventura'), ('inicial', 'Saldo inicial'), ('ajuste', 'Ajuste')]
+                    ('aventura', 'Ouro de aventura'), ('inicial', 'Saldo inicial'),
+                    ('treinamento', 'Treinamento'), ('emprestimo', 'Emprestimo'),
+                    ('repasse-divida', 'Repasse de divida'), ('ajuste', 'Ajuste')]
     id_transacao = models.AutoField(db_column='Id_Transacao', primary_key=True)
     id_personagem = models.ForeignKey('TbPersonagem', models.CASCADE, db_column='Id_Personagem', related_name='transacoes')
     tipo = models.CharField(db_column='Tipo', max_length=20, choices=TIPO_CHOICES, default='ajuste')
@@ -1538,6 +1580,65 @@ class TbTransacao(models.Model):
 
     def __str__(self):
         return f'{self.get_tipo_display()} {self.valor_pc} PC'
+
+
+class TbEmprestimoPersonagem(models.Model):
+    """Proposta e contrato de emprestimo entre dois personagens."""
+
+    STATUS_CHOICES = [
+        ('pendente', 'Pendente'),
+        ('ativo', 'Ativo'),
+        ('quitado', 'Quitado'),
+        ('recusado', 'Recusado'),
+        ('cancelado', 'Cancelado'),
+    ]
+
+    id_emprestimo = models.AutoField(
+        db_column='Id_Emprestimo', primary_key=True)
+    credor = models.ForeignKey(
+        'TbPersonagem', models.CASCADE, db_column='Id_Credor',
+        related_name='emprestimos_concedidos')
+    devedor = models.ForeignKey(
+        'TbPersonagem', models.CASCADE, db_column='Id_Devedor',
+        related_name='emprestimos_recebidos')
+    proponente = models.ForeignKey(
+        'TbPersonagem', models.CASCADE, db_column='Id_Proponente',
+        related_name='propostas_emprestimo')
+    valor_original_pc = models.PositiveIntegerField(db_column='ValorOriginalPC')
+    valor_total_pc = models.PositiveIntegerField(db_column='ValorTotalPC')
+    valor_pago_pc = models.PositiveIntegerField(db_column='ValorPagoPC', default=0)
+    status = models.CharField(
+        db_column='Status', max_length=12, choices=STATUS_CHOICES,
+        default='pendente', db_index=True)
+    multa_aplicada = models.BooleanField(db_column='MultaAplicada', default=False)
+    solicitado_em = models.DateTimeField(db_column='SolicitadoEm', auto_now_add=True)
+    aceito_em = models.DateTimeField(db_column='AceitoEm', blank=True, null=True)
+    vence_em = models.DateTimeField(
+        db_column='VenceEm', blank=True, null=True, db_index=True)
+    encerrado_em = models.DateTimeField(db_column='EncerradoEm', blank=True, null=True)
+
+    class Meta:
+        db_table = 'TB_EmprestimoPersonagem'
+        ordering = ('-solicitado_em', '-id_emprestimo')
+        constraints = [
+            models.CheckConstraint(
+                condition=~models.Q(credor=models.F('devedor')),
+                name='emprestimo_credor_devedor_distintos'),
+            models.CheckConstraint(
+                condition=models.Q(valor_original_pc__gt=0),
+                name='emprestimo_valor_original_positivo'),
+        ]
+
+    @property
+    def saldo_devedor_pc(self):
+        return max(0, int(self.valor_total_pc or 0) - int(self.valor_pago_pc or 0))
+
+    @property
+    def inadimplente(self):
+        return bool(self.status == 'ativo' and self.multa_aplicada)
+
+    def __str__(self):
+        return '%s -> %s (%s)' % (self.credor, self.devedor, self.status)
 
 
 class TbSolicitacaoTranscricao(models.Model):

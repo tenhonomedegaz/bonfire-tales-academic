@@ -80,7 +80,12 @@ class MagicWorkshopTests(TestCase):
         offer = scroll_offer(self.spell)
         self.assertEqual(offer['base_price_po'], Decimal('60'))
         self.assertEqual(offer['material_price_po'], Decimal('10'))
-        self.assertEqual(offer['price_po'], Decimal('70'))
+        self.assertEqual(offer['price_po'], Decimal('60'))
+
+        self.spell.componentes = 'M (um diamante de 100 PO, consumido pela magia)'
+        offer = scroll_offer(self.spell)
+        self.assertEqual(offer['price_po'], Decimal('100'))
+        self.assertTrue(offer['material_sets_price'])
 
     def test_acesso_base_usa_slugs_validados(self):
         set_spell_class_access(self.spell, [self.classe], save=True)

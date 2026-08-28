@@ -125,42 +125,25 @@ progressao de aventuras e atalhos para outras abas.{% endcomment %}
         {% if ficha.ataques.avisos %}<p class="mt-1 text-[11px] text-[var(--muted)]">{% for a in ficha.ataques.avisos %}{{ a }}{% if not forloop.last %} · {% endif %}{% endfor %}</p>{% endif %}
       </div>
 
-      {% comment %}Recursos consumíveis como CONTADORES pequenos (ficha D&D clássica): descem para a faixa dos ataques (onda F) e seguem ACIMA de Características. Descanso (canônico) na mesma faixa.{% endcomment %}
-      {% if consumiveis_cards or pode_editar %}
+      {% comment %}Recursos de habilidade ficam em primeiro plano. Itens consumíveis mantêm
+      seus contadores, mas recolhidos para não soterrar a consulta da ficha.{% endcomment %}
+      {% if recursos_cards or itens_consumiveis_cards or pode_editar %}
       <div class="ficha-panel res-panel">
         <div class="ficha-section-title">Recursos</div>
-        <div class="res-strip">
-          {% for r in consumiveis_cards %}
-          <div class="res-counter {% if r.atual == 0 %}is-empty{% endif %}" title="{{ r.nome }}{% if r.subtitulo %} · {{ r.subtitulo }}{% endif %}">
-            <span class="res-counter-value">{{ r.atual }}<span class="res-counter-max">/{{ r.maximo }}</span></span>
-            <span class="res-counter-name">{{ r.nome }}</span>
-            {% if pode_editar %}
-            <span class="res-counter-actions">
-              {% if r.kind == 'recurso' %}
-              <form method="post" action="{% url 'personagem_usar_recurso' p.id_personagem %}">
-                {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><input type="hidden" name="recurso" value="{{ r.id }}">
-                <button type="submit" {% if r.atual == 0 %}disabled{% endif %} title="Usar">−</button>
-              </form>
-              <form method="post" action="{% url 'personagem_usar_recurso' p.id_personagem %}">
-                {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><input type="hidden" name="recurso" value="{{ r.id }}"><input type="hidden" name="acao" value="desfazer">
-                <button type="submit" {% if r.atual == r.maximo %}disabled{% endif %} title="Devolver uso">+</button>
-              </form>
-              {% else %}
-              <form method="post" action="{% url 'personagem_usar_item_consumivel' p.id_personagem %}">
-                {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><input type="hidden" name="item" value="{{ r.id }}">
-                <button type="submit" {% if r.atual == 0 %}disabled{% endif %} title="Consumir">−</button>
-              </form>
-              <form method="post" action="{% url 'personagem_usar_item_consumivel' p.id_personagem %}">
-                {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><input type="hidden" name="item" value="{{ r.id }}"><input type="hidden" name="acao" value="desfazer">
-                <button type="submit" title="Adicionar unidade">+</button>
-              </form>
-              {% endif %}
-            </span>
-            {% endif %}
+        {% if recursos_cards %}
+        <div class="res-strip res-strip-main">
+          {% for r in recursos_cards %}{% include 'home/partials/_ficha_recurso_counter.html' %}{% endfor %}
+        </div>
+        {% endif %}
+        {% if itens_consumiveis_cards %}
+        <details class="res-items">
+          <summary><span>Itens consumíveis</span><strong>{{ itens_consumiveis_cards|length }}</strong></summary>
+          <div class="res-strip">
+            {% for r in itens_consumiveis_cards %}{% include 'home/partials/_ficha_recurso_counter.html' %}{% endfor %}
           </div>
-          {% empty %}
-          <p class="res-empty">Sem recursos consumíveis.</p>
-          {% endfor %}
+        </details>
+        {% endif %}
+        {% if not recursos_cards and not itens_consumiveis_cards %}<p class="res-empty">Sem recursos consumíveis.</p>{% endif %}
           {% if pode_editar %}
           <div class="res-rest">
             <form method="post" action="{% url 'personagem_descansar' p.id_personagem %}">
@@ -177,7 +160,6 @@ progressao de aventuras e atalhos para outras abas.{% endcomment %}
             </form>
           </div>
           {% endif %}
-        </div>
       </div>
       {% endif %}
 

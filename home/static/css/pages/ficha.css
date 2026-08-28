@@ -1168,6 +1168,38 @@
    ============================================================ */
 .res-panel { padding-bottom: 0.7rem; }
 .res-strip { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 0.4rem; }
+.res-strip-main { margin-bottom: 0.55rem; }
+.res-items {
+  border-top: 1px solid color-mix(in srgb, var(--ficha-accent) 24%, var(--stroke));
+  padding-top: 0.45rem;
+}
+.res-items summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 2rem;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  list-style: none;
+  text-transform: uppercase;
+}
+.res-items summary::-webkit-details-marker { display: none; }
+.res-items summary::before { content: "+"; margin-right: 0.4rem; color: var(--ficha-accent); }
+.res-items[open] summary::before { content: "−"; }
+.res-items summary span { flex: 1; }
+.res-items summary strong {
+  min-width: 1.55rem;
+  border: 1px solid var(--stroke);
+  border-radius: 999px;
+  padding: 0.1rem 0.4rem;
+  color: var(--text);
+  text-align: center;
+}
+.res-items .res-strip { padding-top: 0.45rem; }
+.res-panel > .res-rest { justify-content: flex-end; margin-top: 0.55rem; }
 .res-counter {
   display: flex;
   flex-direction: column;
@@ -1234,6 +1266,7 @@
 .res-rest button:hover { border-color: var(--ficha-accent); color: var(--ficha-accent); }
 .res-rest button.primary { border-color: color-mix(in srgb, var(--ficha-accent) 55%, transparent); color: var(--ficha-accent); background: color-mix(in srgb, var(--ficha-accent) 8%, transparent); }
 .res-rest button.primary:hover { background: color-mix(in srgb, var(--ficha-accent) 16%, transparent); }
+
 .res-empty { color: var(--muted); font-size: 0.76rem; font-style: italic; }
 
 /* ============================================================

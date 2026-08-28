@@ -1,0 +1,27 @@
+<div class="res-counter {% if r.atual == 0 %}is-empty{% endif %}" title="{{ r.nome }}{% if r.subtitulo %} · {{ r.subtitulo }}{% endif %}">
+  <span class="res-counter-value">{{ r.atual }}<span class="res-counter-max">/{{ r.maximo }}</span></span>
+  <span class="res-counter-name">{{ r.nome }}</span>
+  {% if pode_editar %}
+  <span class="res-counter-actions">
+    {% if r.kind == 'recurso' %}
+    <form method="post" action="{% url 'personagem_usar_recurso' p.id_personagem %}">
+      {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><input type="hidden" name="recurso" value="{{ r.id }}">
+      <button type="submit" {% if r.atual == 0 %}disabled{% endif %} title="Usar" aria-label="Usar {{ r.nome }}">−</button>
+    </form>
+    <form method="post" action="{% url 'personagem_usar_recurso' p.id_personagem %}">
+      {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><input type="hidden" name="recurso" value="{{ r.id }}"><input type="hidden" name="acao" value="desfazer">
+      <button type="submit" {% if r.atual == r.maximo %}disabled{% endif %} title="Devolver uso" aria-label="Devolver uso de {{ r.nome }}">+</button>
+    </form>
+    {% else %}
+    <form method="post" action="{% url 'personagem_usar_item_consumivel' p.id_personagem %}">
+      {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><input type="hidden" name="item" value="{{ r.id }}">
+      <button type="submit" {% if r.atual == 0 %}disabled{% endif %} title="Consumir" aria-label="Consumir {{ r.nome }}">−</button>
+    </form>
+    <form method="post" action="{% url 'personagem_usar_item_consumivel' p.id_personagem %}">
+      {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><input type="hidden" name="item" value="{{ r.id }}"><input type="hidden" name="acao" value="desfazer">
+      <button type="submit" title="Adicionar unidade" aria-label="Adicionar unidade de {{ r.nome }}">+</button>
+    </form>
+    {% endif %}
+  </span>
+  {% endif %}
+</div>

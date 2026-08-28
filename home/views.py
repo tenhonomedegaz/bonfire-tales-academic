@@ -4055,6 +4055,7 @@ def _consumiveis_ficha_cards(personagem, ficha):
         cards.append({
             'kind': 'recurso', 'id': contract['key'], 'nome': r['nome'],
             'slug': r.get('slug') or contract['key'],
+            'grupo': 'habilidade',
             'subtitulo': r.get('classe') or '', 'atual': resource.atual,
             'maximo': resource.maximo,
             'reset': r.get('reset') or 'manual',
@@ -4082,6 +4083,7 @@ def _consumiveis_ficha_cards(personagem, ficha):
         cards.append({
             'kind': 'recurso', 'id': contract['key'],
             'slug': tag_slug,
+            'grupo': 'habilidade',
             'nome': nome_limpo, 'subtitulo': 'habilidade',
             'atual': resource.atual, 'maximo': resource.maximo,
             'reset': contract['reset'],
@@ -4089,6 +4091,7 @@ def _consumiveis_ficha_cards(personagem, ficha):
     for charge in sync_item_charges(personagem):
         cards.append({
             'kind': 'recurso', 'id': charge['key'],
+            'grupo': 'item',
             'nome': '%s - %s' % (charge['item'].nome, charge['name']),
             'subtitulo': 'item magico' if charge['item'].id_item_magico_id else 'item',
             'atual': charge['current'], 'maximo': charge['maximum'],
@@ -4100,6 +4103,7 @@ def _consumiveis_ficha_cards(personagem, ficha):
         qtd = max(0, int(it.get('qtd') or 0))
         cards.append({
             'kind': 'item', 'id': it['id'], 'nome': it['nome'],
+            'grupo': 'item',
             'subtitulo': it.get('raridade') or it.get('consumivel_tipo') or 'item',
             'atual': qtd, 'maximo': qtd, 'reset': '',
         })
@@ -4244,13 +4248,9 @@ def _transacoes_com_display(qs, personagem=None, *, staff=False):
 
 def _registrar_transacao(personagem, tipo, descricao, delta_pc, detalhes=None):
     """Registra um movimento de carteira (chamar DEPOIS de atualizar carteira_pc)."""
-    from .models import TbTransacao
-    payload = dict(detalhes or {})
-    payload.setdefault('aventuras_no_momento', int(personagem.aventuras or 0))
-    return TbTransacao.objects.create(
-        id_personagem=personagem, tipo=tipo, descricao=(descricao or '')[:255],
-        valor_pc=int(delta_pc), saldo_pc=int(personagem.carteira_pc or 0),
-        detalhes_json=payload)
+    from .market_services import register_transaction
+    return register_transaction(
+        personagem, tipo, descricao, delta_pc, detalhes=detalhes)
 
 def _spell_count_nv1(conj, base, mais2, mais1, asi_vals=(2, 1), asi_bonus=None):
     if conj.get('magias_n') is not None:
@@ -5957,6 +5957,41 @@ def _opcao_grupos(personagem, classe_id=None):
     return grupos
 
 
+def _treinamentos_ficha_contexto(personagem, *, incluir_catalogo=True):
+    """Monta a consulta e o seletor de treinamentos sem duplicar regra entre telas."""
+    from .models import TbIdioma, TbItemMundano
+
+    treinamentos = list(personagem.proficiencias.filter(
+        origem='Treinamento', tipo__in=('idioma', 'ferramenta'),
+    ).order_by('tipo', 'nome'))
+    if not incluir_catalogo:
+        return {'treinamentos': treinamentos, 'treinamentos_disponiveis': []}
+
+    proficiencias_atuais = {
+        (str(tipo).lower(), _norm_req(nome))
+        for tipo, nome in personagem.proficiencias.values_list('tipo', 'nome')
+    }
+    disponiveis = []
+    for idioma in TbIdioma.objects.all().order_by('categoria', 'ordem', 'nome'):
+        if ('idioma', _norm_req(idioma.nome)) not in proficiencias_atuais:
+            disponiveis.append({
+                'token': 'idioma:%s' % idioma.slug,
+                'nome': idioma.nome,
+                'grupo': 'Idiomas',
+            })
+    for ferramenta in TbItemMundano.objects.filter(categoria='ferramenta').order_by('nome'):
+        if ('ferramenta', _norm_req(ferramenta.nome)) not in proficiencias_atuais:
+            disponiveis.append({
+                'token': 'ferramenta:%s' % ferramenta.slug,
+                'nome': ferramenta.nome,
+                'grupo': 'Ferramentas',
+            })
+    return {
+        'treinamentos': treinamentos,
+        'treinamentos_disponiveis': disponiveis,
+    }
+
+
 @login_required(login_url='/login/')
 def editar_ficha_view(request, pk):
     """FERRAMENTA DA STAFF sobre uma ficha (Ficha v2, onda C): lançamento/reversão de
@@ -5973,7 +6008,7 @@ def editar_ficha_view(request, pk):
         return redirect('ficha_detail', pk=pk)
     pc = p.classes.filter(principal=True).first() or p.classes.first()
     ficha = derive(p)
-    from .models import TbIdioma, TbItemMundano, TbItemMagico
+    from .models import TbItemMundano, TbItemMagico
     cat_label = dict(TbItemMundano.CATEGORIA_CHOICES)
     rar_label = dict(TbItemMagico.RARIDADE_CHOICES)
     transacoes = _transacoes_com_display(p.transacoes.all()[:30], p, staff=True)
@@ -6006,23 +6041,9 @@ def editar_ficha_view(request, pk):
     concessoes = list(p.inventario.filter(concedido_em__isnull=False)
                       .select_related('concedido_por', 'id_item_magico')
                       .order_by('-concedido_em', '-id')[:40])
-    treinamentos = list(p.proficiencias.filter(origem='Treinamento').order_by('tipo', 'nome'))
-    proficiencias_atuais = {
-        (str(tipo).lower(), _norm_req(nome))
-        for tipo, nome in p.proficiencias.values_list('tipo', 'nome')
-    }
-    treinamentos_disponiveis = []
-    for idioma in TbIdioma.objects.all().order_by('categoria', 'ordem', 'nome'):
-        if ('idioma', _norm_req(idioma.nome)) not in proficiencias_atuais:
-            treinamentos_disponiveis.append({
-                'token': 'idioma:%s' % idioma.slug, 'nome': idioma.nome,
-                'grupo': 'Idiomas'})
-    for ferramenta in TbItemMundano.objects.filter(categoria='ferramenta').order_by('nome'):
-        if ('ferramenta', _norm_req(ferramenta.nome)) not in proficiencias_atuais:
-            treinamentos_disponiveis.append({
-                'token': 'ferramenta:%s' % ferramenta.slug, 'nome': ferramenta.nome,
-                'grupo': 'Ferramentas'})
-    return render(request, 'home/pages/editar_ficha.html', dict(ledger_ctx, **{
+    treinamento_ctx = _treinamentos_ficha_contexto(p)
+    return render(request, 'home/pages/editar_ficha.html', dict(
+        ledger_ctx, **treinamento_ctx, **{
         'page_title': 'Staff — %s' % p.nome,
         'p': p, 'pc': pc, 'ficha': ficha,
         'nivel': pc.nivel if pc else 1,
@@ -6038,8 +6059,6 @@ def editar_ficha_view(request, pk):
         'conceder_mundano': conceder_mundano,
         'concessoes': concessoes,
         'concessao_msg': request.GET.get('concessao'),
-        'treinamentos_disponiveis': treinamentos_disponiveis,
-        'treinamentos': treinamentos,
         'treinamento_msg': request.GET.get('treinamento'),
         'talentos_raciais_troca': _talentos_raciais_ficha(p),
     }))
@@ -6055,6 +6074,11 @@ def personagem_treinamento(request, pk):
     if not perms_mod.is_staff_user(request.user):
         raise Http404()
     back = reverse('editar_ficha', args=[pk])
+
+    def done(code):
+        separador = '&' if '?' in back else '?'
+        return redirect('%s%streinamento=%s' % (back, separador, code))
+
     if request.POST.get('acao') == 'remover':
         try:
             proficiencia_id = int(request.POST.get('proficiencia') or 0)
@@ -6063,20 +6087,20 @@ def personagem_treinamento(request, pk):
         apagada, _ = TbPersonagemProficiencia.objects.filter(
             pk=proficiencia_id, id_personagem=p, origem='Treinamento',
             tipo__in=('idioma', 'ferramenta')).delete()
-        return redirect(back + ('?treinamento=removido' if apagada else '?treinamento=invalido'))
+        return done('removido' if apagada else 'invalido')
 
     tipo, sep, slug = (request.POST.get('treinamento') or '').partition(':')
     if not sep or tipo not in {'idioma', 'ferramenta'} or not slug:
-        return redirect(back + '?treinamento=invalido')
+        return done('invalido')
     catalog = (TbIdioma.objects.filter(slug=slug).first() if tipo == 'idioma'
                else TbItemMundano.objects.filter(
                    slug=slug, categoria='ferramenta').first())
     if catalog is None or p.proficiencias.filter(
             tipo=tipo, nome__iexact=catalog.nome).exists():
-        return redirect(back + '?treinamento=invalido')
+        return done('invalido')
     TbPersonagemProficiencia.objects.create(
         id_personagem=p, origem='Treinamento', tipo=tipo, nome=catalog.nome)
-    return redirect(back + '?treinamento=ok')
+    return done('ok')
 
 
 @login_required(login_url='/login/')
@@ -8704,6 +8728,8 @@ def ficha_detail_view(request, pk):
         pk=pk)
     if not perms.pode_ver_ficha(request.user, p):
         raise Http404()
+    from .market_services import sync_training
+    sync_training(p)
     ficha = derive(p)
     is_staff = perms.is_staff_user(request.user)
     raca_linha = _raca_linha_ficha(p)
@@ -8729,6 +8755,8 @@ def ficha_detail_view(request, pk):
     # As sempre_preparada (raça/outros) NÃO contam no total de preparadas da classe.
     magias_info = _magias_sheet_info(p, ficha, essencia_pendentes)
     consumiveis_cards = _consumiveis_ficha_cards(p, ficha)
+    recursos_cards = [card for card in consumiveis_cards if card.get('grupo') != 'item']
+    itens_consumiveis_cards = [card for card in consumiveis_cards if card.get('grupo') == 'item']
     # Página de Histórico: compras/vendas do personagem (extrato composto PO/PP/PC).
     transacoes = _transacoes_com_display(
         TbTransacao.objects.filter(id_personagem=p).order_by('-pk')[:300],
@@ -8768,6 +8796,8 @@ def ficha_detail_view(request, pk):
         'raca_linha': raca_linha,
         'magias_info': magias_info,
         'consumiveis_cards': consumiveis_cards,
+        'recursos_cards': recursos_cards,
+        'itens_consumiveis_cards': itens_consumiveis_cards,
         'mochila': mochila,
         'opcoes': opcoes,
         'personalidade': _personalidade_ficha(p),
@@ -8818,7 +8848,8 @@ def _opcoes_resposta(request, p, fallback, *, msg='ok', ok=True):
     re-renderizada pelo servidor (zero regra duplicada no cliente); sem JS, PRG de volta
     para a aba Magias & Opções."""
     if not is_ajax(request):
-        return redirect('%s&opcao=%s' % (fallback, msg))
+        separador = '&' if '?' in fallback else '?'
+        return redirect('%s%sopcao=%s' % (fallback, separador, msg))
     from django.template.loader import render_to_string
     p.refresh_from_db()
     html = render_to_string('home/partials/_ficha_opcoes.html',
@@ -13849,6 +13880,167 @@ def _oficina_castable_spells(personagem, casters):
             'slot_levels': list(range(max(1, int(spell.nivel or 0)), 10)),
         })
     return out
+
+
+def _servicos_redirect(personagem_id, status):
+    return redirect('%s?personagem=%s&status=%s' % (
+        reverse('mercado_servicos'), personagem_id, status))
+
+
+def _valor_po_form_pc(raw):
+    try:
+        value = Decimal(str(raw or '').strip().replace('.', '').replace(',', '.'))
+    except (InvalidOperation, ValueError):
+        return 0
+    return max(0, int((value * 100).quantize(Decimal('1'))))
+
+
+def _decorar_emprestimos(loans, personagem=None):
+    for loan in loans:
+        loan.valor_display = _moeda_display(loan.valor_original_pc)
+        loan.total_display = _moeda_display(loan.valor_total_pc)
+        loan.pago_display = _moeda_display(loan.valor_pago_pc)
+        loan.saldo_display = _moeda_display(loan.saldo_devedor_pc)
+        loan.sou_proponente = bool(
+            personagem and loan.proponente_id == personagem.pk)
+        loan.sou_devedor = bool(personagem and loan.devedor_id == personagem.pk)
+        loan.sou_credor = bool(personagem and loan.credor_id == personagem.pk)
+        loan.aguarda_minha_resposta = (
+            loan.status == 'pendente' and personagem
+            and not loan.sou_proponente)
+    return loans
+
+
+@ensure_csrf_cookie
+def mercado_servicos_view(request):
+    """Treinamentos e contratos financeiros, ambos vinculados ao personagem ativo."""
+    from .market_services import (
+        active_loan_for, loan_limit_pc, loan_rank, sync_overdue_loans,
+        sync_training, tables_played,
+    )
+    from . import permissions as perms
+    from .models import TbEmprestimoPersonagem, TbPersonagem
+
+    context = _mercado_contexto(request)
+    personagem = context['mercado_ativo']
+    is_staff = perms.is_staff_user(request.user)
+    treinamento_ctx = {'treinamentos_disponiveis': [], 'treinamento_ativo': None}
+    loans = []
+    candidates = []
+    if personagem:
+        sync_training(personagem)
+        sync_overdue_loans(personagem=personagem)
+        treinamento_ctx = _treinamentos_ficha_contexto(personagem)
+        treinamento_ctx['treinamento_ativo'] = personagem.treinamentos_mercado.filter(
+            status='ativo').first()
+        treinamento_ctx['treinamentos_recentes'] = list(
+            personagem.treinamentos_mercado.exclude(status='ativo')[:10])
+        loans = list(TbEmprestimoPersonagem.objects.filter(
+            Q(credor=personagem) | Q(devedor=personagem)).select_related(
+                'credor__dono', 'devedor__dono', 'proponente__dono')[:30])
+        _decorar_emprestimos(loans, personagem)
+        if tables_played(personagem) >= 2 and not active_loan_for(personagem):
+            for other in TbPersonagem.objects.filter(
+                    arquivado=False).exclude(
+                        dono=request.user).select_related('dono').order_by('nome'):
+                if tables_played(other) >= 2 and not active_loan_for(other):
+                    candidates.append(other)
+    staff_loans = []
+    if is_staff:
+        sync_overdue_loans()
+        staff_loans = list(TbEmprestimoPersonagem.objects.filter(
+            status__in=('pendente', 'ativo')).select_related(
+                'credor__dono', 'devedor__dono', 'proponente__dono'))
+        _decorar_emprestimos(staff_loans)
+    context.update(treinamento_ctx)
+    context.update({
+        'title': 'Servicos do Mercado',
+        'servicos_status': request.GET.get('status') or '',
+        'emprestimos': loans,
+        'emprestimo_ativo': active_loan_for(personagem) if personagem else None,
+        'emprestimo_candidatos': candidates,
+        'emprestimo_mesas': tables_played(personagem) if personagem else 0,
+        'emprestimo_rank': loan_rank(personagem) if personagem else '',
+        'emprestimo_limite': (
+            _moeda_display(loan_limit_pc(personagem)) if personagem else '0 PO'),
+        'treinamento_custo': _moeda_display(10000),
+        'is_staff': is_staff,
+        'staff_emprestimos': staff_loans,
+    })
+    return render(request, 'home/pages/mercado_servicos.html', context)
+
+
+@login_required(login_url='/login/')
+@require_POST
+def mercado_iniciar_treinamento(request, pk):
+    from .market_services import start_training
+    p = _ficha_editavel(request, pk)
+    _row, status = start_training(p, request.POST.get('treinamento'))
+    return _servicos_redirect(pk, status)
+
+
+@login_required(login_url='/login/')
+@require_POST
+def mercado_propor_emprestimo(request, pk):
+    from .market_services import create_loan_proposal
+    from .models import TbPersonagem
+    p = _ficha_editavel(request, pk)
+    other = TbPersonagem.objects.filter(
+        pk=request.POST.get('contraparte'), arquivado=False,
+    ).exclude(dono=request.user).first()
+    if other is None:
+        return _servicos_redirect(pk, 'emprestimo_alvo')
+    role = request.POST.get('papel')
+    if role not in {'solicitar', 'oferecer'}:
+        return _servicos_redirect(pk, 'emprestimo_invalido')
+    _row, status = create_loan_proposal(
+        p, other, role, _valor_po_form_pc(request.POST.get('valor_po')))
+    return _servicos_redirect(pk, status)
+
+
+@login_required(login_url='/login/')
+@require_POST
+def mercado_responder_emprestimo(request, loan_id):
+    from .market_services import respond_loan
+    loan, status = respond_loan(request.user, loan_id, request.POST.get('acao'))
+    pk = request.POST.get('personagem') or (
+        loan.devedor_id if loan and loan.devedor.dono_id == request.user.id
+        else loan.credor_id if loan else 0)
+    return _servicos_redirect(pk, status)
+
+
+@login_required(login_url='/login/')
+@require_POST
+def mercado_cancelar_emprestimo(request, loan_id):
+    from .market_services import cancel_loan_proposal
+    loan, status = cancel_loan_proposal(request.user, loan_id)
+    pk = request.POST.get('personagem') or (loan.proponente_id if loan else 0)
+    return _servicos_redirect(pk, status)
+
+
+@login_required(login_url='/login/')
+@require_POST
+def mercado_pagar_emprestimo(request, loan_id):
+    from .market_services import pay_loan
+    raw = str(request.POST.get('valor_po') or '').strip()
+    amount = _valor_po_form_pc(raw) if raw else None
+    loan, status = pay_loan(request.user, loan_id, amount)
+    pk = request.POST.get('personagem') or (loan.devedor_id if loan else 0)
+    return _servicos_redirect(pk, status)
+
+
+@login_required(login_url='/login/')
+@require_POST
+def mercado_staff_emprestimo(request, loan_id):
+    from . import permissions as perms
+    from .market_services import staff_manage_loan
+
+    if not perms.is_staff_user(request.user):
+        raise Http404
+    _loan, status = staff_manage_loan(
+        request.user, loan_id, request.POST.get('acao'))
+    return redirect('%s?status=%s#controle-emprestimos' % (
+        reverse('mercado_servicos'), status))
 
 
 def _oficina_other_spellbooks(
