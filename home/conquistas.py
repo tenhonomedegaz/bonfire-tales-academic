@@ -98,6 +98,48 @@ def registrar_criacao_personagem(personagem):
     return evento
 
 
+def registrar_publicacao_cronica(cronica):
+    """Registra a primeira publicação aprovada, sem contar revisões editoriais."""
+    from django.contrib.auth import get_user_model
+    from django.db import transaction
+    from django.db.models import Q
+    from .models import TbConquista, TbCronica, TbEventoConquista, TbUsuarioConquista
+
+    if cronica.status != 'aprovada' or not cronica.data_publicacao:
+        raise ValueError('A crônica ainda não foi publicada.')
+    regra = {
+        'schema_version': 1, 'metric': 'stories_published',
+        'scope': 'account', 'operator': 'gte', 'target': 1,
+    }
+    with transaction.atomic():
+        get_user_model().objects.select_for_update().only('pk').get(pk=cronica.autor_id)
+        evento, _ = TbEventoConquista.objects.get_or_create(
+            origem='site', chave_origem=f'cronica:{cronica.pk}:publicada',
+            defaults={
+                'tipo': 'story_published', 'conta_id': cronica.autor_id,
+                'agregado_id': cronica.pk, 'ocorrido_em': cronica.data_publicacao,
+            },
+        )
+        if evento.conta_id != cronica.autor_id or evento.agregado_id != cronica.pk:
+            raise ValueError('Identidade do fato de publicação inconsistente.')
+        anteriores = TbCronica.objects.filter(autor_id=cronica.autor_id).exclude(pk=cronica.pk)
+        if anteriores.filter(Q(status__in=['aprovada', 'oculta']) |
+                             Q(data_publicacao__isnull=False)).exists():
+            return evento
+        for conquista in TbConquista.objects.filter(
+                ativo=True, criterio='automatico',
+                criterio_json__metric='stories_published').select_related('recompensa'):
+            if conquista.criterio_json != regra:
+                continue
+            if conceder_conquista(cronica.autor, conquista):
+                TbUsuarioConquista.objects.filter(user_id=cronica.autor_id, conquista=conquista).update(
+                    evidencia_json={'evento_id': str(evento.pk), 'origem': evento.origem,
+                                   'chave_origem': evento.chave_origem, 'agregado_id': cronica.pk},
+                    definicao_json=regra,
+                )
+    return evento
+
+
 # ─────────────────────────── Vitrine (perfil) ──────────────────────────────────
 def _conquista_dict(conquista, obtida, concedida_em=None):
     """Dict uniforme pros templates de vitrine."""

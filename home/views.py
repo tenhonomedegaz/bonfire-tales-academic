@@ -14701,6 +14701,8 @@ def cronica_review_action(request, cronica_id):
             cronica.data_revisao = timezone.now()
             cronica.feedback_staff = data.get('feedback', '')
         cronica.save()
+        if action == 'aprovar':
+            _conquistas.registrar_publicacao_cronica(cronica)
         _notificar_cronica(cronica.autor_id, cronica,
                            f'publicacao:{cronica.pk}:{cronica.data_revisao.isoformat()}',
                            'publicacao', f'Crônica {"publicada" if action == "aprovar" else "devolvida"}: {cronica.titulo}')
