@@ -43,6 +43,22 @@ def regra_unidades_compradas_valida(regra):
     return len(set(identities)) == len(identities)
 
 
+def regra_inicio_classe_valida(regra):
+    """Uma classe inicial é identificada por slug de catálogo, nunca por nome."""
+    import re
+
+    return (isinstance(regra, dict) and set(regra) == {
+        'schema_version', 'metric', 'scope', 'filters', 'operator', 'target'} and
+        type(regra['schema_version']) is int and regra['schema_version'] == 1 and
+        regra['metric'] == 'class_started' and regra['scope'] == 'account' and
+        regra['operator'] == 'gte' and type(regra['target']) is int and
+        regra['target'] == 1 and isinstance(regra['filters'], dict) and
+        set(regra['filters']) == {'class_slug'} and
+        type(regra['filters']['class_slug']) is str and
+        bool(re.fullmatch(r'[a-z0-9]+(?:-[a-z0-9]+)*',
+                          regra['filters']['class_slug'])))
+
+
 def conceder_conquista(user, conquista, por=None):
     """Concede `conquista` a `user` (idempotente). Se ainda não tinha, cria a
     linha TbUsuarioConquista e, havendo recompensa, desbloqueia o cosmético no
@@ -102,7 +118,8 @@ def registrar_criacao_personagem(personagem):
     """
     from django.db import transaction
     from django.contrib.auth import get_user_model
-    from .models import TbConquista, TbEventoConquista, TbPersonagem, TbUsuarioConquista
+    from .models import (TbConquista, TbEventoConquista, TbPersonagem,
+                         TbPersonagemClasse, TbUsuarioConquista)
 
     regra = {
         'schema_version': 1, 'metric': 'characters_created',
@@ -111,16 +128,24 @@ def registrar_criacao_personagem(personagem):
     with transaction.atomic():
         # Duas criações simultâneas da mesma conta devem avaliar "primeira" em série.
         get_user_model().objects.select_for_update().only('pk').get(pk=personagem.dono_id)
+        principal = TbPersonagemClasse.objects.filter(
+            id_personagem=personagem, principal=True, nivel=1
+        ).select_related('id_classe').first() if personagem.nivel == 1 else None
+        class_snapshot = ({'initial_class_id': principal.id_classe_id,
+                           'initial_class_slug': principal.id_classe.slug,
+                           'initial_level': 1} if principal else {})
         evento, _ = TbEventoConquista.objects.get_or_create(
             origem='site', chave_origem=f'personagem:{personagem.pk}:criado',
             defaults={
                 'tipo': 'character_created', 'conta_id': personagem.dono_id,
                 'personagem': personagem, 'agregado_id': personagem.pk,
                 'ocorrido_em': personagem.criado_em,
+                'payload_json': class_snapshot,
             },
         )
         if evento.conta_id != personagem.dono_id or evento.agregado_id != personagem.pk:
             raise ValueError('Identidade do fato de criação inconsistente.')
+        avaliar_inicio_classe_evento(evento)
         if TbPersonagem.objects.filter(dono_id=personagem.dono_id).exclude(pk=personagem.pk).exists():
             return evento
         for conquista in TbConquista.objects.filter(ativo=True, criterio='automatico',
@@ -135,6 +160,44 @@ def registrar_criacao_personagem(personagem):
                     definicao_json=regra,
                 )
     return evento
+
+
+def avaliar_inicio_classe_evento(evento):
+    """Concede uma vez a classe inicial comprovada no fato imutável de criação."""
+    from .models import TbConquista, TbUsuarioConquista
+
+    if (evento.origem != 'site' or evento.tipo != 'character_created' or
+            evento.chave_origem != f'personagem:{evento.agregado_id}:criado' or
+            evento.personagem_id != evento.agregado_id):
+        return 0
+    snapshot = evento.payload_json or {}
+    if (type(snapshot.get('initial_class_id')) is not int or
+            snapshot['initial_class_id'] <= 0 or
+            type(snapshot.get('initial_class_slug')) is not str or
+            snapshot.get('initial_level') != 1):
+        return 0
+    awarded = 0
+    for rule in TbConquista.objects.filter(
+            ativo=True, criterio='automatico',
+            criterio_json__metric='class_started').select_related('recompensa'):
+        definition = rule.criterio_json
+        if (not regra_inicio_classe_valida(definition) or
+                definition['filters']['class_slug'] != snapshot['initial_class_slug']):
+            continue
+        grant = TbUsuarioConquista.objects.filter(user_id=evento.conta_id,
+                                                 conquista=rule).first()
+        if grant is not None and (grant.revogada_em is None or grant.concedida_por_id):
+            continue
+        if conceder_conquista(evento.conta, rule):
+            TbUsuarioConquista.objects.filter(user_id=evento.conta_id, conquista=rule).update(
+                evidencia_json={'evento_id': str(evento.pk),
+                                'chave_origem': evento.chave_origem,
+                                'agregado_id': evento.agregado_id,
+                                'initial_class_id': snapshot['initial_class_id'],
+                                'initial_class_slug': snapshot['initial_class_slug']},
+                definicao_json=definition)
+            awarded += 1
+    return awarded
 
 
 def registrar_publicacao_cronica(cronica):

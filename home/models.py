@@ -2543,19 +2543,21 @@ class TbConquista(models.Model):
 
     def clean(self):
         super().clean()
-        from .conquistas import regra_unidades_compradas_valida
+        from .conquistas import (regra_inicio_classe_valida,
+                                 regra_unidades_compradas_valida)
         supported = [
             {'schema_version': 1, 'metric': metric,
              'scope': 'account', 'operator': 'gte', 'target': 1}
             for metric in ('characters_created', 'stories_published', 'items_purchased')
         ]
         if (self.criterio == 'automatico' and self.criterio_json not in supported and
-                not regra_unidades_compradas_valida(self.criterio_json)):
+                not regra_unidades_compradas_valida(self.criterio_json) and
+                not regra_inicio_classe_valida(self.criterio_json)):
             if self.pk and type(self).objects.filter(
                 pk=self.pk, criterio='automatico', criterio_json=self.criterio_json,
             ).exists():
                 return  # Definições antigas permanecem editáveis sem mudar a regra.
-            raise ValidationError({'criterio_json': 'Critério automático não suportado. Use characters_created, stories_published, items_purchased ou items_purchased_units com identidades, operador e limiar válidos.'})
+            raise ValidationError({'criterio_json': 'Critério automático não suportado. Use characters_created, stories_published, items_purchased, items_purchased_units ou class_started com identidade e parâmetros válidos.'})
 
     @property
     def icone_efetivo(self):
