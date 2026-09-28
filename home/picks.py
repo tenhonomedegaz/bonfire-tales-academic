@@ -1617,18 +1617,37 @@ def resolve_personagem(personagem, *, kinds=None):
     for c in personagem.classes.select_related('id_classe', 'id_subclasse'):
         nivel = int(c.nivel or 0)
         classe = c.id_classe
-        habs = list(TbClassehabilidade.objects.filter(
-            id_classe=classe, id_subclasse__isnull=True, niveladquirido__lte=nivel))
+        ruleset = None
+        if classe.slug == 'cacador':
+            from .models import TbPersonagemCacador
+            profile = TbPersonagemCacador.objects.select_related('ruleset').filter(
+                personagem_classe=c).first()
+            if profile is not None:
+                from .versioned_classes import VersionedClassCatalog
+                ruleset = profile.ruleset
+                catalog = VersionedClassCatalog(ruleset, c.id_classe_id)
+                classe = catalog.classe
+        if ruleset is None:
+            habs = list(TbClassehabilidade.objects.filter(
+                id_classe=classe, id_subclasse__isnull=True, niveladquirido__lte=nivel))
+        else:
+            habs = [h for h in catalog.collections[TbClassehabilidade]
+                    if h.id_subclasse_id is None and h.niveladquirido <= nivel]
         subclasse = None
         if _subclass_unlocked(c, nivel):
-            subclasse = c.id_subclasse
-            habs += list(TbClassehabilidade.objects.filter(
-                id_subclasse=subclasse, niveladquirido__lte=nivel))
+            subclasse = catalog.subclasses[c.id_subclasse_id] if ruleset else c.id_subclasse
+            if ruleset:
+                habs += [h for h in catalog.collections[TbClassehabilidade]
+                         if h.id_subclasse_id == c.id_subclasse_id and h.niveladquirido <= nivel]
+            else:
+                habs += list(TbClassehabilidade.objects.filter(
+                    id_subclasse=subclasse, niveladquirido__lte=nivel))
         # Para classe secundaria entram somente os picks de multiclass_prof;
         # picks de proficiencia inicial da classe nao podem vazar na multiclasse.
         sources = (multiclass_sources(classe) if not c.principal else []) + habs
         grupos += resolve_groups(sources, classe=classe, subclasse=subclasse, nivel=nivel,
-                                 personagem=personagem, kinds=kinds, choice_values=cvals)
+                                 personagem=personagem, kinds=kinds, choice_values=cvals,
+                                 ruleset=ruleset)
     # TRAÇOS raciais/linhagem/ESSÊNCIA automáticos (talento_racial=False): sede das
     # SUB-ESCOLHAS de essência (`pick:sangue`, `pick:energia`, `pick:polo`, `pick:elemento`,
     # `pick:alento_elemental`) que hoje viram lixo literal na ficha. `_tracos_raciais` já

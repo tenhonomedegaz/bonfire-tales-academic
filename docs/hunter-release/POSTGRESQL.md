@@ -110,11 +110,11 @@ nove entradas, a prévia de regularizacao falha ao resolver a revisao dessa cla
 Por isso, o pacote inclui o complemento aditivo
 `ref/backups/reconciliacao_producao_multiclasse_20260928.json` (12 revisoes de
 classe, um ruleset e 21 vinculos). O alvo precisa validar primeiro a fixture de
-50 linhas, depois a de 34, sem atualizar linhas existentes. Somente o ruleset
-composto de 21 entradas, checksum
-`90e74e8d6096c07b212e015daf2e96c3caff1f2333cb8674d795f8fd2882edd2`,
-deve ser configurado em `HUNTER_CREATOR_RULESET_CHECKSUM` apos o ensaio dos
-Caçadores legados e dos fluxos novos. Nao converter fichas antigas em massa.
+50 linhas, depois a de 34, sem atualizar linhas existentes. O ruleset de 21
+entradas, checksum `90e74e8d6096c07b212e015daf2e96c3caff1f2333cb8674d795f8fd2882edd2`,
+e a base do complemento. A revisao das caracteristicas basicas abaixo precisa
+ser composta antes de configurar `HUNTER_CREATOR_RULESET_CHECKSUM` para novas
+fichas. Nao converter fichas antigas em massa.
 
 No PostgreSQL local `postgres`, antes do complemento, foi feito backup custom
 fresco `scratch/evolucao-q14/local_pre_multiclass_20260928_024240.dump`,
@@ -122,7 +122,7 @@ restaurado em `bonfire_r157_restore_20260928_024240`. As 6.528 linhas em 85
 tabelas coincidiram por assinatura. A carga de 34 linhas foi ensaiada nessa
 restauracao e aplicada ao banco local com todas as linhas anteriores preservadas,
 zero FK nao validada e zero insercao necessaria numa segunda passada. A `.env`
-local ignorada pelo Git aponta agora ao checksum composto. O JSON de producao
+local ignorada pelo Git aponta agora ao checksum da revisao corrigida abaixo. O JSON de producao
 nao foi carregado no banco local configurado. Nele, os 50 registros iniciais
 do rework ja existiam por preparacao aditiva anterior e somente as 34 linhas
 do complemento foram carregadas agora. Nada foi aplicado em producao.
@@ -137,3 +137,36 @@ python manage.py compose_hunter_multiclass_ruleset --base-checksum 00d9539eb5625
 O mesmo comando com `--apply` so pertence a uma operacao especificamente
 autorizada, apos backup/restauracao e ensaio. Ele falha e reverte a transacao
 se o checksum calculado diferir; a ativacao por configuracao vem depois.
+
+## Correcao das caracteristicas basicas do Cacador
+
+O HTML exige Destreza 13 **e** Sabedoria 13 para multiclasse em Cacador e
+concede armadura leve, armas marciais e uma pericia da lista da classe. O
+ruleset anterior congelou requisitos/proficiencias diferentes. A linha viva
+`TB_Classe` fica intacta para fichas legadas; uma nova revisao imutavel altera
+somente a copia de `class-catalog:<ID do Cacador>`. Nao converter personagens.
+
+No PostgreSQL local autorizado, o backup fresco
+`scratch/evolucao-q14/local_pre_hunter_basics_20260928_033736.dump` foi
+restaurado em `bonfire_r160_restore_20260928_033736`: 85 tabelas e 6.562
+linhas identicas por assinatura, sem FK invalida. A composicao nessa copia e
+no banco local retornou o mesmo checksum
+`da099956cb1abed5d158f64855076825d66e509a5d5aee0e4f19944291ce6289`;
+a segunda execucao reutilizou o mesmo ruleset. No banco local, somente uma
+revisao, um ruleset e 21 vinculos foram acrescentados; 0 personagens alterados.
+A `.env` local ignorada pelo Git aponta ao novo checksum.
+
+No destino **identificado e autorizado**, depois de aplicar o complemento de
+21 entradas, executar primeiro sem `--apply` e conferir o checksum. Ensaiar
+com `--apply` numa restauracao isolada antes de repetir no alvo autorizado:
+
+```text
+python manage.py compose_hunter_class_basics --base-checksum 90e74e8d6096c07b212e015daf2e96c3caff1f2333cb8674d795f8fd2882edd2 --expected-checksum da099956cb1abed5d158f64855076825d66e509a5d5aee0e4f19944291ce6289
+```
+
+Depois de `--apply` no alvo autorizado e de validar personagens, patrimonio,
+magias e FKs, configurar `HUNTER_CREATOR_RULESET_CHECKSUM` com o novo checksum.
+Para retorno de codigo, conservar as duas revisoes e os vinculos de personagens
+ja criados; nao apontar uma ficha nova para a revisao antiga nem remover dados.
+O ensaio na copia do JSON de producao preservou quatro Cacadores legados e
+8.314 linhas anteriores em 82 tabelas fora do versionamento.

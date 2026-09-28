@@ -136,6 +136,11 @@
       var scl = fieldOf(card, 'classe');
       var pay = {};
       if (scl) { if (tipo === 'adicionar_classe' && !scl.value) { flash(scl); return; } if (scl.value) pay.classe = parseInt(scl.value, 10); }
+      if (tipo === 'adicionar_classe' && scl && scl.options[scl.selectedIndex].dataset.hunter === '1') {
+        var ability = fieldOf(card, 'hunter_ability');
+        if (!ability || !ability.value) { flash(ability); return; }
+        pay.hunter_ability = ability.value;
+      }
       var lbl = (btn.dataset.label || 'Progressão') + (scl && scl.value ? (': ' + optText(scl)) : '');
       addAction({ tipo: tipo, payload: pay, key: tipo, label: lbl, card: card });
       return;

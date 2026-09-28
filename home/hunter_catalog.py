@@ -6,7 +6,7 @@ from pathlib import Path
 from django.db import transaction
 from django.utils.text import slugify
 from .content_versions import create_revision, resolve_content, seal_ruleset
-from .models import TbClassehabilidade, TbRecursoclasse, TbSubclasse
+from .models import TbClasse, TbClassehabilidade, TbRecursoclasse, TbSubclasse
 from .versioned_classes import EVALUATOR, VOCABULARY, VersionedClassCatalog, _fields
 
 CHOICE_SOURCES = {
@@ -27,6 +27,49 @@ CONDITIONAL_SOURCES = {
     'hide': '170-nivel-13-passos-invisiveis',
     'domination': '210-nivel-20-dominio-da-cacada',
 }
+
+
+@transaction.atomic
+def compose_class_basics_revision(ruleset, *, class_id, author=None):
+    """Publish the HTML's Hunter multiclass basics without changing legacy rows."""
+    catalog = VersionedClassCatalog(ruleset, class_id)
+    if catalog.classe.slug != 'cacador':
+        raise ValueError('Class basics require a Hunter snapshot.')
+    identity = 'class-catalog:%s' % class_id
+    payload = deepcopy(resolve_content(ruleset, identity, evaluator_version=EVALUATOR,
+                                       vocabulary_version=VOCABULARY))
+    rework = resolve_content(ruleset, 'hunter-rework', evaluator_version=EVALUATOR,
+                             vocabulary_version=VOCABULARY)
+    reference = json.loads((Path(__file__).parent / 'rules/hunter_rework.json').read_text(encoding='utf-8'))
+    if rework.get('source_sha256') != reference['source_sha256']:
+        raise ValueError('Hunter basics source differs from the sealed reference.')
+    row = payload['collections'][TbClasse._meta.label_lower][0]
+    old_req = 'multiclass_req{str>=13 | dex>=13, int>=13 | wis>=13}'
+    old_prof = 'multiclass_prof{armadura_leve, armadura_media, escudos, armas_marciais, pick:pericia:1}'
+    new_req = 'multiclass_req{dex>=13, wis>=13}'
+    new_prof = 'multiclass_prof{armadura_leve, armas_marciais, pick:pericia:1}'
+    skills = ('Escolha 1 entre Adestrar Animais, Atletismo, Furtividade, '
+              'Intuição, Investigação, Natureza, Percepção e Sobrevivência')
+    if new_req in row['tags_json'] and new_prof in row['tags_json']:
+        if (row['multiclass_requisitos'], row['multiclass_pericias'],
+                row['multiclass_armaduras']) != ('Destreza 13 e Sabedoria 13', skills,
+                                                'Armaduras Leves'):
+            raise ValueError('Hunter multiclass text differs from its reviewed tags.')
+        return ruleset
+    if row['tags_json'].count(old_req) != 1 or row['tags_json'].count(old_prof) != 1:
+        raise ValueError('Hunter multiclass tags differ from the reviewed base.')
+    row['tags_json'] = [new_req if t == old_req else new_prof if t == old_prof else t
+                        for t in row['tags_json']]
+    row['multiclass_requisitos'] = 'Destreza 13 e Sabedoria 13'
+    row['multiclass_pericias'] = skills
+    row['multiclass_armaduras'] = 'Armaduras Leves'
+    previous = ruleset.entries.select_related('revision').get(identity=identity).revision
+    replacement = create_revision(identity, payload,
+        dependencies=sorted(set(previous.dependencies) | {'hunter-rework'}), author=author)
+    revisions = [entry.revision for entry in ruleset.entries.select_related('revision')
+                 if entry.identity != identity]
+    return seal_ruleset(revisions + [replacement], evaluator_version=EVALUATOR,
+                        vocabulary_version=VOCABULARY, author=author)
 
 
 @transaction.atomic

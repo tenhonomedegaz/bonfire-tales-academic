@@ -112,8 +112,15 @@
             <p class="sn-step-sub">Em vez de avançar em {{ ganhos.classe }}, você pode gastar este nível numa classe nova. As escolhas da nova classe são feitas depois, na ficha.</p>
             <div class="sn-mc-row">
               <select class="lvl-field lvl-field--grow" data-lvl-field="classe" aria-label="Classe de multiclasse">
-                {% for c in classes_multiclasse %}<option value="{{ c.id }}">{{ c.nome }}{% if c.req %} (req: {{ c.req }}){% endif %}</option>{% endfor %}
+                {% for c in classes_multiclasse %}<option value="{{ c.id }}" data-hunter="{{ c.hunter|yesno:'1,0' }}">{{ c.nome }}{% if c.req %} (req: {{ c.req }}){% endif %}</option>{% endfor %}
               </select>
+              <label data-hunter-choice hidden>Atributo do Caçador
+                <select class="lvl-field" data-lvl-field="hunter_ability" aria-label="Atributo do Caçador">
+                  <option value="">— Atributo —</option>
+                  <option value="int">Inteligência</option>
+                  <option value="wis">Sabedoria</option>
+                </select>
+              </label>
               <button type="button" class="lvl-add" data-lvl-queue="adicionar_classe" data-label="Multiclasse">+ Multiclassar</button>
             </div>
           </div>

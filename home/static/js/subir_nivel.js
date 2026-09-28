@@ -184,10 +184,14 @@
       }
       var scl = fieldOf(card, 'classe');
       if (!scl || !scl.value) { flash(scl); return; }
+      var hunter = scl.options[scl.selectedIndex].dataset.hunter === '1';
+      var ability = fieldOf(card, 'hunter_ability');
+      if (hunter && (!ability || !ability.value)) { flash(ability); return; }
       mode = 'mc';
       lote = lote.filter(function (a) { return !a.fixed; });         // tira o subir_nivel
       lote = lote.filter(function (a) { return CHOICE_STEP_CARDS(a) === false; }); // limpa escolhas do nível
-      lote.unshift({ tipo: 'adicionar_classe', payload: { classe: parseInt(scl.value, 10) },
+      lote.unshift({ tipo: 'adicionar_classe', payload: { classe: parseInt(scl.value, 10),
+        hunter_ability: hunter ? ability.value : undefined },
         key: 'adicionar_classe', label: 'Multiclasse: ' + optText(scl), card: card, fixed: true });
       rebuildStepper(); goTo(activeSteps().length - 1); sync();
       return;
@@ -540,6 +544,14 @@
 
   // ================= wiring =================
   function initCards() {
+    main.querySelectorAll('[data-lvl-card="multiclasse"]').forEach(function (card) {
+      var chosen = fieldOf(card, 'classe'), label = card.querySelector('[data-hunter-choice]');
+      if (!chosen || !label) return;
+      var syncHunter = function () {
+        label.hidden = chosen.options[chosen.selectedIndex].dataset.hunter !== '1';
+      };
+      chosen.addEventListener('change', syncHunter); syncHunter();
+    });
     main.querySelectorAll('[data-lvl-queue]').forEach(function (btn) {
       btn.addEventListener('click', function () { handleQueue(btn); });
     });

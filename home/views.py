@@ -7384,9 +7384,33 @@ def _classe_req(cl):
     return None
 
 
+def _hunter_multiclass_publication():
+    """Only the corrected, published snapshot can create a new Hunter binding."""
+    try:
+        args = _criador_hunter_catalog_args()
+        if not args:
+            return None
+        from .versioned_classes import VersionedClassCatalog
+        frozen = VersionedClassCatalog(args['hunter_ruleset'], args['hunter_class_id']).classe
+        if _classe_req(frozen) != 'dex>=13, wis>=13':
+            return None
+        return args['hunter_ruleset'], frozen
+    except (HunterCreatorCatalogUnavailable, ValueError, KeyError):
+        return None
+
+
+def _multiclass_classe_efetiva(pc):
+    ruleset = _hunter_ruleset_for_class(pc)
+    if ruleset is None:
+        return pc.id_classe
+    from .versioned_classes import VersionedClassCatalog
+    return VersionedClassCatalog(ruleset, pc.id_classe_id).classe
+
+
 def _multiclass_atende_classes(personagem, atributos, nova_classe=None):
     """Exige os requisitos de todas as classes atuais e da classe de destino."""
-    classes = [pc.id_classe for pc in personagem.classes.select_related('id_classe')]
+    classes = [_multiclass_classe_efetiva(pc)
+               for pc in personagem.classes.select_related('id_classe')]
     if nova_classe is not None:
         classes.append(nova_classe)
     return all(_multiclass_atende(atributos, _classe_req(classe))
@@ -7403,9 +7427,16 @@ def _classes_multiclasse(p, ficha):
     for cl in TbClasse.objects.all().order_by('nome'):
         if cl.id_classe in atuais:
             continue
-        req = _classe_req(cl)
-        if _multiclass_atende_classes(p, ficha['atributos'], cl):
-            out.append({'id': cl.id_classe, 'nome': cl.nome, 'req': (req or '').strip('{}')})
+        effective = cl
+        if cl.slug == 'cacador':
+            published = _hunter_multiclass_publication()
+            if published is None:
+                continue
+            effective = published[1]
+        req = _classe_req(effective)
+        if _multiclass_atende_classes(p, ficha['atributos'], effective):
+            out.append({'id': cl.id_classe, 'nome': cl.nome,
+                        'hunter': cl.slug == 'cacador', 'req': (req or '').strip('{}')})
     return out
 
 
@@ -7416,10 +7447,13 @@ def personagem_adicionar_classe(request, pk):
     lógica pura (teto de aventuras + pré-requisito) vive em `_lvl_aplicar_adicionar_classe`;
     aqui só mapeia o código de erro para a query-string `?mc=…` que a página consome."""
     p = _ficha_editavel(request, pk)
-    erros = _lvl_aplicar_adicionar_classe(p, {'classe': request.POST.get('classe')})
+    erros = _lvl_aplicar_adicionar_classe(p, {'classe': request.POST.get('classe'),
+                                             'hunter_ability': request.POST.get('hunter_ability')})
     if not erros:
-        _sync_magias_concedidas(p)
-        _refresh_vitais_derivados(p)
+        pc = p.classes.filter(id_classe_id=request.POST.get('classe')).first()
+        ruleset = _hunter_ruleset_for_class(pc)
+        _sync_magias_concedidas(p, ruleset=ruleset)
+        _refresh_vitais_derivados(p, ruleset=ruleset)
         return redirect(reverse('editar_ficha', args=[pk]) + '?mc=ok')
     return redirect(reverse('editar_ficha', args=[pk]) + '?mc=' + _MC_ERRO_CODE.get(erros[0], 'invalido'))
 
@@ -7851,10 +7885,11 @@ def _lvl_aplicar_subir_nivel(personagem, payload):
     return []
 
 
+@transaction.atomic
 def _lvl_aplicar_adicionar_classe(personagem, payload):
     """Adiciona uma classe por multiclasse (nível 1) se o pré-requisito for atendido.
     Multiclasse também SOBE o nível total — respeita o mesmo teto de aventuras (BUG-1)."""
-    from .models import TbClasse, TbPersonagemClasse
+    from .models import TbClasse, TbPersonagemClasse, TbPersonagemCacador
     from .character_engine import derive, nivel_por_aventuras
     if (personagem.nivel or 0) >= 20:
         return [_ERR_MC_MAX]
@@ -7863,9 +7898,22 @@ def _lvl_aplicar_adicionar_classe(personagem, payload):
     cl = TbClasse.objects.filter(id_classe=(payload or {}).get('classe')).first()
     if not cl or personagem.classes.filter(id_classe=cl).exists():
         return [_ERR_MC_INVALIDO]
-    if not _multiclass_atende_classes(personagem, derive(personagem)['atributos'], cl):
+    ruleset = None
+    effective = cl
+    if cl.slug == 'cacador':
+        published = _hunter_multiclass_publication()
+        if published is None:
+            return [_ERR_MC_INVALIDO]
+        ruleset, effective = published
+        if (payload or {}).get('hunter_ability') not in ('int', 'wis'):
+            return ['Escolha Inteligência ou Sabedoria para o Caçador.']
+    if not _multiclass_atende_classes(personagem, derive(personagem)['atributos'], effective):
         return [_ERR_MC_PREREQ]
-    TbPersonagemClasse.objects.create(id_personagem=personagem, id_classe=cl, nivel=1, principal=False)
+    pc = TbPersonagemClasse.objects.create(id_personagem=personagem, id_classe=cl,
+                                           nivel=1, principal=False)
+    if ruleset is not None:
+        TbPersonagemCacador.objects.create(personagem_classe=pc, ruleset=ruleset,
+            ability=payload['hunter_ability'], selected=[])
     personagem.nivel = sum(c.nivel or 0 for c in personagem.classes.all())
     personagem.save(update_fields=['nivel', 'atualizado_em'])
     return []
@@ -8369,6 +8417,9 @@ def personagem_levelup_aplicar(request, pk):
         if erros:
             transaction.set_rollback(True)
         else:
+            # A multiclasse pode criar agora o vínculo Caçador que não existia
+            # quando o lote começou; os consumidores seguintes devem usá-lo.
+            ruleset = _hunter_ruleset_for_class(_personagem_classe_contexto(p, classe_id))
             # ordem idêntica aos wrappers legados: materializa concedidas, depois vitais.
             _sync_magias_concedidas(p, ruleset=ruleset)
             _refresh_vitais_derivados(p, ruleset=ruleset)
@@ -8415,6 +8466,7 @@ def personagem_levelup_preview(request, pk):
     try:
         with transaction.atomic():
             erros = _levelup_aplicar_lote(p, acoes)
+            ruleset = _hunter_ruleset_for_class(_personagem_classe_contexto(p, classe_id))
             _sync_magias_concedidas(p, ruleset=ruleset)
             ficha = _refresh_vitais_derivados(p, ruleset=ruleset)
             preview = _criador_preview_resumo(ficha)
