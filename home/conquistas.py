@@ -176,6 +176,43 @@ def registrar_fato_aventura(lancamento, *, estorno=False):
     return evento
 
 
+def progresso_aventuras_por_origem(user, discord_user_id=None):
+    """Mostra fontes distintas; não soma saldos do bot com lançamentos do site."""
+    from django.db import DatabaseError, transaction
+    from django.db.models import Sum
+    from .models import BotCharacterLog, TbPersonagem, TbPersonagemAventura
+
+    personagens = list(TbPersonagem.objects.filter(dono=user).values_list(
+        'pk', 'aventuras'))
+    lancamentos = list(TbPersonagemAventura.objects.filter(
+        id_personagem__dono=user, revertido=False, qtd_aventuras__gt=0
+    ).values('id_personagem_id').annotate(total=Sum('qtd_aventuras')))
+    por_personagem = {row['id_personagem_id']: row['total'] for row in lancamentos}
+    site_total = sum(por_personagem.values())
+    saldo_sem_ledger = sum(max(0, int(saldo or 0) - por_personagem.get(pk, 0))
+                           for pk, saldo in personagens)
+    divergencias = sum(int(saldo or 0) < por_personagem.get(pk, 0)
+                      for pk, saldo in personagens)
+    bot_logs, bot_disponivel = [], True
+    if discord_user_id:
+        try:
+            # A tabela do bot é externa (managed=False) e pode não estar montada.
+            with transaction.atomic():
+                bot_logs = list(BotCharacterLog.objects.filter(
+                    discordUserId=discord_user_id).order_by('id').values(
+                        'id', 'characterName', 'adventuresPlayed'))
+        except DatabaseError:
+            bot_disponivel = False
+    return {
+        'site_total': site_total,
+        'saldo_sem_ledger': saldo_sem_ledger,
+        'divergencias': divergencias,
+        'bot_logs': bot_logs,
+        'bot_disponivel': bot_disponivel,
+        'discord_vinculado': bool(discord_user_id),
+    }
+
+
 # ─────────────────────────── Vitrine (perfil) ──────────────────────────────────
 def _conquista_dict(conquista, obtida, concedida_em=None):
     """Dict uniforme pros templates de vitrine."""

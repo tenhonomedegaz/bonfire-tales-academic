@@ -135,6 +135,30 @@ no servidor, então o cliente sobrepõe .public-profile-banner-media,
   </div>
   {% endif %}
 
+  {% if pode_ver_privados and progresso_aventuras %}
+  <div class="public-profile-section" data-adventure-progress>
+    <div class="public-profile-section-head"><h2>Progresso de aventuras</h2></div>
+    <p>Site: {{ progresso_aventuras.site_total }} aventura{{ progresso_aventuras.site_total|pluralize }} em lançamentos não estornados, incluindo personagens arquivados.</p>
+    {% if progresso_aventuras.saldo_sem_ledger %}
+    <p>Saldo sem lançamento identificado: {{ progresso_aventuras.saldo_sem_ledger }}. Esse saldo não foi convertido em missões verificadas.</p>
+    {% endif %}
+    {% if progresso_aventuras.divergencias %}
+    <p>{{ progresso_aventuras.divergencias }} ficha{{ progresso_aventuras.divergencias|pluralize }} com saldo inferior ao ledger; revisão necessária.</p>
+    {% endif %}
+    {% if progresso_aventuras.discord_vinculado %}
+      {% if progresso_aventuras.bot_disponivel %}
+        <p>Bot: saldos por ficha externa, sem soma com o site:</p>
+        {% if progresso_aventuras.bot_logs %}<ul>
+        {% for registro in progresso_aventuras.bot_logs %}
+          <li>{{ registro.characterName }}: {{ registro.adventuresPlayed }} aventura{{ registro.adventuresPlayed|pluralize }} declaradas</li>
+        {% endfor %}
+        </ul>{% else %}<p>Nenhuma ficha externa vinculada encontrada.</p>{% endif %}
+      {% else %}<p>Dados do bot temporariamente indisponíveis.</p>{% endif %}
+    {% else %}<p>Vincule o Discord para consultar as fichas do bot separadamente.</p>{% endif %}
+    <p>As fontes ainda não foram conciliadas; conquistas por total de aventuras aguardam validação.</p>
+  </div>
+  {% endif %}
+
   <div class="public-profile-section">
     <div class="public-profile-section-head">
       <h2>Personagens</h2>

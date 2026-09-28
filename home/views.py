@@ -1294,12 +1294,17 @@ def public_profile_view(request, username):
         request.user.pk == viewed_user.pk or perms.is_staff_user(request.user)
     )
     personagens = _perfil_personagens(viewed_user, pode_ver_privados)
+    progresso_aventuras = (
+        _conquistas.progresso_aventuras_por_origem(viewed_user, profile.discord_user_id)
+        if pode_ver_privados else None
+    )
     return render(request, 'home/pages/perfil_publico.html', {
         'page_title': viewed_user.username,
         'viewed_user': viewed_user,
         'profile': profile,
         'personagens': personagens,
         'pode_ver_privados': pode_ver_privados,
+        'progresso_aventuras': progresso_aventuras,
         'appearance': _appearance_context(profile.profile_theme, profile.avatar_frame,
                                           profile.profile_effect, profile.theme_custom,
                                           profile.background_url),
