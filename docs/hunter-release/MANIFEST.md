@@ -1,10 +1,10 @@
 # Manifesto de revisao - hunter-release
 
-**Pacote consolidado na branch local `dev` em `508673e8bf7f61326448e8c3869dda21a91bdece`; sem push ou deploy.** O backup JSON de producao foi fornecido e permanece intacto. A reconciliacao foi ensaiada somente em banco isolado.
+**Pacote consolidado na branch local `dev`, sem push ou deploy.** O rework entrou em `508673e8`, a reconciliacao orientada pela producao em `d916c907` e o complemento multiclasse em `c0cc9437`; este manifesto registra a revisao final desses commits. O backup JSON de producao foi fornecido e permanece intacto. A reconciliacao foi ensaiada somente em banco isolado.
 
 ## Repositorio
 
-- Branch local `dev`, upstream `origin/dev`, commit consolidado `508673e8bf7f61326448e8c3869dda21a91bdece`; candidato anterior `draft/hunter-release-r153` em `4fd0678f02e6d99278097fd32291fa5f48edc5af`.
+- Branch local `dev`, upstream `origin/dev`; commits do pacote `508673e8bf7f61326448e8c3869dda21a91bdece`, `d916c9076dc6cfb5c57b3aef0c870fb33a1221fa` e `c0cc9437c25d8b048a561b82ef3d8ebf72b39faf`; candidato anterior `draft/hunter-release-r153` em `4fd0678f02e6d99278097fd32291fa5f48edc5af`.
 - Remote configurado: `https://github.com/bonfiretales-dev/BonfireSite.git`.
 - 232 caminhos locais alterados/novos foram inventariados; 229 caminhos selecionados integraram o commit local. Alteracoes VTT e documentos alheios ficaram fora.
 - Pipelines encontrados (.github/workflows, Procfile, render.yaml, railway.json, Jenkinsfile, .gitlab-ci.yml): nenhum.
@@ -88,6 +88,8 @@ nem deploy.
 ## Registro do commit local
 
 O commit 508673e8bf7f61326448e8c3869dda21a91bdece foi montado com selecao explicita de 229 caminhos e revisao do indice temporario, sem incluir VTT nem alteracoes alheias. Os artefatos JSON de backup e reconciliacao ficam ignorados pelo Git por conterem dados privados; nao pertencem ao commit.
+
+Os commits `d916c907` e `c0cc9437` acrescentaram a reconciliacao orientada pela producao, o complemento multiclasse, seu comando/testes e as evidencias de release. A revisao final deste manifesto nao altera o conteudo mecanico nem o banco.
 
 Uma branch local `draft/hunter-release-r153` guarda o candidato inicial.
 O banco local autorizado recebeu migracoes aditivas e conteudo especifico
