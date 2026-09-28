@@ -41,7 +41,7 @@ from django.templatetags.static import static
 from django.urls import reverse
 from django.utils.html import format_html, format_html_join
 from django.utils import timezone
-from django.db import connection, transaction
+from django.db import DatabaseError, connection, transaction
 from django.utils.text import slugify
 from django.views.decorators.http import require_POST
 
@@ -6709,7 +6709,7 @@ def _consumo_append(lanc, registro):
 
 
 def aplicar_aventuras(personagem, n, evento=False, nome_aventura=None, criado_por=None,
-                      registrar_ledger=True, data_missao=None, mestre=None):
+                      registrar_ledger=True, data_missao=None, mestre=None, bot_quest_id=None):
     """Aplica `n` aventuras a um personagem (lançado por staff). Regra de SPLIT no rank-up:
     cada aventura é recompensada no rank ANTES de ela contar (a que sobe de rank paga no
     rank antigo; as seguintes no novo). Sempre credita o ouro do rank (PO→PC). BRASEIROS
@@ -6727,6 +6727,8 @@ def aplicar_aventuras(personagem, n, evento=False, nome_aventura=None, criado_po
     n = max(0, int(n))
     if n == 0:
         return (0, 0)
+    if bot_quest_id and not registrar_ledger:
+        raise ValueError('Vínculo com o bot exige lançamento no ledger.')
     base = int(personagem.aventuras or 0)
     # Ouro do intervalo = diferença do acumulado (regra sequencial de rank-up embutida).
     ouro = ouro_de_progressao(base + n) - ouro_de_progressao(base)
@@ -6736,6 +6738,11 @@ def aplicar_aventuras(personagem, n, evento=False, nome_aventura=None, criado_po
             bras += braseiros_por_aventura(nivel_por_aventuras(base + k))
     nome = (nome_aventura or '').strip() or 'Aventura'
     with transaction.atomic():
+        if bot_quest_id:
+            from django.contrib.auth import get_user_model
+            get_user_model().objects.select_for_update().only('pk').get(pk=personagem.dono_id)
+            bot_quest_id = _conquistas.validar_vinculo_aventura_bot(
+                personagem, bot_quest_id, n)
         personagem.aventuras = base + n
         personagem.braseiros = int(personagem.braseiros or 0) + bras
         personagem.carteira_pc = int(personagem.carteira_pc or 0) + ouro * 100
@@ -6747,7 +6754,8 @@ def aplicar_aventuras(personagem, n, evento=False, nome_aventura=None, criado_po
                 id_personagem=personagem, nome_aventura=nome[:200], qtd_aventuras=n,
                 ouro_pago_pc=ouro * 100, braseiros_pago=bras,
                 nivel_no_lancamento=int(personagem.nivel or 1), criado_por=criado_por,
-                data_missao=data_missao, id_mestre=mestre, detalhes_json={})
+                data_missao=data_missao, id_mestre=mestre,
+                detalhes_json={'bot_quest_id': bot_quest_id} if bot_quest_id else {})
             _conquistas.registrar_fato_aventura(lancamento)
     return (ouro, bras)
 
@@ -7061,9 +7069,14 @@ def personagem_registrar_aventuras(request, pk):
         n = max(1, min(200, int(request.POST.get('aventuras') or 1)))
     except (TypeError, ValueError):
         n = 1
-    aplicar_aventuras(p, n, evento=(request.POST.get('evento') == 'on'),
-                      nome_aventura=nome, criado_por=request.user,
-                      data_missao=data_missao, mestre=mestre)
+    try:
+        aplicar_aventuras(p, n, evento=(request.POST.get('evento') == 'on'),
+                          nome_aventura=nome, criado_por=request.user,
+                          data_missao=data_missao, mestre=mestre,
+                          bot_quest_id=request.POST.get('bot_quest_id'))
+    except (ValueError, DatabaseError):
+        return _aventuras_staff_resposta(
+            request, p, compra_msg='aventuras_vinculo_invalido', ok=False)
     return _aventuras_staff_resposta(request, p, compra_msg='aventuras')
 
 

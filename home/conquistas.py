@@ -159,6 +159,9 @@ def registrar_fato_aventura(lancamento, *, estorno=False):
         'mestre_id': lancamento.id_mestre_id,
         'data_missao': lancamento.data_missao.isoformat() if lancamento.data_missao else None,
     }
+    bot_quest_id = (lancamento.detalhes_json or {}).get('bot_quest_id')
+    if bot_quest_id:
+        payload['bot_quest_id'] = bot_quest_id
     chave = f'aventura-ledger:{lancamento.pk}:{sufixo}'
     evento, _ = TbEventoConquista.objects.get_or_create(
         origem='site_ledger', chave_origem=chave,
@@ -176,18 +179,57 @@ def registrar_fato_aventura(lancamento, *, estorno=False):
     return evento
 
 
+def validar_vinculo_aventura_bot(personagem, bot_quest_id, quantidade):
+    """Aceita apenas a identidade exata de uma missão finalizada do participante.
+
+    Deve ser chamado sob lock da conta antes do crédito. Nome/data jamais servem de
+    identidade; o vínculo fica no ledger do site e no fato canônico correspondente.
+    """
+    from .models import BotQuest, TbPersonagemAventura, UserProfile
+
+    quest_id = (bot_quest_id or '').strip()
+    if not quest_id:
+        return None
+    perfil = UserProfile.objects.filter(user_id=personagem.dono_id).only('discord_user_id').first()
+    discord_id = (perfil.discord_user_id or '') if perfil else ''
+    if not discord_id:
+        raise ValueError('Conta sem vínculo Discord verificado.')
+    quest = BotQuest.objects.filter(pk=quest_id, status='finished').only(
+        'id', 'questPlayers', 'rewardAventurasOverride').first()
+    if quest is None:
+        raise ValueError('Missão do bot inexistente ou não finalizada.')
+    if not any(isinstance(player, dict) and str(player.get('userId')) == discord_id
+               for player in (quest.questPlayers or [])):
+        raise ValueError('Conta não consta entre os participantes confirmados da missão.')
+    recompensa = quest.rewardAventurasOverride
+    # Sem override explícito o bot não expõe neste contrato o crédito efetivo.
+    if recompensa is not None and int(quantidade) != int(recompensa):
+        raise ValueError('Quantidade diferente das aventuras concedidas pela missão do bot.')
+    if TbPersonagemAventura.objects.filter(
+            id_personagem__dono_id=personagem.dono_id, revertido=False,
+            detalhes_json__bot_quest_id=quest_id).exists():
+        raise ValueError('Esta missão do bot já foi vinculada a um lançamento ativo da conta.')
+    return quest_id
+
+
 def progresso_aventuras_por_origem(user, discord_user_id=None):
     """Mostra fontes distintas; não soma saldos do bot com lançamentos do site."""
     from django.db import DatabaseError, transaction
-    from django.db.models import Sum
     from .models import BotCharacterLog, TbPersonagem, TbPersonagemAventura
 
     personagens = list(TbPersonagem.objects.filter(dono=user).values_list(
         'pk', 'aventuras'))
     lancamentos = list(TbPersonagemAventura.objects.filter(
         id_personagem__dono=user, revertido=False, qtd_aventuras__gt=0
-    ).values('id_personagem_id').annotate(total=Sum('qtd_aventuras')))
-    por_personagem = {row['id_personagem_id']: row['total'] for row in lancamentos}
+    ).values('id_personagem_id', 'qtd_aventuras', 'detalhes_json'))
+    por_personagem = {}
+    vinculadas_ao_bot = 0
+    for row in lancamentos:
+        quantidade = int(row['qtd_aventuras'])
+        pk = row['id_personagem_id']
+        por_personagem[pk] = por_personagem.get(pk, 0) + quantidade
+        if (row['detalhes_json'] or {}).get('bot_quest_id'):
+            vinculadas_ao_bot += quantidade
     site_total = sum(por_personagem.values())
     saldo_sem_ledger = sum(max(0, int(saldo or 0) - por_personagem.get(pk, 0))
                            for pk, saldo in personagens)
@@ -205,6 +247,7 @@ def progresso_aventuras_por_origem(user, discord_user_id=None):
             bot_disponivel = False
     return {
         'site_total': site_total,
+        'site_vinculadas_ao_bot': vinculadas_ao_bot,
         'saldo_sem_ledger': saldo_sem_ledger,
         'divergencias': divergencias,
         'bot_logs': bot_logs,

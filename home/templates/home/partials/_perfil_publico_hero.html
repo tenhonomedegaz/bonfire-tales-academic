@@ -139,6 +139,7 @@ no servidor, então o cliente sobrepõe .public-profile-banner-media,
   <div class="public-profile-section" data-adventure-progress>
     <div class="public-profile-section-head"><h2>Progresso de aventuras</h2></div>
     <p>Site: {{ progresso_aventuras.site_total }} aventura{{ progresso_aventuras.site_total|pluralize }} em lançamentos não estornados, incluindo personagens arquivados.</p>
+    {% if progresso_aventuras.site_vinculadas_ao_bot %}<p>Vinculadas por ID a missões finalizadas do bot: {{ progresso_aventuras.site_vinculadas_ao_bot }}. Esse vínculo não confirma, por si só, o saldo creditado pelo bot.</p>{% endif %}
     {% if progresso_aventuras.saldo_sem_ledger %}
     <p>Saldo sem lançamento identificado: {{ progresso_aventuras.saldo_sem_ledger }}. Esse saldo não foi convertido em missões verificadas.</p>
     {% endif %}
