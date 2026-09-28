@@ -28,19 +28,18 @@ a comparação das fichas ou a autorização do alvo abaixo.
 4. Fazer `pg_dump --format=custom` do banco completo e testar `pg_restore
    --exit-on-error` em um **novo banco isolado**, sem `--clean`. Comparar contagens,
    assinaturas e migrações com a origem antes de alterar o alvo.
-5. No banco restaurado isolado, executar a sincronização completa do catálogo
-   e repeti-la. Conferir a identidade de `Battle Familiar`, zero novas inserções
-   na segunda execução, assinaturas das tabelas de memória e conteúdo comunitário,
-   `migrate --check` e o preflight após a sincronização. O `--dry-run` apenas
-   classifica contagens e tombstones; não substitui este ensaio.
+5. No banco restaurado isolado, ensaiar somente as adicoes versionadas e
+   aprovadas do Cacador. Revalidar identidades, PKs, FKs, assinaturas das
+   linhas anteriores, personagens legados, sequencias e idempotencia. O dry-run
+   classifica tombstones, mas nao autoriza o sync completo nem substitui o ensaio.
 
 ## Aplicação autorizada
 
-Após o preflight e a autorização do alvo, aplicar as migrações, reexecutar
-`manage.py migrate --check` e confirmar que uma segunda execução não tem
-operações pendentes. Sincronizar conteúdo somente após revisar o dry-run e as
-exclusões explícitas. Conferir as invariantes de personagens, patrimônio,
-magias, ledger e conteúdo antes de habilitar os fluxos novos.
+Apos preflight e autorizacao especifica do alvo, aplicar apenas migracoes
+aditivas e conteudo revisado contra o estado atual. Reexecutar migrate --check,
+conferir que nenhuma linha anterior mudou e validar personagens, patrimonio,
+magias, ledger e conteudo antes de habilitar os fluxos novos. O sync completo
+substitui tabelas auxiliares e nao integra este procedimento.
 
 Sequência de comandos no ambiente **já identificado e autorizado**, com
 `POSTGRES_URL` fornecida por mecanismo seguro e conferida no preflight:
@@ -51,10 +50,11 @@ python manage.py migrate --plan
 python manage.py sync_conteudo --dry-run
 pg_dump --format=custom --file=<backup_fresco> --dbname=<conexao_autorizada>
 pg_restore --exit-on-error --dbname=<novo_banco_isolado> <backup_fresco>
-# Comparar contagens/assinaturas e ensaiar a sincronização no banco restaurado.
+# Comparar contagens/assinaturas e ensaiar apenas adicoes no banco restaurado.
 python manage.py migrate --noinput
 python manage.py migrate --check
-python manage.py sync_conteudo
+# NAO executar sync_conteudo neste pacote: o comando pode substituir tabelas.
+# Aplicar somente as adicoes revisadas apos novo preflight e autorizacao do alvo.
 python manage.py preflight_hunter_release
 ```
 
@@ -99,6 +99,41 @@ ficha existente foi convertida; o banco local não continha personagens.
 `sync_conteudo --dry-run` foi executado, mas o sync completo não foi aplicado:
 ele substitui outras tabelas por `delete`/reinserção e ultrapassaria a autorização
 de operações sem exclusões. A atualização local necessária ao Caçador foi feita
-por inserções específicas e reexecutáveis. O backup JSON que o usuário fornecerá
-depois do commit exige reconciliação própria por identidades e ensaio isolado;
-ele não autoriza sobrescrever o banco local.
+por insercoes especificas e reexecutaveis. O JSON de producao foi recebido e
+ensaiado em copia isolada, mantendo PKs, personagens e dados anteriores.
+O roteiro atual de reconciliacao esta em RECONCILIACAO_PRODUCAO.md.
+
+## Complemento multiclasse e ativacao local
+
+Um Caçador legado do JSON de producao tem outra classe. Com o ruleset inicial de
+nove entradas, a prévia de regularizacao falha ao resolver a revisao dessa classe.
+Por isso, o pacote inclui o complemento aditivo
+`ref/backups/reconciliacao_producao_multiclasse_20260928.json` (12 revisoes de
+classe, um ruleset e 21 vinculos). O alvo precisa validar primeiro a fixture de
+50 linhas, depois a de 34, sem atualizar linhas existentes. Somente o ruleset
+composto de 21 entradas, checksum
+`90e74e8d6096c07b212e015daf2e96c3caff1f2333cb8674d795f8fd2882edd2`,
+deve ser configurado em `HUNTER_CREATOR_RULESET_CHECKSUM` apos o ensaio dos
+Caçadores legados e dos fluxos novos. Nao converter fichas antigas em massa.
+
+No PostgreSQL local `postgres`, antes do complemento, foi feito backup custom
+fresco `scratch/evolucao-q14/local_pre_multiclass_20260928_024240.dump`,
+restaurado em `bonfire_r157_restore_20260928_024240`. As 6.528 linhas em 85
+tabelas coincidiram por assinatura. A carga de 34 linhas foi ensaiada nessa
+restauracao e aplicada ao banco local com todas as linhas anteriores preservadas,
+zero FK nao validada e zero insercao necessaria numa segunda passada. A `.env`
+local ignorada pelo Git aponta agora ao checksum composto. O JSON de producao
+nao foi carregado no banco local configurado. Nele, os 50 registros iniciais
+do rework ja existiam por preparacao aditiva anterior e somente as 34 linhas
+do complemento foram carregadas agora. Nada foi aplicado em producao.
+
+Depois de preparar as adicoes iniciais do Cacador em um alvo identificado e
+autorizado, compor a revisao completa sem escrever para conferir o catalogo:
+
+```text
+python manage.py compose_hunter_multiclass_ruleset --base-checksum 00d9539eb5625c342d1aada834fc4c7a5cd87e2ef9a6ace5e746d35f88cb5bde --expected-checksum 90e74e8d6096c07b212e015daf2e96c3caff1f2333cb8674d795f8fd2882edd2
+```
+
+O mesmo comando com `--apply` so pertence a uma operacao especificamente
+autorizada, apos backup/restauracao e ensaio. Ele falha e reverte a transacao
+se o checksum calculado diferir; a ativacao por configuracao vem depois.
