@@ -28,6 +28,7 @@ from django.utils import timezone
 from django.db.models.signals import pre_save, post_save, post_delete
 from django.dispatch import receiver
 from django.core.validators import FileExtensionValidator
+from django.core.exceptions import ValidationError
 
 
 # Personalização de perfil (F2). Limite de badges que o usuário fixa na vitrine.
@@ -2522,7 +2523,7 @@ class TbConquista(models.Model):
                                 choices=CRITERIO_CHOICES,
                                 help_text='manual = staff concede; automatico = por critério (fase 2).')
     criterio_json = models.JSONField(db_column='CriterioJson', default=dict, blank=True,
-                                     help_text='Para automático: {"evento":"aventuras","gte":10} (fase 2).')
+                                     help_text='Métrica disponível: {"schema_version":1,"metric":"characters_created","scope":"account","operator":"gte","target":1}.')
     recompensa = models.ForeignKey(TbCosmetico, on_delete=models.SET_NULL, null=True,
                                    blank=True, related_name='conquistas',
                                    db_column='RecompensaId',
@@ -2538,6 +2539,18 @@ class TbConquista(models.Model):
 
     def __str__(self):
         return self.nome
+
+    def clean(self):
+        super().clean()
+        if self.criterio == 'automatico' and self.criterio_json != {
+            'schema_version': 1, 'metric': 'characters_created',
+            'scope': 'account', 'operator': 'gte', 'target': 1,
+        }:
+            if self.pk and type(self).objects.filter(
+                pk=self.pk, criterio='automatico', criterio_json=self.criterio_json,
+            ).exists():
+                return  # Definições antigas permanecem editáveis sem mudar a regra.
+            raise ValidationError({'criterio_json': 'Critério automático ainda não suportado. Use a métrica de primeira ficha com schema_version=1.'})
 
     @property
     def icone_efetivo(self):
@@ -2564,6 +2577,8 @@ class TbUsuarioConquista(models.Model):
                                       null=True, blank=True,
                                       related_name='conquistas_concedidas',
                                       db_column='ConcedidaPorId')
+    evidencia_json = models.JSONField(db_column='EvidenciaJson', default=dict, blank=True)
+    definicao_json = models.JSONField(db_column='DefinicaoJson', default=dict, blank=True)
 
     class Meta:
         db_table = 'TB_UsuarioConquista'
@@ -2574,6 +2589,27 @@ class TbUsuarioConquista(models.Model):
 
     def __str__(self):
         return '%s → %s' % (self.user.username, self.conquista.slug)
+
+
+class TbEventoConquista(models.Model):
+    """Fato canônico de domínio; simulações do criador não produzem linhas aqui."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    origem = models.CharField(db_column='Origem', max_length=30)
+    chave_origem = models.CharField(db_column='ChaveOrigem', max_length=100)
+    tipo = models.CharField(db_column='Tipo', max_length=50)
+    versao_payload = models.PositiveSmallIntegerField(db_column='VersaoPayload', default=1)
+    conta = models.ForeignKey('auth.User', on_delete=models.CASCADE, db_column='ContaId')
+    personagem = models.ForeignKey('TbPersonagem', on_delete=models.SET_NULL,
+                                   null=True, blank=True, db_column='PersonagemId')
+    agregado_id = models.PositiveIntegerField(db_column='AgregadoId')
+    ocorrido_em = models.DateTimeField(db_column='OcorridoEm')
+    ingerido_em = models.DateTimeField(db_column='IngeridoEm', auto_now_add=True)
+
+    class Meta:
+        db_table = 'TB_EventoConquista'
+        constraints = [models.UniqueConstraint(
+            fields=['origem', 'chave_origem'], name='unique_evento_conquista_origem',
+        )]
 
 
 # ─────────────────────────────────────────────────────────────────────────────

@@ -254,8 +254,11 @@ class CriacaoArquetiposTests(_CriadorBase):
     def test_feiticeiro_com_essencia(self):
         # raça + essência + vertente (linhagem e essência são mutuamente exclusivas —
         # ver LinhagemEssenciaExclusivasTests — então este caminho usa só essência).
-        p, ficha = self._cria_ok(self._payload(
-            'feiticeiro', raca_slug='anao', essencia_slug='draconica', vertente='Vermelho'))
+        payload = self._payload(
+            'feiticeiro', raca_slug='anao', essencia_slug='draconica', vertente='Vermelho')
+        payload.setdefault('escolhas_raca', {})['menus'] = [{
+            'tipo': 'alento_elemental', 'fonte': 'Alento Elemental', 'valores': ['fogo']}]
+        p, ficha = self._cria_ok(payload)
         self.assertEqual(p.id_essencia.slug, 'draconica')
         self.assertIsNone(p.id_linhagem)
         self.assertTrue(p.escolhas.filter(tipo='vertente').exists())

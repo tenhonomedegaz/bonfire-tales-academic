@@ -3884,7 +3884,7 @@ class TbUsuarioCosmeticoAdmin(admin.ModelAdmin):
 # ─────────────────────────────────────────────────────────────────────────────
 # Conquistas (F3) — CRUD + concessão em massa (fonte única: conquistas.py).
 # ─────────────────────────────────────────────────────────────────────────────
-from .models import TbConquista, TbUsuarioConquista
+from .models import TbConquista, TbEventoConquista, TbUsuarioConquista
 
 
 class _ConcederConquistaForm(forms.Form):
@@ -4003,8 +4003,28 @@ class TbUsuarioConquistaAdmin(admin.ModelAdmin):
     list_filter = ('conquista', 'concedida_em')
     search_fields = ('user__username', 'conquista__nome', 'conquista__slug')
     autocomplete_fields = ('user', 'conquista', 'concedida_por')
-    readonly_fields = ('concedida_em',)
+    readonly_fields = ('concedida_em', 'evidencia_json', 'definicao_json')
     ordering = ('-concedida_em',)
+
+
+@admin.register(TbEventoConquista)
+class TbEventoConquistaAdmin(admin.ModelAdmin):
+    list_display = ('tipo', 'conta', 'origem', 'chave_origem', 'ocorrido_em')
+    list_filter = ('tipo', 'origem')
+    search_fields = ('conta__username', 'chave_origem')
+    readonly_fields = ('id', 'origem', 'chave_origem', 'tipo', 'versao_payload',
+                       'conta', 'personagem', 'agregado_id', 'ocorrido_em', 'ingerido_em')
+    ordering = ('-ocorrido_em',)
+    actions = None
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 # ─────────────────────────────────────────────────────────────────────────────

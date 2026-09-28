@@ -10640,6 +10640,7 @@ def criar_personagem_view(request):
     try:
         with transaction.atomic():
             p = _criador_persistir(request.user, data, R, strict_spell_choices=True)
+            _conquistas.registrar_criacao_personagem(p)
     except CriadorEscolhasError as exc:
         return JsonResponse({'ok': False, 'erros': exc.erros}, status=400)
     except Exception:

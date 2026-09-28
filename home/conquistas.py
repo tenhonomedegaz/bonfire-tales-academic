@@ -55,6 +55,49 @@ def conceder_conquista_em_massa(users, conquista, por=None):
     return concedidas, ja_tinham
 
 
+def registrar_criacao_personagem(personagem):
+    """Registra a criação confirmada e concede a métrica da primeira ficha.
+
+    Chamado somente pelo endpoint de criação real, dentro da mesma transação da
+    ficha. Prévia e recriação de nível 1 usam o persistidor, mas não este serviço.
+    """
+    from django.db import transaction
+    from django.contrib.auth import get_user_model
+    from .models import TbConquista, TbEventoConquista, TbPersonagem, TbUsuarioConquista
+
+    regra = {
+        'schema_version': 1, 'metric': 'characters_created',
+        'scope': 'account', 'operator': 'gte', 'target': 1,
+    }
+    with transaction.atomic():
+        # Duas criações simultâneas da mesma conta devem avaliar "primeira" em série.
+        get_user_model().objects.select_for_update().only('pk').get(pk=personagem.dono_id)
+        evento, _ = TbEventoConquista.objects.get_or_create(
+            origem='site', chave_origem=f'personagem:{personagem.pk}:criado',
+            defaults={
+                'tipo': 'character_created', 'conta_id': personagem.dono_id,
+                'personagem': personagem, 'agregado_id': personagem.pk,
+                'ocorrido_em': personagem.criado_em,
+            },
+        )
+        if evento.conta_id != personagem.dono_id or evento.agregado_id != personagem.pk:
+            raise ValueError('Identidade do fato de criação inconsistente.')
+        if TbPersonagem.objects.filter(dono_id=personagem.dono_id).exclude(pk=personagem.pk).exists():
+            return evento
+        for conquista in TbConquista.objects.filter(ativo=True, criterio='automatico',
+                criterio_json__metric='characters_created').select_related('recompensa'):
+            if conquista.criterio_json != regra:
+                continue
+            criada = conceder_conquista(personagem.dono, conquista)
+            if criada:
+                TbUsuarioConquista.objects.filter(user_id=personagem.dono_id, conquista=conquista).update(
+                    evidencia_json={'evento_id': str(evento.pk), 'origem': evento.origem,
+                                   'chave_origem': evento.chave_origem, 'agregado_id': personagem.pk},
+                    definicao_json=regra,
+                )
+    return evento
+
+
 # ─────────────────────────── Vitrine (perfil) ──────────────────────────────────
 def _conquista_dict(conquista, obtida, concedida_em=None):
     """Dict uniforme pros templates de vitrine."""
