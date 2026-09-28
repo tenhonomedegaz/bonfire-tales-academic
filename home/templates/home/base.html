@@ -24,9 +24,10 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-  <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+  <script src="{% static 'vendor/tailwind/tailwind-3.4.17-typography.js' %}"></script>
   <script>
-    tailwind.config = {
+    // Falha no carregamento do asset não deve interromper os scripts da página.
+    if (window.tailwind) window.tailwind.config = {
       theme: {
         extend: {
           fontFamily: {
@@ -142,5 +143,7 @@
     new window.VLibras.Widget('https://vlibras.gov.br/app');
   </script>
   {% endif %}
+<link rel="stylesheet" href="{% static 'css/components/spell_picker.css' %}?v=1">
+<script src="{% static 'js/spell_picker.js' %}?v=1" defer></script>
 </body>
 </html>

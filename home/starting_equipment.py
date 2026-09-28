@@ -5,6 +5,7 @@ O criador não conhece classes nem nomes de itens. Ele consome um bloco
 validado. Classes novas só precisam declarar outro bloco com a mesma gramática.
 """
 from collections import OrderedDict
+from copy import deepcopy
 
 from .tag_engine import parse_tags
 
@@ -36,6 +37,9 @@ def _item_payload(item, qty=1):
         'qty': _positive_int(qty),
         'categoria': item.categoria,
         'subcategoria': item.subcategoria or '',
+        'custo': str(item.preco) if item.preco is not None else None,
+        'peso': str(item.peso) if item.peso is not None else None,
+        'tags_json': deepcopy(item.tags_json or []),
     }
 
 
@@ -57,17 +61,15 @@ def _catalog_options(node, queryset):
     prefix = str(_scalar(node, 'subcategory_prefix', '') or '').strip()
     if not category:
         return []
-    qs = queryset.filter(categoria=category)
-    if subcategory:
-        qs = qs.filter(subcategoria=subcategory)
-    if prefix:
-        qs = qs.filter(subcategoria__startswith=prefix)
+    qs = [item for item in queryset if item.categoria == category
+          and (not subcategory or item.subcategoria == subcategory)
+          and (not prefix or (item.subcategoria or '').startswith(prefix))]
     qty = _positive_int(_scalar(node, 'qty', 1))
     return [{
         'value': item.slug,
         'label': item.nome,
         'items': [_item_payload(item, qty)],
-    } for item in qs.order_by('nome')]
+    } for item in sorted(qs, key=lambda item: (item.nome, item.pk))]
 
 
 def _option_from_node(node, by_slug, queryset):
@@ -77,7 +79,8 @@ def _option_from_node(node, by_slug, queryset):
 
     nested = [_item_from_node(child, by_slug)
               for child in node.children if child.name == 'item']
-    nested = [item for item in nested if item]
+    if any(item is None for item in nested):
+        return []
     direct_slug = str(_scalar(node, 'slug', '') or '').strip()
     if direct_slug:
         item = by_slug.get(direct_slug)
@@ -96,16 +99,24 @@ def _option_from_node(node, by_slug, queryset):
     return [{'value': key, 'label': label, 'items': nested}]
 
 
-def starting_equipment_for_class(classe):
+def starting_equipment_for_class(classe, *, ruleset=None):
     """Retorna o kit estruturado de ``classe`` ou ``None`` se ele não foi declarado."""
     from .models import TbItemMundano
+
+    if ruleset is not None:
+        from .versioned_classes import VersionedClassCatalog
+        classe = VersionedClassCatalog(ruleset, classe.pk).classe
 
     root = next((node for node in parse_tags(classe.tags_json or []).nodes
                  if node.name == 'starting_equipment' and node.operator == 'block'), None)
     if root is None:
         return None
 
-    queryset = TbItemMundano.objects.all()
+    if ruleset is None:
+        queryset = list(TbItemMundano.objects.all())
+    else:
+        from .versioned_items import item_catalog
+        queryset = list(item_catalog(ruleset, 'mundane-item-catalog', TbItemMundano).values())
     by_slug = {item.slug: item for item in queryset}
     static_items = [_item_from_node(node, by_slug)
                     for node in root.children if node.name == 'item']
@@ -139,9 +150,9 @@ def starting_equipment_for_class(classe):
     }
 
 
-def resolve_starting_equipment(classe, mode, selections=None):
+def resolve_starting_equipment(classe, mode, selections=None, *, ruleset=None):
     """Valida escolhas e materializa itens do kit sem persistir nada."""
-    schema = starting_equipment_for_class(classe)
+    schema = starting_equipment_for_class(classe, ruleset=ruleset)
     errors = []
     if schema is None or not schema['valid']:
         errors.append('O equipamento inicial desta classe ainda não foi configurado corretamente.')

@@ -473,6 +473,11 @@
 
         function renderClasseSkills() {
             var c = classeBySlug[classeSel.value];
+            var hunterAbilityWrap = el('cf-hunter-ability-wrap');
+            if (hunterAbilityWrap) {
+                hunterAbilityWrap.hidden = !(c && c.hunter_rework);
+                if (hunterAbilityWrap.hidden) el('cf-hunter-ability').value = '';
+            }
             skillsWrap.innerHTML = '';
             renderPickGroups(c);
             refreshExpertise();
@@ -902,6 +907,7 @@
                 var grid = document.createElement('div');
                 grid.className = 'grid grid-cols-1 gap-1 sm:grid-cols-2';
                 grid.setAttribute('data-talent-spells', key);
+                grid.setAttribute('data-spell-picker', 'Buscar magias concedidas');
                 (g.opcoes || []).forEach(function (spell) {
                     var node = checkbox(spell.slug, spell.nome + (spell.nome_ingles ? ' (' + spell.nome_ingles + ')' : ''));
                     var input = node.querySelector('input');
@@ -961,12 +967,22 @@
                 var counter = document.createElement('span'); head.appendChild(counter);
                 grp.appendChild(head);
                 var grid = document.createElement('div'); grid.className = 'grid grid-cols-1 gap-1 sm:grid-cols-2';
-                racialOptionsFor(ch.tipo, ch.de).forEach(function (o) {
+                var options = ch.menu ? (ch.opcoes || []).map(function (o) {
+                    return { value: o.slug, label: o.nome };
+                }) : racialOptionsFor(ch.tipo, ch.de);
+                options.forEach(function (o) {
                     grid.appendChild(o.desc ? checkboxDesc(o.value, o.label, o.desc) : checkbox(o.value, o.label));
                 });
                 grp.appendChild(grid);
                 racaEscBox.appendChild(grp);
-                if (ch.tipo === 'pericia') {
+                if (ch.menu) {
+                    grid.dataset.racialMenu = ch.tipo;
+                    grid.addEventListener('change', function () {
+                        enforceLimit(grid, ch.n, counter);
+                    });
+                    racialGroups.push({ tipo: ch.tipo, n: ch.n, grid: grid,
+                        counter: counter, menu: true, fonte: ch.fonte });
+                } else if (ch.tipo === 'pericia') {
                     // Perícia entra no bloqueio cruzado (classe/antecedente/outros picks):
                     // applySkillRules gerencia limite + lock + contador deste grupo.
                     grid.addEventListener('change', applySkillRules);
@@ -981,10 +997,11 @@
             applyLangToolRules();
         }
         function racialChoicesSel() {
-            var out = { pericias: [], idiomas: [], ferramentas: [] };
+            var out = { pericias: [], idiomas: [], ferramentas: [], menus: [] };
             racialGroups.forEach(function (g) {
                 var vals = checkedVals(g.grid);
-                if (g.tipo === 'pericia') out.pericias = out.pericias.concat(vals);
+                if (g.menu) out.menus.push({ tipo: g.tipo, fonte: g.fonte, valores: vals });
+                else if (g.tipo === 'pericia') out.pericias = out.pericias.concat(vals);
                 else if (g.tipo === 'idioma') out.idiomas = out.idiomas.concat(vals);
                 else out.ferramentas = out.ferramentas.concat(vals);
             });
@@ -1182,6 +1199,8 @@
             function () { // 2 · Classe
                 var e = [], c = classeBySlug[classeSel.value];
                 if (!classeSel.value) { e.push('Escolha uma classe.'); return e; }
+                if (c && c.hunter_rework && !el('cf-hunter-ability').value)
+                    e.push('Escolha Inteligência ou Sabedoria para o Caçador.');
                 if (c && checkedVals(skillsWrap).length !== c.pericias_n)
                     e.push('Escolha exatamente ' + c.pericias_n + ' perícia(s) de classe.');
                 // escolhas genéricas dirigidas por tags pick:* (Maestria de Arma, Estilo de Luta, …)
@@ -1501,7 +1520,13 @@
                 pbEl.textContent = (pv.pb >= 0 ? '+' : '') + pv.pb;
                 statusEl.textContent = 'nível ' + (pv.nivel || 1) + (pv.pv_completo ? '' : ' (PV parcial)');
                 renderAttrs(pv.atributos || localAttrs());
-                extraEl.innerHTML = buildExtra(pv);
+                var selectionErrors = Array.isArray(j.erros) ? j.erros : [];
+                if (selectionErrors.length) statusEl.textContent += ' · escolhas pendentes';
+                extraEl.innerHTML = (selectionErrors.length
+                    ? '<ul class="cf-preview-placeholder" aria-label="Escolhas pendentes">' +
+                      selectionErrors.map(function (message) {
+                          return '<li>' + escHtml(message) + '</li>';
+                      }).join('') + '</ul>' : '') + buildExtra(pv);
                 renderTalentoMagias(j.pending_spell_choices || []);
             }).catch(function () {
                 if (seq !== previewSeq) return;
@@ -1553,6 +1578,7 @@
                 essencia: essWrap.hidden ? '' : essSel.value,
                 vertente: verWrap.hidden ? '' : verSel.value,
                 classe: classeSel.value,
+                hunter_ability: classeSel.value === 'cacador' ? el('cf-hunter-ability').value : '',
                 pericias_classe: checkedVals(skillsWrap),
                 equip_classe: equip === 'inicial' ? 'inicial' : 'ouro',
                 equip_choices: equipmentChoiceValues(),

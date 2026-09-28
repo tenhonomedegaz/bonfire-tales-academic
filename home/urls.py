@@ -1,8 +1,13 @@
 from django.urls import path
 from django.contrib.auth import views as auth_views
 from . import views
+from . import hunter_views
 
 urlpatterns = [
+    path('personagem/<int:pk>/regularizacao-cacador/', hunter_views.regularization_preview, name='hunter_regularization_preview'),
+    path('personagem/<int:pk>/ficha-vinculada/', hunter_views.character_sheet, name='hunter_sheet'),
+    path('personagem/<int:pk>/segredos/', hunter_views.character_preparation, name='hunter_preparation'),
+    path('sistemas/pathbuilder/cacador/', hunter_views.laboratory, name='hunter_laboratory'),
     path('robots.txt', views.robots_txt_view, name='robots_txt'),
     path('sitemap.xml', views.sitemap_xml_view, name='sitemap_xml'),
     path('ads.txt', views.ads_txt_view, name='ads_txt'),

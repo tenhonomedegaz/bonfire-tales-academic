@@ -1,0 +1,67 @@
+{% extends 'home/base.html' %}
+{% block title %}Prévia de regularização · Caçador{% endblock %}
+{% block content %}
+<main class="max-w-4xl mx-auto p-6 space-y-6">
+  <h1>Prévia de regularização: {{ person.nome }}</h1>
+  <p>A comparação não altera a ficha. A aplicação exige confirmação e registra as escolhas da revisão.</p>
+  {% if error %}<p role="status">{{ error }}</p>{% endif %}
+  {% if comparison %}
+  <p>Revisão de destino: <code>{{ comparison.ruleset_checksum }}</code>. Nível de Caçador: {{ comparison.level }}.</p>
+  <p>Ordem atual: {{ comparison.old_order|default:'Não escolhida' }}. Ordem candidata na revisão: {{ comparison.candidate_order|default:'Pendente de escolha' }}.</p>
+  {% if comparison.level >= 3 %}<form method="get">
+    <label for="candidate-order">Comparar com uma Ordem da revisão</label>
+    <select id="candidate-order" name="order">
+      <option value="">Usar correspondência de identidade, se existir</option>
+      {% for order in comparison.available_orders %}<option value="{{ order.pk }}"{% if order.pk == comparison.candidate_order_id %} selected{% endif %}>{{ order.nome }}</option>{% endfor %}
+    </select>
+    <button type="submit">Comparar sem salvar</button>
+  </form>{% endif %}
+  <h2>Escolhas pendentes</h2>
+  <ul>{% for choice in comparison.choices %}<li>{{ choice }}</li>{% endfor %}</ul>
+  <h2>Habilidades da ficha atual</h2>
+  <ul>{% for feature in comparison.current_features %}<li>Nível {{ feature.level }}: {{ feature.name }} — {{ feature.description }}</li>{% empty %}<li>Nenhuma registrada no catálogo atual.</li>{% endfor %}</ul>
+  <h2>Habilidades candidatas da revisão</h2>
+  <ul>{% for feature in comparison.proposed_features %}<li>Nível {{ feature.level }}: {{ feature.name }} — {{ feature.description }}</li>{% empty %}<li>Nenhuma na seleção atual.</li>{% endfor %}</ul>
+  <h2>Dados a preservar na aplicação futura</h2>
+  <p>Carteira: {{ comparison.wallet_pc }} PC; aventuras: {{ comparison.adventures }}; braseiros: {{ comparison.braseiros }}.</p>
+  <h3>Magias adquiridas</h3>
+  <ul>{% for spell in comparison.acquired_spells %}<li>{{ spell.nome }} (nível {{ spell.nivel }}, origem {{ spell.origem|default:'não registrada' }})</li>{% empty %}<li>Nenhuma registrada.</li>{% endfor %}</ul>
+  {% if comparison.preserved_starting_choices %}<h3>Perícias e ferramentas iniciais preservadas</h3>
+  <p>Estas escolhas continuam na ficha após a regularização e não são concedidas novamente.</p>
+  <ul>{% for choice in comparison.preserved_starting_choices %}<li>{{ choice.tipo }}: {{ choice.valor }}</li>{% endfor %}</ul>{% endif %}
+  {% if comparison.unresolved_class_choices %}<h3>Escolhas antigas sem mapeamento</h3>
+  <p>Estas escolhas impedem a aplicação até receberem um mapeamento assistido:</p>
+  <ul>{% for choice in comparison.unresolved_class_choices %}<li>{{ choice.origem }} · {{ choice.tipo }} · {{ choice.valor|default:'sem valor' }}</li>{% endfor %}</ul>
+  {% endif %}
+  {% if comparison.style_transfer %}<p>Estilo de Luta antigo: {{ comparison.style_transfer.choice.valor|default:comparison.style_transfer.option.nome }}. Correspondência exata na revisão: {{ comparison.style_transfer.option.nome }}. A opção antiga será substituída por esta, com registro da escolha original.</p>{% endif %}
+  {% if comparison.target_has_hunter_rules %}
+  <h2>Confirmar regularização</h2>
+  <form method="post">{% csrf_token %}
+    <input type="hidden" name="ruleset_checksum" value="{{ comparison.ruleset_checksum }}">
+    <input type="hidden" name="expected_level" value="{{ comparison.level }}">
+    <input type="hidden" name="expected_order_id" value="{{ comparison.old_order_id|default:'' }}">
+    <label for="ability">Atributo permanente de conjuração</label>
+    <select id="ability" name="ability" required><option value="">Escolha</option><option value="int">Inteligência</option><option value="wis">Sabedoria</option></select>
+    {% if comparison.level >= 3 %}<label for="apply-order">Ordem da revisão</label>
+    <select id="apply-order" name="order" required><option value="">Escolha</option>
+      {% for order in comparison.available_orders %}<option value="{{ order.pk }}"{% if order.pk == comparison.candidate_order_id %} selected{% endif %}>{{ order.nome }}</option>{% endfor %}
+    </select>{% endif %}
+    <fieldset><legend>Segredos opcionais a preparar</legend>
+      {% for secret in comparison.available_secrets %}<label><input type="checkbox" name="secret" value="{{ secret.id }}">{{ secret.name }} ({{ secret.line }}, nível {{ secret.level }})</label>{% empty %}<p>Nenhum neste nível.</p>{% endfor %}
+    </fieldset>
+    {% if comparison.style_transfer %}<label><input type="checkbox" name="confirm_style_id" value="{{ comparison.style_transfer.choice.id }}" required>Confirmo a transferência do Estilo de Luta para a mesma opção da revisão.</label>{% endif %}
+    {% for transfer in comparison.secret_transfers %}<label><input type="checkbox" name="confirm_secret_id" value="{{ transfer.choice.id }}" required>Confirmo a transferência do Segredo {{ transfer.secret.name }} por identidade exata. Se não pertencer à Linha Mestra da Ordem escolhida, selecione-o acima para prepará-lo.</label>{% endfor %}
+    {% for transfer in comparison.favored_transfers %}<label><input type="checkbox" name="confirm_favored_id" value="{{ transfer.choice.id }}" required>Confirmo a identidade exata de {{ transfer.choice.valor }} com {{ transfer.favored.name }} e sua preservação na nova revisão.</label>{% endfor %}
+    {% for transfer in comparison.mastery_transfers %}<label><input type="checkbox" name="confirm_mastery_id" value="{{ transfer.choice.id }}" required>Confirmo a transferência de {{ transfer.option.name }} para a mesma arma e Maestria na revisão fixada.</label>{% endfor %}
+    {% if comparison.favored_excess %}<fieldset><legend>Inimigos Favoritos ativos após regularização</legend>
+      <p>Escolha {{ comparison.favored_limit }} tipo(s) antigo(s) para usar agora. Os demais ficam registrados e entram automaticamente quando o nível da nova revisão abrir outro espaço.</p>
+      {% for transfer in comparison.favored_transfers %}<label><input type="checkbox" name="active_favored_id" value="{{ transfer.choice.id }}">{{ transfer.favored.name }}</label>{% endfor %}
+    </fieldset>{% endif %}
+    <label><input type="checkbox" name="confirm" value="1" required>Confirmo as diferenças e as escolhas da revisão.</label>
+    {% if not comparison.target_ready_for_binding %}<p>A revisão de destino ainda não possui todas as substituições do Caçador.</p>{% endif %}
+    <button type="submit"{% if comparison.unresolved_class_choices or not comparison.target_ready_for_binding %} disabled{% endif %}>Aplicar regularização</button>
+  </form>
+  {% else %}<p>A revisão de destino não contém as regras do Caçador para aplicar a regularização.</p>{% endif %}
+  {% endif %}
+</main>
+{% endblock %}

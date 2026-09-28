@@ -871,10 +871,13 @@ class Bug4VertenteMagiaTests(_CriadorBase):
         # essência (sem linhagem: as duas são mutuamente exclusivas)
         payload = self._payload('feiticeiro', raca_slug='anao',
                                 essencia_slug='draconica', vertente='Vermelho')
+        payload.setdefault('escolhas_raca', {})['menus'] = [{
+            'tipo': 'alento_elemental', 'fonte': 'Alento Elemental', 'valores': ['fogo']}]
         resp = self._post_criar(user, payload)
         self.assertEqual(resp.status_code, 200, resp.content)
         p = TbPersonagem.objects.get(pk=resp.json()['id'])
 
+        self.assertEqual(p.escolhas.get(tipo='alento_elemental').valor, 'fogo')
         concedidas = {c['slug'] for c in magias_concedidas(p)['concedidas']}
         materializadas = {m.id_magia.slug for m in TbPersonagemMagia.objects.filter(
             id_personagem=p, sempre_preparada=True).select_related('id_magia')}
@@ -883,7 +886,20 @@ class Bug4VertenteMagiaTests(_CriadorBase):
         # e as magias escolhidas no criador estão lá (não-sempre-preparadas)
         escolhidas = TbPersonagemMagia.objects.filter(id_personagem=p, sempre_preparada=False)
         self.assertEqual(escolhidas.count(), len(payload['truques']) + len(payload['magias']))
+        count = p.magias.count()
+        views._sync_magias_concedidas(p)
+        views._sync_magias_concedidas(p)
+        self.assertEqual(p.magias.count(), count)
 
+
+    def test_alento_missing_or_invalid_is_rejected(self):
+        payload = self._payload('feiticeiro', raca_slug='anao',
+                                essencia_slug='draconica', vertente='Vermelho')
+        for values in ([], ['invalid'], ['fogo', 'agua'], ['fogo', 'fogo']):
+            payload.setdefault('escolhas_raca', {})['menus'] = [{
+                'tipo': 'alento_elemental', 'fonte': 'Alento Elemental', 'valores': values}]
+            _, errors = views._criador_resolver(payload)
+            self.assertTrue(errors, values)
 
 class ValidacaoServerSideTests(_CriadorBase):
     """Validações server-side que faltavam (nunca confiar só no JS)."""
@@ -1595,7 +1611,35 @@ class PreviewAoVivoTests(_CriadorBase):
     def test_preview_feiticeiro_essencia_bate(self):
         # essência (sem linhagem: as duas são mutuamente exclusivas)
         self._bate('feiticeiro', raca_slug='anao',
-                   essencia_slug='draconica', vertente='Vermelho')
+                   essencia_slug='draconica', vertente='Vermelho',
+                   escolhas_raca={'menus': [{'tipo': 'alento_elemental',
+                       'fonte': 'Alento Elemental', 'valores': ['fogo']}]})
+
+    def test_preview_reports_missing_racial_choice_without_saving(self):
+        user = self._novo_usuario('prev-alento')
+        payload = self._payload('feiticeiro', essencia_slug='draconica',
+                                vertente='Vermelho')
+        before = TbPersonagem.objects.count()
+        for values in ([], ['invalid'], ['fogo', 'agua'], ['fogo', 'fogo']):
+            with self.subTest(values=values):
+                payload['escolhas_raca'] = {'menus': [{
+                    'tipo': 'alento_elemental', 'fonte': 'Alento Elemental',
+                    'valores': values}]}
+                preview = self._preview(user, payload)
+                self.assertTrue(preview['ready'], preview)
+                self.assertIn('Alento Elemental', ' '.join(preview['erros']))
+                response = self._post_criar(user, payload)
+                self.assertEqual(response.status_code, 400)
+                self.assertEqual(preview['erros'], response.json()['erros'])
+                self.assertEqual(TbPersonagem.objects.count(), before)
+        payload['escolhas_raca']['menus'][0]['valores'] = ['fogo']
+        preview = self._preview(user, payload)
+        self.assertEqual(preview['erros'], [])
+        self.assertEqual(TbPersonagem.objects.count(), before)
+        response = self._post_criar(user, payload)
+        self.assertEqual(response.status_code, 200, response.content)
+        person = TbPersonagem.objects.get(pk=response.json()['id'])
+        self.assertEqual(person.escolhas.get(tipo='alento_elemental').valor, 'fogo')
 
     def test_preview_incompleto_nao_pronto(self):
         # sem classe -> preview responde ready:false (mostra placeholder no front)

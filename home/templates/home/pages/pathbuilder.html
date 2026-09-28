@@ -22,6 +22,7 @@ markup de ficha nenhum — é impossível haver drift.{% endcomment %}
       <h1>Pathbuilder</h1>
     </div>
     <div class="pb-head-tools">
+      <a class="pb-btn" href="{% url 'hunter_laboratory' %}">Prévia do Caçador reworkado</a>
       <div class="pb-variant" role="tablist" aria-label="Variante da build">
         <button type="button" role="tab" class="pb-variant-tab" data-build-tab="0">Build A</button>
         <button type="button" role="tab" class="pb-variant-tab" data-build-tab="1">Build B</button>
@@ -61,6 +62,7 @@ markup de ficha nenhum — é impossível haver drift.{% endcomment %}
           <li class="pb-step-tab" data-step-tab="3" role="button" tabindex="0"><span class="pb-step-badge"><span>4</span></span><span class="pb-step-name">Aumentos</span></li>
           <li class="pb-step-tab" data-step-tab="4" role="button" tabindex="0"><span class="pb-step-badge"><span>5</span></span><span class="pb-step-name">Equipamento</span></li>
           <li class="pb-step-tab" data-step-tab="5" role="button" tabindex="0"><span class="pb-step-badge"><span>6</span></span><span class="pb-step-name">Magias</span></li>
+          <li class="pb-step-tab" data-step-tab="6" role="button" tabindex="0"><span class="pb-step-badge"><span>7</span></span><span class="pb-step-name">Revisão</span></li>
         </ol>
       </nav>
 
@@ -134,6 +136,7 @@ markup de ficha nenhum — é impossível haver drift.{% endcomment %}
             <span class="pb-counter" id="pb-talent-counter">—</span>
           </div>
           <div class="pb-picker" data-picker="talento">
+            <p id="pb-action-feedback" class="pb-card-hint" role="status" aria-live="polite" hidden></p>
             <input type="search" class="pb-search" data-picker-search placeholder="Filtrar talentos por nome ou tipo" aria-label="Filtrar talentos">
             <div class="pb-options" data-picker-list></div>
           </div>
@@ -184,6 +187,10 @@ markup de ficha nenhum — é impossível haver drift.{% endcomment %}
         </div>
         <div class="pb-card">
           <div class="pb-card-head"><h2>Grimório</h2></div>
+          <label class="pb-card-hint" for="pb-spell-class">Classe que adiciona a magia</label>
+          <select id="pb-spell-class" class="pb-select-inline" aria-label="Classe que adiciona a magia">
+            <option value="">Escolha uma classe</option>
+          </select>
           <div class="pb-picker" data-picker="magia">
             <input type="search" class="pb-search" data-picker-search placeholder="Filtrar magias por nome, escola ou nível" aria-label="Filtrar magias">
             <div class="pb-options" data-picker-list></div>
@@ -191,6 +198,13 @@ markup de ficha nenhum — é impossível haver drift.{% endcomment %}
         </div>
       </div>
 
+      <div class="pb-step" data-step="6" hidden>
+        <div class="pb-card">
+          <h2>Revisar simulação</h2>
+          <p id="pb-review-status" role="status" aria-live="polite"></p>
+          <button type="button" class="pb-btn pb-btn-primary" id="pb-conclude">Concluir simulação</button>
+        </div>
+      </div>
       {# validação da etapa: erro fica ONDE se resolve, como no criador #}
       <div class="pb-step-err" id="pb-step-err" hidden></div>
 

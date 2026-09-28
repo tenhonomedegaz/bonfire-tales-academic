@@ -131,8 +131,11 @@ Exemplo:
 }
 ```
 
-Durante o sync, a deleção só acontece se o registro não estiver referenciado por tabelas
-de memória. Se houver referência, o relatório mostra a deleção como bloqueada.
+O `--dry-run` consulta o banco e mostra cada tombstone como `absent`, `blocked`
+(com referências de memória) ou `would_delete`. A sincronização só executa uma
+deleção sem referências quando receber `--allow-content-deletions`, após
+autorização operacional específica. Chamadas pelo admin e por outros comandos
+não recebem essa liberação por padrão; com referência, a deleção continua bloqueada.
 
 ### Renomeações de slug
 

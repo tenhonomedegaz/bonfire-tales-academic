@@ -14,7 +14,7 @@
     var STORAGE_BUILDS = 'bonfire:pathbuilder:builds';
     var STORAGE_SAVED = 'bonfire:pathbuilder:saved';
     var SIGLAS = ['FOR', 'DES', 'CON', 'INT', 'SAB', 'CAR'];
-    var STEPS = ['Base', 'Progressão', 'Escolhas', 'Aumentos', 'Equipamento', 'Magias'];
+    var STEPS = ['Base', 'Progressão', 'Escolhas', 'Aumentos', 'Equipamento', 'Magias', 'Revisão'];
 
     function byId(id) { return document.getElementById(id); }
     function clone(value) { return JSON.parse(JSON.stringify(value)); }
@@ -136,7 +136,18 @@
                     return true;
                 });
             build.itens = Array.isArray(build.itens) ? build.itens : [];
-            build.magias = Array.isArray(build.magias) ? build.magias : [];
+            var seenSpells = Object.create(null);
+            build.magias = (Array.isArray(build.magias) ? build.magias : []).filter(function (row) {
+                if (!row || !row.slug) return false;
+                row.slug = String(row.slug);
+                if (row.classe != null && row.classe !== '') row.classe = String(row.classe);
+                else delete row.classe; // payload legado: o servidor pode inferir a fonte única.
+                row.preparada = !!row.preparada;
+                var key = row.slug + '\u0000' + (row.classe || '');
+                if (seenSpells[key]) return false;
+                seenSpells[key] = true;
+                return true;
+            });
             return build;
         }
         /* Base trocada no criador = builds antigas descartadas. Sem esta impressão digital,
@@ -152,14 +163,26 @@
         var step = 0;
         var itemKind = 'mundano';
         var results = [null, null];
+        var resultInputs = [null, null];
+        var resultContexts = [null, null];
         var errors = [null, null];
         var timer = null;
         var requestSeq = 0;
         var detailCache = Object.create(null);
         var queries = { classe: '', talento: '', item: '', magia: '' };
+        var spellClass = '';
 
         function persist() { writeStore(STORAGE_BUILDS, builds); }
         function current() { return builds[active]; }
+        function previewInput(index) { return JSON.stringify({ base: base, build: builds[index] }); }
+        function budgetContext(index) { return JSON.stringify([base, builds[index].classes]); }
+        function freshResult(index) { return resultInputs[index] === previewInput(index); }
+        function clearResult(index) {
+            results[index] = null;
+            resultInputs[index] = null;
+            resultContexts[index] = null;
+            errors[index] = null;
+        }
         function totalLevel(build) {
             return (build.classes || []).reduce(function (sum, row) {
                 return sum + Number(row.nivel || 0);
@@ -288,7 +311,13 @@
             } else if (kind === 'item') {
                 source = itemKind === 'magico' ? (catalogs.itens_magicos || []) : (catalogs.itens_mundanos || []);
             } else {
-                build.magias.forEach(function (row) { owned[row.slug] = true; });
+                if (!spellClass) {
+                    list.innerHTML = '<p class="pb-muted pb-opt-empty">Escolha a classe que adiciona a magia.</p>';
+                    return;
+                }
+                build.magias.forEach(function (row) {
+                    if ((row.classe || '') === spellClass) owned[row.slug] = true;
+                });
                 source = catalogs.magias || [];
             }
             /* Item pode repetir na build (3 poções), então o catálogo de itens não esconde
@@ -348,6 +377,7 @@
         /* -------------------------------------------------------------- aumentos */
         function orcamento() {
             var result = results[active];
+            if (resultContexts[active] !== budgetContext(active)) return null;
             return (result && result.orcamento) || null;
         }
         function normalAttributePoints(build) {
@@ -388,7 +418,7 @@
                 var bonus = Number(values[sig] || 0);
                 var final = attrs.find(function (row) { return row.sig === sig; });
                 var projectedNext = projectedAttribute(build, sig, bonus + 1);
-                var plusDisabled = (restantes !== null && restantes <= 0) ||
+                var plusDisabled = !localBudget || restantes <= 0 ||
                     (projectedNext !== null && projectedNext > 20);
                 return '<div class="pb-attr' + (bonus ? ' is-on' : '') + '">' +
                     '<span class="pb-attr-sig">' + sig + '</span>' +
@@ -407,6 +437,7 @@
             if (!budget) {
                 byId('pb-asi-counter').textContent = '—';
                 byId('pb-talent-counter').textContent = '—';
+                byId('pb-asi-hint').textContent = 'Aguarde uma prévia válida desta progressão para adicionar aumentos. Você pode remover escolhas para corrigir a build.';
                 return;
             }
             var counter = byId('pb-asi-counter');
@@ -486,9 +517,35 @@
         }
 
         /* -------------------------------------------------------------- escolhas */
-        function renderChoices() {
+        function choiceFromTalent(key, slug) {
+            // Contrato de _groups_with_keys: kind|tipo|classe_id|slug(origem)|ocorrência.
+            var source = talentBySlug[slug];
+            var origin = String(source ? source.nome : slug).normalize('NFKD')
+                .replace(/[^\x00-\x7F]/g, '').toLowerCase().replace(/[^\w\s-]/g, '')
+                .trim().replace(/[-\s]+/g, '-').replace(/^[-_]+|[-_]+$/g, '');
+            var parts = key.split('|');
+            return parts.length === 5 && parts[2] === '0' && parts[3] === origin;
+        }
+        function editableChoiceGroups() {
             var result = results[active];
-            var groups = result ? (result.escolhas_grupos || []) : [];
+            var submitted = resultInputs[active] ? JSON.parse(resultInputs[active]).build : null;
+            var removed = submitted ? submitted.talentos.filter(function (talent) {
+                return !current().talentos.some(function (row) { return row.slug === talent.slug; });
+            }) : [];
+            return ((result && result.escolhas_grupos) || []).filter(function (group) {
+                return !removed.some(function (talent) { return choiceFromTalent(group.key, talent.slug); });
+            });
+        }
+        function fixedChoices(group) {
+            // Separa concessões da base das escolhas enviadas na prévia anterior.
+            // Comparar com a edição atual faria uma escolha removida parecer fixa.
+            var submitted = group.selecionadas || [];
+            return (group.resolvidas || []).filter(function (row) {
+                return submitted.indexOf(row.valor) < 0;
+            });
+        }
+        function renderChoices() {
+            var groups = editableChoiceGroups();
             var host = byId('pb-choices');
             if (!groups.length) {
                 byId('pb-choice-count').textContent = 'nenhuma';
@@ -507,13 +564,15 @@
                 var picked = Array.isArray(build.escolhas[group.key]) ? build.escolhas[group.key] : [];
                 var pickedSet = Object.create(null);
                 picked.forEach(function (v) { pickedSet[v] = true; });
-                var fixed = (group.resolvidas || []).filter(function (row) { return !pickedSet[row.valor]; });
+                var fixed = fixedChoices(group);
                 var opts = (group.opcoes || []).map(function (option) {
                     return '<div class="pb-opt' + (pickedSet[option.valor] ? ' is-on' : '') + '"' +
                         ' data-choice-key="' + esc(group.key) + '" data-choice-val="' + esc(option.valor) + '">' +
-                        '<button type="button" class="pb-opt-pick" data-choice-pick>' +
+                        '<button type="button" class="pb-opt-pick" data-choice-pick' +
+                          (option.ja_proficiente && !pickedSet[option.valor] ? ' disabled' : '') + '>' +
                           '<span class="pb-opt-mark" aria-hidden="true"></span>' +
-                          '<span class="pb-opt-main"><span class="pb-opt-name">' + esc(option.nome) + '</span>' +
+                          '<span class="pb-opt-main"><span class="pb-opt-name">' + esc(option.nome) +
+                          (option.ja_proficiente ? ' — já proficiente' : '') + '</span>' +
                           (option.meta ? '<span class="pb-opt-meta">' + esc(option.meta) + '</span>' : '') +
                           '</span></button>' +
                         (option.descricao
@@ -594,30 +653,122 @@
         }
 
         /* ---------------------------------------------------------------- magias */
-        function renderSpells() {
-            var build = current();
-            var host = byId('pb-spells');
-            if (!build.magias.length) {
-                host.innerHTML = '<p class="pb-muted">Nenhuma magia adicionada à mão. ' +
-                    'As magias concedidas por classe/raça já aparecem na ficha.</p>';
+        function spellSourceRows() {
+            var result = results[active] || {};
+            var summary = result.summary || result;
+            return Array.isArray(summary.magias_fontes) ? summary.magias_fontes.filter(function (row) {
+                return row && row.slug;
+            }) : [];
+        }
+        function spellClassOptions(includeLegacy) {
+            var seen = Object.create(null);
+            var rows = [];
+            spellSourceRows().forEach(function (row) {
+                var slug = String(row.slug);
+                if (seen[slug]) return;
+                seen[slug] = true;
+                rows.push({ slug: slug, nome: row.nome || ((classBySlug[slug] || {}).nome) || slug });
+            });
+            current().magias.forEach(function (row) {
+                var slug = row.classe || '';
+                if (seen[slug]) return;
+                seen[slug] = true;
+                rows.push({ slug: slug, nome: slug
+                    ? (((classBySlug[slug] || {}).nome) || slug) + ' (origem indisponível)'
+                    : 'Sem classe (legado)' });
+            });
+            if (includeLegacy && !seen['']) rows.push({ slug: '', nome: 'Sem classe (legado)' });
+            return rows;
+        }
+        function spellKey(slug, classe) { return String(slug) + '\u0000' + String(classe || ''); }
+        function upsertSpell(build, slug, classe, preparada) {
+            var key = spellKey(slug, classe);
+            var at = build.magias.findIndex(function (row) {
+                return spellKey(row.slug, row.classe) === key;
+            });
+            var value = { slug: slug, classe: classe, preparada: !!preparada };
+            if (!classe) delete value.classe;
+            if (at >= 0) build.magias[at] = value;
+            else build.magias.push(value);
+        }
+        function renderSpellClassPicker() {
+            var select = byId('pb-spell-class');
+            var options = spellSourceRows();
+            if (!options.some(function (row) { return row.slug === spellClass; })) spellClass = '';
+            select.innerHTML = '<option value="">Escolha uma classe</option>' + options.map(function (row) {
+                return '<option value="' + esc(row.slug) + '"' + (row.slug === spellClass ? ' selected' : '') +
+                    '>' + esc(row.nome) + '</option>';
+            }).join('');
+        }
+        function renderSpellRows(host, build) {
+            var manual = Object.create(null);
+            build.magias.forEach(function (row, index) { manual[spellKey(row.slug, row.classe)] = index; });
+            var rows = [];
+            var used = Object.create(null);
+            spellSourceRows().forEach(function (source) {
+                (source.magias || []).forEach(function (spell) {
+                    var key = spellKey(spell.slug, source.slug);
+                    var override = manual[key];
+                    var legacyKey = spellKey(spell.slug, '');
+                    if (override == null && manual[legacyKey] != null &&
+                            spellSourceRows().filter(function (s) {
+                                return (s.magias || []).some(function (m) { return m.slug === spell.slug; });
+                            }).length === 1) {
+                        override = manual[legacyKey];
+                        used[legacyKey] = true;
+                    }
+                    if (spell.base === false && override == null) return;
+                    rows.push({ slug: spell.slug, classe: String(source.slug), nome: spell.nome,
+                        nivel: spell.nivel, preparada: override == null
+                            ? !!(spell.base ? spell.preparada_base : spell.preparada) : !!build.magias[override].preparada,
+                        sempre_preparada: !!spell.sempre_preparada, manualIndex: override == null ? -1 : override });
+                    used[key] = true;
+                });
+            });
+            build.magias.forEach(function (row, index) {
+                var key = spellKey(row.slug, row.classe);
+                if (!used[key]) rows.push({ slug: row.slug, classe: row.classe || '', preparada: !!row.preparada,
+                    sempre_preparada: false, manualIndex: index });
+            });
+            if (!rows.length) {
+                host.innerHTML = '<p class="pb-muted">Nenhuma magia disponível para esta build.</p>';
             } else {
-                host.innerHTML = build.magias.map(function (row, index) {
+                host.innerHTML = rows.map(function (row) {
                     var info = spellBySlug[row.slug] || { nome: row.slug, nivel: 0, meta: '' };
-                    var level = Number(info.nivel || 0) === 0 ? 'Truque' : info.nivel + 'º nível';
+                    var levelValue = row.nivel == null ? info.nivel : row.nivel;
+                    var level = Number(levelValue || 0) === 0 ? 'Truque' : levelValue + 'º nível';
+                    var classes = spellClassOptions(true);
+                    if (!classes.some(function (item) { return item.slug === row.classe; })) {
+                        classes.push({ slug: row.classe, nome: row.classe + ' (origem indisponível)' });
+                    }
                     return '<div class="pb-line">' +
-                        '<span class="pb-line-name">' + esc(info.nome) +
+                        '<span class="pb-line-name">' + esc(row.nome || info.nome) +
                           '<small>' + esc(level + (info.meta ? ' · ' + info.meta : '')) + '</small></span>' +
                         '<span class="pb-line-tools">' +
-                          '<label class="pb-check"><input type="checkbox" data-spell-prepared="' + index + '"' +
-                            (row.preparada ? ' checked' : '') + '> preparada</label>' +
-                          '<button type="button" class="pb-x" data-remove-spell="' + index +
-                            '" title="Remover">×</button>' +
+                          '<label class="pb-check">Classe <select class="pb-select-inline" data-spell-class-row="' +
+                            row.manualIndex + '" data-spell-slug="' + esc(row.slug) + '"' +
+                            (row.manualIndex < 0 || row.sempre_preparada ? ' disabled' : '') + '>' +
+                            classes.map(function (item) { return '<option value="' + esc(item.slug) + '"' +
+                                (item.slug === row.classe ? ' selected' : '') + '>' + esc(item.nome) + '</option>'; }).join('') +
+                          '</select></label>' +
+                          '<label class="pb-check"><input type="checkbox" data-spell-prepared-slug="' + esc(row.slug) +
+                            '" data-spell-prepared-row="' + row.manualIndex +
+                            '" data-spell-prepared-class="' + esc(row.classe) + '"' + (row.preparada ? ' checked' : '') +
+                            (row.sempre_preparada ? ' disabled' : '') + '> preparada</label>' +
+                          (row.manualIndex >= 0 ? '<button type="button" class="pb-x" data-remove-spell="' + row.manualIndex +
+                            '" title="Remover alteração">×</button>' : '') +
                         '</span></div>';
                 }).join('');
             }
-            byId('pb-spell-counter').textContent = build.magias.length
-                ? build.magias.length + ' na build' : 'nenhuma';
+            byId('pb-spell-counter').textContent = rows.length ? rows.length + ' no repertório' : 'nenhuma';
+        }
+        function renderSpells() {
+            var build = current();
+            var host = byId('pb-spells');
+            renderSpellRows(host, build);
+            renderSpellClassPicker();
             renderPicker('magia');
+
         }
 
         /* ----------------------------------------------------------------- base */
@@ -664,6 +815,10 @@
             if (index === 4) {
                 return Number(budget.sintonizacao_usada || 0) > Number(budget.sintonizacao_maxima || 3) ? 1 : 0;
             }
+            if (index === 5 || index === 6) {
+                var validation = (results[active] && results[active].validacao) || {};
+                return (validation[index === 5 ? 'magias' : 'problemas'] || []).length;
+            }
             return 0;
         }
         function renderStepper() {
@@ -672,7 +827,8 @@
                 tab.classList.toggle('is-current', index === step);
                 var pending = stepPending(index);
                 tab.classList.toggle('is-error', pending > 0);
-                tab.classList.toggle('is-complete', pending === 0 && index !== step && !!results[active]);
+                tab.classList.toggle('is-complete', pending === 0 && index !== step &&
+                    !!results[active] && freshResult(active) && !errors[active]);
                 var badge = tab.querySelector('.pb-step-badge');
                 if (badge) badge.setAttribute('data-pending', pending > 0 ? String(pending) : '');
             });
@@ -685,7 +841,7 @@
                 ' · ' + STEPS[step];
 
             var result = results[active];
-            var problems = result && result.validacao && result.validacao.modo === 'regras'
+            var problems = result && result.validacao && (result.validacao.modo === 'regras' || step === 6)
                 ? (result.validacao.problemas || []) : [];
             var errBox = byId('pb-step-err');
             if (problems.length) {
@@ -696,6 +852,19 @@
                 errBox.hidden = true;
                 errBox.innerHTML = '';
             }
+            var ready = result && freshResult(active) && !errors[active];
+            var valid = ready && result.validacao && result.validacao.valida === true;
+            byId('pb-conclude').disabled = !valid;
+            byId('pb-review-status').textContent = !ready
+                ? 'Aguarde uma prévia atualizada para revisar a simulação.'
+                : !valid ? 'Resolva as pendências antes de concluir. Suas escolhas foram preservadas.'
+                : 'Simulação pronta para concluir. Nenhum personagem será criado.';
+        }
+
+        function actionFeedback(message) {
+            var host = byId('pb-action-feedback');
+            host.textContent = message || '';
+            host.hidden = !message;
         }
 
         function renderVariant() {
@@ -765,7 +934,9 @@
             var box = byId('pb-diff');
             var mine = results[active];
             var other = results[active === 0 ? 1 : 0];
-            if (!mine || !other) { box.hidden = true; box.innerHTML = ''; return; }
+            if (!mine || !other || !freshResult(0) || !freshResult(1) || errors[0] || errors[1]) {
+                box.hidden = true; box.innerHTML = ''; return;
+            }
             var pairs = [
                 ['Nível', mine.nivel, other.nivel],
                 ['PV', mine.pv, other.pv],
@@ -788,48 +959,50 @@
         function renderSheet() {
             var host = byId('pb-folha');
             var result = results[active];
-            if (errors[active]) {
-                host.innerHTML = '<div class="pb-sheet-error"><strong>Build inválida</strong><p>' +
-                    esc(errors[active]) + '</p></div>';
-                renderDiff();
-                return;
-            }
-            if (!result) { return; }
-            host.innerHTML = result.ficha_html || '';
+            var notice = errors[active]
+                ? '<div class="pb-sheet-error" role="alert"><strong>Prévia não atualizada</strong><p>' +
+                  esc(errors[active]) + (result ? ' Exibindo a última prévia válida.' : '') + '</p></div>'
+                : '';
+            host.innerHTML = notice + (result ? (result.ficha_html || '') : '');
             bindFolha(host);
             renderDiff();
         }
 
         function fetchBuild(index, seq) {
+            var input = previewInput(index);
+            var context = budgetContext(index);
             return fetch(window.PATHBUILDER_PREVIEW_URL, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': window.CSRF_TOKEN
                 },
-                body: JSON.stringify({ base: base, build: builds[index] })
+                body: input
             }).then(function (response) {
                 return response.json().then(function (json) {
                     return { ok: response.ok, json: json };
                 });
             }).then(function (response) {
-                if (seq !== requestSeq) return;
-                if (response.ok && response.json.ok) {
+                if (seq !== requestSeq || input !== previewInput(index)) return;
+                var candidate = response.json && response.json.build;
+                if (response.ok && response.json.ok && candidate && candidate.orcamento &&
+                        Array.isArray(candidate.atributos)) {
                     results[index] = response.json.build;
+                    resultInputs[index] = input;
+                    resultContexts[index] = context;
                     errors[index] = null;
                 } else {
-                    results[index] = null;
                     errors[index] = ((response.json || {}).erros || ['Build inválida.']).join(' ');
                 }
             }).catch(function () {
-                if (seq !== requestSeq) return;
-                results[index] = null;
+                if (seq !== requestSeq || input !== previewInput(index)) return;
                 errors[index] = 'Não foi possível derivar esta build.';
             });
         }
         /* Só a build ATIVA é derivada a cada edição. O antigo laboratório materializava as
            duas fichas a cada tecla — dobro de custo para uma comparação que ninguém pediu. */
         function runPreview(alsoOther) {
+            clearTimeout(timer);
             var seq = ++requestSeq;
             var status = byId('pb-status');
             status.textContent = 'Derivando…';
@@ -841,7 +1014,9 @@
                 renderSheet();
                 renderEditor();
                 if (errors[active]) {
-                    status.textContent = 'Corrija a build para ver a ficha.';
+                    status.textContent = results[active]
+                        ? 'Prévia não atualizada · exibindo a última válida.'
+                        : 'Prévia indisponível · ajuste a build e tente novamente.';
                     status.classList.add('is-error');
                 } else {
                     var result = results[active];
@@ -851,7 +1026,11 @@
             });
         }
         function schedulePreview() {
+            // Invalida a resposta em voo já na edição, antes de esperar o debounce.
+            requestSeq++;
             clearTimeout(timer);
+            byId('pb-status').textContent = 'Alterações pendentes · aguardando prévia.';
+            renderDiff();
             timer = setTimeout(function () { runPreview(false); }, 260);
         }
 
@@ -889,11 +1068,11 @@
 
             var choicePick = target.closest('[data-choice-pick]');
             if (choicePick) {
+                if (choicePick.disabled) return;
                 var box = choicePick.closest('[data-choice-key]');
                 var key = box.dataset.choiceKey;
                 var val = box.dataset.choiceVal;
-                var result = results[active];
-                var group = result && (result.escolhas_grupos || []).find(function (row) {
+                var group = editableChoiceGroups().find(function (row) {
                     return row.key === key;
                 });
                 mutate(function (build) {
@@ -902,11 +1081,10 @@
                     if (at >= 0) {
                         values.splice(at, 1);
                     } else {
-                        var fixed = group ? (group.resolvidas || []).filter(function (row) {
-                            return values.indexOf(row.valor) < 0;
-                        }).length : 0;
-                        var limit = group ? Math.max(0, Number(group.limite || 0) - fixed) : null;
-                        if (limit !== null && values.length >= limit) return;
+                        if (!group) return;
+                        var fixed = fixedChoices(group).length;
+                        var limit = Math.max(0, Number(group.limite || 0) - fixed);
+                        if (values.length >= limit) return;
                         values.push(val);
                     }
                     build.escolhas[key] = values;
@@ -936,13 +1114,25 @@
                         row.subclasse = row.subclasse === slug ? '' : slug;
                     });
                 } else if (kind === 'talento') {
+                    var chosen = current().talentos.some(function (row) { return row.slug === slug; });
+                    var availableBudget = localAsiBudget(current());
+                    if (!chosen && (!availableBudget || current().talentos.length >= availableBudget.slots ||
+                            availableBudget.used > Math.max(0, availableBudget.slots - current().talentos.length - 1) * 2)) {
+                        actionFeedback(!availableBudget ? 'Aguarde uma prévia válida para escolher um talento.'
+                            : 'Sem slot de ASI livre para este talento. Remova outro talento ou devolva os pontos de atributo desse slot.');
+                        return;
+                    }
+                    actionFeedback('');
                     mutate(function (build) {
                         var at = build.talentos.findIndex(function (row) { return row.slug === slug; });
                         if (at >= 0) {
                             build.talentos.splice(at, 1);
+                            Object.keys(build.escolhas).forEach(function (key) {
+                                if (choiceFromTalent(key, slug)) delete build.escolhas[key];
+                            });
                         } else {
                             var localBudget = localAsiBudget(build);
-                            if (localBudget && (build.talentos.length >= localBudget.slots ||
+                            if (!localBudget || (build.talentos.length >= localBudget.slots ||
                                     localBudget.used > Math.max(0, localBudget.slots -
                                         build.talentos.length - 1) * 2)) return;
                             build.talentos.push({ slug: slug, atributo: '' });
@@ -954,11 +1144,9 @@
                                            equipado: false, sintonizado: false });
                     });
                 } else if (kind === 'magia') {
+                    if (!spellClass) return;
                     mutate(function (build) {
-                        var at = -1;
-                        build.magias.forEach(function (r, i) { if (r.slug === slug) at = i; });
-                        if (at >= 0) build.magias.splice(at, 1);
-                        else build.magias.push({ slug: slug, preparada: true });
+                        upsertSpell(build, slug, spellClass, true);
                     });
                 }
                 return;
@@ -966,11 +1154,21 @@
 
             var button = target.closest('button');
             if (!button) return;
+            if (button.id === 'pb-conclude') {
+                var review = results[active];
+                if (!freshResult(active) || errors[active] || !review || !review.validacao || !review.validacao.valida) return;
+                byId('pb-review-status').textContent = 'Simulação concluída e validada. Nenhum personagem foi criado.';
+                return;
+            }
 
             if (button.dataset.buildTab != null) {
+                clearTimeout(timer);
+                requestSeq++;
                 active = Number(button.dataset.buildTab);
                 renderEditor();
-                if (results[active] || errors[active]) { renderSheet(); } else { runPreview(false); }
+                renderSheet();
+                if (!freshResult(active) || errors[active]) { runPreview(false); }
+                else { byId('pb-status').textContent = 'Nível ' + results[active].nivel + ' · nenhum personagem salvo'; }
                 return;
             }
             if (button.dataset.itemKind) {
@@ -1019,7 +1217,7 @@
                     var delta = Number(button.dataset.delta);
                     var next = currentBonus + delta;
                     var budget = localAsiBudget(build);
-                    if (delta > 0 && budget && budget.remaining <= 0) return;
+                    if (delta > 0 && (!budget || budget.remaining <= 0)) return;
                     var projected = projectedAttribute(build, sig, next);
                     if (delta > 0 && projected !== null && projected > 20) return;
                     build.atributos_bonus[sig] = Math.max(0, Math.min(10, next));
@@ -1093,10 +1291,26 @@
                 mutate(function (build) {
                     build.itens[Number(target.dataset.itemAttuned)].sintonizado = target.checked;
                 });
-            } else if (target.dataset.spellPrepared != null) {
+            } else if (target.dataset.spellPreparedSlug != null) {
                 mutate(function (build) {
-                    build.magias[Number(target.dataset.spellPrepared)].preparada = target.checked;
+                    var index = Number(target.dataset.spellPreparedRow);
+                    if (index >= 0 && build.magias[index]) build.magias.splice(index, 1);
+                    upsertSpell(build, target.dataset.spellPreparedSlug,
+                        target.dataset.spellPreparedClass, target.checked);
                 });
+            } else if (target.dataset.spellClassRow != null) {
+                mutate(function (build) {
+                    var at = Number(target.dataset.spellClassRow);
+                    var row = build.magias[at];
+                    if (!row) return;
+                    var slug = row.slug;
+                    var prepared = row.preparada;
+                    build.magias.splice(at, 1);
+                    upsertSpell(build, slug, target.value, prepared);
+                });
+            } else if (target.id === 'pb-spell-class') {
+                spellClass = target.value;
+                renderSpells();
             } else if (target.dataset.talentAttr != null) {
                 mutate(function (build) {
                     var row = build.talentos.find(function (talent) {
@@ -1128,14 +1342,18 @@
         });
         byId('pb-clone').addEventListener('click', function () {
             builds[active === 0 ? 1 : 0] = clone(current());
+            clearResult(active === 0 ? 1 : 0);
             persist();
             renderEditor();
             runPreview(true);
         });
         byId('pb-reset').addEventListener('click', function () {
             builds = [emptyBuild(), emptyBuild()];
+            clearResult(0);
+            clearResult(1);
             persist();
             renderEditor();
+            renderSheet();
             runPreview(false);
         });
 
@@ -1160,12 +1378,15 @@
             }
             base = clone(bundle.base);
             builds = clone(bundle.builds).map(normalizeBuild);
+            clearResult(0);
+            clearResult(1);
             writeStore(STORAGE_BASE, base);
             /* nova impressão digital: sem isso o próximo carregamento acharia que a base
                mudou e jogaria fora justamente as builds que acabaram de ser importadas. */
             markBase(base);
             persist();
             renderEditor();
+            renderSheet();
             runPreview(false);
         }
         byId('pb-save').addEventListener('click', function () {

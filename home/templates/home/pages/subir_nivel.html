@@ -228,9 +228,10 @@
                 <select class="lvl-field lvl-field--grow" data-lvl-field="val"
                         data-lvl-auto-queue="opcao" aria-label="Escolher {{ g.tipo|lower }}">
                   <option value="">Escolher {{ g.tipo|lower }}…</option>
-                  {% for o in g.disponiveis %}<option value="{{ o.val }}" data-desc="{{ o.descricao|striptags }}"{% if o.pre %} title="Pré-requisito: {{ o.pre }}"{% endif %}>{{ o.nome }}</option>{% endfor %}
+                  {% for o in g.disponiveis %}<option value="{{ o.val }}" data-desc="{{ o.descricao|striptags }}"{% if o.ja_proficiente %} disabled{% endif %}{% if o.pre %} title="Pré-requisito: {{ o.pre }}"{% endif %}>{{ o.nome }}{% if o.ja_proficiente %} — já proficiente{% endif %}</option>{% endfor %}
                 </select>
               </div>
+              {% for o in g.disponiveis %}{% if o.ja_proficiente %}<p class="lvl-card__hint">{{ o.nome }} — já proficiente</p>{% endif %}{% endfor %}
               <p class="lvl-card__hint" data-lvl-desc hidden style="margin-top:0.5rem"></p>
             {% elif g.pendentes %}
               <p class="lvl-card__hint">Sem opções disponíveis no catálogo para esta classe/nível.</p>
@@ -262,16 +263,16 @@
           {% if pend_magias.cantrips_pend %}
             <div style="margin-bottom:0.6rem">
               <div class="lvl-subhdr">Truques (escolha {{ pend_magias.cantrips_pend }})</div>
-              <div class="lvl-checkgrid" data-lvl-group="truques">
-                {% for m in pend_magias.lista_truques %}<label class="lvl-check"><input type="checkbox" value="{{ m.slug }}"> {{ m.nome }}{% if m.nome_ingles %} <span class="text-xs text-[var(--muted)]">({{ m.nome_ingles }})</span>{% endif %}</label>{% endfor %}
+              <div class="lvl-checkgrid" data-lvl-group="truques" data-spell-picker="Buscar truque" data-spell-row="label">
+                {% for m in pend_magias.lista_truques %}<label class="lvl-check" data-spell-name="{{ m.nome }}{% if m.nome_ingles %} {{ m.nome_ingles }}{% endif %}" data-spell-level="{{ m.nivel }}"><input type="checkbox" value="{{ m.slug }}"> {{ m.nome }}{% if m.nome_ingles %} <span class="text-xs text-[var(--muted)]">({{ m.nome_ingles }})</span>{% endif %}</label>{% endfor %}
               </div>
             </div>
           {% endif %}
           {% if pend_magias.known_pend %}
             <div>
               <div class="lvl-subhdr">{{ pend_magias.spell_pick_label }} (escolha {{ pend_magias.known_pend }} · até {{ pend_magias.max_nivel }}º nível)</div>
-              <div class="lvl-checkgrid" data-lvl-group="magias">
-                {% for m in pend_magias.lista_magias %}<label class="lvl-check"><input type="checkbox" value="{{ m.slug }}"> <span>{{ m.nome }}{% if m.nome_ingles %} <span class="text-xs text-[var(--muted)]">({{ m.nome_ingles }})</span>{% endif %} <span class="text-xs text-[var(--muted)]">({{ m.nivel }}º)</span></span></label>{% endfor %}
+              <div class="lvl-checkgrid" data-lvl-group="magias" data-spell-picker="Buscar magia" data-spell-row="label">
+                {% for m in pend_magias.lista_magias %}<label class="lvl-check" data-spell-name="{{ m.nome }}{% if m.nome_ingles %} {{ m.nome_ingles }}{% endif %}" data-spell-level="{{ m.nivel }}"><input type="checkbox" value="{{ m.slug }}"> <span>{{ m.nome }}{% if m.nome_ingles %} <span class="text-xs text-[var(--muted)]">({{ m.nome_ingles }})</span>{% endif %} <span class="text-xs text-[var(--muted)]">({{ m.nivel }}º)</span></span></label>{% endfor %}
               </div>
             </div>
           {% endif %}
@@ -291,9 +292,9 @@
             <span class="lvl-card__title">{{ bloco.fonte }} <span class="sub">{{ bloco.rotulo }}</span></span>
             <span class="lvl-badge" data-lvl-badge>falta {{ bloco.qtd }}</span>
           </div>
-          <div class="lvl-checkgrid" data-lvl-group="concedidas">
+          <div class="lvl-checkgrid" data-lvl-group="concedidas" data-spell-picker="Buscar magia concedida" data-spell-row="label">
             {% for magia in bloco.opcoes %}
-            <label class="lvl-check"><input type="checkbox" value="{{ magia.slug }}"> <span>{{ magia.nome }}{% if magia.nome_ingles %} <span class="text-xs text-[var(--muted)]">({{ magia.nome_ingles }})</span>{% endif %}</span></label>
+            <label class="lvl-check" data-spell-name="{{ magia.nome }}{% if magia.nome_ingles %} {{ magia.nome_ingles }}{% endif %}" data-spell-level="{{ magia.nivel }}"><input type="checkbox" value="{{ magia.slug }}"> <span>{{ magia.nome }}{% if magia.nome_ingles %} <span class="text-xs text-[var(--muted)]">({{ magia.nome_ingles }})</span>{% endif %}</span></label>
             {% endfor %}
           </div>
         </div>
@@ -319,15 +320,15 @@
           </div>
           <div class="lvl-queued" data-lvl-chips hidden></div>
           <div class="lvl-card__row">
-            <select class="lvl-field lvl-field--grow" data-lvl-field="remover" aria-label="Magia a desaprender">
+            <select class="lvl-field lvl-field--grow" data-lvl-field="remover" data-spell-picker="Buscar magia a desaprender" aria-label="Magia a desaprender">
               <option value="">— Desaprender —</option>
-              {% for m in pend_magias.conhecidas %}<option value="{{ m.slug }}" data-truque="{% if m.nivel == 0 %}1{% else %}0{% endif %}">{{ m.nome }} ({% if m.nivel == 0 %}truque{% else %}{{ m.nivel }}º{% endif %})</option>{% endfor %}
+              {% for m in pend_magias.conhecidas %}<option value="{{ m.slug }}" data-truque="{% if m.nivel == 0 %}1{% else %}0{% endif %}" data-spell-name="{{ m.nome }}{% if m.nome_ingles %} {{ m.nome_ingles }}{% endif %}" data-spell-level="{{ m.nivel }}">{{ m.nome }}{% if m.nome_ingles %} ({{ m.nome_ingles }}){% endif %} ({% if m.nivel == 0 %}truque{% else %}{{ m.nivel }}º{% endif %})</option>{% endfor %}
             </select>
             <span aria-hidden="true" style="align-self:center">➜</span>
-            <select class="lvl-field lvl-field--grow" data-lvl-field="adicionar" aria-label="Magia a aprender">
+            <select class="lvl-field lvl-field--grow" data-lvl-field="adicionar" data-spell-picker="Buscar magia a aprender" aria-label="Magia a aprender">
               <option value="">— Aprender —</option>
-              {% for m in pend_magias.lista_truques %}<option value="{{ m.slug }}" data-truque="1">{{ m.nome }}{% if m.nome_ingles %} ({{ m.nome_ingles }}){% endif %} (truque)</option>{% endfor %}
-              {% for m in pend_magias.lista_magias %}<option value="{{ m.slug }}" data-truque="0">{{ m.nome }}{% if m.nome_ingles %} ({{ m.nome_ingles }}){% endif %} ({{ m.nivel }}º)</option>{% endfor %}
+              {% for m in pend_magias.lista_truques %}<option value="{{ m.slug }}" data-truque="1" data-spell-name="{{ m.nome }}{% if m.nome_ingles %} {{ m.nome_ingles }}{% endif %}" data-spell-level="{{ m.nivel }}">{{ m.nome }}{% if m.nome_ingles %} ({{ m.nome_ingles }}){% endif %} (truque)</option>{% endfor %}
+              {% for m in pend_magias.lista_magias %}<option value="{{ m.slug }}" data-truque="0" data-spell-name="{{ m.nome }}{% if m.nome_ingles %} {{ m.nome_ingles }}{% endif %}" data-spell-level="{{ m.nivel }}">{{ m.nome }}{% if m.nome_ingles %} ({{ m.nome_ingles }}){% endif %} ({{ m.nivel }}º)</option>{% endfor %}
             </select>
             <button type="button" class="lvl-add" data-lvl-queue="trocar_magia">Trocar</button>
           </div>

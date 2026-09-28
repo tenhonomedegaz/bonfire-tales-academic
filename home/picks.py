@@ -234,14 +234,18 @@ def _count_expr_cumulative(expr, level):
                if int(lv) <= level)
 
 
-def resource_limit(classe, nivel, resource_slug):
+def resource_limit(classe, nivel, resource_slug, *, ruleset=None):
     """Máximo de um recurso-de-escolha da classe no nível (ponte `_`↔`-`)."""
     if not classe or not resource_slug:
         return None
     from .models import TbRecursoclasse
     from .character_engine import RESOURCE_TIPO_CHOICE, _resource_max_at, _resource_tipo
     alvo = normalize_slug(resource_slug)
-    todos = list(TbRecursoclasse.objects.filter(id_classe=classe, id_subclasse__isnull=True))
+    if ruleset is not None:
+        from .versioned_classes import VersionedClassCatalog
+        todos = VersionedClassCatalog(ruleset, classe.pk).resources(nivel)
+    else:
+        todos = list(TbRecursoclasse.objects.filter(id_classe=classe, id_subclasse__isnull=True))
     exatos = [r for r in todos if normalize_slug(r.slug) == alvo]
     parciais = [r for r in todos if alvo in normalize_slug(r.slug)]
     candidatos = exatos + [r for r in parciais if r not in exatos]
@@ -251,7 +255,7 @@ def resource_limit(classe, nivel, resource_slug):
     return _resource_max_at(r, nivel) if r else None
 
 
-def count_for(count_expr, nivel, classe=None, resource_ref=None):
+def count_for(count_expr, nivel, classe=None, resource_ref=None, *, ruleset=None):
     """N de uma pick-ESCOLHA: literal -> int; `{classlvl=..}` -> soma cumulativa;
     'N'/'+'/vazio -> vem do recurso de tabela (`=resource`). None se indeterminado."""
     expr = (count_expr or '').strip()
@@ -260,7 +264,7 @@ def count_for(count_expr, nivel, classe=None, resource_ref=None):
     if re.match(r'^[+-]?\d+$', expr):
         return int(expr)
     if expr in ('N', '+', ''):
-        return resource_limit(classe, nivel, resource_ref)
+        return resource_limit(classe, nivel, resource_ref, ruleset=ruleset)
     return None
 
 
@@ -286,6 +290,9 @@ def _opcao_universe(ctx):
     """Opções acessíveis (TbOpcaojogo do tipo ∩ TbAcessoopcao p/ classe/subclasse/nível)."""
     from django.db.models import Q
     from .models import TbOpcaojogo, TbAcessoopcao, TbClasse, TbSubclasse
+    if ctx.get('ruleset') is not None:
+        from .versioned_options import VersionedOptions
+        return VersionedOptions(ctx['ruleset']).universe(ctx)
     tipo_disp = ctx.get('tipo_display') or _slug2tipo_map().get(ctx['tipo'])
     if not tipo_disp:
         return []
@@ -328,13 +335,23 @@ def _opcao_persist(personagem, group, valores):
     origem = '%s: %s' % (group.get('classe') or '', disp)
     base = int(group.get('slot_base') or 0)
     for i, v in enumerate(valores):
-        op = (TbOpcaojogo.objects.filter(id_opcao=v).first() if str(v).isdigit() else None) \
-            or TbOpcaojogo.objects.filter(slug=v).first()
+        frozen = next((u for u in group.get('universo', [])
+                       if str(v) in (str(u.get('id')), str(u.get('slug')))), None)
+        if frozen is None:
+            continue
+        if group.get('ruleset') is not None:
+            op = TbOpcaojogo.objects.only('pk').filter(pk=frozen['id']).first()
+            if op is None:
+                raise ValueError('Selected option no longer exists.')
+        else:
+            op = (TbOpcaojogo.objects.filter(id_opcao=v).first() if str(v).isdigit() else None) \
+                or TbOpcaojogo.objects.filter(slug=v).first()
         if not op:
             continue
         TbPersonagemEscolha.objects.update_or_create(
             id_personagem=personagem, origem=origem[:150], tipo=tipo, slot=base + i,
-            defaults={'id_opcao': op, 'valor': op.slug})
+            defaults={'id_opcao': op,
+                      'valor': (frozen['slug'] if group.get('ruleset') is not None else op.slug)})
 
 
 def _opcao_readback(personagem, group):
@@ -344,11 +361,18 @@ def _opcao_readback(personagem, group):
     alt = normalize_slug(tipo)
     alt2 = tipo.replace('-', '_')
     out = []
-    for e in personagem.escolhas.select_related('id_opcao').all():
+    frozen_names = {str(u.get('id')): u.get('nome') for u in group.get('universo', [])}
+    frozen_names.update({str(u.get('slug')): u.get('nome') for u in group.get('universo', [])})
+    choices = (personagem.escolhas.all() if group.get('ruleset') is not None
+               else personagem.escolhas.select_related('id_opcao').all())
+    for e in choices:
         if e.tipo in (tipo, alt, alt2):
             out.append({'id': e.id, 'slot': e.slot, 'valor': e.valor,
                         'id_opcao': e.id_opcao_id,
-                        'nome': (e.id_opcao.nome if e.id_opcao_id else e.valor)})
+                        'nome': (frozen_names.get(str(e.id_opcao_id))
+                                 or frozen_names.get(str(e.valor))
+                                 or (e.valor if group.get('ruleset') is not None
+                                     else (e.id_opcao.nome if e.id_opcao_id else e.valor)))})
     out.sort(key=lambda x: x['slot'])
     return out
 
@@ -398,7 +422,7 @@ def _arma_prof_matchers(ctx):
     from .character_engine import weapon_proficiency_matchers
     personagem = ctx.get('personagem')
     if personagem is not None:
-        return weapon_proficiency_matchers(personagem=personagem)
+        return weapon_proficiency_matchers(personagem=personagem, ruleset=ctx.get('ruleset'))
     classe = ctx.get('classe')
     if classe is None:
         return []
@@ -407,7 +431,7 @@ def _arma_prof_matchers(ctx):
     source = ctx.get('source')
     sources = [('classe', getattr(source, 'nome', ''), source, int(ctx.get('nivel') or 1))] \
         if source is not None else []
-    return weapon_proficiency_matchers(classe=classe, sources=sources)
+    return weapon_proficiency_matchers(classe=classe, sources=sources, ruleset=ctx.get('ruleset'))
 
 
 def _arma_universe(ctx):
@@ -425,31 +449,40 @@ def _arma_universe(ctx):
     from .item_mecanica import mecanica_de_tags, dano_display
     # tags `maestrias{...}` da arma usam '_' (minar_sap) e são a AUTORIDADE; o catálogo
     # TbOpcaojogo usa '-' (minar-sap) — normaliza '_'→'-' NO LOOKUP p/ nome/efeito legíveis.
-    mast = {normalize_slug(o.slug): o for o in TbOpcaojogo.objects.filter(tipo='Maestria de Arma')}
+    if ctx.get('ruleset') is not None:
+        from .versioned_items import item_catalog
+        from .versioned_options import VersionedOptions
+        weapons = item_catalog(ctx['ruleset'], 'mundane-item-catalog', TbItemMundano).values()
+        mast = {normalize_slug(o['slug']): o for o in VersionedOptions(ctx['ruleset']).data['options']
+                if o['tipo'] == 'Maestria de Arma'}
+    else:
+        weapons = TbItemMundano.objects.filter(categoria='arma').order_by('subcategoria', 'nome')
+        mast = {normalize_slug(o.slug): o for o in TbOpcaojogo.objects.filter(tipo='Maestria de Arma')}
     sub_label = {'arma_simples': 'Arma Simples', 'arma_simples_dist': 'Arma Simples à Distância',
                  'arma_marcial': 'Arma Marcial', 'arma_marcial_dist': 'Arma Marcial à Distância',
                  'arma_fogo': 'Arma de Fogo'}
     matchers = _arma_prof_matchers(ctx)
     todas, proficientes = [], []
-    for w in TbItemMundano.objects.filter(categoria='arma').order_by('subcategoria', 'nome'):
+    for w in sorted((w for w in weapons if w.categoria == 'arma'),
+                    key=lambda w: (w.subcategoria or '', w.nome or '')):
         maestrias = []
         for s in weapon_mastery_slugs(w):
             o = mast.get(normalize_slug(s))               # 's' cru (autoridade); lookup normalizado
-            maestrias.append({'slug': s, 'nome': (o.nome if o else s),
-                              'efeito': ((o.descricao if o else '') or '')})
+            maestrias.append({'slug': s, 'nome': ((o['nome'] if isinstance(o, dict) else o.nome) if o else s),
+                              'efeito': (((o['descricao'] if isinstance(o, dict) else o.descricao) if o else '') or '')})
         _mec = mecanica_de_tags(w.tags_json, w.subcategoria)
         entrada = {'slug': w.slug, 'nome': w.nome, 'dano': dano_display(_mec),
                    'cat': sub_label.get(w.subcategoria, w.subcategoria or 'Arma'),
                    'maestrias': maestrias,
                    'chips': [m['nome'] for m in maestrias]}
         todas.append(entrada)
-        if not matchers or weapon_allowed(matchers, w.subcategoria, w.slug, w.nome,
-                                          _mec.get('propriedades')):
+        if (not matchers and ctx.get('ruleset') is None) or weapon_allowed(
+                matchers, w.subcategoria, w.slug, w.nome, _mec.get('propriedades')):
             proficientes.append(entrada)
     # FAIL-OPEN: proficiência declarada que não casa com arma nenhuma do catálogo (grant
     # opaco tipo `prof:weapon{bound}` sem categoria por trás) não pode ZERAR o grupo — a
     # pendência sumiria da ficha e do wizard. Aí volta o catálogo inteiro, como antes.
-    return proficientes or todas
+    return proficientes if ctx.get('ruleset') is not None else (proficientes or todas)
 
 
 def _arma_persist(personagem, group, valores):
@@ -473,6 +506,22 @@ def _arma_readback(personagem, group):
     if personagem is None:
         return []
     from .models import TbItemMundano, TbOpcaojogo
+    if group.get('ruleset') is not None:
+        weapons = {str(u.get('slug')): u for u in group.get('universo', [])}
+        mast = {normalize_slug(m['slug']): m['nome'] for u in weapons.values()
+                for m in (u.get('maestrias') or [])}
+        out = []
+        for e in personagem.escolhas.filter(tipo='maestria').order_by('slot'):
+            arma, maestria = split_arma_maestria(e.valor)
+            weapon = weapons.get(str(arma))
+            pending = bool(weapon and weapon.get('maestrias') and maestria is None)
+            name = (weapon or {}).get('nome', arma)
+            name += (' — ' + (mast.get(normalize_slug(maestria)) or maestria) if maestria
+                     else (' — (maestria a escolher)' if pending else ''))
+            out.append({'id': e.id, 'slot': e.slot, 'valor': e.valor, 'nome': name,
+                        'arma': arma, 'maestria': maestria, 'pendente': pending,
+                        'sem_proficiencia': weapon is None})
+        return out
     # catálogo por slug NORMALIZADO ('-'); a maestria persistida vem da tag da arma ('_').
     mast = {normalize_slug(o.slug): o.nome for o in TbOpcaojogo.objects.filter(tipo='Maestria de Arma')}
     permitidas = {str(u.get('slug')) for u in (group.get('universo') or [])}
@@ -832,8 +881,15 @@ def _pericia_expertise_readback(personagem, group):
 # ---------------------------------------------------------------------------
 def _ferramenta_universe(ctx):
     from .models import TbItemMundano
+    from .character_engine import derive, _slug
     sub = normalize_slug(ctx.get('tipo') or '').replace('-', '_')
-    qs = TbItemMundano.objects.filter(categoria='ferramenta')
+    if not sub and re.search(r'\btipo_de_artesao\b', (ctx.get('constraints') or {}).get('raw', '')):
+        sub = 'ferramenta_artesao'
+    if ctx.get('ruleset') is not None:
+        from .versioned_items import item_catalog
+        items = item_catalog(ctx['ruleset'], 'mundane-item-catalog', TbItemMundano).values()
+    else:
+        items = TbItemMundano.objects.filter(categoria='ferramenta')
     subcategorias = {
         'instrumento': {'instrumento'},
         'instrumento_musical': {'instrumento'},
@@ -841,10 +897,25 @@ def _ferramenta_universe(ctx):
         'ferramenta_artesao_ou_instrumento': {'ferramenta_artesao', 'instrumento'},
     }.get(sub)
     if subcategorias:
-        qs = qs.filter(subcategoria__in=subcategorias)
+        items = [item for item in items if item.subcategoria in subcategorias]
+    personagem = ctx.get('personagem')
+    sheet = derive(personagem, ruleset=ctx.get('ruleset')) if personagem is not None else {}
+    owned = {_slug(name) for name in sheet.get('ferramentas', [])
+             + sheet.get('prof_multiclasse_ferramenta', [])}
     return [{'id': item.id_item, 'slug': item.slug, 'nome': item.nome,
-             'descricao': item.descricao_markdown or '', 'pre': ''}
-            for item in qs.order_by('nome')]
+             'descricao': item.descricao_markdown or '', 'pre': '',
+             'ja_proficiente': _slug(item.nome) in owned or _slug(item.slug) in owned}
+            for item in sorted((item for item in items if item.categoria == 'ferramenta'),
+                               key=lambda item: item.nome or '')]
+
+
+def _ferramenta_validate(group, valores):
+    """Proficiência já possuída não consome uma nova escolha de ferramenta."""
+    available = [item for item in group.get('universo', []) if not item.get('ja_proficiente')]
+    aliases = {str(value): item['slug'] for item in available
+               for value in (item.get('id'), item['slug']) if value is not None}
+    normalized = [aliases.get(str(value), str(value)) for value in (valores or [])]
+    return _default_validate(dict(group, universo=available), normalized)
 
 
 def _ferramenta_origem(group):
@@ -856,27 +927,38 @@ def _ferramenta_persist(personagem, group, valores):
     origem = _ferramenta_origem(group)
     base = int(group.get('slot_base') or 0)
     for i, value in enumerate(valores):
-        item = (TbItemMundano.objects.filter(id_item=value).first()
-                if str(value).isdigit() else None)
-        item = item or TbItemMundano.objects.filter(
-            categoria='ferramenta', slug=value).first()
-        if item is None:
+        frozen = next((u for u in group.get('universo', [])
+                       if str(value) in (str(u.get('id')), str(u.get('slug')))), None)
+        if frozen is None:
             continue
+        if group.get('ruleset') is not None:
+            if not TbItemMundano.objects.filter(pk=frozen['id']).exists():
+                raise ValueError('Selected tool no longer exists.')
+            slug, name = frozen['slug'], frozen['nome']
+        else:
+            item = (TbItemMundano.objects.filter(id_item=value).first()
+                    if str(value).isdigit() else None)
+            item = item or TbItemMundano.objects.filter(categoria='ferramenta', slug=value).first()
+            if item is None:
+                continue
+            slug, name = item.slug, item.nome
         TbPersonagemEscolha.objects.update_or_create(
             id_personagem=personagem, origem=origem, tipo='ferramenta',
-            slot=base + i, defaults={'valor': item.slug})
+            slot=base + i, defaults={'valor': slug})
         TbPersonagemProficiencia.objects.get_or_create(
-            id_personagem=personagem, tipo='ferramenta', nome=item.nome,
+            id_personagem=personagem, tipo='ferramenta', nome=name,
             defaults={'origem': origem[:100]})
 
 
 def _ferramenta_readback(personagem, group):
     if personagem is None:
         return []
-    from .models import TbItemMundano
     origem = _ferramenta_origem(group)
-    nomes = dict(TbItemMundano.objects.filter(categoria='ferramenta')
-                 .values_list('slug', 'nome'))
+    if group.get('ruleset') is not None:
+        nomes = {u['slug']: u['nome'] for u in group.get('universo', [])}
+    else:
+        from .models import TbItemMundano
+        nomes = dict(TbItemMundano.objects.filter(categoria='ferramenta').values_list('slug', 'nome'))
     return [{'id': row.id, 'slot': row.slot, 'valor': row.valor,
              'nome': nomes.get(row.valor, row.valor)}
             for row in personagem.escolhas.filter(
@@ -927,16 +1009,20 @@ def _talento_owned_slugs(personagem):
 def _talento_universe(ctx):
     from .models import TbTalento
     text = _talento_constraint_text(ctx)
-    qs = TbTalento.objects.all()
+    if ctx.get('ruleset') is not None:
+        from .versioned_origins import VersionedOrigins
+        talents = VersionedOrigins(ctx['ruleset']).objects(TbTalento)
+    else:
+        talents = TbTalento.objects.all()
     if _TALENTO_ORIGEM_RE.search(text) or (ctx.get('kind') or '') == 'talento_de_origem':
-        qs = qs.filter(tipo__iexact='origem')
+        talents = [t for t in talents if (t.tipo or '').lower() == 'origem']
     elif _TALENTO_GERAL_RE.search(text):
         # `from:any_raca`/`tipo:geral` (Multitalentoso): pool = talentos GERAIS que o
         # personagem qualifica (requires:prereq abaixo) — NUNCA os de origem. Sem este
         # ramo o universo caía no `all()` e misturava os 43 de origem, e — quando o
         # personagem tinha TAMBÉM um pick de origem (Erthari) — o grupo de origem vencia
         # o desempate por persist_tipo e o talento geral acusava "fora do universo".
-        qs = qs.filter(tipo__iexact='geral')
+        talents = [t for t in talents if (t.tipo or '').lower() == 'geral']
     personagem = ctx.get('personagem')
     owned = _talento_owned_slugs(personagem)
     # `requires:prereq` → filtra pelo mesmo checador do ASI (views._talento_prereq_ok, que
@@ -945,16 +1031,17 @@ def _talento_universe(ctx):
     ficha = None
     if _TALENTO_PREREQ_RE.search(text) and personagem is not None:
         from .character_engine import derive
-        ficha = derive(personagem)
+        ficha = derive(personagem, ruleset=ctx.get('ruleset'))
         from . import views as _views
     out = []
-    for t in qs.order_by('nome'):
+    for t in sorted(talents, key=lambda t: t.nome or ''):
         if getattr(t, 'slug', None) in owned:
             continue
         if ficha is not None and not _views._talento_prereq_ok(t, personagem, ficha):
             continue
         out.append({'id': t.id_talento, 'slug': t.slug, 'nome': t.nome,
-                    'descricao': (t.descricao or ''), 'pre': (t.pre_requisito or '')})
+                    'descricao': (t.descricao or ''), 'pre': (t.pre_requisito or ''),
+                    'tipo': t.tipo or ''})
     return out
 
 
@@ -969,31 +1056,45 @@ def _talento_persist(personagem, group, valores):
     base = int(group.get('slot_base') or 0)
     nivel = int(group.get('nivel') or getattr(personagem, 'nivel', 1) or 1)
     for i, v in enumerate(valores):
-        t = (TbTalento.objects.filter(id_talento=v).first() if str(v).isdigit() else None) \
-            or TbTalento.objects.filter(slug=v).first()
-        if not t:
+        frozen = next((u for u in group.get('universo', [])
+                       if str(v) in (str(u.get('id')), str(u.get('slug')))), None)
+        if frozen is None:
             continue
+        if group.get('ruleset') is not None:
+            t = TbTalento.objects.only('pk').filter(pk=frozen['id']).first()
+            if t is None:
+                raise ValueError('Selected talent no longer exists.')
+            slug, name = frozen['slug'], frozen['nome']
+            category = 'origem' if (frozen.get('tipo') or '').lower() == 'origem' else 'geral'
+        else:
+            t = (TbTalento.objects.filter(id_talento=v).first() if str(v).isdigit() else None) \
+                or TbTalento.objects.filter(slug=v).first()
+            if not t:
+                continue
+            slug, name = t.slug, t.nome
+            category = 'origem' if (t.tipo or '').lower() == 'origem' else 'geral'
         # categoria conforme a fonte/tipo do talento escolhido (origem vs geral).
-        categoria = 'origem' if (t.tipo or '').lower() == 'origem' else 'geral'
         TbPersonagemEscolha.objects.update_or_create(
             id_personagem=personagem, origem=origem, tipo='talento', slot=base + i,
-            defaults={'valor': t.slug})
+            defaults={'valor': slug})
         TbPersonagemTalento.objects.get_or_create(
             id_personagem=personagem, id_talento=t,
-            defaults={'categoria': categoria, 'nivel': nivel, 'nome': t.nome,
+            defaults={'categoria': category, 'nivel': nivel, 'nome': name,
                       'detalhes': origem[:200]})
 
 
 def _talento_readback(personagem, group):
     if personagem is None:
         return []
-    from .models import TbTalento
     origem = _talento_origem(group)
+    nomes = {u['slug']: u['nome'] for u in group.get('universo', [])}
+    if group.get('ruleset') is None:
+        from .models import TbTalento
+        nomes.update(dict(TbTalento.objects.values_list('slug', 'nome')))
     out = []
     for e in personagem.escolhas.filter(tipo='talento', origem=origem).order_by('slot'):
-        t = TbTalento.objects.filter(slug=e.valor).first()
         out.append({'id': e.id, 'slot': e.slot, 'valor': e.valor,
-                    'nome': (t.nome if t else e.valor)})
+                    'nome': nomes.get(e.valor, e.valor)})
     return out
 
 
@@ -1250,7 +1351,7 @@ PICK_REGISTRY = {
         'label': 'Ferramenta',
         'universe': _ferramenta_universe,
         'persist': _ferramenta_persist,
-        'validate': _default_validate,
+        'validate': _ferramenta_validate,
         'readback': _ferramenta_readback,
     },
     # kind 'talento' (+ alias 'talento_de_origem'): escolha de um TbTalento concedido por
@@ -1305,19 +1406,19 @@ def _persist_tipo_for(kind, tipo, is_menu=False):
 
 
 def _build_group(token, source, classe, subclasse, nivel, personagem, escolhas_map, entry,
-                 tag_text='', choice_values=None):
+                 tag_text='', choice_values=None, ruleset=None):
     tipo = token.sub
-    n = count_for(token.count_expr, nivel, classe, token.resource_ref)
+    n = count_for(token.count_expr, nivel, classe, token.resource_ref, ruleset=ruleset)
     if not n or n <= 0:
         return None
     ctx = {
         'personagem': personagem, 'classe': classe, 'subclasse': subclasse, 'nivel': nivel,
         'kind': token.kind, 'tipo': tipo, 'constraints': token.constraints,
         'tag_text': tag_text, 'source': source, 'token': token,
-        'escolhas': choice_values or {},
+        'escolhas': choice_values or {}, 'ruleset': ruleset,
     }
     universo = entry['universe'](ctx)
-    if not universo:
+    if not universo and ruleset is None:
         return None
     persist_tipo = _persist_tipo_for(token.kind, tipo, is_menu=bool(entry.get('menu')))
     # Rótulo: kinds com rótulo FIXO no registry (`arma`, `pericia`) usam-no; `opcao` deriva
@@ -1331,7 +1432,11 @@ def _build_group(token, source, classe, subclasse, nivel, personagem, escolhas_m
     elif label_fixo:
         tipo_display, label = label_fixo, label_fixo
     else:  # opcao — rótulo dinâmico do tipo
-        tipo_display = _slug2tipo_map().get(tipo) or tipo
+        if ruleset is not None:
+            from .versioned_options import VersionedOptions
+            tipo_display = VersionedOptions(ruleset).type_map().get(tipo) or tipo
+        else:
+            tipo_display = _slug2tipo_map().get(tipo) or tipo
         label = tipo_display
     group = {
         'origem': getattr(source, 'nome', None) or (classe.nome if classe else ''),
@@ -1343,7 +1448,7 @@ def _build_group(token, source, classe, subclasse, nivel, personagem, escolhas_m
         'n': n, 'universo': universo, 'constraints': token.constraints,
         'classe_id': (classe.id_classe if classe else None),
         'classe': (classe.nome if classe else ''),
-        'sink': entry['sink'],
+        'sink': entry['sink'], 'ruleset': ruleset,
     }
     # escolhidas: do personagem (readback) OU do mapa passado (builder sem personagem)
     if personagem is not None:
@@ -1383,7 +1488,8 @@ def registry_entry(kind):
 
 
 def resolve_groups(sources, *, classe=None, subclasse=None, nivel=1,
-                   personagem=None, escolhas_map=None, kinds=None, choice_values=None):
+                   personagem=None, escolhas_map=None, kinds=None, choice_values=None,
+                   ruleset=None):
     """Varre `sources` (objetos com .tags_json/.nome), extrai os picks papel-A e devolve
     a lista de grupos normalizados (um por (kind,sub,classe) distinto). `kinds` filtra os
     kinds considerados; None = todos. `choice_values` = mapa var->valor das escolhas JÁ
@@ -1411,7 +1517,7 @@ def resolve_groups(sources, *, classe=None, subclasse=None, nivel=1,
                     continue  # kind não registrado e sem define/inline -> ignora
                 g = _build_group(tok, source, classe, subclasse, nivel,
                                  personagem, escolhas_map, entry, tag_text=tag,
-                                 choice_values=choice_values)
+                                 choice_values=choice_values, ruleset=ruleset)
                 if g is None:
                     continue
                 # Picks de perÃ­cia pertencem Ã  FEATURE que os concedeu: Conhecimento
@@ -1429,12 +1535,20 @@ def resolve_groups(sources, *, classe=None, subclasse=None, nivel=1,
     return grupos
 
 
-def builder_sources(classe):
+def builder_sources(classe, *, ruleset=None):
     """Features de nível 1 de uma classe (classe + habilidades N1 sem subclasse)."""
     from .models import TbClassehabilidade
     from .tag_engine import evaluate_tags, parse_tags
     if not classe:
         return []
+    if ruleset is not None:
+        from .versioned_classes import VersionedClassCatalog
+        catalog = VersionedClassCatalog(ruleset, classe.pk)
+        classe = catalog.classe
+        features = [feature for _, _, feature, _ in catalog.features(1)]
+    else:
+        features = list(TbClassehabilidade.objects.filter(
+            id_classe=classe, id_subclasse__isnull=True, niveladquirido=1))
     source_tags = getattr(classe, 'tags_json', None) or []
     multiclass_raw = {
         operation.raw for operation in evaluate_tags(source_tags).operations
@@ -1446,8 +1560,7 @@ def builder_sources(classe):
         if node.raw and node.raw not in multiclass_raw
     ]
     initial_class = SimpleNamespace(nome=classe.nome, tags_json=class_tags)
-    return [initial_class] + list(TbClassehabilidade.objects.filter(
-        id_classe=classe, id_subclasse__isnull=True, niveladquirido=1))
+    return [initial_class] + features
 
 
 def multiclass_sources(classe):
@@ -1468,10 +1581,15 @@ def multiclass_sources(classe):
     )] if tags else []
 
 
-def resolve_builder(classe, *, escolhas_map=None, kinds=None):
+def resolve_builder(classe, *, escolhas_map=None, kinds=None, ruleset=None):
     """Grupos de escolha do CRIADOR (nível 1, sem personagem ainda)."""
-    return resolve_groups(builder_sources(classe), classe=classe, subclasse=None, nivel=1,
-                          personagem=None, escolhas_map=escolhas_map, kinds=kinds)
+    if ruleset is not None:
+        from .versioned_classes import VersionedClassCatalog
+        catalog = VersionedClassCatalog(ruleset, classe.pk)
+        classe = catalog.classe
+    return resolve_groups(builder_sources(classe, ruleset=ruleset), classe=classe, subclasse=None,
+                          nivel=1, personagem=None, escolhas_map=escolhas_map, kinds=kinds,
+                          ruleset=ruleset)
 
 
 def _choice_values(personagem):
@@ -1531,3 +1649,29 @@ def resolve_personagem(personagem, *, kinds=None):
                                   nivel=int(personagem.nivel or 0),
                                   personagem=personagem, kinds=kinds, choice_values=cvals)
     return grupos
+
+
+def resolve_versioned_class_options(ruleset, class_id, *, nivel=1, subclass_id=None,
+                                    escolhas_map=None):
+    """Resolve class option groups entirely from sealed class and option catalogs.
+
+    Other choice kinds are not covered by this adapter; activation remains gated
+    on migrating their own catalogs and the character effect readers.
+    """
+    from .versioned_classes import VersionedClassCatalog
+    catalog = VersionedClassCatalog(ruleset, class_id)
+    sources = [catalog.classe] + [h for _, _, h, _ in catalog.features(nivel, subclass_id)]
+    groups = {}
+    for source in sources:
+        for tag in source.tags_json or []:
+            for token in iter_pick_tokens(_strip_define_bodies(tag)):
+                if token.kind != 'opcao':
+                    continue
+                group = _build_group(token, source, catalog.classe,
+                    catalog.subclasses.get(subclass_id), nivel, None, escolhas_map,
+                    PICK_REGISTRY['opcao'], tag_text=tag, ruleset=ruleset)
+                if group is not None:
+                    key = (token.kind, token.sub)
+                    if key not in groups or group['n'] > groups[key]['n']:
+                        groups[key] = group
+    return list(groups.values())

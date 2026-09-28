@@ -163,16 +163,51 @@ def _resource_defaults(contract):
     }
 
 
+def preview_resource(personagem, contract):
+    """Project the materialized balance without changing the resource ledger."""
+    from types import SimpleNamespace
+    from .models import TbPersonagemRecurso
+
+    resources = TbPersonagemRecurso.objects.filter(id_personagem=personagem)
+    resource = resources.filter(chave=canonical_key(contract['key'])).first()
+    if resource is None and contract.get('legacy_name'):
+        resource = resources.filter(chave='', nome=contract['legacy_name']).first()
+    maximum = max(0, int(contract.get('maximum') or 0))
+    spent = max(0, int(resource.maximo or 0) - int(resource.atual or 0)) if resource else 0
+    return SimpleNamespace(pk=resource.pk if resource else None,
+                           atual=max(0, min(maximum, maximum - spent)), maximo=maximum)
+
+
+def preview_item_charges(personagem, inventory):
+    contracts = []
+    for item in inventory:
+        for spec in item_charge_specs(item):
+            if spec['runtime']:
+                continue
+            contract = _charge_contract(item, spec)
+            resource = preview_resource(personagem, contract)
+            contract.update(current=resource.atual, resource_id=resource.pk)
+            contracts.append(contract)
+    return contracts
+
+
 def ensure_resource(personagem, contract, *, lock=False):
     """Create/update one resource while preserving the amount already spent."""
+    from .models import TbPersonagem
+
+    # Também serializa sincronizações feitas fora de um comando de consumo.
+    with transaction.atomic():
+        TbPersonagem.objects.select_for_update().only('pk').get(pk=personagem.pk)
+        return _ensure_resource_locked(personagem, contract)
+
+
+def _ensure_resource_locked(personagem, contract):
     from .models import TbPersonagemRecurso
 
     contract = dict(contract)
     contract['key'] = canonical_key(contract.get('key'))
     defaults = _resource_defaults(contract)
-    queryset = TbPersonagemRecurso.objects
-    if lock:
-        queryset = queryset.select_for_update()
+    queryset = TbPersonagemRecurso.objects.select_for_update()
     resource = queryset.filter(
         id_personagem=personagem, chave=contract['key']).first()
     if resource is None and contract.get('legacy_name'):
@@ -188,6 +223,7 @@ def ensure_resource(personagem, contract, *, lock=False):
     old_max = int(resource.maximo or 0)
     spent = max(0, old_max - int(resource.atual or 0))
     new_max = int(defaults['maximo'])
+    previous = (resource.chave, resource.atual, resource.maximo)
     resource.chave = contract['key']
     resource.nome = defaults['nome']
     resource.maximo = new_max
@@ -196,9 +232,11 @@ def ensure_resource(personagem, contract, *, lock=False):
     resource.reset = defaults['reset']
     resource.recuperacao = defaults['recuperacao']
     resource.id_item = defaults['id_item']
+    if previous != (resource.chave, resource.atual, resource.maximo):
+        resource.versao += 1
     resource.save(update_fields=[
         'chave', 'nome', 'maximo', 'atual', 'origem', 'reset',
-        'recuperacao', 'id_item'])
+        'recuperacao', 'id_item', 'versao'])
     return resource
 
 
@@ -272,7 +310,9 @@ def mutate_resource(personagem, contract, delta):
         after = max(0, min(maximum, before + int(delta)))
         resource.atual = after
         resource.maximo = maximum
-        resource.save(update_fields=['atual', 'maximo'])
+        if after != before:
+            resource.versao += 1
+        resource.save(update_fields=['atual', 'maximo', 'versao'])
         destroyed = False
         item = contract.get('item')
         if after == 0 and contract.get('destroy_on_zero') and item is not None:
@@ -284,7 +324,7 @@ def mutate_resource(personagem, contract, delta):
         }
 
 
-def contract_for_key(personagem, key):
+def contract_for_key(personagem, key, *, ruleset=None):
     """Rebuild the persistence contract for a materialized resource key."""
     from .models import TbPersonagemRecurso
 
@@ -300,8 +340,12 @@ def contract_for_key(personagem, key):
         'item': resource.id_item,
     }
     if resource.id_item_id:
+        item = resource.id_item
+        if ruleset is not None:
+            from .versioned_items import resolved_inventory
+            item = resolved_inventory(ruleset, [item])[0]
         wanted = resource.chave.rsplit(':', 1)[-1]
-        spec = next((row for row in item_charge_specs(resource.id_item)
+        spec = next((row for row in item_charge_specs(item)
                      if str(row['index']) == wanted and not row['runtime']), None)
         contract['destroy_on_zero'] = bool(spec and spec['destroy_on_zero'])
     return contract
@@ -322,7 +366,9 @@ def spend_resource(personagem, contract, amount=1):
                 'key': resource.chave, 'current': current, 'maximum': maximum}
         resource.atual = current - amount
         resource.maximo = maximum
-        resource.save(update_fields=['atual', 'maximo'])
+        if amount:
+            resource.versao += 1
+        resource.save(update_fields=['atual', 'maximo', 'versao'])
         return True, {
             'key': resource.chave, 'current': resource.atual,
             'maximum': maximum, 'spent': amount}
@@ -341,14 +387,18 @@ def _event_matches(policy, event):
     return policy == event
 
 
-def reset_resources(personagem, event):
+def reset_resources(personagem, event, *, ruleset=None):
     """Apply one declared reset event, including partial dice recovery."""
     from .models import TbPersonagem, TbPersonagemRecurso
 
     changed = []
     with transaction.atomic():
         TbPersonagem.objects.select_for_update().only('pk').get(pk=personagem.pk)
-        _sync_item_charges_locked(personagem)
+        inventory = None
+        if ruleset is not None:
+            from .versioned_items import resolved_inventory
+            inventory = resolved_inventory(ruleset, personagem.inventario.all())
+        _sync_item_charges_locked(personagem, inventory)
         rows = list(TbPersonagemRecurso.objects.select_for_update().filter(
             id_personagem=personagem))
         for resource in rows:
@@ -360,7 +410,9 @@ def reset_resources(personagem, event):
                 continue
             before = int(resource.atual or 0)
             resource.atual = min(int(resource.maximo or 0), before + int(amount))
-            resource.save(update_fields=['atual'])
+            if resource.atual != before:
+                resource.versao += 1
+            resource.save(update_fields=['atual', 'versao'])
             changed.append({
                 'key': resource.chave, 'before': before,
                 'current': resource.atual, 'maximum': resource.maximo})

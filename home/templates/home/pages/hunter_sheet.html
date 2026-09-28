@@ -1,0 +1,169 @@
+{% extends 'home/base.html' %}
+{% block title %}{{ person.nome }} · Revisão vinculada{% endblock %}
+{% block content %}
+<article class="max-w-5xl mx-auto p-4 md:p-6 space-y-6">
+  <nav class="flex flex-wrap gap-4" aria-label="Navegação da ficha">
+    <a href="{% url 'ficha_detail' person.pk %}">Ficha principal</a>
+    {% if can_prepare %}<a href="{% url 'hunter_preparation' person.pk %}">Preparar escolhas e recursos</a>{% endif %}
+  </nav>
+  <h1 class="text-2xl font-bold">{{ person.nome }} · Revisão vinculada</h1>
+  <p>Consulta dos valores calculados com as regras vinculadas ao personagem. Atributo permanente do Caçador: {{ profile.get_ability_display }}.</p>
+  {% if error %}<p role="alert">{{ error }}</p>{% else %}
+  <p>{% for class in sheet.classes %}{{ class.classe }} {{ class.nivel }}{% if class.subclasse %} ({{ class.subclasse }}){% endif %}{% if not forloop.last %} · {% endif %}{% endfor %}</p>
+  <section aria-label="Habilidades da revisão">
+    <h2 class="text-xl font-bold">Habilidades da revisão</h2>
+    {% for feature in sheet.features %}{% if feature.origem == 'classe' or feature.origem == 'subclasse' %}
+      <details><summary>{{ feature.nome }} · nível {{ feature.nivel }}</summary><p>{{ feature.descricao|linebreaksbr }}</p></details>
+    {% endif %}{% endfor %}
+  </section>
+  {% if traveler %}<section aria-label="Runas de Travessia">
+    <h2>Runas de Travessia</h2>
+    <p>{% for rune in traveler.runes %}{{ rune.label }}{% if not forloop.last %}; {% endif %}{% empty %}Nenhuma runa ativa{% endfor %}.</p>
+    {% if traveler.marked_destination %}<p>Presa marcada {{ traveler.marked_target }}: destino vivo no mesmo plano e dano de Energia opcional no ataque.</p>{% endif %}
+    {% if traveler.last_teleport %}<p>Última travessia: {{ traveler.last_teleport.destination }}.</p>{% endif %}
+    <p>Passo Rúnico: próximo acerto no turno +1d{{ traveler.step_die }} de Energia, uma vez por criatura. Salto Direto: até {{ traveler.leap_limit }} m rumo à runa.</p>
+    {% if traveler.level >= 6 %}<p>Ruptura do Selo: {{ traveler.rupture_current }}/{{ traveler.rupture_max }} usos até Descanso Longo. Redução como Reação: 1d10 + modificador de {{ profile.get_ability_display }} + {{ traveler.level }}; se zerar o dano, Retaliação Planar.</p>{% endif %}
+    {% if traveler.level >= 14 %}<p>Véu Desfeito: {{ traveler.veil_current }}/{{ traveler.veil_max }} usos para levar aliado voluntário em Salto Direto.</p>{% endif %}
+    {% if traveler.level >= 10 %}<p>Andarilho do Horizonte: após ataque com arma, teleporte até 3 m; uma vez por turno, ataque alvo diferente ao alcance da arma.</p>{% endif %}
+    {% if traveler.final_eligible %}<p>Caminho Final: {% for spell in traveler.final_options %}{% if spell.slug in traveler.final_choices %}{{ spell.name }}{% if spell.slug in traveler.final_used %} (usada){% endif %}; {% endif %}{% endfor %}{% if traveler.final_selection_open %}escolha pendente após Descanso Longo{% endif %}. Cada magia custa 4 Pontos de Segredo, sem espaço ou componentes materiais.</p>{% endif %}
+    {% if can_prepare %}<a href="{% url 'hunter_preparation' person.pk %}">Gerenciar runas</a>{% endif %}
+  </section>{% endif %}
+  {% if companion %}
+  <section class="border rounded p-4" aria-label="Companheiro Primordial">
+    <h2>Companheiro Primordial</h2>
+    {% if companion.active %}<p>{{ companion.form }} ({{ companion.creature_type }}), {{ companion.circle }}º círculo{% if companion.supreme %}, Enorme, {{ companion.supreme_remaining_seconds }} segundos restantes{% elif companion.large %}, Grande{% endif %}. Evoluções: {{ companion.evolution_labels|join:', ' }}.</p>{% else %}<p>Sem espírito ativo.</p>{% endif %}
+    {% if companion.active %}<ul>{% for effect in companion.evolution_effects %}<li>{{ effect }}</li>{% endfor %}</ul>{% endif %}
+    {% if companion.large_grapple_advantage %}<p>Forma Grande: Vantagem em Força para Agarrar ou Empurrar e para evitar ou escapar de Agarrão.</p>{% endif %}
+    {% if companion.active and companion.shared_mark_damage %}<p>Marca Compartilhada: cada Retalhar que acerta a Presa Marcada causa também 1{{ companion.shared_mark_damage }} da Marca do Caçador.</p>{% endif %}
+    {% if companion.last_mark_hit %}<p>Último acerto da Marca Compartilhada: {{ companion.last_mark_hit.target }}, turno {{ companion.last_mark_hit.turn }}, acerto {{ companion.last_mark_hit.hit }}, dano adicional {{ companion.last_mark_hit.damage }}.</p>{% endif %}
+    {% if companion.active and companion.breath_type %}<p>Sopro Primordial ({{ companion.breath_type }}): cone de 15 pés; Destreza CD {{ companion.breath_dc }}; {{ companion.breath_damage }} de dano em falha, metade em sucesso; uma vez por turno ao substituir Retalhar.</p>{% endif %}
+    {% if companion.active and companion.shared_instinct %}<p>Instinto Compartilhado: Vantagem em todos os testes de resistência do espírito enquanto ele puder ver você.</p>{% endif %}
+    {% if companion.active and companion.favored_types %}<p>Inimigos Favoritos do espírito: {{ companion.favored_types|join:', ' }}. +{{ companion.favored_damage }} ao dano dos ataques com arma contra esses tipos; Vantagem para rastrear e recordar informações; análise dos vestígios em 1 minuto.</p>{% endif %}
+    {% if companion.shared_spells %}<p>Comunhão Primordial nesta invocação: {{ companion.shared_spells|join:', ' }}.</p>{% endif %}
+    {% if companion.last_command %}<p>Último Comando: turno {{ companion.last_command.turn }}, {{ companion.last_command.action }}{% if companion.last_command.rend_attacks %}{% if companion.last_command.action == 'Sopro Primordial' %} e Retalhar adicional{% else %} {{ companion.last_command.rend_attacks }} vez(es){% endif %}{% endif %}; {% if companion.last_command.mode == 'attack' %}ataque da ação Atacar substituído{% else %}Ação Bônus usada{% endif %}; Reação do espírito usada.</p>{% endif %}
+    <p>Sobre o bloco de Familiar de Batalha: +{{ companion.hp_bonus }} PV máximos, +{{ companion.ac_bonus }} CA e +{{ companion.check_save_bonus }} em testes de habilidade e resistência.</p>
+    {% include 'home/partials/hunter_companion_block.html' %}
+    {% if can_prepare %}<a href="{% url 'hunter_preparation' person.pk %}">Gerenciar companheiro</a>{% endif %}
+  </section>
+  {% endif %}
+  {% include 'home/partials/hunter_mutagens.html' %}
+  {% if lantern %}<section aria-label="Lanterna do Véu">
+    <h2>Lanterna do Véu</h2>
+    <p>{% if lantern.held %}Presente{% else %}Perdida{% endif %}; {{ lantern.form|default:'forma por escolher' }}; luz intensa {{ lantern.radius_m }} m.</p>
+    {% if lantern.level >= 10 %}<p>Frascos Consagrados: {{ lantern.vials }}/{{ lantern.vial_max }}. Rito de Exorcismo disponível pela Cerimônia.</p>{% endif %}
+    {% if lantern.level >= 10 %}<p>Afastar Mortos-Vivos: {% if lantern.turn_ready %}disponível{% else %}gasto{% endif %}; {{ lantern.turn_dice }}d8 radiante por alvo a até 9 m. Recupera em Descanso Curto/Longo ou por 3 Pontos de Segredo.</p>{% endif %}
+    {% if lantern.level >= 14 %}<p>Falar com Mortos: {{ lantern.speak_remaining }}/{{ lantern.speak_max }} usos sem espaço. {% if lantern.revealing_light %}Luz Reveladora ativa: impede benefício de Invisível e movimento incorpóreo na área iluminada.{% else %}Luz Reveladora requer lanterna acesa e em mãos.{% endif %}</p>{% endif %}
+    {% if lantern.sanctuary_eligible %}<p>Santuário do Véu: {% if lantern.sanctuary_site %}{{ lantern.sanctuary_site }} vinculado pela magia {{ lantern.sanctuary_spell }}; Palavra de Retorno disponível por 4 Pontos de Segredo.{% else %}nenhum local vinculado{% endif %}.</p>{% endif %}
+    {% if lantern.last_vial %}<p>Último frasco: {{ lantern.last_vial.target }}; {{ lantern.last_vial.amount }} {% if lantern.last_vial.mode == 'throw' %}de dano radiante{% else %}PV de cura declarada{% endif %}.</p>{% endif %}
+    {% if can_prepare %}<a href="{% url 'hunter_preparation' person.pk %}">Gerenciar Lanterna do Véu</a>{% endif %}
+  </section>{% endif %}
+  {% if exorcist %}<section aria-label="Forma do Ceifador">
+    <h2>Forma do Ceifador</h2>
+    <p>{% if exorcist.active %}Ativa por {{ exorcist.remaining_seconds }} segundos{% else %}Inativa{% endif %}; uso gratuito {% if exorcist.free_ready %}disponível{% else %}gasto{% endif %}.</p>
+    {% if exorcist.active %}<p>Resistência a necrótico e frio; imunidade a Agarrado, Caído e Restringido. Movimento semi-incorpóreo; terminar o turno dentro de objeto causa 1d10 de Energia.{% if exorcist.immortal %} Também Resistência a concussivo, perfurante e cortante; efeitos de mortos-vivos não reduzem PV nem drenam Força.{% endif %}</p>{% endif %}
+    {% if can_prepare %}<a href="{% url 'hunter_preparation' person.pk %}">Gerenciar Forma do Ceifador</a>{% endif %}
+  </section>{% endif %}
+  {% if awakening %}<section aria-label="Forma Desperta">
+    <h2>Forma Desperta</h2>
+    <p>{% if awakening.active %}Ativa{% if awakening.timeless %}, sem contagem enquanto houver Marca ativa{% else %}, {{ awakening.remaining_seconds }} segundos restantes{% endif %}{% else %}Inativa{% endif %}. Uso {% if awakening.ready %}disponível{% else %}gasto{% endif %}.</p>
+    {% if awakening.final %}<p>Despertar Final ativo por {{ awakening.final_remaining_seconds }} segundos; PV temporários na ficha principal.</p>{% endif %}
+    <p>Na forma: +{{ awakening.melee_bonus }} de dano corpo a corpo, ataque desarmado {{ awakening.unarmed_die }}. Os bônus condicionais de CA, resistência, movimento, cura e Uivo constam na preparação.</p>
+    {% if can_prepare %}<a href="{% url 'hunter_preparation' person.pk %}">Gerenciar Forma Desperta</a>{% endif %}
+  </section>{% endif %}
+  {% if mark %}<section aria-label="Marca do Caçador">
+    <h2>Marca do Caçador</h2>
+    {% if mark.active %}<p>Presa marcada: {{ mark.target }}. Tempo de jogo restante: {{ mark.remaining_seconds }} segundos.</p>
+    {% if mark.anticipated %}<p>Marca Antecipada: tipo {{ mark.target_type }}; pistas {{ mark.clues|join:', ' }}.</p>{% endif %}
+    {% if mark.mortuary_damage_type %}<p>Marca Mortuária: dano {{ mark.mortuary_damage_type }}; +{{ mark.mortuary_bleeding_bonus }} quando a presa estiver Sangrando. A presa marcada não pode ficar Invisível, atravessar incorporeamente ou entrar no Plano Etéreo. Mortos-Vivos também não podem Desengajar nem recuperar PV por características sobrenaturais próprias.</p>{% endif %}
+    {% if mark.inquisition_available %}<p>Inquisição: imunidades {{ mark.defenses.immunities|default:'não registradas' }}; resistências {{ mark.defenses.resistances|default:'não registradas' }}; vulnerabilidades {{ mark.defenses.vulnerabilities|default:'não registradas' }}; imunidades a condições {{ mark.defenses.condition_immunities|default:'não registradas' }}.</p>{% endif %}
+    {% if mark.final_hunt %}<p>Caçada Final ativa por {{ mark.final_hunt_remaining_seconds }} segundos; dano da Marca {{ mark.damage }}. A presa não se beneficia de Resistência contra seus danos nem recupera Pontos de Vida.</p>{% endif %}
+    {% else %}<p>Sem Marca ativa.</p>{% endif %}
+    <p>Dado de Caçador: {{ mark.damage }}. Círculo para dissipação: {{ mark.dispel_circle }}. O alvo e as condições de combate são declarados na mesa.</p>
+    {% if can_prepare %}<a href="{% url 'hunter_preparation' person.pk %}">Registrar evento da Marca</a>{% endif %}
+  </section>{% endif %}
+  {% if protective %}<section aria-label="Contramedidas Protetivas">
+    <h2>Contramedidas Protetivas</h2>
+    {% if protective.pending %}<p>Escolha INT ou SAB na preparação.</p>
+    {% elif protective.ability == 'int' %}<p>Inteligência escolhida. Contra Inimigos Favoritos: +{{ sheet.atributos.INT.mod }} em salvaguardas provocadas por eles; redução de dano igual ao modificador (mínimo 1).</p>
+    {% else %}<p>Sabedoria escolhida. Contra Inimigos Favoritos: +{{ sheet.atributos.SAB.mod }} em salvaguardas provocadas por eles; redução de dano igual ao modificador (mínimo 1).</p>{% endif %}
+  </section>{% endif %}
+  {% if can_prepare %}
+  <form method="post" action="{% url 'personagem_descansar' person.pk %}" class="flex flex-wrap gap-3">
+    {% csrf_token %}<input type="hidden" name="next" value="{% url 'hunter_sheet' person.pk %}">
+    <button type="submit" name="tipo" value="curto">Concluir descanso curto</button>
+    <button type="submit" name="tipo" value="longo">Concluir descanso longo</button>
+  </form>
+  <p>Recupera os recursos conforme as regras de cada descanso.</p>
+  {% endif %}
+  <section aria-labelledby="combat-title">
+    <h2 id="combat-title" class="text-xl font-bold">Combate</h2>
+    <dl class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div><dt>CA</dt><dd>{{ sheet.ca }}</dd></div>
+      <div><dt>PV atuais / máximo calculado</dt><dd>{{ sheet.pv.atual }} / {{ sheet.pv.maximo_calculado }}{% if not sheet.pv.pv_completo %} (cálculo incompleto){% endif %}</dd></div>
+      <div><dt>PV temporários</dt><dd>{{ sheet.pv.temporario }}</dd></div>
+      <div><dt>Iniciativa</dt><dd>{{ sheet.iniciativa }}</dd></div>
+      <div><dt>Proficiência</dt><dd>{{ sheet.bonus_proficiencia }}</dd></div>
+      <div><dt>Deslocamento</dt><dd>{{ sheet.velocidade }}</dd></div>
+      {% for mode, speed in sheet.movimento_modos.items %}<div><dt>{% if mode == 'fly' %}Voo{% elif mode == 'swim' %}Natação{% elif mode == 'climb' %}Escalada{% else %}{{ mode }}{% endif %}</dt><dd>{% if speed == 'walk' %}{{ sheet.velocidade }}{% else %}{{ speed }}{% endif %}</dd></div>{% endfor %}
+      <div><dt>Ataques por ação</dt><dd>{{ sheet.ataques.quantidade }}</dd></div>
+      {% if sheet.mutagen_bonus_attack %}<div><dt>Manticora Raivosa</dt><dd>Após realizar a ação Atacar, pode fazer um ataque adicional como Ação Bônus.</dd></div>{% endif %}
+      {% if sheet.mutagen_weapon_critical %}<div><dt>Quimera do Caos</dt><dd>Ataques com armas: crítico com 19 ou 20 no d20.</dd></div>{% endif %}
+      {% if sheet.mutagen_mental_save_disadvantage %}<div><dt>Efeito Colateral da Quimera do Caos</dt><dd>Desvantagem em salvaguardas contra efeitos mentais, incluindo medo e encantamento.</dd></div>{% endif %}
+      {% if sheet.cacador %}<div><dt>CD / ataque mágico</dt><dd>{{ sheet.cacador.secret_dc }} / {{ sheet.cacador.spell_attack }}</dd></div>{% endif %}
+    </dl>
+    <p>Bônus que dependem do alvo, da Marca ou de condições de turno são resolvidos conforme a situação em mesa.</p>
+    <div class="overflow-x-auto"><table class="w-full text-left"><caption>Ataques disponíveis</caption>
+      <thead><tr><th scope="col">Ataque</th><th scope="col">Atributo</th><th scope="col">Acerto</th><th scope="col">Dano</th><th scope="col">Maestria</th></tr></thead>
+      <tbody>{% for attack in sheet.ataques.perfis %}<tr><th scope="row">{{ attack.nome|default:attack.escopo }}{% if attack.nota %} · {{ attack.nota }}{% endif %}</th><td>{{ attack.atributo }}</td><td>{{ attack.bonus_ataque }}</td><td>{{ attack.dano }}</td><td>{{ attack.maestria|default:'—' }}</td></tr>{% empty %}<tr><td colspan="5">Nenhum perfil de ataque disponível.</td></tr>{% endfor %}</tbody>
+    </table></div>
+  </section>
+  <section aria-labelledby="attributes-title"><h2 id="attributes-title" class="text-xl font-bold">Atributos e salvaguardas</h2>
+    {% if sheet.mutagen_weapon_disadvantage %}<p>Harpia das Montanhas: Desvantagem em jogadas de ataque com armas.</p>{% endif %}
+    {% if sheet.mutagen_cannot_dodge %}<p>Carapaça de Basilisco: não pode realizar a ação Esquivar; deslocamento reduzido em 3 m (10 pés).</p>{% endif %}
+    {% if sheet.mutagen_cannot_concentrate %}<p>Guepardo das Planícies: Desvantagem em testes de Inteligência; não pode manter Concentração em magias ou rituais.</p>{% endif %}
+    {% if sheet.mutagen_cannot_grapple %}<p>Vermeluz das Cavernas: Desvantagem em testes de Força; não pode Agarrar criaturas.</p>{% endif %}
+    {% if sheet.mutagen_bright_light_disadvantage %}<p>Morcego Abissal: sob luz plena, Desvantagem em testes de habilidade e jogadas de ataque.</p>{% endif %}
+    {% if sheet.crepusculo %}<p>Caçador das Sombras: +{{ sheet.crepusculo.initiative_bonus }} na iniciativa; Visão no Escuro ampliada em 60 pés e visão normal através de escuridão mágica. Ataques adicionais e invisibilidade dependem do turno, da iluminação e da presa marcada.</p>{% endif %}
+    <dl class="grid grid-cols-2 md:grid-cols-3 gap-3">{% for name, attribute in sheet.atributos.items %}<div><dt>{{ name }}</dt><dd>{{ attribute.valor }} · modificador {{ attribute.mod }}</dd></div>{% endfor %}</dl>
+    <dl class="grid grid-cols-2 md:grid-cols-3 gap-3">{% for name, save in sheet.saves.items %}<div><dt>Salvaguarda {{ name }}</dt><dd>{{ save.bonus }}{% for condition in save.mutagen_conditions %}<br>{{ condition }}{% endfor %}</dd></div>{% endfor %}</dl>
+    <p>Resistências: {{ sheet.resistencias|join:', '|default:'—' }}. Vulnerabilidades: {{ sheet.vulnerabilidades|join:', '|default:'—' }}.</p>
+    {% if sheet.mutagen_initiative_disadvantage %}<p>Camaleão Espectral: desvantagem em Iniciativa.</p>{% endif %}
+    {% if sheet.mutagen_charisma_modifiers %}<p>Camaleão Espectral: em testes de Carisma, você pode usar o modificador de {% for option in sheet.mutagen_charisma_modifiers %}{{ option.atributo }} ({{ option.bonus }}){% if not forloop.last %} ou {% endif %}{% endfor %}. A escolha não altera salvaguardas.</p>{% endif %}
+    <h3>Perícias</h3><ul class="grid grid-cols-1 md:grid-cols-2 gap-2">{% for skill in sheet.pericias %}<li>{{ skill.nome }} ({{ skill.atributo }}): {{ skill.bonus }}{% if skill.expertise %} · Especialização{% elif skill.proficiente %} · Proficiente{% endif %}{% if skill.mutagen_alternatives %}<br>Camaleão: {% for option in skill.mutagen_alternatives %}{{ option.atributo }} {{ option.bonus }}{% if not forloop.last %} ou {% endif %}{% endfor %}{% endif %}{% for condition in skill.mutagen_conditions %}<br>{{ condition }}{% endfor %}</li>{% endfor %}</ul>
+    <p>Sentidos: {{ sheet.sentidos|join:', '|default:'—' }}. Imunidades: {{ sheet.imunidades|join:', '|default:'—' }}.</p>
+  </section>
+  <section><h2 class="text-xl font-bold">Maestrias escolhidas</h2>{% for mastery in sheet.maestrias_armas %}<details><summary>{{ mastery.arma }} · {{ mastery.maestria.nome|default:'Escolha pendente' }}</summary><p>{{ mastery.maestria.efeito|linebreaksbr }}</p></details>{% empty %}<p>Nenhuma Maestria escolhida.</p>{% endfor %}</section>
+  <section aria-labelledby="resources-title">
+    <h2 id="resources-title" class="text-xl font-bold">Recursos e cargas</h2>
+    <ul class="space-y-3">{% for resource in resource_cards %}
+      <li><p>{{ resource.nome }}: {{ resource.atual }} / {{ resource.maximo }}</p>
+        {% if can_prepare %}
+        <form method="post" action="{% url 'personagem_usar_recurso' person.pk %}">
+          {% csrf_token %}<input type="hidden" name="recurso" value="{{ resource.id }}">
+          <input type="hidden" name="next" value="{% url 'hunter_sheet' person.pk %}">
+          <button type="submit" name="acao" value="gastar" {% if not resource.atual %}disabled{% endif %}>Gastar uso de {{ resource.nome }}</button>
+        </form>
+        {% endif %}
+      </li>
+    {% empty %}<li>Nenhum recurso de classe ou carga disponível.</li>{% endfor %}</ul>
+    <p>Segredos e recursos específicos da Ordem ficam em Preparar escolhas e recursos. Itens que se destroem ao gastar a última carga são removidos do inventário.</p>
+  </section>
+  <section><h2 class="text-xl font-bold">Espaços de magia</h2>
+  {% for slot in spell_slots %}{% if slot.total %}
+    <p>Nível {{ slot.nivel }}: {{ slot.atual }} / {{ slot.total }}</p>
+    {% if can_prepare %}
+    <form method="post" action="{% url 'personagem_usar_slot_magia' person.pk %}">
+      {% csrf_token %}<input type="hidden" name="nivel" value="{{ slot.nivel }}">
+      <input type="hidden" name="expected_version" value="{{ slot.version }}">
+      <input type="hidden" name="operation_id" value="{{ slot.gastar_operation_id }}">
+      <input type="hidden" name="next" value="{% url 'hunter_sheet' person.pk %}">
+      <button type="submit" name="acao" value="gastar" {% if not slot.atual %}disabled{% endif %}>Gastar espaço de nível {{ slot.nivel }}</button>
+    </form>
+    {% endif %}
+  {% endif %}{% endfor %}</section>
+  <section><h2 class="text-xl font-bold">Magias registradas</h2><ul>{% for spell in sheet.magias %}<li>{{ spell.nome }} · nível {{ spell.nivel }}{% if spell.suspensa_na_revisao %} · aquisição preservada; indisponível nesta revisão{% elif spell.preparada %} · preparada{% endif %}</li>{% empty %}<li>Nenhuma magia registrada.</li>{% endfor %}</ul></section>
+  <section><h2 class="text-xl font-bold">Inventário</h2><ul>{% for item in sheet.inventario %}<li>{{ item.qtd }} · {{ item.nome }}{% if item.equipado %} · equipado{% endif %}</li>{% empty %}<li>Nenhum item registrado.</li>{% endfor %}</ul></section>
+  {% if sheet.avisos %}<section><h2 class="text-xl font-bold">Pendências do cálculo</h2><ul>{% for warning in sheet.avisos %}<li>{{ warning }}</li>{% endfor %}</ul></section>{% endif %}
+  {% endif %}
+</article>
+{% endblock %}

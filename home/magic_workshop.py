@@ -242,7 +242,7 @@ def component_item_info(tags):
     return _block_info(tags, 'spell_component')
 
 
-def character_casters(personagem, *, contract_cache=None):
+def character_casters(personagem, *, contract_cache=None, ruleset=None):
     from .character_engine import _subclass_unlocked, spell_scope_names
     from .spellcasting import class_spellcasting_contract, max_spell_level_at
 
@@ -250,24 +250,33 @@ def character_casters(personagem, *, contract_cache=None):
     prefetched = getattr(personagem, '_prefetched_objects_cache', {}).get('classes')
     classes = (prefetched if prefetched is not None else
                personagem.classes.select_related('id_classe', 'id_subclasse'))
+    scope_map = None
+    if ruleset is not None:
+        from .versioned_classes import resolved_classes
+        from .versioned_spells import spell_scopes
+        classes = resolved_classes(ruleset, classes)
+        scope_map = spell_scopes(ruleset)
     for pc in classes:
         level = int(pc.nivel or 1)
-        subclass = pc.id_subclasse if _subclass_unlocked(pc, level) else None
+        subclass = pc.id_subclasse if ruleset is not None or _subclass_unlocked(pc, level) else None
         cache_key = (pc.id_classe_id, getattr(subclass, 'pk', None), level)
+        if ruleset is not None:
+            cache_key = (ruleset.pk, *cache_key,
+                         getattr(pc.id_classe, '_character_spellcasting_ability', None))
         cached = contract_cache.get(cache_key) if contract_cache is not None else None
         if cached is None:
             contract = class_spellcasting_contract(
-                pc.id_classe, level=level, subclass=subclass)
+                pc.id_classe, level=level, subclass=subclass, ruleset=ruleset)
             maximum = (max_spell_level_at(
                 contract, pc.id_classe, level=level, subclass=subclass,
-                context={'classlvl': level}) if contract else 0)
+                context={'classlvl': level}, ruleset=ruleset) if contract else 0)
             if contract_cache is not None:
                 contract_cache[cache_key] = (copy.deepcopy(contract), maximum)
         else:
             contract, maximum = copy.deepcopy(cached[0]), cached[1]
         if not contract:
             continue
-        contract['lista_nomes'] = spell_scope_names(contract.get('list') or []) or [pc.id_classe.nome]
+        contract['lista_nomes'] = spell_scope_names(contract.get('list') or [], scope_map) or [pc.id_classe.nome]
         rows.append({
             'pc': pc, 'contract': contract,
             'max_spell_level': maximum,
@@ -343,16 +352,25 @@ def spell_accessible_to_character(personagem, spell, *, casters=None):
     return out
 
 
-def focus_schools(personagem):
+def focus_schools(personagem, *, ruleset=None):
     """Escolas escolhidas ou concedidas pelo catálogo genérico de opções."""
+    from .versioned_options import VersionedOptions
+    frozen = ({o['id_opcao']: o for o in VersionedOptions(ruleset).data['options']}
+              if ruleset is not None else None)
     schools = set()
     for choice in personagem.escolhas.select_related('id_opcao'):
+        option = choice.id_opcao if choice.id_opcao_id else None
+        if frozen is not None and choice.id_opcao_id:
+            if choice.id_opcao_id not in frozen:
+                raise ValueError('Focus option absent from pinned ruleset.')
+            from types import SimpleNamespace
+            option = SimpleNamespace(**frozen[choice.id_opcao_id])
         option_type = _ascii(
-            choice.id_opcao.tipo if choice.id_opcao_id else '').replace(' ', '_')
+            option.tipo if choice.id_opcao_id else '').replace(' ', '_')
         if choice.tipo not in {'escola_de_foco', 'spell_school'} \
                 and option_type != 'escola_de_foco':
             continue
-        value = choice.id_opcao.slug if choice.id_opcao_id else choice.valor
+        value = option.slug if choice.id_opcao_id else choice.valor
         if value:
             schools.add(_ascii(value).replace(' ', '_'))
     return schools
@@ -564,6 +582,12 @@ def transcription_terms_for_character(
     terms = transcription_terms(caster['contract'], spell_level=spell.nivel)
     if terms is None:
         return None
+    # Preserve a composição da prévia no registro da cobrança, sem usar foco
+    # como identidade de subclasse ou como origem da lista de magias.
+    terms = dict(terms)
+    terms['base_cost_po'] = terms['cost_po']
+    terms['base_time_hours'] = terms['time_hours']
+    terms['rule_class'] = caster['pc'].id_classe.nome
     school = _ascii(spell.escola).replace(' ', '_')
     schools = (focus_schools(personagem) if focus_school_values is None
                else focus_school_values)
@@ -573,4 +597,6 @@ def transcription_terms_for_character(
         terms['cost_po'] = terms['cost_po'] / 2
         terms['time_hours'] = terms['time_hours'] / 2
     terms['focus_discount'] = discounted
+    terms['focus_school'] = spell.escola if discounted else ''
+    terms['discount_percent'] = 50 if discounted else 0
     return terms

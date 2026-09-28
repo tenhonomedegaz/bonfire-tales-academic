@@ -1,0 +1,11 @@
+.spell-picker-tools { margin: .5rem 0; min-width: 0; font-size: .85rem; }
+.spell-picker-tools label { display: block; }
+.spell-picker-select { flex: 1; min-width: min(100%, 12rem); }
+.spell-picker-select > select { width: 100%; }
+.spell-picker-tools select { max-width: 100%; padding: .4rem; border: 1px solid var(--line, #555); background: var(--bg0, #171717); color: var(--text, #eee); }
+.spell-picker-tools input { display: block; width: 100%; box-sizing: border-box; padding: .5rem; margin-top: .25rem; border: 1px solid var(--line, #555); border-radius: .3rem; background: var(--bg0, #171717); color: var(--text, #eee); }
+.spell-picker-status { margin: .3rem 0; color: var(--muted, #aaa); }
+.spell-picker-summary { display: flex; flex-wrap: wrap; gap: .3rem; }
+.spell-picker-summary button { max-width: 100%; overflow-wrap: anywhere; border: 1px solid var(--line, #555); border-radius: .3rem; padding: .25rem .5rem; color: var(--text, #eee); background: var(--bg1, #222); }
+.spell-picker-tools :focus-visible { outline: 2px solid var(--ember, #e90); outline-offset: 2px; }
+.spell-picker-hidden { display: none !important; }

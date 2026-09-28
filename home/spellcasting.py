@@ -333,18 +333,28 @@ def parse_spellcasting_list_operations(sources, *, has_spellcasting=True):
     return operations
 
 
-def character_spell_list_delta(personagem):
+def character_spell_list_delta(personagem, *, ruleset=None):
     """Adições/remoções efetivas que as features do personagem fazem na lista."""
     if personagem is None or not getattr(personagem, 'pk', None):
         return {'add': set(), 'remove': set(), 'operations': []}
     from .character_engine import _conjuracao_real, _features_do_personagem
     from .models import TbMagia
 
-    features = [row[2] for row in _features_do_personagem(personagem)]
-    operations = parse_spellcasting_list_operations(
-        features, has_spellcasting=_conjuracao_real(personagem))
+    features = [row[2] for row in _features_do_personagem(personagem, ruleset=ruleset)]
+    if ruleset is None:
+        has_spellcasting = _conjuracao_real(personagem)
+        spells = TbMagia.objects.only('slug')
+    else:
+        from .versioned_classes import resolved_classes
+        from .versioned_spells import spell_catalog
+        classes = resolved_classes(ruleset, personagem.classes.all())
+        has_spellcasting = any(class_spellcasting_contract(
+            pc.id_classe, level=pc.nivel or 1, subclass=pc.id_subclasse, ruleset=ruleset)
+            for pc in classes)
+        spells = spell_catalog(ruleset).values()
+    operations = parse_spellcasting_list_operations(features, has_spellcasting=has_spellcasting)
     by_token = {}
-    for magia in TbMagia.objects.only('slug'):
+    for magia in spells:
         by_token[_identifier(magia.slug)] = magia.slug
     added, removed, resolved = set(), set(), []
     for operation in operations:
@@ -361,8 +371,29 @@ def character_spell_list_delta(personagem):
     return {'add': added, 'remove': removed, 'operations': resolved}
 
 
-def class_spellcasting_contract(classe, *, level=1, subclass=None):
+def class_spellcasting_contract(classe, *, level=1, subclass=None, ruleset=None):
     """Resolve a class/subclass contract in the same order as feature unlocks."""
+    if ruleset is not None:
+        from .versioned_classes import VersionedClassCatalog
+        catalog = VersionedClassCatalog(ruleset, classe.pk)
+        features = [obj for _, _, obj, _ in catalog.features(
+            level if level is not None else 20, subclass.pk if subclass is not None else None)]
+        features.sort(key=lambda obj: (obj.niveladquirido, obj.id_habilidade))
+        contract = parse_spellcasting_sources([catalog.classe] + features)
+        from .hunter_spellcasting import progression_at
+        progression = progression_at(catalog.classe, level, ruleset)
+        if progression is not None:
+            from types import SimpleNamespace
+            contract = parse_spellcasting_sources([SimpleNamespace(tags_json=[
+                'spellcasting{ability:wis, slots:half, list:cacador, mode:prepared, '
+                'spell_limit{fixed:%s}, focus:druidic}' % progression['prepared_spells']])])
+        choice = getattr(classe, '_character_spellcasting_ability', None)
+        if choice is not None:
+            if choice[0] != ruleset.pk:
+                raise ValueError('Spellcasting choice belongs to another ruleset.')
+            if contract is not None:
+                contract['ability'] = choice[1]
+        return contract
     from django.db.models import Q
 
     from .models import TbClassehabilidade
@@ -377,7 +408,7 @@ def class_spellcasting_contract(classe, *, level=1, subclass=None):
     return parse_spellcasting_sources([classe] + list(features))
 
 
-def resource_limit_at(spec, classe, *, level, subclass=None):
+def resource_limit_at(spec, classe, *, level, subclass=None, ruleset=None):
     """Resolve a fixed/resource limit. Formula limits need the character context."""
     if not spec:
         return None
@@ -400,7 +431,13 @@ def resource_limit_at(spec, classe, *, level, subclass=None):
         condition |= Q(id_subclasse=subclass)
     wanted = _identifier(value)
     values = []
-    for resource in TbRecursoclasse.objects.filter(condition):
+    if ruleset is not None:
+        from .versioned_classes import VersionedClassCatalog
+        resources = VersionedClassCatalog(ruleset, classe.pk).resources(
+            int(level or 0), subclass.pk if subclass is not None else None)
+    else:
+        resources = TbRecursoclasse.objects.filter(condition)
+    for resource in resources:
         if _identifier(resource.slug) != wanted:
             continue
         table = resource.valores_json or {}
@@ -422,7 +459,7 @@ def resource_limit_at(spec, classe, *, level, subclass=None):
     return max(values) if values else None
 
 
-def limit_at(spec, classe, *, level, context=None, subclass=None, minimum=0):
+def limit_at(spec, classe, *, level, context=None, subclass=None, minimum=0, ruleset=None):
     """Resolve um limite declarado sem inferir nada pelo nome da classe.
 
     ``resource`` consulta a tabela de recursos, ``fixed`` devolve o literal e
@@ -432,7 +469,7 @@ def limit_at(spec, classe, *, level, context=None, subclass=None, minimum=0):
     if not spec:
         return None
     if spec.get("kind") in {"resource", "fixed"}:
-        value = resource_limit_at(spec, classe, level=level, subclass=subclass)
+        value = resource_limit_at(spec, classe, level=level, subclass=subclass, ruleset=ruleset)
     elif spec.get("kind") == "formula":
         from .character_engine import _eval_formula
 
@@ -447,7 +484,7 @@ def limit_at(spec, classe, *, level, context=None, subclass=None, minimum=0):
         return None
 
 
-def slot_table_at(classe, *, level, subclass=None):
+def slot_table_at(classe, *, level, subclass=None, ruleset=None):
     """Resolve os espacos 1o..9o declarados como recursos ``table_only``.
 
     A funcao existe aqui para que criador, progressao, ficha e motor usem a
@@ -456,6 +493,11 @@ def slot_table_at(classe, *, level, subclass=None):
     """
     if classe is None:
         return {}
+
+    from .hunter_spellcasting import progression_at
+    progression = progression_at(classe, level, ruleset)
+    if progression is not None:
+        return {circle: value for circle, value in enumerate(progression['slots'], 1)}
 
     from django.db.models import Q
 
@@ -471,7 +513,13 @@ def slot_table_at(classe, *, level, subclass=None):
         condition |= Q(id_subclasse=subclass)
 
     out = {}
-    for resource in TbRecursoclasse.objects.filter(condition):
+    if ruleset is not None:
+        from .versioned_classes import VersionedClassCatalog
+        resources = VersionedClassCatalog(ruleset, classe.pk).resources(
+            int(level or 0), subclass.pk if subclass is not None else None)
+    else:
+        resources = TbRecursoclasse.objects.filter(condition)
+    for resource in resources:
         match = re.fullmatch(r"([1-9])o", _identifier(resource.slug))
         if not match or _resource_tipo(resource) != RESOURCE_TIPO_TABLE_ONLY:
             continue
@@ -503,7 +551,7 @@ def progression_max_spell_level(level, progression):
 
 
 def max_spell_level_at(
-        contract, classe, *, level, subclass=None, context=None):
+        contract, classe, *, level, subclass=None, context=None, ruleset=None):
     """Maior circulo conjuravel segundo o contrato efetivo da classe.
 
     A declaracao explicita cobre conjuradores por pontos. Sem ela, o topo da
@@ -514,10 +562,10 @@ def max_spell_level_at(
         return 0
     explicit = limit_at(
         contract.get("spell_level_limit"), classe, level=level,
-        context=context or {"classlvl": int(level or 0)}, subclass=subclass)
+        context=context or {"classlvl": int(level or 0)}, subclass=subclass, ruleset=ruleset)
     if explicit is not None:
         return min(9, max(0, int(explicit)))
-    table = slot_table_at(classe, level=level, subclass=subclass)
+    table = slot_table_at(classe, level=level, subclass=subclass, ruleset=ruleset)
     available = [spell_level for spell_level, total in table.items() if total > 0]
     if available:
         return max(available)

@@ -1,0 +1,28 @@
+{% with familiar=state.payload_json block=state.payload_json.block %}
+<article class="workshop-row battle-familiar-state">
+  <div class="workshop-row-main">
+    <h3>{{ familiar.spell_name }} · {{ block.form_label }} · {{ block.circle }}º círculo</h3>
+    <p>{{ familiar.appearance }} · {{ familiar.type }} · {{ familiar.alignment }} · Médio</p>
+    <p>PV {{ familiar.hp }}/{{ familiar.hp_max }}{% if familiar.base_state %} · PV temporários {{ familiar.temp_hp }} · Dados de Vida {{ familiar.hit_dice }}{% endif %} · CA {{ block.ac }}</p>
+    <p>Término: <time datetime="{{ familiar.expires_at }}">{{ familiar.expires_at }}</time> (1 hora). O término é conferido ao abrir a Oficina e em cada operação.</p>
+    <table><caption>Atributos e salvaguardas (incluem Talentoso)</caption><thead><tr><th>Atributo</th><th>Valor</th><th>Modificador</th><th>Salvaguarda</th></tr></thead><tbody>
+      {% for attr in block.attributes %}<tr><th>{{ attr.name }}</th><td>{{ attr.score }}</td><td>{{ attr.modifier|stringformat:'+d' }}</td><td>{{ attr.save|stringformat:'+d' }}</td></tr>{% endfor %}
+    </tbody></table>
+    <p>Talentoso: +{{ block.check_save_bonus }} a todos os testes de atributo e salvaguardas. As salvaguardas acima já incluem esse bônus.</p>
+    <p>Deslocamento {{ block.walk_m }} m · natação {{ block.swim_m }} m{% if block.fly_m %} · voo {{ block.fly_m }} m{% if block.hover %}, pairar{% endif %}{% endif %}.</p>
+    <p>Iniciativa +3 (13); iniciativa e turno próprios. Aliado seu e dos seus aliados. Imune a Enfeitiçado e Amedrontado. Percepção Passiva 11; compreende seus idiomas.</p>
+    <p>Ataques Múltiplos: {{ block.multiattack }} ataque(s) de Retalhar. Retalhar: {{ block.rend_attack|stringformat:'+d' }} para atingir, alcance {{ block.reach_m }} m; {{ block.rend_damage }} de dano de Força.</p>
+    {% if block.flyby %}<p>Sobrevoo: não provoca ataques de oportunidade ao sair voando do alcance de um inimigo.</p>{% endif %}
+    {% if block.stalk %}<p>Espreitar: pode substituir um ataque por mover-se até metade do deslocamento sem provocar ataques de oportunidade e, ao final, Esconder-se.</p>{% endif %}
+    {% if familiar.base_state %}<p>Características preservadas: {{ familiar.traits|linebreaksbr }}. Pode atacar além de realizar suas outras ações. Retorna à forma anterior ao término ou quando os PV temporários chegam a zero.</p>{% endif %}
+    <p>Ao desaparecer, deixa no local tudo que vestia ou carregava.</p>
+  </div>
+  <form method="post" action="{% url 'oficina_encerrar_efeito' mercado_ativo.pk %}">
+    {% csrf_token %}<input type="hidden" name="personagem" value="{{ mercado_ativo.pk }}"><input type="hidden" name="tab" value="casting"><input type="hidden" name="estado" value="{{ state.chave }}"><input type="hidden" name="familiar_revision" value="{{ familiar.revision }}">
+    <label>{% if familiar.base_state %}PV temporários restantes{% else %}PV restantes{% endif %}<input type="number" name="familiar_hp" min="0" max="{% if familiar.base_state %}{{ familiar.temp_hp }}{% else %}{{ familiar.hp }}{% endif %}" value="{% if familiar.base_state %}{{ familiar.temp_hp }}{% else %}{{ familiar.hp }}{% endif %}"></label>
+    <button name="familiar_action" value="hp">Registrar PV restantes</button>
+    <button name="familiar_action" value="end">Encerrar magia</button>
+    <button name="familiar_action" value="death">Registrar morte do conjurador</button>
+  </form>
+</article>
+{% endwith %}

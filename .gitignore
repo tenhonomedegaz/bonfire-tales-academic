@@ -37,7 +37,8 @@ __pycache__/
 *.sw?
 
 # Reference HTML and doc assets
-ref/
+ref/*
+!ref/FAMILIAR_DE_BATALHA.md
 
 # Arquivos de trabalho/locais (não versionar)
 scratch/

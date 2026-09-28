@@ -15,7 +15,8 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import connection
 
 from home.deploy_sync import (UPSERT_POR_SLUG, SUBSTITUI, MEMORY_MODELS, _m,
-                              _label, _load_content_deletions, sincronizar_conteudo,
+                              _label, _load_content_deletions, inspect_content_deletions,
+                              sincronizar_conteudo,
                               relatorio_texto)
 
 FIXTURE_PATH = "home/fixtures/conteudo.json"
@@ -28,6 +29,8 @@ class Command(BaseCommand):
         parser.add_argument("--dry-run", action="store_true")
         parser.add_argument("--allow-sqlite", action="store_true")
         parser.add_argument("--no-backup", action="store_true")
+        parser.add_argument("--allow-content-deletions", action="store_true",
+                            help="Exige autorização operacional específica para tombstones existentes.")
 
     def handle(self, *args, **opt):
         if connection.vendor != "postgresql" and not opt["allow_sqlite"]:
@@ -47,6 +50,10 @@ class Command(BaseCommand):
             deletions = sum(len(slugs) for slugs in _load_content_deletions().values())
             self.stdout.write(self.style.SUCCESS(
                 "DRY-RUN: %d por slug (preserva PK) | %d substituídos | %d deleções explícitas. Nada alterado." % (up, rep, deletions)))
+            for model_name, slug, status, refs in inspect_content_deletions():
+                detail = ", ".join("%s.%s=%d" % ref for ref in refs)
+                self.stdout.write("  %s.%s: %s%s" % (
+                    model_name, slug, status, " (%s)" % detail if detail else ""))
             return
 
         if not opt["no_backup"]:
@@ -57,7 +64,8 @@ class Command(BaseCommand):
                 call_command("dumpdata", *("home.%s" % m for m in MEMORY_MODELS), indent=2, stdout=fh)
             self.stdout.write("Backup da memória -> %s" % destino)
 
-        rel = sincronizar_conteudo(texto)
+        rel = sincronizar_conteudo(
+            texto, allow_content_deletions=opt["allow_content_deletions"])
         self.stdout.write(relatorio_texto(rel))
         self.stdout.write(self.style.SUCCESS("Conteúdo sincronizado por chave natural.")
                           if rel["mem_ok"] else self.style.ERROR("Verifique a memória!"))

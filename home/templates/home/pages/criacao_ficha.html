@@ -7,6 +7,14 @@
     <h1 class="font-serif text-2xl md:text-3xl font-bold text-[var(--ember)]">{% if pathbuilder %}Pathbuilder{% elif recriar_personagem %}Recriar nível 1{% else %}Criação de Ficha{% endif %}</h1>
     <p class="mt-1 text-[var(--muted)] text-sm">{% if pathbuilder %}Monte a base de nível 1 para abrir o laboratório. A build ficará apenas nesta aba e não criará uma ficha.{% elif recriar_personagem %}Refaça as escolhas iniciais de {{ recriar_personagem.nome }} usando o mesmo criador e as regras atuais.{% else %}Monte seu personagem de nível 1, passo a passo — a prévia da ficha acompanha cada escolha.{% endif %}</p>
     {% if not pathbuilder and not recriar_personagem %}<a href="{% url 'pathbuilder' %}" class="mt-2 inline-flex items-center rounded border border-[var(--stroke)] px-3 py-1.5 text-xs font-semibold text-[var(--muted)] hover:border-[var(--ember)] hover:text-[var(--text)]">Testar uma build de nível 1 a 20 sem salvar</a>{% endif %}
+    {% if hunter_creator_available %}
+      {% if hunter_creator_page %}
+        <p class="mt-2 text-sm text-[var(--muted)]">Criação do Caçador com a revisão publicada de classe e origens.</p>
+        <a href="{% url 'criacao_ficha' %}" class="mt-2 inline-flex text-sm font-semibold text-[var(--ember)] underline">Criar outra classe</a>
+      {% else %}
+        <a href="{% url 'criacao_ficha' %}?hunter=1" class="mt-2 inline-flex text-sm font-semibold text-[var(--ember)] underline">Criar Caçador</a>
+      {% endif %}
+    {% endif %}
   </header>
 
   {% if recriar_personagem %}
@@ -169,6 +177,12 @@
               <select id="cf-classe" class="w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)] focus:border-[var(--ember)] focus:outline-none"></select>
             </div>
             <div class="cf-info" id="cf-classe-info" hidden></div>
+            <div id="cf-hunter-ability-wrap" hidden class="mt-3">
+              <label for="cf-hunter-ability" class="mb-1 block text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Atributo de conjuraÃ§Ã£o do CaÃ§ador</label>
+              <select id="cf-hunter-ability" class="w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)]">
+                <option value="">â€” Selecione â€”</option><option value="int">InteligÃªncia</option><option value="wis">Sabedoria</option>
+              </select>
+            </div>
           </div>
 
           <div class="rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-3">
@@ -207,15 +221,15 @@
             <p class="mb-2 text-xs text-[var(--muted)]">Escolha o repertório inicial indicado pela característica de conjuração da classe.</p>
             <div id="cf-truques-sec" class="mb-2.5">
               <div class="mb-1 text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Truques <span data-truque-counter></span></div>
-              <div id="cf-truques" class="grid max-h-60 grid-cols-1 gap-1 overflow-y-auto rounded border border-[var(--stroke)] bg-[var(--bg0)] p-1.5 sm:grid-cols-2"></div>
+              <div id="cf-truques" data-spell-picker="Buscar truques" class="grid max-h-60 grid-cols-1 gap-1 overflow-y-auto rounded border border-[var(--stroke)] bg-[var(--bg0)] p-1.5 sm:grid-cols-2"></div>
             </div>
             <div>
               <div class="mb-1 text-xs font-semibold uppercase tracking-wider text-[var(--muted)]"><span data-magia-label>Magias de 1º nível</span> <span data-magia-counter></span></div>
-              <div id="cf-magias" class="grid max-h-60 grid-cols-1 gap-1 overflow-y-auto rounded border border-[var(--stroke)] bg-[var(--bg0)] p-1.5 sm:grid-cols-2"></div>
+              <div id="cf-magias" data-spell-picker="Buscar magias" class="grid max-h-60 grid-cols-1 gap-1 overflow-y-auto rounded border border-[var(--stroke)] bg-[var(--bg0)] p-1.5 sm:grid-cols-2"></div>
             </div>
             <div id="cf-preparadas-sec" hidden class="mt-2.5">
               <div class="mb-1 text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Preparadas do grimório <span data-preparada-counter></span></div>
-              <div id="cf-preparadas" class="grid max-h-60 grid-cols-1 gap-1 overflow-y-auto rounded border border-[var(--stroke)] bg-[var(--bg0)] p-1.5 sm:grid-cols-2"></div>
+              <div id="cf-preparadas" data-spell-picker="Buscar magias do grim?rio para preparar" class="grid max-h-60 grid-cols-1 gap-1 overflow-y-auto rounded border border-[var(--stroke)] bg-[var(--bg0)] p-1.5 sm:grid-cols-2"></div>
             </div>
           </div>
           <div class="cf-step-err" data-step-err="2" hidden></div>

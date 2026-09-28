@@ -13,16 +13,30 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
 {% block mobile_ad %}<div class="ficha-noprint">{{ block.super }}</div>{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/pages/ficha.css' %}?v=15">
+<link rel="stylesheet" href="{% static 'css/pages/ficha.css' %}?v=16">
 <link rel="stylesheet" href="{% static 'css/components/tema_swatch.css' %}?v=1">
 <link rel="stylesheet" href="{% static 'css/pages/perfil-fx.css' %}?v=4">
 {% if appearance.theme_css_href %}<link rel="stylesheet" href="{{ appearance.theme_css_href }}">{% endif %}
 <script src="{% static 'js/tema_swatch.js' %}?v=1" defer></script>
 <script src="{% static 'js/mochila.js' %}?v=1" defer></script>
 <script src="{% static 'js/ficha_opcoes.js' %}?v=2" defer></script>
+{% if partial_spell_slots %}
+<script src="{% static 'js/http.js' %}?v=1" defer></script>
+<script src="{% static 'js/spell_slots.js' %}?v=1" defer></script>
+{% endif %}
 {% endblock %}
 
 {% block content %}
+{% for pc in p.classes.all %}{% if pc.cacador_rework %}
+  <a class="ficha-noprint" href="{% url 'hunter_sheet' p.pk %}">Consultar ficha da revis?o vinculada</a>
+{% endif %}{% endfor %}
+{% if p.dono_id == request.user.pk %}
+  {% for pc in p.classes.all %}{% if pc.id_classe.slug == 'cacador' and not pc.cacador_rework %}
+    <a class="ficha-noprint" href="{% url 'hunter_regularization_preview' p.pk %}">Prévia de regularização do Caçador</a>
+  {% endif %}{% if pc.cacador_rework %}
+    <a class="ficha-noprint" href="{% url 'hunter_preparation' p.pk %}">Preparar Segredos do Caçador</a>
+  {% endif %}{% endfor %}
+{% endif %}
 {% if appearance.background_url %}<div class="ficha-bg-media" style="background-image:url('{{ appearance.background_url }}');"></div>{% endif %}
 {% comment %}`ficha-has-bg` só sai COM imagem de fundo: é ela que liga o desfoque
 (backdrop-filter) da folha central em ficha.css. Sem imagem, folha sólida como sempre.{% endcomment %}
@@ -377,27 +391,31 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
     </div>
     {% endif %}
     {% endfor %}
+    {% for message in messages %}{% if message.extra_tags == 'spell-slots' %}
+    <p class="spell-alert" role="status">{{ message }}</p>
+    {% endif %}{% endfor %}
     {% if magias_info.slots %}
     <div class="spell-slots-grid">
       {% for s in magias_info.slots %}
-      <article class="spell-slot-card {% if s.total == 0 %}is-zero{% endif %}">
+      <article class="spell-slot-card {% if s.total == 0 %}is-zero{% endif %}" data-spell-slot-card data-slot-level="{{ s.nivel }}" data-slot-version="{{ s.version }}" tabindex="-1">
         <div class="spell-slot-level">{{ s.nivel }}</div>
         <div class="spell-slot-numbers">
-          <span>Total</span><strong>{{ s.total }}</strong>
-          <span>Restantes</span><strong>{{ s.atual }}</strong>
+          <span>Total</span><strong data-slot-total>{{ s.total }}</strong>
+          <span>Restantes</span><strong data-slot-atual>{{ s.atual }}</strong>
         </div>
         {% if pode_editar and s.total > 0 %}
         <div class="spell-slot-actions">
-          <form method="post" action="{% url 'personagem_usar_slot_magia' p.id_personagem %}">
-            {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><input type="hidden" name="nivel" value="{{ s.nivel }}">
-            <button type="submit" {% if s.atual == 0 %}disabled{% endif %} title="Gastar slot">-</button>
+          <form method="post" action="{% url 'personagem_usar_slot_magia' p.id_personagem %}" data-spell-slot-form>
+            {% csrf_token %}<input type="hidden" name="next" value="{% url 'ficha_detail' p.id_personagem %}?aba=magias"><input type="hidden" name="nivel" value="{{ s.nivel }}"><input type="hidden" name="acao" value="gastar"><input type="hidden" name="operation_id" value="{{ s.gastar_operation_id }}"><input type="hidden" name="expected_version" value="{{ s.version }}">
+            <button type="submit" data-slot-action="gastar" {% if s.atual == 0 %}disabled{% endif %} title="Gastar slot">-</button>
           </form>
-          <form method="post" action="{% url 'personagem_usar_slot_magia' p.id_personagem %}">
-            {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><input type="hidden" name="nivel" value="{{ s.nivel }}"><input type="hidden" name="acao" value="desfazer">
-            <button type="submit" {% if s.atual == s.total %}disabled{% endif %} title="Restaurar slot">+</button>
+          <form method="post" action="{% url 'personagem_usar_slot_magia' p.id_personagem %}" data-spell-slot-form>
+            {% csrf_token %}<input type="hidden" name="next" value="{% url 'ficha_detail' p.id_personagem %}?aba=magias"><input type="hidden" name="nivel" value="{{ s.nivel }}"><input type="hidden" name="acao" value="desfazer"><input type="hidden" name="operation_id" value="{{ s.desfazer_operation_id }}"><input type="hidden" name="expected_version" value="{{ s.version }}">
+            <button type="submit" data-slot-action="desfazer" {% if s.atual == s.total %}disabled{% endif %} title="Restaurar slot">+</button>
           </form>
         </div>
         {% endif %}
+        <p class="spell-alert" data-spell-slot-feedback role="status" aria-live="polite" hidden></p>
       </article>
       {% endfor %}
     </div>
@@ -437,7 +455,7 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
           <input type="hidden" name="item" value="{{ t.item_id }}">
           <strong class="block text-sm">{{ t.magia_nome }}{% if t.magia_nome_ingles %} <span class="text-xs text-[var(--muted)]">({{ t.magia_nome_ingles }})</span>{% endif %}</strong>
           <span class="block text-xs text-[var(--muted)]">{{ t.classe }} · {{ t.nivel }}º nível · {{ t.item_nome }}{% if t.item_qtd > 1 %} ×{{ t.item_qtd }}{% endif %}</span>
-          <span class="mt-1 block text-xs">{{ t.custo }} · {{ t.tempo_horas }} hora{% if t.tempo_horas != 1 %}s{% endif %}</span>
+          <span class="mt-1 block text-xs">{% include 'home/partials/transcription_terms.html' with terms=t.terms only %}</span>
           <button type="submit" class="btn-ember mt-2 text-sm" {% if not t.pode_pagar %}disabled title="Ouro insuficiente"{% endif %}>Transcrever</button>
         </form>
         {% endfor %}
@@ -446,17 +464,17 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
     {% endif %}
 
     {% if magias_info.lista or magias_info.spellcasting %}
-      <div class="spell-level-grid">
+      <div class="spell-level-grid" data-spell-picker="Buscar magias para preparar" data-spell-row=".spell-row" data-spell-group=".spell-level-card">
       {% for grupo in magias_info.grupos %}
         <section class="spell-level-card {% if not grupo.magias %}is-empty{% endif %}">
           <header class="spell-level-head">
             <span class="spell-level-num">{% if grupo.nivel == 0 %}0{% else %}{{ grupo.nivel }}{% endif %}</span>
             <strong>{{ grupo.titulo }}</strong>
-            {% if grupo.slot %}<span>{{ grupo.slot.atual }}/{{ grupo.slot.total }}</span>{% endif %}
+            {% if grupo.slot %}<span data-slot-summary="{{ grupo.nivel }}">{{ grupo.slot.atual }}/{{ grupo.slot.total }}</span>{% endif %}
           </header>
           <ul class="spell-list">
             {% for m in grupo.magias %}
-            <li class="spell-row {% if not m.preparada and not m.sempre_preparada %}is-unprepared{% endif %}">
+            <li class="spell-row {% if not m.preparada and not m.sempre_preparada %}is-unprepared{% endif %}" data-spell-name="{{ m.nome }} {{ m.nome_ingles|default:'' }}" data-spell-level="{{ grupo.nivel }}" data-spell-selected="{% if m.preparada or m.sempre_preparada %}true{% else %}false{% endif %}">
               {% if m.sempre_preparada %}
                 <span class="spell-marker {% if m.innate_label %}innate{% else %}always{% endif %}" title="{% if m.innate_label %}Conjuracao inata{% elif m.known_auto %}Conhecida{% else %}Sempre preparada{% endif %}"></span>
               {% elif pode_editar and m.pode_alternar %}
@@ -474,7 +492,8 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
               <span class="spell-name">{{ m.nome }}{% if m.nome_ingles %} <small>({{ m.nome_ingles }})</small>{% endif %}</span>
               {% endif %}
               <span class="spell-tags">
-                {% if m.innate_label %}
+                {% if m.suspensa_na_revisao %}<span class="spell-tag muted">aquisição preservada · indisponível nesta revisão</span>
+                {% elif m.innate_label %}
                   <span class="spell-tag innate">{{ m.innate_label }}</span>
                   {% if m.innate_key %}
                   <span class="spell-innate-counter">{{ m.innate_atual }}/{{ m.innate_max }}</span>

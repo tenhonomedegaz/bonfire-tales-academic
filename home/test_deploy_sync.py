@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
 import json
+from io import StringIO
+from unittest.mock import patch
 
 from django.apps import apps
 from django.contrib.auth.models import User
 from django.core import serializers
+from django.core.management import call_command
 from django.test import TestCase
 
 from home import deploy_sync
@@ -12,11 +15,34 @@ from home.models import (
     TbItemMagico,
     TbPersonagem,
     TbPersonagemItem,
+    TbPersonagemMagia,
     TbRegiao,
+    TbMagia,
 )
 
 
 class DeploySyncContractTests(TestCase):
+    def test_dry_run_reports_live_tombstone_references_without_deleting(self):
+        slug = 'sacrificio-de-sangue'
+        with patch.object(deploy_sync, '_load_content_deletions', return_value={'TbMagia': [slug]}):
+            self.assertEqual(deploy_sync.inspect_content_deletions()[0][2], 'absent')
+            spell = TbMagia.objects.create(nome='Sacrifício de Sangue', slug=slug)
+            self.assertEqual(deploy_sync.inspect_content_deletions()[0][2], 'would_delete')
+            with self.assertRaisesRegex(ValueError, 'autorização operacional'):
+                deploy_sync.sincronizar_conteudo('[]')
+            self.assertTrue(TbMagia.objects.filter(pk=spell.pk).exists())
+            owner = User.objects.create_user(username='tombstone-preflight')
+            person = TbPersonagem.objects.create(dono=owner, nome='Preservar magia')
+            acquired = TbPersonagemMagia.objects.create(
+                id_personagem=person, id_magia=spell, nome=spell.nome,
+                origem='Caçador', preparada=True)
+            output = StringIO()
+            call_command('sync_conteudo', dry_run=True, stdout=output)
+            self.assertIn('TbMagia.sacrificio-de-sangue: blocked', output.getvalue())
+            self.assertIn('TbPersonagemMagia.id_magia=1', output.getvalue())
+            self.assertTrue(TbMagia.objects.filter(pk=spell.pk).exists())
+            self.assertTrue(TbPersonagemMagia.objects.filter(pk=acquired.pk).exists())
+
     def test_all_managed_home_models_have_an_explicit_policy(self):
         classified = set(
             deploy_sync.CONTENT_MODELS

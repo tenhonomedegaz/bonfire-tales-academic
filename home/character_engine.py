@@ -494,11 +494,16 @@ def _calcular_pv(personagem, classes, con_mod, avisos):
 
 
 # ───────────────────────── features (com classlvl) ──────────────────────
-def _features_de_classe(classes):
+def _features_de_classe(classes, *, ruleset=None):
     from .models import TbClassehabilidade
     out = []
     for c in classes:
         nivel = int(c.nivel or 0)
+        if ruleset is not None:
+            from .versioned_classes import VersionedClassCatalog
+            catalog = VersionedClassCatalog(ruleset, c.id_classe_id)
+            out.extend(catalog.features(nivel, c.id_subclasse_id))
+            continue
         for h in TbClassehabilidade.objects.filter(
                 id_classe=c.id_classe, id_subclasse__isnull=True,
                 niveladquirido__lte=nivel).order_by('niveladquirido', 'nome'):
@@ -525,13 +530,19 @@ def _norm_txt(s):
     return unicodedata.normalize('NFKD', str(s or '')).encode('ascii', 'ignore').decode().lower()
 
 
-def clas_de_essencia(essencia):
+def clas_de_essencia(essencia, *, ruleset=None):
     """[{'slug','nome'}] das heranças/clãs de uma essência (via 'Clã <Nome>' nos
     pré-requisitos dos traços). Vazio quando a essência não usa clãs (ex.: elementais,
     que usam vertentes na descrição)."""
     from .models import TbTracoracial
     vistos = {}
-    for t in TbTracoracial.objects.filter(id_essencia=essencia):
+    if ruleset is None:
+        traits = TbTracoracial.objects.filter(id_essencia=essencia)
+    else:
+        from .versioned_origins import VersionedOrigins
+        traits = [t for t in VersionedOrigins(ruleset).objects(TbTracoracial)
+                  if t.id_essencia_id == essencia.pk]
+    for t in traits:
         for m in _CLA_RE.finditer(t.pre_requisito or ''):
             nome = m.group(1).strip()
             sl = _slug(nome)
@@ -561,7 +572,10 @@ def cla_escolhido(personagem):
     return val or ''
 
 
-def _tracos_raciais(personagem):
+def _tracos_raciais(personagem, *, ruleset=None):
+    if ruleset is not None:
+        from .versioned_origins import VersionedOrigins
+        return VersionedOrigins(ruleset).racial(personagem)
     from .models import TbTracoracial
     out = []
     if not personagem.id_raca_id:
@@ -586,16 +600,22 @@ def _tracos_raciais(personagem):
     return out
 
 
-def _antecedente(personagem):
+def _antecedente(personagem, *, ruleset=None):
     """Antecedente como fonte de feature (a 'habilidade do antecedente' = suas
     tags_json), em paralelo a _tracos_raciais."""
     if not personagem.id_antecedente_id:
         return []
+    if ruleset is not None:
+        from .versioned_origins import VersionedOrigins
+        return VersionedOrigins(ruleset).background(personagem)
     a = personagem.id_antecedente
     return [('antecedente', a.nome, a, None)]
 
 
-def _talentos(personagem):
+def _talentos(personagem, *, ruleset=None):
+    if ruleset is not None:
+        from .versioned_origins import VersionedOrigins
+        return VersionedOrigins(ruleset).talents(personagem)
     from .models import TbTracoracial
     from django.db.models import Q
     out = []
@@ -700,17 +720,26 @@ def _parse_talent_attr_details(texto):
     return m.group(1).upper() if m else None
 
 
-def _talent_attr_map(personagem):
+def _talent_attr_map(personagem, *, ruleset=None):
     out = {}
     if personagem is None:
         return out
-    for pt in personagem.talentos.select_related('id_talento').all():
+    talents = None
+    if ruleset is not None:
+        from .versioned_origins import VersionedOrigins
+        from .models import TbTalento
+        talents = {obj.pk: obj for obj in VersionedOrigins(ruleset).objects(TbTalento)}
+    rows = personagem.talentos.all() if talents is not None else personagem.talentos.select_related('id_talento').all()
+    for pt in rows:
         sig = _parse_talent_attr_details(pt.detalhes)
         if not sig:
             continue
         if pt.id_talento_id:
             out[('id', pt.id_talento_id)] = sig
-            out[('slug', getattr(pt.id_talento, 'slug', ''))] = sig
+            if talents is not None and pt.id_talento_id not in talents:
+                raise ValueError('Talent attribute source absent from pinned ruleset.')
+            obj = talents[pt.id_talento_id] if talents is not None else pt.id_talento
+            out[('slug', getattr(obj, 'slug', ''))] = sig
         out[('nome', _slug(pt.nome))] = sig
     return out
 
@@ -784,8 +813,11 @@ def _resource_key(value):
     return _slug(value).replace('-', '_')
 
 
-def _resource_formula_context(personagem, classes):
+def _resource_formula_context(personagem, classes, *, ruleset=None):
     """Monta o contexto completo de atributos para formulas de recurso."""
+    if ruleset is not None:
+        from .versioned_classes import resolved_classes
+        classes = resolved_classes(ruleset, classes)
     bonus_por_attr = {}
     for bonus in personagem.atributo_bonus.all():
         bonus_por_attr.setdefault(bonus.atributo, []).append(int(bonus.valor or 0))
@@ -796,13 +828,15 @@ def _resource_formula_context(personagem, classes):
         atributos[sigla] = {'base': base, 'bonus': valor - base, 'valor': valor,
                             'mod': modificador(valor), 'breakdown': []}
     nivel_total = sum(int(c.nivel or 0) for c in classes) or int(personagem.nivel or 1)
-    features = _features_do_personagem(personagem, classes)
+    features = _features_do_personagem(personagem, classes, ruleset=ruleset)
     escolhas, _listas = _collect_escolhas(personagem, features)
     _apply_attr_asi(features, escolhas, atributos)
+    from .hunter_mutagens import apply_attributes as apply_mutagen_attributes
+    apply_mutagen_attributes(personagem, ruleset, atributos)
     for atributo in atributos.values():
         atributo['mod'] = modificador(atributo['valor'])
     ctx = _build_ctx(nivel_total, bonus_proficiencia(nivel_total), atributos)
-    ctx['spell_mod'] = _spell_mod(classes, atributos)
+    ctx['spell_mod'] = _spell_mod(classes, atributos, ruleset=ruleset)
     return ctx, features
 
 
@@ -827,10 +861,21 @@ def _resource_max_overrides(features, base_ctx):
     return overrides
 
 
-def _recursos(classes, formula_ctx=None, max_overrides=None):
-    """Recursos de CLASSE (TbRecursoclasse). Ignora placeholders '-'/vazio/0."""
+def _class_resources(c, nivel, *, ruleset=None):
+    if ruleset is not None:
+        from .versioned_classes import VersionedClassCatalog
+        return VersionedClassCatalog(ruleset, c.id_classe_id).resources(
+            nivel, c.id_subclasse_id)
     from .models import TbRecursoclasse
     from django.db.models import Q
+    filtro = Q(id_classe=c.id_classe, id_subclasse__isnull=True)
+    if _subclass_unlocked(c, nivel):
+        filtro |= Q(id_subclasse=c.id_subclasse)
+    return TbRecursoclasse.objects.filter(filtro).select_related('id_classe', 'id_subclasse')
+
+
+def _recursos(classes, formula_ctx=None, max_overrides=None, *, ruleset=None):
+    """Recursos de CLASSE (TbRecursoclasse). Ignora placeholders '-'/vazio/0."""
     recursos = {}
     total_nivel = sum(int(c.nivel or 0) for c in classes)
 
@@ -839,15 +884,12 @@ def _recursos(classes, formula_ctx=None, max_overrides=None):
 
     for c in classes:
         nivel = int(c.nivel or 0)
-        filtro = Q(id_classe=c.id_classe, id_subclasse__isnull=True)
-        if _subclass_unlocked(c, nivel):
-            filtro |= Q(id_subclasse=c.id_subclasse)
         legado = {}
-        for r in TbRecursoclasse.objects.filter(filtro):
+        for r in _class_resources(c, nivel, ruleset=ruleset):
             _rs = _slug(r.nome)
             if 'bonus' in _rs and 'proficiencia' in _rs:
                 continue  # PB é calculado pelo NÍVEL TOTAL do personagem, não é recurso de classe
-            chave = f'{c.id_classe.nome}: {r.nome}'
+            chave = f'{r.id_classe.nome}: {r.nome}'
             vj = r.valores_json or {}
             if vj:
                 val = (max_overrides or {}).get(
@@ -857,15 +899,13 @@ def _recursos(classes, formula_ctx=None, max_overrides=None):
                     recursos[chave] = val
             elif r.nivel is not None and r.nivel <= nivel and not _vazio(r.valor):
                 if r.nome not in legado or r.nivel > legado[r.nome][0]:
-                    legado[r.nome] = (r.nivel, r.valor)
-        for nome, (_lv, val) in legado.items():
-            recursos[f'{c.id_classe.nome}: {nome}'] = val
+                    legado[r.nome] = (r.nivel, r.valor, r.id_classe.nome)
+        for nome, (_lv, val, class_name) in legado.items():
+            recursos[f'{class_name}: {nome}'] = val
     return recursos
 
 
-def _recursos_por_tipo(classes, formula_ctx=None, max_overrides=None):
-    from .models import TbRecursoclasse
-    from django.db.models import Q
+def _recursos_por_tipo(classes, formula_ctx=None, max_overrides=None, *, ruleset=None):
     out = {tipo: [] for tipo in RESOURCE_TIPOS}
     total_nivel = sum(int(c.nivel or 0) for c in classes)
 
@@ -875,10 +915,7 @@ def _recursos_por_tipo(classes, formula_ctx=None, max_overrides=None):
     seen = set()
     for c in classes:
         nivel = int(c.nivel or 0)
-        filtro = Q(id_classe=c.id_classe, id_subclasse__isnull=True)
-        if _subclass_unlocked(c, nivel):
-            filtro |= Q(id_subclasse=c.id_subclasse)
-        for r in TbRecursoclasse.objects.filter(filtro):
+        for r in _class_resources(c, nivel, ruleset=ruleset):
             _rs = _slug(r.nome)
             if 'bonus' in _rs and 'proficiencia' in _rs:
                 continue
@@ -895,8 +932,8 @@ def _recursos_por_tipo(classes, formula_ctx=None, max_overrides=None):
             out.setdefault(tipo, []).append({
                 'slug': r.slug,
                 'nome': r.nome,
-                'classe': c.id_classe.nome,
-                'subclasse': c.id_subclasse.nome if r.id_subclasse_id and c.id_subclasse_id else None,
+                'classe': r.id_classe.nome,
+                'subclasse': r.id_subclasse.nome if r.id_subclasse_id else None,
                 'valor': val,
                 'tipo': tipo,
                 'reset': r.reset or '',
@@ -914,13 +951,13 @@ def _resource_max_at(r, nivel, total_nivel=None, formula_ctx=None):
         return int(m.group(1)) if m else None
 
 
-def _recursos_consumiveis(personagem, classes, formula_ctx=None, max_overrides=None):
+def _recursos_consumiveis(personagem, classes, formula_ctx=None, max_overrides=None, *, ruleset=None):
     """Recursos CONSUMIVEIS (TbRecursoclasse tipo=consumable) com maximo numerico,
     mesclados com o uso atual (TbPersonagemRecurso). Para o tracker usar/recuperar da ficha."""
-    from .models import TbRecursoclasse
-    from django.db.models import Q
     if personagem is None:
         return []
+    if ruleset is not None and (formula_ctx is None or max_overrides is None):
+        raise ValueError('Versioned resources require an explicit resolved formula context and overrides.')
     if formula_ctx is None or max_overrides is None:
         computed_ctx, features = _resource_formula_context(personagem, classes)
         formula_ctx = formula_ctx or computed_ctx
@@ -932,10 +969,7 @@ def _recursos_consumiveis(personagem, classes, formula_ctx=None, max_overrides=N
     total_nivel = sum(int(c.nivel or 0) for c in classes)
     for c in classes:
         nivel = int(c.nivel or 0)
-        filtro = Q(id_classe=c.id_classe, id_subclasse__isnull=True)
-        if _subclass_unlocked(c, nivel):
-            filtro |= Q(id_subclasse=c.id_subclasse)
-        for r in TbRecursoclasse.objects.filter(filtro):
+        for r in _class_resources(c, nivel, ruleset=ruleset):
             if _resource_tipo(r) != RESOURCE_TIPO_CONSUMABLE:
                 continue
             mx = (max_overrides or {}).get(_resource_key(r.slug or r.nome))
@@ -949,14 +983,14 @@ def _recursos_consumiveis(personagem, classes, formula_ctx=None, max_overrides=N
                 _resource_key(r.slug or r.nome))
             pr = atuais_chave.get(chave) or atuais_nome.get(r.nome)
             atual = min(pr.atual, mx) if pr else mx
-            out.append({'slug': r.slug, 'nome': r.nome, 'classe': c.id_classe.nome,
+            out.append({'slug': r.slug, 'nome': r.nome, 'classe': r.id_classe.nome,
                         'maximo': mx, 'atual': atual, 'reset': r.reset or 'manual',
                         'db_chave': chave, 'db_nome': r.nome,
-                        'origem': 'classe:%s' % c.id_classe.slug})
+                        'origem': 'classe:%s' % r.id_classe.slug})
     return out
 
 
-def _maestrias_armas(personagem):
+def _maestrias_armas(personagem, *, ruleset=None):
     """Maestria de Arma em DOIS NÍVEIS: por slot escolhe-se a ARMA e UMA maestria DELA. Cada
     slot (TbPersonagemEscolha tipo='maestria', valor='<arma>|<maestria>') concede SÓ a maestria
     escolhida daquela arma (no ataque é a que aparece). Linhas LEGADAS só-arma (sem `|`) ficam
@@ -968,18 +1002,41 @@ def _maestrias_armas(personagem):
     if personagem is None:
         return []
     picks = list(personagem.escolhas.filter(tipo='maestria').order_by('slot'))
+    if ruleset is not None and getattr(personagem, 'pk', None):
+        from .models import TbPersonagemCacador
+        picks += list(personagem.escolhas.filter(tipo='hunter-mastery',
+            origem__in=['hunter:%s:mastery' % pk for pk in
+                TbPersonagemCacador.objects.filter(personagem_classe__id_personagem=personagem,
+                    ruleset=ruleset).values_list('pk', flat=True)]).order_by('slot'))
     if not picks:
         return []
     # As tags `maestrias{...}` das armas (AUTORIDADE do projeto) usam '_' (minar_sap); o
     # catálogo TbOpcaojogo usa '-' (minar-sap). Normaliza '_'→'-' NO LOOKUP p/ resolver
     # nome/efeito — sem reescrever as referências das armas.
-    mast = {normalize_slug(o.slug): o for o in TbOpcaojogo.objects.filter(tipo='Maestria de Arma')}
+    weapons = None
+    if ruleset is not None:
+        from .versioned_items import item_catalog
+        from .versioned_options import VersionedOptions
+        options = [TbOpcaojogo(**row) for row in VersionedOptions(ruleset).data['options']
+                   if row['tipo'] == 'Maestria de Arma']
+        weapons = [w for w in item_catalog(ruleset, 'mundane-item-catalog', TbItemMundano).values()
+                   if w.categoria == 'arma']
+    else:
+        options = TbOpcaojogo.objects.filter(tipo='Maestria de Arma')
+    mast = {normalize_slug(o.slug): o for o in options}
     out = []
     for e in picks:
         arma_slug, maestria_slug = split_arma_maestria(e.valor)
-        arma = (TbItemMundano.objects.filter(categoria='arma', slug=arma_slug).first()
-                or TbItemMundano.objects.filter(categoria='arma', slug='arma-%s' % _slug(arma_slug)).first()
-                or TbItemMundano.objects.filter(categoria='arma', nome__iexact=arma_slug).first())
+        if weapons is None:
+            arma = (TbItemMundano.objects.filter(categoria='arma', slug=arma_slug).first()
+                    or TbItemMundano.objects.filter(categoria='arma', slug='arma-%s' % _slug(arma_slug)).first()
+                    or TbItemMundano.objects.filter(categoria='arma', nome__iexact=arma_slug).first())
+        else:
+            arma = (next((w for w in weapons if w.slug == arma_slug), None)
+                    or next((w for w in weapons if w.slug == 'arma-%s' % _slug(arma_slug)), None)
+                    or next((w for w in weapons if w.nome.lower() == arma_slug.lower()), None))
+            if arma is None:
+                raise ValueError('Mastery weapon absent from pinned ruleset.')
         if not arma:
             out.append({'arma': arma_slug, 'encontrada': False, 'maestrias': [],
                         'maestria': None, 'maestria_pendente': False, 'maestrias_disponiveis': []})
@@ -987,6 +1044,8 @@ def _maestrias_armas(personagem):
         disp = []
         for s in weapon_mastery_slugs(arma):
             o = mast.get(normalize_slug(s))               # 's' cru (autoridade); lookup normalizado
+            if ruleset is not None and o is None:
+                raise ValueError('Weapon mastery absent from pinned ruleset.')
             disp.append({'slug': s, 'nome': o.nome if o else s,
                          'efeito': (o.descricao if o else '') or ''})
         escolhida = next((m for m in disp if m['slug'] == maestria_slug), None)
@@ -1036,14 +1095,19 @@ def _item_magico_equipavel(magico):
     return _slots.slot_e_vestivel(getattr(magico, 'slot', '') or '')
 
 
-def _inventario(personagem):
+def _inventario(personagem, *, ruleset=None):
     """Itens do personagem (TbPersonagemItem) com estado de equipado. Item POSSUÍDO mas
     NÃO equipado não concede benefícios (armadura guardada = sem CA; idem itens mágicos)."""
     if personagem is None:
         return []
     out = []
-    for it in personagem.inventario.select_related(
-            'id_item_magico', 'id_item_mundano').all().order_by('-equipado', 'nome'):
+    inventory = personagem.inventario.all().order_by('-equipado', 'nome')
+    if ruleset is not None:
+        from .versioned_items import resolved_inventory
+        inventory = resolved_inventory(ruleset, inventory)
+    else:
+        inventory = inventory.select_related('id_item_magico', 'id_item_mundano')
+    for it in inventory:
         magico = it.id_item_magico
         cons = _item_consumivel_meta(it, magico)
         _mec_inv = mecanica_de_tags(it.tags_json)
@@ -1072,11 +1136,14 @@ def _inventario(personagem):
     return out
 
 
-def _features_de_itens(personagem):
+def _features_de_itens(personagem, *, ruleset=None):
     """Itens mágicos EQUIPADOS (e, se exigirem, SINTONIZADOS) viram features para o
     apply_tags. Item guardado/não-sintonizado não concede efeito."""
     if personagem is None:
         return []
+    if ruleset is not None:
+        from .versioned_items import item_features
+        return item_features(ruleset, personagem.inventario.all())
     feats = []
     for it in personagem.inventario.select_related('id_item_magico').all():
         magico = it.id_item_magico
@@ -1089,12 +1156,19 @@ def _features_de_itens(personagem):
     return feats
 
 
-def _features_de_opcoes(personagem):
+def _features_de_opcoes(personagem, *, ruleset=None):
     """Opções de jogo ESCOLHIDAS (TbPersonagemEscolha → TbOpcaojogo) viram features p/
     aplicar os efeitos PASSIVOS da opção (ex.: Estilo de Luta dá bônus passivo). Liga pelo
     `id_opcao` ou, em escolhas antigas sem vínculo, pelo `valor`=slug. classlvl=None."""
     if personagem is None:
         return []
+    if ruleset is not None:
+        from .versioned_options import VersionedOptions
+        from .hunter_styles import features as hunter_style_features
+        choices = list(personagem.escolhas.all())
+        ordinary = [c for c in choices if getattr(c, 'tipo', '') != 'hunter-style']
+        return (VersionedOptions(ruleset).selected_features(ordinary)
+                + (hunter_style_features(personagem, ruleset) if len(ordinary) != len(choices) else []))
     from .models import TbOpcaojogo
     feats, por_slug = [], None
     for e in personagem.escolhas.select_related('id_opcao').all():
@@ -1108,7 +1182,7 @@ def _features_de_opcoes(personagem):
     return feats
 
 
-def _features_do_personagem(personagem, classes=None):
+def _features_do_personagem(personagem, classes=None, *, ruleset=None):
     """TODAS as features que alimentam o motor, na ordem canônica: classe/subclasse,
     traços raciais, antecedente, talentos, itens e as opções escolhidas. FONTE ÚNICA —
     o `derive` e os leitores parciais (magias concedidas, grants fixos, proficiência de
@@ -1118,9 +1192,12 @@ def _features_do_personagem(personagem, classes=None):
     if classes is None:
         classes = list(personagem.classes.select_related('id_classe', 'id_subclasse')
                        .order_by('-principal', 'id'))
-    return (_features_de_classe(classes) + _tracos_raciais(personagem)
-            + _antecedente(personagem) + _talentos(personagem)
-            + _features_de_itens(personagem) + _features_de_opcoes(personagem))
+    return (_features_de_classe(classes, ruleset=ruleset)
+            + _tracos_raciais(personagem, ruleset=ruleset)
+            + _antecedente(personagem, ruleset=ruleset)
+            + _talentos(personagem, ruleset=ruleset)
+            + _features_de_itens(personagem, ruleset=ruleset)
+            + _features_de_opcoes(personagem, ruleset=ruleset))
 
 
 # ---------------------------------------------------------------------------
@@ -1252,7 +1329,7 @@ def _ctx_de_proficiencia(personagem, nivel_total):
     return _build_ctx(nivel_total, bonus_proficiencia(nivel_total), atributos)
 
 
-def weapon_proficiency_matchers(personagem=None, classe=None, sources=()):
+def weapon_proficiency_matchers(personagem=None, classe=None, sources=(), *, ruleset=None):
     """Matchers de proficiência de ARMA. Dois modos, a MESMA leitura:
 
       * `personagem`: categorias de `_proficiencias_classe` (classe + multiclasse, o
@@ -1265,12 +1342,15 @@ def weapon_proficiency_matchers(personagem=None, classe=None, sources=()):
     if personagem is not None:
         classes = list(personagem.classes.select_related('id_classe', 'id_subclasse')
                        .order_by('-principal', 'id'))
+        if ruleset is not None:
+            from .versioned_classes import resolved_classes
+            classes = resolved_classes(ruleset, classes)
         pc = _proficiencias_classe(classes)
         for rotulo in (pc['classe_armas'] + pc['multiclasse_armas']):
             m = _weapon_matcher([rotulo])
             if m:
                 matchers.append(m)
-        features = _features_do_personagem(personagem, classes) + features
+        features = _features_do_personagem(personagem, classes, ruleset=ruleset) + features
         nivel_total = (sum(int(c.nivel or 0) for c in classes)
                        or int(personagem.nivel or 1))
         ctx = _ctx_de_proficiencia(personagem, nivel_total)
@@ -1311,15 +1391,28 @@ def weapon_allowed(matchers, subcategoria, slug='', nome='', propriedades=()):
     return False
 
 
-def _magias_personagem(personagem):
+def _magias_personagem(personagem, *, ruleset=None):
     """Magias conhecidas/preparadas (TbPersonagemMagia) agrupadas por nível, p/ a ficha."""
     if personagem is None:
         return []
+    catalog = None
+    if ruleset is not None:
+        from .versioned_spells import spell_catalog
+        catalog = spell_catalog(ruleset)
     out = []
-    for mg in personagem.magias.select_related('id_magia').order_by('nivel', 'nome'):
+    rows = personagem.magias.all() if catalog is not None else personagem.magias.select_related('id_magia')
+    for mg in rows.order_by('nivel', 'nome'):
+        # An acquired spell may outlive its eligibility in a newer revision.
+        # Keep its character-owned record visible; casting/preparation consumers
+        # still validate against the pinned catalog before allowing use.
+        suspended = catalog is not None and mg.id_magia_id not in catalog
+        source = catalog.get(mg.id_magia_id) if catalog is not None else mg.id_magia
         out.append({'nivel': mg.nivel, 'nome': mg.nome,
-                    'nome_ingles': getattr(mg.id_magia, 'nome_ingles', '') or '',
-                    'escola': getattr(mg.id_magia, 'escola', '') or '', 'preparada': mg.preparada})
+                    'nome_ingles': getattr(source, 'nome_ingles', '') or '',
+                    'escola': getattr(source, 'escola', '') or '',
+                    'preparada': mg.preparada and not suspended,
+                    'preparada_legada': mg.preparada and suspended,
+                    'suspensa_na_revisao': suspended})
     return out
 
 
@@ -1357,8 +1450,9 @@ def _spell_class_scope_map():
         return {}
 
 
-def spell_scope_names(scopes):
-    scope_map = _spell_class_scope_map()
+def spell_scope_names(scopes, scope_map=None):
+    if scope_map is None:
+        scope_map = _spell_class_scope_map()
     out = []
     for scope in scopes:
         nome = scope_map.get(str(scope).strip().lower())
@@ -1487,7 +1581,7 @@ def _resolve_ability_choice_refs(text, feature_choices):
 
 def _grants_de_tag(
         tag, escolhas, catalog, nivel_total, casts_selection=False,
-        feature_choices=None):
+        feature_choices=None, class_scopes=None):
     """(fixas, escolha, reservado) de UMA tag. fixas=[(slug,nivel)] (magia específica garantida);
     escolha=None | dict normalizado:
       {'opcoes':[slug], 'qtd':K, 'rotulo':str}                 (lista concreta de opções)
@@ -1509,6 +1603,9 @@ def _grants_de_tag(
     Artífice, Tocado pelo X: "você aprende 1 magia…"). O escopo `any` gera pool SEM filtro de
     classe; `escola:{A | B}` vira CONJUNTO de escolas."""
     s = _resolve_ability_choice_refs(tag, feature_choices)
+    # Seleciona o ramo externo antes de interpretar as concessões, preservando
+    # os menus internos de spell_selection para seus leitores específicos.
+    s = _resolve_match(s, escolhas, outer_only=True)
 
     def _cat(sl):
         """PONTE DE SLUG _↔- contra o catálogo hifenado. As tags (formato do fixture que o
@@ -1575,7 +1672,7 @@ def _grants_de_tag(
         # (d) escolha qtd:K de uma classe / união de classes / `any` (sem filtro de classe)
         qtd = _qtd_de(body, nivel_total)
         classes = None
-        scope_map = _spell_class_scope_map()
+        scope_map = _spell_class_scope_map() if class_scopes is None else class_scopes
         if scope == 'any':
             classes = []          # pool SEM filtro de classe (Adepto das Vestes/Tocado pelo X)
         elif scope in scope_map:
@@ -1583,14 +1680,14 @@ def _grants_de_tag(
         elif scope == 'pick':
             lm = re.search(r'lista\s*:\s*\{([^{}]*)\}', scope_extra)
             if lm:
-                classes = spell_scope_names(c.strip() for c in re.split(r'[|,]', lm.group(1)))
+                classes = spell_scope_names((c.strip() for c in re.split(r'[|,]', lm.group(1))), scope_map)
             else:
                 rm = re.search(r'lista\s*:\s*match\(([a-z0-9_:-]+)\)\s*(\{.*)', scope_extra)
                 if rm:
                     var = rm.group(1).split(':')[-1]
                     cl = _resolve_match('match(%s)%s' % (var, rm.group(2)),
                                         {var: escolhas.get(var)}).strip()
-                    classes = spell_scope_names([cl])
+                    classes = spell_scope_names([cl], scope_map)
         # `any` gera pool aberto (classes=[]); os demais escopos precisam resolver p/ pelo menos
         # uma classe — pick não resolvido / self-ref `spell_selection.lista` continuam ignorados.
         if scope != 'any' and not classes:
@@ -1711,7 +1808,7 @@ def _teto_nivel_conjuravel(personagem):
     return teto
 
 
-def _spell_mod(classes, atributos):
+def _spell_mod(classes, atributos, *, ruleset=None):
     """Modificador da habilidade de conjuração (`spellcasting{ability:X}`) do personagem,
     p/ resolver fórmulas passivas que citam `spell_mod` (ex.: Caçador/Instinto Afiado
     `str_save:+max(1, spell_mod)`). Se a classe oferece escolha (`ability:int|wis`), usa o
@@ -1725,8 +1822,10 @@ def _spell_mod(classes, atributos):
         if cl is None:
             continue
         nivel = int(c.nivel or 1)
-        subclass = c.id_subclasse if _subclass_unlocked(c, nivel) else None
-        contract = class_spellcasting_contract(cl, level=nivel, subclass=subclass)
+        subclass = c.id_subclasse
+        if ruleset is None and not _subclass_unlocked(c, nivel):
+            subclass = None
+        contract = class_spellcasting_contract(cl, level=nivel, subclass=subclass, ruleset=ruleset)
         if not contract:
             continue
         mods = []
@@ -1740,7 +1839,7 @@ def _spell_mod(classes, atributos):
     return best or 0
 
 
-def magias_concedidas(personagem):
+def magias_concedidas(personagem, *, ruleset=None):
     """Todas as magias ESPECÍFICAS concedidas à lista de magias por features ATIVAS do
     personagem (Essência/vertente, talentos pegos — Marcas, Juramento das Três Luas… —,
     classe/subclasse, antecedente, itens, opções). Itera a MESMA lista de features de
@@ -1755,11 +1854,18 @@ def magias_concedidas(personagem):
     from .models import TbMagia, TbPersonagemEscolha
     classes = list(personagem.classes.select_related('id_classe', 'id_subclasse').order_by('-principal', 'id'))
     nivel_total = sum(int(c.nivel or 0) for c in classes) or int(personagem.nivel or 1)
-    features = _features_do_personagem(personagem, classes)
+    features = _features_do_personagem(personagem, classes, ruleset=ruleset)
     escolhas, _listas = _collect_escolhas(personagem, features)
     catalog, catalog_rich = {}, {}
-    for sl, nv, esc, cl, concentration in TbMagia.objects.values_list(
-            'slug', 'nivel', 'escola', 'classes', 'concentracao'):
+    class_scopes = None
+    if ruleset is not None:
+        from .versioned_spells import spell_catalog, spell_scopes
+        class_scopes = spell_scopes(ruleset)
+        spells = [(m.slug, m.nivel, m.escola, m.classes, m.concentracao)
+                  for m in spell_catalog(ruleset).values()]
+    else:
+        spells = TbMagia.objects.values_list('slug', 'nivel', 'escola', 'classes', 'concentracao')
+    for sl, nv, esc, cl, concentration in spells:
         catalog[sl] = nv
         catalog_rich[sl] = (nv, _norm_escola(esc),
                             {x.strip() for x in (cl or '').split(',') if x.strip()},
@@ -1774,6 +1880,12 @@ def magias_concedidas(personagem):
         escolhidos.setdefault((e.origem or '', e.slot), set()).update(
             x for x in (e.valor or '').split(',') if x)
     seen, ordem = set(), {}
+    if ruleset is not None:
+        from .hunter_spells import granted_spells
+        for grant in granted_spells(personagem, ruleset):
+            if grant['slug'] not in seen:
+                seen.add(grant['slug'])
+                out['concedidas'].append(grant)
     for (_o, _f, obj, _cl) in features:
         fonte = getattr(obj, 'nome', '') or ''
         feat_tags = getattr(obj, 'tags_json', None) or []
@@ -1785,7 +1897,7 @@ def magias_concedidas(personagem):
         for tag in feat_tags:
             fixas, escolha, _reserved = _grants_de_tag(
                 tag, escolhas, catalog, nivel_total, casts_selection,
-                feature_choices=feature_choices)
+                feature_choices=feature_choices, class_scopes=class_scopes)
             for slug, nivel in fixas:
                 if slug not in seen:
                     seen.add(slug)
@@ -1829,7 +1941,7 @@ def _ref_slug(s):
     return (s or '').strip().replace('_', '-')
 
 
-def grants_fixos(personagem):
+def grants_fixos(personagem, *, ruleset=None):
     """Concessões FIXAS (sem pick) das features ativas do personagem — o análogo de
     `magias_concedidas` para opções de jogo e talentos:
       grant:opcao:<tipo>:<slug>(mods)       uma opção específica (metamagia/manobra…)
@@ -1848,9 +1960,17 @@ def grants_fixos(personagem):
     from .models import TbOpcaojogo, TbTalento
     classes = list(personagem.classes.select_related('id_classe', 'id_subclasse').order_by('-principal', 'id'))
     nivel_total = sum(int(c.nivel or 0) for c in classes) or int(personagem.nivel or 1)
-    features = _features_do_personagem(personagem, classes)
-    op_por_slug = {_ref_slug(o.slug): o for o in TbOpcaojogo.objects.all()}
-    tal_por_slug = {_ref_slug(t.slug): t for t in TbTalento.objects.all() if t.slug}
+    features = _features_do_personagem(personagem, classes, ruleset=ruleset)
+    if ruleset is not None:
+        from .versioned_options import VersionedOptions
+        from .versioned_origins import VersionedOrigins
+        options = [TbOpcaojogo(**row) for row in VersionedOptions(ruleset).data['options']]
+        talents = VersionedOrigins(ruleset).objects(TbTalento)
+    else:
+        options = TbOpcaojogo.objects.all()
+        talents = TbTalento.objects.all()
+    op_por_slug = {_ref_slug(o.slug): o for o in options}
+    tal_por_slug = {_ref_slug(t.slug): t for t in talents if t.slug}
     seen_op, seen_tal = set(), set()
     for (_o, _f, obj, _cl) in features:
         fonte = getattr(obj, 'nome', '') or ''
@@ -1866,6 +1986,8 @@ def grants_fixos(personagem):
                         grants.append((lm.group(1), sl))
             for tipo, slug in grants:
                 op = op_por_slug.get(_ref_slug(slug))
+                if op is None and ruleset is not None:
+                    raise ValueError('Granted option absent from pinned ruleset: %s' % slug)
                 if not op or op.slug in seen_op:
                     continue
                 seen_op.add(op.slug)
@@ -1874,6 +1996,8 @@ def grants_fixos(personagem):
             for tm in _GRANT_TALENTO_RE.finditer(s):
                 no_asi = bool(re.search(r'without\s*\{\s*asi\b', tm.group(2) or ''))
                 t = tal_por_slug.get(_ref_slug(tm.group(1)))
+                if t is None and ruleset is not None:
+                    raise ValueError('Granted talent absent from pinned ruleset: %s' % tm.group(1))
                 if not t or t.slug in seen_tal:
                     continue
                 seen_tal.add(t.slug)
@@ -1981,14 +2105,20 @@ def _ramo(inner, escolhido):
     return _NO_BRANCH
 
 
-def _resolve_match(text, escolhas):
+def _resolve_match(text, escolhas, *, outer_only=False):
     """Substitui match(var){…} pelo ramo escolhido (ou 'default'); recursivo. Aceita a
     forma `match(pick:<var>){…}` (usada nas sub-escolhas de essência, ex.: Nephilim
     `resist:match(pick:energia){lumen:radiante, umbra:necrotico}`) — o `pick:` é só um
-    prefixo de referência; a variável é a mesma chave de `escolhas`."""
+    prefixo de referência; a variável é a mesma chave de `escolhas`.
+    `outer_only` preserva matches dentro de blocos e operandos como
+    `spell_selection:match(...)` para o leitor de concessões."""
     out = text
     for _ in range(40):
-        m = re.search(r'match\((?:pick:)?([a-z0-9_]+)\)\s*\{', out)
+        candidates = re.finditer(r'match\((?:pick:)?([a-z0-9_]+)\)\s*\{', out)
+        m = next((candidate for candidate in candidates if not outer_only or (
+            out[:candidate.start()].count('{') == out[:candidate.start()].count('}')
+            and (candidate.start() == 0 or out[candidate.start() - 1] in ' ,\n\t')
+        )), None)
         if not m:
             break
         var, bo = m.group(1), m.end() - 1
@@ -2373,9 +2503,12 @@ def _collect_escolhas(personagem, features):
     return escolhas, listas
 
 
-def _cond_nomes():
+def _cond_nomes(*, ruleset=None):
     """slug -> nome PT das condições (TbCondicao), p/ exibir imunidades legíveis."""
     from .models import TbCondicao
+    if ruleset is not None:
+        from .versioned_conditions import condition_names
+        return condition_names(ruleset)
     return {c.slug: c.nome for c in TbCondicao.objects.all()}
 
 
@@ -2393,15 +2526,20 @@ def _tags_mecanicas_item(it):
     return tags
 
 
-def _armadura_equipada(personagem, dex_mod):
+def _armadura_equipada(personagem, dex_mod, *, ruleset=None):
     """CA derivada de armadura/escudo equipados, lida das tags do item (mecanica_de_tags).
     Considera itens MUNDANOS (snapshot) e MÁGICOS (tags do catálogo). Escudos NÃO
     empilham (regra 5e): com mais de um escudo equipado, só o de maior bônus conta."""
     tem_arm = tem_esc = False
     ca_arm, fonte = None, None
     esc_bonus = 0
-    for it in personagem.inventario.filter(equipado=True).select_related(
-            'id_item_magico', 'id_item_mundano'):
+    inventory = personagem.inventario.filter(equipado=True)
+    if ruleset is not None:
+        from .versioned_items import resolved_inventory
+        inventory = resolved_inventory(ruleset, inventory)
+    else:
+        inventory = inventory.select_related('id_item_magico', 'id_item_mundano')
+    for it in inventory:
         if it.id_item_magico and not _item_magico_equipavel(it.id_item_magico):
             continue
         magico = it.id_item_magico
@@ -2712,7 +2850,15 @@ def _dsl_static_adapter(operations, ctx, feature_name, coll, hp_bonus, ca_cands,
     return consumed, speed_delta
 
 
-def apply_tags(state, features, personagem=None, escolhas=None):
+def apply_tags(state, features, personagem=None, escolhas=None, *, ruleset=None):
+    if ruleset is not None:
+        from .versioned_library import ruleset_evaluation
+        with ruleset_evaluation(ruleset):
+            return _apply_tags(state, features, personagem, escolhas, ruleset=ruleset)
+    return _apply_tags(state, features, personagem, escolhas)
+
+
+def _apply_tags(state, features, personagem=None, escolhas=None, *, ruleset=None):
     """Interpreta as tags_json e aplica os efeitos passivos.
 
     O parser/evaluator generico produz a representacao canonica em ``tag_dsl``.
@@ -2745,10 +2891,10 @@ def apply_tags(state, features, personagem=None, escolhas=None):
     unarmed_cond_bumps = []
     unarmed_die_base = None
     brutas = []
-    talent_attrs = _talent_attr_map(personagem)
+    talent_attrs = _talent_attr_map(personagem, ruleset=ruleset)
     # status de armadura/escudo p/ gate de restriction{equiped{armadura|escudo}} nos
     # movimentos sem armadura (Monge: Passo Veloz / Movimento Acrobático só descalço).
-    _equip0 = _armadura_equipada(personagem, base_ctx['dex_mod']) if personagem is not None else \
+    _equip0 = _armadura_equipada(personagem, base_ctx['dex_mod'], ruleset=ruleset) if personagem is not None else \
         {'tem_armadura': False, 'tem_escudo': False}
     _armado = bool(_equip0.get('tem_armadura') or _equip0.get('tem_escudo'))
     _equipped_dsl = set()
@@ -3140,7 +3286,7 @@ def apply_tags(state, features, personagem=None, escolhas=None):
 
     # CA ciente de armadura
     dex_mod = base_ctx['dex_mod']
-    equip = _armadura_equipada(personagem, dex_mod) if personagem is not None else \
+    equip = _armadura_equipada(personagem, dex_mod, ruleset=ruleset) if personagem is not None else \
         {'tem_armadura': False, 'tem_escudo': False, 'ca_armadura': None, 'fonte': None, 'escudo_bonus': 0}
     validas = [(v, n) for (v, n, gs) in ca_cands
                if not equip['tem_armadura'] and not (gs and equip['tem_escudo'])]
@@ -3173,7 +3319,7 @@ def apply_tags(state, features, personagem=None, escolhas=None):
         if _chosen not in _PLACEHOLDERS and _chosen not in resist:
             resist.append(_chosen)
     state['resistencias'] = resist
-    _cn = _cond_nomes()
+    _cn = _cond_nomes(ruleset=ruleset)
     state['imunidades'] = imune + ['%s (condição)' % _cn.get(c, c.replace('-', ' ').capitalize()) for c in cond_imune]
     state['imunidades_condicao'] = [{'slug': c, 'nome': _cn.get(c, c.replace('-', ' ').capitalize())} for c in cond_imune]
     # Sentidos: alcance absoluto + incrementos relativos (incondicionais concedem o tipo;
@@ -3239,7 +3385,7 @@ def _mapa_maestria_por_arma(maestrias):
     return out
 
 
-def _perfil_de_uma_arma(it, mec, atributos, pb, coll, prof_armas, maest_map):
+def _perfil_de_uma_arma(it, mec, atributos, pb, coll, prof_armas, maest_map, *, weapon_grants=()):
     """Deriva UM perfil de ataque de arma equipada. Retorna (perfil_display, meta).
     Atributo: FOR; DES se à distância ou se acuidade (finesse -> maior mod entre
     FOR/DES). Acerto = mod + PB(se proficiente na categoria) + weapon.atk (genérico +
@@ -3247,7 +3393,15 @@ def _perfil_de_uma_arma(it, mec, atributos, pb, coll, prof_armas, maest_map):
     meta carrega o que o perfil off_hand (mão secundária) precisa recomputar."""
     atk_b, dmg_b = coll.get('atk_bonus') or {}, coll.get('dmg_bonus') or {}
     props = set(mec.get('propriedades') or [])
-    cat = _arma_catalogo(it.nome)
+    frozen = getattr(it, '_versioned_weapon_catalog', None)
+    if frozen is None:
+        cat = _arma_catalogo(it.nome)
+    else:
+        candidates = [w for w in frozen if w.categoria == 'arma']
+        val = _slug(it.nome)
+        cat = (next((w for w in candidates if w.slug == val), None)
+               or next((w for w in candidates if w.slug == 'arma-%s' % val), None)
+               or next((w for w in candidates if w.nome.lower() == (it.nome or '').strip().lower()), None))
     subcat = (getattr(cat, 'subcategoria', '') or '') if cat else ''
     rot_prof, is_ranged = _WEAPON_CATEGORY.get(subcat, (None, 'municao' in props))
     finesse = 'acuidade' in props
@@ -3260,6 +3414,9 @@ def _perfil_de_uma_arma(it, mec, atributos, pb, coll, prof_armas, maest_map):
     else:
         sig, mod = 'FOR', for_mod
     proficiente = bool(rot_prof) and rot_prof in (prof_armas or set())
+    if cat is not None and weapon_grants:
+        proficiente = proficiente or weapon_allowed(
+            weapon_grants, subcat, cat.slug, cat.nome, props)
     escopo = 'weapon-ranged' if is_ranged else 'weapon-melee'
     ab = _num(atk_b.get('weapon', 0)) + _num(atk_b.get(escopo, 0))
     db = _num(dmg_b.get('weapon', 0)) + _num(dmg_b.get(escopo, 0))
@@ -3282,7 +3439,7 @@ def _perfil_de_uma_arma(it, mec, atributos, pb, coll, prof_armas, maest_map):
     return perfil, meta
 
 
-def _perfis_de_armas(personagem, atributos, pb, coll, prof_armas, maestrias):
+def _perfis_de_armas(personagem, atributos, pb, coll, prof_armas, maestrias, *, ruleset=None, weapon_grants=()):
     """Perfis de ataque das ARMAS EQUIPADAS (mundanas ou mágicas com dado de arma).
     Retorna (perfis, avisos). Duas armas leves corpo a corpo -> perfil off_hand
     adicional sem mod positivo no dano (regra 5e), salvo Combate com Duas Armas."""
@@ -3290,7 +3447,12 @@ def _perfis_de_armas(personagem, atributos, pb, coll, prof_armas, maestrias):
         return [], []
     maest_map = _mapa_maestria_por_arma(maestrias)
     perfis, avisos, leves = [], [], []
-    for it in personagem.inventario.select_related('id_item_magico').all():
+    if ruleset is not None:
+        from .versioned_items import resolved_inventory
+        inventory = resolved_inventory(ruleset, personagem.inventario.all())
+    else:
+        inventory = personagem.inventario.select_related('id_item_magico').all()
+    for it in inventory:
         if not it.equipado:
             continue
         tags = list(it.tags_json or [])
@@ -3302,7 +3464,7 @@ def _perfis_de_armas(personagem, atributos, pb, coll, prof_armas, maestrias):
         mec = mecanica_de_tags(tags)
         if not mec.get('dano_dado'):
             continue  # não é arma (escudo/armadura/maravilhoso/consumível)
-        perfil, meta = _perfil_de_uma_arma(it, mec, atributos, pb, coll, prof_armas, maest_map)
+        perfil, meta = _perfil_de_uma_arma(it, mec, atributos, pb, coll, prof_armas, maest_map, weapon_grants=weapon_grants)
         if meta['cat_desconhecida']:
             avisos.append('%s: categoria de arma não identificada no catálogo' % it.nome)
         perfis.append(perfil)
@@ -3352,7 +3514,7 @@ def _pick_trocavel_no_descanso(source, kind):
         re.search(r'\b(?:swap|reset)\s*:\s*long_rest\b', tag) for tag in tags)
 
 
-def _ataques(coll, atributos, pb, recursos=None, personagem=None, prof_armas=None, maestrias=None):
+def _ataques(coll, atributos, pb, recursos=None, personagem=None, prof_armas=None, maestrias=None, *, ruleset=None, weapon_grants=()):
     recursos = recursos or {}
     atk_bonus = coll.get('atk_bonus') or {}
     dmg_bonus = coll.get('dmg_bonus') or {}
@@ -3380,7 +3542,7 @@ def _ataques(coll, atributos, pb, recursos=None, personagem=None, prof_armas=Non
                        'maestria': '', 'nota': ''})
     # Perfis das ARMAS do inventário equipado (consome weapon.atk/weapon.dmg +
     # os Estilos de Luta melee/ranged/off_hand, e mostra as maestrias da arma).
-    perfis_arma, avisos = _perfis_de_armas(personagem, atributos, pb, coll, prof_armas, maestrias)
+    perfis_arma, avisos = _perfis_de_armas(personagem, atributos, pb, coll, prof_armas, maestrias, ruleset=ruleset, weapon_grants=weapon_grants)
     perfis += perfis_arma
     return {'quantidade': coll['n_ataques'] or 1, 'perfis': perfis, 'avisos': avisos + sanit_avisos}
 
@@ -3589,7 +3751,15 @@ def _apply_attr_asi(features, escolhas, atributos):
             atributos[sig].setdefault('breakdown', []).append({'origem': 'teto %d' % cap, 'valor': ajuste})
 
 
-def derive(personagem):
+def derive(personagem, *, ruleset=None):
+    if ruleset is not None:
+        from .versioned_library import ruleset_evaluation
+        with ruleset_evaluation(ruleset):
+            return _derive(personagem, ruleset=ruleset)
+    return _derive(personagem)
+
+
+def _derive(personagem, *, ruleset=None):
     """Deriva o estado completo (estrutural + tags passivas) de um TbPersonagem."""
     avisos = []
 
@@ -3606,26 +3776,38 @@ def derive(personagem):
                             'breakdown': [{'origem': o, 'valor': v} for o, v in fontes]}
 
     # 2. Classes / nível / features (inclui antecedente)
-    classes = list(personagem.classes.select_related('id_classe', 'id_subclasse').order_by('-principal', 'id'))
+    class_rows = personagem.classes.all()
+    if ruleset is None:
+        class_rows = class_rows.select_related('id_classe', 'id_subclasse')
+    classes = list(class_rows.order_by('-principal', 'id'))
+    if ruleset is not None:
+        from .versioned_classes import resolved_classes
+        classes = resolved_classes(ruleset, classes)
+    background = personagem.id_antecedente if ruleset is None and personagem.id_antecedente_id else None
+    if ruleset is not None and personagem.id_antecedente_id:
+        from .versioned_origins import VersionedOrigins
+        background = VersionedOrigins(ruleset).background(personagem)[0][2]
     nivel_total = sum(int(c.nivel or 0) for c in classes) or int(personagem.nivel or 1)
-    features = _features_do_personagem(personagem, classes)
+    features = _features_do_personagem(personagem, classes, ruleset=ruleset)
     escolhas, listas = _collect_escolhas(personagem, features)
 
     # 3. Pré-passe de ASI passivo (tag) → mods / PB / PV / ctx
     _apply_attr_asi(features, escolhas, atributos)
+    from .hunter_mutagens import apply_attributes as apply_mutagen_attributes
+    apply_mutagen_attributes(personagem, ruleset, atributos)
     for sig in atributos:
         atributos[sig]['mod'] = modificador(atributos[sig]['valor'])
     con_mod = atributos['CON']['mod']
     pb = bonus_proficiencia(nivel_total)
     pv = _calcular_pv(personagem, classes, con_mod, avisos)
     ctx = _build_ctx(nivel_total, pb, atributos)
-    _sm = _spell_mod(classes, atributos)
+    _sm = _spell_mod(classes, atributos, ruleset=ruleset)
     ctx['spell_mod'] = _sm
     resource_max_overrides = _resource_max_overrides(features, ctx)
 
     # aviso: antecedente preenchido mas sem tags (habilidade não aplicada)
-    if personagem.id_antecedente_id and not (personagem.id_antecedente.tags_json or []):
-        avisos.append(f"Antecedente '{personagem.id_antecedente.nome}' sem tags_json — habilidade não aplicada.")
+    if personagem.id_antecedente_id and not (background.tags_json or []):
+        avisos.append(f"Antecedente '{background.nome}' sem tags_json — habilidade não aplicada.")
 
     state = {
         '_ctx': ctx,
@@ -3645,13 +3827,13 @@ def derive(personagem):
                       'nivel': getattr(obj, 'niveladquirido', getattr(obj, 'nivel_requisito', None)),
                       'descricao': (getattr(obj, 'descricao', '') or getattr(obj, 'descricao_markdown', '') or '')}
                      for (o, f, obj, _cl) in features if not getattr(obj, 'table_only', False)],
-        'recursos': _recursos(classes, ctx, resource_max_overrides),
+        'recursos': _recursos(classes, ctx, resource_max_overrides, ruleset=ruleset),
         'recursos_estruturados': [],
-        'recursos_por_tipo': _recursos_por_tipo(classes, ctx, resource_max_overrides),
-        'maestrias_armas': _maestrias_armas(personagem),
-        'magias': _magias_personagem(personagem),
-        'inventario': _inventario(personagem),
-        'grants_antecedente': background_grants(personagem.id_antecedente) if personagem.id_antecedente_id else None,
+        'recursos_por_tipo': _recursos_por_tipo(classes, ctx, resource_max_overrides, ruleset=ruleset),
+        'maestrias_armas': _maestrias_armas(personagem, ruleset=ruleset),
+        'magias': _magias_personagem(personagem, ruleset=ruleset),
+        'inventario': _inventario(personagem, ruleset=ruleset),
+        'grants_antecedente': background_grants(background) if personagem.id_antecedente_id else None,
         'picks': listas,
         'avisos': avisos,
     }
@@ -3670,7 +3852,9 @@ def derive(personagem):
         'ouro_esperado_po': ouro_de_progressao(av),
     }
 
-    apply_tags(state, features, personagem, escolhas)
+    from .hunter_passives import filter_replaced_features
+    _apply_tags(state, filter_replaced_features(personagem, ruleset, features),
+                personagem, escolhas, ruleset=ruleset)
 
     # pós-tags
     tag = state['_tag']
@@ -3680,6 +3864,8 @@ def derive(personagem):
                                   tag['check_attr'], tag['check_bonus'],
                                   tag_skill_expertise=(tag['skill_expertise'] | _expertise_escolhidas(personagem)),
                                   check_all=tag['check_all'])
+    from .hunter_expertise import apply_expertise
+    apply_expertise(personagem, ruleset, state['pericias'], pb, state['avisos'])
     idiomas, ferramentas, outras = _proficiencias(personagem)
     state['idiomas'] = sorted(set(idiomas) | set(tag['idiomas']))
     _pc = _proficiencias_classe(classes)
@@ -3689,8 +3875,12 @@ def derive(personagem):
     # Perfil de ataque de arma precisa do conjunto de proficiências de arma (rótulos de
     # categoria da classe/multiclasse + concedidas por tag) para decidir se soma o PB.
     prof_armas = (set(_pc['classe_armas']) | set(_pc['multiclasse_armas']) | set(tag['armas']))
+    # Explicit revisions also honor specific/compound grants already resolved above.
+    # The unversioned path retains its historical category-only calculation.
+    weapon_grants = _weapon_prof_grants(features, ctx) if ruleset is not None else ()
     state['ataques'] = _ataques(tag, atributos, pb, state['recursos'], personagem,
-                                prof_armas, state.get('maestrias_armas'))
+                                prof_armas, state.get('maestrias_armas'), ruleset=ruleset,
+                                weapon_grants=weapon_grants)
     state['prof_multiclasse_armadura'] = _pc['multiclasse_armaduras']
     state['prof_multiclasse_arma'] = _pc['multiclasse_armas']
     state['prof_multiclasse_ferramenta'] = _pc['multiclasse_ferramentas']
@@ -3722,6 +3912,14 @@ def derive(personagem):
             return 0.0
     state['peso_total'] = round(sum(_peso_item(it) for it in state['inventario']), 2)
 
+    from .hunter_passives import apply as apply_hunter_passives
+    apply_hunter_passives(personagem, ruleset, state)
+    from .hunter_mutagens import apply_defenses as apply_mutagen_defenses
+    apply_mutagen_defenses(personagem, ruleset, state)
+    from .hunter_mutagens import apply_movement as apply_mutagen_movement
+    apply_mutagen_movement(personagem, ruleset, state)
+    from .hunter_mutagens import apply_checks as apply_mutagen_checks
+    apply_mutagen_checks(personagem, ruleset, state)
     state.pop('_ctx', None)
     state.pop('_tag', None)
     return state

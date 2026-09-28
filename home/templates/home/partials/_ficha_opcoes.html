@@ -70,7 +70,7 @@ POST clássico (PRG). Com JS (js/ficha_opcoes.js) o mesmo form vai por fetch e e
                   </select>
                   {% else %}
                   <select id="opt-sel-{{ g.kind }}-{{ e.id }}" name="val" class="opt-select">
-                    {% for o in g.disponiveis %}<option value="{{ o.val }}">{{ o.nome }}</option>{% endfor %}
+                    {% for o in g.disponiveis %}<option value="{{ o.val }}"{% if o.ja_proficiente %} disabled{% endif %}>{{ o.nome }}{% if o.ja_proficiente %} — já proficiente{% endif %}</option>{% endfor %}
                   </select>
                   {% endif %}
                   <button type="submit" class="opt-confirm"{% if not g.disponiveis %} disabled{% endif %}>Confirmar</button>

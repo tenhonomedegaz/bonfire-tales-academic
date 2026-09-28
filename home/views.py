@@ -3265,17 +3265,21 @@ _PROF_MENU_MARKERS = ('define{', 'list{', 'table{', 'while_active', 'while{',
                       'cast{', 'instant{', 'trigger=', 'action=')
 
 
-def _classe_pericias_fixas(classe):
+def _classe_pericias_fixas(classe, *, ruleset=None):
     """Slugs canônicos de perícia que FEATURES de nível 1 da classe concedem FIXAS (tag
     plana `prof:<skill>`, ex.: Mago/'Estudo Arcano' -> arcanismo). Bloqueio universal:
     perícia ganha pela classe não pode ser reescolhida em nenhuma lista do criador."""
     from .character_engine import _SKILL_INFO, _norm_skill_slug
     from .models import TbClassehabilidade
+    if ruleset is not None:
+        from .versioned_classes import VersionedClassCatalog
     if classe is None:
         return set()
     out = set()
-    for h in TbClassehabilidade.objects.filter(
-            id_classe=classe, id_subclasse__isnull=True, niveladquirido__lte=1):
+    sources = ([row[2] for row in VersionedClassCatalog(ruleset, classe.pk).features(1)]
+               if ruleset is not None else TbClassehabilidade.objects.filter(
+                   id_classe=classe, id_subclasse__isnull=True, niveladquirido__lte=1))
+    for h in sources:
         for tag in (h.tags_json or []):
             s = str(tag)
             if any(mk in s.lower() for mk in _PROF_MENU_MARKERS):
@@ -3328,15 +3332,18 @@ def _resource_ref_from_tag(tag):
     return m.group(1) if m else None
 
 
-def _choice_resource_limit(classe, nivel, resource_slug):
+def _choice_resource_limit(classe, nivel, resource_slug, *, ruleset=None):
     if not resource_slug:
         return None
     from .character_engine import RESOURCE_TIPO_CHOICE, _resource_max_at, _resource_tipo
     # tags referenciam o recurso com underscore (ex.: maestria_com_armas), mas o slug
     # em TbRecursoclasse é gerado com hífen (ex.: maestria-com-armas); casa as duas formas.
     alvo = resource_slug.replace('_', '-')
-    qs = TbRecursoclasse.objects.filter(id_classe=classe, id_subclasse__isnull=True)
-    todos = list(qs)
+    if ruleset is None:
+        todos = list(TbRecursoclasse.objects.filter(id_classe=classe, id_subclasse__isnull=True))
+    else:
+        from .versioned_classes import VersionedClassCatalog
+        todos = VersionedClassCatalog(ruleset, classe.pk).resources(nivel)
     exatos = [r for r in todos if (r.slug or '').replace('_', '-') == alvo]
     parciais = [r for r in todos if alvo in (r.slug or '').replace('_', '-')]
     candidatos = exatos + [r for r in parciais if r not in exatos]
@@ -3346,16 +3353,20 @@ def _choice_resource_limit(classe, nivel, resource_slug):
     return _resource_max_at(r, nivel) if r else None
 
 
-def _pick_count_for_tag(classe, nivel, expr, tag):
+def _pick_count_for_tag(classe, nivel, expr, tag, *, ruleset=None):
     val = _count_expr_for_level(expr, nivel)
     if val is not None:
         return val
     if (expr or '').strip() in ('N', '+', ''):
-        return _choice_resource_limit(classe, nivel, _resource_ref_from_tag(tag))
+        return _choice_resource_limit(classe, nivel, _resource_ref_from_tag(tag), ruleset=ruleset)
     return None
 
 
-def _classe_nv1_sources(classe):
+def _classe_nv1_sources(classe, *, ruleset=None):
+    if ruleset is not None:
+        from .versioned_classes import VersionedClassCatalog
+        catalog = VersionedClassCatalog(ruleset, classe.pk)
+        return [catalog.classe] + [row[2] for row in catalog.features(1)]
     return [classe] + list(TbClassehabilidade.objects.filter(
         id_classe=classe, id_subclasse__isnull=True, niveladquirido=1))
 
@@ -3394,24 +3405,24 @@ def _criador_armas():
     return out
 
 
-def _classe_escolhas_nv1(classe):
+def _classe_escolhas_nv1(classe, *, ruleset=None):
     from .character_engine import _SKILL_INFO, _norm_skill_slug
     estilo_n = expertise_n = 0
     expertise_fixa = []
     opcao_picks = []
-    for src in _classe_nv1_sources(classe):
+    for src in _classe_nv1_sources(classe, ruleset=ruleset):
         for tag in (getattr(src, 'tags_json', None) or []):
             text = str(tag)
             for m in _PICK_OPCAO_NV_RE.finditer(text):
                 slug, expr = m.group(1), m.group(2)
-                n = _pick_count_for_tag(classe, 1, expr, text) or 0
+                n = _pick_count_for_tag(classe, 1, expr, text, ruleset=ruleset) or 0
                 if n > 0:
                     opcao_picks.append({'slug': slug, 'n': n})
                 if slug.replace('_', '-') == 'estilo-de-luta':
                     estilo_n += n
             for m in _PICK_EXPERTISE_RE.finditer(text):
                 expr = (m.group(1) or '').strip()
-                n = _pick_count_for_tag(classe, 1, expr, text)
+                n = _pick_count_for_tag(classe, 1, expr, text, ruleset=ruleset)
                 if n is not None:
                     expertise_n += n
                 elif expr.startswith('{') and 'classlvl' not in expr:
@@ -3430,15 +3441,17 @@ def _caster_subclasse(pc):
     return pc.id_subclasse if _subclass_unlocked(pc) else None
 
 
-def _classe_spellcasting_info(classe, nivel_habilidades=1, subclasse=None):
+def _classe_spellcasting_info(classe, nivel_habilidades=1, subclasse=None, *, ruleset=None):
     from .character_engine import spell_scope_names
     from .spellcasting import class_spellcasting_contract
 
     info = class_spellcasting_contract(
-        classe, level=nivel_habilidades, subclass=subclasse)
+        classe, level=nivel_habilidades, subclass=subclasse, ruleset=ruleset)
     if not info:
         return None
-    info['lista_nomes'] = spell_scope_names(info['lista']) or [classe.nome]
+    from .versioned_spells import spell_scopes
+    scopes = spell_scopes(ruleset) if ruleset is not None else None
+    info['lista_nomes'] = spell_scope_names(info['lista'], scope_map=scopes) or [classe.nome]
     return info
 
 
@@ -3467,12 +3480,12 @@ def _max_spell_level_for_slots(nivel, slots):
     return progression_max_spell_level(nivel, slots)
 
 
-def _classe_slot_table(classe, nivel, subclasse=None):
+def _classe_slot_table(classe, nivel, subclasse=None, *, ruleset=None):
     from .spellcasting import slot_table_at
-    return slot_table_at(classe, level=nivel, subclass=subclasse)
+    return slot_table_at(classe, level=nivel, subclass=subclasse, ruleset=ruleset)
 
 
-def _class_max_spell_level(classe, nivel, spell_info, subclasse=None):
+def _class_max_spell_level(classe, nivel, spell_info, subclasse=None, *, ruleset=None):
     """Resolve o maior círculo sem inferir pelo nome da classe.
 
     Uma classe pode declarar um limite próprio (caso dos conjuradores por
@@ -3482,29 +3495,39 @@ def _class_max_spell_level(classe, nivel, spell_info, subclasse=None):
     from .spellcasting import max_spell_level_at
     return max_spell_level_at(
         spell_info, classe, level=nivel, subclass=subclasse,
-        context={'classlvl': int(nivel or 0)})
+        context={'classlvl': int(nivel or 0)}, ruleset=ruleset)
 
 
-def _full_caster_slot_source(casters):
+def _full_caster_slot_source(casters, *, ruleset=None):
     for c in casters:
         if c['info']['slots'] == 'full':
             return c['pc'].id_classe
     # Multiclasse sem uma classe full ainda usa a tabela full do sistema. A
     # fonte é descoberta pelo próprio contrato, nunca por slug de classe.
-    for classe in TbClasse.objects.all().order_by('id_classe'):
-        info = _classe_spellcasting_info(classe, nivel_habilidades=20)
-        if info and info.get('slots') == 'full' and _classe_slot_table(classe, 20):
+    if ruleset is None:
+        classes = TbClasse.objects.all().order_by('id_classe')
+    else:
+        from .models import TbRulesetContent
+        from .versioned_classes import VersionedClassCatalog
+        identities = TbRulesetContent.objects.filter(ruleset=ruleset,
+            identity__startswith='class-catalog:').values_list('identity', flat=True)
+        classes = [VersionedClassCatalog(ruleset, pk).classe
+                   for pk in sorted(int(identity.split(':', 1)[1]) for identity in identities)]
+    for classe in classes:
+        info = _classe_spellcasting_info(classe, nivel_habilidades=20, ruleset=ruleset)
+        if info and info.get('slots') == 'full' and _classe_slot_table(classe, 20, ruleset=ruleset):
             return classe
     return casters[0]['pc'].id_classe if casters else None
 
 
-def _spell_slot_totals(casters):
+def _spell_slot_totals(casters, *, ruleset=None):
     slot_casters = [c for c in casters if c['info']['slots'] in {'full', 'half', 'third'}]
     if not slot_casters:
         return {}
     if len(slot_casters) == 1:
         pc = slot_casters[0]['pc']
-        return _classe_slot_table(pc.id_classe, int(pc.nivel or 0), _caster_subclasse(pc))
+        return _classe_slot_table(pc.id_classe, int(pc.nivel or 0),
+            pc.id_subclasse if ruleset is not None else _caster_subclasse(pc), ruleset=ruleset)
     effective = 0
     for c in slot_casters:
         nivel = int(c['pc'].nivel or 0)
@@ -3515,18 +3538,30 @@ def _spell_slot_totals(casters):
             effective += nivel // 2
         elif kind == 'third':
             effective += nivel // 3
-    return _classe_slot_table(_full_caster_slot_source(slot_casters), max(1, effective))
+    return _classe_slot_table(_full_caster_slot_source(slot_casters, ruleset=ruleset),
+                             max(1, effective), ruleset=ruleset)
 
 
 def _spell_slot_rows(personagem, totals):
-    atuais = {r.nome: r for r in personagem.recursos.filter(nome__startswith='spell-slot:')}
+    import uuid
+    from .resource_commands import slot_state
+    from .resource_engine import canonical_key
+    keys = [canonical_key('spell-slot:%d' % nivel) for nivel in range(1, 10)]
+    resources = list(personagem.recursos.filter(
+        Q(chave__in=keys) | Q(chave='', nome__startswith='spell-slot:')).order_by('pk'))
+    canonical = {r.chave: r for r in resources if r.chave}
+    legacy = {}
+    for resource in resources:
+        if not resource.chave:
+            legacy.setdefault(resource.nome, resource)
     rows = []
     for nivel in range(1, 10):
         total = int(totals.get(nivel) or 0)
         key = 'spell-slot:%d' % nivel
-        pr = atuais.get(key)
-        atual = min(int(getattr(pr, 'atual', total) or 0), total) if pr else total
-        rows.append({'nivel': nivel, 'key': key, 'total': total, 'atual': max(0, atual)})
+        pr = canonical.get(canonical_key(key)) or legacy.get(key)
+        rows.append(dict(slot_state(personagem, nivel, total, pr), key=key,
+                         gastar_operation_id=str(uuid.uuid4()),
+                         desfazer_operation_id=str(uuid.uuid4())))
     return rows
 
 
@@ -3659,17 +3694,13 @@ def _resource_resets_on_rest(reset, longo):
     return reset in ('short-rest', 'short-or-long', 'rest')
 
 
-def _innate_spell_uses(personagem, ficha=None):
+def _innate_spell_uses(personagem, ficha=None, *, ruleset=None):
     """Mapeia (fonte, spell_slug) -> metadados de uso inato vindos das tags."""
-    from .character_engine import (
-        _features_de_classe, _tracos_raciais, _antecedente, _talentos,
-        _features_de_itens, _features_de_opcoes,
-    )
-    classes = list(personagem.classes.select_related('id_classe', 'id_subclasse').order_by('-principal', 'id'))
-    features = (_features_de_classe(classes) + _tracos_raciais(personagem)
-                + _antecedente(personagem) + _talentos(personagem)
-                + _features_de_itens(personagem) + _features_de_opcoes(personagem))
-    catalog = set(TbMagia.objects.values_list('slug', flat=True))
+    from .character_engine import _features_do_personagem
+    from .versioned_spells import spell_catalog
+    features = _features_do_personagem(personagem, ruleset=ruleset)
+    catalog = ({m.slug for m in spell_catalog(ruleset).values()} if ruleset is not None
+               else set(TbMagia.objects.values_list('slug', flat=True)))
     out = {}
     for (_origem, _fonte, obj, _cl) in features:
         fonte = getattr(obj, 'nome', '') or ''
@@ -3686,14 +3717,16 @@ def _innate_spell_uses(personagem, ficha=None):
                 if not meta:
                     continue
                 for slug in re.findall(r'spell:([a-z0-9-]+)', body):
+                    if ruleset is not None and slug not in catalog:
+                        raise ValueError('Innate spell absent from pinned ruleset: %s' % slug)
                     if slug in catalog:
                         out[(fonte, slug)] = meta
     return out
 
 
-def _innate_spell_labels(personagem):
+def _innate_spell_labels(personagem, *, ruleset=None):
     """Compatibilidade: (fonte, spell_slug) -> 1/day, 3/day etc."""
-    return {k: v.get('label', '') for k, v in _innate_spell_uses(personagem).items()}
+    return {k: v.get('label', '') for k, v in _innate_spell_uses(personagem, ruleset=ruleset).items()}
 
 
 def _attr_sig_from_spell_ability(ability_raw):
@@ -3731,7 +3764,7 @@ def _personagem_item_tags(item):
 
 
 def _spell_transcription_options(
-        personagem, casters, *, spells=None, access_map=None, inventory=None):
+        personagem, casters, *, spells=None, access_map=None, inventory=None, ruleset=None):
     """Pergaminhos elegíveis para contratos ``pool:spellbook``.
 
     Não há ramo por classe ou por nome de item: o contrato declara o protocolo da
@@ -3744,6 +3777,33 @@ def _spell_transcription_options(
     )
     from .spellcasting import spell_scroll_slug
 
+    frozen = None
+    if ruleset is not None:
+        if spells is not None or access_map is not None or inventory is not None:
+            raise ValueError('Pinned transcription resolves its own catalog and inventory.')
+        from .versioned_classes import resolved_classes
+        from .versioned_spells import spell_catalog, spell_scopes
+        from .versioned_items import resolved_inventory
+        from .spellcasting import character_spell_list_delta
+        frozen = spell_catalog(ruleset)
+        spells = list(frozen.values())
+        scopes = spell_scopes(ruleset)
+        delta = character_spell_list_delta(personagem, ruleset=ruleset)
+        pinned_casters = []
+        for caster in casters:
+            pc = resolved_classes(ruleset, [caster['pc']])[0]
+            info = _classe_spellcasting_info(pc.id_classe, nivel_habilidades=pc.nivel or 1,
+                subclasse=pc.id_subclasse, ruleset=ruleset)
+            if info:
+                pinned_casters.append({'pc': pc, 'info': info})
+        casters = pinned_casters
+        access_map = {}
+        for spell in spells:
+            tokens = spell.classes_slugs or re.split(r'[,;|]', spell.classes or '')
+            names = {scopes.get(str(token).strip().lower()) for token in tokens}
+            access_map[spell.pk] = [c for c in casters if spell.slug not in delta['remove']
+                and (names & set(c['info']['lista_nomes']) or spell.slug in delta['add'])]
+        inventory = resolved_inventory(ruleset, personagem.inventario.filter(qtd__gt=0))
     inventory = (list(inventory) if inventory is not None else list(
         personagem.inventario.filter(qtd__gt=0).select_related(
             'id_item_magico', 'id_item_mundano')))
@@ -3753,7 +3813,7 @@ def _spell_transcription_options(
         spell_id: {row['pc'].id_classe_id for row in rows}
         for spell_id, rows in access_map.items()
     } if access_map is not None else None)
-    focus_school_values = focus_schools(personagem)
+    focus_school_values = focus_schools(personagem, ruleset=ruleset)
     options = []
     for caster in casters:
         info = caster['info']
@@ -3761,13 +3821,20 @@ def _spell_transcription_options(
         if info.get('pool') != 'spellbook' or not transcribe:
             continue
         pc = caster['pc']
-        subclasse = _caster_subclasse(pc)
+        subclasse = pc.id_subclasse if ruleset is not None else _caster_subclasse(pc)
         max_level = _class_max_spell_level(
-            pc.id_classe, int(pc.nivel or 1), info, subclasse)
+            pc.id_classe, int(pc.nivel or 1), info, subclasse, ruleset=ruleset)
         source = transcribe.get('source') or 'spell_scroll'
-        owned = set(personagem.magias.filter(
-            origem__iexact=pc.id_classe.nome, id_magia__isnull=False
-        ).values_list('id_magia__slug', flat=True))
+        owned_rows = personagem.magias.filter(
+            origem__iexact=pc.id_classe.nome, id_magia__isnull=False)
+        if frozen is None:
+            owned = set(owned_rows.values_list('id_magia__slug', flat=True))
+        else:
+            owned = set()
+            for row in owned_rows:
+                if row.id_magia_id not in frozen:
+                    raise ValueError('Spell absent from pinned ruleset.')
+                owned.add(frozen[row.id_magia_id].slug)
         by_slug = {}
         for item in inventory:
             token = spell_scroll_slug(_personagem_item_tags(item), source=source)
@@ -3811,24 +3878,44 @@ def _spell_transcription_options(
                     'custo': _moeda_display(cost_pc),
                     'tempo_horas': terms['time_hours'],
                     'desconto_escola_foco': terms['focus_discount'],
+                    'terms': terms,
                     'pode_pagar': int(personagem.carteira_pc or 0) >= cost_pc,
                 })
     options.sort(key=lambda row: (row['classe'].casefold(), row['nivel'], row['magia_nome'].casefold()))
     return options
 
 
-def _magias_sheet_info(personagem, ficha, essencia_pendentes):
+def _magias_sheet_info(personagem, ficha, essencia_pendentes, *, ruleset=None):
+    if ruleset is not None:
+        from .versioned_library import ruleset_evaluation
+        with ruleset_evaluation(ruleset):
+            return _magias_sheet_info_resolved(personagem, ficha, essencia_pendentes, ruleset=ruleset)
+    return _magias_sheet_info_resolved(personagem, ficha, essencia_pendentes)
+
+
+def _magias_sheet_info_resolved(personagem, ficha, essencia_pendentes, *, ruleset=None):
     from .models import (
         TbMagia, TbPersonagemMagia, TbPersonagemMagiaAssinatura)
     classes = list(personagem.classes.select_related('id_classe', 'id_subclasse').order_by('-principal', 'id'))
+    from .versioned_classes import resolved_classes
+    from .versioned_spells import spell_catalog
+    frozen = spell_catalog(ruleset) if ruleset is not None else None
+    if ruleset is not None:
+        classes = resolved_classes(ruleset, classes)
+    def resolved_spell(spell):
+        if frozen is None or spell is None:
+            return spell
+        if spell.pk not in frozen:
+            raise ValueError('Spell absent from pinned ruleset.')
+        return frozen[spell.pk]
     casters = []
     for pc in classes:
         info = _classe_spellcasting_info(pc.id_classe, nivel_habilidades=int(pc.nivel or 1),
-                                         subclasse=_caster_subclasse(pc))
+                                         subclasse=pc.id_subclasse if ruleset is not None else _caster_subclasse(pc), ruleset=ruleset)
         if info:
             casters.append({'pc': pc, 'info': info})
     primary = casters[0] if casters else None
-    prepared_infos = _magias_preparadas_infos(personagem, ficha)
+    prepared_infos = _magias_preparadas_infos(personagem, ficha, ruleset=ruleset)
     prepared_by_class = {int(info['classe_id']): info for info in prepared_infos}
     pb = int(ficha.get('bonus_proficiencia') or 0)
     tag_state = ficha.get('_tag') or {}
@@ -3858,10 +3945,19 @@ def _magias_sheet_info(personagem, ficha, essencia_pendentes):
                 int(caster['pc'].id_classe_id)) or {}).get('preparadas_count', 0),
         })
     spellcasting = spellcasters[0] if spellcasters else None
-    transcricoes = _spell_transcription_options(personagem, casters)
+    transcricoes = _spell_transcription_options(personagem, casters, ruleset=ruleset)
     caster_by_origin = {caster['pc'].id_classe.nome.casefold(): caster for caster in casters}
+    # Magias concedidas mantêm a origem da habilidade para sincronização, mas
+    # pertencem à classe que a concedeu (inclusive em personagens multiclasse).
+    feature_casters = {}
+    for feature in ficha.get('features', []):
+        if feature.get('origem') != 'classe':
+            continue
+        caster = caster_by_origin.get((feature.get('fonte') or '').casefold())
+        if caster:
+            feature_casters.setdefault((feature.get('nome') or '').casefold(), []).append(caster)
 
-    innate_uses = _innate_spell_uses(personagem, ficha)
+    innate_uses = _innate_spell_uses(personagem, ficha, ruleset=ruleset)
     innate_rows = {r.nome: r for r in personagem.recursos.filter(nome__startswith=_INNATE_RESOURCE_PREFIX)}
     magias_pers = list(TbPersonagemMagia.objects.filter(id_personagem=personagem)
                        .select_related('id_magia').order_by('nivel', 'nome'))
@@ -3873,35 +3969,44 @@ def _magias_sheet_info(personagem, ficha, essencia_pendentes):
     lista = []
     seen = set()
     for m in magias_pers:
-        slug = getattr(m.id_magia, 'slug', '') or slugify(m.nome or '')
-        innate_meta = innate_uses.get((m.origem or '', slug), {}) if m.sempre_preparada else {}
+        _mag = frozen.get(m.id_magia_id) if frozen is not None else m.id_magia
+        suspended = frozen is not None and _mag is None
+        slug = getattr(_mag, 'slug', '') or slugify(m.nome or '')
+        innate_meta = innate_uses.get((m.origem or '', slug), {}) if m.sempre_preparada and not suspended else {}
         innate_label = innate_meta.get('label', '') if innate_meta else ''
         innate_max = int(innate_meta.get('maximo') or 0) if innate_meta else 0
         innate_key = _innate_resource_key(m.origem or '', slug) if innate_max > 0 else ''
         innate_row = innate_rows.get(innate_key) if innate_key else None
         innate_atual = min(int(innate_row.atual or 0), innate_max) if innate_row else innate_max
         owner_caster = caster_by_origin.get((m.origem or '').casefold())
+        if owner_caster is None and m.sempre_preparada:
+            candidates = feature_casters.get((m.origem or '').casefold(), [])
+            class_ids = {c['pc'].id_classe_id for c in candidates}
+            if len(class_ids) == 1:
+                owner_caster = candidates[0]
         if owner_caster is None and not (m.origem or ''):
             owner_caster = primary
-        known_auto = bool(owner_caster
+        known_auto = not suspended and bool(owner_caster
                           and owner_caster['info'].get('prepara') == 'conhecidas'
                           and not m.sempre_preparada)
         always_display = bool(m.sempre_preparada or known_auto)
-        _mag = m.id_magia
         owner_class_id = owner_caster['pc'].id_classe_id if owner_caster else None
         owner_origin = owner_caster['pc'].id_classe.nome if owner_caster else (m.origem or '')
-        seen.add(((owner_origin or '').casefold(), slug))
+        if not suspended:
+            seen.add(((owner_origin or '').casefold(), slug))
         row = {
             # Linhas já gravadas preservam o id histórico no DOM/JSON do card.
             # Só o catálogo virtual precisa de um namespace próprio.
             'id': m.id, 'uid': str(m.id),
             'slug': slug, 'nivel': m.nivel, 'nome': m.nome,
-            'preparada': bool(m.preparada), 'sempre_preparada': always_display,
+            'preparada': bool(m.preparada) and not suspended,
+            'sempre_preparada': always_display and not suspended,
             'known_auto': known_auto,
             'origem': owner_origin, 'classe_id': owner_class_id,
-            'pode_alternar': bool(
+            'pode_alternar': not suspended and bool(
                 owner_caster and owner_caster['info'].get('mode') == 'prepared'
                 and int(m.nivel or 0) >= 1 and not m.sempre_preparada),
+            'suspensa_na_revisao': suspended,
             'catalog_only': False,
             'innate_label': innate_label,
             'innate_key': innate_key,
@@ -3916,7 +4021,7 @@ def _magias_sheet_info(personagem, ficha, essencia_pendentes):
             removed = set(mods.get('removed_components') or ())
             details = [
                 '**Magia Assinatura.** Baseada em %s.'
-                % assinatura.id_magia_base.nome,
+                % resolved_spell(assinatura.id_magia_base).nome,
             ]
             if mods.get('bonus_action'):
                 row['casting_time'] = 'Ação Bônus'
@@ -3941,7 +4046,7 @@ def _magias_sheet_info(personagem, ficha, essencia_pendentes):
                         area.get('shape'), area.get('squares')))
             row['descricao'] = '\n\n'.join(details + [row['descricao']])
             row['assinatura'] = True
-            row['magia_base_nome'] = assinatura.id_magia_base.nome
+            row['magia_base_nome'] = resolved_spell(assinatura.id_magia_base).nome
         lista.append(row)
 
     # Classes preparadas de lista inteira precisam enxergar também o que AINDA não
@@ -3951,7 +4056,8 @@ def _magias_sheet_info(personagem, ficha, essencia_pendentes):
         item['slug'] for info in prepared_infos if info.get('pool') == 'class_list'
         for group in info.get('grupos', []) for item in group.get('magias', [])
     }
-    catalog = {m.slug: m for m in TbMagia.objects.filter(slug__in=catalog_slugs)}
+    catalog = {m.slug: m for m in (frozen.values() if frozen is not None else
+               TbMagia.objects.filter(slug__in=catalog_slugs))}
     for info in prepared_infos:
         if info.get('pool') != 'class_list':
             continue
@@ -3984,7 +4090,7 @@ def _magias_sheet_info(personagem, ficha, essencia_pendentes):
     for m in lista:
         by_level.setdefault(int(m['nivel'] or 0), []).append(m)
 
-    totals = _spell_slot_totals(casters)
+    totals = _spell_slot_totals(casters, ruleset=ruleset)
     slots = _spell_slot_rows(personagem, totals) if totals else []
     slot_map = {r['nivel']: r for r in slots}
 
@@ -3994,7 +4100,13 @@ def _magias_sheet_info(personagem, ficha, essencia_pendentes):
     if pact:
         wanted = pact['info'].get('slots_resource')
         from .character_engine import _recursos_consumiveis
-        for r in _recursos_consumiveis(personagem, classes):
+        resource_args = {}
+        if ruleset is not None:
+            from .character_engine import _resource_formula_context, _resource_max_overrides
+            ctx, features = _resource_formula_context(personagem, classes, ruleset=ruleset)
+            resource_args = {'ruleset': ruleset, 'formula_ctx': ctx,
+                             'max_overrides': _resource_max_overrides(features, ctx)}
+        for r in _recursos_consumiveis(personagem, classes, **resource_args):
             if not wanted or r.get('slug') == wanted:
                 if wanted and r.get('slug') != wanted:
                     continue
@@ -4002,7 +4114,7 @@ def _magias_sheet_info(personagem, ficha, essencia_pendentes):
                 break
         max_cycle = _class_max_spell_level(
             pact['pc'].id_classe, int(pact['pc'].nivel or 1), pact['info'],
-            _caster_subclasse(pact['pc']))
+            pact['pc'].id_subclasse if ruleset is not None else _caster_subclasse(pact['pc']), ruleset=ruleset)
         if mystic_resource:
             pact_display = next(
                 (item for item in spellcasters
@@ -4036,20 +4148,33 @@ def _magias_sheet_info(personagem, ficha, essencia_pendentes):
     }
 
 
-def _consumiveis_ficha_cards(personagem, ficha):
+def _consumiveis_ficha_cards(personagem, ficha, *, ruleset=None, materialize=True):
     from .character_engine import _recursos_consumiveis
-    from .resource_engine import ensure_resource, sync_item_charges
+    from .resource_engine import (ensure_resource, sync_item_charges,
+                                  preview_resource, preview_item_charges)
+    resolve_resource = ensure_resource if materialize else preview_resource
     classes = list(personagem.classes.select_related('id_classe', 'id_subclasse'))
     cards = []
     seen_names = set()
     seen_slugs = set()
-    for r in _recursos_consumiveis(personagem, classes):
+    resource_kwargs = {}
+    inventory = None
+    if ruleset is not None:
+        from .versioned_classes import resolved_classes
+        from .versioned_items import resolved_inventory
+        from .character_engine import _resource_formula_context, _resource_max_overrides
+        classes = resolved_classes(ruleset, classes)
+        context, features = _resource_formula_context(personagem, classes, ruleset=ruleset)
+        resource_kwargs = dict(ruleset=ruleset, formula_ctx=context,
+                               max_overrides=_resource_max_overrides(features, context))
+        inventory = resolved_inventory(ruleset, personagem.inventario.all())
+    for r in _recursos_consumiveis(personagem, classes, **resource_kwargs):
         contract = {
             'key': r['db_chave'], 'legacy_name': r['db_nome'],
             'name': r['nome'], 'maximum': r['maximo'],
             'reset': r.get('reset') or '', 'origin': r.get('origem') or '',
         }
-        resource = ensure_resource(personagem, contract)
+        resource = resolve_resource(personagem, contract)
         seen_names.add(r['nome'])
         seen_slugs.add(r.get('slug') or '')
         cards.append({
@@ -4079,7 +4204,7 @@ def _consumiveis_ficha_cards(personagem, ficha):
             'recovery': spec.get('recovery') or '',
             'origin': spec.get('origin') or '',
         }
-        resource = ensure_resource(personagem, contract)
+        resource = resolve_resource(personagem, contract)
         cards.append({
             'kind': 'recurso', 'id': contract['key'],
             'slug': tag_slug,
@@ -4088,7 +4213,13 @@ def _consumiveis_ficha_cards(personagem, ficha):
             'atual': resource.atual, 'maximo': resource.maximo,
             'reset': contract['reset'],
         })
-    for charge in sync_item_charges(personagem):
+    if materialize:
+        charges = sync_item_charges(personagem, inventory=inventory)
+    else:
+        if inventory is None:
+            inventory = personagem.inventario.select_related('id_item_magico', 'id_item_mundano')
+        charges = preview_item_charges(personagem, inventory)
+    for charge in charges:
         cards.append({
             'kind': 'recurso', 'id': charge['key'],
             'grupo': 'item',
@@ -4110,34 +4241,61 @@ def _consumiveis_ficha_cards(personagem, ficha):
     return cards
 
 
-def _classe_conjuracao(classe):
+def _classe_conjuracao(classe, *, ruleset=None, ability=None):
     from .models import TbMagia
     from .spellcasting import resource_limit_at
 
-    info = _classe_spellcasting_info(classe, nivel_habilidades=1)
+    if ruleset is not None:
+        from .versioned_classes import VersionedClassCatalog
+        from .versioned_spells import spell_catalog, spell_scopes
+        classe = VersionedClassCatalog(ruleset, classe.pk).classe
+        frozen = spell_catalog(ruleset)
+        scopes = spell_scopes(ruleset)
+        if ability is not None:
+            if classe.slug != 'cacador' or ability not in ('int', 'wis'):
+                raise ValueError('Invalid Hunter creation ability.')
+            classe._character_spellcasting_ability = (ruleset.pk, ability)
+    elif ability is not None:
+        raise ValueError('Hunter ability requires an explicit ruleset.')
+    info = _classe_spellcasting_info(classe, nivel_habilidades=1, ruleset=ruleset)
     if not info:
         return None
 
+    from .hunter_spellcasting import progression_at
+    fixed_grants = set()
+    if progression_at(classe, 1, ruleset) is not None:
+        from .hunter_spells import grants_at
+        fixed_grants = {grant['slug'] for grant in grants_at(ruleset, level=1)}
+
     def magia_qs(nivel):
+        if ruleset is not None:
+            wanted = set(info['lista_nomes'])
+            matches = []
+            for spell in frozen.values():
+                tokens = spell.classes_slugs or re.split(r'[,;|]', spell.classes or '')
+                names = {scopes.get(str(token).strip().lower()) for token in tokens}
+                if spell.nivel == nivel and wanted & names and spell.slug not in fixed_grants:
+                    matches.append(spell)
+            return sorted(matches, key=lambda spell: (spell.nome, spell.pk))
         return TbMagia.objects.filter(_spell_list_q(info['lista_nomes']), nivel=nivel).order_by('nome')
 
     spell_limit = info.get('spell_limit') or {}
-    magias_n = resource_limit_at(spell_limit, classe, level=1)
+    magias_n = resource_limit_at(spell_limit, classe, level=1, ruleset=ruleset)
     magias_formula = spell_limit.get('value') if spell_limit.get('kind') == 'formula' else None
     pool = info.get('pool') or 'class_list'
     if pool == 'spellbook':
         magias_n = (info.get('acquire') or {}).get('initial', 0)
-    cantrip_n = resource_limit_at(info.get('cantrip_limit'), classe, level=1) or 0
-    truques = [{'slug': m.slug, 'nome': m.nome,
+    cantrip_n = resource_limit_at(info.get('cantrip_limit'), classe, level=1, ruleset=ruleset) or 0
+    truques = [{'id': m.pk, 'slug': m.slug, 'nome': m.nome,
                 'nome_ingles': (m.nome_ingles or '').strip()} for m in magia_qs(0)]
-    nv1 = [{'slug': m.slug, 'nome': m.nome, 'nome_ingles': (m.nome_ingles or '').strip(),
+    nv1 = [{'id': m.pk, 'slug': m.slug, 'nome': m.nome, 'nome_ingles': (m.nome_ingles or '').strip(),
             'escola': m.escola or ''} for m in magia_qs(1)]
-    return {'ability': info['ability'], 'lista': info['lista'], 'lista_nomes': info['lista_nomes'],
+    return {'origem': classe.nome, 'ability': info['ability'], 'lista': info['lista'], 'lista_nomes': info['lista_nomes'],
             'mode': info.get('mode'), 'pool': pool,
             'truques_n': cantrip_n, 'magias_n': magias_n,
             'magias_formula': None if magias_n is not None else magias_formula,
             'preparadas_n': (None if pool != 'spellbook' else
-                             resource_limit_at(spell_limit, classe, level=1)),
+                             resource_limit_at(spell_limit, classe, level=1, ruleset=ruleset)),
             'preparadas_formula': (magias_formula if pool == 'spellbook' else None),
             'truques': truques, 'magias_nv1': nv1}
 
@@ -4329,11 +4487,19 @@ def _criador_resumo_md(txt, limit=320):
     return ''
 
 
-def _vertentes_catalogo():
+def _creator_origin_rows(model, *, ruleset=None, **fields):
+    if ruleset is None:
+        return list(model.objects.filter(**fields))
+    from .versioned_origins import VersionedOrigins
+    return [row for row in VersionedOrigins(ruleset).objects(model)
+            if all(getattr(row, key) == value for key, value in fields.items())]
+
+
+def _vertentes_catalogo(*, ruleset=None):
     """Catálogo global de VERTENTES elementais, colhido de 'Vertente X' no texto dos traços."""
     from .models import TbTracoracial
     nomes = set()
-    for tr in TbTracoracial.objects.all():
+    for tr in _creator_origin_rows(TbTracoracial, ruleset=ruleset):
         txt = '%s\n%s' % (tr.pre_requisito or '', tr.descricao or '')
         nomes.update(m.group(1).strip() for m in re.finditer(r'Vertente\s+([A-ZÀ-Ý][A-Za-zÀ-ÿ-]+)', txt))
         if 'vertente' in txt.lower():
@@ -4341,24 +4507,24 @@ def _vertentes_catalogo():
     return [{'slug': slugify(n), 'nome': n} for n in sorted(nomes, key=lambda x: x.lower()) if slugify(n)]
 
 
-def _essencia_vertentes(e, catalogo=None):
+def _essencia_vertentes(e, catalogo=None, *, ruleset=None):
     from .models import TbTracoracial
-    catalogo = catalogo if catalogo is not None else _vertentes_catalogo()
+    catalogo = catalogo if catalogo is not None else _vertentes_catalogo(ruleset=ruleset)
     txt = '\n'.join('%s\n%s' % (t.pre_requisito or '', t.descricao or '')
-                    for t in TbTracoracial.objects.filter(id_essencia=e))
+                    for t in _creator_origin_rows(TbTracoracial, ruleset=ruleset, id_essencia_id=e.pk))
     norm = _norm_req(txt)
     return [v for v in catalogo if re.search(r'\b%s\b' % re.escape(v['slug']), norm)]
 
 
-def _essencia_subescolha(e, catalogo=None):
+def _essencia_subescolha(e, catalogo=None, *, ruleset=None):
     """Sub-escolha da essência: CLÃ/herança (via 'Clã X' no pré-requisito, ex.: Vampirismo)
     ou VERTENTE elemental (via 'Vertente X' na descrição). {'opcoes','label','tipo'} — 'opcoes'
     alimenta o mesmo seletor `cf-vertente` no criador."""
     from .character_engine import clas_de_essencia
-    clas = clas_de_essencia(e)
+    clas = clas_de_essencia(e, ruleset=ruleset)
     if clas:
         return {'opcoes': clas, 'label': 'Clã / Herança', 'tipo': 'cla'}
-    return {'opcoes': _essencia_vertentes(e, catalogo), 'label': 'Vertente elemental', 'tipo': 'vertente'}
+    return {'opcoes': _essencia_vertentes(e, catalogo, ruleset=ruleset), 'label': 'Vertente elemental', 'tipo': 'vertente'}
 
 
 def _pick_suppressions(sources, clas=None):
@@ -4397,13 +4563,98 @@ def _pick_suppressions(sources, clas=None):
     return out
 
 
-def _criador_catalogos():
+class HunterCreatorCatalogUnavailable(Exception):
+    pass
+
+
+def _criador_hunter_catalog_args():
+    """Select the server-published Hunter revision; client input cannot change it."""
+    checksum = getattr(settings, 'HUNTER_CREATOR_RULESET_CHECKSUM', '')
+    if not checksum:
+        return {}
+    from .models import TbRuleset
+    from .versioned_classes import EVALUATOR, VOCABULARY, VersionedClassCatalog
+    from .content_versions import resolve_content
+    from django.core.exceptions import ObjectDoesNotExist
+    try:
+        ruleset = TbRuleset.objects.get(checksum=checksum)
+        class_id = TbClasse.objects.get(slug='cacador').pk
+        if VersionedClassCatalog(ruleset, class_id).classe.slug != 'cacador':
+            raise ValueError('Published Hunter class identity differs from its snapshot.')
+        resolve_content(ruleset, 'hunter-rework', evaluator_version=EVALUATOR,
+                        vocabulary_version=VOCABULARY)
+    except (ObjectDoesNotExist, ValueError, KeyError) as exc:
+        raise HunterCreatorCatalogUnavailable() from exc
+    return {'hunter_ruleset': ruleset, 'hunter_class_id': class_id}
+
+
+def _criador_public_resolution(data):
+    if data.get('classe') == 'cacador':
+        args = _criador_hunter_catalog_args()
+        if args:
+            return _criador_resolver(data, ruleset=args['hunter_ruleset'],
+                                     class_id=args['hunter_class_id'])
+    return _criador_resolver(data)
+
+
+def _criador_catalogos(*, hunter_ruleset=None, hunter_class_id=None,
+                      hunter_only=False):
     from .models import (TbRaca, TbLinhagem, TbEssencia, TbClasse, TbAntecedente,
                          TbTalento, TbTracoracial, TbIdioma, TbItemMundano, TbOpcaojogo,
                          TbClassehabilidade)
     from .character_engine import (_SKILL_INFO, _dado_de_vida_classe,
                                    clas_de_essencia, cla_de_traco)
     from .starting_equipment import starting_equipment_for_class
+    if hunter_ruleset is not None:
+        from .versioned_classes import VersionedClassCatalog
+        from .versioned_origins import VersionedOrigins
+        origins = VersionedOrigins(hunter_ruleset)
+
+    class FrozenRows(list):
+        """The creator's existing filters over detached snapshot rows."""
+        def _matching(self, row, key, expected):
+            name, _, operation = key.partition('__')
+            if name.startswith('id_') and hasattr(row, name + '_id'):
+                name += '_id'
+            value = getattr(row, name)
+            if hasattr(expected, 'pk'):
+                expected = expected.pk
+            if operation == 'isnull':
+                return (value is None) == expected
+            if operation == 'lte':
+                return value is not None and value <= expected
+            if operation == 'iexact':
+                return str(value or '').casefold() == str(expected).casefold()
+            if operation:
+                raise ValueError('Unsupported creator snapshot lookup.')
+            return value == expected
+
+        def filter(self, **criteria):
+            return FrozenRows(row for row in self
+                              if all(self._matching(row, key, value)
+                                     for key, value in criteria.items()))
+
+        def exclude(self, **criteria):
+            return FrozenRows(row for row in self
+                              if not all(self._matching(row, key, value)
+                                         for key, value in criteria.items()))
+
+        def order_by(self, *fields):
+            rows = list(self)
+            for field in reversed(fields):
+                descending = field.startswith('-')
+                name = field.lstrip('-')
+                rows.sort(key=lambda row: (getattr(row, name) is None,
+                                           getattr(row, name) or ''), reverse=descending)
+            return FrozenRows(rows)
+
+        def all(self):
+            return self
+
+    def origin_query(model):
+        if hunter_ruleset is None:
+            return model.objects
+        return FrozenRows(origins.objects(model))
 
     def _nome_duplo(obj):
         nome = obj.nome
@@ -4449,15 +4700,16 @@ def _criador_catalogos():
                         out.append({'slug': sl, 'fonte': t.nome, 'vertente': _cla})
         return out
 
-    def _classe_pericias_concedidas(c):
+    def _classe_pericias_concedidas(c, *, ruleset=None):
         # Perícia que uma FEATURE de classe de nível 1 concede FIXA (tag plana `prof:<skill>`,
         # ex.: Mago/Estudo Arcano = ['always_active{prof:arcanismo}']). É uma perícia "ganha
         # pela classe" (não escolhida), então o front a bloqueia em TODAS as listas de perícia
         # (classe/antecedente/picks raciais) — mesmo tratamento das concedidas por raça.
         from .character_engine import _norm_skill_slug
         out, seen = [], set()
-        habs = TbClassehabilidade.objects.filter(
-            id_classe=c, id_subclasse__isnull=True, niveladquirido__lte=1)
+        habs = ([row[2] for row in VersionedClassCatalog(ruleset, c.pk).features(1)]
+                if ruleset is not None else TbClassehabilidade.objects.filter(
+                    id_classe=c, id_subclasse__isnull=True, niveladquirido__lte=1))
         for h in habs:
             for tag in (h.tags_json or []):
                 s = str(tag)
@@ -4489,11 +4741,11 @@ def _criador_catalogos():
                     table_only=False).order_by('niveladquirido', 'nome')]
 
     racas = []
-    for r in TbRaca.objects.all().order_by('nome'):
+    for r in origin_query(TbRaca).all().order_by('nome'):
         linhagens = [{'slug': l.slug, 'nome': getattr(l, 'nome', l.slug),
                       'desc': _criador_resumo_md(getattr(l, 'descricao', '') or getattr(l, 'lore_presentation', ''), 200)}
-                     for l in TbLinhagem.objects.filter(id_raca=r).order_by('nome')]
-        tracos = _tracos_de(TbTracoracial.objects.filter(
+                     for l in origin_query(TbLinhagem).filter(id_raca=r).order_by('nome')]
+        tracos = _tracos_de(origin_query(TbTracoracial).filter(
             id_raca=r, talento_racial=False, id_linhagem__isnull=True,
             id_essencia__isnull=True, nivel_requisito__lte=1).order_by('nome'))
         racas.append({'slug': r.slug, 'nome': r.nome,
@@ -4505,34 +4757,46 @@ def _criador_catalogos():
     from . import picks as _picks
     classes = []
     for c in TbClasse.objects.all().order_by('nome'):
+        if hunter_only and c.pk != hunter_class_id:
+            continue
+        if hunter_ruleset is not None and not hunter_only and c.pk == hunter_class_id:
+            continue
+        pinned = hunter_ruleset if hunter_ruleset is not None and c.pk == hunter_class_id else None
+        if pinned is not None:
+            c = VersionedClassCatalog(pinned, c.pk).classe
         n, lista = _parse_skills_lvl1(c.tags_json)
         sub = _tag_levels(c.tags_json, 'subclass-choices')
-        esc1 = _classe_escolhas_nv1(c)
+        esc1 = _classe_escolhas_nv1(c, ruleset=pinned)
         classes.append({'slug': c.slug, 'nome': c.nome, 'pericias_n': n, 'pericias_lista': lista,
-                        'pericias_concedidas': _classe_pericias_concedidas(c),
+                        'pericias_concedidas': _classe_pericias_concedidas(c, ruleset=pinned),
                         'equipamento': (c.equipamento or '').strip(),
-                        'equipamento_inicial': starting_equipment_for_class(c),
+                        'equipamento_inicial': starting_equipment_for_class(c, ruleset=pinned),
                         'tagline': (c.tagline or '').strip(),
                         'hit_die': _dado_de_vida_classe(c) or 0,
                         'atributo_principal': (c.atributo_principal or '').strip(),
                         'saves': _classe_saves(c),
-                        'features1': _classe_features1(c),
+                        'features1': ([{'nome': _nome_duplo(row[2]),
+                                       'desc': _criador_resumo_md(row[2].descricao, 200)}
+                                      for row in VersionedClassCatalog(pinned, c.pk).features(1)
+                                      if not row[2].table_only] if pinned else _classe_features1(c)),
                         'resumo': _criador_resumo_md(c.tagline or '', 320),
-                        'maestria_n': _classe_maestria_n(c, 1),
+                        'maestria_n': (0 if pinned else _classe_maestria_n(c, 1)),
                         'estilo_n': esc1['estilo_n'], 'expertise_n': esc1['expertise_n'],
                         'expertise_fixa': esc1['expertise_fixa'],
                         'opcao_picks': esc1.get('opcao_picks', []),
-                        'conjuracao': _classe_conjuracao(c),
+                        'conjuracao': _classe_conjuracao(c, ruleset=pinned),
                         'armaduras_prof': _classe_armaduras_prof(c),
                         # Todos os picks resolviveis usam o mesmo registry. Expertise
                         # ainda tem UI dedicada porque seu universo depende das pericias
                         # selecionadas nos passos anteriores, mas persiste pelo registry.
-                        'pick_groups': [g for g in _picks.resolve_builder(c)
+                        'pick_groups': [{k: v for k, v in g.items() if k != 'ruleset'}
+                                        for g in _picks.resolve_builder(c, ruleset=pinned)
                                         if g['kind'] != 'pericia_expertise'],
+                        'hunter_rework': bool(pinned),
                         'subclasse_nivel': min(sub) if sub else None})
     # catálogo global de vertentes + sub-escolha por essência: helpers no nível do módulo
     # (compartilhados com _criador_resolver, que valida a sub-escolha no POST).
-    vertentes_catalogo = _vertentes_catalogo()
+    vertentes_catalogo = _vertentes_catalogo(ruleset=hunter_ruleset)
 
     def _vertente_de(t):
         # talentos elementais trazem "Vertente Sylph/Oread/Ifrit/Undine" no pré-requisito/descrição
@@ -4557,38 +4821,39 @@ def _criador_catalogos():
     # essência. O front mostra os da raça SEMPRE e adiciona os da linhagem/essência selecionadas.
     talentos_raca, talentos_linhagem, talentos_essencia = {}, {}, {}
     suppressions_raca, suppressions_linhagem, suppressions_essencia = {}, {}, {}
-    for r in TbRaca.objects.all():
-        lins_r = list(TbLinhagem.objects.filter(id_raca=r))
+    for r in origin_query(TbRaca).all():
+        lins_r = list(origin_query(TbLinhagem).filter(id_raca=r))
         # POOL DA RAÇA-BASE: exclui traços de linhagem/essência (que carregam id_raca do
         # pai) — senão talentos raciais de uma linhagem vazam para toda a raça.
-        qs = TbTracoracial.objects.filter(id_raca=r, talento_racial=True,
+        qs = origin_query(TbTracoracial).filter(id_raca=r, talento_racial=True,
                                           id_linhagem__isnull=True, id_essencia__isnull=True,
                                           nivel_requisito__lte=1).order_by('nome')
         talentos_raca[r.slug] = [_traco_dict(t, lins_r) for t in qs]
-        policies = _pick_suppressions(TbTracoracial.objects.filter(
+        policies = _pick_suppressions(origin_query(TbTracoracial).filter(
             id_raca=r, talento_racial=False, id_linhagem__isnull=True,
             id_essencia__isnull=True, nivel_requisito__lte=1))
         if policies:
             suppressions_raca[r.slug] = policies
-    for l in TbLinhagem.objects.all():
-        qs = TbTracoracial.objects.filter(id_linhagem=l, talento_racial=True,
+    for l in origin_query(TbLinhagem).all():
+        qs = origin_query(TbTracoracial).filter(id_linhagem=l, talento_racial=True,
                                           nivel_requisito__lte=1).order_by('nome')
         entries = [_traco_dict(t) for t in qs]
         # count_as: uma linhagem 'Sangue X' (Sálarin/Durkarn/Goruun) herda os talentos
         # raciais GERAIS da raça X — o criador passa a oferecê-los quando ela é selecionada.
         ca = _count_as_racial_targets(
-            TbTracoracial.objects.filter(id_linhagem=l), linhagem_slug=l.slug)
-        for t, other_lins in _talentos_raciais_count_as(ca, nivel_max=1):
+            origin_query(TbTracoracial).filter(id_linhagem=l), linhagem_slug=l.slug)
+        for t, other_lins in _talentos_raciais_count_as(ca, nivel_max=1,
+                                                        ruleset=hunter_ruleset):
             entries.append(_traco_dict(t, other_lins))
         if entries:
             talentos_linhagem[l.slug] = entries
-        policies = _pick_suppressions(TbTracoracial.objects.filter(
+        policies = _pick_suppressions(origin_query(TbTracoracial).filter(
             id_linhagem=l, talento_racial=False, nivel_requisito__lte=1))
         if policies:
             suppressions_linhagem[l.slug] = policies
-    for e in TbEssencia.objects.all():
-        _clas = clas_de_essencia(e)
-        qs = TbTracoracial.objects.filter(id_essencia=e, talento_racial=True,
+    for e in origin_query(TbEssencia).all():
+        _clas = clas_de_essencia(e, ruleset=hunter_ruleset)
+        qs = origin_query(TbTracoracial).filter(id_essencia=e, talento_racial=True,
                                           nivel_requisito__lte=1).order_by('nome')
         if qs:
             ents = []
@@ -4600,7 +4865,7 @@ def _criador_catalogos():
                     d['vertente'] = cla_de_traco(t, _clas)
                 ents.append(d)
             talentos_essencia[e.slug] = ents
-        policy_sources = [e, *TbTracoracial.objects.filter(
+        policy_sources = [e, *origin_query(TbTracoracial).filter(
             id_essencia=e, talento_racial=False, nivel_requisito__lte=1)]
         policies = _pick_suppressions(policy_sources, _clas)
         if policies:
@@ -4619,6 +4884,10 @@ def _criador_catalogos():
         out = []
         for t in qs_traits:
             _cla = cla_de_traco(t, clas) if clas else ''
+            for group in _racial_menu_groups([t], ruleset=hunter_ruleset):
+                out.append({'tipo': group['kind'], 'n': group['n'],
+                            'fonte': t.nome, 'vertente': _cla,
+                            'menu': True, 'opcoes': group['universo']})
             for tag in (t.tags_json or []):
                 for m in _pick_re.finditer(str(tag)):
                     de = [s.strip() for s in (m.group(4) or '').split(',') if s.strip()]
@@ -4633,53 +4902,53 @@ def _criador_catalogos():
         return out
 
     racial_choices_raca, racial_choices_linhagem, racial_choices_essencia = {}, {}, {}
-    for r in TbRaca.objects.all():
+    for r in origin_query(TbRaca).all():
         # RAÇA-BASE só: exclui picks de traços de linhagem/essência (id_raca herda do pai).
-        p = _racial_picks(TbTracoracial.objects.filter(
+        p = _racial_picks(origin_query(TbTracoracial).filter(
             id_raca=r, id_linhagem__isnull=True, id_essencia__isnull=True,
             nivel_requisito__lte=1).exclude(talento_racial=True))
         if p:
             racial_choices_raca[r.slug] = p
-    for l in TbLinhagem.objects.all():
-        p = _racial_picks(TbTracoracial.objects.filter(id_linhagem=l, nivel_requisito__lte=1).exclude(talento_racial=True))
+    for l in origin_query(TbLinhagem).all():
+        p = _racial_picks(origin_query(TbTracoracial).filter(id_linhagem=l, nivel_requisito__lte=1).exclude(talento_racial=True))
         if p:
             racial_choices_linhagem[l.slug] = p
-    for e in TbEssencia.objects.all():
-        p = _racial_picks(TbTracoracial.objects.filter(id_essencia=e, nivel_requisito__lte=1).exclude(talento_racial=True),
-                          clas=clas_de_essencia(e))
+    for e in origin_query(TbEssencia).all():
+        p = _racial_picks(origin_query(TbTracoracial).filter(id_essencia=e, nivel_requisito__lte=1).exclude(talento_racial=True),
+                          clas=clas_de_essencia(e, ruleset=hunter_ruleset))
         if p:
             racial_choices_essencia[e.slug] = p
     # Perícias auto-concedidas (prof:<skill> em traço não-talento) por raça/linhagem/essência.
     pericias_concedidas_raca, pericias_concedidas_linhagem, pericias_concedidas_essencia = {}, {}, {}
-    for r in TbRaca.objects.all():
+    for r in origin_query(TbRaca).all():
         # RAÇA-BASE só: exclui perícias de traços de linhagem/essência (id_raca herda do pai).
-        g = _pericias_concedidas(TbTracoracial.objects.filter(
+        g = _pericias_concedidas(origin_query(TbTracoracial).filter(
             id_raca=r, id_linhagem__isnull=True, id_essencia__isnull=True,
             nivel_requisito__lte=1).exclude(talento_racial=True))
         if g:
             pericias_concedidas_raca[r.slug] = g
-    for l in TbLinhagem.objects.all():
-        g = _pericias_concedidas(TbTracoracial.objects.filter(id_linhagem=l, nivel_requisito__lte=1).exclude(talento_racial=True))
+    for l in origin_query(TbLinhagem).all():
+        g = _pericias_concedidas(origin_query(TbTracoracial).filter(id_linhagem=l, nivel_requisito__lte=1).exclude(talento_racial=True))
         if g:
             pericias_concedidas_linhagem[l.slug] = g
-    for e in TbEssencia.objects.all():
-        g = _pericias_concedidas(TbTracoracial.objects.filter(id_essencia=e, nivel_requisito__lte=1).exclude(talento_racial=True),
-                                 clas=clas_de_essencia(e))
+    for e in origin_query(TbEssencia).all():
+        g = _pericias_concedidas(origin_query(TbTracoracial).filter(id_essencia=e, nivel_requisito__lte=1).exclude(talento_racial=True),
+                                 clas=clas_de_essencia(e, ruleset=hunter_ruleset))
         if g:
             pericias_concedidas_essencia[e.slug] = g
     pericias = sorted(({'slug': sl, 'nome': info[0]} for sl, info in _SKILL_INFO.items()),
                       key=lambda x: x['nome'])
     essencias_out = []
-    for e in TbEssencia.objects.all().order_by('nome'):
+    for e in origin_query(TbEssencia).all().order_by('nome'):
         # sub-escolha da essência: vertente elemental OU clã/herança (Vampirismo). `vertentes`
         # mantém o nome da chave (o front já a consome); `subescolha_*` dá o rótulo dinâmico.
-        sub = _essencia_subescolha(e, vertentes_catalogo)
+        sub = _essencia_subescolha(e, vertentes_catalogo, ruleset=hunter_ruleset)
         essencias_out.append({
             'slug': e.slug, 'nome': e.nome,
             'resumo': _criador_resumo_md(e.lore_presentation, 240),
-            'tracos': _tracos_de(TbTracoracial.objects.filter(
+            'tracos': _tracos_de(origin_query(TbTracoracial).filter(
                 id_essencia=e, talento_racial=False, id_linhagem__isnull=True,
-                nivel_requisito__lte=1).order_by('nome'), clas_de_essencia(e)),
+                nivel_requisito__lte=1).order_by('nome'), clas_de_essencia(e, ruleset=hunter_ruleset)),
             'vertentes': sub['opcoes'],
             'subescolha_label': sub['label'],
             'subescolha_tipo': sub['tipo']})
@@ -4691,11 +4960,11 @@ def _criador_catalogos():
         'classes': classes,
         'antecedentes': [{'slug': a.slug, 'nome': a.nome, 'grants': background_grants(a),
                           'resumo': _criador_resumo_md(a.resumo or a.descricao, 280)}
-                         for a in TbAntecedente.objects.all().order_by('nome')],
+                         for a in origin_query(TbAntecedente).all().order_by('nome')],
         'grants_antecedente': background_grants(),
         'talentos_origem': [{'id': t.id_talento, 'nome': _nome_duplo(t), 'pre': (t.pre_requisito or '').strip(),
                              'descricao': (t.descricao or '').strip()}
-                            for t in TbTalento.objects.filter(tipo__iexact='origem').order_by('nome')],
+                            for t in origin_query(TbTalento).filter(tipo__iexact='origem').order_by('nome')],
         'talentos_raca': talentos_raca,
         'talentos_linhagem': talentos_linhagem,
         'talentos_essencia': talentos_essencia,
@@ -4843,6 +5112,7 @@ def criacao_ficha_view(request):
     from . import point_buy
     from . import permissions as perms
     from .character_history import level_one_rebuild_status
+    from django.core.exceptions import ObjectDoesNotExist
     recriar = None
     try:
         recriar_id = int(request.GET.get('recriar') or 0)
@@ -4856,6 +5126,19 @@ def criacao_ficha_view(request):
             return redirect(reverse('ficha_detail', args=[recriar.pk]) + '?recriar=bloqueado')
     atributos = [('FOR', 'Força'), ('DES', 'Destreza'), ('CON', 'Constituição'),
                  ('INT', 'Inteligência'), ('SAB', 'Sabedoria'), ('CAR', 'Carisma')]
+    try:
+        hunter_args = _criador_hunter_catalog_args()
+        hunter_only = request.GET.get('hunter') == '1' and bool(hunter_args) and not recriar
+        if hunter_only:
+            catalogos = _criador_catalogos(**hunter_args, hunter_only=True)
+        else:
+            catalogos = _criador_catalogos()
+            if hunter_args and not recriar:
+                catalogos['classes'] = [c for c in catalogos['classes']
+                                       if c['slug'] != 'cacador']
+    except (HunterCreatorCatalogUnavailable, ObjectDoesNotExist, ValueError, KeyError):
+        logger.warning('Revisao publicada do Cacador indisponivel no criador.')
+        return HttpResponse('A revisao do Cacador esta indisponivel. Tente novamente mais tarde.', status=503)
     return render(request, 'home/pages/criacao_ficha.html', {
         'page_title': ('Recriar nível 1 — %s' % recriar.nome) if recriar else 'Criação de Ficha',
         'atributos': atributos,
@@ -4863,7 +5146,9 @@ def criacao_ficha_view(request):
         'pb_max_pontos': point_buy.MAX_PONTOS,
         'pb_min': point_buy.MIN_SCORE,
         'pb_max': point_buy.MAX_SCORE,
-        'catalogos': _criador_catalogos(),
+        'catalogos': catalogos,
+        'hunter_creator_available': bool(hunter_args) and not recriar,
+        'hunter_creator_page': hunter_only,
         'logado': request.user.is_authenticated,
         'pathbuilder': False,
         'recriar_personagem': recriar,
@@ -5121,6 +5406,25 @@ def _character_prereq_matches(source, *, race=None, lineage=None, essence=None):
     return all(results)
 
 
+def _talento_exclusoes_condicionais(traco, linhagens_da_raca):
+    """Separa exceções ``<linhagem> não possuir o talento X`` da identidade.
+
+    A menção a uma linhagem dentro da exceção não torna o traço exclusivo dela.
+    Só reconhece nomes de linhagens existentes e a cláusula negativa explícita.
+    """
+    texto = _norm_req(traco.pre_requisito or '')
+    exclusoes = []
+    for linhagem in linhagens_da_raca:
+        nome = re.sub(r'\(.*?\)', '', _norm_req(linhagem.nome or '')).strip()
+        if not nome:
+            continue
+        pattern = r'\b%s\s+nao\s+possuir\s+o\s+talento\s+([^.;)]+)' % re.escape(nome)
+        for match in re.finditer(pattern, texto):
+            exclusoes.append((linhagem.slug, match.group(1).strip()))
+        texto = re.sub(pattern, '', texto)
+    return texto, exclusoes
+
+
 def _talento_linhagem_info(traco, linhagens_da_raca):
     """Linhagens ESPECÍFICAS da raça citadas no pré-requisito do talento (espelha
     _vertente_de, mas para sub-raças/TbLinhagem). Retorna (slugs, aceita_essencia):
@@ -5142,7 +5446,7 @@ def _talento_linhagem_info(traco, linhagens_da_raca):
                     accepts_essence = True
         return lineage_values, accepts_essence
 
-    txt = _norm_req(traco.pre_requisito or '')
+    txt, _exclusoes = _talento_exclusoes_condicionais(traco, linhagens_da_raca)
     hits = []
     for l in linhagens_da_raca:
         # nomes trazem parentético descritivo ("Orc Verde (Espírito da Caça)") que não
@@ -5180,7 +5484,7 @@ def _count_as_racial_targets(traits, linhagem_slug=None):
     return out
 
 
-def _talentos_raciais_count_as(raca_slugs, nivel_max=None):
+def _talentos_raciais_count_as(raca_slugs, nivel_max=None, *, ruleset=None):
     """Talentos raciais GERAIS (sem sub-raça/essência) das raças `raca_slugs` — o pool que
     uma linhagem `count_as:<raca>` herda (Sálarin humano pega os do Elfo etc.). 'Geral' =
     sem restrição de linhagem NA PRÓPRIA raça (`_talento_linhagem_info` vazio contra as
@@ -5189,39 +5493,36 @@ def _talentos_raciais_count_as(raca_slugs, nivel_max=None):
     from .models import TbRaca, TbTracoracial, TbLinhagem
     out = []
     for slug in raca_slugs:
-        r = TbRaca.objects.filter(slug=slug).first()
+        r = next(iter(_creator_origin_rows(TbRaca, ruleset=ruleset, slug=slug)), None)
         if not r:
             continue
-        lins_r = list(TbLinhagem.objects.filter(id_raca=r))
-        qs = TbTracoracial.objects.filter(id_raca=r, talento_racial=True,
-                                          id_linhagem__isnull=True, id_essencia__isnull=True)
+        lins_r = _creator_origin_rows(TbLinhagem, ruleset=ruleset, id_raca_id=r.pk)
+        qs = _creator_origin_rows(TbTracoracial, ruleset=ruleset, id_raca_id=r.pk, talento_racial=True,
+                                          id_linhagem_id=None, id_essencia_id=None)
         if nivel_max is not None:
-            qs = qs.filter(nivel_requisito__lte=nivel_max)
-        for t in qs.order_by('nivel_requisito', 'nome'):
+            qs = [t for t in qs if t.nivel_requisito <= nivel_max]
+        for t in sorted(qs, key=lambda t: (t.nivel_requisito, t.nome)):
             lins, _ = _talento_linhagem_info(t, lins_r)
             if not lins:
                 out.append((t, lins_r))
     return out
 
 
-def _talentos_raciais_criador(raca, linhagem=None, essencia=None, escolha_essencia=None):
+def _talentos_raciais_criador(raca, linhagem=None, essencia=None, escolha_essencia=None, *, ruleset=None):
     """Pool de talentos raciais de nivel 1 para validacao server-side do criador."""
     from .models import TbLinhagem, TbTracoracial
     from .character_engine import clas_de_essencia, cla_de_traco
     if raca is None:
         return []
     out = []
-    lins_raca = list(TbLinhagem.objects.filter(id_raca=raca))
-    active_traits = list(TbTracoracial.objects.filter(
-        id_raca=raca, talento_racial=False, id_linhagem__isnull=True,
-        id_essencia__isnull=True, nivel_requisito__lte=1))
+    lins_raca = _creator_origin_rows(TbLinhagem, ruleset=ruleset, id_raca_id=raca.pk)
+    active_traits = list([t for t in _creator_origin_rows(TbTracoracial, ruleset=ruleset, id_raca_id=raca.pk, talento_racial=False, id_linhagem_id=None,
+        id_essencia_id=None) if t.nivel_requisito <= 1])
     if linhagem:
-        active_traits += list(TbTracoracial.objects.filter(
-            id_linhagem=linhagem, talento_racial=False, nivel_requisito__lte=1))
-    essence_clans = clas_de_essencia(essencia) if essencia else []
+        active_traits += list([t for t in _creator_origin_rows(TbTracoracial, ruleset=ruleset, id_linhagem_id=linhagem.pk, talento_racial=False) if t.nivel_requisito <= 1])
+    essence_clans = clas_de_essencia(essencia, ruleset=ruleset) if essencia else []
     if essencia:
-        for trait in TbTracoracial.objects.filter(
-                id_essencia=essencia, talento_racial=False, nivel_requisito__lte=1):
+        for trait in [t for t in _creator_origin_rows(TbTracoracial, ruleset=ruleset, id_essencia_id=essencia.pk, talento_racial=False) if t.nivel_requisito <= 1]:
             clan = cla_de_traco(trait, essence_clans) if essence_clans else ''
             if not clan or clan == escolha_essencia:
                 active_traits.append(trait)
@@ -5234,9 +5535,8 @@ def _talentos_raciais_criador(raca, linhagem=None, essencia=None, escolha_essenc
         if policy['pick'] == 'talento_racial'
         and (not policy['vertente'] or policy['vertente'] == escolha_essencia)
     }
-    base = TbTracoracial.objects.filter(
-        id_raca=raca, talento_racial=True, id_linhagem__isnull=True,
-        id_essencia__isnull=True, nivel_requisito__lte=1).order_by('nome')
+    base = sorted([t for t in _creator_origin_rows(TbTracoracial, ruleset=ruleset, id_raca_id=raca.pk, talento_racial=True, id_linhagem_id=None,
+        id_essencia_id=None) if t.nivel_requisito <= 1], key=lambda t: t.nome)
     for traco in base:
         identity_ok = _character_prereq_matches(
             traco, race=raca, lineage=linhagem, essence=essencia)
@@ -5247,18 +5547,14 @@ def _talentos_raciais_criador(raca, linhagem=None, essencia=None, escolha_essenc
         if identity_ok and 'raca' not in suppressed_sources:
             out.append(traco)
     if linhagem and 'linhagem' not in suppressed_sources:
-        out += list(TbTracoracial.objects.filter(
-            id_linhagem=linhagem, talento_racial=True,
-            nivel_requisito__lte=1).order_by('nome'))
+        out += list(sorted([t for t in _creator_origin_rows(TbTracoracial, ruleset=ruleset, id_linhagem_id=linhagem.pk, talento_racial=True) if t.nivel_requisito <= 1], key=lambda t: t.nome))
         alvos = _count_as_racial_targets(
-            TbTracoracial.objects.filter(id_linhagem=linhagem),
+            _creator_origin_rows(TbTracoracial, ruleset=ruleset, id_linhagem_id=linhagem.pk),
             linhagem_slug=linhagem.slug)
-        out += [traco for traco, _lins in _talentos_raciais_count_as(alvos, nivel_max=1)]
+        out += [traco for traco, _lins in _talentos_raciais_count_as(alvos, nivel_max=1, ruleset=ruleset)]
     if essencia and 'essencia' not in suppressed_sources:
         clas = essence_clans
-        for traco in TbTracoracial.objects.filter(
-                id_essencia=essencia, talento_racial=True,
-                nivel_requisito__lte=1).order_by('nome'):
+        for traco in sorted([t for t in _creator_origin_rows(TbTracoracial, ruleset=ruleset, id_essencia_id=essencia.pk, talento_racial=True) if t.nivel_requisito <= 1], key=lambda t: t.nome):
             cla = cla_de_traco(traco, clas) if clas else ''
             if not cla or cla == escolha_essencia:
                 out.append(traco)
@@ -5494,7 +5790,8 @@ def _talento_picks_contexto(talento, personagem, nivel=None):
                 alternativas.extend({'val': s['val'], 'nome': '%s — %s' % (alt['nome'], s['nome'])}
                                      for s in alt['subs'])
             else:
-                alternativas.append({'val': alt['val'], 'nome': alt['nome']})
+                alternativas.append({'val': alt['val'], 'nome': alt['nome'],
+                                     'ja_proficiente': alt.get('ja_proficiente', False)})
         out.append({
             'key': str(index), 'label': g.get('label') or g['kind'],
             'n': int(g.get('n') or 0), 'options': alternativas,
@@ -5511,6 +5808,18 @@ def _personagem_classe_contexto(personagem, classe_id=None):
     return personagem.classes.filter(principal=True).first() or personagem.classes.first()
 
 
+def _hunter_ruleset_for_class(pc):
+    """Only an explicit Hunter binding selects revised level-up content."""
+    if not pc:
+        return None
+    from .models import TbPersonagemCacador
+    profile = TbPersonagemCacador.objects.select_related('ruleset').filter(
+        personagem_classe=pc).first()
+    if profile:
+        return profile.ruleset
+    return None
+
+
 def _pendencias_nivel(personagem, classe_id=None):
     """Escolhas que faltam no nível atual: subclasse (N>=nível-da-subclasse) e ASIs."""
     from .models import TbSubclasse
@@ -5521,15 +5830,39 @@ def _pendencias_nivel(personagem, classe_id=None):
     nivel = pc.nivel or 1
     classe = pc.id_classe
     from .character_engine import _subclass_min_level
-    pend['subclasse_nivel'] = _subclass_min_level(classe)
+    ruleset = _hunter_ruleset_for_class(pc)
+    catalog = None
+    if ruleset is not None:
+        from .content_versions import resolve_content
+        from .versioned_classes import EVALUATOR, VOCABULARY, VersionedClassCatalog
+        catalog = VersionedClassCatalog(ruleset, pc.id_classe_id)
+        payload = resolve_content(ruleset, 'class-catalog:%s' % pc.id_classe_id,
+                                  evaluator_version=EVALUATOR, vocabulary_version=VOCABULARY)
+        marker = payload.get('hunter_order_replacements')
+        eligible_ids = set(marker['order_ids'].values()) if marker else set(catalog.subclasses)
+        pend['subclasse_nivel'] = _subclass_min_level(catalog.classe)
+    else:
+        eligible_ids = None
+        pend['subclasse_nivel'] = _subclass_min_level(classe)
     if pend['subclasse_nivel'] and nivel >= pend['subclasse_nivel'] and not pc.id_subclasse_id:
         pend['subclasse'] = True
         subclasses = []
-        for s in TbSubclasse.objects.filter(id_classe=classe).order_by('nome'):
+        available = (sorted((s for pk, s in catalog.subclasses.items() if pk in eligible_ids),
+                            key=lambda s: s.nome) if catalog is not None else
+                     TbSubclasse.objects.filter(id_classe=classe).exclude(
+                         slug__endswith='-rework').order_by('nome')
+                     if classe.slug == 'cacador' else
+                     TbSubclasse.objects.filter(id_classe=classe).order_by('nome'))
+        for s in available:
+            if catalog is not None and not TbSubclasse.objects.filter(pk=s.pk, id_classe=classe).exists():
+                raise ValueError('Order identity is absent from the live foreign-key catalog.')
             partes = [(s.tagline or '').strip()]
-            for h in TbClassehabilidade.objects.filter(
-                    id_subclasse=s, niveladquirido=pend['subclasse_nivel'],
-                    table_only=False).order_by('nome'):
+            features = (sorted((h for h in catalog.collections[TbClassehabilidade]
+                if h.id_subclasse_id == s.pk and h.niveladquirido == pend['subclasse_nivel']
+                and not h.table_only), key=lambda h: h.nome) if catalog is not None else
+                TbClassehabilidade.objects.filter(id_subclasse=s,
+                    niveladquirido=pend['subclasse_nivel'], table_only=False).order_by('nome'))
+            for h in features:
                 resumo = _criador_resumo_md(h.descricao, 260)
                 partes.append('%s%s' % (h.nome, (' - ' + resumo) if resumo else ''))
             subclasses.append({'id': s.id_subclasse, 'nome': s.nome,
@@ -5556,6 +5889,9 @@ def _pendencias_talento_racial(personagem, ignore_talento_id=None):
         cond |= Q(id_essencia=personagem.id_essencia_id)
     if not cond.children:
         return []
+    # Uma origem especifica nao pode entrar apenas por compartilhar a raca.
+    cond &= (Q(id_linhagem__isnull=True) | Q(id_linhagem=personagem.id_linhagem_id))
+    cond &= (Q(id_essencia__isnull=True) | Q(id_essencia=personagem.id_essencia_id))
     picked = personagem.talentos.filter(categoria='racial')
     if ignore_talento_id:
         picked = picked.exclude(pk=ignore_talento_id)
@@ -5568,6 +5904,25 @@ def _pendencias_talento_racial(personagem, ignore_talento_id=None):
     lins_raca = list(TbLinhagem.objects.filter(id_raca=personagem.id_raca_id)) if personagem.id_raca_id else []
     lin_sel_slug = getattr(getattr(personagem, 'id_linhagem', None), 'slug', None)
     tem_essencia = bool(getattr(personagem, 'id_essencia_id', None))
+
+    def _talento_key(nome):
+        return re.sub(r'[^a-z0-9]', '', _norm_req(nome))
+
+    owned_keys = {_talento_key(nome) for nome in picked_nomes}
+    # A incompatibilidade também vale quando o usuário tenta escolher depois o
+    # talento excluído pela origem já possuída, inclusive em um marco atrasado.
+    bloqueados_por_escolhidos = set()
+    for source in TbTracoracial.objects.filter(cond, talento_racial=True, nome__in=picked_nomes):
+        _texto, exclusoes = _talento_exclusoes_condicionais(source, lins_raca)
+        bloqueados_por_escolhidos.update(_talento_key(nome) for lin, nome in exclusoes
+                                        if lin == lin_sel_slug)
+
+    def _exclusoes_ok(o):
+        if _talento_key(o.nome) in bloqueados_por_escolhidos:
+            return False
+        _texto, exclusoes = _talento_exclusoes_condicionais(o, lins_raca)
+        return not any(lin == lin_sel_slug and _talento_key(nome) in owned_keys
+                       for lin, nome in exclusoes)
 
     def _linhagem_ok(o):
         if getattr(o, 'id_linhagem_id', None) or getattr(o, 'id_essencia_id', None):
@@ -5628,25 +5983,24 @@ def _pendencias_talento_racial(personagem, ignore_talento_id=None):
     borrowed = _talentos_raciais_count_as(ca_targets)
     borrowed_pks = {t.pk for (t, _l) in borrowed}
     out = []
-    tiers = sorted({
-        n for n in (list(TbTracoracial.objects.filter(cond, talento_racial=True)
-                         .values_list('nivel_requisito', flat=True))
-                    + [t.nivel_requisito for (t, _l) in borrowed])
-        if n
-    })
+    eligible = [o for o in TbTracoracial.objects.filter(cond, talento_racial=True)
+                if _linhagem_ok(o) and _source_ok(o) and _cla_ok(o)]
+    tiers = sorted({o.nivel_requisito for o in eligible + [t for t, _ in borrowed]
+                    if o.nivel_requisito})
     for tier in tiers:
         if tier > total or tier in picked_tiers:
             continue
         # nivel_requisito__lte=tier: o slot deste marco oferece os talentos deste tier
         # E os de tiers anteriores ainda não escolhidos (ex.: no nível 5 aparecem os de
         # nível 1 não pegos na criação + os de nível 5). picked_nomes evita repetir.
-        combinado = list(TbTracoracial.objects.filter(cond, talento_racial=True,
-                                                      nivel_requisito__lte=tier))
+        combinado = [o for o in eligible if o.nivel_requisito <= tier]
         combinado += [t for (t, _l) in borrowed if t.nivel_requisito and t.nivel_requisito <= tier]
         seen = set(picked_nomes)
         opcoes = []
         for o in sorted(combinado, key=lambda x: x.nome):
             if o.nome in seen:
+                continue
+            if not _exclusoes_ok(o):
                 continue
             if o.pk not in borrowed_pks and not _linhagem_ok(o):
                 continue
@@ -5754,6 +6108,7 @@ def _opcao_alternativas(universo):
             'nome': op.get('nome') or op.get('slug'),
             'descricao': _descricao_de_opcao(op),
             'pre': op.get('pre') or '',
+            'ja_proficiente': op.get('ja_proficiente', False),
             'formas': {str(op.get('slug')), str(op.get('id'))} - {'None'},
             'subs': [{'val': '%s|%s' % (op.get('slug'), s.get('slug')),
                       'nome': s.get('nome') or s.get('slug'),
@@ -5771,6 +6126,8 @@ def _opcao_alternativa(grupo, val):
     completa a escolha (arma com maestrias exige uma delas, mesma regra do
     `picks._arma_validate`); numa entrada de um nível, a própria opção."""
     for alt in _opcao_alternativas(grupo.get('universo')):
+        if alt.get('ja_proficiente'):
+            continue
         if alt['subs']:
             achado = next((s for s in alt['subs'] if s['val'] == val), None)
             if achado:
@@ -5861,6 +6218,7 @@ def _opcoes_ficha(personagem):
                 continue
             disponiveis.append({'val': alt['val'], 'nome': alt['nome'],
                                 'descricao': alt['descricao'],
+                                'ja_proficiente': alt.get('ja_proficiente', False),
                                 'subs': [{'val': s['val'], 'nome': s['nome'],
                                           'descricao': s['descricao']} for s in livres]})
         escopo = g.get('swap') or ''
@@ -5943,7 +6301,8 @@ def _opcao_grupos(personagem, classe_id=None):
         disponiveis = [{'id': o['id'], 'slug': o['slug'],
                         'val': str(o['id']) if o.get('id') is not None else o['slug'],
                         'nome': o['nome'], 'descricao': o.get('descricao') or '',
-                        'pre': o.get('pre') or ''}
+                        'pre': o.get('pre') or '',
+                        'ja_proficiente': o.get('ja_proficiente', False)}
                        for o in g['universo']
                        if o['id'] not in esc_ids and o['slug'] not in esc_slugs]
         grupos.append({
@@ -6125,7 +6484,8 @@ def personagem_subir_nivel(request, pk):
             if not erros:
                 # Novos níveis podem desbloquear ciclos de Magia Elemental (nv 5/9/13).
                 _sync_magias_essencia(p)
-                _refresh_vitais_derivados(p)
+                pc = _personagem_classe_contexto(p, request.POST.get('classe'))
+                _refresh_vitais_derivados(p, ruleset=_hunter_ruleset_for_class(pc))
                 p.refresh_from_db(fields=['nivel'])
                 register_revision(
                     p, tipo='level_up', snapshot=snapshot_antes, user=request.user,
@@ -6144,8 +6504,6 @@ def _subir_nivel_experiencia(request, p):
     ASI/magias/opções JÁ no nível conquistado (semântica BG3 — escolhe no novo nível). Sem
     elegibilidade, exibe apenas as pendências ainda abertas do nível atual."""
     from .character_engine import derive
-    ficha_atual = derive(p)
-    status = _levelup_status(p, ficha_atual)
     classes_atuais = [{'id': c.id_classe.id_classe, 'nome': c.id_classe.nome, 'nivel': c.nivel,
                        'principal': c.principal}
                       for c in p.classes.select_related('id_classe').order_by('-principal', 'id')]
@@ -6153,25 +6511,37 @@ def _subir_nivel_experiencia(request, p):
     pc = (p.classes.filter(id_classe_id=sel_id).first() if sel_id else None) \
         or p.classes.filter(principal=True).first() or p.classes.first()
     classe_id = pc.id_classe_id if pc else None
+    ruleset = _hunter_ruleset_for_class(pc)
+    ficha_atual = derive(p, ruleset=ruleset)
+    status = _levelup_status(p, ficha_atual)
     con_mod = ((ficha_atual.get('atributos') or {}).get('CON') or {}).get('mod', 0) or 0
     nivel_atual_total = int(ficha_atual.get('nivel_total') or 0)
     pode_subir = status['pode_subir']
     classes_multiclasse = _classes_multiclasse(p, ficha_atual) if nivel_atual_total < 20 else []
     # recursos ANTES (p/ marcar o que cresce no nível-alvo)
-    from .character_engine import _recursos_consumiveis
-    rec_antes = {r['slug']: r for r in _recursos_consumiveis(
-        p, list(p.classes.select_related('id_classe', 'id_subclasse')))}
+    from .character_engine import (_recursos_consumiveis, _resource_formula_context,
+                                   _resource_max_overrides)
+    def recursos_do_nivel():
+        classes = list(p.classes.select_related('id_classe', 'id_subclasse'))
+        if ruleset is None:
+            return _recursos_consumiveis(p, classes)
+        from .versioned_classes import resolved_classes
+        classes = resolved_classes(ruleset, classes)
+        context, features = _resource_formula_context(p, classes, ruleset=ruleset)
+        return _recursos_consumiveis(p, classes, ruleset=ruleset,
+            formula_ctx=context, max_overrides=_resource_max_overrides(features, context))
+    rec_antes = {r['slug']: r for r in recursos_do_nivel()}
 
     ganhos = recursos_delta = None
     with transaction.atomic():
         if pode_subir:
             _lvl_aplicar_subir_nivel(p, {'classe': classe_id})
-            _sync_magias_concedidas(p)
-        ficha_alvo = derive(p)
+            _sync_magias_concedidas(p, ruleset=ruleset)
+        ficha_alvo = derive(p, ruleset=ruleset)
         pend = _pendencias_nivel(p, classe_id)
         # ciente da subclasse que será escolhida NESTE passo (third-casters: a conjuração
         # vem da subclasse, ainda não atribuída no nível em que ela é adquirida).
-        pendm = _pendencias_magias_levelup(p, pend, classe_id)
+        pendm = _pendencias_magias_levelup(p, pend, classe_id, ruleset=ruleset)
         magias_concedidas_pend = _criador_magias_pendentes(p)
         talentos_raciais_pend = _pendencias_talento_racial(p)
         opcao_grupos = _opcao_grupos(p, classe_id)
@@ -6181,7 +6551,7 @@ def _subir_nivel_experiencia(request, p):
         pc_alvo = (p.classes.filter(id_classe_id=classe_id).first() if classe_id else None) \
             or p.classes.filter(principal=True).first() or p.classes.first()
         nivel_classe_alvo = int(pc_alvo.nivel or 1) if pc_alvo else 1
-        ganhos = _levelup_ganhos(p, classe_id, nivel_classe_alvo, con_mod)
+        ganhos = _levelup_ganhos(p, classe_id, nivel_classe_alvo, con_mod, ruleset=ruleset)
         # PV real do salto = derive(alvo) - derive(atual): inclui bônus de PV por nível de
         # talento/traço (Robusto, Sangue Elemental…), não só a média do dado da classe.
         if pode_subir:
@@ -6191,8 +6561,7 @@ def _subir_nivel_experiencia(request, p):
                 ganhos['pv_ganho'] = max(0, int(tgt_pv) - int(cur_pv))
         else:
             ganhos['pv_ganho'] = None
-        recursos_delta = _levelup_recursos_delta(rec_antes, _recursos_consumiveis(
-            p, list(p.classes.select_related('id_classe', 'id_subclasse'))))
+        recursos_delta = _levelup_recursos_delta(rec_antes, recursos_do_nivel())
         nivel_alvo_total = int(ficha_alvo.get('nivel_total') or nivel_atual_total)
         preview_resumo = _criador_preview_resumo(ficha_alvo)
         transaction.set_rollback(True)
@@ -6223,12 +6592,12 @@ def _subir_nivel_experiencia(request, p):
     })
 
 
-def _refresh_vitais_derivados(personagem, refill=False):
+def _refresh_vitais_derivados(personagem, refill=False, *, ruleset=None):
     """Persiste campos vitais que continuam sendo derivados pelas tags do engine."""
     from .character_engine import derive
     antigo_max = int(personagem.pv_maximo or 0)
     antigo_atual = int(personagem.pv_atual or 0)
-    ficha = derive(personagem)
+    ficha = derive(personagem, ruleset=ruleset)
     pv = ficha.get('pv') or {}
     novo_max = int(pv.get('maximo_calculado') or antigo_max or 0)
     personagem.pv_maximo = novo_max
@@ -6371,7 +6740,8 @@ def aplicar_aventuras(personagem, n, evento=False, nome_aventura=None, criado_po
     return (ouro, bras)
 
 
-def _sync_magias_concedidas(personagem):
+@transaction.atomic
+def _sync_magias_concedidas(personagem, *, ruleset=None):
     """Materializa em TbPersonagemMagia TODAS as magias específicas concedidas por features
     ativas (Essência/vertente, Marcas, Juramento das Três Luas, domínios/juramentos de
     classe etc.) — via `character_engine.magias_concedidas`. As concedidas ficam marcadas
@@ -6381,19 +6751,30 @@ def _sync_magias_concedidas(personagem):
     escolhas de magia ainda pendentes (p/ a ficha pedir a seleção)."""
     from .models import TbMagia, TbPersonagemMagia
     from .character_engine import magias_concedidas
-    info = magias_concedidas(personagem)
+    # Serialize materialization for this character, including fixed grants.
+    type(personagem).objects.select_for_update().get(pk=personagem.pk)
+    from .versioned_spells import spell_catalog
+    catalog = spell_catalog(ruleset) if ruleset is not None else None
+    by_slug = {m.slug: m for m in catalog.values()} if catalog is not None else None
+    info = magias_concedidas(personagem, ruleset=ruleset)
     intended = {c['slug']: c for c in info['concedidas']}
     existing = {}
     for m in (TbPersonagemMagia.objects.filter(id_personagem=personagem, sempre_preparada=True)
               .select_related('id_magia')):
-        if m.id_magia_id and m.id_magia.slug:
-            existing[m.id_magia.slug] = m
+        spell = catalog.get(m.id_magia_id) if catalog is not None else m.id_magia
+        if catalog is not None and m.id_magia_id and spell is None:
+            raise ValueError('Spell absent from pinned ruleset.')
+        if spell and spell.slug:
+            existing[spell.slug] = m
     for slug, c in intended.items():
+        mg = by_slug.get(slug) if by_slug is not None else TbMagia.objects.filter(slug=slug).first()
+        if catalog is not None and (mg is None or not TbMagia.objects.filter(pk=mg.pk).exists()):
+            raise ValueError('Granted spell identity unavailable.')
         m = existing.get(slug)
         if m:
             campos = []
-            if m.id_magia and m.nome != m.id_magia.nome:
-                m.nome = m.id_magia.nome; campos.append('nome')
+            if mg and m.nome != mg.nome:
+                m.nome = mg.nome; campos.append('nome')
             if m.origem != c['fonte']:
                 m.origem = c['fonte']; campos.append('origem')
             if m.nivel != c['nivel']:
@@ -6401,7 +6782,6 @@ def _sync_magias_concedidas(personagem):
             if campos:
                 m.save(update_fields=campos)
             continue
-        mg = TbMagia.objects.filter(slug=slug).first()
         if mg:
             TbPersonagemMagia.objects.create(
                 id_personagem=personagem, id_magia=mg, nivel=c['nivel'], nome=mg.nome,
@@ -6412,11 +6792,12 @@ def _sync_magias_concedidas(personagem):
     # Concessões FIXAS não-mágicas (grant:opcao / grant:talento) sincronizam no MESMO ponto
     # (toda persistência que reavalia magias reavalia grants); mantém a ficha consistente
     # sem espalhar chamadas por todos os fluxos de save.
-    _sync_grants_fixos(personagem)
+    _sync_grants_fixos(personagem, ruleset=ruleset)
     return len(info['pendentes'])
 
 
-def _sync_grants_fixos(personagem):
+@transaction.atomic
+def _sync_grants_fixos(personagem, *, ruleset=None):
     """Materializa as concessões FIXAS reportadas por `character_engine.grants_fixos`
     (grant:opcao / grant:talento), no padrão idempotente e origem-rastreado de
     `_sync_magias_concedidas`:
@@ -6432,7 +6813,8 @@ def _sync_grants_fixos(personagem):
     Retorna (n_opcoes, n_talentos)."""
     from .models import TbPersonagemEscolha, TbPersonagemTalento, TbOpcaojogo, TbTalento
     from .character_engine import grants_fixos
-    info = grants_fixos(personagem)
+    type(personagem).objects.select_for_update().get(pk=personagem.pk)
+    info = grants_fixos(personagem, ruleset=ruleset)
     # ── opções concedidas ──
     TbPersonagemEscolha.objects.filter(id_personagem=personagem, tipo='grant-opcao').delete()
     por_fonte = {}
@@ -6441,17 +6823,21 @@ def _sync_grants_fixos(personagem):
     for fonte, itens in por_fonte.items():
         for slot, c in enumerate(itens):
             op = TbOpcaojogo.objects.filter(id_opcao=c['id_opcao']).first()
+            if ruleset is not None and op is None:
+                raise ValueError('Granted option identity unavailable.')
             if op:
                 TbPersonagemEscolha.objects.create(
                     id_personagem=personagem, origem=fonte, tipo='grant-opcao',
-                    slot=slot, id_opcao=op, valor=op.slug)
+                    slot=slot, id_opcao=op, valor=c['slug'] if ruleset is not None else op.slug)
     # ── talentos concedidos (só os 'concedido'; preserva os de ASI/origem) ──
     TbPersonagemTalento.objects.filter(id_personagem=personagem, categoria='concedido').delete()
     for c in info['talentos']:
         t = TbTalento.objects.filter(id_talento=c['id_talento']).first()
+        if ruleset is not None and t is None:
+            raise ValueError('Granted talent identity unavailable.')
         if t:
             TbPersonagemTalento.objects.create(
-                id_personagem=personagem, id_talento=t, nome=t.nome,
+                id_personagem=personagem, id_talento=t, nome=c['nome'] if ruleset is not None else t.nome,
                 categoria='concedido', detalhes=('grant:%s' % (c['fonte'] or ''))[:200])
     return len(info['opcoes']), len(info['talentos'])
 
@@ -7105,7 +7491,7 @@ def personagem_escolher_opcoes(request, pk):
     return redirect(destino)
 
 
-def _pendencias_magias(personagem, subclasse_override=None, classe_id=None):
+def _pendencias_magias(personagem, subclasse_override=None, classe_id=None, *, ruleset=None):
     """Escolhas de repertório declaradas pelo contrato ``spellcasting`` da classe.
 
     Conjuradores ``known`` completam o limite tabelado; ``pool:spellbook`` completa
@@ -7122,16 +7508,21 @@ def _pendencias_magias(personagem, subclasse_override=None, classe_id=None):
     pc = _personagem_classe_contexto(personagem, classe_id)
     if not pc:
         return None
+    from .versioned_classes import resolved_classes
+    from .versioned_spells import spell_catalog, spell_scopes
+    if ruleset is not None:
+        pc = resolved_classes(ruleset, [pc])[0]
+    frozen = spell_catalog(ruleset) if ruleset is not None else None
     classe, nivel = pc.id_classe, (pc.nivel or 1)
-    subclasse = subclasse_override if subclasse_override is not None else _caster_subclasse(pc)
-    spell_info = _classe_spellcasting_info(classe, nivel_habilidades=nivel, subclasse=subclasse)
+    subclasse = subclasse_override if subclasse_override is not None else (pc.id_subclasse if ruleset is not None else _caster_subclasse(pc))
+    spell_info = _classe_spellcasting_info(classe, nivel_habilidades=nivel, subclasse=subclasse, ruleset=ruleset)
     if not spell_info:
         return None
 
     # TETO DE NÍVEL DE MAGIA = topo da tabela de slots DA PRÓPRIA CLASSE (single-class de
     # propósito). Regra 5e: o nível máximo conhecível/preparável vem do nível NAQUELA classe,
     # não dos slots *pooled* de multiclasse — por isso lemos a tabela desta classe/subclasse.
-    maxlv = _class_max_spell_level(classe, nivel, spell_info, subclasse)
+    maxlv = _class_max_spell_level(classe, nivel, spell_info, subclasse, ruleset=ruleset)
     magias_classe = personagem.magias.filter(origem__iexact=classe.nome)
     if personagem.classes.count() == 1:
         magias_classe = personagem.magias.filter(
@@ -7139,33 +7530,52 @@ def _pendencias_magias(personagem, subclasse_override=None, classe_id=None):
             | (Q(origem__isnull=True) | Q(origem='')) & Q(sempre_preparada=False))
     # Posse de magia e por ORIGEM de classe. A mesma magia pode pertencer a
     # duas listas e usar atributos/regras de preparo diferentes.
-    conhecidos = set(magias_classe.values_list('id_magia__slug', flat=True))
+    def owned_spell(row):
+        if frozen is None:
+            return row.id_magia
+        if row.id_magia_id not in frozen:
+            raise ValueError('Spell absent from pinned ruleset.')
+        return frozen[row.id_magia_id]
+    conhecidos = {owned_spell(row).slug for row in magias_classe.select_related('id_magia')
+                  if row.id_magia_id}
     truques_exp = resource_limit_at(
-        spell_info.get('cantrip_limit'), classe, level=nivel, subclass=subclasse) or 0
+        spell_info.get('cantrip_limit'), classe, level=nivel, subclass=subclasse, ruleset=ruleset) or 0
     mode = spell_info.get('mode')
     pool = spell_info.get('pool') or 'class_list'
     if mode == 'known':
         spell_exp = resource_limit_at(
-            spell_info.get('spell_limit'), classe, level=nivel, subclass=subclasse) or 0
+            spell_info.get('spell_limit'), classe, level=nivel, subclass=subclasse, ruleset=ruleset) or 0
     elif pool == 'spellbook':
         spell_exp = acquired_spell_count(spell_info, level=nivel)
     else:
         spell_exp = 0
     cant_pend = max(0, truques_exp - magias_classe.filter(nivel=0).count())
     spell_pend = max(0, spell_exp - magias_classe.filter(nivel__gte=1).count())
-    lt = [{'slug': m.slug, 'nome': m.nome, 'nome_ingles': (m.nome_ingles or '')} for m in
-          _spell_catalog_queryset(spell_info['lista_nomes'], personagem).filter(
-              nivel=0).order_by('nome') if m.slug not in conhecidos]
-    lm = [{'slug': m.slug, 'nome': m.nome, 'nome_ingles': (m.nome_ingles or ''), 'nivel': m.nivel} for m in
-          _spell_catalog_queryset(spell_info['lista_nomes'], personagem).filter(
-              nivel__gte=1, nivel__lte=maxlv).order_by('nivel', 'nome') if m.slug not in conhecidos]
+    if frozen is None:
+        catalog = list(_spell_catalog_queryset(spell_info['lista_nomes'], personagem))
+    else:
+        from .spellcasting import character_spell_list_delta
+        scopes = spell_scopes(ruleset)
+        delta = character_spell_list_delta(personagem, ruleset=ruleset)
+        wanted = set(spell_info['lista_nomes'])
+        catalog = []
+        for spell in frozen.values():
+            tokens = spell.classes_slugs or re.split(r'[,;|]', spell.classes or '')
+            names = {scopes.get(str(token).strip().lower()) for token in tokens}
+            if spell.slug not in delta['remove'] and (wanted & names or spell.slug in delta['add']):
+                catalog.append(spell)
+    lt = [{'slug': m.slug, 'nome': m.nome, 'nome_ingles': m.nome_ingles or ''}
+          for m in sorted(catalog, key=lambda m: m.nome) if m.nivel == 0 and m.slug not in conhecidos]
+    lm = [{'slug': m.slug, 'nome': m.nome, 'nome_ingles': m.nome_ingles or '', 'nivel': m.nivel}
+          for m in sorted(catalog, key=lambda m: (m.nivel, m.nome))
+          if 1 <= m.nivel <= maxlv and m.slug not in conhecidos]
     # Troca existe apenas quando declarada no contrato. Nada é inferido pelo modo ou
     # pelo nome da classe; ``max:1`` e ``max:all`` compartilham o mesmo fluxo.
     swap_lvl = bool(
         (spell_info.get('swap') or {}).get('event') == 'level_up' and mode == 'known')
     nivel_total = sum(int(c.nivel or 0) for c in personagem.classes.all()) or int(personagem.nivel or 1)
-    conhecidas = [{'slug': m.id_magia.slug, 'nome': m.nome,
-                   'nome_ingles': (m.id_magia.nome_ingles or ''), 'nivel': m.nivel}
+    conhecidas = [{'slug': owned_spell(m).slug, 'nome': m.nome,
+                   'nome_ingles': (owned_spell(m).nome_ingles or ''), 'nivel': m.nivel}
                   for m in magias_classe.select_related('id_magia').filter(
                       id_magia__isnull=False).order_by('nivel', 'nome')] if mode == 'known' else []
     swap_origin = 'swap:%s:%s' % (classe.id_classe, nivel_total)
@@ -7187,7 +7597,7 @@ def _pendencias_magias(personagem, subclasse_override=None, classe_id=None):
             'conhecidas': conhecidas, 'prospectiva': False, 'subclasses_prospectivas': []}
 
 
-def _pendencias_magias_levelup(personagem, pend_nivel, classe_id=None):
+def _pendencias_magias_levelup(personagem, pend_nivel, classe_id=None, *, ruleset=None):
     """Pendência de magias para o WIZARD de level-up, ciente da subclasse que está prestes a
     ser escolhida NESTE passo. Regressão do print 'Cavaleiro Arcano não deixa escolher truque':
     para third-casters (Cavaleiro/Trapaceiro Arcano) a conjuração vem da SUBCLASSE, e no nível
@@ -7201,7 +7611,7 @@ def _pendencias_magias_levelup(personagem, pend_nivel, classe_id=None):
     — e a marca `prospectiva=True` com a lista de slugs de subclasse que a destravam. O cliente
     só revela o passo quando a prévia ao vivo (subclasse já no lote) confirma truques/conhecidas > 0."""
     from .models import TbSubclasse
-    pendm = _pendencias_magias(personagem, classe_id=classe_id)
+    pendm = _pendencias_magias(personagem, classe_id=classe_id, ruleset=ruleset)
     if pendm is not None:
         return pendm
     if not pend_nivel.get('subclasse'):
@@ -7209,15 +7619,19 @@ def _pendencias_magias_levelup(personagem, pend_nivel, classe_id=None):
     pc = _personagem_classe_contexto(personagem, classe_id)
     if not pc or pc.id_subclasse_id:
         return None
+    from .versioned_classes import VersionedClassCatalog
+    catalog = VersionedClassCatalog(ruleset, pc.id_classe_id) if ruleset is not None else None
     base = None
     truques, magias, nomes, slugs = {}, {}, [], []
     for opt in pend_nivel.get('subclasses') or []:
-        sub = TbSubclasse.objects.filter(pk=opt['id']).first()
+        sub = catalog.subclasses.get(opt['id']) if catalog is not None else TbSubclasse.objects.filter(pk=opt['id']).first()
+        if catalog is not None and sub is None:
+            raise ValueError('Subclass is not part of this ruleset.')
         if not sub or not _classe_spellcasting_info(
-                pc.id_classe, nivel_habilidades=int(pc.nivel or 1), subclasse=sub):
+                pc.id_classe, nivel_habilidades=int(pc.nivel or 1), subclasse=sub, ruleset=ruleset):
             continue
         cand = _pendencias_magias(
-            personagem, subclasse_override=sub, classe_id=classe_id)
+            personagem, subclasse_override=sub, classe_id=classe_id, ruleset=ruleset)
         if not cand or not (cand['cantrips_pend'] or cand['known_pend']):
             continue
         slugs.append(sub.slug)
@@ -7247,17 +7661,26 @@ def _pendencias_magias_levelup(personagem, pend_nivel, classe_id=None):
 _ABIL_EN = {'FOR': 'str', 'DES': 'dex', 'CON': 'con', 'INT': 'int', 'SAB': 'wis', 'CAR': 'cha'}
 
 
-def _magias_preparadas_infos(personagem, ficha):
+def _magias_preparadas_infos(personagem, ficha, *, ruleset=None):
     """Catálogo e limite de preparação de cada classe, ambos vindos das tags."""
     from .models import TbMagia
     from .spellcasting import limit_at
 
+    from .versioned_classes import resolved_classes
+    from .versioned_spells import spell_catalog, spell_scopes
+    from .spellcasting import character_spell_list_delta
+    classes = personagem.classes.order_by('-principal', 'id')
+    classes = (resolved_classes(ruleset, classes) if ruleset is not None
+               else list(classes.select_related('id_classe', 'id_subclasse')))
+    frozen = spell_catalog(ruleset) if ruleset is not None else None
+    scopes = spell_scopes(ruleset) if ruleset is not None else None
+    delta = character_spell_list_delta(personagem, ruleset=ruleset) if ruleset is not None else None
     infos = []
-    for pc in personagem.classes.select_related('id_classe', 'id_subclasse').order_by('-principal', 'id'):
+    for pc in classes:
         classe, nivel = pc.id_classe, (pc.nivel or 1)
-        subclasse = _caster_subclasse(pc)
+        subclasse = pc.id_subclasse if ruleset is not None else _caster_subclasse(pc)
         spell_info = _classe_spellcasting_info(
-            classe, nivel_habilidades=nivel, subclasse=subclasse)
+            classe, nivel_habilidades=nivel, subclasse=subclasse, ruleset=ruleset)
         if not spell_info or spell_info.get('mode') != 'prepared':
             continue
         ats = ficha['atributos']
@@ -7272,8 +7695,8 @@ def _magias_preparadas_infos(personagem, ficha):
         limit_spec = spell_info.get('spell_limit')
         limite = limit_at(
             limit_spec, classe, level=nivel, context=ctx, subclass=subclasse,
-            minimum=1 if (limit_spec or {}).get('kind') == 'formula' else 0)
-        maxlv = _class_max_spell_level(classe, nivel, spell_info, subclasse)
+            minimum=1 if (limit_spec or {}).get('kind') == 'formula' else 0, ruleset=ruleset)
+        maxlv = _class_max_spell_level(classe, nivel, spell_info, subclasse, ruleset=ruleset)
         rows = personagem.magias.filter(
             nivel__gte=1, sempre_preparada=False, origem__iexact=classe.nome)
         if personagem.classes.count() == 1:
@@ -7281,16 +7704,42 @@ def _magias_preparadas_infos(personagem, ficha):
                 Q(origem__iexact=classe.nome)
                 | (Q(origem__isnull=True) | Q(origem='')) & Q(
                     nivel__gte=1, sempre_preparada=False))
-        owned = set(rows.values_list('id_magia__slug', flat=True))
-        preparadas = set(rows.filter(preparada=True).values_list('id_magia__slug', flat=True))
-        pool = spell_info.get('pool') or 'class_list'
-        catalog = _spell_catalog_queryset(
-            spell_info['lista_nomes'], personagem).filter(
+        if frozen is None:
+            owned = set(rows.values_list('id_magia__slug', flat=True))
+            preparadas = set(rows.filter(preparada=True).values_list('id_magia__slug', flat=True))
+            catalog = _spell_catalog_queryset(spell_info['lista_nomes'], personagem).filter(
                 nivel__gte=1, nivel__lte=maxlv)
-        if pool == 'spellbook':
-            catalog = catalog.filter(slug__in=owned)
+        else:
+            owned, preparadas = set(), set()
+            for row in rows:
+                if not row.id_magia_id:
+                    continue
+                spell = frozen.get(row.id_magia_id)
+                if spell is None:
+                    # Purchased/transcribed acquisition remains on the character,
+                    # but does not count toward this revision's preparation limit.
+                    continue
+                owned.add(spell.slug)
+                if row.preparada:
+                    preparadas.add(spell.slug)
+            wanted = set(spell_info['lista_nomes'])
+            catalog = []
+            for spell in frozen.values():
+                tokens = spell.classes_slugs or re.split(r'[,;|]', spell.classes or '')
+                names = {scopes.get(str(token).strip().lower()) for token in tokens}
+                if (1 <= spell.nivel <= maxlv and spell.slug not in delta['remove']
+                        and (wanted & names or spell.slug in delta['add'])):
+                    catalog.append(spell)
+        pool = spell_info.get('pool') or 'class_list'
+        if frozen is None:
+            if pool == 'spellbook':
+                catalog = catalog.filter(slug__in=owned)
+            catalog = catalog.order_by('nivel', 'nome')
+        else:
+            catalog = sorted((m for m in catalog if pool != 'spellbook' or m.slug in owned),
+                             key=lambda m: (m.nivel, m.nome))
         por_nivel = {}
-        for magia in catalog.order_by('nivel', 'nome'):
+        for magia in catalog:
             por_nivel.setdefault(magia.nivel, []).append({
                 'slug': magia.slug, 'nome': magia.nome,
                 'nome_ingles': magia.nome_ingles or '',
@@ -7313,9 +7762,9 @@ def _magias_preparadas_infos(personagem, ficha):
     return infos
 
 
-def _magias_preparadas_info(personagem, ficha, classe_id=None):
+def _magias_preparadas_info(personagem, ficha, classe_id=None, *, ruleset=None):
     """Compatibilidade: devolve o painel pedido ou o primeiro preparado."""
-    infos = _magias_preparadas_infos(personagem, ficha)
+    infos = _magias_preparadas_infos(personagem, ficha, ruleset=ruleset)
     if classe_id is not None:
         return next((info for info in infos
                      if str(info['classe_id']) == str(classe_id)), None)
@@ -7429,9 +7878,17 @@ def _lvl_aplicar_subclasse(personagem, payload):
     pc = _personagem_classe_contexto(personagem, payload.get('classe'))
     if not pc:
         return [_ERR_SUB_INVALIDA]
+    ruleset = _hunter_ruleset_for_class(pc)
+    if ruleset is not None:
+        pend = _pendencias_nivel(personagem, pc.id_classe_id)
+        if (not pend['subclasse'] or
+                str(payload.get('subclasse')) not in {str(s['id']) for s in pend['subclasses']}):
+            return [_ERR_SUB_INVALIDA]
     sub = TbSubclasse.objects.filter(
         id_subclasse=payload.get('subclasse'), id_classe=pc.id_classe).first()
     if not sub or pc.id_subclasse_id:
+        return [_ERR_SUB_INVALIDA]
+    if ruleset is None and pc.id_classe.slug == 'cacador' and sub.slug.endswith('-rework'):
         return [_ERR_SUB_INVALIDA]
     pc.id_subclasse = sub
     pc.save(update_fields=['id_subclasse'])
@@ -7536,8 +7993,9 @@ def _lvl_aplicar_opcao(personagem, payload):
         alvo_classe = ''
 
     def _grp_universo(g):
-        return ({str(u['slug']) for u in g['universo']}
-                | {str(u['id']) for u in g['universo'] if u.get('id') is not None})
+        allowed = [u for u in g['universo'] if not u.get('ja_proficiente')]
+        return ({str(u['slug']) for u in allowed}
+                | {str(u['id']) for u in allowed if u.get('id') is not None})
 
     def _grp_escolhidos(g):
         # já-escolhidas por QUALQUER forma do token (id da opção ou slug/valor) p/ não duplicar
@@ -7568,14 +8026,21 @@ def _lvl_aplicar_opcao(personagem, payload):
     return []
 
 
-def _lvl_aplicar_aprender_magias(personagem, payload):
+@transaction.atomic
+def _lvl_aplicar_aprender_magias(personagem, payload, *, ruleset=None):
     """Completa truques, repertório conhecido ou aquisições de grimório pelas tags."""
     from .models import TbMagia, TbPersonagemMagia
+    type(personagem).objects.select_for_update().get(pk=personagem.pk)
     payload = payload or {}
     pc = _personagem_classe_contexto(personagem, payload.get('classe'))
     if not pc:
         return [_ERR_MAGIAS_SEM_PEND]
-    pend = _pendencias_magias(personagem, classe_id=pc.id_classe_id)
+    from .versioned_classes import resolved_classes
+    from .versioned_spells import spell_catalog
+    if ruleset is not None:
+        pc = resolved_classes(ruleset, [pc])[0]
+    frozen = {m.slug: m for m in spell_catalog(ruleset).values()} if ruleset is not None else None
+    pend = _pendencias_magias(personagem, classe_id=pc.id_classe_id, ruleset=ruleset)
     if not pend:
         return [_ERR_MAGIAS_SEM_PEND]
     classe = pc.id_classe
@@ -7587,7 +8052,9 @@ def _lvl_aplicar_aprender_magias(personagem, payload):
             or len(novos_m) != int(pend['known_pend'] or 0)):
         return [_ERR_MAGIAS_INCOMPLETAS]
     for slug in novos_t + novos_m:
-        mg = TbMagia.objects.filter(slug=slug).first()
+        mg = frozen.get(slug) if frozen is not None else TbMagia.objects.filter(slug=slug).first()
+        if frozen is not None and (mg is None or not TbMagia.objects.filter(pk=mg.pk).exists()):
+            raise ValueError('Learned spell identity unavailable.')
         if mg:
             prepared = bool(mg.nivel == 0 or pend.get('mode') == 'known')
             TbPersonagemMagia.objects.get_or_create(
@@ -7596,7 +8063,8 @@ def _lvl_aplicar_aprender_magias(personagem, payload):
     return []
 
 
-def _lvl_aplicar_magias_concedidas(personagem, payload):
+@transaction.atomic
+def _lvl_aplicar_magias_concedidas(personagem, payload, *, ruleset=None):
     """Resolve um bloco de ``spell_selection`` aberto por qualquer feature ativa.
 
     O payload transporta somente a identidade do bloco e os slugs escolhidos. Fonte,
@@ -7605,13 +8073,14 @@ def _lvl_aplicar_magias_concedidas(personagem, payload):
     from .character_engine import magias_concedidas
     from .models import TbPersonagemEscolha
 
+    type(personagem).objects.select_for_update().get(pk=personagem.pk)
     payload = payload or {}
     fonte = str(payload.get('fonte') or '').strip()
     try:
         slot = int(payload.get('slot') or 0)
     except (TypeError, ValueError):
         return ['Bloco de magias concedidas inválido.']
-    bloco = next((row for row in magias_concedidas(personagem)['pendentes']
+    bloco = next((row for row in magias_concedidas(personagem, ruleset=ruleset)['pendentes']
                   if row['fonte'] == fonte and int(row['slot']) == slot), None)
     if not bloco:
         return ['Esta escolha de magias não está pendente.']
@@ -7629,7 +8098,8 @@ def _lvl_aplicar_magias_concedidas(personagem, payload):
     return []
 
 
-def _lvl_aplicar_trocar_magia(personagem, payload):
+@transaction.atomic
+def _lvl_aplicar_trocar_magia(personagem, payload, *, ruleset=None):
     """Troca magia CONHECIDA dentro da quota declarada em ``swap{...}``.
     Truque↔truque, conhecida↔conhecida (nível 1..máx conjurável).
 
@@ -7637,11 +8107,17 @@ def _lvl_aplicar_trocar_magia(personagem, payload):
     exclusivamente de ``swap{event:level_up,max:1|all}``; subir de nível cria um novo escopo.
     Vale para o POST direto, para o endpoint legado e para o lote da evolução."""
     from .models import TbMagia, TbPersonagemMagia, TbPersonagemEscolha
+    type(personagem).objects.select_for_update().get(pk=personagem.pk)
     payload = payload or {}
     pc = _personagem_classe_contexto(personagem, payload.get('classe'))
     if not pc:
         return [_ERR_TROCA_INDISPONIVEL]
-    pend = _pendencias_magias(personagem, classe_id=pc.id_classe_id)
+    from .versioned_classes import resolved_classes
+    from .versioned_spells import spell_catalog
+    if ruleset is not None:
+        pc = resolved_classes(ruleset, [pc])[0]
+    frozen = {m.slug: m for m in spell_catalog(ruleset).values()} if ruleset is not None else None
+    pend = _pendencias_magias(personagem, classe_id=pc.id_classe_id, ruleset=ruleset)
     if not pend or not pend['swap_level_up']:
         return [_ERR_TROCA_INDISPONIVEL]
     # A quota pode ser 1 ou todo o repertório. Cada ação ocupa um slot no escopo
@@ -7653,15 +8129,21 @@ def _lvl_aplicar_trocar_magia(personagem, payload):
     conhecidas = {m['slug'] for m in pend['conhecidas']}
     disponiveis = {m['slug'] for m in pend['lista_truques']} | {m['slug'] for m in pend['lista_magias']}
     novo_slug = payload.get('adicionar')
-    old_qs = personagem.magias.select_related('id_magia').filter(
-        id_magia__slug=payload.get('remover'))
+    old_qs = personagem.magias.select_related('id_magia')
+    if frozen is None:
+        old_qs = old_qs.filter(id_magia__slug=payload.get('remover'))
+    else:
+        target = frozen.get(payload.get('remover'))
+        old_qs = old_qs.filter(id_magia_id=target.pk if target else -1)
     if personagem.classes.count() == 1:
         old_qs = old_qs.filter(
             Q(origem__iexact=classe.nome) | Q(origem__isnull=True) | Q(origem=''))
     else:
         old_qs = old_qs.filter(origem__iexact=classe.nome)
     old = old_qs.first()
-    new_mg = TbMagia.objects.filter(slug=novo_slug).first() if novo_slug in disponiveis else None
+    new_mg = (frozen.get(novo_slug) if frozen is not None else TbMagia.objects.filter(slug=novo_slug).first()) if novo_slug in disponiveis else None
+    if frozen is not None and new_mg and not TbMagia.objects.filter(pk=new_mg.pk).exists():
+        raise ValueError('Learned spell identity unavailable.')
     if (old and new_mg and new_mg.slug not in conhecidas
             and (old.nivel == 0) == (new_mg.nivel == 0)        # truque↔truque
             and new_mg.nivel <= pend['max_nivel']):
@@ -7701,7 +8183,8 @@ _LVL_ORDEM = {'subir_nivel': 0, 'adicionar_classe': 1, 'subclasse': 2, 'asi': 3,
 def _levelup_pendencias(personagem, classe_id=None):
     """Resumo das pendências de progressão restantes (mesmos critérios de editar_ficha_view)."""
     pend = _pendencias_nivel(personagem, classe_id)
-    pendm = _pendencias_magias(personagem, classe_id=classe_id)
+    ruleset = _hunter_ruleset_for_class(_personagem_classe_contexto(personagem, classe_id))
+    pendm = _pendencias_magias(personagem, classe_id=classe_id, ruleset=ruleset)
     tr = _pendencias_talento_racial(personagem)
     grupos = _opcao_grupos(personagem, classe_id)
     concedidas = _criador_magias_pendentes(personagem)
@@ -7748,7 +8231,7 @@ def _levelup_status(personagem, ficha):
     }
 
 
-def _levelup_ganhos(personagem, classe_id, nivel_alvo, con_mod):
+def _levelup_ganhos(personagem, classe_id, nivel_alvo, con_mod, *, ruleset=None):
     """Ganhos DETERMINÍSTICOS de levar `classe_id` ao `nivel_alvo` (derivável das tabelas
     de progressão): aumento de PV (dado//2+1+CON), features novas da classe base + da
     subclasse já escolhida NAQUELE nível (table_only=False) e a nota de subclasse quando o
@@ -7761,21 +8244,32 @@ def _levelup_ganhos(personagem, classe_id, nivel_alvo, con_mod):
               'features': [], 'abre_subclasse': False, 'subclasse_nivel': None}
     if not pc:
         return ganhos
-    classe = pc.id_classe
+    catalog = None
+    if ruleset is not None:
+        from .versioned_classes import VersionedClassCatalog
+        catalog = VersionedClassCatalog(ruleset, pc.id_classe_id)
+    classe = catalog.classe if catalog is not None else pc.id_classe
     ganhos['classe'] = classe.nome
     die = _dado_de_vida_classe(classe)
     if die is not None:
         ganhos['pv_ganho'] = die // 2 + 1 + int(con_mod or 0)
-    for h in TbClassehabilidade.objects.filter(
-            id_classe=classe, id_subclasse__isnull=True,
-            niveladquirido=nivel_alvo, table_only=False).order_by('nome'):
+    base_features = (sorted((h for h in catalog.collections[TbClassehabilidade]
+        if h.id_subclasse_id is None and h.niveladquirido == nivel_alvo and not h.table_only),
+        key=lambda h: h.nome) if catalog is not None else
+        TbClassehabilidade.objects.filter(id_classe=classe, id_subclasse__isnull=True,
+            niveladquirido=nivel_alvo, table_only=False).order_by('nome'))
+    for h in base_features:
         ganhos['features'].append({'fonte': classe.nome, 'nome': h.nome, 'descricao': h.descricao})
     if pc.id_subclasse_id:
-        ganhos['subclasse'] = pc.id_subclasse.nome
-        for h in TbClassehabilidade.objects.filter(
-                id_subclasse=pc.id_subclasse, niveladquirido=nivel_alvo,
-                table_only=False).order_by('nome'):
-            ganhos['features'].append({'fonte': pc.id_subclasse.nome, 'nome': h.nome,
+        subclass = catalog.subclasses[pc.id_subclasse_id] if catalog is not None else pc.id_subclasse
+        ganhos['subclasse'] = subclass.nome
+        subclass_features = (sorted((h for h in catalog.collections[TbClassehabilidade]
+            if h.id_subclasse_id == subclass.pk and h.niveladquirido == nivel_alvo and not h.table_only),
+            key=lambda h: h.nome) if catalog is not None else
+            TbClassehabilidade.objects.filter(id_subclasse=subclass, niveladquirido=nivel_alvo,
+                table_only=False).order_by('nome'))
+        for h in subclass_features:
+            ganhos['features'].append({'fonte': subclass.nome, 'nome': h.nome,
                                        'descricao': h.descricao})
     smin = _subclass_min_level(classe)
     if smin and nivel_alvo == smin and not pc.id_subclasse_id:
@@ -7852,6 +8346,7 @@ def personagem_levelup_aplicar(request, pk):
     p = _ficha_editavel(request, pk)
     acoes = _levelup_acoes_do_body(request)
     classe_id = _levelup_classe_id_acoes(acoes)
+    ruleset = _hunter_ruleset_for_class(_personagem_classe_contexto(p, classe_id))
     tem_avanco = any(
         isinstance(acao, dict)
         and acao.get('tipo') in {'subir_nivel', 'adicionar_classe'}
@@ -7875,8 +8370,8 @@ def personagem_levelup_aplicar(request, pk):
             transaction.set_rollback(True)
         else:
             # ordem idêntica aos wrappers legados: materializa concedidas, depois vitais.
-            _sync_magias_concedidas(p)
-            _refresh_vitais_derivados(p)
+            _sync_magias_concedidas(p, ruleset=ruleset)
+            _refresh_vitais_derivados(p, ruleset=ruleset)
             p.refresh_from_db(fields=['nivel'])
             register_revision(
                 p, tipo='level_up', snapshot=snapshot_antes, user=request.user,
@@ -7886,7 +8381,7 @@ def personagem_levelup_aplicar(request, pk):
             )
     if erros:
         return JsonResponse({'ok': False, 'erros': erros}, status=400)
-    ficha = derive(p)
+    ficha = derive(p, ruleset=ruleset)
     pendencias = _levelup_pendencias(p, classe_id)
     status = _levelup_status(p, ficha)
     # O próximo GET reabre o wizard já no novo estado: ele inclui tanto eventuais
@@ -7914,13 +8409,14 @@ def personagem_levelup_preview(request, pk):
     p = _ficha_editavel(request, pk)
     acoes = _levelup_acoes_do_body(request)
     classe_id = _levelup_classe_id_acoes(acoes)
+    ruleset = _hunter_ruleset_for_class(_personagem_classe_contexto(p, classe_id))
     preview = pend = None
     erros = []
     try:
         with transaction.atomic():
             erros = _levelup_aplicar_lote(p, acoes)
-            _sync_magias_concedidas(p)
-            ficha = _refresh_vitais_derivados(p)
+            _sync_magias_concedidas(p, ruleset=ruleset)
+            ficha = _refresh_vitais_derivados(p, ruleset=ruleset)
             preview = _criador_preview_resumo(ficha)
             pend = _levelup_pendencias(p, classe_id)
             transaction.set_rollback(True)
@@ -8365,9 +8861,19 @@ def _redirect_next_or(request, fallback_url):
     return redirect(fallback_url)
 
 
+def _resource_ruleset(p):
+    from .models import TbPersonagemCacador
+    profiles = list(TbPersonagemCacador.objects.filter(
+        personagem_classe__id_personagem=p).select_related('ruleset'))
+    if len({profile.ruleset_id for profile in profiles}) > 1:
+        raise ValueError('Conflicting linked revisions.')
+    return profiles[0].ruleset if profiles else None
+
+
 def _recursos_ajax_payload(p):
     """Snapshot dos recursos recuperáveis exibidos no editor da ficha."""
     from .character_engine import derive
+    ruleset = _resource_ruleset(p)
     return [
         {
             'slug': r.get('slug') or r['id'],
@@ -8375,7 +8881,7 @@ def _recursos_ajax_payload(p):
             'atual': int(r.get('atual') or 0),
             'maximo': int(r.get('maximo') or 0),
         }
-        for r in _consumiveis_ficha_cards(p, derive(p))
+        for r in _consumiveis_ficha_cards(p, derive(p, ruleset=ruleset), ruleset=ruleset)
         if r.get('kind') == 'recurso'
     ]
 
@@ -8383,11 +8889,22 @@ def _recursos_ajax_payload(p):
 @login_required(login_url='/login/')
 @require_POST
 def personagem_usar_recurso(request, pk):
+    try:
+        with transaction.atomic():
+            return _personagem_usar_recurso(request, pk)
+    except ValueError:
+        return JsonResponse({'ok': False, 'msg': 'invalid_ruleset'}, status=409)
+
+
+def _personagem_usar_recurso(request, pk):
     """Gasta (−1) ou desfaz (+1) um uso de um recurso consumível do personagem."""
     from .character_engine import derive
     from .resource_engine import contract_for_key, mutate_resource
     p = _ficha_editavel(request, pk)
-    card_list = [r for r in _consumiveis_ficha_cards(p, derive(p))
+    from .models import TbPersonagem
+    p = TbPersonagem.objects.select_for_update().get(pk=p.pk)
+    ruleset = _resource_ruleset(p)
+    card_list = [r for r in _consumiveis_ficha_cards(p, derive(p, ruleset=ruleset), ruleset=ruleset)
                  if r.get('kind') == 'recurso']
     cards = {r['id']: r for r in card_list}
     key = request.POST.get('recurso') or ''
@@ -8399,7 +8916,7 @@ def personagem_usar_recurso(request, pk):
         matches = [row for row in card_list
                    if row['id'].rsplit(':', 1)[-1] == wanted]
         selected = matches[0] if len(matches) == 1 else None
-    contract = contract_for_key(p, selected['id']) if selected else None
+    contract = contract_for_key(p, selected['id'], ruleset=ruleset) if selected else None
     if not contract:
         if is_ajax(request):
             return JsonResponse({'ok': False, 'msg': 'recurso_invalido'}, status=400)
@@ -8465,25 +8982,40 @@ def personagem_usar_item_consumivel(request, pk):
 def personagem_usar_slot_magia(request, pk):
     """Gasta (-1) ou devolve (+1) um slot de magia rastreado na aba Magias."""
     from .character_engine import derive
-    from .resource_engine import mutate_resource
+    from .resource_commands import execute_slot_command
     p = _ficha_editavel(request, pk)
     try:
         nivel = int(request.POST.get('nivel') or 0)
     except (TypeError, ValueError):
         nivel = 0
-    if nivel < 1 or nivel > 9:
-        return _redirect_next_or(request, reverse('ficha_detail', args=[pk]) + '?aba=magias')
-    info = _magias_sheet_info(p, derive(p), [])
-    slot = next((s for s in info.get('slots', []) if s['nivel'] == nivel), None)
-    total = int((slot or {}).get('total') or 0)
-    if total <= 0:
-        return _redirect_next_or(request, reverse('ficha_detail', args=[pk]) + '?aba=magias')
-    key = 'spell-slot:%d' % nivel
-    delta = 1 if request.POST.get('acao') == 'desfazer' else -1
-    mutate_resource(p, {
-        'key': key, 'legacy_name': key, 'name': key,
-        'maximum': total, 'reset': 'long_rest', 'origin': 'spellcasting',
-    }, delta)
+    wants_json = 'application/json' in request.headers.get('Accept', '')
+    if wants_json and not getattr(settings, 'SPELL_SLOT_PARTIAL_ENABLED', True):
+        return JsonResponse({'ok': False, 'code': 'disabled',
+                             'message': 'Atualize a página para usar o formulário.'}, status=503)
+    def total_factory():
+        from .models import TbPersonagemCacador
+        profiles = list(TbPersonagemCacador.objects.filter(
+            personagem_classe__id_personagem=p).select_related('ruleset'))
+        if len({profile.ruleset_id for profile in profiles}) > 1:
+            raise ValueError('Revisões vinculadas conflitantes.')
+        ruleset = profiles[0].ruleset if profiles else None
+        info = _magias_sheet_info(p, derive(p, ruleset=ruleset), [], ruleset=ruleset)
+        slot = next((s for s in info.get('slots', []) if s['nivel'] == nivel), None)
+        return int((slot or {}).get('total') or 0)
+    try:
+        response, status = execute_slot_command(
+            p, user_id=request.user.pk, level=nivel,
+            action=request.POST.get('acao') or 'gastar',
+            operation_id=request.POST.get('operation_id'),
+            expected_version=request.POST.get('expected_version'), total_factory=total_factory)
+    except ValueError:
+        response, status = {'ok': False, 'code': 'invalid_ruleset',
+            'message': 'Não foi possível calcular os espaços da revisão vinculada.'}, 409
+    if wants_json:
+        return JsonResponse(response, status=status)
+    from django.contrib import messages
+    messages.add_message(request, messages.SUCCESS if response['ok'] else messages.ERROR,
+                         response['message'], extra_tags='spell-slots')
     return _redirect_next_or(request, reverse('ficha_detail', args=[pk]) + '?aba=magias')
 
 
@@ -8516,20 +9048,41 @@ def personagem_usar_magia_inata(request, pk, magia_id):
 @login_required(login_url='/login/')
 @require_POST
 def personagem_descansar(request, pk):
+    """Apply the whole rest atomically, including pinned contract materialization."""
+    try:
+        with transaction.atomic():
+            return _personagem_descansar(request, pk)
+    except ValueError:
+        return JsonResponse({'ok': False, 'erro': 'Não foi possível resolver as regras do descanso. Nenhum recurso foi alterado.'}, status=409)
+
+
+def _personagem_descansar(request, pk):
     """Descanso: recupera recursos conforme o reset declarado no recurso."""
     from .character_engine import derive
     from .resource_engine import (
         end_states_on, ensure_resource, reset_resources)
     p = _ficha_editavel(request, pk)
+    from .models import TbPersonagemCacador, TbPersonagem
+    p = TbPersonagem.objects.select_for_update().get(pk=p.pk)
+    from .hunter_preparation import preparation as hunter_preparation
+    from .hunter_resources import contract as hunter_contract
+    profiles = list(TbPersonagemCacador.objects.select_for_update().filter(
+            personagem_classe__id_personagem=p).select_related('ruleset', 'personagem_classe'))
+    rulesets = {profile.ruleset_id for profile in profiles}
+    if len(rulesets) > 1:
+        raise ValueError('Conflicting linked revisions.')
+    ruleset = profiles[0].ruleset if profiles else None
+    for profile in profiles:
+        ensure_resource(p, hunter_contract(profile, hunter_preparation(profile, selected=[])))
     tipo = (request.POST.get('tipo') or 'curto').strip().lower()
     event = {
         'curto': 'short_rest', 'longo': 'long_rest',
         'amanhecer': 'dawn',
     }.get(tipo, 'short_rest')
-    ficha = derive(p)
+    ficha = derive(p, ruleset=ruleset)
     # Materializa contratos de classe, habilidade e item antes de disparar o evento.
-    _consumiveis_ficha_cards(p, ficha)
-    magias_info = _magias_sheet_info(p, ficha, [])
+    _consumiveis_ficha_cards(p, ficha, ruleset=ruleset)
+    magias_info = _magias_sheet_info(p, ficha, [], ruleset=ruleset)
     for s in magias_info.get('slots', []):
         total = int(s.get('total') or 0)
         if total > 0:
@@ -8546,7 +9099,22 @@ def personagem_descansar(request, pk):
                 'maximum': total, 'reset': m.get('innate_reset') or 'long_rest',
                 'origin': 'magia_inata:%s' % (m.get('id') or ''),
             })
-    reset_resources(p, event)
+    reset_resources(p, event, ruleset=ruleset)
+    from .hunter_awakening import grant_rest as grant_awakening_rest
+    grant_awakening_rest(p, event)
+    from .hunter_exorcist import grant_rest as grant_exorcist_rest
+    grant_exorcist_rest(p, event)
+    from .hunter_lantern import grant_rest as grant_lantern_rest
+    grant_lantern_rest(p, event)
+    from .hunter_mutagens import grant_rest as grant_mutagen_rest
+    grant_mutagen_rest(p, event)
+    if event == 'long_rest':
+        from .hunter_masteries import grant_rest
+        grant_rest(p)
+        from .hunter_companion import grant_long_rest as grant_companion_rest
+        grant_companion_rest(p)
+        from .hunter_traveler import grant_long_rest as grant_traveler_rest
+        grant_traveler_rest(p)
     end_states_on(p, event)
     if is_ajax(request):
         return JsonResponse({
@@ -8566,6 +9134,29 @@ def personagem_preparar_magias(request, pk):
     from .models import TbMagia, TbPersonagemMagia
     p = _ficha_editavel(request, pk)
     classe_id = request.POST.get('classe')
+    from .models import TbPersonagemCacador
+    linked = TbPersonagemCacador.objects.filter(personagem_classe__id_personagem=p)
+    if classe_id:
+        try:
+            linked = linked.filter(personagem_classe__id_classe_id=int(classe_id))
+        except (TypeError, ValueError):
+            return JsonResponse({'ok': False, 'erro': 'Classe inválida.'}, status=400)
+    profile = linked.first()
+    if profile is not None:
+        if p.arquivado:
+            raise Http404()
+        if 'version' not in request.POST:
+            # Old forms have neither the pinned catalog nor an optimistic version.
+            # Reopen the correct selection instead of deleting acquired spells.
+            return redirect('hunter_preparation', pk=pk)
+        from .hunter_spell_preparation import save_spells
+        try:
+            save_spells(character_id=pk, owner_id=p.dono_id,
+                selected=request.POST.getlist('magia'),
+                expected_version=request.POST.get('version'))
+        except (ValueError, TypeError) as exc:
+            return JsonResponse({'ok': False, 'erro': str(exc)}, status=409)
+        return _redirect_next_or(request, reverse('hunter_sheet', args=[pk]))
     info = _magias_preparadas_info(p, derive(p), classe_id=classe_id)
     if not info:
         return redirect('editar_ficha', pk=pk)
@@ -8676,6 +9267,7 @@ def personagem_transcrever_magia(request, pk):
              'classe_id': pc.id_classe_id, 'item_id': item_id,
              'tempo_horas': terms['time_hours'],
              'desconto_escola_foco': bool(terms.get('focus_discount')),
+             'transcription_terms': terms,
              'sucesso': True})
     return finish('ok')
 
@@ -8795,6 +9387,7 @@ def ficha_detail_view(request, pk):
         'ficha': ficha,
         'raca_linha': raca_linha,
         'magias_info': magias_info,
+        'partial_spell_slots': getattr(settings, 'SPELL_SLOT_PARTIAL_ENABLED', True),
         'consumiveis_cards': consumiveis_cards,
         'recursos_cards': recursos_cards,
         'itens_consumiveis_cards': itens_consumiveis_cards,
@@ -8977,37 +9570,59 @@ def personagem_toggle_magia(request, pk, magia_id):
         pc = p.classes.first()
     if pc is None:
         return redirect(url)
+    ruleset = _hunter_ruleset_for_class(pc)
+    if ruleset is not None:
+        from .versioned_spells import spell_catalog
+        spell = spell_catalog(ruleset).get(m.id_magia_id)
+        if spell is None:
+            return redirect(url + '&prep=invalida')
+        slug = spell.slug
+    else:
+        slug = m.id_magia.slug
     code = _toggle_magia_preparada(
-        p, pc.id_classe_id, m.id_magia.slug, owned_id=m.pk)
+        p, pc.id_classe_id, slug, owned_id=m.pk, ruleset=ruleset)
     return redirect(url + (('&prep=' + code) if code != 'ok' else ''))
 
 
 def _toggle_magia_preparada(
-        personagem, classe_id, magia_slug, *, owned_id=None):
+        personagem, classe_id, magia_slug, *, owned_id=None, ruleset=None):
     """Marca uma magia preparada respeitando ``mode``, ``pool`` e ``spell_limit``."""
     from .character_engine import derive
     from .models import TbMagia, TbPersonagemMagia
 
-    info = _magias_preparadas_info(personagem, derive(personagem), classe_id=classe_id)
+    info = _magias_preparadas_info(personagem, derive(personagem, ruleset=ruleset),
+                                  classe_id=classe_id, ruleset=ruleset)
     if not info:
         return 'invalida'
     validos = {item['slug'] for group in info.get('grupos', []) for item in group.get('magias', [])}
     if magia_slug not in validos:
         return 'invalida'
-    magia = TbMagia.objects.filter(slug=magia_slug).first()
+    if ruleset is not None:
+        from .versioned_spells import spell_catalog
+        matches = [spell for spell in spell_catalog(ruleset).values()
+                   if spell.slug == magia_slug]
+        if len(matches) != 1:
+            return 'invalida'
+        magia = matches[0] if TbMagia.objects.filter(pk=matches[0].pk).exists() else None
+    else:
+        magia = TbMagia.objects.filter(slug=magia_slug).first()
     pc = personagem.classes.filter(id_classe_id=classe_id).select_related('id_classe').first()
     if magia is None or pc is None or int(magia.nivel or 0) < 1:
         return 'invalida'
-    origin = pc.id_classe.nome
+    if ruleset is not None:
+        from .versioned_classes import resolved_classes
+        origin = resolved_classes(ruleset, [pc])[0].id_classe.nome
+    else:
+        origin = pc.id_classe.nome
     if owned_id is not None:
         rows = personagem.magias.filter(
-            pk=owned_id, id_magia=magia, sempre_preparada=False)
+            pk=owned_id, id_magia_id=magia.pk, sempre_preparada=False)
     else:
         rows = personagem.magias.filter(
-            id_magia=magia, sempre_preparada=False, origem__iexact=origin)
+            id_magia_id=magia.pk, sempre_preparada=False, origem__iexact=origin)
         if personagem.classes.count() == 1:
             rows = personagem.magias.filter(
-                id_magia=magia, sempre_preparada=False).filter(
+                id_magia_id=magia.pk, sempre_preparada=False).filter(
                     Q(origem__iexact=origin) | Q(origem__isnull=True) | Q(origem=''))
     row = rows.order_by('-preparada', 'id').first()
     with transaction.atomic():
@@ -9023,9 +9638,12 @@ def _toggle_magia_preparada(
                 row.delete()
             return 'ok'
 
-        atuais = personagem.magias.filter(
+        current_rows = personagem.magias.filter(
             nivel__gte=1, preparada=True, sempre_preparada=False,
-            origem__iexact=origin).count()
+            origem__iexact=origin)
+        if ruleset is not None:
+            current_rows = current_rows.filter(id_magia_id__in=spell_catalog(ruleset))
+        atuais = current_rows.count()
         limite = info.get('limite')
         if limite is not None and atuais >= int(limite):
             return 'limite'
@@ -9035,7 +9653,7 @@ def _toggle_magia_preparada(
             row.save(update_fields=['preparada', 'origem'])
         elif info.get('pool') == 'class_list':
             TbPersonagemMagia.objects.create(
-                id_personagem=personagem, id_magia=magia, nivel=magia.nivel,
+                id_personagem=personagem, id_magia_id=magia.pk, nivel=magia.nivel,
                 nome=magia.nome, preparada=True, origem=origin)
         else:
             # Grimório: uma magia precisa ter sido adquirida antes de ser preparada.
@@ -9048,7 +9666,9 @@ def _toggle_magia_preparada(
 def personagem_toggle_magia_catalogo(request, pk, classe_id, magia_slug):
     """Toggle para entradas virtuais do catálogo de uma classe preparada."""
     p = _ficha_editavel(request, pk)
-    code = _toggle_magia_preparada(p, classe_id, magia_slug)
+    pc = p.classes.filter(id_classe_id=classe_id).first()
+    ruleset = _hunter_ruleset_for_class(pc)
+    code = _toggle_magia_preparada(p, classe_id, magia_slug, ruleset=ruleset)
     url = reverse('ficha_detail', args=[pk]) + '?aba=magias'
     return redirect(url + (('&prep=' + code) if code != 'ok' else ''))
 
@@ -9215,6 +9835,14 @@ def personagem_info_salvar(request, pk):
     return redirect(reverse('ficha_detail', args=[pk]) + '?aba=info')
 
 
+def _racial_menu_groups(sources, *, ruleset=None):
+    """Use registry menus for racial creation choices, preserving source identity."""
+    from . import picks
+    return [group for source in sources
+            for group in picks.resolve_groups([source], nivel=1, ruleset=ruleset)
+            if group['kind'] not in picks.PICK_REGISTRY]
+
+
 def _criador_incoming_picks(data):
     """Normaliza as escolhas genéricas recebidas do criador para {(kind, tipo_norm): [valores]}.
 
@@ -9243,7 +9871,7 @@ def _criador_incoming_picks(data):
     return out
 
 
-def _criador_resolver(data):
+def _criador_resolver(data, *, ruleset=None, class_id=None):
     """Resolve e valida o payload do criador SEM persistir. Retorna (R, erros): R traz
     todos os objetos/valores já resolvidos para persistir; erros é a lista de pendências.
     Compartilhado por criar_personagem_view (que exige erros==[]) e pelo preview ao vivo
@@ -9295,9 +9923,20 @@ def _criador_resolver(data):
     mais2 = asi_attrs[0] if asi_attrs else None
     mais1 = asi_attrs[1] if len(asi_attrs) > 1 else None
 
-    raca = TbRaca.objects.filter(slug=data.get('raca')).first()
-    classe = TbClasse.objects.filter(slug=data.get('classe')).first()
-    antec = TbAntecedente.objects.filter(slug=data.get('antecedente')).first()
+    def origin(model, **fields):
+        return next(iter(_creator_origin_rows(model, ruleset=ruleset, **fields)), None)
+
+    raca = origin(TbRaca, slug=data.get('raca'))
+    antec = origin(TbAntecedente, slug=data.get('antecedente'))
+    if ruleset is None:
+        classe = TbClasse.objects.filter(slug=data.get('classe')).first()
+    else:
+        from .versioned_classes import VersionedClassCatalog
+        if class_id is None:
+            raise ValueError('Pinned creation requires an explicit class identity.')
+        classe = VersionedClassCatalog(ruleset, class_id).classe
+        if classe.slug != data.get('classe'):
+            raise ValueError('Class differs from pinned creation catalog.')
     if not raca:
         erros.append('Escolha uma raça.')
     if not classe:
@@ -9314,7 +9953,7 @@ def _criador_resolver(data):
     equipment_plan = None
     if classe:
         equipment_plan, equipment_errors = resolve_starting_equipment(
-            classe, equip_mode, data.get('equip_choices'))
+            classe, equip_mode, data.get('equip_choices'), ruleset=ruleset)
         erros += equipment_errors
 
     # Talento de Origem: TODO antecedente concede 1 (talento_origem:1). É obrigatório —
@@ -9322,8 +9961,9 @@ def _criador_resolver(data):
     # sem o feat garantido pelo antecedente, em silêncio.
     to = None
     if antec and int(bg_grants.get('talento_origem') or 0) >= 1:
-        to = TbTalento.objects.filter(
-            id_talento=data.get('talento_origem'), tipo__iexact='origem').first()
+        to = next((t for t in _creator_origin_rows(TbTalento, ruleset=ruleset)
+                   if str(t.pk) == str(data.get('talento_origem'))
+                   and t.tipo.lower() == 'origem'), None)
         if not to:
             erros.append('Escolha o Talento de Origem concedido pelo antecedente.')
 
@@ -9332,13 +9972,12 @@ def _criador_resolver(data):
         erros.append('Esta raça não permite escolher uma essência.')
     # Cross-field raça×linhagem: linhagem informada tem de pertencer à raça (antes era
     # descartada em silêncio quando não casava).
-    if data.get('linhagem') and raca and not TbLinhagem.objects.filter(
-            slug=data.get('linhagem'), id_raca=raca).exists():
+    if data.get('linhagem') and raca and not origin(TbLinhagem, slug=data.get('linhagem'), id_raca_id=raca.pk):
         erros.append('A linhagem escolhida não pertence a esta raça.')
 
     # Escolhas genericas via pick:* - fonte unica para criacao e level-up.
     from . import picks as _picks
-    generic_groups = _picks.resolve_builder(classe) if classe else []
+    generic_groups = _picks.resolve_builder(classe, ruleset=ruleset) if classe else []
     incoming = _criador_incoming_picks(data)
     # Compatibilidade para clientes anteriores ao registry genérico. Eles enviavam
     # escolhas de ferramenta por NOME em `escolhas_classe_prof`; o contrato atual usa
@@ -9396,7 +10035,7 @@ def _criador_resolver(data):
     # da classe — nem uma ESCOLHIDA (pc) nem uma GANHA fixa por feature de nível 1 (ex.:
     # Mago/Arcanismo via 'Estudo Arcano'). O cross-lock do cliente é só UI; um POST direto
     # (ou corrida de eventos) furaria e o servidor gravaria a proficiência em duplicidade.
-    fixas_classe = _classe_pericias_fixas(classe) if classe else set()
+    fixas_classe = _classe_pericias_fixas(classe, ruleset=ruleset) if classe else set()
     if set(pa) & (set(pc) | fixas_classe):
         erros.append('Perícia do antecedente duplicada com uma perícia da classe — escolha outra.')
     if len(lt_sel) != bg_langtool_n:
@@ -9404,14 +10043,35 @@ def _criador_resolver(data):
 
     # Metadados legados continuam alimentando a UI dedicada de expertise. A
     # validacao/persistencia, porem, ja aconteceu no registry generico acima.
-    esc1 = _classe_escolhas_nv1(classe) if classe else {'estilo_n': 0, 'expertise_n': 0, 'expertise_fixa': []}
+    esc1 = _classe_escolhas_nv1(classe, ruleset=ruleset) if classe else {'estilo_n': 0, 'expertise_n': 0, 'expertise_fixa': []}
     exp_sel = [s for s in dict.fromkeys(_norm_skill_slug(x) for x in (data.get('expertise') or []))
                if s in set(pc + pa)]
     has_generic_expertise = any(g['kind'] == 'pericia_expertise' for g in generic_groups)
     if esc1['expertise_n'] and not has_generic_expertise and len(exp_sel) != esc1['expertise_n']:
         erros.append('Escolha %d perícia(s) para Especialização (entre as proficientes).' % esc1['expertise_n'])
+    # Binding is an explicit server-side contract; a client cannot activate it by slug.
+    hunter_creation = None
+    if ruleset is not None and classe and classe.slug == 'cacador':
+        from .content_versions import resolve_content
+        from .versioned_classes import EVALUATOR, VOCABULARY
+        from .hunter_rework import prepare
+        hunter_data = resolve_content(ruleset, 'hunter-rework',
+            evaluator_version=EVALUATOR, vocabulary_version=VOCABULARY)
+        ability = data.get('hunter_ability')
+        if ability not in ('int', 'wis') or ability not in hunter_data.get('spellcasting_ability_choices', []):
+            erros.append('Escolha Inteligência ou Sabedoria para o Caçador.')
+        else:
+            try:
+                selected = data.get('hunter_secrets', [])
+                if not isinstance(selected, list) or any(not isinstance(v, str) for v in selected):
+                    raise ValueError('Seleção de Segredos inválida.')
+                prepared = prepare(level=1, ability=ability, selected=selected, data=hunter_data)
+                hunter_creation = {'ability': ability, 'selected': prepared['selected']}
+            except ValueError as error:
+                erros.append(str(error))
     # Conjuração nv1: truques + magias de 1º nível
-    conj = _classe_conjuracao(classe) if classe else None
+    conj = _classe_conjuracao(classe, ruleset=ruleset,
+        ability=hunter_creation['ability'] if hunter_creation else None) if classe else None
     truques_sel, magias_sel, magias_preparadas_sel = [], [], []
     if conj:
         tslugs = {t['slug'] for t in conj['truques']}
@@ -9436,8 +10096,9 @@ def _criador_resolver(data):
                 erros.append(
                     'Escolha exatamente %d magia(s) do grimório para preparar.' % n_preparadas)
 
-    linhagem = TbLinhagem.objects.filter(slug=data.get('linhagem'), id_raca=raca).first() if data.get('linhagem') else None
-    essencia = TbEssencia.objects.filter(slug=data.get('essencia')).first() if (data.get('essencia') and raca and raca.permite_essencia) else None
+    linhagem = (origin(TbLinhagem, slug=data.get('linhagem'), id_raca_id=raca.pk)
+                if raca and data.get('linhagem') else None)
+    essencia = origin(TbEssencia, slug=data.get('essencia')) if (data.get('essencia') and raca and raca.permite_essencia) else None
     # Linhagem e Essência são MUTUAMENTE EXCLUSIVAS (regra do sistema: o personagem tem
     # uma OU outra, nunca as duas). O JS já desmarca uma ao escolher a outra, mas isso é
     # só UI — um POST direto (ou uma corrida de eventos) pode mandar as duas preenchidas,
@@ -9447,8 +10108,35 @@ def _criador_resolver(data):
     # Sub-escolha da essência (vertente elemental OU clã/herança do Vampirismo) é obrigatória
     # quando a essência a define, e o valor precisa ser uma opção real — senão a ficha nasceria
     # sem a herança (traços de clã não aplicam) ou com um clã inválido.
+    from .character_engine import clas_de_essencia, cla_de_traco
+    traits = _creator_origin_rows(TbTracoracial, ruleset=ruleset)
+    clans = clas_de_essencia(essencia, ruleset=ruleset) if essencia else []
+    racial_sources = [t for t in traits if not t.talento_racial and t.nivel_requisito <= 1
+                      and raca and t.id_raca_id == raca.pk
+                      and t.id_linhagem_id is None and t.id_essencia_id is None]
+    if linhagem:
+        racial_sources += [t for t in traits if not t.talento_racial
+                           and t.nivel_requisito <= 1 and t.id_linhagem_id == linhagem.pk]
     if essencia:
-        sub = _essencia_subescolha(essencia)
+        racial_sources += [t for t in traits if not t.talento_racial
+                           and t.nivel_requisito <= 1 and t.id_essencia_id == essencia.pk
+                           and (not clans or not cla_de_traco(t, clans)
+                                or cla_de_traco(t, clans) == data.get('vertente'))]
+    menu_values = (data.get('escolhas_raca') or {}).get('menus') or []
+    if not isinstance(menu_values, list):
+        menu_values = []
+    for group in _racial_menu_groups(racial_sources, ruleset=ruleset):
+        values = [value for row in menu_values if isinstance(row, dict)
+                  and row.get('tipo') == group['kind']
+                  and row.get('fonte') == group['origem']
+                  for value in (row.get('valores') or [])]
+        errors = _picks.registry_entry(group['kind'])['validate'](group, values)
+        if len(values) != len({str(value) for value in values}):
+            errors.append('Escolha repetida em %s.' % group['origem'])
+        erros += ['%s: %s' % (group['origem'], error) for error in errors]
+        generic_picks.append((group, [] if errors else values))
+    if essencia:
+        sub = _essencia_subescolha(essencia, ruleset=ruleset)
         opcoes_slugs = {o['slug'] for o in sub['opcoes']}
         if opcoes_slugs:
             if not data.get('vertente'):
@@ -9457,7 +10145,7 @@ def _criador_resolver(data):
                 erros.append('%s inválido para esta essência.' % sub['label'])
 
     talentos_raciais_nv1 = _talentos_raciais_criador(
-        raca, linhagem, essencia, data.get('vertente'))
+        raca, linhagem, essencia, data.get('vertente'), ruleset=ruleset)
     talento_racial_nome = (data.get('talento_raca') or '').strip()
     if talentos_raciais_nv1:
         if talento_racial_nome not in {traco.nome for traco in talentos_raciais_nv1}:
@@ -9476,12 +10164,7 @@ def _criador_resolver(data):
         _prof_idioma_re = re.compile(r'(?<![a-z_-])prof:idioma\{([^}]+)\}')
         _menu_mk = ('define{', 'list{', 'table{', 'while_active', 'while{',
                     'cast{', 'instant{', 'trigger=', 'action=')
-        trait_q = Q(id_raca=raca, id_linhagem__isnull=True, id_essencia__isnull=True)
-        if linhagem:
-            trait_q |= Q(id_linhagem=linhagem)
-        if essencia:
-            trait_q |= Q(id_essencia=essencia)
-        for t in TbTracoracial.objects.filter(trait_q, talento_racial=False, nivel_requisito__lte=1):
+        for t in racial_sources:
             for tag in (t.tags_json or []):
                 s = str(tag)
                 if any(mk in s.lower() for mk in _menu_mk):
@@ -9498,6 +10181,7 @@ def _criador_resolver(data):
                      'Escolha outro(s) na lista do antecedente.' % ', '.join(dup_idiomas))
 
     R = {
+        'ruleset': ruleset, 'racial_sources': racial_sources, 'hunter_creation': hunter_creation,
         'nome': nome, 'base': base, 'point_buy_ok': point_buy_ok,
         'mais2': mais2, 'mais1': mais1, 'asi_bonus': asi_bonus,
         'asi_major': asi_major, 'asi_minor': asi_minor, 'bg_grants': bg_grants,
@@ -9519,17 +10203,20 @@ class CriadorEscolhasError(ValueError):
         super().__init__('; '.join(self.erros))
 
 
-def _criador_magias_pendentes(personagem):
+def _criador_magias_pendentes(personagem, *, ruleset=None):
     """Serializa escolhas de magia declaradas por features ativas para o criador."""
     from .character_engine import magias_concedidas
     from .models import TbMagia
-    pendentes = magias_concedidas(personagem)['pendentes']
+    pendentes = magias_concedidas(personagem, ruleset=ruleset)['pendentes']
     slugs = {slug for bloco in pendentes for slug in bloco.get('opcoes', [])}
-    nomes = {
-        slug: (nome, ingles or '')
-        for slug, nome, ingles in TbMagia.objects.filter(slug__in=slugs).values_list(
-            'slug', 'nome', 'nome_ingles')
-    }
+    if ruleset is None:
+        nomes = {slug: (nome, ingles or '') for slug, nome, ingles in
+                 TbMagia.objects.filter(slug__in=slugs).values_list('slug', 'nome', 'nome_ingles')}
+    else:
+        from .versioned_spells import spell_catalog
+        nomes = {m.slug: (m.nome, m.nome_ingles or '') for m in spell_catalog(ruleset).values()}
+        if not slugs.issubset(nomes):
+            raise ValueError('Spell absent from pinned ruleset.')
     return [{
         'fonte': bloco['fonte'],
         'slot': bloco['slot'],
@@ -9559,14 +10246,16 @@ def _levelup_pendencias_total(resumo):
     )
 
 
-def _criador_aplicar_magias_concedidas(personagem, data, strict=False):
+@transaction.atomic
+def _criador_aplicar_magias_concedidas(personagem, data, strict=False, *, ruleset=None):
     """Valida e grava escolhas de ``spell_selection`` concedidas por talentos/features.
 
     O universo vem de ``magias_concedidas``; o criador apenas transporta a escolha. Assim,
     talentos novos entram no fluxo sem ganhar tratamento específico na view ou no JS.
     """
     from .models import TbPersonagemEscolha
-    pendentes = _criador_magias_pendentes(personagem)
+    type(personagem).objects.select_for_update().get(pk=personagem.pk)
+    pendentes = _criador_magias_pendentes(personagem, ruleset=ruleset)
     incoming = {}
     for row in (data.get('magias_concedidas') or []):
         if not isinstance(row, dict):
@@ -9593,7 +10282,7 @@ def _criador_aplicar_magias_concedidas(personagem, data, strict=False):
             slot=int(bloco['slot']), defaults={'valor': ','.join(selected)})
     if erros:
         raise CriadorEscolhasError(erros)
-    _sync_magias_concedidas(personagem)
+    _sync_magias_concedidas(personagem, ruleset=ruleset)
     return pendentes
 
 
@@ -9606,6 +10295,7 @@ def _criador_persistir(user, data, R, *, strict_spell_choices=False):
                          TbPersonagemMagia, TbMagia)
     from .character_engine import _SKILL_INFO, _norm_skill_slug, _tracos_raciais
     from . import point_buy
+    ruleset = R.get('ruleset')
     SIG = point_buy.SIGLAS
     nome = R['nome']; base = R['base']; mais2 = R['mais2']; mais1 = R['mais1']
     asi_major = R['asi_major']; asi_minor = R['asi_minor']; bg_grants = R['bg_grants']
@@ -9625,7 +10315,15 @@ def _criador_persistir(user, data, R, *, strict_spell_choices=False):
         dono=user, nome=nome[:150], nivel=1,
         id_raca=raca, id_linhagem=linhagem, id_essencia=essencia, id_antecedente=antec,
         **{campo[s]: base[s] for s in SIG})
-    TbPersonagemClasse.objects.create(id_personagem=p, id_classe=classe, nivel=1, principal=True)
+    person_class = TbPersonagemClasse.objects.create(
+        id_personagem=p, id_classe=classe, nivel=1, principal=True)
+    if ruleset is not None and classe.slug == 'cacador':
+        from .models import TbPersonagemCacador
+        hunter_creation = R.get('hunter_creation')
+        if not hunter_creation:
+            raise CriadorEscolhasError(['Escolha Inteligência ou Sabedoria para o Caçador.'])
+        TbPersonagemCacador.objects.create(personagem_classe=person_class,
+            ruleset=ruleset, ability=hunter_creation['ability'], selected=hunter_creation['selected'])
     # ASI do antecedente: uma linha por par (atributo, +valor) — 2 no '2/1', 3 no '1/1/1'.
     # O derive soma Σ TbPersonagemAtributoBonus sem supor quantidade fixa (nenhuma mudança lá).
     for atributo, valor in asi_bonus:
@@ -9647,7 +10345,13 @@ def _criador_persistir(user, data, R, *, strict_spell_choices=False):
     idioma_fixo = (bg_grants.get('idioma_fixo') or '').strip()
     if idioma_fixo:
         TbPersonagemProficiencia.objects.create(id_personagem=p, tipo='idioma', nome=idioma_fixo, origem='regra')
-    ferr_nomes = set(TbItemMundano.objects.filter(categoria='ferramenta').values_list('nome', flat=True))
+    if ruleset is None:
+        tools = list(TbItemMundano.objects.filter(categoria='ferramenta'))
+    else:
+        from .versioned_items import item_catalog
+        tools = [item for item in item_catalog(ruleset, 'mundane-item-catalog', TbItemMundano).values()
+                 if item.categoria == 'ferramenta']
+    ferr_nomes = {tool.nome for tool in tools}
     for esc in lt_sel[:bg_langtool_n]:
         tipo = 'ferramenta' if esc in ferr_nomes else 'idioma'
         TbPersonagemProficiencia.objects.create(id_personagem=p, tipo=tipo, nome=esc, origem='antecedente')
@@ -9668,9 +10372,9 @@ def _criador_persistir(user, data, R, *, strict_spell_choices=False):
     # pick:pericia num só grupo) e distribui a lista plana na ordem raça→linhagem→essência.
     if esc_per:
         _i = 0
-        for _src in [obj for (_o, _f, obj, _cl) in _tracos_raciais(p)]:
+        for _src in R['racial_sources']:
             for _g in _picks.resolve_groups([_src], classe=None, subclasse=None, nivel=1,
-                                            personagem=None, kinds={'pericia'}):
+                                            personagem=None, kinds={'pericia'}, ruleset=ruleset):
                 _n = int(_g.get('n') or 0)
                 _vals = esc_per[_i:_i + _n]
                 _i += _n
@@ -9687,13 +10391,12 @@ def _criador_persistir(user, data, R, *, strict_spell_choices=False):
     # plana por-fonte na ordem raça→linhagem→essência.
     ferr_raw = [str(s) for s in (esc_raca.get('ferramentas') or []) if s]
     if ferr_raw:
-        _slug_por_nome = dict(TbItemMundano.objects.filter(
-            categoria='ferramenta').values_list('nome', 'slug'))
+        _slug_por_nome = {tool.nome: tool.slug for tool in tools}
         esc_ferr = [_slug_por_nome.get(nm, nm) for nm in ferr_raw]
         _j = 0
-        for _src in [obj for (_o, _f, obj, _cl) in _tracos_raciais(p)]:
+        for _src in R['racial_sources']:
             for _g in _picks.resolve_groups([_src], classe=None, subclasse=None, nivel=1,
-                                            personagem=None, kinds={'ferramenta'}):
+                                            personagem=None, kinds={'ferramenta'}, ruleset=ruleset):
                 _n = int(_g.get('n') or 0)
                 _vals = esc_ferr[_j:_j + _n]
                 _j += _n
@@ -9702,24 +10405,21 @@ def _criador_persistir(user, data, R, *, strict_spell_choices=False):
     # Dinheiro inicial vai para a carteira (PC) conforme as grants do antecedente.
     carteira = int(bg_grants.get('po_inicial') or 0) * 100
     carteira += int(equipment_plan.get('currency_po') or 0) * 100
+    # The server-validated plan owns the possession snapshot. Current rows are
+    # checked only for FK existence, never reread for price, weight or mechanics.
     if data.get('equip_classe') != 'ouro':
         item_ids = [row['id'] for row in equipment_plan.get('items', [])]
-        catalog = {item.pk: item for item in TbItemMundano.objects.filter(pk__in=item_ids)}
+        existing_ids = set(TbItemMundano.objects.filter(pk__in=item_ids).values_list('pk', flat=True))
+        if set(item_ids) - existing_ids:
+            raise CriadorEscolhasError([
+                'Um item do equipamento inicial deixou de existir. Recarregue a página.'])
         for row in equipment_plan.get('items', []):
-            item = catalog.get(row['id'])
-            if item is None:
-                raise CriadorEscolhasError([
-                    'Um item do equipamento inicial deixou de existir. Recarregue a página.'])
             TbPersonagemItem.objects.create(
-                id_personagem=p,
-                id_item_mundano=item,
-                qtd=int(row['qty']),
-                nome=item.nome,
-                custo=item.preco,
-                peso=(str(item.peso) if item.peso is not None else None),
-                equipado=(item.categoria == 'armadura'),
-                tags_json=list(item.tags_json or []),
-                origem_tipo='criacao',
+                id_personagem=p, id_item_mundano_id=row['id'],
+                qtd=int(row['qty']), nome=row['nome'],
+                custo=row['custo'], peso=row['peso'],
+                equipado=(row['categoria'] == 'armadura'),
+                tags_json=list(row['tags_json']), origem_tipo='criacao',
             )
     p.carteira_pc = carteira
     p.save(update_fields=['carteira_pc'])
@@ -9750,22 +10450,28 @@ def _criador_persistir(user, data, R, *, strict_spell_choices=False):
     # Em ``pool:spellbook``, aquisição e preparação são estados distintos: todas as
     # escolhidas pertencem ao grimório, mas só o subconjunto explícito começa preparado.
     if conj:
-        for nivel, sel in ((0, truques_sel), (1, magias_sel)):
+        spell_rows = []
+        for nivel, sel, catalog in ((0, truques_sel, conj['truques']),
+                                    (1, magias_sel, conj['magias_nv1'])):
+            by_slug = {row['slug']: row for row in catalog}
             for slug in sel:
-                mg = TbMagia.objects.filter(slug=slug).first()
-                if mg:
-                    preparada = (
-                        nivel == 0
-                        or conj.get('pool') != 'spellbook'
-                        or slug in magias_preparadas_sel
-                    )
-                    TbPersonagemMagia.objects.create(id_personagem=p, id_magia=mg, nivel=nivel,
-                        nome=mg.nome, preparada=preparada, origem=classe.nome)
+                row = by_slug.get(slug)
+                if row is None:
+                    raise CriadorEscolhasError(['Magia inicial fora da seleção validada.'])
+                spell_rows.append((nivel, row, nivel == 0 or conj.get('pool') != 'spellbook'
+                                   or slug in magias_preparadas_sel))
+        spell_ids = {row['id'] for _, row, _ in spell_rows}
+        existing_ids = set(TbMagia.objects.filter(pk__in=spell_ids).values_list('pk', flat=True))
+        if spell_ids - existing_ids:
+            raise CriadorEscolhasError(['Uma magia inicial deixou de existir. Recarregue a página.'])
+        for nivel, row, preparada in spell_rows:
+            TbPersonagemMagia.objects.create(id_personagem=p, id_magia_id=row['id'],
+                nivel=nivel, nome=row['nome'], preparada=preparada, origem=conj['origem'])
     # Magias da Essência (vertente): concede as fixas do nível atual (cantrips + 1º
     # ciclo no nível 1). As de escolha (2º ciclo) ficam pendentes até o nível 5.
     p._criador_spell_groups = _criador_aplicar_magias_concedidas(
-        p, data, strict=strict_spell_choices)
-    _refresh_vitais_derivados(p, refill=True)
+        p, data, strict=strict_spell_choices, ruleset=ruleset)
+    _refresh_vitais_derivados(p, refill=True, ruleset=ruleset)
     return p
 
 
@@ -9812,7 +10518,12 @@ def criar_personagem_preview_view(request):
     from .character_engine import derive
     from django.contrib.auth import get_user_model
     data = _json_body(request)
-    R, _erros = _criador_resolver(data)
+    try:
+        R, _erros = _criador_public_resolution(data)
+    except HunterCreatorCatalogUnavailable:
+        logger.warning('Revisao publicada do Cacador indisponivel na previa.')
+        return JsonResponse({'ok': False, 'ready': False,
+            'erros': ['A revisao do Cacador esta indisponivel. Tente novamente mais tarde.']}, status=503)
     if not R['point_buy_ok']:
         return JsonResponse({'ok': True, 'ready': False, 'erros': _erros})
     if not (R['raca'] and R['classe'] and R['antec']):
@@ -9822,6 +10533,8 @@ def criar_personagem_preview_view(request):
     # em vez de aparecer só na lista de erros (que este endpoint ignora de propósito).
     if R['linhagem'] and R['essencia']:
         return JsonResponse({'ok': True, 'ready': False, 'erros': _erros})
+    if R.get('ruleset') is not None and R['classe'].slug == 'cacador' and not R.get('hunter_creation'):
+        return JsonResponse({'ok': True, 'ready': False, 'erros': _erros})
     dono = request.user if request.user.is_authenticated else get_user_model().objects.order_by('id').first()
     if dono is None:
         return JsonResponse({'ok': True, 'ready': False,
@@ -9829,7 +10542,7 @@ def criar_personagem_preview_view(request):
     try:
         with transaction.atomic():
             p = _criador_persistir(dono, data, R)
-            ficha = derive(p)
+            ficha = derive(p, ruleset=R.get('ruleset'))
             pending_spell_choices = getattr(p, '_criador_spell_groups', [])
             transaction.set_rollback(True)
     except Exception:
@@ -9842,7 +10555,8 @@ def criar_personagem_preview_view(request):
             'erros': ['Não foi possível calcular PV e CA com as escolhas atuais.'],
         })
     return JsonResponse({'ok': True, 'ready': True, 'preview': _criador_preview_resumo(ficha),
-                         'pending_spell_choices': pending_spell_choices})
+                         'pending_spell_choices': pending_spell_choices,
+                         'erros': _erros})
 
 
 @login_required(login_url='/login/')
@@ -9856,7 +10570,12 @@ def criar_personagem_view(request):
     if not perms.pode_criar(request.user):
         return JsonResponse({'ok': False, 'erros': ['Limite de fichas ativas atingido — guarde uma no cofre.']}, status=400)
 
-    R, erros = _criador_resolver(data)
+    try:
+        R, erros = _criador_public_resolution(data)
+    except HunterCreatorCatalogUnavailable:
+        logger.warning('Revisao publicada do Cacador indisponivel na criacao.')
+        return JsonResponse({'ok': False,
+            'erros': ['A revisao do Cacador esta indisponivel. Tente novamente mais tarde.']}, status=503)
     if erros:
         return JsonResponse({'ok': False, 'erros': erros}, status=400)
 
@@ -13852,6 +14571,7 @@ def _oficina_consume_one(item):
 def _oficina_castable_spells(personagem, casters):
     """Magias persistentes que podem ser registradas fora de combate agora."""
     from .magic_workshop import spell_is_log_castable
+    from .battle_familiar_casting import identity
 
     by_origin = {
         row['pc'].id_classe.nome.casefold(): row for row in casters
@@ -13860,7 +14580,7 @@ def _oficina_castable_spells(personagem, casters):
     for owned in personagem.magias.select_related('id_magia').filter(
             id_magia__isnull=False).order_by('nivel', 'nome'):
         spell = owned.id_magia
-        if not spell_is_log_castable(spell):
+        if not spell_is_log_castable(spell) and not identity(spell):
             continue
         caster = by_origin.get((owned.origem or '').casefold())
         if caster:
@@ -13874,6 +14594,7 @@ def _oficina_castable_spells(personagem, casters):
             continue
         out.append({
             'owned': owned, 'spell': spell, 'caster': caster,
+            'battle_familiar': identity(spell),
             'ritual_available': bool(
                 spell.ritual and (owned.preparada or (
                     caster and caster['contract'].get('pool') == 'spellbook'))),
@@ -14048,8 +14769,10 @@ def _oficina_other_spellbooks(
     from django.db.models import Prefetch
 
     from .models import TbPersonagem, TbPersonagemClasse, TbPersonagemMagia
-    from .magic_workshop import character_casters
+    from .magic_workshop import (
+        character_casters, focus_schools, transcription_terms_for_character)
 
+    focus_school_values = focus_schools(personagem)
     requester_owned = set(personagem.magias.filter(
         id_magia__isnull=False).values_list('id_magia_id', flat=True))
     rows = []
@@ -14078,9 +14801,14 @@ def _oficina_other_spellbooks(
                 if row['contract'].get('pool') == 'spellbook'
                 and int(spell.nivel or 0) <= int(row['max_spell_level'] or 0)]
             for caster in eligible:
+                terms = transcription_terms_for_character(
+                    personagem, caster, spell, focus_school_values=focus_school_values)
+                if terms is None:
+                    continue
                 spells.append({
                     'spell': spell, 'classe': caster['pc'].id_classe,
                     'origem': owned.origem,
+                    'terms': terms,
                 })
         if spells:
             rows.append({'personagem': source, 'spells': spells})
@@ -14138,6 +14866,9 @@ def oficina_magia_view(request):
             personagem, access_map,
             contract_cache=contract_cache)
         signature_rules = signature_spell_rules(personagem, casters=casters)
+        if request.user.is_authenticated and personagem.dono_id == request.user.pk:
+            from .battle_familiar_casting import workshop_context
+            context.update(workshop_context(personagem))
         active_states = list(personagem.estados.filter(
             ativo=True, origem__startswith='magia:').order_by('-iniciado_em'))
         for item in inventory:
@@ -14170,6 +14901,7 @@ def oficina_magia_view(request):
         'solicitacoes_recebidas': incoming, 'solicitacoes_enviadas': outgoing,
         'oficina_status': (request.GET.get('status') or '').strip(),
         'oficina_resultado': request.session.pop('oficina_resultado', ''),
+        'battle_familiar_error': request.session.pop('battle_familiar_error', ''),
     })
     return render(request, 'home/pages/oficina_magia.html', context)
 
@@ -14449,7 +15181,7 @@ def _oficina_cast_caster(personagem, owned, casters):
 def oficina_conjurar_magia(request, pk):
     from .magic_workshop import (
         character_casters, parse_priced_materials, spell_is_log_castable)
-    from .models import TbPersonagemMagia
+    from .models import TbPersonagem, TbPersonagemMagia
     from .resource_engine import activate_state
     p = _ficha_editavel(request, pk)
     owned = get_object_or_404(
@@ -14457,6 +15189,14 @@ def oficina_conjurar_magia(request, pk):
         pk=request.POST.get('magia_personagem'), id_personagem=p,
         id_magia__isnull=False)
     spell = owned.id_magia
+    from .battle_familiar_casting import identity, cast
+    if identity(spell):
+        try:
+            request.session['oficina_resultado'] = cast(request, p, owned.pk)
+        except ValueError as exc:
+            request.session['battle_familiar_error'] = str(exc)
+            return _oficina_redirect(request, 'familiar_invalido')
+        return _oficina_redirect(request, 'conjurada')
     if not spell_is_log_castable(spell):
         return _oficina_redirect(request, 'nao_persistente')
     casters = character_casters(p)
@@ -14477,6 +15217,18 @@ def oficina_conjurar_magia(request, pk):
 
     materials = parse_priced_materials(spell.componentes)
     with transaction.atomic():
+        p = TbPersonagem.objects.select_for_update().get(pk=p.pk)
+        if identity(spell, 'Find Familiar'):
+            from .battle_familiar_casting import require_no_primordial
+            try:
+                require_no_primordial(p)
+            except ValueError as exc:
+                request.session['battle_familiar_error'] = str(exc)
+                return _oficina_redirect(request, 'familiar_invalido')
+        from .hunter_mutagens import concentration_blocked
+        if spell.concentracao and concentration_blocked(p):
+            request.session['oficina_resultado'] = 'Guepardo impede manter Concentração enquanto seu Efeito Colateral estiver ativo.'
+            return _oficina_redirect(request, 'concentracao_bloqueada')
         consumed = (_oficina_find_component(p, spell, 'consumable', lock=True)
                     if materials['consumed_cost_po'] > 0 else None)
         focus = (_oficina_find_component(p, spell, 'focus', lock=True)
@@ -14494,6 +15246,9 @@ def oficina_conjurar_magia(request, pk):
                 return _oficina_redirect(request, spending['error'])
         if consumed is not None:
             _oficina_consume_one(consumed)
+        if identity(spell, 'Find Familiar'):
+            from .battle_familiar_casting import replace_with_find
+            replace_with_find(p)
         _registrar_transacao(
             p, 'ajuste', 'Conjuração na Oficina: %s' % spell.nome, 0,
             {'operacao': 'conjuracao_fora_combate', 'magia_id': spell.pk,
@@ -14506,6 +15261,7 @@ def oficina_conjurar_magia(request, pk):
                 'spell_id': spell.pk, 'spell_slug': spell.slug,
                 'spell_name': spell.nome, 'owned_id': owned.pk,
                 'ritual': ritual, 'spending': spending,
+                'concentration': bool(spell.concentracao),
             },
             ends_on=['dispelled', 'dismissed'])
     request.session['oficina_resultado'] = '%s foi registrada%s.' % (
@@ -14521,6 +15277,14 @@ def oficina_encerrar_efeito(request, pk):
 
     p = _ficha_editavel(request, pk)
     key = request.POST.get('estado') or ''
+    from .battle_familiar_casting import KEY, update
+    if key == KEY:
+        try:
+            request.session['oficina_resultado'] = update(request, p)
+        except ValueError as exc:
+            request.session['battle_familiar_error'] = str(exc)
+            return _oficina_redirect(request, 'familiar_invalido')
+        return _oficina_redirect(request, 'estado_encerrado')
     if not key or not p.estados.filter(
             chave=key, ativo=True, origem__startswith='magia:').exists():
         return _oficina_redirect(request, 'estado_invalido')
@@ -14553,6 +15317,10 @@ def oficina_usar_pergaminho(request, pk):
             p, spell, casters=character_casters(p)) if spell else []
         if not spell or not casters:
             return _oficina_redirect(request, 'pergaminho_ilegivel')
+        from .hunter_mutagens import concentration_blocked
+        if spell.concentracao and concentration_blocked(p):
+            request.session['oficina_resultado'] = 'Guepardo impede manter Concentração enquanto seu Efeito Colateral estiver ativo.'
+            return _oficina_redirect(request, 'concentracao_bloqueada')
         try:
             declared_level = int(info.get('level')) if info.get('level') is not None else None
         except (TypeError, ValueError):
@@ -14643,7 +15411,8 @@ def oficina_solicitar_transcricao(request, pk):
         defaults={
             'custo_po': Decimal(str(terms['cost_po'])),
             'tempo_horas': Decimal(str(terms['time_hours'])),
-            'detalhes_json': {'desconto_escola_foco': terms['focus_discount']},
+            'detalhes_json': {'desconto_escola_foco': terms['focus_discount'],
+                              'transcription_terms': terms},
         })
     return _oficina_redirect(request, 'solicitado' if created else 'ja_solicitado')
 
@@ -14703,13 +15472,16 @@ def oficina_responder_transcricao(request, solicitacao_id):
         row.status = 'aceita'
         row.custo_po = terms['cost_po']
         row.tempo_horas = terms['time_hours']
+        row.detalhes_json = dict(row.detalhes_json or {},
+            desconto_escola_foco=terms['focus_discount'], transcription_terms=terms)
         row.respondido_em = timezone.now()
         row.respondido_por = request.user
         row.save(update_fields=[
             'status', 'custo_po', 'tempo_horas',
-            'respondido_em', 'respondido_por'])
+            'respondido_em', 'respondido_por', 'detalhes_json'])
         details = {'operacao': 'transcricao_grimorio', 'solicitacao_id': row.pk,
-                   'magia_id': row.magia_id, 'fonte_id': row.fonte_id}
+                   'magia_id': row.magia_id, 'fonte_id': row.fonte_id,
+                   'transcription_terms': terms}
         _registrar_transacao(
             requester, 'ajuste', 'Transcrição autorizada: %s' % row.magia.nome,
             -cost_pc, details)

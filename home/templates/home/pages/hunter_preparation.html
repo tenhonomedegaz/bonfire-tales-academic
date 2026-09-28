@@ -1,0 +1,428 @@
+{% extends 'home/base.html' %}
+{% block content %}
+<section class="max-w-4xl mx-auto p-6 space-y-4">
+  <a href="{% url 'ficha_detail' person.pk %}">Voltar à ficha</a>
+  <a href="{% url 'hunter_sheet' person.pk %}">Consultar ficha da revis?o vinculada</a>
+  <h1 class="text-2xl font-bold">{{ person.nome }}: Segredos do Caçador</h1>
+  <p>Prepare os Segredos ao terminar um Descanso Longo. Os da Linha Mestra ficam sempre disponíveis e não ocupam o limite.</p>
+  <p>Atributo permanente: {{ profile.get_ability_display }}. Linha Mestra: {{ result.master|default:'a escolher no nível 3' }}.</p>
+  <p>Limite das outras Linhas: {{ result.proficiency }}. Reserva máxima: {{ result.points }} Pontos de Segredo.</p>
+  {% if error %}<p role="alert">{{ error }}</p>{% endif %}
+  {% if hunter_sheet.cacador %}
+  <h2>Valores da revisão vinculada</h2>
+  <p>CA {{ hunter_sheet.ca }} · Ataques por ação {{ hunter_sheet.ataques.quantidade }} · Deslocamento {{ hunter_sheet.velocidade }}</p>
+  <p>CD de magias e Segredos {{ hunter_sheet.cacador.secret_dc }} · Ataque mágico {{ hunter_sheet.cacador.spell_attack }}</p>
+  <p>Salvaguardas: FOR {{ hunter_sheet.saves.FOR.bonus }}, DES {{ hunter_sheet.saves.DES.bonus }}, CON {{ hunter_sheet.saves.CON.bonus }}, INT {{ hunter_sheet.saves.INT.bonus }}, SAB {{ hunter_sheet.saves.SAB.bonus }}, CAR {{ hunter_sheet.saves.CAR.bonus }}.</p>
+  {% if hunter_sheet.cacador.bonus_dash %}<p>Pode Disparar como ação bônus; escalada e natação usam o deslocamento de caminhada.</p>{% endif %}
+  {% if hunter_sheet.cacador.bonus_hide %}<p>Pode Esconder-se como ação bônus.</p>{% endif %}
+  {% if hunter_sheet.cacador.frightened_save_advantage %}<p>Vantagem nas salvaguardas contra Amedrontado.</p>{% endif %}
+  <p>Imunidades: {{ hunter_sheet.imunidades|join:', ' }}. Sentidos: {{ hunter_sheet.sentidos|join:', ' }}.</p>
+  <p>Bônus contra alvos marcados, Inimigos Favoritos e condições de turno são condicionais e não estão somados aos valores permanentes acima.</p>
+  {% endif %}
+  {% if hunter_sheet.enxame %}
+  <h2>Simbiose do Enxame</h2>
+  <p>Não pode ser Surpreendido enquanto consciente. Queda Suave permanece ativa, sem Concentração.</p>
+  <p>Escalada: {{ hunter_sheet.enxame.climbing_display }}. Paredes e tetos sem teste com ao menos uma mão livre.</p>
+  {% if hunter_sheet.enxame.hover %}<p>Voo: {{ hunter_sheet.enxame.flight_display }}, com capacidade de pairar.</p>
+  <p>Some {{ hunter_sheet.enxame.athletics_die }} a Atletismo para Agarrar, Empurrar, evitar ou escapar de Agarrão.</p>{% endif %}
+  {% endif %}
+  {% if traveler %}
+  <section class="border rounded p-4 space-y-3" aria-label="Runas de Travessia">
+    <h2>Runas de Travessia</h2>
+    <p>Até duas runas visíveis apenas para você. A terceira substitui a mais antiga.</p>
+    <ul>{% for rune in traveler.runes %}<li>{{ rune.label }}</li>{% empty %}<li>Nenhuma runa colocada.</li>{% endfor %}</ul>
+    {% if traveler.marked_destination %}<p>Presa marcada {{ traveler.marked_target }}: destino vivo disponível no mesmo plano.</p>{% endif %}
+    {% if traveler.last_teleport %}<p>Última travessia: {{ traveler.last_teleport.destination }} por {{ traveler.last_teleport.method }}.</p>{% endif %}
+    {% if traveler.level >= 6 %}<p>Ruptura do Selo: {{ traveler.rupture_current }}/{{ traveler.rupture_max }} usos; Reação contra ataque de Presa Marcada ou Inimigo Favorito. Redução: 1d10 + modificador de {{ profile.get_ability_display }} + {{ traveler.level }}.</p>{% endif %}
+    {% if traveler.level >= 14 %}<p>Véu Desfeito: {{ traveler.veil_current }}/{{ traveler.veil_max }} usos para levar aliado voluntário em Salto Direto; ambos a até 1,5 m das posições exigidas.</p>{% endif %}
+    {% if traveler.level >= 10 %}<p>Andarilho do Horizonte: após ataque com arma, teleporte até 3 m para espaço livre visível. Uma vez por turno, após esse salto, ataque criatura diferente ao alcance.</p>{% endif %}
+    {% if traveler.final_eligible %}<p>Caminho Final: após Descanso Longo, escolha duas magias. Cada uma pode ser conjurada uma vez por 4 Pontos de Segredo, sem espaço ou componentes materiais.</p>
+    <p>Escolhas: {% for spell in traveler.final_options %}{% if spell.slug in traveler.final_choices %}{{ spell.name }}{% if spell.slug in traveler.final_used %} (usada){% endif %}; {% endif %}{% endfor %}{% if traveler.final_selection_open %} escolha disponível após descanso{% endif %}.</p>{% endif %}
+    {% if traveler.last_rupture %}<p>Última Ruptura: {{ traveler.last_rupture.incoming }} de dano, redução {{ traveler.last_rupture.reduction }}, restante {{ traveler.last_rupture.remaining }}.{% if traveler.last_rupture.retaliation_ready %} Retaliação Planar disponível{% if traveler.last_rupture.target %} contra {{ traveler.last_rupture.target }}: {{ traveler.last_rupture.retaliation_damage }} de Energia{% endif %}.{% endif %}</p>{% endif %}
+    <form method="post" class="space-y-2">
+      {% csrf_token %}<input type="hidden" name="action" value="traveler">
+      <input type="hidden" name="version" value="{{ traveler.version }}">
+      <input type="hidden" name="operation_id" value="{{ traveler_operation_id }}">
+      <label>Evento <select name="traveler_event"><option value="place">Colocar runa (Ação Bônus)</option><option value="teleport">Teleportar</option>{% if traveler.level >= 6 %}<option value="rupture">Ruptura do Selo (Reação)</option>{% endif %}{% if traveler.level >= 10 %}<option value="horizon">Salto em Travessia após ataque</option>{% endif %}{% if traveler.final_eligible %}<option value="select_final">Escolher duas magias de Caminho Final</option><option value="cast_final">Conjurar Caminho Final</option>{% endif %}</select></label>
+      <label>Espaço ou objeto da runa <input name="label" maxlength="160"></label>
+      <label>Método <select name="method"><option value="step">Passo Rúnico, antes do ataque</option><option value="leap">Salto Direto, Ação Bônus</option><option value="throw">Arremesso Cintilante, após projétil</option></select></label>
+      <label>Destino <select name="rune_id"><option value="">Ponto onde o projétil parou</option>{% for rune in traveler.runes %}<option value="{{ rune.id }}">{{ rune.label }}</option>{% endfor %}{% if traveler.marked_destination %}<option value="marked">Presa Marcada</option>{% endif %}</select></label>
+      <label>Distância até a runa ou percorrida no teleporte (metros) <input name="path_m" type="number" min="0" step="0.1"></label>
+      <label>Distância do pouso ao destino (metros) <input name="landing_m" type="number" min="0" step="0.1"></label>
+      {% if traveler.level >= 14 %}<label>Aliado voluntário para Salto Direto <input name="ally" maxlength="160"></label>
+      <label>Distância do aliado a você (m) <input name="ally_near_m" type="number" min="0" step="0.1"></label>
+      <label>Distância do pouso do aliado ao seu destino (m) <input name="ally_landing_m" type="number" min="0" step="0.1"></label>
+      <label><input type="checkbox" name="ally_willing" value="1"> Aliado voluntário</label>{% endif %}
+      <label><input type="checkbox" name="same_plane" value="1"> Presa no mesmo plano</label>
+      <label><input type="checkbox" name="attack_action" value="1"> Ação Atacar declarada</label>
+      <label><input type="checkbox" name="projectile_resolved" value="1"> Projétil resolvido</label>
+      {% if traveler.level >= 10 %}<label>Identificador deste turno <input name="turn_id" maxlength="80"></label>
+      <label>Alvo do ataque com arma <input name="primary_target" maxlength="160"></label>
+      <label>Alvo diferente do Golpe em Cadeia (opcional) <input name="extra_target" maxlength="160"></label>
+      <label><input type="checkbox" name="attack_resolved" value="1"> Ataque com arma resolvido</label>
+      <label><input type="checkbox" name="spot_visible" value="1"> Destino visível</label>
+      <label><input type="checkbox" name="spot_unoccupied" value="1"> Destino desocupado</label>
+      <label><input type="checkbox" name="extra_in_reach" value="1"> Alvo adicional ao alcance da arma</label>{% endif %}
+      {% if traveler.final_eligible %}<label>Escolha duas magias após o descanso <select name="final_spell" multiple size="6">{% for spell in traveler.final_options %}<option value="{{ spell.slug }}">{{ spell.name }}</option>{% endfor %}</select></label>
+      <label>Magia para conjurar <select name="spell_slug"><option value="">Selecione</option>{% for spell in traveler.final_options %}{% if spell.slug in traveler.final_choices and spell.slug not in traveler.final_used %}<option value="{{ spell.slug }}">{{ spell.name }}</option>{% endif %}{% endfor %}</select></label>{% endif %}
+      {% if traveler.level >= 6 %}<label><input type="checkbox" name="marked_attacker" value="1"> Atacante é a Presa Marcada</label>
+      <label><input type="checkbox" name="favored_attacker" value="1"> Atacante é Inimigo Favorito</label>
+      <label>Dano recebido <input name="attack_damage" type="number" min="0"></label>
+      <label>Resultado de 1d10 para redução <input name="reduction_roll" type="number" min="1" max="10"></label>
+      <label>Criatura hostil visível para Retaliação Planar, se dano zerado <input name="retaliation_target" maxlength="160"></label>
+      <label>Distância da criatura hostil (m) <input name="retaliation_m" type="number" min="0" max="18" step="0.1"></label>
+      <label>Primeiro Dado de Caçador <input name="retaliation_roll_1" type="number" min="1" max="{{ traveler.step_die }}"></label>
+      <label>Segundo Dado de Caçador <input name="retaliation_roll_2" type="number" min="1" max="{{ traveler.step_die }}"></label>
+      <label><input type="checkbox" name="save_succeeded" value="1"> Alvo passou na salvaguarda de Destreza contra a CD de Magia</label>{% endif %}
+      <label><input type="checkbox" name="confirmed" value="1" required> Confirmo as distâncias e condições declaradas na mesa.</label>
+      <button type="submit">Registrar travessia</button>
+    </form>
+    <p>Passo Rúnico: o próximo acerto neste turno pode causar 1d{{ traveler.step_die }} de Energia uma vez por criatura. Salto Direto alcança {{ traveler.leap_limit }} m rumo à runa; os demais teleportes alcançam 9 m. O pouso fica até 3 m do destino.</p>
+  </section>
+  {% endif %}
+  {% if companion %}
+  <section class="border rounded p-4 space-y-3" aria-label="Companheiro Primordial">
+    <h2>Companheiro Primordial</h2>
+    <p>Círculo da próxima invocação: {{ companion.available_circle }}. Bônus sobre o bloco de Familiar de Batalha: +{{ companion.hp_bonus }} PV máximos, +{{ companion.ac_bonus }} CA e +{{ companion.check_save_bonus }} em testes de habilidade e resistência.</p>
+    {% include 'home/partials/hunter_companion_block.html' %}
+    {% if companion.active %}
+      <p>Ativo: {{ companion.form }} ({{ companion.creature_type }}), invocado no {{ companion.circle }}º círculo. {% if companion.large %}Tamanho Grande.{% endif %}</p>
+      <p>Evoluções: {{ companion.evolution_labels|join:', ' }}. Elo telepático no mesmo plano.</p>
+      {% if companion.favored_types %}<p>Inimigos Favoritos compartilhados: {{ companion.favored_types|join:', ' }}. Contra esses tipos, +{{ companion.favored_damage }} ao dano dos ataques com arma; Vantagem para rastrear e recordar informações; análise dos vestígios em 1 minuto.</p>{% endif %}
+      {% if companion.favored_pending %}<p>Há {{ companion.favored_pending }} escolha(s) de Inimigo Favorito pendente(s) para compartilhar com o espírito.</p>{% endif %}
+      <ul>{% for effect in companion.evolution_effects %}<li>{{ effect }}</li>{% endfor %}</ul>
+      {% if companion.large_grapple_advantage %}<p>Forma Grande: Vantagem em Força para Agarrar ou Empurrar e para evitar ou escapar de Agarrão.</p>{% endif %}
+      {% if companion.shared_mark_damage %}<p>Marca Compartilhada: cada Retalhar que acerta a Presa Marcada causa também 1{{ companion.shared_mark_damage }} da Marca do Caçador.</p>{% endif %}
+      {% if companion.last_mark_hit %}<p>Último acerto da Marca Compartilhada: {{ companion.last_mark_hit.target }}, turno {{ companion.last_mark_hit.turn }}, acerto {{ companion.last_mark_hit.hit }}, dano adicional {{ companion.last_mark_hit.damage }}.</p>{% endif %}
+      {% if companion.breath_type %}<p>Sopro Primordial ({{ companion.breath_type }}): cone de 15 pés, salvaguarda de Destreza CD {{ companion.breath_dc }}, {{ companion.breath_damage }} de dano em falha ou metade em sucesso. Substitui um Retalhar; uma vez por turno.</p>{% endif %}
+      {% if companion.last_breath %}<p>Último sopro: turno {{ companion.last_breath.turn }}, {{ companion.last_breath.damage }} de dano {{ companion.last_breath.damage_type }}, CD {{ companion.last_breath.dc }}.</p>{% endif %}
+      {% if companion.supreme %}<p>Forma Primordial Suprema: círculo 9, tamanho Enorme, {{ companion.supreme_remaining_seconds }} segundos de jogo restantes. PV máximos recalculados e recuperação completa na ativação.</p>{% endif %}
+      <p>Comando: Ação Bônus e Reação do espírito, uma vez no seu turno. {% if companion.command_replaces_attack %}Pode substituir um ataque da ação Atacar.{% endif %} {% if companion.rend_attacks == 2 %}Retalhar duas vezes a partir do nível 10.{% endif %}</p>
+      {% if companion.shared_instinct %}<p>Instinto Compartilhado: o espírito tem Vantagem em todos os testes de resistência enquanto puder ver você.</p>{% endif %}
+      {% if companion.last_command %}<p>Último Comando: turno {{ companion.last_command.turn }}, {{ companion.last_command.action }}{% if companion.last_command.rend_attacks %}{% if companion.last_command.action == 'Sopro Primordial' %} e Retalhar adicional{% else %} {{ companion.last_command.rend_attacks }} vez(es){% endif %}{% endif %}; {% if companion.last_command.mode == 'attack' %}um ataque da ação Atacar substituído{% else %}Ação Bônus usada{% endif %}; Reação do espírito usada.</p>{% endif %}
+      {% if companion.spell_sharing %}<p>Magia pessoal sem área pode também afetar o espírito a até 9 m.</p>{% endif %}
+      {% if companion.shared_spells %}<p>Magias partilhadas nesta invocação: {{ companion.shared_spells|join:', ' }}.</p>{% endif %}
+    {% else %}<p>Sem espírito ativo.</p>{% endif %}
+    <p>{% if companion.free_ready %}Invocação gratuita disponível por aquisição ou descanso longo.{% else %}Nova invocação requer ritual de 1 minuto e 1 Ponto de Segredo.{% endif %}</p>
+    <form method="post" class="space-y-2">
+      {% csrf_token %}<input type="hidden" name="action" value="companion">
+      <input type="hidden" name="version" value="{{ companion.version }}">
+      <input type="hidden" name="operation_id" value="{{ companion_operation_id }}">
+      <label>Evento <select name="companion_event"><option value="summon">Invocar ou substituir</option>{% if companion.active %}{% if companion.block %}<option value="damage">Registrar dano</option><option value="heal">Registrar cura</option>{% else %}<option value="choose_block">Definir bloco da invoca??o existente</option>{% endif %}<option value="command">Comandar Retalhar</option>{% if companion.block.stalk %}<option value="stalk">Comandar Espreitar</option>{% endif %}{% if companion.breath_type %}<option value="breath">Comandar Sopro Primordial</option>{% endif %}{% if companion.shared_mark_ready %}<option value="mark_hit">Registrar acerto de Retalhar na Marca</option>{% endif %}{% if companion.spell_sharing %}<option value="share_spell">Partilhar magia registrada (Comunhão Primordial)</option>{% endif %}{% if companion.supreme_eligible and not companion.supreme %}<option value="supreme">Ativar Forma Primordial Suprema (4 Pontos de Segredo)</option>{% endif %}{% if companion.supreme %}<option value="elapsed">Avançar tempo da Forma Suprema</option>{% endif %}<option value="fell">Caiu a 0 PV</option><option value="dismiss">Dispensar</option>{% endif %}</select></label>
+      {% if companion.active and companion.spell_sharing %}<fieldset><legend>Comunhão Primordial</legend>
+        <label>Magia persistente já conjurada na Oficina <select name="companion_spell_state"><option value="">Selecione</option>{% for effect in shareable_spell_states %}<option value="{{ effect.chave }}">{{ effect.payload_json.spell_name|default:effect.chave }}</option>{% endfor %}</select></label>
+        <label><input type="checkbox" name="self_only_no_area" value="1"> Confirmo que a magia tem somente a mim como alvo e não afeta área.</label>
+        <label><input type="checkbox" name="companion_within_9m" value="1"> Confirmo que o espírito estava a até 9 m quando conjurei.</label>
+      </fieldset>{% endif %}
+      {% if companion.active %}<label>Identificador único do turno do Comando <input name="companion_turn" maxlength="120" placeholder="Ex.: encontro-1/rodada-2/turno-3"></label>
+      <label>Forma de Comando <select name="command_mode"><option value="bonus">Ação Bônus</option>{% if companion.command_replaces_attack %}<option value="attack">Substituir um ataque da ação Atacar</option>{% endif %}</select></label>
+      <label>Retalhar no Comando <select name="rend_count"><option value="1">Uma vez</option>{% if companion.rend_attacks == 2 %}<option value="2">Duas vezes</option>{% endif %}</select></label>{% endif %}
+      {% if companion.shared_mark_ready %}<label>Presa marcada atingida por Retalhar <input name="companion_target" maxlength="160" placeholder="Nome exato da Marca ativa"></label>{% endif %}
+      {% if companion.active and companion.rend_attacks == 2 %}{% if companion.breath_type or companion.block.stalk %}<label><input type="checkbox" name="extra_rend" value="1"> Após o Sopro ou Espreitar, realizar o segundo Retalhar (nível 10+)</label>{% endif %}{% endif %}
+      <label>Segundos de jogo decorridos <input name="seconds" type="number" min="0" max="86400" value="0"></label>
+      <label>Forma do bloco <select name="battle_form"><option value="">Selecione</option>{% for key, label in companion.battle_forms.items %}<option value="{{ key }}">{{ label }}</option>{% endfor %}</select></label>
+      <label>Quantidade de dano/cura (ou PV atuais ao definir bloco antigo) <input type="number" name="companion_hp" min="0" max="100000" value="0"></label>
+      <label>Aparência <input name="form" maxlength="120" placeholder="Descreva a forma"></label>
+      <label>Tipo <select name="creature_type"><option value="">Selecione</option><option>Celestial</option><option>Dragão</option><option>Fera</option><option>Feérico</option><option>Ínfero</option></select></label>
+      <fieldset><legend>Escolha {{ companion.evolution_limit }} Evoluções Totêmicas para a invocação</legend>
+      {% for option in companion.options %}<label class="block"><input type="checkbox" name="evolution" value="{{ option.id }}"> {{ option.label }}</label>{% endfor %}
+      </fieldset>
+      {% if companion.large_available %}<label><input type="checkbox" name="large" value="1"> Assumir tamanho Grande</label>{% endif %}
+      <label><input type="checkbox" name="confirmed" value="1" required> Confirmo o evento da mesa e as escolhas.</label>
+      <button type="submit">Registrar companheiro</button>
+    </form>
+  </section>
+  {% endif %}
+  {% include 'home/partials/hunter_mutagens.html' %}
+  {% if lantern %}
+  <section class="border rounded p-4 space-y-3" aria-label="Lanterna do Véu">
+    <h2>Lanterna do Véu</h2>
+    <p>{% if lantern.held %}Presente{% else %}Perdida{% endif %}; forma {{ lantern.form|default:'a escolher' }}; luz intensa {{ lantern.radius_m }} m e penumbra até o dobro. Detecta Mortos-Vivos a até 18 m, salvo cobertura total; revela uma vez os últimos seis segundos de cada cadáver válido.</p>
+    {% if lantern.level >= 10 %}<p>Rito de Exorcismo: Cerimônia gratuita, sem componentes materiais; alvo possuído a até 9 m faz salvaguarda de Carisma. Frascos Consagrados {{ lantern.vials }}/{{ lantern.vial_max }}. Beber ou ungir aliado até 1,5 m cura 2d{{ lantern.hunter_die }} + {{ lantern.level }} PV e remove um nível de Exaustão; arremessar até 9 m causa 1d{{ lantern.hunter_die }} radiante, dobro contra Morto-Vivo ou possessor e impede cura até o fim do próximo turno.</p>{% endif %}
+    {% if lantern.level >= 10 %}<p>Afastar Mortos-Vivos: {% if lantern.turn_ready %}uso disponível{% else %}uso gasto{% endif %}; até 9 m, CD de Magia da ficha, {{ lantern.turn_dice }}d8 de dano radiante por alvo, metade no sucesso. Falha: Amedrontado e Incapacitado por até 1 minuto, encerrando ao sofrer dano, se o Caçador ficar Incapacitado ou morrer. Recupera em Descanso Curto/Longo ou por 3 Pontos de Segredo.</p>{% endif %}
+    {% if lantern.level >= 14 %}<p>Luz Reveladora: Falar com Mortos {{ lantern.speak_remaining }}/{{ lantern.speak_max }} usos sem espaço pela lanterna; recupera no Descanso Longo. {% if lantern.revealing_light %}Na luz atual, criaturas não se beneficiam de Invisível nem usam movimento incorpóreo.{% else %}Acenda e segure a lanterna para bloquear Invisível e movimento incorpóreo na área iluminada.{% endif %}</p>{% endif %}
+    {% if lantern.sanctuary_eligible %}<p>Santuário do Véu: ritual de Consagração ou Interdição custa 4 Pontos de Segredo e um Frasco Consagrado, sem componentes materiais nem ouro. {% if lantern.sanctuary_site %}Lanterna vinculada a {{ lantern.sanctuary_site }} ({{ lantern.sanctuary_spell }}); o efeito permanece enquanto durar o vínculo. Palavra de Retorno para esse local custa 4 Pontos de Segredo.{% else %}Nenhum local vinculado; vincular outro local desfaz o vínculo anterior.{% endif %}</p>{% endif %}
+    {% if lantern.last_sanctuary_ritual %}<p>Último ritual: {{ lantern.last_sanctuary_ritual.site }} ({{ lantern.last_sanctuary_ritual.spell }}), {% if lantern.last_sanctuary_ritual.bound %}vinculado{% else %}sem vínculo permanente{% endif %}.</p>{% endif %}
+    {% if lantern.last_recall %}<p>Última Palavra de Retorno: {{ lantern.last_recall.site }}.</p>{% endif %}
+    {% if lantern.last_turn %}<p>Último Afastar Mortos-Vivos: {% for result in lantern.last_turn %}{{ result.target }}: {{ result.radiant_damage }} radiante{% if result.save_failed %}, Amedrontado e Incapacitado por até 1 minuto{% endif %}{% if not forloop.last %}; {% endif %}{% endfor %}.</p>{% endif %}
+    {% if lantern.last_detection != None %}<p>Última busca: {% if lantern.last_detection %}Morto-Vivo detectado{% else %}nenhum Morto-Vivo detectado{% endif %}.</p>{% endif %}
+    {% if lantern.last_replay %}<p>Última visão de {{ lantern.last_replay.corpse }}: {{ lantern.last_replay.actions }}.</p>{% endif %}
+    {% if lantern.last_ceremony %}<p>Última Cerimônia: {% if lantern.last_ceremony.target %}{{ lantern.last_ceremony.target }} {% if lantern.last_ceremony.expelled %}expulso{% else %}resistiu à expulsão{% endif %}{% else %}Frasco Consagrado destilado{% endif %}.</p>{% endif %}
+    {% if lantern.last_vial %}<p>Último frasco: {{ lantern.last_vial.target }}, {{ lantern.last_vial.amount }} {% if lantern.last_vial.mode == 'throw' %}de dano radiante{% else %}PV de cura declarada{% endif %}.</p>{% endif %}
+    <form method="post" class="space-y-2">
+      {% csrf_token %}<input type="hidden" name="action" value="lantern">
+      <input type="hidden" name="version" value="{{ lantern.version }}">
+      <input type="hidden" name="operation_id" value="{{ lantern_operation_id }}">
+      <label>Evento <select name="lantern_event"><option value="configure">Escolher forma</option><option value="light">Regular luz</option><option value="detect">Detectar Mortos-Vivos</option><option value="corpse">Revelar últimos seis segundos</option><option value="lost">Registrar perda</option><option value="replace">Substituir em descanso</option>{% if lantern.level >= 10 %}<option value="ceremony">Cerimônia e destilar frasco</option><option value="vial">Usar Frasco Consagrado</option><option value="turn_undead">Afastar Mortos-Vivos</option>{% if not lantern.turn_ready %}<option value="restore_turn">Recuperar Afastar por 3 Segredos</option>{% endif %}{% endif %}{% if lantern.level >= 14 %}<option value="speak_dead">Falar com Mortos sem espaço</option>{% endif %}{% if lantern.sanctuary_eligible %}<option value="sanctuary_ritual">Santuário do Véu: ritual</option>{% if lantern.sanctuary_site %}<option value="sanctuary_recall">Palavra de Retorno ao local vinculado</option>{% endif %}{% endif %}</select></label>
+      <label>Forma <select name="form"><option value="">Manter forma</option>{% for form in lantern.forms %}<option value="{{ form }}">{{ form }}</option>{% endfor %}</select></label>
+      <label>Luz intensa em metros (0 apaga) <input name="radius_m" type="number" min="0" max="6" step="0.5" value="0"></label>
+      <label>Alvo ou nome do aliado (self para beber) <input name="target" maxlength="160"></label>
+      <label>Distância em metros <input name="distance_m" type="number" min="0" step="0.5" value="0"></label>
+      <label><input name="undead" type="checkbox" value="1"> Morto-Vivo</label>
+      <label><input name="total_cover" type="checkbox" value="1"> Cobertura total</label>
+      <label>Identificador do cadáver <input name="corpse_id" maxlength="160"></label>
+      <label><input name="corpse_large_or_less" type="checkbox" value="1"> Cadáver Grande ou menor</label>
+      <label>Últimos seis segundos vistos <input name="last_actions" maxlength="1000"></label>
+      <label>Descanso para substituição <select name="rest_event"><option value="">Nenhum</option><option value="short_rest">Curto</option><option value="long_rest">Longo</option></select></label>
+      <label>Segundos de cerimônia <input name="seconds" type="number" min="0" value="0"></label>
+      <label><input name="possessed" type="checkbox" value="1"> Alvo possuído</label>
+      <label><input name="charisma_save_failed" type="checkbox" value="1"> Falhou na salvaguarda de Carisma</label>
+      <label>Uso do frasco <select name="mode"><option value="">Nenhum</option><option value="drink">Beber</option><option value="ally">Ungir aliado</option><option value="throw">Arremessar</option></select></label>
+      <label>Primeiro Dado de Caçador <input name="roll_1" type="number" min="0" max="12" value="0"></label>
+      <label>Segundo Dado de Caçador <input name="roll_2" type="number" min="0" max="12" value="0"></label>
+      <label><input name="target_undead" type="checkbox" value="1"> Alvo do arremesso é Morto-Vivo</label>
+      <label><input name="target_possessor" type="checkbox" value="1"> Alvo do arremesso é possessor</label>
+      {% if lantern.level >= 10 %}<label>Alvos de Afastar Mortos-Vivos: uma linha por criatura, no formato nome | distância em metros | falhou ou sucesso | {{ lantern.turn_dice }} rolagens d8 separadas por vírgula. <textarea name="turn_targets" rows="3" maxlength="5000" placeholder="Espectro | 6 | falhou | 4,6,2"></textarea></label>{% endif %}
+      {% if lantern.sanctuary_eligible %}<label>Magia do ritual <select name="ritual_spell"><option value="">Selecione para o ritual</option><option value="hallow">Consagração</option><option value="forbiddance">Interdição</option></select></label>
+      <label>Local consagrado <input name="ritual_site" maxlength="160"></label>
+      <label><input name="bind_site" type="checkbox" value="1"> Vincular a Lanterna do Véu a este local; substitui o vínculo anterior</label>{% endif %}
+      <label><input name="confirmed" type="checkbox" value="1" required> Confirmo as condições e os resultados declarados na mesa.</label>
+      <button type="submit">Registrar evento da Lanterna</button>
+    </form>
+  </section>
+  {% endif %}
+  {% if exorcist %}
+  <section class="border rounded p-4 space-y-3" aria-label="Forma do Ceifador">
+    <h2>Forma do Ceifador</h2>
+    <p>{% if exorcist.active %}Ativa por mais {{ exorcist.remaining_seconds }} segundos de jogo.{% else %}Inativa.{% endif %} Uso gratuito {% if exorcist.free_ready %}disponível{% else %}gasto até o Descanso Longo{% endif %}.</p>
+    <p>Enquanto ativa: Resistência a dano necrótico e de frio, movimento através de criaturas e objetos, imunidade a Agarrado, Caído e Restringido. Terminar o turno dentro de um objeto causa 1d10 de dano de Energia.</p>
+    {% if exorcist.immortal %}<p>Ceifador Imortal: também tem Resistência a concussivo, perfurante e cortante; efeitos de mortos-vivos não reduzem seus PV nem drenam sua Força.</p>{% endif %}
+    <form method="post" class="space-y-2">
+      {% csrf_token %}<input type="hidden" name="action" value="reaper_form">
+      <input type="hidden" name="version" value="{{ exorcist.version }}">
+      <input type="hidden" name="operation_id" value="{{ exorcist_operation_id }}">
+      <label>Evento <select name="reaper_event"><option value="activate">Ativar por 1 minuto</option>{% if exorcist.active %}<option value="elapsed">Avançar tempo</option><option value="dismiss">Encerrar forma</option>{% endif %}</select></label>
+      <label>Método para ativar <select name="mode">{% if exorcist.free_ready %}<option value="free">Uso gratuito</option>{% endif %}<option value="secrets">2 Pontos de Segredo</option>{% if exorcist.slot_options %}<option value="slot">Espaço de magia de 2º Círculo ou superior</option>{% endif %}</select></label>
+      {% if exorcist.slot_options %}<label>Espaço <select name="slot_choice"><option value="">Selecione ao usar espaço</option>{% for slot in exorcist.slot_options %}<option value="{{ slot.nivel }}:{{ slot.version }}">{{ slot.nivel }}º Círculo: {{ slot.atual }} / {{ slot.total }}</option>{% endfor %}</select></label>{% endif %}
+      <label>Segundos decorridos <input name="seconds" type="number" min="0" max="86400" value="0"></label>
+      <label><input type="checkbox" name="confirmed" value="1" required> Confirmo a Ação Bônus ou o evento de tempo na mesa.</label>
+      <button type="submit">Registrar Forma do Ceifador</button>
+    </form>
+  </section>
+  {% endif %}
+  {% if awakening %}
+  <section class="border rounded p-4 space-y-3" aria-label="Forma Desperta">
+    <h2>Forma Desperta</h2>
+    <p>{% if awakening.active %}Forma ativa. {% if awakening.timeless %}A Marca ativa suspende a contagem da Forma.{% else %}Restam {{ awakening.remaining_seconds }} segundos de jogo.{% endif %}{% else %}Forma inativa.{% endif %}
+      {% if awakening.ready %} Uso disponível.{% else %} Uso gasto; recupera em descanso curto, longo ou quando a presa marcada morre.{% endif %}</p>
+    <p>Enquanto ativa: resistência a dano contundente, perfurante e cortante; +1 CA sem armadura pesada nem escudo; vantagem em testes e salvaguardas de Força; +{{ awakening.melee_bonus }} no dano corpo a corpo. Ataque desarmado {{ awakening.unarmed_die }}, com opção de Destreza sem escudo. Ação Bônus: um ataque desarmado, dois contra presa marcada.</p>
+    {% if awakening.speed_bonus %}<p>Vigor da Fera: +{{ awakening.speed_bonus }} pés de deslocamento e salto; Destreza em Atletismo ou Força em Acrobacia. Uma vez por turno, ao acertar e estar Sangrando, cura {{ awakening.bloodied_heal }}.</p>{% endif %}
+    {% if awakening.regeneration %}<p>Regeneração Bestial: no início do turno, se Sangrando e com ao menos 1 PV, cura no mínimo 1 + modificador de Constituição. Quem falhar no Uivo não pode recuperar PV até o início do seu próximo turno.</p>{% endif %}
+    {% if awakening.elder %}<p>Ímpeto Ancião: Uivo também derruba ou empurra 10 pés. Ao cair a 0 PV sem morte imediata, pode voltar com {{ awakening.level }} × 2 PV uma vez por descanso longo; {% if awakening.elder_ready %}disponível{% else %}gasto{% endif %}.</p>{% endif %}
+    {% if awakening.final %}<p>Despertar Final: tamanho Grande, {{ awakening.final_remaining_seconds }} segundos restantes, imune a Amedrontado e Enfeitiçado; pode fazer mais um ataque desarmado como Ação Bônus e conta como Sangrando para as curas. PV temporários concedidos na ativação.</p>{% endif %}
+    <form method="post" class="space-y-2">
+      {% csrf_token %}<input type="hidden" name="action" value="awakening">
+      <input type="hidden" name="version" value="{{ awakening.version }}">
+      <input type="hidden" name="operation_id" value="{{ awakening_operation_id }}">
+      <label>Evento <select name="awakening_event">
+        {% if awakening.ready and not awakening.active %}<option value="activate">Assumir Forma Desperta (Ação Bônus)</option>{% endif %}
+        {% if awakening.active %}<option value="howl">Uivo Aterrador (2 Pontos de Segredo)</option>
+        {% if awakening.final_eligible and not awakening.final %}<option value="final">Despertar Final (4 Pontos de Segredo)</option>{% endif %}
+        {% if awakening.elder and awakening.elder_ready %}<option value="elder_rescue">Ímpeto Ancião: voltar com 2 × nível de PV ao cair a 0</option>{% endif %}
+        <option value="elapsed">Avançar tempo de jogo</option><option value="dismiss">Reverter forma</option>
+        <option value="unconscious">Ficou Inconsciente</option><option value="dead">Morreu</option>{% endif %}
+      </select></label>
+      <label><input type="checkbox" name="initial_howl" value="1"> Na ativação, também declaro Uivo Aterrador sem custo</label>
+      <label>Segundos decorridos <input name="seconds" type="number" min="0" max="86400" value="0"></label>
+      <label><input type="checkbox" name="confirmed" value="1" required> Confirmo o evento e as condições da mesa.</label>
+      <button type="submit">Registrar Forma Desperta</button>
+    </form>
+  </section>
+  {% endif %}
+  {% if mark %}
+  <section class="border rounded p-4 space-y-3" aria-label="Marca do Caçador">
+    <h2>Marca do Caçador</h2>
+    <p>Registro manual da caçada. O tempo abaixo é tempo de jogo; declare os eventos da mesa.</p>
+    <p>Sem gasto de espaço e sem Concentração. Dano adicional com arma: {{ mark.damage }}{% if mark.mortuary_damage_type %}, do tipo {{ mark.mortuary_damage_type }}{% else %}, do tipo da arma{% endif %}. Círculo para dissipação: {{ mark.dispel_circle }}.</p>
+    {% if mark.mortuary_damage_type %}<p>Marca Mortuária: enquanto a presa estiver Sangrando, acrescente +{{ mark.mortuary_bleeding_bonus }} ao dano da Marca. Enquanto marcada, ela não pode ficar Invisível, usar movimento incorpóreo nem entrar no Plano Etéreo. Se for Morto-Vivo, também não pode usar Desengajar nem recuperar PV por características sobrenaturais próprias. Declare Sangrando e o tipo da presa em mesa.</p>{% endif %}
+    <p>{% if mark.during_attack %}Pode aplicar durante a ação Atacar, antes ou depois de uma rolagem.{% else %}Aplicação como Ação Bônus.{% endif %}</p>
+    {% if mark.active %}<p>Presa: <strong>{{ mark.target }}</strong>. Restam {{ mark.remaining_seconds }} segundos de jogo.</p>
+    {% if mark.anticipated %}<p>Marca Antecipada: tipo {{ mark.target_type }}; pistas {{ mark.clues|join:', ' }}.</p>{% endif %}
+    {% if mark.inquisition_available %}<p>Inquisição: ao aplicar a Marca, conheça imunidades, resistências, vulnerabilidades a dano e imunidades a condições da presa; confirme com a mesa.</p>
+      {% if mark.defenses %}<p>Imunidades: {{ mark.defenses.immunities|default:'não registradas' }}. Resistências: {{ mark.defenses.resistances|default:'não registradas' }}. Vulnerabilidades: {{ mark.defenses.vulnerabilities|default:'não registradas' }}. Imunidades a condições: {{ mark.defenses.condition_immunities|default:'não registradas' }}.</p>{% endif %}
+    {% endif %}
+    {% if mark.final_hunt %}<p>Caçada Final ativa por mais {{ mark.final_hunt_remaining_seconds }} segundos: dano da Marca {{ mark.damage }}; a presa não se beneficia de Resistência contra seus danos nem recupera Pontos de Vida. O efeito não passa para outra presa.</p>{% endif %}
+    <p>No mesmo plano, conhece a direção geral da presa e sente quando ela é ferida; resolução na mesa.</p>
+    {% else %}<p>Nenhuma Marca ativa.</p>{% endif %}
+    <form method="post" class="space-y-2">
+      {% csrf_token %}<input type="hidden" name="action" value="mark">
+      <input type="hidden" name="version" value="{{ mark.version }}">
+      <input type="hidden" name="operation_id" value="{{ mark_operation_id }}">
+      <label>Evento <select name="mark_event">
+        <option value="apply">Marcar ou substituir a presa</option>
+        {% if mark.inquisition_available %}<option value="inquisition">Registrar defesas reveladas pela Inquisição</option>{% endif %}
+        {% if mark.active %}<option value="elapsed">Avançar tempo de jogo</option>
+        <option value="incapacitated">Adicionar tempo Incapacitado</option>
+        <option value="recovered">Encerrou a incapacidade</option>
+        <option value="dead">A presa morreu</option><option value="dispelled">Marca dissipada</option>
+        <option value="dismissed">Encerrar Marca</option>{% endif %}
+      </select></label>
+      <label>Presa <input name="target" maxlength="160" placeholder="Nome ou identificação na mesa"></label>
+      {% if mark.mortuary_eligible %}<label>Tipo da Marca Mortuária ao aplicar <select name="mortuary_damage_type"><option value="">Selecione</option><option value="radiante">Radiante</option><option value="frio">Frio</option></select></label>{% endif %}
+      {% if mark.anticipation_eligible %}
+      <fieldset><legend>Marca Antecipada dos Exterminadores</legend>
+        <label><input type="checkbox" name="anticipate" value="1"> Aplicar sem ver a presa após investigar por 10 minutos</label>
+        <label>Tipo conhecido <input name="target_type" maxlength="80"></label>
+        <label>Pista 1 <input name="clue" maxlength="160"></label>
+        <label>Pista 2 <input name="clue" maxlength="160"></label>
+        <label>Pista 3 <input name="clue" maxlength="160"></label>
+        <label>Distância em milhas <input name="distance_miles" type="number" min="0" max="5" step="0.1"></label>
+        <label><input type="checkbox" name="same_plane" value="1"> Presa no mesmo plano</label>
+      </fieldset>
+      {% if mark.inquisition_available %}<fieldset><legend>Defesas informadas pela mesa</legend>
+        <label>Imunidades a dano <input name="immunities" maxlength="300"></label>
+        <label>Resistências <input name="resistances" maxlength="300"></label>
+        <label>Vulnerabilidades <input name="vulnerabilities" maxlength="300"></label>
+        <label>Imunidades a condições <input name="condition_immunities" maxlength="300"></label>
+      </fieldset>{% endif %}
+      {% endif %}
+      {% if mark.final_hunt_eligible %}<label><input type="checkbox" name="final_hunt" value="1"> Declarar Caçada Final ao aplicar a Marca (4 Pontos de Segredo; dura 1 minuto)</label>{% endif %}
+      <label>Segundos decorridos <input name="seconds" type="number" min="0" max="86400" value="0"></label>
+      <label><input type="checkbox" name="confirmed" value="1" required>Confirmo o evento e a ação necessária. Para Marca comum, vejo a criatura a até 27 m (90 pés); para Marca Antecipada, confirmei as pistas, o plano e a distância. Cada intervalo de tempo é registrado uma vez.</label>
+      <button type="submit">Registrar Marca</button>
+    </form>
+    <p>Uma nova aplicação substitui a anterior. Encerra após 1 hora de jogo, morte da presa, dissipação ou mais de 1 minuto contínuo Incapacitado.</p>
+  </section>
+  {% endif %}
+  {% if hunter_sheet.crepusculo %}
+  <h2>Caçador das Sombras</h2>
+  <p>Iniciativa: +{{ hunter_sheet.crepusculo.initiative_bonus }}. Visão no Escuro ampliada em 60 pés; enxerga através da escuridão mágica.</p>
+  {% if hunter_sheet.crepusculo.save_choice_pending %}
+  <form method="post">
+    {% csrf_token %}<input type="hidden" name="action" value="twilight_save">
+    <input type="hidden" name="version" value="{{ profile.version }}">
+    <label>Reflexos das Sombras: Destreza já é proficiente. Escolha outra salvaguarda
+      <select name="ability"><option value="FOR">Força</option><option value="CON">Constituição</option></select>
+    </label><button type="submit">Registrar salvaguarda</button>
+  </form>
+  {% elif hunter_sheet.crepusculo.save_proficiency %}<p>Reflexos das Sombras: proficiência em {{ hunter_sheet.crepusculo.save_proficiency }}.</p>{% endif %}
+  {% endif %}
+  {% if protective %}
+  <section class="border rounded p-4" aria-label="Contramedidas Protetivas">
+    <h2>Contramedidas Protetivas</h2>
+    {% if protective.pending %}
+    <form method="post">
+      {% csrf_token %}<input type="hidden" name="action" value="protective_choice">
+      <input type="hidden" name="version" value="{{ protective.version }}">
+      <label>Escolha permanente <select name="ability"><option value="int">Inteligência</option><option value="wis">Sabedoria</option></select></label>
+      <button type="submit">Registrar escolha</button>
+    </form>
+    {% else %}
+    <p>Atributo escolhido: {% if protective.ability == 'int' %}Inteligência{% else %}Sabedoria{% endif %}. Some o modificador a salvaguardas provocadas por Inimigos Favoritos e reduza o dano deles pelo mesmo valor (mínimo 1).</p>
+    {% endif %}
+  </section>
+  {% endif %}
+  {% if spell_preparation %}
+  <h2>Preparar magias de Caçador</h2>
+  <p>Limite da revisão: {{ spell_preparation.limite }}. Magias sempre preparadas não ocupam este limite. A troca preserva as magias adquiridas.</p>
+  <form method="post" action="{% url 'personagem_preparar_magias' person.pk %}">
+    {% csrf_token %}<input type="hidden" name="classe" value="{{ profile.personagem_classe.id_classe_id }}">
+    <input type="hidden" name="next" value="{% url 'hunter_preparation' person.pk %}">
+    <input type="hidden" name="version" value="{{ profile.version }}">
+    {% for group in spell_preparation.grupos %}
+    {% for spell in group.magias %}<label><input type="checkbox" name="magia" value="{{ spell.slug }}" {% if spell.marcada %}checked{% endif %}> {{ spell.nome }}</label>{% endfor %}
+    {% endfor %}<button type="submit">Confirmar magias preparadas</button>
+  </form>{% endif %}
+  {% if style %}
+  <h2>Estilo de Luta</h2>
+  <p>Atual: {{ style.selected.nome|default:'não escolhido' }}. Uma escolha a partir do nível 2; uma troca ao ganhar nível de Caçador.</p>
+  {% if not style.valid %}<p role="alert">O estilo precisa de regularização. A escolha foi preservada.</p>{% endif %}
+  {% if style.can_change %}<form method="post">
+    {% csrf_token %}<input type="hidden" name="action" value="style">
+    <input type="hidden" name="version" value="{{ profile.version }}">
+    {% for option in style.options %}
+    <label><input type="radio" name="style" value="{{ option.id }}" required> {{ option.nome }} — {{ option.pre }}</label>
+    <p>{{ option.descricao }}</p>
+    {% endfor %}<button type="submit">Confirmar Estilo de Luta</button>
+  </form>{% endif %}{% endif %}
+  <h2>Instinto de Caçador</h2>
+  {% if expertise_error %}<p>{{ expertise_error }}</p>{% endif %}
+  {% if expertise %}
+  <p>Escolha uma perícia já proficiente de Inteligência ou Sabedoria no nível 3 e outra no nível 9. O cálculo da revisão dobra a proficiência, sem acumular outra especialização.</p>
+  {% if expertise.valid %}<form method="post">
+    {% csrf_token %}<input type="hidden" name="action" value="expertise">
+    <input type="hidden" name="version" value="{{ profile.version }}">
+    {% for skill in expertise.options %}
+    <label><input type="checkbox" name="expertise" value="{{ skill.id }}" {% if skill.selected %}checked disabled{% endif %}> {{ skill.nome }} ({{ skill.atributo }}), bônus atual {{ skill.bonus }}</label>
+    {% if skill.selected %}<input type="hidden" name="expertise" value="{{ skill.id }}">{% endif %}
+    {% endfor %}
+    {% if expertise.remaining %}<button type="submit">Confirmar perícias de Instinto</button>{% endif %}
+  </form>{% else %}<p role="alert">As perícias escolhidas precisam de regularização. As escolhas foram preservadas.</p>{% endif %}
+  {% endif %}
+  {% if favored %}
+  <h2>Inimigos Favoritos</h2>
+  <p>Limite atual: {{ favored.limit }}. Novas escolhas nos níveis 2, 8 e 14 de Caçador. As escolhas confirmadas são permanentes neste fluxo.</p>
+  {% if favored.pending_legacy %}<p>Inimigos Favoritos antigos preservados para o próximo espaço da revisão: {% for option in favored.pending_legacy %}{{ option.name }}{% if not forloop.last %}, {% endif %}{% endfor %}. Ainda não concedem benefícios.</p>{% endif %}
+  {% if favored.valid %}
+  <form method="post">
+    {% csrf_token %}<input type="hidden" name="action" value="favored">
+    <input type="hidden" name="version" value="{{ profile.version }}">
+    {% for option in favored.options %}
+    <label><input type="checkbox" name="favored" value="{{ option.id }}" {% if option.selected %}checked disabled{% endif %}> {{ option.name }}</label>
+    {% if option.selected %}<input type="hidden" name="favored" value="{{ option.id }}">{% endif %}
+    {% endfor %}
+    {% if favored.remaining %}<button type="submit">Confirmar Inimigos Favoritos</button>{% endif %}
+  </form>
+  {% else %}<p role="alert">As escolhas foram preservadas, mas precisam de regularização para este nível e revisão.</p>{% endif %}
+  <p>Contra os tipos escolhidos, seus ataques com arma somam o modificador do atributo de conjuração (mínimo +1). Você tem Vantagem para rastreá-los com Sobrevivência e recordar informações com Arcanismo, História ou Natureza.</p>
+  {% endif %}
+  {% if result.spell_grants %}<h2>Magias sempre preparadas da revisão</h2>
+  <ul>{% for spell in result.spell_grants %}<li>{{ spell.english }} — {{ spell.source }}</li>{% endfor %}</ul>
+  <p>Não ocupam o limite de preparo.</p>{% endif %}
+  {% if result %}<form method="post" class="space-y-4">
+    {% csrf_token %}<input type="hidden" name="version" value="{{ profile.version }}">
+    {% for secret in result.options %}
+    <article class="border rounded p-3">
+      <label>{% if not secret.automatic %}<input type="checkbox" name="secret" value="{{ secret.id }}" {% if secret.selected %}checked{% endif %}>{% endif %}
+      {{ secret.name }} — {{ secret.degree }}º grau</label>
+      <p>{{ secret.line }}. Custo: {{ secret.cost }} ponto(s). {% if secret.automatic %}Sempre disponível.{% endif %}</p>
+      <details><summary>Regras</summary><p>{{ secret.text }}</p></details>
+    </article>
+    {% empty %}<p>Segredos são desbloqueados no nível 2.</p>{% endfor %}
+    <button type="submit">Salvar preparação</button>
+  </form>
+  {% if reactions %}
+  <h2>Resposta Instintiva</h2>
+  <p>{{ reactions.0.text }}</p>
+  <p>INT e SAB são alternativas para a mesma reserva. Mantenha o atributo enquanto houver usos gastos. Recupera todos os usos no Descanso Curto ou Longo. Resolva alcance, reação e efeitos em mesa.</p>
+  {% for reaction in reactions %}
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="reaction">
+    <input type="hidden" name="reaction_ability" value="{{ reaction.ability }}">
+    <input type="hidden" name="operation_id" value="{{ reaction.operation_id }}">
+    <input type="hidden" name="resource_version" value="{{ reaction.version }}">
+    <p>{{ reaction.ability|upper }}: {{ reaction.current }} / {{ reaction.maximum }} usos.</p>
+    <label>Gatilho <select name="trigger"><option value="attack">Jogada de ataque</option>{% if reaction.upgraded %}<option value="save">Dano de efeito com resistência</option>{% endif %}</select></label>
+    <label><input type="checkbox" name="confirmed" value="1" required> Tenho Reação disponível e confirmei alcance, alvo e demais condições acima.</label>
+    <button type="submit">Usar Resposta Instintiva</button>
+  </form>
+  {% endfor %}{% endif %}
+  {% if mastery_error %}<p>{{ mastery_error }}</p>{% endif %}
+  {% if masteries %}
+  <h2>Armas de Caçada</h2>
+  <p>Escolha três armas proficientes. Após um Descanso Longo, pode trocar uma. Troca disponível: {{ masteries.can_replace|yesno:'sim,não' }}.</p>
+  <form method="post">
+    {% csrf_token %}<input type="hidden" name="action" value="masteries">
+    <input type="hidden" name="version" value="{{ profile.version }}">
+    {% for option in masteries.options %}<label><input type="checkbox" name="mastery" value="{{ option.value }}" {% if option.value in masteries.selected %}checked{% endif %}> {{ option.name }}</label>{% endfor %}
+    <button type="submit">Salvar Maestrias</button>
+  </form>{% endif %}
+  <h2>Usar Segredos</h2>
+  {% for secret in result.exclusive %}<article><h3>{{ secret.name }} — Segredo exclusivo da Ordem</h3><p>{{ secret.text }}</p></article>{% endfor %}
+  <p>Pontos disponíveis: {{ resource.current }} / {{ resource.maximum }}. Recuperação completa no descanso longo da ficha.</p>
+  <p>Registrar o uso desconta os pontos. Resolva alvos, ataques e efeitos em mesa conforme o texto do Segredo.</p>
+  {% for secret in use_options %}
+  <form method="post" class="border rounded p-3">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="use">
+    <input type="hidden" name="secret" value="{{ secret.id }}">
+    <input type="hidden" name="operation_id" value="{{ secret.operation_id }}">
+    <input type="hidden" name="resource_version" value="{{ resource.version }}">
+    <p>{{ secret.name }}: {{ secret.cost }} ponto(s).</p>
+    {% if secret.enhancement %}<label><input type="checkbox" name="enhanced" value="1"> Aprimorar (+1 ponto)</label>{% endif %}
+    <button type="submit">Registrar uso</button>
+  </form>
+  {% endfor %}{% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,1688 @@
+{
+  "schema": 1,
+  "delivery": "hunter-release",
+  "ready": false,
+  "head": "d3cb0cc814bc88eaecf1d9c7375dacfc05a5a4ef",
+  "branch": "dev",
+  "upstream": "origin/dev",
+  "counts": {
+    "candidato_cacador": 95,
+    "compartilhado_revisar_diff": 36,
+    "dependencia_obrigatoria": 54,
+    "fora_do_marco_vtt": 2,
+    "melhoria_existente_revisar": 45
+  },
+  "pipelines_found": [],
+  "migrations": [
+    {
+      "path": "home/migrations/0103_resource_command_receipts.py",
+      "dependencies_expression": "[('home', '0102_mercado_treinamentos_emprestimos')]"
+    },
+    {
+      "path": "home/migrations/0104_immutable_content_rulesets.py",
+      "dependencies_expression": "[('home', '0103_resource_command_receipts'), migrations.swappable_dependency(settings.AUTH_USER_MODEL)]"
+    },
+    {
+      "path": "home/migrations/0105_immutable_content_guards.py",
+      "dependencies_expression": "[('home', '0104_immutable_content_rulesets')]"
+    },
+    {
+      "path": "home/migrations/0106_hunter_preparation.py",
+      "dependencies_expression": "[('home', '0105_immutable_content_guards')]"
+    },
+    {
+      "path": "home/migrations/0107_hunter_mark.py",
+      "dependencies_expression": "[('home', '0106_hunter_preparation')]"
+    },
+    {
+      "path": "home/migrations/0108_hunter_companion.py",
+      "dependencies_expression": "[('home', '0107_hunter_mark')]"
+    },
+    {
+      "path": "home/migrations/0109_hunter_awakening.py",
+      "dependencies_expression": "[('home', '0108_hunter_companion')]"
+    },
+    {
+      "path": "home/migrations/0110_hunter_exorcist.py",
+      "dependencies_expression": "[('home', '0109_hunter_awakening')]"
+    },
+    {
+      "path": "home/migrations/0111_hunter_traveler.py",
+      "dependencies_expression": "[('home', '0110_hunter_exorcist')]"
+    },
+    {
+      "path": "home/migrations/0112_hunter_mutagens.py",
+      "dependencies_expression": "[('home', '0111_hunter_traveler')]"
+    },
+    {
+      "path": "home/migrations/0113_hunter_regularization.py",
+      "dependencies_expression": "[('home', '0112_hunter_mutagens')]"
+    }
+  ],
+  "files": [
+    {
+      "path": ".gitignore",
+      "category": "dependencia_obrigatoria",
+      "reason": "Integracao de Familiar de Batalha no pacote do Cacador.",
+      "state": "tracked_modified",
+      "sha256": "44c447cc67ab560a8af052f712a47f73b3a764cc3783fe656b33135f4f9e61b9"
+    },
+    {
+      "path": "ARQUITETURA_EVOLUCAO_BONFIRE.md",
+      "state": "untracked",
+      "category": "melhoria_existente_revisar",
+      "reason": "Confirmar escopo e validacao antes de incluir.",
+      "sha256": "a97ecba9a5b15366388c92b04adea8facff46e80eb1859f5e3cc89ae7f21e974"
+    },
+    {
+      "path": "bonfire/settings.py",
+      "state": "tracked_modified",
+      "category": "compartilhado_revisar_diff",
+      "reason": "Revisar hunks e consumidores antes de staging integral.",
+      "sha256": "71c8e3eaecd15ca97a3adee7af016d01d394e35f668b7d032127198da69d9565"
+    },
+    {
+      "path": "docs/EVOLUCAO_PROGRESSO.md",
+      "state": "untracked",
+      "category": "melhoria_existente_revisar",
+      "reason": "Confirmar escopo e validacao antes de incluir.",
+      "sha256": "8f4e9da141a1253be67b1d592763997658867d54918059e16375aa4e71eaea55"
+    },
+    {
+      "path": "docs/OPERACAO_ORDEM_PRIMAL.md",
+      "state": "untracked",
+      "category": "melhoria_existente_revisar",
+      "reason": "Confirmar escopo e validacao antes de incluir.",
+      "sha256": "6de7ba3b6647704b42187be768263f485aabcc48ffb28567b42bf8440be10a85"
+    },
+    {
+      "path": "docs/OPERACAO_SLOTS_MAGIA.md",
+      "state": "untracked",
+      "category": "melhoria_existente_revisar",
+      "reason": "Confirmar escopo e validacao antes de incluir.",
+      "sha256": "94d2e38951bac5357dcaf6731ebbec2bb046f13c2053f8efca85394b54a81991"
+    },
+    {
+      "path": "docs/agentes/regras_retagging_tags_json.md",
+      "state": "tracked_modified",
+      "category": "compartilhado_revisar_diff",
+      "reason": "Revisar hunks e consumidores antes de staging integral.",
+      "sha256": "27b374b02b43f18be6d289a0bb32be948544aeeceb13d3ffe3a1cb9d05b67ad0"
+    },
+    {
+      "path": "docs/deploy-sync-conteudo.md",
+      "state": "tracked_modified",
+      "category": "compartilhado_revisar_diff",
+      "reason": "Revisar hunks e consumidores antes de staging integral.",
+      "sha256": "4c4a3f59ff5e31d0942c2f6db9d0245cf7891184cd240af594a224cb9e3ef3a8"
+    },
+    {
+      "path": "docs/hunter-release/INVENTORY.md",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "f5b21a3c55896ffa5c665eabaa27e9a7806ac63aff74c08c5dc73aa20a9a3a32"
+    },
+    {
+      "path": "docs/hunter-release/MANIFEST.md",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "df94b3323a7d339a2a45b486d062b5176cf99ab41b36c1ce3c087db93e6ef92d"
+    },
+    {
+      "path": "docs/hunter-release/POSTGRESQL.md",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "faee3328245822b939928ab79610146622434bf428ecc360805b84e747569f20"
+    },
+    {
+      "path": "docs/hunter-release/inventory.json",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "b1693594df6e154e6699a807a4cb81585adb556369f119f6e2b810919f8a88bb"
+    },
+    {
+      "path": "docs/hunter-release/manifest.json",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": null
+    },
+    {
+      "path": "home/battle_familiar.py",
+      "category": "dependencia_obrigatoria",
+      "reason": "Integracao de Familiar de Batalha no pacote do Cacador.",
+      "state": "untracked",
+      "sha256": "7af64c7913c4da9d146d02338511583542abd581828c105e631203c64a9d2d51"
+    },
+    {
+      "path": "home/battle_familiar_casting.py",
+      "category": "dependencia_obrigatoria",
+      "reason": "Integracao de Familiar de Batalha no pacote do Cacador.",
+      "state": "untracked",
+      "sha256": "bdf1ccf4a2ca7d50cd1867f6d086a5fb63c516702a8da961a376d78cfcaa2d1c"
+    },
+    {
+      "path": "home/character_engine.py",
+      "state": "tracked_modified",
+      "category": "compartilhado_revisar_diff",
+      "reason": "Revisar hunks e consumidores antes de staging integral.",
+      "sha256": "3c2b82e741deed251194ab6345827c168ab471b6e976fc97c07fcf919fc88af8"
+    },
+    {
+      "path": "home/cleric_slot_repair.py",
+      "state": "untracked",
+      "category": "melhoria_existente_revisar",
+      "reason": "Confirmar escopo e validacao antes de incluir.",
+      "sha256": "90ac7d29764d56a95470415567d4245adb90180cc4305017af200fff2becd1d7"
+    },
+    {
+      "path": "home/content_versions.py",
+      "state": "untracked",
+      "category": "dependencia_obrigatoria",
+      "reason": "Contrato de revisao, recursos ou persistencia consumido pelo rework.",
+      "sha256": "48c164db720ad00721211dce08751be817845ff8cb6c9785e9e375236eff5e4d"
+    },
+    {
+      "path": "home/deploy_sync.py",
+      "state": "tracked_modified",
+      "category": "compartilhado_revisar_diff",
+      "reason": "Revisar hunks e consumidores antes de staging integral.",
+      "sha256": "7ba0fcf3c5475d5a6dcd9f4e200724d17d0f51d28b24303239c4ad0e131a7937"
+    },
+    {
+      "path": "home/fixtures/conteudo.json",
+      "state": "tracked_modified",
+      "category": "compartilhado_revisar_diff",
+      "reason": "Revisar hunks e consumidores antes de staging integral.",
+      "sha256": "e0b8382727e5e3f22968a86fc378a21bf9a81b96b0f2d82eb02aea361edaef0e"
+    },
+    {
+      "path": "home/hunter_awakening.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "886771f5a3ff321a43a4a773de62d89ff79dfaa8a57be5e658a17d733d9c2fb0"
+    },
+    {
+      "path": "home/hunter_catalog.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "3da0bc73ca73942fa58d46b8ea86e090f6df2ddc04755abe24dcb66ab6006280"
+    },
+    {
+      "path": "home/hunter_choices.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "8d202ab07d0dc761a0c1d4806f749bef728925559ea819ca8083931d07a0e95c"
+    },
+    {
+      "path": "home/hunter_combat.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "10acabe6beeb19915002d9efad2221a71f76fd9b0143ebe17bb381de16fba5c7"
+    },
+    {
+      "path": "home/hunter_companion.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "b3350482b6b4d032e3915cd3d9fb49dd386c837f399eb2234382d6089955cbe9"
+    },
+    {
+      "path": "home/hunter_exorcist.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "de6fc54f3089282490d396914ecc9f6804e0ca2fd5c7c37a51af9aa4b0b257c2"
+    },
+    {
+      "path": "home/hunter_expertise.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "0dec87a49a7848aa2891d6416cdd15283078ec3b156e6304e1ccd9918949f0f0"
+    },
+    {
+      "path": "home/hunter_exterminator.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "5bc168c5ededd9bfc13d11f83cd269b1d30eeb3431c3c89016e1e8a5c994aabe"
+    },
+    {
+      "path": "home/hunter_inventory.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "9cb0278322b4ca315b7161452cb4ae5341e04d66ff977b9311826c54aa29889c"
+    },
+    {
+      "path": "home/hunter_lantern.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "20805ce92197141bcb5a93070f2324d80e15ee5feb5b7f3c6a75afe3f6fd7cc5"
+    },
+    {
+      "path": "home/hunter_mark.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "a6f90b742dfb4bd8c895429c478d7b62ad50de6e28d00e9b2f2dd7797b51a8ed"
+    },
+    {
+      "path": "home/hunter_masteries.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "9e32ce9897ba2100bfc27247020ee8cabeb0bc96b206b43084d8848b39575570"
+    },
+    {
+      "path": "home/hunter_mutagens.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "e2d82bce2c07c6c6f146019a44dc1301f911c3792f20a5f68b63ec183307c0b1"
+    },
+    {
+      "path": "home/hunter_passives.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "7b4e77b744cf834e7912e370c966ed6a6160d7b0dcd934edf46141e58e02af27"
+    },
+    {
+      "path": "home/hunter_preparation.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "a878f3d783c75bf77d5331ee07cd55dbacf1b89e751538c5bd9a645ac1a5c4a7"
+    },
+    {
+      "path": "home/hunter_reaction.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "25451aee08b743767f2445079b50b9893284cf5ae6aba38b2dd618dbb271de32"
+    },
+    {
+      "path": "home/hunter_regularization.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "fb654cc01af4028c3e100c7d99d359edbdd964f9773cac4fa80e403ab243abb5"
+    },
+    {
+      "path": "home/hunter_resources.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "6c57cca3672253093c666d1a4a3af20635818b792e13c2a9fc84bc4f1f7700c7"
+    },
+    {
+      "path": "home/hunter_rework.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "a223971a5ebb91783c38546395396b996194abc98b976c6c0232f00e535058ca"
+    },
+    {
+      "path": "home/hunter_spell_preparation.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "1208bbde1f5feb3fb514c6bdf3debd9e55962eb2db647ba595f53bc83d469112"
+    },
+    {
+      "path": "home/hunter_spellcasting.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "b6cfdfb4501b17d3e02efca184057f919932a1388958ddedccc2f96f96ad671c"
+    },
+    {
+      "path": "home/hunter_spells.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "64c6ae090b44399d0451a51449d38f43c3e50bccd329fe7f62b114c2a1ea1874"
+    },
+    {
+      "path": "home/hunter_styles.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "72370652c8863ad84a89458a8ecb5548de3771f7820b84eb1ac44885d4459e74"
+    },
+    {
+      "path": "home/hunter_swarm_combat.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "e1dfb1cc03b8917918ba16e9627edd1cb0f1e1e33d4cb33f3ad1a337ea9bdcb7"
+    },
+    {
+      "path": "home/hunter_traveler.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "dc2f8448079161c522f44425e89c6af6fc084718ba4893f26f1e767b2ac8986a"
+    },
+    {
+      "path": "home/hunter_views.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "467f784ef5a78de49eb4f85e0c3d6de218af7afd596444dc57434ac7251b8a76"
+    },
+    {
+      "path": "home/js_tests/artificer_tools.e2e.cjs",
+      "state": "untracked",
+      "category": "melhoria_existente_revisar",
+      "reason": "Confirmar escopo e validacao antes de incluir.",
+      "sha256": "aa2cdedca0e6b5adb341d5dd7c0b591d3de748eae229f8e85d63e07fe9ddbc61"
+    },
+    {
+      "path": "home/js_tests/cleric_slots.e2e.cjs",
+      "state": "untracked",
+      "category": "melhoria_existente_revisar",
+      "reason": "Confirmar escopo e validacao antes de incluir.",
+      "sha256": "9c19df67f296b3b83ba76e7422589b28affed362fcbefa0142c4528081b6bf59"
+    },
+    {
+      "path": "home/js_tests/glossario.browser.cjs",
+      "state": "untracked",
+      "category": "melhoria_existente_revisar",
+      "reason": "Confirmar escopo e validacao antes de incluir.",
+      "sha256": "124102c0a218ebbc36643b080ce8c8170ea348cb37b12a5847fd70776ed6322c"
+    },
+    {
+      "path": "home/js_tests/pathbuilder.browser.cjs",
+      "state": "untracked",
+      "category": "melhoria_existente_revisar",
+      "reason": "Confirmar escopo e validacao antes de incluir.",
+      "sha256": "2feb9733fef8200125e59d89020475d77b06d627ede45a02525572dc53c06148"
+    },
+    {
+      "path": "home/js_tests/pathbuilder.e2e.cjs",
+      "state": "untracked",
+      "category": "melhoria_existente_revisar",
+      "reason": "Confirmar escopo e validacao antes de incluir.",
+      "sha256": "82e875e646904412097736ed6aaf2d0f75ee83e6bc3679c601de18db75dbe7a3"
+    },
+    {
+      "path": "home/js_tests/pathbuilder_review.e2e.cjs",
+      "state": "untracked",
+      "category": "melhoria_existente_revisar",
+      "reason": "Confirmar escopo e validacao antes de incluir.",
+      "sha256": "8903ab8a5d01c149e53f9868c4d34996c2dc1cbd89ce04465036d2ba28906067"
+    },
+    {
+      "path": "home/js_tests/planar_creation.e2e.cjs",
+      "state": "untracked",
+      "category": "melhoria_existente_revisar",
+      "reason": "Confirmar escopo e validacao antes de incluir.",
+      "sha256": "86dd5a3eec2b1f9b0daeb3f032edd5cbb9d31ea473b56f04dafe69661d973842"
+    },
+    {
+      "path": "home/js_tests/primal_order.e2e.cjs",
+      "state": "untracked",
+      "category": "melhoria_existente_revisar",
+      "reason": "Confirmar escopo e validacao antes de incluir.",
+      "sha256": "b1e0b78f97e6e11fb21c819d3697952973ea0349605af30e2e0f2e0e6b1639ff"
+    },
+    {
+      "path": "home/js_tests/spell_picker.e2e.cjs",
+      "state": "untracked",
+      "category": "melhoria_existente_revisar",
+      "reason": "Confirmar escopo e validacao antes de incluir.",
+      "sha256": "f5fedca08891ac3be3e92cab6ebfd99952ddc069c88df2264f3c3a87acb2ca16"
+    },
+    {
+      "path": "home/js_tests/spell_slots.browser.cjs",
+      "state": "untracked",
+      "category": "melhoria_existente_revisar",
+      "reason": "Confirmar escopo e validacao antes de incluir.",
+      "sha256": "d47d5ec1ff79a5bf2ddd6195261ed4aabe516921306cc95f6572997f2746e1da"
+    },
+    {
+      "path": "home/js_tests/spell_slots.e2e.cjs",
+      "state": "untracked",
+      "category": "melhoria_existente_revisar",
+      "reason": "Confirmar escopo e validacao antes de incluir.",
+      "sha256": "c9a39d18121d2c43b35b53a572f2f9b65e3ff32233fd2a82f84a791d9dbf17e5"
+    },
+    {
+      "path": "home/js_tests/transcription_focus.e2e.cjs",
+      "state": "untracked",
+      "category": "melhoria_existente_revisar",
+      "reason": "Confirmar escopo e validacao antes de incluir.",
+      "sha256": "a80af72649992f486d1cd27f1fbf7a6e817e76c94ec5c2ae4f516ab18b60a6ba"
+    },
+    {
+      "path": "home/magic_workshop.py",
+      "state": "tracked_modified",
+      "category": "compartilhado_revisar_diff",
+      "reason": "Revisar hunks e consumidores antes de staging integral.",
+      "sha256": "c80f6c3938b9331331fecad5f2dba22c9137c364f80ccf1dc0d65d5619b31184"
+    },
+    {
+      "path": "home/management/commands/compose_hunter_choices.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "d8683f1b585c8f21501a0ff6f18fa974bb4e9fca63d98d9904d271de8d3c3986"
+    },
+    {
+      "path": "home/management/commands/inventory_class_version.py",
+      "state": "untracked",
+      "category": "dependencia_obrigatoria",
+      "reason": "Contrato de revisao, recursos ou persistencia consumido pelo rework.",
+      "sha256": "b2d55389eb2a82bad84b0eea9d7700eb5f4a1148f431462ba413a79b9e65b13f"
+    },
+    {
+      "path": "home/management/commands/preflight_hunter_release.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "61be39ceb4c1c830773709a2ee0e6112d7159ed5dbff944eafa0e25fb23fd365"
+    },
+    {
+      "path": "home/management/commands/prepare_battle_familiar.py",
+      "category": "dependencia_obrigatoria",
+      "reason": "Integracao de Familiar de Batalha no pacote do Cacador.",
+      "state": "untracked",
+      "sha256": "97d79a22c2a0e8ed390927c520b91975c3c301d184a7d8a022500c2daff9443e"
+    },
+    {
+      "path": "home/management/commands/prepare_hunter_orders.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "4c26e2065b08390ab43218aaf5da0af7de5ec5159f3317e6bb35516f6d9cb254"
+    },
+    {
+      "path": "home/management/commands/prepare_ranger_rework.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "eac09491f6ba352b54ecd06c7b342eb02048d72f4db10f2ca346411a8ec34d3d"
+    },
+    {
+      "path": "home/management/commands/repair_cleric_slots.py",
+      "state": "untracked",
+      "category": "melhoria_existente_revisar",
+      "reason": "Confirmar escopo e validacao antes de incluir.",
+      "sha256": "0923605e3574d33449d5a36f092ffc4dd491352404ca26ad39a2afa22bb61f86"
+    },
+    {
+      "path": "home/management/commands/repair_primal_order.py",
+      "state": "untracked",
+      "category": "melhoria_existente_revisar",
+      "reason": "Confirmar escopo e validacao antes de incluir.",
+      "sha256": "c450e1bf5d9e7ef533b1b75a1c948022d7da1a088508cec8492d877c61befe9f"
+    },
+    {
+      "path": "home/management/commands/sync_conteudo.py",
+      "state": "tracked_modified",
+      "category": "compartilhado_revisar_diff",
+      "reason": "Revisar hunks e consumidores antes de staging integral.",
+      "sha256": "171cdd56a9a9fd4b3ff72c39e9c8ab0aa6a86ede71fd1b9f539298fa447eb785"
+    },
+    {
+      "path": "home/migrations/0103_resource_command_receipts.py",
+      "state": "untracked",
+      "category": "dependencia_obrigatoria",
+      "reason": "Contrato de revisao, recursos ou persistencia consumido pelo rework.",
+      "sha256": "bef9e6243e62497ba9c69f9e287d904a8c60e76bbd7a868616fbfa1adf751956"
+    },
+    {
+      "path": "home/migrations/0104_immutable_content_rulesets.py",
+      "state": "untracked",
+      "category": "dependencia_obrigatoria",
+      "reason": "Contrato de revisao, recursos ou persistencia consumido pelo rework.",
+      "sha256": "fbde60f9729af71047289c8f16567d408866659a72cd87cffd4e3149547ba0ae"
+    },
+    {
+      "path": "home/migrations/0105_immutable_content_guards.py",
+      "state": "untracked",
+      "category": "dependencia_obrigatoria",
+      "reason": "Contrato de revisao, recursos ou persistencia consumido pelo rework.",
+      "sha256": "dae38cd9bd58b4ed9eb89e1dba5bcfa8142efba9391d15693c74575b3fa984ac"
+    },
+    {
+      "path": "home/migrations/0106_hunter_preparation.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "bc989053152adb660e7a4117deba63d9d4f30ffc26784e7f7442a56297afb176"
+    },
+    {
+      "path": "home/migrations/0107_hunter_mark.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "b731aa73df0ca089d85b4b93be8a7aca8a386616aa235fb22fbc88409e19dc75"
+    },
+    {
+      "path": "home/migrations/0108_hunter_companion.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "e27aa392cac08746820d687a177256cac00a51f33a7845424e106315fcfc432b"
+    },
+    {
+      "path": "home/migrations/0109_hunter_awakening.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "0141e878b2de7c20ff84d1ed7873702dcb01c552df7d9e8ead6ec86c1d79cf0c"
+    },
+    {
+      "path": "home/migrations/0110_hunter_exorcist.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "c6316fb9b01cf1f8ca08921d31698f075a8944efcb82b07a21a42ffb43116f84"
+    },
+    {
+      "path": "home/migrations/0111_hunter_traveler.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "bfcd43875d43db63c629fc385b74a340026ce19c9464b9e71e03d34b5d4e5a69"
+    },
+    {
+      "path": "home/migrations/0112_hunter_mutagens.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "bd9c856871094a42d708205470197c1a4b499845c5d97d61446995b40d40657d"
+    },
+    {
+      "path": "home/migrations/0113_hunter_regularization.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "b9ed21b4e12a81b6fe5335b75215667950c3bfb105d15b171d7b98769d2ff5e7"
+    },
+    {
+      "path": "home/models.py",
+      "state": "tracked_modified",
+      "category": "compartilhado_revisar_diff",
+      "reason": "Revisar hunks e consumidores antes de staging integral.",
+      "sha256": "f36fd94cc7eae2ad347ef0383b146213b2fb6852bdad0ac958119c89b5c4ff37"
+    },
+    {
+      "path": "home/pathbuilder.py",
+      "state": "tracked_modified",
+      "category": "compartilhado_revisar_diff",
+      "reason": "Revisar hunks e consumidores antes de staging integral.",
+      "sha256": "ddc2d8a2a7f048b1c1ba61b0e2d4bdad5e2f165c158797b7a8d465bb88b6c9a7"
+    },
+    {
+      "path": "home/pathbuilder_spells.py",
+      "state": "untracked",
+      "category": "melhoria_existente_revisar",
+      "reason": "Confirmar escopo e validacao antes de incluir.",
+      "sha256": "f830e25136a2efd19365c58a662a69b877293f3e990c770642dd23ab353c1a1e"
+    },
+    {
+      "path": "home/picks.py",
+      "state": "tracked_modified",
+      "category": "compartilhado_revisar_diff",
+      "reason": "Revisar hunks e consumidores antes de staging integral.",
+      "sha256": "4eea8c6a80d8beb4336e6e23974acab51830c089fbb9ae0304768f0b47f28b02"
+    },
+    {
+      "path": "home/primal_order_repair.py",
+      "state": "untracked",
+      "category": "melhoria_existente_revisar",
+      "reason": "Confirmar escopo e validacao antes de incluir.",
+      "sha256": "2d80bd8aa51884f6d4a630ea3313df93fbefe5a4bc3585509a0e06794d8d789e"
+    },
+    {
+      "path": "home/ranger_reference.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "cf1c1dcc467864c5a76de930b01f6cbd3fbeeb7051c332a9cbe39747922cab7e"
+    },
+    {
+      "path": "home/resource_commands.py",
+      "state": "untracked",
+      "category": "dependencia_obrigatoria",
+      "reason": "Contrato de revisao, recursos ou persistencia consumido pelo rework.",
+      "sha256": "c9cf0517c88b9ad25182cee47e07846645dfc9cb02455c7455318e2cf4c235ce"
+    },
+    {
+      "path": "home/resource_engine.py",
+      "state": "tracked_modified",
+      "category": "compartilhado_revisar_diff",
+      "reason": "Revisar hunks e consumidores antes de staging integral.",
+      "sha256": "44b1367a0ffbc4bbdcec00cd9dadd58371224ac85849eb82306321fd1ddca6b5"
+    },
+    {
+      "path": "home/rules/hunter_content.json",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "d543b995911ff2df500a0180ed9999dc69ef7e5c36a7575f7bde8d39c7658731"
+    },
+    {
+      "path": "home/rules/hunter_rework.json",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "5056adc57be3d920b90ccdf31a6f3074ed501c74c647b9bf866c28a1768ff128"
+    },
+    {
+      "path": "home/spellcasting.py",
+      "state": "tracked_modified",
+      "category": "compartilhado_revisar_diff",
+      "reason": "Revisar hunks e consumidores antes de staging integral.",
+      "sha256": "7aecf60c892f2a1531e85db84e99a5be0cc62021eea0ca4cc52dd2c5719ea3f1"
+    },
+    {
+      "path": "home/starting_equipment.py",
+      "state": "tracked_modified",
+      "category": "compartilhado_revisar_diff",
+      "reason": "Revisar hunks e consumidores antes de staging integral.",
+      "sha256": "ede2beb5f3c09e5f9760ee9809441776e00f6cfbd72fd1ede2668019348e98fd"
+    },
+    {
+      "path": "home/static/css/components/spell_picker.css",
+      "state": "untracked",
+      "category": "melhoria_existente_revisar",
+      "reason": "Confirmar escopo e validacao antes de incluir.",
+      "sha256": "25d3aab0efa8da41ca6ae1fdacf53bd9afbef4d4a0de2f7623ac8f47085191e0"
+    },
+    {
+      "path": "home/static/css/pages/ficha.css",
+      "state": "tracked_modified",
+      "category": "compartilhado_revisar_diff",
+      "reason": "Revisar hunks e consumidores antes de staging integral.",
+      "sha256": "d124374880a50f28deb32b6833978639790c29fe7bcf9f9e968fd98f0f571b7e"
+    },
+    {
+      "path": "home/static/css/pages/levelup.css",
+      "state": "tracked_modified",
+      "category": "compartilhado_revisar_diff",
+      "reason": "Revisar hunks e consumidores antes de staging integral.",
+      "sha256": "851201616ffa5276497eb4e7a20bd2ba29fee849a69559aa7668097ec18b7a64"
+    },
+    {
+      "path": "home/static/css/pages/oficina_magia.css",
+      "category": "dependencia_obrigatoria",
+      "reason": "Integracao de Familiar de Batalha no pacote do Cacador.",
+      "state": "tracked_modified",
+      "sha256": "c874d15c536ecaa2bd4a942fcd4a8650b080584f251b34e4f078419aad055b93"
+    },
+    {
+      "path": "home/static/css/pages/pathbuilder.css",
+      "state": "tracked_modified",
+      "category": "compartilhado_revisar_diff",
+      "reason": "Revisar hunks e consumidores antes de staging integral.",
+      "sha256": "631558cc172685421e2c198a138ad3a08a7d72288ddf5bb487312740f1b34cb4"
+    },
+    {
+      "path": "home/static/js/criador.js",
+      "state": "tracked_modified",
+      "category": "compartilhado_revisar_diff",
+      "reason": "Revisar hunks e consumidores antes de staging integral.",
+      "sha256": "685a4a1974b22fac9f9aac676a019273c735b3ec050a3f54455771dcd796ab17"
+    },
+    {
+      "path": "home/static/js/http.js",
+      "state": "untracked",
+      "category": "melhoria_existente_revisar",
+      "reason": "Confirmar escopo e validacao antes de incluir.",
+      "sha256": "23e777422cbcef99f887f7d56ea4fe954b600a39f4c67b5ec49aed79083ad4cb"
+    },
+    {
+      "path": "home/static/js/pathbuilder.js",
+      "state": "tracked_modified",
+      "category": "compartilhado_revisar_diff",
+      "reason": "Revisar hunks e consumidores antes de staging integral.",
+      "sha256": "093fd47719f31159a675f0700bdff70055600c7951798a4aae2750b81b3d6952"
+    },
+    {
+      "path": "home/static/js/spell_picker.js",
+      "state": "untracked",
+      "category": "melhoria_existente_revisar",
+      "reason": "Confirmar escopo e validacao antes de incluir.",
+      "sha256": "21410afdeeaf2a390b442e6013f36abaaca277e60bdaa4f80e7b98345021bedc"
+    },
+    {
+      "path": "home/static/js/spell_slots.js",
+      "state": "untracked",
+      "category": "melhoria_existente_revisar",
+      "reason": "Confirmar escopo e validacao antes de incluir.",
+      "sha256": "ffabe8e9307c87b9563e638060c1c17af80c8f27f8a82e9a7b92f05dd5a51824"
+    },
+    {
+      "path": "home/static/js/subir_nivel.js",
+      "state": "tracked_modified",
+      "category": "compartilhado_revisar_diff",
+      "reason": "Revisar hunks e consumidores antes de staging integral.",
+      "sha256": "6e026ef78f2c766873a3fb7dc5c376bb87c1ebb0c5fc9198de100fe3b19da3c0"
+    },
+    {
+      "path": "home/static/vendor/tailwind/LICENSE.txt",
+      "state": "untracked",
+      "category": "melhoria_existente_revisar",
+      "reason": "Confirmar escopo e validacao antes de incluir.",
+      "sha256": "60e0b68c0f35c078eef3a5d29419d0b03ff84ec1df9c3f9d6e39a519a5ae7985"
+    },
+    {
+      "path": "home/static/vendor/tailwind/README.md",
+      "state": "untracked",
+      "category": "melhoria_existente_revisar",
+      "reason": "Confirmar escopo e validacao antes de incluir.",
+      "sha256": "f91cb8c3b7605040d776c8802cee8536768b647f9a24865ff3ad89923836b9eb"
+    },
+    {
+      "path": "home/static/vendor/tailwind/tailwind-3.4.17-typography.js",
+      "state": "untracked",
+      "category": "melhoria_existente_revisar",
+      "reason": "Confirmar escopo e validacao antes de incluir.",
+      "sha256": "40f00f2a537733b55c4d30fbb762164329de258493af6faf88b72f48d354ae6f"
+    },
+    {
+      "path": "home/tag_engine/library.py",
+      "state": "tracked_modified",
+      "category": "compartilhado_revisar_diff",
+      "reason": "Revisar hunks e consumidores antes de staging integral.",
+      "sha256": "7b57f59ca864ae2af9884018621e94dc06b444010ba437dfc6695971a3f29d1e"
+    },
+    {
+      "path": "home/templates/home/base.html",
+      "state": "tracked_modified",
+      "category": "compartilhado_revisar_diff",
+      "reason": "Revisar hunks e consumidores antes de staging integral.",
+      "sha256": "1b34ce316a46c8a1749eca629e6898f764cd86238d0663a0b60035e65a136fca"
+    },
+    {
+      "path": "home/templates/home/pages/criacao_ficha.html",
+      "state": "tracked_modified",
+      "category": "compartilhado_revisar_diff",
+      "reason": "Revisar hunks e consumidores antes de staging integral.",
+      "sha256": "725abd60ceeebaa06dcfc9151fcad0050c585e12ec5a95b392575160bfc74bf2"
+    },
+    {
+      "path": "home/templates/home/pages/ficha_detail.html",
+      "state": "tracked_modified",
+      "category": "compartilhado_revisar_diff",
+      "reason": "Revisar hunks e consumidores antes de staging integral.",
+      "sha256": "3fc292ac4a69b0cade6ac071b9c1eec23ef7159a2cde0e3db3d004ca711c48d9"
+    },
+    {
+      "path": "home/templates/home/pages/glossario.html",
+      "state": "tracked_modified",
+      "category": "compartilhado_revisar_diff",
+      "reason": "Revisar hunks e consumidores antes de staging integral.",
+      "sha256": "0eb7053140c037365a481900107b4bab3d34d4add7396e7524ab9e779e161471"
+    },
+    {
+      "path": "home/templates/home/pages/hunter_laboratory.html",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "b36de565014f26a5d510d065f5d696527c9e81c3e699633b73317fb5c2ed7166"
+    },
+    {
+      "path": "home/templates/home/pages/hunter_preparation.html",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "38cb19fb046bfcbff9362f57b4d12b0d3e71d82ad634ae116b74564a48476689"
+    },
+    {
+      "path": "home/templates/home/pages/hunter_regularization.html",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "b1685bd3d91e8046ec31e02c4f07c5697f5ebaa20c9cc748d23105a327b4b2c1"
+    },
+    {
+      "path": "home/templates/home/pages/hunter_sheet.html",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "98489936df534d59bcff2ce9e317ad63006245108821618b05c716e8a5fe8564"
+    },
+    {
+      "path": "home/templates/home/pages/oficina_magia.html",
+      "state": "tracked_modified",
+      "category": "compartilhado_revisar_diff",
+      "reason": "Revisar hunks e consumidores antes de staging integral.",
+      "sha256": "193087417014f66fabc18a94d3331ca2c0391a8fc54e2a0278f2599a8e7dcaf1"
+    },
+    {
+      "path": "home/templates/home/pages/pathbuilder.html",
+      "state": "tracked_modified",
+      "category": "compartilhado_revisar_diff",
+      "reason": "Revisar hunks e consumidores antes de staging integral.",
+      "sha256": "1c80ae6fd5d30550f0ce8304a2018a820afa29e619e0b69e19e00c776de6db0a"
+    },
+    {
+      "path": "home/templates/home/pages/subir_nivel.html",
+      "state": "tracked_modified",
+      "category": "compartilhado_revisar_diff",
+      "reason": "Revisar hunks e consumidores antes de staging integral.",
+      "sha256": "d3fd92d34fe10a1d963386c473c67501e2a6dba820fc9df235f9e24184a66e50"
+    },
+    {
+      "path": "home/templates/home/partials/_ficha_opcoes.html",
+      "state": "tracked_modified",
+      "category": "compartilhado_revisar_diff",
+      "reason": "Revisar hunks e consumidores antes de staging integral.",
+      "sha256": "effa7485a7a843a86c78d549d2f1c66c63be5333d1a07cc64fee3b5c3e4e9c0b"
+    },
+    {
+      "path": "home/templates/home/partials/battle_familiar_base.html",
+      "category": "dependencia_obrigatoria",
+      "reason": "Integracao de Familiar de Batalha no pacote do Cacador.",
+      "state": "untracked",
+      "sha256": "70c49a4865b4c00b222b34f53f9ce16d25efdcd4ca77173b89040669f1bd3b1a"
+    },
+    {
+      "path": "home/templates/home/partials/battle_familiar_form.html",
+      "category": "dependencia_obrigatoria",
+      "reason": "Integracao de Familiar de Batalha no pacote do Cacador.",
+      "state": "untracked",
+      "sha256": "c9351f0dceb97255c805a6434cc2d1a43bbc3dee13bd29e3fe09589dbc36311e"
+    },
+    {
+      "path": "home/templates/home/partials/battle_familiar_state.html",
+      "category": "dependencia_obrigatoria",
+      "reason": "Integracao de Familiar de Batalha no pacote do Cacador.",
+      "state": "untracked",
+      "sha256": "db971274f848bbb86889a3a8af832c6b30971d59f92130a9c7ce807e61d5b20a"
+    },
+    {
+      "path": "home/templates/home/partials/hunter_companion_block.html",
+      "category": "dependencia_obrigatoria",
+      "reason": "Integracao de Familiar de Batalha no pacote do Cacador.",
+      "state": "untracked",
+      "sha256": "bbb04879ce48ecc3371204039a113d55f2544941ec4eda3ae055404056705a92"
+    },
+    {
+      "path": "home/templates/home/partials/hunter_mutagens.html",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "1b65b09bba809e6d81f3758db7eb88c850bb9f4b8d0573ad0b3f94ad41a56a88"
+    },
+    {
+      "path": "home/templates/home/partials/transcription_terms.html",
+      "state": "untracked",
+      "category": "melhoria_existente_revisar",
+      "reason": "Confirmar escopo e validacao antes de incluir.",
+      "sha256": "2ba1b16cfd4c822cdf82ac64522ec905c2b43a1c16e66829e78dc4cc5de5f6d5"
+    },
+    {
+      "path": "home/test_artificer_tools.py",
+      "state": "untracked",
+      "category": "melhoria_existente_revisar",
+      "reason": "Confirmar escopo e validacao antes de incluir.",
+      "sha256": "7bb2e1c8b8bac5b907bf7a88f5b9b980075e85d3332608136e9a64a4cd2725e6"
+    },
+    {
+      "path": "home/test_artificer_tools_e2e.py",
+      "state": "untracked",
+      "category": "melhoria_existente_revisar",
+      "reason": "Confirmar escopo e validacao antes de incluir.",
+      "sha256": "355297f715ad048144cbcd5c2bf0dbdfc3c05f487d271da7f866bbb8c2029e41"
+    },
+    {
+      "path": "home/test_battle_familiar.py",
+      "category": "dependencia_obrigatoria",
+      "reason": "Integracao de Familiar de Batalha no pacote do Cacador.",
+      "state": "untracked",
+      "sha256": "a3ec03139a0b521bfc0b591e0b2f6d77c0b268c528aef68d33ccc10cfc7ee26e"
+    },
+    {
+      "path": "home/test_battle_familiar_casting.py",
+      "category": "dependencia_obrigatoria",
+      "reason": "Integracao de Familiar de Batalha no pacote do Cacador.",
+      "state": "untracked",
+      "sha256": "d702c7c44efc7c2c11171df5a9e77cc711bd54820f0989560e03f7a19e0bbbce"
+    },
+    {
+      "path": "home/test_battle_familiar_catalog.py",
+      "category": "dependencia_obrigatoria",
+      "reason": "Integracao de Familiar de Batalha no pacote do Cacador.",
+      "state": "untracked",
+      "sha256": "78636153f57334949d4c90133c701b4a64735ff6b31f9950830c9318083885a4"
+    },
+    {
+      "path": "home/test_battle_familiar_catalog_sync.py",
+      "category": "dependencia_obrigatoria",
+      "reason": "Integracao de Familiar de Batalha no pacote do Cacador.",
+      "state": "untracked",
+      "sha256": "b18a54136375d19664c6dd004bb6bbe37ed00860aa32bb84be0ccbdbec976415"
+    },
+    {
+      "path": "home/test_cleric_slot_repair.py",
+      "state": "untracked",
+      "category": "melhoria_existente_revisar",
+      "reason": "Confirmar escopo e validacao antes de incluir.",
+      "sha256": "bac1d3e4d726a26e88c58c70e6e3eaa20ddc7f940c9bdfafdc490748f426bb23"
+    },
+    {
+      "path": "home/test_content_versions.py",
+      "state": "untracked",
+      "category": "dependencia_obrigatoria",
+      "reason": "Contrato de revisao, recursos ou persistencia consumido pelo rework.",
+      "sha256": "1a5b773473ec05b3ef3fbe07a2c7f41b3bcd38454b7a0ac712655bd00c56ac18"
+    },
+    {
+      "path": "home/test_creator_hunter_binding.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "33d1ba547b6c28c923139efe88ffbe7b8110b9e80f85fe3c4ba0d4f9e7b179df"
+    },
+    {
+      "path": "home/test_creator_pinned_catalog.py",
+      "state": "untracked",
+      "category": "dependencia_obrigatoria",
+      "reason": "Contrato de revisao, recursos ou persistencia consumido pelo rework.",
+      "sha256": "de71af1da97d56c3c874713b9ef96117dd951abdb297901c16cc0410ae30f5cf"
+    },
+    {
+      "path": "home/test_creator_pinned_picks.py",
+      "state": "untracked",
+      "category": "dependencia_obrigatoria",
+      "reason": "Contrato de revisao, recursos ou persistencia consumido pelo rework.",
+      "sha256": "1ed246437157098e7c30d652059dd2ea1642cef448f01f1af0e9b7bc4023a9a7"
+    },
+    {
+      "path": "home/test_creator_spell_snapshot.py",
+      "state": "untracked",
+      "category": "dependencia_obrigatoria",
+      "reason": "Contrato de revisao, recursos ou persistencia consumido pelo rework.",
+      "sha256": "e5ded447805d84ae77b9af94905ce54f6032df9b66f233b035f1bbf3243ab75f"
+    },
+    {
+      "path": "home/test_criador.py",
+      "state": "tracked_modified",
+      "category": "compartilhado_revisar_diff",
+      "reason": "Revisar hunks e consumidores antes de staging integral.",
+      "sha256": "53454434ed35d146df6ef56c31492a3aab1a36c38ceb684e824726033a84dab9"
+    },
+    {
+      "path": "home/test_database_settings.py",
+      "state": "untracked",
+      "category": "melhoria_existente_revisar",
+      "reason": "Confirmar escopo e validacao antes de incluir.",
+      "sha256": "4f316701617633fe17ad5f8b31ae76b5eca69403dd26480c85157ced35c5cc72"
+    },
+    {
+      "path": "home/test_deploy_sync.py",
+      "state": "tracked_modified",
+      "category": "compartilhado_revisar_diff",
+      "reason": "Revisar hunks e consumidores antes de staging integral.",
+      "sha256": "4b4c20dc4bb9779c3a66d4760fabaebe214458e3fa24da9fce9581bdacbaa378"
+    },
+    {
+      "path": "home/test_glossario.py",
+      "state": "untracked",
+      "category": "melhoria_existente_revisar",
+      "reason": "Confirmar escopo e validacao antes de incluir.",
+      "sha256": "8d0447ac209558ef9b6daedf6603eeeeda05ecbd94974bc4f6099f6606e1b9f9"
+    },
+    {
+      "path": "home/test_hunter_awakening.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "3cc58f9e837bf81a7ed579842a3ff047008eec85b2082c13ce476daf71ba328f"
+    },
+    {
+      "path": "home/test_hunter_catalog.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "ea7f67f3cccd6d6604ab4c40abec6559850c09a37e07767d2a685453f4b29c39"
+    },
+    {
+      "path": "home/test_hunter_catalog_conditionals.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "5148413c00abae7d61a0f2bcbe88da45e28fadd8f775089bc38fb5bc05121317"
+    },
+    {
+      "path": "home/test_hunter_catalog_orders.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "deaffaed2e247b229f2cf787c99d5283cafa56901d0a0b094d16de0a6b00a846"
+    },
+    {
+      "path": "home/test_hunter_catalog_passives.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "8e5408393958d312b0aa2f23b2fbf52343ed649d608e51cfb6bbe104d00eb970"
+    },
+    {
+      "path": "home/test_hunter_catalog_secrets.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "d3c5a4047a3434f0a1766e40aa2d573f22e13d1f1d329e2a29f82d354d491fb9"
+    },
+    {
+      "path": "home/test_hunter_catalog_spellcasting.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "a43d19118c66de306a7efb4f19ab447c41598de5905e52f95ffe2e8186e0d383"
+    },
+    {
+      "path": "home/test_hunter_choices.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "c1b50d730ffa029e3223695652781ea310d7f1113d7ce030f188733ce34d34e6"
+    },
+    {
+      "path": "home/test_hunter_colony.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "ef730f2a18c43c6f4f188cdae434d1318517622bc2400b4b73b04ff3cb10ad36"
+    },
+    {
+      "path": "home/test_hunter_combat.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "b6f72ae21766af716a6440d7c02b11e9b2b13a37123d8b0604c5ea6ea5627911"
+    },
+    {
+      "path": "home/test_hunter_companion.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "90aa138fdbbd4b3d4317d23864b2831357e835aaf1e08a5afce6128f2032e692"
+    },
+    {
+      "path": "home/test_hunter_expertise.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "2490b01336cd4ed2ac4598c0899ebf9a624eb234bce6f53632b04c2b078628b0"
+    },
+    {
+      "path": "home/test_hunter_final_hunt.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "5c12b92a6f1427f6068d074a26f0e6d43fc66d2b6d0a0100b1cad4f78cb52b39"
+    },
+    {
+      "path": "home/test_hunter_integrated_flow.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "af23009d1e4d7c0e5d2ab7425a0c279c4416323a4852c120aa88aca1fe225169"
+    },
+    {
+      "path": "home/test_hunter_inventory.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "8eaded0cfc0a1a3dc43b74ec0ff15853e98ed15a6e55b84ba071010e0d676838"
+    },
+    {
+      "path": "home/test_hunter_lantern.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "77d394ade7ce6b5ad1d97449468317e45a3c08f41d2e7ed304c5f2488e5402ef"
+    },
+    {
+      "path": "home/test_hunter_mark.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "25cbe3d91bd6cdd1a6bf4907bf2da8112a75689864884f27a2a9c09b351b5232"
+    },
+    {
+      "path": "home/test_hunter_masteries.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "aee173a5175f81c902777c44d4624e76575e6e4646f7ecfa5cc7e74ae55c611b"
+    },
+    {
+      "path": "home/test_hunter_mortuary.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "272a1ab7f690506fa9c5f54a777ffdbdff6e3dc5f51b0a7dfd947ce9d2f79c5f"
+    },
+    {
+      "path": "home/test_hunter_mutagens.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "8810b5682ec61794dc65a2f62f1a2d2a676ae0142c9f058cf8be738afa5485d5"
+    },
+    {
+      "path": "home/test_hunter_order_levelup.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "09fbb0e8ea11fa369ccb30145c8b0f91b42f80a00f2a8656aa1935ca235070da"
+    },
+    {
+      "path": "home/test_hunter_passives.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "9f3cc9399139bf44eb3b761103e2ef5fe0180998526d065b1b5237caecdf5a9a"
+    },
+    {
+      "path": "home/test_hunter_preparation.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "d1a2ad5ec4882a4ebe3f09f901b37249bc960819c8a5f16f19eb5f3bae7bfbc5"
+    },
+    {
+      "path": "home/test_hunter_public_creator.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "f03f66a64e2db4def151f7fa37b47bfa231050b4fd4998ab6c8e3c8b0800706b"
+    },
+    {
+      "path": "home/test_hunter_reaction.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "521dde8a508d53af5352f3a5351a7d166be8d85f3ce8d646739ec2b9af5c8223"
+    },
+    {
+      "path": "home/test_hunter_regularization.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "f91e1579f1bdbcf5e5a767b4031453b3951b529653e6053db5a86e55cd3218c8"
+    },
+    {
+      "path": "home/test_hunter_release_catalog.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "70abb6047403b5669ecf30350a5a7c8264e1963504f9c6b79a0e13924ab4ee13"
+    },
+    {
+      "path": "home/test_hunter_resources.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "900a1e53a1797f5deb66ff3eaa199c01550dda47d1e6fdf0b6740b6c5a9dbf30"
+    },
+    {
+      "path": "home/test_hunter_rest.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "7544a939eb28bc300852302b635e55435586d076f08b2e23a93697c854969436"
+    },
+    {
+      "path": "home/test_hunter_rework.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "06e90a3f3d03c452771a8cb2312b9086c75cba8ddc57d0f3efae6a17e4cd8052"
+    },
+    {
+      "path": "home/test_hunter_sheet.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "87d62612a7f41cbd297a54dbff5f5d75aed8eac4987d82a73c3b029089b7df42"
+    },
+    {
+      "path": "home/test_hunter_sheet_resources.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "e88d6d1a07d8b4638feb8acda00c3f8751d6767ab62bd472bd2cdae912c5cb92"
+    },
+    {
+      "path": "home/test_hunter_slots.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "9908984155bd16818c378f5cb89bbb5b3233aa1d97c3a8c81d54269036cd7021"
+    },
+    {
+      "path": "home/test_hunter_spell_preparation.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "7fa1d8ba3462ba8ba47b3155411fc1dbbefb17eda0362b8d366eb614b609ea5d"
+    },
+    {
+      "path": "home/test_hunter_spell_progression.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "48c429aac0a2250507268d436a5edeb6ba724073ce452e49a4d4830a80f114a1"
+    },
+    {
+      "path": "home/test_hunter_spells.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "80aeb0fa43464a5390c933bd167020581a74b7b3d0d458eb863096701dbfb6ce"
+    },
+    {
+      "path": "home/test_hunter_styles.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "3e82f4d5b2ce73e37b0b8e8c750fd994bc8e5dc77992fa0c1e833fa2c4f8549c"
+    },
+    {
+      "path": "home/test_hunter_swarm.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "6b3e3a0e60683e9494c4fa56d6fc9722d661916d584eb9b931b30693a954271f"
+    },
+    {
+      "path": "home/test_hunter_swarm_combat.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "67d86db323b0c8357afc4a8b5c8972b07def6af17d0b143503c92eb9610b86a7"
+    },
+    {
+      "path": "home/test_hunter_traveler.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "3596ce5b0d65a4a13fed600feaa098aa4cfff2b56a1b0673b9640fa78183f5c2"
+    },
+    {
+      "path": "home/test_hunter_twilight.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "46f252c5339f071a11586380709d4f15e7a942199cb0c4ab69155fccc751e725"
+    },
+    {
+      "path": "home/test_pathbuilder.py",
+      "state": "tracked_modified",
+      "category": "compartilhado_revisar_diff",
+      "reason": "Revisar hunks e consumidores antes de staging integral.",
+      "sha256": "301c567e54fcad7a3b72af072b818d44a18591915ea5cc370220f0aee3099d67"
+    },
+    {
+      "path": "home/test_pathbuilder_e2e.py",
+      "state": "untracked",
+      "category": "melhoria_existente_revisar",
+      "reason": "Confirmar escopo e validacao antes de incluir.",
+      "sha256": "b40080d2b8d3ee89098d97359b719542975a85cfeecae7bae3716c0b4373721c"
+    },
+    {
+      "path": "home/test_pathbuilder_spells.py",
+      "state": "untracked",
+      "category": "melhoria_existente_revisar",
+      "reason": "Confirmar escopo e validacao antes de incluir.",
+      "sha256": "e1471fbf65a3cbc7033997a0ce9225c5166f648a045301038f2724c091e2cf9b"
+    },
+    {
+      "path": "home/test_planar_creation.py",
+      "state": "untracked",
+      "category": "melhoria_existente_revisar",
+      "reason": "Confirmar escopo e validacao antes de incluir.",
+      "sha256": "bea6556a2eb9c2bf5df60c8a1cc699b509ab114ce690be47dde0f69e87958d85"
+    },
+    {
+      "path": "home/test_preflight_hunter_release.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "a35f4029d79b34447cd4a9187c556d6b1289e04f3891f536ed111f4ce640b856"
+    },
+    {
+      "path": "home/test_primal_order.py",
+      "state": "untracked",
+      "category": "melhoria_existente_revisar",
+      "reason": "Confirmar escopo e validacao antes de incluir.",
+      "sha256": "2ec734c77abf401b2d2cebd2473434b2fae74dd399dbc88b30b3daa179de1d5f"
+    },
+    {
+      "path": "home/test_primal_order_e2e.py",
+      "state": "untracked",
+      "category": "melhoria_existente_revisar",
+      "reason": "Confirmar escopo e validacao antes de incluir.",
+      "sha256": "7f40ea7bcd375b809b84126027f633cfb381699118bac8ca7f9f7a7667e7bfe6"
+    },
+    {
+      "path": "home/test_q03_identity.py",
+      "state": "untracked",
+      "category": "melhoria_existente_revisar",
+      "reason": "Confirmar escopo e validacao antes de incluir.",
+      "sha256": "39d2db319a47fecca76ae57f81f6f71e4dc2d716b102f366b748cbbc64ae7ca7"
+    },
+    {
+      "path": "home/test_racial_milestones.py",
+      "state": "untracked",
+      "category": "melhoria_existente_revisar",
+      "reason": "Confirmar escopo e validacao antes de incluir.",
+      "sha256": "075f4d166a766d7ef7c0ef55edbbb9363ba6071918a4453b2fccb113654b05d5"
+    },
+    {
+      "path": "home/test_ranger_reference.py",
+      "state": "untracked",
+      "category": "candidato_cacador",
+      "reason": "Conteudo, fluxo ou evidencia do Cacador; aceite pendente.",
+      "sha256": "820055e4f1749060a26f8ff27c6fa75212e5aab0e85cef00efa0caae2defc743"
+    },
+    {
+      "path": "home/test_resource_command_migration.py",
+      "state": "untracked",
+      "category": "dependencia_obrigatoria",
+      "reason": "Contrato de revisao, recursos ou persistencia consumido pelo rework.",
+      "sha256": "dc9803368430e97228c45a72700827fa5d44d275afe436c47aa2d0993cb392fb"
+    },
+    {
+      "path": "home/test_resource_commands.py",
+      "state": "untracked",
+      "category": "dependencia_obrigatoria",
+      "reason": "Contrato de revisao, recursos ou persistencia consumido pelo rework.",
+      "sha256": "dfaf4fc08f9c3a906a42fd303c08c2f6491306a65d215e5a70cabe1c3deb9cb2"
+    },
+    {
+      "path": "home/test_spell_picker.py",
+      "state": "untracked",
+      "category": "melhoria_existente_revisar",
+      "reason": "Confirmar escopo e validacao antes de incluir.",
+      "sha256": "c9eced8a17f343e14371b8e8e9fbcdd7774a3f31bd78c5801298eb60222d1792"
+    },
+    {
+      "path": "home/test_spell_slots_e2e.py",
+      "state": "untracked",
+      "category": "melhoria_existente_revisar",
+      "reason": "Confirmar escopo e validacao antes de incluir.",
+      "sha256": "724db370ed4b4c7f39eb22c71c011491089e09c545cc000e9be58a6df7badd19"
+    },
+    {
+      "path": "home/test_talento_humano.py",
+      "state": "tracked_modified",
+      "category": "compartilhado_revisar_diff",
+      "reason": "Revisar hunks e consumidores antes de staging integral.",
+      "sha256": "a548af1be712e4a75bb211630014938a4485d7432634639b233f3474d1f8c4a8"
+    },
+    {
+      "path": "home/test_transcription_focus.py",
+      "state": "untracked",
+      "category": "melhoria_existente_revisar",
+      "reason": "Confirmar escopo e validacao antes de incluir.",
+      "sha256": "a2d868b2ef2c8d20229a1e92233ffbbc53af95a0ca66fda4309fd4f4002ff0f1"
+    },
+    {
+      "path": "home/test_transcription_focus_e2e.py",
+      "state": "untracked",
+      "category": "melhoria_existente_revisar",
+      "reason": "Confirmar escopo e validacao antes de incluir.",
+      "sha256": "1ea380680c02e48f1453c5fe9f6c757152517cbc735ed9b1838e5694ec2f3c11"
+    },
+    {
+      "path": "home/test_versioned_classes.py",
+      "state": "untracked",
+      "category": "dependencia_obrigatoria",
+      "reason": "Contrato de revisao, recursos ou persistencia consumido pelo rework.",
+      "sha256": "c31d68a1e33acf51beddc9d5eefdfd39fbf73bb795fc34c5a5e6eff09f1763a1"
+    },
+    {
+      "path": "home/test_versioned_context.py",
+      "state": "untracked",
+      "category": "dependencia_obrigatoria",
+      "reason": "Contrato de revisao, recursos ou persistencia consumido pelo rework.",
+      "sha256": "964a49bef6e8dafcc2c2a0b272fa16c57fdaf28aacf960ce5bd87abf0bd3481d"
+    },
+    {
+      "path": "home/test_versioned_derive.py",
+      "state": "untracked",
+      "category": "dependencia_obrigatoria",
+      "reason": "Contrato de revisao, recursos ou persistencia consumido pelo rework.",
+      "sha256": "a3b14e0de8233c969206b5ab72eb07cd2be07ea5849a0791e18786c1236342e8"
+    },
+    {
+      "path": "home/test_versioned_grant_selection.py",
+      "state": "untracked",
+      "category": "dependencia_obrigatoria",
+      "reason": "Contrato de revisao, recursos ou persistencia consumido pelo rework.",
+      "sha256": "c85d488e93fdfbffaef25abc8ded5637b18007c2d866d05c469eb78054d31f91"
+    },
+    {
+      "path": "home/test_versioned_innate.py",
+      "state": "untracked",
+      "category": "dependencia_obrigatoria",
+      "reason": "Contrato de revisao, recursos ou persistencia consumido pelo rework.",
+      "sha256": "3d87e78c8613624b860dc64c8f4d59ab366693092478ea30656654a625a214a7"
+    },
+    {
+      "path": "home/test_versioned_items.py",
+      "state": "untracked",
+      "category": "dependencia_obrigatoria",
+      "reason": "Contrato de revisao, recursos ou persistencia consumido pelo rework.",
+      "sha256": "4b986f5e52216876a4799bf3ebd92ad09b2816c302469e894e22b4471bcb78dc"
+    },
+    {
+      "path": "home/test_versioned_learning.py",
+      "state": "untracked",
+      "category": "dependencia_obrigatoria",
+      "reason": "Contrato de revisao, recursos ou persistencia consumido pelo rework.",
+      "sha256": "c73bfb2b627b164b646dc33acfa2271b26894351bd70284efef7a2a68a127e49"
+    },
+    {
+      "path": "home/test_versioned_library.py",
+      "state": "untracked",
+      "category": "dependencia_obrigatoria",
+      "reason": "Contrato de revisao, recursos ou persistencia consumido pelo rework.",
+      "sha256": "8b29b4f72339cfb44994d3a3e0dbbd190820afb91e17bdd9c2d747586885b231"
+    },
+    {
+      "path": "home/test_versioned_masteries.py",
+      "state": "untracked",
+      "category": "dependencia_obrigatoria",
+      "reason": "Contrato de revisao, recursos ou persistencia consumido pelo rework.",
+      "sha256": "962b344a6677b35216b90aadb13553132132dca8fc8b30b7c001d17a665a953f"
+    },
+    {
+      "path": "home/test_versioned_options.py",
+      "state": "untracked",
+      "category": "dependencia_obrigatoria",
+      "reason": "Contrato de revisao, recursos ou persistencia consumido pelo rework.",
+      "sha256": "4331eb275152cb831b3438b539969ce085d7607328ed219a77c574984e37e5c8"
+    },
+    {
+      "path": "home/test_versioned_origins.py",
+      "state": "untracked",
+      "category": "dependencia_obrigatoria",
+      "reason": "Contrato de revisao, recursos ou persistencia consumido pelo rework.",
+      "sha256": "850b71dab6ec6bcd1d65ed1fd2854902a8092a9001400f6e8c0a51d7b0ed48fd"
+    },
+    {
+      "path": "home/test_versioned_passives.py",
+      "state": "untracked",
+      "category": "dependencia_obrigatoria",
+      "reason": "Contrato de revisao, recursos ou persistencia consumido pelo rework.",
+      "sha256": "4145f556c469d94a938f1db48f991f5ef0c2e28d59914d051d6ff32c662222da"
+    },
+    {
+      "path": "home/test_versioned_preparation.py",
+      "state": "untracked",
+      "category": "dependencia_obrigatoria",
+      "reason": "Contrato de revisao, recursos ou persistencia consumido pelo rework.",
+      "sha256": "b75b1393f8de98d3ed0a5f9fcf30e019efe19bdf64e73634cd276ae65472747f"
+    },
+    {
+      "path": "home/test_versioned_prospective.py",
+      "state": "untracked",
+      "category": "dependencia_obrigatoria",
+      "reason": "Contrato de revisao, recursos ou persistencia consumido pelo rework.",
+      "sha256": "f335020cc89229058a47c0f0d9e153b567ad91cfe479f0c99a94b0e8815852a2"
+    },
+    {
+      "path": "home/test_versioned_racial.py",
+      "state": "untracked",
+      "category": "dependencia_obrigatoria",
+      "reason": "Contrato de revisao, recursos ou persistencia consumido pelo rework.",
+      "sha256": "a75913815ad7d658b4b49be91d704312f02ac7a17a73f9dee961ae81bf299421"
+    },
+    {
+      "path": "home/test_versioned_slots.py",
+      "state": "untracked",
+      "category": "dependencia_obrigatoria",
+      "reason": "Contrato de revisao, recursos ou persistencia consumido pelo rework.",
+      "sha256": "787812ec9703ed0a4a9ddf061bca3f949307bab0d962eddaabcad61b985dfe8d"
+    },
+    {
+      "path": "home/test_versioned_spell_sheet.py",
+      "state": "untracked",
+      "category": "dependencia_obrigatoria",
+      "reason": "Contrato de revisao, recursos ou persistencia consumido pelo rework.",
+      "sha256": "ce38ea4a077f1a3fdc9cfdfdddb8323ebebce16f693c7f5b73f0528f5b1de2a3"
+    },
+    {
+      "path": "home/test_versioned_spellcasting.py",
+      "state": "untracked",
+      "category": "dependencia_obrigatoria",
+      "reason": "Contrato de revisao, recursos ou persistencia consumido pelo rework.",
+      "sha256": "4ad1d37c8047072c3ad8afee1ceb96f05ef5e5a109980b558a345d2ec79bf8cc"
+    },
+    {
+      "path": "home/test_versioned_starting_equipment.py",
+      "state": "untracked",
+      "category": "dependencia_obrigatoria",
+      "reason": "Contrato de revisao, recursos ou persistencia consumido pelo rework.",
+      "sha256": "d22bfa68c2c50249d1be12ffb15a3f3472fa514e6d7c6a8f6e13b9ed21df76b9"
+    },
+    {
+      "path": "home/test_versioned_sync.py",
+      "state": "untracked",
+      "category": "dependencia_obrigatoria",
+      "reason": "Contrato de revisao, recursos ou persistencia consumido pelo rework.",
+      "sha256": "0b6fad54c30640ba7104a5404364d804aeb4f893b5887fd6aea2c0a8d5ef673c"
+    },
+    {
+      "path": "home/test_versioned_transcription.py",
+      "state": "untracked",
+      "category": "dependencia_obrigatoria",
+      "reason": "Contrato de revisao, recursos ou persistencia consumido pelo rework.",
+      "sha256": "0eb17958a8686290d222fae998dc814f6ff3a1a775c8108a3539ddb4d2a31939"
+    },
+    {
+      "path": "home/test_vtt_integration.py",
+      "state": "untracked",
+      "category": "fora_do_marco_vtt",
+      "reason": "Preservar fora do pacote.",
+      "sha256": "4f7e051710ef4266f749b7c8963e178397ac533d23068118a7682e6fc32771c4"
+    },
+    {
+      "path": "home/urls.py",
+      "state": "tracked_modified",
+      "category": "compartilhado_revisar_diff",
+      "reason": "Revisar hunks e consumidores antes de staging integral.",
+      "sha256": "2788f3c31da19c9797a36228e3c093cd954d5cae2bcc1d3ab2e1be1af8162f2e"
+    },
+    {
+      "path": "home/versioned_classes.py",
+      "state": "untracked",
+      "category": "dependencia_obrigatoria",
+      "reason": "Contrato de revisao, recursos ou persistencia consumido pelo rework.",
+      "sha256": "b20e3f872f67cb95641c79720fe10638dd41b6831d624dc705ee04662ed5d1d3"
+    },
+    {
+      "path": "home/versioned_conditions.py",
+      "state": "untracked",
+      "category": "dependencia_obrigatoria",
+      "reason": "Contrato de revisao, recursos ou persistencia consumido pelo rework.",
+      "sha256": "bc6f0cf83d502bdc64266e601cbb9ced987d75684901493e868547664cc1b627"
+    },
+    {
+      "path": "home/versioned_items.py",
+      "state": "untracked",
+      "category": "dependencia_obrigatoria",
+      "reason": "Contrato de revisao, recursos ou persistencia consumido pelo rework.",
+      "sha256": "7b100534d750747ef936159293e1574986d6f8f5044f622f00c62c192893690d"
+    },
+    {
+      "path": "home/versioned_library.py",
+      "state": "untracked",
+      "category": "dependencia_obrigatoria",
+      "reason": "Contrato de revisao, recursos ou persistencia consumido pelo rework.",
+      "sha256": "409d7f6fabdfb49d32b3c3c212335d3109eea76f5c114323ec30212fe82db04d"
+    },
+    {
+      "path": "home/versioned_options.py",
+      "state": "untracked",
+      "category": "dependencia_obrigatoria",
+      "reason": "Contrato de revisao, recursos ou persistencia consumido pelo rework.",
+      "sha256": "2dd7cabf8eb180c3afac65bebb5c651e9817f08748aa366304f85d5c99dec765"
+    },
+    {
+      "path": "home/versioned_origins.py",
+      "state": "untracked",
+      "category": "dependencia_obrigatoria",
+      "reason": "Contrato de revisao, recursos ou persistencia consumido pelo rework.",
+      "sha256": "5926802d8b9bf1515ac59d08a10802fc8b14d76b47d7eb5e08c1a1ae388e17e1"
+    },
+    {
+      "path": "home/versioned_spells.py",
+      "state": "untracked",
+      "category": "dependencia_obrigatoria",
+      "reason": "Contrato de revisao, recursos ou persistencia consumido pelo rework.",
+      "sha256": "182b703b9e01d8fb845f46cb34228034e0137bad539c4a3d55281ea86f6e0f93"
+    },
+    {
+      "path": "home/views.py",
+      "state": "tracked_modified",
+      "category": "compartilhado_revisar_diff",
+      "reason": "Revisar hunks e consumidores antes de staging integral.",
+      "sha256": "af543b7536a3dd705bcb4555a6f9758785cb1922a4ff357fc6f22dca6a0f52a9"
+    },
+    {
+      "path": "home/vtt.py",
+      "state": "untracked",
+      "category": "fora_do_marco_vtt",
+      "reason": "Preservar fora do pacote.",
+      "sha256": "a5ce5142af19353551294ec9a38a66939abf42ab56a95f0da0cc489f6cbe6225"
+    },
+    {
+      "path": "ref/FAMILIAR_DE_BATALHA.md",
+      "category": "dependencia_obrigatoria",
+      "reason": "Integracao de Familiar de Batalha no pacote do Cacador.",
+      "state": "untracked",
+      "sha256": "7bec495376fafa2819266f402790a9e2249b305d962727987364544738a77204"
+    },
+    {
+      "path": "requirements.txt",
+      "state": "tracked_modified",
+      "category": "compartilhado_revisar_diff",
+      "reason": "Revisar hunks e consumidores antes de staging integral.",
+      "sha256": "262462f032866d79ea15ba7b28a723367c2a8e6463797ae9cb36656645a01f47"
+    }
+  ]
+}

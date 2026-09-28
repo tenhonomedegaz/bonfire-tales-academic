@@ -258,6 +258,7 @@
 /* ---- Mobile estreito (≈380px): empilha campo + botão em cada linha ----- */
 @media (max-width: 430px) {
   .lvl-card__row { flex-direction: column; align-items: stretch; }
+  .lvl-card__row .lvl-field--grow { flex-basis: auto; }
   .lvl-card__row .lvl-field,
   .lvl-card__row .lvl-add,
   .lvl-card__row .cf-btn { width: 100%; }

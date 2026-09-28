@@ -25,6 +25,10 @@ from home.models import (
     TbPersonagem, TbPersonagemClasse, TbPersonagemTalento,
 )
 from home.test_criador import _CriadorBase
+from home.character_engine import derive
+from home.models import TbPersonagemAtributoBonus
+from django.urls import reverse
+from django.test import Client
 
 
 class TalentoHumanoMultitalentosoTests(_CriadorBase):
@@ -55,6 +59,77 @@ class TalentoHumanoMultitalentosoTests(_CriadorBase):
     def _grupo(self, p, origem):
         return next(g for g in picks.resolve_personagem(p)
                     if g['kind'] in ('talento', 'talento_de_origem') and g['origem'] == origem)
+
+    def test_selecao_real_multitalentoso_todas_linhagens_sem_asi(self):
+        for lineage in TbLinhagem.objects.filter(id_raca__nome='Humanos'):
+            with self.subTest(linhagem=lineage.slug):
+                p = self._humano(13, erthari=False, apelido=lineage.slug)
+                p.id_linhagem = lineage
+                p.save(update_fields=['id_linhagem'])
+                before = derive(p)['atributos']
+                self.assertEqual(views._lvl_aplicar_talento_racial(p,
+                    {'nivel': 13, 'talento': 'Multitalentoso'}), [])
+                self.assertEqual(views._lvl_aplicar_opcao(p,
+                    {'slug': 'talento', 'val': 'precisao', 'classe': ''}), [])
+                p.refresh_from_db()
+                self.assertEqual(derive(p)['atributos'], before)
+                self.assertFalse(TbPersonagemAtributoBonus.objects.filter(id_personagem=p).exists())
+                self.assertEqual(p.talentos.filter(id_talento__slug='precisao').count(), 1)
+                self.assertFalse(p.escolhas.filter(tipo='talento', origem='Determinação Comum').exists())
+                if lineage.slug == 'erthari':
+                    self.assertEqual(self._grupo(p, 'Determinação Comum')['pendentes'], 1)
+                self.assertEqual(views._lvl_aplicar_opcao(p,
+                    {'slug': 'talento', 'val': 'precisao', 'classe': ''}), [views._ERR_OPCAO_INVALIDA])
+
+    def test_multitalentoso_recusado_antes_do_marco(self):
+        p = self._humano(12)
+        self.assertEqual(views._lvl_aplicar_talento_racial(p,
+            {'nivel': 13, 'talento': 'Multitalentoso'}), [views._ERR_TALENTO_RACIAL])
+        self.assertFalse(p.talentos.exists())
+
+    def test_cultura_adotada_impede_multitalentoso_erthari(self):
+        p = self._humano(13)
+        self.assertEqual(views._lvl_aplicar_talento_racial(p,
+            {'nivel': 1, 'talento': 'Cultura Adotada'}), [])
+        self.assertEqual(views._lvl_aplicar_talento_racial(p,
+            {'nivel': 13, 'talento': 'Multitalentoso'}), [views._ERR_TALENTO_RACIAL])
+        self.assertFalse(p.talentos.filter(nome='Multitalentoso').exists())
+
+    def test_exclusao_vale_tambem_para_marco_atrasado(self):
+        p = self._humano(13)
+        self.assertEqual(views._lvl_aplicar_talento_racial(p,
+            {'nivel': 13, 'talento': 'Multitalentoso'}), [])
+        self.assertEqual(views._lvl_aplicar_talento_racial(p,
+            {'nivel': 1, 'talento': 'Cultura Adotada'}), [views._ERR_TALENTO_RACIAL])
+
+    def test_endpoint_lote_previsto_aplicado_sem_duplicata_e_com_permissoes(self):
+        p = self._humano(13, erthari=False)
+        data = {'acoes': [
+            {'tipo': 'talento_racial', 'payload': {'nivel': 13, 'talento': 'Multitalentoso'}},
+            {'tipo': 'opcao', 'payload': {'slug': 'talento', 'val': 'precisao', 'classe': ''}},
+        ]}
+        apply_url = reverse('personagem_levelup_aplicar', args=[p.pk])
+        preview_url = reverse('personagem_levelup_preview', args=[p.pk])
+        self.assertEqual(self.client.post(apply_url, data, content_type='application/json').status_code, 302)
+        self.client.force_login(self._novo_usuario('mt-intruso'))
+        self.assertEqual(self.client.post(apply_url, data, content_type='application/json').status_code, 404)
+        self.client.force_login(p.dono)
+        csrf = Client(enforce_csrf_checks=True)
+        csrf.force_login(p.dono)
+        self.assertEqual(csrf.post(apply_url, data, content_type='application/json').status_code, 403)
+        preview = self.client.post(preview_url, data, content_type='application/json')
+        self.assertEqual(preview.status_code, 200, preview.content)
+        self.assertEqual(preview.json()['erros'], [])
+        self.assertFalse(p.talentos.exists())
+        page = self.client.get(reverse('personagem_subir_nivel', args=[p.pk]))
+        self.assertContains(page, 'Multitalentoso')
+        response = self.client.post(apply_url, data, content_type='application/json')
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assertTrue(response.json()['ok'])
+        self.assertEqual(p.talentos.filter(id_talento__slug='precisao').count(), 1)
+        duplicate = self.client.post(apply_url, data, content_type='application/json')
+        self.assertFalse(duplicate.json()['ok'])
+        self.assertEqual(p.talentos.count(), 2)
 
     # -- pool -------------------------------------------------------------------
     def test_multitalentoso_pool_e_so_geral(self):

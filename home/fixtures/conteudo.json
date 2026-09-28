@@ -53497,7 +53497,10 @@
     "descricao": "*Nem toda raiz cresce na mesma direção. Alguns destilam segredos da bruma, outros adubam a coragem com casca grossa. No fundo, o instinto sempre escolhe um caminho. Eu apenas reconheço qual deles me reconheceu primeiro.*\n  Logo no início de sua jornada, você se alinha a um instinto fundamental dentro da tradição druídica. Essa escolha molda a forma como você aprende, luta e conversa com a magia da natureza.\n##### Escolha Primal\nNo 2º nível, escolha uma das opções abaixo.\n##### Xamã\nVocê aprofunda seus conhecimentos nos mistérios arcanos da natureza, lendo padrões onde outros veem apenas acaso.\n- **Truques Arcanos.** Você aprende **dois truques adicionais** à sua escolha da **lista de magias de Mago**. Esses truques contam como magias de Druida para você, e **Sabedoria** é sua habilidade de conjuração para eles.\n- **Saber Ancestral.** Sempre que realizar um teste de **Inteligência (Arcanismo)** ou **Inteligência (Religião)**, você adiciona seu **modificador de Sabedoria** ao resultado (mínimo de +1). Esse bônus se soma normalmente ao seu modificador de Inteligência e ao seu bônus de proficiência, se aplicável.\n##### Guardião\nVocê treinou o corpo para servir de muralha aos bosques que protege, porque há lugares em que a melhor magia é não recuar.\n- Você ganha **proficiência com armas marciais**.\n- Você ganha **proficiência com armaduras médias**.",
     "niveladquirido": 2,
     "table_only": false,
-    "tags_json": []
+    "tags_json": [
+      "pick:ordem_primal:{xama|guardiao}:1",
+      "match(pick:ordem_primal){xama:{spell_selection:mago{nivel:0, qtd:2, spell_mod:wis, fora_do_limite}, always_active{check_bonus:arcanismo=max(wis_mod, 1), check_bonus:religiao=max(wis_mod, 1)}}, guardiao:{prof:weapon{armas_marciais}, prof:armor{armadura_media}}}"
+    ]
   }
 },
 {
@@ -69672,7 +69675,7 @@
     "id_classe": 5,
     "id_subclasse": null,
     "nome": "1°",
-    "slug": "1",
+    "slug": "1o",
     "nivel": null,
     "valor": null,
     "valores_json": {
@@ -69691,7 +69694,7 @@
     "id_classe": 5,
     "id_subclasse": null,
     "nome": "2°",
-    "slug": "2",
+    "slug": "2o",
     "nivel": null,
     "valor": null,
     "valores_json": {
@@ -69711,7 +69714,7 @@
     "id_classe": 5,
     "id_subclasse": null,
     "nome": "3°",
-    "slug": "3",
+    "slug": "3o",
     "nivel": null,
     "valor": null,
     "valores_json": {
@@ -69729,7 +69732,7 @@
     "id_classe": 5,
     "id_subclasse": null,
     "nome": "4°",
-    "slug": "4",
+    "slug": "4o",
     "nivel": null,
     "valor": null,
     "valores_json": {
@@ -69748,12 +69751,13 @@
     "id_classe": 5,
     "id_subclasse": null,
     "nome": "5°",
-    "slug": "5",
+    "slug": "5o",
     "nivel": null,
     "valor": null,
     "valores_json": {
       "9": "1",
-      "10": "2"
+      "10": "2",
+      "18": "3"
     },
     "tipo": "table-only",
     "reset": null
@@ -69766,7 +69770,7 @@
     "id_classe": 5,
     "id_subclasse": null,
     "nome": "6°",
-    "slug": "6",
+    "slug": "6o",
     "nivel": null,
     "valor": null,
     "valores_json": {
@@ -69784,7 +69788,7 @@
     "id_classe": 5,
     "id_subclasse": null,
     "nome": "7°",
-    "slug": "7",
+    "slug": "7o",
     "nivel": null,
     "valor": null,
     "valores_json": {
@@ -69802,7 +69806,7 @@
     "id_classe": 5,
     "id_subclasse": null,
     "nome": "8°",
-    "slug": "8",
+    "slug": "8o",
     "nivel": null,
     "valor": null,
     "valores_json": {
@@ -69819,7 +69823,7 @@
     "id_classe": 5,
     "id_subclasse": null,
     "nome": "9°",
-    "slug": "9",
+    "slug": "9o",
     "nivel": null,
     "valor": null,
     "valores_json": {
@@ -254080,6 +254084,34 @@
     "imagem_url": null,
     "comunidade": false,
     "autor": null
+  }
+},
+{
+  "model": "home.tbmagia",
+  "pk": 582,
+  "fields": {
+    "nome": "Familiar de Batalha",
+    "nome_ingles": "Battle Familiar",
+    "slug": "familiar-de-batalha",
+    "nivel": 2,
+    "casting_time": "Ação",
+    "ritual": false,
+    "duracao": "1 hora",
+    "concentracao": false,
+    "escola": "Conjuração",
+    "alcance": "3 metros (10 pés)",
+    "componentes": "V, S, M (um diamante no valor de pelo menos 25 PO)",
+    "classes": "Druida, Bruxo, Mago",
+    "classes_slugs": [
+      "druida",
+      "mistico",
+      "mago"
+    ],
+    "descricao": "Você conjura um familiar imbuído de poder mágico. Ele aparece em um espaço desocupado dentro do alcance, tem a aparência de um animal à sua escolha, mas é um Celestial, Feérico ou Ínfero (à sua escolha), e usa o bloco de estatísticas de Familiar de Batalha. Ao conjurar esta magia, escolha a forma Bruto, Voador ou Espreitador. Essa escolha determina certos detalhes do bloco.\n\n**Combate.** O familiar é aliado seu e de seus aliados. Ele rola sua própria Iniciativa e age em seu próprio turno.\n\n**Desaparecimento do familiar.** O familiar de batalha desaparece quando a magia termina, quando seus Pontos de Vida chegam a 0 ou quando você morre. Ao desaparecer, deixa no espaço que ocupava tudo que vestia ou carregava. Ao conjurar esta magia novamente, você decide se invoca o familiar que desapareceu ou outro.\n\n## Bloco de estatísticas\n\nCelestial, Feérico ou Ínfero Médio (à sua escolha); Neutro.\n\n- Classe de Armadura: 11 + círculo da magia; +2 adicionais somente para Bruto.\n- Iniciativa: +3 (13).\n- Pontos de Vida: 30 para Bruto ou 20 para Voador/Espreitador; acrescente 5 por círculo acima do 2º.\n- Deslocamento: 12 metros (40 pés); natação 9 metros (30 pés); somente Voador: voo 9 metros (30 pés), com pairar.\n\n| Atributo | Valor | Modificador | Salvaguarda base |\n| --- | --- | --- | --- |\n| FOR | 16 | +3 | +3 |\n| DES | 16 | +3 | +3 |\n| CON | 12 | +1 | +1 |\n| INT | 8 | -1 | -1 |\n| SAB | 13 | +1 | +1 |\n| CAR | 10 | +0 | +0 |\n\n- Imunidades: Enfeitiçado e Amedrontado.\n- Sentidos: Percepção Passiva 11.\n- Idiomas: compreende os idiomas que você conhece.\n\n### Traços\n\n**Sobrevoo (somente Voador).** O familiar não provoca Ataques de Oportunidade ao sair voando do alcance de um inimigo.\n\n**Talentoso.** Acrescente metade do círculo da magia, arredondada para baixo, a qualquer teste de atributo ou salvaguarda realizado pelo familiar.\n\n### Ações\n\n**Ataques Múltiplos.** O familiar realiza um número de ataques de Retalhar igual à metade do círculo da magia, arredondada para baixo. Pode substituir um desses ataques por Espreitar, se disponível.\n\n**Retalhar.** Jogada de ataque corpo a corpo: bônus igual ao seu modificador de ataque de magia; alcance de 1,5 metro (5 pés). Acerto: 1d8 + 3 + círculo da magia de dano de Força.\n\n**Espreitar (somente Espreitador).** O familiar se move até metade de seu deslocamento sem provocar Ataques de Oportunidade. Ao final desse movimento, pode realizar a ação Esconder-se.\n\n## Apenas um familiar por vez\n\nVocê não pode ter mais de um familiar ao mesmo tempo. Se conjurar esta magia enquanto já possui um familiar desta magia, o novo substitui o anterior.\n\nSe possuir um familiar da magia Encontrar Familiar (Find Familiar), esta magia fortalece o familiar existente em vez de conjurar outro. Durante a duração, ele pode atacar além de realizar normalmente suas outras ações. Suas estatísticas são substituídas pelo bloco de Familiar de Batalha, mas ele preserva seu tipo de criatura, alinhamento, Pontos de Vida, Dados de Vida e quaisquer características concedidas por Encontrar Familiar.\n\nO familiar recebe Pontos de Vida Temporários iguais aos Pontos de Vida do familiar de batalha. Familiar de Batalha termina antecipadamente se esses Pontos de Vida Temporários se esgotarem; quaisquer pontos temporários restantes desaparecem quando a magia termina. O familiar retorna à forma anterior ao término de Familiar de Batalha.",
+    "em_niveis_superiores": "Use o círculo do espaço gasto como círculo da magia no bloco de estatísticas.",
+    "tags_json": [
+      "log_castable"
+    ]
   }
 }
 ]

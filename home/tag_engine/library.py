@@ -10,6 +10,24 @@ import os
 import re
 import time
 
+from contextlib import contextmanager
+from contextvars import ContextVar
+
+_SCOPED_LIBRARY = ContextVar('bonfire_tag_library', default=None)
+
+
+@contextmanager
+def library_scope(raw):
+    """Bind an isolated vocabulary to this evaluation, including nested readers."""
+    if not isinstance(raw, dict):
+        raise ValueError('Invalid scoped tag library.')
+    token = _SCOPED_LIBRARY.set(copy.deepcopy(raw))
+    try:
+        yield
+    finally:
+        _SCOPED_LIBRARY.reset(token)
+
+
 LIB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "tag_library.json")
 
 _DB_LIBRARY_CACHE = {
@@ -136,6 +154,10 @@ def _active_database_library():
 
 class Library:
     def __init__(self, path=LIB_PATH, *, raw=None, prefer_db=True):
+        if raw is None and prefer_db and os.path.abspath(path) == os.path.abspath(LIB_PATH):
+            scoped = _SCOPED_LIBRARY.get()
+            if scoped is not None:
+                raw = scoped
         self.path = path
         self.source = "memory" if raw is not None else "file"
         self.revision_id = None

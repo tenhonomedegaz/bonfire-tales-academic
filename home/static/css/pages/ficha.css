@@ -1395,6 +1395,12 @@
 .spell-slot-level { display: flex; align-items: center; justify-content: center; width: 1.8rem; height: 2rem; border-radius: 4px; background: var(--sheet-surface, var(--bg1)); color: var(--text); font-family: 'Cinzel', serif; font-weight: 900; }
 .spell-slot-numbers { display: grid; grid-template-columns: auto 1fr; gap: 0.1rem 0.35rem; align-items: baseline; }
 .spell-slot-numbers strong { color: var(--text); font-size: 0.95rem; line-height: 1; }
+/* Controles e confirmação cabem no cartão estreito em todas as larguras. */
+.spell-slot-card[data-spell-slot-card] { grid-template-columns: 2rem minmax(0, 1fr); min-width: 0; }
+[data-spell-slot-card] .spell-slot-actions { grid-column: 1 / -1; margin-top: 0; }
+[data-spell-slot-card] .spell-slot-actions button { width: 2rem; height: 2rem; }
+[data-spell-slot-card]:focus-visible { outline: 2px solid var(--ficha-accent, var(--ember)); outline-offset: 2px; }
+[data-spell-slot-feedback] { grid-column: 1 / -1; min-width: 0; overflow-wrap: anywhere; text-transform: none; padding: 0.35rem; }
 .spell-level-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(236px, 1fr)); gap: 0.5rem; }
 .spell-level-card { overflow: hidden; border: 1px solid var(--stroke); border-radius: 7px; background: color-mix(in srgb, var(--ficha-raise) 96%, transparent); }
 .spell-level-card.is-empty { opacity: 0.62; }

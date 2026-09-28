@@ -462,33 +462,12 @@ def _apply_items(personagem, build):
 
 
 def _apply_spells(personagem, build):
-    from .models import TbMagia, TbPersonagemMagia
+    from .pathbuilder_spells import apply_spell_selection
 
-    rows = build.get("magias") or []
-    if not isinstance(rows, list) or len(rows) > 580:
-        raise PathbuilderError("Lista de magias invalida.")
-    slugs = list(dict.fromkeys(
-        str(row.get("slug") or "") for row in rows if isinstance(row, dict)))
-    spells = {obj.slug: obj for obj in TbMagia.objects.filter(slug__in=slugs)}
-    if len(spells) != len(slugs):
-        raise PathbuilderError("Uma das magias selecionadas nao existe.")
-    existing = set(personagem.magias.exclude(
-        id_magia__isnull=True).values_list("id_magia_id", flat=True))
-    for row in rows:
-        if not isinstance(row, dict):
-            continue
-        spell = spells[str(row.get("slug") or "")]
-        if spell.id_magia in existing:
-            continue
-        TbPersonagemMagia.objects.create(
-            id_personagem=personagem,
-            id_magia=spell,
-            nivel=spell.nivel,
-            nome=spell.nome,
-            preparada=bool(row.get("preparada", True)),
-            origem="Pathbuilder",
-        )
-        existing.add(spell.id_magia)
+    try:
+        apply_spell_selection(personagem, build)
+    except ValueError as exc:
+        raise PathbuilderError(str(exc)) from exc
 
 
 def _groups_with_keys(personagem):
@@ -579,6 +558,7 @@ def _choice_options(group):
             options.append({
                 "valor": base_value,
                 "nome": option.get("nome") or base_value,
+                "ja_proficiente": bool(option.get("ja_proficiente")),
                 "descricao": option.get("descricao") or option.get("efeito") or "",
                 "meta": option.get("cat") or option.get("pre") or "",
             })
@@ -685,10 +665,11 @@ def _orcamento(personagem, ficha, build):
 
 
 def _rules_diagnostics(personagem, ficha, build, groups, racial_groups, orcamento,
-                       extra_issues=None):
+                       extra_issues=None, spell_issues=None):
     from .character_engine import _subclass_min_level
 
-    issues = list(extra_issues or [])
+    spell_issues = list(spell_issues or [])
+    issues = list(extra_issues or []) + spell_issues
     for pc in personagem.classes.select_related("id_classe", "id_subclasse"):
         minimum = _subclass_min_level(pc.id_classe)
         if minimum and int(pc.nivel or 0) >= minimum and not pc.id_subclasse_id:
@@ -696,7 +677,11 @@ def _rules_diagnostics(personagem, ficha, build, groups, racial_groups, orcament
                           % (pc.id_classe.nome, minimum))
     pending = sum(int(group.get("pendentes") or 0) for group in groups)
     if pending:
-        issues.append("Resolva %d escolha(s) declarada(s) pelas tags." % pending)
+        for group in groups:
+            if group.get("pendentes"):
+                issues.append("Resolva %d escolha(s) de %s (%s)." % (
+                    group['pendentes'], group['label'],
+                    group.get('origem') or group.get('classe') or 'personagem'))
     racial_pending = sum(1 for group in racial_groups if not group.get("selecionado"))
     if racial_pending:
         issues.append("Escolha %d talento(s) racial(is) liberado(s) por nivel." % racial_pending)
@@ -722,7 +707,7 @@ def _rules_diagnostics(personagem, ficha, build, groups, racial_groups, orcament
         if int((data or {}).get("valor") or 0) > 20:
             issues.append("%s ultrapassa o limite normal de atributo 20." % sigla)
     return {"modo": str(build.get("modo") or "sandbox"),
-            "valida": not issues, "problemas": issues}
+            "valida": not issues, "problemas": issues, "magias": spell_issues}
 
 
 def _folha_html(personagem, ficha, magias_info):
@@ -752,6 +737,9 @@ def _summary(ficha, personagem, build, racial_groups=None, extra_issues=None):
     """SO o que o EDITOR consome. A folha vai em `ficha_html` (markup da ficha real)."""
     from .views import _magias_sheet_info
 
+    from .pathbuilder_spells import spell_review
+
+    spell_issues, spell_sources = spell_review(personagem, ficha)
     magias_info = _magias_sheet_info(personagem, ficha, [])
     choice_groups = _choice_groups(personagem, build)
     orcamento = _orcamento(personagem, ficha, build)
@@ -790,6 +778,7 @@ def _summary(ficha, personagem, build, racial_groups=None, extra_issues=None):
         } for row in (ficha.get("features") or [])],
         "inventario": ficha.get("inventario") or [],
         "magias": ficha.get("magias") or [],
+        "magias_fontes": spell_sources,
         "ataques": _attack_rows(ficha),
         "avisos": ficha.get("avisos") or [],
         "escolhas_grupos": choice_groups,
@@ -822,7 +811,7 @@ def _summary(ficha, personagem, build, racial_groups=None, extra_issues=None):
     }
     summary["validacao"] = _rules_diagnostics(
         personagem, ficha, build, choice_groups, racial_groups or [], orcamento,
-        extra_issues=extra_issues)
+        extra_issues=extra_issues, spell_issues=spell_issues)
     return summary
 
 
@@ -843,8 +832,8 @@ def simulate_build(user, creator_data, build):
             _apply_attribute_bonus(personagem, build)
             racial_groups, racial_issues = _apply_racial_talents(personagem, build)
             _apply_items(personagem, build)
-            _apply_spells(personagem, build)
             _apply_choices(personagem, build)
+            _apply_spells(personagem, build)
             ficha = derive(personagem)
             result = _summary(
                 ficha, personagem, build, racial_groups,

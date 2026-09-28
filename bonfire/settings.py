@@ -55,6 +55,7 @@ for _k, _v in _PROJECT_ENV.items():
 
 
 DEBUG = _env_bool("DJANGO_DEBUG", False)
+HUNTER_CREATOR_RULESET_CHECKSUM = os.environ.get('HUNTER_CREATOR_RULESET_CHECKSUM', '').strip()
 
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
 if not SECRET_KEY:
@@ -126,38 +127,59 @@ _db_engine = os.environ.get('DB_ENGINE', '').strip()
 _postgres_url = os.environ.get('POSTGRES_URL', '').strip()
 
 if _postgres_url:
-    _parsed_db = urlparse(_postgres_url)
+    try:
+        _parsed_db = urlparse(_postgres_url)
+        _db_host = _parsed_db.hostname
+        _db_port = _parsed_db.port or 5432
+    except ValueError:
+        # Erros do parser podem incluir o netloc, inclusive credenciais.
+        raise ImproperlyConfigured('POSTGRES_URL contém dados inválidos.') from None
+    if (
+        _parsed_db.scheme not in {'postgres', 'postgresql'}
+        or not _db_host
+        or not _parsed_db.path.strip('/')
+    ):
+        raise ImproperlyConfigured(
+            'POSTGRES_URL deve ser uma URL PostgreSQL válida com host e banco.'
+        )
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
-            'NAME': (_parsed_db.path or '/postgres').lstrip('/'),
+            'NAME': _parsed_db.path.lstrip('/'),
             'USER': _parsed_db.username or 'postgres',
             'PASSWORD': _parsed_db.password or '',
-            'HOST': _parsed_db.hostname or 'localhost',
-            'PORT': str(_parsed_db.port or 5432),
+            'HOST': _db_host,
+            'PORT': str(_db_port),
             'OPTIONS': {'connect_timeout': int(os.environ.get('DB_CONNECT_TIMEOUT', '5'))},
         }
     }
-elif _db_engine and _db_engine == 'django.db.backends.postgresql':
+elif _db_engine.lower() in {'postgresql', 'django.db.backends.postgresql'}:
+    _db_name = os.environ.get('DB_NAME', 'postgres').strip() or 'postgres'
+    _db_host = os.environ.get('DB_HOST', 'localhost').strip() or 'localhost'
+    _db_user = os.environ.get('DB_USER', 'postgres').strip() or 'postgres'
+    _db_port = os.environ.get('DB_PORT', '5432').strip() or '5432'
+    try:
+        _db_port_number = int(_db_port)
+    except ValueError as exc:
+        raise ImproperlyConfigured('DB_PORT deve ser uma porta PostgreSQL válida.') from exc
+    if not 1 <= _db_port_number <= 65535:
+        raise ImproperlyConfigured('DB_PORT deve ser uma porta PostgreSQL válida.')
     DATABASES = {
         'default': {
-            'ENGINE': _db_engine,
-            'NAME': os.environ.get('DB_NAME', 'postgres'),
-            'USER': os.environ.get('DB_USER', 'postgres'),
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': _db_name,
+            'USER': _db_user,
             'PASSWORD': os.environ.get('DB_PASSWORD', ''),
-            'HOST': os.environ.get('DB_HOST', 'localhost'),
-            'PORT': os.environ.get('DB_PORT', '5432'),
+            'HOST': _db_host,
+            'PORT': str(_db_port_number),
             'OPTIONS': {'connect_timeout': int(os.environ.get('DB_CONNECT_TIMEOUT', '5'))},
         }
     }
 else:
-    # Fallback to SQLite for local development
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-        }
-    }
+    raise ImproperlyConfigured(
+        'Configuração PostgreSQL obrigatória: defina POSTGRES_URL válida ou '
+        'DB_ENGINE=postgresql.'
+    )
 
 
 
@@ -311,3 +333,6 @@ ASAAS_WEBHOOK_TOKEN = os.environ.get("ASAAS_WEBHOOK_TOKEN", "").strip()
 ASAAS_API_KEY = os.environ.get("ASAAS_API_KEY", "").strip()
 ASAAS_API_BASE = os.environ.get("ASAAS_API_BASE", "https://api-sandbox.asaas.com/v3").strip().rstrip("/")
 BONFIRE_CHECKOUT_SIGNING_SECRET = os.environ.get("BONFIRE_CHECKOUT_SIGNING_SECRET", "").strip()
+
+# Desativa apenas a melhoria por fetch, preservando formulário, contadores e recibos.
+SPELL_SLOT_PARTIAL_ENABLED = os.environ.get('SPELL_SLOT_PARTIAL_ENABLED', '1') == '1'

@@ -278,7 +278,10 @@
         empty.value = ''; empty.textContent = '— Escolha —'; sel.appendChild(empty);
         (g.options || []).forEach(function (o) {
           var option = document.createElement('option');
-          option.value = o.val; option.textContent = o.nome; sel.appendChild(option);
+          option.value = o.val;
+          option.textContent = o.nome + (o.ja_proficiente ? ' — já proficiente' : '');
+          option.disabled = !!o.ja_proficiente;
+          sel.appendChild(option);
         });
         label.appendChild(sel);
         host.appendChild(label);

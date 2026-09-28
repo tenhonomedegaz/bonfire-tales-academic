@@ -120,6 +120,38 @@ class PathbuilderTests(_CriadorBase):
         self.assertContains(response, "Pathbuilder")
         self.assertContains(response, "pb-catalogs")
 
+    def test_q10_magia_incompativel_mantem_previa_e_impede_validacao(self):
+        base = self._payload('mago')
+        spell = TbMagia.objects.filter(nivel=9).first()
+        before = TbPersonagem.objects.count()
+        build = self._build('mago', modo='regras',
+                            magias=[{'slug': spell.slug, 'preparada': True}])
+        response = self._post_preview(base, build)
+        self.assertEqual(response.status_code, 200)
+        result = response.json()['build']
+        self.assertFalse(result['validacao']['valida'])
+        self.assertIn(spell.nome, ' '.join(result['validacao']['problemas']))
+        self.assertIn(spell.nome, ' '.join(result['validacao']['magias']))
+        self.assertTrue(any(row['nome'] == spell.nome for row in result['magias']))
+        self.assertEqual(build['magias'][0]['slug'], spell.slug)
+        self.assertEqual(TbPersonagem.objects.count(), before)
+
+    def test_q10_magia_conhecida_nao_duplica_nem_bloqueia_revisao(self):
+        base = self._payload('mago')
+        build = self._build('mago', modo='regras',
+                            magias=[{'slug': base['truques'][0], 'preparada': True}])
+        result = self._post_preview(base, build).json()['build']
+        for group in result['escolhas_grupos']:
+            if group['pendentes']:
+                build['escolhas'][group['key']] = [
+                    row['valor'] for row in group['opcoes']
+                    if not row.get('ja_proficiente')
+                ][:group['pendentes']]
+        result = self._post_preview(base, build).json()['build']
+        self.assertTrue(result['validacao']['valida'], result['validacao']['problemas'])
+        selected = TbMagia.objects.get(slug=base['truques'][0])
+        self.assertEqual(sum(row['nome'] == selected.nome for row in result['magias']), 1)
+
     def test_laboratorio_usa_stepper_e_nao_tem_mais_os_selects_de_adicionar(self):
         """O fluxo velho era `busca -> <select> -> botao Adicionar` em cada secao.
 
@@ -312,6 +344,19 @@ class PathbuilderTests(_CriadorBase):
         after = next(row["valor"] for row in result["atributos"] if row["sig"] == atributo)
         self.assertEqual(after, before + 1)
         self.assertNotIn("Escolha o atributo", " ".join(result["validacao"]["problemas"]))
+        self.assertEqual(result["orcamento"]["asi_em_talento"], 1)
+        removed = self._post_preview(payload, self._build("guerreiro", classes=classes))
+        reverted = removed.json()["build"]
+        self.assertEqual(next(row["valor"] for row in reverted["atributos"]
+                              if row["sig"] == atributo), before)
+        self.assertEqual(reverted["orcamento"]["asi_em_talento"], 0)
+        invalid = self._post_preview(payload, self._build("guerreiro", **{
+            "classes": classes,
+            "talentos": [{"slug": talento.slug, "atributo": "INVALID"}],
+        })).json()["build"]
+        self.assertIn("nao pode aumentar", " ".join(invalid["validacao"]["problemas"]))
+        self.assertEqual(next(row["valor"] for row in invalid["atributos"]
+                              if row["sig"] == atributo), before)
 
     def test_talento_legado_sem_atributo_continua_editavel_mas_e_sinalizado(self):
         payload = self._payload("guerreiro")
@@ -323,6 +368,103 @@ class PathbuilderTests(_CriadorBase):
         self.assertEqual(response.status_code, 200, response.content)
         self.assertIn("Escolha o atributo", " ".join(
             response.json()["build"]["validacao"]["problemas"]))
+
+    def test_preview_sinaliza_payload_de_sessenta_pontos_para_quatro_em_ambos_os_modos(self):
+        """Sandbox deriva a ficha, mas nunca considera valido burlar o orcamento de ASI."""
+        payload = self._payload("guerreiro")
+        base_build = self._build("guerreiro", **{
+            "classes": [{"slug": "guerreiro", "nivel": 6, "subclasse": ""}],
+            "atributos_bonus": {
+                "FOR": 10, "DES": 10, "CON": 10,
+                "INT": 10, "SAB": 10, "CAR": 10,
+            },
+        })
+        before = TbPersonagem.objects.count()
+        for modo in ("regras", "sandbox"):
+            build = dict(base_build, modo=modo)
+            response = self._post_preview(payload, build)
+            self.assertEqual(response.status_code, 200, response.content)
+            result = response.json()["build"]
+            self.assertFalse(result["validacao"]["valida"])
+            self.assertEqual(result["orcamento"]["pontos_usados"], 60)
+            self.assertEqual(result["orcamento"]["pontos_disponiveis"], 4)
+            self.assertIn("distribuiu 60", " ".join(result["validacao"]["problemas"]))
+            self.assertEqual(TbPersonagem.objects.count(), before)
+
+    def test_resiliente_repetido_nao_cria_duas_salvaguardas(self):
+        """Duplicar o cartao no payload nao pode gastar dois slots nem abrir dois picks."""
+        payload = self._payload("guerreiro")
+        resiliente = TbTalento.objects.get(slug="resiliente")
+        build = self._build("guerreiro", **{
+            "classes": [{"slug": "guerreiro", "nivel": 4, "subclasse": ""}],
+            "talentos": [
+                {"slug": resiliente.slug, "atributo": "DES"},
+                {"slug": resiliente.slug, "atributo": "DES"},
+            ],
+        })
+        first = self._post_preview(payload, build)
+        self.assertEqual(first.status_code, 200, first.content)
+        first_build = first.json()["build"]
+        self.assertEqual(first_build["orcamento"]["asi_em_talento"], 1)
+        self.assertEqual(sum(row["nome"] == resiliente.nome
+                             for row in first_build["features"]), 1)
+        groups = [row for row in first_build["escolhas_grupos"]
+                  if row["origem"] == resiliente.nome]
+        self.assertEqual(len(groups), 1)
+
+        # O unico pick concedido pelo talento aceita uma unica salvaguarda.
+        group = groups[0]
+        options = [row["valor"] for row in group["opcoes"]]
+        self.assertGreaterEqual(len(options), 2)
+        build["escolhas"] = {group["key"]: options[:2]}
+        second = self._post_preview(payload, build)
+        self.assertEqual(second.status_code, 400)
+        self.assertIn("somente 1", second.json()["erros"][0])
+
+    def test_subescolha_de_resiliente_fica_inerte_sem_talento(self):
+        """Uma chave antiga nao concede salvaguarda sem a fonte que a declarou."""
+        payload = self._payload("guerreiro")
+        resiliente = TbTalento.objects.get(slug="resiliente")
+        active = self._build("guerreiro", **{
+            "classes": [{"slug": "guerreiro", "nivel": 4, "subclasse": ""}],
+            "talentos": [{"slug": resiliente.slug, "atributo": "DES"}],
+        })
+        first = self._post_preview(payload, active)
+        self.assertEqual(first.status_code, 200, first.content)
+        group = next(row for row in first.json()["build"]["escolhas_grupos"]
+                     if row["origem"] == resiliente.nome)
+        chosen = group["opcoes"][0]["valor"]
+        active["escolhas"] = {group["key"]: [chosen]}
+
+        resolved = self._post_preview(payload, active)
+        self.assertEqual(resolved.status_code, 200, resolved.content)
+        resolved_group = next(row for row in resolved.json()["build"]["escolhas_grupos"]
+                              if row["key"] == group["key"])
+        self.assertEqual([row["valor"] for row in resolved_group["resolvidas"]], [chosen])
+
+        # A chave permanece no cliente, mas sem Resiliente nao existe grupo que a persista.
+        removed = self._build("guerreiro", **{
+            "classes": active["classes"],
+            "escolhas": active["escolhas"],
+        })
+        without_talent = self._post_preview(payload, removed)
+        self.assertEqual(without_talent.status_code, 200, without_talent.content)
+        without_build = without_talent.json()["build"]
+        self.assertFalse(any(row["origem"] == resiliente.nome
+                             for row in without_build["escolhas_grupos"]))
+
+        # O cliente limpa a chave ao retirar a fonte; recolocar exige nova escolha.
+        restored = self._post_preview(payload, self._build("guerreiro", **{
+            "classes": active["classes"],
+            "talentos": [{"slug": resiliente.slug, "atributo": "DES"}],
+        }))
+        self.assertEqual(restored.status_code, 200, restored.content)
+        restored_build = restored.json()["build"]
+        restored_groups = [row for row in restored_build["escolhas_grupos"]
+                           if row["origem"] == resiliente.nome]
+        self.assertEqual(len(restored_groups), 1)
+        self.assertEqual(restored_groups[0]["resolvidas"], [])
+        self.assertEqual(restored_groups[0]["pendentes"], 1)
 
     def test_marcos_de_talento_racial_usam_o_resolvedor_do_levelup(self):
         payload = self._payload("guerreiro")

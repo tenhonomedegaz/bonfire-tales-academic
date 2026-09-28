@@ -295,6 +295,40 @@ class TbSubclasse(models.Model):
     def __str__(self):
         return self.nome
 
+class TbContentRevision(models.Model):
+    """Append-only mechanical content, independent from mutable catalog rows."""
+    identity = models.CharField(max_length=200)
+    checksum = models.CharField(max_length=64)
+    payload = models.JSONField()
+    dependencies = models.JSONField(default=list)
+    created_at = models.DateTimeField(auto_now_add=True)
+    author = models.ForeignKey('auth.User', on_delete=models.PROTECT, null=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['identity', 'checksum'],
+                                               name='content_revision_identity_hash')]
+
+
+class TbRuleset(models.Model):
+    """Sealed manifest. Creation does not activate it for characters."""
+    checksum = models.CharField(max_length=64, unique=True)
+    manifest = models.JSONField()
+    evaluator_version = models.CharField(max_length=80)
+    vocabulary_version = models.CharField(max_length=80)
+    created_at = models.DateTimeField(auto_now_add=True)
+    author = models.ForeignKey('auth.User', on_delete=models.PROTECT, null=True)
+
+
+class TbRulesetContent(models.Model):
+    ruleset = models.ForeignKey(TbRuleset, on_delete=models.PROTECT, related_name='entries')
+    revision = models.ForeignKey(TbContentRevision, on_delete=models.PROTECT)
+    identity = models.CharField(max_length=200)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['ruleset', 'identity'],
+                                               name='ruleset_content_identity')]
+
+
 class TbRaca(models.Model):
     id_raca = models.AutoField(db_column='Id_Raca', primary_key=True)
     nome = models.CharField(db_column='Nome', max_length=100)
@@ -1320,6 +1354,27 @@ class TbPersonagemClasse(models.Model):
         return f'{self.id_personagem_id} - {self.id_classe_id} Nv{self.nivel}'
 
 
+class TbPersonagemCacador(models.Model):
+    """Rework preparation, explicitly bound; legacy characters have no row."""
+    personagem_classe = models.OneToOneField(
+        TbPersonagemClasse, on_delete=models.CASCADE, related_name='cacador_rework')
+    ruleset = models.ForeignKey(TbRuleset, on_delete=models.PROTECT)
+    ability = models.CharField(max_length=3, choices=[('int', 'Inteligência'), ('wis', 'Sabedoria')])
+    selected = models.JSONField(default=list)
+    mark = models.JSONField(default=dict)
+    companion = models.JSONField(default=dict)
+    awakening = models.JSONField(default=dict)
+    exorcist = models.JSONField(default=dict)
+    traveler = models.JSONField(default=dict)
+    mutagens = models.JSONField(default=dict)
+    regularization = models.JSONField(default=dict)
+    version = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        constraints = [models.CheckConstraint(condition=models.Q(ability__in=['int', 'wis']),
+                                               name='hunter_valid_ability')]
+
+
 class TbPersonagemPericia(models.Model):
     id_pericia = models.AutoField(db_column='Id_Pericia', primary_key=True)
     id_personagem = models.ForeignKey('TbPersonagem', models.CASCADE, db_column='Id_Personagem', related_name='pericias')
@@ -1991,6 +2046,7 @@ class TbPersonagemRecurso(models.Model):
     nome = models.CharField(db_column='Nome', max_length=100)
     atual = models.IntegerField(db_column='Atual', default=0)
     maximo = models.IntegerField(db_column='Maximo', default=0)
+    versao = models.PositiveBigIntegerField(db_column='Versao', default=0)
     chave = models.CharField(
         db_column='Chave', max_length=180, blank=True, default='', db_index=True,
         help_text='Identidade mecanica estavel; o nome e apenas apresentacao.')
@@ -2016,6 +2072,22 @@ class TbPersonagemRecurso(models.Model):
                 condition=~models.Q(chave=''),
                 name='uniq_recurso_personagem_chave'),
         ]
+
+
+class TbOperacaoRecurso(models.Model):
+    """Recibo durável de um comando, preservado fora dos snapshots de build."""
+    id_personagem = models.ForeignKey(
+        'TbPersonagem', models.CASCADE, related_name='operacoes_recurso')
+    operation_id = models.UUIDField()
+    fingerprint = models.CharField(max_length=64)
+    resposta = models.JSONField()
+    status_http = models.PositiveSmallIntegerField()
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'TB_OperacaoRecurso'
+        constraints = [models.UniqueConstraint(
+            fields=('id_personagem', 'operation_id'), name='uniq_operacao_recurso_personagem')]
 
 
 class TbPersonagemEstado(models.Model):

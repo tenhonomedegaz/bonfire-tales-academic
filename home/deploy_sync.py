@@ -16,6 +16,7 @@ from django.apps import apps
 from django.core import serializers
 from django.db import connection, models, transaction
 from django.db.models import Q
+from django.db.models.functions import Lower, Trim
 
 # Referenciadas por FK de usuário → casa por slug, PRESERVA PK. (ordem: pais antes)
 UPSERT_POR_SLUG = [
@@ -43,6 +44,9 @@ PRODUCTION_PRESERVED_MODELS = [
     "TbMapMarker", "TbMapDesenho",
 ]
 MEMORY_MODELS = [
+    "TbPersonagemCacador",
+    "TbContentRevision", "TbRuleset", "TbRulesetContent",
+    "TbOperacaoRecurso",
     "TbPersonagem", "TbPersonagemAtributoBonus", "TbPersonagemClasse",
     "TbPersonagemEscolha", "TbPersonagemItem", "TbPersonagemMagia",
     "TbPersonagemMagiaAssinatura",
@@ -191,13 +195,76 @@ def _memory_references(obj):
     return refs
 
 
-def sincronizar_conteudo(fixture_text):
+def inspect_content_deletions():
+    """Read-only status of explicit tombstones against the connected database."""
+    rows = []
+    for model_name, slugs in _load_content_deletions().items():
+        for slug in slugs:
+            if model_name not in UPSERT_POR_SLUG:
+                rows.append((model_name, slug, 'invalid_model', []))
+                continue
+            obj = _m(model_name).objects.filter(slug=slug).first()
+            if obj is None:
+                rows.append((model_name, slug, 'absent', []))
+                continue
+            refs = _memory_references(obj)
+            rows.append((model_name, slug, 'blocked' if refs else 'would_delete', refs))
+    return rows
+
+
+def _preserve_battle_familiar_identity(spells, content_renames):
+    """Resolve somente Battle Familiar por EN, preservando PK e slug do banco.
+
+    Executado dentro da transação, antes de qualquer upsert: nenhuma outra linha
+    da fixture pode disputar a identidade/slug. Slugs vivos também são tokens de
+    itens adquiridos e não devem mudar quando apenas a tradução é atualizada.
+    """
+    incoming = [spell for spell in spells
+                if (spell.nome_ingles or '').strip().casefold() == 'battle familiar']
+    if not incoming:
+        return
+    if len(incoming) != 1:
+        raise ValueError('Battle Familiar: identidade EN duplicada no fixture.')
+    target = incoming[0]
+    M = _m('TbMagia')
+    matches = list(M.objects.select_for_update().annotate(
+        battle_identity=Lower(Trim('nome_ingles')),
+    ).filter(battle_identity='battle familiar'))
+    if len(matches) > 1:
+        raise ValueError('Battle Familiar: identidade EN duplicada no banco.')
+    existing = matches[0] if matches else None
+    renames = dict(content_renames.get('TbMagia', {}))
+    protected_slugs = {target.slug}
+    protected_slugs.update(old for old, new in renames.items() if new == target.slug)
+    if existing:
+        protected_slugs.add(existing.slug)
+        if existing.slug in renames and renames[existing.slug] != target.slug:
+            raise ValueError('Battle Familiar: rename existente aponta para outro destino.')
+    if target.slug in renames and renames[target.slug] != target.slug:
+        raise ValueError('Battle Familiar: slug de destino também é origem de outro rename.')
+    for candidate in M.objects.select_for_update().filter(slug__in=protected_slugs):
+        if existing is None or candidate.pk != existing.pk:
+            raise ValueError('Battle Familiar: colisão de slug com outra identidade.')
+    if any(spell is not target and spell.slug in protected_slugs for spell in spells):
+        raise ValueError('Battle Familiar: outro registro do fixture disputa o slug.')
+    if existing:
+        target.slug = existing.slug
+
+
+def sincronizar_conteudo(fixture_text, *, allow_content_deletions=False):
     """Aplica o fixture de conteúdo (texto JSON serializado pelo Django) por chave
     natural. Retorna um relatório dict: {pass1, pass2, mem_antes, mem_depois, mem_ok}.
     Tudo numa transação — se algo falhar, faz rollback."""
     por_modelo = defaultdict(list)
     for d in serializers.deserialize("json", fixture_text):
         por_modelo[_label(d.object._meta.model)].append(d.object)
+
+    if not allow_content_deletions:
+        planned = ["%s.%s" % (name, slug) for name, slug, status, _refs
+                   in inspect_content_deletions() if status == 'would_delete']
+        if planned:
+            raise ValueError('Deleção explícita de conteúdo exige autorização operacional: %s'
+                             % ', '.join(planned))
 
     remap = defaultdict(dict)
 
@@ -217,6 +284,8 @@ def sincronizar_conteudo(fixture_text):
     }
 
     with transaction.atomic():
+        _preserve_battle_familiar_identity(
+            por_modelo.get('home.tbmagia', []), content_renames)
         mem_estado_antes = estado_modelos(MEMORY_MODELS)
         prod_estado_antes = estado_modelos(PRODUCTION_PRESERVED_MODELS)
         comunidade_estado_antes = estado_conteudo_comunitario()
@@ -337,6 +406,9 @@ def sincronizar_conteudo(fixture_text):
                         ", ".join("%s.%s=%d" % ref for ref in refs),
                     ))
                     continue
+                if not allow_content_deletions:
+                    raise ValueError('Deleção explícita de conteúdo exige autorização operacional: %s.%s'
+                                     % (nome, slug))
                 obj.delete()
                 deleted += 1
             rel["deletions"].append((nome, deleted, blocked, "; ".join(details)))
