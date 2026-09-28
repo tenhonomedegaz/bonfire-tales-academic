@@ -8565,9 +8565,10 @@ def personagem_reembolsar_compra(request, pk, transacao_id):
         transacao_obj.revertida_em = timezone.now()
         transacao_obj.revertida_por = request.user
         transacao_obj.save(update_fields=['revertida', 'revertida_em', 'revertida_por'])
-        _registrar_transacao(
+        reembolso = _registrar_transacao(
             p, 'ajuste', 'Reembolso: %s' % (transacao_obj.descricao or 'compra'), credito,
             {'reverte_transacao': transacao_obj.pk})
+        _conquistas.registrar_fato_estorno_compra(transacao_obj, reembolso)
     return redirect(reverse('ficha_detail', args=[pk]) + '?aba=historico&reembolso=ok')
 
 
@@ -8907,7 +8908,11 @@ def comprar_anuncio(request, anuncio_id):
         restore_item_resource_state(comprador, item, a.estado_json)
         a.status, a.comprador, a.vendido_em = 'vendido', comprador, timezone.now()
         a.save(update_fields=['status', 'comprador', 'vendido_em'])
-        _registrar_transacao(comprador, 'mercado-compra', 'Comprou (comunidade): %s' % a.nome, -a.preco_pc)
+        _registrar_transacao(
+            comprador, 'mercado-compra', 'Comprou (comunidade): %s' % a.nome, -a.preco_pc,
+            {'catalogo': 'comunidade', 'catalogo_id': a.pk,
+             'inventario_id': item.pk, 'anuncio_id': a.pk,
+             'item_magico_id': a.id_item_magico_id, 'qtd': 1})
         _registrar_transacao(vend, 'mercado-venda', 'Vendeu (comunidade): %s' % a.nome, a.preco_pc)
     return redirect(reverse('mercado_comunidade') + '?m=comprado')
 

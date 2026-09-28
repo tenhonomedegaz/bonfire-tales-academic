@@ -186,6 +186,12 @@ def _garnish_overdue_income(personagem, received_pc, source_transaction):
 
 def register_transaction(personagem, tipo, descricao, delta_pc, detalhes=None):
     """Registra uma movimentacao e aplica a retencao de renda vencida."""
+    if tipo in {'compra', 'mercado-compra'} and int(delta_pc) < 0:
+        from .conquistas import registrar_fato_compra
+        with transaction.atomic():
+            row = _record_only(personagem, tipo, descricao, delta_pc, detalhes)
+            registrar_fato_compra(row)
+        return row
     row = _record_only(personagem, tipo, descricao, delta_pc, detalhes)
     if int(delta_pc) > 0 and tipo != 'repasse-divida':
         _garnish_overdue_income(personagem, int(delta_pc), row)

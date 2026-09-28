@@ -231,6 +231,84 @@ def validar_vinculo_aventura_bot(personagem, bot_quest_id, quantidade):
     }
 
 
+def registrar_fato_compra(transacao, *, historica=False):
+    """Registra uma compra de item rastreável pelo ledger, nunca pela posse atual."""
+    from .models import TbEventoConquista
+
+    if (transacao.tipo not in {'compra', 'mercado-compra'} or
+            (transacao.revertida and not (historica and transacao.revertida_em)) or
+            int(transacao.valor_pc) >= 0):
+        raise ValueError('Transação não é uma compra válida de item.')
+    detalhes = transacao.detalhes_json or {}
+    catalogo = detalhes.get('catalogo')
+    if catalogo not in {'mundano', 'magico', 'oficina', 'comunidade'}:
+        raise ValueError('Compra sem catálogo estruturado.')
+    if (transacao.tipo == 'mercado-compra') != (catalogo == 'comunidade'):
+        raise ValueError('Origem da compra inconsistente com o ledger.')
+    try:
+        catalogo_id = int(detalhes.get('catalogo_id') or 0)
+        inventario_id = int(detalhes.get('inventario_id') or 0)
+        quantidade = int(detalhes.get('qtd') or 0)
+    except (TypeError, ValueError):
+        raise ValueError('Compra sem identidade de item e quantidade.') from None
+    if min(catalogo_id, inventario_id, quantidade) <= 0:
+        raise ValueError('Compra sem identidade de item e quantidade.')
+    payload = {
+        'transacao_id': transacao.pk, 'catalogo': catalogo,
+        'catalogo_id': catalogo_id, 'inventario_id': inventario_id,
+        'quantidade': quantidade, 'valor_pc': int(transacao.valor_pc),
+    }
+    if catalogo == 'comunidade':
+        anuncio_id = int(detalhes.get('anuncio_id') or 0)
+        if anuncio_id <= 0:
+            raise ValueError('Compra comunitária sem identidade do anúncio.')
+        payload['anuncio_id'] = anuncio_id
+    personagem = transacao.id_personagem
+    evento, _ = TbEventoConquista.objects.get_or_create(
+        origem='site_market', chave_origem=f'compra:{transacao.pk}:realizada',
+        defaults={
+            'tipo': 'item_purchased', 'conta_id': personagem.dono_id,
+            'personagem': personagem, 'agregado_id': transacao.pk,
+            'ocorrido_em': transacao.criado_em, 'payload_json': payload,
+        },
+    )
+    if (evento.tipo != 'item_purchased' or evento.conta_id != personagem.dono_id or
+            evento.agregado_id != transacao.pk or evento.payload_json != payload):
+        raise ValueError('Identidade do fato de compra inconsistente.')
+    return evento
+
+
+def registrar_fato_estorno_compra(compra, reembolso):
+    """O estorno só existe após a reversão efetiva da compra e o crédito no ledger."""
+    from .models import TbEventoConquista
+
+    if (not compra.revertida or compra.revertida_em is None or
+            reembolso.tipo != 'ajuste' or
+            reembolso.id_personagem_id != compra.id_personagem_id or
+            (reembolso.detalhes_json or {}).get('reverte_transacao') != compra.pk or
+            int(reembolso.valor_pc) != -int(compra.valor_pc)):
+        raise ValueError('Reembolso sem reversão financeira correspondente.')
+    compra_fato = registrar_fato_compra(compra, historica=True)
+    payload = {
+        'transacao_id': compra.pk, 'reembolso_transacao_id': reembolso.pk,
+        'compra_evento_id': str(compra_fato.pk),
+        'quantidade': compra_fato.payload_json['quantidade'],
+    }
+    personagem = compra.id_personagem
+    evento, _ = TbEventoConquista.objects.get_or_create(
+        origem='site_market', chave_origem=f'compra:{compra.pk}:reembolsada',
+        defaults={
+            'tipo': 'item_purchase_refunded', 'conta_id': personagem.dono_id,
+            'personagem': personagem, 'agregado_id': compra.pk,
+            'ocorrido_em': compra.revertida_em, 'payload_json': payload,
+        },
+    )
+    if (evento.tipo != 'item_purchase_refunded' or evento.conta_id != personagem.dono_id or
+            evento.agregado_id != compra.pk or evento.payload_json != payload):
+        raise ValueError('Identidade do fato de estorno inconsistente.')
+    return evento
+
+
 def progresso_aventuras_por_origem(user, discord_user_id=None):
     """Mostra fontes distintas; não soma saldos do bot com lançamentos do site."""
     from django.db import DatabaseError, transaction
