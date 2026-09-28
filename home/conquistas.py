@@ -446,18 +446,23 @@ def progresso_aventuras_por_origem(user, discord_user_id=None):
     personagens = list(TbPersonagem.objects.filter(dono=user).values_list(
         'pk', 'aventuras'))
     lancamentos = list(TbPersonagemAventura.objects.filter(
-        id_personagem__dono=user, revertido=False, qtd_aventuras__gt=0
-    ).values('id_personagem_id', 'qtd_aventuras', 'detalhes_json'))
+        id_personagem__dono=user, qtd_aventuras__gt=0
+    ).values('id_personagem_id', 'qtd_aventuras', 'detalhes_json', 'revertido'))
     por_personagem = {}
     vinculadas_ao_bot = 0
     vinculadas_por_id = {}
     site_sem_vinculo = 0
     vinculos_duplicados = 0
+    vinculos_estornados = set()
     for row in lancamentos:
+        bot_id = (row['detalhes_json'] or {}).get('bot_quest_id')
+        if row['revertido']:
+            if bot_id:
+                vinculos_estornados.add(bot_id)
+            continue
         quantidade = int(row['qtd_aventuras'])
         pk = row['id_personagem_id']
         por_personagem[pk] = por_personagem.get(pk, 0) + quantidade
-        bot_id = (row['detalhes_json'] or {}).get('bot_quest_id')
         if bot_id:
             vinculadas_ao_bot += quantidade
             if bot_id in vinculadas_por_id:
@@ -505,7 +510,7 @@ def progresso_aventuras_por_origem(user, discord_user_id=None):
         except DatabaseError:
             bot_creditos_disponiveis = False
     bot_apenas = sum(qtd for quest_id, qtd in bot_creditos.items()
-                     if quest_id not in vinculadas_por_id)
+                     if quest_id not in vinculadas_por_id and quest_id not in vinculos_estornados)
     conflitos = sum(bot_creditos[quest_id] != qtd
                     for quest_id, qtd in vinculadas_por_id.items()
                     if quest_id in bot_creditos) + vinculos_duplicados
@@ -523,6 +528,8 @@ def progresso_aventuras_por_origem(user, discord_user_id=None):
         'bot_creditos_disponiveis': bot_creditos_disponiveis,
         'bot_creditos_por_missao': len(bot_creditos),
         'bot_creditos_adicionais': bot_apenas,
+        'bot_creditos_estornados': sum(quest_id in bot_creditos and quest_id not in vinculadas_por_id
+                                      for quest_id in vinculos_estornados),
         'bot_sem_prova': bot_sem_prova,
         'conflitos_vinculo': conflitos,
         'total_conciliado': total_conciliado,

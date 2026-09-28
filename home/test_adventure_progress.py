@@ -89,6 +89,35 @@ class AdventureProgressProfileTests(_CriadorBase):
             self.client.force_login(self.owner)
             self.assertContains(self.client.get(self.url), 'Total rastreável por lançamentos')
 
+    def test_reverted_bot_link_stays_out_of_total_until_explicit_relink(self):
+        TbPersonagemAventura.objects.filter(id_personagem=self.archived).update(revertido=True)
+        ledger = TbPersonagemAventura.objects.create(
+            id_personagem=self.archived, nome_aventura='Vinculada', qtd_aventuras=2,
+            detalhes_json={'bot_quest_id': 'quest-reverted'})
+        quest_query = MagicMock()
+        quest_query.values.return_value = [{'id': 'quest-reverted', 'questPlayers': [{
+            'userId': '123456789012345678', 'rewardAmount': 2,
+            'rewardFinalizedAt': '2026-09-28T13:00:00Z'}]}]
+        with patch('home.models.BotQuest.objects.filter', return_value=quest_query), \
+             patch('home.models.BotCharacterLog.objects.filter', return_value=MagicMock()):
+            active = progresso_aventuras_por_origem(self.owner, '123456789012345678')
+            self.assertEqual(active['total_conciliado'], 2)
+            ledger.revertido = True
+            ledger.save(update_fields=['revertido'])
+            reversed_progress = progresso_aventuras_por_origem(
+                self.owner, '123456789012345678')
+            self.assertEqual(reversed_progress['total_conciliado'], 0)
+            self.assertEqual(reversed_progress['bot_creditos_estornados'], 1)
+            self.client.force_login(self.owner)
+            self.assertContains(self.client.get(self.url),
+                                'missão vinculada estornada, excluída do total')
+            TbPersonagemAventura.objects.create(
+                id_personagem=self.archived, nome_aventura='Relançada', qtd_aventuras=2,
+                detalhes_json={'bot_quest_id': 'quest-reverted'})
+            relinked = progresso_aventuras_por_origem(self.owner, '123456789012345678')
+            self.assertEqual(relinked['total_conciliado'], 2)
+            self.assertEqual(relinked['bot_creditos_estornados'], 0)
+
     def test_ambiguous_overlap_or_unproved_bot_credit_has_no_total(self):
         quest_query = MagicMock()
         quest_query.values.return_value = [{'id': 'quest-only', 'questPlayers': [{

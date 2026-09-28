@@ -163,6 +163,7 @@ no servidor, então o cliente sobrepõe .public-profile-banner-media,
     {% endif %}
     {% if progresso_aventuras.conflitos_vinculo %}<p>{{ progresso_aventuras.conflitos_vinculo }} vínculo{{ progresso_aventuras.conflitos_vinculo|pluralize }} com crédito divergente ou duplicado; revisão da staff necessária.</p>{% endif %}
     {% if progresso_aventuras.bot_sem_prova %}<p>{{ progresso_aventuras.bot_sem_prova }} missão{{ progresso_aventuras.bot_sem_prova|pluralize }} do bot sem crédito individual comprovado; não entram na soma.</p>{% endif %}
+    {% if progresso_aventuras.bot_creditos_estornados %}<p>{{ progresso_aventuras.bot_creditos_estornados }} missão vinculada estornada, excluída do total até novo lançamento explícito.</p>{% endif %}
   </div>
   {% endif %}
 
