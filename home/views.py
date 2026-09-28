@@ -6738,10 +6738,11 @@ def aplicar_aventuras(personagem, n, evento=False, nome_aventura=None, criado_po
             bras += braseiros_por_aventura(nivel_por_aventuras(base + k))
     nome = (nome_aventura or '').strip() or 'Aventura'
     with transaction.atomic():
+        bot_link = None
         if bot_quest_id:
             from django.contrib.auth import get_user_model
             get_user_model().objects.select_for_update().only('pk').get(pk=personagem.dono_id)
-            bot_quest_id = _conquistas.validar_vinculo_aventura_bot(
+            bot_link = _conquistas.validar_vinculo_aventura_bot(
                 personagem, bot_quest_id, n)
         personagem.aventuras = base + n
         personagem.braseiros = int(personagem.braseiros or 0) + bras
@@ -6755,7 +6756,7 @@ def aplicar_aventuras(personagem, n, evento=False, nome_aventura=None, criado_po
                 ouro_pago_pc=ouro * 100, braseiros_pago=bras,
                 nivel_no_lancamento=int(personagem.nivel or 1), criado_por=criado_por,
                 data_missao=data_missao, id_mestre=mestre,
-                detalhes_json={'bot_quest_id': bot_quest_id} if bot_quest_id else {})
+                detalhes_json=bot_link or {})
             _conquistas.registrar_fato_aventura(lancamento)
     return (ouro, bras)
 

@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
@@ -27,10 +28,17 @@ class AdventureBotLinkTests(_CriadorBase):
             'bot_quest_id': quest_id,
         })
 
-    def bot(self, *, status='finished', player='123456789012345678', reward=None):
+    def bot(self, *, status='finished', player='123456789012345678', reward=None,
+            removed=False, removed_with_reward=False, partial_reward=None):
+        participant = {'userId': player}
+        if removed:
+            participant.update(removedAt='2026-09-28T10:00:00Z',
+                               removedWithReward=removed_with_reward,
+                               rewardAmount=partial_reward)
         quest = SimpleNamespace(id='quest-123', status=status,
-                                questPlayers=[{'userId': player}],
-                                rewardAventurasOverride=reward)
+                                questPlayers=[participant],
+                                rewardAventurasOverride=reward,
+                                endDate=datetime(2026, 9, 28, 12, tzinfo=timezone.utc))
         query = MagicMock()
         query.only.return_value.first.return_value = quest if status == 'finished' else None
         return patch('home.models.BotQuest.objects.filter', return_value=query)
@@ -42,6 +50,11 @@ class AdventureBotLinkTests(_CriadorBase):
             self.assertEqual(ledger.detalhes_json['bot_quest_id'], 'quest-123')
             fact = TbEventoConquista.objects.get(tipo='adventure_recorded')
             self.assertEqual(fact.payload_json['bot_quest_id'], 'quest-123')
+            self.assertEqual(fact.payload_json['bot_quest_proof']['discord_user_id'],
+                             '123456789012345678')
+            self.assertEqual(fact.payload_json['bot_quest_proof']['quest_end_at'],
+                             '2026-09-28T12:00:00+00:00')
+            self.assertIn('verified_at', fact.payload_json['bot_quest_proof'])
             self.assertEqual(progresso_aventuras_por_origem(self.owner)['site_vinculadas_ao_bot'], 1)
             self.client.force_login(self.owner)
             with patch('home.models.BotCharacterLog.objects.filter', return_value=MagicMock()):
@@ -68,6 +81,8 @@ class AdventureBotLinkTests(_CriadorBase):
             self.launch()
         with self.bot(reward=2):
             self.launch(quantity=1)
+        with self.bot(removed=True):
+            self.launch()
         with patch('home.models.BotQuest.objects.filter',
                    side_effect=ProgrammingError('bot unavailable')):
             self.launch()
@@ -75,6 +90,18 @@ class AdventureBotLinkTests(_CriadorBase):
         self.assertEqual(self.character.aventuras, 0)
         self.assertEqual(TbPersonagemAventura.objects.count(), 0)
         self.assertEqual(TbEventoConquista.objects.count(), 0)
+
+    def test_partial_reward_requires_bot_amount_and_preserves_proof(self):
+        with self.bot(removed=True, removed_with_reward=True, partial_reward=2):
+            self.launch(quantity=1)
+            self.assertFalse(TbPersonagemAventura.objects.exists())
+            self.launch(quantity=2)
+        ledger = TbPersonagemAventura.objects.get()
+        proof = ledger.detalhes_json['bot_quest_proof']
+        self.assertTrue(proof['removed_with_reward'])
+        self.assertEqual(proof['reward_amount'], 2)
+        self.assertEqual(TbEventoConquista.objects.get(
+            tipo='adventure_recorded').payload_json['bot_quest_proof'], proof)
 
     def test_link_without_verified_discord_identity_is_refused(self):
         profile = UserProfile.objects.get(user=self.owner)

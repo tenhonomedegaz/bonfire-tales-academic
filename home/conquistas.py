@@ -162,6 +162,9 @@ def registrar_fato_aventura(lancamento, *, estorno=False):
     bot_quest_id = (lancamento.detalhes_json or {}).get('bot_quest_id')
     if bot_quest_id:
         payload['bot_quest_id'] = bot_quest_id
+        bot_prova = (lancamento.detalhes_json or {}).get('bot_quest_proof')
+        if bot_prova:
+            payload['bot_quest_proof'] = bot_prova
     chave = f'aventura-ledger:{lancamento.pk}:{sufixo}'
     evento, _ = TbEventoConquista.objects.get_or_create(
         origem='site_ledger', chave_origem=chave,
@@ -185,6 +188,7 @@ def validar_vinculo_aventura_bot(personagem, bot_quest_id, quantidade):
     Deve ser chamado sob lock da conta antes do crédito. Nome/data jamais servem de
     identidade; o vínculo fica no ledger do site e no fato canônico correspondente.
     """
+    from django.utils import timezone
     from .models import BotQuest, TbPersonagemAventura, UserProfile
 
     quest_id = (bot_quest_id or '').strip()
@@ -195,21 +199,36 @@ def validar_vinculo_aventura_bot(personagem, bot_quest_id, quantidade):
     if not discord_id:
         raise ValueError('Conta sem vínculo Discord verificado.')
     quest = BotQuest.objects.filter(pk=quest_id, status='finished').only(
-        'id', 'questPlayers', 'rewardAventurasOverride').first()
+        'id', 'questPlayers', 'rewardAventurasOverride', 'endDate').first()
     if quest is None:
         raise ValueError('Missão do bot inexistente ou não finalizada.')
-    if not any(isinstance(player, dict) and str(player.get('userId')) == discord_id
-               for player in (quest.questPlayers or [])):
+    player = next((player for player in (quest.questPlayers or [])
+                   if isinstance(player, dict) and str(player.get('userId')) == discord_id), None)
+    if player is None:
         raise ValueError('Conta não consta entre os participantes confirmados da missão.')
-    recompensa = quest.rewardAventurasOverride
-    # Sem override explícito o bot não expõe neste contrato o crédito efetivo.
+    if player.get('removedAt'):
+        if not player.get('removedWithReward') or int(player.get('rewardAmount') or 0) <= 0:
+            raise ValueError('Participante removido sem recompensa verificável.')
+        recompensa = int(player['rewardAmount'])
+    else:
+        recompensa = quest.rewardAventurasOverride
+    # Sem valor explícito o bot não expõe neste contrato o crédito efetivo.
     if recompensa is not None and int(quantidade) != int(recompensa):
         raise ValueError('Quantidade diferente das aventuras concedidas pela missão do bot.')
     if TbPersonagemAventura.objects.filter(
             id_personagem__dono_id=personagem.dono_id, revertido=False,
             detalhes_json__bot_quest_id=quest_id).exists():
         raise ValueError('Esta missão do bot já foi vinculada a um lançamento ativo da conta.')
-    return quest_id
+    return {
+        'bot_quest_id': quest_id,
+        'bot_quest_proof': {
+            'discord_user_id': discord_id,
+            'quest_end_at': quest.endDate.isoformat() if getattr(quest, 'endDate', None) else None,
+            'removed_with_reward': bool(player.get('removedAt')),
+            'reward_amount': int(recompensa) if recompensa is not None else None,
+            'verified_at': timezone.now().isoformat(),
+        },
+    }
 
 
 def progresso_aventuras_por_origem(user, discord_user_id=None):
