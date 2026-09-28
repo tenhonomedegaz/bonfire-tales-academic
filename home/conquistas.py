@@ -218,13 +218,39 @@ def validar_vinculo_aventura_bot(personagem, bot_quest_id, quantidade):
     if player is None:
         raise ValueError('Conta não consta entre os participantes confirmados da missão.')
     if player.get('removedAt'):
-        if not player.get('removedWithReward') or int(player.get('rewardAmount') or 0) <= 0:
+        if not player.get('removedWithReward') or type(player.get('rewardAmount')) is not int or player['rewardAmount'] <= 0:
             raise ValueError('Participante removido sem recompensa verificável.')
-        recompensa = int(player['rewardAmount'])
+        recompensa = player['rewardAmount']
+        origem_recompensa = 'partial_removal'
+        finalizada_em = player.get('removedAt')
     else:
-        recompensa = quest.rewardAventurasOverride
-    # Sem valor explícito o bot não expõe neste contrato o crédito efetivo.
-    if recompensa is not None and int(quantidade) != int(recompensa):
+        from django.utils.dateparse import parse_datetime
+        finalizada_em = player.get('rewardFinalizedAt')
+        try:
+            data_prova = parse_datetime(finalizada_em) if isinstance(finalizada_em, str) else None
+        except ValueError:
+            data_prova = None
+        recompensa = player.get('rewardAmount')
+        if not data_prova or not data_prova.tzinfo:
+            # Contrato anterior: override explícito da missão finalizada, aplicado
+            # ao participante ativo. Mantém o vínculo, mas não prova crédito
+            # individual para o agregado novo.
+            if (type(quest.rewardAventurasOverride) is not int or
+                    quest.rewardAventurasOverride <= 0):
+                raise ValueError('Missão finalizada sem recompensa individual comprovada pelo bot.')
+            recompensa = quest.rewardAventurasOverride
+            origem_recompensa = 'legacy_quest_override'
+            finalizada_em = None
+        elif type(recompensa) is not int or recompensa <= 0:
+            raise ValueError('Missão finalizada sem recompensa individual comprovada pelo bot.')
+        else:
+            origem_recompensa = player.get('rewardSource') or 'quest_finish'
+            if origem_recompensa not in {'quest_finish', 'staff_override'}:
+                raise ValueError('Origem da recompensa da missão inválida.')
+        if (quest.rewardAventurasOverride is not None and
+                recompensa != quest.rewardAventurasOverride):
+            raise ValueError('Recompensa individual diverge da configuração atual da missão.')
+    if int(quantidade) != recompensa:
         raise ValueError('Quantidade diferente das aventuras concedidas pela missão do bot.')
     if TbPersonagemAventura.objects.filter(
             id_personagem__dono_id=personagem.dono_id, revertido=False,
@@ -236,7 +262,9 @@ def validar_vinculo_aventura_bot(personagem, bot_quest_id, quantidade):
             'discord_user_id': discord_id,
             'quest_end_at': quest.endDate.isoformat() if getattr(quest, 'endDate', None) else None,
             'removed_with_reward': bool(player.get('removedAt')),
-            'reward_amount': int(recompensa) if recompensa is not None else None,
+            'reward_amount': recompensa,
+            'reward_source': origem_recompensa,
+            'reward_finalized_at': finalizada_em,
             'verified_at': timezone.now().isoformat(),
         },
     }
@@ -411,9 +439,9 @@ def reprocessar_primeira_compra(user):
 
 
 def progresso_aventuras_por_origem(user, discord_user_id=None):
-    """Mostra fontes distintas; não soma saldos do bot com lançamentos do site."""
+    """Mostra fontes distintas e soma só créditos de missão sem sobreposição possível."""
     from django.db import DatabaseError, transaction
-    from .models import BotCharacterLog, TbPersonagem, TbPersonagemAventura
+    from .models import BotCharacterLog, BotQuest, TbPersonagem, TbPersonagemAventura
 
     personagens = list(TbPersonagem.objects.filter(dono=user).values_list(
         'pk', 'aventuras'))
@@ -422,18 +450,30 @@ def progresso_aventuras_por_origem(user, discord_user_id=None):
     ).values('id_personagem_id', 'qtd_aventuras', 'detalhes_json'))
     por_personagem = {}
     vinculadas_ao_bot = 0
+    vinculadas_por_id = {}
+    site_sem_vinculo = 0
+    vinculos_duplicados = 0
     for row in lancamentos:
         quantidade = int(row['qtd_aventuras'])
         pk = row['id_personagem_id']
         por_personagem[pk] = por_personagem.get(pk, 0) + quantidade
-        if (row['detalhes_json'] or {}).get('bot_quest_id'):
+        bot_id = (row['detalhes_json'] or {}).get('bot_quest_id')
+        if bot_id:
             vinculadas_ao_bot += quantidade
+            if bot_id in vinculadas_por_id:
+                vinculos_duplicados += 1
+            vinculadas_por_id[bot_id] = quantidade
+        else:
+            site_sem_vinculo += quantidade
     site_total = sum(por_personagem.values())
     saldo_sem_ledger = sum(max(0, int(saldo or 0) - por_personagem.get(pk, 0))
                            for pk, saldo in personagens)
     divergencias = sum(int(saldo or 0) < por_personagem.get(pk, 0)
                       for pk, saldo in personagens)
     bot_logs, bot_disponivel = [], True
+    bot_creditos = {}
+    bot_creditos_disponiveis = True
+    bot_sem_prova = 0
     if discord_user_id:
         try:
             # A tabela do bot é externa (managed=False) e pode não estar montada.
@@ -443,6 +483,36 @@ def progresso_aventuras_por_origem(user, discord_user_id=None):
                         'id', 'characterName', 'adventuresPlayed'))
         except DatabaseError:
             bot_disponivel = False
+        try:
+            with transaction.atomic():
+                quests = BotQuest.objects.filter(
+                    status='finished', questPlayers__contains=[{'userId': discord_user_id}]
+                ).values('id', 'questPlayers')
+                for quest in quests:
+                    players = [p for p in (quest['questPlayers'] or [])
+                               if isinstance(p, dict) and str(p.get('userId')) == discord_user_id]
+                    if len(players) != 1:
+                        bot_sem_prova += 1
+                        continue
+                    player = players[0]
+                    amount = player.get('rewardAmount')
+                    if (type(amount) is not int or amount <= 0 or
+                            (player.get('removedAt') and not player.get('removedWithReward')) or
+                            (not player.get('removedAt') and not player.get('rewardFinalizedAt'))):
+                        bot_sem_prova += 1
+                        continue
+                    bot_creditos[quest['id']] = amount
+        except DatabaseError:
+            bot_creditos_disponiveis = False
+    bot_apenas = sum(qtd for quest_id, qtd in bot_creditos.items()
+                     if quest_id not in vinculadas_por_id)
+    conflitos = sum(bot_creditos[quest_id] != qtd
+                    for quest_id, qtd in vinculadas_por_id.items()
+                    if quest_id in bot_creditos) + vinculos_duplicados
+    total_conciliado = (site_total + bot_apenas
+                       if discord_user_id and bot_creditos_disponiveis and
+                       bot_sem_prova == 0 and conflitos == 0 and
+                       not (site_sem_vinculo and bot_apenas) else None)
     return {
         'site_total': site_total,
         'site_vinculadas_ao_bot': vinculadas_ao_bot,
@@ -450,6 +520,12 @@ def progresso_aventuras_por_origem(user, discord_user_id=None):
         'divergencias': divergencias,
         'bot_logs': bot_logs,
         'bot_disponivel': bot_disponivel,
+        'bot_creditos_disponiveis': bot_creditos_disponiveis,
+        'bot_creditos_por_missao': len(bot_creditos),
+        'bot_creditos_adicionais': bot_apenas,
+        'bot_sem_prova': bot_sem_prova,
+        'conflitos_vinculo': conflitos,
+        'total_conciliado': total_conciliado,
         'discord_vinculado': bool(discord_user_id),
     }
 

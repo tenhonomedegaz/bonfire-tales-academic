@@ -156,7 +156,13 @@ no servidor, então o cliente sobrepõe .public-profile-banner-media,
         </ul>{% else %}<p>Nenhuma ficha externa vinculada encontrada.</p>{% endif %}
       {% else %}<p>Dados do bot temporariamente indisponíveis.</p>{% endif %}
     {% else %}<p>Vincule o Discord para consultar as fichas do bot separadamente.</p>{% endif %}
+    {% if progresso_aventuras.total_conciliado is not None %}
+    <p>Total rastreável por lançamentos do site e recompensas individuais declaradas pelo bot: {{ progresso_aventuras.total_conciliado }} aventura{{ progresso_aventuras.total_conciliado|pluralize }}. O saldo legado sem ledger não entra nessa soma; a aplicação da recompensa na ficha externa ainda exige confirmação.</p>
+    {% else %}
     <p>As fontes ainda não foram conciliadas; conquistas por total de aventuras aguardam validação.</p>
+    {% endif %}
+    {% if progresso_aventuras.conflitos_vinculo %}<p>{{ progresso_aventuras.conflitos_vinculo }} vínculo{{ progresso_aventuras.conflitos_vinculo|pluralize }} com crédito divergente ou duplicado; revisão da staff necessária.</p>{% endif %}
+    {% if progresso_aventuras.bot_sem_prova %}<p>{{ progresso_aventuras.bot_sem_prova }} missão{{ progresso_aventuras.bot_sem_prova|pluralize }} do bot sem crédito individual comprovado; não entram na soma.</p>{% endif %}
   </div>
   {% endif %}
 

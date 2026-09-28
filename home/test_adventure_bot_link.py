@@ -28,13 +28,16 @@ class AdventureBotLinkTests(_CriadorBase):
             'bot_quest_id': quest_id,
         })
 
-    def bot(self, *, status='finished', player='123456789012345678', reward=None,
-            removed=False, removed_with_reward=False, partial_reward=None):
+    def bot(self, *, status='finished', player='123456789012345678', reward=1,
+            removed=False, removed_with_reward=False, partial_reward=None, snapshot=True):
         participant = {'userId': player}
         if removed:
             participant.update(removedAt='2026-09-28T10:00:00Z',
                                removedWithReward=removed_with_reward,
                                rewardAmount=partial_reward)
+        elif reward is not None and snapshot:
+            participant.update(rewardAmount=reward,
+                               rewardFinalizedAt='2026-09-28T12:00:00+00:00')
         quest = SimpleNamespace(id='quest-123', status=status,
                                 questPlayers=[participant],
                                 rewardAventurasOverride=reward,
@@ -55,6 +58,8 @@ class AdventureBotLinkTests(_CriadorBase):
             self.assertEqual(fact.payload_json['bot_quest_proof']['quest_end_at'],
                              '2026-09-28T12:00:00+00:00')
             self.assertIn('verified_at', fact.payload_json['bot_quest_proof'])
+            self.assertEqual(fact.payload_json['bot_quest_proof']['reward_amount'], 1)
+            self.assertEqual(fact.payload_json['bot_quest_proof']['reward_source'], 'quest_finish')
             self.assertEqual(progresso_aventuras_por_origem(self.owner)['site_vinculadas_ao_bot'], 1)
             self.client.force_login(self.owner)
             with patch('home.models.BotCharacterLog.objects.filter', return_value=MagicMock()):
@@ -81,6 +86,8 @@ class AdventureBotLinkTests(_CriadorBase):
             self.launch()
         with self.bot(reward=2):
             self.launch(quantity=1)
+        with self.bot(reward=None):
+            self.launch()
         with self.bot(removed=True):
             self.launch()
         with patch('home.models.BotQuest.objects.filter',
@@ -110,3 +117,11 @@ class AdventureBotLinkTests(_CriadorBase):
         with self.bot():
             self.launch()
         self.assertFalse(TbPersonagemAventura.objects.exists())
+
+    def test_legacy_explicit_override_allows_link_without_claiming_individual_credit(self):
+        with self.bot(reward=2, snapshot=False):
+            self.launch(quantity=2)
+        proof = TbPersonagemAventura.objects.get().detalhes_json['bot_quest_proof']
+        self.assertEqual(proof['reward_amount'], 2)
+        self.assertEqual(proof['reward_source'], 'legacy_quest_override')
+        self.assertIsNone(proof['reward_finalized_at'])
