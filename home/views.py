@@ -6738,11 +6738,12 @@ def aplicar_aventuras(personagem, n, evento=False, nome_aventura=None, criado_po
         desc = '%d aventura(s)%s' % (n, (' de evento — +%d braseiros' % bras) if evento else '')
         _registrar_transacao(personagem, 'aventura', desc, ouro * 100)
         if registrar_ledger:
-            TbPersonagemAventura.objects.create(
+            lancamento = TbPersonagemAventura.objects.create(
                 id_personagem=personagem, nome_aventura=nome[:200], qtd_aventuras=n,
                 ouro_pago_pc=ouro * 100, braseiros_pago=bras,
                 nivel_no_lancamento=int(personagem.nivel or 1), criado_por=criado_por,
                 data_missao=data_missao, id_mestre=mestre, detalhes_json={})
+            _conquistas.registrar_fato_aventura(lancamento)
     return (ouro, bras)
 
 
@@ -7105,6 +7106,7 @@ def personagem_reverter_aventura(request, pk, lancamento_id):
                 lanc.revertido_em = timezone.now()
                 lanc.revertido_por = request.user
                 lanc.save(update_fields=['revertido', 'revertido_em', 'revertido_por'])
+                _conquistas.registrar_fato_aventura(lanc, estorno=True)
     if erro:
         return _aventuras_staff_resposta(
             request, p, rollback_msg=erro, ok=False)

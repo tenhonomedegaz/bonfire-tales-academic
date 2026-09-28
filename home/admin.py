@@ -4013,7 +4013,8 @@ class TbEventoConquistaAdmin(admin.ModelAdmin):
     list_filter = ('tipo', 'origem')
     search_fields = ('conta__username', 'chave_origem')
     readonly_fields = ('id', 'origem', 'chave_origem', 'tipo', 'versao_payload',
-                       'conta', 'personagem', 'agregado_id', 'ocorrido_em', 'ingerido_em')
+                       'payload_json', 'conta', 'personagem', 'agregado_id',
+                       'ocorrido_em', 'ingerido_em')
     ordering = ('-ocorrido_em',)
     actions = None
 

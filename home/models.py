@@ -2600,6 +2600,7 @@ class TbEventoConquista(models.Model):
     chave_origem = models.CharField(db_column='ChaveOrigem', max_length=100)
     tipo = models.CharField(db_column='Tipo', max_length=50)
     versao_payload = models.PositiveSmallIntegerField(db_column='VersaoPayload', default=1)
+    payload_json = models.JSONField(db_column='PayloadJSON', default=dict, blank=True)
     conta = models.ForeignKey('auth.User', on_delete=models.CASCADE, db_column='ContaId')
     personagem = models.ForeignKey('TbPersonagem', on_delete=models.SET_NULL,
                                    null=True, blank=True, db_column='PersonagemId')

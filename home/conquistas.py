@@ -140,6 +140,42 @@ def registrar_publicacao_cronica(cronica):
     return evento
 
 
+def registrar_fato_aventura(lancamento, *, estorno=False):
+    """Persiste o fato do ledger do site, sem somá-lo a fatos ainda não vinculados do bot."""
+    from .models import TbEventoConquista
+
+    if estorno:
+        if not lancamento.revertido or not lancamento.revertido_em:
+            raise ValueError('O lançamento ainda não foi estornado.')
+        tipo, sufixo, ocorrido = 'adventure_reverted', 'revertida', lancamento.revertido_em
+    else:
+        if lancamento.revertido or int(lancamento.qtd_aventuras or 0) <= 0:
+            raise ValueError('O lançamento não está válido.')
+        tipo, sufixo, ocorrido = 'adventure_recorded', 'registrada', lancamento.criado_em
+    personagem = lancamento.id_personagem
+    payload = {
+        'ledger_id': lancamento.pk,
+        'quantidade': int(lancamento.qtd_aventuras),
+        'mestre_id': lancamento.id_mestre_id,
+        'data_missao': lancamento.data_missao.isoformat() if lancamento.data_missao else None,
+    }
+    chave = f'aventura-ledger:{lancamento.pk}:{sufixo}'
+    evento, _ = TbEventoConquista.objects.get_or_create(
+        origem='site_ledger', chave_origem=chave,
+        defaults={
+            'tipo': tipo, 'conta_id': personagem.dono_id,
+            'personagem': personagem, 'agregado_id': lancamento.pk,
+            'ocorrido_em': ocorrido, 'payload_json': payload,
+        },
+    )
+    if (evento.tipo != tipo or evento.conta_id != personagem.dono_id or
+            evento.agregado_id != lancamento.pk or
+            evento.payload_json.get('ledger_id') != lancamento.pk or
+            evento.payload_json.get('quantidade') != payload['quantidade']):
+        raise ValueError('Identidade do fato de aventura inconsistente.')
+    return evento
+
+
 # ─────────────────────────── Vitrine (perfil) ──────────────────────────────────
 def _conquista_dict(conquista, obtida, concedida_em=None):
     """Dict uniforme pros templates de vitrine."""
