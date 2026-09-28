@@ -27,19 +27,30 @@ def conceder_conquista(user, conquista, por=None):
         return False
     from .models import TbUsuarioConquista, TbUsuarioCosmetico
 
-    _, criada = TbUsuarioConquista.objects.get_or_create(
+    concessao, criada = TbUsuarioConquista.objects.get_or_create(
         user=user, conquista=conquista,
         defaults={'concedida_por': por if getattr(por, 'pk', None) else None},
     )
+    if concessao.revogada_em is not None:
+        concessao.revogada_em = None
+        concessao.save(update_fields=['revogada_em'])
+        criada = True
+    if getattr(por, 'pk', None) and concessao.concedida_por_id is None:
+        concessao.concedida_por = por
+        concessao.save(update_fields=['concedida_por'])
     # Materializa a recompensa no inventário (idempotente por unique_together
     # user+cosmetico). Roda mesmo em re-concessão pra cobrir recompensa adicionada
     # depois — nunca duplica.
     recompensa = getattr(conquista, 'recompensa', None)
     if recompensa is not None:
-        TbUsuarioCosmetico.objects.get_or_create(
+        posse, _ = TbUsuarioCosmetico.objects.get_or_create(
             user=user, cosmetico=recompensa,
             defaults={'origem': 'conquista:%s' % conquista.slug},
         )
+        if posse.suspenso_em:
+            posse.suspenso_em = None
+            posse.origem = 'conquista:%s' % conquista.slug
+            posse.save(update_fields=['suspenso_em', 'origem'])
     return criada
 
 
@@ -275,6 +286,8 @@ def registrar_fato_compra(transacao, *, historica=False):
     if (evento.tipo != 'item_purchased' or evento.conta_id != personagem.dono_id or
             evento.agregado_id != transacao.pk or evento.payload_json != payload):
         raise ValueError('Identidade do fato de compra inconsistente.')
+    if not historica:
+        _avaliar_primeira_compra(personagem.dono)
     return evento
 
 
@@ -306,7 +319,69 @@ def registrar_fato_estorno_compra(compra, reembolso):
     if (evento.tipo != 'item_purchase_refunded' or evento.conta_id != personagem.dono_id or
             evento.agregado_id != compra.pk or evento.payload_json != payload):
         raise ValueError('Identidade do fato de estorno inconsistente.')
+    _avaliar_primeira_compra(personagem.dono)
     return evento
+
+
+def _avaliar_primeira_compra(user):
+    """Reavalia compras rastreáveis não estornadas sob bloqueio da conta.
+
+    A concessão permanece como histórico quando perde suporte; a posse visual é
+    suspensa apenas quando a própria conquista é sua origem registrada.
+    """
+    from django.contrib.auth import get_user_model
+    from django.db import transaction
+    from django.utils import timezone
+    from .models import (TbConquista, TbEventoConquista, TbTransacao,
+                         TbUsuarioConquista, TbUsuarioCosmetico)
+
+    regra = {'schema_version': 1, 'metric': 'items_purchased',
+             'scope': 'account', 'operator': 'gte', 'target': 1}
+    with transaction.atomic():
+        get_user_model().objects.select_for_update().only('pk').get(pk=user.pk)
+        facts = TbEventoConquista.objects.filter(
+            conta=user, origem='site_market', tipo='item_purchased').order_by('ocorrido_em', 'agregado_id')
+        active_ids = set(TbTransacao.objects.filter(
+            id_personagem__dono=user, revertida=False,
+            pk__in=facts.values('agregado_id')).values_list('pk', flat=True))
+        first = next((fact for fact in facts if fact.agregado_id in active_ids), None)
+        rules = TbConquista.objects.filter(
+            ativo=True, criterio='automatico', criterio_json__metric='items_purchased'
+        ).select_related('recompensa')
+        for rule in rules:
+            if rule.criterio_json != regra:
+                continue
+            grant = TbUsuarioConquista.objects.select_for_update().filter(
+                user=user, conquista=rule).first()
+            if first is not None:
+                if grant is None or (grant.revogada_em and grant.concedida_por_id is None):
+                    if conceder_conquista(user, rule):
+                        TbUsuarioConquista.objects.filter(user=user, conquista=rule).update(
+                            evidencia_json={'evento_id': str(first.pk), 'origem': first.origem,
+                                            'chave_origem': first.chave_origem,
+                                            'agregado_id': first.agregado_id},
+                            definicao_json=regra)
+                elif (grant.concedida_por_id is None and
+                      grant.evidencia_json.get('agregado_id') != first.agregado_id):
+                    grant.evidencia_json = {
+                        'evento_id': str(first.pk), 'origem': first.origem,
+                        'chave_origem': first.chave_origem,
+                        'agregado_id': first.agregado_id,
+                    }
+                    grant.save(update_fields=['evidencia_json'])
+            elif grant and grant.concedida_por_id is None and grant.revogada_em is None:
+                now = timezone.now()
+                grant.revogada_em = now
+                grant.save(update_fields=['revogada_em'])
+                if rule.recompensa_id:
+                    origin = 'conquista:%s' % rule.slug
+                    other_grants = TbUsuarioConquista.objects.filter(
+                        user=user, conquista__recompensa_id=rule.recompensa_id,
+                        revogada_em__isnull=True).exclude(pk=grant.pk).exists()
+                    if not other_grants:
+                        TbUsuarioCosmetico.objects.filter(
+                            user=user, cosmetico_id=rule.recompensa_id,
+                            origem=origin, suspenso_em__isnull=True).update(suspenso_em=now)
 
 
 def progresso_aventuras_por_origem(user, discord_user_id=None):
@@ -374,7 +449,7 @@ def _slugs_obtidas(user):
     from .models import TbUsuarioConquista
     return dict(
         TbUsuarioConquista.objects
-        .filter(user=user, conquista__ativo=True)
+        .filter(user=user, conquista__ativo=True, revogada_em__isnull=True)
         .values_list('conquista_id', 'concedida_em')
     )
 
@@ -435,7 +510,8 @@ def conquistas_batch(users):
     from django.db.models import Count
     from .models import TbUsuarioConquista
     linhas = (TbUsuarioConquista.objects
-              .filter(user_id__in=[u.pk for u in users], conquista__ativo=True)
+              .filter(user_id__in=[u.pk for u in users], conquista__ativo=True,
+                      revogada_em__isnull=True)
               .values('user_id')
               .annotate(n=Count('id')))
     for row in linhas:

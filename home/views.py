@@ -874,6 +874,7 @@ def _validated_badges_destaque(user, slugs):
     possuidos = set(
         TbUsuarioCosmetico.objects
         .filter(user=user, cosmetico__tipo='badge', cosmetico__ativo=True,
+                suspenso_em__isnull=True,
                 cosmetico__slug__in=slugs)
         .values_list('cosmetico__slug', flat=True)
     )

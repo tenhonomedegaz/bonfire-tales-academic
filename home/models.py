@@ -2464,6 +2464,7 @@ class TbUsuarioCosmetico(models.Model):
     desbloqueado_em = models.DateTimeField(db_column='DesbloqueadoEm', auto_now_add=True)
     origem = models.CharField(db_column='Origem', max_length=30, blank=True,
                               help_text="Como foi obtido ('conquista:<slug>', 'compra_mm', 'staff', 'seed'…).")
+    suspenso_em = models.DateTimeField(db_column='SuspensoEm', null=True, blank=True)
 
     class Meta:
         db_table = 'TB_UsuarioCosmetico'
@@ -2523,7 +2524,7 @@ class TbConquista(models.Model):
                                 choices=CRITERIO_CHOICES,
                                 help_text='manual = staff concede; automatico = por critério (fase 2).')
     criterio_json = models.JSONField(db_column='CriterioJson', default=dict, blank=True,
-                                     help_text='Métricas disponíveis: characters_created ou stories_published; schema_version=1, scope=account, operator=gte, target=1.')
+                                     help_text='Métricas disponíveis: characters_created, stories_published ou items_purchased; schema_version=1, scope=account, operator=gte, target=1.')
     recompensa = models.ForeignKey(TbCosmetico, on_delete=models.SET_NULL, null=True,
                                    blank=True, related_name='conquistas',
                                    db_column='RecompensaId',
@@ -2545,14 +2546,14 @@ class TbConquista(models.Model):
         supported = [
             {'schema_version': 1, 'metric': metric,
              'scope': 'account', 'operator': 'gte', 'target': 1}
-            for metric in ('characters_created', 'stories_published')
+            for metric in ('characters_created', 'stories_published', 'items_purchased')
         ]
         if self.criterio == 'automatico' and self.criterio_json not in supported:
             if self.pk and type(self).objects.filter(
                 pk=self.pk, criterio='automatico', criterio_json=self.criterio_json,
             ).exists():
                 return  # Definições antigas permanecem editáveis sem mudar a regra.
-            raise ValidationError({'criterio_json': 'Critério automático não suportado. Use characters_created ou stories_published, schema_version=1 e target=1.'})
+            raise ValidationError({'criterio_json': 'Critério automático não suportado. Use characters_created, stories_published ou items_purchased, schema_version=1 e target=1.'})
 
     @property
     def icone_efetivo(self):
@@ -2581,6 +2582,7 @@ class TbUsuarioConquista(models.Model):
                                       db_column='ConcedidaPorId')
     evidencia_json = models.JSONField(db_column='EvidenciaJson', default=dict, blank=True)
     definicao_json = models.JSONField(db_column='DefinicaoJson', default=dict, blank=True)
+    revogada_em = models.DateTimeField(db_column='RevogadaEm', null=True, blank=True)
 
     class Meta:
         db_table = 'TB_UsuarioConquista'

@@ -139,7 +139,8 @@ def _concedida_dict(cosmetico):
 def _badges_concedidas_qs(user):
     from .models import TbUsuarioCosmetico
     return (TbUsuarioCosmetico.objects
-            .filter(user=user, cosmetico__tipo='badge', cosmetico__ativo=True)
+            .filter(user=user, cosmetico__tipo='badge', cosmetico__ativo=True,
+                    suspenso_em__isnull=True)
             .select_related('cosmetico')
             .order_by('cosmetico__ordem', 'cosmetico__nome'))
 
@@ -207,7 +208,8 @@ def user_possui_cosmetico(user, slug, tipo):
         return False
     if cos.origem == 'livre':
         return True
-    return TbUsuarioCosmetico.objects.filter(user=user, cosmetico=cos).exists()
+    return TbUsuarioCosmetico.objects.filter(
+        user=user, cosmetico=cos, suspenso_em__isnull=True).exists()
 
 
 def _titulo_dict(cos):
@@ -251,7 +253,8 @@ def titulos_disponiveis(user):
         return []
     from .models import TbUsuarioCosmetico
     qs = (TbUsuarioCosmetico.objects
-          .filter(user=user, cosmetico__tipo='titulo', cosmetico__ativo=True)
+          .filter(user=user, cosmetico__tipo='titulo', cosmetico__ativo=True,
+                  suspenso_em__isnull=True)
           .select_related('cosmetico')
           .order_by('cosmetico__ordem', 'cosmetico__nome'))
     return [{'slug': uc.cosmetico.slug, 'nome': uc.cosmetico.nome,
@@ -322,7 +325,8 @@ def _badges_concedidas_batch(users):
         return out
     qs = (TbUsuarioCosmetico.objects
           .filter(user_id__in=[u.pk for u in users],
-                  cosmetico__tipo='badge', cosmetico__ativo=True)
+                  cosmetico__tipo='badge', cosmetico__ativo=True,
+                  suspenso_em__isnull=True)
           .select_related('cosmetico')
           .order_by('cosmetico__ordem', 'cosmetico__nome'))
     for uc in qs:
@@ -352,6 +356,7 @@ def _titulos_equipados_batch(users):
     possui = set(TbUsuarioCosmetico.objects.filter(
         user_id__in=list(desejado.keys()),
         cosmetico__tipo='titulo', cosmetico__ativo=True,
+        suspenso_em__isnull=True,
         cosmetico__slug__in=slugs
     ).values_list('user_id', 'cosmetico__slug'))
     for pk, slug in desejado.items():

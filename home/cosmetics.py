@@ -153,7 +153,8 @@ def _user_inventory_values(user, tipo):
     from .models import TbUsuarioCosmetico
     slugs = (
         TbUsuarioCosmetico.objects
-        .filter(user=user, cosmetico__tipo=tipo, cosmetico__ativo=True)
+        .filter(user=user, cosmetico__tipo=tipo, cosmetico__ativo=True,
+                suspenso_em__isnull=True)
         .values_list('cosmetico__slug', flat=True)
     )
     return {_valor_de_slug(tipo, s) for s in slugs}
