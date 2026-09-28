@@ -1,0 +1,21 @@
+{% extends 'home/base.html' %}
+{% block content %}
+<main class="cronicas-featured">
+  <h1>Notificações das crônicas</h1>
+  <p><a href="{% url 'mundo_cronicas' %}">Voltar às crônicas</a></p>
+  <ul>
+    {% for item in notificacoes %}
+    <li>
+      {% if not item.lida_em %}<strong>Nova</strong>{% endif %}
+      <a href="{% url 'cronica_detail' slug=item.cronica.slug %}{% if item.comentario_id %}#comentario-{{ item.comentario_id }}{% endif %}">{{ item.texto }}</a>
+      <time datetime="{{ item.criada_em|date:'c' }}">{{ item.criada_em|date:'d/m/Y H:i' }}</time>
+      {% if not item.lida_em %}
+      <form method="post" action="{% url 'cronica_notificacao_ler' item.pk %}">
+        {% csrf_token %}<button type="submit">Marcar como lida</button>
+      </form>
+      {% endif %}
+    </li>
+    {% empty %}<li>Sem notificações.</li>{% endfor %}
+  </ul>
+</main>
+{% endblock %}

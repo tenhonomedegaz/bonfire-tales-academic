@@ -1,0 +1,31 @@
+{% extends 'home/base.html' %}
+{% load static %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/pages/cronica_detail.css' %}">{% endblock %}
+{% block content %}
+<main class="cronica-layout">
+  <h1>Denúncias de crônicas</h1>
+  {% for report in denuncias %}
+  <article class="cronica-status-banner">
+    <h2>{{ report.cronica.titulo }}</h2>
+    <p>Denunciado por {{ report.denunciante.username }} em {{ report.criado_em|date:'d/m/Y H:i' }}.</p>
+    <p>Motivo: {{ report.motivo }}</p>
+    <p>Conteúdo no momento da denúncia: {{ report.alvo_snapshot|linebreaksbr }}</p>
+    {% if report.comentario %}
+      <p>Comentário atual de {{ report.comentario.autor.username }}: {{ report.comentario.texto|linebreaksbr }}</p>
+    {% else %}
+      <p>Denúncia da crônica: <a href="{% url 'cronica_detail' report.cronica.slug %}">ver conteúdo</a>.</p>
+    {% endif %}
+    <p>Estado: {{ report.get_estado_display }}</p>
+    <form method="post" action="{% url 'cronica_moderar_denuncia' report.pk %}">
+      {% csrf_token %}
+      {% if report.estado == 'pendente' %}
+      <button name="action" value="descartar" type="submit">Descartar denúncia</button>
+      <button name="action" value="ocultar" type="submit">Ocultar conteúdo</button>
+      {% else %}
+      <button name="action" value="restaurar" type="submit">Restaurar conteúdo</button>
+      {% endif %}
+    </form>
+  </article>
+  {% empty %}<p>Não há denúncias pendentes.</p>{% endfor %}
+</main>
+{% endblock %}

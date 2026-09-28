@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/pages/cronicas_list.css' %}?v=2">
+<link rel="stylesheet" href="{% static 'css/pages/cronicas_list.css' %}?v=3">
 
 {% endblock %}
 
@@ -14,6 +14,10 @@
 
 <div class="cronicas-toolbar">
   <form method="get" style="display: contents;">
+    <select name="feed" class="cronicas-filter" aria-label="Feed" onchange="this.form.submit()">
+      <option value="recentes" {% if feed == 'recentes' %}selected{% endif %}>Publicações recentes</option>
+      {% if is_authenticated %}<option value="seguindo" {% if feed == 'seguindo' %}selected{% endif %}>Autores que sigo</option>{% endif %}
+    </select>
     <select name="territorio" class="cronicas-filter" onchange="this.form.submit()">
       <option value="">Todos os Territórios</option>
       {% for t in territorios %}
@@ -29,6 +33,7 @@
   </form>
 
   {% if is_authenticated %}
+  <a href="{% url 'cronica_notificacoes' %}" class="cronicas-btn-outline">Notificações{% if notificacoes_nao_lidas %} ({{ notificacoes_nao_lidas }}){% endif %}</a>
   <a href="{% url 'cronica_create' %}" class="cronicas-btn">
     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
     Escrever Crônica
@@ -40,8 +45,18 @@
     Revisão
     {% if pendente_count > 0 %}<span class="cronicas-review-badge">{{ pendente_count }}</span>{% endif %}
   </a>
+  <a href="{% url 'cronica_denuncias' %}" class="cronicas-btn-outline">Denúncias</a>
   {% endif %}
 </div>
+
+{% if destaques %}
+<section class="cronicas-featured" aria-labelledby="cronicas-featured-heading">
+  <h2 id="cronicas-featured-heading">Destaques editoriais</h2>
+  <div class="cronicas-featured-links">
+    {% for c in destaques %}<a href="{% url 'cronica_detail' slug=c.slug %}">{{ c.titulo }} <small>por {{ c.autor.username }}</small></a>{% endfor %}
+  </div>
+</section>
+{% endif %}
 
 <div class="cronicas-grid">
   {% for c in cronicas %}
@@ -53,15 +68,24 @@
       <span class="author">{{ c.autor.username }}</span>
       {% if c.personagem_nome %}<span>&middot;</span><span class="personagem">{{ c.personagem_nome }}</span>{% endif %}
       <span>&middot;</span>
-      <span>{{ c.data_submissao|date:"d M Y" }}</span>
+      <span>{{ c.data_publicacao|default:c.data_submissao|date:"d M Y" }}</span>
     </div>
   </a>
   {% empty %}
   <div class="cronicas-empty">
-    <p>Nenhuma crônica publicada ainda. Seja o primeiro a registrar sua história!</p>
+    {% if feed == 'seguindo' %}<p>Nenhuma crônica publicada pelos autores que você segue.</p>
+    {% else %}<p>Nenhuma crônica publicada para estes filtros.</p>{% endif %}
   </div>
   {% endfor %}
 </div>
+
+{% if page_obj.has_other_pages %}
+<nav class="cronicas-pagination" aria-label="Páginas das crônicas">
+  {% if page_obj.has_previous %}<a href="?feed={{ feed|urlencode }}&territorio={{ territorio_filter|urlencode }}&regiao={{ regiao_filter|urlencode }}&page={{ page_obj.previous_page_number }}">Anterior</a>{% endif %}
+  <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+  {% if page_obj.has_next %}<a href="?feed={{ feed|urlencode }}&territorio={{ territorio_filter|urlencode }}&regiao={{ regiao_filter|urlencode }}&page={{ page_obj.next_page_number }}">Próxima</a>{% endif %}
+</nav>
+{% endif %}
 
 {% if minhas_cronicas %}
 <div class="minhas-section">
@@ -71,9 +95,9 @@
     <div class="minhas-item">
       <span class="minhas-item-title">{{ c.titulo }}</span>
       <span class="minhas-status {{ c.status }}">{{ c.get_status_display }}</span>
-      {% if c.status == 'reprovada' or c.status == 'pendente' %}
       <a href="{% url 'cronica_edit' slug=c.slug %}" class="minhas-action">Editar</a>
-      {% endif %}
+      {% if c.revisao_edicao.estado == 'pendente' %}<span>Nova versão em revisão</span>{% endif %}
+      {% if c.revisao_edicao.estado == 'reprovada' %}<span>Edição devolvida para ajustes</span>{% endif %}
       <a href="{% url 'cronica_detail' slug=c.slug %}" class="minhas-action">Ver</a>
     </div>
     {% endfor %}

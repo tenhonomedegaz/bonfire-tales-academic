@@ -57,7 +57,8 @@ MEMORY_MODELS = [
     "TbTagLibraryRevision",
     "TbSolicitacaoTranscricao",
     "TbTransacao", "TbTransacaoMestre",
-    "TbAventuraMestre", "TbAnuncioItemMagico", "TbCronica", "TbJornal",
+    "TbAventuraMestre", "TbAnuncioItemMagico", "TbCronica", "TbCronicaCurtida",
+    "TbCronicaComentario", "TbCronicaDenuncia", "TbCronicaNotificacao", "TbJornal",
     "TbReiDaColina", "UserProfile",
     # Pedido e retorno financeiro do gateway: dado transacional da producao.
     # Nunca deve entrar em fixture de conteudo nem ser apagado por restauracao.

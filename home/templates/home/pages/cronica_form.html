@@ -12,6 +12,8 @@
     <h1>{% if is_new %}Escrever Crônica{% else %}Editar Crônica{% endif %}</h1>
     <p>Narre os acontecimentos vividos pelo seu personagem. Após submeter, um membro da equipe aprovará sua crônica.</p>
   </div>
+  {% if is_published %}<div class="editor-info-box">A versão publicada continua visível até a equipe aprovar esta edição.</div>{% endif %}
+  {% if review_feedback %}<div class="editor-info-box"><strong>Feedback da revisão:</strong> {{ review_feedback }}</div>{% endif %}
 
   <div class="editor-info-box">
     <strong>Dica:</strong> Use Markdown para formatar seu texto. **Negrito**, *itálico*, listas com <code>-</code>, títulos com <code>#</code>. O preview ao lado mostra como ficará.

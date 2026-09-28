@@ -631,6 +631,7 @@ class TbCronica(models.Model):
         ('pendente', 'Pendente'),
         ('aprovada', 'Aprovada'),
         ('reprovada', 'Reprovada'),
+        ('oculta', 'Oculta pela moderação'),
     ]
 
     id_cronica = models.AutoField(db_column='Id_Cronica', primary_key=True)
@@ -648,6 +649,9 @@ class TbCronica(models.Model):
     revisado_por = models.ForeignKey('auth.User', models.SET_NULL, db_column='RevisadoPor', blank=True, null=True, related_name='cronicas_revisadas')
     data_submissao = models.DateTimeField(db_column='DataSubmissao', auto_now_add=True)
     data_revisao = models.DateTimeField(db_column='DataRevisao', blank=True, null=True)
+    revisao_edicao = models.JSONField(db_column='RevisaoEdicao', default=dict, blank=True)
+    data_publicacao = models.DateTimeField(db_column='DataPublicacao', blank=True, null=True)
+    destaque_editorial = models.BooleanField(db_column='DestaqueEditorial', default=False)
 
     class Meta:
         managed = True
@@ -686,6 +690,98 @@ class TbCronica(models.Model):
     @property
     def regiao_label(self):
         return ', '.join(self.regioes_lista)
+
+
+class TbCronicaCurtida(models.Model):
+    """Uma reação por leitor e crônica, separada das curtidas de perfil."""
+
+    cronica = models.ForeignKey(TbCronica, on_delete=models.CASCADE,
+                                related_name='curtidas', db_column='CronicaId')
+    leitor = models.ForeignKey('auth.User', on_delete=models.CASCADE,
+                              related_name='cronicas_curtidas', db_column='LeitorId')
+    criado_em = models.DateTimeField(db_column='CriadoEm', auto_now_add=True)
+
+    class Meta:
+        db_table = 'TB_CronicaCurtida'
+        constraints = [models.UniqueConstraint(
+            fields=['cronica', 'leitor'], name='unique_cronica_curtida_leitor',
+        )]
+
+
+class TbCronicaNotificacao(models.Model):
+    destinatario = models.ForeignKey('auth.User', on_delete=models.CASCADE,
+                                     related_name='cronica_notificacoes', db_column='DestinatarioId')
+    cronica = models.ForeignKey(TbCronica, on_delete=models.CASCADE,
+                                related_name='notificacoes', db_column='CronicaId')
+    chave_evento = models.CharField(max_length=100, db_column='ChaveEvento')
+    tipo = models.CharField(max_length=24, db_column='Tipo')
+    texto = models.CharField(max_length=240, db_column='Texto')
+    comentario = models.ForeignKey('TbCronicaComentario', on_delete=models.CASCADE,
+                                   null=True, blank=True, db_column='ComentarioId')
+    criada_em = models.DateTimeField(auto_now_add=True, db_column='CriadaEm')
+    lida_em = models.DateTimeField(null=True, blank=True, db_column='LidaEm')
+
+    class Meta:
+        db_table = 'TB_CronicaNotificacao'
+        ordering = ['-criada_em', '-pk']
+        constraints = [models.UniqueConstraint(
+            fields=['destinatario', 'chave_evento'], name='unique_cronica_notificacao_evento',
+        )]
+
+
+class TbCronicaComentario(models.Model):
+    cronica = models.ForeignKey(TbCronica, on_delete=models.CASCADE,
+                                related_name='comentarios', db_column='CronicaId')
+    autor = models.ForeignKey('auth.User', on_delete=models.CASCADE,
+                             related_name='cronica_comentarios', db_column='AutorId')
+    resposta_a = models.ForeignKey('self', on_delete=models.PROTECT, null=True, blank=True,
+                                  related_name='respostas', db_column='RespostaAId')
+    texto = models.TextField(db_column='Texto')
+    estado = models.CharField(db_column='Estado', max_length=12, default='publico',
+                              choices=[('publico', 'Público'), ('oculto', 'Oculto')])
+    revisao = models.PositiveIntegerField(db_column='Revisao', default=1)
+    historico_edicoes = models.JSONField(db_column='HistoricoEdicoes', default=list, blank=True)
+    criado_em = models.DateTimeField(db_column='CriadoEm', auto_now_add=True)
+    editado_em = models.DateTimeField(db_column='EditadoEm', null=True, blank=True)
+    chave_operacao = models.UUIDField(db_column='ChaveOperacao', unique=True)
+
+    class Meta:
+        db_table = 'TB_CronicaComentario'
+        ordering = ['criado_em', 'pk']
+
+
+class TbCronicaDenuncia(models.Model):
+    cronica = models.ForeignKey(TbCronica, on_delete=models.CASCADE,
+                                related_name='denuncias', db_column='CronicaId')
+    comentario = models.ForeignKey(TbCronicaComentario, on_delete=models.CASCADE,
+                                   null=True, blank=True, related_name='denuncias',
+                                   db_column='ComentarioId')
+    denunciante = models.ForeignKey('auth.User', on_delete=models.CASCADE,
+                                    related_name='cronica_denuncias', db_column='DenuncianteId')
+    motivo = models.CharField(db_column='Motivo', max_length=500)
+    alvo_snapshot = models.TextField(db_column='AlvoSnapshot')
+    revisao_alvo = models.PositiveIntegerField(db_column='RevisaoAlvo', null=True, blank=True)
+    estado = models.CharField(db_column='Estado', max_length=12, default='pendente',
+                              choices=[('pendente', 'Pendente'), ('descartada', 'Descartada'),
+                                       ('ocultada', 'Ocultada'), ('restaurada', 'Restaurada')])
+    historico_decisoes = models.JSONField(db_column='HistoricoDecisoes', default=list, blank=True)
+    decidido_por = models.ForeignKey('auth.User', on_delete=models.SET_NULL,
+                                     null=True, blank=True, related_name='cronica_denuncias_decididas',
+                                     db_column='DecididoPorId')
+    decisao_em = models.DateTimeField(db_column='DecisaoEm', null=True, blank=True)
+    criado_em = models.DateTimeField(db_column='CriadoEm', auto_now_add=True)
+
+    class Meta:
+        db_table = 'TB_CronicaDenuncia'
+        constraints = [models.UniqueConstraint(
+            fields=['cronica', 'comentario', 'denunciante'],
+            name='unique_cronica_denuncia_comentario',
+            condition=models.Q(comentario__isnull=False),
+        ), models.UniqueConstraint(
+            fields=['cronica', 'denunciante'],
+            name='unique_cronica_denuncia_historia',
+            condition=models.Q(comentario__isnull=True),
+        )]
 
 
 def _same_map_name(left, right):

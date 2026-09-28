@@ -3,6 +3,7 @@ import hashlib
 import logging
 import re
 import unicodedata
+from uuid import UUID, uuid4
 from urllib.parse import unquote, urlsplit
 from .item_mecanica import (
     ca_display, contrato_item_base, dano_display, mecanica_de_tags, propriedades_display,
@@ -49,6 +50,11 @@ from .models import (
     TbClasse,
     TbClassehabilidade,
     TbCronica,
+    TbCronicaCurtida,
+    TbCronicaComentario,
+    TbCronicaDenuncia,
+    TbCronicaNotificacao,
+    TbPerfilSeguidor,
     TbEssencia,
     TbJornal,
     TbLinhagem,
@@ -14233,8 +14239,31 @@ def _store_multi_value(value):
     return items[0] if len(items) == 1 else json.dumps(items, ensure_ascii=False)
 
 
+def _notificar_cronica(destinatario_id, cronica, chave_evento, tipo, texto, comentario=None):
+    if destinatario_id:
+        TbCronicaNotificacao.objects.get_or_create(
+            destinatario_id=destinatario_id, chave_evento=chave_evento,
+            defaults={'cronica': cronica, 'tipo': tipo, 'texto': texto[:240], 'comentario': comentario},
+        )
+
+
+def _notificacoes_cronica_visiveis(user):
+    return TbCronicaNotificacao.objects.filter(destinatario=user).filter(
+        Q(cronica__status='aprovada') | Q(cronica__autor=user)
+    ).filter(Q(comentario__isnull=True) | Q(comentario__estado='publico'))
+
+
 def cronicas_list_view(request):
     qs = TbCronica.objects.filter(status='aprovada').select_related('autor')
+    feed = request.GET.get('feed', 'recentes')
+    if feed == 'seguindo':
+        if request.user.is_authenticated:
+            authors = TbPerfilSeguidor.objects.filter(seguidor=request.user).values('alvo_id')
+            qs = qs.filter(autor_id__in=authors)
+        else:
+            qs = qs.none()
+    else:
+        feed = 'recentes'
     
     territorio_filter = request.GET.get('territorio', '')
     regiao_filter = request.GET.get('regiao', '')
@@ -14246,15 +14275,26 @@ def cronicas_list_view(request):
     territorios = TbTerritorio.objects.values_list('nome', flat=True).order_by('nome')
     regioes = TbRegiao.objects.values_list('nome', flat=True).order_by('nome')
 
-    pendente_count = TbCronica.objects.filter(status='pendente').count() if request.user.is_staff else 0
+    pendente_count = TbCronica.objects.filter(
+        Q(status='pendente') | Q(status='aprovada', revisao_edicao__estado='pendente')
+    ).count() if request.user.is_staff else 0
 
     
     minhas = []
     if request.user.is_authenticated:
         minhas = TbCronica.objects.filter(autor=request.user).order_by('-data_submissao')[:10]
 
+    highlights = TbCronica.objects.filter(status='aprovada', destaque_editorial=True).select_related('autor').order_by('-data_publicacao', '-pk')[:3]
+    has_public_content = qs.exclude(conteudo_markdown='').exists()
+    page = Paginator(qs.order_by('-data_publicacao', '-pk'), 20).get_page(request.GET.get('page'))
     return render(request, 'home/pages/cronicas_list.html', {
-        'cronicas': qs,
+        'cronicas': page,
+        'page_obj': page,
+        'feed': feed,
+        'destaques': highlights,
+        'notificacoes_nao_lidas': _notificacoes_cronica_visiveis(request.user).filter(
+            lida_em__isnull=True
+        ).count() if request.user.is_authenticated else 0,
         'territorios': territorios,
         'regioes': regioes,
         'territorio_filter': territorio_filter,
@@ -14263,7 +14303,7 @@ def cronicas_list_view(request):
         'minhas_cronicas': minhas,
         'can_edit_wiki': request.user.is_staff,
         'is_authenticated': request.user.is_authenticated,
-        'noindex': not qs.exclude(conteudo_markdown='').exists(),
+        'noindex': not has_public_content,
     })
 
 
@@ -14273,10 +14313,230 @@ def cronica_detail_view(request, slug):
     if cronica.status != 'aprovada':
         if not (request.user.is_staff or (request.user.is_authenticated and cronica.autor == request.user)):
             raise Http404
+    comments = list(TbCronicaComentario.objects.filter(cronica=cronica)
+                    .select_related('autor').order_by('criado_em', 'pk')[:150]) if cronica.status == 'aprovada' else []
+    roots = []
+    by_id = {comment.pk: comment for comment in comments}
+    for comment in comments:
+        comment.thread_replies = []
+        comment.reply_key = uuid4()
+    for comment in comments:
+        parent = by_id.get(comment.resposta_a_id)
+        if parent:
+            parent.thread_replies.append(comment)
+        elif comment.resposta_a_id is None:
+            roots.append(comment)
     return render(request, 'home/pages/cronica_detail.html', {
         'cronica': cronica,
+        'curtidas_count': TbCronicaCurtida.objects.filter(cronica=cronica).count(),
+        'curtiu_cronica': bool(request.user.is_authenticated and
+                                TbCronicaCurtida.objects.filter(cronica=cronica, leitor=request.user).exists()),
+        'comentarios': roots,
+        'comment_operation_key': uuid4(),
+        'revisao_edicao': cronica.revisao_edicao if (
+            request.user.is_staff or (request.user.is_authenticated and cronica.autor_id == request.user.id)
+        ) else {},
         'can_edit_wiki': request.user.is_staff,
     })
+
+
+@staff_member_required
+@require_POST
+def cronica_destaque_view(request, cronica_id):
+    desired = request.POST.get('destaque')
+    if desired not in ('true', 'false'):
+        return HttpResponseBadRequest('Informe o estado do destaque.')
+    cronica = get_object_or_404(TbCronica, pk=cronica_id, status='aprovada')
+    TbCronica.objects.filter(pk=cronica.pk).update(destaque_editorial=(desired == 'true'))
+    return redirect('cronica_detail', slug=cronica.slug)
+
+
+@login_required
+def cronica_notificacoes_view(request):
+    notifications = _notificacoes_cronica_visiveis(request.user).select_related(
+        'cronica', 'comentario'
+    ).order_by('-criada_em', '-pk')[:100]
+    return render(request, 'home/pages/cronica_notificacoes.html', {'notificacoes': notifications})
+
+
+@login_required
+@require_POST
+def cronica_notificacao_ler_view(request, notificacao_id):
+    TbCronicaNotificacao.objects.filter(
+        pk=notificacao_id, destinatario=request.user, lida_em__isnull=True
+    ).update(lida_em=timezone.now())
+    return redirect('cronica_notificacoes')
+
+
+@login_required
+@require_POST
+def cronica_curtir_view(request, cronica_id):
+    cronica = get_object_or_404(TbCronica, pk=cronica_id, status='aprovada')
+    if cronica.autor_id == request.user.id:
+        return JsonResponse({'error': 'Você não pode curtir a própria crônica.'}, status=400)
+    is_json = request.content_type == 'application/json'
+    data = _json_body(request) if is_json else request.POST
+    desired = data.get('curtido') if isinstance(data, dict) or hasattr(data, 'get') else None
+    if not is_json and desired in ('true', 'false'):
+        desired = desired == 'true'
+    if type(desired) is not bool:
+        return JsonResponse({'error': 'Informe curtido como verdadeiro ou falso.'}, status=400)
+    with transaction.atomic():
+        if desired:
+            TbCronicaCurtida.objects.get_or_create(cronica=cronica, leitor=request.user)
+        else:
+            TbCronicaCurtida.objects.filter(cronica=cronica, leitor=request.user).delete()
+        total = TbCronicaCurtida.objects.filter(cronica=cronica).count()
+    if not is_json:
+        return redirect('cronica_detail', slug=cronica.slug)
+    return JsonResponse({'ok': True, 'curtido': desired, 'curtidas': total})
+
+
+@login_required
+@require_POST
+def cronica_comentar_view(request, cronica_id):
+    cronica = get_object_or_404(TbCronica, pk=cronica_id, status='aprovada')
+    text = (request.POST.get('texto') or '').strip()
+    if not 1 <= len(text) <= 2000:
+        return JsonResponse({'error': 'O comentário deve ter de 1 a 2000 caracteres.'}, status=400)
+    try:
+        key = UUID(request.POST.get('chave_operacao', ''))
+    except (ValueError, TypeError):
+        return JsonResponse({'error': 'Identificador de envio inválido.'}, status=400)
+    parent_id = request.POST.get('resposta_a') or None
+    with transaction.atomic():
+        previous = TbCronicaComentario.objects.filter(chave_operacao=key).first()
+        if previous:
+            if previous.autor_id != request.user.id or previous.cronica_id != cronica.pk:
+                return JsonResponse({'error': 'Identificador já utilizado.'}, status=409)
+            return redirect('cronica_detail', slug=cronica.slug)
+        parent = None
+        if parent_id:
+            parent = get_object_or_404(TbCronicaComentario, pk=parent_id, cronica=cronica, resposta_a__isnull=True, estado='publico')
+        if TbCronicaComentario.objects.filter(
+            autor=request.user, criado_em__gte=timezone.now() - timedelta(minutes=10)
+        ).count() >= 5:
+            return JsonResponse({'error': 'Limite temporário de comentários atingido.'}, status=429)
+        comment, created = TbCronicaComentario.objects.get_or_create(
+            chave_operacao=key,
+            defaults={'cronica': cronica, 'autor': request.user, 'texto': text, 'resposta_a': parent},
+        )
+        if not created and (comment.autor_id != request.user.id or comment.cronica_id != cronica.pk):
+            return JsonResponse({'error': 'Identificador já utilizado.'}, status=409)
+        if created:
+            recipients = {cronica.autor_id}
+            if parent:
+                recipients.add(parent.autor_id)
+            for recipient_id in recipients - {request.user.id}:
+                is_reply = bool(parent and parent.autor_id == recipient_id)
+                _notificar_cronica(
+                    recipient_id, cronica, f'comentario:{comment.pk}',
+                    'resposta' if is_reply else 'comentario',
+                    f'Nova {"resposta" if is_reply else "mensagem"} em {cronica.titulo}', comment,
+                )
+    return redirect('cronica_detail', slug=cronica.slug)
+
+
+@login_required
+@require_POST
+def cronica_editar_comentario_view(request, comentario_id):
+    text = (request.POST.get('texto') or '').strip()
+    if not 1 <= len(text) <= 2000:
+        return JsonResponse({'error': 'O comentário deve ter de 1 a 2000 caracteres.'}, status=400)
+    with transaction.atomic():
+        comment = get_object_or_404(TbCronicaComentario.objects.select_for_update(), pk=comentario_id)
+        if comment.autor_id != request.user.id or comment.estado != 'publico' or comment.cronica.status != 'aprovada':
+            raise Http404
+        if str(comment.revisao) != request.POST.get('revisao'):
+            return JsonResponse({'error': 'Comentário alterado. Recarregue a página.'}, status=409)
+        comment.historico_edicoes.append({
+            'revisao': comment.revisao, 'texto': comment.texto,
+            'editado_em': timezone.now().isoformat(),
+        })
+        comment.texto = text
+        comment.revisao += 1
+        comment.editado_em = timezone.now()
+        comment.save(update_fields=['texto', 'revisao', 'historico_edicoes', 'editado_em'])
+    return redirect('cronica_detail', slug=comment.cronica.slug)
+
+
+@login_required
+@require_POST
+def cronica_denunciar_view(request, cronica_id):
+    cronica = get_object_or_404(TbCronica, pk=cronica_id, status='aprovada')
+    reason = (request.POST.get('motivo') or '').strip()
+    if not 3 <= len(reason) <= 500:
+        return JsonResponse({'error': 'O motivo deve ter de 3 a 500 caracteres.'}, status=400)
+    comment_id = request.POST.get('comentario_id') or None
+    comment = None
+    if comment_id:
+        comment = get_object_or_404(TbCronicaComentario, pk=comment_id, cronica=cronica, estado='publico')
+        if comment.autor_id == request.user.id:
+            return JsonResponse({'error': 'Você não pode denunciar seu comentário.'}, status=400)
+    elif cronica.autor_id == request.user.id:
+        return JsonResponse({'error': 'Você não pode denunciar sua crônica.'}, status=400)
+    with transaction.atomic():
+        if TbCronicaDenuncia.objects.filter(cronica=cronica, comentario=comment, denunciante=request.user).exists():
+            return redirect('cronica_detail', slug=cronica.slug)
+        if TbCronicaDenuncia.objects.filter(
+            denunciante=request.user, criado_em__gte=timezone.now() - timedelta(hours=1)
+        ).count() >= 10:
+            return JsonResponse({'error': 'Limite temporário de denúncias atingido.'}, status=429)
+        TbCronicaDenuncia.objects.get_or_create(
+            cronica=cronica, comentario=comment, denunciante=request.user,
+            defaults={'motivo': reason, 'alvo_snapshot': comment.texto if comment else cronica.conteudo_markdown,
+                      'revisao_alvo': comment.revisao if comment else None},
+        )
+    return redirect('cronica_detail', slug=cronica.slug)
+
+
+@staff_member_required
+def cronica_denuncias_view(request):
+    reports = TbCronicaDenuncia.objects.filter(estado__in=['pendente', 'ocultada']).select_related(
+        'cronica', 'comentario', 'denunciante'
+    ).order_by('criado_em')
+    return render(request, 'home/pages/cronica_denuncias.html', {'denuncias': reports})
+
+
+@staff_member_required
+@require_POST
+def cronica_moderar_denuncia_view(request, denuncia_id):
+    action = request.POST.get('action')
+    if action not in ('descartar', 'ocultar', 'restaurar'):
+        return JsonResponse({'error': 'Ação inválida.'}, status=400)
+    with transaction.atomic():
+        report = get_object_or_404(TbCronicaDenuncia.objects.select_for_update(), pk=denuncia_id)
+        if (action == 'restaurar' and report.estado != 'ocultada') or (
+            action != 'restaurar' and report.estado != 'pendente'
+        ):
+            return JsonResponse({'error': 'Denúncia já decidida.'}, status=409)
+        if action == 'restaurar':
+            other_hides = TbCronicaDenuncia.objects.filter(
+                cronica=report.cronica, comentario=report.comentario, estado='ocultada'
+            ).exclude(pk=report.pk).exists()
+        if action == 'ocultar' or (action == 'restaurar' and not other_hides):
+            if report.comentario_id:
+                comment = TbCronicaComentario.objects.select_for_update().get(pk=report.comentario_id)
+                if action == 'restaurar' and comment.estado != 'oculto':
+                    return JsonResponse({'error': 'Estado do comentário mudou.'}, status=409)
+                comment.estado = 'publico' if action == 'restaurar' else 'oculto'
+                comment.save(update_fields=['estado'])
+            else:
+                story = TbCronica.objects.select_for_update().get(pk=report.cronica_id)
+                if action == 'restaurar' and story.status != 'oculta':
+                    return JsonResponse({'error': 'Estado da crônica mudou.'}, status=409)
+                if action == 'ocultar' and story.status not in ('aprovada', 'oculta'):
+                    return JsonResponse({'error': 'Crônica já não está publicada.'}, status=409)
+                story.status = 'aprovada' if action == 'restaurar' else 'oculta'
+                story.save(update_fields=['status'])
+        report.estado = {'ocultar': 'ocultada', 'descartar': 'descartada', 'restaurar': 'restaurada'}[action]
+        report.decidido_por = request.user
+        report.decisao_em = timezone.now()
+        report.historico_decisoes.append({
+            'acao': action, 'staff_id': request.user.pk, 'em': report.decisao_em.isoformat(),
+        })
+        report.save(update_fields=['estado', 'decidido_por', 'decisao_em', 'historico_decisoes'])
+    return redirect('cronica_denuncias')
 
 
 @login_required
@@ -14322,41 +14582,72 @@ def cronica_create_view(request):
 
 @login_required
 def cronica_edit_view(request, slug):
-    cronica = get_object_or_404(TbCronica, slug=slug)
-    
-    if cronica.autor != request.user:
-        raise Http404
     territorios, regioes = _cronicas_location_choices()
     if request.method == 'POST':
         data = _json_body(request)
-        cronica.titulo = data.get('titulo', cronica.titulo)
-        cronica.conteudo_markdown = data.get('conteudo_markdown', cronica.conteudo_markdown)
-        cronica.resumo = data.get('resumo', cronica.resumo)
-        cronica.imagem_url = data.get('imagem_url', cronica.imagem_url)
-        cronica.personagem_nome = data.get('personagem_nome', cronica.personagem_nome)
-        cronica.territorio = _store_multi_value(data.get('territorio', cronica.territorio))
-        cronica.regiao = _store_multi_value(data.get('regiao', cronica.regiao))
-        
-        if cronica.status == 'reprovada':
-            cronica.status = 'pendente'
-            cronica.feedback_staff = ''
-            cronica.revisado_por = None
-            cronica.data_revisao = None
-        cronica.save()
+        with transaction.atomic():
+            cronica = get_object_or_404(TbCronica.objects.select_for_update(), slug=slug)
+            if cronica.autor_id != request.user.id:
+                raise Http404
+            source = cronica.revisao_edicao if cronica.status == 'aprovada' else {}
+            fields = {
+                'titulo': str(data.get('titulo', source.get('titulo', cronica.titulo))).strip(),
+                'conteudo_markdown': str(data.get('conteudo_markdown', source.get('conteudo_markdown', cronica.conteudo_markdown))).strip(),
+                'resumo': data.get('resumo', source.get('resumo', cronica.resumo)),
+                'imagem_url': data.get('imagem_url', source.get('imagem_url', cronica.imagem_url)),
+                'personagem_nome': data.get('personagem_nome', source.get('personagem_nome', cronica.personagem_nome)),
+                'territorio': _store_multi_value(data.get('territorio', source.get('territorio', cronica.territorio))),
+                'regiao': _store_multi_value(data.get('regiao', source.get('regiao', cronica.regiao))),
+            }
+            if not fields['titulo'] or not fields['conteudo_markdown']:
+                return JsonResponse({'error': 'Título e conteúdo são obrigatórios.'}, status=400)
+            if cronica.status == 'aprovada':
+                cronica.revisao_edicao = {
+                    **fields, 'estado': 'pendente', 'submetida_em': timezone.now().isoformat(),
+                }
+                cronica.save(update_fields=['revisao_edicao'])
+            else:
+                for name, value in fields.items():
+                    setattr(cronica, name, value)
+                if cronica.status == 'reprovada':
+                    cronica.status = 'pendente'
+                    cronica.feedback_staff = ''
+                    cronica.revisado_por = None
+                    cronica.data_revisao = None
+                cronica.save()
         return JsonResponse({'ok': True})
+    cronica = get_object_or_404(TbCronica, slug=slug)
+    if cronica.autor_id != request.user.id:
+        raise Http404
+    source = cronica.revisao_edicao if cronica.status == 'aprovada' else {}
+    editor_cronica = SimpleNamespace(**{
+        name: source.get(name, getattr(cronica, name))
+        for name in ('titulo', 'conteudo_markdown', 'resumo', 'imagem_url',
+                     'personagem_nome', 'territorio', 'regiao')
+    }, slug=cronica.slug)
     return render(request, 'home/pages/cronica_form.html', {
-        'cronica': cronica,
+        'cronica': editor_cronica,
         'is_new': False,
         'territorios': territorios,
         'regioes': regioes,
-        'selected_territorios': _coerce_multi_value(cronica.territorio),
-        'selected_regioes': _coerce_multi_value(cronica.regiao),
+        'selected_territorios': _coerce_multi_value(editor_cronica.territorio),
+        'selected_regioes': _coerce_multi_value(editor_cronica.regiao),
+        'review_feedback': source.get('feedback', ''),
+        'is_published': cronica.status == 'aprovada',
     })
 
 
 @staff_member_required
 def cronicas_review_view(request):
-    pendentes = TbCronica.objects.filter(status='pendente').select_related('autor').order_by('data_submissao')
+    pendentes = list(TbCronica.objects.filter(
+        Q(status='pendente') | Q(status='aprovada', revisao_edicao__estado='pendente')
+    ).select_related('autor').order_by('data_submissao'))
+    for cronica in pendentes:
+        source = cronica.revisao_edicao if cronica.status == 'aprovada' else {}
+        cronica.review_data = SimpleNamespace(**{
+            name: source.get(name, getattr(cronica, name))
+            for name in ('titulo', 'conteudo_markdown', 'personagem_nome', 'territorio', 'regiao')
+        })
     return render(request, 'home/pages/cronicas_review.html', {
         'pendentes': pendentes,
     })
@@ -14365,24 +14656,54 @@ def cronicas_review_view(request):
 @staff_member_required
 @require_POST
 def cronica_review_action(request, cronica_id):
-    cronica = get_object_or_404(TbCronica, pk=cronica_id)
     data = _json_body(request)
     action = data.get('action', '')
-    if action == 'aprovar':
-        cronica.status = 'aprovada'
-        cronica.revisado_por = request.user
-        cronica.data_revisao = timezone.now()
-        cronica.feedback_staff = ''
+    if action not in ('aprovar', 'reprovar'):
+        return JsonResponse({'error': 'Ação inválida.'}, status=400)
+    with transaction.atomic():
+        cronica = get_object_or_404(TbCronica.objects.select_for_update(), pk=cronica_id)
+        if cronica.status == 'aprovada':
+            revision = cronica.revisao_edicao or {}
+            if revision.get('estado') != 'pendente':
+                return JsonResponse({'error': 'Não há edição pendente.'}, status=409)
+            if data.get('expected_revision') != revision.get('submetida_em'):
+                return JsonResponse({'error': 'A edição mudou. Recarregue a fila antes de revisar.'}, status=409)
+            if action == 'aprovar':
+                for name in ('titulo', 'conteudo_markdown', 'resumo', 'imagem_url',
+                             'personagem_nome', 'territorio', 'regiao'):
+                    setattr(cronica, name, revision[name])
+                cronica.revisao_edicao = {}
+                cronica.revisado_por = request.user
+                cronica.data_revisao = timezone.now()
+                cronica.save()
+                _notificar_cronica(cronica.autor_id, cronica,
+                                   f'edicao:{cronica.pk}:{revision["submetida_em"]}',
+                                   'edicao', f'Edição aprovada: {cronica.titulo}')
+            else:
+                cronica.revisao_edicao = {**revision, 'estado': 'reprovada', 'feedback': data.get('feedback', '')}
+                cronica.save(update_fields=['revisao_edicao'])
+                _notificar_cronica(cronica.autor_id, cronica,
+                                   f'edicao:{cronica.pk}:{revision["submetida_em"]}',
+                                   'edicao', f'Edição devolvida: {cronica.titulo}')
+            return JsonResponse({'ok': True, 'status': cronica.status})
+        if cronica.status != 'pendente':
+            return JsonResponse({'error': 'Crônica não está pendente.'}, status=409)
+        if action == 'aprovar':
+            cronica.status = 'aprovada'
+            cronica.revisado_por = request.user
+            cronica.data_revisao = timezone.now()
+            cronica.data_publicacao = cronica.data_revisao
+            cronica.feedback_staff = ''
+        else:
+            cronica.status = 'reprovada'
+            cronica.revisado_por = request.user
+            cronica.data_revisao = timezone.now()
+            cronica.feedback_staff = data.get('feedback', '')
         cronica.save()
-        return JsonResponse({'ok': True, 'status': 'aprovada'})
-    elif action == 'reprovar':
-        cronica.status = 'reprovada'
-        cronica.revisado_por = request.user
-        cronica.data_revisao = timezone.now()
-        cronica.feedback_staff = data.get('feedback', '')
-        cronica.save()
-        return JsonResponse({'ok': True, 'status': 'reprovada'})
-    return JsonResponse({'error': 'Ação inválida.'}, status=400)
+        _notificar_cronica(cronica.autor_id, cronica,
+                           f'publicacao:{cronica.pk}:{cronica.data_revisao.isoformat()}',
+                           'publicacao', f'Crônica {"publicada" if action == "aprovar" else "devolvida"}: {cronica.titulo}')
+        return JsonResponse({'ok': True, 'status': cronica.status})
 
 
 # ══════════════ MERCADO — vitrine de LOJA (master-detail) ═══════════════════
@@ -15891,7 +16212,10 @@ def busca_global(request):
                 for c in campos:
                     cond |= Q(**{c + '__icontains': q})
                 itens = []
-                for o in Model.objects.filter(cond).order_by(nome_field)[:LIM]:
+                found = Model.objects.filter(cond)
+                if Model is TbCronica:
+                    found = found.filter(status='aprovada')
+                for o in found.order_by(nome_field)[:LIM]:
                     try:
                         url = link_fn(o)
                     except Exception:

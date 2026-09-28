@@ -216,8 +216,17 @@ urlpatterns = [
 
     
     path('mundo/cronicas/', views.cronicas_list_view, name='mundo_cronicas'),
+    path('mundo/cronicas/notificacoes/', views.cronica_notificacoes_view, name='cronica_notificacoes'),
+    path('mundo/cronicas/notificacoes/<int:notificacao_id>/ler/', views.cronica_notificacao_ler_view, name='cronica_notificacao_ler'),
     path('mundo/cronicas/nova/', views.cronica_create_view, name='cronica_create'),
     path('mundo/cronicas/revisao/', views.cronicas_review_view, name='cronicas_review'),
+    path('mundo/cronicas/denuncias/', views.cronica_denuncias_view, name='cronica_denuncias'),
+    path('mundo/cronicas/denuncias/<int:denuncia_id>/revisar/', views.cronica_moderar_denuncia_view, name='cronica_moderar_denuncia'),
+    path('mundo/cronicas/<int:cronica_id>/curtir/', views.cronica_curtir_view, name='cronica_curtir'),
+    path('mundo/cronicas/<int:cronica_id>/destaque/', views.cronica_destaque_view, name='cronica_destaque'),
+    path('mundo/cronicas/<int:cronica_id>/comentar/', views.cronica_comentar_view, name='cronica_comentar'),
+    path('mundo/cronicas/comentarios/<int:comentario_id>/editar/', views.cronica_editar_comentario_view, name='cronica_editar_comentario'),
+    path('mundo/cronicas/<int:cronica_id>/denunciar/', views.cronica_denunciar_view, name='cronica_denunciar'),
     path('mundo/cronicas/<slug:slug>/', views.cronica_detail_view, name='cronica_detail'),
     path('mundo/cronicas/<slug:slug>/editar/', views.cronica_edit_view, name='cronica_edit'),
     path('mundo/cronicas/<int:cronica_id>/revisar/', views.cronica_review_action, name='cronica_review_action'),

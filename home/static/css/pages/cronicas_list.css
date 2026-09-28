@@ -26,6 +26,16 @@
   margin: 1rem auto 0;
   padding: 0 1.25rem;
 }
+.cronicas-featured, .cronicas-pagination {
+  max-width: 1200px;
+  margin: 1.5rem auto;
+  padding: 0 1.25rem;
+  color: var(--text);
+}
+.cronicas-featured-links { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: .75rem; }
+.cronicas-featured-links a { border: 1px solid var(--ember); border-radius: 6px; padding: .7rem; color: var(--text); }
+.cronicas-featured-links small { color: var(--muted); }
+.cronicas-pagination { display: flex; gap: 1rem; justify-content: center; }
 .cronicas-filter {
   background: var(--bg1);
   border: 1px solid var(--stroke);

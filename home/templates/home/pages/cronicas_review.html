@@ -19,18 +19,19 @@
   </div>
 
   {% for c in pendentes %}
-  <div class="review-item" id="review-{{ c.id_cronica }}">
+  <div class="review-item" id="review-{{ c.id_cronica }}" data-revision="{{ c.revisao_edicao.submetida_em|default:'' }}">
     <div class="review-item-header">
-      <h2 class="review-item-title">{{ c.titulo }}</h2>
+      <h2 class="review-item-title">{{ c.review_data.titulo }}</h2>
       <div class="review-item-meta">
         <span class="author">{{ c.autor.username }}</span>
-        {% if c.personagem_nome %}<span>&middot; como <em>{{ c.personagem_nome }}</em></span>{% endif %}
-        {% if c.territorio %}<span>&middot; <span class="location">{{ c.territorio }}{% if c.regiao %} / {{ c.regiao }}{% endif %}</span></span>{% endif %}
+        {% if c.review_data.personagem_nome %}<span>&middot; como <em>{{ c.review_data.personagem_nome }}</em></span>{% endif %}
+        {% if c.review_data.territorio %}<span>&middot; <span class="location">{{ c.review_data.territorio }}{% if c.review_data.regiao %} / {{ c.review_data.regiao }}{% endif %}</span></span>{% endif %}
+        {% if c.status == 'aprovada' %}<span>&middot; Edição de crônica já publicada</span>{% endif %}
         <span>&middot; {{ c.data_submissao|date:"d/m/Y H:i" }}</span>
       </div>
     </div>
     <div class="review-item-body">
-      <div class="bonfire-markdown" data-markdown-source data-markdown-options="false">{{ c.conteudo_markdown|escape }}</div>
+      <div class="bonfire-markdown" data-markdown-source data-markdown-options="false">{{ c.review_data.conteudo_markdown|escape }}</div>
     </div>
     <div class="review-item-actions">
       <input type="text" class="review-feedback-input" id="feedback-{{ c.id_cronica }}" placeholder="Feedback (obrigatório para reprovar)...">
@@ -61,19 +62,22 @@ async function reviewAction(id, action) {
     return;
   }
 
+  const item = document.getElementById(`review-${id}`);
   const res = await fetch(`/mundo/cronicas/${id}/revisar/`, {
     method: 'POST',
     headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken()},
-    body: JSON.stringify({ action, feedback }),
+    body: JSON.stringify({ action, feedback, expected_revision: item.dataset.revision }),
   });
 
   if (res.ok) {
-    const item = document.getElementById(`review-${id}`);
     item.classList.add('is-resolved');
     const actionsDiv = item.querySelector('.review-item-actions');
     const statusText = action === 'aprovar' ? '✓ Aprovada' : '✗ Reprovada';
     const statusColor = action === 'aprovar' ? '#22c55e' : '#ef4444';
     actionsDiv.innerHTML = `<span style="color: ${statusColor}; font-weight: 900; font-size: .78rem;">${statusText}</span>`;
+  } else {
+    const data = await res.json();
+    alert(data.error || 'Não foi possível revisar esta crônica.');
   }
 }
 </script>
