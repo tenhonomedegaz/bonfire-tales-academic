@@ -3941,11 +3941,23 @@ class TbConquistaAdmin(admin.ModelAdmin):
     fieldsets = (
         (None, {'fields': ('nome', 'slug', 'descricao', 'icone_url', 'icone_file')}),
         ('Visibilidade', {'fields': ('secreta', 'ativo', 'ordem')}),
-        ('Critério', {'fields': ('criterio', 'criterio_json')}),
+        ('Critério', {'fields': ('criterio', 'criterio_json'),
+                      'description': 'Unidades compradas: metric=items_purchased_units, '
+                                     'scope=account, aggregate=sum, schema_version=1, '
+                                     'filters.items=[{"catalog":"mundano","id":ID_REAL}], '
+                                     'operator=gt ou gte, target=inteiro positivo. '
+                                     'Defina itens e limiar com o PO antes de ativar.'}),
         ('Recompensa', {'fields': ('recompensa',),
                         'description': 'Cosmético desbloqueado no inventário ao conceder.'}),
     )
     actions = ('conceder_a_usuarios',)
+
+    def formfield_for_dbfield(self, db_field, request, **kwargs):
+        if db_field.name == 'criterio_json':
+            kwargs['help_text'] = ('Critérios disponíveis: characters_created, stories_published, '
+                                   'items_purchased e items_purchased_units. Para unidades, '
+                                   'use IDs reais do catálogo e escolha gt ou gte com o PO.')
+        return super().formfield_for_dbfield(db_field, request, **kwargs)
 
     @admin.action(description='Conceder conquista(s) selecionada(s) a usuários…')
     def conceder_a_usuarios(self, request, queryset):

@@ -8,7 +8,7 @@ from home.models import TbTransacao, TbUsuarioConquista
 
 
 class Command(BaseCommand):
-    help = 'Prévia por padrão; --apply grava fatos e reavalia a primeira compra.'
+    help = 'Prévia por padrão; --apply grava fatos e reavalia conquistas de compra.'
 
     def add_arguments(self, parser):
         parser.add_argument('--apply', action='store_true')
@@ -19,7 +19,8 @@ class Command(BaseCommand):
             tipo__in=['compra', 'mercado-compra']).values_list(
                 'id_personagem__dono_id', flat=True))
         user_ids.update(TbUsuarioConquista.objects.filter(
-            conquista__criterio_json__metric='items_purchased').values_list('user_id', flat=True))
+            conquista__criterio_json__metric__in=[
+                'items_purchased', 'items_purchased_units']).values_list('user_id', flat=True))
         if options['user_id'] is not None:
             user_ids &= {options['user_id']}
         total = {'novas': 0, 'invalidas': 0}

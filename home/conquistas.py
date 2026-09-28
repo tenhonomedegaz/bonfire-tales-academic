@@ -15,6 +15,34 @@ Ver docs/agentes/arquitetura_personalizacao_perfil.md §3 e §7 (F3).
 """
 
 
+def regra_unidades_compradas_valida(regra):
+    """Aceita apenas identidades estruturadas e comparadores configuráveis seguros."""
+    if not isinstance(regra, dict) or set(regra) != {
+            'schema_version', 'metric', 'scope', 'aggregate', 'filters', 'operator', 'target'}:
+        return False
+    if (type(regra['schema_version']) is not int or regra['schema_version'] != 1 or
+            regra['metric'] != 'items_purchased_units' or
+            regra['scope'] != 'account' or regra['aggregate'] != 'sum' or
+            type(regra['operator']) is not str or regra['operator'] not in {'gt', 'gte'} or
+            type(regra['target']) is not int or regra['target'] <= 0):
+        return False
+    filters = regra['filters']
+    if not isinstance(filters, dict) or set(filters) != {'items'}:
+        return False
+    items = filters['items']
+    if not isinstance(items, list) or not items or len(items) > 100:
+        return False
+    identities = []
+    for item in items:
+        if (not isinstance(item, dict) or set(item) != {'catalog', 'id'} or
+                type(item['catalog']) is not str or
+                item['catalog'] not in {'mundano', 'magico', 'oficina', 'comunidade'} or
+                type(item['id']) is not int or item['id'] <= 0):
+            return False
+        identities.append((item['catalog'], item['id']))
+    return len(set(identities)) == len(identities)
+
+
 def conceder_conquista(user, conquista, por=None):
     """Concede `conquista` a `user` (idempotente). Se ainda não tinha, cria a
     linha TbUsuarioConquista e, havendo recompensa, desbloqueia o cosmético no
@@ -316,6 +344,7 @@ def registrar_fato_compra(transacao, *, historica=False):
         raise ValueError('Identidade do fato de compra inconsistente.')
     if not historica:
         _avaliar_primeira_compra(personagem.dono)
+        _avaliar_unidades_compradas(personagem.dono)
     return evento
 
 
@@ -348,6 +377,7 @@ def registrar_fato_estorno_compra(compra, reembolso):
             evento.agregado_id != compra.pk or evento.payload_json != payload):
         raise ValueError('Identidade do fato de estorno inconsistente.')
     _avaliar_primeira_compra(personagem.dono)
+    _avaliar_unidades_compradas(personagem.dono)
     return evento
 
 
@@ -412,6 +442,65 @@ def _avaliar_primeira_compra(user):
                             origem=origin, suspenso_em__isnull=True).update(suspenso_em=now)
 
 
+def _avaliar_unidades_compradas(user):
+    """Conta unidades pagas de IDs configurados; estornos retiram suporte da concessão."""
+    from django.contrib.auth import get_user_model
+    from django.db import transaction
+    from django.utils import timezone
+    from .models import (TbConquista, TbEventoConquista, TbTransacao,
+                         TbUsuarioConquista, TbUsuarioCosmetico)
+
+    with transaction.atomic():
+        get_user_model().objects.select_for_update().only('pk').get(pk=user.pk)
+        rules = [rule for rule in TbConquista.objects.filter(
+            ativo=True, criterio='automatico',
+            criterio_json__metric='items_purchased_units').select_related('recompensa')
+            if regra_unidades_compradas_valida(rule.criterio_json)]
+        if not rules:
+            return
+        facts = list(TbEventoConquista.objects.filter(
+            conta=user, origem='site_market', tipo='item_purchased'
+        ).order_by('ocorrido_em', 'agregado_id'))
+        active_ids = set(TbTransacao.objects.filter(
+            id_personagem__dono=user, revertida=False,
+            pk__in=[fact.agregado_id for fact in facts]
+        ).values_list('pk', flat=True))
+        for rule in rules:
+            definition = rule.criterio_json
+            identities = {(item['catalog'], item['id'])
+                          for item in definition['filters']['items']}
+            matched = [fact for fact in facts if fact.agregado_id in active_ids and
+                       (fact.payload_json.get('catalogo'),
+                        fact.payload_json.get('catalogo_id')) in identities and
+                       type(fact.payload_json.get('quantidade')) is int and
+                       fact.payload_json['quantidade'] > 0]
+            total = sum(fact.payload_json['quantidade'] for fact in matched)
+            achieved = (total > definition['target'] if definition['operator'] == 'gt'
+                        else total >= definition['target'])
+            grant = TbUsuarioConquista.objects.select_for_update().filter(
+                user=user, conquista=rule).first()
+            if achieved:
+                if grant is None or grant.concedida_por_id is None:
+                    conceder_conquista(user, rule)
+                    evidence = {'total': total, 'evento_ids': [str(fact.pk) for fact in matched],
+                                'transacao_ids': [fact.agregado_id for fact in matched]}
+                    TbUsuarioConquista.objects.filter(user=user, conquista=rule).update(
+                        evidencia_json=evidence, definicao_json=definition)
+            elif grant and grant.concedida_por_id is None and grant.revogada_em is None:
+                now = timezone.now()
+                grant.revogada_em = now
+                grant.save(update_fields=['revogada_em'])
+                if rule.recompensa_id:
+                    origin = 'conquista:%s' % rule.slug
+                    other_grants = TbUsuarioConquista.objects.filter(
+                        user=user, conquista__recompensa_id=rule.recompensa_id,
+                        revogada_em__isnull=True).exclude(pk=grant.pk).exists()
+                    if not other_grants:
+                        TbUsuarioCosmetico.objects.filter(
+                            user=user, cosmetico_id=rule.recompensa_id,
+                            origem=origin, suspenso_em__isnull=True).update(suspenso_em=now)
+
+
 def reprocessar_primeira_compra(user):
     """Recria fatos apenas de compras ativas com ledger estruturado comprovável."""
     from django.contrib.auth import get_user_model
@@ -435,6 +524,7 @@ def reprocessar_primeira_compra(user):
                 continue
             novas += int(not existed)
         _avaliar_primeira_compra(user)
+        _avaliar_unidades_compradas(user)
     return {'novas': novas, 'invalidas': invalidas}
 
 
