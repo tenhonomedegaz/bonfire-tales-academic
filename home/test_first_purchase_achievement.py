@@ -2,10 +2,12 @@ from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
+from django.core.management import call_command
 from django.urls import reverse
 
 from home.conquistas import conquistas_do_usuario, conceder_conquista
-from home.models import TbConquista, TbCosmetico, TbTransacao, TbUsuarioConquista, TbUsuarioCosmetico
+from home.models import (TbConquista, TbCosmetico, TbEventoConquista,
+                         TbPersonagemItem, TbTransacao, TbUsuarioConquista, TbUsuarioCosmetico)
 from home.test_ficha_v2_onda_c import _MercadoBase
 
 
@@ -127,3 +129,27 @@ class FirstPurchaseAchievementTests(_MercadoBase):
                 self.client.post(reverse('personagem_comprar_item', args=[character.pk]),
                                  {'item': self._item_mundano_com_preco().slug}, **self.AJAX)
         self.assertFalse(TbTransacao.objects.filter(tipo='compra').exists())
+
+    def test_legacy_ledger_replay_is_previewable_and_idempotent(self):
+        rule = self._rule()
+        character = self._char('legacy-first-purchase')
+        item = self._item_mundano_com_preco()
+        inventory = TbPersonagemItem.objects.create(
+            id_personagem=character, id_item_mundano=item,
+            nome=item.nome, qtd=1, origem_tipo='compra')
+        purchase = TbTransacao.objects.create(
+            id_personagem=character, tipo='compra', valor_pc=-100,
+            saldo_pc=character.carteira_pc,
+            detalhes_json={'catalogo': 'mundano', 'catalogo_id': item.pk,
+                           'inventario_id': inventory.pk, 'qtd': 1})
+        TbTransacao.objects.create(id_personagem=character, tipo='compra',
+                                   valor_pc=-10, saldo_pc=character.carteira_pc,
+                                   detalhes_json={})
+        call_command('reprocessar_primeira_compra', user_id=character.dono_id)
+        self.assertFalse(TbEventoConquista.objects.filter(tipo='item_purchased').exists())
+        self.assertFalse(TbUsuarioConquista.objects.filter(user=character.dono).exists())
+        call_command('reprocessar_primeira_compra', apply=True, user_id=character.dono_id)
+        call_command('reprocessar_primeira_compra', apply=True, user_id=character.dono_id)
+        self.assertEqual(TbEventoConquista.objects.filter(tipo='item_purchased').count(), 1)
+        grant = TbUsuarioConquista.objects.get(user=character.dono, conquista=rule)
+        self.assertEqual(grant.evidencia_json['agregado_id'], purchase.pk)

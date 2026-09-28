@@ -384,6 +384,32 @@ def _avaliar_primeira_compra(user):
                             origem=origin, suspenso_em__isnull=True).update(suspenso_em=now)
 
 
+def reprocessar_primeira_compra(user):
+    """Recria fatos apenas de compras ativas com ledger estruturado comprovável."""
+    from django.contrib.auth import get_user_model
+    from django.db import transaction
+    from .models import TbEventoConquista, TbTransacao
+
+    novas = invalidas = 0
+    with transaction.atomic():
+        get_user_model().objects.select_for_update().only('pk').get(pk=user.pk)
+        purchases = TbTransacao.objects.filter(
+            id_personagem__dono=user, revertida=False,
+            tipo__in=['compra', 'mercado-compra'], valor_pc__lt=0,
+        ).select_related('id_personagem').order_by('pk')
+        for purchase in purchases:
+            existed = TbEventoConquista.objects.filter(
+                origem='site_market', chave_origem=f'compra:{purchase.pk}:realizada').exists()
+            try:
+                registrar_fato_compra(purchase, historica=True)
+            except ValueError:
+                invalidas += 1
+                continue
+            novas += int(not existed)
+        _avaliar_primeira_compra(user)
+    return {'novas': novas, 'invalidas': invalidas}
+
+
 def progresso_aventuras_por_origem(user, discord_user_id=None):
     """Mostra fontes distintas; não soma saldos do bot com lançamentos do site."""
     from django.db import DatabaseError, transaction
