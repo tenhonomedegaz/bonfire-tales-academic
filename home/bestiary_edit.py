@@ -125,9 +125,14 @@ def merge_statblock(original, before, submitted, parse_blocks):
             if value and not value.isdecimal():
                 raise UnsafeBestiaryEdit(f'{field.upper()} requer um número inteiro.')
             if value:
-                sb['passive' if field == 'passivo' else field] = int(value)
-                if field != 'passivo' and isinstance(sb.get('abilities'), dict):
+                if field == 'passivo':
+                    sb['passive'] = int(value)
+                elif isinstance(sb.get('abilities'), dict):
                     sb['abilities'][field] = int(value)
+                    if field in sb:
+                        sb[field] = int(value)
+                else:
+                    sb[field] = int(value)
             elif field == 'passivo':
                 sb.pop('passive', None)
     for field, key in (('idiomas', 'languages'), ('sentidos', 'senses')):

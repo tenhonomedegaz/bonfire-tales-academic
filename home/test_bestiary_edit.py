@@ -113,6 +113,28 @@ class ImportedBestiaryEditTests(TestCase):
         self.assertEqual(display['reactions'][0]['nome'], 'Escudo')
         self.assertEqual(next(a['score'] for a in display['abilities'] if a['sig'] == 'FOR'), 20)
 
+    def test_imported_only_abilities_prefill_and_edit_without_duplicate_source(self):
+        from .views import _statblock_display_full
+
+        block = deepcopy(self.original)
+        for ability in ('str', 'dex', 'con', 'int', 'wis', 'cha'):
+            del block[ability]
+        self.creature.statblock_json = block
+        self.creature.save(update_fields=['statblock_json'])
+        form = self.form()
+        self.assertEqual(form['dex'], '14')
+        self.assertEqual(form['wis'], '17')
+        form['dex'] = '16'
+        self.assertEqual(self.client.post(self.url, form).status_code, 302)
+        self.creature.refresh_from_db()
+        sb = self.creature.statblock_json
+        self.assertEqual(sb['abilities']['dex'], 16)
+        self.assertNotIn('dex', sb)
+        self.assertEqual(sb['abilities']['wis'], 17)
+        self.assertEqual(next(a['score'] for a in _statblock_display_full(sb, self.creature)['abilities']
+                              if a['sig'] == 'DES'), 16)
+        self.assertEqual(self.form()['dex'], '16')
+
     def test_source_pipe_and_newline_survive_reaction_tag_review(self):
         block = deepcopy(self.original)
         block['reactions'][0]['entries'] = ['Conjura {@spell shield|xphb}.\nDepois recua.']

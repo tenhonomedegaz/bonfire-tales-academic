@@ -13229,6 +13229,7 @@ def _criatura_prefill(b):
     """Dados do form prontos p/ a edição (reverte o statblock_json em campos)."""
     from .bestiary_edit import FEATURE_FIELDS, feature_key
     sb = b.statblock_json if isinstance(b.statblock_json, dict) else {}
+    imported_abilities = sb.get('abilities') if isinstance(sb.get('abilities'), dict) else {}
     spd = sb.get('speed', {})
     al = sb.get('alignment')
     def csv(value):
@@ -13237,7 +13238,7 @@ def _criatura_prefill(b):
         'nome': b.nome, 'tipo': b.tipo or '', 'tamanho': b.tamanho or '', 'nd': b.nd or '',
         'alinhamento': (al[0] if isinstance(al, list) and al else (b.alinhamento or '')),
         'ca': b.ca or '', 'pv': b.pv or '', 'desloc_ft': spd.get('walk', '') if isinstance(spd, dict) else (spd or ''),
-        'abil': {en: sb.get(en, 10) for en, _ in _SB_AB},
+        'abil': {en: imported_abilities.get(en, sb.get(en, 10)) for en, _ in _SB_AB},
         'idiomas': csv(sb.get('languages')), 'sentidos': csv(sb.get('senses')),
         'passivo': sb.get('passive') or '', 'descricao': b.descricao_markdown or '',
         'imagem_url': b.imagem_url or '',
