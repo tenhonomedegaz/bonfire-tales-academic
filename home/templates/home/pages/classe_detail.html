@@ -379,7 +379,9 @@
     });
 
     const urlParams = new URLSearchParams(window.location.search);
-    setSubclass(urlParams.get('subclasse') || '', true);
+    const requestedSubclass = urlParams.get('subclasse') || '';
+    setSubclass(subclassButtons.some(button => button.dataset.subclassToggle === requestedSubclass)
+      ? requestedSubclass : '', true);
 
     // Wiki Editor
     document.querySelectorAll('[data-feature-card]').forEach(card => {
