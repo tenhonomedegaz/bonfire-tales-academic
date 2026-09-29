@@ -1,7 +1,7 @@
 from django.test import TestCase
 from django.urls import reverse
 
-from .bestiary_catalog import cr_classification, size_keys, type_key
+from .bestiary_catalog import cr_classification, size_keys, type_key, type_keys
 from .models import TbBestiario
 
 
@@ -10,6 +10,11 @@ class BestiaryCatalogClassificationTests(TestCase):
         self.assertEqual(type_key('Besta (Dinossauro)'), 'besta')
         self.assertEqual(type_key('swarm of Tiny Beasts'), 'besta')
         self.assertIsNone(type_key('Celestial, Fey, or Fiend'))
+        self.assertEqual(type_keys('Celestial, Fey, or Fiend'),
+                         ('celestial', 'feerico', 'corruptor'))
+        self.assertEqual(type_keys('celestial ou corruptor (Tit\ufffd)'),
+                         ('celestial', 'corruptor'))
+        self.assertEqual(type_keys('enxame de mortos-vivos mi\ufffddos'), ('morto-vivo',))
         self.assertEqual(size_keys('Small or Medium'), ('S', 'M'))
         self.assertEqual(size_keys('Huge or Gargantuan'), ('H', 'G'))
         self.assertEqual(cr_classification('1/4 (XP 50; PB +2)')[:2], ('nd:1/4', 0.25))
@@ -41,7 +46,10 @@ class BestiaryCatalogClassificationTests(TestCase):
         medium = self.client.get(url, {'tam': 'M'})
         self.assertEqual([c['slug'] for c in medium.context['criaturas']], ['beast-multi'])
         pending = self.client.get(url, {'tipo': 'pending', 'tam': 'pending'})
-        self.assertEqual([c['slug'] for c in pending.context['criaturas']], ['variable'])
+        self.assertEqual([c['slug'] for c in pending.context['criaturas']], [])
+        for kind in ('celestial', 'feerico', 'corruptor'):
+            filtered = self.client.get(url, {'tipo': kind})
+            self.assertIn('variable', [c['slug'] for c in filtered.context['criaturas']])
         descending = self.client.get(url, {'ord': 'nd_desc'})
         self.assertEqual([c['slug'] for c in descending.context['criaturas']],
                          ['fiend-large', 'beast-multi', 'beast-small', 'variable'])

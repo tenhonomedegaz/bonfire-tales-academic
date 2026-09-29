@@ -43,6 +43,12 @@ SIZE_COMBINATIONS = {
 SWARM_TYPES = {
     'beasts': 'besta', 'monstrosities': 'monstruosidade',
     'aberrations': 'aberracao', 'fiends': 'corruptor',
+    'mortos-vivos': 'morto-vivo',
+}
+MULTI_TYPES = {
+    'celestial, fey, or fiend': ('celestial', 'feerico', 'corruptor'),
+    'celestial ou corruptor (tita)': ('celestial', 'corruptor'),
+    'celestial ou corruptor (tit\ufffd)': ('celestial', 'corruptor'),
 }
 CR_PATTERN = re.compile(r'^\s*(\d+(?:/\d+)?)(?:\s*\(.*\))?\s*$')
 
@@ -61,8 +67,18 @@ def type_key(value):
         return base
     if base in TYPE_ALIASES:
         return TYPE_ALIASES[base]
+    if re.fullmatch(r'enxame de mortos-vivos mi.dos', base):
+        return 'morto-vivo'
     swarm = re.fullmatch(r'swarm of (?:tiny|small|medium) ([a-z]+)', base)
     return SWARM_TYPES.get(swarm.group(1)) if swarm else None
+
+
+def type_keys(value):
+    """Return all explicitly listed types; ambiguous or unknown types stay pending."""
+    single = type_key(value)
+    if single:
+        return (single,)
+    return MULTI_TYPES.get(_fold(value), ())
 
 
 def size_keys(value):

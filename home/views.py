@@ -13036,7 +13036,7 @@ def bestiario_view(request):
     """Bestiário com filtros canônicos e statblock existente preservado."""
     from .models import TbBestiario
     from .bestiary_catalog import (TYPE_LABELS, SIZE_LABELS, cr_classification,
-                                   size_keys, type_key)
+                                   size_keys, type_key, type_keys)
     from . import permissions as perms
     filtro = request.GET.get('f', '')
     nd_sel = request.GET.get('nd', '')
@@ -13053,7 +13053,7 @@ def bestiario_view(request):
     ordem = request.GET.get('ord', 'az')
     is_staff = perms.is_staff_user(request.user)
     records = list(TbBestiario.objects.select_related('autor'))
-    indexed = [(b, type_key(b.tipo), size_keys(b.tamanho), cr_classification(b.nd))
+    indexed = [(b, type_keys(b.tipo), size_keys(b.tamanho), cr_classification(b.nd))
                for b in records]
     nd_options = {}
     for _, _, _, (key, number, label) in indexed:
@@ -13061,7 +13061,7 @@ def bestiario_view(request):
             nd_options[key] = (number, label)
     nds_all = [(key, label) for key, (number, label) in sorted(
         nd_options.items(), key=lambda item: (item[1][0], item[1][1]))]
-    type_values = {kind or 'pending' for _, kind, _, _ in indexed}
+    type_values = {kind for _, kinds, _, _ in indexed for kind in (kinds or ('pending',))}
     tipos_all = [(kind, TYPE_LABELS.get(kind, 'Classificação pendente'))
                  for kind in sorted(type_values, key=lambda key: TYPE_LABELS.get(key, 'ZZZ'))]
     size_values = {size for _, _, sizes, _ in indexed for size in sizes}
@@ -13069,14 +13069,14 @@ def bestiario_view(request):
     if any(not sizes for _, _, sizes, _ in indexed):
         tamanhos_all.append(('pending', 'Tamanho pendente'))
     criaturas = []
-    for b, kind, sizes, (nd_key, nd_number, _) in indexed:
+    for b, kinds, sizes, (nd_key, nd_number, _) in indexed:
         if filtro == 'oficial' and b.comunidade:
             continue
         if filtro == 'comunidade' and not b.comunidade:
             continue
         if nd_sel and nd_sel != nd_key:
             continue
-        if tipo_sel and tipo_sel != (kind or 'pending') and tipo_sel != b.tipo:
+        if tipo_sel and tipo_sel not in (kinds or ('pending',)) and tipo_sel != b.tipo:
             continue
         if tam_sel and tam_sel not in (sizes or ('pending',)) and tam_sel != b.tamanho:
             continue

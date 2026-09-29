@@ -10,7 +10,7 @@ import json
 import re
 import unicodedata
 
-from .bestiary_catalog import cr_classification, size_keys, type_key
+from .bestiary_catalog import cr_classification, size_keys, type_keys
 
 
 FEATURE_SECTIONS = (
@@ -75,12 +75,14 @@ def audit_snapshot(rows):
         fields = row['fields']
         sb = fields.get('statblock_json')
         issues = []
+        kinds = type_keys(fields.get('tipo'))
         classification = {
-            'type': type_key(fields.get('tipo')),
+            'type': kinds[0] if len(kinds) == 1 else None,
+            'types': list(kinds),
             'sizes': list(size_keys(fields.get('tamanho'))),
             'cr': cr_classification(fields.get('nd'))[0],
         }
-        if not classification['type']:
+        if not kinds:
             issues.append('type_needs_classification')
         if not classification['sizes']:
             issues.append('size_needs_classification')

@@ -55,6 +55,14 @@ class BestiarySnapshotAuditTests(SimpleTestCase):
         self.assertIn('traits.0.spell_refs.0:unresolved_spell_ref', result['records'][0]['issues'])
         self.assertEqual(result['repair_candidates'], [])
 
+    def test_variable_type_is_audited_as_multiple_explicit_types(self):
+        rows = self.sample()
+        rows[1]['fields']['tipo'] = 'Celestial, Fey, or Fiend'
+        record = audit_snapshot(rows)['records'][0]
+        self.assertEqual(record['classification']['types'],
+                         ['celestial', 'feerico', 'corruptor'])
+        self.assertNotIn('type_needs_classification', record['issues'])
+
     def test_dynamic_reference_is_not_misreported_as_missing_creature(self):
         rows = self.sample()
         rows.append({'model': 'home.tbtracoracial', 'pk': 21,
