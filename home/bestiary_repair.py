@@ -3,7 +3,7 @@
 from collections import defaultdict
 from copy import deepcopy
 
-from .bestiary_audit import normalized_slug, statblock_hash
+from .bestiary_audit import CAST_SPELL, normalized_slug, statblock_hash
 
 
 class RepairConflict(ValueError):
@@ -50,9 +50,14 @@ def reconcile_snapshot(rows, report):
     for candidate in candidates:
         pk = candidate.get('creature_pk')
         path = candidate.get('path')
-        if (not isinstance(path, list) or len(path) < 3 or path[-1] != 'slug'
+        kind = candidate.get('kind', 'ref')
+        if (not isinstance(path, list) or len(path) < 2
                 or any(not isinstance(part, (str, int)) or isinstance(part, bool) for part in path)
-                or not any(part in ('spell_refs', 'spells') for part in path)):
+                or (kind == 'ref' and (len(path) < 3 or path[-1] != 'slug'
+                                      or not any(part in ('spell_refs', 'spells') for part in path)))
+                or (kind == 'tag' and (path[-2] not in ('tags', 'tags_json')
+                                      or not isinstance(path[-1], int)))
+                or kind not in ('ref', 'tag')):
             raise RepairConflict('Caminho de referência inválido.')
         key = (pk, tuple(path))
         if key in seen_paths:
@@ -67,6 +72,14 @@ def reconcile_snapshot(rows, report):
         if (normalized_slug(candidate.get('old_slug')) != normalized_slug(candidate.get('new_slug'))
                 or spell_normalized[normalized_slug(candidate.get('new_slug'))] != {candidate.get('new_slug')}):
             raise RepairConflict('Correspondência de slug não é única e exata.')
+        if kind == 'tag':
+            old_tag, new_tag = candidate.get('old_tag'), candidate.get('new_tag')
+            cast = list(CAST_SPELL.finditer(old_tag)) if isinstance(old_tag, str) else []
+            if (not isinstance(new_tag, str) or len(cast) != 1
+                    or cast[0].group(1).strip() != candidate['old_slug']
+                    or new_tag != old_tag[:cast[0].start(1)] + candidate['new_slug']
+                    + old_tag[cast[0].end(1):]):
+                raise RepairConflict('Tag mecanica divergente.')
         grouped[pk].append(candidate)
 
     applied = unchanged = 0
@@ -80,7 +93,8 @@ def reconcile_snapshot(rows, report):
             raise RepairConflict('Revisões esperadas inconsistentes.')
         current_hash = statblock_hash(sb)
         if current_hash == next(iter(after_hashes)):
-            if any(_path_value(sb, candidate['path']) != candidate['new_slug'] for candidate in group):
+            if any(_path_value(sb, candidate['path']) != (candidate['new_tag'] if candidate.get('kind') == 'tag'
+                                                         else candidate['new_slug']) for candidate in group):
                 raise RepairConflict('Resultado existente não confere com o relatório.')
             unchanged += len(group)
             continue
@@ -88,9 +102,14 @@ def reconcile_snapshot(rows, report):
             raise RepairConflict('Statblock mudou desde a auditoria.')
         for candidate in group:
             parent = _path_value(sb, candidate['path'][:-1])
-            if not isinstance(parent, dict) or parent.get('slug') != candidate['old_slug']:
-                raise RepairConflict('Referência de origem divergente.')
-            parent['slug'] = candidate['new_slug']
+            if candidate.get('kind') == 'tag':
+                if not isinstance(parent, list) or parent[candidate['path'][-1]] != candidate['old_tag']:
+                    raise RepairConflict('Tag mecanica de origem divergente.')
+                parent[candidate['path'][-1]] = candidate['new_tag']
+            else:
+                if not isinstance(parent, dict) or parent.get('slug') != candidate['old_slug']:
+                    raise RepairConflict('Referencia de origem divergente.')
+                parent['slug'] = candidate['new_slug']
         if statblock_hash(sb) != next(iter(after_hashes)):
             raise RepairConflict('Resultado diverge da revisão esperada.')
         applied += len(group)

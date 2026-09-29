@@ -20,6 +20,7 @@ class BestiaryRepairTests(SimpleTestCase):
              'fields': {'slug': 'criatura-fonte', 'nome': 'Criatura', 'tipo': 'Elemental',
                         'tamanho': 'M', 'nd': '1', 'tags_json': ['summon:bestiary{criatura_fonte}'],
                         'statblock_json': {
+                            'tags': ['cast{spell:Elementalismo, at-will}'],
                             'traits': [{'name': 'Conjuração', 'entries': ['Conjura.'],
                                         'spell_refs': [{'slug': 'Elementalismo', 'resolved': True}]}],
                             'reactions': [{'name': 'Escudo', 'entries': ['Defende.']}],
@@ -33,13 +34,14 @@ class BestiaryRepairTests(SimpleTestCase):
         rows, report = self.rows_and_report()
         original = deepcopy(rows)
         changed, counts = reconcile_snapshot(rows, report)
-        self.assertEqual(counts, {'applied': 1, 'unchanged': 0})
+        self.assertEqual(counts, {'applied': 2, 'unchanged': 0})
         self.assertEqual(rows, original)
         expected = deepcopy(original)
         expected[1]['fields']['statblock_json']['traits'][0]['spell_refs'][0]['slug'] = 'elementalismo'
+        expected[1]['fields']['statblock_json']['tags'][0] = 'cast{spell:elementalismo, at-will}'
         self.assertEqual(changed, expected)
         again, replay = reconcile_snapshot(changed, report)
-        self.assertEqual(replay, {'applied': 0, 'unchanged': 1})
+        self.assertEqual(replay, {'applied': 0, 'unchanged': 2})
         self.assertEqual(again, changed)
 
     def test_stale_revision_and_target_identity_abort_without_mutation(self):
@@ -53,6 +55,20 @@ class BestiaryRepairTests(SimpleTestCase):
         wrong_target[0]['fields']['slug'] = 'magia-diferente'
         with self.assertRaisesRegex(RepairConflict, 'Identidade da magia'):
             reconcile_snapshot(wrong_target, report)
+
+    def test_tag_edit_or_tampered_candidate_aborts_entire_repair(self):
+        rows, report = self.rows_and_report()
+        edited = deepcopy(rows)
+        edited[1]['fields']['statblock_json']['tags'][0] = 'cast{spell:outra-magia}'
+        with self.assertRaisesRegex(RepairConflict, 'mudou'):
+            reconcile_snapshot(edited, report)
+        self.assertEqual(rows[1]['fields']['statblock_json']['tags'][0],
+                         'cast{spell:Elementalismo, at-will}')
+        tampered = deepcopy(report)
+        tag = next(c for c in tampered['repair_candidates'] if c.get('kind') == 'tag')
+        tag['new_tag'] = 'cast{spell:outra-magia, at-will}'
+        with self.assertRaisesRegex(RepairConflict, 'Tag mecanica'):
+            reconcile_snapshot(rows, tampered)
 
     def test_command_keeps_source_and_refuses_wrong_hash_or_existing_output(self):
         rows, report = self.rows_and_report()

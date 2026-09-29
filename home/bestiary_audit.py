@@ -21,6 +21,7 @@ FEATURE_SECTIONS = (
 )
 SUMMON_REF = re.compile(r'\bbestiary\s*\{\s*([^}]+)\s*\}', re.I)
 STATIC_REF = re.compile(r'^[a-z0-9_-]+$', re.I)
+CAST_SPELL = re.compile(r'cast\{spell:([^,}]+)')
 
 
 def normalized_slug(value):
@@ -54,7 +55,21 @@ def _spell_references(value, path=()):
                 yield from _spell_references(child, path + (key,))
     elif isinstance(value, list):
         for index, child in enumerate(value):
-            yield from _spell_references(child, path + (index,))
+                yield from _spell_references(child, path + (index,))
+
+
+def _mechanical_tags(value, path=()):
+    if isinstance(value, dict):
+        for key, child in value.items():
+            if key in ('tags', 'tags_json') and isinstance(child, list):
+                for index, tag in enumerate(child):
+                    if isinstance(tag, str):
+                        yield path + (key, index), tag
+            elif isinstance(child, (dict, list)):
+                yield from _mechanical_tags(child, path + (key,))
+    elif isinstance(value, list):
+        for index, child in enumerate(value):
+            yield from _mechanical_tags(child, path + (index,))
 
 
 def audit_snapshot(rows):
@@ -160,11 +175,34 @@ def audit_snapshot(rows):
                 'reason': 'unique_normalized_slug_match; review_before_apply',
             })
 
+        for path, tag in _mechanical_tags(sb):
+            matches_in_tag = list(CAST_SPELL.finditer(tag))
+            if len(matches_in_tag) != 1:
+                continue
+            slug = matches_in_tag[0].group(1).strip()
+            if slug in spell_by_slug:
+                continue
+            matches = spell_by_normalized.get(normalized_slug(slug), [])
+            if len(matches) != 1:
+                issues.append(f'{".".join(map(str, path))}:unresolved_cast_spell')
+                continue
+            canonical = matches[0]
+            issues.append(f'{".".join(map(str, path))}:noncanonical_cast_spell')
+            new_tag = tag[:matches_in_tag[0].start(1)] + canonical + tag[matches_in_tag[0].end(1):]
+            repairs.append({
+                'kind': 'tag', 'creature_pk': row['pk'], 'creature_slug': fields.get('slug'),
+                'expected_statblock_sha256': statblock_hash(sb),
+                'path': list(path), 'old_slug': slug, 'new_slug': canonical,
+                'old_tag': tag, 'new_tag': new_tag, 'spell_pk': spell_by_slug[canonical],
+                'reason': 'unique_normalized_slug_match; review_before_apply',
+            })
+
         if len(repairs) > candidate_start:
             proposed = deepcopy(sb)
             for candidate in repairs[candidate_start:]:
                 parent = _path_value(proposed, candidate['path'][:-1])
-                parent[candidate['path'][-1]] = candidate['new_slug']
+                parent[candidate['path'][-1]] = (candidate['new_tag'] if candidate.get('kind') == 'tag'
+                                                 else candidate['new_slug'])
             after_hash = statblock_hash(proposed)
             for candidate in repairs[candidate_start:]:
                 candidate['expected_after_statblock_sha256'] = after_hash
