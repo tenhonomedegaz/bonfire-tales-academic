@@ -21,6 +21,41 @@ def sleep_trait():
 
 
 class FalseCastRulesTests(SimpleTestCase):
+    def test_damage_resistance_is_not_the_cantrip(self):
+        damage = {'name_en': 'Confer Fire Resistance',
+                  'entries_en': ['The nightmare can grant Resistance to Fire damage to a rider.'],
+                  'tags': ['cast{spell:resistencia}', 'damage{fire}'],
+                  'spell_refs': [{'slug': 'resistencia'}]}
+        fixed, slugs = strip_false_casts(damage)
+        self.assertEqual(slugs, frozenset({'resistencia'}))
+        self.assertEqual(fixed['tags'], ['damage{fire}'])
+        self.assertNotIn('spell_refs', fixed)
+
+    def test_resistance_spell_and_other_spells_survive(self):
+        spellcasting = {'name_en': 'Spellcasting',
+                        'entries_en': ['Cantrips (at will): guidance, resistance'],
+                        'tags': ['cast{spell:resistencia}']}
+        self.assertEqual(strip_false_casts(spellcasting), (spellcasting, frozenset()))
+        actual = {'name_en': 'Resistance', 'entries_en': ['The mage casts Resistance.'],
+                  'tags': ['cast{spell:resistencia}']}
+        self.assertEqual(strip_false_casts(actual), (actual, frozenset()))
+        mixed = {'name_en': 'Inhabit Object',
+                 'entries_en': ['The shard can cast spells. The rider gains resistance to psychic damage.'],
+                 'tags': ['cast{spell:resistencia}', 'cast{spell:voo}']}
+        fixed, slugs = strip_false_casts(mixed)
+        self.assertEqual(slugs, frozenset({'resistencia'}))
+        self.assertEqual(fixed['tags'], ['cast{spell:voo}'])
+
+    def test_import_parser_keeps_damage_resistance_prose_without_spell_reference(self):
+        catalog = [{'en_lower': 'resistance', 'slug': 'resistencia',
+                    'name_en': 'Resistance', 'name_pt': 'Resistência', 'resolved': True}]
+        blocks = _split_secao(
+            'Confer Fire Resistance. The nightmare can grant Resistance to Fire damage to a rider.\n'
+            'Spellcasting. Cantrips (at will): guidance, resistance.', catalog)
+        self.assertEqual(len(blocks), 2)
+        self.assertNotIn('spell_refs', blocks[0])
+        self.assertEqual(blocks[1]['spell_refs'][0]['slug'], 'resistencia')
+
     def test_sleep_immunity_is_not_spellcasting_but_other_text_is_preserved(self):
         original = sleep_trait()
         fixed, slugs = strip_false_casts(original)

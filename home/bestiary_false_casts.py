@@ -28,13 +28,24 @@ FALSE_CAST_RULES = {
 def false_cast_slugs(feature):
     if not isinstance(feature, dict) or feature.get('spell_uses'):
         return frozenset()
-    rule = FALSE_CAST_RULES.get(feature.get('name_en'))
-    if not rule:
-        return frozenset()
     entries = feature.get('entries_en')
     if not isinstance(entries, list) or any(not isinstance(entry, str) for entry in entries):
         return frozenset()
     text = ' '.join(entries)
+    tags = feature.get('tags') or []
+    # The English rules use "Resistance" both for a cantrip and for damage
+    # resistance. Only the latter is a false spell reference.
+    if ('cast{spell:resistencia}' in tags and
+            'spellcasting' not in (feature.get('name_en') or '').lower() and
+            re.search(r'\bresistance\b', text, re.I) and
+            not re.search(r'\b(?:casts?|casting)\s+(?:the\s+)?(?:spell\s+)?resistance\b|'
+                          r'\bresistance\s+(?:cantrip|spell)\b|'
+                          r'\b(?:cantrips?|spells?\s+(?:prepared|known)|at will)\b',
+                          text, re.I)):
+        return frozenset({'resistencia'})
+    rule = FALSE_CAST_RULES.get(feature.get('name_en'))
+    if not rule:
+        return frozenset()
     if not rule[0].search(text) or re.search(r'\bcast(?:s|ing)?\b', text, re.I):
         return frozenset()
     slugs = rule[1]
