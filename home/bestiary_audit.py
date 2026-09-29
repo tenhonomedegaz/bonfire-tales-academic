@@ -4,6 +4,7 @@ Structural checks locate review work; they do not certify RPG semantics.
 """
 
 from collections import Counter
+from copy import deepcopy
 from hashlib import sha256
 import json
 import re
@@ -29,6 +30,12 @@ def normalized_slug(value):
 
 def statblock_hash(value):
     return sha256(json.dumps(value, sort_keys=True, ensure_ascii=False, separators=(',', ':')).encode()).hexdigest()
+
+
+def _path_value(value, path):
+    for part in path:
+        value = value[part]
+    return value
 
 
 def _spell_references(value, path=()):
@@ -127,6 +134,7 @@ def audit_snapshot(rows):
                     issues.append(f'tags_json[{index}]:unresolved_bestiary_ref')
 
         reference_count = 0
+        candidate_start = len(repairs)
         for path, ref in _spell_references(sb):
             reference_count += 1
             path_text = '.'.join(map(str, path))
@@ -149,6 +157,15 @@ def audit_snapshot(rows):
                 'new_slug': canonical, 'spell_pk': spell_by_slug[canonical],
                 'reason': 'unique_normalized_slug_match; review_before_apply',
             })
+
+        if len(repairs) > candidate_start:
+            proposed = deepcopy(sb)
+            for candidate in repairs[candidate_start:]:
+                parent = _path_value(proposed, candidate['path'][:-1])
+                parent[candidate['path'][-1]] = candidate['new_slug']
+            after_hash = statblock_hash(proposed)
+            for candidate in repairs[candidate_start:]:
+                candidate['expected_after_statblock_sha256'] = after_hash
 
         if untagged:
             issues.append('untagged_features_need_semantic_review')
