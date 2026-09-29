@@ -32,6 +32,21 @@ def _current_snapshot(creature):
             for field in creature._meta.concrete_fields}
 
 
+def _approved_name_projection(creature, name):
+    """Rename the three public labels without importing unrelated statblock data."""
+    old = creature.nome
+    statblock = creature.statblock_json
+    description = creature.descricao_markdown
+    heading = f'### {old}'
+    if (not isinstance(statblock, dict) or statblock.get('name') not in (old, name) or
+            not isinstance(description, str) or
+            description.split('\n', 1)[0] not in (heading, f'### {name}')):
+        raise CommandError(f'Titulos divergentes: {creature.slug}')
+    updated = {**statblock, 'name': name}
+    revised = f'### {name}' + description[len(description.split('\n', 1)[0]):]
+    return updated, revised
+
+
 class Command(BaseCommand):
     help = 'Gera diferencas revisaveis ou aplica apenas campos aprovados, com preflight atomico.'
 
@@ -140,14 +155,29 @@ class Command(BaseCommand):
                     raise CommandError(f'Proposta mudou desde a revisao: {slug}')
                 if any(changes[key].get('proposed') != proposed[key] for key in approvals):
                     raise CommandError(f'Campo revisado diverge da proposta: {slug}')
-                if all(getattr(creature, key) == proposed[key] for key in approvals):
+                if 'nome' in approvals and ({'statblock_json', 'descricao_markdown'} & set(approvals)):
+                    raise CommandError(f'Aprovar nome separadamente das projecoes completas: {slug}')
+                already_applied = all(getattr(creature, key) == proposed[key] for key in approvals)
+                name_projection = None
+                if already_applied and 'nome' in approvals:
+                    name_projection = _approved_name_projection(creature, proposed['nome'])
+                    already_applied = (already_applied and
+                                       creature.statblock_json == name_projection[0] and
+                                       creature.descricao_markdown == name_projection[1])
+                if already_applied:
                     unchanged += 1
                     continue
                 if _digest(_current_snapshot(creature)) != item.get('current_sha256'):
                     raise CommandError(f'Criatura mudou desde a revisao: {slug}')
+                if 'nome' in approvals and name_projection is None:
+                    name_projection = _approved_name_projection(creature, proposed['nome'])
                 for key in approvals:
                     setattr(creature, key, proposed[key])
-                creature.save(update_fields=approvals)
+                update_fields = list(approvals)
+                if name_projection:
+                    creature.statblock_json, creature.descricao_markdown = name_projection
+                    update_fields += ['statblock_json', 'descricao_markdown']
+                creature.save(update_fields=update_fields)
                 updated += 1
         self.stdout.write(f'Aplicado: {updated}; ja aplicado: {unchanged}; '
                           f'sem aprovacao: {len(manifest["rows"]) - updated - unchanged}.')

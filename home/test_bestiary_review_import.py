@@ -67,6 +67,46 @@ class ReviewedBestiaryImportTests(TestCase):
         self.assertEqual(creature.imagem_url, '/media/propria.png')
         self.assertIn('ja aplicado: 1', self.command(apply=True))
 
+    def test_name_approval_updates_only_public_labels(self):
+        self.source(['Fire Elemental'])
+        creature = self.existing('Fire Elemental')
+        creature.descricao_markdown = f'### {creature.nome}\n\nTexto da mesa.'
+        creature.save(update_fields=['descricao_markdown'])
+        original_statblock = dict(creature.statblock_json)
+        self.command()
+        self.approve({'fire-elemental': ['nome']})
+        self.assertIn('Aplicado: 1', self.command(apply=True))
+        creature.refresh_from_db()
+        self.assertEqual(creature.statblock_json, {
+            **original_statblock, 'name': creature.nome,
+        })
+        self.assertEqual(creature.descricao_markdown,
+                         f'### {creature.nome}\n\nTexto da mesa.')
+        self.assertEqual(creature.imagem_url, '/media/propria.png')
+        self.assertIn('ja aplicado: 1', self.command(apply=True))
+
+    def test_name_approval_rejects_divergent_title(self):
+        self.source(['Fire Elemental'])
+        creature = self.existing('Fire Elemental')
+        creature.descricao_markdown = '### Outro titulo\nTexto da mesa.'
+        creature.save(update_fields=['descricao_markdown'])
+        self.command()
+        self.approve({'fire-elemental': ['nome']})
+        with self.assertRaisesMessage(CommandError, 'Titulos divergentes'):
+            self.command(apply=True)
+        creature.refresh_from_db()
+        self.assertEqual(creature.nome, 'Nome da mesa: Fire Elemental')
+
+    def test_name_approval_cannot_bundle_full_statblock(self):
+        self.source(['Fire Elemental'])
+        creature = self.existing('Fire Elemental')
+        creature.descricao_markdown = f'### {creature.nome}\nTexto da mesa.'
+        creature.save(update_fields=['descricao_markdown'])
+        self.command()
+        self.approve({'fire-elemental': ['nome', 'statblock_json']})
+        with self.assertRaisesMessage(CommandError, 'Aprovar nome separadamente'):
+            self.command(apply=True)
+
     def test_stale_second_row_rolls_back_first_update(self):
         self.source(['Review Beast', 'Review Dragon'])
         first, second = self.existing('Review Beast'), self.existing('Review Dragon')
