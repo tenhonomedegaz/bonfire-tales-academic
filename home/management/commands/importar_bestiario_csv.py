@@ -1327,6 +1327,42 @@ def _tags_for_spell_refs(refs, uso=None):
     return tags
 
 
+def _cast_refs_in_prose(text, refs, feature_name):
+    """Only tag spells the feature actually casts; keep other mentions as refs."""
+    if 'spellcasting' in feature_name.casefold():
+        return refs
+    cast_refs = []
+    for ref in refs:
+        name = ref.get('name_en') or ''
+        if not name:
+            continue
+        for mention in re.finditer(r'(?<!\w)' + re.escape(name) + r'(?!\w)', text, re.I):
+            preceding = text[max(0, mention.start() - 80):mention.start()]
+            cast = re.search(r'\bcast(?:s|ing)?\b[^.;\n]{0,60}$', preceding, re.I)
+            if (cast and not re.search(
+                    r"\b(?:can['’]?t|cannot|doesn['’]?t|does not|never|unable to)\s+$",
+                    preceding[:cast.start()], re.I)):
+                cast_refs.append(ref)
+                break
+    return cast_refs
+
+
+def _feature_spell_refs(text, refs, feature_name):
+    """Keep named spell references, excluding ordinary uses of shared words."""
+    if 'spellcasting' in feature_name.casefold():
+        return refs
+    cast_slugs = {ref['slug'] for ref in _cast_refs_in_prose(text, refs, feature_name)}
+    relevant = []
+    for ref in refs:
+        name = ref.get('name_en') or ''
+        if ref['slug'] in cast_slugs or (name and re.search(
+                r'(?<!\w)' + re.escape(name) + r'\s+(?:spell|cantrip)\b|'
+                r'\b(?:spell|cantrip)\s+' + re.escape(name) + r'(?!\w)',
+                text, re.I)):
+            relevant.append(ref)
+    return relevant
+
+
 def _spell_uses(texto, catalog):
     usos = []
     for linha in (texto or "").splitlines():
@@ -1374,7 +1410,7 @@ def _split_secao(texto, catalog):
                 blocos.append(atual)
             nome_en = match.group(1).strip()
             corpo = match.group(2).strip()
-            refs = _extract_spell_refs(corpo, catalog)
+            refs = _feature_spell_refs(corpo, _extract_spell_refs(corpo, catalog), nome_en)
             atual = {
                 "name_en": nome_en,
                 "name": _traduz_feature(nome_en),
@@ -1383,7 +1419,9 @@ def _split_secao(texto, catalog):
             }
             if refs:
                 atual["spell_refs"] = refs
-                atual["tags"] = _tags_for_spell_refs(refs)
+                cast_refs = _cast_refs_in_prose(corpo, refs, nome_en)
+                if cast_refs:
+                    atual["tags"] = _tags_for_spell_refs(cast_refs)
             usos = _spell_uses(corpo, catalog)
             if usos:
                 atual["spell_uses"] = usos
@@ -1399,10 +1437,13 @@ def _split_secao(texto, catalog):
         elif atual:
             atual.setdefault("entries_en", []).append(parte)
             atual.setdefault("entries", []).append(parte)
-            refs = _extract_spell_refs(parte, catalog)
+            refs = _feature_spell_refs(
+                parte, _extract_spell_refs(parte, catalog), atual['name_en'])
             if refs:
                 atual.setdefault("spell_refs", []).extend(refs)
-                atual.setdefault("tags", []).extend(_tags_for_spell_refs(refs))
+                cast_refs = _cast_refs_in_prose(parte, refs, atual['name_en'])
+                if cast_refs:
+                    atual.setdefault("tags", []).extend(_tags_for_spell_refs(cast_refs))
 
     if atual:
         blocos.append(atual)
