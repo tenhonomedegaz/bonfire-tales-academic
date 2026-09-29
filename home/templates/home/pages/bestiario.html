@@ -74,7 +74,7 @@
   {% elif msg == 'excluida' %}<p class="rounded border border-[var(--stroke)] bg-[var(--bg1)] px-2.5 py-1.5 text-sm text-[var(--muted)]">Criatura excluida.</p>{% endif %}
 
   <form method="get" class="bestiary-toolbar">
-    <div class="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-6">
+    <div class="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-7">
       <input id="bz-busca" type="search" placeholder="Buscar criatura..." autocomplete="off"
              class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-1.5 text-sm text-[var(--text)] outline-none focus:border-[var(--ember)] lg:col-span-2">
       <select name="f" onchange="this.form.submit()" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-1.5 text-sm text-[var(--text)]">
@@ -84,11 +84,15 @@
       </select>
       <select name="nd" onchange="this.form.submit()" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-1.5 text-sm text-[var(--text)]">
         <option value="">ND todos</option>
-        {% for nd in nds %}<option value="{{ nd }}" {% if nd == nd_sel %}selected{% endif %}>ND {{ nd }}</option>{% endfor %}
+        {% for key, label in nds %}<option value="{{ key }}" {% if key == nd_sel %}selected{% endif %}>ND {{ label }}</option>{% endfor %}
       </select>
       <select name="tipo" onchange="this.form.submit()" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-1.5 text-sm text-[var(--text)]">
         <option value="">Tipo todos</option>
-        {% for tipo in tipos %}<option value="{{ tipo }}" {% if tipo == tipo_sel %}selected{% endif %}>{{ tipo }}</option>{% endfor %}
+        {% for key, label in tipos %}<option value="{{ key }}" {% if key == tipo_sel %}selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+      <select name="tam" onchange="this.form.submit()" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-1.5 text-sm text-[var(--text)]">
+        <option value="">Tamanho todos</option>
+        {% for key, label in tamanhos %}<option value="{{ key }}" {% if key == tam_sel %}selected{% endif %}>{{ label }}</option>{% endfor %}
       </select>
       <select name="ord" onchange="this.form.submit()" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-1.5 text-sm text-[var(--text)]">
         <option value="az" {% if ordem == 'az' %}selected{% endif %}>A-Z</option>
@@ -229,6 +233,7 @@
       if(count) count.textContent = visible;
       var first = list.find(function(btn){return !btn.classList.contains('hidden');});
       if(first) show(first.dataset.target);
+      else panels.forEach(function(panel){panel.classList.add('hidden');});
     });
   }
 })();

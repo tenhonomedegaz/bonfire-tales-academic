@@ -12789,11 +12789,17 @@ def _sb_text(v):
 
 
 def _sb_size_text(sb, criatura=None):
+    from .bestiary_catalog import SIZE_LABELS, size_keys
     size = sb.get('size') if isinstance(sb, dict) else ''
     if isinstance(size, list):
-        size = size[0] if size else ''
-    value = _SB_TAM.get(size, size or getattr(criatura, 'tamanho', '') or '')
-    return _clean_statblock_text(value)
+        values = [key for part in size for key in size_keys(part)]
+        if values:
+            return ' / '.join(SIZE_LABELS[key] for key in dict.fromkeys(values))
+        size = ', '.join(str(part) for part in size)
+    value = size or getattr(criatura, 'tamanho', '') or ''
+    keys = size_keys(value)
+    return (' / '.join(SIZE_LABELS[key] for key in keys) if keys
+            else _clean_statblock_text(value))
 
 
 def _sb_type_text(sb, criatura=None):
@@ -12970,18 +12976,9 @@ def _statblock_display(sb, criatura=None):
 
 
 def _nd_valor(nd):
-    """ND -> número p/ ordenar por dificuldade ('1/4'->0.25, '5'->5)."""
-    nd = (nd or '').strip()
-    if '/' in nd:
-        try:
-            a, b = nd.split('/', 1)
-            return float(a) / float(b)
-        except (ValueError, ZeroDivisionError):
-            return 999.0
-    try:
-        return float(nd)
-    except ValueError:
-        return 999.0
+    """ND numérico com XP/PB separado do valor; casos variáveis ficam ao fim."""
+    from .bestiary_catalog import cr_classification
+    return cr_classification(nd)[1]
 
 
 def _statblock_display_full(sb, criatura=None):
@@ -13036,36 +13033,61 @@ def _statblock_display_full(sb, criatura=None):
 
 
 def bestiario_view(request):
-    """Bestiário: criaturas oficiais + da comunidade, com statblock 5e renderizado.
-    Filtros: origem (todas/oficial/comunidade), ND, e ordenação alfabética A→Z/Z→A."""
+    """Bestiário com filtros canônicos e statblock existente preservado."""
     from .models import TbBestiario
+    from .bestiary_catalog import (TYPE_LABELS, SIZE_LABELS, cr_classification,
+                                   size_keys, type_key)
     from . import permissions as perms
     filtro = request.GET.get('f', '')
     nd_sel = request.GET.get('nd', '')
     tipo_sel = request.GET.get('tipo', '')
     tam_sel = request.GET.get('tam', '')
+    if nd_sel and not nd_sel.startswith(('nd:', 'raw:')):
+        nd_sel = cr_classification(nd_sel)[0] or nd_sel
+    if tipo_sel and tipo_sel != 'pending' and tipo_sel not in TYPE_LABELS:
+        tipo_sel = type_key(tipo_sel) or tipo_sel
+    if tam_sel and tam_sel != 'pending' and tam_sel not in SIZE_LABELS:
+        legacy_sizes = size_keys(tam_sel)
+        if len(legacy_sizes) == 1:
+            tam_sel = legacy_sizes[0]
     ordem = request.GET.get('ord', 'az')
     is_staff = perms.is_staff_user(request.user)
-    qs = TbBestiario.objects.select_related('autor')
-    if filtro == 'oficial':
-        qs = qs.filter(comunidade=False)
-    elif filtro == 'comunidade':
-        qs = qs.filter(comunidade=True)
-    if nd_sel:
-        qs = qs.filter(nd=nd_sel)
-    if tipo_sel:
-        qs = qs.filter(tipo=tipo_sel)
-    if tam_sel:
-        qs = qs.filter(tamanho=tam_sel)
+    records = list(TbBestiario.objects.select_related('autor'))
+    indexed = [(b, type_key(b.tipo), size_keys(b.tamanho), cr_classification(b.nd))
+               for b in records]
+    nd_options = {}
+    for _, _, _, (key, number, label) in indexed:
+        if key:
+            nd_options[key] = (number, label)
+    nds_all = [(key, label) for key, (number, label) in sorted(
+        nd_options.items(), key=lambda item: (item[1][0], item[1][1]))]
+    type_values = {kind or 'pending' for _, kind, _, _ in indexed}
+    tipos_all = [(kind, TYPE_LABELS.get(kind, 'Classificação pendente'))
+                 for kind in sorted(type_values, key=lambda key: TYPE_LABELS.get(key, 'ZZZ'))]
+    size_values = {size for _, _, sizes, _ in indexed for size in sizes}
+    tamanhos_all = [(size, SIZE_LABELS[size]) for size in SIZE_LABELS if size in size_values]
+    if any(not sizes for _, _, sizes, _ in indexed):
+        tamanhos_all.append(('pending', 'Tamanho pendente'))
     criaturas = []
-    for b in qs:
+    for b, kind, sizes, (nd_key, nd_number, _) in indexed:
+        if filtro == 'oficial' and b.comunidade:
+            continue
+        if filtro == 'comunidade' and not b.comunidade:
+            continue
+        if nd_sel and nd_sel != nd_key:
+            continue
+        if tipo_sel and tipo_sel != (kind or 'pending') and tipo_sel != b.tipo:
+            continue
+        if tam_sel and tam_sel not in (sizes or ('pending',)) and tam_sel != b.tamanho:
+            continue
         criaturas.append({
             'id': b.id_criatura, 'nome': b.nome, 'slug': b.slug,
-            'tipo': _sb_tipo_pt(b.tipo), 'nd': b.nd or '', 'tamanho': _SB_TAM.get(b.tamanho, b.tamanho or ''),
+            'tipo': _sb_tipo_pt(b.tipo), 'nd': b.nd or '',
+            'tamanho': _sb_size_text(b.statblock_json if isinstance(b.statblock_json, dict) else {}, b),
             'comunidade': b.comunidade, 'autor': b.autor.username if b.autor_id else None,
             'imagem': b.imagem_url or '',
             'busca': ' '.join([b.nome or '', b.slug or '', b.tipo or '', b.tamanho or '', b.nd or '']).lower(),
-            'nd_valor': _nd_valor(b.nd),
+            'nd_valor': nd_number,
             'sb': _statblock_display_full(b.statblock_json if isinstance(b.statblock_json, dict) else {}, b),
             'descricao': _clean_5et(b.descricao_markdown or ''),
             'pode_editar': is_staff or (b.comunidade and b.autor_id == request.user.id),
@@ -13073,15 +13095,12 @@ def bestiario_view(request):
     if ordem == 'za':
         criaturas.sort(key=lambda c: c['nome'].lower(), reverse=True)
     elif ordem == 'nd_desc':
-        criaturas.sort(key=lambda c: (c['nd_valor'], c['nome'].lower()), reverse=True)
+        criaturas.sort(key=lambda c: (c['nd_valor'] == float('inf'),
+                                     -c['nd_valor'], c['nome'].lower()))
     elif ordem == 'nd_asc':
         criaturas.sort(key=lambda c: (c['nd_valor'], c['nome'].lower()))
     else:
         criaturas.sort(key=lambda c: c['nome'].lower())
-    all_qs = TbBestiario.objects.all()
-    nds_all = sorted({(x.nd or '').strip() for x in all_qs if (x.nd or '').strip()}, key=_nd_valor)
-    tipos_all = sorted({(x.tipo or '').strip() for x in all_qs if (x.tipo or '').strip()})
-    tamanhos_all = sorted({(x.tamanho or '').strip() for x in all_qs if (x.tamanho or '').strip()})
     return render(request, 'home/pages/bestiario.html', {
         'page_title': 'Bestiário',
         'meta_description': 'Consulte criaturas completas por nome, tipo, tamanho e nível de desafio no bestiário de Bonfire Tales.',
