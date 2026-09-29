@@ -13,9 +13,10 @@ class ImportedBestiaryEditTests(TestCase):
         self.client.force_login(self.user)
         self.original = {
             'name': 'Unicórnio', 'size': 'Grande', 'type': 'Celestial',
-            'cr': '5', 'ac': 12, 'hp': '97 (13d10 + 26)',
+            'cr': '5', 'ac': 12, 'ac_text': '12', 'hp': '97 (13d10 + 26)',
             'speed': '15 m (50 ft.)', 'str': 18, 'dex': 14, 'con': 15,
             'int': 11, 'wis': 17, 'cha': 16,
+            'abilities': {'str': 18, 'dex': 14, 'con': 15, 'int': 11, 'wis': 17, 'cha': 16},
             'traits': [{'name': 'Resistência Lendária', 'entries': ['Resiste.'],
                         'name_en': 'Legendary Resistance', 'entries_en': ['Resists.']}],
             'actions': [{'name': 'Chifre', 'entries': ['Ataca.'], 'name_en': 'Horn'}],
@@ -91,3 +92,55 @@ class ImportedBestiaryEditTests(TestCase):
         trait = self.creature.statblock_json['traits'][0]
         self.assertEqual(trait['tags_json'], ['defesa:nova'])
         self.assertNotIn('tags', trait)
+
+    def test_reaction_and_display_projection_follow_edited_values(self):
+        from .views import _statblock_display_full
+
+        form = self.form()
+        form['reacoes'] = 'Escudo | Defende. | reaction:defense'
+        form['ca'] = '14'
+        form['str'] = '20'
+        self.assertEqual(self.client.post(self.url, form).status_code, 302)
+        self.creature.refresh_from_db()
+        sb = self.creature.statblock_json
+        self.assertEqual(sb['reactions'][0]['tags'], ['reaction:defense'])
+        self.assertEqual(sb['ac_text'], '14')
+        self.assertEqual(sb['ac'], 14)
+        self.assertEqual(sb['abilities']['str'], 20)
+        self.assertEqual(sb['str'], 20)
+        display = _statblock_display_full(sb, self.creature)
+        self.assertEqual(display['ca'], '14')
+        self.assertEqual(display['reactions'][0]['nome'], 'Escudo')
+        self.assertEqual(next(a['score'] for a in display['abilities'] if a['sig'] == 'FOR'), 20)
+
+    def test_source_pipe_and_newline_survive_reaction_tag_review(self):
+        block = deepcopy(self.original)
+        block['reactions'][0]['entries'] = ['Conjura {@spell shield|xphb}.\nDepois recua.']
+        self.creature.statblock_json = block
+        self.creature.save(update_fields=['statblock_json'])
+        form = self.form()
+        self.assertIn(r'\|xphb', form['reacoes'])
+        self.assertIn(r'\nDepois', form['reacoes'])
+        form['reacoes'] += ' | reaction:shield'
+        self.assertEqual(self.client.post(self.url, form).status_code, 302)
+        self.creature.refresh_from_db()
+        reaction = self.creature.statblock_json['reactions'][0]
+        self.assertEqual(reaction['entries'], block['reactions'][0]['entries'])
+        self.assertEqual(reaction['tags'], ['reaction:shield'])
+
+    def test_created_reaction_is_visible_and_malformed_feature_is_rejected(self):
+        from .views import _statblock_display_full
+
+        create_url = reverse('bestiario_criar')
+        form = {'nome': 'Sentinela Nova', 'tipo': 'construto', 'tamanho': 'M',
+                'ca': '14', 'pv': '20', 'nd': '2',
+                'reacoes': 'Escudo | Reduz o dano. | reaction:shield'}
+        response = self.client.post(create_url, form)
+        self.assertEqual(response.status_code, 302)
+        created = TbBestiario.objects.get(nome='Sentinela Nova')
+        self.assertEqual(_statblock_display_full(created.statblock_json, created)['reactions'][0]['nome'], 'Escudo')
+        form['nome'] = 'Sentinela Inválida'
+        form['reacoes'] = 'Escudo | descrição | tag | extra'
+        response = self.client.post(create_url, form)
+        self.assertIn('e=estrutura', response['Location'])
+        self.assertFalse(TbBestiario.objects.filter(nome='Sentinela Inválida').exists())

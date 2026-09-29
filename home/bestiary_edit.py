@@ -9,6 +9,52 @@ class UnsafeBestiaryEdit(ValueError):
     pass
 
 
+def escape_feature_text(value):
+    return str(value or '').replace('\\', '\\\\').replace('|', '\\|').replace('\n', '\\n')
+
+
+def split_feature_line(line):
+    """Split three editable columns while retaining literal pipes and newlines."""
+    parts, current = [], []
+    index = 0
+    while index < len(line):
+        char = line[index]
+        if char == '\\' and index + 1 < len(line) and line[index + 1] in ('\\', '|', 'n'):
+            current.append('\n' if line[index + 1] == 'n' else line[index + 1])
+            index += 2
+            continue
+        if char == '|':
+            parts.append(''.join(current).strip())
+            current = []
+        else:
+            current.append(char)
+        index += 1
+    parts.append(''.join(current).strip())
+    if len(parts) > 3:
+        raise UnsafeBestiaryEdit('Uma habilidade contém separadores extras.')
+    return parts
+
+
+FEATURE_FIELDS = (
+    ('tracos', 'trait', 'traits'),
+    ('acoes', 'action', 'actions'),
+    ('acoes_bonus', 'bonus', 'bonus_actions'),
+    ('reacoes', 'reaction', 'reactions'),
+    ('acoes_lendarias', 'legendary', 'legendary_actions'),
+    ('acoes_miticas', 'mythic', 'mythic_actions'),
+    ('acoes_covil', 'lair', 'lair_actions'),
+    ('efeitos_regionais', 'regional', 'regional_effects'),
+)
+
+
+def feature_key(sb, singular, plural):
+    if plural in sb:
+        return plural
+    if singular in sb:
+        return singular
+    return plural if any(key in sb for _, _, key in FEATURE_FIELDS) else singular
+
+
 def edit_token(creature):
     state = {
         key: getattr(creature, key)
@@ -22,7 +68,7 @@ def edit_token(creature):
 def merge_statblock(original, before, submitted, parse_blocks):
     """Change only fields the form actually changed; retain every other imported key."""
     sb = deepcopy(original if isinstance(original, dict) else {})
-    modern = 'traits' in sb or 'actions' in sb
+    modern = any(key in sb for _, _, key in FEATURE_FIELDS)
 
     def changed(field):
         return str(submitted.get(field, '')).strip() != str(before.get(field, '')).strip()
@@ -57,6 +103,9 @@ def merge_statblock(original, before, submitted, parse_blocks):
                 sb[key][0]['ac'] = int(value)
             else:
                 sb[key] = int(value) if value.isdecimal() else value
+            if 'ac_text' in sb:
+                # The full card reads this display projection before `ac`.
+                sb['ac_text'] = value
         elif field == 'pv':
             if isinstance(sb.get(key), dict):
                 if not value.isdecimal():
@@ -77,17 +126,17 @@ def merge_statblock(original, before, submitted, parse_blocks):
                 raise UnsafeBestiaryEdit(f'{field.upper()} requer um número inteiro.')
             if value:
                 sb['passive' if field == 'passivo' else field] = int(value)
+                if field != 'passivo' and isinstance(sb.get('abilities'), dict):
+                    sb['abilities'][field] = int(value)
             elif field == 'passivo':
                 sb.pop('passive', None)
     for field, key in (('idiomas', 'languages'), ('sentidos', 'senses')):
         if changed(field):
             sb[key] = [part.strip() for part in submitted.get(field, '').split(',') if part.strip()]
-    for field, key in (('tracos', 'traits' if modern else 'trait'),
-                       ('acoes', 'actions' if modern else 'action')):
+    for field, singular, plural in FEATURE_FIELDS:
         if not changed(field):
             continue
-        if any(line.count('|') > 2 for line in submitted.get(field, '').splitlines()):
-            raise UnsafeBestiaryEdit('Uma habilidade contém separadores extras.')
+        key = feature_key(sb, singular, plural)
         parsed = parse_blocks(submitted.get(field, ''))
         previous = sb.get(key) or []
         if not isinstance(previous, list):

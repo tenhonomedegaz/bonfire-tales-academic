@@ -13117,10 +13117,11 @@ def _parse_blocos(texto):
     """Textarea 'Nome | descrição | tag1, tag2' por linha → [{name, entries, tags}].
     O 3º campo são as tags_json MECÂNICAS daquela habilidade (guardadas no JSON da criatura)."""
     out = []
+    from .bestiary_edit import split_feature_line
     for linha in (texto or '').splitlines():
         if not linha.strip():
             continue
-        partes = [p.strip() for p in linha.split('|')]
+        partes = split_feature_line(linha)
         item = {'name': partes[0], 'entries': [partes[1]] if len(partes) > 1 and partes[1] else []}
         if len(partes) > 2 and partes[2]:
             tags = [t.strip() for t in partes[2].split(',') if t.strip()]
@@ -13132,13 +13133,14 @@ def _parse_blocos(texto):
 
 def _blocos_para_texto(lista):
     """[{name, entries, tags}] → texto 'Nome | desc | tags' p/ preencher o textarea na edição."""
+    from .bestiary_edit import escape_feature_text
     linhas = []
     for x in (lista or []):
         if not isinstance(x, dict):
             continue
-        nome = _clean_statblock_text(x.get('name', ''))
-        desc = ' '.join(e for e in (x.get('entries') or []) if isinstance(e, str))
-        tags = ', '.join(x.get('tags') or x.get('tags_json') or [])
+        nome = escape_feature_text(x.get('name', ''))
+        desc = escape_feature_text(' '.join(e for e in (x.get('entries') or []) if isinstance(e, str)))
+        tags = escape_feature_text(', '.join(x.get('tags') or x.get('tags_json') or []))
         linha = nome
         if desc or tags:
             linha += ' | ' + desc
@@ -13150,6 +13152,7 @@ def _blocos_para_texto(lista):
 
 def _build_statblock(g):
     """Monta o statblock_json (schema 5etools + tags por habilidade) a partir do POST."""
+    from .bestiary_edit import FEATURE_FIELDS
     def num(k, default=10):
         try:
             return int(g(k))
@@ -13167,20 +13170,19 @@ def _build_statblock(g):
         sb['senses'] = [s.strip() for s in g('sentidos').split(',') if s.strip()]
     if (g('passivo') or '').strip().isdigit():
         sb['passive'] = int(g('passivo'))
-    tr, ac = _parse_blocos(g('tracos')), _parse_blocos(g('acoes'))
-    if tr:
-        sb['trait'] = tr
-    if ac:
-        sb['action'] = ac
+    for field, singular, _ in FEATURE_FIELDS:
+        blocks = _parse_blocos(g(field))
+        if blocks:
+            sb[singular] = blocks
     return sb
 
 
 def _criatura_prefill(b):
     """Dados do form prontos p/ a edição (reverte o statblock_json em campos)."""
+    from .bestiary_edit import FEATURE_FIELDS, feature_key
     sb = b.statblock_json if isinstance(b.statblock_json, dict) else {}
     spd = sb.get('speed', {})
     al = sb.get('alignment')
-    modern = 'traits' in sb or 'actions' in sb
     def csv(value):
         return ', '.join(value) if isinstance(value, list) else (value or '')
     return {
@@ -13189,15 +13191,17 @@ def _criatura_prefill(b):
         'ca': b.ca or '', 'pv': b.pv or '', 'desloc_ft': spd.get('walk', '') if isinstance(spd, dict) else (spd or ''),
         'abil': {en: sb.get(en, 10) for en, _ in _SB_AB},
         'idiomas': csv(sb.get('languages')), 'sentidos': csv(sb.get('senses')),
-        'passivo': sb.get('passive') or '', 'tracos': _blocos_para_texto(sb.get('traits' if modern else 'trait')),
-        'acoes': _blocos_para_texto(sb.get('actions' if modern else 'action')), 'descricao': b.descricao_markdown or '',
+        'passivo': sb.get('passive') or '', 'descricao': b.descricao_markdown or '',
         'imagem_url': b.imagem_url or '',
+        **{field: _blocos_para_texto(sb.get(feature_key(sb, singular, plural)))
+           for field, singular, plural in FEATURE_FIELDS},
     }
 
 
 @login_required(login_url='/login/')
 def bestiario_criar(request):
     """Mestres criam criaturas da COMUNIDADE; admins (staff) podem marcar OFICIAL."""
+    from .bestiary_edit import UnsafeBestiaryEdit
     from .models import TbBestiario
     from . import permissions as perms
     if not perms.is_mestre(request.user):
@@ -13220,11 +13224,15 @@ def bestiario_criar(request):
                 return int(g(k))
             except (TypeError, ValueError):
                 return d
+        try:
+            statblock = _build_statblock(g)
+        except UnsafeBestiaryEdit:
+            return redirect(reverse('bestiario_criar') + '?e=estrutura')
         TbBestiario.objects.create(
             nome=nome, slug=slug, tipo=g('tipo') or None, tamanho=g('tamanho') or None,
             nd=(g('nd') or '').strip() or None, alinhamento=g('alinhamento') or None,
             ca=str(num('ca', 10)), pv=str(num('pv', 1)),
-            statblock_json=_build_statblock(g), descricao_markdown=(g('descricao') or '').strip() or None,
+            statblock_json=statblock, descricao_markdown=(g('descricao') or '').strip() or None,
             imagem_url=(g('imagem_url') or '').strip() or None,
             comunidade=not oficial, autor=request.user)
         return redirect(reverse('bestiario') + ('?m=criada&f=oficial' if oficial else '?m=criada&f=comunidade'))

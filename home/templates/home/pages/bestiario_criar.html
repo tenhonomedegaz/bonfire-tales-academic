@@ -66,6 +66,20 @@
     <label class="block text-xs text-[var(--muted)]">Ações <span class="text-[var(--muted)]">(uma por linha — <code>Nome | descrição | tags</code>)</span>
       <textarea name="acoes" rows="4" placeholder="Mordida | Ataque corpo a corpo +5, 1d8+3 perfurante. | attack:natural, dmg:1d8+3(perfurante)" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-1.5 text-sm text-[var(--text)]">{{ pf.acoes|default:'' }}</textarea></label>
 
+    <p class="text-xs text-[var(--muted)]">Outras habilidades: uma por linha, no formato <code>Nome | descrição | tags</code>. Em criaturas importadas, mantenha a ordem e os nomes para preservar a identidade e as referências da origem.</p>
+    <label class="block text-xs text-[var(--muted)]">Ações bônus
+      <textarea name="acoes_bonus" rows="2" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-1.5 text-sm text-[var(--text)]">{{ pf.acoes_bonus|default:'' }}</textarea></label>
+    <label class="block text-xs text-[var(--muted)]">Reações
+      <textarea name="reacoes" rows="2" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-1.5 text-sm text-[var(--text)]">{{ pf.reacoes|default:'' }}</textarea></label>
+    <label class="block text-xs text-[var(--muted)]">Ações lendárias
+      <textarea name="acoes_lendarias" rows="2" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-1.5 text-sm text-[var(--text)]">{{ pf.acoes_lendarias|default:'' }}</textarea></label>
+    <label class="block text-xs text-[var(--muted)]">Ações míticas
+      <textarea name="acoes_miticas" rows="2" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-1.5 text-sm text-[var(--text)]">{{ pf.acoes_miticas|default:'' }}</textarea></label>
+    <label class="block text-xs text-[var(--muted)]">Ações de covil
+      <textarea name="acoes_covil" rows="2" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-1.5 text-sm text-[var(--text)]">{{ pf.acoes_covil|default:'' }}</textarea></label>
+    <label class="block text-xs text-[var(--muted)]">Efeitos regionais
+      <textarea name="efeitos_regionais" rows="2" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-1.5 text-sm text-[var(--text)]">{{ pf.efeitos_regionais|default:'' }}</textarea></label>
+
     <div class="grid gap-2 sm:grid-cols-2">
       <label class="text-xs text-[var(--muted)] sm:col-span-2">URL da imagem (opcional)<input name="imagem_url" type="url" value="{{ pf.imagem_url|default:'' }}" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-1.5 text-sm text-[var(--text)]"></label>
       <label class="text-xs text-[var(--muted)] sm:col-span-2">Descrição / lore (opcional)<textarea name="descricao" rows="2" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-1.5 text-sm text-[var(--text)]">{{ pf.descricao|default:'' }}</textarea></label>
