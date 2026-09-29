@@ -1953,22 +1953,63 @@ def classe_detail_view(request, slug):
 
 
 def _postgres_classe_detail_view(request, slug):
-    classe = get_object_or_404(TbClasse, slug=slug)
+    live_class = get_object_or_404(TbClasse, slug=slug)
     all_classes = TbClasse.objects.all().order_by('nome')
-    subclasses = TbSubclasse.objects.filter(id_classe=classe).order_by('nome')
+    published_hunter = slug == 'cacador'
+    if published_hunter:
+        from .content_versions import resolve_content
+        from .hunter_regularization import _reviewed_target, _target_orders
+        from .versioned_classes import EVALUATOR, VOCABULARY, VersionedClassCatalog
+
+        try:
+            args = _criador_hunter_catalog_args()
+            if not args:
+                raise HunterCreatorCatalogUnavailable()
+            ruleset = args['hunter_ruleset']
+            catalog = VersionedClassCatalog(ruleset, live_class.pk)
+            hunter_data = resolve_content(ruleset, 'hunter-rework',
+                evaluator_version=EVALUATOR, vocabulary_version=VOCABULARY)
+            if not _reviewed_target(ruleset, live_class.pk, hunter_data):
+                raise ValueError('Hunter revision has no reviewed replacements.')
+            orders = _target_orders(ruleset, catalog, applying=True)
+            expected = {slugify(order['name']) for order in hunter_data['orders']}
+            if (len(orders) != 8 or {slugify(order.nome) for order in orders.values()} != expected):
+                raise ValueError('Published Hunter Orders are incomplete.')
+            hunter_progression = {row['level']: row for row in hunter_data['progression']}
+            if (set(hunter_progression) != set(range(1, 21))
+                    or any(not row.get('features') or not row.get('hunter_die')
+                           for row in hunter_progression.values())):
+                raise ValueError('Published Hunter progression is incomplete.')
+        except (HunterCreatorCatalogUnavailable, ValueError, KeyError, TypeError):
+            return HttpResponse('Revisao publica do Cacador indisponivel.', status=503)
+        classe = catalog.classe
+        all_classes = [classe if item.pk == classe.pk else item for item in all_classes]
+        subclasses = sorted(orders.values(), key=lambda item: item.nome)
+        base_habilidades_qs = [item for item in catalog.collections[TbClassehabilidade]
+                              if item.id_subclasse_id is None]
+        subclass_habilidades_qs = [item for item in catalog.collections[TbClassehabilidade]
+                                   if item.id_subclasse_id in orders]
+        recursos = [item for item in catalog.collections[TbRecursoclasse]
+                    if item.id_subclasse_id is None or item.id_subclasse_id in orders]
+        hunter_die_resources = [item for item in recursos if item.id_subclasse_id is None
+                                and _normalize_key(item.nome).startswith('dado_de_ca')]
+        if len(hunter_die_resources) != 1:
+            return HttpResponse('Progressao publica do Cacador indisponivel.', status=503)
+        hunter_die_resource_id = hunter_die_resources[0].pk
+    else:
+        classe = live_class
+        subclasses = list(TbSubclasse.objects.filter(id_classe=classe).order_by('nome'))
+        base_habilidades_qs = list(TbClassehabilidade.objects.filter(
+            id_classe=classe, id_subclasse__isnull=True).order_by('niveladquirido', 'nome'))
+        subclass_habilidades_qs = list(TbClassehabilidade.objects.filter(
+            id_classe=classe, id_subclasse__isnull=False).select_related('id_subclasse')
+            .order_by('niveladquirido', 'nome'))
+        recursos = list(TbRecursoclasse.objects.filter(id_classe=classe)
+            .select_related('id_subclasse').order_by(
+                F('id_subclasse_id').asc(nulls_first=True), 'id_recurso'))
     selected_subclass_slug = request.GET.get('subclasse', '')
-
-    base_habilidades_qs = TbClassehabilidade.objects.filter(
-        id_classe=classe,
-        id_subclasse__isnull=True,
-    ).order_by('niveladquirido', 'nome')
-    subclass_habilidades_qs = TbClassehabilidade.objects.filter(
-        id_classe=classe,
-        id_subclasse__isnull=False,
-    ).select_related('id_subclasse').order_by('niveladquirido', 'nome')
-
-    habilidades = list(base_habilidades_qs.filter(table_only=False))
-    subclass_habilidades = list(subclass_habilidades_qs.filter(table_only=False))
+    habilidades = [item for item in base_habilidades_qs if not item.table_only]
+    subclass_habilidades = [item for item in subclass_habilidades_qs if not item.table_only]
     habilidade_sections = sorted(
         [
             {
@@ -2023,10 +2064,6 @@ def _postgres_classe_detail_view(request, slug):
 
     columns = []
     seen_columns = set()
-    recursos = TbRecursoclasse.objects.filter(
-        id_classe=classe,
-    ).select_related('id_subclasse').order_by(F('id_subclasse_id').asc(nulls_first=True), 'id_recurso')
-
     for recurso in recursos:
         is_feature = _is_feature_column(recurso.nome)
         spell_level = _spell_slot_level(recurso.nome)
@@ -2093,6 +2130,15 @@ def _postgres_classe_detail_view(request, slug):
         habilidades_por_nivel.setdefault(habilidade.niveladquirido, []).append(habilidade)
 
     def render_habilidades_nivel(nivel):
+        if published_hunter:
+            partes = [format_html('<span class="block text-[var(--text)]">{}</span>', name.strip())
+                      for name in hunter_progression[nivel]['features'].split(',') if name.strip()]
+            partes.extend(format_html(
+                '<span class="hidden subclass-feature text-[var(--spark)] font-bold" data-subclass-slug="{}">{}</span>',
+                item.id_subclasse.slug, item.nome,
+            ) for item in subclass_habilidades_qs
+                if item.niveladquirido == nivel and not item.table_only)
+            return format_html_join('', '{}', ((part,) for part in partes)) if partes else '-'
         partes = [
             format_html(
                 '<span class="block {}"{}>{}</span>',
@@ -2110,15 +2156,17 @@ def _postgres_classe_detail_view(request, slug):
             return '-'
         return format_html_join('', '{}', ((parte,) for parte in partes))
 
-    base_recursos = list(recursos.filter(id_subclasse__isnull=True))
-    sub_recursos = list(recursos.filter(id_subclasse__isnull=False))
+    base_recursos = [item for item in recursos if item.id_subclasse_id is None]
+    sub_recursos = [item for item in recursos if item.id_subclasse_id is not None]
 
     progression_table = []
     for nivel in range(1, 21):
         recs_nivel = {}
         subclass_recs_nivel = {}
         for recurso in base_recursos:
-            valor = _valor_recurso_no_nivel(recurso, nivel)
+            valor = (hunter_progression[nivel]['hunter_die']
+                     if published_hunter and recurso.pk == hunter_die_resource_id
+                     else _valor_recurso_no_nivel(recurso, nivel))
             if valor is not None:
                 recs_nivel.setdefault(recurso.nome, valor)
 
@@ -14403,7 +14451,7 @@ def cronica_detail_view(request, slug):
         'revisao_edicao': cronica.revisao_edicao if (
             request.user.is_staff or (request.user.is_authenticated and cronica.autor_id == request.user.id)
         ) else {},
-        'can_edit_wiki': request.user.is_staff,
+        'can_edit_wiki': request.user.is_staff and not published_hunter,
     })
 
 

@@ -16,6 +16,7 @@ from .character_engine import derive
 from .models import (TbClasse, TbSubclasse, TbPersonagem, TbPersonagemClasse,
                      TbPersonagemCacador)
 from .versioned_classes import EVALUATOR, VOCABULARY, inventory_class
+from .views import _normalize_key
 
 
 class HunterReleaseCatalogTests(_CriadorBase):
@@ -54,6 +55,30 @@ class HunterReleaseCatalogTests(_CriadorBase):
         self.assertEqual(derive(person), before)
         self.assertFalse(TbPersonagemCacador.objects.filter(personagem_classe=pc).exists())
 
+        detail_url = reverse('classe_detail', args=['cacador'])
+        with override_settings(HUNTER_CREATOR_RULESET_CHECKSUM=target.checksum):
+            detail = self.client.get(detail_url)
+            self.assertEqual(detail.status_code, 200)
+            self.assertEqual([row['nivel'] for row in detail.context['progression_table']],
+                             list(range(1, 21)))
+            self.assertEqual({sub.pk for sub in detail.context['subclasses']},
+                             set(orders.values()))
+            self.assertNotIn(old_order.pk, {sub.pk for sub in detail.context['subclasses']})
+            self.assertFalse(detail.context['can_edit_wiki'])
+            die_index = next(index for index, column in enumerate(detail.context['colunas'])
+                             if _normalize_key(column['name']).startswith('dado_de_ca'))
+            for level, die in ((1, 'd6'), (5, 'd8'), (11, 'd10'), (17, 'd12')):
+                cell = detail.context['progression_table'][level - 1]['cells'][die_index]
+                self.assertIn(die, str(cell['valor']))
+            self.assertIn('Ordem do Ca', str(detail.context['progression_table'][2]['cells']))
+            ajax = self.client.get(detail_url + '?ajax=1&subclasse=' + old_order.slug,
+                                   HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+            self.assertEqual(ajax.status_code, 200)
+            self.assertEqual({sub.pk for sub in ajax.context['subclasses']}, set(orders.values()))
+        pc.refresh_from_db()
+        self.assertEqual((pc.id_subclasse_id, pc.nivel), (old_order.pk, 3))
+        self.assertFalse(TbPersonagemCacador.objects.filter(personagem_classe=pc).exists())
+
         self.client.force_login(owner)
         url = reverse('hunter_regularization_preview', args=[person.pk])
         payload = {'ruleset_checksum': target.checksum, 'expected_level': '3',
@@ -78,3 +103,11 @@ class HunterReleaseCatalogTests(_CriadorBase):
         person.refresh_from_db()
         self.assertEqual((person.carteira_pc, person.aventuras, person.braseiros), (321, 8, 4))
         self.assertEqual(self.client.get(reverse('hunter_sheet', args=[person.pk])).status_code, 200)
+
+    def test_public_hunter_page_fails_closed_without_valid_publication(self):
+        url = reverse('classe_detail', args=['cacador'])
+        with override_settings(HUNTER_CREATOR_RULESET_CHECKSUM=''):
+            self.assertEqual(self.client.get(url).status_code, 503)
+        with override_settings(HUNTER_CREATOR_RULESET_CHECKSUM='0' * 64):
+            self.assertEqual(self.client.get(url).status_code, 503)
+        self.assertEqual(self.client.get(reverse('classe_detail', args=['guerreiro'])).status_code, 200)
