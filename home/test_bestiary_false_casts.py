@@ -21,6 +21,48 @@ def sleep_trait():
 
 
 class FalseCastRulesTests(SimpleTestCase):
+    def test_environmental_light_is_not_the_cantrip(self):
+        lighting = {'name_en': 'Illumination',
+                    'entries_en': ['The azer sheds Bright Light in a 10-foot radius.'],
+                    'tags': ['cast{spell:luz}'], 'spell_refs': [{'slug': 'luz'}]}
+        fixed, slugs = strip_false_casts(lighting)
+        self.assertEqual(slugs, frozenset({'luz'}))
+        self.assertNotIn('tags', fixed)
+        self.assertNotIn('spell_refs', fixed)
+
+    def test_actual_light_spell_and_other_spells_survive(self):
+        actual = {'name_en': 'Spellcasting',
+                  'entries_en': ['Cantrips (at will): light, guidance'],
+                  'tags': ['cast{spell:luz}']}
+        self.assertEqual(strip_false_casts(actual), (actual, frozenset()))
+        explicit = {'name_en': 'Magic', 'entries_en': ['The mage casts the Light spell.'],
+                    'tags': ['cast{spell:luz}']}
+        self.assertEqual(strip_false_casts(explicit), (explicit, frozenset()))
+        mixed = {'name_en': 'Phantasms',
+                 'entries_en': ['The cloaker casts Mirror Image. The spell ends in Bright Light.'],
+                 'tags': ['cast{spell:luz}', 'cast{spell:imagem-espelhada}']}
+        fixed, slugs = strip_false_casts(mixed)
+        self.assertEqual(slugs, frozenset({'luz'}))
+        self.assertEqual(fixed['tags'], ['cast{spell:imagem-espelhada}'])
+
+    def test_import_parser_distinguishes_light_from_spell_list(self):
+        catalog = [{'en_lower': 'light', 'slug': 'luz', 'name_en': 'Light',
+                    'name_pt': 'Luz', 'resolved': True}]
+        blocks = _split_secao(
+            'Illumination. The azer sheds Bright Light in a 10-foot radius.\n'
+            'Spellcasting. Cantrips (at will): light.', catalog)
+        self.assertEqual(len(blocks), 2)
+        self.assertNotIn('spell_refs', blocks[0])
+        self.assertEqual(blocks[1]['spell_refs'][0]['slug'], 'luz')
+
+    def test_two_false_spell_names_in_one_feature_are_both_removed(self):
+        feature = {'name_en': 'Living Shadow',
+                   'entries_en': ['While in Dim Light, the dragon has Resistance to damage.'],
+                   'tags': ['cast{spell:luz}', 'cast{spell:resistencia}']}
+        fixed, slugs = strip_false_casts(feature)
+        self.assertEqual(slugs, frozenset({'luz', 'resistencia'}))
+        self.assertNotIn('tags', fixed)
+
     def test_damage_resistance_is_not_the_cantrip(self):
         damage = {'name_en': 'Confer Fire Resistance',
                   'entries_en': ['The nightmare can grant Resistance to Fire damage to a rider.'],

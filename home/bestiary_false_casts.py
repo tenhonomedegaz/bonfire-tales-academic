@@ -33,6 +33,7 @@ def false_cast_slugs(feature):
         return frozenset()
     text = ' '.join(entries)
     tags = feature.get('tags') or []
+    false_slugs = set()
     # The English rules use "Resistance" both for a cantrip and for damage
     # resistance. Only the latter is a false spell reference.
     if ('cast{spell:resistencia}' in tags and
@@ -42,17 +43,24 @@ def false_cast_slugs(feature):
                           r'\bresistance\s+(?:cantrip|spell)\b|'
                           r'\b(?:cantrips?|spells?\s+(?:prepared|known)|at will)\b',
                           text, re.I)):
-        return frozenset({'resistencia'})
+        false_slugs.add('resistencia')
+    # Light in a statblock usually describes illumination or a lighting
+    # condition. It is only the cantrip when the feature explicitly casts it
+    # or lists it among spells.
+    if ('cast{spell:luz}' in tags and
+            'spellcasting' not in (feature.get('name_en') or '').lower() and
+            re.search(r'\blight\b', text, re.I) and
+            not re.search(r'\b(?:casts?|casting)\s+(?:the\s+)?(?:spell\s+)?light\b|'
+                          r'\blight\s+(?:cantrip|spell)\b|'
+                          r'\b(?:cantrips?|spells?\s+(?:prepared|known)|at will)\b',
+                          text, re.I)):
+        false_slugs.add('luz')
     rule = FALSE_CAST_RULES.get(feature.get('name_en'))
-    if not rule:
-        return frozenset()
-    if not rule[0].search(text) or re.search(r'\bcast(?:s|ing)?\b', text, re.I):
-        return frozenset()
-    slugs = rule[1]
-    if not all(f'cast{{spell:{slug}}}' in (feature.get('tags') or [])
-               for slug in slugs):
-        return frozenset()
-    return slugs
+    if (rule and rule[0].search(text) and
+            not re.search(r'\bcast(?:s|ing)?\b', text, re.I) and
+            all(f'cast{{spell:{slug}}}' in tags for slug in rule[1])):
+        false_slugs.update(rule[1])
+    return frozenset(false_slugs)
 
 
 def strip_false_casts(feature):
