@@ -1574,7 +1574,7 @@ def _fields_for_row(row, catalog):
         "tamanho": statblock["size"],
         "nd": statblock["cr"],
         "alinhamento": statblock["alignment"],
-        "ca": statblock["ac"],
+        "ca": str(statblock["ac"]) if statblock["ac"] is not None else None,
         "pv": statblock["hp"],
         "statblock_json": statblock,
         "tags_json": statblock.get("tags", []),

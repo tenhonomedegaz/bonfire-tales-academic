@@ -39,6 +39,15 @@ class BestiaryImportSafetyTests(TestCase):
         self.assertEqual(TbBestiario.objects.get(slug='review-beast').pk, creature.pk)
         self.assertEqual(TbBestiario.objects.count(), 1)
 
+    def test_armor_class_charfield_is_idempotent_on_replay(self):
+        with self.path.open('w', encoding='utf-8', newline='') as handle:
+            writer = csv.DictWriter(handle, fieldnames=['Name', 'Source', 'AC'])
+            writer.writeheader()
+            writer.writerow({'Name': 'Armored Beast', 'Source': 'review-test', 'AC': '16'})
+        self.assertIn('Criadas: 1', self.run_import(apply=True))
+        self.assertEqual(TbBestiario.objects.get(slug='armored-beast').ca, '16')
+        self.assertIn('Inalteradas: 1', self.run_import(apply=True))
+
     def test_manual_edit_is_reported_and_not_overwritten(self):
         self.csv_rows(['Review Beast'])
         self.run_import(apply=True)
