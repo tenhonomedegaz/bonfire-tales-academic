@@ -2236,7 +2236,7 @@ def _postgres_classe_detail_view(request, slug):
         'spell_slots_count': len(spell_columns),
         'base_spell_slots_count': base_spell_slots_count,
         'progression_table': progression_table,
-        'can_edit_wiki': request.user.is_staff,
+        'can_edit_wiki': request.user.is_staff and not published_hunter,
     }
     if is_ajax(request):
         return render(request, 'home/partials/classe_detail_content.html', context)
@@ -14451,7 +14451,7 @@ def cronica_detail_view(request, slug):
         'revisao_edicao': cronica.revisao_edicao if (
             request.user.is_staff or (request.user.is_authenticated and cronica.autor_id == request.user.id)
         ) else {},
-        'can_edit_wiki': request.user.is_staff and not published_hunter,
+        'can_edit_wiki': request.user.is_staff,
     })
 
 
