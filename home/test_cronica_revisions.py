@@ -39,6 +39,12 @@ class CronicaRevisionTests(TestCase):
             'action': action, 'feedback': feedback, 'expected_revision': expected_revision,
         })
 
+    def test_staff_can_open_published_story(self):
+        self.client.force_login(self.staff)
+        detail = self.client.get(reverse('cronica_detail', args=[self.cronica.slug]))
+        self.assertEqual(detail.status_code, 200)
+        self.assertTrue(detail.context['can_edit_wiki'])
+
     def test_published_story_remains_visible_while_edit_is_reviewed(self):
         self.assertEqual(self.edit().status_code, 200)
         self.cronica.refresh_from_db()
