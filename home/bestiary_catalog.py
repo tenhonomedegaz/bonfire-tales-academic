@@ -18,8 +18,9 @@ TYPE_LABELS = {
 }
 TYPE_ALIASES = {
     'aberration': 'aberracao', 'beast': 'besta', 'celestial': 'celestial',
-    'construct': 'construto', 'fiend': 'corruptor', 'dragon': 'dragao',
-    'elemental': 'elemental', 'fey': 'feerico', 'giant': 'gigante',
+    'construct': 'construto', 'fiend': 'corruptor', 'demonio': 'corruptor',
+    'dragon': 'dragao', 'elemental': 'elemental', 'fey': 'feerico',
+    'fada': 'feerico', 'giant': 'gigante',
     'humanoid': 'humanoide', 'ooze': 'limo', 'monstrosity': 'monstruosidade',
     'undead': 'morto-vivo', 'plant': 'planta',
 }

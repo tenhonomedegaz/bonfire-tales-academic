@@ -55,6 +55,9 @@ class BestiaryCatalogClassificationTests(TestCase):
 
     def test_explicit_aliases_and_special_values(self):
         self.assertEqual(type_key('Besta (Dinossauro)'), 'besta')
+        self.assertEqual(type_key('demonio'), 'corruptor')
+        self.assertEqual(type_key('fada'), 'feerico')
+        self.assertIsNone(type_key('espirito'))
         self.assertEqual(type_key('swarm of Tiny Beasts'), 'besta')
         self.assertIsNone(type_key('Celestial, Fey, or Fiend'))
         self.assertEqual(type_keys('Celestial, Fey, or Fiend'),
@@ -67,6 +70,18 @@ class BestiaryCatalogClassificationTests(TestCase):
         self.assertEqual(cr_classification('1/4 (XP 50; PB +2)')[:2], ('nd:1/4', 0.25))
         self.assertEqual(cr_classification('2 (XP 450; PB +2)')[:2], ('nd:2', 2.0))
         self.assertEqual(cr_classification('None (XP 0; PB equals your bonus)')[1], float('inf'))
+
+    def test_imported_demon_and_fey_types_are_visible_in_canonical_filters(self):
+        for slug, kind in (('demonio-menor', 'demonio'), ('espirito-feerico', 'fada'),
+                           ('espirito-sem-tipo', 'espirito')):
+            TbBestiario.objects.create(slug=slug, nome=slug, tipo=kind, statblock_json={})
+        url = reverse('bestiario')
+        for kind, expected in (('corruptor', 'demonio-menor'), ('feerico', 'espirito-feerico')):
+            response = self.client.get(url, {'tipo': kind})
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual([item['slug'] for item in response.context['criaturas']], [expected])
+        pending = self.client.get(url, {'tipo': 'pending'})
+        self.assertEqual([item['slug'] for item in pending.context['criaturas']], ['espirito-sem-tipo'])
 
     def test_combined_filters_and_nd_order_share_the_same_projection(self):
         for slug, nome, kind, size, nd in (
