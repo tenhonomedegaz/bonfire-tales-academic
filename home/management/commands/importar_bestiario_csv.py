@@ -1407,6 +1407,8 @@ def _split_secao(texto, catalog):
     if atual:
         blocos.append(atual)
 
+    from home.bestiary_false_casts import strip_false_casts
+    blocos = [strip_false_casts(bloco)[0] for bloco in blocos]
     for bloco in blocos:
         if "tags" in bloco:
             bloco["tags"] = sorted(set(bloco["tags"]))
