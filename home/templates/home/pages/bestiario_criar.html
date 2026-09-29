@@ -11,6 +11,9 @@
 
   <form method="post" action="{% if editar %}{% url 'bestiario_editar' criatura_id %}{% else %}{% url 'bestiario_criar' %}{% endif %}" class="space-y-3">
     {% csrf_token %}
+    {% if editar %}<input type="hidden" name="edit_token" value="{{ edit_token }}">{% endif %}
+    {% if request.GET.e == 'conflito' %}<p role="alert">A criatura mudou desde que você abriu esta página. Revise a versão atual antes de salvar.</p>{% endif %}
+    {% if request.GET.e == 'estrutura' %}<p role="alert">Esta alteração não pode ser aplicada com segurança neste formulário. Preserve a ordem e os nomes das habilidades importadas e use valores válidos.</p>{% endif %}
     {% if is_staff %}
       <label class="flex items-center gap-2 rounded border border-[var(--ember)]/30 bg-[var(--bg1)] px-2.5 py-1.5 text-sm text-[var(--text)]">
         <input type="checkbox" name="oficial" class="accent-[var(--ember)]" {% if oficial %}checked{% endif %}>
@@ -24,9 +27,10 @@
         <input name="tipo" value="{{ pf.tipo|default:'' }}" placeholder="ex.: besta, morto-vivo, construto" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-1.5 text-sm text-[var(--text)]"></label>
       <label class="text-xs text-[var(--muted)]">Tamanho
         <select name="tamanho" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-1.5 text-sm text-[var(--text)]">
+          {% if editar and tamanho_personalizado %}<option value="{{ pf.tamanho }}" selected>{{ pf.tamanho|default:'Não informado' }}</option>{% endif %}
           <option value="T" {% if pf.tamanho == 'T' %}selected{% endif %}>Minúsculo</option>
           <option value="S" {% if pf.tamanho == 'S' %}selected{% endif %}>Pequeno</option>
-          <option value="M" {% if pf.tamanho == 'M' or not pf %}selected{% endif %}>Médio</option>
+          <option value="M" {% if pf.tamanho == 'M' or not editar %}selected{% endif %}>Médio</option>
           <option value="L" {% if pf.tamanho == 'L' %}selected{% endif %}>Grande</option>
           <option value="H" {% if pf.tamanho == 'H' %}selected{% endif %}>Enorme</option>
           <option value="G" {% if pf.tamanho == 'G' %}selected{% endif %}>Descomunal</option></select></label>
@@ -37,9 +41,9 @@
     </div>
 
     <div class="grid grid-cols-3 gap-2">
-      <label class="text-xs text-[var(--muted)]">CA<input name="ca" type="number" value="{{ pf.ca|default:12 }}" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-1.5 text-sm text-[var(--text)]"></label>
-      <label class="text-xs text-[var(--muted)]">PV<input name="pv" type="number" value="{{ pf.pv|default:10 }}" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-1.5 text-sm text-[var(--text)]"></label>
-      <label class="text-xs text-[var(--muted)]">Deslocamento (ft)<input name="desloc_ft" type="number" value="{{ pf.desloc_ft|default:30 }}" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-1.5 text-sm text-[var(--text)]"></label>
+      <label class="text-xs text-[var(--muted)]">CA<input name="ca" type="{% if editar %}text{% else %}number{% endif %}" value="{% if editar %}{{ pf.ca|default:'' }}{% else %}12{% endif %}" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-1.5 text-sm text-[var(--text)]"></label>
+      <label class="text-xs text-[var(--muted)]">PV<input name="pv" type="{% if editar %}text{% else %}number{% endif %}" value="{% if editar %}{{ pf.pv|default:'' }}{% else %}10{% endif %}" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-1.5 text-sm text-[var(--text)]"></label>
+      <label class="text-xs text-[var(--muted)]">Deslocamento (ft)<input name="desloc_ft" type="{% if editar %}text{% else %}number{% endif %}" value="{% if editar %}{{ pf.desloc_ft|default:'' }}{% else %}30{% endif %}" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-1.5 text-sm text-[var(--text)]"></label>
     </div>
 
     <div class="grid grid-cols-3 gap-1.5 sm:grid-cols-6">

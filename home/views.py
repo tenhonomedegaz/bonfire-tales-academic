@@ -13180,14 +13180,17 @@ def _criatura_prefill(b):
     sb = b.statblock_json if isinstance(b.statblock_json, dict) else {}
     spd = sb.get('speed', {})
     al = sb.get('alignment')
+    modern = 'traits' in sb or 'actions' in sb
+    def csv(value):
+        return ', '.join(value) if isinstance(value, list) else (value or '')
     return {
-        'nome': b.nome, 'tipo': b.tipo or '', 'tamanho': b.tamanho or 'M', 'nd': b.nd or '',
+        'nome': b.nome, 'tipo': b.tipo or '', 'tamanho': b.tamanho or '', 'nd': b.nd or '',
         'alinhamento': (al[0] if isinstance(al, list) and al else (b.alinhamento or '')),
-        'ca': b.ca or '', 'pv': b.pv or '', 'desloc_ft': spd.get('walk', '') if isinstance(spd, dict) else '',
+        'ca': b.ca or '', 'pv': b.pv or '', 'desloc_ft': spd.get('walk', '') if isinstance(spd, dict) else (spd or ''),
         'abil': {en: sb.get(en, 10) for en, _ in _SB_AB},
-        'idiomas': ', '.join(sb.get('languages') or []), 'sentidos': ', '.join(sb.get('senses') or []),
-        'passivo': sb.get('passive') or '', 'tracos': _blocos_para_texto(sb.get('trait')),
-        'acoes': _blocos_para_texto(sb.get('action')), 'descricao': b.descricao_markdown or '',
+        'idiomas': csv(sb.get('languages')), 'sentidos': csv(sb.get('senses')),
+        'passivo': sb.get('passive') or '', 'tracos': _blocos_para_texto(sb.get('traits' if modern else 'trait')),
+        'acoes': _blocos_para_texto(sb.get('actions' if modern else 'action')), 'descricao': b.descricao_markdown or '',
         'imagem_url': b.imagem_url or '',
     }
 
@@ -13234,6 +13237,8 @@ def bestiario_editar(request, pk):
     mestre edita só as próprias da comunidade."""
     from .models import TbBestiario
     from . import permissions as perms
+    from .bestiary_edit import UnsafeBestiaryEdit, edit_token, merge_statblock
+    from django.db import transaction
     b = TbBestiario.objects.filter(id_criatura=pk).first()
     if not b:
         raise Http404
@@ -13245,25 +13250,32 @@ def bestiario_editar(request, pk):
         nome = (g('nome') or '').strip()
         if not nome:
             return redirect(reverse('bestiario_editar', args=[pk]) + '?e=nome')
-
-        def num(k, d=10):
+        with transaction.atomic():
+            b = TbBestiario.objects.select_for_update().get(id_criatura=pk)
+            if not (is_staff or (b.comunidade and b.autor_id == request.user.id)):
+                raise Http404
+            if g('edit_token') != edit_token(b):
+                return redirect(reverse('bestiario_editar', args=[pk]) + '?e=conflito')
+            before = _criatura_prefill(b)
+            flat_before = {**before, **before['abil']}
             try:
-                return int(g(k))
-            except (TypeError, ValueError):
-                return d
-        b.nome, b.tipo, b.tamanho = nome, g('tipo') or None, g('tamanho') or None
-        b.nd, b.alinhamento = (g('nd') or '').strip() or None, g('alinhamento') or None
-        b.ca, b.pv = str(num('ca', 10)), str(num('pv', 1))
-        b.statblock_json = _build_statblock(g)
-        b.descricao_markdown = (g('descricao') or '').strip() or None
-        b.imagem_url = (g('imagem_url') or '').strip() or None
-        if is_staff:
-            b.comunidade = (g('oficial') != 'on')
-        b.save()
+                sb = merge_statblock(b.statblock_json, flat_before, request.POST, _parse_blocos)
+            except UnsafeBestiaryEdit:
+                return redirect(reverse('bestiario_editar', args=[pk]) + '?e=estrutura')
+            b.nome, b.tipo, b.tamanho = nome, g('tipo') or None, g('tamanho') or None
+            b.nd, b.alinhamento = (g('nd') or '').strip() or None, g('alinhamento') or None
+            b.ca, b.pv = (g('ca') or '').strip() or None, (g('pv') or '').strip() or None
+            b.statblock_json = sb
+            b.descricao_markdown = (g('descricao') or '').strip() or None
+            b.imagem_url = (g('imagem_url') or '').strip() or None
+            if is_staff:
+                b.comunidade = (g('oficial') != 'on')
+            b.save()
         return redirect(reverse('bestiario') + '?m=editada')
     return render(request, 'home/pages/bestiario_criar.html', {
         'page_title': 'Editar Criatura', 'is_staff': is_staff, 'editar': True,
         'criatura_id': b.id_criatura, 'oficial': not b.comunidade, 'pf': _criatura_prefill(b),
+        'edit_token': edit_token(b), 'tamanho_personalizado': b.tamanho not in {'T', 'S', 'M', 'L', 'H', 'G'},
     })
 
 
