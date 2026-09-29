@@ -23,6 +23,9 @@ FALSE_CAST_RULES = {
         frozenset({'escuridao', 'visao-no-escuro'}),
     ),
 }
+PROSE_COLLISION_SLUGS = frozenset({
+    'escuridao', 'telepatia', 'regenerar', 'salto', 'voo',
+})
 
 
 def false_cast_slugs(feature):
@@ -55,6 +58,22 @@ def false_cast_slugs(feature):
                           r'\b(?:cantrips?|spells?\s+(?:prepared|known)|at will)\b',
                           text, re.I)):
         false_slugs.add('luz')
+    # These names also occur as ordinary environmental or innate mechanics.
+    # The importer's spell-context check provides a second, source-text guard
+    # before any old reference is removed.
+    collisions = {slug for slug in PROSE_COLLISION_SLUGS
+                  if f'cast{{spell:{slug}}}' in tags and
+                  any(isinstance(ref, dict) and ref.get('slug') == slug
+                      for ref in feature.get('spell_refs') or [])}
+    if collisions:
+        from home.management.commands.importar_bestiario_csv import (
+            _cast_refs_in_prose, _feature_spell_refs,
+        )
+        refs = [ref for ref in feature.get('spell_refs') or [] if isinstance(ref, dict)]
+        title = feature.get('name_en') or ''
+        cast_slugs = {ref.get('slug') for ref in _cast_refs_in_prose(text, refs, title)}
+        linked_slugs = {ref.get('slug') for ref in _feature_spell_refs(text, refs, title)}
+        false_slugs.update(collisions - cast_slugs - linked_slugs)
     rule = FALSE_CAST_RULES.get(feature.get('name_en'))
     if (rule and rule[0].search(text) and
             not re.search(r'\bcast(?:s|ing)?\b', text, re.I) and

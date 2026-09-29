@@ -21,6 +21,32 @@ def sleep_trait():
 
 
 class FalseCastRulesTests(SimpleTestCase):
+    def test_common_mechanics_are_not_spells_in_existing_features(self):
+        for slug, name, text in (
+            ('escuridao', 'Shadow Stealth', 'While in dim light or darkness, the beast hides.'),
+            ('telepatia', 'Beguiling Whisper', 'The dragon speaks through telepathy.'),
+            ('regenerar', 'Regeneration', 'The creature can regenerate hit points.'),
+            ('salto', 'Leap', 'The beast can jump across the gap.'),
+            ('voo', 'Wing Attack', 'The dragon can fly up to its Fly Speed.'),
+        ):
+            with self.subTest(slug=slug):
+                feature = {'name_en': name, 'entries_en': [text],
+                           'tags': [f'cast{{spell:{slug}}}'],
+                           'spell_refs': [{'slug': slug, 'name_en': {
+                               'escuridao': 'Darkness', 'telepatia': 'Telepathy',
+                               'regenerar': 'Regenerate', 'salto': 'Jump', 'voo': 'Fly',
+                           }[slug]}]}
+                fixed, removed = strip_false_casts(feature)
+                self.assertEqual(removed, frozenset({slug}))
+                self.assertNotIn('tags', fixed)
+                self.assertNotIn('spell_refs', fixed)
+
+    def test_explicit_cast_collision_remains_a_spell(self):
+        feature = {'name_en': 'Flight', 'entries_en': ['The mage casts the Fly spell.'],
+                   'tags': ['cast{spell:voo}'],
+                   'spell_refs': [{'slug': 'voo', 'name_en': 'Fly'}]}
+        self.assertEqual(strip_false_casts(feature), (feature, frozenset()))
+
     def test_environmental_light_is_not_the_cantrip(self):
         lighting = {'name_en': 'Illumination',
                     'entries_en': ['The azer sheds Bright Light in a 10-foot radius.'],

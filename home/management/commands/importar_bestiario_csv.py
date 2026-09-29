@@ -1341,7 +1341,9 @@ def _cast_refs_in_prose(text, refs, feature_name):
             cast = re.search(r'\bcast(?:s|ing)?\b[^.;\n]{0,60}$', preceding, re.I)
             if (cast and not re.search(
                     r"\b(?:can['’]?t|cannot|doesn['’]?t|does not|never|unable to)\s+$",
-                    preceding[:cast.start()], re.I)):
+                    preceding[:cast.start()], re.I) and not re.search(
+                    r',\s+and\s+(?:it|he|she|they|the\s+\w+)\b',
+                    preceding[cast.start():], re.I)):
                 cast_refs.append(ref)
                 break
     return cast_refs

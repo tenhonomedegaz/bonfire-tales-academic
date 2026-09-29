@@ -71,3 +71,14 @@ class CastContextTests(SimpleTestCase):
             CATALOG)[0]
         self.assertNotIn('spell_refs', block)
         self.assertNotIn('tags', block)
+
+    def test_cast_then_separate_flight_does_not_cast_fly(self):
+        block = _split_secao(
+            'Cloaked Flight. The dragon casts Invisibility on itself, '
+            'and it can fly up to half its Fly Speed.',
+            CATALOG + [{'en_lower': 'invisibility', 'slug': 'invisibilidade',
+                        'name_en': 'Invisibility', 'name_pt': 'Invisibilidade',
+                        'resolved': True}])[0]
+        self.assertEqual(block['tags'], ['cast{spell:invisibilidade}'])
+        self.assertEqual([ref['slug'] for ref in block['spell_refs']],
+                         ['invisibilidade'])
