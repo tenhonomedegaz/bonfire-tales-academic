@@ -6,6 +6,30 @@ from .models import TbBestiario
 
 
 class BestiaryCatalogClassificationTests(TestCase):
+    def test_summon_reference_alias_resolves_in_widget_and_card(self):
+        creature = TbBestiario.objects.create(
+            slug='corcel-de-outro-mundo', nome='Corcel de Outro Mundo',
+            tipo='Celestial', tamanho='L', nd='2', statblock_json={'hp': 30})
+        for route, params, name_key in (
+            ('api_creature_preview', {'slug': 'corcel_de_outro_mundo'}, 'nome'),
+            ('api_card_preview', {'table': 'tbBestiario', 'args': 'corcel_de_outro_mundo'}, 'title'),
+        ):
+            response = self.client.get(reverse(route), params)
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json()[name_key], creature.nome)
+        self.assertEqual(self.client.get(reverse('api_creature_preview'),
+                                         {'slug': 'criatura_inexistente'}).status_code, 404)
+
+    def test_exact_slug_precedes_underscore_alias(self):
+        TbBestiario.objects.create(slug='corcel-de-outro-mundo', nome='Hifen',
+                                   statblock_json={'hp': 30})
+        TbBestiario.objects.create(slug='corcel_de_outro_mundo', nome='Sublinhado',
+                                   statblock_json={'hp': 40})
+        response = self.client.get(reverse('api_creature_preview'),
+                                   {'slug': 'corcel_de_outro_mundo'})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['nome'], 'Sublinhado')
+
     def test_public_catalog_and_preview_show_description_without_raw_mechanical_tags(self):
         creature = TbBestiario.objects.create(
             slug='cantor-do-bosque', nome='Cantor do Bosque', tipo='Feérico',

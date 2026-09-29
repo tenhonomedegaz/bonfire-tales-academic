@@ -13960,7 +13960,7 @@ def api_card_preview(request):
     # 10. Criatura / Bestiario
     elif table in ['tbbestiario', 'bestiario', 'criatura', 'creature', 'monster']:
         p1 = args[0]
-        cr = TbBestiario.objects.filter(slug=p1).first()
+        cr = _resolve_bestiary_creature(p1)
         if not cr:
             for item in TbBestiario.objects.all():
                 if slugify_py(item.nome) == p1:
@@ -14209,13 +14209,23 @@ def _render_creature_statblock_full(cr):
     return ''.join(parts)
 
 
+def _resolve_bestiary_creature(raw_slug):
+    """Resolve somente slug exato ou seu alias legado '_' -> '-'."""
+    from home.models import TbBestiario
+
+    slug = str(raw_slug or '').strip().lower()
+    creature = TbBestiario.objects.filter(slug=slug).first()
+    if creature or '_' not in slug:
+        return creature
+    return TbBestiario.objects.filter(slug=slug.replace('_', '-')).first()
+
+
 def api_creature_preview(request):
     from django.http import JsonResponse
-    from home.models import TbBestiario
     slug = (request.GET.get('slug') or '').strip().lower()
     if not slug:
         return JsonResponse({'success': False, 'error': 'slug ausente'}, status=400)
-    cr = TbBestiario.objects.filter(slug=slug).first()
+    cr = _resolve_bestiary_creature(slug)
     if not cr:
         return JsonResponse({'success': False, 'error': 'Criatura não encontrada'}, status=404)
     return JsonResponse({
