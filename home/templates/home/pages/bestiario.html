@@ -71,7 +71,8 @@
 
   {% if msg == 'criada' %}<p class="rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-2.5 py-1.5 text-sm text-[var(--spark)]">Criatura criada.</p>
   {% elif msg == 'editada' %}<p class="rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-2.5 py-1.5 text-sm text-[var(--spark)]">Criatura atualizada.</p>
-  {% elif msg == 'excluida' %}<p class="rounded border border-[var(--stroke)] bg-[var(--bg1)] px-2.5 py-1.5 text-sm text-[var(--muted)]">Criatura excluida.</p>{% endif %}
+  {% elif msg == 'excluida' %}<p class="rounded border border-[var(--stroke)] bg-[var(--bg1)] px-2.5 py-1.5 text-sm text-[var(--muted)]">Criatura excluida.</p>
+  {% elif msg == 'referenciada' %}<p class="rounded border border-[var(--flame)] bg-[var(--bg1)] px-2.5 py-1.5 text-sm text-[var(--flame)]">Esta criatura ainda e usada por uma habilidade ou magia. Remova a referencia antes de exclui-la.</p>{% endif %}
 
   <form method="get" class="bestiary-toolbar">
     <div class="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-7">

@@ -13338,11 +13338,16 @@ def bestiario_editar(request, pk):
 @login_required(login_url='/login/')
 @require_POST
 def bestiario_excluir(request, pk):
-    """Exclui uma criatura (autor da comunidade, ou staff em qualquer uma)."""
+    """Exclui uma criatura autorizada somente se nenhuma tag a referencia."""
     from .models import TbBestiario
+    from .bestiary_references import has_inbound_bestiary_reference
     from . import permissions as perms
-    b = TbBestiario.objects.filter(id_criatura=pk).first()
-    if b and (perms.is_staff_user(request.user) or (b.comunidade and b.autor_id == request.user.id)):
+    with transaction.atomic():
+        b = TbBestiario.objects.select_for_update().filter(id_criatura=pk).first()
+        if not b or not (perms.is_staff_user(request.user) or (b.comunidade and b.autor_id == request.user.id)):
+            return redirect(reverse('bestiario'))
+        if has_inbound_bestiary_reference(b.slug):
+            return redirect(reverse('bestiario') + '?m=referenciada')
         b.delete()
     return redirect(reverse('bestiario') + '?m=excluida')
 
