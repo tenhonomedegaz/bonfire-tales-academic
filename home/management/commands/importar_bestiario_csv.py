@@ -12,7 +12,7 @@ import unicodedata
 from contextlib import nullcontext
 from pathlib import Path
 
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from django.utils.text import slugify
 
@@ -1634,7 +1634,7 @@ def _fix_spell_creature_refs(apply):
 
 
 class Command(BaseCommand):
-    help = "Importa o bestiario selecionado, alinhando magias e referencias mecanicas."
+    help = "Importa criaturas novas; existentes divergentes exigem reparo auditado."
 
     def add_arguments(self, parser):
         parser.add_argument("--csv", default=str(CSV_PATH), help="Caminho do CSV de bestiario.")
@@ -1676,7 +1676,12 @@ class Command(BaseCommand):
         if options["limite"]:
             rows = rows[: options["limite"]]
 
-        criadas = atualizadas = 0
+        slugs = [_slug_criatura(row["Name"].strip()) for row in rows]
+        if len(slugs) != len(set(slugs)):
+            raise CommandError("CSV contem slugs repetidos; revise a origem antes de importar.")
+
+        criadas = inalteradas = 0
+        conflitos = []
         unresolved_spells = set()
         exemplos = []
 
@@ -1688,39 +1693,42 @@ class Command(BaseCommand):
                     if not sem_db and not ref.get("resolved"):
                         unresolved_spells.add(f"{ref['name_en']} -> {ref['slug']}")
 
-                existing = None
-                if not sem_db:
-                    existing = (
-                        TbBestiario.objects.filter(slug=slug).first()
-                        or TbBestiario.objects.filter(statblock_json__name_en=row["Name"].strip()).first()
-                    )
-
-                if apply:
-                    if existing:
-                        for key, value in fields.items():
-                            setattr(existing, key, value)
-                        existing.slug = slug
-                        existing.save()
-                        atualizadas += 1
+                existing = (TbBestiario.objects.select_for_update().filter(slug=slug).first()
+                            if apply else TbBestiario.objects.filter(slug=slug).first()) if not sem_db else None
+                if existing:
+                    changed = [key for key, value in fields.items() if getattr(existing, key) != value]
+                    if existing.autor_id is not None:
+                        changed.append("autor")
+                    if changed:
+                        conflitos.append(f"{slug}: {', '.join(changed)}")
                     else:
-                        TbBestiario.objects.create(slug=slug, **fields)
-                        criadas += 1
+                        inalteradas += 1
+                elif not sem_db and TbBestiario.objects.filter(
+                        statblock_json__name_en=row["Name"].strip()).exists():
+                    # O nome apenas sinaliza possivel duplicata; nunca prova identidade.
+                    conflitos.append(f"{slug}: nome_en ja existe sob outro slug")
                 else:
-                    if existing:
-                        atualizadas += 1
-                    else:
-                        criadas += 1
+                    if apply:
+                        TbBestiario.objects.create(slug=slug, **fields)
+                    criadas += 1
 
                 if len(exemplos) < 10:
                     exemplos.append(f"{row['Name']} -> {fields['nome']} [{slug}]")
 
-        spell_ref_updates = missing_refs = None
-        if not sem_db and not options["sem_fix_magias"]:
-            spell_ref_updates, missing_refs = _fix_spell_creature_refs(apply)
+            spell_ref_updates = missing_refs = None
+            if not sem_db and not options["sem_fix_magias"]:
+                spell_ref_updates, missing_refs = _fix_spell_creature_refs(apply)
 
         modo = "APLICADO" if apply else "PREVIEW"
         self.stdout.write(self.style.SUCCESS(f"{modo}: {len(rows)} criaturas processadas."))
-        self.stdout.write(f"Criadas: {criadas} | Atualizadas: {atualizadas}")
+        self.stdout.write(f"Criadas: {criadas} | Inalteradas: {inalteradas} | "
+                          f"Pendentes de revisao: {len(conflitos)}")
+        for conflict in conflitos[:10]:
+            self.stdout.write(f"  Revisar {conflict}")
+        if len(conflitos) > 10:
+            self.stdout.write(f"  ... mais {len(conflitos) - 10} pendencias")
+        if conflitos:
+            self.stdout.write("Registros existentes nao foram sobrescritos; diferencas exigem revisao e aplicacao separadas.")
         if exemplos:
             self.stdout.write("Exemplos:")
             for item in exemplos:
