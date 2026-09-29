@@ -12930,7 +12930,7 @@ def _sb_entries(entries):
             out.append(_clean_statblock_text(e))  # tokens 5etools + refs Bonfire
         elif isinstance(e, dict):
             if e.get('name') and e.get('entries'):
-                out.append('**%s** %s' % (e['name'], _sb_entries(e['entries'])))
+                out.append('%s: %s' % (_clean_statblock_text(e['name']), _sb_entries(e['entries'])))
             elif e.get('entries'):
                 out.append(_sb_entries(e['entries']))
             elif e.get('items'):

@@ -1,5 +1,3 @@
 {% for b in bloco %}
-  <p class="mt-1.5 text-sm text-[var(--text)]">{% if b.nome %}<strong>{{ b.nome }}.</strong> {% endif %}<span class="text-[var(--muted)]">{{ b.texto|linebreaksbr }}</span>
-    {% if b.tags %}<span class="ml-1 inline-flex flex-wrap gap-1 align-middle">{% for t in b.tags %}<code class="rounded bg-[var(--bg0)] px-1 text-[10px] text-[var(--muted)]" title="tag mecânica desta habilidade">{{ t }}</code>{% endfor %}</span>{% endif %}
-  </p>
+  <p class="mt-1.5 text-sm text-[var(--text)]">{% if b.nome %}<strong>{{ b.nome }}.</strong> {% endif %}<span class="text-[var(--muted)]">{{ b.texto|linebreaksbr }}</span></p>
 {% endfor %}

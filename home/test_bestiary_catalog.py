@@ -6,6 +6,29 @@ from .models import TbBestiario
 
 
 class BestiaryCatalogClassificationTests(TestCase):
+    def test_public_catalog_and_preview_show_description_without_raw_mechanical_tags(self):
+        creature = TbBestiario.objects.create(
+            slug='cantor-do-bosque', nome='Cantor do Bosque', tipo='Feérico',
+            tamanho='M', nd='2', statblock_json={
+                'trait': [{'name': 'Canto Arcano',
+                           'entries': ['Conjura uma magia conhecida.',
+                                       {'name': 'Efeito', 'entries': ['Alcança um aliado.']}],
+                           'tags_json': ['cast{spell:magia-secreta, at-will}']}],
+            })
+        for url in (reverse('mundo_bestiario'), reverse('api_creature_preview') + '?slug=' + creature.slug):
+            response = self.client.get(url)
+            self.assertEqual(response.status_code, 200)
+            body = (response.json()['statblock_html'] if url.startswith(reverse('api_creature_preview'))
+                    else response.content.decode())
+            self.assertIn('Canto Arcano', body)
+            self.assertIn('Conjura uma magia conhecida.', body)
+            self.assertIn('Efeito: Alcança um aliado.', body)
+            self.assertNotIn('**Efeito**', body)
+            self.assertNotIn('cast{spell:', body)
+        creature.refresh_from_db()
+        self.assertEqual(creature.statblock_json['trait'][0]['tags_json'],
+                         ['cast{spell:magia-secreta, at-will}'])
+
     def test_explicit_aliases_and_special_values(self):
         self.assertEqual(type_key('Besta (Dinossauro)'), 'besta')
         self.assertEqual(type_key('swarm of Tiny Beasts'), 'besta')
