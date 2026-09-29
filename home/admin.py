@@ -748,6 +748,17 @@ def server_logs_view(request):
                         dados = json.loads(texto)
                     except (ValueError, TypeError):
                         dados = None
+                    if isinstance(dados, dict) and dados.get('kind') == 'bonfire.hunter_restore.v1':
+                        from .hunter_restore_package import restore_hunter_package
+                        result = restore_hunter_package(dados)
+                        messages.success(request, 'Pacote do Cacador instalado com verificacao de identidades.')
+                        context['op_result'] = {
+                            'titulo': 'Restauracao do Cacador',
+                            'output': ('Inseridos: {added}; ja identicos: {unchanged}; revisao: '
+                                       '{ruleset_checksum}. Para publicar no criador, configure '
+                                       'HUNTER_CREATOR_RULESET_CHECKSUM e reinicie o site.').format(**result),
+                        }
+                        blocked = True
                     if isinstance(dados, list):
                         labels = {str(r.get("model", "")).lower() for r in dados if isinstance(r, dict)}
                         content_labels = {

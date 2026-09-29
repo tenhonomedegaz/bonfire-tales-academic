@@ -257,7 +257,7 @@ def apply_regularization(*, person_id, owner_id, ruleset, ability, order_id,
                          selected, expected_level, expected_order_id, confirmed,
                          confirmed_style_id=None, confirmed_secret_ids=(),
                          confirmed_favored_ids=(), active_favored_ids=(),
-                         confirmed_mastery_ids=()):
+                         confirmed_mastery_ids=(), replace_choice_ids=()):
     """Bind a validated old Hunter exactly once; never rebuild possessions."""
     if confirmed != '1':
         raise ValueError('Confirme a regularização antes de aplicar.')
@@ -288,6 +288,9 @@ def apply_regularization(*, person_id, owner_id, ruleset, ability, order_id,
     # A class choice without a reviewed mapping must not continue to grant its
     # legacy effect alongside the new class. Keep the row untouched for a future
     # assisted mapping instead of silently deleting or transferring it.
+    # Freeze affected rows through the decision. A stale preview cannot discard
+    # a choice added or changed concurrently.
+    list(person.escolhas.select_for_update().values_list('pk', flat=True))
     unresolved = _unresolved_class_choices(person, pc)
     style_transfer = _style_transfer(ruleset, pc, unresolved)
     if style_transfer:
@@ -329,8 +332,11 @@ def apply_regularization(*, person_id, owner_id, ruleset, ability, order_id,
     if {str(value) for value in confirmed_mastery_ids} != {str(value) for value in mastery_ids}:
         raise ValueError('Confirme a transferência de cada Maestria de Arma antiga.')
     unresolved = [row for row in unresolved if row['id'] not in mastery_ids]
-    if unresolved:
-        raise ValueError('Há escolhas antigas do Caçador sem mapeamento; revise-as antes de aplicar.')
+    replacement_ids = {str(row['id']) for row in unresolved}
+    if (len(replace_choice_ids) != len(replacement_ids) or
+            set(map(str, replace_choice_ids)) != replacement_ids):
+        raise ValueError('Confirme individualmente quais escolhas antigas serão refeitas na nova revisão.')
+    replaced_legacy_choices = list(unresolved)
     order_name = target.subclasses[order_id].nome if order_id else ''
     total = person.classes.aggregate(total=Sum('nivel'))['total']
     result = prepare(level=pc.nivel, total_level=total, ability=ability,
@@ -370,7 +376,11 @@ def apply_regularization(*, person_id, owner_id, ruleset, ability, order_id,
             'transferred_favored': favored_transfers,
             'transferred_masteries': mastery_transfers,
             'deferred_favored': deferred_favored,
+            'replaced_legacy_choices': replaced_legacy_choices,
         })
+    if replacement_ids:
+        TbPersonagemEscolha.objects.filter(
+            pk__in=[int(pk) for pk in replacement_ids], id_personagem=person).delete()
     if mastery_transfers:
         from .hunter_masteries import state as mastery_state
         current = mastery_state(profile)

@@ -41,7 +41,8 @@ def regularization_preview(request, pk):
                     confirmed_secret_ids=request.POST.getlist('confirm_secret_id'),
                     confirmed_favored_ids=request.POST.getlist('confirm_favored_id'),
                     active_favored_ids=request.POST.getlist('active_favored_id'),
-                    confirmed_mastery_ids=request.POST.getlist('confirm_mastery_id'))
+                    confirmed_mastery_ids=request.POST.getlist('confirm_mastery_id'),
+                    replace_choice_ids=request.POST.getlist('replace_choice_id'))
                 return redirect('hunter_sheet', pk=person.pk)
             comparison = preview_legacy_hunter(person, pc, ruleset,
                 candidate_order_id=request.GET.get('order') if request.method == 'GET'

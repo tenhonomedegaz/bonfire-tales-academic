@@ -15,6 +15,7 @@ de toda página do admin.
 """
 import json
 import time
+from unittest.mock import patch
 
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import User
@@ -93,6 +94,15 @@ class RestoreBackupGuardTests(TestCase):
 
         self.assertContains(response, "Merge de conteudo (dev -&gt; producao)")
         self.assertEqual(TbRegra.objects.filter(pk=999001).count(), 0)
+
+    def test_hunter_package_uses_protected_restore_branch(self):
+        package = {'kind': 'bonfire.hunter_restore.v1'}
+        with patch('home.hunter_restore_package.restore_hunter_package',
+                   return_value={'added': 107, 'unchanged': 0,
+                                 'ruleset_checksum': 'revision-test'}) as restore:
+            response = self._post_restore(package)
+        self.assertContains(response, 'Inseridos: 107; ja identicos: 0')
+        restore.assert_called_once_with(package)
 
     def test_fixture_with_non_catalog_model_is_not_blocked_by_guard(self):
         """Fixture com um model FORA do catálogo (auth.user) → guard não dispara."""

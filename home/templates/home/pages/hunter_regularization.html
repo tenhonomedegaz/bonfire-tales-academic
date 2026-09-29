@@ -30,7 +30,7 @@
   <p>Estas escolhas continuam na ficha após a regularização e não são concedidas novamente.</p>
   <ul>{% for choice in comparison.preserved_starting_choices %}<li>{{ choice.tipo }}: {{ choice.valor }}</li>{% endfor %}</ul>{% endif %}
   {% if comparison.unresolved_class_choices %}<h3>Escolhas antigas sem mapeamento</h3>
-  <p>Estas escolhas impedem a aplicação até receberem um mapeamento assistido:</p>
+  <p>Estas escolhas não possuem correspondência segura. Confirme cada uma para arquivar seu valor antigo na auditoria e refazer somente essa escolha na revisão nova. Patrimônio, magias adquiridas e histórico permanecem.</p>
   <ul>{% for choice in comparison.unresolved_class_choices %}<li>{{ choice.origem }} · {{ choice.tipo }} · {{ choice.valor|default:'sem valor' }}</li>{% endfor %}</ul>
   {% endif %}
   {% if comparison.style_transfer %}<p>Estilo de Luta antigo: {{ comparison.style_transfer.choice.valor|default:comparison.style_transfer.option.nome }}. Correspondência exata na revisão: {{ comparison.style_transfer.option.nome }}. A opção antiga será substituída por esta, com registro da escolha original.</p>{% endif %}
@@ -53,13 +53,14 @@
     {% for transfer in comparison.secret_transfers %}<label><input type="checkbox" name="confirm_secret_id" value="{{ transfer.choice.id }}" required>Confirmo a transferência do Segredo {{ transfer.secret.name }} por identidade exata. Se não pertencer à Linha Mestra da Ordem escolhida, selecione-o acima para prepará-lo.</label>{% endfor %}
     {% for transfer in comparison.favored_transfers %}<label><input type="checkbox" name="confirm_favored_id" value="{{ transfer.choice.id }}" required>Confirmo a identidade exata de {{ transfer.choice.valor }} com {{ transfer.favored.name }} e sua preservação na nova revisão.</label>{% endfor %}
     {% for transfer in comparison.mastery_transfers %}<label><input type="checkbox" name="confirm_mastery_id" value="{{ transfer.choice.id }}" required>Confirmo a transferência de {{ transfer.option.name }} para a mesma arma e Maestria na revisão fixada.</label>{% endfor %}
+    {% for choice in comparison.unresolved_class_choices %}<label><input type="checkbox" name="replace_choice_id" value="{{ choice.id }}" required>Vou refazer {{ choice.origem }} · {{ choice.tipo }} · {{ choice.valor|default:'sem valor' }} na revisão nova; o valor anterior ficará registrado na auditoria.</label>{% endfor %}
     {% if comparison.favored_excess %}<fieldset><legend>Inimigos Favoritos ativos após regularização</legend>
       <p>Escolha {{ comparison.favored_limit }} tipo(s) antigo(s) para usar agora. Os demais ficam registrados e entram automaticamente quando o nível da nova revisão abrir outro espaço.</p>
       {% for transfer in comparison.favored_transfers %}<label><input type="checkbox" name="active_favored_id" value="{{ transfer.choice.id }}">{{ transfer.favored.name }}</label>{% endfor %}
     </fieldset>{% endif %}
     <label><input type="checkbox" name="confirm" value="1" required>Confirmo as diferenças e as escolhas da revisão.</label>
     {% if not comparison.target_ready_for_binding %}<p>A revisão de destino ainda não possui todas as substituições do Caçador.</p>{% endif %}
-    <button type="submit"{% if comparison.unresolved_class_choices or not comparison.target_ready_for_binding %} disabled{% endif %}>Aplicar regularização</button>
+    <button type="submit"{% if not comparison.target_ready_for_binding %} disabled{% endif %}>Aplicar regularização</button>
   </form>
   {% else %}<p>A revisão de destino não contém as regras do Caçador para aplicar a regularização.</p>{% endif %}
   {% endif %}

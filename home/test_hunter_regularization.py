@@ -11,7 +11,8 @@ from .content_versions import create_revision, seal_ruleset, resolve_content
 from .character_engine import _magias_personagem
 from .models import (TbClasse, TbClassehabilidade, TbSubclasse, TbPersonagem,
                      TbPersonagemClasse, TbPersonagemCacador, TbPersonagemMagia, TbMagia,
-                     TbPersonagemItem, TbPersonagemAventura, TbOpcaojogo)
+                     TbPersonagemItem, TbPersonagemAventura, TbPersonagemEscolha,
+                     TbOpcaojogo)
 from .versioned_classes import EVALUATOR, VOCABULARY, inventory_class
 from .hunter_regularization import REQUIRED_REPLACEMENTS
 from .versioned_spells import snapshot_spells
@@ -146,6 +147,34 @@ class HunterRegularizationApplyTests(_CriadorBase):
             id_classe=self.classe, nivel=1, principal=True)
         return person, pc
 
+    def test_unmapped_choice_requires_explicit_replacement_and_keeps_audit(self):
+        self.setup_creation()
+        ruleset = self._ready_ruleset(self.ruleset)
+        person, pc = self._legacy_person()
+        old = TbPersonagemEscolha.objects.create(
+            id_personagem=person, origem='Maestria de Arma (Caçador)',
+            tipo='maestria', slot=0, valor='arma-antiga|efeito-antigo')
+        self.client.force_login(self.user)
+        url = reverse('hunter_regularization_preview', args=[person.pk])
+        payload = {'ruleset_checksum': ruleset.checksum, 'expected_level': '1',
+                   'expected_order_id': '', 'ability': 'wis', 'confirm': '1'}
+        with override_settings(HUNTER_CREATOR_RULESET_CHECKSUM=ruleset.checksum):
+            preview = self.client.get(url)
+            self.assertContains(preview, 'name="replace_choice_id"')
+            rejected = self.client.post(url, payload)
+            self.assertContains(rejected, 'Confirme individualmente')
+            self.assertTrue(TbPersonagemEscolha.objects.filter(pk=old.pk).exists())
+            applied = self.client.post(url, {**payload, 'replace_choice_id': [str(old.pk)]})
+            self.assertEqual(applied.status_code, 302)
+            replay = self.client.post(url, {**payload, 'replace_choice_id': [str(old.pk)]})
+            self.assertNotEqual(replay.status_code, 302)
+        profile = TbPersonagemCacador.objects.get(personagem_classe=pc)
+        self.assertEqual(profile.regularization['replaced_legacy_choices'][0]['id'], old.pk)
+        self.assertFalse(TbPersonagemEscolha.objects.filter(pk=old.pk).exists())
+        person.refresh_from_db()
+        self.assertEqual((person.carteira_pc, person.aventuras, person.braseiros),
+                         (2345, 4, 6))
+
     def test_explicit_application_preserves_acquisitions_and_is_once_only(self):
         self.setup_creation()
         self.ruleset = self._ready_ruleset(self.ruleset)
@@ -240,7 +269,7 @@ class HunterRegularizationApplyTests(_CriadorBase):
             tipo='estilo_luta', valor='estilo-antigo')
         with override_settings(HUNTER_CREATOR_RULESET_CHECKSUM=self.ruleset.checksum):
             blocked = self.client.post(url, payload)
-            self.assertContains(blocked, 'sem mapeamento')
+            self.assertContains(blocked, 'Confirme individualmente')
             choice.delete()
             payload['expected_level'] = '2'
             stale = self.client.post(url, payload)
@@ -345,7 +374,7 @@ class HunterRegularizationApplyTests(_CriadorBase):
             self.assertEqual([row['id'] for row in preview.context['comparison'][
                 'unresolved_class_choices']], [old.pk])
             rejected = self.client.post(url, payload)
-            self.assertContains(rejected, 'sem mapeamento')
+            self.assertContains(rejected, 'Confirme individualmente')
             self.assertFalse(TbPersonagemCacador.objects.filter(
                 personagem_classe=pc).exists())
             self.assertTrue(person.escolhas.filter(pk=old.pk).exists())
@@ -421,7 +450,7 @@ class HunterRegularizationApplyTests(_CriadorBase):
         with override_settings(HUNTER_CREATOR_RULESET_CHECKSUM=self.ruleset.checksum):
             response = self.client.post(url, {'ruleset_checksum': self.ruleset.checksum,
                 'expected_level': '2', 'ability': 'wis', 'confirm': '1'})
-        self.assertContains(response, 'sem mapeamento')
+        self.assertContains(response, 'Confirme individualmente')
         self.assertFalse(TbPersonagemCacador.objects.filter(personagem_classe=pc).exists())
 
     def test_style_and_secret_transfer_together_without_losing_either(self):
@@ -650,10 +679,10 @@ class HunterRegularizationApplyTests(_CriadorBase):
         url = reverse('hunter_regularization_preview', args=[person.pk])
         with override_settings(HUNTER_CREATOR_RULESET_CHECKSUM=self.ruleset.checksum):
             preview = self.client.get(url)
-            self.assertContains(preview, 'Estas escolhas impedem')
+            self.assertContains(preview, 'Estas escolhas não possuem correspondência segura')
             response = self.client.post(url, {'ruleset_checksum': self.ruleset.checksum,
                 'expected_level': '2', 'ability': 'wis', 'confirm': '1'})
-        self.assertContains(response, 'sem mapeamento')
+        self.assertContains(response, 'Confirme individualmente')
         self.assertTrue(person.escolhas.filter(pk=old.pk).exists())
         self.assertFalse(TbPersonagemCacador.objects.filter(personagem_classe=pc).exists())
 
