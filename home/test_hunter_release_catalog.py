@@ -59,6 +59,9 @@ class HunterReleaseCatalogTests(_CriadorBase):
         with override_settings(HUNTER_CREATOR_RULESET_CHECKSUM=target.checksum):
             detail = self.client.get(detail_url)
             self.assertEqual(detail.status_code, 200)
+            from .hunter_publication_diagnostic import publication_status
+            self.assertEqual(publication_status()['code'], 'ok')
+            self.assertEqual(publication_status()['orders'], 8)
             self.assertEqual([row['nivel'] for row in detail.context['progression_table']],
                              list(range(1, 21)))
             self.assertEqual({sub.pk for sub in detail.context['subclasses']},

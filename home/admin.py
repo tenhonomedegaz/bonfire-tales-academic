@@ -569,6 +569,19 @@ def _write_env_content(path, content):
 CONSOLE_UNLOCK_TTL_SECONDS = 15 * 60
 
 
+def hunter_publication_status_view(request):
+    """Read-only status behind admin login and the existing console unlock."""
+    from django.http import HttpResponseForbidden, JsonResponse
+    from .hunter_publication_diagnostic import publication_status
+
+    unlocked_at = request.session.get('admin_console_authenticated_at')
+    if (not request.user.is_superuser or
+            not isinstance(unlocked_at, (int, float)) or
+            not 0 <= time.time() - unlocked_at <= CONSOLE_UNLOCK_TTL_SECONDS):
+        return HttpResponseForbidden()
+    return JsonResponse(publication_status())
+
+
 def server_logs_view(request):
     from django.contrib.auth.hashers import check_password
 
@@ -3729,6 +3742,11 @@ _original_admin_get_urls = admin.site.get_urls
 
 def _bonfire_admin_get_urls():
     custom_urls = [
+        path(
+            "server-logs/hunter-publication-status/",
+            admin.site.admin_view(hunter_publication_status_view),
+            name="hunter_publication_status",
+        ),
         path(
             "server-logs/",
             admin.site.admin_view(server_logs_view),
