@@ -107,6 +107,16 @@ class HunterReleaseCatalogTests(_CriadorBase):
         self.assertEqual((person.carteira_pc, person.aventuras, person.braseiros), (321, 8, 4))
         self.assertEqual(self.client.get(reverse('hunter_sheet', args=[person.pk])).status_code, 200)
 
+        # The protected status and real public route reject the same failed
+        # frozen resolver without bypassing the immutable-revision DB trigger.
+        from .hunter_publication_diagnostic import publication_status
+        from unittest.mock import patch
+        with override_settings(HUNTER_CREATOR_RULESET_CHECKSUM=target.checksum), \
+                patch('home.versioned_classes.VersionedClassCatalog',
+                      side_effect=ValueError('Frozen class unavailable')):
+            self.assertEqual(publication_status()['code'], 'class_snapshot_invalid')
+            self.assertEqual(self.client.get(detail_url).status_code, 503)
+
     def test_public_hunter_page_fails_closed_without_valid_publication(self):
         url = reverse('classe_detail', args=['cacador'])
         with override_settings(HUNTER_CREATOR_RULESET_CHECKSUM=''):

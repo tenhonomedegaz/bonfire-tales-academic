@@ -1957,32 +1957,18 @@ def _postgres_classe_detail_view(request, slug):
     all_classes = TbClasse.objects.all().order_by('nome')
     published_hunter = slug == 'cacador'
     if published_hunter:
-        from .content_versions import resolve_content
-        from .hunter_regularization import _reviewed_target, _target_orders
-        from .versioned_classes import EVALUATOR, VOCABULARY, VersionedClassCatalog
+        from .hunter_publication_diagnostic import (
+            HunterPublicationUnavailable, resolve_publication)
 
         try:
-            args = _criador_hunter_catalog_args()
-            if not args:
-                raise HunterCreatorCatalogUnavailable()
-            ruleset = args['hunter_ruleset']
-            catalog = VersionedClassCatalog(ruleset, live_class.pk)
-            hunter_data = resolve_content(ruleset, 'hunter-rework',
-                evaluator_version=EVALUATOR, vocabulary_version=VOCABULARY)
-            if not _reviewed_target(ruleset, live_class.pk, hunter_data):
-                raise ValueError('Hunter revision has no reviewed replacements.')
-            orders = _target_orders(ruleset, catalog, applying=True)
-            expected = {slugify(order['name']) for order in hunter_data['orders']}
-            if (len(orders) != 8 or {slugify(order.nome) for order in orders.values()} != expected):
-                raise ValueError('Published Hunter Orders are incomplete.')
-            hunter_progression = {row['level']: row for row in hunter_data['progression']}
-            if (set(hunter_progression) != set(range(1, 21))
-                    or any(not row.get('features') or not row.get('hunter_die')
-                           for row in hunter_progression.values())):
-                raise ValueError('Published Hunter progression is incomplete.')
-        except (HunterCreatorCatalogUnavailable, ValueError, KeyError, TypeError):
+            published = resolve_publication()
+        except HunterPublicationUnavailable:
             return HttpResponse('Revisao publica do Cacador indisponivel.', status=503)
-        classe = catalog.classe
+        catalog = published['catalog']
+        orders = published['orders']
+        hunter_progression = published['progression']
+        hunter_die_resource_id = published['hunter_die_resource_id']
+        classe = published['class']
         all_classes = [classe if item.pk == classe.pk else item for item in all_classes]
         subclasses = sorted(orders.values(), key=lambda item: item.nome)
         base_habilidades_qs = [item for item in catalog.collections[TbClassehabilidade]
@@ -1991,11 +1977,6 @@ def _postgres_classe_detail_view(request, slug):
                                    if item.id_subclasse_id in orders]
         recursos = [item for item in catalog.collections[TbRecursoclasse]
                     if item.id_subclasse_id is None or item.id_subclasse_id in orders]
-        hunter_die_resources = [item for item in recursos if item.id_subclasse_id is None
-                                and _normalize_key(item.nome).startswith('dado_de_ca')]
-        if len(hunter_die_resources) != 1:
-            return HttpResponse('Progressao publica do Cacador indisponivel.', status=503)
-        hunter_die_resource_id = hunter_die_resources[0].pk
     else:
         classe = live_class
         subclasses = list(TbSubclasse.objects.filter(id_classe=classe).order_by('nome'))
