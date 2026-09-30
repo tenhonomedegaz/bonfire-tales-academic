@@ -95,3 +95,39 @@ class BestiaryDescriptionProjectionTests(TestCase):
         )
         response = self.client.get(reverse('api_creature_preview'), {'slug': creature.slug})
         self.assertEqual(response.json()['descricao'], altered)
+
+    def test_stale_spell_mention_without_structured_reference_stays_visible(self):
+        generated = _clean_creature_text(self.generated)
+        stale = generated.replace('**Golpe**', '**Golpe** (Sleep)')
+        creature = TbBestiario.objects.create(
+            slug='sentinela-mencao-antiga', nome='Sentinela',
+            statblock_json=self.statblock, descricao_markdown=stale,
+        )
+        response = self.client.get(reverse('api_creature_preview'), {'slug': creature.slug})
+        self.assertEqual(response.json()['descricao'], stale)
+        self.assertIn('Golpe', response.json()['statblock_html'])
+        catalog = self.client.get(reverse('bestiario'), {'q': 'Sentinela'})
+        self.assertEqual(catalog.status_code, 200)
+        self.assertEqual(catalog.context['criaturas'][0]['descricao'], stale)
+
+    def test_translated_spell_reference_must_match_structured_identity(self):
+        statblock = {**self.statblock, 'actions': [{
+            'name': 'Golpe de Vento', 'name_en': 'Wind Strike',
+            'entries': ['Causa dano.'],
+            'spell_refs': [{'name': 'Rajada de Vento', 'name_en': 'Gust of Wind',
+                            'slug': 'rajada-de-vento'}],
+        }]}
+        generated = _clean_creature_text(_descricao_markdown({}, statblock))
+        old = generated.replace('**Golpe de Vento** (Rajada de Vento)',
+                                '**Wind Strike** (Gust of Wind)')
+        altered = old.replace('Gust of Wind', 'Fireball')
+        for slug, description, visible in (
+            ('sentinela-referencia-alinhada', old, False),
+            ('sentinela-referencia-divergente', altered, True),
+        ):
+            creature = TbBestiario.objects.create(
+                slug=slug, nome='Sentinela', statblock_json=statblock,
+                descricao_markdown=description,
+            )
+            response = self.client.get(reverse('api_creature_preview'), {'slug': creature.slug})
+            self.assertEqual(bool(response.json()['descricao']), visible)

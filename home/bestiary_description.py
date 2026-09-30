@@ -8,11 +8,30 @@ editorial text and stale projections remain visible for review.
 import re
 
 
-_FEATURE_LINE = re.compile(r'^- \*\*(.+?)\*\*(?: \(.*\))?$')
+_FEATURE_LINE = re.compile(r'^- \*\*(.+?)\*\*(?: \((.*)\))?$')
 
 
 def _feature_base(name):
     return re.sub(r'\s*\([^)]*\)$', '', str(name or '')).strip().casefold()
+
+
+def _same_feature_refs(raw_refs, block):
+    """A legacy spell mention is safe to hide only when the structured refs agree."""
+    refs = block.get('spell_refs') or []
+    if not raw_refs:
+        return not refs
+    if not isinstance(refs, list):
+        return False
+    mentioned = [part.strip().casefold() for part in raw_refs.split(',')]
+    if len(mentioned) != len(refs):
+        return False
+    return all(
+        isinstance(ref, dict) and name in {
+            str(ref.get('name') or '').strip().casefold(),
+            str(ref.get('name_en') or '').strip().casefold(),
+        }
+        for name, ref in zip(mentioned, refs)
+    )
 
 
 def _same_imported_summary(description, generated, statblock):
@@ -50,6 +69,8 @@ def _same_imported_summary(description, generated, statblock):
         if actual_name not in names and not (
             bare_name and actual_name in {_feature_base(name) for name in names}
         ):
+            return False
+        if not _same_feature_refs(actual_match.group(2), block):
             return False
     return True
 
