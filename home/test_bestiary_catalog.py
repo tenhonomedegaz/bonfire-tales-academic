@@ -6,6 +6,35 @@ from .models import TbBestiario
 
 
 class BestiaryCatalogClassificationTests(TestCase):
+    def test_large_catalog_paginates_statblocks_and_searches_all_records(self):
+        TbBestiario.objects.bulk_create([
+            TbBestiario(slug=f'criatura-{index:02}',
+                         nome='Zágua derradeira' if index == 44 else f'Criatura {index:02}',
+                         tipo='Besta', tamanho='M', nd='1',
+                         statblock_json={'trait': [{'name': f'Traço {index}',
+                                                    'entries': ['Descrição.']}]})
+            for index in range(45)
+        ])
+        url = reverse('bestiario')
+        first = self.client.get(url, {'tipo': 'besta'})
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(len(first.context['criaturas']), 40)
+        self.assertEqual(first.context['total_criaturas'], 45)
+        self.assertTrue('id="bz-count">40</span> de 45 criatura(s)' in first.content.decode())
+        self.assertEqual(first.content.decode().count('class="monster-panel '), 40)
+        self.assertTrue('tipo=besta&amp;page=2' in first.content.decode())
+
+        second = self.client.get(url, {'tipo': 'besta', 'page': '2'})
+        self.assertEqual(len(second.context['criaturas']), 5)
+        self.assertEqual(second.context['total_criaturas'], 45)
+        self.assertTrue('id="bz-count">5</span> de 45 criatura(s)' in second.content.decode())
+        self.assertTrue('Zágua derradeira' in second.content.decode())
+
+        searched = self.client.get(url, {'tipo': 'besta', 'q': 'zagua'})
+        self.assertEqual([item['slug'] for item in searched.context['criaturas']],
+                         ['criatura-44'])
+        self.assertEqual(searched.context['total_criaturas'], 1)
+
     def test_summon_reference_alias_resolves_in_widget_and_card(self):
         creature = TbBestiario.objects.create(
             slug='corcel-de-outro-mundo', nome='Corcel de Outro Mundo',
@@ -80,6 +109,9 @@ class BestiaryCatalogClassificationTests(TestCase):
             response = self.client.get(url, {'tipo': kind})
             self.assertEqual(response.status_code, 200)
             self.assertEqual([item['slug'] for item in response.context['criaturas']], [expected])
+        searched = self.client.get(url, {'q': 'corruptor'})
+        self.assertEqual([item['slug'] for item in searched.context['criaturas']],
+                         ['demonio-menor'])
         pending = self.client.get(url, {'tipo': 'pending'})
         self.assertEqual([item['slug'] for item in pending.context['criaturas']], ['espirito-sem-tipo'])
 

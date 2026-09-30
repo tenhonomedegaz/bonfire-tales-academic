@@ -76,7 +76,7 @@
 
   <form method="get" class="bestiary-toolbar">
     <div class="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-7">
-      <input id="bz-busca" type="search" placeholder="Buscar criatura..." autocomplete="off"
+      <input id="bz-busca" name="q" type="search" value="{{ busca }}" placeholder="Buscar criatura..." autocomplete="off"
              class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-1.5 text-sm text-[var(--text)] outline-none focus:border-[var(--ember)] lg:col-span-2">
       <select name="f" onchange="this.form.submit()" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-1.5 text-sm text-[var(--text)]">
         <option value="" {% if not filtro %}selected{% endif %}>Todas</option>
@@ -102,14 +102,25 @@
         <option value="nd_desc" {% if ordem == 'nd_desc' %}selected{% endif %}>ND maior</option>
       </select>
     </div>
-    <p class="mt-2 text-xs text-[var(--muted)]"><span id="bz-count">{{ criaturas|length }}</span> criatura(s)</p>
+    <div class="mt-2 flex items-center justify-between gap-2">
+      <p class="text-xs text-[var(--muted)]"><span id="bz-count">{{ criaturas|length }}</span> de {{ total_criaturas }} criatura(s)</p>
+      <button type="submit" class="rounded border border-[var(--stroke)] px-3 py-1 text-sm text-[var(--text)] hover:border-[var(--ember)]">Buscar</button>
+    </div>
   </form>
+
+  {% if page_count > 1 %}
+  <nav aria-label="Páginas do bestiário" class="flex items-center justify-center gap-4 text-sm">
+    {% if prev_page_url %}<a href="{{ prev_page_url }}" class="text-[var(--ember)] hover:underline">Anterior</a>{% endif %}
+    <span>Página {{ page_number }} de {{ page_count }}</span>
+    {% if next_page_url %}<a href="{{ next_page_url }}" class="text-[var(--ember)] hover:underline">Próxima</a>{% endif %}
+  </nav>
+  {% endif %}
 
   <div class="bestiary-grid">
     <aside class="bestiary-list custom-scrollbar" id="bz-list">
       {% for c in criaturas %}
       <button type="button" class="bz-item bestiary-list-item {% if forloop.first %}is-active{% endif %}"
-              data-target="monster-{{ c.id }}" data-busca="{{ c.busca }}">
+              data-target="monster-{{ c.id }}">
         <div class="flex items-start justify-between gap-2">
           <div>
             <div class="font-serif text-sm font-bold">{{ c.nome }}</div>
@@ -208,35 +219,24 @@
       {% endfor %}
     </main>
   </div>
+  {% if page_count > 1 %}
+  <nav aria-label="Páginas do bestiário" class="flex items-center justify-center gap-4 text-sm">
+    {% if prev_page_url %}<a href="{{ prev_page_url }}" class="text-[var(--ember)] hover:underline">Anterior</a>{% endif %}
+    <span>Página {{ page_number }} de {{ page_count }}</span>
+    {% if next_page_url %}<a href="{{ next_page_url }}" class="text-[var(--ember)] hover:underline">Próxima</a>{% endif %}
+  </nav>
+  {% endif %}
 </section>
 
 <script>
 (function(){
-  var search = document.getElementById('bz-busca');
   var list = Array.prototype.slice.call(document.querySelectorAll('.bz-item'));
   var panels = Array.prototype.slice.call(document.querySelectorAll('.monster-panel'));
-  var count = document.getElementById('bz-count');
-  function norm(s){return (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();}
   function show(id){
     list.forEach(function(btn){btn.classList.toggle('is-active', btn.dataset.target === id);});
     panels.forEach(function(panel){panel.classList.toggle('hidden', panel.id !== id);});
   }
   list.forEach(function(btn){btn.addEventListener('click', function(){show(btn.dataset.target);});});
-  if(search){
-    search.addEventListener('input', function(){
-      var q = norm(search.value.trim());
-      var visible = 0;
-      list.forEach(function(btn){
-        var ok = !q || norm(btn.dataset.busca).indexOf(q) !== -1;
-        btn.classList.toggle('hidden', !ok);
-        if(ok) visible += 1;
-      });
-      if(count) count.textContent = visible;
-      var first = list.find(function(btn){return !btn.classList.contains('hidden');});
-      if(first) show(first.dataset.target);
-      else panels.forEach(function(panel){panel.classList.add('hidden');});
-    });
-  }
 })();
 </script>
 {% endblock %}

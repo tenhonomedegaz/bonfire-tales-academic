@@ -13166,6 +13166,9 @@ def _statblock_display_full(sb, criatura=None):
 
 def bestiario_view(request):
     """Bestiário com filtros canônicos e statblock existente preservado."""
+    import unicodedata
+
+    from django.core.paginator import Paginator
     from .models import TbBestiario
     from .bestiary_catalog import (TYPE_LABELS, SIZE_LABELS, cr_classification,
                                    size_keys, type_key, type_keys)
@@ -13174,6 +13177,11 @@ def bestiario_view(request):
     nd_sel = request.GET.get('nd', '')
     tipo_sel = request.GET.get('tipo', '')
     tam_sel = request.GET.get('tam', '')
+    busca = request.GET.get('q', '').strip()[:120]
+    busca_normalizada = ''.join(
+        char for char in unicodedata.normalize('NFKD', busca.casefold())
+        if not unicodedata.combining(char)
+    )
     if nd_sel and not nd_sel.startswith(('nd:', 'raw:')):
         nd_sel = cr_classification(nd_sel)[0] or nd_sel
     if tipo_sel and tipo_sel != 'pending' and tipo_sel not in TYPE_LABELS:
@@ -13212,15 +13220,23 @@ def bestiario_view(request):
             continue
         if tam_sel and tam_sel not in (sizes or ('pending',)) and tam_sel != b.tamanho:
             continue
+        busca_item = ' '.join((b.nome or '', b.slug or '', b.tipo or '',
+                              b.tamanho or '', b.nd or '',
+                              ' '.join(TYPE_LABELS[kind] for kind in kinds),
+                              ' '.join(SIZE_LABELS[size] for size in sizes)))
+        if busca_normalizada and busca_normalizada not in ''.join(
+            char for char in unicodedata.normalize('NFKD', busca_item.casefold())
+            if not unicodedata.combining(char)
+        ):
+            continue
         criaturas.append({
             'id': b.id_criatura, 'nome': b.nome, 'slug': b.slug,
             'tipo': _sb_tipo_pt(b.tipo), 'nd': b.nd or '',
             'tamanho': _sb_size_text(b.statblock_json if isinstance(b.statblock_json, dict) else {}, b),
             'comunidade': b.comunidade, 'autor': b.autor.username if b.autor_id else None,
             'imagem': b.imagem_url or '',
-            'busca': ' '.join([b.nome or '', b.slug or '', b.tipo or '', b.tamanho or '', b.nd or '']).lower(),
             'nd_valor': nd_number,
-            'sb': _statblock_display_full(b.statblock_json if isinstance(b.statblock_json, dict) else {}, b),
+            'record': b,
             'descricao': _clean_5et(b.descricao_markdown or ''),
             'pode_editar': is_staff or (b.comunidade and b.autor_id == request.user.id),
         })
@@ -13233,11 +13249,27 @@ def bestiario_view(request):
         criaturas.sort(key=lambda c: (c['nd_valor'], c['nome'].lower()))
     else:
         criaturas.sort(key=lambda c: c['nome'].lower())
+    page_obj = Paginator(criaturas, 40).get_page(request.GET.get('page'))
+    criaturas = list(page_obj.object_list)
+    for criatura in criaturas:
+        record = criatura.pop('record')
+        criatura['sb'] = _statblock_display_full(
+            record.statblock_json if isinstance(record.statblock_json, dict) else {}, record)
+
+    def page_url(number):
+        params = request.GET.copy()
+        params['page'] = number
+        return '?' + params.urlencode()
+
     return render(request, 'home/pages/bestiario.html', {
         'page_title': 'Bestiário',
         'meta_description': 'Consulte criaturas completas por nome, tipo, tamanho e nível de desafio no bestiário de Bonfire Tales.',
         'canonical_path': '/mundo/bestiario/',
-        'criaturas': criaturas, 'filtro': filtro, 'nd_sel': nd_sel, 'tipo_sel': tipo_sel,
+        'criaturas': criaturas, 'total_criaturas': page_obj.paginator.count,
+        'prev_page_url': page_url(page_obj.previous_page_number()) if page_obj.has_previous() else '',
+        'next_page_url': page_url(page_obj.next_page_number()) if page_obj.has_next() else '',
+        'page_number': page_obj.number, 'page_count': page_obj.paginator.num_pages,
+        'busca': busca, 'filtro': filtro, 'nd_sel': nd_sel, 'tipo_sel': tipo_sel,
         'tam_sel': tam_sel, 'ordem': ordem, 'nds': nds_all,
         'tipos': tipos_all, 'tamanhos': tamanhos_all,
         'pode_criar': perms.is_mestre(request.user), 'is_staff': is_staff,
