@@ -2029,9 +2029,6 @@ def _postgres_classe_detail_view(request, slug):
             description = item['habilidade'].descricao or ''
             digest = hashlib.sha256(description.encode('utf-8')).hexdigest()
             item['display_description'] = display_by_text.get(digest, description)
-            item['display_name'] = ('Incremento de Atributo ou Talento'
-                                    if _eh_feature_asi(item['habilidade'].nome)
-                                    else item['habilidade'].nome)
     class_traits = [
         ('Atributo Principal', classe.atributo_principal),
         ('Dado de Vida', classe.dado_vida),
