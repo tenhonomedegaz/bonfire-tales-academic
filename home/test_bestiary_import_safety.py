@@ -10,6 +10,7 @@ from django.core.management.base import CommandError
 from django.test import TestCase
 
 from .models import TbBestiario
+from .management.commands.importar_bestiario_csv import _split_secao
 
 
 class BestiaryImportSafetyTests(TestCase):
@@ -91,3 +92,14 @@ class BestiaryImportSafetyTests(TestCase):
             with self.assertRaisesMessage(RuntimeError, 'Falha no reparo'):
                 self.run_import(apply=True, sem_fix_magias=False)
         self.assertFalse(TbBestiario.objects.filter(slug='review-beast').exists())
+
+    def test_literal_csv_paragraph_stays_inside_its_action(self):
+        source = (
+            'Bite. The target is swallowed.\\n\\n'
+            "The creature's gullet can hold two targets.\\n\\n"
+            'Claw. The creature makes a claw attack.'
+        )
+        actions = _split_secao(source, [])
+        self.assertEqual([item['name_en'] for item in actions], ['Bite', 'Claw'])
+        self.assertIn('\n\nThe creature', actions[0]['entries_en'][0])
+        self.assertNotIn('\\n', actions[0]['entries_en'][0])

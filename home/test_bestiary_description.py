@@ -46,3 +46,52 @@ class BestiaryDescriptionProjectionTests(TestCase):
             preview = self.client.get(reverse('api_creature_preview'), {'slug': slug})
             self.assertEqual(preview.status_code, 200)
             self.assertEqual(preview.json()['descricao'], description.strip())
+
+    def test_import_summary_with_original_feature_name_uses_current_statblock(self):
+        statblock = {**self.statblock, 'actions': [{
+            'name': 'Golpe de Vento', 'name_en': 'Wind Strike',
+            'entries': ['Causa dano.'],
+        }]}
+        generated = _clean_creature_text(_descricao_markdown({}, statblock))
+        stale = generated.replace('**Golpe de Vento**', '**Wind Strike**')
+        creature = TbBestiario.objects.create(
+            slug='sentinela-traduzida', nome='Sentinela', tipo='Construto',
+            statblock_json=statblock, descricao_markdown=stale,
+        )
+        preview = self.client.get(reverse('api_creature_preview'), {'slug': creature.slug})
+        self.assertEqual(preview.status_code, 200)
+        self.assertEqual(preview.json()['descricao'], '')
+        self.assertIn('Golpe de Vento', preview.json()['statblock_html'])
+        creature.refresh_from_db()
+        self.assertEqual(creature.descricao_markdown, stale)
+
+    def test_extra_rule_or_changed_metadata_remains_for_review(self):
+        generated = _clean_creature_text(self.generated)
+        variants = (
+            generated.replace('**Golpe**', '**Regra ausente**'),
+            generated.replace('**Golpe**', '**Golpe**\n- **Regra adicional**'),
+            generated.replace('**CA:** 14', '**CA:** 18'),
+        )
+        for index, description in enumerate(variants):
+            creature = TbBestiario.objects.create(
+                slug=f'sentinela-divergente-{index}', nome='Sentinela',
+                statblock_json=self.statblock, descricao_markdown=description,
+            )
+            preview = self.client.get(reverse('api_creature_preview'), {'slug': creature.slug})
+            self.assertEqual(preview.status_code, 200)
+            self.assertEqual(preview.json()['descricao'], description)
+
+    def test_different_ability_qualifier_is_not_hidden(self):
+        statblock = {**self.statblock, 'actions': [{
+            'name': 'Golpe (somente Slaad)',
+            'name_en': 'Strike (Slaad Only)',
+            'entries': ['Causa dano.'],
+        }]}
+        generated = _clean_creature_text(_descricao_markdown({}, statblock))
+        altered = generated.replace('Golpe (somente Slaad)', 'Golpe (somente Beholderkin)')
+        creature = TbBestiario.objects.create(
+            slug='sentinela-qualificador', nome='Sentinela',
+            statblock_json=statblock, descricao_markdown=altered,
+        )
+        response = self.client.get(reverse('api_creature_preview'), {'slug': creature.slug})
+        self.assertEqual(response.json()['descricao'], altered)

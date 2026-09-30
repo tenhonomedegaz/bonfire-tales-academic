@@ -1390,7 +1390,9 @@ def _spell_uses(texto, catalog):
 
 
 def _split_secao(texto, catalog):
-    texto = (texto or "").strip()
+    # O CSV codifica quebras internas como os caracteres literais "\\n".
+    # Decodificar antes de segmentar preserva os paragrafos dentro da habilidade.
+    texto = (texto or "").replace("\\r\\n", "\n").replace("\\n", "\n").strip()
     if not texto:
         return []
 

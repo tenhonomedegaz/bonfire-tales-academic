@@ -97,6 +97,26 @@ class BestiaryCatalogClassificationTests(TestCase):
         self.assertIn('&lt;script&gt;alert(1)&lt;/script&gt;', html)
         self.assertNotIn('<script>', html)
 
+    def test_preview_decodes_legacy_literal_breaks_without_losing_rule_or_escaping(self):
+        creature = TbBestiario.objects.create(
+            slug='legacy-gullet', nome='Legacy Gullet',
+            statblock_json={'actions': [{
+                'name': 'Mordida',
+                'entries': [
+                    'O alvo é engolido.\\n\\nA garganta comporta duas criaturas '
+                    'e exige CD 20 <script>alert(1)</script> para regurgitar.'
+                ],
+            }]},
+        )
+        response = self.client.get(reverse('api_creature_preview'), {'slug': creature.slug})
+        self.assertEqual(response.status_code, 200)
+        html = response.json()['statblock_html']
+        self.assertIn('O alvo é engolido.<br><br>A garganta comporta duas criaturas', html)
+        self.assertIn('CD 20 &lt;script&gt;alert(1)&lt;/script&gt;', html)
+        self.assertNotIn('<script>', html)
+        creature.refresh_from_db()
+        self.assertIn('\\n\\n', creature.statblock_json['actions'][0]['entries'][0])
+
     def test_explicit_aliases_and_special_values(self):
         self.assertEqual(type_key('Besta (Dinossauro)'), 'besta')
         self.assertEqual(type_key('demonio'), 'corruptor')

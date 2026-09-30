@@ -13011,7 +13011,9 @@ def _sb_entries(entries):
     out = []
     for e in (entries or []):
         if isinstance(e, str):
-            out.append(_clean_statblock_text(e))  # tokens 5etools + refs Bonfire
+            # Registros importados antes da normalizacao ainda contêm "\\n" literal.
+            text = e.replace('\\r\\n', '\n').replace('\\n', '\n')
+            out.append(_clean_statblock_text(text))  # tokens 5etools + refs Bonfire
         elif isinstance(e, dict):
             if e.get('name') and e.get('entries'):
                 out.append('%s: %s' % (_clean_statblock_text(e['name']), _sb_entries(e['entries'])))
