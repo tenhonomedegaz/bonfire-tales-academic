@@ -124,12 +124,13 @@ class HunterReleaseCatalogTests(_CriadorBase):
 
         self.client.force_login(owner)
         url = reverse('hunter_regularization_preview', args=[person.pk])
-        payload = {'ruleset_checksum': target.checksum, 'expected_level': '3',
+        payload = {'ruleset_checksum': v2.checksum, 'expected_level': '3',
             'expected_order_id': str(old_order.pk), 'ability': 'wis', 'confirm': '1',
             'order': str(old_order.pk)}
         with override_settings(HUNTER_CREATOR_RULESET_CHECKSUM=target.checksum):
             preview = self.client.get(url)
             comparison = preview.context['comparison']
+            self.assertEqual(comparison['ruleset_checksum'], v2.checksum)
             self.assertEqual({o.pk for o in comparison['available_orders']}, set(orders.values()))
             self.assertIsNone(comparison['candidate_order_id'])
             rejected = self.client.post(url, payload)
@@ -142,7 +143,7 @@ class HunterReleaseCatalogTests(_CriadorBase):
             self.assertEqual(applied.status_code, 302, applied.content[:1000])
         profile = TbPersonagemCacador.objects.get(personagem_classe=pc)
         self.assertEqual(profile.regularization['old_order_id'], old_order.pk)
-        self.assertEqual(profile.ruleset_id, target.pk)
+        self.assertEqual(profile.ruleset_id, v2.pk)
         person.refresh_from_db()
         self.assertEqual((person.carteira_pc, person.aventuras, person.braseiros), (321, 8, 4))
         self.assertEqual(self.client.get(reverse('hunter_sheet', args=[person.pk])).status_code, 200)

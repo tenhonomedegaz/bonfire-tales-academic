@@ -14,14 +14,22 @@ def regularization_preview(request, pk):
     from django.conf import settings
     from .models import TbPersonagem, TbPersonagemClasse, TbRuleset
     from .hunter_regularization import preview_legacy_hunter, apply_regularization
+    from .class_publication import published_catalog
 
     person = get_object_or_404(TbPersonagem, pk=pk, dono=request.user, arquivado=False)
     pc = get_object_or_404(TbPersonagemClasse, id_personagem=person, id_classe__slug='cacador')
     if hasattr(pc, 'cacador_rework'):
         from django.http import Http404
         raise Http404('Hunter already has a bound revision.')
-    checksum = getattr(settings, 'HUNTER_CREATOR_RULESET_CHECKSUM', '')
-    ruleset = TbRuleset.objects.filter(checksum=checksum).first() if checksum else None
+    try:
+        published = published_catalog(pc.id_classe)
+        if published:
+            ruleset = published[0]
+        else:
+            checksum = getattr(settings, 'HUNTER_CREATOR_RULESET_CHECKSUM', '')
+            ruleset = TbRuleset.objects.filter(checksum=checksum).first() if checksum else None
+    except (ObjectDoesNotExist, ValueError, KeyError, TypeError):
+        ruleset = None
     comparison = None
     error = None
     if ruleset:
@@ -49,7 +57,10 @@ def regularization_preview(request, pk):
                 else request.POST.get('order'))
         except (ValueError, ObjectDoesNotExist) as exc:
             error = str(exc)
-            comparison = preview_legacy_hunter(person, pc, ruleset)
+            try:
+                comparison = preview_legacy_hunter(person, pc, ruleset)
+            except (ValueError, ObjectDoesNotExist):
+                comparison = None
     else:
         error = 'A revisão de destino ainda não está configurada.'
     return render(request, 'home/pages/hunter_regularization.html', {

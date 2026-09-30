@@ -123,6 +123,12 @@ def _mastery_transfers(person, pc, ruleset, choices, hunter_data):
             any(row['id_opcao_id'] for row in candidates)):
         return []
     from .hunter_masteries import available_options
+    if (pc.id_subclasse_id is not None and
+            pc.id_subclasse_id not in VersionedClassCatalog(ruleset, pc.id_classe_id).subclasses):
+        # A legacy subclass omitted from the target snapshot cannot prove that
+        # its old weapon/mastery pair remains proficient. Leave those choices
+        # for individual confirmation instead of transferring them implicitly.
+        return []
     available = {option['value']: option for option in available_options(person, ruleset)}
     values = [row['valor'] for row in candidates]
     if (any(value not in available for value in values) or

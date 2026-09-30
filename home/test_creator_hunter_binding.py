@@ -1,5 +1,6 @@
 import json
 from unittest.mock import patch
+from django.test import override_settings
 from django.db import transaction
 from django.urls import reverse
 from . import views
@@ -93,7 +94,8 @@ class CreatorHunterBindingTests(_CriadorBase):
         _, errors = self.valid_payload('int')
         self.assertEqual(errors, [])
         self.client.force_login(self.user)
-        with patch('home.views._criador_resolver', side_effect=self.resolve):
+        with override_settings(HUNTER_CREATOR_RULESET_CHECKSUM=''), \
+                patch('home.views._criador_resolver', side_effect=self.resolve):
             preview = self.client.post(reverse('criar_personagem_preview'),
                 data=json.dumps(self.payload), content_type='application/json').json()
             self.assertTrue(preview['ready'], preview)
