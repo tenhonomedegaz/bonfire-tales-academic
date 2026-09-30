@@ -8,6 +8,7 @@
   <label>Nome <input id="key-name" maxlength="100" required></label>
   <label><input id="key-read" type="checkbox" checked> Leitura</label>
   <label><input id="key-write" type="checkbox"> Escrita</label>
+  <label><input id="key-publish" type="checkbox"> Publicação</label>
   <label>Expiração (ISO 8601 com fuso, opcional) <input id="key-expiry" placeholder="2026-12-31T23:59:00-03:00" size="30"></label>
   <button type="submit" class="button default">Criar chave</button>
 </form>
@@ -88,6 +89,7 @@
     const scopes = [];
     if (document.getElementById('key-read').checked) scopes.push('read');
     if (document.getElementById('key-write').checked) scopes.push('write');
+    if (document.getElementById('key-publish').checked) scopes.push('publish');
     const expiry = document.getElementById('key-expiry').value.trim();
     const body = {name: document.getElementById('key-name').value.trim(), scopes};
     if (expiry) body.expires_at = expiry;

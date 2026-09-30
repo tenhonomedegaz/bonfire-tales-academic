@@ -53,7 +53,7 @@ def _key_parameters(payload, *, defaults=None):
     if (not isinstance(scopes, list) or not scopes
             or any(not isinstance(scope, str) or scope not in VALID_SCOPES
                    for scope in scopes)):
-        raise ApiProblem(400, 'invalid_scopes', 'Escopos permitidos: read e write.')
+        raise ApiProblem(400, 'invalid_scopes', 'Escopos permitidos: read, write e publish.')
     scopes = sorted(set(scopes))
     raw_expiry = payload.get('expires_at', defaults.get('expires_at'))
     if raw_expiry in (None, ''):

@@ -111,6 +111,7 @@ Os nomes de módulos novos são orientativos. A extração deve acontecer ao imp
 
 ### 3.3 Regras transversais
 
+- Classes e subclasses seguem um contrato comum de conteúdo versionado: texto formatado no Markdown do registro; referências e cards derivados das identidades dos dados; mecânicas declaradas em tags avaliadas pelo interpretador compartilhado. A publicação vincula explicitamente cada classe a uma revisão imutável. Nenhum renderer, endpoint ou controlador de publicação deve depender do slug, checksum ou número de subclasses de uma classe específica. A alteração de conteúdo usa operações estruturadas e auditadas do banco/API/admin, com prévia, versão esperada, backup e aplicação transacional; scripts de conteúdo por classe não são o produto de publicação. Fichas existentes conservam a revisão fixada até regularização individual. A migração gradual dos consumidores legados exige regressão de página, criador e ficha antes de retirar compatibilidade.
 - O servidor decide permissões, custos, limites, elegibilidade e recompensas. O navegador pode antecipar validações para orientar o usuário.
 - Operações de patrimônio usam transações e unicidade. Débito, crédito, desbloqueio e registro da operação precisam formar uma unidade lógica.
 - Fatos que alimentam o bot ou conquistas são gravados junto da alteração de negócio. `on_commit` pode acordar o processador, mas não substitui uma pendência persistida: uma queda do processo não pode perder a entrega. Ver [transações do Django](https://docs.djangoproject.com/en/6.0/topics/db/transactions/).

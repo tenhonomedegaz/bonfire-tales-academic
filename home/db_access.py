@@ -17,7 +17,7 @@ MAX_FILTERS = 8
 MAX_PAGE_SIZE = 100
 RATE_LIMIT = 60
 RATE_WINDOW_SECONDS = 60
-VALID_SCOPES = frozenset({'read', 'write'})
+VALID_SCOPES = frozenset({'read', 'write', 'publish'})
 
 
 @dataclass(frozen=True)

@@ -15,11 +15,16 @@ from .db_access import (
 )
 from .db_access_models import DbAccessIdempotency, ManagedApiKey
 from .class_revision_editor import class_revision_operation, class_revision_preview_operation
+from .class_publication import class_publication_operation, class_publication_preview_operation
 
 
 register_operation_handler('class-revision', class_revision_operation)
 register_operation_handler('class-revision-preview', class_revision_preview_operation,
                            scope='read')
+register_operation_handler('class-publication-preview', class_publication_preview_operation,
+                           scope='read')
+register_operation_handler('class-publication', class_publication_operation,
+                           scope='publish')
 
 
 def _response(payload, status=200, *, version=None):

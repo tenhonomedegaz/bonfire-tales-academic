@@ -14,7 +14,7 @@ from .hunter_rework import catalog
 from .hunter_regularization import _reviewed_target
 from .character_engine import derive
 from .class_revision_editor import create_class_revision
-from .models import (TbClasse, TbClassehabilidade, TbRecursoclasse, TbSubclasse, TbPersonagem, TbPersonagemClasse,
+from .models import (TbClassPublication, TbClasse, TbClassehabilidade, TbRecursoclasse, TbSubclasse, TbPersonagem, TbPersonagemClasse,
                      TbPersonagemCacador)
 from .versioned_classes import EVALUATOR, VOCABULARY, VersionedClassCatalog, inventory_class
 from .views import _normalize_key
@@ -93,7 +93,10 @@ class HunterReleaseCatalogTests(_CriadorBase):
             {'model': 'home.tbrecursoclasse', 'action': 'update', 'pk': die.pk,
              'fields': {'valores_json': {'1': 'd6', '5': 'd8', '11': 'd10', '17': 'd12'}}},
         ], presentation_source='catalog')
-        with override_settings(HUNTER_CREATOR_RULESET_CHECKSUM=v2.checksum):
+        TbClassPublication.objects.create(id_classe=hunter, ruleset=v2)
+        from .views import _criador_hunter_catalog_args
+        with override_settings(HUNTER_CREATOR_RULESET_CHECKSUM=target.checksum):
+            self.assertEqual(_criador_hunter_catalog_args()['hunter_ruleset'].pk, v2.pk)
             revised = self.client.get(detail_url)
             self.assertEqual(revised.status_code, 200)
             cells = revised.context['progression_table'][2]['cells']
@@ -138,7 +141,7 @@ class HunterReleaseCatalogTests(_CriadorBase):
         from .hunter_publication_diagnostic import publication_status
         from unittest.mock import patch
         with override_settings(HUNTER_CREATOR_RULESET_CHECKSUM=target.checksum), \
-                patch('home.versioned_classes.VersionedClassCatalog',
+                patch('home.class_publication.VersionedClassCatalog',
                       side_effect=ValueError('Frozen class unavailable')):
             self.assertEqual(publication_status()['code'], 'class_snapshot_invalid')
             self.assertEqual(self.client.get(detail_url).status_code, 503)

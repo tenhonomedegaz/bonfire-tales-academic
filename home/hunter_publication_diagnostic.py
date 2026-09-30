@@ -12,23 +12,29 @@ class HunterPublicationUnavailable(Exception):
 
 
 def resolve_publication():
+    from django.core.exceptions import ObjectDoesNotExist
     """Return only a fully reviewed catalog; never fall back to live legacy rows."""
     from .content_versions import resolve_content
     from .hunter_regularization import _reviewed_target, _target_orders
     from .models import TbClasse, TbRecursoclasse, TbRuleset
     from .versioned_classes import EVALUATOR, VOCABULARY, VersionedClassCatalog
 
-    checksum = settings.HUNTER_CREATOR_RULESET_CHECKSUM
+    from .class_publication import published_catalog
+    try:
+        live = TbClasse.objects.get(slug='cacador')
+    except TbClasse.DoesNotExist as exc:
+        raise HunterPublicationUnavailable('class_missing') from exc
+    try:
+        bound = published_catalog(live)
+    except (ObjectDoesNotExist, ValueError, KeyError, TypeError) as exc:
+        raise HunterPublicationUnavailable('class_snapshot_invalid') from exc
+    checksum = bound[0].checksum if bound else settings.HUNTER_CREATOR_RULESET_CHECKSUM
     if not checksum:
         raise HunterPublicationUnavailable('config_missing')
     try:
         ruleset = TbRuleset.objects.get(checksum=checksum)
     except TbRuleset.DoesNotExist as exc:
         raise HunterPublicationUnavailable('ruleset_missing') from exc
-    try:
-        live = TbClasse.objects.get(slug='cacador')
-    except TbClasse.DoesNotExist as exc:
-        raise HunterPublicationUnavailable('class_missing') from exc
     try:
         catalog = VersionedClassCatalog(ruleset, live.pk)
         if catalog.classe.slug != 'cacador':
@@ -66,7 +72,15 @@ def resolve_publication():
 
 def publication_status():
     """Read-only, minimal status; no personal data, SQL or internal traceback."""
-    checksum = settings.HUNTER_CREATOR_RULESET_CHECKSUM
+    from django.core.exceptions import ObjectDoesNotExist
+    from .class_publication import published_catalog
+    from .models import TbClasse
+    live = TbClasse.objects.filter(slug='cacador').first()
+    try:
+        bound = published_catalog(live) if live else None
+    except (ObjectDoesNotExist, ValueError, KeyError, TypeError):
+        bound = None
+    checksum = bound[0].checksum if bound else settings.HUNTER_CREATOR_RULESET_CHECKSUM
     status = {'schema': 1, 'published': False, 'code': 'config_missing',
               'checksum_prefix': checksum[:12] if checksum else None}
     try:

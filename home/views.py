@@ -1953,10 +1953,28 @@ def classe_detail_view(request, slug):
 
 
 def _postgres_classe_detail_view(request, slug):
+    from django.core.exceptions import ObjectDoesNotExist
     live_class = get_object_or_404(TbClasse, slug=slug)
     all_classes = TbClasse.objects.all().order_by('nome')
-    published_hunter = slug == 'cacador'
-    if published_hunter:
+    from .class_publication import published_catalog
+
+    try:
+        published_class = published_catalog(live_class)
+    except (ObjectDoesNotExist, ValueError, KeyError, TypeError):
+        return HttpResponse('Revisao publica da classe indisponivel.', status=503)
+    legacy_hunter_publication = published_class is None and slug == 'cacador'
+    if published_class is not None:
+        _, catalog = published_class
+        classe = catalog.classe
+        all_classes = [classe if item.pk == classe.pk else item for item in all_classes]
+        subclasses = sorted(catalog.subclasses.values(), key=lambda item: item.nome)
+        base_habilidades_qs = [item for item in catalog.collections[TbClassehabilidade]
+                              if item.id_subclasse_id is None]
+        subclass_habilidades_qs = [item for item in catalog.collections[TbClassehabilidade]
+                                   if item.id_subclasse_id is not None]
+        recursos = catalog.collections[TbRecursoclasse]
+        legacy_hunter_presentation = False
+    elif legacy_hunter_publication:
         from .hunter_publication_diagnostic import (
             HunterPublicationUnavailable, resolve_publication)
 
@@ -2224,7 +2242,7 @@ def _postgres_classe_detail_view(request, slug):
         'spell_slots_count': len(spell_columns),
         'base_spell_slots_count': base_spell_slots_count,
         'progression_table': progression_table,
-        'can_edit_wiki': request.user.is_staff and not published_hunter,
+        'can_edit_wiki': request.user.is_staff and published_class is None and not legacy_hunter_publication,
     }
     if is_ajax(request):
         return render(request, 'home/partials/classe_detail_content.html', context)
@@ -4617,16 +4635,22 @@ class HunterCreatorCatalogUnavailable(Exception):
 
 def _criador_hunter_catalog_args():
     """Select the server-published Hunter revision; client input cannot change it."""
-    checksum = getattr(settings, 'HUNTER_CREATOR_RULESET_CHECKSUM', '')
+    from .class_publication import published_catalog
+    live = TbClasse.objects.filter(slug='cacador').first()
+    bound = published_catalog(live) if live else None
+    checksum = (bound[0].checksum if bound else
+                getattr(settings, 'HUNTER_CREATOR_RULESET_CHECKSUM', ''))
     if not checksum:
         return {}
+    if live is None:
+        raise HunterCreatorCatalogUnavailable('Hunter class is unavailable.')
     from .models import TbRuleset
     from .versioned_classes import EVALUATOR, VOCABULARY, VersionedClassCatalog
     from .content_versions import resolve_content
     from django.core.exceptions import ObjectDoesNotExist
     try:
         ruleset = TbRuleset.objects.get(checksum=checksum)
-        class_id = TbClasse.objects.get(slug='cacador').pk
+        class_id = live.pk
         if VersionedClassCatalog(ruleset, class_id).classe.slug != 'cacador':
             raise ValueError('Published Hunter class identity differs from its snapshot.')
         resolve_content(ruleset, 'hunter-rework', evaluator_version=EVALUATOR,

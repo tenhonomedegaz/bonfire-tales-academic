@@ -320,6 +320,30 @@ class TbRuleset(models.Model):
     author = models.ForeignKey('auth.User', on_delete=models.PROTECT, null=True)
 
 
+class TbClassPublication(models.Model):
+    """Current reviewed ruleset for new uses of one class."""
+    id_classe = models.OneToOneField(TbClasse, on_delete=models.PROTECT,
+                                     primary_key=True, related_name='publication')
+    ruleset = models.ForeignKey(TbRuleset, on_delete=models.PROTECT)
+    published_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        db_table = 'home_class_publication'
+
+
+class TbClassPublicationLog(models.Model):
+    id_classe = models.ForeignKey(TbClasse, on_delete=models.PROTECT)
+    previous_ruleset = models.ForeignKey(TbRuleset, on_delete=models.PROTECT,
+                                         null=True, related_name='+')
+    new_ruleset = models.ForeignKey(TbRuleset, on_delete=models.PROTECT,
+                                    related_name='+')
+    actor_key_id = models.UUIDField(null=True)
+    published_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        db_table = 'home_class_publication_log'
+
+
 class TbRulesetContent(models.Model):
     ruleset = models.ForeignKey(TbRuleset, on_delete=models.PROTECT, related_name='entries')
     revision = models.ForeignKey(TbContentRevision, on_delete=models.PROTECT)
