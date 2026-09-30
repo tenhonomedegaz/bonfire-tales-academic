@@ -2,6 +2,7 @@ import json
 from datetime import timedelta
 
 from django.contrib.auth.models import User
+from django.contrib.auth.models import Permission
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -67,6 +68,20 @@ class ApiKeyLifecycleTests(TestCase):
         self.assertContains(response, 'Criar chave')
         self.assertEqual(response['Cache-Control'], 'no-store')
         self.assertNotIn('secret_hash', response.content.decode())
+
+    def test_admin_key_list_rejects_staff_with_explicit_view_permission(self):
+        self.user.is_staff = True
+        self.user.save(update_fields=['is_staff'])
+        self.user.user_permissions.add(Permission.objects.get(codename='view_managedapikey'))
+        self.client.force_login(self.user)
+        denied = self.client.get('/admin/home/managedapikey/')
+        self.assertEqual(denied.status_code, 302)
+        self.assertTrue(denied['Location'].startswith('/admin/login/'))
+        self.assertEqual(self.client.get(reverse('managed_api_keys')).status_code, 403)
+        self.client.force_login(self.superuser)
+        listing = self.client.get('/admin/home/managedapikey/')
+        self.assertEqual(listing.status_code, 200)
+        self.assertContains(listing, reverse('managed_api_key_console'))
 
     def test_rotation_revokes_old_key_and_returns_new_secret(self):
         self.client.force_login(self.superuser)

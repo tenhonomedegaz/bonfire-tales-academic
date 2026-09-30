@@ -4197,6 +4197,12 @@ class ManagedApiKeyAdmin(admin.ModelAdmin):
     exclude = ('secret_hash',)
     actions = None
 
+    def has_module_permission(self, request):
+        return request.user.is_active and request.user.is_superuser
+
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_active and request.user.is_superuser
+
     def has_add_permission(self, request):
         return False
 

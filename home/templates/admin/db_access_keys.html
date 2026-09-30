@@ -1,15 +1,29 @@
 {% extends "admin/base_site.html" %}
 {% block title %}Chaves de API | Bonfire{% endblock %}
 {% block content %}
+<style>
+  #key-form { display: grid; gap: 1rem; max-width: 48rem; margin: 1.5rem 0; }
+  #key-form .key-field { display: grid; gap: .35rem; }
+  #key-form input[type="text"] { box-sizing: border-box; width: 100%; max-width: 32rem; }
+  #key-form fieldset { display: flex; flex-wrap: wrap; gap: .75rem 1.5rem; padding: .75rem; }
+  #key-form fieldset label { white-space: nowrap; }
+  #key-form button { width: fit-content; min-width: 10rem; }
+  #secret-box pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+  .key-table-wrap { max-width: 100%; overflow-x: auto; }
+</style>
 <h1>Chaves de API</h1>
 <p>Somente superusers podem criar, rotacionar e revogar chaves. O segredo aparece uma vez após a operação.</p>
 <form id="key-form" autocomplete="off">
   {% csrf_token %}
-  <label>Nome <input id="key-name" maxlength="100" required></label>
-  <label><input id="key-read" type="checkbox" checked> Leitura</label>
-  <label><input id="key-write" type="checkbox"> Escrita</label>
-  <label><input id="key-publish" type="checkbox"> Publicação</label>
-  <label>Expiração (ISO 8601 com fuso, opcional) <input id="key-expiry" placeholder="2026-12-31T23:59:00-03:00" size="30"></label>
+  <label class="key-field">Nome <input id="key-name" type="text" maxlength="100" required></label>
+  <fieldset><legend>Escopos</legend>
+    <label><input id="key-read" type="checkbox" checked> Leitura</label>
+    <label><input id="key-write" type="checkbox"> Escrita</label>
+    <label><input id="key-publish" type="checkbox"> Publicação</label>
+  </fieldset>
+  <label class="key-field">Expiração (ISO 8601 com fuso, opcional)
+    <input id="key-expiry" type="text" placeholder="2026-12-31T23:59:00-03:00">
+  </label>
   <button type="submit" class="button default">Criar chave</button>
 </form>
 <p id="key-message" role="status"></p>
@@ -19,7 +33,7 @@
   <button id="hide-secret" type="button">Ocultar segredo</button>
 </div>
 <h2>Chaves cadastradas</h2>
-<table><thead><tr><th>Nome</th><th>Prefixo</th><th>Escopos</th><th>Expiração</th><th>Estado</th><th>Ações</th></tr></thead><tbody id="key-rows"></tbody></table>
+<div class="key-table-wrap"><table><thead><tr><th>Nome</th><th>Prefixo</th><th>Escopos</th><th>Expiração</th><th>Estado</th><th>Ações</th></tr></thead><tbody id="key-rows"></tbody></table></div>
 <script>
 (() => {
   const endpoint = "{% url 'managed_api_keys' %}";
