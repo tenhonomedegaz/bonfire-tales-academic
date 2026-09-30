@@ -6,11 +6,14 @@ from django.urls import reverse
 from . import views
 from .class_revision_editor import create_class_revision
 from .class_publication import ClassPublicationConflict, publication_preview, publish_class
+from .character_engine import derive
+from .content_versions import create_revision, seal_ruleset
 from .db_access_models import ManagedApiKey
-from .models import TbClassPublication, TbClassPublicationLog, TbClasse, TbClassehabilidade, TbPersonagem
+from .models import (TbClassPublication, TbClassPublicationLog, TbClasse,
+                     TbClassehabilidade, TbPersonagem, TbPersonagemClasse)
 from .test_criador import _CriadorBase
 from .test_creator_pinned_catalog import CreatorPinnedCatalogTests
-from .versioned_classes import seal_class_snapshot
+from .versioned_classes import EVALUATOR, VOCABULARY, inventory_class, seal_class_snapshot
 
 
 class ClassPublicationTests(_CriadorBase):
@@ -23,6 +26,74 @@ class ClassPublicationTests(_CriadorBase):
              'fields': {'descricao': '## Revisão publicada\n\n**Texto** revisado.'}},
         ], presentation_source='catalog')
         return classe, base, target
+
+    def test_multiclass_pins_published_other_class_without_converting_legacy(self):
+        fighter = TbClasse.objects.get(slug='guerreiro')
+        paladin = TbClasse.objects.get(slug='paladino')
+        base = CreatorPinnedCatalogTests.seal(self, fighter)
+        revisions = [row.revision for row in base.entries.select_related('revision')]
+        revisions.append(create_revision(
+            'class-catalog:%s' % paladin.pk, inventory_class(paladin.pk)))
+        complete = seal_ruleset(revisions, evaluator_version=EVALUATOR,
+                                vocabulary_version=VOCABULARY)
+        feature = TbClassehabilidade.objects.filter(
+            id_classe=fighter, id_subclasse__isnull=True).first()
+        target = create_class_revision(complete.checksum, fighter.pk, [
+            {'model': 'home.tbclassehabilidade', 'action': 'update', 'pk': feature.pk,
+             'fields': {'descricao': '## Guerreiro multiclasse publicado'}},
+        ], presentation_source='catalog')
+        user = self._novo_usuario('published-multiclass')
+        person = TbPersonagem.objects.create(
+            dono=user, nome='Multiclasse publicada', nivel=1, aventuras=500,
+            forca=15, destreza=15, constituicao=15,
+            inteligencia=15, sabedoria=15, carisma=15)
+        original = TbPersonagemClasse.objects.create(
+            id_personagem=person, id_classe=paladin, nivel=1, principal=True)
+        with patch('home.content_maintenance._local_postgres', return_value=True), \
+                patch('home.content_maintenance._protected_directory', return_value='safe'), \
+                patch('home.content_maintenance._fresh_backup', return_value='backup'):
+            publish_class(fighter.pk, target.checksum, 'unpublished')
+        def broken_after_link(*args, **kwargs):
+            if kwargs.get('ruleset') == target and person.classes.filter(id_classe=fighter).exists():
+                raise ValueError('Published sheet cannot be evaluated.')
+            return derive(*args, **kwargs)
+        with patch('home.character_engine.derive', side_effect=broken_after_link):
+            self.assertTrue(views._lvl_aplicar_adicionar_classe(
+                person, {'classe': fighter.pk}))
+        self.assertFalse(person.classes.filter(id_classe=fighter).exists())
+        self.assertEqual(person.nivel, 1)
+        self.assertEqual(views._lvl_aplicar_adicionar_classe(
+            person, {'classe': fighter.pk}), [])
+        added = person.classes.get(id_classe=fighter)
+        self.assertEqual(added.ruleset_id, target.pk)
+        original.refresh_from_db()
+        self.assertIsNone(original.ruleset_id)
+        self.assertEqual(person.nivel, 2)
+        self.client.force_login(user)
+        sheet = self.client.get(reverse('ficha_detail', args=[person.pk]))
+        self.assertEqual(sheet.status_code, 200, sheet.content[:300])
+        self.assertIn('## Guerreiro multiclasse publicado',
+                      [row['descricao'] for row in sheet.context['ficha']['features']])
+
+    def test_multiclass_rejects_incomplete_publication_before_creating_link(self):
+        fighter, _, target = self._target()
+        paladin = TbClasse.objects.get(slug='paladino')
+        user = self._novo_usuario('incomplete-multiclass')
+        person = TbPersonagem.objects.create(
+            dono=user, nome='Multiclasse incompleta', nivel=1, aventuras=500,
+            forca=15, destreza=15, constituicao=15,
+            inteligencia=15, sabedoria=15, carisma=15)
+        TbPersonagemClasse.objects.create(
+            id_personagem=person, id_classe=paladin, nivel=1, principal=True)
+        with patch('home.content_maintenance._local_postgres', return_value=True), \
+                patch('home.content_maintenance._protected_directory', return_value='safe'), \
+                patch('home.content_maintenance._fresh_backup', return_value='backup'):
+            publish_class(fighter.pk, target.checksum, 'unpublished')
+        self.assertNotIn(fighter.pk, {row['id'] for row in views._classes_multiclasse(
+            person, derive(person))})
+        self.assertTrue(views._lvl_aplicar_adicionar_classe(person, {'classe': fighter.pk}))
+        self.assertFalse(person.classes.filter(id_classe=fighter).exists())
+        self.assertEqual(person.nivel, 1)
 
     def test_publish_and_replay_use_generic_class_binding(self):
         classe, base, target = self._target()

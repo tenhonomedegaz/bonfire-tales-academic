@@ -7506,6 +7506,31 @@ def _hunter_multiclass_publication():
         return None
 
 
+def _multiclass_publication(classe):
+    """Resolve the same public revision used by creation for a new class link."""
+    if classe.slug == 'cacador':
+        return _hunter_multiclass_publication()
+    from .class_publication import published_catalog
+    published = published_catalog(classe)
+    return (published[0], published[1].classe) if published else (None, classe)
+
+
+def _multiclass_revision_compatible(personagem, ruleset):
+    """A new pinned class must be able to evaluate all existing class links."""
+    if ruleset is None:
+        return True
+    from django.core.exceptions import ObjectDoesNotExist
+    from .character_engine import derive
+    from .versioned_classes import VersionedClassCatalog
+    try:
+        for pc in personagem.classes.all():
+            VersionedClassCatalog(ruleset, pc.id_classe_id)
+        derive(personagem, ruleset=ruleset)
+    except (ObjectDoesNotExist, ValueError, KeyError, TypeError):
+        return False
+    return True
+
+
 def _multiclass_classe_efetiva(pc):
     ruleset = _hunter_ruleset_for_class(pc)
     if ruleset is None:
@@ -7527,19 +7552,28 @@ def _multiclass_atende_classes(personagem, atributos, nova_classe=None):
 def _classes_multiclasse(p, ficha):
     """Classes que o personagem pode adicionar por multiclasse (pré-req atendido, não-possuída)."""
     from .models import TbClasse
+    from django.core.exceptions import ObjectDoesNotExist
     atuais = set(p.classes.values_list('id_classe_id', flat=True))
     out = []
     if not _multiclass_atende_classes(p, ficha['atributos']):
         return out
+    try:
+        pinned = _resource_ruleset(p)
+    except ValueError:
+        return out
     for cl in TbClasse.objects.all().order_by('nome'):
         if cl.id_classe in atuais:
             continue
-        effective = cl
-        if cl.slug == 'cacador':
-            published = _hunter_multiclass_publication()
+        try:
+            published = _multiclass_publication(cl)
             if published is None:
                 continue
-            effective = published[1]
+            ruleset, effective = published
+            if (ruleset is not None and pinned is not None and ruleset.pk != pinned.pk
+                    or not _multiclass_revision_compatible(p, ruleset)):
+                continue
+        except (ObjectDoesNotExist, ValueError, KeyError, TypeError):
+            continue
         req = _classe_req(effective)
         if _multiclass_atende_classes(p, ficha['atributos'], effective):
             out.append({'id': cl.id_classe, 'nome': cl.nome,
@@ -7997,6 +8031,7 @@ def _lvl_aplicar_adicionar_classe(personagem, payload):
     """Adiciona uma classe por multiclasse (nível 1) se o pré-requisito for atendido.
     Multiclasse também SOBE o nível total — respeita o mesmo teto de aventuras (BUG-1)."""
     from .models import TbClasse, TbPersonagemClasse, TbPersonagemCacador
+    from django.core.exceptions import ObjectDoesNotExist
     from .character_engine import derive, nivel_por_aventuras
     if (personagem.nivel or 0) >= 20:
         return [_ERR_MC_MAX]
@@ -8005,24 +8040,36 @@ def _lvl_aplicar_adicionar_classe(personagem, payload):
     cl = TbClasse.objects.filter(id_classe=(payload or {}).get('classe')).first()
     if not cl or personagem.classes.filter(id_classe=cl).exists():
         return [_ERR_MC_INVALIDO]
-    ruleset = None
-    effective = cl
-    if cl.slug == 'cacador':
-        published = _hunter_multiclass_publication()
+    try:
+        published = _multiclass_publication(cl)
         if published is None:
             return [_ERR_MC_INVALIDO]
         ruleset, effective = published
+        pinned = _resource_ruleset(personagem)
+        if (ruleset is not None and pinned is not None and ruleset.pk != pinned.pk
+                or not _multiclass_revision_compatible(personagem, ruleset)):
+            return [_ERR_MC_INVALIDO]
+    except (ObjectDoesNotExist, ValueError, KeyError, TypeError):
+        return [_ERR_MC_INVALIDO]
+    if cl.slug == 'cacador':
         if (payload or {}).get('hunter_ability') not in ('int', 'wis'):
             return ['Escolha Inteligência ou Sabedoria para o Caçador.']
     if not _multiclass_atende_classes(personagem, derive(personagem)['atributos'], effective):
         return [_ERR_MC_PREREQ]
-    pc = TbPersonagemClasse.objects.create(id_personagem=personagem, id_classe=cl,
-                                           nivel=1, principal=False)
-    if ruleset is not None:
-        TbPersonagemCacador.objects.create(personagem_classe=pc, ruleset=ruleset,
-            ability=payload['hunter_ability'], selected=[])
-    personagem.nivel = sum(c.nivel or 0 for c in personagem.classes.all())
-    personagem.save(update_fields=['nivel', 'atualizado_em'])
+    try:
+        with transaction.atomic():
+            pc = TbPersonagemClasse.objects.create(id_personagem=personagem, id_classe=cl,
+                                                   nivel=1, principal=False, ruleset=ruleset)
+            if ruleset is not None and cl.slug == 'cacador':
+                TbPersonagemCacador.objects.create(personagem_classe=pc, ruleset=ruleset,
+                    ability=payload['hunter_ability'], selected=[])
+            personagem.nivel = sum(c.nivel or 0 for c in personagem.classes.all())
+            personagem.save(update_fields=['nivel', 'atualizado_em'])
+            if ruleset is not None:
+                derive(personagem, ruleset=ruleset)
+    except (ObjectDoesNotExist, ValueError, KeyError, TypeError):
+        personagem.refresh_from_db(fields=['nivel'])
+        return [_ERR_MC_INVALIDO]
     return []
 
 
