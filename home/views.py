@@ -13174,6 +13174,7 @@ def bestiario_view(request):
 
     from django.core.paginator import Paginator
     from .models import TbBestiario
+    from .bestiary_description import display_description
     from .bestiary_catalog import (TYPE_LABELS, SIZE_LABELS, cr_classification, cr_display,
                                    size_keys, type_key, type_keys)
     from . import permissions as perms
@@ -13246,7 +13247,7 @@ def bestiario_view(request):
             'imagem': b.imagem_url or '',
             'nd_valor': nd_number,
             'record': b,
-            'descricao': _clean_5et(b.descricao_markdown or ''),
+            'descricao': _clean_5et(display_description(b)),
             'pode_editar': is_staff or (b.comunidade and b.autor_id == request.user.id),
         })
     if ordem == 'za':
@@ -14354,6 +14355,7 @@ def _resolve_bestiary_creature(raw_slug):
 
 def api_creature_preview(request):
     from django.http import JsonResponse
+    from .bestiary_description import display_description
     slug = (request.GET.get('slug') or '').strip().lower()
     if not slug:
         return JsonResponse({'success': False, 'error': 'slug ausente'}, status=400)
@@ -14369,7 +14371,7 @@ def api_creature_preview(request):
         'ca': cr.ca or '',
         'pv': cr.pv or '',
         'statblock_html': _render_creature_statblock_full(cr),
-        'descricao': cr.descricao_markdown or '',
+        'descricao': display_description(cr),
     })
 
 
