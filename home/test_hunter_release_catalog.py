@@ -74,6 +74,14 @@ class HunterReleaseCatalogTests(_CriadorBase):
                 cell = detail.context['progression_table'][level - 1]['cells'][die_index]
                 self.assertIn(die, str(cell['valor']))
             self.assertIn('Ordem do Ca', str(detail.context['progression_table'][2]['cells']))
+            sections = detail.context['habilidade_sections']
+            mark = next(row for row in sections if row['habilidade'].nome == 'Marca do Caçador')
+            self.assertIn('#### Marcar o Alvo', mark['display_description'])
+            order = next(row for row in sections if row['habilidade'].nome == 'Ordem do Caçador')
+            self.assertEqual(order['display_description'].count('(?subclasse='), 8)
+            self.assertIn('Incremento de Atributo ou Talento',
+                          str(detail.context['progression_table'][3]['cells']))
+            self.assertContains(detail, 'data-markdown')
             ajax = self.client.get(detail_url + '?ajax=1&subclasse=' + old_order.slug,
                                    HTTP_X_REQUESTED_WITH='XMLHttpRequest')
             self.assertEqual(ajax.status_code, 200)
