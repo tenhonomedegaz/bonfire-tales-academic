@@ -13297,13 +13297,13 @@ def _parse_blocos(texto):
 
 def _blocos_para_texto(lista):
     """[{name, entries, tags}] → texto 'Nome | desc | tags' p/ preencher o textarea na edição."""
-    from .bestiary_edit import escape_feature_text
+    from .bestiary_edit import editable_entries_text, escape_feature_text
     linhas = []
     for x in (lista or []):
         if not isinstance(x, dict):
             continue
         nome = escape_feature_text(x.get('name', ''))
-        desc = escape_feature_text(' '.join(e for e in (x.get('entries') or []) if isinstance(e, str)))
+        desc = escape_feature_text(editable_entries_text(x.get('entries')))
         tags = escape_feature_text(', '.join(x.get('tags') or x.get('tags_json') or []))
         linha = nome
         if desc or tags:

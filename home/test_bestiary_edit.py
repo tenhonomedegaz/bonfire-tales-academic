@@ -169,6 +169,42 @@ class ImportedBestiaryEditTests(TestCase):
         self.assertEqual(reaction['entries'], block['reactions'][0]['entries'])
         self.assertEqual(reaction['tags'], ['reaction:shield'])
 
+    def test_tag_review_preserves_multiple_imported_entries_and_rejects_text_rewrite(self):
+        block = deepcopy(self.original)
+        block['traits'][0]['entries'] = ['Primeira regra.', 'Segunda regra.']
+        self.creature.statblock_json = block
+        self.creature.save(update_fields=['statblock_json'])
+        form = self.form()
+        self.assertIn('Primeira regra. Segunda regra.', form['tracos'])
+        form['tracos'] += ' | mark{guard, duration:1round}'
+        self.assertEqual(self.client.post(self.url, form).status_code, 302)
+        self.creature.refresh_from_db()
+        trait = self.creature.statblock_json['traits'][0]
+        self.assertEqual(trait['entries'], ['Primeira regra.', 'Segunda regra.'])
+        self.assertEqual(trait['tags'], ['mark{guard, duration:1round}'])
+
+        changed = self.form()
+        changed['tracos'] = changed['tracos'].replace('Segunda regra.', 'Regra alterada.')
+        self.assertIn('e=estrutura', self.client.post(self.url, changed)['Location'])
+        self.creature.refresh_from_db()
+        self.assertEqual(self.creature.statblock_json['traits'][0], trait)
+
+    def test_tag_review_preserves_structured_imported_entries(self):
+        block = deepcopy(self.original)
+        block['traits'][0]['entries'] = [
+            'Regra inicial.', {'type': 'list', 'items': ['Opção um.', 'Opção dois.']},
+        ]
+        self.creature.statblock_json = block
+        self.creature.save(update_fields=['statblock_json'])
+        form = self.form()
+        form['tracos'] += ' | defesa:lenda'
+        self.assertEqual(self.client.post(self.url, form).status_code, 302)
+        self.creature.refresh_from_db()
+        trait = self.creature.statblock_json['traits'][0]
+        self.assertEqual(trait['entries'], block['traits'][0]['entries'])
+        self.assertEqual(trait['tags'], ['defesa:lenda'])
+        self.assertEqual(self.creature.statblock_json['actions'], block['actions'])
+
     def test_created_reaction_is_visible_and_malformed_feature_is_rejected(self):
         from .views import _statblock_display_full
 

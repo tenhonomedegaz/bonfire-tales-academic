@@ -22,6 +22,11 @@ def escape_feature_text(value):
     return str(value or '').replace('\\', '\\\\').replace('|', '\\|').replace('\n', '\\n')
 
 
+def editable_entries_text(entries):
+    """Text projection of imported entries shown by the single-line editor."""
+    return ' '.join(entry for entry in (entries or []) if isinstance(entry, str)).strip()
+
+
 def split_feature_line(line):
     """Split three editable columns while retaining literal pipes and newlines."""
     parts, current = [], []
@@ -163,10 +168,17 @@ def merge_statblock(original, before, submitted, parse_blocks):
                 old = previous[index]
                 if not isinstance(old, dict) or old.get('name') != feature['name']:
                     raise UnsafeBestiaryEdit('Reordenação ou renomeação de habilidade importada exige revisão específica.')
-                if any(not isinstance(entry, str) for entry in old.get('entries', [])):
+                old_entries = old.get('entries', [])
+                if not isinstance(old_entries, list):
                     raise UnsafeBestiaryEdit('Habilidade estruturada exige revisão específica.')
+                visible_text = editable_entries_text(old_entries)
+                same_text = feature['entries'] == ([visible_text] if visible_text else [])
+                if not same_text and (len(old_entries) > 1 or any(
+                        not isinstance(entry, str) for entry in old_entries)):
+                    raise UnsafeBestiaryEdit('Texto de habilidade estruturada exige revisão específica.')
                 item = deepcopy(old)
-                item['entries'] = feature['entries']
+                if not same_text:
+                    item['entries'] = feature['entries']
                 tag_key = 'tags_json' if 'tags_json' in item else 'tags'
                 if 'tags' in feature:
                     item[tag_key] = feature['tags']
