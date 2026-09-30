@@ -129,6 +129,18 @@ class StructuredDbApiTests(TestCase):
     def request_headers(self, secret, **extra):
         return {'HTTP_AUTHORIZATION': 'Bearer ' + secret, 'secure': True, **extra}
 
+    def test_session_reports_actual_scopes_without_secret(self):
+        key, secret = self.make_key(scopes=('read', 'publish'))
+        url = reverse('db_access_session')
+        self.assertEqual(self.client.get(url).status_code, 400)
+        response = self.client.get(url, **self.request_headers(secret))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['scopes'], ['publish', 'read'])
+        self.assertNotIn(secret, response.content.decode())
+        key.revoked_at = timezone.now()
+        key.save(update_fields=('revoked_at',))
+        self.assertEqual(self.client.get(url, **self.request_headers(secret)).status_code, 401)
+
     def test_https_scope_expiry_and_revocation_are_enforced(self):
         key, secret = self.make_key(scopes=('read',))
         url = reverse('db_access_schema')

@@ -5,7 +5,7 @@ from django.conf import settings
 import django.views.static
 from home.content_maintenance import content_maintenance
 from home.db_access_admin import api_key_console, api_key_revoke, api_key_rotate, api_keys
-from home.db_access_api import db_collection, db_object, db_operation, db_schema
+from home.db_access_api import db_collection, db_object, db_operation, db_schema, db_session
 
 urlpatterns = [
     path('admin/api-keys/manage/', api_key_console, name='managed_api_key_console'),
@@ -15,6 +15,7 @@ urlpatterns = [
     path('admin/content-maintenance/<slug:package_id>/', content_maintenance),
     path('admin/', admin.site.urls),
     path('api/db/v1/schema/', db_schema, name='db_access_schema'),
+    path('api/db/v1/session/', db_session, name='db_access_session'),
     path('api/db/v1/operations/<slug:handler_name>/', db_operation, name='db_access_operation'),
     path('api/db/v1/<slug:model_name>/', db_collection, name='db_access_collection'),
     path('api/db/v1/<slug:model_name>/<str:object_pk>/', db_object, name='db_access_object'),

@@ -104,6 +104,20 @@ def db_schema(request):
         return _problem(exc)
 
 
+@require_http_methods(['GET'])
+def db_session(request):
+    api_key = None
+    try:
+        api_key = authenticate(request, 'read')
+        audit(api_key, 'session', 200)
+        return _response({'connected': True, 'scopes': sorted(api_key.scopes),
+                          'expires_at': api_key.expires_at.isoformat() if api_key.expires_at else None})
+    except ApiProblem as exc:
+        if api_key:
+            audit(api_key, 'session', exc.status)
+        return _problem(exc)
+
+
 @csrf_exempt
 @require_http_methods(['GET', 'POST'])
 def db_collection(request, model_name):
