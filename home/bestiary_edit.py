@@ -4,9 +4,18 @@ from copy import deepcopy
 from hashlib import sha256
 import json
 
+from .tag_engine.parser import ParseError, split_tag_list
+
 
 class UnsafeBestiaryEdit(ValueError):
     pass
+
+
+def split_feature_tags(value):
+    try:
+        return split_tag_list(value)
+    except ParseError as exc:
+        raise UnsafeBestiaryEdit('Tag mecânica inválida.') from exc
 
 
 def escape_feature_text(value):

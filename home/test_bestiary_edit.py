@@ -65,6 +65,25 @@ class ImportedBestiaryEditTests(TestCase):
         self.assertEqual(self.creature.statblock_json['reactions'], self.original['reactions'])
         self.assertEqual(self.creature.statblock_json['spell_refs'], ['cura'])
 
+    def test_nested_tag_commas_survive_edit_and_invalid_tag_rolls_back(self):
+        form = self.form()
+        form['tracos'] = ('Resistência Lendária | Resiste. | '
+                          'mark{presa, duration:1minute}, defesa:lenda')
+        self.assertEqual(self.client.post(self.url, form).status_code, 302)
+        self.creature.refresh_from_db()
+        expected = ['mark{presa, duration:1minute}', 'defesa:lenda']
+        self.assertEqual(self.creature.statblock_json['traits'][0]['tags'], expected)
+        self.assertEqual(self.creature.statblock_json['traits'][0]['name_en'],
+                         'Legendary Resistance')
+        self.assertIn('mark{presa, duration:1minute}, defesa:lenda', self.form()['tracos'])
+
+        invalid = self.form()
+        invalid['tracos'] = 'Resistência Lendária | Resiste. | mark{presa, duration:1minute'
+        response = self.client.post(self.url, invalid)
+        self.assertIn('e=estrutura', response['Location'])
+        self.creature.refresh_from_db()
+        self.assertEqual(self.creature.statblock_json['traits'][0]['tags'], expected)
+
     def test_stale_form_and_renamed_imported_ability_do_not_write(self):
         form = self.form()
         self.creature.nome = 'Unicórnio alterado'
@@ -156,11 +175,13 @@ class ImportedBestiaryEditTests(TestCase):
         create_url = reverse('bestiario_criar')
         form = {'nome': 'Sentinela Nova', 'tipo': 'construto', 'tamanho': 'M',
                 'ca': '14', 'pv': '20', 'nd': '2',
-                'reacoes': 'Escudo | Reduz o dano. | reaction:shield'}
+                'reacoes': 'Escudo | Reduz o dano. | reaction:shield, mark{guard, duration:1round}'}
         response = self.client.post(create_url, form)
         self.assertEqual(response.status_code, 302)
         created = TbBestiario.objects.get(nome='Sentinela Nova')
         self.assertEqual(_statblock_display_full(created.statblock_json, created)['reactions'][0]['nome'], 'Escudo')
+        self.assertEqual(created.statblock_json['reaction'][0]['tags'],
+                         ['reaction:shield', 'mark{guard, duration:1round}'])
         form['nome'] = 'Sentinela Inválida'
         form['reacoes'] = 'Escudo | descrição | tag | extra'
         response = self.client.post(create_url, form)

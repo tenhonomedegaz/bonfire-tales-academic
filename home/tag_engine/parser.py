@@ -187,3 +187,15 @@ def parse_tags(tags):
         nodes.extend(program.nodes)
         source.append(program.source)
     return TagProgram(nodes=tuple(nodes), source="\n".join(source))
+
+
+def split_tag_list(text):
+    """Split editor input on top-level commas without breaking nested DSL values."""
+    text = str(text or '').strip()
+    if not text:
+        return []
+    parse_tag(text)
+    parts = [part.strip() for _start, _end, part in _split_top(text, separators=",")]
+    if not all(parts):
+        raise ParseError('Tag vazia entre separadores.')
+    return parts

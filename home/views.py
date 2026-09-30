@@ -13281,14 +13281,14 @@ def _parse_blocos(texto):
     """Textarea 'Nome | descrição | tag1, tag2' por linha → [{name, entries, tags}].
     O 3º campo são as tags_json MECÂNICAS daquela habilidade (guardadas no JSON da criatura)."""
     out = []
-    from .bestiary_edit import split_feature_line
+    from .bestiary_edit import split_feature_line, split_feature_tags
     for linha in (texto or '').splitlines():
         if not linha.strip():
             continue
         partes = split_feature_line(linha)
         item = {'name': partes[0], 'entries': [partes[1]] if len(partes) > 1 and partes[1] else []}
         if len(partes) > 2 and partes[2]:
-            tags = [t.strip() for t in partes[2].split(',') if t.strip()]
+            tags = split_feature_tags(partes[2])
             if tags:
                 item['tags'] = tags
         out.append(item)
