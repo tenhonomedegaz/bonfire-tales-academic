@@ -4629,7 +4629,11 @@ def _pick_suppressions(sources, clas=None):
     return out
 
 
-class HunterCreatorCatalogUnavailable(Exception):
+class ClassCreatorCatalogUnavailable(Exception):
+    pass
+
+
+class HunterCreatorCatalogUnavailable(ClassCreatorCatalogUnavailable):
     pass
 
 
@@ -4661,7 +4665,20 @@ def _criador_hunter_catalog_args():
 
 
 def _criador_public_resolution(data):
-    if data.get('classe') == 'cacador':
+    from .class_publication import published_catalog
+    from django.core.exceptions import ObjectDoesNotExist
+
+    slug = data.get('classe')
+    live = TbClasse.objects.filter(slug=slug).first() if isinstance(slug, str) else None
+    if live is not None:
+        try:
+            published = published_catalog(live)
+            if published is not None:
+                return _criador_resolver(data, ruleset=published[0], class_id=live.pk)
+        except (ObjectDoesNotExist, ValueError, KeyError, TypeError) as exc:
+            raise ClassCreatorCatalogUnavailable() from exc
+    # Compatibility for the legacy Hunter checksum until publication is bound.
+    if slug == 'cacador':
         args = _criador_hunter_catalog_args()
         if args:
             return _criador_resolver(data, ruleset=args['hunter_ruleset'],
@@ -10665,10 +10682,10 @@ def criar_personagem_preview_view(request):
     data = _json_body(request)
     try:
         R, _erros = _criador_public_resolution(data)
-    except HunterCreatorCatalogUnavailable:
-        logger.warning('Revisao publicada do Cacador indisponivel na previa.')
+    except ClassCreatorCatalogUnavailable:
+        logger.warning('Revisao publicada de classe indisponivel na previa.')
         return JsonResponse({'ok': False, 'ready': False,
-            'erros': ['A revisao do Cacador esta indisponivel. Tente novamente mais tarde.']}, status=503)
+            'erros': ['A revisao da classe esta indisponivel. Tente novamente mais tarde.']}, status=503)
     if not R['point_buy_ok']:
         return JsonResponse({'ok': True, 'ready': False, 'erros': _erros})
     if not (R['raca'] and R['classe'] and R['antec']):
@@ -10717,10 +10734,10 @@ def criar_personagem_view(request):
 
     try:
         R, erros = _criador_public_resolution(data)
-    except HunterCreatorCatalogUnavailable:
-        logger.warning('Revisao publicada do Cacador indisponivel na criacao.')
+    except ClassCreatorCatalogUnavailable:
+        logger.warning('Revisao publicada de classe indisponivel na criacao.')
         return JsonResponse({'ok': False,
-            'erros': ['A revisao do Cacador esta indisponivel. Tente novamente mais tarde.']}, status=503)
+            'erros': ['A revisao da classe esta indisponivel. Tente novamente mais tarde.']}, status=503)
     if erros:
         return JsonResponse({'ok': False, 'erros': erros}, status=400)
 
