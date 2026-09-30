@@ -1,6 +1,7 @@
 """Full catalog composition against the shipped fixture, without marker stubs."""
 import json
 from io import StringIO
+from unittest.mock import patch
 
 from django.core.management import call_command
 from django.test import override_settings
@@ -14,7 +15,8 @@ from .hunter_rework import catalog
 from .hunter_regularization import _reviewed_target
 from .character_engine import derive
 from .class_revision_editor import create_class_revision
-from .models import (TbClassPublication, TbClasse, TbClassehabilidade, TbRecursoclasse, TbSubclasse, TbPersonagem, TbPersonagemClasse,
+from .class_publication import publish_class
+from .models import (TbClassPublication, TbClassPublicationLog, TbClasse, TbClassehabilidade, TbRecursoclasse, TbSubclasse, TbPersonagem, TbPersonagemClasse,
                      TbPersonagemCacador)
 from .versioned_classes import EVALUATOR, VOCABULARY, VersionedClassCatalog, inventory_class
 from .views import _normalize_key
@@ -93,7 +95,16 @@ class HunterReleaseCatalogTests(_CriadorBase):
             {'model': 'home.tbrecursoclasse', 'action': 'update', 'pk': die.pk,
              'fields': {'valores_json': {'1': 'd6', '5': 'd8', '11': 'd10', '17': 'd12'}}},
         ], presentation_source='catalog')
-        TbClassPublication.objects.create(id_classe=hunter, ruleset=v2)
+        with patch('home.content_maintenance._local_postgres', return_value=True), \
+                patch('home.content_maintenance._protected_directory', return_value='safe'), \
+                patch('home.content_maintenance._fresh_backup', return_value='backup') as backup:
+            result = publish_class(hunter.pk, v2.checksum, 'unpublished')
+            replay = publish_class(hunter.pk, v2.checksum, v2.checksum)
+        self.assertTrue(result['published'])
+        self.assertTrue(replay['already_published'])
+        backup.assert_called_once()
+        self.assertEqual(TbClassPublication.objects.get(id_classe=hunter).ruleset_id, v2.pk)
+        self.assertEqual(TbClassPublicationLog.objects.filter(id_classe=hunter).count(), 1)
         from .views import _criador_hunter_catalog_args
         with override_settings(HUNTER_CREATOR_RULESET_CHECKSUM=target.checksum):
             self.assertEqual(_criador_hunter_catalog_args()['hunter_ruleset'].pk, v2.pk)
@@ -139,7 +150,6 @@ class HunterReleaseCatalogTests(_CriadorBase):
         # The protected status and real public route reject the same failed
         # frozen resolver without bypassing the immutable-revision DB trigger.
         from .hunter_publication_diagnostic import publication_status
-        from unittest.mock import patch
         with override_settings(HUNTER_CREATOR_RULESET_CHECKSUM=target.checksum), \
                 patch('home.class_publication.VersionedClassCatalog',
                       side_effect=ValueError('Frozen class unavailable')):
