@@ -82,6 +82,21 @@ class BestiaryCatalogClassificationTests(TestCase):
         self.assertEqual(creature.statblock_json['trait'][0]['tags_json'],
                          ['cast{spell:magia-secreta, at-will}'])
 
+    def test_preview_preserves_ability_paragraphs_and_escapes_content(self):
+        creature = TbBestiario.objects.create(
+            slug='conjurador-de-teste', nome='Conjurador de Teste',
+            statblock_json={'trait': [{
+                'name': 'Conjuracao',
+                'entries': ['Conjura as seguintes magias:\n\nÀ vontade: Luz\n\n1/dia: Escudo <script>alert(1)</script>'],
+            }]},
+        )
+        response = self.client.get(reverse('api_creature_preview'), {'slug': creature.slug})
+        self.assertEqual(response.status_code, 200)
+        html = response.json()['statblock_html']
+        self.assertIn('Conjura as seguintes magias:<br><br>À vontade: Luz<br><br>1/dia:', html)
+        self.assertIn('&lt;script&gt;alert(1)&lt;/script&gt;', html)
+        self.assertNotIn('<script>', html)
+
     def test_explicit_aliases_and_special_values(self):
         self.assertEqual(type_key('Besta (Dinossauro)'), 'besta')
         self.assertEqual(type_key('demonio'), 'corruptor')

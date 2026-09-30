@@ -14264,6 +14264,7 @@ def _render_creature_statblock(cr):
 
 
 def _render_creature_statblock_full(cr):
+    from django.template.defaultfilters import linebreaksbr
     from django.utils.html import escape as esc
     sb = cr.statblock_json if isinstance(cr.statblock_json, dict) else {}
     display = _statblock_display_full(sb, cr)
@@ -14323,7 +14324,7 @@ def _render_creature_statblock_full(cr):
         parts.append('<div class="bonfire-creature-section"><h4>%s</h4>' % esc(label))
         for block in blocks:
             parts.append('<div class="bonfire-creature-trait"><strong>%s.</strong> %s</div>' % (
-                esc(block.get('nome') or ''), esc(block.get('texto') or '')
+                esc(block.get('nome') or ''), linebreaksbr(block.get('texto') or '')
             ))
         parts.append('</div>')
 
