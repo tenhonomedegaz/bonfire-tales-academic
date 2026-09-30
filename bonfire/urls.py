@@ -3,8 +3,10 @@ from django.contrib import admin
 from django.urls import path, re_path, include
 from django.conf import settings
 import django.views.static
+from home.hunter_publication_api import hunter_publication_maintenance
 
 urlpatterns = [
+    path('admin/server-logs/hunter-publication-maintenance/', hunter_publication_maintenance),
     path('admin/', admin.site.urls),
     path('', include('home.urls')),
 ]
