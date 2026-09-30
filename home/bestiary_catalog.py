@@ -52,6 +52,7 @@ MULTI_TYPES = {
     'celestial ou corruptor (tit\ufffd)': ('celestial', 'corruptor'),
 }
 CR_PATTERN = re.compile(r'^\s*(\d+(?:/\d+)?)(?:\s*\(.*\))?\s*$')
+UNRATED_PATTERN = re.compile(r'^None(?:\s*\(.*\))?$', re.I)
 
 
 def _fold(value):
@@ -91,9 +92,11 @@ def size_keys(value):
 
 def cr_classification(value):
     """Return (filter key, numeric sort key, label); unknown CR is not zero."""
-    raw = str(value or '').strip()
+    raw = '' if value is None else str(value).strip()
     if not raw:
-        return None, float('inf'), ''
+        return 'pending', float('inf'), 'ND pendente'
+    if UNRATED_PATTERN.fullmatch(raw):
+        return 'unrated', float('inf'), 'Sem ND fixo'
     match = CR_PATTERN.fullmatch(raw)
     if not match:
         return 'raw:' + raw, float('inf'), raw
@@ -103,3 +106,10 @@ def cr_classification(value):
         return 'raw:' + raw, float('inf'), raw
     key = str(number.numerator) if number.denominator == 1 else str(number)
     return 'nd:' + key, float(number), key
+
+
+def cr_display(value):
+    """Display exceptional ND states without replacing the source field."""
+    raw = '' if value is None else str(value).strip()
+    key, _, label = cr_classification(raw)
+    return 'pendente' if key == 'pending' else label if key == 'unrated' else raw

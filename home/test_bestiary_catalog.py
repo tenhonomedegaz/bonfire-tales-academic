@@ -162,3 +162,37 @@ class BestiaryCatalogClassificationTests(TestCase):
         descending = self.client.get(url, {'ord': 'nd_desc'})
         self.assertEqual([c['slug'] for c in descending.context['criaturas']],
                          ['fiend-large', 'beast-multi', 'beast-small', 'variable'])
+
+    def test_missing_and_explicitly_unrated_nd_have_distinct_filters_and_cards(self):
+        for slug, nd in (
+            ('nd-ausente', None),
+            ('sem-nd-fixo', 'None (XP 0; PB equals your bonus)'),
+            ('nd-zero', '0 (XP 10)'),
+            ('nd-especial', 'Varies with summoner'),
+        ):
+            TbBestiario.objects.create(slug=slug, nome=slug, tipo='Besta',
+                                       tamanho='M', nd=nd, statblock_json={'cr': nd})
+        url = reverse('bestiario')
+        for key, expected, label in (
+            ('pending', 'nd-ausente', 'ND pendente'),
+            ('unrated', 'sem-nd-fixo', 'Sem ND fixo'),
+            ('nd:0', 'nd-zero', 'ND 0'),
+            ('raw:Varies with summoner', 'nd-especial', 'ND Varies with summoner'),
+        ):
+            response = self.client.get(url, {'nd': key})
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual([item['slug'] for item in response.context['criaturas']], [expected])
+            self.assertIn((key, label), response.context['nds'])
+            self.assertIn('id="bz-count">1</span> de 1 criatura(s)', response.content.decode())
+        self.assertEqual(cr_classification(None)[0], 'pending')
+        self.assertEqual(cr_classification('None (XP 0; PB equals your bonus)')[0], 'unrated')
+        self.assertEqual(cr_classification(0)[:2], ('nd:0', 0.0))
+        from .views import _statblock_display_full
+        self.assertEqual(_statblock_display_full({'cr': 0})['cr'], '0')
+        for slug, label in (('nd-ausente', 'pendente'), ('sem-nd-fixo', 'Sem ND fixo')):
+            preview = self.client.get(reverse('api_creature_preview'), {'slug': slug})
+            self.assertEqual(preview.status_code, 200)
+            self.assertIn(label, preview.json()['statblock_html'])
+        self.assertIsNone(TbBestiario.objects.get(slug='nd-ausente').nd)
+        self.assertEqual(TbBestiario.objects.get(slug='sem-nd-fixo').nd,
+                         'None (XP 0; PB equals your bonus)')

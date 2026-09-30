@@ -13041,7 +13041,11 @@ def _sb_bloco(lista):
 
 def _statblock_display(sb, criatura=None):
     """Normaliza o statblock 5etools num dict pronto p/ o card. Degrada com graça."""
+    from .bestiary_catalog import cr_display
     sb = sb or {}
+    cr_value = sb.get('cr')
+    if cr_value is None or cr_value == '':
+        cr_value = getattr(criatura, 'nd', None)
     tam = sb.get('size')
     tam = _SB_TAM.get(tam[0] if isinstance(tam, list) and tam else tam, '') if tam else ''
     tp = sb.get('type')
@@ -13100,7 +13104,7 @@ def _statblock_display(sb, criatura=None):
         'idiomas': _join(sb.get('languages')), 'resist': _join(sb.get('resist')),
         'immune': _join(sb.get('immune')), 'vuln': _join(sb.get('vulnerable')),
         'cond_immune': _join(sb.get('conditionImmune')),
-        'cr': str(sb.get('cr')) if sb.get('cr') else (getattr(criatura, 'nd', '') or ''),
+        'cr': cr_display(cr_value),
         'traits': _sb_bloco(sb.get('trait')), 'actions': _sb_bloco(sb.get('action')),
         'bonus': _sb_bloco(sb.get('bonus')), 'reactions': _sb_bloco(sb.get('reaction')),
         'legendary': _sb_bloco(sb.get('legendary')),
@@ -13170,7 +13174,7 @@ def bestiario_view(request):
 
     from django.core.paginator import Paginator
     from .models import TbBestiario
-    from .bestiary_catalog import (TYPE_LABELS, SIZE_LABELS, cr_classification,
+    from .bestiary_catalog import (TYPE_LABELS, SIZE_LABELS, cr_classification, cr_display,
                                    size_keys, type_key, type_keys)
     from . import permissions as perms
     filtro = request.GET.get('f', '')
@@ -13182,7 +13186,7 @@ def bestiario_view(request):
         char for char in unicodedata.normalize('NFKD', busca.casefold())
         if not unicodedata.combining(char)
     )
-    if nd_sel and not nd_sel.startswith(('nd:', 'raw:')):
+    if nd_sel and nd_sel not in ('pending', 'unrated') and not nd_sel.startswith(('nd:', 'raw:')):
         nd_sel = cr_classification(nd_sel)[0] or nd_sel
     if tipo_sel and tipo_sel != 'pending' and tipo_sel not in TYPE_LABELS:
         tipo_sel = type_key(tipo_sel) or tipo_sel
@@ -13199,8 +13203,13 @@ def bestiario_view(request):
     for _, _, _, (key, number, label) in indexed:
         if key:
             nd_options[key] = (number, label)
-    nds_all = [(key, label) for key, (number, label) in sorted(
-        nd_options.items(), key=lambda item: (item[1][0], item[1][1]))]
+    nds_all = []
+    for key, (_, label) in sorted(nd_options.items(), key=lambda item: (item[1][0], item[1][1])):
+        if key == 'pending':
+            label = 'ND pendente'
+        elif key != 'unrated':
+            label = 'ND ' + label
+        nds_all.append((key, label))
     type_values = {kind for _, kinds, _, _ in indexed for kind in (kinds or ('pending',))}
     tipos_all = [(kind, TYPE_LABELS.get(kind, 'Classificação pendente'))
                  for kind in sorted(type_values, key=lambda key: TYPE_LABELS.get(key, 'ZZZ'))]
@@ -13231,7 +13240,7 @@ def bestiario_view(request):
             continue
         criaturas.append({
             'id': b.id_criatura, 'nome': b.nome, 'slug': b.slug,
-            'tipo': _sb_tipo_pt(b.tipo), 'nd': b.nd or '',
+            'tipo': _sb_tipo_pt(b.tipo), 'nd': cr_display(b.nd), 'nd_key': nd_key,
             'tamanho': _sb_size_text(b.statblock_json if isinstance(b.statblock_json, dict) else {}, b),
             'comunidade': b.comunidade, 'autor': b.autor.username if b.autor_id else None,
             'imagem': b.imagem_url or '',

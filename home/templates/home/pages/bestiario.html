@@ -85,7 +85,7 @@
       </select>
       <select name="nd" onchange="this.form.submit()" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-1.5 text-sm text-[var(--text)]">
         <option value="">ND todos</option>
-        {% for key, label in nds %}<option value="{{ key }}" {% if key == nd_sel %}selected{% endif %}>ND {{ label }}</option>{% endfor %}
+        {% for key, label in nds %}<option value="{{ key }}" {% if key == nd_sel %}selected{% endif %}>{{ label }}</option>{% endfor %}
       </select>
       <select name="tipo" onchange="this.form.submit()" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-1.5 text-sm text-[var(--text)]">
         <option value="">Tipo todos</option>
@@ -124,7 +124,7 @@
         <div class="flex items-start justify-between gap-2">
           <div>
             <div class="font-serif text-sm font-bold">{{ c.nome }}</div>
-            <div class="mt-1 text-[11px] uppercase tracking-wide text-[var(--muted)]">{{ c.tamanho }} {{ c.tipo }}{% if c.nd %} · ND {{ c.nd }}{% endif %}</div>
+            <div class="mt-1 text-[11px] uppercase tracking-wide text-[var(--muted)]">{{ c.tamanho }} {{ c.tipo }} · {% if c.nd_key == 'unrated' %}{{ c.nd }}{% else %}ND {{ c.nd }}{% endif %}</div>
           </div>
           <div class="flex shrink-0 flex-col items-end gap-1">
             {% if c.comunidade %}<span class="monster-pill">comunidade</span>{% endif %}
