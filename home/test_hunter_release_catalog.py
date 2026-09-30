@@ -1,7 +1,6 @@
 """Full catalog composition against the shipped fixture, without marker stubs."""
 import json
 from io import StringIO
-from pathlib import Path
 
 from django.core.management import call_command
 from django.test import override_settings
@@ -75,25 +74,6 @@ class HunterReleaseCatalogTests(_CriadorBase):
                 cell = detail.context['progression_table'][level - 1]['cells'][die_index]
                 self.assertIn(die, str(cell['valor']))
             self.assertIn('Ordem do Ca', str(detail.context['progression_table'][2]['cells']))
-            sections = detail.context['habilidade_sections']
-            published_rows = json.loads((Path(__file__).parent /
-                                         'rules/hunter_content.json').read_text(encoding='utf-8'))
-            card_texts = {(row['habilidade'].niveladquirido, row['habilidade'].descricao)
-                          for row in sections}
-            for feature in published_rows['features']:
-                if _normalize_key(feature['name']) == 'aprimoramento_de_atributo_ou_talento':
-                    continue  # Shared ASI card follows the other classes.
-                self.assertIn((feature['level'], feature['text']), card_texts, feature['id'])
-            mark = next(row for row in sections if row['habilidade'].nome == 'Marca do Caçador')
-            self.assertIn('#### Marcar o Alvo', mark['display_description'])
-            order = next(row for row in sections if row['habilidade'].nome == 'Ordem do Caçador')
-            self.assertEqual(order['display_description'].count('(?subclasse='), 8)
-            self.assertIn('Incremento de Atributo ou Talento',
-                          str(detail.context['progression_table'][3]['cells']))
-            self.assertContains(detail, 'Nivel 4: Aprimoramento de Atributo ou Talento')
-            warrior = self.client.get(reverse('classe_detail', args=['guerreiro']))
-            self.assertContains(warrior, 'Nivel 4: Aprimoramento de Atributo ou Talento')
-            self.assertContains(detail, 'data-markdown')
             ajax = self.client.get(detail_url + '?ajax=1&subclasse=' + old_order.slug,
                                    HTTP_X_REQUESTED_WITH='XMLHttpRequest')
             self.assertEqual(ajax.status_code, 200)

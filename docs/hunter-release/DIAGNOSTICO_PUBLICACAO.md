@@ -20,14 +20,3 @@ Depois, abra `/jogador/classes/cacador/` e confira d6 no nivel 1, progressao
 level-up, ficha nova e fichas antigas. O diagnostico local contra o backup de
 29/09/2026 respondeu 200 com o checksum final e 503 com checksum vazio; isso
 nao confirma a configuracao nem o QA do alpha remoto.
-
-## Apresentacao dos cards
-
-A correcao visual usa `home/rules/hunter_display.json` junto ao codigo da pagina.
-Publique ambos na mesma atualizacao do site e reinicie o processo web. Nao e
-necessario repetir o restore, migrar o banco ou trocar
-`HUNTER_CREATOR_RULESET_CHECKSUM`: a revisao publicada e as fichas permanecem
-inalteradas. Na pagina, confira paragrafos, subtitulos e listas dos cards,
-os cinco cards explicativos de Ordem/Habilidade da Ordem, o marcador de
-atributo na tabela e cada link das oito Ordens. Repita a verificacao em desktop
-e em largura movel; o diagnostico `code=ok` nao valida esses aspectos visuais.

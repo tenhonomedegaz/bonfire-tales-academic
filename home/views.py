@@ -1990,9 +1990,6 @@ def _postgres_classe_detail_view(request, slug):
                 F('id_subclasse_id').asc(nulls_first=True), 'id_recurso'))
     selected_subclass_slug = request.GET.get('subclasse', '')
     habilidades = [item for item in base_habilidades_qs if not item.table_only]
-    if published_hunter:
-        from .hunter_display import explanatory_cards
-        habilidades.extend(explanatory_cards(item.descricao for item in habilidades))
     subclass_habilidades = [item for item in subclass_habilidades_qs if not item.table_only]
     habilidade_sections = sorted(
         [
@@ -2020,15 +2017,6 @@ def _postgres_classe_detail_view(request, slug):
             item['habilidade'].nome,
         )
     )
-    if published_hunter:
-        import hashlib
-        from .hunter_display import display_descriptions
-
-        display_by_text = display_descriptions()
-        for item in habilidade_sections:
-            description = item['habilidade'].descricao or ''
-            digest = hashlib.sha256(description.encode('utf-8')).hexdigest()
-            item['display_description'] = display_by_text.get(digest, description)
     class_traits = [
         ('Atributo Principal', classe.atributo_principal),
         ('Dado de Vida', classe.dado_vida),
@@ -2124,13 +2112,8 @@ def _postgres_classe_detail_view(request, slug):
 
     def render_habilidades_nivel(nivel):
         if published_hunter:
-            source_names = [name.strip() for name in hunter_progression[nivel]['features'].split(',')
-                            if name.strip()]
-            names = [name for name in source_names if not _eh_feature_asi(name)]
-            if any(_eh_feature_asi(name) for name in source_names):
-                names.append('Incremento de Atributo ou Talento')
-            partes = [format_html('<span class="block text-[var(--text)]">{}</span>', name)
-                      for name in names]
+            partes = [format_html('<span class="block text-[var(--text)]">{}</span>', name.strip())
+                      for name in hunter_progression[nivel]['features'].split(',') if name.strip()]
             partes.extend(format_html(
                 '<span class="hidden subclass-feature text-[var(--spark)] font-bold" data-subclass-slug="{}">{}</span>',
                 item.id_subclasse.slug, item.nome,
