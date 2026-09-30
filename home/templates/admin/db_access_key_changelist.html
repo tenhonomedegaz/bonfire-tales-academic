@@ -1,0 +1,6 @@
+{% extends "admin/change_list.html" %}
+{% load i18n %}
+{% block object-tools-items %}
+  <li><a href="{% url 'managed_api_key_console' %}">Gerenciar chaves de API</a></li>
+  {{ block.super }}
+{% endblock %}

@@ -1969,6 +1969,7 @@ def _postgres_classe_detail_view(request, slug):
         hunter_progression = published['progression']
         hunter_die_resource_id = published['hunter_die_resource_id']
         classe = published['class']
+        legacy_hunter_presentation = catalog.presentation_source != 'catalog'
         all_classes = [classe if item.pk == classe.pk else item for item in all_classes]
         subclasses = sorted(orders.values(), key=lambda item: item.nome)
         base_habilidades_qs = [item for item in catalog.collections[TbClassehabilidade]
@@ -1978,6 +1979,7 @@ def _postgres_classe_detail_view(request, slug):
         recursos = [item for item in catalog.collections[TbRecursoclasse]
                     if item.id_subclasse_id is None or item.id_subclasse_id in orders]
     else:
+        legacy_hunter_presentation = False
         classe = live_class
         subclasses = list(TbSubclasse.objects.filter(id_classe=classe).order_by('nome'))
         base_habilidades_qs = list(TbClassehabilidade.objects.filter(
@@ -2100,6 +2102,10 @@ def _postgres_classe_detail_view(request, slug):
     # (explicação na wiki), mas saem da coluna da tabela (detectadas pelo nome)
     # para não duplicar o marcador injetado.
     asi_levels = _tag_levels(classe.tags_json, 'asi-choices')
+    asi_names = {
+        h.niveladquirido: h.nome for h in base_habilidades_qs
+        if not h.table_only and _eh_feature_asi(h.nome)
+    }
 
     habilidades_para_tabela = [h for h in base_habilidades_qs if not _eh_feature_asi(h.nome)]
     habilidades_para_tabela.extend(
@@ -2111,7 +2117,7 @@ def _postgres_classe_detail_view(request, slug):
         habilidades_por_nivel.setdefault(habilidade.niveladquirido, []).append(habilidade)
 
     def render_habilidades_nivel(nivel):
-        if published_hunter:
+        if legacy_hunter_presentation:
             partes = [format_html('<span class="block text-[var(--text)]">{}</span>', name.strip())
                       for name in hunter_progression[nivel]['features'].split(',') if name.strip()]
             partes.extend(format_html(
@@ -2131,7 +2137,8 @@ def _postgres_classe_detail_view(request, slug):
         ]
         if nivel in asi_levels:
             partes.append(format_html(
-                '<span class="block text-[var(--text)]">{}</span>', 'Incremento de Atributo ou Talento'
+                '<span class="block text-[var(--text)]">{}</span>',
+                asi_names.get(nivel, 'Incremento de Atributo ou Talento'),
             ))
         if not partes:
             return '-'
@@ -2146,7 +2153,7 @@ def _postgres_classe_detail_view(request, slug):
         subclass_recs_nivel = {}
         for recurso in base_recursos:
             valor = (hunter_progression[nivel]['hunter_die']
-                     if published_hunter and recurso.pk == hunter_die_resource_id
+                     if legacy_hunter_presentation and recurso.pk == hunter_die_resource_id
                      else _valor_recurso_no_nivel(recurso, nivel))
             if valor is not None:
                 recs_nivel.setdefault(recurso.nome, valor)

@@ -172,6 +172,8 @@ flowchart LR
 
 Personagens antigos continuam legíveis na versão anterior. O jogador vê o que muda e regulariza as escolhas afetadas; uma política de prazo para regularização pode ser configurada depois. A eventual restrição a novos level-ups deve ser explícita e não bloquear a leitura da ficha.
 
+Classes e subclasses compartilham o mesmo contrato de publicação e apresentação: textos estruturados ficam no Markdown dos registros, cards e referências nas relações e tags do catálogo, progressão e recursos nos dados versionados. A página e o motor interpretam esses contratos sem ramos por slug ou nomes de habilidade. Uma revisão nova é criada por operações estruturadas no banco/admin/API, com prévia, validação, auditoria e ativação separada; revisões publicadas e fichas vinculadas permanecem imutáveis. Código novo só amplia uma capacidade comum demonstrada em mais de uma classe. Scripts de conteúdo específicos de classe não são o produto final de publicação; migrações de schema são uma operação distinta.
+
 Regularização ordinária preserva dono, identidade do personagem, aventuras, inventário, moedas, concessões e personalização. PV máximo, usos máximos e magias são recalculados; o consumo atual é conciliado por regra documentada para impedir cura, reposição ou ganho de recursos por alternar versões.
 
 Reset completo é outro fluxo: pedido à staff e prévia do que será reconstruído. Não tratar reset como apagar personagem e criar outro, pois isso perderia vínculos e poderia duplicar conquistas. A política de mudança de classe/raça e de patrimônio preservado deve ficar no tipo de reset, com auditoria.

@@ -13,9 +13,10 @@ from .hunter_catalog import compose_choice_revision, compose_order_revision
 from .hunter_rework import catalog
 from .hunter_regularization import _reviewed_target
 from .character_engine import derive
-from .models import (TbClasse, TbSubclasse, TbPersonagem, TbPersonagemClasse,
+from .class_revision_editor import create_class_revision
+from .models import (TbClasse, TbClassehabilidade, TbRecursoclasse, TbSubclasse, TbPersonagem, TbPersonagemClasse,
                      TbPersonagemCacador)
-from .versioned_classes import EVALUATOR, VOCABULARY, inventory_class
+from .versioned_classes import EVALUATOR, VOCABULARY, VersionedClassCatalog, inventory_class
 from .views import _normalize_key
 
 
@@ -78,6 +79,31 @@ class HunterReleaseCatalogTests(_CriadorBase):
                                    HTTP_X_REQUESTED_WITH='XMLHttpRequest')
             self.assertEqual(ajax.status_code, 200)
             self.assertEqual({sub.pk for sub in ajax.context['subclasses']}, set(orders.values()))
+        # A new publication reads the same class rows as every other class.
+        # The older publication above remains usable while the new revision is
+        # reviewed and activated separately.
+        marker = TbClassehabilidade.objects.create(id_classe=hunter,
+            nome='Ordem do Caçador', niveladquirido=3,
+            descricao='## Ordem do Caçador\n\n**Escolha** sua Ordem.')
+        frozen = VersionedClassCatalog(target, hunter.pk)
+        die = next(row for row in frozen.collections[TbRecursoclasse]
+                   if row.id_subclasse_id is None and row.nome.startswith('Dado de'))
+        v2 = create_class_revision(target.checksum, hunter.pk, [
+            {'model': 'home.tbclassehabilidade', 'action': 'add', 'pk': marker.pk},
+            {'model': 'home.tbrecursoclasse', 'action': 'update', 'pk': die.pk,
+             'fields': {'valores_json': {'1': 'd6', '5': 'd8', '11': 'd10', '17': 'd12'}}},
+        ], presentation_source='catalog')
+        with override_settings(HUNTER_CREATOR_RULESET_CHECKSUM=v2.checksum):
+            revised = self.client.get(detail_url)
+            self.assertEqual(revised.status_code, 200)
+            cells = revised.context['progression_table'][2]['cells']
+            feature_cell = next(cell for cell in cells if cell['col']['is_feature'])
+            self.assertIn('Ordem do Caçador', str(feature_cell['valor']))
+            self.assertIn('Companheiro Primordial', str(feature_cell['valor']))
+            self.assertEqual(revised.context['progression_table'][0]['cells'][die_index]['valor'],
+                             '<span class="block">d6</span>')
+            self.assertEqual(self.client.get(reverse('classe_detail', args=['guerreiro'])).status_code,
+                             200)
         pc.refresh_from_db()
         self.assertEqual((pc.id_subclasse_id, pc.nivel), (old_order.pk, 3))
         self.assertFalse(TbPersonagemCacador.objects.filter(personagem_classe=pc).exists())

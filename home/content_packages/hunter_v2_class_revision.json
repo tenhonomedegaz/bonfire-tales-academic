@@ -1,0 +1,235 @@
+{
+  "base_version": "ed230c319a8959a78cce978a1e72d11281f9f03bbe49b4c3f0e0158eb2a6e0a2",
+  "class_id": 4,
+  "presentation_source": "catalog",
+  "changes": [
+    {
+      "model": "home.tbclassehabilidade",
+      "action": "remove",
+      "pk": 1023
+    },
+    {
+      "model": "home.tbclassehabilidade",
+      "action": "remove",
+      "pk": 1024
+    },
+    {
+      "model": "home.tbclassehabilidade",
+      "action": "remove",
+      "pk": 1025
+    },
+    {
+      "model": "home.tbclassehabilidade",
+      "action": "remove",
+      "pk": 1026
+    },
+    {
+      "model": "home.tbclassehabilidade",
+      "action": "remove",
+      "pk": 1027
+    },
+    {
+      "model": "home.tbclassehabilidade",
+      "action": "remove",
+      "pk": 1028
+    },
+    {
+      "model": "home.tbclassehabilidade",
+      "action": "remove",
+      "pk": 1029
+    },
+    {
+      "model": "home.tbclassehabilidade",
+      "action": "remove",
+      "pk": 1030
+    },
+    {
+      "model": "home.tbclassehabilidade",
+      "action": "remove",
+      "pk": 1031
+    },
+    {
+      "model": "home.tbclassehabilidade",
+      "action": "remove",
+      "pk": 1032
+    },
+    {
+      "model": "home.tbclassehabilidade",
+      "action": "remove",
+      "pk": 1033
+    },
+    {
+      "model": "home.tbclassehabilidade",
+      "action": "remove",
+      "pk": 1034
+    },
+    {
+      "model": "home.tbclassehabilidade",
+      "action": "remove",
+      "pk": 1039
+    },
+    {
+      "model": "home.tbclassehabilidade",
+      "action": "remove",
+      "pk": 1040
+    },
+    {
+      "model": "home.tbclassehabilidade",
+      "action": "remove",
+      "pk": 1041
+    },
+    {
+      "model": "home.tbclassehabilidade",
+      "action": "remove",
+      "pk": 1042
+    },
+    {
+      "model": "home.tbclassehabilidade",
+      "action": "remove",
+      "pk": 1043
+    },
+    {
+      "model": "home.tbclassehabilidade",
+      "action": "remove",
+      "pk": 1044
+    },
+    {
+      "model": "home.tbclassehabilidade",
+      "action": "remove",
+      "pk": 1049
+    },
+    {
+      "model": "home.tbclassehabilidade",
+      "action": "remove",
+      "pk": 1050
+    },
+    {
+      "model": "home.tbclassehabilidade",
+      "action": "remove",
+      "pk": 1051
+    },
+    {
+      "model": "home.tbclassehabilidade",
+      "action": "remove",
+      "pk": 1052
+    },
+    {
+      "model": "home.tbclassehabilidade",
+      "action": "remove",
+      "pk": 1053
+    },
+    {
+      "model": "home.tbclassehabilidade",
+      "action": "remove",
+      "pk": 1054
+    },
+    {
+      "model": "home.tbclassehabilidade",
+      "action": "remove",
+      "pk": 1059
+    },
+    {
+      "model": "home.tbclassehabilidade",
+      "action": "remove",
+      "pk": 1060
+    },
+    {
+      "model": "home.tbclassehabilidade",
+      "action": "remove",
+      "pk": 1061
+    },
+    {
+      "model": "home.tbclassehabilidade",
+      "action": "remove",
+      "pk": 1062
+    },
+    {
+      "model": "home.tbclassehabilidade",
+      "action": "remove",
+      "pk": 1063
+    },
+    {
+      "model": "home.tbclassehabilidade",
+      "action": "remove",
+      "pk": 1064
+    },
+    {
+      "model": "home.tbclassehabilidade",
+      "action": "remove",
+      "pk": 1065
+    },
+    {
+      "model": "home.tbclassehabilidade",
+      "action": "remove",
+      "pk": 1070
+    },
+    {
+      "model": "home.tbclassehabilidade",
+      "action": "remove",
+      "pk": 1071
+    },
+    {
+      "model": "home.tbclassehabilidade",
+      "action": "remove",
+      "pk": 1072
+    },
+    {
+      "model": "home.tbclassehabilidade",
+      "action": "remove",
+      "pk": 1073
+    },
+    {
+      "model": "home.tbclassehabilidade",
+      "action": "remove",
+      "pk": 1074
+    },
+    {
+      "model": "home.tbclassehabilidade",
+      "action": "remove",
+      "pk": 1075
+    },
+    {
+      "model": "home.tbsubclasse",
+      "action": "remove",
+      "pk": 21
+    },
+    {
+      "model": "home.tbsubclasse",
+      "action": "remove",
+      "pk": 112
+    },
+    {
+      "model": "home.tbsubclasse",
+      "action": "remove",
+      "pk": 115
+    },
+    {
+      "model": "home.tbsubclasse",
+      "action": "remove",
+      "pk": 116
+    },
+    {
+      "model": "home.tbsubclasse",
+      "action": "remove",
+      "pk": 117
+    },
+    {
+      "model": "home.tbsubclasse",
+      "action": "remove",
+      "pk": 118
+    },
+    {
+      "model": "home.tbrecursoclasse",
+      "action": "update",
+      "pk": 2732,
+      "fields": {
+        "valores_json": {
+          "1": "d6",
+          "5": "d8",
+          "11": "d10",
+          "17": "d12"
+        }
+      }
+    }
+  ]
+}

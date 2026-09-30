@@ -44,6 +44,9 @@ class VersionedClassCatalog:
                                   evaluator_version=EVALUATOR, vocabulary_version=VOCABULARY)
         if payload.get('schema') != 1 or payload.get('class_id') != class_id:
             raise ValueError('Invalid class snapshot.')
+        self.presentation_source = payload.get('presentation_source')
+        if self.presentation_source not in (None, 'catalog'):
+            raise ValueError('Unsupported class presentation source.')
         self.collections = {}
         for model in MODELS:
             rows = payload['collections'][model._meta.label_lower]

@@ -4177,3 +4177,50 @@ def _admin_superuser_only(request):
 # Assinatura sem self de proposito: o atributo de instancia sombreia o metodo
 # bound de AdminSite, entao a funcao e chamada so com (request).
 admin.site.has_permission = _admin_superuser_only
+
+
+# Metadados das chaves e auditoria. Criacao, rotacao e revogacao passam pelos
+# endpoints superuser-only em /admin/api-keys/; hashes nunca sao exibidos.
+from .db_access_models import DbAccessAudit, ManagedApiKey
+
+
+@admin.register(ManagedApiKey)
+class ManagedApiKeyAdmin(admin.ModelAdmin):
+    change_list_template = 'admin/db_access_key_changelist.html'
+    list_display = ('name', 'prefix', 'scopes', 'expires_at', 'revoked_at',
+                    'created_at', 'last_used_at')
+    list_filter = ('created_at', 'expires_at', 'revoked_at')
+    search_fields = ('name', 'prefix')
+    readonly_fields = ('id', 'name', 'prefix', 'scopes', 'expires_at', 'revoked_at',
+                       'created_by', 'created_at', 'last_used_at', 'rotated_from',
+                       'rate_window_started', 'rate_count')
+    exclude = ('secret_hash',)
+    actions = None
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(DbAccessAudit)
+class DbAccessAuditAdmin(admin.ModelAdmin):
+    list_display = ('occurred_at', 'api_key', 'action', 'model_label',
+                    'object_pk', 'status_code', 'field_names')
+    list_filter = ('action', 'model_label', 'status_code', 'occurred_at')
+    readonly_fields = ('api_key', 'action', 'model_label', 'object_pk',
+                       'status_code', 'field_names', 'occurred_at')
+    actions = None
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
