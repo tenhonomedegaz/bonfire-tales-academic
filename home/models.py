@@ -1463,6 +1463,8 @@ class TbPersonagemClasse(models.Model):
     id_personagem = models.ForeignKey('TbPersonagem', models.CASCADE, db_column='Id_Personagem', related_name='classes')
     id_classe = models.ForeignKey('TbClasse', models.PROTECT, db_column='Id_Classe')
     id_subclasse = models.ForeignKey('TbSubclasse', models.SET_NULL, db_column='Id_Subclasse', blank=True, null=True)
+    ruleset = models.ForeignKey(TbRuleset, models.PROTECT, db_column='Id_Ruleset',
+                                blank=True, null=True, related_name='character_classes')
     nivel = models.IntegerField(db_column='Nivel', default=1)
     principal = models.BooleanField(db_column='Principal', default=False, help_text='Classe inicial (define dado de vida base, etc.).')
 

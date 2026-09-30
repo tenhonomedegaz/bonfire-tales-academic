@@ -7,7 +7,7 @@ from . import views
 from .class_revision_editor import create_class_revision
 from .class_publication import ClassPublicationConflict, publication_preview, publish_class
 from .db_access_models import ManagedApiKey
-from .models import TbClassPublication, TbClassPublicationLog, TbClasse, TbClassehabilidade
+from .models import TbClassPublication, TbClassPublicationLog, TbClasse, TbClassehabilidade, TbPersonagem
 from .test_criador import _CriadorBase
 from .test_creator_pinned_catalog import CreatorPinnedCatalogTests
 from .versioned_classes import seal_class_snapshot
@@ -58,6 +58,12 @@ class ClassPublicationTests(_CriadorBase):
 
     def test_other_published_class_drives_creator_preview_and_creation(self):
         classe = TbClasse.objects.get(slug='guerreiro')
+        legacy_payload = self._payload('guerreiro')
+        legacy_user = self._novo_usuario('legacy-warrior')
+        legacy = self._post_criar(legacy_user, legacy_payload)
+        self.assertEqual(legacy.status_code, 200, legacy.content[:300])
+        legacy_person = TbPersonagem.objects.get(pk=legacy.json()['id'])
+        self.assertIsNone(legacy_person.classes.get().ruleset_id)
         base = CreatorPinnedCatalogTests.seal(self, classe)
         feature = TbClassehabilidade.objects.filter(
             id_classe=classe, id_subclasse__isnull=True).first()
@@ -85,6 +91,18 @@ class ClassPublicationTests(_CriadorBase):
         self.assertTrue(preview.json()['ready'], preview.content[:300])
         created = self._post_criar(user, payload)
         self.assertEqual(created.status_code, 200, created.content[:300])
+        person = TbPersonagem.objects.get(pk=created.json()['id'])
+        self.assertEqual(person.classes.get().ruleset_id, target.pk)
+        TbClassehabilidade.objects.filter(pk=feature.pk).update(descricao='Texto vivo alterado.')
+        sheet = self.client.get(reverse('ficha_detail', args=[person.pk]))
+        self.assertEqual(sheet.status_code, 200, sheet.content[:300])
+        descriptions = [row['descricao'] for row in sheet.context['ficha']['features']]
+        self.assertIn('## Guerreiro publicado\n\n**Texto** revisado.', descriptions)
+        self.assertNotIn('Texto vivo alterado.', descriptions)
+        self.client.force_login(legacy_user)
+        legacy_sheet = self.client.get(reverse('ficha_detail', args=[legacy_person.pk]))
+        self.assertEqual(legacy_sheet.status_code, 200, legacy_sheet.content[:300])
+        self.assertIsNone(legacy_person.classes.get().ruleset_id)
 
     def test_incomplete_published_class_fails_closed_in_creator(self):
         classe, _, target = self._target()

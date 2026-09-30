@@ -5898,9 +5898,11 @@ def _personagem_classe_contexto(personagem, classe_id=None):
 
 
 def _hunter_ruleset_for_class(pc):
-    """Only an explicit Hunter binding selects revised level-up content."""
+    """Only an explicit character binding selects revised level-up content."""
     if not pc:
         return None
+    if pc.ruleset_id:
+        return pc.ruleset
     from .models import TbPersonagemCacador
     profile = TbPersonagemCacador.objects.select_related('ruleset').filter(
         personagem_classe=pc).first()
@@ -9025,11 +9027,13 @@ def _redirect_next_or(request, fallback_url):
 
 def _resource_ruleset(p):
     from .models import TbPersonagemCacador
+    bindings = list(p.classes.exclude(ruleset__isnull=True).select_related('ruleset'))
     profiles = list(TbPersonagemCacador.objects.filter(
         personagem_classe__id_personagem=p).select_related('ruleset'))
-    if len({profile.ruleset_id for profile in profiles}) > 1:
+    revisions = {row.ruleset_id for row in bindings} | {profile.ruleset_id for profile in profiles}
+    if len(revisions) > 1:
         raise ValueError('Conflicting linked revisions.')
-    return profiles[0].ruleset if profiles else None
+    return bindings[0].ruleset if bindings else (profiles[0].ruleset if profiles else None)
 
 
 def _recursos_ajax_payload(p):
@@ -9482,9 +9486,13 @@ def ficha_detail_view(request, pk):
         pk=pk)
     if not perms.pode_ver_ficha(request.user, p):
         raise Http404()
+    try:
+        ruleset = _resource_ruleset(p)
+        ficha = derive(p, ruleset=ruleset)
+    except (ValueError, KeyError, TypeError):
+        return HttpResponse('A revisao vinculada da ficha esta indisponivel.', status=409)
     from .market_services import sync_training
     sync_training(p)
-    ficha = derive(p)
     is_staff = perms.is_staff_user(request.user)
     raca_linha = _raca_linha_ficha(p)
     # Aventuras necessárias para o PRÓXIMO nível (Excel: "PRÓXIMO NÍVEL")
@@ -9493,9 +9501,9 @@ def ficha_detail_view(request, pk):
     # Magias da Essência (vertente): sincroniza (idempotente) as fixas do nível atual e
     # levanta as ESCOLHAS pendentes (ex.: 2º ciclo, escolha 2 de 3) p/ a ficha pedir.
     from .models import TbTransacao, TbMagia
-    _sync_magias_concedidas(p)
+    _sync_magias_concedidas(p, ruleset=ruleset)
     from .character_engine import magias_concedidas
-    _pend = magias_concedidas(p)['pendentes']
+    _pend = magias_concedidas(p, ruleset=ruleset)['pendentes']
     essencia_pendentes = []
     if _pend:
         _nomes = dict(TbMagia.objects.filter(
@@ -9507,8 +9515,8 @@ def ficha_detail_view(request, pk):
                 'opcoes': [{'slug': s, 'nome': _nomes.get(s, s)} for s in b['opcoes']]})
     # Página de Magias: todas as magias do personagem (preparadas / conhecidas-sempre).
     # As sempre_preparada (raça/outros) NÃO contam no total de preparadas da classe.
-    magias_info = _magias_sheet_info(p, ficha, essencia_pendentes)
-    consumiveis_cards = _consumiveis_ficha_cards(p, ficha)
+    magias_info = _magias_sheet_info(p, ficha, essencia_pendentes, ruleset=ruleset)
+    consumiveis_cards = _consumiveis_ficha_cards(p, ficha, ruleset=ruleset)
     recursos_cards = [card for card in consumiveis_cards if card.get('grupo') != 'item']
     itens_consumiveis_cards = [card for card in consumiveis_cards if card.get('grupo') == 'item']
     # Página de Histórico: compras/vendas do personagem (extrato composto PO/PP/PC).
@@ -10478,7 +10486,7 @@ def _criador_persistir(user, data, R, *, strict_spell_choices=False):
         id_raca=raca, id_linhagem=linhagem, id_essencia=essencia, id_antecedente=antec,
         **{campo[s]: base[s] for s in SIG})
     person_class = TbPersonagemClasse.objects.create(
-        id_personagem=p, id_classe=classe, nivel=1, principal=True)
+        id_personagem=p, id_classe=classe, nivel=1, principal=True, ruleset=ruleset)
     if ruleset is not None and classe.slug == 'cacador':
         from .models import TbPersonagemCacador
         hunter_creation = R.get('hunter_creation')
