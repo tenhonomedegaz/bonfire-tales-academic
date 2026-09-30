@@ -2115,7 +2115,7 @@ def _postgres_classe_detail_view(request, slug):
             partes = [format_html('<span class="block text-[var(--text)]">{}</span>', name.strip())
                       for name in hunter_progression[nivel]['features'].split(',') if name.strip()]
             partes.extend(format_html(
-                '<span class="hidden subclass-feature text-[var(--spark)] font-bold" data-subclass-slug="{}">{}</span>',
+                '<div class="hidden subclass-feature text-[var(--spark)] font-bold" data-subclass-slug="{}">{}</div>',
                 item.id_subclasse.slug, item.nome,
             ) for item in subclass_habilidades_qs
                 if item.niveladquirido == nivel and not item.table_only)

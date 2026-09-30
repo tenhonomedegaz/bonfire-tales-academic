@@ -104,6 +104,14 @@ class RestoreBackupGuardTests(TestCase):
         self.assertContains(response, 'Inseridos: 107; ja identicos: 0')
         restore.assert_called_once_with(package)
 
+    def test_hunter_markdown_package_uses_protected_restore_branch(self):
+        package = {'kind': 'bonfire.hunter_markdown.v1'}
+        with patch('home.hunter_markdown_revision.restore_markdown_package',
+                   return_value={'ruleset_checksum': 'markdown-revision-test'}) as restore:
+            response = self._post_restore(package)
+        self.assertContains(response, 'Revisao: markdown-revision-test')
+        restore.assert_called_once_with(package)
+
     def test_fixture_with_non_catalog_model_is_not_blocked_by_guard(self):
         """Fixture com um model FORA do catálogo (auth.user) → guard não dispara."""
         payload = [

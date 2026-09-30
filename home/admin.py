@@ -772,6 +772,17 @@ def server_logs_view(request):
                                        'HUNTER_CREATOR_RULESET_CHECKSUM e reinicie o site.').format(**result),
                         }
                         blocked = True
+                    elif isinstance(dados, dict) and dados.get('kind') == 'bonfire.hunter_markdown.v1':
+                        from .hunter_markdown_revision import restore_markdown_package
+                        result = restore_markdown_package(dados)
+                        messages.success(request, 'Revisao Markdown do Cacador instalada no banco.')
+                        context['op_result'] = {
+                            'titulo': 'Restauracao Markdown do Cacador',
+                            'output': ('Revisao: {ruleset_checksum}. Configure '
+                                       'HUNTER_CREATOR_RULESET_CHECKSUM com este valor e '
+                                       'reinicie o site para publicar.').format(**result),
+                        }
+                        blocked = True
                     if isinstance(dados, list):
                         labels = {str(r.get("model", "")).lower() for r in dados if isinstance(r, dict)}
                         content_labels = {
