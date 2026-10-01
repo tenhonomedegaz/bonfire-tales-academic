@@ -1,0 +1,4134 @@
+{
+  "version": 1,
+  "source_sha256": "41e9c80b84fc08ed9cffa6fa1def5d0356f6fca4dc34ada46f21b8095f99b326",
+  "rows": [
+    {
+      "pk": 28,
+      "slug": "unicornio",
+      "before_sha256": "346cafdf59f01b30dcb6d345019db6627dafee925f31565d93ae1cdf04cacd18",
+      "after_sha256": "79a1d4dd9cc197682acff78a4aa2f792532dcf73d492f05ef0ec0999b565cc41",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Hooves",
+          "source_entries_sha256": "4332a2079c9750573b71bd82eb4d17921e4600c20ade9a742b2ab293aca50621",
+          "tags": [
+            "instant{attack:melee, attack:+7, reach:5ft, dmg:2d6+4(concussao)}"
+          ]
+        },
+        {
+          "index": 2,
+          "name_en": "Radiant Horn",
+          "source_entries_sha256": "32532e16b0eb0bc6a44d01c250aef66e0947d1b813001f0e042e3fcde879fcc6",
+          "tags": [
+            "instant{attack:melee, attack:+7, reach:5ft, dmg:1d10+4(radiante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 43,
+      "slug": "zumbi",
+      "before_sha256": "de4b5024068d3ae114ef3778677600df5143d0ad9d7fc01412148bc392c8799d",
+      "after_sha256": "062f2f6917b1b224de01b7de8ec0e32cb0839cac9e73de9caa5e65d0767ea86f",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Slam",
+          "source_entries_sha256": "696e89b3dd27a1ead62d51a13de9431bb2ad556b50db65003c091deb030ad147",
+          "tags": [
+            "instant{attack:melee, attack:+3, reach:5ft, dmg:1d8+1(concussao)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 65,
+      "slug": "adult-amethyst-dragon",
+      "before_sha256": "c88c06ec2c4d63a4002d8e2d8bf652bbfadfe118e61d1248ebbf2e4632c1bb86",
+      "after_sha256": "4dc6858c61fcf8cbb7a042a132829c15b4581043dc67816b66a6c82e4bcef96e",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Claw",
+          "source_entries_sha256": "7ba1e48c965be7848c02dd04572c5bfe324a008dbdb43b25c8d63d6c4bbf8d8d",
+          "tags": [
+            "instant{attack:melee, attack:+12, reach:10ft, dmg:1d8+7(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 71,
+      "slug": "adult-crystal-dragon",
+      "before_sha256": "efbb77a2978e21eed94db4f369e7399506e962da76574d3f99387d49d1776d62",
+      "after_sha256": "7c5b1b01e02c344f8031e9c745b636b46992ea36982c20bdc12a3e1d0a4bdc62",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Claw",
+          "source_entries_sha256": "d15ceb82dfc1dd2cf32fa0a84eb664c49fc44b300f7621eeb0fc81f9eb54edb2",
+          "tags": [
+            "instant{attack:melee, attack:+9, reach:5ft, dmg:1d8+5(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 72,
+      "slug": "adult-emerald-dragon",
+      "before_sha256": "272b58b9ad4fbe3e2ae0817535363eb796640fc55b6510166f3e738a93898a14",
+      "after_sha256": "ef59088b449377e7ff4374073ed75e9357edeea4f178520e41673285ba34cfd9",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Claw",
+          "source_entries_sha256": "b9e3cb4e9eac93faa7c545daa3ffbffd194ca923fb111691317326c031d777a5",
+          "tags": [
+            "instant{attack:melee, attack:+11, reach:5ft, dmg:1d8+6(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 75,
+      "slug": "adult-kruthik",
+      "before_sha256": "adb59b3c37e3c667cae0bffaedec69314388901b6c35a109f44a767c1ff9ee34",
+      "after_sha256": "b9738ec6ed5b14fc876d4f2f2cc6b8d3c503d23dae43a0810d317fa1a95eb206",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Stab",
+          "source_entries_sha256": "1d5ba72a95e9d16443599b68e629ff16fd8a94a7a8bf4b41521c0cdfe7c01498",
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:5ft, dmg:1d6+3(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 76,
+      "slug": "adult-moonstone-dragon",
+      "before_sha256": "74bc7be4f4e561b51aba411e51ef26cd7fc5942669d271fd05f8773b5934a856",
+      "after_sha256": "6d6612de3b5ca479601c7c7dbd6315ac24799bf8549a3eb08bedcfdd9401210c",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Claw",
+          "source_entries_sha256": "62330b416c4bee3df9f3775cb63922292fce014b718e6ce958885bb88c30d658",
+          "tags": [
+            "instant{attack:melee, attack:+10, reach:5ft, dmg:2d6+5(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 79,
+      "slug": "adult-sapphire-dragon",
+      "before_sha256": "89ba0b7f937ea1f1fb251868fe85b7228ca39c9d347065c0e39e0953a7d4a284",
+      "after_sha256": "3e7d97383e8c15fdb5a550fca97942bb0ba94770572d9ec0be082c2b011fb2f2",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Claw",
+          "source_entries_sha256": "b9e3cb4e9eac93faa7c545daa3ffbffd194ca923fb111691317326c031d777a5",
+          "tags": [
+            "instant{attack:melee, attack:+11, reach:5ft, dmg:1d8+6(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 81,
+      "slug": "adult-topaz-dragon",
+      "before_sha256": "9131ba378e48ffcb776c40b2a610be161d1b22939cb645901544a8e5fa175d7e",
+      "after_sha256": "4e4d4220a4992ee48827f646d58edbb760b3224ca78e43f48828ee4cd69416f3",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Claw",
+          "source_entries_sha256": "bfea37532306aa279ff19f0f16a2caa15c746c3d8767ee62b8e88539c7efce2e",
+          "tags": [
+            "instant{attack:melee, attack:+9, reach:5ft, dmg:1d8+4(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 84,
+      "slug": "air-elemental-myrmidon",
+      "before_sha256": "2a30cdbbb4bfd4962b8b111135d44d67c4556a3215b54a080b17a34a105f4ce2",
+      "after_sha256": "43c6973ad5171e43ecad13db5e7a8a54132622c191c150bb7f815aef286d3e90",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Flail",
+          "source_entries_sha256": "4d19c114ad0246bda10e65e3cfd330d20588447bc9b6a81ab7e87139b22e5291",
+          "tags": [
+            "instant{attack:melee, attack:+7, reach:5ft, dmg:1d8+4(energia)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 86,
+      "slug": "alkilith",
+      "before_sha256": "2d8d62b4763b1686a9dc18d78ff1eb5710e157e576819310e1ecc7db75abd84c",
+      "after_sha256": "8d34a79a535dfef07065b91c700d27b19892adf26584af06309140edb0f42baf",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Tentacle",
+          "source_entries_sha256": "02656d37afcc112afdc9885f454ff784498cca722c4542fbb7965530a093f5fd",
+          "tags": [
+            "instant{attack:melee, attack:+8, reach:15ft, dmg:4d6+4(acido)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 92,
+      "slug": "ancient-amethyst-dragon",
+      "before_sha256": "765c5796bf6298f989773dbe69628c096e443ad0c0a0cdd8a58da6a43bee38aa",
+      "after_sha256": "8eca515ad4559acde71248a9f43c7c22ef55704e0d20cec4de8d608d5645cb6e",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Claw",
+          "source_entries_sha256": "2d0f4b04caa4d4d3c4a11b1e4139bb2edebabef1e69bb8582b8aaabee42c0486",
+          "tags": [
+            "instant{attack:melee, attack:+15, reach:10ft, dmg:2d6+8(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 98,
+      "slug": "ancient-crystal-dragon",
+      "before_sha256": "82f787950af5868f6ec390903a0135e6214f201f44249100da121f85a1f95631",
+      "after_sha256": "8da0da019ac42b33529e58472600feec1f8b66ed01ffd38bc834e803add8a409",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Claw",
+          "source_entries_sha256": "860bea6986443bc93d56398749b7ee04f076bb7acab52fde38f1fcca97f9cfdd",
+          "tags": [
+            "instant{attack:melee, attack:+13, reach:10ft, dmg:2d6+7(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 99,
+      "slug": "ancient-dragon-turtle",
+      "before_sha256": "94691e346d1c29efdb89ab5f200e3226ddf2b8eeba035611ba83a7307c1abc01",
+      "after_sha256": "7a79652c5050e54d7ea63e0fc9f44c46994af7e92aa764f9c42a71ca71d97e54",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Claw",
+          "source_entries_sha256": "a91b48eb455101d08b5efda419f9044bf81f0a466f1c58e14bf005392cc4d5d7",
+          "tags": [
+            "instant{attack:melee, attack:+16, reach:15ft, dmg:2d8+9(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 100,
+      "slug": "ancient-emerald-dragon",
+      "before_sha256": "cf89177e9c15ec9c5c11fc3506af3492d45697976892ff3d38e94605705c4181",
+      "after_sha256": "d68426703f50cd5c9dd15b2f16d25e45348e14c46580fe8fa7e544560bef5358",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Claw",
+          "source_entries_sha256": "37c3cd91a99f90983a6d672b42c47111d9783896c03034d01f18a39841c5670f",
+          "tags": [
+            "instant{attack:melee, attack:+14, reach:10ft, dmg:2d6+7(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 103,
+      "slug": "ancient-moonstone-dragon",
+      "before_sha256": "74a381a23ef5e6949053cba545d509c4c63bf5629ecf5e23e68a4d20ab3f10d3",
+      "after_sha256": "f1f5a2bfa4008efbb18662aaab1b1f19131a1f8a9cb45fc3eaeb25bd8e4dc91d",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Claw",
+          "source_entries_sha256": "d67e3f12db37625c733960f471d2675a69854021cc1dfd74f8e6244734c3fc2a",
+          "tags": [
+            "instant{attack:melee, attack:+13, reach:10ft, dmg:2d6+6(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 105,
+      "slug": "ancient-sapphire-dragon",
+      "before_sha256": "75a3b62be876c77a4024a3dc72d1dca685cb677d75ad46bde3b39e586096fd8f",
+      "after_sha256": "350eefc8c523e74b7e45fafef7b6572c3c193c2edf55e5c2f6bfbbdac92e21c3",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Claw",
+          "source_entries_sha256": "2d0f4b04caa4d4d3c4a11b1e4139bb2edebabef1e69bb8582b8aaabee42c0486",
+          "tags": [
+            "instant{attack:melee, attack:+15, reach:10ft, dmg:2d6+8(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 108,
+      "slug": "ancient-topaz-dragon",
+      "before_sha256": "671e3a2008029a2b3bac8a9613f537a5010a53a19b4eb1cd9356b4201ba3f7aa",
+      "after_sha256": "40c60c9a4f315cba6b9d438c174fa7048c8adab8c44155bb7dc1d1cf4e346c08",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Claw",
+          "source_entries_sha256": "dfda3474a396a30bbbdf225b2057c093ece779da3acbb3c1575e514fe343a8cf",
+          "tags": [
+            "instant{attack:melee, attack:+12, reach:10ft, dmg:2d6+6(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 110,
+      "slug": "angry-sorrowsworn",
+      "before_sha256": "6f23ee01ad2a7880149f61e3202591a45010bd33bc2f13a075483f193ea618f7",
+      "after_sha256": "d9a985f2b65f98757c9284c4909e254156c18f891b2e3b744e257c8e2f393abe",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Hook",
+          "source_entries_sha256": "6f8437cff56a2d76769a1c708133dcea7b52bc7bb26e8eeaa4fade4f46db65d4",
+          "tags": [
+            "instant{attack:melee, attack:+8, reach:5ft, dmg:2d12+3(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 119,
+      "slug": "annis-hag",
+      "before_sha256": "1407582585b83cf4fc70581244cc62995fb42be427622bd7a7c6a93944c5dc1f",
+      "after_sha256": "9d82a8834fd3da57b55013aa6a710ec3eb688e02ab7d1ae5f0030017cc16b186",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Bite",
+          "source_entries_sha256": "ee9e152c42c108c7a66b53679a3146c97ff718bda940e415c8a0ef3d05c7c1ed",
+          "tags": [
+            "instant{attack:melee, attack:+8, reach:5ft, dmg:3d6+5(perfurante)}"
+          ]
+        },
+        {
+          "index": 2,
+          "name_en": "Claw",
+          "source_entries_sha256": "24453ea091e5b647d21d53d278a13d7825da309b1200a39d3dfefd304fbf2959",
+          "tags": [
+            "instant{attack:melee, attack:+8, reach:5ft, dmg:3d6+5(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 126,
+      "slug": "archer",
+      "before_sha256": "18cdd34b88df2a5c99bf2367296c49c6612983f1ad1ebd04da5e640f0671c487",
+      "after_sha256": "e8af8ea84b7ed61899c82809c932c4a45e9a382d1f328e144da55e320402b36c",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Shortsword",
+          "source_entries_sha256": "8bd62b585865e49e67e1f1a817c26108eb92ed74547f1b7544c8dc2b9c597ff9",
+          "tags": [
+            "instant{attack:melee, attack:+6, reach:5ft, dmg:1d6+4(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 129,
+      "slug": "armanite",
+      "before_sha256": "5a1d6716b49eea532262ecfadea3544b13e39da8bc3287d7718687c410500658",
+      "after_sha256": "b85441ec97aa1824bf054dec60b28644e61719ed7f760d5deb01afe32e6e4a1a",
+      "features": [
+        {
+          "index": 3,
+          "name_en": "Serrated Tail",
+          "source_entries_sha256": "38a20d02a1c2653851e8e943ddd72c9b2525e67aa8e385cffccf9688a4eca432",
+          "tags": [
+            "instant{attack:melee, attack:+8, reach:10ft, dmg:2d10+5(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 133,
+      "slug": "astral-dreadnought",
+      "before_sha256": "6d80653e9d92ac3ffb1d996ab21f8eb0837b2b99666e9a89243da7ffecc390df",
+      "after_sha256": "c731c25e3571714215dba24f8e3b1feeb4fd6dce2d9a114dd9725033d9238f41",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Claw",
+          "source_entries_sha256": "942ff75732791884f36c55898f5a702dc356231198af445d5b4010f6d42de004",
+          "tags": [
+            "instant{attack:melee, attack:+16, reach:20ft, dmg:3d6+9(energia)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 145,
+      "slug": "balhannoth",
+      "before_sha256": "d9e04f0fe21feb1d7c92cdc135db2030e4ed22b56f4908b2d2cbae140f0e15d8",
+      "after_sha256": "5e9c2b971b60db09423c4a57e29c98247edfc9e2cd5c9eaf6fd4272fd52973df",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Bite",
+          "source_entries_sha256": "8b830a29a6604e85515f8ffcb4ec83aac914f5dbcfc58b3c89c03732c570bffd",
+          "tags": [
+            "instant{attack:melee, attack:+7, reach:5ft, dmg:3d10+3(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 153,
+      "slug": "baphomet",
+      "before_sha256": "8c679d4e44a8dfc4bea59e319e47f20a1bd04761782c0cd0829569a0f773e13c",
+      "after_sha256": "b217d04a94a56649baad9732ba3c520d6c11274b1bb75f19716503a01e404263",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Bite",
+          "source_entries_sha256": "46d938cd9b35d4142169a935a04c7cb15f0adc434de825121628c365f8be322e",
+          "tags": [
+            "instant{attack:melee, attack:+17, reach:10ft, dmg:2d8+10(perfurante)}"
+          ]
+        },
+        {
+          "index": 3,
+          "name_en": "Heartcleaver",
+          "source_entries_sha256": "8ae8eac183671d9298f869f83ba94c2a755e75c2a24bde29306dadf261a0ea1b",
+          "tags": [
+            "instant{attack:melee, attack:+17, reach:15ft, dmg:2d10+10(energia)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 155,
+      "slug": "bard",
+      "before_sha256": "64dbeb7c386e013cce9ab2a760f586a6d0757c2739fed0e2db4b842fa3ed07c9",
+      "after_sha256": "616daf064d72dfdf4bc534c84f01a5bfd1d84223b4598508d83823b477205b69",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Shortsword",
+          "source_entries_sha256": "fc12c40fc4e68bb42933df68a53b860c5a67944d79d935f7340a160e2d3dfc94",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:1d6+2(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 156,
+      "slug": "barghest",
+      "before_sha256": "0ddf29530d06033b81a3de439d9ed7a4028a98f3c86ceeda654bf0c59f982bb2",
+      "after_sha256": "d68f46022532787a57f84f3ca2a946f27e5b8165100f1a4f3b1425960cac349a",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Bite",
+          "source_entries_sha256": "1422413961a23510566a08aeacc230524ceaae301ec9a493d99d51b2c5e1550d",
+          "tags": [
+            "instant{attack:melee, attack:+6, reach:5ft, dmg:2d8+4(perfurante)}"
+          ]
+        },
+        {
+          "index": 2,
+          "name_en": "Claw",
+          "source_entries_sha256": "855d170f1edd408b459a8175f2aeaedc94e8e202539b3c29e69e75b592f52e4c",
+          "tags": [
+            "instant{attack:melee, attack:+6, reach:5ft, dmg:1d8+4(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 164,
+      "slug": "berbalang",
+      "before_sha256": "c39d3c537fd53b9d71b6be6ba5a44f09412caf8e36b488ee1d5b14e58c3d9495",
+      "after_sha256": "3318d370ec58e407ce921cdb43ec6a205a70e58b51184cbeb794b81a0f482ed1",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Claw",
+          "source_entries_sha256": "7cd2f6a0879d8b60fefcbe5f604c3124377ecf97eda28a4ede5840065514b0a2",
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:5ft, dmg:2d4+3(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 168,
+      "slug": "black-abishai",
+      "before_sha256": "2b6db51e40e726d7567b7bfc57214a5e2d43cbdba8c17a69edcb580b638be8f6",
+      "after_sha256": "526512f8ae876a81d89b5d485cab81de38513539330c4e2ac85681b2c8e51461",
+      "features": [
+        {
+          "index": 3,
+          "name_en": "Scimitar",
+          "source_entries_sha256": "a6ccc80f6eaf6c64d9d283dc090df725b359c4d818a41871ac2440772df2f838",
+          "tags": [
+            "instant{attack:melee, attack:+6, reach:5ft, dmg:1d6+3(energia)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 188,
+      "slug": "booyahg-caster",
+      "before_sha256": "7bd480257cd199439feda1e1611d24fff2a66df3de1d49777a29b19d7c98367b",
+      "after_sha256": "3f1df6c88fbf75a0e4cb9f866901f2dbf2284537d1d80effdea4e7d1768f2a96",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Scimitar",
+          "source_entries_sha256": "95d7983ba22e67f909e4165d049e598b7b09ec9f246cc26c54e121a806e3f117",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:1d6+2(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 192,
+      "slug": "booyahg-whip",
+      "before_sha256": "13c9243a62b24f41645cf6cf255736388a83244a77a76d9f99751cca97851bae",
+      "after_sha256": "e1258a62b0056cf2275c339305e5629cda8872a012415860301ee2a24ad4ee44",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Scimitar",
+          "source_entries_sha256": "95d7983ba22e67f909e4165d049e598b7b09ec9f246cc26c54e121a806e3f117",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:1d6+2(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 193,
+      "slug": "booyahg-wielder",
+      "before_sha256": "2014d6bf1ad8925552acb49cc0119268d34ba88bf9199c561ddc5ae0d68609ef",
+      "after_sha256": "8403d4104659fe63091bf1d5c192884c7123e9dcaf32e4aecc8d750fa9e33518",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Scimitar",
+          "source_entries_sha256": "95d7983ba22e67f909e4165d049e598b7b09ec9f246cc26c54e121a806e3f117",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:1d6+2(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 197,
+      "slug": "brontosaurus",
+      "before_sha256": "13eeb228ab539e972450a59845f0e0ca6c397f00e0ea8ebc2e4bd975c8f87526",
+      "after_sha256": "28bf852731ef876278b52fc378b8c4ba5f314c681e934db56dcd1b40126ac434",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Tail",
+          "source_entries_sha256": "9af7b2fc4869b1f1984e8c2037b6e3e9ee9e63c7eaa2569f630631c88db15cf7",
+          "tags": [
+            "instant{attack:melee, attack:+8, reach:20ft, dmg:6d8+5(concussao)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 215,
+      "slug": "cave-fisher",
+      "before_sha256": "4cf5523a9a821eba7b1ebca7efc54c35f32330e91e283b3e493234d7c4468484",
+      "after_sha256": "69863b8c8fea707aeb4eee1457991edf477b42c238ca974322466e1b5d6cfecd",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Claw",
+          "source_entries_sha256": "fc1cd06521d1aceb14ddf2b461cb85dc2a166e5ae878602d97d7b9d1e1274f9f",
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:5ft, dmg:2d6+3(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 237,
+      "slug": "commoner",
+      "before_sha256": "9b2a75ddf51dc3b5d47c9197abe53c47d98fa4261c25ef92c18d6b2bcc0be361",
+      "after_sha256": "60615e3c193f9a9bd5454bc4837f25d5c1d90b70c8b3a6fc976778b5c29c549f",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Club",
+          "source_entries_sha256": "c73770215a174a18cdf29a84afe47f3c6a4ccbd2ed8deb885a172584438b2cbb",
+          "tags": [
+            "instant{attack:melee, attack:+2, reach:5ft, dmg:1d4(concussao)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 244,
+      "slug": "cow",
+      "before_sha256": "0fe1523f37fae9b195051a515411b53e6495a4160164d89f84d66b3b1054eed9",
+      "after_sha256": "46dc3d44eb3d84f584ae9eedf3051de5a175050ce4e678dcd258939018146d44",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Gore",
+          "source_entries_sha256": "8bd62b585865e49e67e1f1a817c26108eb92ed74547f1b7544c8dc2b9c597ff9",
+          "tags": [
+            "instant{attack:melee, attack:+6, reach:5ft, dmg:1d6+4(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 267,
+      "slug": "deathlock",
+      "before_sha256": "ded696bf1daa4eb3033eccc68fd006083b8755e64febd215da311f220b9af81e",
+      "after_sha256": "f0e1a10325eb211c2e215fa9bcc80e1ff03bdc176e3903a3ad321ed96db75fca",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Deathly Claw",
+          "source_entries_sha256": "cb87d22867ed853d34e6bcb85e16dcaf443dd1aaf94dfbad28cbd2295dfd9ffd",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:2d6+2(necrotico)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 272,
+      "slug": "deer",
+      "before_sha256": "e1e078a8c2b8d677cbae261402c53da597fc96b621008b09f7ed0f641562b158",
+      "after_sha256": "d1b8ff97526ef892a4267dbd9ab1e8b3fcc199417f93131e9a59e617036b0e6f",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Ram",
+          "source_entries_sha256": "c73770215a174a18cdf29a84afe47f3c6a4ccbd2ed8deb885a172584438b2cbb",
+          "tags": [
+            "instant{attack:melee, attack:+2, reach:5ft, dmg:1d4(concussao)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 273,
+      "slug": "deinonychus",
+      "before_sha256": "d953d85d6ca27dc28e5d9687f7b29a041be28475281f357bee1c2e64a58b78eb",
+      "after_sha256": "19a6ffd37f912ca4ae7487828abc511c11bc0e95f4c07756831a9f27efb08f0c",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Bite",
+          "source_entries_sha256": "23d66e375dde546e3163419e8443ca5992b8a5f32548457369dd69264dcc3aa9",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:1d8+2(perfurante)}"
+          ]
+        },
+        {
+          "index": 2,
+          "name_en": "Claw",
+          "source_entries_sha256": "00c154307fa2757c1cb92132b85c81b41fc32be4800cd2d234b30d0245f3c012",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:1d8+2(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 280,
+      "slug": "dhergoloth",
+      "before_sha256": "93d463a08fb33b970c1711ee31d54263bbfbd6006cdd8cd94bb57c0ed0682150",
+      "after_sha256": "3333d41a8044c0925e62b3050aeb4151c10668fde48a5dd47034a00c59d7da1d",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Claw",
+          "source_entries_sha256": "9bf12b310a27543a36a7cc797c794d8cdb800ac4c3be89391836bdd8891d3f16",
+          "tags": [
+            "instant{attack:melee, attack:+6, reach:5ft, dmg:2d8+3(energia)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 281,
+      "slug": "dimetrodon",
+      "before_sha256": "2b79f3e4c8a79c3c26fdd196c5a445ff74afb24581b8236e692bacac53885c1e",
+      "after_sha256": "1aab2bb01a2cda51a9b51705868ccec3187d2331be1701bb97a1858f999f2c2c",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Bite",
+          "source_entries_sha256": "7760ea6b14b080b3021afb1a206b5ce1a2732c8a7589182396e868917af1b0ac",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:2d6+2(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 282,
+      "slug": "dire-troll",
+      "before_sha256": "93447c5aa3839e6f485ee698ebc94d51f8768ab90227db18a1a55389d00d5ece",
+      "after_sha256": "849cc5d02afdf048364bf12c573f62da7a52060206d6e974528135c9d21c949a",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Claws",
+          "source_entries_sha256": "247119f91d0e418d8ceb9ea6fceda133b2d3831fcfdb738014848d276b127121",
+          "tags": [
+            "instant{attack:melee, attack:+11, reach:10ft, dmg:3d6+6(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 293,
+      "slug": "draconian-dreadnought",
+      "before_sha256": "c50c6b3d945356ed9b9e19270b5ad86b92423acb5f4adecabd572472ebab11e5",
+      "after_sha256": "6204d81005c4467335727dc091fcbd30f07a3e4bf4e0da3f95d71aa3523eb27c",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Serrated Sword",
+          "source_entries_sha256": "9bb58f718c6d30467c3ff670c4cefb9b079b193bea1e8a53c398a31d2f8f9686",
+          "tags": [
+            "instant{attack:melee, attack:+6, reach:5ft, dmg:2d8+4(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 294,
+      "slug": "draconian-foot-soldier",
+      "before_sha256": "de5ef195047ff5040f8e969a6233cb505f3d692dfb7881fc9d01194cf01c9721",
+      "after_sha256": "5c4dbc051ab54d7c4c5e311d4b2d098e7cad5ce8de34939fca36b8ca1680973b",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Shortsword",
+          "source_entries_sha256": "93afe64a984fdc9ee06be6e6e138184b3fca98f7090450bfd5ce20f2b4bf145f",
+          "tags": [
+            "instant{attack:melee, attack:+3, reach:5ft, dmg:1d6+1(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 297,
+      "slug": "draconian-mastermind",
+      "before_sha256": "0fdadff76abed28206ff390e4172ae4308109a6ab43609181790e8c2da56bddd",
+      "after_sha256": "b5f418e8ff0ab71f083c0975c4661bb1c031631ea989709aaed4728e16fc9152",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Rend",
+          "source_entries_sha256": "e9d793dff0977b6e65865b6cb4f089949f3f4c9ed6d163a5192a34ba38b06f6f",
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:5ft, dmg:1d6+2(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 299,
+      "slug": "draegloth",
+      "before_sha256": "7d15db398f0589c2c315c8f63f353835acf7c726b2f0ad1af90e446cd0715e91",
+      "after_sha256": "35bd609e00dbbb9133d702ef397eb0e105cc795dbbbfbf17e9c8cc174bf04eb8",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Claw",
+          "source_entries_sha256": "38a20d02a1c2653851e8e943ddd72c9b2525e67aa8e385cffccf9688a4eca432",
+          "tags": [
+            "instant{attack:melee, attack:+8, reach:10ft, dmg:2d10+5(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 302,
+      "slug": "dragon-chosen",
+      "before_sha256": "9b16254e8b02706fbb2e78fa4147ed61b5356b40a6a28dd1e1b67890937f2740",
+      "after_sha256": "7c354d4c1bcd3bf5098d21f836ab2a856058b75c724c8041f98f08a28d361a77",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Shortsword",
+          "source_entries_sha256": "8bd62b585865e49e67e1f1a817c26108eb92ed74547f1b7544c8dc2b9c597ff9",
+          "tags": [
+            "instant{attack:melee, attack:+6, reach:5ft, dmg:1d6+4(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 305,
+      "slug": "dragon-turtle-wyrmling",
+      "before_sha256": "7d629205046713cec024a35b4d274c1daabe84416653d43ee91581987bafa472",
+      "after_sha256": "c8740ad898ae2e5781fcb33a01622ea3357639fcce6fed003defe902d478f2db",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Bite",
+          "source_entries_sha256": "4f9e25023f147d795776b907eaa2217ee6c3ca8bba4513c2ac969081b879305f",
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:10ft, dmg:1d12+3(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 312,
+      "slug": "dragonflesh-grafter",
+      "before_sha256": "fa055daecd070f68dd15b7d7f02f93f49c8ed2b877f529ddcc9f175caec47733",
+      "after_sha256": "fb730743c99f37e02a8299431e49eb75af786543622bb40f4a33c52374351b9c",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Greatclub",
+          "source_entries_sha256": "c8b3684e8d39741cf9e43a8cec58b5e482cd4a40b767993d2578e1527d48bcf7",
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:10ft, dmg:2d8+3(concussao)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 313,
+      "slug": "dragonnel",
+      "before_sha256": "4ce4b5372f60be64e537332624ca0679203588c702cd5942a288c99d63d0eaf9",
+      "after_sha256": "badc8fda88f9055cca237340772a437fb41369b284120693a910c1b847ecd866",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Rend",
+          "source_entries_sha256": "fc1cd06521d1aceb14ddf2b461cb85dc2a166e5ae878602d97d7b9d1e1274f9f",
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:5ft, dmg:2d6+3(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 319,
+      "slug": "drow-house-captain",
+      "before_sha256": "3833772a5809b1c158e7147797ab860a3021871cf4810469f282d4542ff2d633",
+      "after_sha256": "03e1a6d7560a21f6d24af343eecaa19b72e49c53430bcfc31eea05053de21740",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Whip",
+          "source_entries_sha256": "b4c9b2ed4abb4d50832f9dd22d839b062763784fe9a3f0213bc7d55ea8629a7e",
+          "tags": [
+            "instant{attack:melee, attack:+8, reach:10ft, dmg:1d4+4(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 326,
+      "slug": "duergar-hammerer",
+      "before_sha256": "94941dc73d770ac097f414d7a0b203363e45408948f5f46c578485563b91ecbd",
+      "after_sha256": "b4a8291acf50ffc981b5feea23052b057f727de2b41222d5467cf3682705183e",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Claw",
+          "source_entries_sha256": "1d5ba72a95e9d16443599b68e629ff16fd8a94a7a8bf4b41521c0cdfe7c01498",
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:5ft, dmg:1d6+3(perfurante)}"
+          ]
+        },
+        {
+          "index": 2,
+          "name_en": "Hammer",
+          "source_entries_sha256": "f8a25428d73e56b0341a7db10ff21d0e9881892c0276284a5a685f393b7d265b",
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:5ft, dmg:2d6+3(concussao)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 329,
+      "slug": "duergar-screamer",
+      "before_sha256": "2a04557027f743682d6f69cfcd1a59c89d1832afbaebde25666c7a59374a0a07",
+      "after_sha256": "cdd55860479e7b01144830d25d2076afed0408ae806f382fce3b051a9050156f",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Drill",
+          "source_entries_sha256": "2117bf9e3478059ce269c0320dbaeb8f85d72c9b9f12792923c8f10149b86b31",
+          "tags": [
+            "instant{attack:melee, attack:+6, reach:5ft, dmg:1d12+4(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 338,
+      "slug": "earth-elemental-myrmidon",
+      "before_sha256": "e2c4e760dceccd87dc73ce509eb51319cd6008e68282537d265a7d0a710c66bb",
+      "after_sha256": "ba18dc352e1139f5956c0d3fb72e4d3673a88c5898bd9aebbc7fbe539f3599b0",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Maul",
+          "source_entries_sha256": "45483d6c406a207855b98abda4774f22e690f203efeb3d8550df677d5102b5d6",
+          "tags": [
+            "instant{attack:melee, attack:+7, reach:5ft, dmg:2d6+4(energia)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 344,
+      "slug": "elder-brain-dragon",
+      "before_sha256": "40e3e890bad8c2e385d71864f70edb7b5e171f0f7ac79621c79f97bba36c4117",
+      "after_sha256": "b02e5b03caed92aa346e4e05d58130ca9e82e9388da337f981f7f9dcc26b3961",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Claw",
+          "source_entries_sha256": "3b93e116c63b659d8befbd9222a8c7ac1680c02c87339ce4dd9ef4240c4024b3",
+          "tags": [
+            "instant{attack:melee, attack:+15, reach:10ft, dmg:1d6+8(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 346,
+      "slug": "elder-tempest",
+      "before_sha256": "39c0af3ccc44feca12cc8362e82e2d7bf493f0ca84d5d207590cd528622d0925",
+      "after_sha256": "e42328128b013db5c3b28453b07b55f01864f92dc5c4f9c54fe19441cebc10b0",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Thunderous Slam",
+          "source_entries_sha256": "6fb8d56f682ac6647085c0c04d17710a14b8250c8630ce425c10341241444ad2",
+          "tags": [
+            "instant{attack:melee, attack:+16, reach:20ft, dmg:4d6+9(trovao)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 360,
+      "slug": "eyedrake",
+      "before_sha256": "a2d8464edd3d00727362d6828245261d7b03f3a5fb279674cbe907d8580c3ad9",
+      "after_sha256": "e49b90db3459253155d3a26999b1dab0fa525f298d009e2551396b0b72dda006",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Bite",
+          "source_entries_sha256": "e712eb488e703f6b2d3d9c2ea249de480f1f2990199c4b5a0bfe274939e73e9c",
+          "tags": [
+            "instant{attack:melee, attack:+6, reach:10ft, dmg:3d6+3(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 366,
+      "slug": "fire-elemental-myrmidon",
+      "before_sha256": "c62bc33b18bb6f2881ddb44eac0b4c98fe2856ffd021b179bd395918eaae51be",
+      "after_sha256": "11e052d47615a5967bcb8d801e954fc6fd789aae83e055f32a4d3edea4e2bd17",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Scimitar",
+          "source_entries_sha256": "390a8ce6643c6c79e9d36b9e1893da2beedfd7b673ed9a0c489066aff6cfb3e3",
+          "tags": [
+            "instant{attack:melee, attack:+7, reach:5ft, dmg:1d6+4(energia)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 369,
+      "slug": "firenewt-warlock-of-imix",
+      "before_sha256": "e405b73f96827c0dc98ca68ed47f8a3a096577611771d7b8d599d3a1b3047576",
+      "after_sha256": "63dd2471969f8c1be5a77ac0cf725af72141ee27f05390da4f08b64b74ec4885",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Morningstar",
+          "source_entries_sha256": "486015adf034b8968e4e424b66dd83494ddc2b5c6e668e47274fa4bb858bc84d",
+          "tags": [
+            "instant{attack:melee, attack:+3, reach:5ft, dmg:1d8+1(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 370,
+      "slug": "firenewt-warrior",
+      "before_sha256": "76b9e582dee12ee8a571222956e069e51f40da61ec152b4ec15bf96af51b1bd0",
+      "after_sha256": "5dcf8f6470166cfdb6f700dc940f5b8e1f73078e6d2ae8187eb9f677ae309e44",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Scimitar",
+          "source_entries_sha256": "94ab3877eb6013deccfbfa1ae2f561c055a19f9d6253e8b8f7ed90add8c9e715",
+          "tags": [
+            "instant{attack:melee, attack:+3, reach:5ft, dmg:1d6+1(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 371,
+      "slug": "flail-snail",
+      "before_sha256": "5e191b1d2df52272a6737bd379f5a2ce60987ce29f087e2514b9a8d5fa79ced6",
+      "after_sha256": "810fc3adb098566473c82fd9c5512e41ca761090bd9fbc62eda915263f25c271",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Flail Tentacle",
+          "source_entries_sha256": "3652b792730f60cf367fb074b855e4c8526bc5470c483238c8e004af7330b8b4",
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:10ft, dmg:1d4+3(concussao)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 379,
+      "slug": "fraz-urbluu",
+      "before_sha256": "253017827adaa2d6f5f463180dcac061741bdb0b3d738f6a9462abb0a5afc36c",
+      "after_sha256": "cfcd518722b143360670c9a802d3d6b25eefc2db0aa77ec4dc9e36ddb9661b2e",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Bite",
+          "source_entries_sha256": "725d42e7a87fdc7fcb310ad42dfea449c6273902bfc656553d4ba24f997144ee",
+          "tags": [
+            "instant{attack:melee, attack:+16, reach:10ft, dmg:3d6+9(energia)}"
+          ]
+        },
+        {
+          "index": 2,
+          "name_en": "Fist",
+          "source_entries_sha256": "7992440396385ebb1adc9c0d31b785247e997d9ad04533798c91336e135b0661",
+          "tags": [
+            "instant{attack:melee, attack:+16, reach:10ft, dmg:3d8+9(energia)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 384,
+      "slug": "frost-salamander",
+      "before_sha256": "0140655f693c6444d7c3662817fa6d62e5cf1eedc6fe3ea8fca1f2960016a558",
+      "after_sha256": "00fc7a440dea24daf30722b75a2b7484cf7821c9393cf69ec632b459023c8ba1",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Claw",
+          "source_entries_sha256": "2b749946b3f0a88f17bd1e45de7349354dc4685d594556ab32f1d12eadab95c0",
+          "tags": [
+            "instant{attack:melee, attack:+9, reach:10ft, dmg:1d6+5(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 388,
+      "slug": "gauth",
+      "before_sha256": "1a2f304ea6bdc098b2e181a96a32b77683965b18ffa588e0ac8ff5a79666ca8c",
+      "after_sha256": "d992f5535229e2e60491c4c6c7ae4c452b9876d0c820169fb16e4aa5f3e47256",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Bite",
+          "source_entries_sha256": "a1a227244aaf4234861d7273fe4df301e1747a816b1956b4a64c6083dfc6b919",
+          "tags": [
+            "instant{attack:melee, attack:+3, reach:5ft, dmg:2d8(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 390,
+      "slug": "gelatinous-cube",
+      "before_sha256": "a9cce5051034bc3daa21aa8c88a8aaadfe743950f4b724b9d281e4d92fbc16d4",
+      "after_sha256": "9f4438a6481d0cb5b98435d97702d0a5d92aa02784cc0c76d69f0918d2b830a7",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Pseudopod",
+          "source_entries_sha256": "159abd20297a1ca861b0b5b6370f618464b553e0cec2b19311ab1bdeda0514e8",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:3d6+2(acido)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 391,
+      "slug": "gem-stalker",
+      "before_sha256": "ced663f3462da5d97660d10011dd41a4d322c91ad3ad3cdaccdeeb6383470377",
+      "after_sha256": "d94a78c4e587b5d1b931a91d72bcaa9ebd2014879a3f9c8f9acc4d61dd5c599e",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Claw",
+          "source_entries_sha256": "4e7a129a08fa639690bf342186bd7230ceed0134bd049c47d863d0b6fb6230fb",
+          "tags": [
+            "instant{attack:melee, attack:+6, reach:5ft, dmg:2d6+3(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 395,
+      "slug": "ghost",
+      "before_sha256": "38c9852789999b62176e83bc1d22b68efd4954bc63c04a5d07656e13b1206317",
+      "after_sha256": "40c2e9a89652c9fee395a5eebe3e6f5e54ebd504edcc985e218d946bfb5a4449",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Withering Touch",
+          "source_entries_sha256": "943128b299fa98ab255af244c74954b36086b5d494e8a7cae1af3e5a722116ea",
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:5ft, dmg:3d10+3(necrotico)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 396,
+      "slug": "ghost-dragon",
+      "before_sha256": "d6c5a68a3d66c73f6c4591c4e3328624d2ca4cbf05ff925962d4914cca06d645",
+      "after_sha256": "42276c23fc4f48828a55981b22456e31ce8d3d7022b2bebd7a55ae0eadf92dce",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Claw",
+          "source_entries_sha256": "9e4af3e356fc28c6614ec283716a99c74ecb09a7713f83388a5028bbe60571f6",
+          "tags": [
+            "instant{attack:melee, attack:+11, reach:5ft, dmg:2d8+5(necrotico)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 398,
+      "slug": "giant-ape",
+      "before_sha256": "d3636fd9e6e6ff5d497a57d8c1bbf130a45be21b994db65199e7e6c41cbe1823",
+      "after_sha256": "b5d366475f7584b1b1de5c2a89e8102fe60eef42f202775cc1e17b32374c7167",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Fist",
+          "source_entries_sha256": "50c30e6abbf75d4bba9a287cd4c8347791f3d0daff45e44b0b415bcd953f0104",
+          "tags": [
+            "instant{attack:melee, attack:+9, reach:10ft, dmg:3d10+6(concussao)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 400,
+      "slug": "giant-badger",
+      "before_sha256": "d27204746cc633a0403a7f4a2bc08690419a309af07e9d8612d408e214620bda",
+      "after_sha256": "eaacaa5636e922d4ca443547be1734e393bbbef9b328fa15a04725570262a04b",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Bite",
+          "source_entries_sha256": "9fb38cd57ab3543479da5ec55d88b92f10671064f07223768d99393b13dbd0dd",
+          "tags": [
+            "instant{attack:melee, attack:+3, reach:5ft, dmg:2d4+1(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 401,
+      "slug": "giant-bat",
+      "before_sha256": "4d9aa3ffd5a314b041d0611d5ba210313a363c4c311618743d2635c3f5f5878e",
+      "after_sha256": "eb50871912be1b9546671ae92bca38e5cd589d40d9cfc5a7426508440e6ac9cc",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Bite",
+          "source_entries_sha256": "bd1637f3c6134affee0c232a6ef01fe3efe8e54d55c4c558e81d891f78a58d53",
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:5ft, dmg:1d6+3(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 403,
+      "slug": "giant-canary",
+      "before_sha256": "daea5ca6e09a41b6d7ba4033cdbe9e06e89c8520359e0436a31ce3858d5a7a3c",
+      "after_sha256": "e037c201b78b9e67f1dcbaab7fb0240ae9d37b4775185a3c6a8b943ba7faab0f",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Peck",
+          "source_entries_sha256": "8bdfb2b3a01c3c9732739274731c6a4f9316420389be8501318f969a364341ba",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:1d10+2(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 405,
+      "slug": "giant-constrictor-snake",
+      "before_sha256": "44db0f84feaf4cd788add096c4f2263961a68934f228dfb2868ffee47fd28234",
+      "after_sha256": "a4c9f695cf7cf7eb2257396edf5a39aec89463123f5a0f00cc8f1e928c71244e",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Bite",
+          "source_entries_sha256": "a833f38b75d267650b7157bf0e29f11997dd313710dfc81fb1a216a270c0bcc0",
+          "tags": [
+            "instant{attack:melee, attack:+6, reach:10ft, dmg:2d6+4(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 413,
+      "slug": "giant-hyena",
+      "before_sha256": "497cfebe8b8713260ef46a7b0f49fbad650235e2d89102c8221585333403c134",
+      "after_sha256": "851d762ba99ce0e4824dad0a6e324c60c9aa4030b187dd7bd0758b83be71d0aa",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Bite",
+          "source_entries_sha256": "de373ce541df89f3e10d118a8bcc13fa2c55c5c52e19384bde2814ae4d2b006d",
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:5ft, dmg:2d6+3(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 414,
+      "slug": "giant-lizard",
+      "before_sha256": "418b88b680d197d2371329c034b23277fbbb14e335b2c278cc5967dd21dc69c7",
+      "after_sha256": "7b77a24fb96ceec1bc9b2393c71225a98e677b5f00102941e0151fbff2da8114",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Bite",
+          "source_entries_sha256": "8b8878ccfe635a718c20ab125be6500b244d7944b428d8c2cefef537d20a755d",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:1d8+2(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 416,
+      "slug": "giant-owl",
+      "before_sha256": "df2de342af11622aeea61adea16298738c3abd88acc742ff8853013488ce73e0",
+      "after_sha256": "499cf0f25251dc0fa14c1dbd444c324fe8da3b10898333d92ef1578abf152bfb",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Talons",
+          "source_entries_sha256": "1674d3cae7f2c78aae6a6bf2af086b0a9da000beb41c987a160300daf2c86446",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:1d10+2(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 422,
+      "slug": "giant-squid",
+      "before_sha256": "a90e594e209b51fb2f85c2cbd50831dbb5dd7445ac0260ee2aafbba5d531a8c4",
+      "after_sha256": "8d8b48fc84252dd8d18c667976c511ac93fcefa1db725c785ebc02b78f4ba715",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Bite",
+          "source_entries_sha256": "7e3713f8f5a15f670f2ea333cb9ff4d9ed670b80ed4f3de488b1e79858569123",
+          "tags": [
+            "instant{attack:melee, attack:+9, reach:5ft, dmg:4d10+6(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 423,
+      "slug": "giant-strider",
+      "before_sha256": "57521dc6de9df96b3541878af662e80eb67238cabb12c142ae6d89e6157fe485",
+      "after_sha256": "4f6692ce0752ee28b2992bfd3efc95c6c870cac721bc18422aa1f961d2858ae3",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Bite",
+          "source_entries_sha256": "4f3c24479429a052106148a00c5215f69cb4bb4c5e868966a3a964422800f078",
+          "tags": [
+            "instant{attack:melee, attack:+6, reach:5ft, dmg:1d8+4(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 428,
+      "slug": "giant-weasel",
+      "before_sha256": "89009c408ef39240984c8d6257b58893ece77cbb78a240300fb5a02f2ddfa40c",
+      "after_sha256": "e3bad47a0c54b2e780a4febbede9547c7f0ce254dacf71feb82213797fb2f397",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Bite",
+          "source_entries_sha256": "b70532cb807a44983fce3fb9421b5289fe985b1e0dfbbc1e4c0a888000400d09",
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:5ft, dmg:1d4+3(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 432,
+      "slug": "girallon",
+      "before_sha256": "df22b7475f436a8f16bb9057ec6f85eed374ce42455456ed484527b6463bca6e",
+      "after_sha256": "3fbb1e2cbe5647ef25f1995f2fa42528474ed1d5beb662b8c46abcf133df808d",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Claw",
+          "source_entries_sha256": "3167eda81593fb31ce13f56709cf0ce8c3b64a4dd50f4541249cf4ddb89e2f25",
+          "tags": [
+            "instant{attack:melee, attack:+6, reach:10ft, dmg:1d6+4(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 447,
+      "slug": "gnoll-fang-of-yeenoghu",
+      "before_sha256": "4bb72d38a3dae7cd4a93eab836dc3943b895584f4ab32fdfb80b2a0cbe4d71ea",
+      "after_sha256": "00d09d8f51d589ae315b9ecda222dda5fbc71027becd0708f4a75e24fc4aa397",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Bone Flail",
+          "source_entries_sha256": "6fcb539f43cef5985510c70d9fec56b46f4b42f36c3a00c55e11f5274d87f8aa",
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:10ft, dmg:1d8+3(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 448,
+      "slug": "gnoll-flesh-gnawer",
+      "before_sha256": "9e9be16dc24003c0a1655968a352b0277f99524df5988ef74a790620e4a8854c",
+      "after_sha256": "ea2aa655cf7ca9a752f9acc0ac1fe91b4237439ab53effd2bff7e71f83b617dc",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Bite",
+          "source_entries_sha256": "6337f6f9edded2a905eb10d244cf9f8d1828b0f3736e69d7ba75154caf4e8800",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:1d4+2(perfurante)}"
+          ]
+        },
+        {
+          "index": 2,
+          "name_en": "Shortsword",
+          "source_entries_sha256": "fc12c40fc4e68bb42933df68a53b860c5a67944d79d935f7340a160e2d3dfc94",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:1d6+2(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 449,
+      "slug": "gnoll-hunter",
+      "before_sha256": "7901e80fcc965960d08ab21433e3bb671cfa4fc762f009dad00436074ddf812f",
+      "after_sha256": "577900b77b0f8db299507c2a159186e87b55c9a63a4c6721cfa297b0d0d558b9",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Bite",
+          "source_entries_sha256": "6337f6f9edded2a905eb10d244cf9f8d1828b0f3736e69d7ba75154caf4e8800",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:1d4+2(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 450,
+      "slug": "gnoll-pack-lord",
+      "before_sha256": "8a911c82ff6ac7cb05d78cb80fdd0e60d1f0334c1e91ae382935a076cb036db3",
+      "after_sha256": "94a1333246dbccbfbae54d869908d6405d58300b68aab67b99398288e13a70b9",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Bone Whip",
+          "source_entries_sha256": "03d5d253c9368163e263eae768756ce6b6a71d729852fe684e35480884bccc8d",
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:10ft, dmg:2d4+3(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 451,
+      "slug": "gnoll-warrior",
+      "before_sha256": "a7408507acf49fb337eac5230a0ffb7e2fe178cca1afc9c2797d69fdb0bc3e33",
+      "after_sha256": "9f8fe080ca0370466359f21fd1b2abc1040a6b31f82384cd37ca5b4a58fe57f4",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Rend",
+          "source_entries_sha256": "275d6125eaa8776a4169f5f4ab701092865ab00c6650767d95484b7562281419",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:1d6+2(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 452,
+      "slug": "gnoll-witherling",
+      "before_sha256": "2092eaca8cb839abcdf63774774cbaf3f43f5468d605fa1ec60e3a84d48b043d",
+      "after_sha256": "c5daa5279a3ecdfd5af429bf843e96e6171c81862cefb17a1ba4eb5b9f13b39b",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Bite",
+          "source_entries_sha256": "2c4a9da1a51d8f016d3875a4ca773e35402dcd7f8cc62d601c1d93927210e6ef",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:1d4+2(necrotico)}"
+          ]
+        },
+        {
+          "index": 2,
+          "name_en": "Spiked Club",
+          "source_entries_sha256": "6337f6f9edded2a905eb10d244cf9f8d1828b0f3736e69d7ba75154caf4e8800",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:1d4+2(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 458,
+      "slug": "gold-dragon-wyrmling",
+      "before_sha256": "41b1e50370814c42bb89737d607493abc38dbb71bdd1c9cb3f5d95875d628c7d",
+      "after_sha256": "cc44d47c520572ad433135490e4d60221d90525b807515ec82e6d58d079aa189",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Rend",
+          "source_entries_sha256": "d6a863ad147f20e677184df92273b571697b645008988d311042a7a628b0adc9",
+          "tags": [
+            "instant{attack:melee, attack:+6, reach:5ft, dmg:1d10+4(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 461,
+      "slug": "goristro",
+      "before_sha256": "44c56ac451ad9c3b1a28c06033bafc25ec29cd15c02f9ae155f54d21147a8d1f",
+      "after_sha256": "18ff42bfeb11c7870ec21a7b61943f34f9e56ffae5351393604dda95d2d42e3d",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Slam",
+          "source_entries_sha256": "d45e8beb2c6be52bc644ea771391a2401b5ade236c8ed6e4c6deeea4eb371345",
+          "tags": [
+            "instant{attack:melee, attack:+13, reach:10ft, dmg:4d10+7(concussao)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 472,
+      "slug": "grell",
+      "before_sha256": "805988eb4903c11ea7b30fce484c941142334c3c8f79ef289dc3f2d1f273852a",
+      "after_sha256": "59df70d6d1e5f5b2b6436cdfbabde56a3de3f31f46ffc10517b2804b3b0a1854",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Beak",
+          "source_entries_sha256": "700d1d32a33e76bc961ce0724b954a39e84d459366482b8dc9324c155844cf25",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:2d8+2(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 473,
+      "slug": "grick",
+      "before_sha256": "8fb14f5f4c64f9a5014541ee8eece5f96c24639984d8f30f024717af12f32621",
+      "after_sha256": "7936dce4ba420bd17b14bb3e5bfcdf2cae0bce9e19c0f430f31b5a23df74bdc3",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Beak",
+          "source_entries_sha256": "3c3ef05c9eba48d74aaab042ca88cc477355994696bfb42567beec4937b7f1a7",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:2d6+2(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 474,
+      "slug": "grick-ancient",
+      "before_sha256": "b7568369eecb77e52f49ea63cd25640a37df403259cfe9572613721d9095a558",
+      "after_sha256": "4717d6e71e5cf9681b75877638a090eed30e6ac2e3aa8817283d3ba421116ccd",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Beak",
+          "source_entries_sha256": "f2861145bcd0b6bd38b187c0b8303b0d54e203eac71b226b37d417252098c675",
+          "tags": [
+            "instant{attack:melee, attack:+7, reach:10ft, dmg:4d8+4(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 481,
+      "slug": "guard-captain",
+      "before_sha256": "89a8757fb2de0e147995ba84edf832d26680bc887110682982b9e068c88f216a",
+      "after_sha256": "83dd73fd67084e7acb473ffeb4b3cf2bb4999042a32fe679dfe4d7c586366951",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Longsword",
+          "source_entries_sha256": "c5447a4aeacb13fab44f38fbd123b16ec3ab529d9a65c7fe1e2968e88a3b518c",
+          "tags": [
+            "instant{attack:melee, attack:+6, reach:5ft, dmg:2d10+4(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 482,
+      "slug": "guard-drake",
+      "before_sha256": "0e8eb16cd866dea655bc1928b5db7c585b6b38b1e5b34527cfef157682625bc9",
+      "after_sha256": "68835cac86f96503027d73c046c7d35decc8902e6639d8a5769fe738a8370002",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Bite",
+          "source_entries_sha256": "0269a1fddfd0f155878e9a2b803d5ec0b9f93ea75ac12d6f2e61a330de60d502",
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:5ft, dmg:1d8+3(perfurante)}"
+          ]
+        },
+        {
+          "index": 2,
+          "name_en": "Tail",
+          "source_entries_sha256": "798ced3b064f2bae73cb08f26563b1a0e6bd51ee7c4f465c964765ee334981e3",
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:5ft, dmg:1d6+3(concussao)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 484,
+      "slug": "gulthias-blight",
+      "before_sha256": "1045ebaeed7f33a55902b7290f619e466c08be786e4c30d9ceee8f49e6e91ef8",
+      "after_sha256": "84262929ba23149e9ea7c8911c6aea529945528e71616856c6901d88ce3871a7",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Slam",
+          "source_entries_sha256": "7e681d0383aeb874062bd4fdb13ab7d265411a9f6ddb82e64a74c033424dae3c",
+          "tags": [
+            "instant{attack:melee, attack:+12, reach:10ft, dmg:4d8+7(concussao)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 485,
+      "slug": "hadrosaurus",
+      "before_sha256": "822a8ff21c4b698e8022107d6b62946757afe62d2fb2f5f599f64f1fd2426787",
+      "after_sha256": "3ecea667b66c1dd33a30a5e596231f7b7978e15d36bf372d4b28d28c35285331",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Tail",
+          "source_entries_sha256": "edcb48270afce5d040a4a19e2dfaef53a451a3f2e780ed18d4354232ae0cca4c",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:1d10+2(concussao)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 487,
+      "slug": "harpy",
+      "before_sha256": "240ef2549d1b3ee599ca083a50de837794a60011312a80c6e08b0184fd9f5eee",
+      "after_sha256": "fb3309938862df1c1d659c50a6df4402f703f9f3fdfc1d4ec7de33e3a4626624",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Claw",
+          "source_entries_sha256": "df26ae254e87c1d2f0bad28a60b06fddef63c97e307e662c58a504dfe21f526e",
+          "tags": [
+            "instant{attack:melee, attack:+3, reach:5ft, dmg:2d4+1(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 495,
+      "slug": "hippogriff",
+      "before_sha256": "5f5ead1c5d8f3dca55fe935de1586237e50ccefa9117c6a9cb6b5a69ece633d6",
+      "after_sha256": "d9a93235f01725f2a6878f57e08cbc88d720f5355ab1799ab624ca028276ade5",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Rend",
+          "source_entries_sha256": "0b9a9da451658e63d03b473c36b76b15862d8618b6740abd6b053020766cbd97",
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:5ft, dmg:1d8+3(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 496,
+      "slug": "hippopotamus",
+      "before_sha256": "b8f06228aef19c9a71569c4deb1e272540e92b8cbe0ce78430b02892c2617bfc",
+      "after_sha256": "2a73780141f0c1a41bb5a23afd2cc5b1f0b628f18ac0d6ae2b3fcdb6035f8789",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Bite",
+          "source_entries_sha256": "f3438e3596506db9196f7053c03db284f874128232cfddb7c4dedf0cc564244a",
+          "tags": [
+            "instant{attack:melee, attack:+7, reach:5ft, dmg:2d10+5(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 501,
+      "slug": "hobgoblin-iron-shadow",
+      "before_sha256": "e1579e57513da550f1448e6e5563e2170a0102e34e58eec615e1abd433d89a7f",
+      "after_sha256": "3bb3f984a5bb90b494cd9ac0d7d3eee718fe31aaef0b0ecb9cec3a220b08d0a8",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Unarmed Strike",
+          "source_entries_sha256": "2145bfb50f2540bd345ad669b0bf84c6d5cf9388ae5488526216f5e89db7d40a",
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:5ft, dmg:1d4+3(concussao)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 502,
+      "slug": "hobgoblin-warlord",
+      "before_sha256": "bb1084d68c9a0d43b8e44f2828dd5e920b483e5d9034e9e7196d3ba3e453f1dc",
+      "after_sha256": "971f866927133632af00bf8fbc0834a53416168764ce6bddfe86730fb58411d5",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Longsword",
+          "source_entries_sha256": "22da955f48c0468c6289c2b5f4c8dc03fe466dd2d728c63acdd8c94ebddee662",
+          "tags": [
+            "instant{attack:melee, attack:+6, reach:5ft, dmg:2d8+3(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 503,
+      "slug": "hobgoblin-warrior",
+      "before_sha256": "c4c4e58d93e75f6f8469fb69a67a4a0a871ed150e51932952b164dadf0ec1a6f",
+      "after_sha256": "0674976973d5a1390221dfb44afb83eafb0f200bdfe4bdf10d1b06cb49d783de",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Longsword",
+          "source_entries_sha256": "0b3371018a5d2e1acd1b8a0017f08e01b0218d97ac8e1c2e870bb73e061caf3a",
+          "tags": [
+            "instant{attack:melee, attack:+3, reach:5ft, dmg:2d10+1(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 504,
+      "slug": "hollow-dragon",
+      "before_sha256": "a8dd35ea313713f86fcf2d5f2338f72a524f676b4369c884a1d5514448b51bc1",
+      "after_sha256": "af559494e81baf181c4d159c0b3a5d1eba536efeabcc93f9ae2f52058e22370b",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Claw",
+          "source_entries_sha256": "1b2fd50fd15a62276b737da370828d34e534e3e083c8d74c472bdb78d0acae57",
+          "tags": [
+            "instant{attack:melee, attack:+12, reach:5ft, dmg:2d6+6(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 511,
+      "slug": "hutijin",
+      "before_sha256": "df4de8f736ed8410c5610e09895383c0956d523da38440ae56f314f8e9e28fab",
+      "after_sha256": "7ac0a5744ee1e6dd6938dca25a31f89b03e90a288d9f494c5be542bf61e17d95",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Claw",
+          "source_entries_sha256": "0b50f972ccce55590e8c5840df013c44c2a122a10a91d091a711f9ef63e73a3c",
+          "tags": [
+            "instant{attack:melee, attack:+15, reach:10ft, dmg:2d8+8(frio)}"
+          ]
+        },
+        {
+          "index": 3,
+          "name_en": "Mace",
+          "source_entries_sha256": "f4922825728aac83c00928d3a04a10e0e467a54ed5168819705e9df839526f25",
+          "tags": [
+            "instant{attack:melee, attack:+15, reach:5ft, dmg:2d6+8(energia)}"
+          ]
+        },
+        {
+          "index": 5,
+          "name_en": "Tail",
+          "source_entries_sha256": "f1c7e202c94c18a4abd35b76f97ec7ce130e7fcc6e4df5041ae968da29a3a74e",
+          "tags": [
+            "instant{attack:melee, attack:+15, reach:10ft, dmg:2d10+8(trovao)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 512,
+      "slug": "hydra",
+      "before_sha256": "87d79d221bda51613f4080ae25c0c342a9c22cf66ca2cbc1bcd624264a874d1d",
+      "after_sha256": "357434a836ddf198b9c37155d98517244c9267dba516f4c66c4a816e612fb08f",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Bite",
+          "source_entries_sha256": "3e4b201df4ec864c002cef485259ffbd08c23128e193e6a7f70b61a152253937",
+          "tags": [
+            "instant{attack:melee, attack:+8, reach:10ft, dmg:1d10+5(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 514,
+      "slug": "hyena",
+      "before_sha256": "c17a2734724cd4fc0748819355378dbe948e11b5266062007308c9a97c112d42",
+      "after_sha256": "f74d65290ed6b679a8173df39371428ba0ca71e6a2e7c1ddfd3278a78228449a",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Bite",
+          "source_entries_sha256": "e62b6a7e93a9edc094e7567651a20a9a2a35b05de2e49d258bf3840aa53b1cef",
+          "tags": [
+            "instant{attack:melee, attack:+2, reach:5ft, dmg:1d6(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 521,
+      "slug": "intellect-devourer",
+      "before_sha256": "2656431f0da6e42c88bc230c684aa08a05a6cf10a7264c17905f0e2a378b40c9",
+      "after_sha256": "283eb7a00f17fa0ef17c62b2f14db17e16469078eaaee07ddeee733002ef9642",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Claw",
+          "source_entries_sha256": "ad250bf6f4d1394f8f0d396cc8c7bba3fc7436557a0238234a7e3a2d0056bde8",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:2d4+2(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 522,
+      "slug": "invisible-stalker",
+      "before_sha256": "d838ba84f92c3ee9ce5b68fa7332df51cc0c91de12de34311a0fb1e3812cec21",
+      "after_sha256": "4e06e05c502e6f4fcd7b34ffeb60dcf3563d385fa34d28d411c3ceac469a5bd9",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Wind Swipe",
+          "source_entries_sha256": "e1290c6dbf8cbdc745429eaf9896d0df1e75126e6ee6c8d453514d024f09aa7c",
+          "tags": [
+            "instant{attack:melee, attack:+7, reach:5ft, dmg:2d6+4(energia)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 529,
+      "slug": "ki-rin",
+      "before_sha256": "e08cad1c4676fbd1c1479df5b519e6c4ad52b5d439751e7e04e8f7a1d97eced2",
+      "after_sha256": "510a9348edbd54384b8be9bd91c12df981fe221bd71c1b1ecc367da9bb573bb9",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Hoof",
+          "source_entries_sha256": "85edc41bba3d0ae07dae4c8ddb3f0481d5149c33ac200fb33a557ebb075b03fa",
+          "tags": [
+            "instant{attack:melee, attack:+9, reach:15ft, dmg:2d4+5(energia)}"
+          ]
+        },
+        {
+          "index": 2,
+          "name_en": "Horn",
+          "source_entries_sha256": "04a9177e37be60462f1b1e32339573a50d48afed5dc11f648b0e397d4033a309",
+          "tags": [
+            "instant{attack:melee, attack:+9, reach:5ft, dmg:2d8+5(radiante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 530,
+      "slug": "killer-whale",
+      "before_sha256": "1e8d66af9f7849bfd187c9ec1f1b4b6fbc5ef0911a361e0c6e9841b8edb850d0",
+      "after_sha256": "27b97940dab0c883c73bf663ed555fc9eed794cf39b710287c1b30f6a08924f4",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Bite",
+          "source_entries_sha256": "8a03e0d6d6157b4e582b280de58de503d2e443a803db5e8905e99ac6823bb23b",
+          "tags": [
+            "instant{attack:melee, attack:+6, reach:5ft, dmg:5d6+4(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 539,
+      "slug": "kruthik-hive-lord",
+      "before_sha256": "be44b193a4bc62dffdb53b698fd5eeeef069b1bac96f292a9ff35e16976c3e96",
+      "after_sha256": "143b45f0a4af50fb709c2335a7d7beba754f5741209c36b827aed637c04205b7",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Stab",
+          "source_entries_sha256": "05323fd071e3aa34bf482bd9b44faab81730d47873cd5fb4533705d4566617b2",
+          "tags": [
+            "instant{attack:melee, attack:+7, reach:10ft, dmg:1d10+4(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 547,
+      "slug": "lemure",
+      "before_sha256": "7baeda51a23796dcd9b1c12a960b1a744cbdb6d97c761bae8da85d61d99fc9bd",
+      "after_sha256": "9e13f2035d1ea34c2d7ea5754e24852be65435a4e71317b43f914e37680d3920",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Vile Slime",
+          "source_entries_sha256": "2abdef7cd9912693306c1a6591cc275eb947007f656c92bc08958844bfd7bbce",
+          "tags": [
+            "instant{attack:melee, attack:+2, reach:5ft, dmg:1d4(veneno)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 548,
+      "slug": "leucrotta",
+      "before_sha256": "5c0eca6584ab17067c169d689ae840d534a29258bd6224ec666f9a1cd7ccde1f",
+      "after_sha256": "497af8aa4c72273489da069d948da2df86661edc8c518fac06cc60b514872667",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Hooves",
+          "source_entries_sha256": "d793044bc10fac2ed7eb3a12c99ed9eaa5f879f6c3464284e1f12947a7b4f1bc",
+          "tags": [
+            "instant{attack:melee, attack:+6, reach:5ft, dmg:2d6+4(concussao)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 551,
+      "slug": "lion",
+      "before_sha256": "09f0840ff1d14d1c1b50633e97a9fa3402260306e502c4c95bff7e4bc7f63427",
+      "after_sha256": "ae4dba9f6cc63abba93dac85198f463e67a6b7987f8cbd943c0c241a83ddb6e7",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Rend",
+          "source_entries_sha256": "0b9a9da451658e63d03b473c36b76b15862d8618b6740abd6b053020766cbd97",
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:5ft, dmg:1d8+3(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 552,
+      "slug": "liondrake",
+      "before_sha256": "51596842b51e03b483fc429f6491afe9d73032b5be29c1388663e5c3ad0c78ce",
+      "after_sha256": "480daca8fc1d083eb898ae597711cf55b396fa658dbc11d83d2087edf81efbad",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Claw",
+          "source_entries_sha256": "cd4eb15382e74a2b92648ae3e82450fa74b9f318fedcc67fb98f7892fcd97c5c",
+          "tags": [
+            "instant{attack:melee, attack:+7, reach:5ft, dmg:2d6+4(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 557,
+      "slug": "lost-sorrowsworn",
+      "before_sha256": "2278a1d667385ab5db08ac47bfad4d64eb4f0e7a9f0dd77d766acb8e036be8b2",
+      "after_sha256": "e94071a4f4f63d07da063843307b2e2b9103fe9a52665a48736b431da642b9b8",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Arm Spike",
+          "source_entries_sha256": "a4a594b39add81bfef989748cf6e31f1ec1b3cf65732b1a55b896a5bb945cf60",
+          "tags": [
+            "instant{attack:melee, attack:+6, reach:10ft, dmg:2d10+3(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 564,
+      "slug": "manes",
+      "before_sha256": "c60e244bddb4f93b0c6e4eb547fce47359750d049921ac393365c7ce1ffb8c79",
+      "after_sha256": "36f8a95270d01931d151f51be93ef3ffeb24a1274043a38099552ea283152cd2",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Claw",
+          "source_entries_sha256": "bd2a7a675e39c3395aeef20818191bb42f869978ab3de740b5ea80bec4e2c735",
+          "tags": [
+            "instant{attack:melee, attack:+2, reach:5ft, dmg:2d4(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 566,
+      "slug": "manticore",
+      "before_sha256": "18e1fdc430954202662fa34a30dfcaa403be8ae88a0ebc92c985988bf0ed0bc5",
+      "after_sha256": "3f6feca99f8e253dfba8a1cd0b44f2cd5ce890436c92eef476a2be6595100604",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Rend",
+          "source_entries_sha256": "0b9a9da451658e63d03b473c36b76b15862d8618b6740abd6b053020766cbd97",
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:5ft, dmg:1d8+3(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 574,
+      "slug": "maw-demon",
+      "before_sha256": "e225a528e38a2410774f03ce8b1955d4d7ac6f4f4f216d002b4e5707bd48534f",
+      "after_sha256": "2549c82a6300db413fca79a09bde7a38c2480bdfbcddb1953bec6056ab57e503",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Bite",
+          "source_entries_sha256": "4cc44108d32dcc0d4e549201a7484f9db69487078c35f569dca12cda7e2d5437",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:2d8+2(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 576,
+      "slug": "medusa",
+      "before_sha256": "c68ff6bcdf50c928b9f3d1f07d7db6b04926184e858fe9afed7f705d25366308",
+      "after_sha256": "80ebf85321ac91960a02ae944f823490e5a2ef679770b64ccc50e84cc8a37d2e",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Claw",
+          "source_entries_sha256": "38e777d62ce1bc9a460b337922d6ff1d01f628f3c1104e7e4bde107313ff1e50",
+          "tags": [
+            "instant{attack:melee, attack:+6, reach:5ft, dmg:2d6+3(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 580,
+      "slug": "merregon",
+      "before_sha256": "a7465a602fdcbccf4e5305a886790361399d53243a6fe28b70092f52e67301fb",
+      "after_sha256": "37cee93dff73eba8958dbbd946512d5a2bd3d7839f4948faabe7a6cf32e8c4dc",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Halberd",
+          "source_entries_sha256": "88d23cb3ef5168aa780c37d95f960702ee83ffa3c0eba800e89de19ebc26b318",
+          "tags": [
+            "instant{attack:melee, attack:+6, reach:10ft, dmg:1d10+4(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 581,
+      "slug": "merrenoloth",
+      "before_sha256": "98d492f40b389b527138f9fe4703cb92b3291d14bcd3305b0754cb8ad3b9a02a",
+      "after_sha256": "1d0a5c3151e7ca63ff6769e69c1dde3a17d440aefa279ab9a3742397a9877f06",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Oar",
+          "source_entries_sha256": "0be6c2c8f811c7405a17c91b5849519a2107184078fa3dca631fb4c346224040",
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:5ft, dmg:2d4+3(fogo)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 582,
+      "slug": "merrow",
+      "before_sha256": "8a5e94d49e7e113f390923124d634e326beacc8e207446051d49614ac4245752",
+      "after_sha256": "09508ca542ad925052769c9bf8234e39497cb860b7cce55e61d2af3c922c63c1",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Claw",
+          "source_entries_sha256": "5ea278f5803cf26d77036aab98caba81887cf9f7670adf70eb5d3ad3a6191276",
+          "tags": [
+            "instant{attack:melee, attack:+6, reach:5ft, dmg:2d4+4(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 583,
+      "slug": "metallic-peacekeeper",
+      "before_sha256": "ff06f6e7218a407926676f03fafa319e72d55a07753268393afc41dcaa40927a",
+      "after_sha256": "97dd3b5d583d1bfd0ed7d5a67929253c61fa0cad17b4ae2782cfbeb519013155",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Slam",
+          "source_entries_sha256": "72eba6c1e1451dbff83233a36fb5b3c14a49c469dfa0b1ab8f4651646ffeb1cf",
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:5ft, dmg:3d8+3(concussao)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 584,
+      "slug": "metallic-warbler",
+      "before_sha256": "bfa02bf9df344b77d7975910f901e504f2748b2bd2fe81081cdb82271ccc2381",
+      "after_sha256": "a4c8e0e48ab0839c0152a939d60721015dbec81a22edfdd2a916fb18c13adfb9",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Claw",
+          "source_entries_sha256": "760d66f2f1cc4f84ba12a9ce15840f06f5348a77fe04f0813bf9eaaf6da89ce0",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:1d4+2(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 590,
+      "slug": "mindwitness",
+      "before_sha256": "236cd0157d2b9d92219043941f1642ce347c6c1c5236605cfef9a3eb0c48a2fc",
+      "after_sha256": "3e1b193cc0f2bfbf54d4883c4718f7dafa53982abd561640334192d7adfac4a8",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Bite",
+          "source_entries_sha256": "d77771845b3f4a7979335e7776d5342dd6453c3d255e61d69d334c95008b5f9c",
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:5ft, dmg:4d6+2(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 591,
+      "slug": "minotaur-skeleton",
+      "before_sha256": "f4cf6b708e6c9fac8cb2b233ff9064b5dedea29cbcfdfccd5db002340b5f4f2a",
+      "after_sha256": "03603043974dce9dc3e5855a4452d452146153735df021e12442e5dd17771b39",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Slam",
+          "source_entries_sha256": "5d00b7a0eb649e9f80bb41db08459cdf9266ad86b9ef508e4b85aadb55911bfe",
+          "tags": [
+            "instant{attack:melee, attack:+6, reach:5ft, dmg:2d10+4(concussao)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 594,
+      "slug": "modron-monodrone",
+      "before_sha256": "beffcc05d3d8f8232aa81a1dab957ea2fea3a624faa1667028628ea67555d167",
+      "after_sha256": "6bc4161be9be46abd6db23ad92264e2c8ac856d223e30326e5649154c71f7b5f",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Gear",
+          "source_entries_sha256": "55adab677748a2f304f7ba289e25af4c38cf451b2349ec0ae870a14feaa443be",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:1d8+2(energia)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 595,
+      "slug": "modron-pentadrone",
+      "before_sha256": "d09fc6d96e26e5f0cd16937a5ddac375d3f2fed2a96aa499dedc063080ddbb8b",
+      "after_sha256": "24b7964746a54a0095d5b8521bfd0bd7a2444e8fa9887af8a3e92e3d7bf68d54",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Slam",
+          "source_entries_sha256": "cbd67dcb608ab6cfab76cec51b3544706cd4ba2fe3b6d8f4b17826aaa289b28a",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:1d6+2(energia)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 596,
+      "slug": "modron-quadrone",
+      "before_sha256": "9ce53af107552ee1d7f75eab7ecb5d559505848fb599660ee2d7068077600f0b",
+      "after_sha256": "ba0abb6d235271c92f85f670215e29a7013390cc2f8baa24b1c674a4ca9c83af",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Slam",
+          "source_entries_sha256": "7d4f56b201bfbc2813a828c3962d606fa15f87daa84a311d05da8bafaa81bc2b",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:1d4+2(energia)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 598,
+      "slug": "moloch",
+      "before_sha256": "ccae85b685f4cb14ec3bb8b1d6910e84850acbe21a1e659c5bdfb6a612f2fc6f",
+      "after_sha256": "a5566101b266d5c41ef053caccbbf959c9a4d10398850a79e8ba9d065cf9b44e",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Bite",
+          "source_entries_sha256": "5e1357d7fe1022e907a76e8ee3d643a00824ac14060a57ada52f6efdd5073809",
+          "tags": [
+            "instant{attack:melee, attack:+15, reach:5ft, dmg:4d8+8(fogo)}"
+          ]
+        },
+        {
+          "index": 2,
+          "name_en": "Claw",
+          "source_entries_sha256": "2ab2c4f22837c8f2fe74445c016c86b6f6899b627f148b3f8442796cdd61c68f",
+          "tags": [
+            "instant{attack:melee, attack:+15, reach:10ft, dmg:2d8+8(energia)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 599,
+      "slug": "molydeus",
+      "before_sha256": "ee2fb0170443d888d1e7c216b9bd3ad80edf23b58580979bc1e1548477edee80",
+      "after_sha256": "36dc27fe00a8621354e858d97c5e40201bb69d764bac507fd24ffcf0d6e10a98",
+      "features": [
+        {
+          "index": 4,
+          "name_en": "Wolf Bite",
+          "source_entries_sha256": "2c1d3870a48849e0d1e940cbfb7eb1b48419c03d6c3f43eca2be32eb164cc239",
+          "tags": [
+            "instant{attack:melee, attack:+16, reach:10ft, dmg:3d10+9(necrotico)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 602,
+      "slug": "mouth-of-grolantor",
+      "before_sha256": "510b798f00fce63a6cde474090ccac0afde3cbbb0ee2a78b57028229100c0627",
+      "after_sha256": "d5887a74cc91ed3216ef6a785325feaaf1b55e5089cc68941bd251c913e60bd3",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Fist",
+          "source_entries_sha256": "cf42a986488d1fb4bb71531c9b2d16d4056737d8656667556b39277c381df931",
+          "tags": [
+            "instant{attack:melee, attack:+8, reach:10ft, dmg:3d8+5(concussao)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 603,
+      "slug": "mud-mephit",
+      "before_sha256": "e972b64d31e086b8e7e448c6b73aa1102af785bf00a4a73732c340daae8cbc29",
+      "after_sha256": "e6d107bd0a8fe39e199adcf2aec15cd8cc5b587fafe2fb067907d5da93ff5e22",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Slam",
+          "source_entries_sha256": "682a2b98dabbbac4923bdfe248717f1123b6549097ddda8901bb63fc5f37f490",
+          "tags": [
+            "instant{attack:melee, attack:+3, reach:5ft, dmg:1d6+1(concussao)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 604,
+      "slug": "mule",
+      "before_sha256": "b28d135fa8cee237e6ffc368a12e4e82437fb90bc7eaf743b29436af32327283",
+      "after_sha256": "31becfa8e5946ac0708da1f6373e3b05cb6fcaba421ff5ccdf8fc5cd7c854ca5",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Hooves",
+          "source_entries_sha256": "81c4568a8101a72a17110de410cc7f6828cc57e4d2b5d32a807d529dfcea6797",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:1d4+2(concussao)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 611,
+      "slug": "nabassu",
+      "before_sha256": "5fedbde7778c77dbdd6c43e8f9e5a1470bae2b1073ad8ea6545479813b8feb33",
+      "after_sha256": "168e52e62e9b372be76f4e7ddb9580493b9d0f2f06c702e9168453c0768bcd21",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Bite",
+          "source_entries_sha256": "0f209e833c2db58e1702ce7c76506a70cd520c01aa0b7860da2a422ab1bc5b63",
+          "tags": [
+            "instant{attack:melee, attack:+11, reach:5ft, dmg:5d12+6(necrotico)}"
+          ]
+        },
+        {
+          "index": 2,
+          "name_en": "Claw",
+          "source_entries_sha256": "17cbc9b6a20265d2cd4b6a24896facdfee25b7d6c14ac37e6127fbfd27178bba",
+          "tags": [
+            "instant{attack:melee, attack:+11, reach:5ft, dmg:4d10+6(energia)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 616,
+      "slug": "needle-blight",
+      "before_sha256": "f78ce800b081a993cf1ebe8ef1cdf7700be0cbde1e9cbc120819663883b02b11",
+      "after_sha256": "076d2cb06b67ba287c55f0883e2f6865e1823b309c946488cf5c8573a15b3061",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Claw",
+          "source_entries_sha256": "df26ae254e87c1d2f0bad28a60b06fddef63c97e307e662c58a504dfe21f526e",
+          "tags": [
+            "instant{attack:melee, attack:+3, reach:5ft, dmg:2d4+1(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 617,
+      "slug": "neogi",
+      "before_sha256": "73ce9921cf160ecf88db647d8c7967d99d8e43d60b05f559af9930abe10249b5",
+      "after_sha256": "06d1e4e780fe4611febcc056884c0bd0f2f465af8f8a494511af7f247424022d",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Claw",
+          "source_entries_sha256": "7cd2f6a0879d8b60fefcbe5f604c3124377ecf97eda28a4ede5840065514b0a2",
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:5ft, dmg:2d4+3(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 619,
+      "slug": "neogi-master",
+      "before_sha256": "863dbd5ab0f259634847ad77a919d846fa75df62cdc826ebc3dc8d005064ea59",
+      "after_sha256": "854076ca502ca3016e8a1a35b9b5430a3787ed9902806f509eeb54ce9ab2c4d1",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Claw",
+          "source_entries_sha256": "4c78300ca91802a8d579bde5763488588c57b31d34ae1b2f04398bb511dd2c43",
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:5ft, dmg:2d4+3(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 621,
+      "slug": "night-hag",
+      "before_sha256": "b1f834b4ebfe93a6a0cc9eaf16c3ccb76495235b69e6af6eb345c14cbf0f04e2",
+      "after_sha256": "3f79691e4f8911a995b801fa937f9d94bdb172e2c42181bdaa8a2fa0a651346c",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Claw",
+          "source_entries_sha256": "20274357d7a9419ff72552a7edced645a4bbde4a5f8fe1f9c1d2126e61a4c4bc",
+          "tags": [
+            "instant{attack:melee, attack:+7, reach:5ft, dmg:2d8+4(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 624,
+      "slug": "nilbog",
+      "before_sha256": "e173054d2530f64db4c6da7961b9856562348d6d6eead2941d6d9b69e6efafe1",
+      "after_sha256": "34210ba3d134c84c9028ddfb1158a3a532e9d67cb220eddfaefea94b4fe38525",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Fool's Scepter",
+          "source_entries_sha256": "39c9b87588465ad109188410417eb489f82d2b3a356ed3913efd3e9ae23c779b",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:1d6+2(concussao)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 625,
+      "slug": "noble",
+      "before_sha256": "78d000330c4f26a439655dfcbc219b698d18d5c95a0246e08edf2888ac9ddbb7",
+      "after_sha256": "30d93bfa0e0c4ba827e2e6fd310c85db3dec751a7354884e3328d96fc67348a8",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Rapier",
+          "source_entries_sha256": "455cd5de2cf292fb837f461bf8e2d5da2661868f822b6215f06568ca0d6411ff",
+          "tags": [
+            "instant{attack:melee, attack:+3, reach:5ft, dmg:1d8+1(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 627,
+      "slug": "nothic",
+      "before_sha256": "7d48b0c0809fe4647ef5086a0365ea40e53795091044bd36e60f39ee552328b0",
+      "after_sha256": "4a1b23878d2d516c81a67e7cc8046f7539ea87e7fea8f376aeb9778ca6f0c047",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Claw",
+          "source_entries_sha256": "6e86df835ae1cee1387ac781764f2e7d079637c60f0218f4cd91983846903423",
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:5ft, dmg:1d10+3(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 628,
+      "slug": "nupperibo",
+      "before_sha256": "40c2bfb67f68379de6f8a812cceafb2d82871ccfc05e93c687347fc4b0bd69d9",
+      "after_sha256": "4e7dcd2e643d5f0e51867d4d9514a8a433c2850ebe631a436764f68d03c5aca9",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Bite",
+          "source_entries_sha256": "1d5ba72a95e9d16443599b68e629ff16fd8a94a7a8bf4b41521c0cdfe7c01498",
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:5ft, dmg:1d6+3(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 631,
+      "slug": "ochre-jelly",
+      "before_sha256": "82c5fce99eb158e42bd93395f9d3688dc59c39bac11cb5db569350c8ba2b2854",
+      "after_sha256": "8b2de946d9328c8beb5fd4687a9f71d1b317f5890870de628d10d98b5e4b0998",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Pseudopod",
+          "source_entries_sha256": "159abd20297a1ca861b0b5b6370f618464b553e0cec2b19311ab1bdeda0514e8",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:3d6+2(acido)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 633,
+      "slug": "ogre",
+      "before_sha256": "36e4aaf223f23499120a0b569ff2c697d20a91bb484fee7da686a6c6f312cf2d",
+      "after_sha256": "523a031eff92cd9774c89a3a6d4c4e46e8cf44701ebba4c35affc1f58090e118",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Greatclub",
+          "source_entries_sha256": "409f0d295b92f96a631d8fe7a48fa929bb82cdffb8f3ec41e23d3b12a83a3173",
+          "tags": [
+            "instant{attack:melee, attack:+6, reach:5ft, dmg:2d8+4(concussao)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 635,
+      "slug": "ogre-bolt-launcher",
+      "before_sha256": "03b9a95a972df637bdaec38c0ee0edb8302028716c23641f6eccc76eaaecbf91",
+      "after_sha256": "43c8b571798cae861cefc8938b6a1f4ff6ea5047a15f5be6b9ea2cdd985c6f89",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Fist",
+          "source_entries_sha256": "52e5980c79b1a1d7572908539b3504db0b5f0779719796cd4ce18ceac260d629",
+          "tags": [
+            "instant{attack:melee, attack:+6, reach:5ft, dmg:2d4+4(concussao)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 636,
+      "slug": "ogre-chain-brute",
+      "before_sha256": "ad8e411a8df8df3debd5b988afc4a8664d2bf63d7df53b073f0aae055d9af517",
+      "after_sha256": "5d12846e1ce4b2f2ba22bf1b310d65787e707ab5d634c7ea7c8a2d692dc88f24",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Fist",
+          "source_entries_sha256": "52e5980c79b1a1d7572908539b3504db0b5f0779719796cd4ce18ceac260d629",
+          "tags": [
+            "instant{attack:melee, attack:+6, reach:5ft, dmg:2d4+4(concussao)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 637,
+      "slug": "ogre-howdah",
+      "before_sha256": "495b41fd38b8402e06845159ffb5f9acafe8cf85e1ff3da9a1c4439804e8ee45",
+      "after_sha256": "e4d6aa0cf8202cd4a31bf85d6d07c685db6f5af0e218ba0cc556fb111a8b2959",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Mace",
+          "source_entries_sha256": "d793044bc10fac2ed7eb3a12c99ed9eaa5f879f6c3464284e1f12947a7b4f1bc",
+          "tags": [
+            "instant{attack:melee, attack:+6, reach:5ft, dmg:2d6+4(concussao)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 638,
+      "slug": "ogre-zombie",
+      "before_sha256": "ed4a76a9c7d9477fbe9e8de67ced1f2ee4b2a69714fda040a1b79ab800900670",
+      "after_sha256": "8c69c62331a54ae8700cb3ca394f30167f0a10354f18d9581740d040c29ba142",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Slam",
+          "source_entries_sha256": "409f0d295b92f96a631d8fe7a48fa929bb82cdffb8f3ec41e23d3b12a83a3173",
+          "tags": [
+            "instant{attack:melee, attack:+6, reach:5ft, dmg:2d8+4(concussao)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 639,
+      "slug": "ogrillon-ogre",
+      "before_sha256": "c9f77690f9b24e5413c36a258a968caab38d40332234ebe35b2e7fa3f06ddf59",
+      "after_sha256": "4d3bf4060e7491bb5baf34e890ea273b2c15f15692148a4c26ac95c320662cc3",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Battleaxe",
+          "source_entries_sha256": "0b9a9da451658e63d03b473c36b76b15862d8618b6740abd6b053020766cbd97",
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:5ft, dmg:1d8+3(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 643,
+      "slug": "orc-claw-of-luthic",
+      "before_sha256": "211b688535630e12ac207ffaa2b10070e9800bd1f10eadf288fb9c20b48a2935",
+      "after_sha256": "a17a7725eb38ed597e515fc6f9576a4c46c8abd159ce99d6d6b7708fdd61876d",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Claw",
+          "source_entries_sha256": "00c154307fa2757c1cb92132b85c81b41fc32be4800cd2d234b30d0245f3c012",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:1d8+2(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 644,
+      "slug": "orc-hand-of-yurtrus",
+      "before_sha256": "327f37a77f59f66a7fa85ef7979358e6099cd9cd578a8b133f1287d6b409f8e3",
+      "after_sha256": "30a70ce48c1050ae6d8262820c3198d4468ae1a7261200da83e2b04f3880b494",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Touch of the White Hand",
+          "source_entries_sha256": "d3576fa8b90d24a9d283f34764384ecd7429cef0a8553a615b9cbdce3ccdcb79",
+          "tags": [
+            "instant{attack:melee, attack:+3, reach:5ft, dmg:2d8(necrotico)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 646,
+      "slug": "orc-red-fang-of-shargaas",
+      "before_sha256": "f078204525ebe2a7dfd39337b7a9ad9d9882cd5cf0b899886cf9b15edbee458d",
+      "after_sha256": "d4fc14616028439dcf3857f0d3a31443e509beff945e33f1b1c0faed73c3acc9",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Scimitar",
+          "source_entries_sha256": "9005229b13601894439fee3da5699dfcf7de8a5ead6ede27f663ba3d31d9b45f",
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:5ft, dmg:3d6+3(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 651,
+      "slug": "owlbear",
+      "before_sha256": "8328e314aaa175523d34aeb1c0b71d8f84fdc9d09ec6cf5d875e5ffa30f6fcb9",
+      "after_sha256": "bcfac7abfa793fd2fd3882599c8066d02bde6481be696cbf5d2bcc4eb8427586",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Rend",
+          "source_entries_sha256": "b7a613bc65798577354e0c32b5246c550b675357155b2431037598ebc438c61c",
+          "tags": [
+            "instant{attack:melee, attack:+7, reach:5ft, dmg:2d8+5(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 653,
+      "slug": "panther",
+      "before_sha256": "9e8b45a8d86183d07823d2d7853f43aa984be02a45baf34fa5e716d26d95de3d",
+      "after_sha256": "e9d40dfd009e9fe04a1052018bb69521adfc2f8e585f5ef95d6a3367ec810a9c",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Rend",
+          "source_entries_sha256": "4be6d59179e86a485c64e2dbd8cdade6baa908a9153e7cd18480022707ea7e17",
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:5ft, dmg:1d6+3(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 655,
+      "slug": "performer",
+      "before_sha256": "17bc3592894258b9ff563c13a2272d604ff4bc44c3855a2c2d27c71c2180be65",
+      "after_sha256": "211487c88c815cc52e593dd9ae49e23707a299fe609383bb2f0c0ced064223d3",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Shortsword",
+          "source_entries_sha256": "bd1637f3c6134affee0c232a6ef01fe3efe8e54d55c4c558e81d891f78a58d53",
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:5ft, dmg:1d6+3(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 660,
+      "slug": "phoenix",
+      "before_sha256": "2f23a0bdc9590816309aff2e3e5c03198f8325f6bdca98ee68429affa7bb81e5",
+      "after_sha256": "09d10d37ec3e4ef93b729858d2b68e6a23a1e7ddf014eebc2aebacbcb17ad9d5",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Beak",
+          "source_entries_sha256": "279ef420335228fa77ed5ca0e61cbb4ced0c5b51e5518b50c17b5896e55ddb9c",
+          "tags": [
+            "instant{attack:melee, attack:+13, reach:15ft, dmg:2d6+8(fogo)}"
+          ]
+        },
+        {
+          "index": 2,
+          "name_en": "Fiery Talons",
+          "source_entries_sha256": "22c0d93fd796006521793a9739889f617186f7e6e7b4a654dfbbcc1746980cf9",
+          "tags": [
+            "instant{attack:melee, attack:+13, reach:15ft, dmg:2d8+8(fogo)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 661,
+      "slug": "piercer",
+      "before_sha256": "95cedd3749804e843bf592bb9fed068eca388fff917aa4b6048933d406ba9915",
+      "after_sha256": "7e1efb472245e4ca86632bfa18773ccfca0e9496fd41f39acf183ea0657eadf4",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Bite",
+          "source_entries_sha256": "455cd5de2cf292fb837f461bf8e2d5da2661868f822b6215f06568ca0d6411ff",
+          "tags": [
+            "instant{attack:melee, attack:+3, reach:5ft, dmg:1d8+1(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 666,
+      "slug": "pit-fiend",
+      "before_sha256": "e8c76117a34d94987ce0e92c06739089fb8717b52aeb55d47c0ab5413ddccb28",
+      "after_sha256": "ef8660ce5a65d1f083787bab5b3a12f13ddbe9451ccb0e6120a2ed62d21719fd",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Devilish Claw",
+          "source_entries_sha256": "7678c30ed8a85f274c410a1dec50dfb0f9b6518cc41224a53f818eb59bdc08e9",
+          "tags": [
+            "instant{attack:melee, attack:+14, reach:10ft, dmg:4d8+8(necrotico)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 670,
+      "slug": "plesiosaurus",
+      "before_sha256": "7968a2c393a8c9ea3fa43bedac076396314444ddc75befbb58eddb2efe6561f2",
+      "after_sha256": "fe4f0a003e9a88a24b454910b3e0d323f6087181c3ab7798dbef333a0c104a19",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Bite",
+          "source_entries_sha256": "a833f38b75d267650b7157bf0e29f11997dd313710dfc81fb1a216a270c0bcc0",
+          "tags": [
+            "instant{attack:melee, attack:+6, reach:10ft, dmg:2d6+4(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 671,
+      "slug": "polar-bear",
+      "before_sha256": "9318acc75997634dbeaa44729f6c56ed8e5960b678629e21bed83c57ae2506d0",
+      "after_sha256": "cb885b2027799c579892248d1d1965e43131d8a145c1c26ef8a82649c87e6dc1",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Rend",
+          "source_entries_sha256": "e9c5d868cab6bd2b74fdc7702176575c50c4bb20544c8ded10650ac3babdb502",
+          "tags": [
+            "instant{attack:melee, attack:+7, reach:5ft, dmg:1d8+5(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 673,
+      "slug": "pony",
+      "before_sha256": "2a9254c6c3fc7b8b5894900134a147bd06ca3007e6cb04afc74c68607c1f1923",
+      "after_sha256": "8d162c52bcbd4c5baecc00fae79ba882620b82832a80b7b1defda91dee1c7189",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Hooves",
+          "source_entries_sha256": "81c4568a8101a72a17110de410cc7f6828cc57e4d2b5d32a807d529dfcea6797",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:1d4+2(concussao)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 677,
+      "slug": "pseudodragon",
+      "before_sha256": "10ee6862ed624e5ed296d04f599d9480c2436b43102611718ddd5aea943632d7",
+      "after_sha256": "0c52d4adabe557d8d04933fce7c4f4cab64c26bda96198262d1c065705c9b033",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Bite",
+          "source_entries_sha256": "62eb7ec3d5e73557783cc21bc677762fa89d1e3b63d0eafe8aed365d508f0d32",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:1d4+2(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 679,
+      "slug": "pteranodon",
+      "before_sha256": "8758e8843ac794d8d862474a5a9103ea2fab9a193125d362c27302fc36ef1335",
+      "after_sha256": "d5ae6c52ac967ef64c390d7387b6a83955c68da5f6f019c5688b3c7c86c0c4e9",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Bite",
+          "source_entries_sha256": "8b8878ccfe635a718c20ab125be6500b244d7944b428d8c2cefef537d20a755d",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:1d8+2(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 694,
+      "slug": "redcap",
+      "before_sha256": "4b92e4f2efb98b631db7b43269bd58e989a7bf2d5299c37a8567a772a6839a49",
+      "after_sha256": "fb4f392cbea5d97d9b394a17dabb928d4ec97dda4a214cb88d483dfdab2949c2",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Wicked Sickle",
+          "source_entries_sha256": "df1afe206b744d08c66a701e107aad8d65e9309e0ade79e56806c518ce8d5939",
+          "tags": [
+            "instant{attack:melee, attack:+6, reach:5ft, dmg:2d4+4(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 695,
+      "slug": "reef-shark",
+      "before_sha256": "e80d243187cab6e1e43f97cee2f94b2f9d2cab133c8727728fd97e89bb1ca268",
+      "after_sha256": "eeebe588e750757d967bc4f12bc182646b2f72f766539e369346c7942e6b5f96",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Bite",
+          "source_entries_sha256": "adcbf1cc27ad92ed9db800a2de6a3ef3e13614c8f9c687fed58d984cd0b288e9",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:2d4+2(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 697,
+      "slug": "retriever",
+      "before_sha256": "4f2597874145604d66e02e7a43d78492b9863c6539481cbfbfcafc58be45a2df",
+      "after_sha256": "db601674fc79083e10d5e55809968086bc1aa7e70ed49b741fab9f147ccafd49",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Foreleg",
+          "source_entries_sha256": "9d81cf3295c47bdb0ab647b33a81145b39aa803b05fe474ba75d21f4186052c7",
+          "tags": [
+            "instant{attack:melee, attack:+11, reach:10ft, dmg:2d8+6(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 698,
+      "slug": "revenant",
+      "before_sha256": "1ea4de4f45314eb64f8ac9d2087d8d12bc5daf976df96506084cd54131f07f84",
+      "after_sha256": "727d042afbc863a792b9fba57f24d462b36c5f045f5bcae797bc20960e238011",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Slam",
+          "source_entries_sha256": "628904168affd8b1c07d6f53417e10ad41156f2fad50579c1a91dbb564c314ae",
+          "tags": [
+            "instant{attack:melee, attack:+7, reach:5ft, dmg:2d6+4(necrotico)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 701,
+      "slug": "roc",
+      "before_sha256": "9255280bf88f064eee96af6997d05d2a5743e4322c55fd5472fd281f21a07ce0",
+      "after_sha256": "3f0d630474171b39c9c6f37ca7c1a26c6eeadfe4237eba57a5fed151f7ed14af",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Beak",
+          "source_entries_sha256": "3aa8ce254aa5840316948b59776ffa1e77d1cf91587e2f491b70fa0948fd185a",
+          "tags": [
+            "instant{attack:melee, attack:+13, reach:10ft, dmg:3d12+9(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 702,
+      "slug": "roper",
+      "before_sha256": "2b4c168a01a35641877b908210e1a7693aa07f846e4cb3e204ecdea4da076116",
+      "after_sha256": "97ba9770b34861d09eb3fe1ba66c62fc9892802072bf53ac868715d155060db4",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Bite",
+          "source_entries_sha256": "b61b5c987b5be8a46269b022932a2e7bc54321af1ba9b39edf04d752e15b8aea",
+          "tags": [
+            "instant{attack:melee, attack:+7, reach:5ft, dmg:3d8+4(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 704,
+      "slug": "rothe",
+      "before_sha256": "87790733d128c5d10c6ac129f40cbd73b5449641f9277e915bd70d7d9dd76311",
+      "after_sha256": "e9bf82d621824dcec0992df654ff478521383a61231e8cf23bcc7185c3488fcb",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Gore",
+          "source_entries_sha256": "8bd62b585865e49e67e1f1a817c26108eb92ed74547f1b7544c8dc2b9c597ff9",
+          "tags": [
+            "instant{attack:melee, attack:+6, reach:5ft, dmg:1d6+4(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 705,
+      "slug": "rust-monster",
+      "before_sha256": "d5d5e2ce06a8016f8c8d67df4d626c28413156a5dedeaff5773aa37621c0c109",
+      "after_sha256": "971e898dd53ffa839d63707af2dd1aa1f83d9cfbea498405cd360337e23d6d7a",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Bite",
+          "source_entries_sha256": "455cd5de2cf292fb837f461bf8e2d5da2661868f822b6215f06568ca0d6411ff",
+          "tags": [
+            "instant{attack:melee, attack:+3, reach:5ft, dmg:1d8+1(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 707,
+      "slug": "saber-toothed-tiger",
+      "before_sha256": "9e0557e99da2db74a38066fef19b885e56a46ea9e13599caf5ba6569e7b069f0",
+      "after_sha256": "9b0f1911a48119976c5aa20baa9af55b52e757fa87f0e164f78d9f2083d6a456",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Rend",
+          "source_entries_sha256": "4755095e1bf28fe35446afd5c9ef587a623ef30dda3c83846d354fd40ea4a348",
+          "tags": [
+            "instant{attack:melee, attack:+6, reach:5ft, dmg:2d6+4(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 708,
+      "slug": "sacred-statue",
+      "before_sha256": "2851f3214d9d47345beff64c6a1655ce4353130b67272bd26afd0c1023824bce",
+      "after_sha256": "e43fb286dc46c456a29e4e50b56a74fd51a4b19edecf8920b2759f4f8fa6bbe8",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Slam",
+          "source_entries_sha256": "28ffc55ba1c64cbefd46ccfbf3095356618a37a4de557b81b84f2b99a792d2aa",
+          "tags": [
+            "instant{attack:melee, attack:+8, reach:10ft, dmg:6d12+4(concussao)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 711,
+      "slug": "sahuagin-warrior",
+      "before_sha256": "aa75c586d93e9e2f7c443dd713224c2b71fda7dd2b285fe5bbefad2383f96f31",
+      "after_sha256": "1d217e5e1bb61232380f34ddca05e9ffc8c82f27daa1f126c6e305928bc0dfb7",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Claw",
+          "source_entries_sha256": "1d73f094e6ed0858513cfe04a61f6d1933e48d0c9d6410444c457cd478310c5a",
+          "tags": [
+            "instant{attack:melee, attack:+3, reach:5ft, dmg:1d6+1(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 721,
+      "slug": "scout",
+      "before_sha256": "9d6d5976a72c39adff3b23f835b8cfcd5d52939be4f6b7a89ac827a517244a6c",
+      "after_sha256": "07fefc5eda29b004a690e879bf3fb223b45ab598751b7b47def3429b69da2c93",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Shortsword",
+          "source_entries_sha256": "275d6125eaa8776a4169f5f4ab701092865ab00c6650767d95484b7562281419",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:1d6+2(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 723,
+      "slug": "sea-hag",
+      "before_sha256": "bed41f9548ad560b1b678fa918f5d89c8803f0cb5b0d16c28b2a8521cd144c73",
+      "after_sha256": "c167c9082d336ee6a70be5925df970be38fd8db7d74e0250fdd5f73c51f0cd16",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Claw",
+          "source_entries_sha256": "681875d29d1561b380c1a9bfa47d8b95be60cf12de298c335ad0aa70ed34b531",
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:5ft, dmg:2d6+3(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 724,
+      "slug": "sea-spawn",
+      "before_sha256": "f24696636f8dbbb681319a1b9ade0bce52143a9d08960631c822ca565f7afba3",
+      "after_sha256": "8bacb34b2183c0d74515b72dbf7c2c2b65914800d1c5ef2587f5cc392d3e77e6",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Unarmed Strike",
+          "source_entries_sha256": "f7efc3c181b35e2fa6d82f5cd596d510b1fb6ad07b1a23d749643eab2e37ebbe",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:1d4+2(concussao)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 730,
+      "slug": "shadow-demon",
+      "before_sha256": "82624f17ee6c74abddaaa9b2d6dd6c6cfe2eafef367a262184b3a7e9aab000e5",
+      "after_sha256": "855998f3572ce7af28026a0e36acfe723593bded226049cf64884aa0feb077cb",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Umbral Claw",
+          "source_entries_sha256": "643df08c134eaa7999a70de23c9213451146cd728de8a162e5724dbac6e8f880",
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:5ft, dmg:3d8+3(psiquico)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 736,
+      "slug": "shoosuva",
+      "before_sha256": "30737e69e94fb024982b1381435ec45a32cd00a52b68d5b912baeac1b5b8c9d9",
+      "after_sha256": "0294495eacad9530d68225dd2ec39a9cef0e3d4d4c454faeaf0cd22d659fa227",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Bite",
+          "source_entries_sha256": "cb09aa2500aefbb568df4617e920e868696da31e1bae25031d6da228478a99ca",
+          "tags": [
+            "instant{attack:melee, attack:+7, reach:5ft, dmg:4d10+4(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 738,
+      "slug": "sibriex",
+      "before_sha256": "458ae0b1f7f9e3cd2d0c5a48fc66ca0dd8bd2f046ad5aa3a51032d7f1dd6be74",
+      "after_sha256": "bddc3bf1e08c55603c794e550eb892ab6be9a9e19fe3b422f9282860a7a188d4",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Chain",
+          "source_entries_sha256": "ed7f10f507cb7f294620f2d919922e277a7419c93585763717d08b94cf3a1f56",
+          "tags": [
+            "instant{attack:melee, attack:+13, reach:15ft, dmg:2d12+7(energia)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 739,
+      "slug": "silver-dragon-wyrmling",
+      "before_sha256": "21c005b150ce2bb60fdfe266d0b0db32843d027720cb27e69fedaedb0dca23c2",
+      "after_sha256": "5e78cb94ad163ebc99b22fedc744441ef8e1a1bf2cdbc70f50ece1c982991e70",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Rend",
+          "source_entries_sha256": "acebdee6662da12ecdbce301e8588617fd56598bc573c16672cba0126399ccda",
+          "tags": [
+            "instant{attack:melee, attack:+6, reach:5ft, dmg:1d10+4(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 744,
+      "slug": "slaad-tadpole",
+      "before_sha256": "84f0a34636f89cf6c19e7f15801370bc56230fb49bde9bac045de1ad572bcfd4",
+      "after_sha256": "1be4e83e2f4c33cca1ced7aa7861f6f3c5dfbb3ca7296c69aae0b33255df98a0",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Bite",
+          "source_entries_sha256": "275d6125eaa8776a4169f5f4ab701092865ab00c6650767d95484b7562281419",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:1d6+2(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 745,
+      "slug": "slithering-tracker",
+      "before_sha256": "7cf09003e9a08f433d97b68cd9217832dbed3c7b494dc54b20d06a808a6009df",
+      "after_sha256": "92f3347da084dae551bafcdac9fc1ec7378afab7d6a0f1833f7e4d461afaac1f",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Slam",
+          "source_entries_sha256": "dd6da0f1241d483aac52128ad893d67b25f3a8c822b45685151a23fb5f9dd677",
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:5ft, dmg:1d10+3(concussao)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 746,
+      "slug": "smoke-mephit",
+      "before_sha256": "70856ba6d8bcb59fc484b6cb2aefec2fd4bffa2eb9d38404773cd51912e7f154",
+      "after_sha256": "74c7cd4913d3333c663455e12ef64f3989bee7d4caefa59aa4a3d80072aa5a48",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Claw",
+          "source_entries_sha256": "92eeaa15b331a11c05edb8d86ea0a2fe037b01ef46b31a9b2256c667d7a3c62a",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:1d4+2(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 749,
+      "slug": "spectator",
+      "before_sha256": "74a5a203fe33f066eed0828fe0b36db5d72d5757a56265ef3f66e166d8678cbc",
+      "after_sha256": "512bfa46fbe2b84bc881dfec95f555198ca80dc7f1f7535b55adeeed82273f45",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Bite",
+          "source_entries_sha256": "275d6125eaa8776a4169f5f4ab701092865ab00c6650767d95484b7562281419",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:1d6+2(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 751,
+      "slug": "sphinx-of-lore",
+      "before_sha256": "13dfe3b6a303d1bdbad44fda0f2072f1986d4582b437152519cfa2d521bf6e74",
+      "after_sha256": "cebf216a0e0782c2cd6554e5fb1ebce038dff1e754cb63a499133fb13c72cb0e",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Claw",
+          "source_entries_sha256": "271f834aca13910ed9c9f5f62fd56ab3eb625ce8414792ccc12b64834337a084",
+          "tags": [
+            "instant{attack:melee, attack:+8, reach:5ft, dmg:3d6+4(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 753,
+      "slug": "sphinx-of-valor",
+      "before_sha256": "49badfb7739f9d17bee316213e492ce64233d238ed95feaa5bba6ba76720e305",
+      "after_sha256": "f3d07934a0ba2a9e61ccbebcbcbe51ffd284ae01ab92df002353697cd36e463b",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Claw",
+          "source_entries_sha256": "538fe88e6b2e137c8068659e9812b8405e760de273ec8802ac8af53920d2927f",
+          "tags": [
+            "instant{attack:melee, attack:+12, reach:5ft, dmg:4d6+6(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 760,
+      "slug": "sprite",
+      "before_sha256": "d4cb47ffe0a03ea7ac4943f53c57201eeb8871fa43b54b59c860d3eb27917cb2",
+      "after_sha256": "fab96ed48ea045f4548ae4553df342067447030b1502df321521e9ebd52ed2e2",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Needle Sword",
+          "source_entries_sha256": "544ec81a9e6b6b7cd099640762a8f66b6a7b5ad9c4165198d5f66ef95ba28461",
+          "tags": [
+            "instant{attack:melee, attack:+6, reach:5ft, dmg:1d4+4(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 764,
+      "slug": "star-spawn-hulk",
+      "before_sha256": "0a339813ff8ca3c2c9f53ad889a178705cfcf8a704609c944dd9d769212a3c17",
+      "after_sha256": "4c9df50461e77ef5af8dc08dcf481d858ddecb0f4b3a4072d681d713b887089e",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Slam",
+          "source_entries_sha256": "4b1f5a7c20ecd9218fbca1b6d8833d04b45dc0da5d96a3fed6ab7e2213ea2bfa",
+          "tags": [
+            "instant{attack:melee, attack:+9, reach:10ft, dmg:2d8+5(concussao)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 769,
+      "slug": "steel-predator",
+      "before_sha256": "67c352b433fcfc92177a4ad78ebee80c3b043b1eda90ad4a563fffbc5ebce51f",
+      "after_sha256": "b996d5594f9c79ae67570ecbb3950b7d6d514190cfbe5d21d4c6545a7072b86a",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Bite",
+          "source_entries_sha256": "951def677f2175ad00844d2df8cc501a4d34e71b2231415911eba7c20fa9666e",
+          "tags": [
+            "instant{attack:melee, attack:+12, reach:5ft, dmg:2d10+7(raio)}"
+          ]
+        },
+        {
+          "index": 2,
+          "name_en": "Claw",
+          "source_entries_sha256": "f9b9331fe94af8f5c5576f59a143308547a2103dba1ce96fb778c045fec018c9",
+          "tags": [
+            "instant{attack:melee, attack:+12, reach:5ft, dmg:2d8+7(energia)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 770,
+      "slug": "stegosaurus",
+      "before_sha256": "c6329435547bc14c17b80b90ce28e7146b91c98d2dd50bf540589e0cdd909f3b",
+      "after_sha256": "a293ddb5063ca452325f178ab7a300cb4c7083f2d98997de492afae8f104a88e",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Tail",
+          "source_entries_sha256": "093663603b325682f9e23601dcf77eb46e85e07f5b373bfdc96d7a5f7b722fa0",
+          "tags": [
+            "instant{attack:melee, attack:+7, reach:10ft, dmg:6d6+5(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 774,
+      "slug": "stone-giant",
+      "before_sha256": "3e435a387abb1e65ace46c85fde1ea92d43bb7759779543e1d20b07789b21984",
+      "after_sha256": "b4ddc4363147d510d80645eefc722f1350be94c5641b1af8502e3da1c7e589ac",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Stone Club",
+          "source_entries_sha256": "f84304d3eae12d44f86f27ef76bff0cceffffe539f0c2ddaeb763bd3b17dc332",
+          "tags": [
+            "instant{attack:melee, attack:+9, reach:15ft, dmg:3d10+6(concussao)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 775,
+      "slug": "stone-giant-dreamwalker",
+      "before_sha256": "40d4c5ee700f1e190fd69eb7343f136d73a11b49437892de71f4017f463c8638",
+      "after_sha256": "1f1777bbf78e3ed6d7e6918034f1ef0c3d587550faac33eccac672503f69a042",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Greatclub",
+          "source_entries_sha256": "beee2e3eea1df6cf1fbb04186a698778fcac13066c0f6eb5ddc18f26c314f15b",
+          "tags": [
+            "instant{attack:melee, attack:+10, reach:15ft, dmg:4d8+6(concussao)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 778,
+      "slug": "storm-giant-quintessent",
+      "before_sha256": "9fcf78b80c7186140fd90e5818a31b18e9f5d6a3b63d94839099fab2cad92c92",
+      "after_sha256": "7d4bde20f988fbb318d937127a369d9aacef7a3b5f2ba8d9c40a1d6d9f1a1272",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Lightning Sword",
+          "source_entries_sha256": "541cb6b2226f8133efb455a61652ec8ffbc40bb9455e5ca8a4f47ec2579895f6",
+          "tags": [
+            "instant{attack:melee, attack:+14, reach:15ft, dmg:9d6+9(raio)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 779,
+      "slug": "succubus",
+      "before_sha256": "3150b7201a154559acb4747d8afbec199f5a9b92c6c635c8cffce8c381c72170",
+      "after_sha256": "6090168bbe39c53c8a290246ff2e41cfe8976e879047f5a87dbed70cf37cdeb2",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Fiendish Touch",
+          "source_entries_sha256": "1fa371975d27f67dfbd1db32a3b6d779af6558661ec02fa546bc4a85362732d3",
+          "tags": [
+            "instant{attack:melee, attack:+7, reach:5ft, dmg:2d10+5(psiquico)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 795,
+      "slug": "swashbuckler",
+      "before_sha256": "1db2d3f7f6af4c0e333f0676592dd65b9db81da5aa8385fe711810eed53afdb5",
+      "after_sha256": "759000e70ae51bf16069b9aaf8ec02b742d512e55d877ab0142ddbabc025e5c3",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Rapier",
+          "source_entries_sha256": "4f3c24479429a052106148a00c5215f69cb4bb4c5e868966a3a964422800f078",
+          "tags": [
+            "instant{attack:melee, attack:+6, reach:5ft, dmg:1d8+4(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 798,
+      "slug": "tanarukk",
+      "before_sha256": "d8854c7db9d598361f2c2a6ef79c3b8f4d5fd04d315a74b13cac8de60e6da96a",
+      "after_sha256": "4db5404e82c85b1007e3f888297adcd81e14350a3be09c3d5acdcc8c3c9e3389",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Bite",
+          "source_entries_sha256": "ff246eef918bad42bee5757fdec88ebf84ffb0713b89c62f6a0db5cfdc09d64b",
+          "tags": [
+            "instant{attack:melee, attack:+7, reach:5ft, dmg:1d8+4(perfurante)}"
+          ]
+        },
+        {
+          "index": 2,
+          "name_en": "Greatsword",
+          "source_entries_sha256": "cd4eb15382e74a2b92648ae3e82450fa74b9f318fedcc67fb98f7892fcd97c5c",
+          "tags": [
+            "instant{attack:melee, attack:+7, reach:5ft, dmg:2d6+4(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 799,
+      "slug": "tarrasque",
+      "before_sha256": "f06b517fe6377ef970c2ba1a9bb7f1257a20f2e7f82c7cd03a29d1eb9f911132",
+      "after_sha256": "1bc2b8254acd718d73b6f1e0d40a71e7a720be52bfc9cb0a59cbe5bec7979fe6",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Claw",
+          "source_entries_sha256": "bfb766376827cae6f5c8e24a99bcd73aff2f3313c6066ebc5036143e0355c563",
+          "tags": [
+            "instant{attack:melee, attack:+19, reach:15ft, dmg:4d8+10(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 800,
+      "slug": "thorny-vegepygmy",
+      "before_sha256": "7b21d3f9009fa40eb4c900ed7baee510cd153f2b6c9f91ac5aabb2904c82c711",
+      "after_sha256": "e498ee323e73657c65bedc5c51e0232301a335d912cc749328521caa7aa8c3cf",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Bite",
+          "source_entries_sha256": "8217a9b9e399f0a26d2d4cb310daede4a138c6817bd16da8d40453dada7f1b24",
+          "tags": [
+            "instant{attack:melee, attack:+3, reach:5ft, dmg:2d8+1(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 808,
+      "slug": "tortle",
+      "before_sha256": "9d0dd4c0a4f3e1132bdd3ec3f6220352fefc8716af5e322f7bd7c607c10361e8",
+      "after_sha256": "4c4c4841ab3a3390795c3d86d0967892f371407a25d20d758dfbc9d8a491ba7d",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Claw",
+          "source_entries_sha256": "760d66f2f1cc4f84ba12a9ce15840f06f5348a77fe04f0813bf9eaaf6da89ce0",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:1d4+2(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 809,
+      "slug": "tortle-druid",
+      "before_sha256": "e42d4795cbad38ce1cd665ccfd1fa41a73445a3ad132fbfb4caf4c2b82f0a707",
+      "after_sha256": "c20c7c6e36793841733a2d134ffccbe21098d66f1b7fdcfdebcf9939a0041d66",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Claw",
+          "source_entries_sha256": "760d66f2f1cc4f84ba12a9ce15840f06f5348a77fe04f0813bf9eaaf6da89ce0",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:1d4+2(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 810,
+      "slug": "tough",
+      "before_sha256": "acbb9f87a8029ee268d0e6b37629be4ccf9d9a597a201885808be37966f1c02c",
+      "after_sha256": "128594c19d445bfddc47f720ee0dd200851800de2efb6dc2966c5a6c753dec00",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Mace",
+          "source_entries_sha256": "4472b7dfcb42a357a2b23c2a404aa2b34b49dad73c86da4c6e7c205387da702c",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:1d6+2(concussao)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 814,
+      "slug": "treant",
+      "before_sha256": "f2896d588cc109152454c8ea5307259173cf6eb2f9e4a269fe4f13457a23864e",
+      "after_sha256": "05f0563874edd4f07d68c80703f61dfa0944e48f522c17c65ccbb32f36f0aa95",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Slam",
+          "source_entries_sha256": "2db036127489493ba9bb8ea50815e8264c97a8c53b4b7602500d77dc9da569f1",
+          "tags": [
+            "instant{attack:melee, attack:+10, reach:5ft, dmg:3d6+6(concussao)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 815,
+      "slug": "tree-blight",
+      "before_sha256": "2a7936430f1e632af1a58ccbe43c27b18309d81bd71f44a7e91b884eaba02ce3",
+      "after_sha256": "aeb737097620352cfdd2bbf79c4e8a083fb3d0e4f5c476220ef4b3fab1ebb38d",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Branch",
+          "source_entries_sha256": "f3ec59f8a652f81ca44046173c10c6b685cac47560711ab2875f340ed61ac4cf",
+          "tags": [
+            "instant{attack:melee, attack:+9, reach:15ft, dmg:3d6+6(concussao)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 817,
+      "slug": "troglodyte",
+      "before_sha256": "7df25cd0098204fd88c86c132e36f52408ad85c51fa2a8c627495c16a6d8571e",
+      "after_sha256": "1e0fee302c42e15a3d9009fb5d62e9e0c64476f9bc74ceedc7d3c4b50cfad164",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Rend",
+          "source_entries_sha256": "ee0faa0bd6013687314ad989bd70d4c4520d2c6c8a3810d3288d2bcaea6341f1",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:1d6+2(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 818,
+      "slug": "troll",
+      "before_sha256": "1f6665ad6aa5d6efcd1cf4a63e469f47468f3670bacd8863fbce947f6a5bff64",
+      "after_sha256": "d09e2c9d39a33482c725645007f78132f10d9873a3186b742c8391ffab321080",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Rend",
+          "source_entries_sha256": "3fa379ef80cc2bb163c07efe06f404d34fafa4523855c6d5782fe223125378a0",
+          "tags": [
+            "instant{attack:melee, attack:+7, reach:10ft, dmg:2d6+4(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 819,
+      "slug": "troll-limb",
+      "before_sha256": "0e1c008e338b6b7325d374445ce577a1b375a0422f19928912ae05a05a36eeac",
+      "after_sha256": "ed477d3f3deb434aaa79a950e8119bc4a8e80d50c2b3fc1173c36d6a27a7d6ab",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Rend",
+          "source_entries_sha256": "5ea278f5803cf26d77036aab98caba81887cf9f7670adf70eb5d3ad3a6191276",
+          "tags": [
+            "instant{attack:melee, attack:+6, reach:5ft, dmg:2d4+4(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 820,
+      "slug": "twig-blight",
+      "before_sha256": "335e3594e65ad8c6c79ea7fc5256fd04c4a304ceec943163dc2633f87f45a6b4",
+      "after_sha256": "35ef3f5e3f8c5382633ef8a625c1ae9bba51cd744f5377f5ec760e9408d3a58d",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Claw",
+          "source_entries_sha256": "92eeaa15b331a11c05edb8d86ea0a2fe037b01ef46b31a9b2256c667d7a3c62a",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:1d4+2(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 824,
+      "slug": "umber-hulk",
+      "before_sha256": "faba8b3b6dc34e73670f3e801d49bc08c88649e23269766088151945e2db68ef",
+      "after_sha256": "1f01fe663f22ccff5aefb3d76dd52ff5a63e0926f24581bc955e94a3b5b943c1",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Rend",
+          "source_entries_sha256": "6101f2dcb0c0683eb1cbdfff5728ba014f2b26d0edf85cad63856a88f5df7756",
+          "tags": [
+            "instant{attack:melee, attack:+8, reach:10ft, dmg:2d6+5(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 833,
+      "slug": "vegepygmy",
+      "before_sha256": "85a59605a98d3334bf361ff3612ccb93301bf842f3d9e867166ca679fc44e434",
+      "after_sha256": "cc64c3234931b7910920652a0380f647c6c24435d1ee5cdc588071969cc21ed7",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Claws",
+          "source_entries_sha256": "95d7983ba22e67f909e4165d049e598b7b09ec9f246cc26c54e121a806e3f117",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:1d6+2(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 834,
+      "slug": "vegepygmy-chief",
+      "before_sha256": "85b7b8db12b0a92b5320ddaf76d945d105061b46dbd734cead1cdeb93a23cbea",
+      "after_sha256": "25523342f6c455ea2bbbeb21ca0755b4a9f66dcf9b8a0c9eed86600a486522c4",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Claws",
+          "source_entries_sha256": "95d7983ba22e67f909e4165d049e598b7b09ec9f246cc26c54e121a806e3f117",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:1d6+2(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 835,
+      "slug": "velociraptor",
+      "before_sha256": "c15ed2085a20e88710cbc7bb0323e8df015a8ed04fafb208ad80ab8e635c8327",
+      "after_sha256": "b5f9e9cc7bc85251b45c95a6afc3f5ba1ee49d9dd8a66325e361e89ee1b11f65",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Claw",
+          "source_entries_sha256": "760d66f2f1cc4f84ba12a9ce15840f06f5348a77fe04f0813bf9eaaf6da89ce0",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:1d4+2(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 839,
+      "slug": "violet-fungus",
+      "before_sha256": "52a7100aca0eeb86e0d807449a93c9cb3e1fad469f96624b095e5b2c4113cf72",
+      "after_sha256": "8ad6b0646a9d0e7678206501e98ba15fc259d47b84739a67cd2b2a0032ea2c00",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Rotting Touch",
+          "source_entries_sha256": "98c77dcdf83380b3e67bdc79d5e058d494f61d901a4c19916f3a8ad58fb65fd3",
+          "tags": [
+            "instant{attack:melee, attack:+2, reach:10ft, dmg:1d8(necrotico)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 842,
+      "slug": "vulture",
+      "before_sha256": "2d43828329acbc2d3b75717a782570b82052d0fa79e09d4f05864ab1afe4efa9",
+      "after_sha256": "026d4d9f49f736b58cb616b5dadff70cc76abdfeaa77e5edc506b571425721ee",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Beak",
+          "source_entries_sha256": "eca89071386fb1907fbe6d8f4364f1e6fe6a0f6d28e82e4a1bec1d09540384c6",
+          "tags": [
+            "instant{attack:melee, attack:+2, reach:5ft, dmg:1d4(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 849,
+      "slug": "warlord",
+      "before_sha256": "8348c355a12499a99b68c74ec8aaf2a69d95caddc76fd54ba9c5002d47862058",
+      "after_sha256": "54ec03e02a8b2e23c450fe22af85e4bd27903cb4cb50ffa64fd22b7104d581d2",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Greatsword",
+          "source_entries_sha256": "16c19281a278d94251bf6f35b53e073ebbef9d6506690eacfc9ff289427a6eb5",
+          "tags": [
+            "instant{attack:melee, attack:+9, reach:5ft, dmg:2d6+5(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 852,
+      "slug": "warrior-veteran",
+      "before_sha256": "ef4e1f3088b34a6ae2711b42f00eba6c0278c26be083391cdd24d56de73abf6e",
+      "after_sha256": "f9c11110d03c91562e44c40d256e957be9b57ad13e493c8c1d5dbfac5b7de2ab",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Greatsword",
+          "source_entries_sha256": "681875d29d1561b380c1a9bfa47d8b95be60cf12de298c335ad0aa70ed34b531",
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:5ft, dmg:2d6+3(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 853,
+      "slug": "wastrilith",
+      "before_sha256": "e593b9a1cc78e63dea5cfa267498a8a6400bb49f7e4bd6ecbbf394d3a351dd53",
+      "after_sha256": "10310fde31dd12b424708c9c76c2a10a193c568bd81ad397759e52a0c6215529",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Bite",
+          "source_entries_sha256": "5f0570162d4934b8342e83a0869a17d945f4450f76eb7aa4bfb878bd3a014e2f",
+          "tags": [
+            "instant{attack:melee, attack:+9, reach:10ft, dmg:4d12+4(perfurante)}"
+          ]
+        },
+        {
+          "index": 2,
+          "name_en": "Claws",
+          "source_entries_sha256": "274f52f2a40efc99308f3f467bd7750e8d9dec2911bf63cf16ad41e4c1039a2f",
+          "tags": [
+            "instant{attack:melee, attack:+9, reach:10ft, dmg:4d6+4(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 860,
+      "slug": "wererat",
+      "before_sha256": "b8d72f542c1198d03d7a191174085d445ddf1f42b688cec5ac242b593b15c8a1",
+      "after_sha256": "634b0490016786578d43d953bd3e94a63b65d9a4b75b63875edadf3099fb8e69",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Scratch",
+          "source_entries_sha256": "4be6d59179e86a485c64e2dbd8cdade6baa908a9153e7cd18480022707ea7e17",
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:5ft, dmg:1d6+3(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 861,
+      "slug": "weretiger",
+      "before_sha256": "3fb71d5d06ae542764c97b507cac6eae5ee64f77b2e61fa8ec2599b420db1656",
+      "after_sha256": "43e0373d82b8005a32afbe0f2e503414d893ffd70c3e28245b0b6071d6f08d32",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Scratch",
+          "source_entries_sha256": "681875d29d1561b380c1a9bfa47d8b95be60cf12de298c335ad0aa70ed34b531",
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:5ft, dmg:2d6+3(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 862,
+      "slug": "werewolf",
+      "before_sha256": "c05bc78f409e899633de2f04a9654fd848ead86176506838899037703ba83627",
+      "after_sha256": "de38ad1b7e4861a469d87fb32499a9cbdc2ac195f7ae0eacaf8a6bfdc437a861",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Scratch",
+          "source_entries_sha256": "681875d29d1561b380c1a9bfa47d8b95be60cf12de298c335ad0aa70ed34b531",
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:5ft, dmg:2d6+3(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 863,
+      "slug": "white-abishai",
+      "before_sha256": "b4413d7ff5602b2fbd4cf9bcc579bbe2b714a913be80746a78e197776e23c2c9",
+      "after_sha256": "d1bb5ed5bbcded41da4ba4123ec284bb6d7e78e533d9140d6fc374f3aa3547f6",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Claw",
+          "source_entries_sha256": "565140f97efe2678aed077cc90f74c01f4725254a68788356219d436a6355c43",
+          "tags": [
+            "instant{attack:melee, attack:+6, reach:5ft, dmg:1d10+3(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 867,
+      "slug": "will-o-wisp",
+      "before_sha256": "dde02e5bef30e2dee1035906469383cf7c3a7877628a7a2f6eae6db9a83dc805",
+      "after_sha256": "30072371c8f395094cd5a99118447cfb1f97c22b0e1fb23c8f103978c3b9a1ce",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Shock",
+          "source_entries_sha256": "77a784b244aef21770df20886c05d974bbc20df4ca0f2d602e2b8982ce34e019",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:2d8+2(raio)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 868,
+      "slug": "winged-kobold",
+      "before_sha256": "73f9782350542c78686200e969e9c1a9b163e5080b439bea0c0b241bd5dc53e2",
+      "after_sha256": "355d9299d82ca7e3dfb580faa40c0b8154f432d96a566a5624354738ef10bae6",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Dragon-Tooth Blade",
+          "source_entries_sha256": "bd1637f3c6134affee0c232a6ef01fe3efe8e54d55c4c558e81d891f78a58d53",
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:5ft, dmg:1d6+3(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 872,
+      "slug": "wood-woad",
+      "before_sha256": "d1817a7939b7a3ef55baeaf410e215ab9bfa1909f5d18b8e6dd9a2966e8088a6",
+      "after_sha256": "1a1255a4c556b58d871afc181b0934eebbf355e47249fd94fb4188883c9ba4b8",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Club",
+          "source_entries_sha256": "d8025664a8f3770c93bfa1ed2ee4c88413e24f3c3d61030e19def4cb70db0cac",
+          "tags": [
+            "instant{attack:melee, attack:+7, reach:5ft, dmg:4d4+4(energia)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 876,
+      "slug": "wyvern",
+      "before_sha256": "009ed3202b48d1428efe3da641ea364ef56c3aa13e09dd00c4fa838a739e7352",
+      "after_sha256": "6b06b74ed94dc1353ae78b02a563e0dcaacb6d417216bd19a5c5451181d03b5d",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Bite",
+          "source_entries_sha256": "d37e47576eb55de9072a1d9859e887a40eb2f761de6c38d526877ca064675320",
+          "tags": [
+            "instant{attack:melee, attack:+7, reach:5ft, dmg:2d8+4(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 877,
+      "slug": "xorn",
+      "before_sha256": "3e210c66aa77749b9f2f5342883b60488e2d9097bf4b6e992194f6b929a6482d",
+      "after_sha256": "2bf389c51d752bce3ce5b7d2508bf79204015098078de78efab802df04bb46cf",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Bite",
+          "source_entries_sha256": "fb97ac91fa1578c23ac6111fc07469c949724019addda0e576d276fb7ef6aae7",
+          "tags": [
+            "instant{attack:melee, attack:+6, reach:5ft, dmg:4d6+3(perfurante)}"
+          ]
+        },
+        {
+          "index": 2,
+          "name_en": "Claw",
+          "source_entries_sha256": "a1c00cdcfb7f40e86169439a9ea03640fd11c8698384dc5dff7ffff284eb315f",
+          "tags": [
+            "instant{attack:melee, attack:+6, reach:5ft, dmg:1d10+3(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 879,
+      "slug": "xvart-speaker",
+      "before_sha256": "a19867e605efc13ed1d6d48b57e90249e636a47cd73e23535e1ee0d22142423e",
+      "after_sha256": "35124e8d6c4474890b5f32c6e78374f25233bbab6777912fd1b9487d90a01d3a",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Shortsword",
+          "source_entries_sha256": "fc12c40fc4e68bb42933df68a53b860c5a67944d79d935f7340a160e2d3dfc94",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:1d6+2(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 880,
+      "slug": "xvart-warlock-of-raxivort",
+      "before_sha256": "7b6f376409251d98cab965c18a0654bc3b288a666ffe1bdabacb0049fb6955da",
+      "after_sha256": "95076decb17ad9c188e31be78b0705a6819a37110ca529af1076e597a552b347",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Scimitar",
+          "source_entries_sha256": "95d7983ba22e67f909e4165d049e598b7b09ec9f246cc26c54e121a806e3f117",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:1d6+2(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 881,
+      "slug": "yagnoloth",
+      "before_sha256": "68c1f9e25be542b874121212e198466f66235c10de6b02c48d4fb4d8d3c36e09",
+      "after_sha256": "92e63b93b8246040ce108e829f44e59dbd0e507005c4ab59e564d8102f8e4fd1",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Electrified Touch",
+          "source_entries_sha256": "f12d8ba6292a279f5886ae9dedcc58ea122ddeac02f47670962fecef43f5ce73",
+          "tags": [
+            "instant{attack:melee, attack:+8, reach:5ft, dmg:6d8(raio)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 882,
+      "slug": "yeenoghu",
+      "before_sha256": "05661aaaf7774ac339167f7da05bbdd9a1fc6634734fe54e447a94ab16bf0788",
+      "after_sha256": "cb5410af77e6639dbb48e68407036b0066e898ac70b902384e1792e07f2c2f5c",
+      "features": [
+        {
+          "index": 5,
+          "name_en": "Bite",
+          "source_entries_sha256": "20b9a0f1b9fd10e7da4833e2fe9035c58ed5596fc48610c256f3f867f6a1f3e6",
+          "tags": [
+            "instant{attack:melee, attack:+16, reach:10ft, dmg:2d10+9(acido)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 886,
+      "slug": "young-amethyst-dragon",
+      "before_sha256": "e0c71f9b6d37cc9cfe6955f14dd00a15ee67d02cc33aaa6628e38b8fe53252f5",
+      "after_sha256": "635dfad27b1571959548038797bc5d493b4a00982406b3f3b7e96464aec04daa",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Claw",
+          "source_entries_sha256": "d15ceb82dfc1dd2cf32fa0a84eb664c49fc44b300f7621eeb0fc81f9eb54edb2",
+          "tags": [
+            "instant{attack:melee, attack:+9, reach:5ft, dmg:1d8+5(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 889,
+      "slug": "young-brass-dragon",
+      "before_sha256": "392cff6ac1a3c60814160348f5fa0a2fc4a3a5261c473b1aeda5dd42403a62d8",
+      "after_sha256": "04cf9752eb09bddfa3c58b3c71f1d0998d1b6363b349912abfbaa097fa43d376",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Rend",
+          "source_entries_sha256": "e68e14f813809a5a53208dbb5de828e37523fc1bb0d1d05638c7055d84d4c367",
+          "tags": [
+            "instant{attack:melee, attack:+7, reach:10ft, dmg:2d10+4(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 890,
+      "slug": "young-bronze-dragon",
+      "before_sha256": "e3f3136cb4de1d7c1ac1dd1da4c5116217e1680d9fa1e22e31aadd4d7b22f67b",
+      "after_sha256": "e754df1bf98212f30c77f0ec07d4dc450107403f2ae412fcbc31d0772facd1c7",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Rend",
+          "source_entries_sha256": "6c61b72c62cfe6ff9864e5cd311e0a68549ff3f6978dc108256c88a5fef62803",
+          "tags": [
+            "instant{attack:melee, attack:+8, reach:10ft, dmg:2d10+5(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 891,
+      "slug": "young-copper-dragon",
+      "before_sha256": "75df8fe93002de56cbc0c192facda2ab456860e7c79a6cd97e6fc96ac57fe946",
+      "after_sha256": "f402ddad94dc721c3587e79de8b57fc55df1d99e8b50aa47388869045fcd5d3b",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Rend",
+          "source_entries_sha256": "e68e14f813809a5a53208dbb5de828e37523fc1bb0d1d05638c7055d84d4c367",
+          "tags": [
+            "instant{attack:melee, attack:+7, reach:10ft, dmg:2d10+4(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 892,
+      "slug": "young-crystal-dragon",
+      "before_sha256": "959b0a68c61407cc7c23e8f69e484b36357c3a24668381ece74750a3c788a778",
+      "after_sha256": "22bbbe3f4a8c67c20c2552106763d1be85ede2c72e46779a8d5224caa2f27334",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Claw",
+          "source_entries_sha256": "fa5fc4d4048dc6e9c1ada457371c04c526c80662d1df1c079c3572f0e04471de",
+          "tags": [
+            "instant{attack:melee, attack:+6, reach:5ft, dmg:1d6+3(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 893,
+      "slug": "young-dragon-turtle",
+      "before_sha256": "cb53e3b26e860b932306d1e5724b423b0c4d87d200370c63b4f922c299537595",
+      "after_sha256": "f490b79c7320f1b7103056250ea6de0b271a637377d95afa605102a8a6e1c9c6",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Claw",
+          "source_entries_sha256": "d15ceb82dfc1dd2cf32fa0a84eb664c49fc44b300f7621eeb0fc81f9eb54edb2",
+          "tags": [
+            "instant{attack:melee, attack:+9, reach:5ft, dmg:1d8+5(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 894,
+      "slug": "young-emerald-dragon",
+      "before_sha256": "49dedaa16c76fb3beb1d396dfdf338040e5e6139a5813af1bc1a157168377661",
+      "after_sha256": "8cd830cf358af1cbd292dd6d300a433f592c31d9aeca2ba9b31c9de91342314b",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Claw",
+          "source_entries_sha256": "02d95f5efdc0aaa111b08ee06901c8b8d0f6684ee799a3cd03036a3ab8df2e2d",
+          "tags": [
+            "instant{attack:melee, attack:+8, reach:5ft, dmg:1d6+5(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 895,
+      "slug": "young-gold-dragon",
+      "before_sha256": "0c38eaf7c93b1ed95075866ee02a5f83d2c33c7f995202b4ada37d22e7531fc5",
+      "after_sha256": "a895df42ee253e72cad1c44ae340ab7035e3410a90e11bd538718d38e8a7ec7f",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Rend",
+          "source_entries_sha256": "483be6d42d93e02efb255c57057595c56851809bf47e9bbc49a4ce21fd187ebb",
+          "tags": [
+            "instant{attack:melee, attack:+10, reach:10ft, dmg:2d10+6(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 897,
+      "slug": "young-kruthik",
+      "before_sha256": "106b090736df067e9f162607230bd0c2ed01f23b494910b49f1a530e8ef53af0",
+      "after_sha256": "3ca34e45d35715d094f5f071d61af50a9d6437d8d592914bd380ef27b54e4523",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Stab",
+          "source_entries_sha256": "611adcb016b2cab34bb44502c28805559e6aa7f1e50ca42bbaec1b407464181a",
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:5ft, dmg:1d4+3(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 898,
+      "slug": "young-moonstone-dragon",
+      "before_sha256": "b0eb971a361565fe82ef06a52d86778199814a32be17a6186a78409b9674f604",
+      "after_sha256": "2d751b301c336f4f95c5f84d2d9b8d6a384b0737380477a7e5da4341c1e5d8e5",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Claw",
+          "source_entries_sha256": "cd4eb15382e74a2b92648ae3e82450fa74b9f318fedcc67fb98f7892fcd97c5c",
+          "tags": [
+            "instant{attack:melee, attack:+7, reach:5ft, dmg:2d6+4(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 901,
+      "slug": "young-sapphire-dragon",
+      "before_sha256": "270009cf0beb58763fab87ddbe09cd0fe117e80a63078bb0ea84592e834ea18b",
+      "after_sha256": "678751adf0e56773c064929ff3d534acfca268add73197e4811756cc64bade65",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Claw",
+          "source_entries_sha256": "4508e25253efc5f7d16799bb1cbb466aa68d238d42570aba48c5cf1084216673",
+          "tags": [
+            "instant{attack:melee, attack:+9, reach:5ft, dmg:1d6+5(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 903,
+      "slug": "young-silver-dragon",
+      "before_sha256": "98311c1d65df9a23578ed0ebcd52832a31f932bb344df8bc03163b5d7f864c5a",
+      "after_sha256": "aef8104bbb226df7071c1efbaeb54cc99bc72788366064c1f16e695d7e0b8acb",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Rend",
+          "source_entries_sha256": "8d377b2bfead4e1c430774bed2c260b24107368d5acb390fcc499e660e199b2d",
+          "tags": [
+            "instant{attack:melee, attack:+10, reach:10ft, dmg:2d8+6(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 904,
+      "slug": "young-topaz-dragon",
+      "before_sha256": "adbc6cd8fe7e9166e50cb2aaf5e8a7716b5c8218dbac4926b03d197d528deb86",
+      "after_sha256": "1a75f3fc56435b9e52eb637d78c75f6fcd28fa0081bec93d989d692645f554bb",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Claw",
+          "source_entries_sha256": "fa5fc4d4048dc6e9c1ada457371c04c526c80662d1df1c079c3572f0e04471de",
+          "tags": [
+            "instant{attack:melee, attack:+6, reach:5ft, dmg:1d6+3(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 908,
+      "slug": "yuan-ti-broodguard",
+      "before_sha256": "5ca9cf4648c57b251c128c5e6b0b311c2331f2a675b59e3e93e5986a98179184",
+      "after_sha256": "affef0c74d3e3a5a2783ed3f07b71d115114b30e2dc7e126d88ac7456aa989a6",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Bite",
+          "source_entries_sha256": "23d66e375dde546e3163419e8443ca5992b8a5f32548457369dd69264dcc3aa9",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:1d8+2(perfurante)}"
+          ]
+        },
+        {
+          "index": 2,
+          "name_en": "Claw",
+          "source_entries_sha256": "95d7983ba22e67f909e4165d049e598b7b09ec9f246cc26c54e121a806e3f117",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:1d6+2(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 909,
+      "slug": "yuan-ti-infiltrator",
+      "before_sha256": "9cf837a0242bdcaaf80f67728d285564b9e2ca3f0a01086350ff2e0085b530a7",
+      "after_sha256": "717a51af00e4c3779cc5fb2c804c4a5753e69360895e1948f54303bf0ceb4b05",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Scimitar",
+          "source_entries_sha256": "1d73f094e6ed0858513cfe04a61f6d1933e48d0c9d6410444c457cd478310c5a",
+          "tags": [
+            "instant{attack:melee, attack:+3, reach:5ft, dmg:1d6+1(cortante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 918,
+      "slug": "zaratan",
+      "before_sha256": "94a9fa0e102f075374726e62abaa6c4d3e6986422087a394992439ff07921c0f",
+      "after_sha256": "3c4fdce6bbab3fa84946d7aa59855ab29c1818ba03432b1ccc08ccf979ade1f9",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Bite",
+          "source_entries_sha256": "7830f0bf27c61d963a2f8c412b2e16b2770b07650693d9b4ac6921546a976592",
+          "tags": [
+            "instant{attack:melee, attack:+17, reach:20ft, dmg:4d8+10(energia)}"
+          ]
+        },
+        {
+          "index": 2,
+          "name_en": "Stomp",
+          "source_entries_sha256": "e219a9a0b5360b6c22e460aba8fa3860c35dc1f198288bbdde16e24718e8b331",
+          "tags": [
+            "instant{attack:melee, attack:+17, reach:20ft, dmg:3d10+10(trovao)}"
+          ]
+        }
+      ]
+    }
+  ]
+}
