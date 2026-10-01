@@ -40,7 +40,7 @@ Execute:
 start_server.bat
 ```
 
-O script verifica `.env`/`.venv`, garante o Cloudflare Tunnel (`cloudflared tunnel run bonfire-site`) rodando, coleta arquivos estáticos, aplica migrations e sobe o WSGI com Waitress em `0.0.0.0:8000`.
+O script verifica `.env`/`.venv`, garante o Cloudflare Tunnel (`cloudflared tunnel run bonfire-site`) rodando, coleta arquivos estáticos, aplica migrations e sobe o WSGI com Waitress em `127.0.0.1:8000`. Apenas o túnel local alcança essa porta; o Waitress confia no `X-Forwarded-Proto` vindo de `127.0.0.1` para preservar o esquema HTTPS da requisição pública.
 
 ## 3. Expor para outros staffs
 
