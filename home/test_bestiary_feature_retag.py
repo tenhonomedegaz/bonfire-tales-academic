@@ -127,3 +127,33 @@ class ReviewedFeatureRetagTests(TestCase):
         creature.statblock_json = {**sb, 'actions': [{**sb['actions'][0], 'entries': ['Outro alcance.']}]}
         with self.assertRaises(FeatureRetagConflict):
             reviewed_statblock(creature, source, proposal)
+
+    def test_reviewed_prone_condition_corrects_only_source_backed_translation(self):
+        source = {'Name': 'Test Wolf', 'Actions': (
+            'Bite. Melee Attack Roll: +5, reach 5 ft. Hit: 5 (1d4 + 3) '
+            'Piercing damage. If the target is a Medium or smaller creature, '
+            'it has the Prone condition.')}
+        original = _split_secao(source['Actions'], {})[0]
+        creature = TbBestiario.objects.get(slug='test-wolf')
+        sb = deepcopy(creature.statblock_json)
+        sb['actions'][0]['entries_en'] = original['entries']
+        sb['actions'][0]['entries'] = ['Se o alvo for Médio, recebe a condição Propenso.']
+        creature.statblock_json = sb
+        tag = ('instant{attack:melee, attack:+5, reach:5ft, '
+               'dmg:1d4+3(perfurante), instant{trigger=hit, '
+               'requires:target{size<=medio}, apply:caido}}')
+        expected = deepcopy(sb)
+        expected['actions'][0]['entries'] = ['Se o alvo for Médio, recebe a condição Caído.']
+        expected['actions'][0]['tags_json'] = [tag]
+        proposal = {'pk': creature.pk, 'slug': creature.slug,
+                    'before_sha256': statblock_hash(sb),
+                    'after_sha256': statblock_hash(expected),
+                    'features': [{'index': 0, 'name_en': original['name_en'],
+                                  'source_entries_sha256': source_entries_hash(original['entries']),
+                                  'tags': [tag], 'correct_prone_name': True}]}
+        self.assertEqual(reviewed_statblock(creature, source, proposal)[0], expected)
+        creature.statblock_json = expected
+        self.assertFalse(reviewed_statblock(creature, source, proposal)[1])
+        source['Actions'] = source['Actions'].replace('Prone', 'Blinded')
+        with self.assertRaises(FeatureRetagConflict):
+            reviewed_statblock(creature, source, proposal)

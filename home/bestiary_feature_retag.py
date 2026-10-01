@@ -42,6 +42,21 @@ def _correct_dual_range(action, source_entries):
     action['entries'] = [text.replace(old, new, 1)]
 
 
+def _correct_prone_name(action, source_entries):
+    if (not isinstance(source_entries, list) or len(source_entries) != 1 or
+            not isinstance(source_entries[0], str) or
+            not isinstance(action.get('entries'), list) or len(action['entries']) != 1 or
+            not isinstance(action['entries'][0], str) or
+            not re.search(r'If the target is a (?:Medium|Large) or smaller creature, '
+                          r'it has the Prone condition\.', source_entries[0])):
+        raise FeatureRetagConflict('Condicao Caido nao comprovada no CSV.')
+    text = action['entries'][0]
+    old = 'condição Propenso.'
+    if text.count(old) != 1:
+        raise FeatureRetagConflict('Condicao traduzida divergente.')
+    action['entries'] = [text.replace(old, 'condição Caído.', 1)]
+
+
 def reviewed_statblock(creature, source_row, proposal, *, library=None):
     """Return (copy, changed); refuse any changed source, identity or feature."""
     if (creature.pk != proposal.get('pk') or creature.slug != proposal.get('slug') or
@@ -82,8 +97,9 @@ def reviewed_statblock(creature, source_row, proposal, *, library=None):
         if existing_tags and existing_tags != tags:
             raise FeatureRetagConflict('Habilidade ja possui tags diferentes.')
         correct_range = feature.get('correct_dual_range', False)
-        if not isinstance(correct_range, bool):
-            raise FeatureRetagConflict('Aprovacao de alcance invalida.')
+        correct_prone = feature.get('correct_prone_name', False)
+        if not isinstance(correct_range, bool) or not isinstance(correct_prone, bool):
+            raise FeatureRetagConflict('Aprovacao de correcao invalida.')
         diagnostics = validate_tags_json(tags, library or Library(), None, strict_names=True)
         if any(d.level == ERROR for d in diagnostics):
             raise FeatureRetagConflict('Tag mecanica invalida.')
@@ -94,6 +110,8 @@ def reviewed_statblock(creature, source_row, proposal, *, library=None):
             action['tags_json'] = tags
             if correct_range:
                 _correct_dual_range(action, source[index]['entries'])
+            if correct_prone:
+                _correct_prone_name(action, source[index]['entries'])
     if already_applied:
         return creature.statblock_json, False
     before = proposal.get('before_sha256')

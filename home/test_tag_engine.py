@@ -245,6 +245,30 @@ class GenericEvaluatorTests(SimpleTestCase):
             {"lvl": 5, "pb": 3},
         ).blocked)
 
+    def test_efeito_condicional_de_tamanho_preserva_ataque_base(self):
+        tag = (
+            "instant{attack:melee, dmg:1d6+2(perfurante), "
+            "instant{trigger=hit, requires:target{size<=medio}, apply:caido}}"
+        )
+        for size in ("miudo", "medium", "Médio", "M"):
+            result = evaluate_tags([tag], {"target_size": size})
+            self.assertEqual([op.verb for op in result.operations].count("apply"), 1)
+        blocked = evaluate_tags([tag], {"target_size": "grande"})
+        self.assertNotIn("apply", [op.verb for op in blocked.operations])
+        self.assertIn("dmg", [op.verb for op in blocked.operations])
+        self.assertNotIn("apply", [op.verb for op in
+                         evaluate_tags([tag], {"target_size": "Colossal"}).operations])
+        self.assertTrue(evaluate_tags(
+            ["restriction{target{size>grande}}", "ca:+1"],
+            {"target_size": "enorme"},
+        ).blocked)
+        unknown = evaluate_tags([tag])
+        self.assertEqual([op.active for op in unknown.operations if op.verb == "apply"], [False])
+        self.assertFalse([d for d in validate_tag_line(tag, Library()) if d.level == ERROR])
+        bad = tag.replace("size<=medio", "size<=banana")
+        self.assertIn("tamanho-alvo-invalido", [d.code for d in
+                      validate_tag_line(bad, Library()) if d.level == ERROR])
+
     def test_not_inverte_predicado_de_condition(self):
         tag = "requires:not{condition{incapacitado, target:self}}"
 

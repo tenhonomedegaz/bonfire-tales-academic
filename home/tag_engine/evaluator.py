@@ -8,6 +8,7 @@ import ast
 import math
 import operator
 import re
+import unicodedata
 
 from .library import Library
 from .nodes import EvaluationResult, Operation
@@ -320,6 +321,34 @@ def _equipment_truth(text, context):
     return bool(requested & normalized)
 
 
+_SIZE_ORDER = ("miudo", "pequeno", "medio", "grande", "enorme", "descomunal")
+_SIZE_ALIASES = dict(zip(
+    ("tiny", "small", "medium", "large", "huge", "gargantuan"),
+    _SIZE_ORDER,
+))
+_SIZE_ALIASES.update({"minimo": "miudo", "colossal": "descomunal",
+                      "m": "medio", "l": "grande"})
+
+
+def _target_size_truth(text, context):
+    """Resolve a size gate only when a concrete target size is supplied."""
+    match = re.fullmatch(
+        r"target\s*\{\s*size\s*(<=|>=|=|<|>)\s*([a-z_]+)\s*\}", text)
+    if not match:
+        return None
+    actual = context.get("target_size")
+    if not isinstance(actual, str):
+        return None
+    actual = unicodedata.normalize("NFKD", actual).encode("ascii", "ignore").decode().lower()
+    actual = _SIZE_ALIASES.get(actual, actual)
+    expected = _SIZE_ALIASES.get(match.group(2), match.group(2))
+    if actual not in _SIZE_ORDER or expected not in _SIZE_ORDER:
+        return None
+    compare = {"<": operator.lt, "<=": operator.le, "=": operator.eq,
+               ">=": operator.ge, ">": operator.gt}[match.group(1)]
+    return compare(_SIZE_ORDER.index(actual), _SIZE_ORDER.index(expected))
+
+
 def _condition_truth(text, context):
     match = re.search(
         r"condition\s*\{\s*([a-z0-9_]+)([^{}]*)\}",
@@ -380,6 +409,10 @@ def _predicate_text_truth(text, context):
     if negated != text:
         truth = _predicate_text_truth(negated, context)
         return None if truth is None else not truth
+
+    target_size = _target_size_truth(text, context)
+    if target_size is not None:
+        return target_size
 
     equipment = _equipment_truth(text, context)
     if equipment is not None:

@@ -744,6 +744,15 @@ def validate_tag_line(line, lib, data=None, locals_=frozenset(), strict_names=Tr
     if strict_names:
         diags.extend(_check_strict_names(tokens, line))
         diags.extend(_check_relational_condition_names(line, lib))
+        for match in re.finditer(r"\btarget\s*\{\s*size\s*(?:<=|>=|=|<|>)\s*([a-z_]+)\s*\}", line, re.I):
+            size = match.group(1).lower()
+            if size not in (lib.catalogs.get("size", set()) |
+                            {"tiny", "small", "medium", "large", "huge", "gargantuan"}):
+                diags.append(Diagnostic(
+                    ERROR, "tamanho-alvo-invalido",
+                    f"tamanho de alvo '{size}' fora do catalogo size",
+                    _frag(line, match.start()),
+                ))
 
     bal = check_balance(tokens, line)
     for pos, msg in bal:
