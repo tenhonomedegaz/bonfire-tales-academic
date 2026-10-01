@@ -71,6 +71,34 @@ def _legacy_prose_refs(raw_refs, block):
     return len(mentioned) == len(rule[1]) and set(mentioned) == expected
 
 
+def _duplicate_prose_heading(line, statblock):
+    """An old parser sometimes promoted a sentence inside an entry to a heading."""
+    from .management.commands.importar_bestiario_csv import SECOES
+    from .management.commands.limpar_residuos_banco import _clean_creature_text
+
+    match = _FEATURE_LINE.fullmatch(line)
+    if not match or match.group(2):
+        return False
+    title = _accent_fold(_clean_creature_text(match.group(1)))
+    names = set()
+    entries = []
+    for _, key, _ in SECOES:
+        for block in statblock.get(key) or []:
+            if not isinstance(block, dict):
+                continue
+            for name_key in ('name', 'name_en'):
+                name = _accent_fold(_clean_creature_text(block.get(name_key) or ''))
+                names.update((name, _feature_base(name)))
+            for entry_key in ('entries_en', 'entries'):
+                values = block.get(entry_key)
+                if isinstance(values, list):
+                    entries.extend(
+                        _accent_fold(_clean_creature_text(entry))
+                        for entry in values if isinstance(entry, str)
+                    )
+    return bool(title and title not in names and any(title in entry for entry in entries))
+
+
 def _same_imported_summary(description, generated, statblock):
     """Accept stale translated feature labels only; metadata and structure stay exact."""
     from .management.commands.importar_bestiario_csv import SECOES
@@ -78,6 +106,12 @@ def _same_imported_summary(description, generated, statblock):
     actual = [line.strip() for line in description.splitlines() if line.strip()]
     expected = [line.strip() for line in generated.splitlines() if line.strip()]
     if len(actual) != len(expected):
+        if len(actual) == len(expected) + 1:
+            for index, line in enumerate(actual):
+                if (_duplicate_prose_heading(line, statblock) and
+                        _same_imported_summary('\n'.join(actual[:index] + actual[index + 1:]),
+                                               generated, statblock)):
+                    return True
         return False
     features = iter(
         block for _, key, _ in SECOES

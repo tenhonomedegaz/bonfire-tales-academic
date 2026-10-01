@@ -225,3 +225,31 @@ class BestiaryDescriptionProjectionTests(TestCase):
                                        descricao_markdown=description)
             preview = self.client.get(reverse('api_creature_preview'), {'slug': slug})
             self.assertEqual(bool(preview.json()['descricao']), visible)
+
+    def test_parser_prose_heading_is_hidden_only_when_full_summary_matches(self):
+        sentence = 'The creature can hold only one swallowed target at a time.'
+        statblock = {**self.statblock, 'actions': [{
+            'name': 'Engolir', 'name_en': 'Swallow',
+            'entries_en': [f'The creature bites its target. {sentence}'],
+            'entries': ['A criatura morde o alvo e pode engolir apenas um alvo.'],
+        }]}
+        generated = _clean_creature_text(_descricao_markdown({}, statblock))
+        old = generated.replace('- **Engolir**',
+                                f'- **Engolir**\n- **{sentence}**')
+        variants = (
+            ('engolir-prosa-antiga', old, False),
+            ('engolir-regra-extra', old + '\n- **Regra editorial nova**', True),
+            ('engolir-ca-alterada', old.replace('**CA:** 14', '**CA:** 18'), True),
+        )
+        for slug, description, visible in variants:
+            creature = TbBestiario.objects.create(
+                slug=slug, nome='Sentinela', statblock_json=statblock,
+                descricao_markdown=description,
+            )
+            preview = self.client.get(reverse('api_creature_preview'), {'slug': slug})
+            self.assertEqual(bool(preview.json()['descricao']), visible)
+            self.assertIn('Engolir', preview.json()['statblock_html'])
+            creature.refresh_from_db()
+            self.assertEqual(creature.descricao_markdown, description)
+        catalog = self.client.get(reverse('bestiario'), {'q': 'engolir-prosa-antiga'})
+        self.assertEqual(catalog.context['criaturas'][0]['descricao'], '')
