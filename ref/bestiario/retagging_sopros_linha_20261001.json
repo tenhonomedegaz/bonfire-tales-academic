@@ -1,0 +1,342 @@
+{
+  "version": 1,
+  "source_sha256": "41e9c80b84fc08ed9cffa6fa1def5d0356f6fca4dc34ada46f21b8095f99b326",
+  "rows": [
+    {
+      "pk": 66,
+      "slug": "adult-black-dragon",
+      "before_sha256": "7e432c96ec5c6f556d16b73dd428c7d70713801fef53a54a4e8b909c324acd2b",
+      "after_sha256": "fab600122c2711ea900c681c141de9ce609b24a310fa8491ef3f6f7f60cedcd6",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Acid Breath (Recharge 5–6)",
+          "source_entries_sha256": "8dbf0512fd20f550bac350de64403b0f033834bc8b32145c057cede687b4e6e1",
+          "tags": [
+            "instant{aoe{line:60ft, width:5ft, save{dex, cd=18}, dmg:12d8(acido), on_success:half}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 68,
+      "slug": "adult-brass-dragon",
+      "before_sha256": "aec51409a682a5addd6f9be7ab06424c67bf89524a9c49f85a563e4e757fd3fb",
+      "after_sha256": "50157e798889fece5f48e469020bcc4de97fa495881f27a39097d0ee82f39f38",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Fire Breath (Recharge 5–6)",
+          "source_entries_sha256": "ecee19752f816db094b650b1b3b66137d16b9cf67bc5f97289ccd322b4eeefc9",
+          "tags": [
+            "instant{aoe{line:60ft, width:5ft, save{dex, cd=18}, dmg:10d8(fogo), on_success:half}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 70,
+      "slug": "adult-copper-dragon",
+      "before_sha256": "2ea8d09694b66d4de95d6b0581dcf0c4fd83e258241b03be332a986135fc9dea",
+      "after_sha256": "3a4bdd597a153ada46ad4decd3262f2b83722c6ffc31c106d8833da80dac3652",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Acid Breath (Recharge 5–6)",
+          "source_entries_sha256": "49415577d1930f417293b79ca2febd5e0f4b20e06b4be40401762d28a19f3e63",
+          "tags": [
+            "instant{aoe{line:60ft, width:5ft, save{dex, cd=18}, dmg:12d8(acido), on_success:half}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 170,
+      "slug": "black-dragon-wyrmling",
+      "before_sha256": "bbd39c270b3e4342f7ee88cea74326a1a7fd921398e60aff8bdbdd381229d2c7",
+      "after_sha256": "7825fe392e4aa39f5ceab216e6b300917207caa405acf7e340b2d29251fb1659",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Acid Breath (Recharge 5–6)",
+          "source_entries_sha256": "56cd1ae94e3041331de63ab75aa4e7322e310855573b17a2423cc476a1c35f60",
+          "tags": [
+            "instant{aoe{line:15ft, width:5ft, save{dex, cd=11}, dmg:5d8(acido), on_success:half}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 178,
+      "slug": "blue-dragon-wyrmling",
+      "before_sha256": "2e3109b4b86a1bde7492050ab1291bb846f6069794d95f58d3359346891b9eea",
+      "after_sha256": "8aaaec01d2dba899bcacb84ef194e0a4bb214795ec252052f55692801b89a2fb",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Lightning Breath (Recharge 5–6)",
+          "source_entries_sha256": "44dbbf43d636a90ff388ca55504a2b5ab15680f6c321bccd3e6ae93e6dabde8f",
+          "tags": [
+            "instant{aoe{line:30ft, width:5ft, save{dex, cd=12}, dmg:6d6(raio), on_success:half}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 194,
+      "slug": "brass-dragon-wyrmling",
+      "before_sha256": "997d65b484bf7df4400c642d13ebd601106f706dac0defc217c91d5d6bb6386d",
+      "after_sha256": "318e11c81bf9a323a61a30351f9842d3c08591de902fd442ec1814a372d26fb2",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Fire Breath (Recharge 5–6)",
+          "source_entries_sha256": "30a9b603b58ef256f7cbb8c2260274a458b6c599e95dae6d0d2744a61ae65698",
+          "tags": [
+            "instant{aoe{line:20ft, width:5ft, save{dex, cd=11}, dmg:4d6(fogo), on_success:half}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 67,
+      "slug": "adult-blue-dragon",
+      "before_sha256": "63321c79f2f957bb0fdb86dfa94efe20d9bb4fcd436e0e40c1eb686bf32c278f",
+      "after_sha256": "6b0ae75a0ca60cc0b2278e9b3666bbf3cdfff6f280f24c0a61a3ae0240a5709c",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Lightning Breath (Recharge 5–6)",
+          "source_entries_sha256": "07c3c2450930c6aab5e46f9b1b2233e82c86207547b4fc9d7f6e48037cdb4046",
+          "tags": [
+            "instant{aoe{line:90ft, width:5ft, save{dex, cd=19}, dmg:11d10(raio), on_success:half}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 94,
+      "slug": "ancient-blue-dragon",
+      "before_sha256": "48864b043839ab4cb5a9002859cd2efe316ae016206bff32dc0f8e84bc2395b8",
+      "after_sha256": "5760ac20d0724ad437747b0be9fffa1c725095b2be20e22aec77682e8691e3d7",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Lightning Breath (Recharge 5–6)",
+          "source_entries_sha256": "658f625d3c89aeddb47587eca32622d3abb76e3799ae120b24872f2c9f4b77fc",
+          "tags": [
+            "instant{aoe{line:120ft, width:10ft, save{dex, cd=23}, dmg:16d10(raio), on_success:half}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 69,
+      "slug": "adult-bronze-dragon",
+      "before_sha256": "b1e73d73ce890134ca6feb90c651f948a1758c7135b48639e207bfc51b431dd6",
+      "after_sha256": "5e9eb2a8bc1b9a6860d64ddce55f4af87af14877dfadcbef51238303ce16ad82",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Lightning Breath (Recharge 5–6)",
+          "source_entries_sha256": "6ff762c66af94c3e5be14420082da821eaef522a0dc5a3fcb33bfee7f2c04dd0",
+          "tags": [
+            "instant{aoe{line:90ft, width:5ft, save{dex, cd=19}, dmg:10d10(raio), on_success:half}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 198,
+      "slug": "bronze-dragon-wyrmling",
+      "before_sha256": "369336cd9f7dccf0d6e8dd871c1e831f7bf78d295167f40a8f95d6afec027ed1",
+      "after_sha256": "e9b795905132ae276f4cf252526feb8b1b29bddf11f63493617ab9e0c1451a96",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Lightning Breath (Recharge 5–6)",
+          "source_entries_sha256": "13fb8100d3c881e66ca76b5161f0ca598dcd65d02b1827f5063fc3628efcbaf4",
+          "tags": [
+            "instant{aoe{line:40ft, width:5ft, save{dex, cd=12}, dmg:3d10(raio), on_success:half}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 93,
+      "slug": "ancient-black-dragon",
+      "before_sha256": "590cc8016df89d735add782ef46195325c9731b562867e7e149fc1b481272960",
+      "after_sha256": "608f64e9de63f114eb750b72c1c8a363e4d024f96959c37904ed2d42442c773c",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Acid Breath (Recharge 5–6)",
+          "source_entries_sha256": "ac4a77fb0c4cde22a9cafb7669dfc545e46faee57c43d25e1e63ee9cdaa49d05",
+          "tags": [
+            "instant{aoe{line:90ft, width:10ft, save{dex, cd=22}, dmg:15d8(acido), on_success:half}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 95,
+      "slug": "ancient-brass-dragon",
+      "before_sha256": "6ee3f06a0a1c28de6b1ec21450ea97bba8bfb893452facd391af59afdc6d4a9e",
+      "after_sha256": "e84896ee4f443f632a290a56b6ed2d7cff2227b3e0cc0c2f269dbeba12001750",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Fire Breath (Recharge 5–6)",
+          "source_entries_sha256": "2032f906794046156d0f27f63030803b3dce548aa1843723f26095c87bd4de02",
+          "tags": [
+            "instant{aoe{line:90ft, width:5ft, save{dex, cd=21}, dmg:13d8(fogo), on_success:half}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 96,
+      "slug": "ancient-bronze-dragon",
+      "before_sha256": "ed7d8f17e83aefe9962aa493f7e24f48579b12ea7c647c16e7d44e7a439f327c",
+      "after_sha256": "19337922b852e08963177c4ed2b717936384f8191a14fe0ef7b31befb31789a0",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Lightning Breath (Recharge 5–6)",
+          "source_entries_sha256": "b3aa0e9ec72c5a0fa3debddab90ccae2362443fbbc9559ff974eb9c088c1226f",
+          "tags": [
+            "instant{aoe{line:120ft, width:10ft, save{dex, cd=23}, dmg:15d10(raio), on_success:half}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 97,
+      "slug": "ancient-copper-dragon",
+      "before_sha256": "31dea0bd4b96d88107de009cbf2a821d916aa2b86c0347b4e912964920d60bac",
+      "after_sha256": "188bbe9abb8cfa6141a8e22f5798b87bd494c9ae91b42ba5ff294d0a1413557d",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Acid Breath (Recharge 5–6)",
+          "source_entries_sha256": "0bf4cf20c365e05891c5d80b72e0a4237eb0f066b0afaaebd568c2df95120ca0",
+          "tags": [
+            "instant{aoe{line:90ft, width:10ft, save{dex, cd=22}, dmg:14d8(acido), on_success:half}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 161,
+      "slug": "behir",
+      "before_sha256": "715cd530e4f8774a1c7b286e83ee83b2ba3639eb84daaff1ddc72f50810cc12e",
+      "after_sha256": "d07c0aae4b59d55204e16b84134849f258cae0402d0ea2c8b6759b889476f8ee",
+      "features": [
+        {
+          "index": 3,
+          "name_en": "Lightning Breath (Recharge 5–6)",
+          "source_entries_sha256": "a700b980283767f0edc12c89f18324754ec66e3c761c5ecc088853fd37070604",
+          "tags": [
+            "instant{aoe{line:90ft, width:5ft, save{dex, cd=16}, dmg:12d10(raio), on_success:half}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 890,
+      "slug": "young-bronze-dragon",
+      "before_sha256": "a29fb0e1fe82c91c54befa296efa6d6f70b8a576281b18c5744eaa90897527de",
+      "after_sha256": "e3f3136cb4de1d7c1ac1dd1da4c5116217e1680d9fa1e22e31aadd4d7b22f67b",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Lightning Breath (Recharge 5–6)",
+          "source_entries_sha256": "aaf8481fce772b29dd46646dbd7d321941cfe976b4bd12c5dd8ce6c4c2171aef",
+          "tags": [
+            "instant{aoe{line:60ft, width:5ft, save{dex, cd=15}, dmg:9d10(raio), on_success:half}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 891,
+      "slug": "young-copper-dragon",
+      "before_sha256": "b8660e1e1720a1d7f89d2842f25120a601f3b5dd30134200d40d3617defb002f",
+      "after_sha256": "75df8fe93002de56cbc0c192facda2ab456860e7c79a6cd97e6fc96ac57fe946",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Acid Breath (Recharge 5–6)",
+          "source_entries_sha256": "903ad3f72bcaa7c64a83b25f1cc7674068b490a41e26a9caa4391beb34c76569",
+          "tags": [
+            "instant{aoe{line:40ft, width:5ft, save{dex, cd=14}, dmg:9d8(acido), on_success:half}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 887,
+      "slug": "young-black-dragon",
+      "before_sha256": "a710a9ec23cc860486cbd5643859152ae0a4663210a2a73f1498d9a113d182f9",
+      "after_sha256": "5397d18b84d58d106610ee8c929716901e1d1290d3267cc1ab95563a64c4c823",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Acid Breath (Recharge 5–6)",
+          "source_entries_sha256": "7a2a1aad4b5b9ed09bb1eb7ee52ea54f1c6722aeadbfc9881c3915594156b2e6",
+          "tags": [
+            "instant{aoe{line:30ft, width:5ft, save{dex, cd=14}, dmg:14d6(acido), on_success:half}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 888,
+      "slug": "young-blue-dragon",
+      "before_sha256": "3f48aa7243b613679061133e5c79c8416f38b8079b2f35673dcd14aa2b4320b4",
+      "after_sha256": "acdd991ba01ccab29052be3db5de6ef489375687ac3ed75e57bcf8b7b1780f00",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Lightning Breath (Recharge 5–6)",
+          "source_entries_sha256": "3e2842e8b2f1ade550e4f0cdb2dd6499102cc2867b83765c2705ec62697be285",
+          "tags": [
+            "instant{aoe{line:60ft, width:5ft, save{dex, cd=16}, dmg:10d10(raio), on_success:half}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 889,
+      "slug": "young-brass-dragon",
+      "before_sha256": "69f90b6ac8d5c3e06ef02fe2e3bff4f5b3c12c5a1b96adb490425cc5149959c7",
+      "after_sha256": "392cff6ac1a3c60814160348f5fa0a2fc4a3a5261c473b1aeda5dd42403a62d8",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Fire Breath (Recharge 5–6)",
+          "source_entries_sha256": "05a67b524b17e571dca55205e8105647cd5dfcd44352d2d24313a3ca790bede3",
+          "tags": [
+            "instant{aoe{line:40ft, width:5ft, save{dex, cd=14}, dmg:11d6(fogo), on_success:half}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 240,
+      "slug": "copper-dragon-wyrmling",
+      "before_sha256": "94a58416b3e43f13c21a1d78b66e1753de181d79ed90121d2cda18fd78103453",
+      "after_sha256": "a82531f1a3f02a6b617d0e48de8b90fce5190dfdb0ea2e09d9d2e0ab34cee64f",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Acid Breath (Recharge 5–6)",
+          "source_entries_sha256": "5305067c2121f7e0664915d103a5e49b46212eb8f406f07ccdceafa24187c974",
+          "tags": [
+            "instant{aoe{line:20ft, width:5ft, save{dex, cd=11}, dmg:4d8(acido), on_success:half}}"
+          ]
+        }
+      ]
+    }
+  ]
+}
