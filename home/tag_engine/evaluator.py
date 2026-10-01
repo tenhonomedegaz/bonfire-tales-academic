@@ -364,6 +364,9 @@ def _combat_fact_truth(text, context):
     if text == "target{in:self_space}":
         value = context.get("target_in_self_space")
         return value if isinstance(value, bool) else None
+    if text == "self{can_see:target}":
+        value = context.get("self_can_see_target")
+        return value if isinstance(value, bool) else None
     return None
 
 
@@ -553,6 +556,7 @@ class Evaluator:
         # event opt in with explicit facts; unknown facts never activate a gate.
         resolve_runtime = context.get("resolve_runtime") is True
         attack_action = resolve_runtime and any(node.name == "attack" for node in nodes)
+        save_action = resolve_runtime and any(node.name == "save" for node in nodes)
         gates = [node for node in nodes
                  if node.name in {"restriction", "requires"}]
         blockers = [gate.raw for gate in gates if _gate_blocks(gate, context)]
@@ -564,6 +568,10 @@ class Evaluator:
                 event = context.get("event")
                 if not isinstance(event, str) or trigger.value != event:
                     blockers.append(trigger.raw)
+                for qualifier in trigger.qualifiers:
+                    if qualifier.startswith("target:") and (
+                            context.get("event_target") != qualifier.split(":", 1)[1]):
+                        blockers.append(trigger.raw)
         if blockers:
             return blockers
 
@@ -597,6 +605,10 @@ class Evaluator:
                 else:
                     child_active = active and previous_if is False
                     previous_if = None
+            elif resolve_runtime and node.name in {"on_fail", "on_success"}:
+                expected = "fail" if node.name == "on_fail" else "success"
+                child_active = (active and context.get("event") == "action" and
+                                context.get("save_outcome") == expected)
             elif resolve_runtime and node.name in {"instant", "while_active"}:
                 child_active = active
             elif node.name in _RUNTIME_SCOPES:
@@ -619,11 +631,15 @@ class Evaluator:
                         child_active = False
                 elif node.name != "while_active":
                     child_active = False
+            elif save_action and context.get("event") != "action":
+                if node.name != "while_active":
+                    child_active = False
 
             operation_active = child_active
             if (resolve_runtime and node.name == "instant" and not node.scope and
-                    any(child.name == "attack" for child in node.children) and
-                    context.get("event") != "attack"):
+                    any(child.name in {"attack", "save"} for child in node.children) and
+                    context.get("event") != ("attack" if any(
+                        child.name == "attack" for child in node.children) else "action")):
                 operation_active = False
             operation = self._operation(node, context, operation_active)
             if operation:

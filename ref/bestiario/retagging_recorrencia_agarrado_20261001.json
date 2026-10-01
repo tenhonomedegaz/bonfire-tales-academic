@@ -1,0 +1,82 @@
+{
+  "version": 1,
+  "source_sha256": "41e9c80b84fc08ed9cffa6fa1def5d0356f6fca4dc34ada46f21b8095f99b326",
+  "rows": [
+    {
+      "pk": 815,
+      "slug": "tree-blight",
+      "before_sha256": "d32cc0d6c7213bfcb967a9671ae3bc2010c3aa897e3711aba753f7f62bb05b5e",
+      "after_sha256": "ed03d2a884b7ccf94e90586cf83af84d84e96ef5caa220e0026bf58daf13680e",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Grasping Root",
+          "source_entries_sha256": "44ff2d1820061aeba85cfe9a5a77d10c5dc9cfd487d8f58e8a71ee0f5ae9f3f0",
+          "expected_tags": [
+            "instant{range:15ft, requires:target{size<=grande}, save{str, cd=17}, on_fail{pull:10ft, apply:agarrado(escape_cd:16), while_active{requires:target{condition{agarrado, source:self}}, instant{trigger=turn_start(target:creature), dmg:2d6+6(concussao)}}}}"
+          ],
+          "tags": [
+            "instant{range:15ft, requires:target{size<=grande}, requires:self{can_see:target}, save{str, cd=17}, on_fail{pull:10ft, apply:agarrado(escape_cd:16)}, while_active{requires:target{condition{agarrado, source:self}}, instant{trigger=turn_start(target:creature), dmg:2d6+6(concussao)}}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 522,
+      "slug": "invisible-stalker",
+      "before_sha256": "bb56af2a70fa7939b870d84aac542fcb5bba7f196f533566cdfe2f9d3ff8d8b6",
+      "after_sha256": "f86d468ad382f6b39dd00debfcc47d72eaf4dd3ac50eddeb3b44a39526a07c39",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Vortex",
+          "source_entries_sha256": "361c12eda2b516ae20209c104aa7cca8fdd558b1ab471586f11b34cf1741dcb5",
+          "expected_tags": [
+            "instant{requires:target{size<=grande}, save{con, cd=14}, on_fail{dmg:1d8+3(trovao), apply:agarrado(escape_cd:13), while_active{requires:target{condition{agarrado, source:self}}, restricts{spellcasting:verbal}, instant{trigger=turn_start(target:self), dmg:2d6(trovao)}}}}"
+          ],
+          "tags": [
+            "instant{requires:target{size<=grande}, requires:target{in:self_space}, save{con, cd=14}, on_fail{dmg:1d8+3(trovao), apply:agarrado(escape_cd:13)}, while_active{requires:target{condition{agarrado, source:self}}, restricts{spellcasting:verbal}, instant{trigger=turn_start(target:self), dmg:2d6(trovao)}}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 838,
+      "slug": "vine-blight",
+      "before_sha256": "8c4ea21c457b908183667bc8b1107661bcb0ace82a25825112f355486f40c853",
+      "after_sha256": "2dc217c6658e1125df70bc73aaa9452d47d6c29c50dca68ecbc9bcf3736658e1",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Constricting Vine",
+          "source_entries_sha256": "949f5e91735ed04c7b911ecd27a45a578731152477007eecf360e4f967991a38",
+          "expected_tags": [
+            "instant{attack:melee, attack:+4, reach:10ft, dmg:1d8+2(concussao), instant{trigger=hit, requires:target{size<=grande}, apply:agarrado(escape_cd:12), while_active{requires:target{condition{agarrado, source:self}}, restricts{attack{constricting_vine}}, instant{trigger=turn_start(target:creature), dmg:1d8(concussao)}}}}"
+          ],
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:10ft, dmg:1d8+2(concussao), instant{trigger=hit, requires:target{size<=grande}, apply:agarrado(escape_cd:12)}, while_active{requires:target{condition{agarrado, source:self}}, restricts{attack{constricting_vine}}, instant{trigger=turn_start(target:creature), dmg:1d8(concussao)}}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 734,
+      "slug": "shambling-mound",
+      "before_sha256": "49d4a4816355b0ae1363bdeddcc98c821b57d978f4f5123e9dd3008dd337e5fc",
+      "after_sha256": "3a5e5a7f911f6a72ef2567c61bd6bd5fa27b534ca4032ccebac7851509efcff7",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Engulf",
+          "source_entries_sha256": "933246d6a17b1334315ffd0d699ff81a9cfa44c04faa9e43479f9f26b67c50d8",
+          "expected_tags": [
+            "instant{range:5ft, requires:target{size<=medio}, save{str, cd=15}, on_fail{apply:agarrado(escape_cd:14), apply:cego(duration:until_grapple_ends), apply:restringido(duration:until_grapple_ends), while_active{requires:target{condition{agarrado, source:self}}, instant{trigger=turn_start(target:creature), dmg:3d6(raio)}}}}"
+          ],
+          "tags": [
+            "instant{range:5ft, requires:target{size<=medio}, save{str, cd=15}, on_fail{apply:agarrado(escape_cd:14), apply:cego(duration:until_grapple_ends), apply:restringido(duration:until_grapple_ends)}, while_active{requires:target{condition{agarrado, source:self}}, instant{trigger=turn_start(target:creature), dmg:3d6(raio)}}}"
+          ]
+        }
+      ]
+    }
+  ]
+}

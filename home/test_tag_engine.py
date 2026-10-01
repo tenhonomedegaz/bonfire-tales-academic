@@ -561,7 +561,8 @@ class GenericEvaluatorTests(SimpleTestCase):
         )
         base = {"resolve_runtime": True, "self_hp": 36, "self_max_hp": 36,
                 "target_size": "medio", "target_in_self_space": True,
-                "conditions": {"agarrado": {"self"}}}
+                "conditions": {"agarrado": {"self"}},
+                "event_target": "creature"}
 
         def active(context, verb):
             return [op.value for op in evaluate_tags([tag], context).operations
@@ -577,8 +578,42 @@ class GenericEvaluatorTests(SimpleTestCase):
         self.assertEqual(active({**base, "event": "turn_end"}, "dmg"),
                          ["2d6(necrotico)"])
         self.assertEqual(active({**base, "event": "turn_end",
+                                 "event_target": "self"}, "dmg"), [])
+        self.assertEqual(active({**base, "event": "turn_end",
                                  "conditions": {"agarrado": {"other"}}}, "dmg"), [])
         self.assertEqual(active({**base, "event": "turn_start"}, "dmg"), [])
+
+
+    def test_salvaguarda_e_recorrencia_por_turno_sao_fases_distintas(self):
+        tag = (
+            "instant{requires:self{can_see:target}, save{str, cd=17}, "
+            "on_fail{apply:agarrado(escape_cd:16)}, "
+            "while_active{requires:target{condition{agarrado, source:self}}, "
+            "instant{trigger=turn_start(target:creature), dmg:2d6(concussao)}}}"
+        )
+        base = {"resolve_runtime": True, "self_can_see_target": True,
+                "conditions": {"agarrado": {"self"}},
+                "event_target": "creature"}
+
+        def active(context, verb):
+            return [op.value for op in evaluate_tags([tag], context).operations
+                    if op.verb == verb and op.active]
+
+        self.assertEqual(active({**base, "event": "action",
+                                 "save_outcome": "fail"}, "apply"), ["agarrado"])
+        self.assertEqual(active({**base, "event": "action",
+                                 "save_outcome": "success"}, "apply"), [])
+        self.assertEqual(active({**base, "event": "action",
+                                 "save_outcome": "fail"}, "dmg"), [])
+        self.assertEqual(active({**base, "event": "turn_start"}, "dmg"),
+                         ["2d6(concussao)"])
+        self.assertEqual(active({**base, "event": "turn_start",
+                                 "event_target": "self"}, "dmg"), [])
+        self.assertEqual(active({**base, "event": "turn_start",
+                                 "conditions": {"agarrado": {"other"}}}, "dmg"), [])
+        self.assertEqual(active({**base, "event": "action",
+                                 "save_outcome": "fail",
+                                 "self_can_see_target": False}, "apply"), [])
 
 
 class TagNamingTests(SimpleTestCase):
