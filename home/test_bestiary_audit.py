@@ -40,6 +40,34 @@ class BestiarySnapshotAuditTests(SimpleTestCase):
         self.assertEqual(report['summary']['tag_syntax_errors'], 1)
         self.assertEqual(report['summary']['tag_syntax_warnings'], 1)
 
+    def test_conditional_damage_branches_are_validated(self):
+        rows = self.sample()
+        action = rows[1]['fields']['statblock_json']['actions'][0]
+        action['tags_json'] = [
+            'instant{attack:melee, if(self{sangrando}){dmg:1d4(perfurante)}, '
+            'else{dmg:2d4(perfurante)}}',
+        ]
+        valid = audit_snapshot(rows)
+        self.assertEqual(valid['records'][0]['mechanics']['syntax_warning_count'], 0)
+
+        action['tags_json'] = [
+            'instant{attack:melee, if(self{sangrando}){dmg:1d4(perfurante)}, '
+            'else{unknown_damage:2d4(perfurante)}}',
+        ]
+        invalid = audit_snapshot(rows)
+        self.assertIn('actions[0]:tag_syntax_warning:verbo-desconhecido',
+                      invalid['records'][0]['issues'])
+        self.assertEqual(invalid['records'][0]['mechanics']['syntax_warning_count'], 1)
+
+        action['tags_json'] = [
+            'instant{attack:melee, if(self{sangrando}){unknown_damage:1d4(perfurante)}, '
+            'else{dmg:2d4(perfurante)}}',
+        ]
+        invalid = audit_snapshot(rows)
+        self.assertIn('actions[0]:tag_syntax_warning:verbo-desconhecido',
+                      invalid['records'][0]['issues'])
+        self.assertEqual(invalid['records'][0]['mechanics']['syntax_warning_count'], 1)
+
     def test_legacy_source_tags_are_pending_without_false_dsl_errors(self):
         rows = self.sample()
         rows[1]['fields']['statblock_json']['actions'][0]['tags'] = [

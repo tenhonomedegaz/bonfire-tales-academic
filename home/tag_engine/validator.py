@@ -26,7 +26,7 @@ Diagnostic = namedtuple("Diagnostic", "level code message fragment")
 # blocos cujo CORPO é uma lista de efeitos (recursão de validação de heads)
 WRAPPER_BLOCKS = {
     "instant", "while_active", "always_active", "effects", "aura", "aoe",
-    "restriction", "restricts", "modifiers", "cast", "while",
+    "restriction", "restricts", "modifiers", "cast", "while", "if", "else",
 }
 
 _NUMERIC = re.compile(r"^\d")
@@ -115,7 +115,13 @@ def _walk_heads(nodes, lib, unknown, locals_=frozenset(), top=True):
             # recursão SÓ no bloco PRÓPRIO do head (grp '{' imediatamente após o
             # head). Evita recursar em ref aninhada: cast:ability{X} -> o {X} é da
             # ability, não do cast, então 'X' não é lido como verbo.
-            blk = seg[hend] if hend < len(seg) else None
+            # if(<predicate>){<effects>} has a predicate group before its
+            # effect block. Validate the branch body, not predicate operands.
+            block_index = hend
+            if (base == "if" and block_index < len(seg)
+                    and seg[block_index][0] == "grp" and seg[block_index][1] == "("):
+                block_index += 1
+            blk = seg[block_index] if block_index < len(seg) else None
             if blk and blk[0] == "grp" and blk[1] == "{" and (base in WRAPPER_BLOCKS or base is None):
                 _walk_heads(blk[2], lib, unknown, locals_, top=False)
 

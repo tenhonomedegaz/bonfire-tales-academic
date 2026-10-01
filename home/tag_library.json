@@ -399,6 +399,10 @@
       "sintaxe": "if(<cond>): <then> [else: <else>]",
       "doc": "Ramo condicional."
     },
+    "else": {
+      "sintaxe": "if(<cond>){ <then> }, else{ <else> }",
+      "doc": "Ramo alternativo de if, executado somente quando a condicao e falsa."
+    },
     "match": {
       "sintaxe": "match(<seletor>){ <caso>:<valor>, ..., default:<valor> }",
       "doc": "Switch: escolhe EXATAMENTE um ramo (o primeiro que casa). Evita dupla aplicação em categorias que se sobrepõem."
