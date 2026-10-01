@@ -389,6 +389,24 @@
     font-style: italic;
     text-transform: capitalize;
 }
+.bonfire-creature-target-label {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .4rem;
+    margin-top: .5rem;
+    color: var(--muted);
+    font-size: 12px;
+}
+.bonfire-creature-target-size {
+    max-width: 100%;
+    border: 1px solid var(--stroke);
+    border-radius: 4px;
+    background: var(--bg0);
+    color: var(--text);
+    padding: .2rem .4rem;
+    font-size: 1rem;
+}
 .bonfire-creature-body { padding: .9rem; font-size: 13px; color: var(--text); }
 .bonfire-creature-meta { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: .6rem; color: var(--muted); font-size: 12px; }
 .bonfire-creature-meta b, .bonfire-creature-line b { color: var(--flame); font-weight: 700; }
@@ -676,6 +694,11 @@
 
     
     const _creatureCache = {};
+    const _creatureTargetSizes = [
+        ['', 'Sem alvo'], ['miudo', 'Mínimo'], ['pequeno', 'Pequeno'],
+        ['medio', 'Médio'], ['grande', 'Grande'], ['enorme', 'Enorme'],
+        ['descomunal', 'Colossal'],
+    ];
     async function hydrateCreatures() {
         const widgets = document.querySelectorAll('.bonfire-creature-widget[data-slug]:not([data-hydrated])');
         if (!widgets.length) return;
@@ -683,20 +706,32 @@
         await Promise.all([...widgets].map(async (el) => {
             if (el.dataset.hydrated) return;
             const slug = el.dataset.slug;
+            const targetSize = el.dataset.targetSize || '';
+            const cacheKey = `${slug}::${targetSize}`;
+            const requestSeq = Number(el.dataset.requestSeq || 0) + 1;
+            el.dataset.requestSeq = String(requestSeq);
             try {
-                if (!_creatureCache[slug]) {
-                    const res = await fetch(`/api/creature/?slug=${encodeURIComponent(slug)}`);
+                if (!_creatureCache[cacheKey]) {
+                    const params = new URLSearchParams({ slug });
+                    if (targetSize) params.set('target_size', targetSize);
+                    const res = await fetch(`/api/creature/?${params}`);
                     if (!res.ok) throw new Error('nao encontrada');
-                    _creatureCache[slug] = await res.json();
+                    _creatureCache[cacheKey] = await res.json();
                 }
-                const d = _creatureCache[slug];
+                if (Number(el.dataset.requestSeq) !== requestSeq) return;
+                const d = _creatureCache[cacheKey];
                 if (!d.success) throw new Error(d.error || 'erro');
                 const sub = [d.tipo, d.tamanho, d.nd ? ('ND ' + d.nd) : ''].filter(Boolean).join(' · ');
                 const descHtml = d.descricao ? `<div class="bonfire-creature-desc bonfire-markdown">${renderFn(d.descricao)}</div>` : '';
+                const targetOptions = _creatureTargetSizes.map(([key, label]) =>
+                    `<option value="${key}"${key === targetSize ? ' selected' : ''}>${label}</option>`).join('');
                 el.innerHTML = `
                     <div class="bonfire-creature-header">
                         <p class="bonfire-creature-name">${escapeHtml(d.nome)}</p>
                         <span class="bonfire-creature-sub">${escapeHtml(sub)}</span>
+                        <label class="bonfire-creature-target-label">Tamanho do alvo
+                            <select class="bonfire-creature-target-size">${targetOptions}</select>
+                        </label>
                     </div>
                     <div class="bonfire-creature-body">
                         ${d.statblock_html || ''}
@@ -704,6 +739,7 @@
                     </div>`;
                 el.dataset.hydrated = '1';
             } catch (e) {
+                if (Number(el.dataset.requestSeq) !== requestSeq) return;
                 el.innerHTML = `<div class="bonfire-preview-card-error" style="padding:.75rem">Criatura «${escapeHtml(slug)}» nao encontrada.</div>`;
                 el.dataset.hydrated = '1';
             }
@@ -713,6 +749,15 @@
     function init() {
         hydrateAll();
         hydrateCreatures();
+
+        document.addEventListener('change', (e) => {
+            if (!e.target.matches('.bonfire-creature-target-size')) return;
+            const widget = e.target.closest('.bonfire-creature-widget[data-slug]');
+            if (!widget) return;
+            widget.dataset.targetSize = e.target.value;
+            delete widget.dataset.hydrated;
+            hydrateCreatures();
+        });
 
         document.addEventListener('click', async (e) => {
             const trigger = e.target.closest('.bonfire-card-trigger');
