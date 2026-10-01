@@ -94,7 +94,19 @@ def reviewed_statblock(creature, source_row, proposal, *, library=None):
                 'tags' in action):
             raise FeatureRetagConflict('Habilidade ou fonte divergente.')
         existing_tags = action.get('tags_json') or []
-        if existing_tags and existing_tags != tags:
+        expected_tags = feature.get('expected_tags')
+        if expected_tags is not None and (
+                not isinstance(expected_tags, list) or not expected_tags or
+                expected_tags == tags or
+                any(not isinstance(tag, str) or not tag.strip() for tag in expected_tags)):
+            raise FeatureRetagConflict('Tags anteriores invalidas.')
+        if already_applied:
+            if existing_tags != tags:
+                raise FeatureRetagConflict('Resultado existente diverge da revisao.')
+        elif expected_tags is not None:
+            if existing_tags != expected_tags:
+                raise FeatureRetagConflict('Tags anteriores divergem da revisao.')
+        elif existing_tags and existing_tags != tags:
             raise FeatureRetagConflict('Habilidade ja possui tags diferentes.')
         correct_range = feature.get('correct_dual_range', False)
         correct_prone = feature.get('correct_prone_name', False)
@@ -103,10 +115,7 @@ def reviewed_statblock(creature, source_row, proposal, *, library=None):
         diagnostics = validate_tags_json(tags, library or Library(), None, strict_names=True)
         if any(d.level == ERROR for d in diagnostics):
             raise FeatureRetagConflict('Tag mecanica invalida.')
-        if already_applied:
-            if existing_tags != tags:
-                raise FeatureRetagConflict('Resultado existente diverge da revisao.')
-        else:
+        if not already_applied:
             action['tags_json'] = tags
             if correct_range:
                 _correct_dual_range(action, source[index]['entries'])
