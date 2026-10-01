@@ -349,6 +349,24 @@ def _target_size_truth(text, context):
     return compare(_SIZE_ORDER.index(actual), _SIZE_ORDER.index(expected))
 
 
+def _combat_fact_truth(text, context):
+    """Resolve only combat facts explicitly supplied by the caller."""
+    if text == "self{sangrando}":
+        hp, maximum = context.get("self_hp"), context.get("self_max_hp")
+        if isinstance(hp, (int, float)) and isinstance(maximum, (int, float)) and maximum > 0:
+            return hp <= maximum / 2
+        return None
+    if text == "target{hp<max_hp}":
+        hp, maximum = context.get("target_hp"), context.get("target_max_hp")
+        if isinstance(hp, (int, float)) and isinstance(maximum, (int, float)) and maximum > 0:
+            return hp < maximum
+        return None
+    if text == "target{in:self_space}":
+        value = context.get("target_in_self_space")
+        return value if isinstance(value, bool) else None
+    return None
+
+
 def _condition_truth(text, context):
     match = re.search(
         r"condition\s*\{\s*([a-z0-9_]+)([^{}]*)\}",
@@ -409,6 +427,10 @@ def _predicate_text_truth(text, context):
     if negated != text:
         truth = _predicate_text_truth(negated, context)
         return None if truth is None else not truth
+
+    combat_fact = _combat_fact_truth(text, context)
+    if combat_fact is not None:
+        return combat_fact
 
     target_size = _target_size_truth(text, context)
     if target_size is not None:
@@ -527,12 +549,25 @@ class Evaluator:
             })
 
     def _walk_scope(self, nodes, state, operations, context, active=True):
+        # Static inspection remains the default. Callers resolving one combat
+        # event opt in with explicit facts; unknown facts never activate a gate.
+        resolve_runtime = context.get("resolve_runtime") is True
+        attack_action = resolve_runtime and any(node.name == "attack" for node in nodes)
         gates = [node for node in nodes
                  if node.name in {"restriction", "requires"}]
         blockers = [gate.raw for gate in gates if _gate_blocks(gate, context)]
+        if resolve_runtime:
+            blockers.extend(gate.raw for gate in gates
+                            if gate.name == "requires" and
+                            _predicate_truth(gate, context) is None)
+            for trigger in (node for node in nodes if node.name == "trigger"):
+                event = context.get("event")
+                if not isinstance(event, str) or trigger.value != event:
+                    blockers.append(trigger.raw)
         if blockers:
             return blockers
 
+        previous_if = None
         for node in nodes:
             if node.name in {"restriction", "requires"}:
                 operation = self._operation(node, context, active)
@@ -542,12 +577,55 @@ class Evaluator:
                 continue
 
             child_active = active
-            if node.name in _RUNTIME_SCOPES:
+            if resolve_runtime and node.name in {"if", "else"}:
+                if node.name == "if":
+                    opening = node.raw.find("(")
+                    depth = 0
+                    closing = None
+                    for pos in range(opening, len(node.raw)):
+                        if node.raw[pos] == "(":
+                            depth += 1
+                        elif node.raw[pos] == ")":
+                            depth -= 1
+                            if depth == 0:
+                                closing = pos
+                                break
+                    previous_if = (_predicate_text_truth(
+                        node.raw[opening + 1:closing], context)
+                        if opening >= 0 and closing is not None else None)
+                    child_active = active and previous_if is True
+                else:
+                    child_active = active and previous_if is False
+                    previous_if = None
+            elif resolve_runtime and node.name in {"instant", "while_active"}:
+                child_active = active
+            elif node.name in _RUNTIME_SCOPES:
                 child_active = False
             elif node.name == "always_active":
                 child_active = active
 
-            operation = self._operation(node, context, child_active)
+            if resolve_runtime and node.value and "{requires:" in str(node.value):
+                operand = str(node.value)
+                qualifier = operand[operand.find("{requires:") + 1:-1]
+                if operand.endswith("}") and _predicate_text_truth(qualifier, context) is not True:
+                    child_active = False
+            if attack_action:
+                event = context.get("event")
+                if event == "attack":
+                    if node.name not in {"attack", "reach", "adv", "while_active"}:
+                        child_active = False
+                elif event == "hit":
+                    if node.name in {"attack", "reach", "adv"}:
+                        child_active = False
+                elif node.name != "while_active":
+                    child_active = False
+
+            operation_active = child_active
+            if (resolve_runtime and node.name == "instant" and not node.scope and
+                    any(child.name == "attack" for child in node.children) and
+                    context.get("event") != "attack"):
+                operation_active = False
+            operation = self._operation(node, context, operation_active)
             if operation:
                 operations.append(operation)
                 self._dispatch(state, operation)

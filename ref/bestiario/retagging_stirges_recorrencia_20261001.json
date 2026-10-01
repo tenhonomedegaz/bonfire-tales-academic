@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "source_sha256": "41e9c80b84fc08ed9cffa6fa1def5d0356f6fca4dc34ada46f21b8095f99b326",
+  "rows": [
+    {
+      "pk": 793,
+      "slug": "swarm-of-stirges",
+      "before_sha256": "22c276da5ed86451b709a75d9a2fd6c842afc229c001681adbc2840dbc65e5f1",
+      "after_sha256": "3b7a233b4c2cba7e2dd1f864feff530f0ab5607ad44e81db809526cd70ee35db",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Swarm of Proboscises",
+          "source_entries_sha256": "7373cfc851402c313ddcedc553f65af87db3ae27d951826aa7b998f054e33de1",
+          "expected_tags": [
+            "instant{attack:melee, attack:+5, reach:5ft, if(self{sangrando}){dmg:1d10+3(perfurante)}, else{dmg:2d10+3(perfurante)}, instant{trigger=hit, requires:target{size<=medio}, requires:target{in:self_space}, apply:agarrado(escape_cd:13), while_active{requires:target{condition{agarrado, source:self}}, instant{trigger=turn_end(target:creature), dmg:2d6(necrotico)}}}}"
+          ],
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:5ft, if(self{sangrando}){dmg:1d10+3(perfurante)}, else{dmg:2d10+3(perfurante)}, instant{trigger=hit, requires:target{size<=medio}, requires:target{in:self_space}, apply:agarrado(escape_cd:13)}, while_active{requires:target{condition{agarrado, source:self}}, instant{trigger=turn_end(target:creature), dmg:2d6(necrotico)}}}"
+          ]
+        }
+      ]
+    }
+  ]
+}

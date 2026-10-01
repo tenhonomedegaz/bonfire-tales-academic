@@ -523,6 +523,64 @@ class GenericEvaluatorTests(SimpleTestCase):
         self.assertEqual(derive(16)["ca"], 14)
 
 
+    def test_ataque_condicional_por_pv_escolhe_um_dano_e_vantagem(self):
+        tag = (
+            "instant{attack:melee, adv:attack{requires:target{hp<max_hp}}, "
+            "if(self{sangrando}){dmg:1d4+3(perfurante)}, "
+            "else{dmg:2d4+3(perfurante)}}"
+        )
+
+        def active(context, verb):
+            return [op.value for op in evaluate_tags([tag], context).operations
+                    if op.verb == verb and op.active]
+
+        base = {"resolve_runtime": True, "event": "hit"}
+        self.assertEqual(active({**base, "self_hp": 28, "self_max_hp": 28,
+                                 "target_hp": 10, "target_max_hp": 10}, "dmg"),
+                         ["2d4+3(perfurante)"])
+        self.assertEqual(active({**base, "self_hp": 14, "self_max_hp": 28,
+                                 "target_hp": 8, "target_max_hp": 10}, "dmg"),
+                         ["1d4+3(perfurante)"])
+        self.assertEqual(active({**base, "self_hp": 14, "self_max_hp": 28}, "dmg"),
+                         ["1d4+3(perfurante)"])
+        roll = {**base, "event": "attack", "self_hp": 28, "self_max_hp": 28,
+                "target_hp": 8, "target_max_hp": 10}
+        self.assertEqual(len(active(roll, "adv")), 1)
+        self.assertEqual(active({**roll, "target_hp": 10}, "adv"), [])
+        self.assertEqual(active(roll, "dmg"), [])
+        self.assertEqual(active({"self_hp": 14, "self_max_hp": 28}, "dmg"), [])
+
+    def test_agarrar_e_dano_recorrente_respeitam_evento_espaco_e_fonte(self):
+        tag = (
+            "instant{attack:melee, if(self{sangrando}){dmg:1d10+3(perfurante)}, "
+            "else{dmg:2d10+3(perfurante)}, "
+            "instant{trigger=hit, requires:target{size<=medio}, "
+            "requires:target{in:self_space}, apply:agarrado(escape_cd:13)}, "
+            "while_active{requires:target{condition{agarrado, source:self}}, "
+            "instant{trigger=turn_end(target:creature), dmg:2d6(necrotico)}}}"
+        )
+        base = {"resolve_runtime": True, "self_hp": 36, "self_max_hp": 36,
+                "target_size": "medio", "target_in_self_space": True,
+                "conditions": {"agarrado": {"self"}}}
+
+        def active(context, verb):
+            return [op.value for op in evaluate_tags([tag], context).operations
+                    if op.verb == verb and op.active]
+
+        self.assertEqual(active({**base, "event": "hit"}, "apply"), ["agarrado"])
+        self.assertEqual(active({**base, "event": "hit"}, "dmg"),
+                         ["2d10+3(perfurante)"])
+        self.assertEqual(active({**base, "event": "hit", "target_size": "grande"},
+                                "apply"), [])
+        self.assertEqual(active({**base, "event": "hit", "target_in_self_space": False},
+                                "apply"), [])
+        self.assertEqual(active({**base, "event": "turn_end"}, "dmg"),
+                         ["2d6(necrotico)"])
+        self.assertEqual(active({**base, "event": "turn_end",
+                                 "conditions": {"agarrado": {"other"}}}, "dmg"), [])
+        self.assertEqual(active({**base, "event": "turn_start"}, "dmg"), [])
+
+
 class TagNamingTests(SimpleTestCase):
     def test_contexto_de_rp_em_vantagem_e_rejeitado(self):
         diagnostics = validate_tag_line(
