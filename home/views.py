@@ -13177,6 +13177,8 @@ def bestiario_view(request):
     from django.core.paginator import Paginator
     from .models import TbBestiario
     from .bestiary_description import display_description
+    from .bestiary_target_size import (TARGET_SIZE_OPTIONS, annotate_target_size,
+                                       selected_target_size)
     from .bestiary_catalog import (TYPE_LABELS, SIZE_LABELS, USAGE_LABELS,
                                    cr_classification, cr_display, size_keys, type_key,
                                    type_keys, usage_keys)
@@ -13187,6 +13189,7 @@ def bestiario_view(request):
     tam_sel = request.GET.get('tam', '')
     uso_sel = request.GET.get('uso', '')
     busca = request.GET.get('q', '').strip()[:120]
+    target_size = selected_target_size(request.GET.get('target_size'))
     busca_normalizada = ''.join(
         char for char in unicodedata.normalize('NFKD', busca.casefold())
         if not unicodedata.combining(char)
@@ -13274,8 +13277,9 @@ def bestiario_view(request):
     criaturas = list(page_obj.object_list)
     for criatura in criaturas:
         record = criatura.pop('record')
-        criatura['sb'] = _statblock_display_full(
-            record.statblock_json if isinstance(record.statblock_json, dict) else {}, record)
+        criatura['sb'] = annotate_target_size(_statblock_display_full(
+            record.statblock_json if isinstance(record.statblock_json, dict) else {}, record),
+            target_size)
 
     def page_url(number):
         params = request.GET.copy()
@@ -13292,6 +13296,7 @@ def bestiario_view(request):
         'page_number': page_obj.number, 'page_count': page_obj.paginator.num_pages,
         'busca': busca, 'filtro': filtro, 'nd_sel': nd_sel, 'tipo_sel': tipo_sel,
         'tam_sel': tam_sel, 'uso_sel': uso_sel, 'ordem': ordem, 'nds': nds_all,
+        'target_size': target_size, 'target_size_options': TARGET_SIZE_OPTIONS,
         'tipos': tipos_all, 'tamanhos': tamanhos_all, 'usos': usos_all,
         'pode_criar': perms.is_mestre(request.user), 'is_staff': is_staff,
         'msg': request.GET.get('m'),
@@ -14284,11 +14289,13 @@ def _render_creature_statblock(cr):
     return ''.join(parts)
 
 
-def _render_creature_statblock_full(cr):
+def _render_creature_statblock_full(cr, target_size=None):
     from django.template.defaultfilters import linebreaksbr
     from django.utils.html import escape as esc
     sb = cr.statblock_json if isinstance(cr.statblock_json, dict) else {}
-    display = _statblock_display_full(sb, cr)
+    from .bestiary_target_size import annotate_target_size
+
+    display = annotate_target_size(_statblock_display_full(sb, cr), target_size)
     parts = []
 
     def line(label, value):
@@ -14347,6 +14354,9 @@ def _render_creature_statblock_full(cr):
             parts.append('<div class="bonfire-creature-trait"><strong>%s.</strong> %s</div>' % (
                 esc(block.get('nome') or ''), linebreaksbr(block.get('texto') or '')
             ))
+            if block.get('size_gate_note'):
+                parts.append('<div class="bonfire-creature-line">%s</div>' %
+                             esc(block['size_gate_note']))
         parts.append('</div>')
 
     parts.append('</div>')
@@ -14367,9 +14377,14 @@ def _resolve_bestiary_creature(raw_slug):
 def api_creature_preview(request):
     from django.http import JsonResponse
     from .bestiary_description import display_description
+    from .bestiary_target_size import selected_target_size
     slug = (request.GET.get('slug') or '').strip().lower()
     if not slug:
         return JsonResponse({'success': False, 'error': 'slug ausente'}, status=400)
+    raw_target_size = request.GET.get('target_size')
+    target_size = selected_target_size(raw_target_size)
+    if raw_target_size and target_size is None:
+        return JsonResponse({'success': False, 'error': 'Tamanho de alvo invalido'}, status=400)
     cr = _resolve_bestiary_creature(slug)
     if not cr:
         return JsonResponse({'success': False, 'error': 'Criatura não encontrada'}, status=404)
@@ -14381,7 +14396,7 @@ def api_creature_preview(request):
         'nd': cr.nd or '',
         'ca': cr.ca or '',
         'pv': cr.pv or '',
-        'statblock_html': _render_creature_statblock_full(cr),
+        'statblock_html': _render_creature_statblock_full(cr, target_size),
         'descricao': display_description(cr),
     })
 

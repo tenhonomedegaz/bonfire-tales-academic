@@ -106,8 +106,15 @@
         <option value="nd_desc" {% if ordem == 'nd_desc' %}selected{% endif %}>ND maior</option>
       </select>
     </div>
-    <div class="mt-2 flex items-center justify-between gap-2">
+    <div class="mt-2 flex flex-wrap items-center justify-between gap-2">
       <p class="text-xs text-[var(--muted)]"><span id="bz-count">{{ criaturas|length }}</span> de {{ total_criaturas }} criatura(s)</p>
+      <label class="flex items-center gap-2 text-xs text-[var(--muted)]" for="bz-target-size">
+        Tamanho do alvo
+        <select id="bz-target-size" name="target_size" onchange="this.form.submit()" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-1.5 text-sm text-[var(--text)]">
+          <option value="">Sem alvo</option>
+          {% for key, label in target_size_options %}<option value="{{ key }}" {% if target_size == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+      </label>
       <button type="submit" class="rounded border border-[var(--stroke)] px-3 py-1 text-sm text-[var(--text)] hover:border-[var(--ember)]">Buscar</button>
     </div>
   </form>
