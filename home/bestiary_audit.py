@@ -11,6 +11,7 @@ import re
 import unicodedata
 
 from .bestiary_catalog import cr_classification, size_keys, type_keys, usage_keys
+from .tag_engine import ERROR, WARN, Library, validate_tags_json
 
 
 FEATURE_SECTIONS = (
@@ -73,6 +74,7 @@ def _mechanical_tags(value, path=()):
 
 
 def audit_snapshot(rows):
+    library = Library()
     creatures = [row for row in rows if row.get('model') == 'home.tbbestiario']
     spells = [row for row in rows if row.get('model') == 'home.tbmagia']
     spell_by_slug = {row['fields'].get('slug'): row['pk'] for row in spells if row['fields'].get('slug')}
@@ -110,7 +112,7 @@ def audit_snapshot(rows):
             issues.append('statblock_not_object')
             sb = {}
 
-        feature_count = untagged = 0
+        feature_count = untagged = legacy_tagged = syntax_errors = syntax_warnings = 0
         for section in FEATURE_SECTIONS:
             blocks = sb.get(section) or []
             if not isinstance(blocks, list):
@@ -134,18 +136,37 @@ def audit_snapshot(rows):
                     issues.append(f'{place}:missing_entries')
                 elif any(not isinstance(entry, str) for entry in entries):
                     issues.append(f'{place}:structured_entries_need_review')
-                tags = block.get('tags_json', block.get('tags'))
+                tags = block.get('tags_json')
+                legacy_tags = block.get('tags')
+                if legacy_tags:
+                    legacy_tagged += 1
+                    issues.append(f'{place}:legacy_tags_need_review')
                 if not tags:
                     untagged += 1
                 elif not isinstance(tags, list) or any(not isinstance(tag, str) or not tag.strip() for tag in tags):
                     issues.append(f'{place}:invalid_tag_shape')
-                if block.get('tags') and block.get('tags_json'):
+                if legacy_tags and tags:
                     issues.append(f'{place}:two_tag_sources')
+                if isinstance(tags, list) and tags and all(isinstance(tag, str) for tag in tags):
+                    for diagnostic in validate_tags_json(tags, library, None, strict_names=True):
+                        if diagnostic.level == ERROR:
+                            syntax_errors += 1
+                            issues.append(f'{place}:tag_syntax_error:{diagnostic.code}')
+                        elif diagnostic.level == WARN:
+                            syntax_warnings += 1
+                            issues.append(f'{place}:tag_syntax_warning:{diagnostic.code}')
 
         tags = fields.get('tags_json') or []
         if not isinstance(tags, list) or any(not isinstance(tag, str) for tag in tags):
             issues.append('creature_tags_invalid_shape')
             tags = []
+        for diagnostic in validate_tags_json(tags, library, None, strict_names=True):
+            if diagnostic.level == ERROR:
+                syntax_errors += 1
+                issues.append(f'creature_tags:tag_syntax_error:{diagnostic.code}')
+            elif diagnostic.level == WARN:
+                syntax_warnings += 1
+                issues.append(f'creature_tags:tag_syntax_warning:{diagnostic.code}')
         for index, tag in enumerate(tags):
             for reference in SUMMON_REF.findall(tag):
                 if not STATIC_REF.fullmatch(reference.strip()):
@@ -218,6 +239,8 @@ def audit_snapshot(rows):
             'pk': row['pk'], 'slug': fields.get('slug'),
             'classification': classification,
             'mechanics': {'feature_count': feature_count, 'untagged_count': untagged,
+                          'legacy_tagged_count': legacy_tagged,
+                          'syntax_error_count': syntax_errors, 'syntax_warning_count': syntax_warnings,
                           'status': 'pending_semantic_review'},
             'references': {'spell_count': reference_count},
             'issues': issues,
@@ -227,6 +250,9 @@ def audit_snapshot(rows):
         })
         totals['features'] += feature_count
         totals['untagged_features'] += untagged
+        totals['legacy_tagged_features'] += legacy_tagged
+        totals['tag_syntax_errors'] += syntax_errors
+        totals['tag_syntax_warnings'] += syntax_warnings
         totals['spell_references'] += reference_count
 
     consumer_references = []

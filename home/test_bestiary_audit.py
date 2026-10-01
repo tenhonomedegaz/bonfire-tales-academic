@@ -26,6 +26,32 @@ class BestiarySnapshotAuditTests(SimpleTestCase):
                         }}},
         ]
 
+    def test_feature_tag_syntax_is_reported_per_creature(self):
+        rows = self.sample()
+        statblock = rows[1]['fields']['statblock_json']
+        statblock['traits'][0]['tags_json'] = ['instant{unknown_verb:1}']
+        statblock['actions'][0]['tags_json'] = ['instant{dmg:2d6(fogo)']
+        report = audit_snapshot(rows)
+        mechanics = report['records'][0]['mechanics']
+        self.assertEqual(mechanics['syntax_error_count'], 1)
+        self.assertEqual(mechanics['syntax_warning_count'], 1)
+        self.assertIn('actions[0]:tag_syntax_error:desbalanceado', report['records'][0]['issues'])
+        self.assertIn('traits[0]:tag_syntax_warning:verbo-desconhecido', report['records'][0]['issues'])
+        self.assertEqual(report['summary']['tag_syntax_errors'], 1)
+        self.assertEqual(report['summary']['tag_syntax_warnings'], 1)
+
+    def test_legacy_source_tags_are_pending_without_false_dsl_errors(self):
+        rows = self.sample()
+        rows[1]['fields']['statblock_json']['actions'][0]['tags'] = [
+            'cast{spell:detectar-magia, at-will}',
+        ]
+        report = audit_snapshot(rows)
+        record = report['records'][0]
+        self.assertEqual(record['mechanics']['legacy_tagged_count'], 1)
+        self.assertEqual(record['mechanics']['untagged_count'], 2)
+        self.assertEqual(record['mechanics']['syntax_error_count'], 0)
+        self.assertIn('actions[0]:legacy_tags_need_review', record['issues'])
+
     def test_full_record_keeps_resolvable_aliases_separate_from_errors(self):
         rows = self.sample()
         result = audit_snapshot(rows)
