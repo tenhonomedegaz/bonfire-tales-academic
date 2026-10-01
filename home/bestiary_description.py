@@ -10,6 +10,11 @@ import unicodedata
 
 
 _FEATURE_LINE = re.compile(r'^- \*\*(.+?)\*\*(?: \((.*)\))?$')
+_LEGACY_PROSE_NAMES = {
+    'sono': 'Sleep',
+    'escuridao': 'Darkness',
+    'visao-no-escuro': 'Darkvision',
+}
 
 
 def _feature_base(name):
@@ -28,6 +33,8 @@ def _same_feature_refs(raw_refs, block):
     refs = block.get('spell_refs') or []
     if not raw_refs:
         return not refs
+    if not refs and _legacy_prose_refs(raw_refs, block):
+        return True
     if not isinstance(refs, list):
         return False
     mentioned = [_accent_fold(part) for part in raw_refs.split(',')]
@@ -40,6 +47,28 @@ def _same_feature_refs(raw_refs, block):
         }
         for name, ref in zip(mentioned, refs)
     )
+
+
+def _legacy_prose_refs(raw_refs, block):
+    """Recognize only source-backed false spell names from existing repair rules."""
+    from .bestiary_false_casts import FALSE_CAST_RULES
+
+    rule = FALSE_CAST_RULES.get(block.get('name_en'))
+    entries = block.get('entries_en')
+    if (not rule or block.get('spell_uses') or not isinstance(entries, list) or
+            not entries or any(not isinstance(entry, str) for entry in entries)):
+        return False
+    text = ' '.join(entries)
+    if not rule[0].search(text) or re.search(r'\bcast(?:s|ing)?\b', text, re.I):
+        return False
+    if any(f'cast{{spell:{slug}}}' in (block.get(key) or [])
+           for key in ('tags', 'tags_json') for slug in rule[1]):
+        return False
+    if not all(slug in _LEGACY_PROSE_NAMES for slug in rule[1]):
+        return False
+    expected = {_accent_fold(_LEGACY_PROSE_NAMES[slug]) for slug in rule[1]}
+    mentioned = [_accent_fold(name) for name in raw_refs.split(',') if name.strip()]
+    return len(mentioned) == len(rule[1]) and set(mentioned) == expected
 
 
 def _same_imported_summary(description, generated, statblock):

@@ -174,3 +174,54 @@ class BestiaryDescriptionProjectionTests(TestCase):
             self.assertEqual(preview.status_code, 200)
             self.assertEqual(bool(preview.json()['descricao']), visible)
             self.assertIn('Conjuracao', preview.json()['statblock_html'])
+
+    def test_source_backed_sleep_prose_does_not_duplicate_statblock(self):
+        trait = {
+            'name': 'Natureza Incomum', 'name_en': 'Unusual Nature',
+            'entries_en': ["The creature doesn't require air, food, drink, or sleep."],
+            'entries': ['A criatura não precisa respirar, comer, beber ou dormir.'],
+        }
+        statblock = {**self.statblock, 'traits': [trait]}
+        generated = _clean_creature_text(_descricao_markdown({}, statblock))
+        old = generated.replace('**Natureza Incomum**', '**Natureza Incomum** (Sleep)')
+        variants = (
+            ('natureza-sono', statblock, old, False),
+            ('natureza-outra-magia', statblock, old.replace('(Sleep)', '(Sleep, Fireball)'), True),
+            ('natureza-conjura-sono', {**statblock, 'traits': [{**trait,
+                'entries_en': ['The creature casts Sleep and does not need to sleep.']}]},
+             old, True),
+            ('natureza-tag-ativa', {**statblock, 'traits': [{**trait,
+                'tags_json': ['cast{spell:sono}']}]}, old, True),
+        )
+        for slug, current_statblock, description, visible in variants:
+            creature = TbBestiario.objects.create(
+                slug=slug, nome='Sentinela', statblock_json=current_statblock,
+                descricao_markdown=description,
+            )
+            preview = self.client.get(reverse('api_creature_preview'), {'slug': slug})
+            self.assertEqual(preview.status_code, 200)
+            self.assertEqual(bool(preview.json()['descricao']), visible)
+            self.assertIn('Natureza Incomum', preview.json()['statblock_html'])
+        catalog = self.client.get(reverse('bestiario'), {'q': 'natureza-sono'})
+        self.assertEqual(catalog.status_code, 200)
+        self.assertEqual(catalog.context['criaturas'][0]['descricao'], '')
+
+    def test_devils_sight_requires_both_old_prose_labels(self):
+        trait = {
+            'name': 'Visão do Diabo', 'name_en': "Devil's Sight",
+            'entries_en': ["Magical darkness doesn't impede the creature's darkvision."],
+            'entries': ['Escuridão mágica não impede sua visão no escuro.'],
+        }
+        statblock = {**self.statblock, 'traits': [trait]}
+        generated = _clean_creature_text(_descricao_markdown({}, statblock))
+        for slug, labels, visible in (
+            ('visao-do-diabo-antiga', 'Darkness, Darkvision', False),
+            ('visao-do-diabo-incompleta', 'Darkness', True),
+        ):
+            description = generated.replace('**Visão do Diabo**',
+                                            f'**Visão do Diabo** ({labels})')
+            TbBestiario.objects.create(slug=slug, nome='Sentinela',
+                                       statblock_json=statblock,
+                                       descricao_markdown=description)
+            preview = self.client.get(reverse('api_creature_preview'), {'slug': slug})
+            self.assertEqual(bool(preview.json()['descricao']), visible)
