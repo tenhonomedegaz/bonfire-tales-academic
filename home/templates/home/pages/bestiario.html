@@ -75,7 +75,7 @@
   {% elif msg == 'referenciada' %}<p class="rounded border border-[var(--flame)] bg-[var(--bg1)] px-2.5 py-1.5 text-sm text-[var(--flame)]">Esta criatura ainda e usada por uma habilidade ou magia. Remova a referencia antes de exclui-la.</p>{% endif %}
 
   <form method="get" class="bestiary-toolbar">
-    <div class="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-7">
+    <div class="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-8">
       <input id="bz-busca" name="q" type="search" value="{{ busca }}" placeholder="Buscar criatura..." autocomplete="off"
              class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-1.5 text-sm text-[var(--text)] outline-none focus:border-[var(--ember)] lg:col-span-2">
       <select name="f" onchange="this.form.submit()" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-1.5 text-sm text-[var(--text)]">
@@ -94,6 +94,10 @@
       <select name="tam" onchange="this.form.submit()" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-1.5 text-sm text-[var(--text)]">
         <option value="">Tamanho todos</option>
         {% for key, label in tamanhos %}<option value="{{ key }}" {% if key == tam_sel %}selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+      <select name="uso" aria-label="Vínculo da criatura" onchange="this.form.submit()" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-1.5 text-sm text-[var(--text)]">
+        <option value="">Vínculo todos</option>
+        {% for key, label in usos %}<option value="{{ key }}" {% if key == uso_sel %}selected{% endif %}>{{ label }}</option>{% endfor %}
       </select>
       <select name="ord" onchange="this.form.submit()" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-1.5 text-sm text-[var(--text)]">
         <option value="az" {% if ordem == 'az' %}selected{% endif %}>A-Z</option>
@@ -124,6 +128,7 @@
         <div class="flex items-start justify-between gap-2">
           <div>
             <div class="font-serif text-sm font-bold">{{ c.nome }}</div>
+            {% if c.usages %}<div class="mt-1 text-[11px] text-[var(--muted)]">{{ c.usages|join:", " }}</div>{% endif %}
             <div class="mt-1 text-[11px] uppercase tracking-wide text-[var(--muted)]">{{ c.tamanho }} {{ c.tipo }} · {% if c.nd_key == 'unrated' %}{{ c.nd }}{% else %}ND {{ c.nd }}{% endif %}</div>
           </div>
           <div class="flex shrink-0 flex-col items-end gap-1">

@@ -41,6 +41,10 @@ SIZE_COMBINATIONS = {
     'huge or gargantuan': ('H', 'G'),
     'tiny, small, medium, large, or huge': ('T', 'S', 'M', 'L', 'H'),
 }
+USAGE_LABELS = {
+    'owner_scaled': 'Escala com dono',
+    'linked_companion': 'Classe/subclasse',
+}
 SWARM_TYPES = {
     'beasts': 'besta', 'monstrosities': 'monstruosidade',
     'aberrations': 'aberracao', 'fiends': 'corruptor',
@@ -88,6 +92,16 @@ def size_keys(value):
     if raw in SIZE_ALIASES:
         return (SIZE_ALIASES[raw],)
     return SIZE_COMBINATIONS.get(raw, ())
+
+
+def usage_keys(owner_scaled=False, companion_class_id=None, companion_subclass_id=None):
+    """Project explicit owner scaling and class links independently of creature type."""
+    keys = []
+    if owner_scaled:
+        keys.append('owner_scaled')
+    if companion_class_id is not None or companion_subclass_id is not None:
+        keys.append('linked_companion')
+    return tuple(keys)
 
 
 def cr_classification(value):

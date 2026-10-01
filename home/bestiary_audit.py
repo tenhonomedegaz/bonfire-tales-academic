@@ -10,7 +10,7 @@ import json
 import re
 import unicodedata
 
-from .bestiary_catalog import cr_classification, size_keys, type_keys
+from .bestiary_catalog import cr_classification, size_keys, type_keys, usage_keys
 
 
 FEATURE_SECTIONS = (
@@ -96,6 +96,9 @@ def audit_snapshot(rows):
             'types': list(kinds),
             'sizes': list(size_keys(fields.get('tamanho'))),
             'cr': cr_classification(fields.get('nd'))[0],
+            'usage': list(usage_keys(fields.get('escala_com_dono'),
+                                     fields.get('companheiro_classe'),
+                                     fields.get('companheiro_subclasse'))),
         }
         if not kinds:
             issues.append('type_needs_classification')

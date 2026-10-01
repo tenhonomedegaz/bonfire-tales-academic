@@ -2,7 +2,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from .bestiary_catalog import cr_classification, size_keys, type_key, type_keys
-from .models import TbBestiario
+from .models import TbBestiario, TbClasse
 
 
 class BestiaryCatalogClassificationTests(TestCase):
@@ -216,3 +216,32 @@ class BestiaryCatalogClassificationTests(TestCase):
         self.assertIsNone(TbBestiario.objects.get(slug='nd-ausente').nd)
         self.assertEqual(TbBestiario.objects.get(slug='sem-nd-fixo').nd,
                          'None (XP 0; PB equals your bonus)')
+
+    def test_owner_scale_and_class_link_filter_without_changing_type_or_nd(self):
+        classe = TbClasse.objects.create(nome='Guardiao', slug='guardiao-teste')
+        TbBestiario.objects.create(
+            slug='espirito-vinculado', nome='Espirito Vinculado', tipo='Besta',
+            escala_com_dono=True, companheiro_classe=classe,
+            statblock_json={'type': 'Besta', 'name': 'Espirito Vinculado'})
+        TbBestiario.objects.create(
+            slug='espirito-solto', nome='Espirito Solto', tipo='Besta',
+            escala_com_dono=True, statblock_json={'type': 'Besta'})
+        TbBestiario.objects.create(
+            slug='besta-comum', nome='Besta Comum', tipo='Besta',
+            tamanho='M', nd='1', statblock_json={'type': 'Besta'})
+        url = reverse('bestiario')
+        scaled = self.client.get(url, {'uso': 'owner_scaled', 'tipo': 'besta',
+                                       'nd': 'pending'})
+        self.assertEqual(scaled.status_code, 200)
+        self.assertEqual({c['slug'] for c in scaled.context['criaturas']},
+                         {'espirito-vinculado', 'espirito-solto'})
+        self.assertEqual(scaled.context['total_criaturas'], 2)
+        self.assertIn('id="bz-count">2</span> de 2 criatura(s)', scaled.content.decode())
+        linked = self.client.get(url, {'uso': 'linked_companion', 'tipo': 'besta'})
+        self.assertEqual([c['slug'] for c in linked.context['criaturas']],
+                         ['espirito-vinculado'])
+        self.assertIn('Classe/subclasse', linked.content.decode())
+        self.assertEqual(linked.context['criaturas'][0]['nd_key'], 'pending')
+        self.assertEqual(self.client.get(reverse('api_creature_preview'),
+                                         {'slug': 'espirito-vinculado'}).status_code, 200)
+        self.assertEqual(TbBestiario.objects.get(slug='espirito-vinculado').tipo, 'Besta')

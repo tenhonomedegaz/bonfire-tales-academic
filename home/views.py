@@ -13177,13 +13177,15 @@ def bestiario_view(request):
     from django.core.paginator import Paginator
     from .models import TbBestiario
     from .bestiary_description import display_description
-    from .bestiary_catalog import (TYPE_LABELS, SIZE_LABELS, cr_classification, cr_display,
-                                   size_keys, type_key, type_keys)
+    from .bestiary_catalog import (TYPE_LABELS, SIZE_LABELS, USAGE_LABELS,
+                                   cr_classification, cr_display, size_keys, type_key,
+                                   type_keys, usage_keys)
     from . import permissions as perms
     filtro = request.GET.get('f', '')
     nd_sel = request.GET.get('nd', '')
     tipo_sel = request.GET.get('tipo', '')
     tam_sel = request.GET.get('tam', '')
+    uso_sel = request.GET.get('uso', '')
     busca = request.GET.get('q', '').strip()[:120]
     busca_normalizada = ''.join(
         char for char in unicodedata.normalize('NFKD', busca.casefold())
@@ -13200,10 +13202,12 @@ def bestiario_view(request):
     ordem = request.GET.get('ord', 'az')
     is_staff = perms.is_staff_user(request.user)
     records = list(TbBestiario.objects.select_related('autor'))
-    indexed = [(b, type_keys(b.tipo), size_keys(b.tamanho), cr_classification(b.nd))
+    indexed = [(b, type_keys(b.tipo), size_keys(b.tamanho), cr_classification(b.nd),
+                usage_keys(b.escala_com_dono, b.companheiro_classe_id,
+                           b.companheiro_subclasse_id))
                for b in records]
     nd_options = {}
-    for _, _, _, (key, number, label) in indexed:
+    for _, _, _, (key, number, label), _ in indexed:
         if key:
             nd_options[key] = (number, label)
     nds_all = []
@@ -13213,15 +13217,17 @@ def bestiario_view(request):
         elif key != 'unrated':
             label = 'ND ' + label
         nds_all.append((key, label))
-    type_values = {kind for _, kinds, _, _ in indexed for kind in (kinds or ('pending',))}
+    type_values = {kind for _, kinds, _, _, _ in indexed for kind in (kinds or ('pending',))}
     tipos_all = [(kind, TYPE_LABELS.get(kind, 'Classificação pendente'))
                  for kind in sorted(type_values, key=lambda key: TYPE_LABELS.get(key, 'ZZZ'))]
-    size_values = {size for _, _, sizes, _ in indexed for size in sizes}
+    size_values = {size for _, _, sizes, _, _ in indexed for size in sizes}
     tamanhos_all = [(size, SIZE_LABELS[size]) for size in SIZE_LABELS if size in size_values]
-    if any(not sizes for _, _, sizes, _ in indexed):
+    if any(not sizes for _, _, sizes, _, _ in indexed):
         tamanhos_all.append(('pending', 'Tamanho pendente'))
+    usos_all = [(key, label) for key, label in USAGE_LABELS.items()
+                if any(key in usages for _, _, _, _, usages in indexed)]
     criaturas = []
-    for b, kinds, sizes, (nd_key, nd_number, _) in indexed:
+    for b, kinds, sizes, (nd_key, nd_number, _), usages in indexed:
         if filtro == 'oficial' and b.comunidade:
             continue
         if filtro == 'comunidade' and not b.comunidade:
@@ -13231,6 +13237,8 @@ def bestiario_view(request):
         if tipo_sel and tipo_sel not in (kinds or ('pending',)) and tipo_sel != b.tipo:
             continue
         if tam_sel and tam_sel not in (sizes or ('pending',)) and tam_sel != b.tamanho:
+            continue
+        if uso_sel and uso_sel not in usages:
             continue
         busca_item = ' '.join((b.nome or '', b.slug or '', b.tipo or '',
                               b.tamanho or '', b.nd or '',
@@ -13246,6 +13254,7 @@ def bestiario_view(request):
             'tipo': _sb_tipo_pt(b.tipo), 'nd': cr_display(b.nd), 'nd_key': nd_key,
             'tamanho': _sb_size_text(b.statblock_json if isinstance(b.statblock_json, dict) else {}, b),
             'comunidade': b.comunidade, 'autor': b.autor.username if b.autor_id else None,
+            'usages': [USAGE_LABELS[key] for key in usages],
             'imagem': b.imagem_url or '',
             'nd_valor': nd_number,
             'record': b,
@@ -13282,8 +13291,8 @@ def bestiario_view(request):
         'next_page_url': page_url(page_obj.next_page_number()) if page_obj.has_next() else '',
         'page_number': page_obj.number, 'page_count': page_obj.paginator.num_pages,
         'busca': busca, 'filtro': filtro, 'nd_sel': nd_sel, 'tipo_sel': tipo_sel,
-        'tam_sel': tam_sel, 'ordem': ordem, 'nds': nds_all,
-        'tipos': tipos_all, 'tamanhos': tamanhos_all,
+        'tam_sel': tam_sel, 'uso_sel': uso_sel, 'ordem': ordem, 'nds': nds_all,
+        'tipos': tipos_all, 'tamanhos': tamanhos_all, 'usos': usos_all,
         'pode_criar': perms.is_mestre(request.user), 'is_staff': is_staff,
         'msg': request.GET.get('m'),
     })

@@ -63,6 +63,17 @@ class BestiarySnapshotAuditTests(SimpleTestCase):
                          ['celestial', 'feerico', 'corruptor'])
         self.assertNotIn('type_needs_classification', record['issues'])
 
+    def test_owner_scaled_companion_keeps_missing_nd_pending(self):
+        rows = self.sample()
+        fields = rows[1]['fields']
+        fields.update(escala_com_dono=True, companheiro_classe=5,
+                      companheiro_subclasse=125, tamanho=None, nd=None)
+        record = audit_snapshot(rows)['records'][0]
+        self.assertEqual(record['classification']['usage'],
+                         ['owner_scaled', 'linked_companion'])
+        self.assertEqual(record['classification']['cr'], 'pending')
+        self.assertIn('cr_needs_review', record['issues'])
+
     def test_dynamic_reference_is_not_misreported_as_missing_creature(self):
         rows = self.sample()
         rows.append({'model': 'home.tbtracoracial', 'pk': 21,
