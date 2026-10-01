@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "source_sha256": "41e9c80b84fc08ed9cffa6fa1def5d0356f6fca4dc34ada46f21b8095f99b326",
+  "rows": [
+    {
+      "pk": 734,
+      "slug": "shambling-mound",
+      "before_sha256": "2f4dddae56ea613bc98559747582acf7a061a39a4fe7c6fb757fbce3f3779305",
+      "after_sha256": "49d4a4816355b0ae1363bdeddcc98c821b57d978f4f5123e9dd3008dd337e5fc",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Engulf",
+          "source_entries_sha256": "933246d6a17b1334315ffd0d699ff81a9cfa44c04faa9e43479f9f26b67c50d8",
+          "tags": [
+            "instant{range:5ft, requires:target{size<=medio}, save{str, cd=15}, on_fail{apply:agarrado(escape_cd:14), apply:cego(duration:until_grapple_ends), apply:restringido(duration:until_grapple_ends), while_active{requires:target{condition{agarrado, source:self}}, instant{trigger=turn_start(target:creature), dmg:3d6(raio)}}}}"
+          ]
+        }
+      ]
+    }
+  ]
+}
