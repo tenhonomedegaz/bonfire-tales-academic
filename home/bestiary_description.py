@@ -30,6 +30,8 @@ def _accent_fold(value):
 
 def _same_feature_refs(raw_refs, block):
     """A legacy spell mention is safe to hide only when the structured refs agree."""
+    from .management.commands.limpar_residuos_banco import _clean_creature_text
+
     refs = block.get('spell_refs') or []
     if not raw_refs:
         return not refs
@@ -45,6 +47,10 @@ def _same_feature_refs(raw_refs, block):
         isinstance(ref, dict) and name in {
             _accent_fold(ref.get('name')),
             _accent_fold(ref.get('name_en')),
+            # The old stored summary translated condition/damage words even
+            # inside English spell titles. Resolve against that exact legacy
+            # projection of the same structured spell, never by loose words.
+            _accent_fold(_clean_creature_text(ref.get('name_en') or '')),
         }
         for name, ref in zip(mentioned, refs)
     )

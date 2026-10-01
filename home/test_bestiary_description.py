@@ -175,6 +175,27 @@ class BestiaryDescriptionProjectionTests(TestCase):
             self.assertEqual(bool(preview.json()['descricao']), visible)
             self.assertIn('Conjuracao', preview.json()['statblock_html'])
 
+    def test_old_mixed_language_spell_title_requires_same_structured_identity(self):
+        statblock = {**self.statblock, 'actions': [{
+            'name': 'Conjurar', 'name_en': 'Spellcasting',
+            'entries_en': ['The guardian casts Lightning Bolt.'],
+            'spell_refs': [{'name': 'Relâmpago', 'name_en': 'Lightning Bolt',
+                            'slug': 'relampago'}],
+        }]}
+        generated = _clean_creature_text(_descricao_markdown({}, statblock))
+        old = generated.replace('(Relâmpago)', '(%s)' % _clean_creature_text('Lightning Bolt'))
+        self.assertNotEqual(old, generated)
+        for slug, description, visible in (
+            ('titulo-misto-alinhado', old, False),
+            ('titulo-misto-outra-magia', old.replace(_clean_creature_text('Lightning Bolt'),
+                                                    'Fireball'), True),
+        ):
+            TbBestiario.objects.create(slug=slug, nome='Sentinela',
+                                       statblock_json=statblock,
+                                       descricao_markdown=description)
+            preview = self.client.get(reverse('api_creature_preview'), {'slug': slug})
+            self.assertEqual(bool(preview.json()['descricao']), visible)
+
     def test_source_backed_sleep_prose_does_not_duplicate_statblock(self):
         trait = {
             'name': 'Natureza Incomum', 'name_en': 'Unusual Nature',
