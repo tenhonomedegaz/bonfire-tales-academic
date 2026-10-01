@@ -388,7 +388,10 @@ def _condition_truth(text, context):
             return None
         if name not in facts:
             return False if "conditions" in context else None
-        return not source or not facts[name] or source in facts[name]
+        # A condition with no known source cannot satisfy a source-specific
+        # gate. Otherwise an unrelated poison/grapple could activate this
+        # creature's ongoing damage or healing restriction.
+        return not source or source in facts[name]
 
     # A catalog condition may also be used directly: restriction{inconsciente}.
     facts = _condition_facts(context)

@@ -581,7 +581,33 @@ class GenericEvaluatorTests(SimpleTestCase):
                                  "event_target": "self"}, "dmg"), [])
         self.assertEqual(active({**base, "event": "turn_end",
                                  "conditions": {"agarrado": {"other"}}}, "dmg"), [])
+        self.assertEqual(active({**base, "event": "turn_end",
+                                 "conditions": {"agarrado": None}}, "dmg"), [])
         self.assertEqual(active({**base, "event": "turn_start"}, "dmg"), [])
+
+    def test_veneno_de_origem_confirmada_restringe_cura_enquanto_ativo(self):
+        tag = (
+            "instant{attack:melee, attack:+5, reach:5ft, dmg:1d8+3(perfurante), "
+            "instant{trigger=hit, apply:envenenado(duration:until_turn_start)}, "
+            "while_active{requires:target{condition{envenenado, source:self}}, "
+            "restricts{heal,target}}}"
+        )
+
+        def active(context, verb):
+            return [op for op in evaluate_tags([tag], context).operations
+                    if op.verb == verb and op.active]
+
+        hit = active({"resolve_runtime": True, "event": "hit"}, "apply")
+        self.assertEqual(len(hit), 1)
+        self.assertEqual(hit[0].value, "envenenado")
+        self.assertEqual(hit[0].params["kwargs"]["duration"], "until_turn_start")
+        self.assertEqual(active({"resolve_runtime": True, "event": "attack"}, "apply"), [])
+        self.assertEqual(len(active({"resolve_runtime": True, "event": "healing",
+                                     "conditions": {"envenenado": {"self"}}},
+                                    "restricts")), 1)
+        for source in ({"envenenado": {"other"}}, {"envenenado": None}, {}):
+            self.assertEqual(active({"resolve_runtime": True, "event": "healing",
+                                     "conditions": source}, "restricts"), [])
 
 
     def test_salvaguarda_e_recorrencia_por_turno_sao_fases_distintas(self):
