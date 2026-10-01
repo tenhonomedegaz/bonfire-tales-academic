@@ -150,3 +150,111 @@ class ReviewedBestiaryImportTests(TestCase):
             self.command(apply=True)
         creature.refresh_from_db()
         self.assertEqual(creature.nome, 'Nome da mesa: Review Beast')
+
+
+class ReviewedSourceMetadataTests(TestCase):
+    def setUp(self):
+        temporary = TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.csv_path = Path(temporary.name) / 'source.csv'
+        self.manifest_path = Path(temporary.name) / 'review.json'
+
+    def seed(self, names=('Fire Wolf',)):
+        with self.csv_path.open('w', encoding='utf-8', newline='') as handle:
+            writer = csv.DictWriter(handle, fieldnames=[
+                'Name', 'Source', 'Size', 'Type', 'Alignment', 'CR', 'Actions'])
+            writer.writeheader()
+            writer.writerows({'Name': name, 'Source': 'review-test', 'Size': 'Medium',
+                              'Type': 'Beast', 'Alignment': 'unaligned', 'CR': '1',
+                              'Actions': 'Bite. The wolf bites a target.'} for name in names)
+        creatures = []
+        for name in names:
+            creatures.append(TbBestiario.objects.create(
+                slug=name.lower().replace(' ', '-'), nome='Lobo da Mesa',
+                tipo='Besta', tamanho='Medio', nd='1',
+                imagem_url='/media/manual.png',
+                statblock_json={
+                    'name': 'Lobo da Mesa', 'name_en': 'Fogo Wolf',
+                    'size_en': 'Medio', 'type_en': 'Besta',
+                    'alignment_en': 'sem alinhamento', 'cr': '1',
+                    'actions': [{'name': 'Mordida', 'name_en': 'Bite',
+                                 'entries': ['Texto da mesa, preservado.']}],
+                    'manual_note': 'Preservar',
+                }, tags_json=['manual:preservar']))
+        return creatures
+
+    def command(self, apply=False):
+        output = StringIO()
+        call_command('revisar_importacao_bestiario', csv=str(self.csv_path),
+                     source_metadata=True,
+                     **({'manifest': str(self.manifest_path), 'apply': True} if apply else
+                        {'output': str(self.manifest_path)}), stdout=output)
+        return output.getvalue()
+
+    def approve(self):
+        manifest = json.loads(self.manifest_path.read_text(encoding='utf-8'))
+        for row in manifest['rows']:
+            row['approved_fields'] = list(row['proposed_fields'])
+        self.manifest_path.write_text(json.dumps(manifest, ensure_ascii=False), encoding='utf-8')
+
+    def test_source_metadata_repair_is_narrow_and_idempotent(self):
+        creature = self.seed()[0]
+        self.assertIn('1 propostas', self.command())
+        manifest = json.loads(self.manifest_path.read_text(encoding='utf-8'))
+        self.assertEqual(manifest['rows'][0]['approved_fields'], [])
+        self.assertEqual(manifest['rows'][0]['proposed_fields']['name_en'], 'Fire Wolf')
+        self.approve()
+        self.assertIn('Aplicado: 1', self.command(apply=True))
+        creature.refresh_from_db()
+        self.assertEqual([creature.statblock_json[key] for key in
+                          ('name_en', 'size_en', 'type_en', 'alignment_en')],
+                         ['Fire Wolf', 'Medium', 'Beast', 'unaligned'])
+        self.assertEqual(creature.statblock_json['actions'][0]['entries'],
+                         ['Texto da mesa, preservado.'])
+        self.assertEqual(creature.statblock_json['manual_note'], 'Preservar')
+        self.assertEqual(creature.imagem_url, '/media/manual.png')
+        self.assertEqual(creature.tags_json, ['manual:preservar'])
+        self.assertIn('ja aplicado: 1', self.command(apply=True))
+
+    def test_stale_record_rolls_back_first_repair(self):
+        first, second = self.seed(('Fire Wolf', 'Fire Bear'))
+        self.command()
+        self.approve()
+        second.statblock_json['manual_note'] = 'Edicao posterior'
+        second.save(update_fields=['statblock_json'])
+        with self.assertRaisesMessage(CommandError, 'Criatura mudou desde a revisao'):
+            self.command(apply=True)
+        first.refresh_from_db()
+        self.assertEqual(first.statblock_json['name_en'], 'Fogo Wolf')
+
+    def test_changed_source_or_adulterated_proposal_is_rejected(self):
+        creature = self.seed()[0]
+        self.command()
+        self.approve()
+        manifest = json.loads(self.manifest_path.read_text(encoding='utf-8'))
+        manifest['rows'][0]['proposed_fields']['name_en'] = 'Other Wolf'
+        self.manifest_path.write_text(json.dumps(manifest), encoding='utf-8')
+        with self.assertRaisesMessage(CommandError, 'Proposta adulterada'):
+            self.command(apply=True)
+        creature.refresh_from_db()
+        self.assertEqual(creature.statblock_json['name_en'], 'Fogo Wolf')
+        self.seed_source_changed()
+        with self.assertRaisesMessage(CommandError, 'Manifesto nao corresponde ao CSV'):
+            self.command(apply=True)
+
+    def test_feature_boundary_and_community_record_remain_pending(self):
+        first, second = self.seed(('Fire Wolf', 'Fire Bear'))
+        first.statblock_json['actions'][0]['name_en'] = 'Claw'
+        first.save(update_fields=['statblock_json'])
+        second.comunidade = True
+        second.save(update_fields=['comunidade'])
+        self.command()
+        report = json.loads(self.manifest_path.read_text(encoding='utf-8'))
+        self.assertEqual(report['rows'], [])
+        self.assertEqual({item['slug']: item['reason'] for item in report['pending']},
+                         {'fire-wolf': 'actions_divergente',
+                          'fire-bear': 'registro_nao_importado_ou_editado'})
+
+    def seed_source_changed(self):
+        with self.csv_path.open('a', encoding='utf-8') as handle:
+            handle.write('Other Wolf,review-test,Medium,Beast,unaligned,1,')
