@@ -60,6 +60,41 @@ class CombatConditionTurnTests(SimpleTestCase):
         combat.resolve([BEARD], event="attack", source="diabo", target="alvo")
         self.assertEqual(combat.facts("alvo", "diabo"), {})
 
+    def test_condicao_em_self_expira_no_turno_da_fonte(self):
+        for operand in ("target:self", "self"):
+            with self.subTest(operand=operand):
+                combat = CombatConditions()
+                combat.resolve([
+                    "instant{trigger=hit, apply:incorporeo(%s, duration:until_turn_start)}"
+                    % operand
+                ], event="hit", source="fantasma", target="aventureiro")
+                self.assertEqual(combat.facts("fantasma", "fantasma"),
+                                 {"incorporeo": {"self"}})
+                self.assertEqual(combat.facts("aventureiro", "fantasma"), {})
+                combat.start_turn("aventureiro", 1)
+                self.assertEqual(combat.facts("fantasma", "fantasma"),
+                                 {"incorporeo": {"self"}})
+                combat.start_turn("fantasma", 1)
+                self.assertEqual(combat.facts("fantasma", "fantasma"), {})
+
+    def test_seletor_nao_resolvido_nao_aplica_condicao_ao_alvo_errado(self):
+        combat = CombatConditions()
+        combat.resolve([
+            "instant{trigger=hit, apply:envenenado(target:ally, duration:until_turn_start)}"
+        ], event="hit", source="monstro", target="aventureiro")
+        self.assertEqual(combat.facts("aventureiro", "monstro"), {})
+        self.assertEqual(combat.facts("monstro", "monstro"), {})
+
+    def test_replay_de_turno_antigo_nao_expira_condicao_nova(self):
+        combat = CombatConditions()
+        combat.start_turn("alvo", "turno-1")
+        combat.start_turn("alvo", "turno-2")
+        combat.resolve([BEARD], event="hit", source="diabo", target="alvo")
+        combat.start_turn("alvo", "turno-1")
+        self.assertEqual(combat.facts("alvo", "diabo"), {"envenenado": {"self"}})
+        combat.start_turn("alvo", "turno-3")
+        self.assertEqual(combat.facts("alvo", "diabo"), {})
+
     def test_tres_acoes_de_veneno_reais_liberam_cura_apos_turno(self):
         manifest = Path(settings.BASE_DIR) / "ref/bestiario/retagging_veneno_condicional_20261001.json"
         rows = json.loads(manifest.read_text(encoding="utf-8"))["rows"]

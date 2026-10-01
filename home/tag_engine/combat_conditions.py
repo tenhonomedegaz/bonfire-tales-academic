@@ -19,16 +19,17 @@ class ActiveCondition:
 class CombatConditions:
     def __init__(self):
         self._turns = {}
-        self._turn_ids = {}
+        self._seen_turn_ids = {}
         self._conditions = set()
 
     def start_turn(self, actor, turn_id):
         """Expire effects at the start of this actor's next distinct turn."""
         if not actor or turn_id is None:
             raise ValueError("actor and turn_id are required")
-        if self._turn_ids.get(actor) == turn_id:
+        seen = self._seen_turn_ids.setdefault(actor, set())
+        if turn_id in seen:
             return
-        self._turn_ids[actor] = turn_id
+        seen.add(turn_id)
         self._turns[actor] = self._turns.get(actor, 0) + 1
         self._conditions = {
             effect for effect in self._conditions
@@ -56,13 +57,29 @@ class CombatConditions:
         for operation in result.operations:
             if not operation.active or operation.op != "apply_condition":
                 continue
-            duration = operation.params.get("kwargs", {}).get("duration")
+            params = operation.params
+            kwargs = params.get("kwargs", {})
+            duration = kwargs.get("duration")
             if duration != "until_turn_start":
                 continue
-            name = operation.params.get("name")
+            recipient = kwargs.get("target")
+            args = params.get("args", [])
+            if recipient is None:
+                flags = params.get("flags", [])
+                recipient = ("self" if "self" in flags else
+                             "target" if "target" in flags else
+                             args[0] if args else None)
+            if recipient == "self":
+                condition_target = source
+            elif recipient in (None, "target", "active", "hit"):
+                condition_target = target
+            else:
+                # A selector such as an area or ally needs a resolved actor ID.
+                continue
+            name = params.get("name")
             if name:
                 self._conditions.add(ActiveCondition(
-                    name=name.lower(), source=source, target=target,
-                    expires_at_target_turn=self._turns.get(target, 0) + 1,
+                    name=name.lower(), source=source, target=condition_target,
+                    expires_at_target_turn=self._turns.get(condition_target, 0) + 1,
                 ))
         return result
