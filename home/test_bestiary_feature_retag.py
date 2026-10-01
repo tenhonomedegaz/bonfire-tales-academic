@@ -11,6 +11,7 @@ from django.test import TestCase
 
 from home.bestiary_audit import statblock_hash
 from home.bestiary_feature_retag import source_entries_hash
+from home.bestiary_feature_retag import FeatureRetagConflict, reviewed_statblock
 from home.management.commands.importar_bestiario_csv import _split_secao
 from home.models import TbBestiario
 
@@ -68,6 +69,10 @@ class ReviewedFeatureRetagTests(TestCase):
         self.assertEqual(before, list(TbBestiario.objects.order_by('slug').values_list('statblock_json', flat=True)))
         self.assertEqual(before[0]['traits'][0]['name'], 'Intocado')
         self.assertEqual(before[0]['actions'][0]['entries'], ['Texto traduzido.'])
+        self.payload['rows'][0]['features'][0]['name_en'] = 'Outra habilidade'
+        self.write_manifest()
+        with self.assertRaises(CommandError):
+            self.run_command(apply=True)
 
     def test_second_conflict_rolls_back_first_creature(self):
         wolf = TbBestiario.objects.get(slug='test-wolf')
@@ -86,3 +91,39 @@ class ReviewedFeatureRetagTests(TestCase):
         self.csv.write_text(self.csv.read_text(encoding='utf-8').replace('Slashing', 'Fire'), encoding='utf-8')
         with self.assertRaises(CommandError):
             self.run_command()
+
+    def test_reviewed_dual_range_corrects_display_and_keeps_source(self):
+        source = {'Name': 'Test Archer', 'Actions':
+                  'Bow. Ranged Attack Roll: +3, range 80/320 ft. Hit: 5 (1d8 + 1) Piercing damage.'}
+        original = _split_secao(source['Actions'], {})[0]
+        sb = {'name_en': 'Test Archer', 'actions': [{
+            'name': 'Arco', 'name_en': 'Bow',
+            'entries_en': original['entries'],
+            'entries': ['Rolagem de Ataque à Distância: +3, alcance 80/96 m [320 pés] '
+                        'Acerto: 5 (1d8 + 1) Dano perfurante.']}]}
+        creature = TbBestiario.objects.create(nome='Arqueiro', slug='test-archer', statblock_json=sb)
+        tag = 'instant{attack:ranged, attack:+3, range:80/320ft, dmg:1d8+1(perfurante)}'
+        expected = deepcopy(sb)
+        expected['actions'][0]['entries'][0] = expected['actions'][0]['entries'][0].replace(
+            'alcance 80/96 m [320 pés]', 'alcance 24/96 m [80/320 pés]')
+        expected['actions'][0]['tags_json'] = [tag]
+        proposal = {'pk': creature.pk, 'slug': creature.slug,
+                    'before_sha256': statblock_hash(sb), 'after_sha256': statblock_hash(expected),
+                    'features': [{'index': 0, 'name_en': 'Bow',
+                                  'source_entries_sha256': source_entries_hash(original['entries']),
+                                  'tags': [tag], 'correct_dual_range': True}]}
+        revised, changed = reviewed_statblock(creature, source, proposal)
+        self.assertTrue(changed)
+        self.assertEqual(revised, expected)
+        creature.statblock_json = revised
+        self.assertFalse(reviewed_statblock(creature, source, proposal)[1])
+        tagged_before = deepcopy(sb)
+        tagged_before['actions'][0]['tags_json'] = [tag]
+        tagged_proposal = {**proposal, 'before_sha256': statblock_hash(tagged_before)}
+        creature.statblock_json = tagged_before
+        corrected, changed = reviewed_statblock(creature, source, tagged_proposal)
+        self.assertTrue(changed)
+        self.assertEqual(corrected, expected)
+        creature.statblock_json = {**sb, 'actions': [{**sb['actions'][0], 'entries': ['Outro alcance.']}]}
+        with self.assertRaises(FeatureRetagConflict):
+            reviewed_statblock(creature, source, proposal)

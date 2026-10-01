@@ -1,0 +1,519 @@
+{
+  "version": 1,
+  "source_sha256": "41e9c80b84fc08ed9cffa6fa1def5d0356f6fca4dc34ada46f21b8095f99b326",
+  "rows": [
+    {
+      "pk": 111,
+      "slug": "animal-lord",
+      "before_sha256": "d55bc8d52d9046244b49b6f20aa70cd0ff8af27764a406633c47a4c3901ad25b",
+      "after_sha256": "2bfd759b025a34384995f4b896089f3a6b1a263966477c4a49037c9c57b710ba",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Radiant Ray",
+          "source_entries_sha256": "8345aa238d0f8ead290ec3735138b89b54ca640be9b864913c1cc742148a868f",
+          "tags": [
+            "instant{attack:ranged, attack:+12, range:120ft, dmg:4d6+6(radiante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 148,
+      "slug": "bandit",
+      "before_sha256": "e7f6931e6878096da6445922ea177785570b82a95a0dfd4a4e5288db11874eb8",
+      "after_sha256": "fcf6fb530daa48e97a823020b75bc25402ece04d9973a7115edb0c316bdb08db",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Light Crossbow",
+          "source_entries_sha256": "9beba090b247ed36e12136bea425bd080905413ba1989ad0ee716fcce340edc7",
+          "tags": [
+            "instant{attack:ranged, attack:+3, range:80/320ft, dmg:1d8+1(perfurante)}"
+          ],
+          "correct_dual_range": true
+        }
+      ]
+    },
+    {
+      "pk": 149,
+      "slug": "bandit-captain",
+      "before_sha256": "0c6e45b69c33c70732b26450951854eb6b8c922d39ee3348d32ca971d31907a9",
+      "after_sha256": "5b22587f3eb1699846539c40ee0671eccc55ecef26b41b7a52e648bd78888697",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Pistol",
+          "source_entries_sha256": "1bd753175363b7cfac1258016718c7bd75177e771a141803e73ba13917a02451",
+          "tags": [
+            "instant{attack:ranged, attack:+5, range:30/90ft, dmg:1d10+3(perfurante)}"
+          ],
+          "correct_dual_range": true
+        }
+      ]
+    },
+    {
+      "pk": 209,
+      "slug": "cambion",
+      "before_sha256": "2a62b5e16d88002dbc5a36823675fdaaba70754c521a445414abdea616e1470e",
+      "after_sha256": "4cb3a12165b04d676c37e4967c4915a08505cddd4ef7bacaeada2e133149ab9c",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Fire Ray",
+          "source_entries_sha256": "d41955c1b31ca010d5e07773a9027117f6b067cc7bf0385ab6a40997085e4e27",
+          "tags": [
+            "instant{attack:ranged, attack:+7, range:120ft, dmg:3d6+3(fogo)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 216,
+      "slug": "centaur-trooper",
+      "before_sha256": "bc18a3ed969c9149b081cdb6f6c36c9b2c1f23b696f188ccf6b4273b7173c9d3",
+      "after_sha256": "5580ee0f7dc2b61b697d43a060ff4da9d4c78da8e591e0bf12790b447f4a760e",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Longbow",
+          "source_entries_sha256": "29c1afebe93d24b9c1bcc89911462efaeba4793c92a3b1d213a902525a717c89",
+          "tags": [
+            "instant{attack:ranged, attack:+4, range:150/600ft, dmg:1d8+2(perfurante)}"
+          ],
+          "correct_dual_range": true
+        }
+      ]
+    },
+    {
+      "pk": 253,
+      "slug": "cultist-hierophant",
+      "before_sha256": "b4e6768c9a311de9444cba405f302239936f2cd846281ed6262c2b817f85c8e2",
+      "after_sha256": "1037e2d6073179f55ad40711febf36b40ce15a9f4837ba0161c57b86d2493b50",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Radiant Ray",
+          "source_entries_sha256": "301b7dec368d3a5004b9dee1a4a9e5cb1046ede1308f237e1676ae259ff23839",
+          "tags": [
+            "instant{attack:ranged, attack:+9, range:120ft, dmg:4d12+5(radiante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 255,
+      "slug": "cyclops-sentry",
+      "before_sha256": "889f6bc2033a741335157901c58c095f1c37a8f249e279988c3c395e96796f5d",
+      "after_sha256": "c366846d1e569d5bc27487df5314b5f6d68219330f83d21a278918900fd117e1",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Rock",
+          "source_entries_sha256": "ca25cce678cd9991cc90978d984c9acb2660a6432497c9441f1f1765a5a475a6",
+          "tags": [
+            "instant{attack:ranged, attack:+9, range:30/120ft, dmg:3d10+6(concussao)}"
+          ],
+          "correct_dual_range": true
+        }
+      ]
+    },
+    {
+      "pk": 316,
+      "slug": "drider",
+      "before_sha256": "611b8a9913198340e6ca57730f8be2a6ad7f52b6f541350826afaf9cfc723963",
+      "after_sha256": "5026042e9082c7a3a8ebfeaf1a16dec80089056eb633d545687dcd749790eeec",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Poison Burst",
+          "source_entries_sha256": "5fa4f80bbb7dc79e01ff703bf7742b85ec04e0f6d7afa565ce830191d115ea30",
+          "tags": [
+            "instant{attack:ranged, attack:+6, range:120ft, dmg:3d6+3(veneno)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 324,
+      "slug": "dryad",
+      "before_sha256": "e2b64c681b36a2d4ab7257451fbcf3cbb92313ca535e1924639a7a3a93fad249",
+      "after_sha256": "a75eefd0aa17a6e677b6ef3c039bbb485d3149365434ae519c86563f99ee65e2",
+      "features": [
+        {
+          "index": 3,
+          "name_en": "Thorn Burst",
+          "source_entries_sha256": "845ea6bf75f7c97d22fbfac81a30bb77f5653ad63366232258e54fc434f1c2d6",
+          "tags": [
+            "instant{attack:ranged, attack:+6, range:60ft, dmg:1d6+4(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 42,
+      "slug": "esqueleto",
+      "before_sha256": "fd4ebb1eb76f23062ae7682b21650097a705caf8296e32b8791273d0b8a185a6",
+      "after_sha256": "b66ac116617a773295022cb7df9121614e0ec2be77c2cddd7076f4842bcd8956",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Shortbow",
+          "source_entries_sha256": "ce5966d352b760594774727a5d39ab618aeeff362183f76e44bb46b534952d55",
+          "tags": [
+            "instant{attack:ranged, attack:+5, range:80/320ft, dmg:1d6+3(perfurante)}"
+          ],
+          "correct_dual_range": true
+        }
+      ]
+    },
+    {
+      "pk": 373,
+      "slug": "flaming-skeleton",
+      "before_sha256": "3ca1a2b082fdfee026aa194cca7f39ebd83120b4ebadb0e94f4893f14ac08551",
+      "after_sha256": "0ba92f2201b343f86e8c8806d243302e2953e4a7e36d9ce4e1ffbb9a487c925e",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Hurl Flame",
+          "source_entries_sha256": "d94e9a2aa7b7c20ed5a9ab9014ddcc47ee5567e54b0f42314beb0043cf552dc7",
+          "tags": [
+            "instant{attack:ranged, attack:+4, range:60ft, dmg:1d10+2(fogo)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 450,
+      "slug": "gnoll-pack-lord",
+      "before_sha256": "ffd712df16320b7ce0145aaaef046f9c37aa75d894f1718c1a11127bb6f73715",
+      "after_sha256": "8a911c82ff6ac7cb05d78cb80fdd0e60d1f0334c1e91ae382935a076cb036db3",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Bone Javelin",
+          "source_entries_sha256": "4d748c996233e3c994ff13e96a0c119f62a1046a18a4f1e06ab4c7fc838c1807",
+          "tags": [
+            "instant{attack:ranged, attack:+5, range:30/120ft, dmg:1d8+3(perfurante)}"
+          ],
+          "correct_dual_range": true
+        }
+      ]
+    },
+    {
+      "pk": 451,
+      "slug": "gnoll-warrior",
+      "before_sha256": "2513f5a49b94da391ec1c53381a5906c64e88ca7a1aa3b04e463dc8324510bc3",
+      "after_sha256": "a7408507acf49fb337eac5230a0ffb7e2fe178cca1afc9c2797d69fdb0bc3e33",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Bone Bow",
+          "source_entries_sha256": "00395d9a2eddcd810e48633a5fa62e4238868ce865478c7c8f7e2ddac219abff",
+          "tags": [
+            "instant{attack:ranged, attack:+3, range:150/600ft, dmg:1d10+1(perfurante)}"
+          ],
+          "correct_dual_range": true
+        }
+      ]
+    },
+    {
+      "pk": 484,
+      "slug": "gulthias-blight",
+      "before_sha256": "30c8fae850ee540ec11b916c8abd70b21b088f7d969c51f87ea49ee0085bb976",
+      "after_sha256": "1045ebaeed7f33a55902b7290f619e466c08be786e4c30d9ceee8f49e6e91ef8",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Thorn Volley",
+          "source_entries_sha256": "0549eb744473130b1707a370b0dfd1fe5e188410b172516cc22e2ceb5019d1fc",
+          "tags": [
+            "instant{attack:ranged, attack:+12, range:60/180ft, dmg:3d8+7(perfurante)}"
+          ],
+          "correct_dual_range": true
+        }
+      ]
+    },
+    {
+      "pk": 543,
+      "slug": "kuo-toa-whip",
+      "before_sha256": "613c6f36771a0b9e410db4b8909a64308ec3733f29f21ae1fd9940a8863ef3e5",
+      "after_sha256": "5e28743781bca65626b275eec4fc3bca09fb4e33eed18e4bb741e1a81f9e1a95",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Conjure Slimy Glob",
+          "source_entries_sha256": "c257c209f69f9cc5804e97c56db67518154ffcd989ef287d71fd7ce51c9915ce",
+          "tags": [
+            "instant{attack:ranged, attack:+4, range:60ft, dmg:3d4+2(acido)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 566,
+      "slug": "manticore",
+      "before_sha256": "378a7d5526859c65acaddd379c7272b5f8236f1aa9259514a13f6b9f75f8dcd6",
+      "after_sha256": "18e1fdc430954202662fa34a30dfcaa403be8ae88a0ebc92c985988bf0ed0bc5",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Tail Spike",
+          "source_entries_sha256": "eaf7b908f6ae73924375d09329cf9a522a641107b3c2f8481ed1cbb645207748",
+          "tags": [
+            "instant{attack:ranged, attack:+5, range:100/200ft, dmg:1d8+3(perfurante)}"
+          ],
+          "correct_dual_range": true
+        }
+      ]
+    },
+    {
+      "pk": 576,
+      "slug": "medusa",
+      "before_sha256": "db4b27b7d65fad4650d33498847565d1843a981c1b9711d0badf2d1d2c9bbf19",
+      "after_sha256": "c68ff6bcdf50c928b9f3d1f07d7db6b04926184e858fe9afed7f705d25366308",
+      "features": [
+        {
+          "index": 3,
+          "name_en": "Poison Ray",
+          "source_entries_sha256": "65facc3798d8024403e7d13b149abd5dfe8334502be463eb9fe3a87c87c9c410",
+          "tags": [
+            "instant{attack:ranged, attack:+5, range:150ft, dmg:2d8+2(veneno)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 594,
+      "slug": "modron-monodrone",
+      "before_sha256": "c2ce0a9c23d8e6647dd9c08111b3a6f127c57ece115d06319955e30952b4c101",
+      "after_sha256": "beffcc05d3d8f8232aa81a1dab957ea2fea3a624faa1667028628ea67555d167",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Gear Flinger",
+          "source_entries_sha256": "28fc8113a95ea6247e694c3313ce6887b86dcda8a58763c63d1b76c0ae66df71",
+          "tags": [
+            "instant{attack:ranged, attack:+4, range:120ft, dmg:1d8+2(forca)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 595,
+      "slug": "modron-pentadrone",
+      "before_sha256": "049a42a82b46c84d9de85a71e216b272e85a36277387b3c3b6a988bc6d8ba252",
+      "after_sha256": "c87c9b4d8511e463bc6c64082bd3309087c0b4cf4eaf84281a5661b834a3b9da",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Electrical Discharge",
+          "source_entries_sha256": "b0e68f5280eb130663b9d462a4f2d53aac9eb2da7ad2abd53948cb8dbf97cf12",
+          "tags": [
+            "instant{attack:ranged, attack:+4, range:120ft, dmg:1d6+2(eletrico)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 596,
+      "slug": "modron-quadrone",
+      "before_sha256": "51c203da257651d4d7bc123a434ada4933cadc858138044d86607824beee9048",
+      "after_sha256": "9ce53af107552ee1d7f75eab7ecb5d559505848fb599660ee2d7068077600f0b",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Gears Launcher",
+          "source_entries_sha256": "75ae612fd7a8da9a71d2b85fbe47f26a921904409c987b204e056a5b807723ab",
+          "tags": [
+            "instant{attack:ranged, attack:+4, range:320ft, dmg:1d4+2(forca)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 606,
+      "slug": "mummy-lord",
+      "before_sha256": "9a6a19963959e32b3c0177c8b3b8f6f201573006967a4fc18b872dd78153feda",
+      "after_sha256": "5ee23e1ed1a91b8210909c75cc21bb091429a56b4d35a63864bb445ea4baf564",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Channel Negative Energy",
+          "source_entries_sha256": "6724692df98f3fee80b32a746152c4d8a4cabc8b1af88ce4d55510c37673dae6",
+          "tags": [
+            "instant{attack:ranged, attack:+9, range:60ft, dmg:6d6+4(necrotico)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 616,
+      "slug": "needle-blight",
+      "before_sha256": "6fc923d1322a2dd724069f820584164dbc8c0e1b3503070327068018f1ea06c2",
+      "after_sha256": "f78ce800b081a993cf1ebe8ef1cdf7700be0cbde1e9cbc120819663883b02b11",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Needles",
+          "source_entries_sha256": "1950fc16ce3828abe08578413f2997e775b6a01a17cfc54bd796313fec84dc0e",
+          "tags": [
+            "instant{attack:ranged, attack:+3, range:30/60ft, dmg:2d4+1(perfurante)}"
+          ],
+          "correct_dual_range": true
+        }
+      ]
+    },
+    {
+      "pk": 664,
+      "slug": "pirate-admiral",
+      "before_sha256": "cc0339325bb00c2ba22ecf72fa42fe890ff93c4e06bbed9829eff316297ced87",
+      "after_sha256": "a2a194528e912b2906b4233f4ad915ce5a0e4ce51d8a54b31de6968abd23b91d",
+      "features": [
+        {
+          "index": 4,
+          "name_en": "Pistol",
+          "source_entries_sha256": "7c04bacaed506808b0e936984f7beddc88c2b9e033f77160a3a208b4efb8a960",
+          "tags": [
+            "instant{attack:ranged, attack:+10, range:30/90ft, dmg:4d10+6(perfurante)}"
+          ],
+          "correct_dual_range": true
+        }
+      ]
+    },
+    {
+      "pk": 665,
+      "slug": "pirate-captain",
+      "before_sha256": "f65d6092b4f89bb016a47ce9d0cbb6fef311358736f3757169407846571bf0ca",
+      "after_sha256": "2723cf7839aac2dc2a070a766ea63c13ffe6575b37fbbecb7ee27f2559aa4fbb",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Pistol",
+          "source_entries_sha256": "cc9253667e356d0aeca8b6c505d5185e7e69c535e75f312ba220bf8f7c88fe7c",
+          "tags": [
+            "instant{attack:ranged, attack:+7, range:30/90ft, dmg:2d10+4(perfurante)}"
+          ],
+          "correct_dual_range": true
+        }
+      ]
+    },
+    {
+      "pk": 721,
+      "slug": "scout",
+      "before_sha256": "c887233f5d1fdfbb2c68a39958f8128f80214d0d0e7d82f9a7b9efad84483cab",
+      "after_sha256": "9d6d5976a72c39adff3b23f835b8cfcd5d52939be4f6b7a89ac827a517244a6c",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Longbow",
+          "source_entries_sha256": "29c1afebe93d24b9c1bcc89911462efaeba4793c92a3b1d213a902525a717c89",
+          "tags": [
+            "instant{attack:ranged, attack:+4, range:150/600ft, dmg:1d8+2(perfurante)}"
+          ],
+          "correct_dual_range": true
+        }
+      ]
+    },
+    {
+      "pk": 801,
+      "slug": "thri-kreen-marauder",
+      "before_sha256": "62a08d93ef99792fab6182911ae8a3cdad82c6f5634484e1ad3233bf6b25a8a9",
+      "after_sha256": "9b0a4e0e7594ebb434010e850a6d300762526fc5fdafe13cc4e3466ad16c6977",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Chatkcha",
+          "source_entries_sha256": "9ee2a254c29057bf8ca4b4c05707ea4a6a699764f010e8a71dff672acbe72fd0",
+          "tags": [
+            "instant{attack:ranged, attack:+4, range:30/120ft, dmg:1d6+2(cortante)}"
+          ],
+          "correct_dual_range": true
+        }
+      ]
+    },
+    {
+      "pk": 810,
+      "slug": "tough",
+      "before_sha256": "7964dc9525d9145b5f9383586ceb00d35b335d023b79a374e6a549ae02970e82",
+      "after_sha256": "acbb9f87a8029ee268d0e6b37629be4ccf9d9a597a201885808be37966f1c02c",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Heavy Crossbow",
+          "source_entries_sha256": "9a5ae643bd504fdf983b4a2aad034f7cd9209336fbdd4e964f09322d034b27de",
+          "tags": [
+            "instant{attack:ranged, attack:+3, range:100/400ft, dmg:1d10+1(perfurante)}"
+          ],
+          "correct_dual_range": true
+        }
+      ]
+    },
+    {
+      "pk": 811,
+      "slug": "tough-boss",
+      "before_sha256": "bd9d94b08554e72d22916fdf658affffdae66363bd6648b294afc221a0d362a1",
+      "after_sha256": "857b6b6f1b844836e9f256fcf23587750a6954540ba3143b2ccc2985f62fc82b",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Heavy Crossbow",
+          "source_entries_sha256": "44abb1164f6e5d3426c181045826135103f4377f547e374ce2ccfe4f09636fb4",
+          "tags": [
+            "instant{attack:ranged, attack:+4, range:100/400ft, dmg:2d10+2(perfurante)}"
+          ],
+          "correct_dual_range": true
+        }
+      ]
+    },
+    {
+      "pk": 814,
+      "slug": "treant",
+      "before_sha256": "e71dd0fd9a3dc648333ff0ec654fb7d74907f33b9335b8dcf12fbede99fa06a0",
+      "after_sha256": "f2896d588cc109152454c8ea5307259173cf6eb2f9e4a269fe4f13457a23864e",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Hail of Bark",
+          "source_entries_sha256": "1c8ecf7c3b39ef18f1fcb533e31740045a36b99927de086c1c44102f86913194",
+          "tags": [
+            "instant{attack:ranged, attack:+10, range:180ft, dmg:4d10+6(perfurante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 852,
+      "slug": "warrior-veteran",
+      "before_sha256": "c20ef009e23252bd631475dcee2915199e2a74f91afc34b060f5d2a5a97b2d87",
+      "after_sha256": "ef4e1f3088b34a6ae2711b42f00eba6c0278c26be083391cdd24d56de73abf6e",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Heavy Crossbow",
+          "source_entries_sha256": "0af5aa7899fc5eb25485be2c1378af526468ff1e2a87c29c19cf93cbbcbda587",
+          "tags": [
+            "instant{attack:ranged, attack:+3, range:100/400ft, dmg:2d10+1(perfurante)}"
+          ],
+          "correct_dual_range": true
+        }
+      ]
+    },
+    {
+      "pk": 909,
+      "slug": "yuan-ti-infiltrator",
+      "before_sha256": "51645d73f806cfef11bca60a76978a8b18170445fbba14963bced7152904a4c4",
+      "after_sha256": "9cf837a0242bdcaaf80f67728d285564b9e2ca3f0a01086350ff2e0085b530a7",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Poison Ray",
+          "source_entries_sha256": "dafb878cdf33266af544f063d9ca0383c027ff08526dfb966c6b4282d443b505",
+          "tags": [
+            "instant{attack:ranged, attack:+4, range:120ft, dmg:2d6+2(veneno)}"
+          ]
+        }
+      ]
+    }
+  ]
+}

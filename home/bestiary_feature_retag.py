@@ -3,6 +3,7 @@
 from copy import deepcopy
 from hashlib import sha256
 import json
+import re
 
 from .bestiary_audit import statblock_hash
 from .management.commands.importar_bestiario_csv import _split_secao
@@ -16,6 +17,29 @@ class FeatureRetagConflict(ValueError):
 def _digest(value):
     return sha256(json.dumps(value, ensure_ascii=False, sort_keys=True,
                              separators=(',', ':')).encode('utf-8')).hexdigest()
+
+
+def _metric(feet):
+    value = int(feet) * 3
+    return str(value // 10) if value % 10 == 0 else f'{value // 10},{value % 10}'
+
+
+def _correct_dual_range(action, source_entries):
+    if (not isinstance(source_entries, list) or len(source_entries) != 1 or
+            not isinstance(source_entries[0], str) or
+            not isinstance(action.get('entries'), list) or len(action['entries']) != 1 or
+            not isinstance(action['entries'][0], str)):
+        raise FeatureRetagConflict('Texto de alcance nao e simples.')
+    matches = re.findall(r'\brange (\d+)/(\d+) ft\b', source_entries[0])
+    if len(matches) != 1:
+        raise FeatureRetagConflict('Alcance duplo nao comprovado no CSV.')
+    short, long = matches[0]
+    old = f'alcance {short}/{_metric(long)} m [{long} pés]'
+    new = f'alcance {_metric(short)}/{_metric(long)} m [{short}/{long} pés]'
+    text = action['entries'][0]
+    if text.count(old) != 1:
+        raise FeatureRetagConflict('Alcance traduzido divergente.')
+    action['entries'] = [text.replace(old, new, 1)]
 
 
 def reviewed_statblock(creature, source_row, proposal, *, library=None):
@@ -35,6 +59,8 @@ def reviewed_statblock(creature, source_row, proposal, *, library=None):
             or action.get('entries_en') != original['entries']
             for action, original in zip(actions, source)):
         raise FeatureRetagConflict('Acoes nao correspondem ao CSV.')
+    current_hash = statblock_hash(creature.statblock_json)
+    already_applied = current_hash == proposal.get('after_sha256')
     seen = set()
     for feature in proposal['features']:
         if not isinstance(feature, dict):
@@ -52,21 +78,28 @@ def reviewed_statblock(creature, source_row, proposal, *, library=None):
                 _digest(source[index]['entries']) != feature.get('source_entries_sha256') or
                 'tags' in action):
             raise FeatureRetagConflict('Habilidade ou fonte divergente.')
+        existing_tags = action.get('tags_json') or []
+        if existing_tags and existing_tags != tags:
+            raise FeatureRetagConflict('Habilidade ja possui tags diferentes.')
+        correct_range = feature.get('correct_dual_range', False)
+        if not isinstance(correct_range, bool):
+            raise FeatureRetagConflict('Aprovacao de alcance invalida.')
         diagnostics = validate_tags_json(tags, library or Library(), None, strict_names=True)
         if any(d.level == ERROR for d in diagnostics):
             raise FeatureRetagConflict('Tag mecanica invalida.')
-        action['tags_json'] = tags
+        if already_applied:
+            if existing_tags != tags:
+                raise FeatureRetagConflict('Resultado existente diverge da revisao.')
+        else:
+            action['tags_json'] = tags
+            if correct_range:
+                _correct_dual_range(action, source[index]['entries'])
+    if already_applied:
+        return creature.statblock_json, False
     before = proposal.get('before_sha256')
     after = proposal.get('after_sha256')
-    current = statblock_hash(creature.statblock_json)
-    if current == after:
-        return creature.statblock_json, False
-    if current != before or statblock_hash(sb) != after:
+    if current_hash != before or statblock_hash(sb) != after:
         raise FeatureRetagConflict('Statblock mudou desde a revisao.')
-    for feature in proposal['features']:
-        old = creature.statblock_json['actions'][feature['index']]
-        if old.get('tags_json'):
-            raise FeatureRetagConflict('Habilidade ja possui tags diferentes.')
     return sb, True
 
 
