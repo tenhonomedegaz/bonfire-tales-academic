@@ -1,0 +1,618 @@
+{
+  "version": 1,
+  "source_sha256": "41e9c80b84fc08ed9cffa6fa1def5d0356f6fca4dc34ada46f21b8095f99b326",
+  "rows": [
+    {
+      "pk": 75,
+      "slug": "adult-kruthik",
+      "before_sha256": "b9738ec6ed5b14fc876d4f2f2cc6b8d3c503d23dae43a0810d317fa1a95eb206",
+      "after_sha256": "8afce54c0178933efbead813013f8000633a39ce5f5a7d16f51abf9760d29e6f",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Spike",
+          "source_entries_sha256": "6b176a7430258cb0420804d709f831cdffa74c3705d9fffb2644bb4820f9c2b2",
+          "tags": [
+            "instant{attack:ranged, attack:+5, range:20/60ft, dmg:1d4+3(perfurante)}"
+          ],
+          "correct_dual_range": true
+        }
+      ]
+    },
+    {
+      "pk": 126,
+      "slug": "archer",
+      "before_sha256": "e8af8ea84b7ed61899c82809c932c4a45e9a382d1f328e144da55e320402b36c",
+      "after_sha256": "a347c373c98fb003d8e96abe037eb3f8dc9f3db912c96d27f904894b40c03021",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Longbow",
+          "source_entries_sha256": "abbda1e7d5f68ae0f052291d15d9bfc73fc65d285f6d2299d813e476dba3bc2b",
+          "tags": [
+            "instant{attack:ranged, attack:+6, range:150/600ft, dmg:1d8+4(perfurante)}"
+          ],
+          "correct_dual_range": true
+        }
+      ]
+    },
+    {
+      "pk": 155,
+      "slug": "bard",
+      "before_sha256": "616daf064d72dfdf4bc534c84f01a5bfd1d84223b4598508d83823b477205b69",
+      "after_sha256": "ff310fdbb16106d1263336e45d73cdd7169ec397103679c63dfca5e32907da53",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Shortbow",
+          "source_entries_sha256": "6ea7cbe4251e07efa8450e5360bf0aeaeab630be0eea9c97b0b4ae3e25e9ae87",
+          "tags": [
+            "instant{attack:ranged, attack:+4, range:80/320ft, dmg:1d6+2(perfurante)}"
+          ],
+          "correct_dual_range": true
+        }
+      ]
+    },
+    {
+      "pk": 173,
+      "slug": "blackguard",
+      "before_sha256": "d112b336d6113831a3f5b613eebcec359692ab97b874466deac722fc96b88c71",
+      "after_sha256": "b1f814ba4ccd29392912be809ec4f3dd7ad4bba66196168b8b97eb475ae823e2",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Shortbow",
+          "source_entries_sha256": "22fb37e48b09d5d117cd65b724dfdbbffcd80e866ececa7adfcee89ea664bdd6",
+          "tags": [
+            "instant{attack:ranged, attack:+3, range:80/320ft, dmg:1d6+2(perfurante)}"
+          ],
+          "correct_dual_range": true
+        }
+      ]
+    },
+    {
+      "pk": 188,
+      "slug": "booyahg-caster",
+      "before_sha256": "3f1df6c88fbf75a0e4cb9f866901f2dbf2284537d1d80effdea4e7d1768f2a96",
+      "after_sha256": "95416d57868b43475ce96b39f97951281677e2936e535b037bef6225ea7ad657",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Shortbow",
+          "source_entries_sha256": "6ea7cbe4251e07efa8450e5360bf0aeaeab630be0eea9c97b0b4ae3e25e9ae87",
+          "tags": [
+            "instant{attack:ranged, attack:+4, range:80/320ft, dmg:1d6+2(perfurante)}"
+          ],
+          "correct_dual_range": true
+        }
+      ]
+    },
+    {
+      "pk": 192,
+      "slug": "booyahg-whip",
+      "before_sha256": "e1258a62b0056cf2275c339305e5629cda8872a012415860301ee2a24ad4ee44",
+      "after_sha256": "433dd3d5918e91e548653ac57726df6e89c35ee1363f6386533cca414d4df4f0",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Shortbow",
+          "source_entries_sha256": "6ea7cbe4251e07efa8450e5360bf0aeaeab630be0eea9c97b0b4ae3e25e9ae87",
+          "tags": [
+            "instant{attack:ranged, attack:+4, range:80/320ft, dmg:1d6+2(perfurante)}"
+          ],
+          "correct_dual_range": true
+        }
+      ]
+    },
+    {
+      "pk": 193,
+      "slug": "booyahg-wielder",
+      "before_sha256": "8403d4104659fe63091bf1d5c192884c7123e9dcaf32e4aecc8d750fa9e33518",
+      "after_sha256": "91222acfa604053f6bb9514303e351618584ca905c76f4dc22ed021311225430",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Shortbow",
+          "source_entries_sha256": "6ea7cbe4251e07efa8450e5360bf0aeaeab630be0eea9c97b0b4ae3e25e9ae87",
+          "tags": [
+            "instant{attack:ranged, attack:+4, range:80/320ft, dmg:1d6+2(perfurante)}"
+          ],
+          "correct_dual_range": true
+        }
+      ]
+    },
+    {
+      "pk": 260,
+      "slug": "death-cultist",
+      "before_sha256": "e348a060a4eaafc272be0ec4ff6a4371a82237eec50179b169ba24f3a1a4f5e6",
+      "after_sha256": "0a01b21aa85d01ca1b0010e6c047c7a75b20354996235e6bfa72046d435c604b",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Deathly Ray",
+          "source_entries_sha256": "5e86a0e4ec5a37ef6a0c169d6933eb672798dddc20bbaa8eb4bade48622d0981",
+          "tags": [
+            "instant{attack:ranged, attack:+6, range:120ft, dmg:4d10(necrotico)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 276,
+      "slug": "derro",
+      "before_sha256": "84195ed6388c5878e4edaf41fe87b1dd19455cdb8eeac0ea29e194077a6194de",
+      "after_sha256": "0fde3d62e1134835494f8e9c3db485e2b1e358edefd9c2a44cb0886f7723620b",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Light Crossbow",
+          "source_entries_sha256": "e0daed625cf311b0d339396f99f99d748c7203dfb66dca0ff26eca48a6ef7145",
+          "tags": [
+            "instant{attack:ranged, attack:+4, range:80/320ft, dmg:1d8+2(perfurante)}"
+          ],
+          "correct_dual_range": true
+        }
+      ]
+    },
+    {
+      "pk": 311,
+      "slug": "dragonflesh-abomination",
+      "before_sha256": "ea00bdad52c7d6991a4ee4f81d7cdb72332aa7d5322ec85b8f1549f446073511",
+      "after_sha256": "6819d8ff7f2e24fcbce831d004b067ce28befea80fd16f063f64fd84f929cf18",
+      "features": [
+        {
+          "index": 3,
+          "name_en": "Acidic Spit",
+          "source_entries_sha256": "39c429bdc7ce69fea12cd048947d06b7df286775c1a9303d5107d2b416153c36",
+          "tags": [
+            "instant{attack:ranged, attack:+5, range:60ft, dmg:3d6(acido)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 323,
+      "slug": "druid",
+      "before_sha256": "357d490a3067e39ae8d3db4db3ef5eb8d4bb3f9893c905045b798ffcca5af503",
+      "after_sha256": "534847e05571b9812d134c098dccc8ccb0fbaa7701194b860db4eb1f683975d4",
+      "features": [
+        {
+          "index": 3,
+          "name_en": "Verdant Wisp",
+          "source_entries_sha256": "36c2886fc5b0100c4308b5be51e6342bd6fb753a8aea234dee77414b1c53d6c0",
+          "tags": [
+            "instant{attack:ranged, attack:+5, range:90ft, dmg:3d6(radiante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 327,
+      "slug": "duergar-kavalrachni",
+      "before_sha256": "f893980e69e88e924abfbcd1be23917761901f8e33a989da1e51fd5aae0907ab",
+      "after_sha256": "773fc307db7ed100d7503eb430d954ee9332aa8f401e68ad21f78abf00f780d5",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Heavy Crossbow",
+          "source_entries_sha256": "343b710d6a5f68a5d38249f3665c75e3e2a00dae05e3a6642a473c6946e761e5",
+          "tags": [
+            "instant{attack:ranged, attack:+2, range:100/400ft, dmg:1d10(perfurante)}"
+          ],
+          "correct_dual_range": true
+        }
+      ]
+    },
+    {
+      "pk": 339,
+      "slug": "efreeti",
+      "before_sha256": "c2a4bc45f67ab372fd0214f1be468225ddcf08e2741045966ee4745c043b59ea",
+      "after_sha256": "5dd2f3b6ff18398aa91510987f716689bec3a9969d2417cdd5686f053b81cfae",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Hurl Flame",
+          "source_entries_sha256": "1300190c51eaaac6eb84054b697178710987695e1dfcc9b13239dffb27209fd4",
+          "tags": [
+            "instant{attack:ranged, attack:+8, range:120ft, dmg:7d6(fogo)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 368,
+      "slug": "fire-giant-dreadnought",
+      "before_sha256": "832f5c6987b31c7ca5e41b327b3891bf272a87b05e0bf81923992c517e16c225",
+      "after_sha256": "3406d6b86cb3ee032da1ffcf9330326700cf0f08d322e911a1283f20d888a8dc",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Rock",
+          "source_entries_sha256": "f0d0d9984589fbded06f19cd7f076904f1cde0f16c04caa8e2b8a2730c599a84",
+          "tags": [
+            "instant{attack:ranged, attack:+13, range:60/240ft, dmg:4d10+8(concussao)}"
+          ],
+          "correct_dual_range": true
+        }
+      ]
+    },
+    {
+      "pk": 375,
+      "slug": "flind",
+      "before_sha256": "567b9d33c710838e4bb1ac8ee0fc149eee752fe81235293b7d919556dd04d196",
+      "after_sha256": "f789ba5a43800a728de14ff15871842167cdad9e5523659ec1ec49b5287d34f3",
+      "features": [
+        {
+          "index": 4,
+          "name_en": "Longbow",
+          "source_entries_sha256": "27721834a55e01edabf9a9eb239de5ed3e6b6e2cfeaeb77ad439e2cc0dc68e38",
+          "tags": [
+            "instant{attack:ranged, attack:+6, range:150/600ft, dmg:1d8+2(perfurante)}"
+          ],
+          "correct_dual_range": true
+        }
+      ]
+    },
+    {
+      "pk": 383,
+      "slug": "frost-giant-everlasting-one",
+      "before_sha256": "32fb0042a991325b381ca3b7e769c8806c352f8969ec7a8471c617c0a443cbeb",
+      "after_sha256": "41cb97c22520715c80c9ae5b0a101e9002a886058e15c57b86a59acea3737fa9",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Rock",
+          "source_entries_sha256": "b807d6bf359357618e52040b921de3f20f1ae5877c7fef228f81a7e805007c2c",
+          "tags": [
+            "instant{attack:ranged, attack:+11, range:60/240ft, dmg:4d10+7(concussao)}"
+          ],
+          "correct_dual_range": true
+        }
+      ]
+    },
+    {
+      "pk": 431,
+      "slug": "giff",
+      "before_sha256": "6008abd0961d99e7dceef970cdf9c23d176be93a04472203adbd8e4d81b97093",
+      "after_sha256": "90ee8c68f2884a6bb3e35dce733e4a2fc1051deb319e813faf60dc80de4408d3",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Musket",
+          "source_entries_sha256": "fc80611ca3bc50c4b971247955143ee6de8a6ad91c316cf3bdf3b665b54c50e2",
+          "tags": [
+            "instant{attack:ranged, attack:+4, range:40/120ft, dmg:1d12+2(perfurante)}"
+          ],
+          "correct_dual_range": true
+        },
+        {
+          "index": 3,
+          "name_en": "Pistol",
+          "source_entries_sha256": "0d0fa13ae33152401940877ba9040131e6aa50a5a1f33b3e22c8c0b08cf27057",
+          "tags": [
+            "instant{attack:ranged, attack:+4, range:30/90ft, dmg:1d10+2(perfurante)}"
+          ],
+          "correct_dual_range": true
+        }
+      ]
+    },
+    {
+      "pk": 501,
+      "slug": "hobgoblin-iron-shadow",
+      "before_sha256": "3bb3f984a5bb90b494cd9ac0d7d3eee718fe31aaef0b0ecb9cec3a220b08d0a8",
+      "after_sha256": "8e364bf363b63f3da8e3dc9d714d8216a60409bb61bf1abec1a6cedd2d0bd754",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Dart",
+          "source_entries_sha256": "6b176a7430258cb0420804d709f831cdffa74c3705d9fffb2644bb4820f9c2b2",
+          "tags": [
+            "instant{attack:ranged, attack:+5, range:20/60ft, dmg:1d4+3(perfurante)}"
+          ],
+          "correct_dual_range": true
+        }
+      ]
+    },
+    {
+      "pk": 523,
+      "slug": "iron-golem",
+      "before_sha256": "577be9bff32d01a2700d86df13a54a3a324267872dec7bf7450955bc460d6906",
+      "after_sha256": "49c4d0809ac29339cf1ac2413baa62d15bd0dc4923b5b33a5e8b3718a8ef5c65",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Fiery Bolt",
+          "source_entries_sha256": "31647dce43ce869064bfb19871b9d1a661c03e495c9b0bc41d857b80b5befc8f",
+          "tags": [
+            "instant{attack:ranged, attack:+10, range:120ft, dmg:8d8(fogo)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 533,
+      "slug": "kobold-inventor",
+      "before_sha256": "a41b731966dc8219836135395b98a7d31a9d10f3c11d0bf6c5ce55c616837ff4",
+      "after_sha256": "c1e75d6c1a24b2f51f544909de3ecbebaf048dedf2773045447030a57af7b4f0",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Sling",
+          "source_entries_sha256": "27b148e3cce7fe1032d94d9f5fd5cd5d24d12329df634903f0680969e75c60e8",
+          "tags": [
+            "instant{attack:ranged, attack:+4, range:30/120ft, dmg:1d4+2(concussao)}"
+          ],
+          "correct_dual_range": true
+        }
+      ]
+    },
+    {
+      "pk": 539,
+      "slug": "kruthik-hive-lord",
+      "before_sha256": "143b45f0a4af50fb709c2335a7d7beba754f5741209c36b827aed637c04205b7",
+      "after_sha256": "11f124c7c35680134d9b3f4407f4ea2552d2c34956f84791fd4b6a817cc7d382",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Spike",
+          "source_entries_sha256": "593794d3d45692f2d42b8caa29f97cea5261807ca255e9515ac53a926406d9b3",
+          "tags": [
+            "instant{attack:ranged, attack:+6, range:30/120ft, dmg:1d6+4(perfurante)}"
+          ],
+          "correct_dual_range": true
+        }
+      ]
+    },
+    {
+      "pk": 569,
+      "slug": "martial-arts-adept",
+      "before_sha256": "c9a887278584d1a1a03be6688bbddf81ceafeabd06706c5a614ece0b8b91986c",
+      "after_sha256": "be422be47590ab2d00fef80a233b1dacc13a8e42a2cc30599ce2a119cb27ec2a",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Dart",
+          "source_entries_sha256": "6b176a7430258cb0420804d709f831cdffa74c3705d9fffb2644bb4820f9c2b2",
+          "tags": [
+            "instant{attack:ranged, attack:+5, range:20/60ft, dmg:1d4+3(perfurante)}"
+          ],
+          "correct_dual_range": true
+        }
+      ]
+    },
+    {
+      "pk": 580,
+      "slug": "merregon",
+      "before_sha256": "37cee93dff73eba8958dbbd946512d5a2bd3d7839f4948faabe7a6cf32e8c4dc",
+      "after_sha256": "314e8a08a164768257055b5b7f3d7d30112f36dfb1eed31610cfbabb1010c2bf",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Heavy Crossbow",
+          "source_entries_sha256": "7a58443a3e80c279ab3fcd74a67cd4ed4bcd7e5a49d6eda78eabd824fd091852",
+          "tags": [
+            "instant{attack:ranged, attack:+4, range:100/400ft, dmg:1d10+2(perfurante)}"
+          ],
+          "correct_dual_range": true
+        }
+      ]
+    },
+    {
+      "pk": 635,
+      "slug": "ogre-bolt-launcher",
+      "before_sha256": "43c8b571798cae861cefc8938b6a1f4ff6ea5047a15f5be6b9ea2cdd985c6f89",
+      "after_sha256": "e2ffbf77cf79963fa4643dd2a5a3a87163e7bf43a9a126cecc332e6b8b46b355",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Bolt Launcher",
+          "source_entries_sha256": "1a4c2e6b7b1285c17f1d894b563b9bd458b3a8370ed1815cd2eb25fb14e95524",
+          "tags": [
+            "instant{attack:ranged, attack:+3, range:120/480ft, dmg:3d10+1(perfurante)}"
+          ],
+          "correct_dual_range": true
+        }
+      ]
+    },
+    {
+      "pk": 646,
+      "slug": "orc-red-fang-of-shargaas",
+      "before_sha256": "d4fc14616028439dcf3857f0d3a31443e509beff945e33f1b1c0faed73c3acc9",
+      "after_sha256": "35ac172428276ccd04b330cb50c1a4434959fe33692fc465be6bb60007c2c419",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Dart",
+          "source_entries_sha256": "37d991134c371d65f03dd4df46fef56cf3fee0d2b7293b303ebb0af321bd879f",
+          "tags": [
+            "instant{attack:ranged, attack:+5, range:20/60ft, dmg:3d4+3(perfurante)}"
+          ],
+          "correct_dual_range": true
+        }
+      ]
+    },
+    {
+      "pk": 674,
+      "slug": "priest",
+      "before_sha256": "020cb3c80c54f653ec0adbf0c3f2b48c88bdc4740ff30c1a4ba59918f0b2db71",
+      "after_sha256": "29f5ebe9ee30fdcd6f69e66a06e7cdc919d928fad10f206d4cf85abdacc5bbd1",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Radiant Flame",
+          "source_entries_sha256": "9a5fe093d9672b05bcae2d9b4d062417b697f971e78753450a55b525b2820ad7",
+          "tags": [
+            "instant{attack:ranged, attack:+5, range:60ft, dmg:2d10(radiante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 675,
+      "slug": "priest-acolyte",
+      "before_sha256": "546725fa0884beb865ebec09df8b1dc5b562fae185ad587b4d3706194137ae76",
+      "after_sha256": "c5be05a97116937c1759856068d09e5f7b9e0aaa9b6a169945fc963e4274a5e8",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Radiant Flame",
+          "source_entries_sha256": "d1f90b23acc1c0a561f2945cfe2b83e536061b266c32320cd20dd1b1bad3f7ad",
+          "tags": [
+            "instant{attack:ranged, attack:+4, range:60ft, dmg:2d6(radiante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 757,
+      "slug": "spirit-naga",
+      "before_sha256": "d69b3b2691f2e39a810179b919252ca61da65f27ce7ab0f1ff2d1c6a06afc3f0",
+      "after_sha256": "c5496e8102806ca2b2caacede957cf8ca5f479e7a111f482f5dc7c42ab432ca9",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Necrotic Ray",
+          "source_entries_sha256": "8812f5a739fafa7f450a82336bf3902f5c7816d222fc7773fe62d7e71ed0315b",
+          "tags": [
+            "instant{attack:ranged, attack:+6, range:60ft, dmg:6d6(necrotico)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 776,
+      "slug": "stone-golem",
+      "before_sha256": "12a9a500aa593949dac9caaf0f49c067874088b6469b08e208b282706abc1c70",
+      "after_sha256": "eac5f1ea30a76b0c376b6cf2027df9ecf2b7628540af2e2c1411dd5b01447c80",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Force Bolt",
+          "source_entries_sha256": "5da22a36adeea2b62d2b245866b51f9e89e26bdc736b234180c0d334b6bb22f8",
+          "tags": [
+            "instant{attack:ranged, attack:+9, range:120ft, dmg:4d10(energia)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 796,
+      "slug": "sword-wraith-commander",
+      "before_sha256": "339d7e87b3562e2013c4721891bcbf6d1c041a33791175e1e0d5c5d3a23cf0d8",
+      "after_sha256": "4d7fc1eac230f9e8548eff238fa8349412a3844c038e86265ada692edc51644b",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Longbow",
+          "source_entries_sha256": "39a31d250f3452ae6a876d4b814694681448e977740a01c7e915b9e9477aed43",
+          "tags": [
+            "instant{attack:ranged, attack:+5, range:150/600ft, dmg:1d8+2(perfurante)}"
+          ],
+          "correct_dual_range": true
+        }
+      ]
+    },
+    {
+      "pk": 797,
+      "slug": "sword-wraith-warrior",
+      "before_sha256": "9a654a320e65d43ddab06536a5ae4a3bdd54c6ae008d042e60674ac3c4146d3f",
+      "after_sha256": "3bcba35563539b4bd892db32afceed0fc221762af6c87d6706b03d9f8639dea3",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Longbow",
+          "source_entries_sha256": "1dc7d53f8ff8a29c05e8d6779f669d966676fb618f6d6dc18d4a60d6dc2cb97a",
+          "tags": [
+            "instant{attack:ranged, attack:+3, range:150/600ft, dmg:1d8+1(perfurante)}"
+          ],
+          "correct_dual_range": true
+        }
+      ]
+    },
+    {
+      "pk": 808,
+      "slug": "tortle",
+      "before_sha256": "4c4c4841ab3a3390795c3d86d0967892f371407a25d20d758dfbc9d8a491ba7d",
+      "after_sha256": "04641536ecd2081a0cf52a769cccfeb36baa69fa6fc1d6b8a16e3b176e929810",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Light Crossbow",
+          "source_entries_sha256": "9782e4c0b2b3c07e24e91793ee479047d0fc8da364b07a370d5271e6a7cebbd3",
+          "tags": [
+            "instant{attack:ranged, attack:+2, range:80/320ft, dmg:1d8(perfurante)}"
+          ],
+          "correct_dual_range": true
+        }
+      ]
+    },
+    {
+      "pk": 833,
+      "slug": "vegepygmy",
+      "before_sha256": "cc64c3234931b7910920652a0380f647c6c24435d1ee5cdc588071969cc21ed7",
+      "after_sha256": "bc31e34d69b933e1263eb53f113f7c0e5c44b6fc3ad53bea7e32b782a244903c",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Sling",
+          "source_entries_sha256": "27b148e3cce7fe1032d94d9f5fd5cd5d24d12329df634903f0680969e75c60e8",
+          "tags": [
+            "instant{attack:ranged, attack:+4, range:30/120ft, dmg:1d4+2(concussao)}"
+          ],
+          "correct_dual_range": true
+        }
+      ]
+    },
+    {
+      "pk": 849,
+      "slug": "warlord",
+      "before_sha256": "54ec03e02a8b2e23c450fe22af85e4bd27903cb4cb50ffa64fd22b7104d581d2",
+      "after_sha256": "deab8262fa96b98cb3191da5583c429a5ec6b20e8c9486eaf8264cf58c4ce8a5",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Shortbow",
+          "source_entries_sha256": "8b2e1139f36f8583263cf587bf128d1f339ee96530106bf2c7dd8d75fa29d096",
+          "tags": [
+            "instant{attack:ranged, attack:+7, range:80/320ft, dmg:1d6+3(perfurante)}"
+          ],
+          "correct_dual_range": true
+        }
+      ]
+    },
+    {
+      "pk": 878,
+      "slug": "xvart",
+      "before_sha256": "c9cd34a05bd24acdd3cf8231f47e888a5f4e633dbea13ba4cc18bb1bbf52f0c1",
+      "after_sha256": "f169fcbd9bb0438067ce2ee0098ccef1a53d1ea3e97d5db93cd31c71ad06d9c6",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Sling",
+          "source_entries_sha256": "27b148e3cce7fe1032d94d9f5fd5cd5d24d12329df634903f0680969e75c60e8",
+          "tags": [
+            "instant{attack:ranged, attack:+4, range:30/120ft, dmg:1d4+2(concussao)}"
+          ],
+          "correct_dual_range": true
+        }
+      ]
+    },
+    {
+      "pk": 879,
+      "slug": "xvart-speaker",
+      "before_sha256": "35124e8d6c4474890b5f32c6e78374f25233bbab6777912fd1b9487d90a01d3a",
+      "after_sha256": "9d678265551983dd33a4c36da028d295630f26f20f0cae484a1383eb19d7c392",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Sling",
+          "source_entries_sha256": "27b148e3cce7fe1032d94d9f5fd5cd5d24d12329df634903f0680969e75c60e8",
+          "tags": [
+            "instant{attack:ranged, attack:+4, range:30/120ft, dmg:1d4+2(concussao)}"
+          ],
+          "correct_dual_range": true
+        }
+      ]
+    }
+  ]
+}
