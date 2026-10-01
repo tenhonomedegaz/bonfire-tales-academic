@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "source_sha256": "41e9c80b84fc08ed9cffa6fa1def5d0356f6fca4dc34ada46f21b8095f99b326",
+  "rows": [
+    {
+      "pk": 212,
+      "slug": "carrion-crawler",
+      "before_sha256": "480f447ffe6600e7b9130a46ed142e87433c69687ae296a6d611b6092b29c772",
+      "after_sha256": "443afcbfb96281bd9b8115bcd55763abcc48992b2930688b509805f8f494a2aa",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Paralyzing Tentacles",
+          "source_entries_sha256": "775c46f57e83a6bdfe4e3ec26c027291521448c264a4a2c0d6fe71fded07ce82",
+          "tags": [
+            "instant{range:10ft, save{con, cd=12}, on_fail{apply:envenenado(duration:1min), apply:paralisado(while:envenenado), repeat_save:turn_end}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 225,
+      "slug": "chuul",
+      "before_sha256": "be29b000f2fd711db2efa8c232111707b5ec161f0789b10979e85e26e03a103d",
+      "after_sha256": "19a1cfb53d08623f8041e37daebd68c301b9060d3f64aef9c99c0cf5ddf02f28",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Paralyzing Tentacles",
+          "source_entries_sha256": "5c35100349ebcab6112c5e0b6cd29206197f2e1b3905055d43213d40222e541f",
+          "tags": [
+            "instant{requires:target{condition{agarrado, source:self}}, save{con, cd=13}, on_fail{apply:envenenado(duration:1min), apply:paralisado(while:envenenado), repeat_save:turn_end}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 472,
+      "slug": "grell",
+      "before_sha256": "59df70d6d1e5f5b2b6436cdfbabde56a3de3f31f46ffc10517b2804b3b0a1854",
+      "after_sha256": "0eb54ae1893d809cd7dbe8a437ee0d716674386f5d3f358e7de386ab79697b44",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Paralyzing Tentacles",
+          "source_entries_sha256": "0519c7a61468da0b9025e355495f69119bb28e90915f9c70f02a11f2b125e937",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:10ft, dmg:1d10+2(perfurante), instant{trigger=hit, requires:target{size<=medio}, apply:agarrado(escape_cd:12)}, instant{trigger=hit, save{con, cd=11}, on_fail{apply:envenenado(duration:1min), apply:paralisado(while:envenenado), repeat_save:turn_end}}}"
+          ]
+        }
+      ]
+    }
+  ]
+}
