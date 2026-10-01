@@ -321,3 +321,28 @@ class BestiaryDescriptionProjectionTests(TestCase):
                                        descricao_markdown=description)
             preview = self.client.get(reverse('api_creature_preview'), {'slug': slug})
             self.assertEqual(bool(preview.json()['descricao']), visible)
+
+    def test_old_source_feature_label_yields_to_current_rule_without_losing_edits(self):
+        feature = {
+            'name': 'Escapada Nebulosa (recupera apÃ³s descanso)',
+            'name_en': 'Misty Escape (Recharges after a Short or Long Rest)',
+            'entries_en': ['The creature becomes invisible and teleports.'],
+        }
+        statblock = {**self.statblock, 'actions': [feature]}
+        generated = _clean_creature_text(_descricao_markdown({}, statblock))
+        old = generated.replace('**Escapada Nebulosa (recupera apÃ³s descanso)**',
+                                '**Fuga Nebulosa**')
+        self.assertNotEqual(old, generated)
+        variants = (
+            ('nome-fonte-antigo', old, False),
+            ('nome-fonte-outra-regra', old.replace('**Fuga Nebulosa**',
+                                                 '**Fuga Nebulosa (4/dia)**'), True),
+            ('nome-fonte-linha-adicional', old + '\n- **Regra adicional**', True),
+        )
+        for slug, description, visible in variants:
+            TbBestiario.objects.create(slug=slug, nome='Sentinela',
+                                       statblock_json=statblock,
+                                       descricao_markdown=description)
+            preview = self.client.get(reverse('api_creature_preview'), {'slug': slug})
+            self.assertEqual(bool(preview.json()['descricao']), visible)
+            self.assertIn('Escapada Nebulosa', preview.json()['statblock_html'])

@@ -123,6 +123,24 @@ def _duplicate_prose_heading(line, statblock):
     return bool(title and title not in names and any(title in entry for entry in entries))
 
 
+def _legacy_source_feature_name(block):
+    """Rebuild the old base label from the same importer, without its qualifier."""
+    from .management.commands.importar_bestiario_csv import _descricao_markdown, _traduz_feature
+    from .management.commands.limpar_residuos_banco import _clean_creature_text
+
+    source_name = block.get('name_en')
+    if not isinstance(source_name, str) or not source_name.strip():
+        return ''
+    base = re.sub(r'\s*\([^)]*\)$', '', source_name).strip()
+    projection = _clean_creature_text(_descricao_markdown({}, {
+        'name': '', 'actions': [{'name': _traduz_feature(base)}],
+    }))
+    feature = next((line for line in projection.splitlines()
+                    if _FEATURE_LINE.fullmatch(line)), '')
+    match = _FEATURE_LINE.fullmatch(feature)
+    return _accent_fold(match.group(1)) if match else ''
+
+
 def _same_imported_summary(description, generated, statblock):
     """Accept stale translated feature labels only; metadata and structure stay exact."""
     from .management.commands.importar_bestiario_csv import SECOES
@@ -170,7 +188,10 @@ def _same_imported_summary(description, generated, statblock):
         # can change the rule, so keep that summary visible for review.
         bare_name = not re.search(r'\s*\([^)]*\)$', actual_name)
         if actual_name not in names and not (
-            bare_name and actual_name in {_feature_base(name) for name in names}
+            bare_name and (
+                actual_name in {_feature_base(name) for name in names} or
+                actual_name == _legacy_source_feature_name(block)
+            )
         ):
             return False
         if not _same_feature_refs(actual_match.group(2), block):
