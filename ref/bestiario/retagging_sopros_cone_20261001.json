@@ -1,0 +1,454 @@
+{
+  "version": 1,
+  "source_sha256": "41e9c80b84fc08ed9cffa6fa1def5d0356f6fca4dc34ada46f21b8095f99b326",
+  "rows": [
+    {
+      "pk": 221,
+      "slug": "chimera",
+      "before_sha256": "5e968320c2bdd865a20228b0957cf2336dbd6c423a9a2e63e36a416268606583",
+      "after_sha256": "77053d67ac90a0469565483b68710664a4076c6701121e1d9d7a6ccfc2407f15",
+      "features": [
+        {
+          "index": 4,
+          "name_en": "Fire Breath (Recharge 5–6)",
+          "source_entries_sha256": "2644469fc7e2307a4e8158d28cb8c350bf6027c40d4bab1e6500353698696385",
+          "tags": [
+            "instant{aoe{cone:15ft, save{dex, cd=15}, dmg:7d8(fogo), on_success:half}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 74,
+      "slug": "adult-green-dragon",
+      "before_sha256": "009cacc483f7f585f781ab63d837ad5ca2bd3ec913ecaff371835a4c341d7490",
+      "after_sha256": "d7fedf22c07950c3d15fd1c363fb7922334b00f6ec4323be9918c4eb4028ece9",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Poison Breath (Recharge 5–6)",
+          "source_entries_sha256": "5efb8565e8ede39fb617d69d2495274bc0f276fc657c0b0a3225ba7cca2def45",
+          "tags": [
+            "instant{aoe{cone:60ft, save{con, cd=18}, dmg:16d6(veneno), on_success:half}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 78,
+      "slug": "adult-red-dragon",
+      "before_sha256": "aae14e1f45b5fc369a3a0c2e244f32121f21eaad31fb85b8f4a0c68903b78dd2",
+      "after_sha256": "8dbfa6a3a7d27086d5ff974208643c4d840b44cd44a04d22701bc1fcd36f2753",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Fire Breath (Recharge 5–6)",
+          "source_entries_sha256": "8fdec272a694c5aecc0236f188a6eec2779f94e4acf41eeb1008983f8f9b37fa",
+          "tags": [
+            "instant{aoe{cone:60ft, save{dex, cd=21}, dmg:17d6(fogo), on_success:half}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 80,
+      "slug": "adult-silver-dragon",
+      "before_sha256": "cfd87c3fc31b228951da99f653c0e34288bcc7a380b9906f163c2c733bf553a1",
+      "after_sha256": "79ae744b7b4041feec18da86eb2693fe8f979b0e2ace5ea4151daa375350d38f",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Cold Breath (Recharge 5–6)",
+          "source_entries_sha256": "ba1f4957f2ba49f9ed5a120cde4184837496f61da345cf73833f9af0623840b8",
+          "tags": [
+            "instant{aoe{cone:60ft, save{con, cd=20}, dmg:12d8(frio), on_success:half}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 82,
+      "slug": "adult-white-dragon",
+      "before_sha256": "39f295587fcde41d111e7ee56e9165f7cdd1b5eaccf5df6f8d7db6747a3fd97f",
+      "after_sha256": "7ecb0ddd1e6155b74a8364cb59bc1a83976c35c3e74bd85b35c9834dc45565df",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Cold Breath (Recharge 5–6)",
+          "source_entries_sha256": "c93c7b11ae84bcf1a0dc767a977fabcab93551213a2d0fd221832796572e6357",
+          "tags": [
+            "instant{aoe{cone:60ft, save{con, cd=19}, dmg:12d8(frio), on_success:half}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 107,
+      "slug": "ancient-silver-dragon",
+      "before_sha256": "3b5c21548dfb7eefded3de6584e6b3ef8870d3d2391716d5dd3d3b45e106ffbc",
+      "after_sha256": "fa4d4b333760c40ecd4c087699be76ab3234ad78f34097271de072702360ea26",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Cold Breath (Recharge 5–6)",
+          "source_entries_sha256": "05f1275172e2953fc853d8004741b222cfc4111d4255093f2c3d73160cb0ae2d",
+          "tags": [
+            "instant{aoe{cone:90ft, save{con, cd=24}, dmg:15d8(frio), on_success:half}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 109,
+      "slug": "ancient-white-dragon",
+      "before_sha256": "2d0bbb40e6f8175a873ab465410d766aabe2dc48d43a86577e5186a22456ae58",
+      "after_sha256": "f9e42b253613213b67d96e26468860c7cd5753f60c46286f0c7bb40792cc349c",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Cold Breath (Recharge 5–6)",
+          "source_entries_sha256": "e30c11bea23e8e488b98ffd62be058327d238db8539bc9bd961193d82842f9de",
+          "tags": [
+            "instant{aoe{cone:90ft, save{con, cd=22}, dmg:14d8(frio), on_success:half}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 64,
+      "slug": "abominable-yeti",
+      "before_sha256": "3d8d3b17185133c3ab5d058db2d8f347537ff4daef09de870a4e1742289895b4",
+      "after_sha256": "788310ea36b4802e755d8535c2edb8e7b1e553e57927010ebc8f31c8f5b555af",
+      "features": [
+        {
+          "index": 4,
+          "name_en": "Cold Breath (Recharge 6)",
+          "source_entries_sha256": "a2a223b751d96235afecf51e7b51a406086bf118b06e6828a33814e6e83ca105",
+          "tags": [
+            "instant{aoe{cone:30ft, save{con, cd=18}, dmg:10d8(frio), on_success:half}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 468,
+      "slug": "green-dragon-wyrmling",
+      "before_sha256": "7131447f6a37a6573d3306d40ad16210db24e16d851bc17dccc15fac85cd7448",
+      "after_sha256": "caaba7477fc4b715c97f9dcb86401e4d76b9d02fc01af98ba5cd2211d5e2df3c",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Poison Breath (Recharge 5–6)",
+          "source_entries_sha256": "8c7839fc4b37421411658fb83bb97f2e08b833d6ab224dc0fd65c5746bc3ccd8",
+          "tags": [
+            "instant{aoe{cone:15ft, save{con, cd=11}, dmg:6d6(veneno), on_success:half}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 560,
+      "slug": "magma-mephit",
+      "before_sha256": "7e2b632cf8d1dcc3c263d5eab70676048147d8e6040def9b22530c3967e3aeb3",
+      "after_sha256": "6410f3f6171cfdfcac6091c9ed08152b3ed5204b71d0691582957862dcb4234f",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Fire Breath (Recharge 6)",
+          "source_entries_sha256": "0b1edb4fa3fd257e9050390589275aca54fb6be66ad72f086f8015455aea24a8",
+          "tags": [
+            "instant{aoe{cone:15ft, save{dex, cd=11}, dmg:2d6(fogo), on_success:half}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 691,
+      "slug": "red-dragon-wyrmling",
+      "before_sha256": "9edf8ce99642a76248dd51cb310ce29af114c341b8a539189f71ed130f541883",
+      "after_sha256": "18b6149916e4d12f5dafe180d65f5fb0e277764f8890d3d6113bccc11dc469da",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Fire Breath (Recharge 5–6)",
+          "source_entries_sha256": "a699a85bed560ec7e3ff4eeba8673efc81f24c2b08267cb93fca73d9b8d46422",
+          "tags": [
+            "instant{aoe{cone:15ft, save{dex, cd=13}, dmg:7d6(fogo), on_success:half}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 739,
+      "slug": "silver-dragon-wyrmling",
+      "before_sha256": "38f45fa1c0007f6487313a8b5d815d5b63c4977c30af408af593143989b2fa4e",
+      "after_sha256": "21c005b150ce2bb60fdfe266d0b0db32843d027720cb27e69fedaedb0dca23c2",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Cold Breath (Recharge 5–6)",
+          "source_entries_sha256": "09e9410942816a7cb4fbe53d1aa3a978bbc520d8640123faa8a1fffddff5259d",
+          "tags": [
+            "instant{aoe{cone:15ft, save{con, cd=13}, dmg:4d8(frio), on_success:half}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 102,
+      "slug": "ancient-green-dragon",
+      "before_sha256": "9a816aac9ec1c3368d03a256f8e9e48fb71ccd2f24bafbd5782a8f9827753316",
+      "after_sha256": "46ed401362209f9ae268c8758b7807e6b06c97802cef32bfe84464e3680f2e85",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Poison Breath (Recharge 5–6)",
+          "source_entries_sha256": "c5494ba8d80f3b845c12a38eff6fbb6e4e7330c031dfa2b11a6a017dc87eceae",
+          "tags": [
+            "instant{aoe{cone:90ft, save{con, cd=22}, dmg:22d6(veneno), on_success:half}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 101,
+      "slug": "ancient-gold-dragon",
+      "before_sha256": "65d6795a6d54fbb3f842d46be2a91ce3a9ecb85e24ff6d46f4ff4fee1095d8da",
+      "after_sha256": "41ec0b900f1129fd81ff53c8b59deeb383481b1b7a748de77714e6f5e4c5fb65",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Fire Breath (Recharge 5–6)",
+          "source_entries_sha256": "8ce8894fed10d0a7cd6c38fceb23ea638a67947b8632f2cc6be5c7bdc9a8f449",
+          "tags": [
+            "instant{aoe{cone:90ft, save{dex, cd=24}, dmg:13d10(fogo), on_success:half}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 104,
+      "slug": "ancient-red-dragon",
+      "before_sha256": "a76a32b45c57c996295f07691178921431c3e72ee22179cfbdd51a439ccf6234",
+      "after_sha256": "f91c0f9a67afe160f2a4811dcd43069bf145240e6470683bcbcc699f5344ba1f",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Fire Breath (Recharge 5–6)",
+          "source_entries_sha256": "d7a535b6d29717fcccbf32d68de1cce9be14c3ffc81eb4158bc9dadaaeed1c76",
+          "tags": [
+            "instant{aoe{cone:90ft, save{dex, cd=24}, dmg:26d6(fogo), on_success:half}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 490,
+      "slug": "hell-hound",
+      "before_sha256": "c72b0ced74e3285c7f3beecd86b9dfa7e18d3bbf6a813dea371d0fdc0126afce",
+      "after_sha256": "d9a5cbaf34d6d69e30a354e504892d6b12c7950dc2d73e0699fe584bc54dc94d",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Fire Breath (Recharge 5–6)",
+          "source_entries_sha256": "228c1465535d5fccb0d9565569ebc58b7e5d94c707a7465c0eaba17851675dfd",
+          "tags": [
+            "instant{aoe{cone:15ft, save{dex, cd=12}, dmg:5d6(fogo), on_success:half}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 864,
+      "slug": "white-dragon-wyrmling",
+      "before_sha256": "a2a2a9f57bef028079dab0531aa2d34d7c98aeb63e34bc6c89e2668c02a6dcd0",
+      "after_sha256": "fec171bf4e6513f89ad222d1d183b94292c66412b82ffaeda4cde6ca2ac1cfde",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Cold Breath (Recharge 5–6)",
+          "source_entries_sha256": "7c91a1b56fa761947ead394af9e6f157a9c8b253fc9512408800b250fe74367d",
+          "tags": [
+            "instant{aoe{cone:15ft, save{con, cd=12}, dmg:5d8(frio), on_success:half}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 458,
+      "slug": "gold-dragon-wyrmling",
+      "before_sha256": "2608ce9e62976e2bc4108fed4bc96464e282b74d36a476c953e4ab26a3224051",
+      "after_sha256": "41b1e50370814c42bb89737d607493abc38dbb71bdd1c9cb3f5d95875d628c7d",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Fire Breath (Recharge 5–6)",
+          "source_entries_sha256": "075fb807fd4c6870c6e546e37a5216aed2460e2a72e2ad192f0209f07f4b50c2",
+          "tags": [
+            "instant{aoe{cone:15ft, save{dex, cd=13}, dmg:4d10(fogo), on_success:half}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 516,
+      "slug": "ice-mephit",
+      "before_sha256": "2b0e897467fa0890d73df1552361152bd9dbe72e4e4260cf4e88dfb81c55178d",
+      "after_sha256": "67b3cb11038e2b22f4bd8b2569b0063b44a47c80128ca5ad1888fd4ed40190a5",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Frost Breath (Recharge 6)",
+          "source_entries_sha256": "8483f2183ebd5c2091e586c692b592c5bdb6a938593c34f6d310510dff83c774",
+          "tags": [
+            "instant{aoe{cone:15ft, save{con, cd=10}, dmg:3d4(frio), on_success:half}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 523,
+      "slug": "iron-golem",
+      "before_sha256": "cbf2627b29c0fc5a2f9c862378fb2eae04cc5ed1b9ee68a83a5a594d8f653439",
+      "after_sha256": "577be9bff32d01a2700d86df13a54a3a324267872dec7bf7450955bc460d6906",
+      "features": [
+        {
+          "index": 3,
+          "name_en": "Poison Breath (Recharge 6)",
+          "source_entries_sha256": "db49dd9e65227689318c72426b4983cb24c95c7d435f9972c4b0409082ebd0e1",
+          "tags": [
+            "instant{aoe{cone:60ft, save{con, cd=18}, dmg:10d10(veneno), on_success:half}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 73,
+      "slug": "adult-gold-dragon",
+      "before_sha256": "661ba59c9168d73601f50f91cb232e2dcdf3217e304be3dc4e33a3a5135bed11",
+      "after_sha256": "990d9ddc03a32034f1bffc82693f04d4a7f1b10b1cec5e93954fa7ea3576dc0d",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Fire Breath (Recharge 5–6)",
+          "source_entries_sha256": "d52be5c9d996808a5015f524e3df2c0f1a3a480a68da7c77d13f24875889eb90",
+          "tags": [
+            "instant{aoe{cone:60ft, save{dex, cd=21}, dmg:12d10(fogo), on_success:half}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 292,
+      "slug": "dracolich",
+      "before_sha256": "7b217b2dd4b3e56bcb67ee87ddd8b7a9b81585f43694927cff15f9b2e6dd7a28",
+      "after_sha256": "d8b6e203d37532d2c3a6973d0bd1640f124f88181782436789085e5a73b3f3e4",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Necrotic Breath (Recharge 5–6)",
+          "source_entries_sha256": "1ccb8aac1f85915b7f28019b7df32adf3dccec68205413a0732729b25902dbcc",
+          "tags": [
+            "instant{aoe{cone:60ft, save{con, cd=20}, dmg:8d12(necrotico), on_success:half}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 870,
+      "slug": "winter-wolf",
+      "before_sha256": "63323e46ff28360aa6bd8edffb191231f701415715fc8339d6c203fdf550c2fc",
+      "after_sha256": "194e40fb506b244223cd16c70fb41206c4c7cb312d4ef3ddeed4d45a80324044",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Cold Breath (Recharge 5–6)",
+          "source_entries_sha256": "30532e0a0bb163c866e011b31b5e7259a25cb7c9aff4a7b61af3b9e03b35d2e7",
+          "tags": [
+            "instant{aoe{cone:15ft, save{con, cd=12}, dmg:4d8(frio), on_success:half}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 895,
+      "slug": "young-gold-dragon",
+      "before_sha256": "c632af121f4d8f61eaf55bae42e0e3078a186842b82798eaa822b614a41ddd38",
+      "after_sha256": "0c38eaf7c93b1ed95075866ee02a5f83d2c33c7f995202b4ada37d22e7531fc5",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Fire Breath (Recharge 5–6)",
+          "source_entries_sha256": "d2bc501302527f26368e27672166c41e760b2f2db9a53de6957e17c507ea90f2",
+          "tags": [
+            "instant{aoe{cone:30ft, save{dex, cd=17}, dmg:10d10(fogo), on_success:half}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 896,
+      "slug": "young-green-dragon",
+      "before_sha256": "2e26ee8b9602f525bcd9e8ada4c1bdfa0294e3536652733fab0b455deb9b646e",
+      "after_sha256": "eca371a316d701ef96b6d19377d8f7cc51c593d8112043f1de8fd16f87e82f73",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Poison Breath (Recharge 5–6)",
+          "source_entries_sha256": "7e21528a4ce38763bd8c4452feb90654ea5bc3fd1fcf79f3364891b76142f21b",
+          "tags": [
+            "instant{aoe{cone:30ft, save{con, cd=14}, dmg:12d6(veneno), on_success:half}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 899,
+      "slug": "young-red-dragon",
+      "before_sha256": "526ef00ab61a1eface00eec139e7b2250e6bc3d2e0f69f1d346fcb360f465354",
+      "after_sha256": "1068fe896c16a732a2b8aa428dd4f9db782e13d831cb8fab165fb7c48e837396",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Fire Breath (Recharge 5–6)",
+          "source_entries_sha256": "ced2c56109adcb574f0dd430046d17b6bc43a4a363e1ff7f0da8e301b5558983",
+          "tags": [
+            "instant{aoe{cone:30ft, save{dex, cd=17}, dmg:16d6(fogo), on_success:half}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 903,
+      "slug": "young-silver-dragon",
+      "before_sha256": "d0c2f9c7b2fdaffb15eb62acfe393904abd68836b4df520ab01dd2ce547f92d3",
+      "after_sha256": "98311c1d65df9a23578ed0ebcd52832a31f932bb344df8bc03163b5d7f864c5a",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Cold Breath (Recharge 5–6)",
+          "source_entries_sha256": "162ca36d87fd9701f1bf83da4cadfc9ca8c17797a0dc78c79cf88944068ce46b",
+          "tags": [
+            "instant{aoe{cone:30ft, save{con, cd=17}, dmg:11d8(frio), on_success:half}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 905,
+      "slug": "young-white-dragon",
+      "before_sha256": "470ddcc8820055840de623736dd7b873e7107d691bf9b013658481b52b2dd92e",
+      "after_sha256": "d4f20708ff5e19c39b4fbf08b5a720c08aa53a31fdf7f8d8cc184712f8a64af7",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Cold Breath (Recharge 5–6)",
+          "source_entries_sha256": "25e250b1545b15a3e91e50d30d4bdb02494846c6bed6c105803202314ec8e936",
+          "tags": [
+            "instant{aoe{cone:30ft, save{con, cd=15}, dmg:9d8(frio), on_success:half}}"
+          ]
+        }
+      ]
+    }
+  ]
+}
