@@ -96,6 +96,27 @@ class BestiaryDescriptionProjectionTests(TestCase):
         response = self.client.get(reverse('api_creature_preview'), {'slug': creature.slug})
         self.assertEqual(response.json()['descricao'], altered)
 
+    def test_accentless_legacy_label_matches_only_the_same_ability(self):
+        statblock = {**self.statblock, 'actions': [{
+            'name': 'Resistência Lendária (3/dia)',
+            'name_en': 'Legendary Resistance (3/Day)',
+            'entries': ['Resiste a uma falha.'],
+        }]}
+        generated = _clean_creature_text(_descricao_markdown({}, statblock))
+        old = generated.replace('Resistência Lendária (3/dia)', 'Resistencia Lendaria')
+        different = generated.replace('Resistência Lendária (3/dia)',
+                                      'Resistencia Lendaria (4/dia)')
+        for slug, description, visible in (
+            ('sentinela-label-sem-acento', old, False),
+            ('sentinela-label-regra-diferente', different, True),
+        ):
+            creature = TbBestiario.objects.create(
+                slug=slug, nome='Sentinela', statblock_json=statblock,
+                descricao_markdown=description,
+            )
+            preview = self.client.get(reverse('api_creature_preview'), {'slug': creature.slug})
+            self.assertEqual(bool(preview.json()['descricao']), visible)
+
     def test_stale_spell_mention_without_structured_reference_stays_visible(self):
         generated = _clean_creature_text(self.generated)
         stale = generated.replace('**Golpe**', '**Golpe** (Sleep)')
@@ -131,3 +152,25 @@ class BestiaryDescriptionProjectionTests(TestCase):
             )
             response = self.client.get(reverse('api_creature_preview'), {'slug': creature.slug})
             self.assertEqual(bool(response.json()['descricao']), visible)
+
+    def test_spell_reference_accents_match_but_other_spells_remain_visible(self):
+        statblock = {**self.statblock, 'actions': [{
+            'name': 'Conjuracao', 'name_en': 'Spellcasting',
+            'entries': ['Conjura uma magia.'],
+            'spell_refs': [{'name': 'Visão Arcana', 'name_en': 'Arcane Sight',
+                            'slug': 'visao-arcana'}],
+        }]}
+        generated = _clean_creature_text(_descricao_markdown({}, statblock))
+        old = generated.replace('(Visão Arcana)', '(Visao Arcana)')
+        for slug, description, visible in (
+            ('sentinela-acento', old, False),
+            ('sentinela-outra-magia', old.replace('Visao Arcana', 'Bola de Fogo'), True),
+        ):
+            creature = TbBestiario.objects.create(
+                slug=slug, nome='Sentinela', statblock_json=statblock,
+                descricao_markdown=description,
+            )
+            preview = self.client.get(reverse('api_creature_preview'), {'slug': creature.slug})
+            self.assertEqual(preview.status_code, 200)
+            self.assertEqual(bool(preview.json()['descricao']), visible)
+            self.assertIn('Conjuracao', preview.json()['statblock_html'])
