@@ -13280,6 +13280,10 @@ def bestiario_view(request):
         criatura['sb'] = annotate_target_size(_statblock_display_full(
             record.statblock_json if isinstance(record.statblock_json, dict) else {}, record),
             target_size)
+    raw_active = (request.GET.get('active') or '')[:20]
+    active_id = int(raw_active) if raw_active.isdecimal() else None
+    if not any(criatura['id'] == active_id for criatura in criaturas):
+        active_id = criaturas[0]['id'] if criaturas else None
 
     def page_url(number):
         params = request.GET.copy()
@@ -13297,6 +13301,7 @@ def bestiario_view(request):
         'busca': busca, 'filtro': filtro, 'nd_sel': nd_sel, 'tipo_sel': tipo_sel,
         'tam_sel': tam_sel, 'uso_sel': uso_sel, 'ordem': ordem, 'nds': nds_all,
         'target_size': target_size, 'target_size_options': TARGET_SIZE_OPTIONS,
+        'active_creature_id': active_id,
         'tipos': tipos_all, 'tamanhos': tamanhos_all, 'usos': usos_all,
         'pode_criar': perms.is_mestre(request.user), 'is_staff': is_staff,
         'msg': request.GET.get('m'),

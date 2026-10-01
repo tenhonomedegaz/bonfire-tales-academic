@@ -75,6 +75,7 @@
   {% elif msg == 'referenciada' %}<p class="rounded border border-[var(--flame)] bg-[var(--bg1)] px-2.5 py-1.5 text-sm text-[var(--flame)]">Esta criatura ainda e usada por uma habilidade ou magia. Remova a referencia antes de exclui-la.</p>{% endif %}
 
   <form method="get" class="bestiary-toolbar">
+    <input type="hidden" id="bz-active" name="active" value="{{ active_creature_id|default_if_none:'' }}">
     <div class="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-8">
       <input id="bz-busca" name="q" type="search" value="{{ busca }}" placeholder="Buscar criatura..." autocomplete="off"
              class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-1.5 text-sm text-[var(--text)] outline-none focus:border-[var(--ember)] lg:col-span-2">
@@ -130,7 +131,7 @@
   <div class="bestiary-grid">
     <aside class="bestiary-list custom-scrollbar" id="bz-list">
       {% for c in criaturas %}
-      <button type="button" class="bz-item bestiary-list-item {% if forloop.first %}is-active{% endif %}"
+      <button type="button" class="bz-item bestiary-list-item {% if c.id == active_creature_id %}is-active{% endif %}"
               data-target="monster-{{ c.id }}">
         <div class="flex items-start justify-between gap-2">
           <div>
@@ -150,7 +151,7 @@
 
     <main class="monster-sheet">
       {% for c in criaturas %}
-      <article id="monster-{{ c.id }}" class="monster-panel {% if not forloop.first %}hidden{% endif %}">
+      <article id="monster-{{ c.id }}" class="monster-panel {% if c.id != active_creature_id %}hidden{% endif %}">
         <div class="monster-sheet-inner">
           {% with sb=c.sb %}
           <header class="monster-header">
@@ -244,7 +245,9 @@
 (function(){
   var list = Array.prototype.slice.call(document.querySelectorAll('.bz-item'));
   var panels = Array.prototype.slice.call(document.querySelectorAll('.monster-panel'));
+  var activeInput = document.getElementById('bz-active');
   function show(id){
+    if (activeInput) activeInput.value = id.replace(/^monster-/, '');
     list.forEach(function(btn){btn.classList.toggle('is-active', btn.dataset.target === id);});
     panels.forEach(function(panel){panel.classList.toggle('hidden', panel.id !== id);});
   }

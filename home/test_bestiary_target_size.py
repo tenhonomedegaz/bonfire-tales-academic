@@ -64,3 +64,19 @@ class BestiaryTargetSizeTests(TestCase):
         self.assertEqual(size_gate_note(['instant{'], 'medio'), '')
         self.assertEqual(size_gate_note([], 'medio'), '')
         self.assertEqual(size_gate_note(['instant{attack:melee}'], 'medio'), '')
+
+    def test_catalog_keeps_selected_creature_when_target_size_changes(self):
+        url = reverse('mundo_bestiario')
+        response = self.client.get(url, {
+            'q': 'lobo', 'target_size': 'grande', 'active': self.wolf.pk,
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['active_creature_id'], self.wolf.pk)
+        self.assertContains(response, f'name="active" value="{self.wolf.pk}"')
+        self.assertContains(response, f'id="monster-{self.wolf.pk}" class="monster-panel "')
+
+        missing = self.client.get(url, {
+            'q': self.dire_wolf.nome, 'target_size': 'grande', 'active': self.wolf.pk,
+        })
+        self.assertEqual(missing.context['active_creature_id'], self.dire_wolf.pk)
+        self.assertEqual(self.client.get(url, {'active': 'bad'}).status_code, 200)
