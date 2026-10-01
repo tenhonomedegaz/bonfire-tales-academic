@@ -1,0 +1,166 @@
+{
+  "version": 1,
+  "source_sha256": "41e9c80b84fc08ed9cffa6fa1def5d0356f6fca4dc34ada46f21b8095f99b326",
+  "rows": [
+    {
+      "pk": 61,
+      "slug": "aberrant-cultist",
+      "before_sha256": "0f9221770af003bc7873429b4bbdccbc23dc7ec384d25175fda6b7a9f1ed32cb",
+      "after_sha256": "d721295e0809ba3b913a85447498154910c0cb3adc339b10edd421739b41b193",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Tentacle Lash",
+          "source_entries_sha256": "fda19d1cc4004187472d1ad6c4bf841de79b9bf1b64cf9116eda3079a3998599",
+          "tags": [
+            "instant{attack:melee, attack:+7, reach:10ft, dmg:1d6+4(cortante), dmg:4d6(psiquico), instant{trigger=hit, requires:target{size<=grande}, apply:agarrado(escape_cd:14), apply:restringido(duration:until_grapple_ends)}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 218,
+      "slug": "chain-devil",
+      "before_sha256": "5a75840c0134be54c1eff26392837c9f4e32d0c0b3b6d9f9be317f6df04ae31c",
+      "after_sha256": "1fba8c05ed229f98e8dc87a13ed0076916766b743bfb50e918843fd30e4364df",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Chain",
+          "source_entries_sha256": "f024802b9c67111176fc05b1fd1cde52f5af93288c856e3694c90b9e47f49ef8",
+          "tags": [
+            "instant{attack:melee, attack:+7, reach:10ft, dmg:2d6+4(cortante), instant{trigger=hit, requires:target{size<=grande}, apply:agarrado(escape_cd:14), apply:restringido(duration:until_grapple_ends)}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 248,
+      "slug": "crocodile",
+      "before_sha256": "31edf671569647c31c7d6dd17807ebfcd31cb93b6a06a0d8d7bf1c362195a7db",
+      "after_sha256": "7b8ca91fd187613e8694afdc8b558e934f69ce84759eb006c45b7d87a2ce21bc",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Bite",
+          "source_entries_sha256": "1dde008816893a3c7cbf610e0abdcdd63a072756ee89fc4226c28d48c47c38dd",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, dmg:1d8+2(perfurante), instant{trigger=hit, requires:target{size<=medio}, apply:agarrado(escape_cd:12), apply:restringido(duration:until_grapple_ends)}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 415,
+      "slug": "giant-octopus",
+      "before_sha256": "7c01385005320916e5ce1017b34d0dc4ed9dbbed3dbe667923c6fe5048b44b57",
+      "after_sha256": "435424b551499f7144c7c039c092ef858d5cf8e933e287f306884043bab31cf2",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Tentacles",
+          "source_entries_sha256": "2a36724efc182838d98656174efdbda30091d6ad4fc6fb283c76e05946cb033f",
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:10ft, dmg:2d6+3(concussao), instant{trigger=hit, requires:target{size<=medio}, apply:agarrado(escape_cd:13), apply:restringido(duration:until_grapple_ends)}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 537,
+      "slug": "kraken",
+      "before_sha256": "eb6bda574eb9bca75efb58ed755c1efb0dc0a92da84ab3a5bc76b9ec2ed4a8df",
+      "after_sha256": "1e9c65bb272293bb995a69468065150ef39dbe39fdbf5a5a67a4eb94ea961dcd",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Tentacle",
+          "source_entries_sha256": "f73ba8303b8dd36ababc4653015c3c567e165bbf9e9b3495f2442e08a4c3f4ea",
+          "tags": [
+            "instant{attack:melee, attack:+17, reach:30ft, dmg:4d6+10(concussao), instant{trigger=hit, apply:agarrado(escape_cd:20), apply:restringido(duration:until_grapple_ends)}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 585,
+      "slug": "mezzoloth",
+      "before_sha256": "15526b362eed48ef388d83e6eb0b7d1d6aa0a61624b2458dfb0cb7253c0e335e",
+      "after_sha256": "39fe7b2255c4c7b6acca0f0ebae33addffd1e3ad20a4d6f591ed0a042d5ca685",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Claws",
+          "source_entries_sha256": "d97d74e50dfe54115adc01f1493732062b7af43574ef6443473dadd08fd9cfe0",
+          "tags": [
+            "instant{attack:melee, attack:+7, reach:5ft, dmg:2d4+4(cortante), instant{trigger=hit, requires:target{size<=grande}, apply:agarrado(escape_cd:14), apply:restringido(duration:until_grapple_ends)}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 680,
+      "slug": "purple-worm",
+      "before_sha256": "660d65c9a0549536a9c5b21592244b8ab1764f30164a2683b53f21ddfb79cffa",
+      "after_sha256": "5a50d5f4034669b364213ee951f465973334e38465ba2805b915b7988c7d09c2",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Bite",
+          "source_entries_sha256": "c109649233c86e9a0999de97bd34a9f25879b56b8b79a9a7f70d624c3a00154c",
+          "tags": [
+            "instant{attack:melee, attack:+14, reach:10ft, dmg:3d8+9(perfurante), instant{trigger=hit, requires:target{size<=grande}, apply:agarrado(escape_cd:19), apply:restringido(duration:until_grapple_ends)}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 696,
+      "slug": "remorhaz",
+      "before_sha256": "c709d1516cacdf901544e916ceaa7ae9bdf392b948a6882dfef7ac5854aac669",
+      "after_sha256": "0fc3f53b178d4036ee729713a51c92f95011e80bc71dc4cd5dc9c92739df6537",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Bite",
+          "source_entries_sha256": "68b9aa33290637a5ed807997cf92fb93a6748fab0ed8094f59e63bfad5171b3b",
+          "tags": [
+            "instant{attack:melee, attack:+11, reach:10ft, dmg:2d10+7(perfurante), dmg:4d6(fogo), instant{trigger=hit, requires:target{size<=grande}, apply:agarrado(escape_cd:17), apply:restringido(duration:until_grapple_ends)}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 701,
+      "slug": "roc",
+      "before_sha256": "3f0d630474171b39c9c6f37ca7c1a26c6eeadfe4237eba57a5fed151f7ed14af",
+      "after_sha256": "e48f3fcefdfe4c2a024cfa4c41a6c46c42cfa3e4113b9e8978c6b2ddc7ecb199",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Talons",
+          "source_entries_sha256": "e19dc64fc6aa039715671ffdff99c5bc0b96d498233b178baf20a365f3f40056",
+          "tags": [
+            "instant{attack:melee, attack:+13, reach:5ft, dmg:4d6+9(cortante), instant{trigger=hit, requires:target{size<=enorme}, apply:agarrado(escape_cd:19), apply:restringido(duration:until_grapple_ends)}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 856,
+      "slug": "water-weird",
+      "before_sha256": "6bb3c29b321d8a9c40ee86f3b18e7eb1cf26e4ca8538d007c4efdb6a8d612978",
+      "after_sha256": "554c59c41b6e00c4eefa4eee9c6b2b86ed6073e1533caf2b8bd84f00248c2193",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Surge",
+          "source_entries_sha256": "4f9aad9b02dfdd5993b1b8b08e2985844f5f274cce73844ba797abd8f0bc82d6",
+          "tags": [
+            "instant{attack:melee, attack:+5, reach:10ft, dmg:3d6+3(frio), instant{trigger=hit, requires:target{size<=medio}, apply:agarrado(escape_cd:13), apply:restringido(duration:until_grapple_ends)}}"
+          ]
+        }
+      ]
+    }
+  ]
+}
