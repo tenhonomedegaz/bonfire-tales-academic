@@ -253,3 +253,50 @@ class BestiaryDescriptionProjectionTests(TestCase):
             self.assertEqual(creature.descricao_markdown, description)
         catalog = self.client.get(reverse('bestiario'), {'q': 'engolir-prosa-antiga'})
         self.assertEqual(catalog.context['criaturas'][0]['descricao'], '')
+
+    def test_dim_light_and_darkness_are_not_old_spell_references(self):
+        action = {
+            'name': 'Salto Sombrio', 'name_en': 'Shadow Jump',
+            'entries_en': ['The creature moves between spaces of dim light or darkness.'],
+            'entries': ['A criatura se move entre espaços de penumbra ou escuridão.'],
+        }
+        statblock = {**self.statblock, 'actions': [action]}
+        generated = _clean_creature_text(_descricao_markdown({}, statblock))
+        old = generated.replace('**Salto Sombrio**',
+                                '**Salto Sombrio** (Light, Darkness)')
+        variants = (
+            ('salto-ambiental', statblock, old, False),
+            ('salto-conjura', {**statblock, 'actions': [{**action,
+                'entries_en': ['The creature casts Darkness in dim light or darkness.']}]},
+             old, True),
+            ('salto-tag', {**statblock, 'actions': [{**action,
+                'tags': ['cast{spell:escuridao}']}]}, old, True),
+            ('salto-outra-regra', statblock, old + '\n- **Regra adicional**', True),
+        )
+        for slug, current_statblock, description, visible in variants:
+            TbBestiario.objects.create(slug=slug, nome='Sentinela',
+                                       statblock_json=current_statblock,
+                                       descricao_markdown=description)
+            preview = self.client.get(reverse('api_creature_preview'), {'slug': slug})
+            self.assertEqual(bool(preview.json()['descricao']), visible)
+            self.assertIn('Salto Sombrio', preview.json()['statblock_html'])
+        catalog = self.client.get(reverse('bestiario'), {'q': 'salto-ambiental'})
+        self.assertEqual(catalog.context['criaturas'][0]['descricao'], '')
+
+    def test_partially_translated_old_feature_label_keeps_rule_qualifier_guard(self):
+        statblock = {**self.statblock, 'actions': [{
+            'name': 'Esmagamento Psíquico (Recarga 5–6)',
+            'name_en': 'Psychic Crush (Recharge 5–6)',
+            'entries': ['Causa dano psíquico.'],
+        }]}
+        generated = _clean_creature_text(_descricao_markdown({}, statblock))
+        for slug, label, visible in (
+            ('rotulo-antigo-misto', 'psíquico Crush', False),
+            ('rotulo-regra-divergente', 'psíquico Crush (Recharge 4–6)', True),
+        ):
+            description = generated.replace('Esmagamento Psíquico (Recarga 5–6)', label)
+            TbBestiario.objects.create(slug=slug, nome='Sentinela',
+                                       statblock_json=statblock,
+                                       descricao_markdown=description)
+            preview = self.client.get(reverse('api_creature_preview'), {'slug': slug})
+            self.assertEqual(bool(preview.json()['descricao']), visible)

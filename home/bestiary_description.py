@@ -33,7 +33,8 @@ def _same_feature_refs(raw_refs, block):
     refs = block.get('spell_refs') or []
     if not raw_refs:
         return not refs
-    if not refs and _legacy_prose_refs(raw_refs, block):
+    if not refs and (_legacy_prose_refs(raw_refs, block) or
+                     _environmental_light_refs(raw_refs, block)):
         return True
     if not isinstance(refs, list):
         return False
@@ -71,6 +72,23 @@ def _legacy_prose_refs(raw_refs, block):
     return len(mentioned) == len(rule[1]) and set(mentioned) == expected
 
 
+def _environmental_light_refs(raw_refs, block):
+    """Old Light/Darkness labels are not spells in a dim-light condition."""
+    if [_accent_fold(name) for name in raw_refs.split(',')] != ['light', 'darkness']:
+        return False
+    if block.get('spell_uses'):
+        return False
+    if any('cast{spell:' in str(tag) for key in ('tags', 'tags_json')
+           for tag in (block.get(key) or [])):
+        return False
+    entries = block.get('entries_en')
+    if not isinstance(entries, list) or not entries or any(not isinstance(entry, str) for entry in entries):
+        return False
+    text = ' '.join(entries)
+    return (bool(re.search(r'\bdim light or darkness\b', text, re.I)) and
+            not re.search(r'\bcast(?:s|ing)?\b', text, re.I))
+
+
 def _duplicate_prose_heading(line, statblock):
     """An old parser sometimes promoted a sentence inside an entry to a heading."""
     from .management.commands.importar_bestiario_csv import SECOES
@@ -102,6 +120,7 @@ def _duplicate_prose_heading(line, statblock):
 def _same_imported_summary(description, generated, statblock):
     """Accept stale translated feature labels only; metadata and structure stay exact."""
     from .management.commands.importar_bestiario_csv import SECOES
+    from .management.commands.limpar_residuos_banco import _clean_creature_text
 
     actual = [line.strip() for line in description.splitlines() if line.strip()]
     expected = [line.strip() for line in generated.splitlines() if line.strip()]
@@ -132,7 +151,14 @@ def _same_imported_summary(description, generated, statblock):
         actual_match = _FEATURE_LINE.fullmatch(found)
         if not actual_match:
             return False
-        names = {_accent_fold(block.get(key)) for key in ('name', 'name_en')}
+        names = {
+            variant
+            for key in ('name', 'name_en')
+            for variant in (
+                _accent_fold(block.get(key)),
+                _accent_fold(_clean_creature_text(block.get(key) or '')),
+            )
+        }
         actual_name = _accent_fold(actual_match.group(1))
         # A source label may omit a translated qualifier. A different qualifier
         # can change the rule, so keep that summary visible for review.
