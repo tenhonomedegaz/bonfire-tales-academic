@@ -1,0 +1,326 @@
+{
+  "version": 1,
+  "source_sha256": "41e9c80b84fc08ed9cffa6fa1def5d0356f6fca4dc34ada46f21b8095f99b326",
+  "rows": [
+    {
+      "pk": 85,
+      "slug": "alhoon",
+      "before_sha256": "d8681c847068e2f9598ddf8b12e4663ac03ab0bc3f40665d182769be44ad1fc8",
+      "after_sha256": "5cb8df340ab7e6b0cad80771027a6b55485786e6d34654e72640673d7211ea33",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Arcane Bolt",
+          "source_entries_sha256": "986fbbbac56f75bd98f66133823cb893eceb5147b58d25779122bf4180ab430c",
+          "tags": [
+            "instant{attack:ranged, attack:magic, attack:+8, range:120ft, dmg:8d6(energia)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 87,
+      "slug": "allip",
+      "before_sha256": "0c00db520b84bd6c0a3958c8f9e82d0041a1db8ea2e2a029a2166c5283bcaa91",
+      "after_sha256": "e5321a61bad9c21736741c5c7b738b7cf1c018a35585814f9c5cb5690b75cfec",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Maddening Touch",
+          "source_entries_sha256": "9e68f1b3905196bbbc9c137960a62a7a7eb3eca4b739315fd354beb09cb3f5f2",
+          "tags": [
+            "instant{attack:melee, attack:magic, attack:+6, reach:5ft, dmg:4d6+3(psiquico)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 177,
+      "slug": "blue-abishai",
+      "before_sha256": "0de97782e34472b9ca8ba98d5d65182724541d55af6b6692d03c2febc0cbfff5",
+      "after_sha256": "443e41931c5977239dc42422a137b125293f05982cfefd78b16b06d7054da78e",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Lightning Strike",
+          "source_entries_sha256": "056c6c8b1a4b43e01117937ee1ea45eff548580981f27d0ac4406f8d54a3ad6f",
+          "tags": [
+            "instant{attack:ranged, attack:magic, attack:+12, range:120ft, dmg:8d8(raio)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 233,
+      "slug": "cloud-giant-smiling-one",
+      "before_sha256": "67869ac52b0f4cae555cfe7f643b793129afecffa3b89c5607b0909dbbfc438a",
+      "after_sha256": "3eced79c6d1a3c9963d67be3d2394dbe4374780b83f8453f4be658fd7a4a85a1",
+      "features": [
+        {
+          "index": 3,
+          "name_en": "Telekinetic Strike",
+          "source_entries_sha256": "be7128d4f18d8119134ffd7247df5ed578c151a14d5a1a02d9e1b6d112dabe29",
+          "tags": [
+            "instant{attack:ranged, attack:magic, attack:+7, range:240ft, dmg:4d10+3(energia)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 267,
+      "slug": "deathlock",
+      "before_sha256": "f0e1a10325eb211c2e215fa9bcc80e1ff03bdc176e3903a3ad321ed96db75fca",
+      "after_sha256": "3453867a2e260e35d18a333abde5a649e0867512812fb0c197e3b0fe52d3e13d",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Grave Bolt",
+          "source_entries_sha256": "d92ca45bcec063325f2aeeef37384958aa1172cdc31e7b4dafe8414f3a32c267",
+          "tags": [
+            "instant{attack:ranged, attack:magic, attack:+5, range:120ft, dmg:2d10+3(necrotico)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 269,
+      "slug": "deathlock-wight",
+      "before_sha256": "b366ca35825f4616e3de9e9feaca04eaa94905c4944905a838b67ec6d331f350",
+      "after_sha256": "60f6372945d7534b0c9ad8e42053c5900f4557ddce62ff15f1d5c20c40db8718",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Grave Bolt",
+          "source_entries_sha256": "6a5568750a643c754ac2c52f2b05b12359aab23835a0570db9640c6c7c5524cf",
+          "tags": [
+            "instant{attack:ranged, attack:magic, attack:+5, range:60ft, dmg:2d8+3(necrotico)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 296,
+      "slug": "draconian-mage",
+      "before_sha256": "2b7fe926fb6196bc573f153812e3d5135a9bdfeca1dd2764b9bf500abb6d7331",
+      "after_sha256": "7f66aee9f5f723e717827e4c3cfecbcee7904ec6830a49a2d40765199d307b2f",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Necrotic Ray",
+          "source_entries_sha256": "9359e1c47dadb25473ecb6b5c91181fcfebbc63daaa5975c010b4629e5f9496e",
+          "tags": [
+            "instant{attack:ranged, attack:magic, attack:+4, range:60ft, dmg:3d6(necrotico)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 297,
+      "slug": "draconian-mastermind",
+      "before_sha256": "b5f418e8ff0ab71f083c0975c4661bb1c031631ea989709aaed4728e16fc9152",
+      "after_sha256": "e43e88708bea0121fbffbfbd1e5a47f19edd233a5884b57827443ba05bd4221a",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Energy Ray",
+          "source_entries_sha256": "767e8680cc077e18f7f20f45bf90629d2dc302b7b5215d37eacfd3e5f8764f90",
+          "tags": [
+            "instant{attack:ranged, attack:magic, attack:+6, range:60ft, dmg:1d10+3(energia)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 369,
+      "slug": "firenewt-warlock-of-imix",
+      "before_sha256": "63dd2471969f8c1be5a77ac0cf725af72141ee27f05390da4f08b64b74ec4885",
+      "after_sha256": "2824e5eb27de488feefc28709f6d73ea43fc50f61a8a6e472f617c4e6d99dc3b",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Fire Ray",
+          "source_entries_sha256": "997bdf17185987638db43a3601f0d72d8b760151b4f0ac666f69fd53db937159",
+          "tags": [
+            "instant{attack:ranged, attack:magic, attack:+4, range:120ft, dmg:1d6+2(fogo)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 434,
+      "slug": "githyanki-gish",
+      "before_sha256": "cf207f204cd37c2a37bff117e9c8310052e69d46743f79c9f17885a2b2f569af",
+      "after_sha256": "681e32c5a8cedbd356d1a618f6be392a03cfa477267803b2374adc42f502428c",
+      "features": [
+        {
+          "index": 3,
+          "name_en": "Telekinetic Bolt",
+          "source_entries_sha256": "c33cdf7ade744eb0b650abfb8c45fe8370cb2a12a2f5f1c2c8ef7aa3479580dc",
+          "tags": [
+            "instant{attack:ranged, attack:magic, attack:+7, range:120ft, dmg:8d6(energia)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 529,
+      "slug": "ki-rin",
+      "before_sha256": "510a9348edbd54384b8be9bd91c12df981fe221bd71c1b1ecc367da9bb573bb9",
+      "after_sha256": "05d47ce6caa74d040a71ce02ef09446c3e5773d6ee2b6f0433e6a4889147ee3c",
+      "features": [
+        {
+          "index": 3,
+          "name_en": "Sacred Fire",
+          "source_entries_sha256": "78e9b045170608143f03a5d36aaad99a085f3666bffe546b34a2692c945c11c8",
+          "tags": [
+            "instant{attack:ranged, attack:magic, attack:+9, range:120ft, dmg:3d8+5(radiante)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 538,
+      "slug": "kraken-priest",
+      "before_sha256": "a48bc262bed4bad4e9021a3de4eeba9f19423b811b08f3bc96f0d48c75fc4531",
+      "after_sha256": "df35a21dd0a867d790838d2dd32e9769da472ea6c4683e2a0967fe25fab426a3",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Thunderous Touch",
+          "source_entries_sha256": "fa22ee54db2a04ab42715ae45c158d0e108a41b15fd4c4e8704fac23a061248c",
+          "tags": [
+            "instant{attack:melee, attack:magic, attack:+5, reach:5ft, dmg:5d10(trovao)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 612,
+      "slug": "nagpa",
+      "before_sha256": "de37fbaead2de6f1b6fbf90a574dedf630ce96639a74b5868d9c396400205c5d",
+      "after_sha256": "9bd0db3eae1769688e87a13249c1a598d92ad197b9fb4b68e2af8ab7a3c7b7c3",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Deathly Ray",
+          "source_entries_sha256": "8c517d5bf4d8f74656d9509bebe92c6dce830e539dbda418000294e4da284974",
+          "tags": [
+            "instant{attack:ranged, attack:magic, attack:+12, range:120ft, dmg:7d6+6(necrotico)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 647,
+      "slug": "orcus",
+      "before_sha256": "853d86760e7803b26b065a0f4523f9710c3af21274160ec7b8177a18828d2014",
+      "after_sha256": "c4b9268304f0475129c72a7f97eb5a53a3865df7330ff7b097c924185f04ed26",
+      "features": [
+        {
+          "index": 3,
+          "name_en": "Necrotic Bolt",
+          "source_entries_sha256": "8f3cfa1de081afec67f35c56e0acb1898809aae1ea360e2a0ecc46f5923467f3",
+          "tags": [
+            "instant{attack:ranged, attack:magic, attack:+15, range:120ft, dmg:5d8+7(necrotico)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 743,
+      "slug": "skull-lord",
+      "before_sha256": "b86cbf8a7a2e1c62917c9fb24e162ba65a2dd868e97258698d4c5f57cfaf17a6",
+      "after_sha256": "2ebc696cfc61f3138afeb7db7291a76d76ab9e265d5b92a761d268adbd0d081d",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Deathly Ray",
+          "source_entries_sha256": "2fc57a4231db61b7d9d7af885d7781782dd49e8267d0ddf3f7e6962ad6a07dec",
+          "tags": [
+            "instant{attack:ranged, attack:magic, attack:+10, range:60ft, dmg:5d8+5(necrotico)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 765,
+      "slug": "star-spawn-larva-mage",
+      "before_sha256": "153e2eadc6e4129a639d04b0850cd317a178009ead2af3ad8776468493711295",
+      "after_sha256": "7860856d5aa3a03a8211609676bbaf20e03b69965b855a9b355a6ef33e9506e9",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Eldritch Bolt",
+          "source_entries_sha256": "5c72593b9141075dee3a3f14f4b02487375534d074c49f165b7992c963b65330",
+          "tags": [
+            "instant{attack:ranged, attack:magic, attack:+8, range:60ft, dmg:3d10+3(energia)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 880,
+      "slug": "xvart-warlock-of-raxivort",
+      "before_sha256": "95076decb17ad9c188e31be78b0705a6819a37110ca529af1076e597a552b347",
+      "after_sha256": "c46e3b32f9c060b64b98c79981e8415b38e8a21ba9ca13ad4f9d494576857fba",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Raxivort's Bite",
+          "source_entries_sha256": "4198e683842d770b9f6dddb8c1e68f8a7683e5c75cb7f2c1cb6efb7b965452dd",
+          "tags": [
+            "instant{attack:ranged, attack:magic, attack:+3, range:30ft, dmg:1d10+2(veneno)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 915,
+      "slug": "yuan-ti-mind-whisperer",
+      "before_sha256": "22480a7d7092f0bb2630336898e3ce2663036f3f92a6890be60bcb9780039515",
+      "after_sha256": "306d20920582b63febb5d6f08f1cf530041646b4c60c414ba44987a6e988751f",
+      "features": [
+        {
+          "index": 3,
+          "name_en": "Spectral Fangs",
+          "source_entries_sha256": "fcc47696211c412ab4d9922594cfeb3747f7e78f30b9abf6733f2dde9028542b",
+          "tags": [
+            "instant{attack:ranged, attack:magic, attack:+5, range:120ft, dmg:3d8+3(psiquico)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 916,
+      "slug": "yuan-ti-nightmare-speaker",
+      "before_sha256": "209d300dc63e5c07942e504297b393c85ad6b0f3862abdeb8989cac796c450f0",
+      "after_sha256": "f1496a1c6454d2bf48ff39adb882e420a54beb352564804185a359a0b5e60c82",
+      "features": [
+        {
+          "index": 3,
+          "name_en": "Spectral Fangs",
+          "source_entries_sha256": "4849c6b1ca33d535109ae748bdf030893f0dae18d0cb2b5e370c64fbb9838dbb",
+          "tags": [
+            "instant{attack:ranged, attack:magic, attack:+5, range:120ft, dmg:3d8+3(necrotico)}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 917,
+      "slug": "yuan-ti-pit-master",
+      "before_sha256": "1776aa20e0f957a5230a0ec60d958a6154be909f5b7ef4434a58bf29e32d53d4",
+      "after_sha256": "08e0ae3c546d0ea9b5c9fbe82c1b65e2ff62607e8c5bb820608673b9144d99dd",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Spectral Fangs",
+          "source_entries_sha256": "a79451c59ff1306380193cdf1d6e63519ea820c811d227c5d67d3f31ac8a39e8",
+          "tags": [
+            "instant{attack:ranged, attack:magic, attack:+6, range:120ft, dmg:3d8+3(veneno)}"
+          ]
+        }
+      ]
+    }
+  ]
+}
