@@ -106,7 +106,9 @@ def audit_snapshot(rows):
             issues.append('type_needs_classification')
         if not classification['sizes']:
             issues.append('size_needs_classification')
-        if not (classification['cr'] or '').startswith('nd:'):
+        # An explicit unrated value is a valid variable-CR classification, not
+        # a missing value. Keep truly absent or unrecognized values in review.
+        if classification['cr'] != 'unrated' and not classification['cr'].startswith('nd:'):
             issues.append('cr_needs_review')
         if not isinstance(sb, dict):
             issues.append('statblock_not_object')
@@ -254,6 +256,8 @@ def audit_snapshot(rows):
         totals['tag_syntax_errors'] += syntax_errors
         totals['tag_syntax_warnings'] += syntax_warnings
         totals['spell_references'] += reference_count
+        if classification['cr'] == 'unrated':
+            totals['cr_explicit_unrated'] += 1
 
     consumer_references = []
     inbound = Counter()

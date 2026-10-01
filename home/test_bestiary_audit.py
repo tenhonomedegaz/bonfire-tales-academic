@@ -100,6 +100,22 @@ class BestiarySnapshotAuditTests(SimpleTestCase):
         self.assertEqual(record['classification']['cr'], 'pending')
         self.assertIn('cr_needs_review', record['issues'])
 
+    def test_explicit_unrated_cr_is_not_misclassified_as_missing(self):
+        rows = self.sample()
+        rows[1]['fields']['nd'] = 'None (XP 0; PB equals your Proficiency Bonus)'
+        report = audit_snapshot(rows)
+        record = report['records'][0]
+        self.assertEqual(record['classification']['cr'], 'unrated')
+        self.assertNotIn('cr_needs_review', record['issues'])
+        self.assertEqual(report['summary']['cr_explicit_unrated'], 1)
+        self.assertNotIn('cr_needs_review', report['summary'])
+
+    def test_unrecognized_cr_still_needs_review(self):
+        rows = self.sample()
+        rows[1]['fields']['nd'] = 'unknown formula'
+        record = audit_snapshot(rows)['records'][0]
+        self.assertIn('cr_needs_review', record['issues'])
+
     def test_dynamic_reference_is_not_misreported_as_missing_creature(self):
         rows = self.sample()
         rows.append({'model': 'home.tbtracoracial', 'pk': 21,
