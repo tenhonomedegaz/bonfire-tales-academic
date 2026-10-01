@@ -2,6 +2,8 @@
 
 Este é o procedimento único para operar a API restrita de conteúdo e revisões de classe. Ela não oferece SQL, DDL, shell, dumps, contas ou chaves por token. As rotas da API são registradas em `bonfire/urls.py`; `home/urls.py` não as registra.
 
+Código a instalar: [BonfireSite, branch `dev`](https://github.com/bonfiretales-dev/BonfireSite/tree/dev), a partir de `cae6c85` e com este guia atualizado; [JARVIS-Project, branch `dev`](https://github.com/tenhonomedegaz/JARVIS-Project/tree/dev), commit `1e703a812de773e48a91ef6f27bad254fa648781`. O servidor usa apenas o commit do Bonfire; o painel local usa o commit do Jarvis. Confira o hash implantado de cada repositório antes de gerar a chave.
+
 ## Implantação
 
 No servidor, com o código desta versão instalado e o ambiente virtual ativo, execute:
@@ -12,7 +14,7 @@ python manage.py migrate
 python manage.py showmigrations home
 ```
 
-Confirme que `0122_managed_api_keys_and_db_access` e `0123_class_publication` aparecem aplicadas. A 0122 cria chaves, auditoria e idempotência; a 0123 cria `home_class_publication` e `home_class_publication_log`. Reinicie a aplicação depois de migrar.
+Confirme que `0122_managed_api_keys_and_db_access`, `0123_class_publication` e `0124_character_class_ruleset` aparecem aplicadas. A 0122 cria chaves, auditoria e idempotência; a 0123 cria `home_class_publication` e `home_class_publication_log`; a 0124 fixa o ruleset na relação de classe da ficha sem converter fichas antigas. Reinicie a aplicação depois de migrar.
 
 Crie um superusuário somente se não houver um:
 
