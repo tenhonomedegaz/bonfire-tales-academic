@@ -1,0 +1,134 @@
+{
+  "version": 1,
+  "source_sha256": "41e9c80b84fc08ed9cffa6fa1def5d0356f6fca4dc34ada46f21b8095f99b326",
+  "rows": [
+    {
+      "pk": 161,
+      "slug": "behir",
+      "before_sha256": "d07c0aae4b59d55204e16b84134849f258cae0402d0ea2c8b6759b889476f8ee",
+      "after_sha256": "68c3bac8798d4f21139f884193387eba6891d37298dc931560c0e74f85ed671a",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Constrict",
+          "source_entries_sha256": "828af7780979ade07c9264489ab67eafa5b99deec19fc2776e98dfc8477548f3",
+          "tags": [
+            "instant{requires:target{size<=grande}, range:5ft, save{str, cd=18}, on_fail{dmg:5d8+6(concussao), apply:agarrado(escape_cd:16), apply:restringido(duration:until_grapple_ends)}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 239,
+      "slug": "constrictor-snake",
+      "before_sha256": "1ed2dbab8e6ec61b30b242a51948b39e022a1bcfc195926ed6dad35895ed469d",
+      "after_sha256": "ee7c172f47c8f20f3047c732d9ccc0e7d1003aab6fb0f333d444fa0328e31cdf",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Constrict",
+          "source_entries_sha256": "54e41fcb53e051f60778195e126c98bd2c7e1f839a0e1de37ef6a8c46cce016d",
+          "tags": [
+            "instant{requires:target{size<=medio}, range:5ft, save{str, cd=12}, on_fail{dmg:3d4(concussao), apply:agarrado(escape_cd:12)}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 243,
+      "slug": "couatl",
+      "before_sha256": "cd758f4cf3a5f6525255db94a02c479f9cde337583059d91f7d6f939107d731d",
+      "after_sha256": "6ccd0dac5d9d13583ba509b5f3a8e8801f30f7b5c20bf95085f4e475aa9cef8a",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Constrict",
+          "source_entries_sha256": "8d3d9fcc3451d721b1dfad3ca96b7e27c9d5930966e44e1b9547bb97b14b0bc8",
+          "tags": [
+            "instant{requires:target{size<=medio}, range:5ft, save{str, cd=15}, on_fail{dmg:1d6+5(concussao), apply:agarrado(escape_cd:13), apply:restringido(duration:until_grapple_ends)}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 405,
+      "slug": "giant-constrictor-snake",
+      "before_sha256": "a4c9f695cf7cf7eb2257396edf5a39aec89463123f5a0f00cc8f1e928c71244e",
+      "after_sha256": "be18f45cbdc7c65956412275f4a10a05f62e1257f8c9cbdc3a382a0d5b145960",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Constrict",
+          "source_entries_sha256": "ec35b332c7935a0f6c6826018a8f6d69f3474c14abee2207b341634b16169adc",
+          "tags": [
+            "instant{requires:target{size<=grande}, range:10ft, save{str, cd=14}, on_fail{dmg:2d8+4(concussao), apply:agarrado(escape_cd:14)}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 568,
+      "slug": "marilith",
+      "before_sha256": "a9d3a3e84208f4a4842ef4e45a36891558cf30cce32ec230a8c5b78e232e0144",
+      "after_sha256": "a667b7bb92a4260bbedc45cf2720cd957b3931d7977ca0bfc9a229c99f4f3360",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Constrict",
+          "source_entries_sha256": "621c0328729fd9f5543501b5764bcbacf7f01199f1c85d99f2c29a52d98be176",
+          "tags": [
+            "instant{requires:target{size<=medio}, range:5ft, save{str, cd=17}, on_fail{dmg:2d10+4(concussao), apply:agarrado(escape_cd:14), apply:restringido(duration:until_grapple_ends)}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 712,
+      "slug": "salamander",
+      "before_sha256": "be508aabeae3759c27bc072067bf748c5c8be8e39508e23b2b909abfdbddd9f4",
+      "after_sha256": "433f35297e12554ba9835e884f1dfb1c2a02351e8b31f72f30152f0b2d097bd8",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Constrict",
+          "source_entries_sha256": "7f68fa6ec61db39253c5cc33323a015a5453c97fc106b80b41fa2f24d99168ed",
+          "tags": [
+            "instant{requires:target{size<=grande}, range:10ft, save{str, cd=15}, on_fail{dmg:2d6+4(concussao), dmg:2d6(fogo), apply:agarrado(escape_cd:14), apply:restringido(duration:until_grapple_ends)}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 906,
+      "slug": "yuan-ti-abomination",
+      "before_sha256": "a5a9f44d78b331fc8d451fe2bc3c29132e9b9c4b2730da45c5ceeb7e9727d5e1",
+      "after_sha256": "560d1a5a6ba0d57ad3892507ea65da156d77a64a0c968cb45fb6896b04ac6cc0",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Constrict",
+          "source_entries_sha256": "a3bed485e8ad43c993b970e030a0347932f635bea0007105a5ff58eabdb68806",
+          "tags": [
+            "instant{requires:target{size<=grande}, range:5ft, save{str, cd=15}, on_fail{dmg:7d6+4(concussao), apply:agarrado(escape_cd:14), apply:restringido(duration:until_grapple_ends)}, on_success:half}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 912,
+      "slug": "yuan-ti-malison-type-3",
+      "before_sha256": "52cd89f9a1855b3f8cccf064dedd4174cc063308512faa810519b2f2a8078c2a",
+      "after_sha256": "492f1d64239b55d40bd9ac3f6cb1f17d3ab1b9996bfe09904947afccfef8c1ec",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Constrict",
+          "source_entries_sha256": "62cb16d37de3e02e7d01d79a14561439756bbb084b54a537d130e093f1b84223",
+          "tags": [
+            "instant{requires:target{size<=medio}, range:5ft, save{str, cd=13}, on_fail{dmg:4d8+3(concussao), apply:agarrado(escape_cd:13), apply:restringido(duration:until_grapple_ends)}}"
+          ]
+        }
+      ]
+    }
+  ]
+}
