@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "source_sha256": "41e9c80b84fc08ed9cffa6fa1def5d0356f6fca4dc34ada46f21b8095f99b326",
+  "rows": [
+    {
+      "pk": 815,
+      "slug": "tree-blight",
+      "before_sha256": "aeb737097620352cfdd2bbf79c4e8a083fb3d0e4f5c476220ef4b3fab1ebb38d",
+      "after_sha256": "d32cc0d6c7213bfcb967a9671ae3bc2010c3aa897e3711aba753f7f62bb05b5e",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Grasping Root",
+          "source_entries_sha256": "44ff2d1820061aeba85cfe9a5a77d10c5dc9cfd487d8f58e8a71ee0f5ae9f3f0",
+          "tags": [
+            "instant{range:15ft, requires:target{size<=grande}, save{str, cd=17}, on_fail{pull:10ft, apply:agarrado(escape_cd:16), while_active{requires:target{condition{agarrado, source:self}}, instant{trigger=turn_start(target:creature), dmg:2d6+6(concussao)}}}}"
+          ],
+          "expected_legacy_tags": [
+            "cast{spell:malogro}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 522,
+      "slug": "invisible-stalker",
+      "before_sha256": "4e06e05c502e6f4fcd7b34ffeb60dcf3563d385fa34d28d411c3ceac469a5bd9",
+      "after_sha256": "bb56af2a70fa7939b870d84aac542fcb5bba7f196f533566cdfe2f9d3ff8d8b6",
+      "features": [
+        {
+          "index": 2,
+          "name_en": "Vortex",
+          "source_entries_sha256": "361c12eda2b516ae20209c104aa7cca8fdd558b1ab471586f11b34cf1741dcb5",
+          "tags": [
+            "instant{requires:target{size<=grande}, save{con, cd=14}, on_fail{dmg:1d8+3(trovao), apply:agarrado(escape_cd:13), while_active{requires:target{condition{agarrado, source:self}}, restricts{spellcasting:verbal}, instant{trigger=turn_start(target:self), dmg:2d6(trovao)}}}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 838,
+      "slug": "vine-blight",
+      "before_sha256": "d15878075c2b68d92e439a9458aea80761e0ea18effafd97aee3656251a0bc4b",
+      "after_sha256": "8c4ea21c457b908183667bc8b1107661bcb0ace82a25825112f355486f40c853",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Constricting Vine",
+          "source_entries_sha256": "949f5e91735ed04c7b911ecd27a45a578731152477007eecf360e4f967991a38",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:10ft, dmg:1d8+2(concussao), instant{trigger=hit, requires:target{size<=grande}, apply:agarrado(escape_cd:12), while_active{requires:target{condition{agarrado, source:self}}, restricts{attack{constricting_vine}}, instant{trigger=turn_start(target:creature), dmg:1d8(concussao)}}}}"
+          ],
+          "expected_legacy_tags": [
+            "cast{spell:malogro}"
+          ]
+        }
+      ]
+    }
+  ]
+}

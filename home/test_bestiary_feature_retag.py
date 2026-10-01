@@ -92,6 +92,38 @@ class ReviewedFeatureRetagTests(TestCase):
         with self.assertRaises(CommandError):
             self.run_command()
 
+    def test_legacy_tags_require_exact_review_before_migration(self):
+        bear = TbBestiario.objects.get(slug='test-bear')
+        original = deepcopy(bear.statblock_json)
+        original['actions'][0]['tags'] = ['cast{spell:malogro}']
+        bear.statblock_json = original
+        bear.save(update_fields=['statblock_json'])
+        proposal = self.payload['rows'][0]
+        revised = deepcopy(original)
+        del revised['actions'][0]['tags']
+        revised['actions'][0]['tags_json'] = proposal['features'][0]['tags']
+        proposal['before_sha256'] = statblock_hash(original)
+        proposal['after_sha256'] = statblock_hash(revised)
+        self.write_manifest()
+        with self.assertRaises(CommandError):
+            self.run_command(apply=True)
+        self.assertEqual(TbBestiario.objects.get(pk=bear.pk).statblock_json, original)
+
+        proposal['features'][0]['expected_legacy_tags'] = ['cast{spell:outro}']
+        self.write_manifest()
+        with self.assertRaises(CommandError):
+            self.run_command(apply=True)
+        self.assertEqual(TbBestiario.objects.get(pk=bear.pk).statblock_json, original)
+
+        proposal['features'][0]['expected_legacy_tags'] = ['cast{spell:malogro}']
+        self.write_manifest()
+        self.run_command()
+        self.assertEqual(TbBestiario.objects.get(pk=bear.pk).statblock_json, original)
+        self.run_command(apply=True)
+        self.assertEqual(TbBestiario.objects.get(pk=bear.pk).statblock_json, revised)
+        self.run_command(apply=True)
+        self.assertEqual(TbBestiario.objects.get(pk=bear.pk).statblock_json, revised)
+
     def test_reviewed_dual_range_corrects_display_and_keeps_source(self):
         source = {'Name': 'Test Archer', 'Actions':
                   'Bow. Ranged Attack Roll: +3, range 80/320 ft. Hit: 5 (1d8 + 1) Piercing damage.'}

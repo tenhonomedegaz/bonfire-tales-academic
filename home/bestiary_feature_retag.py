@@ -90,9 +90,23 @@ def reviewed_statblock(creature, source_row, proposal, *, library=None):
         seen.add(index)
         action = actions[index]
         if (action.get('name_en') != feature.get('name_en') or
-                _digest(source[index]['entries']) != feature.get('source_entries_sha256') or
-                'tags' in action):
+                _digest(source[index]['entries']) != feature.get('source_entries_sha256')):
             raise FeatureRetagConflict('Habilidade ou fonte divergente.')
+        expected_legacy_tags = feature.get('expected_legacy_tags')
+        if expected_legacy_tags is not None and (
+                not isinstance(expected_legacy_tags, list) or
+                not expected_legacy_tags or
+                any(not isinstance(tag, str) or not tag.strip()
+                    for tag in expected_legacy_tags)):
+            raise FeatureRetagConflict('Tags legadas esperadas invalidas.')
+        if 'tags' in action and (
+                expected_legacy_tags is None or
+                action['tags'] != expected_legacy_tags):
+            raise FeatureRetagConflict('Tags legadas sem revisao correspondente.')
+        if already_applied and 'tags' in action:
+            raise FeatureRetagConflict('Resultado aplicado ainda contem tags legadas.')
+        if expected_legacy_tags is not None and not already_applied and 'tags' not in action:
+            raise FeatureRetagConflict('Tags legadas esperadas ausentes.')
         existing_tags = action.get('tags_json') or []
         expected_tags = feature.get('expected_tags')
         if expected_tags is not None and (
@@ -116,6 +130,8 @@ def reviewed_statblock(creature, source_row, proposal, *, library=None):
         if any(d.level == ERROR for d in diagnostics):
             raise FeatureRetagConflict('Tag mecanica invalida.')
         if not already_applied:
+            if expected_legacy_tags is not None:
+                del action['tags']
             action['tags_json'] = tags
             if correct_range:
                 _correct_dual_range(action, source[index]['entries'])
