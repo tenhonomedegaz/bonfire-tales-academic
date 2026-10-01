@@ -1,0 +1,150 @@
+{
+  "version": 1,
+  "source_sha256": "41e9c80b84fc08ed9cffa6fa1def5d0356f6fca4dc34ada46f21b8095f99b326",
+  "rows": [
+    {
+      "pk": 781,
+      "slug": "swarm-of-bats",
+      "before_sha256": "2fa46da006fb6f5429d84841de4c79978a20e91b4a98e633e761aa401df96f8c",
+      "after_sha256": "901977ac44606bae48756487038ad4a1a853184e08f663f524635606e507e923",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Bites",
+          "source_entries_sha256": "babd0a94ea9c2a574799c605e686870a92a1d53a9f64c797ef3a999d1d7f7c13",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, if(self{sangrando}){dmg:1d4(perfurante)}, else{dmg:2d4(perfurante)}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 783,
+      "slug": "swarm-of-crawling-claws",
+      "before_sha256": "0e78e7ff4ddef94d5cd9977121021ccbf5a4e63320eaaabfc32d02470e5ec8ea",
+      "after_sha256": "3e8ebdc67c49aa2ce82fdf87db2c9d4371353ab0048042aa95c1c385f4ea6b4f",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Swarm of Grasping Hands",
+          "source_entries_sha256": "b4c2ddba63e2a4c772c60751fa705f417d1f654cc2608e8b0856027a2154170d",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, if(self{sangrando}){dmg:2d8+2(necrotico)}, else{dmg:4d8+2(necrotico)}, instant{trigger=hit, requires:target{size<=medio}, apply:caido}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 784,
+      "slug": "swarm-of-dretches",
+      "before_sha256": "14cf4c66de4284b50ae75aa6e0be0d7861c107009918aa9ad1d435b28746259d",
+      "after_sha256": "4962479379b59cc208804bf9fe112ea8620ba02d6e4ddbab58ec3a8fbde9a87b",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Rend",
+          "source_entries_sha256": "51ceb90de6dd801beed2fa2d1d8d441863bc8cae02cc799a04a69caa2669a20c",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, if(self{sangrando}){dmg:3d4+2(cortante)}, else{dmg:3d6+2(cortante)}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 786,
+      "slug": "swarm-of-insects",
+      "before_sha256": "17b380fc739dab5f087b99a462d53257475b37dfc90409fe8172e45eb34f659f",
+      "after_sha256": "014d738dca058ecea42f37fcd938402e994c800c316009e2d1a8cf0edf613387",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Bites",
+          "source_entries_sha256": "e731dfe49b5b8b675a49cd987ce0468bdb34aaad5bd2c108a04ce7edc44862bf",
+          "tags": [
+            "instant{attack:melee, attack:+3, reach:5ft, if(self{sangrando}){dmg:1d4+1(veneno)}, else{dmg:2d4+1(veneno)}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 787,
+      "slug": "swarm-of-larvae",
+      "before_sha256": "6be79560b0d37f2595dd80eba627e5a8cb0101a2eb7233ab0a3a005f8cf5aeff",
+      "after_sha256": "01add84ba72a094519e6a2a5daff9032703afc690af90cf42cc9c88c2d9cf199",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Bites",
+          "source_entries_sha256": "162ed36cbbaee7441a7d3951f92625b797db94f12268064c05115a7df2b3124a",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, if(self{sangrando}){dmg:2d4+2(necrotico)}, else{dmg:2d6+2(necrotico)}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 788,
+      "slug": "swarm-of-lemures",
+      "before_sha256": "7e4d1dd9d0e1e0c4b3d5ded8f5eab40962daf3c8dee92509b3b2bae37a556f79",
+      "after_sha256": "f9702088fa7e420be54afd4d3739f17326ebaa4e6270c170aa7efd93b958d9d8",
+      "features": [
+        {
+          "index": 1,
+          "name_en": "Vile Slime",
+          "source_entries_sha256": "4bce64643b15cd79bb967d309416d35bb822c3fbcff83040fe4ca8d9ee9039c8",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, if(self{sangrando}){dmg:2d6+2(veneno)}, else{dmg:2d8+2(veneno)}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 790,
+      "slug": "swarm-of-rats",
+      "before_sha256": "b5e92783b2d40423a399838d31bd6e52626c7ce18adbf2861f36c1afd83a504d",
+      "after_sha256": "ac0740839bc02758d221b98b6883a8568c03fb0e27220b0dc1a4e3b5fbd49efb",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Bites",
+          "source_entries_sha256": "421f49da3f73ee3e60b3d5a0b737634efa1c95cb1befca18b18492b01132780a",
+          "tags": [
+            "instant{attack:melee, attack:+2, reach:5ft, if(self{sangrando}){dmg:1d4(perfurante)}, else{dmg:2d4(perfurante)}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 791,
+      "slug": "swarm-of-ravens",
+      "before_sha256": "c89227e4d9e493237c2a0cbf4d3fdb780b9d7cfcec269acbd5f806460d41e038",
+      "after_sha256": "06972db4615b20cb414c70cf54fa69e9599a100119d7467593e5bf13c45c580a",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Beaks",
+          "source_entries_sha256": "480b0a7b9c9f50aa78bffca9c6c2eae71fad49d543d32d1161d11dc3653366db",
+          "tags": [
+            "instant{attack:melee, attack:+4, reach:5ft, if(self{sangrando}){dmg:1d4(perfurante)}, else{dmg:1d6+2(perfurante)}}"
+          ]
+        }
+      ]
+    },
+    {
+      "pk": 794,
+      "slug": "swarm-of-venomous-snakes",
+      "before_sha256": "445c3840c0f9cad80a8f3b3a94d322a225e531653209570bef21069a7acb7424",
+      "after_sha256": "98099ea127f7f3bf83207ca2b08c2f4ce69a14f147b0bcf9fd1dd6a6b5bcfc6c",
+      "features": [
+        {
+          "index": 0,
+          "name_en": "Bites",
+          "source_entries_sha256": "9fdb46da99bd10da8bf74a9306d9f672e846fa0272de772c024b2b85fde1491d",
+          "tags": [
+            "instant{attack:melee, attack:+6, reach:5ft, if(self{sangrando}){dmg:1d4+4(perfurante)}, else{dmg:1d8+4(perfurante)}, dmg:3d6(veneno)}"
+          ]
+        }
+      ]
+    }
+  ]
+}
