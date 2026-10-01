@@ -70,7 +70,7 @@ echo  ║  ou pressione Ctrl+C                             ║
 echo  ╚══════════════════════════════════════════════════╝
 echo.
 
-.venv\Scripts\python.exe -m waitress --host=0.0.0.0 --port=8000 --threads=4 bonfire.wsgi:application
+.venv\Scripts\python.exe -m waitress --host=127.0.0.1 --port=8000 --threads=4 --trusted-proxy=127.0.0.1 --trusted-proxy-headers=x-forwarded-proto --clear-untrusted-proxy-headers bonfire.wsgi:application
 
 echo.
 echo  Servidor parado.

@@ -24,7 +24,13 @@ python manage.py createsuperuser
 
 ## HTTPS e backup
 
-Toda chamada `/api/db/v1/` é recusada se Django não enxergar HTTPS (`400 https_required`). Publique atrás de TLS e encaminhe corretamente o esquema HTTPS ao Django. Em produção, configure ao menos:
+Toda chamada `/api/db/v1/` é recusada se Django não enxergar HTTPS (`400 https_required`). Publique atrás de TLS e encaminhe corretamente o esquema HTTPS ao Django.
+
+No deploy com **Cloudflare Tunnel + Waitress**, use os scripts `start_server.bat` ou `start_server_silent.bat` desta versão: eles escutam somente em `127.0.0.1:8000` e o Waitress aceita `X-Forwarded-Proto` apenas do proxy local. A rota do túnel deve apontar para `http://127.0.0.1:8000`. Reinicie o processo Waitress após atualizar os scripts; alterar apenas o arquivo sem reiniciar não muda o processo em execução. Não publique a porta 8000 nem aceite esse cabeçalho de clientes diretos. Nesse arranjo, `DJANGO_USE_X_FORWARDED_PROTO` não precisa ser ativado: o Waitress entrega `wsgi.url_scheme=https` ao Django. Se houver outro proxy, só configure `DJANGO_USE_X_FORWARDED_PROTO=true` depois de confirmar que ele remove o cabeçalho enviado pelo cliente e define o valor correto.
+
+Para diagnosticar sem enviar a chave, faça um GET **sem Authorization** em `https://bonfiretales.com.br/api/db/v1/session/`: `401 unauthorized` mostra que o teste passou pela verificação HTTPS e chegou à autenticação; `400 https_required` indica que o esquema ainda não chegou ao Django. Esse teste não valida a chave nem os escopos. Depois que retornar `401`, use **Testar conexão e escopos** em Integrações com a chave guardada localmente; confira também `schema/`. Não cole a chave em chat, URL ou log.
+
+Em produção, configure ao menos:
 
 ```text
 DJANGO_DEBUG=False

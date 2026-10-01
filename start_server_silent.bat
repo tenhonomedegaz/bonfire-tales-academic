@@ -28,4 +28,4 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 REM Inicia o Waitress e redireciona a saída para o log, mantendo-o rodando
-.venv\Scripts\python.exe -m waitress --host=0.0.0.0 --port=8000 --threads=4 bonfire.wsgi:application > site_console.log 2>&1
+.venv\Scripts\python.exe -m waitress --host=127.0.0.1 --port=8000 --threads=4 --trusted-proxy=127.0.0.1 --trusted-proxy-headers=x-forwarded-proto --clear-untrusted-proxy-headers bonfire.wsgi:application > site_console.log 2>&1
