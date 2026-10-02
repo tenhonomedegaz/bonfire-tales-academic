@@ -76,10 +76,7 @@
                         <div id="tagFilterOptions" class="mt-3 flex flex-wrap gap-2"></div>
                     </section>
 
-                    <section>
-                        <h3 class="border-b border-bonfire-stroke pb-2 text-xs font-bold uppercase tracking-widest text-bonfire-muted">Pré-requisitos</h3>
-                        <div id="prereqFilterOptions" class="mt-3 flex flex-wrap gap-2"></div>
-                    </section>
+                    <p class="text-xs text-bonfire-muted">Para encontrar um pré-requisito específico, use a busca acima.</p>
                 </div>
 
                 <div class="flex flex-col gap-2 border-t border-bonfire-stroke p-4 sm:flex-row">
@@ -102,12 +99,14 @@
         <button type="button" class="talent-mobile-backdrop" id="talentMobileBackdrop" aria-label="Fechar lista"></button>
 
         <aside class="talent-list-panel xl:sticky xl:top-24 h-full max-h-[calc(100vh-140px)] overflow-y-auto custom-scrollbar flex flex-col gap-1.5 pr-2" id="talentosList">
+            <div id="talentosListItems" class="flex flex-col gap-1.5">
             {% for talento in json_talentos %}
             <a href="#talento-{{ talento.slug }}" class="block rounded border border-transparent p-2.5 transition-colors hover:border-bonfire-stroke hover:bg-bonfire-bg1">
                 <h3 class="text-[13px] font-bold text-bonfire-muted">{{ talento.nome }}</h3>
                 <p class="mt-0.5 text-xs uppercase tracking-wider text-bonfire-muted">{{ talento.etiqueta }}</p>
             </a>
             {% endfor %}
+            </div>
         </aside>
 
         <main class="talent-detail-panel mt-4 md:mt-0 md:pl-4" id="talentoDetail">
@@ -130,6 +129,7 @@
     let isAscending = true;
 
     const listContainer = document.getElementById('talentosList');
+    const listItemsContainer = document.getElementById('talentosListItems');
     const detailContainer = document.getElementById('talentoDetail');
     const searchInput = document.getElementById('searchInput');
     const filterToggle = document.getElementById('filterToggle');
@@ -140,7 +140,6 @@
     const typeFilterOptions = document.getElementById('typeFilterOptions');
     const mainTagFilterOptions = document.getElementById('mainTagFilterOptions');
     const tagFilterOptions = document.getElementById('tagFilterOptions');
-    const prereqFilterOptions = document.getElementById('prereqFilterOptions');
     const clearFilters = document.getElementById('clearFilters');
     const applyFilterModal = document.getElementById('applyFilterModal');
     const talentMobileMenuButton = document.getElementById('talentMobileMenuButton');
@@ -149,16 +148,14 @@
         type: [],
         mainTag: [],
         tag: [],
-        attribute: [],
-        prereq: []
+        attribute: []
     };
     let filterCloseTimer = null;
     let activeFilters = {
         type: '',
         mainTag: '',
         tag: '',
-        attribute: '',
-        prereq: ''
+        attribute: ''
     };
     let draftFilters = { ...activeFilters };
     let listAnimationTimer = null;
@@ -326,7 +323,6 @@
         renderChipGroup(mainTagFilterOptions, filterOptions.mainTag, 'mainTag', 'Nenhuma etiqueta principal cadastrada.');
         renderChipGroup(attributeFilterOptions, filterOptions.attribute, 'attribute', 'Nenhum aumento de atributo cadastrado.');
         renderChipGroup(tagFilterOptions, filterOptions.tag, 'tag', 'Nenhuma tag adicional cadastrada.');
-        renderChipGroup(prereqFilterOptions, filterOptions.prereq, 'prereq', 'Nenhum pré-requisito cadastrado.');
     }
 
     function populateFilters() {
@@ -335,16 +331,6 @@
         filterOptions.tag = [...new Set(talentosData.flatMap(t => getExtraTags(t)).filter(Boolean))].sort();
         filterOptions.attribute = [...new Set(talentosData.flatMap(t => (t.atributos_str || '').split(',').map(a => a.trim())).filter(a => a && a !== 'Nenhum'))].sort();
         
-        // Ignorar requisitos de nível nos chips de filtro
-        const isLevelPrereq = (s) => /nível/i.test(s) || /\d+(º|ª)/.test(s);
-        
-        filterOptions.prereq = [...new Set(talentosData.flatMap(t => 
-            (t.pre_requisito || '')
-            .split(/,|\sou\s/i)
-            .map(s => s.trim())
-            .filter(s => s && s.toLowerCase() !== 'nenhum' && !isLevelPrereq(s))
-        ))].sort();
-
         renderFilterChips();
     }
 
@@ -354,7 +340,6 @@
         const mainTagValue = activeFilters.mainTag;
         const tagValue = activeFilters.tag;
         const attrValue = activeFilters.attribute;
-        const prereqValue = activeFilters.prereq;
 
         filteredTalentos = talentosData.filter(t => {
             const extraTags = getExtraTags(t);
@@ -372,9 +357,7 @@
             const matchesMainTag = !mainTagValue || t.etiqueta === mainTagValue;
             const matchesTag = !tagValue || extraTags.includes(tagValue);
             const matchesAttr = !attrValue || (t.atributos_str || '').split(',').map(a => a.trim()).includes(attrValue);
-            const matchesPrereq = !prereqValue || (t.pre_requisito || '').split(/,|\sou\s/i).map(s => s.trim()).includes(prereqValue);
-
-            return matchesSearch && matchesType && matchesMainTag && matchesTag && matchesAttr && matchesPrereq;
+            return matchesSearch && matchesType && matchesMainTag && matchesTag && matchesAttr;
         });
 
         filteredTalentos.sort((a, b) => {
@@ -383,27 +366,27 @@
             return 0;
         });
 
-        const activeFilterCount = [typeValue, mainTagValue, tagValue, attrValue, prereqValue].filter(Boolean).length;
+        const activeFilterCount = [typeValue, mainTagValue, tagValue, attrValue].filter(Boolean).length;
         filterCount.textContent = activeFilterCount;
         filterCount.classList.toggle('hidden', activeFilterCount === 0);
         renderList(animateList);
     }
 
     function renderList(animateList = false) {
-        if (animateList && listContainer.children.length) {
+        if (animateList && listItemsContainer.children.length) {
             if (listAnimationTimer) clearTimeout(listAnimationTimer);
-            listContainer.classList.remove('talent-list-expanding');
-            listContainer.classList.add('talent-list-collapsing');
+            listItemsContainer.classList.remove('talent-list-expanding');
+            listItemsContainer.classList.add('talent-list-collapsing');
             listAnimationTimer = setTimeout(() => {
-                listContainer.classList.remove('talent-list-collapsing');
+                listItemsContainer.classList.remove('talent-list-collapsing');
                 renderList(false);
-                Array.from(listContainer.children).forEach((child, index) => {
+                Array.from(listItemsContainer.children).forEach((child, index) => {
                     child.style.animationDelay = `${Math.min(index * 18, 160)}ms`;
                 });
-                listContainer.classList.add('talent-list-expanding');
+                listItemsContainer.classList.add('talent-list-expanding');
                 listAnimationTimer = setTimeout(() => {
-                    listContainer.classList.remove('talent-list-expanding');
-                    Array.from(listContainer.children).forEach(child => {
+                    listItemsContainer.classList.remove('talent-list-expanding');
+                    Array.from(listItemsContainer.children).forEach(child => {
                         child.style.animationDelay = '';
                     });
                     listAnimationTimer = null;
@@ -412,10 +395,10 @@
             return;
         }
 
-        listContainer.innerHTML = '';
+        listItemsContainer.innerHTML = '';
         
         if (filteredTalentos.length === 0) {
-            listContainer.innerHTML = '<p class="text-bonfire-muted text-sm p-3 text-center">Nenhum talento encontrado.</p>';
+            listItemsContainer.innerHTML = '<p class="text-bonfire-muted text-sm p-3 text-center">Nenhum talento encontrado.</p>';
             return;
         }
 
@@ -453,7 +436,7 @@
                     </span>
                 </div>
             `;
-            listContainer.appendChild(item);
+            listItemsContainer.appendChild(item);
         });
     }
 
@@ -710,6 +693,7 @@
     });
 
     clearFilters.addEventListener('click', () => {
+        searchInput.value = '';
         activeFilters = {
             type: '',
             mainTag: '',
