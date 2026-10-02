@@ -27,6 +27,12 @@
                 <strong>Editor Markdown</strong>
                 <span>Validar a apresentação de textos e referências.</span>
             </a>
+            {% if perms.home.change_tbcronicadenuncia %}
+            <a href="{% url 'cronica_denuncias' %}">
+                <strong>Moderação de crônicas</strong>
+                <span>Revisar denúncias e decidir sobre conteúdo publicado.</span>
+            </a>
+            {% endif %}
         </div>
     </section>
 

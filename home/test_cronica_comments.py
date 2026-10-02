@@ -1,6 +1,7 @@
 from uuid import uuid4
 
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Permission
 from django.test import TestCase
 from django.urls import reverse
 
@@ -16,6 +17,12 @@ class CronicaCommentTests(TestCase):
         cls.leitor = user.objects.create_user('leitor-comentario', password='senha')
         cls.outro = user.objects.create_user('outro-comentario', password='senha')
         cls.staff = user.objects.create_user('staff-comentario', password='senha', is_staff=True)
+        cls.staff.user_permissions.add(Permission.objects.get(
+            codename='change_tbcronicadenuncia', content_type__app_label='home',
+        ))
+        cls.staff_sem_moderacao = user.objects.create_user(
+            'staff-sem-moderacao', password='senha', is_staff=True,
+        )
         cls.story = TbCronica.objects.create(
             titulo='Relato da Lua Velada', slug='cronica-com-comentarios',
             conteudo_markdown='Texto público', autor=cls.autor, status='aprovada',
@@ -128,6 +135,34 @@ class CronicaCommentTests(TestCase):
         report.refresh_from_db()
         self.assertEqual(comment.estado, 'publico')
         self.assertEqual(report.estado, 'descartada')
+
+    def test_staff_without_moderation_permission_cannot_review_or_decide(self):
+        self.client.force_login(self.leitor)
+        self.assertEqual(self.report().status_code, 302)
+        report = TbCronicaDenuncia.objects.get()
+        self.client.force_login(self.staff_sem_moderacao)
+        self.assertEqual(self.client.get(reverse('cronica_denuncias')).status_code, 403)
+        self.assertEqual(self.client.post(
+            reverse('cronica_moderar_denuncia', args=[report.pk]),
+            {'action': 'ocultar'},
+        ).status_code, 403)
+        report.refresh_from_db()
+        self.story.refresh_from_db()
+        self.assertEqual(report.estado, 'pendente')
+        self.assertEqual(self.story.status, 'aprovada')
+
+    def test_admin_navigation_opens_moderation_queue(self):
+        superuser = get_user_model().objects.create_superuser(
+            'super-moderacao', 'moderacao@example.invalid', 'senha',
+        )
+        self.client.force_login(self.leitor)
+        self.assertEqual(self.report().status_code, 302)
+        self.client.force_login(superuser)
+        dashboard = self.client.get(reverse('admin:index'))
+        self.assertContains(dashboard, 'Moderação de crônicas')
+        self.assertContains(dashboard, reverse('cronica_denuncias'))
+        queue = self.client.get(reverse('cronica_denuncias'))
+        self.assertContains(queue, 'Relato da Lua Velada')
 
     def test_multiple_hides_restore_only_after_last_decision_is_reverted(self):
         self.client.force_login(self.leitor)

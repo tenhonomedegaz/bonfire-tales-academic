@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 from django import forms
 from django.conf import settings
 from django.contrib.admin.views.decorators import staff_member_required
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth import get_user_model, login
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.core.files.base import ContentFile
@@ -14781,6 +14781,7 @@ def cronica_denunciar_view(request, cronica_id):
 
 
 @staff_member_required
+@permission_required('home.change_tbcronicadenuncia', raise_exception=True)
 def cronica_denuncias_view(request):
     reports = TbCronicaDenuncia.objects.filter(estado__in=['pendente', 'ocultada']).select_related(
         'cronica', 'comentario', 'denunciante'
@@ -14789,6 +14790,7 @@ def cronica_denuncias_view(request):
 
 
 @staff_member_required
+@permission_required('home.change_tbcronicadenuncia', raise_exception=True)
 @require_POST
 def cronica_moderar_denuncia_view(request, denuncia_id):
     action = request.POST.get('action')
