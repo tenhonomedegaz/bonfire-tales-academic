@@ -3878,7 +3878,10 @@ class TbConteudoEstaticoAdmin(admin.ModelAdmin):
             'fields': ('conteudo_markdown', 'imagem_url'),
             'description': (
                 'Aceita Markdown Bonfire. A chave é o contrato estável usado pelo '
-                'template; editar texto, imagem ou CTA não exige deploy.'
+                'template; editar texto, imagem ou CTA não exige deploy. '
+                'Para a capa padrão do Mundo, use página "mundo", chave '
+                '"mundo-capa-padrao" e a URL da imagem. Capas próprias de '
+                'territórios e regiões têm prioridade.'
             ),
         }),
         ('Ação', {'fields': ('cta_texto', 'cta_url')}),

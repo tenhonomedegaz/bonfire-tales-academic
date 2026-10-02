@@ -1,8 +1,9 @@
-from django.templatetags.static import static
+from django.contrib.auth import get_user_model
 from django.test import TestCase
+from django.templatetags.static import static
 from django.urls import reverse
 
-from .models import TbMapLayer, TbRegiao, TbTerritorio
+from .models import TbConteudoEstatico, TbMapLayer, TbRegiao, TbTerritorio
 from .views import _parse_lore_topics
 
 
@@ -35,7 +36,7 @@ class WorldLorePresentationTests(TestCase):
         )
         TbRegiao.objects.create(
             nome='Cidade B', slug='cidade-b', territorio=territory.nome,
-            camada=0, brasao_url='https://example.invalid/b.png',
+            camada=0,
         )
         placeholder = static('assets/fire_background.png')
         listing = self.client.get(reverse('mundo_regioes'))
@@ -59,6 +60,42 @@ class WorldLorePresentationTests(TestCase):
         self.assertEqual(region_detail.context['imagem_url'],
                          'https://example.invalid/a.png')
 
+        editor = get_user_model().objects.create_superuser(
+            username='world-cover-editor', email='editor@example.invalid', password='test-only',
+        )
+        self.client.force_login(editor)
+        admin_save = self.client.post(reverse('admin:home_tbconteudoestatico_add'), {
+            'chave': 'mundo-capa-padrao', 'pagina': 'mundo',
+            'titulo': 'Capa padrão do Mundo', 'subtitulo': '',
+            'conteudo_markdown': '', 'imagem_url': 'https://example.invalid/mundo.png',
+            'cta_texto': '', 'cta_url': '', 'ativo': 'on', 'ordem': '0',
+        })
+        self.assertEqual(admin_save.status_code, 302)
+        self.client.logout()
+        fallback = TbConteudoEstatico.objects.get(chave='mundo-capa-padrao')
+        listing = self.client.get(reverse('mundo_regioes'))
+        card = next(card for card in listing.context['territorios_cards']
+                    if card['slug'] == territory.slug)
+        self.assertEqual(card['imagem_url'], fallback.imagem_url)
+        self.assertContains(listing, f"--territory-image: url('{fallback.imagem_url}')")
+        detail = self.client.get(reverse('territorio_detail', args=[territory.slug]))
+        self.assertEqual(detail.context['imagem_url'], fallback.imagem_url)
+        self.assertContains(detail, f"--hero-bg: url('{fallback.imagem_url}')")
+        self.assertEqual(detail.context['client_territories'][territory.nome]['imagem_url'],
+                         fallback.imagem_url)
+        self.assertEqual(next(item for item in detail.context['client_regions']
+                              if item['slug'] == 'cidade-b')['imagem_url'], fallback.imagem_url)
+        region_detail = self.client.get(reverse('regiao_detail', args=[region.slug]))
+        self.assertEqual(region_detail.context['imagem_url'], region.brasao_url)
+        self.assertEqual(region_detail.context['territory_image_url'], fallback.imagem_url)
+
+        fallback.ativo = False
+        fallback.save(update_fields=['ativo'])
+        self.assertEqual(self.client.get(reverse('territorio_detail', args=[territory.slug]))
+                         .context['imagem_url'], placeholder)
+        fallback.ativo = True
+        fallback.save(update_fields=['ativo'])
+
         territory.imagem_url = 'https://example.invalid/vale.png'
         territory.save(update_fields=['imagem_url'])
         listing = self.client.get(reverse('mundo_regioes'))
@@ -67,3 +104,5 @@ class WorldLorePresentationTests(TestCase):
         self.assertEqual(card['imagem_url'], territory.imagem_url)
         detail = self.client.get(reverse('territorio_detail', args=[territory.slug]))
         self.assertEqual(detail.context['imagem_url'], territory.imagem_url)
+        self.assertEqual(next(item for item in detail.context['client_regions']
+                              if item['slug'] == 'cidade-b')['imagem_url'], territory.imagem_url)

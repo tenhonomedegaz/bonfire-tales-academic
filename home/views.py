@@ -306,6 +306,21 @@ def _asset_url(value, fallback='assets/fire_background.png'):
     return static(value)
 
 
+def _world_cover_fallback():
+    """Editorial cover shared by world cards and details when an entity has none."""
+    from .models import TbConteudoEstatico
+
+    return (
+        TbConteudoEstatico.objects.filter(
+            chave='mundo-capa-padrao', pagina='mundo', ativo=True,
+        ).values_list('imagem_url', flat=True).first() or ''
+    ).strip()
+
+
+def _world_cover_url(explicit_image, editorial_fallback):
+    return _asset_url(explicit_image or editorial_fallback)
+
+
 def _normalize_text(value):
     return re.sub(r'[\u0300-\u036f]', '', unicodedata.normalize('NFD', str(value or ''))).lower().strip()
 
@@ -11502,6 +11517,7 @@ def mundo_regioes_view(request):
 
     layer_options = _world_layer_options(request)
     active_layer = _active_world_layer(request, layer_options, default_layer=0)
+    editorial_cover = _world_cover_fallback()
     visible_layers = [layer.id_layer for layer in layer_options] or [0]
 
     regioes = TbRegiao.objects.filter(camada__in=visible_layers).order_by('territorio', 'nome')
@@ -11538,7 +11554,7 @@ def mundo_regioes_view(request):
             # Elas não devem ressuscitar um card na listagem (o território não existe mais).
             # A região órfã continua acessível normalmente via regiao_detail_view.
             continue
-        image_url = _asset_url(territory.imagem_url) if territory and territory.imagem_url else _asset_url(None)
+        image_url = _world_cover_url(territory.imagem_url, editorial_cover)
         description = (territory.descricao_breve if territory and territory.descricao_breve else '') or f"{len(regions)} locais conhecidos em {_display_territory(territory_name)}."
         tags = sorted({
             tag.strip()
@@ -11571,7 +11587,7 @@ def mundo_regioes_view(request):
         if territory.slug in listed_territory_ids:
             continue
         territory_name = territory.nome
-        image_url = _asset_url(territory.imagem_url) if territory.imagem_url else _asset_url(None)
+        image_url = _world_cover_url(territory.imagem_url, editorial_cover)
         color = territory.cor_hex if territory.cor_hex else _territory_color(territory_name)
         display_color = _get_display_color(color)
         display_nome = _display_territory(territory_name)
@@ -11793,6 +11809,7 @@ def regiao_detail_view(request, slug):
         raise Http404("Região não encontrada")
     layer_options = _world_layer_options(request)
     active_layer = _active_world_layer(request, layer_options, default_layer=regiao.camada)
+    editorial_cover = _world_cover_fallback()
 
     
     marker = TbMapMarker.objects.filter(nome=regiao.nome).first()
@@ -11820,7 +11837,7 @@ def regiao_detail_view(request, slug):
         color = territory_obj.cor_hex if territory_obj and territory_obj.cor_hex else _territory_color(name)
         display_color = _get_display_color(color)
         contrast = _get_contrast_color(color)
-        image_url = _asset_url(territory_obj.imagem_url if territory_obj else None)
+        image_url = _world_cover_url(territory_obj.imagem_url if territory_obj else None, editorial_cover)
         territory_topics = _parse_lore_topics(territory_obj.lore_markdown or '') if territory_obj else []
         client_territories[name] = {
             'type': 'territory',
@@ -11911,10 +11928,10 @@ def regiao_detail_view(request, slug):
     all_territories_list = list(TbTerritorio.objects.values_list('nome', flat=True).order_by('nome'))
     context = {
         'regiao': regiao,
-        'imagem_url': _asset_url(regiao.brasao_url) if getattr(regiao, 'brasao_url', None) else _asset_url(territorio_obj.imagem_url if territorio_obj else None),
+        'imagem_url': _world_cover_url(regiao.brasao_url or (territorio_obj.imagem_url if territorio_obj else None), editorial_cover),
         'brasao_url': _asset_url(regiao.brasao_url) if regiao.brasao_url else None,
-        'side_image_url': _asset_url(regiao.mapa_url) if regiao.mapa_url else (_asset_url(territorio_obj.imagem_url) if territorio_obj and territorio_obj.imagem_url else _asset_url(None)),
-        'territory_image_url': _asset_url(territorio_obj.imagem_url) if territorio_obj and territorio_obj.imagem_url else _asset_url(None),
+        'side_image_url': _world_cover_url(regiao.mapa_url or (territorio_obj.imagem_url if territorio_obj else None), editorial_cover),
+        'territory_image_url': _world_cover_url(territorio_obj.imagem_url if territorio_obj else None, editorial_cover),
         'display_territory': _display_territory(regiao.territorio),
         'territory_color': t_color,
         'territory_display_color': t_display_color,
@@ -11951,6 +11968,7 @@ def territorio_detail_view(request, slug):
         raise Http404("Territorio nao encontrado")
     layer_options = _world_layer_options(request)
     active_layer = _active_world_layer(request, layer_options, default_layer=territory.camada)
+    editorial_cover = _world_cover_fallback()
 
     regiao = SimpleNamespace(
         id_regiao=None,
@@ -11989,7 +12007,7 @@ def territorio_detail_view(request, slug):
         color = territory_obj.cor_hex if territory_obj and territory_obj.cor_hex else _territory_color(name)
         display_color = _get_display_color(color)
         contrast = _get_contrast_color(color)
-        image_url = _asset_url(territory_obj.imagem_url if territory_obj else None)
+        image_url = _world_cover_url(territory_obj.imagem_url if territory_obj else None, editorial_cover)
         territory_topics = _parse_lore_topics(territory_obj.lore_markdown or '') if territory_obj else []
         client_territories[name] = {
             'type': 'territory',
@@ -12071,7 +12089,7 @@ def territorio_detail_view(request, slug):
 
     color = territory.cor_hex or _territory_color(territory.nome)
     display_color = _get_display_color(color)
-    image_url = _asset_url(territory.imagem_url) if territory.imagem_url else _asset_url(None)
+    image_url = _world_cover_url(territory.imagem_url, editorial_cover)
     all_territories_list = list(TbTerritorio.objects.values_list('nome', flat=True).order_by('nome'))
     context = {
         'regiao': regiao,
