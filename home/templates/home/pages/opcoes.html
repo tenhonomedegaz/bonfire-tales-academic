@@ -313,6 +313,7 @@
                 o.pre_requisito,
                 o.tipo,
                 o.etiquetas_adicionais,
+                ...(o.acessos || []).flatMap(acesso => [acesso.nome, acesso.classe, acesso.nivel]),
                 o.descricao
             ].join(' ').toLowerCase();
 
@@ -434,6 +435,13 @@
 
     function renderOpcaoDetail(opcao) {
         const hasPrereq = opcao.pre_requisito && opcao.pre_requisito.toLowerCase() !== 'nenhum';
+        const accessRows = (opcao.acessos || []).map(acesso => `
+            <li class="text-xs text-bonfire-muted">
+                <strong class="text-bonfire-text">${escapeHtml(acesso.nome)}</strong>
+                ${acesso.tipo === 'Subclasse' ? `<span>(${escapeHtml(acesso.classe)})</span>` : ''}
+                <span>· nível ${escapeHtml(acesso.nivel)}</span>
+            </li>
+        `).join('');
 
         // Renderizar detalhes
         // Mostrar em telas pequenas também
@@ -461,6 +469,11 @@
 
             <h2 data-talent-title class="font-cinzel text-xl font-bold text-bonfire-text uppercase mb-4">${escapeHtml(opcao.nome)}</h2>
             <div data-option-editor></div>
+
+            ${accessRows ? `<section class="mb-4 rounded-md border border-bonfire-stroke bg-bonfire-bg1 p-3" aria-label="Acesso por classe e subclasse">
+                <h3 class="mb-2 text-xs font-bold uppercase tracking-wider text-bonfire-flame">Acesso por classe e subclasse</h3>
+                <ul class="space-y-1">${accessRows}</ul>
+            </section>` : ''}
 
             <div data-option-preview class="bonfire-markdown max-w-none text-[13px] leading-[1.45] text-bonfire-muted">
                 ${renderedHtml}
@@ -541,7 +554,7 @@
         }
         const result = await response.json();
         const index = opcoesData.findIndex(o => o.id === id);
-        if (index >= 0) opcoesData[index] = result.opcao;
+        if (index >= 0) opcoesData[index] = { ...result.opcao, acessos: opcoesData[index].acessos || [] };
         // O tipo ou as tags editados podem deixar a opção fora dos filtros ativos.
         searchInput.value = '';
         activeFilters = { type: '', tag: '' };

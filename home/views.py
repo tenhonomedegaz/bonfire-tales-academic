@@ -47,6 +47,7 @@ from django.views.decorators.http import require_POST
 
 
 from .models import (
+    TbAcessoopcao,
     TbClasse,
     TbClassehabilidade,
     TbCronica,
@@ -12554,6 +12555,34 @@ def talentos_view(request):
 
 @ensure_csrf_cookie  # edição inline (wiki) lê o csrftoken do cookie
 def opcoes_view(request):
+    def with_access(opcoes):
+        by_id = {opcao['id']: opcao for opcao in opcoes if opcao['id'] is not None}
+        for opcao in opcoes:
+            opcao['acessos'] = []
+        if not by_id:
+            return opcoes
+        access_rows = TbAcessoopcao.objects.filter(
+            id_opcao_id__in=by_id
+        ).select_related('id_classe', 'id_subclasse', 'id_subclasse__id_classe').order_by(
+            'nivel_recebimento', 'id_acessoopcao'
+        )
+        for access in access_rows:
+            if access.id_subclasse_id:
+                source = access.id_subclasse.nome
+                kind = 'Subclasse'
+            elif access.id_classe_id:
+                source = access.id_classe.nome
+                kind = 'Classe'
+            else:
+                continue
+            by_id[access.id_opcao_id]['acessos'].append({
+                'tipo': kind,
+                'nome': source,
+                'classe': access.id_subclasse.id_classe.nome if access.id_subclasse_id else source,
+                'nivel': access.nivel_recebimento,
+            })
+        return opcoes
+
     try:
         opcoes_docs = _site_docs('options', [('Nome', 1)])
         opcoes_lista = []
@@ -12569,7 +12598,7 @@ def opcoes_view(request):
                 'tags_json': op.get('TagsJSON') or [],
             })
         return render(request, 'home/pages/opcoes.html', {
-            'json_opcoes': opcoes_lista,
+            'json_opcoes': with_access(opcoes_lista),
             'can_edit_wiki': request.user.is_staff,
         })
     except SiteDataUnavailable:
@@ -12590,7 +12619,7 @@ def opcoes_view(request):
         })
 
     context = {
-        'json_opcoes': opcoes_lista,
+        'json_opcoes': with_access(opcoes_lista),
         'can_edit_wiki': request.user.is_staff,
     }
     return render(request, 'home/pages/opcoes.html', context)
