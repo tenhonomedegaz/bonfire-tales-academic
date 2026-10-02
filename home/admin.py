@@ -3377,10 +3377,26 @@ class TbRegiaoAdmin(BonfireAdminMixin, admin.ModelAdmin):
         return super().formfield_for_dbfield(db_field, request, **kwargs)
 
 
+class TerritoryCoverFilter(admin.SimpleListFilter):
+    title = 'capa própria'
+    parameter_name = 'capa_propria'
+
+    def lookups(self, request, model_admin):
+        return (('pendente', 'Sem capa própria'), ('pronta', 'Com capa própria'))
+
+    def queryset(self, request, queryset):
+        with_cover = queryset.exclude(imagem_url__isnull=True).exclude(imagem_url='')
+        if self.value() == 'pronta':
+            return with_cover
+        if self.value() == 'pendente':
+            return queryset.exclude(pk__in=with_cover.values('pk'))
+        return queryset
+
+
 @admin.register(TbTerritorio)
 class TbTerritorioAdmin(BonfireAdminMixin, admin.ModelAdmin):
-    list_display = ("nome", "slug", "color_preview", "short_description", "camada")
-    list_filter = ("camada",)
+    list_display = ("nome", "slug", "cover_preview", "color_preview", "short_description", "camada")
+    list_filter = (TerritoryCoverFilter, "camada")
     search_fields = ("nome", "slug", "descricao_breve", "lore_markdown")
     prepopulated_fields = {"slug": ("nome",)}
     ordering = ("nome",)
@@ -3394,6 +3410,17 @@ class TbTerritorioAdmin(BonfireAdminMixin, admin.ModelAdmin):
         ("Mapa", {"fields": ("cor_hex", "coordenadas_poligono", "camada")}),
         ("Lore", {"fields": ("lore_markdown",)}),
     )
+
+    @admin.display(description='Capa própria')
+    def cover_preview(self, obj):
+        if not obj.imagem_url:
+            return 'Pendente'
+        from .views import _asset_url
+
+        return format_html(
+            '<img src="{}" alt="" style="width:72px;height:44px;object-fit:cover;border-radius:4px" '
+            'loading="lazy">', _asset_url(obj.imagem_url),
+        )
 
     @admin.display(description="Cor")
     def color_preview(self, obj):

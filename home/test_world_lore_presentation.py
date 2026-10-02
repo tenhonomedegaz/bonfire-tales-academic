@@ -8,6 +8,36 @@ from .views import _parse_lore_topics
 
 
 class WorldLorePresentationTests(TestCase):
+    def test_staff_can_find_territories_missing_their_own_cover(self):
+        TbTerritorio.objects.create(nome='Sem imagem', slug='sem-imagem')
+        TbTerritorio.objects.create(nome='Imagem vazia', slug='imagem-vazia', imagem_url='')
+        TbTerritorio.objects.create(
+            nome='Com imagem', slug='com-imagem', imagem_url='https://example.invalid/capa.png',
+        )
+        TbTerritorio.objects.create(
+            nome='Imagem local', slug='imagem-local', imagem_url='assets/cineria.jpg',
+        )
+        staff = get_user_model().objects.create_superuser(
+            username='cover-editor', email='cover@example.invalid', password='test-password',
+        )
+        self.client.force_login(staff)
+        url = reverse('admin:home_tbterritorio_changelist')
+
+        missing = self.client.get(url, {'capa_propria': 'pendente'})
+        self.assertEqual(missing.status_code, 200)
+        self.assertEqual(
+            {item.nome for item in missing.context['cl'].result_list},
+            {'Sem imagem', 'Imagem vazia'},
+        )
+        covered = self.client.get(url, {'capa_propria': 'pronta'})
+        self.assertEqual(covered.status_code, 200)
+        self.assertEqual(
+            {item.nome for item in covered.context['cl'].result_list},
+            {'Com imagem', 'Imagem local'},
+        )
+        self.assertContains(covered, 'https://example.invalid/capa.png')
+        self.assertContains(covered, static('assets/cineria.jpg'))
+
     def test_explicit_overview_does_not_create_empty_duplicate(self):
         topics = _parse_lore_topics(
             'Introducao editorial.\n## Visão Geral\nCorpo.\n## História\nPrimeira.\n'
