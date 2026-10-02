@@ -13,7 +13,8 @@ class ActiveCondition:
     name: str
     source: str
     target: str
-    expires_at_target_turn: int
+    expires_on_actor: str
+    expires_at_turn: int
 
 
 class CombatConditions:
@@ -33,8 +34,8 @@ class CombatConditions:
         self._turns[actor] = self._turns.get(actor, 0) + 1
         self._conditions = {
             effect for effect in self._conditions
-            if effect.target != actor or
-            effect.expires_at_target_turn > self._turns[actor]
+            if effect.expires_on_actor != actor or
+            effect.expires_at_turn > self._turns[actor]
         }
 
     def facts(self, target, source):
@@ -60,7 +61,7 @@ class CombatConditions:
             params = operation.params
             kwargs = params.get("kwargs", {})
             duration = kwargs.get("duration")
-            if duration != "until_turn_start":
+            if duration not in {"until_turn_start", "until_source_turn_start"}:
                 continue
             recipient = kwargs.get("target")
             args = params.get("args", [])
@@ -78,8 +79,11 @@ class CombatConditions:
                 continue
             name = params.get("name")
             if name:
+                expiry_actor = (source if duration == "until_source_turn_start"
+                                else condition_target)
                 self._conditions.add(ActiveCondition(
                     name=name.lower(), source=source, target=condition_target,
-                    expires_at_target_turn=self._turns.get(condition_target, 0) + 1,
+                    expires_on_actor=expiry_actor,
+                    expires_at_turn=self._turns.get(expiry_actor, 0) + 1,
                 ))
         return result
