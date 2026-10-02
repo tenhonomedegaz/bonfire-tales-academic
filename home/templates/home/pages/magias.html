@@ -42,7 +42,11 @@
           <label class="flex items-center gap-1.5 text-xs text-[var(--muted)]"><input id="mg-ritual" type="checkbox" class="accent-[var(--ember)]"> Ritual</label>
         </div>
       </div>
-      <p class="mt-3 text-xs text-[var(--muted)]"><span id="mg-count">0</span> magia(s)</p>
+      <div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--muted)]">
+        <p><span id="mg-count">0</span> magia(s)</p>
+        <span id="mg-active-filters" hidden aria-live="polite"></span>
+        <button id="mg-clear-filters" type="button" hidden class="rounded border border-[var(--stroke)] px-2 py-1 font-semibold text-[var(--ember)] hover:border-[var(--ember)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--ember)]">Limpar filtros</button>
+      </div>
     </div>
   </div>
 
@@ -93,6 +97,8 @@
   var count = document.getElementById('mg-count');
   var fBusca = document.getElementById('mg-busca'), fClasse = document.getElementById('mg-classe'), fEscola = document.getElementById('mg-escola'),
       fNivel = document.getElementById('mg-nivel'), fConc = document.getElementById('mg-conc'), fRitual = document.getElementById('mg-ritual');
+  var activeFilters = document.getElementById('mg-active-filters');
+  var clearFilters = document.getElementById('mg-clear-filters');
   var mobileMenuButton = document.getElementById('mgMobileMenuButton');
   var mobileBackdrop = document.getElementById('mgMobileBackdrop');
 
@@ -191,6 +197,15 @@
   function render(){
     filtered = filtra();
     count.textContent = filtered.length;
+    var active = [];
+    if(fBusca.value.trim()) active.push('Busca: ' + fBusca.value.trim());
+    if(fClasse.value) active.push('Classe: ' + fClasse.value);
+    if(fEscola.value) active.push('Escola: ' + fEscola.value);
+    if(fNivel.value !== '') active.push('Círculo: ' + fNivel.options[fNivel.selectedIndex].text);
+    if(fConc.checked) active.push('Concentração');
+    if(fRitual.checked) active.push('Ritual');
+    activeFilters.textContent = active.join(' · ');
+    activeFilters.hidden = clearFilters.hidden = !active.length;
     renderList();
   }
 
@@ -326,6 +341,12 @@
   [fBusca, fClasse, fEscola, fNivel, fConc, fRitual].forEach(function(el){
     el.addEventListener('input', render);
     el.addEventListener('change', render);
+  });
+  clearFilters.addEventListener('click', function(){
+    fBusca.value = fClasse.value = fEscola.value = fNivel.value = '';
+    fConc.checked = fRitual.checked = false;
+    render();
+    fBusca.focus({preventScroll:true});
   });
 
   // ---- Drawer mobile ----
