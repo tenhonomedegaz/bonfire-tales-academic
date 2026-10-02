@@ -12,6 +12,47 @@ from .views import _parse_lore_topics
 
 
 class WorldLorePresentationTests(TestCase):
+    def test_generated_region_covers_resolve_without_replacing_editorial_images(self):
+        TbMapLayer.objects.update_or_create(
+            id_layer=0, defaults={'nome': 'Superficie', 'ordem': 0, 'publica': True},
+        )
+        territory = TbTerritorio.objects.create(nome='Teste', slug='teste', camada=0)
+        migration = import_module('home.migrations.0129_world_region_covers')
+        regions = {}
+        for slug, cover in migration.REGION_COVERS.items():
+            self.assertIsNotNone(finders.find(cover))
+            regions[slug] = TbRegiao.objects.create(
+                nome=slug.replace('-', ' ').title(), slug=slug,
+                territorio=territory.nome, camada=0,
+            )
+        original = TbRegiao.objects.create(
+            nome='Auralon', slug='auralon', territorio=territory.nome,
+            camada=0, brasao_url='https://example.invalid/original-auralon.png',
+        )
+
+        migration.assign_region_covers(apps, None)
+        for slug, cover in migration.REGION_COVERS.items():
+            region = regions[slug]
+            region.refresh_from_db()
+            self.assertEqual(region.brasao_url, cover)
+            detail = self.client.get(reverse('regiao_detail', args=[slug]))
+            self.assertEqual(detail.status_code, 200)
+            self.assertEqual(detail.context['imagem_url'], static(cover))
+            self.assertContains(detail, static(cover))
+
+        first = self.client.get(reverse('regiao_detail', args=['agrabbar']))
+        cards = {item['slug']: item for item in first.context['client_regions']}
+        for slug, cover in migration.REGION_COVERS.items():
+            self.assertEqual(cards[slug]['imagem_url'], static(cover))
+        self.assertEqual(cards['auralon']['imagem_url'], original.brasao_url)
+
+        regions['velaryn'].brasao_url = 'https://example.invalid/editorial-velaryn.png'
+        regions['velaryn'].save(update_fields=['brasao_url'])
+        migration.assign_region_covers(apps, None)
+        regions['velaryn'].refresh_from_db()
+        self.assertEqual(regions['velaryn'].brasao_url,
+                         'https://example.invalid/editorial-velaryn.png')
+
     def test_generated_territory_covers_resolve_in_catalog_and_details(self):
         TbMapLayer.objects.update_or_create(
             id_layer=0, defaults={'nome': 'Superficie', 'ordem': 0, 'publica': True},
