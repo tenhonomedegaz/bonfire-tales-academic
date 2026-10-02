@@ -66,10 +66,7 @@
                         <div id="tagFilterOptions" class="mt-3 flex flex-wrap gap-2"></div>
                     </section>
 
-                    <section>
-                        <h3 class="border-b border-bonfire-stroke pb-2 text-xs font-bold uppercase tracking-widest text-bonfire-muted">Pré-requisitos</h3>
-                        <div id="prereqFilterOptions" class="mt-3 flex flex-wrap gap-2"></div>
-                    </section>
+                    <p class="text-xs text-bonfire-muted">Para encontrar um pré-requisito específico, use a busca acima.</p>
                 </div>
 
                 <div class="flex flex-col gap-2 border-t border-bonfire-stroke p-4 sm:flex-row">
@@ -92,7 +89,7 @@
         <button type="button" class="opcao-mobile-backdrop" id="opcaoMobileBackdrop" aria-label="Fechar lista"></button>
 
         <aside class="talent-list-panel xl:sticky xl:top-24 h-full max-h-[calc(100vh-140px)] overflow-y-auto custom-scrollbar flex flex-col gap-1.5 pr-2" id="opcoesList">
-
+            <div id="opcoesListItems" class="flex flex-col gap-1.5"></div>
         </aside>
 
         <main class="talent-detail-panel hidden mt-4 md:mt-0 md:pl-4" id="opcaoDetail">
@@ -116,6 +113,7 @@
     let isAscending = true;
 
     const listContainer = document.getElementById('opcoesList');
+    const listItemsContainer = document.getElementById('opcoesListItems');
     const detailContainer = document.getElementById('opcaoDetail');
     const searchInput = document.getElementById('searchInput');
     const filterToggle = document.getElementById('filterToggle');
@@ -124,23 +122,19 @@
     const filterClose = document.getElementById('filterClose');
     const filterCount = document.getElementById('filterCount');
     const typeFilterOptions = document.getElementById('typeFilterOptions');
-    const mainTagFilterOptions = document.getElementById('mainTagFilterOptions');
     const tagFilterOptions = document.getElementById('tagFilterOptions');
-    const prereqFilterOptions = document.getElementById('prereqFilterOptions');
     const clearFilters = document.getElementById('clearFilters');
     const applyFilterModal = document.getElementById('applyFilterModal');
     const opcaoMobileMenuButton = document.getElementById('opcaoMobileMenuButton');
     const opcaoMobileBackdrop = document.getElementById('opcaoMobileBackdrop');
     const filterOptions = {
         type: [],
-        tag: [],
-        prereq: []
+        tag: []
     };
     let filterCloseTimer = null;
     let activeFilters = {
         type: '',
-        tag: '',
-        prereq: ''
+        tag: ''
     };
     let draftFilters = { ...activeFilters };
     let listAnimationTimer = null;
@@ -256,25 +250,12 @@
         return renderFallbackMarkdown(withToggles);
     }
 
-    function getExtraTags(talento) {
-        return (talento.etiquetas_adicionais || '')
-            .split(',')
-            .map(tag => tag.trim())
-            .filter(Boolean);
-    }
-
-    function capitalizeLabel(value) {
-        return String(value || '')
-            .toLocaleLowerCase('pt-BR')
-            .replace(/(^|\s)(\S)/g, match => match.toLocaleUpperCase('pt-BR'));
-    }
-
     function createFilterChip(value, filterType) {
         const button = document.createElement('button');
         const isActive = draftFilters[filterType] === value;
 
         button.type = 'button';
-        button.textContent = filterType === 'mainTag' ? capitalizeLabel(value) : value;
+        button.textContent = value;
         button.className = [
             'filter-chip-pop rounded border px-3 py-2 text-xs font-bold transition-all duration-200 hover:-translate-y-0.5',
             isActive
@@ -312,18 +293,11 @@
     function renderFilterChips() {
         renderChipGroup(typeFilterOptions, filterOptions.type, 'type', 'Nenhuma categoria cadastrada.');
         renderChipGroup(tagFilterOptions, filterOptions.tag, 'tag', 'Nenhuma tag adicional cadastrada.');
-        renderChipGroup(prereqFilterOptions, filterOptions.prereq, 'prereq', 'Nenhum pré-requisito cadastrado.');
     }
 
     function populateFilters() {
         filterOptions.type = [...new Set(opcoesData.map(o => o.tipo).filter(Boolean))].sort();
         filterOptions.tag = [...new Set(opcoesData.flatMap(o => getExtraTags(o)))].sort();
-        filterOptions.prereq = [...new Set(opcoesData.flatMap(o => 
-            (o.pre_requisito || '')
-            .split(/,|\sou\s/i)
-            .map(s => s.trim())
-            .filter(s => s && s.toLowerCase() !== 'nenhum')
-        ))].sort();
 
         renderFilterChips();
     }
@@ -332,51 +306,61 @@
         const query = searchInput.value.toLowerCase();
         const typeValue = activeFilters.type;
         const tagValue = activeFilters.tag;
-        const prereqValue = activeFilters.prereq;
 
         filteredOpcoes = opcoesData.filter(o => {
             const haystack = [
                 o.nome,
                 o.pre_requisito,
                 o.tipo,
+                o.etiquetas_adicionais,
                 o.descricao
             ].join(' ').toLowerCase();
 
             const matchesSearch = !query || haystack.includes(query);
             const matchesType = !typeValue || o.tipo === typeValue;
             const matchesTag = !tagValue || getExtraTags(o).includes(tagValue);
-            const matchesPrereq = !prereqValue || (o.pre_requisito || '').split(/,|\sou\s/i).map(s => s.trim()).includes(prereqValue);
-
-            return matchesSearch && matchesType && matchesTag && matchesPrereq;
+            return matchesSearch && matchesType && matchesTag;
         });
 
         filteredOpcoes.sort((a, b) => {
-            if (a.nome < b.nome) return isAscending ? -1 : 1;
-            if (a.nome > b.nome) return isAscending ? 1 : -1;
-            return 0;
+            const groupOrder = (a.tipo || '').localeCompare(b.tipo || '', 'pt-BR');
+            return groupOrder || (isAscending ? 1 : -1) * (a.nome || '').localeCompare(b.nome || '', 'pt-BR');
         });
 
-        const activeFilterCount = [typeValue, prereqValue].filter(Boolean).length;
+        const activeFilterCount = [typeValue, tagValue].filter(Boolean).length;
         filterCount.textContent = activeFilterCount;
         filterCount.classList.toggle('hidden', activeFilterCount === 0);
+        if (!filteredOpcoes.some(opcao => opcao.id === selectedOpcaoId)) {
+            selectedOpcaoId = filteredOpcoes[0]?.id ?? null;
+            if (window.location.hash.startsWith('#opcao-')) {
+                history.replaceState(null, '', window.location.pathname + window.location.search);
+            }
+        }
         renderList(animateList);
+        const selected = filteredOpcoes.find(opcao => opcao.id === selectedOpcaoId);
+        if (selected) {
+            renderOpcaoDetail(selected);
+        } else {
+            detailContainer.classList.remove('hidden');
+            detailContainer.innerHTML = '<p class="text-sm text-bonfire-muted">Nenhuma opção corresponde à busca ou aos filtros.</p>';
+        }
     }
 
     function renderList(animateList = false) {
-        if (animateList && listContainer.children.length) {
+        if (animateList && listItemsContainer.children.length) {
             if (listAnimationTimer) clearTimeout(listAnimationTimer);
-            listContainer.classList.remove('talent-list-expanding');
-            listContainer.classList.add('talent-list-collapsing');
+            listItemsContainer.classList.remove('talent-list-expanding');
+            listItemsContainer.classList.add('talent-list-collapsing');
             listAnimationTimer = setTimeout(() => {
-                listContainer.classList.remove('talent-list-collapsing');
+                listItemsContainer.classList.remove('talent-list-collapsing');
                 renderList(false);
-                Array.from(listContainer.children).forEach((child, index) => {
+                Array.from(listItemsContainer.children).forEach((child, index) => {
                     child.style.animationDelay = `${Math.min(index * 18, 160)}ms`;
                 });
-                listContainer.classList.add('talent-list-expanding');
+                listItemsContainer.classList.add('talent-list-expanding');
                 listAnimationTimer = setTimeout(() => {
-                    listContainer.classList.remove('talent-list-expanding');
-                    Array.from(listContainer.children).forEach(child => {
+                    listItemsContainer.classList.remove('talent-list-expanding');
+                    Array.from(listItemsContainer.children).forEach(child => {
                         child.style.animationDelay = '';
                     });
                     listAnimationTimer = null;
@@ -385,20 +369,32 @@
             return;
         }
 
-        listContainer.innerHTML = '';
+        listItemsContainer.innerHTML = '';
         
         if (filteredOpcoes.length === 0) {
-            listContainer.innerHTML = '<p class="text-bonfire-muted text-sm p-3 text-center">Nenhuma opção encontrada.</p>';
+            listItemsContainer.innerHTML = '<p class="text-bonfire-muted text-sm p-3 text-center">Nenhuma opção encontrada.</p>';
             return;
         }
 
+        const groupCounts = filteredOpcoes.reduce((counts, opcao) => {
+            const group = opcao.tipo || 'Outras opções';
+            counts.set(group, (counts.get(group) || 0) + 1);
+            return counts;
+        }, new Map());
+        let previousGroup = null;
         filteredOpcoes.forEach(opcao => {
+            const group = opcao.tipo || 'Outras opções';
+            if (group !== previousGroup) {
+                const heading = document.createElement('h3');
+                heading.className = 'mt-3 border-b border-bonfire-stroke pb-1 font-cinzel text-xs font-bold uppercase tracking-wide text-bonfire-flame';
+                heading.textContent = `${group} (${groupCounts.get(group)})`;
+                listItemsContainer.appendChild(heading);
+                previousGroup = group;
+            }
             const isSelected = opcao.id === selectedOpcaoId;
             const borderClass = isSelected ? 'border-bonfire-ember' : 'border-transparent';
             const bgClass = isSelected ? 'bg-bonfire-bg1' : 'hover:bg-bonfire-bg1';
             const textClass = isSelected ? 'text-bonfire-text' : 'text-bonfire-muted';
-            const tipoStr = (opcao.tipo || '').toLowerCase();
-            const typeBadgeColor = tipoStr ? 'border-bonfire-flame text-bonfire-flame' : 'border-bonfire-stroke text-bonfire-muted';
             
             const hasPrereq = opcao.pre_requisito && opcao.pre_requisito.toLowerCase() !== 'nenhum';
             const prereqStr = hasPrereq ? `
@@ -407,8 +403,10 @@
                 </span>
             ` : '';
 
-            const item = document.createElement('div');
-            item.className = `p-2.5 cursor-pointer rounded-md border transition-all duration-200 ${borderClass} ${bgClass} flex flex-col gap-1.5`;
+            const item = document.createElement('button');
+            item.type = 'button';
+            item.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+            item.className = `w-full text-left p-2.5 cursor-pointer rounded-md border transition-all duration-200 ${borderClass} ${bgClass} flex flex-col gap-1.5`;
             item.onclick = () => selectOpcao(opcao.id);
 
             item.innerHTML = `
@@ -416,25 +414,25 @@
                     <h3 class="font-bold text-[13px] ${textClass} transition-colors truncate">${escapeHtml(opcao.nome)}</h3>
                 </div>
                 <div class="flex flex-wrap gap-2">
-                    <span class="text-[9px] font-bold px-2 py-0.5 rounded border uppercase tracking-wider ${typeBadgeColor}">
-                        ${escapeHtml(opcao.tipo || '')}
-                    </span>
-                    ${getExtraTags(opcao).map(tag => `<span class="text-[9px] text-bonfire-muted border border-bonfire-stroke px-1.5 py-0.5 rounded uppercase tracking-wider">${tag}</span>`).join('')}
+                    ${getExtraTags(opcao).map(tag => `<span class="text-[9px] text-bonfire-muted border border-bonfire-stroke px-1.5 py-0.5 rounded uppercase tracking-wider">${escapeHtml(tag)}</span>`).join('')}
                     ${prereqStr}
                 </div>
             `;
-            listContainer.appendChild(item);
+            listItemsContainer.appendChild(item);
         });
     }
 
     function selectOpcao(id) {
-        selectedOpcaoId = id;
-        renderList(); // Atualiza seleção na lista
-        
-        closeOpcaoMenu();
         const opcao = opcoesData.find(t => t.id === id);
         if (!opcao) return;
+        selectedOpcaoId = id;
+        renderList(); // Atualiza seleção na lista
+        closeOpcaoMenu();
+        if (opcao.slug) history.replaceState(null, '', `#opcao-${encodeURIComponent(opcao.slug)}`);
+        renderOpcaoDetail(opcao);
+    }
 
+    function renderOpcaoDetail(opcao) {
         const hasPrereq = opcao.pre_requisito && opcao.pre_requisito.toLowerCase() !== 'nenhum';
 
         // Renderizar detalhes
@@ -449,7 +447,7 @@
             <div class="mb-2.5 flex flex-wrap items-center justify-between gap-2">
                 <div class="flex flex-wrap gap-2">
                     <span class="text-xs font-bold px-2 py-1 rounded border border-bonfire-flame text-bonfire-flame uppercase tracking-wider">${escapeHtml(opcao.tipo)}</span>
-                    ${getExtraTags(opcao).map(tag => `<span class="text-xs font-bold px-2 py-1 rounded border border-bonfire-stroke text-bonfire-muted uppercase tracking-wider">${tag}</span>`).join('')}
+                    ${getExtraTags(opcao).map(tag => `<span class="text-xs font-bold px-2 py-1 rounded border border-bonfire-stroke text-bonfire-muted uppercase tracking-wider">${escapeHtml(tag)}</span>`).join('')}
                 </div>
                 <div class="flex flex-col items-end gap-2">
                     ${canEditWiki ? `<button type="button" class="wiki-edit-button" onclick="openOpcaoEditor(${opcao.id})">Editar wiki</button>` : ''}
@@ -544,6 +542,11 @@
         const result = await response.json();
         const index = opcoesData.findIndex(o => o.id === id);
         if (index >= 0) opcoesData[index] = result.opcao;
+        // O tipo ou as tags editados podem deixar a opção fora dos filtros ativos.
+        searchInput.value = '';
+        activeFilters = { type: '', tag: '' };
+        draftFilters = { ...activeFilters };
+        renderFilterChips();
         selectedOpcaoId = id;
         applyFilters(false);
         selectOpcao(id);
@@ -650,11 +653,10 @@
     });
 
     clearFilters.addEventListener('click', () => {
+        searchInput.value = '';
         activeFilters = {
             type: '',
-            mainTag: '',
-            tag: '',
-            attribute: ''
+            tag: ''
         };
         draftFilters = { ...activeFilters };
         renderFilterChips();
@@ -676,6 +678,15 @@
 
     // Inicialização
     populateFilters();
+    let initialSlug = '';
+    if (window.location.hash.startsWith('#opcao-')) {
+        try {
+            initialSlug = decodeURIComponent(window.location.hash.slice('#opcao-'.length));
+        } catch (_) {
+            // Um fragmento inválido não deve impedir a abertura do catálogo.
+        }
+    }
+    selectedOpcaoId = opcoesData.find(opcao => opcao.slug === initialSlug)?.id ?? null;
     applyFilters(false);
 
     // Move search bar into drawer on mobile
