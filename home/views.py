@@ -11590,6 +11590,7 @@ def _parse_lore_topics(markdown_text):
         'title': 'Visão Geral',
         'content': [], 
     }
+    used_slugs = {'base'}
     
     current_h1_group = None 
     
@@ -11605,12 +11606,26 @@ def _parse_lore_topics(markdown_text):
     for line in lines:
         if line.startswith('## '):
             finalize_h1_group()
-            
-            topics.append(current_topic)
-            
             title = line.lstrip('#').strip()
+            if current_topic['slug'] == 'base' and not topics and slugify(title) == 'visao-geral':
+                # Keep pre-heading prose in the explicit overview, without a
+                # second empty overview or a changed legacy "base" anchor.
+                current_topic['title'] = title
+                continue
+            if current_topic['slug'] != 'base' or any(
+                part if isinstance(part, dict) else str(part).strip()
+                for part in current_topic['content']
+            ):
+                topics.append(current_topic)
+            base_slug = slugify(title) or 'topico'
+            topic_slug = base_slug
+            suffix = 2
+            while topic_slug in used_slugs:
+                topic_slug = f'{base_slug}-{suffix}'
+                suffix += 1
+            used_slugs.add(topic_slug)
             current_topic = {
-                'slug': slugify(title),
+                'slug': topic_slug,
                 'title': title,
                 'content': [],
             }
@@ -11649,7 +11664,11 @@ def _parse_lore_topics(markdown_text):
                 current_topic['content'].append(line)
 
     finalize_h1_group()
-    topics.append(current_topic)
+    if current_topic['slug'] != 'base' or any(
+        part if isinstance(part, dict) else str(part).strip()
+        for part in current_topic['content']
+    ):
+        topics.append(current_topic)
     
     
     for t in topics:
@@ -11769,7 +11788,7 @@ def regiao_detail_view(request, slug):
         color = territory_obj.cor_hex if territory_obj and territory_obj.cor_hex else _territory_color(name)
         display_color = _get_display_color(color)
         contrast = _get_contrast_color(color)
-        image_url = _asset_url(territory_obj.imagem_url) if territory_obj and territory_obj.imagem_url else _asset_url(getattr(items[0], 'brasao_url', None) if items else None)
+        image_url = _asset_url(territory_obj.imagem_url if territory_obj else None)
         territory_topics = _parse_lore_topics(territory_obj.lore_markdown or '') if territory_obj else []
         client_territories[name] = {
             'type': 'territory',
@@ -11938,7 +11957,7 @@ def territorio_detail_view(request, slug):
         color = territory_obj.cor_hex if territory_obj and territory_obj.cor_hex else _territory_color(name)
         display_color = _get_display_color(color)
         contrast = _get_contrast_color(color)
-        image_url = _asset_url(territory_obj.imagem_url) if territory_obj and territory_obj.imagem_url else _asset_url(getattr(items[0], 'brasao_url', None) if items else None)
+        image_url = _asset_url(territory_obj.imagem_url if territory_obj else None)
         territory_topics = _parse_lore_topics(territory_obj.lore_markdown or '') if territory_obj else []
         client_territories[name] = {
             'type': 'territory',
