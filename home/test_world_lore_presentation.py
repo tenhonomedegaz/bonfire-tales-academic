@@ -12,6 +12,38 @@ from .views import _parse_lore_topics
 
 
 class WorldLorePresentationTests(TestCase):
+    def test_generated_territory_covers_resolve_in_catalog_and_details(self):
+        TbMapLayer.objects.update_or_create(
+            id_layer=0, defaults={'nome': 'Superficie', 'ordem': 0, 'publica': True},
+        )
+        migration = import_module('home.migrations.0127_world_territory_covers')
+        territories = {}
+        for slug, cover in migration.TERRITORY_COVERS.items():
+            self.assertIsNotNone(finders.find(cover))
+            territories[slug] = TbTerritorio.objects.create(
+                nome=slug.replace('-', ' ').title(), slug=slug, camada=0,
+            )
+
+        migration.assign_territory_covers(apps, None)
+        listing = self.client.get(reverse('mundo_regioes'))
+        self.assertEqual(listing.status_code, 200)
+        cards = {card['slug']: card for card in listing.context['territorios_cards']}
+        for slug, cover in migration.TERRITORY_COVERS.items():
+            territory = territories[slug]
+            territory.refresh_from_db()
+            self.assertEqual(territory.imagem_url, cover)
+            self.assertEqual(cards[slug]['imagem_url'], static(cover))
+            detail = self.client.get(reverse('territorio_detail', args=[slug]))
+            self.assertEqual(detail.status_code, 200)
+            self.assertEqual(detail.context['imagem_url'], static(cover))
+
+        territory = territories['reino-eryndor']
+        territory.imagem_url = 'https://example.invalid/approved-editorial.png'
+        territory.save(update_fields=['imagem_url'])
+        migration.assign_territory_covers(apps, None)
+        territory.refresh_from_db()
+        self.assertEqual(territory.imagem_url, 'https://example.invalid/approved-editorial.png')
+
     def test_realm_cover_matches_reference_without_changing_auralon_image(self):
         TbMapLayer.objects.update_or_create(
             id_layer=0, defaults={'nome': 'Superficie', 'ordem': 0, 'publica': True},
