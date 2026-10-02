@@ -21,9 +21,12 @@
       <a href="{{ hero.cta_url|default:'https://discord.gg/eyqe7rj2AX' }}" class="rounded bg-[var(--flame)] px-5 py-2.5 text-sm font-bold uppercase text-white hover:bg-[var(--ember)]">
         {{ hero.cta_texto|default:'Entrar no Discord' }}
       </a>
-      <a href="{% url 'criacao_ficha' %}" class="rounded border border-white/40 bg-black/40 px-5 py-2.5 text-sm font-bold uppercase text-white hover:border-white">
-        Criar personagem
-      </a>
+      {% if request.user.is_authenticated %}
+      <a id="home-primary-action" href="{% url 'criacao_ficha' %}" class="rounded border border-white/40 bg-black/40 px-5 py-2.5 text-sm font-bold uppercase text-white hover:border-white">Criar personagem</a>
+      {% else %}
+      <a id="home-primary-action" href="{% url 'register' %}" class="rounded border border-white/40 bg-black/40 px-5 py-2.5 text-sm font-bold uppercase text-white hover:border-white">Criar conta para jogar</a>
+      {% endif %}
+      <a href="#como-jogar" class="rounded border border-white/40 bg-black/40 px-5 py-2.5 text-sm font-bold uppercase text-white hover:border-white">Como jogar</a>
     </div>
   </div>
 </section>
@@ -48,14 +51,20 @@
 </section>
 {% endif %}
 
-<section class="border-b border-[var(--stroke)] py-10 md:py-14">
+<section id="como-jogar" class="scroll-mt-20 border-b border-[var(--stroke)] py-10 md:py-14">
   <div class="grid gap-7 lg:grid-cols-[0.75fr_1.25fr]">
     <div>
       <p class="text-xs font-bold uppercase text-[var(--ember)]">Primeiros passos</p>
       <h2 class="mt-2 font-rpg text-3xl font-bold text-[var(--text)]">{{ jornada.titulo|default:'Comece a jogar' }}</h2>
       <p class="mt-3 text-sm leading-relaxed text-[var(--muted)]">{{ jornada.subtitulo }}</p>
-      {% if jornada.cta_texto and jornada.cta_url %}
-      <a href="{{ jornada.cta_url }}" class="mt-5 inline-flex rounded border border-[var(--ember)] px-4 py-2 text-sm font-bold text-[var(--ember)] hover:bg-[var(--ember)] hover:text-black">{{ jornada.cta_texto }}</a>
+      {% if request.user.is_authenticated %}
+        {% if meus_personagens %}
+        <a id="home-next-step" href="{% url 'sistemas_missoes' %}" class="mt-5 inline-flex rounded border border-[var(--ember)] px-4 py-2 text-sm font-bold text-[var(--ember)] hover:bg-[var(--ember)] hover:text-black">Encontrar missão</a>
+        {% else %}
+        <a id="home-next-step" href="{% url 'criacao_ficha' %}" class="mt-5 inline-flex rounded border border-[var(--ember)] px-4 py-2 text-sm font-bold text-[var(--ember)] hover:bg-[var(--ember)] hover:text-black">Criar personagem</a>
+        {% endif %}
+      {% elif jornada.cta_texto and jornada.cta_url %}
+      <a id="home-next-step" href="{{ jornada.cta_url }}" class="mt-5 inline-flex rounded border border-[var(--ember)] px-4 py-2 text-sm font-bold text-[var(--ember)] hover:bg-[var(--ember)] hover:text-black">{{ jornada.cta_texto }}</a>
       {% endif %}
     </div>
     <div class="border-l border-[var(--stroke)] pl-5 md:pl-7">

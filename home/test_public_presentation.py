@@ -45,6 +45,32 @@ class PublicPresentationTests(TestCase):
         self.assertNotContains(response, 'Personagem alheio')
         self.assertContains(response, 'feed=seguindo')
 
+    def test_home_onboarding_links_follow_account_progress(self):
+        visitor = self.client.get(reverse('home'))
+        self.assertContains(visitor, 'href="#como-jogar"')
+        self.assertContains(visitor, 'id="como-jogar"')
+        self.assertContains(visitor, 'id="home-primary-action" href="%s"' % reverse('register'))
+        self.assertContains(visitor, 'id="home-next-step" href="%s"' % reverse('register'))
+
+        journey = TbConteudoEstatico.objects.get(chave='home-jornada')
+        journey.cta_texto = 'Ler o guia'
+        journey.cta_url = reverse('sobre')
+        journey.save(update_fields=['cta_texto', 'cta_url'])
+        visitor_with_editorial_link = self.client.get(reverse('home'))
+        self.assertContains(visitor_with_editorial_link, 'id="home-next-step" href="%s"' % reverse('sobre'))
+
+        player = get_user_model().objects.create_user(username='new-player')
+        self.client.force_login(player)
+        TbPersonagem.objects.create(dono=player, nome='Ficha arquivada', arquivado=True)
+        before_character = self.client.get(reverse('home'))
+        self.assertContains(before_character, 'id="home-primary-action" href="%s"' % reverse('criacao_ficha'))
+        self.assertContains(before_character, 'id="home-next-step" href="%s"' % reverse('criacao_ficha'))
+        self.assertNotContains(before_character, 'id="home-next-step" href="%s"' % reverse('register'))
+
+        TbPersonagem.objects.create(dono=player, nome='Primeira ficha')
+        ready_to_play = self.client.get(reverse('home'))
+        self.assertContains(ready_to_play, 'id="home-next-step" href="%s"' % reverse('sistemas_missoes'))
+
     def test_home_uses_managed_content_without_fake_ads(self):
         bloco = TbConteudoEstatico.objects.get(chave='home-hero')
         bloco.titulo = 'Título editado no admin'
