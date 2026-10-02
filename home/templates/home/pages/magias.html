@@ -63,7 +63,7 @@
       <a href="#magia-{{ magia.slug }}" class="block rounded border border-transparent p-2.5 transition-colors hover:border-bonfire-stroke hover:bg-bonfire-bg1">
         <h3 class="text-[13px] font-bold text-bonfire-muted">{{ magia.nome }}</h3>
         {% if magia.nome_ingles %}<p class="text-[10px] text-bonfire-muted">{{ magia.nome_ingles }}</p>{% endif %}
-        <p class="mt-0.5 text-xs uppercase tracking-wider text-bonfire-muted">{{ magia.nivel_label }} · {{ magia.escola }}</p>
+        <p class="mt-0.5 text-xs text-bonfire-muted">{{ magia.nivel_label }}{% if magia.escola %} <span class="mx-1" aria-hidden="true">·</span> Escola: {{ magia.escola }}{% endif %}</p>
       </a>
       {% endfor %}
       </div>
@@ -74,8 +74,9 @@
       {% if magia %}
       <h2 id="magia-{{ magia.slug }}" class="mb-1 font-cinzel text-xl font-bold uppercase text-bonfire-text">{{ magia.nome }}</h2>
       {% if magia.nome_ingles %}<p class="mb-1 text-xs text-bonfire-muted">{{ magia.nome_ingles }}</p>{% endif %}
-      <p class="mb-3 text-xs text-bonfire-muted">{{ magia.nivel_label }} · {{ magia.escola }}{% if magia.classes %} · {{ magia.classes }}{% endif %}</p>
-      <div class="bonfire-markdown text-[13px] leading-[1.45] text-bonfire-muted">{{ magia.descricao|linebreaks }}</div>
+      <p class="mb-1 text-sm font-semibold text-bonfire-text">{{ magia.nivel_label }}{% if magia.escola %} <span class="ml-2 text-xs font-normal text-bonfire-muted">Escola: {{ magia.escola }}</span>{% endif %}</p>
+      {% if magia.classes %}<p class="mb-3 text-xs text-bonfire-muted">Classes: {{ magia.classes }}</p>{% endif %}
+      <section aria-labelledby="mg-description-title"><h3 id="mg-description-title" class="mb-2 text-sm font-bold text-bonfire-text">Descrição</h3><div class="bonfire-markdown text-sm leading-relaxed text-bonfire-muted">{{ magia.descricao|linebreaks }}</div></section>
       {% else %}
       <p class="text-bonfire-muted">Nenhuma magia cadastrada.</p>
       {% endif %}
@@ -115,7 +116,7 @@
     if(window.marked&&window.marked.parse) return window.marked.parse(v,{gfm:true,breaks:true});
     return esc(v).replace(/\n/g,'<br>');
   }
-  function meta(label,val){return val?'<div><span class="text-[var(--muted)]">'+label+'</span> <span class="text-[var(--text)]">'+esc(val)+'</span></div>':'';}
+  function meta(label,val){return val?'<div class="min-w-0"><dt class="text-xs text-[var(--muted)]">'+label+'</dt><dd class="break-words font-medium text-[var(--text)]">'+esc(val)+'</dd></div>':'';}
   function cookie(name){var row=document.cookie.split('; ').find(function(v){return v.indexOf(name+'=')===0;});return row?decodeURIComponent(row.split('=').slice(1).join('=')):'';}
   function editor(m){
     if(!CAN_EDIT) return '';
@@ -167,7 +168,7 @@
     if(m.concentracao) badges += '<span class="text-[9px] font-bold px-1.5 py-0.5 rounded border border-[var(--flame)] text-[var(--flame)] uppercase tracking-wider">conc.</span>';
     if(m.ritual) badges += '<span class="text-[9px] font-bold px-1.5 py-0.5 rounded border border-[var(--spark)] text-[var(--spark)] uppercase tracking-wider">ritual</span>';
 
-    var sub = esc(m.nivel_label||'') + (m.escola ? ' · ' + esc(m.escola) : '');
+    var sub = esc(m.nivel_label||'') + (m.escola ? ' <span class="mx-1" aria-hidden="true">·</span> Escola: ' + esc(m.escola) : '');
 
     var item = document.createElement('button');
     item.type = 'button';
@@ -177,11 +178,11 @@
     item.onclick = function(){ selectMagia(m.slug); };
     item.innerHTML =
       '<div class="flex justify-between items-start gap-2">'
-        + '<h3 class="font-bold text-[13px] '+textClass+' transition-colors">'+esc(m.nome)+'</h3>'
-        + (m.nome_ingles ? '<p class="text-[10px] text-bonfire-muted">'+esc(m.nome_ingles)+'</p>' : '')
+        + '<h3 class="font-bold text-sm '+textClass+' transition-colors">'+esc(m.nome)+'</h3>'
+        + (m.nome_ingles ? '<p class="text-xs text-bonfire-muted">'+esc(m.nome_ingles)+'</p>' : '')
         + (badges ? '<span class="flex gap-1 shrink-0">'+badges+'</span>' : '')
       + '</div>'
-      + '<p class="text-xs text-bonfire-muted uppercase tracking-wider">'+sub+'</p>';
+      + '<p class="text-xs text-bonfire-muted">'+sub+'</p>';
     return item;
   }
 
@@ -228,8 +229,6 @@
     detailContainer.classList.remove('hidden');
     detailContainer.classList.add('flex', 'flex-col');
 
-    var subtitulo = esc(m.nivel_label||'') + (m.escola ? ' · ' + esc(m.escola) : '') + (m.classes ? ' · ' + esc(m.classes) : '');
-
     var metaHtml = [
       meta('Conjuração', m.casting_time), meta('Alcance', m.alcance), meta('Componentes', m.componentes),
       meta('Duração', m.duracao), meta('Concentração', m.concentracao?'Sim':'Não'), meta('Ritual', m.ritual?'Sim':'Não')
@@ -248,11 +247,12 @@
 
     detailContainer.innerHTML =
       '<h2 tabindex="-1" class="font-cinzel text-xl font-bold text-bonfire-text uppercase mb-1">'+esc(m.nome)+'</h2>'
-      +(m.nome_ingles?'<p class="mb-1 text-xs text-bonfire-muted">'+esc(m.nome_ingles)+'</p>':'')
-      + '<p class="text-xs text-bonfire-muted mb-3">'+subtitulo+'</p>'
-      + '<div class="grid grid-cols-2 gap-x-2.5 gap-y-1.5 text-sm sm:grid-cols-3 mb-2.5">'+metaHtml+'</div>'
+      +(m.nome_ingles?'<p class="mb-2 text-xs text-bonfire-muted">'+esc(m.nome_ingles)+'</p>':'')
+      + '<p class="mb-1 text-sm font-semibold text-bonfire-text">'+esc(m.nivel_label||'')+(m.escola?' <span class="ml-2 text-xs font-normal text-bonfire-muted">Escola: '+esc(m.escola)+'</span>':'')+'</p>'
+      + (m.classes ? '<p class="mb-3 text-xs text-bonfire-muted">Classes: '+esc(m.classes)+'</p>' : '')
+      + '<dl class="grid grid-cols-2 gap-x-3 gap-y-2 border-y border-[var(--stroke)] py-3 text-sm sm:grid-cols-3 mb-4">'+metaHtml+'</dl>'
       + (tagsHtml ? '<div class="mb-3 flex flex-wrap gap-1">'+tagsHtml+'</div>' : '')
-      + '<div class="bonfire-markdown max-w-none text-[13px] leading-[1.45] text-bonfire-muted">'+md(m.descricao)+'</div>'
+      + '<section aria-labelledby="mg-description-title"><h3 id="mg-description-title" class="mb-2 text-sm font-bold text-bonfire-text">Descrição</h3><div class="bonfire-markdown max-w-none text-sm leading-relaxed text-bonfire-muted">'+md(m.descricao)+'</div></section>'
       + niveisHtml + editor(m);
     if(restoreFocus){
       if(window.matchMedia('(max-width: 1100px)').matches){
