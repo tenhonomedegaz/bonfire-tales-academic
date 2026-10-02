@@ -41,7 +41,7 @@
     </form>
   </div>
 
-  <div class="players-meta">
+  <div class="players-meta" tabindex="-1">
     <span>{{ total_encontrados }} perfil{% if total_encontrados != 1 %}s{% endif %}</span>
     <span class="players-meta-actions">
       {% if q or filtro != 'todos' or ordem != 'popular' %}<a href="{% url 'jogadores' %}">Limpar filtros</a>{% endif %}
@@ -163,6 +163,7 @@
       if (currentRequest !== requestNumber) return true;
       document.querySelector('.players-page')?.replaceWith(next);
       if (push && target.href !== window.location.href) history.pushState(null, '', target.href);
+      next.querySelector('.players-meta')?.focus({ preventScroll: true });
       return true;
     } catch (error) {
       if (error.name === 'AbortError') return true;
