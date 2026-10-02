@@ -3357,13 +3357,40 @@ class TbAcessoopcaoAdmin(BonfireAdminMixin, admin.ModelAdmin):
     search_fields = ("id_opcao__nome", "id_classe__nome", "id_subclasse__nome")
 
 
+class RegionCoverFilter(admin.SimpleListFilter):
+    title = 'imagem própria'
+    parameter_name = 'imagem_propria'
+
+    def lookups(self, request, model_admin):
+        return (('pendente', 'Sem imagem própria'), ('pronta', 'Com imagem própria'))
+
+    def queryset(self, request, queryset):
+        with_image = queryset.exclude(brasao_url__isnull=True).exclude(brasao_url='')
+        if self.value() == 'pronta':
+            return with_image
+        if self.value() == 'pendente':
+            return queryset.exclude(pk__in=with_image.values('pk'))
+        return queryset
+
+
 @admin.register(TbRegiao)
 class TbRegiaoAdmin(BonfireAdminMixin, admin.ModelAdmin):
-    list_display = ("nome", "slug", "territorio", "categoria", "camada", "etiquetas_adicionais")
-    list_filter = ("categoria", "territorio", "camada")
+    list_display = ("nome", "slug", "territorio", "cover_preview", "categoria", "camada", "etiquetas_adicionais")
+    list_filter = (RegionCoverFilter, "categoria", "territorio", "camada")
     search_fields = ("nome", "slug", "territorio", "etiquetas_adicionais")
     prepopulated_fields = {"slug": ("nome",)}
     ordering = ("territorio", "nome")
+
+    @admin.display(description='Imagem própria')
+    def cover_preview(self, obj):
+        if not obj.brasao_url:
+            return 'Pendente'
+        from .views import _asset_url
+
+        return format_html(
+            '<img src="{}" alt="" style="width:72px;height:44px;object-fit:cover;border-radius:4px" '
+            'loading="lazy">', _asset_url(obj.brasao_url),
+        )
 
     def formfield_for_dbfield(self, db_field, request, **kwargs):
         if db_field.name == 'territorio':

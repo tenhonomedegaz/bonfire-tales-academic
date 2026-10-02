@@ -8,6 +8,33 @@ from .views import _parse_lore_topics
 
 
 class WorldLorePresentationTests(TestCase):
+    def test_staff_can_find_regions_missing_their_own_image(self):
+        TbRegiao.objects.create(nome='Região sem imagem', slug='regiao-sem-imagem')
+        TbRegiao.objects.create(nome='Região vazia', slug='regiao-vazia', brasao_url='')
+        TbRegiao.objects.create(
+            nome='Região ilustrada', slug='regiao-ilustrada',
+            brasao_url='https://example.invalid/regiao.png',
+        )
+        staff = get_user_model().objects.create_superuser(
+            username='region-editor', email='region@example.invalid', password='test-password',
+        )
+        self.client.force_login(staff)
+        url = reverse('admin:home_tbregiao_changelist')
+
+        missing = self.client.get(url, {'imagem_propria': 'pendente'})
+        self.assertEqual(missing.status_code, 200)
+        self.assertEqual(
+            {item.nome for item in missing.context['cl'].result_list},
+            {'Região sem imagem', 'Região vazia'},
+        )
+        covered = self.client.get(url, {'imagem_propria': 'pronta'})
+        self.assertEqual(covered.status_code, 200)
+        self.assertEqual(
+            [item.nome for item in covered.context['cl'].result_list],
+            ['Região ilustrada'],
+        )
+        self.assertContains(covered, 'https://example.invalid/regiao.png')
+
     def test_staff_can_find_territories_missing_their_own_cover(self):
         TbTerritorio.objects.create(nome='Sem imagem', slug='sem-imagem')
         TbTerritorio.objects.create(nome='Imagem vazia', slug='imagem-vazia', imagem_url='')
