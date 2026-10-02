@@ -43,6 +43,9 @@ class WorldLorePresentationTests(TestCase):
         card = next(card for card in listing.context['territorios_cards']
                     if card['slug'] == territory.slug)
         self.assertEqual(card['imagem_url'], placeholder)
+        self.assertContains(listing, f'href="{reverse("territorio_detail", args=[territory.slug])}"')
+        self.assertContains(listing, f'href="{reverse("mapa")}?region={region.slug}"')
+        self.assertNotContains(listing, "onclick=\"location.href=")
 
         detail = self.client.get(reverse('territorio_detail', args=[territory.slug]))
         self.assertEqual(detail.status_code, 200)

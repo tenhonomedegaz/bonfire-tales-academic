@@ -7,7 +7,7 @@
 {% block ad_containers_right %}{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/pages/regioes.css' %}?v=2">
+<link rel="stylesheet" href="{% static 'css/pages/regioes.css' %}?v=3">
 {% endblock %}
 
 {% block content %}
@@ -35,11 +35,11 @@
 
   <div class="territory-card-grid">
     {% for territorio in territorios_cards %}
-    <article class="territory-card cursor-pointer" onclick="location.href='{{ territorio.url }}'" style="--territory-color: {{ territorio.color }}; --territory-accent: {{ territorio.display_color }}; --territory-contrast: {{ territorio.contrast }}; --territory-image: url('{{ territorio.imagem_url }}');">
+    <article class="territory-card" style="--territory-color: {{ territorio.color }}; --territory-accent: {{ territorio.display_color }}; --territory-contrast: {{ territorio.contrast }}; --territory-image: url('{{ territorio.imagem_url }}');">
       <div class="territory-card-bg"></div>
       <div class="territory-card-content">
         <div class="territory-card-label">{{ territorio.display_nome }} — {{ territorio.locais_count }} locais</div>
-        <h2>{{ territorio.display_nome }}</h2>
+        <h2><a class="territory-card-link" href="{{ territorio.url }}">{{ territorio.display_nome }}</a></h2>
         <p>{{ territorio.descricao_breve }}</p>
         <div class="territory-card-meta">
           <span>
@@ -47,7 +47,7 @@
             {{ territorio.locais_count }} locais conhecidos
           </span>
           {% if territorio.regioes %}
-          <a href="{% url 'mapa' %}?region={{ territorio.regioes.0.slug }}" class="explore-map-btn" onclick="event.stopPropagation()">Explorar mapa</a>
+          <a href="{% url 'mapa' %}?region={{ territorio.regioes.0.slug }}" class="explore-map-btn">Explorar mapa</a>
           {% endif %}
         </div>
         <div class="territory-tags">
