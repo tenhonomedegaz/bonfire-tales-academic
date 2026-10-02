@@ -18,7 +18,6 @@
         <h1 class="font-cinzel text-xl font-bold text-bonfire-text uppercase">Magias</h1>
         <p class="text-bonfire-muted text-[11px] mt-1">Filtre por classe, escola, nível, concentração e ritual. Selecione para ver os detalhes.</p>
       </div>
-      {% if can_edit and user.is_superuser %}<a href="{% url 'admin:home_tbmagia_importar_excel' %}" class="rounded border border-[var(--stroke)] px-3 py-1.5 text-xs text-[var(--muted)] hover:border-[var(--ember)] hover:text-[var(--ember)]">Importar por Excel</a>{% endif %}
     </div>
 
     <!-- Filtros -->

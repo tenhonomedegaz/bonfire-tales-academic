@@ -30,9 +30,6 @@
     {% if db_error %}
       <p class="catalog-empty" style="margin-top:0.6rem;">Banco indisponivel agora: {{ db_error }}</p>
     {% endif %}
-    {% if can_edit_wiki and kind == 'magias' and user.is_superuser %}
-      <a class="catalog-action" href="{% url 'admin:home_tbmagia_importar_excel' %}" style="display:inline-flex;margin-top:0.6rem;text-decoration:none;">Importar magias por Excel</a>
-    {% endif %}
 
     {% if can_edit_wiki and kind == 'organizacoes' %}
       <button type="button" class="catalog-action" id="toggleOrgForm" style="margin-top:0.6rem;">Nova organizacao</button>

@@ -21,6 +21,15 @@
   </section>
   {% endif %}
 
+  {% if result %}
+  <section class="spell-import-card spell-import-result" role="status">
+    <h2>Resultado do lote</h2>
+    <p>{{ result.created }} criadas, {{ result.updated }} atualizadas e {{ result.skipped }} ignoradas.</p>
+    <p>A importacao atualizou o cadastro de magias; publicacao de revisoes e uma etapa separada.</p>
+    <a class="button" href="{% url 'admin:home_tbmagia_changelist' %}">Ver magias no Admin</a>
+  </section>
+  {% endif %}
+
   <section class="spell-import-card">
     <h2>Arquivo Excel</h2>
     <form method="post" enctype="multipart/form-data" class="spell-import-grid" novalidate>
@@ -40,6 +49,7 @@
       <table>
         <thead>
           <tr>
+            <th>Operacao</th>
             <th>Nome</th>
             <th>Nivel</th>
             <th>Escola</th>
@@ -54,6 +64,7 @@
         <tbody>
           {% for magia in preview %}
           <tr>
+            <td>{{ magia.import_action }}</td>
             <td>{{ magia.nome }}</td>
             <td>{{ magia.nivel_display }}</td>
             <td>{{ magia.escola|default:"-" }}</td>
@@ -69,16 +80,15 @@
       </table>
     </div>
 
-    <form method="post">
+    {% if payload and not errors %}<form method="post">
       {% csrf_token %}
       <input type="hidden" name="confirmar" value="1">
       <input type="hidden" name="payload" value="{{ payload|escape }}">
-      <input type="hidden" name="atualizar_existentes" value="{% if atualizar_existentes %}on{% endif %}">
       <div class="submit-row">
         <input type="submit" class="default" value="Confirmar importacao">
         <a class="button cancel-link" href="{% url 'admin:home_tbmagia_changelist' %}">Cancelar</a>
       </div>
-    </form>
+    </form>{% endif %}
   </section>
   {% endif %}
 

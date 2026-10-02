@@ -12,7 +12,8 @@ from django import forms
 from django.conf import settings
 from django.contrib import admin
 from django.contrib import messages
-from django.db import models, transaction
+from django.db import IntegrityError, models, transaction
+from django.core import signing
 
 from django import forms
 from django.conf import settings
@@ -1062,7 +1063,6 @@ class MagiaExcelImportForm(forms.Form):
 
 class MagiaExcelConfirmForm(forms.Form):
     payload = forms.CharField(widget=forms.HiddenInput)
-    atualizar_existentes = forms.BooleanField(required=False, widget=forms.HiddenInput)
 
 
 def _normalize_label(value):
@@ -1148,7 +1148,11 @@ def _parse_excel_bool(value):
     if isinstance(value, bool):
         return value
     text = str(value or "").strip().lower()
-    return text in {"1", "true", "sim", "s", "yes", "y", "verdadeiro"}
+    if text in {"1", "true", "sim", "s", "yes", "y", "verdadeiro"}:
+        return True
+    if text in {"", "0", "false", "nao", "não", "n", "no", "falso"}:
+        return False
+    raise ValueError(f"Ritual invalido: {value}")
 
 
 def _normalize_duration(value):
@@ -1222,10 +1226,13 @@ def _parse_magias_xlsx(uploaded_file):
 
         nome = str(record.get("nome") or "").strip()
         if not nome:
+            if any(value is not None and str(value).strip() for value in row):
+                errors.append(f"Linha {row_number}: nome obrigatorio.")
             continue
 
         try:
             nivel = _parse_spell_level(record.get("nivel"))
+            ritual = _parse_excel_bool(record.get("ritual"))
         except ValueError as exc:
             errors.append(f"Linha {row_number}: {exc}")
             continue
@@ -1237,7 +1244,7 @@ def _parse_magias_xlsx(uploaded_file):
             "nivel": nivel,
             "nivel_display": "Truque" if nivel == 0 else str(nivel),
             "casting_time": str(record.get("casting_time") or "").strip(),
-            "ritual": _parse_excel_bool(record.get("ritual")),
+            "ritual": ritual,
             "duracao": duracao,
             "concentracao": concentracao,
             "escola": str(record.get("escola") or "").strip(),
@@ -3559,6 +3566,9 @@ class TbMagiaAdmin(BonfireAdminMixin, admin.ModelAdmin):
         return super().changelist_view(request, extra_context=extra_context)
 
     def importar_excel_view(self, request):
+        if not self.has_change_permission(request):
+            from django.core.exceptions import PermissionDenied
+            raise PermissionDenied
         context = {
             **self.admin_site.each_context(request),
             "opts": self.model._meta,
@@ -3568,6 +3578,7 @@ class TbMagiaAdmin(BonfireAdminMixin, admin.ModelAdmin):
             "errors": [],
             "payload": "",
             "atualizar_existentes": True,
+            "result": None,
         }
 
         if request.method != "POST":
@@ -3578,55 +3589,53 @@ class TbMagiaAdmin(BonfireAdminMixin, admin.ModelAdmin):
             if not confirm_form.is_valid():
                 messages.error(request, "Nao foi possivel confirmar a importacao.")
                 return render(request, "admin/spell_import.html", context)
+            try:
+                batch = signing.loads(
+                    confirm_form.cleaned_data["payload"],
+                    salt="admin-spell-import-v1", max_age=1800,
+                )
+            except signing.BadSignature:
+                context["errors"] = ["Previa invalida ou expirada. Leia o arquivo novamente."]
+                return render(request, "admin/spell_import.html", context)
+            if batch.get("user_id") != request.user.pk:
+                context["errors"] = ["A previa pertence a outro usuario."]
+                return render(request, "admin/spell_import.html", context)
 
-            magias = json.loads(confirm_form.cleaned_data["payload"])
-            atualizar_existentes = confirm_form.cleaned_data["atualizar_existentes"]
+            magias = batch["spells"]
+            targets = batch["targets"]
             created = 0
             updated = 0
-
-            with transaction.atomic():
-                for item in magias:
-                    existing = TbMagia.objects.filter(slug=item["slug"]).first()
-                    if existing and atualizar_existentes:
-                        magia = existing
-                        magia.nome = item["nome"]
-                        magia.nivel = item["nivel"]
-                        magia.casting_time = item["casting_time"]
-                        magia.ritual = item["ritual"]
-                        magia.duracao = item["duracao"]
-                        magia.concentracao = item["concentracao"]
-                        magia.escola = item["escola"]
-                        magia.alcance = item["alcance"]
-                        magia.componentes = item["componentes"]
-                        magia.classes = item["classes"]
-                        magia.descricao = item["descricao"]
-                        magia.em_niveis_superiores = item["em_niveis_superiores"]
-                        magia.tags_json = item["tags_json"]
-                        magia.save()
+            skipped = 0
+            try:
+                with transaction.atomic():
+                    for item, target in zip(magias, targets, strict=True):
+                        existing = TbMagia.objects.select_for_update().filter(slug=item["slug"]).first()
+                        if (existing.pk if existing else None) != target["pk"] or (
+                            existing and self._spell_import_snapshot(existing) != target["snapshot"]
+                        ):
+                            raise ValueError("O catalogo mudou desde a previa. Leia o arquivo novamente.")
+                        if existing and not batch["update_existing"]:
+                            skipped += 1
+                            continue
+                        values = {field: item[field] for field in self._spell_import_fields()}
+                        if existing:
+                            for field, value in values.items():
+                                setattr(existing, field, value)
+                            existing.save()
+                            magia = existing
+                            updated += 1
+                        else:
+                            magia = TbMagia.objects.create(slug=item["slug"], **values)
+                            created += 1
                         self._sync_imported_classes(magia, item["classes"])
-                        updated += 1
-                    else:
-                        magia = TbMagia.objects.create(
-                            nome=item["nome"],
-                            slug=_unique_spell_slug(item["slug"]),
-                            nivel=item["nivel"],
-                            casting_time=item["casting_time"],
-                            ritual=item["ritual"],
-                            duracao=item["duracao"],
-                            concentracao=item["concentracao"],
-                            escola=item["escola"],
-                            alcance=item["alcance"],
-                            componentes=item["componentes"],
-                            classes=item["classes"],
-                            descricao=item["descricao"],
-                            em_niveis_superiores=item["em_niveis_superiores"],
-                            tags_json=item["tags_json"],
-                        )
-                        self._sync_imported_classes(magia, item["classes"])
-                        created += 1
-
-            messages.success(request, f"Importacao concluida: {created} magias criadas, {updated} atualizadas.")
-            return redirect("admin:home_tbmagia_changelist")
+            except (ValueError, TypeError, KeyError) as exc:
+                context["errors"] = [str(exc)]
+                return render(request, "admin/spell_import.html", context)
+            except IntegrityError:
+                context["errors"] = ["O lote conflitou com o catalogo. Nenhuma linha foi aplicada; leia o arquivo novamente."]
+                return render(request, "admin/spell_import.html", context)
+            context["result"] = {"created": created, "updated": updated, "skipped": skipped}
+            return render(request, "admin/spell_import.html", context)
 
         form = MagiaExcelImportForm(request.POST, request.FILES)
         context["form"] = form
@@ -3636,14 +3645,58 @@ class TbMagiaAdmin(BonfireAdminMixin, admin.ModelAdmin):
                 magias, errors = _parse_magias_xlsx(form.cleaned_data["arquivo"])
             except forms.ValidationError as exc:
                 magias, errors = [], exc.messages
+            slugs = [item["slug"] for item in magias]
+            if len(slugs) != len(set(slugs)):
+                errors.append("A planilha contem magias com o mesmo slug. Corrija antes de importar.")
+            from .spell_access import access_key
+            class_keys = {
+                key for classe in TbClasse.objects.all()
+                for key in (access_key(classe.nome), access_key(classe.slug))
+            }
+            for item in magias:
+                unknown = [token.strip() for token in re.split(r"[,;|]", item["classes"])
+                           if token.strip() and access_key(token) not in class_keys]
+                if unknown:
+                    errors.append(f'{item["nome"]}: classes nao cadastradas: {", ".join(unknown)}.')
+            if not magias and not errors:
+                errors.append("Nenhuma magia valida encontrada na planilha.")
+            targets = []
+            if not errors:
+                existing_by_slug = TbMagia.objects.filter(slug__in=slugs).in_bulk(field_name="slug")
+                targets = [{
+                    "pk": existing.pk if existing else None,
+                    "snapshot": self._spell_import_snapshot(existing) if existing else None,
+                } for existing in (existing_by_slug.get(slug) for slug in slugs)]
+                for item, target in zip(magias, targets, strict=True):
+                    item["import_action"] = (
+                        "Atualizar" if target["pk"] and form.cleaned_data["atualizar_existentes"]
+                        else "Ignorar" if target["pk"] else "Criar"
+                    )
             context.update({
                 "preview": magias,
                 "errors": errors,
-                "payload": json.dumps(magias, ensure_ascii=False),
+                "payload": signing.dumps({
+                    "user_id": request.user.pk,
+                    "spells": magias,
+                    "targets": targets,
+                    "update_existing": form.cleaned_data["atualizar_existentes"],
+                }, salt="admin-spell-import-v1") if not errors else "",
                 "atualizar_existentes": form.cleaned_data["atualizar_existentes"],
             })
             return render(request, "admin/spell_import.html", context)
         return render(request, "admin/spell_import.html", context)
+
+    @staticmethod
+    def _spell_import_fields():
+        return (
+            "nome", "nivel", "casting_time", "ritual", "duracao", "concentracao",
+            "escola", "alcance", "componentes", "classes", "descricao",
+            "em_niveis_superiores", "tags_json",
+        )
+
+    @classmethod
+    def _spell_import_snapshot(cls, magia):
+        return {field: getattr(magia, field) for field in (*cls._spell_import_fields(), "classes_slugs")}
 
     @staticmethod
     def _sync_imported_classes(magia, raw_classes):
