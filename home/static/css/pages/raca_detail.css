@@ -397,7 +397,19 @@
   .race-hero-media {
     flex-shrink: 0;
   }
+  .race-hero-art-button {
+    display: grid;
+    gap: .3rem;
+    color: var(--muted);
+    font-size: .7rem;
+    text-align: center;
+  }
+  .race-hero-art-button[hidden] { display: none; }
+  .race-hero-art-button:hover .race-hero-thumb,
+  .race-hero-art-button:focus-visible .race-hero-thumb { border-color: var(--ember); }
+  .race-hero-art-button:focus-visible { outline: 2px solid var(--ember); outline-offset: 3px; }
   .race-hero-thumb {
+    display: block;
     width: 132px;
     height: 132px;
     border-radius: 8px;
@@ -407,6 +419,22 @@
     background-position: center;
     transition: background-image 0.4s ease;
   }
+  .race-art-dialog {
+    position: fixed;
+    inset: 0;
+    margin: auto;
+    max-width: min(96vw, 1100px);
+    max-height: 94vh;
+    padding: 1rem;
+    border: 1px solid var(--stroke);
+    border-radius: 10px;
+    background: var(--bg1);
+    color: var(--text);
+  }
+  .race-art-dialog::backdrop { background: rgba(0, 0, 0, .85); }
+  .race-art-dialog-close { display: block; margin: 0 0 .5rem auto; color: var(--text); }
+  .race-art-dialog-close:focus-visible { outline: 2px solid var(--ember); }
+  .race-art-dialog img { display: block; max-width: 100%; max-height: calc(94vh - 4rem); object-fit: contain; }
   .race-hero-body {
     min-width: 0;
     flex: 1;

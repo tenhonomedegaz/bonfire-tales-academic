@@ -20,7 +20,10 @@
       <!-- ============ HERO / CABEÇALHO DA RAÇA ============ -->
       <header class="race-hero">
         <div class="race-hero-media">
-          <div id="racePreviewImage" class="race-hero-thumb"{% if raca.image_url %} style="background-image: url('{{ raca.image_url }}')"{% endif %}></div>
+          <button id="raceArtOpen" type="button" class="race-hero-art-button" aria-label="Ver arte completa de {{ raca.nome }}"{% if not raca.image_url %} hidden{% endif %}>
+            <span id="racePreviewImage" class="race-hero-thumb"{% if raca.image_url %} style="background-image: url('{{ raca.image_url }}')"{% endif %}></span>
+            <span class="race-hero-art-caption">Ver arte completa</span>
+          </button>
         </div>
         <div class="race-hero-body">
           <h1 data-race-title class="race-hero-title font-rpg">{{ raca.nome }}</h1>
@@ -29,6 +32,10 @@
           {% endif %}
         </div>
       </header>
+      <dialog id="raceArtDialog" class="race-art-dialog" aria-label="Arte completa">
+        <button type="button" class="race-art-dialog-close" data-race-art-close aria-label="Fechar arte">Fechar ×</button>
+        <img id="raceArtFullImage" alt="" loading="lazy">
+      </dialog>
 
       {% if can_edit_wiki %}
       <div class="flex justify-end mb-2.5">

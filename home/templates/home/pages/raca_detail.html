@@ -4,7 +4,7 @@
 {% block main_class %}flex-1 w-full py-2.5{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/pages/raca_detail.css' %}?v=5">
+<link rel="stylesheet" href="{% static 'css/pages/raca_detail.css' %}?v=6">
 
 {% endblock %}
 
@@ -153,6 +153,19 @@
     const container = document.getElementById('raceDetailContainer');
     if (!container) return;
 
+    const artOpen = document.getElementById('raceArtOpen');
+    const artDialog = document.getElementById('raceArtDialog');
+    const artFullImage = document.getElementById('raceArtFullImage');
+    artOpen?.addEventListener('click', () => {
+      if (!artFullImage?.src || !artDialog) return;
+      artDialog.showModal();
+    });
+    artDialog?.querySelector('[data-race-art-close]')?.addEventListener('click', () => artDialog.close());
+    artDialog?.addEventListener('close', () => artOpen?.focus());
+    artDialog?.addEventListener('click', event => {
+      if (event.target === artDialog) artDialog.close();
+    });
+
     // 0. Lore: garante o primeiro botão/painel ativo em cada grupo de subtópicos
     //    (o clique é tratado pelo handler global de markdown.js)
     container.querySelectorAll('.race-lore-group').forEach(group => {
@@ -270,7 +283,16 @@
         }
       }
 
-      if (previewImg) previewImg.style.backgroundImage = `url('${imgUrl}')`;
+      if (previewImg) previewImg.style.backgroundImage = imgUrl ? `url('${imgUrl}')` : 'none';
+      if (artOpen) {
+        artOpen.hidden = !imgUrl;
+        artOpen.setAttribute('aria-label', `Ver arte completa de ${selectionName}`);
+      }
+      if (artFullImage) {
+        if (imgUrl) artFullImage.src = imgUrl;
+        else artFullImage.removeAttribute('src');
+        artFullImage.alt = `Arte de ${selectionName}`;
+      }
       if (previewTitle) previewTitle.textContent = selectionName;
       if (previewLabel) previewLabel.textContent = labelText;
 
