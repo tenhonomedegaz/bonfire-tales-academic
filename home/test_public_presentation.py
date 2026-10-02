@@ -1,10 +1,50 @@
+from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.urls import reverse
+from django.utils import timezone
 
-from .models import TbConteudoEstatico, TbMapLayer, TbRegiao, TbTerritorio
+from .models import TbConteudoEstatico, TbCronica, TbJornal, TbMapLayer, TbPersonagem, TbRegiao, TbTerritorio
 
 
 class PublicPresentationTests(TestCase):
+    def test_home_shows_only_published_community_stories(self):
+        author = get_user_model().objects.create_user(username='story-author')
+        published = TbCronica.objects.create(
+            titulo='História pública', slug='historia-publica',
+            conteudo_markdown='Um relato completo.', autor=author,
+            status='aprovada', data_publicacao=timezone.now(),
+        )
+        TbCronica.objects.create(
+            titulo='Rascunho privado', slug='rascunho-privado',
+            conteudo_markdown='Ainda em revisão.', autor=author, status='pendente',
+        )
+        TbJornal.objects.create(titulo='Artigo do jornal', slug='artigo-do-jornal')
+
+        response = self.client.get(reverse('home'))
+
+        self.assertContains(response, published.titulo)
+        self.assertContains(response, reverse('cronica_detail', kwargs={'slug': published.slug}))
+        self.assertNotContains(response, 'Rascunho privado')
+        self.assertNotContains(response, 'Artigo do jornal')
+        self.assertNotContains(response, 'Volte para a aventura')
+
+    def test_home_personal_shortcuts_are_owned_and_active_only(self):
+        owner = get_user_model().objects.create_user(username='home-owner')
+        other = get_user_model().objects.create_user(username='other-owner')
+        active = TbPersonagem.objects.create(dono=owner, nome='Minha heroína')
+        TbPersonagem.objects.create(dono=owner, nome='No cofre', arquivado=True)
+        TbPersonagem.objects.create(dono=other, nome='Personagem alheio')
+        self.client.force_login(owner)
+
+        response = self.client.get(reverse('home'))
+
+        self.assertContains(response, 'Volte para a aventura')
+        self.assertContains(response, reverse('ficha_detail', kwargs={'pk': active.pk}))
+        self.assertContains(response, 'Minha heroína')
+        self.assertNotContains(response, 'No cofre')
+        self.assertNotContains(response, 'Personagem alheio')
+        self.assertContains(response, 'feed=seguindo')
+
     def test_home_uses_managed_content_without_fake_ads(self):
         bloco = TbConteudoEstatico.objects.get(chave='home-hero')
         bloco.titulo = 'Título editado no admin'

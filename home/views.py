@@ -542,11 +542,17 @@ def _site_traco(doc):
 def home_view(request):
     from .models import TbConteudoEstatico
 
-    try:
-        from .models import TbJornal
-        ultimas_noticias = TbJornal.objects.all().order_by('-data_publicacao')[:3]
-    except Exception:
-        ultimas_noticias = []
+    ultimas_cronicas = (
+        TbCronica.objects.filter(status='aprovada', data_publicacao__isnull=False)
+        .exclude(conteudo_markdown='')
+        .select_related('autor')
+        .order_by('-data_publicacao', '-pk')[:3]
+    )
+    meus_personagens = (
+        request.user.personagens.filter(arquivado=False)
+        .order_by('-atualizado_em', '-pk')[:3]
+        if request.user.is_authenticated else []
+    )
 
     blocos = {
         bloco.chave: bloco
@@ -560,7 +566,8 @@ def home_view(request):
         ),
         'canonical_path': '/',
         'ads_enabled': True,
-        'ultimas_noticias': ultimas_noticias,
+        'ultimas_cronicas': ultimas_cronicas,
+        'meus_personagens': meus_personagens,
         'hero': blocos.get('home-hero'),
         'jornada': blocos.get('home-jornada'),
         'atlas': blocos.get('home-atlas'),

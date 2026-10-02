@@ -28,6 +28,26 @@
   </div>
 </section>
 
+{% if request.user.is_authenticated %}
+<section class="border-b border-[var(--stroke)] py-6" aria-label="Acesso rápido à sua jornada">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <p class="text-xs font-bold uppercase text-[var(--ember)]">Sua jornada</p>
+      <h2 class="mt-1 font-rpg text-2xl font-bold text-[var(--text)]">Volte para a aventura</h2>
+    </div>
+    <a href="{% url 'personagens' %}" class="rounded border border-[var(--stroke)] px-4 py-2 text-sm font-bold text-[var(--text)] hover:border-[var(--ember)]">Todos os meus personagens</a>
+  </div>
+  <nav class="mt-4 flex flex-wrap gap-2" aria-label="Seus personagens e atividades">
+    {% for personagem in meus_personagens %}
+      <a href="{% url 'ficha_detail' pk=personagem.pk %}" class="rounded border border-[var(--stroke)] bg-[var(--bg1)] px-4 py-2 text-sm font-semibold text-[var(--text)] hover:border-[var(--ember)]">{{ personagem.nome }}</a>
+    {% empty %}
+      <a href="{% url 'criacao_ficha' %}" class="rounded border border-[var(--ember)] px-4 py-2 text-sm font-semibold text-[var(--ember)]">Criar meu primeiro personagem</a>
+    {% endfor %}
+    <a href="{% url 'mundo_cronicas' %}?feed=seguindo" class="rounded border border-[var(--stroke)] px-4 py-2 text-sm font-semibold text-[var(--text)] hover:border-[var(--ember)]">Crônicas de quem sigo</a>
+  </nav>
+</section>
+{% endif %}
+
 <section class="border-b border-[var(--stroke)] py-10 md:py-14">
   <div class="grid gap-7 lg:grid-cols-[0.75fr_1.25fr]">
     <div>
@@ -68,34 +88,29 @@
 </section>
 
 <section class="border-b border-[var(--stroke)] py-10 md:py-14">
-  <header class="mb-5 flex items-end justify-between gap-4">
+  <header class="mb-5 flex flex-col items-start gap-3 sm:flex-row sm:items-end sm:justify-between">
     <div>
       <p class="text-xs font-bold uppercase text-[var(--ember)]">Conteúdo da comunidade</p>
       <h2 class="mt-2 font-rpg text-3xl font-bold text-[var(--text)]">Histórias que passam a fazer parte do mundo</h2>
     </div>
-    <a href="{% url 'mundo_cronicas' %}" class="hidden text-sm font-bold text-[var(--ember)] hover:text-[var(--spark)] sm:block">Ver crônicas</a>
+    <a href="{% url 'mundo_cronicas' %}" class="text-sm font-bold text-[var(--ember)] hover:text-[var(--spark)]">Ver crônicas</a>
   </header>
   <div class="grid gap-3 md:grid-cols-3">
-    {% if ultimas_noticias %}
-      {% for noticia in ultimas_noticias %}
+    {% if ultimas_cronicas %}
+      {% for cronica in ultimas_cronicas %}
       <article class="border-t border-[var(--stroke)] py-3">
-        <time class="text-xs text-[var(--muted)]">{{ noticia.data_publicacao|date:'d/m/Y' }}</time>
-        <h3 class="mt-2 font-rpg text-lg font-bold text-[var(--text)]">{{ noticia.titulo }}</h3>
-        {% if noticia.resumo %}<p class="mt-2 text-sm leading-relaxed text-[var(--muted)]">{{ noticia.resumo }}</p>{% endif %}
-        <a href="{% url 'jornal_detail' slug=noticia.slug %}" class="mt-3 inline-flex text-sm font-bold text-[var(--ember)]">Ler publicação</a>
+        <time class="text-xs text-[var(--muted)]" datetime="{{ cronica.data_publicacao|date:'c' }}">{{ cronica.data_publicacao|date:'d/m/Y' }}</time>
+        <h3 class="mt-2 font-rpg text-lg font-bold text-[var(--text)]">{{ cronica.titulo }}</h3>
+        <p class="mt-1 text-xs text-[var(--muted)]">Por {{ cronica.autor.username }}</p>
+        {% if cronica.resumo %}<p class="mt-2 text-sm leading-relaxed text-[var(--muted)]">{{ cronica.resumo }}</p>{% endif %}
+        <a href="{% url 'cronica_detail' slug=cronica.slug %}" class="mt-3 inline-flex text-sm font-bold text-[var(--ember)]">Ler crônica</a>
       </article>
       {% endfor %}
     {% else %}
-      <article class="border-t border-[var(--stroke)] py-3 md:col-span-2">
-        <h3 class="font-rpg text-lg font-bold text-[var(--text)]">Crônicas de aventura</h3>
-        <p class="mt-2 text-sm leading-relaxed text-[var(--muted)]">Relatos aprovados registram acontecimentos das mesas e preservam a memória compartilhada de Cinéria.</p>
-        <a href="{% url 'mundo_cronicas' %}" class="mt-3 inline-flex text-sm font-bold text-[var(--ember)]">Abrir crônicas</a>
-      </article>
-      <article class="border-t border-[var(--stroke)] py-3">
-        <h3 class="font-rpg text-lg font-bold text-[var(--text)]">Jornal de Cinéria</h3>
-        <p class="mt-2 text-sm leading-relaxed text-[var(--muted)]">Notícias do cenário organizam mudanças políticas, descobertas e consequências das aventuras.</p>
-        <a href="{% url 'mundo_jornal' %}" class="mt-3 inline-flex text-sm font-bold text-[var(--ember)]">Abrir jornal</a>
-      </article>
+      <p class="border-t border-[var(--stroke)] py-3 text-sm text-[var(--muted)] md:col-span-3">Ainda não há crônicas aprovadas para mostrar aqui. Explore as histórias e o jornal de Cinéria enquanto a comunidade escreve as próximas aventuras.
+        <a href="{% url 'mundo_cronicas' %}" class="font-bold text-[var(--ember)]">Abrir crônicas</a> ·
+        <a href="{% url 'mundo_jornal' %}" class="font-bold text-[var(--ember)]">Abrir jornal</a>
+      </p>
     {% endif %}
   </div>
 </section>
