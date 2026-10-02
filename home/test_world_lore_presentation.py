@@ -16,19 +16,25 @@ class WorldLorePresentationTests(TestCase):
         TbMapLayer.objects.update_or_create(
             id_layer=0, defaults={'nome': 'Superficie', 'ordem': 0, 'publica': True},
         )
-        migration = import_module('home.migrations.0127_world_territory_covers')
+        migrations = [
+            import_module('home.migrations.0127_world_territory_covers'),
+            import_module('home.migrations.0128_remaining_world_territory_covers'),
+        ]
+        covers = {slug: cover for migration in migrations
+                  for slug, cover in migration.TERRITORY_COVERS.items()}
         territories = {}
-        for slug, cover in migration.TERRITORY_COVERS.items():
+        for slug, cover in covers.items():
             self.assertIsNotNone(finders.find(cover))
             territories[slug] = TbTerritorio.objects.create(
                 nome=slug.replace('-', ' ').title(), slug=slug, camada=0,
             )
 
-        migration.assign_territory_covers(apps, None)
+        for migration in migrations:
+            migration.assign_territory_covers(apps, None)
         listing = self.client.get(reverse('mundo_regioes'))
         self.assertEqual(listing.status_code, 200)
         cards = {card['slug']: card for card in listing.context['territorios_cards']}
-        for slug, cover in migration.TERRITORY_COVERS.items():
+        for slug, cover in covers.items():
             territory = territories[slug]
             territory.refresh_from_db()
             self.assertEqual(territory.imagem_url, cover)
@@ -40,7 +46,8 @@ class WorldLorePresentationTests(TestCase):
         territory = territories['reino-eryndor']
         territory.imagem_url = 'https://example.invalid/approved-editorial.png'
         territory.save(update_fields=['imagem_url'])
-        migration.assign_territory_covers(apps, None)
+        for migration in migrations:
+            migration.assign_territory_covers(apps, None)
         territory.refresh_from_db()
         self.assertEqual(territory.imagem_url, 'https://example.invalid/approved-editorial.png')
 
