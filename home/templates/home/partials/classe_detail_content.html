@@ -39,9 +39,11 @@
     </header>
 
     {% if progression_table %}
-    <div data-progression-table class="mb-2.5 overflow-x-auto rounded border border-[var(--stroke)] bg-[var(--bg1)] custom-scrollbar">
+    <p class="class-progression-hint mb-1 text-xs text-[var(--muted)]">Deslize a tabela para ver todas as colunas. O nível permanece visível.</p>
+    <div data-progression-table class="class-progression-scroll mb-2.5 overflow-x-auto rounded border border-[var(--stroke)] bg-[var(--bg1)] custom-scrollbar" role="region" aria-label="Progressão de {{ classe.nome }}" tabindex="0">
       <div class="min-w-[700px]">
         <table class="w-full table-auto border-collapse text-[11px]">
+          <caption class="sr-only">Progressão da classe {{ classe.nome }} por nível</caption>
           <colgroup>
             <col class="w-12">
             {% for col in colunas %}

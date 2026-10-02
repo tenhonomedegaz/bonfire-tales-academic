@@ -89,6 +89,31 @@
   .class-nav-filtering {
     animation: bonfireSlideDownIn .28s ease both;
   }
+  .class-progression-scroll:focus-visible {
+    outline: 2px solid var(--spark);
+    outline-offset: 2px;
+  }
+  .class-progression-scroll th:first-child,
+  .class-progression-scroll td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background: var(--bg1);
+  }
+  .class-progression-scroll thead th:first-child {
+    z-index: 3;
+    background: #3a0b0b;
+  }
+  .class-progression-scroll tbody tr:nth-child(even) td:first-child {
+    background: #171719;
+  }
+  @media (min-width: 769px) {
+    .class-progression-hint { display: none; }
+  }
+  @media (max-width: 768px) {
+    .class-progression-scroll table { font-size: 12px; }
+    .class-progression-scroll th { font-size: 11px; }
+  }
   [data-subclass-column] {
     transition: opacity .55s ease, width .75s cubic-bezier(.2, .8, .2, 1), max-width .75s cubic-bezier(.2, .8, .2, 1), padding .75s cubic-bezier(.2, .8, .2, 1), border-color .75s ease, transform .75s cubic-bezier(.2, .8, .2, 1), color .4s ease;
     transform-origin: left center;
