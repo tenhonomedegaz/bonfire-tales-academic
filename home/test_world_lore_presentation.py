@@ -1,4 +1,8 @@
+from importlib import import_module
+
+from django.apps import apps
 from django.contrib.auth import get_user_model
+from django.contrib.staticfiles import finders
 from django.test import TestCase
 from django.templatetags.static import static
 from django.urls import reverse
@@ -8,6 +12,42 @@ from .views import _parse_lore_topics
 
 
 class WorldLorePresentationTests(TestCase):
+    def test_realm_cover_matches_reference_without_changing_auralon_image(self):
+        TbMapLayer.objects.update_or_create(
+            id_layer=0, defaults={'nome': 'Superficie', 'ordem': 0, 'publica': True},
+        )
+        realm = TbTerritorio.objects.create(
+            nome='Reino Auraliano', slug='reino-auraliano', camada=0,
+        )
+        auralon_image = 'https://i.imgur.com/KIAfZx2.png'
+        city = TbRegiao.objects.create(
+            nome='Auralon', slug='auralon', territorio=realm.nome,
+            camada=0, brasao_url=auralon_image,
+        )
+        migration = import_module('home.migrations.0126_reino_auraliano_cover')
+        self.assertIsNotNone(finders.find(migration.REALM_COVER))
+
+        migration.assign_realm_cover(apps, None)
+        realm.refresh_from_db()
+        city.refresh_from_db()
+        self.assertEqual(realm.imagem_url, migration.REALM_COVER)
+        self.assertEqual(city.brasao_url, auralon_image)
+
+        cover_url = static(migration.REALM_COVER)
+        listing = self.client.get(reverse('mundo_regioes'))
+        card = next(item for item in listing.context['territorios_cards']
+                    if item['slug'] == realm.slug)
+        self.assertEqual(card['imagem_url'], cover_url)
+        detail = self.client.get(reverse('territorio_detail', args=[realm.slug]))
+        self.assertEqual(detail.context['imagem_url'], cover_url)
+        self.assertEqual(detail.context['client_territories'][realm.nome]['imagem_url'], cover_url)
+
+        realm.imagem_url = 'https://example.invalid/editorial.png'
+        realm.save(update_fields=['imagem_url'])
+        migration.assign_realm_cover(apps, None)
+        realm.refresh_from_db()
+        self.assertEqual(realm.imagem_url, 'https://example.invalid/editorial.png')
+
     def test_staff_can_find_regions_missing_their_own_image(self):
         TbRegiao.objects.create(nome='Região sem imagem', slug='regiao-sem-imagem')
         TbRegiao.objects.create(nome='Região vazia', slug='regiao-vazia', brasao_url='')
