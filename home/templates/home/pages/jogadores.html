@@ -33,7 +33,7 @@
       {% if q %}<input type="hidden" name="q" value="{{ q }}">{% endif %}
       {% if filtro != 'todos' %}<input type="hidden" name="filtro" value="{{ filtro }}">{% endif %}
       <label for="players-order">Ordenar</label>
-      <select id="players-order" name="ordem" onchange="this.form.submit()">
+      <select id="players-order" name="ordem">
         {% for item in sort_options %}
         <option value="{{ item.key }}" {% if item.key == ordem %}selected{% endif %}>{{ item.label }}</option>
         {% endfor %}
@@ -135,4 +135,75 @@
   </nav>
   {% endif %}
 </section>
+<script>
+(() => {
+  const pathname = new URL('{% url "jogadores" %}', window.location.href).pathname;
+  let pending = null;
+  let requestNumber = 0;
+
+  async function updatePlayers(url, push = true) {
+    const target = new URL(url, window.location.href);
+    if (target.origin !== window.location.origin || target.pathname !== pathname) return false;
+    pending?.abort();
+    const controller = new AbortController();
+    pending = controller;
+    const currentRequest = ++requestNumber;
+    const page = document.querySelector('.players-page');
+    page?.setAttribute('aria-busy', 'true');
+    try {
+      const response = await fetch(target.href, {
+        headers: { 'Accept': 'text/html' },
+        credentials: 'same-origin',
+        signal: controller.signal,
+      });
+      if (!response.ok) throw new Error('Falha ao carregar jogadores');
+      const html = new DOMParser().parseFromString(await response.text(), 'text/html');
+      const next = html.querySelector('.players-page');
+      if (!next) throw new Error('Listagem de jogadores ausente');
+      if (currentRequest !== requestNumber) return true;
+      document.querySelector('.players-page')?.replaceWith(next);
+      if (push && target.href !== window.location.href) history.pushState(null, '', target.href);
+      return true;
+    } catch (error) {
+      if (error.name === 'AbortError') return true;
+      if (push) window.location.assign(target.href);
+      else window.location.reload();
+      return true;
+    } finally {
+      if (currentRequest === requestNumber) {
+        pending = null;
+        document.querySelector('.players-page')?.removeAttribute('aria-busy');
+      }
+    }
+  }
+
+  document.addEventListener('click', event => {
+    const link = event.target.closest('.players-page a[href]');
+    if (!link || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    const target = new URL(link.href, window.location.href);
+    if (target.origin !== window.location.origin || target.pathname !== pathname) return;
+    event.preventDefault();
+    updatePlayers(target.href);
+  });
+
+  document.addEventListener('submit', event => {
+    const form = event.target;
+    if (!form.matches('.players-page form')) return;
+    event.preventDefault();
+    const url = new URL(form.action, window.location.href);
+    url.search = new URLSearchParams(new FormData(form)).toString();
+    updatePlayers(url.href);
+  });
+
+  document.addEventListener('change', event => {
+    if (event.target.matches('.players-page .players-order select')) {
+      event.target.form.requestSubmit();
+    }
+  });
+
+  window.addEventListener('popstate', () => {
+    if (window.location.pathname === pathname) updatePlayers(window.location.href, false);
+  });
+})();
+</script>
 {% endblock %}
