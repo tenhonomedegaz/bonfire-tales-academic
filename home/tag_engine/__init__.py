@@ -22,6 +22,8 @@ from .lexer import tokenize, LexError
 from .nodes import EvaluationResult, Operation, TagNode, TagProgram
 from .parser import ParseError, parse_tag, parse_tags
 from .evaluator import Evaluator, evaluate_formula, evaluate_tags
+from .combat_conditions import CombatConditions
+from .combat_encounter import CombatEncounter
 from .validator import (
     Diagnostic, DataIndex,
     normalize_tag_identifier_names,
@@ -34,6 +36,7 @@ __all__ = [
     "TagNode", "TagProgram", "Operation", "EvaluationResult",
     "ParseError", "parse_tag", "parse_tags",
     "Evaluator", "evaluate_formula", "evaluate_tags",
+    "CombatConditions", "CombatEncounter",
     "Diagnostic", "DataIndex",
     "normalize_tag_identifier_names",
     "validate_tag_line", "validate_tags_json",

@@ -15,6 +15,7 @@ class ActiveCondition:
     target: str
     expires_on_actor: str
     expires_at_turn: int
+    source_tags: tuple[str, ...] = ()
 
 
 class CombatConditions:
@@ -29,7 +30,7 @@ class CombatConditions:
             raise ValueError("actor and turn_id are required")
         seen = self._seen_turn_ids.setdefault(actor, set())
         if turn_id in seen:
-            return
+            return False
         seen.add(turn_id)
         self._turns[actor] = self._turns.get(actor, 0) + 1
         self._conditions = {
@@ -37,6 +38,7 @@ class CombatConditions:
             if effect.expires_on_actor != actor or
             effect.expires_at_turn > self._turns[actor]
         }
+        return True
 
     def facts(self, target, source):
         """Return source-relative facts without granting credit to other sources."""
@@ -49,8 +51,26 @@ class CombatConditions:
                     "self" if effect.source == source else "other")
         return facts
 
+    def blocks_healing(self, target):
+        """Evaluate restrictions from the action that applied each active effect."""
+        for effect in self._conditions:
+            if effect.target != target or not effect.source_tags:
+                continue
+            result = evaluate_tags(effect.source_tags, {
+                "resolve_runtime": True,
+                "event": "healing",
+                "conditions": self.facts(target, effect.source),
+            })
+            if any(operation.active and operation.op == "restrict" and
+                   isinstance(operation.value, list) and
+                   "heal" in operation.value and "target" in operation.value
+                   for operation in result.operations):
+                return True
+        return False
+
     def resolve(self, tags, *, event, source, target, context=None):
         """Evaluate one event and retain supported condition applications."""
+        tags = tuple(tags)
         facts = dict(context or {})
         facts.update(resolve_runtime=True, event=event,
                      conditions=self.facts(target, source))
@@ -85,5 +105,6 @@ class CombatConditions:
                     name=name.lower(), source=source, target=condition_target,
                     expires_on_actor=expiry_actor,
                     expires_at_turn=self._turns.get(expiry_actor, 0) + 1,
+                    source_tags=tags,
                 ))
         return result
