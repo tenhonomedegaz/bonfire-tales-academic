@@ -54,6 +54,7 @@
     <button type="button" class="talent-mobile-backdrop" id="mgMobileBackdrop" aria-label="Fechar lista"></button>
 
     <aside class="talent-list-panel xl:sticky xl:top-24 h-full max-h-[calc(100vh-140px)] overflow-y-auto custom-scrollbar flex flex-col gap-1.5 pr-2" id="mgList">
+      <div id="mgResults" class="flex flex-col gap-1.5">
       {% for magia in magias %}
       <a href="#magia-{{ magia.slug }}" class="block rounded border border-transparent p-2.5 transition-colors hover:border-bonfire-stroke hover:bg-bonfire-bg1">
         <h3 class="text-[13px] font-bold text-bonfire-muted">{{ magia.nome }}</h3>
@@ -61,6 +62,7 @@
         <p class="mt-0.5 text-xs uppercase tracking-wider text-bonfire-muted">{{ magia.nivel_label }} · {{ magia.escola }}</p>
       </a>
       {% endfor %}
+      </div>
     </aside>
 
     <main class="talent-detail-panel mt-4 md:mt-0 md:pl-4" id="mgDetail">
@@ -90,6 +92,7 @@
   try { MAGIA_INICIAL = JSON.parse(document.getElementById('mg-inicial').textContent || '""') || ''; } catch (e) { MAGIA_INICIAL = ''; }
 
   var listContainer = document.getElementById('mgList');
+  var resultsContainer = document.getElementById('mgResults');
   var detailContainer = document.getElementById('mgDetail');
   var count = document.getElementById('mg-count');
   var fBusca = document.getElementById('mg-busca'), fClasse = document.getElementById('mg-classe'), fEscola = document.getElementById('mg-escola'),
@@ -164,9 +167,11 @@
 
     var sub = esc(m.nivel_label||'') + (m.escola ? ' · ' + esc(m.escola) : '');
 
-    var item = document.createElement('div');
-    item.className = 'p-2.5 cursor-pointer rounded-md border transition-all duration-200 '+borderClass+' '+bgClass+' flex flex-col gap-1.5';
+    var item = document.createElement('button');
+    item.type = 'button';
+    item.className = 'w-full text-left p-2.5 cursor-pointer rounded-md border transition-all duration-200 '+borderClass+' '+bgClass+' flex flex-col gap-1.5';
     item.setAttribute('data-slug', m.slug);
+    item.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
     item.onclick = function(){ selectMagia(m.slug); };
     item.innerHTML =
       '<div class="flex justify-between items-start gap-2">'
@@ -179,12 +184,12 @@
   }
 
   function renderList(){
-    listContainer.innerHTML = '';
+    resultsContainer.innerHTML = '';
     if(!filtered.length){
-      listContainer.innerHTML = '<p class="text-bonfire-muted text-sm p-3 text-center">Nenhuma magia com esses filtros.</p>';
+      resultsContainer.innerHTML = '<p class="text-bonfire-muted text-sm p-3 text-center">Nenhuma magia com esses filtros.</p>';
       return;
     }
-    filtered.forEach(function(m){ listContainer.appendChild(listItem(m)); });
+    filtered.forEach(function(m){ resultsContainer.appendChild(listItem(m)); });
   }
 
   function render(){
@@ -197,6 +202,7 @@
   function selectMagia(slug){
     var m = MAGIAS.find(function(x){return x.slug===slug;});
     if(!m) return;
+    var restoreFocus = document.activeElement && document.activeElement.closest('#mgResults [data-slug]');
     selectedSlug = slug;
     renderList();
     closeMenu();
@@ -223,13 +229,21 @@
       : '';
 
     detailContainer.innerHTML =
-      '<h2 class="font-cinzel text-xl font-bold text-bonfire-text uppercase mb-1">'+esc(m.nome)+'</h2>'
+      '<h2 tabindex="-1" class="font-cinzel text-xl font-bold text-bonfire-text uppercase mb-1">'+esc(m.nome)+'</h2>'
       +(m.nome_ingles?'<p class="mb-1 text-xs text-bonfire-muted">'+esc(m.nome_ingles)+'</p>':'')
       + '<p class="text-xs text-bonfire-muted mb-3">'+subtitulo+'</p>'
       + '<div class="grid grid-cols-2 gap-x-2.5 gap-y-1.5 text-sm sm:grid-cols-3 mb-2.5">'+metaHtml+'</div>'
       + (tagsHtml ? '<div class="mb-3 flex flex-wrap gap-1">'+tagsHtml+'</div>' : '')
       + '<div class="bonfire-markdown max-w-none text-[13px] leading-[1.45] text-bonfire-muted">'+md(m.descricao)+'</div>'
       + niveisHtml + editor(m);
+    if(restoreFocus){
+      if(window.matchMedia('(max-width: 1100px)').matches){
+        detailContainer.querySelector('h2').focus({preventScroll:true});
+      } else {
+        var selectedButton = Array.from(resultsContainer.querySelectorAll('[data-slug]')).find(function(node){return node.dataset.slug===slug;});
+        if(selectedButton) selectedButton.focus({preventScroll:true});
+      }
+    }
 
     var editForm=detailContainer.querySelector('[data-spell-editor]');
     if(editForm) editForm.addEventListener('submit',function(event){

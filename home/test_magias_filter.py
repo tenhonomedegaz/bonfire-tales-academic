@@ -1,11 +1,13 @@
 from django.test import TestCase
 from django.urls import reverse
 
-from .models import TbMagia
+from .models import TbClasse, TbMagia
 
 
 class MagiasClassFilterTests(TestCase):
     def test_catalog_exposes_exact_spell_class_membership(self):
+        TbClasse.objects.create(nome='Bardo', slug='bardo')
+        TbClasse.objects.create(nome='Mago', slug='mago')
         TbMagia.objects.create(
             nome='Luz de Teste',
             slug='luz-de-teste',
