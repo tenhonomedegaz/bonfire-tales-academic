@@ -5,7 +5,7 @@
 
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'css/pages/mercado_loja.css' %}?v=2">
-<link rel="stylesheet" href="{% static 'css/pages/mercado_servicos.css' %}?v=1">
+<link rel="stylesheet" href="{% static 'css/pages/mercado_servicos.css' %}?v=2">
 {% endblock %}
 
 {% block content %}
@@ -37,7 +37,7 @@
   {% endif %}
 
   <nav class="services-nav" aria-label="Serviços disponíveis">
-    <a href="#treinamentos">Treinamentos</a>
+    <a href="#treinamentos" aria-current="page">Treinamentos</a>
     <a href="#emprestimos">Empréstimos</a>
     {% if is_staff %}<a href="#controle-emprestimos">Controle da staff</a>{% endif %}
   </nav>
@@ -56,17 +56,24 @@
         <div><small>{{ treinamento_ativo.get_tipo_display }}</small><strong>{{ treinamento_ativo.nome }}</strong></div>
         <div class="service-deadline"><span>Conclusão</span><time datetime="{{ treinamento_ativo.conclui_em|date:'c' }}" data-service-countdown>{{ treinamento_ativo.conclui_em|date:'d/m/Y H:i' }}</time></div>
       </div>
-    {% else %}
+    {% elif treinamentos_disponiveis %}
       <form method="post" action="{% url 'mercado_iniciar_treinamento' mercado_ativo.id_personagem %}" class="service-form training-start">
         {% csrf_token %}
+        <div class="training-filters">
+          <div><label for="training-search">Buscar treinamento</label><input id="training-search" type="search" autocomplete="off" placeholder="Digite o nome" aria-controls="training-choice"></div>
+          <div><label for="training-group">Categoria</label><select id="training-group" aria-controls="training-choice"><option value="">Todas as categorias</option>{% regroup treinamentos_disponiveis by grupo as grupos %}{% for grupo in grupos %}<option value="{{ grupo.grouper }}">{{ grupo.grouper }}</option>{% endfor %}</select></div>
+          <button type="button" class="training-clear" data-training-clear>Limpar filtros</button>
+        </div>
+        <p id="training-search-status" class="training-search-status" role="status" aria-live="polite">Opções de treinamento disponíveis: {{ treinamentos_disponiveis|length }}.</p>
         <label for="training-choice">Nova proficiência</label>
         <select id="training-choice" name="treinamento" required>
           <option value="">Selecione um idioma ou ferramenta</option>
-          {% regroup treinamentos_disponiveis by grupo as grupos %}
           {% for grupo in grupos %}<optgroup label="{{ grupo.grouper }}">{% for row in grupo.list %}<option value="{{ row.token }}">{{ row.nome }}</option>{% endfor %}</optgroup>{% endfor %}
         </select>
         <button type="submit">Iniciar por {{ treinamento_custo }}</button>
       </form>
+    {% else %}
+      <p class="service-empty">Este personagem já conhece todos os treinamentos disponíveis no catálogo.</p>
     {% endif %}
 
     {% if treinamentos_recentes %}
@@ -155,6 +162,68 @@
 
 <script>
 (() => {
+  const sections = [...document.querySelectorAll('.service-section[id]')];
+  const serviceLinks = [...document.querySelectorAll('.services-nav a[href^="#"]')];
+  const showService = () => {
+    const requested = location.hash.slice(1);
+    const active = sections.some(section => section.id === requested) ? requested : 'treinamentos';
+    sections.forEach(section => { section.hidden = section.id !== active; });
+    serviceLinks.forEach(link => {
+      if (link.hash === `#${active}`) link.setAttribute('aria-current', 'page');
+      else link.removeAttribute('aria-current');
+    });
+  };
+  window.addEventListener('hashchange', showService);
+  showService();
+
+  document.querySelector('[data-shop-picker]')?.addEventListener('submit', event => {
+    event.currentTarget.action = `${location.pathname}${location.hash || '#treinamentos'}`;
+  });
+
+  const trainingSearch = document.getElementById('training-search');
+  const trainingGroup = document.getElementById('training-group');
+  const trainingChoice = document.getElementById('training-choice');
+  const trainingStatus = document.getElementById('training-search-status');
+  if (trainingSearch && trainingGroup && trainingChoice && trainingStatus) {
+    const submitTraining = trainingChoice.form.querySelector('button[type="submit"]');
+    const groups = [...trainingChoice.querySelectorAll('optgroup')].map(group => ({
+      label: group.label,
+      options: [...group.querySelectorAll('option')].map(option => ({ value: option.value, label: option.textContent }))
+    }));
+    const normalize = value => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR');
+    const filterTraining = () => {
+      const query = normalize(trainingSearch.value.trim());
+      const category = trainingGroup.value;
+      const selected = trainingChoice.value;
+      trainingChoice.replaceChildren(new Option('Selecione um idioma ou ferramenta', ''));
+      let count = 0;
+      groups.forEach(group => {
+        if (category && category !== group.label) return;
+        const matches = group.options.filter(option => normalize(option.label).includes(query));
+        if (!matches.length) return;
+        const optgroup = document.createElement('optgroup');
+        optgroup.label = group.label;
+        matches.forEach(option => optgroup.append(new Option(option.label, option.value)));
+        trainingChoice.append(optgroup);
+        count += matches.length;
+      });
+      if (selected && [...trainingChoice.options].some(option => option.value === selected)) trainingChoice.value = selected;
+      else trainingChoice.value = '';
+      if (!count) trainingChoice.append(new Option('Nenhum treinamento encontrado', '', false, false));
+      trainingChoice.disabled = !count;
+      if (submitTraining) submitTraining.disabled = !count;
+      trainingStatus.textContent = count ? `${count} treinamento${count === 1 ? '' : 's'} ${count === 1 ? 'disponível' : 'disponíveis'}.` : 'Nenhum treinamento encontrado. Ajuste a busca ou limpe os filtros.';
+    };
+    trainingSearch.addEventListener('input', filterTraining);
+    trainingGroup.addEventListener('change', filterTraining);
+    document.querySelector('[data-training-clear]')?.addEventListener('click', () => {
+      trainingSearch.value = '';
+      trainingGroup.value = '';
+      filterTraining();
+      trainingSearch.focus();
+    });
+  }
+
   const render = (node) => {
     const end = Date.parse(node.dateTime || '');
     if (!Number.isFinite(end)) return;

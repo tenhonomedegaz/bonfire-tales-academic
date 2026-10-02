@@ -1,12 +1,15 @@
 .services-shell { width: min(1120px, calc(100% - 1.5rem)); margin: 1rem auto 3rem; }
-.services-nav { display: flex; gap: .4rem; margin: .75rem 0; border-bottom: 1px solid var(--stroke); }
+.services-nav { display: flex; flex-wrap: wrap; gap: .4rem; margin: .75rem 0; border-bottom: 1px solid var(--stroke); }
 .services-nav a { padding: .55rem .75rem; color: var(--muted); font-size: .76rem; font-weight: 800; text-transform: uppercase; }
 .services-nav a:hover { color: var(--ember); border-bottom: 2px solid var(--ember); }
+.services-nav a[aria-current="page"] { color: var(--text); border-bottom: 2px solid var(--ember); }
+.services-nav a:focus-visible, .training-clear:focus-visible { outline: 2px solid var(--ember); outline-offset: 2px; }
 .service-feedback, .service-warning, .service-empty { padding: .65rem .75rem; border: 1px solid var(--stroke); border-radius: 6px; color: var(--muted); font-size: .82rem; }
 .service-feedback { margin-top: .7rem; }
 .service-feedback.is-ok { color: #4ade80; border-color: rgba(74, 222, 128, .45); background: rgba(74, 222, 128, .06); }
 .service-feedback.is-error, .service-warning { color: #fb7185; border-color: rgba(251, 113, 133, .45); background: rgba(251, 113, 133, .06); }
 .service-section { padding: 1.35rem 0 1.7rem; border-bottom: 1px solid var(--stroke); scroll-margin-top: 5rem; }
+.service-section[hidden] { display: none; }
 .service-heading { display: flex; justify-content: space-between; align-items: end; gap: 1rem; }
 .service-heading span { color: var(--ember); font-size: .62rem; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; }
 .service-heading h1 { margin: .12rem 0 0; color: var(--text); font: 800 1.45rem/1.15 'Cinzel', serif; }
@@ -18,8 +21,14 @@
 .service-form input:focus, .service-form select:focus { border-color: var(--ember); outline: 0; }
 .service-form button, .loan-actions button { min-height: 2.35rem; padding: .45rem .75rem; border: 1px solid var(--ember); border-radius: 5px; background: var(--ember); color: #fff; font-weight: 800; }
 .service-form button:hover, .loan-actions button:hover { filter: brightness(1.12); }
+.service-form button:disabled { cursor: not-allowed; opacity: .5; filter: none; }
 .training-start { grid-template-columns: minmax(14rem, 1fr) auto; }
-.training-start label { grid-column: 1 / -1; }
+.training-start > label { grid-column: 1 / -1; }
+.training-filters { display: grid; grid-column: 1 / -1; grid-template-columns: minmax(10rem, 1fr) minmax(10rem, 1fr) auto; gap: .5rem; align-items: end; }
+.training-filters > div { display: grid; gap: .35rem; }
+.training-filters input, .training-filters select { width: 100%; }
+.training-filters .training-clear { border-color: var(--stroke); background: transparent; color: var(--text); }
+.training-search-status { grid-column: 1 / -1; margin: 0; color: var(--muted); font-size: .78rem; }
 .training-active { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: .9rem 0; border-top: 1px solid var(--stroke); border-bottom: 1px solid var(--stroke); }
 .training-active > div:first-child { display: grid; gap: .15rem; }
 .training-active small, .service-deadline span { color: var(--muted); font-size: .62rem; font-weight: 800; text-transform: uppercase; }
@@ -54,7 +63,7 @@
 @media (max-width: 760px) {
   .services-shell { width: min(100% - .75rem, 1120px); margin-top: .4rem; }
   .service-heading { align-items: start; }
-  .training-start, .loan-proposal { grid-template-columns: 1fr; }
+  .training-start, .loan-proposal, .training-filters { grid-template-columns: 1fr; }
   .training-start label, .loan-proposal label { grid-column: auto; grid-row: auto; }
   .training-active { align-items: start; }
   .service-deadline { text-align: left; }

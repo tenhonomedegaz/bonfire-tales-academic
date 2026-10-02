@@ -6447,11 +6447,17 @@ def _treinamentos_ficha_contexto(personagem, *, incluir_catalogo=True):
             })
     for ferramenta in TbItemMundano.objects.filter(categoria='ferramenta').order_by('nome'):
         if ('ferramenta', _norm_req(ferramenta.nome)) not in proficiencias_atuais:
+            grupo = {
+                'instrumento': 'Instrumentos',
+                'conjunto_jogo': 'Jogos',
+            }.get(ferramenta.subcategoria, 'Ferramentas')
             disponiveis.append({
                 'token': 'ferramenta:%s' % ferramenta.slug,
                 'nome': ferramenta.nome,
-                'grupo': 'Ferramentas',
+                'grupo': grupo,
             })
+    ordem_grupos = {'Idiomas': 0, 'Ferramentas': 1, 'Instrumentos': 2, 'Jogos': 3}
+    disponiveis.sort(key=lambda row: (ordem_grupos[row['grupo']], row['nome'].casefold()))
     return {
         'treinamentos': treinamentos,
         'treinamentos_disponiveis': disponiveis,
@@ -15362,9 +15368,9 @@ def _oficina_castable_spells(personagem, casters):
     return out
 
 
-def _servicos_redirect(personagem_id, status):
-    return redirect('%s?personagem=%s&status=%s' % (
-        reverse('mercado_servicos'), personagem_id, status))
+def _servicos_redirect(personagem_id, status, section='treinamentos'):
+    return redirect('%s?personagem=%s&status=%s#%s' % (
+        reverse('mercado_servicos'), personagem_id, status, section))
 
 
 def _valor_po_form_pc(raw):
@@ -15469,13 +15475,13 @@ def mercado_propor_emprestimo(request, pk):
         pk=request.POST.get('contraparte'), arquivado=False,
     ).exclude(dono=request.user).first()
     if other is None:
-        return _servicos_redirect(pk, 'emprestimo_alvo')
+        return _servicos_redirect(pk, 'emprestimo_alvo', 'emprestimos')
     role = request.POST.get('papel')
     if role not in {'solicitar', 'oferecer'}:
-        return _servicos_redirect(pk, 'emprestimo_invalido')
+        return _servicos_redirect(pk, 'emprestimo_invalido', 'emprestimos')
     _row, status = create_loan_proposal(
         p, other, role, _valor_po_form_pc(request.POST.get('valor_po')))
-    return _servicos_redirect(pk, status)
+    return _servicos_redirect(pk, status, 'emprestimos')
 
 
 @login_required(login_url='/login/')
@@ -15486,7 +15492,7 @@ def mercado_responder_emprestimo(request, loan_id):
     pk = request.POST.get('personagem') or (
         loan.devedor_id if loan and loan.devedor.dono_id == request.user.id
         else loan.credor_id if loan else 0)
-    return _servicos_redirect(pk, status)
+    return _servicos_redirect(pk, status, 'emprestimos')
 
 
 @login_required(login_url='/login/')
@@ -15495,7 +15501,7 @@ def mercado_cancelar_emprestimo(request, loan_id):
     from .market_services import cancel_loan_proposal
     loan, status = cancel_loan_proposal(request.user, loan_id)
     pk = request.POST.get('personagem') or (loan.proponente_id if loan else 0)
-    return _servicos_redirect(pk, status)
+    return _servicos_redirect(pk, status, 'emprestimos')
 
 
 @login_required(login_url='/login/')
@@ -15506,7 +15512,7 @@ def mercado_pagar_emprestimo(request, loan_id):
     amount = _valor_po_form_pc(raw) if raw else None
     loan, status = pay_loan(request.user, loan_id, amount)
     pk = request.POST.get('personagem') or (loan.devedor_id if loan else 0)
-    return _servicos_redirect(pk, status)
+    return _servicos_redirect(pk, status, 'emprestimos')
 
 
 @login_required(login_url='/login/')

@@ -11,7 +11,7 @@ from home.market_services import (
     start_training, sync_overdue_loans, sync_training,
 )
 from home.models import (
-    TbEmprestimoPersonagem, TbIdioma, TbPersonagem,
+    TbEmprestimoPersonagem, TbIdioma, TbItemMundano, TbPersonagem,
     TbPersonagemProficiencia, TbTransacao,
 )
 from home.views import _opcoes_resposta
@@ -169,3 +169,41 @@ class MercadoServicosTests(TestCase):
         self.assertContains(response, 'Empréstimos')
         sheet = self.client.get(reverse('ficha_detail', args=[self.borrower.pk]))
         self.assertNotContains(sheet, 'data-tab="treinamentos"')
+
+    def test_training_catalog_groups_tools_without_changing_payment_tokens(self):
+        for slug, subcategory in (
+            ('kit-teste', 'ferramenta_artesao'),
+            ('flauta-teste', 'instrumento'),
+            ('xadrez-teste', 'conjunto_jogo'),
+        ):
+            TbItemMundano.objects.create(
+                slug=slug, nome=slug, categoria='ferramenta', subcategoria=subcategory)
+        self.client.force_login(self.borrower_user)
+        response = self.client.get(reverse('mercado_servicos'))
+        self.assertEqual(response.status_code, 200)
+        rows = response.context['treinamentos_disponiveis']
+        indices = {row['token']: index for index, row in enumerate(rows)}
+        self.assertLess(indices['idioma:idioma-teste'], indices['ferramenta:kit-teste'])
+        self.assertLess(indices['ferramenta:kit-teste'], indices['ferramenta:flauta-teste'])
+        self.assertLess(indices['ferramenta:flauta-teste'], indices['ferramenta:xadrez-teste'])
+        self.assertIn({'token': 'ferramenta:flauta-teste', 'nome': 'flauta-teste',
+                       'grupo': 'Instrumentos'}, rows)
+        self.assertContains(response, '<optgroup label="Instrumentos">')
+        self.assertContains(response, 'id="training-search"')
+        self.assertContains(response, 'id="training-group"')
+
+    def test_service_actions_return_to_their_own_section_without_charging(self):
+        self.client.force_login(self.borrower_user)
+        training = self.client.post(
+            reverse('mercado_iniciar_treinamento', args=[self.borrower.pk]),
+            {'treinamento': 'invalido'})
+        self.assertEqual(training.status_code, 302)
+        self.assertTrue(training['Location'].endswith('#treinamentos'))
+        loan = self.client.post(
+            reverse('mercado_propor_emprestimo', args=[self.borrower.pk]),
+            {'contraparte': self.lender.pk, 'papel': 'invalido'})
+        self.assertEqual(loan.status_code, 302)
+        self.assertTrue(loan['Location'].endswith('#emprestimos'))
+        self.borrower.refresh_from_db()
+        self.assertEqual(self.borrower.carteira_pc, 20000)
+        self.assertEqual(TbTransacao.objects.filter(id_personagem=self.borrower).count(), 0)
