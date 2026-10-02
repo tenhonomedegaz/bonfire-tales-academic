@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block content %}
-<section class="animate-fade-in max-w-4xl">
+<section class="animate-fade-in max-w-4xl" data-reference-search-root>
   {% with condicoes_count=condicoes|length %}
   <header class="mb-3 border-b border-[var(--stroke)] pb-2.5">
     <h1 class="font-serif text-2xl md:text-3xl font-bold text-[var(--ember)]">Glossário do Sistema</h1>
@@ -11,15 +11,15 @@
 
   <div class="sticky top-2 z-10 mb-3">
     <label for="glo-busca" class="sr-only">Buscar no glossário</label>
-    <input id="glo-busca" type="search" placeholder="Buscar termo (PT ou inglês)…" autocomplete="off"
+    <input id="glo-busca" type="search" data-reference-query placeholder="Buscar termo ou efeito (PT ou inglês)…" autocomplete="off"
            aria-describedby="glo-resultados"
            class="w-full rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] px-3 py-2 text-[var(--text)] shadow focus:border-[var(--ember)] focus:outline-none">
-    <p id="glo-resultados" class="mt-1 text-xs text-[var(--muted)]" role="status" aria-live="polite"><span id="glo-count">{{ regras|length|add:condicoes_count }}</span> termos</p>
+    <p id="glo-resultados" class="mt-1 text-xs text-[var(--muted)]" role="status" aria-live="polite"><span id="glo-count" data-reference-count>{{ regras|length|add:condicoes_count }}</span> termos</p>
   </div>
 
   <div id="glo-lista" class="space-y-2">
     {% for r in regras %}
-      <article id="regra-{{ r.slug }}" class="glo-item scroll-mt-20 rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-2.5"
+      <article id="regra-{{ r.slug }}" data-reference-item class="glo-item scroll-mt-20 rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-2.5"
                data-busca="{{ r.nome|lower }} {{ r.nome_en|lower }}">
         <div class="flex flex-wrap items-baseline justify-between gap-x-2">
           <h2 class="font-serif font-bold text-[var(--text)]">{{ r.nome }}</h2>
@@ -28,15 +28,15 @@
         <div class="bonfire-markdown mt-1 text-sm text-[var(--muted)]" data-markdown-source>{{ r.definicao|escape }}</div>
       </article>
     {% endfor %}
-    <p id="glo-vazio" class="hidden rounded border border-dashed border-[var(--stroke)] px-3 py-4 text-center text-sm text-[var(--muted)]">Nenhum termo encontrado.</p>
+    <p id="glo-vazio" data-reference-empty class="hidden rounded border border-dashed border-[var(--stroke)] px-3 py-4 text-center text-sm text-[var(--muted)]">Nenhum termo encontrado.</p>
   </div>
 
   {% if condicoes %}
-  <section id="glo-condicoes" class="mt-6 border-t border-[var(--stroke)] pt-4">
+  <section id="glo-condicoes" data-reference-group class="mt-6 border-t border-[var(--stroke)] pt-4">
     <h2 class="font-serif text-xl font-bold text-[var(--ember)]">Condições</h2>
     <div class="mt-3 space-y-2">
       {% for c in condicoes %}
-      <article id="condicao-{{ c.slug }}" class="glo-item scroll-mt-20 rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-2.5"
+      <article id="condicao-{{ c.slug }}" data-reference-item class="glo-item scroll-mt-20 rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-2.5"
                data-busca="{{ c.nome|lower }} {{ c.nome_en|lower }}">
         <div class="flex flex-wrap items-baseline justify-between gap-x-2">
           <h3 class="font-serif font-bold text-[var(--text)]">{{ c.nome }}</h3>
@@ -46,6 +46,7 @@
         {% for efeito in c.efeitos_json %}
         <p class="mt-2 text-sm text-[var(--muted)]"><strong class="text-[var(--text)]">{{ efeito.titulo }}.</strong> {{ efeito.texto }}</p>
         {% endfor %}
+        <a href="{% url 'mestre_condicoes' %}#cond-{{ c.slug }}" class="mt-2 inline-flex text-sm font-semibold text-[var(--ember)] hover:underline">Ver efeitos da condição</a>
       </article>
       {% endfor %}
     </div>
@@ -54,34 +55,5 @@
 </section>
   {% endwith %}
 
-<script>
-  (function () {
-    var inp = document.getElementById('glo-busca');
-    var itens = Array.prototype.slice.call(document.querySelectorAll('.glo-item'));
-    var count = document.getElementById('glo-count');
-    var vazio = document.getElementById('glo-vazio');
-    var condicoes = document.getElementById('glo-condicoes');
-    if (!inp) return;
-    function norm(s) { return (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(); }
-    function filtrar() {
-      var q = norm(inp.value.trim());
-      var n = 0;
-      itens.forEach(function (el) {
-        var hit = !q || norm(el.getAttribute('data-busca')).indexOf(q) !== -1;
-        el.classList.toggle('hidden', !hit);
-        if (hit) n++;
-      });
-      count.textContent = n;
-      vazio.classList.toggle('hidden', n !== 0);
-      if (condicoes) {
-        var temCondicaoVisivel = itens.some(function (el) {
-          return el.id.indexOf('condicao-') === 0 && !el.classList.contains('hidden');
-        });
-        condicoes.classList.toggle('hidden', !temCondicaoVisivel);
-      }
-    }
-    inp.addEventListener('input', filtrar);
-    filtrar();
-  })();
-</script>
+<script defer src="{% static 'js/reference-search.js' %}?v=1"></script>
 {% endblock %}

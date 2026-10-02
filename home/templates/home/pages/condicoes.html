@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block content %}
-<section class="animate-fade-in max-w-4xl">
+<section class="animate-fade-in max-w-4xl" data-reference-search-root>
   <header class="mb-4 flex flex-wrap items-end justify-between gap-2 border-b border-[var(--stroke)] pb-2.5">
     <div>
       <h1 class="font-serif text-2xl md:text-3xl font-bold text-[var(--ember)]">Condições</h1>
@@ -15,15 +15,23 @@
   {% elif msg == 'editada' %}<p class="mb-2.5 rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-2.5 py-1.5 text-sm text-[var(--spark)]">Condição atualizada!</p>
   {% elif msg == 'excluida' %}<p class="mb-2.5 rounded border border-[var(--stroke)] bg-[var(--bg1)] px-2.5 py-1.5 text-sm text-[var(--muted)]">Condição excluída.</p>{% endif %}
 
-  <nav class="mb-4 flex flex-wrap gap-1.5">
+  <div class="mb-4">
+    <label for="condicoes-busca" class="sr-only">Buscar condições</label>
+    <input id="condicoes-busca" type="search" data-reference-query placeholder="Buscar condição ou efeito..." autocomplete="off"
+           aria-describedby="condicoes-resultados"
+           class="w-full rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] px-3 py-2 text-[var(--text)] focus:border-[var(--ember)] focus:outline-none">
+    <p id="condicoes-resultados" class="mt-1 text-xs text-[var(--muted)]" role="status" aria-live="polite"><span data-reference-count>{{ condicoes|length }}</span> condições</p>
+  </div>
+
+  <nav class="mb-4 flex flex-wrap gap-1.5" aria-label="Ir para condição">
     {% for c in condicoes %}
-      <a href="#cond-{{ c.slug }}" class="rounded border border-[var(--stroke)] bg-[var(--bg1)] px-2.5 py-1 text-xs text-[var(--muted)] hover:border-[var(--ember)] hover:text-[var(--ember)]">{{ c.nome }}</a>
+      <a href="#cond-{{ c.slug }}" data-reference-link class="rounded border border-[var(--stroke)] bg-[var(--bg1)] px-2.5 py-1 text-xs text-[var(--muted)] hover:border-[var(--ember)] hover:text-[var(--ember)]">{{ c.nome }}</a>
     {% endfor %}
   </nav>
 
   <div class="space-y-2.5">
     {% for c in condicoes %}
-      <article id="cond-{{ c.slug }}" class="scroll-mt-24 rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-3">
+      <article id="cond-{{ c.slug }}" data-reference-item class="scroll-mt-24 rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-3">
         <header class="mb-1.5 flex flex-wrap items-baseline justify-between gap-1.5 border-b border-[var(--stroke)]/50 pb-1.5">
           <h2 class="font-serif text-lg font-bold text-[var(--flame)]">{{ c.nome }}</h2>
           <span class="flex items-center gap-2 text-xs text-[var(--muted)]">{% if c.nome_en %}{{ c.nome_en }}{% endif %}{% if c.categoria != '5e' %} · homebrew{% endif %}
@@ -49,5 +57,7 @@
       </article>
     {% endfor %}
   </div>
+  <p data-reference-empty class="hidden rounded border border-dashed border-[var(--stroke)] px-3 py-4 text-center text-sm text-[var(--muted)]">Nenhuma condição encontrada.</p>
 </section>
+<script defer src="{% static 'js/reference-search.js' %}?v=1"></script>
 {% endblock %}
