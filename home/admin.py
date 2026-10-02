@@ -69,6 +69,7 @@ from .models import (
     TbTagLibraryRevision,
 )
 from .security import validate_no_sql_danger
+from .organization_lists import organization_list
 
 
 admin.site.site_header = "Bonfire Tales Admin"
@@ -3412,8 +3413,26 @@ class TbTerritorioAdmin(BonfireAdminMixin, admin.ModelAdmin):
         return super().formfield_for_dbfield(db_field, request, **kwargs)
 
 
+class OrganizacaoAdminForm(forms.ModelForm):
+    class Meta:
+        model = TbOrganizacao
+        fields = '__all__'
+
+    def clean(self):
+        cleaned = super().clean()
+        for field in ('regioes', 'territorios', 'aliados', 'inimigos', 'tags'):
+            if field not in cleaned:
+                continue
+            try:
+                cleaned[field] = organization_list(cleaned[field], strict=True)
+            except ValueError as exc:
+                self.add_error(field, str(exc))
+        return cleaned
+
+
 @admin.register(TbOrganizacao)
 class TbOrganizacaoAdmin(BonfireAdminMixin, admin.ModelAdmin):
+    form = OrganizacaoAdminForm
     list_display = ("nome", "slug", "tipo", "sede")
     list_filter = ("tipo",)
     search_fields = ("nome", "slug", "tipo", "sede", "descricao")

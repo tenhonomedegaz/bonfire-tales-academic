@@ -62,6 +62,7 @@ from .models import (
     TbMapLayer,
     TbMapDesenho,
     TbOpcaojogo,
+    TbOrganizacao,
     TbRaca,
     TbRecursoclasse,
     TbRegiao,
@@ -74,6 +75,7 @@ from .models import (
     TbMagia,
 )
 from .security import validate_no_sql_danger
+from .organization_lists import organization_list
 
 
 def _log_wiki_edit(request, obj, message="Edited inline via wiki"):
@@ -11699,12 +11701,12 @@ def _organization_payload(document):
         'slug': _doc_value(document, ['Slug', 'slug'], slugify(name)),
         'tipo': _doc_value(document, ['Tipo', 'tipo'], 'Organizacao'),
         'sede': _doc_value(document, ['Sede', 'sede']),
-        'regioes': _split_catalog_list(_doc_value(document, ['Regioes', 'Regiões', 'regioes', 'regions'])),
-        'territorios': _split_catalog_list(_doc_value(document, ['Territorios', 'Territórios', 'territorios', 'territories'])),
+        'regioes': organization_list(_doc_value(document, ['Regioes', 'Regiões', 'regioes', 'regions'])),
+        'territorios': organization_list(_doc_value(document, ['Territorios', 'Territórios', 'territorios', 'territories'])),
         'lideranca': _doc_value(document, ['Lideranca', 'Liderança', 'lideranca', 'leadership']),
-        'aliados': _split_catalog_list(_doc_value(document, ['Aliados', 'aliados', 'allies'])),
-        'inimigos': _split_catalog_list(_doc_value(document, ['Inimigos', 'inimigos', 'enemies'])),
-        'tags': _split_catalog_list(_doc_value(document, ['Tags', 'tags', 'EtiquetasAdicionais'])),
+        'aliados': organization_list(_doc_value(document, ['Aliados', 'aliados', 'allies'])),
+        'inimigos': organization_list(_doc_value(document, ['Inimigos', 'inimigos', 'enemies'])),
+        'tags': organization_list(_doc_value(document, ['Tags', 'tags', 'EtiquetasAdicionais'])),
         'descricao': _doc_value(document, ['Descricao', 'Descrição', 'descricao', 'description']),
     }
 
@@ -12681,11 +12683,11 @@ def _organization_catalog_payload(document):
         'descricao': payload['descricao'],
         'meta': {
             'Sede': payload['sede'],
-            'Regiões': ', '.join(payload['regioes']),
-            'Territórios': ', '.join(payload['territorios']),
+            'Regiões': payload['regioes'],
+            'Territórios': payload['territorios'],
             'Liderança': payload['lideranca'],
-            'Aliados': ', '.join(payload['aliados']),
-            'Inimigos': ', '.join(payload['inimigos']),
+            'Aliados': payload['aliados'],
+            'Inimigos': payload['inimigos'],
         },
     }
 
@@ -13816,26 +13818,38 @@ def organizacoes_view(request):
         nome = (data.get('nome') or data.get('Nome') or '').strip()
         if not nome:
             return JsonResponse({'ok': False, 'error': 'Nome e obrigatorio.'}, status=400)
+        try:
+            relationships = {
+                field: organization_list(data.get(field.lower()) or data.get(field), strict=True)
+                for field in ('Regioes', 'Territorios', 'Aliados', 'Inimigos', 'Tags')
+            }
+        except ValueError as exc:
+            return JsonResponse({'ok': False, 'error': str(exc)}, status=400)
         document = {
             'Nome': nome,
             'Slug': slugify(data.get('slug') or nome),
             'Tipo': (data.get('tipo') or data.get('Tipo') or 'Organizacao').strip(),
             'Sede': (data.get('sede') or data.get('Sede') or '').strip(),
-            'Regioes': _split_catalog_list(data.get('regioes') or data.get('Regioes')),
-            'Territorios': _split_catalog_list(data.get('territorios') or data.get('Territorios')),
+            'Regioes': relationships['Regioes'],
+            'Territorios': relationships['Territorios'],
             'Lideranca': (data.get('lideranca') or data.get('Lideranca') or '').strip(),
-            'Aliados': _split_catalog_list(data.get('aliados') or data.get('Aliados')),
-            'Inimigos': _split_catalog_list(data.get('inimigos') or data.get('Inimigos')),
-            'Tags': _split_catalog_list(data.get('tags') or data.get('Tags')),
+            'Aliados': relationships['Aliados'],
+            'Inimigos': relationships['Inimigos'],
+            'Tags': relationships['Tags'],
             'Descricao': (data.get('descricao') or data.get('Descricao') or '').strip(),
             'UpdatedAt': datetime.now(datetime_timezone.utc),
         }
-        try:
-            document_to_save = dict(document)
-            document_to_save['CreatedAt'] = document_to_save.get('CreatedAt') or datetime.now(datetime_timezone.utc)
-            _upsert_site_document('organizations', 'Slug', document['Slug'], document_to_save)
-        except SiteDataUnavailable as exc:
-            return JsonResponse({'ok': False, 'error': str(exc)}, status=503)
+        organization, _ = TbOrganizacao.objects.update_or_create(
+            slug=document['Slug'],
+            defaults={
+                'nome': document['Nome'], 'tipo': document['Tipo'],
+                'sede': document['Sede'], 'regioes': document['Regioes'],
+                'territorios': document['Territorios'], 'lideranca': document['Lideranca'],
+                'aliados': document['Aliados'], 'inimigos': document['Inimigos'],
+                'tags': document['Tags'], 'descricao': document['Descricao'],
+            },
+        )
+        document['UpdatedAt'] = organization.updated_at
         return JsonResponse({'ok': True, 'organization': serialize_document(document)})
 
     return _render_catalog(
