@@ -81,16 +81,12 @@
 </div>
 
 {{ magias|json_script:"mg-data" }}
-{{ magia_inicial|json_script:"mg-inicial" }}
 {{ classes_catalogo|json_script:"mg-classes" }}
 <script>
 (function(){
   var MAGIAS = JSON.parse(document.getElementById('mg-data').textContent || '[]');
   var CLASSES = JSON.parse(document.getElementById('mg-classes').textContent || '[]');
   var CAN_EDIT = {{ can_edit|yesno:"true,false" }};
-  var MAGIA_INICIAL = '';
-  try { MAGIA_INICIAL = JSON.parse(document.getElementById('mg-inicial').textContent || '""') || ''; } catch (e) { MAGIA_INICIAL = ''; }
-
   var listContainer = document.getElementById('mgList');
   var resultsContainer = document.getElementById('mgResults');
   var detailContainer = document.getElementById('mgDetail');
@@ -199,10 +195,17 @@
   }
 
   // ---- Detalhe ----
-  function selectMagia(slug){
+  function selectMagia(slug, fromHistory){
     var m = MAGIAS.find(function(x){return x.slug===slug;});
     if(!m) return;
     var restoreFocus = document.activeElement && document.activeElement.closest('#mgResults [data-slug]');
+    var restoreDetailFocus = detailContainer.contains(document.activeElement);
+    if(!fromHistory && new URLSearchParams(location.search).get('magia') !== slug){
+      var url = new URL(location.href);
+      url.searchParams.set('magia', slug);
+      url.searchParams.delete('editado');
+      history.pushState(null, '', url);
+    }
     selectedSlug = slug;
     renderList();
     closeMenu();
@@ -243,6 +246,8 @@
         var selectedButton = Array.from(resultsContainer.querySelectorAll('[data-slug]')).find(function(node){return node.dataset.slug===slug;});
         if(selectedButton) selectedButton.focus({preventScroll:true});
       }
+    } else if(restoreDetailFocus){
+      detailContainer.querySelector('h2').focus({preventScroll:true});
     }
 
     var editForm=detailContainer.querySelector('[data-spell-editor]');
@@ -349,16 +354,20 @@
   // ---- Inicialização ----
   render();
 
-  // Deep-link: abre a magia de ?magia=<slug> (via magia_inicial) se existir.
-  var alvo = MAGIA_INICIAL || (new URLSearchParams(location.search).get('magia') || '');
-  if(alvo){
-    var existe = MAGIAS.some(function(m){return m.slug===alvo;});
-    if(existe){
-      selectMagia(alvo);
-      var node = listContainer.querySelector('[data-slug="'+(window.CSS && CSS.escape ? CSS.escape(alvo) : alvo)+'"]');
-      if(node) node.scrollIntoView({block:'nearest'});
+  // URL e histórico preservam a magia selecionada sem recarregar o catálogo.
+  function selectFromUrl(){
+    var requested = new URLSearchParams(location.search).get('magia');
+    var slug = requested || (MAGIAS[0] && MAGIAS[0].slug);
+    if(!MAGIAS.some(function(m){return m.slug===slug;})){
+      var url = new URL(location.href);
+      url.searchParams.delete('magia');
+      history.replaceState(null, '', url);
+      slug = MAGIAS[0] && MAGIAS[0].slug;
     }
+    if(slug) selectMagia(slug, true);
   }
+  selectFromUrl();
+  window.addEventListener('popstate', selectFromUrl);
 })();
 </script>
 {% endblock %}

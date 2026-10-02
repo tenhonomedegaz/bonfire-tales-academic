@@ -12856,7 +12856,6 @@ def magias_view(request):
         ],
         'niveis': list(range(0, 10)),
         'can_edit': can_edit,
-        'magia_inicial': (request.GET.get('magia') or '').strip(),
     })
 
 
