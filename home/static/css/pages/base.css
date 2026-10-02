@@ -25,6 +25,19 @@
       overflow-x: hidden;
     }
 
+    /* Native dropdown menus must remain legible in the site's dark theme. */
+    body select { color-scheme: dark; }
+    body select option,
+    body select optgroup {
+      background-color: #18181B;
+      color: var(--text);
+    }
+    body select option:disabled { color: var(--muted); }
+    body select:focus-visible {
+      outline: 2px solid var(--ember);
+      outline-offset: 2px;
+    }
+
     /* Global Noise Texture */
     body::before {
       content: "";
