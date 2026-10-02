@@ -18,17 +18,22 @@
 <div class="class-detail-layout">
   <aside id="classSidebar" class="class-sidebar h-full">
     <div class="mb-3">
-      <label class="relative block">
+      <label for="classSearch" class="mb-1 block text-[11px] font-bold uppercase tracking-wide text-[var(--muted)]">Buscar classe</label>
+      <div class="relative">
         <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-[var(--muted)]">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
         </span>
-        <input id="classSearch" type="search" placeholder="Buscar classe..." class="w-full rounded border border-[var(--stroke)] bg-[var(--bg1)] py-2 pl-9 pr-3 text-sm text-[var(--text)] outline-none focus:border-[var(--ember)]">
-      </label>
+        <input id="classSearch" type="search" placeholder="Nome da classe" aria-controls="classNav" aria-describedby="classSearchStatus" class="w-full rounded border border-[var(--stroke)] bg-[var(--bg1)] py-2 pl-9 pr-3 text-sm text-[var(--text)] outline-none focus:border-[var(--ember)]">
+      </div>
+      <div class="mt-1 flex items-center justify-between gap-2">
+        <span id="classSearchStatus" role="status" aria-live="polite" class="text-[11px] text-[var(--muted)]"></span>
+        <button type="button" id="classSearchClear" class="hidden rounded px-2 py-1 text-[11px] font-bold text-[var(--ember)] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--ember)]">Limpar busca</button>
+      </div>
     </div>
 
     <nav id="classNav" class="mb-2.5 grid gap-1">
       {% for item in all_classes %}
-      <a href="{% url 'classe_detail' slug=item.slug %}" data-search="{{ item.nome }}" class="class-nav-item rounded border px-2 py-1 text-[10px] font-bold uppercase transition-colors {% if item.id_classe == classe.id_classe %}border-[var(--flame)] bg-[var(--flame)]/5 text-[var(--text)]{% else %}border-transparent text-[var(--muted)] hover:border-[var(--stroke)] hover:bg-[var(--bg1)] hover:text-[var(--text)]{% endif %}">
+      <a href="{% url 'classe_detail' slug=item.slug %}" data-search="{{ item.nome }}" {% if item.id_classe == classe.id_classe %}aria-current="page"{% endif %} class="class-nav-item rounded border px-2 py-1 text-[10px] font-bold uppercase transition-colors {% if item.id_classe == classe.id_classe %}border-[var(--flame)] bg-[var(--flame)]/5 text-[var(--text)]{% else %}border-transparent text-[var(--muted)] hover:border-[var(--stroke)] hover:bg-[var(--bg1)] hover:text-[var(--text)]{% endif %}">
         {{ item.nome }}
       </a>
       {% endfor %}
@@ -433,15 +438,20 @@
 
   // Sidebar Search
   const classSearch = document.getElementById('classSearch');
+  const classSearchClear = document.getElementById('classSearchClear');
+  const classSearchStatus = document.getElementById('classSearchStatus');
   const classItems = Array.from(document.querySelectorAll('.class-nav-item'));
   const classNav = document.getElementById('classNav');
   const classMenuToggle = document.querySelector('[data-class-menu-toggle]');
   const classMenuClosers = document.querySelectorAll('[data-class-menu-close]');
   let classFilterTimer = null;
+  let classRequestId = 0;
 
-  function setClassMenuOpen(isOpen) {
+  function setClassMenuOpen(isOpen, restoreFocus = false) {
     document.body.classList.toggle('class-menu-open', isOpen);
     classMenuToggle?.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    if (isOpen) classSearch?.focus();
+    if (!isOpen && restoreFocus) classMenuToggle?.focus();
   }
 
   classMenuToggle?.addEventListener('click', () => {
@@ -449,19 +459,31 @@
   });
 
   classMenuClosers.forEach(closer => {
-    closer.addEventListener('click', () => setClassMenuOpen(false));
+    closer.addEventListener('click', () => setClassMenuOpen(false, true));
   });
 
   document.addEventListener('keydown', event => {
-    if (event.key === 'Escape') setClassMenuOpen(false);
+    if (event.key === 'Escape' && document.body.classList.contains('class-menu-open')) {
+      setClassMenuOpen(false, true);
+    }
   });
 
-  classSearch?.addEventListener('input', () => {
-    const query = classSearch.value.toLowerCase();
+  function filterClasses() {
+    const searchable = value => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR');
+    const query = searchable((classSearch?.value || '').trim());
+    let visibleCount = 0;
     classItems.forEach(item => {
-      const text = (item.dataset.search || '').toLowerCase();
-      item.classList.toggle('hidden', query && !text.includes(query));
+      const text = searchable(item.dataset.search || '');
+      const matches = !query || text.includes(query);
+      item.classList.toggle('hidden', !matches);
+      if (matches) visibleCount += 1;
     });
+    classSearchClear?.classList.toggle('hidden', !query);
+    if (classSearchStatus) {
+      classSearchStatus.textContent = query
+        ? (visibleCount ? `${visibleCount} classe${visibleCount === 1 ? '' : 's'} encontrada${visibleCount === 1 ? '' : 's'}.` : 'Nenhuma classe encontrada. Limpe a busca para tentar novamente.')
+        : `${visibleCount} classe${visibleCount === 1 ? '' : 's'} disponíve${visibleCount === 1 ? 'l' : 'is'}.`;
+    }
     classNav?.classList.remove('class-nav-filtering');
     void classNav?.offsetWidth;
     classNav?.classList.add('class-nav-filtering');
@@ -470,7 +492,22 @@
       classNav?.classList.remove('class-nav-filtering');
       classFilterTimer = null;
     }, 240);
+  }
+
+  classSearch?.addEventListener('input', filterClasses);
+  classSearch?.addEventListener('keydown', event => {
+    if (event.key !== 'Enter') return;
+    const firstMatch = classItems.find(item => !item.classList.contains('hidden'));
+    if (!firstMatch) return;
+    event.preventDefault();
+    firstMatch.click();
   });
+  classSearchClear?.addEventListener('click', () => {
+    classSearch.value = '';
+    filterClasses();
+    classSearch.focus();
+  });
+  filterClasses();
 
   // AJAX Loading
   const contentArea = document.querySelector('section.min-w-0');
@@ -485,7 +522,8 @@
     loadContent(url);
   });
 
-  async function loadContent(url) {
+  async function loadContent(url, updateHistory = true) {
+    const requestId = ++classRequestId;
     contentArea.style.opacity = '0.5';
     contentArea.style.pointerEvents = 'none';
     
@@ -494,6 +532,7 @@
       if (!response.ok) throw new Error('Failed to load');
       
       const html = await response.text();
+      if (requestId !== classRequestId) return;
       const temp = document.createElement('div');
       temp.innerHTML = html;
 
@@ -518,18 +557,25 @@
           item.classList.toggle('text-[var(--text)]', isActive);
           item.classList.toggle('border-transparent', !isActive);
           item.classList.toggle('text-[var(--muted)]', !isActive);
+          if (isActive) item.setAttribute('aria-current', 'page');
+          else item.removeAttribute('aria-current');
       });
       
-      window.history.pushState({}, '', url);
+      if (updateHistory && window.location.href !== url) window.history.pushState({}, '', url);
       initPage();
     } catch (err) {
+      if (requestId !== classRequestId) return;
       console.error(err);
       window.location.href = url; // Fallback to normal load
     } finally {
-      contentArea.style.opacity = '1';
-      contentArea.style.pointerEvents = '';
+      if (requestId === classRequestId) {
+        contentArea.style.opacity = '1';
+        contentArea.style.pointerEvents = '';
+      }
     }
   }
+
+  window.addEventListener('popstate', () => loadContent(window.location.href, false));
 
   function wikiCookie(name) {
     return document.cookie
