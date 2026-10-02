@@ -17,14 +17,15 @@
         <h1 class="font-cinzel text-xl font-bold text-bonfire-text uppercase">Opções Adicionais</h1>
         <p class="text-bonfire-muted text-[11px] mt-1">Estilos de Luta, Segredos de Caçador, Invocações Místicas e muito mais.</p>
 
-        <div class="mt-2.5 flex flex-col sm:flex-row gap-2.5 items-center" id="opcaoSearchBar">
+        <div class="mt-2.5 flex flex-col sm:flex-row sm:flex-wrap gap-2.5 items-center" id="opcaoSearchBar">
             <div class="relative w-full sm:w-2/3 lg:w-3/4">
                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <svg class="h-5 w-5 text-bonfire-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                 </div>
-                <input type="text" id="searchInput" placeholder="Buscar opção, tag, requisito..." class="bg-bonfire-bg1 border border-bonfire-stroke text-bonfire-text text-sm rounded-md focus:ring-primary focus:border-bonfire-flame block w-full pl-10 p-2.5 transition-colors">
+                <label for="searchInput" class="sr-only">Buscar opções</label>
+                <input type="search" id="searchInput" placeholder="Buscar opção, tag, requisito..." aria-describedby="opcoesResults" class="bg-bonfire-bg1 border border-bonfire-stroke text-bonfire-text text-sm rounded-md focus:ring-primary focus:border-bonfire-flame block w-full pl-10 p-2.5 transition-colors">
             </div>
             <div class="flex gap-2 w-full sm:w-auto">
                 <button id="filterToggle" type="button" class="bg-bonfire-bg1 hover:bg-bonfire-bg2 border border-bonfire-stroke text-bonfire-muted px-3 py-2.5 rounded-md text-sm font-medium flex items-center gap-2 transition-colors">
@@ -37,6 +38,7 @@
                     A-Z
                 </button>
             </div>
+            <p id="opcoesResults" role="status" aria-live="polite" class="w-full text-xs text-bonfire-muted"></p>
         </div>
         <div id="filterModal" class="hidden fixed inset-0 z-[80] items-center justify-center p-4">
             <button id="filterBackdrop" type="button" class="filter-backdrop absolute inset-0 bg-black/80 backdrop-blur-sm" aria-label="Fechar filtros"></button>
@@ -82,7 +84,7 @@
     </div>
 
     <div class="opcao-main-grid grid gap-3 border-t border-bonfire-stroke pt-4 flex-1">
-        <button type="button" class="opcao-mobile-menu-button" id="opcaoMobileMenuButton" aria-label="Abrir lista de opções">
+        <button type="button" class="opcao-mobile-menu-button" id="opcaoMobileMenuButton" aria-label="Abrir lista de opções" aria-controls="opcoesList" aria-expanded="false">
             <svg xmlns="http://www.w3.org/2000/svg" class="open-icon h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 5 7 7-7 7"/></svg>
             <svg xmlns="http://www.w3.org/2000/svg" class="close-icon h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 19-7-7 7-7"/></svg>
         </button>
@@ -116,6 +118,7 @@
     const listItemsContainer = document.getElementById('opcoesListItems');
     const detailContainer = document.getElementById('opcaoDetail');
     const searchInput = document.getElementById('searchInput');
+    const resultsStatus = document.getElementById('opcoesResults');
     const filterToggle = document.getElementById('filterToggle');
     const filterModal = document.getElementById('filterModal');
     const filterBackdrop = document.getElementById('filterBackdrop');
@@ -141,10 +144,14 @@
 
     function openOpcaoMenu() {
         document.body.classList.add('opcao-menu-open');
+        opcaoMobileMenuButton?.setAttribute('aria-expanded', 'true');
+        searchInput.focus();
     }
 
-    function closeOpcaoMenu() {
+    function closeOpcaoMenu(restoreFocus = false) {
         document.body.classList.remove('opcao-menu-open');
+        opcaoMobileMenuButton?.setAttribute('aria-expanded', 'false');
+        if (restoreFocus) opcaoMobileMenuButton?.focus();
     }
 
     function isTableSeparator(line) {
@@ -302,8 +309,22 @@
         renderFilterChips();
     }
 
+    function normalizeSearch(value) {
+        return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR');
+    }
+
+    function selectedFromHash() {
+        if (!window.location.hash.startsWith('#opcao-')) return null;
+        try {
+            const slug = decodeURIComponent(window.location.hash.slice('#opcao-'.length));
+            return opcoesData.find(opcao => opcao.slug === slug)?.id ?? null;
+        } catch (_) {
+            return null;
+        }
+    }
+
     function applyFilters(animateList = true) {
-        const query = searchInput.value.toLowerCase();
+        const query = normalizeSearch(searchInput.value.trim());
         const typeValue = activeFilters.type;
         const tagValue = activeFilters.tag;
 
@@ -315,9 +336,9 @@
                 o.etiquetas_adicionais,
                 ...(o.acessos || []).flatMap(acesso => [acesso.nome, acesso.classe, acesso.nivel]),
                 o.descricao
-            ].join(' ').toLowerCase();
+            ].join(' ');
 
-            const matchesSearch = !query || haystack.includes(query);
+            const matchesSearch = !query || normalizeSearch(haystack).includes(query);
             const matchesType = !typeValue || o.tipo === typeValue;
             const matchesTag = !tagValue || getExtraTags(o).includes(tagValue);
             return matchesSearch && matchesType && matchesTag;
@@ -331,19 +352,24 @@
         const activeFilterCount = [typeValue, tagValue].filter(Boolean).length;
         filterCount.textContent = activeFilterCount;
         filterCount.classList.toggle('hidden', activeFilterCount === 0);
-        if (!filteredOpcoes.some(opcao => opcao.id === selectedOpcaoId)) {
+        if (resultsStatus) {
+            resultsStatus.textContent = `${filteredOpcoes.length} opç${filteredOpcoes.length === 1 ? 'ão encontrada' : 'ões encontradas'}.`;
+        }
+        if (selectedOpcaoId === null && !window.location.hash.startsWith('#opcao-')) {
             selectedOpcaoId = filteredOpcoes[0]?.id ?? null;
-            if (window.location.hash.startsWith('#opcao-')) {
-                history.replaceState(null, '', window.location.pathname + window.location.search);
-            }
         }
         renderList(animateList);
-        const selected = filteredOpcoes.find(opcao => opcao.id === selectedOpcaoId);
+        const selected = opcoesData.find(opcao => opcao.id === selectedOpcaoId);
         if (selected) {
             renderOpcaoDetail(selected);
+            if (!filteredOpcoes.some(opcao => opcao.id === selectedOpcaoId)) {
+                detailContainer.insertAdjacentHTML('afterbegin', '<p class="mb-3 rounded border border-bonfire-stroke p-2 text-sm text-bonfire-muted">A opção selecionada não corresponde à busca atual. Limpe a busca ou os filtros para vê-la na lista.</p>');
+            }
         } else {
             detailContainer.classList.remove('hidden');
-            detailContainer.innerHTML = '<p class="text-sm text-bonfire-muted">Nenhuma opção corresponde à busca ou aos filtros.</p>';
+            detailContainer.innerHTML = window.location.hash.startsWith('#opcao-')
+                ? '<p class="text-sm text-bonfire-muted">A opção deste link não foi encontrada. Escolha outra opção na lista.</p>'
+                : '<p class="text-sm text-bonfire-muted">Nenhuma opção corresponde à busca ou aos filtros.</p>';
         }
     }
 
@@ -426,11 +452,16 @@
     function selectOpcao(id) {
         const opcao = opcoesData.find(t => t.id === id);
         if (!opcao) return;
+        const wasMobileOpen = document.body.classList.contains('opcao-menu-open');
         selectedOpcaoId = id;
         renderList(); // Atualiza seleção na lista
         closeOpcaoMenu();
-        if (opcao.slug) history.replaceState(null, '', `#opcao-${encodeURIComponent(opcao.slug)}`);
+        if (opcao.slug) {
+            const fragment = `#opcao-${encodeURIComponent(opcao.slug)}`;
+            if (window.location.hash !== fragment) history.pushState(null, '', fragment);
+        }
         renderOpcaoDetail(opcao);
+        if (wasMobileOpen) detailContainer.querySelector('h2')?.focus();
     }
 
     function renderOpcaoDetail(opcao) {
@@ -467,7 +498,7 @@
                 </div>
             </div>
 
-            <h2 data-talent-title class="font-cinzel text-xl font-bold text-bonfire-text uppercase mb-4">${escapeHtml(opcao.nome)}</h2>
+            <h2 data-talent-title tabindex="-1" class="font-cinzel text-xl font-bold text-bonfire-text uppercase mb-4">${escapeHtml(opcao.nome)}</h2>
             <div data-option-editor></div>
 
             ${accessRows ? `<section class="mb-4 rounded-md border border-bonfire-stroke bg-bonfire-bg1 p-3" aria-label="Acesso por classe e subclasse">
@@ -653,7 +684,7 @@
         openFilterModal();
     });
     opcaoMobileMenuButton?.addEventListener('click', openOpcaoMenu);
-    opcaoMobileBackdrop?.addEventListener('click', closeOpcaoMenu);
+    opcaoMobileBackdrop?.addEventListener('click', () => closeOpcaoMenu(true));
 
     [filterBackdrop, filterClose].forEach(element => {
         element.addEventListener('click', closeFilterModal);
@@ -677,7 +708,7 @@
     });
 
     document.addEventListener('keydown', event => {
-        if (event.key === 'Escape') closeOpcaoMenu();
+        if (event.key === 'Escape' && document.body.classList.contains('opcao-menu-open')) closeOpcaoMenu(true);
         if (event.key === 'Escape' && !filterModal.classList.contains('hidden')) {
             closeFilterModal();
         }
@@ -691,16 +722,12 @@
 
     // Inicialização
     populateFilters();
-    let initialSlug = '';
-    if (window.location.hash.startsWith('#opcao-')) {
-        try {
-            initialSlug = decodeURIComponent(window.location.hash.slice('#opcao-'.length));
-        } catch (_) {
-            // Um fragmento inválido não deve impedir a abertura do catálogo.
-        }
-    }
-    selectedOpcaoId = opcoesData.find(opcao => opcao.slug === initialSlug)?.id ?? null;
+    selectedOpcaoId = selectedFromHash();
     applyFilters(false);
+    window.addEventListener('popstate', () => {
+        selectedOpcaoId = selectedFromHash();
+        applyFilters(false);
+    });
 
     // Move search bar into drawer on mobile
     (function() {
