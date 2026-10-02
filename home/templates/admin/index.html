@@ -1,7 +1,9 @@
 {% extends "admin/base_site.html" %}
 {% load i18n static %}
 
-{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'admin/css/dashboard.css' %}"><link rel="stylesheet" href="{% static 'css/admin/tag_library.css' %}">{% endblock %}
+{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'admin/css/dashboard.css' %}"><link rel="stylesheet" href="{% static 'css/admin/tag_library.css' %}"><link rel="stylesheet" href="{% static 'css/admin/dashboard_search.css' %}">{% endblock %}
+
+{% block extrahead %}{{ block.super }}<script defer src="{% static 'js/admin/dashboard_search.js' %}"></script>{% endblock %}
 
 {% block coltype %}colMS{% endblock %}
 
@@ -13,7 +15,18 @@
 <div id="content-main">
     <div class="dashboard-welcome">
         <h1>Bem-vindo ao Painel de Conteúdo</h1>
-        <p>Escolha uma tarefa ou área abaixo. Use a busca do menu lateral para localizar um cadastro pelo nome.</p>
+        <p>Escolha uma tarefa ou área abaixo.</p>
+    </div>
+
+    <div class="dashboard-search" role="search">
+        <label for="dashboard-search-input">Pesquisar tarefas e cadastros</label>
+        <div class="dashboard-search-controls">
+            <input id="dashboard-search-input" type="search" autocomplete="off"
+                   placeholder="Ex.: crônicas, magias, territórios"
+                   aria-describedby="dashboard-search-status">
+            <button id="dashboard-search-clear" type="button" hidden>Limpar</button>
+        </div>
+        <p id="dashboard-search-status" role="status" aria-live="polite"></p>
     </div>
 
     <section class="bonfire-admin-tools" aria-labelledby="admin-tools-title">

@@ -1,0 +1,63 @@
+.dashboard-search {
+    margin: 0 0 24px;
+    padding: 18px 20px;
+    background: var(--bg1);
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius);
+}
+
+.dashboard-search label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--text);
+    font-weight: 700;
+}
+
+.dashboard-search-controls {
+    display: flex;
+    gap: 8px;
+}
+
+.dashboard-search input {
+    flex: 1;
+    min-width: 0;
+    min-height: 44px;
+    padding: 8px 12px;
+    border: 1px solid var(--stroke);
+    border-radius: 4px;
+    background: var(--bg0);
+    color: var(--text);
+}
+
+.dashboard-search input:focus-visible,
+.dashboard-search button:focus-visible {
+    outline: 2px solid var(--ember);
+    outline-offset: 2px;
+}
+
+.dashboard-search button {
+    min-height: 44px;
+    padding: 8px 14px;
+    border: 1px solid var(--stroke);
+    border-radius: 4px;
+    background: var(--bg2);
+    color: var(--text);
+    cursor: pointer;
+}
+
+.dashboard-search #dashboard-search-status {
+    margin: 8px 0 0;
+    color: var(--muted);
+}
+
+.dashboard .bonfire-admin-tools[hidden],
+.dashboard .bonfire-admin-tools a[hidden],
+.dashboard .app-list .module[hidden],
+.dashboard .app-list tr[hidden],
+.dashboard-search button[hidden] {
+    display: none !important;
+}
+
+@media (max-width: 600px) {
+    .dashboard-search { padding: 16px; }
+}
