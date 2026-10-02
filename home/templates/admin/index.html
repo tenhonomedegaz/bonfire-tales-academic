@@ -13,11 +13,11 @@
 <div id="content-main">
     <div class="dashboard-welcome">
         <h1>Bem-vindo ao Painel de Conteúdo</h1>
-        <p>Escolha uma tabela abaixo para gerenciar. No computador, o menu lateral também está sempre disponível.</p>
+        <p>Escolha uma tarefa ou área abaixo. Use a busca do menu lateral para localizar um cadastro pelo nome.</p>
     </div>
 
     <section class="bonfire-admin-tools" aria-labelledby="admin-tools-title">
-        <h2 id="admin-tools-title">Ferramentas do sistema</h2>
+        <h2 id="admin-tools-title">Ferramentas editoriais</h2>
         <div class="bonfire-admin-tools-grid">
             <a href="{% url 'admin:tag_library' %}">
                 <strong>Biblioteca de Tags</strong>
@@ -27,10 +27,22 @@
                 <strong>Editor Markdown</strong>
                 <span>Validar a apresentação de textos e referências.</span>
             </a>
+        </div>
+    </section>
+
+    <section class="bonfire-admin-tools" aria-labelledby="admin-operation-title">
+        <h2 id="admin-operation-title">Operação</h2>
+        <div class="bonfire-admin-tools-grid">
             <a href="{% url 'admin:server_logs' %}">
                 <strong>Console</strong>
                 <span>Logs, configuração e restauração controlada.</span>
             </a>
+            {% if request.user.is_superuser %}
+            <a href="{% url 'managed_api_key_console' %}">
+                <strong>Chaves de API</strong>
+                <span>Gerenciar acesso protegido à integração.</span>
+            </a>
+            {% endif %}
         </div>
     </section>
 

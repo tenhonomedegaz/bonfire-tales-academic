@@ -3785,47 +3785,9 @@ def _bonfire_admin_get_app_list(request, app_label=None):
     app_dict = admin.site._build_app_dict(request)
     if app_label:
         return _original_get_app_list(request, app_label)
-        
-    home_app = app_dict.get('home')
-    auth_app = app_dict.get('auth')
-    
-    if auth_app:
-        auth_app['name'] = 'Autenticação'
-        
-    if home_app:
-        site_models = []
-        bot_models = []
-        for model in home_app['models']:
-            if model['object_name'].startswith('Bot'):
-                bot_models.append(model)
-            else:
-                site_models.append(model)
-                
-        home_app['name'] = 'Tables Site'
-        home_app['models'] = site_models
-        
-        bot_app = {
-            'name': 'Tables Bot',
-            'app_label': 'tables_bot',
-            'app_url': '',
-            'has_module_perms': True,
-            'models': bot_models,
-        }
-        
-        # Order: Autenticação, Tables Bot, Tables Site, others
-        app_list = []
-        if auth_app:
-            app_list.append(auth_app)
-        app_list.append(bot_app)
-        app_list.append(home_app)
-        
-        for app in app_dict.values():
-            if app['app_label'] not in ('home', 'auth'):
-                app_list.append(app)
-                
-        return app_list
-        
-    return sorted(app_dict.values(), key=lambda x: x['name'].lower())
+    from .admin_navigation import grouped_admin_apps
+
+    return grouped_admin_apps(app_dict, reverse('admin:index'))
 
 admin.site.get_app_list = _bonfire_admin_get_app_list
 
