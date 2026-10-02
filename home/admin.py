@@ -2582,7 +2582,7 @@ class TbCondicaoAdmin(BonfireAdminMixin, admin.ModelAdmin):
 class TbLinhagemInline(admin.StackedInline):
     model = TbLinhagem
     extra = 0
-    fields = ("nome", "slug", "imagem_url", "descricao")
+    fields = ("nome", "slug", "imagem_url", ("imagem_foco_x", "imagem_foco_y"), "descricao")
     prepopulated_fields = {"slug": ("nome",)}
     show_change_link = True
 
@@ -2605,7 +2605,7 @@ class TbRacaAdmin(BonfireAdminMixin, admin.ModelAdmin):
     prepopulated_fields = {"slug": ("nome",)}
     ordering = ("nome",)
     fieldsets = (
-        (None, {"fields": ("nome", "slug", "tagline", "imagem_url", "permite_essencia")}),
+        (None, {"fields": ("nome", "slug", "tagline", "imagem_url", ("imagem_foco_x", "imagem_foco_y"), "permite_essencia")}),
         ("Lore", {"classes": ("collapse",), "fields": ("lore_presentation", "lore_roleplay", "lore_society")}),
     )
     inlines = (TbLinhagemInline, TbTracoracialInline)
@@ -2762,7 +2762,7 @@ class TbLinhagemAdmin(BonfireAdminMixin, admin.ModelAdmin):
     prepopulated_fields = {"slug": ("nome",)}
     ordering = ("id_raca__nome", "nome")
     fieldsets = (
-        (None, {"fields": ("id_raca", "nome", "slug", "imagem_url", "descricao")}),
+        (None, {"fields": ("id_raca", "nome", "slug", "imagem_url", ("imagem_foco_x", "imagem_foco_y"), "descricao")}),
         ("Lore", {"classes": ("collapse",), "fields": ("lore_presentation", "lore_roleplay", "lore_society")}),
     )
 
@@ -2779,7 +2779,7 @@ class TbEssenciaAdmin(BonfireAdminMixin, admin.ModelAdmin):
     prepopulated_fields = {"slug": ("nome",)}
     ordering = ("nome",)
     fieldsets = (
-        (None, {"fields": ("nome", "slug", "imagem_url", "tags_json")}),
+        (None, {"fields": ("nome", "slug", "imagem_url", ("imagem_foco_x", "imagem_foco_y"), "tags_json")}),
         ("Lore", {"classes": ("collapse",), "fields": ("lore_presentation", "lore_roleplay", "lore_society")}),
     )
 

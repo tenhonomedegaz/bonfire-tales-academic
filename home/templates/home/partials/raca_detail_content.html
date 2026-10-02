@@ -15,13 +15,13 @@
       </div>
     </section>
 {% elif only_content %}
-    <div id="raceDetailContainer" data-active-tab="lore" data-active-lineage="" data-active-essence="" data-base-image="{{ raca.image_url }}" data-race-name="{{ raca.nome }}" data-race-slug="{{ raca.slug }}">
+    <div id="raceDetailContainer" data-active-tab="lore" data-active-lineage="" data-active-essence="" data-base-image="{{ raca.image_url }}" data-base-focus-x="{{ raca.imagem_foco_x }}" data-base-focus-y="{{ raca.imagem_foco_y }}" data-race-name="{{ raca.nome }}" data-race-slug="{{ raca.slug }}">
 
       <!-- ============ HERO / CABEÇALHO DA RAÇA ============ -->
       <header class="race-hero">
         <div class="race-hero-media">
           <button id="raceArtOpen" type="button" class="race-hero-art-button" aria-label="Ver arte completa de {{ raca.nome }}"{% if not raca.image_url %} hidden{% endif %}>
-            <span id="racePreviewImage" class="race-hero-thumb"{% if raca.image_url %} style="background-image: url('{{ raca.image_url }}')"{% endif %}></span>
+            <span id="racePreviewImage" class="race-hero-thumb"{% if raca.image_url %} style="background-image: url('{{ raca.image_url }}'); background-position: {{ raca.imagem_foco_x }}% {{ raca.imagem_foco_y }}%"{% endif %}></span>
             <span class="race-hero-art-caption">Ver arte completa</span>
           </button>
         </div>
@@ -45,6 +45,14 @@
         <label>Nome <input name="nome" value="{{ raca.nome }}"></label>
         <label>Tagline <input name="tagline" value="{{ raca.tagline|default:'' }}"></label>
         <label>Imagem <input name="imagem_url" type="url" value="{{ raca.imagem_url|default:'' }}"></label>
+        <div class="race-crop-fields">
+          <label>Foco horizontal (%) <input name="imagem_foco_x" type="number" min="0" max="100" step="1" required value="{{ raca.imagem_foco_x }}"></label>
+          <label>Foco vertical (%) <input name="imagem_foco_y" type="number" min="0" max="100" step="1" required value="{{ raca.imagem_foco_y }}"></label>
+        </div>
+        <div class="race-crop-previews" aria-label="Prévia dos recortes">
+          <figure><img data-race-crop-preview alt="Prévia quadrada"{% if raca.image_url %} src="{{ raca.image_url }}"{% else %} hidden{% endif %}><figcaption>Quadrado</figcaption></figure>
+          <figure><img data-race-crop-preview alt="Prévia horizontal no celular"{% if raca.image_url %} src="{{ raca.image_url }}"{% else %} hidden{% endif %}><figcaption>Celular</figcaption></figure>
+        </div>
         <label>Visão Geral <textarea name="lore_presentation">{{ raca.lore_presentation|default:'' }}</textarea></label>
         <label>Roleplay <textarea name="lore_roleplay">{{ raca.lore_roleplay|default:'' }}</textarea></label>
         <label>Sociedade <textarea name="lore_society">{{ raca.lore_society|default:'' }}</textarea></label>
@@ -89,7 +97,7 @@
             <select id="linhagemSelect">
               <option value="">Sem Linhagem</option>
               {% for lin in linhagens %}
-              <option value="{{ lin.slug }}" data-image="{{ lin.image_url }}" data-name="{{ lin.nome }}">{{ lin.nome }}</option>
+              <option value="{{ lin.slug }}" data-image="{{ lin.image_url }}" data-focus-x="{{ lin.image_focus_x }}" data-focus-y="{{ lin.image_focus_y }}" data-name="{{ lin.nome }}">{{ lin.nome }}</option>
               {% endfor %}
             </select>
           </div>
@@ -100,7 +108,7 @@
             <select id="essenciaSelect">
               <option value="">Sem Essência</option>
               {% for ess in essencias %}
-              <option value="{{ ess.slug }}" data-image="{{ ess.image_url }}" data-name="{{ ess.nome }}">{{ ess.nome }}</option>
+              <option value="{{ ess.slug }}" data-image="{{ ess.image_url }}" data-focus-x="{{ ess.image_focus_x }}" data-focus-y="{{ ess.image_focus_y }}" data-name="{{ ess.nome }}">{{ ess.nome }}</option>
               {% endfor %}
             </select>
             {% else %}

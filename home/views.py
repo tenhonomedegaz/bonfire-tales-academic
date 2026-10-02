@@ -2549,10 +2549,16 @@ def _postgres_raca_detail_view(request, slug):
 
     stats = RACE_STATS_MAP.get(raca.slug, default_stats)
     for lin in linhagens:
+        has_image = bool(lin.imagem_url)
         lin.image_url = lin.imagem_url or raca.imagem_url or ''
+        lin.image_focus_x = lin.imagem_foco_x if has_image else raca.imagem_foco_x
+        lin.image_focus_y = lin.imagem_foco_y if has_image else raca.imagem_foco_y
 
     for ess in essencias:
+        has_image = bool(ess.imagem_url)
         ess.image_url = ess.imagem_url or raca.imagem_url or ''
+        ess.image_focus_x = ess.imagem_foco_x if has_image else raca.imagem_foco_x
+        ess.image_focus_y = ess.imagem_foco_y if has_image else raca.imagem_foco_y
 
     raca.image_url = raca.imagem_url or ''
 
@@ -11188,9 +11194,17 @@ def wiki_update_race(request, race_id):
     data = _json_body(request)
     validate_no_sql_danger(data, 'raca')
     race = get_object_or_404(TbRaca, pk=race_id)
+    focus = {}
+    for axis in ('x', 'y'):
+        value = data.get(f'imagem_foco_{axis}', getattr(race, f'imagem_foco_{axis}'))
+        if not str(value).isascii() or not str(value).isdigit() or not 0 <= int(value) <= 100:
+            return JsonResponse({'ok': False, 'error': 'O ponto focal deve estar entre 0 e 100.'}, status=400)
+        focus[axis] = int(value)
     race.nome = (data.get('nome') or race.nome).strip()
     race.tagline = (data.get('tagline') or '').strip() or None
     race.imagem_url = (data.get('imagem_url') or '').strip() or None
+    race.imagem_foco_x = focus['x']
+    race.imagem_foco_y = focus['y']
     race.lore_presentation = data.get('lore_presentation') or ''
     race.lore_roleplay = data.get('lore_roleplay') or ''
     race.lore_society = data.get('lore_society') or ''
@@ -11203,6 +11217,8 @@ def wiki_update_race(request, race_id):
             'nome': race.nome,
             'tagline': race.tagline or '',
             'imagem_url': race.imagem_url or '',
+            'imagem_foco_x': race.imagem_foco_x,
+            'imagem_foco_y': race.imagem_foco_y,
             'lore_presentation': race.lore_presentation or '',
             'lore_roleplay': race.lore_roleplay or '',
             'lore_society': race.lore_society or '',

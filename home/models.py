@@ -27,7 +27,7 @@ from django.db import models
 from django.utils import timezone
 from django.db.models.signals import pre_save, post_save, post_delete
 from django.dispatch import receiver
-from django.core.validators import FileExtensionValidator
+from django.core.validators import FileExtensionValidator, MaxValueValidator, MinValueValidator
 from django.core.exceptions import ValidationError
 
 
@@ -363,6 +363,8 @@ class TbRaca(models.Model):
     lore_roleplay = models.TextField(db_column='LoreRoleplay', blank=True, null=True)
     lore_society = models.TextField(db_column='LoreSociety', blank=True, null=True)
     imagem_url = models.CharField(db_column='ImagemUrl', max_length=500, blank=True, null=True)
+    imagem_foco_x = models.PositiveSmallIntegerField(db_column='ImagemFocoX', default=50, validators=[MinValueValidator(0), MaxValueValidator(100)], help_text='Posição horizontal do ponto focal (0–100%).')
+    imagem_foco_y = models.PositiveSmallIntegerField(db_column='ImagemFocoY', default=50, validators=[MinValueValidator(0), MaxValueValidator(100)], help_text='Posição vertical do ponto focal (0–100%).')
     permite_essencia = models.BooleanField(db_column='PermiteEssencia', default=True)
 
     class Meta:
@@ -383,6 +385,8 @@ class TbLinhagem(models.Model):
     lore_society = models.TextField(db_column='LoreSociety', blank=True, null=True)
     descricao = models.TextField(db_column='Descricao', blank=True, null=True)
     imagem_url = models.CharField(db_column='ImagemUrl', max_length=500, blank=True, null=True)
+    imagem_foco_x = models.PositiveSmallIntegerField(db_column='ImagemFocoX', default=50, validators=[MinValueValidator(0), MaxValueValidator(100)], help_text='Posição horizontal do ponto focal (0–100%).')
+    imagem_foco_y = models.PositiveSmallIntegerField(db_column='ImagemFocoY', default=50, validators=[MinValueValidator(0), MaxValueValidator(100)], help_text='Posição vertical do ponto focal (0–100%).')
 
     class Meta:
         db_table = 'TB_Linhagem'
@@ -409,6 +413,8 @@ class TbEssencia(models.Model):
     lore_roleplay = models.TextField(db_column='LoreRoleplay', blank=True, null=True)
     lore_society = models.TextField(db_column='LoreSociety', blank=True, null=True)
     imagem_url = models.CharField(db_column='ImagemUrl', max_length=500, blank=True, null=True)
+    imagem_foco_x = models.PositiveSmallIntegerField(db_column='ImagemFocoX', default=50, validators=[MinValueValidator(0), MaxValueValidator(100)], help_text='Posição horizontal do ponto focal (0–100%).')
+    imagem_foco_y = models.PositiveSmallIntegerField(db_column='ImagemFocoY', default=50, validators=[MinValueValidator(0), MaxValueValidator(100)], help_text='Posição vertical do ponto focal (0–100%).')
 
     class Meta:
         db_table = 'TB_Essencia'

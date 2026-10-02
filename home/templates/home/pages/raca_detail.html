@@ -4,7 +4,7 @@
 {% block main_class %}flex-1 w-full py-2.5{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/pages/raca_detail.css' %}?v=6">
+<link rel="stylesheet" href="{% static 'css/pages/raca_detail.css' %}?v=7">
 
 {% endblock %}
 
@@ -264,6 +264,8 @@
       const previewLabel = document.getElementById('racePreviewLabel');
 
       let imgUrl = container.getAttribute('data-base-image') || '';
+      let focusX = container.getAttribute('data-base-focus-x') || '50';
+      let focusY = container.getAttribute('data-base-focus-y') || '50';
       let labelText = 'Raça Base';
       let selectionName = container.getAttribute('data-race-name') || '';
 
@@ -271,6 +273,8 @@
         const selectedOpt = essSelect.querySelector(`option[value="${activeEssence}"]`);
         if (selectedOpt) {
           imgUrl = selectedOpt.getAttribute('data-image') || imgUrl;
+          focusX = selectedOpt.getAttribute('data-focus-x') || focusX;
+          focusY = selectedOpt.getAttribute('data-focus-y') || focusY;
           selectionName = selectedOpt.getAttribute('data-name') || selectedOpt.textContent;
           labelText = 'Essência Selecionada';
         }
@@ -278,12 +282,17 @@
         const selectedOpt = linSelect.querySelector(`option[value="${activeLineage}"]`);
         if (selectedOpt) {
           imgUrl = selectedOpt.getAttribute('data-image') || imgUrl;
+          focusX = selectedOpt.getAttribute('data-focus-x') || focusX;
+          focusY = selectedOpt.getAttribute('data-focus-y') || focusY;
           selectionName = selectedOpt.getAttribute('data-name') || selectedOpt.textContent;
           labelText = 'Linhagem Selecionada';
         }
       }
 
-      if (previewImg) previewImg.style.backgroundImage = imgUrl ? `url('${imgUrl}')` : 'none';
+      if (previewImg) {
+        previewImg.style.backgroundImage = imgUrl ? `url('${imgUrl}')` : 'none';
+        previewImg.style.backgroundPosition = `${focusX}% ${focusY}%`;
+      }
       if (artOpen) {
         artOpen.hidden = !imgUrl;
         artOpen.setAttribute('aria-label', `Ver arte completa de ${selectionName}`);
@@ -506,6 +515,20 @@
     const raceForm = container.querySelector('[data-race-form]');
     const raceCancelBtn = container.querySelector('[data-race-cancel]');
     if (raceEditBtn && raceForm) {
+      const cropPreviews = raceForm.querySelectorAll('[data-race-crop-preview]');
+      const refreshCropPreviews = () => {
+        const url = raceForm.elements.imagem_url.value.trim();
+        const x = raceForm.elements.imagem_foco_x.value;
+        const y = raceForm.elements.imagem_foco_y.value;
+        cropPreviews.forEach(img => {
+          img.hidden = !url;
+          if (url && img.getAttribute('src') !== url) img.src = url;
+          else img.removeAttribute('src');
+          img.style.objectPosition = `${x}% ${y}%`;
+        });
+      };
+      raceForm.addEventListener('input', refreshCropPreviews);
+      refreshCropPreviews();
       raceEditBtn.addEventListener('click', (event) => {
         event.stopPropagation();
         raceForm.classList.add('is-open');

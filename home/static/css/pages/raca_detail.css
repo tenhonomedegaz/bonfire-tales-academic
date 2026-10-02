@@ -57,6 +57,12 @@
     min-height: 160px;
     resize: vertical;
   }
+  .race-crop-fields, .race-crop-previews { display: flex; flex-wrap: wrap; gap: .75rem; }
+  .race-crop-fields label { flex: 1 1 120px; }
+  .race-crop-previews figure { margin: 0; color: var(--muted); font-size: .7rem; }
+  .race-crop-previews img { width: 132px; height: 132px; object-fit: cover; border: 1px solid var(--stroke); border-radius: 6px; }
+  .race-crop-previews figure + figure img { width: 185px; height: 120px; }
+  .race-crop-previews img[hidden] { display: none; }
   .wiki-inline-check {
     align-items: center;
     display: flex !important;
@@ -418,6 +424,9 @@
     background-size: cover;
     background-position: center;
     transition: background-image 0.4s ease;
+  }
+  @media (max-width: 640px) {
+    .race-hero-thumb { width: 148px; height: 96px; }
   }
   .race-art-dialog {
     position: fixed;
