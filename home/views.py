@@ -12721,13 +12721,20 @@ def antecedentes_view(request):
         tags = [t.strip() for t in (bg.etiquetas_adicionais or '').split(',') if t.strip()]
         profs = [p.strip() for p in (bg.proficiencias or '').split(',') if p.strip()]
         langs = [l.strip() for l in (bg.idiomas or '').split(',') if l.strip()]
+        # Alguns resumos são a mesma citação que abre a descrição. Exibi-los
+        # de novo antes do texto repete a primeira informação do detalhe.
+        resumo = bg.resumo or ''
+        resumo_compacto = re.sub(r'[\W_]+', '', resumo, flags=re.UNICODE).casefold()
+        descricao_compacta = re.sub(r'[\W_]+', '', bg.descricao or '', flags=re.UNICODE).casefold()
+        if len(resumo_compacto) >= 30 and resumo_compacto in descricao_compacta:
+            resumo = ''
         
         items.append({
             'nome': bg.nome,
             'slug': bg.slug,
             'tipo': bg.tipo,
             'tags': tags,
-            'resumo': bg.resumo,
+            'resumo': resumo,
             'pre_requisito': bg.pre_requisito,
             'proficiencias': profs,
             'idiomas': langs,

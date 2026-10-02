@@ -5,16 +5,18 @@
 {% block title %}{{ title }} - Bonfire Tales RPG{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/pages/catalogo.css' %}?v=4">
+<link rel="stylesheet" href="{% static 'css/pages/catalogo.css' %}?v=5">
 {% endblock %}
 
 {% block content %}
 <section class="catalog-shell">
   <header class="catalog-header">
-    <h1 class="catalog-title">{{ title }}</h1>
+    <h1 class="catalog-title{% if kind == 'antecedentes' %} catalog-title--backgrounds{% endif %}">{{ title }}</h1>
     <p class="catalog-subtitle">{{ subtitle }}</p>
     {% if kind == 'antecedentes' %}
-      <div class="catalog-intro-box" style="margin-top: 1rem; padding: 0.75rem; background: var(--bg0); border: 1px solid var(--stroke); border-radius: 6px; font-size: 0.9rem; line-height: 1.45; color: var(--text);">
+      <details class="catalog-intro-box">
+        <summary>Regras básicas dos antecedentes <span class="catalog-intro-hint">Atributos, perícias e escolhas iniciais</span></summary>
+        <div class="catalog-intro-content">
         <p style="margin-bottom: 0.5rem;">Todo <b>Antecedente</b> concede benefícios básicos ao seu personagem, além de ajudar a definir sua história e o jeito que ele encara o mundo. Ao escolher um antecedente, você recebe:</p>
         <ul style="margin-bottom: 0.6rem; padding-left: 1.25rem; list-style-type: disc; display: flex; flex-direction: column; gap: 0.4rem;">
           <li><b>Atributos:</b> Você pode alocar <b>+2</b> em um atributo e <b>+1</b> em outro (à sua escolha).</li>
@@ -25,7 +27,8 @@
           <li><b>Talento de Origem:</b> Você escolhe <b>1 Talento de Origem</b>.</li>
         </ul>
         <p style="font-style: italic; color: var(--muted); border-left: 2px solid var(--ember); padding-left: 0.5rem;"><b>Origem de Nascimento (Reino) e Deus:</b> Alguns antecedentes também pedem que você escolha uma <b>Origem de Nascimento</b> (Reino) ou um <b>deus</b> para definir detalhes do seu Talento de Origem. Se esse for o seu caso, selecione-os apropriadamente.</p>
-      </div>
+        </div>
+      </details>
     {% endif %}
     {% if db_error %}
       <p class="catalog-empty" style="margin-top:0.6rem;">Banco indisponivel agora: {{ db_error }}</p>

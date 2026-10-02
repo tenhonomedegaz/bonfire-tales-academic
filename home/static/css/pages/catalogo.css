@@ -261,3 +261,35 @@
       position: static;
     }
   }
+  .catalog-title--backgrounds {
+    font-size: clamp(1.85rem, 3vw, 2.55rem);
+  }
+  .catalog-intro-box {
+    background: var(--bg0);
+    border: 1px solid var(--stroke);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: .9rem;
+    line-height: 1.45;
+    margin-top: .75rem;
+  }
+  .catalog-intro-box summary {
+    color: #fff;
+    cursor: pointer;
+    font-weight: 700;
+    padding: .65rem .75rem;
+  }
+  .catalog-intro-box summary:focus-visible {
+    outline: 2px solid var(--ember);
+    outline-offset: 2px;
+  }
+  .catalog-intro-hint {
+    color: var(--muted);
+    font-size: .82rem;
+    font-weight: 400;
+    margin-left: .35rem;
+  }
+  .catalog-intro-content {
+    border-top: 1px solid var(--stroke);
+    padding: .75rem;
+  }
