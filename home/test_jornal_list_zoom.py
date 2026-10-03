@@ -1,5 +1,6 @@
 """Browser QA for public editorial pages with real Chrome page zoom."""
 
+from datetime import timedelta
 import json
 import math
 import shutil
@@ -14,6 +15,7 @@ from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.db import connection
 from django.test import Client
 from django.urls import reverse
+from django.utils import timezone
 
 from .models import TbConteudoEstatico, TbJornal, TbMapLayer, TbRegiao, TbTerritorio, UserProfile
 
@@ -37,6 +39,12 @@ class JornalListZoomTests(StaticLiveServerTestCase):
                                 imagem_url="/static/assets/logo.png")
         TbJornal.objects.create(titulo="Notícia comum", slug="noticia-comum", resumo="Outro resumo")
         TbJornal.objects.create(titulo="Capa antiga", slug="capa-antiga", imagem_url="/static/assets/logo.png');color:red;--evil:'")
+        for number in range(20):
+            TbJornal.objects.create(
+                titulo=f"Arquivo {number:02d}", slug=f"arquivo-{number:02d}",
+                conteudo_markdown="Texto do arquivo",
+                data_publicacao=timezone.now() - timedelta(days=100 + number),
+            )
         TbMapLayer.objects.update_or_create(
             id_layer=0, defaults={"nome": "Superfície", "ordem": 0, "publica": True},
         )
@@ -98,14 +106,14 @@ class JornalListZoomTests(StaticLiveServerTestCase):
                 call("Page.enable")
                 call("Page.navigate", {"url": self.live_server_url + reverse("mundo_jornal")})
                 for _ in range(80):
-                    if js("document.readyState") == "complete" and js('document.querySelectorAll(".jornal-card").length') == 3:
+                    if js("document.readyState") == "complete" and js('document.querySelectorAll(".jornal-card").length') == 20:
                         break
                     time.sleep(.1)
                 metrics = json.loads(js("JSON.stringify({outer:outerWidth,dpr:devicePixelRatio,scale:visualViewport.scale,scroll:document.documentElement.scrollWidth,client:document.documentElement.clientWidth,cards:document.querySelectorAll('.jornal-card').length,featured:document.querySelectorAll('.jornal-card.is-destaque').length,bg:getComputedStyle(document.querySelector('.jornal-hero')).backgroundImage})"))
                 self.assertEqual(metrics["outer"], 800, metrics)
                 self.assertAlmostEqual(metrics["dpr"], 2, delta=.05, msg=metrics)
                 self.assertEqual(metrics["scale"], 1, metrics)
-                self.assertEqual(metrics["cards"], 3, metrics)
+                self.assertEqual(metrics["cards"], 20, metrics)
                 self.assertEqual(metrics["featured"], 1, metrics)
                 self.assertLessEqual(metrics["scroll"], metrics["client"], metrics)
                 self.assertIn("radial-gradient", metrics["bg"])
@@ -119,6 +127,15 @@ class JornalListZoomTests(StaticLiveServerTestCase):
                 self.assertTrue(js("document.querySelector('.jornal-card').matches(':hover')"))
                 self.assertEqual(js("getComputedStyle(document.querySelector('.jornal-card')).transform"), "none")
                 self.assertEqual(js("getComputedStyle(document.querySelector('.jornal-card')).transitionDuration"), "0s")
+                self.assertEqual(js('document.querySelector(".jornal-pagination [rel=next]").getAttribute("href")'), '?page=2')
+                call("Page.navigate", {"url": self.live_server_url + reverse("mundo_jornal") + "?page=2"})
+                for _ in range(80):
+                    if js('document.readyState === "complete" && document.querySelectorAll(".jornal-card").length === 3'):
+                        break
+                    time.sleep(.1)
+                self.assertEqual(js('document.querySelectorAll(".jornal-card").length'), 3)
+                self.assertLessEqual(js('document.documentElement.scrollWidth'), js('document.documentElement.clientWidth'))
+                self.assertTrue(js('document.querySelector(".jornal-pagination [rel=prev]").getBoundingClientRect().width > 0'))
                 for route_name, route_args, selector in (
                     ("home", [], "#home-primary-action"),
                     ("mundo_regioes", [], ".territory-card"),

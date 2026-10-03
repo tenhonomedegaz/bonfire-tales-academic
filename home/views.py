@@ -14631,13 +14631,15 @@ def api_creature_preview(request):
 
 
 def jornal_list_view(request):
-    artigos_query = TbJornal.objects.select_related('autor').all()
+    artigos_query = TbJornal.objects.select_related('autor').order_by('-data_publicacao', '-pk')
     has_content = artigos_query.exclude(conteudo_markdown__isnull=True).exclude(conteudo_markdown='').exists()
-    artigos = list(artigos_query)
+    page = Paginator(artigos_query, 20).get_page(request.GET.get('page'))
+    artigos = list(page)
     for artigo in artigos:
         artigo.safe_image_url = _jornal_image_url(artigo.imagem_url)
     return render(request, 'home/pages/jornal_list.html', {
         'artigos': artigos,
+        'page_obj': page,
         'can_edit_wiki': request.user.is_staff and request.user.has_perm('home.add_tbjornal'),
         'noindex': not has_content,
     })
