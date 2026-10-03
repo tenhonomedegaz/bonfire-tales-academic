@@ -401,6 +401,32 @@ class WorldLoreBrowserSafetyTests(StaticLiveServerTestCase):
                 self.assertEqual(js('document.querySelector("#activeTopicBody strong")?.textContent'), 'Seguro')
                 self.assertEqual(js('document.querySelector(".bonfire-color-page")?.textContent'), 'Brasa')
                 self.assertFalse(js('window.__worldInjected === 1'))
+
+                region_path = reverse('regiao_detail', args=['cidade-literal'])
+                territory_path = reverse('territorio_detail', args=['vale-literal'])
+                js('document.querySelector("#regionMobileMenuButton").click()')
+                self.assertTrue(js('document.body.classList.contains("region-menu-open")'))
+                js('document.querySelector(".region-mobile-drawer [data-region-link=cidade-literal]").click()')
+                wait_for('document.querySelector("#articleTitle")?.textContent === ' + json.dumps(region_name))
+                self.assertEqual(js('location.pathname'), region_path)
+                self.assertFalse(js('document.body.classList.contains("region-menu-open")'))
+                self.assertEqual(js('document.activeElement?.id'), 'articleTitle')
+
+                js('history.back()')
+                wait_for('document.querySelector("#articleTitle")?.textContent === ' + json.dumps(territory_name))
+                self.assertEqual(js('location.pathname'), territory_path)
+                js('history.forward()')
+                wait_for('document.querySelector("#articleTitle")?.textContent === ' + json.dumps(region_name))
+                self.assertEqual(js('location.pathname'), region_path)
+
+                js('document.querySelector(".region-mobile-drawer [data-territory-title]").click();'
+                   'document.querySelector(".region-mobile-drawer [data-region-link=cidade-literal]").click()')
+                time.sleep(.35)
+                self.assertEqual(js('document.querySelector("#articleTitle")?.textContent'), region_name)
+                self.assertEqual(js('location.pathname'), region_path)
+                history_length = js('history.length')
+                js('document.querySelector(".region-mobile-drawer [data-region-link=cidade-literal]").click()')
+                self.assertEqual(js('history.length'), history_length)
             finally:
                 if ws:
                     ws.close()

@@ -699,7 +699,7 @@
           </a>
           <div class="region-eyebrow">{% if is_territory %}Territórios{% else %}Regiões / {{ display_territory }}{% endif %}</div>
         </div>
-        <h1 class="region-title" id="articleTitle">{{ regiao.nome }}</h1>
+        <h1 class="region-title" id="articleTitle" tabindex="-1">{{ regiao.nome }}</h1>
         
         {% if lore_topics|length > 1 %}
         <nav class="topic-nav" aria-label="Tópicos da região" style="margin-top: .75rem;">
@@ -870,6 +870,7 @@
   const mapPin = document.querySelector('.map-pin-link');
 
   let currentData = null;
+  let viewTimer = null;
 
   const mobileMenuButton = document.getElementById('regionMobileMenuButton');
   const mobileBackdrop = document.getElementById('regionMobileBackdrop');
@@ -1221,17 +1222,17 @@
     }
   }
 
-  function updateView(data, pushState = true) {
+  function updateView(data, pushState = true, focusTitle = false) {
     if (!data) return;
-    currentData = data;
-    
+    const url = data.type === 'region' ? data.url : `/mundo/territorios/${data.slug}/`;
     if (pushState) {
-        const url = data.type === 'region' ? data.url : `/mundo/territorios/${data.slug}/`;
-        history.pushState({ slug: data.slug, type: data.type }, '', url);
+        if (location.pathname !== url) history.pushState({ slug: data.slug, type: data.type }, '', url);
     }
+    currentData = data;
+    if (viewTimer) clearTimeout(viewTimer);
 
     contentEl.classList.add('is-swapping');
-    setTimeout(() => {
+    viewTimer = setTimeout(() => {
       hero.style.setProperty('--hero-bg', `url('${data.imagem_url}')`);
       if (sideCard) sideCard.style.setProperty('--map-image', `url('${data.side_image_url || data.territory_image_url || data.imagem_url}')`);
       titleEl.textContent = data.nome;
@@ -1283,6 +1284,8 @@
       });
 
       contentEl.classList.remove('is-swapping');
+      if (focusTitle) titleEl.focus({ preventScroll: true });
+      viewTimer = null;
     }, 200);
   }
 
@@ -1313,28 +1316,39 @@
 
     const regionLink = e.target.closest('[data-region-link]');
     if (regionLink) {
+      const region = regionsBySlug.get(regionLink.dataset.regionLink);
+      if (!region) return;
       e.preventDefault();
-      updateView(regionsBySlug.get(regionLink.dataset.regionLink));
+      closeRegionMenu();
+      updateView(region, true, true);
       return;
     }
 
     const territoryLink = e.target.closest('[data-territory-title]');
     if (territoryLink) {
+      const territory = territories[territoryLink.dataset.territoryTitle];
+      if (!territory) return;
       e.preventDefault();
       const nav = territoryLink.closest('details');
       document.querySelectorAll('details.territory-nav').forEach(n => {
           if (n !== nav) n.open = false;
       });
       if (nav) nav.open = true;
-      updateView(territories[territoryLink.dataset.territoryTitle]);
+      closeRegionMenu();
+      updateView(territory, true, true);
       return;
     }
   });
 
   window.addEventListener('popstate', e => {
-    if (e.state) {
-      const data = e.state.type === 'region' ? regionsBySlug.get(e.state.slug) : territoriesBySlug.get(e.state.slug);
-      if (data) updateView(data, false);
+    const route = location.pathname.match(/^\/mundo\/(regioes|territorios)\/([^/]+)\/$/);
+    const state = e.state && e.state.slug && e.state.type ? e.state : null;
+    const type = state?.type || (route?.[1] === 'territorios' ? 'territory' : 'region');
+    const slug = state?.slug || route?.[2];
+    const data = type === 'region' ? regionsBySlug.get(slug) : territoriesBySlug.get(slug);
+    if (data) {
+      closeRegionMenu();
+      updateView(data, false);
     }
   });
 
@@ -1354,6 +1368,7 @@
   }
   
   if (initialArticle) {
+      history.replaceState({ slug: initialArticle.slug, type: initialArticle.type }, '', location.href);
       updateView(initialArticle, false);
       // Force correct sidebar open state on load
       document.querySelectorAll('.territory-nav').forEach(nav => {
