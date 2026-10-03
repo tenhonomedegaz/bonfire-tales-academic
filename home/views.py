@@ -14680,12 +14680,33 @@ def _jornal_editor_fields(data, article=None):
     return title.strip(), layout, None
 
 
+def _jornal_publication_date(data):
+    value = data.get('data_publicacao')
+    if value is None or value == '':
+        return None, None
+    if not isinstance(value, str):
+        return None, 'Informe uma data de publicacao valida.'
+    from django.utils.dateparse import parse_datetime
+    try:
+        parsed = parse_datetime(value.strip())
+        if parsed and timezone.is_naive(parsed):
+            parsed = timezone.make_aware(parsed, timezone.get_current_timezone())
+    except (ValueError, TypeError, OverflowError):
+        parsed = None
+    if parsed is None:
+        return None, 'Informe uma data de publicacao valida.'
+    return parsed, None
+
+
 @staff_member_required
 @permission_required('home.add_tbjornal', raise_exception=True)
 def jornal_create_view(request):
     if request.method == 'POST':
         data = _json_body(request)
         titulo, layout, error = _jornal_editor_fields(data)
+        if error:
+            return JsonResponse({'error': error}, status=400)
+        publication_date, error = _jornal_publication_date(data)
         if error:
             return JsonResponse({'error': error}, status=400)
         image_url = (data.get('imagem_url') or '').strip()
@@ -14711,15 +14732,8 @@ def jornal_create_view(request):
             'layout': layout,
         }
         
-        data_publicacao_str = data.get('data_publicacao')
-        if data_publicacao_str:
-            try:
-                from django.utils.dateparse import parse_datetime
-                parsed = parse_datetime(data_publicacao_str)
-                if parsed:
-                    kwargs['data_publicacao'] = parsed
-            except Exception:
-                pass
+        if publication_date:
+            kwargs['data_publicacao'] = publication_date
                 
         artigo = TbJornal.objects.create(**kwargs)
         return JsonResponse({'ok': True, 'slug': artigo.slug})
@@ -14739,6 +14753,9 @@ def jornal_update_view(request, slug):
     titulo, layout, error = _jornal_editor_fields(data, artigo)
     if error:
         return JsonResponse({'error': error}, status=400)
+    publication_date, error = _jornal_publication_date(data)
+    if error:
+        return JsonResponse({'error': error}, status=400)
     image_url = (data.get('imagem_url', artigo.imagem_url) or '').strip()
     if image_url and not _jornal_image_url(image_url):
         return JsonResponse({'error': 'Use uma URL de imagem HTTP(S), /media/ ou /static/.'}, status=400)
@@ -14749,15 +14766,8 @@ def jornal_update_view(request, slug):
     artigo.destaque = data.get('destaque', artigo.destaque)
     artigo.layout = layout
     
-    data_publicacao_str = data.get('data_publicacao')
-    if data_publicacao_str:
-        try:
-            from django.utils.dateparse import parse_datetime
-            parsed = parse_datetime(data_publicacao_str)
-            if parsed:
-                artigo.data_publicacao = parsed
-        except Exception:
-            pass
+    if publication_date:
+        artigo.data_publicacao = publication_date
             
     artigo.save()
     return JsonResponse({'ok': True})
