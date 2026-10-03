@@ -309,12 +309,13 @@ def _asset_url(value, fallback='assets/fire_background.png'):
 def _world_cover_fallback():
     """Editorial cover shared by world cards and details when an entity has none."""
     from .models import TbConteudoEstatico
+    from .editorial_links import safe_editorial_image
 
-    return (
+    return safe_editorial_image((
         TbConteudoEstatico.objects.filter(
             chave='mundo-capa-padrao', pagina='mundo', ativo=True,
         ).values_list('imagem_url', flat=True).first() or ''
-    ).strip()
+    ).strip())
 
 
 def _world_cover_url(explicit_image, editorial_fallback):
@@ -557,7 +558,7 @@ def _site_traco(doc):
 
 def home_view(request):
     from .models import TbConteudoEstatico
-    from .editorial_links import safe_editorial_link
+    from .editorial_links import safe_editorial_image, safe_editorial_link
 
     ultimas_cronicas = (
         TbCronica.objects.filter(status='aprovada', data_publicacao__isnull=False)
@@ -591,8 +592,10 @@ def home_view(request):
         'ultimas_cronicas': ultimas_cronicas,
         'meus_personagens': meus_personagens,
         'hero': hero,
+        'hero_image_url': safe_editorial_image(hero.imagem_url) if hero else '',
         'jornada': jornada,
         'atlas': atlas,
+        'atlas_image_url': safe_editorial_image(atlas.imagem_url) if atlas else '',
         'apoio': apoio,
         'hero_cta_url': (safe_editorial_link(hero.cta_url) if hero else '') or 'https://discord.gg/eyqe7rj2AX',
         'jornada_cta_url': jornada_destino or reverse('register'),

@@ -21,6 +21,36 @@ from .views import _parse_lore_topics
 
 
 class WorldLorePresentationTests(TestCase):
+    def test_world_editorial_default_cover_cannot_break_css_url(self):
+        from .admin import _ConteudoEstaticoForm
+        from .views import _world_cover_fallback, _world_cover_url
+
+        unsafe = "https://example.com/a.png');--hero-bg:url(https://evil.invalid/x)"
+        form = _ConteudoEstaticoForm(data={
+            'chave': 'mundo-capa-padrao', 'pagina': 'mundo', 'imagem_url': unsafe,
+            'ordem': '0', 'ativo': 'on',
+        })
+        self.assertTrue(form.is_valid())  # Delimitadores são codificados na apresentação.
+        TbConteudoEstatico.objects.update_or_create(
+            chave='mundo-capa-padrao', defaults={'pagina': 'mundo', 'imagem_url': unsafe, 'ativo': True},
+        )
+        self.assertEqual(
+            _world_cover_fallback(),
+            'https://example.com/a.png%27%29;--hero-bg:url%28https://evil.invalid/x%29',
+        )
+        self.assertEqual(_world_cover_url('', _world_cover_fallback()), _world_cover_fallback())
+        TbMapLayer.objects.update_or_create(
+            id_layer=0, defaults={'nome': 'Superfície', 'ordem': 0, 'publica': True},
+        )
+        TbTerritorio.objects.create(nome='Território editorial', slug='territorio-editorial', camada=0)
+        listing = self.client.get(reverse('mundo_regioes'))
+        self.assertContains(listing, "--territory-image: url('%s')" % _world_cover_fallback())
+        self.assertNotContains(listing, "a.png');--hero-bg")
+
+        TbConteudoEstatico.objects.filter(chave='mundo-capa-padrao').update(imagem_url='javascript:alert(1)')
+        self.assertEqual(_world_cover_fallback(), '')
+        self.assertNotContains(self.client.get(reverse('mundo_regioes')), 'javascript:alert(1)')
+
     def test_generated_region_covers_resolve_without_replacing_editorial_images(self):
         TbMapLayer.objects.update_or_create(
             id_layer=0, defaults={'nome': 'Superficie', 'ordem': 0, 'publica': True},

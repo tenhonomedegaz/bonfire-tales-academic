@@ -3931,6 +3931,14 @@ class _ConteudoEstaticoForm(forms.ModelForm):
             raise forms.ValidationError('Use um caminho local iniciado por / ou uma URL HTTP(S) válida.')
         return value
 
+    def clean_imagem_url(self):
+        from .editorial_links import safe_editorial_image
+
+        value = self.cleaned_data.get('imagem_url', '')
+        if value and not safe_editorial_image(value):
+            raise forms.ValidationError('Use uma URL HTTP(S) ou um caminho iniciado por /static/ ou /media/.')
+        return value
+
 
 @admin.register(TbConteudoEstatico)
 class TbConteudoEstaticoAdmin(admin.ModelAdmin):

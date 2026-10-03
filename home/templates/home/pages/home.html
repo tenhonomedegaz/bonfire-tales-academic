@@ -3,8 +3,8 @@
 
 {% block content %}
 <section class="relative -mx-3 -mt-4 overflow-hidden border-b border-[var(--stroke)] md:-mx-5">
-  {% if hero.imagem_url %}
-  <img src="{{ hero.imagem_url }}" alt="{{ hero.titulo|default:'Bonfire Tales' }}" class="absolute inset-0 h-full w-full object-cover" />
+  {% if hero_image_url %}
+  <img src="{{ hero_image_url }}" alt="{{ hero.titulo|default:'Bonfire Tales' }}" class="absolute inset-0 h-full w-full object-cover" />
   {% else %}
   <img src="{% static 'assets/cineria.jpg' %}" alt="Mapa de Cinéria" class="absolute inset-0 h-full w-full object-cover" />
   {% endif %}
@@ -76,8 +76,8 @@
 <section class="border-b border-[var(--stroke)] py-10 md:py-14">
   <div class="grid items-center gap-7 lg:grid-cols-2">
     <a href="{% url 'mapa' %}" class="group block overflow-hidden border border-[var(--stroke)] bg-black">
-      {% if atlas.imagem_url %}
-      <img src="{{ atlas.imagem_url }}" alt="{{ atlas.titulo|default:'Atlas interativo de Cinéria' }}" class="aspect-[16/10] h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
+      {% if atlas_image_url %}
+      <img src="{{ atlas_image_url }}" alt="{{ atlas.titulo|default:'Atlas interativo de Cinéria' }}" class="aspect-[16/10] h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
       {% else %}
       <img src="{% static 'assets/cineria.jpg' %}" alt="Prévia do atlas interativo de Cinéria" class="aspect-[16/10] h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
       {% endif %}

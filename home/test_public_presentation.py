@@ -105,6 +105,32 @@ class PublicPresentationTests(TestCase):
         self.assertContains(response, 'name="description"')
         self.assertContains(response, 'rel="canonical"')
 
+    def test_home_editorial_images_reject_bad_new_urls_and_fallback_for_old_data(self):
+        from .admin import _ConteudoEstaticoForm
+        from django.templatetags.static import static
+
+        for value in ('javascript:alert(1)', '//example.com/photo.png',
+                      'https://example.com/photo.png\nnext', '/\\example.com/photo.png'):
+            with self.subTest(value=value):
+                form = _ConteudoEstaticoForm(data={
+                    'chave': 'home-test', 'pagina': 'home', 'imagem_url': value,
+                    'ordem': '0', 'ativo': 'on',
+                })
+                self.assertFalse(form.is_valid())
+                self.assertIn('imagem_url', form.errors)
+
+        bad_image = 'https://example.com/photo.png\nnext'
+        TbConteudoEstatico.objects.filter(chave__in=('home-hero', 'home-atlas')).update(imagem_url=bad_image)
+        response = self.client.get(reverse('home'))
+        self.assertNotContains(response, bad_image)
+        self.assertContains(response, 'src="%s"' % static('assets/cineria.jpg'))
+
+        TbConteudoEstatico.objects.filter(chave='home-hero').update(imagem_url='/static/assets/cineria.jpg')
+        TbConteudoEstatico.objects.filter(chave='home-atlas').update(imagem_url='https://example.com/atlas%20map.png')
+        valid = self.client.get(reverse('home'))
+        self.assertContains(valid, 'src="/static/assets/cineria.jpg"')
+        self.assertContains(valid, 'src="https://example.com/atlas%20map.png"')
+
     def test_home_editorial_actions_reject_unsafe_saved_links_and_keep_safe_ones(self):
         from .admin import _ConteudoEstaticoForm
 
