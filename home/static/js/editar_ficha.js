@@ -46,6 +46,65 @@
     }
   }
 
+  // O seletor da staff usa o mesmo catálogo do Mercado, mas registra a
+  // proficiência diretamente. O select original continua funcional sem JS.
+  var trainingForm = document.querySelector('[data-staff-training-form]');
+  if (trainingForm) {
+    var trainingSearch = trainingForm.querySelector('[data-staff-training-search]');
+    var trainingGroup = trainingForm.querySelector('[data-staff-training-group]');
+    var trainingChoice = trainingForm.querySelector('[data-staff-training-choice]');
+    var trainingStatus = trainingForm.querySelector('[data-staff-training-status]');
+    var trainingSubmit = trainingForm.querySelector('button[type="submit"]');
+    var trainingGroups = Array.prototype.map.call(trainingChoice.querySelectorAll('optgroup'), function (group) {
+      return {
+        label: group.label,
+        options: Array.prototype.map.call(group.querySelectorAll('option'), function (option) {
+          return { value: option.value, label: option.textContent };
+        })
+      };
+    });
+    function normalizeTraining(value) {
+      return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR');
+    }
+    function filterTraining() {
+      var query = normalizeTraining(trainingSearch.value.trim());
+      var category = trainingGroup.value;
+      var selected = trainingChoice.value;
+      trainingChoice.replaceChildren(new Option('Selecione um idioma ou ferramenta', ''));
+      var count = 0;
+      trainingGroups.forEach(function (group) {
+        if (category && category !== group.label) return;
+        var matches = group.options.filter(function (option) {
+          return normalizeTraining(option.label).includes(query);
+        });
+        if (!matches.length) return;
+        var optgroup = document.createElement('optgroup');
+        optgroup.label = group.label;
+        matches.forEach(function (option) { optgroup.append(new Option(option.label, option.value)); });
+        trainingChoice.append(optgroup);
+        count += matches.length;
+      });
+      if (selected && Array.prototype.some.call(trainingChoice.options, function (option) {
+        return option.value === selected;
+      })) trainingChoice.value = selected;
+      else trainingChoice.value = '';
+      if (!count) trainingChoice.append(new Option('Nenhum treinamento encontrado', ''));
+      trainingChoice.disabled = !count;
+      trainingSubmit.disabled = !count;
+      trainingStatus.textContent = count
+        ? count + ' treinamento' + (count === 1 ? ' disponível.' : 's disponíveis.')
+        : 'Nenhum treinamento encontrado. Ajuste a busca ou limpe os filtros.';
+    }
+    trainingSearch.addEventListener('input', filterTraining);
+    trainingGroup.addEventListener('change', filterTraining);
+    trainingForm.querySelector('[data-staff-training-clear]').addEventListener('click', function () {
+      trainingSearch.value = '';
+      trainingGroup.value = '';
+      filterTraining();
+      trainingSearch.focus();
+    });
+  }
+
   // Quais <details> de missão estão ABERTOS agora (por id de lançamento). O staffbox volta
   // do servidor inteiro e fechado; sem isto, corrigir/consumir fechava o bloco na cara da
   // staff no meio do trabalho.

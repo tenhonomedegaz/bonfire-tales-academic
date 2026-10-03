@@ -76,14 +76,27 @@ acesso é fechado por is_staff na view (dono não-staff é redirecionado para a 
 
       <div class="lvl-staffbox" style="margin-top:1.2rem">
         <span class="lbl">Staff &mdash; treinamento de idioma ou ferramenta:</span>
-        <form method="post" action="{% url 'personagem_treinamento' p.id_personagem %}" class="lvl-inline">
+        <form method="post" action="{% url 'personagem_treinamento' p.id_personagem %}" class="lvl-inline" style="flex:1 1 100%;min-width:0" data-staff-training-form>
           {% csrf_token %}
-          <select name="treinamento" class="lvl-field lvl-field--grow" required>
+          <label class="min-w-0 flex-1 basis-48 text-sm" for="staff-training-search">Buscar treinamento
+            <input id="staff-training-search" type="search" class="lvl-field w-full" autocomplete="off" placeholder="Digite o nome" aria-controls="staff-training-choice" data-staff-training-search>
+          </label>
+          <label class="min-w-0 flex-1 basis-40 text-sm" for="staff-training-group">Categoria
+            <select id="staff-training-group" class="lvl-field w-full" aria-controls="staff-training-choice" data-staff-training-group>
+              <option value="">Todas as categorias</option>
+              {% regroup treinamentos_disponiveis by grupo as grupos_treinamento %}
+              {% for grupo in grupos_treinamento %}<option value="{{ grupo.grouper }}">{{ grupo.grouper }}</option>{% endfor %}
+            </select>
+          </label>
+          <label class="min-w-0 flex-[2_1_14rem] text-sm" for="staff-training-choice">Treinamento
+          <select id="staff-training-choice" name="treinamento" class="lvl-field w-full" data-staff-training-choice required>
             <option value="">&mdash; selecione um idioma ou ferramenta &mdash;</option>
-            {% regroup treinamentos_disponiveis by grupo as grupos_treinamento %}
             {% for grupo in grupos_treinamento %}<optgroup label="{{ grupo.grouper }}">{% for opcao in grupo.list %}<option value="{{ opcao.token }}">{{ opcao.nome }}</option>{% endfor %}</optgroup>{% endfor %}
           </select>
+          </label>
           <button type="submit" class="lvl-add"{% if not treinamentos_disponiveis %} disabled{% endif %}>+ Registrar treinamento</button>
+          <button type="button" class="lvl-field" data-staff-training-clear>Limpar filtros</button>
+          <p class="w-full text-sm text-[var(--muted)]" role="status" aria-live="polite" data-staff-training-status>Opções de treinamento disponíveis: {{ treinamentos_disponiveis|length }}.</p>
         </form>
         {% if treinamento_msg == 'ok' %}<p class="lvl-secsub">Profici&#234;ncia registrada.</p>{% elif treinamento_msg == 'removido' %}<p class="lvl-secsub">Treinamento removido.</p>{% elif treinamento_msg == 'invalido' %}<p class="lvl-secsub">Idioma ou ferramenta inv&#225;lido ou j&#225; conhecido.</p>{% endif %}
         {% if treinamentos %}<div class="lvl-queued" style="margin-top:.6rem">
@@ -130,6 +143,6 @@ acesso é fechado por is_staff na view (dono não-staff é redirecionado para a 
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'css/pages/criador.css' %}?v=3">
 <link rel="stylesheet" href="{% static 'css/pages/levelup.css' %}?v=3">
-<script src="{% static 'js/editar_ficha.js' %}?v=1" defer></script>
+<script src="{% static 'js/editar_ficha.js' %}?v=2" defer></script>
 <script src="{% static 'js/conceder_item.js' %}?v=1" defer></script>
 {% endblock %}

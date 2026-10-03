@@ -158,6 +158,13 @@ class QACharacterRulesTests(_CriadorBase):
         p = self._character(username='train')
         staff = self._novo_usuario('staff-train', staff=True)
         self.client.force_login(staff)
+        initial = self.client.get(reverse('editar_ficha', args=[p.pk]))
+        self.assertEqual(initial.status_code, 200)
+        self.assertContains(initial, 'id="staff-training-search"')
+        self.assertContains(initial, 'id="staff-training-group"')
+        self.assertContains(initial, 'id="staff-training-choice"')
+        self.assertContains(initial, '<optgroup label="Idiomas">')
+        self.assertContains(initial, '<optgroup label="Ferramentas">')
         idioma = TbIdioma.objects.first()
         ferramenta = TbItemMundano.objects.filter(categoria='ferramenta').first()
         for tipo, catalog in (('idioma', idioma), ('ferramenta', ferramenta)):
