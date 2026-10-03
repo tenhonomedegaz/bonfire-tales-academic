@@ -140,6 +140,13 @@ class ReferenceSearchBrowserTests(StaticLiveServerTestCase):
                 wait_for('location.search.includes("q=a") && !document.querySelector("#regra-acao").classList.contains("hidden")')
                 js('history.back()')
                 wait_for('location.search === "?q=atordoado" && document.querySelector("[data-reference-query]")?.value === "atordoado" && document.querySelector("#regra-acao").classList.contains("hidden")')
+                js('document.querySelector("[data-reference-query]").value = "turno"; document.querySelector("[data-reference-query]").dispatchEvent(new Event("input", {bubbles:true}))')
+                wait_for('document.querySelectorAll("[data-reference-item]:not(.hidden)").length === 1 && !document.querySelector("#regra-acao").classList.contains("hidden")')
+                js('document.querySelector("[data-reference-query]").value = "mover"; document.querySelector("[data-reference-query]").dispatchEvent(new Event("input", {bubbles:true}))')
+                wait_for('document.querySelectorAll("[data-reference-item]:not(.hidden)").length === 1 && !document.querySelector("#condicao-paralisado").classList.contains("hidden")')
+                js('document.querySelector("[data-reference-query]").value = "termo inexistente"; document.querySelector("[data-reference-query]").dispatchEvent(new Event("input", {bubbles:true}))')
+                wait_for('document.querySelector("[data-reference-count]")?.textContent === "0" && !document.querySelector("[data-reference-empty]").classList.contains("hidden")')
+                self.assertTrue(js('document.querySelector("#glo-condicoes").classList.contains("hidden")'))
 
                 call('Page.navigate', {'url': self.live_server_url + reverse('mestre_condicoes')})
                 wait_for('document.querySelectorAll("[data-reference-item]").length === 2')
@@ -149,6 +156,11 @@ class ReferenceSearchBrowserTests(StaticLiveServerTestCase):
                 js('history.back()')
                 wait_for('location.search === "" && document.querySelectorAll("[data-reference-item]:not(.hidden)").length === 2')
                 self.assertEqual(js('document.querySelector("[data-reference-query]").value'), '')
+                js('document.querySelector("[data-reference-query]").value = "mover"; document.querySelector("[data-reference-query]").dispatchEvent(new Event("input", {bubbles:true}))')
+                wait_for('document.querySelectorAll("[data-reference-item]:not(.hidden)").length === 1 && !document.querySelector("#cond-paralisado").classList.contains("hidden")')
+                self.assertTrue(js('document.querySelector("a[href=\\"#cond-atordoado\\"]").classList.contains("hidden")'))
+                js('document.querySelector("[data-reference-query]").value = "termo inexistente"; document.querySelector("[data-reference-query]").dispatchEvent(new Event("input", {bubbles:true}))')
+                wait_for('document.querySelector("[data-reference-count]")?.textContent === "0" && !document.querySelector("[data-reference-empty]").classList.contains("hidden")')
                 self.assertLessEqual(js('document.documentElement.scrollWidth'), js('innerWidth'))
             finally:
                 if ws:
