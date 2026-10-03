@@ -25,6 +25,7 @@ from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.test import TestCase
 from django.urls import reverse
+from unittest.mock import patch
 
 from home.models import TbCosmetico, TbUsuarioCosmetico, UserProfile
 
@@ -37,6 +38,54 @@ _ABISSAL_SURFACE = '#071722'
 _ABISSAL_GRADIENTE = 'linear-gradient(120deg, #38E1FF, #2563EB)'
 
 
+class PreviewCatalogoParcialTests(TestCase):
+    def test_perfil_e_previa_renderizam_default_sem_seed_basal(self):
+        cache.clear()
+        self.addCleanup(cache.clear)
+        user = get_user_model().objects.create_user(
+            'catalogo-parcial', 'parcial@example.com', 'senha-forte-1')
+        profile = UserProfile.objects.get_or_create(user=user)[0]
+        profile.profile_theme = 'bonfire'
+        profile.save(update_fields=['profile_theme'])
+        TbCosmetico.objects.create(
+            slug='tema-relicario-parcial', tipo='tema', nome='Relicário',
+            origem='loja_mm', escopo='ambos')
+        TbCosmetico.objects.create(
+            slug='moldura-relicario-parcial', tipo='moldura', nome='Aro',
+            origem='loja_mm', escopo='ambos')
+        TbCosmetico.objects.create(
+            slug='efeito-relicario-parcial', tipo='efeito', nome='Brilho',
+            origem='loja_mm', escopo='ambos')
+        cache.clear()
+        catalogo_parcial = {
+            kind: {'relicario-parcial': {'label': 'Relicário', 'class': css_class}}
+            for kind, css_class in (
+                ('theme', 'theme-relicario'), ('frame', 'frame-relicario'),
+                ('effect', 'effect-relicario'))
+        }
+        with patch('home.views._appearance_catalog',
+                   side_effect=lambda kind: catalogo_parcial[kind]):
+            publico = self.client.get(reverse('public_profile', args=[user.username]))
+            self.assertEqual(publico.status_code, 200)
+            self.assertContains(publico, 'theme-bonfire')
+
+            self.client.force_login(user)
+            previa = self.client.post(reverse('perfil_preview'), data={
+                'profile_theme': 'relicario-parcial',
+                'avatar_frame': 'relicario-parcial',
+                'profile_effect': 'relicario-parcial',
+            })
+        self.assertEqual(previa.status_code, 200)
+        corpo = previa.json()
+        self.assertEqual(corpo['theme_key'], 'bonfire')
+        self.assertEqual(corpo['frame_key'], 'none')
+        self.assertEqual(corpo['effect_key'], 'none')
+        self.assertEqual(
+            sorted(corpo['recusados']),
+            ['avatar_frame', 'profile_effect', 'profile_theme'])
+        self.assertIn('theme-bonfire', corpo['html'])
+
+
 class PerfilPreviewBase(TestCase):
     """Usuário dono do perfil + cosméticos BLOQUEADOS (o seed só tem 'livre')."""
 
@@ -46,6 +95,36 @@ class PerfilPreviewBase(TestCase):
         # catálogo montado por outro.
         cache.clear()
         self.addCleanup(cache.clear)
+
+        # A reused test database may predate the data seeds. These are the
+        # baseline entries exercised below; keep the fixture self-contained.
+        for slug, tipo, nome, css_class in (
+            ('tema-bonfire', 'tema', 'Bonfire', 'theme-bonfire'),
+            ('tema-custom', 'tema', 'Personalizado', 'theme-custom'),
+            ('moldura-none', 'moldura', 'Sem moldura', ''),
+            ('moldura-gold-trim', 'moldura', 'Friso Dourado', 'frame-gold-trim'),
+            ('efeito-none', 'efeito', 'Sem efeito', ''),
+            ('efeito-aurora', 'efeito', 'Aurora', 'effect-aurora'),
+        ):
+            TbCosmetico.objects.get_or_create(
+                slug=slug,
+                defaults={'tipo': tipo, 'nome': nome, 'css_class': css_class,
+                          'origem': 'livre', 'escopo': 'ambos'},
+            )
+        TbCosmetico.objects.get_or_create(
+            slug='tema-abissal',
+            defaults={
+                'tipo': 'tema', 'nome': 'Abissal', 'origem': 'livre',
+                'escopo': 'ambos',
+                'definicao_json': {
+                    'accent': '#38E1FF', 'accent2': '#2563EB',
+                    'surface': '#071722', 'deep': '#030B12',
+                    'gradiente': True, 'particula': 'flutuar',
+                    'vel': 'lenta', 'glow': True,
+                },
+            },
+        )
+        cache.clear()
 
         User = get_user_model()
         self.user = User.objects.create_user('gaz', 'gaz@example.com', 'senha-forte-1')

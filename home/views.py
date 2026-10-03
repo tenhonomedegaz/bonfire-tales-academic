@@ -1004,7 +1004,11 @@ def _appearance_context(theme='bonfire', frame='none', effect='none',
     custom = _sanitize_custom_theme(theme_custom)
     is_custom = theme_key == 'custom'
 
-    theme_item = themes.get(theme_key, {})
+    # A partial catalog can contain paid items without its baseline entries.
+    # Keep catalog ownership checks intact while rendering the built-in defaults.
+    theme_item = themes.get(theme_key) or APPEARANCE_THEMES['bonfire']
+    frame_item = frames.get(frame_key) or APPEARANCE_FRAMES['none']
+    effect_item = effects.get(effect_key) or APPEARANCE_EFFECTS['none']
     # Definição sanitizada do tema-dado escolhido (get_catalog já sanitiza; o dict
     # de fallback legado não tem 'definicao' → {} = sem definição, cai no legado).
     definicao = sanitize_definicao_tema(theme_item.get('definicao')) \
@@ -1013,7 +1017,7 @@ def _appearance_context(theme='bonfire', frame='none', effect='none',
     if is_custom:
         # Tema Personalizado: comportamento intacto (vars do custom) + fx default
         # pras partículas (subir/media), como pede a arquitetura §3.
-        theme_class = themes[theme_key]['class']
+        theme_class = theme_item['class']
         custom_style = _custom_theme_style(custom)
         fx_particula, fx_vel = 'subir', 'media'
         theme_css_href = ''
@@ -1027,7 +1031,7 @@ def _appearance_context(theme='bonfire', frame='none', effect='none',
         theme_css_href = theme_item.get('css_url', '') or ''
     else:
         # Legado (sem definição): EXATAMENTE o comportamento atual — regressão zero.
-        theme_class = themes[theme_key]['class']
+        theme_class = theme_item['class']
         custom_style = ''
         fx_particula, fx_vel = '', ''
         theme_css_href = ''
@@ -1037,9 +1041,9 @@ def _appearance_context(theme='bonfire', frame='none', effect='none',
         'frame_key': frame_key,
         'effect_key': effect_key,
         'theme_class': theme_class,
-        'frame_class': frames[frame_key]['class'],
-        'effect_class': effects[effect_key]['class'],
-        'theme_label': themes[theme_key]['label'],
+        'frame_class': frame_item['class'],
+        'effect_class': effect_item['class'],
+        'theme_label': theme_item['label'],
         'custom': custom,
         'background_url': (background or '').strip(),
         # style inline (tema custom OU tema-dado); '' pros legados.
