@@ -1,7 +1,10 @@
 import json
+from unittest.mock import patch
 
+from django.contrib.admin.models import LogEntry, CHANGE
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
+from django.contrib.contenttypes.models import ContentType
 from django.test import TestCase
 from django.urls import reverse
 
@@ -48,6 +51,85 @@ class CronicaRevisionTests(TestCase):
         return self.post_json(reverse('cronica_review_action', args=[self.cronica.pk]), {
             'action': action, 'feedback': feedback, 'expected_revision': expected_revision,
         })
+
+    def test_initial_and_revision_decisions_record_reviewer_once(self):
+        pending = TbCronica.objects.create(
+            titulo='Nova cronica', slug='nova-cronica-audit',
+            conteudo_markdown='Texto inicial', autor=self.autor, status='pendente',
+        )
+        logs = LogEntry.objects.filter(
+            content_type=ContentType.objects.get_for_model(TbCronica),
+            object_id=str(pending.pk), action_flag=CHANGE,
+        ).order_by('pk')
+        self.client.force_login(self.staff_sem_publicacao)
+        url = reverse('cronica_review_action', args=[pending.pk])
+        snapshot = _cronica_pending_snapshot(pending)
+        payload = {'action': 'reprovar', 'feedback': 'Rever texto', 'expected_snapshot': snapshot}
+        self.assertEqual(self.post_json(url, payload).status_code, 403)
+        self.assertEqual(logs.count(), 0)
+
+        self.client.force_login(self.staff)
+        self.assertEqual(self.post_json(url, payload).status_code, 200)
+        self.assertEqual(self.post_json(url, payload).status_code, 409)
+        self.assertEqual(list(logs.values_list('user_id', 'change_message')), [
+            (self.staff.pk, 'Crônica devolvida'),
+        ])
+        self.client.logout()
+        self.assertEqual(self.client.get(reverse('cronica_detail', args=[pending.slug])).status_code, 404)
+
+        pending.refresh_from_db()
+        self.client.force_login(self.autor)
+        self.assertEqual(self.post_json(reverse('cronica_edit', args=[pending.slug]), {
+            'conteudo_markdown': 'Texto corrigido',
+            'expected_edit': _cronica_author_snapshot(pending),
+        }).status_code, 200)
+        pending.refresh_from_db()
+        self.client.force_login(self.staff)
+        self.assertEqual(self.post_json(url, {
+            'action': 'aprovar', 'expected_snapshot': _cronica_pending_snapshot(pending),
+        }).status_code, 200)
+        self.assertEqual(list(logs.values_list('change_message', flat=True)), [
+            'Crônica devolvida', 'Crônica publicada',
+        ])
+        self.client.logout()
+        self.assertContains(self.client.get(reverse('cronica_detail', args=[pending.slug])), 'Texto corrigido')
+
+        self.assertEqual(self.edit(content='Edição ainda privada').status_code, 200)
+        self.assertEqual(self.review('reprovar', 'Ajustar edição').status_code, 200)
+        self.cronica.refresh_from_db()
+        self.assertEqual(self.cronica.conteudo_markdown, 'Texto publicado')
+        revision_logs = LogEntry.objects.filter(
+            content_type=ContentType.objects.get_for_model(TbCronica),
+            object_id=str(self.cronica.pk), action_flag=CHANGE,
+        )
+        self.assertEqual(list(revision_logs.values_list('user_id', 'change_message')), [
+            (self.staff.pk, 'Edição de crônica devolvida'),
+        ])
+        self.assertEqual(self.edit(content='Edição corrigida').status_code, 200)
+        self.assertEqual(self.review('aprovar').status_code, 200)
+        self.assertEqual(self.review('aprovar').status_code, 409)
+        self.cronica.refresh_from_db()
+        self.assertEqual(self.cronica.conteudo_markdown, 'Edição corrigida')
+        self.assertEqual(list(revision_logs.order_by('pk').values_list('change_message', flat=True)), [
+            'Edição de crônica devolvida', 'Edição de crônica aprovada',
+        ])
+
+    def test_review_rolls_back_publication_if_audit_fails(self):
+        pending = TbCronica.objects.create(
+            titulo='Sem log', slug='sem-log-review',
+            conteudo_markdown='Texto privado', autor=self.autor, status='pendente',
+        )
+        self.client.force_login(self.staff)
+        with patch('django.contrib.admin.models.LogEntry.objects.create', side_effect=RuntimeError('audit unavailable')):
+            with self.assertRaises(RuntimeError):
+                self.post_json(reverse('cronica_review_action', args=[pending.pk]), {
+                    'action': 'aprovar', 'expected_snapshot': _cronica_pending_snapshot(pending),
+                })
+        pending.refresh_from_db()
+        self.assertEqual(pending.status, 'pendente')
+        self.assertIsNone(pending.revisado_por)
+        self.client.logout()
+        self.assertEqual(self.client.get(reverse('cronica_detail', args=[pending.slug])).status_code, 404)
 
     def test_staff_can_open_published_story(self):
         self.client.force_login(self.staff)

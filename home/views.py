@@ -15648,6 +15648,9 @@ def cronicas_review_view(request):
 @permission_required('home.change_tbcronica', raise_exception=True)
 @require_POST
 def cronica_review_action(request, cronica_id):
+    from django.contrib.admin.models import LogEntry, CHANGE
+    from django.contrib.contenttypes.models import ContentType
+
     try:
         data = _editor_json_body(request)
     except ValueError as exc:
@@ -15662,6 +15665,17 @@ def cronica_review_action(request, cronica_id):
         feedback = feedback.strip()
     with transaction.atomic():
         cronica = get_object_or_404(TbCronica.objects.select_for_update(), pk=cronica_id)
+
+        def record_review(message):
+            LogEntry.objects.create(
+                user=request.user,
+                content_type=ContentType.objects.get_for_model(TbCronica),
+                object_id=str(cronica.pk),
+                object_repr=str(cronica)[:200],
+                action_flag=CHANGE,
+                change_message=message,
+            )
+
         if cronica.status == 'aprovada':
             revision = cronica.revisao_edicao or {}
             if revision.get('estado') != 'pendente':
@@ -15693,6 +15707,7 @@ def cronica_review_action(request, cronica_id):
                 _notificar_cronica(cronica.autor_id, cronica,
                                    f'edicao:{cronica.pk}:{revision["submetida_em"]}',
                                    'edicao', f'Edição devolvida: {cronica.titulo}')
+            record_review('Edição de crônica aprovada' if action == 'aprovar' else 'Edição de crônica devolvida')
             return JsonResponse({'ok': True, 'status': cronica.status})
         if cronica.status != 'pendente':
             return JsonResponse({'error': 'Crônica não está pendente.'}, status=409)
@@ -15723,6 +15738,7 @@ def cronica_review_action(request, cronica_id):
         _notificar_cronica(cronica.autor_id, cronica,
                            f'publicacao:{cronica.pk}:{cronica.data_revisao.isoformat()}',
                            'publicacao', f'Crônica {"publicada" if action == "aprovar" else "devolvida"}: {cronica.titulo}')
+        record_review('Crônica publicada' if action == 'aprovar' else 'Crônica devolvida')
         return JsonResponse({'ok': True, 'status': cronica.status})
 
 
