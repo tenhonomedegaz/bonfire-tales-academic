@@ -12345,6 +12345,21 @@ def _parse_map_layer(value, default=0):
         return default
 
 
+def _world_stat_updates(data, fields):
+    values = {}
+    for field in fields:
+        if field not in data:
+            continue
+        raw = data[field]
+        try:
+            if type(raw) is bool or (raw is not None and not isinstance(raw, (str, int))):
+                raise ValueError
+            values[field] = int(raw) if raw not in ('', None) else 0
+        except (TypeError, ValueError):
+            raise ValueError(f'Valor numérico inválido em {field}.')
+    return values
+
+
 @staff_member_required
 @permission_required('home.add_tbregiao', raise_exception=True)
 @require_POST
@@ -12397,8 +12412,22 @@ def wiki_create_region(request):
 @permission_required('home.change_tbregiao', raise_exception=True)
 @require_POST
 def wiki_update_region(request, region_id):
-    data = _json_body(request)
+    try:
+        data = _editor_json_body(request)
+    except ValueError as exc:
+        return JsonResponse({'ok': False, 'error': str(exc)}, status=400)
+    stat_fields = ('movimentacoes_economicas', 'poder_militar', 'desenvolvimento_tecnologico',
+                   'estabilidade_politica_interna', 'ameacas_externas', 'densidade_populacional',
+                   'tolerancia_estrangeiros', 'manipulacao_trama', 'ameacas_internas',
+                   'nivel_periculosidade')
+    if not (set(stat_fields) | {'nome', 'lore_markdown', 'territorio', 'categoria', 'camada',
+                                 'brasao_url', 'mapa_url', 'etiquetas_adicionais'}).intersection(data):
+        return JsonResponse({'ok': False, 'error': 'Informe um campo editável da região.'}, status=400)
     validate_no_sql_danger(data, 'regiao')
+    try:
+        stats = _world_stat_updates(data, stat_fields)
+    except ValueError as exc:
+        return JsonResponse({'ok': False, 'error': str(exc)}, status=400)
     region = get_object_or_404(TbRegiao, pk=region_id)
 
     valid_categorias = dict(TbMapMarker.PIN_ICON_CHOICES)
@@ -12431,20 +12460,11 @@ def wiki_update_region(request, region_id):
     region.categoria = data.get('categoria') if data.get('categoria') in valid_categorias else region.categoria
     if 'camada' in data:
         region.camada = _parse_map_layer(data.get('camada'), region.camada)
-    region.brasao_url = (data.get('brasao_url') or '').strip() or None
-    region.mapa_url = (data.get('mapa_url') or '').strip() or None
-    region.etiquetas_adicionais = (data.get('etiquetas_adicionais') or '').strip() or None
-
-    region.movimentacoes_economicas = int(data.get('movimentacoes_economicas') or region.movimentacoes_economicas)
-    region.poder_militar = int(data.get('poder_militar') or region.poder_militar)
-    region.desenvolvimento_tecnologico = int(data.get('desenvolvimento_tecnologico') or region.desenvolvimento_tecnologico)
-    region.estabilidade_politica_interna = int(data.get('estabilidade_politica_interna') or region.estabilidade_politica_interna)
-    region.ameacas_externas = int(data.get('ameacas_externas') or region.ameacas_externas)
-    region.densidade_populacional = int(data.get('densidade_populacional') or region.densidade_populacional)
-    region.tolerancia_estrangeiros = int(data.get('tolerancia_estrangeiros') or region.tolerancia_estrangeiros)
-    region.manipulacao_trama = int(data.get('manipulacao_trama') or region.manipulacao_trama)
-    region.ameacas_internas = int(data.get('ameacas_internas') or region.ameacas_internas)
-    region.nivel_periculosidade = int(data.get('nivel_periculosidade') or region.nivel_periculosidade)
+    region.brasao_url = (data.get('brasao_url', region.brasao_url) or '').strip() or None
+    region.mapa_url = (data.get('mapa_url', region.mapa_url) or '').strip() or None
+    region.etiquetas_adicionais = (data.get('etiquetas_adicionais', region.etiquetas_adicionais) or '').strip() or None
+    for field, value in stats.items():
+        setattr(region, field, value)
 
     region.save()
     # Marker synchronization can update the persisted region slug during post_save.
@@ -12503,8 +12523,21 @@ def wiki_create_territory(request):
 @permission_required('home.change_tbterritorio', raise_exception=True)
 @require_POST
 def wiki_update_territory(request, territory_id):
-    data = _json_body(request)
+    try:
+        data = _editor_json_body(request)
+    except ValueError as exc:
+        return JsonResponse({'ok': False, 'error': str(exc)}, status=400)
+    stat_fields = ('riqueza_natural', 'riqueza_monetaria', 'poder_militar',
+                   'desenvolvimento_tecnologico', 'estabilidade_politica_interna',
+                   'ameacas_externas', 'diplomacia', 'manipulacao_trama')
+    if not (set(stat_fields) | {'nome', 'imagem_url', 'descricao_breve', 'lore_markdown',
+                                 'cor_hex', 'camada', 'coordenadas_poligono'}).intersection(data):
+        return JsonResponse({'ok': False, 'error': 'Informe um campo editável do território.'}, status=400)
     validate_no_sql_danger(data, 'territorio')
+    try:
+        stats = _world_stat_updates(data, stat_fields)
+    except ValueError as exc:
+        return JsonResponse({'ok': False, 'error': str(exc)}, status=400)
     territory = get_object_or_404(TbTerritorio, pk=territory_id)
 
     new_nome = (data.get('nome') or territory.nome).strip()
@@ -12514,9 +12547,9 @@ def wiki_update_territory(request, territory_id):
     if conflict:
         return JsonResponse({'ok': False, 'error': conflict}, status=400)
     territory.nome = new_nome
-    territory.imagem_url = (data.get('imagem_url') or '').strip() or None
-    territory.descricao_breve = (data.get('descricao_breve') or '').strip() or None
-    territory.lore_markdown = (data.get('lore_markdown') or '').strip() or None
+    territory.imagem_url = (data.get('imagem_url', territory.imagem_url) or '').strip() or None
+    territory.descricao_breve = (data.get('descricao_breve', territory.descricao_breve) or '').strip() or None
+    territory.lore_markdown = (data.get('lore_markdown', territory.lore_markdown) or '').strip() or None
     if 'cor_hex' in data:
         territory.cor_hex = (data.get('cor_hex') or territory.cor_hex or '#ffffff').strip()
     if 'camada' in data:
@@ -12525,14 +12558,8 @@ def wiki_update_territory(request, territory_id):
     if 'coordenadas_poligono' in data:
         territory.coordenadas_poligono = data.get('coordenadas_poligono')
 
-    territory.riqueza_natural = int(data.get('riqueza_natural') or 0)
-    territory.riqueza_monetaria = int(data.get('riqueza_monetaria') or 0)
-    territory.poder_militar = int(data.get('poder_militar') or 0)
-    territory.desenvolvimento_tecnologico = int(data.get('desenvolvimento_tecnologico') or 0)
-    territory.estabilidade_politica_interna = int(data.get('estabilidade_politica_interna') or 0)
-    territory.ameacas_externas = int(data.get('ameacas_externas') or 0)
-    territory.diplomacia = int(data.get('diplomacia') or 0)
-    territory.manipulacao_trama = int(data.get('manipulacao_trama') or 0)
+    for field, value in stats.items():
+        setattr(territory, field, value)
 
     territory.save()
     _log_wiki_edit(request, territory, f"Edição inline de território: {territory.nome}")
