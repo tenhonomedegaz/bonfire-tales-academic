@@ -257,21 +257,27 @@
         return sanitizeBonfireMarkdownHtml(renderFallbackMarkdown(withToggles));
     }
 
-    function createFilterChip(value, filterType) {
-        const button = document.createElement('button');
-        const isActive = draftFilters[filterType] === value;
-
-        button.type = 'button';
-        button.textContent = value;
+    function setFilterChipState(button, isActive) {
+        button.setAttribute('aria-pressed', String(isActive));
         button.className = [
             'filter-chip-pop rounded border px-3 py-2 text-xs font-bold transition-all duration-200 hover:-translate-y-0.5',
             isActive
                 ? 'border-bonfire-flame bg-bonfire-bg2 text-bonfire-text shadow-[inset_0_0_0_1px_var(--flame)]'
                 : 'border-bonfire-stroke bg-bonfire-bg0 text-bonfire-muted hover:border-bonfire-flame hover:text-bonfire-text'
         ].join(' ');
+    }
+
+    function createFilterChip(value, filterType) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = value;
+        setFilterChipState(button, draftFilters[filterType] === value);
         button.addEventListener('click', () => {
-            draftFilters[filterType] = isActive ? '' : value;
-            renderFilterChips();
+            draftFilters[filterType] = draftFilters[filterType] === value ? '' : value;
+            const container = filterType === 'type' ? typeFilterOptions : tagFilterOptions;
+            container.querySelectorAll('button').forEach(chip => {
+                setFilterChipState(chip, draftFilters[filterType] === chip.textContent);
+            });
         });
 
         return button;

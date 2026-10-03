@@ -42,6 +42,7 @@ class TalentCatalogPresentationTests(StaticLiveServerTestCase):
         TbTalento.objects.create(nome='Coração sombrio', slug='coracao-sombrio', descricao='Texto sombrio')
         TbOpcaojogo.objects.create(
             nome='Opcao segura', slug='opcao-segura', tipo='Teste',
+            etiquetas_adicionais='Ritmo',
             descricao=(
                 '**Beneficio da opcao**\n\n'
                 '<svg onload="window.__optionInjected=1"></svg>\n\n'
@@ -145,7 +146,7 @@ class TalentCatalogPresentationTests(StaticLiveServerTestCase):
                 js('document.querySelector("#talentMobileMenuButton").click()')
                 self.assertTrue(js('document.body.classList.contains("talent-menu-open")'))
                 js('document.querySelector("#talentosListItems [data-talent-slug=seguro]").focus()')
-                call('Input.dispatchKeyEvent', {'type': 'keyDown', 'key': 'Enter', 'code': 'Enter', 'windowsVirtualKeyCode': 13})
+                call('Input.dispatchKeyEvent', {'type': 'keyDown', 'key': 'Enter', 'code': 'Enter', 'text': '\r', 'windowsVirtualKeyCode': 13})
                 call('Input.dispatchKeyEvent', {'type': 'keyUp', 'key': 'Enter', 'code': 'Enter', 'windowsVirtualKeyCode': 13})
                 wait_for('document.querySelector("[data-talent-title]")?.textContent === "Seguro"')
                 self.assertEqual(js('location.hash'), '#talento-seguro')
@@ -184,10 +185,27 @@ class TalentCatalogPresentationTests(StaticLiveServerTestCase):
                 wait_for('document.querySelector("#filterModal").classList.contains("hidden")')
 
                 js('document.querySelector("#filterToggle").click()')
-                js('document.querySelector("#typeFilterOptions button").click()')
+                js('document.querySelector("#typeFilterOptions button").focus()')
+                self.assertEqual(js('document.activeElement?.getAttribute("aria-pressed")'), 'false')
+                call('Input.dispatchKeyEvent', {'type': 'keyDown', 'key': 'Enter', 'code': 'Enter', 'text': '\r', 'windowsVirtualKeyCode': 13})
+                self.assertEqual(js('document.activeElement?.getAttribute("aria-pressed")'), 'true')
+                call('Input.dispatchKeyEvent', {'type': 'keyUp', 'key': 'Enter', 'code': 'Enter', 'windowsVirtualKeyCode': 13})
+                self.assertEqual(js('document.activeElement?.textContent'), 'Teste')
+                self.assertEqual(js('document.activeElement?.getAttribute("aria-pressed")'), 'true')
+                call('Input.dispatchKeyEvent', {'type': 'keyDown', 'key': 'Enter', 'code': 'Enter', 'text': '\r', 'windowsVirtualKeyCode': 13})
+                call('Input.dispatchKeyEvent', {'type': 'keyUp', 'key': 'Enter', 'code': 'Enter', 'windowsVirtualKeyCode': 13})
+                self.assertEqual(js('document.activeElement?.textContent'), 'Teste')
+                self.assertEqual(js('document.activeElement?.getAttribute("aria-pressed")'), 'false')
+                call('Input.dispatchKeyEvent', {'type': 'keyDown', 'key': 'Enter', 'code': 'Enter', 'text': '\r', 'windowsVirtualKeyCode': 13})
+                call('Input.dispatchKeyEvent', {'type': 'keyUp', 'key': 'Enter', 'code': 'Enter', 'windowsVirtualKeyCode': 13})
+                js('document.querySelector("#tagFilterOptions button").focus()')
+                call('Input.dispatchKeyEvent', {'type': 'keyDown', 'key': 'Enter', 'code': 'Enter', 'text': '\r', 'windowsVirtualKeyCode': 13})
+                call('Input.dispatchKeyEvent', {'type': 'keyUp', 'key': 'Enter', 'code': 'Enter', 'windowsVirtualKeyCode': 13})
+                self.assertEqual(js('document.activeElement?.textContent'), 'Ritmo')
+                self.assertEqual(js('document.activeElement?.getAttribute("aria-pressed")'), 'true')
                 js('document.querySelector("#applyFilterModal").click()')
                 self.assertEqual(js('document.activeElement?.id'), 'filterToggle')
-                self.assertEqual(js('document.querySelector("#filterCount").textContent'), '1')
+                self.assertEqual(js('document.querySelector("#filterCount").textContent'), '2')
                 self.assertEqual(js('document.querySelector("#opcaoDetail [data-talent-title]").textContent'), 'Opcao segura')
 
                 call('Page.navigate', {'url': self.live_server_url + reverse('magias_listas') + '?magia=luz-arcana&busca=Luz&nivel=1'})
