@@ -116,7 +116,7 @@ missão" no lugar do botão — a mesma guarda existe no backend.{% endcomment %
         {% if request.user.is_superuser %}
         <details class="mkt-inline-editor">
           <summary>Editar item</summary>
-          <form method="post" action="{% url 'wiki_update_mundane_item' item.id_item %}">
+          <form method="post" action="{% url 'wiki_update_mundane_item' item.id_item %}" data-item-editor>
             {% csrf_token %}
             <label>Nome<input name="nome" value="{{ item.nome }}" required></label>
             <label>Slug<input name="slug" value="{{ item.slug }}" required></label>
@@ -128,7 +128,7 @@ missão" no lugar do botão — a mesma guarda existe no backend.{% endcomment %
             <label class="is-wide">Descrição<textarea name="descricao_markdown" rows="8">{{ item.descricao_markdown|default:'' }}</textarea></label>
             <label class="is-wide">Tags, uma por linha<textarea name="tags_json" rows="8">{% for tag in item.tags_json %}{{ tag }}{% if not forloop.last %}
 {% endif %}{% endfor %}</textarea></label>
-            <button type="submit" class="mkt-btn is-buy">Salvar item</button>
+            <div class="mkt-inline-actions"><button type="button" class="mkt-btn" data-item-editor-cancel>Cancelar</button><button type="submit" class="mkt-btn is-buy">Salvar item</button><span data-item-editor-status role="status" tabindex="-1" hidden></span></div>
           </form>
         </details>
         {% endif %}

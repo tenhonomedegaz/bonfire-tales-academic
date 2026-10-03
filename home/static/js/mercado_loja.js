@@ -158,6 +158,23 @@
 
   /* ─────────────────────────── cliques ─────────────────────────── */
   root.addEventListener('click', function (ev) {
+    var editor = ev.target.closest('.mkt-inline-editor');
+    if (editor && ev.target.closest('[data-item-editor-cancel]')) {
+      var editForm = editor.querySelector('[data-item-editor]');
+      if (editForm && editForm.getAttribute('aria-busy') !== 'true') {
+        editForm.reset();
+        var status = editForm.querySelector('[data-item-editor-status]');
+        status.textContent = '';
+        status.hidden = true;
+        editor.open = false;
+        editor.querySelector('summary').focus();
+      }
+      return;
+    }
+    if (editor && ev.target.closest('summary') && editor.querySelector('[data-item-editor][aria-busy="true"]')) {
+      ev.preventDefault();
+      return;
+    }
     var t = ev.target.closest('[data-shop-tab], [data-mkt-row], [data-shop-sheet-close]');
     if (!t) return;
     if (t.hasAttribute('data-shop-sheet-close')) { abrirFolha(false); return; }
@@ -167,6 +184,15 @@
 
   /* ───────────── teclado: ↑↓ andam na lista, Esc fecha a folha ───────────── */
   root.addEventListener('keydown', function (ev) {
+    var editor = ev.target.closest('.mkt-inline-editor');
+    if (ev.key === 'Escape' && editor && editor.open) {
+      ev.preventDefault();
+      var editForm = editor.querySelector('[data-item-editor]');
+      if (editForm.getAttribute('aria-busy') !== 'true') {
+        editor.querySelector('[data-item-editor-cancel]').click();
+      }
+      return;
+    }
     if (ev.key === 'Escape') { abrirFolha(false); return; }
     var passo = ev.key === 'ArrowDown' ? 1 : ev.key === 'ArrowUp' ? -1 : 0;
     var extremo = ev.key === 'Home' ? 'first' : ev.key === 'End' ? 'last' : '';
@@ -276,6 +302,37 @@
     feedback.classList.toggle('is-ok', !!ok);
     feedback.classList.toggle('is-err', !ok);
   }
+
+  root.addEventListener('submit', function (ev) {
+    var form = ev.target.closest('form[data-item-editor]');
+    if (!form) return;
+    ev.preventDefault();
+    if (form.getAttribute('aria-busy') === 'true') return;
+    var status = form.querySelector('[data-item-editor-status]');
+    var controls = toArr(form.querySelectorAll('input, select, textarea, button'));
+    var body = new FormData(form);
+    status.setAttribute('role', 'status');
+    status.textContent = 'Salvando...';
+    status.hidden = false;
+    form.setAttribute('aria-busy', 'true');
+    controls.forEach(function (control) { control.disabled = true; });
+    fetch(form.action, { method: 'POST', body: body, credentials: 'same-origin' })
+      .then(function (response) {
+        if (!response.ok) return response.text().then(function (message) {
+          throw new Error(message || 'Não foi possível salvar o item.');
+        });
+        window.location.assign(response.url);
+      })
+      .catch(function (error) {
+        status.setAttribute('role', 'alert');
+        status.textContent = error.message || 'Não foi possível salvar o item.';
+        status.focus();
+      })
+      .finally(function () {
+        form.removeAttribute('aria-busy');
+        controls.forEach(function (control) { control.disabled = false; });
+      });
+  });
 
   root.addEventListener('submit', function (ev) {
     var form = ev.target.closest('form[data-shop-buy], form[data-shop-sell]');

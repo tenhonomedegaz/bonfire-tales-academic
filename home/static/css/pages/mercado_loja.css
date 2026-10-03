@@ -581,4 +581,6 @@
 .mkt-inline-editor textarea { font-family: inherit; resize: vertical; }
 .mkt-inline-editor .mkt-inline-check { align-items: center; flex-direction: row; }
 .mkt-inline-editor button { justify-self: start; }
+.mkt-inline-editor .mkt-inline-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: .65rem; }
+.mkt-inline-editor [data-item-editor-status] { color: var(--ember); font-size: .75rem; }
 @media (max-width: 520px) { .mkt-inline-editor form { grid-template-columns: 1fr; } .mkt-inline-editor label.is-wide { grid-column: auto; } }
