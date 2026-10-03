@@ -523,7 +523,7 @@
         cropPreviews.forEach(img => {
           img.hidden = !url;
           if (url && img.getAttribute('src') !== url) img.src = url;
-          else img.removeAttribute('src');
+          if (!url) img.removeAttribute('src');
           img.style.objectPosition = `${x}% ${y}%`;
         });
       };
