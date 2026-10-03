@@ -3747,13 +3747,13 @@ class TbMagiaAdmin(BonfireAdminMixin, admin.ModelAdmin):
             if len(slugs) != len(set(slugs)):
                 errors.append("A planilha contem magias com o mesmo slug. Corrija antes de importar.")
             from .spell_access import access_key
-            class_keys = {
-                key for classe in TbClasse.objects.all()
+            class_lookup = {
+                key: classe for classe in TbClasse.objects.all()
                 for key in (access_key(classe.nome), access_key(classe.slug))
             }
             for item in magias:
                 unknown = [token.strip() for token in re.split(r"[,;|]", item["classes"])
-                           if token.strip() and access_key(token) not in class_keys]
+                           if token.strip() and access_key(token) not in class_lookup]
                 if unknown:
                     errors.append(f'{item["nome"]}: classes nao cadastradas: {", ".join(unknown)}.')
             if not magias and not errors:
@@ -3766,8 +3766,22 @@ class TbMagiaAdmin(BonfireAdminMixin, admin.ModelAdmin):
                     "snapshot": self._spell_import_snapshot(existing) if existing else None,
                 } for existing in (existing_by_slug.get(slug) for slug in slugs)]
                 for item, target in zip(magias, targets, strict=True):
+                    selected_classes = []
+                    for token in re.split(r"[,;|]", item["classes"]):
+                        classe = class_lookup.get(access_key(token.strip()))
+                        if classe and classe not in selected_classes:
+                            selected_classes.append(classe)
+                    item["tags_json"] = [tag for tag in (
+                        item["nivel_display"], item["escola"],
+                        *(classe.nome for classe in selected_classes),
+                    ) if tag]
+                    proposed = {field: item[field] for field in self._spell_import_fields()
+                                if field != "classes"}
+                    proposed["classes"] = ', '.join(classe.nome for classe in selected_classes)
+                    proposed["classes_slugs"] = [classe.slug for classe in selected_classes]
                     item["import_action"] = (
                         "Atualizar" if target["pk"] and form.cleaned_data["atualizar_existentes"]
+                        and proposed != target["snapshot"]
                         else "Ignorar" if target["pk"] else "Criar"
                     )
             context.update({

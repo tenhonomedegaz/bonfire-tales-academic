@@ -83,7 +83,9 @@ class SpellImportAdminTests(TestCase):
             "admin:home_tbmagia_history", args=[spell.pk],
         )), "Importada por Excel")
 
-        identical = self.preview(("Magia Auditada", 1, "Nao", "Mago"))
+        identical = self.preview(("Magia Auditada", 1, "Nao", "mago"))
+        self.assertEqual(identical.context["preview"][0]["import_action"], "Ignorar")
+        self.assertEqual(identical.context["preview"][0]["tags_json"], ["1", "Evocacao", "Mago"])
         with CaptureQueriesContext(connection) as queries:
             identical_result = self.client.post(self.url, {
                 "confirmar": "1", "payload": identical.context["payload"],
@@ -95,6 +97,7 @@ class SpellImportAdminTests(TestCase):
         ))
 
         changed = self.preview(("Magia Auditada", 2, "Nao", "Mago"))
+        self.assertEqual(changed.context["preview"][0]["import_action"], "Atualizar")
         self.assertEqual(self.client.post(self.url, {
             "confirmar": "1", "payload": changed.context["payload"],
         }).status_code, 200)
