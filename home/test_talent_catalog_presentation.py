@@ -1,4 +1,5 @@
 import json
+import math
 import shutil
 import subprocess
 import tempfile
@@ -66,8 +67,14 @@ class TalentCatalogPresentationTests(StaticLiveServerTestCase):
                                descricao='Bruma segura')
 
         with tempfile.TemporaryDirectory(prefix='bonfire-talent-', ignore_cleanup_errors=True) as profile:
+            preferences = Path(profile) / 'Default' / 'Preferences'
+            preferences.parent.mkdir(parents=True)
+            preferences.write_text(json.dumps({
+                'partition': {'default_zoom_level': {'x': math.log(2) / math.log(1.2)}}
+            }), encoding='utf-8')
             process = subprocess.Popen([
                 chrome, '--headless=new', '--no-sandbox', '--disable-gpu',
+                '--window-size=800,900',
                 '--remote-debugging-port=0', '--remote-allow-origins=*',
                 f'--user-data-dir={profile}', 'about:blank',
             ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -107,7 +114,7 @@ class TalentCatalogPresentationTests(StaticLiveServerTestCase):
                     self.fail(f'Tempo esgotado: {expression}')
 
                 call('Emulation.setDeviceMetricsOverride', {
-                    'width': 360, 'height': 800, 'deviceScaleFactor': 1, 'mobile': True,
+                    'width': 720, 'height': 800, 'deviceScaleFactor': 1, 'mobile': True,
                 })
                 call('Page.navigate', {'url': self.live_server_url + reverse('jogador_talentos') + '#talento-arcano-literal'})
                 wait_for('document.querySelector("[data-talent-title]")?.textContent.includes("Arcano")')
@@ -128,12 +135,12 @@ class TalentCatalogPresentationTests(StaticLiveServerTestCase):
                 self.assertEqual(js('getComputedStyle(document.querySelector("#talentosList")).transitionDuration'), '0s')
                 self.assertEqual(js('getComputedStyle(document.querySelector("#talentoDetail")).animationName'), 'none')
                 call('Emulation.setDeviceMetricsOverride', {
-                    'width': 1280, 'height': 800, 'deviceScaleFactor': 1, 'mobile': False,
+                    'width': 2560, 'height': 800, 'deviceScaleFactor': 1, 'mobile': False,
                 })
                 wait_for('!document.querySelector("#talentosList").inert')
                 self.assertIsNone(js('document.querySelector("#talentosList").getAttribute("aria-hidden")'))
                 call('Emulation.setDeviceMetricsOverride', {
-                    'width': 360, 'height': 800, 'deviceScaleFactor': 1, 'mobile': True,
+                    'width': 720, 'height': 800, 'deviceScaleFactor': 1, 'mobile': True,
                 })
                 wait_for('document.querySelector("#talentosList").inert')
                 self.assertEqual(js('document.querySelector("[data-talent-title]").textContent'), f'Arcano {injected}')
@@ -289,6 +296,27 @@ class TalentCatalogPresentationTests(StaticLiveServerTestCase):
                 wait_for('document.querySelector("#mg-count").textContent === "1"')
                 self.assertFalse(js('document.querySelector("#mg-ritual").checked'))
                 self.assertEqual(js('document.documentElement.scrollWidth <= window.innerWidth'), True)
+
+                call('Emulation.clearDeviceMetricsOverride')
+                call('Page.navigate', {'url': self.live_server_url + reverse('jogador_talentos') + '#talento-seguro'})
+                wait_for('document.querySelector("[data-talent-title]")?.textContent === "Seguro"')
+                self.assertAlmostEqual(js('window.devicePixelRatio'), 2, delta=.1)
+                self.assertEqual(js('window.visualViewport.scale'), 1)
+                self.assertTrue(js('document.documentElement.scrollWidth <= document.documentElement.clientWidth'))
+                self.assertTrue(js('document.querySelector("#talentosList").inert'))
+                js('document.querySelector("#talentMobileMenuButton").focus()')
+                call('Input.dispatchKeyEvent', {'type': 'keyDown', 'key': 'Enter', 'code': 'Enter', 'text': '\r', 'windowsVirtualKeyCode': 13})
+                call('Input.dispatchKeyEvent', {'type': 'keyUp', 'key': 'Enter', 'code': 'Enter', 'windowsVirtualKeyCode': 13})
+                self.assertEqual(js('document.activeElement?.id'), 'searchInput')
+                self.assertFalse(js('document.querySelector("#talentosList").inert'))
+                js('document.querySelector("#talentosListItems [data-talent-slug=coracao-sombrio]").focus()')
+                call('Input.dispatchKeyEvent', {'type': 'keyDown', 'key': 'Enter', 'code': 'Enter', 'text': '\r', 'windowsVirtualKeyCode': 13})
+                call('Input.dispatchKeyEvent', {'type': 'keyUp', 'key': 'Enter', 'code': 'Enter', 'windowsVirtualKeyCode': 13})
+                wait_for('location.hash === "#talento-coracao-sombrio"')
+                self.assertTrue(js("document.querySelector('[data-talent-title]').textContent.endsWith('sombrio')"))
+                self.assertTrue(js('document.querySelector("#talentosList").inert'))
+                self.assertEqual(js('document.activeElement?.getAttribute("data-talent-title")'), '')
+                self.assertTrue(js('document.documentElement.scrollWidth <= document.documentElement.clientWidth'))
             finally:
                 if ws:
                     ws.close()
