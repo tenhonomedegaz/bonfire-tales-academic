@@ -37,7 +37,7 @@
   <div class="artigo-edit-tools">
     <button type="button" class="artigo-edit-btn" id="btnEditArticle" aria-controls="articleForm" aria-expanded="false">Editar Artigo</button>
   </div>
-  <form id="articleForm" class="wiki-inline-editor" aria-label="Editar artigo">
+  <form id="articleForm" class="wiki-inline-editor" aria-label="Editar artigo" data-editor-version="{{ editor_version }}">
     {% csrf_token %}
     <label>Título <input name="titulo" value="{{ artigo.titulo }}"></label>
     <label>Resumo <input name="resumo" value="{{ artigo.resumo|default:'' }}"></label>
@@ -90,6 +90,7 @@
         imagem_url: fd.get('imagem_url'),
         conteudo_markdown: fd.get('conteudo_markdown'),
         destaque: !!fd.get('destaque'),
+        expected_edit: form.dataset.editorVersion,
       };
       const csrf = form.querySelector('[name="csrfmiddlewaretoken"]').value;
       saveButton.disabled = true;

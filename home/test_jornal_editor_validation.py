@@ -59,6 +59,7 @@ class JornalEditorValidationTests(TestCase):
         response = self.post_json(url, {
             'titulo': 'Artigo revisado', 'layout': 'colunas',
             'conteudo_markdown': 'Texto revisado',
+            'expected_edit': article.data_edicao.isoformat(),
         })
         self.assertEqual(response.status_code, 200)
         article.refresh_from_db()

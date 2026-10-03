@@ -62,7 +62,9 @@ class JornalEditorPermissionTests(TestCase):
         self.assertEqual(self.post_json(self.create_url, {'titulo': 'Indevido'}).status_code, 403)
         detail = self.client.get(reverse('jornal_detail', args=[self.article.slug]))
         self.assertContains(detail, 'id="btnEditArticle"')
-        changed = self.post_json(self.update_url, {'titulo': 'Artigo revisado'})
+        changed = self.post_json(self.update_url, {
+            'titulo': 'Artigo revisado', 'expected_edit': self.article.data_edicao.isoformat(),
+        })
         self.assertEqual(changed.status_code, 200)
         self.article.refresh_from_db()
         self.assertEqual(self.article.titulo, 'Artigo revisado')

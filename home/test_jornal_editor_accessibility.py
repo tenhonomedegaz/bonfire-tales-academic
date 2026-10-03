@@ -136,6 +136,25 @@ class JornalEditorAccessibilityTests(StaticLiveServerTestCase):
                 article = TbJornal.objects.get(slug='jornal-acessivel')
                 self.assertEqual(article.conteudo_markdown, '**Texto** de QA')
                 self.assertLessEqual(js('document.documentElement.scrollWidth'), js('document.documentElement.clientWidth'))
+
+                # Another editor saves while this page remains open.
+                js('document.querySelector("#btnEditArticle").click()')
+                self.assertEqual(js('document.querySelector("#articleForm").dataset.editorVersion'),
+                                 article.data_edicao.isoformat())
+                js('document.querySelector("#articleForm [name=titulo]").value="Rascunho local"')
+                changed = self.client.post(reverse('jornal_update', args=[article.slug]),
+                                           data=json.dumps({
+                                               'titulo': 'Revisao remota',
+                                               'expected_edit': article.data_edicao.isoformat(),
+                                           }), content_type='application/json')
+                self.assertEqual(changed.status_code, 200)
+                js('document.querySelector("#articleForm").requestSubmit()')
+                until('!document.querySelector("#articleSaveError").hidden')
+                self.assertIn('mudou', js('document.querySelector("#articleSaveError").textContent'))
+                self.assertEqual(js('document.querySelector("#articleForm [name=titulo]").value'),
+                                 'Rascunho local')
+                article.refresh_from_db()
+                self.assertEqual(article.titulo, 'Revisao remota')
             finally:
                 if ws:
                     ws.close()

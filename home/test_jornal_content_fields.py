@@ -56,6 +56,7 @@ class JornalContentFieldsTests(TestCase):
         response = self.post_json(reverse('jornal_update', args=[self.article.slug]), {
             'resumo': 'Resumo atualizado', 'imagem_url': '/static/assets/logo.png',
             'conteudo_markdown': 'Texto atualizado', 'destaque': True,
+            'expected_edit': self.article.data_edicao.isoformat(),
         })
         self.assertEqual(response.status_code, 200)
         self.article.refresh_from_db()

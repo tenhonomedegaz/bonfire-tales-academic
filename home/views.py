@@ -14648,6 +14648,7 @@ def jornal_detail_view(request, slug):
     artigo.safe_image_url = _jornal_image_url(artigo.imagem_url)
     return render(request, 'home/pages/jornal_detail.html', {
         'artigo': artigo,
+        'editor_version': artigo.data_edicao.isoformat(),
         'can_edit_wiki': request.user.is_staff and request.user.has_perm('home.change_tbjornal'),
     })
 
@@ -14780,26 +14781,27 @@ def jornal_create_view(request):
 @permission_required('home.change_tbjornal', raise_exception=True)
 @require_POST
 def jornal_update_view(request, slug):
-    artigo = get_object_or_404(TbJornal, slug=slug)
     data = _json_body(request)
-    titulo, layout, error = _jornal_editor_fields(data, artigo)
-    if error:
-        return JsonResponse({'error': error}, status=400)
-    publication_date, error = _jornal_publication_date(data)
-    if error:
-        return JsonResponse({'error': error}, status=400)
-    content_fields, error = _jornal_content_fields(data, artigo)
-    if error:
-        return JsonResponse({'error': error}, status=400)
-    artigo.titulo = titulo
-    for field, value in content_fields.items():
-        setattr(artigo, field, value)
-    artigo.layout = layout
-    
-    if publication_date:
-        artigo.data_publicacao = publication_date
-            
-    artigo.save()
+    with transaction.atomic():
+        artigo = get_object_or_404(TbJornal.objects.select_for_update(), slug=slug)
+        titulo, layout, error = _jornal_editor_fields(data, artigo)
+        if error:
+            return JsonResponse({'error': error}, status=400)
+        publication_date, error = _jornal_publication_date(data)
+        if error:
+            return JsonResponse({'error': error}, status=400)
+        content_fields, error = _jornal_content_fields(data, artigo)
+        if error:
+            return JsonResponse({'error': error}, status=400)
+        if data.get('expected_edit') != artigo.data_edicao.isoformat():
+            return JsonResponse({'error': 'O artigo mudou. Recarregue a página antes de salvar.'}, status=409)
+        artigo.titulo = titulo
+        for field, value in content_fields.items():
+            setattr(artigo, field, value)
+        artigo.layout = layout
+        if publication_date:
+            artigo.data_publicacao = publication_date
+        artigo.save()
     return JsonResponse({'ok': True})
 
 

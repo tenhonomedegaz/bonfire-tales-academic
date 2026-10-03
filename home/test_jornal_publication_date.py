@@ -64,6 +64,7 @@ class JornalPublicationDateTests(TestCase):
 
         changed = self.post_json(reverse('jornal_update', args=[article.slug]), {
             'data_publicacao': '2024-05-20T12:00',
+            'expected_edit': article.data_edicao.isoformat(),
         })
         self.assertEqual(changed.status_code, 200)
         article.refresh_from_db()
