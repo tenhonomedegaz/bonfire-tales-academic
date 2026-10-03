@@ -15,7 +15,7 @@ from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.db import connection
 from django.urls import reverse
 
-from .models import TbClasse, TbClassehabilidade
+from .models import TbClasse, TbClassehabilidade, TbSubclasse
 
 
 class ClassMarkdownPresentationTests(StaticLiveServerTestCase):
@@ -38,6 +38,7 @@ class ClassMarkdownPresentationTests(StaticLiveServerTestCase):
             '[perigo](javascript:alert(1)) [referencia](https://example.org)'
         )
         classe = TbClasse.objects.create(nome='Classe de Teste', slug='classe-de-teste')
+        TbSubclasse.objects.create(id_classe=classe, nome='Trilha do Fogo', slug='trilha-do-fogo')
         feature = TbClassehabilidade.objects.create(
             id_classe=classe, nome='Habilidade Editorial', niveladquirido=1,
             descricao=description,
@@ -132,6 +133,25 @@ class ClassMarkdownPresentationTests(StaticLiveServerTestCase):
                 self.assertEqual(js('visualViewport.scale'), 1)
                 self.assertLessEqual(js('document.documentElement.scrollWidth'), js('document.documentElement.clientWidth'))
                 self.assertTrue(js('document.querySelector("[data-progression-table]") !== null'))
+                call('Emulation.setEmulatedMedia', {
+                    'features': [{'name': 'prefers-reduced-motion', 'value': 'reduce'}],
+                })
+                self.assertTrue(js('matchMedia("(prefers-reduced-motion: reduce)").matches'))
+                self.assertEqual(js('document.querySelectorAll("[data-subclass-toggle]")[0].getAttribute("aria-pressed")'), 'true')
+                self.assertEqual(js('document.querySelector("[data-subclass-toggle=trilha-do-fogo]").getAttribute("aria-pressed")'), 'false')
+                js('document.querySelectorAll("[data-subclass-toggle]")[0].focus()')
+                call('Input.dispatchKeyEvent', {'type': 'keyDown', 'key': 'Tab', 'code': 'Tab', 'windowsVirtualKeyCode': 9})
+                call('Input.dispatchKeyEvent', {'type': 'keyUp', 'key': 'Tab', 'code': 'Tab', 'windowsVirtualKeyCode': 9})
+                self.assertEqual(js('document.activeElement?.dataset.subclassToggle'), 'trilha-do-fogo')
+                self.assertNotEqual(js('getComputedStyle(document.activeElement).outlineStyle'), 'none')
+                self.assertEqual(js('getComputedStyle(document.activeElement).transitionDuration'), '0s')
+                call('Input.dispatchKeyEvent', {'type': 'keyDown', 'key': 'Enter', 'code': 'Enter', 'text': '\r', 'windowsVirtualKeyCode': 13})
+                call('Input.dispatchKeyEvent', {'type': 'keyUp', 'key': 'Enter', 'code': 'Enter', 'windowsVirtualKeyCode': 13})
+                wait_for('new URLSearchParams(location.search).get("subclasse") === "trilha-do-fogo"')
+                self.assertEqual(js('document.querySelector("[data-subclass-toggle=trilha-do-fogo]").getAttribute("aria-pressed")'), 'true')
+                self.assertEqual(js('document.querySelectorAll("[data-subclass-toggle]")[0].getAttribute("aria-pressed")'), 'false')
+                wait_for('document.querySelector("[data-subclass-anchor]").classList.contains("bonfire-state-changing")')
+                self.assertEqual(js('getComputedStyle(document.querySelector("[data-subclass-anchor]")).animationName'), 'none')
                 js('document.querySelector("[data-feature-edit]").click()')
                 self.assertTrue(js('document.querySelector("[data-feature-form]").getBoundingClientRect().right <= document.documentElement.clientWidth'))
                 js('''(() => {

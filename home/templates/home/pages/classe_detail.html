@@ -307,6 +307,7 @@
 
       subclassButtons.forEach(button => {
         const active = button.dataset.subclassToggle === slug;
+        button.setAttribute('aria-pressed', active ? 'true' : 'false');
         button.classList.toggle('is-active', active);
         button.classList.toggle('border-[var(--spark)]', active && slug);
         button.classList.toggle('bg-[var(--spark)]/10', active && slug);

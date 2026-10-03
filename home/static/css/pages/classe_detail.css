@@ -89,7 +89,30 @@
   .class-nav-filtering {
     animation: bonfireSlideDownIn .28s ease both;
   }
+
+@media (prefers-reduced-motion: reduce) {
+  .class-detail-layout *,
+  .class-detail-layout *::before,
+  .class-detail-layout *::after,
+  .class-mobile-menu-toggle,
+  .class-mobile-backdrop {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .class-nav-item:hover,
+  .subclass-toggle:hover,
+  .bonfire-markdown .bonfire-toggle summary:hover {
+    transform: none !important;
+  }
+}
   .class-progression-scroll:focus-visible {
+    outline: 2px solid var(--spark);
+    outline-offset: 2px;
+  }
+  .class-nav-item:focus-visible,
+  .subclass-toggle:focus-visible,
+  .class-mobile-menu-toggle:focus-visible {
     outline: 2px solid var(--spark);
     outline-offset: 2px;
   }
