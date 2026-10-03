@@ -6,7 +6,7 @@
 {% block title %}Talentos - Bonfire Tales RPG{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/pages/talentos.css' %}?v=3">
+<link rel="stylesheet" href="{% static 'css/pages/talentos.css' %}?v=4">
 
 {% endblock %}
 
@@ -93,11 +93,11 @@
     </div>
 
     <div class="talent-main-grid grid gap-3 border-t border-bonfire-stroke pt-4 flex-1">
-        <button type="button" class="talent-mobile-menu-button" id="talentMobileMenuButton" aria-label="Abrir lista de talentos">
+        <button type="button" class="talent-mobile-menu-button" id="talentMobileMenuButton" aria-label="Abrir lista de talentos" aria-controls="talentosList" aria-expanded="false">
             <svg xmlns="http://www.w3.org/2000/svg" class="open-icon h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 5 7 7-7 7"/></svg>
             <svg xmlns="http://www.w3.org/2000/svg" class="close-icon h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 19-7-7 7-7"/></svg>
         </button>
-        <button type="button" class="talent-mobile-backdrop" id="talentMobileBackdrop" aria-label="Fechar lista"></button>
+        <button type="button" class="talent-mobile-backdrop" id="talentMobileBackdrop" aria-label="Fechar lista" tabindex="-1" aria-hidden="true"></button>
 
         <aside class="talent-list-panel xl:sticky xl:top-24 h-full max-h-[calc(100vh-140px)] overflow-y-auto custom-scrollbar flex flex-col gap-1.5 pr-2" id="talentosList">
             <div id="talentosListItems" class="flex flex-col gap-1.5">
@@ -145,6 +145,7 @@
     const applyFilterModal = document.getElementById('applyFilterModal');
     const talentMobileMenuButton = document.getElementById('talentMobileMenuButton');
     const talentMobileBackdrop = document.getElementById('talentMobileBackdrop');
+    const talentMobileLayout = window.matchMedia('(max-width: 1100px)');
     const filterOptions = {
         type: [],
         mainTag: [],
@@ -161,13 +162,19 @@
     let draftFilters = { ...activeFilters };
     let listAnimationTimer = null;
 
-    function openTalentMenu() {
-        document.body.classList.add('talent-menu-open');
+    function setTalentMenuOpen(requested) {
+        const open = talentMobileLayout.matches && requested;
+        const returnFocus = !open && talentMobileLayout.matches && listContainer.contains(document.activeElement);
+        document.body.classList.toggle('talent-menu-open', open);
+        talentMobileMenuButton.setAttribute('aria-expanded', open ? 'true' : 'false');
+        talentMobileMenuButton.setAttribute('aria-label', open ? 'Fechar lista de talentos' : 'Abrir lista de talentos');
+        if (returnFocus) talentMobileMenuButton.focus();
+        listContainer.inert = talentMobileLayout.matches && !open;
+        if (listContainer.inert) listContainer.setAttribute('aria-hidden', 'true');
+        else listContainer.removeAttribute('aria-hidden');
+        if (open) searchInput.focus();
     }
-
-    function closeTalentMenu() {
-        document.body.classList.remove('talent-menu-open');
-    }
+    function closeTalentMenu() { setTalentMenuOpen(false); }
 
     function isTableSeparator(line) {
         return /^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$/.test(line);
@@ -728,7 +735,7 @@
     filterToggle.addEventListener('click', () => {
         openFilterModal();
     });
-    talentMobileMenuButton?.addEventListener('click', openTalentMenu);
+    talentMobileMenuButton?.addEventListener('click', () => setTalentMenuOpen(!document.body.classList.contains('talent-menu-open')));
     talentMobileBackdrop?.addEventListener('click', closeTalentMenu);
 
     [filterBackdrop, filterClose].forEach(element => {
@@ -792,7 +799,7 @@
 
     // Move search bar into drawer on mobile
     (function() {
-        const mq = window.matchMedia('(max-width: 1100px)');
+        const mq = talentMobileLayout;
         const searchBar = document.getElementById('talentSearchBar');
         if (!searchBar) return;
         const originalParent = searchBar.parentElement;
@@ -803,6 +810,7 @@
             } else if (originalParent) {
                 originalParent.insertBefore(searchBar, originalNext);
             }
+            closeTalentMenu();
         }
         mq.addEventListener('change', handleLayout);
         handleLayout(mq);

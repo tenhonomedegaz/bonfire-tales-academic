@@ -456,3 +456,27 @@
         font-weight: 900;
         padding: .5rem .75rem;
     }
+
+    #talentMobileMenuButton:focus-visible,
+    #talentosList #searchInput:focus-visible,
+    #talentoDetail [data-talent-title]:focus {
+        outline: 2px solid var(--spark);
+        outline-offset: 2px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        #talentosList,
+        #talentosList *,
+        #talentosList *::before,
+        #talentosList *::after,
+        #talentoDetail,
+        #talentoDetail *,
+        #talentoDetail *::before,
+        #talentoDetail *::after,
+        #talentMobileMenuButton,
+        #talentMobileBackdrop {
+            animation: none !important;
+            transition: none !important;
+            scroll-behavior: auto !important;
+        }
+    }
