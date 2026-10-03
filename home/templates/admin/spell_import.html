@@ -3,7 +3,7 @@
 
 {% block extrastyle %}
 {{ block.super }}
-<link rel="stylesheet" href="{% static 'css/pages/spell_import.css' %}?v=2">
+<link rel="stylesheet" href="{% static 'css/pages/spell_import.css' %}?v=3">
 {% endblock %}
 
 {% block content %}
@@ -45,20 +45,15 @@
   {% if preview %}
   <section class="spell-import-card">
     <h2>Previa da importacao: {{ preview|length }} magias</h2>
+    <p class="help">Confira todos os campos antes de confirmar. Atualizar substitui os campos abaixo no cadastro; Ignorar mantem a magia existente.</p>
     <div class="results">
-      <table>
+      <table class="spell-import-preview">
         <thead>
           <tr>
             <th>Operacao</th>
             <th>Nome</th>
             <th>Nivel</th>
-            <th>Escola</th>
-            <th>Conjuracao</th>
-            <th>Ritual</th>
-            <th>Concentracao</th>
-            <th>Alcance</th>
-            <th>Componentes</th>
-            <th>Descricao</th>
+            <th>Campos da planilha</th>
           </tr>
         </thead>
         <tbody>
@@ -67,13 +62,24 @@
             <td>{{ magia.import_action }}</td>
             <td>{{ magia.nome }}</td>
             <td>{{ magia.nivel_display }}</td>
-            <td>{{ magia.escola|default:"-" }}</td>
-            <td>{{ magia.casting_time|default:"-" }}</td>
-            <td>{% if magia.ritual %}Sim{% else %}Nao{% endif %}</td>
-            <td>{% if magia.concentracao %}Sim{% else %}Nao{% endif %}</td>
-            <td>{{ magia.alcance|default:"-" }}</td>
-            <td>{{ magia.componentes|default:"-" }}</td>
-            <td>{{ magia.descricao|truncatechars:120 }}</td>
+            <td>
+              <details class="spell-import-details">
+                <summary>Revisar campos de {{ magia.nome }}</summary>
+                <dl>
+                  <dt>Escola</dt><dd>{{ magia.escola|default:"-" }}</dd>
+                  <dt>Conjuracao</dt><dd>{{ magia.casting_time|default:"-" }}</dd>
+                  <dt>Ritual</dt><dd>{% if magia.ritual %}Sim{% else %}Nao{% endif %}</dd>
+                  <dt>Duracao</dt><dd>{{ magia.duracao|default:"-" }}</dd>
+                  <dt>Concentracao</dt><dd>{% if magia.concentracao %}Sim{% else %}Nao{% endif %}</dd>
+                  <dt>Alcance</dt><dd>{{ magia.alcance|default:"-" }}</dd>
+                  <dt>Componentes</dt><dd>{{ magia.componentes|default:"-" }}</dd>
+                  <dt>Classes</dt><dd>{{ magia.classes|default:"-" }}</dd>
+                  <dt>Tags geradas</dt><dd>{{ magia.tags_json|join:", "|default:"-" }}</dd>
+                  <dt>Descricao completa</dt><dd class="spell-import-long-text">{{ magia.descricao|default:"-" }}</dd>
+                  <dt>Em niveis superiores</dt><dd class="spell-import-long-text">{{ magia.em_niveis_superiores|default:"-" }}</dd>
+                </dl>
+              </details>
+            </td>
           </tr>
           {% endfor %}
         </tbody>

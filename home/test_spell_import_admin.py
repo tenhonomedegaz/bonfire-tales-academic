@@ -4,9 +4,9 @@ from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
-from openpyxl import Workbook
+from openpyxl import Workbook, load_workbook
 
-from .models import TbMagia
+from .models import TbClasse, TbMagia
 
 
 class SpellImportAdminTests(TestCase):
@@ -55,6 +55,51 @@ class SpellImportAdminTests(TestCase):
         replay = self.client.post(self.url, {"confirmar": "1", "payload": payload})
         self.assertContains(replay, "O catalogo mudou desde a previa")
         self.assertEqual(TbMagia.objects.filter(slug="luz-de-teste").count(), 1)
+
+    def test_existing_spell_full_preview_precedes_replacement(self):
+        TbClasse.objects.create(nome="Mago", slug="mago")
+        spell = TbMagia.objects.create(
+            nome="Luz de Teste", slug="luz-de-teste", nivel=1,
+            descricao="Texto publicado antes da importacao",
+        )
+        upload = self.workbook(("Luz de Teste", 2, "Nao", "Mago"))
+        book = load_workbook(BytesIO(upload.read()))
+        sheet = book.active
+        long_description = (
+            "Inicio da descricao. " + "Trecho detalhado. " * 10
+            + "Final indispensavel. <script>alert(1)</script>"
+        )
+        sheet["E2"] = "Concentracao, ate 10 minutos"
+        sheet["I2"] = long_description
+        sheet["K1"] = "Em Niveis Superiores"
+        sheet["K2"] = "Ao conjurar em nivel maior, ganhe outro efeito."
+        output = BytesIO()
+        book.save(output)
+        preview = self.client.post(self.url, {
+            "arquivo": SimpleUploadedFile("magias.xlsx", output.getvalue()),
+            "atualizar_existentes": "on",
+        })
+
+        self.assertContains(preview, "Atualizar")
+        self.assertContains(preview, "Final indispensavel.")
+        self.assertContains(preview, "&lt;script&gt;alert(1)&lt;/script&gt;")
+        self.assertNotContains(preview, "<script>alert(1)</script>")
+        self.assertContains(preview, "Ao conjurar em nivel maior, ganhe outro efeito.")
+        self.assertContains(preview, "10 minutos")
+        self.assertContains(preview, "Mago")
+        self.assertContains(preview, "Tags geradas")
+        spell.refresh_from_db()
+        self.assertEqual(spell.descricao, "Texto publicado antes da importacao")
+
+        result = self.client.post(self.url, {
+            "confirmar": "1", "payload": preview.context["payload"],
+        })
+        self.assertContains(result, "0 criadas, 1 atualizadas e 0 ignoradas")
+        spell.refresh_from_db()
+        self.assertEqual(spell.descricao, long_description)
+        self.assertEqual(spell.em_niveis_superiores, "Ao conjurar em nivel maior, ganhe outro efeito.")
+        self.assertEqual(spell.nivel, 2)
+        self.assertTrue(spell.concentracao)
 
     def test_invalid_row_aborts_whole_batch(self):
         preview = self.preview(("Magia Valida", 1), ("Magia Invalida", 12))
