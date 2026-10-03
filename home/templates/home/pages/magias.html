@@ -112,8 +112,8 @@
   function attr(v){return esc(v).replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
   function md(v){
     if(!v) return '<p class="text-[var(--muted)]">Sem descrição.</p>';
-    if(typeof renderBonfireMarkdown==='function') return renderBonfireMarkdown(v);
-    if(window.marked&&window.marked.parse) return window.marked.parse(v,{gfm:true,breaks:true});
+    if(typeof renderBonfireMarkdown==='function') return sanitizeBonfireMarkdownHtml(renderBonfireMarkdown(v));
+    if(window.marked&&window.marked.parse) return sanitizeBonfireMarkdownHtml(window.marked.parse(v,{gfm:true,breaks:true}));
     return esc(v).replace(/\n/g,'<br>');
   }
   function meta(label,val){return val?'<div class="min-w-0"><dt class="text-xs text-[var(--muted)]">'+label+'</dt><dd class="break-words font-medium text-[var(--text)]">'+esc(val)+'</dd></div>':'';}

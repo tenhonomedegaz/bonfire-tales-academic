@@ -10,7 +10,7 @@ from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.db import connection
 from django.urls import reverse
 
-from .models import TbOpcaojogo, TbTalento
+from .models import TbMagia, TbOpcaojogo, TbTalento
 
 
 class TalentCatalogPresentationTests(StaticLiveServerTestCase):
@@ -46,6 +46,11 @@ class TalentCatalogPresentationTests(StaticLiveServerTestCase):
                 '<svg onload="window.__optionInjected=1"></svg>\n\n'
                 '<a href="javascript:window.__optionInjected=1">Inseguro</a>'
             ),
+        )
+        TbMagia.objects.create(
+            nome='Luz arcana', slug='luz-arcana', nivel=1,
+            descricao='**Brilho seguro**\n\n<svg onload="window.__spellInjected=1"></svg>',
+            em_niveis_superiores='**Brilho maior**\n\n<a href="javascript:window.__spellInjected=1">Inseguro</a>',
         )
 
         with tempfile.TemporaryDirectory(prefix='bonfire-talent-', ignore_cleanup_errors=True) as profile:
@@ -130,6 +135,14 @@ class TalentCatalogPresentationTests(StaticLiveServerTestCase):
                 self.assertEqual(js('document.querySelector("[data-option-preview] strong")?.textContent'), 'Beneficio da opcao')
                 self.assertEqual(js('document.querySelectorAll("[data-option-preview] svg, [data-option-preview] a[href^=javascript]").length'), 0)
                 self.assertFalse(js('window.__optionInjected === 1'))
+
+                call('Page.navigate', {'url': self.live_server_url + reverse('magias_listas') + '?magia=luz-arcana'})
+                wait_for('document.querySelector("#mgDetail h2")?.textContent === "Luz arcana"')
+                self.assertEqual(js('document.querySelectorAll("#mgDetail strong").length'), 2)
+                self.assertEqual(js('document.querySelectorAll("#mgDetail svg, #mgDetail a[href^=javascript]").length'), 0)
+                self.assertFalse(js('window.__spellInjected === 1'))
+                js('document.querySelector("#mg-busca").value = "Luz arcana"; document.querySelector("#mg-busca").dispatchEvent(new Event("input", {bubbles: true}))')
+                self.assertEqual(js('document.querySelector("#mg-count")?.textContent'), '1')
             finally:
                 if ws:
                     ws.close()
