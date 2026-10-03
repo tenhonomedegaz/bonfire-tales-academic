@@ -31,14 +31,14 @@ class TalentCatalogPresentationTests(StaticLiveServerTestCase):
         injected = '<img src=x onerror="window.__talentInjected=1">'
         TbTalento.objects.create(
             nome=f'Arcano {injected}', slug='arcano-literal',
-            etiquetas_adicionais=f'Magia, {injected}', pre_requisito=injected,
+            etiquetas_adicionais=f'Magia, magia., MAGIA, COMBATE, {injected}', pre_requisito=injected,
             descricao=(
                 '**Benefício editorial**\n\n'
                 '<svg onload="window.__talentInjected=1"></svg>\n\n'
                 '<a href="javascript:window.__talentInjected=1">Inseguro</a>'
             ),
         )
-        TbTalento.objects.create(nome='Seguro', slug='seguro', descricao='Texto seguro')
+        TbTalento.objects.create(nome='Seguro', slug='seguro', etiquetas_adicionais='mágia!', descricao='Texto seguro')
         TbTalento.objects.create(nome='Coração sombrio', slug='coracao-sombrio', descricao='Texto sombrio')
         TbOpcaojogo.objects.create(
             nome='Opcao segura', slug='opcao-segura', tipo='Teste',
@@ -114,6 +114,19 @@ class TalentCatalogPresentationTests(StaticLiveServerTestCase):
                 self.assertEqual(js('document.querySelector("[data-talent-preview] strong")?.textContent'), 'Benefício editorial')
                 self.assertEqual(js('document.querySelectorAll("[data-talent-preview] svg, [data-talent-preview] a[href^=javascript]").length'), 0)
                 self.assertTrue(js('document.querySelector("#talentosListItems").textContent.includes(' + json.dumps(injected) + ')'))
+                self.assertEqual(js('Array.from(document.querySelectorAll("#tagFilterOptions button")).filter(button => canonicalTag(button.textContent) === "magia").length'), 1)
+                self.assertEqual(js('Array.from(document.querySelectorAll("#tagFilterOptions button")).filter(button => canonicalTag(button.textContent) === "combate").length'), 0)
+                self.assertEqual(js('Array.from(document.querySelectorAll("#talentosListItems [data-talent-slug=arcano-literal] span")).filter(badge => canonicalTag(badge.textContent) === "magia").length'), 1)
+                js('document.querySelector("#filterToggle").click()')
+                js('Array.from(document.querySelectorAll("#tagFilterOptions button")).find(button => canonicalTag(button.textContent) === "magia").click()')
+                js('document.querySelector("#applyFilterModal").click()')
+                wait_for('document.querySelectorAll("#talentosListItems > a").length === 2')
+                self.assertFalse(js('document.querySelector("#talentosListItems").textContent.includes("sombrio")'))
+                self.assertEqual(js('document.querySelector("#filterCount").textContent'), '1')
+                js('document.querySelector("#filterToggle").click()')
+                js('document.querySelector("#clearFilters").click()')
+                js('document.querySelector("#applyFilterModal").click()')
+                wait_for('document.querySelectorAll("#talentosListItems > a").length === 3')
 
                 unsafe_html = (
                     '<img src=x onerror="window.__talentInjected=1">'

@@ -273,11 +273,21 @@
         return sanitizeBonfireMarkdownHtml(renderFallbackMarkdown(withToggles));
     }
 
+    function canonicalTag(value) {
+        return normalizeSearch(value).replace(/[.;:!?]+$/g, '').replace(/\s+/g, ' ').trim();
+    }
+
     function getExtraTags(talento) {
-        return (talento.etiquetas_adicionais || '')
+        const seen = new Set([canonicalTag(talento.etiqueta)]);
+        return String(talento.etiquetas_adicionais || '')
             .split(',')
-            .map(tag => tag.trim())
-            .filter(Boolean);
+            .map(tag => tag.trim().replace(/[.;:!?]+$/g, '').trim())
+            .filter(tag => {
+                const key = canonicalTag(tag);
+                if (!key || seen.has(key)) return false;
+                seen.add(key);
+                return true;
+            });
     }
 
     function capitalizeLabel(value) {
@@ -329,7 +339,12 @@
     function populateFilters() {
         filterOptions.type = [...new Set(talentosData.map(t => t.tipo).filter(Boolean))].sort();
         filterOptions.mainTag = [...new Set(talentosData.map(t => t.etiqueta).filter(Boolean))].sort();
-        filterOptions.tag = [...new Set(talentosData.flatMap(t => getExtraTags(t)).filter(Boolean))].sort();
+        const tags = new Map();
+        talentosData.flatMap(t => getExtraTags(t)).forEach(tag => {
+            const key = canonicalTag(tag);
+            if (!tags.has(key)) tags.set(key, tag);
+        });
+        filterOptions.tag = [...tags.values()].sort((a, b) => a.localeCompare(b, 'pt-BR'));
         filterOptions.attribute = [...new Set(talentosData.flatMap(t => (t.atributos_str || '').split(',').map(a => a.trim())).filter(a => a && a !== 'Nenhum'))].sort();
         
         renderFilterChips();
@@ -368,7 +383,7 @@
             const matchesSearch = !query || normalizeSearch(haystack).includes(query);
             const matchesType = !typeValue || t.tipo === typeValue;
             const matchesMainTag = !mainTagValue || t.etiqueta === mainTagValue;
-            const matchesTag = !tagValue || extraTags.includes(tagValue);
+            const matchesTag = !tagValue || extraTags.some(tag => canonicalTag(tag) === canonicalTag(tagValue));
             const matchesAttr = !attrValue || (t.atributos_str || '').split(',').map(a => a.trim()).includes(attrValue);
             return matchesSearch && matchesType && matchesMainTag && matchesTag && matchesAttr;
         });
