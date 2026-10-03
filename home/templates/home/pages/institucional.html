@@ -20,8 +20,8 @@
       {% if bloco.conteudo_markdown %}
       <div class="bonfire-markdown mt-5 text-sm leading-7 text-[var(--muted)]" data-markdown-source>{{ bloco.conteudo_markdown }}</div>
       {% endif %}
-      {% if bloco.cta_texto and bloco.cta_url %}
-      <a href="{{ bloco.cta_url }}" class="mt-5 inline-flex items-center rounded border border-[var(--ember)] px-4 py-2 text-sm font-bold text-[var(--ember)] hover:bg-[var(--ember)] hover:text-black">
+      {% if bloco.cta_texto and bloco.safe_cta_url %}
+      <a href="{{ bloco.safe_cta_url }}" class="mt-5 inline-flex items-center rounded border border-[var(--ember)] px-4 py-2 text-sm font-bold text-[var(--ember)] hover:bg-[var(--ember)] hover:text-black">
         {{ bloco.cta_texto }}
       </a>
       {% endif %}

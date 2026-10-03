@@ -193,6 +193,29 @@ class PublicPresentationTests(TestCase):
                 self.assertNotContains(response, 'Esta página está em construção')
                 self.assertNotContains(response, 'Advertisement')
 
+    def test_institutional_pages_hide_unsafe_legacy_actions_and_keep_valid_links(self):
+        for name in ('sobre', 'contato', 'privacidade', 'termos'):
+            with self.subTest(name=name):
+                bloco = TbConteudoEstatico.objects.filter(pagina=name, ativo=True).first()
+                self.assertIsNotNone(bloco)
+                bloco.cta_texto = 'Ação editorial'
+                bloco.cta_url = 'javascript:alert(1)'
+                bloco.save(update_fields=['cta_texto', 'cta_url'])
+                unsafe = self.client.get(reverse(name))
+                self.assertEqual(unsafe.status_code, 200)
+                self.assertNotContains(unsafe, 'href="javascript:alert(1)"')
+                self.assertNotContains(unsafe, 'Ação editorial')
+
+                bloco.cta_url = '/mapa/?camada=politica'
+                bloco.save(update_fields=['cta_url'])
+                local = self.client.get(reverse(name))
+                self.assertContains(local, 'href="/mapa/?camada=politica"')
+
+                bloco.cta_url = 'https://example.com/comunidade'
+                bloco.save(update_fields=['cta_url'])
+                external = self.client.get(reverse(name))
+                self.assertContains(external, 'href="https://example.com/comunidade"')
+
     def test_institutional_heading_is_not_repeated_by_first_block(self):
         for name, title in (
             ('sobre', 'Sobre o Bonfire Tales'),

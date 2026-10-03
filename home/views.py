@@ -608,6 +608,7 @@ def home_view(request):
 def pagina_institucional_view(request, pagina):
     """Renderiza páginas de confiança a partir do conteúdo administrável."""
     from .models import TbConteudoEstatico
+    from .editorial_links import safe_editorial_link
 
     configuracao = {
         'sobre': {
@@ -633,6 +634,8 @@ def pagina_institucional_view(request, pagina):
     blocos = list(TbConteudoEstatico.objects.filter(pagina=pagina, ativo=True))
     if not blocos:
         raise Http404
+    for bloco in blocos:
+        bloco.safe_cta_url = safe_editorial_link(bloco.cta_url)
     return render(request, 'home/pages/institucional.html', {
         'page_title': meta['titulo'],
         'meta_description': meta['descricao'],
