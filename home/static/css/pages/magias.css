@@ -1,0 +1,27 @@
+#mg-busca:focus-visible,
+#mg-classe:focus-visible,
+#mg-escola:focus-visible,
+#mg-nivel:focus-visible,
+#mgList [data-slug]:focus-visible,
+#mgMobileMenuButton:focus-visible,
+#mgDetail h2:focus {
+  outline: 2px solid var(--spark);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #mgList,
+  #mgList *,
+  #mgList *::before,
+  #mgList *::after,
+  #mgDetail,
+  #mgDetail *,
+  #mgDetail *::before,
+  #mgDetail *::after,
+  #mgMobileMenuButton,
+  #mgMobileBackdrop {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

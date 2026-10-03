@@ -7,6 +7,7 @@
 
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'css/pages/talentos.css' %}?v=3">
+<link rel="stylesheet" href="{% static 'css/pages/magias.css' %}?v=1">
 {% endblock %}
 
 {% block content %}
@@ -52,11 +53,11 @@
   </div>
 
   <div class="talent-main-grid grid gap-3 border-t border-bonfire-stroke pt-4 flex-1">
-    <button type="button" class="talent-mobile-menu-button" id="mgMobileMenuButton" aria-label="Abrir lista de magias">
+    <button type="button" class="talent-mobile-menu-button" id="mgMobileMenuButton" aria-label="Abrir lista de magias" aria-controls="mgList" aria-expanded="false">
       <svg xmlns="http://www.w3.org/2000/svg" class="open-icon h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 5 7 7-7 7"/></svg>
       <svg xmlns="http://www.w3.org/2000/svg" class="close-icon h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 19-7-7 7-7"/></svg>
     </button>
-    <button type="button" class="talent-mobile-backdrop" id="mgMobileBackdrop" aria-label="Fechar lista"></button>
+    <button type="button" class="talent-mobile-backdrop" id="mgMobileBackdrop" aria-label="Fechar lista" tabindex="-1" aria-hidden="true"></button>
 
     <aside class="talent-list-panel xl:sticky xl:top-24 h-full max-h-[calc(100vh-140px)] overflow-y-auto custom-scrollbar flex flex-col gap-1.5 pr-2" id="mgList">
       <div id="mgResults" class="flex flex-col gap-1.5">
@@ -103,6 +104,7 @@
   var clearFilters = document.getElementById('mg-clear-filters');
   var mobileMenuButton = document.getElementById('mgMobileMenuButton');
   var mobileBackdrop = document.getElementById('mgMobileBackdrop');
+  var mobileLayout = window.matchMedia('(max-width: 1100px)');
 
   var selectedSlug = null;
   var filtered = MAGIAS.slice();
@@ -155,8 +157,19 @@
   }
 
   // ---- Drawer mobile (mesmo padrão de talentos.html) ----
-  function openMenu(){ document.body.classList.add('talent-menu-open'); }
-  function closeMenu(){ document.body.classList.remove('talent-menu-open'); }
+  function setMenuOpen(requested){
+    var open = mobileLayout.matches && requested;
+    var returnFocus = !open && mobileLayout.matches && listContainer.contains(document.activeElement);
+    document.body.classList.toggle('talent-menu-open', open);
+    mobileMenuButton.setAttribute('aria-expanded', open ? 'true' : 'false');
+    mobileMenuButton.setAttribute('aria-label', open ? 'Fechar lista de magias' : 'Abrir lista de magias');
+    if(returnFocus) mobileMenuButton.focus();
+    listContainer.inert = mobileLayout.matches && !open;
+    if(listContainer.inert) listContainer.setAttribute('aria-hidden', 'true');
+    else listContainer.removeAttribute('aria-hidden');
+    if(open) document.getElementById('mg-busca').focus();
+  }
+  function closeMenu(){ setMenuOpen(false); }
 
   // ---- Lista (mestre) ----
   function listItem(m){
@@ -385,13 +398,13 @@
   });
 
   // ---- Drawer mobile ----
-  mobileMenuButton && mobileMenuButton.addEventListener('click', openMenu);
+  mobileMenuButton && mobileMenuButton.addEventListener('click', function(){ setMenuOpen(!document.body.classList.contains('talent-menu-open')); });
   mobileBackdrop && mobileBackdrop.addEventListener('click', closeMenu);
   document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeMenu(); });
 
   // Move a barra de busca para dentro do drawer no mobile (mesmo padrão de talentos.html)
   (function(){
-    var mq = window.matchMedia('(max-width: 1100px)');
+    var mq = mobileLayout;
     var searchBar = document.getElementById('mgSearchBar');
     if(!searchBar) return;
     var originalParent = searchBar.parentElement;
@@ -402,6 +415,7 @@
       } else if(originalParent){
         originalParent.insertBefore(searchBar, originalNext);
       }
+      closeMenu();
     }
     if(mq.addEventListener) mq.addEventListener('change', handleLayout); else mq.addListener(handleLayout);
     handleLayout(mq);
