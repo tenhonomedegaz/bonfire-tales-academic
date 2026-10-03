@@ -67,12 +67,15 @@ class JornalListZoomTests(StaticLiveServerTestCase):
             ws = None
             try:
                 port_file = profile / "DevToolsActivePort"
+                port = None
                 for _ in range(80):
-                    if port_file.is_file():
+                    try:
+                        port = port_file.read_text(encoding="utf-8").splitlines()[0]
                         break
-                    time.sleep(.1)
-                self.assertTrue(port_file.is_file(), "Chrome não iniciou")
-                with urlopen(f"http://127.0.0.1:{port_file.read_text().splitlines()[0]}/json", timeout=5) as response:
+                    except (OSError, IndexError):
+                        time.sleep(.1)
+                self.assertIsNotNone(port, "Chrome não iniciou")
+                with urlopen(f"http://127.0.0.1:{port}/json", timeout=5) as response:
                     target = next(item for item in json.load(response) if item["type"] == "page")
                 ws = websocket.create_connection(target["webSocketDebuggerUrl"], timeout=10)
                 sequence = 0

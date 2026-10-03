@@ -89,7 +89,7 @@ class EditorialCardPreviewTests(StaticLiveServerTestCase):
                     'width': 360, 'height': 800, 'deviceScaleFactor': 1, 'mobile': True,
                 })
                 call('Page.navigate', {'url': self.live_server_url + '/'})
-                wait_for('typeof window.bonfireOptionsWidget?.hydrate === "function"')
+                wait_for('document.readyState === "complete" && document.querySelector("main") !== null && typeof window.bonfireOptionsWidget?.hydrate === "function"')
                 js('''(() => {
                     const trigger = document.createElement('a');
                     trigger.id = 'cardTrigger';
