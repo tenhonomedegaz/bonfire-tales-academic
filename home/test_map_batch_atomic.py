@@ -1,6 +1,7 @@
 """A map batch either publishes all edits with audit history or none of them."""
 
 import json
+from unittest.mock import patch
 
 from django.contrib.admin.models import ADDITION, CHANGE, LogEntry
 from django.contrib.auth import get_user_model
@@ -8,7 +9,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.test import TestCase
 from django.urls import reverse
 
-from home.models import TbMapLayer, TbMapMarker, TbRegiao
+from home.models import TbMapLayer, TbMapMarker, TbRegiao, TbTerritorio
 
 
 class MapBatchAtomicTests(TestCase):
@@ -76,3 +77,55 @@ class MapBatchAtomicTests(TestCase):
         public = self.client.get(reverse('regiao_detail', args=[region.slug]))
         self.assertEqual(public.status_code, 200)
         self.assertContains(public, region.nome)
+
+    def test_malformed_marker_rejects_entire_batch_with_useful_error(self):
+        for invalid, expected in (
+            ({'nome': 'QA Inválido 461', 'lat': 'não-numérico', 'lng': 4}, 'Coordenadas'),
+            ({'nome': 'QA Inválido 461', 'lat': float('nan'), 'lng': 4}, 'Coordenadas'),
+            ({'id': 'abc', 'nome': 'QA Inválido 461', 'lat': 3, 'lng': 4}, 'ID de marcador'),
+            ({'nome': '  ', 'lat': 3, 'lng': 4}, 'Nome de marcador'),
+        ):
+            with self.subTest(invalid=invalid):
+                rejected = self.save_batch([
+                    {'nome': 'QA Primeiro 461', 'lat': 1, 'lng': 2}, invalid,
+                ])
+                self.assertEqual(rejected.status_code, 400)
+                self.assertIn(expected, rejected.json()['error'])
+                self.assertFalse(TbMapMarker.objects.filter(nome='QA Primeiro 461').exists())
+                self.assertFalse(TbRegiao.objects.filter(nome='QA Primeiro 461').exists())
+                self.assertFalse(LogEntry.objects.filter(user=self.editor).exists())
+
+    def test_invalid_territory_rejects_marker_change_and_valid_update_is_visible(self):
+        territory = TbTerritorio.objects.create(nome='QA Território 461', slug='qa-territorio-461')
+        for invalid_id, status in (('abc', 400), (999999999, 404)):
+            with self.subTest(invalid_id=invalid_id):
+                rejected = self.client.post(self.url, json.dumps({
+                    'markers': [{'nome': 'QA Porto 461', 'lat': 1, 'lng': 2}],
+                    'territories': [{'id': invalid_id, 'camada': 1}],
+                }), content_type='application/json')
+                self.assertEqual(rejected.status_code, status)
+                self.assertFalse(TbMapMarker.objects.filter(nome='QA Porto 461').exists())
+                self.assertFalse(LogEntry.objects.filter(user=self.editor).exists())
+
+        saved = self.client.post(self.url, json.dumps({
+            'markers': [], 'territories': [{'id': territory.pk, 'camada': 1}],
+        }), content_type='application/json')
+        self.assertEqual(saved.status_code, 200)
+        territory.refresh_from_db()
+        self.assertEqual(territory.camada, 1)
+        self.assertEqual(list(self.entries_for(territory).values_list('action_flag', flat=True)), [CHANGE])
+
+    def test_unexpected_failure_does_not_expose_exception_to_editor(self):
+        with patch.object(TbMapMarker.objects, 'create', side_effect=RuntimeError('segredo interno')):
+            with self.assertLogs('home.views', level='ERROR'):
+                response = self.save_batch([{'nome': 'QA Falha 461', 'lat': 1, 'lng': 2}])
+        self.assertEqual(response.status_code, 500)
+        self.assertEqual(response.json()['error'], 'Falha ao salvar lote do mapa.')
+        self.assertFalse(LogEntry.objects.filter(user=self.editor).exists())
+
+    def test_malformed_batch_document_is_rejected(self):
+        for body in ('{', '{}', '{"markers": {}}', '{"markers": [null]}'):
+            with self.subTest(body=body):
+                response = self.client.post(self.url, body, content_type='application/json')
+                self.assertEqual(response.status_code, 400)
+                self.assertFalse(LogEntry.objects.filter(user=self.editor).exists())

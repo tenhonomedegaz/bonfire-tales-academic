@@ -1,4 +1,5 @@
 import json
+import math
 import hashlib
 import logging
 import re
@@ -12459,11 +12460,15 @@ def wiki_update_marker_position(request, marker_id):
 @staff_member_required
 @require_POST
 def wiki_batch_save_map(request):
-    
     data = _json_body(request)
+    if not isinstance(data, dict) or not any(key in data for key in ('markers', 'territories')) or any(
+        not isinstance(data.get(key, []), list)
+        or any(not isinstance(item, dict) for item in data.get(key, []))
+        for key in ('markers', 'territories')
+    ):
+        return JsonResponse({'ok': False, 'error': 'Lote do mapa invalido.'}, status=400)
     validate_no_sql_danger(data, 'batch_save')
-    
-    import traceback
+
     try:
         with transaction.atomic():
             
@@ -12472,14 +12477,39 @@ def wiki_batch_save_map(request):
                 m_id = m_data.get('id')
                 if m_id in ['undefined', 'null', '']:
                     m_id = None
-                nome = (m_data.get('nome') or '').strip()
+                if isinstance(m_id, bool):
+                    transaction.set_rollback(True)
+                    return JsonResponse({'ok': False, 'error': 'ID de marcador invalido.'}, status=400)
+                if m_id is not None:
+                    try:
+                        m_id = int(m_id)
+                    except (TypeError, ValueError):
+                        transaction.set_rollback(True)
+                        return JsonResponse({'ok': False, 'error': 'ID de marcador invalido.'}, status=400)
+                    if m_id <= 0:
+                        transaction.set_rollback(True)
+                        return JsonResponse({'ok': False, 'error': 'ID de marcador invalido.'}, status=400)
+                raw_name = m_data.get('nome')
+                nome = raw_name.strip() if isinstance(raw_name, str) else ''
                 if not nome:
-                    continue
+                    transaction.set_rollback(True)
+                    return JsonResponse({'ok': False, 'error': 'Nome de marcador obrigatorio.'}, status=400)
 
-                lat = float(m_data.get('lat', 0))
-                lng = float(m_data.get('lng', 0))
+                try:
+                    lat = float(m_data.get('lat', 0))
+                    lng = float(m_data.get('lng', 0))
+                except (TypeError, ValueError):
+                    transaction.set_rollback(True)
+                    return JsonResponse({'ok': False, 'error': 'Coordenadas de marcador invalidas.'}, status=400)
+                if not math.isfinite(lat) or not math.isfinite(lng):
+                    transaction.set_rollback(True)
+                    return JsonResponse({'ok': False, 'error': 'Coordenadas de marcador invalidas.'}, status=400)
                 categoria = m_data.get('categoria') if m_data.get('categoria') in valid_categorias else 'cidade'
-                territorio = (m_data.get('territorio') or '').strip() or None
+                raw_territorio = m_data.get('territorio')
+                if raw_territorio is not None and not isinstance(raw_territorio, str):
+                    transaction.set_rollback(True)
+                    return JsonResponse({'ok': False, 'error': 'Territorio de marcador invalido.'}, status=400)
+                territorio = (raw_territorio or '').strip() or None
                 camada = _parse_map_layer(m_data.get('camada'), 0)
 
                 if territorio and not TbTerritorio.objects.filter(nome__iexact=territorio).exists():
@@ -12556,26 +12586,39 @@ def wiki_batch_save_map(request):
                         _log_wiki_creation(request, region, f"Regiao de mapa criada via lote: {region.nome}")
             for t_data in data.get('territories', []):
                 t_id = t_data.get('id')
-                if not t_id or t_id in ['undefined', 'null', '']: continue
-                territory = get_object_or_404(TbTerritorio, pk=t_id)
+                if isinstance(t_id, bool):
+                    transaction.set_rollback(True)
+                    return JsonResponse({'ok': False, 'error': 'ID de territorio invalido.'}, status=400)
+                try:
+                    t_id = int(t_id)
+                except (TypeError, ValueError):
+                    transaction.set_rollback(True)
+                    return JsonResponse({'ok': False, 'error': 'ID de territorio invalido.'}, status=400)
+                if t_id <= 0:
+                    transaction.set_rollback(True)
+                    return JsonResponse({'ok': False, 'error': 'ID de territorio invalido.'}, status=400)
+                territory = TbTerritorio.objects.select_for_update().filter(pk=t_id).first()
+                if territory is None:
+                    transaction.set_rollback(True)
+                    return JsonResponse({'ok': False, 'error': 'Territorio nao encontrado.'}, status=404)
                 modified = False
                 if 'coordenadas_poligono' in t_data:
                     territory.coordenadas_poligono = t_data.get('coordenadas_poligono')
                     modified = True
                 if 'camada' in t_data:
-                    territory.camada = int(t_data.get('camada', 0))
+                    try:
+                        territory.camada = int(t_data.get('camada', 0))
+                    except (TypeError, ValueError):
+                        transaction.set_rollback(True)
+                        return JsonResponse({'ok': False, 'error': 'Camada de territorio invalida.'}, status=400)
                     modified = True
                 if modified:
                     territory.save()
                     _log_wiki_edit(request, territory, f"Território de mapa salvo via lote: {territory.nome}")
         return JsonResponse({'ok': True})
-    except Exception as e:
-        import traceback
-        error_msg = traceback.format_exc()
-        with open('batch_save_error.log', 'w') as f:
-            f.write(error_msg)
-        print("ERROR IN BATCH SAVE:", error_msg)
-        return JsonResponse({'ok': False, 'error': str(e)}, status=500)
+    except Exception:
+        logger.exception('Falha ao salvar lote editorial do mapa')
+        return JsonResponse({'ok': False, 'error': 'Falha ao salvar lote do mapa.'}, status=500)
 
 
 
