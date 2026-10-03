@@ -516,6 +516,8 @@
     const raceForm = container.querySelector('[data-race-form]');
     const raceCancelBtn = container.querySelector('[data-race-cancel]');
     if (raceEditBtn && raceForm) {
+      const raceSaveBtn = raceForm.querySelector('.wiki-inline-save');
+      const raceSaveError = raceForm.querySelector('[data-race-save-error]');
       const cropPreviews = raceForm.querySelectorAll('[data-race-crop-preview]');
       const refreshCropPreviews = () => {
         const url = raceForm.elements.imagem_url.value.trim();
@@ -533,30 +535,59 @@
       raceEditBtn.addEventListener('click', (event) => {
         event.stopPropagation();
         raceForm.classList.add('is-open');
+        raceEditBtn.setAttribute('aria-expanded', 'true');
+        raceForm.elements.nome.focus();
       });
-      raceCancelBtn?.addEventListener('click', () => {
+      const closeRaceEditor = () => {
+        if (raceForm.getAttribute('aria-busy') === 'true') return;
         raceForm.reset();
         refreshCropPreviews();
         raceForm.classList.remove('is-open');
+        raceSaveError.hidden = true;
+        raceEditBtn.setAttribute('aria-expanded', 'false');
+        raceEditBtn.focus();
+      };
+      raceCancelBtn?.addEventListener('click', closeRaceEditor);
+      raceForm.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && raceForm.getAttribute('aria-busy') !== 'true') {
+          event.preventDefault();
+          closeRaceEditor();
+        }
       });
       raceForm.addEventListener('submit', async event => {
         event.preventDefault();
+        if (raceForm.getAttribute('aria-busy') === 'true') return;
         const data = Object.fromEntries(new FormData(raceForm).entries());
         const raceId = raceForm.dataset.raceId;
-        const response = await fetch(`/wiki/racas/${raceId}/editar/`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': decodeURIComponent(wikiCookie('csrftoken'))
-          },
-          body: JSON.stringify(data)
-        });
-        if (!response.ok) {
-          alert('Não foi possível salvar a raça.');
-          return;
+        raceSaveError.hidden = true;
+        raceForm.setAttribute('aria-busy', 'true');
+        raceSaveBtn.disabled = true;
+        raceCancelBtn.disabled = true;
+        try {
+          const response = await fetch(`/wiki/racas/${raceId}/editar/`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': decodeURIComponent(wikiCookie('csrftoken'))
+            },
+            body: JSON.stringify(data)
+          });
+          const result = await response.json().catch(() => ({}));
+          if (!response.ok || !result.ok) {
+            throw new Error(result.error || 'Não foi possível salvar a raça.');
+          }
+          raceForm.classList.remove('is-open');
+          await loadContent(window.location.pathname, false);
+          document.querySelector('[data-race-edit]')?.focus();
+        } catch (failure) {
+          raceSaveError.textContent = failure.message || 'Não foi possível salvar a raça.';
+          raceSaveError.hidden = false;
+          raceSaveError.focus();
+        } finally {
+          raceForm.removeAttribute('aria-busy');
+          raceSaveBtn.disabled = false;
+          raceCancelBtn.disabled = false;
         }
-        raceForm.classList.remove('is-open');
-        loadContent(window.location.pathname, false);
       });
     }
     updateSelection();

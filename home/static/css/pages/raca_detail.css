@@ -28,6 +28,7 @@
     border-top: 1px solid var(--stroke);
     display: none;
     gap: .5rem;
+    min-width: 0;
     padding: .7rem;
   }
   .wiki-inline-editor.is-open { display: grid; }
@@ -44,6 +45,7 @@
     gap: .35rem;
     letter-spacing: .1em;
     text-transform: uppercase;
+    min-width: 0;
   }
   .wiki-inline-editor input,
   .wiki-inline-editor textarea {
@@ -57,6 +59,14 @@
     min-height: 160px;
     resize: vertical;
   }
+  .wiki-inline-editor input,
+  .wiki-inline-editor textarea { min-width: 0; width: 100%; }
+  .wiki-inline-error { color: #ffb4a6; }
+  .wiki-inline-error[hidden] { display: none; }
+  .wiki-inline-error:focus,
+  .wiki-edit-button:focus-visible,
+  .wiki-inline-actions button:focus-visible { outline: 2px solid var(--ember); outline-offset: 2px; }
+  .wiki-inline-actions button:disabled { opacity: .55; cursor: wait; }
   .race-crop-fields, .race-crop-previews { display: flex; flex-wrap: wrap; gap: .75rem; }
   .race-crop-fields label { flex: 1 1 120px; }
   .race-crop-previews figure { margin: 0; color: var(--muted); font-size: .7rem; }

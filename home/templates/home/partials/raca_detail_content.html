@@ -39,9 +39,9 @@
 
       {% if can_edit_wiki %}
       <div class="flex justify-end mb-2.5">
-        <button type="button" class="wiki-edit-button" data-race-edit>Editar raça</button>
+        <button type="button" class="wiki-edit-button" data-race-edit aria-controls="raceInlineEditor" aria-expanded="false">Editar raça</button>
       </div>
-      <form class="wiki-inline-editor" data-race-form data-race-id="{{ raca.id_raca }}">
+      <form id="raceInlineEditor" class="wiki-inline-editor" data-race-form data-race-id="{{ raca.id_raca }}">
         <label>Nome <input name="nome" value="{{ raca.nome }}"></label>
         <label>Tagline <input name="tagline" value="{{ raca.tagline|default:'' }}"></label>
         <label>Imagem <input name="imagem_url" type="text" inputmode="url" value="{{ raca.imagem_url|default:'' }}"></label>
@@ -56,6 +56,7 @@
         <label>Visão Geral <textarea name="lore_presentation">{{ raca.lore_presentation|default:'' }}</textarea></label>
         <label>Roleplay <textarea name="lore_roleplay">{{ raca.lore_roleplay|default:'' }}</textarea></label>
         <label>Sociedade <textarea name="lore_society">{{ raca.lore_society|default:'' }}</textarea></label>
+        <p class="wiki-inline-error" data-race-save-error role="alert" tabindex="-1" hidden></p>
         <div class="wiki-inline-actions">
           <button type="button" class="wiki-inline-cancel" data-race-cancel>Cancelar</button>
           <button type="submit" class="wiki-inline-save">Salvar</button>
