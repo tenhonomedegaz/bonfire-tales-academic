@@ -11,6 +11,7 @@ from urllib.request import urlopen
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Permission
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.db import connection
 from django.test import TestCase
@@ -192,6 +193,7 @@ class RacialTraitBooleanContractTests(TestCase):
         race = TbRaca.objects.create(nome='Povo', slug='povo')
         trait = TbTracoracial.objects.create(id_raca=race, nome='Traço', descricao='Texto')
         staff = get_user_model().objects.create_user('trait-staff', password='pass', is_staff=True)
+        staff.user_permissions.add(Permission.objects.get(content_type__app_label='home', codename='change_tbtracoracial'))
         self.client.force_login(staff)
         url = reverse('wiki_update_racial_trait', args=[trait.pk])
         for raw, expected in (('false', False), ('true', True), (0, False), (1, True), (False, False), (True, True)):

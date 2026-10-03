@@ -2,6 +2,7 @@ import json
 
 from django.forms import modelform_factory
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Permission
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 from django.urls import reverse
@@ -35,6 +36,7 @@ class RaceImageFocusTests(TestCase):
 
     def test_staff_can_edit_focus_but_invalid_focus_is_atomic(self):
         user = get_user_model().objects.create_user(username='race-editor', password='test-password', is_staff=True)
+        user.user_permissions.add(Permission.objects.get(content_type__app_label='home', codename='change_tbraca'))
         self.client.force_login(user)
         url = reverse('wiki_update_race', args=[self.race.pk])
         original = self.race.nome
@@ -72,6 +74,7 @@ class RaceImageFocusTests(TestCase):
     def test_inline_rejects_invalid_image_without_changing_race(self):
         user = get_user_model().objects.create_user(
             username='race-image-editor', password='test-password', is_staff=True)
+        user.user_permissions.add(Permission.objects.get(content_type__app_label='home', codename='change_tbraca'))
         self.client.force_login(user)
         url = reverse('wiki_update_race', args=[self.race.pk])
         rejected = self.client.post(url, data=json.dumps({

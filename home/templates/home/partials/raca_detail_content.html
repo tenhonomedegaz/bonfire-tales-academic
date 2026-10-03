@@ -37,7 +37,7 @@
         <img id="raceArtFullImage" alt="" loading="lazy">
       </dialog>
 
-      {% if can_edit_wiki %}
+      {% if can_edit_race %}
       <div class="flex justify-end mb-2.5">
         <button type="button" class="wiki-edit-button" data-race-edit aria-controls="raceInlineEditor" aria-expanded="false">Editar raça</button>
       </div>
@@ -215,12 +215,12 @@
                   <article class="race-trait-card" data-race-trait-card data-trait-id="{{ traco.id_traco }}">
                     <header class="race-trait-card-head race-trait-card-head--base">
                       <h5 data-trait-title>{{ traco.nome }}</h5>
-                      {% if can_edit_wiki %}<button type="button" class="wiki-edit-button race-trait-edit" data-trait-edit>Editar</button>{% endif %}
+                      {% if can_edit_racial_trait %}<button type="button" class="wiki-edit-button race-trait-edit" data-trait-edit>Editar</button>{% endif %}
                     </header>
                     <div data-trait-preview class="race-trait-card-body">
                       <div class="bonfire-markdown" data-markdown-source>{{ traco.descricao|default:''|escape }}</div>
                     </div>
-                    {% if can_edit_wiki %}
+                    {% if can_edit_racial_trait %}
                     <form class="wiki-inline-editor" data-trait-form>
                       <div class="wiki-inline-row">
                         <label>Nome <input name="nome" value="{{ traco.nome }}"></label>
@@ -257,12 +257,12 @@
                   <article class="race-trait-card" data-race-trait-card data-trait-id="{{ traco.id_traco }}">
                     <header class="race-trait-card-head race-trait-card-head--lineage">
                       <h5 data-trait-title>{{ traco.nome }}</h5>
-                      {% if can_edit_wiki %}<button type="button" class="wiki-edit-button race-trait-edit" data-trait-edit>Editar</button>{% endif %}
+                      {% if can_edit_racial_trait %}<button type="button" class="wiki-edit-button race-trait-edit" data-trait-edit>Editar</button>{% endif %}
                     </header>
                     <div data-trait-preview class="race-trait-card-body">
                       <div class="bonfire-markdown" data-markdown-source>{{ traco.descricao|default:''|escape }}</div>
                     </div>
-                    {% if can_edit_wiki %}
+                    {% if can_edit_racial_trait %}
                     <form class="wiki-inline-editor" data-trait-form>
                       <div class="wiki-inline-row">
                         <label>Nome <input name="nome" value="{{ traco.nome }}"></label>
@@ -302,12 +302,12 @@
                   <article class="race-trait-card" data-race-trait-card data-trait-id="{{ traco.id_traco }}">
                     <header class="race-trait-card-head race-trait-card-head--essence">
                       <h5 data-trait-title>{{ traco.nome }}</h5>
-                      {% if can_edit_wiki %}<button type="button" class="wiki-edit-button race-trait-edit" data-trait-edit>Editar</button>{% endif %}
+                      {% if can_edit_racial_trait %}<button type="button" class="wiki-edit-button race-trait-edit" data-trait-edit>Editar</button>{% endif %}
                     </header>
                     <div data-trait-preview class="race-trait-card-body">
                       <div class="bonfire-markdown" data-markdown-source>{{ traco.descricao|default:''|escape }}</div>
                     </div>
-                    {% if can_edit_wiki %}
+                    {% if can_edit_racial_trait %}
                     <form class="wiki-inline-editor" data-trait-form>
                       <div class="wiki-inline-row">
                         <label>Nome <input name="nome" value="{{ traco.nome }}"></label>
@@ -379,7 +379,7 @@
 
                       <header class="talent-card-head">
                         <h5 data-trait-title>{{ talent.nome }}</h5>
-                        {% if can_edit_wiki %}<button type="button" class="wiki-edit-button race-trait-edit talent-card-edit" data-trait-edit>Editar</button>{% endif %}
+                        {% if can_edit_racial_trait %}<button type="button" class="wiki-edit-button race-trait-edit talent-card-edit" data-trait-edit>Editar</button>{% endif %}
                       </header>
 
                       <div data-trait-preview class="talent-card-body">
@@ -390,7 +390,7 @@
                         <div class="talent-card-desc bonfire-markdown" data-markdown-source>{{ talent.descricao|default:''|escape }}</div>
                       </div>
 
-                      {% if can_edit_wiki %}
+                      {% if can_edit_racial_trait %}
                       <form class="wiki-inline-editor" data-trait-form>
                         <div class="wiki-inline-row">
                           <label>Nome <input name="nome" value="{{ talent.nome }}"></label>

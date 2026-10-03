@@ -1893,7 +1893,7 @@ def _postgres_classes_view(request):
         'spell_slots_count': 0,
         'total_habilidades': total_habilidades,
         'total_subclasses': total_subclasses,
-        'can_edit_wiki': request.user.is_staff,
+        'can_edit_wiki': request.user.is_staff and request.user.has_perm('home.change_tbclassehabilidade'),
     }
     if is_ajax(request):
         return render(request, 'home/partials/classe_detail_content.html', context)
@@ -1914,7 +1914,7 @@ def _site_classes_view(request):
         'spell_slots_count': 0,
         'total_habilidades': _site_count('class_features'),
         'total_subclasses': _site_count('subclasses'),
-        'can_edit_wiki': request.user.is_staff,
+        'can_edit_wiki': request.user.is_staff and request.user.has_perm('home.change_tbclassehabilidade'),
     }
     if is_ajax(request):
         return render(request, 'home/partials/classe_detail_content.html', context)
@@ -2306,7 +2306,7 @@ def _postgres_classe_detail_view(request, slug):
         'spell_slots_count': len(spell_columns),
         'base_spell_slots_count': base_spell_slots_count,
         'progression_table': progression_table,
-        'can_edit_wiki': request.user.is_staff and published_class is None and not legacy_hunter_publication,
+        'can_edit_wiki': request.user.is_staff and request.user.has_perm('home.change_tbclassehabilidade') and published_class is None and not legacy_hunter_publication,
     }
     if is_ajax(request):
         return render(request, 'home/partials/classe_detail_content.html', context)
@@ -2523,7 +2523,7 @@ def _site_classe_detail_view(request, slug):
         'spell_slots_count': len(spell_columns),
         'base_spell_slots_count': base_spell_slots_count,
         'progression_table': progression_table,
-        'can_edit_wiki': request.user.is_staff,
+        'can_edit_wiki': request.user.is_staff and request.user.has_perm('home.change_tbclassehabilidade'),
     }
     if is_ajax(request):
         return render(request, 'home/partials/classe_detail_content.html', context)
@@ -2551,7 +2551,8 @@ def _postgres_racas_view(request):
         'linhagens': [],
         'total_linhagens': TbLinhagem.objects.count(),
         'total_tracos': TbTracoracial.objects.count(),
-        'can_edit_wiki': request.user.is_staff,
+        'can_edit_race': request.user.is_staff and request.user.has_perm('home.change_tbraca'),
+        'can_edit_racial_trait': request.user.is_staff and request.user.has_perm('home.change_tbtracoracial'),
     }
     if is_ajax(request):
         return render(request, 'home/partials/raca_detail_content.html', context)
@@ -2685,7 +2686,8 @@ def _postgres_raca_detail_view(request, slug):
         'levels': [1, 5, 9, 13, 17],
         'total_linhagens': TbLinhagem.objects.count(),
         'total_tracos': TbTracoracial.objects.count(),
-        'can_edit_wiki': request.user.is_staff,
+        'can_edit_race': request.user.is_staff and request.user.has_perm('home.change_tbraca'),
+        'can_edit_racial_trait': request.user.is_staff and request.user.has_perm('home.change_tbtracoracial'),
     }
     if is_ajax(request):
         return render(request, 'home/partials/raca_detail_content.html', context)
@@ -2702,7 +2704,8 @@ def _site_racas_view(request):
         'linhagens': [],
         'total_linhagens': _site_count('lineages'),
         'total_tracos': _site_count('racial_traits'),
-        'can_edit_wiki': request.user.is_staff,
+        'can_edit_race': request.user.is_staff and request.user.has_perm('home.change_tbraca'),
+        'can_edit_racial_trait': request.user.is_staff and request.user.has_perm('home.change_tbtracoracial'),
     }
     if is_ajax(request):
         return render(request, 'home/partials/raca_detail_content.html', context)
@@ -2735,7 +2738,8 @@ def _site_raca_detail_view(request, slug):
         'linhagens': linhagens,
         'total_linhagens': _site_count('lineages'),
         'total_tracos': _site_count('racial_traits'),
-        'can_edit_wiki': request.user.is_staff,
+        'can_edit_race': request.user.is_staff and request.user.has_perm('home.change_tbraca'),
+        'can_edit_racial_trait': request.user.is_staff and request.user.has_perm('home.change_tbtracoracial'),
     }
     if is_ajax(request):
         return render(request, 'home/partials/raca_detail_content.html', context)
@@ -11203,6 +11207,7 @@ def _option_payload(o):
 
 
 @staff_member_required
+@permission_required('home.change_tbclassehabilidade', raise_exception=True)
 @require_POST
 def wiki_update_class_feature(request, feature_id):
     data = _json_body(request)
@@ -11231,6 +11236,7 @@ def wiki_update_class_feature(request, feature_id):
 
 
 @staff_member_required
+@permission_required('home.change_tbtracoracial', raise_exception=True)
 @require_POST
 def wiki_update_racial_trait(request, trait_id):
     data = _json_body(request)
@@ -11273,6 +11279,7 @@ def wiki_update_racial_trait(request, trait_id):
 
 
 @staff_member_required
+@permission_required('home.change_tbraca', raise_exception=True)
 @require_POST
 def wiki_update_race(request, race_id):
     from .editorial_links import safe_editorial_image
