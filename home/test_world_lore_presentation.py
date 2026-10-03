@@ -21,6 +21,32 @@ from .views import _parse_lore_topics
 
 
 class WorldLorePresentationTests(TestCase):
+    def test_explicit_world_covers_are_safe_and_fall_back_when_invalid(self):
+        from .views import _world_cover_url
+
+        cover = '/static/assets/world/reino-auraliano.png'
+        self.assertEqual(_world_cover_url('assets/world/reino-auraliano.png', ''), cover)
+        self.assertEqual(_world_cover_url('javascript:alert(1)', cover), cover)
+        self.assertEqual(_world_cover_url('//example.org/cover.png', cover), cover)
+        self.assertEqual(
+            _world_cover_url("https://example.org/cover.png');--evil:1", cover),
+            'https://example.org/cover.png%27%29;--evil:1',
+        )
+        TbMapLayer.objects.update_or_create(
+            id_layer=0, defaults={'nome': 'Superfície', 'ordem': 0, 'publica': True},
+        )
+        TbTerritorio.objects.create(
+            nome='Território inseguro', slug='territorio-inseguro', camada=0,
+            imagem_url='javascript:alert(1)',
+        )
+        TbConteudoEstatico.objects.update_or_create(
+            chave='mundo-capa-padrao',
+            defaults={'pagina': 'mundo', 'imagem_url': cover, 'ativo': True},
+        )
+        listing = self.client.get(reverse('mundo_regioes'))
+        self.assertContains(listing, "--territory-image: url('%s')" % cover)
+        self.assertNotContains(listing, 'javascript:alert(1)')
+
     def test_world_editorial_default_cover_cannot_break_css_url(self):
         from .admin import _ConteudoEstaticoForm
         from .views import _world_cover_fallback, _world_cover_url
@@ -380,11 +406,13 @@ class WorldLoreBrowserSafetyTests(StaticLiveServerTestCase):
         TbTerritorio.objects.create(
             nome=territory_name, slug='vale-literal', camada=0,
             lore_markdown=territory_lore, descricao_breve=f'Descrição </textarea>{injected}',
+            imagem_url="https://example.org/cover.png');--evil:1",
         )
         TbRegiao.objects.create(
             nome=region_name, slug='cidade-literal', territorio=territory_name,
             camada=0, lore_markdown=region_lore,
             brasao_url=f'/static/missing.png" onerror="window.__worldInjected=1',
+            mapa_url="https://example.org/map.png');--evil:1",
             etiquetas_adicionais=f'Magia, {injected}',
         )
         TbRegiao.objects.create(
@@ -446,8 +474,15 @@ class WorldLoreBrowserSafetyTests(StaticLiveServerTestCase):
                     'name': 'sessionid', 'value': session_key, 'url': self.live_server_url,
                 })
 
+                call('Page.navigate', {'url': self.live_server_url + reverse('mundo_regioes')})
+                wait_for('document.querySelector(".territory-card") !== null')
+                self.assertIn('%27', js('document.querySelector(".territory-card").style.getPropertyValue("--territory-image")'))
+                self.assertEqual(js('document.querySelector(".territory-card").style.getPropertyValue("--evil")'), '')
+
                 call('Page.navigate', {'url': self.live_server_url + reverse('regiao_detail', args=['cidade-literal'])})
                 wait_for('document.querySelector("#regionForm input[name=nome]")?.value.includes("Cidade")')
+                self.assertIn('%27', js('document.querySelector(".side-map-card").style.getPropertyValue("--map-image")'))
+                self.assertEqual(js('document.querySelector(".side-map-card").style.getPropertyValue("--evil")'), '')
                 self.assertEqual(js('document.querySelector("#regionForm input[name=nome]").value'), region_name)
                 self.assertEqual(js('document.querySelector("#regionForm textarea[name=lore_markdown]").value'), region_lore)
                 self.assertIn(injected, js('document.querySelector("#regionForm input[name=etiquetas_adicionais]").value'))

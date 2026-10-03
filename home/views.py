@@ -319,7 +319,22 @@ def _world_cover_fallback():
 
 
 def _world_cover_url(explicit_image, editorial_fallback):
-    return _asset_url(explicit_image or editorial_fallback)
+    from .editorial_links import safe_editorial_image
+
+    value = (explicit_image or '').strip()
+    if value:
+        if value.startswith(('http://', 'https://', '/')):
+            candidate = value
+        elif value.lower().startswith(('i.imgur.com/', 'imgur.com/')):
+            candidate = f'https://{value}'
+        elif ':' in value or value.startswith('\\'):
+            candidate = ''
+        else:
+            candidate = _asset_url(value)
+        safe_image = safe_editorial_image(candidate)
+        if safe_image:
+            return safe_image
+    return safe_editorial_image(_asset_url(editorial_fallback)) or static('assets/fire_background.png')
 
 
 def _normalize_text(value):
