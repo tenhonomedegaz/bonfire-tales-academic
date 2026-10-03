@@ -5,7 +5,7 @@
 {% block title %}{{ title }} - Bonfire Tales RPG{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/pages/catalogo.css' %}?v=5">
+<link rel="stylesheet" href="{% static 'css/pages/catalogo.css' %}?v=6">
 {% endblock %}
 
 {% block content %}
@@ -215,6 +215,13 @@
       if (Array.isArray(value)) return value.length;
       return value !== undefined && value !== null && String(value).trim();
     });
+    const metaValue = (label, value) => {
+      const refs = item.references?.[label];
+      if (!Array.isArray(refs)) return esc(Array.isArray(value) ? value.join(', ') : value);
+      return refs.map(ref => ref.url
+        ? `<a href="${esc(ref.url)}">${esc(ref.label)}</a>`
+        : esc(ref.label)).join(', ');
+    };
     detail.innerHTML = `
       <div class="catalog-card-meta">${esc(item.tipo || '')}</div>
       <h2 class="detail-title" id="${esc(item.slug)}" tabindex="-1">${esc(item.nome || 'Sem nome')}</h2>
@@ -223,7 +230,7 @@
       ${metaEntries.length ? `<div class="detail-meta-grid">${metaEntries.map(([label, value]) => `
         <div class="detail-meta-item">
           <span class="detail-meta-label">${esc(label)}</span>
-          <span class="detail-meta-value">${esc(Array.isArray(value) ? value.join(', ') : value)}</span>
+          <span class="detail-meta-value">${metaValue(label, value)}</span>
         </div>
       `).join('')}</div>` : ''}
       <div class="bonfire-markdown prose prose-invert max-w-none" style="margin-top:0.75rem;">${markdown(item.descricao || '') || '<p class="catalog-empty">Sem descricao cadastrada.</p>'}</div>

@@ -12768,8 +12768,50 @@ def _organization_catalog_payload(document):
     }
 
 
+def _organization_catalog_references(items, user):
+    def index(rows):
+        result = {}
+        for name, slug in rows:
+            for key in {slugify(name), slugify(slug)}:
+                if key in result and result[key] != slug:
+                    result[key] = None
+                elif key not in result:
+                    result[key] = slug
+        return result
+
+    if user.is_staff:
+        regions = TbRegiao.objects.all()
+        territories = TbTerritorio.objects.all()
+    else:
+        public_layers = list(TbMapLayer.objects.filter(publica=True).values_list('id_layer', flat=True)) or [0]
+        regions = TbRegiao.objects.filter(camada__in=public_layers)
+        territories = TbTerritorio.objects.filter(camada__in=public_layers)
+    indexes = {
+        'Regiões': (index(regions.values_list('nome', 'slug')), 'regiao_detail'),
+        'Territórios': (index(territories.values_list('nome', 'slug')), 'territorio_detail'),
+        'Aliados': (index((item['nome'], item['slug']) for item in items), None),
+        'Inimigos': (index((item['nome'], item['slug']) for item in items), None),
+    }
+    for item in items:
+        item['references'] = {}
+        for label, (lookup, route) in indexes.items():
+            values = item['meta'].get(label) or []
+            if not isinstance(values, list):
+                continue
+            item['references'][label] = [
+                {
+                    'label': value,
+                    'url': (reverse(route, args=[slug]) if route else '#' + slug) if slug else '',
+                }
+                for value in values
+                for slug in [lookup.get(slugify(value))]
+            ]
+
+
 def _render_catalog(request, title, subtitle, kind, key, mapper):
     items, db_error = _catalog_list(key, mapper)
+    if kind == 'organizacoes' and items:
+        _organization_catalog_references(items, request.user)
     return render(request, 'home/pages/catalogo.html', {
         'title': title,
         'subtitle': subtitle,

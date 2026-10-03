@@ -147,6 +147,15 @@
     margin-top: .25rem;
     white-space: pre-wrap;
   }
+  .detail-meta-value a {
+    color: var(--ember);
+    text-decoration: underline;
+    text-underline-offset: .15em;
+  }
+  .detail-meta-value a:focus-visible {
+    outline: 2px solid var(--ember);
+    outline-offset: 2px;
+  }
   .catalog-empty {
     border: 1px dashed var(--stroke);
     border-radius: 8px;

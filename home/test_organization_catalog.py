@@ -3,9 +3,10 @@ import json
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
+from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 
 from .admin import OrganizacaoAdminForm
-from .models import TbOrganizacao
+from .models import TbMapLayer, TbOrganizacao, TbRegiao, TbTerritorio
 
 
 class OrganizationCatalogTests(TestCase):
@@ -100,3 +101,134 @@ class OrganizationCatalogTests(TestCase):
         )
         self.assertEqual(response.status_code, 400)
         self.assertFalse(TbOrganizacao.objects.exists())
+
+    def test_public_references_link_only_to_visible_unique_locations(self):
+        TbMapLayer.objects.create(id_layer=0, nome='Superfície', publica=True)
+        TbMapLayer.objects.create(id_layer=1, nome='Oculta', publica=False)
+        TbRegiao.objects.create(nome='Auralon', slug='auralon', camada=0)
+        TbRegiao.objects.create(nome='Segredo', slug='segredo', camada=1)
+        TbTerritorio.objects.create(nome='Reino Auraliano', slug='reino-auraliano', camada=0)
+        TbOrganizacao.objects.create(
+            nome='Liga do Norte', slug='liga-do-norte', regioes=['Auralon', 'Segredo', 'Desconhecida'],
+            territorios=['Reino Auraliano'], aliados=['Casa da Luz'],
+        )
+        TbOrganizacao.objects.create(nome='Casa da Luz', slug='casa-da-luz')
+
+        response = self.client.get(reverse('mundo_organizacoes'))
+        self.assertEqual(response.status_code, 200)
+        league = next(item for item in response.context['items'] if item['slug'] == 'liga-do-norte')
+        self.assertEqual(league['references']['Regiões'], [
+            {'label': 'Auralon', 'url': reverse('regiao_detail', args=['auralon'])},
+            {'label': 'Segredo', 'url': ''},
+            {'label': 'Desconhecida', 'url': ''},
+        ])
+        self.assertEqual(league['references']['Territórios'], [
+            {'label': 'Reino Auraliano', 'url': reverse('territorio_detail', args=['reino-auraliano'])},
+        ])
+        self.assertEqual(league['references']['Aliados'], [{'label': 'Casa da Luz', 'url': '#casa-da-luz'}])
+
+        self.client.force_login(self.editor)
+        staff_response = self.client.get(reverse('mundo_organizacoes'))
+        league = next(item for item in staff_response.context['items'] if item['slug'] == 'liga-do-norte')
+        self.assertEqual(league['references']['Regiões'][1]['url'], reverse('regiao_detail', args=['segredo']))
+
+
+class OrganizationReferencesBrowserTests(StaticLiveServerTestCase):
+    def test_visible_references_navigate_from_catalog_on_mobile(self):
+        import shutil
+        import subprocess
+        import tempfile
+        import time
+        from pathlib import Path
+        from urllib.request import urlopen
+        from django.db import connection
+
+        if connection.vendor != 'postgresql' or not connection.settings_dict['NAME'].startswith('test_'):
+            self.skipTest('Requer PostgreSQL de teste isolado.')
+        try:
+            import websocket
+        except ImportError:
+            self.skipTest('websocket-client indisponível.')
+        chrome = shutil.which('chrome') or next((str(path) for path in (
+            Path(r'C:\Program Files\Google\Chrome\Application\chrome.exe'),
+            Path(r'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe'),
+        ) if path.exists()), None)
+        if not chrome:
+            self.skipTest('Chrome ou Edge indisponível.')
+
+        TbMapLayer.objects.create(id_layer=0, nome='Superfície', publica=True)
+        TbRegiao.objects.create(nome='Auralon', slug='auralon', camada=0)
+        TbTerritorio.objects.create(nome='Reino Auraliano', slug='reino-auraliano', camada=0)
+        TbOrganizacao.objects.create(
+            nome='Liga do Norte', slug='liga-do-norte', regioes=['Auralon', 'Desconhecida'],
+            territorios=['Reino Auraliano'], aliados=['Casa da Luz'],
+        )
+        TbOrganizacao.objects.create(nome='Casa da Luz', slug='casa-da-luz')
+
+        with tempfile.TemporaryDirectory(prefix='bonfire-org-', ignore_cleanup_errors=True) as profile:
+            process = subprocess.Popen([
+                chrome, '--headless=new', '--no-sandbox', '--disable-gpu',
+                '--remote-debugging-port=0', '--remote-allow-origins=*',
+                f'--user-data-dir={profile}', 'about:blank',
+            ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            ws = None
+            try:
+                port_file = Path(profile) / 'DevToolsActivePort'
+                for _ in range(80):
+                    if port_file.exists():
+                        break
+                    time.sleep(.1)
+                self.assertTrue(port_file.exists())
+                port = port_file.read_text(encoding='utf-8').splitlines()[0]
+                with urlopen(f'http://127.0.0.1:{port}/json', timeout=5) as response:
+                    target = next(item for item in json.load(response) if item['type'] == 'page')
+                ws = websocket.create_connection(target['webSocketDebuggerUrl'], timeout=10)
+                sequence = 0
+
+                def call(method, params=None):
+                    nonlocal sequence
+                    sequence += 1
+                    ws.send(json.dumps({'id': sequence, 'method': method, 'params': params or {}}))
+                    while True:
+                        result = json.loads(ws.recv())
+                        if result.get('id') == sequence:
+                            return result
+
+                def js(expression):
+                    result = call('Runtime.evaluate', {'expression': expression, 'returnByValue': True})['result']
+                    self.assertNotIn('exceptionDetails', result, expression)
+                    return result['result'].get('value')
+
+                def wait_for(expression):
+                    for _ in range(80):
+                        if js(expression):
+                            return
+                        time.sleep(.2)
+                    self.fail(f'Tempo esgotado: {expression}')
+
+                call('Emulation.setDeviceMetricsOverride', {
+                    'width': 360, 'height': 800, 'deviceScaleFactor': 1, 'mobile': True,
+                })
+                call('Page.navigate', {'url': self.live_server_url + reverse('mundo_organizacoes') + '#liga-do-norte'})
+                wait_for('document.querySelector(".catalog-detail .detail-title")?.textContent === "Liga do Norte"')
+                self.assertEqual(js('document.querySelectorAll(".detail-meta-value a[href=\\"/mundo/regioes/auralon/\\"]").length'), 1)
+                self.assertEqual(js('document.querySelectorAll(".detail-meta-value a[href=\\"/mundo/territorios/reino-auraliano/\\"]").length'), 1)
+                self.assertEqual(js('document.querySelectorAll(".detail-meta-value a[href=\\"#casa-da-luz\\"]").length'), 1)
+                self.assertFalse(js('Array.from(document.querySelectorAll(".detail-meta-value a")).some(a => a.textContent === "Desconhecida")'))
+                js('document.querySelector(".detail-meta-value a[href=\\"#casa-da-luz\\"]").click()')
+                wait_for('location.hash === "#casa-da-luz" && document.querySelector(".detail-title")?.textContent === "Casa da Luz"')
+                js('history.back()')
+                wait_for('location.hash === "#liga-do-norte" && document.querySelector(".detail-title")?.textContent === "Liga do Norte"')
+                self.assertLessEqual(js('document.documentElement.scrollWidth'), js('innerWidth'))
+                js('document.querySelector(".detail-meta-value a[href=\\"/mundo/regioes/auralon/\\"]").click()')
+                wait_for('location.pathname === "/mundo/regioes/auralon/" && document.readyState === "complete"')
+                self.assertTrue(js('document.body.textContent.includes("Auralon")'))
+            finally:
+                if ws:
+                    ws.close()
+                process.terminate()
+                try:
+                    process.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.wait(timeout=5)
