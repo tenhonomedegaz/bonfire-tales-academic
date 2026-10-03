@@ -10,6 +10,7 @@
     <p>Denunciado por {{ report.denunciante.username }} em {{ report.criado_em|date:'d/m/Y H:i' }}.</p>
     <p>Motivo: {{ report.motivo }}</p>
     <p>Conteúdo no momento da denúncia: {{ report.alvo_snapshot|linebreaksbr }}</p>
+    {% if report.alvo_alterado %}<p role="alert">O conteúdo mudou após a denúncia. A decisão de ocultar exige uma nova avaliação; esta denúncia ainda pode ser descartada.</p>{% endif %}
     {% if report.comentario %}
       <p>Comentário atual de {{ report.comentario.autor.username }}: {{ report.comentario.texto|linebreaksbr }}</p>
     {% else %}
@@ -20,7 +21,7 @@
       {% csrf_token %}
       {% if report.estado == 'pendente' %}
       <button name="action" value="descartar" type="submit">Descartar denúncia</button>
-      <button name="action" value="ocultar" type="submit">Ocultar conteúdo</button>
+      {% if not report.alvo_alterado %}<button name="action" value="ocultar" type="submit">Ocultar conteúdo</button>{% endif %}
       {% else %}
       <button name="action" value="restaurar" type="submit">Restaurar conteúdo</button>
       {% endif %}

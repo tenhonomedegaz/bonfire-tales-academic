@@ -136,6 +136,56 @@ class CronicaCommentTests(TestCase):
         self.assertEqual(comment.estado, 'publico')
         self.assertEqual(report.estado, 'descartada')
 
+    def test_edited_comment_cannot_be_hidden_by_old_report(self):
+        self.client.force_login(self.leitor)
+        self.comment('Texto denunciado')
+        comment = TbCronicaComentario.objects.get()
+        self.client.force_login(self.outro)
+        self.report(comentario_id=comment.pk)
+        report = TbCronicaDenuncia.objects.get()
+        self.client.force_login(self.leitor)
+        self.assertEqual(self.client.post(
+            reverse('cronica_editar_comentario', args=[comment.pk]),
+            {'texto': 'Texto corrigido', 'revisao': comment.revisao},
+        ).status_code, 302)
+        self.client.force_login(self.staff)
+        queue = self.client.get(reverse('cronica_denuncias'))
+        self.assertContains(queue, 'O conteúdo mudou após a denúncia')
+        self.assertContains(queue, 'Texto corrigido')
+        self.assertNotContains(queue, 'value="ocultar"')
+        self.assertContains(queue, 'value="descartar"')
+        url = reverse('cronica_moderar_denuncia', args=[report.pk])
+        self.assertEqual(self.client.post(url, {'action': 'ocultar'}).status_code, 409)
+        comment.refresh_from_db()
+        report.refresh_from_db()
+        self.assertEqual(comment.estado, 'publico')
+        self.assertEqual(comment.texto, 'Texto corrigido')
+        self.assertEqual(report.estado, 'pendente')
+        self.assertEqual(self.client.post(url, {'action': 'descartar'}).status_code, 302)
+        report.refresh_from_db()
+        self.assertEqual(report.estado, 'descartada')
+
+    def test_edited_story_cannot_be_hidden_by_old_report(self):
+        self.client.force_login(self.leitor)
+        self.report()
+        report = TbCronicaDenuncia.objects.get()
+        self.story.conteudo_markdown = 'Texto público corrigido'
+        self.story.save(update_fields=['conteudo_markdown'])
+        self.client.force_login(self.staff)
+        self.assertContains(self.client.get(reverse('cronica_denuncias')), 'O conteúdo mudou após a denúncia')
+        self.assertEqual(self.client.post(
+            reverse('cronica_moderar_denuncia', args=[report.pk]), {'action': 'ocultar'},
+        ).status_code, 409)
+        self.story.refresh_from_db()
+        report.refresh_from_db()
+        self.assertEqual(self.story.status, 'aprovada')
+        self.assertEqual(report.estado, 'pendente')
+        self.client.logout()
+        self.assertContains(
+            self.client.get(reverse('cronica_detail', args=[self.story.slug])),
+            'Texto público corrigido',
+        )
+
     def test_staff_without_moderation_permission_cannot_review_or_decide(self):
         self.client.force_login(self.leitor)
         self.assertEqual(self.report().status_code, 302)

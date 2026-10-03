@@ -15141,6 +15141,13 @@ def cronica_denuncias_view(request):
     reports = TbCronicaDenuncia.objects.filter(estado__in=['pendente', 'ocultada']).select_related(
         'cronica', 'comentario', 'denunciante'
     ).order_by('criado_em')
+    for report in reports:
+        report.alvo_alterado = report.estado == 'pendente' and (
+            (report.comentario_id and (
+                report.comentario.revisao != report.revisao_alvo
+                or report.comentario.texto != report.alvo_snapshot
+            )) or (not report.comentario_id and report.cronica.conteudo_markdown != report.alvo_snapshot)
+        )
     return render(request, 'home/pages/cronica_denuncias.html', {'denuncias': reports})
 
 
@@ -15164,12 +15171,18 @@ def cronica_moderar_denuncia_view(request, denuncia_id):
         if action == 'ocultar' or (action == 'restaurar' and not other_hides):
             if report.comentario_id:
                 comment = TbCronicaComentario.objects.select_for_update().get(pk=report.comentario_id)
+                if action == 'ocultar' and (
+                    comment.revisao != report.revisao_alvo or comment.texto != report.alvo_snapshot
+                ):
+                    return JsonResponse({'error': 'O comentário mudou após a denúncia. Reavalie o conteúdo atual.'}, status=409)
                 if action == 'restaurar' and comment.estado != 'oculto':
                     return JsonResponse({'error': 'Estado do comentário mudou.'}, status=409)
                 comment.estado = 'publico' if action == 'restaurar' else 'oculto'
                 comment.save(update_fields=['estado'])
             else:
                 story = TbCronica.objects.select_for_update().get(pk=report.cronica_id)
+                if action == 'ocultar' and story.conteudo_markdown != report.alvo_snapshot:
+                    return JsonResponse({'error': 'A crônica mudou após a denúncia. Reavalie o conteúdo atual.'}, status=409)
                 if action == 'restaurar' and story.status != 'oculta':
                     return JsonResponse({'error': 'Estado da crônica mudou.'}, status=409)
                 if action == 'ocultar' and story.status not in ('aprovada', 'oculta'):
