@@ -1,9 +1,12 @@
 import json
 from datetime import timedelta
 from uuid import uuid4
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
+from django.contrib.admin.models import LogEntry, CHANGE
+from django.contrib.contenttypes.models import ContentType
 from django.test import TestCase
 from django.test import TransactionTestCase
 from django.urls import reverse
@@ -70,6 +73,56 @@ class CronicaDiscoveryTests(TestCase):
         self.assertContains(self.client.get(reverse('mundo_cronicas')), 'Destaques editoriais')
         self.assertEqual(self.client.post(reverse('cronica_destaque', args=[self.pending.pk]), {'destaque': 'true'}).status_code, 404)
         self.assertEqual(self.client.post(url, {'destaque': 'false'}).status_code, 302)
+        self.older.refresh_from_db()
+        self.assertFalse(self.older.destaque_editorial)
+
+    def test_editorial_highlight_audits_only_real_public_changes(self):
+        url = reverse('cronica_destaque', args=[self.older.pk])
+        logs = LogEntry.objects.filter(
+            content_type=ContentType.objects.get_for_model(TbCronica),
+            object_id=str(self.older.pk), action_flag=CHANGE,
+        )
+        self.client.force_login(self.staff_sem_publicacao)
+        self.assertEqual(self.client.post(url, {'destaque': 'true'}).status_code, 403)
+        self.assertEqual(logs.count(), 0)
+
+        self.client.force_login(self.staff)
+        self.assertEqual(self.client.post(url, {'destaque': 'invalid'}).status_code, 400)
+        self.assertEqual(self.client.post(
+            reverse('cronica_destaque', args=[self.pending.pk]), {'destaque': 'true'},
+        ).status_code, 404)
+        self.assertEqual(logs.count(), 0)
+
+        self.assertEqual(self.client.post(url, {'destaque': 'true'}).status_code, 302)
+        self.older.refresh_from_db()
+        self.assertTrue(self.older.destaque_editorial)
+        self.assertEqual(
+            [story.pk for story in self.client.get(reverse('mundo_cronicas')).context['destaques']],
+            [self.older.pk],
+        )
+        self.assertEqual(list(logs.values_list('user_id', 'change_message')), [
+            (self.staff.pk, 'Destaque editorial ativado'),
+        ])
+        with patch.object(TbCronica, 'save', side_effect=AssertionError('repeated highlight wrote')):
+            self.assertEqual(self.client.post(url, {'destaque': 'true'}).status_code, 302)
+        self.assertEqual(logs.count(), 1)
+
+        self.assertEqual(self.client.post(url, {'destaque': 'false'}).status_code, 302)
+        self.older.refresh_from_db()
+        self.assertFalse(self.older.destaque_editorial)
+        self.assertEqual(list(self.client.get(reverse('mundo_cronicas')).context['destaques']), [])
+        self.assertEqual(list(logs.order_by('pk').values_list('change_message', flat=True)), [
+            'Destaque editorial ativado', 'Destaque editorial removido',
+        ])
+        with patch.object(TbCronica, 'save', side_effect=AssertionError('repeated unhighlight wrote')):
+            self.assertEqual(self.client.post(url, {'destaque': 'false'}).status_code, 302)
+        self.assertEqual(logs.count(), 2)
+
+    def test_editorial_highlight_rolls_back_when_audit_fails(self):
+        self.client.force_login(self.staff)
+        with patch('django.contrib.admin.models.LogEntry.objects.create', side_effect=RuntimeError('audit unavailable')):
+            with self.assertRaises(RuntimeError):
+                self.client.post(reverse('cronica_destaque', args=[self.older.pk]), {'destaque': 'true'})
         self.older.refresh_from_db()
         self.assertFalse(self.older.destaque_editorial)
 

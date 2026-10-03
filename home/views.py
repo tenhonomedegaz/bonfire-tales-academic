@@ -15251,8 +15251,25 @@ def cronica_destaque_view(request, cronica_id):
     desired = request.POST.get('destaque')
     if desired not in ('true', 'false'):
         return HttpResponseBadRequest('Informe o estado do destaque.')
-    cronica = get_object_or_404(TbCronica, pk=cronica_id, status='aprovada')
-    TbCronica.objects.filter(pk=cronica.pk).update(destaque_editorial=(desired == 'true'))
+    from django.contrib.admin.models import LogEntry, CHANGE
+    from django.contrib.contenttypes.models import ContentType
+
+    with transaction.atomic():
+        cronica = get_object_or_404(
+            TbCronica.objects.select_for_update(), pk=cronica_id, status='aprovada',
+        )
+        destacar = desired == 'true'
+        if cronica.destaque_editorial != destacar:
+            cronica.destaque_editorial = destacar
+            cronica.save(update_fields=['destaque_editorial'])
+            LogEntry.objects.create(
+                user=request.user,
+                content_type=ContentType.objects.get_for_model(TbCronica),
+                object_id=str(cronica.pk),
+                object_repr=str(cronica)[:200],
+                action_flag=CHANGE,
+                change_message='Destaque editorial ativado' if destacar else 'Destaque editorial removido',
+            )
     return redirect('cronica_detail', slug=cronica.slug)
 
 
