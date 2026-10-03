@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/pages/jornal_detail.css' %}?v=10">
+<link rel="stylesheet" href="{% static 'css/pages/jornal_detail.css' %}?v=11">
 
 {% endblock %}
 
@@ -35,9 +35,9 @@
 
   {% if can_edit_wiki %}
   <div class="artigo-edit-tools">
-    <button type="button" class="artigo-edit-btn" id="btnEditArticle">Editar Artigo</button>
+    <button type="button" class="artigo-edit-btn" id="btnEditArticle" aria-controls="articleForm" aria-expanded="false">Editar Artigo</button>
   </div>
-  <form id="articleForm" class="wiki-inline-editor">
+  <form id="articleForm" class="wiki-inline-editor" aria-label="Editar artigo">
     {% csrf_token %}
     <label>Título <input name="titulo" value="{{ artigo.titulo }}"></label>
     <label>Resumo <input name="resumo" value="{{ artigo.resumo|default:'' }}"></label>
@@ -56,10 +56,33 @@
   <script>
   (function() {
     const form = document.getElementById('articleForm');
-    document.getElementById('btnEditArticle')?.addEventListener('click', () => form.classList.add('is-open'));
-    document.getElementById('btnCancelArticle')?.addEventListener('click', () => form.classList.remove('is-open'));
+    const openButton = document.getElementById('btnEditArticle');
+    const cancelButton = document.getElementById('btnCancelArticle');
+    const saveButton = form.querySelector('.wiki-inline-save');
+    const error = document.getElementById('articleSaveError');
+    function closeEditor() {
+      if (saveButton.disabled) return;
+      form.reset();
+      error.hidden = true;
+      form.classList.remove('is-open');
+      openButton.setAttribute('aria-expanded', 'false');
+      openButton.focus();
+    }
+    openButton.addEventListener('click', () => {
+      form.classList.add('is-open');
+      openButton.setAttribute('aria-expanded', 'true');
+      form.querySelector('[name="titulo"]').focus();
+    });
+    cancelButton.addEventListener('click', closeEditor);
+    form.addEventListener('keydown', event => {
+      if (event.key !== 'Escape' || saveButton.disabled) return;
+      event.preventDefault();
+      closeEditor();
+    });
     form?.addEventListener('submit', async e => {
       e.preventDefault();
+      if (saveButton.disabled) return;
+      error.hidden = true;
       const fd = new FormData(form);
       const body = {
         titulo: fd.get('titulo'),
@@ -69,18 +92,30 @@
         destaque: !!fd.get('destaque'),
       };
       const csrf = form.querySelector('[name="csrfmiddlewaretoken"]').value;
-      const res = await fetch('{% url "jornal_update" slug=artigo.slug %}', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
-        body: JSON.stringify(body),
-      });
-      if (res.ok) {
+      saveButton.disabled = true;
+      cancelButton.disabled = true;
+      form.setAttribute('aria-busy', 'true');
+      let saved = false;
+      try {
+        const res = await fetch('{% url "jornal_update" slug=artigo.slug %}', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+          body: JSON.stringify(body),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.ok) throw new Error(data.error || 'Não foi possível salvar o artigo.');
+        saved = true;
         window.location.reload();
-      } else {
-        const error = document.getElementById('articleSaveError');
-        error.textContent = (await res.json()).error || 'Erro ao salvar artigo.';
+      } catch (err) {
+        error.textContent = err.message || 'Não foi possível salvar o artigo.';
         error.hidden = false;
         error.focus();
+      } finally {
+        if (!saved) {
+          saveButton.disabled = false;
+          cancelButton.disabled = false;
+          form.removeAttribute('aria-busy');
+        }
       }
     });
   })();

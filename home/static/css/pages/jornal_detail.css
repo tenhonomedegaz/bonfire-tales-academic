@@ -98,6 +98,7 @@
   display: none;
   gap: .55rem;
   margin-top: .7rem;
+  min-width: 0;
   padding: .7rem;
 }
 .wiki-inline-editor.is-open { display: grid; }
@@ -117,11 +118,14 @@
   border-radius: 6px;
   color: var(--text);
   font-size: .85rem;
+  min-width: 0;
   padding: .5rem .6rem;
 }
 .wiki-inline-editor textarea { min-height: 300px; resize: vertical; font-family: Consolas, monospace; }
 #articleSaveError { color: #ffb9a1; font-size: .85rem; }
-.wiki-inline-actions { display: flex; gap: .5rem; justify-content: flex-end; }
+#articleSaveError[hidden] { display: none; }
+#articleSaveError:focus { outline: 2px solid #ffb9a1; outline-offset: 2px; }
+.wiki-inline-actions { display: flex; flex-wrap: wrap; gap: .5rem; justify-content: flex-end; }
 .wiki-inline-cancel {
   border: 1px solid var(--stroke);
   border-radius: 5px;
@@ -140,6 +144,12 @@
   padding: .55rem .7rem;
   text-transform: uppercase;
 }
+.artigo-edit-btn:focus-visible, .wiki-inline-editor button:focus-visible,
+.wiki-inline-editor input:focus-visible, .wiki-inline-editor textarea:focus-visible {
+  outline: 2px solid var(--ember);
+  outline-offset: 2px;
+}
+.wiki-inline-editor button:disabled { cursor: wait; opacity: .6; }
 
 /* ── Layout em Colunas (O Atlas) ── */
 .artigo-layout--colunas {

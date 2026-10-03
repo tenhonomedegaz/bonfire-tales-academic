@@ -150,9 +150,47 @@ class JornalMarkdownPresentationTests(StaticLiveServerTestCase):
                 self.assertTrue(js('!!document.querySelector("#articleForm [name=csrfmiddlewaretoken]").value'))
                 js('''(() => {
                     document.querySelector('#btnEditArticle').click();
+                    document.querySelector('#articleForm [name=titulo]').value = 'Rascunho descartado';
+                    document.querySelector('#articleForm [name=conteudo_markdown]').value = 'Texto descartado';
+                    document.querySelector('#btnCancelArticle').click();
+                })()''')
+                self.assertFalse(js('document.querySelector("#articleForm").classList.contains("is-open")'))
+                self.assertEqual(js('document.activeElement.id'), 'btnEditArticle')
+                self.assertEqual(js('document.querySelector("#btnEditArticle").getAttribute("aria-expanded")'), 'false')
+                js('document.querySelector("#btnEditArticle").click()')
+                self.assertEqual(js('document.querySelector("#articleForm [name=titulo]").value'), 'Jornal pelo Navegador')
+                self.assertEqual(js('document.querySelector("#articleForm [name=conteudo_markdown]").value'), '**Publicado** no editor')
+                self.assertEqual(js('document.activeElement.getAttribute("name")'), 'titulo')
+                js('document.querySelector("#articleForm [name=titulo]").dispatchEvent(new KeyboardEvent("keydown", {key:"Escape", bubbles:true}))')
+                self.assertFalse(js('document.querySelector("#articleForm").classList.contains("is-open")'))
+                self.assertEqual(js('document.activeElement.id'), 'btnEditArticle')
+
+                js('''(() => {
+                    document.querySelector('#btnEditArticle').click();
                     document.querySelector('#articleForm [name=titulo]').value = 'Jornal Revisado';
                     document.querySelector('#articleForm [name=resumo]').value = 'Resumo revisado';
                     document.querySelector('#articleForm [name=conteudo_markdown]').value = '**Revisado** pelo editor';
+                    window.qaFetch = window.fetch;
+                    window.qaCalls = 0;
+                    window.fetch = () => { window.qaCalls++; return new Promise(resolve => { window.qaResolve = resolve; }); };
+                    document.querySelector('#articleForm').requestSubmit();
+                })()''')
+                wait_for('document.querySelector("#articleForm .wiki-inline-save").disabled')
+                self.assertLessEqual(js('document.documentElement.scrollWidth'), js('document.documentElement.clientWidth'))
+                js('document.querySelector("#articleForm").dispatchEvent(new Event("submit", {cancelable:true}))')
+                self.assertEqual(js('window.qaCalls'), 1)
+                self.assertTrue(js('document.querySelector("#btnCancelArticle").disabled'))
+                self.assertEqual(js('document.querySelector("#articleForm").getAttribute("aria-busy")'), 'true')
+                js('window.qaResolve(new Response(JSON.stringify({error:"Falha temporaria"}), {status:503,headers:{"Content-Type":"application/json"}}))')
+                wait_for('!document.querySelector("#articleForm .wiki-inline-save").disabled')
+                self.assertIn('Falha temporaria', js('document.querySelector("#articleSaveError").textContent'))
+                self.assertEqual(js('document.activeElement.id'), 'articleSaveError')
+                self.assertEqual(js('document.querySelector("#articleForm [name=conteudo_markdown]").value'), '**Revisado** pelo editor')
+                created.refresh_from_db()
+                self.assertEqual(created.titulo, 'Jornal pelo Navegador')
+
+                js('''(() => {
+                    window.fetch = window.qaFetch;
                     document.querySelector('#articleForm button[type=submit]').click();
                 })()''')
                 wait_for('document.querySelector(".artigo-title")?.textContent === "Jornal Revisado"')
