@@ -142,3 +142,17 @@ class ChronicleLocationTests(TestCase):
         self.assertContains(region, 'regiao=Serra%20%26%20Vale')
         linked = self.client.get(listing + '?regiao=Serra%20%26%20Vale')
         self.assertEqual([story.pk for story in linked.context['cronicas']], [special.pk])
+
+    def test_region_link_keeps_territory_when_region_names_repeat(self):
+        TbRegiao.objects.create(nome='Serra', slug='serra-sul', territorio='Sul')
+        south = TbCronica.objects.create(
+            titulo='Serra do Sul', slug='serra-do-sul', conteudo_markdown='Texto',
+            autor=self.author, status='aprovada', territorio='Sul', regiao='Serra',
+        )
+        region = self.client.get(reverse('regiao_detail', args=['serra-sul']))
+        self.assertEqual(region.status_code, 200)
+        self.assertContains(region, 'territorio=Sul&amp;regiao=Serra')
+        listing = self.client.get(reverse('mundo_cronicas'), {
+            'territorio': 'Sul', 'regiao': 'Serra',
+        })
+        self.assertEqual([story.pk for story in listing.context['cronicas']], [south.pk])

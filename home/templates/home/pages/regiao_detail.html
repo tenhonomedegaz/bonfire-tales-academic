@@ -685,7 +685,7 @@
       {% if not is_territory %}
       <a href="{% url 'mapa' %}?region={{ regiao.slug }}" class="topic-btn" style="display:flex;justify-content:center;text-decoration:none;">Ver no mapa</a>
       {% endif %}
-      <a href="{% url 'mundo_cronicas' %}?{% if is_territory %}territorio={{ regiao.nome|urlencode }}{% else %}regiao={{ regiao.nome|urlencode }}{% endif %}" class="topic-btn" style="display:flex;justify-content:center;text-decoration:none;">Crônicas</a>
+      <a href="{% url 'mundo_cronicas' %}?territorio={% if is_territory %}{{ regiao.nome|urlencode }}{% else %}{{ regiao.territorio|urlencode }}&amp;regiao={{ regiao.nome|urlencode }}{% endif %}" class="topic-btn" style="display:flex;justify-content:center;text-decoration:none;">Crônicas</a>
     </div>
     {% for group in territory_groups %}
     <details class="territory-nav" data-nav-layer="{{ group.camada|default_if_none:'' }}" data-current-article="{{ group.is_current|yesno:'true,false' }}" style="--territory-color: {{ group.color }}; --territory-accent: {{ group.display_color }}; --territory-contrast: {{ group.contrast }};" {% if group.is_current %}open{% endif %}>
@@ -793,7 +793,7 @@
     {% endif %}
 
     <div style="margin: 1rem 0;">
-      <a href="{% url 'mundo_cronicas' %}?{% if is_territory %}territorio={{ regiao.nome|urlencode }}{% else %}regiao={{ regiao.nome|urlencode }}{% endif %}" class="topic-btn" id="sideCronicasBtn" style="background: var(--territory-color); color: var(--text); display: flex; align-items: center; justify-content: center; gap: .5rem; text-decoration: none; width: 100%; border: none;">
+      <a href="{% url 'mundo_cronicas' %}?territorio={% if is_territory %}{{ regiao.nome|urlencode }}{% else %}{{ regiao.territorio|urlencode }}&amp;regiao={{ regiao.nome|urlencode }}{% endif %}" class="topic-btn" id="sideCronicasBtn" style="background: var(--territory-color); color: var(--text); display: flex; align-items: center; justify-content: center; gap: .5rem; text-decoration: none; width: 100%; border: none;">
         <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
           <path d="M4 19h16v2H4v-2zm16-4H4v2h16v-2zm0-4H4v2h16v-2zm0-4H4v2h16V7zm0-4H4v2h16V3z"/>
         </svg>
