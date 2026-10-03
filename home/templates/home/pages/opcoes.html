@@ -240,7 +240,7 @@
     }
 
     function renderMarkdown(value) {
-        if (typeof renderBonfireMarkdown === 'function') return renderBonfireMarkdown(value);
+        if (typeof renderBonfireMarkdown === 'function') return sanitizeBonfireMarkdownHtml(renderBonfireMarkdown(value));
         const normalizedValue = normalizeMarkdown(value);
         const withToggles = normalizedValue.replace(/::(?:click|toggle)\s+([^\n]+)\n([\s\S]*?)\n::end(?:click|toggle)/gi, (_match, title, content) => {
             const innerSource = normalizeMarkdown(content);
@@ -251,10 +251,10 @@
         });
 
         if (window.marked && typeof window.marked.parse === 'function') {
-            return applyMarkdownColorsToHtml(window.marked.parse(withToggles, { breaks: true, gfm: true }));
+            return sanitizeBonfireMarkdownHtml(applyMarkdownColorsToHtml(window.marked.parse(withToggles, { breaks: true, gfm: true })));
         }
 
-        return renderFallbackMarkdown(withToggles);
+        return sanitizeBonfireMarkdownHtml(renderFallbackMarkdown(withToggles));
     }
 
     function createFilterChip(value, filterType) {

@@ -499,6 +499,73 @@ function buildBonfireMarkdownSource(value, options = {}) {
     });
 }
 
+function sanitizeBonfireMarkdownHtml(html) {
+    const source = document.createElement('template');
+    source.innerHTML = String(html || '');
+    const safeTags = new Set([
+        'a', 'blockquote', 'br', 'code', 'del', 'details', 'div', 'em', 'h1', 'h2', 'h3',
+        'h4', 'h5', 'h6', 'hr', 'img', 'li', 'ol', 'p', 'pre', 's', 'span', 'strong',
+        'summary', 'table', 'tbody', 'td', 'th', 'thead', 'tr', 'ul'
+    ]);
+    const discardedTags = new Set([
+        'base', 'button', 'embed', 'form', 'iframe', 'input', 'link', 'math', 'meta',
+        'object', 'script', 'style', 'svg', 'template', 'textarea'
+    ]);
+    const safeUrl = value => {
+        try {
+            const url = new URL(value, window.location.href);
+            return ['http:', 'https:', 'mailto:'].includes(url.protocol) ? value : '';
+        } catch (_error) {
+            return '';
+        }
+    };
+    const clean = node => {
+        if (node.nodeType === Node.TEXT_NODE) return document.createTextNode(node.textContent);
+        if (node.nodeType !== Node.ELEMENT_NODE) return document.createDocumentFragment();
+        const tag = node.localName.toLowerCase();
+        if (discardedTags.has(tag)) return document.createDocumentFragment();
+        const element = safeTags.has(tag) ? document.createElement(tag) : document.createDocumentFragment();
+        if (element.nodeType === Node.ELEMENT_NODE) {
+            const classes = [...node.classList].filter(name => /^(?:bonfire-[a-z0-9_-]+|md-ref)$/.test(name));
+            if (classes.length) element.className = classes.join(' ');
+            if (node.hasAttribute('title')) element.title = node.getAttribute('title');
+            if (tag === 'a') {
+                const href = safeUrl(node.getAttribute('href') || '');
+                if (href) element.setAttribute('href', href);
+                if (classes.includes('bonfire-card-trigger')) {
+                    for (const attr of ['data-table', 'data-args']) {
+                        if (node.hasAttribute(attr)) element.setAttribute(attr, node.getAttribute(attr));
+                    }
+                }
+            }
+            if (tag === 'img') {
+                const src = safeUrl(node.getAttribute('src') || '');
+                if (!src || new URL(src, window.location.href).protocol === 'mailto:') return document.createDocumentFragment();
+                element.setAttribute('src', src);
+                element.alt = node.getAttribute('alt') || '';
+                element.loading = 'lazy';
+            }
+            if (tag === 'div' && classes.includes('bonfire-creature-widget') && node.hasAttribute('data-slug')) {
+                element.setAttribute('data-slug', node.getAttribute('data-slug'));
+            }
+            if (tag === 'div' && classes.includes('bonfire-options-widget') && node.hasAttribute('data-tipo')) {
+                element.setAttribute('data-tipo', node.getAttribute('data-tipo'));
+            }
+            if (tag === 'span' && /^color:#(?:[0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test((node.getAttribute('style') || '').replace(/\s/g, ''))) {
+                element.style.color = node.style.color;
+            }
+            if ((tag === 'th' || tag === 'td') && /^[1-9]\d?$/.test(node.getAttribute('colspan') || '')) {
+                element.setAttribute('colspan', node.getAttribute('colspan'));
+            }
+        }
+        for (const child of node.childNodes) element.appendChild(clean(child));
+        return element;
+    };
+    const result = document.createElement('div');
+    for (const child of source.content.childNodes) result.appendChild(clean(child));
+    return result.innerHTML;
+}
+
 function renderBonfireMarkdown(value, options = {}) {
     const source = buildBonfireMarkdownSource(value, options);
     if (!source) return '';
@@ -748,6 +815,7 @@ if (typeof module !== 'undefined' && module.exports) {
         normalizeMarkdown,
         buildBonfireMarkdownSource,
         renderBonfireMarkdown,
+        sanitizeBonfireMarkdownHtml,
         renderAtlasLayout,
         renderBonfireMarkdownElement,
         renderBonfireMarkdownElements

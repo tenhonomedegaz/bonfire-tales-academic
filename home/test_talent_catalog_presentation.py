@@ -10,7 +10,7 @@ from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.db import connection
 from django.urls import reverse
 
-from .models import TbTalento
+from .models import TbOpcaojogo, TbTalento
 
 
 class TalentCatalogPresentationTests(StaticLiveServerTestCase):
@@ -39,6 +39,14 @@ class TalentCatalogPresentationTests(StaticLiveServerTestCase):
             ),
         )
         TbTalento.objects.create(nome='Seguro', slug='seguro', descricao='Texto seguro')
+        TbOpcaojogo.objects.create(
+            nome='Opcao segura', slug='opcao-segura', tipo='Teste',
+            descricao=(
+                '**Beneficio da opcao**\n\n'
+                '<svg onload="window.__optionInjected=1"></svg>\n\n'
+                '<a href="javascript:window.__optionInjected=1">Inseguro</a>'
+            ),
+        )
 
         with tempfile.TemporaryDirectory(prefix='bonfire-talent-', ignore_cleanup_errors=True) as profile:
             process = subprocess.Popen([
@@ -100,7 +108,7 @@ class TalentCatalogPresentationTests(StaticLiveServerTestCase):
                     '<a href="https://example.org">Guia</a>'
                     '<a href="#" class="bonfire-card-trigger" data-table="tbTalento" data-args="seguro">Carta</a>'
                 )
-                sanitized = js('sanitizeTalentMarkdown(' + json.dumps(unsafe_html) + ')')
+                sanitized = js('sanitizeBonfireMarkdownHtml(' + json.dumps(unsafe_html) + ')')
                 self.assertNotIn('onerror', sanitized)
                 self.assertNotIn('onclick', sanitized)
                 self.assertNotIn('javascript:', sanitized)
@@ -112,6 +120,12 @@ class TalentCatalogPresentationTests(StaticLiveServerTestCase):
                 js('document.querySelector("#talentosListItems > div").click()')
                 wait_for('document.querySelector("[data-talent-title]")?.textContent === "Seguro"')
                 self.assertFalse(js('window.__talentInjected === 1'))
+
+                call('Page.navigate', {'url': self.live_server_url + reverse('jogador_opcoes') + '#opcao-opcao-segura'})
+                wait_for('document.querySelector("#opcaoDetail [data-talent-title]")?.textContent === "Opcao segura"')
+                self.assertEqual(js('document.querySelector("[data-option-preview] strong")?.textContent'), 'Beneficio da opcao')
+                self.assertEqual(js('document.querySelectorAll("[data-option-preview] svg, [data-option-preview] a[href^=javascript]").length'), 0)
+                self.assertFalse(js('window.__optionInjected === 1'))
             finally:
                 if ws:
                     ws.close()
