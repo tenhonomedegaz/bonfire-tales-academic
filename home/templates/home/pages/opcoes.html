@@ -510,7 +510,7 @@
                     ${getExtraTags(opcao).map(tag => `<span class="text-xs font-bold px-2 py-1 rounded border border-bonfire-stroke text-bonfire-muted uppercase tracking-wider">${escapeHtml(tag)}</span>`).join('')}
                 </div>
                 <div class="flex flex-col items-end gap-2">
-                    ${canEditWiki ? `<button type="button" class="wiki-edit-button" onclick="openOpcaoEditor(${opcao.id})">Editar wiki</button>` : ''}
+                    ${canEditWiki ? `<button type="button" class="wiki-edit-button" aria-expanded="false" aria-controls="opcao-editor" onclick="openOpcaoEditor(${opcao.id})">Editar wiki</button>` : ''}
                     ${hasPrereq ? `
                         <div class="rounded border border-bonfire-stroke px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-bonfire-muted">
                             PRÉ-REQ: <span class="text-bonfire-text normal-case font-medium ml-1">${escapeHtml(opcao.pre_requisito)}</span>
@@ -520,7 +520,7 @@
             </div>
 
             <h2 data-talent-title tabindex="-1" class="font-cinzel text-xl font-bold text-bonfire-text uppercase mb-4">${escapeHtml(opcao.nome)}</h2>
-            <div data-option-editor></div>
+            <div id="opcao-editor" data-option-editor></div>
 
             ${accessRows ? `<section class="mb-4 rounded-md border border-bonfire-stroke bg-bonfire-bg1 p-3" aria-label="Acesso por classe e subclasse">
                 <h3 class="mb-2 text-xs font-bold uppercase tracking-wider text-bonfire-flame">Acesso por classe e subclasse</h3>
@@ -547,6 +547,10 @@
         const mount = detailContainer.querySelector('[data-option-editor]');
         const preview = detailContainer.querySelector('[data-option-preview]');
         if (!opcao || !mount || !preview) return;
+        if (mount.querySelector('form')) {
+            mount.querySelector('input[name="nome"]')?.focus();
+            return;
+        }
 
         mount.innerHTML = `
             <form class="wiki-editor" data-option-edit-form>
@@ -567,6 +571,7 @@
                         <textarea name="descricao">${escapeHtml(opcao.descricao || '')}</textarea>
                     </label>
                 </div>
+                <p class="wiki-save-error" role="alert" tabindex="-1" hidden></p>
                 <div class="wiki-editor-actions">
                     <button type="button" class="wiki-cancel" onclick="closeOpcaoEditor()">Cancelar</button>
                     <button type="submit" class="wiki-save">Salvar</button>
@@ -575,46 +580,80 @@
         `;
 
         const form = mount.querySelector('[data-option-edit-form]');
+        detailContainer.querySelector('.wiki-edit-button')?.setAttribute('aria-expanded', 'true');
         const textarea = form.elements.descricao;
         textarea.addEventListener('input', () => {
             preview.innerHTML = renderMarkdown(textarea.value);
         });
         form.addEventListener('submit', event => saveOpcaoEditor(event, opcao.id));
+        form.addEventListener('keydown', event => {
+            if (event.key === 'Escape' && form.getAttribute('aria-busy') !== 'true') {
+                event.preventDefault();
+                closeOpcaoEditor();
+            }
+        });
+        form.elements.nome.focus();
     }
 
     function closeOpcaoEditor() {
         const mount = detailContainer.querySelector('[data-option-editor]');
-        if (mount) mount.innerHTML = '';
+        const form = mount?.querySelector('form');
+        if (!form || form.getAttribute('aria-busy') === 'true') return;
+        const opcao = opcoesData.find(item => item.id === selectedOpcaoId);
+        const preview = detailContainer.querySelector('[data-option-preview]');
+        if (opcao && preview) preview.innerHTML = renderMarkdown(opcao.descricao);
+        mount.innerHTML = '';
+        const trigger = detailContainer.querySelector('.wiki-edit-button');
+        trigger?.setAttribute('aria-expanded', 'false');
+        trigger?.focus();
     }
 
     async function saveOpcaoEditor(event, id) {
         event.preventDefault();
         const form = event.currentTarget;
+        if (form.getAttribute('aria-busy') === 'true') return;
         const data = Object.fromEntries(new FormData(form).entries());
+        const error = form.querySelector('.wiki-save-error');
+        const save = form.querySelector('.wiki-save');
+        const cancel = form.querySelector('.wiki-cancel');
+        error.hidden = true;
+        form.setAttribute('aria-busy', 'true');
+        save.disabled = true;
+        cancel.disabled = true;
 
-        const response = await fetch(`/wiki/opcoes/${id}/editar/`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': decodeURIComponent(getCookie('csrftoken'))
-            },
-            body: JSON.stringify(data)
-        });
-        if (!response.ok) {
-            alert('Não foi possível salvar esta opção.');
-            return;
+        try {
+            const response = await fetch(`/wiki/opcoes/${id}/editar/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': decodeURIComponent(getCookie('csrftoken'))
+                },
+                body: JSON.stringify(data)
+            });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok || !result.ok || !result.opcao) {
+                throw new Error(result.error || 'Não foi possível salvar esta opção.');
+            }
+            const index = opcoesData.findIndex(o => o.id === id);
+            if (index >= 0) opcoesData[index] = { ...result.opcao, acessos: opcoesData[index].acessos || [] };
+            // O tipo ou as tags editados podem deixar a opção fora dos filtros ativos.
+            searchInput.value = '';
+            activeFilters = { type: '', tag: '' };
+            draftFilters = { ...activeFilters };
+            renderFilterChips();
+            selectedOpcaoId = id;
+            applyFilters(false);
+            selectOpcao(id);
+            detailContainer.querySelector('.wiki-edit-button')?.focus();
+        } catch (failure) {
+            error.textContent = failure.message || 'Não foi possível salvar esta opção.';
+            error.hidden = false;
+            error.focus();
+        } finally {
+            form.removeAttribute('aria-busy');
+            save.disabled = false;
+            cancel.disabled = false;
         }
-        const result = await response.json();
-        const index = opcoesData.findIndex(o => o.id === id);
-        if (index >= 0) opcoesData[index] = { ...result.opcao, acessos: opcoesData[index].acessos || [] };
-        // O tipo ou as tags editados podem deixar a opção fora dos filtros ativos.
-        searchInput.value = '';
-        activeFilters = { type: '', tag: '' };
-        draftFilters = { ...activeFilters };
-        renderFilterChips();
-        selectedOpcaoId = id;
-        applyFilters(false);
-        selectOpcao(id);
     }
 
     function toggleAnimatedDetails(details) {
