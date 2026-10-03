@@ -11272,7 +11272,12 @@ def _option_payload(o):
 @permission_required('home.change_tbclassehabilidade', raise_exception=True)
 @require_POST
 def wiki_update_class_feature(request, feature_id):
-    data = _json_body(request)
+    try:
+        data = _editor_json_body(request)
+    except ValueError as exc:
+        return JsonResponse({'ok': False, 'error': str(exc)}, status=400)
+    if not {'nome', 'niveladquirido', 'descricao', 'tags_json', 'TagsJSON'}.intersection(data):
+        return JsonResponse({'ok': False, 'error': 'Informe um campo editável da habilidade.'}, status=400)
     validate_no_sql_danger(data, 'habilidade')
     feature = get_object_or_404(TbClassehabilidade, pk=feature_id)
     feature.nome = (data.get('nome') or feature.nome).strip()
@@ -11280,7 +11285,7 @@ def wiki_update_class_feature(request, feature_id):
         feature.niveladquirido = max(int(data.get('niveladquirido', feature.niveladquirido)), 0)
     except (TypeError, ValueError):
         pass
-    feature.descricao = data.get('descricao') or ''
+    feature.descricao = data.get('descricao', feature.descricao) or ''
     if 'tags_json' in data or 'TagsJSON' in data:
         feature.tags_json = _tags_json_value(data)
     feature.save()
@@ -11301,7 +11306,13 @@ def wiki_update_class_feature(request, feature_id):
 @permission_required('home.change_tbtracoracial', raise_exception=True)
 @require_POST
 def wiki_update_racial_trait(request, trait_id):
-    data = _json_body(request)
+    try:
+        data = _editor_json_body(request)
+    except ValueError as exc:
+        return JsonResponse({'ok': False, 'error': str(exc)}, status=400)
+    if not {'nome', 'nivel_requisito', 'talento_racial', 'pre_requisito',
+            'descricao', 'tags_json', 'TagsJSON'}.intersection(data):
+        return JsonResponse({'ok': False, 'error': 'Informe um campo editável do traço.'}, status=400)
     validate_no_sql_danger(data, 'traco')
     trait = get_object_or_404(TbTracoracial, pk=trait_id)
     racial_talent = data.get('talento_racial', trait.talento_racial)
@@ -11320,8 +11331,8 @@ def wiki_update_racial_trait(request, trait_id):
     except (TypeError, ValueError):
         pass
     trait.talento_racial = racial_talent
-    trait.pre_requisito = (data.get('pre_requisito') or '').strip() or None
-    trait.descricao = data.get('descricao') or ''
+    trait.pre_requisito = (data.get('pre_requisito', trait.pre_requisito) or '').strip() or None
+    trait.descricao = data.get('descricao', trait.descricao) or ''
     if 'tags_json' in data or 'TagsJSON' in data:
         trait.tags_json = _tags_json_value(data)
     trait.save()
@@ -11346,7 +11357,13 @@ def wiki_update_racial_trait(request, trait_id):
 def wiki_update_race(request, race_id):
     from .editorial_links import safe_editorial_image
 
-    data = _json_body(request)
+    try:
+        data = _editor_json_body(request)
+    except ValueError as exc:
+        return JsonResponse({'ok': False, 'error': str(exc)}, status=400)
+    if not {'nome', 'tagline', 'imagem_url', 'imagem_foco_x', 'imagem_foco_y',
+            'lore_presentation', 'lore_roleplay', 'lore_society'}.intersection(data):
+        return JsonResponse({'ok': False, 'error': 'Informe um campo editável da raça.'}, status=400)
     validate_no_sql_danger(data, 'raca')
     race = get_object_or_404(TbRaca, pk=race_id)
     focus = {}
@@ -11355,17 +11372,17 @@ def wiki_update_race(request, race_id):
         if not str(value).isascii() or not str(value).isdigit() or not 0 <= int(value) <= 100:
             return JsonResponse({'ok': False, 'error': 'O ponto focal deve estar entre 0 e 100.'}, status=400)
         focus[axis] = int(value)
-    image_url = (data.get('imagem_url') or '').strip()
+    image_url = (data.get('imagem_url', race.imagem_url) or '').strip()
     if image_url and not safe_editorial_image(image_url):
         return JsonResponse({'ok': False, 'error': 'Use uma URL de imagem HTTP(S), /media/ ou /static/.'}, status=400)
     race.nome = (data.get('nome') or race.nome).strip()
-    race.tagline = (data.get('tagline') or '').strip() or None
+    race.tagline = (data.get('tagline', race.tagline) or '').strip() or None
     race.imagem_url = image_url or None
     race.imagem_foco_x = focus['x']
     race.imagem_foco_y = focus['y']
-    race.lore_presentation = data.get('lore_presentation') or ''
-    race.lore_roleplay = data.get('lore_roleplay') or ''
-    race.lore_society = data.get('lore_society') or ''
+    race.lore_presentation = data.get('lore_presentation', race.lore_presentation) or ''
+    race.lore_roleplay = data.get('lore_roleplay', race.lore_roleplay) or ''
+    race.lore_society = data.get('lore_society', race.lore_society) or ''
     race.save()
     _log_wiki_edit(request, race, f"Edição inline de raça: {race.nome}")
     return JsonResponse({
