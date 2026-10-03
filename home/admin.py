@@ -3710,11 +3710,18 @@ class TbMagiaAdmin(BonfireAdminMixin, admin.ModelAdmin):
                                 setattr(existing, field, value)
                             existing.save()
                             magia = existing
-                            updated += 1
                         else:
                             magia = TbMagia.objects.create(slug=item["slug"], **values)
                             created += 1
                         self._sync_imported_classes(magia, item["classes"])
+                        if existing:
+                            if self._spell_import_snapshot(magia) != target["snapshot"]:
+                                updated += 1
+                                self.log_change(request, magia, "Importada por Excel")
+                            else:
+                                skipped += 1
+                        else:
+                            self.log_addition(request, magia, "Importada por Excel")
             except (ValueError, TypeError, KeyError) as exc:
                 context["errors"] = [str(exc)]
                 return render(request, "admin/spell_import.html", context)

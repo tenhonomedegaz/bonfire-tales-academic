@@ -8,6 +8,7 @@ from pathlib import Path
 from urllib.request import urlopen
 
 from django.contrib.auth import get_user_model
+from django.contrib.admin.models import ADDITION, CHANGE, LogEntry
 from django.conf import settings
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -67,6 +68,36 @@ class SpellImportAdminTests(TestCase):
         replay = self.client.post(self.url, {"confirmar": "1", "payload": payload})
         self.assertContains(replay, "O catalogo mudou desde a previa")
         self.assertEqual(TbMagia.objects.filter(slug="luz-de-teste").count(), 1)
+
+    def test_import_history_identifies_editor_and_only_real_changes(self):
+        preview = self.preview(("Magia Auditada", 1))
+        self.assertEqual(self.client.post(self.url, {
+            "confirmar": "1", "payload": preview.context["payload"],
+        }).status_code, 200)
+        spell = TbMagia.objects.get(slug="magia-auditada")
+        history = LogEntry.objects.filter(object_id=str(spell.pk), user=self.admin)
+        self.assertEqual(history.filter(action_flag=ADDITION).count(), 1)
+        self.assertContains(self.client.get(reverse(
+            "admin:home_tbmagia_history", args=[spell.pk],
+        )), "Importada por Excel")
+
+        identical = self.preview(("Magia Auditada", 1))
+        identical_result = self.client.post(self.url, {
+            "confirmar": "1", "payload": identical.context["payload"],
+        })
+        self.assertContains(identical_result, "0 criadas, 0 atualizadas e 1 ignoradas")
+        self.assertEqual(history.filter(action_flag=CHANGE).count(), 0)
+
+        changed = self.preview(("Magia Auditada", 2))
+        self.assertEqual(self.client.post(self.url, {
+            "confirmar": "1", "payload": changed.context["payload"],
+        }).status_code, 200)
+        spell.refresh_from_db()
+        self.assertEqual(spell.nivel, 2)
+        self.assertEqual(history.filter(action_flag=CHANGE).count(), 1)
+        self.assertContains(self.client.get(reverse(
+            "admin:home_tbmagia_history", args=[spell.pk],
+        )), "Importada por Excel")
 
     def test_existing_spell_full_preview_precedes_replacement(self):
         TbClasse.objects.create(nome="Mago", slug="mago")
@@ -171,6 +202,9 @@ class SpellImportAdminTests(TestCase):
         })
         self.assertContains(result, "O catalogo mudou desde a previa")
         self.assertFalse(TbMagia.objects.filter(slug="nova-magia").exists())
+        self.assertFalse(LogEntry.objects.filter(
+            user=self.admin, content_type__app_label="home", content_type__model="tbmagia",
+        ).exists())
 
     def test_removed_class_after_preview_rolls_back_whole_batch(self):
         classe = TbClasse.objects.create(nome="Mago", slug="mago")
