@@ -11230,12 +11230,22 @@ def wiki_update_racial_trait(request, trait_id):
     data = _json_body(request)
     validate_no_sql_danger(data, 'traco')
     trait = get_object_or_404(TbTracoracial, pk=trait_id)
+    racial_talent = data.get('talento_racial', trait.talento_racial)
+    if isinstance(racial_talent, str):
+        normalized = racial_talent.strip().lower()
+        if normalized not in ('true', 'false', '1', '0', 'on', 'off'):
+            return JsonResponse({'ok': False, 'error': 'Valor de talento racial inválido.'}, status=400)
+        racial_talent = normalized in ('true', '1', 'on')
+    elif type(racial_talent) is int and racial_talent in (0, 1):
+        racial_talent = bool(racial_talent)
+    elif type(racial_talent) is not bool:
+        return JsonResponse({'ok': False, 'error': 'Valor de talento racial inválido.'}, status=400)
     trait.nome = (data.get('nome') or trait.nome).strip()
     try:
         trait.nivel_requisito = max(int(data.get('nivel_requisito', trait.nivel_requisito)), 0)
     except (TypeError, ValueError):
         pass
-    trait.talento_racial = bool(data.get('talento_racial'))
+    trait.talento_racial = racial_talent
     trait.pre_requisito = (data.get('pre_requisito') or '').strip() or None
     trait.descricao = data.get('descricao') or ''
     if 'tags_json' in data or 'TagsJSON' in data:

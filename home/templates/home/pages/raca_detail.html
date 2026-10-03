@@ -449,32 +449,55 @@
       const form = card.querySelector('[data-trait-form]');
       const cancel = card.querySelector('[data-trait-cancel]');
       const preview = card.querySelector('[data-trait-preview]');
-      const title = card.querySelector('[data-trait-title]');
       const textarea = form?.elements.descricao;
       if (!edit || !form || !preview || !textarea) return;
-
-      edit.addEventListener('click', (event) => {
-        event.stopPropagation();
-        form.classList.add('is-open');
-        textarea.focus();
-      });
-      cancel?.addEventListener('click', () => {
-        form.classList.remove('is-open');
-      });
-      
-      const prereq = preview.querySelector('[data-trait-prereq]');
+      form.id = `trait-editor-${card.dataset.traitId}`;
+      edit.setAttribute('aria-controls', form.id);
+      edit.setAttribute('aria-expanded', 'false');
+      const error = document.createElement('p');
+      error.className = 'wiki-inline-error';
+      error.setAttribute('role', 'alert');
+      error.tabIndex = -1;
+      error.hidden = true;
+      form.querySelector('.wiki-inline-actions').before(error);
+      const prereq = preview.querySelector('[data-trait-prereq]') || (() => {
+        const element = document.createElement('div');
+        element.className = 'talent-card-prereq hidden';
+        element.setAttribute('data-trait-prereq', '');
+        preview.prepend(element);
+        return element;
+      })();
       const markdownTarget = preview.querySelector('[data-markdown-source]');
       const updatePreview = () => {
         const isTalent = form.elements.talento_racial.value === 'true' || form.elements.talento_racial.checked;
         const requirement = form.elements.pre_requisito ? form.elements.pre_requisito.value.trim() : '';
-        if (prereq) {
-          prereq.textContent = `Pré-requisito: ${requirement}`;
-          prereq.classList.toggle('hidden', !(isTalent && requirement));
-        }
-        if (markdownTarget) {
-          renderMarkdownElement(markdownTarget, textarea.value);
-        }
+        prereq.textContent = `Pré-requisito: ${requirement}`;
+        prereq.classList.toggle('hidden', !(isTalent && requirement));
+        if (markdownTarget) renderMarkdownElement(markdownTarget, textarea.value);
       };
+      const closeTraitEditor = () => {
+        if (form.getAttribute('aria-busy') === 'true') return;
+        form.reset();
+        updatePreview();
+        error.hidden = true;
+        form.classList.remove('is-open');
+        edit.setAttribute('aria-expanded', 'false');
+        edit.focus();
+      };
+
+      edit.addEventListener('click', (event) => {
+        event.stopPropagation();
+        form.classList.add('is-open');
+        edit.setAttribute('aria-expanded', 'true');
+        textarea.focus();
+      });
+      cancel?.addEventListener('click', closeTraitEditor);
+      form.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && form.getAttribute('aria-busy') !== 'true') {
+          event.preventDefault();
+          closeTraitEditor();
+        }
+      });
 
       textarea.addEventListener('input', updatePreview);
       form.addEventListener('input', event => {
@@ -485,29 +508,53 @@
       
       form.addEventListener('submit', async event => {
         event.preventDefault();
+        if (form.getAttribute('aria-busy') === 'true') return;
         const data = Object.fromEntries(new FormData(form).entries());
         if ('tags_json_text' in data) {
           data.tags_json = data.tags_json_text.split('\n').map(t => t.trim()).filter(Boolean);
           delete data.tags_json_text;
         }
-        const traitId = form.dataset.traitId;
-        const response = await fetch(`/wiki/tracos-raciais/${traitId}/editar/`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': decodeURIComponent(wikiCookie('csrftoken'))
-          },
-          body: JSON.stringify(data)
-        });
-        if (!response.ok) {
-          alert('Não foi possível salvar o traço.');
-          return;
+        const traitId = card.dataset.traitId;
+        const selection = {
+          tab: container.getAttribute('data-active-tab'),
+          lineage: container.getAttribute('data-active-lineage'),
+          essence: container.getAttribute('data-active-essence')
+        };
+        const controls = Array.from(form.querySelectorAll('input, textarea, button'));
+        error.hidden = true;
+        form.setAttribute('aria-busy', 'true');
+        controls.forEach(control => { control.disabled = true; });
+        try {
+          const response = await fetch(`/wiki/tracos-raciais/${traitId}/editar/`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': decodeURIComponent(wikiCookie('csrftoken'))
+            },
+            body: JSON.stringify(data)
+          });
+          const result = await response.json().catch(() => ({}));
+          if (!response.ok || !result.ok || !result.trait) {
+            throw new Error(result.error || 'Não foi possível salvar o traço.');
+          }
+          await loadContent(window.location.pathname, false);
+          const refreshed = document.getElementById('raceDetailContainer');
+          refreshed?.querySelector(`[data-tab-btn="${selection.tab}"]`)?.click();
+          const selector = selection.lineage ? document.getElementById('linhagemSelect')
+            : selection.essence ? document.getElementById('essenciaSelect') : null;
+          if (selector) {
+            selector.value = selection.lineage || selection.essence;
+            selector.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+          refreshed?.querySelector(`[data-race-trait-card][data-trait-id="${traitId}"] [data-trait-edit]`)?.focus();
+        } catch (failure) {
+          error.textContent = failure.message || 'Não foi possível salvar o traço.';
+          error.hidden = false;
+          error.focus();
+        } finally {
+          form.removeAttribute('aria-busy');
+          controls.forEach(control => { control.disabled = false; });
         }
-        const result = await response.json();
-        if (title && result.trait.nome) {
-          title.textContent = result.trait.nome;
-        }
-        form.classList.remove('is-open');
       });
     });
 
