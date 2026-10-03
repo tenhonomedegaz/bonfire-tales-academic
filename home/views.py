@@ -11171,11 +11171,16 @@ def wiki_update_spell(request, spell_id):
     """Editor inline de magia com acesso base limitado a classes cadastradas."""
     from .spell_access import set_spell_class_access
 
-    data = _json_body(request)
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return JsonResponse({'ok': False, 'error': 'Envie um JSON válido.'}, status=400)
+    if not isinstance(data, dict) or not data:
+        return JsonResponse({'ok': False, 'error': 'Informe os campos da magia.'}, status=400)
     validate_no_sql_danger(data, 'magia')
     spell = get_object_or_404(TbMagia, pk=spell_id)
     try:
-        tags = _strict_tag_list(data.get('tags_json', []))
+        tags = _strict_tag_list(data['tags_json']) if 'tags_json' in data else spell.tags_json
         level = int(data.get('nivel', spell.nivel))
         if not 0 <= level <= 9:
             raise ValueError('O círculo deve estar entre 0 e 9.')
@@ -11184,32 +11189,36 @@ def wiki_update_spell(request, spell_id):
             raise ValueError('O slug deve usar somente letras minúsculas, números e hífens.')
         if TbMagia.objects.exclude(pk=spell.pk).filter(slug=slug).exists():
             raise ValueError('Já existe uma magia com esse slug.')
-        requested_slugs = list(dict.fromkeys(
-            str(value).strip() for value in (data.get('classes_slugs') or [])
-            if str(value).strip()))
-        classes = list(TbClasse.objects.filter(slug__in=requested_slugs))
-        if {classe.slug for classe in classes} != set(requested_slugs):
-            raise ValueError('A seleção contém uma classe que não existe.')
+        classes = None
+        if 'classes_slugs' in data:
+            if not isinstance(data['classes_slugs'], list):
+                raise ValueError('Selecione as classes em uma lista.')
+            requested_slugs = list(dict.fromkeys(
+                str(value).strip() for value in data['classes_slugs'] if str(value).strip()))
+            classes = list(TbClasse.objects.filter(slug__in=requested_slugs))
+            if {classe.slug for classe in classes} != set(requested_slugs):
+                raise ValueError('A seleção contém uma classe que não existe.')
     except (TypeError, ValueError) as exc:
         return JsonResponse({'ok': False, 'error': str(exc)}, status=400)
 
     spell.nome = str(data.get('nome') or spell.nome).strip()
-    spell.nome_ingles = str(data.get('nome_ingles') or '').strip() or None
+    spell.nome_ingles = str(data.get('nome_ingles', spell.nome_ingles) or '').strip() or None
     spell.slug = slug
     spell.nivel = level
-    spell.escola = str(data.get('escola') or '').strip() or None
-    spell.casting_time = str(data.get('casting_time') or '').strip() or None
-    spell.alcance = str(data.get('alcance') or '').strip() or None
-    spell.componentes = str(data.get('componentes') or '').strip() or None
-    spell.duracao = str(data.get('duracao') or '').strip() or None
-    spell.concentracao = bool(data.get('concentracao'))
-    spell.ritual = bool(data.get('ritual'))
-    spell.descricao = data.get('descricao') or ''
-    spell.em_niveis_superiores = data.get('em_niveis_superiores') or ''
+    spell.escola = str(data.get('escola', spell.escola) or '').strip() or None
+    spell.casting_time = str(data.get('casting_time', spell.casting_time) or '').strip() or None
+    spell.alcance = str(data.get('alcance', spell.alcance) or '').strip() or None
+    spell.componentes = str(data.get('componentes', spell.componentes) or '').strip() or None
+    spell.duracao = str(data.get('duracao', spell.duracao) or '').strip() or None
+    spell.concentracao = bool(data.get('concentracao', spell.concentracao))
+    spell.ritual = bool(data.get('ritual', spell.ritual))
+    spell.descricao = data.get('descricao', spell.descricao) or ''
+    spell.em_niveis_superiores = data.get('em_niveis_superiores', spell.em_niveis_superiores) or ''
     spell.tags_json = tags
     with transaction.atomic():
         spell.save()
-        set_spell_class_access(spell, classes, save=True)
+        if classes is not None:
+            set_spell_class_access(spell, classes, save=True)
     _log_wiki_edit(request, spell, 'Edição inline de magia: %s' % spell.nome)
     return JsonResponse({
         'ok': True, 'spell': {
