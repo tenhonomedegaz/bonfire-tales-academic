@@ -2,6 +2,9 @@
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
+from django.contrib.staticfiles.testing import StaticLiveServerTestCase
+from django.conf import settings
+from django.db import connection
 from django.test import RequestFactory, SimpleTestCase, TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -207,3 +210,120 @@ class MercadoServicosTests(TestCase):
         self.borrower.refresh_from_db()
         self.assertEqual(self.borrower.carteira_pc, 20000)
         self.assertEqual(TbTransacao.objects.filter(id_personagem=self.borrower).count(), 0)
+
+
+class MercadoServicosBrowserTests(StaticLiveServerTestCase):
+    def test_training_search_groups_and_loan_tab_stay_separate(self):
+        import json
+        import shutil
+        import subprocess
+        import tempfile
+        import time
+        from pathlib import Path
+        from urllib.request import urlopen
+
+        if connection.vendor != 'postgresql' or not connection.settings_dict['NAME'].startswith('test_'):
+            self.skipTest('Requer PostgreSQL de teste isolado.')
+        try:
+            import websocket
+        except ImportError:
+            self.skipTest('websocket-client indisponível.')
+        chrome = shutil.which('chrome') or next((str(path) for path in (
+            Path(r'C:\Program Files\Google\Chrome\Application\chrome.exe'),
+            Path(r'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe'),
+        ) if path.exists()), None)
+        if not chrome:
+            self.skipTest('Chrome ou Edge indisponível.')
+
+        user = get_user_model().objects.create_user('training-browser')
+        TbPersonagem.objects.create(dono=user, nome='Aprendiz', carteira_pc=20000)
+        TbIdioma.objects.create(slug='idioma-teste', nome='Idioma de Teste')
+        for slug, subcategory in (
+            ('kit-teste', 'ferramenta_artesao'),
+            ('flauta-teste', 'instrumento'),
+            ('xadrez-teste', 'conjunto_jogo'),
+        ):
+            TbItemMundano.objects.create(
+                slug=slug, nome=slug, categoria='ferramenta', subcategoria=subcategory)
+        self.client.force_login(user)
+
+        with tempfile.TemporaryDirectory(prefix='bonfire-training-', ignore_cleanup_errors=True) as profile:
+            process = subprocess.Popen([
+                chrome, '--headless=new', '--no-sandbox', '--disable-gpu',
+                '--remote-debugging-port=0', '--remote-allow-origins=*',
+                f'--user-data-dir={profile}', 'about:blank',
+            ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            ws = None
+            try:
+                port_file = Path(profile) / 'DevToolsActivePort'
+                for _ in range(80):
+                    if port_file.exists():
+                        break
+                    time.sleep(.1)
+                self.assertTrue(port_file.exists())
+                port = port_file.read_text(encoding='utf-8').splitlines()[0]
+                with urlopen(f'http://127.0.0.1:{port}/json', timeout=5) as response:
+                    target = next(item for item in json.load(response) if item['type'] == 'page')
+                ws = websocket.create_connection(target['webSocketDebuggerUrl'], timeout=10)
+                sequence = 0
+
+                def call(method, params=None):
+                    nonlocal sequence
+                    sequence += 1
+                    ws.send(json.dumps({'id': sequence, 'method': method, 'params': params or {}}))
+                    while True:
+                        result = json.loads(ws.recv())
+                        if result.get('id') == sequence:
+                            self.assertNotIn('error', result, method)
+                            return result['result']
+
+                def js(expression):
+                    result = call('Runtime.evaluate', {'expression': expression, 'returnByValue': True})
+                    self.assertNotIn('exceptionDetails', result, expression)
+                    return result['result'].get('value')
+
+                def wait_for(expression):
+                    for _ in range(80):
+                        if js(expression):
+                            return
+                        time.sleep(.2)
+                    self.fail(f'Tempo esgotado: {expression}')
+
+                call('Network.enable')
+                call('Network.setCookie', {
+                    'name': settings.SESSION_COOKIE_NAME,
+                    'value': self.client.cookies[settings.SESSION_COOKIE_NAME].value,
+                    'url': self.live_server_url,
+                })
+                call('Emulation.setDeviceMetricsOverride', {
+                    'width': 360, 'height': 800, 'deviceScaleFactor': 1, 'mobile': True,
+                })
+                call('Page.navigate', {'url': self.live_server_url + reverse('mercado_servicos')})
+                wait_for('document.querySelector("#training-choice") !== null')
+                self.assertEqual(js('Array.from(document.querySelectorAll("#training-choice optgroup")).map(group => group.label).join(",")'), 'Idiomas,Ferramentas,Instrumentos,Jogos')
+                self.assertTrue(js('document.querySelector("#treinamentos").textContent.includes("instrumento ou jogo")'))
+                self.assertTrue(js('document.querySelector("#emprestimos").hidden'))
+                js('window.__trainingMarker = 42')
+                js('document.querySelector("#training-search").value = "flauta"; document.querySelector("#training-search").dispatchEvent(new Event("input", {bubbles:true}))')
+                wait_for('Array.from(document.querySelectorAll("#training-choice option")).filter(option => option.value).length === 1')
+                self.assertEqual(js('document.querySelector("#training-choice optgroup").label'), 'Instrumentos')
+                js('document.querySelector("#training-group").value = "Jogos"; document.querySelector("#training-group").dispatchEvent(new Event("change", {bubbles:true}))')
+                wait_for('document.querySelector("#training-choice").disabled && document.querySelector("#training-search-status").textContent.includes("Nenhum")')
+                js('document.querySelector("[data-training-clear]").click()')
+                wait_for('document.querySelectorAll("#training-choice optgroup").length === 4 && !document.querySelector("#training-choice").disabled')
+                js('document.querySelector("#tab-emprestimos").click()')
+                wait_for('location.hash === "#emprestimos" && document.querySelector("#treinamentos").hidden && !document.querySelector("#emprestimos").hidden')
+                self.assertEqual(js('window.__trainingMarker'), 42)
+                js('history.back()')
+                wait_for('location.hash === "" && !document.querySelector("#treinamentos").hidden && document.querySelector("#emprestimos").hidden')
+                self.assertEqual(js('window.__trainingMarker'), 42)
+                self.assertLessEqual(js('document.documentElement.scrollWidth'), js('innerWidth'))
+            finally:
+                if ws:
+                    ws.close()
+                process.terminate()
+                try:
+                    process.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.wait(timeout=5)

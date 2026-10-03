@@ -47,7 +47,7 @@
       <div><span>Capacitação</span><h1>Treinamentos</h1></div>
       <strong>{{ treinamento_custo }}</strong>
     </header>
-    <p class="service-lead">Aprenda um idioma ou uma ferramenta em 30 dias. O pagamento é feito no início e cada personagem pode manter apenas um treinamento em andamento.</p>
+    <p class="service-lead">Aprenda um idioma, ferramenta, instrumento ou jogo em 30 dias. O pagamento é feito no início e cada personagem pode manter apenas um treinamento em andamento.</p>
 
     {% if not mercado_ativo %}
       <p class="service-empty">Escolha um personagem no balcão.</p>
@@ -67,7 +67,7 @@
         <p id="training-search-status" class="training-search-status" role="status" aria-live="polite">Opções de treinamento disponíveis: {{ treinamentos_disponiveis|length }}.</p>
         <label for="training-choice">Nova proficiência</label>
         <select id="training-choice" name="treinamento" required>
-          <option value="">Selecione um idioma ou ferramenta</option>
+          <option value="">Selecione um treinamento</option>
           {% for grupo in grupos %}<optgroup label="{{ grupo.grouper }}">{% for row in grupo.list %}<option value="{{ row.token }}">{{ row.nome }}</option>{% endfor %}</optgroup>{% endfor %}
         </select>
         <button type="submit">Iniciar por {{ treinamento_custo }}</button>
@@ -218,7 +218,7 @@
       const query = normalize(trainingSearch.value.trim());
       const category = trainingGroup.value;
       const selected = trainingChoice.value;
-      trainingChoice.replaceChildren(new Option('Selecione um idioma ou ferramenta', ''));
+      trainingChoice.replaceChildren(new Option('Selecione um treinamento', ''));
       let count = 0;
       groups.forEach(group => {
         if (category && category !== group.label) return;
