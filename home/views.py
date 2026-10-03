@@ -15463,7 +15463,10 @@ def cronica_moderar_denuncia_view(request, denuncia_id):
 def cronica_create_view(request):
     territorios, regioes = _cronicas_location_choices()
     if request.method == 'POST':
-        data = _json_body(request)
+        try:
+            data = _editor_json_body(request)
+        except ValueError as exc:
+            return JsonResponse({'error': str(exc)}, status=400)
         fields = {
             name: data.get(name, '') for name in (
                 'titulo', 'conteudo_markdown', 'resumo', 'imagem_url', 'personagem_nome'
@@ -15521,7 +15524,10 @@ def _cronica_author_snapshot(cronica):
 def cronica_edit_view(request, slug):
     territorios, regioes = _cronicas_location_choices()
     if request.method == 'POST':
-        data = _json_body(request)
+        try:
+            data = _editor_json_body(request)
+        except ValueError as exc:
+            return JsonResponse({'error': str(exc)}, status=400)
         with transaction.atomic():
             cronica = get_object_or_404(TbCronica.objects.select_for_update(), slug=slug)
             if cronica.autor_id != request.user.id:
@@ -15551,6 +15557,11 @@ def cronica_edit_view(request, slug):
             fields['territorio'] = _store_multi_value(territorio)
             fields['regiao'] = _store_multi_value(regiao)
             if cronica.status == 'aprovada':
+                current = {name: source.get(name, getattr(cronica, name)) for name in fields}
+                if (not source or source.get('estado') == 'pendente') and all(
+                    (value or '') == (current[name] or '') for name, value in fields.items()
+                ):
+                    return JsonResponse({'ok': True})
                 cronica.revisao_edicao = {
                     **fields, 'estado': 'pendente', 'submetida_em': timezone.now().isoformat(),
                 }
@@ -15620,7 +15631,10 @@ def cronicas_review_view(request):
 @permission_required('home.change_tbcronica', raise_exception=True)
 @require_POST
 def cronica_review_action(request, cronica_id):
-    data = _json_body(request)
+    try:
+        data = _editor_json_body(request)
+    except ValueError as exc:
+        return JsonResponse({'error': str(exc)}, status=400)
     action = data.get('action', '')
     if action not in ('aprovar', 'reprovar'):
         return JsonResponse({'error': 'Ação inválida.'}, status=400)
