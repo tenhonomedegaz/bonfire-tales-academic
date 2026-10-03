@@ -37,6 +37,7 @@
     {% if can_edit_wiki and kind == 'organizacoes' %}
       <button type="button" class="catalog-action" id="toggleOrgForm" style="margin-top:0.6rem;">Nova organizacao</button>
       <form class="org-form" id="orgForm">
+        {% csrf_token %}
         <input name="nome" placeholder="Nome da organizacao" required>
         <input name="tipo" placeholder="Tipo, ex: Guilda, Ordem, Reino">
         <input name="sede" placeholder="Sede">
@@ -246,7 +247,7 @@
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-CSRFToken': decodeURIComponent((document.cookie.split('; ').find(row => row.startsWith('csrftoken=')) || '').split('=')[1] || ''),
+        'X-CSRFToken': form.querySelector('[name="csrfmiddlewaretoken"]').value,
       },
       body: JSON.stringify(data),
     });

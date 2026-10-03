@@ -1,5 +1,6 @@
 import json
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
@@ -232,6 +233,29 @@ class OrganizationReferencesBrowserTests(StaticLiveServerTestCase):
                 js('document.querySelector(".detail-meta-value a[href=\\"/mundo/regioes/auralon/\\"]").click()')
                 wait_for('location.pathname === "/mundo/regioes/auralon/" && document.readyState === "complete"')
                 self.assertTrue(js('document.body.textContent.includes("Auralon")'))
+
+                editor = get_user_model().objects.create_user(
+                    'organization-browser-editor', password='test-password', is_staff=True)
+                self.client.force_login(editor)
+                call('Network.enable')
+                call('Network.setCookie', {
+                    'name': settings.SESSION_COOKIE_NAME,
+                    'value': self.client.cookies[settings.SESSION_COOKIE_NAME].value,
+                    'url': self.live_server_url,
+                })
+                call('Page.navigate', {'url': self.live_server_url + reverse('mundo_organizacoes')})
+                wait_for('document.querySelector("#orgForm [name=csrfmiddlewaretoken]")?.value.length > 0')
+                js('''(() => {
+                    document.querySelector('#toggleOrgForm').click();
+                    document.querySelector('#orgForm [name=nome]').value = 'Liga Navegador';
+                    document.querySelector('#orgForm [name=regioes]').value = 'Auralon';
+                    document.querySelector('#orgForm [name=descricao]').value = 'Criada pelo editor.';
+                    document.querySelector('#orgForm button[type=submit]').click();
+                })()''')
+                wait_for('[...document.querySelectorAll(".catalog-card-title")].some(e => e.textContent === "Liga Navegador")')
+                created = TbOrganizacao.objects.get(slug='liga-navegador')
+                self.assertEqual(created.regioes, ['Auralon'])
+                self.assertEqual(created.descricao, 'Criada pelo editor.')
             finally:
                 if ws:
                     ws.close()
