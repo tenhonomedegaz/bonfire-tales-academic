@@ -119,10 +119,8 @@
   function renderPreview() {
     const src = editor.value;
     counter.textContent = `${src.length} caracteres`;
-    if (typeof renderBonfireMarkdown === 'function') {
-      preview.innerHTML = renderBonfireMarkdown(src, { enableOptions: false });
-    } else if (window.marked && typeof window.marked.parse === 'function') {
-      preview.innerHTML = applyMarkdownColorsToHtml(marked.parse(src, { breaks: true, gfm: true }));
+    if (typeof renderBonfireMarkdownElement === 'function') {
+      renderBonfireMarkdownElement(preview, src, { enableOptions: false });
     } else {
       preview.textContent = src;
     }

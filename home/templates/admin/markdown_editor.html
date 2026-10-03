@@ -85,12 +85,10 @@
             return;
         }
 
-        if (typeof renderBonfireMarkdown === 'function') {
-            preview.innerHTML = renderBonfireMarkdown(editor.value);
-        } else if (window.marked && typeof window.marked.parse === 'function') {
-            preview.innerHTML = applyMarkdownColorsToHtml(marked.parse(editor.value, { breaks: true, gfm: true }));
+        if (typeof renderBonfireMarkdownElement === 'function') {
+            renderBonfireMarkdownElement(preview, editor.value);
         } else {
-            preview.innerHTML = applyMarkdownColorsToHtml(escapeHtml(editor.value)).replace(/\n/g, '<br>');
+            preview.textContent = editor.value;
         }
     }
 
