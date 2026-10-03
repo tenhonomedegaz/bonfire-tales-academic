@@ -449,6 +449,32 @@ class WorldLoreBrowserSafetyTests(StaticLiveServerTestCase):
                 history_length = js('history.length')
                 js('document.querySelector(".region-mobile-drawer [data-region-link=cidade-literal]").click()')
                 self.assertEqual(js('history.length'), history_length)
+
+                # 768 px a 200% equivale a uma area util de 384 CSS px.
+                call('Emulation.setEmulatedMedia', {'features': [
+                    {'name': 'prefers-reduced-motion', 'value': 'reduce'},
+                ]})
+                for width in (360, 384):
+                    call('Emulation.setDeviceMetricsOverride', {
+                        'width': width, 'height': 800, 'deviceScaleFactor': 1, 'mobile': True,
+                    })
+                    call('Page.navigate', {'url': self.live_server_url + territory_path})
+                    wait_for('document.querySelector("#articleTitle")?.textContent === ' + json.dumps(territory_name))
+                    js('document.querySelector("#regionMobileMenuButton").click()')
+                    self.assertTrue(js('document.body.classList.contains("region-menu-open")'))
+                    self.assertLessEqual(js('document.querySelector("#regionMobileMenuButton").getBoundingClientRect().right'), js('innerWidth'))
+                    self.assertLessEqual(js('document.documentElement.scrollWidth'), js('innerWidth'))
+                    self.assertEqual(js('getComputedStyle(document.querySelector("#regionMobileDrawer")).transitionDuration'), '0s')
+                    js('document.querySelector(".region-mobile-drawer [data-region-link=cidade-solta]").click()')
+                    self.assertEqual(js('document.querySelector("#articleTitle").textContent'), 'Cidade solta')
+                    self.assertEqual(js('document.activeElement?.id'), 'articleTitle')
+                for width in (768, 1280, 1920):
+                    call('Emulation.setDeviceMetricsOverride', {
+                        'width': width, 'height': 800, 'deviceScaleFactor': 1, 'mobile': width <= 768,
+                    })
+                    call('Page.navigate', {'url': self.live_server_url + territory_path})
+                    wait_for('document.querySelector("#articleTitle")?.textContent === ' + json.dumps(territory_name))
+                    self.assertLessEqual(js('document.documentElement.scrollWidth'), js('innerWidth'))
             finally:
                 if ws:
                     ws.close()

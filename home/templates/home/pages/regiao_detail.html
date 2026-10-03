@@ -549,7 +549,7 @@
     z-index: 70;
   }
   body.region-menu-open .region-mobile-menu-button {
-    left: calc(min(88vw, 360px) + 8px);
+    left: calc(min(88vw, 360px) - 22px);
   }
   .region-mobile-menu-button .close-icon {
     display: none;
@@ -621,6 +621,15 @@
   }
   .region-content {
     padding-bottom: 4rem;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .region-layout *,
+  .region-layout *::before,
+  .region-layout *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
   }
 }
 </style>
@@ -1231,8 +1240,9 @@
     currentData = data;
     if (viewTimer) clearTimeout(viewTimer);
 
-    contentEl.classList.add('is-swapping');
-    viewTimer = setTimeout(() => {
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!reducedMotion) contentEl.classList.add('is-swapping');
+    const applyView = () => {
       hero.style.setProperty('--hero-bg', `url('${data.imagem_url}')`);
       if (sideCard) sideCard.style.setProperty('--map-image', `url('${data.side_image_url || data.territory_image_url || data.imagem_url}')`);
       titleEl.textContent = data.nome;
@@ -1286,7 +1296,9 @@
       contentEl.classList.remove('is-swapping');
       if (focusTitle) titleEl.focus({ preventScroll: true });
       viewTimer = null;
-    }, 200);
+    };
+    if (reducedMotion) applyView();
+    else viewTimer = setTimeout(applyView, 200);
   }
 
   // Global Click Handlers
