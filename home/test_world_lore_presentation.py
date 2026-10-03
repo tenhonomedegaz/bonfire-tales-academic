@@ -323,6 +323,35 @@ class WorldLorePresentationTests(TestCase):
         self.assertEqual(next(item for item in detail.context['client_regions']
                               if item['slug'] == 'cidade-b')['imagem_url'], territory.imagem_url)
 
+    def test_staff_region_edit_persists_and_public_detail_remains_available(self):
+        TbMapLayer.objects.update_or_create(
+            id_layer=0, defaults={'nome': 'Superfície', 'ordem': 0, 'publica': True},
+        )
+        territory = TbTerritorio.objects.create(nome='Vale editorial', slug='vale-editorial', camada=0)
+        region = TbRegiao.objects.create(
+            nome='Cidade editorial', slug='cidade-editorial', territorio=territory.nome,
+            camada=0, lore_markdown='## Visão Geral\nTexto inicial.',
+        )
+        editor = get_user_model().objects.create_superuser(
+            username='editor-regiao', email='editor-regiao@example.invalid', password='test-only',
+        )
+        self.client.force_login(editor)
+        response = self.client.post(
+            reverse('wiki_update_region', args=[region.pk]),
+            data=json.dumps({
+                'nome': region.nome, 'territorio': territory.nome,
+                'lore_markdown': '## Visão Geral\nLore revisada no editor.',
+            }),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['redirect'], reverse('regiao_detail', args=[region.slug]))
+        region.refresh_from_db()
+        self.assertEqual(region.lore_markdown, '## Visão Geral\nLore revisada no editor.')
+        self.client.logout()
+        self.assertContains(self.client.get(reverse('regiao_detail', args=[region.slug])),
+                            'Lore revisada no editor.')
+
 
 class WorldLoreBrowserSafetyTests(StaticLiveServerTestCase):
     def test_world_lore_and_editor_keep_hostile_content_literal_at_360px(self):

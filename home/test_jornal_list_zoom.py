@@ -9,11 +9,12 @@ import time
 from pathlib import Path
 from urllib.request import urlopen
 
+from django.contrib.auth import get_user_model
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.db import connection
 from django.urls import reverse
 
-from .models import TbConteudoEstatico, TbJornal, TbMapLayer, TbTerritorio
+from .models import TbConteudoEstatico, TbJornal, TbMapLayer, TbRegiao, TbTerritorio
 
 
 class JornalListZoomTests(StaticLiveServerTestCase):
@@ -38,7 +39,14 @@ class JornalListZoomTests(StaticLiveServerTestCase):
         TbMapLayer.objects.update_or_create(
             id_layer=0, defaults={"nome": "Superfície", "ordem": 0, "publica": True},
         )
-        TbTerritorio.objects.create(nome="Território de teste", slug="territorio-zoom-qa", camada=0)
+        TbTerritorio.objects.create(
+            nome="Território de teste", slug="territorio-zoom-qa", camada=0,
+            lore_markdown="## Visão Geral\nUm território com história para leitura.",
+        )
+        TbRegiao.objects.create(
+            nome="Região de teste", slug="regiao-zoom-qa", territorio="Território de teste",
+            camada=0, lore_markdown="## Visão Geral\nUma região com história para leitura.",
+        )
         TbConteudoEstatico.objects.create(
             chave="sobre-zoom-qa", pagina="sobre", titulo="Sobre o Bonfire Tales",
             conteudo_markdown="Conheça a comunidade Bonfire Tales.",
@@ -107,14 +115,19 @@ class JornalListZoomTests(StaticLiveServerTestCase):
                 self.assertTrue(js("document.querySelector('.jornal-card').matches(':hover')"))
                 self.assertEqual(js("getComputedStyle(document.querySelector('.jornal-card')).transform"), "none")
                 self.assertEqual(js("getComputedStyle(document.querySelector('.jornal-card')).transitionDuration"), "0s")
-                for route_name, selector in (
-                    ("home", "#home-primary-action"),
-                    ("mundo_regioes", ".territory-card"),
-                    ("sobre", "main h1"),
+                for route_name, route_args, selector in (
+                    ("home", [], "#home-primary-action"),
+                    ("mundo_regioes", [], ".territory-card"),
+                    ("territorio_detail", ["territorio-zoom-qa"], "#articleTitle"),
+                    ("regiao_detail", ["regiao-zoom-qa"], "#articleTitle"),
+                    ("sobre", [], "main h1"),
                 ):
-                    call("Page.navigate", {"url": self.live_server_url + reverse(route_name)})
+                    call("Page.navigate", {"url": self.live_server_url + reverse(route_name, args=route_args)})
                     for _ in range(80):
-                        if js("document.readyState") == "complete" and js(f'document.querySelector("{selector}") !== null'):
+                        if js("document.readyState") == "complete" and js(f'document.querySelector("{selector}") !== null') and (
+                            route_name not in ("territorio_detail", "regiao_detail") or
+                            js('document.querySelector("#articleTitle").textContent.includes("de teste")')
+                        ):
                             break
                         time.sleep(.1)
                     page = json.loads(js("JSON.stringify({dpr:devicePixelRatio,scale:visualViewport.scale,scroll:document.documentElement.scrollWidth,client:document.documentElement.clientWidth,h1:document.querySelectorAll('main h1').length})"))
@@ -128,6 +141,42 @@ class JornalListZoomTests(StaticLiveServerTestCase):
                         self.assertTrue(js("document.querySelector('.territory-card').matches(':hover')"))
                         self.assertEqual(js("getComputedStyle(document.querySelector('.territory-card-bg')).transform"), "none")
                         self.assertEqual(js("getComputedStyle(document.querySelector('.territory-card-bg')).transitionDuration"), "0s")
+                editor = get_user_model().objects.create_superuser(
+                    username="world-zoom-editor", email="world-zoom@example.invalid", password="test-only",
+                )
+                self.client.force_login(editor)
+                call("Network.enable")
+                call("Network.setCookie", {
+                    "name": "sessionid", "value": self.client.cookies["sessionid"].value,
+                    "url": self.live_server_url,
+                })
+                call("Page.navigate", {"url": self.live_server_url + reverse("regiao_detail", args=["regiao-zoom-qa"])})
+                for _ in range(80):
+                    if js('document.querySelector("#btnEditRegion") !== null'):
+                        break
+                    time.sleep(.1)
+                self.assertTrue(js('document.querySelector("#btnEditRegion") !== null'))
+                js('document.querySelector("#btnEditRegion").click()')
+                self.assertTrue(js('document.querySelector("#regionForm").classList.contains("is-open")'))
+                js('document.querySelector("#btnEditRegion").focus()')
+                for _ in range(2):
+                    call("Input.dispatchKeyEvent", {"type": "keyDown", "key": "Tab", "code": "Tab", "windowsVirtualKeyCode": 9})
+                    call("Input.dispatchKeyEvent", {"type": "keyUp", "key": "Tab", "code": "Tab", "windowsVirtualKeyCode": 9})
+                self.assertEqual(js("document.activeElement.id"), "edit-nr-territorio")
+                self.assertEqual(js("getComputedStyle(document.activeElement).outlineStyle"), "solid")
+                self.assertEqual(js("getComputedStyle(document.activeElement).outlineWidth"), "2px")
+                self.assertLessEqual(js("document.querySelector('#regionForm').getBoundingClientRect().right"), js("document.documentElement.clientWidth"))
+                self.assertLessEqual(js("document.activeElement.getBoundingClientRect().right"), js("document.documentElement.clientWidth"))
+                self.assertTrue(js("[...document.querySelectorAll('#regionForm input, #regionForm select, #regionForm textarea, #regionForm button')].filter(e=>e.getClientRects().length).every(e=>e.getBoundingClientRect().right<=document.documentElement.clientWidth+1)"))
+                self.assertTrue(js("document.querySelector('#regionForm').checkValidity()"))
+                call("Page.navigate", {"url": self.live_server_url + reverse("territorio_detail", args=["territorio-zoom-qa"])})
+                for _ in range(80):
+                    if js('document.querySelector("#btnEditTerritory") !== null'):
+                        break
+                    time.sleep(.1)
+                self.assertTrue(js('document.querySelector("#btnEditTerritory") !== null'))
+                js('document.querySelector("#btnEditTerritory").click()')
+                self.assertTrue(js("[...document.querySelectorAll('#territoryForm input, #territoryForm textarea, #territoryForm button')].filter(e=>e.getClientRects().length).every(e=>e.getBoundingClientRect().right<=document.documentElement.clientWidth+1)"))
                 call("Page.navigate", {"url": self.live_server_url + reverse("jornal_detail", args=["capa-antiga"])})
                 for _ in range(80):
                     if js("document.readyState") == "complete" and js("document.querySelector('.artigo-hero') !== null"):

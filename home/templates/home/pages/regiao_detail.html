@@ -337,10 +337,16 @@
   border-radius: 8px;
   display: none;
   gap: .75rem;
+  grid-template-columns: minmax(0, 1fr);
   margin-top: 1rem;
+  min-width: 0;
   padding: 1rem;
 }
 .wiki-inline-editor.is-open { display: grid; }
+.wiki-inline-editor label,
+.wiki-territory-field {
+  min-width: 0;
+}
 .wiki-inline-editor label {
   color: var(--muted);
   display: grid;
@@ -349,6 +355,12 @@
   gap: .35rem;
   letter-spacing: .1em;
   text-transform: uppercase;
+}
+.wiki-inline-editor input,
+.wiki-inline-editor textarea,
+.wiki-inline-editor select {
+  max-width: 100%;
+  min-width: 0;
 }
 .wiki-inline-editor input,
 .wiki-inline-editor textarea {
@@ -360,6 +372,20 @@
   padding: .65rem .75rem;
 }
 .wiki-inline-editor textarea { min-height: 220px; resize: vertical; }
+.wiki-stats-grid {
+  display: grid;
+  gap: .5rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 1rem;
+}
+@media (max-width: 600px) {
+  .wiki-stats-grid { grid-template-columns: minmax(0, 1fr); }
+}
+.wiki-inline-editor :is(input, textarea, select, button):focus-visible,
+.wiki-edit-button:focus-visible {
+  outline: 2px solid var(--territory-accent);
+  outline-offset: 2px;
+}
 .wiki-inline-actions { display: flex; gap: .5rem; justify-content: flex-end; }
 .wiki-inline-cancel {
   border: 1px solid var(--stroke);
@@ -1120,15 +1146,16 @@
         <div class="wiki-tools mt-8 pt-8 border-t border-[var(--stroke)]"><button type="button" class="wiki-edit-button" id="btnEditRegion">Editar região</button></div>
         <form id="regionForm" class="wiki-inline-editor" data-region-id="${data.id}">
           <label>Nome <input name="nome" value="${escapeHtml(data.nome)}"></label>
-          <label>Território
+          <div class="wiki-territory-field">
+            <label for="edit-nr-territorio">Território</label>
             <div style="display: flex; gap: 0.5rem; margin-top: 0.25rem;">
-              <select id="edit-nr-territorio" name="territorio" style="flex: 1; background: var(--bg2); border: 1px solid var(--stroke); color: var(--text); padding: .3rem; font-size: .75rem; border-radius: 4px; outline: none; appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23ffffff%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right .7rem top 50%; background-size: .65rem auto;">
+              <select id="edit-nr-territorio" name="territorio" style="flex: 1; min-width: 0; background: var(--bg2); border: 1px solid var(--stroke); color: var(--text); padding: .3rem; font-size: .75rem; border-radius: 4px; appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23ffffff%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right .7rem top 50%; background-size: .65rem auto;">
                 <option value="">Sem território</option>
                 ${allTerritories.map(name => `<option value="${escapeHtml(name)}" ${data.territorio === name ? 'selected' : ''} style="background: var(--bg1); color: var(--text);">${escapeHtml(name)}</option>`).join('')}
               </select>
-              <button type="button" onclick="showInlineCreateTerritoryDetail()" style="padding: 0.3rem 0.6rem; background: var(--bg2); border: 1px solid var(--stroke); color: var(--ember); font-weight: bold; border-radius: 4px; cursor: pointer; font-size: 0.75rem;">+</button>
+              <button type="button" aria-label="Criar novo território" onclick="showInlineCreateTerritoryDetail()" style="padding: 0.3rem 0.6rem; background: var(--bg2); border: 1px solid var(--stroke); color: var(--ember); font-weight: bold; border-radius: 4px; cursor: pointer; font-size: 0.75rem;">+</button>
             </div>
-          </label>
+          </div>
 
           <!-- Seção oculta de criação de território no detalhe da região -->
           <div id="inlineCreateTerritorySectionDetail" style="display: none; border: 1px dashed var(--stroke); padding: 0.75rem; border-radius: 4px; margin-top: 0.5rem; background: var(--bg0);">
@@ -1150,7 +1177,7 @@
           <label>URL do mapa lateral <input name="mapa_url" value="${escapeHtml(data.raw_mapa_url || '')}"></label>
           <label>Tags adicionais <input name="etiquetas_adicionais" value="${escapeHtml(data.etiquetas_adicionais || '')}" placeholder="Separadas por vírgula"></label>
           <label>Lore markdown <textarea name="lore_markdown" rows="12">${escapeHtml(data.lore_markdown || '')}</textarea></label>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 1rem;">
+          <div class="wiki-stats-grid">
             <label>Mov. Econômicas <input type="number" name="movimentacoes_economicas" value="${data.stats?.movimentacoes_economicas || 0}"></label>
             <label>Poder Militar <input type="number" name="poder_militar" value="${data.stats?.poder_militar || 0}"></label>
             <label>Desenv. Tecnológico <input type="number" name="desenvolvimento_tecnologico" value="${data.stats?.desenvolvimento_tecnologico || 0}"></label>
@@ -1175,7 +1202,7 @@
           <label>URL da imagem <input name="imagem_url" value="${escapeHtml(data.raw_imagem_url || '')}"></label>
           <label>Descrição breve <textarea name="descricao_breve" rows="2">${escapeHtml(data.descricao_breve || '')}</textarea></label>
           <label>Lore markdown <textarea name="lore_markdown" rows="12">${escapeHtml(data.lore_markdown || '')}</textarea></label>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 1rem;">
+          <div class="wiki-stats-grid">
             <label>Riqueza Natural <input type="number" name="riqueza_natural" value="${data.stats?.riqueza_natural || 0}"></label>
             <label>Riqueza Monetária <input type="number" name="riqueza_monetaria" value="${data.stats?.riqueza_monetaria || 0}"></label>
             <label>Poder Militar <input type="number" name="poder_militar" value="${data.stats?.poder_militar || 0}"></label>
