@@ -40,7 +40,7 @@
   </a>
   {% endif %}
 
-  {% if can_edit_wiki %}
+  {% if request.user.is_staff and perms.home.change_tbcronica %}
   <a href="{% url 'cronicas_review' %}" class="cronicas-btn-outline">
     Revisão
     {% if pendente_count > 0 %}<span class="cronicas-review-badge">{{ pendente_count }}</span>{% endif %}

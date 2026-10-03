@@ -2,6 +2,7 @@ import json
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Permission
 from django.test import TestCase
 from django.urls import reverse
 
@@ -22,6 +23,9 @@ class FirstPublishedStoryAchievementTests(TestCase):
         users = get_user_model().objects
         cls.author = users.create_user('story-achievement-author', password='x')
         cls.staff = users.create_user('story-achievement-staff', password='x', is_staff=True)
+        cls.staff.user_permissions.add(Permission.objects.get(
+            codename='change_tbcronica', content_type__app_label='home',
+        ))
 
     def rule(self):
         reward = TbCosmetico.objects.create(slug='story-reward-test', nome='Prêmio teste',

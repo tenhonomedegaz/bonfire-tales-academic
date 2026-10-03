@@ -1,6 +1,7 @@
 import json
 
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Permission
 from django.test import TestCase
 from django.urls import reverse
 
@@ -14,6 +15,12 @@ class CronicaRevisionTests(TestCase):
         cls.autor = user.objects.create_user('autor-cronica', password='senha')
         cls.outro = user.objects.create_user('outro-cronica', password='senha')
         cls.staff = user.objects.create_user('staff-cronica', password='senha', is_staff=True)
+        cls.staff.user_permissions.add(Permission.objects.get(
+            codename='change_tbcronica', content_type__app_label='home',
+        ))
+        cls.staff_sem_publicacao = user.objects.create_user(
+            'staff-sem-publicacao', password='senha', is_staff=True,
+        )
         cls.cronica = TbCronica.objects.create(
             titulo='Título publicado', slug='titulo-publicado',
             conteudo_markdown='Texto publicado', resumo='Resumo publicado',
@@ -45,6 +52,31 @@ class CronicaRevisionTests(TestCase):
         self.assertEqual(detail.status_code, 200)
         self.assertTrue(detail.context['can_edit_wiki'])
 
+    def test_generic_staff_cannot_review_or_publish(self):
+        self.edit(content='Edição privada pendente')
+        self.client.force_login(self.staff_sem_publicacao)
+        self.assertEqual(self.client.get(reverse('cronicas_review')).status_code, 403)
+        self.assertEqual(self.post_json(reverse('cronica_review_action', args=[self.cronica.pk]), {
+            'action': 'aprovar',
+        }).status_code, 403)
+        listing = self.client.get(reverse('mundo_cronicas'))
+        self.assertNotContains(listing, 'href="%s"' % reverse('cronicas_review'))
+        self.assertEqual(listing.context['pendente_count'], 0)
+        public_detail = self.client.get(reverse('cronica_detail', args=[self.cronica.slug]))
+        self.assertEqual(public_detail.context['revisao_edicao'], {})
+        self.assertNotContains(public_detail, 'Edição privada pendente')
+        pending = TbCronica.objects.create(
+            titulo='Ainda privada', slug='ainda-privada',
+            conteudo_markdown='Texto só para revisão', autor=self.autor, status='pendente',
+        )
+        self.assertEqual(self.client.get(reverse('cronica_detail', args=[pending.slug])).status_code, 404)
+        self.client.force_login(self.staff)
+        self.assertContains(self.client.get(reverse('cronica_detail', args=[pending.slug])),
+                            'Texto só para revisão')
+        self.cronica.refresh_from_db()
+        self.assertEqual(self.cronica.conteudo_markdown, 'Texto publicado')
+        self.assertEqual(self.cronica.revisao_edicao['estado'], 'pendente')
+
     def test_published_story_remains_visible_while_edit_is_reviewed(self):
         self.assertEqual(self.edit().status_code, 200)
         self.cronica.refresh_from_db()
@@ -65,6 +97,8 @@ class CronicaRevisionTests(TestCase):
         queue = self.client.get(reverse('cronicas_review'))
         self.assertContains(queue, 'Texto novo')
         self.assertNotContains(queue, 'Texto publicado')
+        self.assertContains(self.client.get(reverse('mundo_cronicas')),
+                            'href="%s"' % reverse('cronicas_review'))
 
     def test_staff_approval_publishes_all_fields_once(self):
         self.edit()

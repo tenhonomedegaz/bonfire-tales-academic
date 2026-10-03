@@ -22,7 +22,7 @@
 </div>
 
 <div class="cronica-layout">
-  {% if request.user.is_staff and cronica.status == 'aprovada' %}
+  {% if request.user.is_staff and perms.home.change_tbcronica and cronica.status == 'aprovada' %}
   <form method="post" action="{% url 'cronica_destaque' cronica.id_cronica %}">
     {% csrf_token %}
     <input type="hidden" name="destaque" value="{% if cronica.destaque_editorial %}false{% else %}true{% endif %}">

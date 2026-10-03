@@ -14805,7 +14805,7 @@ def cronicas_list_view(request):
 
     pendente_count = TbCronica.objects.filter(
         Q(status='pendente') | Q(status='aprovada', revisao_edicao__estado='pendente')
-    ).count() if request.user.is_staff else 0
+    ).count() if request.user.is_staff and request.user.has_perm('home.change_tbcronica') else 0
 
     
     minhas = []
@@ -14837,9 +14837,10 @@ def cronicas_list_view(request):
 
 def cronica_detail_view(request, slug):
     cronica = get_object_or_404(TbCronica, slug=slug)
+    can_review = request.user.is_staff and request.user.has_perm('home.change_tbcronica')
     
     if cronica.status != 'aprovada':
-        if not (request.user.is_staff or (request.user.is_authenticated and cronica.autor == request.user)):
+        if not (can_review or (request.user.is_authenticated and cronica.autor == request.user)):
             raise Http404
     comments = list(TbCronicaComentario.objects.filter(cronica=cronica)
                     .select_related('autor').order_by('criado_em', 'pk')[:150]) if cronica.status == 'aprovada' else []
@@ -14862,13 +14863,14 @@ def cronica_detail_view(request, slug):
         'comentarios': roots,
         'comment_operation_key': uuid4(),
         'revisao_edicao': cronica.revisao_edicao if (
-            request.user.is_staff or (request.user.is_authenticated and cronica.autor_id == request.user.id)
+            can_review or (request.user.is_authenticated and cronica.autor_id == request.user.id)
         ) else {},
         'can_edit_wiki': request.user.is_staff,
     })
 
 
 @staff_member_required
+@permission_required('home.change_tbcronica', raise_exception=True)
 @require_POST
 def cronica_destaque_view(request, cronica_id):
     desired = request.POST.get('destaque')
@@ -15168,6 +15170,7 @@ def cronica_edit_view(request, slug):
 
 
 @staff_member_required
+@permission_required('home.change_tbcronica', raise_exception=True)
 def cronicas_review_view(request):
     pendentes = list(TbCronica.objects.filter(
         Q(status='pendente') | Q(status='aprovada', revisao_edicao__estado='pendente')
@@ -15184,6 +15187,7 @@ def cronicas_review_view(request):
 
 
 @staff_member_required
+@permission_required('home.change_tbcronica', raise_exception=True)
 @require_POST
 def cronica_review_action(request, cronica_id):
     data = _json_body(request)

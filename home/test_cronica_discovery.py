@@ -3,6 +3,7 @@ from datetime import timedelta
 from uuid import uuid4
 
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Permission
 from django.test import TestCase
 from django.test import TransactionTestCase
 from django.urls import reverse
@@ -22,6 +23,12 @@ class CronicaDiscoveryTests(TestCase):
         cls.reader = user.objects.create_user('reader-discovery', password='test')
         cls.other = user.objects.create_user('other-discovery', password='test')
         cls.staff = user.objects.create_user('staff-discovery', password='test', is_staff=True)
+        cls.staff.user_permissions.add(Permission.objects.get(
+            codename='change_tbcronica', content_type__app_label='home',
+        ))
+        cls.staff_sem_publicacao = user.objects.create_user(
+            'staff-discovery-unprivileged', password='test', is_staff=True,
+        )
         now = timezone.now()
         cls.older = TbCronica.objects.create(titulo='História antiga', slug='historia-antiga',
             conteudo_markdown='Texto antigo', autor=cls.author, status='aprovada',
@@ -50,7 +57,15 @@ class CronicaDiscoveryTests(TestCase):
         self.assertEqual(self.client.post(url, {'destaque': 'true'}).status_code, 302)
         self.older.refresh_from_db()
         self.assertFalse(self.older.destaque_editorial)
+        self.client.force_login(self.staff_sem_publicacao)
+        self.assertEqual(self.client.post(url, {'destaque': 'true'}).status_code, 403)
+        self.assertNotContains(self.client.get(reverse('cronica_detail', args=[self.older.slug])),
+                               'Destacar editorialmente')
+        self.older.refresh_from_db()
+        self.assertFalse(self.older.destaque_editorial)
         self.client.force_login(self.staff)
+        self.assertContains(self.client.get(reverse('cronica_detail', args=[self.older.slug])),
+                            'Destacar editorialmente')
         self.assertEqual(self.client.post(url, {'destaque': 'true'}).status_code, 302)
         self.assertContains(self.client.get(reverse('mundo_cronicas')), 'Destaques editoriais')
         self.assertEqual(self.client.post(reverse('cronica_destaque', args=[self.pending.pk]), {'destaque': 'true'}).status_code, 404)
