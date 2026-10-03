@@ -104,6 +104,15 @@ class JornalEditorAccessibilityTests(StaticLiveServerTestCase):
                 self.assertAlmostEqual(metrics['dpr'], 2, delta=.05, msg=metrics)
                 self.assertEqual(metrics['scale'], 1, metrics)
                 self.assertLessEqual(metrics['scroll'], metrics['client'], metrics)
+                for width in (360, 768, 1280, 1920):
+                    call('Emulation.setDeviceMetricsOverride', {
+                        'width': width * 2, 'height': 800,
+                        'deviceScaleFactor': 1, 'mobile': False,
+                    })
+                    viewport = json.loads(js('JSON.stringify({width:innerWidth,scroll:document.documentElement.scrollWidth,client:document.documentElement.clientWidth})'))
+                    self.assertEqual(viewport['width'], width, viewport)
+                    self.assertLessEqual(viewport['scroll'], viewport['client'], viewport)
+                call('Emulation.clearDeviceMetricsOverride')
                 self.assertTrue(js('document.querySelector("label[for=edMarkdown]").control === document.querySelector("#edMarkdown")'))
                 self.assertEqual(js('document.querySelector("[data-wrap=bold]").getAttribute("aria-label")'), 'Negrito')
                 js('document.querySelector(".editor-toolbar [data-prefix]:last-of-type").focus()')
