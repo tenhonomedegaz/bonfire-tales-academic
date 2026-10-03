@@ -378,6 +378,7 @@
         border-radius: 8px;
         margin-bottom: 0.7rem;
         padding: 0.7rem;
+        min-width: 0;
     }
     .wiki-editor-grid {
         display: grid;
@@ -399,6 +400,7 @@
         gap: .35rem;
         letter-spacing: .12em;
         text-transform: uppercase;
+        min-width: 0;
     }
     .wiki-editor input,
     .wiki-editor select,
@@ -415,6 +417,26 @@
         min-height: 220px;
         resize: vertical;
     }
+    .wiki-editor input:not([type="checkbox"]),
+    .wiki-editor select,
+    .wiki-editor textarea {
+        min-width: 0;
+        width: 100%;
+    }
+    .wiki-save-error {
+        color: #ffb4a6;
+        margin-top: .7rem;
+    }
+    .wiki-save-error[hidden] { display: none; }
+    .wiki-edit-button:focus-visible,
+    .wiki-save:focus-visible,
+    .wiki-cancel:focus-visible,
+    .wiki-save-error:focus {
+        outline: 2px solid var(--ember);
+        outline-offset: 2px;
+    }
+    .wiki-save:disabled,
+    .wiki-cancel:disabled { opacity: .55; cursor: wait; }
     .wiki-editor input:focus,
     .wiki-editor select:focus,
     .wiki-editor textarea:focus {

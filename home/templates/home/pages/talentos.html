@@ -518,11 +518,11 @@
                     <span class="text-[11px] font-bold px-1.5 py-0.5 rounded border border-bonfire-stroke text-bonfire-muted uppercase tracking-wide">${escapeHtml(talento.etiqueta)}</span>
                     ${getExtraTags(talento).map(tag => `<span class="text-[11px] font-bold px-1.5 py-0.5 rounded border border-bonfire-stroke text-bonfire-muted uppercase tracking-wide">${escapeHtml(tag)}</span>`).join('')}
                 </div>
-                ${canEditWiki ? `<button type="button" class="wiki-edit-button" onclick="openTalentEditor(${talento.id})">Editar wiki</button>` : ''}
+                ${canEditWiki ? `<button type="button" class="wiki-edit-button" aria-expanded="false" aria-controls="talento-editor" onclick="openTalentEditor(${talento.id})">Editar wiki</button>` : ''}
             </div>
 
             <h2 id="talento-${escapeHtml(talento.slug)}" data-talent-title tabindex="-1" class="font-cinzel text-xl font-bold text-bonfire-text uppercase mb-2.5">${escapeHtml(talento.nome)}</h2>
-            <div data-talent-editor></div>
+            <div id="talento-editor" data-talent-editor></div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-4">
                 <div class="talent-info-card bg-bonfire-bg1 border border-bonfire-stroke rounded-md p-3">
@@ -563,6 +563,10 @@
         const mount = detailContainer.querySelector('[data-talent-editor]');
         const preview = detailContainer.querySelector('[data-talent-preview]');
         if (!talento || !mount || !preview) return;
+        if (mount.querySelector('form')) {
+            mount.querySelector('input[name="nome"]')?.focus();
+            return;
+        }
 
         mount.innerHTML = `
             <form class="wiki-editor" data-talent-edit-form>
@@ -600,6 +604,7 @@
                         <textarea name="descricao">${escapeHtml(talento.descricao || '')}</textarea>
                     </label>
                 </div>
+                <p class="wiki-save-error" role="alert" tabindex="-1" hidden></p>
                 <div class="wiki-editor-actions">
                     <button type="button" class="wiki-cancel" onclick="closeTalentEditor()">Cancelar</button>
                     <button type="submit" class="wiki-save">Salvar</button>
@@ -608,44 +613,78 @@
         `;
 
         const form = mount.querySelector('[data-talent-edit-form]');
+        detailContainer.querySelector('.wiki-edit-button')?.setAttribute('aria-expanded', 'true');
         const textarea = form.elements.descricao;
         textarea.addEventListener('input', () => {
             preview.innerHTML = renderMarkdown(textarea.value);
         });
         form.addEventListener('submit', event => saveTalentEditor(event, talento.id));
+        form.addEventListener('keydown', event => {
+            if (event.key === 'Escape' && form.getAttribute('aria-busy') !== 'true') {
+                event.preventDefault();
+                closeTalentEditor();
+            }
+        });
+        form.elements.nome.focus();
     }
 
     function closeTalentEditor() {
         const mount = detailContainer.querySelector('[data-talent-editor]');
-        if (mount) mount.innerHTML = '';
+        const form = mount?.querySelector('form');
+        if (!form || form.getAttribute('aria-busy') === 'true') return;
+        const talento = talentosData.find(item => item.id === selectedTalentoId);
+        const preview = detailContainer.querySelector('[data-talent-preview]');
+        if (talento && preview) preview.innerHTML = renderMarkdown(talento.descricao);
+        mount.innerHTML = '';
+        const trigger = detailContainer.querySelector('.wiki-edit-button');
+        trigger?.setAttribute('aria-expanded', 'false');
+        trigger?.focus();
     }
 
     async function saveTalentEditor(event, id) {
         event.preventDefault();
         const form = event.currentTarget;
+        if (form.getAttribute('aria-busy') === 'true') return;
         const data = Object.fromEntries(new FormData(form).entries());
         ['atrib_forca', 'atrib_destreza', 'atrib_constituicao', 'atrib_inteligencia', 'atrib_sabedoria', 'atrib_carisma'].forEach(attr => {
             data[attr] = form.elements[attr]?.checked || false;
         });
 
-        const response = await fetch(`/wiki/talentos/${id}/editar/`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': decodeURIComponent(getCookie('csrftoken'))
-            },
-            body: JSON.stringify(data)
-        });
-        if (!response.ok) {
-            alert('Não foi possível salvar este talento.');
-            return;
+        const error = form.querySelector('.wiki-save-error');
+        const save = form.querySelector('.wiki-save');
+        const cancel = form.querySelector('.wiki-cancel');
+        error.hidden = true;
+        form.setAttribute('aria-busy', 'true');
+        save.disabled = true;
+        cancel.disabled = true;
+        try {
+            const response = await fetch(`/wiki/talentos/${id}/editar/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': decodeURIComponent(getCookie('csrftoken'))
+                },
+                body: JSON.stringify(data)
+            });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok || !result.ok || !result.talent) {
+                throw new Error(result.error || 'Não foi possível salvar este talento.');
+            }
+            const index = talentosData.findIndex(t => t.id === id);
+            if (index >= 0) talentosData[index] = result.talent;
+            selectedTalentoId = id;
+            applyFilters(false);
+            selectTalento(id);
+            detailContainer.querySelector('.wiki-edit-button')?.focus();
+        } catch (failure) {
+            error.textContent = failure.message || 'Não foi possível salvar este talento.';
+            error.hidden = false;
+            error.focus();
+        } finally {
+            form.removeAttribute('aria-busy');
+            save.disabled = false;
+            cancel.disabled = false;
         }
-        const result = await response.json();
-        const index = talentosData.findIndex(t => t.id === id);
-        if (index >= 0) talentosData[index] = result.talent;
-        selectedTalentoId = id;
-        applyFilters(false);
-        selectTalento(id);
     }
 
     function toggleAnimatedDetails(details) {
