@@ -153,7 +153,7 @@ class JornalListZoomTests(StaticLiveServerTestCase):
                 })
                 call("Page.navigate", {"url": self.live_server_url + reverse("mundo_regioes")})
                 for _ in range(80):
-                    if js('document.querySelector("#btnNewRegion") !== null'):
+                    if js('document.readyState === "complete" && document.querySelector("#btnNewRegion") !== null'):
                         break
                     time.sleep(.1)
                 self.assertTrue(js('document.querySelector("#btnNewRegion") !== null'))
@@ -170,8 +170,42 @@ class JornalListZoomTests(StaticLiveServerTestCase):
                 js('document.querySelector("#btnNewRegion").click()')
                 self.assertTrue(js("[...document.querySelectorAll('#newRegionModal input, #newRegionModal select, #newRegionModal textarea, #newRegionModal button')].filter(e => e.getClientRects().length).every(e => e.getBoundingClientRect().right <= document.documentElement.clientWidth + 1)"))
                 self.assertLessEqual(js('document.documentElement.scrollWidth'), js('document.documentElement.clientWidth'))
+                js('document.querySelector("#btnSaveNewRegion").click()')
+                self.assertFalse(js('document.querySelector("#newRegionError").hidden'))
+                self.assertEqual(js('document.activeElement.id'), 'nr-nome')
                 js("document.querySelector('#nr-nome').value = 'Regiao modal QA'")
                 js("document.querySelector('#nr-territorio').value = " + json.dumps(TbTerritorio.objects.get(slug='territorio-zoom-qa').nome))
+                js("""(() => {
+                  const originalFetch = window.fetch.bind(window);
+                  window.__regionSaveCalls = 0;
+                  window.__restoreRegionFetch = () => { window.fetch = originalFetch; };
+                  window.fetch = (...args) => {
+                    if (!String(args[0]).includes('/wiki/regioes/criar/')) return originalFetch(...args);
+                    window.__regionSaveCalls += 1;
+                    return new Promise(resolve => { window.__resolveRegionSave = resolve; });
+                  };
+                })()""")
+                js('document.querySelector("#btnSaveNewRegion").click()')
+                self.assertTrue(js('document.querySelector("#btnSaveNewRegion").disabled'))
+                self.assertEqual(js('document.querySelector("#newRegionModal").getAttribute("aria-busy")'), 'true')
+                self.assertTrue(js('[...document.querySelectorAll("#newRegionModal [data-region-close]")].every(button => button.disabled)'))
+                js('document.querySelector("#btnSaveNewRegion").click()')
+                self.assertEqual(js('window.__regionSaveCalls'), 1)
+                call("Input.dispatchKeyEvent", {"type": "keyDown", "key": "Escape", "code": "Escape", "windowsVirtualKeyCode": 27})
+                call("Input.dispatchKeyEvent", {"type": "keyUp", "key": "Escape", "code": "Escape", "windowsVirtualKeyCode": 27})
+                self.assertTrue(js('document.querySelector("#newRegionModal").open'))
+                js("window.__resolveRegionSave(new Response(JSON.stringify({ok:false,error:'Falha temporaria'}), {status:503, headers:{'Content-Type':'application/json'}}))")
+                for _ in range(80):
+                    if js('!document.querySelector("#btnSaveNewRegion").disabled'):
+                        break
+                    time.sleep(.1)
+                self.assertFalse(js('document.querySelector("#btnSaveNewRegion").disabled'))
+                self.assertFalse(js('document.querySelector("#newRegionModal").hasAttribute("aria-busy")'))
+                self.assertTrue(js('[...document.querySelectorAll("#newRegionModal [data-region-close]")].every(button => !button.disabled)'))
+                self.assertFalse(js('document.querySelector("#newRegionError").hidden'))
+                self.assertTrue(js('document.querySelector("#newRegionError").textContent.includes("Falha temporaria")'))
+                self.assertEqual(js('document.querySelector("#nr-nome").value'), 'Regiao modal QA')
+                js('window.__restoreRegionFetch()')
                 js('document.querySelector("#btnSaveNewRegion").click()')
                 for _ in range(80):
                     if js('location.pathname === ' + json.dumps(reverse('regiao_detail', args=['regiao-modal-qa'])) + ' && document.readyState === "complete"'):
@@ -183,7 +217,7 @@ class JornalListZoomTests(StaticLiveServerTestCase):
                 self.assertContains(Client().get(reverse('regiao_detail', args=[created_region.slug])), 'Regiao modal QA')
                 call('Page.navigate', {'url': self.live_server_url + reverse('mundo_regioes')})
                 for _ in range(80):
-                    if js('document.querySelector("#btnNewRegion") !== null'):
+                    if js('document.readyState === "complete" && document.querySelector("#btnNewRegion") !== null'):
                         break
                     time.sleep(.1)
                 js('document.querySelector("#btnNewRegion").click()')

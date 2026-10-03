@@ -67,7 +67,7 @@
 <dialog id="newRegionModal" aria-labelledby="newRegionModalTitle" class="backdrop:bg-black/80 bg-[var(--bg1)] text-[var(--text)] border border-[var(--stroke)] rounded-lg shadow-2xl p-0 w-[600px] max-w-[95vw]">
   <div class="p-4 border-b border-[var(--stroke)] flex justify-between items-center bg-[var(--bg0)]">
     <h3 id="newRegionModalTitle" class="font-cinzel text-2xl font-bold text-[var(--ember)] uppercase tracking-widest">Criar Região</h3>
-    <button type="button" aria-label="Fechar criação de região" onclick="document.getElementById('newRegionModal').close()" class="text-[var(--muted)] hover:text-red-500 transition-colors">X</button>
+    <button type="button" data-region-close aria-label="Fechar criação de região" onclick="document.getElementById('newRegionModal').close()" class="text-[var(--muted)] hover:text-red-500 transition-colors">X</button>
   </div>
   <div class="p-4 space-y-2.5">
     <div class="grid grid-cols-2 gap-2.5">
@@ -117,8 +117,9 @@
       <textarea id="nr-desc" rows="3" class="bg-[var(--bg0)] border border-[var(--stroke)] rounded p-1.5 text-sm text-[var(--text)]"></textarea>
     </label>
   </div>
+  <p id="newRegionError" role="alert" hidden class="mx-4 mb-2 text-sm text-red-300"></p>
   <div class="p-4 border-t border-[var(--stroke)] bg-[var(--bg0)] flex justify-end gap-2">
-    <button onclick="document.getElementById('newRegionModal').close()" class="px-3 py-1.5 text-sm font-bold text-[var(--muted)] hover:text-white transition-colors" style="cursor: pointer;">Cancelar</button>
+    <button type="button" data-region-close onclick="document.getElementById('newRegionModal').close()" class="px-3 py-1.5 text-sm font-bold text-[var(--muted)] hover:text-white transition-colors" style="cursor: pointer;">Cancelar</button>
     <button id="btnSaveNewRegion" class="px-4 py-1.5 bg-[var(--ember)] text-white text-sm font-bold rounded hover:bg-[var(--flame)] transition-all" style="cursor: pointer; border: none;">Criar</button>
   </div>
 </dialog>
@@ -126,6 +127,14 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   const modal = document.getElementById('newRegionModal');
+  modal?.addEventListener('cancel', event => {
+    if (document.getElementById('btnSaveNewRegion').disabled) event.preventDefault();
+  });
+  modal?.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && document.getElementById('btnSaveNewRegion').disabled) {
+      event.preventDefault();
+    }
+  });
   const currentLayer = Number('{{ active_layer|default:0 }}') || 0;
   document.getElementById('btnNewRegion')?.addEventListener('click', () => {
     document.getElementById('createTerritorySectionRegion').style.display = 'none';
@@ -179,6 +188,10 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.getElementById('btnSaveNewRegion')?.addEventListener('click', async () => {
+    const btn = document.getElementById('btnSaveNewRegion');
+    const error = document.getElementById('newRegionError');
+    if (btn.disabled) return;
+    error.hidden = true;
     const payload = {
       nome: document.getElementById('nr-nome').value.trim(),
       territorio: document.getElementById('nr-territorio').value.trim(),
@@ -188,15 +201,36 @@ document.addEventListener('DOMContentLoaded', () => {
       descricao_breve: document.getElementById('nr-desc').value.trim(),
       camada: currentLayer,
     };
-    if (!payload.nome) return alert('O nome da região é obrigatório.');
-    const res = await fetch('/wiki/regioes/criar/', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json();
-    if (data.ok) window.location.href = data.redirect || `/mundo/regioes/${data.region.slug}/`;
-    else alert(data.error || 'Erro ao criar região.');
+    if (!payload.nome) {
+      error.textContent = 'O nome da região é obrigatório.';
+      error.hidden = false;
+      document.getElementById('nr-nome').focus();
+      return;
+    }
+    btn.disabled = true;
+    btn.textContent = 'Criando...';
+    modal.setAttribute('aria-busy', 'true');
+    const closeButtons = modal.querySelectorAll('[data-region-close]');
+    closeButtons.forEach(button => { button.disabled = true; });
+    try {
+      const res = await fetch('/wiki/regioes/criar/', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Erro ao criar região.');
+      window.location.href = data.redirect || `/mundo/regioes/${data.region.slug}/`;
+    } catch (err) {
+      error.textContent = `Não foi possível criar a região: ${err.message}`;
+      error.hidden = false;
+      btn.focus();
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Criar';
+      closeButtons.forEach(button => { button.disabled = false; });
+      modal.removeAttribute('aria-busy');
+    }
   });
 });
 </script>
