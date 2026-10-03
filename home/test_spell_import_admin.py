@@ -1,7 +1,17 @@
 from io import BytesIO
+import json
+import shutil
+import subprocess
+import tempfile
+import time
+from pathlib import Path
+from urllib.request import urlopen
 
 from django.contrib.auth import get_user_model
+from django.conf import settings
+from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db import connection
 from django.test import TestCase
 from django.urls import reverse
 from openpyxl import Workbook, load_workbook
@@ -175,3 +185,106 @@ class SpellImportAdminTests(TestCase):
         self.client.force_login(staff)
         response = self.client.get(self.url)
         self.assertIn(response.status_code, (302, 403))
+
+
+class SpellImportAdminMobileTests(StaticLiveServerTestCase):
+    def test_full_preview_stays_usable_at_360_pixels(self):
+        if connection.vendor != "postgresql" or not connection.settings_dict["NAME"].startswith("test_"):
+            self.skipTest("Requer PostgreSQL de teste isolado.")
+        try:
+            import websocket
+        except ImportError:
+            self.skipTest("websocket-client indisponivel.")
+        chrome = shutil.which("chrome") or next((str(path) for path in (
+            Path(r"C:\Program Files\Google\Chrome\Application\chrome.exe"),
+            Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"),
+        ) if path.exists()), None)
+        if not chrome:
+            self.skipTest("Chrome ou Edge indisponivel.")
+
+        admin_user = get_user_model().objects.create_superuser(
+            "mobile-import-admin", "mobile-import@example.invalid", "test-pass"
+        )
+        self.client.force_login(admin_user)
+        upload = SpellImportAdminTests.workbook(("Magia de Tela Compacta", 1))
+        with tempfile.TemporaryDirectory(prefix="bonfire-spell-import-", ignore_cleanup_errors=True) as scratch:
+            path = Path(scratch) / "magias.xlsx"
+            path.write_bytes(upload.read())
+            profile = Path(scratch) / "chrome"
+            process = subprocess.Popen([
+                chrome, "--headless=new", "--no-sandbox", "--disable-gpu",
+                "--remote-debugging-port=0", "--remote-allow-origins=*",
+                f"--user-data-dir={profile}", "about:blank",
+            ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            ws = None
+            try:
+                port_file = profile / "DevToolsActivePort"
+                for _ in range(80):
+                    if port_file.exists():
+                        break
+                    time.sleep(.1)
+                self.assertTrue(port_file.exists())
+                port = port_file.read_text(encoding="utf-8").splitlines()[0]
+                with urlopen(f"http://127.0.0.1:{port}/json", timeout=5) as response:
+                    target = next(item for item in json.load(response) if item["type"] == "page")
+                ws = websocket.create_connection(target["webSocketDebuggerUrl"], timeout=10)
+                sequence = 0
+
+                def call(method, params=None):
+                    nonlocal sequence
+                    sequence += 1
+                    ws.send(json.dumps({"id": sequence, "method": method, "params": params or {}}))
+                    while True:
+                        response = json.loads(ws.recv())
+                        if response.get("id") == sequence:
+                            self.assertNotIn("error", response, method)
+                            return response["result"]
+
+                def js(expression):
+                    result = call("Runtime.evaluate", {
+                        "expression": expression, "returnByValue": True,
+                    })
+                    self.assertNotIn("exceptionDetails", result, expression)
+                    return result["result"].get("value")
+
+                def wait_for(expression):
+                    for _ in range(80):
+                        if js(expression):
+                            return
+                        time.sleep(.2)
+                    self.fail(f"Tempo esgotado: {expression}")
+
+                call("Network.enable")
+                call("Network.setCookie", {
+                    "name": settings.SESSION_COOKIE_NAME,
+                    "value": self.client.cookies[settings.SESSION_COOKIE_NAME].value,
+                    "url": self.live_server_url,
+                })
+                call("Emulation.setDeviceMetricsOverride", {
+                    "width": 360, "height": 800, "deviceScaleFactor": 1, "mobile": True,
+                })
+                call("Page.navigate", {
+                    "url": self.live_server_url + reverse("admin:home_tbmagia_importar_excel"),
+                })
+                wait_for('document.querySelector("input[type=file]") !== null')
+                file_input = call("Runtime.evaluate", {
+                    "expression": 'document.querySelector("input[type=file]")',
+                })["result"]["objectId"]
+                call("DOM.setFileInputFiles", {"files": [str(path)], "objectId": file_input})
+                js('document.querySelector("form.spell-import-grid").requestSubmit()')
+                wait_for('document.querySelector(".spell-import-details") !== null')
+                self.assertEqual(js("window.innerWidth"), 360)
+                self.assertLessEqual(js("document.documentElement.scrollWidth"), 360)
+                js('document.querySelector(".spell-import-details summary").click()')
+                self.assertTrue(js('document.querySelector(".spell-import-details").open'))
+                self.assertTrue(js('document.querySelector(".spell-import-details").innerText.includes("Descricao completa")'))
+                self.assertTrue(js('Array.from(document.querySelectorAll("input[type=submit]")).some(el => el.value === "Confirmar importacao")'))
+            finally:
+                if ws:
+                    ws.close()
+                process.terminate()
+                try:
+                    process.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.wait(timeout=5)
