@@ -41,7 +41,7 @@ from django.templatetags.static import static
 from django.urls import reverse
 from django.utils.html import format_html, format_html_join
 from django.utils import timezone
-from django.db import DatabaseError, connection, transaction
+from django.db import DatabaseError, IntegrityError, connection, transaction
 from django.utils.text import slugify
 from django.views.decorators.http import require_POST
 
@@ -14652,6 +14652,25 @@ def jornal_detail_view(request, slug):
     })
 
 
+def _create_editorial_with_slug(model, base_slug, fields):
+    """Reserve a unique public address at insert time, including concurrent submits."""
+    max_length = model._meta.get_field('slug').max_length
+    counter = 0
+    while True:
+        suffix = f'-{counter}' if counter else ''
+        slug = f'{base_slug[:max_length - len(suffix)]}{suffix}'
+        if model.objects.filter(slug=slug).exists():
+            counter += 1
+            continue
+        try:
+            with transaction.atomic():
+                return model.objects.create(slug=slug, **fields)
+        except IntegrityError:
+            if not model.objects.filter(slug=slug).exists():
+                raise
+            counter += 1
+
+
 def _jornal_image_url(value):
     """Allow editorial images and quote CSS string delimiters in their URLs."""
     value = (value or '').strip()
@@ -14738,14 +14757,8 @@ def jornal_create_view(request):
         if not slug:
             return JsonResponse({'error': 'O titulo precisa gerar um endereco valido.'}, status=400)
         
-        base_slug = slug
-        counter = 1
-        while TbJornal.objects.filter(slug=slug).exists():
-            slug = f"{base_slug}-{counter}"
-            counter += 1
         kwargs = {
             'titulo': titulo,
-            'slug': slug,
             'autor': request.user,
             'layout': layout,
             **content_fields,
@@ -14754,7 +14767,7 @@ def jornal_create_view(request):
         if publication_date:
             kwargs['data_publicacao'] = publication_date
                 
-        artigo = TbJornal.objects.create(**kwargs)
+        artigo = _create_editorial_with_slug(TbJornal, slug, kwargs)
         return JsonResponse({'ok': True, 'slug': artigo.slug})
     
     return render(request, 'home/pages/jornal_form.html', {
@@ -15191,23 +15204,17 @@ def cronica_create_view(request):
         conteudo = fields['conteudo_markdown'].strip()
         slug = slugify(titulo)
         base_slug = slug or 'cronica'
-        slug = base_slug
-        counter = 1
-        while TbCronica.objects.filter(slug=slug).exists():
-            slug = f"{base_slug}-{counter}"
-            counter += 1
-        cronica = TbCronica.objects.create(
-            titulo=titulo,
-            slug=slug,
-            conteudo_markdown=conteudo,
-            resumo=fields['resumo'],
-            imagem_url=fields['imagem_url'],
-            autor=request.user,
-            personagem_nome=fields['personagem_nome'],
-            territorio=_store_multi_value(territorio),
-            regiao=_store_multi_value(regiao),
-            status='pendente',
-        )
+        cronica = _create_editorial_with_slug(TbCronica, base_slug, {
+            'titulo': titulo,
+            'conteudo_markdown': conteudo,
+            'resumo': fields['resumo'],
+            'imagem_url': fields['imagem_url'],
+            'autor': request.user,
+            'personagem_nome': fields['personagem_nome'],
+            'territorio': _store_multi_value(territorio),
+            'regiao': _store_multi_value(regiao),
+            'status': 'pendente',
+        })
         return JsonResponse({'ok': True, 'slug': cronica.slug})
     return render(request, 'home/pages/cronica_form.html', {
         'cronica': None,
