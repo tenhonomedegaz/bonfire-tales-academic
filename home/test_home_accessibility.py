@@ -93,6 +93,29 @@ class HomeAccessibilityBrowserTests(StaticLiveServerTestCase):
                 self.assertTrue(js('matchMedia("(prefers-reduced-motion: reduce)").matches'))
                 self.assertEqual(js('getComputedStyle(document.querySelector(".home-atlas-preview")).transitionDuration'), '0s')
 
+                for width in (360, 768, 1280, 1920):
+                    with self.subTest(width=width):
+                        call('Emulation.setDeviceMetricsOverride', {
+                            'width': width * 2, 'height': 900, 'deviceScaleFactor': 1,
+                            'mobile': False,
+                        })
+                        self.assertEqual(
+                            js('innerWidth'), width,
+                            js('JSON.stringify({inner:innerWidth,scroll:document.documentElement.scrollWidth,dpr:devicePixelRatio})'),
+                        )
+                        self.assertAlmostEqual(js('devicePixelRatio'), 2, delta=.05)
+                        self.assertLessEqual(
+                            js('document.documentElement.scrollWidth'),
+                            js('document.documentElement.clientWidth'),
+                            'Home com rolagem horizontal em %dpx' % width,
+                        )
+                        cta = js('''(() => {const rect=document.querySelector('#home-primary-action').getBoundingClientRect();
+                            return {left:rect.left,right:rect.right,width:rect.width};})()''')
+                        self.assertGreater(cta['width'], 0)
+                        self.assertGreaterEqual(cta['left'], 0)
+                        self.assertLessEqual(cta['right'], js('document.documentElement.clientWidth'))
+                call('Emulation.clearDeviceMetricsOverride')
+
                 js('document.querySelector("#home-primary-action").focus()')
                 call('Input.dispatchKeyEvent', {'type': 'keyDown', 'key': 'Tab', 'code': 'Tab', 'windowsVirtualKeyCode': 9})
                 call('Input.dispatchKeyEvent', {'type': 'keyUp', 'key': 'Tab', 'code': 'Tab', 'windowsVirtualKeyCode': 9})
