@@ -125,18 +125,18 @@
 
   function renderMarkdownToHtml(value) {
     const cleanValue = dedentMarkdown(String(value || '').trim());
-    if (typeof renderBonfireMarkdown === 'function') return renderBonfireMarkdown(cleanValue);
-    const source = typeof normalizeMarkdown === 'function' ? normalizeMarkdown(cleanValue) : cleanValue;
-    if (window.marked && typeof window.marked.parse === 'function') return applyMarkdownColorsToHtml(marked.parse(source, { breaks: true, gfm: true }));
-    return applyMarkdownColorsToHtml(escapeHtml(source)).replace(/\n/g, '<br>');
+    if (typeof renderBonfireMarkdown === 'function' && typeof sanitizeBonfireMarkdownHtml === 'function') {
+      return sanitizeBonfireMarkdownHtml(renderBonfireMarkdown(cleanValue));
+    }
+    return escapeHtml(cleanValue).replace(/\n/g, '<br>');
   }
 
   function renderMarkdownElement(element, raw) {
-    // Guarda a fonte já "dedentada" para que o renderizador global de
-    // markdown.js (que roda novamente no DOMContentLoaded a partir de
-    // dataset.markdownRaw) não reintroduza blocos de código.
+    // Guarda a fonte para a prévia e impede que o renderizador global
+    // substitua o HTML saneado quando ocorrer DOMContentLoaded.
     const trimmed = dedentMarkdown(String(raw || '').trim());
     element.dataset.markdownRaw = trimmed;
+    element.dataset.markdownManual = 'true';
     element.innerHTML = renderMarkdownToHtml(trimmed);
   }
 
