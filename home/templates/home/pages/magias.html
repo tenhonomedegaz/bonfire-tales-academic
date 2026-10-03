@@ -251,7 +251,7 @@
     filtered = filtra();
     if(!filtered.some(function(m){return m.slug === selectedSlug;})){
       selectedSlug = filtered.length ? filtered[0].slug : null;
-      if(selectedSlug) selectMagia(selectedSlug, true);
+      if(selectedSlug) selectMagia(selectedSlug, true, true);
       else detailContainer.innerHTML = '<p class="text-bonfire-muted">Nenhuma magia com esses filtros.</p>';
     }
     render();
@@ -259,7 +259,7 @@
   }
 
   // ---- Detalhe ----
-  function selectMagia(slug, fromHistory){
+  function selectMagia(slug, fromHistory, preserveMenu){
     var m = MAGIAS.find(function(x){return x.slug===slug;});
     if(!m) return;
     var restoreFocus = document.activeElement && document.activeElement.closest('#mgResults [data-slug]');
@@ -272,7 +272,7 @@
     }
     selectedSlug = slug;
     renderList();
-    closeMenu();
+    if(!preserveMenu) closeMenu();
 
     detailContainer.classList.remove('hidden');
     detailContainer.classList.add('flex', 'flex-col');

@@ -54,6 +54,7 @@ class MagiasMobileAccessibilityTests(StaticLiveServerTestCase):
 
         TbMagia.objects.create(nome='Luz de Teste', slug='luz-de-teste', nivel=0, escola='Evocação')
         TbMagia.objects.create(nome='Brasa de Teste', slug='brasa-de-teste', nivel=1, escola='Evocação')
+        TbMagia.objects.create(nome='Coração de Teste', slug='coracao-de-teste', nivel=1, escola='Abjuração')
         with tempfile.TemporaryDirectory(prefix='bonfire-magias-a11y-', ignore_cleanup_errors=True) as scratch:
             profile = Path(scratch) / 'profile'
             prefs = profile / 'Default' / 'Preferences'
@@ -131,6 +132,37 @@ class MagiasMobileAccessibilityTests(StaticLiveServerTestCase):
                 wait_for('new URLSearchParams(location.search).get("magia") === "brasa-de-teste"')
                 self.assertEqual(js('document.querySelector("#mgDetail h2")?.textContent'), 'Brasa de Teste')
                 self.assertTrue(js('document.querySelector("#mgList").inert'))
+                js('document.querySelector("#mgMobileMenuButton").click()')
+                js('''(() => { const search=document.querySelector('#mg-busca');
+                    search.value='c'; search.dispatchEvent(new Event('input', {bubbles:true})); })()''')
+                self.assertEqual(js('document.querySelector("#mgMobileMenuButton").getAttribute("aria-expanded")'), 'true')
+                self.assertEqual(js('document.activeElement?.id'), 'mg-busca')
+                js('''(() => { const search=document.querySelector('#mg-busca');
+                    search.value='coracao'; search.dispatchEvent(new Event('input', {bubbles:true})); })()''')
+                self.assertEqual(js('document.querySelector("#mg-count").textContent'), '1')
+                self.assertEqual(js('document.querySelectorAll("#mgResults [data-slug]").length'), 1)
+                self.assertEqual(js('document.querySelector("#mgMobileMenuButton").getAttribute("aria-expanded")'), 'true')
+                self.assertEqual(js('new URLSearchParams(location.search).get("busca")'), 'coracao')
+                js('''(() => { const search=document.querySelector('#mg-busca');
+                    search.value='sem resultados'; search.dispatchEvent(new Event('input', {bubbles:true})); })()''')
+                self.assertEqual(js('document.querySelector("#mg-count").textContent'), '0')
+                self.assertEqual(js('document.querySelector("#mgMobileMenuButton").getAttribute("aria-expanded")'), 'true')
+                self.assertEqual(js('document.activeElement?.id'), 'mg-busca')
+                js('''(() => { const search=document.querySelector('#mg-busca');
+                    search.value='coracao'; search.dispatchEvent(new Event('input', {bubbles:true})); })()''')
+                js('document.querySelector("#mgResults [data-slug=coracao-de-teste]").click()')
+                self.assertEqual(js('document.querySelector("#mgDetail h2")?.textContent'), 'Coração de Teste')
+                self.assertTrue(js('document.querySelector("#mgList").inert'))
+                self.assertEqual(js('new URLSearchParams(location.search).get("magia")'), 'coracao-de-teste')
+                shared_url = js('location.href')
+                call('Page.navigate', {'url': shared_url})
+                wait_for('document.querySelector("#mgDetail h2")?.textContent === "Coração de Teste"')
+                self.assertEqual(js('document.querySelector("#mg-busca").value'), 'coracao')
+                self.assertEqual(js('document.querySelector("#mg-count").textContent'), '1')
+                js('document.querySelector("#mgMobileMenuButton").click()')
+                js('document.querySelector("#mg-clear-filters").click()')
+                self.assertEqual(js('document.querySelector("#mg-count").textContent'), '3')
+                self.assertIsNone(js('new URLSearchParams(location.search).get("busca")'))
                 call('Emulation.setEmulatedMedia', {
                     'features': [{'name': 'prefers-reduced-motion', 'value': 'reduce'}],
                 })
