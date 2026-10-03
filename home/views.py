@@ -83,34 +83,36 @@ def _log_wiki_edit(request, obj, message="Edited inline via wiki"):
     try:
         from django.contrib.admin.models import LogEntry, CHANGE
         from django.contrib.contenttypes.models import ContentType
-        
-        LogEntry.objects.log_action(
-            user_id=request.user.id,
-            content_type_id=ContentType.objects.get_for_model(obj).pk,
-            object_id=obj.pk,
-            object_repr=str(obj),
-            action_flag=CHANGE,
-            change_message=message
-        )
+
+        with transaction.atomic():
+            LogEntry.objects.create(
+                user=request.user,
+                content_type=ContentType.objects.get_for_model(obj),
+                object_id=str(obj.pk),
+                object_repr=str(obj)[:200],
+                action_flag=CHANGE,
+                change_message=message,
+            )
     except Exception:
-        pass
+        logger.exception('Falha ao registrar edicao inline no historico editorial')
 
 
 def _log_wiki_creation(request, obj, message="Created inline via wiki"):
     try:
-        from django.contrib.admin.models import LogEntry, ADD
+        from django.contrib.admin.models import LogEntry, ADDITION
         from django.contrib.contenttypes.models import ContentType
-        
-        LogEntry.objects.log_action(
-            user_id=request.user.id,
-            content_type_id=ContentType.objects.get_for_model(obj).pk,
-            object_id=obj.pk,
-            object_repr=str(obj),
-            action_flag=ADD,
-            change_message=message
-        )
+
+        with transaction.atomic():
+            LogEntry.objects.create(
+                user=request.user,
+                content_type=ContentType.objects.get_for_model(obj),
+                object_id=str(obj.pk),
+                object_repr=str(obj)[:200],
+                action_flag=ADDITION,
+                change_message=message,
+            )
     except Exception:
-        pass
+        logger.exception('Falha ao registrar criacao inline no historico editorial')
 
 
 class SiteDataUnavailable(Exception):
