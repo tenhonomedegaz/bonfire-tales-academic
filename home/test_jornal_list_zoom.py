@@ -1,4 +1,4 @@
-"""Browser QA for the public Jornal listing with real Chrome page zoom."""
+"""Browser QA for public editorial pages with real Chrome page zoom."""
 
 import json
 import math
@@ -13,7 +13,7 @@ from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.db import connection
 from django.urls import reverse
 
-from .models import TbJornal
+from .models import TbConteudoEstatico, TbJornal, TbMapLayer, TbTerritorio
 
 
 class JornalListZoomTests(StaticLiveServerTestCase):
@@ -35,6 +35,14 @@ class JornalListZoomTests(StaticLiveServerTestCase):
                                 imagem_url="/static/assets/logo.png")
         TbJornal.objects.create(titulo="Notícia comum", slug="noticia-comum", resumo="Outro resumo")
         TbJornal.objects.create(titulo="Capa antiga", slug="capa-antiga", imagem_url="/static/assets/logo.png');color:red;--evil:'")
+        TbMapLayer.objects.update_or_create(
+            id_layer=0, defaults={"nome": "Superfície", "ordem": 0, "publica": True},
+        )
+        TbTerritorio.objects.create(nome="Território de teste", slug="territorio-zoom-qa", camada=0)
+        TbConteudoEstatico.objects.create(
+            chave="sobre-zoom-qa", pagina="sobre", titulo="Sobre o Bonfire Tales",
+            conteudo_markdown="Conheça a comunidade Bonfire Tales.",
+        )
         with tempfile.TemporaryDirectory(prefix="bonfire-jornal-zoom-", ignore_cleanup_errors=True) as scratch:
             profile = Path(scratch) / "profile"
             prefs = profile / "Default" / "Preferences"
@@ -93,6 +101,33 @@ class JornalListZoomTests(StaticLiveServerTestCase):
                 self.assertTrue(js("[...document.querySelectorAll('.jornal-card')].every(card => card.getBoundingClientRect().right <= document.documentElement.clientWidth)"))
                 self.assertEqual(js("document.querySelector('.jornal-card[href$=\"capa-antiga/\"] .jornal-card-cover').style.getPropertyValue('color')"), "")
                 self.assertEqual(js("document.querySelector('.jornal-card[href$=\"capa-antiga/\"] .jornal-card-cover').style.getPropertyValue('--evil')"), "")
+                call("Emulation.setEmulatedMedia", {"features": [{"name": "prefers-reduced-motion", "value": "reduce"}]})
+                card_point = json.loads(js("JSON.stringify((()=>{const e=document.querySelector('.jornal-card');e.scrollIntoView({block:'center'});const r=e.getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2}})())"))
+                call("Input.dispatchMouseEvent", {"type": "mouseMoved", **card_point})
+                self.assertTrue(js("document.querySelector('.jornal-card').matches(':hover')"))
+                self.assertEqual(js("getComputedStyle(document.querySelector('.jornal-card')).transform"), "none")
+                self.assertEqual(js("getComputedStyle(document.querySelector('.jornal-card')).transitionDuration"), "0s")
+                for route_name, selector in (
+                    ("home", "#home-primary-action"),
+                    ("mundo_regioes", ".territory-card"),
+                    ("sobre", "main h1"),
+                ):
+                    call("Page.navigate", {"url": self.live_server_url + reverse(route_name)})
+                    for _ in range(80):
+                        if js("document.readyState") == "complete" and js(f'document.querySelector("{selector}") !== null'):
+                            break
+                        time.sleep(.1)
+                    page = json.loads(js("JSON.stringify({dpr:devicePixelRatio,scale:visualViewport.scale,scroll:document.documentElement.scrollWidth,client:document.documentElement.clientWidth,h1:document.querySelectorAll('main h1').length})"))
+                    self.assertAlmostEqual(page["dpr"], 2, delta=.05, msg=(route_name, page))
+                    self.assertEqual(page["scale"], 1, (route_name, page))
+                    self.assertLessEqual(page["scroll"], page["client"], (route_name, page))
+                    self.assertEqual(page["h1"], 1, (route_name, page))
+                    if route_name == "mundo_regioes":
+                        card_point = json.loads(js("JSON.stringify((()=>{const e=document.querySelector('.territory-card');e.scrollIntoView({block:'center'});const r=e.getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2}})())"))
+                        call("Input.dispatchMouseEvent", {"type": "mouseMoved", **card_point})
+                        self.assertTrue(js("document.querySelector('.territory-card').matches(':hover')"))
+                        self.assertEqual(js("getComputedStyle(document.querySelector('.territory-card-bg')).transform"), "none")
+                        self.assertEqual(js("getComputedStyle(document.querySelector('.territory-card-bg')).transitionDuration"), "0s")
                 call("Page.navigate", {"url": self.live_server_url + reverse("jornal_detail", args=["capa-antiga"])})
                 for _ in range(80):
                     if js("document.readyState") == "complete" and js("document.querySelector('.artigo-hero') !== null"):

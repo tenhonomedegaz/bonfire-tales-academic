@@ -111,6 +111,10 @@
   filter: brightness(1.08);
   transform: scale(1.035);
 }
+@media (prefers-reduced-motion: reduce) {
+  .territory-card-bg { transition: none; }
+  .territory-card:hover .territory-card-bg { transform: none; }
+}
 .territory-card:focus-within {
   outline: 2px solid var(--territory-accent);
   outline-offset: 2px;
