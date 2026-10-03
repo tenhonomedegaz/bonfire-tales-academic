@@ -2,7 +2,7 @@
 .services-nav { display: flex; flex-wrap: wrap; gap: .4rem; margin: .75rem 0; border-bottom: 1px solid var(--stroke); }
 .services-nav a { padding: .55rem .75rem; color: var(--muted); font-size: .76rem; font-weight: 800; text-transform: uppercase; }
 .services-nav a:hover { color: var(--ember); border-bottom: 2px solid var(--ember); }
-.services-nav a[aria-current="page"] { color: var(--text); border-bottom: 2px solid var(--ember); }
+.services-nav a[aria-selected="true"] { color: var(--text); border-bottom: 2px solid var(--ember); }
 .services-nav a:focus-visible, .training-clear:focus-visible { outline: 2px solid var(--ember); outline-offset: 2px; }
 .service-feedback, .service-warning, .service-empty { padding: .65rem .75rem; border: 1px solid var(--stroke); border-radius: 6px; color: var(--muted); font-size: .82rem; }
 .service-feedback { margin-top: .7rem; }
