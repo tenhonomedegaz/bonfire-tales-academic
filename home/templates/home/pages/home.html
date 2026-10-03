@@ -60,7 +60,7 @@
     <div>
       <p class="text-xs font-bold uppercase text-[var(--ember)]">Primeiros passos</p>
       <h2 class="mt-2 font-rpg text-3xl font-bold text-[var(--text)]">{{ jornada.titulo|default:'Comece a jogar' }}</h2>
-      <p class="mt-3 text-sm leading-relaxed text-[var(--muted)]">{{ jornada.subtitulo }}</p>
+      <p class="mt-3 text-sm leading-relaxed text-[var(--muted)]">{{ jornada.subtitulo|default:'Da conta à primeira missão, o fluxo acontece pelo site e pelo Discord.' }}</p>
       {% if request.user.is_authenticated %}
         {% if meus_personagens %}
         <a id="home-next-step" href="{% url 'sistemas_missoes' %}" class="mt-5 inline-flex rounded border border-[var(--ember)] px-4 py-2 text-sm font-bold text-[var(--ember)] hover:bg-[var(--ember)] hover:text-black">Encontrar missão</a>
@@ -72,7 +72,16 @@
       {% endif %}
     </div>
     <div class="border-l border-[var(--stroke)] pl-5 md:pl-7">
+      {% if jornada.conteudo_markdown %}
       <div class="bonfire-markdown text-sm leading-7 text-[var(--muted)]" data-markdown-source>{{ jornada.conteudo_markdown }}</div>
+      {% else %}
+      <ol class="list-decimal space-y-2 pl-5 text-sm leading-7 text-[var(--muted)]">
+        <li>Crie sua conta e vincule seu Discord para o site reconhecer você nas missões.</li>
+        <li>Monte a ficha no criador, escolhendo raça, classe, antecedente e talentos.</li>
+        <li>Procure uma missão publicada e abra o anúncio original no Discord para participar.</li>
+        <li>Registre a aventura com a equipe e acompanhe progressão, inventário e próximos níveis na ficha.</li>
+      </ol>
+      {% endif %}
     </div>
   </div>
 </section>
@@ -89,7 +98,7 @@
     <div>
       <p class="text-xs font-bold uppercase text-[var(--ember)]">Mundo compartilhado</p>
       <h2 class="mt-2 font-rpg text-3xl font-bold text-[var(--text)]">{{ atlas.titulo|default:'Atlas interativo de Cinéria' }}</h2>
-      <p class="mt-3 text-sm leading-7 text-[var(--muted)]">{{ atlas.subtitulo }}</p>
+      <p class="mt-3 text-sm leading-7 text-[var(--muted)]">{{ atlas.subtitulo|default:'Abra o mapa, alterne entre as camadas liberadas e selecione marcadores para conhecer territórios, regiões e pontos de interesse. As páginas de lore ficam ligadas ao atlas e às crônicas da comunidade.' }}</p>
       <ul class="mt-5 grid gap-2 text-sm text-[var(--text)] sm:grid-cols-3">
         <li class="border-t border-[var(--stroke)] pt-2">Camadas de mapa</li>
         <li class="border-t border-[var(--stroke)] pt-2">Marcadores com notas</li>
@@ -155,7 +164,7 @@
     <div>
       <p class="text-xs font-bold uppercase text-[var(--ember)]">Colaboração opcional</p>
       <h2 class="mt-2 font-rpg text-3xl font-bold text-[var(--text)]">{{ apoio.titulo|default:'Mantenha a chama acesa' }}</h2>
-      <p class="mt-3 max-w-2xl text-sm leading-7 text-[var(--muted)]">{{ apoio.subtitulo }}</p>
+      <p class="mt-3 max-w-2xl text-sm leading-7 text-[var(--muted)]">{{ apoio.subtitulo|default:'Jogar é gratuito. Quem colabora ajuda a manter o servidor, o bot e o site, e recebe os benefícios descritos na página de colaboração, como preferência em filas elegíveis, tokens e cosméticos conforme o pacote.' }}</p>
       <a href="{{ apoio_cta_url }}" class="mt-5 inline-flex rounded border border-[var(--ember)] px-4 py-2 text-sm font-bold text-[var(--ember)] hover:bg-[var(--ember)] hover:text-black">{{ apoio.cta_texto|default:'Conhecer benefícios' }}</a>
     </div>
     <nav aria-label="Explore o Bonfire" class="grid grid-cols-2 gap-x-5 gap-y-3 border-l border-[var(--stroke)] pl-5 text-sm">

@@ -91,6 +91,29 @@ class PublicPresentationTests(TestCase):
         self.assertContains(response, 'a equipe revisa antes de mostrá-los publicamente')
         self.assertNotContains(response, 'Volte para a aventura')
 
+    def test_home_keeps_onboarding_when_editorial_blocks_are_unavailable(self):
+        TbConteudoEstatico.objects.filter(pagina='home').update(ativo=False)
+        response = self.client.get(reverse('home'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Crie sua conta e vincule seu Discord')
+        self.assertContains(response, 'Monte a ficha no criador')
+        self.assertContains(response, 'Procure uma missão publicada')
+        self.assertContains(response, 'Registre a aventura com a equipe')
+        self.assertContains(response, 'Abra o mapa, alterne entre as camadas liberadas')
+        self.assertContains(response, 'Jogar é gratuito.')
+        for target in ('register', 'mapa', 'colaborador'):
+            with self.subTest(target=target):
+                self.assertContains(response, 'href="%s"' % reverse(target))
+
+        TbConteudoEstatico.objects.filter(chave='home-jornada').update(
+            ativo=True, subtitulo='Orientação editorial específica',
+            conteudo_markdown='Passo editorial exclusivo.',
+        )
+        custom = self.client.get(reverse('home'))
+        self.assertContains(custom, 'Orientação editorial específica')
+        self.assertContains(custom, 'Passo editorial exclusivo.')
+        self.assertNotContains(custom, 'Crie sua conta e vincule seu Discord')
+
     def test_home_uses_managed_content_without_fake_ads(self):
         bloco = TbConteudoEstatico.objects.get(chave='home-hero')
         bloco.titulo = 'Título editado no admin'
