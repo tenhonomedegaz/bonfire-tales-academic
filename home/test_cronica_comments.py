@@ -294,6 +294,50 @@ class CronicaCommentTests(TestCase):
         self.client.logout()
         self.assertContains(self.client.get(reverse('cronica_detail', args=[self.story.slug])), 'Texto público')
 
+    def test_hidden_story_is_readable_to_moderator_without_review_permission(self):
+        self.client.force_login(self.leitor)
+        self.assertEqual(self.report().status_code, 302)
+        report = TbCronicaDenuncia.objects.get()
+        self.client.force_login(self.staff)
+        self.assertEqual(self.client.post(reverse('cronica_moderar_denuncia', args=[report.pk]), {
+            'action': 'ocultar',
+        }).status_code, 302)
+        detail_url = reverse('cronica_detail', args=[self.story.slug])
+        self.assertContains(self.client.get(reverse('cronica_denuncias')), detail_url)
+        self.assertContains(self.client.get(detail_url), 'Esta crônica está oculta pela moderação.')
+        self.assertContains(self.client.get(detail_url), self.story.conteudo_markdown)
+        self.assertEqual(self.client.get(reverse('cronica_detail', args=[self.pending.slug])).status_code, 404)
+        self.client.force_login(self.staff_sem_moderacao)
+        self.assertEqual(self.client.get(detail_url).status_code, 404)
+        self.client.logout()
+        self.assertEqual(self.client.get(detail_url).status_code, 404)
+
+    def test_story_with_two_hiding_reports_restores_after_last_decision(self):
+        self.client.force_login(self.leitor)
+        self.assertEqual(self.report().status_code, 302)
+        self.client.force_login(self.outro)
+        self.assertEqual(self.report().status_code, 302)
+        reports = list(TbCronicaDenuncia.objects.order_by('pk'))
+        self.client.force_login(self.staff)
+        for report in reports:
+            self.assertEqual(self.client.post(reverse('cronica_moderar_denuncia', args=[report.pk]), {
+                'action': 'ocultar',
+            }).status_code, 302)
+        self.story.refresh_from_db()
+        self.assertEqual(self.story.status, 'oculta')
+        self.assertEqual(self.client.post(reverse('cronica_moderar_denuncia', args=[reports[0].pk]), {
+            'action': 'restaurar',
+        }).status_code, 302)
+        self.story.refresh_from_db()
+        self.assertEqual(self.story.status, 'oculta')
+        self.assertEqual(self.client.post(reverse('cronica_moderar_denuncia', args=[reports[1].pk]), {
+            'action': 'restaurar',
+        }).status_code, 302)
+        self.story.refresh_from_db()
+        self.assertEqual(self.story.status, 'aprovada')
+        self.client.logout()
+        self.assertContains(self.client.get(reverse('cronica_detail', args=[self.story.slug])), self.story.conteudo_markdown)
+
     def test_limits_permissions_and_escaping(self):
         self.assertEqual(self.comment().status_code, 302)
         self.client.force_login(self.leitor)

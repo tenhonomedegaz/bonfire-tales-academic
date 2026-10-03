@@ -35,7 +35,9 @@
   {% elif revisao_edicao.estado == 'reprovada' %}
   <div class="cronica-status-banner reprovada">A edição proposta foi devolvida para ajustes. {{ revisao_edicao.feedback }} <a href="{% url 'cronica_edit' slug=cronica.slug %}">Editar</a></div>
   {% endif %}
-  {% if cronica.status == 'pendente' %}
+  {% if cronica.status == 'oculta' %}
+  <div class="cronica-status-banner reprovada" role="status">Esta crônica está oculta pela moderação.</div>
+  {% elif cronica.status == 'pendente' %}
   <div class="cronica-status-banner pendente">
     <h4>⏳ Aguardando Aprovação</h4>
     <p>Esta crônica está em análise pela equipe de staff. Você será notificado quando ela for aprovada ou receberá feedback para ajustes.</p>

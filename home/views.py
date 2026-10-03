@@ -15212,9 +15212,11 @@ def cronicas_list_view(request):
 def cronica_detail_view(request, slug):
     cronica = get_object_or_404(TbCronica, slug=slug)
     can_review = request.user.is_staff and request.user.has_perm('home.change_tbcronica')
+    can_moderate = request.user.is_staff and request.user.has_perm('home.change_tbcronicadenuncia')
     
     if cronica.status != 'aprovada':
-        if not (can_review or (request.user.is_authenticated and cronica.autor == request.user)):
+        if not (can_review or (can_moderate and cronica.status == 'oculta') or
+                (request.user.is_authenticated and cronica.autor_id == request.user.id)):
             raise Http404
     cronica.safe_image_url = _jornal_image_url(cronica.imagem_url)
     comments = list(TbCronicaComentario.objects.filter(cronica=cronica)
@@ -15441,13 +15443,17 @@ def cronica_moderar_denuncia_view(request, denuncia_id):
             action != 'restaurar' and report.estado != 'pendente'
         ):
             return JsonResponse({'error': 'Denúncia já decidida.'}, status=409)
-        if action == 'restaurar':
-            other_hides = TbCronicaDenuncia.objects.filter(
-                cronica=report.cronica, comentario=report.comentario, estado='ocultada'
+        if action != 'descartar':
+            if report.comentario_id:
+                comment = TbCronicaComentario.objects.select_for_update().get(pk=report.comentario_id)
+            else:
+                story = TbCronica.objects.select_for_update().get(pk=report.cronica_id)
+            other_hides = action == 'restaurar' and TbCronicaDenuncia.objects.filter(
+                cronica_id=report.cronica_id, comentario_id=report.comentario_id,
+                estado='ocultada',
             ).exclude(pk=report.pk).exists()
         if action == 'ocultar' or (action == 'restaurar' and not other_hides):
             if report.comentario_id:
-                comment = TbCronicaComentario.objects.select_for_update().get(pk=report.comentario_id)
                 if action == 'ocultar' and (
                     comment.revisao != report.revisao_alvo or comment.texto != report.alvo_snapshot
                 ):
@@ -15457,7 +15463,6 @@ def cronica_moderar_denuncia_view(request, denuncia_id):
                 comment.estado = 'publico' if action == 'restaurar' else 'oculto'
                 comment.save(update_fields=['estado'])
             else:
-                story = TbCronica.objects.select_for_update().get(pk=report.cronica_id)
                 if action == 'ocultar' and story.conteudo_markdown != report.alvo_snapshot:
                     return JsonResponse({'error': 'A crônica mudou após a denúncia. Reavalie o conteúdo atual.'}, status=409)
                 if action == 'restaurar' and story.status != 'oculta':
