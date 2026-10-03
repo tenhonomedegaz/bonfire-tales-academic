@@ -522,6 +522,7 @@ input[type=checkbox], input[type=radio] { accent-color: var(--ember); width: 16p
 
 /* Selects nativos com seta visivel no dark */
 select {
+    color-scheme: dark;
     appearance: none;
     background-image:
         linear-gradient(45deg, transparent 50%, var(--muted) 50%),
@@ -534,6 +535,21 @@ select {
     padding-right: 30px;
 }
 select[multiple] { background-image: none; padding-right: 11px; }
+select:focus {
+    outline: 2px solid var(--spark);
+    outline-offset: 2px;
+}
+
+/* O menu nativo nao herda de forma consistente as cores do select no Windows. */
+select option,
+select optgroup {
+    background-color: var(--bg0);
+    color: var(--text);
+}
+select option:checked,
+form .aligned select option:checked { background-color: var(--bg3); color: var(--text); }
+select option:disabled,
+select optgroup:disabled { color: var(--muted); }
 
 /* ==========================================================================
    9. INLINES
