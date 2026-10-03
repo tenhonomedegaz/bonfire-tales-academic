@@ -534,6 +534,8 @@
         raceForm.classList.add('is-open');
       });
       raceCancelBtn?.addEventListener('click', () => {
+        raceForm.reset();
+        refreshCropPreviews();
         raceForm.classList.remove('is-open');
       });
       raceForm.addEventListener('submit', async event => {
