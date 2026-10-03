@@ -3706,9 +3706,13 @@ class TbMagiaAdmin(BonfireAdminMixin, admin.ModelAdmin):
                             continue
                         values = {field: item[field] for field in self._spell_import_fields()}
                         if existing:
-                            for field, value in values.items():
+                            changed_fields = [field for field, value in values.items()
+                                              if field != 'classes' and getattr(existing, field) != value]
+                            for field in changed_fields:
+                                value = values[field]
                                 setattr(existing, field, value)
-                            existing.save()
+                            if changed_fields:
+                                existing.save(update_fields=changed_fields)
                             magia = existing
                         else:
                             magia = TbMagia.objects.create(slug=item["slug"], **values)
@@ -3809,7 +3813,10 @@ class TbMagiaAdmin(BonfireAdminMixin, admin.ModelAdmin):
                 raise ValueError(f'classes nao cadastradas: {token}. Leia o arquivo novamente.')
             if classe not in classes:
                 classes.append(classe)
-        set_spell_class_access(magia, classes, save=True)
+        previous = (magia.classes_slugs, magia.classes)
+        set_spell_class_access(magia, classes, save=False)
+        if (magia.classes_slugs, magia.classes) != previous:
+            magia.save(update_fields=['classes_slugs', 'classes'])
 
     @admin.display(description="Nivel", ordering="nivel")
     def nivel_display(self, obj):

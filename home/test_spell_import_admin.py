@@ -14,6 +14,7 @@ from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import connection
 from django.test import TestCase
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from openpyxl import Workbook, load_workbook
 
@@ -70,7 +71,8 @@ class SpellImportAdminTests(TestCase):
         self.assertEqual(TbMagia.objects.filter(slug="luz-de-teste").count(), 1)
 
     def test_import_history_identifies_editor_and_only_real_changes(self):
-        preview = self.preview(("Magia Auditada", 1))
+        TbClasse.objects.create(nome="Mago", slug="mago")
+        preview = self.preview(("Magia Auditada", 1, "Nao", "Mago"))
         self.assertEqual(self.client.post(self.url, {
             "confirmar": "1", "payload": preview.context["payload"],
         }).status_code, 200)
@@ -81,14 +83,18 @@ class SpellImportAdminTests(TestCase):
             "admin:home_tbmagia_history", args=[spell.pk],
         )), "Importada por Excel")
 
-        identical = self.preview(("Magia Auditada", 1))
-        identical_result = self.client.post(self.url, {
-            "confirmar": "1", "payload": identical.context["payload"],
-        })
+        identical = self.preview(("Magia Auditada", 1, "Nao", "Mago"))
+        with CaptureQueriesContext(connection) as queries:
+            identical_result = self.client.post(self.url, {
+                "confirmar": "1", "payload": identical.context["payload"],
+            })
         self.assertContains(identical_result, "0 criadas, 0 atualizadas e 1 ignoradas")
         self.assertEqual(history.filter(action_flag=CHANGE).count(), 0)
+        self.assertFalse(any(
+            'UPDATE "spells"' in query['sql'] for query in queries.captured_queries
+        ))
 
-        changed = self.preview(("Magia Auditada", 2))
+        changed = self.preview(("Magia Auditada", 2, "Nao", "Mago"))
         self.assertEqual(self.client.post(self.url, {
             "confirmar": "1", "payload": changed.context["payload"],
         }).status_code, 200)
