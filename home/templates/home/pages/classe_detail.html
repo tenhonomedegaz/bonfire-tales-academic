@@ -401,39 +401,83 @@
       const title = card.querySelector('[data-feature-title]');
       const textarea = form?.elements?.descricao;
       if (!edit || !form || !preview || !textarea) return;
+      form.id = `class-feature-editor-${card.dataset.featureId}`;
+      edit.setAttribute('aria-controls', form.id);
+      edit.setAttribute('aria-expanded', 'false');
+      const error = document.createElement('p');
+      error.className = 'wiki-inline-error';
+      error.setAttribute('role', 'alert');
+      error.tabIndex = -1;
+      error.hidden = true;
+      form.querySelector('.wiki-inline-actions').before(error);
+      const closeEditor = () => {
+        if (form.getAttribute('aria-busy') === 'true') return;
+        form.reset();
+        preview.innerHTML = renderMarkdownContent(textarea.value);
+        error.hidden = true;
+        form.classList.remove('is-open');
+        edit.setAttribute('aria-expanded', 'false');
+        edit.focus();
+      };
 
       edit.addEventListener('click', () => {
         form.classList.add('is-open');
+        edit.setAttribute('aria-expanded', 'true');
         textarea.focus();
       });
-      cancel?.addEventListener('click', () => form.classList.remove('is-open'));
+      cancel?.addEventListener('click', closeEditor);
+      form.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && form.getAttribute('aria-busy') !== 'true') {
+          event.preventDefault();
+          closeEditor();
+        }
+      });
       textarea.addEventListener('input', () => {
         preview.innerHTML = renderMarkdownContent(textarea.value);
       });
       form.addEventListener('submit', async event => {
         event.preventDefault();
+        if (form.getAttribute('aria-busy') === 'true') return;
         const featureId = card.dataset.featureId;
         const data = Object.fromEntries(new FormData(form).entries());
         if ('tags_json_text' in data) {
           data.tags_json = data.tags_json_text.split('\n').map(t => t.trim()).filter(Boolean);
           delete data.tags_json_text;
         }
-        const response = await fetch(`/wiki/habilidades-classe/${featureId}/editar/`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': decodeURIComponent(wikiCookie('csrftoken'))
-          },
-          body: JSON.stringify(data)
-        });
-        if (!response.ok) {
-          alert('Não foi possível salvar a habilidade.');
-          return;
+        const controls = Array.from(form.querySelectorAll('input, textarea, button'));
+        error.hidden = true;
+        form.setAttribute('aria-busy', 'true');
+        controls.forEach(control => { control.disabled = true; });
+        try {
+          const response = await fetch(`/wiki/habilidades-classe/${featureId}/editar/`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': decodeURIComponent(wikiCookie('csrftoken'))
+            },
+            body: JSON.stringify(data)
+          });
+          const result = await response.json().catch(() => ({}));
+          if (!response.ok || !result.ok || !result.feature) {
+            throw new Error(result.error || 'Não foi possível salvar a habilidade.');
+          }
+          title.textContent = `Nivel ${result.feature.niveladquirido}: ${result.feature.nome}`;
+          preview.innerHTML = renderMarkdownContent(result.feature.descricao);
+          form.elements.nome.defaultValue = result.feature.nome;
+          form.elements.niveladquirido.defaultValue = result.feature.niveladquirido;
+          textarea.defaultValue = result.feature.descricao;
+          form.elements.tags_json_text.defaultValue = (result.feature.tags_json || []).join('\n');
+          form.classList.remove('is-open');
+          edit.setAttribute('aria-expanded', 'false');
+          edit.focus();
+        } catch (failure) {
+          error.textContent = failure.message || 'Não foi possível salvar a habilidade.';
+          error.hidden = false;
+          error.focus();
+        } finally {
+          form.removeAttribute('aria-busy');
+          controls.forEach(control => { control.disabled = false; });
         }
-        const result = await response.json();
-        title.textContent = `Nivel ${result.feature.niveladquirido}: ${result.feature.nome}`;
-        preview.innerHTML = renderMarkdownContent(result.feature.descricao);
-        form.classList.remove('is-open');
       });
     });
   }

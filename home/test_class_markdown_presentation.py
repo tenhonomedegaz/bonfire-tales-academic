@@ -133,6 +133,41 @@ class ClassMarkdownPresentationTests(StaticLiveServerTestCase):
                 self.assertEqual(js('visualViewport.scale'), 1)
                 self.assertLessEqual(js('document.documentElement.scrollWidth'), js('document.documentElement.clientWidth'))
                 self.assertTrue(js('document.querySelector("[data-progression-table]") !== null'))
+                js('''window.qaForm=document.querySelector('[data-feature-form]');
+                    window.qaEdit=document.querySelector('[data-feature-edit]');
+                    window.qaEdit.click();
+                    window.qaForm.elements.descricao.value='Rascunho nao salvo';
+                    window.qaForm.elements.descricao.dispatchEvent(new Event('input'));
+                    window.qaForm.elements.descricao.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));''')
+                self.assertFalse(js('window.qaForm.classList.contains("is-open")'))
+                self.assertEqual(js('window.qaForm.elements.descricao.value'), description)
+                self.assertTrue(js('document.querySelector("[data-markdown]").textContent.includes("Destaque")'))
+                self.assertTrue(js('document.activeElement===window.qaEdit'))
+                js('''window.qaEdit.click();
+                    window.qaForm.elements.descricao.value='Outro rascunho';
+                    window.qaForm.elements.descricao.dispatchEvent(new Event('input'));
+                    window.qaForm.querySelector('[data-feature-cancel]').click();''')
+                self.assertEqual(js('window.qaForm.elements.descricao.value'), description)
+                self.assertTrue(js('document.activeElement===window.qaEdit'))
+                js('''window.qaEdit.click();
+                    window.qaForm.elements.descricao.value='Rascunho para nova tentativa';
+                    window.qaForm.elements.descricao.dispatchEvent(new Event('input'));
+                    window.qaFetch=window.fetch;window.qaCalls=0;
+                    window.fetch=()=>{window.qaCalls++;return new Promise(resolve=>window.qaResolve=resolve)};
+                    window.qaForm.requestSubmit();''')
+                wait_for('window.qaForm.getAttribute("aria-busy") === "true"')
+                js('window.qaForm.dispatchEvent(new Event("submit",{cancelable:true}))')
+                self.assertEqual(js('window.qaCalls'), 1)
+                self.assertTrue(js('window.qaForm.querySelector("[data-feature-cancel]").disabled'))
+                js('window.qaResolve(new Response(JSON.stringify({error:"Falha temporaria"}),{status:503,headers:{"Content-Type":"application/json"}}))')
+                wait_for('window.qaForm.getAttribute("aria-busy") !== "true"')
+                self.assertIn('Falha temporaria', js('window.qaForm.querySelector(".wiki-inline-error").textContent'))
+                self.assertTrue(js('document.activeElement===window.qaForm.querySelector(".wiki-inline-error")'))
+                self.assertEqual(js('window.qaForm.elements.descricao.value'), 'Rascunho para nova tentativa')
+                feature.refresh_from_db()
+                self.assertEqual(feature.descricao, description)
+                js('window.fetch=window.qaFetch;window.qaForm.querySelector("[data-feature-cancel]").click()')
+                self.assertEqual(js('window.qaForm.elements.descricao.value'), description)
                 call('Emulation.setEmulatedMedia', {
                     'features': [{'name': 'prefers-reduced-motion', 'value': 'reduce'}],
                 })
@@ -164,6 +199,13 @@ class ClassMarkdownPresentationTests(StaticLiveServerTestCase):
                 self.assertTrue(js('document.querySelector("[data-markdown]").textContent.includes("Conteudo salvo.")'))
                 feature.refresh_from_db()
                 self.assertEqual(feature.descricao, '## Revisao em zoom\nConteudo salvo.')
+                js('''document.querySelector('[data-feature-edit]').click();
+                    const form=document.querySelector('[data-feature-form]');
+                    form.elements.descricao.value='Rascunho posterior';
+                    form.elements.descricao.dispatchEvent(new Event('input'));
+                    form.querySelector('[data-feature-cancel]').click();''')
+                self.assertEqual(js('document.querySelector("[data-feature-form]").elements.descricao.value'), '## Revisao em zoom\nConteudo salvo.')
+                self.assertTrue(js('document.querySelector("[data-markdown]").textContent.includes("Conteudo salvo.")'))
                 call('Page.navigate', {'url': url})
                 wait_for('document.querySelector("[data-feature-card] [data-markdown] h2") !== null')
                 self.assertTrue(js('document.querySelector("[data-feature-card] [data-markdown]").textContent.includes("Conteudo salvo.")'))
