@@ -11108,6 +11108,28 @@ def wiki_update_option(request, id):
     return JsonResponse({'ok': True, 'opcao': _option_payload(opcao)})
 
 
+def _save_catalog_item_edit(request, item, values, message):
+    from django.contrib.admin.models import LogEntry, CHANGE
+    from django.contrib.contenttypes.models import ContentType
+
+    with transaction.atomic():
+        item = type(item).objects.select_for_update().get(pk=item.pk)
+        changed = [field for field, value in values.items() if getattr(item, field) != value]
+        if changed:
+            for field in changed:
+                setattr(item, field, values[field])
+            item.save(update_fields=changed)
+            LogEntry.objects.create(
+                user=request.user,
+                content_type=ContentType.objects.get_for_model(item),
+                object_id=str(item.pk),
+                object_repr=str(item)[:200],
+                action_flag=CHANGE,
+                change_message=message,
+            )
+    return item
+
+
 @login_required(login_url='/login/')
 @require_POST
 def wiki_update_mundane_item(request, item_id):
@@ -11124,6 +11146,8 @@ def wiki_update_mundane_item(request, item_id):
             raise ValueError('Categoria inválida.')
         peso_raw = (request.POST.get('peso') or '').strip().replace(',', '.')
         peso = float(peso_raw) if peso_raw else None
+        if peso is not None and (not math.isfinite(peso) or peso < 0):
+            raise ValueError('Peso deve ser um número finito e não negativo.')
         slug = (request.POST.get('slug') or item.slug).strip()
         if slugify(slug) != slug:
             raise ValueError('O slug deve usar somente letras minúsculas, números e hífens.')
@@ -11131,17 +11155,20 @@ def wiki_update_mundane_item(request, item_id):
             raise ValueError('Já existe um item com esse slug.')
     except (TypeError, ValueError) as exc:
         return HttpResponseBadRequest(str(exc))
-    item.nome = (request.POST.get('nome') or item.nome).strip()
-    item.slug = slug
-    item.categoria = categoria
-    item.subcategoria = (request.POST.get('subcategoria') or '').strip() or None
-    item.peso = peso
-    item.preco = (request.POST.get('preco') or '').strip() or None
-    item.imagem_url = (request.POST.get('imagem_url') or '').strip() or None
-    item.descricao_markdown = request.POST.get('descricao_markdown') or ''
-    item.tags_json = tags
-    item.save()
-    _log_wiki_edit(request, item, 'Edição inline de item mundano: %s' % item.nome)
+    values = {
+        'nome': (request.POST.get('nome') or item.nome).strip(),
+        'slug': slug,
+        'categoria': categoria,
+        'subcategoria': (request.POST.get('subcategoria') or '').strip() or None,
+        'peso': peso,
+        'preco': (request.POST.get('preco') or '').strip() or None,
+        'imagem_url': (request.POST.get('imagem_url') or '').strip() or None,
+        'descricao_markdown': request.POST.get('descricao_markdown') or '',
+        'tags_json': tags,
+    }
+    item = _save_catalog_item_edit(
+        request, item, values, 'Edição inline de item mundano: %s' % values['nome'],
+    )
     return redirect(reverse('mercado_itens_mundanos') + '?editado=%s' % item.slug)
 
 
@@ -11164,6 +11191,10 @@ def wiki_update_magic_item(request, item_id):
             raise ValueError('Slot inválido.')
         preco_raw = (request.POST.get('preco') or '').strip().replace(',', '.')
         preco = Decimal(preco_raw) if preco_raw else None
+        if preco is not None and (not preco.is_finite() or preco < 0 or
+                                  preco >= Decimal('10000000000') or
+                                  preco.quantize(Decimal('0.01')) != preco):
+            raise ValueError('Preço deve ser finito, não negativo e ter no máximo duas casas decimais.')
         slug = (request.POST.get('slug') or item.slug).strip()
         if slugify(slug) != slug:
             raise ValueError('O slug deve usar somente letras minúsculas, números e hífens.')
@@ -11171,22 +11202,24 @@ def wiki_update_magic_item(request, item_id):
             raise ValueError('Já existe um item com esse slug.')
     except (InvalidOperation, TypeError, ValueError) as exc:
         return HttpResponseBadRequest(str(exc))
-    item.nome = (request.POST.get('nome') or item.nome).strip()
-    item.nome_ingles = (request.POST.get('nome_ingles') or '').strip() or None
-    item.slug = slug
-    item.raridade = raridade
-    item.requer_sintonizacao = request.POST.get('requer_sintonizacao') in {'1', 'on', 'true'}
-    item.detalhes_sintonizacao = (
-        request.POST.get('detalhes_sintonizacao') or '').strip() or None
-    item.slot = slot
-    item.loja = (request.POST.get('loja') or '').strip() or None
-    item.preco = preco
-    item.tipo = (request.POST.get('tipo') or '').strip() or None
-    item.imagem_url = (request.POST.get('imagem_url') or '').strip() or None
-    item.descricao_markdown = request.POST.get('descricao_markdown') or ''
-    item.tags_json = tags
-    item.save()
-    _log_wiki_edit(request, item, 'Edição inline de item mágico: %s' % item.nome)
+    values = {
+        'nome': (request.POST.get('nome') or item.nome).strip(),
+        'nome_ingles': (request.POST.get('nome_ingles') or '').strip() or None,
+        'slug': slug,
+        'raridade': raridade,
+        'requer_sintonizacao': request.POST.get('requer_sintonizacao') in {'1', 'on', 'true'},
+        'detalhes_sintonizacao': (request.POST.get('detalhes_sintonizacao') or '').strip() or None,
+        'slot': slot,
+        'loja': (request.POST.get('loja') or '').strip() or None,
+        'preco': preco,
+        'tipo': (request.POST.get('tipo') or '').strip() or None,
+        'imagem_url': (request.POST.get('imagem_url') or '').strip() or None,
+        'descricao_markdown': request.POST.get('descricao_markdown') or '',
+        'tags_json': tags,
+    }
+    item = _save_catalog_item_edit(
+        request, item, values, 'Edição inline de item mágico: %s' % values['nome'],
+    )
     return redirect(reverse('mercado_itens_magicos') + '?editado=%s' % item.slug)
 
 

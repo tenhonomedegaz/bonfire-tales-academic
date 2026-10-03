@@ -65,7 +65,14 @@ class ItemEditorRecoveryTests(StaticLiveServerTestCase):
                         break
                     time.sleep(.1)
                 self.assertTrue(port_file.exists(), 'Chrome nao iniciou.')
-                port = port_file.read_text(encoding='utf-8').splitlines()[0]
+                for _ in range(40):
+                    try:
+                        port = port_file.read_text(encoding='utf-8').splitlines()[0]
+                        break
+                    except (PermissionError, IndexError):
+                        time.sleep(.1)
+                else:
+                    self.fail('Porta do Chrome indisponível')
                 with urlopen(f'http://127.0.0.1:{port}/json', timeout=5) as response:
                     target = next(item for item in json.load(response) if item['type'] == 'page')
                 ws = websocket.create_connection(target['webSocketDebuggerUrl'], timeout=10)
