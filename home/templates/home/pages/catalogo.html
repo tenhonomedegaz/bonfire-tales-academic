@@ -60,8 +60,8 @@
     <button type="button" class="catalog-mobile-backdrop" id="catalogMobileBackdrop" aria-label="Fechar lista"></button>
     <aside class="catalog-sidebar" id="catalogSidebar">
       <div class="catalog-tools">
-        <input class="catalog-input" id="catalogSearch" type="search" placeholder="Buscar por nome, tag ou texto..." autocomplete="off">
-        <select class="catalog-select" id="catalogType">
+        <input class="catalog-input" id="catalogSearch" type="search" aria-label="Buscar no catálogo" placeholder="Buscar por nome, tag ou texto..." autocomplete="off">
+        <select class="catalog-select" id="catalogType" aria-label="Filtrar por tipo">
           <option value="">Todos os tipos</option>
         </select>
       </div>
@@ -101,7 +101,11 @@
   const typeSelect = document.getElementById('catalogType');
   const mobileMenuButton = document.getElementById('catalogMobileMenuButton');
   const mobileBackdrop = document.getElementById('catalogMobileBackdrop');
-  let activeSlug = items[0]?.slug || '';
+  const slugFromHash = () => {
+    try { return decodeURIComponent(window.location.hash.slice(1)); }
+    catch { return ''; }
+  };
+  let activeSlug = items.find(item => item.slug === slugFromHash())?.slug || items[0]?.slug || '';
 
   function setCatalogMenuOpen(isOpen) {
     document.body.classList.toggle('catalog-menu-open', isOpen);
@@ -156,6 +160,25 @@
     });
   }
 
+  function restoreFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    search.value = params.get('q') || '';
+    typeSelect.value = params.get('tipo') || '';
+    activeSlug = items.find(item => item.slug === slugFromHash())?.slug || items[0]?.slug || '';
+    renderList();
+  }
+
+  function syncUrl(mode) {
+    const url = new URL(window.location.href);
+    const query = search.value.trim();
+    if (query) url.searchParams.set('q', query);
+    else url.searchParams.delete('q');
+    if (typeSelect.value) url.searchParams.set('tipo', typeSelect.value);
+    else url.searchParams.delete('tipo');
+    if (activeSlug && filteredItems().length) url.hash = encodeURIComponent(activeSlug);
+    if (url.href !== window.location.href) history[mode === 'push' ? 'pushState' : 'replaceState'](null, '', url.href);
+  }
+
   function renderList() {
     const data = filteredItems();
     if (!data.length) {
@@ -165,7 +188,7 @@
     }
     if (!data.some(item => item.slug === activeSlug)) activeSlug = data[0].slug;
     list.innerHTML = data.map(item => `
-      <button class="catalog-card ${item.slug === activeSlug ? 'is-active' : ''}" type="button" data-slug="${esc(item.slug)}">
+      <button class="catalog-card ${item.slug === activeSlug ? 'is-active' : ''}" type="button" data-slug="${esc(item.slug)}" aria-pressed="${item.slug === activeSlug}">
         <div class="catalog-card-title">${esc(item.nome || 'Sem nome')}</div>
         <div class="catalog-card-meta">${esc(item.tipo || '')}</div>
         <div class="tag-row">${visibleTags(item).map(tag => `<span class="tag-chip">${esc(tag)}</span>`).join('')}</div>
@@ -174,8 +197,10 @@
     list.querySelectorAll('.catalog-card').forEach(button => {
       button.addEventListener('click', () => {
         activeSlug = button.dataset.slug;
+        syncUrl('push');
         setCatalogMenuOpen(false);
         renderList();
+        detail.querySelector('.detail-title')?.focus({ preventScroll: true });
       });
     });
     renderDetail(data.find(item => item.slug === activeSlug) || data[0]);
@@ -192,7 +217,7 @@
     });
     detail.innerHTML = `
       <div class="catalog-card-meta">${esc(item.tipo || '')}</div>
-      <h2 class="detail-title">${esc(item.nome || 'Sem nome')}</h2>
+      <h2 class="detail-title" id="${esc(item.slug)}" tabindex="-1">${esc(item.nome || 'Sem nome')}</h2>
       <div class="tag-row">${visibleTags(item).map(tag => `<span class="tag-chip">${esc(tag)}</span>`).join('')}</div>
       ${item.resumo ? `<p class="catalog-subtitle">${esc(item.resumo)}</p>` : ''}
       ${metaEntries.length ? `<div class="detail-meta-grid">${metaEntries.map(([label, value]) => `
@@ -233,10 +258,12 @@
   document.addEventListener('keydown', event => {
     if (event.key === 'Escape') setCatalogMenuOpen(false);
   });
-  search.addEventListener('input', renderList);
-  typeSelect.addEventListener('change', renderList);
+  search.addEventListener('input', () => { renderList(); syncUrl('replace'); });
+  typeSelect.addEventListener('change', () => { renderList(); syncUrl('push'); });
+  window.addEventListener('popstate', restoreFromUrl);
+  window.addEventListener('hashchange', restoreFromUrl);
   renderTypes();
-  renderList();
+  restoreFromUrl();
 })();
 </script>
 {% endblock %}
