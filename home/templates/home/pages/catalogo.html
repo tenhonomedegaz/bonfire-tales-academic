@@ -5,7 +5,7 @@
 {% block title %}{{ title }} - Bonfire Tales RPG{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/pages/catalogo.css' %}?v=7">
+<link rel="stylesheet" href="{% static 'css/pages/catalogo.css' %}?v=8">
 {% endblock %}
 
 {% block content %}
@@ -35,20 +35,24 @@
     {% endif %}
 
     {% if can_edit_wiki and kind == 'organizacoes' %}
-      <button type="button" class="catalog-action" id="toggleOrgForm" style="margin-top:0.6rem;">Nova organizacao</button>
-      <form class="org-form" id="orgForm">
+      <button type="button" class="catalog-action" id="toggleOrgForm" aria-controls="orgForm" aria-expanded="false" style="margin-top:0.6rem;">Nova organização</button>
+      <form class="org-form" id="orgForm" aria-label="Nova organização">
         {% csrf_token %}
-        <input name="nome" placeholder="Nome da organizacao" required>
-        <input name="tipo" placeholder="Tipo, ex: Guilda, Ordem, Reino">
-        <input name="sede" placeholder="Sede">
-        <input name="regioes" placeholder="Regioes separadas por virgula">
-        <input name="territorios" placeholder="Territorios separados por virgula">
-        <input name="lideranca" placeholder="Lideranca">
-        <input name="aliados" placeholder="Aliados separados por virgula">
-        <input name="inimigos" placeholder="Inimigos separados por virgula">
-        <input class="wide" name="tags" placeholder="Tags separadas por virgula">
-        <textarea class="wide" name="descricao" rows="5" placeholder="Descricao em Markdown"></textarea>
-        <button class="catalog-action wide" type="submit">Salvar</button>
+        <label class="org-field"><span>Nome</span><input name="nome" required></label>
+        <label class="org-field"><span>Tipo</span><input name="tipo" placeholder="Ex.: Guilda, Ordem, Reino"></label>
+        <label class="org-field"><span>Sede</span><input name="sede"></label>
+        <label class="org-field"><span>Regiões</span><input name="regioes" placeholder="Separe por vírgula"></label>
+        <label class="org-field"><span>Territórios</span><input name="territorios" placeholder="Separe por vírgula"></label>
+        <label class="org-field"><span>Liderança</span><input name="lideranca"></label>
+        <label class="org-field"><span>Aliados</span><input name="aliados" placeholder="Separe por vírgula"></label>
+        <label class="org-field"><span>Inimigos</span><input name="inimigos" placeholder="Separe por vírgula"></label>
+        <label class="org-field wide"><span>Tags</span><input name="tags" placeholder="Separe por vírgula"></label>
+        <label class="org-field wide"><span>Descrição em Markdown</span><textarea name="descricao" rows="5"></textarea></label>
+        <p class="org-form-error wide" id="orgFormError" role="alert" tabindex="-1" hidden></p>
+        <div class="org-form-actions wide">
+          <button class="org-form-cancel" id="cancelOrgForm" type="button">Cancelar</button>
+          <button class="catalog-action" type="submit">Salvar</button>
+        </div>
       </form>
     {% endif %}
   </header>
@@ -254,24 +258,68 @@
   async function submitOrganization(event) {
     event.preventDefault();
     const form = event.currentTarget;
+    const saveButton = form.querySelector('[type="submit"]');
+    if (saveButton.disabled) return;
+    const cancelButton = document.getElementById('cancelOrgForm');
+    const toggleButton = document.getElementById('toggleOrgForm');
+    const error = document.getElementById('orgFormError');
+    error.hidden = true;
     const data = Object.fromEntries(new FormData(form).entries());
-    const response = await fetch(window.location.pathname, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRFToken': form.querySelector('[name="csrfmiddlewaretoken"]').value,
-      },
-      body: JSON.stringify(data),
-    });
-    if (!response.ok) {
-      alert('Nao foi possivel salvar a organizacao.');
-      return;
+    saveButton.disabled = true;
+    cancelButton.disabled = true;
+    toggleButton.disabled = true;
+    form.setAttribute('aria-busy', 'true');
+    let saved = false;
+    try {
+      const response = await fetch(window.location.pathname, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': form.querySelector('[name="csrfmiddlewaretoken"]').value,
+        },
+        body: JSON.stringify(data),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.ok) throw new Error(result.error || 'Não foi possível salvar a organização.');
+      saved = true;
+      window.location.reload();
+    } catch (err) {
+      error.textContent = err.message || 'Não foi possível salvar a organização.';
+      error.hidden = false;
+      error.focus();
+    } finally {
+      if (!saved) {
+        saveButton.disabled = false;
+        cancelButton.disabled = false;
+        toggleButton.disabled = false;
+        form.removeAttribute('aria-busy');
+      }
     }
-    window.location.reload();
   }
 
-  document.getElementById('toggleOrgForm')?.addEventListener('click', () => {
-    document.getElementById('orgForm')?.classList.toggle('is-open');
+  const orgForm = document.getElementById('orgForm');
+  const toggleOrgForm = document.getElementById('toggleOrgForm');
+  function closeOrganizationForm() {
+    if (orgForm.querySelector('[type="submit"]').disabled) return;
+    orgForm.reset();
+    document.getElementById('orgFormError').hidden = true;
+    orgForm.classList.remove('is-open');
+    toggleOrgForm.setAttribute('aria-expanded', 'false');
+    toggleOrgForm.focus();
+  }
+  toggleOrgForm?.addEventListener('click', () => {
+    if (orgForm.classList.contains('is-open')) closeOrganizationForm();
+    else {
+      orgForm.classList.add('is-open');
+      toggleOrgForm.setAttribute('aria-expanded', 'true');
+      orgForm.querySelector('[name="nome"]').focus();
+    }
+  });
+  document.getElementById('cancelOrgForm')?.addEventListener('click', closeOrganizationForm);
+  orgForm?.addEventListener('keydown', event => {
+    if (event.key !== 'Escape') return;
+    event.preventDefault();
+    closeOrganizationForm();
   });
   document.getElementById('orgForm')?.addEventListener('submit', submitOrganization);
   mobileMenuButton?.addEventListener('click', () => setCatalogMenuOpen(!document.body.classList.contains('catalog-menu-open')));

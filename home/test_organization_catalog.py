@@ -272,12 +272,38 @@ class OrganizationReferencesBrowserTests(StaticLiveServerTestCase):
                     document.querySelector('#toggleOrgForm').click();
                 })()''')
                 self.assertTrue(js('document.querySelector("#orgForm").getBoundingClientRect().right <= document.documentElement.clientWidth'))
+                self.assertTrue(js('document.querySelector("#orgForm [name=nome]").labels.length === 1'))
+                self.assertEqual(js('document.activeElement.getAttribute("name")'), 'nome')
+                self.assertEqual(js('document.querySelector("#toggleOrgForm").getAttribute("aria-expanded")'), 'true')
+                js('document.querySelector("#orgForm [name=nome]").value = "Rascunho descartado"; document.querySelector("#cancelOrgForm").click()')
+                self.assertFalse(js('document.querySelector("#orgForm").classList.contains("is-open")'))
+                self.assertEqual(js('document.activeElement.id'), 'toggleOrgForm')
+                js('document.querySelector("#toggleOrgForm").click()')
+                self.assertEqual(js('document.querySelector("#orgForm [name=nome]").value'), '')
+                js('document.querySelector("#orgForm [name=nome]").dispatchEvent(new KeyboardEvent("keydown", {key:"Escape", bubbles:true}))')
+                self.assertFalse(js('document.querySelector("#orgForm").classList.contains("is-open")'))
                 js('''(() => {
+                    document.querySelector('#toggleOrgForm').click();
                     document.querySelector('#orgForm [name=nome]').value = 'Liga Navegador';
                     document.querySelector('#orgForm [name=regioes]').value = 'Auralon';
                     document.querySelector('#orgForm [name=descricao]').value = 'Criada pelo editor.';
-                    document.querySelector('#orgForm button[type=submit]').click();
+                    window.qaFetch = window.fetch; window.qaCalls = 0;
+                    window.fetch = () => { window.qaCalls++; return new Promise(resolve => { window.qaResolve = resolve; }); };
+                    document.querySelector('#orgForm').requestSubmit();
                 })()''')
+                wait_for('document.querySelector("#orgForm button[type=submit]").disabled')
+                js('document.querySelector("#orgForm").dispatchEvent(new Event("submit", {cancelable:true}))')
+                self.assertEqual(js('window.qaCalls'), 1)
+                self.assertTrue(js('document.querySelector("#cancelOrgForm").disabled'))
+                self.assertEqual(js('document.querySelector("#orgForm").getAttribute("aria-busy")'), 'true')
+                self.assertLessEqual(js('document.documentElement.scrollWidth'), js('document.documentElement.clientWidth'))
+                js('window.qaResolve(new Response(JSON.stringify({error:"Falha temporaria"}), {status:503,headers:{"Content-Type":"application/json"}}))')
+                wait_for('!document.querySelector("#orgForm button[type=submit]").disabled')
+                self.assertIn('Falha temporaria', js('document.querySelector("#orgFormError").textContent'))
+                self.assertEqual(js('document.activeElement.id'), 'orgFormError')
+                self.assertEqual(js('document.querySelector("#orgForm [name=nome]").value'), 'Liga Navegador')
+                self.assertFalse(TbOrganizacao.objects.filter(slug='liga-navegador').exists())
+                js('window.fetch = window.qaFetch; document.querySelector("#orgForm").requestSubmit()')
                 wait_for('[...document.querySelectorAll(".catalog-card-title")].some(e => e.textContent === "Liga Navegador")')
                 created = TbOrganizacao.objects.get(slug='liga-navegador')
                 self.assertEqual(created.regioes, ['Auralon'])

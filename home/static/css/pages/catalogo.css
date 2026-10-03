@@ -182,16 +182,27 @@
     padding: .7rem;
   }
   .org-form.is-open { display: grid; }
+  .org-field { display: grid; gap: .3rem; min-width: 0; }
+  .org-field span { color: var(--muted); font-size: .78rem; font-weight: 700; }
   .org-form textarea,
   .org-form input {
     background: #09090a;
     border: 1px solid var(--stroke);
     border-radius: 6px;
     color: var(--text);
+    min-width: 0;
     padding: .5rem .6rem;
     width: 100%;
   }
   .org-form .wide { grid-column: 1 / -1; }
+  .org-form-actions { display: flex; flex-wrap: wrap; gap: .5rem; justify-content: flex-end; }
+  .org-form-cancel { border: 1px solid var(--stroke); border-radius: 6px; color: var(--text); padding: .5rem .7rem; }
+  .org-form-error { color: #fca5a5; font-size: .85rem; margin: 0; }
+  .org-form-error[hidden] { display: none; }
+  .org-form-error:focus { outline: 2px solid #fca5a5; outline-offset: 2px; }
+  .org-form button:disabled { cursor: wait; opacity: .6; }
+  .org-form button:focus-visible, .org-form input:focus-visible,
+  .org-form textarea:focus-visible { outline: 2px solid var(--ember); outline-offset: 2px; }
   .catalog-action {
     background: var(--ember);
     border: 0;
