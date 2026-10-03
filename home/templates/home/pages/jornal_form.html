@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/pages/jornal_form.css' %}?v=9">
+<link rel="stylesheet" href="{% static 'css/pages/jornal_form.css' %}?v=10">
 <link rel="stylesheet" href="{% static 'css/pages/jornal_detail.css' %}?v=9">
 {% endblock %}
 
@@ -55,8 +55,8 @@
 
 
     <div class="editor-toolbar">
-      <button type="button" class="editor-tool" data-wrap="bold" title="Ctrl+B">B</button>
-      <button type="button" class="editor-tool" data-wrap="italic" title="Ctrl+I"><em>I</em></button>
+      <button type="button" class="editor-tool" data-wrap="bold" aria-label="Negrito" title="Ctrl+B">B</button>
+      <button type="button" class="editor-tool" data-wrap="italic" aria-label="Itálico" title="Ctrl+I"><em>I</em></button>
       <button type="button" class="editor-tool" data-wrap="link" title="Ctrl+K">Link</button>
       <button type="button" class="editor-tool" data-wrap="image" title="Ctrl+Alt+I">Imagem</button>
       <button type="button" class="editor-tool" data-wrap="code" title="Ctrl+`">Codigo</button>
@@ -71,10 +71,10 @@
     <div class="editor-split">
       <div class="editor-panel">
         <div class="editor-panel-header">
-          <h2>Texto</h2>
+          <h2><label for="edMarkdown">Texto</label></h2>
           <span id="edCounter">0 caracteres</span>
         </div>
-        <textarea id="edMarkdown" class="editor-textarea" placeholder="Escreva o artigo em Markdown...">{{ artigo.conteudo_markdown|default:'' }}</textarea>
+        <textarea id="edMarkdown" name="conteudo_markdown" class="editor-textarea" aria-describedby="edCounter" placeholder="Escreva o artigo em Markdown...">{{ artigo.conteudo_markdown|default:'' }}</textarea>
       </div>
       <div class="editor-panel">
         <div class="editor-panel-header">
@@ -91,6 +91,7 @@
       <a href="{% url 'mundo_jornal' %}" class="editor-cancel">Cancelar</a>
       <button type="submit" class="editor-submit">{% if is_new %}Publicar{% else %}Salvar{% endif %}</button>
     </div>
+    <p id="editorSaveError" class="editor-save-error" role="alert" tabindex="-1" hidden></p>
   </form>
 </div>
 
@@ -211,8 +212,12 @@
   });
 
   const form = document.getElementById('jornalEditorForm');
+  const submitButton = form.querySelector('.editor-submit');
+  const saveError = document.getElementById('editorSaveError');
   form.addEventListener('submit', async e => {
     e.preventDefault();
+    if (submitButton.disabled) return;
+    saveError.hidden = true;
     const body = {
       titulo: document.getElementById('edTitulo').value,
       resumo: document.getElementById('edResumo').value,
@@ -224,16 +229,28 @@
     };
     const csrf = form.querySelector('[name="csrfmiddlewaretoken"]').value;
     const url = {% if is_new %}'{% url "jornal_create" %}'{% else %}'{% url "jornal_update" slug=artigo.slug %}'{% endif %};
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
-      body: JSON.stringify(body),
-    });
-    const data = await res.json();
-    if (data.ok) {
+    submitButton.disabled = true;
+    form.setAttribute('aria-busy', 'true');
+    let saved = false;
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+        body: JSON.stringify(body),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Não foi possível salvar o artigo.');
+      saved = true;
       window.location.href = data.slug ? `/mundo/jornal/${data.slug}/` : '{% url "mundo_jornal" %}';
-    } else {
-      alert(data.error || 'Erro ao salvar');
+    } catch (error) {
+      saveError.textContent = error.message || 'Não foi possível salvar o artigo.';
+      saveError.hidden = false;
+      saveError.focus();
+    } finally {
+      if (!saved) {
+        submitButton.disabled = false;
+        form.removeAttribute('aria-busy');
+      }
     }
   });
 

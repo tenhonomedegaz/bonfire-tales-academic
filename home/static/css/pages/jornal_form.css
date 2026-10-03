@@ -81,6 +81,7 @@
   border-radius: 8px;
   display: flex;
   flex-direction: column;
+  min-width: 0;
   overflow: hidden;
 }
 .editor-panel-header {
@@ -115,12 +116,17 @@
   resize: none;
   width: 100%;
 }
+.editor-textarea:focus-visible {
+  outline: 2px solid var(--ember);
+  outline-offset: -2px;
+}
 .editor-preview {
   color: var(--muted);
   flex: 1;
   font-size: .85rem;
   line-height: 1.5;
   overflow-y: auto;
+  overflow-wrap: anywhere;
   padding: .7rem;
 }
 .editor-preview strong { color: #fff; }
@@ -131,6 +137,7 @@
 }
 .editor-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: .55rem;
   justify-content: flex-end;
   margin-top: 1rem;
@@ -158,4 +165,21 @@
 @media (max-width: 900px) {
   .editor-fields { grid-template-columns: 1fr; }
   .editor-split { grid-template-columns: 1fr; min-height: 300px; }
+}
+.editor-tool:focus-visible, .editor-cancel:focus-visible,
+.editor-submit:focus-visible {
+  outline: 2px solid var(--ember);
+  outline-offset: 2px;
+}
+.editor-submit:disabled { cursor: wait; opacity: .65; }
+.editor-save-error {
+  color: #fca5a5;
+  font-size: .85rem;
+  margin: .7rem 0 0;
+  text-align: right;
+}
+.editor-save-error[hidden] { display: none; }
+.editor-save-error:focus { outline: 2px solid #fca5a5; outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  .editor-submit { transition: none; }
 }
