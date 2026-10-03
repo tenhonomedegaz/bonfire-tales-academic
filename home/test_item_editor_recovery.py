@@ -166,6 +166,25 @@ class ItemEditorRecoveryTests(StaticLiveServerTestCase):
                         self.assertEqual(item.descricao_markdown, 'Texto revisado')
                         until('document.querySelector("[data-shop-detail]")?.textContent.includes("Texto revisado")')
                         self.assertLessEqual(js('document.documentElement.scrollWidth'), js('document.documentElement.clientWidth'))
+
+                        # A descrição editorial é clonada do template ao selecionar o item.
+                        # O HTML gerado deve passar pelo mesmo sanitizador da leitura comum.
+                        item.descricao_markdown = (
+                            '**Seguro** <img src="x" onerror="window.__marketInjected=1"> '
+                            '<svg onload="window.__marketInjected=1"></svg> '
+                            '[ruim](javascript:alert(1)) [bom](https://example.org)'
+                        )
+                        item.save(update_fields=['descricao_markdown'])
+                        call('Page.navigate', {'url': url})
+                        until('document.readyState==="complete" && !!document.querySelector("[data-shop-detail] .mkt-desc")')
+                        self.assertTrue(js('!!document.querySelector("[data-shop-detail] .mkt-desc strong")'))
+                        self.assertTrue(js('!!Array.from(document.querySelectorAll("[data-shop-detail] .mkt-desc a")).find(a=>a.href==="https://example.org/")'))
+                        self.assertFalse(js('!!document.querySelector("[data-shop-detail] .mkt-desc [onerror], [data-shop-detail] .mkt-desc svg, [data-shop-detail] .mkt-desc a[href^=javascript]")'))
+                        self.assertFalse(js('window.__marketInjected===1'))
+                        js('''window.renderBonfireMarkdownElement=undefined;
+                            document.querySelector('[data-mkt-row]').click();''')
+                        self.assertTrue(js('document.querySelector("[data-shop-detail] .mkt-desc").textContent.includes("**Seguro**")'))
+                        self.assertFalse(js('!!document.querySelector("[data-shop-detail] .mkt-desc strong, [data-shop-detail] .mkt-desc img")'))
             finally:
                 if ws:
                     ws.close()

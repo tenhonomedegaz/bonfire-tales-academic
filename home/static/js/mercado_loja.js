@@ -48,8 +48,12 @@
     toArr(node.querySelectorAll('[data-markdown-source]')).forEach(function (el) {
       if (el.dataset.rendered === '1') return;
       var fonte = el.textContent || '';
-      if (typeof renderBonfireMarkdown === 'function') el.innerHTML = renderBonfireMarkdown(fonte);
-      else if (window.marked && window.marked.parse) el.innerHTML = window.marked.parse(fonte, { gfm: true, breaks: true });
+      if (typeof renderBonfireMarkdownElement === 'function') {
+        renderBonfireMarkdownElement(el, fonte);
+      } else {
+        // Sem o renderizador seguro, manter o texto literal em vez de inserir HTML.
+        el.textContent = fonte;
+      }
       el.dataset.rendered = '1';
     });
   }
