@@ -28,21 +28,22 @@ Ganchos da prévia (JS): as imagens escolhidas no <input type=file> ainda NÃO e
 no servidor, então o cliente sobrepõe .public-profile-banner-media,
 .public-profile-avatar img e .perfil-preview-bg por cima deste HTML (URL.createObjectURL).
 {% endcomment %}
-<section class="public-profile-page {{ appearance.theme_class }} {{ appearance.effect_class }}{% if appearance.background_url %} profile-has-bg{% endif %}{% if preview_mode %} is-preview{% endif %}"{% if appearance.fx_particula %} data-fx-particula="{{ appearance.fx_particula }}" data-fx-vel="{{ appearance.fx_vel }}"{% endif %}{% if appearance.custom_style %} style="{{ appearance.custom_style }}"{% endif %}>
+{% load editorial_images %}
+<section class="public-profile-page {{ appearance.theme_class }} {{ appearance.effect_class }}{% if appearance.background_url|safe_profile_image %} profile-has-bg{% endif %}{% if preview_mode %} is-preview{% endif %}"{% if appearance.fx_particula %} data-fx-particula="{{ appearance.fx_particula }}" data-fx-vel="{{ appearance.fx_vel }}"{% endif %}{% if appearance.custom_style %} style="{{ appearance.custom_style }}"{% endif %}>
   {% if preview_mode %}
-  <div class="perfil-preview-bg"{% if appearance.background_url %} style="background-image:url('{{ appearance.background_url }}');"{% else %} style="display:none"{% endif %}></div>
+  <div class="perfil-preview-bg"{% if appearance.background_url|safe_profile_image %} style="background-image:url('{{ appearance.background_url|safe_profile_image }}');"{% else %} style="display:none"{% endif %}></div>
   {% else %}
   <a href="{% url 'jogadores' %}" class="public-profile-back">← Jogadores</a>
   {% endif %}
   <div class="public-profile-card">
     <div class="public-profile-banner">
-      {% if profile.banner_url %}<div class="public-profile-banner-media" style="background-image:url('{{ profile.banner_url }}');"></div>{% elif preview_mode %}<div class="public-profile-banner-media" style="display:none"></div>{% endif %}
+      {% if profile.banner_url|safe_profile_image %}<div class="public-profile-banner-media" style="background-image:url('{{ profile.banner_url|safe_profile_image }}');"></div>{% elif preview_mode %}<div class="public-profile-banner-media" style="display:none"></div>{% endif %}
     </div>
 
     <div class="public-profile-body">
       <div class="public-profile-avatar {{ appearance.frame_class }}">
-        {% if profile.avatar_url %}
-        <img src="{{ profile.avatar_url }}" alt="Avatar de {{ viewed_user.username }}" loading="lazy">
+        {% if profile.avatar_url|safe_profile_image %}
+        <img src="{{ profile.avatar_url|safe_profile_image }}" alt="Avatar de {{ viewed_user.username }}" loading="lazy">
         {% else %}
         <span>{{ viewed_user.username|first|upper }}</span>
         {% endif %}
@@ -176,7 +177,7 @@ no servidor, então o cliente sobrepõe .public-profile-banner-media,
     <div class="public-character-grid">
       {% for c in personagens %}
       <a href="{% url 'ficha_detail' c.obj.id_personagem %}" class="public-character-card"{% if preview_mode %} tabindex="-1"{% endif %}>
-        {% if c.obj.banner_url %}<span class="public-character-banner" style="background-image:url('{{ c.obj.banner_url }}');"></span>{% endif %}
+        {% if c.obj.banner_url|safe_profile_image %}<span class="public-character-banner" style="background-image:url('{{ c.obj.banner_url|safe_profile_image }}');"></span>{% endif %}
         <strong>{{ c.obj.nome }}</strong>
         <span>{{ c.raca }} · {{ c.classe }}</span>
         <em>Nivel {{ c.nivel }}</em>

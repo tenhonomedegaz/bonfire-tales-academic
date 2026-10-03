@@ -1,5 +1,5 @@
 {% extends 'home/base.html' %}
-{% load static %}
+{% load static editorial_images %}
 
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'css/pages/perfil.css' %}?v=7">
@@ -56,12 +56,12 @@
     {% for card in cards %}
     <article class="player-card {{ card.appearance.theme_class }} {{ card.appearance.effect_class }}"{% if card.appearance.fx_particula %} data-fx-particula="{{ card.appearance.fx_particula }}" data-fx-vel="{{ card.appearance.fx_vel }}"{% endif %}{% if card.appearance.custom_style %} style="{{ card.appearance.custom_style }}"{% endif %}>
       <a href="{% url 'public_profile' card.user.username %}" class="player-card-banner" aria-label="Abrir perfil de {{ card.user.username }}">
-        {% if card.profile.banner_url %}<span style="background-image:url('{{ card.profile.banner_url }}');"></span>{% endif %}
+        {% if card.profile.banner_url|safe_profile_image %}<span style="background-image:url('{{ card.profile.banner_url|safe_profile_image }}');"></span>{% endif %}
       </a>
       <div class="player-card-body">
         <a href="{% url 'public_profile' card.user.username %}" class="player-card-avatar {{ card.appearance.frame_class }}">
-          {% if card.profile.avatar_url %}
-          <img src="{{ card.profile.avatar_url }}" alt="Avatar de {{ card.user.username }}" loading="lazy">
+          {% if card.profile.avatar_url|safe_profile_image %}
+          <img src="{{ card.profile.avatar_url|safe_profile_image }}" alt="Avatar de {{ card.user.username }}" loading="lazy">
           {% else %}
           <span>{{ card.user.username|first|upper }}</span>
           {% endif %}

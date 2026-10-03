@@ -1,5 +1,5 @@
 {% extends 'home/base.html' %}
-{% load static %}
+{% load static editorial_images %}
 
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'css/pages/perfil.css' %}?v=6">
@@ -9,7 +9,7 @@
 {% endblock %}
 
 {% block content %}
-{% if appearance.background_url %}<div class="profile-bg-media" style="background-image:url('{{ appearance.background_url }}');"></div>{% endif %}
+{% if appearance.background_url|safe_profile_image %}<div class="profile-bg-media" style="background-image:url('{{ appearance.background_url|safe_profile_image }}');"></div>{% endif %}
 {% include 'home/partials/_perfil_publico_hero.html' %}
 
 {% comment %}

@@ -14,7 +14,7 @@ from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.db import connection
 from django.urls import reverse
 
-from .models import TbConteudoEstatico, TbJornal, TbMapLayer, TbRegiao, TbTerritorio
+from .models import TbConteudoEstatico, TbJornal, TbMapLayer, TbRegiao, TbTerritorio, UserProfile
 
 
 class JornalListZoomTests(StaticLiveServerTestCase):
@@ -220,6 +220,26 @@ class JornalListZoomTests(StaticLiveServerTestCase):
                 self.assertTrue(js("document.body.textContent.includes('Lore do território salva pelo navegador.')"),
                                 js("JSON.stringify({url:location.href,text:document.body.textContent.slice(0,250)})"))
                 self.assertEqual(js("location.pathname"), reverse("territorio_detail", args=["territorio-zoom-qa"]))
+                profile = UserProfile.objects.get_or_create(user=editor)[0]
+                profile.banner_url = "https://cdn.example/banner.png');color:red;--evil:'"
+                profile.background_url = "https://cdn.example/bg.png');color:red;--evil:'"
+                profile.save()
+                call("Page.navigate", {"url": self.live_server_url + reverse("jogadores")})
+                for _ in range(80):
+                    if js("document.readyState") == "complete" and js("document.querySelector('.player-card-banner span') !== null"):
+                        break
+                    time.sleep(.1)
+                self.assertEqual(js("document.querySelector('.player-card-banner span').style.color"), "")
+                self.assertEqual(js("document.querySelector('.player-card-banner span').style.getPropertyValue('--evil')"), "")
+                self.assertLessEqual(js("document.documentElement.scrollWidth"), js("document.documentElement.clientWidth"))
+                call("Page.navigate", {"url": self.live_server_url + reverse("public_profile", args=[editor.username])})
+                for _ in range(80):
+                    if js("document.readyState") == "complete" and js("document.querySelector('.public-profile-banner-media') !== null"):
+                        break
+                    time.sleep(.1)
+                self.assertEqual(js("document.querySelector('.public-profile-banner-media').style.color"), "")
+                self.assertEqual(js("document.querySelector('.profile-bg-media').style.getPropertyValue('--evil')"), "")
+                self.assertLessEqual(js("document.documentElement.scrollWidth"), js("document.documentElement.clientWidth"))
                 call("Page.navigate", {"url": self.live_server_url + reverse("jornal_detail", args=["capa-antiga"])})
                 for _ in range(80):
                     if js("document.readyState") == "complete" and js("document.querySelector('.artigo-hero') !== null"):

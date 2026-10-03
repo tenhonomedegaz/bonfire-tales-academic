@@ -1,5 +1,5 @@
 {% extends 'home/base.html' %}
-{% load static %}
+{% load static editorial_images %}
 
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'css/pages/perfil.css' %}?v=6">
@@ -11,8 +11,8 @@
 {% endblock %}
 
 {% block content %}
-{% if appearance.background_url %}<div class="profile-bg-media" id="profile-bg-media" style="background-image:url('{{ appearance.background_url }}');"></div>{% else %}<div class="profile-bg-media" id="profile-bg-media" style="display:none"></div>{% endif %}
-<div class="profile-page {{ appearance.theme_class }} {{ appearance.effect_class }}{% if appearance.background_url %} profile-has-bg{% endif %}" id="profile-root"{% if appearance.custom_style %} style="{{ appearance.custom_style }}"{% endif %}>
+{% if appearance.background_url|safe_profile_image %}<div class="profile-bg-media" id="profile-bg-media" style="background-image:url('{{ appearance.background_url|safe_profile_image }}');"></div>{% else %}<div class="profile-bg-media" id="profile-bg-media" style="display:none"></div>{% endif %}
+<div class="profile-page {{ appearance.theme_class }} {{ appearance.effect_class }}{% if appearance.background_url|safe_profile_image %} profile-has-bg{% endif %}" id="profile-root"{% if appearance.custom_style %} style="{{ appearance.custom_style }}"{% endif %}>
 
     <!-- Toasts -->
     {% for msg in success_messages %}
@@ -30,12 +30,12 @@
 
     <!-- Header do Perfil -->
     <div class="profile-header profile-hero">
-        {% if profile.banner_url %}
-        <div class="profile-banner-media" style="background-image:url('{{ profile.banner_url }}');"></div>
+        {% if profile.banner_url|safe_profile_image %}
+        <div class="profile-banner-media" style="background-image:url('{{ profile.banner_url|safe_profile_image }}');"></div>
         {% endif %}
         <div class="profile-avatar-wrapper {{ appearance.frame_class }}" id="profile-avatar-main">
-            {% if profile.avatar_url %}
-            <img src="{{ profile.avatar_url }}" alt="Avatar de {{ user.username }}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            {% if profile.avatar_url|safe_profile_image %}
+            <img src="{{ profile.avatar_url|safe_profile_image }}" alt="Avatar de {{ user.username }}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
             <div class="profile-avatar-fallback" style="display:none;">
                 <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
             </div>
@@ -95,9 +95,9 @@
             </label>
             <div class="avatar-preview-row">
                 <img id="avatar-preview-img" class="avatar-preview-small"
-                     src="{{ profile.avatar_url|default:'' }}"
+                     src="{{ profile.avatar_url|safe_profile_image }}"
                      alt="Preview"
-                     style="{% if not profile.avatar_url %}display:none;{% endif %}"
+                     style="{% if not profile.avatar_url|safe_profile_image %}display:none;{% endif %}"
                      onerror="this.style.display='none';">
                 <span class="avatar-preview-hint">Cole um link ou envie um arquivo. Upload substitui a URL.</span>
             </div>
@@ -113,7 +113,7 @@
                 <span>Enviar banner ou GIF</span>
                 <input type="file" id="id_banner_file" name="banner_file" accept="image/png,image/jpeg,image/webp,image/gif">
             </label>
-            <div class="banner-preview-box" id="banner-preview-box" style="{% if profile.banner_url %}background-image:url('{{ profile.banner_url }}');{% else %}display:none;{% endif %}"></div>
+            <div class="banner-preview-box" id="banner-preview-box" style="{% if profile.banner_url|safe_profile_image %}background-image:url('{{ profile.banner_url|safe_profile_image }}');{% else %}display:none;{% endif %}"></div>
             <span class="avatar-preview-hint">GIFs e imagens estaticas funcionam para todos os usuarios.</span>
             {% if profile.banner_url %}
             <label class="profile-inline-check"><input type="checkbox" name="clear_banner"> Remover banner atual</label>
@@ -127,7 +127,7 @@
                 <span>Enviar fundo ou GIF</span>
                 <input type="file" id="id_background_file" name="background_file" accept="image/png,image/jpeg,image/webp,image/gif">
             </label>
-            <div class="banner-preview-box" id="background-preview-box" style="aspect-ratio:16/6;{% if profile.background_url %}background-image:url('{{ profile.background_url }}');{% else %}display:none;{% endif %}"></div>
+            <div class="banner-preview-box" id="background-preview-box" style="aspect-ratio:16/6;{% if profile.background_url|safe_profile_image %}background-image:url('{{ profile.background_url|safe_profile_image }}');{% else %}display:none;{% endif %}"></div>
             <span class="avatar-preview-hint">Preenche o fundo da sua pagina de perfil (cover, fixo). Um overlay escuro mantem os cartoes legiveis.</span>
             {% if profile.background_url %}
             <label class="profile-inline-check"><input type="checkbox" name="clear_background"> Remover fundo atual</label>
