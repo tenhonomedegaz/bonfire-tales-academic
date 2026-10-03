@@ -14957,8 +14957,10 @@ def _jornal_content_fields(data, article=None):
     image_url = data.get('imagem_url', article.imagem_url if article else '')
     if image_url is not None and not isinstance(image_url, str):
         return None, 'Use uma URL de imagem HTTP(S), /media/ ou /static/.'
-    image_url = (image_url or '').strip()
-    if len(image_url) > 500 or (image_url and not _jornal_image_url(image_url)):
+    if 'imagem_url' in data or article is None:
+        image_url = (image_url or '').strip()
+    checked_image_url = image_url or ''
+    if len(checked_image_url) > 500 or (checked_image_url and not _jornal_image_url(checked_image_url)):
         return None, 'Use uma URL de imagem HTTP(S), /media/ ou /static/ com ate 500 caracteres.'
     markdown = data.get('conteudo_markdown', article.conteudo_markdown if article else '')
     if markdown is not None and not isinstance(markdown, str):
@@ -14976,7 +14978,10 @@ def _jornal_content_fields(data, article=None):
 @permission_required('home.add_tbjornal', raise_exception=True)
 def jornal_create_view(request):
     if request.method == 'POST':
-        data = _json_body(request)
+        try:
+            data = _editor_json_body(request)
+        except ValueError as exc:
+            return JsonResponse({'error': str(exc)}, status=400)
         titulo, layout, error = _jornal_editor_fields(data)
         if error:
             return JsonResponse({'error': error}, status=400)
@@ -15013,7 +15018,10 @@ def jornal_create_view(request):
 @permission_required('home.change_tbjornal', raise_exception=True)
 @require_POST
 def jornal_update_view(request, slug):
-    data = _json_body(request)
+    try:
+        data = _editor_json_body(request)
+    except ValueError as exc:
+        return JsonResponse({'error': str(exc)}, status=400)
     with transaction.atomic():
         artigo = get_object_or_404(TbJornal.objects.select_for_update(), slug=slug)
         titulo, layout, error = _jornal_editor_fields(data, artigo)
@@ -15027,6 +15035,11 @@ def jornal_update_view(request, slug):
             return JsonResponse({'error': error}, status=400)
         if data.get('expected_edit') != artigo.data_edicao.isoformat():
             return JsonResponse({'error': 'O artigo mudou. Recarregue a página antes de salvar.'}, status=409)
+        changes = {'titulo': titulo, 'layout': layout, **content_fields}
+        if publication_date:
+            changes['data_publicacao'] = publication_date
+        if all(getattr(artigo, field) == value for field, value in changes.items()):
+            return JsonResponse({'ok': True})
         artigo.titulo = titulo
         for field, value in content_fields.items():
             setattr(artigo, field, value)
