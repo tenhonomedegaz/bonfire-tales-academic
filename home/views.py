@@ -14843,6 +14843,28 @@ def _cronica_editor_error(fields):
     return None
 
 
+def _cronica_location_error(territorio, regiao, territorios, regioes):
+    for value in (territorio, regiao):
+        if not isinstance(value, (str, list)) or (
+            isinstance(value, list) and any(not isinstance(item, str) for item in value)
+        ):
+            return 'Seleção de local inválida.'
+    selected_territories = _coerce_multi_value(territorio)
+    selected_regions = _coerce_multi_value(regiao)
+    known_territories = set(territorios)
+    known_regions = {name for name, _ in regioes}
+    if any(name not in known_territories for name in selected_territories):
+        return 'Selecione territórios cadastrados.'
+    if any(name not in known_regions for name in selected_regions):
+        return 'Selecione regiões cadastradas.'
+    if selected_territories and any(
+        not any(name == region and parent in selected_territories for name, parent in regioes)
+        for region in selected_regions
+    ):
+        return 'Cada região deve pertencer a um território selecionado.'
+    return None
+
+
 def _notificar_cronica(destinatario_id, cronica, chave_evento, tipo, texto, comentario=None):
     if destinatario_id:
         TbCronicaNotificacao.objects.get_or_create(
@@ -15160,6 +15182,11 @@ def cronica_create_view(request):
         error = _cronica_editor_error(fields)
         if error:
             return JsonResponse({'error': error}, status=400)
+        territorio = data.get('territorio', [])
+        regiao = data.get('regiao', [])
+        error = _cronica_location_error(territorio, regiao, territorios, regioes)
+        if error:
+            return JsonResponse({'error': error}, status=400)
         titulo = fields['titulo'].strip()
         conteudo = fields['conteudo_markdown'].strip()
         slug = slugify(titulo)
@@ -15177,8 +15204,8 @@ def cronica_create_view(request):
             imagem_url=fields['imagem_url'],
             autor=request.user,
             personagem_nome=fields['personagem_nome'],
-            territorio=_store_multi_value(data.get('territorio', [])),
-            regiao=_store_multi_value(data.get('regiao', [])),
+            territorio=_store_multi_value(territorio),
+            regiao=_store_multi_value(regiao),
             status='pendente',
         )
         return JsonResponse({'ok': True, 'slug': cronica.slug})
@@ -15202,20 +15229,27 @@ def cronica_edit_view(request, slug):
             if cronica.autor_id != request.user.id:
                 raise Http404
             source = cronica.revisao_edicao if cronica.status == 'aprovada' else {}
+            territorio = data.get('territorio', source.get('territorio', cronica.territorio))
+            regiao = data.get('regiao', source.get('regiao', cronica.regiao))
             fields = {
                 'titulo': data.get('titulo', source.get('titulo', cronica.titulo)),
                 'conteudo_markdown': data.get('conteudo_markdown', source.get('conteudo_markdown', cronica.conteudo_markdown)),
                 'resumo': data.get('resumo', source.get('resumo', cronica.resumo)),
                 'imagem_url': data.get('imagem_url', source.get('imagem_url', cronica.imagem_url)),
                 'personagem_nome': data.get('personagem_nome', source.get('personagem_nome', cronica.personagem_nome)),
-                'territorio': _store_multi_value(data.get('territorio', source.get('territorio', cronica.territorio))),
-                'regiao': _store_multi_value(data.get('regiao', source.get('regiao', cronica.regiao))),
+                'territorio': territorio,
+                'regiao': regiao,
             }
             error = _cronica_editor_error(fields)
             if error:
                 return JsonResponse({'error': error}, status=400)
+            error = _cronica_location_error(territorio, regiao, territorios, regioes)
+            if error:
+                return JsonResponse({'error': error}, status=400)
             fields['titulo'] = fields['titulo'].strip()
             fields['conteudo_markdown'] = fields['conteudo_markdown'].strip()
+            fields['territorio'] = _store_multi_value(territorio)
+            fields['regiao'] = _store_multi_value(regiao)
             if cronica.status == 'aprovada':
                 cronica.revisao_edicao = {
                     **fields, 'estado': 'pendente', 'submetida_em': timezone.now().isoformat(),
@@ -15296,7 +15330,11 @@ def cronica_review_action(request, cronica_id):
             if action == 'aprovar':
                 required = ('titulo', 'conteudo_markdown', 'resumo', 'imagem_url',
                             'personagem_nome', 'territorio', 'regiao')
-                if any(name not in revision for name in required) or _cronica_editor_error(revision):
+                territorios, regioes = _cronicas_location_choices()
+                if (any(name not in revision for name in required)
+                        or _cronica_editor_error(revision)
+                        or _cronica_location_error(revision['territorio'], revision['regiao'],
+                                                  territorios, regioes)):
                     return JsonResponse({'error': 'Edição inválida. Devolva-a ao autor para correção.'}, status=409)
                 for name in ('titulo', 'conteudo_markdown', 'resumo', 'imagem_url',
                              'personagem_nome', 'territorio', 'regiao'):
@@ -15318,6 +15356,14 @@ def cronica_review_action(request, cronica_id):
         if cronica.status != 'pendente':
             return JsonResponse({'error': 'Crônica não está pendente.'}, status=409)
         if action == 'aprovar':
+            territorios, regioes = _cronicas_location_choices()
+            if (_cronica_editor_error({
+                    'titulo': cronica.titulo, 'conteudo_markdown': cronica.conteudo_markdown,
+                    'resumo': cronica.resumo, 'imagem_url': cronica.imagem_url,
+                    'personagem_nome': cronica.personagem_nome,
+                }) or _cronica_location_error(cronica.territorio or '', cronica.regiao or '',
+                                             territorios, regioes)):
+                return JsonResponse({'error': 'Crônica inválida. Devolva-a ao autor para correção.'}, status=409)
             cronica.status = 'aprovada'
             cronica.revisado_por = request.user
             cronica.data_revisao = timezone.now()

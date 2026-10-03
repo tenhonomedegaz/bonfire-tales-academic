@@ -5,7 +5,7 @@ from django.contrib.auth.models import Permission
 from django.test import TestCase
 from django.urls import reverse
 
-from home.models import TbCronica
+from home.models import TbCronica, TbRegiao, TbTerritorio
 
 
 class CronicaRevisionTests(TestCase):
@@ -193,6 +193,10 @@ class CronicaRevisionTests(TestCase):
         self.assertEqual(self.cronica.revisao_edicao['conteudo_markdown'], 'Segundo rascunho')
 
     def test_review_queue_shows_every_proposed_editorial_field(self):
+        for name in ('Norte', 'Sul'):
+            TbTerritorio.objects.create(nome=name, slug=name.lower())
+        TbRegiao.objects.create(nome='Serra', slug='serra', territorio='Norte')
+        TbRegiao.objects.create(nome='Costa', slug='costa', territorio='Sul')
         self.client.force_login(self.autor)
         response = self.post_json(reverse('cronica_edit', args=[self.cronica.slug]), {
             'titulo': 'Nova versão', 'conteudo_markdown': 'Novo texto',
