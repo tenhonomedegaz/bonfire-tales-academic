@@ -169,6 +169,40 @@ class JornalListZoomTests(StaticLiveServerTestCase):
                 self.assertLessEqual(js("document.activeElement.getBoundingClientRect().right"), js("document.documentElement.clientWidth"))
                 self.assertTrue(js("[...document.querySelectorAll('#regionForm input, #regionForm select, #regionForm textarea, #regionForm button')].filter(e=>e.getClientRects().length).every(e=>e.getBoundingClientRect().right<=document.documentElement.clientWidth+1)"))
                 self.assertTrue(js("document.querySelector('#regionForm').checkValidity()"))
+                js("""(()=>{
+                    const originalFetch = window.fetch.bind(window);
+                    window.fetch = async (...args) => {
+                        const response = await originalFetch(...args);
+                        if (String(args[0]).includes('/wiki/regioes/')) {
+                            sessionStorage.setItem('region-save-qa', JSON.stringify({
+                                status: response.status, body: await response.clone().text()
+                            }));
+                        }
+                        return response;
+                    };
+                    document.querySelector('#regionForm [name=lore_markdown]').value =
+                        '## Visão Geral\\nLore salva pelo navegador.';
+                    document.querySelector('#regionForm').requestSubmit();
+                })()""")
+                save_result = None
+                for _ in range(80):
+                    stored = js("sessionStorage.getItem('region-save-qa')")
+                    if stored:
+                        save_result = json.loads(stored)
+                        break
+                    time.sleep(.1)
+                self.assertIsNotNone(save_result, "POST do editor não respondeu")
+                self.assertEqual(save_result["status"], 200, save_result)
+                saved_region = TbRegiao.objects.get(nome="Região de teste")
+                self.assertEqual(json.loads(save_result["body"])["redirect"],
+                                 reverse("regiao_detail", args=[saved_region.slug]))
+                for _ in range(80):
+                    if js("document.readyState") == "complete" and js("document.body.textContent.includes('Lore salva pelo navegador.')"):
+                        break
+                    time.sleep(.1)
+                self.assertTrue(js("document.body.textContent.includes('Lore salva pelo navegador.')"),
+                                js("JSON.stringify({url:location.href,text:document.body.textContent.slice(0,250)})"))
+                self.assertEqual(js("location.pathname"), reverse("regiao_detail", args=[saved_region.slug]))
                 call("Page.navigate", {"url": self.live_server_url + reverse("territorio_detail", args=["territorio-zoom-qa"])})
                 for _ in range(80):
                     if js('document.querySelector("#btnEditTerritory") !== null'):
@@ -177,6 +211,15 @@ class JornalListZoomTests(StaticLiveServerTestCase):
                 self.assertTrue(js('document.querySelector("#btnEditTerritory") !== null'))
                 js('document.querySelector("#btnEditTerritory").click()')
                 self.assertTrue(js("[...document.querySelectorAll('#territoryForm input, #territoryForm textarea, #territoryForm button')].filter(e=>e.getClientRects().length).every(e=>e.getBoundingClientRect().right<=document.documentElement.clientWidth+1)"))
+                js("document.querySelector('#territoryForm [name=lore_markdown]').value = '## Visão Geral\\nLore do território salva pelo navegador.'")
+                js("document.querySelector('#territoryForm').requestSubmit()")
+                for _ in range(80):
+                    if js("document.readyState") == "complete" and js("document.body.textContent.includes('Lore do território salva pelo navegador.')"):
+                        break
+                    time.sleep(.1)
+                self.assertTrue(js("document.body.textContent.includes('Lore do território salva pelo navegador.')"),
+                                js("JSON.stringify({url:location.href,text:document.body.textContent.slice(0,250)})"))
+                self.assertEqual(js("location.pathname"), reverse("territorio_detail", args=["territorio-zoom-qa"]))
                 call("Page.navigate", {"url": self.live_server_url + reverse("jornal_detail", args=["capa-antiga"])})
                 for _ in range(80):
                     if js("document.readyState") == "complete" and js("document.querySelector('.artigo-hero') !== null"):

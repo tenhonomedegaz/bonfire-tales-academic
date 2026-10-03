@@ -345,8 +345,9 @@ class WorldLorePresentationTests(TestCase):
             content_type='application/json',
         )
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()['redirect'], reverse('regiao_detail', args=[region.slug]))
         region.refresh_from_db()
+        self.assertEqual(response.json()['redirect'], reverse('regiao_detail', args=[region.slug]))
+        self.assertEqual(response.json()['region']['slug'], region.slug)
         self.assertEqual(region.lore_markdown, '## Visão Geral\nLore revisada no editor.')
         self.client.logout()
         self.assertContains(self.client.get(reverse('regiao_detail', args=[region.slug])),

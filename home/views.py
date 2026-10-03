@@ -12298,6 +12298,9 @@ def wiki_update_region(request, region_id):
     region.nivel_periculosidade = int(data.get('nivel_periculosidade') or region.nivel_periculosidade)
 
     region.save()
+    # Marker synchronization can update the persisted region slug during post_save.
+    # Redirect to the current URL rather than the stale in-memory value.
+    region.refresh_from_db()
     _log_wiki_edit(request, region, f"Edição inline de região: {region.nome}")
     return JsonResponse({
         'ok': True,
