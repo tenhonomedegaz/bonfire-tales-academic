@@ -32,7 +32,7 @@ class PlayersPaginationBrowserTests(StaticLiveServerTestCase):
         for index in range(22):
             user_model.objects.create_user(username=f'pageuser{index:02}', is_staff=True)
 
-        with tempfile.TemporaryDirectory(prefix='bonfire-players-') as profile:
+        with tempfile.TemporaryDirectory(prefix='bonfire-players-', ignore_cleanup_errors=True) as profile:
             process = subprocess.Popen([
                 chrome, '--headless=new', '--no-sandbox', '--disable-gpu',
                 '--remote-debugging-port=0', '--remote-allow-origins=*',
@@ -76,7 +76,7 @@ class PlayersPaginationBrowserTests(StaticLiveServerTestCase):
                     self.fail(f'Tempo esgotado: {expression}')
 
                 call('Emulation.setDeviceMetricsOverride', {
-                    'width': 390, 'height': 844, 'deviceScaleFactor': 1, 'mobile': True,
+                    'width': 360, 'height': 800, 'deviceScaleFactor': 1, 'mobile': True,
                 })
                 call('Page.navigate', {'url': (
                     f'{self.live_server_url}/jogadores/'
@@ -84,6 +84,10 @@ class PlayersPaginationBrowserTests(StaticLiveServerTestCase):
                 )})
                 wait_for('document.querySelectorAll(".player-card").length === 18')
                 js('window.__paginationMarker = 42')
+                self.assertEqual(js('document.querySelector(".players-search input[name=q]").getAttribute("aria-label")'), 'Buscar jogador ou personagem público')
+                self.assertEqual(js('document.querySelectorAll(".players-tabs [aria-current=page]").length'), 1)
+                js('document.querySelector(".players-search input[name=q]").focus()')
+                self.assertEqual(js('getComputedStyle(document.querySelector(".players-search")).outlineStyle'), 'solid')
 
                 js('document.querySelector(".players-pagination a[href*=page]").click()')
                 wait_for('location.search.includes("page=2") && document.querySelectorAll(".player-card").length === 4')
@@ -101,6 +105,16 @@ class PlayersPaginationBrowserTests(StaticLiveServerTestCase):
                 self.assertEqual(js('window.__paginationMarker'), 42)
                 self.assertTrue(js('document.activeElement.classList.contains("players-meta")'))
                 self.assertLessEqual(js('document.documentElement.scrollWidth'), js('innerWidth'))
+
+                js('document.querySelector(".players-search input[name=q]").value = "nao-encontrado-xyz"; document.querySelector(".players-search button").click()')
+                wait_for('location.search.includes("nao-encontrado-xyz") && document.querySelectorAll(".player-card").length === 0')
+                self.assertEqual(js('document.querySelector(".players-meta [role=status]").getAttribute("aria-live")'), 'polite')
+                self.assertTrue(js('document.querySelector(".players-meta").textContent.includes("0 perfis")'))
+                self.assertEqual(js('window.__paginationMarker'), 42)
+                js('history.back()')
+                wait_for('location.search.includes("page=2") && document.querySelectorAll(".player-card").length === 4')
+                self.assertEqual(js('window.__paginationMarker'), 42)
+                self.assertEqual(js('document.querySelector(".players-search input[name=q]").value'), 'pageuser')
             finally:
                 if ws:
                     ws.close()

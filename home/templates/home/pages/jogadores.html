@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/pages/perfil.css' %}?v=6">
+<link rel="stylesheet" href="{% static 'css/pages/perfil.css' %}?v=7">
 <link rel="stylesheet" href="{% static 'css/pages/perfil-fx.css' %}?v=4">
 <title>Jogadores - Bonfire Tales RPG</title>
 {% endblock %}
@@ -18,7 +18,7 @@
       {% if filtro != 'todos' %}<input type="hidden" name="filtro" value="{{ filtro }}">{% endif %}
       {% if ordem != 'popular' %}<input type="hidden" name="ordem" value="{{ ordem }}">{% endif %}
       <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-      <input type="search" name="q" value="{{ q }}" placeholder="Buscar jogador ou personagem publico">
+      <input type="search" name="q" value="{{ q }}" aria-label="Buscar jogador ou personagem público" placeholder="Buscar jogador ou personagem público">
       <button type="submit">Buscar</button>
     </form>
   </header>
@@ -26,7 +26,7 @@
   <div class="players-toolbar">
     <nav class="players-tabs" aria-label="Filtros de jogadores">
       {% for item in filter_options %}
-      <a href="{{ item.url }}" class="{% if item.key == filtro %}is-active{% endif %}">{{ item.label }}</a>
+      <a href="{{ item.url }}" class="{% if item.key == filtro %}is-active{% endif %}"{% if item.key == filtro %} aria-current="page"{% endif %}>{{ item.label }}</a>
       {% endfor %}
     </nav>
     <form action="{% url 'jogadores' %}" method="get" class="players-order">
@@ -42,7 +42,7 @@
   </div>
 
   <div class="players-meta" tabindex="-1">
-    <span>{{ total_encontrados }} perfil{% if total_encontrados != 1 %}s{% endif %}</span>
+    <span role="status" aria-live="polite">{{ total_encontrados }} {% if total_encontrados == 1 %}perfil{% else %}perfis{% endif %}</span>
     <span class="players-meta-actions">
       {% if q or filtro != 'todos' or ordem != 'popular' %}<a href="{% url 'jogadores' %}">Limpar filtros</a>{% endif %}
       {% if user.is_authenticated %}
