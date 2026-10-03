@@ -293,6 +293,14 @@ class SpellImportAdminMobileTests(StaticLiveServerTestCase):
                 wait_for('document.activeElement.id === "spell-import-result"')
                 self.assertTrue(js('document.querySelector(".spell-import-result").innerText.includes("1 criadas")'))
                 self.assertLessEqual(js("document.documentElement.scrollWidth"), 320)
+                call("Page.navigate", {
+                    "url": self.live_server_url + reverse("magias_listas") + "?magia=magia-de-tela-compacta",
+                })
+                wait_for('document.querySelector("#mgDetail h2")?.textContent === "Magia de Tela Compacta" && document.querySelector("#mgDetail [data-spell-editor]") !== null')
+                self.assertEqual(js('document.querySelector("#mgDetail [data-spell-editor] input[name=nome]").value'), 'Magia de Tela Compacta')
+                self.assertEqual(js('document.querySelectorAll("#mgDetail input[type=file], #mgDetail a[href*=importar-excel]").length'), 0)
+                self.assertFalse(js('document.querySelector("#mgDetail").textContent.includes("Importar magias")'))
+                self.assertLessEqual(js("document.documentElement.scrollWidth"), 320)
             finally:
                 if ws:
                     ws.close()
