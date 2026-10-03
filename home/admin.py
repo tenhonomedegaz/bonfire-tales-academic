@@ -3789,13 +3789,18 @@ class TbMagiaAdmin(BonfireAdminMixin, admin.ModelAdmin):
     def _sync_imported_classes(magia, raw_classes):
         from .spell_access import access_key, set_spell_class_access
         lookup = {}
-        for classe in TbClasse.objects.all():
+        for classe in TbClasse.objects.select_for_update():
             lookup[access_key(classe.nome)] = classe
             lookup[access_key(classe.slug)] = classe
         classes = []
         for token in re.split(r'[,;|]', raw_classes or ''):
+            token = token.strip()
+            if not token:
+                continue
             classe = lookup.get(access_key(token))
-            if classe and classe not in classes:
+            if not classe:
+                raise ValueError(f'classes nao cadastradas: {token}. Leia o arquivo novamente.')
+            if classe not in classes:
                 classes.append(classe)
         set_spell_class_access(magia, classes, save=True)
 

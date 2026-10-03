@@ -112,6 +112,7 @@ class SpellImportAdminTests(TestCase):
         self.assertEqual(spell.em_niveis_superiores, "Ao conjurar em nivel maior, ganhe outro efeito.")
         self.assertEqual(spell.nivel, 2)
         self.assertTrue(spell.concentracao)
+        self.assertEqual(spell.classes_slugs, ["mago"])
 
     def test_invalid_row_aborts_whole_batch(self):
         preview = self.preview(("Magia Valida", 1), ("Magia Invalida", 12))
@@ -170,6 +171,18 @@ class SpellImportAdminTests(TestCase):
         })
         self.assertContains(result, "O catalogo mudou desde a previa")
         self.assertFalse(TbMagia.objects.filter(slug="nova-magia").exists())
+
+    def test_removed_class_after_preview_rolls_back_whole_batch(self):
+        classe = TbClasse.objects.create(nome="Mago", slug="mago")
+        preview = self.preview(("Nova Magia", 1), ("Magia de Classe", 2, "Nao", "Mago"))
+        self.assertContains(preview, "Confirmar importacao")
+        classe.delete()
+
+        result = self.client.post(self.url, {
+            "confirmar": "1", "payload": preview.context["payload"],
+        })
+        self.assertContains(result, "classes nao cadastradas")
+        self.assertFalse(TbMagia.objects.filter(slug__in=["nova-magia", "magia-de-classe"]).exists())
 
     def test_duplicate_slug_and_tampered_payload_are_rejected(self):
         preview = self.preview(("Luz", 1), ("Luz", 2))
