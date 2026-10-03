@@ -82,6 +82,15 @@ class PublicPresentationTests(TestCase):
         ready_to_play = self.client.get(reverse('home'))
         self.assertContains(ready_to_play, 'id="home-next-step" href="%s"' % reverse('sistemas_missoes'))
 
+    def test_home_explains_community_paths_without_requiring_login(self):
+        response = self.client.get(reverse('home'))
+        self.assertContains(response, 'id="home-community-title"')
+        for target in ('mundo_cronicas', 'mapa', 'sistemas_missoes'):
+            with self.subTest(target=target):
+                self.assertContains(response, 'href="%s"' % reverse(target))
+        self.assertContains(response, 'a equipe revisa antes de mostrá-los publicamente')
+        self.assertNotContains(response, 'Volte para a aventura')
+
     def test_home_uses_managed_content_without_fake_ads(self):
         bloco = TbConteudoEstatico.objects.get(chave='home-hero')
         bloco.titulo = 'Título editado no admin'
