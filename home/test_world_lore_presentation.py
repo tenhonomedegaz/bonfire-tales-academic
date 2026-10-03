@@ -1,8 +1,17 @@
 from importlib import import_module
+import json
+import shutil
+import subprocess
+import tempfile
+import time
+from pathlib import Path
+from urllib.request import urlopen
 
 from django.apps import apps
 from django.contrib.auth import get_user_model
 from django.contrib.staticfiles import finders
+from django.db import connection
+from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.test import TestCase
 from django.templatetags.static import static
 from django.urls import reverse
@@ -283,3 +292,121 @@ class WorldLorePresentationTests(TestCase):
         self.assertEqual(detail.context['imagem_url'], territory.imagem_url)
         self.assertEqual(next(item for item in detail.context['client_regions']
                               if item['slug'] == 'cidade-b')['imagem_url'], territory.imagem_url)
+
+
+class WorldLoreBrowserSafetyTests(StaticLiveServerTestCase):
+    def test_world_lore_and_editor_keep_hostile_content_literal_at_360px(self):
+        if connection.vendor != 'postgresql' or not connection.settings_dict['NAME'].startswith('test_'):
+            self.skipTest('Requer PostgreSQL de teste isolado.')
+        try:
+            import websocket
+        except ImportError:
+            self.skipTest('websocket-client indisponível.')
+        chrome = shutil.which('chrome') or next((str(path) for path in (
+            Path(r'C:\Program Files\Google\Chrome\Application\chrome.exe'),
+            Path(r'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe'),
+        ) if path.exists()), None)
+        if not chrome:
+            self.skipTest('Chrome ou Edge indisponível.')
+
+        injected = '<img src=x onerror="window.__worldInjected=1">'
+        territory_name = f'Vale {injected}'
+        region_name = f'Cidade {injected}'
+        territory_lore = f'## História {injected}\n**Seguro**\n[color=page]Brasa[/color]\n<svg onload="window.__worldInjected=1"></svg>'
+        region_lore = f'## História {injected}\n**Seguro**\n<a href="javascript:window.__worldInjected=1">Inseguro</a>'
+        TbMapLayer.objects.update_or_create(
+            id_layer=0, defaults={'nome': 'Superfície', 'ordem': 0, 'publica': True},
+        )
+        TbTerritorio.objects.create(
+            nome=territory_name, slug='vale-literal', camada=0,
+            lore_markdown=territory_lore, descricao_breve=f'Descrição </textarea>{injected}',
+        )
+        TbRegiao.objects.create(
+            nome=region_name, slug='cidade-literal', territorio=territory_name,
+            camada=0, lore_markdown=region_lore,
+            brasao_url=f'/static/missing.png" onerror="window.__worldInjected=1',
+            etiquetas_adicionais=f'Magia, {injected}',
+        )
+        editor = get_user_model().objects.create_superuser(
+            username='world-browser-editor', email='world-browser@example.invalid', password='test-only',
+        )
+        self.client.force_login(editor)
+        session_key = self.client.cookies['sessionid'].value
+
+        with tempfile.TemporaryDirectory(prefix='bonfire-world-', ignore_cleanup_errors=True) as profile:
+            process = subprocess.Popen([
+                chrome, '--headless=new', '--no-sandbox', '--disable-gpu',
+                '--remote-debugging-port=0', '--remote-allow-origins=*',
+                f'--user-data-dir={profile}', 'about:blank',
+            ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            ws = None
+            try:
+                port_file = Path(profile) / 'DevToolsActivePort'
+                for _ in range(80):
+                    if port_file.exists():
+                        break
+                    time.sleep(.1)
+                self.assertTrue(port_file.exists())
+                port = port_file.read_text(encoding='utf-8').splitlines()[0]
+                with urlopen(f'http://127.0.0.1:{port}/json', timeout=5) as response:
+                    target = next(item for item in json.load(response) if item['type'] == 'page')
+                ws = websocket.create_connection(target['webSocketDebuggerUrl'], timeout=10)
+                sequence = 0
+
+                def call(method, params=None):
+                    nonlocal sequence
+                    sequence += 1
+                    ws.send(json.dumps({'id': sequence, 'method': method, 'params': params or {}}))
+                    while True:
+                        result = json.loads(ws.recv())
+                        if result.get('id') == sequence:
+                            return result
+
+                def js(expression):
+                    result = call('Runtime.evaluate', {'expression': expression, 'returnByValue': True})['result']
+                    self.assertNotIn('exceptionDetails', result, expression)
+                    return result['result'].get('value')
+
+                def wait_for(expression):
+                    for _ in range(80):
+                        if js(expression):
+                            return
+                        time.sleep(.2)
+                    self.fail(f'Tempo esgotado: {expression}')
+
+                call('Emulation.setDeviceMetricsOverride', {
+                    'width': 360, 'height': 800, 'deviceScaleFactor': 1, 'mobile': True,
+                })
+                call('Network.enable')
+                call('Network.setCookie', {
+                    'name': 'sessionid', 'value': session_key, 'url': self.live_server_url,
+                })
+
+                call('Page.navigate', {'url': self.live_server_url + reverse('regiao_detail', args=['cidade-literal'])})
+                wait_for('document.querySelector("#regionForm input[name=nome]")?.value.includes("Cidade")')
+                self.assertEqual(js('document.querySelector("#regionForm input[name=nome]").value'), region_name)
+                self.assertEqual(js('document.querySelector("#regionForm textarea[name=lore_markdown]").value'), region_lore)
+                self.assertIn(injected, js('document.querySelector("#regionForm input[name=etiquetas_adicionais]").value'))
+                self.assertTrue(js('document.querySelector("#currentTopicTitle").textContent.includes(' + json.dumps(injected) + ')'))
+                self.assertEqual(js('document.querySelectorAll("#articleContent img, #articleContent svg, #articleContent a[href^=javascript], .topic-nav img").length'), 0)
+                self.assertEqual(js('document.querySelector("#activeTopicBody strong")?.textContent'), 'Seguro')
+                self.assertFalse(js('window.__worldInjected === 1'))
+
+                call('Page.navigate', {'url': self.live_server_url + reverse('territorio_detail', args=['vale-literal'])})
+                wait_for('document.querySelector("#territoryForm input[name=nome]")?.value.includes("Vale")')
+                self.assertEqual(js('document.querySelector("#territoryForm input[name=nome]").value'), territory_name)
+                self.assertEqual(js('document.querySelector("#territoryForm textarea[name=lore_markdown]").value'), territory_lore)
+                self.assertTrue(js('document.querySelector("#territoryForm textarea[name=descricao_breve]").value.includes("</textarea>" )'))
+                self.assertEqual(js('document.querySelectorAll("#articleContent img, #articleContent svg, .topic-nav img").length'), 0)
+                self.assertEqual(js('document.querySelector("#activeTopicBody strong")?.textContent'), 'Seguro')
+                self.assertEqual(js('document.querySelector(".bonfire-color-page")?.textContent'), 'Brasa')
+                self.assertFalse(js('window.__worldInjected === 1'))
+            finally:
+                if ws:
+                    ws.close()
+                process.terminate()
+                try:
+                    process.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.wait(timeout=5)

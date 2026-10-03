@@ -720,11 +720,11 @@
       {% if lore_topics %}
         {% for topic in lore_topics %}
         <section class="topic-section {% if forloop.first %}is-visible{% endif %}" data-topic-slug="{{ topic.slug }}">
-          <div class="bonfire-markdown" data-markdown-source>{{ topic.content|escape }}</div>
+          <div class="bonfire-markdown" data-markdown-source data-markdown-manual="true">{{ topic.content|escape }}</div>
         </section>
         {% endfor %}
       {% elif regiao.lore_markdown %}
-        <div class="bonfire-markdown" data-markdown-source>{{ regiao.lore_markdown|escape }}</div>
+        <div class="bonfire-markdown" data-markdown-source data-markdown-manual="true">{{ regiao.lore_markdown|escape }}</div>
       {% else %}
         <p class="bonfire-markdown">{% if is_territory %}{% if can_edit_wiki %}Use "Editar território" para adicionar a lore deste território.{% else %}A lore deste território ainda não foi escrita.{% endif %}{% else %}{% if can_edit_wiki %}Use "Editar região" para adicionar a lore desta região.{% else %}A lore desta região ainda não foi escrita.{% endif %}{% endif %}</p>
       {% endif %}
@@ -934,8 +934,7 @@
       : (window.marked && typeof window.marked.parse === 'function'
         ? applyMarkdownColorsToHtml(window.marked.parse(normalizeMarkdown(text), { breaks: true, gfm: true }))
         : String(text).replace(/\n/g, '<br>'));
-    // Custom tag [color=page]
-    return html.replace(/\[color=page\](.*?)\[\/color\]/gi, '<span class="page-highlight">$1</span>');
+    return sanitizeBonfireMarkdownHtml(html);
   }
 
   function renderStats(data) {
@@ -1058,7 +1057,7 @@
     });
 
     contentEl.innerHTML = `
-      <h2 class="topic-heading" id="currentTopicTitle">${topic.title}</h2>
+      <h2 class="topic-heading" id="currentTopicTitle">${escapeHtml(topic.title)}</h2>
       <div id="activeTopicBody">${bodyHtml}</div>
       ${renderEditor(currentData)}
     `;
@@ -1074,21 +1073,21 @@
       subNavHtml = `
         <div class="subtopic-nav mb-6 flex flex-wrap gap-2">
           ${subtopics.map((st, idx) => `
-            <button class="subtopic-btn ${idx === 0 ? 'is-active' : ''}" data-group-id="${id}" data-subtopic-toggle="${st.slug}">${st.title}</button>
+            <button class="subtopic-btn ${idx === 0 ? 'is-active' : ''}" data-group-id="${escapeHtml(id)}" data-subtopic-toggle="${escapeHtml(st.slug)}">${escapeHtml(st.title)}</button>
           `).join('')}
         </div>
       `;
     }
 
     return `
-      <div class="h1-section-group mb-12" id="${id}">
-        <h1 class="bonfire-h1-lore">${group.title}</h1>
+      <div class="h1-section-group mb-12" id="${escapeHtml(id)}">
+        <h1 class="bonfire-h1-lore">${escapeHtml(group.title)}</h1>
         <div class="bonfire-markdown mb-6">${parseBonfireMarkdown(group.intro)}</div>
         ${subNavHtml}
         <div class="h1-group-body">
           ${subtopics.map((st, idx) => `
-            <div class="h1-group-panel ${idx === 0 ? 'is-visible' : ''}" data-group-parent="${id}" data-sub-slug="${st.slug}">
-              <div class="bonfire-markdown"><strong class="subtopic-body-title">${st.title}</strong> ${parseBonfireMarkdown(st.content)}</div>
+            <div class="h1-group-panel ${idx === 0 ? 'is-visible' : ''}" data-group-parent="${escapeHtml(id)}" data-sub-slug="${escapeHtml(st.slug)}">
+              <div class="bonfire-markdown"><strong class="subtopic-body-title">${escapeHtml(st.title)}</strong> ${parseBonfireMarkdown(st.content)}</div>
             </div>
           `).join('')}
         </div>
@@ -1099,7 +1098,7 @@
   function renderTopicButtons(topics) {
     if (!topicNav) return;
     topicNav.innerHTML = topics.map((t, i) => `
-      <button class="topic-btn ${i === 0 ? 'is-active' : ''}" data-topic-toggle="${t.slug}">${t.title}</button>
+      <button class="topic-btn ${i === 0 ? 'is-active' : ''}" data-topic-toggle="${escapeHtml(t.slug)}">${escapeHtml(t.title)}</button>
     `).join('');
     topicNav.hidden = topics.length <= 1;
   }
@@ -1110,12 +1109,12 @@
       return `
         <div class="wiki-tools mt-8 pt-8 border-t border-[var(--stroke)]"><button type="button" class="wiki-edit-button" id="btnEditRegion">Editar região</button></div>
         <form id="regionForm" class="wiki-inline-editor" data-region-id="${data.id}">
-          <label>Nome <input name="nome" value="${data.nome}"></label>
+          <label>Nome <input name="nome" value="${escapeHtml(data.nome)}"></label>
           <label>Território
             <div style="display: flex; gap: 0.5rem; margin-top: 0.25rem;">
               <select id="edit-nr-territorio" name="territorio" style="flex: 1; background: var(--bg2); border: 1px solid var(--stroke); color: var(--text); padding: .3rem; font-size: .75rem; border-radius: 4px; outline: none; appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23ffffff%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right .7rem top 50%; background-size: .65rem auto;">
                 <option value="">Sem território</option>
-                ${allTerritories.map(name => `<option value="${name}" ${data.territorio === name ? 'selected' : ''} style="background: var(--bg1); color: var(--text);">${name}</option>`).join('')}
+                ${allTerritories.map(name => `<option value="${escapeHtml(name)}" ${data.territorio === name ? 'selected' : ''} style="background: var(--bg1); color: var(--text);">${escapeHtml(name)}</option>`).join('')}
               </select>
               <button type="button" onclick="showInlineCreateTerritoryDetail()" style="padding: 0.3rem 0.6rem; background: var(--bg2); border: 1px solid var(--stroke); color: var(--ember); font-weight: bold; border-radius: 4px; cursor: pointer; font-size: 0.75rem;">+</button>
             </div>
@@ -1137,10 +1136,10 @@
               <button type="button" id="btnConfirmCreateTerritoryDetail" onclick="confirmInlineCreateTerritoryDetail(${data.camada || 0})" style="padding: 0.2rem 0.5rem; font-size: 0.65rem; background: var(--ember); border: none; color: white; border-radius: 4px; cursor: pointer;">Criar</button>
             </div>
           </div>
-          <label>URL da imagem de fundo <input name="brasao_url" value="${data.raw_imagem_url || ''}"></label>
-          <label>URL do mapa lateral <input name="mapa_url" value="${data.raw_mapa_url || ''}"></label>
-          <label>Tags adicionais <input name="etiquetas_adicionais" value="${data.etiquetas_adicionais || ''}" placeholder="Separadas por vírgula"></label>
-          <label>Lore markdown <textarea name="lore_markdown" rows="12">${data.lore_markdown || ''}</textarea></label>
+          <label>URL da imagem de fundo <input name="brasao_url" value="${escapeHtml(data.raw_imagem_url || '')}"></label>
+          <label>URL do mapa lateral <input name="mapa_url" value="${escapeHtml(data.raw_mapa_url || '')}"></label>
+          <label>Tags adicionais <input name="etiquetas_adicionais" value="${escapeHtml(data.etiquetas_adicionais || '')}" placeholder="Separadas por vírgula"></label>
+          <label>Lore markdown <textarea name="lore_markdown" rows="12">${escapeHtml(data.lore_markdown || '')}</textarea></label>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 1rem;">
             <label>Mov. Econômicas <input type="number" name="movimentacoes_economicas" value="${data.stats?.movimentacoes_economicas || 0}"></label>
             <label>Poder Militar <input type="number" name="poder_militar" value="${data.stats?.poder_militar || 0}"></label>
@@ -1162,10 +1161,10 @@
       return `
         <div class="wiki-tools mt-8 pt-8 border-t border-[var(--stroke)]"><button type="button" class="wiki-edit-button" id="btnEditTerritory">Editar território</button></div>
         <form id="territoryForm" class="wiki-inline-editor" data-territory-id="${data.id}">
-          <label>Nome <input name="nome" value="${data.nome}"></label>
-          <label>URL da imagem <input name="imagem_url" value="${data.raw_imagem_url || ''}"></label>
-          <label>Descrição breve <textarea name="descricao_breve" rows="2">${data.descricao_breve || ''}</textarea></label>
-          <label>Lore markdown <textarea name="lore_markdown" rows="12">${data.lore_markdown || ''}</textarea></label>
+          <label>Nome <input name="nome" value="${escapeHtml(data.nome)}"></label>
+          <label>URL da imagem <input name="imagem_url" value="${escapeHtml(data.raw_imagem_url || '')}"></label>
+          <label>Descrição breve <textarea name="descricao_breve" rows="2">${escapeHtml(data.descricao_breve || '')}</textarea></label>
+          <label>Lore markdown <textarea name="lore_markdown" rows="12">${escapeHtml(data.lore_markdown || '')}</textarea></label>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 1rem;">
             <label>Riqueza Natural <input type="number" name="riqueza_natural" value="${data.stats?.riqueza_natural || 0}"></label>
             <label>Riqueza Monetária <input type="number" name="riqueza_monetaria" value="${data.stats?.riqueza_monetaria || 0}"></label>
@@ -1262,7 +1261,13 @@
 
       const heroIcon = document.getElementById('heroCategoryIcon');
       if (heroIcon) {
-          heroIcon.innerHTML = data.type === 'region' ? `<img src="${getCategoryIcon(data.categoria)}" alt="${data.categoria}">` : '';
+          heroIcon.replaceChildren();
+          if (data.type === 'region') {
+              const icon = document.createElement('img');
+              icon.src = getCategoryIcon(data.categoria);
+              icon.alt = data.categoria || '';
+              heroIcon.appendChild(icon);
+          }
           heroIcon.style.display = data.type === 'region' ? 'flex' : 'none';
           heroIcon.title = data.categoria ? data.categoria.replace(/_/g, ' ') : '';
       }
@@ -1272,8 +1277,8 @@
       });
       document.querySelectorAll('.territory-nav').forEach(nav => {
           const isMatch = data.type === 'territory' 
-              ? nav.querySelector(`[data-territory-title="${data.nome}"]`)
-              : nav.querySelector(`[data-region-link="${data.slug}"]`);
+              ? [...nav.querySelectorAll('[data-territory-title]')].some(link => link.dataset.territoryTitle === data.nome)
+              : [...nav.querySelectorAll('[data-region-link]')].some(link => link.dataset.regionLink === data.slug);
           if (isMatch) nav.open = true;
       });
 
@@ -1356,7 +1361,7 @@
           if (summary) {
               const isMatch = initialArticle.type === 'territory' 
                   ? summary.dataset.territoryTitle === initialArticle.nome
-                  : nav.querySelector(`[data-region-link="${initialArticle.slug}"]`);
+                  : [...nav.querySelectorAll('[data-region-link]')].some(link => link.dataset.regionLink === initialArticle.slug);
               nav.open = !!isMatch;
           }
       });
