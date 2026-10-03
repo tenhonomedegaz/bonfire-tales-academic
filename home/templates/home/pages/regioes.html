@@ -64,10 +64,10 @@
 </section>
 
 {% if can_edit_wiki %}
-<dialog id="newRegionModal" class="backdrop:bg-black/80 bg-[var(--bg1)] text-[var(--text)] border border-[var(--stroke)] rounded-lg shadow-2xl p-0 w-[600px] max-w-[95vw]">
+<dialog id="newRegionModal" aria-labelledby="newRegionModalTitle" class="backdrop:bg-black/80 bg-[var(--bg1)] text-[var(--text)] border border-[var(--stroke)] rounded-lg shadow-2xl p-0 w-[600px] max-w-[95vw]">
   <div class="p-4 border-b border-[var(--stroke)] flex justify-between items-center bg-[var(--bg0)]">
-    <h3 class="font-cinzel text-2xl font-bold text-[var(--ember)] uppercase tracking-widest">Criar Região</h3>
-    <button formmethod="dialog" onclick="document.getElementById('newRegionModal').close()" class="text-[var(--muted)] hover:text-red-500 transition-colors">X</button>
+    <h3 id="newRegionModalTitle" class="font-cinzel text-2xl font-bold text-[var(--ember)] uppercase tracking-widest">Criar Região</h3>
+    <button type="button" aria-label="Fechar criação de região" onclick="document.getElementById('newRegionModal').close()" class="text-[var(--muted)] hover:text-red-500 transition-colors">X</button>
   </div>
   <div class="p-4 space-y-2.5">
     <div class="grid grid-cols-2 gap-2.5">

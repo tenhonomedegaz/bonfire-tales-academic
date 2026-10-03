@@ -12,6 +12,7 @@ from urllib.request import urlopen
 from django.contrib.auth import get_user_model
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.db import connection
+from django.test import Client
 from django.urls import reverse
 
 from .models import TbConteudoEstatico, TbJornal, TbMapLayer, TbRegiao, TbTerritorio, UserProfile
@@ -150,6 +151,36 @@ class JornalListZoomTests(StaticLiveServerTestCase):
                     "name": "sessionid", "value": self.client.cookies["sessionid"].value,
                     "url": self.live_server_url,
                 })
+                call("Page.navigate", {"url": self.live_server_url + reverse("mundo_regioes")})
+                for _ in range(80):
+                    if js('document.querySelector("#btnNewRegion") !== null'):
+                        break
+                    time.sleep(.1)
+                self.assertTrue(js('document.querySelector("#btnNewRegion") !== null'))
+                js('document.querySelector("#btnNewRegion").focus()')
+                call("Input.dispatchKeyEvent", {"type": "keyDown", "key": "Enter", "code": "Enter", "text": "\r", "windowsVirtualKeyCode": 13})
+                call("Input.dispatchKeyEvent", {"type": "keyUp", "key": "Enter", "code": "Enter", "windowsVirtualKeyCode": 13})
+                self.assertTrue(js('document.querySelector("#newRegionModal").open'))
+                self.assertEqual(js('document.querySelector("#newRegionModal").getAttribute("aria-labelledby")'), 'newRegionModalTitle')
+                self.assertTrue(js('document.querySelector("#newRegionModalTitle").textContent.includes("Criar")'))
+                call("Input.dispatchKeyEvent", {"type": "keyDown", "key": "Escape", "code": "Escape", "windowsVirtualKeyCode": 27})
+                call("Input.dispatchKeyEvent", {"type": "keyUp", "key": "Escape", "code": "Escape", "windowsVirtualKeyCode": 27})
+                self.assertFalse(js('document.querySelector("#newRegionModal").open'))
+                self.assertEqual(js('document.activeElement.id'), 'btnNewRegion')
+                js('document.querySelector("#btnNewRegion").click()')
+                self.assertTrue(js("[...document.querySelectorAll('#newRegionModal input, #newRegionModal select, #newRegionModal textarea, #newRegionModal button')].filter(e => e.getClientRects().length).every(e => e.getBoundingClientRect().right <= document.documentElement.clientWidth + 1)"))
+                self.assertLessEqual(js('document.documentElement.scrollWidth'), js('document.documentElement.clientWidth'))
+                js("document.querySelector('#nr-nome').value = 'Regiao modal QA'")
+                js("document.querySelector('#nr-territorio').value = " + json.dumps(TbTerritorio.objects.get(slug='territorio-zoom-qa').nome))
+                js('document.querySelector("#btnSaveNewRegion").click()')
+                for _ in range(80):
+                    if js('location.pathname === ' + json.dumps(reverse('regiao_detail', args=['regiao-modal-qa'])) + ' && document.readyState === "complete"'):
+                        break
+                    time.sleep(.1)
+                created_region = TbRegiao.objects.get(slug='regiao-modal-qa')
+                self.assertEqual(created_region.territorio, TbTerritorio.objects.get(slug='territorio-zoom-qa').nome)
+                self.assertEqual(js('location.pathname'), reverse('regiao_detail', args=[created_region.slug]))
+                self.assertContains(Client().get(reverse('regiao_detail', args=[created_region.slug])), 'Regiao modal QA')
                 call("Page.navigate", {"url": self.live_server_url + reverse("regiao_detail", args=["regiao-zoom-qa"])})
                 for _ in range(80):
                     if js('document.querySelector("#btnEditRegion") !== null'):
