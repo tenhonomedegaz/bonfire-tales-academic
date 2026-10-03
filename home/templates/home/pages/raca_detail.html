@@ -22,7 +22,7 @@
           <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-[var(--muted)]">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
           </span>
-          <input id="raceSearch" type="search" placeholder="Buscar raça..." class="w-full rounded border border-[var(--stroke)] bg-[var(--bg1)] py-2 pl-9 pr-3 text-sm text-[var(--text)] outline-none focus:border-[var(--ember)]">
+          <input id="raceSearch" type="search" aria-label="Buscar raça" aria-controls="raceNav" placeholder="Buscar raça..." class="w-full rounded border border-[var(--stroke)] bg-[var(--bg1)] py-2 pl-9 pr-3 text-sm text-[var(--text)] outline-none focus:border-[var(--ember)]">
         </label>
       </div>
 
@@ -63,6 +63,7 @@
             {% endfor %}
           </div>
         </details>
+        <p id="raceSearchEmpty" class="hidden p-3 text-sm text-[var(--muted)]" role="status" aria-live="polite">Nenhuma raça corresponde à busca.</p>
       </nav>
 
       <div id="raceTraitsContainer">
@@ -555,7 +556,7 @@
           return;
         }
         raceForm.classList.remove('is-open');
-        loadContent(window.location.pathname);
+        loadContent(window.location.pathname, false);
       });
     }
     updateSelection();
@@ -565,6 +566,7 @@
   const raceSearch = document.getElementById('raceSearch');
   const raceItems = Array.from(document.querySelectorAll('.race-nav-item'));
   const raceNav = document.getElementById('raceNav');
+  const raceSearchEmpty = document.getElementById('raceSearchEmpty');
   const raceMenuToggle = document.querySelector('[data-race-menu-toggle]');
   const raceMenuClosers = document.querySelectorAll('[data-race-menu-close]');
   let raceFilterTimer = null;
@@ -587,11 +589,17 @@
   });
 
   raceSearch?.addEventListener('input', () => {
-    const query = raceSearch.value.toLowerCase();
+    const normalizeSearch = value => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR');
+    const query = normalizeSearch(raceSearch.value.trim());
+    let matches = 0;
     raceItems.forEach(item => {
-      const text = (item.dataset.search || '').toLowerCase();
-      item.classList.toggle('hidden', query && !text.includes(query));
+      const text = normalizeSearch(item.dataset.search || '');
+      const visible = !query || text.includes(query);
+      item.classList.toggle('hidden', !visible);
+      if (visible) matches += 1;
     });
+    raceSearchEmpty?.classList.toggle('hidden', !query || matches > 0 || raceItems.length === 0);
+    if (query && matches) raceNav?.querySelector('details')?.setAttribute('open', '');
     raceNav?.classList.remove('race-nav-filtering');
     void raceNav?.offsetWidth;
     raceNav?.classList.add('race-nav-filtering');
@@ -615,7 +623,19 @@
     loadContent(url);
   });
 
-  async function loadContent(url) {
+  window.addEventListener('popstate', () => {
+    if (/^\/jogador\/raca(?:\/|$)/.test(window.location.pathname)) {
+      if (raceSearch) {
+        raceSearch.value = '';
+        raceSearch.dispatchEvent(new Event('input'));
+      }
+      loadContent(window.location.pathname, false);
+    } else {
+      window.location.reload();
+    }
+  });
+
+  async function loadContent(url, pushHistory = true) {
     contentArea.style.opacity = '0.5';
     contentArea.style.pointerEvents = 'none';
     
@@ -650,7 +670,9 @@
           item.classList.toggle('text-[var(--muted)]', !isActive);
       });
       
-      window.history.pushState({}, '', url);
+      if (pushHistory && window.location.pathname !== new URL(url, window.location.origin).pathname) {
+        window.history.pushState({}, '', url);
+      }
       initPage();
     } catch (err) {
       console.error(err);

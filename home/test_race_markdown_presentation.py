@@ -38,6 +38,7 @@ class RaceMarkdownPresentationTests(StaticLiveServerTestCase):
             permite_essencia=True,
             imagem_url="https://example.org/race.png');color:red;--evil:'",
         )
+        TbRaca.objects.create(nome='Coração de Brasa', slug='coracao-brasa', tagline='Chama antiga')
         TbLinhagem.objects.create(
             id_raca=race, nome='Linhagem Legada', slug='linhagem-legada',
             imagem_url='javascript:alert(1)', imagem_foco_x=19, imagem_foco_y=72,
@@ -98,6 +99,40 @@ class RaceMarkdownPresentationTests(StaticLiveServerTestCase):
                 url = self.live_server_url + reverse('raca_detail', args=[race.slug])
                 call('Page.navigate', {'url': url})
                 wait_for('document.querySelector("[data-race-trait-card] [data-markdown-source] strong") !== null')
+                js('document.querySelector("#raceNav details").open = false')
+                js('''(() => {
+                    const input = document.querySelector('#raceSearch');
+                    input.value = 'coracao';
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                })()''')
+                self.assertEqual(js('Array.from(document.querySelectorAll("#raceNav .race-nav-item:not(.hidden)")).map(item => item.textContent.trim())'), ['Coração de Brasa'])
+                self.assertTrue(js('document.querySelector("#raceNav details").open'))
+                js('''(() => {
+                    const input = document.querySelector('#raceSearch');
+                    input.value = 'inexistente';
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                })()''')
+                self.assertEqual(js('document.querySelectorAll("#raceNav .race-nav-item:not(.hidden)").length'), 0)
+                self.assertFalse(js('document.querySelector("#raceSearchEmpty").classList.contains("hidden")'))
+                js('''(() => {
+                    const input = document.querySelector('#raceSearch');
+                    input.value = 'chama';
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                    document.querySelector('#raceNav .race-nav-item:not(.hidden)').click();
+                })()''')
+                wait_for('location.pathname.endsWith("/coracao-brasa/") && document.querySelector("[data-race-title]")?.textContent === "Coração de Brasa"')
+                js('history.back()')
+                wait_for('location.pathname.endsWith("/raca-editorial/") && document.querySelector("[data-race-title]")?.textContent === "Raca Editorial"')
+                self.assertEqual(js('document.querySelector("#raceSearch").value'), '')
+                self.assertTrue(js('document.querySelector("#raceSearchEmpty").classList.contains("hidden")'))
+                call('Page.navigate', {'url': self.live_server_url + reverse('racas')})
+                wait_for('document.querySelector("#ajax-content-inner h1")?.textContent === "Povos de Cinéria"')
+                js('document.querySelector("#raceNav .race-nav-item").click()')
+                wait_for('location.pathname.endsWith("/coracao-brasa/") && document.querySelector("[data-race-title]")?.textContent === "Coração de Brasa"')
+                js('history.back()')
+                wait_for('location.pathname === "/jogador/raca/" && document.querySelector("#ajax-content-inner h1")?.textContent === "Povos de Cinéria"')
+                call('Page.navigate', {'url': url})
+                wait_for('document.querySelector("[data-race-title]")?.textContent === "Raca Editorial"')
                 self.assertTrue(js('document.querySelector("#baseRaceLore [data-markdown-source] strong") !== null'))
                 self.assertEqual(js('document.querySelectorAll("[data-markdown-source] img[onerror], [data-markdown-source] a[href^=javascript], [data-markdown-source] script").length'), 0)
                 self.assertEqual(js('document.querySelectorAll("[data-markdown-source] a[href=\\"https://example.org\\"]").length'), 2)
