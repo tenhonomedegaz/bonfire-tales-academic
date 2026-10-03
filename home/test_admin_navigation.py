@@ -64,6 +64,8 @@ class AdminNavigationTests(TestCase):
         self.assertContains(response, 'css/admin/dashboard_search.css')
         self.assertContains(response, reverse("admin:home_tbclasse_changelist"))
         self.assertContains(response, "Ferramentas editoriais")
+        self.assertContains(response, reverse("mundo_jornal"))
+        self.assertContains(response, reverse("cronicas_review"))
         self.assertContains(response, 'id="admin-operation-title"')
         self.assertContains(response, reverse("managed_api_key_console"))
 

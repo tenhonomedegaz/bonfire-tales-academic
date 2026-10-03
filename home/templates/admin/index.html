@@ -32,6 +32,14 @@
     <section class="bonfire-admin-tools" aria-labelledby="admin-tools-title">
         <h2 id="admin-tools-title">Ferramentas editoriais</h2>
         <div class="bonfire-admin-tools-grid">
+            <a href="{% url 'mundo_jornal' %}">
+                <strong>Jornal</strong>
+                <span>Consultar artigos e abrir a publicação editorial.</span>
+            </a>
+            <a href="{% url 'cronicas_review' %}">
+                <strong>Revisão de crônicas</strong>
+                <span>Examinar textos pendentes e decisões da redação.</span>
+            </a>
             <a href="{% url 'admin:tag_library' %}">
                 <strong>Biblioteca de Tags</strong>
                 <span>Consultar verbos, alterar a interpretação e revisar o histórico.</span>

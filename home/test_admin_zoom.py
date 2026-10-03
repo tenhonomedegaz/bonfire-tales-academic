@@ -102,6 +102,20 @@ class AdminZoomBrowserTests(StaticLiveServerTestCase):
                     self.assertLessEqual(metrics["scroll"], metrics["client"], f"{name}: {metrics}")
                     self.assertIn("Bonfire", metrics["title"])
                     if name == "dashboard":
+                        js("(() => { const input = document.querySelector('#dashboard-search-input'); input.value = 'crônicas'; input.dispatchEvent(new Event('input', {bubbles: true})); })()")
+                        review_url = reverse('cronicas_review')
+                        self.assertFalse(js("document.querySelector('#content-main .bonfire-admin-tools-grid a[href=" + json.dumps(review_url) + "]').hidden"))
+                        js("document.querySelector('#content-main .bonfire-admin-tools-grid a[href=" + json.dumps(review_url) + "]').click()")
+                        for _ in range(80):
+                            if js("location.pathname === " + json.dumps(review_url) + " && document.readyState === 'complete'"):
+                                break
+                            time.sleep(.1)
+                        self.assertEqual(js("location.pathname"), review_url)
+                        call("Page.navigate", {"url": self.live_server_url + reverse('admin:index')})
+                        for _ in range(80):
+                            if js("document.readyState === 'complete' && !!document.querySelector('#dashboard-search-input')"):
+                                break
+                            time.sleep(.1)
                         js("(() => { const input = document.querySelector('#dashboard-search-input'); input.value = 'magias'; input.dispatchEvent(new Event('input', {bubbles: true})); input.focus(); })()")
                         self.assertTrue(js("document.querySelector('#dashboard-search-status').textContent.includes('encontrada')"))
                         self.assertTrue(js("document.querySelector('a[href*=" + json.dumps(reverse('admin:home_tbmagia_changelist')) + "]') !== null"))
