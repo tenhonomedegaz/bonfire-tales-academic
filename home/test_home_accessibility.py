@@ -90,6 +90,8 @@ class HomeAccessibilityBrowserTests(StaticLiveServerTestCase):
                 self.assertEqual(metrics['scale'], 1, metrics)
                 self.assertLessEqual(metrics['scroll'], metrics['client'], metrics)
                 self.assertTrue(js('document.querySelector("#home-primary-action").getBoundingClientRect().width > 0'))
+                self.assertEqual(js('document.querySelector("main section:first-of-type img").alt'), '')
+                self.assertTrue(js('document.querySelector("main section:first-of-type h1").textContent.trim().length > 0'))
                 self.assertTrue(js('matchMedia("(prefers-reduced-motion: reduce)").matches'))
                 self.assertEqual(js('getComputedStyle(document.querySelector(".home-atlas-preview")).transitionDuration'), '0s')
 

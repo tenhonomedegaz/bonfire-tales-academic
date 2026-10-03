@@ -8,9 +8,9 @@
 {% block content %}
 <section class="relative -mx-3 -mt-4 overflow-hidden border-b border-[var(--stroke)] md:-mx-5">
   {% if hero_image_url %}
-  <img src="{{ hero_image_url }}" alt="{{ hero.titulo|default:'Bonfire Tales' }}" class="absolute inset-0 h-full w-full object-cover" />
+  <img src="{{ hero_image_url }}" alt="" class="absolute inset-0 h-full w-full object-cover" />
   {% else %}
-  <img src="{% static 'assets/cineria.jpg' %}" alt="Mapa de Cinéria" class="absolute inset-0 h-full w-full object-cover" />
+  <img src="{% static 'assets/cineria.jpg' %}" alt="" class="absolute inset-0 h-full w-full object-cover" />
   {% endif %}
   <div class="absolute inset-0 bg-black/70"></div>
   <div class="relative mx-auto flex min-h-[520px] max-w-5xl flex-col justify-end px-5 pb-10 pt-24 md:min-h-[620px] md:px-8 md:pb-14">
