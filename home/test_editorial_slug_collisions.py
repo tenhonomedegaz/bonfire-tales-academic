@@ -9,6 +9,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from home.models import TbCronica, TbJornal
+from home.views import _cronica_pending_snapshot
 
 
 class EditorialSlugCollisionTests(TestCase):
@@ -84,7 +85,7 @@ class EditorialSlugCollisionTests(TestCase):
         self.client.force_login(self.reviewer)
         story = TbCronica.objects.get(slug='mesmo-relato-1')
         self.assertEqual(self.post_json(reverse('cronica_review_action', args=[story.pk]), {
-            'action': 'aprovar',
+            'action': 'aprovar', 'expected_snapshot': _cronica_pending_snapshot(story),
         }).status_code, 200)
         self.client.logout()
         self.assertContains(self.client.get(reverse('cronica_detail', args=['mesmo-relato-1'])),

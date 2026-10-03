@@ -19,7 +19,7 @@
   </div>
 
   {% for c in pendentes %}
-  <div class="review-item" id="review-{{ c.id_cronica }}" data-revision="{{ c.revisao_edicao.submetida_em|default:'' }}">
+  <div class="review-item" id="review-{{ c.id_cronica }}" data-revision="{{ c.revisao_edicao.submetida_em|default:'' }}" data-snapshot="{{ c.review_snapshot }}">
     <div class="review-item-header">
       <h2 class="review-item-title">{{ c.review_data.titulo }}</h2>
       <div class="review-item-meta">
@@ -80,7 +80,7 @@ async function reviewAction(id, action) {
     const res = await fetch(`/mundo/cronicas/${id}/revisar/`, {
       method: 'POST',
       headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken()},
-      body: JSON.stringify({ action, feedback, expected_revision: item.dataset.revision }),
+      body: JSON.stringify({ action, feedback, expected_revision: item.dataset.revision, expected_snapshot: item.dataset.snapshot }),
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok || !data.ok) throw new Error(data.error || 'Não foi possível revisar esta crônica.');

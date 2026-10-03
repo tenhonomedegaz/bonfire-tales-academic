@@ -76,7 +76,9 @@ class CronicaDiscoveryTests(TestCase):
     def test_approval_sets_publication_date_and_notifies_once(self):
         self.client.force_login(self.staff)
         url = reverse('cronica_review_action', args=[self.pending.pk])
-        payload = json.dumps({'action': 'aprovar'})
+        from home.views import _cronica_pending_snapshot
+        payload = json.dumps({'action': 'aprovar',
+                              'expected_snapshot': _cronica_pending_snapshot(self.pending)})
         self.assertEqual(self.client.post(url, payload, content_type='application/json').status_code, 200)
         self.assertEqual(self.client.post(url, payload, content_type='application/json').status_code, 409)
         self.pending.refresh_from_db()

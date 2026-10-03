@@ -6,6 +6,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from home.models import TbCronica, TbRegiao, TbTerritorio
+from home.views import _cronica_pending_snapshot
 
 
 class CronicaRevisionTests(TestCase):
@@ -143,6 +144,7 @@ class CronicaRevisionTests(TestCase):
             self.assertFalse(pending.feedback_staff)
         self.assertEqual(self.post_json(url, {
             'action': 'reprovar', 'feedback': '  Ajuste o início.  ',
+            'expected_snapshot': _cronica_pending_snapshot(pending),
         }).status_code, 200)
         pending.refresh_from_db()
         self.assertEqual(pending.feedback_staff, 'Ajuste o início.')
@@ -177,7 +179,7 @@ class CronicaRevisionTests(TestCase):
         self.client.force_login(self.staff)
         self.assertContains(self.client.get(reverse('cronicas_review')), 'Texto inicial')
         self.assertEqual(self.post_json(reverse('cronica_review_action', args=[new_story.pk]), {
-            'action': 'aprovar',
+            'action': 'aprovar', 'expected_snapshot': _cronica_pending_snapshot(new_story),
         }).status_code, 200)
         self.client.logout()
         self.assertContains(self.client.get(reverse('cronica_detail', args=[slug])), 'Texto inicial')

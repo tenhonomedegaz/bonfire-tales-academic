@@ -14860,6 +14860,8 @@ def _cronica_editor_error(fields):
 
 def _cronica_location_error(territorio, regiao, territorios, regioes):
     for value in (territorio, regiao):
+        if value is None:
+            continue
         if not isinstance(value, (str, list)) or (
             isinstance(value, list) and any(not isinstance(item, str) for item in value)
         ):
@@ -15295,6 +15297,14 @@ def cronica_edit_view(request, slug):
     })
 
 
+def _cronica_pending_snapshot(cronica):
+    fields = ('titulo', 'conteudo_markdown', 'resumo', 'imagem_url',
+              'personagem_nome', 'territorio', 'regiao')
+    content = {name: getattr(cronica, name) for name in fields}
+    encoded = json.dumps(content, sort_keys=True, ensure_ascii=False).encode('utf-8')
+    return hashlib.sha256(encoded).hexdigest()
+
+
 @staff_member_required
 @permission_required('home.change_tbcronica', raise_exception=True)
 def cronicas_review_view(request):
@@ -15302,6 +15312,7 @@ def cronicas_review_view(request):
         Q(status='pendente') | Q(status='aprovada', revisao_edicao__estado='pendente')
     ).select_related('autor').order_by('data_submissao'))
     for cronica in pendentes:
+        cronica.review_snapshot = _cronica_pending_snapshot(cronica) if cronica.status == 'pendente' else ''
         source = cronica.revisao_edicao if cronica.status == 'aprovada' else {}
         cronica.review_data = SimpleNamespace(**{
             name: source.get(name, getattr(cronica, name))
@@ -15364,6 +15375,8 @@ def cronica_review_action(request, cronica_id):
             return JsonResponse({'ok': True, 'status': cronica.status})
         if cronica.status != 'pendente':
             return JsonResponse({'error': 'Crônica não está pendente.'}, status=409)
+        if data.get('expected_snapshot') != _cronica_pending_snapshot(cronica):
+            return JsonResponse({'error': 'A crônica mudou. Recarregue a fila antes de revisar.'}, status=409)
         if action == 'aprovar':
             territorios, regioes = _cronicas_location_choices()
             if (_cronica_editor_error({

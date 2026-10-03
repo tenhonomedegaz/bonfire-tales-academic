@@ -43,8 +43,10 @@ class FirstPublishedStoryAchievementTests(TestCase):
 
     def review(self, story, action):
         self.client.force_login(self.staff)
+        from home.views import _cronica_pending_snapshot
         return self.client.post(reverse('cronica_review_action', args=[story.pk]),
-                                data=json.dumps({'action': action, 'feedback': 'Revise a história.' if action == 'reprovar' else ''}),
+                                data=json.dumps({'action': action, 'feedback': 'Revise a história.' if action == 'reprovar' else '',
+                                                 'expected_snapshot': _cronica_pending_snapshot(story)}),
                                 content_type='application/json')
 
     def test_only_initial_approval_awards_once_with_auditable_fact(self):

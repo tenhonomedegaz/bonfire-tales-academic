@@ -8,6 +8,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from home.models import TbCronica, TbRegiao, TbTerritorio
+from home.views import _cronica_pending_snapshot
 
 
 class ChronicleLocationTests(TestCase):
@@ -55,7 +56,7 @@ class ChronicleLocationTests(TestCase):
         self.assertEqual(story.regioes_lista, ['Serra', 'Costa'])
         self.client.force_login(self.reviewer)
         self.assertEqual(self.post_json(reverse('cronica_review_action', args=[story.pk]), {
-            'action': 'aprovar',
+            'action': 'aprovar', 'expected_snapshot': _cronica_pending_snapshot(story),
         }).status_code, 200)
         self.client.logout()
         self.assertContains(self.client.get(reverse('cronica_detail', args=[story.slug])), 'Norte, Sul')
@@ -95,7 +96,7 @@ class ChronicleLocationTests(TestCase):
         )
         self.client.force_login(self.reviewer)
         response = self.post_json(reverse('cronica_review_action', args=[pending.pk]), {
-            'action': 'aprovar',
+            'action': 'aprovar', 'expected_snapshot': _cronica_pending_snapshot(pending),
         })
         self.assertEqual(response.status_code, 409)
         pending.refresh_from_db()
