@@ -549,7 +549,9 @@ function sanitizeBonfireMarkdownHtml(html) {
                 element.setAttribute('data-slug', node.getAttribute('data-slug'));
             }
             if (tag === 'div' && classes.includes('bonfire-options-widget') && node.hasAttribute('data-tipo')) {
-                element.setAttribute('data-tipo', node.getAttribute('data-tipo'));
+                for (const attr of ['data-tipo', 'data-classe', 'data-subclasse', 'data-nivel']) {
+                    if (node.hasAttribute(attr)) element.setAttribute(attr, node.getAttribute(attr));
+                }
             }
             if (tag === 'span' && /^color:#(?:[0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test((node.getAttribute('style') || '').replace(/\s/g, ''))) {
                 element.style.color = node.style.color;

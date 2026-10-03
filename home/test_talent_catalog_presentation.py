@@ -114,6 +114,10 @@ class TalentCatalogPresentationTests(StaticLiveServerTestCase):
                 self.assertNotIn('javascript:', sanitized)
                 self.assertIn('href="https://example.org"', sanitized)
                 self.assertIn('data-table="tbTalento"', sanitized)
+                widget = js('sanitizeBonfireMarkdownHtml(renderBonfireMarkdown(' + json.dumps('::options=Bailados de Combate; classe=Guerreiro; nivel=3') + '))')
+                self.assertIn('data-tipo="Bailados de Combate"', widget)
+                self.assertIn('data-classe="Guerreiro"', widget)
+                self.assertIn('data-nivel="3"', widget)
 
                 js('searchInput.value = "Seguro"; searchInput.dispatchEvent(new Event("input", {bubbles: true}))')
                 wait_for('document.querySelector("#talentosListItems")?.textContent.includes("Seguro") && !document.querySelector("#talentosListItems")?.textContent.includes("Arcano")')
