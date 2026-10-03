@@ -296,11 +296,21 @@
         });
     }
 
+    function canonicalTag(value) {
+        return normalizeSearch(value).replace(/[.;:!?]+$/g, '').replace(/\s+/g, ' ').trim();
+    }
+
     function getExtraTags(opcao) {
-        return (opcao.etiquetas_adicionais || '')
+        const seen = new Set();
+        return String(opcao.etiquetas_adicionais || '')
             .split(',')
-            .map(tag => tag.trim())
-            .filter(Boolean);
+            .map(tag => tag.trim().replace(/[.;:!?]+$/g, '').trim())
+            .filter(tag => {
+                const key = canonicalTag(tag);
+                if (!key || seen.has(key)) return false;
+                seen.add(key);
+                return true;
+            });
     }
 
     function renderFilterChips() {
@@ -310,7 +320,12 @@
 
     function populateFilters() {
         filterOptions.type = [...new Set(opcoesData.map(o => o.tipo).filter(Boolean))].sort();
-        filterOptions.tag = [...new Set(opcoesData.flatMap(o => getExtraTags(o)))].sort();
+        const tags = new Map();
+        opcoesData.flatMap(o => getExtraTags(o)).forEach(tag => {
+            const key = canonicalTag(tag);
+            if (!tags.has(key)) tags.set(key, tag);
+        });
+        filterOptions.tag = [...tags.values()].sort((a, b) => a.localeCompare(b, 'pt-BR'));
 
         renderFilterChips();
     }
@@ -346,7 +361,7 @@
 
             const matchesSearch = !query || normalizeSearch(haystack).includes(query);
             const matchesType = !typeValue || o.tipo === typeValue;
-            const matchesTag = !tagValue || getExtraTags(o).includes(tagValue);
+            const matchesTag = !tagValue || getExtraTags(o).some(tag => canonicalTag(tag) === canonicalTag(tagValue));
             return matchesSearch && matchesType && matchesTag;
         });
 

@@ -42,12 +42,16 @@ class TalentCatalogPresentationTests(StaticLiveServerTestCase):
         TbTalento.objects.create(nome='Coração sombrio', slug='coracao-sombrio', descricao='Texto sombrio')
         TbOpcaojogo.objects.create(
             nome='Opcao segura', slug='opcao-segura', tipo='Teste',
-            etiquetas_adicionais='Ritmo',
+            etiquetas_adicionais='Ritmo, ritmo., RITMO',
             descricao=(
                 '**Beneficio da opcao**\n\n'
                 '<svg onload="window.__optionInjected=1"></svg>\n\n'
                 '<a href="javascript:window.__optionInjected=1">Inseguro</a>'
             ),
+        )
+        TbOpcaojogo.objects.create(
+            nome='Zelo seguro', slug='zelo-seguro', tipo='Teste',
+            etiquetas_adicionais='rítmo!', descricao='Outra opção segura',
         )
         TbClasse.objects.create(nome='Mago', slug='mago')
         TbClasse.objects.create(nome='Bardo', slug='bardo')
@@ -181,6 +185,8 @@ class TalentCatalogPresentationTests(StaticLiveServerTestCase):
                 self.assertEqual(js('document.querySelector("[data-option-preview] strong")?.textContent'), 'Beneficio da opcao')
                 self.assertEqual(js('document.querySelectorAll("[data-option-preview] svg, [data-option-preview] a[href^=javascript]").length'), 0)
                 self.assertFalse(js('window.__optionInjected === 1'))
+                self.assertEqual(js('Array.from(document.querySelectorAll("#tagFilterOptions button")).filter(button => canonicalTag(button.textContent) === "ritmo").length'), 1)
+                self.assertEqual(js('document.querySelectorAll("#opcaoDetail > div:first-child > div:first-child > span").length'), 2)
 
                 js('document.querySelector("#filterToggle").click()')
                 self.assertEqual(js('document.querySelector("#filterToggle").getAttribute("aria-expanded")'), 'true')
@@ -219,6 +225,7 @@ class TalentCatalogPresentationTests(StaticLiveServerTestCase):
                 js('document.querySelector("#applyFilterModal").click()')
                 self.assertEqual(js('document.activeElement?.id'), 'filterToggle')
                 self.assertEqual(js('document.querySelector("#filterCount").textContent'), '2')
+                wait_for('document.querySelectorAll("#opcoesListItems > button").length === 2')
                 self.assertEqual(js('document.querySelector("#opcaoDetail [data-talent-title]").textContent'), 'Opcao segura')
 
                 call('Page.navigate', {'url': self.live_server_url + reverse('magias_listas') + '?magia=luz-arcana&busca=Luz&nivel=1'})
