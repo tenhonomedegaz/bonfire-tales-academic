@@ -15038,7 +15038,17 @@ def jornal_create_view(request):
         if publication_date:
             kwargs['data_publicacao'] = publication_date
                 
-        artigo = _create_editorial_with_slug(TbJornal, slug, kwargs)
+        from django.contrib.admin.models import ADDITION, LogEntry
+        from django.contrib.contenttypes.models import ContentType
+        with transaction.atomic():
+            artigo = _create_editorial_with_slug(TbJornal, slug, kwargs)
+            LogEntry.objects.create(
+                user=request.user,
+                content_type=ContentType.objects.get_for_model(TbJornal),
+                object_id=str(artigo.pk), object_repr=str(artigo),
+                action_flag=ADDITION,
+                change_message=f'Publicação do Jornal: {artigo.titulo}',
+            )
         return JsonResponse({'ok': True, 'slug': artigo.slug})
     
     return render(request, 'home/pages/jornal_form.html', {

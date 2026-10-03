@@ -1,8 +1,9 @@
 """Jornal saves only actual editorial changes and rejects malformed requests."""
 
 import json
+from unittest.mock import patch
 
-from django.contrib.admin.models import CHANGE, LogEntry
+from django.contrib.admin.models import ADDITION, CHANGE, LogEntry
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.test import TestCase
@@ -75,3 +76,25 @@ class JornalChangeAuditTests(TestCase):
                 self.assertEqual(response.status_code, 400)
                 self.assertIn('error', response.json())
         self.assertEqual(TbJornal.objects.count(), 1)
+
+    def test_create_records_editor_and_rolls_back_if_audit_fails(self):
+        self.editor.user_permissions.add(Permission.objects.get(
+            content_type__app_label='home', codename='add_tbjornal',
+        ))
+        url = reverse('jornal_create')
+        payload = json.dumps({'titulo': 'Publicação auditada', 'conteudo_markdown': 'Texto público'})
+        response = self.client.post(url, payload, content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+        article = TbJornal.objects.get(slug=response.json()['slug'])
+        self.assertEqual(LogEntry.objects.filter(
+            object_id=str(article.pk), action_flag=ADDITION, user=self.editor,
+        ).count(), 1)
+        self.client.logout()
+        self.assertContains(self.client.get(reverse('jornal_detail', args=[article.slug])), 'Texto público')
+
+        self.client.force_login(self.editor)
+        with patch.object(LogEntry.objects, 'create', side_effect=RuntimeError('audit unavailable')):
+            with self.assertRaisesRegex(RuntimeError, 'audit unavailable'):
+                self.client.post(url, json.dumps({'titulo': 'Falha editorial'}),
+                                 content_type='application/json')
+        self.assertFalse(TbJornal.objects.filter(titulo='Falha editorial').exists())
