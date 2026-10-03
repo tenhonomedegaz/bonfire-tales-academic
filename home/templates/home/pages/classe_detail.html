@@ -4,7 +4,7 @@
 {% block main_class %}flex-1 w-full py-2.5{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/pages/classe_detail.css' %}?v=3">
+<link rel="stylesheet" href="{% static 'css/pages/classe_detail.css' %}?v=4">
 
 {% endblock %}
 
@@ -18,7 +18,7 @@
 <div class="class-detail-layout">
   <aside id="classSidebar" class="class-sidebar h-full">
     <div class="mb-3">
-      <label for="classSearch" class="mb-1 block text-[11px] font-bold uppercase tracking-wide text-[var(--muted)]">Buscar classe</label>
+      <label for="classSearch" class="mb-1 block text-[12px] font-bold uppercase tracking-wide text-[var(--muted)]">Buscar classe</label>
       <div class="relative">
         <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-[var(--muted)]">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
@@ -26,14 +26,14 @@
         <input id="classSearch" type="search" placeholder="Nome da classe" aria-controls="classNav" aria-describedby="classSearchStatus" class="w-full rounded border border-[var(--stroke)] bg-[var(--bg1)] py-2 pl-9 pr-3 text-sm text-[var(--text)] outline-none focus:border-[var(--ember)]">
       </div>
       <div class="mt-1 flex items-center justify-between gap-2">
-        <span id="classSearchStatus" role="status" aria-live="polite" class="text-[11px] text-[var(--muted)]"></span>
-        <button type="button" id="classSearchClear" class="hidden rounded px-2 py-1 text-[11px] font-bold text-[var(--ember)] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--ember)]">Limpar busca</button>
+        <span id="classSearchStatus" role="status" aria-live="polite" class="text-[12px] text-[var(--muted)]"></span>
+        <button type="button" id="classSearchClear" class="hidden rounded px-2 py-1 text-[12px] font-bold text-[var(--ember)] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--ember)]">Limpar busca</button>
       </div>
     </div>
 
     <nav id="classNav" class="mb-2.5 grid gap-1">
       {% for item in all_classes %}
-      <a href="{% url 'classe_detail' slug=item.slug %}" data-search="{{ item.nome }}" {% if item.id_classe == classe.id_classe %}aria-current="page"{% endif %} class="class-nav-item rounded border px-2 py-1 text-[10px] font-bold uppercase transition-colors {% if item.id_classe == classe.id_classe %}border-[var(--flame)] bg-[var(--flame)]/5 text-[var(--text)]{% else %}border-transparent text-[var(--muted)] hover:border-[var(--stroke)] hover:bg-[var(--bg1)] hover:text-[var(--text)]{% endif %}">
+      <a href="{% url 'classe_detail' slug=item.slug %}" data-search="{{ item.nome }}" {% if item.id_classe == classe.id_classe %}aria-current="page"{% endif %} class="class-nav-item rounded border px-2 py-1 text-[12px] font-bold uppercase transition-colors {% if item.id_classe == classe.id_classe %}border-[var(--flame)] bg-[var(--flame)]/5 text-[var(--text)]{% else %}border-transparent text-[var(--muted)] hover:border-[var(--stroke)] hover:bg-[var(--bg1)] hover:text-[var(--text)]{% endif %}">
         {{ item.nome }}
       </a>
       {% endfor %}
@@ -47,8 +47,8 @@
       <div class="mt-2.5 divide-y divide-[var(--stroke)]">
         {% for trait in class_traits %}
         <div class="py-1">
-          <span class="block text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">{{ trait.label }}</span>
-          <span class="mt-0.5 block text-[11px] font-semibold leading-tight text-[var(--text)] trait-value">{{ trait.value|linebreaksbr }}</span>
+          <span class="block text-[12px] font-bold uppercase tracking-widest text-[var(--muted)]">{{ trait.label }}</span>
+          <span class="mt-0.5 block text-[12px] font-semibold leading-tight text-[var(--text)] trait-value">{{ trait.value|linebreaksbr }}</span>
         </div>
         {% empty %}
         <p class="py-2 text-sm text-[var(--muted)]">Preencha os dados de ficha desta classe no admin.</p>
@@ -57,12 +57,12 @@
 
       {% if multiclass_traits %}
       <div class="mt-2 border-t border-[var(--stroke)] pt-2">
-        <h3 class="mb-1 text-[10px] font-bold uppercase tracking-widest text-[var(--ember)]">Multiclasse</h3>
+        <h3 class="mb-1 text-[12px] font-bold uppercase tracking-widest text-[var(--ember)]">Multiclasse</h3>
         <div class="divide-y divide-[var(--stroke)]">
           {% for trait in multiclass_traits %}
           <div class="py-1">
-            <span class="block text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">{{ trait.label }}</span>
-            <span class="mt-0.5 block text-[11px] font-semibold leading-tight text-[var(--text)] trait-value">{{ trait.value|linebreaksbr }}</span>
+            <span class="block text-[12px] font-bold uppercase tracking-widest text-[var(--muted)]">{{ trait.label }}</span>
+            <span class="mt-0.5 block text-[12px] font-semibold leading-tight text-[var(--text)] trait-value">{{ trait.value|linebreaksbr }}</span>
           </div>
           {% endfor %}
         </div>
@@ -72,7 +72,7 @@
     {% else %}
     <section class="rounded border border-[var(--stroke)] bg-[var(--bg1)] p-3">
       <h2 class="font-rpg text-lg font-bold uppercase text-[var(--text)]">Classes</h2>
-      <p class="mt-3 text-[11px] leading-relaxed text-[var(--muted)]">Selecione uma classe na lista para ver progressao, recursos e subclasses.</p>
+      <p class="mt-3 text-[12px] leading-relaxed text-[var(--muted)]">Selecione uma classe na lista para ver progressao, recursos e subclasses.</p>
     </section>
     {% endif %}
     </div>
@@ -82,9 +82,9 @@
     <header class="mb-3 border-b border-[var(--stroke)] pb-2.5">
       <h1 class="font-rpg text-2xl font-extrabold uppercase tracking-wide text-[var(--text)] md:text-3xl">{% if classe %}{{ classe.nome }}{% else %}Classes{% endif %}</h1>
       {% if classe.tagline %}
-      <p class="mt-1 max-w-4xl text-[10px] italic leading-relaxed text-[var(--muted)]">{{ classe.tagline }}</p>
+      <p class="mt-1 max-w-4xl text-[12px] italic leading-relaxed text-[var(--muted)]">{{ classe.tagline }}</p>
       {% elif not classe %}
-      <p class="mt-1 max-w-4xl text-[10px] leading-relaxed text-[var(--muted)]">Escolha uma classe no menu lateral para abrir a progressao completa.</p>
+      <p class="mt-1 max-w-4xl text-[12px] leading-relaxed text-[var(--muted)]">Escolha uma classe no menu lateral para abrir a progressao completa.</p>
       {% endif %}
     </header>
 
@@ -92,7 +92,7 @@
     <p class="class-progression-hint mb-1 text-xs text-[var(--muted)]">Deslize a tabela para ver todas as colunas. O nível permanece visível.</p>
     <div data-progression-table class="class-progression-scroll mb-2.5 overflow-x-auto rounded border border-[var(--stroke)] bg-[var(--bg1)] custom-scrollbar" role="region" aria-label="Progressão de {{ classe.nome }}" tabindex="0">
       <div class="min-w-[700px]">
-        <table class="w-full table-auto border-collapse text-[11px]">
+        <table class="w-full table-auto border-collapse text-[12px]">
           <caption class="sr-only">Progressão da classe {{ classe.nome }} por nível</caption>
           <colgroup>
             <col class="w-12">
@@ -108,10 +108,10 @@
           </colgroup>
           <thead class="bg-[#3a0b0b] text-white shadow-inner">
             <tr>
-              <th {% if spell_slots_count %}rowspan="2"{% endif %} class="w-10 border-r border-b border-[var(--stroke)] px-1 py-0.5 text-center text-[10px] font-bold uppercase tracking-wider">Nível</th>
+              <th {% if spell_slots_count %}rowspan="2"{% endif %} class="w-10 border-r border-b border-[var(--stroke)] px-1 py-0.5 text-center text-[12px] font-bold uppercase tracking-wider">Nível</th>
               {% for col in colunas %}
                 {% if not col.spell_level %}
-              <th {% if spell_slots_count %}rowspan="2"{% endif %} {% if col.subclass_only %}data-subclass-column="{{ col.subclass_slugs_attr }}"{% endif %} class="{% if col.subclass_only %}is-collapsed-column {% endif %}border-r border-b border-[var(--stroke)] px-1 py-0.5 text-[10px] font-bold uppercase tracking-wider text-left {% if col.is_feature %}w-auto{% else %}w-12 text-center{% endif %}">
+              <th {% if spell_slots_count %}rowspan="2"{% endif %} {% if col.subclass_only %}data-subclass-column="{{ col.subclass_slugs_attr }}"{% endif %} class="{% if col.subclass_only %}is-collapsed-column {% endif %}border-r border-b border-[var(--stroke)] px-1 py-0.5 text-[12px] font-bold uppercase tracking-wider text-left {% if col.is_feature %}w-auto{% else %}w-12 text-center{% endif %}">
                 {% if col.name == "Bônus de Proficiência" or col.name == "Bônus de proficiência" %}
                   <span class="hidden md:inline">{{ col.name }}</span>
                   <span class="md:hidden">BP</span>
@@ -122,14 +122,14 @@
                 {% endif %}
               {% endfor %}
               {% if spell_slots_count %}
-              <th colspan="{{ spell_slots_count }}" data-spell-slots-header class="{% if not base_spell_slots_count %}hidden {% endif %}border-r border-b border-[var(--stroke)] px-1 py-0.5 text-center text-[10px] font-bold uppercase tracking-wider">Espaços de Magia</th>
+              <th colspan="{{ spell_slots_count }}" data-spell-slots-header class="{% if not base_spell_slots_count %}hidden {% endif %}border-r border-b border-[var(--stroke)] px-1 py-0.5 text-center text-[12px] font-bold uppercase tracking-wider">Espaços de Magia</th>
               {% endif %}
             </tr>
             {% if spell_slots_count %}
             <tr data-spell-slots-row class="{% if not base_spell_slots_count %}hidden{% endif %}">
               {% for col in colunas %}
                 {% if col.spell_level %}
-              <th {% if col.subclass_only %}data-subclass-column="{{ col.subclass_slugs_attr }}"{% endif %} data-spell-slot-column class="{% if col.subclass_only %}is-collapsed-column {% endif %}w-5 border-r border-b border-[var(--stroke)] px-0.5 py-0.5 text-center text-[10px] font-bold uppercase tracking-wider whitespace-nowrap">{{ col.name }}</th>
+              <th {% if col.subclass_only %}data-subclass-column="{{ col.subclass_slugs_attr }}"{% endif %} data-spell-slot-column class="{% if col.subclass_only %}is-collapsed-column {% endif %}w-5 border-r border-b border-[var(--stroke)] px-0.5 py-0.5 text-center text-[12px] font-bold uppercase tracking-wider whitespace-nowrap">{{ col.name }}</th>
                 {% endif %}
               {% endfor %}
             </tr>
@@ -155,19 +155,19 @@
 
     {% if classe %}
     <section class="mb-2.5" data-subclass-anchor>
-      <h2 class="mb-2 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-[var(--muted)]">
+      <h2 class="mb-2 flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-widest text-[var(--muted)]">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-[var(--muted)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3 8 4.5-8 4.5-8-4.5L12 3Z"/><path d="m4 12 8 4.5 8-4.5"/><path d="m4 16.5 8 4.5 8-4.5"/></svg>
         Subclasses {% if subclasses %}(selecione para ver){% endif %}
       </h2>
       <div class="flex flex-wrap gap-1.5 items-center">
-        <button type="button" data-subclass-toggle="" class="subclass-toggle rounded border border-[var(--flame)] bg-[var(--flame)]/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--text)]">Base</button>
+        <button type="button" data-subclass-toggle="" class="subclass-toggle rounded border border-[var(--flame)] bg-[var(--flame)]/10 px-2.5 py-1 text-[12px] font-bold uppercase tracking-wider text-[var(--text)]">Base</button>
         {% for sub in subclasses %}
-        <button type="button" data-subclass-toggle="{{ sub.slug }}" class="subclass-toggle rounded border border-[var(--stroke)] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--muted)] hover:border-[var(--spark)] hover:text-[var(--text)]">{{ sub.nome }}</button>
+        <button type="button" data-subclass-toggle="{{ sub.slug }}" class="subclass-toggle rounded border border-[var(--stroke)] px-2.5 py-1 text-[12px] font-bold uppercase tracking-wider text-[var(--muted)] hover:border-[var(--spark)] hover:text-[var(--text)]">{{ sub.nome }}</button>
         {% empty %}
         <span class="text-sm text-[var(--muted)]">Sem subclasses cadastradas.</span>
         {% endfor %}
         {% if subclasses %}
-        <label data-subclass-only-toggle class="hidden ml-1.5 flex items-center gap-1.5 cursor-pointer select-none rounded border border-[var(--stroke)] px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--muted)] hover:border-[var(--spark)] hover:text-[var(--text)] transition-colors" title="Mostrar apenas habilidades da subclasse selecionada">
+        <label data-subclass-only-toggle class="hidden ml-1.5 flex items-center gap-1.5 cursor-pointer select-none rounded border border-[var(--stroke)] px-2 py-1 text-[12px] font-bold uppercase tracking-wider text-[var(--muted)] hover:border-[var(--spark)] hover:text-[var(--text)] transition-colors" title="Mostrar apenas habilidades da subclasse selecionada">
           <input type="checkbox" data-subclass-only-check class="accent-[var(--spark)]" style="width: 12px; height: 12px;">
           Só Subclasse
         </label>
@@ -188,17 +188,17 @@
         {% endif %}
         <article class="{% if item.is_subclass %}hidden subclass-content{% endif %} overflow-hidden rounded border border-[var(--stroke)] bg-[var(--bg1)]" {% if item.is_subclass %}data-subclass-slug="{{ item.subclasse_slug }}"{% else %}data-base-feature{% endif %} data-feature-card data-feature-id="{{ item.habilidade.id_habilidade }}">
           <header class="flex items-center justify-between border-b px-2.5 py-1.5 {% if item.is_subclass %}border-[var(--spark)]/70 bg-[var(--spark)]/5{% else %}border-[var(--flame)]/40 bg-[var(--flame)]/5{% endif %}">
-            <h3 data-feature-title class="font-rpg text-[14px] font-bold {% if item.is_subclass %}text-[var(--spark)]{% else %}text-[var(--flame)]{% endif %}">Nivel {{ item.habilidade.niveladquirido }}: {{ item.habilidade.nome }}</h3>
+            <h3 data-feature-title class="font-rpg text-[14px] font-bold {% if item.is_subclass %}text-[var(--spark)]{% else %}text-[var(--ember)]{% endif %}">Nivel {{ item.habilidade.niveladquirido }}: {{ item.habilidade.nome }}</h3>
             <div class="flex items-center gap-2">
               {% if item.is_subclass %}
-              <span class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">{{ item.subclasse.nome }}</span>
+              <span class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-1.5 py-0.5 text-[12px] font-bold uppercase tracking-widest text-[var(--muted)]">{{ item.subclasse.nome }}</span>
               {% endif %}
               {% if can_edit_wiki %}
-              <button type="button" class="wiki-edit-button !text-[10px] !px-1.5 !py-0.5" data-feature-edit>Editar</button>
+              <button type="button" class="wiki-edit-button !text-[12px] !px-1.5 !py-0.5" data-feature-edit>Editar</button>
               {% endif %}
             </div>
           </header>
-          <div class="bonfire-markdown p-2.5 text-[12px] leading-[1.4] text-[var(--muted)] max-w-none" data-markdown>{{ item.habilidade.descricao }}</div>
+          <div class="bonfire-markdown p-2.5 text-[14px] leading-[1.4] text-[var(--muted)] max-w-none" data-markdown>{{ item.habilidade.descricao }}</div>
           {% if can_edit_wiki %}
           <form class="wiki-inline-editor" data-feature-form>
             <div class="wiki-inline-row">
@@ -206,8 +206,8 @@
               <label>Nível <input name="niveladquirido" type="number" min="0" max="20" value="{{ item.habilidade.niveladquirido }}"></label>
             </div>
             <label>Texto real <textarea name="descricao">{{ item.habilidade.descricao }}</textarea></label>
-            <label>Tags <span class="text-[10px] text-[var(--muted)]">(uma por linha)</span>
-              <textarea name="tags_json_text" rows="6" spellcheck="false" class="font-mono !text-[11px]">{% for tag in item.habilidade.tags_json %}{{ tag }}
+            <label>Tags <span class="text-[12px] text-[var(--muted)]">(uma por linha)</span>
+              <textarea name="tags_json_text" rows="6" spellcheck="false" class="font-mono !text-[12px]">{% for tag in item.habilidade.tags_json %}{{ tag }}
 {% endfor %}</textarea></label>
             <div class="wiki-inline-actions">
               <button type="button" class="wiki-inline-cancel" data-feature-cancel>Cancelar</button>
@@ -228,9 +228,9 @@
       <div class="mt-4 grid gap-2 sm:grid-cols-2">
         {% for item in all_classes %}
         <a href="{% url 'classe_detail' slug=item.slug %}" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] p-3 transition-colors hover:border-[var(--ember)]">
-          <h3 class="font-rpg text-base font-bold text-[var(--flame)]">{{ item.nome }}</h3>
-          <p class="mt-1 text-[12px] leading-relaxed text-[var(--muted)]">{{ item.tagline }}</p>
-          <p class="mt-2 text-[10px] font-bold uppercase tracking-wider text-[var(--spark)]">Dado de vida {{ item.dado_vida }} · Atributo {{ item.atributo_principal }}</p>
+          <h3 class="font-rpg text-base font-bold text-[var(--ember)]">{{ item.nome }}</h3>
+          <p class="mt-1 text-[14px] leading-relaxed text-[var(--muted)]">{{ item.tagline }}</p>
+          <p class="mt-2 text-[12px] font-bold uppercase tracking-wider text-[var(--spark)]">Dado de vida {{ item.dado_vida }} · Atributo {{ item.atributo_principal }}</p>
         </a>
         {% endfor %}
       </div>

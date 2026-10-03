@@ -45,7 +45,7 @@
     color: var(--text);
     cursor: pointer;
     display: table;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 900;
     letter-spacing: .04em;
     margin: 0 auto;
@@ -135,7 +135,7 @@
   }
   @media (max-width: 768px) {
     .class-progression-scroll table { font-size: 12px; }
-    .class-progression-scroll th { font-size: 11px; }
+    .class-progression-scroll th { font-size: 12px; }
   }
   [data-subclass-column] {
     transition: opacity .55s ease, width .75s cubic-bezier(.2, .8, .2, 1), max-width .75s cubic-bezier(.2, .8, .2, 1), padding .75s cubic-bezier(.2, .8, .2, 1), border-color .75s ease, transform .75s cubic-bezier(.2, .8, .2, 1), color .4s ease;
@@ -203,7 +203,7 @@
     border: 1px solid var(--stroke);
     border-radius: 6px;
     color: var(--muted);
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 900;
     letter-spacing: .08em;
     padding: .45rem .65rem;
@@ -237,7 +237,7 @@
   .wiki-inline-editor label {
     color: var(--muted);
     display: grid;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 900;
     gap: .3rem;
     letter-spacing: .1em;
@@ -255,7 +255,7 @@
   }
   .wiki-inline-actions button {
     border-radius: 6px;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 900;
     padding: .45rem .7rem;
   }
@@ -291,6 +291,9 @@
     }
   }
   @media (max-width: 1100px) {
+    body {
+      --class-sidebar-width: min(85vw, 320px);
+    }
     body.class-menu-open {
       overflow: hidden;
     }
@@ -306,15 +309,17 @@
       left: 1rem;
       justify-content: center;
       padding: 0;
-      position: fixed;
-      bottom: 2rem;
+      position: relative;
+      bottom: auto;
       top: auto;
       transition: left .24s ease, border-color .2s ease, color .2s ease;
       width: 48px;
       z-index: 90;
     }
     body.class-menu-open .class-mobile-menu-toggle {
-      left: calc(60vw + 8px);
+      left: min(calc(var(--class-sidebar-width) + 8px), calc(100vw - 56px));
+      position: fixed;
+      bottom: 2rem;
     }
     .class-mobile-menu-toggle:hover {
       border-color: var(--flame);
@@ -356,7 +361,7 @@
       top: 57px;
       transform: translateX(-105%);
       transition: transform .24s ease;
-      width: 60vw;
+      width: var(--class-sidebar-width);
       z-index: 89;
     }
     body.class-menu-open .class-sidebar {
