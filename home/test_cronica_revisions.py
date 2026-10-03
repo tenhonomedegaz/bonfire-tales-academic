@@ -128,6 +128,31 @@ class CronicaRevisionTests(TestCase):
         self.cronica.refresh_from_db()
         self.assertEqual(self.cronica.conteudo_markdown, 'Texto corrigido')
 
+    def test_rejection_requires_feedback_for_initial_and_revised_story(self):
+        pending = TbCronica.objects.create(
+            titulo='Primeira versão', slug='primeira-versao',
+            conteudo_markdown='Rascunho inicial', autor=self.autor, status='pendente',
+        )
+        self.client.force_login(self.staff)
+        url = reverse('cronica_review_action', args=[pending.pk])
+        for feedback in ('', '   ', {'texto': 'invalido'}):
+            response = self.post_json(url, {'action': 'reprovar', 'feedback': feedback})
+            self.assertEqual(response.status_code, 400)
+            pending.refresh_from_db()
+            self.assertEqual(pending.status, 'pendente')
+            self.assertFalse(pending.feedback_staff)
+        self.assertEqual(self.post_json(url, {
+            'action': 'reprovar', 'feedback': '  Ajuste o início.  ',
+        }).status_code, 200)
+        pending.refresh_from_db()
+        self.assertEqual(pending.feedback_staff, 'Ajuste o início.')
+
+        self.edit(content='Nova versão pendente')
+        self.assertEqual(self.review('reprovar', '   ').status_code, 400)
+        self.cronica.refresh_from_db()
+        self.assertEqual(self.cronica.revisao_edicao['estado'], 'pendente')
+        self.assertEqual(self.cronica.conteudo_markdown, 'Texto publicado')
+
     def test_non_owner_cannot_edit_or_review(self):
         self.client.force_login(self.outro)
         url = reverse('cronica_edit', args=[self.cronica.slug])

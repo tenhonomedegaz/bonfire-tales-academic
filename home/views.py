@@ -15194,6 +15194,11 @@ def cronica_review_action(request, cronica_id):
     action = data.get('action', '')
     if action not in ('aprovar', 'reprovar'):
         return JsonResponse({'error': 'Ação inválida.'}, status=400)
+    feedback = data.get('feedback', '')
+    if action == 'reprovar':
+        if not isinstance(feedback, str) or not feedback.strip():
+            return JsonResponse({'error': 'Informe o motivo da reprovação.'}, status=400)
+        feedback = feedback.strip()
     with transaction.atomic():
         cronica = get_object_or_404(TbCronica.objects.select_for_update(), pk=cronica_id)
         if cronica.status == 'aprovada':
@@ -15214,7 +15219,7 @@ def cronica_review_action(request, cronica_id):
                                    f'edicao:{cronica.pk}:{revision["submetida_em"]}',
                                    'edicao', f'Edição aprovada: {cronica.titulo}')
             else:
-                cronica.revisao_edicao = {**revision, 'estado': 'reprovada', 'feedback': data.get('feedback', '')}
+                cronica.revisao_edicao = {**revision, 'estado': 'reprovada', 'feedback': feedback}
                 cronica.save(update_fields=['revisao_edicao'])
                 _notificar_cronica(cronica.autor_id, cronica,
                                    f'edicao:{cronica.pk}:{revision["submetida_em"]}',
@@ -15232,7 +15237,7 @@ def cronica_review_action(request, cronica_id):
             cronica.status = 'reprovada'
             cronica.revisado_por = request.user
             cronica.data_revisao = timezone.now()
-            cronica.feedback_staff = data.get('feedback', '')
+            cronica.feedback_staff = feedback
         cronica.save()
         if action == 'aprovar':
             _conquistas.registrar_publicacao_cronica(cronica)

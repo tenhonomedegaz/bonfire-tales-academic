@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/pages/cronicas_review.css' %}?v=2">
+<link rel="stylesheet" href="{% static 'css/pages/cronicas_review.css' %}?v=3">
 
 {% endblock %}
 
@@ -15,7 +15,7 @@
 
   <div class="review-header">
     <h1>Fila de Revisão</h1>
-    <p>{{ pendentes|length }} crônica{{ pendentes|length|pluralize:"s" }} aguardando aprovação. Leia o conteúdo abaixo e decida.</p>
+    <p id="reviewPendingSummary" data-count="{{ pendentes|length }}">{{ pendentes|length }} crônica{{ pendentes|length|pluralize:"s" }} aguardando aprovação. Leia o conteúdo abaixo e decida.</p>
   </div>
 
   {% for c in pendentes %}
@@ -34,10 +34,12 @@
       <div class="bonfire-markdown" data-markdown-source data-markdown-options="false">{{ c.review_data.conteudo_markdown|escape }}</div>
     </div>
     <div class="review-item-actions">
-      <input type="text" class="review-feedback-input" id="feedback-{{ c.id_cronica }}" placeholder="Feedback (obrigatório para reprovar)...">
+      <label class="review-feedback-label" for="feedback-{{ c.id_cronica }}">Motivo da devolução</label>
+      <input type="text" class="review-feedback-input" id="feedback-{{ c.id_cronica }}" aria-describedby="review-error-{{ c.id_cronica }}" placeholder="Obrigatório para reprovar">
       <button type="button" class="review-btn-approve" onclick="reviewAction({{ c.id_cronica }}, 'aprovar')">✓ Aprovar</button>
       <button type="button" class="review-btn-reject" onclick="reviewAction({{ c.id_cronica }}, 'reprovar')">✗ Reprovar</button>
     </div>
+    <p id="review-error-{{ c.id_cronica }}" class="review-item-error" role="alert" hidden></p>
   </div>
   {% empty %}
   <div class="review-empty">
@@ -52,32 +54,51 @@ function csrfToken() {
 }
 
 async function reviewAction(id, action) {
+  const item = document.getElementById(`review-${id}`);
+  if (!item || item.dataset.submitting === 'true') return;
   const feedbackEl = document.getElementById(`feedback-${id}`);
   const feedback = feedbackEl ? feedbackEl.value : '';
+  const errorEl = document.getElementById(`review-error-${id}`);
+  errorEl.hidden = true;
   
   if (action === 'reprovar' && !feedback.trim()) {
     feedbackEl.style.borderColor = '#ef4444';
     feedbackEl.focus();
-    feedbackEl.placeholder = 'Escreva o motivo da reprovação...';
+    errorEl.textContent = 'Informe o motivo da reprovação.';
+    errorEl.hidden = false;
     return;
   }
+  if (feedbackEl) feedbackEl.style.borderColor = '';
 
-  const item = document.getElementById(`review-${id}`);
-  const res = await fetch(`/mundo/cronicas/${id}/revisar/`, {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken()},
-    body: JSON.stringify({ action, feedback, expected_revision: item.dataset.revision }),
-  });
-
-  if (res.ok) {
+  const buttons = item.querySelectorAll('.review-item-actions button');
+  item.dataset.submitting = 'true';
+  item.setAttribute('aria-busy', 'true');
+  buttons.forEach(button => { button.disabled = true; });
+  try {
+    const res = await fetch(`/mundo/cronicas/${id}/revisar/`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken()},
+      body: JSON.stringify({ action, feedback, expected_revision: item.dataset.revision }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) throw new Error(data.error || 'Não foi possível revisar esta crônica.');
     item.classList.add('is-resolved');
     const actionsDiv = item.querySelector('.review-item-actions');
-    const statusText = action === 'aprovar' ? '✓ Aprovada' : '✗ Reprovada';
-    const statusColor = action === 'aprovar' ? '#22c55e' : '#ef4444';
-    actionsDiv.innerHTML = `<span style="color: ${statusColor}; font-weight: 900; font-size: .78rem;">${statusText}</span>`;
-  } else {
-    const data = await res.json();
-    alert(data.error || 'Não foi possível revisar esta crônica.');
+    const status = document.createElement('span');
+    status.className = action === 'aprovar' ? 'review-result-approved' : 'review-result-rejected';
+    status.textContent = action === 'aprovar' ? '✓ Aprovada' : '✗ Reprovada';
+    actionsDiv.replaceChildren(status);
+    const summary = document.getElementById('reviewPendingSummary');
+    const remaining = Math.max(0, Number(summary.dataset.count) - 1);
+    summary.dataset.count = String(remaining);
+    summary.textContent = `${remaining} crônica${remaining === 1 ? '' : 's'} aguardando aprovação. Leia o conteúdo abaixo e decida.`;
+  } catch (err) {
+    errorEl.textContent = err.message || 'Não foi possível revisar esta crônica.';
+    errorEl.hidden = false;
+  } finally {
+    delete item.dataset.submitting;
+    item.removeAttribute('aria-busy');
+    buttons.forEach(button => { button.disabled = false; });
   }
 }
 </script>

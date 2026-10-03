@@ -55,18 +55,38 @@
   align-items: center;
   border-top: 1px solid var(--stroke);
   display: flex;
+  flex-wrap: wrap;
   gap: .5rem;
   padding: .7rem .9rem;
+}
+.review-feedback-label {
+  color: var(--muted);
+  flex-basis: 100%;
+  font-size: .78rem;
+  font-weight: 700;
 }
 .review-feedback-input {
   background: var(--bg0);
   border: 1px solid var(--stroke);
   border-radius: 6px;
   color: var(--text);
-  flex: 1;
+  flex: 1 1 12rem;
+  min-width: 0;
   font-size: .8rem;
   padding: .45rem .6rem;
 }
+.review-item-error {
+  color: #fca5a5;
+  font-size: .8rem;
+  margin: 0;
+  padding: 0 .9rem .7rem;
+}
+.review-item-error[hidden] { display: none; }
+.review-result-approved, .review-result-rejected { font-size: .8rem; font-weight: 900; }
+.review-result-approved { color: #4ade80; }
+.review-result-rejected { color: #f87171; }
+.review-item-actions button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.review-item-actions button:disabled { cursor: wait; opacity: .6; }
 .review-feedback-input::placeholder { color: var(--muted); }
 .review-btn-approve {
   background: #16a34a;
