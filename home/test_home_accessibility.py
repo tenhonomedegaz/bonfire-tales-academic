@@ -116,6 +116,19 @@ class HomeAccessibilityBrowserTests(StaticLiveServerTestCase):
                         self.assertGreater(cta['width'], 0)
                         self.assertGreaterEqual(cta['left'], 0)
                         self.assertLessEqual(cta['right'], js('document.documentElement.clientWidth'))
+                call('Emulation.setDeviceMetricsOverride', {
+                    'width': 360, 'height': 800, 'deviceScaleFactor': 2,
+                    'mobile': True,
+                })
+                mobile = js('''({width:innerWidth,scroll:document.documentElement.scrollWidth,
+                    client:document.documentElement.clientWidth,
+                    action:document.querySelector('#home-primary-action').getBoundingClientRect().toJSON(),
+                    dpr:devicePixelRatio})''')
+                self.assertEqual(mobile['width'], 360, mobile)
+                self.assertEqual(mobile['dpr'], 2, mobile)
+                self.assertLessEqual(mobile['scroll'], mobile['client'], mobile)
+                self.assertGreaterEqual(mobile['action']['left'], 0, mobile)
+                self.assertLessEqual(mobile['action']['right'], mobile['client'], mobile)
                 call('Emulation.clearDeviceMetricsOverride')
 
                 js('document.querySelector("#home-primary-action").focus()')
@@ -126,6 +139,12 @@ class HomeAccessibilityBrowserTests(StaticLiveServerTestCase):
                 call('Input.dispatchKeyEvent', {'type': 'keyDown', 'key': 'Enter', 'code': 'Enter', 'windowsVirtualKeyCode': 13})
                 call('Input.dispatchKeyEvent', {'type': 'keyUp', 'key': 'Enter', 'code': 'Enter', 'windowsVirtualKeyCode': 13})
                 wait_for('location.hash === "#como-jogar"')
+                call('Emulation.setDeviceMetricsOverride', {
+                    'width': 360, 'height': 800, 'deviceScaleFactor': 2,
+                    'mobile': True,
+                })
+                js('document.querySelector("#home-primary-action").click()')
+                wait_for('location.pathname === ' + json.dumps(reverse('register')))
             finally:
                 if ws:
                     ws.close()
