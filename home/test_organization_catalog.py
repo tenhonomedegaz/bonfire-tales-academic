@@ -136,6 +136,7 @@ class OrganizationCatalogTests(TestCase):
 
 class OrganizationReferencesBrowserTests(StaticLiveServerTestCase):
     def test_visible_references_navigate_from_catalog_on_mobile(self):
+        import math
         import shutil
         import subprocess
         import tempfile
@@ -167,11 +168,17 @@ class OrganizationReferencesBrowserTests(StaticLiveServerTestCase):
         )
         TbOrganizacao.objects.create(nome='Casa da Luz', slug='casa-da-luz')
 
-        with tempfile.TemporaryDirectory(prefix='bonfire-org-', ignore_cleanup_errors=True) as profile:
+        with tempfile.TemporaryDirectory(prefix='bonfire-org-', ignore_cleanup_errors=True) as scratch:
+            profile = Path(scratch) / 'profile'
+            prefs = profile / 'Default' / 'Preferences'
+            prefs.parent.mkdir(parents=True)
+            prefs.write_text(json.dumps({
+                'partition': {'default_zoom_level': {'x': math.log(2) / math.log(1.2)}}
+            }), encoding='utf-8')
             process = subprocess.Popen([
                 chrome, '--headless=new', '--no-sandbox', '--disable-gpu',
                 '--remote-debugging-port=0', '--remote-allow-origins=*',
-                f'--user-data-dir={profile}', 'about:blank',
+                f'--user-data-dir={profile}', '--window-size=800,900', 'about:blank',
             ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             ws = None
             try:
@@ -243,10 +250,17 @@ class OrganizationReferencesBrowserTests(StaticLiveServerTestCase):
                     'value': self.client.cookies[settings.SESSION_COOKIE_NAME].value,
                     'url': self.live_server_url,
                 })
+                call('Emulation.clearDeviceMetricsOverride')
                 call('Page.navigate', {'url': self.live_server_url + reverse('mundo_organizacoes')})
                 wait_for('document.querySelector("#orgForm [name=csrfmiddlewaretoken]")?.value.length > 0')
+                self.assertAlmostEqual(js('devicePixelRatio'), 2, delta=.05)
+                self.assertEqual(js('visualViewport.scale'), 1)
+                self.assertLessEqual(js('document.documentElement.scrollWidth'), js('document.documentElement.clientWidth'))
                 js('''(() => {
                     document.querySelector('#toggleOrgForm').click();
+                })()''')
+                self.assertTrue(js('document.querySelector("#orgForm").getBoundingClientRect().right <= document.documentElement.clientWidth'))
+                js('''(() => {
                     document.querySelector('#orgForm [name=nome]').value = 'Liga Navegador';
                     document.querySelector('#orgForm [name=regioes]').value = 'Auralon';
                     document.querySelector('#orgForm [name=descricao]').value = 'Criada pelo editor.';
@@ -256,6 +270,10 @@ class OrganizationReferencesBrowserTests(StaticLiveServerTestCase):
                 created = TbOrganizacao.objects.get(slug='liga-navegador')
                 self.assertEqual(created.regioes, ['Auralon'])
                 self.assertEqual(created.descricao, 'Criada pelo editor.')
+                js('[...document.querySelectorAll(".catalog-card")].find(e => e.textContent.includes("Liga Navegador")).click()')
+                wait_for('document.querySelector(".catalog-detail .detail-title")?.textContent === "Liga Navegador"')
+                self.assertEqual(js('document.querySelectorAll(".detail-meta-value a[href=\\"/mundo/regioes/auralon/\\"]").length'), 1)
+                self.assertLessEqual(js('document.documentElement.scrollWidth'), js('document.documentElement.clientWidth'))
             finally:
                 if ws:
                     ws.close()
