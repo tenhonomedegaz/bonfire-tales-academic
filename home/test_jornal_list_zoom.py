@@ -181,6 +181,36 @@ class JornalListZoomTests(StaticLiveServerTestCase):
                 self.assertEqual(created_region.territorio, TbTerritorio.objects.get(slug='territorio-zoom-qa').nome)
                 self.assertEqual(js('location.pathname'), reverse('regiao_detail', args=[created_region.slug]))
                 self.assertContains(Client().get(reverse('regiao_detail', args=[created_region.slug])), 'Regiao modal QA')
+                call('Page.navigate', {'url': self.live_server_url + reverse('mundo_regioes')})
+                for _ in range(80):
+                    if js('document.querySelector("#btnNewRegion") !== null'):
+                        break
+                    time.sleep(.1)
+                js('document.querySelector("#btnNewRegion").click()')
+                js('document.querySelector("#btnShowCreateTerritoryRegion").click()')
+                self.assertEqual(js('document.activeElement.id'), 'ntr-nome')
+                js('document.querySelector("#btnCancelCreateTerritoryRegion").click()')
+                self.assertEqual(js('document.activeElement.id'), 'btnShowCreateTerritoryRegion')
+                js('document.querySelector("#btnShowCreateTerritoryRegion").click()')
+                js("document.querySelector('#ntr-nome').value = 'Territorio inline QA'")
+                js('document.querySelector("#btnConfirmCreateTerritoryRegion").click()')
+                for _ in range(80):
+                    if js('document.querySelector("#nr-territorio").value === "Territorio inline QA"'):
+                        break
+                    time.sleep(.1)
+                created_territory = TbTerritorio.objects.get(slug='territorio-inline-qa')
+                self.assertEqual(js('document.querySelector("#nr-territorio").value'), created_territory.nome)
+                self.assertEqual(js('document.activeElement.id'), 'nr-territorio')
+                self.assertEqual(js('document.querySelector("#createTerritorySectionRegion").style.display'), 'none')
+                js("document.querySelector('#nr-nome').value = 'Regiao inline QA'")
+                js('document.querySelector("#btnSaveNewRegion").click()')
+                for _ in range(80):
+                    if js('location.pathname === ' + json.dumps(reverse('regiao_detail', args=['regiao-inline-qa'])) + ' && document.readyState === "complete"'):
+                        break
+                    time.sleep(.1)
+                linked_region = TbRegiao.objects.get(slug='regiao-inline-qa')
+                self.assertEqual(linked_region.territorio, created_territory.nome)
+                self.assertContains(Client().get(reverse('regiao_detail', args=[linked_region.slug])), 'Regiao inline QA')
                 call("Page.navigate", {"url": self.live_server_url + reverse("regiao_detail", args=["regiao-zoom-qa"])})
                 for _ in range(80):
                     if js('document.querySelector("#btnEditRegion") !== null'):

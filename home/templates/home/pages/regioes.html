@@ -140,6 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
   
   document.getElementById('btnCancelCreateTerritoryRegion')?.addEventListener('click', () => {
     document.getElementById('createTerritorySectionRegion').style.display = 'none';
+    document.getElementById('btnShowCreateTerritoryRegion').focus();
   });
 
   document.getElementById('btnConfirmCreateTerritoryRegion')?.addEventListener('click', async () => {
@@ -168,6 +169,7 @@ document.addEventListener('DOMContentLoaded', () => {
       select.appendChild(opt);
 
       document.getElementById('createTerritorySectionRegion').style.display = 'none';
+      select.focus();
     } catch (err) {
       alert('Erro ao criar território: ' + err.message);
     } finally {
