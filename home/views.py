@@ -15210,10 +15210,14 @@ def cronicas_list_view(request):
     
     territorio_filter = request.GET.get('territorio', '')
     regiao_filter = request.GET.get('regiao', '')
-    if territorio_filter:
-        qs = qs.filter(territorio__icontains=territorio_filter)
-    if regiao_filter:
-        qs = qs.filter(regiao__icontains=regiao_filter)
+    if territorio_filter or regiao_filter:
+        # Older stories store one name; newer ones can store a JSON list. Match
+        # complete names in both formats before paginating the public feed.
+        matching_ids = [pk for pk, territorio, regiao in
+                        qs.order_by().values_list('pk', 'territorio', 'regiao').iterator()
+                        if (not territorio_filter or territorio_filter in _coerce_multi_value(territorio))
+                        and (not regiao_filter or regiao_filter in _coerce_multi_value(regiao))]
+        qs = qs.filter(pk__in=matching_ids)
 
     territorios = TbTerritorio.objects.values_list('nome', flat=True).order_by('nome')
     regioes = TbRegiao.objects.values_list('nome', flat=True).order_by('nome')
@@ -15227,7 +15231,7 @@ def cronicas_list_view(request):
     if request.user.is_authenticated:
         minhas = TbCronica.objects.filter(autor=request.user).order_by('-data_submissao')[:10]
 
-    highlights = TbCronica.objects.filter(status='aprovada', destaque_editorial=True).select_related('autor').order_by('-data_publicacao', '-pk')[:3]
+    highlights = qs.filter(destaque_editorial=True).order_by('-data_publicacao', '-pk')[:3]
     has_public_content = qs.exclude(conteudo_markdown='').exists()
     page = Paginator(qs.order_by('-data_publicacao', '-pk'), 20).get_page(request.GET.get('page'))
     for cronica in page:

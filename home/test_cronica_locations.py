@@ -102,3 +102,43 @@ class ChronicleLocationTests(TestCase):
         self.assertEqual(response.status_code, 409)
         pending.refresh_from_db()
         self.assertEqual(pending.status, 'pendente')
+
+    def test_public_filters_match_full_names_and_region_link_encodes_name(self):
+        TbTerritorio.objects.create(nome='Norte Alto', slug='norte-alto')
+        TbRegiao.objects.create(nome='Serra Alta', slug='serra-alta', territorio='Norte Alto')
+        TbRegiao.objects.create(nome='Serra & Vale', slug='serra-vale', territorio='Norte')
+        longer = TbCronica.objects.create(
+            titulo='Outro lugar', slug='outro-lugar', conteudo_markdown='Texto',
+            autor=self.author, status='aprovada', territorio='Norte Alto', regiao='Serra Alta',
+        )
+        multiple = TbCronica.objects.create(
+            titulo='Dois lugares', slug='dois-lugares', conteudo_markdown='Texto',
+            autor=self.author, status='aprovada',
+            territorio=json.dumps(['Norte', 'Sul']), regiao=json.dumps(['Serra', 'Costa']),
+        )
+        special = TbCronica.objects.create(
+            titulo='Vale e serra', slug='vale-e-serra', conteudo_markdown='Texto',
+            autor=self.author, status='aprovada', territorio='Norte', regiao='Serra & Vale',
+        )
+        longer.destaque_editorial = True
+        longer.save(update_fields=['destaque_editorial'])
+        multiple.destaque_editorial = True
+        multiple.save(update_fields=['destaque_editorial'])
+        listing = reverse('mundo_cronicas')
+
+        by_territory = self.client.get(listing, {'territorio': 'Norte'})
+        self.assertEqual({story.pk for story in by_territory.context['cronicas']},
+                         {self.published.pk, multiple.pk, special.pk})
+        self.assertEqual([story.pk for story in by_territory.context['destaques']],
+                         [multiple.pk])
+        by_region = self.client.get(listing, {'regiao': 'Serra'})
+        self.assertEqual({story.pk for story in by_region.context['cronicas']},
+                         {self.published.pk, multiple.pk})
+        self.assertNotIn(longer.pk, {story.pk for story in by_region.context['cronicas']})
+        combined = self.client.get(listing, {'territorio': 'Sul', 'regiao': 'Serra'})
+        self.assertEqual([story.pk for story in combined.context['cronicas']], [multiple.pk])
+
+        region = self.client.get(reverse('regiao_detail', args=['serra-vale']))
+        self.assertContains(region, 'regiao=Serra%20%26%20Vale')
+        linked = self.client.get(listing + '?regiao=Serra%20%26%20Vale')
+        self.assertEqual([story.pk for story in linked.context['cronicas']], [special.pk])
