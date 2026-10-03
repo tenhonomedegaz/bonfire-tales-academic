@@ -503,7 +503,7 @@ function sanitizeBonfireMarkdownHtml(html) {
     const source = document.createElement('template');
     source.innerHTML = String(html || '');
     const safeTags = new Set([
-        'a', 'blockquote', 'br', 'code', 'del', 'details', 'div', 'em', 'h1', 'h2', 'h3',
+        'a', 'b', 'blockquote', 'br', 'code', 'del', 'details', 'div', 'em', 'h1', 'h2', 'h3',
         'h4', 'h5', 'h6', 'hr', 'img', 'li', 'ol', 'p', 'pre', 's', 'span', 'strong',
         'summary', 'table', 'tbody', 'td', 'th', 'thead', 'tr', 'ul'
     ]);
@@ -526,7 +526,7 @@ function sanitizeBonfireMarkdownHtml(html) {
         if (discardedTags.has(tag)) return document.createDocumentFragment();
         const element = safeTags.has(tag) ? document.createElement(tag) : document.createDocumentFragment();
         if (element.nodeType === Node.ELEMENT_NODE) {
-            const classes = [...node.classList].filter(name => /^(?:(?:bonfire|atlas)-[a-z0-9_-]+|md-ref)$/.test(name));
+            const classes = [...node.classList].filter(name => /^(?:(?:bonfire|atlas)-[a-z0-9_-]+|md-ref|ab|sc)$/.test(name));
             if (classes.length) element.className = classes.join(' ');
             if (node.hasAttribute('title')) element.title = node.getAttribute('title');
             if (tag === 'a') {

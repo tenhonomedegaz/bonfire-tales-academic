@@ -839,13 +839,31 @@
             const data = await res.json();
             if (!data.success) throw new Error(data.error || 'Erro');
 
-            const renderFn = (txt => {
-                if (window.renderBonfireMarkdown) return window.renderBonfireMarkdown(txt, { cardPreview: true });
-                return txt;
-            });
+            const renderFn = txt => {
+                if (typeof window.renderBonfireMarkdown === 'function' &&
+                    typeof window.sanitizeBonfireMarkdownHtml === 'function') {
+                    return window.sanitizeBonfireMarkdownHtml(
+                        window.renderBonfireMarkdown(txt, { cardPreview: true })
+                    );
+                }
+                return escapeHtml(txt).replace(/\n/g, '<br>');
+            };
             // sem truncar: o corpo do card é scrollável (ver .bonfire-preview-card-body),
             // então a pessoa lê a habilidade inteira sem ir para outra página.
-            const descHtml = data.card_html || renderFn(data.description || '');
+            const descHtml = data.card_html
+                ? (typeof window.sanitizeBonfireMarkdownHtml === 'function'
+                    ? window.sanitizeBonfireMarkdownHtml(data.card_html)
+                    : escapeHtml(data.card_html))
+                : renderFn(data.description || '');
+            let readMoreUrl = '';
+            try {
+                const url = new URL(data.url, window.location.href);
+                if (url.origin === window.location.origin && ['http:', 'https:'].includes(url.protocol)) {
+                    readMoreUrl = url.pathname + url.search + url.hash;
+                }
+            } catch (_error) {
+                // Cartoes sem destino valido ainda mostram a descricao.
+            }
             card.dataset.cardWidth = data.card_width || '';
 
             card.innerHTML = `
@@ -858,9 +876,9 @@
                 <div class="bonfire-preview-card-body bonfire-markdown">
                     ${descHtml}
                 </div>
-                ${data.url ? `
+                ${readMoreUrl ? `
                     <div class="bonfire-preview-card-footer">
-                        <a href="${data.url}" class="bonfire-preview-card-more">Ler Mais &rarr;</a>
+                        <a href="${escapeHtml(readMoreUrl)}" class="bonfire-preview-card-more">Ler Mais &rarr;</a>
                     </div>
                 ` : ''}
             `;
