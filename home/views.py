@@ -32,6 +32,7 @@ from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.http import Http404, JsonResponse, HttpResponseBadRequest, HttpResponse
+from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404, render, redirect
 from django.views.decorators.http import require_POST, require_http_methods
 from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
@@ -12943,13 +12944,16 @@ def _render_catalog(request, title, subtitle, kind, key, mapper):
     items, db_error = _catalog_list(key, mapper)
     if kind == 'organizacoes' and items:
         _organization_catalog_references(items, request.user)
+    can_edit = request.user.is_staff
+    if kind == 'organizacoes':
+        can_edit = can_edit and request.user.has_perm('home.add_tborganizacao')
     return render(request, 'home/pages/catalogo.html', {
         'title': title,
         'subtitle': subtitle,
         'kind': kind,
         'items': items,
         'db_error': db_error,
-        'can_edit_wiki': request.user.is_staff,
+        'can_edit_wiki': can_edit,
         'noindex': not any((item.get('descricao') or '').strip() for item in items),
     })
 
@@ -14094,16 +14098,28 @@ def organizacoes_view(request):
             'Descricao': (data.get('descricao') or data.get('Descricao') or '').strip(),
             'UpdatedAt': datetime.now(datetime_timezone.utc),
         }
-        organization, _ = TbOrganizacao.objects.update_or_create(
-            slug=document['Slug'],
-            defaults={
-                'nome': document['Nome'], 'tipo': document['Tipo'],
-                'sede': document['Sede'], 'regioes': document['Regioes'],
-                'territorios': document['Territorios'], 'lideranca': document['Lideranca'],
-                'aliados': document['Aliados'], 'inimigos': document['Inimigos'],
-                'tags': document['Tags'], 'descricao': document['Descricao'],
-            },
-        )
+        changes = {
+            'nome': document['Nome'], 'tipo': document['Tipo'],
+            'sede': document['Sede'], 'regioes': document['Regioes'],
+            'territorios': document['Territorios'], 'lideranca': document['Lideranca'],
+            'aliados': document['Aliados'], 'inimigos': document['Inimigos'],
+            'tags': document['Tags'], 'descricao': document['Descricao'],
+        }
+        with transaction.atomic():
+            organization = TbOrganizacao.objects.select_for_update().filter(slug=document['Slug']).first()
+            if organization is None:
+                if not request.user.has_perm('home.add_tborganizacao'):
+                    raise PermissionDenied
+                organization = TbOrganizacao.objects.create(slug=document['Slug'], **changes)
+                _log_wiki_creation(request, organization, f"Organizacao criada no catalogo: {organization.nome}")
+            else:
+                if not request.user.has_perm('home.change_tborganizacao'):
+                    raise PermissionDenied
+                if any(getattr(organization, field) != value for field, value in changes.items()):
+                    for field, value in changes.items():
+                        setattr(organization, field, value)
+                    organization.save()
+                    _log_wiki_edit(request, organization, f"Organizacao revisada no catalogo: {organization.nome}")
         document['UpdatedAt'] = organization.updated_at
         return JsonResponse({'ok': True, 'organization': serialize_document(document)})
 

@@ -2,6 +2,9 @@ import json
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Permission
+from django.contrib.admin.models import ADDITION, CHANGE, LogEntry
+from django.contrib.contenttypes.models import ContentType
 from django.test import TestCase
 from django.urls import reverse
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
@@ -16,6 +19,49 @@ class OrganizationCatalogTests(TestCase):
         cls.editor = get_user_model().objects.create_user(
             username='organization-editor', password='test-password', is_staff=True
         )
+        cls.editor.user_permissions.add(*Permission.objects.filter(
+            content_type__app_label='home', codename__in=('add_tborganizacao', 'change_tborganizacao'),
+        ))
+
+    def test_creation_and_revision_require_separate_roles_and_record_history(self):
+        url = reverse('mundo_organizacoes')
+        def submit(name, description=''):
+            return self.client.post(url, json.dumps({'nome': name, 'descricao': description}),
+                                    content_type='application/json')
+
+        generic = get_user_model().objects.create_user('organization-generic', is_staff=True)
+        self.client.force_login(generic)
+        self.assertEqual(submit('Liga de Permissoes').status_code, 403)
+        self.assertNotContains(self.client.get(url), 'id="orgForm"')
+        self.assertFalse(TbOrganizacao.objects.exists())
+
+        creator = get_user_model().objects.create_user('organization-creator', is_staff=True)
+        creator.user_permissions.add(Permission.objects.get(content_type__app_label='home', codename='add_tborganizacao'))
+        self.client.force_login(creator)
+        self.assertContains(self.client.get(url), 'id="orgForm"')
+        self.assertEqual(submit('Liga de Permissoes', 'Original').status_code, 200)
+        self.assertEqual(submit('Liga de Permissoes', 'Tentativa').status_code, 403)
+
+        reviewer = get_user_model().objects.create_user('organization-reviewer', is_staff=True)
+        reviewer.user_permissions.add(Permission.objects.get(content_type__app_label='home', codename='change_tborganizacao'))
+        self.client.force_login(reviewer)
+        self.assertNotContains(self.client.get(url), 'id="orgForm"')
+        self.assertEqual(submit('Outra Liga').status_code, 403)
+        self.assertEqual(submit('Liga de Permissoes', 'Revisada').status_code, 200)
+        self.assertEqual(submit('Liga de Permissoes', 'Revisada').status_code, 200)
+
+        organization = TbOrganizacao.objects.get(slug='liga-de-permissoes')
+        self.assertEqual(organization.descricao, 'Revisada')
+        self.client.force_login(generic)
+        self.assertEqual(submit('Liga de Permissoes', 'Intrusao').status_code, 403)
+        organization.refresh_from_db()
+        self.assertEqual(organization.descricao, 'Revisada')
+        entries = LogEntry.objects.filter(content_type=ContentType.objects.get_for_model(organization),
+                                          object_id=str(organization.pk)).order_by('pk')
+        self.assertEqual(list(entries.values_list('action_flag', 'user__username')),
+                         [(ADDITION, creator.username), (CHANGE, reviewer.username)])
+        self.client.logout()
+        self.assertContains(self.client.get(url), 'Liga de Permissoes')
 
     def test_admin_normalizes_legacy_json_string_and_rejects_object(self):
         fields = {
@@ -255,6 +301,8 @@ class OrganizationReferencesBrowserTests(StaticLiveServerTestCase):
 
                 editor = get_user_model().objects.create_user(
                     'organization-browser-editor', password='test-password', is_staff=True)
+                editor.user_permissions.add(Permission.objects.get(
+                    content_type__app_label='home', codename='add_tborganizacao'))
                 self.client.force_login(editor)
                 call('Network.enable')
                 call('Network.setCookie', {
