@@ -14698,6 +14698,28 @@ def _jornal_publication_date(data):
     return parsed, None
 
 
+def _jornal_content_fields(data, article=None):
+    summary = data.get('resumo', article.resumo if article else '')
+    if summary is not None and (not isinstance(summary, str) or len(summary) > 300):
+        return None, 'O resumo deve ser texto de ate 300 caracteres.'
+    image_url = data.get('imagem_url', article.imagem_url if article else '')
+    if image_url is not None and not isinstance(image_url, str):
+        return None, 'Use uma URL de imagem HTTP(S), /media/ ou /static/.'
+    image_url = (image_url or '').strip()
+    if len(image_url) > 500 or (image_url and not _jornal_image_url(image_url)):
+        return None, 'Use uma URL de imagem HTTP(S), /media/ ou /static/ com ate 500 caracteres.'
+    markdown = data.get('conteudo_markdown', article.conteudo_markdown if article else '')
+    if markdown is not None and not isinstance(markdown, str):
+        return None, 'O conteudo do artigo deve ser texto.'
+    featured = data.get('destaque', article.destaque if article else False)
+    if not isinstance(featured, bool):
+        return None, 'O destaque deve ser sim ou nao.'
+    return {
+        'resumo': summary, 'imagem_url': image_url,
+        'conteudo_markdown': markdown, 'destaque': featured,
+    }, None
+
+
 @staff_member_required
 @permission_required('home.add_tbjornal', raise_exception=True)
 def jornal_create_view(request):
@@ -14709,9 +14731,9 @@ def jornal_create_view(request):
         publication_date, error = _jornal_publication_date(data)
         if error:
             return JsonResponse({'error': error}, status=400)
-        image_url = (data.get('imagem_url') or '').strip()
-        if image_url and not _jornal_image_url(image_url):
-            return JsonResponse({'error': 'Use uma URL de imagem HTTP(S), /media/ ou /static/.'}, status=400)
+        content_fields, error = _jornal_content_fields(data)
+        if error:
+            return JsonResponse({'error': error}, status=400)
         slug = slugify(titulo)
         if not slug:
             return JsonResponse({'error': 'O titulo precisa gerar um endereco valido.'}, status=400)
@@ -14724,12 +14746,9 @@ def jornal_create_view(request):
         kwargs = {
             'titulo': titulo,
             'slug': slug,
-            'conteudo_markdown': data.get('conteudo_markdown', ''),
-            'resumo': data.get('resumo', ''),
-            'imagem_url': image_url,
             'autor': request.user,
-            'destaque': data.get('destaque', False),
             'layout': layout,
+            **content_fields,
         }
         
         if publication_date:
@@ -14756,14 +14775,12 @@ def jornal_update_view(request, slug):
     publication_date, error = _jornal_publication_date(data)
     if error:
         return JsonResponse({'error': error}, status=400)
-    image_url = (data.get('imagem_url', artigo.imagem_url) or '').strip()
-    if image_url and not _jornal_image_url(image_url):
-        return JsonResponse({'error': 'Use uma URL de imagem HTTP(S), /media/ ou /static/.'}, status=400)
+    content_fields, error = _jornal_content_fields(data, artigo)
+    if error:
+        return JsonResponse({'error': error}, status=400)
     artigo.titulo = titulo
-    artigo.conteudo_markdown = data.get('conteudo_markdown', artigo.conteudo_markdown)
-    artigo.resumo = data.get('resumo', artigo.resumo)
-    artigo.imagem_url = image_url
-    artigo.destaque = data.get('destaque', artigo.destaque)
+    for field, value in content_fields.items():
+        setattr(artigo, field, value)
     artigo.layout = layout
     
     if publication_date:
