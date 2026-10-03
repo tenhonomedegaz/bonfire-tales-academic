@@ -14667,17 +14667,32 @@ def _jornal_image_url(value):
     return quote(value, safe='/:?&=#%[]@!$+,;~.-_')
 
 
+def _jornal_editor_fields(data, article=None):
+    if not isinstance(data, dict):
+        return None, None, 'Dados do artigo invalidos.'
+    title = data.get('titulo', article.titulo if article else '')
+    if not isinstance(title, str) or not title.strip() or len(title.strip()) > 200:
+        return None, None, 'Informe um titulo de ate 200 caracteres.'
+    layout = data.get('layout', article.layout if article else 'padrao')
+    allowed_layouts = {value for value, _label in TbJornal._meta.get_field('layout').choices}
+    if not isinstance(layout, str) or layout not in allowed_layouts:
+        return None, None, 'Escolha um layout valido.'
+    return title.strip(), layout, None
+
+
 @staff_member_required
 def jornal_create_view(request):
     if request.method == 'POST':
         data = _json_body(request)
-        titulo = data.get('titulo', '').strip()
-        if not titulo:
-            return JsonResponse({'error': 'Título é obrigatório.'}, status=400)
+        titulo, layout, error = _jornal_editor_fields(data)
+        if error:
+            return JsonResponse({'error': error}, status=400)
         image_url = (data.get('imagem_url') or '').strip()
         if image_url and not _jornal_image_url(image_url):
             return JsonResponse({'error': 'Use uma URL de imagem HTTP(S), /media/ ou /static/.'}, status=400)
         slug = slugify(titulo)
+        if not slug:
+            return JsonResponse({'error': 'O titulo precisa gerar um endereco valido.'}, status=400)
         
         base_slug = slug
         counter = 1
@@ -14692,7 +14707,7 @@ def jornal_create_view(request):
             'imagem_url': image_url,
             'autor': request.user,
             'destaque': data.get('destaque', False),
-            'layout': data.get('layout', 'padrao'),
+            'layout': layout,
         }
         
         data_publicacao_str = data.get('data_publicacao')
@@ -14719,15 +14734,18 @@ def jornal_create_view(request):
 def jornal_update_view(request, slug):
     artigo = get_object_or_404(TbJornal, slug=slug)
     data = _json_body(request)
+    titulo, layout, error = _jornal_editor_fields(data, artigo)
+    if error:
+        return JsonResponse({'error': error}, status=400)
     image_url = (data.get('imagem_url', artigo.imagem_url) or '').strip()
     if image_url and not _jornal_image_url(image_url):
         return JsonResponse({'error': 'Use uma URL de imagem HTTP(S), /media/ ou /static/.'}, status=400)
-    artigo.titulo = data.get('titulo', artigo.titulo)
+    artigo.titulo = titulo
     artigo.conteudo_markdown = data.get('conteudo_markdown', artigo.conteudo_markdown)
     artigo.resumo = data.get('resumo', artigo.resumo)
     artigo.imagem_url = image_url
     artigo.destaque = data.get('destaque', artigo.destaque)
-    artigo.layout = data.get('layout', artigo.layout)
+    artigo.layout = layout
     
     data_publicacao_str = data.get('data_publicacao')
     if data_publicacao_str:
