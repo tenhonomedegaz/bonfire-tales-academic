@@ -14638,7 +14638,7 @@ def jornal_list_view(request):
         artigo.safe_image_url = _jornal_image_url(artigo.imagem_url)
     return render(request, 'home/pages/jornal_list.html', {
         'artigos': artigos,
-        'can_edit_wiki': request.user.is_staff,
+        'can_edit_wiki': request.user.is_staff and request.user.has_perm('home.add_tbjornal'),
         'noindex': not has_content,
     })
 
@@ -14648,7 +14648,7 @@ def jornal_detail_view(request, slug):
     artigo.safe_image_url = _jornal_image_url(artigo.imagem_url)
     return render(request, 'home/pages/jornal_detail.html', {
         'artigo': artigo,
-        'can_edit_wiki': request.user.is_staff,
+        'can_edit_wiki': request.user.is_staff and request.user.has_perm('home.change_tbjornal'),
     })
 
 
@@ -14681,6 +14681,7 @@ def _jornal_editor_fields(data, article=None):
 
 
 @staff_member_required
+@permission_required('home.add_tbjornal', raise_exception=True)
 def jornal_create_view(request):
     if request.method == 'POST':
         data = _json_body(request)
@@ -14730,6 +14731,7 @@ def jornal_create_view(request):
 
 
 @staff_member_required
+@permission_required('home.change_tbjornal', raise_exception=True)
 @require_POST
 def jornal_update_view(request, slug):
     artigo = get_object_or_404(TbJornal, slug=slug)
