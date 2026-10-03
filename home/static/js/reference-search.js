@@ -7,6 +7,7 @@
     const count = root.querySelector('[data-reference-count]');
     const empty = root.querySelector('[data-reference-empty]');
     if (!input) return;
+    let editingSearch = false;
 
     function normalize(value) {
       return (value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
@@ -37,7 +38,25 @@
       if (empty) empty.classList.toggle('hidden', visible !== 0);
     }
 
-    input.addEventListener('input', filter);
-    filter();
+    function restoreFromUrl() {
+      editingSearch = false;
+      input.value = new URLSearchParams(window.location.search).get('q') || '';
+      filter();
+    }
+
+    input.addEventListener('input', function () {
+      filter();
+      const url = new URL(window.location.href);
+      const query = input.value.trim();
+      if (query) url.searchParams.set('q', query);
+      else url.searchParams.delete('q');
+      if (url.href !== window.location.href) {
+        history[editingSearch ? 'replaceState' : 'pushState'](null, '', url.href);
+        editingSearch = true;
+      }
+    });
+    input.addEventListener('blur', function () { editingSearch = false; });
+    window.addEventListener('popstate', restoreFromUrl);
+    restoreFromUrl();
   });
 })();
