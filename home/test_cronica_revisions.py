@@ -191,3 +191,47 @@ class CronicaRevisionTests(TestCase):
         self.cronica.refresh_from_db()
         self.assertEqual(self.cronica.conteudo_markdown, 'Texto publicado')
         self.assertEqual(self.cronica.revisao_edicao['conteudo_markdown'], 'Segundo rascunho')
+
+    def test_review_queue_shows_every_proposed_editorial_field(self):
+        self.client.force_login(self.autor)
+        response = self.post_json(reverse('cronica_edit', args=[self.cronica.slug]), {
+            'titulo': 'Nova versão', 'conteudo_markdown': 'Novo texto',
+            'resumo': 'Resumo proposto', 'imagem_url': 'https://example.com/capa.png',
+            'personagem_nome': 'Narrador',
+            'territorio': ['Norte', 'Sul'], 'regiao': ['Serra', 'Costa'],
+        })
+        self.assertEqual(response.status_code, 200)
+        self.client.force_login(self.staff)
+        queue = self.client.get(reverse('cronicas_review'))
+        self.assertContains(queue, 'Resumo proposto')
+        self.assertContains(queue, 'https://example.com/capa.png')
+        self.assertContains(queue, 'Norte, Sul / Serra, Costa')
+        self.assertNotContains(queue, 'Resumo publicado')
+        self.assertNotContains(queue, '[&quot;Norte&quot;')
+
+    def test_invalid_author_metadata_cannot_create_or_replace_story(self):
+        self.client.force_login(self.autor)
+        create_url = reverse('cronica_create')
+        edit_url = reverse('cronica_edit', args=[self.cronica.slug])
+        for name, length in (('titulo', 201), ('resumo', 301),
+                             ('imagem_url', 501), ('personagem_nome', 151)):
+            payload = {'titulo': 'Válida', 'conteudo_markdown': 'Texto', name: 'x' * length}
+            self.assertEqual(self.post_json(create_url, payload).status_code, 400)
+            self.assertEqual(self.post_json(edit_url, payload).status_code, 400)
+        self.assertFalse(TbCronica.objects.filter(titulo='Válida').exists())
+        self.cronica.refresh_from_db()
+        self.assertEqual(self.cronica.titulo, 'Título publicado')
+        self.assertEqual(self.cronica.revisao_edicao, {})
+
+    def test_legacy_invalid_revision_cannot_overwrite_public_story(self):
+        self.edit()
+        self.cronica.refresh_from_db()
+        revision = self.cronica.revisao_edicao
+        revision['resumo'] = 'x' * 301
+        self.cronica.revisao_edicao = revision
+        self.cronica.save(update_fields=['revisao_edicao'])
+        response = self.review('aprovar')
+        self.assertEqual(response.status_code, 409)
+        self.cronica.refresh_from_db()
+        self.assertEqual(self.cronica.resumo, 'Resumo publicado')
+        self.assertEqual(self.cronica.revisao_edicao['estado'], 'pendente')

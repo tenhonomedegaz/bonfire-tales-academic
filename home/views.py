@@ -14824,6 +14824,25 @@ def _store_multi_value(value):
     return items[0] if len(items) == 1 else json.dumps(items, ensure_ascii=False)
 
 
+def _cronica_editor_error(fields):
+    for name, label, limit in (
+        ('titulo', 'Título', 200), ('resumo', 'Resumo', 300),
+        ('imagem_url', 'URL da imagem', 500),
+        ('personagem_nome', 'Nome do personagem', 150),
+    ):
+        value = fields.get(name)
+        if value is None and name != 'titulo':
+            continue
+        if not isinstance(value, str) or len(value) > limit:
+            return f'{label} inválido ou acima de {limit} caracteres.'
+    if not fields['titulo'].strip():
+        return 'Título é obrigatório.'
+    content = fields.get('conteudo_markdown')
+    if not isinstance(content, str) or not content.strip():
+        return 'Conteúdo é obrigatório.'
+    return None
+
+
 def _notificar_cronica(destinatario_id, cronica, chave_evento, tipo, texto, comentario=None):
     if destinatario_id:
         TbCronicaNotificacao.objects.get_or_create(
@@ -15133,12 +15152,16 @@ def cronica_create_view(request):
     territorios, regioes = _cronicas_location_choices()
     if request.method == 'POST':
         data = _json_body(request)
-        titulo = data.get('titulo', '').strip()
-        if not titulo:
-            return JsonResponse({'error': 'Título é obrigatório.'}, status=400)
-        conteudo = data.get('conteudo_markdown', '').strip()
-        if not conteudo:
-            return JsonResponse({'error': 'Conteúdo é obrigatório.'}, status=400)
+        fields = {
+            name: data.get(name, '') for name in (
+                'titulo', 'conteudo_markdown', 'resumo', 'imagem_url', 'personagem_nome'
+            )
+        }
+        error = _cronica_editor_error(fields)
+        if error:
+            return JsonResponse({'error': error}, status=400)
+        titulo = fields['titulo'].strip()
+        conteudo = fields['conteudo_markdown'].strip()
         slug = slugify(titulo)
         base_slug = slug or 'cronica'
         slug = base_slug
@@ -15150,10 +15173,10 @@ def cronica_create_view(request):
             titulo=titulo,
             slug=slug,
             conteudo_markdown=conteudo,
-            resumo=data.get('resumo', ''),
-            imagem_url=data.get('imagem_url', ''),
+            resumo=fields['resumo'],
+            imagem_url=fields['imagem_url'],
             autor=request.user,
-            personagem_nome=data.get('personagem_nome', ''),
+            personagem_nome=fields['personagem_nome'],
             territorio=_store_multi_value(data.get('territorio', [])),
             regiao=_store_multi_value(data.get('regiao', [])),
             status='pendente',
@@ -15180,16 +15203,19 @@ def cronica_edit_view(request, slug):
                 raise Http404
             source = cronica.revisao_edicao if cronica.status == 'aprovada' else {}
             fields = {
-                'titulo': str(data.get('titulo', source.get('titulo', cronica.titulo))).strip(),
-                'conteudo_markdown': str(data.get('conteudo_markdown', source.get('conteudo_markdown', cronica.conteudo_markdown))).strip(),
+                'titulo': data.get('titulo', source.get('titulo', cronica.titulo)),
+                'conteudo_markdown': data.get('conteudo_markdown', source.get('conteudo_markdown', cronica.conteudo_markdown)),
                 'resumo': data.get('resumo', source.get('resumo', cronica.resumo)),
                 'imagem_url': data.get('imagem_url', source.get('imagem_url', cronica.imagem_url)),
                 'personagem_nome': data.get('personagem_nome', source.get('personagem_nome', cronica.personagem_nome)),
                 'territorio': _store_multi_value(data.get('territorio', source.get('territorio', cronica.territorio))),
                 'regiao': _store_multi_value(data.get('regiao', source.get('regiao', cronica.regiao))),
             }
-            if not fields['titulo'] or not fields['conteudo_markdown']:
-                return JsonResponse({'error': 'Título e conteúdo são obrigatórios.'}, status=400)
+            error = _cronica_editor_error(fields)
+            if error:
+                return JsonResponse({'error': error}, status=400)
+            fields['titulo'] = fields['titulo'].strip()
+            fields['conteudo_markdown'] = fields['conteudo_markdown'].strip()
             if cronica.status == 'aprovada':
                 cronica.revisao_edicao = {
                     **fields, 'estado': 'pendente', 'submetida_em': timezone.now().isoformat(),
@@ -15236,8 +15262,11 @@ def cronicas_review_view(request):
         source = cronica.revisao_edicao if cronica.status == 'aprovada' else {}
         cronica.review_data = SimpleNamespace(**{
             name: source.get(name, getattr(cronica, name))
-            for name in ('titulo', 'conteudo_markdown', 'personagem_nome', 'territorio', 'regiao')
+            for name in ('titulo', 'conteudo_markdown', 'resumo', 'imagem_url',
+                         'personagem_nome', 'territorio', 'regiao')
         })
+        cronica.review_data.territorio_label = ', '.join(_coerce_multi_value(cronica.review_data.territorio))
+        cronica.review_data.regiao_label = ', '.join(_coerce_multi_value(cronica.review_data.regiao))
     return render(request, 'home/pages/cronicas_review.html', {
         'pendentes': pendentes,
     })
@@ -15265,6 +15294,10 @@ def cronica_review_action(request, cronica_id):
             if data.get('expected_revision') != revision.get('submetida_em'):
                 return JsonResponse({'error': 'A edição mudou. Recarregue a fila antes de revisar.'}, status=409)
             if action == 'aprovar':
+                required = ('titulo', 'conteudo_markdown', 'resumo', 'imagem_url',
+                            'personagem_nome', 'territorio', 'regiao')
+                if any(name not in revision for name in required) or _cronica_editor_error(revision):
+                    return JsonResponse({'error': 'Edição inválida. Devolva-a ao autor para correção.'}, status=409)
                 for name in ('titulo', 'conteudo_markdown', 'resumo', 'imagem_url',
                              'personagem_nome', 'territorio', 'regiao'):
                     setattr(cronica, name, revision[name])

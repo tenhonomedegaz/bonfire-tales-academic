@@ -45,6 +45,14 @@
   overflow-y: auto;
   padding: .75rem;
 }
+.review-item-summary, .review-item-cover {
+  color: var(--muted);
+  font-size: .82rem;
+  line-height: 1.5;
+  margin: 0 0 .65rem;
+  overflow-wrap: anywhere;
+}
+.review-item-summary strong, .review-item-cover strong { color: var(--text); }
 .review-item-body .bonfire-markdown {
   color: var(--muted);
   font-size: .82rem;

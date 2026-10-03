@@ -25,12 +25,14 @@
       <div class="review-item-meta">
         <span class="author">{{ c.autor.username }}</span>
         {% if c.review_data.personagem_nome %}<span>&middot; como <em>{{ c.review_data.personagem_nome }}</em></span>{% endif %}
-        {% if c.review_data.territorio %}<span>&middot; <span class="location">{{ c.review_data.territorio }}{% if c.review_data.regiao %} / {{ c.review_data.regiao }}{% endif %}</span></span>{% endif %}
+        {% if c.review_data.territorio_label %}<span>&middot; <span class="location">{{ c.review_data.territorio_label }}{% if c.review_data.regiao_label %} / {{ c.review_data.regiao_label }}{% endif %}</span></span>{% endif %}
         {% if c.status == 'aprovada' %}<span>&middot; Edição de crônica já publicada</span>{% endif %}
         <span>&middot; {{ c.data_submissao|date:"d/m/Y H:i" }}</span>
       </div>
     </div>
     <div class="review-item-body">
+      {% if c.review_data.resumo %}<p class="review-item-summary"><strong>Resumo:</strong> {{ c.review_data.resumo }}</p>{% endif %}
+      {% if c.review_data.imagem_url %}<p class="review-item-cover"><strong>URL da capa:</strong> <span>{{ c.review_data.imagem_url }}</span></p>{% endif %}
       <div class="bonfire-markdown" data-markdown-source data-markdown-options="false">{{ c.review_data.conteudo_markdown|escape }}</div>
     </div>
     <div class="review-item-actions">
