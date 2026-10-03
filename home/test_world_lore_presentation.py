@@ -327,6 +327,10 @@ class WorldLoreBrowserSafetyTests(StaticLiveServerTestCase):
             brasao_url=f'/static/missing.png" onerror="window.__worldInjected=1',
             etiquetas_adicionais=f'Magia, {injected}',
         )
+        TbRegiao.objects.create(
+            nome='Cidade órfã', slug='cidade-orfa', territorio='Território ausente', camada=0,
+        )
+        TbRegiao.objects.create(nome='Cidade solta', slug='cidade-solta', camada=0)
         editor = get_user_model().objects.create_superuser(
             username='world-browser-editor', email='world-browser@example.invalid', password='test-only',
         )
@@ -404,6 +408,24 @@ class WorldLoreBrowserSafetyTests(StaticLiveServerTestCase):
 
                 region_path = reverse('regiao_detail', args=['cidade-literal'])
                 territory_path = reverse('territorio_detail', args=['vale-literal'])
+                for group_name, region_slug, region_title in (
+                    ('Território ausente', 'cidade-orfa', 'Cidade órfã'),
+                    ('Sem território', 'cidade-solta', 'Cidade solta'),
+                ):
+                    js('document.querySelector("#regionMobileMenuButton").click()')
+                    orphan_summary = ('[...document.querySelectorAll(".region-mobile-drawer [data-territory-title]")]'
+                                      '.find(node => node.dataset.territoryTitle === ' + json.dumps(group_name) + ')')
+                    self.assertTrue(js('Boolean(' + orphan_summary + ')'))
+                    js(orphan_summary + '.click()')
+                    self.assertEqual(js('location.pathname'), territory_path)
+                    self.assertEqual(js('document.querySelector("#articleTitle").textContent'), territory_name)
+                    self.assertTrue(js(orphan_summary + '.closest("details").open'))
+                    js('document.querySelector(".region-mobile-drawer [data-region-link=' + region_slug + ']").click()')
+                    wait_for('document.querySelector("#articleTitle")?.textContent === ' + json.dumps(region_title))
+                    self.assertEqual(js('location.pathname'), reverse('regiao_detail', args=[region_slug]))
+                    js('history.back()')
+                    wait_for('document.querySelector("#articleTitle")?.textContent === ' + json.dumps(territory_name))
+                    self.assertEqual(js('location.pathname'), territory_path)
                 js('document.querySelector("#regionMobileMenuButton").click()')
                 self.assertTrue(js('document.body.classList.contains("region-menu-open")'))
                 js('document.querySelector(".region-mobile-drawer [data-region-link=cidade-literal]").click()')

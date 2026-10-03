@@ -1327,7 +1327,8 @@
     const territoryLink = e.target.closest('[data-territory-title]');
     if (territoryLink) {
       const territory = territories[territoryLink.dataset.territoryTitle];
-      if (!territory) return;
+      // An orphaned region can still be browsed, but its group is not a territory page.
+      if (!territory?.id) return;
       e.preventDefault();
       const nav = territoryLink.closest('details');
       document.querySelectorAll('details.territory-nav').forEach(n => {
