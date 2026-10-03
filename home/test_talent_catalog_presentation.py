@@ -39,6 +39,7 @@ class TalentCatalogPresentationTests(StaticLiveServerTestCase):
             ),
         )
         TbTalento.objects.create(nome='Seguro', slug='seguro', descricao='Texto seguro')
+        TbTalento.objects.create(nome='Coração sombrio', slug='coracao-sombrio', descricao='Texto sombrio')
         TbOpcaojogo.objects.create(
             nome='Opcao segura', slug='opcao-segura', tipo='Teste',
             descricao=(
@@ -130,9 +131,34 @@ class TalentCatalogPresentationTests(StaticLiveServerTestCase):
                 self.assertIn('data-classe="Guerreiro"', widget)
                 self.assertIn('data-nivel="3"', widget)
 
+                self.assertEqual(js('location.hash'), '#talento-arcano-literal')
+                js('searchInput.value = "coracao"; searchInput.dispatchEvent(new Event("input", {bubbles: true}))')
+                wait_for('document.querySelector("[data-talent-title]")?.textContent === "Coração sombrio"')
+                self.assertEqual(js('location.hash'), '#talento-coracao-sombrio')
+                self.assertEqual(js('document.querySelectorAll("#talentosListItems > a").length'), 1)
+                js('searchInput.value = "inexistente"; searchInput.dispatchEvent(new Event("input", {bubbles: true}))')
+                wait_for('document.querySelector("#talentoDetail")?.textContent === "Nenhum talento com esses filtros."')
+                self.assertEqual(js('location.hash'), '')
+                js('searchInput.value = ""; searchInput.dispatchEvent(new Event("input", {bubbles: true}))')
+                wait_for('document.querySelector("[data-talent-title]")?.textContent.includes("Arcano")')
+                self.assertTrue(js('document.querySelector("#talentosListItems [data-talent-slug=seguro]").href.endsWith("#talento-seguro")'))
+                js('document.querySelector("#talentMobileMenuButton").click()')
+                self.assertTrue(js('document.body.classList.contains("talent-menu-open")'))
+                js('document.querySelector("#talentosListItems [data-talent-slug=seguro]").focus()')
+                call('Input.dispatchKeyEvent', {'type': 'keyDown', 'key': 'Enter', 'code': 'Enter', 'windowsVirtualKeyCode': 13})
+                call('Input.dispatchKeyEvent', {'type': 'keyUp', 'key': 'Enter', 'code': 'Enter', 'windowsVirtualKeyCode': 13})
+                wait_for('document.querySelector("[data-talent-title]")?.textContent === "Seguro"')
+                self.assertEqual(js('location.hash'), '#talento-seguro')
+                self.assertEqual(js('document.activeElement?.getAttribute("data-talent-title")'), '')
+                self.assertFalse(js('document.body.classList.contains("talent-menu-open")'))
+                js('history.back()')
+                wait_for('document.querySelector("[data-talent-title]")?.textContent.includes("Arcano")')
+                self.assertEqual(js('location.hash'), '#talento-arcano-literal')
+                js('location.hash = "#talento-%ZZ"')
+                wait_for('location.hash === "#talento-arcano-literal"')
                 js('searchInput.value = "Seguro"; searchInput.dispatchEvent(new Event("input", {bubbles: true}))')
                 wait_for('document.querySelector("#talentosListItems")?.textContent.includes("Seguro") && !document.querySelector("#talentosListItems")?.textContent.includes("Arcano")')
-                js('document.querySelector("#talentosListItems > div").click()')
+                js('document.querySelector("#talentosListItems > a").click()')
                 wait_for('document.querySelector("[data-talent-title]")?.textContent === "Seguro"')
                 self.assertFalse(js('window.__talentInjected === 1'))
 

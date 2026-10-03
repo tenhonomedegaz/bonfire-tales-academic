@@ -24,6 +24,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                 </div>
+                <label for="searchInput" class="sr-only">Buscar talentos por nome, tag ou requisito</label>
                 <input type="text" id="searchInput" placeholder="Buscar talento, tag, requisito..." class="bg-bonfire-bg1 border border-bonfire-stroke text-bonfire-text text-sm rounded-md focus:ring-primary focus:border-bonfire-flame block w-full pl-10 p-2.5 transition-colors">
             </div>
             <div class="flex gap-2 w-full sm:w-auto">
@@ -334,8 +335,20 @@
         renderFilterChips();
     }
 
-    function applyFilters(animateList = true) {
-        const query = searchInput.value.toLowerCase();
+    function normalizeSearch(value) {
+        return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR');
+    }
+
+    function setTalentHash(slug, mode) {
+        const url = new URL(window.location.href);
+        url.hash = slug ? `talento-${encodeURIComponent(slug)}` : '';
+        if (mode !== 'none' && url.href !== window.location.href) {
+            window.history[mode === 'replace' ? 'replaceState' : 'pushState'](null, '', url);
+        }
+    }
+
+    function applyFilters(animateList = true, syncSelection = true) {
+        const query = normalizeSearch(searchInput.value.trim());
         const typeValue = activeFilters.type;
         const mainTagValue = activeFilters.mainTag;
         const tagValue = activeFilters.tag;
@@ -350,9 +363,9 @@
                 t.pre_requisito,
                 t.tipo,
                 t.atributos_str
-            ].join(' ').toLowerCase();
+            ].join(' ');
 
-            const matchesSearch = !query || haystack.includes(query);
+            const matchesSearch = !query || normalizeSearch(haystack).includes(query);
             const matchesType = !typeValue || t.tipo === typeValue;
             const matchesMainTag = !mainTagValue || t.etiqueta === mainTagValue;
             const matchesTag = !tagValue || extraTags.includes(tagValue);
@@ -369,6 +382,17 @@
         const activeFilterCount = [typeValue, mainTagValue, tagValue, attrValue].filter(Boolean).length;
         filterCount.textContent = activeFilterCount;
         filterCount.classList.toggle('hidden', activeFilterCount === 0);
+        if (syncSelection && !filteredTalentos.some(t => t.id === selectedTalentoId)) {
+            const first = filteredTalentos[0];
+            if (first) {
+                selectTalento(first.id, { historyMode: 'replace' });
+            } else {
+                selectedTalentoId = null;
+                detailContainer.classList.remove('hidden');
+                detailContainer.textContent = 'Nenhum talento com esses filtros.';
+                setTalentHash('', 'replace');
+            }
+        }
         renderList(animateList);
     }
 
@@ -395,6 +419,9 @@
             return;
         }
 
+        if (listAnimationTimer) clearTimeout(listAnimationTimer);
+        listAnimationTimer = null;
+        listItemsContainer.classList.remove('talent-list-collapsing', 'talent-list-expanding');
         listItemsContainer.innerHTML = '';
         
         if (filteredTalentos.length === 0) {
@@ -414,9 +441,15 @@
             const etiquetasAdicionais = getExtraTags(talento);
             const typeBadgeColor = tipoStr === 'origem' ? 'border-bonfire-flame text-bonfire-flame' : 'border-bonfire-stroke text-bonfire-muted';
 
-            const item = document.createElement('div');
-            item.className = `p-2.5 cursor-pointer rounded-md border transition-all duration-200 ${borderClass} ${bgClass} flex justify-between items-start`;
-            item.onclick = () => selectTalento(talento.id);
+            const item = document.createElement('a');
+            item.href = `#talento-${encodeURIComponent(talento.slug)}`;
+            item.dataset.talentSlug = talento.slug;
+            if (isSelected) item.setAttribute('aria-current', 'true');
+            item.className = `w-full text-left p-2.5 cursor-pointer rounded-md border transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-bonfire-flame ${borderClass} ${bgClass} flex justify-between items-start`;
+            item.onclick = event => {
+                event.preventDefault();
+                selectTalento(talento.id, { focusDetail: true });
+            };
 
             item.innerHTML = `
                 <div class="flex-1">
@@ -440,12 +473,12 @@
         });
     }
 
-    function selectTalento(id) {
-        selectedTalentoId = id;
-        renderList(); // Atualiza seleção na lista
-        
+    function selectTalento(id, { historyMode = 'push', focusDetail = false } = {}) {
         const talento = talentosData.find(t => t.id === id);
         if (!talento) return;
+        selectedTalentoId = id;
+        renderList();
+        setTalentHash(talento.slug, historyMode);
         closeTalentMenu();
 
         // Renderizar detalhes
@@ -466,7 +499,7 @@
                 ${canEditWiki ? `<button type="button" class="wiki-edit-button" onclick="openTalentEditor(${talento.id})">Editar wiki</button>` : ''}
             </div>
 
-            <h2 id="talento-${escapeHtml(talento.slug)}" data-talent-title class="font-cinzel text-xl font-bold text-bonfire-text uppercase mb-2.5">${escapeHtml(talento.nome)}</h2>
+            <h2 id="talento-${escapeHtml(talento.slug)}" data-talent-title tabindex="-1" class="font-cinzel text-xl font-bold text-bonfire-text uppercase mb-2.5">${escapeHtml(talento.nome)}</h2>
             <div data-talent-editor></div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-4">
@@ -494,6 +527,7 @@
         detailContainer.classList.remove('talent-detail-enter');
         void detailContainer.offsetWidth;
         detailContainer.classList.add('talent-detail-enter');
+        if (focusDetail) detailContainer.querySelector('[data-talent-title]').focus({ preventScroll: true });
     }
 
     function choiceOptions(choices, selected) {
@@ -720,11 +754,26 @@
 
     // Inicialização
     populateFilters();
-    applyFilters(false);
-    const initialTalentSlug = decodeURIComponent(window.location.hash.replace(/^#talento-/, ''));
-    const initialTalent = talentosData.find(talento => talento.slug === initialTalentSlug)
-        || filteredTalentos[0];
-    if (initialTalent) selectTalento(initialTalent.id);
+    applyFilters(false, false);
+    function restoreTalentFromHash() {
+        let slug = '';
+        try {
+            slug = decodeURIComponent(window.location.hash.replace(/^#talento-/, ''));
+        } catch (error) {
+            // Um fragmento inválido não deve interromper o catálogo.
+        }
+        const talent = talentosData.find(item => item.slug === slug);
+        if (talent && !filteredTalentos.some(item => item.id === talent.id)) {
+            searchInput.value = '';
+            activeFilters = { type: '', mainTag: '', tag: '', attribute: '' };
+            applyFilters(false, false);
+        }
+        const selected = talent || filteredTalentos[0];
+        if (selected) selectTalento(selected.id, { historyMode: talent ? 'none' : 'replace' });
+    }
+    restoreTalentFromHash();
+    window.addEventListener('popstate', restoreTalentFromHash);
+    window.addEventListener('hashchange', restoreTalentFromHash);
 
     // Move search bar into drawer on mobile
     (function() {
