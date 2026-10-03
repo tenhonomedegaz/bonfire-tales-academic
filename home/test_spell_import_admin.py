@@ -57,10 +57,12 @@ class SpellImportAdminTests(TestCase):
         preview = self.preview(("Luz de Teste", 1))
         self.assertEqual(preview.status_code, 200)
         self.assertContains(preview, "Criar")
+        self.assertContains(preview, 'id="spell-import-preview" tabindex="-1"')
         self.assertEqual(TbMagia.objects.filter(slug="luz-de-teste").count(), 0)
         payload = preview.context["payload"]
         result = self.client.post(self.url, {"confirmar": "1", "payload": payload})
         self.assertContains(result, "1 criadas, 0 atualizadas e 0 ignoradas")
+        self.assertContains(result, 'id="spell-import-result" tabindex="-1"')
         self.assertEqual(TbMagia.objects.filter(slug="luz-de-teste").count(), 1)
         replay = self.client.post(self.url, {"confirmar": "1", "payload": payload})
         self.assertContains(replay, "O catalogo mudou desde a previa")
@@ -114,6 +116,7 @@ class SpellImportAdminTests(TestCase):
     def test_invalid_row_aborts_whole_batch(self):
         preview = self.preview(("Magia Valida", 1), ("Magia Invalida", 12))
         self.assertContains(preview, "Nivel fora do intervalo")
+        self.assertContains(preview, 'id="spell-import-errors" tabindex="-1"')
         self.assertNotContains(preview, "Confirmar importacao")
         self.assertFalse(TbMagia.objects.filter(slug="magia-valida").exists())
 
@@ -273,12 +276,23 @@ class SpellImportAdminMobileTests(StaticLiveServerTestCase):
                 call("DOM.setFileInputFiles", {"files": [str(path)], "objectId": file_input})
                 js('document.querySelector("form.spell-import-grid").requestSubmit()')
                 wait_for('document.querySelector(".spell-import-details") !== null')
+                wait_for('document.activeElement.id === "spell-import-preview"')
                 self.assertEqual(js("window.innerWidth"), 360)
                 self.assertLessEqual(js("document.documentElement.scrollWidth"), 360)
                 js('document.querySelector(".spell-import-details summary").click()')
                 self.assertTrue(js('document.querySelector(".spell-import-details").open'))
                 self.assertTrue(js('document.querySelector(".spell-import-details").innerText.includes("Descricao completa")'))
                 self.assertTrue(js('Array.from(document.querySelectorAll("input[type=submit]")).some(el => el.value === "Confirmar importacao")'))
+                call("Emulation.setDeviceMetricsOverride", {
+                    "width": 320, "height": 640, "deviceScaleFactor": 1, "mobile": True,
+                })
+                self.assertEqual(js("window.innerWidth"), 320)
+                self.assertLessEqual(js("document.documentElement.scrollWidth"), 320)
+                self.assertTrue(js('document.querySelector(".spell-import-details").open'))
+                js('Array.from(document.querySelectorAll("input[type=submit]")).find(el => el.value === "Confirmar importacao").click()')
+                wait_for('document.activeElement.id === "spell-import-result"')
+                self.assertTrue(js('document.querySelector(".spell-import-result").innerText.includes("1 criadas")'))
+                self.assertLessEqual(js("document.documentElement.scrollWidth"), 320)
             finally:
                 if ws:
                     ws.close()

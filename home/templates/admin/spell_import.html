@@ -3,7 +3,8 @@
 
 {% block extrastyle %}
 {{ block.super }}
-<link rel="stylesheet" href="{% static 'css/pages/spell_import.css' %}?v=3">
+<link rel="stylesheet" href="{% static 'css/pages/spell_import.css' %}?v=4">
+<script defer src="{% static 'js/admin/spell_import_focus.js' %}?v=1"></script>
 {% endblock %}
 
 {% block content %}
@@ -12,7 +13,7 @@
 
   {% if errors %}
   <section class="spell-import-card">
-    <h2>Problemas encontrados</h2>
+    <h2 id="spell-import-errors" tabindex="-1">Problemas encontrados</h2>
     <ul class="messagelist">
       {% for error in errors %}
         <li class="warning">{{ error }}</li>
@@ -23,7 +24,7 @@
 
   {% if result %}
   <section class="spell-import-card spell-import-result" role="status">
-    <h2>Resultado do lote</h2>
+    <h2 id="spell-import-result" tabindex="-1">Resultado do lote</h2>
     <p>{{ result.created }} criadas, {{ result.updated }} atualizadas e {{ result.skipped }} ignoradas.</p>
     <p>A importacao atualizou o cadastro de magias; publicacao de revisoes e uma etapa separada.</p>
     <a class="button" href="{% url 'admin:home_tbmagia_changelist' %}">Ver magias no Admin</a>
@@ -44,7 +45,7 @@
 
   {% if preview %}
   <section class="spell-import-card">
-    <h2>Previa da importacao: {{ preview|length }} magias</h2>
+    <h2 id="spell-import-preview" tabindex="-1">Previa da importacao: {{ preview|length }} magias</h2>
     <p class="help">Confira todos os campos antes de confirmar. Atualizar substitui os campos abaixo no cadastro; Ignorar mantem a magia existente.</p>
     <div class="results">
       <table class="spell-import-preview">

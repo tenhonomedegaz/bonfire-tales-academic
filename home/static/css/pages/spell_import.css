@@ -43,6 +43,11 @@
     column-gap: 20px;
 }
 
+.spell-import-card h2:focus {
+    outline: 2px solid var(--ember);
+    outline-offset: 4px;
+}
+
 .spell-import-preview {
     width: 100%;
 }
