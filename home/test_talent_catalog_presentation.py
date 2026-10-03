@@ -32,7 +32,11 @@ class TalentCatalogPresentationTests(StaticLiveServerTestCase):
         TbTalento.objects.create(
             nome=f'Arcano {injected}', slug='arcano-literal',
             etiquetas_adicionais=f'Magia, {injected}', pre_requisito=injected,
-            descricao='**Benefício editorial**',
+            descricao=(
+                '**Benefício editorial**\n\n'
+                '<svg onload="window.__talentInjected=1"></svg>\n\n'
+                '<a href="javascript:window.__talentInjected=1">Inseguro</a>'
+            ),
         )
         TbTalento.objects.create(nome='Seguro', slug='seguro', descricao='Texto seguro')
 
@@ -87,7 +91,21 @@ class TalentCatalogPresentationTests(StaticLiveServerTestCase):
                 self.assertFalse(js('window.__talentInjected === 1'))
                 self.assertTrue(js('document.querySelector("#talentoDetail").textContent.includes(' + json.dumps(injected) + ')'))
                 self.assertEqual(js('document.querySelector("[data-talent-preview] strong")?.textContent'), 'Benefício editorial')
+                self.assertEqual(js('document.querySelectorAll("[data-talent-preview] svg, [data-talent-preview] a[href^=javascript]").length'), 0)
                 self.assertTrue(js('document.querySelector("#talentosListItems").textContent.includes(' + json.dumps(injected) + ')'))
+
+                unsafe_html = (
+                    '<img src=x onerror="window.__talentInjected=1">'
+                    '<a href="javascript:alert(1)" onclick="alert(1)">Inseguro</a>'
+                    '<a href="https://example.org">Guia</a>'
+                    '<a href="#" class="bonfire-card-trigger" data-table="tbTalento" data-args="seguro">Carta</a>'
+                )
+                sanitized = js('sanitizeTalentMarkdown(' + json.dumps(unsafe_html) + ')')
+                self.assertNotIn('onerror', sanitized)
+                self.assertNotIn('onclick', sanitized)
+                self.assertNotIn('javascript:', sanitized)
+                self.assertIn('href="https://example.org"', sanitized)
+                self.assertIn('data-table="tbTalento"', sanitized)
 
                 js('searchInput.value = "Seguro"; searchInput.dispatchEvent(new Event("input", {bubbles: true}))')
                 wait_for('document.querySelector("#talentosListItems")?.textContent.includes("Seguro") && !document.querySelector("#talentosListItems")?.textContent.includes("Arcano")')
