@@ -103,6 +103,7 @@ class JornalInlineBrowserTests(StaticLiveServerTestCase):
                 detail_url = self.live_server_url + reverse('jornal_detail', args=[article.slug])
                 call('Page.navigate', {'url': detail_url})
                 until("document.readyState === 'complete' && !!document.querySelector('#articleForm')")
+                self.assertNotIn('Editado em', js("document.querySelector('.artigo-meta').textContent"))
                 open_editor()
                 self.assertEqual(js("document.querySelector('[name=layout]').value"), 'padrao')
                 self.assertEqual(js("document.querySelector('[name=data_publicacao]').value"), '')
@@ -126,6 +127,7 @@ class JornalInlineBrowserTests(StaticLiveServerTestCase):
                 article.refresh_from_db()
                 self.assertEqual(article.layout, 'colunas')
                 self.assertEqual(article.data_publicacao, original_date)
+                self.assertIn('Editado em', js("document.querySelector('.artigo-meta').textContent"))
 
                 open_editor()
                 js("document.querySelector('[name=layout]').value = 'atlas'; document.querySelector('[name=data_publicacao]').value = '2024-05-20T12:00'; document.querySelector('#articleForm').requestSubmit()")

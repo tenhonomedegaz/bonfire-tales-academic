@@ -14648,8 +14648,15 @@ def jornal_list_view(request):
 def jornal_detail_view(request, slug):
     artigo = get_object_or_404(TbJornal, slug=slug)
     artigo.safe_image_url = _jornal_image_url(artigo.imagem_url)
+    from django.contrib.admin.models import CHANGE, LogEntry
+    from django.contrib.contenttypes.models import ContentType
+    has_recorded_edit = LogEntry.objects.filter(
+        content_type=ContentType.objects.get_for_model(TbJornal),
+        object_id=str(artigo.pk), action_flag=CHANGE,
+    ).exists()
     return render(request, 'home/pages/jornal_detail.html', {
         'artigo': artigo,
+        'has_recorded_edit': has_recorded_edit,
         'editor_version': artigo.data_edicao.isoformat(),
         'can_edit_wiki': request.user.is_staff and request.user.has_perm('home.change_tbjornal'),
     })
@@ -14804,6 +14811,15 @@ def jornal_update_view(request, slug):
         if publication_date:
             artigo.data_publicacao = publication_date
         artigo.save()
+        from django.contrib.admin.models import CHANGE, LogEntry
+        from django.contrib.contenttypes.models import ContentType
+        LogEntry.objects.create(
+            user=request.user,
+            content_type=ContentType.objects.get_for_model(TbJornal),
+            object_id=str(artigo.pk), object_repr=str(artigo),
+            action_flag=CHANGE,
+            change_message=f'Edição inline do Jornal: {artigo.titulo}',
+        )
     return JsonResponse({'ok': True})
 
 

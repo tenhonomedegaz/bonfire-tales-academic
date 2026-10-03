@@ -4,6 +4,7 @@ import json
 from datetime import datetime
 
 from django.contrib.auth import get_user_model
+from django.contrib.admin.models import CHANGE, LogEntry
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -61,6 +62,8 @@ class JornalPublicationDateTests(TestCase):
         self.assertEqual(public.status_code, 200)
         self.assertContains(public, 'Edicao retroativa')
         self.assertContains(public, '2024')
+        self.assertNotContains(public, 'Editado em')
+        self.assertFalse(LogEntry.objects.filter(object_id=str(article.pk), action_flag=CHANGE).exists())
 
         changed = self.post_json(reverse('jornal_update', args=[article.slug]), {
             'data_publicacao': '2024-05-20T12:00',
@@ -70,6 +73,8 @@ class JornalPublicationDateTests(TestCase):
         article.refresh_from_db()
         self.assertEqual(timezone.localtime(article.data_publicacao).replace(tzinfo=None),
                          datetime(2024, 5, 20, 12, 0))
+        self.assertEqual(LogEntry.objects.filter(object_id=str(article.pk), action_flag=CHANGE).count(), 1)
+        self.assertContains(self.client.get(reverse('jornal_detail', args=[article.slug])), 'Editado em')
 
     def test_inline_editor_changes_layout_and_date_without_rewriting_unchanged_date(self):
         article = TbJornal.objects.create(
@@ -80,6 +85,7 @@ class JornalPublicationDateTests(TestCase):
         detail_url = reverse('jornal_detail', args=[article.slug])
         update_url = reverse('jornal_update', args=[article.slug])
         detail = self.client.get(detail_url)
+        self.assertNotContains(detail, 'Editado em')
         self.assertContains(detail, '<select name="layout">', html=False)
         self.assertContains(detail, '<option value="padrao" selected>', html=False)
         self.assertContains(detail, 'type="datetime-local" name="data_publicacao"', html=False)

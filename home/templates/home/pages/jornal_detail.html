@@ -15,7 +15,7 @@
     <span class="author">{{ artigo.autor.username|default:"Redação" }}</span>
     <span>&middot;</span>
     <span>{{ artigo.data_publicacao|date:"d \d\e F \d\e Y" }}</span>
-    {% if artigo.data_edicao != artigo.data_publicacao %}
+    {% if has_recorded_edit %}
     <span>&middot;</span>
     <span>Editado em {{ artigo.data_edicao|date:"d/m/Y" }}</span>
     {% endif %}
