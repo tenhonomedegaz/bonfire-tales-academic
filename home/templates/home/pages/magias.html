@@ -23,6 +23,7 @@
     <!-- Filtros -->
     <div id="mgSearchBar" class="mt-2.5">
       <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-6">
+        <label for="mg-busca" class="sr-only">Buscar magias por nome ou texto</label>
         <input id="mg-busca" type="search" placeholder="Buscar nome ou texto…" autocomplete="off"
                class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)] outline-none focus:border-[var(--ember)] lg:col-span-2">
         <select id="mg-classe" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-2 text-sm text-[var(--text)]">
@@ -43,7 +44,7 @@
         </div>
       </div>
       <div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--muted)]">
-        <p><span id="mg-count">0</span> magia(s)</p>
+        <p role="status" aria-live="polite"><span id="mg-count">0</span> magia(s)</p>
         <span id="mg-active-filters" hidden aria-live="polite"></span>
         <button id="mg-clear-filters" type="button" hidden class="rounded border border-[var(--stroke)] px-2 py-1 font-semibold text-[var(--ember)] hover:border-[var(--ember)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--ember)]">Limpar filtros</button>
       </div>
@@ -210,6 +211,40 @@
     renderList();
   }
 
+  function readFiltersFromUrl(){
+    var params = new URLSearchParams(location.search);
+    fBusca.value = params.get('busca') || '';
+    [[fClasse, 'classe'], [fEscola, 'escola'], [fNivel, 'nivel']].forEach(function(pair){
+      var value = params.get(pair[1]) || '';
+      pair[0].value = Array.from(pair[0].options).some(function(option){return option.value === value;}) ? value : '';
+    });
+    fConc.checked = params.get('concentracao') === '1';
+    fRitual.checked = params.get('ritual') === '1';
+  }
+
+  function syncFiltersToUrl(replace){
+    var url = new URL(location.href);
+    [["busca", fBusca.value.trim()], ["classe", fClasse.value], ["escola", fEscola.value], ["nivel", fNivel.value],
+     ["concentracao", fConc.checked ? '1' : ''], ["ritual", fRitual.checked ? '1' : '']].forEach(function(pair){
+      if(pair[1]) url.searchParams.set(pair[0], pair[1]);
+      else url.searchParams.delete(pair[0]);
+    });
+    if(selectedSlug) url.searchParams.set('magia', selectedSlug);
+    else url.searchParams.delete('magia');
+    history[replace ? 'replaceState' : 'pushState'](null, '', url);
+  }
+
+  function applyFilters(replace){
+    filtered = filtra();
+    if(!filtered.some(function(m){return m.slug === selectedSlug;})){
+      selectedSlug = filtered.length ? filtered[0].slug : null;
+      if(selectedSlug) selectMagia(selectedSlug, true);
+      else detailContainer.innerHTML = '<p class="text-bonfire-muted">Nenhuma magia com esses filtros.</p>';
+    }
+    render();
+    syncFiltersToUrl(replace);
+  }
+
   // ---- Detalhe ----
   function selectMagia(slug, fromHistory){
     var m = MAGIAS.find(function(x){return x.slug===slug;});
@@ -338,14 +373,14 @@
   });
 
   // ---- Eventos de filtro ----
-  [fBusca, fClasse, fEscola, fNivel, fConc, fRitual].forEach(function(el){
-    el.addEventListener('input', render);
-    el.addEventListener('change', render);
+  fBusca.addEventListener('input', function(){ applyFilters(true); });
+  [fClasse, fEscola, fNivel, fConc, fRitual].forEach(function(el){
+    el.addEventListener('change', function(){ applyFilters(false); });
   });
   clearFilters.addEventListener('click', function(){
     fBusca.value = fClasse.value = fEscola.value = fNivel.value = '';
     fConc.checked = fRitual.checked = false;
-    render();
+    applyFilters(false);
     fBusca.focus({preventScroll:true});
   });
 
@@ -373,19 +408,19 @@
   })();
 
   // ---- Inicialização ----
-  render();
-
   // URL e histórico preservam a magia selecionada sem recarregar o catálogo.
   function selectFromUrl(){
+    readFiltersFromUrl();
+    render();
     var requested = new URLSearchParams(location.search).get('magia');
-    var slug = requested || (MAGIAS[0] && MAGIAS[0].slug);
-    if(!MAGIAS.some(function(m){return m.slug===slug;})){
-      var url = new URL(location.href);
-      url.searchParams.delete('magia');
-      history.replaceState(null, '', url);
-      slug = MAGIAS[0] && MAGIAS[0].slug;
-    }
+    var slug = requested && filtered.some(function(m){return m.slug === requested;})
+      ? requested : (filtered[0] && filtered[0].slug);
     if(slug) selectMagia(slug, true);
+    else {
+      selectedSlug = null;
+      detailContainer.innerHTML = '<p class="text-bonfire-muted">Nenhuma magia com esses filtros.</p>';
+    }
+    if(requested && requested !== slug) syncFiltersToUrl(true);
   }
   selectFromUrl();
   window.addEventListener('popstate', selectFromUrl);

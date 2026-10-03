@@ -10,7 +10,7 @@ from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.db import connection
 from django.urls import reverse
 
-from .models import TbMagia, TbOpcaojogo, TbTalento
+from .models import TbClasse, TbMagia, TbOpcaojogo, TbTalento
 
 
 class TalentCatalogPresentationTests(StaticLiveServerTestCase):
@@ -47,11 +47,17 @@ class TalentCatalogPresentationTests(StaticLiveServerTestCase):
                 '<a href="javascript:window.__optionInjected=1">Inseguro</a>'
             ),
         )
+        TbClasse.objects.create(nome='Mago', slug='mago')
+        TbClasse.objects.create(nome='Bardo', slug='bardo')
         TbMagia.objects.create(
             nome='Luz arcana', slug='luz-arcana', nivel=1,
+            escola='Evocacao', classes='Mago', ritual=True,
             descricao='**Brilho seguro**\n\n<svg onload="window.__spellInjected=1"></svg>',
             em_niveis_superiores='**Brilho maior**\n\n<a href="javascript:window.__spellInjected=1">Inseguro</a>',
         )
+        TbMagia.objects.create(nome='Nevoa arcana', slug='nevoa-arcana', nivel=2,
+                               escola='Ilusao', classes='Bardo', concentracao=True,
+                               descricao='Bruma segura')
 
         with tempfile.TemporaryDirectory(prefix='bonfire-talent-', ignore_cleanup_errors=True) as profile:
             process = subprocess.Popen([
@@ -136,13 +142,42 @@ class TalentCatalogPresentationTests(StaticLiveServerTestCase):
                 self.assertEqual(js('document.querySelectorAll("[data-option-preview] svg, [data-option-preview] a[href^=javascript]").length'), 0)
                 self.assertFalse(js('window.__optionInjected === 1'))
 
-                call('Page.navigate', {'url': self.live_server_url + reverse('magias_listas') + '?magia=luz-arcana'})
+                call('Page.navigate', {'url': self.live_server_url + reverse('magias_listas') + '?magia=luz-arcana&busca=Luz&nivel=1'})
                 wait_for('document.querySelector("#mgDetail h2")?.textContent === "Luz arcana"')
+                self.assertEqual(js('document.querySelector("#mg-busca").value'), 'Luz')
+                self.assertEqual(js('document.querySelector("#mg-nivel").value'), '1')
+                self.assertEqual(js('document.querySelector("#mg-count").textContent'), '1')
                 self.assertEqual(js('document.querySelectorAll("#mgDetail strong").length'), 2)
                 self.assertEqual(js('document.querySelectorAll("#mgDetail svg, #mgDetail a[href^=javascript]").length'), 0)
                 self.assertFalse(js('window.__spellInjected === 1'))
-                js('document.querySelector("#mg-busca").value = "Luz arcana"; document.querySelector("#mg-busca").dispatchEvent(new Event("input", {bubbles: true}))')
+                js('document.querySelector("#mg-busca").value = "Nevoa"; document.querySelector("#mg-busca").dispatchEvent(new Event("input", {bubbles: true}))')
+                self.assertEqual(js('document.querySelector("#mg-count").textContent'), '0')
+                self.assertEqual(js('document.querySelector("#mgDetail").textContent.trim()'), 'Nenhuma magia com esses filtros.')
+                js('document.querySelector("#mg-nivel").value = "2"; document.querySelector("#mg-nivel").dispatchEvent(new Event("change", {bubbles: true}))')
+                wait_for('document.querySelector("#mgDetail h2")?.textContent === "Nevoa arcana"')
                 self.assertEqual(js('document.querySelector("#mg-count")?.textContent'), '1')
+                self.assertEqual(js('new URLSearchParams(location.search).get("magia")'), 'nevoa-arcana')
+                js('history.back()')
+                wait_for('document.querySelector("#mg-nivel").value === "1"')
+                self.assertEqual(js('document.querySelector("#mg-busca").value'), 'Nevoa')
+                self.assertEqual(js('document.querySelector("#mg-count").textContent'), '0')
+                js('document.querySelector("#mg-clear-filters").click()')
+                self.assertEqual(js('document.querySelector("#mg-count").textContent'), '2')
+                self.assertFalse(js('new URLSearchParams(location.search).has("busca")'))
+                js('document.querySelector("#mg-classe").value = "Bardo"; document.querySelector("#mg-classe").dispatchEvent(new Event("change", {bubbles: true}))')
+                self.assertEqual(js('document.querySelector("#mg-count").textContent'), '1')
+                self.assertEqual(js('new URLSearchParams(location.search).get("classe")'), 'Bardo')
+                js('document.querySelector("#mg-escola").value = "Ilusao"; document.querySelector("#mg-escola").dispatchEvent(new Event("change", {bubbles: true}))')
+                js('document.querySelector("#mg-conc").click()')
+                self.assertEqual(js('document.querySelector("#mg-count").textContent'), '1')
+                self.assertEqual(js('new URLSearchParams(location.search).get("concentracao")'), '1')
+                js('document.querySelector("#mg-ritual").click()')
+                self.assertEqual(js('document.querySelector("#mg-count").textContent'), '0')
+                self.assertEqual(js('new URLSearchParams(location.search).get("ritual")'), '1')
+                js('history.back()')
+                wait_for('document.querySelector("#mg-count").textContent === "1"')
+                self.assertFalse(js('document.querySelector("#mg-ritual").checked'))
+                self.assertEqual(js('document.documentElement.scrollWidth <= window.innerWidth'), True)
             finally:
                 if ws:
                     ws.close()
