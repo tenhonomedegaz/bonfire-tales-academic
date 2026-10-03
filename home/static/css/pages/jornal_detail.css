@@ -206,6 +206,27 @@
   margin-bottom: 3rem;
 }
 
+.artigo-atlas-meta {
+  padding: 1rem clamp(1rem, 4vw, 3rem);
+  color: var(--atlas-ink);
+  border-bottom: 1px solid var(--atlas-rule);
+  text-align: center;
+}
+.artigo-atlas-kicker {
+  font: 600 .75rem/1.4 Inter, sans-serif;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+.artigo-atlas-meta h1 {
+  margin: .35rem 0;
+  font: 600 clamp(1.5rem, 3vw, 2.25rem)/1.2 'Cinzel', Georgia, serif;
+  overflow-wrap: anywhere;
+}
+.artigo-atlas-meta p {
+  margin: 0;
+  font: 400 .875rem/1.5 Inter, sans-serif;
+}
+
 /* ── Hide the default hero when in atlas mode ── */
 .artigo-layout--atlas ~ .artigo-hero,
 [data-artigo-layout="atlas"] ~ .artigo-hero { display: none; }

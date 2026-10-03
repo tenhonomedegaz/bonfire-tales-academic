@@ -76,6 +76,20 @@ class JornalPublicationDateTests(TestCase):
         self.assertEqual(LogEntry.objects.filter(object_id=str(article.pk), action_flag=CHANGE).count(), 1)
         self.assertContains(self.client.get(reverse('jornal_detail', args=[article.slug])), 'Editado em')
 
+    def test_atlas_layout_shows_article_title_author_and_publication_date(self):
+        response = self.post_json(reverse('jornal_create'), {
+            'titulo': 'Crônica do Atlas', 'layout': 'atlas',
+            'conteudo_markdown': 'Texto sem cabeçalho próprio',
+            'data_publicacao': '2024-04-15T10:30',
+        })
+        self.assertEqual(response.status_code, 200)
+        self.client.logout()
+        detail = self.client.get(reverse('jornal_detail', args=[response.json()['slug']]))
+        self.assertContains(detail, '<h1>Crônica do Atlas</h1>', html=True)
+        self.assertContains(detail, 'Por jornal-date-editor')
+        self.assertContains(detail, '15/04/2024')
+        self.assertContains(detail, 'Texto sem cabeçalho próprio')
+
     def test_inline_editor_changes_layout_and_date_without_rewriting_unchanged_date(self):
         article = TbJornal.objects.create(
             titulo='Edicao especial', slug='edicao-especial',

@@ -107,6 +107,8 @@ class JornalMarkdownPresentationTests(StaticLiveServerTestCase):
                     assert_safe('[data-jornal-markdown]')
                     self.assertTrue(js('document.querySelector("[data-jornal-markdown]").dataset.markdownManual === "true"'))
                     if article is atlas:
+                        self.assertEqual(js('document.querySelector(".artigo-atlas-meta h1")?.textContent.trim()'), article.titulo)
+                        self.assertIn('jornal-editor', js('document.querySelector(".artigo-atlas-meta p")?.textContent'))
                         self.assertTrue(js('document.querySelector("[data-jornal-markdown] .atlas-header") !== null'))
                         self.assertTrue(js('document.querySelector("[data-jornal-markdown] .atlas-columns") !== null'))
                     self.assertLessEqual(js('document.documentElement.scrollWidth'), js('innerWidth'))
