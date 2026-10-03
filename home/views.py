@@ -4,7 +4,7 @@ import logging
 import re
 import unicodedata
 from uuid import UUID, uuid4
-from urllib.parse import unquote, urlsplit
+from urllib.parse import quote, unquote, urlsplit
 from .item_mecanica import (
     ca_display, contrato_item_base, dano_display, mecanica_de_tags, propriedades_display,
 )
@@ -14566,20 +14566,40 @@ def api_creature_preview(request):
 
 
 def jornal_list_view(request):
-    artigos = TbJornal.objects.select_related('autor').all()
+    artigos_query = TbJornal.objects.select_related('autor').all()
+    has_content = artigos_query.exclude(conteudo_markdown__isnull=True).exclude(conteudo_markdown='').exists()
+    artigos = list(artigos_query)
+    for artigo in artigos:
+        artigo.safe_image_url = _jornal_image_url(artigo.imagem_url)
     return render(request, 'home/pages/jornal_list.html', {
         'artigos': artigos,
         'can_edit_wiki': request.user.is_staff,
-        'noindex': not artigos.exclude(conteudo_markdown__isnull=True).exclude(conteudo_markdown='').exists(),
+        'noindex': not has_content,
     })
 
 
 def jornal_detail_view(request, slug):
     artigo = get_object_or_404(TbJornal, slug=slug)
+    artigo.safe_image_url = _jornal_image_url(artigo.imagem_url)
     return render(request, 'home/pages/jornal_detail.html', {
         'artigo': artigo,
         'can_edit_wiki': request.user.is_staff,
     })
+
+
+def _jornal_image_url(value):
+    """Allow editorial images and quote CSS string delimiters in their URLs."""
+    value = (value or '').strip()
+    if not value or any(ord(char) < 32 or ord(char) == 127 for char in value):
+        return ''
+    try:
+        parsed = urlsplit(value)
+    except ValueError:
+        return ''
+    if not ((parsed.scheme.lower() in ('http', 'https') and parsed.netloc) or
+            (not parsed.scheme and not parsed.netloc and value.startswith(('/media/', '/static/')))):
+        return ''
+    return quote(value, safe='/:?&=#%[]@!$+,;~.-_')
 
 
 @staff_member_required
@@ -14589,6 +14609,9 @@ def jornal_create_view(request):
         titulo = data.get('titulo', '').strip()
         if not titulo:
             return JsonResponse({'error': 'Título é obrigatório.'}, status=400)
+        image_url = (data.get('imagem_url') or '').strip()
+        if image_url and not _jornal_image_url(image_url):
+            return JsonResponse({'error': 'Use uma URL de imagem HTTP(S), /media/ ou /static/.'}, status=400)
         slug = slugify(titulo)
         
         base_slug = slug
@@ -14601,7 +14624,7 @@ def jornal_create_view(request):
             'slug': slug,
             'conteudo_markdown': data.get('conteudo_markdown', ''),
             'resumo': data.get('resumo', ''),
-            'imagem_url': data.get('imagem_url', ''),
+            'imagem_url': image_url,
             'autor': request.user,
             'destaque': data.get('destaque', False),
             'layout': data.get('layout', 'padrao'),
@@ -14631,10 +14654,13 @@ def jornal_create_view(request):
 def jornal_update_view(request, slug):
     artigo = get_object_or_404(TbJornal, slug=slug)
     data = _json_body(request)
+    image_url = (data.get('imagem_url', artigo.imagem_url) or '').strip()
+    if image_url and not _jornal_image_url(image_url):
+        return JsonResponse({'error': 'Use uma URL de imagem HTTP(S), /media/ ou /static/.'}, status=400)
     artigo.titulo = data.get('titulo', artigo.titulo)
     artigo.conteudo_markdown = data.get('conteudo_markdown', artigo.conteudo_markdown)
     artigo.resumo = data.get('resumo', artigo.resumo)
-    artigo.imagem_url = data.get('imagem_url', artigo.imagem_url)
+    artigo.imagem_url = image_url
     artigo.destaque = data.get('destaque', artigo.destaque)
     artigo.layout = data.get('layout', artigo.layout)
     

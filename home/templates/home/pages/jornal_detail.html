@@ -2,13 +2,13 @@
 {% load static %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/pages/jornal_detail.css' %}?v=9">
+<link rel="stylesheet" href="{% static 'css/pages/jornal_detail.css' %}?v=10">
 
 {% endblock %}
 
 {% block content %}
 {% if artigo.layout != 'atlas' %}
-<div class="artigo-hero" style="--hero-bg: url('{{ artigo.imagem_url|default:"" }}')">
+<div class="artigo-hero"{% if artigo.safe_image_url %} style="--hero-bg: url('{{ artigo.safe_image_url }}')"{% endif %}>
   <span class="artigo-eyebrow">Jornal de Cinéria</span>
   <h1 class="artigo-title">{{ artigo.titulo }}</h1>
   <div class="artigo-meta">
@@ -41,6 +41,7 @@
     <label>Título <input name="titulo" value="{{ artigo.titulo }}"></label>
     <label>Resumo <input name="resumo" value="{{ artigo.resumo|default:'' }}"></label>
     <label>URL da Imagem <input name="imagem_url" value="{{ artigo.imagem_url|default:'' }}"></label>
+    <p id="articleSaveError" role="alert" tabindex="-1" hidden></p>
     <label>
       <span>Destaque</span>
       <input type="checkbox" name="destaque" {% if artigo.destaque %}checked{% endif %} style="width: auto;">
@@ -72,7 +73,14 @@
         headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
         body: JSON.stringify(body),
       });
-      if (res.ok) window.location.reload();
+      if (res.ok) {
+        window.location.reload();
+      } else {
+        const error = document.getElementById('articleSaveError');
+        error.textContent = (await res.json()).error || 'Erro ao salvar artigo.';
+        error.hidden = false;
+        error.focus();
+      }
     });
   })();
   </script>

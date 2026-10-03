@@ -167,7 +167,7 @@
 <div class="jornal-grid">
   {% for artigo in artigos %}
   <a href="{% url 'jornal_detail' slug=artigo.slug %}" class="jornal-card {% if artigo.destaque %}is-destaque{% endif %}">
-    <div class="jornal-card-cover" {% if artigo.imagem_url %}style="background-image: url('{{ artigo.imagem_url }}')"{% endif %}>
+    <div class="jornal-card-cover" {% if artigo.safe_image_url %}style="background-image: url('{{ artigo.safe_image_url }}')"{% endif %}>
       {% if artigo.destaque %}<span class="jornal-badge-destaque">Destaque</span>{% endif %}
     </div>
     <div class="jornal-card-body">

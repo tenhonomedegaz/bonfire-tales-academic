@@ -31,8 +31,10 @@ class JornalListZoomTests(StaticLiveServerTestCase):
         if not chrome:
             self.skipTest("Chrome ou Edge indisponivel")
 
-        TbJornal.objects.create(titulo="Notícia em destaque", slug="noticia-destaque", resumo="Resumo do artigo", destaque=True)
+        TbJornal.objects.create(titulo="Notícia em destaque", slug="noticia-destaque", resumo="Resumo do artigo", destaque=True,
+                                imagem_url="/static/assets/logo.png")
         TbJornal.objects.create(titulo="Notícia comum", slug="noticia-comum", resumo="Outro resumo")
+        TbJornal.objects.create(titulo="Capa antiga", slug="capa-antiga", imagem_url="/static/assets/logo.png');color:red;--evil:'")
         with tempfile.TemporaryDirectory(prefix="bonfire-jornal-zoom-", ignore_cleanup_errors=True) as scratch:
             profile = Path(scratch) / "profile"
             prefs = profile / "Default" / "Preferences"
@@ -76,19 +78,28 @@ class JornalListZoomTests(StaticLiveServerTestCase):
                 call("Page.enable")
                 call("Page.navigate", {"url": self.live_server_url + reverse("mundo_jornal")})
                 for _ in range(80):
-                    if js("document.readyState") == "complete" and js('document.querySelectorAll(".jornal-card").length') == 2:
+                    if js("document.readyState") == "complete" and js('document.querySelectorAll(".jornal-card").length') == 3:
                         break
                     time.sleep(.1)
                 metrics = json.loads(js("JSON.stringify({outer:outerWidth,dpr:devicePixelRatio,scale:visualViewport.scale,scroll:document.documentElement.scrollWidth,client:document.documentElement.clientWidth,cards:document.querySelectorAll('.jornal-card').length,featured:document.querySelectorAll('.jornal-card.is-destaque').length,bg:getComputedStyle(document.querySelector('.jornal-hero')).backgroundImage})"))
                 self.assertEqual(metrics["outer"], 800, metrics)
                 self.assertAlmostEqual(metrics["dpr"], 2, delta=.05, msg=metrics)
                 self.assertEqual(metrics["scale"], 1, metrics)
-                self.assertEqual(metrics["cards"], 2, metrics)
+                self.assertEqual(metrics["cards"], 3, metrics)
                 self.assertEqual(metrics["featured"], 1, metrics)
                 self.assertLessEqual(metrics["scroll"], metrics["client"], metrics)
                 self.assertIn("radial-gradient", metrics["bg"])
                 self.assertNotIn("url(", metrics["bg"])
                 self.assertTrue(js("[...document.querySelectorAll('.jornal-card')].every(card => card.getBoundingClientRect().right <= document.documentElement.clientWidth)"))
+                self.assertEqual(js("document.querySelector('.jornal-card[href$=\"capa-antiga/\"] .jornal-card-cover').style.getPropertyValue('color')"), "")
+                self.assertEqual(js("document.querySelector('.jornal-card[href$=\"capa-antiga/\"] .jornal-card-cover').style.getPropertyValue('--evil')"), "")
+                call("Page.navigate", {"url": self.live_server_url + reverse("jornal_detail", args=["capa-antiga"])})
+                for _ in range(80):
+                    if js("document.readyState") == "complete" and js("document.querySelector('.artigo-hero') !== null"):
+                        break
+                    time.sleep(.1)
+                self.assertEqual(js("document.querySelector('.artigo-hero').style.getPropertyValue('color')"), "")
+                self.assertEqual(js("document.querySelector('.artigo-hero').style.getPropertyValue('--evil')"), "")
             finally:
                 if ws:
                     ws.close()
