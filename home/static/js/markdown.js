@@ -768,9 +768,9 @@ function renderBonfireMarkdownElement(element, rawValue, options = {}) {
     element.dataset.markdownRaw = raw;
 
     if (element.dataset.atlasMode === 'true') {
-        element.innerHTML = renderAtlasLayout(raw, mergedOptions);
+        element.innerHTML = sanitizeBonfireMarkdownHtml(renderAtlasLayout(raw, mergedOptions));
     } else {
-        element.innerHTML = renderBonfireMarkdown(raw, mergedOptions);
+        element.innerHTML = sanitizeBonfireMarkdownHtml(renderBonfireMarkdown(raw, mergedOptions));
     }
     element.dataset.markdownRendered = 'true';
 }
