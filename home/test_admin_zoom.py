@@ -101,6 +101,26 @@ class AdminZoomBrowserTests(StaticLiveServerTestCase):
                     self.assertEqual(metrics["scale"], 1, metrics)
                     self.assertLessEqual(metrics["scroll"], metrics["client"], f"{name}: {metrics}")
                     self.assertIn("Bonfire", metrics["title"])
+                    if name == "dashboard":
+                        js("(() => { const input = document.querySelector('#dashboard-search-input'); input.value = 'magias'; input.dispatchEvent(new Event('input', {bubbles: true})); input.focus(); })()")
+                        self.assertTrue(js("document.querySelector('#dashboard-search-status').textContent.includes('encontrada')"))
+                        self.assertTrue(js("document.querySelector('a[href*=" + json.dumps(reverse('admin:home_tbmagia_changelist')) + "]') !== null"))
+                        self.assertTrue(js("[...document.querySelectorAll('#content-main .app-list .module:not([hidden]) tr:not([hidden])')].some(row => row.textContent.includes('Magias'))"))
+                        js("(() => { const input = document.querySelector('#dashboard-search-input'); input.value = 'termo-inexistente-qa'; input.dispatchEvent(new Event('input', {bubbles: true})); })()")
+                        self.assertTrue(js("document.querySelector('#dashboard-search-status').textContent.includes('Nenhuma tarefa')"))
+                        self.assertEqual(js("document.querySelectorAll('#content-main .app-list .module:not([hidden])').length"), 0)
+                        call("Input.dispatchKeyEvent", {"type": "keyDown", "key": "Escape", "code": "Escape", "windowsVirtualKeyCode": 27})
+                        call("Input.dispatchKeyEvent", {"type": "keyUp", "key": "Escape", "code": "Escape", "windowsVirtualKeyCode": 27})
+                        self.assertEqual(js("document.querySelector('#dashboard-search-input').value"), "")
+                        self.assertTrue(js("document.querySelectorAll('#content-main .app-list .module:not([hidden])').length > 0"))
+                        self.assertEqual(js("document.activeElement.id"), "dashboard-search-input")
+                        js("(() => { const input = document.querySelector('#dashboard-search-input'); input.value = 'magias'; input.dispatchEvent(new Event('input', {bubbles: true})); })()")
+                        js("document.querySelector('#content-main .app-list a[href*=" + json.dumps(reverse('admin:home_tbmagia_changelist')) + "]').click()")
+                        for _ in range(80):
+                            if js("location.pathname === " + json.dumps(reverse('admin:home_tbmagia_changelist')) + " && document.readyState === 'complete'"):
+                                break
+                            time.sleep(.1)
+                        self.assertEqual(js("location.pathname"), reverse('admin:home_tbmagia_changelist'))
                     if name == "spell_import":
                         self.assertEqual(metrics["headings"], ["Importar magias por Excel"])
                         self.assertTrue(js('document.querySelector("input[type=file]") !== null'))
