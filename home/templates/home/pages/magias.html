@@ -126,7 +126,7 @@
     var levels=''; for(var n=0;n<=9;n++) levels+='<option value="'+n+'"'+(Number(m.nivel)===n?' selected':'')+'>'+(n===0?'Truque':n+'º círculo')+'</option>';
     var classes=CLASSES.map(function(c){return '<option value="'+attr(c.slug)+'"'+((m.classes_slugs||[]).indexOf(c.slug)>=0?' selected':'')+'>'+esc(c.nome)+'</option>';}).join('');
     function input(label,name,value,wide){return '<label class="flex flex-col gap-1 text-[11px] text-[var(--muted)] '+(wide?'sm:col-span-2':'')+'">'+label+'<input class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-2 py-1.5 text-[var(--text)]" name="'+name+'" value="'+attr(value||'')+'"></label>';}
-    return '<details class="mt-5 border-t border-[var(--stroke)] pt-3"><summary class="cursor-pointer text-xs font-bold uppercase text-[var(--ember)]">Editar magia</summary>'
+    return '<details class="mt-5 border-t border-[var(--stroke)] pt-3" data-spell-editor-container><summary class="cursor-pointer text-xs font-bold uppercase text-[var(--ember)]">Editar magia</summary>'
       +'<form class="mt-3 grid gap-2 sm:grid-cols-2" data-spell-editor data-url="'+attr(m.update_url)+'">'
       +input('Nome','nome',m.nome)+input('Nome em inglês','nome_ingles',m.nome_ingles)
       +input('Slug','slug',m.slug)+input('Escola','escola',m.escola)
@@ -139,7 +139,7 @@
       +'<label class="flex flex-col gap-1 text-[11px] text-[var(--muted)] sm:col-span-2">Descrição<textarea name="descricao" rows="10" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] p-2 text-[var(--text)]">'+esc(m.descricao||'')+'</textarea></label>'
       +'<label class="flex flex-col gap-1 text-[11px] text-[var(--muted)] sm:col-span-2">Em níveis superiores<textarea name="em_niveis_superiores" rows="5" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] p-2 text-[var(--text)]">'+esc(m.em_niveis||'')+'</textarea></label>'
       +'<label class="flex flex-col gap-1 text-[11px] text-[var(--muted)] sm:col-span-2">Tags, uma por linha<textarea name="tags_json" rows="9" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] p-2 font-mono text-[11px] text-[var(--text)]">'+esc((m.tags||[]).join('\n'))+'</textarea></label>'
-      +'<div class="flex items-center gap-3 sm:col-span-2"><button type="submit" class="rounded border border-[var(--ember)] px-3 py-2 text-xs font-bold text-[var(--ember)]">Salvar magia</button><span data-editor-status class="text-xs text-[var(--muted)]"></span></div>'
+      +'<div class="flex items-center gap-3 sm:col-span-2"><button type="button" data-editor-cancel class="rounded border border-[var(--stroke)] px-3 py-2 text-xs font-bold text-[var(--muted)]">Cancelar</button><button type="submit" class="rounded border border-[var(--ember)] px-3 py-2 text-xs font-bold text-[var(--ember)]">Salvar magia</button><span data-editor-status role="status" tabindex="-1" class="text-xs text-[var(--muted)]"></span></div>'
       +'</form></details>';
   }
 
@@ -314,20 +314,48 @@
     }
 
     var editForm=detailContainer.querySelector('[data-spell-editor]');
-    if(editForm) editForm.addEventListener('submit',function(event){
-      event.preventDefault();
-      var status=editForm.querySelector('[data-editor-status]'), fd=new FormData(editForm);
-      var payload={};
-      ['nome','nome_ingles','slug','escola','casting_time','alcance','componentes','duracao','descricao','em_niveis_superiores'].forEach(function(key){payload[key]=fd.get(key)||'';});
-      payload.nivel=Number(fd.get('nivel')||0); payload.concentracao=fd.has('concentracao'); payload.ritual=fd.has('ritual');
-      payload.classes_slugs=Array.from(editForm.querySelector('[name="classes_slugs"]').selectedOptions).map(function(o){return o.value;});
-      payload.tags_json=(fd.get('tags_json')||'').split(/\r?\n/).map(function(v){return v.trim();}).filter(Boolean);
-      status.textContent='Salvando...';
-      fetch(editForm.dataset.url,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRFToken':cookie('csrftoken')},body:JSON.stringify(payload)})
-        .then(function(response){return response.json().then(function(data){if(!response.ok)throw new Error(data.error||'Não foi possível salvar.');return data;});})
-        .then(function(data){location.href=location.pathname+'?magia='+encodeURIComponent(data.spell.slug)+'&editado=1';})
-        .catch(function(error){status.textContent=error.message;});
-    });
+    if(editForm){
+      var editorDetails=editForm.closest('[data-spell-editor-container]');
+      var editorSummary=editorDetails.querySelector('summary');
+      var editorStatus=editForm.querySelector('[data-editor-status]');
+      var editorControls=Array.from(editForm.querySelectorAll('input, select, textarea, button'));
+      function closeSpellEditor(){
+        if(editForm.getAttribute('aria-busy')==='true') return;
+        editForm.reset();
+        editorStatus.textContent='';
+        editorDetails.open=false;
+        editorSummary.focus();
+      }
+      editorDetails.addEventListener('click',function(event){
+        if(event.target.closest('summary') && editForm.getAttribute('aria-busy')==='true') event.preventDefault();
+      });
+      editorDetails.addEventListener('keydown',function(event){
+        if(event.key==='Escape' && editForm.getAttribute('aria-busy')!=='true'){
+          event.preventDefault();
+          closeSpellEditor();
+        }
+      });
+      editForm.querySelector('[data-editor-cancel]').addEventListener('click',closeSpellEditor);
+      editForm.addEventListener('submit',function(event){
+        event.preventDefault();
+        if(editForm.getAttribute('aria-busy')==='true') return;
+        var fd=new FormData(editForm);
+        var payload={};
+        ['nome','nome_ingles','slug','escola','casting_time','alcance','componentes','duracao','descricao','em_niveis_superiores'].forEach(function(key){payload[key]=fd.get(key)||'';});
+        payload.nivel=Number(fd.get('nivel')||0); payload.concentracao=fd.has('concentracao'); payload.ritual=fd.has('ritual');
+        payload.classes_slugs=Array.from(editForm.querySelector('[name="classes_slugs"]').selectedOptions).map(function(o){return o.value;});
+        payload.tags_json=(fd.get('tags_json')||'').split(/\r?\n/).map(function(v){return v.trim();}).filter(Boolean);
+        editorStatus.setAttribute('role','status');
+        editorStatus.textContent='Salvando...';
+        editForm.setAttribute('aria-busy','true');
+        editorControls.forEach(function(control){control.disabled=true;});
+        fetch(editForm.dataset.url,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRFToken':cookie('csrftoken')},body:JSON.stringify(payload)})
+          .then(function(response){return response.json().then(function(data){if(!response.ok)throw new Error(data.error||'Não foi possível salvar.');return data;});})
+          .then(function(data){location.href=location.pathname+'?magia='+encodeURIComponent(data.spell.slug)+'&editado=1';})
+          .catch(function(error){editorStatus.setAttribute('role','alert');editorStatus.textContent=error.message||'Não foi possível salvar.';editorStatus.focus();})
+          .finally(function(){editForm.removeAttribute('aria-busy');editorControls.forEach(function(control){control.disabled=false;});});
+      });
+    }
 
     detailContainer.classList.remove('talent-detail-enter');
     void detailContainer.offsetWidth;
