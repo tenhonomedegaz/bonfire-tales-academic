@@ -87,7 +87,7 @@
       <div class="flex-1 flex flex-row w-full justify-center">
           {% block ad_containers %}
           {% if adsense_enabled and ads_enabled and adsense_sidebar_slot %}
-          <aside class="support-sidebar-left hidden min-[1340px]:flex flex-col gap-2.5 w-[160px] 2xl:w-[250px] flex-shrink-0 pt-4 sticky top-[57px] h-[calc(100vh-57px)] overflow-hidden z-30">
+          <aside class="support-sidebar-left hidden min-[1340px]:flex flex-col gap-2.5 w-[160px] 2xl:w-[250px] flex-shrink-0 pt-4 sticky top-[57px] h-[calc(100vh-57px)] overflow-hidden z-30" aria-label="Publicidade lateral esquerda">
               <div class="h-full w-full">
                   {% include 'home/components/sidebar_support.html' %}
               </div>
@@ -98,9 +98,9 @@
           <main class="{% block main_class %}flex-1 w-full max-w-5xl mx-auto px-3 md:px-5 py-4{% endblock %} relative z-10 min-w-0">
               {% block mobile_ad_top %}
               {% if adsense_enabled and ads_enabled and adsense_horizontal_slot %}
-              <div class="block min-[1340px]:hidden mb-4 w-full">
+              <aside class="block min-[1340px]:hidden mb-4 w-full" aria-label="Publicidade acima do conteúdo">
                   {% include 'home/components/horizontal_support.html' %}
-              </div>
+              </aside>
               {% endif %}
               {% endblock %}
 
@@ -109,16 +109,16 @@
 
               {% block mobile_ad %}
               {% if adsense_enabled and ads_enabled and adsense_horizontal_slot %}
-              <div class="block mt-8 mb-2.5 w-full px-3 md:px-0">
+              <aside class="block mt-8 mb-2.5 w-full px-3 md:px-0" aria-label="Publicidade após o conteúdo">
                   {% include 'home/components/horizontal_support.html' %}
-              </div>
+              </aside>
               {% endif %}
               {% endblock %}
           </main>
 
           {% block ad_containers_right %}
           {% if adsense_enabled and ads_enabled and adsense_sidebar_slot %}
-          <aside class="support-sidebar-right hidden min-[1340px]:flex flex-col gap-2.5 w-[160px] 2xl:w-[250px] flex-shrink-0 pt-4 sticky top-[57px] h-[calc(100vh-57px)] overflow-hidden z-30">
+          <aside class="support-sidebar-right hidden min-[1340px]:flex flex-col gap-2.5 w-[160px] 2xl:w-[250px] flex-shrink-0 pt-4 sticky top-[57px] h-[calc(100vh-57px)] overflow-hidden z-30" aria-label="Publicidade lateral direita">
               <div class="h-full w-full">
                   {% include 'home/components/sidebar_support.html' %}
               </div>
