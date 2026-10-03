@@ -12483,6 +12483,7 @@ def wiki_batch_save_map(request):
                 camada = _parse_map_layer(m_data.get('camada'), 0)
 
                 if territorio and not TbTerritorio.objects.filter(nome__iexact=territorio).exists():
+                    transaction.set_rollback(True)
                     return JsonResponse({'ok': False, 'error': f'O territorio "{territorio}" nao existe.'}, status=400)
 
                 marker = None
@@ -12490,10 +12491,12 @@ def wiki_batch_save_map(request):
                 if m_id:
                     marker = TbMapMarker.objects.select_for_update().filter(pk=m_id).first()
                     if marker is None:
+                        transaction.set_rollback(True)
                         return JsonResponse({'ok': False, 'error': 'Marcador nao encontrado para edicao.'}, status=404)
                     original_name = marker.nome
                 else:
                     if TbMapMarker.objects.filter(nome__iexact=nome).exists() or TbRegiao.objects.filter(nome__iexact=nome).exists():
+                        transaction.set_rollback(True)
                         return JsonResponse({'ok': False, 'error': 'Ja existe uma regiao ou marcador com este nome.'}, status=400)
                     marker = TbMapMarker.objects.create(
                         nome=nome,
@@ -12509,11 +12512,13 @@ def wiki_batch_save_map(request):
 
                 if original_name and _normalize_text(original_name) != _normalize_text(nome):
                     if TbMapMarker.objects.filter(nome__iexact=nome).exclude(pk=marker.pk).exists():
+                        transaction.set_rollback(True)
                         return JsonResponse({'ok': False, 'error': 'Ja existe um marcador com este nome.'}, status=400)
                     region_conflicts = TbRegiao.objects.filter(nome__iexact=nome)
                     if region is not None:
                         region_conflicts = region_conflicts.exclude(pk=region.pk)
                     if region_conflicts.exists():
+                        transaction.set_rollback(True)
                         return JsonResponse({'ok': False, 'error': 'Ja existe uma regiao com este nome.'}, status=400)
 
                 marker.nome = nome
@@ -12523,7 +12528,10 @@ def wiki_batch_save_map(request):
                 marker.territorio = territorio
                 marker.camada = camada
                 marker.save()
-                _log_wiki_edit(request, marker, f"Marcador de mapa salvo via lote: {marker.nome}")
+                if m_id:
+                    _log_wiki_edit(request, marker, f"Marcador de mapa salvo via lote: {marker.nome}")
+                else:
+                    _log_wiki_creation(request, marker, f"Marcador de mapa criado via lote: {marker.nome}")
 
                 if region is None:
                     region = TbRegiao.objects.create(
@@ -12533,7 +12541,7 @@ def wiki_batch_save_map(request):
                         territorio=territorio,
                         camada=camada,
                     )
-                    _log_wiki_edit(request, region, f"Regiao de mapa criada via lote: {region.nome}")
+                    _log_wiki_creation(request, region, f"Regiao de mapa criada via lote: {region.nome}")
                 else:
                     if _normalize_text(region.nome) != _normalize_text(nome):
                         region.slug = _unique_slug_for_model(TbRegiao, nome, pk=region.pk)
@@ -12542,7 +12550,10 @@ def wiki_batch_save_map(request):
                     region.territorio = territorio
                     region.camada = camada
                     region.save()
-                    _log_wiki_edit(request, region, f"Regiao de mapa salva via lote: {region.nome}")
+                    if m_id:
+                        _log_wiki_edit(request, region, f"Regiao de mapa salva via lote: {region.nome}")
+                    else:
+                        _log_wiki_creation(request, region, f"Regiao de mapa criada via lote: {region.nome}")
             for t_data in data.get('territories', []):
                 t_id = t_data.get('id')
                 if not t_id or t_id in ['undefined', 'null', '']: continue

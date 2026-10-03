@@ -1,0 +1,78 @@
+"""A map batch either publishes all edits with audit history or none of them."""
+
+import json
+
+from django.contrib.admin.models import ADDITION, CHANGE, LogEntry
+from django.contrib.auth import get_user_model
+from django.contrib.contenttypes.models import ContentType
+from django.test import TestCase
+from django.urls import reverse
+
+from home.models import TbMapLayer, TbMapMarker, TbRegiao
+
+
+class MapBatchAtomicTests(TestCase):
+    def setUp(self):
+        self.editor = get_user_model().objects.create_user(
+            'map-batch-editor', password='test', is_staff=True,
+        )
+        self.client.force_login(self.editor)
+        TbMapLayer.objects.update_or_create(
+            id_layer=0, defaults={'nome': 'Superfície', 'ordem': 0, 'publica': True},
+        )
+        self.url = reverse('wiki_batch_save_map')
+
+    def save_batch(self, markers):
+        return self.client.post(
+            self.url, json.dumps({'markers': markers}), content_type='application/json',
+        )
+
+    def entries_for(self, obj):
+        return LogEntry.objects.filter(
+            content_type=ContentType.objects.get_for_model(obj), object_id=str(obj.pk),
+        ).order_by('pk')
+
+    def test_later_rejection_rolls_back_new_markers_regions_and_history(self):
+        rejected = self.save_batch([
+            {'nome': 'QA Lote Inicial 460', 'lat': 3, 'lng': 4},
+            {'nome': 'QA Lote Inválido 460', 'lat': 5, 'lng': 6, 'territorio': 'Inexistente'},
+        ])
+        self.assertEqual(rejected.status_code, 400)
+        self.assertFalse(TbMapMarker.objects.filter(nome='QA Lote Inicial 460').exists())
+        self.assertFalse(TbRegiao.objects.filter(nome='QA Lote Inicial 460').exists())
+        self.assertFalse(LogEntry.objects.filter(user=self.editor).exists())
+
+    def test_later_duplicate_rolls_back_earlier_edit_and_history(self):
+        marker = TbMapMarker.objects.create(nome='QA Lote Antigo 460', lat=1, lng=2)
+        TbMapMarker.objects.create(nome='QA Lote Ocupado 460', lat=8, lng=9)
+        rejected = self.save_batch([
+            {'id': marker.pk, 'nome': 'QA Lote Renomeado 460', 'lat': 3, 'lng': 4},
+            {'nome': 'QA Lote Ocupado 460', 'lat': 5, 'lng': 6},
+        ])
+        self.assertEqual(rejected.status_code, 400)
+        marker.refresh_from_db()
+        self.assertEqual((marker.nome, marker.lat, marker.lng), ('QA Lote Antigo 460', 1, 2))
+        self.assertTrue(TbRegiao.objects.filter(slug='qa-lote-antigo-460', nome='QA Lote Antigo 460').exists())
+        self.assertFalse(LogEntry.objects.filter(user=self.editor).exists())
+
+    def test_valid_batch_creates_then_edits_with_public_region_and_correct_history(self):
+        created = self.save_batch([{'nome': 'QA Lote Público 460', 'lat': 3, 'lng': 4}])
+        self.assertEqual(created.status_code, 200)
+        marker = TbMapMarker.objects.get(nome='QA Lote Público 460')
+        region = TbRegiao.objects.get(nome='QA Lote Público 460')
+        self.assertEqual(list(self.entries_for(marker).values_list('action_flag', flat=True)), [ADDITION])
+        self.assertEqual(list(self.entries_for(region).values_list('action_flag', flat=True)), [ADDITION])
+
+        changed = self.save_batch([{'id': marker.pk, 'nome': 'QA Lote Público 460', 'lat': 7, 'lng': 8}])
+        self.assertEqual(changed.status_code, 200)
+        marker.refresh_from_db()
+        self.assertEqual((marker.lat, marker.lng), (7, 8))
+        self.assertEqual(list(self.entries_for(marker).values_list('action_flag', flat=True)),
+                         [ADDITION, CHANGE])
+        self.assertEqual(list(self.entries_for(region).values_list('action_flag', flat=True)),
+                         [ADDITION, CHANGE])
+
+        self.client.logout()
+        public = self.client.get(reverse('regiao_detail', args=[region.slug]))
+        self.assertEqual(public.status_code, 200)
+        self.assertContains(public, region.nome)
