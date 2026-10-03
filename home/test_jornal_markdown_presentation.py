@@ -132,6 +132,34 @@ class JornalMarkdownPresentationTests(StaticLiveServerTestCase):
                 js('window.renderBonfireMarkdown = undefined; document.querySelector("#edMarkdown").dispatchEvent(new Event("input"))')
                 self.assertEqual(js('document.querySelectorAll("#edPreview img, #edPreview a").length'), 0)
                 self.assertTrue(js('document.querySelector("#edPreview").textContent.includes("<img src=x")'))
+
+                # Submit from the real browser with CSRF enforcement enabled.
+                self.assertTrue(js('!!document.querySelector("#jornalEditorForm [name=csrfmiddlewaretoken]").value'))
+                js('''(() => {
+                    document.querySelector('#edTitulo').value = 'Jornal pelo Navegador';
+                    document.querySelector('#edResumo').value = 'Resumo inicial';
+                    document.querySelector('#edLayout').value = 'padrao';
+                    document.querySelector('#edMarkdown').value = '**Publicado** no editor';
+                    document.querySelector('#jornalEditorForm button[type=submit]').click();
+                })()''')
+                wait_for('location.pathname === "/mundo/jornal/jornal-pelo-navegador/" && document.querySelector(".artigo-title")?.textContent === "Jornal pelo Navegador"')
+                created = TbJornal.objects.get(slug='jornal-pelo-navegador')
+                self.assertEqual(created.conteudo_markdown, '**Publicado** no editor')
+                self.assertEqual(created.resumo, 'Resumo inicial')
+
+                self.assertTrue(js('!!document.querySelector("#articleForm [name=csrfmiddlewaretoken]").value'))
+                js('''(() => {
+                    document.querySelector('#btnEditArticle').click();
+                    document.querySelector('#articleForm [name=titulo]').value = 'Jornal Revisado';
+                    document.querySelector('#articleForm [name=resumo]').value = 'Resumo revisado';
+                    document.querySelector('#articleForm [name=conteudo_markdown]').value = '**Revisado** pelo editor';
+                    document.querySelector('#articleForm button[type=submit]').click();
+                })()''')
+                wait_for('document.querySelector(".artigo-title")?.textContent === "Jornal Revisado"')
+                created.refresh_from_db()
+                self.assertEqual(created.titulo, 'Jornal Revisado')
+                self.assertEqual(created.resumo, 'Resumo revisado')
+                self.assertEqual(created.conteudo_markdown, '**Revisado** pelo editor')
             finally:
                 if ws:
                     ws.close()

@@ -18,6 +18,7 @@
   </div>
 
   <form id="jornalEditorForm">
+    {% csrf_token %}
     <div class="editor-fields">
       <div class="editor-field">
         <label for="edTitulo">Título</label>
@@ -221,7 +222,7 @@
       data_publicacao: document.getElementById('edDataPublicacao').value,
       layout: document.getElementById('edLayout').value,
     };
-    const csrf = decodeURIComponent((document.cookie.split('; ').find(r => r.startsWith('csrftoken=')) || '').split('=')[1] || '');
+    const csrf = form.querySelector('[name="csrfmiddlewaretoken"]').value;
     const url = {% if is_new %}'{% url "jornal_create" %}'{% else %}'{% url "jornal_update" slug=artigo.slug %}'{% endif %};
     const res = await fetch(url, {
       method: 'POST',

@@ -38,6 +38,7 @@
     <button type="button" class="artigo-edit-btn" id="btnEditArticle">Editar Artigo</button>
   </div>
   <form id="articleForm" class="wiki-inline-editor">
+    {% csrf_token %}
     <label>Título <input name="titulo" value="{{ artigo.titulo }}"></label>
     <label>Resumo <input name="resumo" value="{{ artigo.resumo|default:'' }}"></label>
     <label>URL da Imagem <input name="imagem_url" value="{{ artigo.imagem_url|default:'' }}"></label>
@@ -67,7 +68,7 @@
         conteudo_markdown: fd.get('conteudo_markdown'),
         destaque: !!fd.get('destaque'),
       };
-      const csrf = decodeURIComponent((document.cookie.split('; ').find(r => r.startsWith('csrftoken=')) || '').split('=')[1] || '');
+      const csrf = form.querySelector('[name="csrfmiddlewaretoken"]').value;
       const res = await fetch('{% url "jornal_update" slug=artigo.slug %}', {
         method: 'POST',
         headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
