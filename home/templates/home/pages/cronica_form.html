@@ -282,6 +282,7 @@
       imagem_url: document.getElementById('edImagemUrl').value,
       conteudo_markdown: editor.value,
     };
+    {% if not is_new %}body.expected_edit = '{{ edit_snapshot|escapejs }}';{% endif %}
     const csrf = form.querySelector('[name="csrfmiddlewaretoken"]').value;
     const url = {% if is_new %}'{% url "cronica_create" %}'{% else %}'{% url "cronica_edit" slug=cronica.slug %}'{% endif %};
     try {

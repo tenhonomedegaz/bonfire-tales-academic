@@ -6,7 +6,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from home.models import TbCronica, TbRegiao, TbTerritorio
-from home.views import _cronica_pending_snapshot
+from home.views import _cronica_author_snapshot, _cronica_pending_snapshot
 
 
 class CronicaRevisionTests(TestCase):
@@ -33,9 +33,11 @@ class CronicaRevisionTests(TestCase):
 
     def edit(self, title='Título novo', content='Texto novo'):
         self.client.force_login(self.autor)
+        self.cronica.refresh_from_db()
         return self.post_json(reverse('cronica_edit', args=[self.cronica.slug]), {
             'titulo': title, 'conteudo_markdown': content, 'resumo': 'Resumo novo',
             'territorio': [], 'regiao': [],
+            'expected_edit': _cronica_author_snapshot(self.cronica),
         })
 
     def review(self, action, feedback='', expected_revision=None):
@@ -205,6 +207,7 @@ class CronicaRevisionTests(TestCase):
             'resumo': 'Resumo proposto', 'imagem_url': 'https://example.com/capa.png',
             'personagem_nome': 'Narrador',
             'territorio': ['Norte', 'Sul'], 'regiao': ['Serra', 'Costa'],
+            'expected_edit': _cronica_author_snapshot(self.cronica),
         })
         self.assertEqual(response.status_code, 200)
         self.client.force_login(self.staff)
@@ -223,6 +226,7 @@ class CronicaRevisionTests(TestCase):
                              ('imagem_url', 501), ('personagem_nome', 151)):
             payload = {'titulo': 'Válida', 'conteudo_markdown': 'Texto', name: 'x' * length}
             self.assertEqual(self.post_json(create_url, payload).status_code, 400)
+            payload['expected_edit'] = _cronica_author_snapshot(self.cronica)
             self.assertEqual(self.post_json(edit_url, payload).status_code, 400)
         self.assertFalse(TbCronica.objects.filter(titulo='Válida').exists())
         self.cronica.refresh_from_db()

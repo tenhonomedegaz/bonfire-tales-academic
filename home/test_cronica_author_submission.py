@@ -16,6 +16,7 @@ from django.db import connection
 from django.urls import reverse
 
 from home.models import TbCronica
+from home.views import _cronica_author_snapshot
 
 
 class ChronicleAuthorSubmissionTests(StaticLiveServerTestCase):
@@ -146,6 +147,24 @@ class ChronicleAuthorSubmissionTests(StaticLiveServerTestCase):
                             self.assertEqual(published.conteudo_markdown, 'Texto público')
                             self.assertEqual(published.revisao_edicao['conteudo_markdown'], content)
                             self.assertEqual(published.revisao_edicao['estado'], 'pendente')
+                edit_url = reverse('cronica_edit', args=[published.slug])
+                call('Page.navigate', {'url': self.live_server_url + edit_url})
+                until('document.readyState==="complete" && !!document.querySelector("#edMarkdown")')
+                js('''document.querySelector('#edTitulo').value='Aba antiga';
+                    document.querySelector('#edMarkdown').value='Texto digitado sem salvar';''')
+                published.refresh_from_db()
+                current = self.client.post(edit_url, data=json.dumps({
+                    'titulo': 'Outra aba', 'conteudo_markdown': 'Texto da outra aba',
+                    'expected_edit': _cronica_author_snapshot(published),
+                }), content_type='application/json')
+                self.assertEqual(current.status_code, 200)
+                js("document.querySelector('#cronicaEditorForm').requestSubmit()")
+                until('document.querySelector("#edSubmitStatus").getAttribute("role")==="alert"')
+                self.assertIn('Recarregue', js('document.querySelector("#edSubmitStatus").textContent'))
+                self.assertEqual(js('document.querySelector("#edMarkdown").value'), 'Texto digitado sem salvar')
+                published.refresh_from_db()
+                self.assertEqual(published.revisao_edicao['titulo'], 'Outra aba')
+                self.assertEqual(published.revisao_edicao['conteudo_markdown'], 'Texto da outra aba')
             finally:
                 if ws:
                     ws.close()

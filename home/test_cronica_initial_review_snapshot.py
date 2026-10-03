@@ -8,6 +8,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from home.models import TbCronica
+from home.views import _cronica_author_snapshot
 
 
 class ChronicleInitialSnapshotTests(TestCase):
@@ -35,6 +36,7 @@ class ChronicleInitialSnapshotTests(TestCase):
         self.client.force_login(self.author)
         changed = self.post_json(reverse('cronica_edit', args=[self.story.slug]), {
             'titulo': 'Segunda versão', 'conteudo_markdown': 'Texto alterado depois da leitura',
+            'expected_edit': _cronica_author_snapshot(self.story),
         })
         self.assertEqual(changed.status_code, 200)
 

@@ -8,7 +8,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from home.models import TbCronica, TbRegiao, TbTerritorio
-from home.views import _cronica_pending_snapshot
+from home.views import _cronica_author_snapshot, _cronica_pending_snapshot
 
 
 class ChronicleLocationTests(TestCase):
@@ -66,7 +66,8 @@ class ChronicleLocationTests(TestCase):
         self.client.force_login(self.author)
         edit_url = reverse('cronica_edit', args=[self.published.slug])
         payload = {'titulo': 'Novo título', 'conteudo_markdown': 'Novo texto',
-                   'territorio': ['Norte'], 'regiao': ['Costa']}
+                   'territorio': ['Norte'], 'regiao': ['Costa'],
+                   'expected_edit': _cronica_author_snapshot(self.published)}
         self.assertEqual(self.post_json(edit_url, payload).status_code, 400)
         self.published.refresh_from_db()
         self.assertEqual(self.published.regiao, 'Serra')

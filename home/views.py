@@ -15249,6 +15249,20 @@ def cronica_create_view(request):
     })
 
 
+def _cronica_author_snapshot(cronica):
+    fields = ('titulo', 'conteudo_markdown', 'resumo', 'imagem_url',
+              'personagem_nome', 'territorio', 'regiao')
+    state = {name: getattr(cronica, name) for name in fields}
+    state.update({
+        'status': cronica.status,
+        'revisao_edicao': cronica.revisao_edicao,
+        'feedback_staff': cronica.feedback_staff,
+        'data_revisao': cronica.data_revisao.isoformat() if cronica.data_revisao else None,
+    })
+    encoded = json.dumps(state, sort_keys=True, ensure_ascii=False).encode('utf-8')
+    return hashlib.sha256(encoded).hexdigest()
+
+
 @login_required
 def cronica_edit_view(request, slug):
     territorios, regioes = _cronicas_location_choices()
@@ -15258,6 +15272,8 @@ def cronica_edit_view(request, slug):
             cronica = get_object_or_404(TbCronica.objects.select_for_update(), slug=slug)
             if cronica.autor_id != request.user.id:
                 raise Http404
+            if data.get('expected_edit') != _cronica_author_snapshot(cronica):
+                return JsonResponse({'error': 'A crônica mudou. Recarregue o editor antes de salvar.'}, status=409)
             source = cronica.revisao_edicao if cronica.status == 'aprovada' else {}
             territorio = data.get('territorio', source.get('territorio', cronica.territorio))
             regiao = data.get('regiao', source.get('regiao', cronica.regiao))
@@ -15313,6 +15329,7 @@ def cronica_edit_view(request, slug):
         'selected_regioes': _coerce_multi_value(editor_cronica.regiao),
         'review_feedback': source.get('feedback', ''),
         'is_published': cronica.status == 'aprovada',
+        'edit_snapshot': _cronica_author_snapshot(cronica),
     })
 
 

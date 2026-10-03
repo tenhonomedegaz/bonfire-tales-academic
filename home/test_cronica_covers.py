@@ -8,7 +8,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from .models import TbCronica
-from .views import _cronica_pending_snapshot
+from .views import _cronica_author_snapshot, _cronica_pending_snapshot
 
 
 class ChronicleCoverTests(TestCase):
@@ -53,10 +53,11 @@ class ChronicleCoverTests(TestCase):
         self.client.force_login(self.author)
         edit = self.client.get(reverse('cronica_edit', args=[story.slug]))
         self.assertContains(edit, f'value="{cover}"')
+        story.refresh_from_db()
         revised_cover = '/media/capas/nova.jpg'
         self.assertEqual(self.post_json(reverse('cronica_edit', args=[story.slug]), {
             'titulo': story.titulo, 'conteudo_markdown': story.conteudo_markdown,
-            'imagem_url': revised_cover,
+            'imagem_url': revised_cover, 'expected_edit': _cronica_author_snapshot(story),
         }).status_code, 200)
         story.refresh_from_db()
         self.assertEqual(story.imagem_url, cover)
@@ -88,6 +89,7 @@ class ChronicleCoverTests(TestCase):
         response = self.post_json(reverse('cronica_edit', args=[story.slug]), {
             'titulo': 'Mudança indevida', 'conteudo_markdown': 'Novo texto',
             'imagem_url': 'data:image/svg+xml,<svg/>',
+            'expected_edit': _cronica_author_snapshot(story),
         })
         self.assertEqual(response.status_code, 400)
         story.refresh_from_db()

@@ -11,6 +11,7 @@ from home.models import (
     TbConquista, TbCosmetico, TbCronica, TbEventoConquista,
     TbUsuarioConquista, TbUsuarioCosmetico,
 )
+from home.views import _cronica_author_snapshot
 
 
 RULE = {'schema_version': 1, 'metric': 'stories_published',
@@ -75,7 +76,8 @@ class FirstPublishedStoryAchievementTests(TestCase):
         edited = self.client.post(reverse('cronica_edit', args=[story.slug]),
             data=json.dumps({'titulo': 'Primeira crônica revisada',
                              'conteudo_markdown': 'Texto revisado', 'resumo': 'Resumo',
-                             'territorio': [], 'regiao': []}),
+                             'territorio': [], 'regiao': [],
+                             'expected_edit': _cronica_author_snapshot(story)}),
             content_type='application/json')
         self.assertEqual(edited.status_code, 200)
         story.refresh_from_db()
