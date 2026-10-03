@@ -2,11 +2,22 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
+from importlib import import_module
+import re
 
 from .models import TbConteudoEstatico, TbCronica, TbJornal, TbMapLayer, TbPersonagem, TbRegiao, TbTerritorio
 
 
 class PublicPresentationTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        # Uma base --keepdb pode ter sido esvaziada por testes transacionais.
+        # Cada teste de apresentacao deve partir dos blocos da migracao editorial.
+        seed = import_module('home.migrations.0092_tbconteudoestatico')
+        for content in seed.CONTEUDOS_INICIAIS:
+            TbConteudoEstatico.objects.get_or_create(
+                chave=content['chave'], defaults=content)
+
     def test_home_shows_only_published_community_stories(self):
         author = get_user_model().objects.create_user(username='story-author')
         published = TbCronica.objects.create(
@@ -106,6 +117,19 @@ class PublicPresentationTests(TestCase):
                 self.assertEqual(response.status_code, 200)
                 self.assertNotContains(response, 'Esta página está em construção')
                 self.assertNotContains(response, 'Advertisement')
+
+    def test_institutional_heading_is_not_repeated_by_first_block(self):
+        for name, title in (
+            ('sobre', 'Sobre o Bonfire Tales'),
+            ('privacidade', 'Política de Privacidade'),
+            ('termos', 'Termos de Uso'),
+        ):
+            with self.subTest(name=name):
+                html = self.client.get(reverse(name)).content.decode('utf-8')
+                self.assertEqual(len(re.findall(
+                    r'<h1[^>]*>\s*' + re.escape(title) + r'\s*</h1>', html)), 1)
+                self.assertFalse(re.search(
+                    r'<h2[^>]*>\s*' + re.escape(title) + r'\s*</h2>', html))
 
     def test_sitemap_ads_txt_and_robots(self):
         sitemap = self.client.get(reverse('sitemap_xml'))

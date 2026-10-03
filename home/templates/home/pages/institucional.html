@@ -11,7 +11,7 @@
   <div class="divide-y divide-[var(--stroke)]">
     {% for bloco in blocos %}
     <article class="py-6" id="{{ bloco.chave }}">
-      {% if bloco.titulo %}
+      {% if bloco.titulo and bloco.titulo != page_title %}
       <h2 class="font-rpg text-2xl font-bold text-[var(--text)]">{{ bloco.titulo }}</h2>
       {% endif %}
       {% if bloco.subtitulo %}
