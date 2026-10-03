@@ -28,7 +28,7 @@
                 <input type="search" id="searchInput" placeholder="Buscar opção, tag, requisito..." aria-describedby="opcoesResults" class="bg-bonfire-bg1 border border-bonfire-stroke text-bonfire-text text-sm rounded-md focus:ring-primary focus:border-bonfire-flame block w-full pl-10 p-2.5 transition-colors">
             </div>
             <div class="flex gap-2 w-full sm:w-auto">
-                <button id="filterToggle" type="button" class="bg-bonfire-bg1 hover:bg-bonfire-bg2 border border-bonfire-stroke text-bonfire-muted px-3 py-2.5 rounded-md text-sm font-medium flex items-center gap-2 transition-colors">
+                <button id="filterToggle" type="button" aria-controls="filterModal" aria-expanded="false" class="bg-bonfire-bg1 hover:bg-bonfire-bg2 border border-bonfire-stroke text-bonfire-muted px-3 py-2.5 rounded-md text-sm font-medium flex items-center gap-2 transition-colors">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
                     Filtros
                     <span id="filterCount" class="hidden min-w-5 rounded-full bg-bonfire-flame px-1.5 py-0.5 text-[10px] font-bold text-white">0</span>
@@ -42,9 +42,9 @@
         </div>
         <div id="filterModal" class="hidden fixed inset-0 z-[80] items-center justify-center p-4">
             <button id="filterBackdrop" type="button" class="filter-backdrop absolute inset-0 bg-black/80 backdrop-blur-sm" aria-label="Fechar filtros"></button>
-            <div class="filter-panel relative w-full max-w-xl overflow-hidden rounded-lg border border-bonfire-stroke bg-bonfire-bg1 shadow-2xl">
+            <div class="filter-panel relative w-full max-w-xl overflow-hidden rounded-lg border border-bonfire-stroke bg-bonfire-bg1 shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="option-filter-title">
                 <div class="flex items-center justify-between border-b border-bonfire-stroke px-4 py-2.5">
-                    <h2 class="font-cinzel text-lg font-bold uppercase text-bonfire-text flex items-center gap-2">
+                    <h2 id="option-filter-title" class="font-cinzel text-lg font-bold uppercase text-bonfire-text flex items-center gap-2">
                         <svg class="h-4 w-4 text-bonfire-flame" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
                         </svg>
@@ -661,11 +661,19 @@
         filterModal.classList.remove('is-closing');
         filterModal.classList.remove('hidden');
         filterModal.classList.add('flex');
+        filterModal.inert = false;
+        filterModal.removeAttribute('aria-hidden');
+        filterToggle.setAttribute('aria-expanded', 'true');
         document.body.classList.add('overflow-hidden');
+        filterClose.focus();
     }
 
     function closeFilterModal() {
-        if (filterModal.classList.contains('hidden')) return;
+        if (filterModal.classList.contains('hidden') || filterModal.classList.contains('is-closing')) return;
+        filterToggle.focus();
+        filterToggle.setAttribute('aria-expanded', 'false');
+        filterModal.inert = true;
+        filterModal.setAttribute('aria-hidden', 'true');
         filterModal.classList.add('is-closing');
         filterCloseTimer = setTimeout(() => {
             filterModal.classList.add('hidden');
@@ -708,9 +716,24 @@
     });
 
     document.addEventListener('keydown', event => {
-        if (event.key === 'Escape' && document.body.classList.contains('opcao-menu-open')) closeOpcaoMenu(true);
-        if (event.key === 'Escape' && !filterModal.classList.contains('hidden')) {
+        const modalOpen = !filterModal.classList.contains('hidden') && !filterModal.classList.contains('is-closing');
+        if (event.key === 'Escape' && modalOpen) {
+            event.preventDefault();
             closeFilterModal();
+        } else if (event.key === 'Escape' && document.body.classList.contains('opcao-menu-open')) {
+            closeOpcaoMenu(true);
+        }
+        if (event.key === 'Tab' && modalOpen) {
+            const controls = [...filterModal.querySelectorAll('.filter-panel button:not([disabled]):not([hidden])')];
+            const first = controls[0];
+            const last = controls[controls.length - 1];
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            }
         }
     });
 
