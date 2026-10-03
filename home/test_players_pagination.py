@@ -31,6 +31,7 @@ class PlayersPaginationBrowserTests(StaticLiveServerTestCase):
         user_model = get_user_model()
         for index in range(22):
             user_model.objects.create_user(username=f'pageuser{index:02}', is_staff=True)
+        user_model.objects.create_user(username='pageuserzz')
 
         with tempfile.TemporaryDirectory(prefix='bonfire-players-', ignore_cleanup_errors=True) as profile:
             process = subprocess.Popen([
@@ -115,6 +116,22 @@ class PlayersPaginationBrowserTests(StaticLiveServerTestCase):
                 wait_for('location.search.includes("page=2") && document.querySelectorAll(".player-card").length === 4')
                 self.assertEqual(js('window.__paginationMarker'), 42)
                 self.assertEqual(js('document.querySelector(".players-search input[name=q]").value'), 'pageuser')
+
+                js('Array.from(document.querySelectorAll(".players-tabs a")).find(link => link.textContent.trim() === "Todos").click()')
+                wait_for('!location.search.includes("filtro=") && !location.search.includes("page=") && document.querySelector(".players-meta [role=status]")?.textContent.includes("23 perfis")')
+                self.assertEqual(js('document.querySelectorAll(".player-card").length'), 18)
+                self.assertEqual(js('window.__paginationMarker'), 42)
+                self.assertTrue(js('location.search.includes("q=pageuser") && location.search.includes("ordem=nome")'))
+                self.assertEqual(js('document.querySelectorAll(".players-tabs [aria-current=page]").length'), 1)
+                js('document.querySelector("#players-order").value = "atividade"; document.querySelector("#players-order").dispatchEvent(new Event("change", {bubbles:true}))')
+                wait_for('location.search.includes("ordem=atividade") && document.querySelector("#players-order")?.value === "atividade"')
+                self.assertTrue(js('location.search.includes("q=pageuser") && !location.search.includes("filtro=")'))
+                self.assertEqual(js('window.__paginationMarker'), 42)
+                js('history.back()')
+                wait_for('location.search.includes("ordem=nome") && !location.search.includes("filtro=") && document.querySelector("#players-order")?.value === "nome"')
+                js('history.back()')
+                wait_for('location.search.includes("filtro=equipe") && location.search.includes("page=2") && document.querySelectorAll(".player-card").length === 4')
+                self.assertEqual(js('window.__paginationMarker'), 42)
             finally:
                 if ws:
                     ws.close()
