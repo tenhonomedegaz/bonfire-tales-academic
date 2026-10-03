@@ -1,6 +1,7 @@
 """Leitura e previa inline de habilidades na pagina de classe."""
 
 import json
+import math
 import shutil
 import subprocess
 import tempfile
@@ -37,7 +38,7 @@ class ClassMarkdownPresentationTests(StaticLiveServerTestCase):
             '[perigo](javascript:alert(1)) [referencia](https://example.org)'
         )
         classe = TbClasse.objects.create(nome='Classe de Teste', slug='classe-de-teste')
-        TbClassehabilidade.objects.create(
+        feature = TbClassehabilidade.objects.create(
             id_classe=classe, nome='Habilidade Editorial', niveladquirido=1,
             descricao=description,
         )
@@ -46,11 +47,17 @@ class ClassMarkdownPresentationTests(StaticLiveServerTestCase):
         )
         self.client.force_login(editor)
 
-        with tempfile.TemporaryDirectory(prefix='bonfire-class-md-', ignore_cleanup_errors=True) as profile:
+        with tempfile.TemporaryDirectory(prefix='bonfire-class-md-', ignore_cleanup_errors=True) as scratch:
+            profile = Path(scratch) / 'profile'
+            prefs = profile / 'Default' / 'Preferences'
+            prefs.parent.mkdir(parents=True)
+            prefs.write_text(json.dumps({
+                'partition': {'default_zoom_level': {'x': math.log(2) / math.log(1.2)}}
+            }), encoding='utf-8')
             process = subprocess.Popen([
                 chrome, '--headless=new', '--no-sandbox', '--disable-gpu',
                 '--remote-debugging-port=0', '--remote-allow-origins=*',
-                f'--user-data-dir={profile}', 'about:blank',
+                f'--user-data-dir={profile}', '--window-size=800,900', 'about:blank',
             ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             ws = None
             try:
@@ -118,6 +125,29 @@ class ClassMarkdownPresentationTests(StaticLiveServerTestCase):
                 self.assertEqual(js('document.querySelectorAll("[data-markdown] img, [data-markdown] a, [data-markdown] script").length'), 0)
                 self.assertTrue(js('document.querySelector("[data-markdown]").textContent.includes("<img src=x")'))
                 self.assertLessEqual(js('document.documentElement.scrollWidth'), js('innerWidth'))
+                call('Emulation.clearDeviceMetricsOverride')
+                call('Page.navigate', {'url': url})
+                wait_for('document.querySelector("[data-feature-card]") !== null')
+                self.assertAlmostEqual(js('devicePixelRatio'), 2, delta=.05)
+                self.assertEqual(js('visualViewport.scale'), 1)
+                self.assertLessEqual(js('document.documentElement.scrollWidth'), js('document.documentElement.clientWidth'))
+                self.assertTrue(js('document.querySelector("[data-progression-table]") !== null'))
+                js('document.querySelector("[data-feature-edit]").click()')
+                self.assertTrue(js('document.querySelector("[data-feature-form]").getBoundingClientRect().right <= document.documentElement.clientWidth'))
+                js('''(() => {
+                    const form = document.querySelector('[data-feature-form]');
+                    form.elements.descricao.value = '## Revisao em zoom\\nConteudo salvo.';
+                    form.elements.descricao.dispatchEvent(new Event('input', { bubbles: true }));
+                    form.requestSubmit();
+                })()''')
+                wait_for('!document.querySelector("[data-feature-form]").classList.contains("is-open")')
+                self.assertTrue(js('document.querySelector("[data-markdown]").textContent.includes("Conteudo salvo.")'))
+                feature.refresh_from_db()
+                self.assertEqual(feature.descricao, '## Revisao em zoom\nConteudo salvo.')
+                call('Page.navigate', {'url': url})
+                wait_for('document.querySelector("[data-feature-card] [data-markdown] h2") !== null')
+                self.assertTrue(js('document.querySelector("[data-feature-card] [data-markdown]").textContent.includes("Conteudo salvo.")'))
+                self.assertLessEqual(js('document.documentElement.scrollWidth'), js('document.documentElement.clientWidth'))
             finally:
                 if ws:
                     ws.close()
