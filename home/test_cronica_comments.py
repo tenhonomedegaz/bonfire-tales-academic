@@ -201,6 +201,38 @@ class CronicaCommentTests(TestCase):
         self.assertEqual(report.estado, 'pendente')
         self.assertEqual(self.story.status, 'aprovada')
 
+    def test_moderation_navigation_matches_queue_access_for_each_role(self):
+        self.client.force_login(self.leitor)
+        self.assertEqual(self.report().status_code, 302)
+        report = TbCronicaDenuncia.objects.get()
+        list_url = reverse('mundo_cronicas')
+        queue_url = reverse('cronica_denuncias')
+        action_url = reverse('cronica_moderar_denuncia', args=[report.pk])
+
+        self.leitor.user_permissions.add(Permission.objects.get(
+            codename='change_tbcronicadenuncia', content_type__app_label='home',
+        ))
+        self.assertNotContains(self.client.get(list_url), queue_url)
+        self.assertRedirects(self.client.get(queue_url), f'/admin/login/?next={queue_url}')
+        self.assertRedirects(
+            self.client.post(action_url, {'action': 'ocultar'}),
+            f'/admin/login/?next={action_url}',
+        )
+
+        self.client.force_login(self.staff_sem_moderacao)
+        self.assertNotContains(self.client.get(list_url), queue_url)
+        self.assertEqual(self.client.get(queue_url).status_code, 403)
+        self.assertEqual(self.client.post(action_url, {'action': 'ocultar'}).status_code, 403)
+
+        self.client.force_login(self.staff)
+        self.assertContains(self.client.get(list_url), queue_url)
+        self.assertContains(self.client.get(queue_url), self.story.titulo)
+        self.assertEqual(self.client.post(action_url, {'action': 'descartar'}).status_code, 302)
+        report.refresh_from_db()
+        self.story.refresh_from_db()
+        self.assertEqual(report.estado, 'descartada')
+        self.assertEqual(self.story.status, 'aprovada')
+
     def test_admin_navigation_opens_moderation_queue(self):
         superuser = get_user_model().objects.create_superuser(
             'super-moderacao', 'moderacao@example.invalid', 'senha',

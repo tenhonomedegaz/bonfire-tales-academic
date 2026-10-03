@@ -46,7 +46,7 @@
     {% if pendente_count > 0 %}<span class="cronicas-review-badge">{{ pendente_count }}</span>{% endif %}
   </a>
   {% endif %}
-  {% if perms.home.change_tbcronicadenuncia %}
+  {% if request.user.is_staff and perms.home.change_tbcronicadenuncia %}
   <a href="{% url 'cronica_denuncias' %}" class="cronicas-btn-outline">Denúncias</a>
   {% endif %}
 </div>
