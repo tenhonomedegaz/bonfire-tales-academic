@@ -167,6 +167,9 @@ class OrganizationReferencesBrowserTests(StaticLiveServerTestCase):
             descricao='**Negrito** <img src=x onerror=alert(1)> [ruim](javascript:alert(1)) [bom](https://example.org)',
         )
         TbOrganizacao.objects.create(nome='Casa da Luz', slug='casa-da-luz')
+        TbOrganizacao.objects.create(
+            nome='Guarda Antiga', slug='guarda-antiga', regioes='[]', aliados='[]'
+        )
 
         with tempfile.TemporaryDirectory(prefix='bonfire-org-', ignore_cleanup_errors=True) as scratch:
             profile = Path(scratch) / 'profile'
@@ -229,6 +232,15 @@ class OrganizationReferencesBrowserTests(StaticLiveServerTestCase):
                 self.assertEqual(js('document.querySelectorAll(".detail-meta-value a[href=\\"#casa-da-luz\\"]").length'), 1)
                 self.assertFalse(js('Array.from(document.querySelectorAll(".detail-meta-value a")).some(a => a.textContent === "Desconhecida")'))
                 js('document.querySelector(".detail-meta-value a[href=\\"#casa-da-luz\\"]").click()')
+                wait_for('location.hash === "#casa-da-luz" && document.querySelector(".detail-title")?.textContent === "Casa da Luz"')
+                self.assertEqual(js('document.querySelectorAll(".catalog-detail .detail-meta-item, .catalog-detail .tag-chip").length'), 0)
+                self.assertFalse(js('document.querySelector(".catalog-detail").textContent.includes("[]")'))
+                self.assertTrue(js('document.querySelector(".catalog-detail .catalog-empty")?.textContent.includes("Sem descricao")'))
+                js('[...document.querySelectorAll(".catalog-card")].find(e => e.textContent.includes("Guarda Antiga")).click()')
+                wait_for('location.hash === "#guarda-antiga" && document.querySelector(".detail-title")?.textContent === "Guarda Antiga"')
+                self.assertEqual(js('document.querySelectorAll(".catalog-detail .detail-meta-item, .catalog-detail .tag-chip").length'), 0)
+                self.assertFalse(js('document.querySelector(".catalog-detail").textContent.includes("[]")'))
+                js('history.back()')
                 wait_for('location.hash === "#casa-da-luz" && document.querySelector(".detail-title")?.textContent === "Casa da Luz"')
                 js('history.back()')
                 wait_for('location.hash === "#liga-do-norte" && document.querySelector(".detail-title")?.textContent === "Liga do Norte"')
