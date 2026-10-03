@@ -227,6 +227,33 @@ class SpellImportAdminTests(TestCase):
         self.assertContains(result, "classes nao cadastradas")
         self.assertFalse(TbMagia.objects.filter(slug__in=["nova-magia", "magia-de-classe"]).exists())
 
+    def test_renamed_class_after_preview_does_not_publish_stale_tags(self):
+        classe = TbClasse.objects.create(nome="Mago", slug="mago")
+        preview = self.preview(("Nova Magia", 1), ("Magia de Classe", 2, "Nao", "mago"))
+        self.assertEqual(preview.context["preview"][1]["tags_json"], ["2", "Evocacao", "Mago"])
+        classe.nome = "Arcanista"
+        classe.save(update_fields=["nome"])
+
+        result = self.client.post(self.url, {
+            "confirmar": "1", "payload": preview.context["payload"],
+        })
+        self.assertContains(result, "As classes mudaram desde a previa")
+        self.assertFalse(TbMagia.objects.filter(slug__in=["nova-magia", "magia-de-classe"]).exists())
+        self.assertFalse(LogEntry.objects.filter(
+            user=self.admin, content_type__app_label="home", content_type__model="tbmagia",
+        ).exists())
+
+        refreshed = self.preview(("Magia de Classe", 2, "Nao", "mago"))
+        self.assertEqual(refreshed.context["preview"][0]["tags_json"],
+                         ["2", "Evocacao", "Arcanista"])
+        confirmed = self.client.post(self.url, {
+            "confirmar": "1", "payload": refreshed.context["payload"],
+        })
+        self.assertContains(confirmed, "1 criadas, 0 atualizadas e 0 ignoradas")
+        spell = TbMagia.objects.get(slug="magia-de-classe")
+        self.assertEqual(spell.tags_json, ["2", "Evocacao", "Arcanista"])
+        self.assertEqual(spell.classes_slugs, ["mago"])
+
     def test_duplicate_slug_and_tampered_payload_are_rejected(self):
         preview = self.preview(("Luz", 1), ("Luz", 2))
         self.assertContains(preview, "mesmo slug")

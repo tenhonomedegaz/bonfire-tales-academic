@@ -3695,7 +3695,24 @@ class TbMagiaAdmin(BonfireAdminMixin, admin.ModelAdmin):
             skipped = 0
             try:
                 with transaction.atomic():
+                    from .spell_access import access_key
+                    class_lookup = {
+                        key: classe for classe in TbClasse.objects.select_for_update()
+                        for key in (access_key(classe.nome), access_key(classe.slug))
+                    }
                     for item, target in zip(magias, targets, strict=True):
+                        class_targets = []
+                        for token in re.split(r"[,;|]", item["classes"]):
+                            token = token.strip()
+                            if token:
+                                classe = class_lookup.get(access_key(token))
+                                if not classe:
+                                    raise ValueError(f"classes nao cadastradas: {token}. Leia o arquivo novamente.")
+                                fingerprint = [classe.pk, classe.nome, classe.slug]
+                                if fingerprint not in class_targets:
+                                    class_targets.append(fingerprint)
+                        if class_targets != item.get("class_targets"):
+                            raise ValueError("As classes mudaram desde a previa. Leia o arquivo novamente.")
                         existing = TbMagia.objects.select_for_update().filter(slug=item["slug"]).first()
                         if (existing.pk if existing else None) != target["pk"] or (
                             existing and self._spell_import_snapshot(existing) != target["snapshot"]
@@ -3775,6 +3792,9 @@ class TbMagiaAdmin(BonfireAdminMixin, admin.ModelAdmin):
                         item["nivel_display"], item["escola"],
                         *(classe.nome for classe in selected_classes),
                     ) if tag]
+                    item["class_targets"] = [
+                        [classe.pk, classe.nome, classe.slug] for classe in selected_classes
+                    ]
                     proposed = {field: item[field] for field in self._spell_import_fields()
                                 if field != "classes"}
                     proposed["classes"] = ', '.join(classe.nome for classe in selected_classes)
