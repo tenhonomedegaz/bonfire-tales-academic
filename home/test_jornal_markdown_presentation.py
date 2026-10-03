@@ -96,6 +96,11 @@ class JornalMarkdownPresentationTests(StaticLiveServerTestCase):
                 call('Emulation.setDeviceMetricsOverride', {
                     'width': 360, 'height': 800, 'deviceScaleFactor': 1, 'mobile': True,
                 })
+                call('Page.navigate', {'url': self.live_server_url + reverse('mundo_jornal')})
+                wait_for('document.querySelectorAll(".jornal-card").length === 2')
+                self.assertLessEqual(js('document.documentElement.scrollWidth'), js('innerWidth'))
+                self.assertTrue(js('[...document.querySelectorAll(".jornal-card")].every(card => card.getBoundingClientRect().right <= document.documentElement.clientWidth)'))
+                self.assertNotIn('url(', js('getComputedStyle(document.querySelector(".jornal-hero")).backgroundImage'))
                 for article in (regular, atlas):
                     call('Page.navigate', {'url': self.live_server_url + reverse('jornal_detail', args=[article.slug])})
                     wait_for('document.querySelector("[data-jornal-markdown] strong") !== null')
