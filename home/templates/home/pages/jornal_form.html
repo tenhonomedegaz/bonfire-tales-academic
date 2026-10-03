@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/pages/jornal_form.css' %}?v=8">
+<link rel="stylesheet" href="{% static 'css/pages/jornal_form.css' %}?v=9">
 <link rel="stylesheet" href="{% static 'css/pages/jornal_detail.css' %}?v=9">
 {% endblock %}
 
@@ -67,7 +67,7 @@
       <span class="editor-status">Ctrl+Alt+C para cor</span>
     </div>
 
-    <div class="editor-split" style="grid-template-columns: 380px 1fr; gap: 1.5rem;">
+    <div class="editor-split">
       <div class="editor-panel">
         <div class="editor-panel-header">
           <h2>Texto</h2>
@@ -113,12 +113,11 @@
       container.classList.remove('artigo-layout--atlas', 'artigo-body--atlas');
     }
 
-    if (typeof renderBonfireMarkdownElement === 'function') {
-      renderBonfireMarkdownElement(preview, src);
-    } else if (typeof renderBonfireMarkdown === 'function') {
-      preview.innerHTML = renderBonfireMarkdown(src);
-    } else if (window.marked && typeof window.marked.parse === 'function') {
-      preview.innerHTML = applyMarkdownColorsToHtml(marked.parse(src, { breaks: true, gfm: true }));
+    if (typeof sanitizeBonfireMarkdownHtml === 'function' &&
+        typeof renderBonfireMarkdown === 'function' &&
+        (layout !== 'atlas' || typeof renderAtlasLayout === 'function')) {
+      const html = layout === 'atlas' ? renderAtlasLayout(src) : renderBonfireMarkdown(src);
+      preview.innerHTML = sanitizeBonfireMarkdownHtml(html);
     } else {
       preview.textContent = src;
     }

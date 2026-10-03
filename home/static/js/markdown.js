@@ -526,7 +526,7 @@ function sanitizeBonfireMarkdownHtml(html) {
         if (discardedTags.has(tag)) return document.createDocumentFragment();
         const element = safeTags.has(tag) ? document.createElement(tag) : document.createDocumentFragment();
         if (element.nodeType === Node.ELEMENT_NODE) {
-            const classes = [...node.classList].filter(name => /^(?:bonfire-[a-z0-9_-]+|md-ref)$/.test(name));
+            const classes = [...node.classList].filter(name => /^(?:(?:bonfire|atlas)-[a-z0-9_-]+|md-ref)$/.test(name));
             if (classes.length) element.className = classes.join(' ');
             if (node.hasAttribute('title')) element.title = node.getAttribute('title');
             if (tag === 'a') {

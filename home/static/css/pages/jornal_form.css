@@ -48,7 +48,7 @@
 .editor-split {
   display: grid;
   gap: 1rem;
-  grid-template-columns: 380px 1fr;
+  grid-template-columns: 380px minmax(0, 1fr);
   min-height: 500px;
 }
 .editor-toolbar {

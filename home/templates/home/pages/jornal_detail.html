@@ -25,7 +25,7 @@
 
 <div class="artigo-layout{% if artigo.layout == 'colunas' %} artigo-layout--colunas{% endif %}{% if artigo.layout == 'atlas' %} artigo-layout--atlas{% endif %}" data-artigo-layout="{{ artigo.layout }}">
   <div class="artigo-body{% if artigo.layout == 'colunas' %} artigo-body--colunas{% endif %}{% if artigo.layout == 'atlas' %} artigo-body--atlas{% endif %}">
-    <div class="bonfire-markdown{% if artigo.layout == 'atlas' %} atlas-markdown{% endif %}" data-markdown-source{% if artigo.layout == 'atlas' %} data-atlas-mode="true"{% endif %}>{{ artigo.conteudo_markdown|escape }}</div>
+    <div class="bonfire-markdown{% if artigo.layout == 'atlas' %} atlas-markdown{% endif %}" data-jornal-markdown data-markdown-source data-markdown-manual="true"{% if artigo.layout == 'atlas' %} data-atlas-mode="true"{% endif %}>{{ artigo.conteudo_markdown|escape }}</div>
   </div>
 
   <a href="{% url 'mundo_jornal' %}" class="artigo-back">
@@ -78,4 +78,18 @@
   </script>
   {% endif %}
 </div>
+<script>
+  (() => {
+    const article = document.querySelector('[data-jornal-markdown]');
+    if (!article) return;
+    const source = article.textContent;
+    if (typeof sanitizeBonfireMarkdownHtml === 'function' &&
+        typeof renderBonfireMarkdown === 'function' &&
+        (article.dataset.atlasMode !== 'true' || typeof renderAtlasLayout === 'function')) {
+      const html = article.dataset.atlasMode === 'true'
+        ? renderAtlasLayout(source) : renderBonfireMarkdown(source);
+      article.innerHTML = sanitizeBonfireMarkdownHtml(html);
+    }
+  })();
+</script>
 {% endblock %}
