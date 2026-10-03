@@ -191,9 +191,73 @@
   /* ─────────────────── troca de personagem ativo ─────────────────── */
   var seletor = root.querySelector('[data-shop-personagem]');
   if (seletor) {
+    var personagemAtivo = seletor.value;
+    var trocaSequencia = 0;
+    var trocaPendente = false;
+    history.replaceState(Object.assign({}, history.state, { mercadoPersonagem: personagemAtivo }), '');
+
+    function travarNegocios(travar) {
+      toArr(root.querySelectorAll('[data-shop-buy] button[type="submit"], [data-shop-sell] button[type="submit"]'))
+        .forEach(function (button) { button.disabled = travar; });
+    }
+
+    function trocarPersonagem(id, registrarHistorico) {
+      var sequencia = ++trocaSequencia;
+      trocaPendente = true;
+      travarNegocios(true);
+      var url = new URL(window.location.href);
+      url.searchParams.set('personagem', id);
+      fetch(url.href, { headers: { 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'same-origin' })
+        .then(function (response) {
+          if (!response.ok) throw new Error('Falha ao carregar o personagem.');
+          return response.text();
+        }).then(function (html) {
+          if (sequencia !== trocaSequencia) return;
+          var pagina = new DOMParser().parseFromString(html, 'text/html');
+          var novaLoja = pagina.querySelector('[data-shop-root]');
+          var novoSeletor = novaLoja && novaLoja.querySelector('[data-shop-personagem]');
+          var novaCarteira = novaLoja && novaLoja.querySelector('[data-shop-carteira]');
+          var novaVenda = novaLoja && novaLoja.querySelector('[data-shop-venda]');
+          var novaStore = novaLoja && novaLoja.querySelector('.mkt-store');
+          var store = root.querySelector('.mkt-store');
+          if (!novoSeletor || !novaCarteira || !novaVenda || !novaStore || !store || !carteira || !vendaBox) {
+            throw new Error('Balcão indisponível.');
+          }
+          personagemAtivo = novoSeletor.value;
+          seletor.value = personagemAtivo;
+          carteira.textContent = novaCarteira.textContent;
+          vendaBox.innerHTML = novaVenda.innerHTML;
+          store.innerHTML = novaStore.innerHTML;
+          var atual = linhaAtiva();
+          if (atual) selecionar(atual, true);
+          else garantirSelecao();
+          if (registrarHistorico) {
+            url.searchParams.set('personagem', personagemAtivo);
+            history.pushState(Object.assign({}, history.state, { mercadoPersonagem: personagemAtivo }), '', url.href);
+          }
+          trocaPendente = false;
+          travarNegocios(false);
+          avisar('Personagem ativo: ' + novoSeletor.selectedOptions[0].textContent + '.', true);
+        }).catch(function () {
+          if (sequencia !== trocaSequencia) return;
+          seletor.value = personagemAtivo;
+          trocaPendente = false;
+          travarNegocios(false);
+          avisar('Não foi possível trocar o personagem. Tente novamente.', false);
+        });
+    }
+
     seletor.addEventListener('change', function () {
-      var form = seletor.closest('form');
-      if (form) form.submit();
+      trocarPersonagem(seletor.value, true);
+    });
+    var pickerForm = seletor.closest('form');
+    if (pickerForm) pickerForm.addEventListener('submit', function (event) {
+      event.preventDefault();
+      if (seletor.value !== personagemAtivo && !trocaPendente) trocarPersonagem(seletor.value, true);
+    });
+    window.addEventListener('popstate', function (event) {
+      var anterior = event.state && event.state.mercadoPersonagem;
+      if (anterior && anterior !== personagemAtivo) trocarPersonagem(anterior, false);
     });
   }
 
@@ -217,6 +281,7 @@
     var form = ev.target.closest('form[data-shop-buy], form[data-shop-sell]');
     if (!form) return;
     ev.preventDefault();
+    if (trocaPendente) return;
     var vendendo = form.hasAttribute('data-shop-sell');
     var btn = form.querySelector('button[type="submit"]');
     var nome = btn ? (btn.getAttribute('data-nome') || 'mercadoria') : 'mercadoria';
