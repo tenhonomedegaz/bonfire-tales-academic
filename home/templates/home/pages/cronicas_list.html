@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/pages/cronicas_list.css' %}?v=3">
+<link rel="stylesheet" href="{% static 'css/pages/cronicas_list.css' %}?v=4">
 
 {% endblock %}
 
@@ -63,6 +63,7 @@
 <div class="cronicas-grid">
   {% for c in cronicas %}
   <a href="{% url 'cronica_detail' slug=c.slug %}" class="cronica-card">
+    {% if c.safe_image_url %}<img class="cronica-card-cover" src="{{ c.safe_image_url }}" alt="" loading="lazy">{% endif %}
     <span class="cronica-card-eyebrow">{{ c.territorio_label }}{% if c.regiao_label %} &middot; {{ c.regiao_label }}{% endif %}</span>
     <h2 class="cronica-card-title">{{ c.titulo }}</h2>
     {% if c.resumo %}<p class="cronica-card-summary">{{ c.resumo }}</p>{% endif %}

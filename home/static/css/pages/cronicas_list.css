@@ -111,6 +111,15 @@
   box-shadow: 0 8px 30px rgba(0,0,0,.4);
   transform: translateY(-2px);
 }
+.cronica-card-cover {
+  aspect-ratio: 16 / 9;
+  border-radius: 6px;
+  display: block;
+  margin-bottom: .75rem;
+  max-width: 100%;
+  object-fit: cover;
+  width: 100%;
+}
 .cronica-card-eyebrow {
   color: var(--ember);
   font-size: .65rem;

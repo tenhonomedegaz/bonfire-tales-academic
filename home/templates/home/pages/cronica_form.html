@@ -52,6 +52,11 @@
         <label for="edResumo">Resumo (breve descrição para a listagem)</label>
         <input id="edResumo" name="resumo" value="{{ cronica.resumo|default:'' }}" placeholder="Em poucas palavras, sobre o que é esta crônica..." maxlength="300">
       </div>
+      <div class="editor-field full">
+        <label for="edImagemUrl">URL da capa (opcional)</label>
+        <input id="edImagemUrl" name="imagem_url" type="text" inputmode="url" value="{{ cronica.imagem_url|default:'' }}" placeholder="https://exemplo.com/capa.jpg ou /media/capas/capa.jpg" maxlength="500">
+        <p class="editor-help">A capa aparece na listagem e na leitura após a aprovação da equipe.</p>
+      </div>
     </div>
 
     <div class="editor-toolbar">
@@ -274,6 +279,7 @@
       territorio: Array.from(territorioSelect.selectedOptions).map(opt => opt.value),
       regiao: Array.from(regiaoSelect.selectedOptions).filter(opt => !opt.hidden).map(opt => opt.value),
       resumo: document.getElementById('edResumo').value,
+      imagem_url: document.getElementById('edImagemUrl').value,
       conteudo_markdown: editor.value,
     };
     const csrf = form.querySelector('[name="csrfmiddlewaretoken"]').value;

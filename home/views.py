@@ -14855,6 +14855,9 @@ def _cronica_editor_error(fields):
     content = fields.get('conteudo_markdown')
     if not isinstance(content, str) or not content.strip():
         return 'Conteúdo é obrigatório.'
+    image_url = fields.get('imagem_url') or ''
+    if image_url.strip() and not _jornal_image_url(image_url):
+        return 'Informe uma URL de capa HTTP(S) ou um caminho /media/ ou /static/.'
     return None
 
 
@@ -14930,6 +14933,8 @@ def cronicas_list_view(request):
     highlights = TbCronica.objects.filter(status='aprovada', destaque_editorial=True).select_related('autor').order_by('-data_publicacao', '-pk')[:3]
     has_public_content = qs.exclude(conteudo_markdown='').exists()
     page = Paginator(qs.order_by('-data_publicacao', '-pk'), 20).get_page(request.GET.get('page'))
+    for cronica in page:
+        cronica.safe_image_url = _jornal_image_url(cronica.imagem_url)
     return render(request, 'home/pages/cronicas_list.html', {
         'cronicas': page,
         'page_obj': page,
@@ -14957,6 +14962,7 @@ def cronica_detail_view(request, slug):
     if cronica.status != 'aprovada':
         if not (can_review or (request.user.is_authenticated and cronica.autor == request.user)):
             raise Http404
+    cronica.safe_image_url = _jornal_image_url(cronica.imagem_url)
     comments = list(TbCronicaComentario.objects.filter(cronica=cronica)
                     .select_related('autor').order_by('criado_em', 'pk')[:150]) if cronica.status == 'aprovada' else []
     roots = []

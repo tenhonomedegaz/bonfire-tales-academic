@@ -14,6 +14,8 @@ from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.db import connection
 from django.urls import reverse
 
+from .models import TbCronica
+
 
 class EditorialMarkdownPreviewTests(StaticLiveServerTestCase):
     def test_admin_and_chronicle_previews_sanitize_and_fall_back_to_text(self):
@@ -32,6 +34,11 @@ class EditorialMarkdownPreviewTests(StaticLiveServerTestCase):
 
         editor = get_user_model().objects.create_superuser(
             'editor-preview-qa', 'editor-preview-qa@example.invalid', 'test-pass',
+        )
+        story = TbCronica.objects.create(
+            titulo='Crônica com capa', slug='cronica-com-capa-qa',
+            conteudo_markdown='Texto publicado', autor=editor, status='aprovada',
+            imagem_url='/static/assets/logo.png',
         )
         self.client.force_login(editor)
         with tempfile.TemporaryDirectory(prefix='bonfire-editorial-preview-', ignore_cleanup_errors=True) as scratch:
@@ -110,6 +117,34 @@ class EditorialMarkdownPreviewTests(StaticLiveServerTestCase):
                             document.querySelector(%s).dispatchEvent(new Event('input',{bubbles:true}));''' % json.dumps(textarea))
                         self.assertTrue(js(f'document.querySelector("{preview}").textContent.includes("**Seguro**")'))
                         self.assertFalse(js(f'!!document.querySelector("{preview} strong, {preview} img")'))
+                        if route == 'cronica_create':
+                            self.assertTrue(js('!!document.querySelector("#edImagemUrl")'))
+                            js('''(() => {
+                                document.querySelector('#edTitulo').value='Capa de QA';
+                                document.querySelector('#edImagemUrl').value='/static/assets/logo.png';
+                                window.fetch=async (_url, options) => {
+                                    window.qaCoverPayload=JSON.parse(options.body);
+                                    return new Response(JSON.stringify({error:'QA'}), {
+                                        status:400, headers:{'Content-Type':'application/json'}
+                                    });
+                                };
+                                document.querySelector('#cronicaEditorForm').requestSubmit();
+                            })()''')
+                            until('!!window.qaCoverPayload')
+                            self.assertEqual(js('window.qaCoverPayload.imagem_url'), '/static/assets/logo.png')
+                call('Emulation.setDeviceMetricsOverride', {
+                    'width': 360, 'height': 800, 'deviceScaleFactor': 1, 'mobile': True,
+                })
+                for route, selector in (
+                    ('mundo_cronicas', '.cronica-card-cover'),
+                    ('cronica_detail', '.cronica-hero-cover'),
+                ):
+                    url = reverse(route, args=[story.slug]) if route == 'cronica_detail' else reverse(route)
+                    call('Page.navigate', {'url': self.live_server_url + url})
+                    until(f'document.readyState==="complete" && !!document.querySelector("{selector}")')
+                    until(f'document.querySelector("{selector}").naturalWidth > 0')
+                    self.assertTrue(js(f'document.querySelector("{selector}").getBoundingClientRect().width <= document.documentElement.clientWidth'))
+                    self.assertTrue(js('document.documentElement.scrollWidth <= document.documentElement.clientWidth'))
             finally:
                 if ws:
                     ws.close()

@@ -2,12 +2,13 @@
 {% load static %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/pages/cronica_detail.css' %}?v=2">
+<link rel="stylesheet" href="{% static 'css/pages/cronica_detail.css' %}?v=3">
 
 {% endblock %}
 
 {% block content %}
 <div class="cronica-hero">
+  {% if cronica.safe_image_url %}<img class="cronica-hero-cover" src="{{ cronica.safe_image_url }}" alt="">{% endif %}
   <span class="cronica-eyebrow">{{ cronica.territorio_label }}{% if cronica.regiao_label %} &middot; {{ cronica.regiao_label }}{% endif %}</span>
   <h1 class="cronica-title">{{ cronica.titulo }}</h1>
   <div class="cronica-meta">
