@@ -43,6 +43,7 @@ class BackgroundCatalogTests(TestCase):
 class BackgroundCatalogBrowserTests(StaticLiveServerTestCase):
     def test_direct_link_selection_search_and_history_on_mobile(self):
         import json
+        import math
         import shutil
         import subprocess
         import tempfile
@@ -67,11 +68,17 @@ class BackgroundCatalogBrowserTests(StaticLiveServerTestCase):
         for name, slug, kind in [('Artesão', 'artesao', 'Ofício'), ('Eremita', 'eremita', 'Retiro'), ('Viajante', 'viajante', 'Ofício')]:
             TbAntecedente.objects.create(nome=name, slug=slug, tipo=kind, descricao=f'História de {name}.')
 
-        with tempfile.TemporaryDirectory(prefix='bonfire-backgrounds-', ignore_cleanup_errors=True) as profile:
+        with tempfile.TemporaryDirectory(prefix='bonfire-backgrounds-', ignore_cleanup_errors=True) as scratch:
+            profile = Path(scratch) / 'profile'
+            prefs = profile / 'Default' / 'Preferences'
+            prefs.parent.mkdir(parents=True)
+            prefs.write_text(json.dumps({
+                'partition': {'default_zoom_level': {'x': math.log(2) / math.log(1.2)}}
+            }), encoding='utf-8')
             process = subprocess.Popen([
                 chrome, '--headless=new', '--no-sandbox', '--disable-gpu',
                 '--remote-debugging-port=0', '--remote-allow-origins=*',
-                f'--user-data-dir={profile}', 'about:blank',
+                f'--user-data-dir={profile}', '--window-size=800,900', 'about:blank',
             ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             ws = None
             try:
@@ -141,6 +148,22 @@ class BackgroundCatalogBrowserTests(StaticLiveServerTestCase):
                 self.assertLessEqual(js('document.documentElement.scrollWidth'), js('innerWidth'))
                 js('location.assign("?tipo=Retiro#eremita")')
                 wait_for('document.querySelector("#catalogType")?.value === "Retiro" && document.querySelector(".detail-title")?.textContent === "Eremita"')
+                sequence += 1
+                ws.send(json.dumps({'id': sequence, 'method': 'Emulation.clearDeviceMetricsOverride'}))
+                while json.loads(ws.recv()).get('id') != sequence:
+                    pass
+                js('location.assign("' + reverse('jogador_antecedente') + '#artesao")')
+                wait_for('document.querySelector(".detail-title")?.textContent === "Artesão"')
+                self.assertAlmostEqual(js('devicePixelRatio'), 2, delta=.05)
+                self.assertEqual(js('visualViewport.scale'), 1)
+                self.assertFalse(js('document.querySelector(".catalog-intro-box").open'))
+                self.assertLess(js('document.querySelector(".catalog-grid").getBoundingClientRect().top'), js('innerHeight'))
+                self.assertLessEqual(js('document.documentElement.scrollWidth'), js('document.documentElement.clientWidth'))
+                js('document.querySelector(".catalog-intro-box summary").click()')
+                self.assertTrue(js('document.querySelector(".catalog-intro-box").open'))
+                self.assertTrue(js('document.querySelector(".catalog-intro-content").getBoundingClientRect().height > 0'))
+                js('document.querySelector(".catalog-intro-box summary").click()')
+                self.assertFalse(js('document.querySelector(".catalog-intro-box").open'))
             finally:
                 if ws:
                     ws.close()
