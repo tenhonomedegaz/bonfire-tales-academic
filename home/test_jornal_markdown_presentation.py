@@ -133,6 +133,18 @@ class JornalMarkdownPresentationTests(StaticLiveServerTestCase):
                 self.assertEqual(js('document.querySelector("#edPreviewTitle").textContent'), 'Prévia do Jornal')
                 self.assertFalse(js('document.querySelector("#edPreviewCover").hidden'))
                 self.assertEqual(js('document.querySelector("#edPreviewCoverImage").getAttribute("src")'), '/static/assets/logo.png')
+                self.assertTrue(js('document.querySelector("#edPreviewFeatured").hidden'))
+                self.assertEqual(js('getComputedStyle(document.querySelector("#edPreviewFeatured")).display'), 'none')
+                js('''document.querySelector('#edResumo').value = 'Resumo inicial';
+                    document.querySelector('#edResumo').dispatchEvent(new Event('input'));
+                    document.querySelector('#edDestaque').value = 'true';
+                    document.querySelector('#edDestaque').dispatchEvent(new Event('change'));
+                    document.querySelector('#edDataPublicacao').value = '2024-04-15T10:30';
+                    document.querySelector('#edDataPublicacao').dispatchEvent(new Event('input'));''')
+                self.assertFalse(js('document.querySelector("#edPreviewFeatured").hidden'))
+                self.assertNotEqual(js('getComputedStyle(document.querySelector("#edPreviewFeatured")).display'), 'none')
+                self.assertEqual(js('document.querySelector("#edPreviewDate").textContent'), '15/04/2024')
+                self.assertIn('Resumo inicial', js('document.querySelector("#edPreviewSummary").textContent'))
                 js('''document.querySelector('#edImagem').value = 'javascript:alert(1)';
                     document.querySelector('#edImagem').dispatchEvent(new Event('input'));''')
                 self.assertTrue(js('document.querySelector("#edPreviewCover").hidden'))
@@ -164,7 +176,11 @@ class JornalMarkdownPresentationTests(StaticLiveServerTestCase):
                 self.assertEqual(created.conteudo_markdown, '**Publicado** no editor')
                 self.assertEqual(created.resumo, 'Resumo inicial')
                 self.assertEqual(created.imagem_url, '/static/assets/logo.png')
+                self.assertTrue(created.destaque)
+                self.assertEqual(created.data_publicacao.year, 2024)
                 self.assertIn('/static/assets/logo.png', js('getComputedStyle(document.querySelector(".artigo-hero")).backgroundImage'))
+                self.assertIn('2024', js('document.querySelector(".artigo-meta").textContent'))
+                self.assertContains(self.client.get(reverse('mundo_jornal')), 'jornal-badge-destaque')
 
                 self.assertTrue(js('!!document.querySelector("#articleForm [name=csrfmiddlewaretoken]").value'))
                 js('''(() => {

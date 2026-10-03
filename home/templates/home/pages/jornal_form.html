@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/pages/jornal_form.css' %}?v=11">
+<link rel="stylesheet" href="{% static 'css/pages/jornal_form.css' %}?v=12">
 <link rel="stylesheet" href="{% static 'css/pages/jornal_detail.css' %}?v=13">
 {% endblock %}
 
@@ -86,8 +86,10 @@
             <img id="edPreviewCoverImage" alt="">
           </div>
           <div class="editor-preview-heading">
+            <span id="edPreviewFeatured" class="editor-preview-featured" hidden>Destaque na listagem</span>
             <h3 id="edPreviewTitle"></h3>
-            <span>Por {{ request.user.username }}</span>
+            <span>Por {{ request.user.username }} · <span id="edPreviewDate"></span></span>
+            <p id="edPreviewSummary" hidden></p>
           </div>
           <div id="edPreview" class="editor-preview bonfire-markdown"></div>
         </div>
@@ -110,6 +112,9 @@
   const previewTitle = document.getElementById('edPreviewTitle');
   const previewCover = document.getElementById('edPreviewCover');
   const previewCoverImage = document.getElementById('edPreviewCoverImage');
+  const previewFeatured = document.getElementById('edPreviewFeatured');
+  const previewDate = document.getElementById('edPreviewDate');
+  const previewSummary = document.getElementById('edPreviewSummary');
 
   function previewImageUrl(value) {
     const url = value.trim();
@@ -129,6 +134,13 @@
     const layout = document.getElementById('edLayout').value;
     const container = document.getElementById('edPreviewContainer');
     previewTitle.textContent = document.getElementById('edTitulo').value.trim() || 'Título do artigo';
+    const selectedDate = document.getElementById('edDataPublicacao').value.split('T')[0];
+    previewDate.textContent = /^\d{4}-\d{2}-\d{2}$/.test(selectedDate)
+      ? selectedDate.split('-').reverse().join('/') : 'data definida ao publicar';
+    previewFeatured.hidden = document.getElementById('edDestaque').value !== 'true';
+    const summary = document.getElementById('edResumo').value.trim();
+    previewSummary.textContent = summary ? `Resumo na listagem: ${summary}` : '';
+    previewSummary.hidden = !summary;
     const coverUrl = layout === 'atlas' ? '' : previewImageUrl(document.getElementById('edImagem').value);
     previewCover.hidden = !coverUrl;
     if (coverUrl) previewCoverImage.src = coverUrl;
@@ -155,6 +167,9 @@
   document.getElementById('edLayout').addEventListener('change', renderPreview);
   document.getElementById('edTitulo').addEventListener('input', renderPreview);
   document.getElementById('edImagem').addEventListener('input', renderPreview);
+  document.getElementById('edResumo').addEventListener('input', renderPreview);
+  document.getElementById('edDestaque').addEventListener('change', renderPreview);
+  document.getElementById('edDataPublicacao').addEventListener('input', renderPreview);
 
   editor.addEventListener('input', renderPreview);
   renderPreview();
