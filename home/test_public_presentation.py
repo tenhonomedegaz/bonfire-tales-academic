@@ -96,6 +96,46 @@ class PublicPresentationTests(TestCase):
         self.assertContains(response, 'name="description"')
         self.assertContains(response, 'rel="canonical"')
 
+    def test_home_editorial_actions_reject_unsafe_saved_links_and_keep_safe_ones(self):
+        from .admin import _ConteudoEstaticoForm
+
+        unsafe = ('javascript:alert(1)', '//outside.example/path', '/\\outside.example',
+                  'https://user:secret@example.com/path', 'https://example.com/\nnext')
+        for value in unsafe:
+            with self.subTest(value=value):
+                form = _ConteudoEstaticoForm(data={
+                    'chave': 'home-test', 'pagina': 'home', 'cta_url': value,
+                    'ordem': '0', 'ativo': 'on',
+                })
+                self.assertFalse(form.is_valid())
+                self.assertIn('cta_url', form.errors)
+        self.assertTrue(_ConteudoEstaticoForm(data={
+            'chave': 'home-test', 'pagina': 'home', 'cta_url': 'https://example.com/community',
+            'ordem': '0', 'ativo': 'on',
+        }).is_valid())
+
+        links = {
+            'home-hero': 'javascript:alert(1)',
+            'home-jornada': '//outside.example/path',
+            'home-atlas': '/\\outside.example',
+            'home-apoio': 'data:text/html,unsafe',
+        }
+        for chave, value in links.items():
+            TbConteudoEstatico.objects.filter(chave=chave).update(cta_url=value)
+        response = self.client.get(reverse('home'))
+        self.assertContains(response, 'href="https://discord.gg/eyqe7rj2AX"')
+        self.assertContains(response, 'id="home-next-step" href="%s"' % reverse('register'))
+        self.assertContains(response, 'href="%s"' % reverse('mapa'))
+        self.assertContains(response, 'href="%s"' % reverse('colaborador'))
+        for value in links.values():
+            self.assertNotContains(response, 'href="%s"' % value)
+
+        TbConteudoEstatico.objects.filter(chave='home-hero').update(cta_url='https://example.com/community')
+        TbConteudoEstatico.objects.filter(chave='home-atlas').update(cta_url='/mapa/?camada=politica')
+        safe_response = self.client.get(reverse('home'))
+        self.assertContains(safe_response, 'href="https://example.com/community"')
+        self.assertContains(safe_response, 'href="/mapa/?camada=politica"')
+
     @override_settings(
         ADSENSE_ENABLED=True,
         ADSENSE_SIDEBAR_SLOT='1234567890',

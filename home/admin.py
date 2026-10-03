@@ -3918,8 +3918,23 @@ def _bonfire_admin_get_app_list(request, app_label=None):
 admin.site.get_app_list = _bonfire_admin_get_app_list
 
 
+class _ConteudoEstaticoForm(forms.ModelForm):
+    class Meta:
+        model = TbConteudoEstatico
+        fields = '__all__'
+
+    def clean_cta_url(self):
+        from .editorial_links import safe_editorial_link
+
+        value = self.cleaned_data.get('cta_url', '')
+        if value and not safe_editorial_link(value):
+            raise forms.ValidationError('Use um caminho local iniciado por / ou uma URL HTTP(S) válida.')
+        return value
+
+
 @admin.register(TbConteudoEstatico)
 class TbConteudoEstaticoAdmin(admin.ModelAdmin):
+    form = _ConteudoEstaticoForm
     list_display = ('pagina', 'ordem', 'titulo', 'chave', 'ativo', 'atualizado_em')
     list_filter = ('pagina', 'ativo')
     list_editable = ('ordem', 'ativo')

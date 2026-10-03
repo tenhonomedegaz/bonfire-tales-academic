@@ -557,6 +557,7 @@ def _site_traco(doc):
 
 def home_view(request):
     from .models import TbConteudoEstatico
+    from .editorial_links import safe_editorial_link
 
     ultimas_cronicas = (
         TbCronica.objects.filter(status='aprovada', data_publicacao__isnull=False)
@@ -574,6 +575,11 @@ def home_view(request):
         bloco.chave: bloco
         for bloco in TbConteudoEstatico.objects.filter(pagina='home', ativo=True)
     }
+    hero = blocos.get('home-hero')
+    jornada = blocos.get('home-jornada')
+    atlas = blocos.get('home-atlas')
+    apoio = blocos.get('home-apoio')
+    jornada_destino = safe_editorial_link(jornada.cta_url) if jornada else ''
     return render(request, 'home/pages/home.html', {
         'page_title': 'Bonfire Tales',
         'meta_description': (
@@ -584,10 +590,15 @@ def home_view(request):
         'ads_enabled': True,
         'ultimas_cronicas': ultimas_cronicas,
         'meus_personagens': meus_personagens,
-        'hero': blocos.get('home-hero'),
-        'jornada': blocos.get('home-jornada'),
-        'atlas': blocos.get('home-atlas'),
-        'apoio': blocos.get('home-apoio'),
+        'hero': hero,
+        'jornada': jornada,
+        'atlas': atlas,
+        'apoio': apoio,
+        'hero_cta_url': (safe_editorial_link(hero.cta_url) if hero else '') or 'https://discord.gg/eyqe7rj2AX',
+        'jornada_cta_url': jornada_destino or reverse('register'),
+        'jornada_cta_texto': (jornada.cta_texto if jornada and jornada_destino and jornada.cta_texto else 'Criar conta para jogar'),
+        'atlas_cta_url': (safe_editorial_link(atlas.cta_url) if atlas else '') or reverse('mapa'),
+        'apoio_cta_url': (safe_editorial_link(apoio.cta_url) if apoio else '') or reverse('colaborador'),
     })
 
 
