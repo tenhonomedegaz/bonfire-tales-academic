@@ -103,6 +103,8 @@ class JornalInlineBrowserTests(StaticLiveServerTestCase):
                 detail_url = self.live_server_url + reverse('jornal_detail', args=[article.slug])
                 call('Page.navigate', {'url': detail_url})
                 until("document.readyState === 'complete' && !!document.querySelector('#articleForm')")
+                self.assertTrue(js("document.querySelector('.artigo-hero').classList.contains('artigo-hero--text')"))
+                self.assertLess(js("document.querySelector('.artigo-hero').getBoundingClientRect().height"), 250)
                 self.assertNotIn('Editado em', js("document.querySelector('.artigo-meta').textContent"))
                 open_editor()
                 self.assertEqual(js("document.querySelector('[name=layout]').value"), 'padrao')
@@ -155,6 +157,13 @@ class JornalInlineBrowserTests(StaticLiveServerTestCase):
                 self.assertEqual(article.layout, 'colunas')
                 self.assertEqual(timezone.localtime(article.data_publicacao).replace(tzinfo=None),
                                  datetime(2024, 5, 20, 12, 0))
+
+                article.imagem_url = '/static/assets/logo.png'
+                article.save(update_fields=['imagem_url'])
+                call('Page.navigate', {'url': detail_url})
+                until("document.readyState === 'complete' && !!document.querySelector('.artigo-hero')")
+                self.assertFalse(js("document.querySelector('.artigo-hero').classList.contains('artigo-hero--text')"))
+                self.assertGreaterEqual(js("document.querySelector('.artigo-hero').getBoundingClientRect().height"), 340)
             finally:
                 if ws:
                     ws.close()

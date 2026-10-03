@@ -2,13 +2,13 @@
 {% load static %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/pages/jornal_detail.css' %}?v=13">
+<link rel="stylesheet" href="{% static 'css/pages/jornal_detail.css' %}?v=14">
 
 {% endblock %}
 
 {% block content %}
 {% if artigo.layout != 'atlas' %}
-<div class="artigo-hero"{% if artigo.safe_image_url %} style="--hero-bg: url('{{ artigo.safe_image_url }}')"{% endif %}>
+<div class="artigo-hero{% if not artigo.safe_image_url %} artigo-hero--text{% endif %}"{% if artigo.safe_image_url %} style="--hero-bg: url('{{ artigo.safe_image_url }}')"{% endif %}>
   <span class="artigo-eyebrow">Jornal de Cinéria</span>
   <h1 class="artigo-title">{{ artigo.titulo }}</h1>
   <div class="artigo-meta">
