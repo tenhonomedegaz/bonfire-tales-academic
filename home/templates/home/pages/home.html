@@ -1,6 +1,10 @@
 {% extends 'home/base.html' %}
 {% load static %}
 
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/pages/home.css' %}?v=1">
+{% endblock %}
+
 {% block content %}
 <section class="relative -mx-3 -mt-4 overflow-hidden border-b border-[var(--stroke)] md:-mx-5">
   {% if hero_image_url %}
@@ -77,9 +81,9 @@
   <div class="grid items-center gap-7 lg:grid-cols-2">
     <a href="{% url 'mapa' %}" class="group block overflow-hidden border border-[var(--stroke)] bg-black">
       {% if atlas_image_url %}
-      <img src="{{ atlas_image_url }}" alt="{{ atlas.titulo|default:'Atlas interativo de Cinéria' }}" class="aspect-[16/10] h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
+      <img src="{{ atlas_image_url }}" alt="{{ atlas.titulo|default:'Atlas interativo de Cinéria' }}" class="home-atlas-preview aspect-[16/10] h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
       {% else %}
-      <img src="{% static 'assets/cineria.jpg' %}" alt="Prévia do atlas interativo de Cinéria" class="aspect-[16/10] h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
+      <img src="{% static 'assets/cineria.jpg' %}" alt="Prévia do atlas interativo de Cinéria" class="home-atlas-preview aspect-[16/10] h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
       {% endif %}
     </a>
     <div>
