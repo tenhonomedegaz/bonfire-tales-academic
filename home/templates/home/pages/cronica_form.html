@@ -13,6 +13,7 @@
     <p>Narre os acontecimentos vividos pelo seu personagem. Após submeter, um membro da equipe aprovará sua crônica.</p>
   </div>
   {% if is_published %}<div class="editor-info-box">A versão publicada continua visível até a equipe aprovar esta edição.</div>{% endif %}
+  {% if is_hidden %}<div class="editor-info-box">Esta crônica está oculta pela moderação. Sua edição aguardará revisão; restaurar a crônica não publicará o novo texto automaticamente.</div>{% endif %}
   {% if review_feedback %}<div class="editor-info-box"><strong>Feedback da revisão:</strong> {{ review_feedback }}</div>{% endif %}
 
   <div class="editor-info-box">

@@ -31,7 +31,7 @@
   </form>
   {% endif %}
   {% if revisao_edicao.estado == 'pendente' %}
-  <div class="cronica-status-banner pendente">Uma edição desta crônica aguarda revisão. O texto publicado permanece visível.</div>
+  <div class="cronica-status-banner pendente">Uma edição desta crônica aguarda revisão. {% if cronica.status == 'oculta' %}A crônica continua oculta pela moderação.{% else %}O texto publicado permanece visível.{% endif %}</div>
   {% elif revisao_edicao.estado == 'reprovada' %}
   <div class="cronica-status-banner reprovada">A edição proposta foi devolvida para ajustes. {{ revisao_edicao.feedback }} <a href="{% url 'cronica_edit' slug=cronica.slug %}">Editar</a></div>
   {% endif %}

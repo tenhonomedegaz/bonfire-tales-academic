@@ -8,7 +8,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.test import TestCase
 from django.urls import reverse
 
-from home.models import TbCronica, TbRegiao, TbTerritorio
+from home.models import TbCronica, TbCronicaDenuncia, TbRegiao, TbTerritorio
 from home.views import _cronica_author_snapshot, _cronica_pending_snapshot
 
 
@@ -136,6 +136,62 @@ class CronicaRevisionTests(TestCase):
         detail = self.client.get(reverse('cronica_detail', args=[self.cronica.slug]))
         self.assertEqual(detail.status_code, 200)
         self.assertTrue(detail.context['can_edit_wiki'])
+
+    def test_hidden_story_author_edit_waits_for_review_after_restoration(self):
+        moderator = get_user_model().objects.create_user(
+            'moderator-hidden-edit', password='senha', is_staff=True,
+        )
+        moderator.user_permissions.add(Permission.objects.get(
+            codename='change_tbcronicadenuncia', content_type__app_label='home',
+        ))
+        report = TbCronicaDenuncia.objects.create(
+            cronica=self.cronica, denunciante=self.outro,
+            motivo='Revisar conteúdo', alvo_snapshot=self.cronica.conteudo_markdown,
+        )
+        moderation_url = reverse('cronica_moderar_denuncia', args=[report.pk])
+        self.client.force_login(moderator)
+        self.assertEqual(self.client.post(moderation_url, {'action': 'ocultar'}).status_code, 302)
+
+        self.client.force_login(self.autor)
+        self.assertContains(self.client.get(reverse('cronica_edit', args=[self.cronica.slug])),
+                            'Esta crônica está oculta pela moderação')
+        self.assertEqual(self.edit(content='Texto ainda não revisado').status_code, 200)
+        self.cronica.refresh_from_db()
+        revision = self.cronica.revisao_edicao['submetida_em']
+        self.assertEqual(self.cronica.status, 'oculta')
+        self.assertEqual(self.cronica.conteudo_markdown, 'Texto publicado')
+        self.assertEqual(self.cronica.revisao_edicao['conteudo_markdown'], 'Texto ainda não revisado')
+        self.assertEqual(self.edit(content='Texto ainda não revisado').status_code, 200)
+        self.cronica.refresh_from_db()
+        self.assertEqual(self.cronica.revisao_edicao['submetida_em'], revision)
+        self.assertContains(self.client.get(reverse('cronica_edit', args=[self.cronica.slug])),
+                            'Texto ainda não revisado')
+        self.assertContains(self.client.get(reverse('cronica_detail', args=[self.cronica.slug])),
+                            'A crônica continua oculta pela moderação.')
+        self.client.force_login(self.staff)
+        self.assertEqual(self.review('aprovar', expected_revision=revision).status_code, 409)
+        self.client.logout()
+        self.assertEqual(self.client.get(reverse('cronica_detail', args=[self.cronica.slug])).status_code, 404)
+
+        self.client.force_login(moderator)
+        self.assertEqual(self.client.post(moderation_url, {'action': 'restaurar'}).status_code, 302)
+        self.cronica.refresh_from_db()
+        self.assertEqual(self.cronica.status, 'aprovada')
+        self.assertEqual(self.cronica.conteudo_markdown, 'Texto publicado')
+        self.client.logout()
+        public = self.client.get(reverse('cronica_detail', args=[self.cronica.slug]))
+        self.assertContains(public, 'Texto publicado')
+        self.assertNotContains(public, 'Texto ainda não revisado')
+
+        self.client.force_login(self.staff)
+        self.assertContains(self.client.get(reverse('cronicas_review')),
+                            'Texto ainda não revisado')
+        self.assertEqual(self.review('aprovar', expected_revision=revision).status_code, 200)
+        self.cronica.refresh_from_db()
+        self.assertEqual(self.cronica.conteudo_markdown, 'Texto ainda não revisado')
+        self.client.logout()
+        self.assertContains(self.client.get(reverse('cronica_detail', args=[self.cronica.slug])),
+                            'Texto ainda não revisado')
 
     def test_generic_staff_cannot_review_or_publish(self):
         self.edit(content='Edição privada pendente')

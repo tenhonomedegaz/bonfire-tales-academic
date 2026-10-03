@@ -15603,7 +15603,7 @@ def cronica_edit_view(request, slug):
                 raise Http404
             if data.get('expected_edit') != _cronica_author_snapshot(cronica):
                 return JsonResponse({'error': 'A crônica mudou. Recarregue o editor antes de salvar.'}, status=409)
-            source = cronica.revisao_edicao if cronica.status == 'aprovada' else {}
+            source = cronica.revisao_edicao if cronica.status in ('aprovada', 'oculta') else {}
             territorio = data.get('territorio', source.get('territorio', cronica.territorio))
             regiao = data.get('regiao', source.get('regiao', cronica.regiao))
             fields = {
@@ -15625,7 +15625,7 @@ def cronica_edit_view(request, slug):
             fields['conteudo_markdown'] = fields['conteudo_markdown'].strip()
             fields['territorio'] = _store_multi_value(territorio)
             fields['regiao'] = _store_multi_value(regiao)
-            if cronica.status == 'aprovada':
+            if cronica.status in ('aprovada', 'oculta'):
                 current = {name: source.get(name, getattr(cronica, name)) for name in fields}
                 if (not source or source.get('estado') == 'pendente') and all(
                     (value or '') == (current[name] or '') for name, value in fields.items()
@@ -15648,7 +15648,7 @@ def cronica_edit_view(request, slug):
     cronica = get_object_or_404(TbCronica, slug=slug)
     if cronica.autor_id != request.user.id:
         raise Http404
-    source = cronica.revisao_edicao if cronica.status == 'aprovada' else {}
+    source = cronica.revisao_edicao if cronica.status in ('aprovada', 'oculta') else {}
     editor_cronica = SimpleNamespace(**{
         name: source.get(name, getattr(cronica, name))
         for name in ('titulo', 'conteudo_markdown', 'resumo', 'imagem_url',
@@ -15663,6 +15663,7 @@ def cronica_edit_view(request, slug):
         'selected_regioes': _coerce_multi_value(editor_cronica.regiao),
         'review_feedback': source.get('feedback', ''),
         'is_published': cronica.status == 'aprovada',
+        'is_hidden': cronica.status == 'oculta',
         'edit_snapshot': _cronica_author_snapshot(cronica),
     })
 
