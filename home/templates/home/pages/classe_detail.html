@@ -242,10 +242,11 @@
 
 <script>
   function renderMarkdownContent(value) {
-    if (typeof renderBonfireMarkdown === 'function') return renderBonfireMarkdown(value);
+    if (typeof renderBonfireMarkdown === 'function' && typeof sanitizeBonfireMarkdownHtml === 'function') {
+      return sanitizeBonfireMarkdownHtml(renderBonfireMarkdown(value));
+    }
     const source = typeof normalizeMarkdown === 'function' ? normalizeMarkdown(value) : String(value || '');
-    if (window.marked && typeof window.marked.parse === 'function') return applyMarkdownColorsToHtml(marked.parse(source, { breaks: true, gfm: true }));
-    return applyMarkdownColorsToHtml(escapeHtml(source)).replace(/\n/g, '<br>');
+    return escapeHtml(source).replace(/\n/g, '<br>');
   }
 
   function initPage() {
