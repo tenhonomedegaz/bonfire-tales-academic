@@ -627,8 +627,8 @@
             if (!o) return;
 
             const descHtml = (o.descricao || '').trim()
-                ? (window.marked && typeof window.marked.parse === 'function'
-                    ? window.marked.parse(normalizeMarkdown(o.descricao), { breaks: true, gfm: true })
+                ? (typeof window.renderBonfireMarkdown === 'function' && typeof window.sanitizeBonfireMarkdownHtml === 'function'
+                    ? window.sanitizeBonfireMarkdownHtml(window.renderBonfireMarkdown(normalizeMarkdown(o.descricao)))
                     : `<p>${escapeHtml(o.descricao)}</p>`)
                 : '<em style="color:var(--muted)">Sem descrição.</em>';
 
