@@ -162,6 +162,7 @@ class OrganizationReferencesBrowserTests(StaticLiveServerTestCase):
         TbOrganizacao.objects.create(
             nome='Liga do Norte', slug='liga-do-norte', regioes=['Auralon', 'Desconhecida'],
             territorios=['Reino Auraliano'], aliados=['Casa da Luz'],
+            descricao='**Negrito** <img src=x onerror=alert(1)> [ruim](javascript:alert(1)) [bom](https://example.org)',
         )
         TbOrganizacao.objects.create(nome='Casa da Luz', slug='casa-da-luz')
 
@@ -211,6 +212,10 @@ class OrganizationReferencesBrowserTests(StaticLiveServerTestCase):
                 })
                 call('Page.navigate', {'url': self.live_server_url + reverse('mundo_organizacoes') + '#liga-do-norte'})
                 wait_for('document.querySelector(".catalog-detail .detail-title")?.textContent === "Liga do Norte"')
+                self.assertEqual(js('document.querySelectorAll(".catalog-detail script, .catalog-detail img[onerror]").length'), 0)
+                self.assertEqual(js('document.querySelectorAll(".catalog-detail a[href^=javascript]").length'), 0)
+                self.assertEqual(js('document.querySelectorAll(".catalog-detail strong").length'), 1)
+                self.assertEqual(js('document.querySelectorAll(".catalog-detail a[href=\\"https://example.org\\"]").length'), 1)
                 self.assertEqual(js('document.querySelectorAll(".detail-meta-value a[href=\\"/mundo/regioes/auralon/\\"]").length'), 1)
                 self.assertEqual(js('document.querySelectorAll(".detail-meta-value a[href=\\"/mundo/territorios/reino-auraliano/\\"]").length'), 1)
                 self.assertEqual(js('document.querySelectorAll(".detail-meta-value a[href=\\"#casa-da-luz\\"]").length'), 1)
@@ -220,6 +225,10 @@ class OrganizationReferencesBrowserTests(StaticLiveServerTestCase):
                 js('history.back()')
                 wait_for('location.hash === "#liga-do-norte" && document.querySelector(".detail-title")?.textContent === "Liga do Norte"')
                 self.assertLessEqual(js('document.documentElement.scrollWidth'), js('innerWidth'))
+                js('window.renderBonfireMarkdown = undefined; document.querySelector(".catalog-card.is-active").click()')
+                self.assertEqual(js('document.querySelectorAll(".catalog-detail img, .catalog-detail script, .catalog-detail a[href^=javascript]").length'), 0)
+                self.assertTrue(js('document.querySelector(".catalog-detail .bonfire-markdown").textContent.includes("<img src=x")'))
+                self.assertEqual(js('document.querySelectorAll(".detail-meta-value a[href=\\"/mundo/regioes/auralon/\\"]").length'), 1)
                 js('document.querySelector(".detail-meta-value a[href=\\"/mundo/regioes/auralon/\\"]").click()')
                 wait_for('location.pathname === "/mundo/regioes/auralon/" && document.readyState === "complete"')
                 self.assertTrue(js('document.body.textContent.includes("Auralon")'))

@@ -120,8 +120,9 @@
 
   function markdown(value) {
     if (!value) return '';
-    if (typeof renderBonfireMarkdown === 'function') return renderBonfireMarkdown(value);
-    if (window.marked?.parse) return window.marked.parse(value, { gfm: true, breaks: true });
+    if (typeof renderBonfireMarkdown === 'function' && typeof sanitizeBonfireMarkdownHtml === 'function') {
+      return sanitizeBonfireMarkdownHtml(renderBonfireMarkdown(value));
+    }
     return esc(value).replace(/\n/g, '<br>');
   }
 
