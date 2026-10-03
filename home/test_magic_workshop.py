@@ -3,7 +3,7 @@ import json
 from decimal import Decimal
 from unittest import mock
 
-from django.contrib.auth.models import User
+from django.contrib.auth.models import Permission, User
 from django.db import connection
 from django.test import TestCase
 from django.test.utils import CaptureQueriesContext
@@ -106,6 +106,9 @@ class MagicWorkshopTests(TestCase):
     def test_editor_inline_rejeita_classe_inexistente_e_sincroniza_validas(self):
         self.user.is_staff = True
         self.user.save(update_fields=['is_staff'])
+        self.user.user_permissions.add(Permission.objects.get(
+            content_type__app_label='home', codename='change_tbmagia',
+        ))
         self.client.force_login(self.user)
         url = reverse('wiki_update_spell', args=[self.spell.pk])
         payload = {

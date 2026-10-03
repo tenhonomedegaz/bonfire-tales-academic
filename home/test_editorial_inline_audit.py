@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 from django.contrib.admin.models import ADDITION, CHANGE, LogEntry
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.test import TestCase
 from django.urls import reverse
@@ -17,6 +18,9 @@ class EditorialInlineAuditTests(TestCase):
         self.editor = get_user_model().objects.create_user(
             'editor-auditoria-inline', password='test', is_staff=True,
         )
+        self.editor.user_permissions.add(Permission.objects.get(
+            content_type__app_label='home', codename='change_tbmagia',
+        ))
         self.client.force_login(self.editor)
 
     def post_json(self, url, payload):

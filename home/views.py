@@ -11132,6 +11132,7 @@ def wiki_update_magic_item(request, item_id):
 
 
 @staff_member_required
+@permission_required('home.change_tbmagia', raise_exception=True)
 @require_POST
 def wiki_update_spell(request, spell_id):
     """Editor inline de magia com acesso base limitado a classes cadastradas."""
@@ -12996,7 +12997,7 @@ def antecedentes_view(request):
 def magias_view(request):
     """Catálogo de magias com filtros avançados (classe, escola, nível, concentração, ritual) e
     modal de detalhe. Página dedicada (não usa o catálogo genérico)."""
-    can_edit = request.user.is_staff
+    can_edit = request.user.is_staff and request.user.has_perm('home.change_tbmagia')
     from .spell_access import spell_class_names, spell_class_slugs
     escolas = set()
     classes_magia = set()
