@@ -420,19 +420,19 @@
 
             item.innerHTML = `
                 <div class="flex-1">
-                    <h3 class="font-bold text-[13px] ${textClass} transition-colors">${talento.nome}</h3>
-                    <p class="text-xs text-bonfire-muted mt-0.5 uppercase tracking-wider">${etiquetaStr}</p>
+                    <h3 class="font-bold text-[13px] ${textClass} transition-colors">${escapeHtml(talento.nome)}</h3>
+                    <p class="text-xs text-bonfire-muted mt-0.5 uppercase tracking-wider">${escapeHtml(etiquetaStr)}</p>
                     ${etiquetasAdicionais.length ? `
                         <div class="flex flex-wrap gap-1 mt-1.5">
                             ${etiquetasAdicionais.slice(0, 3).map(tag => `
-                                <span class="text-[8.5px] text-bonfire-muted border border-bonfire-stroke px-1 py-0.5 rounded uppercase tracking-wide">${tag}</span>
+                                <span class="text-[8.5px] text-bonfire-muted border border-bonfire-stroke px-1 py-0.5 rounded uppercase tracking-wide">${escapeHtml(tag)}</span>
                             `).join('')}
                         </div>
                     ` : ''}
                 </div>
                 <div class="ml-2">
                     <span class="text-[9px] font-bold px-1.5 py-0.5 rounded border uppercase tracking-wide ${typeBadgeColor}">
-                        ${talento.tipo || ''}
+                        ${escapeHtml(talento.tipo || '')}
                     </span>
                 </div>
             `;
@@ -459,21 +459,21 @@
         detailContainer.innerHTML = `
             <div class="mb-2.5 flex flex-wrap items-center justify-between gap-2">
                 <div class="flex flex-wrap gap-2">
-                    <span class="text-[11px] font-bold px-1.5 py-0.5 rounded border border-bonfire-flame text-bonfire-flame uppercase tracking-wide">${talento.tipo}</span>
-                    <span class="text-[11px] font-bold px-1.5 py-0.5 rounded border border-bonfire-stroke text-bonfire-muted uppercase tracking-wide">${talento.etiqueta}</span>
-                    ${getExtraTags(talento).map(tag => `<span class="text-[11px] font-bold px-1.5 py-0.5 rounded border border-bonfire-stroke text-bonfire-muted uppercase tracking-wide">${tag}</span>`).join('')}
+                    <span class="text-[11px] font-bold px-1.5 py-0.5 rounded border border-bonfire-flame text-bonfire-flame uppercase tracking-wide">${escapeHtml(talento.tipo)}</span>
+                    <span class="text-[11px] font-bold px-1.5 py-0.5 rounded border border-bonfire-stroke text-bonfire-muted uppercase tracking-wide">${escapeHtml(talento.etiqueta)}</span>
+                    ${getExtraTags(talento).map(tag => `<span class="text-[11px] font-bold px-1.5 py-0.5 rounded border border-bonfire-stroke text-bonfire-muted uppercase tracking-wide">${escapeHtml(tag)}</span>`).join('')}
                 </div>
                 ${canEditWiki ? `<button type="button" class="wiki-edit-button" onclick="openTalentEditor(${talento.id})">Editar wiki</button>` : ''}
             </div>
 
-            <h2 id="talento-${talento.slug}" data-talent-title class="font-cinzel text-xl font-bold text-bonfire-text uppercase mb-2.5">${talento.nome}</h2>
+            <h2 id="talento-${escapeHtml(talento.slug)}" data-talent-title class="font-cinzel text-xl font-bold text-bonfire-text uppercase mb-2.5">${escapeHtml(talento.nome)}</h2>
             <div data-talent-editor></div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-4">
                 <div class="talent-info-card bg-bonfire-bg1 border border-bonfire-stroke rounded-md p-3">
                   <div>
                     <p class="text-[10px] text-bonfire-muted font-bold tracking-wider uppercase mb-1">Pré-Requisitos</p>
-                    <p class="text-bonfire-text font-medium text-[13px]">${talento.pre_requisito || 'Nenhum'}</p>
+                    <p class="text-bonfire-text font-medium text-[13px]">${escapeHtml(talento.pre_requisito || 'Nenhum')}</p>
                   </div>
                 </div>
                 <div class="talent-info-card bg-bonfire-bg1 border border-bonfire-stroke rounded-md p-3">
@@ -481,7 +481,7 @@
                     <p class="text-[10px] text-bonfire-muted font-bold tracking-wider uppercase mb-1">Aumento de Atributo</p>
                     <p class="text-bonfire-ember font-medium flex items-center gap-2">
                         <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd"></path></svg>
-                        ${talento.atributos_str}
+                        ${escapeHtml(talento.atributos_str)}
                     </p>
                   </div>
                 </div>
