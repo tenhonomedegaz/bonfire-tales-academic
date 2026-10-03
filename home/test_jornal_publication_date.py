@@ -70,3 +70,57 @@ class JornalPublicationDateTests(TestCase):
         article.refresh_from_db()
         self.assertEqual(timezone.localtime(article.data_publicacao).replace(tzinfo=None),
                          datetime(2024, 5, 20, 12, 0))
+
+    def test_inline_editor_changes_layout_and_date_without_rewriting_unchanged_date(self):
+        article = TbJornal.objects.create(
+            titulo='Edicao especial', slug='edicao-especial',
+            layout='padrao', conteudo_markdown='Texto original',
+            data_publicacao=timezone.make_aware(datetime(2024, 4, 15, 10, 30, 47)),
+        )
+        detail_url = reverse('jornal_detail', args=[article.slug])
+        update_url = reverse('jornal_update', args=[article.slug])
+        detail = self.client.get(detail_url)
+        self.assertContains(detail, '<select name="layout">', html=False)
+        self.assertContains(detail, '<option value="padrao" selected>', html=False)
+        self.assertContains(detail, 'type="datetime-local" name="data_publicacao"', html=False)
+        self.assertContains(detail, "layout: fd.get('layout')", html=False)
+        self.assertContains(detail, "data_publicacao: fd.get('data_publicacao')", html=False)
+
+        original_date = article.data_publicacao
+        original_version = article.data_edicao.isoformat()
+        changed = self.post_json(update_url, {
+            'layout': 'colunas', 'data_publicacao': '',
+            'expected_edit': original_version,
+        })
+        self.assertEqual(changed.status_code, 200)
+        article.refresh_from_db()
+        self.assertEqual(article.layout, 'colunas')
+        self.assertEqual(article.data_publicacao, original_date)
+        self.assertContains(self.client.get(detail_url), 'data-artigo-layout="colunas"')
+
+        version = article.data_edicao.isoformat()
+        changed = self.post_json(update_url, {
+            'layout': 'atlas', 'data_publicacao': '2024-05-20T12:00',
+            'expected_edit': version,
+        })
+        self.assertEqual(changed.status_code, 200)
+        article.refresh_from_db()
+        self.assertEqual(article.layout, 'atlas')
+        self.assertEqual(timezone.localtime(article.data_publicacao).replace(tzinfo=None),
+                         datetime(2024, 5, 20, 12, 0))
+        public = self.client.get(detail_url)
+        self.assertContains(public, 'data-artigo-layout="atlas"')
+        self.assertContains(public, '<option value="atlas" selected>', html=False)
+        listing = self.client.get(reverse('mundo_jornal'))
+        self.assertEqual(listing.status_code, 200)
+        self.assertEqual(listing.context['artigos'][0].data_publicacao, article.data_publicacao)
+
+        stale = self.post_json(update_url, {
+            'layout': 'padrao', 'data_publicacao': '2024-06-01T09:00',
+            'expected_edit': version,
+        })
+        self.assertEqual(stale.status_code, 409)
+        article.refresh_from_db()
+        self.assertEqual(article.layout, 'atlas')
+        self.assertEqual(timezone.localtime(article.data_publicacao).replace(tzinfo=None),
+                         datetime(2024, 5, 20, 12, 0))

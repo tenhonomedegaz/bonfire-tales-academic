@@ -112,6 +112,7 @@
   text-transform: uppercase;
 }
 .wiki-inline-editor input,
+.wiki-inline-editor select,
 .wiki-inline-editor textarea {
   background: var(--bg0);
   border: 1px solid var(--stroke);
@@ -122,6 +123,7 @@
   padding: .5rem .6rem;
 }
 .wiki-inline-editor textarea { min-height: 300px; resize: vertical; font-family: Consolas, monospace; }
+.wiki-inline-editor select { color-scheme: dark; }
 #articleSaveError { color: #ffb9a1; font-size: .85rem; }
 #articleSaveError[hidden] { display: none; }
 #articleSaveError:focus { outline: 2px solid #ffb9a1; outline-offset: 2px; }
@@ -145,7 +147,8 @@
   text-transform: uppercase;
 }
 .artigo-edit-btn:focus-visible, .wiki-inline-editor button:focus-visible,
-.wiki-inline-editor input:focus-visible, .wiki-inline-editor textarea:focus-visible {
+.wiki-inline-editor input:focus-visible, .wiki-inline-editor select:focus-visible,
+.wiki-inline-editor textarea:focus-visible {
   outline: 2px solid var(--ember);
   outline-offset: 2px;
 }

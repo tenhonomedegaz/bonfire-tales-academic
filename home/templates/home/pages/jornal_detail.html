@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/pages/jornal_detail.css' %}?v=11">
+<link rel="stylesheet" href="{% static 'css/pages/jornal_detail.css' %}?v=12">
 
 {% endblock %}
 
@@ -42,6 +42,16 @@
     <label>Título <input name="titulo" value="{{ artigo.titulo }}"></label>
     <label>Resumo <input name="resumo" value="{{ artigo.resumo|default:'' }}"></label>
     <label>URL da Imagem <input name="imagem_url" value="{{ artigo.imagem_url|default:'' }}"></label>
+    <label>Layout
+      <select name="layout">
+        <option value="padrao" {% if artigo.layout == 'padrao' %}selected{% endif %}>Padrão</option>
+        <option value="colunas" {% if artigo.layout == 'colunas' %}selected{% endif %}>Colunas</option>
+        <option value="atlas" {% if artigo.layout == 'atlas' %}selected{% endif %}>Atlas (Jornal)</option>
+      </select>
+    </label>
+    <label>Alterar data de publicação (deixe vazio para manter)
+      <input type="datetime-local" name="data_publicacao">
+    </label>
     <p id="articleSaveError" role="alert" tabindex="-1" hidden></p>
     <label>
       <span>Destaque</span>
@@ -88,6 +98,8 @@
         titulo: fd.get('titulo'),
         resumo: fd.get('resumo'),
         imagem_url: fd.get('imagem_url'),
+        layout: fd.get('layout'),
+        data_publicacao: fd.get('data_publicacao'),
         conteudo_markdown: fd.get('conteudo_markdown'),
         destaque: !!fd.get('destaque'),
         expected_edit: form.dataset.editorVersion,
