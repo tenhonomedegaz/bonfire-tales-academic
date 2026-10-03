@@ -56,7 +56,7 @@ class MapaViewsRegressionTests(TestCase):
         )
 
     def test_staff_sees_private_layer_and_content(self):
-        context = self._map_context(User(is_staff=True))
+        context = self._map_context(User.objects.create_user(username='staff-map', is_staff=True))
 
         layer_ids = {layer["id_layer"] for layer in context["json_layers"]}
         region_slugs = {region["slug"] for region in context["json_regions"]}
@@ -72,7 +72,7 @@ class MapaViewsRegressionTests(TestCase):
 
     def test_private_region_detail_works_for_staff(self):
         request = self.factory.get("/mundo/regioes/cidade-secreta/")
-        request.user = User(is_staff=True)
+        request.user = User.objects.create_user(username='staff-region', is_staff=True)
 
         with patch("home.views.render", return_value=HttpResponse("ok")) as render:
             response = regiao_detail_view(request, slug=self.private_region.slug)
@@ -81,7 +81,7 @@ class MapaViewsRegressionTests(TestCase):
         self.assertEqual(render.call_args.args[2]["regiao"], self.private_region)
 
     def test_underground_layer_without_image_uses_surface_image_as_placeholder(self):
-        context = self._map_context(User(is_staff=True))
+        context = self._map_context(User.objects.create_user(username='staff-layer', is_staff=True))
         underground = next(
             layer for layer in context["json_layers"] if layer["id_layer"] == 1
         )

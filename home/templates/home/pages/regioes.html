@@ -82,13 +82,13 @@
             <option value="{{ territory_name }}">{{ territory_name }}</option>
             {% endfor %}
           </select>
-          <button type="button" id="btnShowCreateTerritoryRegion" class="px-3 bg-[var(--bg0)] border border-[var(--stroke)] rounded text-sm font-bold text-[var(--ember)] hover:bg-white/5 transition-all" title="Criar Novo Território" style="cursor: pointer;">+</button>
+          {% if can_create_territory %}<button type="button" id="btnShowCreateTerritoryRegion" class="px-3 bg-[var(--bg0)] border border-[var(--stroke)] rounded text-sm font-bold text-[var(--ember)] hover:bg-white/5 transition-all" title="Criar Novo Território" style="cursor: pointer;">+</button>{% endif %}
         </div>
       </label>
     </div>
 
     <!-- Seção oculta para criação inline de território -->
-    <div id="createTerritorySectionRegion" style="display: none; border: 1px dashed var(--stroke); padding: .7rem; border-radius: 6px; background: var(--bg0);">
+    {% if can_create_territory %}<div id="createTerritorySectionRegion" style="display: none; border: 1px dashed var(--stroke); padding: .7rem; border-radius: 6px; background: var(--bg0);">
       <h4 class="font-cinzel text-xs font-bold text-[var(--ember)] uppercase tracking-wider mb-2">Criar Novo Território</h4>
       <div class="grid grid-cols-2 gap-2.5">
         <label class="grid gap-1 text-xs font-bold uppercase tracking-widest text-[var(--muted)]">Nome do Território
@@ -102,7 +102,7 @@
         <button type="button" id="btnCancelCreateTerritoryRegion" class="px-3 py-1.5 text-xs font-bold text-[var(--muted)] hover:text-white transition-colors" style="cursor: pointer;">Voltar</button>
         <button type="button" id="btnConfirmCreateTerritoryRegion" class="px-3 py-1.5 bg-[var(--ember)] text-white text-xs font-bold rounded hover:bg-[var(--flame)] transition-all" style="cursor: pointer; border: none;">Criar</button>
       </div>
-    </div>
+    </div>{% endif %}
 
     <label class="grid gap-1 text-xs font-bold uppercase tracking-widest text-[var(--muted)]">URL da imagem de fundo
       <input id="nr-imagem" type="text" class="bg-[var(--bg0)] border border-[var(--stroke)] rounded p-1.5 text-sm text-[var(--text)]">
@@ -137,7 +137,8 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   const currentLayer = Number('{{ active_layer|default:0 }}') || 0;
   document.getElementById('btnNewRegion')?.addEventListener('click', () => {
-    document.getElementById('createTerritorySectionRegion').style.display = 'none';
+    const territorySection = document.getElementById('createTerritorySectionRegion');
+    if (territorySection) territorySection.style.display = 'none';
     modal?.showModal();
   });
 

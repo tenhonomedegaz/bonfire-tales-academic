@@ -813,7 +813,10 @@
 
 <script>
 (function() {
-  const canEditWiki = {{ can_edit_wiki|yesno:"true,false" }};
+  const canEditRegion = {{ can_edit_region|yesno:"true,false" }};
+  const canEditTerritory = {{ can_edit_territory|yesno:"true,false" }};
+  const canCreateTerritory = {{ can_create_territory|yesno:"true,false" }};
+  const canEditWiki = canEditRegion || canEditTerritory;
   const initialRegionSlug = "{{ current_region_slug|escapejs }}";
   const initialTerritorySlug = "{{ current_territory_slug|default:''|escapejs }}";
   const regions = JSON.parse(document.getElementById('regions-client-data')?.textContent || '[]');
@@ -1140,7 +1143,8 @@
   }
 
   function renderEditor(data) {
-    if (!canEditWiki) return '';
+    if (data.type === 'region' && !canEditRegion) return '';
+    if (data.type === 'territory' && !canEditTerritory) return '';
     if (data.type === 'region') {
       return `
         <div class="wiki-tools mt-8 pt-8 border-t border-[var(--stroke)]"><button type="button" class="wiki-edit-button" id="btnEditRegion">Editar região</button></div>
@@ -1153,7 +1157,7 @@
                 <option value="">Sem território</option>
                 ${allTerritories.map(name => `<option value="${escapeHtml(name)}" ${data.territorio === name ? 'selected' : ''} style="background: var(--bg1); color: var(--text);">${escapeHtml(name)}</option>`).join('')}
               </select>
-              <button type="button" aria-label="Criar novo território" onclick="showInlineCreateTerritoryDetail()" style="padding: 0.3rem 0.6rem; background: var(--bg2); border: 1px solid var(--stroke); color: var(--ember); font-weight: bold; border-radius: 4px; cursor: pointer; font-size: 0.75rem;">+</button>
+              <button type="button" aria-label="Criar novo território" onclick="showInlineCreateTerritoryDetail()" ${canCreateTerritory ? '' : 'hidden'} style="padding: 0.3rem 0.6rem; background: var(--bg2); border: 1px solid var(--stroke); color: var(--ember); font-weight: bold; border-radius: 4px; cursor: pointer; font-size: 0.75rem;">+</button>
             </div>
           </div>
 

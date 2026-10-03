@@ -81,6 +81,14 @@ from .security import validate_no_sql_danger
 from .organization_lists import organization_list
 
 
+MAP_EDITOR_PERMISSIONS = (
+    'home.add_tbmapmarker', 'home.change_tbmapmarker',
+    'home.add_tbregiao', 'home.change_tbregiao',
+    'home.add_tbterritorio', 'home.change_tbterritorio',
+    'home.add_tbmapdesenho', 'home.change_tbmapdesenho', 'home.delete_tbmapdesenho',
+)
+
+
 def _log_wiki_edit(request, obj, message="Edited inline via wiki"):
     try:
         from django.contrib.admin.models import LogEntry, CHANGE
@@ -115,6 +123,24 @@ def _log_wiki_creation(request, obj, message="Created inline via wiki"):
             )
     except Exception:
         logger.exception('Falha ao registrar criacao inline no historico editorial')
+
+
+def _log_wiki_deletion(request, obj, message="Deleted inline via wiki"):
+    try:
+        from django.contrib.admin.models import LogEntry, DELETION
+        from django.contrib.contenttypes.models import ContentType
+
+        with transaction.atomic():
+            LogEntry.objects.create(
+                user=request.user,
+                content_type=ContentType.objects.get_for_model(obj),
+                object_id=str(obj.pk),
+                object_repr=str(obj)[:200],
+                action_flag=DELETION,
+                change_message=message,
+            )
+    except Exception:
+        logger.exception('Falha ao registrar exclusao inline no historico editorial')
 
 
 class SiteDataUnavailable(Exception):
@@ -11563,7 +11589,7 @@ def mapa_view(request):
         'json_territories': territorios_lista,
         'json_layers': layers_lista,
         'json_desenhos': desenhos_lista,
-        'can_edit_wiki': request.user.is_staff,
+        'can_edit_wiki': request.user.is_staff and request.user.has_perms(MAP_EDITOR_PERMISSIONS),
     }
     return render(request, 'home/pages/mapa.html', context)
 
@@ -11692,7 +11718,8 @@ def mundo_regioes_view(request):
         'territorios_cards': territorios_cards,
         'total_territorios': len(territorios_cards),
         'total_locais': total_locais_visiveis,
-        'can_edit_wiki': request.user.is_staff,
+        'can_edit_wiki': request.user.is_staff and request.user.has_perm('home.add_tbregiao'),
+        'can_create_territory': request.user.is_staff and request.user.has_perm('home.add_tbterritorio'),
         'categoria_choices': TbMapMarker.PIN_ICON_CHOICES,
         'all_territories_list': all_territories_list,
         'layer_options': layer_options,
@@ -12022,7 +12049,10 @@ def regiao_detail_view(request, slug):
         'current_territory_slug': '',
         'current_territory_name': regiao.territorio or 'Sem território',
         'organizations': _organizations_for_location(regiao.nome, regiao.territorio or ''),
-        'can_edit_wiki': request.user.is_staff,
+        'can_edit_wiki': request.user.is_staff and request.user.has_perm('home.change_tbregiao'),
+        'can_edit_region': request.user.is_staff and request.user.has_perm('home.change_tbregiao'),
+        'can_edit_territory': request.user.is_staff and request.user.has_perm('home.change_tbterritorio'),
+        'can_create_territory': request.user.is_staff and request.user.has_perm('home.add_tbterritorio'),
         'categoria_choices': TbMapMarker.PIN_ICON_CHOICES,
         'all_territories_list': all_territories_list,
         'is_territory': False,
@@ -12187,7 +12217,10 @@ def territorio_detail_view(request, slug):
         'current_territory_slug': territory.slug,
         'current_territory_name': territory.nome,
         'organizations': _organizations_for_location('', territory.nome),
-        'can_edit_wiki': request.user.is_staff,
+        'can_edit_wiki': request.user.is_staff and request.user.has_perm('home.change_tbterritorio'),
+        'can_edit_region': request.user.is_staff and request.user.has_perm('home.change_tbregiao'),
+        'can_edit_territory': request.user.is_staff and request.user.has_perm('home.change_tbterritorio'),
+        'can_create_territory': request.user.is_staff and request.user.has_perm('home.add_tbterritorio'),
         'categoria_choices': TbMapMarker.PIN_ICON_CHOICES,
         'all_territories_list': all_territories_list,
         'is_territory': True,
@@ -12261,6 +12294,7 @@ def _parse_map_layer(value, default=0):
 
 
 @staff_member_required
+@permission_required('home.add_tbregiao', raise_exception=True)
 @require_POST
 def wiki_create_region(request):
     data = _json_body(request)
@@ -12308,6 +12342,7 @@ def wiki_create_region(request):
 
 
 @staff_member_required
+@permission_required('home.change_tbregiao', raise_exception=True)
 @require_POST
 def wiki_update_region(request, region_id):
     data = _json_body(request)
@@ -12371,6 +12406,7 @@ def wiki_update_region(request, region_id):
     })
 
 @staff_member_required
+@permission_required('home.add_tbterritorio', raise_exception=True)
 @require_POST
 def wiki_create_territory(request):
     data = _json_body(request)
@@ -12412,6 +12448,7 @@ def wiki_create_territory(request):
 
 
 @staff_member_required
+@permission_required('home.change_tbterritorio', raise_exception=True)
 @require_POST
 def wiki_update_territory(request, territory_id):
     data = _json_body(request)
@@ -12451,6 +12488,7 @@ def wiki_update_territory(request, territory_id):
 
 
 @staff_member_required
+@permission_required(MAP_EDITOR_PERMISSIONS, raise_exception=True)
 @require_POST
 def wiki_update_marker_position(request, marker_id):
     
@@ -12469,6 +12507,7 @@ def wiki_update_marker_position(request, marker_id):
 
 
 @staff_member_required
+@permission_required(MAP_EDITOR_PERMISSIONS, raise_exception=True)
 @require_POST
 def wiki_batch_save_map(request):
     data = _json_body(request)
@@ -17341,6 +17380,7 @@ def desenho_payload(d):
 
 
 @staff_member_required
+@permission_required(MAP_EDITOR_PERMISSIONS, raise_exception=True)
 @require_POST
 def wiki_save_desenho(request):
     """Cria ou atualiza um desenho do mapa. JSON:
@@ -17394,12 +17434,15 @@ def wiki_save_desenho(request):
         desenho.ativo = bool(data.get('ativo'))
 
     desenho.save()
-    acao = 'Criação' if existente is None else 'Edição'
-    _log_wiki_edit(request, desenho, f"{acao} inline de desenho do mapa: {desenho}")
+    if existente is None:
+        _log_wiki_creation(request, desenho, f"Criação inline de desenho do mapa: {desenho}")
+    else:
+        _log_wiki_edit(request, desenho, f"Edição inline de desenho do mapa: {desenho}")
     return JsonResponse({'ok': True, 'id': desenho.id_desenho})
 
 
 @staff_member_required
+@permission_required(MAP_EDITOR_PERMISSIONS, raise_exception=True)
 @require_POST
 def wiki_delete_desenho(request):
     """Remove um desenho do mapa. JSON: { id }. Retorna {ok}."""
@@ -17411,11 +17454,14 @@ def wiki_delete_desenho(request):
         desenho = None
     if desenho is None:
         return JsonResponse({'ok': False, 'error': 'Desenho não encontrado.'}, status=404)
-    desenho.delete()
+    with transaction.atomic():
+        _log_wiki_deletion(request, desenho, f"Exclusão inline de desenho do mapa: {desenho}")
+        desenho.delete()
     return JsonResponse({'ok': True})
 
 
 @staff_member_required
+@permission_required(MAP_EDITOR_PERMISSIONS, raise_exception=True)
 @require_POST
 def wiki_upload_map_image(request):
     """Recebe um upload de imagem (multipart) para overlay do mapa, salvo em

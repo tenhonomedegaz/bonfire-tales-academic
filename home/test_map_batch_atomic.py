@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 from django.contrib.admin.models import ADDITION, CHANGE, LogEntry
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.test import TestCase
 from django.urls import reverse
@@ -17,6 +18,14 @@ class MapBatchAtomicTests(TestCase):
         self.editor = get_user_model().objects.create_user(
             'map-batch-editor', password='test', is_staff=True,
         )
+        self.editor.user_permissions.add(*Permission.objects.filter(
+            content_type__app_label='home', codename__in=(
+                'add_tbmapmarker', 'change_tbmapmarker',
+                'add_tbregiao', 'change_tbregiao',
+                'add_tbterritorio', 'change_tbterritorio',
+                'add_tbmapdesenho', 'change_tbmapdesenho', 'delete_tbmapdesenho',
+            ),
+        ))
         self.client.force_login(self.editor)
         TbMapLayer.objects.update_or_create(
             id_layer=0, defaults={'nome': 'Superfície', 'ordem': 0, 'publica': True},

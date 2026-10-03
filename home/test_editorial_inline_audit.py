@@ -21,6 +21,9 @@ class EditorialInlineAuditTests(TestCase):
         self.editor.user_permissions.add(Permission.objects.get(
             content_type__app_label='home', codename='change_tbmagia',
         ))
+        self.editor.user_permissions.add(*Permission.objects.filter(
+            content_type__app_label='home', codename__in=('add_tbterritorio', 'change_tbterritorio'),
+        ))
         self.client.force_login(self.editor)
 
     def post_json(self, url, payload):
