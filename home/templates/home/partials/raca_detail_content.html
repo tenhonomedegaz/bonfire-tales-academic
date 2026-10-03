@@ -44,7 +44,7 @@
       <form class="wiki-inline-editor" data-race-form data-race-id="{{ raca.id_raca }}">
         <label>Nome <input name="nome" value="{{ raca.nome }}"></label>
         <label>Tagline <input name="tagline" value="{{ raca.tagline|default:'' }}"></label>
-        <label>Imagem <input name="imagem_url" type="url" value="{{ raca.imagem_url|default:'' }}"></label>
+        <label>Imagem <input name="imagem_url" type="text" inputmode="url" value="{{ raca.imagem_url|default:'' }}"></label>
         <div class="race-crop-fields">
           <label>Foco horizontal (%) <input name="imagem_foco_x" type="number" min="0" max="100" step="1" required value="{{ raca.imagem_foco_x }}"></label>
           <label>Foco vertical (%) <input name="imagem_foco_y" type="number" min="0" max="100" step="1" required value="{{ raca.imagem_foco_y }}"></label>
@@ -425,7 +425,7 @@
   <div class="mt-4 grid gap-3 text-left sm:grid-cols-2">
     {% for item in all_racas %}
     <a href="{% url 'raca_detail' slug=item.slug %}" class="overflow-hidden rounded border border-[var(--stroke)] bg-[var(--bg0)] transition-colors hover:border-[var(--ember)]">
-      {% if item.imagem_url %}<div class="aspect-[16/7] bg-cover bg-center" style="background-image:url('{{ item.imagem_url }}')"></div>{% endif %}
+      {% if item.safe_image_url %}<div class="aspect-[16/7] bg-cover bg-center" style="background-image:url('{{ item.safe_image_url }}')"></div>{% endif %}
       <div class="p-3">
         <h3 class="font-rpg text-lg font-bold text-[var(--flame)]">{{ item.nome }}</h3>
         <p class="mt-1 text-[12px] leading-relaxed text-[var(--muted)]">{{ item.tagline|cut:'*'|cut:'"' }}</p>

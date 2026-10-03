@@ -1,11 +1,13 @@
 import json
 
+from django.forms import modelform_factory
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 from django.urls import reverse
 
 from .models import TbEssencia, TbLinhagem, TbRaca
+from .admin import RaceImageAdminForm
 
 
 class RaceImageFocusTests(TestCase):
@@ -52,6 +54,48 @@ class RaceImageFocusTests(TestCase):
         self.assertNotEqual(response.status_code, 200)
         self.race.refresh_from_db()
         self.assertEqual(self.race.imagem_foco_x, 22)
+
+    def test_legacy_invalid_images_are_hidden_and_valid_variants_keep_focus(self):
+        self.race.imagem_url = 'javascript:alert(1)'
+        self.race.save(update_fields=['imagem_url'])
+        self.lineage.imagem_url = 'https://example.com/lineage.png\');color:red;--evil:\''
+        self.lineage.save(update_fields=['imagem_url'])
+        listing = self.client.get(reverse('racas'))
+        detail = self.client.get(reverse('raca_detail', args=[self.race.slug]))
+        self.assertEqual((listing.status_code, detail.status_code), (200, 200))
+        self.assertNotContains(listing, 'javascript:alert')
+        self.assertNotContains(detail, 'javascript:alert')
+        self.assertContains(detail, 'lineage.png%27%29;color:red')
+        self.assertContains(detail, 'data-focus-x="50" data-focus-y="50" data-name="Linhagem"')
+        self.assertContains(detail, 'data-focus-x="81" data-focus-y="14" data-name="Essencia"')
+
+    def test_inline_rejects_invalid_image_without_changing_race(self):
+        user = get_user_model().objects.create_user(
+            username='race-image-editor', password='test-password', is_staff=True)
+        self.client.force_login(user)
+        url = reverse('wiki_update_race', args=[self.race.pk])
+        rejected = self.client.post(url, data=json.dumps({
+            'nome': 'Alterado', 'imagem_url': 'javascript:alert(1)',
+        }), content_type='application/json')
+        self.assertEqual(rejected.status_code, 400)
+        self.race.refresh_from_db()
+        self.assertEqual(self.race.nome, 'Teste')
+        self.assertEqual(self.race.imagem_url, 'https://example.com/race.png')
+        accepted = self.client.post(url, data=json.dumps({
+            'nome': 'Alterado', 'imagem_url': '/static/assets/logo.png',
+        }), content_type='application/json')
+        self.assertEqual(accepted.status_code, 200)
+        self.race.refresh_from_db()
+        self.assertEqual(self.race.imagem_url, '/static/assets/logo.png')
+
+    def test_admin_forms_reject_unsafe_images_for_race_lineage_and_essence(self):
+        for model in (TbRaca, TbLinhagem, TbEssencia):
+            form_type = modelform_factory(model, form=RaceImageAdminForm, fields=['imagem_url'])
+            form = form_type(data={'imagem_url': 'javascript:alert(1)'})
+            self.assertFalse(form.is_valid(), model.__name__)
+            self.assertIn('imagem_url', form.errors)
+            form = form_type(data={'imagem_url': '/static/assets/logo.png'})
+            self.assertTrue(form.is_valid(), (model.__name__, form.errors))
 
     def test_admin_exposes_validated_focus_for_race_lineage_and_essence(self):
         user = get_user_model().objects.create_superuser(username='race-admin', password='test-password', email='admin@example.com')

@@ -2579,8 +2579,19 @@ class TbCondicaoAdmin(BonfireAdminMixin, admin.ModelAdmin):
     )
 
 
+class RaceImageAdminForm(forms.ModelForm):
+    def clean_imagem_url(self):
+        from .editorial_links import safe_editorial_image
+
+        value = (self.cleaned_data.get('imagem_url') or '').strip()
+        if value and not safe_editorial_image(value):
+            raise forms.ValidationError('Use uma URL de imagem HTTP(S), /media/ ou /static/.')
+        return value
+
+
 class TbLinhagemInline(admin.StackedInline):
     model = TbLinhagem
+    form = RaceImageAdminForm
     extra = 0
     fields = ("nome", "slug", "imagem_url", ("imagem_foco_x", "imagem_foco_y"), "descricao")
     prepopulated_fields = {"slug": ("nome",)}
@@ -2598,6 +2609,7 @@ class TbTracoracialInline(admin.StackedInline):
 
 @admin.register(TbRaca)
 class TbRacaAdmin(BonfireAdminMixin, admin.ModelAdmin):
+    form = RaceImageAdminForm
     change_list_template = "admin/home/tbraca/change_list.html"
     list_display = ("nome", "slug", "permite_essencia_badge", "linhagens_count", "tracos_count")
     list_filter = ("permite_essencia",)
@@ -2755,6 +2767,7 @@ class TbRacaAdmin(BonfireAdminMixin, admin.ModelAdmin):
 
 @admin.register(TbLinhagem)
 class TbLinhagemAdmin(BonfireAdminMixin, admin.ModelAdmin):
+    form = RaceImageAdminForm
     list_display = ("nome", "raca_nome", "slug", "short_description")
     list_filter = ("id_raca",)
     search_fields = ("nome", "slug", "descricao", "id_raca__nome")
@@ -2773,6 +2786,7 @@ class TbLinhagemAdmin(BonfireAdminMixin, admin.ModelAdmin):
 
 @admin.register(TbEssencia)
 class TbEssenciaAdmin(BonfireAdminMixin, admin.ModelAdmin):
+    form = RaceImageAdminForm
     change_list_template = "admin/home/tbessencia/change_list.html"
     list_display = ("nome", "slug", "tracos_count")
     search_fields = ("nome", "slug", "lore_presentation", "lore_roleplay", "lore_society")

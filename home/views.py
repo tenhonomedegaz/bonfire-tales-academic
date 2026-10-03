@@ -2514,7 +2514,11 @@ def racas_view(request):
 
 
 def _postgres_racas_view(request):
-    racas = TbRaca.objects.all().order_by('nome')
+    from .editorial_links import safe_editorial_image
+
+    racas = list(TbRaca.objects.all().order_by('nome'))
+    for race in racas:
+        race.safe_image_url = safe_editorial_image(race.imagem_url)
     context = {
         'page_title': 'Raças',
         'meta_description': 'Conheça os povos de Cinéria, suas linhagens, histórias, traços e talentos raciais.',
@@ -2539,8 +2543,12 @@ def raca_detail_view(request, slug):
 
 
 def _postgres_raca_detail_view(request, slug):
+    from .editorial_links import safe_editorial_image
+
     raca = get_object_or_404(TbRaca, slug=slug)
-    racas = TbRaca.objects.all().order_by('nome')
+    racas = list(TbRaca.objects.all().order_by('nome'))
+    for race in racas:
+        race.safe_image_url = safe_editorial_image(race.imagem_url)
     tracos_base = raca.tracos.all().order_by('nivel_requisito', 'nome')
     linhagens = raca.linhagens.all().prefetch_related('tracos_linhagem').order_by('nome')
     essencias = TbEssencia.objects.all().prefetch_related('tracos').order_by('nome')
@@ -2581,19 +2589,22 @@ def _postgres_raca_detail_view(request, slug):
     }
 
     stats = RACE_STATS_MAP.get(raca.slug, default_stats)
+    base_image = safe_editorial_image(raca.imagem_url)
     for lin in linhagens:
-        has_image = bool(lin.imagem_url)
-        lin.image_url = lin.imagem_url or raca.imagem_url or ''
+        lineage_image = safe_editorial_image(lin.imagem_url)
+        has_image = bool(lineage_image)
+        lin.image_url = lineage_image or base_image
         lin.image_focus_x = lin.imagem_foco_x if has_image else raca.imagem_foco_x
         lin.image_focus_y = lin.imagem_foco_y if has_image else raca.imagem_foco_y
 
     for ess in essencias:
-        has_image = bool(ess.imagem_url)
-        ess.image_url = ess.imagem_url or raca.imagem_url or ''
+        essence_image = safe_editorial_image(ess.imagem_url)
+        has_image = bool(essence_image)
+        ess.image_url = essence_image or base_image
         ess.image_focus_x = ess.imagem_foco_x if has_image else raca.imagem_foco_x
         ess.image_focus_y = ess.imagem_foco_y if has_image else raca.imagem_foco_y
 
-    raca.image_url = raca.imagem_url or ''
+    raca.image_url = base_image
 
     # Collect talents
     talents = []
@@ -11230,6 +11241,8 @@ def wiki_update_racial_trait(request, trait_id):
 @staff_member_required
 @require_POST
 def wiki_update_race(request, race_id):
+    from .editorial_links import safe_editorial_image
+
     data = _json_body(request)
     validate_no_sql_danger(data, 'raca')
     race = get_object_or_404(TbRaca, pk=race_id)
@@ -11239,9 +11252,12 @@ def wiki_update_race(request, race_id):
         if not str(value).isascii() or not str(value).isdigit() or not 0 <= int(value) <= 100:
             return JsonResponse({'ok': False, 'error': 'O ponto focal deve estar entre 0 e 100.'}, status=400)
         focus[axis] = int(value)
+    image_url = (data.get('imagem_url') or '').strip()
+    if image_url and not safe_editorial_image(image_url):
+        return JsonResponse({'ok': False, 'error': 'Use uma URL de imagem HTTP(S), /media/ ou /static/.'}, status=400)
     race.nome = (data.get('nome') or race.nome).strip()
     race.tagline = (data.get('tagline') or '').strip() or None
-    race.imagem_url = (data.get('imagem_url') or '').strip() or None
+    race.imagem_url = image_url or None
     race.imagem_foco_x = focus['x']
     race.imagem_foco_y = focus['y']
     race.lore_presentation = data.get('lore_presentation') or ''

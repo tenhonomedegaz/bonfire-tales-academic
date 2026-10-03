@@ -14,7 +14,7 @@ from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.db import connection
 from django.urls import reverse
 
-from .models import TbRaca, TbTracoracial
+from .models import TbEssencia, TbLinhagem, TbRaca, TbTracoracial
 
 
 class RaceMarkdownPresentationTests(StaticLiveServerTestCase):
@@ -33,7 +33,20 @@ class RaceMarkdownPresentationTests(StaticLiveServerTestCase):
             self.skipTest('Chrome ou Edge indisponivel.')
 
         description = '**Destaque** <img src=x onerror=alert(1)> [perigo](javascript:alert(1)) [referencia](https://example.org)'
-        race = TbRaca.objects.create(nome='Raca Editorial', slug='raca-editorial', lore_presentation=description)
+        race = TbRaca.objects.create(
+            nome='Raca Editorial', slug='raca-editorial', lore_presentation=description,
+            permite_essencia=True,
+            imagem_url="https://example.org/race.png');color:red;--evil:'",
+        )
+        TbLinhagem.objects.create(
+            id_raca=race, nome='Linhagem Legada', slug='linhagem-legada',
+            imagem_url='javascript:alert(1)', imagem_foco_x=19, imagem_foco_y=72,
+        )
+        TbEssencia.objects.create(
+            nome='Essencia Visual', slug='essencia-visual',
+            imagem_url='https://example.org/essence.png',
+            imagem_foco_x=81, imagem_foco_y=14,
+        )
         TbTracoracial.objects.create(id_raca=race, nome='Traco Editorial', descricao=description)
         editor = get_user_model().objects.create_superuser('race-editor-md', 'race-editor@example.invalid', 'test-pass')
         self.client.force_login(editor)
@@ -89,6 +102,23 @@ class RaceMarkdownPresentationTests(StaticLiveServerTestCase):
                 self.assertEqual(js('document.querySelectorAll("[data-markdown-source] img[onerror], [data-markdown-source] a[href^=javascript], [data-markdown-source] script").length'), 0)
                 self.assertEqual(js('document.querySelectorAll("[data-markdown-source] a[href=\\"https://example.org\\"]").length'), 2)
                 self.assertTrue(js('document.querySelector("[data-markdown-source]").dataset.markdownManual === "true"'))
+                self.assertTrue(js('document.querySelector("#racePreviewImage").style.backgroundImage.includes("%27")'))
+                self.assertEqual(js('document.querySelector("#racePreviewImage").style.getPropertyValue("color")'), '')
+                self.assertEqual(js('document.querySelector("#racePreviewImage").style.getPropertyValue("--evil")'), '')
+                js('''(() => {
+                    const select = document.querySelector('#linhagemSelect');
+                    select.value = 'linhagem-legada';
+                    select.dispatchEvent(new Event('change', { bubbles: true }));
+                })()''')
+                self.assertTrue(js('document.querySelector("#racePreviewImage").style.backgroundImage.includes("race.png")'))
+                self.assertEqual(js('document.querySelector("#racePreviewImage").style.backgroundPosition'), '50% 50%')
+                js('''(() => {
+                    const select = document.querySelector('#essenciaSelect');
+                    select.value = 'essencia-visual';
+                    select.dispatchEvent(new Event('change', { bubbles: true }));
+                })()''')
+                self.assertTrue(js('document.querySelector("#racePreviewImage").style.backgroundImage.includes("essence.png")'))
+                self.assertEqual(js('document.querySelector("#racePreviewImage").style.backgroundPosition'), '81% 14%')
 
                 call('Network.enable')
                 call('Network.setCookie', {
