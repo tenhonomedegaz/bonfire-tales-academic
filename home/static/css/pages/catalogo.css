@@ -66,6 +66,15 @@
     border-color: var(--ember);
     transform: translateY(-1px);
   }
+  .catalog-input:focus-visible,
+  .catalog-select:focus-visible,
+  .catalog-card:focus-visible,
+  .catalog-mobile-menu-button:focus-visible,
+  .catalog-action:focus-visible,
+  .detail-title:focus {
+    outline: 2px solid var(--spark);
+    outline-offset: 2px;
+  }
   .catalog-card-title {
     color: #fff;
     font-family: 'Cinzel', serif;
@@ -301,4 +310,17 @@
   .catalog-intro-content {
     border-top: 1px solid var(--stroke);
     padding: .75rem;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .catalog-shell *,
+    .catalog-shell *::before,
+    .catalog-shell *::after {
+      animation: none !important;
+      transition: none !important;
+      scroll-behavior: auto !important;
+    }
+    .catalog-card:hover,
+    .catalog-card.is-active {
+      transform: none;
+    }
   }

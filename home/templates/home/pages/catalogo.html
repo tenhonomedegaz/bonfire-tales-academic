@@ -5,7 +5,7 @@
 {% block title %}{{ title }} - Bonfire Tales RPG{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/pages/catalogo.css' %}?v=6">
+<link rel="stylesheet" href="{% static 'css/pages/catalogo.css' %}?v=7">
 {% endblock %}
 
 {% block content %}
@@ -54,11 +54,11 @@
   </header>
 
   <div class="catalog-grid">
-    <button type="button" class="catalog-mobile-menu-button" id="catalogMobileMenuButton" aria-label="Abrir lista">
+    <button type="button" class="catalog-mobile-menu-button" id="catalogMobileMenuButton" aria-label="Abrir lista" aria-controls="catalogSidebar" aria-expanded="false">
       <svg xmlns="http://www.w3.org/2000/svg" class="open-icon h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 5 7 7-7 7"/></svg>
       <svg xmlns="http://www.w3.org/2000/svg" class="close-icon h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 19-7-7 7-7"/></svg>
     </button>
-    <button type="button" class="catalog-mobile-backdrop" id="catalogMobileBackdrop" aria-label="Fechar lista"></button>
+    <button type="button" class="catalog-mobile-backdrop" id="catalogMobileBackdrop" aria-label="Fechar lista" tabindex="-1" aria-hidden="true"></button>
     <aside class="catalog-sidebar" id="catalogSidebar">
       <div class="catalog-tools">
         <input class="catalog-input" id="catalogSearch" type="search" aria-label="Buscar no catálogo" placeholder="Buscar por nome, tag ou texto..." autocomplete="off">
@@ -102,6 +102,8 @@
   const typeSelect = document.getElementById('catalogType');
   const mobileMenuButton = document.getElementById('catalogMobileMenuButton');
   const mobileBackdrop = document.getElementById('catalogMobileBackdrop');
+  const sidebar = document.getElementById('catalogSidebar');
+  const mobileLayout = window.matchMedia('(max-width: 1100px)');
   const slugFromHash = () => {
     try { return decodeURIComponent(window.location.hash.slice(1)); }
     catch { return ''; }
@@ -109,8 +111,18 @@
   let activeSlug = items.find(item => item.slug === slugFromHash())?.slug || items[0]?.slug || '';
 
   function setCatalogMenuOpen(isOpen) {
-    document.body.classList.toggle('catalog-menu-open', isOpen);
-    mobileMenuButton?.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    const open = mobileLayout.matches && isOpen;
+    const returnFocus = !open && mobileLayout.matches && sidebar?.contains(document.activeElement);
+    document.body.classList.toggle('catalog-menu-open', open);
+    mobileMenuButton?.setAttribute('aria-expanded', open ? 'true' : 'false');
+    mobileMenuButton?.setAttribute('aria-label', open ? 'Fechar lista' : 'Abrir lista');
+    if (returnFocus) mobileMenuButton?.focus();
+    if (sidebar) {
+      sidebar.inert = mobileLayout.matches && !open;
+      if (sidebar.inert) sidebar.setAttribute('aria-hidden', 'true');
+      else sidebar.removeAttribute('aria-hidden');
+    }
+    if (open) search?.focus();
   }
 
   function esc(value) {
@@ -264,6 +276,7 @@
   document.getElementById('orgForm')?.addEventListener('submit', submitOrganization);
   mobileMenuButton?.addEventListener('click', () => setCatalogMenuOpen(!document.body.classList.contains('catalog-menu-open')));
   mobileBackdrop?.addEventListener('click', () => setCatalogMenuOpen(false));
+  mobileLayout.addEventListener('change', () => setCatalogMenuOpen(false));
   document.addEventListener('keydown', event => {
     if (event.key === 'Escape') setCatalogMenuOpen(false);
   });
@@ -273,6 +286,7 @@
   window.addEventListener('hashchange', restoreFromUrl);
   renderTypes();
   restoreFromUrl();
+  setCatalogMenuOpen(false);
 })();
 </script>
 {% endblock %}

@@ -106,6 +106,24 @@ class BackgroundCatalogBrowserTests(StaticLiveServerTestCase):
                             self.assertNotIn('exceptionDetails', result['result'], expression)
                             return result['result']['result'].get('value')
 
+                def cdp(method, params):
+                    nonlocal sequence
+                    sequence += 1
+                    ws.send(json.dumps({'id': sequence, 'method': method, 'params': params}))
+                    while True:
+                        result = json.loads(ws.recv())
+                        if result.get('id') == sequence:
+                            self.assertNotIn('error', result, method)
+                            return
+
+                def key(name, virtual_key, text=None):
+                    for event_type in ('keyDown', 'keyUp'):
+                        params = {'type': event_type, 'key': name, 'code': name,
+                                  'windowsVirtualKeyCode': virtual_key}
+                        if text and event_type == 'keyDown':
+                            params['text'] = text
+                        cdp('Input.dispatchKeyEvent', params)
+
                 def wait_for(expression):
                     for _ in range(80):
                         if js(expression):
@@ -127,6 +145,17 @@ class BackgroundCatalogBrowserTests(StaticLiveServerTestCase):
                     pass
                 wait_for('document.querySelector(".catalog-detail .detail-title")?.textContent === "Artesão"')
                 self.assertEqual(js('document.querySelectorAll(".catalog-card[aria-pressed=true]").length'), 1)
+                self.assertTrue(js('document.querySelector("#catalogSidebar").inert'))
+                self.assertEqual(js('document.querySelector("#catalogSidebar").getAttribute("aria-hidden")'), 'true')
+                js('document.querySelector("#catalogMobileMenuButton").focus()')
+                key('Enter', 13, '\r')
+                self.assertTrue(js('document.body.classList.contains("catalog-menu-open")'))
+                self.assertEqual(js('document.activeElement?.id'), 'catalogSearch')
+                self.assertFalse(js('document.querySelector("#catalogSidebar").inert'))
+                key('Escape', 27)
+                self.assertFalse(js('document.body.classList.contains("catalog-menu-open")'))
+                self.assertEqual(js('document.activeElement?.id'), 'catalogMobileMenuButton')
+                self.assertTrue(js('document.querySelector("#catalogSidebar").inert'))
                 js('document.querySelector("#catalogMobileMenuButton").click()')
                 self.assertTrue(js('document.body.classList.contains("catalog-menu-open")'))
                 js('document.querySelector(".catalog-card[data-slug=viajante]").click()')
@@ -159,6 +188,19 @@ class BackgroundCatalogBrowserTests(StaticLiveServerTestCase):
                 self.assertFalse(js('document.querySelector(".catalog-intro-box").open'))
                 self.assertLess(js('document.querySelector(".catalog-grid").getBoundingClientRect().top'), js('innerHeight'))
                 self.assertLessEqual(js('document.documentElement.scrollWidth'), js('document.documentElement.clientWidth'))
+                cdp('Emulation.setEmulatedMedia', {
+                    'features': [{'name': 'prefers-reduced-motion', 'value': 'reduce'}],
+                })
+                self.assertTrue(js('matchMedia("(prefers-reduced-motion: reduce)").matches'))
+                self.assertEqual(js('getComputedStyle(document.querySelector(".catalog-card")).transitionDuration'), '0s')
+                self.assertEqual(js('getComputedStyle(document.querySelector(".catalog-card.is-active")).transform'), 'none')
+                cdp('Emulation.setDeviceMetricsOverride', {
+                    'width': 2560, 'height': 900, 'deviceScaleFactor': 1, 'mobile': False,
+                })
+                wait_for('!document.querySelector("#catalogSidebar").inert')
+                self.assertIsNone(js('document.querySelector("#catalogSidebar").getAttribute("aria-hidden")'))
+                cdp('Emulation.clearDeviceMetricsOverride', {})
+                wait_for('document.querySelector("#catalogSidebar").inert')
                 js('document.querySelector(".catalog-intro-box summary").click()')
                 self.assertTrue(js('document.querySelector(".catalog-intro-box").open'))
                 self.assertTrue(js('document.querySelector(".catalog-intro-content").getBoundingClientRect().height > 0'))
