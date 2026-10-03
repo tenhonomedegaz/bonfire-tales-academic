@@ -11009,6 +11009,7 @@ def _talent_payload(talent):
 
 
 @staff_member_required
+@permission_required('home.change_tbtalento', raise_exception=True)
 @require_POST
 def wiki_update_talent(request, talent_id):
     data = _json_body(request)
@@ -11031,6 +11032,7 @@ def wiki_update_talent(request, talent_id):
 
 
 @staff_member_required
+@permission_required('home.change_tbopcaojogo', raise_exception=True)
 @require_POST
 def wiki_update_option(request, id):
     data = _json_body(request)
@@ -12676,7 +12678,7 @@ def talentos_view(request):
             'meta_description': 'Consulte talentos, pré-requisitos, benefícios e opções de personalização de personagens.',
             'canonical_path': '/jogador/talentos/',
             'json_talentos': talentos_lista,
-            'can_edit_wiki': request.user.is_staff,
+            'can_edit_wiki': request.user.is_staff and request.user.has_perm('home.change_tbtalento'),
             'talent_tipo_choices': TbTalento.TIPO_CHOICES,
             'talent_etiqueta_choices': TbTalento.ETIQUETA_CHOICES,
         })
@@ -12708,7 +12710,7 @@ def talentos_view(request):
         'meta_description': 'Consulte talentos, pré-requisitos, benefícios e opções de personalização de personagens.',
         'canonical_path': '/jogador/talentos/',
         'json_talentos': talentos_lista,
-        'can_edit_wiki': request.user.is_staff,
+        'can_edit_wiki': request.user.is_staff and request.user.has_perm('home.change_tbtalento'),
         'talent_tipo_choices': TbTalento.TIPO_CHOICES,
         'talent_etiqueta_choices': TbTalento.ETIQUETA_CHOICES,
     }
@@ -12761,7 +12763,7 @@ def opcoes_view(request):
             })
         return render(request, 'home/pages/opcoes.html', {
             'json_opcoes': with_access(opcoes_lista),
-            'can_edit_wiki': request.user.is_staff,
+            'can_edit_wiki': request.user.is_staff and request.user.has_perm('home.change_tbopcaojogo'),
         })
     except SiteDataUnavailable:
         pass
@@ -12782,7 +12784,7 @@ def opcoes_view(request):
 
     context = {
         'json_opcoes': with_access(opcoes_lista),
-        'can_edit_wiki': request.user.is_staff,
+        'can_edit_wiki': request.user.is_staff and request.user.has_perm('home.change_tbopcaojogo'),
     }
     return render(request, 'home/pages/opcoes.html', context)
 
