@@ -126,9 +126,24 @@ class JornalMarkdownPresentationTests(StaticLiveServerTestCase):
                     editor.value = %s;
                     editor.dispatchEvent(new Event('input', { bubbles: true }));
                 })()''' % json.dumps(source))
+                js('''document.querySelector('#edTitulo').value = 'Prévia do Jornal';
+                    document.querySelector('#edTitulo').dispatchEvent(new Event('input'));
+                    document.querySelector('#edImagem').value = '/static/assets/logo.png';
+                    document.querySelector('#edImagem').dispatchEvent(new Event('input'));''')
+                self.assertEqual(js('document.querySelector("#edPreviewTitle").textContent'), 'Prévia do Jornal')
+                self.assertFalse(js('document.querySelector("#edPreviewCover").hidden'))
+                self.assertEqual(js('document.querySelector("#edPreviewCoverImage").getAttribute("src")'), '/static/assets/logo.png')
+                js('''document.querySelector('#edImagem').value = 'javascript:alert(1)';
+                    document.querySelector('#edImagem').dispatchEvent(new Event('input'));''')
+                self.assertTrue(js('document.querySelector("#edPreviewCover").hidden'))
+                self.assertFalse(js('document.querySelector("#edPreviewCoverImage").hasAttribute("src")'))
                 assert_safe('#edPreview')
                 self.assertLessEqual(js('document.documentElement.scrollWidth'), js('innerWidth'))
+                js('''document.querySelector('#edImagem').value = '/static/assets/logo.png';
+                    document.querySelector('#edImagem').dispatchEvent(new Event('input'));''')
                 js('document.querySelector("#edLayout").value = "atlas"; document.querySelector("#edLayout").dispatchEvent(new Event("change"))')
+                self.assertTrue(js('document.querySelector("#edPreviewCover").hidden'))
+                self.assertEqual(js('document.querySelector("#edPreviewTitle").textContent'), 'Prévia do Jornal')
                 assert_safe('#edPreview')
                 self.assertTrue(js('document.querySelector("#edPreview .atlas-columns") !== null'))
                 js('window.renderBonfireMarkdown = undefined; document.querySelector("#edMarkdown").dispatchEvent(new Event("input"))')
@@ -148,6 +163,8 @@ class JornalMarkdownPresentationTests(StaticLiveServerTestCase):
                 created = TbJornal.objects.get(slug='jornal-pelo-navegador')
                 self.assertEqual(created.conteudo_markdown, '**Publicado** no editor')
                 self.assertEqual(created.resumo, 'Resumo inicial')
+                self.assertEqual(created.imagem_url, '/static/assets/logo.png')
+                self.assertIn('/static/assets/logo.png', js('getComputedStyle(document.querySelector(".artigo-hero")).backgroundImage'))
 
                 self.assertTrue(js('!!document.querySelector("#articleForm [name=csrfmiddlewaretoken]").value'))
                 js('''(() => {
