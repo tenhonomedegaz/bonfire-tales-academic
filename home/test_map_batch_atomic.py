@@ -80,12 +80,41 @@ class MapBatchAtomicTests(TestCase):
         self.assertEqual(list(self.entries_for(marker).values_list('action_flag', flat=True)),
                          [ADDITION, CHANGE])
         self.assertEqual(list(self.entries_for(region).values_list('action_flag', flat=True)),
-                         [ADDITION, CHANGE])
+                         [ADDITION])
 
         self.client.logout()
         public = self.client.get(reverse('regiao_detail', args=[region.slug]))
         self.assertEqual(public.status_code, 200)
         self.assertContains(public, region.nome)
+
+    def test_repeated_batch_does_not_invent_marker_or_region_edits(self):
+        payload = {'nome': 'QA Farol Sem Duplicata', 'lat': 3, 'lng': 4}
+        self.assertEqual(self.save_batch([payload]).status_code, 200)
+        marker = TbMapMarker.objects.get(nome=payload['nome'])
+        region = TbRegiao.objects.get(nome=payload['nome'])
+        repeated = dict(payload, id=marker.pk)
+        self.assertEqual(self.save_batch([repeated]).status_code, 200)
+        self.assertEqual(list(self.entries_for(marker).values_list('action_flag', flat=True)),
+                         [ADDITION])
+        self.assertEqual(list(self.entries_for(region).values_list('action_flag', flat=True)),
+                         [ADDITION])
+        changed = dict(repeated, categoria='capital')
+        self.assertEqual(self.save_batch([changed]).status_code, 200)
+        self.assertEqual(list(self.entries_for(marker).values_list('action_flag', flat=True)),
+                         [ADDITION, CHANGE])
+        self.assertEqual(list(self.entries_for(region).values_list('action_flag', flat=True)),
+                         [ADDITION, CHANGE])
+
+    def test_territory_geometry_repeated_batch_does_not_duplicate_audit(self):
+        territory = TbTerritorio.objects.create(nome='QA Vale Sem Duplicata', slug='qa-vale-sem-duplicata')
+        payload = {'territories': [{'id': territory.pk, 'coordenadas_poligono': {'type': 'Polygon', 'coordinates': []},
+                                    'camada': 0}]}
+        for expected in (1, 1):
+            response = self.client.post(self.url, json.dumps(payload), content_type='application/json')
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(self.entries_for(territory).count(), expected)
+        territory.refresh_from_db()
+        self.assertEqual(territory.coordenadas_poligono, payload['territories'][0]['coordenadas_poligono'])
 
     def test_malformed_marker_rejects_entire_batch_with_useful_error(self):
         for invalid, expected in (

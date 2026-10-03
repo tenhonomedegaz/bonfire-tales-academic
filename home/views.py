@@ -12570,19 +12570,31 @@ def wiki_update_territory(request, territory_id):
 @permission_required(MAP_EDITOR_PERMISSIONS, raise_exception=True)
 @require_POST
 def wiki_update_marker_position(request, marker_id):
-    
-    data = _json_body(request)
+    try:
+        data = _editor_json_body(request)
+    except ValueError as exc:
+        return JsonResponse({'ok': False, 'error': str(exc)}, status=400)
+    if not {'lat', 'lng'}.intersection(data):
+        return JsonResponse({'ok': False, 'error': 'Informe a posição do marcador.'}, status=400)
     marker = get_object_or_404(TbMapMarker, pk=marker_id)
 
     try:
-        marker.lat = float(data.get('lat', marker.lat))
-        marker.lng = float(data.get('lng', marker.lng))
+        if any(type(data[key]) is bool for key in ('lat', 'lng') if key in data):
+            raise ValueError
+        lat = float(data.get('lat', marker.lat))
+        lng = float(data.get('lng', marker.lng))
     except (TypeError, ValueError):
         return JsonResponse({'ok': False, 'error': 'lat/lng inválidos.'}, status=400)
+    if not math.isfinite(lat) or not math.isfinite(lng):
+        return JsonResponse({'ok': False, 'error': 'lat/lng inválidos.'}, status=400)
 
-    marker.save()
-    _log_wiki_edit(request, marker, f"Edição inline de posição de marcador: {marker.nome}")
-    return JsonResponse({'ok': True, 'marker': {'id': marker.id_marker, 'lat': marker.lat, 'lng': marker.lng}})
+    changed = (lat, lng) != (marker.lat, marker.lng)
+    if changed:
+        marker.lat, marker.lng = lat, lng
+        marker.save(update_fields=['lat', 'lng'])
+        _log_wiki_edit(request, marker, f"Edição inline de posição de marcador: {marker.nome}")
+    return JsonResponse({'ok': True, 'changed': changed,
+                         'marker': {'id': marker.id_marker, 'lat': lat, 'lng': lng}})
 
 
 @staff_member_required
@@ -12680,16 +12692,21 @@ def wiki_batch_save_map(request):
                         transaction.set_rollback(True)
                         return JsonResponse({'ok': False, 'error': 'Ja existe uma regiao com este nome.'}, status=400)
 
-                marker.nome = nome
-                marker.lat = lat
-                marker.lng = lng
-                marker.categoria = categoria
-                marker.territorio = territorio
-                marker.camada = camada
-                marker.save()
-                if m_id:
-                    _log_wiki_edit(request, marker, f"Marcador de mapa salvo via lote: {marker.nome}")
-                else:
+                marker_changed = not m_id or (
+                    marker.nome, marker.lat, marker.lng, marker.categoria,
+                    marker.territorio or None, marker.camada,
+                ) != (nome, lat, lng, categoria, territorio, camada)
+                if marker_changed:
+                    marker.nome = nome
+                    marker.lat = lat
+                    marker.lng = lng
+                    marker.categoria = categoria
+                    marker.territorio = territorio
+                    marker.camada = camada
+                    if m_id:
+                        marker.save()
+                        _log_wiki_edit(request, marker, f"Marcador de mapa salvo via lote: {marker.nome}")
+                if not m_id:
                     _log_wiki_creation(request, marker, f"Marcador de mapa criado via lote: {marker.nome}")
 
                 if region is None:
@@ -12702,17 +12719,21 @@ def wiki_batch_save_map(request):
                     )
                     _log_wiki_creation(request, region, f"Regiao de mapa criada via lote: {region.nome}")
                 else:
-                    if _normalize_text(region.nome) != _normalize_text(nome):
-                        region.slug = _unique_slug_for_model(TbRegiao, nome, pk=region.pk)
-                    region.nome = nome
-                    region.categoria = categoria
-                    region.territorio = territorio
-                    region.camada = camada
-                    region.save()
-                    if m_id:
-                        _log_wiki_edit(request, region, f"Regiao de mapa salva via lote: {region.nome}")
-                    else:
+                    region_changed = (
+                        region.nome, region.categoria, region.territorio or None, region.camada,
+                    ) != (nome, categoria, territorio, camada)
+                    if region_changed:
+                        if _normalize_text(region.nome) != _normalize_text(nome):
+                            region.slug = _unique_slug_for_model(TbRegiao, nome, pk=region.pk)
+                        region.nome = nome
+                        region.categoria = categoria
+                        region.territorio = territorio
+                        region.camada = camada
+                        region.save()
+                    if not m_id:
                         _log_wiki_creation(request, region, f"Regiao de mapa criada via lote: {region.nome}")
+                    elif region_changed:
+                        _log_wiki_edit(request, region, f"Regiao de mapa salva via lote: {region.nome}")
             for t_data in data.get('territories', []):
                 t_id = t_data.get('id')
                 if isinstance(t_id, bool):
@@ -12732,15 +12753,17 @@ def wiki_batch_save_map(request):
                     return JsonResponse({'ok': False, 'error': 'Territorio nao encontrado.'}, status=404)
                 modified = False
                 if 'coordenadas_poligono' in t_data:
-                    territory.coordenadas_poligono = t_data.get('coordenadas_poligono')
-                    modified = True
+                    coordinates = t_data.get('coordenadas_poligono')
+                    modified |= territory.coordenadas_poligono != coordinates
+                    territory.coordenadas_poligono = coordinates
                 if 'camada' in t_data:
                     try:
-                        territory.camada = int(t_data.get('camada', 0))
+                        layer = int(t_data.get('camada', 0))
                     except (TypeError, ValueError):
                         transaction.set_rollback(True)
                         return JsonResponse({'ok': False, 'error': 'Camada de territorio invalida.'}, status=400)
-                    modified = True
+                    modified |= territory.camada != layer
+                    territory.camada = layer
                 if modified:
                     territory.save()
                     _log_wiki_edit(request, territory, f"Território de mapa salvo via lote: {territory.nome}")
