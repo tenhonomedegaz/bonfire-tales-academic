@@ -11002,6 +11002,17 @@ def _json_body(request):
         return {}
 
 
+def _editor_json_body(request):
+    """Require an actual edit object so broken requests cannot clear published fields."""
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        raise ValueError('Envie um JSON válido.')
+    if not isinstance(data, dict) or not data:
+        raise ValueError('Informe os campos da edição.')
+    return data
+
+
 def _talent_payload(talent):
     atributos = []
     if talent.atrib_forca:
@@ -11043,20 +11054,29 @@ def _talent_payload(talent):
 @permission_required('home.change_tbtalento', raise_exception=True)
 @require_POST
 def wiki_update_talent(request, talent_id):
-    data = _json_body(request)
+    try:
+        data = _editor_json_body(request)
+    except ValueError as exc:
+        return JsonResponse({'ok': False, 'error': str(exc)}, status=400)
+    editable = {'nome', 'tipo', 'etiqueta', 'etiquetas_adicionais', 'tags_json', 'TagsJSON',
+                'pre_requisito', 'descricao', 'atrib_forca', 'atrib_destreza',
+                'atrib_constituicao', 'atrib_inteligencia', 'atrib_sabedoria', 'atrib_carisma'}
+    if not editable.intersection(data):
+        return JsonResponse({'ok': False, 'error': 'Informe um campo editável do talento.'}, status=400)
     validate_no_sql_danger(data, 'talento')
     talent = get_object_or_404(TbTalento, pk=talent_id)
 
     talent.nome = (data.get('nome') or talent.nome).strip()
     talent.tipo = data.get('tipo') if data.get('tipo') in dict(TbTalento.TIPO_CHOICES) else talent.tipo
     talent.etiqueta = data.get('etiqueta') if data.get('etiqueta') in dict(TbTalento.ETIQUETA_CHOICES) else talent.etiqueta
-    talent.etiquetas_adicionais = (data.get('etiquetas_adicionais') or '').strip() or None
+    talent.etiquetas_adicionais = (data.get('etiquetas_adicionais', talent.etiquetas_adicionais) or '').strip() or None
     if 'tags_json' in data or 'TagsJSON' in data:
         talent.tags_json = _tags_json_value(data)
-    talent.pre_requisito = (data.get('pre_requisito') or '').strip() or None
-    talent.descricao = data.get('descricao') or ''
+    talent.pre_requisito = (data.get('pre_requisito', talent.pre_requisito) or '').strip() or None
+    talent.descricao = data.get('descricao', talent.descricao) or ''
     for attr in ('atrib_forca', 'atrib_destreza', 'atrib_constituicao', 'atrib_inteligencia', 'atrib_sabedoria', 'atrib_carisma'):
-        setattr(talent, attr, bool(data.get(attr)))
+        if attr in data:
+            setattr(talent, attr, bool(data[attr]))
     talent.save()
     _log_wiki_edit(request, talent, f"Edição inline de talento: {talent.nome}")
     return JsonResponse({'ok': True, 'talent': _talent_payload(talent)})
@@ -11066,17 +11086,23 @@ def wiki_update_talent(request, talent_id):
 @permission_required('home.change_tbopcaojogo', raise_exception=True)
 @require_POST
 def wiki_update_option(request, id):
-    data = _json_body(request)
+    try:
+        data = _editor_json_body(request)
+    except ValueError as exc:
+        return JsonResponse({'ok': False, 'error': str(exc)}, status=400)
+    if not {'nome', 'tipo', 'etiquetas_adicionais', 'tags_json', 'TagsJSON',
+            'pre_requisito', 'descricao'}.intersection(data):
+        return JsonResponse({'ok': False, 'error': 'Informe um campo editável da opção.'}, status=400)
     validate_no_sql_danger(data, 'opcao')
     opcao = get_object_or_404(TbOpcaojogo, pk=id)
 
     opcao.nome = (data.get('nome') or opcao.nome).strip()
     opcao.tipo = (data.get('tipo') or opcao.tipo).strip()
-    opcao.etiquetas_adicionais = (data.get('etiquetas_adicionais') or '').strip() or None
+    opcao.etiquetas_adicionais = (data.get('etiquetas_adicionais', opcao.etiquetas_adicionais) or '').strip() or None
     if 'tags_json' in data or 'TagsJSON' in data:
         opcao.tags_json = _tags_json_value(data)
-    opcao.pre_requisito = (data.get('pre_requisito') or '').strip() or None
-    opcao.descricao = data.get('descricao') or ''
+    opcao.pre_requisito = (data.get('pre_requisito', opcao.pre_requisito) or '').strip() or None
+    opcao.descricao = data.get('descricao', opcao.descricao) or ''
     opcao.save()
     _log_wiki_edit(request, opcao, f"Edição inline de opção de jogo: {opcao.nome}")
     return JsonResponse({'ok': True, 'opcao': _option_payload(opcao)})
