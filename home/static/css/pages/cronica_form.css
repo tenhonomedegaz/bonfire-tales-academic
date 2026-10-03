@@ -157,6 +157,7 @@
   transition: background .2s;
 }
 .editor-submit:hover { background: var(--flame); }
+.editor-submit:disabled { cursor: wait; opacity: .65; }
 .editor-info-box {
   background: var(--bg1);
   border: 1px solid var(--stroke);

@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/pages/cronica_form.css' %}?v=2">
+<link rel="stylesheet" href="{% static 'css/pages/cronica_form.css' %}?v=3">
 
 {% endblock %}
 
@@ -20,6 +20,7 @@
   </div>
 
   <form id="cronicaEditorForm">
+    {% csrf_token %}
     <div class="editor-fields">
       <div class="editor-field">
         <label for="edTitulo">Título da Crônica</label>
@@ -88,6 +89,7 @@
       </div>
     </div>
 
+    <p id="edSubmitStatus" class="editor-info-box" role="status" tabindex="-1" hidden></p>
     <div class="editor-actions">
       <a href="{% url 'mundo_cronicas' %}" class="editor-cancel">Cancelar</a>
       <button type="submit" class="editor-submit">{% if is_new %}Submeter Crônica{% else %}Salvar Alterações{% endif %}</button>
@@ -254,8 +256,18 @@
   });
 
   const form = document.getElementById('cronicaEditorForm');
+  const submitButton = form.querySelector('button[type="submit"]');
+  const submitStatus = document.getElementById('edSubmitStatus');
+  let submitting = false;
   form.addEventListener('submit', async e => {
     e.preventDefault();
+    if (submitting) return;
+    submitting = true;
+    submitButton.disabled = true;
+    form.setAttribute('aria-busy', 'true');
+    submitStatus.hidden = false;
+    submitStatus.setAttribute('role', 'status');
+    submitStatus.textContent = 'Enviando Crônica...';
     const body = {
       titulo: document.getElementById('edTitulo').value,
       personagem_nome: document.getElementById('edPersonagem').value,
@@ -264,18 +276,25 @@
       resumo: document.getElementById('edResumo').value,
       conteudo_markdown: editor.value,
     };
-    const csrf = decodeURIComponent((document.cookie.split('; ').find(r => r.startsWith('csrftoken=')) || '').split('=')[1] || '');
+    const csrf = form.querySelector('[name="csrfmiddlewaretoken"]').value;
     const url = {% if is_new %}'{% url "cronica_create" %}'{% else %}'{% url "cronica_edit" slug=cronica.slug %}'{% endif %};
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
-      body: JSON.stringify(body),
-    });
-    const data = await res.json();
-    if (data.ok) {
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+        body: JSON.stringify(body),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Não foi possível salvar a Crônica.');
+      submitStatus.textContent = 'Crônica enviada para revisão.';
       window.location.href = '{% url "mundo_cronicas" %}';
-    } else {
-      alert(data.error || 'Erro ao salvar');
+    } catch (error) {
+      submitStatus.setAttribute('role', 'alert');
+      submitStatus.textContent = error.message || 'Não foi possível salvar a Crônica. Tente novamente.';
+      submitStatus.focus();
+      submitting = false;
+      submitButton.disabled = false;
+      form.removeAttribute('aria-busy');
     }
   });
 })();
