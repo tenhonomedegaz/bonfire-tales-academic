@@ -4463,18 +4463,132 @@ class SocialCreditEntryAdmin(_ReadOnlySocialCreditAdmin):
 
 
 @admin.register(SocialCreditPolicy)
-class SocialCreditPolicyAdmin(_ReadOnlySocialCreditAdmin):
+class SocialCreditPolicyAdmin(admin.ModelAdmin):
     list_display = ('version', 'first_publication_amount', 'reader_recognition_enabled',
-                    'active', 'created_at')
-    readonly_fields = ('version', 'first_publication_amount', 'reader_recognition_enabled',
-                       'reader_milestone_size', 'reader_milestone_amount',
-                       'reader_consolidation_hours', 'reader_story_credit_cap',
-                       'reader_author_period_credit_cap', 'reader_period_days',
-                       'redemption_enabled', 'redemption_cost', 'redemption_gold_pc',
-                       'redemption_gold_source',
-                       'redemption_counts_for_progression', 'redemption_period_days',
-                       'redemption_period_limit', 'redemption_character_limit',
-                       'active', 'created_at')
+                    'redemption_enabled', 'active', 'created_at')
+    list_filter = ('active', 'reader_recognition_enabled', 'redemption_enabled')
+    search_fields = ('version',)
+    readonly_fields = ('active', 'created_at')
+    actions = ('activate_version', 'deactivate_version')
+    fieldsets = (
+        ('Versão e autoria', {
+            'fields': ('version', 'first_publication_amount', 'active', 'created_at'),
+            'description': ('Crie um rascunho com versão única. A parcela por primeira '
+                            'publicação deve ser aprovada pelo PO antes da ativação.'),
+        }),
+        ('Reconhecimento por leitores', {
+            'fields': ('reader_recognition_enabled', 'reader_milestone_size',
+                       'reader_milestone_amount', 'reader_consolidation_hours',
+                       'reader_story_credit_cap', 'reader_author_period_credit_cap',
+                       'reader_period_days'),
+            'description': ('Defina marco, janela e tetos por história e autor. '
+                            'Campos completos são obrigatórios ao ativar esta modalidade.'),
+        }),
+        ('Resgate de aventura e recompensa', {
+            'fields': ('redemption_enabled', 'redemption_cost', 'redemption_gold_pc',
+                       'redemption_gold_source', 'redemption_counts_for_progression',
+                       'redemption_period_days', 'redemption_period_limit',
+                       'redemption_character_limit'),
+            'description': ('Informe custo, tabela de ouro, efeito na progressão e limites '
+                            'aprovados pelo PO antes de habilitar o resgate.'),
+        }),
+    )
+
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_active and request.user.is_superuser
+
+    def has_add_permission(self, request):
+        return request.user.is_active and request.user.is_superuser
+
+    def has_change_permission(self, request, obj=None):
+        if not request.user.is_active or not request.user.is_superuser:
+            return False
+        if obj is None:
+            return True
+        return not obj.active and not self._has_usage(obj)
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    @staticmethod
+    def _has_usage(policy):
+        return (SocialCreditEntry.objects.filter(policy=policy).exists()
+                or SocialCreditReaderRecognition.objects.filter(policy=policy).exists()
+                or SocialCreditRedemption.objects.filter(policy=policy).exists())
+
+    def save_model(self, request, obj, form, change):
+        from django.core.exceptions import PermissionDenied
+
+        if not request.user.is_active or not request.user.is_superuser:
+            raise PermissionDenied
+        if change:
+            current = SocialCreditPolicy.objects.select_for_update().get(pk=obj.pk)
+            if current.active or self._has_usage(current):
+                raise PermissionDenied
+        obj.active = False
+        super().save_model(request, obj, form, change)
+
+    def _change_activation(self, request, queryset, *, activate):
+        from django.contrib.admin.helpers import ACTION_CHECKBOX_NAME
+        from django.core.exceptions import ValidationError
+        from .social_credits import _validate_reader_policy, _validate_redemption_policy
+
+        if not request.user.is_active or not request.user.is_superuser:
+            self.message_user(request, 'Ação reservada a superusuários.', level=messages.ERROR)
+            return None
+        if queryset.count() != 1:
+            self.message_user(request, 'Selecione exatamente uma versão.', level=messages.ERROR)
+            return None
+        policy = queryset.first()
+        confirmed = request.POST.get('confirm_version')
+        if confirmed == policy.version:
+            with transaction.atomic():
+                # Serialize policy switches, including two different versions racing.
+                locked = list(SocialCreditPolicy.objects.select_for_update().order_by('pk'))
+                policy = next(item for item in locked if item.pk == policy.pk)
+                if policy.active == activate:
+                    self.message_user(request, 'A versão já está nesse estado.', level=messages.WARNING)
+                    return None
+                if activate:
+                    if SocialCreditPolicy.objects.filter(active=True).exclude(pk=policy.pk).exists():
+                        self.message_user(request, 'Desative a versão atual antes de ativar outra.',
+                                          level=messages.ERROR)
+                        return None
+                    policy.active = True
+                    try:
+                        policy.full_clean()
+                        if policy.reader_recognition_enabled:
+                            _validate_reader_policy(policy)
+                        if policy.redemption_enabled:
+                            _validate_redemption_policy(policy)
+                    except (ValidationError, ValueError) as exc:
+                        self.message_user(request, f'Política incompleta: {exc}',
+                                          level=messages.ERROR)
+                        return None
+                policy.active = activate
+                policy.save(update_fields=['active'])
+            verb = 'ativada' if activate else 'desativada'
+            self.message_user(request, f'Versão {policy.version} {verb}.', level=messages.SUCCESS)
+            return None
+
+        return render(request, 'admin/home/socialcreditpolicy/confirm_activation.html', {
+            **self.admin_site.each_context(request),
+            'title': 'Ativar política social' if activate else 'Desativar política social',
+            'policy': policy,
+            'activate': activate,
+            'error': bool(confirmed),
+            'action_name': 'activate_version' if activate else 'deactivate_version',
+            'action_checkbox_name': ACTION_CHECKBOX_NAME,
+            'opts': self.model._meta,
+        })
+
+    @admin.action(description='Ativar versão selecionada com confirmação')
+    def activate_version(self, request, queryset):
+        return self._change_activation(request, queryset, activate=True)
+
+    @admin.action(description='Desativar versão selecionada com confirmação')
+    def deactivate_version(self, request, queryset):
+        return self._change_activation(request, queryset, activate=False)
 
 
 @admin.register(SocialCreditReaderRecognition)
