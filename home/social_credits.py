@@ -8,7 +8,7 @@ from django.db.models import Count, Exists, OuterRef, Sum
 from django.utils import timezone
 
 from .models import (SocialCreditEntry, SocialCreditPolicy, SocialCreditReaderRecognition,
-                     SocialCreditWallet, TbCronicaCurtida)
+                     SocialCreditWallet, TbCronica, TbCronicaCurtida)
 
 
 @transaction.atomic
@@ -91,24 +91,33 @@ def record_reader_recognition(cronica, reader):
         policy = SocialCreditPolicy.objects.filter(
             active=True, reader_recognition_enabled=True,
         ).first()
+        if policy is not None:
+            try:
+                _validate_reader_policy(policy)
+            except ValueError:
+                policy = None
     recognition, _ = SocialCreditReaderRecognition.objects.get_or_create(
         cronica=cronica, reader=reader, defaults={'policy': policy},
     )
     return recognition
 
 
-def preview_reader_milestones(policy, *, as_of=None):
-    """Read-only projection of consolidated reader milestones under one policy."""
+def _validate_reader_policy(policy):
     fields = (
         'reader_milestone_size', 'reader_milestone_amount',
         'reader_consolidation_hours', 'reader_story_credit_cap',
         'reader_author_period_credit_cap', 'reader_period_days',
     )
     if not policy.reader_recognition_enabled or any(
-        not isinstance(getattr(policy, field), int) or getattr(policy, field) <= 0
+        type(getattr(policy, field)) is not int or getattr(policy, field) <= 0
         for field in fields
     ):
         raise ValueError('reader recognition policy is incomplete or disabled')
+
+
+def preview_reader_milestones(policy, *, as_of=None):
+    """Read-only projection of consolidated reader milestones under one policy."""
+    _validate_reader_policy(policy)
     now = as_of or timezone.now()
     cutoff = now - timedelta(hours=policy.reader_consolidation_hours)
     period_start = now - timedelta(days=policy.reader_period_days)
@@ -152,3 +161,39 @@ def preview_reader_milestones(policy, *, as_of=None):
             'credits_ready': ready * amount,
         })
     return preview
+
+
+@transaction.atomic
+def settle_reader_milestones(policy_id, story_id, *, as_of=None):
+    """Post due milestones once, serializing against review and other author awards."""
+    policy = SocialCreditPolicy.objects.select_for_update().get(pk=policy_id)
+    if not policy.active:
+        raise ValueError('reader recognition policy is not active')
+    _validate_reader_policy(policy)
+    story = TbCronica.objects.select_for_update().get(pk=story_id)
+    if story.status != 'aprovada' or not story.data_publicacao:
+        return []
+    # An unlike must wait until this settlement has checked its current state.
+    list(TbCronicaCurtida.objects.select_for_update().filter(
+        cronica_id=story_id).values_list('pk', flat=True))
+    get_user_model().objects.select_for_update().get(pk=story.autor_id)
+    row = next((item for item in preview_reader_milestones(policy, as_of=as_of)
+                if item['chronicle_id'] == story_id), None)
+    if row is None or row['milestones_ready'] == 0:
+        return []
+    prefix = f'chronicle:{story_id}:reader_milestone:'
+    prior = SocialCreditEntry.objects.filter(
+        wallet__user_id=story.autor_id, policy=policy, kind='reader_milestone',
+        operation_ref__startswith=prefix,
+    ).count()
+    entries = []
+    for number in range(prior + 1, prior + row['milestones_ready'] + 1):
+        entry, created = post_social_credit(
+            story.autor_id,
+            operation_ref=f'{prefix}{policy.pk}:{number}',
+            kind='reader_milestone', delta=policy.reader_milestone_amount,
+            policy=policy,
+        )
+        if created:
+            entries.append(entry)
+    return entries

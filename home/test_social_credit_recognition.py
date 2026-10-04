@@ -58,6 +58,9 @@ class ReaderRecognitionTests(TestCase):
         policy = SocialCreditPolicy.objects.create(
             version='test-reader-rule', first_publication_amount=1,
             reader_recognition_enabled=True, active=True,
+            reader_milestone_size=2, reader_milestone_amount=1,
+            reader_consolidation_hours=24, reader_story_credit_cap=5,
+            reader_author_period_credit_cap=5, reader_period_days=30,
         )
         self.assertEqual(self.react(self.reader, True).status_code, 200)
         self.assertEqual(self.react(self.other, True).status_code, 200)
@@ -68,6 +71,15 @@ class ReaderRecognitionTests(TestCase):
             'policy_id', flat=True)), {policy.pk})
         self.assertFalse(SocialCreditEntry.objects.exists())
         self.assertFalse(SocialCreditWallet.objects.exists())
+
+    def test_incomplete_active_reader_rule_does_not_qualify_first_like(self):
+        SocialCreditPolicy.objects.create(
+            version='incomplete', first_publication_amount=1,
+            reader_recognition_enabled=True, active=True,
+        )
+        self.assertEqual(self.react(self.reader, True).status_code, 200)
+        self.assertIsNone(SocialCreditReaderRecognition.objects.get().policy_id)
+        self.assertFalse(SocialCreditEntry.objects.exists())
 
     def test_disabled_reader_rule_records_evidence_without_qualifying_it(self):
         SocialCreditPolicy.objects.create(
