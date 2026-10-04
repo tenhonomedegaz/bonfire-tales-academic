@@ -4411,3 +4411,35 @@ class DbAccessAuditAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+
+from .models import SocialCreditEntry, SocialCreditWallet
+
+
+class _ReadOnlySocialCreditAdmin(admin.ModelAdmin):
+    actions = None
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(SocialCreditWallet)
+class SocialCreditWalletAdmin(_ReadOnlySocialCreditAdmin):
+    list_display = ('user', 'balance', 'updated_at')
+    search_fields = ('user__username',)
+    readonly_fields = ('user', 'balance', 'updated_at')
+
+
+@admin.register(SocialCreditEntry)
+class SocialCreditEntryAdmin(_ReadOnlySocialCreditAdmin):
+    list_display = ('created_at', 'wallet', 'kind', 'delta', 'balance_after', 'operation_ref')
+    search_fields = ('wallet__user__username', 'operation_ref')
+    list_filter = ('kind', 'created_at')
+    readonly_fields = ('wallet', 'operation_ref', 'kind', 'delta', 'balance_after',
+                       'reversal_of', 'created_at')

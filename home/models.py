@@ -2832,3 +2832,40 @@ class TbTagLibraryRevision(models.Model):
     def __str__(self):
         estado = 'ativa' if self.ativa else 'histórica'
         return '%s (%s)' % (self.nome, estado)
+
+
+class SocialCreditWallet(models.Model):
+    """Integer contribution-credit balance owned by an account, not a character."""
+
+    user = models.OneToOneField('auth.User', on_delete=models.PROTECT, related_name='social_credit_wallet')
+    balance = models.BigIntegerField(default=0)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(condition=models.Q(balance__gte=0), name='social_credit_balance_nonnegative'),
+        ]
+
+    def __str__(self):
+        return str(self.user)
+
+
+class SocialCreditEntry(models.Model):
+    """Immutable credit/debit record with a globally unique operation reference."""
+
+    wallet = models.ForeignKey(SocialCreditWallet, on_delete=models.PROTECT, related_name='entries')
+    operation_ref = models.CharField(max_length=160, unique=True)
+    kind = models.CharField(max_length=40)
+    delta = models.BigIntegerField()
+    balance_after = models.BigIntegerField()
+    reversal_of = models.OneToOneField('self', on_delete=models.PROTECT, null=True, blank=True,
+                                      related_name='reversal')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at', '-pk']
+        constraints = [
+            models.CheckConstraint(condition=~models.Q(delta=0), name='social_credit_entry_nonzero'),
+            models.CheckConstraint(condition=models.Q(balance_after__gte=0),
+                                   name='social_credit_entry_balance_nonnegative'),
+        ]
