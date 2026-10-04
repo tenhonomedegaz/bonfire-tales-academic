@@ -967,6 +967,8 @@ def _validated_badges_destaque(user, slugs):
                 cosmetico__slug__in=slugs)
         .values_list('cosmetico__slug', flat=True)
     )
+    from .cosmetic_entitlements import permanent_cosmetic_slugs
+    possuidos |= permanent_cosmetic_slugs(user, 'badge')
     out, vistos = [], set()
     for s in slugs:
         if s in possuidos and s not in vistos:

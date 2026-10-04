@@ -157,7 +157,9 @@ def _user_inventory_values(user, tipo):
                 suspenso_em__isnull=True)
         .values_list('cosmetico__slug', flat=True)
     )
-    return {_valor_de_slug(tipo, s) for s in slugs}
+    from .cosmetic_entitlements import permanent_cosmetic_slugs
+    return {_valor_de_slug(tipo, s) for s in
+            set(slugs) | permanent_cosmetic_slugs(user, tipo)}
 
 
 def _tipo_db(tipo):

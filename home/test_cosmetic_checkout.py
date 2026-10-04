@@ -7,9 +7,13 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from .cosmetic_entitlements import has_permanent_cosmetic
+from .cosmetics import catalog_options, cosmetic_allowed
+from .badges import badges_concedidas, perfil_badges_batch, titulos_disponiveis
 from .models import (AsaasCheckoutOrder, CosmeticCheckoutOffer,
-                     CosmeticCheckoutPurchase, TbCosmetico, TbUsuarioCosmetico)
-from .views import AsaasAPIError
+                     CosmeticCheckoutPurchase, TbCosmetico, TbUsuarioCosmetico,
+                     UserProfile)
+from .views import (AsaasAPIError, _validated_badges_destaque,
+                    _validated_titulo_equipado)
 
 
 @override_settings(ASAAS_WEBHOOK_TOKEN='test-webhook-token')
@@ -65,8 +69,50 @@ class CosmeticCheckoutTests(TestCase):
         inventory.suspenso_em = timezone.now()
         inventory.save()
         self.assertTrue(has_permanent_cosmetic(self.user, self.cosmetic))
+        self.assertTrue(cosmetic_allowed(self.user, 'moldura', 'paga', 'perfil'))
+        self.assertFalse(cosmetic_allowed(self.other, 'moldura', 'paga', 'perfil'))
+        self.assertEqual(next(item['estado'] for item in catalog_options(
+            self.user, 'moldura', 'perfil') if item['key'] == 'paga'), 'possui')
         order.refresh_from_db()
         self.assertEqual(order.status, AsaasCheckoutOrder.Status.PAID)
+
+    def test_paid_title_and_badge_remain_usable_after_inventory_suspension(self):
+        from django.utils import timezone
+        title = TbCosmetico.objects.create(
+            slug='titulo-pago', tipo='titulo', nome='Título Pago',
+            origem='evento_manual', escopo='perfil')
+        badge = TbCosmetico.objects.create(
+            slug='badge-paga', tipo='badge', nome='Insígnia Paga',
+            origem='evento_manual', escopo='perfil')
+        for item in (title, badge):
+            order = AsaasCheckoutOrder.objects.create(
+                user=self.user, email=self.user.email,
+                product_code='cosmetic:' + item.slug,
+                mode='single', amount=Decimal('12.34'))
+            CosmeticCheckoutPurchase.objects.create(
+                order=order, beneficiary=self.user, cosmetico=item,
+                slug=item.slug, name=item.nome, granted_at=timezone.now())
+            TbUsuarioCosmetico.objects.create(
+                user=self.user, cosmetico=item, origem='evento_manual',
+                suspenso_em=timezone.now())
+
+        self.assertEqual(_validated_titulo_equipado(self.user, title.slug), title.slug)
+        self.assertEqual(_validated_titulo_equipado(self.other, title.slug), '')
+        self.assertIn(title.slug, [item['slug'] for item in titulos_disponiveis(self.user)])
+        self.assertEqual(_validated_badges_destaque(self.user, [badge.slug]), [badge.slug])
+        self.assertEqual(_validated_badges_destaque(self.other, [badge.slug]), [])
+        self.assertIn(badge.slug, [item['slug'] for item in badges_concedidas(self.user)])
+        self.assertEqual(badges_concedidas(self.other), [])
+        profile = UserProfile.objects.get_or_create(user=self.user)[0]
+        profile.titulo_equipado = title.slug
+        profile.badges_destaque = [badge.slug]
+        profile.save(update_fields=['titulo_equipado', 'badges_destaque'])
+        users = list(get_user_model().objects.filter(
+            pk__in=[self.user.pk, self.other.pk]).select_related('profile'))
+        cards = perfil_badges_batch(users)
+        self.assertEqual(cards[self.user.pk]['titulo']['slug'], title.slug)
+        self.assertIn(badge.slug, [item['slug'] for item in cards[self.user.pk]['badges']])
+        self.assertIsNone(cards[self.other.pk]['titulo'])
 
     @patch('home.views._asaas_api_get')
     def test_incomplete_and_wrong_value_never_grant(self, api_get):
@@ -78,6 +124,7 @@ class CosmeticCheckoutTests(TestCase):
         order.refresh_from_db()
         self.assertEqual(order.status, AsaasCheckoutOrder.Status.VALUE_MISMATCH)
         self.assertFalse(has_permanent_cosmetic(self.user, self.cosmetic))
+        self.assertFalse(cosmetic_allowed(self.user, 'moldura', 'paga', 'perfil'))
 
     @patch('home.views._asaas_api_get')
     def test_unauthorized_or_non_settled_event_never_grants(self, api_get):

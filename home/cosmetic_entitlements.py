@@ -15,6 +15,18 @@ def has_permanent_cosmetic(user, cosmetico):
     ).exists()
 
 
+def permanent_cosmetic_slugs(user, tipo=None):
+    """Paid, granted catalog slugs; independent of a suspendable inventory row."""
+    if not getattr(user, 'pk', None):
+        return set()
+    purchases = CosmeticCheckoutPurchase.objects.filter(
+        beneficiary=user, granted_at__isnull=False, cosmetico__ativo=True,
+    )
+    if tipo:
+        purchases = purchases.filter(cosmetico__tipo=tipo)
+    return set(purchases.values_list('cosmetico__slug', flat=True))
+
+
 def grant_paid_purchase(purchase):
     """Concede uma vez sob bloqueio do pedido e preserva a origem paga."""
     with transaction.atomic():

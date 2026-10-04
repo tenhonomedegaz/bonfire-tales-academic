@@ -10,7 +10,7 @@ No admin, cadastre um cosmético no catálogo existente e crie sua `CosmeticChec
 
 O webhook existente valida o token antes de ler dados. Para compras de cosmético, consulta o pagamento pela API e só aceita referência, identificador, status liquidado e valor completos. O evento autenticado registra ID de evento e pagamento; pagamento confirmado concede o item de forma transacional e idempotente. Valor divergente bloqueia concessão e exige conciliação manual. Eventos não liquidados são ignorados. O status local `/cosmeticos/checkout/<uuid>/` é visível somente ao beneficiário e não consulta a API financeira.
 
-`home.cosmetic_entitlements.has_permanent_cosmetic(user, cosmetico)` é o contrato de leitura para renderers e serviços futuros. A compra paga permanece como direito mesmo se uma origem temporária suspender a linha única de `TbUsuarioCosmetico`. A integração do renderer e do bot/Colab não faz parte desta fatia; ambos devem consultar esse contrato antes de negar posse ou revogar a concessão. Ofertas avulsas não usam moedas sociais.
+`home.cosmetic_entitlements.has_permanent_cosmetic(user, cosmetico)` é o contrato de leitura do direito permanente. Os seletores, títulos, insígnias e renderer do perfil reconhecem uma compra confirmada mesmo se uma origem temporária suspender a linha única de `TbUsuarioCosmetico`; itens inativos continuam indisponíveis. A integração do bot/Colab ainda deve consultar esse contrato antes de negar posse ou revogar a concessão. Ofertas avulsas não usam moedas sociais.
 
 ## Operação
 

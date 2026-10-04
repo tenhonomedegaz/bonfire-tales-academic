@@ -137,19 +137,23 @@ def _concedida_dict(cosmetico):
 
 
 def _badges_concedidas_qs(user):
-    from .models import TbUsuarioCosmetico
-    return (TbUsuarioCosmetico.objects
-            .filter(user=user, cosmetico__tipo='badge', cosmetico__ativo=True,
-                    suspenso_em__isnull=True)
-            .select_related('cosmetico')
-            .order_by('cosmetico__ordem', 'cosmetico__nome'))
+    from .models import TbCosmetico, TbUsuarioCosmetico
+    from .cosmetic_entitlements import permanent_cosmetic_slugs
+    slugs = set(TbUsuarioCosmetico.objects.filter(
+        user=user, cosmetico__tipo='badge', cosmetico__ativo=True,
+        suspenso_em__isnull=True,
+    ).values_list('cosmetico__slug', flat=True))
+    slugs |= permanent_cosmetic_slugs(user, 'badge')
+    return TbCosmetico.objects.filter(
+        slug__in=slugs, tipo='badge', ativo=True,
+    ).order_by('ordem', 'nome')
 
 
 def badges_concedidas(user):
     """Badges que o usuário POSSUI (inventário, tipo='badge')."""
     if not user or not getattr(user, 'pk', None):
         return []
-    return [_concedida_dict(uc.cosmetico) for uc in _badges_concedidas_qs(user)]
+    return [_concedida_dict(cosmetico) for cosmetico in _badges_concedidas_qs(user)]
 
 
 def _ordena_por_destaque(badges, destaque_slugs):
@@ -208,8 +212,11 @@ def user_possui_cosmetico(user, slug, tipo):
         return False
     if cos.origem == 'livre':
         return True
-    return TbUsuarioCosmetico.objects.filter(
-        user=user, cosmetico=cos, suspenso_em__isnull=True).exists()
+    if TbUsuarioCosmetico.objects.filter(
+            user=user, cosmetico=cos, suspenso_em__isnull=True).exists():
+        return True
+    from .cosmetic_entitlements import has_permanent_cosmetic
+    return has_permanent_cosmetic(user, cos)
 
 
 def _titulo_dict(cos):
@@ -252,13 +259,18 @@ def titulos_disponiveis(user):
     if not user or not getattr(user, 'pk', None):
         return []
     from .models import TbUsuarioCosmetico
-    qs = (TbUsuarioCosmetico.objects
-          .filter(user=user, cosmetico__tipo='titulo', cosmetico__ativo=True,
-                  suspenso_em__isnull=True)
-          .select_related('cosmetico')
-          .order_by('cosmetico__ordem', 'cosmetico__nome'))
-    return [{'slug': uc.cosmetico.slug, 'nome': uc.cosmetico.nome,
-             'raridade': uc.cosmetico.raridade or 'comum'} for uc in qs]
+    from .models import TbCosmetico
+    from .cosmetic_entitlements import permanent_cosmetic_slugs
+    slugs = set(TbUsuarioCosmetico.objects.filter(
+        user=user, cosmetico__tipo='titulo', cosmetico__ativo=True,
+        suspenso_em__isnull=True,
+    ).values_list('cosmetico__slug', flat=True))
+    slugs |= permanent_cosmetic_slugs(user, 'titulo')
+    qs = TbCosmetico.objects.filter(
+        slug__in=slugs, tipo='titulo', ativo=True,
+    ).order_by('ordem', 'nome')
+    return [{'slug': cos.slug, 'nome': cos.nome,
+             'raridade': cos.raridade or 'comum'} for cos in qs]
 
 
 # ──────────────────────────── Batch (/jogadores/) ──────────────────────────────
@@ -318,11 +330,12 @@ def _is_colaborador_batch_from_bot(users, resultado):
 
 def _badges_concedidas_batch(users):
     """Mapa {user_pk: [badge_dict, ...]} das badges CONCEDIDAS de vários usuários,
-    em UMA query (tipo='badge')."""
-    from .models import TbUsuarioCosmetico
+    em consultas em lote ao inventario e a compras confirmadas."""
+    from .models import CosmeticCheckoutPurchase, TbUsuarioCosmetico
     out = {u.pk: [] for u in users}
     if not users:
         return out
+    by_user = {u.pk: {} for u in users}
     qs = (TbUsuarioCosmetico.objects
           .filter(user_id__in=[u.pk for u in users],
                   cosmetico__tipo='badge', cosmetico__ativo=True,
@@ -330,14 +343,23 @@ def _badges_concedidas_batch(users):
           .select_related('cosmetico')
           .order_by('cosmetico__ordem', 'cosmetico__nome'))
     for uc in qs:
-        out.setdefault(uc.user_id, []).append(_concedida_dict(uc.cosmetico))
+        by_user[uc.user_id][uc.cosmetico.slug] = uc.cosmetico
+    paid = (CosmeticCheckoutPurchase.objects.filter(
+        beneficiary_id__in=by_user, granted_at__isnull=False,
+        cosmetico__tipo='badge', cosmetico__ativo=True,
+    ).select_related('cosmetico'))
+    for purchase in paid:
+        by_user[purchase.beneficiary_id][purchase.cosmetico.slug] = purchase.cosmetico
+    for user_id, cosmetics in by_user.items():
+        out[user_id] = [_concedida_dict(cos) for cos in sorted(
+            cosmetics.values(), key=lambda cos: (cos.ordem, cos.nome))]
     return out
 
 
 def _titulos_equipados_batch(users):
     """Mapa {user_pk: titulo_dict|None} dos títulos equipados, validando posse em
-    UMA query no inventário (tipo='titulo'). Só devolve título que o usuário POSSUI."""
-    from .models import TbUsuarioCosmetico, TbCosmetico
+    consultas em lote ao inventario e a compras confirmadas. So devolve titulo possuido."""
+    from .models import CosmeticCheckoutPurchase, TbUsuarioCosmetico, TbCosmetico
     out = {u.pk: None for u in users}
     # slug de título desejado por usuário (do UserProfile.titulo_equipado).
     desejado = {}
@@ -359,16 +381,21 @@ def _titulos_equipados_batch(users):
         suspenso_em__isnull=True,
         cosmetico__slug__in=slugs
     ).values_list('user_id', 'cosmetico__slug'))
+    possui |= set(CosmeticCheckoutPurchase.objects.filter(
+        beneficiary_id__in=list(desejado.keys()),
+        cosmetico__tipo='titulo', cosmetico__ativo=True,
+        cosmetico__slug__in=slugs, granted_at__isnull=False,
+    ).values_list('beneficiary_id', 'cosmetico__slug'))
     for pk, slug in desejado.items():
         cos = cos_por_slug.get(slug)
-        if cos and (pk, slug) in possui:
+        if cos and (cos.origem == 'livre' or (pk, slug) in possui):
             out[pk] = _titulo_dict(cos)
     return out
 
 
 def perfil_badges_batch(users):
     """Pro /jogadores/: {user_pk: {'badges': [...], 'titulo': dict|None}} com no
-    máximo 3 queries no total (colaborador + badges concedidas + títulos), sem N+1.
+    consultas em lote (colaborador + inventario + compras), sem N+1.
     As badges já vêm ordenadas com as fixadas (badges_destaque) primeiro."""
     users = list(users)
     if not users:
