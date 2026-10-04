@@ -1943,6 +1943,11 @@
     gap: 0.5rem;
 }
 
+.profile-social-list .social-credit-entry {
+    display: block;
+    overflow-wrap: anywhere;
+}
+
 .profile-social-list li > a {
     display: inline-flex;
     align-items: center;

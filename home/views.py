@@ -1162,11 +1162,13 @@ def _save_character_upload(pers, uploaded, kind, old_value='', max_mb=10):
 
 @login_required(login_url='/login/')
 def profile_view(request):
-    from .models import UserProfile
+    from .models import SocialCreditWallet, UserProfile
     from django.contrib.auth import update_session_auth_hash
 
     user = request.user
     profile, _ = UserProfile.objects.get_or_create(user=user)
+    credit_wallet = SocialCreditWallet.objects.filter(user=user).first()
+    credit_entries = list(credit_wallet.entries.all()[:20]) if credit_wallet else []
 
     messages = []
     errors = []
@@ -1327,6 +1329,8 @@ def profile_view(request):
     from django.conf import settings as _settings
     return render(request, 'home/pages/perfil.html', {
         'profile': profile,
+        'social_credit_balance': credit_wallet.balance if credit_wallet else 0,
+        'social_credit_entries': credit_entries,
         'success_messages': messages,
         'error_messages': errors,
         'discord_msg': request.GET.get('discord'),

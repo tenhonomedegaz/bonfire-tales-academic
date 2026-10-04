@@ -83,6 +83,25 @@ class SocialCreditLedgerTests(TestCase):
         self.assertNotEqual(self.client.post(entry_url, {'delta': 900}).status_code, 200)
         self.assertEqual(SocialCreditEntry.objects.get(pk=entry.pk).delta, 5)
 
+    def test_owner_sees_balance_and_history_only_in_private_profile(self):
+        post_social_credit(self.user.pk, operation_ref='story:private-history',
+                           kind='first_publication', delta=5)
+        self.client.force_login(self.user)
+        private = self.client.get(reverse('profile'))
+        self.assertEqual(private.status_code, 200)
+        self.assertContains(private, 'Créditos de contribuição')
+        self.assertContains(private, 'story:private-history')
+        self.assertEqual(private.context['social_credit_balance'], 5)
+        public = self.client.get(reverse('public_profile', args=[self.user.username]))
+        self.assertEqual(public.status_code, 200)
+        self.assertNotContains(public, 'story:private-history')
+        other = get_user_model().objects.create_user('credit-other', password='test')
+        self.client.force_login(other)
+        own = self.client.get(reverse('profile'))
+        self.assertEqual(own.status_code, 200)
+        self.assertEqual(own.context['social_credit_balance'], 0)
+        self.assertNotContains(own, 'story:private-history')
+
 
 class SocialCreditConcurrencyTests(TransactionTestCase):
     def test_simultaneous_replay_posts_once(self):

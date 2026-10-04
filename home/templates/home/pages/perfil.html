@@ -57,6 +57,24 @@
         <a href="{% url 'public_profile' user.username %}" class="profile-public-link">Ver perfil publico</a>
     </div>
 
+    <section class="profile-section" aria-labelledby="social-credit-heading">
+        <h2 class="profile-section-title" id="social-credit-heading">Créditos de contribuição</h2>
+        <p>Saldo: <strong>{{ social_credit_balance }}</strong></p>
+        <p>Os critérios de concessão e resgate ainda aguardam definição.</p>
+        <details class="profile-social-list">
+            <summary>Histórico recente</summary>
+            {% if social_credit_entries %}
+            <ul>
+                {% for entry in social_credit_entries %}
+                <li class="social-credit-entry">{{ entry.created_at|date:'d/m/Y H:i' }} · {{ entry.kind }} · {{ entry.delta }} · {{ entry.operation_ref }}</li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p>Nenhum lançamento registrado.</p>
+            {% endif %}
+        </details>
+    </section>
+
     <!-- Seção: Dados do Perfil + PRÉVIA VIVA (coluna sticky à direita) -->
     <form method="post" class="profile-section profile-editor" enctype="multipart/form-data" id="perfil-form">
         {% csrf_token %}
