@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "slug": "moldura-ember-ring",
+  "type": "moldura",
+  "scope": "perfil",
+  "layers": [
+    {"slot": "avatar", "file": "ember-ring.svg", "fallback": "ember-ring.svg", "width": 160, "height": 160, "anchor": "center", "motion": "pulse"}
+  ]
+}

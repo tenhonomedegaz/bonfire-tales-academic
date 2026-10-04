@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "slug": "tema-arcane",
+  "type": "tema",
+  "scope": "perfil",
+  "layers": [
+    {"slot": "banner", "file": "arcane-banner.svg", "fallback": "arcane-banner.svg", "width": 1200, "height": 340, "anchor": "center", "motion": "none"},
+    {"slot": "ornament", "file": "arcane-ornament.svg", "fallback": "arcane-ornament.svg", "width": 420, "height": 90, "anchor": "right", "motion": "float"}
+  ]
+}

@@ -28,7 +28,10 @@ Ganchos da prévia (JS): as imagens escolhidas no <input type=file> ainda NÃO e
 no servidor, então o cliente sobrepõe .public-profile-banner-media,
 .public-profile-avatar img e .perfil-preview-bg por cima deste HTML (URL.createObjectURL).
 {% endcomment %}
-{% load editorial_images %}
+{% load editorial_images cosmetic_packages %}
+{% cosmetic_package 'tema' appearance.theme_key viewed_user as theme_package %}
+{% cosmetic_package 'moldura' appearance.frame_key viewed_user as frame_package %}
+{% cosmetic_package 'efeito' appearance.effect_key viewed_user as effect_package %}
 <section class="public-profile-page {{ appearance.theme_class }} {{ appearance.effect_class }}{% if appearance.background_url|safe_profile_image %} profile-has-bg{% endif %}{% if preview_mode %} is-preview{% endif %}"{% if appearance.fx_particula %} data-fx-particula="{{ appearance.fx_particula }}" data-fx-vel="{{ appearance.fx_vel }}"{% endif %}{% if appearance.custom_style %} style="{{ appearance.custom_style }}"{% endif %}>
   {% if preview_mode %}
   <div class="perfil-preview-bg"{% if appearance.background_url|safe_profile_image %} style="background-image:url('{{ appearance.background_url|safe_profile_image }}');"{% else %} style="display:none"{% endif %}></div>
@@ -38,15 +41,21 @@ no servidor, então o cliente sobrepõe .public-profile-banner-media,
   <div class="public-profile-card">
     <div class="public-profile-banner">
       {% if profile.banner_url|safe_profile_image %}<div class="public-profile-banner-media" style="background-image:url('{{ profile.banner_url|safe_profile_image }}');"></div>{% elif preview_mode %}<div class="public-profile-banner-media" style="display:none"></div>{% endif %}
+      {% include 'home/partials/_cosmetic_preview.html' with layers=theme_package.banner slot='banner' %}
+      {% include 'home/partials/_cosmetic_preview.html' with layers=effect_package.banner slot='banner' %}
+      {% include 'home/partials/_cosmetic_preview.html' with layers=theme_package.ornament slot='ornament' %}
+      {% include 'home/partials/_cosmetic_preview.html' with layers=effect_package.ornament slot='ornament' %}
     </div>
 
     <div class="public-profile-body">
-      <div class="public-profile-avatar {{ appearance.frame_class }}">
+      <div class="public-profile-avatar {{ appearance.frame_class }}{% if frame_package.avatar or effect_package.avatar %} is-packaged{% endif %}">
         {% if profile.avatar_url|safe_profile_image %}
         <img src="{{ profile.avatar_url|safe_profile_image }}" alt="Avatar de {{ viewed_user.username }}" loading="lazy">
         {% else %}
         <span>{{ viewed_user.username|first|upper }}</span>
         {% endif %}
+        {% include 'home/partials/_cosmetic_preview.html' with layers=frame_package.avatar slot='avatar' %}
+        {% include 'home/partials/_cosmetic_preview.html' with layers=effect_package.avatar slot='avatar' %}
       </div>
 
       <div class="public-profile-main">

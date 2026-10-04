@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "slug": "moldura-arcane-pulse",
+  "type": "moldura",
+  "scope": "perfil",
+  "layers": [
+    {"slot": "avatar", "file": "arcane-ring.svg", "fallback": "arcane-ring.svg", "width": 160, "height": 160, "anchor": "center", "motion": "pulse"}
+  ]
+}

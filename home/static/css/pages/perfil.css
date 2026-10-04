@@ -2057,3 +2057,141 @@
 .profile-social-list > summary:hover {
     color: var(--pf-accent);
 }
+
+/* Manifesto de mídia: arte restrita ao banner e ao aro, atrás das ações. */
+.public-profile-banner {
+  position: relative;
+  overflow: hidden;
+}
+
+.cosmetic-layers {
+  position: absolute;
+  pointer-events: none;
+  user-select: none;
+  overflow: hidden;
+}
+
+.cosmetic-layers--banner {
+  inset: 0;
+  z-index: 0;
+}
+
+.profile-hero > .cosmetic-layers--banner {
+  bottom: auto;
+  height: 56%;
+}
+
+.public-profile-banner-media,
+.profile-banner-media {
+  z-index: 1;
+}
+
+.cosmetic-layers--ornament {
+  top: 10px;
+  right: 10px;
+  width: min(38%, 290px);
+  height: 50px;
+  z-index: 2;
+}
+
+.profile-hero > .cosmetic-layers--ornament {
+  top: 8px;
+}
+
+.cosmetic-layer {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.cosmetic-layers--banner .cosmetic-layer {
+  opacity: .95;
+}
+
+.cosmetic-layers--ornament .cosmetic-layer {
+  object-fit: contain;
+}
+
+.cosmetic-layer--left { object-position: left center; }
+.cosmetic-layer--right { object-position: right center; }
+
+.profile-avatar-wrapper.is-packaged,
+.public-profile-avatar.is-packaged {
+  position: relative;
+  overflow: visible;
+  isolation: isolate;
+}
+
+.profile-avatar-wrapper.is-packaged > img,
+.public-profile-avatar.is-packaged > img {
+  border-radius: 50%;
+}
+
+.profile-avatar-wrapper.is-packaged::before,
+.public-profile-avatar.is-packaged::before {
+  display: none;
+}
+
+.cosmetic-layers--avatar {
+  inset: -12%;
+  z-index: 3;
+  overflow: visible;
+}
+
+.profile-avatar-wrapper .cosmetic-layers--avatar .cosmetic-layer,
+.public-profile-avatar .cosmetic-layers--avatar .cosmetic-layer {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.cosmetic-layer--float,
+.cosmetic-layer--pulse {
+  animation-play-state: paused;
+}
+
+.cosmetic-layers.is-visible .cosmetic-layer--float {
+  animation: cosmetic-float 7s ease-in-out infinite;
+}
+
+.cosmetic-layers.is-visible .cosmetic-layer--pulse {
+  animation: cosmetic-pulse 4s ease-in-out infinite;
+}
+
+.cosmetic-layers.is-paused .cosmetic-layer {
+  animation-play-state: paused;
+}
+
+@keyframes cosmetic-float {
+  50% { transform: translateY(-4px); opacity: .78; }
+}
+
+@keyframes cosmetic-pulse {
+  50% { transform: scale(1.035); filter: drop-shadow(0 0 7px currentColor); }
+}
+
+@media (max-width: 600px) {
+  .public-profile-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .public-profile-main {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .cosmetic-layers--ornament {
+    width: min(48%, 185px);
+    height: 38px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cosmetic-layers .cosmetic-layer {
+    animation: none !important;
+    transform: none !important;
+  }
+}

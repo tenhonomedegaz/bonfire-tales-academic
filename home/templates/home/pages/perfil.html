@@ -1,11 +1,12 @@
 {% extends 'home/base.html' %}
-{% load static editorial_images %}
+{% load static editorial_images cosmetic_packages %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/pages/perfil.css' %}?v=6">
+<link rel="stylesheet" href="{% static 'css/pages/perfil.css' %}?v=7">
 <link rel="stylesheet" href="{% static 'css/components/tema_swatch.css' %}?v=1">
 <link rel="stylesheet" href="{% static 'css/pages/perfil-fx.css' %}?v=4">
 <script src="{% static 'js/tema_swatch.js' %}?v=1" defer></script>
+<script src="{% static 'cosmetics/renderer.js' %}?v=1" defer></script>
 {% if appearance.theme_css_href %}<link rel="stylesheet" id="perfil-preview-theme-css" href="{{ appearance.theme_css_href }}">{% endif %}
 <title>Meu Perfil — Bonfire Tales RPG</title>
 {% endblock %}
@@ -29,11 +30,18 @@
     {% endfor %}
 
     <!-- Header do Perfil -->
+    {% cosmetic_package 'tema' appearance.theme_key user as theme_package %}
+    {% cosmetic_package 'moldura' appearance.frame_key user as frame_package %}
+    {% cosmetic_package 'efeito' appearance.effect_key user as effect_package %}
     <div class="profile-header profile-hero">
         {% if profile.banner_url|safe_profile_image %}
         <div class="profile-banner-media" style="background-image:url('{{ profile.banner_url|safe_profile_image }}');"></div>
         {% endif %}
-        <div class="profile-avatar-wrapper {{ appearance.frame_class }}" id="profile-avatar-main">
+        {% include 'home/partials/_cosmetic_preview.html' with layers=theme_package.banner slot='banner' %}
+        {% include 'home/partials/_cosmetic_preview.html' with layers=effect_package.banner slot='banner' %}
+        {% include 'home/partials/_cosmetic_preview.html' with layers=theme_package.ornament slot='ornament' %}
+        {% include 'home/partials/_cosmetic_preview.html' with layers=effect_package.ornament slot='ornament' %}
+        <div class="profile-avatar-wrapper {{ appearance.frame_class }}{% if frame_package.avatar or effect_package.avatar %} is-packaged{% endif %}" id="profile-avatar-main">
             {% if profile.avatar_url|safe_profile_image %}
             <img src="{{ profile.avatar_url|safe_profile_image }}" alt="Avatar de {{ user.username }}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
             <div class="profile-avatar-fallback" style="display:none;">
@@ -44,6 +52,8 @@
                 <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
             </div>
         {% endif %}
+        {% include 'home/partials/_cosmetic_preview.html' with layers=frame_package.avatar slot='avatar' %}
+        {% include 'home/partials/_cosmetic_preview.html' with layers=effect_package.avatar slot='avatar' %}
         </div>
         <span class="profile-username">{{ user.username }}</span>
         {% if profile.bio %}<p class="profile-bio-preview">{{ profile.bio }}</p>{% endif %}
@@ -620,8 +630,14 @@ document.addEventListener('DOMContentLoaded', () => {
             if (blobs.avatar) {
                 const box = root.querySelector('.public-profile-avatar');
                 if (box) {
-                    let img = box.querySelector('img');
-                    if (!img) { box.textContent = ''; img = document.createElement('img'); img.alt = ''; box.appendChild(img); }
+                    let img = box.querySelector(':scope > img');
+                    if (!img) {
+                        const initials = box.querySelector(':scope > span');
+                        if (initials) initials.remove();
+                        img = document.createElement('img');
+                        img.alt = '';
+                        box.insertBefore(img, box.firstChild);
+                    }
                     img.src = blobs.avatar;
                 }
             }
