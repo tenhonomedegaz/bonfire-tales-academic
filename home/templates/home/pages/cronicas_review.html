@@ -31,15 +31,19 @@
       </div>
     </div>
     <div class="review-item-body">
+      {% if c.review_forwarding.motivo %}<p class="review-item-summary" role="status"><strong>Encaminhada ao Loremaster:</strong> {{ c.review_forwarding.motivo }}</p>{% endif %}
       {% if c.review_data.resumo %}<p class="review-item-summary"><strong>Resumo:</strong> {{ c.review_data.resumo }}</p>{% endif %}
       {% if c.review_data.imagem_url %}<p class="review-item-cover"><strong>URL da capa:</strong> <span>{{ c.review_data.imagem_url }}</span></p>{% endif %}
       <div class="bonfire-markdown" data-markdown-source data-markdown-options="false">{{ c.review_data.conteudo_markdown|escape }}</div>
     </div>
     <div class="review-item-actions">
-      <label class="review-feedback-label" for="feedback-{{ c.id_cronica }}">Motivo da devolução</label>
-      <input type="text" class="review-feedback-input" id="feedback-{{ c.id_cronica }}" aria-describedby="review-error-{{ c.id_cronica }}" placeholder="Obrigatório para reprovar">
+      {% if not c.review_forwarding or can_decide_forwarded %}
+      <label class="review-feedback-label" for="feedback-{{ c.id_cronica }}">Motivo da devolução ou encaminhamento</label>
+      <input type="text" class="review-feedback-input" id="feedback-{{ c.id_cronica }}" aria-describedby="review-error-{{ c.id_cronica }}" maxlength="500" placeholder="Obrigatório para devolver ou encaminhar">
       <button type="button" class="review-btn-approve" onclick="reviewAction({{ c.id_cronica }}, 'aprovar')">✓ Aprovar</button>
-      <button type="button" class="review-btn-reject" onclick="reviewAction({{ c.id_cronica }}, 'reprovar')">✗ Reprovar</button>
+      {% if can_decide_forwarded %}<button type="button" class="review-btn-reject" onclick="reviewAction({{ c.id_cronica }}, 'reprovar')">✗ Devolver ao autor</button>{% endif %}
+      {% if can_triage and not c.review_forwarding %}<button type="button" class="review-btn-reject" onclick="reviewAction({{ c.id_cronica }}, 'encaminhar')">Encaminhar ao Loremaster</button>{% endif %}
+      {% else %}<span>Aguardando decisão do Loremaster.</span>{% endif %}
     </div>
     <p id="review-error-{{ c.id_cronica }}" class="review-item-error" role="alert" hidden></p>
   </div>
@@ -63,10 +67,10 @@ async function reviewAction(id, action) {
   const errorEl = document.getElementById(`review-error-${id}`);
   errorEl.hidden = true;
   
-  if (action === 'reprovar' && !feedback.trim()) {
+  if ((action === 'reprovar' || action === 'encaminhar') && !feedback.trim()) {
     feedbackEl.style.borderColor = '#ef4444';
     feedbackEl.focus();
-    errorEl.textContent = 'Informe o motivo da reprovação.';
+    errorEl.textContent = 'Informe o motivo da decisão.';
     errorEl.hidden = false;
     return;
   }
@@ -84,6 +88,10 @@ async function reviewAction(id, action) {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok || !data.ok) throw new Error(data.error || 'Não foi possível revisar esta crônica.');
+    if (action === 'encaminhar') {
+      window.location.reload();
+      return;
+    }
     item.classList.add('is-resolved');
     const actionsDiv = item.querySelector('.review-item-actions');
     const status = document.createElement('span');

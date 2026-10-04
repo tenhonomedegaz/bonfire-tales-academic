@@ -690,6 +690,9 @@ class TbCronica(models.Model):
         verbose_name = 'Crônica'
         verbose_name_plural = 'Crônicas'
         ordering = ['-data_submissao']
+        permissions = [
+            ('triage_tbcronica', 'Pode triar e encaminhar crônicas para Loremaster'),
+        ]
 
     def __str__(self):
         return f"[{self.get_status_display()}] {self.titulo}"

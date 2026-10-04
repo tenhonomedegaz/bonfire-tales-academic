@@ -36,6 +36,9 @@ class ChronicleReviewBrowserTests(StaticLiveServerTestCase):
         staff.user_permissions.add(Permission.objects.get(
             codename='change_tbcronica', content_type__app_label='home',
         ))
+        staff.user_permissions.add(Permission.objects.get(
+            codename='triage_tbcronica', content_type__app_label='home',
+        ))
         story = TbCronica.objects.create(
             titulo='Revisao de QA', slug='revisao-de-qa',
             conteudo_markdown='Texto para revisao', autor=author, status='pendente',
@@ -115,6 +118,7 @@ class ChronicleReviewBrowserTests(StaticLiveServerTestCase):
                     self.assertLessEqual(viewport['scroll'], viewport['client'], viewport)
                 call('Emulation.clearDeviceMetricsOverride')
                 self.assertTrue(js('document.querySelector(".review-feedback-label").control === document.querySelector(".review-feedback-input")'))
+                self.assertTrue(js('document.querySelector(".review-item-actions").textContent.includes("Encaminhar ao Loremaster")'))
 
                 js(f'reviewAction({story.pk}, "reprovar")')
                 self.assertTrue(js('!document.querySelector(".review-item-error").hidden'))
@@ -143,6 +147,27 @@ class ChronicleReviewBrowserTests(StaticLiveServerTestCase):
                 story.refresh_from_db()
                 self.assertEqual(story.status, 'reprovada')
                 self.assertEqual(story.feedback_staff, 'Corrija o texto.')
+
+                forwarded = TbCronica.objects.create(
+                    titulo='Lore para conferir', slug='lore-para-conferir',
+                    conteudo_markdown='Texto da lore', autor=author, status='pendente',
+                )
+                call('Page.navigate', {'url': self.live_server_url + reverse('cronicas_review')})
+                until('document.readyState === "complete" && !!document.querySelector(".review-item-actions")')
+                js('''document.querySelector('.review-feedback-input').value = 'Verificar a cronologia';
+                    Array.from(document.querySelectorAll('.review-item-actions button'))
+                      .find(button => button.textContent.includes('Encaminhar ao Loremaster')).click();''')
+                until('document.body.textContent.includes("Encaminhada ao Loremaster: Verificar a cronologia")')
+                forwarded.refresh_from_db()
+                self.assertEqual(forwarded.status, 'pendente')
+                self.assertEqual(forwarded.revisao_edicao['triagem_lore']['motivo'], 'Verificar a cronologia')
+                call('Emulation.setDeviceMetricsOverride', {
+                    'width': 720, 'height': 800, 'deviceScaleFactor': 1, 'mobile': False,
+                })
+                forwarded_view = json.loads(js('JSON.stringify({width:innerWidth,scroll:document.documentElement.scrollWidth,client:document.documentElement.clientWidth})'))
+                self.assertEqual(forwarded_view['width'], 360, forwarded_view)
+                self.assertLessEqual(forwarded_view['scroll'], forwarded_view['client'], forwarded_view)
+                call('Emulation.clearDeviceMetricsOverride')
                 self.client.logout()
                 self.assertEqual(self.client.get(reverse('cronica_detail', args=[story.slug])).status_code, 404)
             finally:

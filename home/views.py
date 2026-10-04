@@ -31,7 +31,7 @@ from django.contrib.auth import get_user_model, login
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
-from django.http import Http404, JsonResponse, HttpResponseBadRequest, HttpResponse
+from django.http import Http404, JsonResponse, HttpResponseBadRequest, HttpResponse, HttpResponseNotAllowed
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404, render, redirect
 from django.views.decorators.http import require_POST, require_http_methods
@@ -15196,6 +15196,12 @@ def _notificacoes_cronica_visiveis(user):
     ).filter(Q(comentario__isnull=True) | Q(comentario__estado='publico'))
 
 
+def _can_review_cronica(user):
+    return user.is_staff and (
+        user.has_perm('home.change_tbcronica') or user.has_perm('home.triage_tbcronica')
+    )
+
+
 def cronicas_list_view(request):
     qs = TbCronica.objects.filter(status='aprovada').select_related('autor')
     feed = request.GET.get('feed', 'recentes')
@@ -15224,7 +15230,7 @@ def cronicas_list_view(request):
 
     pendente_count = TbCronica.objects.filter(
         Q(status='pendente') | Q(status='aprovada', revisao_edicao__estado='pendente')
-    ).count() if request.user.is_staff and request.user.has_perm('home.change_tbcronica') else 0
+    ).count() if _can_review_cronica(request.user) else 0
 
     
     minhas = []
@@ -15251,6 +15257,7 @@ def cronicas_list_view(request):
         'pendente_count': pendente_count,
         'minhas_cronicas': minhas,
         'can_edit_wiki': request.user.is_staff,
+        'can_review_cronica': _can_review_cronica(request.user),
         'is_authenticated': request.user.is_authenticated,
         'noindex': not has_public_content,
     })
@@ -15258,7 +15265,7 @@ def cronicas_list_view(request):
 
 def cronica_detail_view(request, slug):
     cronica = get_object_or_404(TbCronica, slug=slug)
-    can_review = request.user.is_staff and request.user.has_perm('home.change_tbcronica')
+    can_review = _can_review_cronica(request.user)
     can_moderate = request.user.is_staff and request.user.has_perm('home.change_tbcronicadenuncia')
     
     if cronica.status != 'aprovada':
@@ -15633,6 +15640,7 @@ def cronica_edit_view(request, slug):
                     return JsonResponse({'ok': True})
                 cronica.revisao_edicao = {
                     **fields, 'estado': 'pendente', 'submetida_em': timezone.now().isoformat(),
+                    **({'triagem_lore': source['triagem_lore']} if source.get('triagem_lore') else {}),
                 }
                 cronica.save(update_fields=['revisao_edicao'])
             else:
@@ -15677,12 +15685,14 @@ def _cronica_pending_snapshot(cronica):
 
 
 @staff_member_required
-@permission_required('home.change_tbcronica', raise_exception=True)
 def cronicas_review_view(request):
+    if not _can_review_cronica(request.user):
+        raise PermissionDenied
     pendentes = list(TbCronica.objects.filter(
         Q(status='pendente') | Q(status='aprovada', revisao_edicao__estado='pendente')
     ).select_related('autor').order_by('data_submissao'))
     for cronica in pendentes:
+        cronica.review_forwarding = (cronica.revisao_edicao or {}).get('triagem_lore') or {}
         cronica.review_snapshot = _cronica_pending_snapshot(cronica) if cronica.status == 'pendente' else ''
         source = cronica.revisao_edicao if cronica.status == 'aprovada' else {}
         cronica.review_data = SimpleNamespace(**{
@@ -15694,13 +15704,17 @@ def cronicas_review_view(request):
         cronica.review_data.regiao_label = ', '.join(_coerce_multi_value(cronica.review_data.regiao))
     return render(request, 'home/pages/cronicas_review.html', {
         'pendentes': pendentes,
+        'can_triage': request.user.has_perm('home.triage_tbcronica'),
+        'can_decide_forwarded': request.user.has_perm('home.change_tbcronica'),
     })
 
 
 @staff_member_required
-@permission_required('home.change_tbcronica', raise_exception=True)
-@require_POST
 def cronica_review_action(request, cronica_id):
+    if not _can_review_cronica(request.user):
+        raise PermissionDenied
+    if request.method != 'POST':
+        return HttpResponseNotAllowed(['POST'])
     from django.contrib.admin.models import LogEntry, CHANGE
     from django.contrib.contenttypes.models import ContentType
 
@@ -15709,13 +15723,19 @@ def cronica_review_action(request, cronica_id):
     except ValueError as exc:
         return JsonResponse({'error': str(exc)}, status=400)
     action = data.get('action', '')
-    if action not in ('aprovar', 'reprovar'):
+    if action not in ('aprovar', 'reprovar', 'encaminhar'):
         return JsonResponse({'error': 'Ação inválida.'}, status=400)
     feedback = data.get('feedback', '')
-    if action == 'reprovar':
+    if action in ('reprovar', 'encaminhar'):
         if not isinstance(feedback, str) or not feedback.strip():
-            return JsonResponse({'error': 'Informe o motivo da reprovação.'}, status=400)
+            return JsonResponse({'error': 'Informe o motivo da decisão.'}, status=400)
         feedback = feedback.strip()
+        if action == 'encaminhar' and not 3 <= len(feedback) <= 500:
+            return JsonResponse({'error': 'O motivo deve ter de 3 a 500 caracteres.'}, status=400)
+    if action == 'encaminhar' and not request.user.has_perm('home.triage_tbcronica'):
+        raise PermissionDenied
+    if action == 'reprovar' and not request.user.has_perm('home.change_tbcronica'):
+        raise PermissionDenied
     with transaction.atomic():
         cronica = get_object_or_404(TbCronica.objects.select_for_update(), pk=cronica_id)
 
@@ -15729,12 +15749,30 @@ def cronica_review_action(request, cronica_id):
                 change_message=message,
             )
 
+        def forward_to_loremaster(review_data):
+            if review_data.get('triagem_lore'):
+                return JsonResponse({'error': 'Crônica já encaminhada ao Loremaster.'}, status=409)
+            cronica.revisao_edicao = {
+                **review_data,
+                'triagem_lore': {
+                    'motivo': feedback, 'por': request.user.pk,
+                    'em': timezone.now().isoformat(),
+                },
+            }
+            cronica.save(update_fields=['revisao_edicao'])
+            record_review(f'Crônica encaminhada ao Loremaster: {feedback}')
+            return JsonResponse({'ok': True, 'status': cronica.status})
+
         if cronica.status == 'aprovada':
             revision = cronica.revisao_edicao or {}
             if revision.get('estado') != 'pendente':
                 return JsonResponse({'error': 'Não há edição pendente.'}, status=409)
             if data.get('expected_revision') != revision.get('submetida_em'):
                 return JsonResponse({'error': 'A edição mudou. Recarregue a fila antes de revisar.'}, status=409)
+            if action == 'encaminhar':
+                return forward_to_loremaster(revision)
+            if revision.get('triagem_lore') and not request.user.has_perm('home.change_tbcronica'):
+                raise PermissionDenied
             if action == 'aprovar':
                 required = ('titulo', 'conteudo_markdown', 'resumo', 'imagem_url',
                             'personagem_nome', 'territorio', 'regiao')
@@ -15755,7 +15793,10 @@ def cronica_review_action(request, cronica_id):
                                    f'edicao:{cronica.pk}:{revision["submetida_em"]}',
                                    'edicao', f'Edição aprovada: {cronica.titulo}')
             else:
-                cronica.revisao_edicao = {**revision, 'estado': 'reprovada', 'feedback': feedback}
+                cronica.revisao_edicao = {
+                    **{key: value for key, value in revision.items() if key != 'triagem_lore'},
+                    'estado': 'reprovada', 'feedback': feedback,
+                }
                 cronica.save(update_fields=['revisao_edicao'])
                 _notificar_cronica(cronica.autor_id, cronica,
                                    f'edicao:{cronica.pk}:{revision["submetida_em"]}',
@@ -15766,6 +15807,10 @@ def cronica_review_action(request, cronica_id):
             return JsonResponse({'error': 'Crônica não está pendente.'}, status=409)
         if data.get('expected_snapshot') != _cronica_pending_snapshot(cronica):
             return JsonResponse({'error': 'A crônica mudou. Recarregue a fila antes de revisar.'}, status=409)
+        if action == 'encaminhar':
+            return forward_to_loremaster(cronica.revisao_edicao or {})
+        if (cronica.revisao_edicao or {}).get('triagem_lore') and not request.user.has_perm('home.change_tbcronica'):
+            raise PermissionDenied
         if action == 'aprovar':
             territorios, regioes = _cronicas_location_choices()
             if (_cronica_editor_error({
@@ -15785,6 +15830,7 @@ def cronica_review_action(request, cronica_id):
             cronica.revisado_por = request.user
             cronica.data_revisao = timezone.now()
             cronica.feedback_staff = feedback
+        cronica.revisao_edicao = {}
         cronica.save()
         if action == 'aprovar':
             _conquistas.registrar_publicacao_cronica(cronica)
