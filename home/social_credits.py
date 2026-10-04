@@ -10,7 +10,7 @@ from django.utils import timezone
 
 from .models import (SocialCreditEntry, SocialCreditPolicy, SocialCreditReaderRecognition,
                      SocialCreditRedemption, SocialCreditWallet, TbCronica,
-                     TbCronicaCurtida, TbPersonagem, TbPersonagemAventura,
+                     TbCronicaCurtida, TbCronicaDenuncia, TbPersonagem, TbPersonagemAventura,
                      TbPersonagemRevisao, TbTransacao)
 
 
@@ -301,6 +301,72 @@ def reverse_social_credit(entry_id, *, operation_ref):
     reversal.reversal_of = original
     reversal.save(update_fields=['reversal_of'])
     return reversal, True
+
+
+@transaction.atomic
+def reverse_moderated_story_credits(report_id, *, actor_id):
+    """Compensate a hidden Chronicle's awards or record why manual review is needed.
+
+    The existing moderation report carries the reason and the decision trail. No
+    credit is removed merely because a report was filed or a story was hidden.
+    """
+    actor = get_user_model().objects.get(pk=actor_id)
+    if not actor.is_active or not actor.is_superuser:
+        raise PermissionError('credit moderation requires an active superuser')
+    report = TbCronicaDenuncia.objects.select_for_update().get(pk=report_id)
+    if report.comentario_id or report.estado != 'ocultada':
+        raise ValueError('an active hidden-story report is required')
+    story = TbCronica.objects.select_for_update().get(pk=report.cronica_id)
+    if story.status != 'oculta':
+        raise ValueError('the reported Chronicle is not hidden')
+    get_user_model().objects.select_for_update().get(pk=story.autor_id)
+
+    prefix = f'chronicle:{story.pk}:'
+    awards = list(SocialCreditEntry.objects.filter(
+        wallet__user_id=story.autor_id, delta__gt=0,
+        kind__in=('first_publication', 'reader_milestone'),
+        operation_ref__startswith=prefix,
+    ).order_by('pk'))
+    reversed_ids = set(SocialCreditEntry.objects.filter(
+        reversal_of_id__in=[entry.pk for entry in awards],
+    ).values_list('reversal_of_id', flat=True))
+    pending = [entry for entry in awards if entry.pk not in reversed_ids]
+    if not pending:
+        return [], 'nothing_to_reverse'
+
+    wallet = SocialCreditWallet.objects.select_for_update().get(user_id=story.autor_id)
+    amount = sum(entry.delta for entry in pending)
+    if wallet.balance < amount:
+        history = list(report.historico_decisoes or [])
+        if not any(event.get('acao') == 'credit_reversal_review' and
+                   event.get('entry_ids') == [entry.pk for entry in pending]
+                   for event in history):
+            history.append({
+                'acao': 'credit_reversal_review', 'staff_id': actor.pk,
+                'em': timezone.now().isoformat(), 'entry_ids': [entry.pk for entry in pending],
+                'credits_due': amount, 'available_balance': wallet.balance,
+            })
+            report.historico_decisoes = history
+            report.save(update_fields=['historico_decisoes'])
+        return [], 'review_required'
+
+    reversals = []
+    for entry in pending:
+        reversal, created = reverse_social_credit(
+            entry.pk, operation_ref=f'moderation:report:{report.pk}:entry:{entry.pk}',
+        )
+        if not created:
+            raise ValueError('award already reversed during moderation')
+        reversals.append(reversal)
+    history = list(report.historico_decisoes or [])
+    history.append({
+        'acao': 'credit_reversal', 'staff_id': actor.pk,
+        'em': timezone.now().isoformat(), 'entry_ids': [entry.pk for entry in pending],
+        'reversal_ids': [entry.pk for entry in reversals], 'credits_reversed': amount,
+    })
+    report.historico_decisoes = history
+    report.save(update_fields=['historico_decisoes'])
+    return reversals, 'reversed'
 
 
 def award_first_chronicle_publication(cronica):

@@ -17,6 +17,13 @@
       <p>Denúncia da crônica: <a href="{% url 'cronica_detail' report.cronica.slug %}">ver conteúdo</a>.</p>
     {% endif %}
     <p>Estado: {{ report.get_estado_display }}</p>
+    {% if not report.comentario and report.credit_event %}
+      {% if report.credit_event.acao == 'credit_reversal_review' %}
+      <p role="alert">Estorno dos créditos pendente de análise administrativa.</p>
+      {% else %}
+      <p>Créditos comunitários estornados com registro auditável.</p>
+      {% endif %}
+    {% endif %}
     <form method="post" action="{% url 'cronica_moderar_denuncia' report.pk %}">
       {% csrf_token %}
       {% if report.estado == 'pendente' %}

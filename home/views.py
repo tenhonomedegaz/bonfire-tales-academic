@@ -15504,6 +15504,9 @@ def cronica_denuncias_view(request):
                 or report.comentario.texto != report.alvo_snapshot
             )) or (not report.comentario_id and report.cronica.conteudo_markdown != report.alvo_snapshot)
         )
+        report.credit_event = next((event for event in reversed(report.historico_decisoes or [])
+                                    if event.get('acao') in ('credit_reversal',
+                                                             'credit_reversal_review')), None)
     return render(request, 'home/pages/cronica_denuncias.html', {'denuncias': reports})
 
 
