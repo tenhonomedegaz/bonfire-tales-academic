@@ -127,6 +127,55 @@ class CosmeticCheckoutTests(TestCase):
         self.assertFalse(unlocked.context['colab_cosmetic_locked'])
         self.assertNotContains(unlocked, 'Cosméticos Colab exigem assinatura ativa')
 
+    @patch('home.permissions.colab_tier')
+    def test_profile_edit_preserves_expired_colab_choices_until_discarded(self, tier):
+        for slug, kind in (('tema-emprestado', 'tema'),
+                           ('moldura-emprestada', 'moldura'),
+                           ('efeito-emprestado', 'efeito')):
+            TbCosmetico.objects.create(
+                slug=slug, tipo=kind, nome=slug, origem='colaborador',
+                requer_plano='conde', escopo='perfil')
+        profile = UserProfile.objects.get_or_create(user=self.user)[0]
+        profile.profile_theme = 'emprestado'
+        profile.avatar_frame = 'emprestada'
+        profile.profile_effect = 'emprestado'
+        profile.save(update_fields=['profile_theme', 'avatar_frame', 'profile_effect'])
+        tier.return_value = None
+        initial = self.client.get('/perfil/')
+        self.assertTrue(initial.context['locked_theme_preference'])
+        self.assertTrue(initial.context['locked_frame_preference'])
+        self.assertTrue(initial.context['locked_effect_preference'])
+        self.assertContains(initial, 'clear_locked_avatar_frame')
+        data = {
+            'action': 'update_profile', 'username': self.user.username,
+            'email': self.user.email, 'bio': 'Bio atualizada',
+            'profile_theme': 'bonfire', 'avatar_frame': 'none',
+            'profile_effect': 'none',
+        }
+        response = self.client.post('/perfil/', data)
+        self.assertEqual(response.status_code, 200)
+        profile.refresh_from_db()
+        self.assertEqual(profile.bio, 'Bio atualizada')
+        self.assertEqual((profile.profile_theme, profile.avatar_frame, profile.profile_effect),
+                         ('emprestado', 'emprestada', 'emprestado'))
+        response = self.client.post('/perfil/', dict(data, clear_locked_avatar_frame='on'))
+        self.assertEqual(response.status_code, 200)
+        profile.refresh_from_db()
+        self.assertIsNone(profile.avatar_frame)
+        self.assertEqual((profile.profile_theme, profile.profile_effect),
+                         ('emprestado', 'emprestado'))
+        tier.return_value = 'conde'
+        public = self.client.get('/perfil/buyer/')
+        self.assertEqual(public.context['appearance']['theme_key'], 'emprestado')
+        self.assertEqual(public.context['appearance']['frame_key'], 'none')
+        self.assertEqual(public.context['appearance']['effect_key'], 'emprestado')
+        tier.return_value = None
+        self.client.post('/perfil/', dict(
+            data, clear_locked_profile_theme='on', clear_locked_profile_effect='on'))
+        profile.refresh_from_db()
+        self.assertEqual(profile.profile_theme, 'bonfire')
+        self.assertIsNone(profile.profile_effect)
+
     @patch('home.views._asaas_api_request', return_value={'id': 'checkout_1'})
     def test_order_freezes_offer_and_reuses_checkout(self, api):
         url = reverse('cosmetic_checkout')

@@ -942,6 +942,23 @@ def _appearance_validated(user, tipo_interno, value, escopo='ambos'):
     return default
 
 
+def _locked_colab_preference(user, tipo_interno, value):
+    """A borrowed choice remains stored when its temporary right is unavailable."""
+    item = _appearance_catalog(tipo_interno).get(value or '')
+    return bool(item and item.get('origem') == 'colaborador' and
+                not _cosmetic_allowed(user, tipo_interno, value, 'perfil'))
+
+
+def _profile_appearance_update(request, user, tipo_interno, field, current):
+    """Save explicit new choices without erasing an unavailable borrowed choice."""
+    default = _APPEARANCE_DEFAULT[tipo_interno]
+    incoming = (request.POST.get(field) or default).strip()
+    if incoming == default and _locked_colab_preference(user, tipo_interno, current) \
+            and request.POST.get('clear_locked_' + field) != 'on':
+        return current
+    return _appearance_validated(user, tipo_interno, incoming, 'perfil')
+
+
 def _appearance_options(user, tipo_interno, escopo='perfil'):
     """Selection options use the same entitlement rule as POST validation."""
     from .cosmetics import catalog_options
@@ -1237,9 +1254,12 @@ def profile_view(request):
             clear_banner = request.POST.get('clear_banner') == 'on'
             clear_background = request.POST.get('clear_background') == 'on'
             new_bio = request.POST.get('bio', '').strip()
-            profile_theme = _appearance_validated(user, 'theme', request.POST.get('profile_theme'), 'perfil')
-            avatar_frame = _appearance_validated(user, 'frame', request.POST.get('avatar_frame'), 'perfil')
-            profile_effect = _appearance_validated(user, 'effect', request.POST.get('profile_effect'), 'perfil')
+            profile_theme = _profile_appearance_update(
+                request, user, 'theme', 'profile_theme', profile.profile_theme)
+            avatar_frame = _profile_appearance_update(
+                request, user, 'frame', 'avatar_frame', profile.avatar_frame)
+            profile_effect = _profile_appearance_update(
+                request, user, 'effect', 'profile_effect', profile.profile_effect)
             theme_custom = _custom_theme_from_post(request)
             titulo_equipado = _validated_titulo_equipado(user, request.POST.get('titulo_equipado'))
             badges_destaque = _validated_badges_destaque(user, request.POST.getlist('badges_destaque'))
@@ -1408,6 +1428,9 @@ def profile_view(request):
             item.get('origem') == 'colaborador' and item['locked']
             for options in (theme_options, frame_options, effect_options)
             for item in options),
+        'locked_theme_preference': _locked_colab_preference(user, 'theme', profile.profile_theme),
+        'locked_frame_preference': _locked_colab_preference(user, 'frame', profile.avatar_frame),
+        'locked_effect_preference': _locked_colab_preference(user, 'effect', profile.profile_effect),
         # F2 — Badges & Títulos: títulos que o user possui (dropdown) + badges
         # concedidas (checkboxes de destaque) + o que ele já equipou/fixou.
         'titulos_disponiveis': _badges.titulos_disponiveis(user),

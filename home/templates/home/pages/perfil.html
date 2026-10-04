@@ -213,25 +213,28 @@
                 {% include 'home/includes/tema_swatch.html' with key=item.key item=item input_name='profile_theme' input_id='id_profile_theme_'|add:item.key selected_value=appearance.theme_key disabled=item.locked custom=appearance.custom %}
                 {% endfor %}
             </div>
+            {% if locked_theme_preference %}<label class="profile-inline-check"><input type="checkbox" name="clear_locked_profile_theme"> Esquecer tema Colab guardado</label>{% endif %}
         </div>
 
         <div class="profile-appearance-grid">
-            <label class="profile-field">
-                <span class="profile-label">Borda do Avatar</span>
+            <div class="profile-field">
+                <label class="profile-label" for="id_avatar_frame">Borda do Avatar</label>
                 <select class="profile-input" name="avatar_frame" id="id_avatar_frame">
                     {% for item in appearance_frame_options %}
                     <option value="{{ item.key }}" {% if item.selected %}selected{% endif %} {% if item.estado == 'bloqueado' %}disabled{% endif %}>{{ item.label }}{% if item.estado == 'bloqueado' %} (bloqueado){% endif %}</option>
                     {% endfor %}
                 </select>
-            </label>
-            <label class="profile-field">
-                <span class="profile-label">Efeito do Perfil</span>
+                {% if locked_frame_preference %}<label class="profile-inline-check"><input type="checkbox" name="clear_locked_avatar_frame"> Esquecer moldura Colab guardada</label>{% endif %}
+            </div>
+            <div class="profile-field">
+                <label class="profile-label" for="id_profile_effect">Efeito do Perfil</label>
                 <select class="profile-input" name="profile_effect" id="id_profile_effect">
                     {% for item in appearance_effect_options %}
                     <option value="{{ item.key }}" {% if item.key == appearance.effect_key %}selected{% endif %} {% if item.estado == 'bloqueado' %}disabled{% endif %}>{{ item.label }}{% if item.estado == 'bloqueado' %} (bloqueado){% endif %}</option>
                     {% endfor %}
                 </select>
-            </label>
+                {% if locked_effect_preference %}<label class="profile-inline-check"><input type="checkbox" name="clear_locked_profile_effect"> Esquecer efeito Colab guardado</label>{% endif %}
+            </div>
         </div>
 
         {# Cores do tema Personalizado — aparecem quando Tema = Personalizado #}
