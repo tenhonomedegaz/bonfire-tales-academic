@@ -75,6 +75,8 @@ MEMORY_MODELS = [
     # Social do perfil (curtir/seguir): relação user↔user criada pelos jogadores em
     # produção. É memória pura — jamais entra em CONTENT_MODELS.
     "TbPerfilCurtida", "TbPerfilSeguidor",
+    "SocialCreditWallet", "SocialCreditEntry", "SocialCreditPolicy",
+    "SocialCreditReaderRecognition",
 ]
 CONTENT_MODELS = UPSERT_POR_SLUG + SUBSTITUI
 RESTORE_GUARDED_MODELS = CONTENT_MODELS + PRODUCTION_PRESERVED_MODELS

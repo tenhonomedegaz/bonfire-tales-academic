@@ -15366,6 +15366,8 @@ def cronica_curtir_view(request, cronica_id):
     with transaction.atomic():
         if desired:
             TbCronicaCurtida.objects.get_or_create(cronica=cronica, leitor=request.user)
+            from .social_credits import record_reader_recognition
+            record_reader_recognition(cronica, request.user)
         else:
             TbCronicaCurtida.objects.filter(cronica=cronica, leitor=request.user).delete()
         total = TbCronicaCurtida.objects.filter(cronica=cronica).count()

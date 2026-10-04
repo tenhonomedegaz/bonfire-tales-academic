@@ -2855,6 +2855,7 @@ class SocialCreditPolicy(models.Model):
 
     version = models.CharField(max_length=40, unique=True)
     first_publication_amount = models.PositiveIntegerField()
+    reader_recognition_enabled = models.BooleanField(default=False)
     active = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -2890,3 +2891,18 @@ class SocialCreditEntry(models.Model):
             models.CheckConstraint(condition=models.Q(balance_after__gte=0),
                                    name='social_credit_entry_balance_nonnegative'),
         ]
+
+
+class SocialCreditReaderRecognition(models.Model):
+    """First like per reader and Chronicle, retained after an unlike."""
+
+    cronica = models.ForeignKey(TbCronica, on_delete=models.PROTECT, related_name='reader_recognitions')
+    reader = models.ForeignKey('auth.User', on_delete=models.PROTECT)
+    first_seen_at = models.DateTimeField(auto_now_add=True)
+    policy = models.ForeignKey(SocialCreditPolicy, on_delete=models.PROTECT,
+                               null=True, blank=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(
+            fields=['cronica', 'reader'], name='unique_social_credit_reader_recognition',
+        )]

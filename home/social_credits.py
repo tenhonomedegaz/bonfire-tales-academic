@@ -3,7 +3,8 @@
 from django.contrib.auth import get_user_model
 from django.db import transaction
 
-from .models import SocialCreditEntry, SocialCreditPolicy, SocialCreditWallet
+from .models import (SocialCreditEntry, SocialCreditPolicy, SocialCreditReaderRecognition,
+                     SocialCreditWallet)
 
 
 @transaction.atomic
@@ -75,3 +76,18 @@ def award_first_chronicle_publication(cronica):
         kind='first_publication', delta=policy.first_publication_amount, policy=policy,
     )
     return entry
+
+
+def record_reader_recognition(cronica, reader):
+    """Remember a first like; inactive rules never qualify old or toggled likes."""
+    if cronica.status != 'aprovada' or cronica.autor_id == reader.pk:
+        return None
+    policy = None
+    if (reader.is_active and cronica.autor.is_active and cronica.data_publicacao):
+        policy = SocialCreditPolicy.objects.filter(
+            active=True, reader_recognition_enabled=True,
+        ).first()
+    recognition, _ = SocialCreditReaderRecognition.objects.get_or_create(
+        cronica=cronica, reader=reader, defaults={'policy': policy},
+    )
+    return recognition

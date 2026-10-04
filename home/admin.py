@@ -4413,7 +4413,8 @@ class DbAccessAuditAdmin(admin.ModelAdmin):
         return False
 
 
-from .models import SocialCreditEntry, SocialCreditPolicy, SocialCreditWallet
+from .models import (SocialCreditEntry, SocialCreditPolicy,
+                     SocialCreditReaderRecognition, SocialCreditWallet)
 
 
 class _ReadOnlySocialCreditAdmin(admin.ModelAdmin):
@@ -4447,5 +4448,13 @@ class SocialCreditEntryAdmin(_ReadOnlySocialCreditAdmin):
 
 @admin.register(SocialCreditPolicy)
 class SocialCreditPolicyAdmin(_ReadOnlySocialCreditAdmin):
-    list_display = ('version', 'first_publication_amount', 'active', 'created_at')
-    readonly_fields = ('version', 'first_publication_amount', 'active', 'created_at')
+    list_display = ('version', 'first_publication_amount', 'reader_recognition_enabled',
+                    'active', 'created_at')
+    readonly_fields = ('version', 'first_publication_amount', 'reader_recognition_enabled',
+                       'active', 'created_at')
+
+
+@admin.register(SocialCreditReaderRecognition)
+class SocialCreditReaderRecognitionAdmin(_ReadOnlySocialCreditAdmin):
+    list_display = ('first_seen_at', 'cronica', 'reader', 'policy')
+    readonly_fields = ('cronica', 'reader', 'first_seen_at', 'policy')
