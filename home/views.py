@@ -3310,6 +3310,76 @@ def _create_asaas_checkout(order, product, display_name, callback_base):
 
 
 @login_required(login_url='/login/')
+@require_http_methods(['GET', 'POST'])
+def cosmetic_checkout(request):
+    """Oferta configurada e pedido único por janela, mesmo se a API der timeout."""
+    from .models import AsaasCheckoutOrder, CosmeticCheckoutOffer, CosmeticCheckoutPurchase
+    from .cosmetic_entitlements import has_permanent_cosmetic
+
+    offers = CosmeticCheckoutOffer.objects.select_related('cosmetico').filter(
+        active=True, cosmetico__ativo=True, amount__gt=0,
+    )
+    if request.method == 'GET':
+        return render(request, 'home/pages/cosmetic_checkout.html', {'offers': offers})
+    offer = offers.filter(cosmetico__slug=(request.POST.get('slug') or '').strip()).first()
+    if not offer:
+        return HttpResponse('Oferta indisponível', status=400)
+    if has_permanent_cosmetic(request.user, offer.cosmetico):
+        return HttpResponse('Você já possui este cosmético', status=409)
+    try:
+        identity = _site_checkout_identity(request.user)
+    except ValueError:
+        return HttpResponse('Adicione e-mail ou Discord à conta', status=400)
+
+    with transaction.atomic():
+        # Serializa pedidos concorrentes do mesmo dono, inclusive o primeiro pedido.
+        from django.contrib.auth import get_user_model
+        get_user_model().objects.select_for_update().get(pk=request.user.pk)
+        purchase = CosmeticCheckoutPurchase.objects.select_related('order').filter(
+            beneficiary=request.user, cosmetico=offer.cosmetico,
+            order__status=AsaasCheckoutOrder.Status.PENDING,
+        ).filter(
+            Q(order__asaas_checkout_url='')
+            | Q(order__created_at__gte=timezone.now() - timedelta(minutes=65))
+        ).first()
+        if purchase:
+            return redirect('cosmetic_checkout_status', order_id=purchase.order_id)
+        order = AsaasCheckoutOrder.objects.create(
+            user=request.user, discord_user_id=identity['discord_user_id'],
+            email=identity['email'], product_code='cosmetic:%s' % offer.cosmetico.slug,
+            mode=AsaasCheckoutOrder.Mode.SINGLE, amount=offer.amount,
+        )
+        CosmeticCheckoutPurchase.objects.create(
+            order=order, beneficiary=request.user, cosmetico=offer.cosmetico,
+            slug=offer.cosmetico.slug, name=offer.cosmetico.nome,
+        )
+    product = {'name': offer.cosmetico.nome, 'description': offer.cosmetico.descricao or offer.cosmetico.nome,
+               'amount': order.amount}
+    callback = request.build_absolute_uri(reverse('cosmetic_checkout_status', args=[order.pk]))
+    try:
+        _create_asaas_checkout(order, product, identity['name'], callback)
+    except AsaasAPIError:
+        # Timeout pode ocorrer depois da criação remota. O pedido permanece pendente
+        # para conciliação pelo webhook; nunca dispara segundo POST automaticamente.
+        order.error_message = 'Checkout aguardando confirmação; tente consultar o status mais tarde.'
+        order.save(update_fields=['error_message', 'updated_at'])
+    return redirect('cosmetic_checkout_status', order_id=order.pk)
+
+
+@login_required(login_url='/login/')
+@require_http_methods(['GET'])
+def cosmetic_checkout_status(request, order_id):
+    from .models import CosmeticCheckoutPurchase
+    purchase = get_object_or_404(
+        CosmeticCheckoutPurchase.objects.select_related('order'),
+        order_id=order_id, beneficiary=request.user,
+    )
+    return render(request, 'home/pages/cosmetic_checkout.html', {
+        'purchase': purchase, 'order': purchase.order,
+    })
+
+
+@login_required(login_url='/login/')
 @require_POST
 def colaborador_checkout(request):
     """Cria um Checkout Asaas exclusivo e conciliavel para a conta autenticada."""
@@ -17194,6 +17264,46 @@ def _asaas_order_from_payment(payment):
         return None
 
 
+def _handle_cosmetic_payment(order, payment, expected_payment_id, event_id):
+    """Confirma compra local sem tocar nas transações ou créditos do bot."""
+    from .models import AsaasCheckoutOrder, CosmeticCheckoutPurchase
+    from .cosmetic_entitlements import grant_paid_purchase
+
+    if not isinstance(payment, dict) or payment.get('status') not in ('CONFIRMED', 'RECEIVED'):
+        return HttpResponse('payment incomplete', status=503)
+    payment_id = str(payment.get('id') or '').strip()
+    if payment_id != expected_payment_id or payment.get('externalReference') != order.external_reference:
+        return HttpResponse('payment incomplete', status=503)
+    try:
+        amount = Decimal(str(payment['value'])).quantize(Decimal('0.01'))
+    except (KeyError, InvalidOperation, TypeError, ValueError):
+        return HttpResponse('payment incomplete', status=503)
+    with transaction.atomic():
+        locked = AsaasCheckoutOrder.objects.select_for_update().get(pk=order.pk)
+        purchase = CosmeticCheckoutPurchase.objects.select_for_update().get(order=locked)
+        if locked.status == AsaasCheckoutOrder.Status.PAID:
+            return HttpResponse('already processed')
+        if purchase.payment_id and purchase.payment_id != payment_id:
+            return HttpResponse('different payment', status=409)
+        purchase.payment_id = payment_id
+        purchase.event_id = event_id[:100]
+        purchase.save(update_fields=['payment_id', 'event_id'])
+        locked.asaas_payment_id = payment_id
+        if amount != locked.amount:
+            locked.status = AsaasCheckoutOrder.Status.VALUE_MISMATCH
+            locked.error_message = 'Valor divergente; verificar pagamento.'
+            locked.save(update_fields=['status', 'asaas_payment_id', 'error_message', 'updated_at'])
+            return HttpResponse('value mismatch')
+        if locked.status == AsaasCheckoutOrder.Status.VALUE_MISMATCH:
+            return HttpResponse('value mismatch')
+        grant_paid_purchase(purchase)
+        locked.status = AsaasCheckoutOrder.Status.PAID
+        locked.paid_at = timezone.now()
+        locked.error_message = ''
+        locked.save(update_fields=['status', 'asaas_payment_id', 'paid_at', 'error_message', 'updated_at'])
+    return HttpResponse('ok')
+
+
 @csrf_exempt
 @require_POST
 def asaas_webhook(request):
@@ -17217,12 +17327,18 @@ def asaas_webhook(request):
         return HttpResponse('ignored', status=200)
     if not payment_id:
         return HttpResponse('no payment id', status=200)
-    # 4. idempotência (Asaas reentrega "at least once")
+    # 4. Busca o pagamento completo e resolve primeiro o pedido autenticado do site.
+    verified = _asaas_api_get('payments/%s' % payment_id)
+    if not verified and not pay_ref.get('externalReference'):
+        return HttpResponse('payment unavailable', status=503)
+    payment = verified or pay_ref
+    order = _asaas_order_from_payment(payment)
+    if order and hasattr(order, 'cosmetic_purchase'):
+        # A resposta completa da API é obrigatória; o corpo do webhook pode ser parcial.
+        return _handle_cosmetic_payment(order, verified, payment_id, str(body.get('id') or ''))
+    # 5. idempotência do fluxo Colab existente.
     if BotTransaction.objects.filter(transactionCode=payment_id).exists():
         return HttpResponse('already processed', status=200)
-    # 5. busca o pagamento completo e resolve primeiro o pedido autenticado do site.
-    payment = _asaas_api_get('payments/%s' % payment_id) or pay_ref
-    order = _asaas_order_from_payment(payment)
     if str(payment.get('externalReference') or '').startswith('bonfire_order:') and not order:
         logger.error('Pagamento Asaas %s referencia pedido inexistente.', payment_id)
         return HttpResponse('unknown order', status=200)

@@ -30,6 +30,8 @@ from django.utils.text import Truncator, slugify
 
 from .models import (
     AsaasCheckoutOrder,
+    CosmeticCheckoutOffer,
+    CosmeticCheckoutPurchase,
     TbAcessoopcao,
     TbClasse,
     TbClassehabilidade,
@@ -89,6 +91,25 @@ class AsaasCheckoutOrderAdmin(admin.ModelAdmin):
     readonly_fields = ('id', 'user', 'discord_user_id', 'email', 'product_code', 'mode', 'amount',
                        'asaas_checkout_id', 'asaas_checkout_url', 'asaas_payment_id',
                        'paid_at', 'created_at', 'updated_at')
+
+
+@admin.register(CosmeticCheckoutOffer)
+class CosmeticCheckoutOfferAdmin(admin.ModelAdmin):
+    list_display = ('cosmetico', 'amount', 'active')
+    list_filter = ('active',)
+    search_fields = ('cosmetico__slug', 'cosmetico__nome')
+    autocomplete_fields = ('cosmetico',)
+
+
+@admin.register(CosmeticCheckoutPurchase)
+class CosmeticCheckoutPurchaseAdmin(admin.ModelAdmin):
+    list_display = ('order', 'beneficiary', 'slug', 'payment_id', 'granted_at')
+    search_fields = ('order__id', 'beneficiary__username', 'slug', 'payment_id')
+    readonly_fields = ('order', 'beneficiary', 'cosmetico', 'slug', 'name',
+                       'payment_id', 'event_id', 'granted_at')
+
+    def has_add_permission(self, request):
+        return False
 
 
 def download_backup_view(request):
