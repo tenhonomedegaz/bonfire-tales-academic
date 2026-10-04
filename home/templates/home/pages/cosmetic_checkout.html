@@ -1,0 +1,30 @@
+{% extends 'home/base.html' %}
+{% block content %}
+<main class="container py-4">
+  <h1>Cosméticos</h1>
+  {% if purchase %}
+    <p>Pedido {{ order.id }}: {{ order.get_status_display }}</p>
+    <p>{{ purchase.name }} — R$ {{ order.amount }}</p>
+    {% if order.status == 'pending' and order.asaas_checkout_url %}
+      <a href="{{ order.asaas_checkout_url }}" rel="noopener noreferrer">Abrir checkout</a>
+    {% elif order.status == 'pending' %}
+      <p>Checkout em conciliação. Consulte esta página mais tarde.</p>
+    {% endif %}
+  {% else %}
+    {% for offer in offers %}
+      <article>
+        <h2>{{ offer.cosmetico.nome }}</h2>
+        <p>{{ offer.cosmetico.descricao }}</p>
+        <p>R$ {{ offer.amount }}</p>
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="slug" value="{{ offer.cosmetico.slug }}">
+          <button type="submit">Comprar</button>
+        </form>
+      </article>
+    {% empty %}
+      <p>Nenhuma oferta disponível.</p>
+    {% endfor %}
+  {% endif %}
+</main>
+{% endblock %}

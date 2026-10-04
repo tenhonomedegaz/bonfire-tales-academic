@@ -2539,6 +2539,31 @@ class TbUsuarioCosmetico(models.Model):
         return '%s → %s' % (self.user.username, self.cosmetico.slug)
 
 
+class CosmeticCheckoutOffer(models.Model):
+    """Preço em reais configurado pela staff; o catálogo não guarda preço comercial."""
+    cosmetico = models.OneToOneField(TbCosmetico, on_delete=models.PROTECT, related_name='checkout_offer')
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    active = models.BooleanField(default=False)
+
+    def __str__(self):
+        return self.cosmetico.slug
+
+
+class CosmeticCheckoutPurchase(models.Model):
+    """Direito permanente e prova local do pagamento, independente do inventário."""
+    order = models.OneToOneField(AsaasCheckoutOrder, on_delete=models.PROTECT, related_name='cosmetic_purchase')
+    beneficiary = models.ForeignKey('auth.User', on_delete=models.PROTECT, related_name='cosmetic_purchases')
+    cosmetico = models.ForeignKey(TbCosmetico, on_delete=models.PROTECT)
+    slug = models.SlugField(max_length=60)
+    name = models.CharField(max_length=100)
+    payment_id = models.CharField(max_length=100, unique=True, null=True, blank=True)
+    event_id = models.CharField(max_length=100, blank=True, default='')
+    granted_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return str(self.order_id)
+
+
 # Invalidação do cache do catálogo de cosméticos quando a staff edita no admin.
 @receiver(post_save, sender=TbCosmetico)
 @receiver(post_delete, sender=TbCosmetico)
