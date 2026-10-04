@@ -17330,13 +17330,16 @@ def asaas_webhook(request):
     # 4. Busca o pagamento completo e resolve primeiro o pedido autenticado do site.
     verified = _asaas_api_get('payments/%s' % payment_id)
     if not verified and not pay_ref.get('externalReference'):
+        # O webhook Colab já liquidado recebe ACK durante indisponibilidade da API.
+        if BotTransaction.objects.filter(transactionCode=payment_id).exists():
+            return HttpResponse('already processed', status=200)
         return HttpResponse('payment unavailable', status=503)
     payment = verified or pay_ref
     order = _asaas_order_from_payment(payment)
     if order and hasattr(order, 'cosmetic_purchase'):
         # A resposta completa da API é obrigatória; o corpo do webhook pode ser parcial.
         return _handle_cosmetic_payment(order, verified, payment_id, str(body.get('id') or ''))
-    # 5. idempotência do fluxo Colab existente.
+    # 5. Idempotência do fluxo Colab existente.
     if BotTransaction.objects.filter(transactionCode=payment_id).exists():
         return HttpResponse('already processed', status=200)
     if str(payment.get('externalReference') or '').startswith('bonfire_order:') and not order:

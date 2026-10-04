@@ -231,6 +231,24 @@ class AsaasDiscordCheckoutTests(TestCase):
 
 @override_settings(ASAAS_WEBHOOK_TOKEN='webhook-test-secret')
 class AsaasWebhookIdentityTests(TestCase):
+    @patch('home.views._asaas_api_get')
+    def test_duplicate_colab_payment_is_acknowledged_during_api_outage(self, api_get):
+        api_get.return_value = None
+        with patch.object(BotTransaction, 'objects') as transaction_objects:
+            transaction_objects.filter.return_value.exists.return_value = True
+            response = self.client.post(
+                reverse('asaas_webhook'),
+                data=json.dumps({
+                    'event': 'PAYMENT_RECEIVED',
+                    'payment': {'id': 'pay_already_processed'},
+                }),
+                content_type='application/json',
+                HTTP_ASAAS_ACCESS_TOKEN='webhook-test-secret',
+            )
+
+        self.assertEqual(response.status_code, 200)
+        api_get.assert_called_once_with('payments/pay_already_processed')
+
     @patch('home.views._bot_member_for_identity')
     @patch('home.views._asaas_api_get')
     def test_discord_order_uses_billing_email_and_delivers_immediately(self, api_get, resolve_member):
