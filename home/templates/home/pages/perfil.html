@@ -60,7 +60,20 @@
     <section class="profile-section" aria-labelledby="social-credit-heading">
         <h2 class="profile-section-title" id="social-credit-heading">Créditos de contribuição</h2>
         <p>Saldo: <strong>{{ social_credit_balance }}</strong></p>
-        <p>Os critérios de concessão e resgate ainda aguardam definição.</p>
+        {% if not social_redemption_quotes %}<p>Prévia de resgate indisponível: a política ainda não foi ativada ou não há personagem elegível.</p>{% endif %}
+        {% if social_redemption_quotes %}
+        <h3>Prévia do resgate de aventura e recompensa</h3>
+        <p>Consulta sem débito ou entrega. A solicitação de resgate ainda não está disponível.</p>
+        <ul>
+            {% for quote in social_redemption_quotes %}
+            <li>{{ quote.character.nome }}: 1 aventura e {{ quote.gold_pc }} PC por {{ quote.cost }} créditos.
+                {% if quote.progression %}Conta para progressão.{% else %}Não conta para progressão.{% endif %}
+                Limite: {{ quote.period_limit }} em {{ quote.period_days }} dias e {{ quote.character_limit }} por personagem.
+                {% if not quote.affordable %}Saldo insuficiente.{% endif %}
+                Política {{ quote.policy_version }}.</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
         <details class="profile-social-list">
             <summary>Histórico recente</summary>
             {% if social_credit_entries %}

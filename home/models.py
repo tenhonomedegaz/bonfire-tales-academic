@@ -2862,6 +2862,13 @@ class SocialCreditPolicy(models.Model):
     reader_story_credit_cap = models.PositiveIntegerField(null=True, blank=True)
     reader_author_period_credit_cap = models.PositiveIntegerField(null=True, blank=True)
     reader_period_days = models.PositiveIntegerField(null=True, blank=True)
+    redemption_enabled = models.BooleanField(default=False)
+    redemption_cost = models.PositiveIntegerField(null=True, blank=True)
+    redemption_gold_pc = models.PositiveIntegerField(null=True, blank=True)
+    redemption_counts_for_progression = models.BooleanField(null=True, blank=True)
+    redemption_period_days = models.PositiveIntegerField(null=True, blank=True)
+    redemption_period_limit = models.PositiveIntegerField(null=True, blank=True)
+    redemption_character_limit = models.PositiveIntegerField(null=True, blank=True)
     active = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 

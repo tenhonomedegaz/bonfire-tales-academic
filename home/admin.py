@@ -4454,6 +4454,9 @@ class SocialCreditPolicyAdmin(_ReadOnlySocialCreditAdmin):
                        'reader_milestone_size', 'reader_milestone_amount',
                        'reader_consolidation_hours', 'reader_story_credit_cap',
                        'reader_author_period_credit_cap', 'reader_period_days',
+                       'redemption_enabled', 'redemption_cost', 'redemption_gold_pc',
+                       'redemption_counts_for_progression', 'redemption_period_days',
+                       'redemption_period_limit', 'redemption_character_limit',
                        'active', 'created_at')
 
 

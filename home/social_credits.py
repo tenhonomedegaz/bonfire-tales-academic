@@ -8,7 +8,42 @@ from django.db.models import Count, Exists, OuterRef, Sum
 from django.utils import timezone
 
 from .models import (SocialCreditEntry, SocialCreditPolicy, SocialCreditReaderRecognition,
-                     SocialCreditWallet, TbCronica, TbCronicaCurtida)
+                     SocialCreditWallet, TbCronica, TbCronicaCurtida, TbPersonagem)
+
+
+def redemption_quotes(user):
+    """Show an approved offer for owned, active characters without reserving credits.
+
+    This is deliberately read-only: the eventual debit and adventure delivery must
+    share a transaction and enforce the policy limits again at commit time.
+    """
+    if not user.is_authenticated or not user.is_active:
+        return []
+    policy = SocialCreditPolicy.objects.filter(active=True, redemption_enabled=True).first()
+    if policy is None:
+        return []
+    positive = ('redemption_cost', 'redemption_period_days',
+                'redemption_period_limit', 'redemption_character_limit')
+    if (any(type(getattr(policy, field)) is not int or getattr(policy, field) <= 0
+            for field in positive)
+            or type(policy.redemption_gold_pc) is not int
+            or policy.redemption_gold_pc <= 0
+            or type(policy.redemption_counts_for_progression) is not bool):
+        return []
+    balance = (SocialCreditWallet.objects.filter(user=user)
+               .values_list('balance', flat=True).first() or 0)
+    return [{
+        'character': character,
+        'cost': policy.redemption_cost,
+        'gold_pc': policy.redemption_gold_pc,
+        'progression': policy.redemption_counts_for_progression,
+        'period_days': policy.redemption_period_days,
+        'period_limit': policy.redemption_period_limit,
+        'character_limit': policy.redemption_character_limit,
+        'affordable': balance >= policy.redemption_cost,
+        'policy_version': policy.version,
+    } for character in TbPersonagem.objects.filter(
+        dono=user, arquivado=False).order_by('nome', 'pk')]
 
 
 @transaction.atomic

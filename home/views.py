@@ -1163,6 +1163,7 @@ def _save_character_upload(pers, uploaded, kind, old_value='', max_mb=10):
 @login_required(login_url='/login/')
 def profile_view(request):
     from .models import SocialCreditWallet, UserProfile
+    from .social_credits import redemption_quotes
     from django.contrib.auth import update_session_auth_hash
 
     user = request.user
@@ -1331,6 +1332,7 @@ def profile_view(request):
         'profile': profile,
         'social_credit_balance': credit_wallet.balance if credit_wallet else 0,
         'social_credit_entries': credit_entries,
+        'social_redemption_quotes': redemption_quotes(user),
         'success_messages': messages,
         'error_messages': errors,
         'discord_msg': request.GET.get('discord'),
