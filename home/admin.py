@@ -4462,17 +4462,45 @@ class SocialCreditEntryAdmin(_ReadOnlySocialCreditAdmin):
                        'reversal_of', 'policy', 'created_at')
 
 
+class SocialCreditPolicyForm(forms.ModelForm):
+    class Meta:
+        model = SocialCreditPolicy
+        exclude = ('active',)
+        labels = {
+            'version': 'Versão',
+            'first_publication_amount': 'Créditos pela primeira publicação',
+            'reader_recognition_enabled': 'Habilitar reconhecimento por leitores',
+            'reader_milestone_size': 'Leitores únicos por marco',
+            'reader_milestone_amount': 'Créditos por marco',
+            'reader_consolidation_hours': 'Horas de consolidação',
+            'reader_story_credit_cap': 'Teto por Crônica',
+            'reader_author_period_credit_cap': 'Teto por autor no período',
+            'reader_period_days': 'Dias do período de leitores',
+            'redemption_enabled': 'Habilitar resgate',
+            'redemption_cost': 'Custo do resgate em créditos',
+            'redemption_gold_pc': 'Recompensa em PC',
+            'redemption_gold_source': 'Tabela de ouro aprovada',
+            'redemption_counts_for_progression': 'Conta para progressão',
+            'redemption_period_days': 'Dias do período de resgate',
+            'redemption_period_limit': 'Limite de resgates no período',
+            'redemption_character_limit': 'Limite de resgates por personagem',
+        }
+
+
 @admin.register(SocialCreditPolicy)
 class SocialCreditPolicyAdmin(admin.ModelAdmin):
     list_display = ('version', 'first_publication_amount', 'reader_recognition_enabled',
                     'redemption_enabled', 'active', 'created_at')
     list_filter = ('active', 'reader_recognition_enabled', 'redemption_enabled')
     search_fields = ('version',)
-    readonly_fields = ('active', 'created_at')
+    readonly_fields = ('active_display', 'created_at_display')
+    exclude = ('active',)
     actions = ('activate_version', 'deactivate_version')
+    form = SocialCreditPolicyForm
     fieldsets = (
         ('Versão e autoria', {
-            'fields': ('version', 'first_publication_amount', 'active', 'created_at'),
+            'fields': ('version', 'first_publication_amount',
+                       'active_display', 'created_at_display'),
             'description': ('Crie um rascunho com versão única. A parcela por primeira '
                             'publicação deve ser aprovada pelo PO antes da ativação.'),
         }),
@@ -4493,6 +4521,14 @@ class SocialCreditPolicyAdmin(admin.ModelAdmin):
                             'aprovados pelo PO antes de habilitar o resgate.'),
         }),
     )
+
+    @admin.display(description='Ativa')
+    def active_display(self, obj):
+        return 'Sim' if obj and obj.active else 'Não'
+
+    @admin.display(description='Criada em')
+    def created_at_display(self, obj):
+        return obj.created_at if obj and obj.created_at else '—'
 
     def has_view_permission(self, request, obj=None):
         return request.user.is_active and request.user.is_superuser

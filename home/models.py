@@ -2880,6 +2880,8 @@ class SocialCreditPolicy(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        verbose_name = 'Política de créditos'
+        verbose_name_plural = 'Políticas de créditos'
         constraints = [
             models.CheckConstraint(condition=models.Q(first_publication_amount__gt=0),
                                    name='social_credit_first_publication_positive'),
