@@ -14900,7 +14900,7 @@ def jornal_list_view(request):
     return render(request, 'home/pages/jornal_list.html', {
         'artigos': artigos,
         'page_obj': page,
-        'can_edit_wiki': request.user.is_staff and request.user.has_perm('home.add_tbjornal'),
+        'can_edit_wiki': request.user.has_perm('home.add_tbjornal'),
         'noindex': not has_content,
     })
 
@@ -14918,7 +14918,7 @@ def jornal_detail_view(request, slug):
         'artigo': artigo,
         'has_recorded_edit': has_recorded_edit,
         'editor_version': artigo.data_edicao.isoformat(),
-        'can_edit_wiki': request.user.is_staff and request.user.has_perm('home.change_tbjornal'),
+        'can_edit_wiki': request.user.has_perm('home.change_tbjornal'),
     })
 
 
@@ -15011,7 +15011,7 @@ def _jornal_content_fields(data, article=None):
     }, None
 
 
-@staff_member_required
+@login_required
 @permission_required('home.add_tbjornal', raise_exception=True)
 def jornal_create_view(request):
     if request.method == 'POST':
@@ -15061,7 +15061,7 @@ def jornal_create_view(request):
     })
 
 
-@staff_member_required
+@login_required
 @permission_required('home.change_tbjornal', raise_exception=True)
 @require_POST
 def jornal_update_view(request, slug):
@@ -15201,7 +15201,7 @@ def _notificacoes_cronica_visiveis(user):
 
 
 def _can_review_cronica(user):
-    return user.is_staff and (
+    return user.is_authenticated and user.is_active and (
         user.has_perm('home.change_tbcronica') or user.has_perm('home.triage_tbcronica')
     )
 
@@ -15304,7 +15304,7 @@ def cronica_detail_view(request, slug):
     })
 
 
-@staff_member_required
+@login_required
 @permission_required('home.change_tbcronica', raise_exception=True)
 @require_POST
 def cronica_destaque_view(request, cronica_id):
@@ -15688,7 +15688,7 @@ def _cronica_pending_snapshot(cronica):
     return hashlib.sha256(encoded).hexdigest()
 
 
-@staff_member_required
+@login_required
 def cronicas_review_view(request):
     if not _can_review_cronica(request.user):
         raise PermissionDenied
@@ -15713,7 +15713,7 @@ def cronicas_review_view(request):
     })
 
 
-@staff_member_required
+@login_required
 def cronica_review_action(request, cronica_id):
     if not _can_review_cronica(request.user):
         raise PermissionDenied
