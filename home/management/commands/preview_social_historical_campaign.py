@@ -6,7 +6,8 @@ from datetime import date
 from django.core.management.base import BaseCommand, CommandError
 
 from home.models import SocialCreditPolicy
-from home.social_credit_history import preview_historical_credit_campaign
+from home.social_credit_history import (historical_campaign_digest,
+                                        preview_historical_credit_campaign)
 
 
 class Command(BaseCommand):
@@ -37,4 +38,6 @@ class Command(BaseCommand):
             'published_from': start.isoformat(), 'published_through': end.isoformat(),
             'reactions_through': reactions_end.isoformat(),
             'rows': rows, 'total_credits': sum(row['total_credits'] for row in rows),
+            'snapshot_sha256': historical_campaign_digest(
+                policy, start, end, reactions_end, rows),
         }, ensure_ascii=False))

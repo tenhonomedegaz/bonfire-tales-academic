@@ -78,6 +78,18 @@ class SocialModerationTests(TestCase):
         self.assertEqual(len(settle_reader_milestones(self.policy.pk, self.story.pk)), 1)
         self.assertEqual(SocialCreditWallet.objects.get(user=self.author).balance, 12)
 
+    def test_historical_reader_award_is_compensated_with_story(self):
+        post_social_credit(
+            self.author.pk,
+            operation_ref=f'chronicle:{self.story.pk}:historical_reader_milestone:old:1',
+            kind='historical_reader_milestone', delta=5, policy=self.policy,
+        )
+        report = self.hide()
+        reversals, result = reverse_moderated_story_credits(report.pk, actor_id=self.admin.pk)
+        self.assertEqual(result, 'reversed')
+        self.assertEqual(len(reversals), 2)
+        self.assertEqual(SocialCreditWallet.objects.get(user=self.author).balance, 0)
+
     def test_confirmed_reversal_compensates_awards_once_and_keeps_report(self):
         self.assertEqual(len(settle_reader_milestones(self.policy.pk, self.story.pk)), 1)
         report = self.hide()

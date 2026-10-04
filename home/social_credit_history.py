@@ -1,13 +1,19 @@
-"""Read-only simulation for a separately approved historical credit campaign."""
+"""Preview and explicitly apply separately approved historical credit campaigns."""
 
+import hashlib
+import json
+import re
 from datetime import date, timedelta
 
+from django.contrib.auth import get_user_model
+from django.db import transaction
 from django.db.models import Exists, F, OuterRef, Sum
 from django.utils import timezone
 
-from .models import (SocialCreditEntry, SocialCreditReaderRecognition, TbCronica,
+from .models import (SocialCreditEntry, SocialCreditHistoricalCampaign,
+                     SocialCreditReaderRecognition, SocialCreditPolicy, TbCronica,
                      TbCronicaCurtida)
-from .social_credits import _validate_reader_policy
+from .social_credits import _validate_reader_policy, post_social_credit
 
 
 def preview_historical_credit_campaign(policy, *, published_from, published_through,
@@ -56,14 +62,16 @@ def preview_historical_credit_campaign(policy, *, published_from, published_thro
                 .annotate(current_like=Exists(current_like))
                 .filter(current_like=True).count())
             previous = SocialCreditEntry.objects.filter(
-                wallet__user_id=author_id, kind='reader_milestone',
-                operation_ref__startswith=f'chronicle:{story_id}:reader_milestone:',
+                wallet__user_id=author_id,
+                kind__in=('reader_milestone', 'historical_reader_milestone'),
+                operation_ref__startswith=f'chronicle:{story_id}:',
             )
             prior_reader_award = previous.exists()
             if not prior_reader_award:
                 if author_id not in author_spent:
                     author_spent[author_id] = (SocialCreditEntry.objects.filter(
-                        wallet__user_id=author_id, kind='reader_milestone',
+                        wallet__user_id=author_id,
+                        kind__in=('reader_milestone', 'historical_reader_milestone'),
                         created_at__gte=now - timedelta(days=policy.reader_period_days),
                         created_at__lte=now,
                     ).aggregate(total=Sum('delta'))['total'] or 0)
@@ -85,3 +93,94 @@ def preview_historical_credit_campaign(policy, *, published_from, published_thro
             'total_credits': first_credits + reader_credits,
         })
     return rows
+
+
+def historical_campaign_digest(policy, published_from, published_through,
+                               reactions_through, rows):
+    """Bind explicit approval to rule values, cutoffs and projected recipients."""
+    fields = ('first_publication_amount', 'reader_recognition_enabled',
+              'reader_milestone_size', 'reader_milestone_amount',
+              'reader_consolidation_hours', 'reader_story_credit_cap',
+              'reader_author_period_credit_cap', 'reader_period_days')
+    payload = {
+        'policy': policy.version,
+        'rules': {name: getattr(policy, name) for name in fields},
+        'published_from': published_from.isoformat(),
+        'published_through': published_through.isoformat(),
+        'reactions_through': reactions_through.isoformat(),
+        'rows': rows,
+    }
+    return hashlib.sha256(json.dumps(payload, sort_keys=True,
+                                     separators=(',', ':')).encode()).hexdigest()
+
+
+@transaction.atomic
+def apply_historical_credit_campaign(*, key, policy_version, published_from,
+                                     published_through, reactions_through,
+                                     expected_sha256, actor_id):
+    """Apply a confirmed snapshot exactly once; never infer commercial approval."""
+    if not re.fullmatch(r'[a-z0-9][a-z0-9_-]{0,39}', key or ''):
+        raise ValueError('invalid campaign key')
+    if not re.fullmatch(r'[0-9a-f]{64}', expected_sha256 or ''):
+        raise ValueError('invalid expected snapshot digest')
+    actor = get_user_model().objects.get(pk=actor_id)
+    if not actor.is_active or not actor.is_superuser:
+        raise PermissionError('campaign requires an active superuser')
+    policy = SocialCreditPolicy.objects.select_for_update().get(version=policy_version)
+    prior = SocialCreditHistoricalCampaign.objects.filter(key=key).first()
+    if prior:
+        if (prior.policy_id != policy.pk or prior.published_from != published_from
+                or prior.published_through != published_through
+                or prior.reactions_through != reactions_through
+                or prior.snapshot_sha256 != expected_sha256):
+            raise ValueError('campaign key already belongs to another approval scope')
+        return prior, 0, False
+    if not policy.active:
+        raise ValueError('historical campaign policy is inactive')
+    # Serialize selected stories against moderation and existing reactions.
+    story_ids = list(TbCronica.objects.select_for_update().filter(
+        status='aprovada', data_publicacao__date__gte=published_from,
+        data_publicacao__date__lte=published_through,
+    ).order_by('pk').values_list('pk', flat=True))
+    list(TbCronicaCurtida.objects.select_for_update().filter(
+        cronica_id__in=story_ids,
+    ).order_by('pk').values_list('pk', flat=True))
+    list(SocialCreditReaderRecognition.objects.select_for_update().filter(
+        cronica_id__in=story_ids,
+    ).order_by('pk').values_list('pk', flat=True))
+    rows = preview_historical_credit_campaign(
+        policy, published_from=published_from, published_through=published_through,
+        reactions_through=reactions_through,
+    )
+    digest = historical_campaign_digest(policy, published_from, published_through,
+                                        reactions_through, rows)
+    if digest != expected_sha256:
+        raise ValueError('historical campaign snapshot changed; preview again')
+    campaign = SocialCreditHistoricalCampaign.objects.create(
+        key=key, policy=policy, published_from=published_from,
+        published_through=published_through, reactions_through=reactions_through,
+        snapshot_sha256=digest, applied_by=actor,
+    )
+    credits = 0
+    for row in rows:
+        story_id, author_id = row['chronicle_id'], row['author_id']
+        if row['first_publication_credits']:
+            _, created = post_social_credit(
+                author_id, operation_ref=f'chronicle:{story_id}:first_publication',
+                kind='first_publication', delta=row['first_publication_credits'],
+                policy=policy,
+            )
+            if not created:
+                raise ValueError('publication award changed during campaign')
+            credits += row['first_publication_credits']
+        for number in range(1, row['reader_milestones'] + 1):
+            _, created = post_social_credit(
+                author_id,
+                operation_ref=f'chronicle:{story_id}:historical_reader_milestone:{key}:{number}',
+                kind='historical_reader_milestone',
+                delta=policy.reader_milestone_amount, policy=policy,
+            )
+            if not created:
+                raise ValueError('reader award changed during campaign')
+            credits += policy.reader_milestone_amount
+    return campaign, credits, True

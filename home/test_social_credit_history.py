@@ -3,6 +3,7 @@
 import json
 from datetime import timedelta
 from io import StringIO
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
@@ -10,10 +11,13 @@ from django.core.management.base import CommandError
 from django.test import TestCase
 from django.utils import timezone
 
-from home.models import (SocialCreditEntry, SocialCreditPolicy,
+from home.models import (SocialCreditEntry, SocialCreditHistoricalCampaign,
+                         SocialCreditPolicy,
                          SocialCreditReaderRecognition, SocialCreditWallet,
                          TbCronica, TbCronicaCurtida)
-from home.social_credit_history import preview_historical_credit_campaign
+from home.social_credit_history import (apply_historical_credit_campaign,
+                                        historical_campaign_digest,
+                                        preview_historical_credit_campaign)
 from home.social_credits import post_social_credit
 
 
@@ -124,4 +128,80 @@ class HistoricalCampaignPreviewTests(TestCase):
         self.policy.save(update_fields=['reader_milestone_size'])
         with self.assertRaisesMessage(ValueError, 'incomplete'):
             self.preview()
+        self.assertFalse(SocialCreditEntry.objects.exists())
+
+    def campaign_options(self, digest, *, key='old-stories', actor='historical-admin'):
+        return dict(policy=self.policy.version, campaign_key=key,
+                    published_from=self.start.isoformat(),
+                    published_through=self.end.isoformat(),
+                    reactions_through=self.end.isoformat(),
+                    expected_sha256=digest, actor=actor,
+                    apply=True, confirm_policy=self.policy.version,
+                    confirm_campaign=key)
+
+    def test_apply_requires_confirmed_active_policy_and_is_idempotent(self):
+        admin = get_user_model().objects.create_superuser('historical-admin',
+                                                          'admin@example.test', 'testpass')
+        for reader in self.readers[:2]:
+            self.old_like(self.stories[0], reader)
+        rows = self.preview()
+        digest = historical_campaign_digest(self.policy, self.start, self.end,
+                                             self.end, rows)
+        opts = self.campaign_options(digest)
+        with self.assertRaises(CommandError):
+            call_command('apply_social_historical_campaign', **{**opts, 'apply': False},
+                         stdout=StringIO())
+        with self.assertRaises(CommandError):
+            call_command('apply_social_historical_campaign', **opts, stdout=StringIO())
+        self.assertFalse(SocialCreditEntry.objects.exists())
+        self.policy.active = True
+        self.policy.save(update_fields=['active'])
+        with self.assertRaises(CommandError):
+            call_command('apply_social_historical_campaign',
+                         **{**opts, 'expected_sha256': '0' * 64}, stdout=StringIO())
+        with self.assertRaises(CommandError):
+            call_command('apply_social_historical_campaign',
+                         **{**opts, 'actor': self.readers[0].username}, stdout=StringIO())
+        self.assertFalse(SocialCreditEntry.objects.exists())
+        output = StringIO()
+        call_command('apply_social_historical_campaign', **opts, stdout=output)
+        self.assertEqual(json.loads(output.getvalue())['credits_posted'], 19)
+        self.assertEqual(SocialCreditWallet.objects.get(user=self.author).balance, 19)
+        self.assertEqual(SocialCreditHistoricalCampaign.objects.get(key='old-stories').applied_by,
+                         admin)
+        self.assertEqual(SocialCreditEntry.objects.count(), 3)
+        output = StringIO()
+        call_command('apply_social_historical_campaign', **opts, stdout=output)
+        self.assertEqual(json.loads(output.getvalue())['status'], 'already_applied')
+        self.assertEqual(SocialCreditEntry.objects.count(), 3)
+        with self.assertRaises(CommandError):
+            call_command('apply_social_historical_campaign',
+                         **self.campaign_options(digest, key='overlap'), stdout=StringIO())
+
+    def test_failed_post_rolls_back_campaign_and_ledger(self):
+        admin = get_user_model().objects.create_superuser('historical-admin',
+                                                          'admin@example.test', 'testpass')
+        self.policy.active = True
+        self.policy.save(update_fields=['active'])
+        rows = self.preview()
+        digest = historical_campaign_digest(self.policy, self.start, self.end,
+                                             self.end, rows)
+        real_post = post_social_credit
+        calls = 0
+
+        def fail_second(*args, **kwargs):
+            nonlocal calls
+            calls += 1
+            if calls == 2:
+                raise ValueError('injected posting failure')
+            return real_post(*args, **kwargs)
+
+        with patch('home.social_credit_history.post_social_credit', side_effect=fail_second):
+            with self.assertRaisesMessage(ValueError, 'injected posting failure'):
+                apply_historical_credit_campaign(
+                    key='rollback', policy_version=self.policy.version,
+                    published_from=self.start, published_through=self.end,
+                    reactions_through=self.end, expected_sha256=digest,
+                    actor_id=admin.pk)
+        self.assertFalse(SocialCreditHistoricalCampaign.objects.exists())
         self.assertFalse(SocialCreditEntry.objects.exists())

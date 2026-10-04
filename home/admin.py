@@ -4428,7 +4428,8 @@ class DbAccessAuditAdmin(admin.ModelAdmin):
         return False
 
 
-from .models import (SocialCreditEntry, SocialCreditPolicy,
+from .models import (SocialCreditEntry, SocialCreditHistoricalCampaign,
+                     SocialCreditPolicy,
                      SocialCreditReaderRecognition, SocialCreditRedemption,
                      SocialCreditWallet)
 
@@ -4550,7 +4551,8 @@ class SocialCreditPolicyAdmin(admin.ModelAdmin):
     def _has_usage(policy):
         return (SocialCreditEntry.objects.filter(policy=policy).exists()
                 or SocialCreditReaderRecognition.objects.filter(policy=policy).exists()
-                or SocialCreditRedemption.objects.filter(policy=policy).exists())
+                or SocialCreditRedemption.objects.filter(policy=policy).exists()
+                or SocialCreditHistoricalCampaign.objects.filter(policy=policy).exists())
 
     def save_model(self, request, obj, form, change):
         from django.core.exceptions import PermissionDenied

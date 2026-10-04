@@ -324,7 +324,8 @@ def reverse_moderated_story_credits(report_id, *, actor_id):
     prefix = f'chronicle:{story.pk}:'
     awards = list(SocialCreditEntry.objects.filter(
         wallet__user_id=story.autor_id, delta__gt=0,
-        kind__in=('first_publication', 'reader_milestone'),
+        kind__in=('first_publication', 'reader_milestone',
+                  'historical_reader_milestone'),
         operation_ref__startswith=prefix,
     ).order_by('pk'))
     reversed_ids = set(SocialCreditEntry.objects.filter(
@@ -444,14 +445,19 @@ def preview_reader_milestones(policy, *, as_of=None):
         author_id = group['cronica__autor_id']
         if author_id not in author_spent:
             author_spent[author_id] = (SocialCreditEntry.objects.filter(
-                wallet__user_id=author_id, kind='reader_milestone',
+                wallet__user_id=author_id,
+                kind__in=('reader_milestone', 'historical_reader_milestone'),
                 created_at__gte=period_start, created_at__lte=now,
             ).aggregate(total=Sum('delta'))['total'] or 0)
         paid = SocialCreditEntry.objects.filter(
             kind='reader_milestone', wallet__user_id=author_id,
             operation_ref__startswith=f'chronicle:{story_id}:reader_milestone:',
         )
-        story_spent = paid.aggregate(total=Sum('delta'))['total'] or 0
+        historical_spent = (SocialCreditEntry.objects.filter(
+            kind='historical_reader_milestone', wallet__user_id=author_id,
+            operation_ref__startswith=f'chronicle:{story_id}:historical_reader_milestone:',
+        ).aggregate(total=Sum('delta'))['total'] or 0)
+        story_spent = (paid.aggregate(total=Sum('delta'))['total'] or 0) + historical_spent
         prior_milestones = paid.filter(policy=policy).count()
         due = max(0, group['readers'] // policy.reader_milestone_size - prior_milestones)
         story_slots = max(0, (policy.reader_story_credit_cap - story_spent) // amount)

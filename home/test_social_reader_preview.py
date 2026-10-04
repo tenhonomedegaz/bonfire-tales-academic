@@ -94,6 +94,19 @@ class ReaderMilestonePreviewTests(TestCase):
                          [(2, 1), (2, 0)])
         self.assertFalse(SocialCreditEntry.objects.exists())
 
+    def test_historical_award_consumes_live_reader_caps_without_counting_as_live_milestone(self):
+        for reader in self.readers[:2]:
+            self.like(reader)
+        self.consolidate()
+        post_social_credit(
+            self.author.pk,
+            operation_ref=f'chronicle:{self.story.pk}:historical_reader_milestone:old:1',
+            kind='historical_reader_milestone', delta=5, policy=self.policy,
+        )
+        row = preview_reader_milestones(self.policy)[0]
+        self.assertEqual(row['milestones_due'], 1)
+        self.assertEqual(row['milestones_ready'], 0)
+
     def test_paid_milestone_and_rolling_period_are_accounted_for(self):
         for reader in self.readers[:2]:
             self.like(reader)

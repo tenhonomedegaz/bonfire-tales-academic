@@ -2915,6 +2915,19 @@ class SocialCreditEntry(models.Model):
         ]
 
 
+class SocialCreditHistoricalCampaign(models.Model):
+    """Immutable approval scope and audit record for one historical credit run."""
+
+    key = models.SlugField(max_length=40, unique=True)
+    policy = models.ForeignKey(SocialCreditPolicy, on_delete=models.PROTECT)
+    published_from = models.DateField()
+    published_through = models.DateField()
+    reactions_through = models.DateField()
+    snapshot_sha256 = models.CharField(max_length=64)
+    applied_by = models.ForeignKey('auth.User', on_delete=models.PROTECT)
+    applied_at = models.DateTimeField(auto_now_add=True)
+
+
 class SocialCreditReaderRecognition(models.Model):
     """First like per reader and Chronicle, retained after an unlike."""
 
