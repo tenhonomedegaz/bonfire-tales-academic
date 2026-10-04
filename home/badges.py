@@ -50,7 +50,7 @@ _DERIVADAS_DEF = {
     },
     'mestre_ouro': {
         'nome': 'Mestre Ouro', 'icone': '⭐', 'classe': 'badge-mestre-ouro',
-        'tooltip': 'Assinante Mestre Ouro do Mercado de Mestre.',
+        'tooltip': 'Mestre Ouro vitalício do Mercado de Mestre.',
     },
     'fundador': {
         'nome': 'Fundador', 'icone': '🕯️', 'classe': 'badge-fundador',
@@ -95,8 +95,8 @@ def _slugs_derivadas(user, is_colaborador=None):
         is_colaborador = _colab(user)
     if is_colaborador:
         slugs.append('apoiador')
-    perfil = getattr(user, 'profile', None)
-    if getattr(perfil, 'mestre_ouro_ativo', False):
+    from .models import MestreOuroDireito
+    if MestreOuroDireito.objects.filter(user_id=user.pk).exists():
         slugs.append('mestre_ouro')
     if _is_fundador(user):
         slugs.append('fundador')

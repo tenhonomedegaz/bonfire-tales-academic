@@ -93,9 +93,11 @@ def slots_usados(user):
 
 
 def is_mestre_ouro(user):
-    """Assinatura Mestre Ouro ativa (Mercado de Mestre) → +1 espaço de personagem."""
-    perfil = getattr(user, 'profile', None) or getattr(user, 'userprofile', None)
-    return bool(getattr(perfil, 'mestre_ouro_ativo', False))
+    """Proven lifetime purchase grants the extra character slot permanently."""
+    if not getattr(user, 'is_authenticated', False):
+        return False
+    from .models import MestreOuroDireito
+    return MestreOuroDireito.objects.filter(user_id=user.pk).exists()
 
 
 def limite_detalhe(user):

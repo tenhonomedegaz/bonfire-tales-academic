@@ -2544,11 +2544,28 @@ class TbPersonagemRevisaoAdmin(BonfireAdminMixin, admin.ModelAdmin):
 
 @admin.register(TbRecompensaMestre)
 class TbRecompensaMestreAdmin(admin.ModelAdmin):
-    list_display = ("nome", "tipo", "preco_mm", "mensalidade_mm", "ativo", "ordem")
+    list_display = ("nome", "tipo", "preco_mm", "preco_vitalicio_aprovado_mm", "ativo", "ordem")
     list_filter = ("tipo", "ativo")
     search_fields = ("nome", "slug")
     prepopulated_fields = {"slug": ("nome",)}
     ordering = ("ordem", "preco_mm")
+
+    def get_readonly_fields(self, request, obj=None):
+        fields = super().get_readonly_fields(request, obj)
+        if not request.user.is_superuser:
+            return (*fields, 'preco_vitalicio_aprovado_mm')
+        return fields
+
+    def save_model(self, request, obj, form, change):
+        from django.core.exceptions import PermissionDenied, ValidationError
+
+        if obj.preco_vitalicio_aprovado_mm is not None:
+            if not request.user.is_superuser:
+                raise PermissionDenied
+            if (obj.tipo != 'assinatura' or obj.preco_mm <= 0
+                    or obj.preco_vitalicio_aprovado_mm != obj.preco_mm):
+                raise ValidationError('O preço aprovado de Mestre Ouro deve coincidir com o preço único positivo.')
+        super().save_model(request, obj, form, change)
 
 
 @admin.register(TbAventuraMestre)
@@ -4428,7 +4445,8 @@ class DbAccessAuditAdmin(admin.ModelAdmin):
         return False
 
 
-from .models import (SocialCreditEntry, SocialCreditHistoricalCampaign,
+from .models import (MestreOuroDireito, MestreOuroRevisao,
+                     SocialCreditEntry, SocialCreditHistoricalCampaign,
                      SocialCreditPolicy,
                      SocialCreditReaderRecognition, SocialCreditRedemption,
                      SocialCreditWallet)
@@ -4445,6 +4463,26 @@ class _ReadOnlySocialCreditAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+
+@admin.register(MestreOuroDireito)
+class MestreOuroDireitoAdmin(_ReadOnlySocialCreditAdmin):
+    list_display = ('user', 'primeira_compra', 'adquirido_em', 'concedido_em')
+    search_fields = ('user__username',)
+    readonly_fields = list_display
+
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_active and request.user.is_superuser
+
+
+@admin.register(MestreOuroRevisao)
+class MestreOuroRevisaoAdmin(_ReadOnlySocialCreditAdmin):
+    list_display = ('user', 'motivo', 'registrada_em')
+    search_fields = ('user__username',)
+    readonly_fields = list_display
+
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_active and request.user.is_superuser
 
 
 @admin.register(SocialCreditWallet)

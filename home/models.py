@@ -2068,6 +2068,8 @@ class TbRecompensaMestre(models.Model):
     descricao = models.TextField(db_column='Descricao', blank=True, null=True)
     preco_mm = models.IntegerField(db_column='PrecoMM', default=0, help_text='Preço em Moedas de Mestragem.')
     mensalidade_mm = models.IntegerField(db_column='MensalidadeMM', default=0, help_text='Custo mensal (assinatura).')
+    preco_vitalicio_aprovado_mm = models.PositiveIntegerField(null=True, blank=True,
+        help_text='Preço único aprovado pelo PO em MM; deve coincidir com PrecoMM.')
     tipo = models.CharField(db_column='Tipo', max_length=12, choices=TIPO_CHOICES, default='normal')
     ativo = models.BooleanField(db_column='Ativo', default=True)
     ordem = models.IntegerField(db_column='Ordem', default=0)
@@ -2126,6 +2128,24 @@ class TbTransacaoMestre(models.Model):
 
     def __str__(self):
         return f'{self.get_tipo_display()} {self.valor_mm} MM'
+
+
+class MestreOuroDireito(models.Model):
+    """Lifetime entitlement from one proven first purchase in the MM ledger."""
+
+    user = models.OneToOneField('auth.User', on_delete=models.PROTECT,
+                                related_name='mestre_ouro_direito')
+    primeira_compra = models.OneToOneField(TbTransacaoMestre, on_delete=models.PROTECT)
+    adquirido_em = models.DateTimeField()
+    concedido_em = models.DateTimeField(auto_now_add=True)
+
+
+class MestreOuroRevisao(models.Model):
+    """Ambiguous legacy status retained for an explicit PO/staff decision."""
+
+    user = models.OneToOneField('auth.User', on_delete=models.PROTECT)
+    motivo = models.CharField(max_length=120)
+    registrada_em = models.DateTimeField(auto_now_add=True)
 
 
 class TbReiDaColina(models.Model):

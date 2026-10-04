@@ -6867,6 +6867,7 @@ def mestres_cadastrados(extra_ids=()):
             | Q(transacoes_mm__isnull=False)
             | Q(profile__moedas_mestragem__gt=0)
             | Q(profile__mm_ganhas_total__gt=0)
+            | Q(mestre_ouro_direito__isnull=False)
             | Q(profile__mestre_ouro_ativo=True))
     ids = [int(i) for i in (extra_ids or ()) if i]
     if ids:
@@ -14126,11 +14127,12 @@ def _creditar_mm(user, tipo, descricao, delta):
 def mercado_mestre_view(request):
     """Mercado de Mestre: saldo de MM, catálogo de recompensas, registro de aventuras,
     histórico, Rei da Colina e Mestre Ouro. Gated por is_mestre."""
-    from .models import TbRecompensaMestre, TbReiDaColina
+    from .models import MestreOuroDireito, TbRecompensaMestre, TbReiDaColina
     from . import permissions as perms
     if not perms.is_mestre(request.user):
         raise Http404
     perfil = _perfil_mestre(request.user)
+    ouro_vitalicio = MestreOuroDireito.objects.filter(user=request.user).exists()
     rdc = TbReiDaColina.objects.select_related('holder').first()
     meus = [{'id': p.id_personagem, 'nome': p.nome}
             for p in request.user.personagens.filter(arquivado=False).only('id_personagem', 'nome')]
@@ -14143,8 +14145,8 @@ def mercado_mestre_view(request):
         'transacoes': list(request.user.transacoes_mm.all()[:30]),
         'rei_colina': rdc,
         'sou_rei': bool(rdc and rdc.holder_id == request.user.id),
-        'mestre_ouro_ativo': perfil.mestre_ouro_ativo,
-        'mestre_ouro_proximo': perfil.mestre_ouro_proximo_pgto,
+        'mestre_ouro_ativo': ouro_vitalicio,
+        'mestre_ouro_legado_pendente': perfil.mestre_ouro_ativo and not ouro_vitalicio,
         'meus_personagens': meus,
         'msg': request.GET.get('m'),
     })
@@ -14211,10 +14213,9 @@ def mestre_registrar_aventura(request):
 @require_POST
 def mestre_resgatar(request):
     """Resgata uma recompensa do catálogo. Dispatch por tipo: normal (debita+log),
-    leilao (Rei da Colina), assinatura (Mestre Ouro: assina ou paga mensalidade)."""
+    leilao (Rei da Colina), assinatura legada (Mestre Ouro: compra vitalícia)."""
     from .models import TbRecompensaMestre, TbReiDaColina
     from . import permissions as perms
-    from datetime import timedelta
     if not perms.is_mestre(request.user):
         raise Http404
     r = TbRecompensaMestre.objects.filter(id_recompensa=request.POST.get('recompensa'), ativo=True).first()
@@ -14238,23 +14239,14 @@ def mestre_resgatar(request):
         return redirect(dest + '?m=rei')
 
     if r.tipo == 'assinatura':
-        if not perfil.mestre_ouro_ativo:
-            if saldo < r.preco_mm:
+        from .mestre_ouro import buy_mestre_ouro_lifetime
+        try:
+            _, created = buy_mestre_ouro_lifetime(request.user.pk, r.pk)
+        except ValueError as exc:
+            if str(exc) == 'insufficient MM balance':
                 return redirect(dest + '?m=saldo')
-            with transaction.atomic():
-                _creditar_mm(request.user, 'assinatura', 'Mestre Ouro (assinatura)', -r.preco_mm)
-                perfil.mestre_ouro_ativo = True
-                perfil.mestre_ouro_proximo_pgto = timezone.now().date() + timedelta(days=30)
-                perfil.save(update_fields=['mestre_ouro_ativo', 'mestre_ouro_proximo_pgto'])
-            return redirect(dest + '?m=ouro')
-        if saldo < r.mensalidade_mm:
-            return redirect(dest + '?m=saldo')
-        with transaction.atomic():
-            _creditar_mm(request.user, 'mensalidade', 'Mestre Ouro (mensalidade)', -r.mensalidade_mm)
-            base = perfil.mestre_ouro_proximo_pgto or timezone.now().date()
-            perfil.mestre_ouro_proximo_pgto = base + timedelta(days=30)
-            perfil.save(update_fields=['mestre_ouro_proximo_pgto'])
-        return redirect(dest + '?m=mensalidade')
+            return redirect(dest + '?m=ouro_indisponivel')
+        return redirect(dest + ('?m=ouro' if created else '?m=ouro_existente'))
 
     # normal: resgate simples (debita MM; a staff cumpre o efeito pelo histórico)
     if saldo < r.preco_mm:

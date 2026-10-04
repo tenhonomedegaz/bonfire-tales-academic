@@ -23,8 +23,9 @@
   {% if msg == 'aventura' %}<p class="mb-2.5 rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-3 py-2 text-sm text-[var(--spark)]">Aventura registrada — MM creditadas!</p>
   {% elif msg == 'resgatado' %}<p class="mb-2.5 rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-3 py-2 text-sm text-[var(--spark)]">Recompensa resgatada! A staff cumpre o efeito pelo seu histórico.</p>
   {% elif msg == 'rei' %}<p class="mb-2.5 rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-3 py-2 text-sm text-[var(--spark)]">Você é o novo Rei da Colina! 👑</p>
-  {% elif msg == 'ouro' %}<p class="mb-2.5 rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-3 py-2 text-sm text-[var(--spark)]">Assinatura Mestre Ouro ativada — você ganhou um 5º espaço de personagem.</p>
-  {% elif msg == 'mensalidade' %}<p class="mb-2.5 rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-3 py-2 text-sm text-[var(--spark)]">Mensalidade paga — Mestre Ouro renovado.</p>
+  {% elif msg == 'ouro' %}<p class="mb-2.5 rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-3 py-2 text-sm text-[var(--spark)]">Mestre Ouro vitalício concedido — 5º espaço de personagem liberado.</p>
+  {% elif msg == 'ouro_existente' %}<p class="mb-2.5 rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-3 py-2 text-sm text-[var(--spark)]">Seu Mestre Ouro vitalício já está concedido. Nenhuma nova cobrança foi feita.</p>
+  {% elif msg == 'ouro_indisponivel' %}<p class="mb-2.5 rounded border border-[var(--flame)]/50 bg-[var(--flame)]/10 px-3 py-2 text-sm text-[var(--flame)]">A compra vitalícia ainda não está disponível ou seu histórico requer revisão.</p>
   {% elif msg == 'braseiros' %}<p class="mb-2.5 rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-3 py-2 text-sm text-[var(--spark)]">Braseiros creditados no personagem! 🔥</p>
   {% elif msg == 'sem_evento' %}<p class="mb-2.5 rounded border border-[var(--flame)]/50 bg-[var(--flame)]/10 px-3 py-2 text-sm text-[var(--flame)]">Você não tem Moedas de Evento.</p>
   {% elif msg == 'sem_personagem' %}<p class="mb-2.5 rounded border border-[var(--flame)]/50 bg-[var(--flame)]/10 px-3 py-2 text-sm text-[var(--flame)]">Selecione um personagem seu.</p>
@@ -42,9 +43,9 @@
     </div>
     <div class="rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-2 text-sm">
       <div class="font-serif font-bold text-[var(--ember)]">⭐ Mestre Ouro</div>
-      {% if mestre_ouro_ativo %}<div class="text-[var(--spark)]">Ativo — 5º espaço liberado.</div>
-      <div class="text-xs text-[var(--muted)]">Próxima mensalidade: {{ mestre_ouro_proximo|date:"d/m/Y"|default:"—" }} (500 MM)</div>
-      {% else %}<div class="text-[var(--muted)]">Inativo.</div>{% endif %}
+      {% if mestre_ouro_ativo %}<div class="text-[var(--spark)]">Vitalício — 5º espaço liberado.</div>
+      {% elif mestre_ouro_legado_pendente %}<div class="text-[var(--muted)]">Compra anterior em verificação.</div>
+      {% else %}<div class="text-[var(--muted)]">Ainda não adquirido.</div>{% endif %}
     </div>
   </div>
 
@@ -91,9 +92,10 @@
         <div class="min-w-0 flex-1">
           <div class="font-serif text-sm font-bold text-[var(--text)]">{{ r.nome }}
             {% if r.tipo == 'leilao' %}<span class="ml-1 rounded bg-[var(--ember)]/15 px-1.5 py-0.5 text-xs text-[var(--ember)]">leilão</span>
-            {% elif r.tipo == 'assinatura' %}<span class="ml-1 rounded bg-[var(--ember)]/15 px-1.5 py-0.5 text-xs text-[var(--ember)]">assinatura</span>{% endif %}
+            {% elif r.tipo == 'assinatura' %}<span class="ml-1 rounded bg-[var(--ember)]/15 px-1.5 py-0.5 text-xs text-[var(--ember)]">vitalício</span>{% endif %}
           </div>
-          {% if r.descricao %}<div class="text-xs text-[var(--muted)]">{{ r.descricao }}</div>{% endif %}
+          {% if r.tipo == 'assinatura' %}<div class="text-xs text-[var(--muted)]">Uma compra concede Mestre Ouro e o 5º espaço de personagem permanentemente.</div>
+          {% elif r.descricao %}<div class="text-xs text-[var(--muted)]">{{ r.descricao }}</div>{% endif %}
         </div>
         <form method="post" action="{% url 'mestre_resgatar' %}" class="flex items-center gap-1.5">
           {% csrf_token %}<input type="hidden" name="recompensa" value="{{ r.id_recompensa }}">
@@ -101,8 +103,11 @@
             <span class="font-mono text-sm text-[var(--flame)]">{{ rei_colina.preco_atual }} MM</span>
             <button type="submit" {% if sou_rei %}disabled{% endif %} class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-1.5 text-xs font-bold text-[var(--ember)] hover:border-[var(--ember)] disabled:opacity-40">{% if sou_rei %}Você é o Rei{% else %}Dar lance{% endif %}</button>
           {% elif r.tipo == 'assinatura' %}
-            <span class="font-mono text-sm text-[var(--flame)]">{% if mestre_ouro_ativo %}{{ r.mensalidade_mm }} MM/mês{% else %}{{ r.preco_mm }} MM{% endif %}</span>
-            <button type="submit" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-1.5 text-xs font-bold text-[var(--ember)] hover:border-[var(--ember)]">{% if mestre_ouro_ativo %}Pagar mensalidade{% else %}Assinar{% endif %}</button>
+            {% if mestre_ouro_ativo %}<span class="text-xs text-[var(--spark)]">Adquirido permanentemente</span>
+            {% elif mestre_ouro_legado_pendente %}<span class="text-xs text-[var(--muted)]">Histórico em revisão</span>
+            {% elif r.preco_vitalicio_aprovado_mm and r.preco_vitalicio_aprovado_mm == r.preco_mm %}<span class="font-mono text-sm text-[var(--flame)]">{{ r.preco_mm }} MM, pagamento único</span>
+            <button type="submit" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-1.5 text-xs font-bold text-[var(--ember)] hover:border-[var(--ember)]">Comprar</button>
+            {% else %}<span class="text-xs text-[var(--muted)]">Preço vitalício a definir</span>{% endif %}
           {% else %}
             <span class="font-mono text-sm text-[var(--flame)]">{{ r.preco_mm }} MM</span>
             <button type="submit" {% if saldo < r.preco_mm %}disabled{% endif %} class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-1.5 text-xs font-bold text-[var(--ember)] hover:border-[var(--ember)] disabled:opacity-40">Resgatar</button>
