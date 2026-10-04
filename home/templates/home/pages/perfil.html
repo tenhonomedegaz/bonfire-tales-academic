@@ -94,7 +94,8 @@
                 {% for redemption in social_redemptions %}
                 <li>{{ redemption.created_at|date:'d/m/Y H:i' }} · {{ redemption.character.nome }} ·
                     {{ redemption.cost }} créditos · {{ redemption.gold_pc }} PC ·
-                    política {{ redemption.policy.version }}</li>
+                    política {{ redemption.policy.version }} ·
+                    {% if redemption.reversed_at %}estornado{% elif redemption.reversal_review_requested_at %}em revisão administrativa{% else %}entregue{% endif %}</li>
                 {% endfor %}
             </ul>
         </details>

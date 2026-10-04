@@ -4485,8 +4485,12 @@ class SocialCreditReaderRecognitionAdmin(_ReadOnlySocialCreditAdmin):
 
 @admin.register(SocialCreditRedemption)
 class SocialCreditRedemptionAdmin(_ReadOnlySocialCreditAdmin):
-    list_display = ('created_at', 'user', 'character', 'cost', 'gold_pc', 'policy')
+    list_display = ('created_at', 'user', 'character', 'cost', 'gold_pc', 'policy',
+                    'reversal_review_requested_at', 'reversed_at')
     search_fields = ('user__username', 'character__nome', 'request_id')
     readonly_fields = ('request_id', 'user', 'character', 'policy', 'credit_entry',
                        'adventure_entry', 'cost', 'gold_pc', 'gold_source',
-                       'counts_for_progression', 'created_at')
+                       'counts_for_progression', 'created_at',
+                       'reversal_reason', 'reversal_review_reason', 'reversal_review_requested_at',
+                       'reversal_review_requested_by', 'reversed_at', 'reversed_by',
+                       'credit_reversal_entry', 'gold_reversal_entry')

@@ -2943,6 +2943,22 @@ class SocialCreditRedemption(models.Model):
     gold_source = models.CharField(max_length=120)
     counts_for_progression = models.BooleanField()
     created_at = models.DateTimeField(auto_now_add=True)
+    reversal_reason = models.CharField(max_length=500, blank=True, default='')
+    reversal_review_reason = models.CharField(max_length=500, blank=True, default='')
+    reversal_review_requested_at = models.DateTimeField(null=True, blank=True)
+    reversal_review_requested_by = models.ForeignKey(
+        'auth.User', on_delete=models.PROTECT, null=True, blank=True,
+        related_name='social_redemption_reviews')
+    reversed_at = models.DateTimeField(null=True, blank=True)
+    reversed_by = models.ForeignKey(
+        'auth.User', on_delete=models.PROTECT, null=True, blank=True,
+        related_name='social_redemption_reversals')
+    credit_reversal_entry = models.OneToOneField(
+        SocialCreditEntry, on_delete=models.PROTECT, null=True, blank=True,
+        related_name='social_redemption_reversal')
+    gold_reversal_entry = models.OneToOneField(
+        TbTransacao, on_delete=models.PROTECT, null=True, blank=True,
+        related_name='social_redemption_reversal')
 
     class Meta:
         ordering = ['-created_at', '-pk']

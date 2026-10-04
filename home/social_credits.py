@@ -10,7 +10,8 @@ from django.utils import timezone
 
 from .models import (SocialCreditEntry, SocialCreditPolicy, SocialCreditReaderRecognition,
                      SocialCreditRedemption, SocialCreditWallet, TbCronica,
-                     TbCronicaCurtida, TbPersonagem, TbPersonagemAventura)
+                     TbCronicaCurtida, TbPersonagem, TbPersonagemAventura,
+                     TbPersonagemRevisao, TbTransacao)
 
 
 def _validate_redemption_policy(policy):
@@ -43,7 +44,7 @@ def redemption_quotes(user):
                .values_list('balance', flat=True).first() or 0)
     period_start = timezone.now() - timedelta(days=policy.redemption_period_days)
     period_count = SocialCreditRedemption.objects.filter(
-        user=user, created_at__gte=period_start).count()
+        user=user, created_at__gte=period_start, reversed_at__isnull=True).count()
     return [{
         'character': character,
         'cost': policy.redemption_cost,
@@ -56,7 +57,7 @@ def redemption_quotes(user):
         'affordable': balance >= policy.redemption_cost,
         'within_period_limit': period_count < policy.redemption_period_limit,
         'within_character_limit': SocialCreditRedemption.objects.filter(
-            character=character).count() < policy.redemption_character_limit,
+            character=character, reversed_at__isnull=True).count() < policy.redemption_character_limit,
         'policy_version': policy.version,
         'request_id': str(uuid4()),
     } for character in TbPersonagem.objects.filter(
@@ -96,10 +97,11 @@ def redeem_social_credit(user_id, character_id, request_id):
 
     period_start = timezone.now() - timedelta(days=policy.redemption_period_days)
     if SocialCreditRedemption.objects.filter(
-            user=user, created_at__gte=period_start).count() >= policy.redemption_period_limit:
+            user=user, created_at__gte=period_start,
+            reversed_at__isnull=True).count() >= policy.redemption_period_limit:
         raise ValueError('redemption period limit reached')
     if SocialCreditRedemption.objects.filter(
-            character=character).count() >= policy.redemption_character_limit:
+            character=character, reversed_at__isnull=True).count() >= policy.redemption_character_limit:
         raise ValueError('character redemption limit reached')
 
     credit, created = post_social_credit(
@@ -124,12 +126,19 @@ def redeem_social_credit(user_id, character_id, request_id):
         },
     )
     from .market_services import register_transaction
-    register_transaction(
+    gold_transaction = register_transaction(
         character, 'recompensa-social', 'Resgate de recompensa comunitária',
         policy.redemption_gold_pc,
         detalhes={'origem': 'recompensa_comunidade', 'adventure_ledger_id': adventure.pk,
                   'credit_entry_id': credit.pk},
     )
+    adventure.detalhes_json = {
+        **adventure.detalhes_json,
+        'adventures_after': character.aventuras,
+        'gold_after': character.carteira_pc,
+        'gold_transaction_id': gold_transaction.pk,
+    }
+    adventure.save(update_fields=['detalhes_json'])
     redemption = SocialCreditRedemption.objects.create(
         request_id=request_id, user=user, character=character, policy=policy,
         credit_entry=credit, adventure_entry=adventure,
@@ -138,6 +147,107 @@ def redeem_social_credit(user_id, character_id, request_id):
         counts_for_progression=policy.redemption_counts_for_progression,
     )
     return redemption, True
+
+
+@transaction.atomic
+def reverse_social_redemption(redemption_id, *, actor_id, reason):
+    """Compensate a safe redemption; otherwise retain it for administrative review.
+
+    The reviewer must be a superuser. This service does not erase any original ledger
+    row and never guesses how to unwind later purchases, loans or character growth.
+    """
+    if not isinstance(reason, str) or not reason.strip() or len(reason) > 500:
+        raise ValueError('reversal reason is required (maximum 500 characters)')
+    actor = get_user_model().objects.get(pk=actor_id)
+    if not actor.is_active or not actor.is_superuser:
+        raise PermissionError('redemption reversal requires an active superuser')
+    redemption = SocialCreditRedemption.objects.select_for_update().select_related(
+        'adventure_entry', 'credit_entry').get(pk=redemption_id)
+    if redemption.reversed_at:
+        return redemption, 'already_reversed'
+
+    get_user_model().objects.select_for_update().get(pk=redemption.user_id)
+    character = TbPersonagem.objects.select_for_update().get(pk=redemption.character_id)
+    adventure = redemption.adventure_entry
+    details = adventure.detalhes_json or {}
+    gold_id = details.get('gold_transaction_id')
+    original_gold = TbTransacao.objects.filter(
+        pk=gold_id, id_personagem=character, tipo='recompensa-social',
+    ).first() if type(gold_id) is int else None
+
+    problems = []
+    if (original_gold is None or
+            original_gold.detalhes_json.get('adventure_ledger_id') != adventure.pk):
+        problems.append('movimento de ouro não identificado')
+    else:
+        if TbTransacao.objects.filter(id_personagem=character, pk__gt=original_gold.pk).exists():
+            problems.append('movimento econômico posterior')
+        if TbTransacao.objects.filter(
+                tipo='repasse-divida', detalhes_json__origem_transacao=original_gold.pk).exists():
+            problems.append('ouro repassado a dívida')
+    if TbPersonagemAventura.objects.filter(
+            id_personagem=character, pk__gt=adventure.pk).exists():
+        problems.append('lançamento de aventura posterior')
+    if TbPersonagemRevisao.objects.filter(
+            id_personagem=character, criado_em__gt=redemption.created_at).exists():
+        problems.append('alteração posterior da ficha')
+    if (type(details.get('adventures_after')) is not int or
+            int(character.aventuras or 0) != details['adventures_after'] or
+            int(character.aventuras or 0) < int(adventure.qtd_aventuras or 0)):
+        problems.append('progressão divergiu')
+    if int(character.nivel or 1) != int(adventure.nivel_no_lancamento or 1):
+        problems.append('nível alterado após resgate')
+    if (type(details.get('gold_after')) is not int or
+            int(character.carteira_pc or 0) != details['gold_after'] or
+            int(character.carteira_pc or 0) < redemption.gold_pc):
+        problems.append('ouro divergiu ou foi gasto')
+    if adventure.revertido or redemption.credit_entry.reversal_of_id:
+        problems.append('ledger já alterado')
+    if SocialCreditEntry.objects.filter(reversal_of=redemption.credit_entry).exists():
+        problems.append('débito já compensado fora do resgate')
+
+    if problems:
+        redemption.reversal_reason = reason.strip()
+        redemption.reversal_review_reason = '; '.join(problems)[:500]
+        redemption.reversal_review_requested_at = timezone.now()
+        redemption.reversal_review_requested_by = actor
+        redemption.save(update_fields=[
+            'reversal_reason', 'reversal_review_reason', 'reversal_review_requested_at',
+            'reversal_review_requested_by',
+        ])
+        return redemption, 'review_required'
+
+    credit_reversal, created = reverse_social_credit(
+        redemption.credit_entry_id,
+        operation_ref=f'redemption:{redemption.request_id}:reversal',
+    )
+    if not created:
+        raise ValueError('credit reversal already exists without a completed redemption reversal')
+    character.aventuras -= int(adventure.qtd_aventuras or 0)
+    character.carteira_pc -= redemption.gold_pc
+    character.save(update_fields=['aventuras', 'carteira_pc', 'atualizado_em'])
+    gold_reversal = TbTransacao.objects.create(
+        id_personagem=character, tipo='ajuste',
+        descricao='Estorno de recompensa comunitária', valor_pc=-redemption.gold_pc,
+        saldo_pc=character.carteira_pc,
+        detalhes_json={'redemption_id': redemption.pk,
+                       'original_gold_transaction_id': original_gold.pk},
+    )
+    adventure.revertido = True
+    adventure.revertido_em = timezone.now()
+    adventure.revertido_por = actor
+    adventure.save(update_fields=['revertido', 'revertido_em', 'revertido_por'])
+    redemption.credit_reversal_entry = credit_reversal
+    redemption.gold_reversal_entry = gold_reversal
+    redemption.reversed_at = timezone.now()
+    redemption.reversed_by = actor
+    redemption.reversal_reason = reason.strip()
+    redemption.reversal_review_reason = ''
+    redemption.save(update_fields=[
+        'credit_reversal_entry', 'gold_reversal_entry', 'reversed_at', 'reversed_by',
+        'reversal_reason', 'reversal_review_reason',
+    ])
+    return redemption, 'reversed'
 
 
 @transaction.atomic
