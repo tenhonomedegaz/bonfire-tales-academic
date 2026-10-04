@@ -8,12 +8,13 @@ from django.urls import reverse
 
 from .cosmetic_entitlements import has_permanent_cosmetic
 from .cosmetics import catalog_options, cosmetic_allowed
+from .permissions import colab_tier
 from .badges import badges_concedidas, perfil_badges_batch, titulos_disponiveis
 from .models import (AsaasCheckoutOrder, CosmeticCheckoutOffer,
                      CosmeticCheckoutPurchase, TbCosmetico, TbUsuarioCosmetico,
                      UserProfile)
 from .views import (AsaasAPIError, _validated_badges_destaque,
-                    _validated_titulo_equipado)
+                    _validated_titulo_equipado, _appearance_context)
 
 
 @override_settings(ASAAS_WEBHOOK_TOKEN='test-webhook-token')
@@ -29,6 +30,67 @@ class CosmeticCheckoutTests(TestCase):
             cosmetico=self.cosmetic, amount=Decimal('12.34'), active=True,
         )
         self.client.force_login(self.user)
+
+    @patch('home.permissions.colab_tier')
+    def test_colab_catalog_and_display_expire_without_erasing_preference(self, tier):
+        borrowed = TbCosmetico.objects.create(
+            slug='moldura-emprestada', tipo='moldura', nome='Emprestada',
+            origem='colaborador', requer_plano='marques', escopo='perfil')
+        tier.return_value = 'conde'
+        self.assertFalse(cosmetic_allowed(self.user, 'frame', 'emprestada', 'perfil'))
+        self.assertEqual(_appearance_context(frame='emprestada', user=self.user)['frame_key'], 'none')
+        tier.return_value = 'marques'
+        self.assertTrue(cosmetic_allowed(self.user, 'frame', 'emprestada', 'perfil'))
+        self.assertEqual(_appearance_context(frame='emprestada', user=self.user)['frame_key'], 'emprestada')
+        self.assertEqual(next(x['estado'] for x in catalog_options(
+            self.user, 'moldura', 'perfil') if x['key'] == 'emprestada'), 'possui')
+        tier.return_value = None
+        TbUsuarioCosmetico.objects.create(
+            user=self.user, cosmetico=borrowed, origem='colaborador')
+        self.assertEqual(_appearance_context(frame='emprestada', user=self.user)['frame_key'], 'none')
+        self.assertEqual(next(x['estado'] for x in catalog_options(
+            self.user, 'moldura', 'perfil') if x['key'] == 'emprestada'), 'bloqueado')
+        profile = UserProfile.objects.get_or_create(user=self.user)[0]
+        profile.avatar_frame = 'emprestada'
+        profile.save(update_fields=['avatar_frame'])
+        public = self.client.get('/perfil/buyer/')
+        self.assertEqual(public.status_code, 200)
+        self.assertEqual(public.context['appearance']['frame_key'], 'none')
+        profile.refresh_from_db()
+        self.assertEqual(profile.avatar_frame, 'emprestada')
+
+    @patch('home.permissions.colab_tier', return_value=None)
+    def test_paid_origin_survives_colab_expiration(self, _tier):
+        borrowed = TbCosmetico.objects.create(
+            slug='moldura-colab-paga', tipo='moldura', nome='Colab Paga',
+            origem='colaborador', requer_plano='conde', escopo='perfil')
+        order = AsaasCheckoutOrder.objects.create(
+            user=self.user, email=self.user.email,
+            product_code='cosmetic:' + borrowed.slug,
+            mode='single', amount=Decimal('12.34'))
+        from django.utils import timezone
+        CosmeticCheckoutPurchase.objects.create(
+            order=order, beneficiary=self.user, cosmetico=borrowed,
+            slug=borrowed.slug, name=borrowed.nome, granted_at=timezone.now())
+        self.assertTrue(cosmetic_allowed(self.user, 'frame', 'colab-paga', 'perfil'))
+        self.assertEqual(_appearance_context(frame='colab-paga', user=self.user)['frame_key'], 'colab-paga')
+
+    @patch('home.models.BotTransaction.objects.filter')
+    @patch('home.models.BotMember.objects.filter')
+    def test_colab_right_requires_linked_discord_member(self, members, transactions):
+        profile = UserProfile.objects.get_or_create(user=self.user)[0]
+        self.assertIsNone(colab_tier(self.user))
+        members.assert_not_called()
+        profile.discord_user_id = '123456789'
+        profile.save(update_fields=['discord_user_id'])
+        self.user.refresh_from_db()
+        members.return_value.values_list.return_value.first.return_value = 'member@example.test'
+        transactions.return_value.values_list.return_value = ['colaborador-conde-1m', 'colaborador-duque-3m']
+        self.assertEqual(colab_tier(self.user), 'duque')
+        self.assertEqual(members.call_args.kwargs['discordUserId'], '123456789')
+        self.assertEqual(transactions.call_args.kwargs['email__iexact'], 'member@example.test')
+        members.return_value.values_list.return_value.first.return_value = None
+        self.assertIsNone(colab_tier(self.user))
 
     @patch('home.views._asaas_api_request', return_value={'id': 'checkout_1'})
     def test_order_freezes_offer_and_reuses_checkout(self, api):

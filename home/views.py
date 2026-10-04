@@ -1045,7 +1045,8 @@ def _custom_theme_style(colors):
 
 
 def _appearance_context(theme='bonfire', frame='none', effect='none',
-                        theme_custom=None, background=''):
+                        theme_custom=None, background='', user=None,
+                        escopo='perfil'):
     from .cosmetics import sanitize_definicao_tema
     themes = _appearance_catalog('theme')
     frames = _appearance_catalog('frame')
@@ -1053,6 +1054,21 @@ def _appearance_context(theme='bonfire', frame='none', effect='none',
     theme_key = _appearance_choice(theme, themes, 'bonfire')
     frame_key = _appearance_choice(frame, frames, 'none')
     effect_key = _appearance_choice(effect, effects, 'none')
+    # Keep an expired temporary preference saved, but render the safe default.
+    # A separately purchased item still passes cosmetic_allowed.
+    for kind, key, catalog, default in (
+        ('theme', theme_key, themes, 'bonfire'),
+        ('frame', frame_key, frames, 'none'),
+        ('effect', effect_key, effects, 'none'),
+    ):
+        if user is not None and catalog.get(key, {}).get('origem') != 'livre' \
+                and not _cosmetic_allowed(user, kind, key, escopo):
+            if kind == 'theme':
+                theme_key = default
+            elif kind == 'frame':
+                frame_key = default
+            else:
+                effect_key = default
     custom = _sanitize_custom_theme(theme_custom)
     is_custom = theme_key == 'custom'
 
@@ -1359,7 +1375,7 @@ def profile_view(request):
         'has_password': user.has_usable_password(),
         'appearance': _appearance_context(profile.profile_theme, profile.avatar_frame,
                                           profile.profile_effect, profile.theme_custom,
-                                          profile.background_url),
+                                          profile.background_url, user=user),
         'appearance_themes': _appearance_catalog('theme'),
         'appearance_frames': _appearance_catalog('frame'),
         'appearance_frame_options': _cosmetics.catalog_options(
@@ -1427,7 +1443,7 @@ def public_profile_view(request, username):
         'progresso_aventuras': progresso_aventuras,
         'appearance': _appearance_context(profile.profile_theme, profile.avatar_frame,
                                           profile.profile_effect, profile.theme_custom,
-                                          profile.background_url),
+                                          profile.background_url, user=viewed_user),
         # F2 — badges (derivadas + concedidas, fixadas primeiro) e título equipado.
         'badges': _badges.badges_do_usuario(viewed_user),
         'mestre_ouro_direito': MestreOuroDireito.objects.filter(user=viewed_user).first(),
@@ -1516,7 +1532,7 @@ def perfil_preview_view(request):
         bio = (profile.bio or '')
 
     appearance = _appearance_context(theme, frame, effect, theme_custom,
-                                     imagens['background'])
+                                     imagens['background'], user=user)
     # `profile` sintético: dict puro (não é model), impossível de persistir por acidente.
     profile_candidato = {
         'avatar_url': imagens['avatar'],
@@ -1712,7 +1728,8 @@ def jogadores_view(request):
             'user': u,
             'profile': profile,
             'appearance': _appearance_context(profile.profile_theme, profile.avatar_frame,
-                                              profile.profile_effect, profile.theme_custom),
+                                              profile.profile_effect, profile.theme_custom,
+                                              user=u),
             'character_count': int(getattr(u, 'character_count', 0) or 0),
             'public_count': int(getattr(u, 'public_character_count', 0) or 0),
             'characters': public_chars.get(u.pk, []),
@@ -9842,7 +9859,8 @@ def ficha_detail_view(request, pk):
         'is_staff': is_staff,
         'levelup_status': levelup_status,
         'appearance': _appearance_context(p.ficha_theme, p.foto_frame, p.ficha_effect,
-                                          p.ficha_theme_custom, p.ficha_background_url),
+                                          p.ficha_theme_custom, p.ficha_background_url,
+                                          user=p.dono, escopo='ficha'),
         'appearance_themes': _appearance_catalog('theme'),
         'appearance_frames': _appearance_catalog('frame'),
         'appearance_effects': _appearance_catalog('effect'),

@@ -155,6 +155,7 @@ def _user_inventory_values(user, tipo):
         TbUsuarioCosmetico.objects
         .filter(user=user, cosmetico__tipo=tipo, cosmetico__ativo=True,
                 suspenso_em__isnull=True)
+        .exclude(origem__startswith='colaborador')
         .values_list('cosmetico__slug', flat=True)
     )
     from .cosmetic_entitlements import permanent_cosmetic_slugs
@@ -166,6 +167,16 @@ def _tipo_db(tipo):
     """Aceita tanto o tipo interno de aparência (theme/frame/effect) quanto o tipo
     do catálogo (tema/moldura/efeito) e devolve sempre o tipo do catálogo."""
     return APPEARANCE_TIPO.get(tipo, tipo)
+
+
+def _colab_allows(item, tier):
+    """A catalog item must explicitly opt in to a supported minimum tier."""
+    if item.get('origem') != 'colaborador' or not tier:
+        return False
+    from .permissions import COLAB_TIER_RANK
+    minimum = str(item.get('requer_plano') or '').strip().lower()
+    return bool(COLAB_TIER_RANK.get(minimum) and
+                COLAB_TIER_RANK.get(tier, 0) >= COLAB_TIER_RANK[minimum])
 
 
 def cosmetic_allowed(user, tipo, value, escopo='ambos'):
@@ -182,7 +193,12 @@ def cosmetic_allowed(user, tipo, value, escopo='ambos'):
         return False
     if item.get('origem') == 'livre':
         return True
-    return value in _user_inventory_values(user, tipo)
+    if value in _user_inventory_values(user, tipo):
+        return True
+    if item.get('origem') == 'colaborador':
+        from .permissions import colab_tier
+        return _colab_allows(item, colab_tier(user))
+    return False
 
 
 def catalog_options(user, tipo, escopo='ambos', selected=None):
@@ -195,6 +211,10 @@ def catalog_options(user, tipo, escopo='ambos', selected=None):
     tipo = _tipo_db(tipo)
     catalogo = get_catalog(tipo)
     inventario = _user_inventory_values(user, tipo)
+    colab = None
+    if any(item.get('origem') == 'colaborador' for item in catalogo.values()):
+        from .permissions import colab_tier
+        colab = colab_tier(user)
     opcoes = []
     for valor, item in catalogo.items():
         if not _scope_ok(item, escopo):
@@ -202,6 +222,8 @@ def catalog_options(user, tipo, escopo='ambos', selected=None):
         if item.get('origem') == 'livre':
             estado = 'livre'
         elif valor in inventario:
+            estado = 'possui'
+        elif _colab_allows(item, colab):
             estado = 'possui'
         else:
             estado = 'bloqueado'

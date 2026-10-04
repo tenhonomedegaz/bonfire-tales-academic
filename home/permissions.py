@@ -13,6 +13,43 @@ vive nas tabelas do bot Discord sem vínculo robusto com auth.User). Refinar dep
 
 LIMITE_BASE = 1
 
+COLAB_TIER_RANK = {'conde': 1, 'marques': 2, 'duque': 3}
+
+
+def colab_tier(user):
+    """Highest active bot tier for a Bonfire account linked through Discord OAuth.
+
+    Bot tables are read only and may be unavailable; absence of proven entitlement
+    never creates a new grant. The catalog decides which item requires which tier.
+    """
+    if not getattr(user, 'is_authenticated', False):
+        return None
+    profile = getattr(user, 'profile', None)
+    discord_id = str(getattr(profile, 'discord_user_id', '') or '').strip()
+    if not discord_id:
+        return None
+    try:
+        from django.db import transaction
+        from django.utils import timezone
+        from .models import BotMember, BotTransaction
+
+        with transaction.atomic():
+            member_email = BotMember.objects.filter(
+                discordUserId=discord_id).values_list('email', flat=True).first()
+            if not member_email:
+                return None
+            plans = BotTransaction.objects.filter(
+                email__iexact=member_email.strip(), status=1,
+                expirationDate__gt=timezone.now(),
+                subscriptionPlan__startswith='colaborador-',
+            ).values_list('subscriptionPlan', flat=True)
+            tier = max((COLAB_TIER_RANK.get(str(plan).split('-')[1], 0)
+                        for plan in plans), default=0)
+            return next((name for name, rank in COLAB_TIER_RANK.items()
+                         if rank == tier), None)
+    except Exception:
+        return None
+
 
 def is_staff_user(user):
     return bool(getattr(user, 'is_authenticated', False) and (user.is_staff or user.is_superuser))
