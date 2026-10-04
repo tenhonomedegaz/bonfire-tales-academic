@@ -1,6 +1,7 @@
 """Account credit ledger. Economic rules must be approved before callers issue credits."""
 
 from datetime import timedelta
+from uuid import UUID, uuid4
 
 from django.contrib.auth import get_user_model
 from django.db import transaction
@@ -8,7 +9,19 @@ from django.db.models import Count, Exists, OuterRef, Sum
 from django.utils import timezone
 
 from .models import (SocialCreditEntry, SocialCreditPolicy, SocialCreditReaderRecognition,
-                     SocialCreditWallet, TbCronica, TbCronicaCurtida, TbPersonagem)
+                     SocialCreditRedemption, SocialCreditWallet, TbCronica,
+                     TbCronicaCurtida, TbPersonagem, TbPersonagemAventura)
+
+
+def _validate_redemption_policy(policy):
+    positive = ('redemption_cost', 'redemption_gold_pc', 'redemption_period_days',
+                'redemption_period_limit', 'redemption_character_limit')
+    if (not policy.active or not policy.redemption_enabled
+            or any(type(getattr(policy, field)) is not int or getattr(policy, field) <= 0
+                   for field in positive)
+            or type(policy.redemption_counts_for_progression) is not bool
+            or not policy.redemption_gold_source.strip()):
+        raise ValueError('redemption policy is incomplete or inactive')
 
 
 def redemption_quotes(user):
@@ -22,28 +35,109 @@ def redemption_quotes(user):
     policy = SocialCreditPolicy.objects.filter(active=True, redemption_enabled=True).first()
     if policy is None:
         return []
-    positive = ('redemption_cost', 'redemption_period_days',
-                'redemption_period_limit', 'redemption_character_limit')
-    if (any(type(getattr(policy, field)) is not int or getattr(policy, field) <= 0
-            for field in positive)
-            or type(policy.redemption_gold_pc) is not int
-            or policy.redemption_gold_pc <= 0
-            or type(policy.redemption_counts_for_progression) is not bool):
+    try:
+        _validate_redemption_policy(policy)
+    except ValueError:
         return []
     balance = (SocialCreditWallet.objects.filter(user=user)
                .values_list('balance', flat=True).first() or 0)
+    period_start = timezone.now() - timedelta(days=policy.redemption_period_days)
+    period_count = SocialCreditRedemption.objects.filter(
+        user=user, created_at__gte=period_start).count()
     return [{
         'character': character,
         'cost': policy.redemption_cost,
         'gold_pc': policy.redemption_gold_pc,
+        'gold_source': policy.redemption_gold_source,
         'progression': policy.redemption_counts_for_progression,
         'period_days': policy.redemption_period_days,
         'period_limit': policy.redemption_period_limit,
         'character_limit': policy.redemption_character_limit,
         'affordable': balance >= policy.redemption_cost,
+        'within_period_limit': period_count < policy.redemption_period_limit,
+        'within_character_limit': SocialCreditRedemption.objects.filter(
+            character=character).count() < policy.redemption_character_limit,
         'policy_version': policy.version,
+        'request_id': str(uuid4()),
     } for character in TbPersonagem.objects.filter(
         dono=user, arquivado=False).order_by('nome', 'pk')]
+
+
+@transaction.atomic
+def redeem_social_credit(user_id, character_id, request_id):
+    """Debit and deliver once, with limits and ownership checked under account lock."""
+    try:
+        request_id = UUID(str(request_id))
+    except (TypeError, ValueError, AttributeError) as exc:
+        raise ValueError('invalid redemption request id') from exc
+
+    prior = SocialCreditRedemption.objects.filter(request_id=request_id).first()
+    if prior:
+        if prior.user_id != user_id or prior.character_id != character_id:
+            raise ValueError('request id already belongs to another redemption')
+        return prior, False
+
+    policy = SocialCreditPolicy.objects.select_for_update().filter(
+        active=True, redemption_enabled=True).first()
+    if policy is None:
+        raise ValueError('redemption is unavailable')
+    _validate_redemption_policy(policy)
+    user = get_user_model().objects.select_for_update().get(pk=user_id)
+    if not user.is_active:
+        raise ValueError('inactive account')
+    prior = SocialCreditRedemption.objects.filter(request_id=request_id).first()
+    if prior:
+        if prior.user_id != user_id or prior.character_id != character_id:
+            raise ValueError('request id already belongs to another redemption')
+        return prior, False
+    character = TbPersonagem.objects.select_for_update().get(pk=character_id)
+    if character.dono_id != user_id or character.arquivado:
+        raise ValueError('character is not eligible for redemption')
+
+    period_start = timezone.now() - timedelta(days=policy.redemption_period_days)
+    if SocialCreditRedemption.objects.filter(
+            user=user, created_at__gte=period_start).count() >= policy.redemption_period_limit:
+        raise ValueError('redemption period limit reached')
+    if SocialCreditRedemption.objects.filter(
+            character=character).count() >= policy.redemption_character_limit:
+        raise ValueError('character redemption limit reached')
+
+    credit, created = post_social_credit(
+        user_id, operation_ref=f'redemption:{request_id}', kind='redemption',
+        delta=-policy.redemption_cost, policy=policy,
+    )
+    if not created:
+        raise ValueError('credit debit exists without a completed redemption')
+    if policy.redemption_counts_for_progression:
+        character.aventuras = int(character.aventuras or 0) + 1
+    character.carteira_pc = int(character.carteira_pc or 0) + policy.redemption_gold_pc
+    character.save(update_fields=['aventuras', 'carteira_pc', 'atualizado_em'])
+    adventure = TbPersonagemAventura.objects.create(
+        id_personagem=character, origem='recompensa_comunidade',
+        nome_aventura='Resgate de aventura comunitária',
+        qtd_aventuras=int(policy.redemption_counts_for_progression),
+        ouro_pago_pc=policy.redemption_gold_pc,
+        nivel_no_lancamento=int(character.nivel or 1),
+        detalhes_json={
+            'beneficio_aventuras': 1, 'credit_entry_id': credit.pk,
+            'policy_version': policy.version, 'gold_source': policy.redemption_gold_source,
+        },
+    )
+    from .market_services import register_transaction
+    register_transaction(
+        character, 'recompensa-social', 'Resgate de recompensa comunitária',
+        policy.redemption_gold_pc,
+        detalhes={'origem': 'recompensa_comunidade', 'adventure_ledger_id': adventure.pk,
+                  'credit_entry_id': credit.pk},
+    )
+    redemption = SocialCreditRedemption.objects.create(
+        request_id=request_id, user=user, character=character, policy=policy,
+        credit_entry=credit, adventure_entry=adventure,
+        cost=policy.redemption_cost, gold_pc=policy.redemption_gold_pc,
+        gold_source=policy.redemption_gold_source,
+        counts_for_progression=policy.redemption_counts_for_progression,
+    )
+    return redemption, True
 
 
 @transaction.atomic

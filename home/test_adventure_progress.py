@@ -67,6 +67,18 @@ class AdventureProgressProfileTests(_CriadorBase):
         self.assertContains(page, 'Site: 3 aventuras')
         self.assertContains(page, '1 ficha com saldo inferior ao ledger')
 
+    def test_community_reward_is_excluded_from_site_adventure_progress(self):
+        TbPersonagemAventura.objects.create(
+            id_personagem=self.archived, nome_aventura='Recompensa da comunidade',
+            qtd_aventuras=1, origem='recompensa_comunidade')
+        self.archived.aventuras += 1
+        self.archived.save(update_fields=['aventuras'])
+
+        progress = progresso_aventuras_por_origem(self.owner)
+
+        self.assertEqual(progress['site_total'], 3)
+        self.assertEqual(progress['saldo_sem_ledger'], 2)
+
     def test_individual_bot_credits_deduplicate_exact_site_link(self):
         TbPersonagemAventura.objects.filter(id_personagem=self.archived).update(revertido=True)
         TbPersonagemAventura.objects.create(

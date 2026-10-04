@@ -12,10 +12,11 @@ from django.utils import timezone
 from home.market_services import (
     create_loan_proposal, register_transaction, respond_loan,
     start_training, sync_overdue_loans, sync_training,
+    tables_played,
 )
 from home.models import (
     TbEmprestimoPersonagem, TbIdioma, TbItemMundano, TbPersonagem,
-    TbPersonagemProficiencia, TbTransacao,
+    TbPersonagemAventura, TbPersonagemProficiencia, TbTransacao,
 )
 from home.views import _opcoes_resposta
 
@@ -71,6 +72,28 @@ class MercadoServicosTests(TestCase):
         self.assertTrue(TbTransacao.objects.filter(
             id_personagem=self.borrower, tipo='treinamento',
             valor_pc=-10000).exists())
+
+    def test_community_reward_does_not_count_as_played_table(self):
+        TbPersonagemAventura.objects.create(
+            id_personagem=self.borrower, nome_aventura='Mesa', qtd_aventuras=2)
+        TbPersonagemAventura.objects.create(
+            id_personagem=self.borrower, nome_aventura='Recompensa da comunidade',
+            qtd_aventuras=20, origem='recompensa_comunidade')
+        self.borrower.aventuras = 22
+        self.borrower.save(update_fields=['aventuras'])
+
+        self.assertEqual(tables_played(self.borrower), 1)
+
+    def test_legacy_adventures_survive_later_community_reward(self):
+        self.borrower.aventuras = 3
+        self.borrower.save(update_fields=['aventuras'])
+        TbPersonagemAventura.objects.create(
+            id_personagem=self.borrower, nome_aventura='Recompensa da comunidade',
+            qtd_aventuras=1, origem='recompensa_comunidade')
+        self.borrower.aventuras = 4
+        self.borrower.save(update_fields=['aventuras'])
+
+        self.assertEqual(tables_played(self.borrower), 3)
 
     def test_loan_acceptance_overdue_fine_and_income_garnishment(self):
         loan, status = create_loan_proposal(

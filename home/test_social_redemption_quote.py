@@ -22,6 +22,7 @@ class RedemptionQuoteTests(TestCase):
     def configure_offer(self):
         self.policy.redemption_cost = 5
         self.policy.redemption_gold_pc = 120
+        self.policy.redemption_gold_source = 'Tabela aprovada em teste'
         self.policy.redemption_counts_for_progression = False
         self.policy.redemption_period_days = 30
         self.policy.redemption_period_limit = 1

@@ -1740,7 +1740,8 @@ class TbTransacao(models.Model):
                     ('mercado-compra', 'Compra (Comunidade)'), ('mercado-venda', 'Venda (Comunidade)'),
                     ('aventura', 'Ouro de aventura'), ('inicial', 'Saldo inicial'),
                     ('treinamento', 'Treinamento'), ('emprestimo', 'Emprestimo'),
-                    ('repasse-divida', 'Repasse de divida'), ('ajuste', 'Ajuste')]
+                    ('repasse-divida', 'Repasse de divida'), ('ajuste', 'Ajuste'),
+                    ('recompensa-social', 'Recompensa comunitária')]
     id_transacao = models.AutoField(db_column='Id_Transacao', primary_key=True)
     id_personagem = models.ForeignKey('TbPersonagem', models.CASCADE, db_column='Id_Personagem', related_name='transacoes')
     tipo = models.CharField(db_column='Tipo', max_length=20, choices=TIPO_CHOICES, default='ajuste')
@@ -1940,6 +1941,9 @@ class TbPersonagemAventura(models.Model):
                                       related_name='aventuras_ledger')
     nome_aventura = models.CharField(db_column='NomeAventura', max_length=200,
                                      help_text='Nome da mesa/aventura lançada (obrigatório).')
+    origem = models.CharField(max_length=32, default='mesa', choices=[
+        ('mesa', 'Mesa jogada'), ('recompensa_comunidade', 'Recompensa comunitária'),
+    ], db_index=True)
     qtd_aventuras = models.IntegerField(db_column='QtdAventuras', default=0,
                                         help_text='Quantas aventuras ESTE lançamento adicionou.')
     ouro_pago_pc = models.IntegerField(db_column='OuroPagoPC', default=0,
@@ -1999,6 +2003,8 @@ class TbPersonagemAventura(models.Model):
     def mestre_display(self):
         """Nome do mestre para exibição. Linha ANTERIOR à onda E não tem mestre gravado —
         aparece como `(legado)`, nunca como vazio (o dado não existe, não é "sem mestre")."""
+        if self.origem == 'recompensa_comunidade':
+            return 'Recompensa comunitária'
         if self.id_mestre_id:
             u = self.id_mestre
             return (u.get_full_name() or u.username) if u else self.LEGADO_LABEL
@@ -2007,7 +2013,7 @@ class TbPersonagemAventura(models.Model):
     @property
     def eh_legado(self):
         """True quando a linha nasceu antes da onda E (sem mestre gravado)."""
-        return not self.id_mestre_id
+        return self.origem == 'mesa' and not self.id_mestre_id
 
     def _bloco(self, chave, vazio):
         val = (self.detalhes_json or {}).get(chave)
@@ -2865,6 +2871,7 @@ class SocialCreditPolicy(models.Model):
     redemption_enabled = models.BooleanField(default=False)
     redemption_cost = models.PositiveIntegerField(null=True, blank=True)
     redemption_gold_pc = models.PositiveIntegerField(null=True, blank=True)
+    redemption_gold_source = models.CharField(max_length=120, blank=True, default='')
     redemption_counts_for_progression = models.BooleanField(null=True, blank=True)
     redemption_period_days = models.PositiveIntegerField(null=True, blank=True)
     redemption_period_limit = models.PositiveIntegerField(null=True, blank=True)
@@ -2919,3 +2926,23 @@ class SocialCreditReaderRecognition(models.Model):
         constraints = [models.UniqueConstraint(
             fields=['cronica', 'reader'], name='unique_social_credit_reader_recognition',
         )]
+
+
+class SocialCreditRedemption(models.Model):
+    """One immutable purchase tied to both ledgers and its approved policy snapshot."""
+
+    request_id = models.UUIDField(unique=True)
+    user = models.ForeignKey('auth.User', on_delete=models.PROTECT, related_name='social_redemptions')
+    character = models.ForeignKey(TbPersonagem, on_delete=models.PROTECT,
+                                  related_name='social_redemptions')
+    policy = models.ForeignKey(SocialCreditPolicy, on_delete=models.PROTECT)
+    credit_entry = models.OneToOneField(SocialCreditEntry, on_delete=models.PROTECT)
+    adventure_entry = models.OneToOneField(TbPersonagemAventura, on_delete=models.PROTECT)
+    cost = models.PositiveIntegerField()
+    gold_pc = models.PositiveIntegerField()
+    gold_source = models.CharField(max_length=120)
+    counts_for_progression = models.BooleanField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at', '-pk']

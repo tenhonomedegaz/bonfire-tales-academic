@@ -58,6 +58,7 @@ class DeploySyncContractTests(TestCase):
 
     def test_adventure_ledger_is_memory_and_world_is_production_owned(self):
         self.assertIn("TbPersonagemAventura", deploy_sync.MEMORY_MODELS)
+        self.assertIn("SocialCreditRedemption", deploy_sync.MEMORY_MODELS)
         for name in (
             "TbMapLayer", "TbRegiao", "TbTerritorio", "TbOrganizacao",
             "TbMapMarker", "TbMapDesenho",

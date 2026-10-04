@@ -79,6 +79,18 @@ class AdventureBotLinkTests(_CriadorBase):
             self.assertEqual(self.launch().status_code, 302)
             self.assertEqual(TbPersonagemAventura.objects.count(), 2)
 
+    def test_community_reward_does_not_block_a_bot_mission_link(self):
+        TbPersonagemAventura.objects.create(
+            id_personagem=self.character, nome_aventura='Recompensa da comunidade',
+            qtd_aventuras=1, origem='recompensa_comunidade',
+            detalhes_json={'bot_quest_id': 'quest-123'})
+
+        with self.bot():
+            response = self.launch()
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(TbPersonagemAventura.objects.count(), 2)
+
     def test_unconfirmed_mismatch_or_missing_bot_never_credits(self):
         with self.bot(player='different'):
             self.launch()

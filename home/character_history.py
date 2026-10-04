@@ -4,7 +4,7 @@ O snapshot cobre somente a estrutura mecanica da ficha. Economia, aventuras, tex
 narrativo e aparencia pertencem a outros ledgers e nunca sao restaurados por aqui.
 """
 
-from django.db.models import Max
+from django.db.models import Max, Sum
 
 
 PERSON_FIELDS = (
@@ -115,7 +115,8 @@ def restore_build(personagem, snapshot):
 
 
 def adventure_marker(personagem):
-    return personagem.aventuras_ledger.filter(revertido=False).aggregate(
+    return personagem.aventuras_ledger.filter(
+        revertido=False).exclude(origem='recompensa_comunidade').aggregate(
         marker=Max('id_lancamento'))['marker']
 
 
@@ -125,9 +126,18 @@ def had_adventure_after(personagem, *, marker_id=None, adventures=None, moment=N
     A contagem protege bancos legados sem ledger; o marcador protege a ordem normal de
     lancamentos. Uma mesa revertida deixa de bloquear a revisao.
     """
-    if adventures is not None and int(personagem.aventuras or 0) > int(adventures or 0):
-        return True
-    qs = personagem.aventuras_ledger.filter(revertido=False)
+    if adventures is not None:
+        community = personagem.aventuras_ledger.filter(
+            revertido=False, origem='recompensa_comunidade')
+        if moment is not None:
+            community = community.filter(criado_em__gt=moment)
+        elif marker_id is not None:
+            community = community.filter(id_lancamento__gt=marker_id)
+        community_after = community.aggregate(total=Sum('qtd_aventuras'))['total'] or 0
+        if int(personagem.aventuras or 0) - int(adventures or 0) > community_after:
+            return True
+    qs = personagem.aventuras_ledger.filter(
+        revertido=False).exclude(origem='recompensa_comunidade')
     if marker_id is not None:
         return qs.filter(id_lancamento__gt=marker_id).exists()
     if moment is not None:
@@ -182,7 +192,11 @@ def level_one_rebuild_status(personagem, *, staff=False):
                 adventures=last.aventuras_no_momento, moment=last.criado_em):
             return False, 'A ficha ja foi usada em uma mesa depois da ultima recriacao.'
         return True, ''
-    if int(personagem.aventuras or 0) > 0 or personagem.aventuras_ledger.filter(
-            revertido=False).exists():
+    community_progress = personagem.aventuras_ledger.filter(
+        revertido=False, origem='recompensa_comunidade').aggregate(
+            total=Sum('qtd_aventuras'))['total'] or 0
+    if ((int(personagem.aventuras or 0) - community_progress > 0) or
+            personagem.aventuras_ledger.filter(
+                revertido=False).exclude(origem='recompensa_comunidade').exists()):
         return False, 'O nivel 1 ja foi usado em mesa.'
     return True, ''

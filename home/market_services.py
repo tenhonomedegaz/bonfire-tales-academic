@@ -3,7 +3,7 @@
 from datetime import timedelta
 
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Q, Sum
 from django.utils import timezone
 
 
@@ -39,10 +39,14 @@ def loan_limit_pc(personagem):
 
 def tables_played(personagem):
     """Conta mesas auditadas; personagens legados usam aventuras como fallback."""
-    ledger = personagem.aventuras_ledger.filter(revertido=False)
-    if personagem.aventuras_ledger.exists():
+    ledger = personagem.aventuras_ledger.filter(
+        revertido=False).exclude(origem='recompensa_comunidade')
+    if personagem.aventuras_ledger.exclude(origem='recompensa_comunidade').exists():
         return ledger.count()
-    return max(0, int(personagem.aventuras or 0))
+    community = personagem.aventuras_ledger.filter(
+        revertido=False, origem='recompensa_comunidade').aggregate(
+            total=Sum('qtd_aventuras'))['total'] or 0
+    return max(0, int(personagem.aventuras or 0) - int(community))
 
 
 def sync_training(personagem, *, now=None):

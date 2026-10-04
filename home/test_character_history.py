@@ -2,7 +2,7 @@ import json
 
 from django.urls import reverse
 
-from home.character_history import capture_build, register_revision
+from home.character_history import capture_build, register_revision, revision_status
 from home.models import (
     TbItemMundano,
     TbPersonagem,
@@ -59,6 +59,30 @@ class CharacterHistoryTests(_CriadorBase):
         self.assertEqual(self.personagem.nivel, 2)
         self.assertFalse(revision.revertida)
 
+    def test_recompensa_da_comunidade_nao_bloqueia_rollback(self):
+        revision = self._levelup_revision()
+        TbPersonagemAventura.objects.create(
+            id_personagem=self.personagem, nome_aventura='Recompensa da comunidade',
+            qtd_aventuras=1, origem='recompensa_comunidade')
+        self.personagem.aventuras = int(self.personagem.aventuras or 0) + 1
+        self.personagem.save(update_fields=['aventuras', 'atualizado_em'])
+
+        allowed, message = revision_status(self.personagem, revision)
+
+        self.assertTrue(allowed, message)
+
+    def test_legacy_adventure_after_community_reward_still_blocks_rollback(self):
+        revision = self._levelup_revision()
+        TbPersonagemAventura.objects.create(
+            id_personagem=self.personagem, nome_aventura='Recompensa da comunidade',
+            qtd_aventuras=1, origem='recompensa_comunidade')
+        self.personagem.aventuras = int(self.personagem.aventuras or 0) + 2
+        self.personagem.save(update_fields=['aventuras', 'atualizado_em'])
+
+        allowed, _ = revision_status(self.personagem, revision)
+
+        self.assertFalse(allowed)
+
     def test_staff_recria_nivel_um_preservando_progressao_e_economia(self):
         item = TbItemMundano.objects.first()
         bought = TbPersonagemItem.objects.create(
@@ -110,4 +134,3 @@ class CharacterHistoryTests(_CriadorBase):
         self.assertEqual(self.personagem.carteira_pc, 1000)
         self.assertTrue(purchase.revertida)
         self.assertFalse(self.personagem.inventario.filter(pk=inventory.pk).exists())
-

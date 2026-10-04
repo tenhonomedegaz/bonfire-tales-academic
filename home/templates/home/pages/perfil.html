@@ -62,17 +62,42 @@
         <p>Saldo: <strong>{{ social_credit_balance }}</strong></p>
         {% if not social_redemption_quotes %}<p>Prévia de resgate indisponível: a política ainda não foi ativada ou não há personagem elegível.</p>{% endif %}
         {% if social_redemption_quotes %}
-        <h3>Prévia do resgate de aventura e recompensa</h3>
-        <p>Consulta sem débito ou entrega. A solicitação de resgate ainda não está disponível.</p>
+        <h3>Resgate de aventura e recompensa</h3>
+        <p>Confira custo e benefício antes de confirmar. O resgate debita créditos e entrega a recompensa ao personagem escolhido.</p>
+        <p>O ouro exibido é bruto; dívidas vencidas podem reter parte dele, conforme as regras da carteira.</p>
         <ul>
             {% for quote in social_redemption_quotes %}
             <li>{{ quote.character.nome }}: 1 aventura e {{ quote.gold_pc }} PC por {{ quote.cost }} créditos.
                 {% if quote.progression %}Conta para progressão.{% else %}Não conta para progressão.{% endif %}
                 Limite: {{ quote.period_limit }} em {{ quote.period_days }} dias e {{ quote.character_limit }} por personagem.
                 {% if not quote.affordable %}Saldo insuficiente.{% endif %}
-                Política {{ quote.policy_version }}.</li>
+                {% if not quote.within_period_limit %}Limite do período atingido.{% endif %}
+                {% if not quote.within_character_limit %}Limite do personagem atingido.{% endif %}
+                Política {{ quote.policy_version }}; tabela de ouro: {{ quote.gold_source }}.
+                {% if quote.affordable and quote.within_period_limit and quote.within_character_limit %}
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="redeem_social_credit">
+                    <input type="hidden" name="character_id" value="{{ quote.character.pk }}">
+                    <input type="hidden" name="request_id" value="{{ quote.request_id }}">
+                    <button type="submit">Confirmar resgate para {{ quote.character.nome }}</button>
+                </form>
+                {% endif %}
+            </li>
             {% endfor %}
         </ul>
+        {% endif %}
+        {% if social_redemptions %}
+        <details class="profile-social-list">
+            <summary>Resgates anteriores</summary>
+            <ul>
+                {% for redemption in social_redemptions %}
+                <li>{{ redemption.created_at|date:'d/m/Y H:i' }} · {{ redemption.character.nome }} ·
+                    {{ redemption.cost }} créditos · {{ redemption.gold_pc }} PC ·
+                    política {{ redemption.policy.version }}</li>
+                {% endfor %}
+            </ul>
+        </details>
         {% endif %}
         <details class="profile-social-list">
             <summary>Histórico recente</summary>

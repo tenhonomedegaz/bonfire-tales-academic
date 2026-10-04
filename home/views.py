@@ -1162,8 +1162,8 @@ def _save_character_upload(pers, uploaded, kind, old_value='', max_mb=10):
 
 @login_required(login_url='/login/')
 def profile_view(request):
-    from .models import SocialCreditWallet, UserProfile
-    from .social_credits import redemption_quotes
+    from .models import SocialCreditRedemption, SocialCreditWallet, TbPersonagem, UserProfile
+    from .social_credits import redemption_quotes, redeem_social_credit
     from django.contrib.auth import update_session_auth_hash
 
     user = request.user
@@ -1177,7 +1177,20 @@ def profile_view(request):
     if request.method == 'POST':
         action = request.POST.get('action', '')
 
-        if action == 'update_profile':
+        if action == 'redeem_social_credit':
+            try:
+                character_id = int(request.POST.get('character_id', ''))
+                redemption, created = redeem_social_credit(
+                    user.pk, character_id, request.POST.get('request_id'))
+                messages.append(
+                    'Resgate concluído para %s.' % redemption.character.nome
+                    if created else 'Este resgate já foi concluído.')
+            except (ValueError, TypeError, TbPersonagem.DoesNotExist) as exc:
+                errors.append('Resgate indisponível: %s' % exc)
+            credit_wallet = SocialCreditWallet.objects.filter(user=user).first()
+            credit_entries = list(credit_wallet.entries.all()[:20]) if credit_wallet else []
+
+        elif action == 'update_profile':
             new_username = request.POST.get('username', '').strip()
             new_email = request.POST.get('email', '').strip()
             new_avatar = request.POST.get('avatar_url', '').strip()
@@ -1333,6 +1346,8 @@ def profile_view(request):
         'social_credit_balance': credit_wallet.balance if credit_wallet else 0,
         'social_credit_entries': credit_entries,
         'social_redemption_quotes': redemption_quotes(user),
+        'social_redemptions': list(SocialCreditRedemption.objects.filter(
+            user=user).select_related('character', 'policy')[:20]),
         'success_messages': messages,
         'error_messages': errors,
         'discord_msg': request.GET.get('discord'),
@@ -7076,7 +7091,7 @@ def _ledger_staff_contexto(p):
     inventário para os formulários por linha) + o cadastro de mestres do select. Uma função
     só, usada pela página inteira e pelo fragmento do fetch."""
     from .character_engine import _item_consumivel_meta
-    ledger = list(p.aventuras_ledger.select_related(
+    ledger = list(p.aventuras_ledger.filter(origem='mesa').select_related(
         'criado_por', 'revertido_por', 'id_mestre')[:30])
     consumiveis = [
         {'id': it.id, 'nome': it.nome, 'qtd': int(it.qtd or 0)}
@@ -7305,7 +7320,7 @@ def personagem_reverter_aventura(request, pk, lancamento_id):
     with transaction.atomic():
         lanc = get_object_or_404(
             TbPersonagemAventura.objects.select_for_update(),
-            pk=lancamento_id, id_personagem=p,
+            pk=lancamento_id, id_personagem=p, origem='mesa',
         )
         p = TbPersonagem.objects.select_for_update().get(pk=p.pk)
         if lanc.revertido:
@@ -7355,7 +7370,7 @@ def personagem_editar_aventura(request, pk, lancamento_id):
     with transaction.atomic():
         lanc = get_object_or_404(
             TbPersonagemAventura.objects.select_for_update(),
-            pk=lancamento_id, id_personagem=p)
+            pk=lancamento_id, id_personagem=p, origem='mesa')
         nome = (request.POST.get('nome_aventura') or '').strip()
         mestre = _mestre_valido(request.POST.get('mestre'), extra_ids=[lanc.id_mestre_id])
         data_missao, data_ok = _data_missao_valida(request.POST.get('data_missao'))
@@ -7460,7 +7475,7 @@ def personagem_aventura_consumo(request, pk, lancamento_id):
     with transaction.atomic():
         lanc = get_object_or_404(
             TbPersonagemAventura.objects.select_for_update(),
-            pk=lancamento_id, id_personagem=p)
+            pk=lancamento_id, id_personagem=p, origem='mesa')
         registro, erro = handler(request, p, lanc)
         if not erro:
             registro['quem'] = request.user.username

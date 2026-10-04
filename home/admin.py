@@ -2503,14 +2503,29 @@ class TbPersonagemAdmin(BonfireAdminMixin, admin.ModelAdmin):
 
 @admin.register(TbPersonagemAventura)
 class TbPersonagemAventuraAdmin(BonfireAdminMixin, admin.ModelAdmin):
-    list_display = ("id_lancamento", "id_personagem", "nome_aventura", "data_missao",
+    list_display = ("id_lancamento", "id_personagem", "origem", "nome_aventura", "data_missao",
                     "mestre_display", "qtd_aventuras", "ouro_pago_po", "nivel_no_lancamento",
                     "criado_por", "criado_em", "revertido")
-    list_filter = ("revertido", "data_missao")
+    list_filter = ("origem", "revertido", "data_missao")
     search_fields = ("nome_aventura", "id_personagem__nome", "criado_por__username",
                      "id_mestre__username")
     raw_id_fields = ("id_personagem", "id_mestre", "criado_por", "revertido_por")
-    readonly_fields = ("criado_em", "revertido_em", "ouro_pago_po", "mestre_display")
+    readonly_fields = ("origem", "criado_em", "revertido_em", "ouro_pago_po", "mestre_display")
+
+    def has_change_permission(self, request, obj=None):
+        if obj is not None and obj.origem == 'recompensa_comunidade':
+            return False
+        return super().has_change_permission(request, obj)
+
+    def has_delete_permission(self, request, obj=None):
+        if obj is not None and obj.origem == 'recompensa_comunidade':
+            return False
+        return super().has_delete_permission(request, obj)
+
+    def get_actions(self, request):
+        actions = super().get_actions(request)
+        actions.pop('delete_selected', None)
+        return actions
 
     @admin.display(description="Mestre")
     def mestre_display(self, obj):
@@ -4414,7 +4429,8 @@ class DbAccessAuditAdmin(admin.ModelAdmin):
 
 
 from .models import (SocialCreditEntry, SocialCreditPolicy,
-                     SocialCreditReaderRecognition, SocialCreditWallet)
+                     SocialCreditReaderRecognition, SocialCreditRedemption,
+                     SocialCreditWallet)
 
 
 class _ReadOnlySocialCreditAdmin(admin.ModelAdmin):
@@ -4455,6 +4471,7 @@ class SocialCreditPolicyAdmin(_ReadOnlySocialCreditAdmin):
                        'reader_consolidation_hours', 'reader_story_credit_cap',
                        'reader_author_period_credit_cap', 'reader_period_days',
                        'redemption_enabled', 'redemption_cost', 'redemption_gold_pc',
+                       'redemption_gold_source',
                        'redemption_counts_for_progression', 'redemption_period_days',
                        'redemption_period_limit', 'redemption_character_limit',
                        'active', 'created_at')
@@ -4464,3 +4481,12 @@ class SocialCreditPolicyAdmin(_ReadOnlySocialCreditAdmin):
 class SocialCreditReaderRecognitionAdmin(_ReadOnlySocialCreditAdmin):
     list_display = ('first_seen_at', 'cronica', 'reader', 'policy')
     readonly_fields = ('cronica', 'reader', 'first_seen_at', 'policy')
+
+
+@admin.register(SocialCreditRedemption)
+class SocialCreditRedemptionAdmin(_ReadOnlySocialCreditAdmin):
+    list_display = ('created_at', 'user', 'character', 'cost', 'gold_pc', 'policy')
+    search_fields = ('user__username', 'character__nome', 'request_id')
+    readonly_fields = ('request_id', 'user', 'character', 'policy', 'credit_entry',
+                       'adventure_entry', 'cost', 'gold_pc', 'gold_source',
+                       'counts_for_progression', 'created_at')

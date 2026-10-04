@@ -246,6 +246,9 @@ def registrar_fato_aventura(lancamento, *, estorno=False):
     """Persiste o fato do ledger do site, sem somá-lo a fatos ainda não vinculados do bot."""
     from .models import TbEventoConquista
 
+    if lancamento.origem == 'recompensa_comunidade':
+        raise ValueError('Recompensa comunitária não é mesa jogada.')
+
     if estorno:
         if not lancamento.revertido or not lancamento.revertido_em:
             raise ValueError('O lançamento ainda não foi estornado.')
@@ -345,7 +348,8 @@ def validar_vinculo_aventura_bot(personagem, bot_quest_id, quantidade):
         raise ValueError('Quantidade diferente das aventuras concedidas pela missão do bot.')
     if TbPersonagemAventura.objects.filter(
             id_personagem__dono_id=personagem.dono_id, revertido=False,
-            detalhes_json__bot_quest_id=quest_id).exists():
+            detalhes_json__bot_quest_id=quest_id).exclude(
+                origem='recompensa_comunidade').exists():
         raise ValueError('Esta missão do bot já foi vinculada a um lançamento ativo da conta.')
     return {
         'bot_quest_id': quest_id,
@@ -593,6 +597,7 @@ def reprocessar_primeira_compra(user):
 
 def progresso_aventuras_por_origem(user, discord_user_id=None):
     """Mostra fontes distintas e soma só créditos de missão sem sobreposição possível."""
+    from django.db.models import Sum
     from django.db import DatabaseError, transaction
     from .models import BotCharacterLog, BotQuest, TbPersonagem, TbPersonagemAventura
 
@@ -600,7 +605,14 @@ def progresso_aventuras_por_origem(user, discord_user_id=None):
         'pk', 'aventuras'))
     lancamentos = list(TbPersonagemAventura.objects.filter(
         id_personagem__dono=user, qtd_aventuras__gt=0
-    ).values('id_personagem_id', 'qtd_aventuras', 'detalhes_json', 'revertido'))
+    ).exclude(origem='recompensa_comunidade').values(
+        'id_personagem_id', 'qtd_aventuras', 'detalhes_json', 'revertido'))
+    recompensas_comunidade = dict(
+        TbPersonagemAventura.objects.filter(
+            id_personagem__dono=user, revertido=False,
+            origem='recompensa_comunidade', qtd_aventuras__gt=0,
+        ).values('id_personagem_id').annotate(total=Sum('qtd_aventuras')).values_list(
+            'id_personagem_id', 'total'))
     por_personagem = {}
     vinculadas_ao_bot = 0
     vinculadas_por_id = {}
@@ -624,9 +636,13 @@ def progresso_aventuras_por_origem(user, discord_user_id=None):
         else:
             site_sem_vinculo += quantidade
     site_total = sum(por_personagem.values())
-    saldo_sem_ledger = sum(max(0, int(saldo or 0) - por_personagem.get(pk, 0))
+    saldo_sem_ledger = sum(max(
+        0, int(saldo or 0) - int(recompensas_comunidade.get(pk, 0) or 0)
+        - por_personagem.get(pk, 0))
                            for pk, saldo in personagens)
-    divergencias = sum(int(saldo or 0) < por_personagem.get(pk, 0)
+    divergencias = sum(
+        int(saldo or 0) - int(recompensas_comunidade.get(pk, 0) or 0)
+        < por_personagem.get(pk, 0)
                       for pk, saldo in personagens)
     bot_logs, bot_disponivel = [], True
     bot_creditos = {}
