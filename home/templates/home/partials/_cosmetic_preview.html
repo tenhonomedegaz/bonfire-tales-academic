@@ -1,0 +1,7 @@
+{% if layers %}
+<div class="cosmetic-layers cosmetic-layers--{{ slot }}" aria-hidden="true" data-cosmetic-layers>
+  {% for layer in layers %}
+  <img class="cosmetic-layer cosmetic-layer--{{ layer.anchor }} cosmetic-layer--{{ layer.motion }}" src="{{ layer.url }}" data-fallback="{{ layer.fallback }}" width="{{ layer.width }}" height="{{ layer.height }}" alt="" decoding="async" loading="lazy">
+  {% endfor %}
+</div>
+{% endif %}
