@@ -2448,6 +2448,7 @@ class TbCosmetico(models.Model):
         ('colaborador', 'Colaborador'),
         ('staff', 'Staff'),
         ('evento_manual', 'Evento (manual)'),
+        ('mestre_ouro', 'Mestre Ouro vitalício'),
     ]
     ESCOPO_CHOICES = [
         ('perfil', 'Só perfil'),

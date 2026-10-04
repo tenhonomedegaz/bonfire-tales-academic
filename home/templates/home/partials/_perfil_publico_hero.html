@@ -62,6 +62,7 @@ no servidor, então o cliente sobrepõe .public-profile-banner-media,
         </div>
         {% if titulo %}<p class="{{ titulo.classe }}" title="{{ titulo.descricao }}">{{ titulo.nome }}</p>{% endif %}
         <p class="public-profile-handle">@{{ viewed_user.username }}</p>
+        {% if mestre_ouro_direito %}<p class="public-profile-gold-detail">Mestre Ouro vitalício desde {{ mestre_ouro_direito.adquirido_em|date:'d/m/Y' }}</p>{% endif %}
         {% if badges %}
         <ul class="profile-badges" aria-label="Insígnias de {{ viewed_user.username }}">
           {% for b in badges %}

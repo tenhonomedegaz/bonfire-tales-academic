@@ -12,10 +12,11 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from home.badges import badges_derivadas
+from home.badges import badges_derivadas, titulos_disponiveis
+from home.cosmetics import cosmetic_allowed
 from home.mestre_ouro import buy_mestre_ouro_lifetime, reconcile_mestre_ouro
 from home.models import (MestreOuroDireito, MestreOuroRevisao, TbRecompensaMestre,
-                         TbTransacaoMestre, UserProfile)
+                         TbTransacaoMestre, TbUsuarioCosmetico, UserProfile)
 from home.permissions import is_mestre_ouro, limite_detalhe
 
 
@@ -64,6 +65,8 @@ class MestreOuroLifetimeTests(TestCase):
         self.assertEqual(reconcile_mestre_ouro(self.user.pk)[1], 'already_granted')
         self.assertEqual(MestreOuroDireito.objects.count(), 1)
         self.assertEqual(TbTransacaoMestre.objects.count(), 1)
+        self.assertEqual(TbUsuarioCosmetico.objects.filter(
+            user=self.user, origem='mestre_ouro').count(), 2)
 
     def test_ambiguous_history_is_recorded_without_a_grant(self):
         self.purchase()
@@ -110,6 +113,45 @@ class MestreOuroLifetimeTests(TestCase):
         self.assertEqual(same.pk, grant.pk)
         self.assertEqual(TbTransacaoMestre.objects.count(), 1)
         self.assertEqual(UserProfile.objects.get(user=self.user).moedas_mestragem, 200)
+        self.assertEqual(TbUsuarioCosmetico.objects.filter(
+            user=self.user, origem='mestre_ouro').count(), 2)
+
+    def test_lifetime_title_frame_and_profile_detail_follow_proven_right(self):
+        self.assertFalse(cosmetic_allowed(self.user, 'moldura', 'mestre-ouro', 'perfil'))
+        self.client.force_login(self.user)
+        before = self.client.get(reverse('public_profile', args=[self.user.username]))
+        self.assertNotContains(before, 'Mestre Ouro vitalício desde')
+        self.assertNotIn('titulo-mestre-ouro',
+                         [item['slug'] for item in titulos_disponiveis(self.user)])
+
+        self.profile.avatar_frame = 'gold-trim'
+        self.profile.titulo_equipado = 'titulo-veterano-mesas'
+        self.profile.moedas_mestragem = 900
+        self.profile.save(update_fields=['avatar_frame', 'titulo_equipado',
+                                         'moedas_mestragem'])
+        self.offer.preco_vitalicio_aprovado_mm = 700
+        self.offer.save(update_fields=['preco_vitalicio_aprovado_mm'])
+        buy_mestre_ouro_lifetime(self.user.pk, self.offer.pk)
+        self.profile.refresh_from_db()
+        self.assertEqual(self.profile.avatar_frame, 'gold-trim')
+        self.assertEqual(self.profile.titulo_equipado, 'titulo-veterano-mesas')
+        self.assertTrue(cosmetic_allowed(self.user, 'moldura', 'mestre-ouro', 'perfil'))
+        self.assertIn('titulo-mestre-ouro',
+                      [item['slug'] for item in titulos_disponiveis(self.user)])
+        editor = self.client.get(reverse('profile'))
+        self.assertContains(editor, 'value="mestre-ouro"')
+        self.assertContains(editor, 'value="titulo-mestre-ouro"')
+        preview = self.client.post(reverse('perfil_preview'), {
+            'avatar_frame': 'mestre-ouro',
+            'titulo_equipado': 'titulo-mestre-ouro',
+        })
+        self.assertEqual(preview.status_code, 200)
+        self.assertIn('frame-mestre-ouro', preview.json()['html'])
+        self.assertIn('Mestre Ouro', preview.json()['html'])
+        self.profile.refresh_from_db()
+        self.assertEqual(self.profile.avatar_frame, 'gold-trim')
+        public = self.client.get(reverse('public_profile', args=[self.user.username]))
+        self.assertContains(public, 'Mestre Ouro vitalício desde')
 
     def test_price_change_invalidates_prior_approval(self):
         self.profile.moedas_mestragem = 900

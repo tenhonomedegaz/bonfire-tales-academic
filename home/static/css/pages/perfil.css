@@ -268,6 +268,17 @@
     animation: frame-spin 3.5s linear infinite;
 }
 
+/* Moldura exclusiva do direito vitalício, distinta do Friso Dourado livre. */
+.frame-mestre-ouro {
+    border-color: #e7bd5a;
+    box-shadow: 0 0 0 3px rgba(231, 189, 90, .25), 0 0 22px rgba(231, 189, 90, .30);
+}
+.public-profile-gold-detail {
+    color: #e7bd5a;
+    font-size: .86rem;
+    letter-spacing: .02em;
+}
+
 /* Coroa de Gelo (nova) — cristais frios girando devagar */
 .frame-frost {
     border-color: #7dd3fc;

@@ -209,8 +209,8 @@
             <label class="profile-field">
                 <span class="profile-label">Borda do Avatar</span>
                 <select class="profile-input" name="avatar_frame" id="id_avatar_frame">
-                    {% for key, item in appearance_frames.items %}
-                    <option value="{{ key }}" {% if key == appearance.frame_key %}selected{% endif %}>{{ item.label }}</option>
+                    {% for item in appearance_frame_options %}
+                    <option value="{{ item.key }}" {% if item.selected %}selected{% endif %} {% if item.estado == 'bloqueado' %}disabled{% endif %}>{{ item.label }}{% if item.estado == 'bloqueado' %} (bloqueado){% endif %}</option>
                     {% endfor %}
                 </select>
             </label>
@@ -403,7 +403,7 @@
             </div>
             <p class="perfil-preview-hint">Este é o seu perfil público de verdade — tema, partículas, moldura, título e insígnias. Reage a cada ajuste; nada é gravado até você clicar em <strong>Salvar Perfil</strong>.</p>
             <div class="perfil-preview-stage" id="perfil-preview-stage">
-                {% include 'home/partials/_perfil_publico_hero.html' with viewed_user=user profile=profile appearance=appearance badges=preview_badges titulo=preview_titulo conquistas=conquistas personagens=preview_personagens preview_mode=True %}
+                {% include 'home/partials/_perfil_publico_hero.html' with viewed_user=user profile=profile appearance=appearance badges=preview_badges titulo=preview_titulo conquistas=conquistas personagens=preview_personagens mestre_ouro_direito=mestre_ouro_direito preview_mode=True %}
             </div>
         </aside>
 

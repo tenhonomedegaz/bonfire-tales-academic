@@ -15,6 +15,7 @@ from .moeda import (preco_em_pc as _preco_em_pc, moeda_display as _moeda_display
                     preco_display as _preco_display, preco_po_display as _preco_po_display,
                     po_para_pc as _po_para_pc)
 from . import badges as _badges
+from . import cosmetics as _cosmetics
 from . import conquistas as _conquistas
 from . import social as _social
 from datetime import datetime, timedelta, timezone as datetime_timezone
@@ -76,6 +77,7 @@ from .models import (
     TbItemMundano,
     TbItemMagico,
     TbMagia,
+    MestreOuroDireito,
 )
 from .security import validate_no_sql_danger
 from .organization_lists import organization_list
@@ -1358,12 +1360,15 @@ def profile_view(request):
                                           profile.background_url),
         'appearance_themes': _appearance_catalog('theme'),
         'appearance_frames': _appearance_catalog('frame'),
+        'appearance_frame_options': _cosmetics.catalog_options(
+            user, 'moldura', 'perfil', profile.avatar_frame or 'none'),
         'appearance_effects': _appearance_catalog('effect'),
         # F2 — Badges & Títulos: títulos que o user possui (dropdown) + badges
         # concedidas (checkboxes de destaque) + o que ele já equipou/fixou.
         'titulos_disponiveis': _badges.titulos_disponiveis(user),
         'badges_concedidas': _badges.badges_concedidas(user),
         'badges_derivadas': _badges.badges_derivadas(user),
+        'mestre_ouro_direito': MestreOuroDireito.objects.filter(user=user).first(),
         'titulo_equipado_slug': (profile.titulo_equipado or '').strip(),
         'badges_destaque_slugs': list(profile.badges_destaque or []),
         'badges_derivadas_ocultas_slugs': list(profile.badges_derivadas_ocultas or []),
@@ -1423,6 +1428,7 @@ def public_profile_view(request, username):
                                           profile.background_url),
         # F2 — badges (derivadas + concedidas, fixadas primeiro) e título equipado.
         'badges': _badges.badges_do_usuario(viewed_user),
+        'mestre_ouro_direito': MestreOuroDireito.objects.filter(user=viewed_user).first(),
         'titulo': _badges.titulo_do_usuario(viewed_user),
         # F3 — vitrine de conquistas (compacta). Secretas não-obtidas nunca aparecem.
         'conquistas': _conquistas.conquistas_do_usuario(viewed_user),
@@ -1523,6 +1529,7 @@ def perfil_preview_view(request):
         'viewed_user': user,
         'badges': _badges.badges_com_destaque(
             user, badges_destaque, ocultas_derivadas=badges_derivadas_ocultas),
+        'mestre_ouro_direito': MestreOuroDireito.objects.filter(user=user).first(),
         'titulo': _badges.titulo_por_slug(user, titulo_slug),
         'conquistas': _conquistas.conquistas_do_usuario(user),
         'personagens': _perfil_personagens(user, True),
