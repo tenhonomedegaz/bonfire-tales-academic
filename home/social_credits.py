@@ -1,10 +1,14 @@
 """Account credit ledger. Economic rules must be approved before callers issue credits."""
 
+from datetime import timedelta
+
 from django.contrib.auth import get_user_model
 from django.db import transaction
+from django.db.models import Count, Exists, OuterRef, Sum
+from django.utils import timezone
 
 from .models import (SocialCreditEntry, SocialCreditPolicy, SocialCreditReaderRecognition,
-                     SocialCreditWallet)
+                     SocialCreditWallet, TbCronicaCurtida)
 
 
 @transaction.atomic
@@ -91,3 +95,60 @@ def record_reader_recognition(cronica, reader):
         cronica=cronica, reader=reader, defaults={'policy': policy},
     )
     return recognition
+
+
+def preview_reader_milestones(policy, *, as_of=None):
+    """Read-only projection of consolidated reader milestones under one policy."""
+    fields = (
+        'reader_milestone_size', 'reader_milestone_amount',
+        'reader_consolidation_hours', 'reader_story_credit_cap',
+        'reader_author_period_credit_cap', 'reader_period_days',
+    )
+    if not policy.reader_recognition_enabled or any(
+        not isinstance(getattr(policy, field), int) or getattr(policy, field) <= 0
+        for field in fields
+    ):
+        raise ValueError('reader recognition policy is incomplete or disabled')
+    now = as_of or timezone.now()
+    cutoff = now - timedelta(hours=policy.reader_consolidation_hours)
+    period_start = now - timedelta(days=policy.reader_period_days)
+    current_like = TbCronicaCurtida.objects.filter(
+        cronica_id=OuterRef('cronica_id'), leitor_id=OuterRef('reader_id'),
+    )
+    groups = (SocialCreditReaderRecognition.objects.filter(
+        policy=policy, first_seen_at__lte=cutoff,
+        cronica__status='aprovada', cronica__data_publicacao__isnull=False,
+        cronica__autor__is_active=True, reader__is_active=True,
+    ).annotate(current_like=Exists(current_like)).filter(current_like=True)
+        .values('cronica_id', 'cronica__autor_id')
+        .annotate(readers=Count('pk')).order_by('cronica_id'))
+    author_spent = {}
+    preview = []
+    amount = policy.reader_milestone_amount
+    for group in groups:
+        story_id = group['cronica_id']
+        author_id = group['cronica__autor_id']
+        if author_id not in author_spent:
+            author_spent[author_id] = (SocialCreditEntry.objects.filter(
+                wallet__user_id=author_id, kind='reader_milestone',
+                created_at__gte=period_start, created_at__lte=now,
+            ).aggregate(total=Sum('delta'))['total'] or 0)
+        paid = SocialCreditEntry.objects.filter(
+            kind='reader_milestone', wallet__user_id=author_id,
+            operation_ref__startswith=f'chronicle:{story_id}:reader_milestone:',
+        )
+        story_spent = paid.aggregate(total=Sum('delta'))['total'] or 0
+        prior_milestones = paid.filter(policy=policy).count()
+        due = max(0, group['readers'] // policy.reader_milestone_size - prior_milestones)
+        story_slots = max(0, (policy.reader_story_credit_cap - story_spent) // amount)
+        author_slots = max(0, (policy.reader_author_period_credit_cap
+                               - author_spent[author_id]) // amount)
+        ready = min(due, story_slots, author_slots)
+        author_spent[author_id] += ready * amount
+        preview.append({
+            'chronicle_id': story_id, 'author_id': author_id,
+            'consolidated_readers': group['readers'],
+            'milestones_due': due, 'milestones_ready': ready,
+            'credits_ready': ready * amount,
+        })
+    return preview

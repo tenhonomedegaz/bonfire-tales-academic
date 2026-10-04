@@ -4451,6 +4451,9 @@ class SocialCreditPolicyAdmin(_ReadOnlySocialCreditAdmin):
     list_display = ('version', 'first_publication_amount', 'reader_recognition_enabled',
                     'active', 'created_at')
     readonly_fields = ('version', 'first_publication_amount', 'reader_recognition_enabled',
+                       'reader_milestone_size', 'reader_milestone_amount',
+                       'reader_consolidation_hours', 'reader_story_credit_cap',
+                       'reader_author_period_credit_cap', 'reader_period_days',
                        'active', 'created_at')
 
 

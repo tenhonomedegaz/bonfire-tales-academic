@@ -2856,6 +2856,12 @@ class SocialCreditPolicy(models.Model):
     version = models.CharField(max_length=40, unique=True)
     first_publication_amount = models.PositiveIntegerField()
     reader_recognition_enabled = models.BooleanField(default=False)
+    reader_milestone_size = models.PositiveIntegerField(null=True, blank=True)
+    reader_milestone_amount = models.PositiveIntegerField(null=True, blank=True)
+    reader_consolidation_hours = models.PositiveIntegerField(null=True, blank=True)
+    reader_story_credit_cap = models.PositiveIntegerField(null=True, blank=True)
+    reader_author_period_credit_cap = models.PositiveIntegerField(null=True, blank=True)
+    reader_period_days = models.PositiveIntegerField(null=True, blank=True)
     active = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
