@@ -942,6 +942,23 @@ def _appearance_validated(user, tipo_interno, value, escopo='ambos'):
     return default
 
 
+def _appearance_options(user, tipo_interno, escopo='perfil'):
+    """Selection options use the same entitlement rule as POST validation."""
+    from .cosmetics import catalog_options
+    options = catalog_options(user, tipo_interno, escopo)
+    if options:
+        options = [dict(item, locked=item['estado'] == 'bloqueado')
+                   for item in options]
+        default = _APPEARANCE_DEFAULT[tipo_interno]
+        if not any(item['key'] == default for item in options):
+            options.insert(0, dict(_APPEARANCE_FALLBACK[tipo_interno][default],
+                                   key=default, estado='livre', locked=False))
+        return options
+    # Before catalog seed, the legacy fallback is explicitly free.
+    return [dict(item, key=key, estado='livre', locked=False)
+            for key, item in _appearance_catalog(tipo_interno).items()]
+
+
 def _validated_titulo_equipado(user, slug):
     """Slug de título só é aceito se o usuário POSSUI o cosmético (inventário, por
     slug completo). Qualquer outro valor → '' (nenhum título). Blinda contra POST
@@ -1360,6 +1377,12 @@ def profile_view(request):
                 update_session_auth_hash(request, user)
                 messages.append('Senha alterada com sucesso!')
 
+    appearance = _appearance_context(
+        profile.profile_theme, profile.avatar_frame, profile.profile_effect,
+        profile.theme_custom, profile.background_url, user=user)
+    theme_options = _appearance_options(user, 'theme')
+    frame_options = _appearance_options(user, 'frame')
+    effect_options = _appearance_options(user, 'effect')
     from django.conf import settings as _settings
     return render(request, 'home/pages/perfil.html', {
         'profile': profile,
@@ -1373,14 +1396,18 @@ def profile_view(request):
         'discord_msg': request.GET.get('discord'),
         'discord_oauth_on': bool(_settings.DISCORD_OAUTH_CLIENT_ID),
         'has_password': user.has_usable_password(),
-        'appearance': _appearance_context(profile.profile_theme, profile.avatar_frame,
-                                          profile.profile_effect, profile.theme_custom,
-                                          profile.background_url, user=user),
+        'appearance': appearance,
         'appearance_themes': _appearance_catalog('theme'),
+        'appearance_theme_options': theme_options,
         'appearance_frames': _appearance_catalog('frame'),
-        'appearance_frame_options': _cosmetics.catalog_options(
-            user, 'moldura', 'perfil', profile.avatar_frame or 'none'),
+        'appearance_frame_options': [dict(item, selected=item['key'] == appearance['frame_key'])
+                                     for item in frame_options],
         'appearance_effects': _appearance_catalog('effect'),
+        'appearance_effect_options': effect_options,
+        'colab_cosmetic_locked': any(
+            item.get('origem') == 'colaborador' and item['locked']
+            for options in (theme_options, frame_options, effect_options)
+            for item in options),
         # F2 — Badges & Títulos: títulos que o user possui (dropdown) + badges
         # concedidas (checkboxes de destaque) + o que ele já equipou/fixou.
         'titulos_disponiveis': _badges.titulos_disponiveis(user),

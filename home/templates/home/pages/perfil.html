@@ -209,8 +209,8 @@
         <div class="profile-field">
             <span class="profile-label">Tema</span>
             <div class="tema-swatch-grid" id="id_profile_theme_group" role="radiogroup" aria-label="Tema do perfil">
-                {% for key, item in appearance_themes.items %}
-                {% include 'home/includes/tema_swatch.html' with key=key item=item input_name='profile_theme' input_id='id_profile_theme_'|add:key selected_value=appearance.theme_key disabled=False custom=appearance.custom %}
+                {% for item in appearance_theme_options %}
+                {% include 'home/includes/tema_swatch.html' with key=item.key item=item input_name='profile_theme' input_id='id_profile_theme_'|add:item.key selected_value=appearance.theme_key disabled=item.locked custom=appearance.custom %}
                 {% endfor %}
             </div>
         </div>
@@ -227,14 +227,17 @@
             <label class="profile-field">
                 <span class="profile-label">Efeito do Perfil</span>
                 <select class="profile-input" name="profile_effect" id="id_profile_effect">
-                    {% for key, item in appearance_effects.items %}
-                    <option value="{{ key }}" {% if key == appearance.effect_key %}selected{% endif %}>{{ item.label }}</option>
+                    {% for item in appearance_effect_options %}
+                    <option value="{{ item.key }}" {% if item.key == appearance.effect_key %}selected{% endif %} {% if item.estado == 'bloqueado' %}disabled{% endif %}>{{ item.label }}{% if item.estado == 'bloqueado' %} (bloqueado){% endif %}</option>
                     {% endfor %}
                 </select>
             </label>
         </div>
 
         {# Cores do tema Personalizado — aparecem quando Tema = Personalizado #}
+        {% if colab_cosmetic_locked %}
+        <p class="avatar-preview-hint">Cosméticos Colab exigem assinatura ativa e Discord vinculado a esta conta. {% if not profile.discord_user_id and discord_oauth_on %}<a href="{% url 'discord_login' %}?next=/perfil/">Conectar Discord</a>{% endif %}</p>
+        {% endif %}
         <div class="profile-appearance-grid custom-theme-controls" id="profile-custom-controls" style="{% if not appearance.is_custom %}display:none;{% endif %}margin-top:.5rem">
             <label class="profile-field"><span class="profile-label">Destaque</span><input type="color" class="profile-input" name="custom_accent" id="id_custom_accent" value="{{ appearance.custom.accent }}"></label>
             <label class="profile-field"><span class="profile-label">Destaque 2</span><input type="color" class="profile-input" name="custom_accent2" id="id_custom_accent2" value="{{ appearance.custom.accent2 }}"></label>

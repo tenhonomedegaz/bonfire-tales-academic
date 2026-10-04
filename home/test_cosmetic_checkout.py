@@ -92,6 +92,41 @@ class CosmeticCheckoutTests(TestCase):
         members.return_value.values_list.return_value.first.return_value = None
         self.assertIsNone(colab_tier(self.user))
 
+    @override_settings(DISCORD_OAUTH_CLIENT_ID='test-client')
+    @patch('home.permissions.colab_tier')
+    def test_profile_selectors_match_colab_right_and_offer_discord_link(self, tier):
+        for slug, kind in (('tema-colab-theme', 'tema'),
+                           ('moldura-colab-frame', 'moldura'),
+                           ('efeito-colab-effect', 'efeito')):
+            TbCosmetico.objects.create(
+                slug=slug, tipo=kind, nome=slug,
+                origem='colaborador', requer_plano='conde', escopo='perfil')
+        profile = UserProfile.objects.get_or_create(user=self.user)[0]
+        profile.avatar_frame = 'colab-frame'
+        profile.save(update_fields=['avatar_frame'])
+        tier.return_value = None
+        blocked = self.client.get('/perfil/')
+        self.assertEqual(blocked.status_code, 200)
+        self.assertEqual(blocked.context['appearance']['frame_key'], 'none')
+        self.assertTrue(next(x['locked'] for x in blocked.context['appearance_theme_options']
+                             if x['key'] == 'colab-theme'))
+        self.assertTrue(next(x['locked'] for x in blocked.context['appearance_effect_options']
+                             if x['key'] == 'colab-effect'))
+        self.assertIn('bonfire', [x['key'] for x in blocked.context['appearance_theme_options']])
+        self.assertIn('none', [x['key'] for x in blocked.context['appearance_frame_options']])
+        self.assertTrue(blocked.context['colab_cosmetic_locked'])
+        self.assertContains(blocked, 'Cosméticos Colab exigem assinatura ativa')
+        self.assertContains(blocked, 'Conectar Discord')
+        tier.return_value = 'conde'
+        unlocked = self.client.get('/perfil/')
+        self.assertEqual(unlocked.context['appearance']['frame_key'], 'colab-frame')
+        self.assertFalse(next(x['locked'] for x in unlocked.context['appearance_theme_options']
+                              if x['key'] == 'colab-theme'))
+        self.assertFalse(next(x['locked'] for x in unlocked.context['appearance_effect_options']
+                              if x['key'] == 'colab-effect'))
+        self.assertFalse(unlocked.context['colab_cosmetic_locked'])
+        self.assertNotContains(unlocked, 'Cosméticos Colab exigem assinatura ativa')
+
     @patch('home.views._asaas_api_request', return_value={'id': 'checkout_1'})
     def test_order_freezes_offer_and_reuses_checkout(self, api):
         url = reverse('cosmetic_checkout')
