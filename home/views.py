@@ -15837,6 +15837,8 @@ def cronica_review_action(request, cronica_id):
         cronica.revisao_edicao = {}
         cronica.save()
         if action == 'aprovar':
+            from .social_credits import award_first_chronicle_publication
+            award_first_chronicle_publication(cronica)
             _conquistas.registrar_publicacao_cronica(cronica)
         _notificar_cronica(cronica.autor_id, cronica,
                            f'publicacao:{cronica.pk}:{cronica.data_revisao.isoformat()}',

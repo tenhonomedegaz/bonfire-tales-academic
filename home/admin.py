@@ -4413,7 +4413,7 @@ class DbAccessAuditAdmin(admin.ModelAdmin):
         return False
 
 
-from .models import SocialCreditEntry, SocialCreditWallet
+from .models import SocialCreditEntry, SocialCreditPolicy, SocialCreditWallet
 
 
 class _ReadOnlySocialCreditAdmin(admin.ModelAdmin):
@@ -4442,4 +4442,10 @@ class SocialCreditEntryAdmin(_ReadOnlySocialCreditAdmin):
     search_fields = ('wallet__user__username', 'operation_ref')
     list_filter = ('kind', 'created_at')
     readonly_fields = ('wallet', 'operation_ref', 'kind', 'delta', 'balance_after',
-                       'reversal_of', 'created_at')
+                       'reversal_of', 'policy', 'created_at')
+
+
+@admin.register(SocialCreditPolicy)
+class SocialCreditPolicyAdmin(_ReadOnlySocialCreditAdmin):
+    list_display = ('version', 'first_publication_amount', 'active', 'created_at')
+    readonly_fields = ('version', 'first_publication_amount', 'active', 'created_at')

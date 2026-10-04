@@ -2850,6 +2850,26 @@ class SocialCreditWallet(models.Model):
         return str(self.user)
 
 
+class SocialCreditPolicy(models.Model):
+    """Versioned economic rule; no rule is active until the PO approves one."""
+
+    version = models.CharField(max_length=40, unique=True)
+    first_publication_amount = models.PositiveIntegerField()
+    active = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(condition=models.Q(first_publication_amount__gt=0),
+                                   name='social_credit_first_publication_positive'),
+            models.UniqueConstraint(fields=['active'], condition=models.Q(active=True),
+                                    name='social_credit_one_active_policy'),
+        ]
+
+    def __str__(self):
+        return self.version
+
+
 class SocialCreditEntry(models.Model):
     """Immutable credit/debit record with a globally unique operation reference."""
 
@@ -2860,6 +2880,7 @@ class SocialCreditEntry(models.Model):
     balance_after = models.BigIntegerField()
     reversal_of = models.OneToOneField('self', on_delete=models.PROTECT, null=True, blank=True,
                                       related_name='reversal')
+    policy = models.ForeignKey(SocialCreditPolicy, on_delete=models.PROTECT, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

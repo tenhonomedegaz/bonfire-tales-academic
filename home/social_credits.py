@@ -3,11 +3,11 @@
 from django.contrib.auth import get_user_model
 from django.db import transaction
 
-from .models import SocialCreditEntry, SocialCreditWallet
+from .models import SocialCreditEntry, SocialCreditPolicy, SocialCreditWallet
 
 
 @transaction.atomic
-def post_social_credit(user_id, *, operation_ref, kind, delta):
+def post_social_credit(user_id, *, operation_ref, kind, delta, policy=None):
     """Post once per reference, atomically preserving a nonnegative account balance."""
     if not isinstance(delta, int) or isinstance(delta, bool) or delta == 0:
         raise ValueError('delta must be a nonzero integer')
@@ -20,7 +20,8 @@ def post_social_credit(user_id, *, operation_ref, kind, delta):
     user = get_user_model().objects.select_for_update().get(pk=user_id)
     prior = SocialCreditEntry.objects.filter(operation_ref=operation_ref).select_related('wallet').first()
     if prior:
-        if prior.wallet.user_id != user.pk or prior.kind != kind or prior.delta != delta:
+        if (prior.wallet.user_id != user.pk or prior.kind != kind or prior.delta != delta
+                or prior.policy_id != (policy.pk if policy else None)):
             raise ValueError('operation_ref already belongs to a different posting')
         return prior, False
 
@@ -30,7 +31,7 @@ def post_social_credit(user_id, *, operation_ref, kind, delta):
         raise ValueError('insufficient social credit balance')
     entry = SocialCreditEntry.objects.create(
         wallet=wallet, operation_ref=operation_ref, kind=kind, delta=delta,
-        balance_after=new_balance,
+        balance_after=new_balance, policy=policy,
     )
     wallet.balance = new_balance
     wallet.save(update_fields=['balance', 'updated_at'])
@@ -56,3 +57,21 @@ def reverse_social_credit(entry_id, *, operation_ref):
     reversal.reversal_of = original
     reversal.save(update_fields=['reversal_of'])
     return reversal, True
+
+
+def award_first_chronicle_publication(cronica):
+    """Award only on a new approved publication while an explicit rule is active."""
+    if cronica.status != 'aprovada' or not cronica.data_publicacao or not cronica.autor.is_active:
+        return None
+    reference = f'chronicle:{cronica.pk}:first_publication'
+    prior = SocialCreditEntry.objects.filter(operation_ref=reference).first()
+    if prior:
+        return prior
+    policy = SocialCreditPolicy.objects.filter(active=True).first()
+    if policy is None:
+        return None
+    entry, _ = post_social_credit(
+        cronica.autor_id, operation_ref=reference,
+        kind='first_publication', delta=policy.first_publication_amount, policy=policy,
+    )
+    return entry
