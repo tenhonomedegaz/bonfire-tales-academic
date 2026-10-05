@@ -7,7 +7,9 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from home.conquistas import conceder_conquista, registrar_criacao_personagem
+from home.conquistas import (
+    conceder_conquista, conceder_conquista_em_massa, registrar_criacao_personagem,
+)
 from home.deploy_sync import MEMORY_MODELS
 from home.models import (
     TbConquista, TbCosmetico, TbEventoConquista, TbPersonagem,
@@ -21,6 +23,73 @@ RULE = {'schema_version': 1, 'metric': 'characters_created',
 
 
 class AchievementGrantAtomicTests(TestCase):
+    def test_mass_grant_rolls_back_every_recipient_on_reward_failure(self):
+        users = [get_user_model().objects.create_user(f'atomic-batch-{i}') for i in range(2)]
+        badge = TbCosmetico.objects.create(
+            slug='badge-atomic-batch', nome='Badge de lote',
+            tipo='badge', origem='conquista',
+        )
+        rule = TbConquista.objects.create(
+            slug='atomic-batch', nome='Conquista de lote',
+            criterio='manual', recompensa=badge,
+        )
+        original = TbUsuarioCosmetico.objects.get_or_create
+        calls = 0
+
+        def fail_second_reward(*args, **kwargs):
+            nonlocal calls
+            calls += 1
+            if calls == 2:
+                raise RuntimeError('inventario indisponivel')
+            return original(*args, **kwargs)
+
+        with patch.object(TbUsuarioCosmetico.objects, 'get_or_create',
+                          side_effect=fail_second_reward):
+            with self.assertRaises(RuntimeError):
+                conceder_conquista_em_massa(users, rule)
+        self.assertEqual(TbUsuarioConquista.objects.filter(conquista=rule).count(), 0)
+        self.assertEqual(TbUsuarioCosmetico.objects.filter(cosmetico=badge).count(), 0)
+
+        self.assertEqual(conceder_conquista_em_massa(users, rule), (2, 0))
+        self.assertEqual(conceder_conquista_em_massa(users, rule), (0, 2))
+        self.assertEqual(TbUsuarioConquista.objects.filter(conquista=rule).count(), 2)
+        self.assertEqual(TbUsuarioCosmetico.objects.filter(cosmetico=badge).count(), 2)
+
+    def test_admin_batch_rolls_back_all_achievements_on_reward_failure(self):
+        admin_user = get_user_model().objects.create_superuser(
+            'atomic-admin', 'atomic-admin@example.invalid', 'password',
+        )
+        user = get_user_model().objects.create_user('atomic-admin-recipient')
+        badge = TbCosmetico.objects.create(
+            slug='badge-atomic-admin', nome='Badge de admin',
+            tipo='badge', origem='conquista',
+        )
+        first = TbConquista.objects.create(
+            slug='atomic-admin-first', nome='Primeira conquista', criterio='manual',
+        )
+        second = TbConquista.objects.create(
+            slug='atomic-admin-second', nome='Segunda conquista',
+            criterio='manual', recompensa=badge,
+        )
+        self.client.force_login(admin_user)
+        payload = {
+            'action': 'conceder_a_usuarios', 'confirmar': '1',
+            'select_across': '0', '_selected_action': [first.pk, second.pk],
+            'usernames': user.username,
+        }
+        url = reverse('admin:home_tbconquista_changelist')
+        with patch.object(TbUsuarioCosmetico.objects, 'get_or_create',
+                          side_effect=RuntimeError('inventario indisponivel')):
+            with self.assertRaises(RuntimeError):
+                self.client.post(url, payload)
+        self.assertEqual(TbUsuarioConquista.objects.filter(user=user).count(), 0)
+        self.assertEqual(TbUsuarioCosmetico.objects.filter(user=user, cosmetico=badge).count(), 0)
+
+        response = self.client.post(url, payload)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(TbUsuarioConquista.objects.filter(user=user).count(), 2)
+        self.assertEqual(TbUsuarioCosmetico.objects.filter(user=user, cosmetico=badge).count(), 1)
+
     def test_reward_failure_rolls_back_new_grant_and_reactivation(self):
         user = get_user_model().objects.create_user('atomic-achievement-owner')
         badge = TbCosmetico.objects.create(

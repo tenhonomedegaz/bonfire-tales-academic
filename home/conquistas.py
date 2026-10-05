@@ -102,6 +102,7 @@ def conceder_conquista(user, conquista, por=None):
     return criada
 
 
+@transaction.atomic
 def conceder_conquista_em_massa(users, conquista, por=None):
     """Concede `conquista` a vários usuários. Retorna (concedidas, ja_tinham).
     Usa `conceder_conquista` por usuário (fonte única)."""

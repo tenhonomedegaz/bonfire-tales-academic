@@ -4243,12 +4243,13 @@ class TbConquistaAdmin(admin.ModelAdmin):
                         request, 'Nenhum usuário válido informado.', level=messages.WARNING)
                 else:
                     total_concedidas = total_ja = 0
-                    for conq in conquistas:
-                        for u in users:
-                            if conceder_conquista(u, conq, por=request.user):
-                                total_concedidas += 1
-                            else:
-                                total_ja += 1
+                    with transaction.atomic():
+                        for conq in conquistas:
+                            for u in users:
+                                if conceder_conquista(u, conq, por=request.user):
+                                    total_concedidas += 1
+                                else:
+                                    total_ja += 1
                     self.message_user(
                         request,
                         '%d concessão(ões) nova(s) e %d já existente(s) em %d usuário(s) × %d conquista(s).'
