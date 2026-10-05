@@ -111,6 +111,20 @@ class AdventuresAchievementTests(_CriadorBase):
         with self.assertRaises(ValidationError):
             invalid.full_clean()
 
+    def test_owner_sees_verified_progress_without_exposing_it_publicly(self):
+        self.assertEqual(self.launch(2).status_code, 302)
+        self.client.force_login(self.owner)
+        editor = self.client.get(reverse('profile'))
+        self.assertContains(editor, '2 comprovadas')
+        self.assertContains(editor, 'meta: pelo menos 3')
+
+        url = reverse('public_profile', args=[self.owner.username])
+        self.assertContains(self.client.get(url), '2 comprovadas')
+        self.client.logout()
+        self.assertNotContains(self.client.get(url), '2 comprovadas')
+        self.client.force_login(self.staff)
+        self.assertContains(self.client.get(url), '2 comprovadas')
+
     def test_legacy_explicit_ledger_can_be_previewed_and_replayed_once(self):
         ledger = TbPersonagemAventura.objects.create(
             id_personagem=self.character, nome_aventura='Mesa antiga QA',

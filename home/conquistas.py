@@ -354,12 +354,38 @@ def registrar_fato_aventura(lancamento, *, estorno=False, avaliar=True):
     return evento
 
 
+def _aventuras_comprovadas(user):
+    """Fatos únicos com quantidade igual ao ledger de mesa ainda válido."""
+    from .models import TbEventoConquista, TbPersonagemAventura
+
+    facts = list(TbEventoConquista.objects.filter(
+        conta=user, origem='site_ledger', tipo='adventure_recorded'
+    ).order_by('ocorrido_em', 'agregado_id'))
+    ledgers = {row['pk']: row['qtd_aventuras'] for row in
+               TbPersonagemAventura.objects.filter(
+                   id_personagem__dono=user, pk__in=[f.agregado_id for f in facts],
+                   origem='mesa', revertido=False, qtd_aventuras__gt=0,
+               ).values('pk', 'qtd_aventuras')}
+    matched = []
+    seen = set()
+    for fact in facts:
+        quantity = fact.payload_json.get('quantidade')
+        if (fact.agregado_id in seen or
+                fact.payload_json.get('ledger_id') != fact.agregado_id or
+                type(quantity) is not int or quantity <= 0 or
+                ledgers.get(fact.agregado_id) != quantity):
+            continue
+        seen.add(fact.agregado_id)
+        matched.append(fact)
+    return sum(f.payload_json['quantidade'] for f in matched), matched
+
+
 def avaliar_aventuras_jogadas(user):
     """Reavalia marcos por quantidade de mesas com fato e ledger válidos."""
     from django.contrib.auth import get_user_model
     from django.utils import timezone
-    from .models import (CosmeticCheckoutPurchase, TbConquista, TbEventoConquista,
-                         TbPersonagemAventura, TbUsuarioConquista, TbUsuarioCosmetico)
+    from .models import (CosmeticCheckoutPurchase, TbConquista,
+                         TbUsuarioConquista, TbUsuarioCosmetico)
 
     with transaction.atomic():
         get_user_model().objects.select_for_update().only('pk').get(pk=user.pk)
@@ -369,26 +395,7 @@ def avaliar_aventuras_jogadas(user):
             if regra_aventuras_jogadas_valida(rule.criterio_json)]
         if not rules:
             return
-        facts = list(TbEventoConquista.objects.filter(
-            conta=user, origem='site_ledger', tipo='adventure_recorded'
-        ).order_by('ocorrido_em', 'agregado_id'))
-        ledgers = {row['pk']: row['qtd_aventuras'] for row in
-                   TbPersonagemAventura.objects.filter(
-                       id_personagem__dono=user, pk__in=[f.agregado_id for f in facts],
-                       origem='mesa', revertido=False, qtd_aventuras__gt=0,
-                   ).values('pk', 'qtd_aventuras')}
-        matched = []
-        seen = set()
-        for fact in facts:
-            quantity = fact.payload_json.get('quantidade')
-            if (fact.agregado_id in seen or
-                    fact.payload_json.get('ledger_id') != fact.agregado_id or
-                    type(quantity) is not int or quantity <= 0 or
-                    ledgers.get(fact.agregado_id) != quantity):
-                continue
-            seen.add(fact.agregado_id)
-            matched.append(fact)
-        total = sum(f.payload_json['quantidade'] for f in matched)
+        total, matched = _aventuras_comprovadas(user)
         evidence = {'total': total, 'evento_ids': [str(f.pk) for f in matched],
                     'lancamento_ids': [f.agregado_id for f in matched]}
         for rule in rules:
@@ -961,6 +968,7 @@ def conquistas_do_usuario(user, incluir_bloqueadas=True, *, pode_ver_privados=Tr
 
     obtidas, bloqueadas = [], []
     total_visivel = 0
+    aventuras_comprovadas = None
     for c in qs:
         if (not pode_ver_privados and isinstance(c.criterio_json, dict) and
                 c.criterio_json.get('metric') == 'class_started' and
@@ -971,10 +979,20 @@ def conquistas_do_usuario(user, incluir_bloqueadas=True, *, pode_ver_privados=Tr
             # Secreta não-obtida: invisível — não conta, não aparece.
             continue
         total_visivel += 1
+        item = _conquista_dict(c, tem, obtidas_map.get(c.id))
+        if (pode_ver_privados and isinstance(c.criterio_json, dict) and
+                regra_aventuras_jogadas_valida(c.criterio_json)):
+            if aventuras_comprovadas is None:
+                aventuras_comprovadas, _ = _aventuras_comprovadas(user)
+            item['progresso_aventuras'] = {
+                'atual': aventuras_comprovadas,
+                'alvo': c.criterio_json['target'],
+                'operador': c.criterio_json['operator'],
+            }
         if tem:
-            obtidas.append(_conquista_dict(c, True, obtidas_map[c.id]))
+            obtidas.append(item)
         elif incluir_bloqueadas:
-            bloqueadas.append(_conquista_dict(c, False))
+            bloqueadas.append(item)
 
     # Obtidas mais recentes primeiro (X é o número delas).
     obtidas.sort(key=lambda d: d['concedida_em'] or 0, reverse=True)

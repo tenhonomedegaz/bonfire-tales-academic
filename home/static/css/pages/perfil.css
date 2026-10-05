@@ -1593,6 +1593,12 @@
     max-width: 12rem;
     letter-spacing: 0.02em;
 }
+.conquista-progress {
+    color: var(--muted);
+    font-size: 0.65rem;
+    font-weight: 500;
+    white-space: normal;
+}
 
 @media (prefers-reduced-motion: reduce) {
     .profile-title,
