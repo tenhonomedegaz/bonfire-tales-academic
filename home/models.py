@@ -2524,7 +2524,7 @@ class TbUsuarioCosmetico(models.Model):
     cosmetico = models.ForeignKey(TbCosmetico, on_delete=models.CASCADE,
                                   related_name='desbloqueios', db_column='CosmeticoId')
     desbloqueado_em = models.DateTimeField(db_column='DesbloqueadoEm', auto_now_add=True)
-    origem = models.CharField(db_column='Origem', max_length=30, blank=True,
+    origem = models.CharField(db_column='Origem', max_length=80, blank=True,
                               help_text="Como foi obtido ('conquista:<slug>', 'compra_mm', 'staff', 'seed'…).")
     suspenso_em = models.DateTimeField(db_column='SuspensoEm', null=True, blank=True)
 

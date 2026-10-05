@@ -504,14 +504,14 @@ def _avaliar_primeira_compra(user):
                 grant.revogada_em = now
                 grant.save(update_fields=['revogada_em'])
                 if rule.recompensa_id:
-                    origin = 'conquista:%s' % rule.slug
                     other_grants = TbUsuarioConquista.objects.filter(
                         user=user, conquista__recompensa_id=rule.recompensa_id,
                         revogada_em__isnull=True).exclude(pk=grant.pk).exists()
                     if not other_grants:
                         TbUsuarioCosmetico.objects.filter(
                             user=user, cosmetico_id=rule.recompensa_id,
-                            origem=origin, suspenso_em__isnull=True).update(suspenso_em=now)
+                            origem__startswith='conquista:',
+                            suspenso_em__isnull=True).update(suspenso_em=now)
 
 
 def _avaliar_unidades_compradas(user):
@@ -563,14 +563,14 @@ def _avaliar_unidades_compradas(user):
                 grant.revogada_em = now
                 grant.save(update_fields=['revogada_em'])
                 if rule.recompensa_id:
-                    origin = 'conquista:%s' % rule.slug
                     other_grants = TbUsuarioConquista.objects.filter(
                         user=user, conquista__recompensa_id=rule.recompensa_id,
                         revogada_em__isnull=True).exclude(pk=grant.pk).exists()
                     if not other_grants:
                         TbUsuarioCosmetico.objects.filter(
                             user=user, cosmetico_id=rule.recompensa_id,
-                            origem=origin, suspenso_em__isnull=True).update(suspenso_em=now)
+                            origem__startswith='conquista:',
+                            suspenso_em__isnull=True).update(suspenso_em=now)
 
 
 def reprocessar_primeira_compra(user):

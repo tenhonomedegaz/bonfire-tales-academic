@@ -70,6 +70,36 @@ class PurchaseUnitsAchievementTests(_MercadoBase):
         self.assertEqual(TbUsuarioConquista.objects.filter(
             user=char.dono, conquista=rule).count(), 1)
 
+    def test_shared_reward_suspends_only_after_last_achievement_is_revoked(self):
+        char = self._char('purchase-shared-reward')
+        item = self._item_mundano_com_preco()
+        units = self._rule(item)
+        first = TbConquista.objects.create(
+            slug='primeira-compra-compartilhada', nome='Primeira compra',
+            criterio='automatico',
+            criterio_json={'schema_version': 1, 'metric': 'items_purchased',
+                           'scope': 'account', 'operator': 'gte', 'target': 1},
+            recompensa=units.recompensa,
+        )
+        purchase = self._buy(char, item, 2)
+        grants = TbUsuarioConquista.objects.filter(user=char.dono,
+            conquista__in=[first, units])
+        self.assertEqual(grants.count(), 2)
+        possession = TbUsuarioCosmetico.objects.get(
+            user=char.dono, cosmetico=units.recompensa)
+        self.assertIsNone(possession.suspenso_em)
+
+        self.client.post(reverse('personagem_reembolsar_compra',
+                                 args=[char.pk, purchase.pk]))
+        self.assertEqual(grants.filter(revogada_em__isnull=False).count(), 2)
+        possession.refresh_from_db()
+        self.assertIsNotNone(possession.suspenso_em)
+
+        self._buy(char, item, 2)
+        self.assertEqual(grants.filter(revogada_em__isnull=True).count(), 2)
+        possession.refresh_from_db()
+        self.assertIsNone(possession.suspenso_em)
+
     def test_strict_operator_and_manual_grant_survive_refund(self):
         char = self._char('purchase-units-strict')
         item = self._item_mundano_com_preco()
