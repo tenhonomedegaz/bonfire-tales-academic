@@ -1,4 +1,5 @@
 {% extends 'home/base.html' %}
+{% load editorial_images %}
 
 {% block title %}{{ character.nome }} · Personagem · Bonfire Tales RPG{% endblock %}
 
@@ -6,6 +7,7 @@
 <article class="max-w-3xl mx-auto rounded-2xl border border-[var(--stroke)] bg-[var(--surface)] p-6 md:p-10 space-y-6">
   {% if preview %}<p class="text-sm text-[var(--spark)]" role="status">Prévia como visitante. {% if not published %}Esta ficha ainda não está publicada.{% endif %}</p>{% endif %}
   <header class="space-y-2">
+    {% if character.foto_url|safe_profile_image %}<img src="{{ character.foto_url|safe_profile_image }}" alt="Retrato de {{ character.nome }}" class="h-28 w-28 rounded-xl object-cover" loading="lazy">{% endif %}
     <p class="text-sm text-[var(--muted)]">Personagem de {{ character.dono }}</p>
     <h1 class="font-serif text-4xl text-[var(--text)]">{{ character.nome }}</h1>
     <p class="text-[var(--muted)]">Nível {{ character.nivel }}{% if character.classe %} · {{ character.classe }}{% endif %}{% if character.subclasse %} ({{ character.subclasse }}){% endif %}</p>
@@ -14,6 +16,31 @@
     <h2 class="font-serif text-xl text-[var(--text)]">Identidade</h2>
     <p class="mt-2 text-[var(--muted)]">{{ character.raca }}{% if character.linhagem %} · {{ character.linhagem }}{% endif %}{% if character.essencia %} · {{ character.essencia }}{% endif %}</p>
   </section>{% endif %}
-  <p class="text-sm text-[var(--muted)]">Atributos, recursos, inventário e notas ficam na ficha privada do jogador.</p>
+  {% if character.descricao %}<section aria-label="Descrição pública" class="border-t border-[var(--stroke)] pt-5">
+    <h2 class="font-serif text-xl text-[var(--text)]">Sobre o personagem</h2>
+    <p class="mt-2 whitespace-pre-line text-[var(--muted)]">{{ character.descricao }}</p>
+  </section>{% endif %}
+  {% if mechanics.atributos %}<section aria-label="Atributos públicos" class="border-t border-[var(--stroke)] pt-5">
+    <h2 class="font-serif text-xl text-[var(--text)]">Atributos</h2>
+    <dl class="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3">{% for row in mechanics.atributos %}
+      <div><dt class="text-sm text-[var(--muted)]">{{ row.nome }}</dt><dd class="font-semibold">{{ row.valor }} ({{ row.mod|stringformat:'+d' }})</dd></div>
+    {% endfor %}</dl>
+  </section>{% endif %}
+  {% if mechanics.pericias %}<section aria-label="Perícias públicas" class="border-t border-[var(--stroke)] pt-5">
+    <h2 class="font-serif text-xl text-[var(--text)]">Perícias</h2>
+    <dl class="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3">{% for row in mechanics.pericias %}
+      <div><dt class="text-sm text-[var(--muted)]">{{ row.nome }}{% if row.expertise %} · Especialista{% elif row.proficiente %} · Proficiente{% endif %}</dt><dd class="font-semibold">{{ row.bonus|stringformat:'+d' }}</dd></div>
+    {% endfor %}</dl>
+  </section>{% endif %}
+  {% if mechanics.resumo %}<section aria-label="Resumo mecânico público" class="border-t border-[var(--stroke)] pt-5">
+    <h2 class="font-serif text-xl text-[var(--text)]">Resumo mecânico</h2>
+    <dl class="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div><dt>CA</dt><dd>{{ mechanics.resumo.ca }}</dd></div>
+      <div><dt>PV máximo</dt><dd>{{ mechanics.resumo.pv_maximo|default_if_none:'—' }}</dd></div>
+      <div><dt>Deslocamento</dt><dd>{{ mechanics.resumo.velocidade }}</dd></div>
+      <div><dt>Bônus de proficiência</dt><dd>{{ mechanics.resumo.bonus_proficiencia|stringformat:'+d' }}</dd></div>
+    </dl>
+  </section>{% endif %}
+  <p class="text-sm text-[var(--muted)]">Inventário, carteira, recursos em uso e notas permanecem privados.</p>
 </article>
 {% endblock %}

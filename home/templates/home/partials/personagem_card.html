@@ -30,4 +30,18 @@
       <button class="text-[var(--flame)] hover:underline" title="Excluir definitivamente">Excluir</button>
     </form>
   </div>
+  <details class="mt-3 border-t border-[var(--stroke)] pt-2 text-sm">
+    <summary class="cursor-pointer text-[var(--ember)]">Apresentação pública</summary>
+    <form method="post" action="{% url 'personagem_publicacao' c.obj.id_personagem %}" class="mt-3 space-y-3">{% csrf_token %}
+      <input type="hidden" name="action" value="preferences">
+      <label class="block">Descrição pública, separada das notas privadas
+        <textarea name="description" maxlength="2000" rows="3" class="mt-1 w-full rounded border border-[var(--stroke)] bg-[var(--surface)] p-2">{{ c.obj.descricao_publica }}</textarea>
+      </label>
+      <label class="block"><input type="checkbox" name="show_attributes"{% if c.obj.mostrar_atributos_publicos %} checked{% endif %}> Mostrar atributos</label>
+      <label class="block"><input type="checkbox" name="show_skills"{% if c.obj.mostrar_pericias_publicas %} checked{% endif %}> Mostrar perícias</label>
+      <label class="block"><input type="checkbox" name="show_summary"{% if c.obj.mostrar_resumo_mecanico_publico %} checked{% endif %}> Mostrar resumo de CA, PV máximo, deslocamento e proficiência</label>
+      <p class="text-xs text-[var(--muted)]">Os três grupos mecânicos começam privados; salvar estas preferências não publica a ficha.</p>
+      <button type="submit" class="text-[var(--ember)] font-semibold hover:underline">Salvar apresentação</button>
+    </form>
+  </details>
 </div>

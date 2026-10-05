@@ -1392,6 +1392,10 @@ class TbPersonagem(models.Model):
     dono = models.ForeignKey('auth.User', models.CASCADE, db_column='Dono', related_name='personagens')
     nome = models.CharField(db_column='Nome', max_length=150)
     publico = models.BooleanField(db_column='Publico', default=False)
+    descricao_publica = models.TextField(db_column='DescricaoPublica', blank=True, default='')
+    mostrar_atributos_publicos = models.BooleanField(db_column='MostrarAtributosPublicos', default=False)
+    mostrar_pericias_publicas = models.BooleanField(db_column='MostrarPericiasPublicas', default=False)
+    mostrar_resumo_mecanico_publico = models.BooleanField(db_column='MostrarResumoMecanicoPublico', default=False)
     arquivado = models.BooleanField(db_column='Arquivado', default=False, db_index=True,
                                     help_text='No cofre: guardado, não conta no limite de slots ativos.')
 

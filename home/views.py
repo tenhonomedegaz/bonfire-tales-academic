@@ -9868,6 +9868,7 @@ def _raca_linha_ficha(p):
 def ficha_publica_view(request, pk):
     """Projeção de leitura pública; não deriva nem sincroniza a ficha operacional."""
     from .models import TbPersonagem
+    from .character_engine import derive
     p = get_object_or_404(
         TbPersonagem.objects.select_related('dono', 'id_raca', 'id_linhagem', 'id_essencia')
         .prefetch_related('classes__id_classe', 'classes__id_subclasse'), pk=pk)
@@ -9886,9 +9887,38 @@ def ficha_publica_view(request, pk):
         'essencia': p.id_essencia.nome if p.id_essencia_id else '',
         'classe': principal.id_classe.nome if principal else '',
         'subclasse': principal.id_subclasse.nome if principal and principal.id_subclasse_id else '',
+        'descricao': p.descricao_publica,
+        'foto_url': p.foto_url,
     }
+    mechanics = {}
+    if (p.mostrar_atributos_publicos or p.mostrar_pericias_publicas or
+            p.mostrar_resumo_mecanico_publico):
+        try:
+            ficha = derive(p, ruleset=_resource_ruleset(p))
+        except (ValueError, KeyError, TypeError):
+            return HttpResponse('A revisão vinculada da ficha está indisponível.', status=409)
+        if p.mostrar_atributos_publicos:
+            mechanics['atributos'] = [
+                {'nome': ficha['atributos'][sig]['rotulo'],
+                 'valor': ficha['atributos'][sig]['valor'],
+                 'mod': ficha['atributos'][sig]['mod']}
+                for sig in ('FOR', 'DES', 'CON', 'INT', 'SAB', 'CAR')]
+        if p.mostrar_pericias_publicas:
+            mechanics['pericias'] = [
+                {'nome': row['nome'], 'bonus': row['bonus'],
+                 'proficiente': row['proficiente'], 'expertise': row['expertise']}
+                for row in ficha['pericias']]
+        if p.mostrar_resumo_mecanico_publico:
+            mechanics['resumo'] = {
+                'ca': ficha['ca'],
+                'pv_maximo': ficha['pv']['maximo_calculado']
+                if (ficha['pv']['maximo_calculado'] or 0) > 0 else None,
+                'velocidade': ficha['velocidade'],
+                'bonus_proficiencia': ficha['bonus_proficiencia'],
+            }
     return render(request, 'home/pages/ficha_publica.html', {
         'page_title': p.nome, 'character': public_data,
+        'mechanics': mechanics,
         'preview': preview, 'published': p.publico and not p.arquivado,
     })
 
@@ -9900,6 +9930,20 @@ def personagem_publicacao_view(request, pk):
     from .models import TbPersonagem
     p = get_object_or_404(TbPersonagem, pk=pk, dono=request.user)
     action = request.POST.get('action')
+    if action == 'preferences':
+        description = request.POST.get('description', '').strip()
+        if len(description) > 2000:
+            return HttpResponse('Descrição pública excede 2000 caracteres.', status=400)
+        p.descricao_publica = description
+        p.mostrar_atributos_publicos = request.POST.get('show_attributes') == 'on'
+        p.mostrar_pericias_publicas = request.POST.get('show_skills') == 'on'
+        p.mostrar_resumo_mecanico_publico = request.POST.get('show_summary') == 'on'
+        p.save(update_fields=[
+            'descricao_publica', 'mostrar_atributos_publicos',
+            'mostrar_pericias_publicas', 'mostrar_resumo_mecanico_publico',
+            'atualizado_em',
+        ])
+        return redirect('personagens')
     if action not in ('publish', 'unpublish'):
         return HttpResponse(status=400)
     if action == 'publish' and p.arquivado:

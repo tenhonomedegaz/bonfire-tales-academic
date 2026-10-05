@@ -69,10 +69,18 @@ class PublicCharacterSheetTests(TestCase):
         self.assertEqual(self.client.post(reverse('personagem_publicacao',
                                                 args=[self.character.pk]),
                                           {'action': 'unpublish'}).status_code, 404)
+        self.assertEqual(self.client.post(reverse('personagem_publicacao',
+                                                args=[self.character.pk]),
+                                          {'action': 'preferences',
+                                           'description': 'TENTATIVA ALHEIA',
+                                           'show_attributes': 'on'}).status_code, 404)
         self.client.force_login(self.staff)
         self.assertEqual(self.client.post(reverse('personagem_publicacao',
                                                 args=[self.character.pk]),
                                           {'action': 'unpublish'}).status_code, 404)
+        self.character.refresh_from_db()
+        self.assertEqual(self.character.descricao_publica, '')
+        self.assertFalse(self.character.mostrar_atributos_publicos)
 
     def test_private_preview_is_owner_only_and_archive_cannot_publish(self):
         public = reverse('ficha_publica', args=[self.character.pk])
@@ -121,3 +129,64 @@ class PublicCharacterSheetTests(TestCase):
         TbPersonagem.objects.filter(pk=self.character.pk).update(publico=True)
         self.assertEqual(self.client.get(public).status_code, 404)
         self.assertEqual(self.client.get(operational).status_code, 404)
+
+    def test_owner_preferences_are_separate_from_publication_and_private_lore(self):
+        public = reverse('ficha_publica', args=[self.character.pk])
+        action = reverse('personagem_publicacao', args=[self.character.pk])
+        self.client.force_login(self.owner)
+        description = 'Conto para visitantes <script>alert(1)</script>'
+        self.assertEqual(self.client.post(action, {
+            'action': 'preferences', 'description': description,
+            'show_attributes': 'on', 'show_skills': 'on', 'show_summary': 'on',
+        }).status_code, 302)
+        self.character.refresh_from_db()
+        self.assertFalse(self.character.publico)
+        self.assertEqual(self.character.historia, 'HISTÓRIA PRIVADA Q8')
+        self.assertEqual(self.character.descricao_publica, description)
+        self.assertEqual(self.client.post(action, {
+            'action': 'preferences', 'description': 'x' * 2001,
+        }).status_code, 400)
+        self.assertEqual(self.client.post(action, {'action': 'publish'}).status_code, 302)
+        self.client.logout()
+        with CaptureQueriesContext(connection) as queries:
+            response = self.client.get(public)
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode()
+        self.assertIn('Conto para visitantes', html)
+        self.assertNotIn('<script>alert(1)</script>', html)
+        self.assertNotIn('HISTÓRIA PRIVADA Q8', html)
+        self.assertIn('Atributos públicos', html)
+        self.assertIn('Perícias públicas', html)
+        self.assertIn('Resumo mecânico público', html)
+        mechanics = response.context['mechanics']
+        self.assertEqual(len(mechanics['atributos']), 6)
+        self.assertTrue(any(row['nome'] == 'Força' and row['valor'] == 10
+                            for row in mechanics['atributos']))
+        self.assertTrue(mechanics['pericias'])
+        self.assertEqual(mechanics['resumo']['ca'], 10)
+        self.assertIsNone(mechanics['resumo']['pv_maximo'])
+        self.assertEqual([q['sql'] for q in queries if q['sql'].lstrip().upper().startswith(
+            ('INSERT ', 'UPDATE ', 'DELETE '))], [])
+
+    def test_mechanics_default_private_and_independent_visibility(self):
+        action = reverse('personagem_publicacao', args=[self.character.pk])
+        public = reverse('ficha_publica', args=[self.character.pk])
+        self.client.force_login(self.owner)
+        self.client.post(action, {'action': 'publish'})
+        self.client.logout()
+        baseline = self.client.get(public)
+        self.assertNotContains(baseline, 'Atributos públicos')
+        self.assertNotContains(baseline, 'Perícias públicas')
+        self.assertNotContains(baseline, 'Resumo mecânico público')
+        self.client.force_login(self.owner)
+        self.client.post(action, {'action': 'preferences', 'show_skills': 'on'})
+        self.client.logout()
+        skills = self.client.get(public)
+        self.assertContains(skills, 'Perícias públicas')
+        self.assertNotContains(skills, 'Atributos públicos')
+        self.assertNotContains(skills, 'Resumo mecânico público')
+        self.client.force_login(self.owner)
+        self.client.post(action, {'action': 'preferences'})
+        self.client.logout()
+        hidden = self.client.get(public)
+        self.assertNotContains(hidden, 'Perícias públicas')
