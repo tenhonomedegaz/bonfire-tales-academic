@@ -810,7 +810,12 @@
                 }, 0);
             }
             if (index === 3) {
-                return Number(budget.pontos_restantes || 0) !== 0 ? 1 : 0;
+                var racial = (result.talentos_raciais_grupos || []).filter(function (group) {
+                    return !current().talentos_raciais.some(function (row) {
+                        return Number(row.nivel) === Number(group.nivel) && !!row.nome;
+                    });
+                }).length;
+                return racial + (Number(budget.pontos_restantes || 0) !== 0 ? 1 : 0);
             }
             if (index === 4) {
                 return Number(budget.sintonizacao_usada || 0) > Number(budget.sintonizacao_maxima || 3) ? 1 : 0;
@@ -863,6 +868,12 @@
 
         function actionFeedback(message) {
             var host = byId('pb-action-feedback');
+            host.textContent = message || '';
+            host.hidden = !message;
+        }
+
+        function choiceFeedback(message) {
+            var host = byId('pb-choice-feedback');
             host.textContent = message || '';
             host.hidden = !message;
         }
@@ -1075,13 +1086,24 @@
                 var group = editableChoiceGroups().find(function (row) {
                     return row.key === key;
                 });
+                var selected = Array.isArray(current().escolhas[key]) ? current().escolhas[key] : [];
+                if (!group) {
+                    choiceFeedback('Aguarde uma prévia atualizada antes de escolher.');
+                    return;
+                }
+                var limit = Math.max(0, Number(group.limite || 0) - fixedChoices(group).length);
+                if (selected.indexOf(val) < 0 && selected.length >= limit) {
+                    choiceFeedback('Todas as escolhas de ' + group.label +
+                        ' estão preenchidas. Remova uma opção antes de escolher outra.');
+                    return;
+                }
+                choiceFeedback('');
                 mutate(function (build) {
                     var values = Array.isArray(build.escolhas[key]) ? build.escolhas[key].slice() : [];
                     var at = values.indexOf(val);
                     if (at >= 0) {
                         values.splice(at, 1);
                     } else {
-                        if (!group) return;
                         var fixed = fixedChoices(group).length;
                         var limit = Math.max(0, Number(group.limite || 0) - fixed);
                         if (values.length >= limit) return;
