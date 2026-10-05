@@ -8996,6 +8996,8 @@ def personagem_reverter_revisao(request, pk, revisao_id):
         revisao.revertida_em = timezone.now()
         revisao.revertida_por = request.user
         revisao.save(update_fields=['revertida', 'revertida_em', 'revertida_por'])
+        if revisao.tipo == 'level_up':
+            _conquistas.registrar_fato_level_up(revisao, estorno=True)
     return redirect(reverse('ficha_detail', args=[pk]) + '?aba=historico&revisao=ok')
 
 

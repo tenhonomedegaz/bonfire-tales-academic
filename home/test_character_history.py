@@ -3,8 +3,10 @@ import json
 from django.urls import reverse
 
 from home.character_history import capture_build, register_revision, revision_status
+from home.conquistas import registrar_fato_level_up
 from home.models import (
     TbItemMundano,
+    TbEventoConquista,
     TbPersonagem,
     TbPersonagemAventura,
     TbPersonagemItem,
@@ -35,6 +37,12 @@ class CharacterHistoryTests(_CriadorBase):
 
     def test_dono_reverte_levelup_enquanto_nao_jogou_nova_mesa(self):
         revision = self._levelup_revision()
+        fact = TbEventoConquista.objects.get(tipo='character_level_up',
+                                             agregado_id=revision.pk)
+        self.assertEqual(fact.payload_json['level_before'], 1)
+        self.assertEqual(fact.payload_json['level_after'], 2)
+        self.assertEqual(len(fact.payload_json['classes_after']), 1)
+        self.assertEqual(registrar_fato_level_up(revision).pk, fact.pk)
         self.client.force_login(self.owner)
         response = self.client.post(reverse(
             'personagem_reverter_revisao', args=[self.personagem.pk, revision.pk]))
@@ -43,6 +51,11 @@ class CharacterHistoryTests(_CriadorBase):
         revision.refresh_from_db()
         self.assertEqual(self.personagem.nivel, 1)
         self.assertTrue(revision.revertida)
+        reversed_fact = TbEventoConquista.objects.get(
+            tipo='character_level_reverted', agregado_id=revision.pk)
+        self.assertEqual(reversed_fact.payload_json['level_after'], 1)
+        self.assertEqual(registrar_fato_level_up(revision, estorno=True).pk,
+                         reversed_fact.pk)
 
     def test_nova_mesa_bloqueia_rollback_do_jogador(self):
         revision = self._levelup_revision()
@@ -58,6 +71,8 @@ class CharacterHistoryTests(_CriadorBase):
         revision.refresh_from_db()
         self.assertEqual(self.personagem.nivel, 2)
         self.assertFalse(revision.revertida)
+        self.assertFalse(TbEventoConquista.objects.filter(
+            tipo='character_level_reverted', agregado_id=revision.pk).exists())
 
     def test_recompensa_da_comunidade_nao_bloqueia_rollback(self):
         revision = self._levelup_revision()

@@ -211,6 +211,47 @@ def registrar_criacao_personagem(personagem):
     return evento
 
 
+def registrar_fato_level_up(revisao, *, estorno=False):
+    """Preserva a trajetória de classes de uma revisão de nível sem conceder marcos."""
+    from .models import TbEventoConquista
+
+    if revisao.tipo != 'level_up' or revisao.nivel_depois <= revisao.nivel_antes:
+        return None
+    personagem = revisao.id_personagem
+    key = f'personagem:{personagem.pk}:revisao:{revisao.pk}:level_up'
+    if estorno:
+        if not revisao.revertida or not revisao.revertida_em:
+            raise ValueError('A revisão ainda não foi revertida.')
+        tipo, key, occurred = 'character_level_reverted', key + ':revertido', revisao.revertida_em
+        payload = {'revision_id': revisao.pk, 'level_before': revisao.nivel_depois,
+                   'level_after': revisao.nivel_antes}
+    else:
+        snapshot = revisao.snapshot_json or {}
+        before = snapshot.get('personagem') or {}
+        classes_before = snapshot.get('classes') or []
+        classes_after = list(personagem.classes.order_by('pk').values(
+            'id_classe_id', 'nivel', 'principal'))
+        if (before.get('nivel') != revisao.nivel_antes or
+                personagem.nivel != revisao.nivel_depois or
+                sum(int(row.get('nivel') or 0) for row in classes_before) != revisao.nivel_antes or
+                sum(int(row['nivel'] or 0) for row in classes_after) != revisao.nivel_depois):
+            raise ValueError('Trajetória de nível inconsistente com a revisão.')
+        tipo, occurred = 'character_level_up', revisao.criado_em
+        payload = {'revision_id': revisao.pk, 'level_before': revisao.nivel_antes,
+                   'level_after': revisao.nivel_depois,
+                   'classes_before': classes_before, 'classes_after': classes_after}
+    evento, _ = TbEventoConquista.objects.get_or_create(
+        origem='site', chave_origem=key,
+        defaults={'tipo': tipo, 'conta_id': personagem.dono_id,
+                  'personagem': personagem, 'agregado_id': revisao.pk,
+                  'ocorrido_em': occurred, 'payload_json': payload},
+    )
+    if (evento.tipo != tipo or evento.conta_id != personagem.dono_id or
+            evento.agregado_id != revisao.pk or evento.payload_json != payload):
+        raise ValueError('Identidade do fato de nível inconsistente.')
+    return evento
+
+
 def avaliar_primeira_ficha_evento(evento):
     """Concede a primeira ficha somente quando o fato gravou essa condição na criação.
 

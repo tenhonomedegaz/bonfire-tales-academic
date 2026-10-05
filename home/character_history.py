@@ -4,6 +4,7 @@ O snapshot cobre somente a estrutura mecanica da ficha. Economia, aventuras, tex
 narrativo e aparencia pertencem a outros ledgers e nunca sao restaurados por aqui.
 """
 
+from django.db import transaction
 from django.db.models import Max, Sum
 
 
@@ -145,10 +146,11 @@ def had_adventure_after(personagem, *, marker_id=None, adventures=None, moment=N
     return qs.exists()
 
 
+@transaction.atomic
 def register_revision(personagem, *, tipo, snapshot, user=None, descricao='',
                       nivel_antes=None, nivel_depois=None):
     models = _models()
-    return models.TbPersonagemRevisao.objects.create(
+    revision = models.TbPersonagemRevisao.objects.create(
         id_personagem=personagem,
         tipo=tipo,
         descricao=(descricao or '')[:255],
@@ -159,6 +161,10 @@ def register_revision(personagem, *, tipo, snapshot, user=None, descricao='',
         aventura_marker_id=adventure_marker(personagem),
         criado_por=user,
     )
+    if tipo == 'level_up' and revision.nivel_depois > revision.nivel_antes:
+        from .conquistas import registrar_fato_level_up
+        registrar_fato_level_up(revision)
+    return revision
 
 
 def latest_active_revision(personagem):
