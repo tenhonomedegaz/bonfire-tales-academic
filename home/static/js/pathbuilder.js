@@ -904,6 +904,7 @@
 
         function renderEditor() {
             renderVariant();
+            byId('pb-retry-preview').hidden = !errors[active];
             renderBase();
             document.querySelectorAll('[data-build-mode]').forEach(function (button) {
                 button.classList.toggle('is-active', button.dataset.buildMode === current().modo);
@@ -1033,6 +1034,7 @@
             var status = byId('pb-status');
             status.textContent = 'Derivando…';
             status.classList.remove('is-error');
+            byId('pb-retry-preview').hidden = true;
             var jobs = [fetchBuild(active, seq)];
             if (alsoOther) jobs.push(fetchBuild(active === 0 ? 1 : 0, seq));
             Promise.all(jobs).then(function () {
@@ -1049,6 +1051,7 @@
                     status.textContent = 'Nível ' + (result ? result.nivel : '?') +
                         ' · nenhum personagem salvo';
                 }
+                byId('pb-retry-preview').hidden = !errors[active];
             });
         }
         function schedulePreview() {
@@ -1056,6 +1059,7 @@
             requestSeq++;
             clearTimeout(timer);
             byId('pb-status').textContent = 'Alterações pendentes · aguardando prévia.';
+            byId('pb-retry-preview').hidden = true;
             renderDiff();
             timer = setTimeout(function () { runPreview(false); }, 260);
         }
@@ -1376,6 +1380,9 @@
             var collapsed = byId('pb-sheet').classList.toggle('is-collapsed');
             this.textContent = collapsed ? 'mostrar' : 'ocultar';
             this.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+        });
+        byId('pb-retry-preview').addEventListener('click', function () {
+            runPreview(false);
         });
         byId('pb-clone').addEventListener('click', function () {
             builds[active === 0 ? 1 : 0] = clone(current());

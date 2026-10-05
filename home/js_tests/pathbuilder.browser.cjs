@@ -339,6 +339,47 @@ test('escolhas cheias explicam recusa; marco racial pendente aparece na etapa e 
   await h.page.waitForFunction(() => document.querySelector('[data-step-tab="3"] .pb-step-badge').dataset.pending === '1');
 });
 
+test('erro inicial permite repetir a prévia sem alterar nem perder a build', async t => {
+  const h = await harness(t);
+  const initial = await h.nextRequest(0);
+  initial.reply({ ok: false, erros: ['Falha temporária'] }, 500);
+  await h.page.locator('#pb-status.is-error').waitFor();
+  const before = await h.stored();
+  await h.page.setViewportSize({ width: 360, height: 800 });
+  const retryButton = await h.page.locator('#pb-retry-preview').boundingBox();
+  const sheet = await h.page.locator('#pb-sheet').boundingBox();
+  assert.ok(retryButton.x >= sheet.x && retryButton.x + retryButton.width <= sheet.x + sheet.width,
+    'tentar novamente cabe no painel da ficha no celular');
+  await h.page.locator('#pb-retry-preview').click();
+  const retry = await h.nextRequest(1);
+  assert.deepEqual(retry.input.build, before[0]);
+  assert.equal(await h.page.locator('#pb-retry-preview').isHidden(), true);
+  retry.reply(result(retry.input.build, 'RECUPERADA SEM EDIÇÃO'));
+  await h.page.getByText('RECUPERADA SEM EDIÇÃO', { exact: true }).waitFor();
+  assert.equal(await h.page.locator('#pb-status.is-error').count(), 0);
+  assert.deepEqual(await h.stored(), before);
+  await h.page.locator('[data-step-tab="3"]').click();
+  assert.equal(await h.page.locator('[data-attr="FOR"][data-delta="1"]').isDisabled(), false);
+});
+
+test('repetir prévia após erro mantém a última ficha até confirmar a mesma edição', async t => {
+  const h = await harness(t);
+  await h.initial();
+  await h.page.locator('[data-attr="FOR"][data-delta="1"]').click();
+  (await h.nextRequest(1)).reply({ ok: false, erros: ['Falha temporária'] }, 500);
+  await h.page.locator('#pb-status.is-error').waitFor();
+  assert.equal(await h.page.locator('[data-confirmed-sheet]').count(), 1);
+  const before = await h.stored();
+  await h.page.locator('#pb-retry-preview').click();
+  const retry = await h.nextRequest(2);
+  assert.deepEqual(retry.input.build, before[0]);
+  assert.equal(await h.page.locator('[data-confirmed-sheet]').count(), 1);
+  retry.reply(result(retry.input.build, 'EDIÇÃO CONFIRMADA'));
+  await h.page.getByText('EDIÇÃO CONFIRMADA', { exact: true }).waitFor();
+  assert.deepEqual(await h.stored(), before);
+  assert.equal(await h.page.locator('#pb-retry-preview').isHidden(), true);
+});
+
 test('talento racial indisponível é pendência e pode ser substituído ou limpo', async t => {
   const build = seed();
   build.talentos_raciais = [{ nivel: 5, nome: 'Legado' }];
