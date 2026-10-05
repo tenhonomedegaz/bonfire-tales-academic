@@ -9,6 +9,8 @@ from home.models import (
     TbClassehabilidade,
     TbItemMagico,
     TbItemMundano,
+    TbEssencia,
+    TbLinhagem,
     TbMagia,
     TbPersonagem,
     TbPersonagemAtributoBonus,
@@ -20,6 +22,8 @@ from home.models import (
     TbSubclasse,
     TbTalento,
     TbOpcaojogo,
+    TbRaca,
+    TbTracoracial,
 )
 from home.test_criador import _CriadorBase
 
@@ -573,6 +577,81 @@ class PathbuilderTests(_CriadorBase):
                         categoria="racial", nivel=selection["nivel"],
                         nome=selection["nome"]).count(), 1)
                 self.assertEqual(views._pendencias_talento_racial(character), [])
+
+    def test_marcos_raciais_cobrem_todas_linhagens_e_essencias_do_catalogo(self):
+        from home import views
+        from django.db import transaction
+
+        races = list(TbRaca.objects.order_by('slug'))
+        lineages = list(TbLinhagem.objects.select_related('id_raca').order_by('id_linhagem'))
+        essences = list(TbEssencia.objects.order_by('slug'))
+        self.assertEqual(len(lineages), 16)
+        self.assertEqual(len(essences), 4)
+        variants = [
+            (f'linhagem:{lineage.id_raca.slug}:{lineage.slug}', lineage.id_raca.slug,
+             {'linhagem_slug': lineage.slug})
+            for lineage in lineages
+        ] + [
+            (f'essencia:{race.slug}:{essence.slug}', race.slug,
+             {'essencia_slug': essence.slug})
+            for race in races if race.permite_essencia for essence in essences
+        ]
+        self.assertEqual(len(variants), 32)
+
+        for index, (label, race_slug, identity) in enumerate(variants):
+            with self.subTest(identity=label):
+                owner = self._novo_usuario(f'matriz-racial-{index}')
+                if identity.get('essencia_slug') == 'draconica':
+                    identity = {**identity, 'vertente': 'Vermelho'}
+                elif identity.get('essencia_slug') in ('elemental', 'vampirismo'):
+                    essence = TbEssencia.objects.get(slug=identity['essencia_slug'])
+                    identity = {**identity,
+                                'vertente': views._essencia_subescolha(essence)['opcoes'][0]['slug']}
+                payload = self._payload('guerreiro', raca_slug=race_slug, **identity)
+                if identity.get('essencia_slug') == 'draconica':
+                    payload.setdefault('escolhas_raca', {}).setdefault('menus', []).append({
+                        'tipo': 'alento_elemental', 'fonte': 'Alento Elemental',
+                        'valores': ['fogo'],
+                    })
+                if identity.get('essencia_slug') == 'nephilim':
+                    essence = TbEssencia.objects.get(slug='nephilim')
+                    sources = TbTracoracial.objects.filter(
+                        id_essencia=essence, talento_racial=False, nivel_requisito__lte=1)
+                    payload.setdefault('escolhas_raca', {}).setdefault('menus', []).extend({
+                        'tipo': group['kind'], 'fonte': group['origem'],
+                        'valores': [group['universo'][0]['slug']],
+                    } for group in views._racial_menu_groups(sources))
+                if (identity.get('linhagem_slug') == 'sálarin'
+                        or identity.get('essencia_slug') == 'nephilim'):
+                    resolved, errors = views._criador_resolver(payload)
+                    self.assertFalse(errors, errors)
+                    with transaction.atomic():
+                        temporary = views._criador_persistir(owner, payload, resolved)
+                        payload['magias_concedidas'] = [{
+                            'fonte': group['fonte'], 'slot': group['slot'],
+                            'magias': [group['opcoes'][0]['slug']],
+                        } for group in temporary._criador_spell_groups]
+                        transaction.set_rollback(True)
+                created = self._post_criar(owner, payload)
+                self.assertTrue(created.json().get('ok'), created.content)
+                character = TbPersonagem.objects.get(pk=created.json()['id'])
+                character.classes.filter(principal=True).update(nivel=17)
+                character.nivel = 17
+                character.save(update_fields=['nivel', 'atualizado_em'])
+                groups = views._pendencias_talento_racial(character)
+                self.assertEqual([group['nivel'] for group in groups], [5, 9, 13, 17])
+                expected = [(group['nivel'], {option['nome'] for option in group['opcoes']})
+                            for group in groups]
+                self.assertTrue(all(options for _, options in expected), label)
+
+                count_before = TbPersonagem.objects.count()
+                preview = self._post_preview(payload, self._build(
+                    'guerreiro', classes=[{'slug': 'guerreiro', 'nivel': 17, 'subclasse': ''}]))
+                self.assertEqual(preview.status_code, 200, preview.content)
+                actual = [(group['nivel'], {option['nome'] for option in group['opcoes']})
+                          for group in preview.json()['build']['talentos_raciais_grupos']]
+                self.assertEqual(actual, expected)
+                self.assertEqual(TbPersonagem.objects.count(), count_before)
 
     def test_preview_deriva_niveis_subclasse_itens_talentos_e_magias_sem_persistir(self):
         payload = self._payload("guerreiro")
