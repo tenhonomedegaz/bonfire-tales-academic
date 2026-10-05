@@ -1,0 +1,42 @@
+.cronica-inbox {
+  width: min(100% - 2rem, 760px);
+  margin: 2rem auto 4rem;
+  color: var(--text);
+}
+
+.cronica-inbox h1 {
+  font-family: Cinzel, serif;
+  font-size: clamp(1.5rem, 4vw, 2rem);
+}
+
+.cronica-inbox-back { margin: .5rem 0 1.5rem; }
+.cronica-inbox-back a { color: var(--ember); }
+.cronica-inbox-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .75rem; }
+
+.cronica-inbox-item,
+.cronica-inbox-empty {
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--stroke);
+  border-radius: 8px;
+  background: var(--bg1);
+}
+
+.cronica-inbox-item.is-unread { border-color: var(--ember); }
+.cronica-inbox-item form { margin: 0; }
+.cronica-inbox-state { display: block; color: var(--ember); font-size: .75rem; margin-bottom: .35rem; }
+.cronica-inbox-action {
+  display: inline-block;
+  max-width: 100%;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+.cronica-inbox-action:hover { color: var(--ember); text-decoration: underline; }
+.cronica-inbox-action:focus-visible,
+.cronica-inbox-back a:focus-visible { outline: 2px solid var(--ember); outline-offset: 3px; }
+.cronica-inbox-item time { display: block; color: var(--muted); font-size: .8rem; margin-top: .5rem; }

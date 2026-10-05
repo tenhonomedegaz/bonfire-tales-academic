@@ -15500,9 +15500,16 @@ def cronica_notificacoes_view(request):
 @login_required
 @require_POST
 def cronica_notificacao_ler_view(request, notificacao_id):
-    TbCronicaNotificacao.objects.filter(
-        pk=notificacao_id, destinatario=request.user, lida_em__isnull=True
-    ).update(lida_em=timezone.now())
+    notification = get_object_or_404(
+        _notificacoes_cronica_visiveis(request.user), pk=notificacao_id,
+    )
+    TbCronicaNotificacao.objects.filter(pk=notification.pk, lida_em__isnull=True).update(
+        lida_em=timezone.now())
+    if request.POST.get('abrir') == '1':
+        url = reverse('cronica_detail', kwargs={'slug': notification.cronica.slug})
+        if notification.comentario_id:
+            url += f'#comentario-{notification.comentario_id}'
+        return redirect(url)
     return redirect('cronica_notificacoes')
 
 

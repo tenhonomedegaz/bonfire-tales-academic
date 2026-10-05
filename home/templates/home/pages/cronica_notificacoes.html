@@ -1,21 +1,24 @@
 {% extends 'home/base.html' %}
+{% load static %}
 {% block content %}
-<main class="cronicas-featured">
+<link rel="stylesheet" href="{% static 'css/pages/cronica_notificacoes.css' %}">
+<main class="cronica-inbox">
   <h1>Notificações das crônicas</h1>
-  <p><a href="{% url 'mundo_cronicas' %}">Voltar às crônicas</a></p>
-  <ul>
+  <p class="cronica-inbox-back"><a href="{% url 'mundo_cronicas' %}">Voltar às crônicas</a></p>
+  <ul class="cronica-inbox-list">
     {% for item in notificacoes %}
-    <li>
-      {% if not item.lida_em %}<strong>Nova</strong>{% endif %}
-      <a href="{% url 'cronica_detail' slug=item.cronica.slug %}{% if item.comentario_id %}#comentario-{{ item.comentario_id }}{% endif %}">{{ item.texto }}</a>
-      <time datetime="{{ item.criada_em|date:'c' }}">{{ item.criada_em|date:'d/m/Y H:i' }}</time>
+    <li class="cronica-inbox-item{% if not item.lida_em %} is-unread{% endif %}">
+      {% if not item.lida_em %}<strong class="cronica-inbox-state">Nova</strong>{% endif %}
       {% if not item.lida_em %}
       <form method="post" action="{% url 'cronica_notificacao_ler' item.pk %}">
-        {% csrf_token %}<button type="submit">Marcar como lida</button>
+        {% csrf_token %}<button class="cronica-inbox-action" type="submit" name="abrir" value="1" aria-label="Abrir e marcar como lida: {{ item.texto }}">{{ item.texto }}</button>
       </form>
+      {% else %}
+      <a class="cronica-inbox-action" href="{% url 'cronica_detail' slug=item.cronica.slug %}{% if item.comentario_id %}#comentario-{{ item.comentario_id }}{% endif %}">{{ item.texto }}</a>
       {% endif %}
+      <time datetime="{{ item.criada_em|date:'c' }}">{{ item.criada_em|date:'d/m/Y H:i' }}</time>
     </li>
-    {% empty %}<li>Sem notificações.</li>{% endfor %}
+    {% empty %}<li class="cronica-inbox-empty">Sem notificações.</li>{% endfor %}
   </ul>
 </main>
 {% endblock %}
