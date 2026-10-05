@@ -121,6 +121,21 @@ class ConquistaAdminFormTests(TestCase):
                     'operator': 'gte', 'target': 1,
                 })
 
+    def test_level_form_requires_real_class_and_configured_threshold(self):
+        classe = TbClasse.objects.create(nome='Classe nível QA', slug='classe-nivel-qa')
+        data = {**self.base_data('nivel-assistido'),
+                'metrica_assistida': 'character_level',
+                'classe_nivel': str(classe.pk), 'alvo_nivel': '3'}
+        form = ConquistaAdminForm(data=data)
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.save().criterio_json, {
+            'schema_version': 1, 'metric': 'character_level',
+            'scope': 'account', 'filters': {'class_slug': classe.slug},
+            'operator': 'gte', 'target': 3})
+        invalid = ConquistaAdminForm(data={**data, 'slug': 'nivel-invalido',
+                                           'alvo_nivel': '21'})
+        self.assertIn('alvo_nivel', invalid.errors)
+
     def test_legacy_rule_cannot_be_activated_without_supported_definition(self):
         legacy = TbConquista.objects.create(
             slug='legada-inativa', nome='Legada', criterio='automatico',

@@ -13,6 +13,7 @@ METRICAS = (
     ('class_started', 'Início de classe no nível 1'),
     ('items_purchased_units', 'Unidades de itens compradas'),
     ('adventures_played', 'Aventuras de mesa comprovadas'),
+    ('character_level', 'Nível atual por classe principal'),
     ('quests_completed', 'Primeira quest categorizada e comprovada'),
 )
 CATALOGOS = {'mundano', 'magico', 'oficina', 'comunidade'}
@@ -43,6 +44,13 @@ class ConquistaAdminForm(forms.ModelForm):
     alvo_unidades = forms.IntegerField(required=False, min_value=1,
                                        label='Limiar (unidades ou aventuras)',
                                        help_text='Limiar positivo definido pelo PO antes da ativação.')
+    classe_nivel = forms.ModelChoiceField(
+        queryset=TbClasse.objects.all().order_by('nome'), required=False,
+        label='Classe principal (nível)',
+    )
+    alvo_nivel = forms.IntegerField(required=False, min_value=2, max_value=20,
+                                    label='Nível mínimo',
+                                    help_text='Escolha o marco com o PO antes da ativação.')
 
     class Meta:
         model = TbConquista
@@ -59,6 +67,10 @@ class ConquistaAdminForm(forms.ModelForm):
         if metric == 'class_started':
             slug = (rule.get('filters') or {}).get('class_slug')
             self.fields['classe_inicial'].initial = TbClasse.objects.filter(slug=slug).first()
+        elif metric == 'character_level':
+            slug = (rule.get('filters') or {}).get('class_slug')
+            self.fields['classe_nivel'].initial = TbClasse.objects.filter(slug=slug).first()
+            self.fields['alvo_nivel'].initial = rule.get('target')
         elif metric == 'quests_completed':
             self.fields['categoria_quest'].initial = (rule.get('filters') or {}).get('category')
         elif metric in ('items_purchased_units', 'adventures_played'):
@@ -84,6 +96,17 @@ class ConquistaAdminForm(forms.ModelForm):
                 self.add_error('classe_inicial', 'Selecione uma classe real.')
                 return cleaned
             rule.update(filters={'class_slug': classe.slug}, operator='gte', target=1)
+        elif metric == 'character_level':
+            classe = cleaned.get('classe_nivel')
+            target = cleaned.get('alvo_nivel')
+            if classe is None:
+                self.add_error('classe_nivel', 'Selecione uma classe real.')
+            if target is None:
+                self.add_error('alvo_nivel', 'Informe o nível definido pelo PO.')
+            if self.errors:
+                return cleaned
+            rule.update(filters={'class_slug': classe.slug},
+                        operator='gte', target=target)
         elif metric == 'quests_completed':
             category = cleaned.get('categoria_quest')
             if not category:

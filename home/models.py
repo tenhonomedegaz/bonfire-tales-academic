@@ -2632,7 +2632,8 @@ class TbConquista(models.Model):
         super().clean()
         from .conquistas import (identidades_itens_ausentes, regra_aventuras_jogadas_valida,
                                  regra_inicio_classe_valida, regra_quest_categorizada_valida,
-                                 regra_unidades_compradas_valida)
+                                 regra_unidades_compradas_valida,
+                                 regra_nivel_personagem_valida)
         supported = [
             {'schema_version': 1, 'metric': metric,
              'scope': 'account', 'operator': 'gte', 'target': 1}
@@ -2643,12 +2644,13 @@ class TbConquista(models.Model):
                 not units_rule and
                 not regra_inicio_classe_valida(self.criterio_json) and
                 not regra_aventuras_jogadas_valida(self.criterio_json) and
-                not regra_quest_categorizada_valida(self.criterio_json)):
+                not regra_quest_categorizada_valida(self.criterio_json) and
+                not regra_nivel_personagem_valida(self.criterio_json)):
             if self.pk and not self.ativo and type(self).objects.filter(
                 pk=self.pk, criterio='automatico', criterio_json=self.criterio_json,
             ).exists():
                 return  # Definições legadas inativas permanecem editáveis.
-            raise ValidationError({'criterio_json': 'Critério automático não suportado. Use characters_created, stories_published, items_purchased, items_purchased_units, class_started, adventures_played ou quests_completed com parâmetros válidos.'})
+            raise ValidationError({'criterio_json': 'Critério automático não suportado. Use characters_created, stories_published, items_purchased, items_purchased_units, class_started, adventures_played, quests_completed ou character_level com parâmetros válidos.'})
         if self.criterio == 'automatico' and self.ativo and units_rule:
             previous = (type(self).objects.filter(pk=self.pk).values('criterio_json', 'ativo').first()
                         if self.pk else None)

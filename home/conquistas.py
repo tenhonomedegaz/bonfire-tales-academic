@@ -114,6 +114,22 @@ def regra_quest_categorizada_valida(regra):
         regra['target'] == 1)
 
 
+def regra_nivel_personagem_valida(regra):
+    """Marco de nível atual por classe principal, com limiar editorial explícito."""
+    import re
+
+    return (isinstance(regra, dict) and set(regra) == {
+        'schema_version', 'metric', 'scope', 'filters', 'operator', 'target'} and
+        type(regra['schema_version']) is int and regra['schema_version'] == 1 and
+        regra['metric'] == 'character_level' and regra['scope'] == 'account' and
+        regra['operator'] == 'gte' and type(regra['target']) is int and
+        2 <= regra['target'] <= 20 and isinstance(regra['filters'], dict) and
+        set(regra['filters']) == {'class_slug'} and
+        type(regra['filters']['class_slug']) is str and
+        bool(re.fullmatch(r'[a-z0-9]+(?:-[a-z0-9]+)*',
+                          regra['filters']['class_slug'])))
+
+
 @transaction.atomic
 def conceder_conquista(user, conquista, por=None):
     """Concede `conquista` a `user` (idempotente). Se ainda não tinha, cria a
@@ -212,7 +228,7 @@ def registrar_criacao_personagem(personagem):
 
 
 def registrar_fato_level_up(revisao, *, estorno=False):
-    """Preserva a trajetória de classes de uma revisão de nível sem conceder marcos."""
+    """Registra a revisão e atualiza marcos de nível na mesma transação."""
     from .models import TbEventoConquista
 
     if revisao.tipo != 'level_up' or revisao.nivel_depois <= revisao.nivel_antes:
@@ -249,7 +265,89 @@ def registrar_fato_level_up(revisao, *, estorno=False):
     if (evento.tipo != tipo or evento.conta_id != personagem.dono_id or
             evento.agregado_id != revisao.pk or evento.payload_json != payload):
         raise ValueError('Identidade do fato de nível inconsistente.')
+    avaliar_nivel_personagem(personagem.dono)
     return evento
+
+
+def _niveis_comprovados(user):
+    """Retorna o maior nível atual por classe principal com revisão canônica válida."""
+    from .models import TbEventoConquista, TbPersonagem, TbPersonagemRevisao
+
+    levels = {}
+    for character in TbPersonagem.objects.filter(dono=user).prefetch_related(
+            'classes__id_classe'):
+        primary = [row for row in character.classes.all() if row.principal]
+        if len(primary) != 1 or not 2 <= character.nivel <= 20:
+            continue
+        revision = TbPersonagemRevisao.objects.filter(
+            id_personagem=character, tipo='level_up', revertida=False,
+            nivel_depois=character.nivel).order_by('-criado_em', '-pk').first()
+        if revision is None:
+            continue
+        event = TbEventoConquista.objects.filter(
+            origem='site', tipo='character_level_up', conta=user,
+            agregado_id=revision.pk, personagem=character,
+            chave_origem=f'personagem:{character.pk}:revisao:{revision.pk}:level_up',
+        ).first()
+        current_classes = list(character.classes.order_by('pk').values(
+            'id_classe_id', 'nivel', 'principal'))
+        if (event is None or (event.payload_json or {}).get('revision_id') != revision.pk or
+                (event.payload_json or {}).get('level_after') != character.nivel or
+                (event.payload_json or {}).get('classes_after') != current_classes or
+                sum(row['nivel'] for row in current_classes) != character.nivel):
+            continue
+        slug = primary[0].id_classe.slug
+        if character.nivel > levels.get(slug, (0, None))[0]:
+            levels[slug] = (character.nivel, event)
+    return levels
+
+
+@transaction.atomic
+def avaliar_nivel_personagem(user):
+    """Concede ou revoga marcos automáticos após subir ou reverter nível."""
+    from django.contrib.auth import get_user_model
+    from django.utils import timezone
+    from .models import (CosmeticCheckoutPurchase, TbConquista, TbUsuarioConquista,
+                         TbUsuarioCosmetico)
+
+    get_user_model().objects.select_for_update().only('pk').get(pk=user.pk)
+    rules = [rule for rule in TbConquista.objects.filter(
+        ativo=True, criterio='automatico', criterio_json__metric='character_level'
+    ).select_related('recompensa') if regra_nivel_personagem_valida(rule.criterio_json)]
+    if not rules:
+        return
+    levels = _niveis_comprovados(user)
+    for rule in rules:
+        definition = rule.criterio_json
+        level, event = levels.get(definition['filters']['class_slug'], (0, None))
+        grant = TbUsuarioConquista.objects.select_for_update().filter(
+            user=user, conquista=rule).first()
+        if level >= definition['target']:
+            if grant is None or grant.concedida_por_id is None:
+                conceder_conquista(user, rule)
+                TbUsuarioConquista.objects.filter(user=user, conquista=rule).update(
+                    evidencia_json={'evento_id': str(event.pk),
+                                   'chave_origem': event.chave_origem,
+                                   'agregado_id': event.agregado_id,
+                                   'personagem_id': event.personagem_id,
+                                   'nivel': level},
+                    definicao_json=definition)
+        elif grant and grant.concedida_por_id is None and grant.revogada_em is None:
+            now = timezone.now()
+            grant.revogada_em = now
+            grant.save(update_fields=['revogada_em'])
+            if rule.recompensa_id:
+                other_grants = TbUsuarioConquista.objects.filter(
+                    user=user, conquista__recompensa_id=rule.recompensa_id,
+                    revogada_em__isnull=True).exclude(pk=grant.pk).exists()
+                paid = CosmeticCheckoutPurchase.objects.filter(
+                    beneficiary=user, cosmetico_id=rule.recompensa_id,
+                    granted_at__isnull=False).exists()
+                if not other_grants and not paid:
+                    TbUsuarioCosmetico.objects.filter(
+                        user=user, cosmetico_id=rule.recompensa_id,
+                        origem__startswith='conquista:',
+                        suspenso_em__isnull=True).update(suspenso_em=now)
 
 
 def avaliar_primeira_ficha_evento(evento):
@@ -1145,6 +1243,7 @@ def conquistas_do_usuario(user, incluir_bloqueadas=True, *, pode_ver_privados=Tr
     total_visivel = 0
     aventuras_comprovadas = None
     compras_comprovadas = None
+    niveis_comprovados = None
     for c in qs:
         if (not pode_ver_privados and isinstance(c.criterio_json, dict) and
                 c.criterio_json.get('metric') == 'class_started' and
@@ -1178,6 +1277,15 @@ def conquistas_do_usuario(user, incluir_bloqueadas=True, *, pode_ver_privados=Tr
                                  fact.payload_json['catalogo_id']) in identities),
                 'alvo': c.criterio_json['target'],
                 'operador': c.criterio_json['operator'],
+            }
+        if (pode_ver_privados and isinstance(c.criterio_json, dict) and
+                regra_nivel_personagem_valida(c.criterio_json)):
+            if niveis_comprovados is None:
+                niveis_comprovados = _niveis_comprovados(user)
+            item['progresso_nivel'] = {
+                'atual': niveis_comprovados.get(
+                    c.criterio_json['filters']['class_slug'], (0, None))[0],
+                'alvo': c.criterio_json['target'],
             }
         if tem:
             obtidas.append(item)
