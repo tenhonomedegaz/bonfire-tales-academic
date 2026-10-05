@@ -786,7 +786,8 @@ def _slugs_obtidas(user):
 
 def visibilidade_inicio_classe(users):
     """Conquistas de classe publicáveis e recompensas a ocultar por conta."""
-    from .models import TbPersonagem, TbUsuarioConquista
+    from .models import (CosmeticCheckoutPurchase, TbCosmetico, TbPersonagem,
+                         TbUsuarioConquista, TbUsuarioCosmetico)
 
     ids = [user.pk for user in users if getattr(user, 'pk', None)]
     publicas = {user_id: set() for user_id in ids}
@@ -817,6 +818,36 @@ def visibilidade_inicio_classe(users):
                 visible_rewards[user_id].add(reward_slug)
         elif reward_slug:
             ocultas[user_id].add(reward_slug)
+    candidate_slugs = set().union(*ocultas.values())
+    if candidate_slugs:
+        independent_grants = (TbUsuarioConquista.objects.filter(
+            user_id__in=ids, conquista__ativo=True, revogada_em__isnull=True,
+            conquista__recompensa__slug__in=candidate_slugs,
+        ).values('user_id', 'conquista__recompensa__slug',
+                 'conquista__criterio_json'))
+        for grant in independent_grants:
+            criterion = grant['conquista__criterio_json']
+            if not isinstance(criterion, dict) or criterion.get('metric') != 'class_started':
+                visible_rewards[grant['user_id']].add(
+                    grant['conquista__recompensa__slug'])
+        purchases = CosmeticCheckoutPurchase.objects.filter(
+            beneficiary_id__in=ids, cosmetico__slug__in=candidate_slugs,
+            granted_at__isnull=False,
+        ).values_list('beneficiary_id', 'cosmetico__slug')
+        for user_id, slug in purchases:
+            visible_rewards[user_id].add(slug)
+        other_inventory = (TbUsuarioCosmetico.objects.filter(
+            user_id__in=ids, cosmetico__slug__in=candidate_slugs,
+            suspenso_em__isnull=True,
+        ).exclude(origem__startswith='conquista:').exclude(origem='')
+          .values_list('user_id', 'cosmetico__slug'))
+        for user_id, slug in other_inventory:
+            visible_rewards[user_id].add(slug)
+        free_slugs = set(TbCosmetico.objects.filter(
+            slug__in=candidate_slugs, ativo=True, origem='livre',
+        ).values_list('slug', flat=True))
+        for user_id in ids:
+            visible_rewards[user_id].update(free_slugs)
     for user_id in ids:
         ocultas[user_id].difference_update(visible_rewards[user_id])
     return publicas, ocultas

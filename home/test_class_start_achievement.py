@@ -1,4 +1,5 @@
 import json
+from decimal import Decimal
 from io import StringIO
 from unittest.mock import patch
 
@@ -6,12 +7,14 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.core.management import call_command
 from django.urls import reverse
+from django.utils import timezone
 
 from home.badges import perfil_badges_batch
-from home.conquistas import conceder_conquista, conquistas_do_usuario
-from home.models import (TbClasse, TbConquista, TbCosmetico, TbEventoConquista,
-                         TbPersonagem, TbPersonagemClasse, TbUsuarioConquista,
-                         TbUsuarioCosmetico)
+from home.conquistas import (conceder_conquista, conquistas_do_usuario,
+                            visibilidade_inicio_classe)
+from home.models import (AsaasCheckoutOrder, CosmeticCheckoutPurchase, TbClasse,
+                         TbConquista, TbCosmetico, TbEventoConquista, TbPersonagem,
+                         TbPersonagemClasse, TbUsuarioConquista, TbUsuarioCosmetico)
 from home.test_criador import _CriadorBase
 
 
@@ -51,6 +54,52 @@ class ClassStartAchievementTests(_CriadorBase):
         character.save(update_fields=['arquivado'])
         self.assertNotContains(self.client.get(url), rule.nome)
         self.assertNotContains(self.client.get(url), rule.recompensa.nome)
+
+    def test_shared_badge_keeps_independent_achievement_right(self):
+        rule = self._rule()
+        rule.nome = 'Conquista da classe oculta QA'
+        rule.save(update_fields=['nome'])
+        user = self._novo_usuario('shared-class-badge', staff=True)
+        created = self._post_criar(user, self._payload('guerreiro'))
+        self.assertTrue(created.json()['ok'], created.content)
+        self.assertFalse(TbPersonagem.objects.get(pk=created.json()['id']).publico)
+        url = reverse('public_profile', args=[user.username])
+        self.client.logout()
+        self.assertNotContains(self.client.get(url), rule.recompensa.nome)
+
+        independent = TbConquista.objects.create(
+            slug='shared-badge-independent', nome='Conquista independente QA',
+            criterio='manual', recompensa=rule.recompensa)
+        self.assertTrue(conceder_conquista(user, independent))
+        self.assertNotIn(rule.recompensa.slug,
+                         visibilidade_inicio_classe([user])[1][user.pk])
+        self.assertNotContains(self.client.get(url), rule.nome)
+        self.assertContains(self.client.get(url), rule.recompensa.nome)
+        self.assertIn(rule.recompensa.slug, [badge['slug'] for badge in
+                      perfil_badges_batch([user])[user.pk]['badges']])
+
+    def test_private_class_does_not_hide_independently_purchased_badge(self):
+        rule = self._rule()
+        rule.nome = 'Conquista da classe oculta QA'
+        rule.save(update_fields=['nome'])
+        user = self._novo_usuario('purchased-class-badge', staff=True)
+        created = self._post_criar(user, self._payload('guerreiro'))
+        self.assertTrue(created.json()['ok'], created.content)
+        self.assertFalse(TbPersonagem.objects.get(pk=created.json()['id']).publico)
+        order = AsaasCheckoutOrder.objects.create(
+            user=user, email=user.email, product_code='cosmetic:' + rule.recompensa.slug,
+            mode='single', amount=Decimal('12.34'))
+        CosmeticCheckoutPurchase.objects.create(
+            order=order, beneficiary=user, cosmetico=rule.recompensa,
+            slug=rule.recompensa.slug, name=rule.recompensa.nome,
+            granted_at=timezone.now())
+
+        self.client.logout()
+        url = reverse('public_profile', args=[user.username])
+        self.assertNotContains(self.client.get(url), rule.nome)
+        self.assertContains(self.client.get(url), rule.recompensa.nome)
+        self.assertIn(rule.recompensa.slug, [badge['slug'] for badge in
+                      perfil_badges_batch([user])[user.pk]['badges']])
 
     def _rule(self, slug='guerreiro'):
         definition = {'schema_version': 1, 'metric': 'class_started',
