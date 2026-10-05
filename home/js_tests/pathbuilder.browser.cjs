@@ -293,6 +293,50 @@ test('Q09 recusa de talento explica orçamento sem apagar a build', async t => {
   assert.equal((await h.stored())[0].talentos.length, 0);
 });
 
+test('escolhas cheias explicam recusa; marco racial pendente aparece na etapa e bloqueia revisão', async t => {
+  const h = await harness(t);
+  const key = 'opcao|teste|0|teste|0';
+  const group = { key, label: 'Estilo', origem: 'Teste', limite: 1, pendentes: 1,
+    resolvidas: [], selecionadas: [], opcoes: [
+      { valor: 'defesa', nome: 'Defesa' }, { valor: 'duelo', nome: 'Duelo' },
+    ] };
+  const preview = (build, pendingChoice) => {
+    const answer = result(build);
+    answer.build.escolhas_grupos = [{ ...group, pendentes: pendingChoice ? 1 : 0,
+      selecionadas: build.escolhas[key] || [] }];
+    answer.build.escolhas_pendentes = pendingChoice ? [{ pendentes: 1 }] : [];
+    answer.build.talentos_raciais_grupos = [{ nivel: 5, opcoes: [{ nome: 'Vigor' }],
+      selecionado: build.talentos_raciais[0]?.nome || '' }];
+    answer.build.validacao = { modo: 'regras', valida: false,
+      problemas: ['Escolha um talento racial.'] };
+    return answer;
+  };
+  const first = await h.nextRequest(0);
+  first.reply(preview(first.input.build, true));
+  await h.page.locator('[data-confirmed-sheet]').waitFor();
+  await h.page.locator('[data-step-tab="2"]').click();
+  assert.equal(await h.page.locator('[data-step-tab="2"] .pb-step-badge').getAttribute('data-pending'), '1');
+  assert.equal(await h.page.locator('[data-step-tab="3"] .pb-step-badge').getAttribute('data-pending'), '2');
+  await h.page.locator('[data-choice-val="defesa"] [data-choice-pick]').click();
+  const selected = await h.nextRequest(1);
+  selected.reply(preview(selected.input.build, false));
+  await h.page.waitForFunction(() => document.querySelector('[data-step-tab="2"] .pb-step-badge').dataset.pending === '');
+  await h.page.locator('[data-choice-val="duelo"] [data-choice-pick]').click();
+  assert.match(await h.page.locator('#pb-choice-feedback').innerText(), /Todas as escolhas de Estilo/);
+  assert.deepEqual((await h.stored())[0].escolhas[key], ['defesa']);
+  await h.page.locator('[data-step-tab="6"]').click();
+  assert.equal(await h.page.locator('#pb-conclude').isDisabled(), true);
+  await h.page.setViewportSize({ width: 360, height: 800 });
+  await h.page.locator('[data-step-tab="3"]').click();
+  assert.equal(await h.page.locator('[data-step-tab="3"] .pb-step-badge').getAttribute('data-pending'), '2');
+  assert.equal(await h.page.locator('[data-racial-level="5"]').isVisible(), true);
+  await h.page.locator('[data-racial-level="5"]').selectOption('Vigor');
+  const racial = await h.nextRequest(2);
+  assert.deepEqual(racial.input.build.talentos_raciais, [{ nivel: 5, nome: 'Vigor' }]);
+  racial.reply(preview(racial.input.build, false));
+  await h.page.waitForFunction(() => document.querySelector('[data-step-tab="3"] .pb-step-badge').dataset.pending === '1');
+});
+
 test('Q10 magias avança para revisão; pendência e prévia desatualizada não concluem', async t => {
   const build = seed();
   build.magias = [{slug:'luz',preparada:true}];
