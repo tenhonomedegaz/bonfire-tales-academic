@@ -12,6 +12,7 @@ METRICAS = (
     ('items_purchased', 'Primeira compra de item'),
     ('class_started', 'Início de classe no nível 1'),
     ('items_purchased_units', 'Unidades de itens compradas'),
+    ('adventures_played', 'Aventuras de mesa comprovadas'),
 )
 CATALOGOS = {'mundano', 'magico', 'oficina', 'comunidade'}
 
@@ -32,9 +33,10 @@ class ConquistaAdminForm(forms.ModelForm):
     )
     operador_unidades = forms.ChoiceField(
         choices=(('gte', 'Pelo menos'), ('gt', 'Mais que')),
-        required=False, initial='gte',
+        required=False, initial='gte', label='Operador (unidades ou aventuras)',
     )
     alvo_unidades = forms.IntegerField(required=False, min_value=1,
+                                       label='Limiar (unidades ou aventuras)',
                                        help_text='Limiar positivo definido pelo PO antes da ativação.')
 
     class Meta:
@@ -52,11 +54,12 @@ class ConquistaAdminForm(forms.ModelForm):
         if metric == 'class_started':
             slug = (rule.get('filters') or {}).get('class_slug')
             self.fields['classe_inicial'].initial = TbClasse.objects.filter(slug=slug).first()
-        elif metric == 'items_purchased_units':
-            items = (rule.get('filters') or {}).get('items') or []
-            self.fields['itens_comprados'].initial = '\n'.join(
-                f"{item['catalog']}:{item['id']}" for item in items
-                if isinstance(item, dict) and {'catalog', 'id'} <= set(item))
+        elif metric in ('items_purchased_units', 'adventures_played'):
+            if metric == 'items_purchased_units':
+                items = (rule.get('filters') or {}).get('items') or []
+                self.fields['itens_comprados'].initial = '\n'.join(
+                    f"{item['catalog']}:{item['id']}" for item in items
+                    if isinstance(item, dict) and {'catalog', 'id'} <= set(item))
             self.fields['operador_unidades'].initial = rule.get('operator', 'gte')
             self.fields['alvo_unidades'].initial = rule.get('target')
 
@@ -100,6 +103,16 @@ class ConquistaAdminForm(forms.ModelForm):
             if self.errors:
                 return cleaned
             rule.update(aggregate='sum', filters={'items': items},
+                        operator=cleaned['operador_unidades'],
+                        target=cleaned['alvo_unidades'])
+        elif metric == 'adventures_played':
+            if cleaned.get('alvo_unidades') is None:
+                self.add_error('alvo_unidades', 'Informe o limiar definido pelo PO.')
+            if not cleaned.get('operador_unidades'):
+                self.add_error('operador_unidades', 'Escolha o operador definido pelo PO.')
+            if self.errors:
+                return cleaned
+            rule.update(aggregate='sum', filters={'valid': True, 'origin': 'played_session'},
                         operator=cleaned['operador_unidades'],
                         target=cleaned['alvo_unidades'])
         else:

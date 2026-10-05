@@ -4216,7 +4216,9 @@ class TbConquistaAdmin(admin.ModelAdmin):
                                      'scope=account, aggregate=sum, schema_version=1, '
                                      'filters.items=[{"catalog":"mundano","id":ID_REAL}], '
                                      'operator=gt ou gte, target=inteiro positivo. '
-                                     'Defina itens e limiar com o PO antes de ativar.'}),
+                                     'Aventuras jogadas: metric=adventures_played, '
+                                     'aggregate=sum, filters={"valid":true,"origin":"played_session"}. '
+                                     'Defina os limiares e operadores com o PO antes de ativar.'}),
         ('Recompensa', {'fields': ('recompensa',),
                         'description': 'Cosmético desbloqueado no inventário ao conceder.'}),
     )
@@ -4225,8 +4227,9 @@ class TbConquistaAdmin(admin.ModelAdmin):
     def formfield_for_dbfield(self, db_field, request, **kwargs):
         if db_field.name == 'criterio_json':
             kwargs['help_text'] = ('Critérios disponíveis: characters_created, stories_published, '
-                                   'items_purchased, items_purchased_units e class_started. Para unidades, '
-                                   'use IDs reais do catálogo e escolha gt ou gte com o PO.')
+                                   'items_purchased, items_purchased_units, class_started e '
+                                   'adventures_played. Para unidades, use IDs reais do catálogo; '
+                                   'escolha gt ou gte e o limiar com o PO.')
         return super().formfield_for_dbfield(db_field, request, **kwargs)
 
     @admin.action(description='Conceder conquista(s) selecionada(s) a usuários…')
