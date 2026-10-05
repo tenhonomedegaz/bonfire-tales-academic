@@ -286,11 +286,16 @@ def registrar_publicacao_cronica(cronica):
                 'agregado_id': cronica.pk, 'ocorrido_em': cronica.data_publicacao,
             },
         )
-        if evento.conta_id != cronica.autor_id or evento.agregado_id != cronica.pk:
+        if (evento.tipo != 'story_published' or evento.conta_id != cronica.autor_id or
+                evento.agregado_id != cronica.pk or evento.versao_payload != 1 or
+                evento.ocorrido_em != cronica.data_publicacao):
             raise ValueError('Identidade do fato de publicação inconsistente.')
         anteriores = TbCronica.objects.filter(autor_id=cronica.autor_id).exclude(pk=cronica.pk)
-        if anteriores.filter(Q(status__in=['aprovada', 'oculta']) |
-                             Q(data_publicacao__isnull=False)).exists():
+        if anteriores.filter(
+                Q(data_publicacao__lt=cronica.data_publicacao) |
+                Q(data_publicacao=cronica.data_publicacao, pk__lt=cronica.pk) |
+                Q(data_publicacao__isnull=True, status__in=['aprovada', 'oculta'])
+        ).exists():
             return evento
         for conquista in TbConquista.objects.filter(
                 ativo=True, criterio='automatico',

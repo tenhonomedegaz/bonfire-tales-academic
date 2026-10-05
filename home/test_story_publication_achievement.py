@@ -1,10 +1,14 @@
 import json
+from datetime import timedelta
+from io import StringIO
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
+from django.core.management import call_command
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from home.conquistas import conceder_conquista, registrar_publicacao_cronica
 from home.models import (
@@ -19,6 +23,48 @@ RULE = {'schema_version': 1, 'metric': 'stories_published',
 
 
 class FirstPublishedStoryAchievementTests(TestCase):
+    def test_historical_approved_story_preview_and_apply_are_idempotent(self):
+        rule = self.rule()
+        first = self.story('historical-first-story', status='aprovada')
+        second = self.story('historical-second-story', status='aprovada')
+        published = timezone.now() - timedelta(days=2)
+        for story, offset in ((first, 0), (second, 1)):
+            story.revisado_por = self.staff
+            story.data_revisao = published + timedelta(days=offset)
+            story.data_publicacao = story.data_revisao
+            story.save(update_fields=['revisado_por', 'data_revisao', 'data_publicacao'])
+        output = StringIO()
+        call_command('reprocessar_primeira_cronica', '--user-id', str(self.author.pk),
+                     stdout=output)
+        self.assertIn('fatos_novos=2', output.getvalue())
+        self.assertIn('concessoes_novas=1', output.getvalue())
+        self.assertFalse(TbEventoConquista.objects.exists())
+        self.assertFalse(TbUsuarioConquista.objects.exists())
+
+        call_command('reprocessar_primeira_cronica', '--apply',
+                     '--user-id', str(self.author.pk), stdout=StringIO())
+        self.assertEqual(TbEventoConquista.objects.filter(tipo='story_published').count(), 2)
+        grant = TbUsuarioConquista.objects.get(user=self.author, conquista=rule)
+        self.assertEqual(grant.evidencia_json['agregado_id'], first.pk)
+        call_command('reprocessar_primeira_cronica', '--apply',
+                     '--user-id', str(self.author.pk), stdout=StringIO())
+        self.assertEqual(TbEventoConquista.objects.count(), 2)
+        self.assertEqual(TbUsuarioConquista.objects.filter(
+            user=self.author, conquista=rule).count(), 1)
+
+    def test_historical_story_without_review_does_not_award(self):
+        rule = self.rule()
+        story = self.story('unreviewed-story', status='aprovada')
+        story.data_publicacao = timezone.now()
+        story.save(update_fields=['data_publicacao'])
+        output = StringIO()
+        call_command('reprocessar_primeira_cronica', '--apply',
+                     '--user-id', str(self.author.pk), stdout=output)
+        self.assertIn('sem_prova=1', output.getvalue())
+        self.assertFalse(TbEventoConquista.objects.exists())
+        self.assertFalse(TbUsuarioConquista.objects.filter(
+            user=self.author, conquista=rule).exists())
+
     @classmethod
     def setUpTestData(cls):
         users = get_user_model().objects
