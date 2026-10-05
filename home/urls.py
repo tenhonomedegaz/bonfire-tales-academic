@@ -31,6 +31,10 @@ urlpatterns = [
         template_name='home/password_reset_complete.html'
     ), name='password_reset_complete'),
     path('perfil/', views.profile_view, name='profile'),
+    path('perfil/conquistas/notificacoes/', views.conquista_notificacoes_view,
+         name='conquista_notificacoes'),
+    path('perfil/conquistas/notificacoes/<int:notificacao_id>/ler/',
+         views.conquista_notificacao_ler_view, name='conquista_notificacao_ler'),
     # Prévia viva do editor de aparência (POST, dono logado, nada persistido).
     # ANTES de 'perfil/<username>/' — senão 'previa' seria lido como username.
     path('perfil/previa/', views.perfil_preview_view, name='perfil_preview'),

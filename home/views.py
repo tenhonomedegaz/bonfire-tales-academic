@@ -53,6 +53,7 @@ from .models import (
     TbAcessoopcao,
     TbClasse,
     TbClassehabilidade,
+    TbConquistaNotificacao,
     TbCronica,
     TbCronicaCurtida,
     TbCronicaComentario,
@@ -1442,6 +1443,9 @@ def profile_view(request):
         'badges_derivadas_ocultas_slugs': list(profile.badges_derivadas_ocultas or []),
         # F3 — progresso das próprias conquistas (obtidas + bloqueadas não-secretas).
         'conquistas': _conquistas.conquistas_do_usuario(user),
+        'conquistas_nao_lidas': TbConquistaNotificacao.objects.filter(
+            concessao__user=user, concessao__revogada_em__isnull=True,
+            concessao__conquista__ativo=True, lida_em__isnull=True).count(),
         # PRÉVIA VIVA — estado INICIAL do painel: a aparência ATUALMENTE SALVA,
         # renderizada pelo mesmo partial do perfil público. Dali em diante quem
         # atualiza é o POST /perfil/previa/ (perfil_preview_view).
@@ -1467,6 +1471,31 @@ def _perfil_personagens(viewed_user, pode_ver_privados):
     if not pode_ver_privados:
         qs = qs.filter(publico=True, arquivado=False)
     return [_personagem_card(p) for p in qs]
+
+
+@login_required
+def conquista_notificacoes_view(request):
+    notificacoes = TbConquistaNotificacao.objects.filter(
+        concessao__user=request.user, concessao__revogada_em__isnull=True,
+        concessao__conquista__ativo=True,
+    ).select_related('concessao__conquista').order_by('-criada_em', '-pk')[:100]
+    return render(request, 'home/pages/conquista_notificacoes.html',
+                  {'notificacoes': notificacoes})
+
+
+@login_required
+@require_POST
+def conquista_notificacao_ler_view(request, notificacao_id):
+    notificacao = get_object_or_404(
+        TbConquistaNotificacao.objects.filter(
+            concessao__user=request.user, concessao__revogada_em__isnull=True,
+            concessao__conquista__ativo=True), pk=notificacao_id,
+    )
+    TbConquistaNotificacao.objects.filter(
+        pk=notificacao.pk, lida_em__isnull=True).update(lida_em=timezone.now())
+    if request.POST.get('abrir') == '1':
+        return redirect(reverse('profile') + '#conquistas')
+    return redirect('conquista_notificacoes')
 
 
 def public_profile_view(request, username):

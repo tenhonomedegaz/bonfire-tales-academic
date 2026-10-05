@@ -309,10 +309,11 @@
         </div>
 
         <!-- Seção: Conquistas (progresso — só leitura; concessão é manual/staff) -->
-        <div class="profile-badges-editor">
+        <div class="profile-badges-editor" id="conquistas">
             <h3 class="profile-subsection-title">Conquistas
                 <span class="avatar-preview-hint" style="text-transform:none;letter-spacing:0">({{ conquistas.obtidas_count }} / {{ conquistas.total }})</span>
             </h3>
+            <p><a href="{% url 'conquista_notificacoes' %}">Notificações de conquistas{% if conquistas_nao_lidas %} ({{ conquistas_nao_lidas }}){% endif %}</a></p>
             {% if conquistas.obtidas or conquistas.bloqueadas %}
             <ul class="conquista-grid">
                 {% for c in conquistas.obtidas %}

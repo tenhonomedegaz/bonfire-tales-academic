@@ -2686,6 +2686,18 @@ class TbUsuarioConquista(models.Model):
         return '%s → %s' % (self.user.username, self.conquista.slug)
 
 
+class TbConquistaNotificacao(models.Model):
+    """Aviso interno único da concessão, exibido apenas ao dono da conquista."""
+    concessao = models.OneToOneField(TbUsuarioConquista, on_delete=models.CASCADE,
+                                    related_name='notificacao', db_column='ConcessaoId')
+    criada_em = models.DateTimeField(auto_now_add=True, db_column='CriadaEm')
+    lida_em = models.DateTimeField(null=True, blank=True, db_column='LidaEm')
+
+    class Meta:
+        db_table = 'TB_ConquistaNotificacao'
+        ordering = ['-criada_em', '-pk']
+
+
 class TbEventoConquista(models.Model):
     """Fato canônico de domínio; simulações do criador não produzem linhas aqui."""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

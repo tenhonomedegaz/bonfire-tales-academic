@@ -71,7 +71,7 @@ MEMORY_MODELS = [
     "TbUsuarioCosmetico",
     # Concessão de conquistas (F3): dado de USUÁRIO — nunca sincroniza, e protege
     # conquistas referenciadas contra deleção por tombstone.
-    "TbUsuarioConquista",
+    "TbUsuarioConquista", "TbConquistaNotificacao",
     # Social do perfil (curtir/seguir): relação user↔user criada pelos jogadores em
     # produção. É memória pura — jamais entra em CONTENT_MODELS.
     "TbPerfilCurtida", "TbPerfilSeguidor",

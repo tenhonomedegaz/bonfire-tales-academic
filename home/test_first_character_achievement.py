@@ -12,7 +12,7 @@ from home.conquistas import (
 )
 from home.deploy_sync import MEMORY_MODELS
 from home.models import (
-    TbConquista, TbCosmetico, TbEventoConquista, TbPersonagem,
+    TbConquista, TbConquistaNotificacao, TbCosmetico, TbEventoConquista, TbPersonagem,
     TbUsuarioConquista, TbUsuarioCosmetico,
 )
 from home.test_criador import _CriadorBase
@@ -152,6 +152,9 @@ class FirstCharacterAchievementTests(_CriadorBase):
         event = TbEventoConquista.objects.get(agregado_id=character.pk)
         grant = TbUsuarioConquista.objects.get(user=user, conquista=rule)
         self.assertEqual(event.conta_id, user.pk)
+        notice = TbConquistaNotificacao.objects.get(concessao=grant)
+        self.assertContains(self.client.get(reverse('conquista_notificacoes')), rule.nome)
+        self.assertIsNone(notice.lida_em)
         self.assertEqual(event.chave_origem, f'personagem:{character.pk}:criado')
         self.assertEqual(grant.evidencia_json['evento_id'], str(event.pk))
         self.assertEqual(grant.definicao_json, RULE)

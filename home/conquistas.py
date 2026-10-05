@@ -73,7 +73,7 @@ def conceder_conquista(user, conquista, por=None):
     são persistidas juntas, inclusive em chamadas diretas da staff."""
     if not user or not getattr(user, 'pk', None) or conquista is None:
         return False
-    from .models import TbUsuarioConquista, TbUsuarioCosmetico
+    from .models import TbConquistaNotificacao, TbUsuarioConquista, TbUsuarioCosmetico
 
     concessao, criada = TbUsuarioConquista.objects.get_or_create(
         user=user, conquista=conquista,
@@ -99,6 +99,13 @@ def conceder_conquista(user, conquista, por=None):
             posse.suspenso_em = None
             posse.origem = 'conquista:%s' % conquista.slug
             posse.save(update_fields=['suspenso_em', 'origem'])
+    if criada:
+        aviso, novo = TbConquistaNotificacao.objects.get_or_create(concessao=concessao)
+        if not novo:
+            from django.utils import timezone
+            aviso.lida_em = None
+            aviso.criada_em = timezone.now()
+            aviso.save(update_fields=['lida_em', 'criada_em'])
     return criada
 
 
