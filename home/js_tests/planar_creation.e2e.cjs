@@ -1,7 +1,10 @@
 const assert = require('node:assert/strict');
 const { chromium } = require(process.env.BONFIRE_PLAYWRIGHT_MODULE);
 (async () => {
-  const browser = await chromium.launch({channel: 'msedge', headless: true});
+  const browser = await chromium.launch({headless: true,
+    ...(process.env.BONFIRE_CHROMIUM_EXECUTABLE_PATH
+      ? {executablePath: process.env.BONFIRE_CHROMIUM_EXECUTABLE_PATH}
+      : {channel: 'msedge'})});
   try {
     const context = await browser.newContext();
     const origin = process.env.PATHBUILDER_E2E_URL;
@@ -10,7 +13,11 @@ const { chromium } = require(process.env.BONFIRE_PLAYWRIGHT_MODULE);
     const page = await context.newPage();
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
-    await page.goto(origin + '/sistemas/criacao-de-ficha/');
+    const response = await page.goto(origin + '/sistemas/criacao-de-ficha/');
+    if (await page.locator('#cf-raca').count() !== 1) {
+      throw new Error(`Criador não abriu: HTTP ${response.status()}, URL ${page.url()}, ` +
+        `título ${await page.title()}`);
+    }
     // Select identity while leaving unrelated creation steps untouched.
     await page.locator('#cf-raca').selectOption('anao', {force: true});
     await page.locator('#cf-essencia').selectOption('nephilim', {force: true});

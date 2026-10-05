@@ -14,9 +14,13 @@ Roda contra o conteúdo real (fixture `conteudo.json`) — as mesmas 4 raças / 
 30 antecedentes / 580 magias usadas pela auditoria.
 """
 import json
+import os
 import re
+import subprocess
 
+from django.conf import settings
 from django.contrib.auth.models import User
+from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.core.management import call_command
 from django.test import TestCase
 from django.urls import reverse
@@ -181,6 +185,28 @@ class _CriadorBase(TestCase):
                                 content_type='application/json')
 
 
+class SanguePlanarBrowserTests(StaticLiveServerTestCase):
+    def test_tres_menus_aparecem_no_criador_real(self):
+        if not os.environ.get('BONFIRE_PLAYWRIGHT_MODULE'):
+            self.skipTest('Playwright não configurado neste ambiente')
+        TbRegra.objects.filter(slug='aumento-de-atributo').delete()
+        call_command('loaddata', 'home/fixtures/conteudo.json', verbosity=0)
+        user = User.objects.create_user(username='planar-browser', password='x')
+        self.client.force_login(user)
+        env = os.environ.copy()
+        env.update({
+            'PATHBUILDER_E2E_URL': self.live_server_url,
+            'PATHBUILDER_E2E_COOKIE_NAME': settings.SESSION_COOKIE_NAME,
+            'PATHBUILDER_E2E_COOKIE_VALUE': self.client.cookies[settings.SESSION_COOKIE_NAME].value,
+        })
+        script = os.path.join(os.path.dirname(__file__), 'js_tests', 'planar_creation.e2e.cjs')
+        with self.settings(HUNTER_CREATOR_RULESET_CHECKSUM=''):
+            browser = subprocess.run(['node', script], env=env, capture_output=True,
+                                     text=True, timeout=90)
+        self.assertEqual(browser.returncode, 0, browser.stdout + browser.stderr)
+        self.assertIn('Q15: three level-one menus rendered', browser.stdout)
+
+
 class CriacaoArquetiposTests(_CriadorBase):
     """Criação N1 dos 3 arquétipos: personagem válido + derive OK."""
 
@@ -262,6 +288,46 @@ class CriacaoArquetiposTests(_CriadorBase):
         self.assertEqual(p.id_essencia.slug, 'draconica')
         self.assertIsNone(p.id_linhagem)
         self.assertTrue(p.escolhas.filter(tipo='vertente').exists())
+
+    def test_nephilim_resolve_tres_menus_no_nivel_um_sem_levelup_artificial(self):
+        from django.db import transaction
+
+        payload = self._payload('guerreiro', raca_slug='anao', essencia_slug='nephilim')
+        owner = self._novo_usuario('nephilim-nivel-um')
+        count_before = TbPersonagem.objects.count()
+        incomplete = self._post_criar(owner, payload)
+        self.assertFalse(incomplete.json().get('ok'))
+        self.assertTrue(any('Sangue Planar' in error
+                            for error in incomplete.json().get('erros', [])))
+        self.assertEqual(TbPersonagem.objects.count(), count_before)
+        payload.setdefault('escolhas_raca', {})['menus'] = [
+            {'tipo': 'polo', 'fonte': 'Sangue Planar', 'valores': ['celestial']},
+            {'tipo': 'energia', 'fonte': 'Sangue Planar', 'valores': ['lumen']},
+            {'tipo': 'elemento', 'fonte': 'Sangue Planar', 'valores': ['fogo']},
+        ]
+        resolved, errors = views._criador_resolver(payload)
+        self.assertFalse(errors, errors)
+        with transaction.atomic():
+            temporary = views._criador_persistir(owner, payload, resolved)
+            payload['magias_concedidas'] = [{
+                'fonte': group['fonte'], 'slot': group['slot'],
+                'magias': [group['opcoes'][0]['slug']],
+            } for group in temporary._criador_spell_groups]
+            transaction.set_rollback(True)
+
+        response = self._post_criar(owner, payload)
+        self.assertTrue(response.json().get('ok'), response.content)
+        character = TbPersonagem.objects.get(pk=response.json()['id'])
+        self.assertEqual(character.nivel, 1)
+        self.assertEqual(dict(character.escolhas.filter(
+            origem='Sangue Planar', tipo__in=['polo', 'energia', 'elemento'])
+            .values_list('tipo', 'valor')),
+            {'polo': 'celestial', 'energia': 'lumen', 'elemento': 'fogo'})
+        levelup = self.client.get(reverse('personagem_subir_nivel', args=[character.pk]))
+        self.assertEqual(levelup.status_code, 200)
+        self.assertFalse(any(group['pendentes'] for group in levelup.context['opcao_grupos']
+                             if group['kind'] in ('polo', 'energia', 'elemento')))
+        self.assertEqual(levelup.context['magias_concedidas_pend'], [])
 
     def test_feiticeiro_com_linhagem(self):
         # raça + linhagem (sem essência) — o outro lado da exclusividade mútua.
