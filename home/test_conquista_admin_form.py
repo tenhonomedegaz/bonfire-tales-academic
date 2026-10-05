@@ -1,9 +1,13 @@
+import json
+
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 from django.test import TestCase
 from django.urls import reverse
 
 from home.conquista_admin_form import ConquistaAdminForm
-from home.models import TbClasse, TbConquista
+from home.models import (TbAnuncioItemMagico, TbClasse, TbConquista, TbItemMagico,
+                         TbItemMundano, TbMagia, TbPersonagem)
 
 
 class ConquistaAdminFormTests(TestCase):
@@ -32,9 +36,11 @@ class ConquistaAdminFormTests(TestCase):
             'filters': {'class_slug': classe.slug}, 'operator': 'gte', 'target': 1})
 
     def test_units_form_builds_multiple_safe_identities_and_rejects_duplicates(self):
+        mundane = TbItemMundano.objects.create(nome='Item QA', slug='item-qa')
+        magic = TbItemMagico.objects.create(nome='Item mágico QA', slug='item-magico-qa')
         data = {**self.base_data('unidades-assistidas'),
                 'metrica_assistida': 'items_purchased_units',
-                'itens_comprados': 'mundano:12\nmagico:34',
+                'itens_comprados': f'mundano:{mundane.pk}\nmagico:{magic.pk}',
                 'operador_unidades': 'gt', 'alvo_unidades': '10'}
         form = ConquistaAdminForm(data=data)
         self.assertTrue(form.is_valid(), form.errors)
@@ -42,13 +48,65 @@ class ConquistaAdminFormTests(TestCase):
         self.assertEqual(rule.criterio_json, {
             'schema_version': 1, 'metric': 'items_purchased_units',
             'scope': 'account', 'aggregate': 'sum',
-            'filters': {'items': [{'catalog': 'mundano', 'id': 12},
-                                  {'catalog': 'magico', 'id': 34}]},
+            'filters': {'items': [{'catalog': 'mundano', 'id': mundane.pk},
+                                  {'catalog': 'magico', 'id': magic.pk}]},
             'operator': 'gt', 'target': 10})
         duplicate = ConquistaAdminForm(data={**data, 'slug': 'unidades-duplicadas',
-            'itens_comprados': 'mundano:12\nmundano:12'})
+            'itens_comprados': f'mundano:{mundane.pk}\nmundano:{mundane.pk}'})
         self.assertFalse(duplicate.is_valid())
         self.assertIn('itens_comprados', duplicate.errors)
+        missing = ConquistaAdminForm(data={**data, 'slug': 'unidades-ausentes',
+            'itens_comprados': f'mundano:{mundane.pk + 100000}\nmagico:{magic.pk + 100000}'})
+        self.assertFalse(missing.is_valid())
+        self.assertIn(f'mundano:{mundane.pk + 100000}', str(missing.errors['itens_comprados']))
+        self.assertIn(f'magico:{magic.pk + 100000}', str(missing.errors['itens_comprados']))
+
+    def test_units_form_checks_workshop_spell_and_community_announcement_ids(self):
+        spell = TbMagia.objects.create(nome='Magia QA', slug='magia-qa')
+        seller = get_user_model().objects.create_user('seller-form-qa')
+        character = TbPersonagem.objects.create(dono=seller, nome='Vendedor QA')
+        announcement = TbAnuncioItemMagico.objects.create(
+            vendedor=character, nome='Anúncio QA', status='vendido')
+        data = {**self.base_data('oficina-comunidade'),
+                'metrica_assistida': 'items_purchased_units',
+                'itens_comprados': f'oficina:{spell.pk}\ncomunidade:{announcement.pk}',
+                'operador_unidades': 'gte', 'alvo_unidades': '1'}
+        form = ConquistaAdminForm(data=data)
+        self.assertTrue(form.is_valid(), form.errors)
+        missing = ConquistaAdminForm(data={**data,
+            'itens_comprados': f'oficina:{spell.pk + 100000}\ncomunidade:{announcement.pk + 100000}'})
+        self.assertFalse(missing.is_valid())
+        self.assertIn(f'oficina:{spell.pk + 100000}', str(missing.errors['itens_comprados']))
+        self.assertIn(f'comunidade:{announcement.pk + 100000}', str(missing.errors['itens_comprados']))
+
+    def test_raw_json_checks_new_identity_but_preserves_unchanged_historical_rule(self):
+        definition = {
+            'schema_version': 1, 'metric': 'items_purchased_units',
+            'scope': 'account', 'aggregate': 'sum',
+            'filters': {'items': [{'catalog': 'mundano', 'id': 99999999}]},
+            'operator': 'gte', 'target': 1,
+        }
+        data = {**self.base_data('raw-invalid-identity'),
+                'criterio_json': json.dumps(definition)}
+        self.assertIn('criterio_json', ConquistaAdminForm(data=data).errors)
+        historical = TbConquista.objects.create(
+            slug='historical-identity', nome='Histórica', criterio='automatico',
+            criterio_json=definition)
+        edited = ConquistaAdminForm(data={**data, 'slug': historical.slug,
+                                          'nome': 'Histórica editada'}, instance=historical)
+        self.assertTrue(edited.is_valid(), edited.errors)
+        changed = ConquistaAdminForm(data={**data, 'slug': historical.slug,
+            'criterio_json': json.dumps({**definition, 'filters': {
+                'items': [{'catalog': 'mundano', 'id': 99999998}]}})}, instance=historical)
+        self.assertIn('criterio_json', changed.errors)
+        historical.ativo = False
+        historical.save(update_fields=['ativo'])
+        reactivated = ConquistaAdminForm(data={**data, 'slug': historical.slug},
+                                         instance=historical)
+        self.assertIn('criterio_json', reactivated.errors)
+        historical.ativo = True
+        with self.assertRaises(ValidationError):
+            historical.full_clean()
 
     def test_simple_metrics_generate_supported_rules(self):
         for metric in ('characters_created', 'stories_published', 'items_purchased'):

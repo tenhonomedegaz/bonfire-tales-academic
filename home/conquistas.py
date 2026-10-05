@@ -45,6 +45,25 @@ def regra_unidades_compradas_valida(regra):
     return len(set(identities)) == len(identities)
 
 
+def identidades_itens_ausentes(items):
+    """Confere IDs usados no payload de compras dos quatro catálogos do site."""
+    from .models import TbAnuncioItemMagico, TbItemMagico, TbItemMundano, TbMagia
+
+    catalogos = {
+        'mundano': TbItemMundano,
+        'magico': TbItemMagico,
+        'oficina': TbMagia,
+        'comunidade': TbAnuncioItemMagico,
+    }
+    missing = []
+    for catalog, model in catalogos.items():
+        ids = {item['id'] for item in items if item['catalog'] == catalog}
+        if ids:
+            found = set(model.objects.filter(pk__in=ids).values_list('pk', flat=True))
+            missing.extend(f'{catalog}:{item_id}' for item_id in sorted(ids - found))
+    return missing
+
+
 def regra_inicio_classe_valida(regra):
     """Uma classe inicial é identificada por slug de catálogo, nunca por nome."""
     import re

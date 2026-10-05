@@ -2630,21 +2630,31 @@ class TbConquista(models.Model):
 
     def clean(self):
         super().clean()
-        from .conquistas import (regra_inicio_classe_valida,
+        from .conquistas import (identidades_itens_ausentes, regra_inicio_classe_valida,
                                  regra_unidades_compradas_valida)
         supported = [
             {'schema_version': 1, 'metric': metric,
              'scope': 'account', 'operator': 'gte', 'target': 1}
             for metric in ('characters_created', 'stories_published', 'items_purchased')
         ]
+        units_rule = regra_unidades_compradas_valida(self.criterio_json)
         if (self.criterio == 'automatico' and self.criterio_json not in supported and
-                not regra_unidades_compradas_valida(self.criterio_json) and
+                not units_rule and
                 not regra_inicio_classe_valida(self.criterio_json)):
             if self.pk and not self.ativo and type(self).objects.filter(
                 pk=self.pk, criterio='automatico', criterio_json=self.criterio_json,
             ).exists():
                 return  # Definições legadas inativas permanecem editáveis.
             raise ValidationError({'criterio_json': 'Critério automático não suportado. Use characters_created, stories_published, items_purchased, items_purchased_units ou class_started com identidade e parâmetros válidos.'})
+        if self.criterio == 'automatico' and self.ativo and units_rule:
+            previous = (type(self).objects.filter(pk=self.pk).values('criterio_json', 'ativo').first()
+                        if self.pk else None)
+            if (previous is None or not previous['ativo'] or
+                    previous['criterio_json'] != self.criterio_json):
+                missing = identidades_itens_ausentes(self.criterio_json['filters']['items'])
+                if missing:
+                    raise ValidationError({'criterio_json':
+                        'Identidades não encontradas: ' + ', '.join(missing)})
 
     @property
     def icone_efetivo(self):

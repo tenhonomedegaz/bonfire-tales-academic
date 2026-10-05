@@ -5,6 +5,7 @@ from django.core.exceptions import ValidationError
 from django.core.management import call_command
 from django.urls import reverse
 
+from home.conquista_admin_form import ConquistaAdminForm
 from home.conquistas import conceder_conquista
 from home.models import (TbConquista, TbCosmetico, TbEventoConquista, TbItemMundano,
                          TbPersonagemItem, TbTransacao, TbUsuarioConquista,
@@ -14,6 +15,25 @@ from home.views import _preco_em_pc
 
 
 class PurchaseUnitsAchievementTests(_MercadoBase):
+    def test_assisted_rule_awards_from_real_purchase(self):
+        char = self._char('purchase-assisted-rule')
+        item = self._item_mundano_com_preco()
+        form = ConquistaAdminForm(data={
+            'slug': 'compra-assistida', 'nome': 'Compra assistida',
+            'criterio': 'automatico', 'criterio_json': '{}',
+            'ativo': 'on', 'ordem': '0',
+            'metrica_assistida': 'items_purchased_units',
+            'itens_comprados': f'mundano:{item.pk}',
+            'operador_unidades': 'gte', 'alvo_unidades': '2',
+        })
+        self.assertTrue(form.is_valid(), form.errors)
+        rule = form.save()
+        purchase = self._buy(char, item, 2)
+        grant = TbUsuarioConquista.objects.get(user=char.dono, conquista=rule)
+        self.assertEqual(grant.evidencia_json['transacao_ids'], [purchase.pk])
+        self.assertEqual(grant.evidencia_json['total'], 2)
+        self.assertEqual(grant.definicao_json, rule.criterio_json)
+
     def _rule(self, item, *, operator='gte', target=2):
         definition = {
             'schema_version': 1, 'metric': 'items_purchased_units',

@@ -1,6 +1,7 @@
 """Campos assistidos para os critérios automáticos já avaliados pelo site."""
 from django import forms
 
+from .conquistas import identidades_itens_ausentes
 from .models import TbClasse, TbConquista
 
 
@@ -27,7 +28,7 @@ class ConquistaAdminForm(forms.ModelForm):
     itens_comprados = forms.CharField(
         required=False, widget=forms.Textarea(attrs={'rows': 3}),
         help_text='Para unidades compradas, uma identidade por linha: catalogo:ID. '
-                  'Catálogos: mundano, magico, oficina, comunidade.',
+                  'Catálogos: mundano, magico, oficina (ID da magia) e comunidade (ID do anúncio).',
     )
     operador_unidades = forms.ChoiceField(
         choices=(('gte', 'Pelo menos'), ('gt', 'Mais que')),
@@ -87,6 +88,11 @@ class ConquistaAdminForm(forms.ModelForm):
                 items.append({'catalog': catalog, 'id': int(item_id)})
             if not items or len(items) > 100 or len({(i['catalog'], i['id']) for i in items}) != len(items):
                 self.add_error('itens_comprados', 'Informe de 1 a 100 identidades distintas.')
+            if items and not self.errors:
+                missing = identidades_itens_ausentes(items)
+                if missing:
+                    self.add_error('itens_comprados',
+                                   'Identidades não encontradas: ' + ', '.join(missing))
             if cleaned.get('alvo_unidades') is None:
                 self.add_error('alvo_unidades', 'Informe o limiar definido pelo PO.')
             if not cleaned.get('operador_unidades'):
