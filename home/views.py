@@ -9918,8 +9918,17 @@ def ficha_publica_view(request, pk):
             }
     return render(request, 'home/pages/ficha_publica.html', {
         'page_title': p.nome, 'character': public_data,
+        'meta_description': (p.descricao_publica or
+                             f'{p.nome}, personagem de {p.dono.username}, nível {p.nivel}.'),
+        'noindex': preview and (not p.publico or p.arquivado),
         'mechanics': mechanics,
         'preview': preview, 'published': p.publico and not p.arquivado,
+        'appearance': _appearance_context(
+            _appearance_validated(p.dono, 'theme', p.ficha_theme, 'ficha'),
+            _appearance_validated(p.dono, 'frame', p.foto_frame, 'ficha'),
+            _appearance_validated(p.dono, 'effect', p.ficha_effect, 'ficha'),
+            p.ficha_theme_custom, p.ficha_background_url,
+            user=p.dono, escopo='ficha'),
     })
 
 

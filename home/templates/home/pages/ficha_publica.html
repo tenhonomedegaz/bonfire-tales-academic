@@ -1,16 +1,24 @@
 {% extends 'home/base.html' %}
-{% load editorial_images %}
+{% load editorial_images static %}
 
 {% block title %}{{ character.nome }} · Personagem · Bonfire Tales RPG{% endblock %}
 
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/pages/ficha.css' %}?v=16">
+{% if appearance.theme_css_href %}<link rel="stylesheet" href="{{ appearance.theme_css_href }}">{% endif %}
+{% endblock %}
+
 {% block content %}
-<article class="max-w-3xl mx-auto rounded-2xl border border-[var(--stroke)] bg-[var(--surface)] p-6 md:p-10 space-y-6">
+<article class="ficha {{ appearance.theme_class }} {{ appearance.effect_class }} max-w-3xl mx-auto rounded-2xl border border-[var(--stroke)] bg-[var(--surface)] p-6 md:p-10 space-y-6"{% if appearance.custom_style %} style="{{ appearance.custom_style }}"{% endif %}>
   {% if preview %}<p class="text-sm text-[var(--spark)]" role="status">Prévia como visitante. {% if not published %}Esta ficha ainda não está publicada.{% endif %}</p>{% endif %}
-  <header class="space-y-2">
-    {% if character.foto_url|safe_profile_image %}<img src="{{ character.foto_url|safe_profile_image }}" alt="Retrato de {{ character.nome }}" class="h-28 w-28 rounded-xl object-cover" loading="lazy">{% endif %}
+  <header class="ficha-header space-y-2 p-5 md:p-6">
+    {% if appearance.background_url|safe_profile_image %}<div class="ficha-banner-media" style="background-image:url('{{ appearance.background_url|safe_profile_image }}');" aria-hidden="true"></div>{% endif %}
+    <div class="relative z-10 space-y-2">
+    <div class="banner-character-avatar {{ appearance.frame_class }}" style="width:112px;height:112px">{% if character.foto_url|safe_profile_image %}<img src="{{ character.foto_url|safe_profile_image }}" alt="Retrato de {{ character.nome }}" loading="lazy">{% else %}<span aria-hidden="true">{{ character.nome|slice:':1' }}</span>{% endif %}</div>
     <p class="text-sm text-[var(--muted)]">Personagem de {{ character.dono }}</p>
     <h1 class="font-serif text-4xl text-[var(--text)]">{{ character.nome }}</h1>
     <p class="text-[var(--muted)]">Nível {{ character.nivel }}{% if character.classe %} · {{ character.classe }}{% endif %}{% if character.subclasse %} ({{ character.subclasse }}){% endif %}</p>
+    </div>
   </header>
   {% if character.raca %}<section aria-label="Identidade" class="border-t border-[var(--stroke)] pt-5">
     <h2 class="font-serif text-xl text-[var(--text)]">Identidade</h2>

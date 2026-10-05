@@ -4,11 +4,17 @@ from django.db import connection
 from django.test import TestCase
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
+from django.utils import timezone
 
-from .models import TbClasse, TbPersonagem, TbPersonagemClasse, TbRaca
+from .cosmetics import invalidate_cosmetic_cache
+from .models import (TbClasse, TbCosmetico, TbPersonagem,
+                     TbPersonagemClasse, TbRaca, TbUsuarioCosmetico)
 
 
 class PublicCharacterSheetTests(TestCase):
+    def tearDown(self):
+        invalidate_cosmetic_cache()
+
     @classmethod
     def setUpTestData(cls):
         User = get_user_model()
@@ -33,6 +39,7 @@ class PublicCharacterSheetTests(TestCase):
         preview = self.client.get(public + '?preview=1')
         self.assertContains(preview, 'Prévia como visitante')
         self.assertContains(preview, 'Heroína pública')
+        self.assertContains(preview, 'noindex, nofollow')
         self.assertEqual(self.client.post(action, {'action': 'publish'}).status_code, 302)
         self.client.logout()
         with CaptureQueriesContext(connection) as queries:
@@ -81,6 +88,51 @@ class PublicCharacterSheetTests(TestCase):
         self.character.refresh_from_db()
         self.assertEqual(self.character.descricao_publica, '')
         self.assertFalse(self.character.mostrar_atributos_publicos)
+
+    def test_public_appearance_respects_owner_entitlements_and_image_safety(self):
+        theme = TbCosmetico.objects.create(
+            slug='tema-ember', tipo='tema', nome='Brasas',
+            css_class='theme-ember', origem='loja_mm', escopo='ficha')
+        frame = TbCosmetico.objects.create(
+            slug='moldura-gold-trim', tipo='moldura', nome='Dourada',
+            css_class='frame-gold-trim', origem='loja_mm', escopo='ficha')
+        effect = TbCosmetico.objects.create(
+            slug='efeito-soft-glow', tipo='efeito', nome='Brilho',
+            css_class='effect-soft-glow', origem='loja_mm', escopo='ficha')
+        invalidate_cosmetic_cache()
+        TbPersonagem.objects.filter(pk=self.character.pk).update(
+            publico=True, ficha_theme='ember', foto_frame='gold-trim',
+            ficha_effect='soft-glow', foto_url='https://example.com/hero.png',
+            ficha_background_url='javascript:alert(1)')
+        public = reverse('ficha_publica', args=[self.character.pk])
+        anonymous = self.client.get(public)
+        self.assertEqual(anonymous.status_code, 200)
+        self.assertNotContains(anonymous, 'theme-ember')
+        self.assertNotContains(anonymous, 'frame-gold-trim')
+        self.assertNotContains(anonymous, 'effect-soft-glow')
+        self.assertNotContains(anonymous, 'javascript:')
+        for item in (theme, frame, effect):
+            TbUsuarioCosmetico.objects.create(
+                user=self.owner, cosmetico=item, origem='compra_mm')
+        entitled = self.client.get(public)
+        self.assertContains(entitled, 'theme-ember')
+        self.assertContains(entitled, 'frame-gold-trim')
+        self.assertContains(entitled, 'effect-soft-glow')
+        self.assertContains(entitled, 'https://example.com/hero.png')
+        self.assertNotContains(entitled, 'javascript:')
+        TbUsuarioCosmetico.objects.filter(user=self.owner, cosmetico=frame).update(
+            suspenso_em=timezone.now())
+        revoked = self.client.get(public)
+        self.assertNotContains(revoked, 'frame-gold-trim')
+        self.assertContains(revoked, 'theme-ember')
+        TbPersonagem.objects.filter(pk=self.character.pk).update(
+            ficha_background_url='https://example.com/background.webp')
+        self.assertContains(self.client.get(public),
+                            'https://example.com/background.webp')
+        theme.escopo = 'perfil'
+        theme.save(update_fields=['escopo'])
+        invalidate_cosmetic_cache()
+        self.assertNotContains(self.client.get(public), 'theme-ember')
 
     def test_private_preview_is_owner_only_and_archive_cannot_publish(self):
         public = reverse('ficha_publica', args=[self.character.pk])
@@ -153,6 +205,7 @@ class PublicCharacterSheetTests(TestCase):
         self.assertEqual(response.status_code, 200)
         html = response.content.decode()
         self.assertIn('Conto para visitantes', html)
+        self.assertIn('content="Conto para visitantes &lt;script&gt;', html)
         self.assertNotIn('<script>alert(1)</script>', html)
         self.assertNotIn('HISTÓRIA PRIVADA Q8', html)
         self.assertIn('Atributos públicos', html)
