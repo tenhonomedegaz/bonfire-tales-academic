@@ -3,13 +3,86 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 
 from home.character_history import capture_build, register_revision
-from home.conquistas import registrar_fato_level_up
-from home.models import (TbConquista, TbConquistaNotificacao, TbPersonagem,
-                         TbEventoConquista, TbUsuarioConquista)
+from home.conquistas import conceder_conquista, registrar_fato_level_up
+from home.models import (TbConquista, TbConquistaNotificacao, TbCosmetico,
+                         TbPersonagem, TbEventoConquista, TbUsuarioConquista,
+                         UserProfile)
 from home.test_criador import _CriadorBase
 
 
 class LevelAchievementTests(_CriadorBase):
+    def test_private_level_milestone_and_rewards_follow_character_visibility(self):
+        owner = self._novo_usuario('level-private-owner')
+        badge = TbCosmetico.objects.create(
+            slug='level-private-badge', nome='Badge de nivel privado QA',
+            tipo='badge', origem='conquista')
+        frame = TbCosmetico.objects.create(
+            slug='level-private-frame', nome='Moldura de nivel privado QA',
+            tipo='moldura', origem='conquista', escopo='perfil',
+            css_class='frame-level-private-qa')
+        definition = {'schema_version': 1, 'metric': 'character_level',
+                      'scope': 'account', 'filters': {'class_slug': 'guerreiro'},
+                      'operator': 'gte', 'target': 2}
+        badge_rule = TbConquista.objects.create(
+            slug='level-private-badge-rule', nome='Marco privado de guerreiro QA',
+            criterio='automatico', criterio_json=definition, recompensa=badge)
+        TbConquista.objects.create(
+            slug='level-private-frame-rule', nome='Marco de moldura privada QA',
+            criterio='automatico', criterio_json=definition, recompensa=frame)
+        created = self._post_criar(owner, self._payload('guerreiro'))
+        self.assertTrue(created.json()['ok'], created.content)
+        character = TbPersonagem.objects.get(pk=created.json()['id'])
+        snapshot = capture_build(character)
+        primary = character.classes.get(principal=True)
+        primary.nivel = 2
+        primary.save(update_fields=['nivel'])
+        character.nivel = 2
+        character.save(update_fields=['nivel', 'atualizado_em'])
+        register_revision(character, tipo='level_up', snapshot=snapshot, user=owner,
+                          nivel_antes=1, nivel_depois=2)
+        self.assertEqual(TbUsuarioConquista.objects.filter(
+            user=owner, revogada_em__isnull=True,
+            conquista__criterio_json__metric='character_level').count(), 2)
+        profile = UserProfile.objects.get(user=owner)
+        profile.avatar_frame = frame.slug
+        profile.save(update_fields=['avatar_frame'])
+        url = reverse('public_profile', args=[owner.username])
+
+        self.client.logout()
+        visitor = self.client.get(url)
+        for private_text in (badge_rule.nome, badge.nome, frame.slug, frame.css_class):
+            self.assertNotContains(visitor, private_text)
+        self.client.force_login(owner)
+        own_page = self.client.get(url)
+        self.assertContains(own_page, badge_rule.nome)
+        self.assertContains(own_page, frame.css_class)
+        moderator = get_user_model().objects.create_superuser(
+            'level-private-moderator', 'level-private-moderator@example.invalid', 'x')
+        self.client.force_login(moderator)
+        self.assertContains(self.client.get(url), badge_rule.nome)
+        self.client.logout()
+
+        character.publico = True
+        character.save(update_fields=['publico'])
+        public_page = self.client.get(url)
+        self.assertContains(public_page, badge_rule.nome)
+        self.assertContains(public_page, badge.nome)
+        self.assertContains(public_page, frame.css_class)
+        character.arquivado = True
+        character.save(update_fields=['arquivado'])
+        archived_page = self.client.get(url)
+        for private_text in (badge_rule.nome, badge.nome, frame.slug, frame.css_class):
+            self.assertNotContains(archived_page, private_text)
+
+        independent = TbConquista.objects.create(
+            slug='level-badge-independent-qa', nome='Conquista publica independente QA',
+            criterio='manual', recompensa=badge)
+        conceder_conquista(owner, independent)
+        shared_page = self.client.get(url)
+        self.assertNotContains(shared_page, badge_rule.nome)
+        self.assertContains(shared_page, badge.nome)
+        self.assertNotContains(shared_page, frame.css_class)
+
     def test_replay_de_nivel_antigo_preserva_marco_atual_sem_duplicar_aviso(self):
         owner = self._novo_usuario('level-replay-owner')
         rule = TbConquista.objects.create(

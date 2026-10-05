@@ -1156,8 +1156,9 @@ def _slugs_obtidas(user):
     )
 
 
-def visibilidade_inicio_classe(users):
-    """Conquistas de classe publicáveis e recompensas a ocultar por conta."""
+def visibilidade_conquistas_de_personagem(users):
+    """Marcos de classe/nível publicáveis e recompensas a ocultar por conta."""
+    from django.db.models import Q
     from .models import (CosmeticCheckoutPurchase, TbCosmetico, TbPersonagem,
                          TbUsuarioConquista, TbUsuarioCosmetico)
 
@@ -1168,12 +1169,15 @@ def visibilidade_inicio_classe(users):
         return publicas, ocultas
     grants = list(TbUsuarioConquista.objects.filter(
         user_id__in=ids, conquista__ativo=True, revogada_em__isnull=True,
-        conquista__criterio_json__metric='class_started',
+    ).filter(
+        Q(conquista__criterio_json__metric='class_started') |
+        Q(conquista__criterio_json__metric='character_level'),
     ).values('user_id', 'conquista_id', 'conquista__recompensa__slug', 'evidencia_json'))
     sources = set()
     for grant in grants:
         evidence = grant['evidencia_json']
-        source_id = evidence.get('agregado_id') if isinstance(evidence, dict) else None
+        source_id = (evidence.get('personagem_id', evidence.get('agregado_id'))
+                     if isinstance(evidence, dict) else None)
         if type(source_id) is int:
             sources.add(source_id)
         grant['source_id'] = source_id
@@ -1199,7 +1203,8 @@ def visibilidade_inicio_classe(users):
                  'conquista__criterio_json'))
         for grant in independent_grants:
             criterion = grant['conquista__criterio_json']
-            if not isinstance(criterion, dict) or criterion.get('metric') != 'class_started':
+            if not isinstance(criterion, dict) or criterion.get('metric') not in {
+                    'class_started', 'character_level'}:
                 visible_rewards[grant['user_id']].add(
                     grant['conquista__recompensa__slug'])
         purchases = CosmeticCheckoutPurchase.objects.filter(
@@ -1225,6 +1230,10 @@ def visibilidade_inicio_classe(users):
     return publicas, ocultas
 
 
+# Nome anterior mantido para consumidores já existentes.
+visibilidade_inicio_classe = visibilidade_conquistas_de_personagem
+
+
 def conquistas_do_usuario(user, incluir_bloqueadas=True, *, pode_ver_privados=True):
     """Estado das conquistas ATIVAS de `user` pra vitrine.
 
@@ -1245,7 +1254,7 @@ def conquistas_do_usuario(user, incluir_bloqueadas=True, *, pode_ver_privados=Tr
     from .models import TbConquista
 
     obtidas_map = _slugs_obtidas(user)  # {conquista_id: data}
-    classes_publicas = (visibilidade_inicio_classe([user])[0][user.pk]
+    marcos_publicos = (visibilidade_conquistas_de_personagem([user])[0][user.pk]
                        if not pode_ver_privados else set())
     qs = (TbConquista.objects.filter(ativo=True)
           .order_by('ordem', 'nome'))
@@ -1257,8 +1266,8 @@ def conquistas_do_usuario(user, incluir_bloqueadas=True, *, pode_ver_privados=Tr
     niveis_comprovados = None
     for c in qs:
         if (not pode_ver_privados and isinstance(c.criterio_json, dict) and
-                c.criterio_json.get('metric') == 'class_started' and
-                c.id not in classes_publicas):
+                c.criterio_json.get('metric') in {'class_started', 'character_level'} and
+                c.id not in marcos_publicos):
             continue
         tem = c.id in obtidas_map
         if c.secreta and not tem:

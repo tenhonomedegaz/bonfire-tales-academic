@@ -1516,13 +1516,19 @@ def public_profile_view(request, username):
     )
     recompensas_privadas = (
         set() if pode_ver_privados else
-        _conquistas.visibilidade_inicio_classe([viewed_user])[1][viewed_user.pk]
+        _conquistas.visibilidade_conquistas_de_personagem([viewed_user])[1][viewed_user.pk]
     )
     badges_visiveis = [badge for badge in _badges.badges_do_usuario(viewed_user)
                        if badge['slug'] not in recompensas_privadas]
     titulo_visivel = _badges.titulo_do_usuario(viewed_user)
     if titulo_visivel and titulo_visivel['slug'] in recompensas_privadas:
         titulo_visivel = None
+    tema_visivel = ('bonfire' if profile.profile_theme in recompensas_privadas
+                    else profile.profile_theme)
+    moldura_visivel = ('none' if profile.avatar_frame in recompensas_privadas
+                       else profile.avatar_frame)
+    efeito_visivel = ('none' if profile.profile_effect in recompensas_privadas
+                      else profile.profile_effect)
     return render(request, 'home/pages/perfil_publico.html', {
         'page_title': viewed_user.username,
         'viewed_user': viewed_user,
@@ -1530,8 +1536,8 @@ def public_profile_view(request, username):
         'personagens': personagens,
         'pode_ver_privados': pode_ver_privados,
         'progresso_aventuras': progresso_aventuras,
-        'appearance': _appearance_context(profile.profile_theme, profile.avatar_frame,
-                                          profile.profile_effect, profile.theme_custom,
+        'appearance': _appearance_context(tema_visivel, moldura_visivel,
+                                          efeito_visivel, profile.theme_custom,
                                           profile.background_url, user=viewed_user),
         # F2 — badges (derivadas + concedidas, fixadas primeiro) e título equipado.
         'badges': badges_visiveis,
