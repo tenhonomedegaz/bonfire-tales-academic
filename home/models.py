@@ -2640,10 +2640,10 @@ class TbConquista(models.Model):
         if (self.criterio == 'automatico' and self.criterio_json not in supported and
                 not regra_unidades_compradas_valida(self.criterio_json) and
                 not regra_inicio_classe_valida(self.criterio_json)):
-            if self.pk and type(self).objects.filter(
+            if self.pk and not self.ativo and type(self).objects.filter(
                 pk=self.pk, criterio='automatico', criterio_json=self.criterio_json,
             ).exists():
-                return  # Definições antigas permanecem editáveis sem mudar a regra.
+                return  # Definições legadas inativas permanecem editáveis.
             raise ValidationError({'criterio_json': 'Critério automático não suportado. Use characters_created, stories_published, items_purchased, items_purchased_units ou class_started com identidade e parâmetros válidos.'})
 
     @property

@@ -246,8 +246,12 @@ class FirstCharacterAchievementTests(_CriadorBase):
             rule.full_clean()
         legacy = TbConquista.objects.create(slug='legada-teste', nome='Legada',
             criterio='automatico', criterio_json={'evento': 'aventuras', 'gte': 100})
+        legacy.ativo = False
         legacy.nome = 'Legada ajustada'
         legacy.full_clean()
+        legacy.ativo = True
+        with self.assertRaises(ValidationError):
+            legacy.full_clean()
         self.assertIn('TbEventoConquista', MEMORY_MODELS)
 
     def test_inactive_rule_is_not_awarded(self):

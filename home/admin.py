@@ -71,6 +71,7 @@ from .models import (
     TbTagLibraryRevision,
 )
 from .security import validate_no_sql_danger
+from .conquista_admin_form import ConquistaAdminForm
 from .organization_lists import organization_list
 
 
@@ -4195,6 +4196,7 @@ class _ConcederConquistaForm(forms.Form):
 
 @admin.register(TbConquista)
 class TbConquistaAdmin(admin.ModelAdmin):
+    form = ConquistaAdminForm
     list_display = ('nome', 'slug', 'secreta', 'criterio', 'recompensa', 'ativo', 'ordem')
     list_filter = ('secreta', 'criterio', 'ativo')
     search_fields = ('nome', 'slug', 'descricao')
@@ -4204,7 +4206,9 @@ class TbConquistaAdmin(admin.ModelAdmin):
     fieldsets = (
         (None, {'fields': ('nome', 'slug', 'descricao', 'icone_url', 'icone_file')}),
         ('Visibilidade', {'fields': ('secreta', 'ativo', 'ordem')}),
-        ('Critério', {'fields': ('criterio', 'criterio_json'),
+        ('Critério', {'fields': ('criterio', 'metrica_assistida', 'classe_inicial',
+                               'itens_comprados', 'operador_unidades', 'alvo_unidades',
+                               'criterio_json'),
                       'description': 'Início de classe: metric=class_started, '
                                      'scope=account, filters.class_slug=slug real, '
                                      'schema_version=1, operator=gte, target=1. '
