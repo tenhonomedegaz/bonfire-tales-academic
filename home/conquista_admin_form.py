@@ -1,7 +1,7 @@
 """Campos assistidos para os critérios automáticos já avaliados pelo site."""
 from django import forms
 
-from .conquistas import identidades_itens_ausentes
+from .conquistas import QUEST_CATEGORIES, identidades_itens_ausentes
 from .models import TbClasse, TbConquista
 
 
@@ -13,6 +13,7 @@ METRICAS = (
     ('class_started', 'Início de classe no nível 1'),
     ('items_purchased_units', 'Unidades de itens compradas'),
     ('adventures_played', 'Aventuras de mesa comprovadas'),
+    ('quests_completed', 'Primeira quest categorizada e comprovada'),
 )
 CATALOGOS = {'mundano', 'magico', 'oficina', 'comunidade'}
 
@@ -25,6 +26,10 @@ class ConquistaAdminForm(forms.ModelForm):
     classe_inicial = forms.ModelChoiceField(
         queryset=TbClasse.objects.all().order_by('nome'), required=False,
         help_text='Obrigatória apenas para Início de classe.',
+    )
+    categoria_quest = forms.ChoiceField(
+        choices=[('', 'Selecione a categoria')] + list(QUEST_CATEGORIES.items()),
+        required=False, help_text='Categoria confirmada pela staff no lançamento da missão.',
     )
     itens_comprados = forms.CharField(
         required=False, widget=forms.Textarea(attrs={'rows': 3}),
@@ -54,6 +59,8 @@ class ConquistaAdminForm(forms.ModelForm):
         if metric == 'class_started':
             slug = (rule.get('filters') or {}).get('class_slug')
             self.fields['classe_inicial'].initial = TbClasse.objects.filter(slug=slug).first()
+        elif metric == 'quests_completed':
+            self.fields['categoria_quest'].initial = (rule.get('filters') or {}).get('category')
         elif metric in ('items_purchased_units', 'adventures_played'):
             if metric == 'items_purchased_units':
                 items = (rule.get('filters') or {}).get('items') or []
@@ -77,6 +84,13 @@ class ConquistaAdminForm(forms.ModelForm):
                 self.add_error('classe_inicial', 'Selecione uma classe real.')
                 return cleaned
             rule.update(filters={'class_slug': classe.slug}, operator='gte', target=1)
+        elif metric == 'quests_completed':
+            category = cleaned.get('categoria_quest')
+            if not category:
+                self.add_error('categoria_quest', 'Selecione uma categoria confirmável.')
+                return cleaned
+            rule.update(filters={'category': category, 'valid': True},
+                        operator='gte', target=1)
         elif metric == 'items_purchased_units':
             items = []
             for line in (cleaned.get('itens_comprados') or '').splitlines():

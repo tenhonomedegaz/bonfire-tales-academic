@@ -183,3 +183,86 @@ class AdventuresAchievementTests(_CriadorBase):
                      user_id=self.owner.pk, stdout=StringIO())
         self.assertEqual(TbUsuarioConquista.objects.filter(
             user=self.owner, conquista=self.rule).count(), 1)
+
+    def test_staff_confirmed_quest_category_replays_and_reverses(self):
+        form = ConquistaAdminForm(data={
+            'slug': 'quest-bg-token-qa', 'nome': 'Quest BG/token QA',
+            'criterio': 'automatico', 'criterio_json': '{}',
+            'ativo': 'on', 'ordem': '0',
+            'metrica_assistida': 'quests_completed',
+            'categoria_quest': 'bg_token',
+            'recompensa': self.badge.pk,
+        })
+        self.assertTrue(form.is_valid(), form.errors)
+        quest_rule = form.save()
+        quest_rule.ativo = False
+        quest_rule.save(update_fields=['ativo'])
+        url = reverse('personagem_registrar_aventuras', args=[self.character.pk])
+        payload = {'nome_aventura': 'Quest BG confirmada', 'aventuras': 2,
+                   'mestre': self.staff.pk, 'data_missao': '2026-09-27',
+                   'quest_category': 'bg_token'}
+        self.client.force_login(self.staff)
+        self.assertEqual(self.client.post(url, {**payload, 'data_missao': ''}).status_code, 302)
+        self.assertFalse(TbPersonagemAventura.objects.exists())
+        self.assertEqual(self.client.post(url, payload).status_code, 302)
+        ledger = TbPersonagemAventura.objects.get(origem='mesa')
+        fact = TbEventoConquista.objects.get(tipo='adventure_recorded')
+        self.assertEqual(ledger.detalhes_json['quest_confirmed_by'], self.staff.pk)
+        self.assertEqual(fact.payload_json['quest_category'], 'bg_token')
+        self.assertContains(self.client.get(reverse('editar_ficha', args=[self.character.pk])),
+                            'Categoria confirmada: BG/token')
+        self.assertFalse(TbUsuarioConquista.objects.filter(
+            user=self.owner, conquista=quest_rule).exists())
+
+        quest_rule.ativo = True
+        quest_rule.save(update_fields=['ativo'])
+        output = StringIO()
+        call_command('reprocessar_aventuras_jogadas', user_id=self.owner.pk,
+                     stdout=output)
+        self.assertIn('contas=1', output.getvalue())
+        self.assertFalse(TbUsuarioConquista.objects.filter(
+            user=self.owner, conquista=quest_rule).exists())
+        call_command('reprocessar_aventuras_jogadas', apply=True,
+                     user_id=self.owner.pk, stdout=StringIO())
+        grant = TbUsuarioConquista.objects.get(user=self.owner, conquista=quest_rule)
+        self.assertEqual(grant.evidencia_json['lancamento_id'], ledger.pk)
+        self.assertEqual(grant.definicao_json, quest_rule.criterio_json)
+        call_command('reprocessar_aventuras_jogadas', apply=True,
+                     user_id=self.owner.pk, stdout=StringIO())
+        self.assertEqual(TbUsuarioConquista.objects.filter(
+            user=self.owner, conquista=quest_rule).count(), 1)
+
+        self.client.force_login(self.owner)
+        self.assertContains(self.client.get(reverse('profile')), quest_rule.nome)
+        self.assertContains(self.client.get(reverse('conquista_notificacoes')),
+                            quest_rule.nome)
+
+        self.client.force_login(self.staff)
+        self.assertEqual(self.client.post(reverse(
+            'personagem_reverter_aventura', args=[self.character.pk, ledger.pk]
+        )).status_code, 302)
+        grant.refresh_from_db()
+        self.assertIsNotNone(grant.revogada_em)
+        self.assertTrue(TbUsuarioCosmetico.objects.filter(
+            user=self.owner, cosmetico=self.badge,
+            suspenso_em__isnull=False).exists())
+
+    def test_legacy_category_without_staff_confirmation_does_not_award(self):
+        rule = TbConquista(
+            slug='unverified-quest-bg', nome='Quest BG sem prova',
+            criterio='automatico', criterio_json={
+                'schema_version': 1, 'metric': 'quests_completed',
+                'scope': 'account', 'filters': {'category': 'bg_token', 'valid': True},
+                'operator': 'gte', 'target': 1})
+        rule.full_clean()
+        rule.save()
+        TbPersonagemAventura.objects.create(
+            id_personagem=self.character, nome_aventura='Legado ambíguo',
+            origem='mesa', qtd_aventuras=1,
+            detalhes_json={'quest_category': 'bg_token'})
+        call_command('reprocessar_aventuras_jogadas', apply=True,
+                     user_id=self.owner.pk, stdout=StringIO())
+        self.assertEqual(TbEventoConquista.objects.filter(
+            tipo='adventure_recorded').count(), 1)
+        self.assertFalse(TbUsuarioConquista.objects.filter(
+            user=self.owner, conquista=rule).exists())

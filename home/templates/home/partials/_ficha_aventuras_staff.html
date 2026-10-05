@@ -10,6 +10,7 @@ caminho para desfazer os CONTADORES (aventuras/ouro/braseiros).{% endcomment %}
   {% if compra_msg == 'aventuras_sem_mestre' %}<p class="lvl-note-cap" style="flex:1 1 100%">Escolha o MESTRE da missão — lançamento novo não é mais aceito sem mestre do cadastro.</p>{% endif %}
   {% if compra_msg == 'aventuras_data_invalida' %}<p class="lvl-note-cap" style="flex:1 1 100%">Data da missão inválida.</p>{% endif %}
   {% if compra_msg == 'aventuras_vinculo_invalido' %}<p class="lvl-note-cap" style="flex:1 1 100%">Vínculo com o bot recusado: confira o ID da missão finalizada, a conta Discord participante, a quantidade e vínculos anteriores. Nenhum crédito foi aplicado.</p>{% endif %}
+  {% if compra_msg == 'aventuras_categoria_invalida' %}<p class="lvl-note-cap" style="flex:1 1 100%">Escolha uma categoria reconhecida e informe a data da missão. Nenhum crédito foi aplicado.</p>{% endif %}
   {% if rollback_msg == 'ok' %}<p class="lvl-note-ok" style="flex:1 1 100%">Lançamento revertido: aventuras e ouro devolvidos.</p>{% endif %}
   {% if rollback_msg == 'ja_revertido' %}<p class="lvl-note-cap" style="flex:1 1 100%">Este lançamento já foi revertido.</p>{% endif %}
   {% if rollback_msg == 'teto_nivel' %}<p class="lvl-note-cap" style="flex:1 1 100%">Estorno impossível: o personagem já subiu de nível com essas aventuras.</p>{% endif %}
@@ -35,6 +36,13 @@ caminho para desfazer os CONTADORES (aventuras/ouro/braseiros).{% endcomment %}
     </select>
     <input type="date" name="data_missao" class="lvl-field" aria-label="Data da missão" title="Data em que a missão aconteceu (não a do lançamento)">
     <input type="number" name="aventuras" min="1" max="200" value="1" class="lvl-field" style="width:5rem" aria-label="Quantidade de aventuras">
+    <select name="quest_category" class="lvl-field" aria-label="Categoria confirmada da missão" title="Opcional; marque somente uma missão concluída e comprovada">
+      <option value="">Sem categoria confirmada</option>
+      <option value="bg_token">BG/token</option>
+      <option value="item_rare">Quest de item raro</option>
+      <option value="item_very_rare">Quest de item muito raro</option>
+      <option value="item_legendary">Quest de item lendário</option>
+    </select>
     <input type="text" name="bot_quest_id" maxlength="30" class="lvl-field" placeholder="ID da missão no bot (opcional)" aria-label="ID da missão no bot" title="Use o ID exato da missão finalizada; nome e data não identificam a missão">
     <label class="lvl-radio"><input type="checkbox" name="evento"> missão de evento (dá braseiros)</label>
     <button type="submit" class="lvl-add">+ Aventuras (ouro + nível)</button>
@@ -49,7 +57,7 @@ caminho para desfazer os CONTADORES (aventuras/ouro/braseiros).{% endcomment %}
         <tbody>
           {% for l in aventura_ledger %}
             <tr{% if l.revertido %} class="is-reverted"{% endif %}>
-              <td>{{ l.nome_aventura }}{% if l.detalhes_json.bot_quest_id %}<small> · Bot: {{ l.detalhes_json.bot_quest_id }}</small>{% endif %}</td>
+              <td>{{ l.nome_aventura }}{% if l.detalhes_json.bot_quest_id %}<small> · Bot: {{ l.detalhes_json.bot_quest_id }}</small>{% endif %}{% if l.detalhes_json.quest_category %}<small> · Categoria confirmada: {% if l.detalhes_json.quest_category == 'bg_token' %}BG/token{% elif l.detalhes_json.quest_category == 'item_rare' %}item raro{% elif l.detalhes_json.quest_category == 'item_very_rare' %}item muito raro{% elif l.detalhes_json.quest_category == 'item_legendary' %}item lendário{% endif %}</small>{% endif %}</td>
               <td>{% if l.data_missao %}{{ l.data_missao|date:"d/m/Y" }}{% else %}<span class="lvl-legado" title="Lançamento anterior à onda E: a data da missão nunca foi registrada">(legado)</span>{% endif %}</td>
               <td>{% if l.eh_legado %}<span class="lvl-legado" title="Lançamento anterior ao cadastro obrigatório de mestre">{{ l.mestre_display }}</span>{% else %}{{ l.mestre_display }}{% endif %}</td>
               <td>{{ l.qtd_aventuras }}</td>

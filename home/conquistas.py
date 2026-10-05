@@ -92,6 +92,28 @@ def regra_aventuras_jogadas_valida(regra):
         type(regra['target']) is int and regra['target'] > 0)
 
 
+QUEST_CATEGORIES = {
+    'bg_token': 'BG/token',
+    'item_rare': 'Item raro',
+    'item_very_rare': 'Item muito raro',
+    'item_legendary': 'Item lendário',
+}
+
+
+def regra_quest_categorizada_valida(regra):
+    return (isinstance(regra, dict) and set(regra) == {
+        'schema_version', 'metric', 'scope', 'filters', 'operator', 'target'} and
+        type(regra['schema_version']) is int and regra['schema_version'] == 1 and
+        regra['metric'] == 'quests_completed' and regra['scope'] == 'account' and
+        isinstance(regra['filters'], dict) and
+        set(regra['filters']) == {'category', 'valid'} and
+        regra['filters']['valid'] is True and
+        type(regra['filters']['category']) is str and
+        regra['filters']['category'] in QUEST_CATEGORIES and
+        regra['operator'] == 'gte' and type(regra['target']) is int and
+        regra['target'] == 1)
+
+
 @transaction.atomic
 def conceder_conquista(user, conquista, por=None):
     """Concede `conquista` a `user` (idempotente). Se ainda não tinha, cria a
@@ -335,6 +357,10 @@ def registrar_fato_aventura(lancamento, *, estorno=False, avaliar=True):
         'data_missao': lancamento.data_missao.isoformat() if lancamento.data_missao else None,
     }
     bot_quest_id = (lancamento.detalhes_json or {}).get('bot_quest_id')
+    category = (lancamento.detalhes_json or {}).get('quest_category')
+    if category:
+        payload['quest_category'] = category
+        payload['quest_confirmed_by'] = (lancamento.detalhes_json or {}).get('quest_confirmed_by')
     if bot_quest_id:
         payload['bot_quest_id'] = bot_quest_id
         bot_prova = (lancamento.detalhes_json or {}).get('bot_quest_proof')
@@ -352,11 +378,76 @@ def registrar_fato_aventura(lancamento, *, estorno=False, avaliar=True):
     if (evento.tipo != tipo or evento.conta_id != personagem.dono_id or
             evento.agregado_id != lancamento.pk or
             evento.payload_json.get('ledger_id') != lancamento.pk or
-            evento.payload_json.get('quantidade') != payload['quantidade']):
+            evento.payload_json.get('quantidade') != payload['quantidade'] or
+            evento.payload_json.get('quest_category') != payload.get('quest_category')):
         raise ValueError('Identidade do fato de aventura inconsistente.')
     if avaliar:
         avaliar_aventuras_jogadas(personagem.dono)
+        avaliar_quests_categorizadas(personagem.dono)
     return evento
+
+
+def avaliar_quests_categorizadas(user):
+    """Concede somente categorias confirmadas pela staff em um lançamento válido."""
+    from django.contrib.auth import get_user_model
+    from django.utils import timezone
+    from .models import (CosmeticCheckoutPurchase, TbConquista, TbPersonagemAventura,
+                         TbUsuarioConquista, TbUsuarioCosmetico)
+
+    with transaction.atomic():
+        get_user_model().objects.select_for_update().only('pk').get(pk=user.pk)
+        rules = [rule for rule in TbConquista.objects.filter(
+            ativo=True, criterio='automatico',
+            criterio_json__metric='quests_completed').select_related('recompensa')
+            if regra_quest_categorizada_valida(rule.criterio_json)]
+        if not rules:
+            return
+        _, facts = _aventuras_comprovadas(user)
+        ledgers = {row.pk: row for row in TbPersonagemAventura.objects.filter(
+            pk__in=[fact.agregado_id for fact in facts], id_personagem__dono=user,
+            origem='mesa', revertido=False).select_related('criado_por')}
+        matched = {category: [] for category in QUEST_CATEGORIES}
+        for fact in facts:
+            ledger = ledgers.get(fact.agregado_id)
+            details = ledger.detalhes_json if ledger and isinstance(ledger.detalhes_json, dict) else {}
+            category = fact.payload_json.get('quest_category')
+            if (category not in matched or not ledger or
+                    not ledger.data_missao or not ledger.id_mestre_id or
+                    not ledger.criado_por_id or not ledger.criado_por.is_staff or
+                    details.get('quest_category') != category or
+                    details.get('quest_confirmed_by') != ledger.criado_por_id or
+                    fact.payload_json.get('quest_confirmed_by') != ledger.criado_por_id):
+                continue
+            matched[category].append(fact)
+        for rule in rules:
+            category = rule.criterio_json['filters']['category']
+            first = matched[category][0] if matched[category] else None
+            grant = TbUsuarioConquista.objects.select_for_update().filter(
+                user=user, conquista=rule).first()
+            if first:
+                if grant is None or grant.concedida_por_id is None:
+                    conceder_conquista(user, rule)
+                    TbUsuarioConquista.objects.filter(user=user, conquista=rule).update(
+                        evidencia_json={'evento_id': str(first.pk),
+                                        'lancamento_id': first.agregado_id,
+                                        'categoria': category},
+                        definicao_json=rule.criterio_json)
+            elif grant and grant.concedida_por_id is None and grant.revogada_em is None:
+                now = timezone.now()
+                grant.revogada_em = now
+                grant.save(update_fields=['revogada_em'])
+                if rule.recompensa_id:
+                    other = TbUsuarioConquista.objects.filter(
+                        user=user, conquista__recompensa_id=rule.recompensa_id,
+                        revogada_em__isnull=True).exclude(pk=grant.pk).exists()
+                    paid = CosmeticCheckoutPurchase.objects.filter(
+                        beneficiary=user, cosmetico_id=rule.recompensa_id,
+                        granted_at__isnull=False).exists()
+                    if not other and not paid:
+                        TbUsuarioCosmetico.objects.filter(
+                            user=user, cosmetico_id=rule.recompensa_id,
+                            origem__startswith='conquista:',
+                            suspenso_em__isnull=True).update(suspenso_em=now)
 
 
 def _aventuras_comprovadas(user):

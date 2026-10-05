@@ -7114,7 +7114,8 @@ def _consumo_append(lanc, registro):
 
 
 def aplicar_aventuras(personagem, n, evento=False, nome_aventura=None, criado_por=None,
-                      registrar_ledger=True, data_missao=None, mestre=None, bot_quest_id=None):
+                      registrar_ledger=True, data_missao=None, mestre=None, bot_quest_id=None,
+                      quest_category=None):
     """Aplica `n` aventuras a um personagem (lançado por staff). Regra de SPLIT no rank-up:
     cada aventura é recompensada no rank ANTES de ela contar (a que sobe de rank paga no
     rank antigo; as seguintes no novo). Sempre credita o ouro do rank (PO→PC). BRASEIROS
@@ -7134,6 +7135,10 @@ def aplicar_aventuras(personagem, n, evento=False, nome_aventura=None, criado_po
         return (0, 0)
     if bot_quest_id and not registrar_ledger:
         raise ValueError('Vínculo com o bot exige lançamento no ledger.')
+    if quest_category and (quest_category not in _conquistas.QUEST_CATEGORIES or
+                           not registrar_ledger or not data_missao or not mestre or
+                           not criado_por or not criado_por.is_staff):
+        raise ValueError('Categoria exige uma missão única, datada e confirmada pela staff.')
     base = int(personagem.aventuras or 0)
     # Ouro do intervalo = diferença do acumulado (regra sequencial de rank-up embutida).
     ouro = ouro_de_progressao(base + n) - ouro_de_progressao(base)
@@ -7161,7 +7166,10 @@ def aplicar_aventuras(personagem, n, evento=False, nome_aventura=None, criado_po
                 ouro_pago_pc=ouro * 100, braseiros_pago=bras,
                 nivel_no_lancamento=int(personagem.nivel or 1), criado_por=criado_por,
                 data_missao=data_missao, id_mestre=mestre,
-                detalhes_json=bot_link or {})
+                detalhes_json={**(bot_link or {}), **({
+                    'quest_category': quest_category,
+                    'quest_confirmed_by': criado_por.pk,
+                } if quest_category else {})})
             _conquistas.registrar_fato_aventura(lancamento)
     return (ouro, bras)
 
@@ -7475,11 +7483,17 @@ def personagem_registrar_aventuras(request, pk):
         n = max(1, min(200, int(request.POST.get('aventuras') or 1)))
     except (TypeError, ValueError):
         n = 1
+    category = (request.POST.get('quest_category') or '').strip()
+    if category and (category not in _conquistas.QUEST_CATEGORIES or
+                     data_missao is None):
+        return _aventuras_staff_resposta(
+            request, p, compra_msg='aventuras_categoria_invalida', ok=False)
     try:
         aplicar_aventuras(p, n, evento=(request.POST.get('evento') == 'on'),
                           nome_aventura=nome, criado_por=request.user,
                           data_missao=data_missao, mestre=mestre,
-                          bot_quest_id=request.POST.get('bot_quest_id'))
+                          bot_quest_id=request.POST.get('bot_quest_id'),
+                          quest_category=category or None)
     except (ValueError, DatabaseError):
         return _aventuras_staff_resposta(
             request, p, compra_msg='aventuras_vinculo_invalido', ok=False)
