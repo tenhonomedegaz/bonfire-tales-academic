@@ -1110,6 +1110,10 @@
                     choiceFeedback('Aguarde uma prévia atualizada antes de escolher.');
                     return;
                 }
+                if (selected.indexOf(val) < 0 && resultContexts[active] !== budgetContext(active)) {
+                    choiceFeedback('Aguarde uma prévia atualizada desta progressão antes de escolher.');
+                    return;
+                }
                 var limit = Math.max(0, Number(group.limite || 0) - fixedChoices(group).length);
                 if (selected.indexOf(val) < 0 && selected.length >= limit) {
                     choiceFeedback('Todas as escolhas de ' + group.label +

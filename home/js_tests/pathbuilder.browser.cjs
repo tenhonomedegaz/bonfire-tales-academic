@@ -362,6 +362,44 @@ test('erro inicial permite repetir a prévia sem alterar nem perder a build', as
   assert.equal(await h.page.locator('[data-attr="FOR"][data-delta="1"]').isDisabled(), false);
 });
 
+test('prévia antiga não autoriza nova escolha após mudar o nível, mas permite remover', async t => {
+  const key = 'opcao|teste|0|marco-nivel-quatro|0';
+  const build = seed();
+  build.escolhas[key] = ['defesa'];
+  const h = await harness(t, [build, seed()]);
+  const group = { key, label: 'Marco de nível quatro', origem: 'Marco', limite: 2,
+    pendentes: 0, resolvidas: [], selecionadas: ['defesa'], opcoes: [
+      { valor: 'defesa', nome: 'Defesa' }, { valor: 'duelo', nome: 'Duelo' },
+    ] };
+  const first = await h.nextRequest(0);
+  const initial = result(first.input.build);
+  initial.build.escolhas_grupos = [group];
+  first.reply(initial);
+  await h.page.locator('[data-confirmed-sheet]').waitFor();
+  await h.page.locator('[data-step-tab="1"]').click();
+  await h.page.locator('[data-class-level="0"][data-delta="-1"]').click();
+  (await h.nextRequest(1)).reply({ ok: false, erros: ['Falha temporária'] }, 500);
+  await h.page.locator('#pb-status.is-error').waitFor();
+  await h.page.locator('[data-step-tab="2"]').click();
+  await h.page.locator('[data-choice-val="duelo"] [data-choice-pick]').click();
+  assert.deepEqual((await h.stored())[0].escolhas[key], ['defesa']);
+  assert.match(await h.page.locator('#pb-choice-feedback').innerText(), /prévia atualizada/);
+  await h.page.locator('[data-choice-val="defesa"] [data-choice-pick]').click();
+  assert.deepEqual((await h.stored())[0].escolhas[key], []);
+  const reduced = await h.nextRequest(2);
+  reduced.reply(result(reduced.input.build));
+  await h.page.waitForFunction(() => !document.querySelector('#pb-status').textContent.includes('Derivando'));
+  await h.page.locator('[data-step-tab="1"]').click();
+  await h.page.locator('[data-class-level="0"][data-delta="1"]').click();
+  const restored = await h.nextRequest(3);
+  const restoredResult = result(restored.input.build);
+  restoredResult.build.escolhas_grupos = [{ ...group, selecionadas: [] }];
+  restored.reply(restoredResult);
+  await h.page.locator('[data-step-tab="2"]').click();
+  await h.page.locator('[data-choice-val="duelo"] [data-choice-pick]').click();
+  assert.deepEqual((await h.stored())[0].escolhas[key], ['duelo']);
+});
+
 test('repetir prévia após erro mantém a última ficha até confirmar a mesma edição', async t => {
   const h = await harness(t);
   await h.initial();
