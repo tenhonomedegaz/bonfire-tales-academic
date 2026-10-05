@@ -403,6 +403,8 @@ def perfil_badges_batch(users):
     colab_map = is_colaborador_batch(users)
     concedidas_map = _badges_concedidas_batch(users)
     titulos_map = _titulos_equipados_batch(users)
+    from .conquistas import visibilidade_inicio_classe
+    recompensas_privadas = visibilidade_inicio_classe(users)[1]
     out = {}
     for u in users:
         perfil = getattr(u, 'profile', None)
@@ -410,7 +412,12 @@ def perfil_badges_batch(users):
         ocultas = set(getattr(perfil, 'badges_derivadas_ocultas', None) or []) - {'staff'}
         derivadas = [b for b in badges_derivadas(u, colab_map.get(u.pk, False))
                      if b['slug'] not in ocultas]
-        concedidas = concedidas_map.get(u.pk, [])
+        ocultar = recompensas_privadas[u.pk]
+        concedidas = [b for b in concedidas_map.get(u.pk, [])
+                      if b['slug'] not in ocultar]
         badges = _ordena_por_destaque(derivadas + concedidas, destaque)
-        out[u.pk] = {'badges': badges, 'titulo': titulos_map.get(u.pk)}
+        titulo = titulos_map.get(u.pk)
+        if titulo and titulo['slug'] in ocultar:
+            titulo = None
+        out[u.pk] = {'badges': badges, 'titulo': titulo}
     return out

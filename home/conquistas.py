@@ -784,7 +784,45 @@ def _slugs_obtidas(user):
     )
 
 
-def conquistas_do_usuario(user, incluir_bloqueadas=True):
+def visibilidade_inicio_classe(users):
+    """Conquistas de classe publicáveis e recompensas a ocultar por conta."""
+    from .models import TbPersonagem, TbUsuarioConquista
+
+    ids = [user.pk for user in users if getattr(user, 'pk', None)]
+    publicas = {user_id: set() for user_id in ids}
+    ocultas = {user_id: set() for user_id in ids}
+    if not ids:
+        return publicas, ocultas
+    grants = list(TbUsuarioConquista.objects.filter(
+        user_id__in=ids, conquista__ativo=True, revogada_em__isnull=True,
+        conquista__criterio_json__metric='class_started',
+    ).values('user_id', 'conquista_id', 'conquista__recompensa__slug', 'evidencia_json'))
+    sources = set()
+    for grant in grants:
+        evidence = grant['evidencia_json']
+        source_id = evidence.get('agregado_id') if isinstance(evidence, dict) else None
+        if type(source_id) is int:
+            sources.add(source_id)
+        grant['source_id'] = source_id
+    visible_sources = set(TbPersonagem.objects.filter(
+        pk__in=sources, dono_id__in=ids, publico=True, arquivado=False,
+    ).values_list('dono_id', 'pk'))
+    visible_rewards = {user_id: set() for user_id in ids}
+    for grant in grants:
+        user_id = grant['user_id']
+        reward_slug = grant['conquista__recompensa__slug']
+        if (user_id, grant['source_id']) in visible_sources:
+            publicas[user_id].add(grant['conquista_id'])
+            if reward_slug:
+                visible_rewards[user_id].add(reward_slug)
+        elif reward_slug:
+            ocultas[user_id].add(reward_slug)
+    for user_id in ids:
+        ocultas[user_id].difference_update(visible_rewards[user_id])
+    return publicas, ocultas
+
+
+def conquistas_do_usuario(user, incluir_bloqueadas=True, *, pode_ver_privados=True):
     """Estado das conquistas ATIVAS de `user` pra vitrine.
 
     Retorna dict:
@@ -804,12 +842,18 @@ def conquistas_do_usuario(user, incluir_bloqueadas=True):
     from .models import TbConquista
 
     obtidas_map = _slugs_obtidas(user)  # {conquista_id: data}
+    classes_publicas = (visibilidade_inicio_classe([user])[0][user.pk]
+                       if not pode_ver_privados else set())
     qs = (TbConquista.objects.filter(ativo=True)
           .order_by('ordem', 'nome'))
 
     obtidas, bloqueadas = [], []
     total_visivel = 0
     for c in qs:
+        if (not pode_ver_privados and isinstance(c.criterio_json, dict) and
+                c.criterio_json.get('metric') == 'class_started' and
+                c.id not in classes_publicas):
+            continue
         tem = c.id in obtidas_map
         if c.secreta and not tem:
             # Secreta não-obtida: invisível — não conta, não aparece.

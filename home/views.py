@@ -1513,6 +1513,15 @@ def public_profile_view(request, username):
         _conquistas.progresso_aventuras_por_origem(viewed_user, profile.discord_user_id)
         if pode_ver_privados else None
     )
+    recompensas_privadas = (
+        set() if pode_ver_privados else
+        _conquistas.visibilidade_inicio_classe([viewed_user])[1][viewed_user.pk]
+    )
+    badges_visiveis = [badge for badge in _badges.badges_do_usuario(viewed_user)
+                       if badge['slug'] not in recompensas_privadas]
+    titulo_visivel = _badges.titulo_do_usuario(viewed_user)
+    if titulo_visivel and titulo_visivel['slug'] in recompensas_privadas:
+        titulo_visivel = None
     return render(request, 'home/pages/perfil_publico.html', {
         'page_title': viewed_user.username,
         'viewed_user': viewed_user,
@@ -1524,11 +1533,12 @@ def public_profile_view(request, username):
                                           profile.profile_effect, profile.theme_custom,
                                           profile.background_url, user=viewed_user),
         # F2 — badges (derivadas + concedidas, fixadas primeiro) e título equipado.
-        'badges': _badges.badges_do_usuario(viewed_user),
+        'badges': badges_visiveis,
         'mestre_ouro_direito': MestreOuroDireito.objects.filter(user=viewed_user).first(),
-        'titulo': _badges.titulo_do_usuario(viewed_user),
+        'titulo': titulo_visivel,
         # F3 — vitrine de conquistas (compacta). Secretas não-obtidas nunca aparecem.
-        'conquistas': _conquistas.conquistas_do_usuario(viewed_user),
+        'conquistas': _conquistas.conquistas_do_usuario(
+            viewed_user, pode_ver_privados=pode_ver_privados),
         # Social — contagens de curtidas/seguidores + o estado do VISITANTE (curtiu/
         # segue). Anônimo recebe só as contagens (curtiu/segue=False, sem botões).
         'social': _social.estado_social(viewed_user, request.user),

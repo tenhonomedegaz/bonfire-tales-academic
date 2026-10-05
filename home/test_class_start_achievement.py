@@ -2,11 +2,13 @@ import json
 from io import StringIO
 from unittest.mock import patch
 
+from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.core.management import call_command
 from django.urls import reverse
 
-from home.conquistas import conceder_conquista
+from home.badges import perfil_badges_batch
+from home.conquistas import conceder_conquista, conquistas_do_usuario
 from home.models import (TbClasse, TbConquista, TbCosmetico, TbEventoConquista,
                          TbPersonagem, TbPersonagemClasse, TbUsuarioConquista,
                          TbUsuarioCosmetico)
@@ -14,6 +16,42 @@ from home.test_criador import _CriadorBase
 
 
 class ClassStartAchievementTests(_CriadorBase):
+    def test_private_class_achievement_is_hidden_from_public_profile(self):
+        rule = self._rule()
+        rule.nome = 'Conquista da classe oculta QA'
+        rule.save(update_fields=['nome'])
+        user = self._novo_usuario('private-class-achievement', staff=True)
+        created = self._post_criar(user, self._payload('guerreiro'))
+        self.assertTrue(created.json()['ok'], created.content)
+        character = TbPersonagem.objects.get(pk=created.json()['id'])
+        self.assertFalse(character.publico)
+        self.assertEqual(conquistas_do_usuario(user, pode_ver_privados=False)['total'], 0)
+
+        url = reverse('public_profile', args=[user.username])
+        self.client.logout()
+        self.assertNotContains(self.client.get(url), rule.nome)
+        self.assertNotContains(self.client.get(url), rule.recompensa.nome)
+        self.assertNotIn(rule.recompensa.slug, [badge['slug'] for badge in
+                         perfil_badges_batch([user])[user.pk]['badges']])
+        self.client.force_login(user)
+        self.assertContains(self.client.get(url), rule.nome)
+        moderator = get_user_model().objects.create_superuser(
+            'class-achievement-moderator', 'class-achievement@example.invalid', 'x')
+        self.client.force_login(moderator)
+        self.assertContains(self.client.get(url), rule.nome)
+
+        character.publico = True
+        character.save(update_fields=['publico'])
+        self.client.logout()
+        self.assertContains(self.client.get(url), rule.nome)
+        self.assertContains(self.client.get(url), rule.recompensa.nome)
+        self.assertIn(rule.recompensa.slug, [badge['slug'] for badge in
+                      perfil_badges_batch([user])[user.pk]['badges']])
+        character.arquivado = True
+        character.save(update_fields=['arquivado'])
+        self.assertNotContains(self.client.get(url), rule.nome)
+        self.assertNotContains(self.client.get(url), rule.recompensa.nome)
+
     def _rule(self, slug='guerreiro'):
         definition = {'schema_version': 1, 'metric': 'class_started',
                       'scope': 'account', 'filters': {'class_slug': slug},
