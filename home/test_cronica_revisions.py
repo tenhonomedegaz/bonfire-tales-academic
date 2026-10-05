@@ -302,7 +302,7 @@ class CronicaRevisionTests(TestCase):
         self.assertEqual(self.post_json(url, {'titulo': 'Ataque'}).status_code, 404)
         self.assertEqual(self.post_json(reverse('cronica_review_action', args=[self.cronica.pk]), {
             'action': 'aprovar',
-        }).status_code, 302)
+        }).status_code, 403)
         self.cronica.refresh_from_db()
         self.assertEqual(self.cronica.revisao_edicao, {})
 
