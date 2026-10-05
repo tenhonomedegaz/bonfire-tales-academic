@@ -1,0 +1,81 @@
+"""Aceite local da progressão de nível baseada em revisão canônica."""
+from django.contrib.auth import get_user_model
+from django.urls import reverse
+
+from home.character_history import capture_build, register_revision
+from home.conquistas import registrar_fato_level_up
+from home.models import (TbConquista, TbConquistaNotificacao, TbPersonagem,
+                         TbUsuarioConquista)
+from home.test_criador import _CriadorBase
+
+
+class LevelAchievementTests(_CriadorBase):
+    def test_level_rule_grants_once_and_reversal_removes_private_progress(self):
+        owner = self._novo_usuario('level-achievement-owner')
+        other = self._novo_usuario('level-achievement-other')
+        rule = TbConquista.objects.create(
+            slug='level-two-test', nome='Marco fictício de nível 2',
+            criterio='automatico', criterio_json={
+                'schema_version': 1, 'metric': 'character_level',
+                'scope': 'account', 'filters': {'class_slug': 'guerreiro'},
+                'operator': 'gte', 'target': 2})
+        created = self._post_criar(owner, self._payload('guerreiro'))
+        self.assertTrue(created.json()['ok'], created.content)
+        character = TbPersonagem.objects.get(pk=created.json()['id'])
+        self.client.force_login(owner)
+        self.assertContains(self.client.get(reverse('profile')),
+                            'Nível atual comprovado: 0')
+
+        snapshot = capture_build(character)
+        primary = character.classes.get(principal=True)
+        primary.nivel = 2
+        primary.save(update_fields=['nivel'])
+        character.nivel = 2
+        character.save(update_fields=['nivel', 'atualizado_em'])
+        revision = register_revision(
+            character, tipo='level_up', snapshot=snapshot, user=owner,
+            nivel_antes=1, nivel_depois=2)
+        self.assertEqual(TbUsuarioConquista.objects.filter(
+            user=owner, conquista=rule, revogada_em__isnull=True).count(), 1)
+        self.assertEqual(TbConquistaNotificacao.objects.filter(
+            concessao__user=owner, concessao__conquista=rule).count(), 1)
+        self.assertContains(self.client.get(reverse('profile')),
+                            'Nível atual comprovado: 2')
+        self.assertContains(self.client.get(reverse('conquista_notificacoes')),
+                            rule.nome)
+        registrar_fato_level_up(revision)
+        self.assertEqual(TbConquistaNotificacao.objects.filter(
+            concessao__user=owner, concessao__conquista=rule).count(), 1)
+
+        later_rule = TbConquista.objects.create(
+            slug='level-two-later', nome='Marco retroativo fictício',
+            criterio='automatico', criterio_json=rule.criterio_json)
+        admin_url = reverse('admin:home_tbconquista_changelist')
+        action = {'action': 'reprocessar_nivel',
+                  '_selected_action': [str(later_rule.pk)]}
+        self.assertNotEqual(self.client.post(admin_url, action).status_code, 200)
+        self.assertFalse(TbUsuarioConquista.objects.filter(
+            user=owner, conquista=later_rule).exists())
+        staff = get_user_model().objects.create_superuser(
+            'level-achievement-admin', 'level-admin@example.invalid', 'x')
+        self.client.force_login(staff)
+        self.assertEqual(self.client.post(admin_url, action).status_code, 302)
+        self.assertTrue(TbUsuarioConquista.objects.filter(
+            user=owner, conquista=later_rule, revogada_em__isnull=True).exists())
+
+        self.client.force_login(other)
+        denied = self.client.post(reverse('personagem_reverter_revisao',
+                                          args=[character.pk, revision.pk]))
+        self.assertNotEqual(denied.status_code, 302)
+        self.assertNotContains(self.client.get(reverse('conquista_notificacoes')),
+                               rule.nome)
+        self.client.force_login(owner)
+        reversed_response = self.client.post(reverse('personagem_reverter_revisao',
+                                                    args=[character.pk, revision.pk]))
+        self.assertEqual(reversed_response.status_code, 302)
+        grant = TbUsuarioConquista.objects.get(user=owner, conquista=rule)
+        self.assertIsNotNone(grant.revogada_em)
+        self.assertIsNotNone(TbUsuarioConquista.objects.get(
+            user=owner, conquista=later_rule).revogada_em)
+        self.assertNotContains(self.client.get(reverse('conquista_notificacoes')),
+                               rule.nome)

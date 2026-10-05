@@ -4207,6 +4207,7 @@ class TbConquistaAdmin(admin.ModelAdmin):
         (None, {'fields': ('nome', 'slug', 'descricao', 'icone_url', 'icone_file')}),
         ('Visibilidade', {'fields': ('secreta', 'ativo', 'ordem')}),
         ('Critério', {'fields': ('criterio', 'metrica_assistida', 'classe_inicial',
+                               'classe_nivel', 'alvo_nivel',
                                'itens_comprados', 'operador_unidades', 'alvo_unidades',
                                'criterio_json'),
                       'description': 'Início de classe: metric=class_started, '
@@ -4218,17 +4219,40 @@ class TbConquistaAdmin(admin.ModelAdmin):
                                      'operator=gt ou gte, target=inteiro positivo. '
                                      'Aventuras jogadas: metric=adventures_played, '
                                      'aggregate=sum, filters={"valid":true,"origin":"played_session"}. '
+                                     'Nível atual: metric=character_level, classe principal e alvo entre 2 e 20. '
                                      'Defina os limiares e operadores com o PO antes de ativar.'}),
         ('Recompensa', {'fields': ('recompensa',),
                         'description': 'Cosmético desbloqueado no inventário ao conceder.'}),
     )
-    actions = ('conceder_a_usuarios',)
+    actions = ('conceder_a_usuarios', 'reprocessar_nivel')
+
+    @admin.action(description='Reprocessar fatos de nível para marcos selecionados',
+                  permissions=['change'])
+    def reprocessar_nivel(self, request, queryset):
+        """Avalia contas com revisões de nível após cadastrar um novo marco."""
+        from django.contrib.auth import get_user_model
+        from .conquistas import avaliar_nivel_personagem
+        from .models import TbEventoConquista
+
+        if not queryset.filter(
+                ativo=True, criterio='automatico',
+                criterio_json__metric='character_level').exists():
+            self.message_user(request, 'Selecione um marco de nível ativo.', level=messages.WARNING)
+            return
+        account_ids = TbEventoConquista.objects.filter(
+            origem='site', tipo='character_level_up').values_list(
+                'conta_id', flat=True).distinct()
+        count = 0
+        for user in get_user_model().objects.filter(pk__in=account_ids).iterator():
+            avaliar_nivel_personagem(user)
+            count += 1
+        self.message_user(request, f'{count} conta(s) reavaliada(s) com fatos de nível.')
 
     def formfield_for_dbfield(self, db_field, request, **kwargs):
         if db_field.name == 'criterio_json':
             kwargs['help_text'] = ('Critérios disponíveis: characters_created, stories_published, '
                                    'items_purchased, items_purchased_units, class_started e '
-                                   'adventures_played. Para unidades, use IDs reais do catálogo; '
+                                   'adventures_played e character_level. Para unidades, use IDs reais do catálogo; '
                                    'escolha gt ou gte e o limiar com o PO.')
         return super().formfield_for_dbfield(db_field, request, **kwargs)
 
