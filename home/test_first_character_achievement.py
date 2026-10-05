@@ -3,7 +3,9 @@ from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
+from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from home.conquistas import conceder_conquista, registrar_criacao_personagem
 from home.deploy_sync import MEMORY_MODELS
@@ -16,6 +18,40 @@ from home.test_criador import _CriadorBase
 
 RULE = {'schema_version': 1, 'metric': 'characters_created',
         'scope': 'account', 'operator': 'gte', 'target': 1}
+
+
+class AchievementGrantAtomicTests(TestCase):
+    def test_reward_failure_rolls_back_new_grant_and_reactivation(self):
+        user = get_user_model().objects.create_user('atomic-achievement-owner')
+        badge = TbCosmetico.objects.create(
+            slug='badge-atomic-achievement', nome='Badge atômico',
+            tipo='badge', origem='conquista',
+        )
+        rule = TbConquista.objects.create(
+            slug='atomic-achievement', nome='Conquista atômica',
+            criterio='manual', recompensa=badge,
+        )
+        with patch.object(TbUsuarioCosmetico.objects, 'get_or_create',
+                          side_effect=RuntimeError('inventário indisponível')):
+            with self.assertRaises(RuntimeError):
+                conceder_conquista(user, rule)
+        self.assertFalse(TbUsuarioConquista.objects.filter(user=user, conquista=rule).exists())
+
+        self.assertTrue(conceder_conquista(user, rule))
+        grant = TbUsuarioConquista.objects.get(user=user, conquista=rule)
+        possession = TbUsuarioCosmetico.objects.get(user=user, cosmetico=badge)
+        grant.revogada_em = timezone.now()
+        grant.save(update_fields=['revogada_em'])
+        possession.suspenso_em = timezone.now()
+        possession.save(update_fields=['suspenso_em'])
+        with patch.object(TbUsuarioCosmetico.objects, 'get_or_create',
+                          side_effect=RuntimeError('inventário indisponível')):
+            with self.assertRaises(RuntimeError):
+                conceder_conquista(user, rule)
+        grant.refresh_from_db()
+        possession.refresh_from_db()
+        self.assertIsNotNone(grant.revogada_em)
+        self.assertIsNotNone(possession.suspenso_em)
 
 
 class FirstCharacterAchievementTests(_CriadorBase):

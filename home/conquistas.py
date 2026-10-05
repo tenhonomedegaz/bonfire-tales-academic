@@ -14,6 +14,8 @@ quem não as tem (não vaza existência). Batch pra /jogadores/ sem N+1.
 Ver docs/agentes/arquitetura_personalizacao_perfil.md §3 e §7 (F3).
 """
 
+from django.db import transaction
+
 
 def regra_unidades_compradas_valida(regra):
     """Aceita apenas identidades estruturadas e comparadores configuráveis seguros."""
@@ -59,6 +61,7 @@ def regra_inicio_classe_valida(regra):
                           regra['filters']['class_slug'])))
 
 
+@transaction.atomic
 def conceder_conquista(user, conquista, por=None):
     """Concede `conquista` a `user` (idempotente). Se ainda não tinha, cria a
     linha TbUsuarioConquista e, havendo recompensa, desbloqueia o cosmético no
@@ -66,7 +69,8 @@ def conceder_conquista(user, conquista, por=None):
 
     Retorna (criada: bool) — True se foi a primeira concessão, False se já tinha.
     Mesmo quando já tinha, garante que a recompensa esteja no inventário (auto-cura
-    casos em que a recompensa foi ligada depois da concessão)."""
+    casos em que a recompensa foi ligada depois da concessão). Concessão e recompensa
+    são persistidas juntas, inclusive em chamadas diretas da staff."""
     if not user or not getattr(user, 'pk', None) or conquista is None:
         return False
     from .models import TbUsuarioConquista, TbUsuarioCosmetico
