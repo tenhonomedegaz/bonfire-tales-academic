@@ -4,6 +4,7 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.core.management import call_command
 from django.urls import reverse
+from django.utils import timezone
 
 from home.conquista_admin_form import ConquistaAdminForm
 from home.conquistas import registrar_fato_aventura
@@ -150,5 +151,35 @@ class AdventuresAchievementTests(_CriadorBase):
         call_command('reprocessar_aventuras_jogadas', apply=True,
                      user_id=self.owner.pk, stdout=output)
         self.assertIn('fatos_novos=0', output.getvalue())
+        self.assertEqual(TbUsuarioConquista.objects.filter(
+            user=self.owner, conquista=self.rule).count(), 1)
+
+    def test_replay_revokes_stale_grant_without_active_ledger(self):
+        self.assertEqual(self.launch(3).status_code, 302)
+        grant = TbUsuarioConquista.objects.get(user=self.owner, conquista=self.rule)
+        ledger = TbPersonagemAventura.objects.get(origem='mesa')
+        ledger.revertido = True
+        ledger.revertido_em = timezone.now()
+        ledger.save(update_fields=['revertido', 'revertido_em'])
+
+        output = StringIO()
+        call_command('reprocessar_aventuras_jogadas', user_id=self.owner.pk,
+                     stdout=output)
+        self.assertIn('lancamentos=0 fatos_novos=0 contas=1', output.getvalue())
+        grant.refresh_from_db()
+        self.assertIsNone(grant.revogada_em)
+
+        output = StringIO()
+        call_command('reprocessar_aventuras_jogadas', apply=True,
+                     user_id=self.owner.pk, stdout=output)
+        self.assertIn('lancamentos=0 fatos_novos=0 contas=1', output.getvalue())
+        grant.refresh_from_db()
+        self.assertIsNotNone(grant.revogada_em)
+        self.assertTrue(TbUsuarioCosmetico.objects.filter(
+            user=self.owner, cosmetico=self.badge,
+            suspenso_em__isnull=False).exists())
+
+        call_command('reprocessar_aventuras_jogadas', apply=True,
+                     user_id=self.owner.pk, stdout=StringIO())
         self.assertEqual(TbUsuarioConquista.objects.filter(
             user=self.owner, conquista=self.rule).count(), 1)

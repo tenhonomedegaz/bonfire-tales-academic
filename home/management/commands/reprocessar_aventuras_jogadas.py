@@ -4,7 +4,7 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 
 from home.conquistas import avaliar_aventuras_jogadas, registrar_fato_aventura
-from home.models import TbEventoConquista, TbPersonagemAventura
+from home.models import TbEventoConquista, TbPersonagemAventura, TbUsuarioConquista
 
 
 class Command(BaseCommand):
@@ -22,7 +22,15 @@ class Command(BaseCommand):
         if options['user_id'] is not None:
             ledgers = ledgers.filter(id_personagem__dono_id=options['user_id'])
         inspected = new_facts = 0
-        affected_users = set()
+        # Reconcile existing grants even when their last valid ledger was reversed.
+        grants = TbUsuarioConquista.objects.filter(
+            conquista__criterio='automatico',
+            conquista__criterio_json__metric='adventures_played',
+            revogada_em__isnull=True,
+        )
+        if options['user_id'] is not None:
+            grants = grants.filter(user_id=options['user_id'])
+        affected_users = set(grants.values_list('user_id', flat=True))
         with transaction.atomic():
             for ledger in ledgers.iterator():
                 inspected += 1
