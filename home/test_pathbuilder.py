@@ -484,6 +484,29 @@ class PathbuilderTests(_CriadorBase):
                         if row["nivel"] == group["nivel"])
         self.assertEqual(resolved["selecionado"], choice)
 
+    def test_talento_racial_obsoleto_permanece_visivel_para_correcao(self):
+        payload = self._payload("guerreiro")
+        classes = [{"slug": "guerreiro", "nivel": 17, "subclasse": ""}]
+        first = self._post_preview(payload, self._build("guerreiro", classes=classes))
+        self.assertEqual(first.status_code, 200, first.content)
+        group = next(row for row in first.json()["build"]["talentos_raciais_grupos"]
+                     if row["nivel"] >= 5)
+        before = TbPersonagem.objects.count()
+        stale = self._post_preview(payload, self._build("guerreiro", **{
+            "classes": classes,
+            "talentos_raciais": [{"nivel": group["nivel"], "nome": "Escolha obsoleta"}],
+        }))
+        self.assertEqual(stale.status_code, 200, stale.content)
+        result = stale.json()["build"]
+        stale_group = next(row for row in result["talentos_raciais_grupos"]
+                           if row["nivel"] == group["nivel"])
+        self.assertEqual(stale_group["selecionado"], "Escolha obsoleta")
+        self.assertNotIn("Escolha obsoleta", [row["nome"] for row in stale_group["opcoes"]])
+        self.assertFalse(result["validacao"]["valida"])
+        self.assertTrue(any("Talento racial invalido" in issue
+                            for issue in result["validacao"]["problemas"]))
+        self.assertEqual(TbPersonagem.objects.count(), before)
+
     def test_preview_deriva_niveis_subclasse_itens_talentos_e_magias_sem_persistir(self):
         payload = self._payload("guerreiro")
         classe = TbClasse.objects.get(slug="guerreiro")

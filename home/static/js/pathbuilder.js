@@ -483,13 +483,13 @@
             if (!host) return;
             var build = current();
             var result = results[active];
-            var groups = result ? (result.talentos_raciais_grupos || []) : [];
+            var groups = result ? (result.talentos_raciais_grupos || []).slice() : [];
             var knownLevels = Object.create(null);
             groups.forEach(function (group) { knownLevels[Number(group.nivel)] = true; });
             build.talentos_raciais.forEach(function (row) {
                 if (!knownLevels[Number(row.nivel)]) {
                     groups.push({ nivel: Number(row.nivel), selecionado: row.nome,
-                                  opcoes: [{ nome: row.nome }] });
+                                  opcoes: [], indisponivel: true });
                 }
             });
             groups.sort(function (a, b) { return Number(a.nivel) - Number(b.nivel); });
@@ -502,17 +502,25 @@
                     return Number(row.nivel) === Number(group.nivel);
                 });
                 var value = selected ? selected.nome : '';
+                var valid = !!value && !group.indisponivel && (group.opcoes || []).some(function (row) {
+                    return row.nome === value;
+                });
                 var options = (group.opcoes || []).map(function (row) {
                     return '<option value="' + esc(row.nome) + '"' +
                         (row.nome === value ? ' selected' : '') + '>' + esc(row.nome) + '</option>';
                 }).join('');
-                return '<div class="pb-row' + (value ? '' : ' is-pending') + '">' +
+                var unavailable = value && !valid
+                    ? '<option value="' + esc(value) + '" selected disabled>' + esc(value) + ' (indisponível)</option>'
+                    : '';
+                return '<div class="pb-row' + (valid ? '' : ' is-pending') + '">' +
                     '<div class="pb-row-head"><span class="pb-row-name">Talento racial' +
                     '<small>Marco de nivel ' + Number(group.nivel) + '</small></span>' +
-                    '<span class="pb-counter' + (value ? ' is-ok' : ' is-bad') + '">' +
-                    (value ? 'escolhido' : 'pendente') + '</span></div>' +
+                    '<span class="pb-counter' + (valid ? ' is-ok' : ' is-bad') + '">' +
+                    (valid ? 'escolhido' : value ? 'indisponível' : 'pendente') + '</span></div>' +
                     '<select class="pb-racial-select" data-racial-level="' + Number(group.nivel) + '">' +
-                    '<option value="">Escolha um talento racial</option>' + options + '</select></div>';
+                    '<option value="">Escolha um talento racial</option>' + unavailable + options + '</select>' +
+                    (value && !valid ? '<p class="pb-card-hint">Escolha outra opção ou limpe este marco.</p>' : '') +
+                    '</div>';
             }).join('');
         }
 
@@ -810,9 +818,16 @@
                 }, 0);
             }
             if (index === 3) {
-                var racial = (result.talentos_raciais_grupos || []).filter(function (group) {
+                var racialGroups = result.talentos_raciais_grupos || [];
+                var racial = racialGroups.filter(function (group) {
                     return !current().talentos_raciais.some(function (row) {
-                        return Number(row.nivel) === Number(group.nivel) && !!row.nome;
+                        return Number(row.nivel) === Number(group.nivel) &&
+                            (group.opcoes || []).some(function (option) { return option.nome === row.nome; });
+                    });
+                }).length;
+                racial += current().talentos_raciais.filter(function (row) {
+                    return !racialGroups.some(function (group) {
+                        return Number(group.nivel) === Number(row.nivel);
                     });
                 }).length;
                 return racial + (Number(budget.pontos_restantes || 0) !== 0 ? 1 : 0);

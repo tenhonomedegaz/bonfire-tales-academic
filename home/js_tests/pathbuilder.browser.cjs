@@ -70,7 +70,9 @@ async function harness(t, builds = [seed(), seed()]) {
     } else { res.setHeader('Content-Type', 'text/html; charset=utf-8'); res.end(html); }
   });
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-  const browser = await chromium.launch({ headless: true });
+  const browser = await chromium.launch({ headless: true,
+    ...(process.env.BONFIRE_CHROMIUM_EXECUTABLE_PATH
+      ? { executablePath: process.env.BONFIRE_CHROMIUM_EXECUTABLE_PATH } : {}) });
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const page = await context.newPage();
   page.setDefaultTimeout(10000);
@@ -335,6 +337,36 @@ test('escolhas cheias explicam recusa; marco racial pendente aparece na etapa e 
   assert.deepEqual(racial.input.build.talentos_raciais, [{ nivel: 5, nome: 'Vigor' }]);
   racial.reply(preview(racial.input.build, false));
   await h.page.waitForFunction(() => document.querySelector('[data-step-tab="3"] .pb-step-badge').dataset.pending === '1');
+});
+
+test('talento racial indisponível é pendência e pode ser substituído ou limpo', async t => {
+  const build = seed();
+  build.talentos_raciais = [{ nivel: 5, nome: 'Legado' }];
+  const h = await harness(t, [build, seed()]);
+  const preview = (input, groups) => {
+    const answer = result(input);
+    answer.build.orcamento.pontos_restantes = 0;
+    answer.build.talentos_raciais_grupos = groups;
+    answer.build.validacao = { modo: 'regras', valida: !groups.length && !input.talentos_raciais.length,
+      problemas: input.talentos_raciais.length ? ['Talento racial indisponível.'] : [] };
+    return answer;
+  };
+  const first = await h.nextRequest(0);
+  first.reply(preview(first.input.build, [{ nivel: 5, opcoes: [{ nome: 'Vigor' }] }]));
+  await h.page.locator('[data-step-tab="3"]').click();
+  assert.equal(await h.page.locator('[data-step-tab="3"] .pb-step-badge').getAttribute('data-pending'), '1');
+  assert.match(await h.page.locator('#pb-racial-talents').innerText(), /Legado \(indisponível\)/);
+  await h.page.locator('[data-racial-level="5"]').selectOption('Vigor');
+  const replaced = await h.nextRequest(1);
+  assert.deepEqual(replaced.input.build.talentos_raciais, [{ nivel: 5, nome: 'Vigor' }]);
+  replaced.reply(preview(replaced.input.build, []));
+  await h.page.waitForFunction(() => document.querySelector('[data-step-tab="3"] .pb-step-badge').dataset.pending === '1');
+  assert.match(await h.page.locator('#pb-racial-talents').innerText(), /Vigor \(indisponível\)/);
+  await h.page.locator('[data-racial-level="5"]').selectOption('');
+  const cleared = await h.nextRequest(2);
+  assert.deepEqual(cleared.input.build.talentos_raciais, []);
+  cleared.reply(preview(cleared.input.build, []));
+  await h.page.waitForFunction(() => document.querySelector('[data-step-tab="3"] .pb-step-badge').dataset.pending === '');
 });
 
 test('Q10 magias avança para revisão; pendência e prévia desatualizada não concluem', async t => {
