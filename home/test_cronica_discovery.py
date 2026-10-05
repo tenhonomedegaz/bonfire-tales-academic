@@ -183,10 +183,11 @@ class CronicaDiscoveryTests(TestCase):
         self.client.force_login(self.reader)
         self.assertContains(self.client.get(inbox), 'Abrir e marcar como lida')
         response = self.client.post(mark_url, {'abrir': '1'})
-        self.assertRedirects(response, f'{reverse("cronica_detail", args=[self.older.slug])}#comentario-{reply.pk}', fetch_redirect_response=False)
+        self.assertRedirects(response, f'{reverse("cronica_detail", args=[self.older.slug])}?comentario={reply.pk}#comentario-{reply.pk}', fetch_redirect_response=False)
         notification.refresh_from_db()
         self.assertIsNotNone(notification.lida_em)
         self.assertNotContains(self.client.get(inbox), 'Abrir e marcar como lida')
+        self.assertContains(self.client.get(inbox), f'?comentario={reply.pk}#comentario-{reply.pk}')
         self.assertContains(self.client.get(inbox), f'#comentario-{reply.pk}')
 
     def test_notification_table_is_protected_from_catalog_sync(self):

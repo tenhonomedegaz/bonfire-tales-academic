@@ -45,14 +45,43 @@ class CronicaCommentTests(TestCase):
     def test_create_reply_and_only_public_story(self):
         self.client.force_login(self.leitor)
         self.assertEqual(self.comment(story=self.pending).status_code, 404)
-        self.assertEqual(self.comment().status_code, 302)
+        created = self.comment()
+        self.assertEqual(created.status_code, 302)
         parent = TbCronicaComentario.objects.get()
+        self.assertIn(f'?comentario={parent.pk}#comentario-{parent.pk}', created['Location'])
         self.assertEqual(self.comment('Resposta', resposta_a=parent.pk).status_code, 302)
         self.assertEqual(self.comment('Terceiro nível', resposta_a=TbCronicaComentario.objects.latest('pk').pk).status_code, 404)
         page = self.client.get(reverse('cronica_detail', args=[self.story.slug]))
         self.assertContains(page, 'Comentário seguro')
         self.assertContains(page, 'Resposta')
         self.assertNotContains(page, 'Terceiro nível')
+
+    def test_comment_pages_keep_old_roots_and_replies_reachable(self):
+        old = TbCronicaComentario.objects.create(
+            cronica=self.story, autor=self.leitor, texto='Raiz antiga', chave_operacao=uuid4(),
+        )
+        reply = TbCronicaComentario.objects.create(
+            cronica=self.story, autor=self.outro, texto='Resposta antiga',
+            resposta_a=old, chave_operacao=uuid4(),
+        )
+        TbCronicaComentario.objects.bulk_create([
+            TbCronicaComentario(
+                cronica=self.story, autor=self.leitor, texto=f'Raiz recente {n}',
+                chave_operacao=uuid4(),
+            ) for n in range(152)
+        ])
+        url = reverse('cronica_detail', args=[self.story.slug])
+        first = self.client.get(url)
+        self.assertContains(first, 'Raiz recente 151')
+        self.assertNotContains(first, 'Raiz antiga')
+        self.assertContains(first, '?comentarios_page=2#comments-heading')
+        older = self.client.get(url, {'comentarios_page': 8})
+        self.assertContains(older, 'Raiz antiga')
+        self.assertContains(older, 'Resposta antiga')
+        direct = self.client.get(url, {'comentario': reply.pk})
+        self.assertEqual(direct.context['comentarios_page'].number, 8)
+        self.assertContains(direct, f'id="comentario-{reply.pk}"')
+        self.assertEqual(self.client.get(url, {'comentario': '9' * 100}).status_code, 200)
 
     def test_duplicate_operation_is_replayed_without_duplicate_comment(self):
         self.client.force_login(self.leitor)

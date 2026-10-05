@@ -84,6 +84,13 @@
     {% empty %}
       <p>Ainda não há comentários.</p>
     {% endfor %}
+    {% if comentarios_page.has_other_pages %}
+    <nav class="cronica-comments-pages" aria-label="Páginas de comentários">
+      {% if comentarios_page.has_previous %}<a href="?comentarios_page={{ comentarios_page.previous_page_number }}#comments-heading">Mais recentes</a>{% endif %}
+      <span>Página {{ comentarios_page.number }} de {{ comentarios_page.paginator.num_pages }}</span>
+      {% if comentarios_page.has_next %}<a href="?comentarios_page={{ comentarios_page.next_page_number }}#comments-heading">Mais antigos</a>{% endif %}
+    </nav>
+    {% endif %}
     {% if request.user.is_authenticated %}
     <form method="post" action="{% url 'cronica_comentar' cronica.id_cronica %}">
       {% csrf_token %}

@@ -15433,25 +15433,46 @@ def cronica_detail_view(request, slug):
                 (request.user.is_authenticated and cronica.autor_id == request.user.id)):
             raise Http404
     cronica.safe_image_url = _jornal_image_url(cronica.imagem_url)
-    comments = list(TbCronicaComentario.objects.filter(cronica=cronica)
-                    .select_related('autor').order_by('criado_em', 'pk')[:150]) if cronica.status == 'aprovada' else []
+    comments_page = None
     roots = []
-    by_id = {comment.pk: comment for comment in comments}
-    for comment in comments:
-        comment.thread_replies = []
-        comment.reply_key = uuid4()
-    for comment in comments:
-        parent = by_id.get(comment.resposta_a_id)
-        if parent:
-            parent.thread_replies.append(comment)
-        elif comment.resposta_a_id is None:
-            roots.append(comment)
+    if cronica.status == 'aprovada':
+        root_query = TbCronicaComentario.objects.filter(
+            cronica=cronica, resposta_a__isnull=True,
+        ).select_related('autor').order_by('-criado_em', '-pk')
+        paginator = Paginator(root_query, 20)
+        page_number = request.GET.get('comentarios_page')
+        target_id = request.GET.get('comentario', '')
+        if target_id.isdecimal() and len(target_id) <= 10 and int(target_id) <= 2147483647:
+            target = TbCronicaComentario.objects.filter(
+                pk=target_id, cronica=cronica, estado='publico',
+            ).select_related('resposta_a').first()
+            if target:
+                root = target.resposta_a or target
+                newer = root_query.filter(
+                    Q(criado_em__gt=root.criado_em) |
+                    Q(criado_em=root.criado_em, pk__gt=root.pk)
+                ).count()
+                page_number = newer // paginator.per_page + 1
+        comments_page = paginator.get_page(page_number)
+        roots = list(comments_page.object_list)
+        by_id = {comment.pk: comment for comment in roots}
+        for comment in roots:
+            comment.thread_replies = []
+            comment.reply_key = uuid4()
+        if by_id:
+            replies = TbCronicaComentario.objects.filter(
+                cronica=cronica, resposta_a_id__in=by_id,
+            ).select_related('autor').order_by('criado_em', 'pk')
+            for reply in replies:
+                reply.reply_key = uuid4()
+                by_id[reply.resposta_a_id].thread_replies.append(reply)
     return render(request, 'home/pages/cronica_detail.html', {
         'cronica': cronica,
         'curtidas_count': TbCronicaCurtida.objects.filter(cronica=cronica).count(),
         'curtiu_cronica': bool(request.user.is_authenticated and
                                 TbCronicaCurtida.objects.filter(cronica=cronica, leitor=request.user).exists()),
         'comentarios': roots,
+        'comentarios_page': comments_page,
         'comment_operation_key': uuid4(),
         'revisao_edicao': cronica.revisao_edicao if (
             can_review or (request.user.is_authenticated and cronica.autor_id == request.user.id)
@@ -15508,7 +15529,7 @@ def cronica_notificacao_ler_view(request, notificacao_id):
     if request.POST.get('abrir') == '1':
         url = reverse('cronica_detail', kwargs={'slug': notification.cronica.slug})
         if notification.comentario_id:
-            url += f'#comentario-{notification.comentario_id}'
+            url += f'?comentario={notification.comentario_id}#comentario-{notification.comentario_id}'
         return redirect(url)
     return redirect('cronica_notificacoes')
 
@@ -15556,7 +15577,8 @@ def cronica_comentar_view(request, cronica_id):
         if previous:
             if previous.autor_id != request.user.id or previous.cronica_id != cronica.pk:
                 return JsonResponse({'error': 'Identificador já utilizado.'}, status=409)
-            return redirect('cronica_detail', slug=cronica.slug)
+            url = reverse('cronica_detail', kwargs={'slug': cronica.slug})
+            return redirect(f'{url}?comentario={previous.pk}#comentario-{previous.pk}')
         parent = None
         if parent_id:
             parent = get_object_or_404(TbCronicaComentario, pk=parent_id, cronica=cronica, resposta_a__isnull=True, estado='publico')
@@ -15581,7 +15603,8 @@ def cronica_comentar_view(request, cronica_id):
                     'resposta' if is_reply else 'comentario',
                     f'Nova {"resposta" if is_reply else "mensagem"} em {cronica.titulo}', comment,
                 )
-    return redirect('cronica_detail', slug=cronica.slug)
+    url = reverse('cronica_detail', kwargs={'slug': cronica.slug})
+    return redirect(f'{url}?comentario={comment.pk}#comentario-{comment.pk}')
 
 
 @login_required
