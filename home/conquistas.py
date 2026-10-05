@@ -644,7 +644,8 @@ def _avaliar_primeira_compra(user):
     from django.contrib.auth import get_user_model
     from django.db import transaction
     from django.utils import timezone
-    from .models import TbConquista, TbUsuarioConquista, TbUsuarioCosmetico
+    from .models import (CosmeticCheckoutPurchase, TbConquista,
+                         TbUsuarioConquista, TbUsuarioCosmetico)
 
     regra = {'schema_version': 1, 'metric': 'items_purchased',
              'scope': 'account', 'operator': 'gte', 'target': 1}
@@ -684,7 +685,10 @@ def _avaliar_primeira_compra(user):
                     other_grants = TbUsuarioConquista.objects.filter(
                         user=user, conquista__recompensa_id=rule.recompensa_id,
                         revogada_em__isnull=True).exclude(pk=grant.pk).exists()
-                    if not other_grants:
+                    paid = CosmeticCheckoutPurchase.objects.filter(
+                        beneficiary=user, cosmetico_id=rule.recompensa_id,
+                        granted_at__isnull=False).exists()
+                    if not other_grants and not paid:
                         TbUsuarioCosmetico.objects.filter(
                             user=user, cosmetico_id=rule.recompensa_id,
                             origem__startswith='conquista:',
@@ -696,7 +700,8 @@ def _avaliar_unidades_compradas(user):
     from django.contrib.auth import get_user_model
     from django.db import transaction
     from django.utils import timezone
-    from .models import TbConquista, TbUsuarioConquista, TbUsuarioCosmetico
+    from .models import (CosmeticCheckoutPurchase, TbConquista,
+                         TbUsuarioConquista, TbUsuarioCosmetico)
 
     with transaction.atomic():
         get_user_model().objects.select_for_update().only('pk').get(pk=user.pk)
@@ -736,7 +741,10 @@ def _avaliar_unidades_compradas(user):
                     other_grants = TbUsuarioConquista.objects.filter(
                         user=user, conquista__recompensa_id=rule.recompensa_id,
                         revogada_em__isnull=True).exclude(pk=grant.pk).exists()
-                    if not other_grants:
+                    paid = CosmeticCheckoutPurchase.objects.filter(
+                        beneficiary=user, cosmetico_id=rule.recompensa_id,
+                        granted_at__isnull=False).exists()
+                    if not other_grants and not paid:
                         TbUsuarioCosmetico.objects.filter(
                             user=user, cosmetico_id=rule.recompensa_id,
                             origem__startswith='conquista:',

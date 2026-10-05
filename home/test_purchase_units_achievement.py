@@ -1,14 +1,17 @@
+from decimal import Decimal
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.core.management import call_command
 from django.urls import reverse
+from django.utils import timezone
 
 from home.conquista_admin_form import ConquistaAdminForm
 from home.conquistas import (_avaliar_primeira_compra, _avaliar_unidades_compradas,
                              conceder_conquista)
-from home.models import (TbConquista, TbCosmetico, TbEventoConquista, TbItemMundano,
+from home.models import (AsaasCheckoutOrder, CosmeticCheckoutPurchase,
+                         TbConquista, TbCosmetico, TbEventoConquista, TbItemMundano,
                          TbPersonagemItem, TbTransacao, TbUsuarioConquista,
                          TbUsuarioCosmetico)
 from home.test_ficha_v2_onda_c import _MercadoBase
@@ -188,6 +191,35 @@ class PurchaseUnitsAchievementTests(_MercadoBase):
         self._buy(char, item, 2)
         self.assertEqual(grants.filter(revogada_em__isnull=True).count(), 2)
         possession.refresh_from_db()
+        self.assertIsNone(possession.suspenso_em)
+
+    def test_paid_right_survives_revocation_of_both_purchase_achievements(self):
+        char = self._char('purchase-paid-shared-reward')
+        item = self._item_mundano_com_preco()
+        units = self._rule(item)
+        first = TbConquista.objects.create(
+            slug='first-purchase-paid-shared', nome='Primeira compra paga',
+            criterio='automatico', criterio_json={
+                'schema_version': 1, 'metric': 'items_purchased',
+                'scope': 'account', 'operator': 'gte', 'target': 1},
+            recompensa=units.recompensa)
+        purchase = self._buy(char, item, 2)
+        order = AsaasCheckoutOrder.objects.create(
+            user=char.dono, email=char.dono.email,
+            product_code='cosmetic:' + units.recompensa.slug,
+            mode='single', amount=Decimal('12.34'))
+        CosmeticCheckoutPurchase.objects.create(
+            order=order, beneficiary=char.dono, cosmetico=units.recompensa,
+            slug=units.recompensa.slug, name=units.recompensa.nome,
+            granted_at=timezone.now())
+
+        self.assertEqual(self.client.post(reverse('personagem_reembolsar_compra',
+            args=[char.pk, purchase.pk])).status_code, 302)
+        self.assertEqual(TbUsuarioConquista.objects.filter(
+            user=char.dono, conquista__in=[first, units],
+            revogada_em__isnull=False).count(), 2)
+        possession = TbUsuarioCosmetico.objects.get(
+            user=char.dono, cosmetico=units.recompensa)
         self.assertIsNone(possession.suspenso_em)
 
     def test_strict_operator_and_manual_grant_survive_refund(self):
