@@ -507,6 +507,73 @@ class PathbuilderTests(_CriadorBase):
                             for issue in result["validacao"]["problemas"]))
         self.assertEqual(TbPersonagem.objects.count(), before)
 
+    def test_marcos_raciais_5_a_17_concordam_com_criacao_laboratorio_e_ficha(self):
+        from home import views
+
+        expected_levels = [5, 9, 13, 17]
+        classes = [{"slug": "guerreiro", "nivel": 17, "subclasse": ""}]
+        variants = (
+            ("anao-linhagem", "anao", {"linhagem_slug": "montanha"}),
+            ("anao-essencia", "anao", {"essencia_slug": "draconica", "vertente": "Vermelho"}),
+            ("elfo", "elfo", {}),
+            ("orc", "orc", {}),
+            ("humano", "humano", {}),
+        )
+        for label, race_slug, identity in variants:
+            with self.subTest(origem=label):
+                owner = self._novo_usuario("marcos-raciais-" + label)
+                payload = self._payload("guerreiro", raca_slug=race_slug, **identity)
+                if label == "anao-essencia":
+                    payload.setdefault("escolhas_raca", {})["menus"] = [{
+                        "tipo": "alento_elemental", "fonte": "Alento Elemental",
+                        "valores": ["fogo"],
+                    }]
+                created = self._post_criar(owner, payload)
+                self.assertTrue(created.json()["ok"], created.content)
+                character = TbPersonagem.objects.get(pk=created.json()["id"])
+                primary = character.classes.get(principal=True)
+                primary.nivel = 17
+                primary.save(update_fields=["nivel"])
+                character.nivel = 17
+                character.save(update_fields=["nivel", "atualizado_em"])
+                levelup_groups = views._pendencias_talento_racial(character)
+                self.assertEqual([row["nivel"] for row in levelup_groups], expected_levels)
+
+                selections = []
+                count_before_preview = TbPersonagem.objects.count()
+                for level in expected_levels:
+                    response = self._post_preview(payload, self._build("guerreiro", **{
+                        "classes": classes, "talentos_raciais": selections,
+                    }))
+                    self.assertEqual(response.status_code, 200, response.content)
+                    groups = response.json()["build"]["talentos_raciais_grupos"]
+                    self.assertEqual([row["nivel"] for row in groups], expected_levels)
+                    group = next(row for row in groups if row["nivel"] == level)
+                    self.assertTrue(group["opcoes"], f"Sem escolha disponível no nível {level}")
+                    selections.append({"nivel": level, "nome": group["opcoes"][0]["nome"]})
+
+                completed = self._post_preview(payload, self._build("guerreiro", **{
+                    "classes": classes, "talentos_raciais": selections,
+                }))
+                self.assertEqual(completed.status_code, 200, completed.content)
+                result = completed.json()["build"]
+                self.assertEqual(
+                    [(row["nivel"], row["selecionado"])
+                     for row in result["talentos_raciais_grupos"]],
+                    [(row["nivel"], row["nome"]) for row in selections])
+                self.assertFalse(any("Talento racial invalido" in issue
+                                     for issue in result["validacao"]["problemas"]))
+                self.assertEqual(TbPersonagem.objects.count(), count_before_preview)
+                for selection in selections:
+                    saved = self.client.post(
+                        reverse("personagem_escolher_talento_racial", args=[character.pk]),
+                        data={"nivel": selection["nivel"], "talento": selection["nome"]})
+                    self.assertEqual(saved.status_code, 302)
+                    self.assertEqual(character.talentos.filter(
+                        categoria="racial", nivel=selection["nivel"],
+                        nome=selection["nome"]).count(), 1)
+                self.assertEqual(views._pendencias_talento_racial(character), [])
+
     def test_preview_deriva_niveis_subclasse_itens_talentos_e_magias_sem_persistir(self):
         payload = self._payload("guerreiro")
         classe = TbClasse.objects.get(slug="guerreiro")
