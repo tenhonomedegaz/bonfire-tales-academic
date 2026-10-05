@@ -109,6 +109,8 @@ urlpatterns = [
     path('jogador/talentos', views.talentos_view),
     path('jogador/personagens/', views.personagens_list_view, name='personagens'),
     path('jogador/personagens/<int:pk>/', views.ficha_detail_view, name='ficha_detail'),
+    path('personagens/<int:pk>/publico/', views.ficha_publica_view, name='ficha_publica'),
+    path('jogador/personagens/<int:pk>/publicacao/', views.personagem_publicacao_view, name='personagem_publicacao'),
     path('jogador/personagens/<int:pk>/editar/', views.editar_ficha_view, name='editar_ficha'),
     path('jogador/personagens/<int:pk>/info/', views.personagem_info_salvar, name='personagem_info_salvar'),
     path('jogador/personagens/<int:pk>/personalidade/', views.personagem_personalidade_salvar, name='personagem_personalidade_salvar'),

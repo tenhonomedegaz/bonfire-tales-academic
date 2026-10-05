@@ -5690,7 +5690,8 @@ def personagem_arquivar(request, pk):
     from .models import TbPersonagem
     p = get_object_or_404(TbPersonagem, pk=pk, dono=request.user)
     p.arquivado = True
-    p.save(update_fields=['arquivado', 'atualizado_em'])
+    p.publico = False
+    p.save(update_fields=['arquivado', 'publico', 'atualizado_em'])
     return redirect('personagens')
 
 
@@ -9861,6 +9862,50 @@ def _raca_linha_ficha(p):
     if p.id_linhagem_id:
         return '%s (%s)' % (_raca, p.id_linhagem.nome)
     return _raca
+
+
+@never_cache
+def ficha_publica_view(request, pk):
+    """Projeção de leitura pública; não deriva nem sincroniza a ficha operacional."""
+    from .models import TbPersonagem
+    p = get_object_or_404(
+        TbPersonagem.objects.select_related('dono', 'id_raca', 'id_linhagem', 'id_essencia')
+        .prefetch_related('classes__id_classe', 'classes__id_subclasse'), pk=pk)
+    owner = request.user.is_authenticated and request.user.pk == p.dono_id
+    preview = owner and request.GET.get('preview') == '1'
+    if (not p.publico or p.arquivado) and not preview:
+        raise Http404()
+    classes = list(p.classes.all())
+    principal = next((row for row in classes if row.principal), classes[0] if classes else None)
+    public_data = {
+        'nome': p.nome,
+        'dono': p.dono.username,
+        'nivel': p.nivel,
+        'raca': p.id_raca.nome if p.id_raca_id else '',
+        'linhagem': p.id_linhagem.nome if p.id_linhagem_id else '',
+        'essencia': p.id_essencia.nome if p.id_essencia_id else '',
+        'classe': principal.id_classe.nome if principal else '',
+        'subclasse': principal.id_subclasse.nome if principal and principal.id_subclasse_id else '',
+    }
+    return render(request, 'home/pages/ficha_publica.html', {
+        'page_title': p.nome, 'character': public_data,
+        'preview': preview, 'published': p.publico and not p.arquivado,
+    })
+
+
+@login_required(login_url='/login/')
+@require_POST
+def personagem_publicacao_view(request, pk):
+    """O dono escolhe explicitamente se sua ficha aparece na vitrine pública."""
+    from .models import TbPersonagem
+    p = get_object_or_404(TbPersonagem, pk=pk, dono=request.user)
+    action = request.POST.get('action')
+    if action not in ('publish', 'unpublish'):
+        return HttpResponse(status=400)
+    if action == 'publish' and p.arquivado:
+        return HttpResponse(status=400)
+    TbPersonagem.objects.filter(pk=p.pk, dono=request.user).update(publico=(action == 'publish'))
+    return redirect('personagens')
 
 
 @login_required(login_url='/login/')

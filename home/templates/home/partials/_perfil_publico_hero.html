@@ -188,7 +188,7 @@ no servidor, então o cliente sobrepõe .public-profile-banner-media,
     {% if personagens %}
     <div class="public-character-grid">
       {% for c in personagens %}
-      <a href="{% url 'ficha_detail' c.obj.id_personagem %}" class="public-character-card"{% if preview_mode %} tabindex="-1"{% endif %}>
+      <a href="{% if c.obj.publico %}{% url 'ficha_publica' c.obj.id_personagem %}{% else %}{% url 'ficha_detail' c.obj.id_personagem %}{% endif %}" class="public-character-card"{% if preview_mode %} tabindex="-1"{% endif %}>
         {% if c.obj.banner_url|safe_profile_image %}<span class="public-character-banner" style="background-image:url('{{ c.obj.banner_url|safe_profile_image }}');"></span>{% endif %}
         <strong>{{ c.obj.nome }}</strong>
         <span>{{ c.raca }} · {{ c.classe }}</span>

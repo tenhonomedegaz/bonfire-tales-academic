@@ -163,4 +163,4 @@ def pode_criar(user):
 def pode_ver_ficha(user, personagem):
     """Dono, staff, ou ficha pública."""
     return bool(personagem.dono_id == getattr(user, 'id', None)
-                or is_staff_user(user) or personagem.publico)
+                or is_staff_user(user) or (personagem.publico and not personagem.arquivado))
