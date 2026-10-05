@@ -51,10 +51,10 @@ Auditoria inicial e retomada: 13-09-2026. Fonte de requisitos: `ARQUITETURA_EVOL
 | Q20 Origem da Tempestade | 0 | catálogo atual | Definir identidade canônica e corrigir vínculo sem duplicar/apagar referência em uso. |
 | Q21 Avental/Babador | 1 | `TbItemMagico`, mercados e importação | Estender auditoria para itens/habilidades; decidir alias versus variante preservando inventário/compras. |
 | Q22 equipamentos e Força | 1 | `home/static/js/mochila.js`, `test_equipabilidade_itens.py` | Mesma revisão atualiza atributos, perícias, ataques e derivados em equipar/sintonizar/desequipar. |
-| Q23 favoritos | 0 | mercados existentes | Nova relação conta–item, endpoints idempotentes, filtro e persistência; não reserva estoque. |
+| Q23 favoritos | 2 | `MarketItemFavorite`, `test_market_favorites.py`, `test_market_favorites_browser.py`: conta–item, POST idempotente, filtro nos dois mercados, recarga e rename de catálogo no PostgreSQL de teste | Aceite regional concluído; ativação/deploy e verificação geral integrados pendentes. |
 | Q24 bestiário integral | 1 | `TbBestiario`, importadores, refinadores, tag engine e `test_bestiary_refinement.py` | Diagnóstico e lote integral: classificação, tags, habilidades, filtros, statblocks, referências e consumidores para cada criatura. |
 
-Contagem Q reproduzível: 24 requisitos; `Q=0:6; Q=1:7; Q=2:11; Q=3–4:0`. Q01, Q02, Q03, Q04, Q06, Q07, Q08, Q09, Q10, Q14 e Q17 têm implementação parcial testada, não fechamento integrado do objetivo.
+Contagem Q reproduzível: 24 requisitos; `Q=0:3; Q=1:6; Q=2:15; Q=3–4:0`. A contagem segue os estados das 24 linhas Q da matriz acima; estado 2 indica implementação testada, não fechamento integrado do objetivo.
 
 ## Entregas 4A — Caçador (obrigatórias e separadas)
 
