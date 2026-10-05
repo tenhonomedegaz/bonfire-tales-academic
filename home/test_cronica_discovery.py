@@ -15,7 +15,7 @@ from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
 
 from home.deploy_sync import MEMORY_MODELS
-from home.models import TbCronica, TbCronicaComentario, TbCronicaNotificacao, TbPerfilSeguidor
+from home.models import TbCronica, TbCronicaComentario, TbCronicaDenuncia, TbCronicaNotificacao, TbPerfilSeguidor
 
 
 class CronicaDiscoveryTests(TestCase):
@@ -189,6 +189,96 @@ class CronicaDiscoveryTests(TestCase):
         self.assertNotContains(self.client.get(inbox), 'Abrir e marcar como lida')
         self.assertContains(self.client.get(inbox), f'?comentario={reply.pk}#comentario-{reply.pk}')
         self.assertContains(self.client.get(inbox), f'#comentario-{reply.pk}')
+
+    def test_publication_interaction_notification_and_moderation_flow(self):
+        from home.views import _cronica_pending_snapshot
+
+        detail = reverse('cronica_detail', args=[self.pending.slug])
+        inbox = reverse('cronica_notificacoes')
+        self.assertEqual(self.client.get(detail).status_code, 404)
+
+        self.client.force_login(self.staff)
+        approval = self.client.post(
+            reverse('cronica_review_action', args=[self.pending.pk]),
+            json.dumps({'action': 'aprovar',
+                        'expected_snapshot': _cronica_pending_snapshot(self.pending)}),
+            content_type='application/json',
+        )
+        self.assertEqual(approval.status_code, 200)
+        self.pending.refresh_from_db()
+        self.assertEqual(self.pending.status, 'aprovada')
+
+        self.client.force_login(self.reader)
+        self.assertContains(self.client.get(detail), 'Segredo')
+        like = self.client.post(
+            reverse('cronica_curtir', args=[self.pending.pk]),
+            json.dumps({'curtido': True}), content_type='application/json',
+        )
+        self.assertEqual(like.status_code, 200)
+        self.assertEqual(like.json()['curtidas'], 1)
+        response = self.client.post(reverse('cronica_comentar', args=[self.pending.pk]), {
+            'texto': 'Comentário integrado', 'chave_operacao': str(uuid4()),
+        })
+        comment = TbCronicaComentario.objects.get(cronica=self.pending)
+        self.assertRedirects(
+            response, f'{detail}?comentario={comment.pk}#comentario-{comment.pk}',
+            fetch_redirect_response=False,
+        )
+
+        self.client.force_login(self.author)
+        notification = TbCronicaNotificacao.objects.get(
+            destinatario=self.author, comentario=comment,
+        )
+        mark_url = reverse('cronica_notificacao_ler', args=[notification.pk])
+        self.assertContains(self.client.get(inbox), mark_url)
+        self.assertRedirects(
+            self.client.post(mark_url, {'abrir': '1'}),
+            f'{detail}?comentario={comment.pk}#comentario-{comment.pk}',
+            fetch_redirect_response=False,
+        )
+        notification.refresh_from_db()
+        self.assertIsNotNone(notification.lida_em)
+
+        self.client.force_login(self.other)
+        self.assertEqual(self.client.post(reverse('cronica_denunciar', args=[self.pending.pk]), {
+            'motivo': 'Conteúdo impróprio', 'comentario_id': comment.pk,
+        }).status_code, 302)
+        report = TbCronicaDenuncia.objects.get(comentario=comment)
+        self.staff.user_permissions.add(Permission.objects.get(
+            codename='change_tbcronicadenuncia', content_type__app_label='home',
+        ))
+        self.client.force_login(self.staff)
+        moderate_url = reverse('cronica_moderar_denuncia', args=[report.pk])
+        self.assertEqual(self.client.post(moderate_url, {'action': 'ocultar'}).status_code, 302)
+        self.client.force_login(self.author)
+        self.assertNotContains(self.client.get(inbox), mark_url)
+        self.assertNotContains(self.client.get(detail), 'Comentário integrado')
+
+        self.client.force_login(self.staff)
+        self.assertEqual(self.client.post(moderate_url, {'action': 'restaurar'}).status_code, 302)
+        self.client.force_login(self.author)
+        self.assertContains(self.client.get(inbox), f'?comentario={comment.pk}#comentario-{comment.pk}')
+        self.assertContains(self.client.get(detail), 'Comentário integrado')
+        self.assertEqual(self.client.get(detail).context['curtidas_count'], 1)
+
+        self.client.force_login(self.other)
+        self.assertEqual(self.client.post(reverse('cronica_denunciar', args=[self.pending.pk]), {
+            'motivo': 'Publicação inadequada',
+        }).status_code, 302)
+        story_report = TbCronicaDenuncia.objects.get(cronica=self.pending, comentario__isnull=True)
+        story_moderate_url = reverse('cronica_moderar_denuncia', args=[story_report.pk])
+        self.client.force_login(self.staff)
+        self.assertEqual(self.client.post(story_moderate_url, {'action': 'ocultar'}).status_code, 302)
+        self.client.force_login(self.reader)
+        self.assertEqual(self.client.get(detail).status_code, 404)
+        self.assertNotContains(self.client.get(reverse('mundo_cronicas')), self.pending.titulo)
+
+        self.client.force_login(self.staff)
+        self.assertEqual(self.client.post(story_moderate_url, {'action': 'restaurar'}).status_code, 302)
+        self.client.force_login(self.reader)
+        restored = self.client.get(detail)
+        self.assertContains(restored, 'Comentário integrado')
+        self.assertEqual(restored.context['curtidas_count'], 1)
 
     def test_notification_table_is_protected_from_catalog_sync(self):
         self.assertIn('TbCronicaNotificacao', MEMORY_MODELS)
