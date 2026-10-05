@@ -2795,6 +2795,30 @@ class TbEventoConquista(models.Model):
 # duplica linha mesmo com corrida entre dois cliques.
 # ─────────────────────────────────────────────────────────────────────────────
 
+class MarketItemFavorite(models.Model):
+    """Item do catálogo salvo por uma conta, sem posse ou reserva de estoque."""
+    user = models.ForeignKey('auth.User', on_delete=models.CASCADE, related_name='market_favorites')
+    mundane_item = models.ForeignKey('TbItemMundano', on_delete=models.CASCADE, null=True, blank=True)
+    magic_item = models.ForeignKey('TbItemMagico', on_delete=models.CASCADE, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'TB_MarketItemFavorite'
+        constraints = [
+            models.CheckConstraint(
+                condition=(models.Q(mundane_item__isnull=False, magic_item__isnull=True) |
+                           models.Q(mundane_item__isnull=True, magic_item__isnull=False)),
+                name='market_favorite_exactly_one_item',
+            ),
+            models.UniqueConstraint(fields=['user', 'mundane_item'],
+                                    condition=models.Q(mundane_item__isnull=False),
+                                    name='market_favorite_unique_mundane'),
+            models.UniqueConstraint(fields=['user', 'magic_item'],
+                                    condition=models.Q(magic_item__isnull=False),
+                                    name='market_favorite_unique_magic'),
+        ]
+
+
 class TbPerfilCurtida(models.Model):
     """Uma curtida de `quem` no perfil de `alvo` (like simples, sem peso/valor).
     Relação sem estado extra: existe = curtido; deletada = descurtido."""

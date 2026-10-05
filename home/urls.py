@@ -175,6 +175,8 @@ urlpatterns = [
 
     path('mercado/itens-mundanos/', views.itens_mundanos_view, name='mercado_itens_mundanos'),
     path('mercado/itens-magicos/', views.itens_magicos_view, name='mercado_itens_magicos'),
+    path('mercado/favoritos/<str:kind>/<int:item_id>/', views.market_item_favorite,
+         name='market_item_favorite'),
     path('mercado/oficina-de-magia/', views.oficina_magia_view, name='oficina_magia'),
     path('mercado/oficina-de-magia/<int:pk>/salvar-magia-assinatura/', views.oficina_salvar_magia_assinatura, name='oficina_salvar_magia_assinatura'),
     path('mercado/oficina-de-magia/<int:pk>/comprar-pergaminho/', views.oficina_comprar_pergaminho, name='oficina_comprar_pergaminho'),

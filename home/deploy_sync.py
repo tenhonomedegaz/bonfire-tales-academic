@@ -78,6 +78,7 @@ MEMORY_MODELS = [
     "SocialCreditWallet", "SocialCreditEntry", "SocialCreditPolicy",
     "SocialCreditReaderRecognition", "SocialCreditRedemption",
     "EventCosmeticRedemption",
+    "MarketItemFavorite",
 ]
 CONTENT_MODELS = UPSERT_POR_SLUG + SUBSTITUI
 RESTORE_GUARDED_MODELS = CONTENT_MODELS + PRODUCTION_PRESERVED_MODELS

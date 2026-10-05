@@ -33,6 +33,12 @@
   gap: .75rem 1rem;
   grid-template-columns: minmax(0, 1fr);
 }
+.mkt-favorites-filter { align-items: center; color: var(--text); cursor: pointer; display: inline-flex; font-size: .8rem; gap: .4rem; white-space: nowrap; }
+.mkt-favorites-filter input { accent-color: var(--ember); }
+.mkt-favorite-form { margin: .45rem 0 .7rem; }
+.mkt-favorite-btn { background: var(--bg0); border: 1px solid var(--stroke); border-radius: 7px; color: var(--text); cursor: pointer; font-size: .8rem; padding: .35rem .6rem; }
+.mkt-favorite-btn[aria-pressed="true"] { border-color: var(--ember); color: var(--ember); }
+.mkt-favorite-btn:disabled { cursor: wait; opacity: .55; }
 @media (min-width: 1024px) {
   .shop { grid-template-columns: minmax(0, 1fr) minmax(21rem, 26rem); }
   .mkt-bar { grid-column: 1 / -1; }

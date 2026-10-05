@@ -31,6 +31,7 @@ missão" no lugar do botão — a mesma guarda existe no backend.{% endcomment %
           <option value="{{ g.value }}">{{ g.label }} ({{ g.total }})</option>
           {% endfor %}
         </select>
+        {% if market_favorites_enabled %}<label class="mkt-favorites-filter"><input type="checkbox" data-shop-favorites> Só favoritos</label>{% endif %}
       </div>
       <p class="mkt-count"><strong data-shop-count>0</strong> itens · setas ↑↓ navegam</p>
 
@@ -38,6 +39,7 @@ missão" no lugar do botão — a mesma guarda existe no backend.{% endcomment %
         {% for item in itens %}
         <li>
           <button type="button" class="mkt-row" data-mkt-row data-target="mu-{{ item.id_item }}"
+                  data-favorite="{% if item.is_favorite %}true{% else %}false{% endif %}"
                   data-group="{{ item.grupo_id }}" aria-selected="false"
                   data-search="{{ item.nome|lower }} {{ item.cat_label|lower }} {{ item.sub_label|lower }}">
             <span class="mkt-row-name" title="{{ item.nome }}">{{ item.nome }}</span>
@@ -81,6 +83,12 @@ missão" no lugar do botão — a mesma guarda existe no backend.{% endcomment %
         </figure>
         <p class="mkt-card-kind">{{ item.cat_label }}{% if item.sub_label %} · {{ item.sub_label }}{% endif %}</p>
         <h3 class="mkt-card-name">{{ item.nome }}</h3>
+        {% if market_favorites_enabled %}
+        <form method="post" action="{% url 'market_item_favorite' 'mundano' item.id_item %}" class="mkt-favorite-form" data-shop-favorite data-target="mu-{{ item.id_item }}">
+          {% csrf_token %}<input type="hidden" name="favorite" value="{% if item.is_favorite %}false{% else %}true{% endif %}">
+          <button type="submit" class="mkt-favorite-btn" aria-pressed="{% if item.is_favorite %}true{% else %}false{% endif %}">{% if item.is_favorite %}★ Favorito{% else %}☆ Salvar favorito{% endif %}</button>
+        </form>
+        {% endif %}
         <div class="mkt-deal">
           {% if item.preco_display %}
             <span class="mkt-price">{{ item.preco_display }}</span>

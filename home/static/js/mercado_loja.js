@@ -27,6 +27,7 @@
   var selRaridade = root.querySelector('[data-shop-rarity]');
   var selSintonizacao = root.querySelector('[data-shop-attunement]');
   var selOrdem = root.querySelector('[data-shop-sort]');
+  var soFavoritos = root.querySelector('[data-shop-favorites]');
   var countEl = root.querySelector('[data-shop-count]');
   var noResult = root.querySelector('[data-shop-noresult]');
   var detalhe = root.querySelector('[data-shop-detail]');
@@ -112,6 +113,7 @@
       if (ok && raridade !== 'todas') ok = row.getAttribute('data-rarity') === raridade;
       if (ok && sintonizacao !== 'todas') ok = row.getAttribute('data-attunement') === sintonizacao;
       if (ok && q) ok = norm(row.getAttribute('data-search')).indexOf(q) !== -1;
+      if (ok && soFavoritos && soFavoritos.checked) ok = row.getAttribute('data-favorite') === 'true';
       row.closest('li').hidden = !ok;
       if (ok) total++;
     });
@@ -144,6 +146,7 @@
   if (selRaridade) selRaridade.addEventListener('change', aplicarFiltros);
   if (selSintonizacao) selSintonizacao.addEventListener('change', aplicarFiltros);
   if (selOrdem) selOrdem.addEventListener('change', aplicarFiltros);
+  if (soFavoritos) soFavoritos.addEventListener('change', aplicarFiltros);
 
   /* ─────────────────────── abas Comprar / Vender ─────────────────────── */
   function abrirAba(nome) {
@@ -339,6 +342,50 @@
   });
 
   root.addEventListener('submit', function (ev) {
+    var favoriteForm = ev.target.closest('form[data-shop-favorite]');
+    if (favoriteForm) {
+      ev.preventDefault();
+      if (favoriteForm.getAttribute('aria-busy') === 'true') return;
+      var favoriteButton = favoriteForm.querySelector('button[type="submit"]');
+      var favoriteInput = favoriteForm.querySelector('input[name="favorite"]');
+      var favoriteBody = new FormData(favoriteForm);
+      favoriteForm.setAttribute('aria-busy', 'true');
+      favoriteButton.disabled = true;
+      fetch(favoriteForm.action, {
+        method: 'POST', body: favoriteBody, credentials: 'same-origin',
+        headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': favoriteBody.get('csrfmiddlewaretoken') || '' }
+      }).then(function (response) {
+        if (!response.ok) throw new Error('Não foi possível salvar o favorito.');
+        return response.json();
+      }).then(function (data) {
+        if (!data.ok) throw new Error('Não foi possível salvar o favorito.');
+        var saved = !!data.favorite;
+        var target = favoriteForm.getAttribute('data-target');
+        var row = root.querySelector('[data-mkt-row][data-target="' + target + '"]');
+        if (row) row.setAttribute('data-favorite', saved ? 'true' : 'false');
+        var template = document.getElementById(target + '-tpl');
+        if (template) {
+          var storedButton = template.content.querySelector('[data-shop-favorite] button');
+          var storedInput = template.content.querySelector('[data-shop-favorite] input[name="favorite"]');
+          if (storedButton) {
+            storedButton.textContent = saved ? '★ Favorito' : '☆ Salvar favorito';
+            storedButton.setAttribute('aria-pressed', saved ? 'true' : 'false');
+          }
+          if (storedInput) storedInput.value = saved ? 'false' : 'true';
+        }
+        favoriteButton.textContent = saved ? '★ Favorito' : '☆ Salvar favorito';
+        favoriteButton.setAttribute('aria-pressed', saved ? 'true' : 'false');
+        favoriteInput.value = saved ? 'false' : 'true';
+        aplicarFiltros();
+        avisar(saved ? 'Item salvo nos favoritos.' : 'Item removido dos favoritos.', true);
+      }).catch(function (error) {
+        avisar(error.message || 'Falha de rede ao salvar favorito.', false);
+      }).finally(function () {
+        favoriteForm.removeAttribute('aria-busy');
+        favoriteButton.disabled = false;
+      });
+      return;
+    }
     var form = ev.target.closest('form[data-shop-buy], form[data-shop-sell]');
     if (!form) return;
     ev.preventDefault();

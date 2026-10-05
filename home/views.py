@@ -77,6 +77,7 @@ from .models import (
     TbTracoracial,
     TbItemMundano,
     TbItemMagico,
+    MarketItemFavorite,
     TbMagia,
     MestreOuroDireito,
 )
@@ -16368,6 +16369,7 @@ def itens_mundanos_view(request):
         'categorias_item_mundano': TbItemMundano.CATEGORIA_CHOICES,
     }
     context.update(_mercado_contexto(request))
+    _market_favorites_context(request, itens, 'mundano', context)
     if is_ajax(request):
         return render(request, 'home/partials/itens_mundanos_content.html', context)
     return render(request, 'home/pages/itens_mundanos.html', context)
@@ -16415,9 +16417,46 @@ def itens_magicos_view(request):
         'slots_item_magico': TbItemMagico.SLOT_CHOICES,
     }
     context.update(_mercado_contexto(request))
+    _market_favorites_context(request, itens, 'magico', context)
     if is_ajax(request):
         return render(request, 'home/partials/itens_magicos_content.html', context)
     return render(request, 'home/pages/itens_magicos.html', context)
+
+
+def _market_favorites_context(request, itens, kind, context):
+    if request.user.is_authenticated:
+        field = 'mundane_item_id' if kind == 'mundano' else 'magic_item_id'
+        favorites = set(MarketItemFavorite.objects.filter(user=request.user,
+            **{field + '__isnull': False}).values_list(field, flat=True))
+    else:
+        favorites = set()
+    for item in itens:
+        item.is_favorite = item.pk in favorites
+    context['market_favorites_enabled'] = request.user.is_authenticated
+
+
+@login_required
+@require_POST
+def market_item_favorite(request, kind, item_id):
+    models_by_kind = {'mundano': (TbItemMundano, 'mundane_item'),
+                      'magico': (TbItemMagico, 'magic_item')}
+    if kind not in models_by_kind:
+        raise Http404
+    model, field = models_by_kind[kind]
+    item = get_object_or_404(model, pk=item_id)
+    desired = request.POST.get('favorite')
+    if desired not in ('true', 'false'):
+        return JsonResponse({'ok': False, 'error': 'Estado inválido.'}, status=400)
+    lookup = {'user': request.user, field: item}
+    if desired == 'true':
+        MarketItemFavorite.objects.get_or_create(**lookup)
+    else:
+        MarketItemFavorite.objects.filter(**lookup).delete()
+    saved = MarketItemFavorite.objects.filter(**lookup).exists()
+    count = MarketItemFavorite.objects.filter(**{field: item}).count()
+    if not is_ajax(request):
+        return redirect('mercado_itens_mundanos' if kind == 'mundano' else 'mercado_itens_magicos')
+    return JsonResponse({'ok': True, 'favorite': saved, 'count': count})
 
 
 def _oficina_redirect(request, status):
