@@ -3,16 +3,18 @@
 from django.db import transaction
 from django.utils import timezone
 
-from .models import CosmeticCheckoutPurchase, TbUsuarioCosmetico
+from .models import (CosmeticCheckoutPurchase, EventCosmeticRedemption,
+                     TbUsuarioCosmetico)
 
 
 def has_permanent_cosmetic(user, cosmetico):
     """Consulta por chave de catálogo; uma suspensão do inventário não revoga compra."""
     if not getattr(user, 'pk', None):
         return False
-    return CosmeticCheckoutPurchase.objects.filter(
+    return (CosmeticCheckoutPurchase.objects.filter(
         beneficiary=user, cosmetico=cosmetico, granted_at__isnull=False,
-    ).exists()
+    ).exists() or EventCosmeticRedemption.objects.filter(
+        user=user, cosmetico=cosmetico).exists())
 
 
 def permanent_cosmetic_slugs(user, tipo=None):
@@ -24,7 +26,12 @@ def permanent_cosmetic_slugs(user, tipo=None):
     )
     if tipo:
         purchases = purchases.filter(cosmetico__tipo=tipo)
-    return set(purchases.values_list('cosmetico__slug', flat=True))
+    event_redemptions = EventCosmeticRedemption.objects.filter(
+        user=user, cosmetico__ativo=True)
+    if tipo:
+        event_redemptions = event_redemptions.filter(cosmetico__tipo=tipo)
+    return (set(purchases.values_list('cosmetico__slug', flat=True)) |
+            set(event_redemptions.values_list('cosmetico__slug', flat=True)))
 
 
 def grant_paid_purchase(purchase):

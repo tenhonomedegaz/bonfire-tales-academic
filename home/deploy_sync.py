@@ -41,7 +41,7 @@ OFFICIAL_REPLACE_MODELS = ["TbBestiario", "TbArmadilha"]
 # no merge mecânico, mesmo se um fixture antigo os trouxer por engano.
 PRODUCTION_PRESERVED_MODELS = [
     "TbMapLayer", "TbRegiao", "TbTerritorio", "TbOrganizacao",
-    "TbMapMarker", "TbMapDesenho",
+    "TbMapMarker", "TbMapDesenho", "EventCosmeticOffer",
 ]
 MEMORY_MODELS = [
     "TbPersonagemCacador",
@@ -77,6 +77,7 @@ MEMORY_MODELS = [
     "TbPerfilCurtida", "TbPerfilSeguidor",
     "SocialCreditWallet", "SocialCreditEntry", "SocialCreditPolicy",
     "SocialCreditReaderRecognition", "SocialCreditRedemption",
+    "EventCosmeticRedemption",
 ]
 CONTENT_MODELS = UPSERT_POR_SLUG + SUBSTITUI
 RESTORE_GUARDED_MODELS = CONTENT_MODELS + PRODUCTION_PRESERVED_MODELS

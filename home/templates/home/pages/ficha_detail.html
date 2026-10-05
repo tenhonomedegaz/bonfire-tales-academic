@@ -136,6 +136,7 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
       <div class="bag-stat bag-braseiros">
         <span class="lbl">Braseiros</span>
         <strong class="v flame">{{ ficha.progressao.braseiros|default:"0" }}</strong>
+        <a href="{% url 'event_cosmetic_shop' %}" class="text-xs">Cosméticos de evento</a>
       </div>
       <div class="bag-stat">
         <span class="lbl">Valor da mochila</span>

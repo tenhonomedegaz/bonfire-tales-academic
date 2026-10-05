@@ -2568,6 +2568,53 @@ class CosmeticCheckoutPurchase(models.Model):
         return str(self.order_id)
 
 
+class EventCosmeticOffer(models.Model):
+    """Oferta de evento cadastrada pela staff; não altera a posse após o encerramento."""
+
+    event_key = models.SlugField(max_length=60)
+    cosmetico = models.ForeignKey(TbCosmetico, on_delete=models.PROTECT)
+    cost_braseiros = models.PositiveIntegerField()
+    starts_at = models.DateTimeField()
+    ends_at = models.DateTimeField()
+    active = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['ends_at', 'pk']
+        constraints = [
+            models.UniqueConstraint(fields=['event_key', 'cosmetico'],
+                                    name='unique_event_cosmetic_offer'),
+            models.CheckConstraint(condition=models.Q(cost_braseiros__gt=0),
+                                   name='event_cosmetic_cost_positive'),
+            models.CheckConstraint(condition=models.Q(ends_at__gt=models.F('starts_at')),
+                                   name='event_cosmetic_window_valid'),
+        ]
+
+    def __str__(self):
+        return f'{self.event_key}: {self.cosmetico.slug}'
+
+
+class EventCosmeticRedemption(models.Model):
+    """Débito e direito permanentes de uma compra com braseiros do personagem."""
+
+    request_id = models.UUIDField(unique=True)
+    offer = models.ForeignKey(EventCosmeticOffer, on_delete=models.PROTECT)
+    user = models.ForeignKey('auth.User', on_delete=models.PROTECT)
+    character = models.ForeignKey('TbPersonagem', on_delete=models.PROTECT)
+    cosmetico = models.ForeignKey(TbCosmetico, on_delete=models.PROTECT)
+    cost_braseiros = models.PositiveIntegerField()
+    balance_after = models.PositiveIntegerField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at', '-pk']
+        constraints = [models.CheckConstraint(
+            condition=models.Q(cost_braseiros__gt=0),
+            name='event_cosmetic_redemption_cost_positive')]
+
+    def __str__(self):
+        return str(self.request_id)
+
+
 # Invalidação do cache do catálogo de cosméticos quando a staff edita no admin.
 @receiver(post_save, sender=TbCosmetico)
 @receiver(post_delete, sender=TbCosmetico)

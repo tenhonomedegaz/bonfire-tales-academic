@@ -1,0 +1,204 @@
+"""Loja de cosméticos de evento: débito único, posse e janela da oferta."""
+
+from concurrent.futures import ThreadPoolExecutor
+from datetime import timedelta
+import os
+from pathlib import Path
+import subprocess
+import unittest
+from unittest.mock import patch
+from uuid import uuid4
+
+from django.contrib.auth import get_user_model
+from django.db import close_old_connections, connection
+from django.contrib.staticfiles.testing import StaticLiveServerTestCase
+from django.test import TestCase, TransactionTestCase
+from django.urls import reverse
+from django.utils import timezone
+
+from .cosmetic_entitlements import has_permanent_cosmetic
+from .cosmetics import cosmetic_allowed, invalidate_cosmetic_cache
+from .event_cosmetics import redeem_event_cosmetic
+from .models import (EventCosmeticOffer, EventCosmeticRedemption, TbCosmetico,
+                     TbPersonagem, TbUsuarioCosmetico)
+from .deploy_sync import MEMORY_MODELS, PRODUCTION_PRESERVED_MODELS
+
+
+def setup_offer():
+    user = get_user_model().objects.create_user(f'event-owner-{uuid4().hex[:8]}')
+    other = get_user_model().objects.create_user(f'event-other-{uuid4().hex[:8]}')
+    character = TbPersonagem.objects.create(
+        dono=user, nome='Herói do evento', braseiros=40)
+    cosmetic = TbCosmetico.objects.create(
+        slug=f'moldura-evento-{uuid4().hex[:8]}', tipo='moldura',
+        nome='Moldura do evento', css_class='frame-gold-trim',
+        origem='loja_braseiro', escopo='ficha')
+    now = timezone.now()
+    offer = EventCosmeticOffer.objects.create(
+        event_key='evento-outono', cosmetico=cosmetic, cost_braseiros=25,
+        starts_at=now - timedelta(days=1), ends_at=now + timedelta(days=1),
+        active=True)
+    invalidate_cosmetic_cache()
+    return user, other, character, cosmetic, offer
+
+
+class EventCosmeticShopTests(TestCase):
+    def setUp(self):
+        self.user, self.other, self.character, self.cosmetic, self.offer = setup_offer()
+        self.url = reverse('event_cosmetic_shop')
+
+    def tearDown(self):
+        invalidate_cosmetic_cache()
+
+    def test_player_sees_offer_and_redeems_once_even_after_event_ends(self):
+        self.client.force_login(self.user)
+        page = self.client.get(self.url)
+        self.assertContains(page, 'Moldura do evento')
+        self.assertContains(page, '40 braseiros')
+        request_id = str(uuid4())
+        form = {'offer': self.offer.pk, 'character': self.character.pk,
+                'request_id': request_id, 'quoted_cost': 25}
+        response = self.client.post(self.url, form)
+        self.assertEqual(response.status_code, 302)
+        redemption = EventCosmeticRedemption.objects.get(request_id=request_id)
+        self.character.refresh_from_db()
+        self.assertEqual(self.character.braseiros, 15)
+        self.assertEqual(redemption.cost_braseiros, 25)
+        self.assertEqual(redemption.balance_after, 15)
+        self.assertTrue(has_permanent_cosmetic(self.user, self.cosmetic))
+        self.assertTrue(cosmetic_allowed(self.user, 'frame',
+                                        self.cosmetic.slug.removeprefix('moldura-'), 'ficha'))
+        self.assertContains(self.client.get(response['Location']), 'desbloqueado')
+        self.assertContains(self.client.get(self.url), 'Você já possui')
+        self.assertEqual(self.client.post(self.url, form).status_code, 302)
+        self.assertEqual(EventCosmeticRedemption.objects.count(), 1)
+        self.character.refresh_from_db()
+        self.assertEqual(self.character.braseiros, 15)
+        EventCosmeticOffer.objects.filter(pk=self.offer.pk).update(active=False)
+        TbUsuarioCosmetico.objects.filter(user=self.user, cosmetico=self.cosmetic).update(
+            suspenso_em=timezone.now())
+        self.assertTrue(cosmetic_allowed(self.user, 'frame',
+                                        self.cosmetic.slug.removeprefix('moldura-'), 'ficha'))
+
+    def test_rejects_wrong_owner_low_balance_changed_price_and_closed_offer(self):
+        self.client.force_login(self.other)
+        form = {'offer': self.offer.pk, 'character': self.character.pk,
+                'request_id': str(uuid4()), 'quoted_cost': 25}
+        self.assertEqual(self.client.post(self.url, form).status_code, 409)
+        self.client.force_login(self.user)
+        form['quoted_cost'] = 20
+        self.assertContains(self.client.post(self.url, form), 'O custo mudou', status_code=409)
+        form['quoted_cost'] = 25
+        TbPersonagem.objects.filter(pk=self.character.pk).update(braseiros=20)
+        self.assertContains(self.client.post(self.url, form),
+                            'braseiros suficientes', status_code=409)
+        TbPersonagem.objects.filter(pk=self.character.pk).update(braseiros=40)
+        EventCosmeticOffer.objects.filter(pk=self.offer.pk).update(
+            ends_at=timezone.now() - timedelta(seconds=1))
+        self.assertEqual(self.client.post(self.url, form).status_code, 409)
+        self.assertFalse(EventCosmeticRedemption.objects.exists())
+        self.character.refresh_from_db()
+        self.assertEqual(self.character.braseiros, 40)
+
+    def test_already_owned_right_is_not_charged_and_receipt_is_private(self):
+        TbUsuarioCosmetico.objects.create(
+            user=self.user, cosmetico=self.cosmetic, origem='conquista:outra')
+        form = {'offer': self.offer.pk, 'character': self.character.pk,
+                'request_id': str(uuid4()), 'quoted_cost': 25}
+        self.client.force_login(self.user)
+        self.assertEqual(self.client.post(self.url, form).status_code, 409)
+        TbUsuarioCosmetico.objects.filter(user=self.user, cosmetico=self.cosmetic).delete()
+        self.assertEqual(self.client.post(self.url, form).status_code, 302)
+        receipt = EventCosmeticRedemption.objects.get()
+        self.client.force_login(self.other)
+        self.assertNotContains(self.client.get(self.url + f'?resgate={receipt.pk}'),
+                               'desbloqueado')
+
+    def test_inventory_failure_rolls_back_debit_and_offer_remains_local_content(self):
+        self.assertIn('EventCosmeticOffer', PRODUCTION_PRESERVED_MODELS)
+        self.assertIn('EventCosmeticRedemption', MEMORY_MODELS)
+        with patch.object(TbUsuarioCosmetico.objects, 'create',
+                          side_effect=RuntimeError('inventory unavailable')):
+            with self.assertRaisesRegex(RuntimeError, 'inventory unavailable'):
+                redeem_event_cosmetic(
+                    self.user, self.offer.pk, self.character.pk, uuid4(), 25)
+        self.character.refresh_from_db()
+        self.assertEqual(self.character.braseiros, 40)
+        self.assertFalse(EventCosmeticRedemption.objects.exists())
+
+    def test_superuser_can_open_offer_form_but_redemption_cannot_be_created(self):
+        staff = get_user_model().objects.create_superuser(
+            f'event-staff-{uuid4().hex[:8]}', 'staff@example.com', 'password')
+        self.client.force_login(staff)
+        offer_form = self.client.get(reverse('admin:home_eventcosmeticoffer_add'))
+        self.assertEqual(offer_form.status_code, 200)
+        self.assertContains(offer_form, 'cost_braseiros')
+        self.assertEqual(self.client.get(
+            reverse('admin:home_eventcosmeticredemption_add')).status_code, 403)
+
+
+class EventCosmeticConcurrencyTests(TransactionTestCase):
+    def test_parallel_retries_charge_only_once(self):
+        self.assertEqual(connection.vendor, 'postgresql')
+        user, _, character, _, offer = setup_offer()
+        request_id = uuid4()
+
+        def redeem():
+            close_old_connections()
+            try:
+                return redeem_event_cosmetic(
+                    user, offer.pk, character.pk, request_id, 25)[1]
+            finally:
+                close_old_connections()
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            outcomes = list(pool.map(lambda _: redeem(), range(2)))
+        self.assertEqual(sorted(outcomes), [False, True])
+        character.refresh_from_db()
+        self.assertEqual(character.braseiros, 15)
+        self.assertEqual(EventCosmeticRedemption.objects.count(), 1)
+        invalidate_cosmetic_cache()
+
+    def test_parallel_distinct_requests_cannot_buy_same_item_twice(self):
+        self.assertEqual(connection.vendor, 'postgresql')
+        user, _, character, _, offer = setup_offer()
+
+        def redeem():
+            close_old_connections()
+            try:
+                try:
+                    redeem_event_cosmetic(user, offer.pk, character.pk, uuid4(), 25)
+                    return 'created'
+                except ValueError as exc:
+                    return str(exc)
+            finally:
+                close_old_connections()
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            outcomes = list(pool.map(lambda _: redeem(), range(2)))
+        self.assertEqual(sorted(outcomes), ['created', 'ja_possui'])
+        character.refresh_from_db()
+        self.assertEqual(character.braseiros, 15)
+        self.assertEqual(EventCosmeticRedemption.objects.count(), 1)
+        invalidate_cosmetic_cache()
+
+
+@unittest.skipUnless(os.environ.get('BONFIRE_PLAYWRIGHT_MODULE'), 'Configure Playwright.')
+class EventCosmeticBrowserTests(StaticLiveServerTestCase):
+    def test_mobile_shop_redeems_and_shows_owned_state(self):
+        self.assertEqual(connection.vendor, 'postgresql')
+        self.assertTrue(connection.settings_dict['NAME'].startswith('test_'))
+        user, _, character, cosmetic, offer = setup_offer()
+        self.client.force_login(user)
+        env = dict(os.environ, EVENT_SHOP_ORIGIN=self.live_server_url,
+                   EVENT_SHOP_PATH=reverse('event_cosmetic_shop'),
+                   EVENT_SHOP_SESSION=self.client.cookies['sessionid'].value)
+        result = subprocess.run(
+            ['node', str(Path(__file__).parent / 'js_tests/event_cosmetics.e2e.cjs')],
+            env=env, capture_output=True, encoding='utf-8', timeout=90)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        character.refresh_from_db()
+        self.assertEqual(character.braseiros, 15)
+        self.assertTrue(has_permanent_cosmetic(user, cosmetic))
+        self.assertEqual(EventCosmeticRedemption.objects.filter(offer=offer).count(), 1)
+        invalidate_cosmetic_cache()

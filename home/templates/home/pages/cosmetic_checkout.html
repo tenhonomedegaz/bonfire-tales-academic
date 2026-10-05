@@ -2,6 +2,7 @@
 {% block content %}
 <main class="container py-4">
   <h1>Cosméticos</h1>
+  <p><a href="{% url 'event_cosmetic_shop' %}">Ver cosméticos de evento por braseiros</a></p>
   {% if purchase %}
     <p>Pedido {{ order.id }}: {{ order.get_status_display }}</p>
     <p>{{ purchase.name }} — R$ {{ order.amount }}</p>

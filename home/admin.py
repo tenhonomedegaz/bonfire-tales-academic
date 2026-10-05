@@ -32,6 +32,8 @@ from .models import (
     AsaasCheckoutOrder,
     CosmeticCheckoutOffer,
     CosmeticCheckoutPurchase,
+    EventCosmeticOffer,
+    EventCosmeticRedemption,
     TbAcessoopcao,
     TbClasse,
     TbClassehabilidade,
@@ -110,6 +112,35 @@ class CosmeticCheckoutPurchaseAdmin(admin.ModelAdmin):
                        'payment_id', 'event_id', 'granted_at')
 
     def has_add_permission(self, request):
+        return False
+
+
+@admin.register(EventCosmeticOffer)
+class EventCosmeticOfferAdmin(admin.ModelAdmin):
+    list_display = ('event_key', 'cosmetico', 'cost_braseiros', 'starts_at', 'ends_at', 'active')
+    list_filter = ('active', 'event_key')
+    search_fields = ('event_key', 'cosmetico__slug', 'cosmetico__nome')
+    autocomplete_fields = ('cosmetico',)
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == 'cosmetico':
+            kwargs['queryset'] = TbCosmetico.objects.filter(origem='loja_braseiro')
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
+
+@admin.register(EventCosmeticRedemption)
+class EventCosmeticRedemptionAdmin(admin.ModelAdmin):
+    list_display = ('created_at', 'user', 'character', 'cosmetico',
+                    'cost_braseiros', 'balance_after', 'request_id')
+    list_filter = ('offer__event_key',)
+    search_fields = ('request_id', 'user__username', 'character__nome', 'cosmetico__slug')
+    readonly_fields = ('request_id', 'offer', 'user', 'character', 'cosmetico',
+                       'cost_braseiros', 'balance_after', 'created_at')
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
         return False
 
 

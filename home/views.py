@@ -3419,6 +3419,59 @@ def _create_asaas_checkout(order, product, display_name, callback_base):
 
 @login_required(login_url='/login/')
 @require_http_methods(['GET', 'POST'])
+def event_cosmetic_shop(request):
+    """Ofertas temporárias pagas com braseiros; direito adquirido persiste."""
+    from .models import (EventCosmeticOffer, EventCosmeticRedemption,
+                         TbPersonagem, TbUsuarioCosmetico)
+    from .cosmetic_entitlements import has_permanent_cosmetic
+    from .event_cosmetics import redeem_event_cosmetic
+
+    error = None
+    if request.method == 'POST':
+        try:
+            redemption, _ = redeem_event_cosmetic(
+                request.user, request.POST.get('offer'),
+                request.POST.get('character'), request.POST.get('request_id'),
+                request.POST.get('quoted_cost'))
+        except ValueError as exc:
+            error = {
+                'pedido_invalido': 'Pedido inválido. Recarregue a loja e tente novamente.',
+                'oferta_indisponivel': 'Esta oferta não está mais disponível.',
+                'preco_alterado': 'O custo mudou. Confira a oferta antes de resgatar.',
+                'personagem_invalido': 'Escolha um personagem seu que não esteja arquivado.',
+                'ja_possui': 'Você já possui este cosmético.',
+                'saldo_insuficiente': 'Este personagem não tem braseiros suficientes.',
+            }.get(str(exc), 'Não foi possível concluir o resgate.')
+        else:
+            return redirect(reverse('event_cosmetic_shop') + f'?resgate={redemption.pk}')
+
+    now = timezone.now()
+    characters = list(TbPersonagem.objects.filter(
+        dono=request.user, arquivado=False).only('pk', 'nome', 'braseiros'))
+    offers = list(EventCosmeticOffer.objects.select_related('cosmetico').filter(
+        active=True, starts_at__lte=now, ends_at__gt=now,
+        cosmetico__ativo=True, cosmetico__origem='loja_braseiro'))
+    inventory_ids = set(TbUsuarioCosmetico.objects.filter(
+        user=request.user, suspenso_em__isnull=True)
+        .exclude(origem__startswith='colaborador')
+        .values_list('cosmetico_id', flat=True))
+    cards = [{
+        'offer': offer,
+        'owned': (offer.cosmetico_id in inventory_ids or
+                  has_permanent_cosmetic(request.user, offer.cosmetico)),
+        'request_id': uuid4(),
+    } for offer in offers]
+    redemption = (EventCosmeticRedemption.objects.select_related('cosmetico', 'character')
+                  .filter(pk=request.GET.get('resgate'), user=request.user).first()
+                  if (request.GET.get('resgate') or '').isdigit() else None)
+    return render(request, 'home/pages/event_cosmetic_shop.html', {
+        'page_title': 'Cosméticos de evento', 'cards': cards,
+        'characters': characters, 'redemption': redemption, 'error': error,
+    }, status=409 if error else 200)
+
+
+@login_required(login_url='/login/')
+@require_http_methods(['GET', 'POST'])
 def cosmetic_checkout(request):
     """Oferta configurada e pedido único por janela, mesmo se a API der timeout."""
     from .models import AsaasCheckoutOrder, CosmeticCheckoutOffer, CosmeticCheckoutPurchase
