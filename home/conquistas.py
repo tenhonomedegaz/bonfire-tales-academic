@@ -242,20 +242,26 @@ def registrar_fato_level_up(revisao, *, estorno=False):
         payload = {'revision_id': revisao.pk, 'level_before': revisao.nivel_depois,
                    'level_after': revisao.nivel_antes}
     else:
-        snapshot = revisao.snapshot_json or {}
-        before = snapshot.get('personagem') or {}
-        classes_before = snapshot.get('classes') or []
-        classes_after = list(personagem.classes.order_by('pk').values(
-            'id_classe_id', 'nivel', 'principal'))
-        if (before.get('nivel') != revisao.nivel_antes or
-                personagem.nivel != revisao.nivel_depois or
-                sum(int(row.get('nivel') or 0) for row in classes_before) != revisao.nivel_antes or
-                sum(int(row['nivel'] or 0) for row in classes_after) != revisao.nivel_depois):
-            raise ValueError('Trajetória de nível inconsistente com a revisão.')
         tipo, occurred = 'character_level_up', revisao.criado_em
-        payload = {'revision_id': revisao.pk, 'level_before': revisao.nivel_antes,
-                   'level_after': revisao.nivel_depois,
-                   'classes_before': classes_before, 'classes_after': classes_after}
+        previous_event = TbEventoConquista.objects.filter(
+            origem='site', chave_origem=key).first()
+        if previous_event:
+            # O estado atual pode estar em outro nível; o fato original é imutável.
+            payload = previous_event.payload_json or {}
+        else:
+            snapshot = revisao.snapshot_json or {}
+            before = snapshot.get('personagem') or {}
+            classes_before = snapshot.get('classes') or []
+            classes_after = list(personagem.classes.order_by('pk').values(
+                'id_classe_id', 'nivel', 'principal'))
+            if (before.get('nivel') != revisao.nivel_antes or
+                    personagem.nivel != revisao.nivel_depois or
+                    sum(int(row.get('nivel') or 0) for row in classes_before) != revisao.nivel_antes or
+                    sum(int(row['nivel'] or 0) for row in classes_after) != revisao.nivel_depois):
+                raise ValueError('Trajetória de nível inconsistente com a revisão.')
+            payload = {'revision_id': revisao.pk, 'level_before': revisao.nivel_antes,
+                       'level_after': revisao.nivel_depois,
+                       'classes_before': classes_before, 'classes_after': classes_after}
     evento, _ = TbEventoConquista.objects.get_or_create(
         origem='site', chave_origem=key,
         defaults={'tipo': tipo, 'conta_id': personagem.dono_id,
@@ -263,7 +269,12 @@ def registrar_fato_level_up(revisao, *, estorno=False):
                   'ocorrido_em': occurred, 'payload_json': payload},
     )
     if (evento.tipo != tipo or evento.conta_id != personagem.dono_id or
-            evento.agregado_id != revisao.pk or evento.payload_json != payload):
+            evento.personagem_id != personagem.pk or
+            evento.agregado_id != revisao.pk or evento.payload_json != payload or
+            evento.ocorrido_em != occurred or evento.versao_payload != 1 or
+            payload.get('revision_id') != revisao.pk or
+            payload.get('level_before') != (revisao.nivel_depois if estorno else revisao.nivel_antes) or
+            payload.get('level_after') != (revisao.nivel_antes if estorno else revisao.nivel_depois)):
         raise ValueError('Identidade do fato de nível inconsistente.')
     avaliar_nivel_personagem(personagem.dono)
     return evento

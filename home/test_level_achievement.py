@@ -5,11 +5,44 @@ from django.urls import reverse
 from home.character_history import capture_build, register_revision
 from home.conquistas import registrar_fato_level_up
 from home.models import (TbConquista, TbConquistaNotificacao, TbPersonagem,
-                         TbUsuarioConquista)
+                         TbEventoConquista, TbUsuarioConquista)
 from home.test_criador import _CriadorBase
 
 
 class LevelAchievementTests(_CriadorBase):
+    def test_replay_de_nivel_antigo_preserva_marco_atual_sem_duplicar_aviso(self):
+        owner = self._novo_usuario('level-replay-owner')
+        rule = TbConquista.objects.create(
+            slug='level-three-replay-test', nome='Marco fictício de nível 3',
+            criterio='automatico', criterio_json={
+                'schema_version': 1, 'metric': 'character_level',
+                'scope': 'account', 'filters': {'class_slug': 'guerreiro'},
+                'operator': 'gte', 'target': 3})
+        created = self._post_criar(owner, self._payload('guerreiro'))
+        self.assertTrue(created.json()['ok'], created.content)
+        character = TbPersonagem.objects.get(pk=created.json()['id'])
+        revisions = []
+        for level in (2, 3):
+            snapshot = capture_build(character)
+            primary = character.classes.get(principal=True)
+            primary.nivel = level
+            primary.save(update_fields=['nivel'])
+            character.nivel = level
+            character.save(update_fields=['nivel', 'atualizado_em'])
+            revisions.append(register_revision(
+                character, tipo='level_up', snapshot=snapshot, user=owner,
+                nivel_antes=level - 1, nivel_depois=level))
+
+        first_event = TbEventoConquista.objects.get(
+            tipo='character_level_up', agregado_id=revisions[0].pk)
+        self.assertEqual(registrar_fato_level_up(revisions[0]).pk, first_event.pk)
+        self.assertEqual(first_event.payload_json['level_after'], 2)
+        grant = TbUsuarioConquista.objects.get(user=owner, conquista=rule)
+        self.assertIsNone(grant.revogada_em)
+        self.assertEqual(grant.evidencia_json['agregado_id'], revisions[1].pk)
+        self.assertEqual(TbConquistaNotificacao.objects.filter(
+            concessao__user=owner, concessao__conquista=rule).count(), 1)
+
     def test_level_rule_grants_once_and_reversal_removes_private_progress(self):
         owner = self._novo_usuario('level-achievement-owner')
         other = self._novo_usuario('level-achievement-other')
