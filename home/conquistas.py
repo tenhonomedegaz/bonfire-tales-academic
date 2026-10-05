@@ -505,15 +505,15 @@ def validar_vinculo_aventura_bot(personagem, bot_quest_id, quantidade):
     }
 
 
-def registrar_fato_compra(transacao, *, historica=False):
-    """Registra uma compra de item rastreável pelo ledger, nunca pela posse atual."""
-    from .models import TbEventoConquista
-
+def _payload_compra(transacao, *, historica=False):
+    """Reconstrói a identidade da compra diretamente do ledger financeiro."""
     if (transacao.tipo not in {'compra', 'mercado-compra'} or
             (transacao.revertida and not (historica and transacao.revertida_em)) or
             int(transacao.valor_pc) >= 0):
         raise ValueError('Transação não é uma compra válida de item.')
     detalhes = transacao.detalhes_json or {}
+    if not isinstance(detalhes, dict):
+        raise ValueError('Compra sem catálogo estruturado.')
     catalogo = detalhes.get('catalogo')
     if catalogo not in {'mundano', 'magico', 'oficina', 'comunidade'}:
         raise ValueError('Compra sem catálogo estruturado.')
@@ -533,10 +533,21 @@ def registrar_fato_compra(transacao, *, historica=False):
         'quantidade': quantidade, 'valor_pc': int(transacao.valor_pc),
     }
     if catalogo == 'comunidade':
-        anuncio_id = int(detalhes.get('anuncio_id') or 0)
+        try:
+            anuncio_id = int(detalhes.get('anuncio_id') or 0)
+        except (TypeError, ValueError):
+            raise ValueError('Compra comunitária sem identidade do anúncio.') from None
         if anuncio_id <= 0:
             raise ValueError('Compra comunitária sem identidade do anúncio.')
         payload['anuncio_id'] = anuncio_id
+    return payload
+
+
+def registrar_fato_compra(transacao, *, historica=False):
+    """Registra uma compra de item rastreável pelo ledger, nunca pela posse atual."""
+    from .models import TbEventoConquista
+
+    payload = _payload_compra(transacao, historica=historica)
     personagem = transacao.id_personagem
     evento, _ = TbEventoConquista.objects.get_or_create(
         origem='site_market', chave_origem=f'compra:{transacao.pk}:realizada',
@@ -553,6 +564,37 @@ def registrar_fato_compra(transacao, *, historica=False):
         _avaliar_primeira_compra(personagem.dono)
         _avaliar_unidades_compradas(personagem.dono)
     return evento
+
+
+def _compras_comprovadas(user):
+    """Fatos únicos de compras ativas cuja identidade ainda coincide com o ledger."""
+    from .models import TbEventoConquista, TbTransacao
+
+    facts = list(TbEventoConquista.objects.filter(
+        conta=user, origem='site_market', tipo='item_purchased'
+    ).order_by('ocorrido_em', 'agregado_id', 'pk'))
+    transactions = {purchase.pk: purchase for purchase in
+                    TbTransacao.objects.filter(
+                        id_personagem__dono=user, revertida=False,
+                        pk__in=[fact.agregado_id for fact in facts]
+                    )}
+    matched = []
+    seen = set()
+    for fact in facts:
+        purchase = transactions.get(fact.agregado_id)
+        if (purchase is None or purchase.pk in seen or fact.versao_payload != 1 or
+                fact.personagem_id != purchase.id_personagem_id or
+                fact.chave_origem != f'compra:{purchase.pk}:realizada'):
+            continue
+        try:
+            expected = _payload_compra(purchase)
+        except ValueError:
+            continue
+        if fact.payload_json != expected:
+            continue
+        seen.add(purchase.pk)
+        matched.append(fact)
+    return matched
 
 
 def registrar_fato_estorno_compra(compra, reembolso):
@@ -597,19 +639,14 @@ def _avaliar_primeira_compra(user):
     from django.contrib.auth import get_user_model
     from django.db import transaction
     from django.utils import timezone
-    from .models import (TbConquista, TbEventoConquista, TbTransacao,
-                         TbUsuarioConquista, TbUsuarioCosmetico)
+    from .models import TbConquista, TbUsuarioConquista, TbUsuarioCosmetico
 
     regra = {'schema_version': 1, 'metric': 'items_purchased',
              'scope': 'account', 'operator': 'gte', 'target': 1}
     with transaction.atomic():
         get_user_model().objects.select_for_update().only('pk').get(pk=user.pk)
-        facts = TbEventoConquista.objects.filter(
-            conta=user, origem='site_market', tipo='item_purchased').order_by('ocorrido_em', 'agregado_id')
-        active_ids = set(TbTransacao.objects.filter(
-            id_personagem__dono=user, revertida=False,
-            pk__in=facts.values('agregado_id')).values_list('pk', flat=True))
-        first = next((fact for fact in facts if fact.agregado_id in active_ids), None)
+        facts = _compras_comprovadas(user)
+        first = facts[0] if facts else None
         rules = TbConquista.objects.filter(
             ativo=True, criterio='automatico', criterio_json__metric='items_purchased'
         ).select_related('recompensa')
@@ -654,8 +691,7 @@ def _avaliar_unidades_compradas(user):
     from django.contrib.auth import get_user_model
     from django.db import transaction
     from django.utils import timezone
-    from .models import (TbConquista, TbEventoConquista, TbTransacao,
-                         TbUsuarioConquista, TbUsuarioCosmetico)
+    from .models import TbConquista, TbUsuarioConquista, TbUsuarioCosmetico
 
     with transaction.atomic():
         get_user_model().objects.select_for_update().only('pk').get(pk=user.pk)
@@ -665,18 +701,12 @@ def _avaliar_unidades_compradas(user):
             if regra_unidades_compradas_valida(rule.criterio_json)]
         if not rules:
             return
-        facts = list(TbEventoConquista.objects.filter(
-            conta=user, origem='site_market', tipo='item_purchased'
-        ).order_by('ocorrido_em', 'agregado_id'))
-        active_ids = set(TbTransacao.objects.filter(
-            id_personagem__dono=user, revertida=False,
-            pk__in=[fact.agregado_id for fact in facts]
-        ).values_list('pk', flat=True))
+        facts = _compras_comprovadas(user)
         for rule in rules:
             definition = rule.criterio_json
             identities = {(item['catalog'], item['id'])
                           for item in definition['filters']['items']}
-            matched = [fact for fact in facts if fact.agregado_id in active_ids and
+            matched = [fact for fact in facts if
                        (fact.payload_json.get('catalogo'),
                         fact.payload_json.get('catalogo_id')) in identities and
                        type(fact.payload_json.get('quantidade')) is int and

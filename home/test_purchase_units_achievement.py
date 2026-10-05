@@ -6,7 +6,8 @@ from django.core.management import call_command
 from django.urls import reverse
 
 from home.conquista_admin_form import ConquistaAdminForm
-from home.conquistas import conceder_conquista
+from home.conquistas import (_avaliar_primeira_compra, _avaliar_unidades_compradas,
+                             conceder_conquista)
 from home.models import (TbConquista, TbCosmetico, TbEventoConquista, TbItemMundano,
                          TbPersonagemItem, TbTransacao, TbUsuarioConquista,
                          TbUsuarioCosmetico)
@@ -15,6 +16,59 @@ from home.views import _preco_em_pc
 
 
 class PurchaseUnitsAchievementTests(_MercadoBase):
+    def test_ledger_mismatch_revokes_both_purchase_metrics_and_restoration_reactivates(self):
+        char = self._char('purchase-mismatched-proof')
+        item = self._item_mundano_com_preco()
+        units = self._rule(item)
+        first = TbConquista.objects.create(
+            slug='first-purchase-mismatched-proof', nome='Primeira compra',
+            criterio='automatico', criterio_json={
+                'schema_version': 1, 'metric': 'items_purchased',
+                'scope': 'account', 'operator': 'gte', 'target': 1,
+            },
+        )
+        self._buy(char, item, 2)
+        grants = TbUsuarioConquista.objects.filter(user=char.dono,
+                                                  conquista__in=[units, first])
+        self.assertEqual(grants.filter(revogada_em__isnull=True).count(), 2)
+        fact = TbEventoConquista.objects.get(tipo='item_purchased')
+        original = fact.payload_json.copy()
+        fact.payload_json = {**original, 'quantidade': 20}
+        fact.save(update_fields=['payload_json'])
+        _avaliar_primeira_compra(char.dono)
+        _avaliar_unidades_compradas(char.dono)
+        self.assertEqual(grants.filter(revogada_em__isnull=False).count(), 2)
+        self.assertTrue(TbUsuarioCosmetico.objects.filter(
+            user=char.dono, cosmetico=units.recompensa,
+            suspenso_em__isnull=False).exists())
+
+        fact.payload_json = original
+        fact.save(update_fields=['payload_json'])
+        _avaliar_primeira_compra(char.dono)
+        _avaliar_unidades_compradas(char.dono)
+        self.assertEqual(grants.count(), 2)
+        self.assertEqual(grants.filter(revogada_em__isnull=True).count(), 2)
+
+    def test_duplicate_fact_cannot_inflate_purchased_units(self):
+        char = self._char('purchase-duplicate-proof')
+        item = self._item_mundano_com_preco()
+        units = self._rule(item, target=3)
+        purchase = self._buy(char, item, 2)
+        fact = TbEventoConquista.objects.get(tipo='item_purchased')
+        TbEventoConquista.objects.create(
+            origem=fact.origem, chave_origem=f'compra:{purchase.pk}:duplicada',
+            tipo=fact.tipo, conta=char.dono, personagem=char,
+            agregado_id=purchase.pk, ocorrido_em=fact.ocorrido_em,
+            payload_json=fact.payload_json,
+        )
+        _avaliar_unidades_compradas(char.dono)
+        self.assertFalse(TbUsuarioConquista.objects.filter(
+            user=char.dono, conquista=units).exists())
+        self._buy(char, item, 1)
+        grant = TbUsuarioConquista.objects.get(user=char.dono, conquista=units)
+        self.assertEqual(grant.evidencia_json['total'], 3)
+        self.assertEqual(len(grant.evidencia_json['transacao_ids']), 2)
+
     def test_assisted_rule_awards_from_real_purchase(self):
         char = self._char('purchase-assisted-rule')
         item = self._item_mundano_com_preco()
