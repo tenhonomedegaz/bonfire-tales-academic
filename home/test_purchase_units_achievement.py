@@ -16,6 +16,22 @@ from home.views import _preco_em_pc
 
 
 class PurchaseUnitsAchievementTests(_MercadoBase):
+    def test_owner_sees_verified_units_and_refund_updates_progress_privately(self):
+        char = self._char('purchase-visible-progress')
+        item = self._item_mundano_com_preco()
+        self._rule(item, target=3)
+        purchase = self._buy(char, item, 2)
+        self.assertContains(self.client.get(reverse('profile')), '2 unidades pagas')
+        public_url = reverse('public_profile', args=[char.dono.username])
+        self.assertContains(self.client.get(public_url), '2 unidades pagas')
+        self.client.logout()
+        self.assertNotContains(self.client.get(public_url), '2 unidades pagas')
+
+        self.client.force_login(char.dono)
+        self.assertEqual(self.client.post(reverse('personagem_reembolsar_compra',
+                                              args=[char.pk, purchase.pk])).status_code, 302)
+        self.assertContains(self.client.get(reverse('profile')), '0 unidades pagas')
+
     def test_ledger_mismatch_revokes_both_purchase_metrics_and_restoration_reactivates(self):
         char = self._char('purchase-mismatched-proof')
         item = self._item_mundano_com_preco()

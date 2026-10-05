@@ -999,6 +999,7 @@ def conquistas_do_usuario(user, incluir_bloqueadas=True, *, pode_ver_privados=Tr
     obtidas, bloqueadas = [], []
     total_visivel = 0
     aventuras_comprovadas = None
+    compras_comprovadas = None
     for c in qs:
         if (not pode_ver_privados and isinstance(c.criterio_json, dict) and
                 c.criterio_json.get('metric') == 'class_started' and
@@ -1016,6 +1017,20 @@ def conquistas_do_usuario(user, incluir_bloqueadas=True, *, pode_ver_privados=Tr
                 aventuras_comprovadas, _ = _aventuras_comprovadas(user)
             item['progresso_aventuras'] = {
                 'atual': aventuras_comprovadas,
+                'alvo': c.criterio_json['target'],
+                'operador': c.criterio_json['operator'],
+            }
+        if (pode_ver_privados and isinstance(c.criterio_json, dict) and
+                regra_unidades_compradas_valida(c.criterio_json)):
+            if compras_comprovadas is None:
+                compras_comprovadas = _compras_comprovadas(user)
+            identities = {(identity['catalog'], identity['id'])
+                          for identity in c.criterio_json['filters']['items']}
+            item['progresso_unidades'] = {
+                'atual': sum(fact.payload_json['quantidade']
+                             for fact in compras_comprovadas
+                             if (fact.payload_json['catalogo'],
+                                 fact.payload_json['catalogo_id']) in identities),
                 'alvo': c.criterio_json['target'],
                 'operador': c.criterio_json['operator'],
             }

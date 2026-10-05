@@ -1,0 +1,6 @@
+{% if c.progresso_aventuras %}
+<span class="conquista-progress">{{ c.progresso_aventuras.atual }} comprovadas &middot; meta: {% if c.progresso_aventuras.operador == 'gt' %}mais de{% else %}pelo menos{% endif %} {{ c.progresso_aventuras.alvo }}</span>
+{% endif %}
+{% if c.progresso_unidades %}
+<span class="conquista-progress">{{ c.progresso_unidades.atual }} unidades pagas &middot; meta: {% if c.progresso_unidades.operador == 'gt' %}mais de{% else %}pelo menos{% endif %} {{ c.progresso_unidades.alvo }}</span>
+{% endif %}
