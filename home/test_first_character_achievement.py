@@ -1,8 +1,10 @@
 import json
+from io import StringIO
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
+from django.core.management import call_command
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -186,6 +188,45 @@ class FirstCharacterAchievementTests(_CriadorBase):
         created = self._post_criar(user, self._payload('guerreiro'))
         self.assertEqual(created.status_code, 200, created.content)
         self.assertEqual(TbEventoConquista.objects.count(), 1)
+        self.assertFalse(TbUsuarioConquista.objects.filter(user=user, conquista=rule).exists())
+
+    def test_later_rule_replays_only_explicit_first_character_fact(self):
+        user = self._novo_usuario('first-replay-owner', staff=True)
+        self.client.force_login(user)
+        first = self._post_criar(user, self._payload('guerreiro'))
+        second = self._post_criar(user, {**self._payload('guerreiro'),
+                                       'nome': 'Segundo herói'})
+        self.assertEqual(first.status_code, 200, first.content)
+        self.assertEqual(second.status_code, 200, second.content)
+        facts = list(TbEventoConquista.objects.filter(conta=user).order_by('ocorrido_em', 'agregado_id'))
+        self.assertEqual([fact.payload_json['first_character'] for fact in facts], [True, False])
+        rule = self.make_rule()
+        output = StringIO()
+        call_command('reprocessar_primeira_ficha', '--user-id', str(user.pk), stdout=output)
+        self.assertIn('fatos=1 concessoes=1', output.getvalue())
+        self.assertFalse(TbUsuarioConquista.objects.filter(user=user, conquista=rule).exists())
+        call_command('reprocessar_primeira_ficha', '--apply', '--user-id', str(user.pk), stdout=StringIO())
+        grant = TbUsuarioConquista.objects.get(user=user, conquista=rule)
+        self.assertEqual(grant.evidencia_json['evento_id'], str(facts[0].pk))
+        self.assertEqual(grant.definicao_json, RULE)
+        self.assertTrue(TbUsuarioCosmetico.objects.filter(user=user, cosmetico=rule.recompensa).exists())
+        self.assertTrue(TbConquistaNotificacao.objects.filter(concessao=grant).exists())
+        output = StringIO()
+        call_command('reprocessar_primeira_ficha', '--apply', '--user-id', str(user.pk), stdout=output)
+        self.assertIn('concessoes=0', output.getvalue())
+        self.assertEqual(TbUsuarioConquista.objects.filter(user=user, conquista=rule).count(), 1)
+
+    def test_legacy_fact_without_first_snapshot_is_not_replayed(self):
+        user = self._novo_usuario('legacy-first-replay-owner', staff=True)
+        TbEventoConquista.objects.create(
+            origem='site', chave_origem='personagem:123:criado',
+            tipo='character_created', conta=user, agregado_id=123,
+            ocorrido_em=timezone.now(), payload_json={},
+        )
+        rule = self.make_rule()
+        output = StringIO()
+        call_command('reprocessar_primeira_ficha', '--apply', '--user-id', str(user.pk), stdout=output)
+        self.assertIn('fatos=0 concessoes=0', output.getvalue())
         self.assertFalse(TbUsuarioConquista.objects.filter(user=user, conquista=rule).exists())
 
     def test_failure_rolls_back_character_event_and_grant(self):

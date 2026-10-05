@@ -130,19 +130,15 @@ def registrar_criacao_personagem(personagem):
     """
     from django.db import transaction
     from django.contrib.auth import get_user_model
-    from .models import (TbConquista, TbEventoConquista, TbPersonagem,
-                         TbPersonagemClasse, TbUsuarioConquista)
-
-    regra = {
-        'schema_version': 1, 'metric': 'characters_created',
-        'scope': 'account', 'operator': 'gte', 'target': 1,
-    }
+    from .models import TbEventoConquista, TbPersonagem, TbPersonagemClasse
     with transaction.atomic():
         # Duas criações simultâneas da mesma conta devem avaliar "primeira" em série.
         get_user_model().objects.select_for_update().only('pk').get(pk=personagem.dono_id)
         principal = TbPersonagemClasse.objects.filter(
             id_personagem=personagem, principal=True, nivel=1
         ).select_related('id_classe').first() if personagem.nivel == 1 else None
+        primeira_ficha = not TbPersonagem.objects.filter(
+            dono_id=personagem.dono_id).exclude(pk=personagem.pk).exists()
         class_snapshot = ({'initial_class_id': principal.id_classe_id,
                            'initial_class_slug': principal.id_classe.slug,
                            'initial_level': 1} if principal else {})
@@ -152,26 +148,51 @@ def registrar_criacao_personagem(personagem):
                 'tipo': 'character_created', 'conta_id': personagem.dono_id,
                 'personagem': personagem, 'agregado_id': personagem.pk,
                 'ocorrido_em': personagem.criado_em,
-                'payload_json': class_snapshot,
+                'payload_json': {**class_snapshot, 'first_character': primeira_ficha},
             },
         )
         if evento.conta_id != personagem.dono_id or evento.agregado_id != personagem.pk:
             raise ValueError('Identidade do fato de criação inconsistente.')
         avaliar_inicio_classe_evento(evento)
-        if TbPersonagem.objects.filter(dono_id=personagem.dono_id).exclude(pk=personagem.pk).exists():
-            return evento
-        for conquista in TbConquista.objects.filter(ativo=True, criterio='automatico',
-                criterio_json__metric='characters_created').select_related('recompensa'):
-            if conquista.criterio_json != regra:
-                continue
-            criada = conceder_conquista(personagem.dono, conquista)
-            if criada:
-                TbUsuarioConquista.objects.filter(user_id=personagem.dono_id, conquista=conquista).update(
-                    evidencia_json={'evento_id': str(evento.pk), 'origem': evento.origem,
-                                   'chave_origem': evento.chave_origem, 'agregado_id': personagem.pk},
-                    definicao_json=regra,
-                )
+        avaliar_primeira_ficha_evento(evento)
     return evento
+
+
+def avaliar_primeira_ficha_evento(evento):
+    """Concede a primeira ficha somente quando o fato gravou essa condição na criação.
+
+    Fatos antigos sem a prova explícita não são inferidos de fichas ainda existentes:
+    uma exclusão ou reset poderia transformar uma segunda ficha em falsa primeira.
+    """
+    from .models import TbConquista, TbUsuarioConquista
+
+    if (evento.origem != 'site' or evento.tipo != 'character_created' or
+            evento.chave_origem != f'personagem:{evento.agregado_id}:criado' or
+            evento.personagem_id not in (None, evento.agregado_id) or
+            (evento.payload_json or {}).get('first_character') is not True):
+        return 0
+    regra = {'schema_version': 1, 'metric': 'characters_created',
+             'scope': 'account', 'operator': 'gte', 'target': 1}
+    awarded = 0
+    for conquista in TbConquista.objects.filter(
+            ativo=True, criterio='automatico',
+            criterio_json__metric='characters_created').select_related('recompensa'):
+        if conquista.criterio_json != regra:
+            continue
+        grant = TbUsuarioConquista.objects.filter(
+            user_id=evento.conta_id, conquista=conquista).first()
+        if grant is not None and (grant.revogada_em is None or grant.concedida_por_id):
+            continue
+        if conceder_conquista(evento.conta, conquista):
+            TbUsuarioConquista.objects.filter(
+                user_id=evento.conta_id, conquista=conquista).update(
+                evidencia_json={'evento_id': str(evento.pk), 'origem': evento.origem,
+                               'chave_origem': evento.chave_origem,
+                               'agregado_id': evento.agregado_id},
+                definicao_json=regra,
+            )
+            awarded += 1
+    return awarded
 
 
 def avaliar_inicio_classe_evento(evento):

@@ -43,7 +43,8 @@ class ClassStartAchievementTests(_CriadorBase):
         event = TbEventoConquista.objects.get(agregado_id=character.pk)
         self.assertEqual(event.payload_json, {
             'initial_class_id': TbClasse.objects.get(slug='guerreiro').pk,
-            'initial_class_slug': 'guerreiro', 'initial_level': 1})
+            'initial_class_slug': 'guerreiro', 'initial_level': 1,
+            'first_character': True})
         grant = TbUsuarioConquista.objects.get(user=user, conquista=rule)
         self.assertEqual(grant.evidencia_json['evento_id'], str(event.pk))
         self.assertEqual(grant.evidencia_json['initial_class_id'],
