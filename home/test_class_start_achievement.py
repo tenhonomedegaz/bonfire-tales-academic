@@ -96,6 +96,33 @@ class ClassStartAchievementTests(_CriadorBase):
         self.assertFalse(TbUsuarioConquista.objects.filter(user=user,
                                                            conquista=rule).exists())
 
+    def test_replay_preserves_class_start_after_character_link_is_removed(self):
+        user = self._novo_usuario('class-start-archived', staff=True)
+        created = self._post_criar(user, self._payload('guerreiro'))
+        self.assertTrue(created.json()['ok'], created.content)
+        event = TbEventoConquista.objects.get(agregado_id=created.json()['id'])
+        event.personagem = None
+        event.save(update_fields=['personagem'])
+        rule = self._rule('guerreiro')
+
+        preview = StringIO()
+        call_command('reprocessar_inicio_classe', user_id=user.pk, stdout=preview)
+        self.assertIn('concessoes=1', preview.getvalue())
+        self.assertFalse(TbUsuarioConquista.objects.filter(user=user, conquista=rule).exists())
+
+        call_command('reprocessar_inicio_classe', apply=True, user_id=user.pk,
+                     stdout=StringIO())
+        grant = TbUsuarioConquista.objects.get(user=user, conquista=rule)
+        self.assertEqual(grant.evidencia_json['evento_id'], str(event.pk))
+        self.assertEqual(grant.evidencia_json['initial_class_slug'], 'guerreiro')
+        self.assertTrue(TbUsuarioCosmetico.objects.filter(
+            user=user, cosmetico=rule.recompensa).exists())
+
+        call_command('reprocessar_inicio_classe', apply=True, user_id=user.pk,
+                     stdout=StringIO())
+        self.assertEqual(TbUsuarioConquista.objects.filter(user=user,
+                                                           conquista=rule).count(), 1)
+
     def test_other_class_does_not_award_and_manual_grant_keeps_origin(self):
         rule = self._rule('guerreiro')
         user = self._novo_usuario('class-start-manual-owner', staff=True)

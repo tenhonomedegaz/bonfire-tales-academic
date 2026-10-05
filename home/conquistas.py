@@ -173,7 +173,7 @@ def avaliar_inicio_classe_evento(evento):
 
     if (evento.origem != 'site' or evento.tipo != 'character_created' or
             evento.chave_origem != f'personagem:{evento.agregado_id}:criado' or
-            evento.personagem_id != evento.agregado_id):
+            evento.personagem_id not in (None, evento.agregado_id)):
         return 0
     snapshot = evento.payload_json or {}
     if (type(snapshot.get('initial_class_id')) is not int or
