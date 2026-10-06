@@ -104,3 +104,48 @@ class AchievementNotificationTests(TestCase):
         self.assertTrue(revogar_conquista_manual(second_grant))
         possession.refresh_from_db()
         self.assertIsNone(possession.suspenso_em)
+
+    def test_admin_revokes_staff_override_but_not_fact_award(self):
+        staff = get_user_model().objects.create_superuser('override-admin',
+                                                          'override@example.invalid', 'x')
+        automatic = TbConquista.objects.create(
+            slug='override-automatic', nome='Regra automática', criterio='automatico',
+            secreta=True,
+            criterio_json={'schema_version': 1, 'metric': 'characters_created',
+                           'scope': 'account', 'operator': 'gte', 'target': 1},
+            recompensa=self.badge)
+        self.client.force_login(staff)
+        rules_url = reverse('admin:home_tbconquista_changelist')
+        manual_payload = {'action': 'conceder_a_usuarios', 'confirmar': '1',
+                          'select_across': '0', '_selected_action': [automatic.pk],
+                          'usernames': self.owner.username}
+        self.assertEqual(self.client.post(rules_url, manual_payload).status_code, 302)
+        grant = TbUsuarioConquista.objects.get(user=self.owner, conquista=automatic)
+        self.assertEqual(grant.concedida_por_id, staff.pk)
+        action_url = reverse('admin:home_tbusuarioconquista_changelist')
+        payload = {'action': 'revogar_manuais', '_selected_action': [grant.pk]}
+        self.assertEqual(self.client.post(action_url, payload).status_code, 302)
+        grant.refresh_from_db()
+        self.assertIsNotNone(grant.revogada_em)
+        self.assertIsNotNone(TbUsuarioCosmetico.objects.get(
+            user=self.owner, cosmetico=self.badge).suspenso_em)
+        self.client.force_login(self.owner)
+        self.assertNotContains(self.client.get(reverse('profile')), automatic.nome)
+        self.assertNotContains(self.client.get(reverse('conquista_notificacoes')),
+                               automatic.nome)
+        self.client.force_login(staff)
+        self.assertEqual(self.client.post(action_url, payload).status_code, 302)
+        self.assertEqual(self.client.post(rules_url, manual_payload).status_code, 302)
+        grant.refresh_from_db()
+        self.assertIsNone(grant.revogada_em)
+        self.assertIsNone(TbUsuarioCosmetico.objects.get(
+            user=self.owner, cosmetico=self.badge).suspenso_em)
+
+        other = get_user_model().objects.create_user('fact-award-owner')
+        self.assertTrue(conceder_conquista(other, automatic))
+        fact_grant = TbUsuarioConquista.objects.get(user=other, conquista=automatic)
+        self.client.force_login(staff)
+        fact_payload = {'action': 'revogar_manuais', '_selected_action': [fact_grant.pk]}
+        self.assertEqual(self.client.post(action_url, fact_payload).status_code, 302)
+        fact_grant.refresh_from_db()
+        self.assertIsNone(fact_grant.revogada_em)

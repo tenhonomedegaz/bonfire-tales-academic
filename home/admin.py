@@ -4352,16 +4352,16 @@ class TbUsuarioConquistaAdmin(admin.ModelAdmin):
     ordering = ('-concedida_em',)
     actions = ('revogar_manuais',)
 
-    @admin.action(description='Revogar concessões manuais selecionadas', permissions=['change'])
+    @admin.action(description='Revogar concessões da staff selecionadas', permissions=['change'])
     def revogar_manuais(self, request, queryset):
-        """Revoga somente regras manuais; a repetição não afeta outras origens."""
+        """Revoga concessões manuais e exceções da staff, sem tocar fatos automáticos."""
         from .conquistas import revogar_conquista_manual
 
         revoked = 0
         for grant in queryset.select_related('conquista').iterator():
             if revogar_conquista_manual(grant):
                 revoked += 1
-        self.message_user(request, f'{revoked} concessão(ões) manual(is) revogada(s).')
+        self.message_user(request, f'{revoked} concessão(ões) da staff revogada(s).')
 
 
 @admin.register(TbEventoConquista)

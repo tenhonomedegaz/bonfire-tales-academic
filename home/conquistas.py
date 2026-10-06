@@ -217,14 +217,18 @@ def conceder_conquista_em_massa(users, conquista, por=None):
 
 @transaction.atomic
 def revogar_conquista_manual(concessao):
-    """Revoga uma concessão manual sem retirar um cosmético obtido por outra fonte."""
+    """Revoga concessão da staff, inclusive exceção manual de regra automática.
+
+    Concessões automáticas sem concedente pertencem ao avaliador de fatos.
+    """
     from django.utils import timezone
     from .models import (CosmeticCheckoutPurchase, TbUsuarioConquista,
                          TbUsuarioCosmetico)
 
     grant = (TbUsuarioConquista.objects.select_for_update()
              .select_related('conquista').get(pk=concessao.pk))
-    if grant.conquista.criterio != 'manual' or grant.revogada_em is not None:
+    if ((grant.conquista.criterio != 'manual' and grant.concedida_por_id is None) or
+            grant.revogada_em is not None):
         return False
     now = timezone.now()
     grant.revogada_em = now
