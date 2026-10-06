@@ -4324,7 +4324,7 @@ class TbConquistaAdmin(admin.ModelAdmin):
     @admin.action(description='Reprocessar fatos de nível e rank para marcos selecionados',
                   permissions=['change'])
     def reprocessar_nivel(self, request, queryset):
-        """Reconcilia revisões atuais comprováveis e reavalia marcos cadastrados."""
+        """Reconcilia revisões com prova atual ou snapshot posterior contíguo."""
         from django.contrib.auth import get_user_model
         from django.db.models import F
         from .conquistas import avaliar_nivel_personagem, registrar_fato_level_up
@@ -4340,27 +4340,28 @@ class TbConquistaAdmin(admin.ModelAdmin):
                 'conta_id', flat=True).distinct())
         account_ids.update(TbPersonagemRevisao.objects.filter(
             tipo='level_up', revertida=False,
-            nivel_depois__gt=F('nivel_antes'),
-            nivel_depois=F('id_personagem__nivel')).values_list(
+            nivel_depois__gt=F('nivel_antes')).values_list(
                 'id_personagem__dono_id', flat=True).distinct())
         count = novos = ignorados = 0
         for user in get_user_model().objects.filter(pk__in=account_ids).iterator():
-            revisions = TbPersonagemRevisao.objects.filter(
-                id_personagem__dono=user, tipo='level_up', revertida=False,
-                nivel_depois__gt=F('nivel_antes'),
-                nivel_depois=F('id_personagem__nivel')).select_related(
-                    'id_personagem').order_by('id_personagem_id', '-criado_em', '-pk')
-            seen = set()
-            for revision in revisions:
-                if revision.id_personagem_id in seen:
+            revisions = list(TbPersonagemRevisao.objects.filter(
+                id_personagem__dono=user).select_related('id_personagem').order_by(
+                    'id_personagem_id', 'pk'))
+            for index, revision in enumerate(revisions):
+                if (revision.tipo != 'level_up' or revision.revertida or
+                        revision.nivel_depois <= revision.nivel_antes):
                     continue
-                seen.add(revision.id_personagem_id)
+                following = (revisions[index + 1]
+                             if index + 1 < len(revisions) and
+                             revisions[index + 1].id_personagem_id == revision.id_personagem_id
+                             else None)
                 key = f'personagem:{revision.id_personagem_id}:revisao:{revision.pk}:level_up'
                 existed = TbEventoConquista.objects.filter(
                     origem='site', chave_origem=key).exists()
                 try:
                     with transaction.atomic():
-                        registrar_fato_level_up(revision)
+                        registrar_fato_level_up(
+                            revision, proxima_revisao=following if not existed else None)
                 except ValueError:
                     ignorados += 1
                 else:

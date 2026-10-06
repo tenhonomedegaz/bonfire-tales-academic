@@ -285,7 +285,7 @@ def registrar_criacao_personagem(personagem):
     return evento
 
 
-def registrar_fato_level_up(revisao, *, estorno=False):
+def registrar_fato_level_up(revisao, *, estorno=False, proxima_revisao=None):
     """Registra a revisão e atualiza marcos de nível na mesma transação."""
     from .models import TbEventoConquista
 
@@ -308,14 +308,50 @@ def registrar_fato_level_up(revisao, *, estorno=False):
             payload = previous_event.payload_json or {}
         else:
             snapshot = revisao.snapshot_json or {}
+            if not isinstance(snapshot, dict):
+                raise ValueError('Snapshot anterior inválido.')
             before = snapshot.get('personagem') or {}
             classes_before = snapshot.get('classes') or []
-            classes_after = list(personagem.classes.order_by('pk').values(
-                'id_classe_id', 'nivel', 'principal'))
+            if (not isinstance(before, dict) or
+                    type(before.get('nivel')) is not int or
+                    not isinstance(classes_before, list) or not classes_before or
+                    any(not isinstance(row, dict) or
+                        type(row.get('id_classe_id')) is not int or
+                        type(row.get('nivel')) is not int or row['nivel'] <= 0 or
+                        type(row.get('principal')) is not bool
+                        for row in classes_before) or
+                    sum(row['principal'] for row in classes_before) != 1):
+                raise ValueError('Snapshot anterior sem classes comprováveis.')
+            if proxima_revisao is None:
+                classes_after = list(personagem.classes.order_by('pk').values(
+                    'id_classe_id', 'nivel', 'principal'))
+                after_level = personagem.nivel
+            else:
+                from .models import TbPersonagemRevisao
+                next_snapshot = proxima_revisao.snapshot_json
+                if (proxima_revisao.id_personagem_id != personagem.pk or
+                        proxima_revisao.pk <= revisao.pk or
+                        TbPersonagemRevisao.objects.filter(
+                            id_personagem=personagem, pk__gt=revisao.pk,
+                            pk__lt=proxima_revisao.pk).exists() or
+                        proxima_revisao.nivel_antes != revisao.nivel_depois or
+                        not isinstance(next_snapshot, dict)):
+                    raise ValueError('Revisão posterior não comprova a trajetória.')
+                after = next_snapshot.get('personagem')
+                classes_after = next_snapshot.get('classes')
+                after_level = after.get('nivel') if isinstance(after, dict) else None
+                if (not isinstance(classes_after, list) or not classes_after or
+                        any(not isinstance(row, dict) or
+                            type(row.get('id_classe_id')) is not int or
+                            type(row.get('nivel')) is not int or row['nivel'] <= 0 or
+                            type(row.get('principal')) is not bool
+                            for row in classes_after) or
+                        sum(row['principal'] for row in classes_after) != 1):
+                    raise ValueError('Snapshot posterior sem classes comprováveis.')
             if (before.get('nivel') != revisao.nivel_antes or
-                    personagem.nivel != revisao.nivel_depois or
-                    sum(int(row.get('nivel') or 0) for row in classes_before) != revisao.nivel_antes or
-                    sum(int(row['nivel'] or 0) for row in classes_after) != revisao.nivel_depois):
+                    after_level != revisao.nivel_depois or
+                    sum(row['nivel'] for row in classes_before) != revisao.nivel_antes or
+                    sum(row['nivel'] for row in classes_after) != revisao.nivel_depois):
                 raise ValueError('Trajetória de nível inconsistente com a revisão.')
             payload = {'revision_id': revisao.pk, 'level_before': revisao.nivel_antes,
                        'level_after': revisao.nivel_depois,

@@ -19,6 +19,43 @@ from home.test_criador import _CriadorBase
 
 
 class LevelAchievementTests(_CriadorBase):
+    def test_admin_recovers_contiguous_historical_rank_facts(self):
+        owner = self._novo_usuario('rank-history-owner')
+        rule = TbConquista.objects.create(
+            slug='rank-history-ametista', nome='Ametista histórica QA',
+            criterio='automatico', criterio_json={
+                'schema_version': 1, 'metric': 'rank_reached',
+                'scope': 'account', 'filters': {'rank': 'Ametista'},
+                'operator': 'gte', 'target': 1})
+        created = self._post_criar(owner, self._payload('guerreiro'))
+        self.assertTrue(created.json()['ok'], created.content)
+        character = TbPersonagem.objects.get(pk=created.json()['id'])
+        primary = character.classes.get(principal=True)
+        revisions = []
+        for level in range(2, 7):
+            snapshot = capture_build(character)
+            primary.nivel = level
+            primary.save(update_fields=['nivel'])
+            character.nivel = level
+            character.save(update_fields=['nivel', 'atualizado_em'])
+            revisions.append(TbPersonagemRevisao.objects.create(
+                id_personagem=character, tipo='level_up', snapshot_json=snapshot,
+                nivel_antes=level - 1, nivel_depois=level, criado_por=owner))
+        administrator = TbConquistaAdmin(TbConquista, admin.site)
+        request = RequestFactory().post('/admin/home/tbconquista/')
+        with patch.object(administrator, 'message_user') as notification:
+            administrator.reprocessar_nivel(request, TbConquista.objects.filter(pk=rule.pk))
+            administrator.reprocessar_nivel(request, TbConquista.objects.filter(pk=rule.pk))
+        self.assertIn('5 fato(s) recuperado(s)', notification.call_args_list[0].args[1])
+        self.assertIn('0 fato(s) recuperado(s)', notification.call_args_list[1].args[1])
+        self.assertEqual(TbEventoConquista.objects.filter(
+            origem='site', tipo='character_level_up',
+            agregado_id__in=[revision.pk for revision in revisions]).count(), 5)
+        grant = TbUsuarioConquista.objects.get(user=owner, conquista=rule)
+        self.assertIsNone(grant.revogada_em)
+        self.assertEqual(grant.evidencia_json['nivel'], 6)
+        self.assertEqual(TbConquistaNotificacao.objects.filter(concessao=grant).count(), 1)
+
     def test_admin_recovers_only_verifiable_missing_level_fact(self):
         owner = self._novo_usuario('level-legacy-owner')
         rule = TbConquista.objects.create(
@@ -88,6 +125,14 @@ class LevelAchievementTests(_CriadorBase):
         self.assertIn('1 revisão(ões) sem prova suficiente', notification.call_args.args[1])
         self.assertFalse(TbEventoConquista.objects.filter(agregado_id=revision.pk).exists())
         self.assertFalse(TbUsuarioConquista.objects.filter(user=owner, conquista=rule).exists())
+        revision.snapshot_json = ['estrutura inválida']
+        revision.save(update_fields=['snapshot_json'])
+        with patch.object(administrator, 'message_user') as notification:
+            administrator.reprocessar_nivel(
+                RequestFactory().post('/admin/home/tbconquista/'),
+                TbConquista.objects.filter(pk=rule.pk))
+        self.assertIn('1 revisão(ões) sem prova suficiente', notification.call_args.args[1])
+        self.assertFalse(TbEventoConquista.objects.filter(agregado_id=revision.pk).exists())
 
     def test_rank_milestone_uses_verified_level_and_private_character(self):
         owner = self._novo_usuario('rank-milestone-owner')
