@@ -9,7 +9,7 @@ from django.utils import timezone
 
 from home.conquista_admin_form import ConquistaAdminForm
 from home.conquistas import (_avaliar_primeira_compra, _avaliar_unidades_compradas,
-                             conceder_conquista)
+                             conceder_conquista, registrar_fato_compra)
 from home.models import (AsaasCheckoutOrder, CosmeticCheckoutPurchase,
                          TbConquista, TbCosmetico, TbEventoConquista, TbItemMundano,
                          TbPersonagemItem, TbTransacao, TbUsuarioConquista,
@@ -19,6 +19,53 @@ from home.views import _preco_em_pc
 
 
 class PurchaseUnitsAchievementTests(_MercadoBase):
+    def test_historical_purchase_requires_exact_item_ids_and_quantity(self):
+        char = self._char('purchase-exact-ledger')
+        item = self._item_mundano_com_preco()
+        inventory = TbPersonagemItem.objects.create(
+            id_personagem=char, id_item_mundano=item,
+            nome=item.nome, qtd=2, origem_tipo='compra')
+        purchase = TbTransacao.objects.create(
+            id_personagem=char, tipo='compra', valor_pc=-100,
+            saldo_pc=char.carteira_pc,
+            detalhes_json={'catalogo': 'mundano', 'catalogo_id': item.pk,
+                           'inventario_id': inventory.pk, 'qtd': 2})
+        first = TbConquista.objects.create(
+            slug='exact-ledger-first', nome='Primeira compra exata',
+            criterio='automatico', criterio_json={
+                'schema_version': 1, 'metric': 'items_purchased',
+                'scope': 'account', 'operator': 'gte', 'target': 1})
+        units = self._rule(item, target=2)
+        valid = purchase.detalhes_json.copy()
+        for field, invalid in [('catalogo_id', 1.5), ('inventario_id', True),
+                               ('qtd', 2.5), ('qtd', False)]:
+            with self.subTest(field=field, invalid=invalid):
+                purchase.detalhes_json = {**valid, field: invalid}
+                purchase.save(update_fields=['detalhes_json'])
+                with self.assertRaises(ValueError):
+                    registrar_fato_compra(purchase, historica=True)
+                self.assertFalse(TbEventoConquista.objects.filter(tipo='item_purchased').exists())
+
+        call_command('reprocessar_primeira_compra', apply=True, user_id=char.dono_id)
+        self.assertFalse(TbUsuarioConquista.objects.filter(user=char.dono).exists())
+        self.assertFalse(TbEventoConquista.objects.filter(tipo='item_purchased').exists())
+
+        purchase.detalhes_json = {key: str(value) if key != 'catalogo' else value
+                                  for key, value in valid.items()}
+        purchase.save(update_fields=['detalhes_json'])
+        registrar_fato_compra(purchase, historica=True)
+        call_command('reprocessar_primeira_compra', apply=True, user_id=char.dono_id)
+        self.assertEqual(TbEventoConquista.objects.filter(tipo='item_purchased').count(), 1)
+        self.assertEqual(set(TbUsuarioConquista.objects.filter(user=char.dono)
+                             .values_list('conquista_id', flat=True)), {first.pk, units.pk})
+        self.assertEqual(TbUsuarioConquista.objects.get(user=char.dono,
+                                                        conquista=units).evidencia_json['total'], 2)
+
+        purchase.tipo = 'mercado-compra'
+        purchase.detalhes_json = {**valid, 'catalogo': 'comunidade', 'anuncio_id': 3.5}
+        with self.assertRaises(ValueError):
+            registrar_fato_compra(purchase, historica=True)
+
     def test_admin_reprocesses_historical_first_purchase_and_units_once(self):
         char = self._char('purchase-admin-replay')
         item = self._item_mundano_com_preco()

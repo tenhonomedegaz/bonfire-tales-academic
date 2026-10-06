@@ -993,6 +993,19 @@ def validar_vinculo_aventura_bot(personagem, bot_quest_id, quantidade):
 
 def _payload_compra(transacao, *, historica=False):
     """Reconstrói a identidade da compra diretamente do ledger financeiro."""
+    import re
+
+    def positive_id(value):
+        if type(value) is int:
+            number = value
+        elif isinstance(value, str) and re.fullmatch(r'[0-9]+', value.strip()):
+            number = int(value.strip())
+        else:
+            raise ValueError('Compra sem identidade de item e quantidade.')
+        if number <= 0:
+            raise ValueError('Compra sem identidade de item e quantidade.')
+        return number
+
     if (transacao.tipo not in {'compra', 'mercado-compra'} or
             (transacao.revertida and not (historica and transacao.revertida_em)) or
             int(transacao.valor_pc) >= 0):
@@ -1006,13 +1019,11 @@ def _payload_compra(transacao, *, historica=False):
     if (transacao.tipo == 'mercado-compra') != (catalogo == 'comunidade'):
         raise ValueError('Origem da compra inconsistente com o ledger.')
     try:
-        catalogo_id = int(detalhes.get('catalogo_id') or 0)
-        inventario_id = int(detalhes.get('inventario_id') or 0)
-        quantidade = int(detalhes.get('qtd') or 0)
+        catalogo_id = positive_id(detalhes.get('catalogo_id'))
+        inventario_id = positive_id(detalhes.get('inventario_id'))
+        quantidade = positive_id(detalhes.get('qtd'))
     except (TypeError, ValueError):
         raise ValueError('Compra sem identidade de item e quantidade.') from None
-    if min(catalogo_id, inventario_id, quantidade) <= 0:
-        raise ValueError('Compra sem identidade de item e quantidade.')
     payload = {
         'transacao_id': transacao.pk, 'catalogo': catalogo,
         'catalogo_id': catalogo_id, 'inventario_id': inventario_id,
@@ -1020,11 +1031,9 @@ def _payload_compra(transacao, *, historica=False):
     }
     if catalogo == 'comunidade':
         try:
-            anuncio_id = int(detalhes.get('anuncio_id') or 0)
+            anuncio_id = positive_id(detalhes.get('anuncio_id'))
         except (TypeError, ValueError):
             raise ValueError('Compra comunitária sem identidade do anúncio.') from None
-        if anuncio_id <= 0:
-            raise ValueError('Compra comunitária sem identidade do anúncio.')
         payload['anuncio_id'] = anuncio_id
     return payload
 
