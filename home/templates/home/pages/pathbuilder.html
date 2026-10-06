@@ -193,8 +193,9 @@ markup de ficha nenhum — é impossível haver drift.{% endcomment %}
             <option value="">Escolha uma classe</option>
           </select>
           <div class="pb-picker" data-picker="magia">
-            <input type="search" class="pb-search" data-picker-search placeholder="Filtrar magias por nome, escola ou nível" aria-label="Filtrar magias">
-            <div class="pb-options" data-picker-list></div>
+            <input type="search" class="pb-search" data-picker-search placeholder="Filtrar magias por nome PT/EN, escola ou nível" aria-label="Filtrar magias por nome em português ou inglês, escola ou nível" aria-controls="pb-spell-options">
+            <p id="pb-spell-results" class="pb-muted" role="status" aria-live="polite"></p>
+            <div id="pb-spell-options" class="pb-options" data-picker-list></div>
           </div>
         </div>
       </div>

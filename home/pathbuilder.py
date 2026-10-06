@@ -98,6 +98,7 @@ def catalogos():
     magias = [{
         "slug": magia.slug,
         "nome": magia.nome,
+        "nome_ingles": (magia.nome_ingles or "").strip(),
         "nivel": int(magia.nivel or 0),
         "grupo": "Truques" if int(magia.nivel or 0) == 0 else "%dº nível" % magia.nivel,
         "meta": " · ".join(x for x in [
