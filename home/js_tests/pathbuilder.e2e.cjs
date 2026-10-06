@@ -220,6 +220,27 @@ async function stored(page) {
     assert.deepEqual((await stored(page))[0].atributos_bonus, {},
       'arquivo válido ainda substitui a build e atualiza a prévia');
 
+    const beforeExport = await stored(page);
+    const downloadPromise = page.waitForEvent('download');
+    await page.locator('#pb-export').click();
+    const download = await downloadPromise;
+    assert.match(download.suggestedFilename(), /^bonfire-pathbuilder-\d{4}-\d{2}-\d{2}\.json$/);
+    const exportedBytes = fs.readFileSync(await download.path());
+    const exported = JSON.parse(exportedBytes.toString('utf8'));
+    assert.equal(exported.formato, 'bonfire-pathbuilder');
+    assert.equal(exported.versao, 1);
+    assert.deepEqual(exported.base, base);
+    assert.deepEqual(exported.builds, beforeExport, 'download contém as duas builds editadas');
+
+    await previewAfter(page, () => page.locator('#pb-reset').click());
+    assert.notDeepEqual(await stored(page), beforeExport, 'zerar a edição remove as builds atuais');
+    await previewAfter(page, () => page.locator('#pb-import').setInputFiles({
+      name: download.suggestedFilename(), mimeType: 'application/json', buffer: exportedBytes
+    }));
+    assert.deepEqual(await stored(page), beforeExport, 'arquivo baixado restaura as duas builds');
+    await previewAfter(page, () => page.reload({ waitUntil: 'load' }));
+    assert.deepEqual(await stored(page), beforeExport, 'builds importadas sobrevivem ao recarregamento');
+
     const beforeSaved = await stored(page);
     await page.evaluate(({ currentBase, validBuilds }) => {
       const broken = JSON.parse(JSON.stringify(validBuilds));
