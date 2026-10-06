@@ -244,6 +244,52 @@ test('reload preserva a edição e aguarda novo orçamento autoritativo', async 
   assert.equal(await h.page.locator('[data-attr="DES"][data-delta="1"]').isDisabled(), false);
 });
 
+test('edição com armazenamento local cheio avisa e sobrevive ao reload da sessão', async t => {
+  const h = await harness(t);
+  await h.initial();
+  await h.page.evaluate(() => {
+    window.__savedSetItem = Storage.prototype.setItem;
+    Storage.prototype.setItem = function (key, value) {
+      if (this === localStorage && key === 'bonfire:pathbuilder:builds') {
+        throw new DOMException('local full', 'QuotaExceededError');
+      }
+      return window.__savedSetItem.call(this, key, value);
+    };
+  });
+  await h.page.locator('[data-attr="FOR"][data-delta="1"]').click();
+  await h.page.getByText('Edição guardada só nesta sessão.', { exact: false }).waitFor();
+  assert.equal((await h.stored())[0].atributos_bonus.FOR, undefined);
+  assert.equal(await h.page.evaluate(() => JSON.parse(sessionStorage.getItem('bonfire:pathbuilder:builds'))[0].atributos_bonus.FOR), 1);
+  const edit = await h.nextRequest(1);
+  edit.reply(result(edit.input.build));
+  await h.page.reload();
+  const request = await h.nextRequest(2);
+  assert.equal(request.input.build.atributos_bonus.FOR, 1);
+  request.reply(result(request.input.build));
+});
+
+test('edição sem armazenamento avisa e continua exportável', async t => {
+  const h = await harness(t);
+  await h.initial();
+  await h.page.evaluate(() => {
+    window.__savedSetItem = Storage.prototype.setItem;
+    Storage.prototype.setItem = function (key, value) {
+      if (key === 'bonfire:pathbuilder:builds') {
+        throw new DOMException('full', 'QuotaExceededError');
+      }
+      return window.__savedSetItem.call(this, key, value);
+    };
+  });
+  await h.page.locator('[data-attr="FOR"][data-delta="1"]').click();
+  await h.page.getByText('Não foi possível guardar a edição.', { exact: false }).waitFor();
+  const downloadPromise = h.page.waitForEvent('download');
+  await h.page.locator('#pb-export').click();
+  const download = await downloadPromise;
+  const bundle = JSON.parse(fs.readFileSync(await download.path(), 'utf8'));
+  assert.equal(bundle.builds[0].atributos_bonus.FOR, 1);
+  assert.equal((await h.stored())[0].atributos_bonus.FOR, undefined);
+});
+
 test('reset invalida orçamento, ficha e consultas da construção anterior', async t => {
   const h = await harness(t);
   await h.initial();

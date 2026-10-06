@@ -47,8 +47,15 @@
     }
     function writeStore(key, value) {
         var raw = JSON.stringify(value);
-        try { sessionStorage.setItem(key, raw); } catch (err) { /* cota */ }
-        try { localStorage.setItem(key, raw); } catch (err) { /* cota */ }
+        var session = false;
+        var local = false;
+        try { sessionStorage.setItem(key, raw); session = true; }
+        catch (err) {
+            /* Uma cópia antiga na sessão não pode ocultar a nova cópia local no reload. */
+            try { sessionStorage.removeItem(key); } catch (removeError) { /* acesso negado */ }
+        }
+        try { localStorage.setItem(key, raw); local = true; } catch (err) { /* cota */ }
+        return { session: session, local: local };
     }
     function readLocal(key) {
         try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch (err) { return null; }
@@ -178,8 +185,20 @@
         var detailCache = Object.create(null);
         var queries = { classe: '', talento: '', item: '', magia: '' };
         var spellClass = '';
+        var storageWarning = '';
 
-        function persist() { writeStore(STORAGE_BUILDS, builds); }
+        function persist() {
+            var saved = writeStore(STORAGE_BUILDS, builds);
+            if (!saved.local) {
+                storageWarning = saved.session
+                    ? 'Edição guardada só nesta sessão. Exporte um arquivo para manter uma cópia.'
+                    : 'Não foi possível guardar a edição. Exporte um arquivo antes de sair desta página.';
+                savedFeedback(storageWarning, true);
+            } else if (storageWarning) {
+                if (byId('pb-save-status').textContent === storageWarning) savedFeedback('', false);
+                storageWarning = '';
+            }
+        }
         function current() { return builds[active]; }
         function previewInput(index) { return JSON.stringify({ base: base, build: builds[index] }); }
         function budgetContext(index) { return JSON.stringify([base, builds[index].classes]); }
