@@ -22,7 +22,7 @@ function fingerprint(value) {
 
 async function waitPreview(page, previousCount) {
   await page.waitForFunction(count => window.__pbPreviewCount > count, previousCount);
-  await page.waitForFunction(() => !document.querySelector('#pb-status').textContent.includes('Derivando'));
+  await page.waitForFunction(() => document.querySelector('#pb-status').textContent.includes('Nível'));
   await page.locator('#pb-folha [data-pb-folha]').waitFor();
   assert.equal(await page.locator('.pb-sheet-error').count(), 0, 'prévia real aceita pelo cliente');
   const response = await page.evaluate(() => window.__pbLastPreview);
@@ -173,6 +173,13 @@ async function stored(page) {
     await page.waitForFunction(() => document.querySelector('#pb-status').textContent.includes('Arquivo de Pathbuilder'));
     assert.deepEqual(await stored(page), beforeImport, 'foreign class preserves both variants');
 
+    const unknownClassBuild = { ...beforeImport[1], classes: [
+      ...beforeImport[1].classes, { slug: 'classe-inexistente', nivel: 1, subclasse: '' }
+    ] };
+    await uploadBundle({ base, builds: [beforeImport[0], unknownClassBuild] });
+    await page.waitForFunction(() => document.querySelector('#pb-status').textContent.includes('Build B:'));
+    assert.deepEqual(await stored(page), beforeImport, 'server rejection of build B preserves both variants');
+
     for (const invalidHeader of [
       { formato: 'outro-editor', versao: 1 },
       { formato: 'bonfire-pathbuilder', versao: 2 },
@@ -236,6 +243,16 @@ async function stored(page) {
     await page.locator('#pb-saved-builds').selectOption('broken-choice');
     assert.match(await page.locator('#pb-status').innerText(), /Arquivo de Pathbuilder/);
     assert.deepEqual(await stored(page), beforeSaved, 'invalid saved choices preserve editing');
+    await page.evaluate(({ currentBase, validBuilds, invalidBuild }) => {
+      localStorage.setItem('bonfire:pathbuilder:saved', JSON.stringify([
+        { id: 'unknown-class', nome: 'Unknown class', base: currentBase,
+          builds: [validBuilds[0], invalidBuild] }
+      ]));
+    }, { currentBase: base, validBuilds: beforeImport, invalidBuild: unknownClassBuild });
+    await previewAfter(page, () => page.reload({ waitUntil: 'load' }));
+    await page.locator('#pb-saved-builds').selectOption('unknown-class');
+    await page.waitForFunction(() => document.querySelector('#pb-status').textContent.includes('Build B:'));
+    assert.deepEqual(await stored(page), beforeSaved, 'server rejection of saved version preserves editing');
     await page.evaluate(({ currentBase, validBuilds, foreignClass }) => {
       localStorage.setItem('bonfire:pathbuilder:saved', JSON.stringify([
         { id: 'foreign', nome: 'Foreign class', base: currentBase,

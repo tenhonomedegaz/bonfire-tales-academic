@@ -175,6 +175,7 @@
         var errors = [null, null];
         var timer = null;
         var requestSeq = 0;
+        var loadSeq = 0;
         var detailCache = Object.create(null);
         var queries = { classe: '', talento: '', item: '', magia: '' };
         var spellClass = '';
@@ -1456,6 +1457,7 @@
                 value >= minimum && value <= maximum;
         }
         function loadBundle(bundle) {
+            var attempt = ++loadSeq;
             if (!bundle || !bundle.base || typeof bundle.base !== 'object' ||
                     Array.isArray(bundle.base) || typeof bundle.base.classe !== 'string' ||
                     !bundle.base.classe ||
@@ -1517,18 +1519,50 @@
             var importedBuilds = clone(bundle.builds).map(function (build) {
                 return normalizeBuild(build, importedBase);
             });
-            base = importedBase;
-            builds = importedBuilds;
-            clearResult(0);
-            clearResult(1);
-            writeStore(STORAGE_BASE, base);
-            /* nova impressão digital: sem isso o próximo carregamento acharia que a base
-               mudou e jogaria fora justamente as builds que acabaram de ser importadas. */
-            markBase(base);
-            persist();
-            renderEditor();
-            renderSheet();
-            runPreview(false);
+            var editingBefore = JSON.stringify({ base: base, builds: builds });
+            var status = byId('pb-status');
+            status.textContent = 'Validando as duas builds…';
+            status.classList.remove('is-error');
+            return Promise.all(importedBuilds.map(function (build, index) {
+                return fetch(window.PATHBUILDER_PREVIEW_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': window.CSRF_TOKEN },
+                    body: JSON.stringify({ base: importedBase, build: build })
+                }).then(function (response) {
+                    return response.json().then(function (json) {
+                        if (!response.ok || !json.ok || !json.build) {
+                            throw new Error('Build ' + (index === 0 ? 'A' : 'B') + ': ' +
+                                ((json.erros || ['prévia inválida.']).join(' ')));
+                        }
+                        return json.build;
+                    });
+                });
+            })).then(function (previews) {
+                if (attempt !== loadSeq) return;
+                if (editingBefore !== JSON.stringify({ base: base, builds: builds })) {
+                    throw new Error('A edição mudou durante a validação. Abra a versão novamente.');
+                }
+                ++requestSeq;
+                clearTimeout(timer);
+                base = importedBase;
+                builds = importedBuilds;
+                results = previews;
+                resultInputs = [previewInput(0), previewInput(1)];
+                resultContexts = [budgetContext(0), budgetContext(1)];
+                errors = [null, null];
+                writeStore(STORAGE_BASE, base);
+                /* A nova impressão digital evita que o reload descarte as builds importadas. */
+                markBase(base);
+                persist();
+                renderEditor();
+                renderSheet();
+                status.textContent = 'Nível ' + previews[active].nivel + ' · nenhum personagem salvo';
+                byId('pb-retry-preview').hidden = true;
+            }).catch(function (error) {
+                if (attempt !== loadSeq) return;
+                status.textContent = error.message || 'Não foi possível validar esta versão.';
+                status.classList.add('is-error');
+            });
         }
         byId('pb-save').addEventListener('click', function () {
             var name = window.prompt('Nome desta versão:', 'Build ' +
