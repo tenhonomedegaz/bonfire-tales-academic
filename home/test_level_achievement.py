@@ -3,14 +3,73 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 
 from home.character_history import capture_build, register_revision
-from home.conquistas import conceder_conquista, registrar_fato_level_up
+from home.conquistas import (avaliar_nivel_personagem, conceder_conquista,
+                            conquistas_do_usuario, registrar_fato_level_up)
 from home.models import (TbConquista, TbConquistaNotificacao, TbCosmetico,
-                         TbPersonagem, TbEventoConquista, TbUsuarioConquista,
+                         TbPersonagem, TbPersonagemRevisao, TbEventoConquista,
+                         TbUsuarioConquista,
                          UserProfile)
 from home.test_criador import _CriadorBase
 
 
 class LevelAchievementTests(_CriadorBase):
+    def test_level_twenty_single_class_requires_canonical_unmixed_history(self):
+        owner = self._novo_usuario('level-pure-owner')
+        base = {'schema_version': 1, 'metric': 'character_level',
+                'scope': 'account', 'operator': 'gte', 'target': 20}
+        pure = TbConquista.objects.create(
+            slug='level-twenty-pure-qa', nome='Nível 20 sem multiclasse QA',
+            criterio='automatico', criterio_json={
+                **base, 'filters': {'class_slug': 'guerreiro', 'single_class': True}})
+        ordinary = TbConquista.objects.create(
+            slug='level-twenty-ordinary-qa', nome='Nível 20 guerreiro QA',
+            criterio='automatico', criterio_json={
+                **base, 'filters': {'class_slug': 'guerreiro'}})
+        created = self._post_criar(owner, self._payload('guerreiro'))
+        self.assertTrue(created.json()['ok'], created.content)
+        character = TbPersonagem.objects.get(pk=created.json()['id'])
+        for level in range(2, 21):
+            snapshot = capture_build(character)
+            primary = character.classes.get(principal=True)
+            primary.nivel = level
+            primary.save(update_fields=['nivel'])
+            character.nivel = level
+            character.save(update_fields=['nivel', 'atualizado_em'])
+            register_revision(character, tipo='level_up', snapshot=snapshot,
+                              user=owner, nivel_antes=level - 1,
+                              nivel_depois=level)
+        grants = TbUsuarioConquista.objects.filter(
+            user=owner, revogada_em__isnull=True,
+            conquista__in=[pure, ordinary])
+        self.assertEqual(grants.count(), 2)
+        self.assertEqual(next(item['progresso_nivel']['atual']
+                              for item in conquistas_do_usuario(owner)['obtidas']
+                              if item['slug'] == pure.slug), 20)
+        profile_url = reverse('public_profile', args=[owner.username])
+        self.client.logout()
+        self.assertNotContains(self.client.get(profile_url), pure.nome)
+        character.publico = True
+        character.save(update_fields=['publico'])
+        self.assertContains(self.client.get(profile_url), pure.nome)
+        character.publico = False
+        character.save(update_fields=['publico'])
+
+        # Um snapshot histórico multiclasses invalida só o marco sem multiclasse.
+        revision = TbPersonagemRevisao.objects.filter(
+            id_personagem=character, nivel_antes=2).get()
+        snapshot = revision.snapshot_json
+        snapshot['classes'].append({**snapshot['classes'][0], 'principal': False})
+        revision.snapshot_json = snapshot
+        revision.save(update_fields=['snapshot_json'])
+        avaliar_nivel_personagem(owner)
+        self.assertIsNotNone(TbUsuarioConquista.objects.get(
+            user=owner, conquista=pure).revogada_em)
+        self.assertIsNone(TbUsuarioConquista.objects.get(
+            user=owner, conquista=ordinary).revogada_em)
+        self.assertEqual(next(item['progresso_nivel']['atual']
+                              for item in conquistas_do_usuario(owner)['bloqueadas']
+                              if item['slug'] == pure.slug), 0)
+
     def test_private_level_milestone_and_rewards_follow_character_visibility(self):
         owner = self._novo_usuario('level-private-owner')
         badge = TbCosmetico.objects.create(

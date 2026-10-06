@@ -124,8 +124,10 @@ def regra_nivel_personagem_valida(regra):
         regra['metric'] == 'character_level' and regra['scope'] == 'account' and
         regra['operator'] == 'gte' and type(regra['target']) is int and
         2 <= regra['target'] <= 20 and isinstance(regra['filters'], dict) and
-        set(regra['filters']) == {'class_slug'} and
+        set(regra['filters']) in ({'class_slug'}, {'class_slug', 'single_class'}) and
         type(regra['filters']['class_slug']) is str and
+        (('single_class' not in regra['filters']) or
+         (regra['filters']['single_class'] is True and regra['target'] == 20)) and
         bool(re.fullmatch(r'[a-z0-9]+(?:-[a-z0-9]+)*',
                           regra['filters']['class_slug'])))
 
@@ -280,7 +282,41 @@ def registrar_fato_level_up(revisao, *, estorno=False):
     return evento
 
 
-def _niveis_comprovados(user):
+def _historico_classe_unica(character, class_id):
+    """Confere classe única na origem e em todos os snapshots disponíveis."""
+    from .models import TbEventoConquista, TbPersonagemRevisao
+
+    creation = TbEventoConquista.objects.filter(
+        origem='site', tipo='character_created', conta_id=character.dono_id,
+        personagem=character, agregado_id=character.pk,
+        chave_origem=f'personagem:{character.pk}:criado',
+    ).first()
+    origin = creation.payload_json if creation else None
+    if (not isinstance(origin, dict) or origin.get('initial_class_id') != class_id or
+            origin.get('initial_level') != 1):
+        return False
+    revisions = TbPersonagemRevisao.objects.filter(id_personagem=character).only(
+        'snapshot_json', 'nivel_antes')
+    if not revisions.exists():
+        return False
+    for revision in revisions:
+        snapshot = revision.snapshot_json
+        if not isinstance(snapshot, dict):
+            return False
+        classes = snapshot.get('classes')
+        before = snapshot.get('personagem')
+        if (not isinstance(classes, list) or len(classes) != 1 or
+                not isinstance(classes[0], dict) or
+                classes[0].get('id_classe_id') != class_id or
+                classes[0].get('principal') is not True or
+                not isinstance(before, dict) or
+                before.get('nivel') != revision.nivel_antes or
+                classes[0].get('nivel') != revision.nivel_antes):
+            return False
+    return True
+
+
+def _niveis_comprovados(user, *, single_class=False):
     """Retorna o maior nível atual por classe principal com revisão canônica válida."""
     from .models import TbEventoConquista, TbPersonagem, TbPersonagemRevisao
 
@@ -307,6 +343,9 @@ def _niveis_comprovados(user):
                 (event.payload_json or {}).get('classes_after') != current_classes or
                 sum(row['nivel'] for row in current_classes) != character.nivel):
             continue
+        if single_class and (len(current_classes) != 1 or
+                             not _historico_classe_unica(character, primary[0].id_classe_id)):
+            continue
         slug = primary[0].id_classe.slug
         if character.nivel > levels.get(slug, (0, None))[0]:
             levels[slug] = (character.nivel, event)
@@ -328,9 +367,14 @@ def avaliar_nivel_personagem(user):
     if not rules:
         return
     levels = _niveis_comprovados(user)
+    single_class_levels = (_niveis_comprovados(user, single_class=True)
+                           if any(rule.criterio_json['filters'].get('single_class')
+                                  for rule in rules) else {})
     for rule in rules:
         definition = rule.criterio_json
-        level, event = levels.get(definition['filters']['class_slug'], (0, None))
+        proof = (single_class_levels if definition['filters'].get('single_class')
+                 else levels)
+        level, event = proof.get(definition['filters']['class_slug'], (0, None))
         grant = TbUsuarioConquista.objects.select_for_update().filter(
             user=user, conquista=rule).first()
         if level >= definition['target']:
@@ -1264,6 +1308,7 @@ def conquistas_do_usuario(user, incluir_bloqueadas=True, *, pode_ver_privados=Tr
     aventuras_comprovadas = None
     compras_comprovadas = None
     niveis_comprovados = None
+    niveis_classe_unica = None
     for c in qs:
         if (not pode_ver_privados and isinstance(c.criterio_json, dict) and
                 c.criterio_json.get('metric') in {'class_started', 'character_level'} and
@@ -1300,10 +1345,16 @@ def conquistas_do_usuario(user, incluir_bloqueadas=True, *, pode_ver_privados=Tr
             }
         if (pode_ver_privados and isinstance(c.criterio_json, dict) and
                 regra_nivel_personagem_valida(c.criterio_json)):
-            if niveis_comprovados is None:
-                niveis_comprovados = _niveis_comprovados(user)
+            if c.criterio_json['filters'].get('single_class'):
+                if niveis_classe_unica is None:
+                    niveis_classe_unica = _niveis_comprovados(user, single_class=True)
+                proof = niveis_classe_unica
+            else:
+                if niveis_comprovados is None:
+                    niveis_comprovados = _niveis_comprovados(user)
+                proof = niveis_comprovados
             item['progresso_nivel'] = {
-                'atual': niveis_comprovados.get(
+                'atual': proof.get(
                     c.criterio_json['filters']['class_slug'], (0, None))[0],
                 'alvo': c.criterio_json['target'],
             }

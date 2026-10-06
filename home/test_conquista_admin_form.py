@@ -123,6 +123,11 @@ class ConquistaAdminFormTests(TestCase):
 
     def test_level_form_requires_real_class_and_configured_threshold(self):
         classe = TbClasse.objects.create(nome='Classe nível QA', slug='classe-nivel-qa')
+        admin = get_user_model().objects.create_superuser(
+            'level-form-admin', 'level-form-admin@example.invalid', 'x')
+        self.client.force_login(admin)
+        self.assertContains(self.client.get(reverse('admin:home_tbconquista_add')),
+                            'classe_unica')
         data = {**self.base_data('nivel-assistido'),
                 'metrica_assistida': 'character_level',
                 'classe_nivel': str(classe.pk), 'alvo_nivel': '3'}
@@ -135,6 +140,17 @@ class ConquistaAdminFormTests(TestCase):
         invalid = ConquistaAdminForm(data={**data, 'slug': 'nivel-invalido',
                                            'alvo_nivel': '21'})
         self.assertIn('alvo_nivel', invalid.errors)
+
+        pure = ConquistaAdminForm(data={**data, 'slug': 'nivel-puro',
+                                       'alvo_nivel': '20', 'classe_unica': 'on'})
+        self.assertTrue(pure.is_valid(), pure.errors)
+        self.assertEqual(pure.save().criterio_json['filters'],
+                         {'class_slug': classe.slug, 'single_class': True})
+        self.assertTrue(ConquistaAdminForm(instance=pure.instance).fields[
+            'classe_unica'].initial)
+        early = ConquistaAdminForm(data={**data, 'slug': 'nivel-puro-precoce',
+                                        'classe_unica': 'on'})
+        self.assertIn('classe_unica', early.errors)
 
     def test_legacy_rule_cannot_be_activated_without_supported_definition(self):
         legacy = TbConquista.objects.create(

@@ -51,6 +51,10 @@ class ConquistaAdminForm(forms.ModelForm):
     alvo_nivel = forms.IntegerField(required=False, min_value=2, max_value=20,
                                     label='Nível mínimo',
                                     help_text='Escolha o marco com o PO antes da ativação.')
+    classe_unica = forms.BooleanField(
+        required=False, label='Nível 20 sem multiclasse',
+        help_text='Exige uma única classe desde a criação da ficha, comprovada pelo histórico.',
+    )
 
     class Meta:
         model = TbConquista
@@ -71,6 +75,7 @@ class ConquistaAdminForm(forms.ModelForm):
             slug = (rule.get('filters') or {}).get('class_slug')
             self.fields['classe_nivel'].initial = TbClasse.objects.filter(slug=slug).first()
             self.fields['alvo_nivel'].initial = rule.get('target')
+            self.fields['classe_unica'].initial = (rule.get('filters') or {}).get('single_class', False)
         elif metric == 'quests_completed':
             self.fields['categoria_quest'].initial = (rule.get('filters') or {}).get('category')
         elif metric in ('items_purchased_units', 'adventures_played'):
@@ -103,9 +108,14 @@ class ConquistaAdminForm(forms.ModelForm):
                 self.add_error('classe_nivel', 'Selecione uma classe real.')
             if target is None:
                 self.add_error('alvo_nivel', 'Informe o nível definido pelo PO.')
+            if cleaned.get('classe_unica') and target != 20:
+                self.add_error('classe_unica', 'Sem multiclasse só é válido para o marco de nível 20.')
             if self.errors:
                 return cleaned
-            rule.update(filters={'class_slug': classe.slug},
+            filters = {'class_slug': classe.slug}
+            if cleaned.get('classe_unica'):
+                filters['single_class'] = True
+            rule.update(filters=filters,
                         operator='gte', target=target)
         elif metric == 'quests_completed':
             category = cleaned.get('categoria_quest')

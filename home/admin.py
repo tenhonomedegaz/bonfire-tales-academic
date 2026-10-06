@@ -4239,7 +4239,7 @@ class TbConquistaAdmin(admin.ModelAdmin):
         (None, {'fields': ('nome', 'slug', 'descricao', 'icone_url', 'icone_file')}),
         ('Visibilidade', {'fields': ('secreta', 'ativo', 'ordem')}),
         ('Critério', {'fields': ('criterio', 'metrica_assistida', 'classe_inicial',
-                               'classe_nivel', 'alvo_nivel',
+                               'classe_nivel', 'alvo_nivel', 'classe_unica',
                                'itens_comprados', 'operador_unidades', 'alvo_unidades',
                                'criterio_json'),
                       'description': 'Início de classe: metric=class_started, '
@@ -4251,7 +4251,8 @@ class TbConquistaAdmin(admin.ModelAdmin):
                                      'operator=gt ou gte, target=inteiro positivo. '
                                      'Aventuras jogadas: metric=adventures_played, '
                                      'aggregate=sum, filters={"valid":true,"origin":"played_session"}. '
-                                     'Nível atual: metric=character_level, classe principal e alvo entre 2 e 20. '
+                                     'Nível atual: metric=character_level, classe principal e alvo entre 2 e 20; '
+                                     'sem multiclasse exige nível 20 e histórico de classe única. '
                                      'Defina os limiares e operadores com o PO antes de ativar.'}),
         ('Recompensa', {'fields': ('recompensa',),
                         'description': 'Cosmético desbloqueado no inventário ao conceder.'}),
