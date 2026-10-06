@@ -607,11 +607,35 @@ def registrar_fato_aventura(lancamento, *, estorno=False, avaliar=True):
     return evento
 
 
+def _quests_comprovadas(user):
+    """Categorias sustentadas por fato, ledger de mesa e confirmação da staff."""
+    from .models import TbPersonagemAventura
+
+    _, facts = _aventuras_comprovadas(user)
+    ledgers = {row.pk: row for row in TbPersonagemAventura.objects.filter(
+        pk__in=[fact.agregado_id for fact in facts], id_personagem__dono=user,
+        origem='mesa', revertido=False).select_related('criado_por')}
+    matched = {category: [] for category in QUEST_CATEGORIES}
+    for fact in facts:
+        ledger = ledgers.get(fact.agregado_id)
+        details = ledger.detalhes_json if ledger and isinstance(ledger.detalhes_json, dict) else {}
+        category = fact.payload_json.get('quest_category')
+        if (category not in matched or not ledger or
+                not ledger.data_missao or not ledger.id_mestre_id or
+                not ledger.criado_por_id or not ledger.criado_por.is_staff or
+                details.get('quest_category') != category or
+                details.get('quest_confirmed_by') != ledger.criado_por_id or
+                fact.payload_json.get('quest_confirmed_by') != ledger.criado_por_id):
+            continue
+        matched[category].append(fact)
+    return matched
+
+
 def avaliar_quests_categorizadas(user):
     """Concede somente categorias confirmadas pela staff em um lançamento válido."""
     from django.contrib.auth import get_user_model
     from django.utils import timezone
-    from .models import (CosmeticCheckoutPurchase, TbConquista, TbPersonagemAventura,
+    from .models import (CosmeticCheckoutPurchase, TbConquista,
                          TbUsuarioConquista, TbUsuarioCosmetico)
 
     with transaction.atomic():
@@ -622,23 +646,7 @@ def avaliar_quests_categorizadas(user):
             if regra_quest_categorizada_valida(rule.criterio_json)]
         if not rules:
             return
-        _, facts = _aventuras_comprovadas(user)
-        ledgers = {row.pk: row for row in TbPersonagemAventura.objects.filter(
-            pk__in=[fact.agregado_id for fact in facts], id_personagem__dono=user,
-            origem='mesa', revertido=False).select_related('criado_por')}
-        matched = {category: [] for category in QUEST_CATEGORIES}
-        for fact in facts:
-            ledger = ledgers.get(fact.agregado_id)
-            details = ledger.detalhes_json if ledger and isinstance(ledger.detalhes_json, dict) else {}
-            category = fact.payload_json.get('quest_category')
-            if (category not in matched or not ledger or
-                    not ledger.data_missao or not ledger.id_mestre_id or
-                    not ledger.criado_por_id or not ledger.criado_por.is_staff or
-                    details.get('quest_category') != category or
-                    details.get('quest_confirmed_by') != ledger.criado_por_id or
-                    fact.payload_json.get('quest_confirmed_by') != ledger.criado_por_id):
-                continue
-            matched[category].append(fact)
+        matched = _quests_comprovadas(user)
         for rule in rules:
             category = rule.criterio_json['filters']['category']
             first = matched[category][0] if matched[category] else None
@@ -1339,6 +1347,7 @@ def conquistas_do_usuario(user, incluir_bloqueadas=True, *, pode_ver_privados=Tr
     compras_comprovadas = None
     niveis_comprovados = None
     niveis_classe_unica = None
+    quests_comprovadas = None
     for c in qs:
         if (not pode_ver_privados and isinstance(c.criterio_json, dict) and
                 c.criterio_json.get('metric') in {'class_started', 'character_level'} and
@@ -1386,6 +1395,14 @@ def conquistas_do_usuario(user, incluir_bloqueadas=True, *, pode_ver_privados=Tr
             item['progresso_nivel'] = {
                 'atual': proof.get(
                     c.criterio_json['filters']['class_slug'], (0, None))[0],
+                'alvo': c.criterio_json['target'],
+            }
+        if (pode_ver_privados and isinstance(c.criterio_json, dict) and
+                regra_quest_categorizada_valida(c.criterio_json)):
+            if quests_comprovadas is None:
+                quests_comprovadas = _quests_comprovadas(user)
+            item['progresso_quest'] = {
+                'atual': len(quests_comprovadas[c.criterio_json['filters']['category']]),
                 'alvo': c.criterio_json['target'],
             }
         if tem:

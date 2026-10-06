@@ -256,8 +256,12 @@ class AdventuresAchievementTests(_CriadorBase):
 
         self.client.force_login(self.owner)
         self.assertContains(self.client.get(reverse('profile')), quest_rule.nome)
+        self.assertContains(self.client.get(reverse('profile')), '1 quest comprovada')
         self.assertContains(self.client.get(reverse('conquista_notificacoes')),
                             quest_rule.nome)
+        public_url = reverse('public_profile', args=[self.owner.username])
+        self.client.logout()
+        self.assertNotContains(self.client.get(public_url), '1 quest comprovada')
 
         self.client.force_login(self.staff)
         self.assertEqual(self.client.post(reverse(
@@ -268,6 +272,8 @@ class AdventuresAchievementTests(_CriadorBase):
         self.assertTrue(TbUsuarioCosmetico.objects.filter(
             user=self.owner, cosmetico=self.badge,
             suspenso_em__isnull=False).exists())
+        self.client.force_login(self.owner)
+        self.assertContains(self.client.get(reverse('profile')), '0 quests comprovadas')
 
     def test_legacy_category_without_staff_confirmation_does_not_award(self):
         rule = TbConquista(
@@ -288,3 +294,5 @@ class AdventuresAchievementTests(_CriadorBase):
             tipo='adventure_recorded').count(), 1)
         self.assertFalse(TbUsuarioConquista.objects.filter(
             user=self.owner, conquista=rule).exists())
+        self.client.force_login(self.owner)
+        self.assertContains(self.client.get(reverse('profile')), '0 quests comprovadas')
