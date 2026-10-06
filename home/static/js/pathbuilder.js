@@ -1462,6 +1462,9 @@
                     bundle.builds.length !== 2 || bundle.builds.some(function (build) {
                         return !build || typeof build !== 'object' || Array.isArray(build) ||
                             !Array.isArray(build.classes) || !build.classes.length ||
+                            !build.classes.some(function (row) {
+                                return row && row.slug === bundle.base.classe;
+                            }) ||
                             build.classes.some(function (row) {
                                 return !row || typeof row !== 'object' || Array.isArray(row) ||
                                     typeof row.slug !== 'string' || !row.slug ||

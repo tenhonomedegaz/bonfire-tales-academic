@@ -168,6 +168,11 @@ async function stored(page) {
     assert.match(await page.locator('#pb-status').innerText(), /Arquivo de Pathbuilder inválido/);
     assert.deepEqual(await stored(page), beforeImport, 'classe inválida conserva a edição');
 
+    const foreignClass = [{ slug: 'classe-de-outra-base', nivel: 1, subclasse: '' }];
+    await uploadBundle({ base, builds: [beforeImport[0], { ...beforeImport[1], classes: foreignClass }] });
+    await page.waitForFunction(() => document.querySelector('#pb-status').textContent.includes('Arquivo de Pathbuilder'));
+    assert.deepEqual(await stored(page), beforeImport, 'foreign class preserves both variants');
+
     for (const [label, invalidBuild] of [
       ['fractional level', { ...beforeImport[0], classes: [
         { ...beforeImport[0].classes[0], nivel: 1.5 },
@@ -207,6 +212,17 @@ async function stored(page) {
     await page.locator('#pb-saved-builds').selectOption('broken');
     assert.match(await page.locator('#pb-status').innerText(), /Arquivo de Pathbuilder inválido/);
     assert.deepEqual(await stored(page), beforeSaved, 'versão local inválida conserva a edição');
+    await page.evaluate(({ currentBase, validBuilds, foreignClass }) => {
+      localStorage.setItem('bonfire:pathbuilder:saved', JSON.stringify([
+        { id: 'foreign', nome: 'Foreign class', base: currentBase,
+          builds: [validBuilds[0], { ...validBuilds[1], classes: foreignClass }] },
+        { id: 'working', nome: 'Working version', base: currentBase, builds: validBuilds }
+      ]));
+    }, { currentBase: base, validBuilds: beforeImport, foreignClass });
+    await previewAfter(page, () => page.reload({ waitUntil: 'load' }));
+    await page.locator('#pb-saved-builds').selectOption('foreign');
+    assert.match(await page.locator('#pb-status').innerText(), /Arquivo de Pathbuilder/);
+    assert.deepEqual(await stored(page), beforeSaved, 'foreign saved version preserves editing');
     await previewAfter(page, () => page.locator('#pb-saved-builds').selectOption('working'));
     assert.deepEqual(await stored(page), beforeImport, 'versão local válida restaura a edição');
 
