@@ -2573,21 +2573,32 @@ class EventCosmeticOffer(models.Model):
 
     event_key = models.SlugField(max_length=60)
     cosmetico = models.ForeignKey(TbCosmetico, on_delete=models.PROTECT)
-    cost_braseiros = models.PositiveIntegerField()
-    starts_at = models.DateTimeField()
-    ends_at = models.DateTimeField()
-    active = models.BooleanField(default=False)
+    cost_braseiros = models.PositiveIntegerField(
+        help_text='Zero permite resgate gratuito; valores positivos usam braseiros do personagem.')
+    starts_at = models.DateTimeField(
+        null=True, blank=True, help_text='Opcional. Em branco, começa ao ativar a oferta.')
+    ends_at = models.DateTimeField(
+        null=True, blank=True, help_text='Opcional. Em branco, termina ao desativar a oferta.')
+    active = models.BooleanField(
+        default=False, help_text='Ligue ou desligue manualmente; datas preenchidas limitam a janela.')
 
     class Meta:
         ordering = ['ends_at', 'pk']
         constraints = [
             models.UniqueConstraint(fields=['event_key', 'cosmetico'],
                                     name='unique_event_cosmetic_offer'),
-            models.CheckConstraint(condition=models.Q(cost_braseiros__gt=0),
-                                   name='event_cosmetic_cost_positive'),
-            models.CheckConstraint(condition=models.Q(ends_at__gt=models.F('starts_at')),
+            models.CheckConstraint(condition=models.Q(cost_braseiros__gte=0),
+                                   name='event_cosmetic_cost_nonnegative'),
+            models.CheckConstraint(condition=(models.Q(starts_at__isnull=True) |
+                                              models.Q(ends_at__isnull=True) |
+                                              models.Q(ends_at__gt=models.F('starts_at'))),
                                    name='event_cosmetic_window_valid'),
         ]
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        if self.starts_at and self.ends_at and self.ends_at <= self.starts_at:
+            raise ValidationError({'ends_at': 'O término deve ser posterior ao início.'})
 
     def __str__(self):
         return f'{self.event_key}: {self.cosmetico.slug}'
@@ -2599,17 +2610,18 @@ class EventCosmeticRedemption(models.Model):
     request_id = models.UUIDField(unique=True)
     offer = models.ForeignKey(EventCosmeticOffer, on_delete=models.PROTECT)
     user = models.ForeignKey('auth.User', on_delete=models.PROTECT)
-    character = models.ForeignKey('TbPersonagem', on_delete=models.PROTECT)
+    character = models.ForeignKey('TbPersonagem', on_delete=models.PROTECT,
+                                  null=True, blank=True)
     cosmetico = models.ForeignKey(TbCosmetico, on_delete=models.PROTECT)
     cost_braseiros = models.PositiveIntegerField()
-    balance_after = models.PositiveIntegerField()
+    balance_after = models.PositiveIntegerField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ['-created_at', '-pk']
         constraints = [models.CheckConstraint(
-            condition=models.Q(cost_braseiros__gt=0),
-            name='event_cosmetic_redemption_cost_positive')]
+            condition=models.Q(cost_braseiros__gte=0),
+            name='event_cosmetic_redemption_cost_nonnegative')]
 
     def __str__(self):
         return str(self.request_id)

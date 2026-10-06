@@ -124,7 +124,8 @@ class EventCosmeticOfferAdmin(admin.ModelAdmin):
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == 'cosmetico':
-            kwargs['queryset'] = TbCosmetico.objects.filter(origem='loja_braseiro')
+            kwargs['queryset'] = TbCosmetico.objects.filter(
+                origem__in=['loja_braseiro', 'evento_manual'])
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
 

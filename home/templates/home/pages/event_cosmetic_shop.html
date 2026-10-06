@@ -6,34 +6,36 @@
 <main class="mx-auto w-full max-w-4xl px-4 py-8 space-y-6">
   <header class="space-y-2">
     <h1 class="font-serif text-3xl text-[var(--text)]">Cosméticos de evento</h1>
-    <p class="text-sm text-[var(--muted)]">Use braseiros de um personagem seu para desbloquear um cosmético na conta. A oferta termina na data indicada; o cosmético adquirido permanece seu.</p>
+    <p class="text-sm text-[var(--muted)]">Resgate cosméticos gratuitos ou use braseiros de um personagem seu. A equipe pode encerrar a oferta a qualquer momento; o cosmético adquirido permanece seu.</p>
   </header>
   {% if error %}<p role="alert" class="rounded-xl border border-[var(--flame)] bg-[var(--flame)]/10 p-4">{{ error }}</p>{% endif %}
   {% if redemption %}
     <p role="status" class="rounded-xl border border-[var(--spark)]/50 bg-[var(--spark)]/10 p-4">
-      {{ redemption.cosmetico.nome }} desbloqueado por {{ redemption.cost_braseiros }} braseiros de {{ redemption.character.nome }}. Saldo após o resgate: {{ redemption.balance_after }}.
+      {% if redemption.cost_braseiros %}{{ redemption.cosmetico.nome }} desbloqueado por {{ redemption.cost_braseiros }} braseiros de {{ redemption.character.nome }}. Saldo após o resgate: {{ redemption.balance_after }}.{% else %}{{ redemption.cosmetico.nome }} desbloqueado gratuitamente na sua conta.{% endif %}
     </p>
   {% endif %}
-  {% if not characters %}<p>Crie um personagem para usar seus braseiros nesta loja.</p>{% endif %}
+  {% if not characters %}<p>Para ofertas com custo, crie um personagem para usar seus braseiros.</p>{% endif %}
   <div class="grid gap-4 sm:grid-cols-2">
     {% for card in cards %}
       <article class="rounded-2xl border border-[var(--stroke)] bg-[var(--surface)] p-5 space-y-3">
         <h2 class="font-serif text-xl">{{ card.offer.cosmetico.nome }}</h2>
         {% if card.offer.cosmetico.descricao %}<p class="text-sm text-[var(--muted)]">{{ card.offer.cosmetico.descricao }}</p>{% endif %}
-        <p class="font-semibold text-[var(--spark)]">{{ card.offer.cost_braseiros }} braseiros</p>
-        <p class="text-xs text-[var(--muted)]">Evento {{ card.offer.event_key }} · até {{ card.offer.ends_at|date:'d/m/Y H:i' }}</p>
+        <p class="font-semibold text-[var(--spark)]">{% if card.offer.cost_braseiros %}{{ card.offer.cost_braseiros }} braseiros{% else %}Grátis{% endif %}</p>
+        <p class="text-xs text-[var(--muted)]">Evento {{ card.offer.event_key }}{% if card.offer.ends_at %} · até {{ card.offer.ends_at|date:'d/m/Y H:i' }}{% endif %}</p>
         {% if card.owned %}
           <p class="text-sm">Você já possui este cosmético.</p>
-        {% elif characters %}
+        {% elif not card.offer.cost_braseiros or characters %}
           <form method="post" class="space-y-3">
             {% csrf_token %}
             <input type="hidden" name="offer" value="{{ card.offer.pk }}">
             <input type="hidden" name="request_id" value="{{ card.request_id }}">
             <input type="hidden" name="quoted_cost" value="{{ card.offer.cost_braseiros }}">
-            <label class="block text-sm" for="character-{{ card.offer.pk }}">Pagar com personagem</label>
-            <select id="character-{{ card.offer.pk }}" name="character" required class="w-full rounded-lg border border-[var(--stroke)] bg-[var(--bg0)] p-2">
-              {% for character in characters %}<option value="{{ character.pk }}">{{ character.nome }} · {{ character.braseiros }} braseiros</option>{% endfor %}
-            </select>
+            {% if card.offer.cost_braseiros %}
+              <label class="block text-sm" for="character-{{ card.offer.pk }}">Pagar com personagem</label>
+              <select id="character-{{ card.offer.pk }}" name="character" required class="w-full rounded-lg border border-[var(--stroke)] bg-[var(--bg0)] p-2">
+                {% for character in characters %}<option value="{{ character.pk }}">{{ character.nome }} · {{ character.braseiros }} braseiros</option>{% endfor %}
+              </select>
+            {% endif %}
             <button type="submit" class="rounded-lg bg-[var(--spark)] px-4 py-2 font-semibold text-black">Resgatar cosmético</button>
           </form>
         {% endif %}

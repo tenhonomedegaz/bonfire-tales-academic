@@ -3427,7 +3427,7 @@ def _create_asaas_checkout(order, product, display_name, callback_base):
 @login_required(login_url='/login/')
 @require_http_methods(['GET', 'POST'])
 def event_cosmetic_shop(request):
-    """Ofertas temporárias pagas com braseiros; direito adquirido persiste."""
+    """Ofertas gratuitas ou por braseiros; direito adquirido persiste."""
     from .models import (EventCosmeticOffer, EventCosmeticRedemption,
                          TbPersonagem, TbUsuarioCosmetico)
     from .cosmetic_entitlements import has_permanent_cosmetic
@@ -3456,8 +3456,10 @@ def event_cosmetic_shop(request):
     characters = list(TbPersonagem.objects.filter(
         dono=request.user, arquivado=False).only('pk', 'nome', 'braseiros'))
     offers = list(EventCosmeticOffer.objects.select_related('cosmetico').filter(
-        active=True, starts_at__lte=now, ends_at__gt=now,
-        cosmetico__ativo=True, cosmetico__origem='loja_braseiro'))
+        Q(starts_at__isnull=True) | Q(starts_at__lte=now),
+        Q(ends_at__isnull=True) | Q(ends_at__gt=now),
+        active=True, cosmetico__ativo=True,
+        cosmetico__origem__in=['loja_braseiro', 'evento_manual']))
     inventory_ids = set(TbUsuarioCosmetico.objects.filter(
         user=request.user, suspenso_em__isnull=True)
         .exclude(origem__startswith='colaborador')
