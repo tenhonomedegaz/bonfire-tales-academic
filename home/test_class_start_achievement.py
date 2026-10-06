@@ -22,6 +22,8 @@ from home.test_criador import _CriadorBase
 class ClassStartAchievementTests(_CriadorBase):
     def test_registered_class_proof_is_visible_only_to_owner_and_staff(self):
         rule = self._rule()
+        rule.descricao = 'Detalhes da classe conquistada.'
+        rule.save(update_fields=['descricao'])
         owner = self._novo_usuario('class-proof-owner', staff=True)
         created = self._post_criar(owner, self._payload('guerreiro'))
         self.assertTrue(created.json()['ok'], created.content)
@@ -29,16 +31,22 @@ class ClassStartAchievementTests(_CriadorBase):
         fact = TbEventoConquista.objects.get(agregado_id=character.pk)
         url = reverse('public_profile', args=[owner.username])
 
-        self.assertContains(self.client.get(reverse('profile')), str(fact.pk))
+        own_profile = self.client.get(reverse('profile'))
+        self.assertContains(own_profile, str(fact.pk))
+        self.assertContains(own_profile, '<details class="conquista-info">')
+        self.assertContains(own_profile, rule.descricao)
         self.assertContains(self.client.get(url), str(fact.pk))
         self.assertContains(self.client.get(url), character.nome)
         self.client.logout()
         self.assertNotContains(self.client.get(url), str(fact.pk))
         self.assertNotContains(self.client.get(url), 'Provas das conquistas')
+        self.assertNotContains(self.client.get(url), rule.descricao)
 
         character.publico = True
         character.save(update_fields=['publico'])
         self.assertContains(self.client.get(url), rule.nome)
+        self.assertContains(self.client.get(url), rule.descricao)
+        self.assertContains(self.client.get(url), '<details class="conquista-info">')
         self.assertNotContains(self.client.get(url), str(fact.pk))
         self.assertEqual(conquistas_do_usuario(
             owner, pode_ver_privados=False)['evidencias_privadas'], [])

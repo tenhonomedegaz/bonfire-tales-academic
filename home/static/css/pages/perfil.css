@@ -1536,7 +1536,7 @@
     color: var(--text);
 }
 
-/* ── Conquistas (F3) — vitrine COMPACTA (ícone pequeno + tooltip nativo) ────── */
+/* Conquistas compactas com detalhes acessíveis no toque e no teclado. */
 .conquista-grid {
     display: flex;
     flex-wrap: wrap;
@@ -1546,18 +1546,15 @@
     list-style: none;
 }
 .conquista-item {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
+    display: block;
     max-width: 100%;
     padding: 0.22rem 0.5rem 0.22rem 0.28rem;
     border: 1px solid var(--stroke);
     border-radius: 999px;
     background: var(--bg0);
-    font-size: 0.7rem;
+    font-size: 0.8rem;
     font-weight: 700;
     line-height: 1.2;
-    cursor: default;
 }
 .conquista-item.is-obtida {
     border-color: color-mix(in srgb, var(--pf-gold) 50%, var(--stroke));
@@ -1565,8 +1562,51 @@
     color: var(--text);
 }
 .conquista-item.is-bloqueada {
-    opacity: 0.55;
     color: var(--muted);
+}
+.conquista-item:has(.conquista-info[open]) {
+    width: min(100%, 22rem);
+    border-radius: 0.75rem;
+}
+.conquista-info {
+    max-width: 100%;
+}
+.conquista-info summary {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    list-style: none;
+    cursor: pointer;
+}
+.conquista-info summary::-webkit-details-marker {
+    display: none;
+}
+.conquista-info summary:focus-visible {
+    outline: 2px solid var(--pf-accent);
+    outline-offset: 3px;
+    border-radius: 0.25rem;
+}
+.conquista-expand {
+    margin-left: auto;
+    font-size: 0.9rem;
+}
+.conquista-info[open] .conquista-expand {
+    transform: rotate(180deg);
+}
+.conquista-info-body {
+    padding: 0.5rem 0.25rem 0.15rem;
+    font-size: 0.85rem;
+    font-weight: 400;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+}
+.conquista-info-body p {
+    margin: 0 0 0.4rem;
+}
+.conquista-info-body .conquista-progress {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.75rem;
 }
 .conquista-icone {
     width: 22px;
@@ -1595,7 +1635,7 @@
 }
 .conquista-progress {
     color: var(--muted);
-    font-size: 0.65rem;
+    font-size: 0.75rem;
     font-weight: 500;
     white-space: normal;
 }

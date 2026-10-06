@@ -131,18 +131,10 @@ no servidor, então o cliente sobrepõe .public-profile-banner-media,
     </div>
     <ul class="conquista-grid" aria-label="Conquistas de {{ viewed_user.username }}">
       {% for c in conquistas.obtidas %}
-      <li class="conquista-item is-obtida" title="{{ c.nome }}{% if c.descricao %} — {{ c.descricao }}{% endif %} · {{ c.concedida_em|date:'d/m/Y' }}">
-        {% if c.icone_url %}<img class="conquista-icone" src="{{ c.icone_url }}" alt="" loading="lazy">{% else %}<span class="conquista-icone conquista-icone-fallback" aria-hidden="true">🏆</span>{% endif %}
-        <span class="conquista-nome">{{ c.nome }}</span>
-        {% include 'home/partials/_conquista_metric_progress.html' %}
-      </li>
+      {% include 'home/partials/_conquista_item.html' %}
       {% endfor %}
       {% for c in conquistas.bloqueadas %}
-      <li class="conquista-item is-bloqueada" title="{{ c.nome }} — bloqueada">
-        <span class="conquista-icone conquista-icone-lock" aria-hidden="true">🔒</span>
-        <span class="conquista-nome">{{ c.nome }}</span>
-        {% include 'home/partials/_conquista_metric_progress.html' %}
-      </li>
+      {% include 'home/partials/_conquista_item.html' %}
       {% endfor %}
     </ul>
     {% include 'home/partials/_conquista_evidencias_privadas.html' %}
