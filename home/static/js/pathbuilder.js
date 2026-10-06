@@ -1442,13 +1442,17 @@
             runPreview(false);
         });
         byId('pb-clone').addEventListener('click', function () {
-            builds[active === 0 ? 1 : 0] = clone(current());
-            clearResult(active === 0 ? 1 : 0);
+            var target = active === 0 ? 1 : 0;
+            if (!window.confirm('Substituir a Build ' + (target === 0 ? 'A' : 'B') +
+                    ' pela build atual? A edição anterior dessa variante será perdida.')) return;
+            builds[target] = clone(current());
+            clearResult(target);
             persist();
             renderEditor();
             runPreview(true);
         });
         byId('pb-reset').addEventListener('click', function () {
+            if (!window.confirm('Zerar as Builds A e B? As edições atuais serão perdidas.')) return;
             builds = [emptyBuild(), emptyBuild()];
             clearResult(0);
             clearResult(1);

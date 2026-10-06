@@ -251,6 +251,7 @@ async function stored(page) {
     assert.deepEqual(exported.base, base);
     assert.deepEqual(exported.builds, beforeExport, 'download contém as duas builds editadas');
 
+    page.once('dialog', dialog => dialog.accept());
     await previewAfter(page, () => page.locator('#pb-reset').click());
     assert.notDeepEqual(await stored(page), beforeExport, 'zerar a edição remove as builds atuais');
     await previewAfter(page, () => page.locator('#pb-import').setInputFiles({

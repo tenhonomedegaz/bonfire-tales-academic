@@ -353,6 +353,7 @@ test('reset invalida orçamento, ficha e consultas da construção anterior', as
   await h.initial();
   await h.page.locator('[data-attr="FOR"][data-delta="1"]').click();
   const old = await h.nextRequest(1);
+  h.page.once('dialog', dialog => dialog.accept());
   await h.page.locator('#pb-reset').click();
   const reset = await h.nextRequest(2);
   assert.equal(await h.page.locator('[data-confirmed-sheet]').count(), 0);
@@ -363,6 +364,35 @@ test('reset invalida orçamento, ficha e consultas da construção anterior', as
   assert.equal((await h.stored())[0].classes[0].nivel, 1);
   assert.deepEqual((await h.stored())[0].atributos_bonus, {});
   assert.equal(await h.page.locator('[data-attr="DES"][data-delta="1"]').isDisabled(), true);
+});
+
+test('cancelar ações destrutivas preserva as duas builds; confirmar clona e zera', async t => {
+  const a = { ...seed(), atributos_bonus: { FOR: 1 } };
+  const b = { ...seed(), atributos_bonus: { DES: 1 } };
+  const h = await harness(t, [a, b]);
+  await h.initial();
+  const before = await h.stored();
+  h.page.once('dialog', dialog => dialog.dismiss());
+  await h.page.locator('#pb-clone').click();
+  h.page.once('dialog', dialog => dialog.dismiss());
+  await h.page.locator('#pb-reset').click();
+  assert.deepEqual(await h.stored(), before);
+  assert.equal(h.requests.length, 1, 'cancelar não solicita nova prévia');
+
+  h.page.once('dialog', dialog => dialog.accept());
+  await h.page.locator('#pb-clone').click();
+  const clonedA = await h.nextRequest(1);
+  const clonedB = await h.nextRequest(2);
+  assert.deepEqual(clonedB.input.build, clonedA.input.build);
+  clonedA.reply(result(clonedA.input.build));
+  clonedB.reply(result(clonedB.input.build));
+  assert.deepEqual((await h.stored())[1], (await h.stored())[0]);
+
+  h.page.once('dialog', dialog => dialog.accept());
+  await h.page.locator('#pb-reset').click();
+  const reset = await h.nextRequest(3);
+  assert.deepEqual((await h.stored()).map(build => build.atributos_bonus), [{}, {}]);
+  reset.reply(result(reset.input.build));
 });
 
 test('Q12 atributo elegivel do talento persiste e retirar a origem limpa a escolha', async t => {
