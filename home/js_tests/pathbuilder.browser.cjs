@@ -300,6 +300,60 @@ test('cópia local recupera edição quando a sessão bloqueia escrita e leitura
   await h.page.locator('[data-confirmed-sheet]').waitFor();
 });
 
+test('importa duas builds pela cópia local quando a sessão falha e preserva edição se ambos falham', async t => {
+  const h = await harness(t);
+  await h.initial();
+  const importedBase = { ...base, nome: 'Importada localmente' };
+  const importedBuilds = [seed(), { ...seed(), classes: [{ slug: 'guerreiro', nivel: 3, subclasse: '' }] }];
+  await h.page.evaluate(() => {
+    window.__savedSetItem = Storage.prototype.setItem;
+    Storage.prototype.setItem = function (key, value) {
+      if (this === sessionStorage && key === 'bonfire:pathbuilder:base') {
+        throw new DOMException('session full', 'QuotaExceededError');
+      }
+      return window.__savedSetItem.call(this, key, value);
+    };
+  });
+  const upload = async (name, builds) => h.page.locator('#pb-import').setInputFiles({
+    name: 'builds.json', mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify({ formato: 'bonfire-pathbuilder', versao: 1,
+      base: { ...base, nome: name }, builds })),
+  });
+  await upload(importedBase.nome, importedBuilds);
+  for (const index of [1, 2]) {
+    const request = await h.nextRequest(index);
+    request.reply(result(request.input.build));
+  }
+  await h.page.waitForFunction(() => JSON.parse(localStorage.getItem('bonfire:pathbuilder:base')).nome === 'Importada localmente');
+  assert.equal(await h.page.locator('#pb-status.is-error').count(), 0);
+  assert.equal((await h.stored())[1].classes[0].nivel, 3);
+  assert.equal(await h.page.evaluate(() => sessionStorage.getItem('bonfire:pathbuilder:base')), null);
+  await h.page.reload();
+  const reload = await h.nextRequest(3);
+  assert.equal(reload.input.base.nome, importedBase.nome);
+  assert.equal(reload.input.build.classes[0].nivel, 4);
+  reload.reply(result(reload.input.build));
+  await h.page.locator('[data-confirmed-sheet]').waitFor();
+  await h.page.evaluate(() => {
+    window.__savedSetItem = Storage.prototype.setItem;
+    Storage.prototype.setItem = function (key, value) {
+      if (key === 'bonfire:pathbuilder:base') {
+        throw new DOMException('both full', 'QuotaExceededError');
+      }
+      return window.__savedSetItem.call(this, key, value);
+    };
+  });
+  await upload('Não importada', importedBuilds);
+  for (const index of [4, 5]) {
+    const request = await h.nextRequest(index);
+    request.reply(result(request.input.build));
+  }
+  await h.page.locator('#pb-status.is-error').waitFor();
+  assert.match(await h.page.locator('#pb-status').innerText(), /Não foi possível guardar/);
+  assert.equal(await h.page.evaluate(() => JSON.parse(localStorage.getItem('bonfire:pathbuilder:base')).nome), importedBase.nome);
+  assert.equal(await h.page.locator('[data-confirmed-sheet]').count(), 1);
+});
+
 test('JSON corrompido na sessão usa a cópia local e permite continuar a edição', async t => {
   const h = await harness(t);
   await h.initial();

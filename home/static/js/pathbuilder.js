@@ -1610,26 +1610,40 @@
                     [STORAGE_BASE_FP, JSON.stringify(baseFingerprint(importedBase))]
                 ];
                 function saveImport(storage) {
-                    var previous = entries.map(function (entry) {
-                        return storage.getItem(entry[0]);
-                    });
                     try {
+                        var previous = entries.map(function (entry) {
+                            return storage.getItem(entry[0]);
+                        });
                         entries.forEach(function (entry) { storage.setItem(entry[0], entry[1]); });
                         return true;
                     } catch (error) {
-                        entries.forEach(function (entry, index) {
-                            try {
-                                if (previous[index] === null) storage.removeItem(entry[0]);
-                                else storage.setItem(entry[0], previous[index]);
-                            } catch (rollbackError) { /* preserva a edição em memória */ }
-                        });
+                        if (previous) {
+                            entries.forEach(function (entry, index) {
+                                try {
+                                    if (previous[index] === null) storage.removeItem(entry[0]);
+                                    else storage.setItem(entry[0], previous[index]);
+                                } catch (rollbackError) { /* preserva a edição em memória */ }
+                            });
+                        }
                         return false;
                     }
                 }
-                if (!saveImport(sessionStorage)) {
-                    throw new Error('Não foi possível guardar a versão nesta sessão. Libere espaço e tente novamente.');
+                var savedInSession = false;
+                var savedLocally = false;
+                try { savedInSession = saveImport(sessionStorage); }
+                catch (sessionError) { /* acesso à sessão negado */ }
+                try { savedLocally = saveImport(localStorage); }
+                catch (localError) { /* acesso local negado */ }
+                if (!savedInSession && !savedLocally) {
+                    throw new Error('Não foi possível guardar a versão neste navegador. Libere espaço e tente novamente.');
                 }
-                var savedLocally = saveImport(localStorage);
+                if (!savedInSession && savedLocally) {
+                    /* Uma cópia antiga da sessão não pode ocultar a importação no reload. */
+                    entries.forEach(function (entry) {
+                        try { sessionStorage.removeItem(entry[0]); }
+                        catch (removeError) { /* sessão indisponível */ }
+                    });
+                }
                 base = importedBase;
                 builds = importedBuilds;
                 results = previews;

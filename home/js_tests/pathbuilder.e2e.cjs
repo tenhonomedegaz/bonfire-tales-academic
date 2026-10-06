@@ -272,11 +272,14 @@ async function stored(page) {
         return window.__savedSetItem.call(this, key, value);
       };
     });
-    await uploadBundle(alternateBundle);
-    await page.waitForFunction(() => document.querySelector('#pb-status').textContent.includes('Não foi possível guardar'));
-    assert.deepEqual(await stored(page), beforeExport, 'falha de sessão conserva a edição');
-    assert.deepEqual(await page.evaluate(() => JSON.parse(sessionStorage.getItem('bonfire:pathbuilder:base'))), base);
+    await previewAfter(page, () => uploadBundle(alternateBundle));
+    assert.deepEqual(await stored(page), beforeExport, 'falha de sessão importa as duas builds localmente');
+    assert.deepEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('bonfire:pathbuilder:base'))), alternateBase);
+    assert.equal(await page.evaluate(() => sessionStorage.getItem('bonfire:pathbuilder:base')), null);
     await page.evaluate(() => { Storage.prototype.setItem = window.__savedSetItem; });
+    await previewAfter(page, () => page.reload({ waitUntil: 'load' }));
+    assert.deepEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('bonfire:pathbuilder:base'))), alternateBase,
+      'importação local sobrevive ao recarregamento');
 
     await page.evaluate(() => {
       window.__savedSetItem = Storage.prototype.setItem;
