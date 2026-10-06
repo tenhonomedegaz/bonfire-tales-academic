@@ -101,8 +101,9 @@ class PathbuilderRealE2ETests(StaticLiveServerTestCase):
         env = dict(os.environ, PATHBUILDER_E2E_URL=self.live_server_url,
             PATHBUILDER_E2E_COOKIE_NAME=settings.SESSION_COOKIE_NAME,
             PATHBUILDER_E2E_COOKIE_VALUE=self.client.cookies[settings.SESSION_COOKIE_NAME].value)
-        result = subprocess.run(['node', os.path.join(_ROOT, 'home/js_tests/planar_creation.e2e.cjs')],
-            cwd=_ROOT, env=env, capture_output=True, encoding='utf-8', timeout=90)
+        with self.settings(HUNTER_CREATOR_RULESET_CHECKSUM=''):
+            result = subprocess.run(['node', os.path.join(_ROOT, 'home/js_tests/planar_creation.e2e.cjs')],
+                cwd=_ROOT, env=env, capture_output=True, encoding='utf-8', timeout=90)
         print(result.stdout)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(TbPersonagem.objects.count(), before)
