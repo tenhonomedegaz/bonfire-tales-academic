@@ -1423,6 +1423,7 @@
         var nameEl = el('cf-preview-name');
         var subEl = el('cf-preview-sub');
         var previewTimer = null, previewSeq = 0;
+        var lastValidPreview = false, lastValidExtraHtml = '';
 
         function localAttrs() {
             var scores = window.PointBuy ? window.PointBuy.scores() : {};
@@ -1470,10 +1471,12 @@
             // Invalida imediatamente qualquer resposta anterior, inclusive quando o
             // estado atual ainda não permite enviar uma nova prévia ao servidor.
             var seq = ++previewSeq;
-            renderLocal();
+            if (!lastValidPreview) renderLocal();
             var pbState = (window.PointBuy && typeof window.PointBuy.state === 'function')
                 ? window.PointBuy.state() : null;
             if (!pbState || !pbState.complete) {
+                lastValidPreview = false;
+                renderLocal();
                 pvEl.textContent = '—'; caEl.textContent = '—';
                 statusEl.textContent = 'atributos pendentes';
                 statusEl.classList.remove('is-live');
@@ -1486,13 +1489,28 @@
             }
             var ready = racaSel.value && classeSel.value && antSel.value;
             if (!ready) {
+                lastValidPreview = false;
+                renderLocal();
                 pvEl.textContent = '—'; caEl.textContent = '—';
                 statusEl.textContent = 'monte raça, classe e antecedente';
                 statusEl.classList.remove('is-live');
                 extraEl.innerHTML = '<p class="cf-preview-placeholder">Assim que você escolher raça, classe e antecedente, a prévia mostra PV, CA, perícias e proficiências — exatamente como a ficha final.</p>';
                 return;
             }
-            statusEl.textContent = 'atualizando…'; statusEl.classList.add('is-live');
+            statusEl.textContent = lastValidPreview
+                ? 'atualizando… · último cálculo válido' : 'atualizando…';
+            statusEl.classList.add('is-live');
+            function showPreviewFailure(message, status) {
+                statusEl.classList.remove('is-live');
+                statusEl.textContent = lastValidPreview ? status + ' · último cálculo válido' : status;
+                if (!lastValidPreview) {
+                    pvEl.textContent = '—'; caEl.textContent = '—'; pbEl.textContent = '+2';
+                    renderAttrs(localAttrs());
+                    renderTalentoMagias([]);
+                }
+                extraEl.innerHTML = '<p class="cf-preview-placeholder">' + escHtml(message) + '</p>' +
+                    (lastValidPreview ? lastValidExtraHtml : '');
+            }
             fetch(previewUrl, {
                 method: 'POST',
                 credentials: 'same-origin',
@@ -1502,16 +1520,9 @@
                 if (seq !== previewSeq) return; // resposta obsoleta
                 statusEl.classList.remove('is-live');
                 if (!j || !j.ready || !j.preview) {
-                    pvEl.textContent = '—';
-                    caEl.textContent = '—';
-                    pbEl.textContent = '+2';
-                    renderAttrs(localAttrs());
-                    renderTalentoMagias([]);
-                    statusEl.textContent = 'prévia pendente';
                     var previewErrors = (j && Array.isArray(j.erros)) ? j.erros : [];
-                    extraEl.innerHTML = '<p class="cf-preview-placeholder">' + escHtml(
-                        previewErrors[0] || 'Não foi possível calcular PV e CA com as escolhas atuais.'
-                    ) + '</p>';
+                    showPreviewFailure(previewErrors[0] ||
+                        'Não foi possível calcular PV e CA com as escolhas atuais.', 'prévia pendente');
                     return;
                 }
                 var pv = j.preview;
@@ -1527,20 +1538,17 @@
                       selectionErrors.map(function (message) {
                           return '<li>' + escHtml(message) + '</li>';
                       }).join('') + '</ul>' : '') + buildExtra(pv);
+                lastValidExtraHtml = extraEl.innerHTML;
+                lastValidPreview = true;
                 renderTalentoMagias(j.pending_spell_choices || []);
             }).catch(function () {
                 if (seq !== previewSeq) return;
-                pvEl.textContent = '—';
-                caEl.textContent = '—';
-                pbEl.textContent = '+2';
-                renderAttrs(localAttrs());
-                renderTalentoMagias([]);
-                statusEl.classList.remove('is-live'); statusEl.textContent = 'prévia indisponível';
-                extraEl.innerHTML = '<p class="cf-preview-placeholder">Não foi possível atualizar a prévia. Tente novamente.</p>';
+                showPreviewFailure('Não foi possível atualizar a prévia. Tente novamente.',
+                    'prévia indisponível');
             });
         }
         function schedulePreview() {
-            renderLocal();
+            if (!lastValidPreview) renderLocal();
             refreshCurrentErrors();
             clearTimeout(previewTimer);
             previewTimer = setTimeout(runPreview, 280);
@@ -1548,7 +1556,7 @@
         form.addEventListener('change', schedulePreview);
         form.addEventListener('input', function (ev) { if (ev.target && ev.target.id === 'cf-nome') { updateName(); refreshCurrentErrors(); } });
         if (window.PointBuy) window.PointBuy.onChange(function () {
-            renderLocal();
+            if (!lastValidPreview) renderLocal();
             refreshCurrentErrors();
             clearTimeout(previewTimer);
             previewTimer = setTimeout(runPreview, 280);
