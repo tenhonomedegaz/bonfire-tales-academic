@@ -1519,7 +1519,14 @@
             byId('pb-delete-save').disabled = !id;
             if (!id) return;
             var bundle = savedVersions().find(function (row) { return row.id === id; });
-            if (bundle) loadBundle(bundle);
+            if (!bundle) return;
+            try {
+                loadBundle(bundle);
+            } catch (error) {
+                var status = byId('pb-status');
+                status.textContent = error.message;
+                status.classList.add('is-error');
+            }
         });
         byId('pb-delete-save').addEventListener('click', function () {
             var id = byId('pb-saved-builds').value;

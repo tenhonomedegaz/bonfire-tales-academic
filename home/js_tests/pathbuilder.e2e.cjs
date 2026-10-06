@@ -194,6 +194,22 @@ async function stored(page) {
     assert.deepEqual((await stored(page))[0].atributos_bonus, {},
       'arquivo válido ainda substitui a build e atualiza a prévia');
 
+    const beforeSaved = await stored(page);
+    await page.evaluate(({ currentBase, validBuilds }) => {
+      const broken = JSON.parse(JSON.stringify(validBuilds));
+      broken[0].classes[0].nivel = 1.5;
+      localStorage.setItem('bonfire:pathbuilder:saved', JSON.stringify([
+        { id: 'broken', nome: 'Versão inválida', base: currentBase, builds: broken },
+        { id: 'working', nome: 'Versão válida', base: currentBase, builds: validBuilds }
+      ]));
+    }, { currentBase: base, validBuilds: beforeImport });
+    await previewAfter(page, () => page.reload({ waitUntil: 'load' }));
+    await page.locator('#pb-saved-builds').selectOption('broken');
+    assert.match(await page.locator('#pb-status').innerText(), /Arquivo de Pathbuilder inválido/);
+    assert.deepEqual(await stored(page), beforeSaved, 'versão local inválida conserva a edição');
+    await previewAfter(page, () => page.locator('#pb-saved-builds').selectOption('working'));
+    assert.deepEqual(await stored(page), beforeImport, 'versão local válida restaura a edição');
+
     if (process.env.BONFIRE_ARTIFACT_DIR) {
       fs.mkdirSync(process.env.BONFIRE_ARTIFACT_DIR, { recursive: true });
       await page.locator('[data-step-tab="3"]').click();
