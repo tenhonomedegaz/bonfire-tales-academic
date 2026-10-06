@@ -201,6 +201,8 @@ async function stored(page) {
       ['invalid choice values', { ...beforeImport[0], escolhas: { afinidade: 'fogo' } }],
       ['spells object', { ...beforeImport[0], magias: { slug: 'luz' } }],
       ['invalid item row', { ...beforeImport[0], itens: [null] }],
+      ['duplicate racial mark', { ...beforeImport[0], talentos_raciais: [
+        { nivel: 5, nome: 'Primeira' }, { nivel: '5', nome: 'Segunda' }] }],
     ]) {
       await uploadBundle({ base, builds: [invalidBuild, beforeImport[1]] });
       await page.waitForFunction(() => document.querySelector('#pb-status').textContent.includes('Arquivo de Pathbuilder'));

@@ -362,18 +362,21 @@ def _apply_talents(personagem, build):
 
 
 def _normalize_racial_talents(build):
-    rows = build.get("talentos_raciais") or []
+    rows = build.get("talentos_raciais", [])
     if not isinstance(rows, list) or len(rows) > 20:
         raise PathbuilderError("Talentos raciais do laboratorio invalidos.")
     normalized = []
     seen = set()
     for raw in rows:
         if not isinstance(raw, dict):
-            continue
+            raise PathbuilderError("Talento racial do laboratorio invalido.")
         nivel = _int_between(raw.get("nivel"), 1, 20, "Nivel do talento racial")
-        nome = str(raw.get("nome") or "").strip()
-        if nivel in seen or not nome:
-            continue
+        nome = raw.get("nome")
+        if not isinstance(nome, str) or not nome.strip():
+            raise PathbuilderError("Talento racial do laboratorio invalido.")
+        nome = nome.strip()
+        if nivel in seen:
+            raise PathbuilderError("Talento racial duplicado no nivel %d." % nivel)
         seen.add(nivel)
         normalized.append({"nivel": nivel, "nome": nome})
     return sorted(normalized, key=lambda row: row["nivel"])

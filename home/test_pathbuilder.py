@@ -555,6 +555,28 @@ class PathbuilderTests(_CriadorBase):
                         if row["nivel"] == group["nivel"])
         self.assertEqual(resolved["selecionado"], choice)
 
+    def test_talentos_raciais_ambiguos_nao_sao_descartados_silenciosamente(self):
+        payload = self._payload("guerreiro")
+        classes = [{"slug": "guerreiro", "nivel": 17, "subclasse": ""}]
+        first = self._post_preview(payload, self._build("guerreiro", classes=classes))
+        self.assertEqual(first.status_code, 200, first.content)
+        group = first.json()["build"]["talentos_raciais_grupos"][0]
+        choice = {"nivel": group["nivel"], "nome": group["opcoes"][0]["nome"]}
+        before = TbPersonagem.objects.count()
+        for rows in ([choice, dict(choice)], [None], None,
+                     [{"nivel": group["nivel"], "nome": ""}]):
+            with self.subTest(rows=rows):
+                response = self._post_preview(payload, self._build(
+                    "guerreiro", classes=classes, talentos_raciais=rows))
+                self.assertEqual(response.status_code, 400, response.content)
+                self.assertFalse(response.json()["ok"])
+                self.assertEqual(TbPersonagem.objects.count(), before)
+        corrected = self._post_preview(payload, self._build(
+            "guerreiro", classes=classes, talentos_raciais=[choice]))
+        self.assertEqual(corrected.status_code, 200, corrected.content)
+        self.assertEqual(corrected.json()["build"]["talentos_raciais_grupos"][0]["selecionado"],
+                         choice["nome"])
+
     def test_talento_racial_obsoleto_permanece_visivel_para_correcao(self):
         payload = self._payload("guerreiro")
         classes = [{"slug": "guerreiro", "nivel": 17, "subclasse": ""}]

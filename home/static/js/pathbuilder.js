@@ -1532,6 +1532,12 @@
                                     typeof row.nome !== 'string' || !row.nome ||
                                     !validInteger(row.nivel, 1, 20);
                             })) ||
+                            (Array.isArray(build.talentos_raciais) &&
+                                build.talentos_raciais.some(function (row, index, rows) {
+                                    return rows.findIndex(function (other) {
+                                        return Number(other.nivel) === Number(row.nivel);
+                                    }) !== index;
+                                })) ||
                             (build.itens !== undefined && !Array.isArray(build.itens)) ||
                             (Array.isArray(build.itens) && build.itens.some(function (row) {
                                 return !row || typeof row !== 'object' || Array.isArray(row) ||
