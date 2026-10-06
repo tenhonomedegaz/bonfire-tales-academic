@@ -4240,6 +4240,7 @@ class TbConquistaAdmin(admin.ModelAdmin):
         ('Visibilidade', {'fields': ('secreta', 'ativo', 'ordem')}),
         ('Critério', {'fields': ('criterio', 'metrica_assistida', 'classe_inicial',
                                'classe_nivel', 'alvo_nivel', 'classe_unica', 'rank_alvo',
+                               'categoria_quest',
                                'itens_comprados', 'operador_unidades', 'alvo_unidades',
                                'criterio_json'),
                       'description': 'Início de classe: metric=class_started, '

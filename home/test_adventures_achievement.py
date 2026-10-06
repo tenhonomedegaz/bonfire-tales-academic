@@ -254,18 +254,30 @@ class AdventuresAchievementTests(_CriadorBase):
             user=self.owner, conquista=self.rule).count(), 1)
 
     def test_staff_confirmed_quest_category_replays_and_reverses(self):
-        form = ConquistaAdminForm(data={
+        administrator = get_user_model().objects.create_superuser(
+            'quest-category-admin', 'quest-category@example.invalid', 'x')
+        self.client.force_login(administrator)
+        add_url = reverse('admin:home_tbconquista_add')
+        self.assertContains(self.client.get(add_url), 'name="categoria_quest"')
+        rule_data = {
             'slug': 'quest-bg-token-qa', 'nome': 'Quest BG/token QA',
             'criterio': 'automatico', 'criterio_json': '{}',
-            'ativo': 'on', 'ordem': '0',
+            'ordem': '0',
             'metrica_assistida': 'quests_completed',
             'categoria_quest': 'bg_token',
             'recompensa': self.badge.pk,
-        })
-        self.assertTrue(form.is_valid(), form.errors)
-        quest_rule = form.save()
-        quest_rule.ativo = False
-        quest_rule.save(update_fields=['ativo'])
+        }
+        invalid = self.client.post(add_url, {**rule_data, 'categoria_quest': ''})
+        self.assertContains(invalid, 'Selecione uma categoria confirmável.')
+        self.assertFalse(TbConquista.objects.filter(slug='quest-bg-token-qa').exists())
+        response = self.client.post(add_url, rule_data)
+        self.assertEqual(response.status_code, 302, response.content[:500])
+        quest_rule = TbConquista.objects.get(slug='quest-bg-token-qa')
+        self.assertFalse(quest_rule.ativo)
+        self.assertEqual(quest_rule.criterio_json['filters']['category'], 'bg_token')
+        self.assertContains(self.client.get(reverse(
+            'admin:home_tbconquista_change', args=[quest_rule.pk])),
+            '<option value="bg_token" selected>BG/token</option>', html=True)
         url = reverse('personagem_registrar_aventuras', args=[self.character.pk])
         payload = {'nome_aventura': 'Quest BG confirmada', 'aventuras': 2,
                    'mestre': self.staff.pk, 'data_missao': '2026-09-27',
