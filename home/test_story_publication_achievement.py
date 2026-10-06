@@ -23,6 +23,36 @@ RULE = {'schema_version': 1, 'metric': 'stories_published',
 
 
 class FirstPublishedStoryAchievementTests(TestCase):
+    def test_direct_publication_requires_review_but_existing_fact_survives_edit(self):
+        rule = self.rule()
+        story = self.story('publication-proof', status='aprovada')
+        story.data_publicacao = timezone.now()
+        story.save(update_fields=['data_publicacao'])
+        with self.assertRaisesMessage(ValueError, 'revisão comprovada'):
+            registrar_publicacao_cronica(story)
+        self.assertFalse(TbEventoConquista.objects.exists())
+        self.assertFalse(TbUsuarioConquista.objects.filter(
+            user=self.author, conquista=rule).exists())
+
+        story.revisado_por = self.staff
+        story.data_revisao = story.data_publicacao + timedelta(minutes=1)
+        story.save(update_fields=['revisado_por', 'data_revisao'])
+        with self.assertRaisesMessage(ValueError, 'revisão comprovada'):
+            registrar_publicacao_cronica(story)
+        self.assertFalse(TbEventoConquista.objects.exists())
+
+        story.data_revisao = story.data_publicacao
+        story.save(update_fields=['data_revisao'])
+        fact = registrar_publicacao_cronica(story)
+        grant = TbUsuarioConquista.objects.get(user=self.author, conquista=rule)
+        self.assertEqual(grant.evidencia_json['evento_id'], str(fact.pk))
+        story.data_revisao = story.data_publicacao + timedelta(days=1)
+        story.save(update_fields=['data_revisao'])
+        self.assertEqual(registrar_publicacao_cronica(story).pk, fact.pk)
+        self.assertEqual(TbEventoConquista.objects.count(), 1)
+        self.assertEqual(TbUsuarioConquista.objects.filter(
+            user=self.author, conquista=rule).count(), 1)
+
     def test_historical_approved_story_preview_and_apply_are_idempotent(self):
         rule = self.rule()
         first = self.story('historical-first-story', status='aprovada')

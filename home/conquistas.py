@@ -731,8 +731,15 @@ def registrar_publicacao_cronica(cronica):
     }
     with transaction.atomic():
         get_user_model().objects.select_for_update().only('pk').get(pk=cronica.autor_id)
+        chave = f'cronica:{cronica.pk}:publicada'
+        fato_existente = TbEventoConquista.objects.filter(
+            origem='site', chave_origem=chave).exists()
+        if (not fato_existente and
+                (cronica.revisado_por_id is None or cronica.data_revisao is None or
+                 cronica.data_revisao > cronica.data_publicacao)):
+            raise ValueError('A publicação não tem revisão comprovada.')
         evento, _ = TbEventoConquista.objects.get_or_create(
-            origem='site', chave_origem=f'cronica:{cronica.pk}:publicada',
+            origem='site', chave_origem=chave,
             defaults={
                 'tipo': 'story_published', 'conta_id': cronica.autor_id,
                 'agregado_id': cronica.pk, 'ocorrido_em': cronica.data_publicacao,
