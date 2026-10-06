@@ -36,6 +36,22 @@
     el.classList.toggle('is-err', !ok);
   }
 
+  function setActionFeedback(form, message) {
+    var note = form.nextElementSibling;
+    if (!note || !note.hasAttribute('data-action-feedback')) {
+      note = document.createElement('p');
+      note.className = 'lvl-note-cap';
+      note.setAttribute('data-action-feedback', '');
+      note.setAttribute('role', 'alert');
+      form.after(note);
+    }
+    note.textContent = message || '';
+    note.hidden = !message;
+  }
+
+  var uncertainResult = 'Não foi possível confirmar a operação. Atualize a ficha antes de tentar novamente.';
+  var networkFailure = 'A conexão falhou. Confira a ficha antes de reenviar esta operação.';
+
   function applyInventory(payload) {
     // O inventário saiu daqui na onda B (vive na aba Mochila da ficha); esta página só
     // precisa refletir carteira e os derivados que a concessão mexe.
@@ -130,6 +146,7 @@
     );
     if (!form || event.defaultPrevented) return;
     event.preventDefault();
+    setActionFeedback(form, '');
     var button = form.querySelector('button[type="submit"]');
     if (button) button.disabled = true;
     // A linha EDITADA reabre mesmo que estivesse fechada (o staff acabou de agir nela).
@@ -145,15 +162,18 @@
         var box = document.getElementById('lvl-aventuras-staffbox');
         if (box) box.outerHTML = payload.staffbox_html;
         reabrirMissoes(abertas);
+      } else {
+        setActionFeedback(form, uncertainResult);
       }
-      if (payload.progressao) {
+      if (result.ok && payload.progressao) {
         setText('[data-ficha-aventuras]', payload.progressao.aventuras);
         setText('[data-ficha-teto]', payload.progressao.nivel_label);
         setText('[data-ficha-braseiros]', payload.progressao.braseiros);
       }
-      setText('[data-carteira-display]', payload.carteira_display);
-      if (!result.ok && button) button.disabled = false;
+      if (result.ok) setText('[data-carteira-display]', payload.carteira_display);
+      if (button && document.body.contains(button)) button.disabled = false;
     }).catch(function () {
+      setActionFeedback(form, networkFailure);
       if (button) button.disabled = false;
     });
   });
@@ -164,18 +184,22 @@
     );
     if (!form || event.defaultPrevented) return;
     event.preventDefault();
+    setActionFeedback(form, '');
     var button = form.querySelector('button[type="submit"]');
     if (button) button.disabled = true;
 
     submitForm(form).then(function (result) {
       var payload = result.json || {};
-      if (typeof payload.inventario_html === 'string') applyInventory(payload);
+      if (result.ok && typeof payload.inventario_html === 'string') applyInventory(payload);
       if (typeof payload.concessoes_html === 'string') {
         var ledger = document.getElementById('ficha-concessoes-dinamico');
         if (ledger) ledger.outerHTML = payload.concessoes_html;
+      } else {
+        setActionFeedback(form, uncertainResult);
       }
       if (button && document.body.contains(button)) button.disabled = false;
     }).catch(function () {
+      setActionFeedback(form, networkFailure);
       if (button) button.disabled = false;
     });
   });
