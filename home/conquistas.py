@@ -286,13 +286,19 @@ def registrar_criacao_personagem(personagem):
         principal = TbPersonagemClasse.objects.filter(
             id_personagem=personagem, principal=True, nivel=1
         ).select_related('id_classe').first() if personagem.nivel == 1 else None
-        primeira_ficha = not TbPersonagem.objects.filter(
-            dono_id=personagem.dono_id).exclude(pk=personagem.pk).exists()
+        chave_criacao = f'personagem:{personagem.pk}:criado'
+        primeira_ficha = (
+            not TbPersonagem.objects.filter(
+                dono_id=personagem.dono_id).exclude(pk=personagem.pk).exists() and
+            not TbEventoConquista.objects.filter(
+                conta_id=personagem.dono_id, origem='site',
+                tipo='character_created').exclude(chave_origem=chave_criacao).exists()
+        )
         class_snapshot = ({'initial_class_id': principal.id_classe_id,
                            'initial_class_slug': principal.id_classe.slug,
                            'initial_level': 1} if principal else {})
         evento, _ = TbEventoConquista.objects.get_or_create(
-            origem='site', chave_origem=f'personagem:{personagem.pk}:criado',
+            origem='site', chave_origem=chave_criacao,
             defaults={
                 'tipo': 'character_created', 'conta_id': personagem.dono_id,
                 'personagem': personagem, 'agregado_id': personagem.pk,

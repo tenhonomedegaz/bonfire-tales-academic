@@ -190,6 +190,40 @@ class FirstCharacterAchievementTests(_CriadorBase):
         self.assertEqual(TbEventoConquista.objects.count(), 1)
         self.assertFalse(TbUsuarioConquista.objects.filter(user=user, conquista=rule).exists())
 
+    def test_deleted_first_character_keeps_original_milestone_source(self):
+        user = self._novo_usuario('deleted-first-character-owner', staff=True)
+        first = self._post_criar(user, self._payload('guerreiro'))
+        self.assertTrue(first.json()['ok'], first.content)
+        original = TbEventoConquista.objects.get(
+            conta=user, agregado_id=first.json()['id'])
+        self.assertIs(original.payload_json['first_character'], True)
+
+        TbPersonagem.objects.get(pk=first.json()['id']).delete()
+        original.refresh_from_db()
+        self.assertIsNone(original.personagem_id)
+        second = self._post_criar(user, {**self._payload('guerreiro'),
+                                         'nome': 'Herói após exclusão'})
+        self.assertTrue(second.json()['ok'], second.content)
+        later = TbEventoConquista.objects.get(
+            conta=user, agregado_id=second.json()['id'])
+        self.assertIs(later.payload_json['first_character'], False)
+
+        rule = self.make_rule()
+        call_command('reprocessar_primeira_ficha', apply=True,
+                     user_id=user.pk, stdout=StringIO())
+        grant = TbUsuarioConquista.objects.get(user=user, conquista=rule)
+        self.assertEqual(grant.evidencia_json['evento_id'], str(original.pk))
+        self.assertEqual(TbUsuarioCosmetico.objects.filter(
+            user=user, cosmetico=rule.recompensa).count(), 1)
+        self.client.force_login(user)
+        self.assertContains(self.client.get(reverse('profile')), rule.nome)
+        call_command('reprocessar_primeira_ficha', apply=True,
+                     user_id=user.pk, stdout=StringIO())
+        self.assertEqual(TbUsuarioConquista.objects.filter(
+            user=user, conquista=rule).count(), 1)
+        self.assertEqual(TbConquistaNotificacao.objects.filter(
+            concessao=grant).count(), 1)
+
     def test_later_rule_replays_only_explicit_first_character_fact(self):
         user = self._novo_usuario('first-replay-owner', staff=True)
         self.client.force_login(user)
