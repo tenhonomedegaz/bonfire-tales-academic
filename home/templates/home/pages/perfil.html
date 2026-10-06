@@ -317,10 +317,10 @@
             {% if conquistas.obtidas or conquistas.bloqueadas %}
             <ul class="conquista-grid">
                 {% for c in conquistas.obtidas %}
-                {% include 'home/partials/_conquista_item.html' %}
+                {% include 'home/partials/_conquista_item.html' with notification_anchor=True %}
                 {% endfor %}
                 {% for c in conquistas.bloqueadas %}
-                {% include 'home/partials/_conquista_item.html' %}
+                {% include 'home/partials/_conquista_item.html' with notification_anchor=True %}
                 {% endfor %}
             </ul>
             {% include 'home/partials/_conquista_evidencias_privadas.html' %}
@@ -530,6 +530,21 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+    const abrirConquistaDaNotificacao = () => {
+        const id = window.location.hash.slice(1);
+        if (!id.startsWith('conquista-')) return;
+        const card = document.getElementById(id);
+        if (!card || !card.closest('#conquistas')) return;
+        const detalhes = card.querySelector('details.conquista-info');
+        if (!detalhes) return;
+        detalhes.open = true;
+        requestAnimationFrame(() => {
+            card.scrollIntoView({ block: 'center' });
+            detalhes.querySelector('summary').focus({ preventScroll: true });
+        });
+    };
+    abrirConquistaDaNotificacao();
+    window.addEventListener('hashchange', abrirConquistaDaNotificacao);
     const urlInput = document.getElementById('id_avatar_url');
     const preview = document.getElementById('avatar-preview-img');
     const avatarFile = document.getElementById('id_avatar_file');

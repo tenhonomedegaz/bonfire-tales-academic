@@ -37,6 +37,7 @@ class AchievementProfileVisualE2ETests(StaticLiveServerTestCase):
                    ACHIEVEMENT_E2E_BASE_URL=self.live_server_url,
                    ACHIEVEMENT_E2E_OWNER_PATH=reverse("profile"),
                    ACHIEVEMENT_E2E_PUBLIC_PATH=reverse("public_profile", args=[owner.username]),
+                   ACHIEVEMENT_E2E_INBOX_PATH=reverse("conquista_notificacoes"),
                    ACHIEVEMENT_E2E_COOKIE_NAME=settings.SESSION_COOKIE_NAME,
                    ACHIEVEMENT_E2E_COOKIE_VALUE=self.client.cookies[settings.SESSION_COOKIE_NAME].value)
         script = os.path.join(os.path.dirname(__file__), "js_tests", "achievement_profile.e2e.cjs")

@@ -18,6 +18,17 @@ const { chromium } = require(process.env.BONFIRE_PLAYWRIGHT_MODULE || 'playwrigh
       { label: 'owner', page: await owner.newPage(), url: process.env.ACHIEVEMENT_E2E_OWNER_PATH },
       { label: 'public', page: await publicContext.newPage(), url: process.env.ACHIEVEMENT_E2E_PUBLIC_PATH },
     ];
+    const ownerPage = pages[0].page;
+    await ownerPage.goto(base + process.env.ACHIEVEMENT_E2E_INBOX_PATH);
+    const notice = ownerPage.locator('.cronica-inbox-action').filter({ hasText: 'Jornada Iniciada' });
+    await notice.click();
+    assert.ok(ownerPage.url().endsWith('#conquista-visual-earned'), 'unread notice targets its achievement');
+    await ownerPage.locator('#conquista-visual-earned details[open]').waitFor();
+    await ownerPage.goto(base + process.env.ACHIEVEMENT_E2E_INBOX_PATH);
+    assert.equal(await ownerPage.locator('.cronica-inbox-item.is-unread').count(), 0);
+    await notice.click();
+    assert.ok(ownerPage.url().endsWith('#conquista-visual-earned'), 'read notice keeps its target');
+    await ownerPage.locator('#conquista-visual-earned details[open]').waitFor();
     for (const { label, page, url } of pages) {
       const errors = [];
       page.on('pageerror', error => errors.push(error.message));

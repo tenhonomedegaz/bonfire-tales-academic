@@ -41,10 +41,14 @@ class AchievementNotificationTests(TestCase):
                             'Notificações de conquistas (1)')
         response = self.client.post(read_url, {'abrir': '1'})
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.url, reverse('profile') + '#conquistas')
+        self.assertEqual(response.url, reverse('profile') + '#conquista-' + self.rule.slug)
+        self.assertContains(self.client.get(reverse('profile')),
+                            'id="conquista-%s"' % self.rule.slug)
         notice.refresh_from_db()
         self.assertIsNotNone(notice.lida_em)
         self.assertEqual(TbConquistaNotificacao.objects.count(), 1)
+        self.assertContains(self.client.get(inbox_url),
+                            reverse('profile') + '#conquista-' + self.rule.slug)
 
         grant = TbUsuarioConquista.objects.get(user=self.owner, conquista=self.rule)
         grant.revogada_em = timezone.now()

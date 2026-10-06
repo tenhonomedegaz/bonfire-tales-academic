@@ -1495,7 +1495,7 @@ def conquista_notificacao_ler_view(request, notificacao_id):
     TbConquistaNotificacao.objects.filter(
         pk=notificacao.pk, lida_em__isnull=True).update(lida_em=timezone.now())
     if request.POST.get('abrir') == '1':
-        return redirect(reverse('profile') + '#conquistas')
+        return redirect(reverse('profile') + '#conquista-' + notificacao.concessao.conquista.slug)
     return redirect('conquista_notificacoes')
 
 

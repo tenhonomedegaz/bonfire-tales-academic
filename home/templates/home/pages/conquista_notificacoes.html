@@ -14,7 +14,7 @@
         {% csrf_token %}<button class="cronica-inbox-action" type="submit" name="abrir" value="1">Conquista desbloqueada: {{ item.concessao.conquista.nome }}</button>
       </form>
       {% else %}
-      <a class="cronica-inbox-action" href="{% url 'profile' %}#conquistas">Conquista desbloqueada: {{ item.concessao.conquista.nome }}</a>
+      <a class="cronica-inbox-action" href="{% url 'profile' %}#conquista-{{ item.concessao.conquista.slug }}">Conquista desbloqueada: {{ item.concessao.conquista.nome }}</a>
       {% endif %}
       <time datetime="{{ item.criada_em|date:'c' }}">{{ item.criada_em|date:'d/m/Y H:i' }}</time>
     </li>

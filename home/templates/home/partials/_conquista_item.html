@@ -1,4 +1,4 @@
-<li class="conquista-item {% if c.obtida %}is-obtida{% else %}is-bloqueada{% endif %}">
+<li class="conquista-item {% if c.obtida %}is-obtida{% else %}is-bloqueada{% endif %}"{% if notification_anchor %} id="conquista-{{ c.slug }}"{% endif %}>
   <details class="conquista-info">
     <summary aria-label="{{ c.nome }} — {% if c.obtida %}obtida{% else %}bloqueada{% endif %}; abrir detalhes">
       {% if c.obtida %}
