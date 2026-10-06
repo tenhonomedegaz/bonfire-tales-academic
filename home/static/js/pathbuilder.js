@@ -60,8 +60,7 @@
                                b.antecedente, b.scores]);
     }
     function markBase(b) {
-        try { localStorage.setItem(STORAGE_BASE_FP, JSON.stringify(baseFingerprint(b))); }
-        catch (err) { /* cota */ }
+        writeStore(STORAGE_BASE_FP, baseFingerprint(b));
     }
 
     function init() {
@@ -161,7 +160,7 @@
            uma build guardada de OUTRO personagem reaparecia por cima da base nova (o
            criador só limpa a cópia de sessão). */
         var builds = readStore(STORAGE_BUILDS);
-        if (readLocal(STORAGE_BASE_FP) !== baseFingerprint(base)) builds = null;
+        if (readStore(STORAGE_BASE_FP) !== baseFingerprint(base)) builds = null;
         markBase(base);
         if (!Array.isArray(builds) || builds.length !== 2) builds = [emptyBuild(), emptyBuild()];
         builds = builds.map(function (build) { return normalizeBuild(build, base); });
@@ -1558,19 +1557,43 @@
                 }
                 ++requestSeq;
                 clearTimeout(timer);
+                var entries = [
+                    [STORAGE_BASE, JSON.stringify(importedBase)],
+                    [STORAGE_BUILDS, JSON.stringify(importedBuilds)],
+                    [STORAGE_BASE_FP, JSON.stringify(baseFingerprint(importedBase))]
+                ];
+                function saveImport(storage) {
+                    var previous = entries.map(function (entry) {
+                        return storage.getItem(entry[0]);
+                    });
+                    try {
+                        entries.forEach(function (entry) { storage.setItem(entry[0], entry[1]); });
+                        return true;
+                    } catch (error) {
+                        entries.forEach(function (entry, index) {
+                            try {
+                                if (previous[index] === null) storage.removeItem(entry[0]);
+                                else storage.setItem(entry[0], previous[index]);
+                            } catch (rollbackError) { /* preserva a edição em memória */ }
+                        });
+                        return false;
+                    }
+                }
+                if (!saveImport(sessionStorage)) {
+                    throw new Error('Não foi possível guardar a versão nesta sessão. Libere espaço e tente novamente.');
+                }
+                var savedLocally = saveImport(localStorage);
                 base = importedBase;
                 builds = importedBuilds;
                 results = previews;
                 resultInputs = [previewInput(0), previewInput(1)];
                 resultContexts = [budgetContext(0), budgetContext(1)];
                 errors = [null, null];
-                writeStore(STORAGE_BASE, base);
-                /* A nova impressão digital evita que o reload descarte as builds importadas. */
-                markBase(base);
-                persist();
                 renderEditor();
                 renderSheet();
-                status.textContent = 'Nível ' + previews[active].nivel + ' · nenhum personagem salvo';
+                status.textContent = 'Nível ' + previews[active].nivel +
+                    (savedLocally ? ' · nenhum personagem salvo' :
+                        ' · edição guardada só nesta sessão. Exporte um arquivo para manter uma cópia.');
                 byId('pb-retry-preview').hidden = true;
             }).catch(function (error) {
                 if (attempt !== loadSeq) return;

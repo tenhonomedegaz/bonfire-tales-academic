@@ -241,6 +241,40 @@ async function stored(page) {
     await previewAfter(page, () => page.reload({ waitUntil: 'load' }));
     assert.deepEqual(await stored(page), beforeExport, 'builds importadas sobrevivem ao recarregamento');
 
+    const alternateBase = { ...base, nome: `${base.nome} importação` };
+    const alternateBundle = { base: alternateBase, builds: beforeExport };
+    await page.evaluate(() => {
+      window.__savedSetItem = Storage.prototype.setItem;
+      Storage.prototype.setItem = function (key, value) {
+        if (this === sessionStorage && key === 'bonfire:pathbuilder:base') {
+          throw new DOMException('session full', 'QuotaExceededError');
+        }
+        return window.__savedSetItem.call(this, key, value);
+      };
+    });
+    await uploadBundle(alternateBundle);
+    await page.waitForFunction(() => document.querySelector('#pb-status').textContent.includes('Não foi possível guardar'));
+    assert.deepEqual(await stored(page), beforeExport, 'falha de sessão conserva a edição');
+    assert.deepEqual(await page.evaluate(() => JSON.parse(sessionStorage.getItem('bonfire:pathbuilder:base'))), base);
+    await page.evaluate(() => { Storage.prototype.setItem = window.__savedSetItem; });
+
+    await page.evaluate(() => {
+      window.__savedSetItem = Storage.prototype.setItem;
+      Storage.prototype.setItem = function (key, value) {
+        if (this === localStorage && key === 'bonfire:pathbuilder:base') {
+          throw new DOMException('local full', 'QuotaExceededError');
+        }
+        return window.__savedSetItem.call(this, key, value);
+      };
+    });
+    await previewAfter(page, () => uploadBundle(alternateBundle));
+    assert.match(await page.locator('#pb-status').innerText(), /só nesta sessão/);
+    await page.evaluate(() => { Storage.prototype.setItem = window.__savedSetItem; });
+    await previewAfter(page, () => page.reload({ waitUntil: 'load' }));
+    assert.deepEqual(await page.evaluate(() => JSON.parse(sessionStorage.getItem('bonfire:pathbuilder:base'))), alternateBase);
+    assert.deepEqual(await stored(page), beforeExport, 'versão de sessão sobrevive ao recarregamento');
+    await previewAfter(page, () => uploadBundle({ base, builds: beforeExport }));
+
     const beforeSaved = await stored(page);
     await page.evaluate(({ currentBase, validBuilds }) => {
       const broken = JSON.parse(JSON.stringify(validBuilds));
