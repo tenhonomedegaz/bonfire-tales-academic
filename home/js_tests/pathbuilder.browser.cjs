@@ -300,6 +300,32 @@ test('cópia local recupera edição quando a sessão bloqueia escrita e leitura
   await h.page.locator('[data-confirmed-sheet]').waitFor();
 });
 
+test('JSON corrompido na sessão usa a cópia local e permite continuar a edição', async t => {
+  const h = await harness(t);
+  await h.initial();
+  await h.page.locator('[data-attr="FOR"][data-delta="1"]').click();
+  const edit = await h.nextRequest(1);
+  edit.reply(result(edit.input.build));
+  await h.page.evaluate(() => {
+    for (const key of ['base', 'base_fp', 'builds']) {
+      sessionStorage.setItem(`bonfire:pathbuilder:${key}`, '{corrompido');
+    }
+  });
+  await h.page.reload();
+  const reload = await h.nextRequest(2);
+  assert.equal(reload.input.base.classe, 'guerreiro');
+  assert.equal(reload.input.build.atributos_bonus.FOR, 1);
+  reload.reply(result(reload.input.build, 'RECUPERADA'));
+  await h.page.getByText('RECUPERADA', { exact: true }).waitFor();
+  await h.page.locator('[data-step-tab="3"]').click();
+  await h.page.locator('[data-attr="DES"][data-delta="1"]').click();
+  const continued = await h.nextRequest(3);
+  assert.equal(continued.input.build.atributos_bonus.FOR, 1);
+  assert.equal(continued.input.build.atributos_bonus.DES, 1);
+  continued.reply(result(continued.input.build));
+  assert.equal((await h.stored())[0].atributos_bonus.DES, 1);
+});
+
 test('edição sem armazenamento avisa e continua exportável', async t => {
   const h = await harness(t);
   await h.initial();

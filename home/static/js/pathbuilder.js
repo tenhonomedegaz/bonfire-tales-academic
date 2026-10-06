@@ -41,9 +41,13 @@
     function readStore(key) {
         var raw = null;
         try { raw = sessionStorage.getItem(key); } catch (err) { /* sessão indisponível */ }
-        if (raw == null) {
-            try { raw = localStorage.getItem(key); } catch (err) { /* cópia local indisponível */ }
+        if (raw != null) {
+            try {
+                var sessionValue = JSON.parse(raw);
+                if (sessionValue != null) return sessionValue;
+            } catch (err) { /* cópia da sessão corrompida: tentar a local */ }
         }
+        try { raw = localStorage.getItem(key); } catch (err) { return null; }
         try { return JSON.parse(raw || 'null'); } catch (err) { return null; }
     }
     function writeStore(key, value) {
