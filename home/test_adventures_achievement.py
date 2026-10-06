@@ -48,6 +48,53 @@ class AdventuresAchievementTests(_CriadorBase):
                 'mestre': self.staff.pk, 'data_missao': '2026-09-27',
             })
 
+    def test_admin_reprocesses_existing_adventure_and_quest_facts(self):
+        self.rule.ativo = False
+        self.rule.save(update_fields=['ativo'])
+        self.client.force_login(self.staff)
+        recorded = self.client.post(
+            reverse('personagem_registrar_aventuras', args=[self.character.pk]), {
+                'nome_aventura': 'Mesa antiga BG', 'aventuras': 3,
+                'mestre': self.staff.pk, 'data_missao': '2026-09-27',
+                'quest_category': 'bg_token',
+            })
+        self.assertEqual(recorded.status_code, 302)
+        quest_rule = TbConquista.objects.create(
+            slug='quest-antiga-bg', nome='Quest antiga BG', criterio='automatico',
+            criterio_json={'schema_version': 1, 'metric': 'quests_completed',
+                           'scope': 'account', 'filters': {'category': 'bg_token', 'valid': True},
+                           'operator': 'gte', 'target': 1})
+        self.rule.ativo = True
+        self.rule.save(update_fields=['ativo'])
+        self.assertFalse(TbUsuarioConquista.objects.filter(user=self.owner).exists())
+        administrator = get_user_model().objects.create_superuser(
+            'adventure-reprocess-admin', 'reprocess@example.invalid', 'x')
+        self.client.force_login(administrator)
+        admin_url = reverse('admin:home_tbconquista_changelist')
+        manual_rule = TbConquista.objects.create(
+            slug='manual-reprocess-guard', nome='Regra manual', criterio='manual')
+        payload = {'action': 'reprocessar_aventuras_quests', 'select_across': '0',
+                   '_selected_action': [manual_rule.pk]}
+        self.assertEqual(self.client.post(admin_url, payload).status_code, 302)
+        self.assertFalse(TbUsuarioConquista.objects.filter(user=self.owner).exists())
+        payload['_selected_action'] = [quest_rule.pk]
+        self.assertEqual(self.client.post(admin_url, payload).status_code, 302)
+        grants = TbUsuarioConquista.objects.filter(user=self.owner)
+        self.assertEqual(set(grants.values_list('conquista_id', flat=True)),
+                         {self.rule.pk, quest_rule.pk})
+        self.assertEqual(grants.get(conquista=self.rule).evidencia_json['total'], 3)
+        self.assertEqual(grants.get(conquista=quest_rule).evidencia_json['categoria'], 'bg_token')
+        self.assertEqual(self.client.post(admin_url, payload).status_code, 302)
+        self.assertEqual(grants.count(), 2)
+        self.assertEqual(TbEventoConquista.objects.filter(
+            conta=self.owner, tipo='adventure_recorded').count(), 1)
+
+        self.client.force_login(self.owner)
+        self.assertContains(self.client.get(reverse('profile')), self.rule.nome)
+        self.assertContains(self.client.get(reverse('profile')), quest_rule.nome)
+        self.assertContains(self.client.get(reverse('conquista_notificacoes')),
+                            quest_rule.nome)
+
     def test_staff_ledger_counts_units_once_and_reversal_removes_support(self):
         self.definition = {**self.definition, 'operator': 'gt', 'target': 2}
         self.rule.criterio_json = self.definition

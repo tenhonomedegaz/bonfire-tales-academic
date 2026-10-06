@@ -4258,7 +4258,24 @@ class TbConquistaAdmin(admin.ModelAdmin):
         ('Recompensa', {'fields': ('recompensa',),
                         'description': 'Cosmético desbloqueado no inventário ao conceder.'}),
     )
-    actions = ('conceder_a_usuarios', 'reprocessar_nivel')
+    actions = ('conceder_a_usuarios', 'reprocessar_nivel', 'reprocessar_aventuras_quests')
+
+    @admin.action(description='Reprocessar todas as regras ativas de aventuras e quests',
+                  permissions=['change'])
+    def reprocessar_aventuras_quests(self, request, queryset):
+        """Concilia ledgers/fatos após cadastrar uma regra de mesa ou quest."""
+        from io import StringIO
+        from django.core.management import call_command
+
+        if not queryset.filter(
+                ativo=True, criterio='automatico',
+                criterio_json__metric__in=['adventures_played', 'quests_completed']).exists():
+            self.message_user(request, 'Selecione uma regra ativa de aventuras ou quests.',
+                              level=messages.WARNING)
+            return
+        output = StringIO()
+        call_command('reprocessar_aventuras_jogadas', apply=True, stdout=output)
+        self.message_user(request, output.getvalue().strip(), level=messages.SUCCESS)
 
     @admin.action(description='Reprocessar fatos de nível e rank para marcos selecionados',
                   permissions=['change'])
