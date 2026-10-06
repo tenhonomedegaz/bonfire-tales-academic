@@ -7,7 +7,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from home.conquista_admin_form import ConquistaAdminForm
-from home.conquistas import registrar_fato_aventura
+from home.conquistas import avaliar_aventuras_jogadas, registrar_fato_aventura
 from home.models import (TbClasse, TbConquista, TbCosmetico, TbEventoConquista,
                          TbPersonagem, TbPersonagemAventura, TbPersonagemClasse,
                          TbUsuarioConquista, TbUsuarioCosmetico)
@@ -87,6 +87,28 @@ class AdventuresAchievementTests(_CriadorBase):
         self.assertTrue(TbUsuarioCosmetico.objects.filter(
             user=self.owner, cosmetico=self.badge,
             suspenso_em__isnull=False).exists())
+
+    def test_fact_must_identify_exact_ledger_character(self):
+        other = TbPersonagem.objects.create(
+            dono=self.owner, nome='Outro personagem', nivel=1)
+        self.assertEqual(self.launch(3).status_code, 302)
+        grant = TbUsuarioConquista.objects.get(user=self.owner, conquista=self.rule)
+        self.assertIsNone(grant.revogada_em)
+        fact = TbEventoConquista.objects.get(tipo='adventure_recorded')
+        fact.personagem = other
+        fact.save(update_fields=['personagem'])
+        avaliar_aventuras_jogadas(self.owner)
+        grant.refresh_from_db()
+        self.assertIsNotNone(grant.revogada_em)
+        self.assertTrue(TbUsuarioCosmetico.objects.filter(
+            user=self.owner, cosmetico=self.badge,
+            suspenso_em__isnull=False).exists())
+        fact.personagem = self.character
+        fact.save(update_fields=['personagem'])
+        avaliar_aventuras_jogadas(self.owner)
+        grant.refresh_from_db()
+        self.assertIsNone(grant.revogada_em)
+        self.assertEqual(grant.evidencia_json['total'], 3)
 
     def test_admin_requires_explicit_comparator_and_threshold(self):
         admin = get_user_model().objects.create_superuser(

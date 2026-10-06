@@ -674,19 +674,23 @@ def _aventuras_comprovadas(user):
     facts = list(TbEventoConquista.objects.filter(
         conta=user, origem='site_ledger', tipo='adventure_recorded'
     ).order_by('ocorrido_em', 'agregado_id'))
-    ledgers = {row['pk']: row['qtd_aventuras'] for row in
+    ledgers = {row['pk']: row for row in
                TbPersonagemAventura.objects.filter(
                    id_personagem__dono=user, pk__in=[f.agregado_id for f in facts],
                    origem='mesa', revertido=False, qtd_aventuras__gt=0,
-               ).values('pk', 'qtd_aventuras')}
+               ).values('pk', 'qtd_aventuras', 'id_personagem_id')}
     matched = []
     seen = set()
     for fact in facts:
-        quantity = fact.payload_json.get('quantidade')
+        payload = fact.payload_json if isinstance(fact.payload_json, dict) else {}
+        quantity = payload.get('quantidade')
+        ledger = ledgers.get(fact.agregado_id)
         if (fact.agregado_id in seen or
-                fact.payload_json.get('ledger_id') != fact.agregado_id or
+                fact.chave_origem != f'aventura-ledger:{fact.agregado_id}:registrada' or
+                payload.get('ledger_id') != fact.agregado_id or
                 type(quantity) is not int or quantity <= 0 or
-                ledgers.get(fact.agregado_id) != quantity):
+                ledger is None or ledger['qtd_aventuras'] != quantity or
+                ledger['id_personagem_id'] != fact.personagem_id):
             continue
         seen.add(fact.agregado_id)
         matched.append(fact)
