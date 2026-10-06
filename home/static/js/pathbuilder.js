@@ -1525,7 +1525,13 @@
                                 (!Array.isArray(build.talentos) || build.talentos.some(function (row) {
                                     return !(typeof row === 'string' && row) &&
                                         !(row && typeof row === 'object' && !Array.isArray(row) &&
-                                            typeof row.slug === 'string' && row.slug);
+                                            typeof row.slug === 'string' && row.slug &&
+                                            (row.atributo == null || typeof row.atributo === 'string'));
+                                }) || build.talentos.some(function (row, index, rows) {
+                                    var slug = typeof row === 'string' ? row : row.slug;
+                                    return rows.findIndex(function (other) {
+                                        return (typeof other === 'string' ? other : other.slug) === slug;
+                                    }) !== index;
                                 }))) ||
                             (build.talentos_raciais !== undefined && !Array.isArray(build.talentos_raciais)) ||
                             (Array.isArray(build.talentos_raciais) && build.talentos_raciais.some(function (row) {

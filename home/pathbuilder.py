@@ -299,21 +299,27 @@ def _apply_attribute_bonus(personagem, build):
 
 
 def _normalize_talents(build):
-    rows = build.get("talentos") or []
+    rows = build.get("talentos", [])
     if not isinstance(rows, list) or len(rows) > 30:
         raise PathbuilderError("A build excede o limite de talentos do laboratorio.")
     normalized = []
     seen = set()
     for raw in rows:
         if isinstance(raw, dict):
-            slug = str(raw.get("slug") or "").strip()
-            atributo = str(raw.get("atributo") or "").strip().upper()
+            if (not isinstance(raw.get("slug"), str) or
+                    (raw.get("atributo") is not None and
+                     not isinstance(raw["atributo"], str))):
+                raise PathbuilderError("Talento do laboratorio invalido.")
+            slug = raw["slug"].strip()
+            atributo = (raw.get("atributo") or "").strip().upper()
         else:
             # Compatibilidade com builds salvas antes de o +1 do talento ser modelado.
-            slug = str(raw or "").strip()
+            if not isinstance(raw, str):
+                raise PathbuilderError("Talento do laboratorio invalido.")
+            slug = raw.strip()
             atributo = ""
         if not slug or slug in seen:
-            continue
+            raise PathbuilderError("Talento vazio ou repetido no laboratorio.")
         seen.add(slug)
         normalized.append({"slug": slug, "atributo": atributo})
     return normalized

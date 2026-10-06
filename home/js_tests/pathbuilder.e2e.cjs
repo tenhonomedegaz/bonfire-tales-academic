@@ -204,6 +204,11 @@ async function stored(page) {
       ['fractional quantity', { ...beforeImport[0], itens: [
         { tipo: 'mundano', slug: 'corda', qtd: 1.5 }] }],
       ['talents object', { ...beforeImport[0], talentos: { slug: 'resiliente' } }],
+      ['duplicate talent', { ...beforeImport[0], talentos: [
+        { slug: 'resiliente', atributo: 'DES' },
+        { slug: 'resiliente', atributo: 'CON' }] }],
+      ['nonstring talent attribute', { ...beforeImport[0], talentos: [
+        { slug: 'resiliente', atributo: true }] }],
       ['choices array', { ...beforeImport[0], escolhas: [] }],
       ['invalid choice values', { ...beforeImport[0], escolhas: { afinidade: 'fogo' } }],
       ['spells object', { ...beforeImport[0], magias: { slug: 'luz' } }],

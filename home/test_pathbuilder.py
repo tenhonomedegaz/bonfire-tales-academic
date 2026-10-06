@@ -499,8 +499,12 @@ class PathbuilderTests(_CriadorBase):
             ],
         })
         first = self._post_preview(payload, build)
-        self.assertEqual(first.status_code, 200, first.content)
-        first_build = first.json()["build"]
+        self.assertEqual(first.status_code, 400, first.content)
+        self.assertIn("repetido", first.json()["erros"][0])
+        build["talentos"].pop()
+        corrected = self._post_preview(payload, build)
+        self.assertEqual(corrected.status_code, 200, corrected.content)
+        first_build = corrected.json()["build"]
         self.assertEqual(first_build["orcamento"]["asi_em_talento"], 1)
         self.assertEqual(sum(row["nome"] == resiliente.nome
                              for row in first_build["features"]), 1)
@@ -516,6 +520,22 @@ class PathbuilderTests(_CriadorBase):
         second = self._post_preview(payload, build)
         self.assertEqual(second.status_code, 400)
         self.assertIn("somente 1", second.json()["erros"][0])
+
+    def test_talento_malformado_nao_e_descartado_da_previa(self):
+        payload = self._payload("guerreiro")
+        build = self._build("guerreiro", classes=[
+            {"slug": "guerreiro", "nivel": 4, "subclasse": ""}])
+        before = TbPersonagem.objects.count()
+        for talents in (None, {}, [None], [True], [5], [""],
+                        [{"slug": "resiliente", "atributo": True}]):
+            with self.subTest(talents=talents):
+                response = self._post_preview(payload, {**build, "talentos": talents})
+                self.assertEqual(response.status_code, 400, response.content)
+                self.assertEqual(TbPersonagem.objects.count(), before)
+        legacy = self._post_preview(payload, {**build, "talentos": ["resiliente"]})
+        self.assertEqual(legacy.status_code, 200, legacy.content)
+        self.assertIn("Escolha o atributo", " ".join(
+            legacy.json()["build"]["validacao"]["problemas"]))
 
     def test_subescolha_de_resiliente_fica_inerte_sem_talento(self):
         """Uma chave antiga nao concede salvaguarda sem a fonte que a declarou."""
