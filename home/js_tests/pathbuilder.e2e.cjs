@@ -10,6 +10,7 @@ const sessionValue = process.env.PATHBUILDER_E2E_COOKIE_VALUE;
 const base = JSON.parse(process.env.PATHBUILDER_E2E_BASE || '{}');
 const builds = JSON.parse(process.env.PATHBUILDER_E2E_BUILDS || '[]');
 const laboratory = `${origin}/sistemas/pathbuilder/laboratorio/`;
+const trace = stage => { if (process.env.BONFIRE_E2E_TRACE) process.stdout.write(`${stage}\n`); };
 
 if (!origin || !sessionName || !sessionValue || !base.classe || builds.length !== 2) {
   throw new Error('Ambiente E2E incompleto.');
@@ -41,7 +42,9 @@ async function stored(page) {
 }
 
 (async () => {
-  const browser = await chromium.launch({ headless: true });
+  const browser = await chromium.launch({ headless: true,
+    ...(process.env.BONFIRE_CHROMIUM_EXECUTABLE_PATH
+      ? { executablePath: process.env.BONFIRE_CHROMIUM_EXECUTABLE_PATH } : {}) });
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const page = await context.newPage();
   const errors = [];
@@ -76,6 +79,7 @@ async function stored(page) {
   try {
     await page.goto(laboratory, { waitUntil: 'load' });
     await waitPreview(page, 0);
+    trace('laboratório aberto');
     assert.match(await page.locator('#pb-status').innerText(), /Nível 4/);
 
     await page.locator('[data-step-tab="3"]').click();
@@ -240,6 +244,7 @@ async function stored(page) {
       'arquivo válido ainda substitui a build e atualiza a prévia');
 
     const beforeExport = await stored(page);
+    trace('edição inicial concluída');
     const downloadPromise = page.waitForEvent('download');
     await page.locator('#pb-export').click();
     const download = await downloadPromise;
@@ -260,6 +265,7 @@ async function stored(page) {
     assert.deepEqual(await stored(page), beforeExport, 'arquivo baixado restaura as duas builds');
     await previewAfter(page, () => page.reload({ waitUntil: 'load' }));
     assert.deepEqual(await stored(page), beforeExport, 'builds importadas sobrevivem ao recarregamento');
+    trace('exportação e importação concluídas');
 
     const alternateBase = { ...base, nome: `${base.nome} importação` };
     const alternateBundle = { base: alternateBase, builds: beforeExport };
@@ -280,6 +286,7 @@ async function stored(page) {
     await previewAfter(page, () => page.reload({ waitUntil: 'load' }));
     assert.deepEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('bonfire:pathbuilder:base'))), alternateBase,
       'importação local sobrevive ao recarregamento');
+    trace('fallback de sessão concluído');
 
     await page.evaluate(() => {
       window.__savedSetItem = Storage.prototype.setItem;
@@ -297,6 +304,7 @@ async function stored(page) {
     assert.deepEqual(await page.evaluate(() => JSON.parse(sessionStorage.getItem('bonfire:pathbuilder:base'))), alternateBase);
     assert.deepEqual(await stored(page), beforeExport, 'versão de sessão sobrevive ao recarregamento');
     await previewAfter(page, () => uploadBundle({ base, builds: beforeExport }));
+    trace('fallback de armazenamento local concluído');
 
     const beforeSaved = await stored(page);
     await page.evaluate(({ currentBase, validBuilds }) => {
@@ -344,6 +352,7 @@ async function stored(page) {
     assert.deepEqual(await stored(page), beforeSaved, 'foreign saved version preserves editing');
     await previewAfter(page, () => page.locator('#pb-saved-builds').selectOption('working'));
     assert.deepEqual(await stored(page), beforeImport, 'versão local válida restaura a edição');
+    trace('abertura de versão salva concluída');
 
     await page.evaluate(() => { Date.now = () => 123; });
     for (const name of ['Primeira cópia', 'Segunda cópia']) {
@@ -367,16 +376,19 @@ async function stored(page) {
     assert.match(await page.locator('#pb-save-status').innerText(), /Não foi possível guardar/);
     assert.deepEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('bonfire:pathbuilder:saved'))), savedCopies,
       'falha de armazenamento não anuncia nem cria versão');
+    page.once('dialog', dialog => dialog.accept());
     await page.locator('#pb-delete-save').click();
     assert.match(await page.locator('#pb-save-status').innerText(), /Não foi possível guardar/);
     assert.deepEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('bonfire:pathbuilder:saved'))), savedCopies,
       'falha ao excluir conserva a versão');
     await page.evaluate(() => { Storage.prototype.setItem = window.__savedSetItem; });
+    page.once('dialog', dialog => dialog.accept());
     await page.locator('#pb-delete-save').click();
     assert.match(await page.locator('#pb-save-status').innerText(), /Versão local excluída/);
     assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('bonfire:pathbuilder:saved')).length),
       savedCopies.length - 1);
     assert.deepEqual(await stored(page), beforeImport, 'salvar e excluir não alteram a edição');
+    trace('ciclo de versões salvas concluído');
 
     if (process.env.BONFIRE_ARTIFACT_DIR) {
       fs.mkdirSync(process.env.BONFIRE_ARTIFACT_DIR, { recursive: true });

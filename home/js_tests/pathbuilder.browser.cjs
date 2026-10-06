@@ -354,6 +354,78 @@ test('importa duas builds pela cópia local quando a sessão falha e preserva ed
   assert.equal(await h.page.locator('[data-confirmed-sheet]').count(), 1);
 });
 
+test('versão salva abre as duas builds; exclusão cancelada, confirmada ou falha preserva a edição', async t => {
+  const second = { ...seed(), classes: [{ slug: 'guerreiro', nivel: 3, subclasse: '' }] };
+  const h = await harness(t, [seed(), second]);
+  await h.initial();
+  const saved = () => h.page.evaluate(() => JSON.parse(localStorage.getItem('bonfire:pathbuilder:saved')));
+  h.page.once('dialog', dialog => dialog.accept('Versão original'));
+  await h.page.locator('#pb-save').click();
+  const original = (await saved())[0];
+  await h.page.locator('[data-attr="FOR"][data-delta="1"]').click();
+  const edited = await h.nextRequest(1);
+  edited.reply(result(edited.input.build));
+  await h.page.waitForFunction(() => !document.querySelector('#pb-status').textContent.includes('Derivando'));
+
+  h.page.once('dialog', dialog => dialog.dismiss());
+  await h.page.locator('#pb-delete-save').click();
+  assert.equal((await saved())[0].id, original.id);
+  assert.equal(await h.page.locator('#pb-saved-builds').inputValue(), original.id);
+  assert.equal((await h.stored())[0].atributos_bonus.FOR, 1);
+
+  await h.page.locator('#pb-saved-builds').selectOption('');
+  await h.page.locator('#pb-saved-builds').selectOption(original.id);
+  const pendingA = await h.nextRequest(2);
+  const pendingB = await h.nextRequest(3);
+  h.page.once('dialog', dialog => dialog.accept());
+  await h.page.locator('#pb-delete-save').click();
+  pendingA.reply(result(pendingA.input.build));
+  pendingB.reply(result(pendingB.input.build));
+  await h.page.waitForTimeout(100);
+  assert.deepEqual(await saved(), []);
+  assert.equal((await h.stored())[0].atributos_bonus.FOR, 1,
+    'prévia atrasada não restaura a cópia excluída');
+  assert.equal((await h.stored())[1].classes[0].nivel, 3);
+  await h.page.reload();
+  const reload = await h.nextRequest(4);
+  assert.equal(reload.input.build.atributos_bonus.FOR, 1);
+  reload.reply(result(reload.input.build));
+  await h.page.locator('[data-confirmed-sheet]').waitFor();
+  assert.equal(await h.page.locator('#pb-saved-builds option').count(), 1);
+
+  await h.page.locator('[data-step-tab="3"]').click();
+  h.page.once('dialog', dialog => dialog.accept('Versão para reabrir'));
+  await h.page.locator('#pb-save').click();
+  const reopen = (await saved())[0];
+  await h.page.locator('[data-attr="DES"][data-delta="1"]').click();
+  const editedAgain = await h.nextRequest(5);
+  editedAgain.reply(result(editedAgain.input.build));
+  await h.page.locator('#pb-saved-builds').selectOption('');
+  await h.page.locator('#pb-saved-builds').selectOption(reopen.id);
+  for (const index of [6, 7]) {
+    const request = await h.nextRequest(index);
+    request.reply(result(request.input.build));
+  }
+  await h.page.waitForFunction(() => JSON.parse(localStorage.getItem('bonfire:pathbuilder:builds'))[0].atributos_bonus.DES === undefined);
+  assert.equal((await h.stored())[1].classes[0].nivel, 3);
+
+  await h.page.evaluate(() => {
+    window.__savedSetItem = Storage.prototype.setItem;
+    Storage.prototype.setItem = function (key, value) {
+      if (key === 'bonfire:pathbuilder:saved') throw new DOMException('full', 'QuotaExceededError');
+      return window.__savedSetItem.call(this, key, value);
+    };
+  });
+  h.page.once('dialog', dialog => dialog.accept());
+  await h.page.locator('#pb-delete-save').click();
+  assert.equal((await saved())[0].id, reopen.id, 'falha de armazenamento conserva a cópia');
+  await h.page.evaluate(() => { Storage.prototype.setItem = window.__savedSetItem; });
+  h.page.once('dialog', dialog => dialog.accept());
+  await h.page.locator('#pb-delete-save').click();
+  assert.deepEqual(await saved(), []);
+  assert.equal((await h.stored())[0].atributos_bonus.FOR, 1);
+});
+
 test('JSON corrompido na sessão usa a cópia local e permite continuar a edição', async t => {
   const h = await harness(t);
   await h.initial();

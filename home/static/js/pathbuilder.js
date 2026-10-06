@@ -1700,9 +1700,23 @@
         byId('pb-delete-save').addEventListener('click', function () {
             var id = byId('pb-saved-builds').value;
             if (!id) return;
-            if (writeSavedVersions(savedVersions().filter(function (row) { return row.id !== id; }))) {
+            var rows = savedVersions();
+            var selected = rows.find(function (row) { return row.id === id; });
+            if (!selected) {
+                renderSavedVersions('');
+                savedFeedback('Versão local não encontrada. Atualize a lista e tente novamente.', true);
+                return;
+            }
+            if (!window.confirm('Excluir a versão local "' + selected.nome +
+                    '"? Esta cópia será perdida; as builds em edição serão mantidas.')) return;
+            if (writeSavedVersions(rows.filter(function (row) { return row.id !== id; }))) {
+                ++loadSeq; // Uma abertura ainda em validação não pode restaurar a cópia excluída.
                 renderSavedVersions('');
                 savedFeedback('Versão local excluída.', false);
+                var status = byId('pb-status');
+                if (status.textContent.indexOf('Validando as duas builds') === 0) {
+                    status.textContent = 'Versão local excluída; edição atual mantida.';
+                }
             }
         });
         byId('pb-export').addEventListener('click', function () {

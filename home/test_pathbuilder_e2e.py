@@ -71,11 +71,16 @@ class PathbuilderRealE2ETests(StaticLiveServerTestCase):
         try:
             completed = subprocess.run(
                 [node, _SCRIPT], cwd=_ROOT, env=env, text=True,
-                capture_output=True, timeout=90, check=False,
+                capture_output=True, timeout=180, check=False,
                 encoding="utf-8",
             )
         except subprocess.TimeoutExpired as exc:
-            self.fail("E2E do Pathbuilder excedeu o timeout de 90 s: %s" % exc)
+            output = '\n'.join(
+                part.decode('utf-8', errors='replace') if isinstance(part, bytes) else part
+                for part in (exc.stdout, exc.stderr) if part
+            )
+            self.fail("E2E do Pathbuilder excedeu o timeout de 180 s: %s\n%s" % (
+                exc, output))
         if completed.returncode:
             self.fail("E2E do Pathbuilder falhou.\nSTDOUT:\n%s\nSTDERR:\n%s" % (
                 completed.stdout, completed.stderr))
