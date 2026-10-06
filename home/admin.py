@@ -4258,8 +4258,34 @@ class TbConquistaAdmin(admin.ModelAdmin):
         ('Recompensa', {'fields': ('recompensa',),
                         'description': 'Cosmético desbloqueado no inventário ao conceder.'}),
     )
-    actions = ('conceder_a_usuarios', 'reprocessar_nivel',
+    actions = ('conceder_a_usuarios', 'reprocessar_marcos_iniciais', 'reprocessar_nivel',
                'reprocessar_aventuras_quests', 'reprocessar_compras')
+
+    @admin.action(description='Reprocessar marcos selecionados de criação e crônica',
+                  permissions=['change'])
+    def reprocessar_marcos_iniciais(self, request, queryset):
+        """Reconcilia apenas as familias iniciais selecionadas e comprovadas."""
+        from io import StringIO
+        from django.core.management import call_command
+
+        commands = {
+            'characters_created': 'reprocessar_primeira_ficha',
+            'class_started': 'reprocessar_inicio_classe',
+            'stories_published': 'reprocessar_primeira_cronica',
+        }
+        metrics = set(queryset.filter(ativo=True, criterio='automatico')
+                      .values_list('criterio_json__metric', flat=True)) & commands.keys()
+        if not metrics:
+            self.message_user(request, 'Selecione uma regra automática ativa de primeira ficha, '
+                              'início de classe ou primeira crônica.', level=messages.WARNING)
+            return
+        for metric, command in commands.items():
+            if metric not in metrics:
+                continue
+            output = StringIO()
+            call_command(command, apply=True, stdout=output)
+            self.message_user(request, f'{metric}: {output.getvalue().strip()}',
+                              level=messages.SUCCESS)
 
     @admin.action(description='Reprocessar todas as regras ativas de compras de itens',
                   permissions=['change'])
