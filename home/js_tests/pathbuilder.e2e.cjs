@@ -207,6 +207,11 @@ async function stored(page) {
       ['choices array', { ...beforeImport[0], escolhas: [] }],
       ['invalid choice values', { ...beforeImport[0], escolhas: { afinidade: 'fogo' } }],
       ['spells object', { ...beforeImport[0], magias: { slug: 'luz' } }],
+      ['duplicate spell', { ...beforeImport[0], magias: [
+        { slug: 'luz', classe: 'mago', preparada: true },
+        { slug: 'luz', classe: 'mago', preparada: false }] }],
+      ['nonboolean spell preparation', { ...beforeImport[0], magias: [
+        { slug: 'luz', preparada: 'false' }] }],
       ['invalid item row', { ...beforeImport[0], itens: [null] }],
       ['duplicate racial mark', { ...beforeImport[0], talentos_raciais: [
         { nivel: 5, nome: 'Primeira' }, { nivel: '5', nome: 'Segunda' }] }],

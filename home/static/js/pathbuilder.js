@@ -1548,7 +1548,14 @@
                             (build.magias !== undefined &&
                                 (!Array.isArray(build.magias) || build.magias.some(function (row) {
                                     return !row || typeof row !== 'object' || Array.isArray(row) ||
-                                        typeof row.slug !== 'string' || !row.slug;
+                                        typeof row.slug !== 'string' || !row.slug ||
+                                        (row.classe != null && typeof row.classe !== 'string') ||
+                                        (row.preparada !== undefined && typeof row.preparada !== 'boolean');
+                                }) || build.magias.some(function (row, index, rows) {
+                                    return rows.findIndex(function (other) {
+                                        return other.slug === row.slug &&
+                                            (other.classe || '') === (row.classe || '');
+                                    }) !== index;
                                 })));
                     })) {
                 throw new Error('Arquivo de Pathbuilder inválido.');

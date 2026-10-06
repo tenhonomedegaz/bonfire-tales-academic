@@ -24,10 +24,14 @@ def spell_sources(personagem):
 
 def apply_spell_selection(personagem, build):
     """Aplica somente na transação de simulação; ambiguidades ficam diagnosticáveis."""
-    rows = build.get('magias') or []
+    rows = build.get('magias', [])
     if not isinstance(rows, list) or len(rows) > 580:
         raise ValueError('Lista de magias invalida.')
-    if any(not isinstance(row, dict) for row in rows):
+    if any(not isinstance(row, dict) or not isinstance(row.get('slug'), str) or
+           not row['slug'] or
+           (row.get('classe') is not None and not isinstance(row['classe'], str)) or
+           ('preparada' in row and type(row['preparada']) is not bool)
+           for row in rows):
         raise ValueError('Selecao de magia invalida.')
     slugs = {str(row.get('slug') or '') for row in rows}
     spells = {m.slug: m for m in TbMagia.objects.filter(slug__in=slugs)}
@@ -65,12 +69,12 @@ def apply_spell_selection(personagem, build):
                               % (spell.nome, spell.nivel or 0))
         key = (spell.pk, origin)
         if key in seen:
-            continue
+            raise ValueError('Magia repetida para a mesma origem: %s.' % spell.nome)
         seen.add(key)
         # Uma concessão inata não substitui o repertório de classe, nem é editada por ele.
         current = personagem.magias.filter(id_magia=spell, origem=origin,
                                             sempre_preparada=False).first()
-        prepared = bool(row.get('preparada', True))
+        prepared = row.get('preparada', True)
         if current:
             current.preparada = prepared
             current.save(update_fields=['preparada'])

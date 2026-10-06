@@ -31,10 +31,31 @@ class PathbuilderSpellTests(_CriadorBase):
         prepared = [m for m in source['magias'] if m['nivel'] > 0 and m['preparada']]
         self.assertTrue(prepared)
         override = {'slug': prepared[0]['slug'], 'classe': 'mago', 'preparada': False}
-        changed = self.preview(base, spells=[override, override])['magias_fontes'][0]
+        changed = self.preview(base, spells=[override])['magias_fontes'][0]
         self.assertEqual(changed['preparadas'], source['preparadas'] - 1)
         self.assertEqual(changed['conhecidas'], source['conhecidas'])
         self.assertEqual(self.preview(base)['magias_fontes'][0]['preparadas'], source['preparadas'])
+
+    def test_invalid_or_duplicated_spell_selection_preserves_preview(self):
+        base = self._payload('mago')
+        slug = base['truques'][0]
+        valid = {'slug': slug, 'classe': 'mago', 'preparada': True}
+        before = TbPersonagem.objects.count()
+        for rows in (None, {}, [valid, valid],
+                     [valid, {'slug': slug, 'preparada': False}],
+                     [{'slug': slug, 'classe': 'mago', 'preparada': 1}],
+                     [{'slug': slug, 'classe': 'mago', 'preparada': 'false'}]):
+            with self.subTest(rows=rows):
+                response = self.client.post(reverse('pathbuilder_preview'),
+                    data=json.dumps({'base': base, 'build': {
+                        'modo': 'regras', 'classes': [{'slug': 'mago', 'nivel': 1}],
+                        'magias': rows}}), content_type='application/json')
+                self.assertEqual(response.status_code, 400, response.content)
+                self.assertEqual(TbPersonagem.objects.count(), before)
+        corrected = self.preview(base, spells=[valid])
+        self.assertEqual(corrected['magias_fontes'][0]['truques'],
+                         self.preview(base)['magias_fontes'][0]['truques'])
+        self.assertEqual(TbPersonagem.objects.count(), before)
 
     def test_prepared_limit_includes_base_and_manual_spells(self):
         base = self._payload('mago')
@@ -92,7 +113,6 @@ class PathbuilderSpellTests(_CriadorBase):
         self.assertIn('mais de uma fonte', ' '.join(character._pathbuilder_spell_issues))
         apply_spell_selection(character, {'magias': [
             {'slug': spell.slug, 'classe': 'mago', 'preparada': False},
-            {'slug': spell.slug, 'classe': 'bardo', 'preparada': True},
             {'slug': spell.slug, 'classe': 'bardo', 'preparada': True}]})
         self.assertEqual(character.magias.filter(id_magia=spell, origem='Mago').count(), 1)
         self.assertEqual(character.magias.filter(id_magia=spell, origem='Bardo').count(), 1)
