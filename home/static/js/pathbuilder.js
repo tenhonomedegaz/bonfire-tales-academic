@@ -39,11 +39,12 @@
     /* A base sobrevive ao fechar a aba (localStorage) mas continua LOCAL: o antigo
        sessionStorage transformava um F5 em "monte tudo de novo". */
     function readStore(key) {
-        try {
-            var raw = sessionStorage.getItem(key);
-            if (raw == null) raw = localStorage.getItem(key);
-            return JSON.parse(raw || 'null');
-        } catch (err) { return null; }
+        var raw = null;
+        try { raw = sessionStorage.getItem(key); } catch (err) { /* sessão indisponível */ }
+        if (raw == null) {
+            try { raw = localStorage.getItem(key); } catch (err) { /* cópia local indisponível */ }
+        }
+        try { return JSON.parse(raw || 'null'); } catch (err) { return null; }
     }
     function writeStore(key, value) {
         var raw = JSON.stringify(value);

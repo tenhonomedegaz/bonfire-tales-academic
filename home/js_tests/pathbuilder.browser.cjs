@@ -268,6 +268,38 @@ test('edição com armazenamento local cheio avisa e sobrevive ao reload da sess
   request.reply(result(request.input.build));
 });
 
+test('cópia local recupera edição quando a sessão bloqueia escrita e leitura', async t => {
+  const h = await harness(t);
+  await h.initial();
+  await h.page.evaluate(() => {
+    const original = Storage.prototype.setItem;
+    Storage.prototype.setItem = function (key, value) {
+      if (this === sessionStorage && key === 'bonfire:pathbuilder:builds') {
+        throw new DOMException('session blocked', 'SecurityError');
+      }
+      return original.call(this, key, value);
+    };
+  });
+  await h.page.locator('[data-attr="FOR"][data-delta="1"]').click();
+  assert.equal((await h.stored())[0].atributos_bonus.FOR, 1);
+  const edit = await h.nextRequest(1);
+  edit.reply(result(edit.input.build));
+  await h.page.context().addInitScript(() => {
+    const original = Storage.prototype.getItem;
+    Storage.prototype.getItem = function (key) {
+      if (this === sessionStorage && key.startsWith('bonfire:pathbuilder:')) {
+        throw new DOMException('session blocked', 'SecurityError');
+      }
+      return original.call(this, key);
+    };
+  });
+  await h.page.reload();
+  const reload = await h.nextRequest(2);
+  assert.equal(reload.input.build.atributos_bonus.FOR, 1);
+  reload.reply(result(reload.input.build));
+  await h.page.locator('[data-confirmed-sheet]').waitFor();
+});
+
 test('edição sem armazenamento avisa e continua exportável', async t => {
   const h = await harness(t);
   await h.initial();
