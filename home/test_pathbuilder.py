@@ -260,6 +260,31 @@ class PathbuilderTests(_CriadorBase):
         self.assertIn('data-pb-folha', corrected.json()['build']['ficha_html'])
         self.assertEqual(TbPersonagem.objects.count(), before)
 
+    def test_preview_rejeita_itens_malformados_sem_ativar_equipamento(self):
+        base = self._payload('guerreiro')
+        item = TbItemMundano.objects.first()
+        self.assertIsNotNone(item)
+        before = TbPersonagem.objects.count()
+        row = {'tipo': 'mundano', 'slug': item.slug, 'qtd': 1}
+        invalid = [None, [None], [{**row, 'tipo': []}],
+                   [{**row, 'equipado': 'false'}],
+                   [{**row, 'sintonizado': 'false'}],
+                   [{**row, 'sintonizado': True}],
+                   [{**row, 'slug': 123}]]
+        for items in invalid:
+            with self.subTest(items=items):
+                response = self._post_preview(base, self._build('guerreiro', itens=items))
+                self.assertEqual(response.status_code, 400, response.content)
+                self.assertFalse(response.json()['ok'])
+                self.assertEqual(TbPersonagem.objects.count(), before)
+
+        corrected = self._post_preview(base, self._build('guerreiro', itens=[
+            {**row, 'equipado': False, 'sintonizado': False}]))
+        self.assertEqual(corrected.status_code, 200, corrected.content)
+        inventory = corrected.json()['build']['inventario']
+        self.assertTrue(any(entry['nome'] == item.nome for entry in inventory))
+        self.assertEqual(TbPersonagem.objects.count(), before)
+
     def test_preview_devolve_o_markup_da_ficha_real(self):
         """A visualizacao do resultado E A FICHA: o preview devolve o HTML dos partials da
         aba Ficha (banner, atributos, selos de CA/PV, ataques, caracteristicas), nao um

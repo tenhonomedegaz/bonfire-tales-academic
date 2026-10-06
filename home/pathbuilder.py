@@ -417,16 +417,22 @@ def _apply_racial_talents(personagem, build):
 def _apply_items(personagem, build):
     from .models import TbItemMagico, TbItemMundano, TbPersonagemItem
 
-    rows = build.get("itens") or []
+    rows = build.get("itens", [])
     if not isinstance(rows, list) or len(rows) > 100:
         raise PathbuilderError("Inventario do laboratorio invalido.")
+    for row in rows:
+        if (not isinstance(row, dict) or type(row.get("tipo")) is not str or
+                row["tipo"] not in {"mundano", "magico"} or
+                type(row.get("slug")) is not str or not row["slug"] or
+                type(row.get("equipado", False)) is not bool or
+                type(row.get("sintonizado", False)) is not bool or
+                (row["tipo"] == "mundano" and row.get("sintonizado", False))):
+            raise PathbuilderError("Item do laboratorio invalido.")
     mundane_slugs = {
-        str(row.get("slug") or "") for row in rows
-        if isinstance(row, dict) and row.get("tipo") == "mundano"
+        row["slug"] for row in rows if row["tipo"] == "mundano"
     }
     magic_slugs = {
-        str(row.get("slug") or "") for row in rows
-        if isinstance(row, dict) and row.get("tipo") == "magico"
+        row["slug"] for row in rows if row["tipo"] == "magico"
     }
     mundane = {obj.slug: obj for obj in TbItemMundano.objects.filter(slug__in=mundane_slugs)}
     magic = {obj.slug: obj for obj in TbItemMagico.objects.filter(slug__in=magic_slugs)}
@@ -434,12 +440,10 @@ def _apply_items(personagem, build):
         raise PathbuilderError("Um dos itens selecionados nao existe.")
 
     for row in rows:
-        if not isinstance(row, dict):
-            continue
-        slug = str(row.get("slug") or "")
+        slug = row["slug"]
         qtd = _int_between(row.get("qtd", 1), 1, 999, "Quantidade do item")
-        equipped = bool(row.get("equipado"))
-        attuned = bool(row.get("sintonizado"))
+        equipped = row.get("equipado", False)
+        attuned = row.get("sintonizado", False)
         if row.get("tipo") == "mundano":
             item = mundane[slug]
             TbPersonagemItem.objects.create(
