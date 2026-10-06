@@ -4261,7 +4261,43 @@ class TbConquistaAdmin(admin.ModelAdmin):
                          'description': 'O prêmio principal legado e os adicionais são desbloqueados juntos.'}),
     )
     actions = ('conceder_a_usuarios', 'reprocessar_marcos_iniciais', 'reprocessar_nivel',
-               'reprocessar_aventuras_quests', 'reprocessar_compras')
+               'reprocessar_aventuras_quests', 'reprocessar_compras',
+               'sincronizar_recompensas_concedidas')
+
+    @admin.action(description='Entregar novos prêmios às concessões ativas selecionadas',
+                  permissions=['change'])
+    def sincronizar_recompensas_concedidas(self, request, queryset):
+        """Reaplica apenas o inventário de concessões vigentes, sem recalcular fatos."""
+        from .conquistas import conceder_conquista
+        from .models import TbUsuarioConquista
+
+        regras = queryset.filter(ativo=True)
+        if not regras.exists():
+            self.message_user(request, 'Selecione uma conquista ativa.',
+                              level=messages.WARNING)
+            return
+        revisadas = 0
+        try:
+            with transaction.atomic():
+                grants = (TbUsuarioConquista.objects.filter(
+                    conquista__in=regras, revogada_em__isnull=True)
+                    .select_related('user', 'conquista'))
+                last_pk = 0
+                while True:
+                    page = list(grants.filter(pk__gt=last_pk).order_by('pk')[:500])
+                    if not page:
+                        break
+                    for grant in page:
+                        conceder_conquista(grant.user, grant.conquista)
+                        revisadas += 1
+                    last_pk = page[-1].pk
+        except ValueError as exc:
+            self.message_user(request, f'Sincronização cancelada: {exc}',
+                              level=messages.ERROR)
+            return
+        self.message_user(request,
+                          f'{revisadas} concessão(ões) ativa(s) com prêmios sincronizados.',
+                          level=messages.SUCCESS)
 
     @admin.action(description='Reprocessar marcos selecionados de criação e crônica',
                   permissions=['change'])
