@@ -354,6 +354,34 @@ test('importa duas builds pela cópia local quando a sessão falha e preserva ed
   assert.equal(await h.page.locator('[data-confirmed-sheet]').count(), 1);
 });
 
+test('importação rejeita atributo desconhecido sem trocar as builds e aceita correção', async t => {
+  const h = await harness(t);
+  await h.initial();
+  const upload = async builds => h.page.locator('#pb-import').setInputFiles({
+    name: 'atributos.json', mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify({ formato: 'bonfire-pathbuilder', versao: 1,
+      base, builds })),
+  });
+  const original = await h.stored();
+  const other = { ...seed(), classes: [{ slug: 'guerreiro', nivel: 3, subclasse: '' }] };
+  await upload([seed(), { ...other, atributos_bonus: { FOR: 1, AGI: 2 } }]);
+  await h.page.locator('#pb-status.is-error').waitFor();
+  assert.match(await h.page.locator('#pb-status').innerText(), /inválido/);
+  assert.deepEqual(await h.stored(), original);
+  assert.equal(h.requests.length, 1);
+
+  await upload([seed(), { ...other, atributos_bonus: { FOR: 1 } }]);
+  for (const index of [1, 2]) {
+    const request = await h.nextRequest(index);
+    request.reply(result(request.input.build));
+  }
+  await h.page.waitForFunction(() => {
+    const rows = JSON.parse(localStorage.getItem('bonfire:pathbuilder:builds'));
+    return rows[1].atributos_bonus.FOR === 1 && rows[1].classes[0].nivel === 3;
+  });
+  assert.equal(await h.page.locator('#pb-status.is-error').count(), 0);
+});
+
 test('versão salva abre as duas builds; exclusão cancelada, confirmada ou falha preserva a edição', async t => {
   const second = { ...seed(), classes: [{ slug: 'guerreiro', nivel: 3, subclasse: '' }] };
   const h = await harness(t, [seed(), second]);

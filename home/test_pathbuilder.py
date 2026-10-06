@@ -260,6 +260,23 @@ class PathbuilderTests(_CriadorBase):
         self.assertIn('data-pb-folha', corrected.json()['build']['ficha_html'])
         self.assertEqual(TbPersonagem.objects.count(), before)
 
+    def test_preview_rejeita_bonus_de_atributo_desconhecido_sem_perder_correcao(self):
+        base = self._payload('guerreiro')
+        before = TbPersonagem.objects.count()
+        for bonus in ({'AGI': 2}, {'FOR': 1, 'AGI': 2}, None, []):
+            with self.subTest(bonus=bonus):
+                response = self._post_preview(base, self._build(
+                    'guerreiro', atributos_bonus=bonus))
+                self.assertEqual(response.status_code, 400, response.content)
+                self.assertIn('Bonus de atributos invalidos',
+                              ' '.join(response.json()['erros']))
+                self.assertEqual(TbPersonagem.objects.count(), before)
+
+        corrected = self._post_preview(base, self._build(
+            'guerreiro', atributos_bonus={'FOR': 1}))
+        self.assertEqual(corrected.status_code, 200, corrected.content)
+        self.assertEqual(TbPersonagem.objects.count(), before)
+
     def test_preview_rejeita_itens_malformados_sem_ativar_equipamento(self):
         base = self._payload('guerreiro')
         item = TbItemMundano.objects.first()

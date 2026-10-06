@@ -283,8 +283,11 @@ def _apply_classes(personagem, creator_data, build):
 def _apply_attribute_bonus(personagem, build):
     from .models import TbPersonagemAtributoBonus
 
-    values = build.get("atributos_bonus") or {}
-    if not isinstance(values, dict):
+    values = build.get("atributos_bonus", {})
+    if not isinstance(values, dict) or any(
+        sigla not in ("FOR", "DES", "CON", "INT", "SAB", "CAR")
+        for sigla in values
+    ):
         raise PathbuilderError("Bonus de atributos invalidos.")
     for sigla in ("FOR", "DES", "CON", "INT", "SAB", "CAR"):
         amount = _int_between(values.get(sigla, 0), 0, 10, "Bonus de %s" % sigla)

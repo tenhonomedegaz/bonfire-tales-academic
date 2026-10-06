@@ -1516,13 +1516,13 @@
                                     typeof row.slug !== 'string' || !row.slug ||
                                     (row.nivel !== undefined && !validInteger(row.nivel, 1, 20));
                             }) ||
-                            (build.atributos_bonus && SIGLAS.some(function (sigla) {
-                                return Object.prototype.hasOwnProperty.call(build.atributos_bonus, sigla) &&
-                                    !validInteger(build.atributos_bonus[sigla], 0, 10);
-                            })) ||
                             (build.atributos_bonus !== undefined &&
                                 (!build.atributos_bonus || typeof build.atributos_bonus !== 'object' ||
-                                    Array.isArray(build.atributos_bonus))) ||
+                                    Array.isArray(build.atributos_bonus) ||
+                                    Object.keys(build.atributos_bonus).some(function (sigla) {
+                                        return SIGLAS.indexOf(sigla) === -1 ||
+                                            !validInteger(build.atributos_bonus[sigla], 0, 10);
+                                    }))) ||
                             (build.escolhas !== undefined &&
                                 (!build.escolhas || typeof build.escolhas !== 'object' ||
                                     Array.isArray(build.escolhas) ||
