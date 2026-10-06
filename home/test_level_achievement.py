@@ -313,9 +313,38 @@ class LevelAchievementTests(_CriadorBase):
         character.publico = False
         character.save(update_fields=['publico'])
 
+        # Sem uma subida intermediária, o último nível não prova classe única.
+        revision = TbPersonagemRevisao.objects.get(
+            id_personagem=character, nivel_antes=2, tipo='level_up')
+        revision.tipo = 'nivel_1'
+        revision.save(update_fields=['tipo'])
+        avaliar_nivel_personagem(owner)
+        self.assertIsNotNone(TbUsuarioConquista.objects.get(
+            user=owner, conquista=pure).revogada_em)
+        self.assertIsNone(TbUsuarioConquista.objects.get(
+            user=owner, conquista=ordinary).revogada_em)
+        revision.tipo = 'level_up'
+        revision.save(update_fields=['tipo'])
+        avaliar_nivel_personagem(owner)
+        self.assertIsNone(TbUsuarioConquista.objects.get(
+            user=owner, conquista=pure).revogada_em)
+        self.assertEqual(TbUsuarioConquista.objects.filter(
+            user=owner, conquista=pure).count(), 1)
+
+        event = TbEventoConquista.objects.get(
+            tipo='character_level_up', agregado_id=revision.pk)
+        event.versao_payload = 2
+        event.save(update_fields=['versao_payload'])
+        avaliar_nivel_personagem(owner)
+        self.assertIsNotNone(TbUsuarioConquista.objects.get(
+            user=owner, conquista=pure).revogada_em)
+        event.versao_payload = 1
+        event.save(update_fields=['versao_payload'])
+        avaliar_nivel_personagem(owner)
+        self.assertIsNone(TbUsuarioConquista.objects.get(
+            user=owner, conquista=pure).revogada_em)
+
         # Um snapshot histórico multiclasses invalida só o marco sem multiclasse.
-        revision = TbPersonagemRevisao.objects.filter(
-            id_personagem=character, nivel_antes=2).get()
         snapshot = revision.snapshot_json
         snapshot['classes'].append({**snapshot['classes'][0], 'principal': False})
         revision.snapshot_json = snapshot

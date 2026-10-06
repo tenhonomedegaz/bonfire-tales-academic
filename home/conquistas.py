@@ -406,16 +406,27 @@ def _historico_classe_unica(character, class_id):
         chave_origem=f'personagem:{character.pk}:criado',
     ).first()
     origin = creation.payload_json if creation else None
-    if (not isinstance(origin, dict) or origin.get('initial_class_id') != class_id or
+    if (creation is None or creation.versao_payload != 1 or
+            not isinstance(origin, dict) or origin.get('initial_class_id') != class_id or
             origin.get('initial_level') != 1):
         return False
     revisions = list(TbPersonagemRevisao.objects.filter(
-        id_personagem=character).only('snapshot_json', 'nivel_antes', 'nivel_depois', 'tipo'))
+        id_personagem=character).only('snapshot_json', 'nivel_antes', 'nivel_depois',
+                                     'tipo', 'revertida', 'criado_em'))
     if not revisions:
         return False
-    level_revisions = [revision for revision in revisions
-                       if revision.tipo == 'level_up' and
-                       revision.nivel_depois > revision.nivel_antes]
+    level_revisions = sorted(
+        (revision for revision in revisions
+         if revision.tipo == 'level_up' and not revision.revertida),
+        key=lambda revision: (revision.criado_em, revision.pk))
+    expected_level = 1
+    for revision in level_revisions:
+        if (revision.nivel_antes != expected_level or
+                revision.nivel_depois != expected_level + 1):
+            return False
+        expected_level = revision.nivel_depois
+    if expected_level != character.nivel:
+        return False
     events = {event.agregado_id: event for event in TbEventoConquista.objects.filter(
         origem='site', tipo='character_level_up', conta_id=character.dono_id,
         personagem=character,
@@ -436,7 +447,7 @@ def _historico_classe_unica(character, class_id):
             return False
     for revision in level_revisions:
         event = events.get(revision.pk)
-        if (event is None or event.chave_origem !=
+        if (event is None or event.versao_payload != 1 or event.chave_origem !=
                 f'personagem:{character.pk}:revisao:{revision.pk}:level_up'):
             return False
         payload = event.payload_json or {}
