@@ -13,12 +13,54 @@ from home.badges import perfil_badges_batch
 from home.conquistas import (conceder_conquista, conquistas_do_usuario,
                             visibilidade_inicio_classe)
 from home.models import (AsaasCheckoutOrder, CosmeticCheckoutPurchase, TbClasse,
-                         TbConquista, TbCosmetico, TbEventoConquista, TbPersonagem,
-                         TbPersonagemClasse, TbUsuarioConquista, TbUsuarioCosmetico)
+                         TbConquista, TbConquistaNotificacao, TbCosmetico,
+                         TbEventoConquista, TbPersonagem, TbPersonagemClasse,
+                         TbUsuarioConquista, TbUsuarioCosmetico)
 from home.test_criador import _CriadorBase
 
 
 class ClassStartAchievementTests(_CriadorBase):
+    def test_second_public_character_exposes_class_without_reawarding(self):
+        rule = self._rule()
+        owner = self._novo_usuario('second-public-class-owner', staff=True)
+        first = self._post_criar(owner, self._payload('guerreiro'))
+        self.assertTrue(first.json()['ok'], first.content)
+        first_character = TbPersonagem.objects.get(pk=first.json()['id'])
+        first_character.arquivado = True
+        first_character.save(update_fields=['arquivado'])
+        public_url = reverse('public_profile', args=[owner.username])
+        self.client.logout()
+        self.assertNotContains(self.client.get(public_url), rule.nome)
+
+        second = self._post_criar(owner, {**self._payload('guerreiro'),
+                                         'nome': 'Guerreiro público QA'})
+        self.assertTrue(second.json()['ok'], second.content)
+        second_character = TbPersonagem.objects.get(pk=second.json()['id'])
+        grant = TbUsuarioConquista.objects.get(user=owner, conquista=rule)
+        first_event_id = grant.evidencia_json['evento_id']
+        self.assertEqual(grant.evidencia_json['personagem_ids'],
+                         sorted([first_character.pk, second_character.pk]))
+        self.assertEqual(TbUsuarioConquista.objects.filter(
+            user=owner, conquista=rule).count(), 1)
+        self.assertEqual(TbConquistaNotificacao.objects.filter(concessao=grant).count(), 1)
+
+        self.client.logout()
+        second_character.publico = True
+        second_character.save(update_fields=['publico'])
+        self.assertContains(self.client.get(public_url), rule.nome)
+        self.assertContains(self.client.get(public_url), rule.recompensa.nome)
+        second_character.publico = False
+        second_character.save(update_fields=['publico'])
+        self.assertNotContains(self.client.get(public_url), rule.nome)
+
+        call_command('reprocessar_inicio_classe', apply=True, user_id=owner.pk,
+                     stdout=StringIO())
+        grant.refresh_from_db()
+        self.assertEqual(grant.evidencia_json['evento_id'], first_event_id)
+        self.assertEqual(grant.evidencia_json['personagem_ids'],
+                         sorted([first_character.pk, second_character.pk]))
+        self.assertEqual(TbConquistaNotificacao.objects.filter(concessao=grant).count(), 1)
+
     def test_private_class_achievement_is_hidden_from_public_profile(self):
         rule = self._rule()
         rule.nome = 'Conquista da classe oculta QA'

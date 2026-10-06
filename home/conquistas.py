@@ -662,13 +662,15 @@ def avaliar_primeira_ficha_evento(evento):
     return awarded
 
 
+@transaction.atomic
 def avaliar_inicio_classe_evento(evento):
     """Concede uma vez a classe inicial comprovada no fato imutável de criação."""
     from .models import TbConquista, TbUsuarioConquista
 
     if (evento.origem != 'site' or evento.tipo != 'character_created' or
             evento.chave_origem != f'personagem:{evento.agregado_id}:criado' or
-            evento.personagem_id not in (None, evento.agregado_id)):
+            evento.personagem_id not in (None, evento.agregado_id) or
+            type(evento.agregado_id) is not int or evento.agregado_id <= 0):
         return 0
     snapshot = evento.payload_json or {}
     if (type(snapshot.get('initial_class_id')) is not int or
@@ -684,9 +686,23 @@ def avaliar_inicio_classe_evento(evento):
         if (not regra_inicio_classe_valida(definition) or
                 definition['filters']['class_slug'] != snapshot['initial_class_slug']):
             continue
-        grant = TbUsuarioConquista.objects.filter(user_id=evento.conta_id,
-                                                 conquista=rule).first()
-        if grant is not None and (grant.revogada_em is None or grant.concedida_por_id):
+        grant = TbUsuarioConquista.objects.select_for_update().filter(
+            user_id=evento.conta_id, conquista=rule).first()
+        if grant is not None and grant.concedida_por_id:
+            continue
+        if grant is not None and grant.revogada_em is None:
+            evidence = grant.evidencia_json
+            if not isinstance(evidence, dict):
+                continue
+            sources = evidence.get('personagem_ids')
+            if not isinstance(sources, list):
+                sources = [evidence.get('agregado_id')]
+            sources = {source for source in sources
+                       if type(source) is int and source > 0}
+            if evento.agregado_id not in sources:
+                grant.evidencia_json = {**evidence,
+                                        'personagem_ids': sorted(sources | {evento.agregado_id})}
+                grant.save(update_fields=['evidencia_json'])
             continue
         if conceder_conquista(evento.conta, rule):
             TbUsuarioConquista.objects.filter(user_id=evento.conta_id, conquista=rule).update(
