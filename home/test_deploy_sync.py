@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import json
+from decimal import Decimal
 from io import StringIO
 from unittest.mock import patch
 
@@ -11,7 +12,9 @@ from django.test import TestCase
 
 from home import deploy_sync
 from home.models import (
+    CosmeticCheckoutOffer,
     TbBestiario,
+    TbCosmetico,
     TbItemMagico,
     TbPersonagem,
     TbPersonagemItem,
@@ -65,6 +68,41 @@ class DeploySyncContractTests(TestCase):
         ):
             self.assertIn(name, deploy_sync.PRODUCTION_PRESERVED_MODELS)
             self.assertNotIn(name, deploy_sync.CONTENT_MODELS)
+
+    def test_sync_ignores_local_checkout_offer_api_key_and_audit_fixture(self):
+        cosmetic = TbCosmetico.objects.create(
+            slug='sync-local-offer', nome='Oferta local', tipo='badge', origem='conquista')
+        offer = CosmeticCheckoutOffer.objects.create(
+            cosmetico=cosmetic, amount=Decimal('12.00'), active=False)
+        Key = apps.get_model('home', 'ManagedApiKey')
+        Audit = apps.get_model('home', 'DbAccessAudit')
+        key = Key.objects.create(
+            name='Local key', prefix='local-sync-test', secret_hash='a' * 64,
+            scopes=['read'])
+        audit = Audit.objects.create(api_key=key, action='read', status_code=200)
+        fixture = json.loads(serializers.serialize('json', [offer, key, audit]))
+        for row in fixture:
+            if row['model'] == 'home.cosmeticcheckoutoffer':
+                row['fields']['amount'] = '999.00'
+                row['fields']['active'] = True
+            elif row['model'] == 'home.managedapikey':
+                row['fields']['scopes'] = ['write']
+                row['fields']['secret_hash'] = 'b' * 64
+            elif row['model'] == 'home.dbaccessaudit':
+                row['fields']['status_code'] = 500
+        report = deploy_sync.sincronizar_conteudo(json.dumps(fixture))
+        offer.refresh_from_db()
+        key.refresh_from_db()
+        audit.refresh_from_db()
+        self.assertEqual(offer.amount, Decimal('12.00'))
+        self.assertFalse(offer.active)
+        self.assertEqual(key.scopes, ['read'])
+        self.assertEqual(key.secret_hash, 'a' * 64)
+        self.assertEqual(audit.status_code, 200)
+        self.assertTrue(report['mem_ok'])
+        self.assertTrue(report['prod_preservada_ok'])
+        self.assertIn('TbClassPublication', deploy_sync.PRODUCTION_PRESERVED_MODELS)
+        self.assertIn('SocialCreditHistoricalCampaign', deploy_sync.MEMORY_MODELS)
 
     def test_official_bestiary_replace_preserves_community_rows(self):
         author = User.objects.create_user(username="autor-bestiario")

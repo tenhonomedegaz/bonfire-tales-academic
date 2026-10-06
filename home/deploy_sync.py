@@ -42,6 +42,9 @@ OFFICIAL_REPLACE_MODELS = ["TbBestiario", "TbArmadilha"]
 PRODUCTION_PRESERVED_MODELS = [
     "TbMapLayer", "TbRegiao", "TbTerritorio", "TbOrganizacao",
     "TbMapMarker", "TbMapDesenho", "EventCosmeticOffer",
+    # Preços comerciais e publicações de regras são decididos em cada ambiente;
+    # não fazem parte do catálogo mecânico importado da dev.
+    "CosmeticCheckoutOffer", "TbClassPublication", "TbClassPublicationLog",
 ]
 MEMORY_MODELS = [
     "TbPersonagemCacador",
@@ -76,9 +79,13 @@ MEMORY_MODELS = [
     # produção. É memória pura — jamais entra em CONTENT_MODELS.
     "TbPerfilCurtida", "TbPerfilSeguidor",
     "SocialCreditWallet", "SocialCreditEntry", "SocialCreditPolicy",
-    "SocialCreditReaderRecognition", "SocialCreditRedemption",
+    "SocialCreditHistoricalCampaign", "SocialCreditReaderRecognition",
+    "SocialCreditRedemption",
     "EventCosmeticRedemption",
     "MarketItemFavorite",
+    # Direitos financeiros, chaves e trilhas de API são estado operacional local.
+    "CosmeticCheckoutPurchase", "MestreOuroDireito", "MestreOuroRevisao",
+    "ManagedApiKey", "DbAccessIdempotency", "DbAccessAudit",
 ]
 CONTENT_MODELS = UPSERT_POR_SLUG + SUBSTITUI
 RESTORE_GUARDED_MODELS = CONTENT_MODELS + PRODUCTION_PRESERVED_MODELS
