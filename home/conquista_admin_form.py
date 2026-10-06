@@ -1,7 +1,7 @@
 """Campos assistidos para os critérios automáticos já avaliados pelo site."""
 from django import forms
 
-from .conquistas import QUEST_CATEGORIES, identidades_itens_ausentes
+from .conquistas import QUEST_CATEGORIES, identidades_itens_ausentes, ranks_verificaveis
 from .models import TbClasse, TbConquista
 
 
@@ -14,6 +14,7 @@ METRICAS = (
     ('items_purchased_units', 'Unidades de itens compradas'),
     ('adventures_played', 'Aventuras de mesa comprovadas'),
     ('character_level', 'Nível atual por classe principal'),
+    ('rank_reached', 'Rank alcançado por personagem'),
     ('quests_completed', 'Primeira quest categorizada e comprovada'),
 )
 CATALOGOS = {'mundano', 'magico', 'oficina', 'comunidade'}
@@ -55,6 +56,11 @@ class ConquistaAdminForm(forms.ModelForm):
         required=False, label='Nível 20 sem multiclasse',
         help_text='Exige uma única classe desde a criação da ficha, comprovada pelo histórico.',
     )
+    rank_alvo = forms.ChoiceField(
+        choices=[('', 'Selecione o rank')] + [(rank, rank) for rank in ranks_verificaveis()],
+        required=False, label='Rank alcançado',
+        help_text='Somente patentes de Ametista a Rubi; patentes épicas aguardam decisão do PO.',
+    )
 
     class Meta:
         model = TbConquista
@@ -78,6 +84,8 @@ class ConquistaAdminForm(forms.ModelForm):
             self.fields['classe_unica'].initial = (rule.get('filters') or {}).get('single_class', False)
         elif metric == 'quests_completed':
             self.fields['categoria_quest'].initial = (rule.get('filters') or {}).get('category')
+        elif metric == 'rank_reached':
+            self.fields['rank_alvo'].initial = (rule.get('filters') or {}).get('rank')
         elif metric in ('items_purchased_units', 'adventures_played'):
             if metric == 'items_purchased_units':
                 items = (rule.get('filters') or {}).get('items') or []
@@ -124,6 +132,12 @@ class ConquistaAdminForm(forms.ModelForm):
                 return cleaned
             rule.update(filters={'category': category, 'valid': True},
                         operator='gte', target=1)
+        elif metric == 'rank_reached':
+            rank = cleaned.get('rank_alvo')
+            if not rank:
+                self.add_error('rank_alvo', 'Selecione um rank definido na progressão Bonfire.')
+                return cleaned
+            rule.update(filters={'rank': rank}, operator='gte', target=1)
         elif metric == 'items_purchased_units':
             items = []
             for line in (cleaned.get('itens_comprados') or '').splitlines():

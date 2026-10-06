@@ -10,3 +10,6 @@
 {% if c.progresso_quest %}
 <span class="conquista-progress">{{ c.progresso_quest.atual }} quest{{ c.progresso_quest.atual|pluralize }} comprovada{{ c.progresso_quest.atual|pluralize }} &middot; meta: {{ c.progresso_quest.alvo }}</span>
 {% endif %}
+{% if c.progresso_rank %}
+<span class="conquista-progress">Maior nível comprovado: {{ c.progresso_rank.atual }} &middot; nível do rank: {{ c.progresso_rank.alvo }}</span>
+{% endif %}

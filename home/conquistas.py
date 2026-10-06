@@ -132,6 +132,28 @@ def regra_nivel_personagem_valida(regra):
                           regra['filters']['class_slug'])))
 
 
+def ranks_verificaveis():
+    """Faixas publicadas de 5 a 20; as patentes épicas aguardam mapeamento do PO."""
+    from .character_engine import rank_por_nivel
+
+    thresholds = {}
+    for level in range(5, 21):
+        thresholds.setdefault(rank_por_nivel(level), level)
+    return thresholds
+
+
+def regra_rank_valida(regra):
+    return (isinstance(regra, dict) and set(regra) == {
+        'schema_version', 'metric', 'scope', 'filters', 'operator', 'target'} and
+        type(regra['schema_version']) is int and regra['schema_version'] == 1 and
+        regra['metric'] == 'rank_reached' and regra['scope'] == 'account' and
+        isinstance(regra['filters'], dict) and set(regra['filters']) == {'rank'} and
+        type(regra['filters']['rank']) is str and
+        regra['filters']['rank'] in ranks_verificaveis() and
+        regra['operator'] == 'gte' and type(regra['target']) is int and
+        regra['target'] == 1)
+
+
 @transaction.atomic
 def conceder_conquista(user, conquista, por=None):
     """Concede `conquista` a `user` (idempotente). Se ainda não tinha, cria a
@@ -375,6 +397,54 @@ def _niveis_comprovados(user, *, single_class=False):
     return levels
 
 
+def _marcos_rank_comprovados(user):
+    """Level-ups históricos íntegros; reset não apaga um marco, estorno apaga."""
+    from .models import TbEventoConquista, TbPersonagemRevisao
+
+    events = list(TbEventoConquista.objects.filter(
+        origem='site', tipo='character_level_up', conta=user,
+    ).select_related('personagem'))
+    revisions = {row.pk: row for row in TbPersonagemRevisao.objects.filter(
+        pk__in=[event.agregado_id for event in events], tipo='level_up',
+        revertida=False).select_related('id_personagem')}
+    supported = []
+    for event in events:
+        revision = revisions.get(event.agregado_id)
+        payload = event.payload_json
+        snapshot = revision.snapshot_json if revision else None
+        before = snapshot.get('personagem') if isinstance(snapshot, dict) else None
+        classes_before = snapshot.get('classes') if isinstance(snapshot, dict) else None
+        if (revision is None or event.personagem_id is None or
+                revision.id_personagem_id != event.personagem_id or
+                event.personagem.dono_id != user.pk or event.versao_payload != 1 or
+                event.chave_origem != f'personagem:{event.personagem_id}:revisao:{revision.pk}:level_up' or
+                not isinstance(payload, dict) or not isinstance(before, dict) or
+                not isinstance(classes_before, list) or
+                payload.get('revision_id') != revision.pk or
+                payload.get('level_before') != revision.nivel_antes or
+                payload.get('level_after') != revision.nivel_depois or
+                payload.get('classes_before') != classes_before or
+                before.get('nivel') != revision.nivel_antes or
+                sum(row.get('principal') is True for row in classes_before
+                    if isinstance(row, dict)) != 1 or
+                any(not isinstance(row, dict) or type(row.get('nivel')) is not int or
+                    row['nivel'] <= 0 for row in classes_before) or
+                sum(row['nivel'] for row in classes_before) != revision.nivel_antes or
+                not 5 <= revision.nivel_depois <= 20 or
+                revision.nivel_depois <= revision.nivel_antes):
+            continue
+        classes_after = payload.get('classes_after')
+        if (not isinstance(classes_after, list) or
+                sum(row.get('principal') is True for row in classes_after
+                    if isinstance(row, dict)) != 1 or
+                any(not isinstance(row, dict) or type(row.get('nivel')) is not int or
+                    row['nivel'] <= 0 for row in classes_after) or
+                sum(row['nivel'] for row in classes_after) != revision.nivel_depois):
+            continue
+        supported.append((revision.nivel_depois, event))
+    return sorted(supported, key=lambda row: (row[0], row[1].pk), reverse=True)
+
+
 @transaction.atomic
 def avaliar_nivel_personagem(user):
     """Concede ou revoga marcos automáticos após subir ou reverter nível."""
@@ -384,12 +454,15 @@ def avaliar_nivel_personagem(user):
                          TbUsuarioCosmetico)
 
     get_user_model().objects.select_for_update().only('pk').get(pk=user.pk)
-    rules = [rule for rule in TbConquista.objects.filter(
-        ativo=True, criterio='automatico', criterio_json__metric='character_level'
-    ).select_related('recompensa') if regra_nivel_personagem_valida(rule.criterio_json)]
-    if not rules:
+    candidates = TbConquista.objects.filter(
+        ativo=True, criterio='automatico',
+        criterio_json__metric__in=['character_level', 'rank_reached'],
+    ).select_related('recompensa')
+    rules = [rule for rule in candidates if regra_nivel_personagem_valida(rule.criterio_json)]
+    rank_rules = [rule for rule in candidates if regra_rank_valida(rule.criterio_json)]
+    if not rules and not rank_rules:
         return
-    levels = _niveis_comprovados(user)
+    levels = _niveis_comprovados(user) if rules else {}
     single_class_levels = (_niveis_comprovados(user, single_class=True)
                            if any(rule.criterio_json['filters'].get('single_class')
                                   for rule in rules) else {})
@@ -426,6 +499,43 @@ def avaliar_nivel_personagem(user):
                         user=user, cosmetico_id=rule.recompensa_id,
                         origem__startswith='conquista:',
                         suspenso_em__isnull=True).update(suspenso_em=now)
+    if rank_rules:
+        rank_sources = _marcos_rank_comprovados(user)
+        thresholds = ranks_verificaveis()
+        for rule in rank_rules:
+            threshold = thresholds[rule.criterio_json['filters']['rank']]
+            qualifying = [(level, event) for level, event in rank_sources
+                          if level >= threshold]
+            grant = TbUsuarioConquista.objects.select_for_update().filter(
+                user=user, conquista=rule).first()
+            if qualifying:
+                if grant is None or grant.concedida_por_id is None:
+                    conceder_conquista(user, rule)
+                    level, event = qualifying[0]
+                    TbUsuarioConquista.objects.filter(user=user, conquista=rule).update(
+                        evidencia_json={'evento_id': str(event.pk),
+                                        'personagem_id': event.personagem_id,
+                                        'personagem_ids': sorted({source.personagem_id
+                                                                 for _, source in qualifying}),
+                                        'nivel': level,
+                                        'rank': rule.criterio_json['filters']['rank']},
+                        definicao_json=rule.criterio_json)
+            elif grant and grant.concedida_por_id is None and grant.revogada_em is None:
+                now = timezone.now()
+                grant.revogada_em = now
+                grant.save(update_fields=['revogada_em'])
+                if rule.recompensa_id:
+                    other = TbUsuarioConquista.objects.filter(
+                        user=user, conquista__recompensa_id=rule.recompensa_id,
+                        revogada_em__isnull=True).exclude(pk=grant.pk).exists()
+                    paid = CosmeticCheckoutPurchase.objects.filter(
+                        beneficiary=user, cosmetico_id=rule.recompensa_id,
+                        granted_at__isnull=False).exists()
+                    if not other and not paid:
+                        TbUsuarioCosmetico.objects.filter(
+                            user=user, cosmetico_id=rule.recompensa_id,
+                            origem__startswith='conquista:',
+                            suspenso_em__isnull=True).update(suspenso_em=now)
 
 
 def avaliar_primeira_ficha_evento(evento):
@@ -1253,16 +1363,21 @@ def visibilidade_conquistas_de_personagem(users):
         user_id__in=ids, conquista__ativo=True, revogada_em__isnull=True,
     ).filter(
         Q(conquista__criterio_json__metric='class_started') |
-        Q(conquista__criterio_json__metric='character_level'),
+        Q(conquista__criterio_json__metric='character_level') |
+        Q(conquista__criterio_json__metric='rank_reached'),
     ).values('user_id', 'conquista_id', 'conquista__recompensa__slug', 'evidencia_json'))
     sources = set()
     for grant in grants:
         evidence = grant['evidencia_json']
-        source_id = (evidence.get('personagem_id', evidence.get('agregado_id'))
-                     if isinstance(evidence, dict) else None)
-        if type(source_id) is int:
-            sources.add(source_id)
-        grant['source_id'] = source_id
+        source_ids = (evidence.get('personagem_ids') if isinstance(evidence, dict)
+                      else None)
+        if not isinstance(source_ids, list):
+            source_id = (evidence.get('personagem_id', evidence.get('agregado_id'))
+                         if isinstance(evidence, dict) else None)
+            source_ids = [source_id]
+        source_ids = [source_id for source_id in source_ids if type(source_id) is int]
+        sources.update(source_ids)
+        grant['source_ids'] = source_ids
     visible_sources = set(TbPersonagem.objects.filter(
         pk__in=sources, dono_id__in=ids, publico=True, arquivado=False,
     ).values_list('dono_id', 'pk'))
@@ -1270,7 +1385,8 @@ def visibilidade_conquistas_de_personagem(users):
     for grant in grants:
         user_id = grant['user_id']
         reward_slug = grant['conquista__recompensa__slug']
-        if (user_id, grant['source_id']) in visible_sources:
+        if any((user_id, source_id) in visible_sources
+               for source_id in grant['source_ids']):
             publicas[user_id].add(grant['conquista_id'])
             if reward_slug:
                 visible_rewards[user_id].add(reward_slug)
@@ -1286,7 +1402,7 @@ def visibilidade_conquistas_de_personagem(users):
         for grant in independent_grants:
             criterion = grant['conquista__criterio_json']
             if not isinstance(criterion, dict) or criterion.get('metric') not in {
-                    'class_started', 'character_level'}:
+                    'class_started', 'character_level', 'rank_reached'}:
                 visible_rewards[grant['user_id']].add(
                     grant['conquista__recompensa__slug'])
         purchases = CosmeticCheckoutPurchase.objects.filter(
@@ -1348,9 +1464,11 @@ def conquistas_do_usuario(user, incluir_bloqueadas=True, *, pode_ver_privados=Tr
     niveis_comprovados = None
     niveis_classe_unica = None
     quests_comprovadas = None
+    rank_sources = None
     for c in qs:
         if (not pode_ver_privados and isinstance(c.criterio_json, dict) and
-                c.criterio_json.get('metric') in {'class_started', 'character_level'} and
+                c.criterio_json.get('metric') in {'class_started', 'character_level',
+                                                   'rank_reached'} and
                 c.id not in marcos_publicos):
             continue
         tem = c.id in obtidas_map
@@ -1396,6 +1514,18 @@ def conquistas_do_usuario(user, incluir_bloqueadas=True, *, pode_ver_privados=Tr
                 'atual': proof.get(
                     c.criterio_json['filters']['class_slug'], (0, None))[0],
                 'alvo': c.criterio_json['target'],
+            }
+        if (pode_ver_privados and isinstance(c.criterio_json, dict) and
+                regra_rank_valida(c.criterio_json)):
+            if rank_sources is None:
+                rank_sources = _marcos_rank_comprovados(user)
+            if niveis_comprovados is None:
+                niveis_comprovados = _niveis_comprovados(user)
+            level = max(rank_sources[0][0] if rank_sources else 0,
+                        max((row[0] for row in niveis_comprovados.values()), default=0))
+            item['progresso_rank'] = {
+                'atual': level,
+                'alvo': ranks_verificaveis()[c.criterio_json['filters']['rank']],
             }
         if (pode_ver_privados and isinstance(c.criterio_json, dict) and
                 regra_quest_categorizada_valida(c.criterio_json)):

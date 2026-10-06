@@ -1,7 +1,13 @@
 """Aceite local da progressão de nível baseada em revisão canônica."""
+from unittest.mock import patch
+
+from django.contrib import admin
 from django.contrib.auth import get_user_model
+from django.test import RequestFactory
 from django.urls import reverse
 
+from home.admin import TbConquistaAdmin
+from home.conquista_admin_form import ConquistaAdminForm
 from home.character_history import capture_build, register_revision
 from home.conquistas import (avaliar_nivel_personagem, conceder_conquista,
                             conquistas_do_usuario, registrar_fato_level_up)
@@ -13,6 +19,144 @@ from home.test_criador import _CriadorBase
 
 
 class LevelAchievementTests(_CriadorBase):
+    def test_rank_milestone_uses_verified_level_and_private_character(self):
+        owner = self._novo_usuario('rank-milestone-owner')
+        badge = TbCosmetico.objects.create(
+            slug='rank-ametista-badge', nome='Badge Ametista QA',
+            tipo='badge', origem='conquista')
+        form = ConquistaAdminForm(data={
+            'slug': 'rank-ametista-qa', 'nome': 'Rank Ametista QA',
+            'criterio': 'automatico', 'criterio_json': '{}', 'ativo': 'on',
+            'ordem': '0', 'metrica_assistida': 'rank_reached',
+            'rank_alvo': 'Ametista', 'recompensa': badge.pk,
+        })
+        self.assertTrue(form.is_valid(), form.errors)
+        rule = form.save()
+        self.assertEqual(rule.criterio_json['filters']['rank'], 'Ametista')
+        self.assertEqual(ConquistaAdminForm(instance=rule).fields['rank_alvo'].initial,
+                         'Ametista')
+        administrator = get_user_model().objects.create_superuser(
+            'rank-admin-qa', 'rank-admin-qa@example.invalid', 'x')
+        self.client.force_login(administrator)
+        self.assertContains(self.client.get(reverse(
+            'admin:home_tbconquista_change', args=[rule.pk])), 'rank_alvo')
+        self.assertFalse(ConquistaAdminForm(data={
+            'slug': 'rank-epico-qa', 'nome': 'Rank épico QA',
+            'criterio': 'automatico', 'criterio_json': '{}', 'ativo': 'on',
+            'ordem': '0', 'metrica_assistida': 'rank_reached',
+            'rank_alvo': 'Ascendido',
+        }).is_valid())
+
+        created = self._post_criar(owner, self._payload('guerreiro'))
+        self.assertTrue(created.json()['ok'], created.content)
+        character = TbPersonagem.objects.get(pk=created.json()['id'])
+        primary = character.classes.get(principal=True)
+        for level in range(2, 6):
+            snapshot = capture_build(character)
+            primary.nivel = level
+            primary.save(update_fields=['nivel'])
+            character.nivel = level
+            character.save(update_fields=['nivel', 'atualizado_em'])
+            register_revision(character, tipo='level_up', snapshot=snapshot,
+                              user=owner, nivel_antes=level - 1, nivel_depois=level)
+        grant = TbUsuarioConquista.objects.get(user=owner, conquista=rule)
+        self.assertIsNone(grant.revogada_em)
+        self.assertEqual(grant.evidencia_json['personagem_id'], character.pk)
+        self.assertEqual(grant.evidencia_json['nivel'], 5)
+        own = next(item for item in conquistas_do_usuario(owner)['obtidas']
+                   if item['slug'] == rule.slug)
+        self.assertEqual(own['progresso_rank'], {'atual': 5, 'alvo': 5})
+        self.client.force_login(owner)
+        self.assertContains(self.client.get(reverse('profile')),
+                            'Maior nível comprovado: 5')
+
+        public_url = reverse('public_profile', args=[owner.username])
+        self.client.logout()
+        self.assertNotContains(self.client.get(public_url), rule.nome)
+        character.publico = True
+        character.save(update_fields=['publico'])
+        self.assertContains(self.client.get(public_url), rule.nome)
+        character.publico = False
+        character.save(update_fields=['publico'])
+
+        primary.nivel = 4
+        primary.save(update_fields=['nivel'])
+        character.nivel = 4
+        character.save(update_fields=['nivel', 'atualizado_em'])
+        avaliar_nivel_personagem(owner)
+        grant.refresh_from_db()
+        self.assertIsNone(grant.revogada_em)
+        self.assertEqual(next(item['progresso_rank']['atual']
+                              for item in conquistas_do_usuario(owner)['obtidas']
+                              if item['slug'] == rule.slug), 5)
+
+        revision = TbPersonagemRevisao.objects.get(
+            id_personagem=character, nivel_depois=5, tipo='level_up')
+        revision.revertida = True
+        revision.save(update_fields=['revertida'])
+        avaliar_nivel_personagem(owner)
+        grant.refresh_from_db()
+        self.assertIsNotNone(grant.revogada_em)
+        blocked = next(item for item in conquistas_do_usuario(owner)['bloqueadas']
+                       if item['slug'] == rule.slug)
+        self.assertEqual(blocked['progresso_rank'], {'atual': 4, 'alvo': 5})
+
+        revision.revertida = False
+        revision.save(update_fields=['revertida'])
+        primary.nivel = 5
+        primary.save(update_fields=['nivel'])
+        character.nivel = 5
+        character.save(update_fields=['nivel', 'atualizado_em'])
+        avaliar_nivel_personagem(owner)
+        grant.refresh_from_db()
+        self.assertIsNone(grant.revogada_em)
+        self.assertEqual(TbUsuarioConquista.objects.filter(
+            user=owner, conquista=rule).count(), 1)
+
+        # A ficha histórica arquivada sustenta o marco; outra ficha pública
+        # permite exibi-lo sem revelar a origem privada.
+        character.arquivado = True
+        character.save(update_fields=['arquivado'])
+        second_payload = self._payload('guerreiro')
+        second_payload['nome'] = 'Segundo rank QA'
+        second_created = self._post_criar(owner, second_payload)
+        self.assertTrue(second_created.json()['ok'], second_created.content)
+        second = TbPersonagem.objects.get(pk=second_created.json()['id'])
+        second_class = second.classes.get(principal=True)
+        for level in range(2, 6):
+            snapshot = capture_build(second)
+            second_class.nivel = level
+            second_class.save(update_fields=['nivel'])
+            second.nivel = level
+            second.save(update_fields=['nivel', 'atualizado_em'])
+            register_revision(second, tipo='level_up', snapshot=snapshot,
+                              user=owner, nivel_antes=level - 1, nivel_depois=level)
+        second.publico = True
+        second.save(update_fields=['publico'])
+        grant.refresh_from_db()
+        self.assertEqual(grant.evidencia_json['personagem_ids'],
+                         sorted([character.pk, second.pk]))
+        self.client.logout()
+        self.assertContains(self.client.get(public_url), rule.nome)
+        second.publico = False
+        second.save(update_fields=['publico'])
+        self.assertNotContains(self.client.get(public_url), rule.nome)
+
+        # Um marco cadastrado depois do level-up entra pelo reprocessamento do admin.
+        late = TbConquista.objects.create(
+            slug='rank-ametista-tardio-qa', nome='Ametista tardia QA',
+            criterio='automatico', criterio_json=rule.criterio_json)
+        self.assertFalse(TbUsuarioConquista.objects.filter(
+            user=owner, conquista=late).exists())
+        model_admin = TbConquistaAdmin(TbConquista, admin.site)
+        with patch.object(model_admin, 'message_user') as notification:
+            model_admin.reprocessar_nivel(
+                RequestFactory().post('/admin/home/tbconquista/'),
+                TbConquista.objects.filter(pk=late.pk))
+        notification.assert_called_once()
+        self.assertTrue(TbUsuarioConquista.objects.filter(
+            user=owner, conquista=late, revogada_em__isnull=True).exists())
+
     def test_level_twenty_single_class_requires_canonical_unmixed_history(self):
         owner = self._novo_usuario('level-pure-owner')
         base = {'schema_version': 1, 'metric': 'character_level',

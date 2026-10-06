@@ -4239,7 +4239,7 @@ class TbConquistaAdmin(admin.ModelAdmin):
         (None, {'fields': ('nome', 'slug', 'descricao', 'icone_url', 'icone_file')}),
         ('Visibilidade', {'fields': ('secreta', 'ativo', 'ordem')}),
         ('Critério', {'fields': ('criterio', 'metrica_assistida', 'classe_inicial',
-                               'classe_nivel', 'alvo_nivel', 'classe_unica',
+                               'classe_nivel', 'alvo_nivel', 'classe_unica', 'rank_alvo',
                                'itens_comprados', 'operador_unidades', 'alvo_unidades',
                                'criterio_json'),
                       'description': 'Início de classe: metric=class_started, '
@@ -4253,13 +4253,14 @@ class TbConquistaAdmin(admin.ModelAdmin):
                                      'aggregate=sum, filters={"valid":true,"origin":"played_session"}. '
                                      'Nível atual: metric=character_level, classe principal e alvo entre 2 e 20; '
                                      'sem multiclasse exige nível 20 e histórico de classe única. '
+                                     'Rank: metric=rank_reached, patentes Ametista a Rubi com level-up comprovado. '
                                      'Defina os limiares e operadores com o PO antes de ativar.'}),
         ('Recompensa', {'fields': ('recompensa',),
                         'description': 'Cosmético desbloqueado no inventário ao conceder.'}),
     )
     actions = ('conceder_a_usuarios', 'reprocessar_nivel')
 
-    @admin.action(description='Reprocessar fatos de nível para marcos selecionados',
+    @admin.action(description='Reprocessar fatos de nível e rank para marcos selecionados',
                   permissions=['change'])
     def reprocessar_nivel(self, request, queryset):
         """Avalia contas com revisões de nível após cadastrar um novo marco."""
@@ -4269,8 +4270,8 @@ class TbConquistaAdmin(admin.ModelAdmin):
 
         if not queryset.filter(
                 ativo=True, criterio='automatico',
-                criterio_json__metric='character_level').exists():
-            self.message_user(request, 'Selecione um marco de nível ativo.', level=messages.WARNING)
+                criterio_json__metric__in=['character_level', 'rank_reached']).exists():
+            self.message_user(request, 'Selecione um marco de nível ou rank ativo.', level=messages.WARNING)
             return
         account_ids = TbEventoConquista.objects.filter(
             origem='site', tipo='character_level_up').values_list(
@@ -4285,7 +4286,8 @@ class TbConquistaAdmin(admin.ModelAdmin):
         if db_field.name == 'criterio_json':
             kwargs['help_text'] = ('Critérios disponíveis: characters_created, stories_published, '
                                    'items_purchased, items_purchased_units, class_started e '
-                                   'adventures_played e character_level. Para unidades, use IDs reais do catálogo; '
+                                   'adventures_played, character_level, rank_reached e quests_completed. '
+                                   'Para unidades, use IDs reais do catálogo; '
                                    'escolha gt ou gte e o limiar com o PO.')
         return super().formfield_for_dbfield(db_field, request, **kwargs)
 
