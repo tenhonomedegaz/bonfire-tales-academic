@@ -168,6 +168,20 @@ async function stored(page) {
     assert.match(await page.locator('#pb-status').innerText(), /Arquivo de Pathbuilder inválido/);
     assert.deepEqual(await stored(page), beforeImport, 'classe inválida conserva a edição');
 
+    for (const [label, invalidBuild] of [
+      ['fractional level', { ...beforeImport[0], classes: [
+        { ...beforeImport[0].classes[0], nivel: 1.5 },
+        ...beforeImport[0].classes.slice(1)] }],
+      ['boolean bonus', { ...beforeImport[0], atributos_bonus: { FOR: true } }],
+      ['fractional quantity', { ...beforeImport[0], itens: [
+        { tipo: 'mundano', slug: 'corda', qtd: 1.5 }] }],
+    ]) {
+      await uploadBundle({ base, builds: [invalidBuild, beforeImport[1]] });
+      await page.waitForFunction(() => document.querySelector('#pb-status').textContent.includes('Arquivo de Pathbuilder'));
+      assert.match(await page.locator('#pb-status').innerText(), /Arquivo de Pathbuilder inv/);
+      assert.deepEqual(await stored(page), beforeImport, `${label} preserves editing`);
+    }
+
     const imported = [{ ...beforeImport[0], atributos_bonus: {} }, beforeImport[1]];
     assert.ok(imported.every(build => Array.isArray(build.classes) &&
       build.classes.every(row => row && typeof row.slug === 'string')),

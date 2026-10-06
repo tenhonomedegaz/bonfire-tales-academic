@@ -1448,6 +1448,13 @@
                 }).join('');
             byId('pb-delete-save').disabled = !selectedId;
         }
+        function validInteger(value, minimum, maximum) {
+            if (typeof value === 'string' && /^[0-9]+$/.test(value.trim())) {
+                value = Number(value.trim());
+            }
+            return typeof value === 'number' && Number.isInteger(value) &&
+                value >= minimum && value <= maximum;
+        }
         function loadBundle(bundle) {
             if (!bundle || !bundle.base || typeof bundle.base !== 'object' ||
                     Array.isArray(bundle.base) || typeof bundle.base.classe !== 'string' ||
@@ -1457,8 +1464,19 @@
                             !Array.isArray(build.classes) || !build.classes.length ||
                             build.classes.some(function (row) {
                                 return !row || typeof row !== 'object' || Array.isArray(row) ||
-                                    typeof row.slug !== 'string' || !row.slug;
-                            });
+                                    typeof row.slug !== 'string' || !row.slug ||
+                                    (row.nivel !== undefined && !validInteger(row.nivel, 1, 20));
+                            }) ||
+                            (build.atributos_bonus && SIGLAS.some(function (sigla) {
+                                return Object.prototype.hasOwnProperty.call(build.atributos_bonus, sigla) &&
+                                    !validInteger(build.atributos_bonus[sigla], 0, 10);
+                            })) ||
+                            (Array.isArray(build.talentos_raciais) && build.talentos_raciais.some(function (row) {
+                                return row && row.nivel !== undefined && !validInteger(row.nivel, 1, 20);
+                            })) ||
+                            (Array.isArray(build.itens) && build.itens.some(function (row) {
+                                return row && row.qtd !== undefined && !validInteger(row.qtd, 1, 999);
+                            }));
                     })) {
                 throw new Error('Arquivo de Pathbuilder inválido.');
             }

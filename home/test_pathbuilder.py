@@ -230,6 +230,36 @@ class PathbuilderTests(_CriadorBase):
         self.assertIn('data-pb-folha', corrected.json()['build']['ficha_html'])
         self.assertEqual(TbPersonagem.objects.count(), before)
 
+    def test_preview_rejeita_numeros_truncaveis_e_aceita_correcao(self):
+        base = self._payload('guerreiro')
+        valid_build = self._build('guerreiro')
+        item = TbItemMundano.objects.first()
+        self.assertIsNotNone(item)
+        before = TbPersonagem.objects.count()
+        invalid_builds = [
+            (self._build('guerreiro', classes=[
+                {'slug': 'guerreiro', 'nivel': 1.9, 'subclasse': ''},
+            ]), 'Nivel de classe'),
+            (self._build('guerreiro', classes=[
+                {'slug': 'guerreiro', 'nivel': True, 'subclasse': ''},
+            ]), 'Nivel de classe'),
+            (self._build('guerreiro', atributos_bonus={'FOR': 2.5}), 'Bonus de FOR'),
+            (self._build('guerreiro', itens=[
+                {'tipo': 'mundano', 'slug': item.slug, 'qtd': 1.5},
+            ]), 'Quantidade do item'),
+        ]
+        for build, label in invalid_builds:
+            with self.subTest(label=label, build=build):
+                response = self._post_preview(base, build)
+                self.assertEqual(response.status_code, 400, response.content)
+                self.assertIn(label, ' '.join(response.json()['erros']))
+                self.assertEqual(TbPersonagem.objects.count(), before)
+
+        corrected = self._post_preview(base, valid_build)
+        self.assertEqual(corrected.status_code, 200, corrected.content)
+        self.assertIn('data-pb-folha', corrected.json()['build']['ficha_html'])
+        self.assertEqual(TbPersonagem.objects.count(), before)
+
     def test_preview_devolve_o_markup_da_ficha_real(self):
         """A visualizacao do resultado E A FICHA: o preview devolve o HTML dos partials da
         aba Ficha (banner, atributos, selos de CA/PV, ataques, caracteristicas), nao um

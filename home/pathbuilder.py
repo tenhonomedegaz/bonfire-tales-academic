@@ -206,9 +206,11 @@ def default_build(creator_data):
 
 
 def _int_between(value, minimum, maximum, label):
-    try:
-        number = int(value)
-    except (TypeError, ValueError):
+    if type(value) is int:
+        number = value
+    elif isinstance(value, str) and value.strip().isdecimal():
+        number = int(value.strip())
+    else:
         raise PathbuilderError("%s invalido." % label)
     if number < minimum or number > maximum:
         raise PathbuilderError(
