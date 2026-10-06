@@ -109,6 +109,19 @@ class EventCosmeticShopTests(TestCase):
         self.assertContains(self.client.get(self.url), 'Você já possui este cosmético.')
         self.assertTrue(has_permanent_cosmetic(self.other, self.cosmetic))
 
+    def test_badge_offer_previews_image_or_glyph_without_broken_image(self):
+        self.cosmetic.tipo = 'badge'
+        self.cosmetic.asset_url = '/static/cosmetics/beta-spark.svg'
+        self.cosmetic.save(update_fields=['tipo', 'asset_url'])
+        self.client.force_login(self.other)
+        page = self.client.get(self.url)
+        self.assertContains(page, 'src="/static/cosmetics/beta-spark.svg"')
+        self.cosmetic.asset_url = '*'
+        self.cosmetic.save(update_fields=['asset_url'])
+        page = self.client.get(self.url)
+        self.assertContains(page, '>*</span>')
+        self.assertNotContains(page, 'src="*"')
+
     def test_optional_start_and_end_dates_bound_only_when_set(self):
         now = timezone.now()
         EventCosmeticOffer.objects.filter(pk=self.offer.pk).update(

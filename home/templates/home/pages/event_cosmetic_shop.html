@@ -18,7 +18,11 @@
   <div class="grid gap-4 sm:grid-cols-2">
     {% for card in cards %}
       <article class="rounded-2xl border border-[var(--stroke)] bg-[var(--surface)] p-5 space-y-3">
-        <h2 class="font-serif text-xl">{{ card.offer.cosmetico.nome }}</h2>
+        <div class="flex items-center gap-3">
+          {% if card.badge_image %}<img src="{{ card.badge_image }}" alt="" class="h-12 w-12 shrink-0 object-contain" loading="lazy">
+          {% elif card.badge_glyph %}<span class="text-3xl" aria-hidden="true">{{ card.badge_glyph }}</span>{% endif %}
+          <h2 class="font-serif text-xl">{{ card.offer.cosmetico.nome }}</h2>
+        </div>
         {% if card.offer.cosmetico.descricao %}<p class="text-sm text-[var(--muted)]">{{ card.offer.cosmetico.descricao }}</p>{% endif %}
         <p class="font-semibold text-[var(--spark)]">{% if card.offer.cost_braseiros %}{{ card.offer.cost_braseiros }} braseiros{% else %}Grátis{% endif %}</p>
         <p class="text-xs text-[var(--muted)]">Evento {{ card.offer.event_key }}{% if card.offer.ends_at %} · até {{ card.offer.ends_at|date:'d/m/Y H:i' }}{% endif %}</p>

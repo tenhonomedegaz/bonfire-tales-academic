@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" role="img" aria-label="Portal da beta">
+  <defs><linearGradient id="a" x1="13" y1="10" x2="51" y2="54" gradientUnits="userSpaceOnUse"><stop stop-color="#a7ebef"/><stop offset="1" stop-color="#9b85e7"/></linearGradient></defs>
+  <circle cx="32" cy="32" r="29" fill="#15172d" stroke="#92a7dc" stroke-width="2"/>
+  <path d="M17 49V27C17 17 23 11 32 11S47 17 47 27v22H17Z" stroke="url(#a)" stroke-width="3"/>
+  <path d="M23 49V27c0-6 3-10 9-10s9 4 9 10v22" stroke="#d6f8f4" stroke-width="1.5"/>
+  <path d="m32 24 3 7 7 1-7 3-3 8-3-8-7-3 7-1 3-7Z" fill="#d8c8ff"/>
+  <path d="M14 49h36" stroke="#b7e3ed" stroke-width="3" stroke-linecap="round"/>
+</svg>

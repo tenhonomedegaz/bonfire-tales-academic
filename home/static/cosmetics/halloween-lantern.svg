@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" role="img" aria-label="Lanterna de Halloween">
+  <circle cx="32" cy="32" r="29" fill="#21182b" stroke="#e99b4e" stroke-width="2"/>
+  <path d="M32 18c-9-5-18 2-18 14 0 12 8 19 18 19s18-7 18-19c0-12-9-19-18-14Z" fill="#d7782e" stroke="#ffba64" stroke-width="2"/>
+  <path d="M32 14c1-4 4-6 8-6M32 14l-3 5" stroke="#8fbd80" stroke-width="3" stroke-linecap="round"/>
+  <path d="m21 31 6-4 1 8-7-4Zm22 0-6-4-1 8 7-4ZM22 40l7 2 3-4 3 4 7-2-5 7H27l-5-7Z" fill="#21182b"/>
+  <path d="M32 20v17" stroke="#f8a85a" stroke-opacity=".5"/>
+</svg>

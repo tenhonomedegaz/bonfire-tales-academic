@@ -3464,12 +3464,17 @@ def event_cosmetic_shop(request):
         user=request.user, suspenso_em__isnull=True)
         .exclude(origem__startswith='colaborador')
         .values_list('cosmetico_id', flat=True))
-    cards = [{
-        'offer': offer,
-        'owned': (offer.cosmetico_id in inventory_ids or
-                  has_permanent_cosmetic(request.user, offer.cosmetico)),
-        'request_id': uuid4(),
-    } for offer in offers]
+    cards = []
+    for offer in offers:
+        badge_asset = (offer.cosmetico.asset_efetivo or '').strip() if offer.cosmetico.tipo == 'badge' else ''
+        cards.append({
+            'offer': offer,
+            'owned': (offer.cosmetico_id in inventory_ids or
+                      has_permanent_cosmetic(request.user, offer.cosmetico)),
+            'request_id': uuid4(),
+            'badge_image': badge_asset if badge_asset.startswith(('/', 'https://', 'http://')) else '',
+            'badge_glyph': '' if badge_asset.startswith(('/', 'https://', 'http://')) else badge_asset,
+        })
     redemption = (EventCosmeticRedemption.objects.select_related('cosmetico', 'character')
                   .filter(pk=request.GET.get('resgate'), user=request.user).first()
                   if (request.GET.get('resgate') or '').isdigit() else None)
