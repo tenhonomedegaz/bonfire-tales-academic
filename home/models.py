@@ -2679,6 +2679,9 @@ class TbConquista(models.Model):
                                    blank=True, related_name='conquistas',
                                    db_column='RecompensaId',
                                    help_text='Cosmético desbloqueado no inventário ao conceder.')
+    recompensas_extras = models.ManyToManyField(
+        TbCosmetico, blank=True, related_name='conquistas_extras',
+        help_text='Cosméticos adicionais desbloqueados junto com a recompensa principal.')
     ordem = models.IntegerField(db_column='Ordem', default=0)
     ativo = models.BooleanField(db_column='Ativo', default=True)
 

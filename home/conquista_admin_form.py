@@ -66,6 +66,18 @@ class ConquistaAdminForm(forms.ModelForm):
         model = TbConquista
         fields = '__all__'
 
+    def clean_recompensa(self):
+        reward = self.cleaned_data.get('recompensa')
+        if reward and reward.tipo == 'moldura' and reward.animado:
+            raise forms.ValidationError('Molduras animadas são exclusivas de compra ou Colab.')
+        return reward
+
+    def clean_recompensas_extras(self):
+        rewards = self.cleaned_data.get('recompensas_extras')
+        if rewards and rewards.filter(tipo='moldura', animado=True).exists():
+            raise forms.ValidationError('Molduras animadas são exclusivas de compra ou Colab.')
+        return rewards
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.is_bound or not self.instance.pk:

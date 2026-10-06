@@ -4229,6 +4229,7 @@ class _ConcederConquistaForm(forms.Form):
 @admin.register(TbConquista)
 class TbConquistaAdmin(admin.ModelAdmin):
     form = ConquistaAdminForm
+    filter_horizontal = ('recompensas_extras',)
     list_display = ('nome', 'slug', 'secreta', 'criterio', 'recompensa', 'ativo', 'ordem')
     list_filter = ('secreta', 'criterio', 'ativo')
     search_fields = ('nome', 'slug', 'descricao')
@@ -4256,8 +4257,8 @@ class TbConquistaAdmin(admin.ModelAdmin):
                                      'sem multiclasse exige nível 20 e histórico de classe única. '
                                      'Rank: metric=rank_reached, patentes Ametista a Rubi com level-up comprovado. '
                                      'Defina os limiares e operadores com o PO antes de ativar.'}),
-        ('Recompensa', {'fields': ('recompensa',),
-                        'description': 'Cosmético desbloqueado no inventário ao conceder.'}),
+        ('Recompensas', {'fields': ('recompensa', 'recompensas_extras'),
+                         'description': 'O prêmio principal legado e os adicionais são desbloqueados juntos.'}),
     )
     actions = ('conceder_a_usuarios', 'reprocessar_marcos_iniciais', 'reprocessar_nivel',
                'reprocessar_aventuras_quests', 'reprocessar_compras')

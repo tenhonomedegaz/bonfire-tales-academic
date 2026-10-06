@@ -261,8 +261,10 @@ def sincronizar_conteudo(fixture_text, *, allow_content_deletions=False):
     natural. Retorna um relatório dict: {pass1, pass2, mem_antes, mem_depois, mem_ok}.
     Tudo numa transação — se algo falhar, faz rollback."""
     por_modelo = defaultdict(list)
+    m2m_por_objeto = {}
     for d in serializers.deserialize("json", fixture_text):
         por_modelo[_label(d.object._meta.model)].append(d.object)
+        m2m_por_objeto[id(d.object)] = (d.object.pk, d.m2m_data)
 
     if not allow_content_deletions:
         planned = ["%s.%s" % (name, slug) for name, slug, status, _refs
@@ -341,6 +343,21 @@ def sincronizar_conteudo(fixture_text, *, allow_content_deletions=False):
                     remap[_label(M)][dev_pk] = obj.pk
                     ins += 1
             rel["pass1"].append((nome, up, ins))
+
+        # Relações M2M são serializadas no fixture, mas não integram _meta.fields.
+        # Aplicá-las depois dos upserts permite remapear ambos os PKs por slug.
+        for obj in por_modelo.get(_label(_m('TbConquista')), []):
+            dev_pk, m2m_data = m2m_por_objeto[id(obj)]
+            rewards = m2m_data.get('recompensas_extras')
+            if rewards is None:  # fixture antigo: preserve a configuração existente
+                continue
+            target_id = remap[_label(_m('TbConquista'))][dev_pk]
+            mapped = []
+            for reward_id in rewards:
+                if reward_id not in remap[_label(_m('TbCosmetico'))]:
+                    raise ValueError('Recompensa extra ausente do fixture de cosméticos.')
+                mapped.append(remap[_label(_m('TbCosmetico'))][reward_id])
+            _m('TbConquista').objects.get(pk=target_id).recompensas_extras.set(mapped)
 
         # PASSO 2: substitui inteiras (delete + reinsert, remapeando FKs de pai)
         for nome in SUBSTITUI:

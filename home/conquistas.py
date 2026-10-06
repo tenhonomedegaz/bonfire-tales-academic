@@ -154,6 +154,36 @@ def regra_rank_valida(regra):
         regra['target'] == 1)
 
 
+def recompensa_ids_da_conquista(conquista):
+    """Une o prêmio legado aos adicionais sem conceder o mesmo item duas vezes."""
+    ids = set(conquista.recompensas_extras.values_list('pk', flat=True))
+    if conquista.recompensa_id:
+        ids.add(conquista.recompensa_id)
+    return ids
+
+
+def _suspender_recompensas_sem_direito(grant, now):
+    """Retira somente itens cuja última fonte ativa era esta conquista."""
+    from django.db.models import Q
+    from .models import (CosmeticCheckoutPurchase, TbUsuarioConquista,
+                         TbUsuarioCosmetico)
+
+    for reward_id in recompensa_ids_da_conquista(grant.conquista):
+        another_grant = TbUsuarioConquista.objects.filter(
+            user_id=grant.user_id, revogada_em__isnull=True,
+        ).filter(Q(conquista__recompensa_id=reward_id) |
+                 Q(conquista__recompensas_extras__pk=reward_id)).exclude(
+                     pk=grant.pk).exists()
+        purchased = CosmeticCheckoutPurchase.objects.filter(
+            beneficiary_id=grant.user_id, cosmetico_id=reward_id,
+            granted_at__isnull=False).exists()
+        if not another_grant and not purchased:
+            TbUsuarioCosmetico.objects.filter(
+                user_id=grant.user_id, cosmetico_id=reward_id,
+                origem__startswith='conquista:', suspenso_em__isnull=True,
+            ).update(suspenso_em=now)
+
+
 @transaction.atomic
 def conceder_conquista(user, conquista, por=None):
     """Concede `conquista` a `user` (idempotente). Se ainda não tinha, cria a
@@ -166,7 +196,12 @@ def conceder_conquista(user, conquista, por=None):
     são persistidas juntas, inclusive em chamadas diretas da staff."""
     if not user or not getattr(user, 'pk', None) or conquista is None:
         return False
-    from .models import TbConquistaNotificacao, TbUsuarioConquista, TbUsuarioCosmetico
+    from .models import (TbConquistaNotificacao, TbCosmetico, TbUsuarioConquista,
+                         TbUsuarioCosmetico)
+
+    reward_ids = recompensa_ids_da_conquista(conquista)
+    if TbCosmetico.objects.filter(pk__in=reward_ids, tipo='moldura', animado=True).exists():
+        raise ValueError('Molduras animadas são exclusivas de compra ou Colab.')
 
     concessao, criada = TbUsuarioConquista.objects.get_or_create(
         user=user, conquista=conquista,
@@ -182,10 +217,9 @@ def conceder_conquista(user, conquista, por=None):
     # Materializa a recompensa no inventário (idempotente por unique_together
     # user+cosmetico). Roda mesmo em re-concessão pra cobrir recompensa adicionada
     # depois — nunca duplica.
-    recompensa = getattr(conquista, 'recompensa', None)
-    if recompensa is not None:
+    for reward_id in reward_ids:
         posse, _ = TbUsuarioCosmetico.objects.get_or_create(
-            user=user, cosmetico=recompensa,
+            user=user, cosmetico_id=reward_id,
             defaults={'origem': 'conquista:%s' % conquista.slug},
         )
         if posse.suspenso_em:
@@ -233,19 +267,7 @@ def revogar_conquista_manual(concessao):
     now = timezone.now()
     grant.revogada_em = now
     grant.save(update_fields=['revogada_em'])
-    reward_id = grant.conquista.recompensa_id
-    if reward_id:
-        another_grant = TbUsuarioConquista.objects.filter(
-            user_id=grant.user_id, conquista__recompensa_id=reward_id,
-            revogada_em__isnull=True).exclude(pk=grant.pk).exists()
-        purchased = CosmeticCheckoutPurchase.objects.filter(
-            beneficiary_id=grant.user_id, cosmetico_id=reward_id,
-            granted_at__isnull=False).exists()
-        if not another_grant and not purchased:
-            TbUsuarioCosmetico.objects.filter(
-                user_id=grant.user_id, cosmetico_id=reward_id,
-                origem__startswith='conquista:', suspenso_em__isnull=True,
-            ).update(suspenso_em=now)
+    _suspender_recompensas_sem_direito(grant, now)
     return True
 
 
@@ -557,18 +579,7 @@ def avaliar_nivel_personagem(user):
             now = timezone.now()
             grant.revogada_em = now
             grant.save(update_fields=['revogada_em'])
-            if rule.recompensa_id:
-                other_grants = TbUsuarioConquista.objects.filter(
-                    user=user, conquista__recompensa_id=rule.recompensa_id,
-                    revogada_em__isnull=True).exclude(pk=grant.pk).exists()
-                paid = CosmeticCheckoutPurchase.objects.filter(
-                    beneficiary=user, cosmetico_id=rule.recompensa_id,
-                    granted_at__isnull=False).exists()
-                if not other_grants and not paid:
-                    TbUsuarioCosmetico.objects.filter(
-                        user=user, cosmetico_id=rule.recompensa_id,
-                        origem__startswith='conquista:',
-                        suspenso_em__isnull=True).update(suspenso_em=now)
+            _suspender_recompensas_sem_direito(grant, now)
     if rank_rules:
         rank_sources = _marcos_rank_comprovados(user)
         thresholds = ranks_verificaveis()
@@ -594,18 +605,7 @@ def avaliar_nivel_personagem(user):
                 now = timezone.now()
                 grant.revogada_em = now
                 grant.save(update_fields=['revogada_em'])
-                if rule.recompensa_id:
-                    other = TbUsuarioConquista.objects.filter(
-                        user=user, conquista__recompensa_id=rule.recompensa_id,
-                        revogada_em__isnull=True).exclude(pk=grant.pk).exists()
-                    paid = CosmeticCheckoutPurchase.objects.filter(
-                        beneficiary=user, cosmetico_id=rule.recompensa_id,
-                        granted_at__isnull=False).exists()
-                    if not other and not paid:
-                        TbUsuarioCosmetico.objects.filter(
-                            user=user, cosmetico_id=rule.recompensa_id,
-                            origem__startswith='conquista:',
-                            suspenso_em__isnull=True).update(suspenso_em=now)
+                _suspender_recompensas_sem_direito(grant, now)
 
 
 def avaliar_primeira_ficha_evento(evento):
@@ -844,18 +844,7 @@ def avaliar_quests_categorizadas(user):
                 now = timezone.now()
                 grant.revogada_em = now
                 grant.save(update_fields=['revogada_em'])
-                if rule.recompensa_id:
-                    other = TbUsuarioConquista.objects.filter(
-                        user=user, conquista__recompensa_id=rule.recompensa_id,
-                        revogada_em__isnull=True).exclude(pk=grant.pk).exists()
-                    paid = CosmeticCheckoutPurchase.objects.filter(
-                        beneficiary=user, cosmetico_id=rule.recompensa_id,
-                        granted_at__isnull=False).exists()
-                    if not other and not paid:
-                        TbUsuarioCosmetico.objects.filter(
-                            user=user, cosmetico_id=rule.recompensa_id,
-                            origem__startswith='conquista:',
-                            suspenso_em__isnull=True).update(suspenso_em=now)
+                _suspender_recompensas_sem_direito(grant, now)
 
 
 def _aventuras_comprovadas(user):
@@ -921,18 +910,7 @@ def avaliar_aventuras_jogadas(user):
                 now = timezone.now()
                 grant.revogada_em = now
                 grant.save(update_fields=['revogada_em'])
-                if rule.recompensa_id:
-                    other_grants = TbUsuarioConquista.objects.filter(
-                        user=user, conquista__recompensa_id=rule.recompensa_id,
-                        revogada_em__isnull=True).exclude(pk=grant.pk).exists()
-                    paid = CosmeticCheckoutPurchase.objects.filter(
-                        beneficiary=user, cosmetico_id=rule.recompensa_id,
-                        granted_at__isnull=False).exists()
-                    if not other_grants and not paid:
-                        TbUsuarioCosmetico.objects.filter(
-                            user=user, cosmetico_id=rule.recompensa_id,
-                            origem__startswith='conquista:',
-                            suspenso_em__isnull=True).update(suspenso_em=now)
+                _suspender_recompensas_sem_direito(grant, now)
 
 
 def validar_vinculo_aventura_bot(personagem, bot_quest_id, quantidade):
@@ -1184,18 +1162,7 @@ def _avaliar_primeira_compra(user):
                 now = timezone.now()
                 grant.revogada_em = now
                 grant.save(update_fields=['revogada_em'])
-                if rule.recompensa_id:
-                    other_grants = TbUsuarioConquista.objects.filter(
-                        user=user, conquista__recompensa_id=rule.recompensa_id,
-                        revogada_em__isnull=True).exclude(pk=grant.pk).exists()
-                    paid = CosmeticCheckoutPurchase.objects.filter(
-                        beneficiary=user, cosmetico_id=rule.recompensa_id,
-                        granted_at__isnull=False).exists()
-                    if not other_grants and not paid:
-                        TbUsuarioCosmetico.objects.filter(
-                            user=user, cosmetico_id=rule.recompensa_id,
-                            origem__startswith='conquista:',
-                            suspenso_em__isnull=True).update(suspenso_em=now)
+                _suspender_recompensas_sem_direito(grant, now)
 
 
 def _avaliar_unidades_compradas(user):
@@ -1240,18 +1207,7 @@ def _avaliar_unidades_compradas(user):
                 now = timezone.now()
                 grant.revogada_em = now
                 grant.save(update_fields=['revogada_em'])
-                if rule.recompensa_id:
-                    other_grants = TbUsuarioConquista.objects.filter(
-                        user=user, conquista__recompensa_id=rule.recompensa_id,
-                        revogada_em__isnull=True).exclude(pk=grant.pk).exists()
-                    paid = CosmeticCheckoutPurchase.objects.filter(
-                        beneficiary=user, cosmetico_id=rule.recompensa_id,
-                        granted_at__isnull=False).exists()
-                    if not other_grants and not paid:
-                        TbUsuarioCosmetico.objects.filter(
-                            user=user, cosmetico_id=rule.recompensa_id,
-                            origem__startswith='conquista:',
-                            suspenso_em__isnull=True).update(suspenso_em=now)
+                _suspender_recompensas_sem_direito(grant, now)
 
 
 def reprocessar_primeira_compra(user):
@@ -1420,22 +1376,29 @@ def _slugs_obtidas(user):
 
 def visibilidade_conquistas_de_personagem(users):
     """Marcos de classe/nível publicáveis e recompensas a ocultar por conta."""
-    from django.db.models import Q
-    from .models import (CosmeticCheckoutPurchase, TbCosmetico, TbPersonagem,
-                         TbUsuarioConquista, TbUsuarioCosmetico)
+    from .models import (CosmeticCheckoutPurchase, TbConquista, TbCosmetico,
+                         TbPersonagem, TbUsuarioConquista, TbUsuarioCosmetico)
 
     ids = [user.pk for user in users if getattr(user, 'pk', None)]
     publicas = {user_id: set() for user_id in ids}
     ocultas = {user_id: set() for user_id in ids}
     if not ids:
         return publicas, ocultas
-    grants = list(TbUsuarioConquista.objects.filter(
+    all_grants = list(TbUsuarioConquista.objects.filter(
         user_id__in=ids, conquista__ativo=True, revogada_em__isnull=True,
-    ).filter(
-        Q(conquista__criterio_json__metric='class_started') |
-        Q(conquista__criterio_json__metric='character_level') |
-        Q(conquista__criterio_json__metric='rank_reached'),
-    ).values('user_id', 'conquista_id', 'conquista__recompensa__slug', 'evidencia_json'))
+    ).values('user_id', 'conquista_id', 'conquista__criterio_json', 'evidencia_json'))
+    rewards_by_conquest = {}
+    for conquest in TbConquista.objects.filter(
+            pk__in={grant['conquista_id'] for grant in all_grants}).select_related(
+                'recompensa').prefetch_related('recompensas_extras'):
+        slugs = {item.slug for item in conquest.recompensas_extras.all()}
+        if conquest.recompensa_id:
+            slugs.add(conquest.recompensa.slug)
+        rewards_by_conquest[conquest.pk] = slugs
+    private_metrics = {'class_started', 'character_level', 'rank_reached'}
+    grants = [grant for grant in all_grants if isinstance(
+        grant['conquista__criterio_json'], dict) and
+        grant['conquista__criterio_json'].get('metric') in private_metrics]
     sources = set()
     for grant in grants:
         evidence = grant['evidencia_json']
@@ -1454,27 +1417,20 @@ def visibilidade_conquistas_de_personagem(users):
     visible_rewards = {user_id: set() for user_id in ids}
     for grant in grants:
         user_id = grant['user_id']
-        reward_slug = grant['conquista__recompensa__slug']
+        reward_slugs = rewards_by_conquest.get(grant['conquista_id'], set())
         if any((user_id, source_id) in visible_sources
                for source_id in grant['source_ids']):
             publicas[user_id].add(grant['conquista_id'])
-            if reward_slug:
-                visible_rewards[user_id].add(reward_slug)
-        elif reward_slug:
-            ocultas[user_id].add(reward_slug)
+            visible_rewards[user_id].update(reward_slugs)
+        else:
+            ocultas[user_id].update(reward_slugs)
     candidate_slugs = set().union(*ocultas.values())
     if candidate_slugs:
-        independent_grants = (TbUsuarioConquista.objects.filter(
-            user_id__in=ids, conquista__ativo=True, revogada_em__isnull=True,
-            conquista__recompensa__slug__in=candidate_slugs,
-        ).values('user_id', 'conquista__recompensa__slug',
-                 'conquista__criterio_json'))
-        for grant in independent_grants:
+        for grant in all_grants:
             criterion = grant['conquista__criterio_json']
-            if not isinstance(criterion, dict) or criterion.get('metric') not in {
-                    'class_started', 'character_level', 'rank_reached'}:
-                visible_rewards[grant['user_id']].add(
-                    grant['conquista__recompensa__slug'])
+            if not isinstance(criterion, dict) or criterion.get('metric') not in private_metrics:
+                visible_rewards[grant['user_id']].update(
+                    rewards_by_conquest.get(grant['conquista_id'], set()) & candidate_slugs)
         purchases = CosmeticCheckoutPurchase.objects.filter(
             beneficiary_id__in=ids, cosmetico__slug__in=candidate_slugs,
             granted_at__isnull=False,
