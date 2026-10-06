@@ -56,6 +56,19 @@ class AdventureFactTests(_CriadorBase):
         self.assertEqual(self.client.post(url).status_code, 302)
         self.assertEqual(TbEventoConquista.objects.count(), 2)
 
+    def test_replay_rejects_fact_attached_to_another_character(self):
+        self.assertEqual(self.launch().status_code, 302)
+        ledger = self.character.aventuras_ledger.get()
+        recorded = TbEventoConquista.objects.get(tipo='adventure_recorded')
+        other = TbPersonagem.objects.create(dono=self.owner, nome='Outra ficha', nivel=1)
+        recorded.personagem = other
+        recorded.save(update_fields=['personagem'])
+        with self.assertRaises(ValueError):
+            registrar_fato_aventura(ledger)
+        recorded.personagem = self.character
+        recorded.save(update_fields=['personagem'])
+        self.assertEqual(registrar_fato_aventura(ledger).pk, recorded.pk)
+
     def test_failed_reversal_and_unledgered_balance_create_no_fact(self):
         self.assertEqual(self.launch(quantity=1).status_code, 302)
         ledger = self.character.aventuras_ledger.get()

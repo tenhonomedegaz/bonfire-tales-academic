@@ -592,11 +592,14 @@ def registrar_fato_aventura(lancamento, *, estorno=False, avaliar=True):
             'ocorrido_em': ocorrido, 'payload_json': payload,
         },
     )
-    if (evento.tipo != tipo or evento.conta_id != personagem.dono_id or
+    recorded_payload = evento.payload_json if isinstance(evento.payload_json, dict) else {}
+    if (evento.tipo != tipo or evento.versao_payload != 1 or
+            evento.conta_id != personagem.dono_id or
+            evento.personagem_id != personagem.pk or
             evento.agregado_id != lancamento.pk or
-            evento.payload_json.get('ledger_id') != lancamento.pk or
-            evento.payload_json.get('quantidade') != payload['quantidade'] or
-            evento.payload_json.get('quest_category') != payload.get('quest_category')):
+            recorded_payload.get('ledger_id') != lancamento.pk or
+            recorded_payload.get('quantidade') != payload['quantidade'] or
+            recorded_payload.get('quest_category') != payload.get('quest_category')):
         raise ValueError('Identidade do fato de aventura inconsistente.')
     if avaliar:
         avaliar_aventuras_jogadas(personagem.dono)
