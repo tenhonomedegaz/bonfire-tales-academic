@@ -184,13 +184,19 @@ class LevelAchievementTests(_CriadorBase):
         self.client.force_login(owner)
         self.assertContains(self.client.get(reverse('profile')),
                             'Maior nível comprovado: 5')
+        self.assertContains(self.client.get(reverse('profile')),
+                            str(grant.evidencia_json['evento_id']))
 
         public_url = reverse('public_profile', args=[owner.username])
         self.client.logout()
         self.assertNotContains(self.client.get(public_url), rule.nome)
+        self.assertNotContains(self.client.get(public_url),
+                               str(grant.evidencia_json['evento_id']))
         character.publico = True
         character.save(update_fields=['publico'])
         self.assertContains(self.client.get(public_url), rule.nome)
+        self.assertNotContains(self.client.get(public_url),
+                               str(grant.evidencia_json['evento_id']))
         character.publico = False
         character.save(update_fields=['publico'])
 
@@ -418,10 +424,13 @@ class LevelAchievementTests(_CriadorBase):
         visitor = self.client.get(url)
         for private_text in (badge_rule.nome, badge.nome, frame.slug, frame.css_class):
             self.assertNotContains(visitor, private_text)
+        badge_grant = TbUsuarioConquista.objects.get(user=owner, conquista=badge_rule)
+        self.assertNotContains(visitor, str(badge_grant.evidencia_json['evento_id']))
         self.client.force_login(owner)
         own_page = self.client.get(url)
         self.assertContains(own_page, badge_rule.nome)
         self.assertContains(own_page, frame.css_class)
+        self.assertContains(own_page, str(badge_grant.evidencia_json['evento_id']))
         moderator = get_user_model().objects.create_superuser(
             'level-private-moderator', 'level-private-moderator@example.invalid', 'x')
         self.client.force_login(moderator)

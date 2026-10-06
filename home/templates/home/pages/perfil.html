@@ -2,7 +2,7 @@
 {% load static editorial_images cosmetic_packages %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/pages/perfil.css' %}?v=7">
+<link rel="stylesheet" href="{% static 'css/pages/perfil.css' %}?v=8">
 <link rel="stylesheet" href="{% static 'css/components/tema_swatch.css' %}?v=1">
 <link rel="stylesheet" href="{% static 'css/pages/perfil-fx.css' %}?v=4">
 <script src="{% static 'js/tema_swatch.js' %}?v=1" defer></script>
@@ -331,6 +331,7 @@
                 </li>
                 {% endfor %}
             </ul>
+            {% include 'home/partials/_conquista_evidencias_privadas.html' %}
             {% else %}
             <span class="avatar-preview-hint">Nenhuma conquista disponível ainda. Elas são concedidas pela equipe.</span>
             {% endif %}

@@ -20,6 +20,34 @@ from home.test_criador import _CriadorBase
 
 
 class ClassStartAchievementTests(_CriadorBase):
+    def test_registered_class_proof_is_visible_only_to_owner_and_staff(self):
+        rule = self._rule()
+        owner = self._novo_usuario('class-proof-owner', staff=True)
+        created = self._post_criar(owner, self._payload('guerreiro'))
+        self.assertTrue(created.json()['ok'], created.content)
+        character = TbPersonagem.objects.get(pk=created.json()['id'])
+        fact = TbEventoConquista.objects.get(agregado_id=character.pk)
+        url = reverse('public_profile', args=[owner.username])
+
+        self.assertContains(self.client.get(reverse('profile')), str(fact.pk))
+        self.assertContains(self.client.get(url), str(fact.pk))
+        self.assertContains(self.client.get(url), character.nome)
+        self.client.logout()
+        self.assertNotContains(self.client.get(url), str(fact.pk))
+        self.assertNotContains(self.client.get(url), 'Provas das conquistas')
+
+        character.publico = True
+        character.save(update_fields=['publico'])
+        self.assertContains(self.client.get(url), rule.nome)
+        self.assertNotContains(self.client.get(url), str(fact.pk))
+        self.assertEqual(conquistas_do_usuario(
+            owner, pode_ver_privados=False)['evidencias_privadas'], [])
+
+        moderator = get_user_model().objects.create_superuser(
+            'class-proof-moderator', 'class-proof-moderator@example.invalid', 'x')
+        self.client.force_login(moderator)
+        self.assertContains(self.client.get(url), str(fact.pk))
+
     def test_second_public_character_exposes_class_without_reawarding(self):
         rule = self._rule()
         owner = self._novo_usuario('second-public-class-owner', staff=True)

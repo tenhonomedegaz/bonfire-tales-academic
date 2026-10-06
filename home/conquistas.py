@@ -1503,6 +1503,47 @@ def visibilidade_conquistas_de_personagem(users):
 visibilidade_inicio_classe = visibilidade_conquistas_de_personagem
 
 
+def _evidencias_privadas_de_personagens(user):
+    """Prepara provas registradas de classe, nível e rank para dono/staff."""
+    from .models import TbPersonagem, TbUsuarioConquista
+
+    grants = list(TbUsuarioConquista.objects.filter(
+        user=user, revogada_em__isnull=True, conquista__ativo=True,
+        conquista__criterio='automatico', concedida_por__isnull=True,
+        conquista__criterio_json__metric__in=(
+            'class_started', 'character_level', 'rank_reached'),
+    ).select_related('conquista').order_by('conquista__ordem', 'conquista__nome'))
+    sources = set()
+    rows = []
+    for grant in grants:
+        evidence = grant.evidencia_json
+        if not isinstance(evidence, dict):
+            continue
+        metric = grant.conquista.criterio_json.get('metric')
+        ids = evidence.get('personagem_ids')
+        if not isinstance(ids, list):
+            source = (evidence.get('agregado_id') if metric == 'class_started'
+                      else evidence.get('personagem_id'))
+            ids = [source]
+        ids = sorted({source for source in ids if type(source) is int and source > 0})
+        fact_id = evidence.get('evento_id')
+        if not ids and not fact_id:
+            continue
+        sources.update(ids)
+        rows.append((grant, evidence, ids))
+    names = dict(TbPersonagem.objects.filter(
+        pk__in=sources, dono=user).values_list('pk', 'nome'))
+    return [{
+        'nome': grant.conquista.nome,
+        'fontes': [f'{names[source]} (#{source})' if source in names
+                   else f'Ficha excluída (#{source})' for source in ids],
+        'nivel': evidence.get('nivel') if type(evidence.get('nivel')) is int else None,
+        'rank': evidence.get('rank') if type(evidence.get('rank')) is str else None,
+        'evento_id': evidence.get('evento_id') if
+            isinstance(evidence.get('evento_id'), str) else None,
+    } for grant, evidence, ids in rows]
+
+
 def conquistas_do_usuario(user, incluir_bloqueadas=True, *, pode_ver_privados=True):
     """Estado das conquistas ATIVAS de `user` pra vitrine.
 
@@ -1517,7 +1558,8 @@ def conquistas_do_usuario(user, incluir_bloqueadas=True, *, pode_ver_privados=Tr
     Regra do contador Y: total de conquistas ATIVAS não-secretas + as SECRETAS que
     o user tem. Secretas NÃO-obtidas nunca contam nem aparecem (não vaza existência).
     """
-    vazio = {'obtidas': [], 'bloqueadas': [], 'total': 0, 'obtidas_count': 0}
+    vazio = {'obtidas': [], 'bloqueadas': [], 'total': 0, 'obtidas_count': 0,
+             'evidencias_privadas': []}
     if not user or not getattr(user, 'pk', None):
         return vazio
     from .models import TbConquista
@@ -1618,6 +1660,8 @@ def conquistas_do_usuario(user, incluir_bloqueadas=True, *, pode_ver_privados=Tr
         'bloqueadas': bloqueadas,
         'total': total_visivel,
         'obtidas_count': len(obtidas),
+        'evidencias_privadas': (_evidencias_privadas_de_personagens(user)
+                                if pode_ver_privados else []),
     }
 
 

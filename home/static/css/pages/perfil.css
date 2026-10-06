@@ -1599,6 +1599,31 @@
     font-weight: 500;
     white-space: normal;
 }
+.conquista-evidencias {
+    margin-top: 0.9rem;
+    color: var(--muted);
+    font-size: 0.8rem;
+}
+.conquista-evidencias h3 {
+    color: var(--text);
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+.conquista-evidencias details {
+    margin-top: 0.45rem;
+    padding: 0.45rem 0.65rem;
+    border: 1px solid var(--stroke);
+    border-radius: 0.5rem;
+    background: var(--bg0);
+}
+.conquista-evidencias summary {
+    color: var(--text);
+    cursor: pointer;
+    font-weight: 600;
+}
+.conquista-evidencias code {
+    overflow-wrap: anywhere;
+}
 
 @media (prefers-reduced-motion: reduce) {
     .profile-title,

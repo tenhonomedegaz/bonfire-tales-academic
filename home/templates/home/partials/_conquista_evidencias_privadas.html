@@ -1,0 +1,15 @@
+{% if conquistas.evidencias_privadas %}
+<section class="conquista-evidencias" aria-label="Provas das conquistas">
+  <h3>Provas das conquistas</h3>
+  <p>Detalhes visíveis apenas para você e para a equipe.</p>
+  {% for prova in conquistas.evidencias_privadas %}
+  <details>
+    <summary>{{ prova.nome }}</summary>
+    {% if prova.fontes %}<p>Fichas: {{ prova.fontes|join:", " }}</p>{% endif %}
+    {% if prova.nivel %}<p>Nível comprovado: {{ prova.nivel }}</p>{% endif %}
+    {% if prova.rank %}<p>Rank: {{ prova.rank }}</p>{% endif %}
+    {% if prova.evento_id %}<p>Fato registrado: <code>{{ prova.evento_id }}</code></p>{% endif %}
+  </details>
+  {% endfor %}
+</section>
+{% endif %}
