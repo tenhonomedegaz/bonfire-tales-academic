@@ -70,6 +70,25 @@ class LevelAchievementTests(_CriadorBase):
                               for item in conquistas_do_usuario(owner)['bloqueadas']
                               if item['slug'] == pure.slug), 0)
 
+        snapshot['classes'].pop()
+        revision.snapshot_json = snapshot
+        revision.save(update_fields=['snapshot_json'])
+        avaliar_nivel_personagem(owner)
+        self.assertIsNone(TbUsuarioConquista.objects.get(
+            user=owner, conquista=pure).revogada_em)
+        event = TbEventoConquista.objects.get(
+            tipo='character_level_up', agregado_id=revision.pk)
+        payload = event.payload_json
+        payload['classes_after'].append({**payload['classes_after'][0],
+                                         'principal': False})
+        event.payload_json = payload
+        event.save(update_fields=['payload_json'])
+        avaliar_nivel_personagem(owner)
+        self.assertIsNotNone(TbUsuarioConquista.objects.get(
+            user=owner, conquista=pure).revogada_em)
+        self.assertIsNone(TbUsuarioConquista.objects.get(
+            user=owner, conquista=ordinary).revogada_em)
+
     def test_private_level_milestone_and_rewards_follow_character_visibility(self):
         owner = self._novo_usuario('level-private-owner')
         badge = TbCosmetico.objects.create(

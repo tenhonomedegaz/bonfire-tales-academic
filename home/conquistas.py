@@ -283,7 +283,7 @@ def registrar_fato_level_up(revisao, *, estorno=False):
 
 
 def _historico_classe_unica(character, class_id):
-    """Confere classe única na origem e em todos os snapshots disponíveis."""
+    """Confere origem, snapshots e fatos de level-up da classe única."""
     from .models import TbEventoConquista, TbPersonagemRevisao
 
     creation = TbEventoConquista.objects.filter(
@@ -295,10 +295,17 @@ def _historico_classe_unica(character, class_id):
     if (not isinstance(origin, dict) or origin.get('initial_class_id') != class_id or
             origin.get('initial_level') != 1):
         return False
-    revisions = TbPersonagemRevisao.objects.filter(id_personagem=character).only(
-        'snapshot_json', 'nivel_antes')
-    if not revisions.exists():
+    revisions = list(TbPersonagemRevisao.objects.filter(
+        id_personagem=character).only('snapshot_json', 'nivel_antes', 'nivel_depois', 'tipo'))
+    if not revisions:
         return False
+    level_revisions = [revision for revision in revisions
+                       if revision.tipo == 'level_up' and
+                       revision.nivel_depois > revision.nivel_antes]
+    events = {event.agregado_id: event for event in TbEventoConquista.objects.filter(
+        origem='site', tipo='character_level_up', conta_id=character.dono_id,
+        personagem=character,
+        agregado_id__in=[revision.pk for revision in level_revisions])}
     for revision in revisions:
         snapshot = revision.snapshot_json
         if not isinstance(snapshot, dict):
@@ -312,6 +319,22 @@ def _historico_classe_unica(character, class_id):
                 not isinstance(before, dict) or
                 before.get('nivel') != revision.nivel_antes or
                 classes[0].get('nivel') != revision.nivel_antes):
+            return False
+    for revision in level_revisions:
+        event = events.get(revision.pk)
+        if (event is None or event.chave_origem !=
+                f'personagem:{character.pk}:revisao:{revision.pk}:level_up'):
+            return False
+        payload = event.payload_json or {}
+        after = payload.get('classes_after')
+        if (payload.get('revision_id') != revision.pk or
+                payload.get('level_before') != revision.nivel_antes or
+                payload.get('level_after') != revision.nivel_depois or
+                not isinstance(after, list) or len(after) != 1 or
+                not isinstance(after[0], dict) or
+                after[0].get('id_classe_id') != class_id or
+                after[0].get('principal') is not True or
+                after[0].get('nivel') != revision.nivel_depois):
             return False
     return True
 
