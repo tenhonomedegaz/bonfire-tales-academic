@@ -151,6 +151,35 @@ async function stored(page) {
     assert.equal(await page.locator(`[data-attr="${consumed}"][data-delta="1"]`).isEnabled(), true,
       'orçamento esgotado permite remover e voltar a editar');
 
+    const beforeImport = await stored(page);
+    async function uploadBundle(bundle) {
+      await page.evaluate(() => { document.querySelector('#pb-status').textContent = ''; });
+      await page.locator('#pb-import').setInputFiles({
+        name: 'build-bonfire.json', mimeType: 'application/json',
+        buffer: Buffer.from(JSON.stringify(bundle))
+      });
+    }
+    await uploadBundle({ base: 'base inválida', builds: beforeImport });
+    await page.waitForFunction(() => document.querySelector('#pb-status').textContent.includes('Arquivo de Pathbuilder inválido'));
+    assert.match(await page.locator('#pb-status').innerText(), /Arquivo de Pathbuilder inválido/);
+    assert.deepEqual(await stored(page), beforeImport, 'base inválida conserva a edição');
+    await uploadBundle({ base, builds: [{ ...beforeImport[0], classes: [null] }, beforeImport[1]] });
+    await page.waitForFunction(() => document.querySelector('#pb-status').textContent.includes('Arquivo de Pathbuilder inválido'));
+    assert.match(await page.locator('#pb-status').innerText(), /Arquivo de Pathbuilder inválido/);
+    assert.deepEqual(await stored(page), beforeImport, 'classe inválida conserva a edição');
+
+    const imported = [{ ...beforeImport[0], atributos_bonus: {} }, beforeImport[1]];
+    assert.ok(imported.every(build => Array.isArray(build.classes) &&
+      build.classes.every(row => row && typeof row.slug === 'string')),
+    JSON.stringify(imported.map(build => build.classes)));
+    try {
+      await previewAfter(page, () => uploadBundle({ base, builds: imported }));
+    } catch (error) {
+      throw new Error(`${error.message}; import status=${await page.locator('#pb-status').innerText()}; JS=${errors.join(' | ')}`);
+    }
+    assert.deepEqual((await stored(page))[0].atributos_bonus, {},
+      'arquivo válido ainda substitui a build e atualiza a prévia');
+
     if (process.env.BONFIRE_ARTIFACT_DIR) {
       fs.mkdirSync(process.env.BONFIRE_ARTIFACT_DIR, { recursive: true });
       await page.locator('[data-step-tab="3"]').click();

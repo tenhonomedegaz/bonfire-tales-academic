@@ -86,10 +86,10 @@
         (catalogs.itens_magicos || []).forEach(function (row) { magicBySlug[row.slug] = row; });
         (catalogs.magias || []).forEach(function (row) { spellBySlug[row.slug] = row; });
 
-        function emptyBuild() {
+        function emptyBuild(ownerBase) {
             return {
                 modo: 'sandbox',
-                classes: [{ slug: base.classe, nivel: 1, subclasse: '' }],
+                classes: [{ slug: (ownerBase || base).classe, nivel: 1, subclasse: '' }],
                 atributos_bonus: {},
                 escolhas: {},
                 talentos: [],
@@ -104,19 +104,24 @@
             }
             return { slug: String(raw || ''), atributo: '' };
         }
-        function normalizeBuild(build) {
-            build = build && typeof build === 'object' ? build : emptyBuild();
+        function normalizeBuild(build, ownerBase) {
+            ownerBase = ownerBase && typeof ownerBase === 'object' ? ownerBase : base;
+            build = build && typeof build === 'object' && !Array.isArray(build)
+                ? build : emptyBuild(ownerBase);
             build.classes = Array.isArray(build.classes) && build.classes.length
-                ? build.classes : emptyBuild().classes;
+                ? build.classes : emptyBuild(ownerBase).classes;
             /* Base nova + build antiga guardada = "a classe inicial precisa permanecer na
                build" em todo preview. Se a build não fala da classe da base, ela é de outro
                personagem: começa limpa em vez de travar o laboratório. */
-            if (!build.classes.some(function (row) { return row.slug === base.classe; })) {
-                return emptyBuild();
+            if (!build.classes.some(function (row) { return row && row.slug === ownerBase.classe; })) {
+                return emptyBuild(ownerBase);
             }
             build.modo = build.modo === 'regras' ? 'regras' : 'sandbox';
-            build.atributos_bonus = build.atributos_bonus || {};
-            build.escolhas = build.escolhas && typeof build.escolhas === 'object'
+            build.atributos_bonus = build.atributos_bonus &&
+                typeof build.atributos_bonus === 'object' &&
+                !Array.isArray(build.atributos_bonus) ? build.atributos_bonus : {};
+            build.escolhas = build.escolhas && typeof build.escolhas === 'object' &&
+                !Array.isArray(build.escolhas)
                 ? build.escolhas : {};
             var seenTalents = Object.create(null);
             build.talentos = (Array.isArray(build.talentos) ? build.talentos : [])
@@ -135,7 +140,9 @@
                     seenRacial[level] = true;
                     return true;
                 });
-            build.itens = Array.isArray(build.itens) ? build.itens : [];
+            build.itens = Array.isArray(build.itens) ? build.itens.filter(function (row) {
+                return row && typeof row === 'object' && !Array.isArray(row);
+            }) : [];
             var seenSpells = Object.create(null);
             build.magias = (Array.isArray(build.magias) ? build.magias : []).filter(function (row) {
                 if (!row || !row.slug) return false;
@@ -157,7 +164,7 @@
         if (readLocal(STORAGE_BASE_FP) !== baseFingerprint(base)) builds = null;
         markBase(base);
         if (!Array.isArray(builds) || builds.length !== 2) builds = [emptyBuild(), emptyBuild()];
-        builds = builds.map(normalizeBuild);
+        builds = builds.map(function (build) { return normalizeBuild(build, base); });
 
         var active = 0;
         var step = 0;
@@ -1442,12 +1449,26 @@
             byId('pb-delete-save').disabled = !selectedId;
         }
         function loadBundle(bundle) {
-            if (!bundle || !bundle.base || !Array.isArray(bundle.builds) ||
-                    bundle.builds.length !== 2) {
+            if (!bundle || !bundle.base || typeof bundle.base !== 'object' ||
+                    Array.isArray(bundle.base) || typeof bundle.base.classe !== 'string' ||
+                    !bundle.base.classe || !Array.isArray(bundle.builds) ||
+                    bundle.builds.length !== 2 || bundle.builds.some(function (build) {
+                        return !build || typeof build !== 'object' || Array.isArray(build) ||
+                            !Array.isArray(build.classes) || !build.classes.length ||
+                            build.classes.some(function (row) {
+                                return !row || typeof row !== 'object' || Array.isArray(row) ||
+                                    typeof row.slug !== 'string' || !row.slug;
+                            });
+                    })) {
                 throw new Error('Arquivo de Pathbuilder inválido.');
             }
-            base = clone(bundle.base);
-            builds = clone(bundle.builds).map(normalizeBuild);
+            // Prepara tudo antes de trocar o editor: um arquivo ruim conserva a edição atual.
+            var importedBase = clone(bundle.base);
+            var importedBuilds = clone(bundle.builds).map(function (build) {
+                return normalizeBuild(build, importedBase);
+            });
+            base = importedBase;
+            builds = importedBuilds;
             clearResult(0);
             clearResult(1);
             writeStore(STORAGE_BASE, base);
