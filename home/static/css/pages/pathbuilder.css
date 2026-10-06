@@ -79,6 +79,8 @@
   padding: 0 0.4rem;
 }
 .pb-muted { color: var(--muted); font-size: 12px; }
+.pb-save-status { margin: 0; }
+.pb-save-status.is-error { color: var(--flame); }
 
 .pb-variant { display: inline-flex; border: 1px solid var(--stroke); border-radius: 0.45rem; overflow: hidden; }
 .pb-variant-tab {

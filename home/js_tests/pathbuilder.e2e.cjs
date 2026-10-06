@@ -267,6 +267,39 @@ async function stored(page) {
     await previewAfter(page, () => page.locator('#pb-saved-builds').selectOption('working'));
     assert.deepEqual(await stored(page), beforeImport, 'versão local válida restaura a edição');
 
+    await page.evaluate(() => { Date.now = () => 123; });
+    for (const name of ['Primeira cópia', 'Segunda cópia']) {
+      page.once('dialog', dialog => dialog.accept(name));
+      await page.locator('#pb-save').click();
+      assert.match(await page.locator('#pb-save-status').innerText(), /Versão salva/);
+    }
+    const savedCopies = await page.evaluate(() => JSON.parse(localStorage.getItem('bonfire:pathbuilder:saved')));
+    assert.equal(savedCopies[0].id, '124', 'segundo salvamento no mesmo milissegundo tem ID próprio');
+    assert.equal(savedCopies[1].id, '123');
+    assert.deepEqual(savedCopies.slice(0, 2).map(row => row.nome), ['Segunda cópia', 'Primeira cópia']);
+    await page.evaluate(() => {
+      window.__savedSetItem = Storage.prototype.setItem;
+      Storage.prototype.setItem = function (key, value) {
+        if (key === 'bonfire:pathbuilder:saved') throw new DOMException('Quota exceeded', 'QuotaExceededError');
+        return window.__savedSetItem.call(this, key, value);
+      };
+    });
+    page.once('dialog', dialog => dialog.accept('Cópia sem espaço'));
+    await page.locator('#pb-save').click();
+    assert.match(await page.locator('#pb-save-status').innerText(), /Não foi possível guardar/);
+    assert.deepEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('bonfire:pathbuilder:saved'))), savedCopies,
+      'falha de armazenamento não anuncia nem cria versão');
+    await page.locator('#pb-delete-save').click();
+    assert.match(await page.locator('#pb-save-status').innerText(), /Não foi possível guardar/);
+    assert.deepEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('bonfire:pathbuilder:saved'))), savedCopies,
+      'falha ao excluir conserva a versão');
+    await page.evaluate(() => { Storage.prototype.setItem = window.__savedSetItem; });
+    await page.locator('#pb-delete-save').click();
+    assert.match(await page.locator('#pb-save-status').innerText(), /Versão local excluída/);
+    assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('bonfire:pathbuilder:saved')).length),
+      savedCopies.length - 1);
+    assert.deepEqual(await stored(page), beforeImport, 'salvar e excluir não alteram a edição');
+
     if (process.env.BONFIRE_ARTIFACT_DIR) {
       fs.mkdirSync(process.env.BONFIRE_ARTIFACT_DIR, { recursive: true });
       await page.locator('[data-step-tab="3"]').click();

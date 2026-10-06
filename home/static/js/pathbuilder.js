@@ -1440,6 +1440,20 @@
             var saved = readLocal(STORAGE_SAVED);
             return Array.isArray(saved) ? saved : [];
         }
+        function savedFeedback(message, isError) {
+            var feedback = byId('pb-save-status');
+            feedback.textContent = message;
+            feedback.classList.toggle('is-error', !!isError);
+        }
+        function writeSavedVersions(rows) {
+            try {
+                localStorage.setItem(STORAGE_SAVED, JSON.stringify(rows));
+                return true;
+            } catch (error) {
+                savedFeedback('Não foi possível guardar versões neste navegador. Exporte um arquivo para preservar a build.', true);
+                return false;
+            }
+        }
         function renderSavedVersions(selectedId) {
             var rows = savedVersions();
             byId('pb-saved-builds').innerHTML = '<option value="">Versões salvas</option>' +
@@ -1570,6 +1584,9 @@
             if (!name || !name.trim()) return;
             var rows = savedVersions();
             var id = String(Date.now());
+            while (rows.some(function (row) { return row.id === id; })) {
+                id = String(Number(id) + 1);
+            }
             rows.unshift({
                 id: id,
                 nome: name.trim().slice(0, 80),
@@ -1577,8 +1594,10 @@
                 base: clone(base),
                 builds: clone(builds)
             });
-            localStorage.setItem(STORAGE_SAVED, JSON.stringify(rows.slice(0, 30)));
-            renderSavedVersions(id);
+            if (writeSavedVersions(rows.slice(0, 30))) {
+                renderSavedVersions(id);
+                savedFeedback('Versão salva neste navegador. Exporte um arquivo para ter uma cópia fora dele.', false);
+            }
         });
         byId('pb-saved-builds').addEventListener('change', function () {
             var id = this.value;
@@ -1597,9 +1616,10 @@
         byId('pb-delete-save').addEventListener('click', function () {
             var id = byId('pb-saved-builds').value;
             if (!id) return;
-            localStorage.setItem(STORAGE_SAVED, JSON.stringify(
-                savedVersions().filter(function (row) { return row.id !== id; })));
-            renderSavedVersions('');
+            if (writeSavedVersions(savedVersions().filter(function (row) { return row.id !== id; }))) {
+                renderSavedVersions('');
+                savedFeedback('Versão local excluída.', false);
+            }
         });
         byId('pb-export').addEventListener('click', function () {
             var payload = JSON.stringify({
