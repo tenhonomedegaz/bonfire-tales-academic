@@ -225,8 +225,10 @@ def _apply_classes(personagem, creator_data, build):
         raise PathbuilderError("A build precisa ter ao menos uma classe.")
     if len(requested) > 13:
         raise PathbuilderError("Quantidade de classes acima do catalogo do sistema.")
+    if any(not isinstance(row, dict) for row in requested):
+        raise PathbuilderError("Cada classe da build precisa ter slug e nivel.")
 
-    slugs = [str(row.get("slug") or "") for row in requested if isinstance(row, dict)]
+    slugs = [str(row.get("slug") or "") for row in requested]
     if len(slugs) != len(set(slugs)):
         raise PathbuilderError("A mesma classe nao pode aparecer duas vezes.")
 

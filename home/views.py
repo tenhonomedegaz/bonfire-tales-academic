@@ -5654,6 +5654,9 @@ def pathbuilder_view(request):
 def pathbuilder_iniciar(request):
     """Valida a base N1 sem materializar personagem e libera o laboratório."""
     data = _json_body(request)
+    if not isinstance(data, dict):
+        return JsonResponse({'ok': False, 'erros': ['Envie os dados da ficha como objeto.']},
+                            status=400)
     _resolved, errors = _criador_resolver(data)
     if errors:
         return JsonResponse({'ok': False, 'erros': errors}, status=400)
@@ -5682,10 +5685,18 @@ def pathbuilder_preview(request):
     from .pathbuilder import PathbuilderError, default_build, simulate_build
 
     data = _json_body(request)
-    creator_data = data.get('base') or {}
+    if not isinstance(data, dict):
+        return JsonResponse({'ok': False, 'erros': ['Envie a prévia como objeto.']},
+                            status=400)
+    creator_data = data.get('base', {})
+    if not isinstance(creator_data, dict):
+        return JsonResponse({'ok': False, 'erros': ['Base da ficha inválida.']}, status=400)
     build = data.get('build')
-    if not isinstance(build, dict):
+    if build is None and 'build' not in data:
         build = default_build(creator_data)
+    elif not isinstance(build, dict):
+        return JsonResponse({'ok': False, 'erros': ['Build do laboratório inválida.']},
+                            status=400)
     try:
         result = simulate_build(request.user, creator_data, build)
     except PathbuilderError as exc:

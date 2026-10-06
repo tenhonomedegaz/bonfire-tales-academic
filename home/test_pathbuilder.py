@@ -203,6 +203,33 @@ class PathbuilderTests(_CriadorBase):
         self.assertEqual(preview.status_code, 200, preview.content)
         self.assertIn("data-pb-folha", preview.json()["build"]["ficha_html"])
 
+    def test_laboratorio_rejeita_payload_malformado_sem_salvar_e_aceita_correcao(self):
+        base = self._payload('guerreiro')
+        valid_build = self._build('guerreiro')
+        before = TbPersonagem.objects.count()
+        requests = [
+            (reverse('pathbuilder_iniciar'), []),
+            (reverse('pathbuilder_preview'), []),
+            (reverse('pathbuilder_preview'), {'base': [], 'build': valid_build}),
+            (reverse('pathbuilder_preview'), {'base': base, 'build': []}),
+            (reverse('pathbuilder_preview'), {'base': base, 'build': {
+                **valid_build, 'classes': [valid_build['classes'][0], 7],
+            }}),
+        ]
+        for url, payload in requests:
+            with self.subTest(url=url, payload=payload):
+                response = self.client.post(url, data=json.dumps(payload),
+                                            content_type='application/json')
+                self.assertEqual(response.status_code, 400, response.content)
+                self.assertFalse(response.json()['ok'])
+                self.assertTrue(response.json()['erros'])
+                self.assertEqual(TbPersonagem.objects.count(), before)
+
+        corrected = self._post_preview(base, valid_build)
+        self.assertEqual(corrected.status_code, 200, corrected.content)
+        self.assertIn('data-pb-folha', corrected.json()['build']['ficha_html'])
+        self.assertEqual(TbPersonagem.objects.count(), before)
+
     def test_preview_devolve_o_markup_da_ficha_real(self):
         """A visualizacao do resultado E A FICHA: o preview devolve o HTML dos partials da
         aba Ficha (banner, atributos, selos de CA/PV, ataques, caracteristicas), nao um
