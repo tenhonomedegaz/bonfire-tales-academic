@@ -7,7 +7,8 @@ from django.urls import reverse
 from django.utils import timezone
 
 from home.conquista_admin_form import ConquistaAdminForm
-from home.conquistas import avaliar_aventuras_jogadas, registrar_fato_aventura
+from home.conquistas import (avaliar_aventuras_jogadas, avaliar_quests_categorizadas,
+                            registrar_fato_aventura)
 from home.models import (TbClasse, TbConquista, TbCosmetico, TbEventoConquista,
                          TbPersonagem, TbPersonagemAventura, TbPersonagemClasse,
                          TbUsuarioConquista, TbUsuarioCosmetico)
@@ -156,6 +157,55 @@ class AdventuresAchievementTests(_CriadorBase):
         grant.refresh_from_db()
         self.assertIsNone(grant.revogada_em)
         self.assertEqual(grant.evidencia_json['total'], 3)
+
+    def test_adventure_and_quest_replay_require_exact_fact_version_and_payload(self):
+        quest_rule = TbConquista(
+            slug='quest-exact-ledger-qa', nome='Quest com prova exata',
+            criterio='automatico', criterio_json={
+                'schema_version': 1, 'metric': 'quests_completed',
+                'scope': 'account', 'filters': {'category': 'bg_token', 'valid': True},
+                'operator': 'gte', 'target': 1}, recompensa=self.badge)
+        quest_rule.full_clean()
+        quest_rule.save()
+        self.client.force_login(self.staff)
+        response = self.client.post(
+            reverse('personagem_registrar_aventuras', args=[self.character.pk]), {
+                'nome_aventura': 'Quest com prova exata', 'aventuras': 3,
+                'mestre': self.staff.pk, 'data_missao': '2026-09-27',
+                'quest_category': 'bg_token',
+            })
+        self.assertEqual(response.status_code, 302)
+        fact = TbEventoConquista.objects.get(tipo='adventure_recorded')
+        ledger = TbPersonagemAventura.objects.get(origem='mesa')
+        original = dict(fact.payload_json)
+        grants = TbUsuarioConquista.objects.filter(
+            user=self.owner, conquista__in=[self.rule, quest_rule])
+        self.assertEqual(grants.filter(revogada_em__isnull=True).count(), 2)
+
+        for version, changes in ((2, {}), (1, {'ledger_id': float(ledger.pk)}),
+                                 (1, {'quantidade': 3.0})):
+            fact.versao_payload = version
+            fact.payload_json = {**original, **changes}
+            fact.save(update_fields=['versao_payload', 'payload_json'])
+            with self.assertRaises(ValueError):
+                registrar_fato_aventura(ledger, avaliar=False)
+            avaliar_aventuras_jogadas(self.owner)
+            avaliar_quests_categorizadas(self.owner)
+            self.assertEqual(grants.filter(revogada_em__isnull=True).count(), 0)
+            self.assertFalse(TbUsuarioCosmetico.objects.filter(
+                user=self.owner, cosmetico=self.badge,
+                suspenso_em__isnull=True).exists())
+
+            fact.versao_payload = 1
+            fact.payload_json = original.copy()
+            fact.save(update_fields=['versao_payload', 'payload_json'])
+            avaliar_aventuras_jogadas(self.owner)
+            avaliar_quests_categorizadas(self.owner)
+            self.assertEqual(grants.filter(revogada_em__isnull=True).count(), 2)
+            self.assertEqual(grants.count(), 2)
+            self.assertEqual(TbUsuarioCosmetico.objects.filter(
+                user=self.owner, cosmetico=self.badge,
+                suspenso_em__isnull=True).count(), 1)
 
     def test_admin_requires_explicit_comparator_and_threshold(self):
         admin = get_user_model().objects.create_superuser(

@@ -777,8 +777,10 @@ def registrar_fato_aventura(lancamento, *, estorno=False, avaliar=True):
             evento.conta_id != personagem.dono_id or
             evento.personagem_id != personagem.pk or
             evento.agregado_id != lancamento.pk or
-            recorded_payload.get('ledger_id') != lancamento.pk or
-            recorded_payload.get('quantidade') != payload['quantidade'] or
+            type(recorded_payload.get('ledger_id')) is not int or
+            recorded_payload['ledger_id'] != lancamento.pk or
+            type(recorded_payload.get('quantidade')) is not int or
+            recorded_payload['quantidade'] != payload['quantidade'] or
             recorded_payload.get('quest_category') != payload.get('quest_category')):
         raise ValueError('Identidade do fato de aventura inconsistente.')
     if avaliar:
@@ -865,9 +867,10 @@ def _aventuras_comprovadas(user):
         payload = fact.payload_json if isinstance(fact.payload_json, dict) else {}
         quantity = payload.get('quantidade')
         ledger = ledgers.get(fact.agregado_id)
-        if (fact.agregado_id in seen or
+        if (fact.agregado_id in seen or fact.versao_payload != 1 or
                 fact.chave_origem != f'aventura-ledger:{fact.agregado_id}:registrada' or
-                payload.get('ledger_id') != fact.agregado_id or
+                type(payload.get('ledger_id')) is not int or
+                payload['ledger_id'] != fact.agregado_id or
                 type(quantity) is not int or quantity <= 0 or
                 ledger is None or ledger['qtd_aventuras'] != quantity or
                 ledger['id_personagem_id'] != fact.personagem_id):
