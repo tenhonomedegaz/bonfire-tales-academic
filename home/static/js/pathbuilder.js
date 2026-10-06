@@ -1458,7 +1458,10 @@
         function loadBundle(bundle) {
             if (!bundle || !bundle.base || typeof bundle.base !== 'object' ||
                     Array.isArray(bundle.base) || typeof bundle.base.classe !== 'string' ||
-                    !bundle.base.classe || !Array.isArray(bundle.builds) ||
+                    !bundle.base.classe ||
+                    (bundle.formato !== undefined && bundle.formato !== 'bonfire-pathbuilder') ||
+                    (bundle.versao !== undefined && bundle.versao !== 1) ||
+                    !Array.isArray(bundle.builds) ||
                     bundle.builds.length !== 2 || bundle.builds.some(function (build) {
                         return !build || typeof build !== 'object' || Array.isArray(build) ||
                             !Array.isArray(build.classes) || !build.classes.length ||
@@ -1474,12 +1477,38 @@
                                 return Object.prototype.hasOwnProperty.call(build.atributos_bonus, sigla) &&
                                     !validInteger(build.atributos_bonus[sigla], 0, 10);
                             })) ||
+                            (build.atributos_bonus !== undefined &&
+                                (!build.atributos_bonus || typeof build.atributos_bonus !== 'object' ||
+                                    Array.isArray(build.atributos_bonus))) ||
+                            (build.escolhas !== undefined &&
+                                (!build.escolhas || typeof build.escolhas !== 'object' ||
+                                    Array.isArray(build.escolhas) ||
+                                    Object.keys(build.escolhas).some(function (key) {
+                                        return !Array.isArray(build.escolhas[key]);
+                                    }))) ||
+                            (build.talentos !== undefined &&
+                                (!Array.isArray(build.talentos) || build.talentos.some(function (row) {
+                                    return !(typeof row === 'string' && row) &&
+                                        !(row && typeof row === 'object' && !Array.isArray(row) &&
+                                            typeof row.slug === 'string' && row.slug);
+                                }))) ||
+                            (build.talentos_raciais !== undefined && !Array.isArray(build.talentos_raciais)) ||
                             (Array.isArray(build.talentos_raciais) && build.talentos_raciais.some(function (row) {
-                                return row && row.nivel !== undefined && !validInteger(row.nivel, 1, 20);
+                                return !row || typeof row !== 'object' || Array.isArray(row) ||
+                                    typeof row.nome !== 'string' || !row.nome ||
+                                    !validInteger(row.nivel, 1, 20);
                             })) ||
+                            (build.itens !== undefined && !Array.isArray(build.itens)) ||
                             (Array.isArray(build.itens) && build.itens.some(function (row) {
-                                return row && row.qtd !== undefined && !validInteger(row.qtd, 1, 999);
-                            }));
+                                return !row || typeof row !== 'object' || Array.isArray(row) ||
+                                    typeof row.slug !== 'string' || !row.slug ||
+                                    (row.qtd !== undefined && !validInteger(row.qtd, 1, 999));
+                            })) ||
+                            (build.magias !== undefined &&
+                                (!Array.isArray(build.magias) || build.magias.some(function (row) {
+                                    return !row || typeof row !== 'object' || Array.isArray(row) ||
+                                        typeof row.slug !== 'string' || !row.slug;
+                                })));
                     })) {
                 throw new Error('Arquivo de Pathbuilder inválido.');
             }

@@ -173,6 +173,15 @@ async function stored(page) {
     await page.waitForFunction(() => document.querySelector('#pb-status').textContent.includes('Arquivo de Pathbuilder'));
     assert.deepEqual(await stored(page), beforeImport, 'foreign class preserves both variants');
 
+    for (const invalidHeader of [
+      { formato: 'outro-editor', versao: 1 },
+      { formato: 'bonfire-pathbuilder', versao: 2 },
+    ]) {
+      await uploadBundle({ ...invalidHeader, base, builds: beforeImport });
+      await page.waitForFunction(() => document.querySelector('#pb-status').textContent.includes('Arquivo de Pathbuilder'));
+      assert.deepEqual(await stored(page), beforeImport, 'unsupported file preserves editing');
+    }
+
     for (const [label, invalidBuild] of [
       ['fractional level', { ...beforeImport[0], classes: [
         { ...beforeImport[0].classes[0], nivel: 1.5 },
@@ -180,6 +189,11 @@ async function stored(page) {
       ['boolean bonus', { ...beforeImport[0], atributos_bonus: { FOR: true } }],
       ['fractional quantity', { ...beforeImport[0], itens: [
         { tipo: 'mundano', slug: 'corda', qtd: 1.5 }] }],
+      ['talents object', { ...beforeImport[0], talentos: { slug: 'resiliente' } }],
+      ['choices array', { ...beforeImport[0], escolhas: [] }],
+      ['invalid choice values', { ...beforeImport[0], escolhas: { afinidade: 'fogo' } }],
+      ['spells object', { ...beforeImport[0], magias: { slug: 'luz' } }],
+      ['invalid item row', { ...beforeImport[0], itens: [null] }],
     ]) {
       await uploadBundle({ base, builds: [invalidBuild, beforeImport[1]] });
       await page.waitForFunction(() => document.querySelector('#pb-status').textContent.includes('Arquivo de Pathbuilder'));
@@ -212,6 +226,16 @@ async function stored(page) {
     await page.locator('#pb-saved-builds').selectOption('broken');
     assert.match(await page.locator('#pb-status').innerText(), /Arquivo de Pathbuilder inválido/);
     assert.deepEqual(await stored(page), beforeSaved, 'versão local inválida conserva a edição');
+    await page.evaluate(({ currentBase, validBuilds }) => {
+      localStorage.setItem('bonfire:pathbuilder:saved', JSON.stringify([
+        { id: 'broken-choice', nome: 'Invalid choices', base: currentBase,
+          builds: [{ ...validBuilds[0], escolhas: { afinidade: 'fogo' } }, validBuilds[1]] }
+      ]));
+    }, { currentBase: base, validBuilds: beforeImport });
+    await previewAfter(page, () => page.reload({ waitUntil: 'load' }));
+    await page.locator('#pb-saved-builds').selectOption('broken-choice');
+    assert.match(await page.locator('#pb-status').innerText(), /Arquivo de Pathbuilder/);
+    assert.deepEqual(await stored(page), beforeSaved, 'invalid saved choices preserve editing');
     await page.evaluate(({ currentBase, validBuilds, foreignClass }) => {
       localStorage.setItem('bonfire:pathbuilder:saved', JSON.stringify([
         { id: 'foreign', nome: 'Foreign class', base: currentBase,
