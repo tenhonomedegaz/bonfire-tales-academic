@@ -180,6 +180,13 @@ async function stored(page) {
     await page.waitForFunction(() => document.querySelector('#pb-status').textContent.includes('Build B:'));
     assert.deepEqual(await stored(page), beforeImport, 'server rejection of build B preserves both variants');
 
+    const duplicateChoiceBuild = { ...beforeImport[1], escolhas: {
+      ...beforeImport[1].escolhas, afinidade: ['fogo', 'fogo']
+    } };
+    await uploadBundle({ base, builds: [beforeImport[0], duplicateChoiceBuild] });
+    await page.waitForFunction(() => document.querySelector('#pb-status').textContent.includes('Build B:'));
+    assert.deepEqual(await stored(page), beforeImport, 'duplicate choices rejected by server preserve both variants');
+
     for (const invalidHeader of [
       { formato: 'outro-editor', versao: 1 },
       { formato: 'bonfire-pathbuilder', versao: 2 },

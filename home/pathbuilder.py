@@ -516,13 +516,21 @@ def _readback_values(group):
 def _apply_choices(personagem, build):
     from . import picks
 
-    incoming = build.get("escolhas") or {}
+    incoming = build.get("escolhas", {})
     if not isinstance(incoming, dict):
         raise PathbuilderError("Escolhas da build invalidas.")
-    incoming = {
-        str(key): list(dict.fromkeys(str(value) for value in values if value))
-        for key, values in incoming.items() if isinstance(values, list)
-    }
+    normalized = {}
+    for key, values in incoming.items():
+        if (not isinstance(values, list) or len(values) > 100 or
+                any(type(value) not in (str, int) or
+                    (type(value) is str and not value.strip()) or
+                    (type(value) is int and value == 0) for value in values)):
+            raise PathbuilderError("Valores das escolhas da build invalidos.")
+        selected = [str(value) for value in values]
+        if len(selected) != len(set(selected)):
+            raise PathbuilderError("Escolhas repetidas na build.")
+        normalized[str(key)] = selected
+    incoming = normalized
     for _pass in range(8):
         changed = False
         for group in _groups_with_keys(personagem):

@@ -562,6 +562,35 @@ class PathbuilderTests(_CriadorBase):
         self.assertEqual(restored_groups[0]["resolvidas"], [])
         self.assertEqual(restored_groups[0]["pendentes"], 1)
 
+    def test_escolhas_malformadas_nao_sao_reduzidas_em_silencio(self):
+        base = self._payload('guerreiro')
+        build = self._build('guerreiro', classes=[
+            {'slug': 'guerreiro', 'nivel': 4, 'subclasse': ''}],
+            talentos=[{'slug': 'resiliente', 'atributo': 'DES'}])
+        first = self._post_preview(base, build)
+        self.assertEqual(first.status_code, 200, first.content)
+        group = next(row for row in first.json()['build']['escolhas_grupos']
+                     if row['origem'] == TbTalento.objects.get(slug='resiliente').nome)
+        selected = group['opcoes'][0]['valor']
+        before = TbPersonagem.objects.count()
+        for choices in (None, [], {group['key']: 'invalido'},
+                        {group['key']: [selected, selected]},
+                        {group['key']: [selected, None]},
+                        {group['key']: [True]}):
+            with self.subTest(choices=choices):
+                response = self._post_preview(base, {**build, 'escolhas': choices})
+                self.assertEqual(response.status_code, 400, response.content)
+                self.assertFalse(response.json()['ok'])
+                self.assertEqual(TbPersonagem.objects.count(), before)
+
+        corrected = self._post_preview(base, {**build, 'escolhas': {
+            group['key']: [selected]}})
+        self.assertEqual(corrected.status_code, 200, corrected.content)
+        resolved = next(row for row in corrected.json()['build']['escolhas_grupos']
+                        if row['key'] == group['key'])
+        self.assertEqual([row['valor'] for row in resolved['resolvidas']], [selected])
+        self.assertEqual(TbPersonagem.objects.count(), before)
+
     def test_marcos_de_talento_racial_usam_o_resolvedor_do_levelup(self):
         payload = self._payload("guerreiro")
         classes = [{"slug": "guerreiro", "nivel": 17, "subclasse": ""}]
