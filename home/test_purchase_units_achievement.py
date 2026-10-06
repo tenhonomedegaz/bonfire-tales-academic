@@ -19,6 +19,55 @@ from home.views import _preco_em_pc
 
 
 class PurchaseUnitsAchievementTests(_MercadoBase):
+    def test_admin_reprocesses_historical_first_purchase_and_units_once(self):
+        char = self._char('purchase-admin-replay')
+        item = self._item_mundano_com_preco()
+        inventory = TbPersonagemItem.objects.create(
+            id_personagem=char, id_item_mundano=item,
+            nome=item.nome, qtd=2, origem_tipo='compra')
+        purchase = TbTransacao.objects.create(
+            id_personagem=char, tipo='compra', valor_pc=-100,
+            saldo_pc=char.carteira_pc,
+            detalhes_json={'catalogo': 'mundano', 'catalogo_id': item.pk,
+                           'inventario_id': inventory.pk, 'qtd': 2})
+        first = TbConquista.objects.create(
+            slug='first-purchase-admin-replay', nome='Primeira compra antiga',
+            criterio='automatico', criterio_json={
+                'schema_version': 1, 'metric': 'items_purchased',
+                'scope': 'account', 'operator': 'gte', 'target': 1,
+            })
+        units = self._rule(item, target=2)
+        self.assertFalse(TbUsuarioConquista.objects.filter(user=char.dono).exists())
+
+        administrator = get_user_model().objects.create_superuser(
+            'purchase-replay-admin', 'purchase-replay@example.invalid', 'x')
+        self.client.force_login(administrator)
+        url = reverse('admin:home_tbconquista_changelist')
+        manual = TbConquista.objects.create(
+            slug='manual-purchase-replay-guard', nome='Regra manual', criterio='manual')
+        payload = {'action': 'reprocessar_compras', 'select_across': '0',
+                   '_selected_action': [manual.pk]}
+        self.assertEqual(self.client.post(url, payload).status_code, 302)
+        self.assertFalse(TbUsuarioConquista.objects.filter(user=char.dono).exists())
+
+        payload['_selected_action'] = [units.pk]
+        self.assertEqual(self.client.post(url, payload).status_code, 302)
+        grants = TbUsuarioConquista.objects.filter(user=char.dono)
+        self.assertEqual(set(grants.values_list('conquista_id', flat=True)),
+                         {first.pk, units.pk})
+        self.assertEqual(grants.get(conquista=first).evidencia_json['agregado_id'], purchase.pk)
+        self.assertEqual(grants.get(conquista=units).evidencia_json['total'], 2)
+        self.assertEqual(grants.get(conquista=units).evidencia_json['transacao_ids'],
+                         [purchase.pk])
+        self.assertEqual(self.client.post(url, payload).status_code, 302)
+        self.assertEqual(grants.count(), 2)
+        self.assertEqual(TbEventoConquista.objects.filter(tipo='item_purchased').count(), 1)
+
+        self.client.force_login(char.dono)
+        self.assertContains(self.client.get(reverse('profile')), first.nome)
+        self.assertContains(self.client.get(reverse('profile')), units.nome)
+        self.assertContains(self.client.get(reverse('conquista_notificacoes')), units.nome)
+
     def test_owner_sees_verified_units_and_refund_updates_progress_privately(self):
         char = self._char('purchase-visible-progress')
         item = self._item_mundano_com_preco()
