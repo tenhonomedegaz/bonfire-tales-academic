@@ -4324,24 +4324,51 @@ class TbConquistaAdmin(admin.ModelAdmin):
     @admin.action(description='Reprocessar fatos de nível e rank para marcos selecionados',
                   permissions=['change'])
     def reprocessar_nivel(self, request, queryset):
-        """Avalia contas com revisões de nível após cadastrar um novo marco."""
+        """Reconcilia revisões atuais comprováveis e reavalia marcos cadastrados."""
         from django.contrib.auth import get_user_model
-        from .conquistas import avaliar_nivel_personagem
-        from .models import TbEventoConquista
+        from django.db.models import F
+        from .conquistas import avaliar_nivel_personagem, registrar_fato_level_up
+        from .models import TbEventoConquista, TbPersonagemRevisao
 
         if not queryset.filter(
                 ativo=True, criterio='automatico',
                 criterio_json__metric__in=['character_level', 'rank_reached']).exists():
             self.message_user(request, 'Selecione um marco de nível ou rank ativo.', level=messages.WARNING)
             return
-        account_ids = TbEventoConquista.objects.filter(
+        account_ids = set(TbEventoConquista.objects.filter(
             origem='site', tipo='character_level_up').values_list(
-                'conta_id', flat=True).distinct()
-        count = 0
+                'conta_id', flat=True).distinct())
+        account_ids.update(TbPersonagemRevisao.objects.filter(
+            tipo='level_up', revertida=False,
+            nivel_depois__gt=F('nivel_antes'),
+            nivel_depois=F('id_personagem__nivel')).values_list(
+                'id_personagem__dono_id', flat=True).distinct())
+        count = novos = ignorados = 0
         for user in get_user_model().objects.filter(pk__in=account_ids).iterator():
+            revisions = TbPersonagemRevisao.objects.filter(
+                id_personagem__dono=user, tipo='level_up', revertida=False,
+                nivel_depois__gt=F('nivel_antes'),
+                nivel_depois=F('id_personagem__nivel')).select_related(
+                    'id_personagem').order_by('id_personagem_id', '-criado_em', '-pk')
+            seen = set()
+            for revision in revisions:
+                if revision.id_personagem_id in seen:
+                    continue
+                seen.add(revision.id_personagem_id)
+                key = f'personagem:{revision.id_personagem_id}:revisao:{revision.pk}:level_up'
+                existed = TbEventoConquista.objects.filter(
+                    origem='site', chave_origem=key).exists()
+                try:
+                    with transaction.atomic():
+                        registrar_fato_level_up(revision)
+                except ValueError:
+                    ignorados += 1
+                else:
+                    novos += int(not existed)
             avaliar_nivel_personagem(user)
             count += 1
-        self.message_user(request, f'{count} conta(s) reavaliada(s) com fatos de nível.')
+        self.message_user(request, f'{count} conta(s) reavaliada(s), {novos} fato(s) recuperado(s), '
+                          f'{ignorados} revisão(ões) sem prova suficiente.')
 
     def formfield_for_dbfield(self, db_field, request, **kwargs):
         if db_field.name == 'criterio_json':
