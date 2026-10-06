@@ -5,7 +5,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from home.conquistas import conceder_conquista
+from home.conquistas import conceder_conquista, revogar_conquista_manual
 from home.deploy_sync import MEMORY_MODELS
 from home.models import (TbConquista, TbConquistaNotificacao, TbCosmetico,
                          TbUsuarioConquista, TbUsuarioCosmetico)
@@ -64,3 +64,43 @@ class AchievementNotificationTests(TestCase):
                 conceder_conquista(self.owner, self.rule)
         self.assertFalse(TbUsuarioConquista.objects.exists())
         self.assertFalse(TbConquistaNotificacao.objects.exists())
+
+    def test_manual_revocation_is_idempotent_and_private_until_regrant(self):
+        staff = get_user_model().objects.create_superuser('achievement-staff',
+                                                          'staff@example.invalid', 'x')
+        self.assertTrue(conceder_conquista(self.owner, self.rule, por=staff))
+        grant = TbUsuarioConquista.objects.get(user=self.owner, conquista=self.rule)
+        self.client.force_login(staff)
+        action_url = reverse('admin:home_tbusuarioconquista_changelist')
+        payload = {'action': 'revogar_manuais', '_selected_action': [grant.pk]}
+        self.assertEqual(self.client.post(action_url, payload).status_code, 302)
+        grant.refresh_from_db()
+        self.assertIsNotNone(grant.revogada_em)
+        possession = TbUsuarioCosmetico.objects.get(user=self.owner, cosmetico=self.badge)
+        self.assertIsNotNone(possession.suspenso_em)
+        self.assertEqual(self.client.post(action_url, payload).status_code, 302)
+        self.assertEqual(TbConquistaNotificacao.objects.count(), 1)
+        self.client.force_login(self.owner)
+        self.assertNotContains(self.client.get(reverse('conquista_notificacoes')),
+                               self.rule.nome)
+        self.assertTrue(conceder_conquista(self.owner, self.rule, por=staff))
+        possession.refresh_from_db()
+        self.assertIsNone(possession.suspenso_em)
+        self.assertContains(self.client.get(reverse('conquista_notificacoes')),
+                            self.rule.nome)
+
+    def test_revocation_preserves_shared_reward_and_other_origin(self):
+        second = TbConquista.objects.create(slug='shared-badge', nome='Outra conquista',
+                                            criterio='manual', recompensa=self.badge)
+        conceder_conquista(self.owner, self.rule)
+        conceder_conquista(self.owner, second)
+        first_grant = TbUsuarioConquista.objects.get(user=self.owner, conquista=self.rule)
+        second_grant = TbUsuarioConquista.objects.get(user=self.owner, conquista=second)
+        self.assertTrue(revogar_conquista_manual(first_grant))
+        possession = TbUsuarioCosmetico.objects.get(user=self.owner, cosmetico=self.badge)
+        self.assertIsNone(possession.suspenso_em)
+        possession.origem = 'staff'
+        possession.save(update_fields=['origem'])
+        self.assertTrue(revogar_conquista_manual(second_grant))
+        possession.refresh_from_db()
+        self.assertIsNone(possession.suspenso_em)

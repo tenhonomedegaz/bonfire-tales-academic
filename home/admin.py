@@ -4344,12 +4344,24 @@ class TbConquistaAdmin(admin.ModelAdmin):
 
 @admin.register(TbUsuarioConquista)
 class TbUsuarioConquistaAdmin(admin.ModelAdmin):
-    list_display = ('user', 'conquista', 'concedida_em', 'concedida_por')
-    list_filter = ('conquista', 'concedida_em')
+    list_display = ('user', 'conquista', 'concedida_em', 'concedida_por', 'revogada_em')
+    list_filter = ('conquista', 'concedida_em', 'revogada_em')
     search_fields = ('user__username', 'conquista__nome', 'conquista__slug')
     autocomplete_fields = ('user', 'conquista', 'concedida_por')
     readonly_fields = ('concedida_em', 'evidencia_json', 'definicao_json')
     ordering = ('-concedida_em',)
+    actions = ('revogar_manuais',)
+
+    @admin.action(description='Revogar concessões manuais selecionadas', permissions=['change'])
+    def revogar_manuais(self, request, queryset):
+        """Revoga somente regras manuais; a repetição não afeta outras origens."""
+        from .conquistas import revogar_conquista_manual
+
+        revoked = 0
+        for grant in queryset.select_related('conquista').iterator():
+            if revogar_conquista_manual(grant):
+                revoked += 1
+        self.message_user(request, f'{revoked} concessão(ões) manual(is) revogada(s).')
 
 
 @admin.register(TbEventoConquista)

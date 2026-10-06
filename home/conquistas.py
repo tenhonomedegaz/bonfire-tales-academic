@@ -215,6 +215,36 @@ def conceder_conquista_em_massa(users, conquista, por=None):
     return concedidas, ja_tinham
 
 
+@transaction.atomic
+def revogar_conquista_manual(concessao):
+    """Revoga uma concessão manual sem retirar um cosmético obtido por outra fonte."""
+    from django.utils import timezone
+    from .models import (CosmeticCheckoutPurchase, TbUsuarioConquista,
+                         TbUsuarioCosmetico)
+
+    grant = (TbUsuarioConquista.objects.select_for_update()
+             .select_related('conquista').get(pk=concessao.pk))
+    if grant.conquista.criterio != 'manual' or grant.revogada_em is not None:
+        return False
+    now = timezone.now()
+    grant.revogada_em = now
+    grant.save(update_fields=['revogada_em'])
+    reward_id = grant.conquista.recompensa_id
+    if reward_id:
+        another_grant = TbUsuarioConquista.objects.filter(
+            user_id=grant.user_id, conquista__recompensa_id=reward_id,
+            revogada_em__isnull=True).exclude(pk=grant.pk).exists()
+        purchased = CosmeticCheckoutPurchase.objects.filter(
+            beneficiary_id=grant.user_id, cosmetico_id=reward_id,
+            granted_at__isnull=False).exists()
+        if not another_grant and not purchased:
+            TbUsuarioCosmetico.objects.filter(
+                user_id=grant.user_id, cosmetico_id=reward_id,
+                origem__startswith='conquista:', suspenso_em__isnull=True,
+            ).update(suspenso_em=now)
+    return True
+
+
 def registrar_criacao_personagem(personagem):
     """Registra a criação confirmada e concede a métrica da primeira ficha.
 
