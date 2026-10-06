@@ -20,7 +20,7 @@ const catalogs = { classes: [{ slug: 'guerreiro', nome: 'Guerreiro', subclasses:
   talentos: [{ slug: 'resiliente', nome: 'Resiliente', grupo: 'Geral', atributos: ['CON'] }],
   itens_mundanos: [], itens_magicos: [], magias: [
     { slug: 'luz', nome: 'Luz', nivel: 0 }, { slug: 'curar-ferimentos', nome: 'Curar Ferimentos', nivel: 1 },
-    { slug: 'escudo', nome: 'Escudo', nivel: 1 },
+    { slug: 'escudo', nome: 'Escudo', nome_ingles: 'Shield', nivel: 1 },
   ] };
 const template = fs.readFileSync(path.join(root, 'templates/home/pages/pathbuilder.html'), 'utf8');
 const content = template.split('{% block content %}')[1].split('{% endblock %}')[0]
@@ -660,4 +660,34 @@ test('Q10 remover adição confirmada não a transforma em magia da base', async
   await h.page.locator('[data-remove-spell="0"]').click();
   assert.equal(await h.page.locator('[data-spell-prepared-slug="luz"]').count(),0);
   assert.deepEqual((await h.stored())[0].magias,[]);
+});
+
+test('Q01 busca PT/EN sem acentos e teclado preserva magias já escolhidas', async t => {
+  const build = seed();
+  build.magias = [{ slug: 'luz', classe: 'mago', preparada: true }];
+  const h = await harness(t, [build, seed()]);
+  const first = await h.nextRequest(0);
+  const initial = result(first.input.build);
+  initial.build.magias_fontes = [{ slug: 'mago', nome: 'Mago', magias: [] }];
+  first.reply(initial);
+  await h.page.locator('[data-confirmed-sheet]').waitFor();
+  await h.page.locator('[data-step-tab="5"]').click();
+  await h.page.locator('#pb-spell-class').selectOption('mago');
+  const search = h.page.locator('[data-picker="magia"] [data-picker-search]');
+  await search.fill('shield');
+  assert.match(await h.page.locator('#pb-spell-results').innerText(), /1 magia.*1 escolha/);
+  assert.equal(await h.page.locator('[data-picker="magia"] [data-opt-slug="escudo"]').count(), 1);
+  assert.match(await h.page.locator('[data-picker="magia"] [data-opt-slug="escudo"]').innerText(), /Shield/);
+  await search.press('ArrowDown');
+  assert.equal(await h.page.locator('[data-picker="magia"] [data-opt-slug="escudo"] [data-opt-pick]').evaluate(
+    element => element === document.activeElement), true);
+  await h.page.keyboard.press('Enter');
+  assert.deepEqual((await h.stored())[0].magias, [
+    { slug: 'luz', classe: 'mago', preparada: true },
+    { slug: 'escudo', classe: 'mago', preparada: true },
+  ]);
+  await search.fill('inexistente');
+  assert.match(await h.page.locator('[data-picker="magia"] [data-picker-list]').innerText(), /Nenhum resultado/);
+  assert.match(await h.page.locator('#pb-spell-results').innerText(), /0 magia.*2 escolha/);
+  assert.equal(await h.page.locator('#pb-spells [data-spell-prepared-slug]').count(), 2);
 });

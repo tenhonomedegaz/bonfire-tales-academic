@@ -268,7 +268,8 @@
             for (var i = 0; i < rows.length && out.length < 160; i += 1) {
                 var row = rows[i];
                 if (selected && selected[row.slug]) continue;
-                if (q && fold(row.nome + ' ' + (row.meta || '') + ' ' + (row.grupo || '')).indexOf(q) < 0) continue;
+                if (q && fold(row.nome + ' ' + (row.nome_ingles || '') + ' ' +
+                        (row.meta || '') + ' ' + (row.grupo || '')).indexOf(q) < 0) continue;
                 out.push(row);
             }
             return out;
@@ -313,12 +314,17 @@
             } else {
                 if (!spellClass) {
                     list.innerHTML = '<p class="pb-muted pb-opt-empty">Escolha a classe que adiciona a magia.</p>';
+                    byId('pb-spell-results').textContent =
+                        build.magias.length + ' escolha(s) mantida(s) · escolha uma classe para buscar';
                     return;
                 }
                 build.magias.forEach(function (row) {
                     if ((row.classe || '') === spellClass) owned[row.slug] = true;
                 });
-                source = catalogs.magias || [];
+                source = (catalogs.magias || []).map(function (row) {
+                    return Object.assign({}, row, { meta: (row.nome_ingles ? row.nome_ingles + ' · ' : '') +
+                        (row.meta || '') });
+                });
             }
             /* Item pode repetir na build (3 poções), então o catálogo de itens não esconde
                o que já foi escolhido; classe/talento/magia são únicos e saem da lista. */
@@ -328,10 +334,15 @@
             var q = fold(queries[kind]);
             source.forEach(function (row) {
                 if (hide && hide[row.slug]) return;
-                if (!q || fold(row.nome + ' ' + (row.meta || '') + ' ' + (row.grupo || '')).indexOf(q) >= 0) {
+                if (!q || fold(row.nome + ' ' + (row.nome_ingles || '') + ' ' +
+                        (row.meta || '') + ' ' + (row.grupo || '')).indexOf(q) >= 0) {
                     totalMatching += 1;
                 }
             });
+            if (kind === 'magia') {
+                byId('pb-spell-results').textContent = totalMatching +
+                    ' magia(s) encontrada(s) · ' + build.magias.length + ' escolha(s) mantida(s)';
+            }
             list.innerHTML = pickerHtml(kind === 'item' ? itemKind : kind, rows, totalMatching);
         }
 
@@ -1292,6 +1303,17 @@
         });
 
         app.addEventListener('keydown', function (event) {
+            var spellPicker = event.target.closest('[data-picker="magia"]');
+            if (spellPicker && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
+                var cards = Array.prototype.slice.call(spellPicker.querySelectorAll('[data-picker-list] .pb-opt-pick'));
+                var at = cards.indexOf(event.target);
+                if (cards.length && (at >= 0 || event.target.matches('[data-picker-search]'))) {
+                    event.preventDefault();
+                    cards[at < 0 ? (event.key === 'ArrowDown' ? 0 : cards.length - 1) :
+                        (at + (event.key === 'ArrowDown' ? 1 : -1) + cards.length) % cards.length].focus();
+                    return;
+                }
+            }
             if (event.key !== 'Enter' && event.key !== ' ') return;
             var stepTab = event.target.closest('[data-step-tab]');
             if (!stepTab) return;

@@ -331,6 +331,16 @@ class PathbuilderTests(_CriadorBase):
         self.assertTrue(all(row["grupo"].lower() == "geral" for row in cat["talentos"]))
         self.assertTrue(all(row["atributos"] for row in cat["talentos"]))
 
+    def test_catalogo_de_magias_inclui_nome_ingles_sem_alterar_o_nome_exibido(self):
+        from home.pathbuilder import catalogos
+
+        magia = TbMagia.objects.first()
+        magia.nome_ingles = "Example Spell"
+        magia.save(update_fields=["nome_ingles"])
+        row = next(row for row in catalogos()["magias"] if row["slug"] == magia.slug)
+        self.assertEqual(row["nome"], magia.nome)
+        self.assertEqual(row["nome_ingles"], "Example Spell")
+
     def test_talento_livre_aplica_seu_mais_um_no_atributo_escolhido(self):
         payload = self._payload("guerreiro")
         talento = TbTalento.objects.filter(tipo__iexact="geral").first()
