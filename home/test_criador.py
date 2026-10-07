@@ -22,7 +22,7 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.core.management import call_command
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from home import views, point_buy
@@ -1216,6 +1216,7 @@ class LinhagemEssenciaExclusivasTests(_CriadorBase):
         self.assertFalse(resp.json().get('ready'), resp.json())
         self.assertFalse(TbPersonagem.objects.exists())
 
+    @override_settings(HUNTER_CREATOR_RULESET_CHECKSUM='')
     def test_smoke_pagina_do_criador_carrega(self):
         # smoke: a página do criador continua respondendo 200 depois da troca
         # automática linhagem<->essência no JS (nada quebrou o template/contexto).
