@@ -20,12 +20,17 @@ ADMIN_GROUPS = (
         "TbRegiao", "TbTerritorio",
     }),
     ("Economia", "economia", {
-        "AsaasCheckoutOrder", "TbEmprestimoPersonagem",
+        "AsaasCheckoutOrder", "MestreOuroDireito", "MestreOuroRevisao",
+        "SocialCreditEntry", "SocialCreditPolicy",
+        "SocialCreditReaderRecognition", "SocialCreditRedemption",
+        "SocialCreditWallet", "TbEmprestimoPersonagem",
         "TbPersonagemTreinamento", "TbRecompensaMestre", "TbTransacao",
         "TbTransacaoMestre",
     }),
     ("Cosméticos e conquistas", "cosmeticos", {
-        "TbConquista", "TbCosmetico", "TbEventoConquista",
+        "CosmeticCheckoutOffer", "CosmeticCheckoutPurchase",
+        "EventCosmeticOffer", "EventCosmeticRedemption", "TbConquista",
+        "TbCosmetico", "TbEventoConquista",
         "TbUsuarioConquista", "TbUsuarioCosmetico",
     }),
     ("Integrações", "integracoes", {
