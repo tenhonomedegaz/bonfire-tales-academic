@@ -1584,6 +1584,13 @@
             });
             var editingBefore = JSON.stringify({ base: base, builds: builds });
             var status = byId('pb-status');
+            if (editingBefore !== JSON.stringify({ base: importedBase, builds: importedBuilds }) &&
+                    !window.confirm('Substituir as duas builds em edição por esta versão? ' +
+                        'Salve uma versão ou exporte um arquivo antes, se quiser guardar a edição atual.')) {
+                status.textContent = 'Substituição cancelada · as duas builds em edição foram mantidas.';
+                status.classList.remove('is-error');
+                return false;
+            }
             status.textContent = 'Validando as duas builds…';
             status.classList.remove('is-error');
             return Promise.all(importedBuilds.map(function (build, index) {
@@ -1698,7 +1705,7 @@
             var bundle = savedVersions().find(function (row) { return row.id === id; });
             if (!bundle) return;
             try {
-                loadBundle(bundle);
+                if (loadBundle(bundle) === false) renderSavedVersions('');
             } catch (error) {
                 var status = byId('pb-status');
                 status.textContent = error.message;

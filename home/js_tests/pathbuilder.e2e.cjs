@@ -49,6 +49,9 @@ async function stored(page) {
   const page = await context.newPage();
   const errors = [];
   page.setDefaultTimeout(15000);
+  page.on('dialog', dialog => {
+    if (dialog.message().startsWith('Substituir as duas builds em edição')) dialog.accept();
+  });
   page.on('pageerror', error => errors.push(error.message));
   await context.route('**/*', route => {
     if (route.request().url().startsWith(origin)) return route.continue();

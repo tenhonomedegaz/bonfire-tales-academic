@@ -76,6 +76,12 @@ async function harness(t, builds = [seed(), seed()]) {
       ? { executablePath: process.env.BONFIRE_CHROMIUM_EXECUTABLE_PATH } : {}) });
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const page = await context.newPage();
+  let acceptReplacement = true;
+  page.on('dialog', dialog => {
+    if (dialog.message().startsWith('Substituir as duas builds em edição')) {
+      if (acceptReplacement) dialog.accept(); else dialog.dismiss();
+    }
+  });
   page.setDefaultTimeout(10000);
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
@@ -108,7 +114,8 @@ async function harness(t, builds = [seed(), seed()]) {
     await page.locator('[data-step-tab="3"]').click();
   }
   const stored = () => page.evaluate(() => JSON.parse(localStorage.getItem('bonfire:pathbuilder:builds')));
-  return { page, requests, nextRequest, initial, stored };
+  return { page, requests, nextRequest, initial, stored,
+    acceptReplacement(value) { acceptReplacement = value; } };
 }
 
 test('falha HTTP mantém ficha e orçamento; rajada não distribui 60/2 pontos', async t => {
@@ -399,6 +406,31 @@ test('importação rejeita atributo desconhecido sem trocar as builds e aceita c
   assert.equal(await h.page.locator('#pb-status.is-error').count(), 0);
 });
 
+test('importar outra versão exige confirmação e cancelar mantém as duas builds', async t => {
+  const h = await harness(t);
+  await h.initial();
+  const before = await h.stored();
+  const imported = [seed(), { ...seed(), classes: [{ slug: 'guerreiro', nivel: 3, subclasse: '' }] }];
+  const upload = () => h.page.locator('#pb-import').setInputFiles({
+    name: 'duas-builds.json', mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify({ formato: 'bonfire-pathbuilder', versao: 1,
+      base, builds: imported })),
+  });
+  h.acceptReplacement(false);
+  await upload();
+  await h.page.getByText(/Substituição cancelada/).waitFor();
+  assert.deepEqual(await h.stored(), before);
+  assert.equal(h.requests.length, 1);
+  h.acceptReplacement(true);
+  await upload();
+  for (const index of [1, 2]) {
+    const request = await h.nextRequest(index);
+    request.reply(result(request.input.build));
+  }
+  await h.page.waitForFunction(() => JSON.parse(localStorage.getItem('bonfire:pathbuilder:builds'))[1].classes[0].nivel === 3);
+  assert.equal((await h.stored())[0].classes[0].nivel, 4);
+});
+
 test('versão salva abre as duas builds; exclusão cancelada, confirmada ou falha preserva a edição', async t => {
   const second = { ...seed(), classes: [{ slug: 'guerreiro', nivel: 3, subclasse: '' }] };
   const h = await harness(t, [seed(), second]);
@@ -418,7 +450,14 @@ test('versão salva abre as duas builds; exclusão cancelada, confirmada ou falh
   assert.equal(await h.page.locator('#pb-saved-builds').inputValue(), original.id);
   assert.equal((await h.stored())[0].atributos_bonus.FOR, 1);
 
+  h.acceptReplacement(false);
   await h.page.locator('#pb-saved-builds').selectOption('');
+  await h.page.locator('#pb-saved-builds').selectOption(original.id);
+  assert.match(await h.page.locator('#pb-status').innerText(), /Substituição cancelada/);
+  assert.equal(await h.page.locator('#pb-saved-builds').inputValue(), '');
+  assert.equal((await h.stored())[0].atributos_bonus.FOR, 1);
+  assert.equal(h.requests.length, 2, 'cancelar não consulta nem substitui a build');
+  h.acceptReplacement(true);
   await h.page.locator('#pb-saved-builds').selectOption(original.id);
   const pendingA = await h.nextRequest(2);
   const pendingB = await h.nextRequest(3);
