@@ -90,7 +90,10 @@
     if (atual && !atual.closest('li').hidden) return;
     var primeira = visiveis()[0];
     if (primeira) { selecionar(primeira, true); return; }
-    if (atual) atual.classList.remove('is-selected');
+    if (atual) {
+      atual.classList.remove('is-selected');
+      atual.setAttribute('aria-selected', 'false');
+    }
     if (detalhe) {
       detalhe.innerHTML = '<p class="mkt-preview-empty">' + (aba === 'vender'
         ? 'Nada na mochila para vender no balcão.'
