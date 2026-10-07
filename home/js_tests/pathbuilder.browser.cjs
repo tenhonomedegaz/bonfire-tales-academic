@@ -148,6 +148,33 @@ test('falha HTTP mantém ficha e orçamento; rajada não distribui 60/2 pontos',
   }
 });
 
+test('laboratório completo mantém controles e ficha acessíveis em desktop, celular e zoom', async t => {
+  const h = await harness(t);
+  await h.initial();
+  const artifactDir = process.env.BONFIRE_ARTIFACT_DIR;
+  if (artifactDir) fs.mkdirSync(artifactDir, { recursive: true });
+  for (const [name, width, height, zoom] of [
+    ['normal-desktop', 1280, 900, 1],
+    ['normal-mobile', 360, 800, 1],
+    ['zoom-200', 720, 900, 2],
+  ]) {
+    await h.page.setViewportSize({ width, height });
+    await h.page.evaluate(value => { document.body.style.zoom = String(value); }, zoom);
+    const geometry = await h.page.evaluate(() => ({
+      viewport: document.documentElement.clientWidth,
+      content: document.documentElement.scrollWidth,
+    }));
+    assert.ok(geometry.content <= geometry.viewport + 1,
+      `${name}: conteúdo ${geometry.content}px excede viewport ${geometry.viewport}px`);
+    for (const selector of ['#pb-status', '.pb-head-tools', '.pb-sheet', '[data-step-tab="3"]']) {
+      const box = await h.page.locator(selector).boundingBox();
+      assert.ok(box && box.x >= -1 && box.x + box.width <= width + 1,
+        `${name}: ${selector} precisa caber na largura`);
+    }
+    if (artifactDir) await h.page.screenshot({ path: path.join(artifactDir, `${name}.png`), fullPage: true });
+  }
+});
+
 test('erro inicial não habilita ASI/talentos, mas permite corrigir a progressão', async t => {
   const h = await harness(t);
   (await h.nextRequest(0)).reply({ ok: false, erros: ['Falha inicial'] }, 500);
