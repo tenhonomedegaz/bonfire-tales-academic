@@ -153,7 +153,7 @@ python manage.py test home.test_responsive home.test_templates_lint home.test_ma
 node --test home/js_tests/map_geometry.test.cjs
 
 # Gate final: suite geral (somente após as fatias e banco isolado)
-python manage.py test
+python manage.py test home
 ```
 
 Gate E2E final, ainda a criar/selecionar pelo time: navegar criação → laboratório → level-up → ficha e preservar aba; testar Q14 sob rajada/erro/reload; transação/checkout com webhook duplicado/timeout/estorno; publicar/moderar/interagir com história; projeção de ficha como visitante/dono/staff; lote do bestiário e consumidores; exportar/importar Foundry duas vezes sem duplicar Actor/Item, em simples/conjurador/multiclasse/Caçador versionado. O gate só fecha com evidência registrada para dono, outro usuário, visitante e staff quando aplicável.

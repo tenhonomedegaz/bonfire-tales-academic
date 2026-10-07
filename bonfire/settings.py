@@ -85,6 +85,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 ]
 
+TEST_RUNNER = 'bonfire.test_runner.ApplicationDiscoverRunner'
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
