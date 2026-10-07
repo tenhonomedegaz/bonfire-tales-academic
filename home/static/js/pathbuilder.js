@@ -1477,6 +1477,15 @@
         }
         function writeSavedVersions(rows) {
             try {
+                var previous = localStorage.getItem(STORAGE_SAVED);
+                if (previous !== null) {
+                    var parsed;
+                    try { parsed = JSON.parse(previous); } catch (parseError) { parsed = null; }
+                    if (!Array.isArray(parsed)) {
+                        savedFeedback('As versões locais não puderam ser lidas. Os dados existentes foram preservados; exporte a edição atual antes de tentar recuperar o armazenamento.', true);
+                        return false;
+                    }
+                }
                 localStorage.setItem(STORAGE_SAVED, JSON.stringify(rows));
                 return true;
             } catch (error) {
@@ -1678,10 +1687,14 @@
             });
         }
         byId('pb-save').addEventListener('click', function () {
+            var rows = savedVersions();
+            if (rows.length >= 30) {
+                savedFeedback('Limite de 30 versões locais atingido. Exclua uma versão ou exporte um arquivo antes de salvar outra.', true);
+                return;
+            }
             var name = window.prompt('Nome desta versão:', 'Build ' +
                 new Date().toLocaleString('pt-BR'));
             if (!name || !name.trim()) return;
-            var rows = savedVersions();
             var id = String(Date.now());
             while (rows.some(function (row) { return row.id === id; })) {
                 id = String(Number(id) + 1);
@@ -1693,7 +1706,7 @@
                 base: clone(base),
                 builds: clone(builds)
             });
-            if (writeSavedVersions(rows.slice(0, 30))) {
+            if (writeSavedVersions(rows)) {
                 renderSavedVersions(id);
                 savedFeedback('Versão salva neste navegador. Exporte um arquivo para ter uma cópia fora dele.', false);
             }

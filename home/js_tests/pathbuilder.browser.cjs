@@ -510,6 +510,43 @@ test('versão salva abre as duas builds; exclusão cancelada, confirmada ou falh
   assert.equal((await h.stored())[0].atributos_bonus.FOR, 1);
 });
 
+test('limite de versões locais não apaga a mais antiga e permite salvar após excluir', async t => {
+  const h = await harness(t);
+  await h.initial();
+  const rows = Array.from({ length: 30 }, (_, index) => ({
+    id: `versao-${index}`, nome: `Versão ${index}`, salvo_em: new Date().toISOString(),
+    base, builds: [seed(), seed()],
+  }));
+  const saved = () => h.page.evaluate(() => JSON.parse(localStorage.getItem('bonfire:pathbuilder:saved')));
+  await h.page.evaluate(data => localStorage.setItem('bonfire:pathbuilder:saved', JSON.stringify(data)), rows);
+  await h.page.reload();
+  const reload = await h.nextRequest(1);
+  reload.reply(result(reload.input.build));
+  await h.page.locator('[data-confirmed-sheet]').waitFor();
+  await h.page.locator('#pb-save').click();
+  assert.match(await h.page.locator('#pb-save-status.is-error').innerText(), /Limite de 30 versões/);
+  assert.deepEqual(await saved(), rows);
+
+  await h.page.locator('#pb-saved-builds').selectOption(rows[0].id);
+  h.page.once('dialog', dialog => dialog.accept());
+  await h.page.locator('#pb-delete-save').click();
+  assert.equal((await saved()).length, 29);
+  h.page.once('dialog', dialog => dialog.accept('Nova versão'));
+  await h.page.locator('#pb-save').click();
+  const after = await saved();
+  assert.equal(after.length, 30);
+  assert.equal(after[0].nome, 'Nova versão');
+  assert.equal(after.at(-1).id, rows.at(-1).id, 'versão mais antiga continua disponível');
+  assert.equal(await h.page.locator('#pb-save-status.is-error').count(), 0);
+
+  const damaged = '{versoes-corrompidas';
+  await h.page.evaluate(raw => localStorage.setItem('bonfire:pathbuilder:saved', raw), damaged);
+  h.page.once('dialog', dialog => dialog.accept('Não sobrescrever'));
+  await h.page.locator('#pb-save').click();
+  assert.equal(await h.page.evaluate(() => localStorage.getItem('bonfire:pathbuilder:saved')), damaged);
+  assert.match(await h.page.locator('#pb-save-status.is-error').innerText(), /dados existentes foram preservados/);
+});
+
 test('JSON corrompido na sessão usa a cópia local e permite continuar a edição', async t => {
   const h = await harness(t);
   await h.initial();
