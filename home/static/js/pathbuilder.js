@@ -1466,9 +1466,30 @@
         });
 
         /* --------------------------------------------------------- versões salvas */
+        function validSavedVersions(rows) {
+            return Array.isArray(rows) && rows.every(function (row) {
+                return row && typeof row === 'object' && !Array.isArray(row) &&
+                    typeof row.id === 'string' && row.id.length > 0 &&
+                    typeof row.nome === 'string' && row.nome.length > 0 &&
+                    row.base && typeof row.base === 'object' && !Array.isArray(row.base) &&
+                    Array.isArray(row.builds) && row.builds.length === 2;
+            });
+        }
         function savedVersions() {
-            var saved = readLocal(STORAGE_SAVED);
-            return Array.isArray(saved) ? saved : [];
+            var raw;
+            try { raw = localStorage.getItem(STORAGE_SAVED); }
+            catch (error) {
+                savedFeedback('Não foi possível ler as versões locais. Exporte a edição atual para guardar uma cópia.', true);
+                return [];
+            }
+            if (raw === null) return [];
+            var saved;
+            try { saved = JSON.parse(raw); } catch (error) { saved = null; }
+            if (!validSavedVersions(saved)) {
+                savedFeedback('As versões locais não puderam ser lidas. Os dados existentes foram preservados; exporte a edição atual antes de tentar recuperar o armazenamento.', true);
+                return [];
+            }
+            return saved;
         }
         function savedFeedback(message, isError) {
             var feedback = byId('pb-save-status');
@@ -1481,7 +1502,7 @@
                 if (previous !== null) {
                     var parsed;
                     try { parsed = JSON.parse(previous); } catch (parseError) { parsed = null; }
-                    if (!Array.isArray(parsed)) {
+                    if (!validSavedVersions(parsed)) {
                         savedFeedback('As versões locais não puderam ser lidas. Os dados existentes foram preservados; exporte a edição atual antes de tentar recuperar o armazenamento.', true);
                         return false;
                     }

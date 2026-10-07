@@ -574,6 +574,28 @@ test('limite de versões locais não apaga a mais antiga e permite salvar após 
   assert.match(await h.page.locator('#pb-save-status.is-error').innerText(), /dados existentes foram preservados/);
 });
 
+test('versão salva malformada não trava o laboratório nem sobrescreve a cópia local', async t => {
+  const h = await harness(t);
+  await h.initial();
+  const damaged = JSON.stringify([null, { id: 'incompleta', nome: 'Cópia parcial' }]);
+  await h.page.evaluate(raw => localStorage.setItem('bonfire:pathbuilder:saved', raw), damaged);
+  await h.page.reload();
+  const reload = await h.nextRequest(1);
+  reload.reply(result(reload.input.build));
+  await h.page.locator('[data-confirmed-sheet]').waitFor();
+  assert.equal(await h.page.locator('#pb-saved-builds option').count(), 1);
+  assert.match(await h.page.locator('#pb-save-status.is-error').innerText(), /dados existentes foram preservados/);
+  await h.page.locator('[data-step-tab="3"]').click();
+  await h.page.locator('[data-attr="FOR"][data-delta="1"]').click();
+  const edit = await h.nextRequest(2);
+  edit.reply(result(edit.input.build));
+  assert.equal((await h.stored())[0].atributos_bonus.FOR, 1);
+  h.page.once('dialog', dialog => dialog.accept('Não sobrescrever'));
+  await h.page.locator('#pb-save').click();
+  assert.equal(await h.page.evaluate(() => localStorage.getItem('bonfire:pathbuilder:saved')), damaged);
+  assert.match(await h.page.locator('#pb-save-status.is-error').innerText(), /dados existentes foram preservados/);
+});
+
 test('JSON corrompido na sessão usa a cópia local e permite continuar a edição', async t => {
   const h = await harness(t);
   await h.initial();
