@@ -363,6 +363,26 @@ class EventCosmeticConcurrencyTests(TransactionTestCase):
 
 @unittest.skipUnless(os.environ.get('BONFIRE_PLAYWRIGHT_MODULE'), 'Configure Playwright.')
 class EventCosmeticBrowserTests(StaticLiveServerTestCase):
+    def test_insufficient_balance_explained_in_mobile_and_desktop_shop(self):
+        self.assertEqual(connection.vendor, 'postgresql')
+        self.assertTrue(connection.settings_dict['NAME'].startswith('test_'))
+        user, _, character, cosmetic, offer = setup_offer()
+        TbPersonagem.objects.filter(pk=character.pk).update(braseiros=24)
+        self.client.force_login(user)
+        env = dict(os.environ, EVENT_SHOP_ORIGIN=self.live_server_url,
+                   EVENT_SHOP_PATH=reverse('event_cosmetic_shop'),
+                   EVENT_SHOP_SESSION=self.client.cookies['sessionid'].value,
+                   EVENT_SHOP_INSUFFICIENT='1')
+        result = subprocess.run(
+            ['node', str(Path(__file__).parent / 'js_tests/event_cosmetics.e2e.cjs')],
+            env=env, capture_output=True, encoding='utf-8', timeout=90)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertFalse(EventCosmeticRedemption.objects.filter(offer=offer).exists())
+        self.assertFalse(has_permanent_cosmetic(user, cosmetic))
+        character.refresh_from_db()
+        self.assertEqual(character.braseiros, 24)
+        invalidate_cosmetic_cache()
+
     def test_mobile_shop_redeems_and_shows_owned_state(self):
         self.assertEqual(connection.vendor, 'postgresql')
         self.assertTrue(connection.settings_dict['NAME'].startswith('test_'))
