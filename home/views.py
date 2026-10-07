@@ -11586,6 +11586,7 @@ def _save_catalog_item_edit(request, item, values, message):
 @require_POST
 def wiki_update_mundane_item(request, item_id):
     """Editor completo do catálogo mundano, deliberadamente superuser-only."""
+    from .editorial_links import safe_editorial_image
     if not request.user.is_superuser:
         raise Http404
     item = get_object_or_404(TbItemMundano, pk=item_id)
@@ -11605,6 +11606,9 @@ def wiki_update_mundane_item(request, item_id):
             raise ValueError('O slug deve usar somente letras minúsculas, números e hífens.')
         if TbItemMundano.objects.exclude(pk=item.pk).filter(slug=slug).exists():
             raise ValueError('Já existe um item com esse slug.')
+        image_url = (request.POST.get('imagem_url') or '').strip()
+        if image_url and not safe_editorial_image(image_url):
+            raise ValueError('URL de imagem inválida.')
     except (TypeError, ValueError) as exc:
         return HttpResponseBadRequest(str(exc))
     values = {
@@ -11614,7 +11618,7 @@ def wiki_update_mundane_item(request, item_id):
         'subcategoria': (request.POST.get('subcategoria') or '').strip() or None,
         'peso': peso,
         'preco': (request.POST.get('preco') or '').strip() or None,
-        'imagem_url': (request.POST.get('imagem_url') or '').strip() or None,
+        'imagem_url': image_url or None,
         'descricao_markdown': request.POST.get('descricao_markdown') or '',
         'tags_json': tags,
     }
@@ -11628,6 +11632,7 @@ def wiki_update_mundane_item(request, item_id):
 @require_POST
 def wiki_update_magic_item(request, item_id):
     """Editor completo do catálogo mágico, deliberadamente superuser-only."""
+    from .editorial_links import safe_editorial_image
     if not request.user.is_superuser:
         raise Http404
     item = get_object_or_404(TbItemMagico, pk=item_id)
@@ -11652,6 +11657,9 @@ def wiki_update_magic_item(request, item_id):
             raise ValueError('O slug deve usar somente letras minúsculas, números e hífens.')
         if TbItemMagico.objects.exclude(pk=item.pk).filter(slug=slug).exists():
             raise ValueError('Já existe um item com esse slug.')
+        image_url = (request.POST.get('imagem_url') or '').strip()
+        if image_url and not safe_editorial_image(image_url):
+            raise ValueError('URL de imagem inválida.')
     except (InvalidOperation, TypeError, ValueError) as exc:
         return HttpResponseBadRequest(str(exc))
     values = {
@@ -11665,7 +11673,7 @@ def wiki_update_magic_item(request, item_id):
         'loja': (request.POST.get('loja') or '').strip() or None,
         'preco': preco,
         'tipo': (request.POST.get('tipo') or '').strip() or None,
-        'imagem_url': (request.POST.get('imagem_url') or '').strip() or None,
+        'imagem_url': image_url or None,
         'descricao_markdown': request.POST.get('descricao_markdown') or '',
         'tags_json': tags,
     }
@@ -16420,9 +16428,11 @@ def _mercado_contexto(request):
 
 def itens_mundanos_view(request):
     """Vitrine MUNDANA: lista alfabética única, filtrada pela categoria do catálogo."""
+    from .editorial_links import safe_editorial_image
     cat_label = dict(TbItemMundano.CATEGORIA_CHOICES)
     itens = []
     for i in TbItemMundano.objects.all().order_by('nome'):
+        i.safe_image_url = safe_editorial_image(i.imagem_url)
         mec = mecanica_de_tags(i.tags_json, i.subcategoria)
         i.mec_dano = dano_display(mec)
         i.mec_ca = ca_display(mec)
@@ -16454,6 +16464,7 @@ def itens_mundanos_view(request):
 def itens_magicos_view(request):
     """Vitrine MÁGICA: lista alfabética única, com dois filtros — a loja do catálogo
     (Alquimia, Forja, Joalheria…) e a raridade."""
+    from .editorial_links import safe_editorial_image
     _rar_labels = dict(TbItemMagico._meta.get_field('raridade').choices)
     _slot_labels = dict(TbItemMagico.SLOT_CHOICES)
     _base_order = ['comum', 'incomum', 'raro', 'muito_raro', 'lendario', 'artefato']
@@ -16467,6 +16478,7 @@ def itens_magicos_view(request):
     # por raridade usa o filtro.
     itens = list(TbItemMagico.objects.all().order_by('nome'))
     for i in itens:
+        i.safe_image_url = safe_editorial_image(i.imagem_url)
         # Preço da loja: item sem preço OU preço <= 0 é recompensa de missão (não
         # comercializável) — a vitrine mostra o rótulo no lugar do número e não dá botão.
         i.preco_display = _preco_po_display(i.preco) if (i.preco is not None and float(i.preco) > 0) else None

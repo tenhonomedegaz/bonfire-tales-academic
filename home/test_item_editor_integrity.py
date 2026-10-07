@@ -102,3 +102,43 @@ class ItemEditorIntegrityTests(TestCase):
                 self.client.post(url, self.magic_form(nome='Nome não publicado'))
         self.magic.refresh_from_db()
         self.assertEqual(self.magic.nome, 'Anel editorial')
+
+    def test_image_edits_reject_unsafe_urls_without_changing_catalog(self):
+        for item, route, form, valid in (
+            (self.mundane, 'wiki_update_mundane_item', self.mundane_form,
+             '/static/items/corda.svg'),
+            (self.magic, 'wiki_update_magic_item', self.magic_form,
+             'https://example.com/anel.svg'),
+        ):
+            url = reverse(route, args=[item.pk])
+            for invalid in ('//external.example/item.svg', 'javascript:alert(1)',
+                            'https://user:secret@example.com/item.svg'):
+                with self.subTest(item=route, invalid=invalid):
+                    response = self.client.post(url, form(imagem_url=invalid))
+                    self.assertEqual(response.status_code, 400)
+                    item.refresh_from_db()
+                    self.assertFalse(item.imagem_url)
+                    self.assertFalse(self.logs_for(item).exists())
+            self.assertEqual(self.client.post(url, form(imagem_url=valid)).status_code, 302)
+            item.refresh_from_db()
+            self.assertEqual(item.imagem_url, valid)
+            self.assertEqual(self.logs_for(item).count(), 1)
+
+    def test_catalog_previews_use_fallback_for_unsafe_legacy_images(self):
+        for item, route, valid in (
+            (self.mundane, 'mercado_itens_mundanos', '/static/items/corda.svg'),
+            (self.magic, 'mercado_itens_magicos', 'https://example.com/anel.svg'),
+        ):
+            with self.subTest(route=route):
+                type(item).objects.filter(pk=item.pk).update(
+                    imagem_url='//external.example/item.svg')
+                page = self.client.get(reverse(route))
+                displayed = next(row for row in page.context['itens'] if row.pk == item.pk)
+                self.assertEqual(displayed.safe_image_url, '')
+                self.assertNotIn('src="//external.example/item.svg"', page.content.decode())
+                self.assertContains(page, 'mkt-sigil-letter')
+                type(item).objects.filter(pk=item.pk).update(imagem_url=valid)
+                page = self.client.get(reverse(route))
+                displayed = next(row for row in page.context['itens'] if row.pk == item.pk)
+                self.assertEqual(displayed.safe_image_url, valid)
+                self.assertContains(page, f'src="{valid}"')

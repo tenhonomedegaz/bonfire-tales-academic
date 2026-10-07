@@ -31,9 +31,13 @@ class MarketFavoriteBrowserTests(StaticLiveServerTestCase):
             self.skipTest('Chrome ou Edge indisponível.')
 
         user = get_user_model().objects.create_user('market-favorite-browser')
-        mundane = TbItemMundano.objects.create(nome='Corda de favorita', slug='corda-browser', preco='1 PO')
+        mundane = TbItemMundano.objects.create(
+            nome='Corda de favorita', slug='corda-browser', preco='1 PO',
+            imagem_url='//external.example/item.svg')
         TbItemMundano.objects.create(nome='Tocha comum', slug='tocha-browser', preco='1 PC')
-        magic = TbItemMagico.objects.create(nome='Anel de favorita', slug='anel-browser', preco=1)
+        magic = TbItemMagico.objects.create(
+            nome='Anel de favorita', slug='anel-browser', preco=1,
+            imagem_url='/static/assets/logo.png')
         self.client.force_login(user)
 
         with tempfile.TemporaryDirectory(prefix='bonfire-favorites-', ignore_cleanup_errors=True) as profile:
@@ -88,6 +92,8 @@ class MarketFavoriteBrowserTests(StaticLiveServerTestCase):
                 })
                 call('Page.navigate', {'url': self.live_server_url + reverse('mercado_itens_mundanos')})
                 wait_for('document.querySelector("[data-shop-favorite] button") !== null')
+                self.assertTrue(js('document.querySelector("[data-shop-detail] .mkt-sigil-letter") !== null'))
+                self.assertFalse(js('document.querySelector("[data-shop-detail] img") !== null'))
                 self.assertLessEqual(js('document.documentElement.scrollWidth - innerWidth'), 1)
                 js('document.querySelector("[data-shop-favorite] button").click()')
                 wait_for('document.querySelector("[data-shop-favorite] button")?.getAttribute("aria-pressed") === "true"')
@@ -110,6 +116,8 @@ class MarketFavoriteBrowserTests(StaticLiveServerTestCase):
                 self.assertLessEqual(js('document.documentElement.scrollWidth - innerWidth'), 1)
                 call('Page.navigate', {'url': self.live_server_url + reverse('mercado_itens_magicos')})
                 wait_for('document.querySelector("[data-shop-favorite] button") !== null')
+                self.assertEqual(js('document.querySelector("[data-shop-detail] img")?.getAttribute("src")'),
+                                 '/static/assets/logo.png')
                 js('document.querySelector("[data-shop-favorite] button").click()')
                 wait_for('document.querySelector("[data-shop-favorite] button")?.getAttribute("aria-pressed") === "true"')
                 self.assertTrue(MarketItemFavorite.objects.filter(user=user, magic_item=magic).exists())

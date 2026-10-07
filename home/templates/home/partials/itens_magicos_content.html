@@ -100,7 +100,7 @@ vitrine com o selo e sem botão, mesma guarda que o backend aplica.{% endcomment
     <template id="mi-{{ item.id_item }}-tpl">
       <article class="mkt-card rarity-{{ item.base_rarity }}">
         <figure class="mkt-figure">
-          {% if item.imagem_url %}<img src="{{ item.imagem_url }}" alt="{{ item.nome }}" loading="lazy">
+          {% if item.safe_image_url %}<img src="{{ item.safe_image_url }}" alt="{{ item.nome }}" loading="lazy">
           {% else %}<span class="mkt-sigil"><span class="mkt-sigil-letter">{{ item.nome|first|upper }}</span></span>{% endif %}
           <figcaption>{{ item.raridade_label }}</figcaption>
         </figure>
