@@ -3495,6 +3495,10 @@ def event_cosmetic_shop(request):
         .values_list('cosmetico_id', flat=True))
     cards = []
     for offer in offers:
+        eligible_characters = [
+            character for character in characters
+            if (character.braseiros or 0) >= offer.cost_braseiros
+        ]
         badge_asset = (offer.cosmetico.asset_efetivo or '').strip() if offer.cosmetico.tipo == 'badge' else ''
         badge_image = safe_editorial_image(badge_asset)
         badge_glyph = (
@@ -3507,6 +3511,7 @@ def event_cosmetic_shop(request):
             'owned': (offer.cosmetico_id in inventory_ids or
                       has_permanent_cosmetic(request.user, offer.cosmetico)),
             'request_id': uuid4(),
+            'eligible_characters': eligible_characters,
             'badge_image': badge_image,
             'badge_glyph': badge_glyph,
         })

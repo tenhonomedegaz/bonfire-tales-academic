@@ -28,7 +28,7 @@
         <p class="text-xs text-[var(--muted)]">Evento {{ card.offer.event_key }}{% if card.offer.ends_at %} · até {{ card.offer.ends_at|date:'d/m/Y H:i' }}{% endif %}</p>
         {% if card.owned %}
           <p class="text-sm">Você já possui este cosmético.</p>
-        {% elif not card.offer.cost_braseiros or characters %}
+        {% elif not card.offer.cost_braseiros or card.eligible_characters %}
           <form method="post" class="space-y-3">
             {% csrf_token %}
             <input type="hidden" name="offer" value="{{ card.offer.pk }}">
@@ -37,11 +37,13 @@
             {% if card.offer.cost_braseiros %}
               <label class="block text-sm" for="character-{{ card.offer.pk }}">Pagar com personagem</label>
               <select id="character-{{ card.offer.pk }}" name="character" required class="w-full rounded-lg border border-[var(--stroke)] bg-[var(--bg0)] p-2">
-                {% for character in characters %}<option value="{{ character.pk }}">{{ character.nome }} · {{ character.braseiros }} braseiros</option>{% endfor %}
+                {% for character in card.eligible_characters %}<option value="{{ character.pk }}">{{ character.nome }} · {{ character.braseiros }} braseiros</option>{% endfor %}
               </select>
             {% endif %}
             <button type="submit" class="rounded-lg bg-[var(--spark)] px-4 py-2 font-semibold text-black">Resgatar cosmético</button>
           </form>
+        {% elif characters %}
+          <p class="text-sm text-[var(--muted)]">Nenhum personagem tem {{ card.offer.cost_braseiros }} braseiros para este resgate.</p>
         {% endif %}
       </article>
     {% empty %}

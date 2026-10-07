@@ -233,6 +233,27 @@ class EventCosmeticShopTests(TestCase):
         self.character.refresh_from_db()
         self.assertEqual(self.character.braseiros, 40)
 
+    def test_paid_offer_lists_only_characters_with_enough_braseiros(self):
+        poor = TbPersonagem.objects.create(
+            dono=self.user, nome='Herói sem saldo', braseiros=24)
+        self.client.force_login(self.user)
+        page = self.client.get(self.url)
+        self.assertContains(page, f'<option value="{self.character.pk}">', html=False)
+        self.assertNotIn(f'<option value="{poor.pk}">', page.content.decode())
+        self.assertContains(page, 'Resgatar cosmético')
+
+    def test_unaffordable_offer_explains_balance_without_blocking_free_claim(self):
+        TbPersonagem.objects.filter(pk=self.character.pk).update(braseiros=24)
+        self.client.force_login(self.user)
+        page = self.client.get(self.url)
+        self.assertContains(page, 'Nenhum personagem tem 25 braseiros')
+        self.assertNotIn('name="character"', page.content.decode())
+        self.assertNotIn('Resgatar cosmético', page.content.decode())
+        EventCosmeticOffer.objects.filter(pk=self.offer.pk).update(cost_braseiros=0)
+        free_page = self.client.get(self.url)
+        self.assertContains(free_page, 'Resgatar cosmético')
+        self.assertNotIn('name="character"', free_page.content.decode())
+
     def test_already_owned_right_is_not_charged_and_receipt_is_private(self):
         TbUsuarioCosmetico.objects.create(
             user=self.user, cosmetico=self.cosmetic, origem='conquista:outra')
