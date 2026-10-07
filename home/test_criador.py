@@ -1196,6 +1196,9 @@ class LinhagemEssenciaExclusivasTests(_CriadorBase):
     def test_so_essencia_e_aceito(self):
         payload = self._payload('feiticeiro', raca_slug='anao',
                                 essencia_slug='draconica', vertente='Vermelho')
+        payload['escolhas_raca'] = {'menus': [
+            {'tipo': 'alento_elemental', 'fonte': 'Alento Elemental', 'valores': ['fogo']},
+        ]}
         resp = self._post_criar(self._staff(), payload)
         self.assertEqual(resp.status_code, 200, resp.content)
         p = TbPersonagem.objects.get(pk=resp.json()['id'])
