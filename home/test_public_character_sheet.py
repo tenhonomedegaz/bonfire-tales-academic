@@ -72,6 +72,13 @@ class PublicCharacterSheetTests(TestCase):
             for secret in ('NOTA PRIVADA Q8', 'MESA PRIVADA Q8',
                            'HISTÓRIA PRIVADA Q8', '987654', '12345'):
                 self.assertNotIn(secret, html)
+            direct_payload = self.client.get(public + '?format=json',
+                                             HTTP_ACCEPT='application/json')
+            self.assertEqual(direct_payload.status_code, 200)
+            self.assertTrue(direct_payload['Content-Type'].startswith('text/html'))
+            for secret in ('NOTA PRIVADA Q8', 'MESA PRIVADA Q8',
+                           'HISTÓRIA PRIVADA Q8', '987654', '12345'):
+                self.assertNotIn(secret, direct_payload.content.decode())
         self.client.force_login(self.other)
         self.assertEqual(self.client.post(reverse('personagem_publicacao',
                                                 args=[self.character.pk]),
@@ -88,6 +95,34 @@ class PublicCharacterSheetTests(TestCase):
         self.character.refresh_from_db()
         self.assertEqual(self.character.descricao_publica, '')
         self.assertFalse(self.character.mostrar_atributos_publicos)
+
+    def test_public_route_is_read_only_for_all_viewers_and_methods(self):
+        TbPersonagem.objects.filter(pk=self.character.pk).update(
+            publico=True, mostrar_atributos_publicos=True)
+        public = reverse('ficha_publica', args=[self.character.pk])
+        baseline = TbPersonagem.objects.get(pk=self.character.pk)
+        for user in (None, self.owner, self.other, self.staff):
+            if user is None:
+                self.client.logout()
+            else:
+                self.client.force_login(user)
+            with CaptureQueriesContext(connection) as queries:
+                first = self.client.get(public)
+                second = self.client.get(public)
+                head = self.client.head(public)
+                post = self.client.post(public, {'action': 'unpublish'})
+                put = self.client.put(public, data='{"publico":false}',
+                                      content_type='application/json')
+            self.assertEqual([first.status_code, second.status_code, head.status_code],
+                             [200, 200, 200])
+            self.assertEqual([post.status_code, put.status_code], [405, 405])
+            self.assertEqual([q['sql'] for q in queries if q['sql'].lstrip().upper().startswith(
+                ('INSERT ', 'UPDATE ', 'DELETE '))], [])
+            current = TbPersonagem.objects.get(pk=self.character.pk)
+            self.assertEqual(current.atualizado_em, baseline.atualizado_em)
+            self.assertEqual(current.publico, baseline.publico)
+            self.assertEqual(current.mostrar_atributos_publicos,
+                             baseline.mostrar_atributos_publicos)
 
     def test_public_appearance_respects_owner_entitlements_and_image_safety(self):
         theme = TbCosmetico.objects.create(

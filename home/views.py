@@ -35,7 +35,7 @@ from django.core.files.storage import default_storage
 from django.http import Http404, JsonResponse, HttpResponseBadRequest, HttpResponse, HttpResponseNotAllowed
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404, render, redirect
-from django.views.decorators.http import require_POST, require_http_methods
+from django.views.decorators.http import require_POST, require_http_methods, require_safe
 from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from django.views.decorators.cache import never_cache
 from django.core.paginator import Paginator
@@ -9982,6 +9982,7 @@ def _raca_linha_ficha(p):
 
 
 @never_cache
+@require_safe
 def ficha_publica_view(request, pk):
     """Projeção de leitura pública; não deriva nem sincroniza a ficha operacional."""
     from .models import TbPersonagem
