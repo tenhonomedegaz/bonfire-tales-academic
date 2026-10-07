@@ -389,7 +389,7 @@ class LevelAchievementTests(_CriadorBase):
             slug='level-private-badge', nome='Badge de nivel privado QA',
             tipo='badge', origem='conquista')
         frame = TbCosmetico.objects.create(
-            slug='level-private-frame', nome='Moldura de nivel privado QA',
+            slug='moldura-level-private-frame', nome='Moldura de nivel privado QA',
             tipo='moldura', origem='conquista', escopo='perfil',
             css_class='frame-level-private-qa')
         definition = {'schema_version': 1, 'metric': 'character_level',
@@ -416,7 +416,7 @@ class LevelAchievementTests(_CriadorBase):
             user=owner, revogada_em__isnull=True,
             conquista__criterio_json__metric='character_level').count(), 2)
         profile = UserProfile.objects.get(user=owner)
-        profile.avatar_frame = frame.slug
+        profile.avatar_frame = 'level-private-frame'
         profile.save(update_fields=['avatar_frame'])
         url = reverse('public_profile', args=[owner.username])
 
@@ -431,6 +431,19 @@ class LevelAchievementTests(_CriadorBase):
         self.assertContains(own_page, badge_rule.nome)
         self.assertContains(own_page, frame.css_class)
         self.assertContains(own_page, str(badge_grant.evidencia_json['evento_id']))
+        editor = self.client.get(reverse('profile'))
+        self.assertNotIn(badge_rule.nome, str(editor.context['preview_conquistas']))
+        self.assertEqual(editor.context['preview_appearance']['frame_key'], 'none')
+        self.assertNotIn(badge.slug, [row['slug'] for row in editor.context['preview_badges']])
+        self.assertEqual(editor.context['preview_personagens'], [])
+        preview = self.client.post(reverse('perfil_preview'), {
+            'profile_theme': 'bonfire', 'avatar_frame': 'level-private-frame',
+            'profile_effect': 'none',
+        })
+        self.assertEqual(preview.status_code, 200)
+        for private_text in (badge_rule.nome, badge.nome, frame.slug, frame.css_class,
+                             str(badge_grant.evidencia_json['evento_id'])):
+            self.assertNotIn(private_text, preview.json()['html'])
         moderator = get_user_model().objects.create_superuser(
             'level-private-moderator', 'level-private-moderator@example.invalid', 'x')
         self.client.force_login(moderator)
@@ -443,6 +456,14 @@ class LevelAchievementTests(_CriadorBase):
         self.assertContains(public_page, badge_rule.nome)
         self.assertContains(public_page, badge.nome)
         self.assertContains(public_page, frame.css_class)
+        self.client.force_login(owner)
+        public_preview = self.client.post(reverse('perfil_preview'), {
+            'profile_theme': 'bonfire', 'avatar_frame': 'level-private-frame',
+            'profile_effect': 'none',
+        })
+        self.assertIn(badge_rule.nome, public_preview.json()['html'])
+        self.assertIn(frame.css_class, public_preview.json()['html'])
+        self.client.logout()
         character.arquivado = True
         character.save(update_fields=['arquivado'])
         archived_page = self.client.get(url)

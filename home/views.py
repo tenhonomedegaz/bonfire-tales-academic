@@ -917,6 +917,14 @@ def _appearance_catalog(tipo_interno):
     return catalogo or _APPEARANCE_FALLBACK[tipo_interno]
 
 
+def _public_appearance_choice(value, tipo_interno, hidden_rewards):
+    """Oculta uma aparência cuja única origem é um marco de ficha privada."""
+    item = _appearance_catalog(tipo_interno).get(value or '')
+    if value in hidden_rewards or (item and item.get('slug') in hidden_rewards):
+        return _APPEARANCE_DEFAULT[tipo_interno]
+    return value
+
+
 def _appearance_choice(value, choices, default='none'):
     value = (value or default or '').strip()
     return value if value in choices else default
@@ -1402,6 +1410,12 @@ def profile_view(request):
     appearance = _appearance_context(
         profile.profile_theme, profile.avatar_frame, profile.profile_effect,
         profile.theme_custom, profile.background_url, user=user)
+    preview_hidden = _conquistas.visibilidade_conquistas_de_personagem([user])[1][user.pk]
+    preview_appearance = _appearance_context(
+        _public_appearance_choice(profile.profile_theme, 'theme', preview_hidden),
+        _public_appearance_choice(profile.avatar_frame, 'frame', preview_hidden),
+        _public_appearance_choice(profile.profile_effect, 'effect', preview_hidden),
+        profile.theme_custom, profile.background_url, user=user)
     theme_options = _appearance_options(user, 'theme')
     frame_options = _appearance_options(user, 'frame')
     effect_options = _appearance_options(user, 'effect')
@@ -1450,9 +1464,14 @@ def profile_view(request):
         # PRÉVIA VIVA — estado INICIAL do painel: a aparência ATUALMENTE SALVA,
         # renderizada pelo mesmo partial do perfil público. Dali em diante quem
         # atualiza é o POST /perfil/previa/ (perfil_preview_view).
-        'preview_badges': _badges.badges_do_usuario(user),
-        'preview_titulo': _badges.titulo_do_usuario(user),
-        'preview_personagens': _perfil_personagens(user, True),
+        'preview_appearance': preview_appearance,
+        'preview_badges': [badge for badge in _badges.badges_do_usuario(user)
+                           if badge['slug'] not in preview_hidden],
+        'preview_titulo': (title if (title := _badges.titulo_do_usuario(user)) and
+                          title['slug'] not in preview_hidden else None),
+        'preview_conquistas': _conquistas.conquistas_do_usuario(
+            user, pode_ver_privados=False),
+        'preview_personagens': _perfil_personagens(user, False),
         # Social do PRÓPRIO perfil: contagens + listas simples (sem feed por ora).
         'social': _social.estado_social(user, user),
         'social_seguidores': _social.lista_seguidores(user),
@@ -1523,12 +1542,12 @@ def public_profile_view(request, username):
     titulo_visivel = _badges.titulo_do_usuario(viewed_user)
     if titulo_visivel and titulo_visivel['slug'] in recompensas_privadas:
         titulo_visivel = None
-    tema_visivel = ('bonfire' if profile.profile_theme in recompensas_privadas
-                    else profile.profile_theme)
-    moldura_visivel = ('none' if profile.avatar_frame in recompensas_privadas
-                       else profile.avatar_frame)
-    efeito_visivel = ('none' if profile.profile_effect in recompensas_privadas
-                      else profile.profile_effect)
+    tema_visivel = _public_appearance_choice(profile.profile_theme, 'theme',
+                                              recompensas_privadas)
+    moldura_visivel = _public_appearance_choice(profile.avatar_frame, 'frame',
+                                                 recompensas_privadas)
+    efeito_visivel = _public_appearance_choice(profile.profile_effect, 'effect',
+                                                recompensas_privadas)
     return render(request, 'home/pages/perfil_publico.html', {
         'page_title': viewed_user.username,
         'viewed_user': viewed_user,
@@ -1629,6 +1648,12 @@ def perfil_preview_view(request):
 
     appearance = _appearance_context(theme, frame, effect, theme_custom,
                                      imagens['background'], user=user)
+    preview_hidden = _conquistas.visibilidade_conquistas_de_personagem([user])[1][user.pk]
+    preview_appearance = _appearance_context(
+        _public_appearance_choice(theme, 'theme', preview_hidden),
+        _public_appearance_choice(frame, 'frame', preview_hidden),
+        _public_appearance_choice(effect, 'effect', preview_hidden),
+        theme_custom, imagens['background'], user=user)
     # `profile` sintético: dict puro (não é model), impossível de persistir por acidente.
     profile_candidato = {
         'avatar_url': imagens['avatar'],
@@ -1638,15 +1663,18 @@ def perfil_preview_view(request):
     }
 
     html = render_to_string('home/partials/_perfil_publico_hero.html', {
-        'appearance': appearance,
+        'appearance': preview_appearance,
         'profile': profile_candidato,
         'viewed_user': user,
-        'badges': _badges.badges_com_destaque(
-            user, badges_destaque, ocultas_derivadas=badges_derivadas_ocultas),
+        'badges': [badge for badge in _badges.badges_com_destaque(
+            user, badges_destaque, ocultas_derivadas=badges_derivadas_ocultas)
+                   if badge['slug'] not in preview_hidden],
         'mestre_ouro_direito': MestreOuroDireito.objects.filter(user=user).first(),
-        'titulo': _badges.titulo_por_slug(user, titulo_slug),
-        'conquistas': _conquistas.conquistas_do_usuario(user),
-        'personagens': _perfil_personagens(user, True),
+        'titulo': (title if (title := _badges.titulo_por_slug(user, titulo_slug)) and
+                   title['slug'] not in preview_hidden else None),
+        'conquistas': _conquistas.conquistas_do_usuario(
+            user, pode_ver_privados=False),
+        'personagens': _perfil_personagens(user, False),
         # Social na prévia: as contagens REAIS do próprio perfil. Como o visitante é
         # o dono, `pode_interagir` é False → o partial não emite botão (nem no
         # preview_mode, que já os suprime) e a prévia não vira um jeito de curtir.
