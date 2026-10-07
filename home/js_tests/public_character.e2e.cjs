@@ -55,6 +55,29 @@ const { chromium } = require(process.env.BONFIRE_PLAYWRIGHT_MODULE);
     if (process.env.BONFIRE_ARTIFACT_DIR) {
       await page.screenshot({ path: path.join(process.env.BONFIRE_ARTIFACT_DIR, 'public-character-enlarged-text.png'), fullPage: true });
     }
+    await page.setViewportSize({ width: 360, height: 800 });
+    const longResponse = await page.goto(process.env.PUBLIC_CHARACTER_ORIGIN + process.env.PUBLIC_CHARACTER_LONG_PATH,
+      { waitUntil: 'networkidle' });
+    assert.equal(longResponse.status(), 200);
+    const longTitle = page.locator('article.ficha h1');
+    const longDescription = page.getByRole('region', { name: 'Descrição pública' }).locator('p');
+    for (const [label, element] of [['nome', longTitle], ['descrição', longDescription]]) {
+      const overflow = await element.evaluate(node => node.scrollWidth - node.clientWidth);
+      assert.ok(overflow <= 1, `${label} longo excede seu bloco em ${overflow}px`);
+    }
+    const longPageOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    assert.ok(longPageOverflow <= 1, `ficha de texto longo excede a tela em ${longPageOverflow}px`);
+    if (process.env.BONFIRE_ARTIFACT_DIR) {
+      await page.screenshot({ path: path.join(process.env.BONFIRE_ARTIFACT_DIR, 'public-character-long-text.png'), fullPage: true });
+    }
+    await page.setViewportSize({ width: 640, height: 900 });
+    await page.evaluate(() => { document.documentElement.style.fontSize = '200%'; });
+    for (const [label, element] of [['nome', longTitle], ['descrição', longDescription]]) {
+      const overflow = await element.evaluate(node => node.scrollWidth - node.clientWidth);
+      assert.ok(overflow <= 1, `${label} longo com texto ampliado excede seu bloco em ${overflow}px`);
+    }
+    const longEnlargedOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    assert.ok(longEnlargedOverflow <= 1, `ficha longa com texto ampliado excede a tela em ${longEnlargedOverflow}px`);
     console.log('Ficha pública: desktop, celular e texto ampliado sem dados privados nem overflow.');
   } finally {
     await browser.close();

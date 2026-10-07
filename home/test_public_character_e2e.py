@@ -41,8 +41,13 @@ class PublicCharacterBrowserTests(StaticLiveServerTestCase):
         )
         TbPersonagemClasse.objects.create(
             id_personagem=p, id_classe=klass, nivel=1, principal=True)
+        long_text = TbPersonagem.objects.create(
+            dono=user, nome='Guardiao' * 17, publico=True,
+            descricao_publica='Cronica' * 55,
+        )
         env = dict(os.environ, PUBLIC_CHARACTER_ORIGIN=self.live_server_url,
-                   PUBLIC_CHARACTER_PATH=reverse('ficha_publica', args=[p.pk]))
+                   PUBLIC_CHARACTER_PATH=reverse('ficha_publica', args=[p.pk]),
+                   PUBLIC_CHARACTER_LONG_PATH=reverse('ficha_publica', args=[long_text.pk]))
         result = subprocess.run(
             ['node', str(Path(__file__).parent / 'js_tests/public_character.e2e.cjs')],
             env=env, capture_output=True, encoding='utf-8', timeout=90)
