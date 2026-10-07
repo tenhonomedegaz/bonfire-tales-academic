@@ -58,7 +58,8 @@ async function harness(t, builds = [seed(), seed()]) {
       },
         reply(data, status = 200) {
           res.writeHead(status, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify(data));
+          res.end(JSON.stringify({ ...data,
+            request_id: data.request_id === undefined ? JSON.parse(body).request_id : data.request_id }));
         } }));
     } else if (req.url === '/client.js') {
       res.setHeader('Content-Type', 'text/javascript');
@@ -242,6 +243,22 @@ test('reload preserva a edição e aguarda novo orçamento autoritativo', async 
   reload.reply(result(reload.input.build, 'RECARREGADA'));
   await h.page.getByText('RECARREGADA', { exact: true }).waitFor();
   assert.equal(await h.page.locator('[data-attr="DES"][data-delta="1"]').isDisabled(), false);
+});
+
+test('resposta de outra solicitação não substitui a ficha válida', async t => {
+  const h = await harness(t);
+  await h.initial();
+  await h.page.locator('[data-attr="FOR"][data-delta="1"]').click();
+  const pending = await h.nextRequest(1);
+  pending.reply({ ...result(pending.input.build, 'FICHA ERRADA'), request_id: 'outro-pedido' });
+  await h.page.locator('#pb-status.is-error').waitFor();
+  assert.equal(await h.page.getByText('FICHA ERRADA', { exact: true }).count(), 0);
+  assert.equal(await h.page.locator('[data-confirmed-sheet]').count(), 1);
+  assert.equal((await h.stored())[0].atributos_bonus.FOR, 1);
+  await h.page.locator('#pb-retry-preview').click();
+  const retry = await h.nextRequest(2);
+  retry.reply(result(retry.input.build, 'FICHA CORRIGIDA'));
+  await h.page.getByText('FICHA CORRIGIDA', { exact: true }).waitFor();
 });
 
 test('edição com armazenamento local cheio avisa e sobrevive ao reload da sessão', async t => {

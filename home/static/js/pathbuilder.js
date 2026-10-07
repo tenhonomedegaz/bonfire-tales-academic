@@ -1040,13 +1040,14 @@
         function fetchBuild(index, seq) {
             var input = previewInput(index);
             var context = budgetContext(index);
+            var requestId = String(seq) + ':' + String(index);
             return fetch(window.PATHBUILDER_PREVIEW_URL, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': window.CSRF_TOKEN
                 },
-                body: input
+                body: JSON.stringify(Object.assign(JSON.parse(input), { request_id: requestId }))
             }).then(function (response) {
                 return response.json().then(function (json) {
                     return { ok: response.ok, json: json };
@@ -1054,7 +1055,9 @@
             }).then(function (response) {
                 if (seq !== requestSeq || input !== previewInput(index)) return;
                 var candidate = response.json && response.json.build;
-                if (response.ok && response.json.ok && candidate && candidate.orcamento &&
+                if (response.json.request_id !== requestId) {
+                    errors[index] = 'A prévia recebida não corresponde à edição solicitada.';
+                } else if (response.ok && response.json.ok && candidate && candidate.orcamento &&
                         Array.isArray(candidate.atributos)) {
                     results[index] = response.json.build;
                     resultInputs[index] = input;
@@ -1584,12 +1587,17 @@
             status.textContent = 'Validando as duas builds…';
             status.classList.remove('is-error');
             return Promise.all(importedBuilds.map(function (build, index) {
+                var requestId = 'import:' + String(attempt) + ':' + String(index);
                 return fetch(window.PATHBUILDER_PREVIEW_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'X-CSRFToken': window.CSRF_TOKEN },
-                    body: JSON.stringify({ base: importedBase, build: build })
+                    body: JSON.stringify({ base: importedBase, build: build, request_id: requestId })
                 }).then(function (response) {
                     return response.json().then(function (json) {
+                        if (json.request_id !== requestId) {
+                            throw new Error('Build ' + (index === 0 ? 'A' : 'B') +
+                                ': a prévia recebida não corresponde à solicitação.');
+                        }
                         if (!response.ok || !json.ok || !json.build) {
                             throw new Error('Build ' + (index === 0 ? 'A' : 'B') + ': ' +
                                 ((json.erros || ['prévia inválida.']).join(' ')));

@@ -5686,22 +5686,33 @@ def pathbuilder_preview(request):
 
     data = _json_body(request)
     if not isinstance(data, dict):
-        return JsonResponse({'ok': False, 'erros': ['Envie a prévia como objeto.']},
+        return JsonResponse({'ok': False, 'request_id': str(uuid4()),
+                             'erros': ['Envie a prévia como objeto.']},
                             status=400)
+    request_id = data.get('request_id')
+    if request_id is not None and (not isinstance(request_id, str) or
+                                   not request_id or len(request_id) > 64):
+        return JsonResponse({'ok': False, 'request_id': str(uuid4()),
+                             'erros': ['Identificador da prévia inválido.']},
+                            status=400)
+    response_id = request_id or str(uuid4())
     creator_data = data.get('base', {})
     if not isinstance(creator_data, dict):
-        return JsonResponse({'ok': False, 'erros': ['Base da ficha inválida.']}, status=400)
+        return JsonResponse({'ok': False, 'request_id': response_id,
+                             'erros': ['Base da ficha inválida.']}, status=400)
     build = data.get('build')
     if build is None and 'build' not in data:
         build = default_build(creator_data)
     elif not isinstance(build, dict):
-        return JsonResponse({'ok': False, 'erros': ['Build do laboratório inválida.']},
+        return JsonResponse({'ok': False, 'request_id': response_id,
+                             'erros': ['Build do laboratório inválida.']},
                             status=400)
     try:
         result = simulate_build(request.user, creator_data, build)
     except PathbuilderError as exc:
-        return JsonResponse({'ok': False, 'erros': [str(exc)]}, status=400)
-    return JsonResponse({'ok': True, 'build': result})
+        return JsonResponse({'ok': False, 'request_id': response_id,
+                             'erros': [str(exc)]}, status=400)
+    return JsonResponse({'ok': True, 'request_id': response_id, 'build': result})
 
 
 @login_required(login_url='/login/')

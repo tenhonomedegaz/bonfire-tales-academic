@@ -203,6 +203,27 @@ class PathbuilderTests(_CriadorBase):
         self.assertEqual(preview.status_code, 200, preview.content)
         self.assertIn("data-pb-folha", preview.json()["build"]["ficha_html"])
 
+    def test_preview_echoes_request_id_in_success_and_validation_error(self):
+        base = self._payload('guerreiro')
+        request_id = 'build-A:42'
+        for build, expected_status in ((self._build('guerreiro'), 200),
+                                       ({'classes': []}, 400)):
+            with self.subTest(expected_status=expected_status):
+                response = self.client.post(
+                    reverse('pathbuilder_preview'),
+                    data=json.dumps({'base': base, 'build': build,
+                                     'request_id': request_id}),
+                    content_type='application/json')
+                self.assertEqual(response.status_code, expected_status, response.content)
+                self.assertEqual(response.json()['request_id'], request_id)
+        invalid = self.client.post(
+            reverse('pathbuilder_preview'),
+            data=json.dumps({'base': base, 'build': self._build('guerreiro'),
+                             'request_id': ['not-a-scalar']}),
+            content_type='application/json')
+        self.assertEqual(invalid.status_code, 400)
+        self.assertFalse(invalid.json()['ok'])
+
     def test_laboratorio_rejeita_payload_malformado_sem_salvar_e_aceita_correcao(self):
         base = self._payload('guerreiro')
         valid_build = self._build('guerreiro')

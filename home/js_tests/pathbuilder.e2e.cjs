@@ -181,7 +181,11 @@ async function stored(page) {
       ...beforeImport[1].classes, { slug: 'classe-inexistente', nivel: 1, subclasse: '' }
     ] };
     await uploadBundle({ base, builds: [beforeImport[0], unknownClassBuild] });
-    await page.waitForFunction(() => document.querySelector('#pb-status').textContent.includes('Build B:'));
+    await page.waitForFunction(() => {
+      const status = document.querySelector('#pb-status').textContent;
+      return status && !status.includes('Validando as duas builds');
+    });
+    assert.match(await page.locator('#pb-status').innerText(), /Build B:/);
     assert.deepEqual(await stored(page), beforeImport, 'server rejection of build B preserves both variants');
 
     const duplicateChoiceBuild = { ...beforeImport[1], escolhas: {
