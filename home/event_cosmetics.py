@@ -25,7 +25,14 @@ def redeem_event_cosmetic(user, offer_id, character_id, request_id, quoted_cost)
         get_user_model().objects.select_for_update().get(pk=user.pk)
         previous = EventCosmeticRedemption.objects.filter(request_id=operation).first()
         if previous:
-            if previous.user_id != user.pk:
+            same_character = True
+            if previous.cost_braseiros:
+                try:
+                    same_character = int(character_id) == previous.character_id
+                except (TypeError, ValueError):
+                    same_character = False
+            if (previous.user_id != user.pk or previous.offer_id != offer_id
+                    or previous.cost_braseiros != price_seen or not same_character):
                 raise ValueError('pedido_invalido')
             return previous, False
 

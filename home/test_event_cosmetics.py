@@ -109,6 +109,40 @@ class EventCosmeticShopTests(TestCase):
         self.assertContains(self.client.get(self.url), 'Você já possui este cosmético.')
         self.assertTrue(has_permanent_cosmetic(self.other, self.cosmetic))
 
+    def test_reused_request_key_cannot_claim_different_offer_price_or_character(self):
+        self.client.force_login(self.user)
+        request_id = str(uuid4())
+        original = {'offer': self.offer.pk, 'character': self.character.pk,
+                    'request_id': request_id, 'quoted_cost': 25}
+        self.assertEqual(self.client.post(self.url, original).status_code, 302)
+        other_character = TbPersonagem.objects.create(
+            dono=self.user, nome='Segundo herói', braseiros=40)
+        other_cosmetic = TbCosmetico.objects.create(
+            slug=f'moldura-evento-{uuid4().hex[:8]}', tipo='moldura',
+            nome='Outra moldura', origem='loja_braseiro', escopo='ficha')
+        other_offer = EventCosmeticOffer.objects.create(
+            event_key='evento-outono', cosmetico=other_cosmetic,
+            cost_braseiros=25, active=True)
+        for changed in ({'offer': other_offer.pk},
+                        {'quoted_cost': 0},
+                        {'character': other_character.pk}):
+            form = dict(original, **changed)
+            self.assertContains(self.client.post(self.url, form),
+                                'Pedido inválido', status_code=409)
+        self.assertEqual(EventCosmeticRedemption.objects.count(), 1)
+        self.character.refresh_from_db()
+        other_character.refresh_from_db()
+        self.assertEqual((self.character.braseiros, other_character.braseiros),
+                         (15, 40))
+        self.client.force_login(self.other)
+        self.assertContains(self.client.post(self.url, original),
+                            'Pedido inválido', status_code=409)
+        self.client.force_login(self.user)
+        EventCosmeticOffer.objects.filter(pk=self.offer.pk).update(
+            active=False, cost_braseiros=0)
+        self.assertEqual(self.client.post(self.url, original).status_code, 302)
+        self.assertEqual(EventCosmeticRedemption.objects.count(), 1)
+
     def test_badge_offer_previews_image_or_glyph_without_broken_image(self):
         self.cosmetic.tipo = 'badge'
         self.cosmetic.asset_url = '/static/cosmetics/beta-spark.svg'
