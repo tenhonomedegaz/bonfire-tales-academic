@@ -3456,6 +3456,7 @@ def _create_asaas_checkout(order, product, display_name, callback_base):
 @require_http_methods(['GET', 'POST'])
 def event_cosmetic_shop(request):
     """Ofertas gratuitas ou por braseiros; direito adquirido persiste."""
+    from .editorial_links import safe_editorial_image
     from .models import (EventCosmeticOffer, EventCosmeticRedemption,
                          TbPersonagem, TbUsuarioCosmetico)
     from .cosmetic_entitlements import has_permanent_cosmetic
@@ -3495,13 +3496,19 @@ def event_cosmetic_shop(request):
     cards = []
     for offer in offers:
         badge_asset = (offer.cosmetico.asset_efetivo or '').strip() if offer.cosmetico.tipo == 'badge' else ''
+        badge_image = safe_editorial_image(badge_asset)
+        badge_glyph = (
+            badge_asset if not badge_image and len(badge_asset) <= 24
+            and badge_asset.isprintable()
+            and not any(char in badge_asset for char in '/:\\') else ''
+        )
         cards.append({
             'offer': offer,
             'owned': (offer.cosmetico_id in inventory_ids or
                       has_permanent_cosmetic(request.user, offer.cosmetico)),
             'request_id': uuid4(),
-            'badge_image': badge_asset if badge_asset.startswith(('/', 'https://', 'http://')) else '',
-            'badge_glyph': '' if badge_asset.startswith(('/', 'https://', 'http://')) else badge_asset,
+            'badge_image': badge_image,
+            'badge_glyph': badge_glyph,
         })
     redemption = (EventCosmeticRedemption.objects.select_related('cosmetico', 'character')
                   .filter(pk=request.GET.get('resgate'), user=request.user).first()

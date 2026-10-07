@@ -156,6 +156,22 @@ class EventCosmeticShopTests(TestCase):
         self.assertContains(page, '>*</span>')
         self.assertNotContains(page, 'src="*"')
 
+    def test_badge_offer_hides_unsafe_image_urls_without_losing_valid_images(self):
+        self.cosmetic.tipo = 'badge'
+        self.client.force_login(self.other)
+        for asset in ('//external.example/badge.svg',
+                      'https://user:secret@external.example/badge.svg',
+                      'javascript:alert(1)'):
+            with self.subTest(asset=asset):
+                self.cosmetic.asset_url = asset
+                self.cosmetic.save(update_fields=['tipo', 'asset_url'])
+                page = self.client.get(self.url)
+                self.assertNotIn(asset, page.content.decode())
+        self.cosmetic.asset_url = 'https://external.example/badge.svg'
+        self.cosmetic.save(update_fields=['asset_url'])
+        self.assertContains(self.client.get(self.url),
+                            'src="https://external.example/badge.svg"')
+
     def test_optional_start_and_end_dates_bound_only_when_set(self):
         now = timezone.now()
         EventCosmeticOffer.objects.filter(pk=self.offer.pk).update(
