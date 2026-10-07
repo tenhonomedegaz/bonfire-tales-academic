@@ -86,8 +86,10 @@ def regra_aventuras_jogadas_valida(regra):
         'schema_version', 'metric', 'scope', 'aggregate', 'filters', 'operator', 'target'} and
         type(regra['schema_version']) is int and regra['schema_version'] == 1 and
         regra['metric'] == 'adventures_played' and regra['scope'] == 'account' and
-        regra['aggregate'] == 'sum' and regra['filters'] == {
-            'valid': True, 'origin': 'played_session'} and
+        regra['aggregate'] == 'sum' and isinstance(regra['filters'], dict) and
+        set(regra['filters']) == {'valid', 'origin'} and
+        regra['filters']['valid'] is True and
+        regra['filters']['origin'] == 'played_session' and
         type(regra['operator']) is str and regra['operator'] in {'gt', 'gte'} and
         type(regra['target']) is int and regra['target'] > 0)
 

@@ -49,6 +49,25 @@ class AdventuresAchievementTests(_CriadorBase):
                 'mestre': self.staff.pk, 'data_missao': '2026-09-27',
             })
 
+    def test_adventure_rule_requires_boolean_valid_before_awarding(self):
+        malformed = {**self.definition,
+                     'filters': {'valid': 1, 'origin': 'played_session'}}
+        rule = TbConquista(
+            slug='aventuras-filtro-invalido', nome='Filtro estrito',
+            criterio='automatico', criterio_json=malformed)
+        with self.assertRaises(ValidationError):
+            rule.full_clean()
+        rule.save()  # Uma definição legada ou importada também falha fechada no avaliador.
+        self.assertEqual(self.launch(3).status_code, 302)
+        self.assertFalse(TbUsuarioConquista.objects.filter(
+            user=self.owner, conquista=rule).exists())
+        rule.criterio_json = self.definition
+        rule.full_clean()
+        rule.save(update_fields=['criterio_json'])
+        avaliar_aventuras_jogadas(self.owner)
+        self.assertTrue(TbUsuarioConquista.objects.filter(
+            user=self.owner, conquista=rule, revogada_em__isnull=True).exists())
+
     def test_admin_reprocesses_existing_adventure_and_quest_facts(self):
         self.rule.ativo = False
         self.rule.save(update_fields=['ativo'])
