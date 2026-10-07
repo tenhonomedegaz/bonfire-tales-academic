@@ -160,9 +160,39 @@ class PublicCharacterSheetTests(TestCase):
         owner_list = self.client.get(reverse('personagens'))
         self.assertContains(owner_list, 'Retirar publicação')
         self.assertContains(owner_list, public)
+        self.assertContains(owner_list, public + '?preview=1')
+        published_preview = self.client.get(public + '?preview=1')
+        self.assertContains(published_preview, 'Prévia como visitante')
+        self.assertContains(published_preview, 'noindex, nofollow')
         self.client.logout()
         profile = self.client.get(reverse('public_profile', args=[self.owner.username]))
         self.assertContains(profile, public)
+
+    def test_social_image_only_uses_valid_published_portrait(self):
+        public = reverse('ficha_publica', args=[self.character.pk])
+        TbPersonagem.objects.filter(pk=self.character.pk).update(
+            foto_url='/media/portraits/hero.png')
+        self.client.force_login(self.owner)
+        private_preview = self.client.get(public + '?preview=1')
+        self.assertNotIn('property="og:image"', private_preview.content.decode())
+        self.client.post(reverse('personagem_publicacao', args=[self.character.pk]),
+                         {'action': 'publish'})
+        self.client.logout()
+        published = self.client.get(public)
+        self.assertContains(published,
+                            f'property="og:image" content="{published.context["site_origin"]}/media/portraits/hero.png"')
+        TbPersonagem.objects.filter(pk=self.character.pk).update(
+            foto_url='https://example.com/portrait.png')
+        self.assertContains(self.client.get(public),
+                            'property="og:image" content="https://example.com/portrait.png"')
+        TbPersonagem.objects.filter(pk=self.character.pk).update(
+            foto_url='javascript:alert(1)')
+        self.assertNotIn('property="og:image"', self.client.get(public).content.decode())
+        self.client.force_login(self.owner)
+        self.client.post(reverse('personagem_publicacao', args=[self.character.pk]),
+                         {'action': 'unpublish'})
+        self.client.logout()
+        self.assertEqual(self.client.get(public).status_code, 404)
 
     def test_archiving_unpublishes_and_blocks_operational_public_access(self):
         public = reverse('ficha_publica', args=[self.character.pk])

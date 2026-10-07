@@ -9,7 +9,7 @@
   </a>
   <div class="mt-2 flex items-center gap-2 border-t border-[var(--stroke)] pt-2 text-xs font-semibold">
     <a href="{% url 'ficha_detail' c.obj.id_personagem %}" class="text-[var(--ember)] hover:underline">Ver ficha</a>
-    <a href="{% url 'ficha_publica' c.obj.id_personagem %}{% if not c.obj.publico or c.obj.arquivado %}?preview=1{% endif %}" class="text-[var(--ember)] hover:underline">Ver como visitante</a>
+    <a href="{% url 'ficha_publica' c.obj.id_personagem %}?preview=1" class="text-[var(--ember)] hover:underline">Ver como visitante</a>
     <span class="flex-1"></span>
     {% if cofre %}
       <form method="post" action="{% url 'personagem_restaurar' c.obj.id_personagem %}">{% csrf_token %}

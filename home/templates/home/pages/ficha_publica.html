@@ -6,6 +6,7 @@
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'css/pages/ficha.css' %}?v=16">
 {% if appearance.theme_css_href %}<link rel="stylesheet" href="{{ appearance.theme_css_href }}">{% endif %}
+{% if published %}{% with image=character.foto_url|safe_profile_image %}{% if image %}<meta property="og:image" content="{% if image|slice:':1' == '/' %}{{ site_origin }}{% endif %}{{ image }}">{% endif %}{% endwith %}{% endif %}
 {% endblock %}
 
 {% block content %}

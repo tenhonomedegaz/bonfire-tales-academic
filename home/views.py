@@ -10037,7 +10037,7 @@ def ficha_publica_view(request, pk):
         'page_title': p.nome, 'character': public_data,
         'meta_description': (p.descricao_publica or
                              f'{p.nome}, personagem de {p.dono.username}, nível {p.nivel}.'),
-        'noindex': preview and (not p.publico or p.arquivado),
+        'noindex': preview,
         'mechanics': mechanics,
         'preview': preview, 'published': p.publico and not p.arquivado,
         'appearance': _appearance_context(
