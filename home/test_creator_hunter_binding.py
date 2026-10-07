@@ -114,7 +114,8 @@ class CreatorHunterBindingTests(_CriadorBase):
         self.setup_creation()
         self.payload.pop('hunter_ability')
         self.client.force_login(self.user)
-        with patch('home.views._criador_resolver', side_effect=self.resolve):
+        with override_settings(HUNTER_CREATOR_RULESET_CHECKSUM=''), \
+                patch('home.views._criador_resolver', side_effect=self.resolve):
             response = self.client.post(reverse('criar_personagem_preview'),
                 data=json.dumps(self.payload), content_type='application/json').json()
             creation = self._post_criar(self.user, self.payload)
