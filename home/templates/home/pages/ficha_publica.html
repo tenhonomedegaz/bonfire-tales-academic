@@ -31,19 +31,19 @@
   </section>{% endif %}
   {% if mechanics.atributos %}<section aria-label="Atributos públicos" class="border-t border-[var(--stroke)] pt-5">
     <h2 class="font-serif text-xl text-[var(--text)]">Atributos</h2>
-    <dl class="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3">{% for row in mechanics.atributos %}
+    <dl class="mt-2 grid grid-cols-2 gap-3 md:grid-cols-3">{% for row in mechanics.atributos %}
       <div><dt class="text-sm text-[var(--muted)]">{{ row.nome }}</dt><dd class="font-semibold">{{ row.valor }} ({{ row.mod|stringformat:'+d' }})</dd></div>
     {% endfor %}</dl>
   </section>{% endif %}
   {% if mechanics.pericias %}<section aria-label="Perícias públicas" class="border-t border-[var(--stroke)] pt-5">
     <h2 class="font-serif text-xl text-[var(--text)]">Perícias</h2>
-    <dl class="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3">{% for row in mechanics.pericias %}
+    <dl class="mt-2 grid grid-cols-2 gap-3 md:grid-cols-3">{% for row in mechanics.pericias %}
       <div><dt class="text-sm text-[var(--muted)]">{{ row.nome }}{% if row.expertise %} · Especialista{% elif row.proficiente %} · Proficiente{% endif %}</dt><dd class="font-semibold">{{ row.bonus|stringformat:'+d' }}</dd></div>
     {% endfor %}</dl>
   </section>{% endif %}
   {% if mechanics.resumo %}<section aria-label="Resumo mecânico público" class="border-t border-[var(--stroke)] pt-5">
     <h2 class="font-serif text-xl text-[var(--text)]">Resumo mecânico</h2>
-    <dl class="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4">
+    <dl class="mt-2 grid grid-cols-2 gap-3 md:grid-cols-4">
       <div><dt>CA</dt><dd>{{ mechanics.resumo.ca }}</dd></div>
       <div><dt>PV máximo</dt><dd>{{ mechanics.resumo.pv_maximo|default_if_none:'—' }}</dd></div>
       <div><dt>Deslocamento</dt><dd>{{ mechanics.resumo.velocidade }}</dd></div>

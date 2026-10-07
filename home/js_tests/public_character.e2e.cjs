@@ -40,7 +40,22 @@ const { chromium } = require(process.env.BONFIRE_PLAYWRIGHT_MODULE);
       fs.mkdirSync(process.env.BONFIRE_ARTIFACT_DIR, { recursive: true });
       await page.screenshot({ path: path.join(process.env.BONFIRE_ARTIFACT_DIR, 'public-character-mobile.png'), fullPage: true });
     }
-    console.log('Ficha pública: desktop e celular sem dados privados nem overflow.');
+    await page.setViewportSize({ width: 640, height: 900 });
+    await page.evaluate(() => { document.documentElement.style.fontSize = '200%'; });
+    const enlargedOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    assert.ok(enlargedOverflow <= 1, `texto ampliado excede a tela em ${enlargedOverflow}px`);
+    assert.equal(await page.locator('h1').isVisible(), true);
+    assert.equal(await region.isVisible(), true);
+    const skillLabels = page.getByRole('region', { name: 'Perícias públicas' }).locator('dt');
+    const overflowingSkills = await skillLabels.evaluateAll(labels => labels
+      .filter(label => label.scrollWidth - label.clientWidth > 1)
+      .map(label => label.textContent.trim()));
+    assert.deepEqual(overflowingSkills, [], `perícias sobrepostas: ${overflowingSkills.join(', ')}`);
+    assert.equal(await page.getByText('Segredo privado da personagem').count(), 0);
+    if (process.env.BONFIRE_ARTIFACT_DIR) {
+      await page.screenshot({ path: path.join(process.env.BONFIRE_ARTIFACT_DIR, 'public-character-enlarged-text.png'), fullPage: true });
+    }
+    console.log('Ficha pública: desktop, celular e texto ampliado sem dados privados nem overflow.');
   } finally {
     await browser.close();
   }
