@@ -85,7 +85,7 @@ class VitrineDeLojaTests(_MercadoBase):
             self.assertIn(needle, html, needle)
         # uma linha por item do catálogo, e uma prévia por linha
         total = TbItemMundano.objects.count()
-        self.assertEqual(html.count('data-target="mu-'), total)
+        self.assertEqual(html.count('data-mkt-row data-target="mu-'), total)
         self.assertEqual(html.count('<template id="mu-'), total)
         # a categoria REAL do catálogo virou OPÇÃO DE FILTRO (dado, não lista fixa)
         for categoria in TbItemMundano.objects.values_list('categoria', flat=True).distinct():
