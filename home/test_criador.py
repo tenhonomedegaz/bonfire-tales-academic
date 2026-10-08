@@ -1858,8 +1858,9 @@ class PickTipoSinteticoTests(_CriadorBase):
 
     def test_criador_persiste_o_tipo_sintetico(self):
         pl = self._payload('mago')
-        pl['picks'] = [{'kind': 'opcao', 'tipo': 'tipo_sintetico',
-                        'valores': [self.slugs[0], self.slugs[2]]}]
+        synthetic_pick = next(g for g in pl['picks']
+                              if g['kind'] == 'opcao' and g['tipo'] == 'tipo_sintetico')
+        synthetic_pick['valores'] = [self.slugs[0], self.slugs[2]]
         resp = self._post_criar(self._novo_usuario('sintetico', staff=True), pl)
         self.assertEqual(resp.status_code, 200, resp.content)
         p = TbPersonagem.objects.get(pk=resp.json()['id'])
@@ -1869,7 +1870,9 @@ class PickTipoSinteticoTests(_CriadorBase):
 
     def test_validacao_generica_rejeita_contagem_errada(self):
         pl = self._payload('mago')
-        pl['picks'] = [{'kind': 'opcao', 'tipo': 'tipo_sintetico', 'valores': [self.slugs[0]]}]
+        synthetic_pick = next(g for g in pl['picks']
+                              if g['kind'] == 'opcao' and g['tipo'] == 'tipo_sintetico')
+        synthetic_pick['valores'] = [self.slugs[0]]
         resp = self._post_criar(self._novo_usuario('sintetico-bad', staff=True), pl)
         self.assertEqual(resp.status_code, 400, resp.content)
 
