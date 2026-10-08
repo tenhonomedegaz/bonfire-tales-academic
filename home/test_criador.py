@@ -970,6 +970,7 @@ class Bug4VertenteMagiaTests(_CriadorBase):
             _, errors = views._criador_resolver(payload)
             self.assertTrue(errors, values)
 
+@override_settings(HUNTER_CREATOR_RULESET_CHECKSUM='')
 class ValidacaoServerSideTests(_CriadorBase):
     """Validações server-side que faltavam (nunca confiar só no JS)."""
 
@@ -1089,7 +1090,6 @@ class ValidacaoServerSideTests(_CriadorBase):
         self.assertIsInstance(body['preview']['ca'], int)
         self.assertFalse(TbPersonagem.objects.exists())
 
-    @override_settings(HUNTER_CREATOR_RULESET_CHECKSUM='')
     def test_criador_e_pathbuilder_tem_contratos_de_destino_isolados(self):
         user = self._staff()
         self.client.force_login(user)
