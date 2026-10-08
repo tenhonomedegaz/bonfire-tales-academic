@@ -3,7 +3,7 @@ import uuid
 from io import StringIO
 
 from django.core.management import call_command
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from .hunter_catalog import compose_choice_revision, compose_order_revision
@@ -38,6 +38,7 @@ class HunterMortuaryTests(TestCase):
         data.update(fields)
         return self.client.post(self.url, data)
 
+    @override_settings(HUNTER_CREATOR_RULESET_CHECKSUM='')
     def test_mortuary_choice_is_pinned_and_visible_in_sheet(self):
         self.assertTrue(panel(self.profile)['mortuary_eligible'])
         from .hunter_rework import prepare
