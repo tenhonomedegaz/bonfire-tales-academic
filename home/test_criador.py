@@ -1089,6 +1089,7 @@ class ValidacaoServerSideTests(_CriadorBase):
         self.assertIsInstance(body['preview']['ca'], int)
         self.assertFalse(TbPersonagem.objects.exists())
 
+    @override_settings(HUNTER_CREATOR_RULESET_CHECKSUM='')
     def test_criador_e_pathbuilder_tem_contratos_de_destino_isolados(self):
         user = self._staff()
         self.client.force_login(user)
