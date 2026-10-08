@@ -1723,6 +1723,7 @@ class PreviewAoVivoTests(_CriadorBase):
         self.assertFalse(prev.get('ready'), prev)
 
 
+@override_settings(HUNTER_CREATOR_RULESET_CHECKSUM='')
 class PicksGenericoTests(_CriadorBase):
     """Sistema GENÉRICO de escolhas `pick:*` (home.picks): o criador passa a montar as
     escolhas de Maestria de Arma e Estilo de Luta pelo componente genérico (payload
