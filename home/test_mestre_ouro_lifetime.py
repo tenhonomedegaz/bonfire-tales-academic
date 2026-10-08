@@ -15,13 +15,25 @@ from django.utils import timezone
 from home.badges import badges_derivadas, titulos_disponiveis
 from home.cosmetics import cosmetic_allowed
 from home.mestre_ouro import buy_mestre_ouro_lifetime, reconcile_mestre_ouro
-from home.models import (MestreOuroDireito, MestreOuroRevisao, TbRecompensaMestre,
+from home.models import (MestreOuroDireito, MestreOuroRevisao, TbCosmetico, TbRecompensaMestre,
                          TbTransacaoMestre, TbUsuarioCosmetico, UserProfile)
 from home.permissions import is_mestre_ouro, limite_detalhe
 
 
 class MestreOuroLifetimeTests(TestCase):
     def setUp(self):
+        # TransactionTestCase flushes migration seed rows in a reused test DB.
+        # Install the same two permanent benefits this flow requires.
+        for slug, tipo, nome, css_class in (
+            ('titulo-mestre-ouro', 'titulo', 'Mestre Ouro', ''),
+            ('moldura-mestre-ouro', 'moldura', 'Aro do Mestre Ouro', 'frame-mestre-ouro'),
+        ):
+            TbCosmetico.objects.get_or_create(slug=slug, defaults={
+                'tipo': tipo, 'nome': nome, 'css_class': css_class,
+                'descricao': 'Benefício permanente de Mestre Ouro.',
+                'raridade': 'lendario', 'origem': 'mestre_ouro',
+                'escopo': 'perfil', 'ativo': True, 'ordem': 100,
+            })
         users = get_user_model()
         self.user = users.objects.create_user('old-gold', password='test')
         self.admin = users.objects.create_superuser('gold-admin', 'admin@example.test', 'test')

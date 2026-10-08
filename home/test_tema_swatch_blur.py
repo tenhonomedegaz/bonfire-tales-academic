@@ -24,7 +24,7 @@ from django.core.cache import cache
 from django.test import TestCase
 from django.urls import reverse
 
-from home.models import TbPersonagem, UserProfile
+from home.models import TbCosmetico, TbPersonagem, UserProfile
 from home.test_levelup import LevelUpLoteBase
 from home.views import _appearance_catalog
 
@@ -54,6 +54,26 @@ def _grade(html, grid_id):
 class SwatchBase(TestCase):
     def setUp(self):
         super().setUp()
+        # The migration seed may have been flushed by a TransactionTestCase.
+        for slug, nome, css_class, ordem in (
+            ('tema-bonfire', 'Bonfire', 'theme-bonfire', 0),
+            ('tema-custom', 'Personalizado', 'theme-custom', 5),
+        ):
+            TbCosmetico.objects.get_or_create(slug=slug, defaults={
+                'tipo': 'tema', 'nome': nome, 'css_class': css_class,
+                'origem': 'livre', 'raridade': 'comum', 'escopo': 'ambos',
+                'ativo': True, 'ordem': ordem,
+            })
+        TbCosmetico.objects.get_or_create(slug='tema-abissal', defaults={
+            'tipo': 'tema', 'nome': 'Abissal', 'origem': 'livre',
+            'raridade': 'comum', 'escopo': 'ambos', 'ativo': True, 'ordem': 100,
+            'definicao_json': {
+                'accent': '#38E1FF', 'accent2': '#2563EB',
+                'surface': '#071722', 'deep': '#030B12',
+                'gradiente': True, 'particula': 'flutuar',
+                'vel': 'lenta', 'glow': True,
+            },
+        })
         # get_catalog é cacheado por TTL curto — sem limpar, um teste vê o
         # catálogo montado por outro.
         cache.clear()
