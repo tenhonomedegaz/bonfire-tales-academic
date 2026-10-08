@@ -1,9 +1,13 @@
 """Future account cargos grant only their editorial flow, without admin access."""
 
 import json
+from importlib import import_module
+from types import SimpleNamespace
 
+from django.apps import apps
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
+from django.db import connection
 from django.test import TestCase
 from django.urls import reverse
 
@@ -13,6 +17,11 @@ from home.models import TbCronica, TbJornal
 class EditorialGroupTests(TestCase):
     @classmethod
     def setUpTestData(cls):
+        # A reusable test database can lose data-migration rows after a flush.
+        migration = import_module('home.migrations.0133_editorial_groups')
+        migration.create_editorial_groups(
+            apps, SimpleNamespace(connection=connection),
+        )
         users = get_user_model()
         cls.author = users.objects.create_user('group-author')
         cls.journalist = users.objects.create_user('group-journalist')
