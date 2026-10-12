@@ -11,6 +11,24 @@ from .models import (EventCosmeticOffer, EventCosmeticRedemption,
                      TbEventoConquista, TbPersonagem, TbUsuarioCosmetico)
 
 
+def event_cosmetic_fact_fields(redemption):
+    """Stable event identity and original redemption snapshot for new and old claims."""
+    return {
+        'origem': 'site_event_cosmetic',
+        'chave_origem': f'resgate:{redemption.request_id}',
+        'tipo': 'event_cosmetic_redeemed',
+        'conta_id': redemption.user_id,
+        'personagem_id': redemption.character_id,
+        'agregado_id': redemption.pk,
+        'ocorrido_em': redemption.created_at,
+        'payload_json': {
+            'offer_id': redemption.offer_id,
+            'cosmetic_id': redemption.cosmetico_id,
+            'cost_braseiros': redemption.cost_braseiros,
+        },
+    }
+
+
 def redeem_event_cosmetic(user, offer_id, character_id, request_id, quoted_cost):
     """Retorna (resgate, criado); uma tentativa repetida nunca debita outra vez."""
     try:
@@ -82,17 +100,5 @@ def redeem_event_cosmetic(user, offer_id, character_id, request_id, quoted_cost)
                 origem=f'evento:{redemption.pk}')
         # O fato nasce junto com o débito e o direito. Uma falha aqui desfaz os
         # três registros, permitindo reprocessar a mesma solicitação com segurança.
-        TbEventoConquista.objects.create(
-            origem='site_event_cosmetic',
-            chave_origem=f'resgate:{operation}',
-            tipo='event_cosmetic_redeemed',
-            conta=user, personagem=character,
-            agregado_id=redemption.pk,
-            ocorrido_em=redemption.created_at,
-            payload_json={
-                'offer_id': offer.pk,
-                'cosmetic_id': offer.cosmetico_id,
-                'cost_braseiros': offer.cost_braseiros,
-            },
-        )
+        TbEventoConquista.objects.create(**event_cosmetic_fact_fields(redemption))
         return redemption, True
