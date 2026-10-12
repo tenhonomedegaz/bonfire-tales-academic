@@ -114,6 +114,36 @@ class FirstPurchaseAchievementTests(_MercadoBase):
         self.assertEqual(TbUsuarioConquista.objects.filter(
             user=character.dono, conquista=rule).count(), 1)
 
+    def test_unified_worker_watch_processes_bounded_successive_cycles(self):
+        rule = self._rule()
+        rule.ativo = False
+        rule.save(update_fields=['ativo'])
+        character = self._char('unified-watch')
+        self._buy(character)
+        rule.ativo = True
+        rule.save(update_fields=['ativo'])
+        with self.assertRaises(CommandError):
+            call_command('processar_entregas_conquistas', watch=True,
+                         user_id=character.dono_id, stdout=StringIO())
+
+        output = StringIO()
+        with patch('home.management.commands.processar_entregas_conquistas.time.sleep',
+                   side_effect=[None, KeyboardInterrupt]) as sleep, patch(
+            'home.management.commands.processar_entregas_conquistas.close_old_connections'
+        ):
+            # TestCase usa uma transacao aberta; o processo independente renova conexoes.
+            call_command('processar_entregas_conquistas', apply=True, watch=True,
+                         limit=1, interval_seconds=0.01, user_id=character.dono_id,
+                         stdout=output)
+
+        self.assertEqual(sleep.call_count, 2)
+        self.assertEqual(output.getvalue().count('aplicado: concluidas=1 falhas=0'), 2)
+        self.assertIn('interrompido', output.getvalue())
+        self.assertEqual(TbEntregaEventoConquista.objects.filter(
+            evento__conta=character.dono, estado='concluida').count(), 2)
+        self.assertEqual(TbUsuarioConquista.objects.filter(
+            user=character.dono, conquista=rule).count(), 1)
+
     def test_unified_delivery_worker_continues_after_one_consumer_fails(self):
         rule = self._rule()
         rule.ativo = False

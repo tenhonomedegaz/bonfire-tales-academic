@@ -1,6 +1,9 @@
 """Consulta e processa as entregas locais de conquistas em um lote limitado."""
 
+import time
+
 from django.core.management.base import BaseCommand, CommandError
+from django.db import close_old_connections
 from django.db.models import Q
 from django.utils import timezone
 
@@ -33,11 +36,14 @@ CONSUMERS = (
 
 
 class Command(BaseCommand):
-    help = 'Previa por padrao; --apply reprocessa ate --limit entregas locais.'
+    help = ('Previa por padrao; --apply processa um lote; --watch repete lotes '
+            'ate interrupcao do processo.')
 
     def add_arguments(self, parser):
         parser.add_argument('--apply', action='store_true')
         parser.add_argument('--enqueue-missing', action='store_true')
+        parser.add_argument('--watch', action='store_true')
+        parser.add_argument('--interval-seconds', type=float, default=5)
         parser.add_argument('--user-id', type=int)
         parser.add_argument('--limit', type=int, default=100)
 
@@ -50,6 +56,10 @@ class Command(BaseCommand):
             raise CommandError('A conta deve ter ID positivo.')
         if options['enqueue_missing'] and not options['apply']:
             raise CommandError('--enqueue-missing exige --apply.')
+        if options['watch'] and (not options['apply'] or options['enqueue_missing']):
+            raise CommandError('--watch exige --apply sem --enqueue-missing.')
+        if not 0 < options['interval_seconds'] <= 3600:
+            raise CommandError('O intervalo deve ser maior que zero e ate 3600 segundos.')
 
         if not options['apply']:
             now = timezone.now()
@@ -97,6 +107,21 @@ class Command(BaseCommand):
             self.stdout.write(f'enfileiradas_total={created}')
             return
 
+        if options['watch']:
+            try:
+                while True:
+                    close_old_connections()
+                    self.process_batch(user_id=user_id, limit=limit)
+                    close_old_connections()
+                    time.sleep(options['interval_seconds'])
+            except KeyboardInterrupt:
+                close_old_connections()
+                self.stdout.write('interrompido')
+            return
+
+        self.process_batch(user_id=user_id, limit=limit)
+
+    def process_batch(self, *, user_id, limit):
         done = failed = 0
         while done + failed < limit:
             reserved = False
