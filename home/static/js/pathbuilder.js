@@ -386,6 +386,13 @@
                 var info = classBySlug[row.slug] || { nome: row.slug, subclasses: [] };
                 var min = Number(info.subclasse_nivel || 0);
                 var unlocked = min && Number(row.nivel) >= min;
+                var asiLevels = info.asi_niveis || [];
+                var asiNote = asiLevels.length && info.asi_nome
+                    ? '<p class="pb-row-note">' + esc(info.asi_nome) + ': ' +
+                      asiLevels.map(function (level) {
+                          return (Number(row.nivel) >= level ? '✓ ' : '') + 'N' + level;
+                      }).join(', ') + '</p>'
+                    : '';
                 var subs = '';
                 if (unlocked && (info.subclasses || []).length) {
                     subs = '<div class="pb-subclass" data-subclass-for="' + index + '">' +
@@ -412,7 +419,7 @@
                       (index === 0 ? ''
                         : '<button type="button" class="pb-x" data-remove-class="' + index +
                           '" title="Remover classe">×</button>') +
-                    '</div>' + subs + '</div>';
+                    '</div>' + asiNote + subs + '</div>';
             }).join('');
         }
 

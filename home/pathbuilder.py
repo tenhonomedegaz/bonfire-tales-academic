@@ -71,6 +71,7 @@ def catalogos():
             "slug": classe.slug,
             "nome": classe.nome,
             "asi_nome": asi_names.get(classe.pk, ""),
+            "asi_niveis": sorted(asi_levels[classe.pk]),
             "subclasse_nivel": _subclass_min_level(classe),
             "subclasses": subclasses.get(classe.slug, []),
         })

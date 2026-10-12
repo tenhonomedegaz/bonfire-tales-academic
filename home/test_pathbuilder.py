@@ -435,6 +435,55 @@ class PathbuilderTests(_CriadorBase):
                 self.assertEqual(budget['pontos_disponiveis'], expected_slots * 2)
         self.assertEqual(TbPersonagem.objects.count(), baseline)
 
+    def test_catalogo_asi_cobre_classes_e_subclasses_sem_criar_marcos(self):
+        from home.pathbuilder import catalogos
+        from home.views import _eh_feature_asi, _tag_levels
+
+        rows = {row['slug']: row for row in catalogos()['classes']}
+        self.assertEqual(set(rows), set(TbClasse.objects.values_list('slug', flat=True)))
+        with_asi = 0
+        for classe in TbClasse.objects.all():
+            with self.subTest(classe=classe.slug):
+                row = rows[classe.slug]
+                levels = sorted(_tag_levels(classe.tags_json, 'asi-choices'))
+                self.assertEqual(row['asi_niveis'], levels)
+                if not levels:
+                    self.assertFalse(row['asi_nome'])
+                    continue
+                with_asi += 1
+                feature = TbClassehabilidade.objects.filter(
+                    id_classe=classe, id_subclasse__isnull=True,
+                    niveladquirido=levels[0], table_only=False,
+                ).filter(nome__icontains='Atributo').first()
+                self.assertIsNotNone(feature)
+                self.assertTrue(_eh_feature_asi(feature.nome))
+                self.assertEqual(row['asi_nome'], feature.nome)
+                self.assertEqual(
+                    {sub['slug'] for sub in row['subclasses']},
+                    set(TbSubclasse.objects.filter(id_classe=classe).values_list('slug', flat=True)),
+                )
+        self.assertGreater(with_asi, 1)
+
+    def test_primeiro_asi_de_cada_classe_com_subclasse_nao_duplica_orcamento(self):
+        from home.pathbuilder import catalogos
+
+        baseline = TbPersonagem.objects.count()
+        for row in catalogos()['classes']:
+            if 4 not in row['asi_niveis']:
+                continue
+            with self.subTest(classe=row['slug']):
+                subclass = (row['subclasses'][0]['slug']
+                            if row['subclasses'] and row['subclasse_nivel'] <= 4 else '')
+                build = self._build(row['slug'], classes=[{
+                    'slug': row['slug'], 'nivel': 4, 'subclasse': subclass,
+                }])
+                response = self._post_preview(self._payload(row['slug']), build)
+                self.assertEqual(response.status_code, 200, response.content[:500])
+                budget = response.json()['build']['orcamento']
+                self.assertEqual(budget['asi_slots'], 1)
+                self.assertEqual(budget['pontos_disponiveis'], 2)
+        self.assertEqual(TbPersonagem.objects.count(), baseline)
+
     def test_detalhe_devolve_descricao_sob_demanda(self):
         """Cartao expansivel: a descricao nao vem no catalogo (seria 1 MB), vem aqui."""
         talento = TbTalento.objects.exclude(descricao="").first()
