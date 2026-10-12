@@ -1,9 +1,12 @@
 from unittest.mock import patch
+from io import StringIO
+from datetime import timedelta
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.core.management import call_command
 from django.urls import reverse
+from django.utils import timezone
 
 from home.conquistas import conquistas_do_usuario, conceder_conquista
 from home.models import (TbConquista, TbCosmetico, TbEntregaEventoConquista, TbEventoConquista,
@@ -32,6 +35,72 @@ class FirstPurchaseAchievementTests(_MercadoBase):
                                     {'item': self._item_mundano_com_preco().slug}, **self.AJAX)
         self.assertTrue(response.json()['ok'])
         return TbTransacao.objects.filter(tipo='compra').latest('pk')
+
+    def test_unified_delivery_worker_processes_creation_then_purchase_with_global_limit(self):
+        purchase_rule = self._rule()
+        purchase_rule.ativo = False
+        purchase_rule.save(update_fields=['ativo'])
+        character = self._char('unified-delivery')
+        purchase = self._buy(character)
+        creation_rule = TbConquista.objects.create(
+            slug='unified-first-character', nome='Primeira ficha recuperada',
+            criterio='automatico', criterio_json={
+                'schema_version': 1, 'metric': 'characters_created',
+                'scope': 'account', 'operator': 'gte', 'target': 1})
+        purchase_rule.ativo = True
+        purchase_rule.save(update_fields=['ativo'])
+        output = StringIO()
+        call_command('processar_entregas_conquistas', user_id=character.dono_id,
+                     stdout=output)
+        self.assertIn('criacao: fatos=1 entregas=1 disponiveis=1', output.getvalue())
+        self.assertIn('compra: fatos=1 entregas=1 disponiveis=1', output.getvalue())
+        self.assertFalse(TbUsuarioConquista.objects.filter(user=character.dono).exists())
+
+        call_command('processar_entregas_conquistas', apply=True, limit=1,
+                     user_id=character.dono_id, stdout=StringIO())
+        self.assertTrue(TbUsuarioConquista.objects.filter(
+            user=character.dono, conquista=creation_rule).exists())
+        self.assertFalse(TbUsuarioConquista.objects.filter(
+            user=character.dono, conquista=purchase_rule).exists())
+        call_command('processar_entregas_conquistas', apply=True, limit=1,
+                     user_id=character.dono_id, stdout=StringIO())
+        self.assertEqual(TbUsuarioConquista.objects.filter(
+            user=character.dono, conquista=purchase_rule).count(), 1)
+        self.assertEqual(TbUsuarioConquista.objects.get(
+            user=character.dono, conquista=purchase_rule
+        ).evidencia_json['agregado_id'], purchase.pk)
+        call_command('processar_entregas_conquistas', apply=True, limit=2,
+                     user_id=character.dono_id, stdout=StringIO())
+        self.assertEqual(TbUsuarioConquista.objects.filter(user=character.dono).count(), 2)
+
+    def test_unified_delivery_worker_continues_after_one_consumer_fails(self):
+        rule = self._rule()
+        rule.ativo = False
+        rule.save(update_fields=['ativo'])
+        character = self._char('unified-failure')
+        self._buy(character)
+        rule.ativo = True
+        rule.save(update_fields=['ativo'])
+        with patch('home.event_deliveries.avaliar_primeira_ficha_evento',
+                   side_effect=RuntimeError('creation unavailable')):
+            output = StringIO()
+            call_command('processar_entregas_conquistas', apply=True, limit=2,
+                         user_id=character.dono_id, stdout=output)
+        self.assertIn('concluidas=1 falhas=1', output.getvalue())
+        creation_delivery = TbEntregaEventoConquista.objects.get(
+            evento__tipo='character_created', consumidor='conquistas_criacao_v1')
+        purchase_delivery = TbEntregaEventoConquista.objects.get(
+            evento__tipo='item_purchased', consumidor='conquistas_compras_v1')
+        self.assertEqual(creation_delivery.estado, 'pendente')
+        self.assertEqual(purchase_delivery.estado, 'concluida')
+        self.assertEqual(TbUsuarioConquista.objects.filter(user=character.dono,
+                                                            conquista=rule).count(), 1)
+        TbEntregaEventoConquista.objects.filter(pk=creation_delivery.pk).update(
+            proxima_tentativa_em=timezone.now() - timedelta(seconds=1))
+        call_command('processar_entregas_conquistas', apply=True, limit=1,
+                     user_id=character.dono_id, stdout=StringIO())
+        creation_delivery.refresh_from_db()
+        self.assertEqual(creation_delivery.estado, 'concluida')
 
     def test_purchase_and_refund_delivery_replay_is_idempotent(self):
         rule = self._rule()
