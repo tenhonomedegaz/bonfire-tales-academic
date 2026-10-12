@@ -37,6 +37,7 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument('--apply', action='store_true')
+        parser.add_argument('--enqueue-missing', action='store_true')
         parser.add_argument('--user-id', type=int)
         parser.add_argument('--limit', type=int, default=100)
 
@@ -47,6 +48,8 @@ class Command(BaseCommand):
             raise CommandError('O limite deve ser positivo.')
         if user_id is not None and user_id < 1:
             raise CommandError('A conta deve ter ID positivo.')
+        if options['enqueue_missing'] and not options['apply']:
+            raise CommandError('--enqueue-missing exige --apply.')
 
         if not options['apply']:
             now = timezone.now()
@@ -56,6 +59,7 @@ class Command(BaseCommand):
                     facts = facts.filter(conta_id=user_id)
                 deliveries = TbEntregaEventoConquista.objects.filter(
                     consumidor=consumer, evento__in=facts)
+                missing = facts.exclude(entregas__consumidor=consumer).count()
                 available = deliveries.filter(
                     Q(estado='pendente', proxima_tentativa_em__lte=now) |
                     Q(estado='processando', reserva_ate__lte=now))
@@ -68,7 +72,29 @@ class Command(BaseCommand):
                     f'disponiveis={available.count()} '
                     f'revisao={deliveries.filter(estado="revisao").count()} '
                     f'com_erro={deliveries.exclude(ultimo_erro="").count()} '
-                    f'idade_mais_antiga_s={oldest_seconds}')
+                    f'idade_mais_antiga_s={oldest_seconds} '
+                    f'sem_entrega={missing}')
+            return
+
+        if options['enqueue_missing']:
+            created = 0
+            for name, consumer, origin, types, _, _ in CONSUMERS:
+                if created >= limit:
+                    break
+                queue_created = 0
+                facts = TbEventoConquista.objects.filter(origem=origin, tipo__in=types)
+                if user_id is not None:
+                    facts = facts.filter(conta_id=user_id)
+                missing_ids = (facts.exclude(entregas__consumidor=consumer)
+                               .order_by('ocorrido_em', 'pk')
+                               .values_list('pk', flat=True)[:limit - created])
+                for event_id in list(missing_ids):
+                    _, new = TbEntregaEventoConquista.objects.get_or_create(
+                        evento_id=event_id, consumidor=consumer)
+                    created += int(new)
+                    queue_created += int(new)
+                self.stdout.write(f'{name}: enfileiradas={queue_created}')
+            self.stdout.write(f'enfileiradas_total={created}')
             return
 
         done = failed = 0

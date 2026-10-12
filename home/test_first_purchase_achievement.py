@@ -5,6 +5,7 @@ from datetime import timedelta
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.urls import reverse
 from django.utils import timezone
 
@@ -72,6 +73,46 @@ class FirstPurchaseAchievementTests(_MercadoBase):
         call_command('processar_entregas_conquistas', apply=True, limit=2,
                      user_id=character.dono_id, stdout=StringIO())
         self.assertEqual(TbUsuarioConquista.objects.filter(user=character.dono).count(), 2)
+
+    def test_unified_worker_enqueues_preexisting_facts_in_bounded_batches(self):
+        rule = self._rule()
+        rule.ativo = False
+        rule.save(update_fields=['ativo'])
+        character = self._char('unified-backfill')
+        self._buy(character)
+        rule.ativo = True
+        rule.save(update_fields=['ativo'])
+        facts = TbEventoConquista.objects.filter(conta=character.dono)
+        self.assertEqual(facts.count(), 2)
+        TbEntregaEventoConquista.objects.filter(evento__in=facts).delete()
+
+        preview = StringIO()
+        call_command('processar_entregas_conquistas', user_id=character.dono_id,
+                     stdout=preview)
+        self.assertIn('criacao: fatos=1 entregas=0 disponiveis=0', preview.getvalue())
+        self.assertIn('compra: fatos=1 entregas=0 disponiveis=0', preview.getvalue())
+        self.assertEqual(preview.getvalue().count('sem_entrega=1'), 2)
+        self.assertFalse(TbEntregaEventoConquista.objects.filter(evento__in=facts).exists())
+        with self.assertRaises(CommandError):
+            call_command('processar_entregas_conquistas', enqueue_missing=True,
+                         user_id=character.dono_id, stdout=StringIO())
+
+        call_command('processar_entregas_conquistas', apply=True, enqueue_missing=True,
+                     limit=1, user_id=character.dono_id, stdout=StringIO())
+        self.assertEqual(TbEntregaEventoConquista.objects.filter(evento__in=facts).count(), 1)
+        call_command('processar_entregas_conquistas', apply=True, enqueue_missing=True,
+                     limit=1, user_id=character.dono_id, stdout=StringIO())
+        self.assertEqual(TbEntregaEventoConquista.objects.filter(evento__in=facts).count(), 2)
+        call_command('processar_entregas_conquistas', apply=True, enqueue_missing=True,
+                     limit=2, user_id=character.dono_id, stdout=StringIO())
+        self.assertEqual(TbEntregaEventoConquista.objects.filter(evento__in=facts).count(), 2)
+
+        call_command('processar_entregas_conquistas', apply=True, limit=2,
+                     user_id=character.dono_id, stdout=StringIO())
+        self.assertEqual(TbEntregaEventoConquista.objects.filter(
+            evento__in=facts, estado='concluida').count(), 2)
+        self.assertEqual(TbUsuarioConquista.objects.filter(
+            user=character.dono, conquista=rule).count(), 1)
 
     def test_unified_delivery_worker_continues_after_one_consumer_fails(self):
         rule = self._rule()
