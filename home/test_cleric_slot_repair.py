@@ -54,7 +54,7 @@ class ClericSlotRepairTests(TestCase):
     self.client.force_login(self.user)
 
   def test_preview_apply_and_replay_preserve_ids_and_user_data(self):
-    before = list(TbRecursoclasse.objects.values())
+    before = list(TbRecursoclasse.objects.order_by('pk').values())
     spent = ensure_resource(self.character, {'key':'spell-slot:5','name':'spell-slot:5',
       'maximum':2, 'initial':1, 'reset':'long_rest'})
     spent.atual = 1
@@ -65,10 +65,10 @@ class ClericSlotRepairTests(TestCase):
     output = StringIO()
     call_command('repair_cleric_slots', stdout=output)
     self.assertEqual(len(json.loads(output.getvalue())['changes']), 9)
-    self.assertEqual(list(TbRecursoclasse.objects.filter(id_subclasse=None).values()), before)
+    self.assertEqual(list(TbRecursoclasse.objects.filter(id_subclasse=None).order_by('pk').values()), before)
     repair_cleric_slots(apply=True)
     self.assertEqual(repair_cleric_slots(apply=True)['changes'], [])
-    self.assertEqual(list(TbRecursoclasse.objects.filter(id_subclasse=None).values_list('pk', flat=True)),
+    self.assertEqual(list(TbRecursoclasse.objects.filter(id_subclasse=None).order_by('pk').values_list('pk', flat=True)),
       [r['id_recurso'] for r in before])
     spent.refresh_from_db()
     self.assertEqual((spent.atual,spent.maximo),(1,2))
