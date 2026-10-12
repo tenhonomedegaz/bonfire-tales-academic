@@ -43,6 +43,13 @@ class ClassCatalogReadabilityBrowserTests(StaticLiveServerTestCase):
             id_classe=classe, nome='Luz da Leitura',
             descricao='Texto de habilidade legível no celular.', niveladquirido=1,
         )
+        mystic_fixture = json.loads((Path(__file__).parent / 'fixtures' / 'conteudo.json').read_text(encoding='utf-8'))
+        mystic_description = next(item['fields']['descricao'] for item in mystic_fixture
+                                  if item['model'] == 'home.tbclassehabilidade' and item['pk'] == 1428)
+        TbClassehabilidade.objects.create(
+            id_classe=classe, nome='Feitiçaria Mística',
+            descricao=mystic_description, niveladquirido=1,
+        )
         detail_url = reverse('classe_detail', kwargs={'slug': classe.slug})
         full_detail = self.client.get(detail_url)
         self.assertEqual(full_detail.status_code, 200)
@@ -155,6 +162,25 @@ class ClassCatalogReadabilityBrowserTests(StaticLiveServerTestCase):
                     return (Math.max(foreground, background) + 0.05) / (Math.min(foreground, background) + 0.05);
                 })()''')
                 self.assertGreaterEqual(contrast, 4.5)
+                mystic_layout = js('''(() => {
+                    const card = [...document.querySelectorAll('[data-feature-card]')]
+                        .find(item => item.querySelector('[data-feature-title]')?.textContent.includes('Feitiçaria Mística'));
+                    const body = card?.querySelector('[data-markdown]');
+                    return {paragraphs: body?.querySelectorAll('p').length || 0,
+                        headings: body?.querySelectorAll('h5').length || 0,
+                        tables: body?.querySelectorAll('table').length || 0};
+                })()''')
+                self.assertGreaterEqual(mystic_layout['paragraphs'], 5, mystic_layout)
+                self.assertGreaterEqual(mystic_layout['headings'], 5, mystic_layout)
+                self.assertEqual(mystic_layout['tables'], 1, mystic_layout)
+                mystic_heading = js('''(() => {
+                    const heading = [...document.querySelectorAll('[data-markdown] h5')]
+                        .find(item => item.textContent.includes('Truques'));
+                    return {weight: parseInt(getComputedStyle(heading).fontWeight, 10),
+                        size: parseFloat(getComputedStyle(heading).fontSize)};
+                })()''')
+                self.assertGreaterEqual(mystic_heading['size'], 14, mystic_heading)
+                self.assertGreaterEqual(mystic_heading['weight'], 700, mystic_heading)
                 screenshot_path = os.environ.get('BONFIRE_QA_CLASS_SCREENSHOT')
                 if screenshot_path:
                     screenshot = call('Page.captureScreenshot', {'captureBeyondViewport': True})

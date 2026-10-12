@@ -21,6 +21,14 @@
     margin: 1.5rem 0 0.5rem;
     padding: 0;
   }
+  .bonfire-markdown h5,
+  .bonfire-markdown h6 {
+    color: var(--spark);
+    font-weight: 800;
+    font-size: 14px;
+    line-height: 1.4;
+    margin: 1.1rem 0 0.4rem;
+  }
   .bonfire-markdown strong {
     font-weight: 800;
   }
