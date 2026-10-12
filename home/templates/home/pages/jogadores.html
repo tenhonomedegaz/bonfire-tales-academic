@@ -88,8 +88,7 @@
           {% endif %}
           {% if card.profile.bio %}<p>{{ card.profile.bio|truncatechars:150 }}</p>{% endif %}
           <span class="player-card-count">
-            {{ card.character_count }} personagem{% if card.character_count != 1 %}s{% endif %}
-            {% if card.public_count and card.public_count != card.character_count %} · {{ card.public_count }} público{% if card.public_count != 1 %}s{% endif %}{% endif %}
+            {% if card.character_count == 1 %}1 personagem público{% else %}{{ card.character_count }} personagens públicos{% endif %}
           </span>
           {# Social discreto: contagens vindas do batch (2 queries pra pagina toda). #}
           <span class="player-card-social">
@@ -102,7 +101,7 @@
       {% if card.characters %}
       <div class="player-card-characters">
         {% for c in card.characters %}
-        <a href="{% url 'ficha_detail' c.obj.id_personagem %}">
+        <a href="{% url 'ficha_publica' c.obj.id_personagem %}">
           <strong>{{ c.obj.nome }}</strong>
           <span>{{ c.raca }} - Nivel {{ c.nivel }}</span>
         </a>

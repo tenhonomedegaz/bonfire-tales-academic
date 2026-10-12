@@ -1313,6 +1313,7 @@
 .player-card-characters strong {
     color: var(--text);
     font-size: 0.86rem;
+    overflow-wrap: anywhere;
 }
 
 .player-card-characters span {

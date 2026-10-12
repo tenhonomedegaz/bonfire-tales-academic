@@ -78,6 +78,32 @@ const { chromium } = require(process.env.BONFIRE_PLAYWRIGHT_MODULE);
     }
     const longEnlargedOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     assert.ok(longEnlargedOverflow <= 1, `ficha longa com texto ampliado excede a tela em ${longEnlargedOverflow}px`);
+    await page.setViewportSize({ width: 1280, height: 900 });
+    const playersResponse = await page.goto(process.env.PUBLIC_CHARACTER_ORIGIN + process.env.PUBLIC_CHARACTER_PLAYERS_PATH,
+      { waitUntil: 'networkidle' });
+    assert.equal(playersResponse.status(), 200);
+    const ownerCard = page.locator('.player-card').filter({ hasText: 'public-browser-owner' });
+    assert.equal(await ownerCard.count(), 1);
+    assert.match(await ownerCard.locator('.player-card-count').textContent(), /2 personagens públicos/);
+    assert.equal(await ownerCard.getByText('Segredo visual privado').count(), 0);
+    assert.equal(await ownerCard.locator(`a[href="${process.env.PUBLIC_CHARACTER_PATH}"]`).count(), 1);
+    assert.ok(await ownerCard.isVisible());
+    const desktopPlayersOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    assert.ok(desktopPlayersOverflow <= 1, `vitrine desktop excede a tela em ${desktopPlayersOverflow}px`);
+    await page.setViewportSize({ width: 360, height: 800 });
+    const playersOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    assert.ok(playersOverflow <= 1, `vitrine excede a tela em ${playersOverflow}px`);
+    const clippedNames = await ownerCard.locator('.player-card-characters strong').evaluateAll(names => names
+      .filter(name => name.scrollWidth - name.clientWidth > 1)
+      .map(name => name.textContent.trim()));
+    assert.deepEqual(clippedNames, [], `nomes de personagens cortados: ${clippedNames.join(', ')}`);
+    if (process.env.BONFIRE_ARTIFACT_DIR) {
+      await page.screenshot({ path: path.join(process.env.BONFIRE_ARTIFACT_DIR, 'public-players-mobile.png'), fullPage: true });
+    }
+    await ownerCard.locator(`a[href="${process.env.PUBLIC_CHARACTER_PATH}"]`).click();
+    await page.waitForURL(`**${process.env.PUBLIC_CHARACTER_PATH}`);
+    assert.equal(await page.locator('article.ficha h1').count(), 1);
+    assert.equal(await page.getByText('Segredo visual privado').count(), 0);
     console.log('Ficha pública: desktop, celular e texto ampliado sem dados privados nem overflow.');
   } finally {
     await browser.close();

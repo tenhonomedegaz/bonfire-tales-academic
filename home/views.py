@@ -1755,14 +1755,14 @@ def jogadores_view(request):
     ordem = (request.GET.get('ordem') or 'popular').strip()
     filtros_validos = {
         'todos': 'Todos',
-        'personagens': 'Com personagens',
+        'personagens': 'Com personagens públicos',
         'customizados': 'Perfil customizado',
         'equipe': 'Equipe',
     }
     ordens_validas = {
         'popular': 'Mais populares',
         'nome': 'Nome',
-        'personagens': 'Mais personagens',
+        'personagens': 'Mais personagens públicos',
         'atividade': 'Atividade recente',
     }
     if filtro not in filtros_validos:
@@ -1770,7 +1770,6 @@ def jogadores_view(request):
     if ordem not in ordens_validas:
         ordem = 'nome'
 
-    character_q = Q(personagens__arquivado=False)
     public_character_q = Q(personagens__publico=True, personagens__arquivado=False)
     custom_profile_q = (
         Q(profile__bio__gt='')
@@ -1785,17 +1784,12 @@ def jogadores_view(request):
             .select_related('profile')
             .annotate(character_count=Count(
                 'personagens',
-                filter=character_q,
-                distinct=True,
-            ))
-            .annotate(public_character_count=Count(
-                'personagens',
                 filter=public_character_q,
                 distinct=True,
             ))
             .annotate(character_updated=Max(
                 'personagens__atualizado_em',
-                filter=character_q,
+                filter=public_character_q,
             ))
             .annotate(
                 profile_like_count=Count('curtidas_recebidas', distinct=True),
@@ -1839,17 +1833,13 @@ def jogadores_view(request):
                 bucket.append(_personagem_card(p))
 
     users_list = list(users_page.object_list)
-    for u in users_list:
-        # select_related('profile') já carregou; garante existência sem N+1 de save.
-        if getattr(u, 'profile', None) is None:
-            UserProfile.objects.get_or_create(user=u)
     # F2 — badges/títulos de TODOS os usuários da página em lote (sem N+1).
     perfil_badges = _badges.perfil_badges_batch(users_list)
     # Social — curtidas/seguidores da página em 2 queries agregadas (mesmo padrão).
     social_counts = _social.social_counts_batch(users_list)
     cards = []
     for u in users_list:
-        profile = getattr(u, 'profile', None) or UserProfile.objects.get_or_create(user=u)[0]
+        profile = getattr(u, 'profile', None) or UserProfile(user=u)
         info = perfil_badges.get(u.pk, {})
         cards.append({
             'user': u,
@@ -1858,7 +1848,6 @@ def jogadores_view(request):
                                               profile.profile_effect, profile.theme_custom,
                                               user=u),
             'character_count': int(getattr(u, 'character_count', 0) or 0),
-            'public_count': int(getattr(u, 'public_character_count', 0) or 0),
             'characters': public_chars.get(u.pk, []),
             'badges': info.get('badges', []),
             'titulo': info.get('titulo'),
