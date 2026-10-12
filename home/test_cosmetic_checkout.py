@@ -1,17 +1,24 @@
 import json
+import os
+from pathlib import Path
+import subprocess
+import unittest
 from decimal import Decimal
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.test import TestCase, override_settings
 from django.urls import reverse
+from django.utils import timezone
 
 from .cosmetic_entitlements import has_permanent_cosmetic
 from .cosmetics import catalog_options, cosmetic_allowed
 from .permissions import colab_tier
 from .badges import badges_concedidas, perfil_badges_batch, titulos_disponiveis
 from .models import (AsaasCheckoutOrder, CosmeticCheckoutOffer,
-                     CosmeticCheckoutPurchase, TbCosmetico, TbUsuarioCosmetico,
+                     CosmeticCheckoutPurchase, EventCosmeticOffer,
+                     EventCosmeticRedemption, TbCosmetico, TbUsuarioCosmetico,
                      UserProfile)
 from .views import (AsaasAPIError, _validated_badges_destaque,
                     _validated_titulo_equipado, _appearance_context)
@@ -31,6 +38,63 @@ class CosmeticCheckoutTests(TestCase):
         )
         self.client.force_login(self.user)
 
+    def test_profile_catalog_shows_verified_sources_without_leaking_other_accounts(self):
+        from uuid import uuid4
+
+        event_cosmetic = TbCosmetico.objects.create(
+            slug='tema-evento-teste', tipo='tema', nome='Tema Evento',
+            origem='evento_manual', escopo='perfil')
+        offer = EventCosmeticOffer.objects.create(
+            event_key='teste-origem', cosmetico=event_cosmetic, cost_braseiros=0,
+            active=False)
+        EventCosmeticRedemption.objects.create(
+            request_id=uuid4(), offer=offer, user=self.user,
+            cosmetico=event_cosmetic, cost_braseiros=0)
+        order = AsaasCheckoutOrder.objects.create(
+            user=self.user, email=self.user.email,
+            product_code='cosmetic:' + self.cosmetic.slug,
+            mode='single', amount=Decimal('12.34'))
+        CosmeticCheckoutPurchase.objects.create(
+            order=order, beneficiary=self.user, cosmetico=self.cosmetic,
+            slug=self.cosmetic.slug, name=self.cosmetic.nome,
+            granted_at=timezone.now())
+        TbUsuarioCosmetico.objects.create(
+            user=self.user, cosmetico=event_cosmetic, origem='evento:123',
+            suspenso_em=timezone.now())
+        effect = TbCosmetico.objects.create(
+            slug='efeito-conquista-teste', tipo='efeito', nome='Efeito Conquista',
+            origem='conquista', escopo='perfil')
+        TbUsuarioCosmetico.objects.create(
+            user=self.user, cosmetico=effect,
+            origem='conquista:chave-interna')
+        own = self.client.get('/perfil/')
+        self.assertEqual(own.status_code, 200)
+        self.assertContains(own, 'Tema Evento')
+        self.assertContains(own, 'Resgate de evento')
+        self.assertContains(own, 'Moldura Paga (Compra confirmada)')
+        self.assertContains(own, 'Efeito Conquista (Conquista)')
+        self.assertNotContains(own, 'evento:123')
+        self.assertNotContains(own, 'chave-interna')
+        self.assertEqual(next(item['posse_origem'] for item in
+                              own.context['appearance_theme_options']
+                              if item['key'] == 'evento-teste'), 'Resgate de evento')
+        self.client.force_login(self.other)
+        other = self.client.get('/perfil/')
+        self.assertEqual(other.status_code, 200)
+        self.assertNotContains(other, 'Resgate de evento')
+        self.assertNotContains(other, 'Compra confirmada')
+        self.assertEqual(next(item['estado'] for item in
+                              other.context['appearance_theme_options']
+                              if item['key'] == 'evento-teste'), 'bloqueado')
+
+    def test_profile_catalog_labels_inventory_grant_without_exposing_origin_key(self):
+        TbUsuarioCosmetico.objects.create(
+            user=self.user, cosmetico=self.cosmetic,
+            origem='conquista:segredo-interno')
+        page = self.client.get('/perfil/')
+        self.assertContains(page, 'Moldura Paga (Conquista)')
+        self.assertNotContains(page, 'segredo-interno')
+
     @patch('home.permissions.colab_tier')
     def test_colab_catalog_and_display_expire_without_erasing_preference(self, tier):
         borrowed = TbCosmetico.objects.create(
@@ -44,12 +108,16 @@ class CosmeticCheckoutTests(TestCase):
         self.assertEqual(_appearance_context(frame='emprestada', user=self.user)['frame_key'], 'emprestada')
         self.assertEqual(next(x['estado'] for x in catalog_options(
             self.user, 'moldura', 'perfil') if x['key'] == 'emprestada'), 'possui')
+        self.assertEqual(next(x['posse_origem'] for x in catalog_options(
+            self.user, 'moldura', 'perfil') if x['key'] == 'emprestada'), 'Acesso Colab')
         tier.return_value = None
         TbUsuarioCosmetico.objects.create(
             user=self.user, cosmetico=borrowed, origem='colaborador')
         self.assertEqual(_appearance_context(frame='emprestada', user=self.user)['frame_key'], 'none')
         self.assertEqual(next(x['estado'] for x in catalog_options(
             self.user, 'moldura', 'perfil') if x['key'] == 'emprestada'), 'bloqueado')
+        self.assertEqual(next(x['posse_origem'] for x in catalog_options(
+            self.user, 'moldura', 'perfil') if x['key'] == 'emprestada'), '')
         profile = UserProfile.objects.get_or_create(user=self.user)[0]
         profile.avatar_frame = 'emprestada'
         profile.save(update_fields=['avatar_frame'])
@@ -310,3 +378,37 @@ class CosmeticCheckoutTests(TestCase):
                                                  'payment': {'id': 'pay_cosmetic',
                                                              'externalReference': order.external_reference}}),
                                 content_type='application/json', HTTP_ASAAS_ACCESS_TOKEN=token)
+
+
+@unittest.skipUnless(os.environ.get('BONFIRE_PLAYWRIGHT_MODULE'), 'Configure Playwright.')
+class CosmeticProfileSourceBrowserTests(StaticLiveServerTestCase):
+    def test_source_labels_fit_mobile_and_desktop_selectors(self):
+        from uuid import uuid4
+
+        user = get_user_model().objects.create_user('profile-source-visual')
+        theme = TbCosmetico.objects.create(
+            slug='tema-evento-visual', tipo='tema', nome='Tema do evento',
+            origem='evento_manual', escopo='perfil')
+        offer = EventCosmeticOffer.objects.create(
+            event_key='visual-event', cosmetico=theme, cost_braseiros=0,
+            active=False)
+        EventCosmeticRedemption.objects.create(
+            request_id=uuid4(), offer=offer, user=user,
+            cosmetico=theme, cost_braseiros=0)
+        frame = TbCosmetico.objects.create(
+            slug='moldura-paga-visual', tipo='moldura', nome='Moldura paga',
+            origem='evento_manual', escopo='perfil')
+        order = AsaasCheckoutOrder.objects.create(
+            user=user, email='visual@example.test',
+            product_code='cosmetic:' + frame.slug,
+            mode='single', amount=Decimal('12.34'))
+        CosmeticCheckoutPurchase.objects.create(
+            order=order, beneficiary=user, cosmetico=frame,
+            slug=frame.slug, name=frame.nome, granted_at=timezone.now())
+        self.client.force_login(user)
+        env = dict(os.environ, PROFILE_SOURCE_ORIGIN=self.live_server_url,
+                   PROFILE_SOURCE_SESSION=self.client.cookies['sessionid'].value)
+        result = subprocess.run(
+            ['node', str(Path(__file__).parent / 'js_tests/cosmetic_profile_source.e2e.cjs')],
+            env=env, capture_output=True, encoding='utf-8', timeout=90)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)

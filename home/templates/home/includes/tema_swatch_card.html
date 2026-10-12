@@ -22,7 +22,7 @@ O <input type="radio"> mantém name/value idênticos aos do <select> antigo:
 o POST do formulário não muda em nada.
 {% endcomment %}
 <label class="tema-swatch tema-swatch--{{ key|default:'default' }}{% if disabled %} is-locked{% endif %}"
-       title="{{ item.label }}{% if disabled %} (bloqueado){% endif %}"
+       title="{{ item.label }}{% if item.posse_origem %} ({{ item.posse_origem }}){% elif disabled %} (bloqueado){% endif %}"
        data-tema-card="{{ key }}" data-tema-classe="{{ item.class }}"
        {% if d.accent %}data-accent="{{ d.accent }}" data-accent2="{{ d.accent2 }}" data-surface="{{ d.surface }}" data-deep="{{ d.deep }}" data-gradiente="{% if d.gradiente %}1{% else %}0{% endif %}" data-particula="{{ d.particula|default:'subir' }}" data-vel="{{ d.vel|default:'media' }}"{% endif %}>
     <input type="radio" name="{{ input_name }}" id="{{ input_id }}" value="{{ key }}"
@@ -45,5 +45,5 @@ o POST do formulário não muda em nada.
         {% if d.particula and d.particula != 'nenhuma' %}<span class="tema-swatch-fx" data-fx="{{ d.particula }}" aria-hidden="true"></span>{% endif %}
         {% if disabled %}<span class="tema-swatch-lock" aria-hidden="true">🔒</span>{% endif %}
     </span>
-    <span class="tema-swatch-name">{{ item.label }}</span>
+    <span class="tema-swatch-name">{{ item.label }}{% if item.posse_origem %}<span class="tema-swatch-source">{{ item.posse_origem }}</span>{% endif %}</span>
 </label>

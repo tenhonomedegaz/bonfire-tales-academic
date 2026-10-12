@@ -91,7 +91,7 @@
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    font-size: 0.62rem;
+    font-size: 0.68rem;
     font-weight: 900;
     line-height: 1;
     color: var(--bg0);
@@ -251,6 +251,14 @@
     text-align: center;
     letter-spacing: 0.02em;
     line-height: 1.15;
+}
+
+.tema-swatch-source {
+    display: block;
+    margin-top: 0.15rem;
+    font-size: 0.62rem;
+    font-weight: 400;
+    overflow-wrap: anywhere;
 }
 
 .tema-swatch:has(input:checked) .tema-swatch-name {

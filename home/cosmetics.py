@@ -163,6 +163,45 @@ def _user_inventory_values(user, tipo):
             set(slugs) | permanent_cosmetic_slugs(user, tipo)}
 
 
+def _catalog_ownership(user, tipo):
+    """Valores possuídos e origens comprovadas, sempre consultados para a conta atual."""
+    if not user or not getattr(user, 'is_authenticated', False):
+        return set(), {}
+    from .models import (CosmeticCheckoutPurchase, EventCosmeticRedemption,
+                         TbUsuarioCosmetico)
+
+    inventory = dict(TbUsuarioCosmetico.objects.filter(
+        user=user, cosmetico__tipo=tipo, cosmetico__ativo=True,
+        suspenso_em__isnull=True,
+    ).exclude(origem__startswith='colaborador').values_list('cosmetico__slug', 'origem'))
+    paid = set(CosmeticCheckoutPurchase.objects.filter(
+        beneficiary=user, cosmetico__tipo=tipo, cosmetico__ativo=True,
+        granted_at__isnull=False,
+    ).values_list('cosmetico__slug', flat=True))
+    event = set(EventCosmeticRedemption.objects.filter(
+        user=user, cosmetico__tipo=tipo, cosmetico__ativo=True,
+    ).values_list('cosmetico__slug', flat=True))
+    sources = {}
+    for slug in set(inventory) | paid | event:
+        labels = []
+        if slug in event:
+            labels.append('Resgate de evento')
+        if slug in paid:
+            labels.append('Compra confirmada')
+        if not labels:
+            origin = inventory[slug]
+            if origin.startswith('conquista:'):
+                labels.append('Conquista')
+            elif origin == 'compra_mm':
+                labels.append('Loja de mestragem')
+            elif origin == 'staff':
+                labels.append('Concessão da equipe')
+            else:
+                labels.append('Concessão registrada')
+        sources[_valor_de_slug(tipo, slug)] = ', '.join(labels)
+    return set(sources), sources
+
+
 def _tipo_db(tipo):
     """Aceita tanto o tipo interno de aparência (theme/frame/effect) quanto o tipo
     do catálogo (tema/moldura/efeito) e devolve sempre o tipo do catálogo."""
@@ -210,7 +249,7 @@ def catalog_options(user, tipo, escopo='ambos', selected=None):
     Em F1 tudo é 'livre' → nada aparece bloqueado."""
     tipo = _tipo_db(tipo)
     catalogo = get_catalog(tipo)
-    inventario = _user_inventory_values(user, tipo)
+    inventario, ownership_sources = _catalog_ownership(user, tipo)
     colab = None
     if any(item.get('origem') == 'colaborador' for item in catalogo.values()):
         from .permissions import colab_tier
@@ -242,6 +281,8 @@ def catalog_options(user, tipo, escopo='ambos', selected=None):
             'definicao': item.get('definicao', {}),
             'css_url': item.get('css_url', ''),
             'estado': estado,
+            'posse_origem': (ownership_sources.get(valor) or 'Acesso Colab'
+                            if estado == 'possui' else ''),
             'selected': valor == selected,
         })
     return opcoes
