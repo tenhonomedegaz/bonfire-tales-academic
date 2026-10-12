@@ -45,7 +45,7 @@ class ClassCatalogReadabilityBrowserTests(StaticLiveServerTestCase):
         )
         mystic_fixture = json.loads((Path(__file__).parent / 'fixtures' / 'conteudo.json').read_text(encoding='utf-8'))
         feature_pks = (1428, 1431, 1444, 1446, 1332, 894, 964, 1382, 1355, 1342,
-                       1181, 917, 956)
+                       1181, 917, 956, 887, 910, 987, 985, 992, 993)
         mystic_features = {item['pk']: item['fields'] for item in mystic_fixture
                            if item['model'] == 'home.tbclassehabilidade'
                            and item['pk'] in feature_pks}
@@ -184,7 +184,9 @@ class ClassCatalogReadabilityBrowserTests(StaticLiveServerTestCase):
                         return {paragraphs: body?.querySelectorAll('p').length || 0,
                             headings: body?.querySelectorAll('h5, h4').length || 0,
                             lists: body?.querySelectorAll('ul').length || 0,
-                            tables: body?.querySelectorAll('table').length || 0};
+                            tables: body?.querySelectorAll('table').length || 0,
+                            toggles: body?.querySelectorAll('details.bonfire-toggle').length || 0,
+                            nested: body?.querySelectorAll('li li').length || 0};
                     };
                     return {wizard: layout('Conjura'),
                         artificer: layout('Elixires Alqu'),
@@ -194,7 +196,13 @@ class ClassCatalogReadabilityBrowserTests(StaticLiveServerTestCase):
                         wizardTime: layout('Cronoturgia'),
                         druid: layout('Surto Selvagem'),
                         artificerDefender: layout('Defensor Aprimorado'),
-                        barbarianRunes: layout('Runas Elementais')};
+                        barbarianRunes: layout('Runas Elementais'),
+                        infusions: layout('Infus'),
+                        arcaneWeapon: layout('Arma Arcana'),
+                        colossalCharge: layout('Investida Colossal Aprimorada'),
+                        intimidatingPresence: layout('Presen'),
+                        runicAwakening: layout('Despertar R'),
+                        huntCall: layout('Chamado da Ca')};
                 })()''')
                 self.assertGreaterEqual(other_class_layout['wizard']['paragraphs'], 7, other_class_layout)
                 self.assertGreaterEqual(other_class_layout['wizard']['headings'], 4, other_class_layout)
@@ -217,6 +225,17 @@ class ClassCatalogReadabilityBrowserTests(StaticLiveServerTestCase):
                                         other_class_layout)
                 self.assertEqual(other_class_layout['barbarianRunes']['tables'], 1,
                                  other_class_layout)
+                for feature in ('infusions', 'arcaneWeapon'):
+                    self.assertEqual(other_class_layout[feature]['toggles'], 1,
+                                     (feature, other_class_layout))
+                    self.assertGreaterEqual(other_class_layout[feature]['paragraphs'], 3,
+                                            (feature, other_class_layout))
+                for feature in ('colossalCharge', 'intimidatingPresence',
+                                'runicAwakening', 'huntCall'):
+                    self.assertGreaterEqual(other_class_layout[feature]['lists'], 1,
+                                            (feature, other_class_layout))
+                self.assertGreaterEqual(other_class_layout['colossalCharge']['nested'], 1,
+                                        other_class_layout)
                 mystic_heading = js('''(() => {
                     const heading = [...document.querySelectorAll('[data-markdown] h5')]
                         .find(item => item.textContent.includes('Truques'));
