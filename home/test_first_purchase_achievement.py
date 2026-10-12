@@ -6,7 +6,7 @@ from django.core.management import call_command
 from django.urls import reverse
 
 from home.conquistas import conquistas_do_usuario, conceder_conquista
-from home.models import (TbConquista, TbCosmetico, TbEventoConquista,
+from home.models import (TbConquista, TbCosmetico, TbEntregaEventoConquista, TbEventoConquista,
                          TbPersonagemItem, TbTransacao, TbUsuarioConquista, TbUsuarioCosmetico)
 from home.test_ficha_v2_onda_c import _MercadoBase
 
@@ -32,6 +32,70 @@ class FirstPurchaseAchievementTests(_MercadoBase):
                                     {'item': self._item_mundano_com_preco().slug}, **self.AJAX)
         self.assertTrue(response.json()['ok'])
         return TbTransacao.objects.filter(tipo='compra').latest('pk')
+
+    def test_purchase_and_refund_delivery_replay_is_idempotent(self):
+        rule = self._rule()
+        rule.ativo = False
+        rule.save(update_fields=['ativo'])
+        character = self._char('purchase-delivery')
+        purchase = self._buy(character)
+        fact = TbEventoConquista.objects.get(tipo='item_purchased', agregado_id=purchase.pk)
+        delivery = TbEntregaEventoConquista.objects.get(evento=fact,
+                                                         consumidor='conquistas_compras_v1')
+        self.assertEqual(delivery.estado, 'pendente')
+        rule.ativo = True
+        rule.save(update_fields=['ativo'])
+        call_command('processar_entregas_compra', user_id=character.dono_id)
+        self.assertFalse(TbUsuarioConquista.objects.filter(user=character.dono,
+                                                             conquista=rule).exists())
+        call_command('processar_entregas_compra', apply=True, user_id=character.dono_id)
+        delivery.refresh_from_db()
+        self.assertEqual(delivery.estado, 'concluida')
+        self.assertEqual(TbUsuarioConquista.objects.filter(user=character.dono,
+                                                            conquista=rule).count(), 1)
+        self.client.post(reverse('personagem_reembolsar_compra',
+                                 args=[character.pk, purchase.pk]))
+        refund_fact = TbEventoConquista.objects.get(tipo='item_purchase_refunded',
+                                                     agregado_id=purchase.pk)
+        refund_delivery = TbEntregaEventoConquista.objects.get(
+            evento=refund_fact, consumidor='conquistas_compras_v1')
+        self.assertEqual(refund_delivery.estado, 'pendente')
+        call_command('processar_entregas_compra', apply=True, user_id=character.dono_id)
+        refund_delivery.refresh_from_db()
+        self.assertEqual(refund_delivery.estado, 'concluida')
+        grant = TbUsuarioConquista.objects.get(user=character.dono, conquista=rule)
+        self.assertIsNotNone(grant.revogada_em)
+        call_command('processar_entregas_compra', apply=True, user_id=character.dono_id)
+        self.assertEqual(TbUsuarioConquista.objects.filter(user=character.dono,
+                                                            conquista=rule).count(), 1)
+
+    def test_purchase_delivery_failure_rolls_back_grant_and_can_retry(self):
+        rule = self._rule()
+        rule.ativo = False
+        rule.save(update_fields=['ativo'])
+        character = self._char('purchase-retry')
+        purchase = self._buy(character)
+        fact = TbEventoConquista.objects.get(tipo='item_purchased', agregado_id=purchase.pk)
+        delivery = TbEntregaEventoConquista.objects.get(evento=fact,
+                                                         consumidor='conquistas_compras_v1')
+        rule.ativo = True
+        rule.save(update_fields=['ativo'])
+        from home.event_deliveries import process_purchase_delivery, reserve_purchase_delivery
+        reservation = reserve_purchase_delivery(user_id=character.dono_id)
+        self.assertEqual(reservation[0], delivery.pk)
+        with patch('home.event_deliveries._avaliar_unidades_compradas',
+                   side_effect=RuntimeError('test failure')):
+            self.assertFalse(process_purchase_delivery(*reservation, max_attempts=1))
+        delivery.refresh_from_db()
+        self.assertEqual(delivery.estado, 'revisao')
+        self.assertFalse(TbUsuarioConquista.objects.filter(user=character.dono,
+                                                             conquista=rule).exists())
+        call_command('processar_entregas_compra', resume_review_id=delivery.pk,
+                     apply=True, user_id=character.dono_id)
+        delivery.refresh_from_db()
+        self.assertEqual(delivery.estado, 'concluida')
+        self.assertEqual(TbUsuarioConquista.objects.filter(user=character.dono,
+                                                            conquista=rule).count(), 1)
 
     def test_paid_purchase_refund_and_new_purchase_reactivate_one_grant(self):
         rule = self._rule()
@@ -129,6 +193,8 @@ class FirstPurchaseAchievementTests(_MercadoBase):
                 self.client.post(reverse('personagem_comprar_item', args=[character.pk]),
                                  {'item': self._item_mundano_com_preco().slug}, **self.AJAX)
         self.assertFalse(TbTransacao.objects.filter(tipo='compra').exists())
+        self.assertFalse(TbEntregaEventoConquista.objects.filter(
+            consumidor='conquistas_compras_v1').exists())
 
     def test_legacy_ledger_replay_is_previewable_and_idempotent(self):
         rule = self._rule()

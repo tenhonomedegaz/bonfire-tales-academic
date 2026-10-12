@@ -10,7 +10,8 @@ from django.utils import timezone
 
 from .conquistas import (avaliar_aventuras_jogadas, avaliar_inicio_classe_evento,
                         avaliar_nivel_personagem, avaliar_primeira_cronica_evento,
-                        avaliar_primeira_ficha_evento, avaliar_quests_categorizadas)
+                        avaliar_primeira_ficha_evento, avaliar_quests_categorizadas,
+                        _avaliar_primeira_compra, _avaliar_unidades_compradas)
 from .models import TbEntregaEventoConquista, TbEventoConquista
 
 
@@ -18,6 +19,28 @@ CREATION_CONSUMER = 'conquistas_criacao_v1'
 ADVENTURE_CONSUMER = 'conquistas_aventuras_v1'
 STORY_CONSUMER = 'conquistas_cronicas_v1'
 LEVEL_CONSUMER = 'conquistas_nivel_v1'
+PURCHASE_CONSUMER = 'conquistas_compras_v1'
+
+
+def enqueue_purchase_event(evento):
+    if evento.origem != 'site_market' or evento.tipo not in (
+            'item_purchased', 'item_purchase_refunded'):
+        return None
+    entrega, _ = TbEntregaEventoConquista.objects.get_or_create(
+        evento=evento, consumidor=PURCHASE_CONSUMER)
+    return entrega
+
+
+def enqueue_existing_purchase_events(*, user_id=None):
+    facts = TbEventoConquista.objects.filter(
+        origem='site_market', tipo__in=('item_purchased', 'item_purchase_refunded'))
+    if user_id is not None:
+        facts = facts.filter(conta_id=user_id)
+    created = 0
+    for fact in facts.iterator():
+        created += int(TbEntregaEventoConquista.objects.get_or_create(
+            evento=fact, consumidor=PURCHASE_CONSUMER)[1])
+    return created
 
 
 def enqueue_level_event(evento):
@@ -125,6 +148,12 @@ def reserve_level_delivery(*, user_id=None, lease_seconds=120):
                              lease_seconds=lease_seconds)
 
 
+@transaction.atomic
+def reserve_purchase_delivery(*, user_id=None, lease_seconds=120):
+    return _reserve_delivery(PURCHASE_CONSUMER, user_id=user_id,
+                             lease_seconds=lease_seconds)
+
+
 def _reserve_delivery(consumer, *, user_id=None, lease_seconds=120):
     now = timezone.now()
     available = (Q(estado='pendente', proxima_tentativa_em__lte=now) |
@@ -165,6 +194,11 @@ def process_level_delivery(delivery_id, token, *, max_attempts=5):
                              max_attempts=max_attempts)
 
 
+def process_purchase_delivery(delivery_id, token, *, max_attempts=5):
+    return _process_delivery(delivery_id, token, PURCHASE_CONSUMER,
+                             max_attempts=max_attempts)
+
+
 def _process_delivery(delivery_id, token, consumer, *, max_attempts=5):
     """Confirma efeito e entrega juntos; reserva expirada pode ser retomada."""
     try:
@@ -189,6 +223,9 @@ def _process_delivery(delivery_id, token, consumer, *, max_attempts=5):
                 avaliar_primeira_cronica_evento(evento)
             elif consumer == LEVEL_CONSUMER:
                 avaliar_nivel_personagem(evento.conta)
+            elif consumer == PURCHASE_CONSUMER:
+                _avaliar_primeira_compra(evento.conta)
+                _avaliar_unidades_compradas(evento.conta)
             else:
                 raise ValueError('Consumidor de entrega desconhecido.')
             entrega.estado = 'concluida'

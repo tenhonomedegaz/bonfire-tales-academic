@@ -1111,6 +1111,7 @@ def _payload_compra(transacao, *, historica=False):
     return payload
 
 
+@transaction.atomic
 def registrar_fato_compra(transacao, *, historica=False):
     """Registra uma compra de item rastreável pelo ledger, nunca pela posse atual."""
     from .models import TbEventoConquista
@@ -1128,6 +1129,8 @@ def registrar_fato_compra(transacao, *, historica=False):
     if (evento.tipo != 'item_purchased' or evento.conta_id != personagem.dono_id or
             evento.agregado_id != transacao.pk or evento.payload_json != payload):
         raise ValueError('Identidade do fato de compra inconsistente.')
+    from .event_deliveries import enqueue_purchase_event
+    enqueue_purchase_event(evento)
     if not historica:
         _avaliar_primeira_compra(personagem.dono)
         _avaliar_unidades_compradas(personagem.dono)
@@ -1165,6 +1168,7 @@ def _compras_comprovadas(user):
     return matched
 
 
+@transaction.atomic
 def registrar_fato_estorno_compra(compra, reembolso):
     """O estorno só existe após a reversão efetiva da compra e o crédito no ledger."""
     from .models import TbEventoConquista
@@ -1193,6 +1197,8 @@ def registrar_fato_estorno_compra(compra, reembolso):
     if (evento.tipo != 'item_purchase_refunded' or evento.conta_id != personagem.dono_id or
             evento.agregado_id != compra.pk or evento.payload_json != payload):
         raise ValueError('Identidade do fato de estorno inconsistente.')
+    from .event_deliveries import enqueue_purchase_event
+    enqueue_purchase_event(evento)
     _avaliar_primeira_compra(personagem.dono)
     _avaliar_unidades_compradas(personagem.dono)
     return evento

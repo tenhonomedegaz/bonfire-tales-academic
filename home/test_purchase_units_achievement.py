@@ -228,6 +228,28 @@ class PurchaseUnitsAchievementTests(_MercadoBase):
         self.assertTrue(response.json()['ok'], response.content)
         return TbTransacao.objects.filter(tipo='compra').latest('pk')
 
+    def test_units_delivery_replays_purchase_and_refund(self):
+        char = self._char('purchase-units-delivery')
+        item = self._item_mundano_com_preco()
+        rule = self._rule(item)
+        rule.ativo = False
+        rule.save(update_fields=['ativo'])
+        purchase = self._buy(char, item, 2)
+        self.assertFalse(TbUsuarioConquista.objects.filter(user=char.dono,
+                                                             conquista=rule).exists())
+        rule.ativo = True
+        rule.save(update_fields=['ativo'])
+        call_command('processar_entregas_compra', apply=True, user_id=char.dono_id)
+        grant = TbUsuarioConquista.objects.get(user=char.dono, conquista=rule)
+        self.assertEqual(grant.evidencia_json['total'], 2)
+        self.client.post(reverse('personagem_reembolsar_compra',
+                                 args=[char.pk, purchase.pk]))
+        call_command('processar_entregas_compra', apply=True, user_id=char.dono_id)
+        grant.refresh_from_db()
+        self.assertIsNotNone(grant.revogada_em)
+        self.assertEqual(TbUsuarioConquista.objects.filter(user=char.dono,
+                                                            conquista=rule).count(), 1)
+
     def test_paid_units_threshold_refund_and_repurchase(self):
         char = self._char('purchase-units')
         item = self._item_mundano_com_preco()
