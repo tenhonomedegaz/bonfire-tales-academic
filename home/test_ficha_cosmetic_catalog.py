@@ -85,9 +85,10 @@ class FichaCosmeticCatalogTests(LevelUpLoteBase):
         viewer = self._novo_usuario('cosmetico-ficha-viewer')
         self.client.force_login(viewer)
         public = self.client.get(url)
-        self.assertEqual(public.status_code, 200)
-        self.assertNotContains(public, 'Resgate de evento')
-        self.assertNotContains(public, 'Compra confirmada')
+        self.assertRedirects(public, reverse('ficha_publica', args=[character.pk]))
+        public_projection = self.client.get(public.url)
+        self.assertNotContains(public_projection, 'Resgate de evento')
+        self.assertNotContains(public_projection, 'Compra confirmada')
 
 
 @unittest.skipUnless(os.environ.get('BONFIRE_PLAYWRIGHT_MODULE'), 'Configure Playwright.')

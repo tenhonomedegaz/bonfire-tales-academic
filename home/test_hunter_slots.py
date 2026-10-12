@@ -37,5 +37,5 @@ class HunterPinnedSlotTests(TestCase):
         slot=next(s for s in self.client.get(self.sheet_url).context['spell_slots'] if s['nivel']==1)
         self.assertEqual((slot['atual'],slot['total']),(4,4))
         self.person.publico=True;self.person.save();self.client.force_login(self.other)
-        self.assertNotContains(self.client.get(self.sheet_url),'Gastar espaço')
+        self.assertEqual(self.client.get(self.sheet_url).status_code,404)
         self.assertEqual(self.client.post(self.use_url,command).status_code,404)

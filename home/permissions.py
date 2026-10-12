@@ -161,6 +161,6 @@ def pode_criar(user):
 
 
 def pode_ver_ficha(user, personagem):
-    """Dono, staff, ou ficha pública."""
+    """A ficha operacional só pertence ao dono ou à equipe."""
     return bool(personagem.dono_id == getattr(user, 'id', None)
-                or is_staff_user(user) or (personagem.publico and not personagem.arquivado))
+                or is_staff_user(user))

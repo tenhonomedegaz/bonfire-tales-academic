@@ -15,6 +15,24 @@ class PublicCharacterSheetTests(TestCase):
     def tearDown(self):
         invalidate_cosmetic_cache()
 
+    def test_operational_link_redirects_visitor_to_public_projection(self):
+        TbPersonagem.objects.filter(pk=self.character.pk).update(publico=True)
+        operational = reverse('ficha_detail', args=[self.character.pk])
+        public = reverse('ficha_publica', args=[self.character.pk])
+        self.client.force_login(self.other)
+        response = self.client.get(operational)
+        self.assertRedirects(response, public)
+        html = self.client.get(public).content.decode()
+        for secret in ('NOTA PRIVADA Q8', 'MESA PRIVADA Q8',
+                       'HISTÓRIA PRIVADA Q8', '987654', '12345'):
+            self.assertNotIn(secret, html)
+        self.client.force_login(self.staff)
+        self.assertEqual(self.client.get(operational).status_code, 200)
+        TbPersonagem.objects.filter(pk=self.character.pk).update(publico=False)
+        self.client.force_login(self.other)
+        self.assertEqual(self.client.get(operational).status_code, 404)
+        self.assertEqual(self.client.get(public).status_code, 404)
+
     @classmethod
     def setUpTestData(cls):
         User = get_user_model()

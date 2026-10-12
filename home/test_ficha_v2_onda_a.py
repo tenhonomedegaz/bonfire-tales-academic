@@ -232,18 +232,16 @@ class PersonalidadeTests(LevelUpLoteBase):
 
     def test_visitante_ve_so_leitura(self):
         p = self._guerreiro_no_nivel(1)
-        p.publico = True  # pode_ver_ficha: dono, staff OU ficha pública
+        p.publico = True
         p.save(update_fields=['publico'])
         TbPersonagemPersonalidade.objects.create(id_personagem=p, tipo='ideal', texto='Liberdade.')
         outro = self._novo_usuario('pers-visitante', staff=False)
         self.client.force_login(outro)
         resp = self.client.get(reverse('ficha_detail', args=[p.pk]))
-        self.assertEqual(resp.status_code, 200)
-        html = resp.content.decode('utf-8')
-        self.assertIn('Liberdade.', html)
-        self.assertIn('pers-box is-read', html)
-        # nada de formulário: sem textarea e sem o endpoint de gravação na página
-        # (o seletor `[data-pers-form]` aparece só no <script>, por isso não serve de prova)
+        public = reverse('ficha_publica', args=[p.pk])
+        self.assertRedirects(resp, public)
+        html = self.client.get(public).content.decode('utf-8')
+        self.assertNotIn('Liberdade.', html)
         self.assertNotIn('name="ideal"', html)
         self.assertNotIn(reverse('personagem_personalidade_salvar', args=[p.pk]), html)
 

@@ -10129,6 +10129,8 @@ def ficha_detail_view(request, pk):
         TbPersonagem.objects.select_related('id_raca', 'id_linhagem', 'id_essencia', 'id_antecedente'),
         pk=pk)
     if not perms.pode_ver_ficha(request.user, p):
+        if p.publico and not p.arquivado:
+            return redirect('ficha_publica', pk=p.pk)
         raise Http404()
     is_staff = perms.is_staff_user(request.user)
     pode_editar = p.dono_id == request.user.id or is_staff

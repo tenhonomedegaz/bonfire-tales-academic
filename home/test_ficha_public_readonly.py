@@ -42,12 +42,13 @@ class PublicFichaReadOnlyTests(LevelUpLoteBase):
               connection.execute_wrapper(capture_writes)):
             page = self.client.get(url)
             reopened = self.client.get(url)
-        self.assertEqual((page.status_code, reopened.status_code), (200, 200))
-        self.assertFalse(page.context['pode_editar'])
-        self.assertContains(page, character.nome)
-        shown_item = next(item for item in page.context['mochila']['itens']
-                          if item['id'] == charged_item.pk)
-        self.assertEqual(shown_item['cargas'][0]['atual'], 3)
+        public_url = reverse('ficha_publica', args=[character.pk])
+        self.assertEqual((page.status_code, reopened.status_code), (302, 302))
+        self.assertEqual(page.url, public_url)
+        self.assertEqual(reopened.url, public_url)
+        public_page = self.client.get(public_url)
+        self.assertContains(public_page, character.nome)
+        self.assertNotContains(public_page, charged_item.nome)
         after = (TbPersonagemMagia.objects.filter(id_personagem=character).count(),
                  TbPersonagemRecurso.objects.filter(id_personagem=character).count())
         self.assertEqual(after, before)

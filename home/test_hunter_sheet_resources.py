@@ -69,9 +69,8 @@ class HunterSheetResourceTests(TestCase):
         self.person.publico = True
         self.person.save()
         self.client.force_login(self.other)
-        response = self.read_sheet()
-        self.assertContains(response, 'Recursos e cargas')
-        self.assertNotContains(response, self.use_resource)
+        response = self.client.get(self.sheet_url)
+        self.assertEqual(response.status_code, 404)
         self.assertEqual(self.client.post(self.use_resource, {'recurso': 'test-pool'}).status_code, 404)
         self.client.force_login(self.person.dono)
         self.person.arquivado = True

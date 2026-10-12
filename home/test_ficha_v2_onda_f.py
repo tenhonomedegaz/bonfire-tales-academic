@@ -110,13 +110,14 @@ class NotasDoJogadorTests(LevelUpLoteBase):
 
     def test_bloco_e_privado_do_dono_e_da_staff(self):
         p = self._guerreiro_no_nivel(1, apelido='notas-privado')
-        p.publico = True            # ficha pública: visitante VÊ a ficha...
+        p.publico = True
         p.notas_jogador = 'segredo de mesa'
         p.save(update_fields=['publico', 'notas_jogador'])
         visitante = self._novo_usuario('notas-visitante', staff=False)
         self.client.force_login(visitante)
-        html = self.client.get(reverse('ficha_detail', args=[p.pk])).content.decode('utf-8')
-        # ...mas a nota do jogador é anotação pessoal, não vitrine
+        response = self.client.get(reverse('ficha_detail', args=[p.pk]))
+        self.assertRedirects(response, reverse('ficha_publica', args=[p.pk]))
+        html = self.client.get(response.url).content.decode('utf-8')
         self.assertNotIn('segredo de mesa', html)
         self.assertNotIn('notas-panel', html)
         self.assertNotIn(reverse('personagem_notas_salvar', args=[p.pk]), html)

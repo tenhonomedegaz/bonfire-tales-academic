@@ -216,8 +216,10 @@ class EquiparPorFetchTests(_MochilaBase):
         p.save(update_fields=['publico'])
         outro = self._novo_usuario('mochila-visitante', staff=False)
         self.client.force_login(outro)
-        html = self.client.get(reverse('ficha_detail', args=[p.pk])).content.decode('utf-8')
-        self.assertIn('Luvas de Prova', html)        # vê o inventário
+        response = self.client.get(reverse('ficha_detail', args=[p.pk]))
+        self.assertRedirects(response, reverse('ficha_publica', args=[p.pk]))
+        html = self.client.get(response.url).content.decode('utf-8')
+        self.assertNotIn('Luvas de Prova', html)
         self.assertNotIn('data-mochila-form', html)  # mas não mexe
         self.assertNotIn(reverse('personagem_equipar_item', args=[p.pk]), html)
 
