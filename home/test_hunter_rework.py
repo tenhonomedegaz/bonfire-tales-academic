@@ -2,7 +2,7 @@ from pathlib import Path
 import json
 
 from django.contrib.auth import get_user_model
-from django.test import SimpleTestCase, TestCase
+from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
 
 from .hunter_rework import catalog, prepare, secret_cost
@@ -85,6 +85,7 @@ class HunterPreparationTests(SimpleTestCase):
         self.assertEqual(result['progression']['slots'], [2, 0, 0, 0, 0])
 
 
+@override_settings(HUNTER_CREATOR_RULESET_CHECKSUM='')
 class HunterLaboratoryTests(TestCase):
     def test_published_revision_overrides_local_files_and_live_class_content(self):
         from unittest.mock import patch
