@@ -5,6 +5,8 @@ from django.contrib.auth.models import User
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
+from .models import TbClassPublication, TbClasse
+
 
 class HunterPublicationDiagnosticTests(TestCase):
     def setUp(self):
@@ -38,10 +40,18 @@ class HunterPublicationDiagnosticTests(TestCase):
         self.client.force_login(self.admin)
         self.unlock()
         with override_settings(HUNTER_CREATOR_RULESET_CHECKSUM=''):
+            self.assertEqual(self.client.get(self.url).json()['code'], 'class_missing')
+            self.assertEqual(self.client.get(reverse('classe_detail', args=['cacador'])).status_code, 404)
+        # A class identity is needed to distinguish missing config from a
+        # missing class; neither branch needs a sealed catalog.
+        classe, _ = TbClasse.objects.get_or_create(
+            slug='cacador', defaults={'nome': 'Caçador'})
+        TbClassPublication.objects.filter(id_classe=classe).delete()
+        with override_settings(HUNTER_CREATOR_RULESET_CHECKSUM=''):
             result = self.client.get(self.url).json()
             self.assertEqual(result, {'schema': 1, 'published': False,
                                       'code': 'config_missing', 'checksum_prefix': None})
-            self.assertEqual(self.client.get(reverse('classe_detail', args=['cacador'])).status_code, 404)
+            self.assertEqual(self.client.get(reverse('classe_detail', args=['cacador'])).status_code, 503)
         with override_settings(HUNTER_CREATOR_RULESET_CHECKSUM='a' * 64):
             result = self.client.get(self.url).json()
             self.assertEqual(result['code'], 'ruleset_missing')
