@@ -2184,7 +2184,7 @@ def _eh_feature_asi(nome):
 
     Os níveis de ASI são declarados na tag da classe (`asi-choices`), então a
     feature real não precisa de tag própria; ela é detectada pelo nome para sair
-    da coluna da tabela (o marcador 'Incremento de Atributo ou Talento' é injetado no lugar)."""
+    da coluna da tabela (o marcador 'Aprimoramento de Atributo ou Talento' é injetado no lugar)."""
     chave = _normalize_key(nome)
     if 'atributo' not in chave:
         return False
@@ -2377,7 +2377,7 @@ def _postgres_classe_detail_view(request, slug):
     columns = regular_columns + spell_columns
 
     # Níveis de ASI vêm da tag de classe (asi-choices{...}); o marcador
-    # "Incremento de Atributo ou Talento" é injetado na tabela, então não precisamos de
+    # "Aprimoramento de Atributo ou Talento" é injetado na tabela, então não precisamos de
     # linhas table_only placeholder. As features ASI reais ficam como seções
     # (explicação na wiki), mas saem da coluna da tabela (detectadas pelo nome)
     # para não duplicar o marcador injetado.
@@ -2418,7 +2418,7 @@ def _postgres_classe_detail_view(request, slug):
         if nivel in asi_levels:
             partes.append(format_html(
                 '<span class="block text-[var(--text)]">{}</span>',
-                asi_names.get(nivel, 'Incremento de Atributo ou Talento'),
+                asi_names.get(nivel, 'Aprimoramento de Atributo ou Talento'),
             ))
         if not partes:
             return '-'
