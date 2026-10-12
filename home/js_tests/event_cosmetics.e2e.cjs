@@ -69,6 +69,7 @@ const { chromium } = require(process.env.BONFIRE_PLAYWRIGHT_MODULE);
     assert.equal(await page.getByRole('button', { name: 'Resgatar cosmético' }).count(), 0);
     assert.equal(await page.getByText('Você já possui este cosmético.').count(), 1);
     console.log(`Loja de evento: resgate ${free ? 'gratuito' : 'com braseiros'} concluído uma vez.`);
+    assert.equal(await page.getByText('Origem: Resgate de evento.').count(), 1);
   } finally {
     await browser.close();
   }

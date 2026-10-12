@@ -25,9 +25,10 @@
         </div>
         {% if card.offer.cosmetico.descricao %}<p class="text-sm text-[var(--muted)]">{{ card.offer.cosmetico.descricao }}</p>{% endif %}
         <p class="font-semibold text-[var(--spark)]">{% if card.offer.cost_braseiros %}{{ card.offer.cost_braseiros }} braseiros{% else %}Grátis{% endif %}</p>
-        <p class="text-xs text-[var(--muted)]">Evento {{ card.offer.event_key }}{% if card.offer.ends_at %} · até {{ card.offer.ends_at|date:'d/m/Y H:i' }}{% endif %}</p>
+        <p class="text-xs text-[var(--muted)]">Oferta de evento{% if card.offer.ends_at %} · até {{ card.offer.ends_at|date:'d/m/Y H:i' }}{% endif %}</p>
         {% if card.owned %}
           <p class="text-sm">Você já possui este cosmético.</p>
+          {% if card.ownership_sources %}<p class="text-xs text-[var(--muted)]">Origem: {{ card.ownership_sources|join:', ' }}.</p>{% endif %}
         {% elif not card.offer.cost_braseiros or card.eligible_characters %}
           <form method="post" class="space-y-3">
             {% csrf_token %}

@@ -2,6 +2,7 @@
 
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
+from decimal import Decimal
 import os
 from pathlib import Path
 import subprocess
@@ -19,7 +20,8 @@ from django.utils import timezone
 from .cosmetic_entitlements import has_permanent_cosmetic
 from .cosmetics import cosmetic_allowed, invalidate_cosmetic_cache
 from .event_cosmetics import redeem_event_cosmetic
-from .models import (EventCosmeticOffer, EventCosmeticRedemption, TbCosmetico,
+from .models import (AsaasCheckoutOrder, CosmeticCheckoutPurchase,
+                     EventCosmeticOffer, EventCosmeticRedemption, TbCosmetico,
                      TbEventoConquista,
                      TbPersonagem, TbUsuarioCosmetico)
 from .deploy_sync import MEMORY_MODELS, PRODUCTION_PRESERVED_MODELS
@@ -79,6 +81,7 @@ class EventCosmeticShopTests(TestCase):
                                         self.cosmetic.slug.removeprefix('moldura-'), 'ficha'))
         self.assertContains(self.client.get(response['Location']), 'desbloqueado')
         self.assertContains(self.client.get(self.url), 'Você já possui')
+        self.assertContains(self.client.get(self.url), 'Origem: Resgate de evento.')
         self.assertEqual(self.client.post(self.url, form).status_code, 302)
         self.assertEqual(EventCosmeticRedemption.objects.count(), 1)
         self.assertEqual(TbEventoConquista.objects.filter(
@@ -115,6 +118,7 @@ class EventCosmeticShopTests(TestCase):
         self.assertEqual(self.character.braseiros, 40)
         self.assertContains(self.client.get(response['Location']), 'desbloqueado gratuitamente')
         self.assertTrue(has_permanent_cosmetic(self.other, self.cosmetic))
+        self.assertContains(self.client.get(self.url), 'Origem: Resgate de evento.')
         self.assertEqual(self.client.post(self.url, form).status_code, 302)
         self.assertEqual(EventCosmeticRedemption.objects.count(), 1)
         self.assertEqual(TbEventoConquista.objects.filter(
@@ -142,6 +146,31 @@ class EventCosmeticShopTests(TestCase):
             user=self.user, cosmetico=self.cosmetic).exists())
         self.assertFalse(TbEventoConquista.objects.filter(
             tipo='event_cosmetic_redeemed').exists())
+
+    def test_owned_offer_shows_recorded_non_event_origin_without_claiming_redemption(self):
+        TbUsuarioCosmetico.objects.create(
+            user=self.other, cosmetico=self.cosmetic, origem='conquista:primeira-centelha')
+        self.client.force_login(self.other)
+        page = self.client.get(self.url)
+        self.assertContains(page, 'Você já possui este cosmético.')
+        self.assertContains(page, 'Origem: Conquista.')
+        self.assertNotContains(page, 'Origem: Resgate de evento.')
+        self.assertNotContains(page, 'evento-outono')
+        self.assertFalse(EventCosmeticRedemption.objects.filter(user=self.other).exists())
+
+    def test_paid_right_is_shown_as_purchase_even_without_inventory_row(self):
+        order = AsaasCheckoutOrder.objects.create(
+            user=self.other, product_code=f'cosmetic:{self.cosmetic.slug}',
+            mode='single', amount=Decimal('1.00'))
+        CosmeticCheckoutPurchase.objects.create(
+            order=order, beneficiary=self.other, cosmetico=self.cosmetic,
+            slug=self.cosmetic.slug, name=self.cosmetic.nome,
+            granted_at=timezone.now())
+        self.client.force_login(self.other)
+        page = self.client.get(self.url)
+        self.assertContains(page, 'Você já possui este cosmético.')
+        self.assertContains(page, 'Origem: Compra confirmada.')
+        self.assertFalse(EventCosmeticRedemption.objects.filter(user=self.other).exists())
 
     def test_reused_request_key_cannot_claim_different_offer_price_or_character(self):
         self.client.force_login(self.user)

@@ -3457,9 +3457,8 @@ def _create_asaas_checkout(order, product, display_name, callback_base):
 def event_cosmetic_shop(request):
     """Ofertas gratuitas ou por braseiros; direito adquirido persiste."""
     from .editorial_links import safe_editorial_image
-    from .models import (EventCosmeticOffer, EventCosmeticRedemption,
-                         TbPersonagem, TbUsuarioCosmetico)
-    from .cosmetic_entitlements import has_permanent_cosmetic
+    from .models import (CosmeticCheckoutPurchase, EventCosmeticOffer,
+                         EventCosmeticRedemption, TbPersonagem, TbUsuarioCosmetico)
     from .event_cosmetics import redeem_event_cosmetic
     from django.core.paginator import Paginator
 
@@ -3490,9 +3489,16 @@ def event_cosmetic_shop(request):
         Q(ends_at__isnull=True) | Q(ends_at__gt=now),
         active=True, cosmetico__ativo=True,
         cosmetico__origem__in=['loja_braseiro', 'evento_manual']))
-    inventory_ids = set(TbUsuarioCosmetico.objects.filter(
+    inventory = {row.cosmetico_id: row.origem for row in TbUsuarioCosmetico.objects.filter(
         user=request.user, suspenso_em__isnull=True)
         .exclude(origem__startswith='colaborador')
+        .only('cosmetico_id', 'origem')}
+    offer_cosmetic_ids = {offer.cosmetico_id for offer in offers}
+    paid_ids = set(CosmeticCheckoutPurchase.objects.filter(
+        beneficiary=request.user, granted_at__isnull=False,
+        cosmetico_id__in=offer_cosmetic_ids).values_list('cosmetico_id', flat=True))
+    event_ids = set(EventCosmeticRedemption.objects.filter(
+        user=request.user, cosmetico_id__in=offer_cosmetic_ids)
         .values_list('cosmetico_id', flat=True))
     cards = []
     for offer in offers:
@@ -3507,10 +3513,27 @@ def event_cosmetic_shop(request):
             and badge_asset.isprintable()
             and not any(char in badge_asset for char in '/:\\') else ''
         )
+        ownership_sources = []
+        if offer.cosmetico_id in event_ids:
+            ownership_sources.append('Resgate de evento')
+        if offer.cosmetico_id in paid_ids:
+            ownership_sources.append('Compra confirmada')
+        inventory_origin = inventory.get(offer.cosmetico_id)
+        if inventory_origin is not None and not ownership_sources:
+            if inventory_origin.startswith('conquista:'):
+                ownership_sources.append('Conquista')
+            elif inventory_origin == 'compra_mm':
+                ownership_sources.append('Loja de mestragem')
+            elif inventory_origin == 'staff':
+                ownership_sources.append('Concessão da equipe')
+            else:
+                ownership_sources.append('Concessão registrada')
         cards.append({
             'offer': offer,
-            'owned': (offer.cosmetico_id in inventory_ids or
-                      has_permanent_cosmetic(request.user, offer.cosmetico)),
+            'owned': (offer.cosmetico_id in inventory or
+                      offer.cosmetico_id in event_ids or
+                      offer.cosmetico_id in paid_ids),
+            'ownership_sources': ownership_sources,
             'request_id': uuid4(),
             'eligible_characters': eligible_characters,
             'badge_image': badge_image,
