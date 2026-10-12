@@ -135,10 +135,17 @@ class MarketFavoriteBrowserTests(StaticLiveServerTestCase):
                 js('document.querySelector("[data-shop-favorite] button").click()')
                 wait_for('document.querySelector("[data-shop-favorite] button")?.getAttribute("aria-pressed") === "true"')
                 self.assertTrue(MarketItemFavorite.objects.filter(user=user, magic_item=magic).exists())
+                js('document.querySelector("[data-shop-search]").value = "Anel"; '
+                   'document.querySelector("[data-shop-search]").dispatchEvent(new Event("input", {bubbles:true}))')
                 js('document.querySelector("[data-shop-search]").value = "Anel de favorita"; '
                    'document.querySelector("[data-shop-search]").dispatchEvent(new Event("input", {bubbles:true}))')
                 wait_for('document.querySelector("[data-shop-count]")?.textContent === "1"')
                 self.assertTrue(js('new URL(location.href).searchParams.get("busca") === "Anel de favorita"'))
+                js('history.back()')
+                wait_for('document.querySelector("[data-shop-search]")?.value === ""')
+                self.assertFalse(js('new URL(location.href).searchParams.has("busca")'))
+                js('history.forward()')
+                wait_for('document.querySelector("[data-shop-search]")?.value === "Anel de favorita"')
                 js('document.querySelector("[data-shop-sort]").value = "preco-desc"; '
                    'document.querySelector("[data-shop-sort]").dispatchEvent(new Event("change", {bubbles:true}))')
                 self.assertTrue(js('new URL(location.href).searchParams.get("ordem") === "preco-desc"'))

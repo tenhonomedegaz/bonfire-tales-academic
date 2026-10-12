@@ -36,6 +36,7 @@
   var vendaBox = root.querySelector('[data-shop-venda]');
 
   var aba = 'comprar';
+  var buscaEmEdicao = false;
   var filtrosUrl = [
     ['busca', busca, ''], ['grupo', selGrupo, 'todas'],
     ['raridade', selRaridade, 'todas'], ['sintonizacao', selSintonizacao, 'todas'],
@@ -195,11 +196,20 @@
     aplicarFiltros();
     salvarNavegacao(criarEntrada);
   }
-  if (busca) busca.addEventListener('input', function () { mudouFiltro(false); });
+  if (busca) {
+    busca.addEventListener('input', function () {
+      mudouFiltro(!buscaEmEdicao);
+      buscaEmEdicao = true;
+    });
+    busca.addEventListener('blur', function () { buscaEmEdicao = false; });
+  }
   [selGrupo, selRaridade, selSintonizacao, selOrdem, soFavoritos].forEach(function (campo) {
     if (campo) campo.addEventListener('change', function () { mudouFiltro(true); });
   });
-  window.addEventListener('popstate', restaurarNavegacao);
+  window.addEventListener('popstate', function () {
+    buscaEmEdicao = false;
+    restaurarNavegacao();
+  });
 
   /* ─────────────────────── abas Comprar / Vender ─────────────────────── */
   function abrirAba(nome) {
