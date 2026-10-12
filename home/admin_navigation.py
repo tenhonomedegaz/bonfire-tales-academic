@@ -30,7 +30,7 @@ ADMIN_GROUPS = (
     ("Cosméticos e conquistas", "cosmeticos", {
         "CosmeticCheckoutOffer", "CosmeticCheckoutPurchase",
         "EventCosmeticOffer", "EventCosmeticRedemption", "TbConquista",
-        "TbCosmetico", "TbEventoConquista",
+        "TbCosmetico", "TbEntregaEventoConquista", "TbEventoConquista",
         "TbUsuarioConquista", "TbUsuarioCosmetico",
     }),
     ("Integrações", "integracoes", {
