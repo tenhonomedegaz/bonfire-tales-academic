@@ -1,24 +1,172 @@
 """Aceite local da progressão de nível baseada em revisão canônica."""
+from datetime import timedelta
+from io import StringIO
 from unittest.mock import patch
 
 from django.contrib import admin
 from django.contrib.auth import get_user_model
+from django.core.management import call_command
 from django.test import RequestFactory
 from django.urls import reverse
+from django.utils import timezone
 
 from home.admin import TbConquistaAdmin
 from home.conquista_admin_form import ConquistaAdminForm
 from home.character_history import capture_build, register_revision
 from home.conquistas import (avaliar_nivel_personagem, conceder_conquista,
                             conquistas_do_usuario, registrar_fato_level_up)
+from home.event_deliveries import (LEVEL_CONSUMER, process_level_delivery,
+                                   reserve_level_delivery)
 from home.models import (TbConquista, TbConquistaNotificacao, TbCosmetico,
-                         TbPersonagem, TbPersonagemRevisao, TbEventoConquista,
+                         TbEntregaEventoConquista, TbPersonagem,
+                         TbPersonagemRevisao, TbEventoConquista,
                          TbUsuarioConquista,
                          UserProfile)
 from home.test_criador import _CriadorBase
 
 
 class LevelAchievementTests(_CriadorBase):
+    def test_level_delivery_replays_milestone_and_reversal_once(self):
+        owner = self._novo_usuario('level-delivery-owner')
+        rule = TbConquista.objects.create(
+            slug='level-delivery-rule', nome='Nível recuperável', ativo=False,
+            criterio='automatico', criterio_json={
+                'schema_version': 1, 'metric': 'character_level',
+                'scope': 'account', 'filters': {'class_slug': 'guerreiro'},
+                'operator': 'gte', 'target': 2})
+        created = self._post_criar(owner, self._payload('guerreiro'))
+        self.assertTrue(created.json()['ok'], created.content)
+        character = TbPersonagem.objects.get(pk=created.json()['id'])
+        snapshot = capture_build(character)
+        primary = character.classes.get(principal=True)
+        primary.nivel = 2
+        primary.save(update_fields=['nivel'])
+        character.nivel = 2
+        character.save(update_fields=['nivel', 'atualizado_em'])
+        revision = register_revision(
+            character, tipo='level_up', snapshot=snapshot, user=owner,
+            nivel_antes=1, nivel_depois=2)
+        delivery = TbEntregaEventoConquista.objects.get(
+            evento__tipo='character_level_up', consumidor=LEVEL_CONSUMER)
+        self.assertEqual(delivery.estado, 'pendente')
+        rule.ativo = True
+        rule.save(update_fields=['ativo'])
+        preview = StringIO()
+        call_command('processar_entregas_nivel', user_id=owner.pk, stdout=preview)
+        self.assertIn('fatos=1 entregas=1', preview.getvalue())
+        self.assertFalse(TbUsuarioConquista.objects.filter(user=owner,
+                                                          conquista=rule).exists())
+        call_command('processar_entregas_nivel', apply=True,
+                     user_id=owner.pk, stdout=StringIO())
+        delivery.refresh_from_db()
+        self.assertEqual(delivery.estado, 'concluida')
+        self.assertEqual(TbUsuarioConquista.objects.filter(
+            user=owner, conquista=rule, revogada_em__isnull=True).count(), 1)
+        call_command('processar_entregas_nivel', apply=True,
+                     user_id=owner.pk, stdout=StringIO())
+        self.assertEqual(TbUsuarioConquista.objects.filter(
+            user=owner, conquista=rule).count(), 1)
+
+        self.client.force_login(owner)
+        self.assertEqual(self.client.post(reverse('personagem_reverter_revisao',
+            args=[character.pk, revision.pk])).status_code, 302)
+        reversed_delivery = TbEntregaEventoConquista.objects.get(
+            evento__tipo='character_level_reverted', consumidor=LEVEL_CONSUMER)
+        self.assertEqual(reversed_delivery.estado, 'pendente')
+        call_command('processar_entregas_nivel', apply=True,
+                     user_id=owner.pk, stdout=StringIO())
+        reversed_delivery.refresh_from_db()
+        self.assertEqual(reversed_delivery.estado, 'concluida')
+        self.assertEqual(TbUsuarioConquista.objects.filter(
+            user=owner, conquista=rule, revogada_em__isnull=True).count(), 0)
+
+    def test_level_delivery_failure_after_grant_rolls_back_and_retries(self):
+        owner = self._novo_usuario('level-delivery-retry-owner')
+        rule = TbConquista.objects.create(
+            slug='level-delivery-retry-rule', nome='Nível retentável', ativo=False,
+            criterio='automatico', criterio_json={
+                'schema_version': 1, 'metric': 'character_level',
+                'scope': 'account', 'filters': {'class_slug': 'guerreiro'},
+                'operator': 'gte', 'target': 2})
+        created = self._post_criar(owner, self._payload('guerreiro'))
+        self.assertTrue(created.json()['ok'], created.content)
+        character = TbPersonagem.objects.get(pk=created.json()['id'])
+        snapshot = capture_build(character)
+        primary = character.classes.get(principal=True)
+        primary.nivel = 2
+        primary.save(update_fields=['nivel'])
+        character.nivel = 2
+        character.save(update_fields=['nivel', 'atualizado_em'])
+        register_revision(character, tipo='level_up', snapshot=snapshot, user=owner,
+                          nivel_antes=1, nivel_depois=2)
+        rule.ativo = True
+        rule.save(update_fields=['ativo'])
+        delivery = TbEntregaEventoConquista.objects.get(
+            evento__tipo='character_level_up', consumidor=LEVEL_CONSUMER)
+
+        def fail_after_award(user):
+            avaliar_nivel_personagem(user)
+            raise RuntimeError('falha de teste após concessão')
+
+        with patch('home.event_deliveries.avaliar_nivel_personagem',
+                   side_effect=fail_after_award):
+            call_command('processar_entregas_nivel', apply=True,
+                         user_id=owner.pk, stdout=StringIO())
+        delivery.refresh_from_db()
+        self.assertEqual(delivery.estado, 'pendente')
+        self.assertEqual(delivery.ultimo_erro, 'RuntimeError')
+        self.assertFalse(TbUsuarioConquista.objects.filter(user=owner,
+                                                          conquista=rule).exists())
+        TbEntregaEventoConquista.objects.filter(pk=delivery.pk).update(
+            proxima_tentativa_em=timezone.now() - timedelta(seconds=1))
+        call_command('processar_entregas_nivel', apply=True,
+                     user_id=owner.pk, stdout=StringIO())
+        delivery.refresh_from_db()
+        self.assertEqual(delivery.estado, 'concluida')
+        self.assertEqual(delivery.tentativas, 2)
+        self.assertEqual(TbUsuarioConquista.objects.filter(
+            user=owner, conquista=rule).count(), 1)
+
+    def test_reviewed_level_delivery_resumes_only_its_own_account(self):
+        owner = self._novo_usuario('level-delivery-review-owner')
+        rule = TbConquista.objects.create(
+            slug='level-delivery-review-rule', nome='Nível em revisão', ativo=False,
+            criterio='automatico', criterio_json={
+                'schema_version': 1, 'metric': 'character_level',
+                'scope': 'account', 'filters': {'class_slug': 'guerreiro'},
+                'operator': 'gte', 'target': 2})
+        created = self._post_criar(owner, self._payload('guerreiro'))
+        self.assertTrue(created.json()['ok'], created.content)
+        character = TbPersonagem.objects.get(pk=created.json()['id'])
+        snapshot = capture_build(character)
+        primary = character.classes.get(principal=True)
+        primary.nivel = 2
+        primary.save(update_fields=['nivel'])
+        character.nivel = 2
+        character.save(update_fields=['nivel', 'atualizado_em'])
+        register_revision(character, tipo='level_up', snapshot=snapshot, user=owner,
+                          nivel_antes=1, nivel_depois=2)
+        rule.ativo = True
+        rule.save(update_fields=['ativo'])
+        delivery = TbEntregaEventoConquista.objects.get(consumidor=LEVEL_CONSUMER)
+        reservation = reserve_level_delivery(user_id=owner.pk)
+        with patch('home.event_deliveries.avaliar_nivel_personagem',
+                   side_effect=RuntimeError('falha de teste')):
+            self.assertFalse(process_level_delivery(*reservation, max_attempts=1))
+        delivery.refresh_from_db()
+        self.assertEqual(delivery.estado, 'revisao')
+        preview = StringIO()
+        call_command('processar_entregas_nivel', resume_review_id=delivery.pk,
+                     stdout=preview)
+        self.assertIn('estado=revisao tentativas=1', preview.getvalue())
+        call_command('processar_entregas_nivel', apply=True,
+                     resume_review_id=delivery.pk, stdout=StringIO())
+        delivery.refresh_from_db()
+        self.assertEqual(delivery.estado, 'concluida')
+        self.assertEqual(delivery.tentativas, 2)
+        self.assertEqual(TbUsuarioConquista.objects.filter(
+            user=owner, conquista=rule).count(), 1)
+
     def test_admin_recovers_contiguous_historical_rank_facts(self):
         owner = self._novo_usuario('rank-history-owner')
         rule = TbConquista.objects.create(

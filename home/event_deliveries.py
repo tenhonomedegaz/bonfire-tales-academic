@@ -9,14 +9,36 @@ from django.db.models import Q
 from django.utils import timezone
 
 from .conquistas import (avaliar_aventuras_jogadas, avaliar_inicio_classe_evento,
-                        avaliar_primeira_cronica_evento, avaliar_primeira_ficha_evento,
-                        avaliar_quests_categorizadas)
+                        avaliar_nivel_personagem, avaliar_primeira_cronica_evento,
+                        avaliar_primeira_ficha_evento, avaliar_quests_categorizadas)
 from .models import TbEntregaEventoConquista, TbEventoConquista
 
 
 CREATION_CONSUMER = 'conquistas_criacao_v1'
 ADVENTURE_CONSUMER = 'conquistas_aventuras_v1'
 STORY_CONSUMER = 'conquistas_cronicas_v1'
+LEVEL_CONSUMER = 'conquistas_nivel_v1'
+
+
+def enqueue_level_event(evento):
+    if evento.origem != 'site' or evento.tipo not in (
+            'character_level_up', 'character_level_reverted'):
+        return None
+    entrega, _ = TbEntregaEventoConquista.objects.get_or_create(
+        evento=evento, consumidor=LEVEL_CONSUMER)
+    return entrega
+
+
+def enqueue_existing_level_events(*, user_id=None):
+    facts = TbEventoConquista.objects.filter(
+        origem='site', tipo__in=('character_level_up', 'character_level_reverted'))
+    if user_id is not None:
+        facts = facts.filter(conta_id=user_id)
+    created = 0
+    for fact in facts.iterator():
+        created += int(TbEntregaEventoConquista.objects.get_or_create(
+            evento=fact, consumidor=LEVEL_CONSUMER)[1])
+    return created
 
 
 def enqueue_story_event(evento):
@@ -97,6 +119,12 @@ def reserve_story_delivery(*, user_id=None, lease_seconds=120):
                              lease_seconds=lease_seconds)
 
 
+@transaction.atomic
+def reserve_level_delivery(*, user_id=None, lease_seconds=120):
+    return _reserve_delivery(LEVEL_CONSUMER, user_id=user_id,
+                             lease_seconds=lease_seconds)
+
+
 def _reserve_delivery(consumer, *, user_id=None, lease_seconds=120):
     now = timezone.now()
     available = (Q(estado='pendente', proxima_tentativa_em__lte=now) |
@@ -132,6 +160,11 @@ def process_story_delivery(delivery_id, token, *, max_attempts=5):
                              max_attempts=max_attempts)
 
 
+def process_level_delivery(delivery_id, token, *, max_attempts=5):
+    return _process_delivery(delivery_id, token, LEVEL_CONSUMER,
+                             max_attempts=max_attempts)
+
+
 def _process_delivery(delivery_id, token, consumer, *, max_attempts=5):
     """Confirma efeito e entrega juntos; reserva expirada pode ser retomada."""
     try:
@@ -154,6 +187,8 @@ def _process_delivery(delivery_id, token, consumer, *, max_attempts=5):
                 avaliar_quests_categorizadas(user)
             elif consumer == STORY_CONSUMER:
                 avaliar_primeira_cronica_evento(evento)
+            elif consumer == LEVEL_CONSUMER:
+                avaliar_nivel_personagem(evento.conta)
             else:
                 raise ValueError('Consumidor de entrega desconhecido.')
             entrega.estado = 'concluida'

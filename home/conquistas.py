@@ -317,6 +317,7 @@ def registrar_criacao_personagem(personagem):
     return evento
 
 
+@transaction.atomic
 def registrar_fato_level_up(revisao, *, estorno=False, proxima_revisao=None):
     """Registra a revisão e atualiza marcos de nível na mesma transação."""
     from .models import TbEventoConquista
@@ -402,6 +403,8 @@ def registrar_fato_level_up(revisao, *, estorno=False, proxima_revisao=None):
             payload.get('level_before') != (revisao.nivel_depois if estorno else revisao.nivel_antes) or
             payload.get('level_after') != (revisao.nivel_antes if estorno else revisao.nivel_depois)):
         raise ValueError('Identidade do fato de nível inconsistente.')
+    from .event_deliveries import enqueue_level_event
+    enqueue_level_event(evento)
     avaliar_nivel_personagem(personagem.dono)
     return evento
 
