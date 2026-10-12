@@ -44,10 +44,11 @@ class ClassCatalogReadabilityBrowserTests(StaticLiveServerTestCase):
             descricao='Texto de habilidade legível no celular.', niveladquirido=1,
         )
         mystic_fixture = json.loads((Path(__file__).parent / 'fixtures' / 'conteudo.json').read_text(encoding='utf-8'))
+        feature_pks = (1428, 1431, 1444, 1446, 1332, 894, 964)
         mystic_features = {item['pk']: item['fields'] for item in mystic_fixture
                            if item['model'] == 'home.tbclassehabilidade'
-                           and item['pk'] in (1428, 1431, 1444, 1446)}
-        for pk in (1428, 1431, 1444, 1446):
+                           and item['pk'] in feature_pks}
+        for pk in feature_pks:
             TbClassehabilidade.objects.create(
                 id_classe=classe, nome=mystic_features[pk]['nome'],
                 descricao=mystic_features[pk]['descricao'], niveladquirido=1,
@@ -175,6 +176,25 @@ class ClassCatalogReadabilityBrowserTests(StaticLiveServerTestCase):
                 self.assertGreaterEqual(mystic_layout['paragraphs'], 5, mystic_layout)
                 self.assertGreaterEqual(mystic_layout['headings'], 5, mystic_layout)
                 self.assertEqual(mystic_layout['tables'], 1, mystic_layout)
+                other_class_layout = js('''(() => {
+                    const cards = [...document.querySelectorAll('[data-feature-card]')];
+                    const layout = name => {
+                        const body = cards.find(item => item.querySelector('[data-feature-title]')?.textContent.includes(name))?.querySelector('[data-markdown]');
+                        return {paragraphs: body?.querySelectorAll('p').length || 0,
+                            headings: body?.querySelectorAll('h5, h4').length || 0,
+                            lists: body?.querySelectorAll('ul').length || 0,
+                            tables: body?.querySelectorAll('table').length || 0};
+                    };
+                    return {wizard: layout('Conjura'),
+                        artificer: layout('Elixires Alqu'),
+                        barbarian: layout('Magia Selvagem')};
+                })()''')
+                self.assertGreaterEqual(other_class_layout['wizard']['paragraphs'], 7, other_class_layout)
+                self.assertGreaterEqual(other_class_layout['wizard']['headings'], 4, other_class_layout)
+                self.assertGreaterEqual(other_class_layout['artificer']['paragraphs'], 7, other_class_layout)
+                self.assertGreaterEqual(other_class_layout['artificer']['lists'], 1, other_class_layout)
+                self.assertGreaterEqual(other_class_layout['barbarian']['paragraphs'], 3, other_class_layout)
+                self.assertEqual(other_class_layout['barbarian']['tables'], 1, other_class_layout)
                 mystic_heading = js('''(() => {
                     const heading = [...document.querySelectorAll('[data-markdown] h5')]
                         .find(item => item.textContent.includes('Truques'));
