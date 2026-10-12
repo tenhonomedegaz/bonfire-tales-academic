@@ -228,8 +228,8 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
         <div class="info-field full">
           <span class="lbl">Tema</span>
           <div class="tema-swatch-grid" id="ficha-theme-group" role="radiogroup" aria-label="Tema da ficha">
-            {% for key, item in appearance_themes.items %}
-            {% include 'home/includes/tema_swatch.html' with key=key item=item input_name='ficha_theme' input_id='ficha_theme_'|add:key selected_value=appearance.theme_key disabled=False custom=appearance.custom %}
+            {% for item in appearance_themes %}
+            {% include 'home/includes/tema_swatch.html' with key=item.key item=item input_name='ficha_theme' input_id='ficha_theme_'|add:item.key selected_value=appearance.theme_key disabled=item.locked custom=appearance.custom %}
             {% endfor %}
           </div>
           <span class="hint">Clique num cartão: a ficha inteira muda na hora. Nada é gravado até você salvar.</span>
@@ -237,15 +237,15 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
         <div class="info-grid appearance-controls">
           <label class="info-field"><span class="lbl">Moldura</span>
             <select name="foto_frame" id="ficha-frame-select">
-              {% for key, item in appearance_frames.items %}
-              <option value="{{ key }}" {% if key == appearance.frame_key %}selected{% endif %}>{{ item.label }}</option>
+              {% for item in appearance_frames %}
+              <option value="{{ item.key }}" {% if item.key == appearance.frame_key %}selected{% endif %} {% if item.locked %}disabled{% endif %}>{{ item.label }}{% if item.posse_origem %} ({{ item.posse_origem }}){% elif item.locked %} (bloqueado){% endif %}</option>
               {% endfor %}
             </select>
           </label>
           <label class="info-field"><span class="lbl">Efeito</span>
             <select name="ficha_effect" id="ficha-effect-select">
-              {% for key, item in appearance_effects.items %}
-              <option value="{{ key }}" {% if key == appearance.effect_key %}selected{% endif %}>{{ item.label }}</option>
+              {% for item in appearance_effects %}
+              <option value="{{ item.key }}" {% if item.key == appearance.effect_key %}selected{% endif %} {% if item.locked %}disabled{% endif %}>{{ item.label }}{% if item.posse_origem %} ({{ item.posse_origem }}){% elif item.locked %} (bloqueado){% endif %}</option>
               {% endfor %}
             </select>
           </label>
@@ -852,8 +852,8 @@ document.addEventListener('DOMContentLoaded', function () {
   const frameSel = document.getElementById('ficha-frame-select');
   const effectSel = document.getElementById('ficha-effect-select');
   const customBox = document.getElementById('ficha-custom-controls');
-  const FRAME = { {% for key, item in appearance_frames.items %}'{{ key }}':'{{ item.class }}',{% endfor %} };
-  const EFFECT = { {% for key, item in appearance_effects.items %}'{{ key }}':'{{ item.class }}',{% endfor %} };
+  const FRAME = { {% for item in appearance_frames %}'{{ item.key }}':'{{ item.class }}',{% endfor %} };
+  const EFFECT = { {% for item in appearance_effects %}'{{ item.key }}':'{{ item.class }}',{% endfor %} };
   const CORES = {
     accent: document.getElementById('ficha-custom-accent'),
     accent2: document.getElementById('ficha-custom-accent2'),

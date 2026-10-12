@@ -10227,9 +10227,9 @@ def ficha_detail_view(request, pk):
         'appearance': _appearance_context(p.ficha_theme, p.foto_frame, p.ficha_effect,
                                           p.ficha_theme_custom, p.ficha_background_url,
                                           user=p.dono, escopo='ficha'),
-        'appearance_themes': _appearance_catalog('theme'),
-        'appearance_frames': _appearance_catalog('frame'),
-        'appearance_effects': _appearance_catalog('effect'),
+        'appearance_themes': _appearance_options(p.dono, 'theme', 'ficha') if pode_editar else [],
+        'appearance_frames': _appearance_options(p.dono, 'frame', 'ficha') if pode_editar else [],
+        'appearance_effects': _appearance_options(p.dono, 'effect', 'ficha') if pode_editar else [],
     })
 
 
