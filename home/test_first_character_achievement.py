@@ -250,6 +250,34 @@ class FirstCharacterAchievementTests(_CriadorBase):
         self.assertIn('concessoes=0', output.getvalue())
         self.assertEqual(TbUsuarioConquista.objects.filter(user=user, conquista=rule).count(), 1)
 
+    def test_replay_keeps_earlier_grant_when_later_fact_fails(self):
+        from home.conquistas import avaliar_primeira_ficha_evento
+
+        first = self._novo_usuario('first-replay-recovery-1', staff=True)
+        second = self._novo_usuario('first-replay-recovery-2', staff=True)
+        for user in (first, second):
+            response = self._post_criar(user, self._payload('guerreiro'))
+            self.assertTrue(response.json()['ok'], response.content)
+        rule = self.make_rule()
+        calls = 0
+
+        def fail_second(fact):
+            nonlocal calls
+            calls += 1
+            if calls == 2:
+                raise RuntimeError('segundo fato indisponivel')
+            return avaliar_primeira_ficha_evento(fact)
+
+        with patch('home.management.commands.reprocessar_primeira_ficha.avaliar_primeira_ficha_evento',
+                   side_effect=fail_second):
+            with self.assertRaisesRegex(RuntimeError, 'segundo fato indisponivel'):
+                call_command('reprocessar_primeira_ficha', apply=True, stdout=StringIO())
+        self.assertTrue(TbUsuarioConquista.objects.filter(user=first, conquista=rule).exists())
+        self.assertFalse(TbUsuarioConquista.objects.filter(user=second, conquista=rule).exists())
+        call_command('reprocessar_primeira_ficha', apply=True, stdout=StringIO())
+        self.assertEqual(TbUsuarioConquista.objects.filter(conquista=rule).count(), 2)
+        self.assertEqual(TbUsuarioCosmetico.objects.filter(cosmetico=rule.recompensa).count(), 2)
+
     def test_legacy_fact_without_first_snapshot_is_not_replayed(self):
         user = self._novo_usuario('legacy-first-replay-owner', staff=True)
         TbEventoConquista.objects.create(

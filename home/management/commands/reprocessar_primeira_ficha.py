@@ -21,11 +21,16 @@ class Command(BaseCommand):
         if options['user_id'] is not None:
             facts = facts.filter(conta_id=options['user_id'])
         inspected = awarded = 0
-        with transaction.atomic():
+        if options['apply']:
             for fact in facts:
-                inspected += 1
-                awarded += avaliar_primeira_ficha_evento(fact)
-            if not options['apply']:
+                with transaction.atomic():
+                    inspected += 1
+                    awarded += avaliar_primeira_ficha_evento(fact)
+        else:
+            with transaction.atomic():
+                for fact in facts:
+                    inspected += 1
+                    awarded += avaliar_primeira_ficha_evento(fact)
                 transaction.set_rollback(True)
         self.stdout.write('%s: fatos=%s concessoes=%s' % (
             'aplicado' if options['apply'] else 'prévia', inspected, awarded))

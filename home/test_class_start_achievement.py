@@ -289,6 +289,47 @@ class ClassStartAchievementTests(_CriadorBase):
         self.assertEqual(TbUsuarioConquista.objects.filter(user=user,
                                                            conquista=rule).count(), 1)
 
+    def test_replay_keeps_earlier_class_grant_when_later_fact_fails(self):
+        from home.conquistas import avaliar_inicio_classe_evento
+
+        first = self._novo_usuario('class-replay-recovery-1', staff=True)
+        second = self._novo_usuario('class-replay-recovery-2', staff=True)
+        for user in (first, second):
+            response = self._post_criar(user, self._payload('guerreiro'))
+            self.assertTrue(response.json()['ok'], response.content)
+        rule = self._rule('guerreiro')
+        calls = 0
+
+        def fail_second(fact):
+            nonlocal calls
+            calls += 1
+            if calls == 2:
+                raise RuntimeError('segundo fato indisponivel')
+            return avaliar_inicio_classe_evento(fact)
+
+        with patch('home.management.commands.reprocessar_inicio_classe.avaliar_inicio_classe_evento',
+                   side_effect=fail_second):
+            with self.assertRaisesRegex(RuntimeError, 'segundo fato indisponivel'):
+                call_command('reprocessar_inicio_classe', apply=True, stdout=StringIO())
+        self.assertTrue(TbUsuarioConquista.objects.filter(user=first, conquista=rule).exists())
+        self.assertFalse(TbUsuarioConquista.objects.filter(user=second, conquista=rule).exists())
+        call_command('reprocessar_inicio_classe', apply=True, stdout=StringIO())
+        self.assertEqual(TbUsuarioConquista.objects.filter(conquista=rule).count(), 2)
+        self.assertEqual(TbUsuarioCosmetico.objects.filter(cosmetico=rule.recompensa).count(), 2)
+
+    def test_replay_preview_counts_same_class_only_once_without_writing(self):
+        user = self._novo_usuario('class-replay-preview-count', staff=True)
+        for name in ('Primeiro heroi', 'Segundo heroi'):
+            response = self._post_criar(user, {**self._payload('guerreiro'), 'nome': name})
+            self.assertTrue(response.json()['ok'], response.content)
+        rule = self._rule('guerreiro')
+        output = StringIO()
+        call_command('reprocessar_inicio_classe', user_id=user.pk, stdout=output)
+        self.assertIn('fatos=2 sem_snapshot=0 concessoes=1', output.getvalue())
+        self.assertFalse(TbUsuarioConquista.objects.filter(user=user, conquista=rule).exists())
+        self.assertFalse(TbUsuarioCosmetico.objects.filter(user=user,
+                                                          cosmetico=rule.recompensa).exists())
+
     def test_other_class_does_not_award_and_manual_grant_keeps_origin(self):
         rule = self._rule('guerreiro')
         user = self._novo_usuario('class-start-manual-owner', staff=True)
