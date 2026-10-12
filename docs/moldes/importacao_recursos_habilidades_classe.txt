@@ -79,7 +79,7 @@ Table Only: nao
 Descrição:
 Texto em markdown da habilidade.
 ---
-Nome: Incremento de Atributo ou Talento
+Nome: Aprimoramento de Atributo ou Talento
 Nivel: 4
 Subclasse:
 Table Only: sim

@@ -188,7 +188,7 @@
         {% endif %}
         <article class="{% if item.is_subclass %}hidden subclass-content{% endif %} overflow-hidden rounded border border-[var(--stroke)] bg-[var(--bg1)]" {% if item.is_subclass %}data-subclass-slug="{{ item.subclasse_slug }}"{% else %}data-base-feature{% endif %} data-feature-card data-feature-id="{{ item.habilidade.id_habilidade }}">
           <header class="flex items-center justify-between border-b px-2.5 py-1.5 {% if item.is_subclass %}border-[var(--spark)]/70 bg-[var(--spark)]/5{% else %}border-[var(--flame)]/40 bg-[var(--flame)]/5{% endif %}">
-            <h3 data-feature-title class="font-rpg text-[14px] font-bold {% if item.is_subclass %}text-[var(--spark)]{% else %}text-[var(--ember)]{% endif %}">Nivel {{ item.habilidade.niveladquirido }}: {{ item.habilidade.nome }}</h3>
+            <h3 data-feature-title class="font-rpg text-[14px] font-bold {% if item.is_subclass %}text-[var(--spark)]{% else %}text-[var(--ember)]{% endif %}">Nivel {{ item.habilidade.niveladquirido }}: {{ item.display_name|default:item.habilidade.nome }}</h3>
             <div class="flex items-center gap-2">
               {% if item.is_subclass %}
               <span class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-1.5 py-0.5 text-[12px] font-bold uppercase tracking-widest text-[var(--muted)]">{{ item.subclasse.nome }}</span>

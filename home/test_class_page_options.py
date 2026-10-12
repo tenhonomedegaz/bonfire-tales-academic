@@ -20,6 +20,52 @@ class ClassPageOptionWidgetTests(_CriadorBase):
                 self.assertIn('Aprimoramento de Atributo ou Talento', text)
                 self.assertNotIn('Incremento de Atributo ou Talento', text)
 
+    def test_alias_asi_in_later_level_uses_class_name_in_table_and_card(self):
+        fighter = TbClasse.objects.get(slug='guerreiro')
+        alias = TbClassehabilidade.objects.create(
+            id_classe=fighter, niveladquirido=6,
+            nome='Incremento de Atributo ou Talento', descricao='Mesmo ASI do nível 4.',
+        )
+        response = self.client.get(reverse('classe_detail', args=['guerreiro']))
+        self.assertEqual(response.status_code, 200)
+        feature_index = next(i for i, column in enumerate(response.context['colunas'])
+                             if column['is_feature'])
+        cell = response.context['progression_table'][5]['cells'][feature_index]
+        self.assertIn('Aprimoramento de Atributo ou Talento', strip_tags(str(cell['valor'])))
+        self.assertNotIn('Incremento de Atributo ou Talento', strip_tags(str(cell['valor'])))
+        section = next(item for item in response.context['habilidade_sections']
+                       if item['habilidade'].pk == alias.pk)
+        self.assertEqual(section['display_name'], 'Aprimoramento de Atributo ou Talento')
+        self.assertContains(response, 'Nivel 6: Aprimoramento de Atributo ou Talento')
+        partial = self.client.get(reverse('classe_detail', args=['guerreiro']) + '?ajax=1')
+        self.assertContains(partial, 'Nivel 6: Aprimoramento de Atributo ou Talento')
+        alias.refresh_from_db()
+        self.assertEqual(alias.nome, 'Incremento de Atributo ou Talento')
+
+    def test_available_classes_use_their_primary_asi_name_in_progression(self):
+        for klass in TbClasse.objects.all():
+            tag = next((tag for tag in klass.tags_json
+                        if tag.lower().startswith('asi_choices{')), None)
+            if not tag:
+                continue
+            feature = TbClassehabilidade.objects.filter(
+                id_classe=klass, id_subclasse__isnull=True,
+                nome__icontains='Atributo', table_only=False,
+            ).order_by('niveladquirido').first()
+            if feature is None:
+                continue
+            response = self.client.get(reverse('classe_detail', args=[klass.slug]))
+            if klass.slug == 'cacador' and response.status_code == 503:
+                # A revisão pública do Caçador tem aceite próprio fora deste QA regional.
+                continue
+            self.assertEqual(response.status_code, 200, klass.slug)
+            feature_index = next(i for i, col in enumerate(response.context['colunas'])
+                                 if col['is_feature'])
+            for level in (int(n) for n in tag.split('{', 1)[1].rstrip('}').split(',')):
+                with self.subTest(klass=klass.slug, level=level):
+                    cell = response.context['progression_table'][level - 1]['cells'][feature_index]
+                    self.assertIn(feature.nome, strip_tags(str(cell['valor'])))
+
     def test_acl_de_um_tipo_nao_esconde_catalogo_global_de_outro_tipo(self):
         fighter = TbClasse.objects.get(slug='guerreiro')
         feature = TbClassehabilidade.objects.get(

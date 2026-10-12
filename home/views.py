@@ -2265,10 +2265,20 @@ def _postgres_classe_detail_view(request, slug):
     selected_subclass_slug = request.GET.get('subclasse', '')
     habilidades = [item for item in base_habilidades_qs if not item.table_only]
     subclass_habilidades = [item for item in subclass_habilidades_qs if not item.table_only]
+    asi_levels = _tag_levels(classe.tags_json, 'asi-choices')
+    asi_features = sorted(
+        (h for h in habilidades
+         if h.niveladquirido in asi_levels and _eh_feature_asi(h.nome)),
+        key=lambda h: h.niveladquirido,
+    )
+    asi_name = (asi_features[0].nome if asi_features
+                else 'Aprimoramento de Atributo ou Talento')
     habilidade_sections = sorted(
         [
             {
                 'habilidade': habilidade,
+                'display_name': (asi_name if habilidade.niveladquirido in asi_levels
+                                 and _eh_feature_asi(habilidade.nome) else habilidade.nome),
                 'is_subclass': False,
                 'subclasse': None,
                 'subclasse_slug': '',
@@ -2277,6 +2287,7 @@ def _postgres_classe_detail_view(request, slug):
         ] + [
             {
                 'habilidade': habilidade,
+                'display_name': habilidade.nome,
                 'is_subclass': True,
                 'subclasse': habilidade.id_subclasse,
                 'subclasse_slug': habilidade.id_subclasse.slug if habilidade.id_subclasse else '',
@@ -2373,12 +2384,6 @@ def _postgres_classe_detail_view(request, slug):
     # linhas table_only placeholder. As features ASI reais ficam como seções
     # (explicação na wiki), mas saem da coluna da tabela (detectadas pelo nome)
     # para não duplicar o marcador injetado.
-    asi_levels = _tag_levels(classe.tags_json, 'asi-choices')
-    asi_names = {
-        h.niveladquirido: h.nome for h in base_habilidades_qs
-        if not h.table_only and _eh_feature_asi(h.nome)
-    }
-
     habilidades_para_tabela = [h for h in base_habilidades_qs if not _eh_feature_asi(h.nome)]
     habilidades_para_tabela.extend(
         h for h in subclass_habilidades_qs if not _eh_feature_asi(h.nome)
@@ -2410,7 +2415,7 @@ def _postgres_classe_detail_view(request, slug):
         if nivel in asi_levels:
             partes.append(format_html(
                 '<span class="block text-[var(--text)]">{}</span>',
-                asi_names.get(nivel, 'Aprimoramento de Atributo ou Talento'),
+                asi_name,
             ))
         if not partes:
             return '-'
