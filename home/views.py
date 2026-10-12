@@ -10119,12 +10119,17 @@ def personagem_publicacao_view(request, pk):
     return redirect('personagens')
 
 
-@login_required(login_url='/login/')
 def ficha_detail_view(request, pk):
     """Ficha derivada (character_engine.derive) de um personagem."""
+    from django.contrib.auth.views import redirect_to_login
     from .models import TbPersonagem
     from . import permissions as perms
     from .character_engine import derive, aventuras_para_nivel
+    if not request.user.is_authenticated:
+        if request.method in ('GET', 'HEAD') and TbPersonagem.objects.filter(
+                pk=pk, publico=True, arquivado=False).exists():
+            return redirect('ficha_publica', pk=pk)
+        return redirect_to_login(request.get_full_path(), login_url='/login/')
     p = get_object_or_404(
         TbPersonagem.objects.select_related('id_raca', 'id_linhagem', 'id_essencia', 'id_antecedente'),
         pk=pk)

@@ -15,6 +15,36 @@ class PublicCharacterSheetTests(TestCase):
     def tearDown(self):
         invalidate_cosmetic_cache()
 
+    def test_anonymous_legacy_link_opens_only_published_projection(self):
+        operational = reverse('ficha_detail', args=[self.character.pk])
+        public = reverse('ficha_publica', args=[self.character.pk])
+        login = '/login/?next=' + operational.replace('/', '%2F')
+
+        self.assertRedirects(self.client.get(operational), login,
+                             fetch_redirect_response=False)
+        TbPersonagem.objects.filter(pk=self.character.pk).update(publico=True)
+        with CaptureQueriesContext(connection) as queries:
+            response = self.client.get(operational, follow=True)
+            head = self.client.head(operational)
+            post = self.client.post(operational, {'action': 'unpublish'})
+        self.assertRedirects(response, public)
+        self.assertEqual(head.status_code, 302)
+        self.assertEqual(head['Location'], public)
+        self.assertRedirects(post, login, fetch_redirect_response=False)
+        for secret in (self.character.anotacoes, self.character.notas_jogador,
+                       self.character.historia, '987654', '12345'):
+            self.assertNotIn(secret, response.content.decode())
+        writes = [q['sql'] for q in queries if q['sql'].lstrip().upper().startswith(
+            ('INSERT ', 'UPDATE ', 'DELETE '))]
+        self.assertEqual(writes, [])
+
+        TbPersonagem.objects.filter(pk=self.character.pk).update(arquivado=True)
+        self.assertRedirects(self.client.get(operational), login,
+                             fetch_redirect_response=False)
+        TbPersonagem.objects.filter(pk=self.character.pk).update(arquivado=False, publico=False)
+        self.assertRedirects(self.client.get(operational), login,
+                             fetch_redirect_response=False)
+
     def test_operational_link_redirects_visitor_to_public_projection(self):
         TbPersonagem.objects.filter(pk=self.character.pk).update(publico=True)
         operational = reverse('ficha_detail', args=[self.character.pk])
