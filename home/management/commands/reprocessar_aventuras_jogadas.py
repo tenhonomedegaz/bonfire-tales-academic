@@ -39,20 +39,20 @@ class Command(BaseCommand):
             quest_grants = quest_grants.filter(user_id=options['user_id'])
         affected_users = set(grants.values_list('user_id', flat=True))
         affected_users.update(quest_grants.values_list('user_id', flat=True))
-        with transaction.atomic():
-            for ledger in ledgers.iterator():
-                inspected += 1
-                affected_users.add(ledger.id_personagem.dono_id)
-                existed = TbEventoConquista.objects.filter(
-                    origem='site_ledger',
-                    chave_origem=f'aventura-ledger:{ledger.pk}:registrada').exists()
-                registrar_fato_aventura(ledger, avaliar=False)
-                new_facts += int(not existed)
-            for user in get_user_model().objects.filter(pk__in=affected_users):
+        affected_users.update(ledgers.values_list('id_personagem__dono_id', flat=True))
+        for user in get_user_model().objects.filter(pk__in=affected_users).order_by('pk'):
+            with transaction.atomic():
+                for ledger in ledgers.filter(id_personagem__dono=user):
+                    inspected += 1
+                    existed = TbEventoConquista.objects.filter(
+                        origem='site_ledger',
+                        chave_origem=f'aventura-ledger:{ledger.pk}:registrada').exists()
+                    registrar_fato_aventura(ledger, avaliar=False)
+                    new_facts += int(not existed)
                 avaliar_aventuras_jogadas(user)
                 avaliar_quests_categorizadas(user)
-            if not options['apply']:
-                transaction.set_rollback(True)
+                if not options['apply']:
+                    transaction.set_rollback(True)
         self.stdout.write('%s: lancamentos=%s fatos_novos=%s contas=%s' % (
             'aplicado' if options['apply'] else 'prévia',
             inspected, new_facts, len(affected_users)))

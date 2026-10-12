@@ -1,4 +1,5 @@
 from io import StringIO
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
@@ -291,6 +292,37 @@ class AdventuresAchievementTests(_CriadorBase):
         self.assertIn('fatos_novos=0', output.getvalue())
         self.assertEqual(TbUsuarioConquista.objects.filter(
             user=self.owner, conquista=self.rule).count(), 1)
+
+    def test_replay_retains_previous_account_after_later_ledger_failure(self):
+        second = self._novo_usuario('adventure-replay-recovery-2')
+        other_character = TbPersonagem.objects.create(dono=second, nome='Outra mesa')
+        first_ledger = TbPersonagemAventura.objects.create(
+            id_personagem=self.character, nome_aventura='Primeira mesa',
+            origem='mesa', qtd_aventuras=3)
+        second_ledger = TbPersonagemAventura.objects.create(
+            id_personagem=other_character, nome_aventura='Segunda mesa',
+            origem='mesa', qtd_aventuras=3)
+
+        def fail_second(ledger, **kwargs):
+            if ledger.pk == second_ledger.pk:
+                raise RuntimeError('segundo lancamento indisponivel')
+            return registrar_fato_aventura(ledger, **kwargs)
+
+        with patch('home.management.commands.reprocessar_aventuras_jogadas.registrar_fato_aventura',
+                   side_effect=fail_second):
+            with self.assertRaisesRegex(RuntimeError, 'segundo lancamento indisponivel'):
+                call_command('reprocessar_aventuras_jogadas', apply=True, stdout=StringIO())
+        self.assertTrue(TbEventoConquista.objects.filter(agregado_id=first_ledger.pk).exists())
+        self.assertFalse(TbEventoConquista.objects.filter(agregado_id=second_ledger.pk).exists())
+        self.assertTrue(TbUsuarioConquista.objects.filter(user=self.owner,
+                                                          conquista=self.rule).exists())
+        self.assertFalse(TbUsuarioConquista.objects.filter(user=second,
+                                                           conquista=self.rule).exists())
+
+        call_command('reprocessar_aventuras_jogadas', apply=True, stdout=StringIO())
+        self.assertEqual(TbEventoConquista.objects.filter(tipo='adventure_recorded').count(), 2)
+        self.assertEqual(TbUsuarioConquista.objects.filter(conquista=self.rule).count(), 2)
+        self.assertEqual(TbUsuarioCosmetico.objects.filter(cosmetico=self.badge).count(), 2)
 
     def test_replay_revokes_stale_grant_without_active_ledger(self):
         self.assertEqual(self.launch(3).status_code, 302)
