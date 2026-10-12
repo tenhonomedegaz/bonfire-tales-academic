@@ -4527,7 +4527,7 @@ class TbEntregaEventoConquistaAdmin(admin.ModelAdmin):
                        'proxima_tentativa_em', 'reserva_ate', 'ultimo_erro',
                        'criada_em', 'atualizada_em')
     fields = readonly_fields
-    actions = ('retomar_revisao',)
+    actions = ('retomar_revisao', 'processar_revisao')
 
     @admin.display(description='Conta', ordering='evento__conta__username')
     def conta(self, obj):
@@ -4561,6 +4561,56 @@ class TbEntregaEventoConquistaAdmin(admin.ModelAdmin):
                 self.log_change(request, entrega, 'Entrega em revisão reagendada')
                 retomadas += 1
         self.message_user(request, f'{retomadas} entrega(s) reagendada(s).')
+
+    @admin.action(description='Reprocessar agora entregas em revisão selecionadas',
+                  permissions=['change'])
+    def processar_revisao(self, request, queryset):
+        from .event_deliveries import (
+            ADVENTURE_CONSUMER, CREATION_CONSUMER, LEVEL_CONSUMER,
+            PURCHASE_CONSUMER, STORY_CONSUMER, process_adventure_delivery,
+            process_creation_delivery, process_level_delivery,
+            process_purchase_delivery, process_story_delivery,
+            reserve_selected_delivery,
+        )
+
+        processors = {
+            CREATION_CONSUMER: process_creation_delivery,
+            ADVENTURE_CONSUMER: process_adventure_delivery,
+            STORY_CONSUMER: process_story_delivery,
+            LEVEL_CONSUMER: process_level_delivery,
+            PURCHASE_CONSUMER: process_purchase_delivery,
+        }
+        with transaction.atomic():
+            selected = list(queryset.select_for_update().filter(estado='revisao')
+                            .order_by('pk')[:21])
+            if len(selected) > 20:
+                self.message_user(request, 'Selecione até 20 entregas em revisão.',
+                                  level=messages.ERROR)
+                return
+            to_process = []
+            for entrega in selected:
+                if entrega.consumidor not in processors:
+                    continue
+                entrega.estado = 'pendente'
+                entrega.proxima_tentativa_em = timezone.now()
+                entrega.save(update_fields=('estado', 'proxima_tentativa_em',
+                                            'atualizada_em'))
+                self.log_change(request, entrega, 'Reprocessamento imediato solicitado')
+                to_process.append((entrega.pk, entrega.consumidor))
+
+        done = failed = taken = 0
+        for delivery_id, consumer in to_process:
+            reservation = reserve_selected_delivery(delivery_id, consumer)
+            if reservation is None:
+                taken += 1
+            elif processors[consumer](*reservation):
+                done += 1
+            else:
+                failed += 1
+        self.message_user(
+            request,
+            f'{done} concluída(s), {failed} falha(s), {taken} em processamento '
+            'por outro trabalhador.')
 
     def has_add_permission(self, request):
         return False

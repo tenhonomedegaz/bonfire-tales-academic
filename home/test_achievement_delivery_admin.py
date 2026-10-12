@@ -1,6 +1,7 @@
 """Operacao auditada de entregas de conquistas no admin."""
 
 from io import StringIO
+from unittest.mock import patch
 
 from django.contrib.admin.models import CHANGE, LogEntry
 from django.contrib.auth import get_user_model
@@ -63,11 +64,63 @@ class AchievementDeliveryAdminTests(TransactionTestCase):
         self.client.post(self.url, {
             'action': 'retomar_revisao', '_selected_action': [self.delivery.pk],
         })
+        self.client.post(self.url, {
+            'action': 'processar_revisao', '_selected_action': [self.delivery.pk],
+        })
         self.delivery.refresh_from_db()
         self.assertEqual(self.delivery.estado, 'revisao')
         self.assertFalse(LogEntry.objects.filter(
             content_type__model='tbentregaeventoconquista',
             object_id=str(self.delivery.pk)).exists())
+
+    def test_immediate_recovery_processes_only_selected_review(self):
+        another_fact = TbEventoConquista.objects.create(
+            origem='site_ledger', chave_origem='admin-delivery-other',
+            tipo='adventure_recorded', conta=self.operator, agregado_id=2,
+            ocorrido_em=timezone.now())
+        other_delivery = TbEntregaEventoConquista.objects.create(
+            evento=another_fact, consumidor=ADVENTURE_CONSUMER,
+            estado='pendente')
+        self.client.force_login(self.operator)
+
+        response = self.client.post(self.url, {
+            'action': 'processar_revisao',
+            '_selected_action': [self.delivery.pk],
+            'index': 0,
+        })
+
+        self.assertEqual(response.status_code, 302)
+        self.delivery.refresh_from_db()
+        other_delivery.refresh_from_db()
+        self.assertEqual((self.delivery.estado, self.delivery.tentativas),
+                         ('concluida', 6))
+        self.assertEqual((other_delivery.estado, other_delivery.tentativas),
+                         ('pendente', 0))
+        self.assertTrue(LogEntry.objects.filter(
+            user=self.operator, content_type__model='tbentregaeventoconquista',
+            object_id=str(self.delivery.pk), action_flag=CHANGE,
+            change_message='Reprocessamento imediato solicitado').exists())
+
+    def test_immediate_recovery_failure_returns_to_review(self):
+        self.client.force_login(self.operator)
+
+        with patch('home.event_deliveries.avaliar_quests_categorizadas',
+                   side_effect=RuntimeError('failure after first evaluation')):
+            response = self.client.post(self.url, {
+                'action': 'processar_revisao',
+                '_selected_action': [self.delivery.pk],
+                'index': 0,
+            })
+
+        self.assertEqual(response.status_code, 302)
+        self.delivery.refresh_from_db()
+        self.assertEqual((self.delivery.estado, self.delivery.tentativas,
+                          self.delivery.ultimo_erro),
+                         ('revisao', 6, 'RuntimeError'))
+        self.assertIsNone(self.delivery.reserva_token)
+        self.assertTrue(LogEntry.objects.filter(
+            user=self.operator, content_type__model='tbentregaeventoconquista',
+            object_id=str(self.delivery.pk), action_flag=CHANGE).exists())
 
     def test_detail_form_cannot_override_delivery_state_or_delete_fact(self):
         self.client.force_login(self.operator)

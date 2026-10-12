@@ -154,12 +154,22 @@ def reserve_purchase_delivery(*, user_id=None, lease_seconds=120):
                              lease_seconds=lease_seconds)
 
 
-def _reserve_delivery(consumer, *, user_id=None, lease_seconds=120):
+@transaction.atomic
+def reserve_selected_delivery(delivery_id, consumer, *, lease_seconds=120):
+    """Reserva somente a entrega solicitada, sem capturar outra da mesma conta."""
+    return _reserve_delivery(consumer, lease_seconds=lease_seconds,
+                             delivery_id=delivery_id)
+
+
+def _reserve_delivery(consumer, *, user_id=None, lease_seconds=120,
+                      delivery_id=None):
     now = timezone.now()
     available = (Q(estado='pendente', proxima_tentativa_em__lte=now) |
                  Q(estado='processando', reserva_ate__lte=now))
     qs = TbEntregaEventoConquista.objects.select_for_update(skip_locked=True).filter(
         consumidor=consumer).filter(available)
+    if delivery_id is not None:
+        qs = qs.filter(pk=delivery_id)
     if user_id is not None:
         qs = qs.filter(evento__conta_id=user_id)
     entrega = qs.order_by('criada_em', 'pk').first()
