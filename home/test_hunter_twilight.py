@@ -1,4 +1,5 @@
 from django.urls import reverse
+from django.test import override_settings
 from unittest.mock import patch
 import uuid
 
@@ -12,6 +13,7 @@ from .test_criador import _CriadorBase
 from . import test_hunter_catalog, test_hunter_order_levelup
 
 
+@override_settings(HUNTER_CREATOR_RULESET_CHECKSUM='')
 class HunterTwilightTests(_CriadorBase):
     setup_catalog = test_hunter_catalog.HunterCatalogTests.setup_catalog
 
