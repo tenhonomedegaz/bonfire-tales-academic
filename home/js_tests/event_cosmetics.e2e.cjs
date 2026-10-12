@@ -48,6 +48,22 @@ const { chromium } = require(process.env.BONFIRE_PLAYWRIGHT_MODULE);
     await page.getByRole('button', { name: 'Resgatar cosmético' }).click();
     await page.waitForURL(/resgate=\d+/);
     assert.equal(await page.getByRole('status').count(), 1);
+    assert.equal(await page.locator('section[aria-labelledby="event-redemption-history"] ol li').count(), 1);
+    assert.match(await page.locator('section[aria-labelledby="event-redemption-history"] ol li').innerText(),
+      free ? /Grátis/ : /25 braseiros/);
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth) <= 1);
+    if (process.env.BONFIRE_ARTIFACT_DIR) {
+      await page.screenshot({ path: path.join(process.env.BONFIRE_ARTIFACT_DIR,
+        free ? 'event-shop-claimed-free-desktop.png' : 'event-shop-claimed-paid-desktop.png'),
+        fullPage: true });
+    }
+    await page.setViewportSize({ width: 360, height: 800 });
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth) <= 1);
+    if (process.env.BONFIRE_ARTIFACT_DIR) {
+      await page.screenshot({ path: path.join(process.env.BONFIRE_ARTIFACT_DIR,
+        free ? 'event-shop-claimed-free-mobile.png' : 'event-shop-claimed-paid-mobile.png'),
+        fullPage: true });
+    }
     assert.match(await page.getByRole('status').innerText(),
       free ? /desbloqueado gratuitamente/ : /Saldo após o resgate: 15/);
     assert.equal(await page.getByRole('button', { name: 'Resgatar cosmético' }).count(), 0);

@@ -3461,6 +3461,7 @@ def event_cosmetic_shop(request):
                          TbPersonagem, TbUsuarioCosmetico)
     from .cosmetic_entitlements import has_permanent_cosmetic
     from .event_cosmetics import redeem_event_cosmetic
+    from django.core.paginator import Paginator
 
     error = None
     if request.method == 'POST':
@@ -3518,9 +3519,18 @@ def event_cosmetic_shop(request):
     redemption = (EventCosmeticRedemption.objects.select_related('cosmetico', 'character')
                   .filter(pk=request.GET.get('resgate'), user=request.user).first()
                   if (request.GET.get('resgate') or '').isdigit() else None)
+    history = Paginator(
+        EventCosmeticRedemption.objects.filter(user=request.user)
+        .select_related('cosmetico', 'character').order_by('-created_at', '-pk'),
+        10,
+    ).get_page(request.GET.get('pagina'))
     return render(request, 'home/pages/event_cosmetic_shop.html', {
         'page_title': 'Cosméticos de evento', 'cards': cards,
-        'characters': characters, 'redemption': redemption, 'error': error,
+        'characters': characters, 'redemption': redemption,
+        'redemption_history': history,
+        'has_unowned_paid_offer': any(
+            card['offer'].cost_braseiros and not card['owned'] for card in cards),
+        'error': error,
     }, status=409 if error else 200)
 
 

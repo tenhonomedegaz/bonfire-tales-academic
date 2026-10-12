@@ -97,6 +97,7 @@ class EventCosmeticShopTests(TestCase):
         self.client.force_login(self.other)
         page = self.client.get(self.url)
         self.assertContains(page, 'Grátis')
+        self.assertNotContains(page, 'Para ofertas com custo, crie um personagem')
         self.assertNotContains(page, 'name="character"')
         request_id = str(uuid4())
         form = {'offer': self.offer.pk, 'request_id': request_id, 'quoted_cost': 0}
@@ -119,7 +120,9 @@ class EventCosmeticShopTests(TestCase):
         self.assertEqual(TbEventoConquista.objects.filter(
             tipo='event_cosmetic_redeemed').count(), 1)
         EventCosmeticOffer.objects.filter(pk=self.offer.pk).update(active=False)
-        self.assertNotContains(self.client.get(self.url), self.cosmetic.nome)
+        closed_page = self.client.get(self.url)
+        self.assertEqual(closed_page.context['cards'], [])
+        self.assertContains(closed_page, self.cosmetic.nome)
         self.assertTrue(has_permanent_cosmetic(self.other, self.cosmetic))
         EventCosmeticOffer.objects.filter(pk=self.offer.pk).update(
             active=True, cost_braseiros=25)
@@ -173,6 +176,42 @@ class EventCosmeticShopTests(TestCase):
             active=False, cost_braseiros=0)
         self.assertEqual(self.client.post(self.url, original).status_code, 302)
         self.assertEqual(EventCosmeticRedemption.objects.count(), 1)
+
+    def test_claim_history_survives_closed_offer_and_keeps_original_cost_private(self):
+        self.client.force_login(self.user)
+        request_id = uuid4()
+        redemption, created = redeem_event_cosmetic(
+            self.user, self.offer.pk, self.character.pk, request_id, 25)
+        self.assertTrue(created)
+        EventCosmeticOffer.objects.filter(pk=self.offer.pk).update(
+            active=False, cost_braseiros=0)
+        page = self.client.get(self.url)
+        self.assertContains(page, 'Meus resgates de evento')
+        self.assertContains(page, self.cosmetic.nome)
+        self.assertContains(page, '25 braseiros')
+        self.assertNotContains(page, 'Resgatar cosmético')
+        self.assertEqual(list(page.context['redemption_history']), [redemption])
+        self.client.force_login(self.other)
+        other_page = self.client.get(self.url)
+        self.assertContains(other_page, 'ainda não resgatou')
+        self.assertNotContains(other_page, self.cosmetic.nome)
+        self.assertIsNone(other_page.context['redemption'])
+
+    def test_claim_history_paginates_without_showing_other_accounts(self):
+        for _ in range(11):
+            EventCosmeticRedemption.objects.create(
+                request_id=uuid4(), offer=self.offer, user=self.user,
+                character=None, cosmetico=self.cosmetic,
+                cost_braseiros=0, balance_after=None)
+        self.client.force_login(self.user)
+        first = self.client.get(self.url)
+        second = self.client.get(self.url, {'pagina': '2'})
+        self.assertEqual(len(first.context['redemption_history']), 10)
+        self.assertEqual(len(second.context['redemption_history']), 1)
+        self.assertContains(first, 'Mais antigos')
+        self.assertContains(second, 'Mais recentes')
+        self.client.force_login(self.other)
+        self.assertEqual(len(self.client.get(self.url).context['redemption_history']), 0)
 
     def test_badge_offer_previews_image_or_glyph_without_broken_image(self):
         self.cosmetic.tipo = 'badge'

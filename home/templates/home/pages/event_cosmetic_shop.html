@@ -14,7 +14,7 @@
       {% if redemption.cost_braseiros %}{{ redemption.cosmetico.nome }} desbloqueado por {{ redemption.cost_braseiros }} braseiros de {{ redemption.character.nome }}. Saldo após o resgate: {{ redemption.balance_after }}.{% else %}{{ redemption.cosmetico.nome }} desbloqueado gratuitamente na sua conta.{% endif %}
     </p>
   {% endif %}
-  {% if not characters %}<p>Para ofertas com custo, crie um personagem para usar seus braseiros.</p>{% endif %}
+  {% if not characters and has_unowned_paid_offer %}<p>Para ofertas com custo, crie um personagem para usar seus braseiros.</p>{% endif %}
   <div class="grid gap-4 sm:grid-cols-2">
     {% for card in cards %}
       <article class="rounded-2xl border border-[var(--stroke)] bg-[var(--surface)] p-5 space-y-3">
@@ -50,5 +50,26 @@
       <p class="text-[var(--muted)]">Nenhuma oferta de evento está disponível agora.</p>
     {% endfor %}
   </div>
+  <section aria-labelledby="event-redemption-history" class="space-y-3">
+    <h2 id="event-redemption-history" class="font-serif text-2xl">Meus resgates de evento</h2>
+    {% if redemption_history %}
+      <ol class="space-y-2">
+        {% for claim in redemption_history %}
+          <li class="rounded-xl border border-[var(--stroke)] bg-[var(--surface)] p-4">
+            <span class="font-semibold">{{ claim.cosmetico.nome }}</span>
+            <span class="text-sm text-[var(--muted)]"> · {{ claim.created_at|date:'d/m/Y H:i' }} · {% if claim.cost_braseiros %}{{ claim.cost_braseiros }} braseiros{% else %}Grátis{% endif %}{% if claim.character %} · {{ claim.character.nome }}{% endif %}</span>
+          </li>
+        {% endfor %}
+      </ol>
+      {% if redemption_history.has_other_pages %}
+        <nav aria-label="Páginas dos resgates" class="flex gap-4 text-sm">
+          {% if redemption_history.has_previous %}<a href="?pagina={{ redemption_history.previous_page_number }}">Mais recentes</a>{% endif %}
+          {% if redemption_history.has_next %}<a href="?pagina={{ redemption_history.next_page_number }}">Mais antigos</a>{% endif %}
+        </nav>
+      {% endif %}
+    {% else %}
+      <p class="text-sm text-[var(--muted)]">Você ainda não resgatou cosméticos de evento.</p>
+    {% endif %}
+  </section>
 </main>
 {% endblock %}
