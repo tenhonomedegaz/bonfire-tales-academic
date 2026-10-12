@@ -4180,7 +4180,8 @@ class TbUsuarioCosmeticoAdmin(admin.ModelAdmin):
 # ─────────────────────────────────────────────────────────────────────────────
 # Conquistas (F3) — CRUD + concessão em massa (fonte única: conquistas.py).
 # ─────────────────────────────────────────────────────────────────────────────
-from .models import TbConquista, TbEventoConquista, TbUsuarioConquista
+from .models import (TbConquista, TbEntregaEventoConquista, TbEventoConquista,
+                     TbUsuarioConquista)
 
 
 class _ConcederConquistaForm(forms.Form):
@@ -4510,6 +4511,65 @@ class TbEventoConquistaAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+
+@admin.register(TbEntregaEventoConquista)
+class TbEntregaEventoConquistaAdmin(admin.ModelAdmin):
+    list_display = ('id', 'consumidor', 'estado', 'conta', 'tipo_fato',
+                    'chave_fato', 'tentativas', 'idade_pendente', 'criada_em',
+                    'proxima_tentativa_em', 'ultimo_erro')
+    list_filter = ('estado', 'consumidor')
+    search_fields = ('evento__conta__username', 'evento__chave_origem',
+                     'consumidor')
+    list_select_related = ('evento', 'evento__conta')
+    ordering = ('-criada_em',)
+    readonly_fields = ('evento', 'consumidor', 'estado', 'tentativas',
+                       'proxima_tentativa_em', 'reserva_ate', 'ultimo_erro',
+                       'criada_em', 'atualizada_em')
+    fields = readonly_fields
+    actions = ('retomar_revisao',)
+
+    @admin.display(description='Conta', ordering='evento__conta__username')
+    def conta(self, obj):
+        return obj.evento.conta.username
+
+    @admin.display(description='Tipo do fato', ordering='evento__tipo')
+    def tipo_fato(self, obj):
+        return obj.evento.tipo
+
+    @admin.display(description='Chave do fato', ordering='evento__chave_origem')
+    def chave_fato(self, obj):
+        url = reverse('admin:home_tbeventoconquista_change', args=[obj.evento_id])
+        return format_html('<a href="{}">{}</a>', url, obj.evento.chave_origem)
+
+    @admin.display(description='Idade pendente (min)')
+    def idade_pendente(self, obj):
+        if obj.estado == 'concluida':
+            return '-'
+        return max(0, int((timezone.now() - obj.criada_em).total_seconds() // 60))
+
+    @admin.action(description='Reagendar entregas em revisão selecionadas',
+                  permissions=['change'])
+    def retomar_revisao(self, request, queryset):
+        retomadas = 0
+        with transaction.atomic():
+            for entrega in queryset.select_for_update().filter(estado='revisao'):
+                entrega.estado = 'pendente'
+                entrega.proxima_tentativa_em = timezone.now()
+                entrega.save(update_fields=('estado', 'proxima_tentativa_em',
+                                            'atualizada_em'))
+                self.log_change(request, entrega, 'Entrega em revisão reagendada')
+                retomadas += 1
+        self.message_user(request, f'{retomadas} entrega(s) reagendada(s).')
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return request.user.is_active and request.user.is_superuser
 
 
 # ─────────────────────────────────────────────────────────────────────────────
