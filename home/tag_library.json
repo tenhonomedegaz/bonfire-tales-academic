@@ -2318,7 +2318,7 @@
     "asi_choices": {
       "sintaxe": "asi_choices{4, 8, 12, 16, 19}",
       "op": "set_value",
-      "doc": "Níveis com Incremento de Atributo/Talento. ÚNICA fonte de ASI — não existe choice:asi por habilidade; a feature é detectada por nome (_eh_feature_asi)."
+      "doc": "Níveis com Aprimoramento de Atributo ou Talento. ÚNICA fonte de ASI — não existe choice:asi por habilidade; a feature é detectada por nome (_eh_feature_asi)."
     },
     "starting_equipment": {
       "sintaxe": "starting_equipment{item{slug:<slug>, qty:N}, pick{count:N, option{...}}, currency{po:N}, alternative{currency{po:N}}}",

@@ -484,6 +484,37 @@ class PathbuilderTests(_CriadorBase):
                 self.assertEqual(budget['pontos_disponiveis'], 2)
         self.assertEqual(TbPersonagem.objects.count(), baseline)
 
+    def test_subir_nivel_mostra_nome_asi_da_habilidade_da_classe(self):
+        from home.test_creator_pinned_catalog import CreatorPinnedCatalogTests
+
+        criar = self._post_criar(self.user, self._payload('guerreiro'))
+        self.assertEqual(criar.status_code, 200, criar.content)
+        personagem = TbPersonagem.objects.get(pk=criar.json()['id'])
+        TbPersonagemClasse.objects.filter(id_personagem=personagem).update(nivel=4)
+        personagem.nivel = 4
+        personagem.save(update_fields=['nivel'])
+
+        habilidade = TbClassehabilidade.objects.get(
+            id_classe__slug='guerreiro', id_subclasse__isnull=True,
+            niveladquirido=4, table_only=False, nome__icontains='Atributo',
+        )
+        nome_original = habilidade.nome
+        snapshot = CreatorPinnedCatalogTests.seal(self, habilidade.id_classe)
+        habilidade.nome = 'Aumento de Atributo ou Talento'
+        habilidade.save(update_fields=['nome'])
+        response = self.client.get(reverse('personagem_subir_nivel', args=[personagem.pk]))
+        self.assertEqual(response.status_code, 200, response.content[:500])
+        self.assertGreater(response.context['pend']['asi_pendentes'], 0)
+        self.assertEqual(response.context['asi_nome'], habilidade.nome)
+        self.assertContains(response, '<h2 class="sn-step-title">Aumento de Atributo ou Talento</h2>', html=False)
+
+        pc = personagem.classes.get(id_classe=habilidade.id_classe)
+        pc.ruleset = snapshot
+        pc.save(update_fields=['ruleset'])
+        pinned = self.client.get(reverse('personagem_subir_nivel', args=[personagem.pk]))
+        self.assertEqual(pinned.status_code, 200, pinned.content[:500])
+        self.assertEqual(pinned.context['asi_nome'], nome_original)
+
     def test_detalhe_devolve_descricao_sob_demanda(self):
         """Cartao expansivel: a descricao nao vem no catalogo (seria 1 MB), vem aqui."""
         talento = TbTalento.objects.exclude(descricao="").first()

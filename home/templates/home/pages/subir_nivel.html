@@ -157,7 +157,7 @@
       {# ======================= ETAPA: ASI / TALENTO ======================= #}
       {% if pend.asi_pendentes > 0 %}
       <section class="cf-step space-y-3" data-step="asi" data-step-name="Atributo/Talento" data-step-required="1" hidden>
-        <h2 class="sn-step-title">Aprimoramento de Atributo ou Talento</h2>
+        <h2 class="sn-step-title">{{ asi_nome }}</h2>
         <p class="sn-step-sub">Aumente atributos (+2 distribuível) ou escolha um talento que dá +1 num atributo.{% if pend.asi_pendentes > 1 %} Há {{ pend.asi_pendentes }} aprimoramentos pendentes — um cartão para cada.{% endif %}</p>
         {% comment %}Leva 4 (item 7): NÃO existe mais botão "Escolher" — mexer em qualquer
         controle do cartão já enfileira aquele aprimoramento (e ajustar de novo substitui a

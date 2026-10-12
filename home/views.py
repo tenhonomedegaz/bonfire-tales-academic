@@ -5907,6 +5907,25 @@ def _asi_slots(personagem):
     return slots
 
 
+def _asi_nome_da_classe(classe, ruleset=None):
+    """Nome editorial do ASI declarado pela classe, sem alterar seus marcos."""
+    if ruleset is not None:
+        from .versioned_classes import VersionedClassCatalog
+        catalog = VersionedClassCatalog(ruleset, classe.pk)
+        classe = catalog.classe
+        habilidades = (h for h in catalog.collections[TbClassehabilidade]
+                       if h.id_subclasse_id is None and not h.table_only)
+    else:
+        habilidades = TbClassehabilidade.objects.filter(
+            id_classe=classe, id_subclasse__isnull=True, table_only=False,
+        ).order_by('niveladquirido', 'pk')
+    niveis = _tag_levels(classe.tags_json, 'asi-choices')
+    for habilidade in habilidades:
+        if habilidade.niveladquirido in niveis and _eh_feature_asi(habilidade.nome):
+            return habilidade.nome
+    return 'Aprimoramento de Atributo ou Talento'
+
+
 def _asi_aplicados(personagem):
     origens = {
         o for o in personagem.atributo_bonus
@@ -7114,6 +7133,15 @@ def _subir_nivel_experiencia(request, p):
             _sync_magias_concedidas(p, ruleset=ruleset)
         ficha_alvo = derive(p, ruleset=ruleset)
         pend = _pendencias_nivel(p, classe_id)
+        slots_pendentes = _asi_slots(p)[_asi_aplicados(p):]
+        pc_por_classe = {row.id_classe_id: row for row in p.classes.all()}
+        nomes_asi = {
+            _asi_nome_da_classe(pc_por_classe[class_id].id_classe,
+                               _hunter_ruleset_for_class(pc_por_classe[class_id]))
+            for class_id in {slot['classe'].pk for slot in slots_pendentes}
+        }
+        asi_nome = (next(iter(nomes_asi)) if len(nomes_asi) == 1
+                    else 'ASI: atributo ou talento')
         # ciente da subclasse que será escolhida NESTE passo (third-casters: a conjuração
         # vem da subclasse, ainda não atribuída no nível em que ela é adquirida).
         pendm = _pendencias_magias_levelup(p, pend, classe_id, ruleset=ruleset)
@@ -7160,6 +7188,7 @@ def _subir_nivel_experiencia(request, p):
         # Um cartão de ASI por slot pendente: sem botão "Escolher", é o CARTÃO que delimita
         # cada aprimoramento (a seleção nos controles já enfileira — ver subir_nivel.js).
         'asi_slots': list(range(int(pend['asi_pendentes'] or 0))),
+        'asi_nome': asi_nome,
         'talentos_raciais_pend': talentos_raciais_pend,
         'opcao_grupos': opcao_grupos, 'talentos_normais': talentos,
         'talentos_picks_json': {str(t['id']): t['picks'] for t in talentos},
