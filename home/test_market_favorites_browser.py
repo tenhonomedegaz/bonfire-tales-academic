@@ -34,7 +34,7 @@ class MarketFavoriteBrowserTests(StaticLiveServerTestCase):
         mundane = TbItemMundano.objects.create(
             nome='Corda de favorita', slug='corda-browser', preco='1 PO',
             imagem_url='//external.example/item.svg')
-        TbItemMundano.objects.create(nome='Tocha comum', slug='tocha-browser', preco='1 PC')
+        mundane_other = TbItemMundano.objects.create(nome='Tocha comum', slug='tocha-browser', preco='1 PC')
         magic = TbItemMagico.objects.create(
             nome='Anel de favorita', slug='anel-browser', preco=1,
             imagem_url='/static/assets/logo.png')
@@ -95,15 +95,29 @@ class MarketFavoriteBrowserTests(StaticLiveServerTestCase):
                 self.assertTrue(js('document.querySelector("[data-shop-detail] .mkt-sigil-letter") !== null'))
                 self.assertFalse(js('document.querySelector("[data-shop-detail] img") !== null'))
                 self.assertLessEqual(js('document.documentElement.scrollWidth - innerWidth'), 1)
+                js(f'document.querySelector(\'[data-mkt-row][data-target="mu-{mundane_other.pk}"]\').click()')
+                self.assertEqual(js('new URL(location.href).searchParams.get("item")'),
+                                 f'mu-{mundane_other.pk}')
+                call('Page.reload')
+                wait_for(f'document.querySelector(\'[data-mkt-row][data-target="mu-{mundane_other.pk}"]\')?.classList.contains("is-selected")')
+                js('history.back()')
+                wait_for('document.querySelector("[data-shop-detail]")?.textContent.includes("Corda de favorita")')
                 js('document.querySelector("[data-shop-favorite] button").click()')
                 wait_for('document.querySelector("[data-shop-favorite] button")?.getAttribute("aria-pressed") === "true"')
                 self.assertTrue(MarketItemFavorite.objects.filter(user=user, mundane_item=mundane).exists())
                 js('document.querySelector("[data-shop-favorites]").click()')
                 wait_for('document.querySelector("[data-shop-count]")?.textContent === "1"')
+                self.assertTrue(js('location.search.includes("favoritos=1")'))
                 call('Page.reload')
                 wait_for('document.querySelector("[data-shop-favorite] button")?.getAttribute("aria-pressed") === "true"')
-                js('document.querySelector("[data-shop-favorites]").click()')
                 wait_for('document.querySelector("[data-shop-count]")?.textContent === "1"')
+                self.assertTrue(js('document.querySelector("[data-shop-favorites]").checked'))
+                js('history.back()')
+                wait_for('document.querySelector("[data-shop-favorites]")?.checked === false')
+                self.assertEqual(js('document.querySelector("[data-shop-count]")?.textContent'), '2')
+                js('history.forward()')
+                wait_for('document.querySelector("[data-shop-favorites]")?.checked === true')
+                self.assertEqual(js('document.querySelector("[data-shop-count]")?.textContent'), '1')
                 js('document.querySelector("[data-shop-favorite] button").click()')
                 wait_for('document.querySelector("[data-shop-count]")?.textContent === "0"')
                 self.assertFalse(MarketItemFavorite.objects.filter(user=user, mundane_item=mundane).exists())
@@ -121,6 +135,17 @@ class MarketFavoriteBrowserTests(StaticLiveServerTestCase):
                 js('document.querySelector("[data-shop-favorite] button").click()')
                 wait_for('document.querySelector("[data-shop-favorite] button")?.getAttribute("aria-pressed") === "true"')
                 self.assertTrue(MarketItemFavorite.objects.filter(user=user, magic_item=magic).exists())
+                js('document.querySelector("[data-shop-search]").value = "Anel de favorita"; '
+                   'document.querySelector("[data-shop-search]").dispatchEvent(new Event("input", {bubbles:true}))')
+                wait_for('document.querySelector("[data-shop-count]")?.textContent === "1"')
+                self.assertTrue(js('new URL(location.href).searchParams.get("busca") === "Anel de favorita"'))
+                js('document.querySelector("[data-shop-sort]").value = "preco-desc"; '
+                   'document.querySelector("[data-shop-sort]").dispatchEvent(new Event("change", {bubbles:true}))')
+                self.assertTrue(js('new URL(location.href).searchParams.get("ordem") === "preco-desc"'))
+                call('Page.reload')
+                wait_for('document.querySelector("[data-shop-sort]")?.value === "preco-desc"')
+                self.assertEqual(js('document.querySelector("[data-shop-search]")?.value'), 'Anel de favorita')
+                self.assertEqual(js('document.querySelector("[data-shop-count]")?.textContent'), '1')
                 self.assertLessEqual(js('document.documentElement.scrollWidth - innerWidth'), 1)
             finally:
                 if ws:

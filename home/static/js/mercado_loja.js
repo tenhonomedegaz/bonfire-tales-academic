@@ -36,6 +36,52 @@
   var vendaBox = root.querySelector('[data-shop-venda]');
 
   var aba = 'comprar';
+  var filtrosUrl = [
+    ['busca', busca, ''], ['grupo', selGrupo, 'todas'],
+    ['raridade', selRaridade, 'todas'], ['sintonizacao', selSintonizacao, 'todas'],
+    ['ordem', selOrdem, 'nome-asc']
+  ];
+
+  function salvarNavegacao(criarEntrada) {
+    var url = new URL(window.location.href);
+    filtrosUrl.forEach(function (filtro) {
+      var valor = filtro[1] ? filtro[1].value.trim() : filtro[2];
+      if (valor && valor !== filtro[2]) url.searchParams.set(filtro[0], valor);
+      else url.searchParams.delete(filtro[0]);
+    });
+    if (soFavoritos && soFavoritos.checked) url.searchParams.set('favoritos', '1');
+    else url.searchParams.delete('favoritos');
+    var selecionado = aba === 'comprar' ? linhaAtiva() : null;
+    if (selecionado) url.searchParams.set('item', selecionado.getAttribute('data-target'));
+    else url.searchParams.delete('item');
+    if (url.href !== window.location.href) {
+      history[criarEntrada ? 'pushState' : 'replaceState'](history.state, '', url.href);
+    }
+  }
+
+  function restaurarNavegacao() {
+    var params = new URL(window.location.href).searchParams;
+    filtrosUrl.forEach(function (filtro) {
+      var campo = filtro[1];
+      if (!campo) return;
+      var valor = params.get(filtro[0]) || filtro[2];
+      if (campo.tagName === 'SELECT' && !toArr(campo.options).some(function (opcao) { return opcao.value === valor; })) {
+        valor = filtro[2];
+      }
+      campo.value = valor;
+    });
+    if (soFavoritos) soFavoritos.checked = params.get('favoritos') === '1';
+    linhasDe(paneDe('comprar')).forEach(function (r) {
+      r.classList.remove('is-selected');
+      r.setAttribute('aria-selected', 'false');
+    });
+    aplicarFiltros();
+    var alvo = params.get('item');
+    var row = alvo && linhasDe(paneDe('comprar')).find(function (r) {
+      return r.getAttribute('data-target') === alvo && !r.closest('li').hidden;
+    });
+    if (row) selecionar(row, true);
+  }
 
   function paneDe(nome) { return root.querySelector('[data-shop-pane="' + nome + '"]'); }
   function linhasDe(pane) { return pane ? toArr(pane.querySelectorAll('[data-mkt-row]')) : []; }
@@ -80,6 +126,7 @@
     if (!silencioso) {
       if (mobile()) abrirFolha(true);
       row.focus({ preventScroll: true });
+      if (aba === 'comprar') salvarNavegacao(true);
     }
   }
 
@@ -144,12 +191,15 @@
     if (aba === 'comprar') garantirSelecao();
   }
 
-  if (busca) busca.addEventListener('input', aplicarFiltros);
-  if (selGrupo) selGrupo.addEventListener('change', aplicarFiltros);
-  if (selRaridade) selRaridade.addEventListener('change', aplicarFiltros);
-  if (selSintonizacao) selSintonizacao.addEventListener('change', aplicarFiltros);
-  if (selOrdem) selOrdem.addEventListener('change', aplicarFiltros);
-  if (soFavoritos) soFavoritos.addEventListener('change', aplicarFiltros);
+  function mudouFiltro(criarEntrada) {
+    aplicarFiltros();
+    salvarNavegacao(criarEntrada);
+  }
+  if (busca) busca.addEventListener('input', function () { mudouFiltro(false); });
+  [selGrupo, selRaridade, selSintonizacao, selOrdem, soFavoritos].forEach(function (campo) {
+    if (campo) campo.addEventListener('change', function () { mudouFiltro(true); });
+  });
+  window.addEventListener('popstate', restaurarNavegacao);
 
   /* ─────────────────────── abas Comprar / Vender ─────────────────────── */
   function abrirAba(nome) {
@@ -427,5 +477,5 @@
     });
   });
 
-  aplicarFiltros();          // conta a vitrine e já destaca o primeiro item
+  restaurarNavegacao();      // recupera filtros e destaque de URLs compartilhadas
 })();
