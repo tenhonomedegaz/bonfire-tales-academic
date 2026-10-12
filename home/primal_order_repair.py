@@ -6,7 +6,7 @@ from django.db import transaction
 from .models import TbClassehabilidade
 
 
-DESCRIPTION_SHA256 = '6a9d64db200ca39e6c603d0f6f8c2d86db39c94f9ab96cbc0cf4dc02bd5366ef'
+DESCRIPTION_SHA256 = '0eb47c4d395727e6b8063a8db2aa9d06ce4aa0328792d790a2534eb103300372'
 PRIMAL_TAGS = [
   'pick:ordem_primal:{xama|guardiao}:1',
   'match(pick:ordem_primal){'
