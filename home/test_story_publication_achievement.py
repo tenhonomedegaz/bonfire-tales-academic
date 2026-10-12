@@ -10,9 +10,12 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from home.conquistas import conceder_conquista, registrar_publicacao_cronica
+from home.conquistas import (avaliar_primeira_cronica_evento, conceder_conquista,
+                            registrar_publicacao_cronica)
+from home.event_deliveries import (STORY_CONSUMER, process_story_delivery,
+                                   reserve_story_delivery)
 from home.models import (
-    TbConquista, TbCosmetico, TbCronica, TbEventoConquista,
+    TbConquista, TbCosmetico, TbCronica, TbEntregaEventoConquista, TbEventoConquista,
     TbUsuarioConquista, TbUsuarioCosmetico,
 )
 from home.views import _cronica_author_snapshot
@@ -182,6 +185,10 @@ class FirstPublishedStoryAchievementTests(TestCase):
         self.assertEqual(self.review(newer, 'aprovar').status_code, 200)
         self.assertEqual(TbEventoConquista.objects.filter(tipo='story_published').count(), 1)
         self.assertFalse(TbUsuarioConquista.objects.filter(user=self.author, conquista=rule).exists())
+        call_command('processar_entregas_cronica', apply=True,
+                     user_id=self.author.pk, stdout=StringIO())
+        self.assertFalse(TbUsuarioConquista.objects.filter(user=self.author,
+                                                          conquista=rule).exists())
 
     def test_award_failure_rolls_back_publication_and_event(self):
         self.rule()
@@ -205,3 +212,93 @@ class FirstPublishedStoryAchievementTests(TestCase):
         self.assertEqual(self.review(self.story('inactive-story'), 'aprovar').status_code, 200)
         self.assertEqual(TbEventoConquista.objects.filter(tipo='story_published').count(), 1)
         self.assertFalse(TbUsuarioConquista.objects.exists())
+
+    def test_story_delivery_recovers_later_rule_without_republishing(self):
+        rule = self.rule()
+        rule.ativo = False
+        rule.save(update_fields=['ativo'])
+        story = self.story('later-rule-story')
+        self.assertEqual(self.review(story, 'aprovar').status_code, 200)
+        event = TbEventoConquista.objects.get(tipo='story_published')
+        delivery = TbEntregaEventoConquista.objects.get(
+            evento=event, consumidor=STORY_CONSUMER)
+        self.assertEqual(delivery.estado, 'pendente')
+        rule.ativo = True
+        rule.save(update_fields=['ativo'])
+        preview = StringIO()
+        call_command('processar_entregas_cronica', user_id=self.author.pk,
+                     stdout=preview)
+        self.assertIn('fatos=1 entregas=1', preview.getvalue())
+        self.assertFalse(TbUsuarioConquista.objects.filter(
+            user=self.author, conquista=rule).exists())
+        call_command('processar_entregas_cronica', apply=True,
+                     user_id=self.author.pk, stdout=StringIO())
+        delivery.refresh_from_db()
+        self.assertEqual(delivery.estado, 'concluida')
+        grant = TbUsuarioConquista.objects.get(user=self.author, conquista=rule)
+        self.assertEqual(grant.evidencia_json['evento_id'], str(event.pk))
+        call_command('processar_entregas_cronica', apply=True,
+                     user_id=self.author.pk, stdout=StringIO())
+        self.assertEqual(TbEventoConquista.objects.count(), 1)
+        self.assertEqual(TbUsuarioConquista.objects.filter(
+            user=self.author, conquista=rule).count(), 1)
+        self.assertEqual(TbUsuarioCosmetico.objects.filter(
+            user=self.author, cosmetico=rule.recompensa).count(), 1)
+
+    def test_story_delivery_failure_rolls_back_right_and_retries(self):
+        rule = self.rule()
+        rule.ativo = False
+        rule.save(update_fields=['ativo'])
+        self.assertEqual(self.review(self.story('retry-story'), 'aprovar').status_code, 200)
+        rule.ativo = True
+        rule.save(update_fields=['ativo'])
+        delivery = TbEntregaEventoConquista.objects.get(consumidor=STORY_CONSUMER)
+
+        def fail_after_award(event):
+            avaliar_primeira_cronica_evento(event)
+            raise RuntimeError('falha de teste após concessão')
+
+        with patch('home.event_deliveries.avaliar_primeira_cronica_evento',
+                   side_effect=fail_after_award):
+            call_command('processar_entregas_cronica', apply=True,
+                         user_id=self.author.pk, stdout=StringIO())
+        delivery.refresh_from_db()
+        self.assertEqual(delivery.estado, 'pendente')
+        self.assertEqual(delivery.ultimo_erro, 'RuntimeError')
+        self.assertFalse(TbUsuarioConquista.objects.filter(
+            user=self.author, conquista=rule).exists())
+        TbEntregaEventoConquista.objects.filter(pk=delivery.pk).update(
+            proxima_tentativa_em=timezone.now() - timedelta(seconds=1))
+        call_command('processar_entregas_cronica', apply=True,
+                     user_id=self.author.pk, stdout=StringIO())
+        delivery.refresh_from_db()
+        self.assertEqual(delivery.estado, 'concluida')
+        self.assertEqual(delivery.tentativas, 2)
+        self.assertEqual(TbUsuarioConquista.objects.filter(
+            user=self.author, conquista=rule).count(), 1)
+
+    def test_reviewed_story_delivery_can_resume_without_changing_source(self):
+        rule = self.rule()
+        rule.ativo = False
+        rule.save(update_fields=['ativo'])
+        self.assertEqual(self.review(self.story('review-story'), 'aprovar').status_code, 200)
+        rule.ativo = True
+        rule.save(update_fields=['ativo'])
+        delivery = TbEntregaEventoConquista.objects.get(consumidor=STORY_CONSUMER)
+        reservation = reserve_story_delivery(user_id=self.author.pk)
+        with patch('home.event_deliveries.avaliar_primeira_cronica_evento',
+                   side_effect=RuntimeError('falha de teste')):
+            self.assertFalse(process_story_delivery(*reservation, max_attempts=1))
+        delivery.refresh_from_db()
+        self.assertEqual(delivery.estado, 'revisao')
+        preview = StringIO()
+        call_command('processar_entregas_cronica', resume_review_id=delivery.pk,
+                     stdout=preview)
+        self.assertIn('estado=revisao tentativas=1', preview.getvalue())
+        call_command('processar_entregas_cronica', apply=True,
+                     resume_review_id=delivery.pk, stdout=StringIO())
+        delivery.refresh_from_db()
+        self.assertEqual(delivery.estado, 'concluida')
+        self.assertEqual(delivery.tentativas, 2)
+        self.assertEqual(TbUsuarioConquista.objects.filter(
+            user=self.author, conquista=rule).count(), 1)

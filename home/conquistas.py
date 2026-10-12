@@ -724,15 +724,10 @@ def registrar_publicacao_cronica(cronica):
     """Registra a primeira publicação aprovada, sem contar revisões editoriais."""
     from django.contrib.auth import get_user_model
     from django.db import transaction
-    from django.db.models import Q
-    from .models import TbConquista, TbCronica, TbEventoConquista, TbUsuarioConquista
+    from .models import TbEventoConquista
 
     if cronica.status != 'aprovada' or not cronica.data_publicacao:
         raise ValueError('A crônica ainda não foi publicada.')
-    regra = {
-        'schema_version': 1, 'metric': 'stories_published',
-        'scope': 'account', 'operator': 'gte', 'target': 1,
-    }
     with transaction.atomic():
         get_user_model().objects.select_for_update().only('pk').get(pk=cronica.autor_id)
         chave = f'cronica:{cronica.pk}:publicada'
@@ -753,25 +748,51 @@ def registrar_publicacao_cronica(cronica):
                 evento.agregado_id != cronica.pk or evento.versao_payload != 1 or
                 evento.ocorrido_em != cronica.data_publicacao):
             raise ValueError('Identidade do fato de publicação inconsistente.')
-        anteriores = TbCronica.objects.filter(autor_id=cronica.autor_id).exclude(pk=cronica.pk)
-        if anteriores.filter(
-                Q(data_publicacao__lt=cronica.data_publicacao) |
-                Q(data_publicacao=cronica.data_publicacao, pk__lt=cronica.pk) |
-                Q(data_publicacao__isnull=True, status__in=['aprovada', 'oculta'])
-        ).exists():
-            return evento
-        for conquista in TbConquista.objects.filter(
-                ativo=True, criterio='automatico',
-                criterio_json__metric='stories_published').select_related('recompensa'):
-            if conquista.criterio_json != regra:
-                continue
-            if conceder_conquista(cronica.autor, conquista):
-                TbUsuarioConquista.objects.filter(user_id=cronica.autor_id, conquista=conquista).update(
-                    evidencia_json={'evento_id': str(evento.pk), 'origem': evento.origem,
-                                   'chave_origem': evento.chave_origem, 'agregado_id': cronica.pk},
-                    definicao_json=regra,
-                )
+        from .event_deliveries import enqueue_story_event
+        enqueue_story_event(evento)
+        avaliar_primeira_cronica_evento(evento)
     return evento
+
+
+@transaction.atomic
+def avaliar_primeira_cronica_evento(evento):
+    """Reavalia a primeira publicação a partir do fato já comprovado."""
+    from django.db.models import Q
+    from .models import TbConquista, TbCronica, TbUsuarioConquista
+
+    if (evento.origem != 'site' or evento.tipo != 'story_published' or
+            evento.versao_payload != 1 or
+            evento.chave_origem != f'cronica:{evento.agregado_id}:publicada'):
+        return 0
+    story = TbCronica.objects.filter(
+        pk=evento.agregado_id, autor_id=evento.conta_id).first()
+    if story is None:
+        return 0
+    anteriores = TbCronica.objects.filter(autor_id=evento.conta_id).exclude(pk=story.pk)
+    if anteriores.filter(
+            Q(data_publicacao__lt=evento.ocorrido_em) |
+            Q(data_publicacao=evento.ocorrido_em, pk__lt=story.pk) |
+            Q(data_publicacao__isnull=True, status__in=['aprovada', 'oculta'])
+    ).exists():
+        return 0
+    regra = {'schema_version': 1, 'metric': 'stories_published',
+             'scope': 'account', 'operator': 'gte', 'target': 1}
+    awarded = 0
+    for conquista in TbConquista.objects.filter(
+            ativo=True, criterio='automatico',
+            criterio_json__metric='stories_published').select_related('recompensa'):
+        if conquista.criterio_json != regra:
+            continue
+        if conceder_conquista(evento.conta, conquista):
+            TbUsuarioConquista.objects.filter(
+                user_id=evento.conta_id, conquista=conquista).update(
+                evidencia_json={'evento_id': str(evento.pk), 'origem': evento.origem,
+                               'chave_origem': evento.chave_origem,
+                               'agregado_id': story.pk},
+                definicao_json=regra,
+            )
+            awarded += 1
+    return awarded
 
 
 @transaction.atomic
