@@ -8,7 +8,7 @@ from django.utils import timezone
 
 from .cosmetic_entitlements import has_permanent_cosmetic
 from .models import (EventCosmeticOffer, EventCosmeticRedemption,
-                     TbPersonagem, TbUsuarioCosmetico)
+                     TbEventoConquista, TbPersonagem, TbUsuarioCosmetico)
 
 
 def redeem_event_cosmetic(user, offer_id, character_id, request_id, quoted_cost):
@@ -80,4 +80,19 @@ def redeem_event_cosmetic(user, offer_id, character_id, request_id, quoted_cost)
             TbUsuarioCosmetico.objects.create(
                 user=user, cosmetico=offer.cosmetico,
                 origem=f'evento:{redemption.pk}')
+        # O fato nasce junto com o débito e o direito. Uma falha aqui desfaz os
+        # três registros, permitindo reprocessar a mesma solicitação com segurança.
+        TbEventoConquista.objects.create(
+            origem='site_event_cosmetic',
+            chave_origem=f'resgate:{operation}',
+            tipo='event_cosmetic_redeemed',
+            conta=user, personagem=character,
+            agregado_id=redemption.pk,
+            ocorrido_em=redemption.created_at,
+            payload_json={
+                'offer_id': offer.pk,
+                'cosmetic_id': offer.cosmetico_id,
+                'cost_braseiros': offer.cost_braseiros,
+            },
+        )
         return redemption, True

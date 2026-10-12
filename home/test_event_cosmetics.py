@@ -20,6 +20,7 @@ from .cosmetic_entitlements import has_permanent_cosmetic
 from .cosmetics import cosmetic_allowed, invalidate_cosmetic_cache
 from .event_cosmetics import redeem_event_cosmetic
 from .models import (EventCosmeticOffer, EventCosmeticRedemption, TbCosmetico,
+                     TbEventoConquista,
                      TbPersonagem, TbUsuarioCosmetico)
 from .deploy_sync import MEMORY_MODELS, PRODUCTION_PRESERVED_MODELS
 
@@ -65,6 +66,14 @@ class EventCosmeticShopTests(TestCase):
         self.assertEqual(self.character.braseiros, 15)
         self.assertEqual(redemption.cost_braseiros, 25)
         self.assertEqual(redemption.balance_after, 15)
+        fact = TbEventoConquista.objects.get(tipo='event_cosmetic_redeemed')
+        self.assertEqual((fact.origem, fact.chave_origem, fact.agregado_id),
+                         ('site_event_cosmetic', f'resgate:{request_id}', redemption.pk))
+        self.assertEqual((fact.conta_id, fact.personagem_id),
+                         (self.user.pk, self.character.pk))
+        self.assertEqual(fact.payload_json,
+                         {'offer_id': self.offer.pk, 'cosmetic_id': self.cosmetic.pk,
+                          'cost_braseiros': 25})
         self.assertTrue(has_permanent_cosmetic(self.user, self.cosmetic))
         self.assertTrue(cosmetic_allowed(self.user, 'frame',
                                         self.cosmetic.slug.removeprefix('moldura-'), 'ficha'))
@@ -72,6 +81,8 @@ class EventCosmeticShopTests(TestCase):
         self.assertContains(self.client.get(self.url), 'Você já possui')
         self.assertEqual(self.client.post(self.url, form).status_code, 302)
         self.assertEqual(EventCosmeticRedemption.objects.count(), 1)
+        self.assertEqual(TbEventoConquista.objects.filter(
+            tipo='event_cosmetic_redeemed').count(), 1)
         self.character.refresh_from_db()
         self.assertEqual(self.character.braseiros, 15)
         EventCosmeticOffer.objects.filter(pk=self.offer.pk).update(active=False)
@@ -92,6 +103,10 @@ class EventCosmeticShopTests(TestCase):
         response = self.client.post(self.url, form)
         self.assertEqual(response.status_code, 302)
         redemption = EventCosmeticRedemption.objects.get(request_id=request_id)
+        fact = TbEventoConquista.objects.get(tipo='event_cosmetic_redeemed')
+        self.assertEqual((fact.conta_id, fact.personagem_id, fact.agregado_id),
+                         (self.other.pk, None, redemption.pk))
+        self.assertEqual(fact.payload_json['cost_braseiros'], 0)
         self.assertIsNone(redemption.character_id)
         self.assertIsNone(redemption.balance_after)
         self.assertEqual(redemption.cost_braseiros, 0)
@@ -101,6 +116,8 @@ class EventCosmeticShopTests(TestCase):
         self.assertTrue(has_permanent_cosmetic(self.other, self.cosmetic))
         self.assertEqual(self.client.post(self.url, form).status_code, 302)
         self.assertEqual(EventCosmeticRedemption.objects.count(), 1)
+        self.assertEqual(TbEventoConquista.objects.filter(
+            tipo='event_cosmetic_redeemed').count(), 1)
         EventCosmeticOffer.objects.filter(pk=self.offer.pk).update(active=False)
         self.assertNotContains(self.client.get(self.url), self.cosmetic.nome)
         self.assertTrue(has_permanent_cosmetic(self.other, self.cosmetic))
@@ -108,6 +125,20 @@ class EventCosmeticShopTests(TestCase):
             active=True, cost_braseiros=25)
         self.assertContains(self.client.get(self.url), 'Você já possui este cosmético.')
         self.assertTrue(has_permanent_cosmetic(self.other, self.cosmetic))
+
+    def test_fact_write_failure_rolls_back_debit_redemption_and_entitlement(self):
+        with patch('home.event_cosmetics.TbEventoConquista.objects.create',
+                   side_effect=RuntimeError('event store unavailable')):
+            with self.assertRaisesRegex(RuntimeError, 'event store unavailable'):
+                redeem_event_cosmetic(self.user, self.offer.pk, self.character.pk,
+                                      uuid4(), 25)
+        self.character.refresh_from_db()
+        self.assertEqual(self.character.braseiros, 40)
+        self.assertFalse(EventCosmeticRedemption.objects.exists())
+        self.assertFalse(TbUsuarioCosmetico.objects.filter(
+            user=self.user, cosmetico=self.cosmetic).exists())
+        self.assertFalse(TbEventoConquista.objects.filter(
+            tipo='event_cosmetic_redeemed').exists())
 
     def test_reused_request_key_cannot_claim_different_offer_price_or_character(self):
         self.client.force_login(self.user)
