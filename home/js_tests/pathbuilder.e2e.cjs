@@ -85,6 +85,8 @@ async function stored(page) {
     trace('laboratório aberto');
     assert.match(await page.locator('#pb-status').innerText(), /Nível 4/);
 
+    assert.equal(await page.locator('#pb-asi-title').innerText(),
+      'Aprimoramento de Atributo ou Talento', 'nome ASI do Guerreiro vem do catalogo real');
     await page.locator('[data-step-tab="3"]').click();
     await previewAfter(page, () =>
       page.locator('[data-opt-slug="resiliente"] [data-opt-pick]').click());

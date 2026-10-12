@@ -450,6 +450,12 @@
         }
         function renderAttributes() {
             var build = current();
+            var asiNames = Array.from(new Set(build.classes.map(function (row) {
+                var info = classBySlug[row.slug];
+                return info && info.asi_nome || '';
+            }).filter(Boolean)));
+            byId('pb-asi-title').textContent = asiNames.length === 1
+                ? asiNames[0] : 'ASI: atributo ou talento';
             var values = build.atributos_bonus;
             var budget = orcamento();
             var result = results[active];

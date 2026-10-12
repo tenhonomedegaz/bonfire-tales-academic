@@ -414,6 +414,27 @@ class PathbuilderTests(_CriadorBase):
         self.assertEqual(result["orcamento"]["pontos_restantes"], 0)
         self.assertNotIn("distribuiu", " ".join(result["validacao"]["problemas"]))
 
+    def test_guerreiro_asi_milestones_match_class_catalog_without_persistence(self):
+        catalog = self.client.get(reverse('pathbuilder_laboratorio'))
+        self.assertEqual(catalog.status_code, 200)
+        fighter = next(row for row in catalog.context['catalogos']['classes']
+                       if row['slug'] == 'guerreiro')
+        self.assertEqual(fighter['asi_nome'], 'Aprimoramento de Atributo ou Talento')
+        baseline = TbPersonagem.objects.count()
+        base = self._payload('guerreiro')
+        for level, expected_slots in ((1, 0), (4, 1), (6, 2), (8, 3),
+                                      (12, 4), (14, 5), (16, 6), (19, 7)):
+            with self.subTest(level=level):
+                build = self._build('guerreiro', classes=[
+                    {'slug': 'guerreiro', 'nivel': level, 'subclasse': ''},
+                ])
+                response = self._post_preview(base, build)
+                self.assertEqual(response.status_code, 200)
+                budget = response.json()['build']['orcamento']
+                self.assertEqual(budget['asi_slots'], expected_slots)
+                self.assertEqual(budget['pontos_disponiveis'], expected_slots * 2)
+        self.assertEqual(TbPersonagem.objects.count(), baseline)
+
     def test_detalhe_devolve_descricao_sob_demanda(self):
         """Cartao expansivel: a descricao nao vem no catalogo (seria 1 MB), vem aqui."""
         talento = TbTalento.objects.exclude(descricao="").first()

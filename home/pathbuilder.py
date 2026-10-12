@@ -36,12 +36,14 @@ def catalogos():
     from .character_engine import _subclass_min_level
     from .models import (
         TbClasse,
+        TbClassehabilidade,
         TbItemMagico,
         TbItemMundano,
         TbMagia,
         TbSubclasse,
         TbTalento,
     )
+    from .views import _eh_feature_asi, _tag_levels
 
     subclasses = {}
     for sub in TbSubclasse.objects.select_related("id_classe").order_by(
@@ -52,11 +54,23 @@ def catalogos():
             "meta": (sub.tagline or "").strip(),
         })
 
+    class_rows = list(TbClasse.objects.all().order_by("nome"))
+    asi_levels = {classe.pk: _tag_levels(classe.tags_json, "asi-choices")
+                  for classe in class_rows}
+    asi_names = {}
+    for feature in TbClassehabilidade.objects.filter(
+            id_classe_id__in=asi_levels, id_subclasse__isnull=True,
+            table_only=False, nome__icontains="Atributo").order_by("niveladquirido"):
+        if (feature.niveladquirido in asi_levels[feature.id_classe_id]
+                and _eh_feature_asi(feature.nome)):
+            asi_names.setdefault(feature.id_classe_id, feature.nome)
+
     classes = []
-    for classe in TbClasse.objects.all().order_by("nome"):
+    for classe in class_rows:
         classes.append({
             "slug": classe.slug,
             "nome": classe.nome,
+            "asi_nome": asi_names.get(classe.pk, ""),
             "subclasse_nivel": _subclass_min_level(classe),
             "subclasses": subclasses.get(classe.slug, []),
         })
