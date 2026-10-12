@@ -1,4 +1,4 @@
-"""Entrega local recuperável de fatos de criação para conquistas."""
+"""Entrega local recuperável de fatos canônicos para conquistas."""
 
 from datetime import timedelta
 from uuid import uuid4
@@ -8,11 +8,34 @@ from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
 
-from .conquistas import avaliar_inicio_classe_evento, avaliar_primeira_ficha_evento
+from .conquistas import (avaliar_aventuras_jogadas, avaliar_inicio_classe_evento,
+                        avaliar_primeira_ficha_evento, avaliar_quests_categorizadas)
 from .models import TbEntregaEventoConquista, TbEventoConquista
 
 
 CREATION_CONSUMER = 'conquistas_criacao_v1'
+ADVENTURE_CONSUMER = 'conquistas_aventuras_v1'
+
+
+def enqueue_adventure_event(evento):
+    if evento.origem != 'site_ledger' or evento.tipo not in (
+            'adventure_recorded', 'adventure_reverted'):
+        return None
+    entrega, _ = TbEntregaEventoConquista.objects.get_or_create(
+        evento=evento, consumidor=ADVENTURE_CONSUMER)
+    return entrega
+
+
+def enqueue_existing_adventure_events(*, user_id=None):
+    facts = TbEventoConquista.objects.filter(
+        origem='site_ledger', tipo__in=('adventure_recorded', 'adventure_reverted'))
+    if user_id is not None:
+        facts = facts.filter(conta_id=user_id)
+    created = 0
+    for fact in facts.iterator():
+        created += int(TbEntregaEventoConquista.objects.get_or_create(
+            evento=fact, consumidor=ADVENTURE_CONSUMER)[1])
+    return created
 
 
 def enqueue_creation_event(evento):
@@ -37,11 +60,22 @@ def enqueue_existing_creation_events(*, user_id=None):
 
 @transaction.atomic
 def reserve_creation_delivery(*, user_id=None, lease_seconds=120):
+    return _reserve_delivery(CREATION_CONSUMER, user_id=user_id,
+                             lease_seconds=lease_seconds)
+
+
+@transaction.atomic
+def reserve_adventure_delivery(*, user_id=None, lease_seconds=120):
+    return _reserve_delivery(ADVENTURE_CONSUMER, user_id=user_id,
+                             lease_seconds=lease_seconds)
+
+
+def _reserve_delivery(consumer, *, user_id=None, lease_seconds=120):
     now = timezone.now()
     available = (Q(estado='pendente', proxima_tentativa_em__lte=now) |
                  Q(estado='processando', reserva_ate__lte=now))
     qs = TbEntregaEventoConquista.objects.select_for_update(skip_locked=True).filter(
-        consumidor=CREATION_CONSUMER).filter(available)
+        consumidor=consumer).filter(available)
     if user_id is not None:
         qs = qs.filter(evento__conta_id=user_id)
     entrega = qs.order_by('criada_em', 'pk').first()
@@ -57,19 +91,35 @@ def reserve_creation_delivery(*, user_id=None, lease_seconds=120):
 
 
 def process_creation_delivery(delivery_id, token, *, max_attempts=5):
+    return _process_delivery(delivery_id, token, CREATION_CONSUMER,
+                             max_attempts=max_attempts)
+
+
+def process_adventure_delivery(delivery_id, token, *, max_attempts=5):
+    return _process_delivery(delivery_id, token, ADVENTURE_CONSUMER,
+                             max_attempts=max_attempts)
+
+
+def _process_delivery(delivery_id, token, consumer, *, max_attempts=5):
     """Confirma efeito e entrega juntos; reserva expirada pode ser retomada."""
     try:
         with transaction.atomic():
             entrega = (TbEntregaEventoConquista.objects.select_for_update()
                        .select_related('evento').get(pk=delivery_id))
-            if entrega.estado != 'processando' or entrega.reserva_token != token:
+            if (entrega.consumidor != consumer or entrega.estado != 'processando' or
+                    entrega.reserva_token != token):
                 return False
             if entrega.reserva_ate is None or entrega.reserva_ate <= timezone.now():
                 return False
             evento = entrega.evento
             get_user_model().objects.select_for_update().only('pk').get(pk=evento.conta_id)
-            avaliar_inicio_classe_evento(evento)
-            avaliar_primeira_ficha_evento(evento)
+            if consumer == CREATION_CONSUMER:
+                avaliar_inicio_classe_evento(evento)
+                avaliar_primeira_ficha_evento(evento)
+            else:
+                user = evento.conta
+                avaliar_aventuras_jogadas(user)
+                avaliar_quests_categorizadas(user)
             entrega.estado = 'concluida'
             entrega.reserva_token = None
             entrega.reserva_ate = None
@@ -79,7 +129,8 @@ def process_creation_delivery(delivery_id, token, *, max_attempts=5):
     except Exception as exc:
         with transaction.atomic():
             entrega = TbEntregaEventoConquista.objects.select_for_update().get(pk=delivery_id)
-            if entrega.estado == 'processando' and entrega.reserva_token == token:
+            if (entrega.consumidor == consumer and entrega.estado == 'processando' and
+                    entrega.reserva_token == token):
                 entrega.estado = 'revisao' if entrega.tentativas >= max_attempts else 'pendente'
                 entrega.proxima_tentativa_em = timezone.now() + timedelta(
                     seconds=min(3600, 2 ** min(entrega.tentativas, 12)))

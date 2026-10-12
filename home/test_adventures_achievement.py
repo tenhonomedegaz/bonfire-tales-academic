@@ -1,4 +1,5 @@
 from io import StringIO
+from datetime import timedelta
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
@@ -10,8 +11,11 @@ from django.utils import timezone
 from home.conquista_admin_form import ConquistaAdminForm
 from home.conquistas import (avaliar_aventuras_jogadas, avaliar_quests_categorizadas,
                             registrar_fato_aventura)
+from home.event_deliveries import (ADVENTURE_CONSUMER, process_adventure_delivery,
+                                   reserve_adventure_delivery)
 from home.models import (TbClasse, TbConquista, TbCosmetico, TbEventoConquista,
-                         TbPersonagem, TbPersonagemAventura, TbPersonagemClasse,
+                         TbEntregaEventoConquista, TbPersonagem, TbPersonagemAventura,
+                         TbPersonagemClasse,
                          TbUsuarioConquista, TbUsuarioCosmetico)
 from home.test_criador import _CriadorBase
 
@@ -49,6 +53,112 @@ class AdventuresAchievementTests(_CriadorBase):
                 'nome_aventura': 'Mesa verificada QA', 'aventuras': quantity,
                 'mestre': self.staff.pk, 'data_missao': '2026-09-27',
             })
+
+    def test_durable_adventure_delivery_replays_both_metrics_and_reversal(self):
+        self.rule.ativo = False
+        self.rule.save(update_fields=['ativo'])
+        self.client.force_login(self.staff)
+        self.assertEqual(self.client.post(
+            reverse('personagem_registrar_aventuras', args=[self.character.pk]), {
+                'nome_aventura': 'Quest comprovada', 'aventuras': 3,
+                'mestre': self.staff.pk, 'data_missao': '2026-09-27',
+                'quest_category': 'bg_token',
+            }).status_code, 302)
+        quest = TbConquista.objects.create(
+            slug='quest-delivery-bg', nome='Quest entregue', criterio='automatico',
+            criterio_json={'schema_version': 1, 'metric': 'quests_completed',
+                           'scope': 'account', 'filters': {'category': 'bg_token',
+                                                          'valid': True},
+                           'operator': 'gte', 'target': 1})
+        self.rule.ativo = True
+        self.rule.save(update_fields=['ativo'])
+        event = TbEventoConquista.objects.get(tipo='adventure_recorded')
+        delivery = TbEntregaEventoConquista.objects.get(
+            evento=event, consumidor=ADVENTURE_CONSUMER)
+        self.assertEqual(delivery.estado, 'pendente')
+        preview = StringIO()
+        call_command('processar_entregas_aventura', user_id=self.owner.pk,
+                     stdout=preview)
+        self.assertIn('fatos=1 entregas=1', preview.getvalue())
+        self.assertFalse(TbUsuarioConquista.objects.filter(user=self.owner).exists())
+        call_command('processar_entregas_aventura', apply=True,
+                     user_id=self.owner.pk, stdout=StringIO())
+        delivery.refresh_from_db()
+        self.assertEqual(delivery.estado, 'concluida')
+        self.assertEqual(set(TbUsuarioConquista.objects.filter(
+            user=self.owner).values_list('conquista_id', flat=True)),
+            {self.rule.pk, quest.pk})
+        call_command('processar_entregas_aventura', apply=True,
+                     user_id=self.owner.pk, stdout=StringIO())
+        self.assertEqual(TbUsuarioConquista.objects.filter(user=self.owner).count(), 2)
+        self.assertEqual(TbUsuarioCosmetico.objects.filter(
+            user=self.owner, cosmetico=self.badge).count(), 1)
+
+        ledger = TbPersonagemAventura.objects.get(origem='mesa')
+        self.assertEqual(self.client.post(reverse(
+            'personagem_reverter_aventura', args=[self.character.pk, ledger.pk]
+        )).status_code, 302)
+        reversed_delivery = TbEntregaEventoConquista.objects.get(
+            evento__tipo='adventure_reverted', consumidor=ADVENTURE_CONSUMER)
+        self.assertEqual(reversed_delivery.estado, 'pendente')
+        call_command('processar_entregas_aventura', apply=True,
+                     user_id=self.owner.pk, stdout=StringIO())
+        reversed_delivery.refresh_from_db()
+        self.assertEqual(reversed_delivery.estado, 'concluida')
+        self.assertEqual(TbUsuarioConquista.objects.filter(
+            user=self.owner, revogada_em__isnull=True).count(), 0)
+
+    def test_failed_delivery_rolls_back_grant_and_retries(self):
+        self.rule.ativo = False
+        self.rule.save(update_fields=['ativo'])
+        self.assertEqual(self.launch(3).status_code, 302)
+        self.rule.ativo = True
+        self.rule.save(update_fields=['ativo'])
+        delivery = TbEntregaEventoConquista.objects.get(
+            evento__tipo='adventure_recorded', consumidor=ADVENTURE_CONSUMER)
+        with patch('home.event_deliveries.avaliar_quests_categorizadas',
+                   side_effect=RuntimeError('falha de teste')):
+            call_command('processar_entregas_aventura', apply=True,
+                         user_id=self.owner.pk, stdout=StringIO())
+        delivery.refresh_from_db()
+        self.assertEqual(delivery.estado, 'pendente')
+        self.assertEqual(delivery.ultimo_erro, 'RuntimeError')
+        self.assertFalse(TbUsuarioConquista.objects.filter(user=self.owner).exists())
+        TbEntregaEventoConquista.objects.filter(pk=delivery.pk).update(
+            proxima_tentativa_em=timezone.now() - timedelta(seconds=1))
+        call_command('processar_entregas_aventura', apply=True,
+                     user_id=self.owner.pk, stdout=StringIO())
+        delivery.refresh_from_db()
+        self.assertEqual(delivery.estado, 'concluida')
+        self.assertEqual(delivery.tentativas, 2)
+        self.assertEqual(TbUsuarioConquista.objects.filter(
+            user=self.owner, conquista=self.rule).count(), 1)
+
+    def test_reviewed_adventure_delivery_can_resume_its_own_account(self):
+        self.rule.ativo = False
+        self.rule.save(update_fields=['ativo'])
+        self.assertEqual(self.launch(3).status_code, 302)
+        self.rule.ativo = True
+        self.rule.save(update_fields=['ativo'])
+        delivery = TbEntregaEventoConquista.objects.get(
+            evento__tipo='adventure_recorded', consumidor=ADVENTURE_CONSUMER)
+        reservation = reserve_adventure_delivery(user_id=self.owner.pk)
+        with patch('home.event_deliveries.avaliar_quests_categorizadas',
+                   side_effect=RuntimeError('falha de teste')):
+            self.assertFalse(process_adventure_delivery(*reservation, max_attempts=1))
+        delivery.refresh_from_db()
+        self.assertEqual(delivery.estado, 'revisao')
+        preview = StringIO()
+        call_command('processar_entregas_aventura', resume_review_id=delivery.pk,
+                     stdout=preview)
+        self.assertIn('estado=revisao tentativas=1', preview.getvalue())
+        call_command('processar_entregas_aventura', apply=True,
+                     resume_review_id=delivery.pk, stdout=StringIO())
+        delivery.refresh_from_db()
+        self.assertEqual(delivery.estado, 'concluida')
+        self.assertEqual(delivery.tentativas, 2)
+        self.assertEqual(TbUsuarioConquista.objects.filter(
+            user=self.owner, conquista=self.rule).count(), 1)
 
     def test_adventure_rule_requires_boolean_valid_before_awarding(self):
         malformed = {**self.definition,

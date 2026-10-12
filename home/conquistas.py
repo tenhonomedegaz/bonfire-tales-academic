@@ -827,6 +827,8 @@ def registrar_fato_aventura(lancamento, *, estorno=False, avaliar=True):
             recorded_payload['quantidade'] != payload['quantidade'] or
             recorded_payload.get('quest_category') != payload.get('quest_category')):
         raise ValueError('Identidade do fato de aventura inconsistente.')
+    from .event_deliveries import enqueue_adventure_event
+    enqueue_adventure_event(evento)
     if avaliar:
         avaliar_aventuras_jogadas(personagem.dono)
         avaliar_quests_categorizadas(personagem.dono)
