@@ -91,3 +91,6 @@ class ClassPageOptionWidgetTests(_CriadorBase):
         self.assertNotIn('::\n| Nível de Místico', feature.descricao)
         self.assertNotIn('### [Marca Mística](', feature.descricao)
         self.assertEqual(feature.descricao.count('::\n\n| Nível de Místico'), 4)
+        self.assertGreaterEqual(feature.descricao.count('\n\n'), 40)
+        self.assertIn('**Conhecimento Manifestado.**\n\n Você ganha', feature.descricao)
+        self.assertIn('**um livro** desta maneira por **descanso curto ou longo**.', feature.descricao)
