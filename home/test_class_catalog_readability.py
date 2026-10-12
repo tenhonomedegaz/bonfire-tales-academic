@@ -44,12 +44,14 @@ class ClassCatalogReadabilityBrowserTests(StaticLiveServerTestCase):
             descricao='Texto de habilidade legível no celular.', niveladquirido=1,
         )
         mystic_fixture = json.loads((Path(__file__).parent / 'fixtures' / 'conteudo.json').read_text(encoding='utf-8'))
-        mystic_description = next(item['fields']['descricao'] for item in mystic_fixture
-                                  if item['model'] == 'home.tbclassehabilidade' and item['pk'] == 1428)
-        TbClassehabilidade.objects.create(
-            id_classe=classe, nome='Feitiçaria Mística',
-            descricao=mystic_description, niveladquirido=1,
-        )
+        mystic_features = {item['pk']: item['fields'] for item in mystic_fixture
+                           if item['model'] == 'home.tbclassehabilidade'
+                           and item['pk'] in (1428, 1431, 1444, 1446)}
+        for pk in (1428, 1431, 1444, 1446):
+            TbClassehabilidade.objects.create(
+                id_classe=classe, nome=mystic_features[pk]['nome'],
+                descricao=mystic_features[pk]['descricao'], niveladquirido=1,
+            )
         detail_url = reverse('classe_detail', kwargs={'slug': classe.slug})
         full_detail = self.client.get(detail_url)
         self.assertEqual(full_detail.status_code, 200)
@@ -181,6 +183,30 @@ class ClassCatalogReadabilityBrowserTests(StaticLiveServerTestCase):
                 })()''')
                 self.assertGreaterEqual(mystic_heading['size'], 14, mystic_heading)
                 self.assertGreaterEqual(mystic_heading['weight'], 700, mystic_heading)
+                other_sections = js('''(() => {
+                    const card = name => [...document.querySelectorAll('[data-feature-card]')]
+                        .find(item => item.querySelector('[data-feature-title]')?.textContent.includes(name));
+                    return {toggle: card('Manifestação Mística Aprimorada')?.querySelectorAll('.bonfire-toggle, .subtopic-btn').length || 0,
+                        table: card('Receptáculo do Gênio')?.querySelectorAll('table').length || 0,
+                        list: card('Sussurro dos Antigos')?.querySelectorAll('li').length || 0};
+                })()''')
+                self.assertGreater(other_sections['toggle'], 0, other_sections)
+                self.assertEqual(other_sections['table'], 1, other_sections)
+                self.assertGreaterEqual(other_sections['list'], 2, other_sections)
+                toggle_state = js('''(() => {
+                    const card = [...document.querySelectorAll('[data-feature-card]')]
+                        .find(item => item.querySelector('[data-feature-title]')?.textContent.includes('Manifestação Mística Aprimorada'));
+                    const buttons = card.querySelectorAll('.subtopic-btn');
+                    buttons[1].click();
+                    const panels = card.querySelectorAll('.h1-group-panel');
+                    return {count: buttons.length, active: buttons[1].classList.contains('is-active'),
+                        firstHidden: getComputedStyle(panels[0]).display === 'none',
+                        secondVisible: getComputedStyle(panels[1]).display !== 'none'};
+                })()''')
+                self.assertGreaterEqual(toggle_state['count'], 2, toggle_state)
+                self.assertTrue(toggle_state['active'] and toggle_state['firstHidden']
+                                and toggle_state['secondVisible'], toggle_state)
+                self.assertEqual(js('sanitizeBonfireMarkdownHtml("<button onclick=alert(1)>Unsafe</button>")'), '')
                 screenshot_path = os.environ.get('BONFIRE_QA_CLASS_SCREENSHOT')
                 if screenshot_path:
                     screenshot = call('Page.captureScreenshot', {'captureBeyondViewport': True})

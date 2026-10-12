@@ -503,12 +503,12 @@ function sanitizeBonfireMarkdownHtml(html) {
     const source = document.createElement('template');
     source.innerHTML = String(html || '');
     const safeTags = new Set([
-        'a', 'b', 'blockquote', 'br', 'code', 'del', 'details', 'div', 'em', 'h1', 'h2', 'h3',
+        'a', 'b', 'blockquote', 'br', 'button', 'code', 'del', 'details', 'div', 'em', 'h1', 'h2', 'h3',
         'h4', 'h5', 'h6', 'hr', 'img', 'li', 'ol', 'p', 'pre', 's', 'span', 'strong',
         'summary', 'table', 'tbody', 'td', 'th', 'thead', 'tr', 'ul'
     ]);
     const discardedTags = new Set([
-        'base', 'button', 'embed', 'form', 'iframe', 'input', 'link', 'math', 'meta',
+        'base', 'embed', 'form', 'iframe', 'input', 'link', 'math', 'meta',
         'object', 'script', 'style', 'svg', 'template', 'textarea'
     ]);
     const safeUrl = value => {
@@ -524,10 +524,30 @@ function sanitizeBonfireMarkdownHtml(html) {
         if (node.nodeType !== Node.ELEMENT_NODE) return document.createDocumentFragment();
         const tag = node.localName.toLowerCase();
         if (discardedTags.has(tag)) return document.createDocumentFragment();
+        const groupId = node.getAttribute('data-group-id') || '';
+        const subtopicSlug = node.getAttribute('data-subtopic-toggle') || '';
+        const isSubtopicButton = tag === 'button' && node.classList.contains('subtopic-btn') &&
+            /^toggle-[a-z0-9]+$/.test(groupId) && /^[a-z0-9-]+$/.test(subtopicSlug);
+        if (tag === 'button' && !isSubtopicButton) return document.createDocumentFragment();
         const element = safeTags.has(tag) ? document.createElement(tag) : document.createDocumentFragment();
         if (element.nodeType === Node.ELEMENT_NODE) {
-            const classes = [...node.classList].filter(name => /^(?:(?:bonfire|atlas)-[a-z0-9_-]+|md-ref|ab|sc)$/.test(name));
+            const classes = [...node.classList].filter(name =>
+                /^(?:(?:bonfire|atlas)-[a-z0-9_-]+|md-ref|ab|sc|h1-section-group|h1-group-body|h1-group-panel|subtopic-nav|subtopic-btn|subtopic-body-title|is-active|is-visible)$/.test(name));
             if (classes.length) element.className = classes.join(' ');
+            if (isSubtopicButton) {
+                element.type = 'button';
+                element.setAttribute('data-group-id', groupId);
+                element.setAttribute('data-subtopic-toggle', subtopicSlug);
+            }
+            if (tag === 'div' && classes.includes('h1-section-group') && /^toggle-[a-z0-9]+$/.test(node.id)) {
+                element.id = node.id;
+            }
+            if (tag === 'div' && classes.includes('h1-group-panel') &&
+                /^toggle-[a-z0-9]+$/.test(node.getAttribute('data-group-parent') || '') &&
+                /^[a-z0-9-]+$/.test(node.getAttribute('data-sub-slug') || '')) {
+                element.setAttribute('data-group-parent', node.getAttribute('data-group-parent'));
+                element.setAttribute('data-sub-slug', node.getAttribute('data-sub-slug'));
+            }
             if (node.hasAttribute('title')) element.title = node.getAttribute('title');
             if (tag === 'a') {
                 const href = safeUrl(node.getAttribute('href') || '');

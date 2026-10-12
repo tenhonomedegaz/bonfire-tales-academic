@@ -6,6 +6,7 @@ import subprocess
 import tempfile
 import time
 from pathlib import Path
+from unittest.mock import patch
 from urllib.request import urlopen
 
 from django.conf import settings
@@ -43,6 +44,13 @@ class RaceMarkdownPresentationTests(StaticLiveServerTestCase):
             id_raca=race, nome='Linhagem Legada', slug='linhagem-legada',
             imagem_url='javascript:alert(1)', imagem_foco_x=19, imagem_foco_y=72,
         )
+        elf = TbRaca.objects.create(nome='Elfo', slug='elfo')
+        for slug, name in (
+            ('aetherin', 'Aetherin'), ('lunareth', 'Lunareth'),
+            ('noctelar', 'Noctelar'), ('solariin', 'Solariin'),
+            ('sylvanar', 'Sylvanar'),
+        ):
+            TbLinhagem.objects.create(id_raca=elf, nome=name, slug=slug)
         TbEssencia.objects.create(
             nome='Essencia Visual', slug='essencia-visual',
             imagem_url='https://example.org/essence.png',
@@ -175,6 +183,22 @@ class RaceMarkdownPresentationTests(StaticLiveServerTestCase):
                 self.assertEqual(js('document.querySelectorAll("[data-trait-preview] img, [data-trait-preview] a").length'), 0)
                 self.assertTrue(js('document.querySelector("[data-trait-preview] [data-markdown-source]").textContent.includes("<img src=x")'))
                 self.assertLessEqual(js('document.documentElement.scrollWidth'), js('innerWidth'))
+                with patch('home.views._criador_hunter_catalog_args', return_value={}):
+                    call('Page.navigate', {'url': self.live_server_url + reverse('criacao_ficha')})
+                    wait_for('document.querySelector("#cf-raca option[value=elfo]") !== null')
+                js('''(() => { const select = document.querySelector('#cf-raca');
+                    select.value = 'elfo'; select.dispatchEvent(new Event('change', {bubbles: true})); })()''')
+                elf_options = js('''({hidden:document.querySelector('#cf-linhagem-wrap').hidden,
+                    slugs:[...document.querySelectorAll('#cf-linhagem option')].map(option => option.value).filter(Boolean)})''')
+                self.assertFalse(elf_options['hidden'], elf_options)
+                self.assertEqual(elf_options['slugs'],
+                                 ['aetherin', 'lunareth', 'noctelar', 'solariin', 'sylvanar'])
+                call('Page.navigate', {'url': self.live_server_url + reverse('pathbuilder')})
+                wait_for('document.querySelector("#cf-raca option[value=elfo]") !== null')
+                js('''(() => { const select = document.querySelector('#cf-raca');
+                    select.value = 'elfo'; select.dispatchEvent(new Event('change', {bubbles: true})); })()''')
+                self.assertEqual(js('''[...document.querySelectorAll('#cf-linhagem option')]
+                    .map(option => option.value).filter(Boolean)'''), elf_options['slugs'])
             finally:
                 if ws:
                     ws.close()
