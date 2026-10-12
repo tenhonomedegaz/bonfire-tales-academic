@@ -310,6 +310,8 @@ def registrar_criacao_personagem(personagem):
         )
         if evento.conta_id != personagem.dono_id or evento.agregado_id != personagem.pk:
             raise ValueError('Identidade do fato de criação inconsistente.')
+        from .event_deliveries import enqueue_creation_event
+        enqueue_creation_event(evento)
         avaliar_inicio_classe_evento(evento)
         avaliar_primeira_ficha_evento(evento)
     return evento

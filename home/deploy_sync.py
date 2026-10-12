@@ -62,7 +62,7 @@ MEMORY_MODELS = [
     "TbTransacao", "TbTransacaoMestre",
     "TbAventuraMestre", "TbAnuncioItemMagico", "TbCronica", "TbCronicaCurtida",
     "TbCronicaComentario", "TbCronicaDenuncia", "TbCronicaNotificacao", "TbJornal",
-    "TbEventoConquista", "TbReiDaColina", "UserProfile",
+    "TbEventoConquista", "TbEntregaEventoConquista", "TbReiDaColina", "UserProfile",
     # Pedido e retorno financeiro do gateway: dado transacional da producao.
     # Nunca deve entrar em fixture de conteudo nem ser apagado por restauracao.
     "AsaasCheckoutOrder",

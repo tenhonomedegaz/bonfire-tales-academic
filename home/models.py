@@ -2802,6 +2802,31 @@ class TbEventoConquista(models.Model):
         )]
 
 
+class TbEntregaEventoConquista(models.Model):
+    """Entrega recuperável de um fato canônico a um consumidor local."""
+    evento = models.ForeignKey(TbEventoConquista, on_delete=models.CASCADE,
+                               related_name='entregas')
+    consumidor = models.CharField(max_length=60)
+    estado = models.CharField(max_length=16, default='pendente', choices=[
+        ('pendente', 'Pendente'), ('processando', 'Processando'),
+        ('concluida', 'Concluída'), ('revisao', 'Em revisão'),
+    ])
+    tentativas = models.PositiveSmallIntegerField(default=0)
+    proxima_tentativa_em = models.DateTimeField(default=timezone.now)
+    reserva_token = models.UUIDField(null=True, blank=True)
+    reserva_ate = models.DateTimeField(null=True, blank=True)
+    ultimo_erro = models.CharField(max_length=500, blank=True, default='')
+    criada_em = models.DateTimeField(auto_now_add=True)
+    atualizada_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'TB_EntregaEventoConquista'
+        constraints = [models.UniqueConstraint(
+            fields=['evento', 'consumidor'], name='unique_entrega_evento_consumidor')]
+        indexes = [models.Index(fields=['consumidor', 'estado', 'proxima_tentativa_em'],
+                                name='entrega_evento_disponivel_idx')]
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Social do perfil — CURTIR e SEGUIR (pedido dos usuários).
 # As DUAS tabelas são dado de USUÁRIO ("memória"): entram em MEMORY_MODELS no
