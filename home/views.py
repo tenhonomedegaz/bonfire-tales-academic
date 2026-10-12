@@ -7496,20 +7496,23 @@ def _aventuras_staff_resposta(request, p, *, compra_msg='', rollback_msg='', edi
     }, status=200 if ok else 400)
 
 
-def _mochila_ficha(p, ficha):
+def _mochila_ficha(p, ficha, *, materialize=True):
     """Contexto da ABA MOCHILA (Ficha v2, onda B): grade de slots + inventário + totais.
 
     A GRADE não é lista fixa: vem de `home/slots.py`, que a deriva dos slots reais do
     catálogo. Consumível/objeto/item menor não aparecem na grade (não são vestíveis) —
     vivem só na lista de inventário, com o botão de uso."""
     from . import slots as _slots
-    from .resource_engine import sync_item_charges
+    from .resource_engine import sync_item_charges, preview_item_charges
 
     equipados = list(p.inventario.filter(equipado=True).select_related('id_item_magico'))
     grade = _slots.grade_de_slots(equipados)
     itens = ficha.get('inventario') or []
     cargas_por_item = {}
-    for charge in sync_item_charges(p):
+    charges = (sync_item_charges(p) if materialize else
+               preview_item_charges(p, p.inventario.select_related(
+                   'id_item_magico', 'id_item_mundano')))
+    for charge in charges:
         cargas_por_item.setdefault(charge['item'].pk, []).append({
             'nome': charge['name'], 'atual': charge['current'],
             'maximo': charge['maximum'], 'reset': charge['reset'],
@@ -10135,14 +10138,16 @@ def ficha_detail_view(request, pk):
         pk=pk)
     if not perms.pode_ver_ficha(request.user, p):
         raise Http404()
+    is_staff = perms.is_staff_user(request.user)
+    pode_editar = p.dono_id == request.user.id or is_staff
     try:
         ruleset = _resource_ruleset(p)
         ficha = derive(p, ruleset=ruleset)
     except (ValueError, KeyError, TypeError):
         return HttpResponse('A revisao vinculada da ficha esta indisponivel.', status=409)
     from .market_services import sync_training
-    sync_training(p)
-    is_staff = perms.is_staff_user(request.user)
+    if pode_editar:
+        sync_training(p)
     raca_linha = _raca_linha_ficha(p)
     # Aventuras necessárias para o PRÓXIMO nível (Excel: "PRÓXIMO NÍVEL")
     prog = ficha.get('progressao') or {}
@@ -10150,7 +10155,8 @@ def ficha_detail_view(request, pk):
     # Magias da Essência (vertente): sincroniza (idempotente) as fixas do nível atual e
     # levanta as ESCOLHAS pendentes (ex.: 2º ciclo, escolha 2 de 3) p/ a ficha pedir.
     from .models import TbTransacao, TbMagia
-    _sync_magias_concedidas(p, ruleset=ruleset)
+    if pode_editar:
+        _sync_magias_concedidas(p, ruleset=ruleset)
     from .character_engine import magias_concedidas
     _pend = magias_concedidas(p, ruleset=ruleset)['pendentes']
     essencia_pendentes = []
@@ -10165,7 +10171,8 @@ def ficha_detail_view(request, pk):
     # Página de Magias: todas as magias do personagem (preparadas / conhecidas-sempre).
     # As sempre_preparada (raça/outros) NÃO contam no total de preparadas da classe.
     magias_info = _magias_sheet_info(p, ficha, essencia_pendentes, ruleset=ruleset)
-    consumiveis_cards = _consumiveis_ficha_cards(p, ficha, ruleset=ruleset)
+    consumiveis_cards = _consumiveis_ficha_cards(
+        p, ficha, ruleset=ruleset, materialize=pode_editar)
     recursos_cards = [card for card in consumiveis_cards if card.get('grupo') != 'item']
     itens_consumiveis_cards = [card for card in consumiveis_cards if card.get('grupo') == 'item']
     # Página de Histórico: compras/vendas do personagem (extrato composto PO/PP/PC).
@@ -10178,11 +10185,10 @@ def ficha_detail_view(request, pk):
     # Aba MOCHILA (onda B): grade de slots derivada do catálogo + inventário + totais.
     # O bloco "Itens Sintonizados" da aba Ficha (entre PV e Ataques) é só leitura — o
     # equipar/desequipar/sintonizar vive na Mochila.
-    mochila = _mochila_ficha(p, ficha)
+    mochila = _mochila_ficha(p, ficha, materialize=pode_editar)
     # Aba MAGIAS & OPÇÕES (onda D): as escolhas de classe persistidas, agrupadas pelo
     # registry de picks (nunca por lista de tipos), com troca só onde a tag permite.
     opcoes = _opcoes_ficha(p)
-    pode_editar = p.dono_id == request.user.id or is_staff
     from .character_history import (
         latest_active_revision, level_one_rebuild_status, revision_status,
     )
