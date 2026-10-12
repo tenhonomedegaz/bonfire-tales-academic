@@ -3,7 +3,7 @@ import json
 from django.test import override_settings
 from django.urls import reverse
 
-from .models import TbAntecedente, TbClasse, TbPersonagem, TbPersonagemCacador, TbRaca
+from .models import TbAntecedente, TbClassPublication, TbClasse, TbPersonagem, TbPersonagemCacador, TbRaca
 from .test_creator_hunter_binding import CreatorHunterBindingTests
 from .test_criador import _CriadorBase
 
@@ -48,8 +48,10 @@ class HunterPublicCreatorTests(_CriadorBase):
         self.assertEqual(TbPersonagemCacador.objects.get(
             personagem_classe__id_personagem=person).ruleset_id, self.ruleset.pk)
 
+    @override_settings(HUNTER_CREATOR_RULESET_CHECKSUM='')
     def test_client_cannot_select_revision_when_server_has_not_published_it(self):
         self.setup_creation()
+        TbClassPublication.objects.filter(id_classe=self.classe).delete()
         self.client.force_login(self.user)
         self.payload['ruleset'] = self.ruleset.pk
         page = self.client.get(reverse('criacao_ficha'))
