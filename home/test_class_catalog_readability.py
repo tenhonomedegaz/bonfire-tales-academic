@@ -44,7 +44,8 @@ class ClassCatalogReadabilityBrowserTests(StaticLiveServerTestCase):
             descricao='Texto de habilidade legível no celular.', niveladquirido=1,
         )
         mystic_fixture = json.loads((Path(__file__).parent / 'fixtures' / 'conteudo.json').read_text(encoding='utf-8'))
-        feature_pks = (1428, 1431, 1444, 1446, 1332, 894, 964, 1382, 1355, 1342)
+        feature_pks = (1428, 1431, 1444, 1446, 1332, 894, 964, 1382, 1355, 1342,
+                       1181, 917, 956)
         mystic_features = {item['pk']: item['fields'] for item in mystic_fixture
                            if item['model'] == 'home.tbclassehabilidade'
                            and item['pk'] in feature_pks}
@@ -190,7 +191,10 @@ class ClassCatalogReadabilityBrowserTests(StaticLiveServerTestCase):
                         barbarian: layout('Magia Selvagem'),
                         wizardSignature: layout('Magia Assinatura'),
                         wizardGravity: layout('Graviturgia'),
-                        wizardTime: layout('Cronoturgia')};
+                        wizardTime: layout('Cronoturgia'),
+                        druid: layout('Surto Selvagem'),
+                        artificerDefender: layout('Defensor Aprimorado'),
+                        barbarianRunes: layout('Runas Elementais')};
                 })()''')
                 self.assertGreaterEqual(other_class_layout['wizard']['paragraphs'], 7, other_class_layout)
                 self.assertGreaterEqual(other_class_layout['wizard']['headings'], 4, other_class_layout)
@@ -201,6 +205,18 @@ class ClassCatalogReadabilityBrowserTests(StaticLiveServerTestCase):
                 for feature in ('wizardSignature', 'wizardGravity', 'wizardTime'):
                     self.assertGreaterEqual(other_class_layout[feature]['paragraphs'], 2,
                                             (feature, other_class_layout))
+                self.assertGreaterEqual(other_class_layout['druid']['paragraphs'], 10,
+                                        other_class_layout)
+                self.assertGreaterEqual(other_class_layout['druid']['headings'], 5,
+                                        other_class_layout)
+                self.assertEqual(other_class_layout['druid']['tables'], 4,
+                                 other_class_layout)
+                self.assertGreaterEqual(other_class_layout['artificerDefender']['paragraphs'], 5,
+                                        other_class_layout)
+                self.assertGreaterEqual(other_class_layout['artificerDefender']['lists'], 1,
+                                        other_class_layout)
+                self.assertEqual(other_class_layout['barbarianRunes']['tables'], 1,
+                                 other_class_layout)
                 mystic_heading = js('''(() => {
                     const heading = [...document.querySelectorAll('[data-markdown] h5')]
                         .find(item => item.textContent.includes('Truques'));
