@@ -16,7 +16,9 @@ Ambiente: nenhuma dependência de catálogo/cosmético — só auth.User + as du
 tabelas novas de memória.
 """
 from django.contrib.auth import get_user_model
+from django.db import connection
 from django.test import TestCase
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
 from home.models import TbPerfilCurtida, TbPerfilSeguidor, UserProfile
@@ -140,6 +142,21 @@ class SeguirTests(PerfilSocialBase):
 
 
 class PerfilPublicoSocialTests(PerfilSocialBase):
+
+    def test_visitas_ao_perfil_sem_registro_nao_criam_dados(self):
+        UserProfile.objects.filter(user=self.alvo).delete()
+        url = reverse('public_profile', args=[self.alvo.username])
+        with CaptureQueriesContext(connection) as queries:
+            primeira = self.client.get(url)
+            segunda = self.client.get(url)
+        self.assertContains(primeira, self.alvo.username)
+        self.assertContains(segunda, self.alvo.username)
+        self.assertFalse(UserProfile.objects.filter(user=self.alvo).exists())
+        self.assertEqual([
+            q['sql'] for q in queries if q['sql'].lstrip().upper().startswith(
+                ('INSERT ', 'UPDATE ', 'DELETE '))
+        ], [])
+
 
     def test_contagens_aparecem_no_perfil_publico_para_anonimo(self):
         """Visitante anônimo vê as CONTAGENS, mas nenhum botão de ação."""

@@ -1524,7 +1524,10 @@ def public_profile_view(request, username):
 
     User = get_user_model()
     viewed_user = get_object_or_404(User, username__iexact=username)
-    profile, _ = UserProfile.objects.get_or_create(user=viewed_user)
+    profile = UserProfile.objects.filter(user=viewed_user).first()
+    if profile is None:
+        # Uma visita pública não deve criar o perfil persistido do jogador.
+        profile = UserProfile(user=viewed_user)
     pode_ver_privados = request.user.is_authenticated and (
         request.user.pk == viewed_user.pk or perms.is_staff_user(request.user)
     )
