@@ -484,6 +484,32 @@ class PathbuilderTests(_CriadorBase):
                 self.assertEqual(budget['pontos_disponiveis'], 2)
         self.assertEqual(TbPersonagem.objects.count(), baseline)
 
+    def test_ultimo_asi_de_cada_classe_com_subclasse_mantem_orcamento(self):
+        from home.pathbuilder import catalogos
+
+        classes = {row['slug']: row for row in catalogos()['classes'] if row['asi_niveis']}
+        self.assertEqual(len(classes), 13)
+        self.assertEqual(classes['guerreiro']['asi_niveis'], [4, 6, 8, 12, 14, 16, 19])
+        self.assertEqual(classes['ladino']['asi_niveis'], [4, 8, 10, 12, 16, 19])
+        baseline = TbPersonagem.objects.count()
+        for slug, row in classes.items():
+            with self.subTest(classe=slug):
+                self.assertEqual(row['asi_niveis'][-1], 19)
+                expected_slots = 7 if slug == 'guerreiro' else 6 if slug == 'ladino' else 5
+                self.assertEqual(len(row['asi_niveis']), expected_slots)
+                subclass = (row['subclasses'][0]['slug']
+                            if row['subclasses'] and row['subclasse_nivel'] <= 19 else '')
+                build = self._build(slug, classes=[{
+                    'slug': slug, 'nivel': 19, 'subclasse': subclass,
+                }])
+                response = self._post_preview(self._payload(slug), build)
+                self.assertEqual(response.status_code, 200, response.content[:500])
+                budget = response.json()['build']['orcamento']
+                self.assertEqual(budget['asi_slots'], expected_slots)
+                self.assertEqual(budget['pontos_disponiveis'], expected_slots * 2)
+                self.assertEqual(budget['pontos_restantes'], expected_slots * 2)
+        self.assertEqual(TbPersonagem.objects.count(), baseline)
+
     def test_subir_nivel_mostra_nome_asi_da_habilidade_da_classe(self):
         from home.test_creator_pinned_catalog import CreatorPinnedCatalogTests
 
