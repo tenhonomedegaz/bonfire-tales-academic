@@ -106,13 +106,13 @@ class Q03IdentityTests(TestCase):
         self.assertEqual(len(grupo['escolhidas']), 1)
         self.assertIsNone(grupo['escolhidas'][0]['id_opcao'])
         self.assertEqual(grupo['escolhidas'][0]['valor'], self.abjuracao.slug)
-        self.assertEqual(grupo['escolhidas'][0]['nome'], self.abjuracao.slug)
+        self.assertEqual(grupo['escolhidas'][0]['nome'], self.abjuracao.nome)
 
         painel = next(
             group for group in _opcoes_ficha(self.personagem)
             if group['tipo'] == 'escola_de_foco')
         self.assertEqual(painel['label'], 'Escola de Foco')
-        self.assertEqual(painel['escolhidas'][0]['nome'], self.abjuracao.slug)
+        self.assertEqual(painel['escolhidas'][0]['nome'], self.abjuracao.nome)
         self.personagem_classe.refresh_from_db()
         self.assertEqual(self.personagem_classe.id_subclasse_id, self.guerra.pk)
         self.assertEqual(derive(self.personagem)['classes'][0]['subclasse'], self.guerra.nome)
