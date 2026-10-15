@@ -74,6 +74,30 @@ COMPARTILHADAS com o bot). Nunca tocar via Django.
 
 ## Aplicação recomendada
 
+### API do fixture instalado (após instalar esta versão do código)
+
+A API restrita oferece `catalog-sync-preview` (escopo `read`) e `catalog-sync`
+(escopo `publish`) em `POST /api/db/v1/operations/<nome>/`. Ambas exigem HTTPS,
+Bearer e `Idempotency-Key`. A prévia recebe `{}` e devolve o SHA-256 do
+`home/fixtures/conteudo.json` instalado, `base_version`, contagens por modelo,
+quantidade de registros e campos divergentes após remapear FKs, exclusões
+potenciais e `backup_ready`. Ela não altera o catálogo; a API registra
+o acesso e a chave de idempotência.
+
+Para aplicar, envie `{"package_sha256":"<SHA da prévia>",
+"base_version":"<versão da prévia>"}` a `catalog-sync` com chave de idempotência
+nova. O servidor rejeita pacote/estado alterado ou qualquer exclusão não
+autorizada, exige diretório protegido (`CONTENT_MAINTENANCE_BACKUP_DIR`) e
+`pg_dump`/`pg_restore`, produz dump PostgreSQL verificado antes do merge e
+executa o núcleo `sincronizar_conteudo` por chave natural. A resposta inclui
+hash antes/depois, contagens, nome do backup e confirmação de preservação da
+memória, dados locais e conteúdo comunitário. A auditoria da API e a resposta
+idempotente ficam na mesma transação do merge. Não enviar backup JSON nem
+fixture no corpo da API; o pacote usado é sempre o arquivo instalado no servidor.
+
+Esta operação não autoriza por si um deploy ou mutação de produção: aplicar
+exige a aprovação operacional correspondente e a prévia do próprio alvo.
+
 Há dois caminhos que usam o mesmo núcleo seguro por chave natural:
 
 1. **Upload manual:** no console do admin, ação **Merge de conteúdo (dev ->
