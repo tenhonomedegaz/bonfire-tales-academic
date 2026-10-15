@@ -1,0 +1,170 @@
+{
+  "date": "2026-10-15",
+  "method": "Authenticated QA account, HTTPS GET of published pathbuilder catalog, no character save",
+  "pathbuilder_http_status": 200,
+  "laboratory_http_status": 200,
+  "classes_checked": 13,
+  "classes_matching_public_pages": 13,
+  "results": [
+    {
+      "slug": "artifice",
+      "asi_nome": "Aprimoramento de Atributo ou Talento",
+      "asi_niveis": [
+        4,
+        8,
+        12,
+        16,
+        19
+      ],
+      "matches_public_page": true
+    },
+    {
+      "slug": "barbaro",
+      "asi_nome": "Aprimoramento de Atributo ou Talento",
+      "asi_niveis": [
+        4,
+        8,
+        12,
+        16,
+        19
+      ],
+      "matches_public_page": true
+    },
+    {
+      "slug": "bardo",
+      "asi_nome": "Aprimoramento de Atributo ou Talento",
+      "asi_niveis": [
+        4,
+        8,
+        12,
+        16,
+        19
+      ],
+      "matches_public_page": true
+    },
+    {
+      "slug": "cacador",
+      "asi_nome": "Aprimoramento de Atributo ou Talento",
+      "asi_niveis": [
+        4,
+        8,
+        12,
+        16,
+        19
+      ],
+      "matches_public_page": true
+    },
+    {
+      "slug": "clerigo",
+      "asi_nome": "Aprimoramento de Atributo ou Talento",
+      "asi_niveis": [
+        4,
+        8,
+        12,
+        16,
+        19
+      ],
+      "matches_public_page": true
+    },
+    {
+      "slug": "druida",
+      "asi_nome": "Aprimoramento de Atributo ou Talento",
+      "asi_niveis": [
+        4,
+        8,
+        12,
+        16,
+        19
+      ],
+      "matches_public_page": true
+    },
+    {
+      "slug": "feiticeiro",
+      "asi_nome": "Aprimoramento de Atributo ou Talento",
+      "asi_niveis": [
+        4,
+        8,
+        12,
+        16,
+        19
+      ],
+      "matches_public_page": true
+    },
+    {
+      "slug": "guerreiro",
+      "asi_nome": "Aprimoramento de Atributo ou Talento",
+      "asi_niveis": [
+        4,
+        6,
+        8,
+        12,
+        14,
+        16,
+        19
+      ],
+      "matches_public_page": true
+    },
+    {
+      "slug": "ladino",
+      "asi_nome": "Aprimoramento de Atributo ou Talento",
+      "asi_niveis": [
+        4,
+        8,
+        10,
+        12,
+        16,
+        19
+      ],
+      "matches_public_page": true
+    },
+    {
+      "slug": "mago",
+      "asi_nome": "Aprimoramento de Atributo ou Talento",
+      "asi_niveis": [
+        4,
+        8,
+        12,
+        16,
+        19
+      ],
+      "matches_public_page": true
+    },
+    {
+      "slug": "mistico",
+      "asi_nome": "Aprimoramento de Atributo ou Talento",
+      "asi_niveis": [
+        4,
+        8,
+        12,
+        16,
+        19
+      ],
+      "matches_public_page": true
+    },
+    {
+      "slug": "monge",
+      "asi_nome": "Aprimoramento de Atributo ou Talento",
+      "asi_niveis": [
+        4,
+        8,
+        12,
+        16,
+        19
+      ],
+      "matches_public_page": true
+    },
+    {
+      "slug": "paladino",
+      "asi_nome": "Aprimoramento de Atributo ou Talento",
+      "asi_niveis": [
+        4,
+        8,
+        12,
+        16,
+        19
+      ],
+      "matches_public_page": true
+    }
+  ],
+  "product_content_mutated": false
+}
