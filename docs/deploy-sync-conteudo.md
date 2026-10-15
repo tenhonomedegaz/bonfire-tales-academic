@@ -14,9 +14,10 @@ enxergá-lo:
 1. Gere o arquivo **no dev** (`ref/` já é gitignored — o `.json` fica só no disco local).
 2. No **console do admin da produção**, use a ação **"Merge de conteudo (dev ->
    producao)"** (`action=merge_conteudo` em `home/admin.py`) e faça o **upload manual**
-   desse `.json` pelo campo de arquivo. Esse fluxo casa por chave natural (slug) via
-   `home.deploy_sync.sincronizar_conteudo` — não precisa de `git pull`/`loaddata` para o
-   conteúdo chegar lá.
+   desse `.json` pelo campo de arquivo para gerar a prévia. Confira as diferenças,
+   reenvie o mesmo arquivo para aplicar e verifique o backup PostgreSQL gerado.
+   O fluxo rejeita arquivo/estado alterado ou exclusões pendentes e casa por chave
+   natural (slug) via `home.deploy_sync.sincronizar_conteudo`.
 3. O **único artefato que continua versionado** é o **relatório em Markdown**
    (`docs/agentes/relatorio_restore_<timestamp>.md`), que documenta o que mudou, os
    números por tabela e o passo a passo de aplicação/rollback — serve de histórico e
@@ -80,7 +81,7 @@ O console do admin também oferece **Fixture instalado no servidor**: a prévia
 mostra contagens/diferenças e habilita a aplicação somente quando o backup está
 pronto e não há exclusões pendentes. A aplicação usa o mesmo núcleo protegido
 da API, exige a senha adicional do console e rejeita uma prévia obsoleta. O
-upload manual legado continua sendo um fluxo separado para arquivos locais.
+upload manual usa o mesmo preflight, backup e pós-condições para arquivos locais.
 
 A API restrita oferece `catalog-sync-preview` (escopo `read`) e `catalog-sync`
 (escopo `publish`) em `POST /api/db/v1/operations/<nome>/`. Ambas exigem HTTPS,

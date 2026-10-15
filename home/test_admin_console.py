@@ -379,3 +379,34 @@ class CatalogSyncConsoleTests(TestCase):
             response = self.client.post(self.url, {"action": "catalog_apply"})
         self.assertContains(response, "catalog_deletions_pending")
         self.assertNotIn("admin_catalog_sync_preview", self.client.session)
+
+    def _upload(self, stage, content=b'[]'):
+        return self.client.post(self.url, {
+            "action": "merge_conteudo", "merge_stage": stage,
+            "arquivo": SimpleUploadedFile("conteudo.json", content),
+        })
+
+    def test_manual_upload_requires_preview_and_reupload(self):
+        with patch("home.catalog_sync_api.catalog_upload_sync_operation") as apply:
+            response = self._upload("apply")
+        self.assertContains(response, "Gere uma previa do arquivo")
+        apply.assert_not_called()
+        with patch("home.catalog_sync_api.catalog_upload_preview_operation",
+                   return_value=self.preview) as preview:
+            response = self._upload("preview", b'[{"model":"home.tbregra"}]')
+        self.assertContains(response, "Aplicar arquivo conferido com backup")
+        preview.assert_called_once()
+        self.assertEqual(preview.call_args.args[0], b'[{"model":"home.tbregra"}]')
+        result = {"backup_file": "upload-verified.dump", "memory_preserved": True}
+        with patch("home.catalog_sync_api.catalog_upload_sync_operation",
+                   return_value=result) as apply:
+            response = self._upload("apply", b'[{"model":"home.tbregra"}]')
+        self.assertContains(response, "upload-verified.dump")
+        self.assertEqual(apply.call_args.args[0], b'[{"model":"home.tbregra"}]')
+        self.assertNotIn("admin_manual_catalog_preview", self.client.session)
+
+    def test_manual_unsafe_preview_hides_apply(self):
+        with patch("home.catalog_sync_api.catalog_upload_preview_operation",
+                   return_value={**self.preview, "unsafe_deletions": 1}):
+            response = self._upload("preview")
+        self.assertNotContains(response, "Aplicar arquivo conferido com backup")

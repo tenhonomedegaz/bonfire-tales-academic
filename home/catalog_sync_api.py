@@ -23,8 +23,8 @@ from .deploy_sync import (
 FIXTURE = Path(settings.BASE_DIR) / 'home' / 'fixtures' / 'conteudo.json'
 
 
-def _package():
-    raw = FIXTURE.read_bytes()
+def _package(raw=None):
+    raw = FIXTURE.read_bytes() if raw is None else raw
     digest = hashlib.sha256(raw).hexdigest()
     rows = json.loads(raw)
     if not isinstance(rows, list):
@@ -125,10 +125,10 @@ def _diff(rows):
     return result, dict(tombstones), unsafe
 
 
-def _preview():
+def _preview(raw=None):
     if not _local_postgres():
         raise ApiProblem(503, 'local_postgres_required', 'PostgreSQL local obrigatorio.')
-    text, package_hash, rows = _package()
+    text, package_hash, rows = _package(raw)
     base_version, state = _state()
     diff, tombstones, unsafe = _diff(rows)
     return text, {
@@ -160,6 +160,22 @@ def catalog_sync_preview_operation(payload, _api_key):
 
 
 def catalog_sync_operation(payload, api_key):
+    return _sync_operation(payload, api_key)
+
+
+def catalog_upload_preview_operation(raw):
+    try:
+        _text, result = _preview(raw)
+        return result
+    except (OSError, ValueError, TypeError, json.JSONDecodeError):
+        raise ApiProblem(409, 'catalog_preflight_failed', 'Fixture ou catalogo invalido.') from None
+
+
+def catalog_upload_sync_operation(raw, payload, actor):
+    return _sync_operation(payload, actor, raw)
+
+
+def _sync_operation(payload, api_key, raw=None):
     if (set(payload) != {'base_version', 'package_sha256'} or
             not all(isinstance(payload[k], str) and payload[k]
                     for k in ('base_version', 'package_sha256'))):
@@ -169,9 +185,9 @@ def catalog_sync_operation(payload, api_key):
     with connection.cursor() as cursor:
         cursor.execute('SELECT pg_advisory_xact_lock(%s)', [GLOBAL_LOCK_KEY])
     try:
-        text, preview = _preview()
+        text, preview = _preview(raw)
         if payload['package_sha256'] != preview['package_sha256']:
-            raise ApiProblem(409, 'catalog_package_changed', 'O fixture instalado mudou.')
+            raise ApiProblem(409, 'catalog_package_changed', 'O pacote de conteudo mudou.')
         if payload['base_version'] != preview['base_version']:
             raise ApiProblem(409, 'catalog_state_changed', 'O catalogo mudou desde a previa.')
         if preview['unsafe_deletions']:

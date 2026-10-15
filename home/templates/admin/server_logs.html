@@ -328,14 +328,37 @@
             {% if catalog_sync_result %}
             <p>Backup: {{ catalog_sync_result.backup_file }}. Registros atualizados: {{ catalog_sync_result.updated }}; inseridos: {{ catalog_sync_result.inserted }}; substituidos: {{ catalog_sync_result.replaced }}. Memoria preservada: {{ catalog_sync_result.memory_preserved|yesno:"sim,nao" }}.</p>
             {% endif %}
-            <h3>Upload manual legado</h3>
+            <h3>Upload manual de conteudo</h3>
             <p class="console-note">Suba o <code>conteudo.json</code> gerado no dev (<code>manage.py dump_conteudo</code>). Sincroniza o catalogo por CHAVE NATURAL (slug/nome), <strong>preservando usuarios, personagens e missoes</strong> — o mesmo sync do deploy. Faca um backup completo antes.</p>
             <form method="post" enctype="multipart/form-data">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="merge_conteudo">
+                <input type="hidden" name="merge_stage" value="preview">
                 <div class="console-form-row"><input type="file" name="arquivo" accept=".json" required></div>
-                <button type="submit" class="console-button">Mesclar conteudo</button>
+                <button type="submit" class="console-button secondary">Conferir previa do arquivo</button>
             </form>
+            {% if manual_catalog_preview %}
+            <p>Backup pronto: {{ manual_catalog_preview.backup_ready|yesno:"sim,nao" }}; exclusoes pendentes: {{ manual_catalog_preview.unsafe_deletions }}.</p>
+            <table>
+                <thead><tr><th>Modelo</th><th>Atual</th><th>Pacote</th><th>Novos</th><th>Alterados</th><th>Remocoes</th></tr></thead>
+                <tbody>{% for name, diff in manual_catalog_preview.models.items %}
+                    <tr><td>{{ name }}</td><td>{{ diff.current|default_if_none:"-" }}</td><td>{{ diff.incoming|default_if_none:"-" }}</td><td>{{ diff.new|default_if_none:"-" }}</td><td>{{ diff.changed_records|default_if_none:"-" }}</td><td>{{ diff.would_remove|default_if_none:"-" }}</td></tr>
+                {% endfor %}</tbody>
+            </table>
+            {% if manual_catalog_preview.backup_ready and not manual_catalog_preview.unsafe_deletions %}
+            <p class="console-note">Selecione novamente o mesmo arquivo para confirmar. O servidor confere o hash e a versao do catalogo antes de aplicar.</p>
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="merge_conteudo">
+                <input type="hidden" name="merge_stage" value="apply">
+                <div class="console-form-row"><input type="file" name="arquivo" accept=".json" required></div>
+                <button type="submit" class="console-button">Aplicar arquivo conferido com backup</button>
+            </form>
+            {% endif %}
+            {% endif %}
+            {% if manual_sync_result %}
+            <p>Backup: {{ manual_sync_result.backup_file }}. Memoria preservada: {{ manual_sync_result.memory_preserved|yesno:"sim,nao" }}.</p>
+            {% endif %}
         </section>
     </div>
 

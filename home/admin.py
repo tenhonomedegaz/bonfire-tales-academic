@@ -872,23 +872,43 @@ def server_logs_view(request):
                     messages.error(request, f"Falha ao restaurar: {exc}")
                     context["op_result"] = {"titulo": "Restauracao — ERRO", "output": str(exc)}
         elif action == "merge_conteudo":
+            from types import SimpleNamespace
+            from django.db import transaction
+            from .catalog_sync_api import (
+                catalog_upload_preview_operation, catalog_upload_sync_operation,
+            )
+            from .db_access import ApiProblem
+
             f = request.FILES.get("arquivo")
             if not f:
                 messages.error(request, "Selecione o arquivo de conteudo (conteudo.json do dev).")
+            elif f.size > 64 * 1024 * 1024:
+                messages.error(request, "Arquivo de conteudo excede 64 MiB.")
             else:
                 try:
-                    from .deploy_sync import sincronizar_conteudo, relatorio_texto
-                    texto = f.read().decode("utf-8")
-                    rel = sincronizar_conteudo(texto)
-                    saida = relatorio_texto(rel)
-                    if rel["mem_ok"]:
-                        messages.success(request, "Conteudo sincronizado. Memoria (usuarios/missoes) intacta.")
+                    raw = f.read()
+                    if request.POST.get("merge_stage") == "apply":
+                        approved = request.session.pop("admin_manual_catalog_preview", None)
+                        if not isinstance(approved, dict) or set(approved) != {"package_sha256", "base_version"}:
+                            messages.error(request, "Gere uma previa do arquivo nesta sessao antes de aplicar.")
+                        else:
+                            with transaction.atomic():
+                                result = catalog_upload_sync_operation(
+                                    raw, approved, SimpleNamespace(pk=f"admin-upload:{request.user.pk}"))
+                            context["manual_sync_result"] = result
+                            messages.success(request, "Arquivo sincronizado com backup verificado.")
                     else:
-                        messages.warning(request, "Sincronizado, MAS a contagem da memoria mudou — verifique!")
-                    context["op_result"] = {"titulo": "Merge de conteudo (chave natural)", "output": saida}
-                except Exception as exc:
-                    messages.error(request, f"Falha no merge: {exc}")
-                    context["op_result"] = {"titulo": "Merge de conteudo — ERRO", "output": str(exc)}
+                        request.session.pop("admin_manual_catalog_preview", None)
+                        preview = catalog_upload_preview_operation(raw)
+                        request.session["admin_manual_catalog_preview"] = {
+                            "package_sha256": preview["package_sha256"],
+                            "base_version": preview["base_version"],
+                        }
+                        context["manual_catalog_preview"] = preview
+                except ApiProblem as exc:
+                    messages.error(request, f"Merge recusado: {exc.code}. Gere nova previa.")
+                except Exception:
+                    messages.error(request, "Merge falhou e foi revertido. Gere nova previa.")
         elif action == "catalog_preview":
             from .catalog_sync_api import catalog_sync_preview_operation
             from .db_access import ApiProblem

@@ -8,6 +8,10 @@ from django.test import TestCase
 from django.urls import reverse
 
 from home.db_access_models import DbAccessAudit, ManagedApiKey
+from home.catalog_sync_api import (
+    catalog_upload_preview_operation, catalog_upload_sync_operation,
+)
+from home.db_access import ApiProblem
 from home.models import TbRegra
 
 
@@ -123,3 +127,18 @@ class CatalogSyncApiTests(TestCase):
         self.assertEqual(diff['changed_records'], 1)
         self.assertEqual(diff['changed_fields'], {'nome': 1})
         self.assertNotIn('Versao antiga', response.content.decode())
+
+    def test_uploaded_package_change_is_rejected_before_backup(self):
+        raw = self.fixture.encode()
+        with patch('home.catalog_sync_api._local_postgres', return_value=True), \
+                patch('home.catalog_sync_api._fresh_backup') as backup:
+            preview = catalog_upload_preview_operation(raw)
+            changed = raw.replace(b'Versao nova', b'Outra versao')
+            with self.assertRaises(ApiProblem) as caught:
+                catalog_upload_sync_operation(changed, {
+                    'package_sha256': preview['package_sha256'],
+                    'base_version': preview['base_version'],
+                }, self.key)
+        self.assertEqual(caught.exception.code, 'catalog_package_changed')
+        backup.assert_not_called()
+        self.assertFalse(TbRegra.objects.exists())
