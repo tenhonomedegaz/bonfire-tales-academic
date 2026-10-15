@@ -877,7 +877,7 @@ def server_logs_view(request):
             from .catalog_sync_api import (
                 catalog_upload_preview_operation, catalog_upload_sync_operation,
             )
-            from .db_access import ApiProblem
+            from .db_access import ApiProblem, audit
 
             f = request.FILES.get("arquivo")
             if not f:
@@ -885,6 +885,7 @@ def server_logs_view(request):
             elif f.size > 64 * 1024 * 1024:
                 messages.error(request, "Arquivo de conteudo excede 64 MiB.")
             else:
+                approved = None
                 try:
                     raw = f.read()
                     if request.POST.get("merge_stage") == "apply":
@@ -895,6 +896,9 @@ def server_logs_view(request):
                             with transaction.atomic():
                                 result = catalog_upload_sync_operation(
                                     raw, approved, SimpleNamespace(pk=f"admin-upload:{request.user.pk}"))
+                                audit(None, "admin_upload_sync", 200,
+                                      model_name="operation:catalog-sync",
+                                      object_pk=request.user.pk, field_names=approved.keys())
                             context["manual_sync_result"] = result
                             messages.success(request, "Arquivo sincronizado com backup verificado.")
                     else:
@@ -906,8 +910,14 @@ def server_logs_view(request):
                         }
                         context["manual_catalog_preview"] = preview
                 except ApiProblem as exc:
+                    if isinstance(approved, dict):
+                        audit(None, "admin_upload_sync", exc.status,
+                              model_name="operation:catalog-sync", object_pk=request.user.pk)
                     messages.error(request, f"Merge recusado: {exc.code}. Gere nova previa.")
                 except Exception:
+                    if isinstance(approved, dict):
+                        audit(None, "admin_upload_sync", 500,
+                              model_name="operation:catalog-sync", object_pk=request.user.pk)
                     messages.error(request, "Merge falhou e foi revertido. Gere nova previa.")
         elif action == "catalog_preview":
             from .catalog_sync_api import catalog_sync_preview_operation
@@ -927,7 +937,7 @@ def server_logs_view(request):
             from types import SimpleNamespace
             from django.db import transaction
             from .catalog_sync_api import catalog_sync_operation
-            from .db_access import ApiProblem
+            from .db_access import ApiProblem, audit
 
             approved = request.session.pop("admin_catalog_sync_preview", None)
             if not isinstance(approved, dict) or set(approved) != {"package_sha256", "base_version"}:
@@ -936,11 +946,18 @@ def server_logs_view(request):
                 try:
                     with transaction.atomic():
                         result = catalog_sync_operation(approved, SimpleNamespace(pk=f"admin:{request.user.pk}"))
+                        audit(None, "admin_catalog_sync", 200,
+                              model_name="operation:catalog-sync",
+                              object_pk=request.user.pk, field_names=approved.keys())
                     context["catalog_sync_result"] = result
                     messages.success(request, "Catalogo sincronizado com backup verificado.")
                 except ApiProblem as exc:
+                    audit(None, "admin_catalog_sync", exc.status,
+                          model_name="operation:catalog-sync", object_pk=request.user.pk)
                     messages.error(request, f"Sincronizacao recusada: {exc.code}. Gere nova previa.")
                 except Exception:
+                    audit(None, "admin_catalog_sync", 500,
+                          model_name="operation:catalog-sync", object_pk=request.user.pk)
                     messages.error(request, "Sincronizacao falhou e foi revertida. Gere nova previa.")
 
     if context["is_authenticated"]:
