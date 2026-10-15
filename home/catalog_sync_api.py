@@ -218,5 +218,5 @@ def _sync_operation(payload, api_key, raw=None):
         }
     except ApiProblem:
         raise
-    except (OSError, ValueError, TypeError, json.JSONDecodeError):
+    except (OSError, ValueError, TypeError, RuntimeError, json.JSONDecodeError):
         raise ApiProblem(409, 'catalog_sync_failed', 'Preflight, backup ou merge falhou.') from None

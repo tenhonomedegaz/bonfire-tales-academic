@@ -115,6 +115,32 @@ class CatalogSyncApiTests(TestCase):
         self.assertEqual(response.status_code, 409)
         self.assertFalse(TbRegra.objects.exists())
 
+    def test_postcondition_failure_rolls_back_and_returns_audited_error(self):
+        def failed_merge(_text):
+            TbRegra.objects.create(slug='regra-parcial', nome='Parcial', categoria='core')
+            raise RuntimeError('postcondition failed')
+
+        with patch('home.catalog_sync_api._local_postgres', return_value=True), \
+                patch('home.catalog_sync_api._package', return_value=(
+                    self.fixture, self.package_hash, json.loads(self.fixture))), \
+                patch('home.catalog_sync_api._protected_directory', return_value=Path('backup')), \
+                patch('home.catalog_sync_api._fresh_backup', return_value=Path('backup/verified.dump')), \
+                patch('home.catalog_sync_api._audit'), \
+                patch('home.catalog_sync_api.sincronizar_conteudo', side_effect=failed_merge):
+            preview = self.post('catalog-sync-preview', {}, 'postcondition-preview')
+            response = self.post('catalog-sync', {
+                'package_sha256': self.package_hash,
+                'base_version': preview.json()['base_version'],
+            }, 'postcondition-failure')
+
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.json()['error']['code'], 'catalog_sync_failed')
+        self.assertFalse(TbRegra.objects.exists())
+        self.assertFalse(DbAccessAudit.objects.filter(
+            model_label='operation:catalog-sync', status_code=200).exists())
+        self.assertTrue(DbAccessAudit.objects.filter(
+            model_label='operation:catalog-sync', status_code=409).exists())
+
     def test_preview_reports_field_changes_without_exposing_values(self):
         TbRegra.objects.create(pk=7, slug='regra-catalogo', nome='Versao antiga',
                                categoria='core')
