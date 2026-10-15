@@ -1,0 +1,24 @@
+{
+  "date": "2026-10-15",
+  "method": "Authenticated QA session, HTTPS GET /cosmeticos/eventos/; no redemption request",
+  "status": 200,
+  "authenticated": true,
+  "offers": [
+    {
+      "name": "Centelha da Beta",
+      "displayed_free": true,
+      "owned": true,
+      "ownership_origin": "Resgate de evento",
+      "free_redemption_in_history": true
+    },
+    {
+      "name": "Portal da Beta",
+      "displayed_free": true,
+      "owned": true,
+      "ownership_origin": "Resgate de evento",
+      "free_redemption_in_history": true
+    }
+  ],
+  "production_data_mutated": false,
+  "limitation": "Current read-only QA confirms published offers and prior free ownership; it does not replay a new redemption."
+}
