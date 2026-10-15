@@ -184,8 +184,8 @@
       left: 1rem;
       justify-content: center;
       padding: 0;
-      position: fixed;
-      bottom: 2rem;
+      position: relative;
+      bottom: auto;
       top: auto;
       transition: left .24s ease, border-color .2s ease, color .2s ease;
       width: 48px;
@@ -193,6 +193,8 @@
     }
     body.race-menu-open .race-mobile-menu-toggle {
       left: calc(60vw + 8px);
+      position: fixed;
+      bottom: 2rem;
     }
     .race-mobile-menu-toggle:hover {
       border-color: var(--flame);
