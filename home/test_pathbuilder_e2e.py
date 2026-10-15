@@ -33,11 +33,13 @@ class PathbuilderRealE2ETests(StaticLiveServerTestCase):
         if connection.vendor != "postgresql" or not connection.settings_dict["NAME"].startswith("test_"):
             raise unittest.SkipTest("E2E requer PostgreSQL isolado em banco test_.")
         super().setUpClass()
+
+    def setUp(self):
+        super().setUp()
+        # StaticLiveServerTestCase limpa o banco entre métodos desta classe.
         # A migration cria esta regra com PK local; o fixture traz a linha canônica.
         TbRegra.objects.filter(slug="aumento-de-atributo").delete()
         call_command("loaddata", "home/fixtures/conteudo.json", verbosity=0)
-
-    def setUp(self):
         self.user = self._novo_usuario("pathbuilder-e2e")
         self.client.force_login(self.user)
 
