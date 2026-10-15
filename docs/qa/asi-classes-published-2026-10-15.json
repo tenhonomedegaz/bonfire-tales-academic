@@ -1,0 +1,564 @@
+{
+  "date": "2026-10-15",
+  "method": "Public HTTPS GET and HTML parse against DEV fixture, read-only",
+  "canonical_asi_name": "Aprimoramento de Atributo ou Talento",
+  "legacy_name_absent_in_table_rows": true,
+  "fixture_path": "home/fixtures/conteudo.json",
+  "code_head": "cc5130a",
+  "classes_checked": 13,
+  "classes_passed": 13,
+  "results": [
+    {
+      "slug": "artifice",
+      "http_status": 200,
+      "expected_levels": [
+        4,
+        8,
+        12,
+        16,
+        19
+      ],
+      "published_asi_rows": [
+        {
+          "level": 4,
+          "canonical": true,
+          "legacy": false
+        },
+        {
+          "level": 8,
+          "canonical": true,
+          "legacy": false
+        },
+        {
+          "level": 12,
+          "canonical": true,
+          "legacy": false
+        },
+        {
+          "level": 16,
+          "canonical": true,
+          "legacy": false
+        },
+        {
+          "level": 19,
+          "canonical": true,
+          "legacy": false
+        }
+      ],
+      "level_4_description_matches_fixture": true,
+      "fixture_feature_pk": 912,
+      "passed": true
+    },
+    {
+      "slug": "barbaro",
+      "http_status": 200,
+      "expected_levels": [
+        4,
+        8,
+        12,
+        16,
+        19
+      ],
+      "published_asi_rows": [
+        {
+          "level": 4,
+          "canonical": true,
+          "legacy": false
+        },
+        {
+          "level": 8,
+          "canonical": true,
+          "legacy": false
+        },
+        {
+          "level": 12,
+          "canonical": true,
+          "legacy": false
+        },
+        {
+          "level": 16,
+          "canonical": true,
+          "legacy": false
+        },
+        {
+          "level": 19,
+          "canonical": true,
+          "legacy": false
+        }
+      ],
+      "level_4_description_matches_fixture": true,
+      "fixture_feature_pk": 965,
+      "passed": true
+    },
+    {
+      "slug": "bardo",
+      "http_status": 200,
+      "expected_levels": [
+        4,
+        8,
+        12,
+        16,
+        19
+      ],
+      "published_asi_rows": [
+        {
+          "level": 4,
+          "canonical": true,
+          "legacy": false
+        },
+        {
+          "level": 8,
+          "canonical": true,
+          "legacy": false
+        },
+        {
+          "level": 12,
+          "canonical": true,
+          "legacy": false
+        },
+        {
+          "level": 16,
+          "canonical": true,
+          "legacy": false
+        },
+        {
+          "level": 19,
+          "canonical": true,
+          "legacy": false
+        }
+      ],
+      "level_4_description_matches_fixture": true,
+      "fixture_feature_pk": 1980,
+      "passed": true
+    },
+    {
+      "slug": "cacador",
+      "http_status": 200,
+      "expected_levels": [
+        4,
+        8,
+        12,
+        16,
+        19
+      ],
+      "published_asi_rows": [
+        {
+          "level": 4,
+          "canonical": true,
+          "legacy": false
+        },
+        {
+          "level": 8,
+          "canonical": true,
+          "legacy": false
+        },
+        {
+          "level": 12,
+          "canonical": true,
+          "legacy": false
+        },
+        {
+          "level": 16,
+          "canonical": true,
+          "legacy": false
+        },
+        {
+          "level": 19,
+          "canonical": true,
+          "legacy": false
+        }
+      ],
+      "level_4_description_matches_fixture": true,
+      "fixture_feature_pk": 1035,
+      "passed": true
+    },
+    {
+      "slug": "clerigo",
+      "http_status": 200,
+      "expected_levels": [
+        4,
+        8,
+        12,
+        16,
+        19
+      ],
+      "published_asi_rows": [
+        {
+          "level": 4,
+          "canonical": true,
+          "legacy": false
+        },
+        {
+          "level": 8,
+          "canonical": true,
+          "legacy": false
+        },
+        {
+          "level": 12,
+          "canonical": true,
+          "legacy": false
+        },
+        {
+          "level": 16,
+          "canonical": true,
+          "legacy": false
+        },
+        {
+          "level": 19,
+          "canonical": true,
+          "legacy": false
+        }
+      ],
+      "level_4_description_matches_fixture": true,
+      "fixture_feature_pk": 1124,
+      "passed": true
+    },
+    {
+      "slug": "druida",
+      "http_status": 200,
+      "expected_levels": [
+        4,
+        8,
+        12,
+        16,
+        19
+      ],
+      "published_asi_rows": [
+        {
+          "level": 4,
+          "canonical": true,
+          "legacy": false
+        },
+        {
+          "level": 8,
+          "canonical": true,
+          "legacy": false
+        },
+        {
+          "level": 12,
+          "canonical": true,
+          "legacy": false
+        },
+        {
+          "level": 16,
+          "canonical": true,
+          "legacy": false
+        },
+        {
+          "level": 19,
+          "canonical": true,
+          "legacy": false
+        }
+      ],
+      "level_4_description_matches_fixture": true,
+      "fixture_feature_pk": 1202,
+      "passed": true
+    },
+    {
+      "slug": "feiticeiro",
+      "http_status": 200,
+      "expected_levels": [
+        4,
+        8,
+        12,
+        16,
+        19
+      ],
+      "published_asi_rows": [
+        {
+          "level": 4,
+          "canonical": true,
+          "legacy": false
+        },
+        {
+          "level": 8,
+          "canonical": true,
+          "legacy": false
+        },
+        {
+          "level": 12,
+          "canonical": true,
+          "legacy": false
+        },
+        {
+          "level": 16,
+          "canonical": true,
+          "legacy": false
+        },
+        {
+          "level": 19,
+          "canonical": true,
+          "legacy": false
+        }
+      ],
+      "level_4_description_matches_fixture": true,
+      "fixture_feature_pk": 694,
+      "passed": true
+    },
+    {
+      "slug": "guerreiro",
+      "http_status": 200,
+      "expected_levels": [
+        4,
+        6,
+        8,
+        12,
+        14,
+        16,
+        19
+      ],
+      "published_asi_rows": [
+        {
+          "level": 4,
+          "canonical": true,
+          "legacy": false
+        },
+        {
+          "level": 6,
+          "canonical": true,
+          "legacy": false
+        },
+        {
+          "level": 8,
+          "canonical": true,
+          "legacy": false
+        },
+        {
+          "level": 12,
+          "canonical": true,
+          "legacy": false
+        },
+        {
+          "level": 14,
+          "canonical": true,
+          "legacy": false
+        },
+        {
+          "level": 16,
+          "canonical": true,
+          "legacy": false
+        },
+        {
+          "level": 19,
+          "canonical": true,
+          "legacy": false
+        }
+      ],
+      "level_4_description_matches_fixture": true,
+      "fixture_feature_pk": 731,
+      "passed": true
+    },
+    {
+      "slug": "ladino",
+      "http_status": 200,
+      "expected_levels": [
+        4,
+        8,
+        10,
+        12,
+        16,
+        19
+      ],
+      "published_asi_rows": [
+        {
+          "level": 4,
+          "canonical": true,
+          "legacy": false
+        },
+        {
+          "level": 8,
+          "canonical": true,
+          "legacy": false
+        },
+        {
+          "level": 10,
+          "canonical": true,
+          "legacy": false
+        },
+        {
+          "level": 12,
+          "canonical": true,
+          "legacy": false
+        },
+        {
+          "level": 16,
+          "canonical": true,
+          "legacy": false
+        },
+        {
+          "level": 19,
+          "canonical": true,
+          "legacy": false
+        }
+      ],
+      "level_4_description_matches_fixture": true,
+      "fixture_feature_pk": 1270,
+      "passed": true
+    },
+    {
+      "slug": "mago",
+      "http_status": 200,
+      "expected_levels": [
+        4,
+        8,
+        12,
+        16,
+        19
+      ],
+      "published_asi_rows": [
+        {
+          "level": 4,
+          "canonical": true,
+          "legacy": false
+        },
+        {
+          "level": 8,
+          "canonical": true,
+          "legacy": false
+        },
+        {
+          "level": 12,
+          "canonical": true,
+          "legacy": false
+        },
+        {
+          "level": 16,
+          "canonical": true,
+          "legacy": false
+        },
+        {
+          "level": 19,
+          "canonical": true,
+          "legacy": false
+        }
+      ],
+      "level_4_description_matches_fixture": true,
+      "fixture_feature_pk": 1366,
+      "passed": true
+    },
+    {
+      "slug": "mistico",
+      "http_status": 200,
+      "expected_levels": [
+        4,
+        8,
+        12,
+        16,
+        19
+      ],
+      "published_asi_rows": [
+        {
+          "level": 4,
+          "canonical": true,
+          "legacy": false
+        },
+        {
+          "level": 8,
+          "canonical": true,
+          "legacy": false
+        },
+        {
+          "level": 12,
+          "canonical": true,
+          "legacy": false
+        },
+        {
+          "level": 16,
+          "canonical": true,
+          "legacy": false
+        },
+        {
+          "level": 19,
+          "canonical": true,
+          "legacy": false
+        }
+      ],
+      "level_4_description_matches_fixture": true,
+      "fixture_feature_pk": 1449,
+      "passed": true
+    },
+    {
+      "slug": "monge",
+      "http_status": 200,
+      "expected_levels": [
+        4,
+        8,
+        12,
+        16,
+        19
+      ],
+      "published_asi_rows": [
+        {
+          "level": 4,
+          "canonical": true,
+          "legacy": false
+        },
+        {
+          "level": 8,
+          "canonical": true,
+          "legacy": false
+        },
+        {
+          "level": 12,
+          "canonical": true,
+          "legacy": false
+        },
+        {
+          "level": 16,
+          "canonical": true,
+          "legacy": false
+        },
+        {
+          "level": 19,
+          "canonical": true,
+          "legacy": false
+        }
+      ],
+      "level_4_description_matches_fixture": true,
+      "fixture_feature_pk": 1533,
+      "passed": true
+    },
+    {
+      "slug": "paladino",
+      "http_status": 200,
+      "expected_levels": [
+        4,
+        8,
+        12,
+        16,
+        19
+      ],
+      "published_asi_rows": [
+        {
+          "level": 4,
+          "canonical": true,
+          "legacy": false
+        },
+        {
+          "level": 8,
+          "canonical": true,
+          "legacy": false
+        },
+        {
+          "level": 12,
+          "canonical": true,
+          "legacy": false
+        },
+        {
+          "level": 16,
+          "canonical": true,
+          "legacy": false
+        },
+        {
+          "level": 19,
+          "canonical": true,
+          "legacy": false
+        }
+      ],
+      "level_4_description_matches_fixture": true,
+      "fixture_feature_pk": 814,
+      "passed": true
+    }
+  ],
+  "production_mutated": false
+}
