@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-15",
+  "method": "Public HTTPS GET and Chrome DevTools Protocol, 390x844 mobile emulation, read-only",
+  "mystic": {
+    "url": "https://bonfiretales.com.br/jogador/classes/mistico/",
+    "http_status": 200,
+    "title": "Místico · Bonfire Tales RPG",
+    "markdown_blocks": 63,
+    "rendered_paragraph_or_list_blocks": 62,
+    "raw_markup_remnants": 0,
+    "viewport_width": 390,
+    "document_scroll_width": 390,
+    "screenshot": "docs/qa/mystic-published-mobile-2026-10-15.png"
+  },
+  "elf": {
+    "url": "https://bonfiretales.com.br/jogador/raca/elfo/",
+    "http_status": 200,
+    "title": "Elfo · Bonfire Tales RPG",
+    "markdown_blocks": 241,
+    "rendered_paragraph_or_list_blocks": 241,
+    "lineage_slugs": ["aetherin", "lunareth", "noctelar", "solariin", "sylvanar"],
+    "fixture_lineage_match": true,
+    "lineage_selection": {"selected": "aetherin", "visible_sections": ["aetherin"]},
+    "viewport_width": 390,
+    "document_scroll_width": 390,
+    "screenshot": "docs/qa/elf-published-mobile-2026-10-15.png"
+  },
+  "production_mutated": false
+}
