@@ -889,6 +889,39 @@ def server_logs_view(request):
                 except Exception as exc:
                     messages.error(request, f"Falha no merge: {exc}")
                     context["op_result"] = {"titulo": "Merge de conteudo — ERRO", "output": str(exc)}
+        elif action == "catalog_preview":
+            from .catalog_sync_api import catalog_sync_preview_operation
+            from .db_access import ApiProblem
+
+            request.session.pop("admin_catalog_sync_preview", None)
+            try:
+                preview = catalog_sync_preview_operation({}, None)
+                request.session["admin_catalog_sync_preview"] = {
+                    "package_sha256": preview["package_sha256"],
+                    "base_version": preview["base_version"],
+                }
+                context["catalog_preview"] = preview
+            except ApiProblem as exc:
+                messages.error(request, f"Previa do catalogo indisponivel: {exc.code}.")
+        elif action == "catalog_apply":
+            from types import SimpleNamespace
+            from django.db import transaction
+            from .catalog_sync_api import catalog_sync_operation
+            from .db_access import ApiProblem
+
+            approved = request.session.pop("admin_catalog_sync_preview", None)
+            if not isinstance(approved, dict) or set(approved) != {"package_sha256", "base_version"}:
+                messages.error(request, "Gere uma previa do catalogo nesta sessao antes de aplicar.")
+            else:
+                try:
+                    with transaction.atomic():
+                        result = catalog_sync_operation(approved, SimpleNamespace(pk=f"admin:{request.user.pk}"))
+                    context["catalog_sync_result"] = result
+                    messages.success(request, "Catalogo sincronizado com backup verificado.")
+                except ApiProblem as exc:
+                    messages.error(request, f"Sincronizacao recusada: {exc.code}. Gere nova previa.")
+                except Exception:
+                    messages.error(request, "Sincronizacao falhou e foi revertida. Gere nova previa.")
 
     if context["is_authenticated"]:
         bot_path_info = console_paths["bot"]

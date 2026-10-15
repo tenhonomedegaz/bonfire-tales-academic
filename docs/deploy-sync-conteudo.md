@@ -76,6 +76,12 @@ COMPARTILHADAS com o bot). Nunca tocar via Django.
 
 ### API do fixture instalado (após instalar esta versão do código)
 
+O console do admin também oferece **Fixture instalado no servidor**: a prévia
+mostra contagens/diferenças e habilita a aplicação somente quando o backup está
+pronto e não há exclusões pendentes. A aplicação usa o mesmo núcleo protegido
+da API, exige a senha adicional do console e rejeita uma prévia obsoleta. O
+upload manual legado continua sendo um fluxo separado para arquivos locais.
+
 A API restrita oferece `catalog-sync-preview` (escopo `read`) e `catalog-sync`
 (escopo `publish`) em `POST /api/db/v1/operations/<nome>/`. Ambas exigem HTTPS,
 Bearer e `Idempotency-Key`. A prévia recebe `{}` e devolve o SHA-256 do

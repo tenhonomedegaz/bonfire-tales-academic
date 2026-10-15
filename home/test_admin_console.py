@@ -24,6 +24,7 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from home.admin import CONSOLE_UNLOCK_TTL_SECONDS
+from home.db_access import ApiProblem
 from home.models import TbRegiao, TbRegra, TbTerritorio
 
 
@@ -325,3 +326,56 @@ class BaseSiteTemplateSmokeTests(TestCase):
         response = self.client.get(reverse("admin:login"))
 
         self.assertNotContains(response, "Recarrega o tema")
+
+
+class CatalogSyncConsoleTests(TestCase):
+    def setUp(self):
+        user = User.objects.create_superuser(
+            username="catalog-console-test", email="catalog@example.com", password="test-password")
+        self.client.force_login(user)
+        session = self.client.session
+        session["admin_console_authenticated_at"] = time.time()
+        session.save()
+        self.url = reverse("admin:server_logs")
+        self.preview = {
+            "package_sha256": "a" * 64, "base_version": "b" * 64,
+            "backup_ready": True, "unsafe_deletions": 0,
+            "models": {"TbRegra": {"current": 1, "incoming": 1,
+                                   "new": 0, "changed_records": 0, "would_remove": 0}},
+        }
+
+    def test_apply_requires_preview_in_same_console_session(self):
+        with patch("home.catalog_sync_api.catalog_sync_operation") as apply:
+            response = self.client.post(self.url, {"action": "catalog_apply"})
+        self.assertContains(response, "Gere uma previa")
+        apply.assert_not_called()
+
+    def test_preview_then_apply_consumes_session_state(self):
+        with patch("home.catalog_sync_api.catalog_sync_preview_operation",
+                   return_value=self.preview):
+            response = self.client.post(self.url, {"action": "catalog_preview"})
+        self.assertContains(response, "Aplicar pacote conferido com backup")
+        self.assertEqual(self.client.session["admin_catalog_sync_preview"], {
+            "package_sha256": "a" * 64, "base_version": "b" * 64})
+        result = {"backup_file": "verified.dump", "updated": 0, "inserted": 0,
+                  "replaced": 0, "memory_preserved": True}
+        with patch("home.catalog_sync_api.catalog_sync_operation",
+                   return_value=result) as apply:
+            response = self.client.post(self.url, {"action": "catalog_apply"})
+        self.assertContains(response, "verified.dump")
+        self.assertNotIn("admin_catalog_sync_preview", self.client.session)
+        self.assertEqual(apply.call_args.args[0], {
+            "package_sha256": "a" * 64, "base_version": "b" * 64})
+        self.assertTrue(apply.call_args.args[1].pk.startswith("admin:"))
+
+    def test_unsafe_preview_hides_apply_and_failed_apply_requires_new_preview(self):
+        preview = {**self.preview, "unsafe_deletions": 1}
+        with patch("home.catalog_sync_api.catalog_sync_preview_operation",
+                   return_value=preview):
+            response = self.client.post(self.url, {"action": "catalog_preview"})
+        self.assertNotContains(response, "Aplicar pacote conferido com backup")
+        with patch("home.catalog_sync_api.catalog_sync_operation",
+                   side_effect=ApiProblem(409, "catalog_deletions_pending", "Unsafe")):
+            response = self.client.post(self.url, {"action": "catalog_apply"})
+        self.assertContains(response, "catalog_deletions_pending")
+        self.assertNotIn("admin_catalog_sync_preview", self.client.session)

@@ -300,6 +300,35 @@
 
         <section class="console-panel">
             <h2>Merge de conteudo (dev &rarr; producao)</h2>
+            <h3>Fixture instalado no servidor</h3>
+            <p class="console-note">A previa compara o fixture instalado ao catalogo atual. A aplicacao exige backup PostgreSQL verificado, rejeita exclusoes e preserva usuarios e personagens.</p>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="catalog_preview">
+                <button type="submit" class="console-button secondary">Conferir previa do catalogo</button>
+            </form>
+            {% if catalog_preview %}
+            <p>Backup pronto: {{ catalog_preview.backup_ready|yesno:"sim,nao" }}; exclusoes pendentes: {{ catalog_preview.unsafe_deletions }}.</p>
+            <table>
+                <thead><tr><th>Modelo</th><th>Atual</th><th>Pacote</th><th>Novos</th><th>Alterados</th><th>Remocoes</th></tr></thead>
+                <tbody>
+                {% for name, diff in catalog_preview.models.items %}
+                    <tr><td>{{ name }}</td><td>{{ diff.current|default_if_none:"-" }}</td><td>{{ diff.incoming|default_if_none:"-" }}</td><td>{{ diff.new|default_if_none:"-" }}</td><td>{{ diff.changed_records|default_if_none:"-" }}</td><td>{{ diff.would_remove|default_if_none:"-" }}</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            {% if catalog_preview.backup_ready and not catalog_preview.unsafe_deletions %}
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="catalog_apply">
+                <button type="submit" class="console-button">Aplicar pacote conferido com backup</button>
+            </form>
+            {% endif %}
+            {% endif %}
+            {% if catalog_sync_result %}
+            <p>Backup: {{ catalog_sync_result.backup_file }}. Registros atualizados: {{ catalog_sync_result.updated }}; inseridos: {{ catalog_sync_result.inserted }}; substituidos: {{ catalog_sync_result.replaced }}. Memoria preservada: {{ catalog_sync_result.memory_preserved|yesno:"sim,nao" }}.</p>
+            {% endif %}
+            <h3>Upload manual legado</h3>
             <p class="console-note">Suba o <code>conteudo.json</code> gerado no dev (<code>manage.py dump_conteudo</code>). Sincroniza o catalogo por CHAVE NATURAL (slug/nome), <strong>preservando usuarios, personagens e missoes</strong> — o mesmo sync do deploy. Faca um backup completo antes.</p>
             <form method="post" enctype="multipart/form-data">
                 {% csrf_token %}
