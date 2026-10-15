@@ -44,6 +44,7 @@ def catalogos():
         TbTalento,
     )
     from .views import _eh_feature_asi, _tag_levels
+    from .class_publication import published_catalog
 
     subclasses = {}
     for sub in TbSubclasse.objects.select_related("id_classe").order_by(
@@ -67,13 +68,40 @@ def catalogos():
 
     classes = []
     for classe in class_rows:
+        published = published_catalog(classe)
+        if published is not None:
+            ruleset, frozen = published
+            page_class = frozen.classe
+            page_subclasses = sorted(frozen.collections[TbSubclasse], key=lambda s: s.nome)
+            page_features = frozen.collections[TbClassehabilidade]
+            levels = _tag_levels(page_class.tags_json, "asi-choices")
+            asi_feature = next((feature for feature in sorted(
+                page_features, key=lambda f: (f.niveladquirido, f.pk))
+                if feature.id_subclasse_id is None and not feature.table_only
+                and feature.niveladquirido in levels and _eh_feature_asi(feature.nome)), None)
+            subclass_levels = _tag_levels(page_class.tags_json, "subclass-choices")
+            subclass_min = (min(subclass_levels) if subclass_levels else min(
+                (feature.niveladquirido for feature in page_features
+                 if feature.id_subclasse_id is not None), default=None))
+            shown_subclasses = [{"slug": sub.slug, "nome": sub.nome,
+                                 "meta": (sub.tagline or "").strip()}
+                                for sub in page_subclasses]
+            shown_asi_name = asi_feature.nome if asi_feature else ""
+            shown_levels = sorted(levels)
+        else:
+            ruleset = None
+            shown_subclasses = subclasses.get(classe.slug, [])
+            shown_asi_name = asi_names.get(classe.pk, "")
+            shown_levels = sorted(asi_levels[classe.pk])
+            subclass_min = _subclass_min_level(classe)
         classes.append({
             "slug": classe.slug,
-            "nome": classe.nome,
-            "asi_nome": asi_names.get(classe.pk, ""),
-            "asi_niveis": sorted(asi_levels[classe.pk]),
-            "subclasse_nivel": _subclass_min_level(classe),
-            "subclasses": subclasses.get(classe.slug, []),
+            "nome": page_class.nome if published is not None else classe.nome,
+            "asi_nome": shown_asi_name,
+            "asi_niveis": shown_levels,
+            "subclasse_nivel": subclass_min,
+            "subclasses": shown_subclasses,
+            "ruleset_checksum": ruleset.checksum if ruleset is not None else None,
         })
 
     # `grupo` = cabecalho da lista (nao se repete em `meta`, senao o payload dobra de peso)
@@ -236,6 +264,7 @@ def _int_between(value, minimum, maximum, label):
 def _apply_classes(personagem, creator_data, build):
     from .character_engine import _subclass_min_level
     from .models import TbClasse, TbPersonagemClasse, TbSubclasse
+    from .versioned_classes import VersionedClassCatalog
 
     requested = build.get("classes") or []
     if not isinstance(requested, list) or not requested:
@@ -260,6 +289,10 @@ def _apply_classes(personagem, creator_data, build):
     if len(by_slug) != len(slugs):
         raise PathbuilderError("Uma das classes selecionadas nao existe.")
 
+    existing = {row.id_classe_id: row for row in personagem.classes.all()}
+    initial_row = existing.get(by_slug[initial_slug].pk)
+    active_ruleset = (initial_row.ruleset if initial_row is not None
+                      and initial_row.ruleset_id else None)
     normalized = []
     total = 0
     for row in requested:
@@ -267,6 +300,16 @@ def _apply_classes(personagem, creator_data, build):
         nivel = _int_between(row.get("nivel", 1), 1, 20, "Nivel de classe")
         total += nivel
         classe = by_slug[slug]
+        if active_ruleset is not None:
+            from django.core.exceptions import ObjectDoesNotExist
+            try:
+                VersionedClassCatalog(active_ruleset, classe.pk)
+            except (ObjectDoesNotExist, ValueError, KeyError) as exc:
+                raise PathbuilderError("Classe %s indisponivel nesta revisao."
+                                       % classe.nome) from exc
+        existing_row = existing.get(classe.pk)
+        frozen = (VersionedClassCatalog(existing_row.ruleset, classe.pk)
+                  if existing_row is not None and existing_row.ruleset_id else None)
         subclasse = None
         sub_slug = str(row.get("subclasse") or "").strip()
         if sub_slug:
@@ -274,7 +317,11 @@ def _apply_classes(personagem, creator_data, build):
                 id_classe=classe, slug=sub_slug).first()
             if subclasse is None:
                 raise PathbuilderError("Subclasse invalida para %s." % classe.nome)
-            minimo = _subclass_min_level(classe)
+            if frozen is not None and subclasse.pk not in frozen.subclasses:
+                raise PathbuilderError("Subclasse fora da revisao publicada de %s."
+                                       % frozen.classe.nome)
+            minimo = _subclass_min_level(
+                classe, ruleset=existing_row.ruleset if frozen is not None else None)
             if minimo and nivel < minimo:
                 raise PathbuilderError(
                     "%s exige nivel %d em %s." % (subclasse.nome, minimo, classe.nome))
@@ -282,15 +329,27 @@ def _apply_classes(personagem, creator_data, build):
     if total > 20:
         raise PathbuilderError("O nivel total da build nao pode passar de 20.")
 
-    personagem.classes.all().delete()
+    # Keep the creator's class row: it may carry a pinned ruleset and a
+    # one-to-one profile. Replacing it silently turns a published preview
+    # back into the mutable live catalog.
+    requested_ids = {classe.pk for classe, _, _ in normalized}
+    for class_id, row in existing.items():
+        if class_id not in requested_ids:
+            row.delete()
     for classe, subclasse, nivel in normalized:
-        TbPersonagemClasse.objects.create(
-            id_personagem=personagem,
-            id_classe=classe,
-            id_subclasse=subclasse,
-            nivel=nivel,
-            principal=classe.slug == initial_slug,
-        )
+        row = existing.get(classe.pk)
+        if row is None:
+            TbPersonagemClasse.objects.create(
+                id_personagem=personagem, id_classe=classe,
+                id_subclasse=subclasse, nivel=nivel,
+                principal=classe.slug == initial_slug,
+                ruleset=active_ruleset,
+            )
+        else:
+            row.id_subclasse = subclasse
+            row.nivel = nivel
+            row.principal = classe.slug == initial_slug
+            row.save(update_fields=['id_subclasse', 'nivel', 'principal'])
     personagem.nivel = total
     personagem.save(update_fields=["nivel", "atualizado_em"])
 
@@ -497,11 +556,11 @@ def _apply_items(personagem, build):
             raise PathbuilderError("Tipo de item invalido.")
 
 
-def _apply_spells(personagem, build):
+def _apply_spells(personagem, build, *, ruleset=None):
     from .pathbuilder_spells import apply_spell_selection
 
     try:
-        apply_spell_selection(personagem, build)
+        apply_spell_selection(personagem, build, ruleset=ruleset)
     except ValueError as exc:
         raise PathbuilderError(str(exc)) from exc
 
@@ -558,10 +617,19 @@ def _apply_choices(personagem, build):
     for _pass in range(8):
         changed = False
         for group in _groups_with_keys(personagem):
+            existing = set(_readback_values(group))
+            automatic = [value for value in group.get('auto_options') or []
+                         if value not in existing]
+            # Keep old full selections intact; only fill still-available slots.
+            automatic = automatic[:max(0, int(group.get('pendentes') or 0))]
+            if automatic:
+                group['slot_base'] = int(group.get('prox_slot') or 0)
+                picks.registry_entry(group['kind'])['persist'](personagem, group, automatic)
+                changed = True
+                continue
             requested = incoming.get(group["pathbuilder_key"]) or []
             if not requested or not group.get("pendentes"):
                 continue
-            existing = set(_readback_values(group))
             values = [value for value in requested if value not in existing]
             if not values:
                 continue
@@ -587,9 +655,11 @@ def _choice_options(group):
     for option in group.get("universo") or []:
         base_value = str(option.get("slug")
                          if option.get("slug") is not None else option.get("id"))
-        masteries = option.get("maestrias") or []
+        masteries = option.get("subopcoes") or option.get("maestrias") or []
         if masteries:
             for mastery in masteries:
+                if group.get("optional") and mastery.get("already_replica"):
+                    continue
                 options.append({
                     "valor": "%s|%s" % (base_value, mastery.get("slug")),
                     "nome": "%s - %s" % (
@@ -637,9 +707,13 @@ def _choice_groups(personagem, build):
             "label": group.get("label") or group.get("tipo_display")
                      or group.get("tipo") or group.get("kind"),
             "kind": group.get("kind") or "",
+            "optional": bool(group.get("optional")),
             "limite": int(group.get("n") or 0),
             "usados": int(group.get("usados") or 0),
-            "pendentes": int(group.get("pendentes") or 0),
+            "pendentes": (0 if group.get("optional")
+                           else int(group.get("pendentes") or 0)),
+            "opcionais_restantes": (int(group.get("pendentes") or 0)
+                                     if group.get("optional") else 0),
             "classe": group.get("classe") or "",
             "resolvidas": resolvidas,
             "selecionadas": list(dict.fromkeys(
@@ -715,7 +789,8 @@ def _rules_diagnostics(personagem, ficha, build, groups, racial_groups, orcament
     spell_issues = list(spell_issues or [])
     issues = list(extra_issues or []) + spell_issues
     for pc in personagem.classes.select_related("id_classe", "id_subclasse"):
-        minimum = _subclass_min_level(pc.id_classe)
+        minimum = _subclass_min_level(
+            pc.id_classe, ruleset=pc.ruleset if pc.ruleset_id else None)
         if minimum and int(pc.nivel or 0) >= minimum and not pc.id_subclasse_id:
             issues.append("Escolha a subclasse de %s liberada no nivel %d."
                           % (pc.id_classe.nome, minimum))
@@ -754,7 +829,7 @@ def _rules_diagnostics(personagem, ficha, build, groups, racial_groups, orcament
             "valida": not issues, "problemas": issues, "magias": spell_issues}
 
 
-def _folha_html(personagem, ficha, magias_info):
+def _folha_html(personagem, ficha, magias_info, *, ruleset=None):
     """A PREVIA E A FICHA: renderiza os partials da aba Ficha em modo leitura.
 
     Roda DENTRO da transacao desfeita (as querysets do template sao avaliadas aqui), e
@@ -768,7 +843,8 @@ def _folha_html(personagem, ficha, magias_info):
         "p": personagem,
         "ficha": ficha,
         "mochila": _mochila_ficha(personagem, ficha),
-        "consumiveis_cards": _consumiveis_ficha_cards(personagem, ficha),
+        "consumiveis_cards": _consumiveis_ficha_cards(personagem, ficha,
+                                                     ruleset=ruleset),
         "magias_info": magias_info,
         "raca_linha": _raca_linha_ficha(personagem),
         "pode_editar": False,
@@ -777,14 +853,15 @@ def _folha_html(personagem, ficha, magias_info):
     })
 
 
-def _summary(ficha, personagem, build, racial_groups=None, extra_issues=None):
+def _summary(ficha, personagem, build, racial_groups=None, extra_issues=None,
+             *, ruleset=None):
     """SO o que o EDITOR consome. A folha vai em `ficha_html` (markup da ficha real)."""
     from .views import _magias_sheet_info
 
     from .pathbuilder_spells import spell_review
 
-    spell_issues, spell_sources = spell_review(personagem, ficha)
-    magias_info = _magias_sheet_info(personagem, ficha, [])
+    spell_issues, spell_sources = spell_review(personagem, ficha, ruleset=ruleset)
+    magias_info = _magias_sheet_info(personagem, ficha, [], ruleset=ruleset)
     choice_groups = _choice_groups(personagem, build)
     orcamento = _orcamento(personagem, ficha, build)
     pathbuilder_bonus = {sigla: 0 for sigla in ("FOR", "DES", "CON", "INT", "SAB", "CAR")}
@@ -851,7 +928,7 @@ def _summary(ficha, personagem, build, racial_groups=None, extra_issues=None):
         },
         "orcamento": orcamento,
         "metricas_combate": _combat_metrics(ficha),
-        "ficha_html": _folha_html(personagem, ficha, magias_info),
+        "ficha_html": _folha_html(personagem, ficha, magias_info, ruleset=ruleset),
     }
     summary["validacao"] = _rules_diagnostics(
         personagem, ficha, build, choice_groups, racial_groups or [], orcamento,
@@ -862,9 +939,13 @@ def _summary(ficha, personagem, build, racial_groups=None, extra_issues=None):
 def simulate_build(user, creator_data, build):
     """Retorna a build derivada e garante rollback mesmo em caso de sucesso."""
     from .character_engine import derive
-    from .views import _criador_persistir, _criador_resolver
+    from .views import (ClassCreatorCatalogUnavailable, _criador_persistir,
+                        _criador_public_resolution)
 
-    resolved, errors = _criador_resolver(creator_data)
+    try:
+        resolved, errors = _criador_public_resolution(creator_data)
+    except ClassCreatorCatalogUnavailable as exc:
+        raise PathbuilderError('A revisao da classe esta indisponivel.') from exc
     if errors:
         raise PathbuilderError(" ".join(errors))
 
@@ -877,11 +958,15 @@ def simulate_build(user, creator_data, build):
             racial_groups, racial_issues = _apply_racial_talents(personagem, build)
             _apply_items(personagem, build)
             _apply_choices(personagem, build)
-            _apply_spells(personagem, build)
-            ficha = derive(personagem)
+            ruleset = resolved.get('ruleset')
+            if any(group.get('spell_table') for group in _groups_with_keys(personagem)):
+                from .views import _sync_magias_concedidas
+                _sync_magias_concedidas(personagem, ruleset=ruleset)
+            _apply_spells(personagem, build, ruleset=ruleset)
+            ficha = derive(personagem, ruleset=ruleset)
             result = _summary(
                 ficha, personagem, build, racial_groups,
-                extra_issues=talent_issues + racial_issues)
+                extra_issues=talent_issues + racial_issues, ruleset=ruleset)
             transaction.set_rollback(True)
     except PathbuilderError:
         raise

@@ -195,8 +195,19 @@ def _tag_levels(tags_json, verb):
     return set()
 
 
-def _subclass_min_level(classe):
+def _subclass_min_level(classe, *, ruleset=None):
     """Primeiro nivel em que a subclasse fica ativa, vindo de `subclass-choices`."""
+    if ruleset is not None:
+        from .models import TbClassehabilidade
+        from .versioned_classes import VersionedClassCatalog
+
+        frozen = VersionedClassCatalog(ruleset, classe.pk)
+        levels = _tag_levels(frozen.classe.tags_json, 'subclass-choices')
+        if levels:
+            return min(levels)
+        return min((feature.niveladquirido for feature in
+                    frozen.collections[TbClassehabilidade]
+                    if feature.id_subclasse_id is not None), default=None)
     levels = _tag_levels(getattr(classe, 'tags_json', None), 'subclass-choices')
     if levels:
         return min(levels)
@@ -212,11 +223,13 @@ def _subclass_min_level(classe):
         return None
 
 
-def _subclass_unlocked(personagem_classe, nivel=None):
+def _subclass_unlocked(personagem_classe, nivel=None, *, ruleset=None):
     if not getattr(personagem_classe, 'id_subclasse_id', None):
         return False
     nivel = int(nivel if nivel is not None else (personagem_classe.nivel or 0))
-    min_level = _subclass_min_level(personagem_classe.id_classe)
+    if ruleset is None and getattr(personagem_classe, 'ruleset_id', None):
+        ruleset = personagem_classe.ruleset
+    min_level = _subclass_min_level(personagem_classe.id_classe, ruleset=ruleset)
     return min_level is not None and nivel >= min_level
 
 
@@ -1433,6 +1446,54 @@ def _parse_spell_selection(resolved):
     return slugs, nivel, qtd
 
 
+def _spells_from_choice_table(description, chosen, class_level, catalog, english_slugs):
+    """Read a feature's Markdown spell table by its selected column names.
+
+    The first two columns must be class level and spell circle. A spell keeps
+    the catalog's actual circle even when an older page table labels it wrong.
+    """
+    from django.utils.text import slugify
+
+    selected = set(chosen)
+    headers, granted = [], []
+    for line in str(description or '').splitlines():
+        if not line.lstrip().startswith('|'):
+            headers = []
+            continue
+        cells = [cell.strip() for cell in line.strip().strip('|').split('|')]
+        if len(cells) < 4:
+            continue
+        if ('nivel' in slugify(cells[0]) and 'circulo' in slugify(cells[1])):
+            headers = [slugify(cell) for cell in cells[2:]]
+            continue
+        if not headers or len(cells) != len(headers) + 2:
+            continue
+        level = re.match(r'^\s*(\d+)', cells[0])
+        if not level or int(level.group(1)) > class_level:
+            continue
+        circle = re.match(r'^\s*(\d+)', cells[1])
+        circle = int(circle.group(1)) if circle else 0 if 'truque' in slugify(cells[1]) else None
+        for header, cell in zip(headers, cells[2:]):
+            if header not in selected:
+                continue
+            link = re.search(r'\(tbMagia,\s*([a-z0-9_-]+)\)', cell, re.I)
+            slug = link.group(1) if link else slugify(re.split(r'\s*\[', cell, 1)[0])
+            if not link:
+                english = re.search(r'\[([^\]]+)\](?:\s+TCM)?$', cell)
+                candidates = (english_slugs.get(slugify(english.group(1)), [])
+                              if english else [])
+                if catalog.get(slug) != circle:
+                    matching = [candidate for candidate in candidates
+                                if catalog.get(candidate) == circle]
+                    if len(matching) == 1:
+                        slug = matching[0]
+                    elif slug not in catalog and len(candidates) == 1:
+                        slug = candidates[0]
+            if catalog.get(slug) == circle and slug not in granted:
+                granted.append(slug)
+    return granted
+
+
 _CAST_BLOCK_RE = re.compile(r'cast\{((?:[^{}]|\{[^{}]*\})*)\}')
 # escopo de spell-selection que é uma CLASSE → nome como aparece em TbMagia.classes
 def _spell_class_scope_map():
@@ -1861,15 +1922,32 @@ def magias_concedidas(personagem, *, ruleset=None):
     if ruleset is not None:
         from .versioned_spells import spell_catalog, spell_scopes
         class_scopes = spell_scopes(ruleset)
+        pinned_spells = list(spell_catalog(ruleset).values())
+        pinned_ids = {m.slug: m.pk for m in pinned_spells}
+        english_names = [(m.slug, m.nome_ingles) for m in pinned_spells]
         spells = [(m.slug, m.nivel, m.escola, m.classes, m.concentracao)
-                  for m in spell_catalog(ruleset).values()]
+                  for m in pinned_spells]
     else:
+        pinned_ids = None
+        english_names = TbMagia.objects.values_list('slug', 'nome_ingles')
         spells = TbMagia.objects.values_list('slug', 'nivel', 'escola', 'classes', 'concentracao')
     for sl, nv, esc, cl, concentration in spells:
         catalog[sl] = nv
         catalog_rich[sl] = (nv, _norm_escola(esc),
                             {x.strip() for x in (cl or '').split(',') if x.strip()},
                             bool(concentration))
+    from django.utils.text import slugify
+    english_slugs = {}
+    for slug, name in english_names:
+        if name:
+            english_slugs.setdefault(slugify(name), []).append(slug)
+    choice_limits = {}
+    for _scope, _name, feature, _level in features:
+        class_id = getattr(feature, 'id_classe_id', None)
+        for tag in getattr(feature, 'tags_json', None) or []:
+            for match in re.finditer(r'(?<![a-z_-])pick:([a-z_]+):(\d+)\b', str(tag)):
+                key = (class_id, match.group(1))
+                choice_limits[key] = max(choice_limits.get(key, 0), int(match.group(2)))
     feature_choices = {}
     for choice in personagem.escolhas.all().order_by('origem', 'tipo', 'slot'):
         feature_choices.setdefault(
@@ -1889,6 +1967,65 @@ def magias_concedidas(personagem, *, ruleset=None):
     for (_o, _f, obj, _cl) in features:
         fonte = getattr(obj, 'nome', '') or ''
         feat_tags = getattr(obj, 'tags_json', None) or []
+        if (any('spell_selection:' in str(tag) and 'always_prepared' in str(tag)
+                and 'extra' in str(tag) for tag in feat_tags)
+                and '|' in str(getattr(obj, 'descricao', '') or '')):
+            for tag in feat_tags:
+                match = re.search(r'(?<![a-z_-])pick:([a-z_]+):(\d+)\b', str(tag))
+                if not match:
+                    continue
+                kind = match.group(1)
+                limit = choice_limits.get((getattr(obj, 'id_classe_id', None), kind), 0)
+                chosen = [row.valor for row in personagem.escolhas.filter(
+                    tipo=kind, origem=fonte).order_by('slot')[:limit]]
+                for slug in _spells_from_choice_table(
+                        getattr(obj, 'descricao', ''), chosen, int(_cl or 0),
+                        catalog, english_slugs):
+                    if slug not in seen:
+                        seen.add(slug)
+                        out['concedidas'].append({
+                            'slug': slug, 'nivel': catalog[slug], 'fonte': fonte})
+        # An open-list cantrip pick grants only the chosen spells in its active branch.
+        cantrip_slots = sum(
+            int(match.group(1))
+            for tag in feat_tags
+            for match in re.finditer(
+                r'(?<![a-z_-])pick:truque:(\d+)',
+                _resolve_match(str(tag), escolhas, outer_only=True)))
+        if cantrip_slots:
+            for choice in personagem.escolhas.filter(
+                    tipo='truque', origem=fonte).order_by('slot')[:cantrip_slots]:
+                slug = choice.valor
+                if catalog.get(slug) == 0 and slug not in seen:
+                    seen.add(slug)
+                    out['concedidas'].append({'slug': slug, 'nivel': 0, 'fonte': fonte})
+        # Spellbook picks prepare acquired spells permanently; the feature does not
+        # teach new spells or expand the class's acquired-spell quota.
+        for tag in feat_tags:
+            match = re.search(r'(?<![a-z_-])pick:spell:(\d+)\('
+                              r'[^)]*circulo\s*:\s*(\d+)\s*,\s*de\s*:\s*grimorio',
+                              str(tag))
+            if not match:
+                continue
+            limit, level = map(int, match.groups())
+            class_name = getattr(getattr(obj, 'id_classe', None), 'nome', None)
+            if not class_name:
+                continue
+            owned = {row.id_magia_id for row in personagem.magias.filter(
+                origem__iexact=class_name, nivel=level, sempre_preparada=False)}
+            granted = 0
+            for choice in personagem.escolhas.filter(
+                    tipo='spell', origem=fonte).order_by('slot'):
+                slug = choice.valor
+                spell_id = (pinned_ids.get(slug) if pinned_ids is not None else
+                            TbMagia.objects.filter(slug=slug).values_list('pk', flat=True).first())
+                if (spell_id in owned and catalog.get(slug) == level
+                        and slug not in seen):
+                    seen.add(slug)
+                    out['concedidas'].append({'slug': slug, 'nivel': level, 'fonte': fonte})
+                    granted += 1
+                    if granted == limit:
+                        break
         # A feature conjura a magia ESCOLHIDA via `cast{spell:spell_selection}` (numa tag irmã)?
         # Habilita o `qtd` implícito=1 do `spell_selection` sem `qtd:` (Adepto das Vestes/Místico,
         # Iniciado Artífice, Tocado pelo X: "você aprende 1 magia à sua escolha").

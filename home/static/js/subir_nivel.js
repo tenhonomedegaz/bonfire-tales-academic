@@ -143,6 +143,8 @@
       } else if (type === 'magias_concedidas') {
         setBadge(badge, (+card.dataset.need || 0) - enforceGroup(
           card, 'concedidas', +card.dataset.need || 0));
+      } else if (type === 'trocar_opcao') {
+        if (addBtn) addBtn.disabled = mine.length > 0;
       } else if (type === 'trocar_magia') {
         var quota = +card.dataset.swapRestantes || 0;
         var usadosRem = {}, usadosAdd = {};
@@ -216,6 +218,16 @@
       var key = 'opcao#' + card.dataset.slug + '#' + vs.value;
       if (inLote(key)) return;
       addAction({ tipo: 'opcao', payload: { classe: card.dataset.classe, slug: card.dataset.slug, val: vs.value }, key: key, label: optText(vs), card: card });
+      return;
+    }
+    if (tipo === 'trocar_opcao') {
+      var antiga = fieldOf(card, 'escolha'), nova = fieldOf(card, 'val');
+      if (!antiga || !antiga.value) { flash(antiga); return; }
+      if (!nova || !nova.value) { flash(nova); return; }
+      addOrReplace({ tipo: 'trocar_opcao',
+        payload: { classe: card.dataset.classe, escolha: antiga.value, val: nova.value },
+        key: 'trocar_opcao#' + card.dataset.classe + '#' + card.dataset.swapKey,
+        label: 'Troca: ' + optText(antiga) + ' → ' + optText(nova), card: card });
       return;
     }
     if (tipo === 'trocar_magia') {
@@ -297,7 +309,7 @@
   // uma ação pertence a um cartão de escolha do nível? (p/ limpar ao multiclassar)
   function CHOICE_STEP_CARDS(a) {
     if (!a.card) return true;   // âncoras já removidas antes
-    return ['subclasse', 'talento_racial', 'asi', 'opcao', 'aprender_magias', 'magias_concedidas', 'trocar_magia'].indexOf(a.card.dataset.lvlCard) === -1;
+    return ['subclasse', 'talento_racial', 'asi', 'opcao', 'trocar_opcao', 'aprender_magias', 'magias_concedidas', 'trocar_magia'].indexOf(a.card.dataset.lvlCard) === -1;
   }
 
   function rebuildMagias(card) {

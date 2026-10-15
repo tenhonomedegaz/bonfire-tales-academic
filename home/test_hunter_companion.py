@@ -347,6 +347,50 @@ class HunterCompanionTests(_CriadorBase):
             self.assertIn(rule, effects)
         self.assertNotIn('Visão às Cegas', effects)
 
+    def test_totemic_choice_limit_matches_published_page_at_each_level(self):
+        from .hunter_rework import level_features
+
+        source = next(row for row in level_features(18, 'ordem-da-alianca-selvagem')
+                      if row['id'] == '080-nivel-3-evolucao-totemica')
+        for milestone in (3, 6, 10, 14, 18):
+            self.assertIn(f'{milestone}º', source['text'])
+        for level in range(3, 21):
+            self.pc.nivel = level
+            self.pc.save(update_fields=['nivel'])
+            self.person.nivel = level
+            self.person.save(update_fields=['nivel'])
+            self.profile.refresh_from_db()
+            with self.subTest(level=level):
+                info = panel(self.profile)
+                self.assertIsNotNone(info)
+                self.assertEqual(info['evolution_limit'],
+                                 sum(level >= milestone for milestone in (3, 6, 10, 14, 18)))
+                self.assertEqual(len(info['options']), 20)
+
+    def test_published_totemic_resistances_change_only_on_next_summon(self):
+        self.pc.nivel = 6
+        self.pc.save(update_fields=['nivel'])
+        self.person.nivel = 6
+        self.person.save(update_fields=['nivel'])
+        first = self.summon(evolutions=['resistencia:fogo', 'resistencia:frio'])
+        self.assertEqual(first['evolutions'], ['resistencia:fogo', 'resistencia:frio'])
+        self.profile.refresh_from_db()
+        self.assertEqual(panel(self.profile)['evolution_limit'], 2)
+        self.assertIn('Resistência a dano de fogo.', panel(self.profile)['evolution_effects'])
+        self.assertIn('Resistência a dano de frio.', panel(self.profile)['evolution_effects'])
+        self.assertContains(self.client.get(reverse('hunter_sheet', args=[self.person.pk])),
+                            'Resistência a dano de frio')
+        with self.assertRaises(ValueError):
+            self.summon(evolutions=['resistencia:fogo', 'resistencia:fogo'])
+        self.profile.refresh_from_db()
+        self.assertEqual(self.profile.companion['evolutions'],
+                         ['resistencia:fogo', 'resistencia:frio'])
+        second = self.summon(evolutions=['resistencia:ácido', 'resistencia:elétrico'])
+        self.assertEqual(second['evolutions'], ['resistencia:ácido', 'resistencia:elétrico'])
+        self.profile.refresh_from_db()
+        self.assertNotIn('Resistência a dano de fogo.', panel(self.profile)['evolution_effects'])
+        self.assertIn('Resistência a dano de ácido.', panel(self.profile)['evolution_effects'])
+
     def test_legacy_order_cannot_use_companion(self):
         self.pc.id_subclasse_id = 116
         self.pc.save(update_fields=['id_subclasse'])

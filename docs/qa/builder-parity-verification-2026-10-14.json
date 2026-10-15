@@ -1,0 +1,39 @@
+{
+  "scope": "13 classes, 119 live subclasses, 512 sealed subclass paths, levels 1-20",
+  "source": "PostgreSQL DEV; live catalog and pinned published catalogs; page breakpoints evaluated independently of builder",
+  "matrix_rows": 13980,
+  "feature_mismatches": 0,
+  "resource_mismatches": 0,
+  "spell_slot_rows": 13980,
+  "spell_slot_mismatches": 0,
+  "choice_review_rows": 6711,
+  "choice_review_unlinked": 0,
+  "classified_cases": 361,
+  "case_states": {
+    "editorial_rule_implemented_regional_verified": 5,
+    "live_builder_verified": 7,
+    "live_major_options_verified": 1,
+    "runtime_activation_with_persistent_preparation_verified": 6,
+    "runtime_activation_with_persistent_sibling_verified": 2,
+    "runtime_only_builder_verified": 275,
+    "sealed_build_branches_verified": 4,
+    "sealed_conditional_branches_verified": 8,
+    "sealed_legacy_builder_verified": 47,
+    "sealed_major_options_verified": 6
+  },
+  "source_conflicts": {
+    "resolved_editorial_rule": 4,
+    "resolved_frozen_major_options": 1,
+    "resolved_legacy_runtime_tag": 1
+  },
+  "inputs": [
+    "docs/qa/builder-matrix-versions-all-813.jsonl.gz",
+    "docs/qa/builder-matrix-spells-all-814-cached.jsonl.gz",
+    "docs/qa/builder-release-matrix-candidate-2026-10-14.json.gz"
+  ],
+  "note": "Integrated end-to-end F4 suite remains a separate acceptance gate.",
+  "sha256": {
+    "docs/qa/builder-matrix-versions-all-813.jsonl.gz": "f4db1fd5cb027a73269c9939435950b834c41abf86878fd12d26e7d1f457a4e6",
+    "docs/qa/builder-matrix-spells-all-814-cached.jsonl.gz": "eb079dd5588c495b7938190c2e1aa2f29d2737fc9ad1ef834314ca846652c23f"
+  }
+}

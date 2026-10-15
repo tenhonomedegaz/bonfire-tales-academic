@@ -10,9 +10,9 @@
     {% if hunter_creator_available %}
       {% if hunter_creator_page %}
         <p class="mt-2 text-sm text-[var(--muted)]">Criação do Caçador com a revisão publicada de classe e origens.</p>
-        <a href="{% url 'criacao_ficha' %}" class="mt-2 inline-flex text-sm font-semibold text-[var(--ember)] underline">Criar outra classe</a>
+        <a href="{% if pathbuilder %}{% url 'pathbuilder' %}{% else %}{% url 'criacao_ficha' %}{% endif %}" class="mt-2 inline-flex text-sm font-semibold text-[var(--ember)] underline">{% if pathbuilder %}Testar outra classe{% else %}Criar outra classe{% endif %}</a>
       {% else %}
-        <a href="{% url 'criacao_ficha' %}?hunter=1" class="mt-2 inline-flex text-sm font-semibold text-[var(--ember)] underline">Criar Caçador</a>
+        <a href="{% if pathbuilder %}{% url 'pathbuilder' %}{% else %}{% url 'criacao_ficha' %}{% endif %}?hunter=1" class="mt-2 inline-flex text-sm font-semibold text-[var(--ember)] underline">{% if pathbuilder %}Testar Caçador{% else %}Criar Caçador{% endif %}</a>
       {% endif %}
     {% endif %}
   </header>

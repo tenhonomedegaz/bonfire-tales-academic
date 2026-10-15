@@ -55,7 +55,7 @@ POST clássico (PRG). Com JS (js/ficha_opcoes.js) o mesmo form vai por fetch e e
                   <input type="hidden" name="grupo" value="{{ g.chave }}">
                   <input type="hidden" name="escolha" value="{{ e.id }}">
                   <label class="opt-swap-lbl" for="opt-sel-{{ g.kind }}-{{ e.id }}">Trocar por</label>
-                  {% if not g.disponiveis %}
+                  {% if not e.disponiveis %}
                   <select id="opt-sel-{{ g.kind }}-{{ e.id }}" name="val" class="opt-select" disabled><option value="">— sem opções livres —</option></select>
                   {% elif g.dois_niveis %}
                   {% comment %}Universo de DOIS NÍVEIS (a entrada declara sub-opções — a arma e
@@ -63,17 +63,17 @@ POST clássico (PRG). Com JS (js/ficha_opcoes.js) o mesmo form vai por fetch e e
                   o valor composto `<pai>|<filho>` para o MESMO endpoint. Sem JS o 2º select já
                   vem com TUDO agrupado por pai, então a troca continua possível.{% endcomment %}
                   <select class="opt-select" data-opcao-pai aria-label="{{ g.label }} — primeira escolha">
-                    {% for o in g.disponiveis %}<option value="{{ o.val }}">{{ o.nome }}</option>{% endfor %}
+                    {% for o in e.disponiveis %}<option value="{{ o.val }}">{{ o.nome }}</option>{% endfor %}
                   </select>
                   <select id="opt-sel-{{ g.kind }}-{{ e.id }}" name="val" class="opt-select" data-opcao-filho>
-                    {% for o in g.disponiveis %}<optgroup label="{{ o.nome }}" data-opcao-de="{{ o.val }}">{% for s in o.subs %}<option value="{{ s.val }}">{{ s.nome }}</option>{% endfor %}</optgroup>{% endfor %}
+                    {% for o in e.disponiveis %}<optgroup label="{{ o.nome }}" data-opcao-de="{{ o.val }}">{% for s in o.subs %}<option value="{{ s.val }}">{{ s.nome }}</option>{% endfor %}</optgroup>{% endfor %}
                   </select>
                   {% else %}
                   <select id="opt-sel-{{ g.kind }}-{{ e.id }}" name="val" class="opt-select">
-                    {% for o in g.disponiveis %}<option value="{{ o.val }}"{% if o.ja_proficiente %} disabled{% endif %}>{{ o.nome }}{% if o.ja_proficiente %} — já proficiente{% endif %}</option>{% endfor %}
+                    {% for o in e.disponiveis %}<option value="{{ o.val }}"{% if o.ja_proficiente %} disabled{% endif %}>{{ o.nome }}{% if o.ja_proficiente %} — já proficiente{% endif %}</option>{% endfor %}
                   </select>
                   {% endif %}
-                  <button type="submit" class="opt-confirm"{% if not g.disponiveis %} disabled{% endif %}>Confirmar</button>
+                  <button type="submit" class="opt-confirm"{% if not e.disponiveis %} disabled{% endif %}>Confirmar</button>
                 </form>
               </details>
             {% endif %}
@@ -91,6 +91,9 @@ POST clássico (PRG). Com JS (js/ficha_opcoes.js) o mesmo form vai por fetch e e
         {% endfor %}
       </ul>
 
+      {% if g.opcionais_restantes and pode_editar %}
+      <p class="opt-nota">Você pode aprender outra réplica no <a href="{{ g.pendencia_url }}">laboratório da ficha</a>.</p>
+      {% endif %}
       {% if g.pendentes %}
       <p class="opt-pendencia">⚠ {{ g.pendentes }} escolha{{ g.pendentes|pluralize }} em aberto{% if pode_editar %} — <a href="{{ g.pendencia_url }}">{{ g.pendencia_label }}</a>{% endif %}</p>
       {% elif g.incompleta %}

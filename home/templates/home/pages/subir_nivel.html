@@ -244,6 +244,24 @@
               <p class="lvl-card__hint">Sem opções disponíveis no catálogo para esta classe/nível.</p>
             {% endif %}
           </div>
+          {% if g.troca_ao_aprender %}
+          <div class="lvl-card" data-lvl-card="trocar_opcao" data-classe="{{ g.classe_id }}" data-swap-key="{{ forloop.counter }}">
+            <div class="lvl-card__head"><span class="lvl-card__title">Substituir {{ g.tipo }} <span class="sub">opcional ao aprender uma nova escolha</span></span></div>
+            <div class="lvl-card__row">
+              <select class="lvl-field lvl-field--grow" data-lvl-field="escolha" aria-label="Escolha conhecida a substituir">
+                <option value="">Escolha que sai…</option>
+                {% for e in g.escolhidas %}<option value="{{ e.id }}">{{ e.nome }}</option>{% endfor %}
+              </select>
+              <select class="lvl-field lvl-field--grow" data-lvl-field="val" aria-label="Nova escolha que entra">
+                <option value="">Escolha que entra…</option>
+                {% for o in g.disponiveis %}<option value="{{ o.val }}"{% if o.ja_proficiente %} disabled{% endif %}>{{ o.nome }}</option>{% endfor %}
+              </select>
+              <button type="button" class="lvl-add" data-lvl-queue="trocar_opcao">Trocar</button>
+            </div>
+            <div class="lvl-queued" data-lvl-chips hidden></div>
+            <p class="lvl-card__hint">Complete a nova escolha acima para efetivar a troca. Um preparo que use a escolha substituída será retirado.</p>
+          </div>
+          {% endif %}
         {% endfor %}
       </section>
       {% endif %}

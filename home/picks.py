@@ -17,7 +17,11 @@ resolvível, (ii) tem `kind` registrado no REGISTRY e (iii) não está dentro de
 de referência (`match(...)`/`cast(...)`/`spell:pick{...}`) nem de runtime
 (`trigger=...`/`instant{...}`/`while_active{...}`).
 """
+import hashlib
+import json
 import re
+from functools import lru_cache
+from pathlib import Path
 from types import SimpleNamespace
 
 # ---------------------------------------------------------------------------
@@ -160,6 +164,10 @@ def iter_pick_tokens(text):
         if any(a <= start <= b for a, b in non_choices):
             continue
         kind = m.group(1)
+        # Snapshots antigos do Bardo usam este nome para a mesma escolha de arma.
+        # Normalize na leitura: o snapshot e as escolhas `tipo=maestria` ficam intactos.
+        if kind == 'arma_mastery':
+            kind = 'arma'
         segs, constr_bodies, end = _consume_pick_tail(text, m.end())
         constr_raw = ' '.join('(%s)' % b for b in constr_bodies)
         # separa sub (1º segmento não-contagem) da contagem (1º segmento-contagem)
@@ -203,11 +211,21 @@ def swap_scope(token, source):
         m = _SWAP_MARKER_RE.match(str(tag).strip())
         if m:
             return m.group(1)
+    tags = {str(tag).strip() for tag in (getattr(source, 'tags_json', None) or [])}
+    description = str(getattr(source, 'descricao', '') or '')
+    # Early sealed pages used paired rest triggers and described a repeatable
+    # ritual, but had no swap marker. Require both triggers and explicit prose.
+    if ({'trigger=short_rest', 'trigger=long_rest'} <= tags
+            and re.search(r'\b(?:trocar|substituir|novo)\b', description, re.I)
+            and re.search(r'\b(?:descanso|ritual)\b', description, re.I)):
+        return 'short_or_long'
     return None
 
 
 def _parse_constraints(raw):
     raw = raw or ''
+    listed = re.search(r'\bde\s*:\s*\[([^\]]+)\]', raw)
+    defaults = re.search(r'\bdefaults\s*:\s*\[([^\]]+)\]', raw)
     source_match = re.search(
         r'from\s*:\s*(classe|subclasse)\s*\{\s*([a-z0-9_\-]+)\s*\}',
         raw,
@@ -215,14 +233,46 @@ def _parse_constraints(raw):
     return {
         'raw': raw,
         'swap': (re.search(r'swap\s*:\s*([a-z0-9_]+)', raw) or [None, None])[1],
+        'on_gain': bool(re.search(r'\bon_gain\s*:\s*1\b', raw)),
         'reset': (re.search(r'reset\s*:\s*([a-z0-9_]+)', raw) or [None, None])[1],
         'from': (re.search(r'from\s*:\s*([a-z0-9_]+)', raw) or [None, None])[1],
+        'from_menu': (re.search(r'from_menu\s*:\s*([a-z0-9_]+)', raw) or [None, None])[1],
+        'from_known': (re.search(r'from_known\s*:\s*([a-z0-9_]+)', raw) or [None, None])[1],
+        'seed_from': (re.search(r'seed_from\s*:\s*([a-z0-9_]+)', raw) or [None, None])[1],
         'from_kind': source_match.group(1) if source_match else None,
         'from_slug': source_match.group(2) if source_match else None,
+        'listed_slugs': [normalize_slug(value) for value in re.split(r'[,|]', listed.group(1))
+                         if value.strip()] if listed else None,
+        'add': int((re.search(r'\badd\s*:\s*(\d+)', raw) or [None, 0])[1]),
+        'default_slugs': [normalize_slug(value) for value in re.split(r'[,|]', defaults.group(1))
+                          if value.strip()] if defaults else [],
         'requires': (re.search(r'requires\s*:\s*([a-z0-9_]+)', raw) or [None, None])[1],
         'define': [tok.strip() for body in re.findall(r'=\s*define\s*:\s*\{([^}]*)\}', raw)
                    for tok in body.split('|') if tok.strip()] or None,
     }
+
+
+def _page_option_source(source, token):
+    """Recover a missing ``from:classe`` only when page text names this option type.
+
+    A sealed feature may predate the explicit source constraint while stating
+    that its choice uses the options available to another class. Match the
+    bold option-type label to the token before trusting the named class; the
+    versioned option catalog still decides which options that class owns.
+    """
+    if token.kind != 'opcao' or not token.sub or token.constraints.get('from_kind'):
+        return None
+    from django.utils.text import slugify
+
+    description = str(getattr(source, 'descricao', '') or '')
+    pattern = (r'\*\*([^*]+)\*\*[^.\n]{0,100}?\bescolha\s+entre\s+as\s+'
+               r'op\S+\s+dispon\S+\s+para\s+(?:o|a)\s+(\S+)')
+    for match in re.finditer(pattern, description, re.I):
+        if '\ufffd' in match.group(1) or '\ufffd' in match.group(2):
+            continue
+        if slugify(match.group(1)).replace('-', '_') == token.sub:
+            return slugify(match.group(2))
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -286,19 +336,97 @@ def _slug2tipo_map():
     return out
 
 
+def _page_embedded_option_universe(ctx, options, tipo_display):
+    """Use a page's explicit option embed when its legacy ACL has no entries."""
+    constraints = ctx.get('constraints') or {}
+    if not tipo_display or constraints.get('from_kind') or constraints.get('listed_slugs'):
+        return []
+    source = ctx.get('source')
+    description = str(getattr(source, 'descricao', '') or '')
+    if not re.search(r'(?im)^\s*::options\s*=\s*' + re.escape(tipo_display)
+                     + r'\s*$', description):
+        return []
+    return [{'id': option['id_opcao'], 'slug': option['slug'],
+             'nome': option['nome'], 'descricao': option.get('descricao') or '',
+             'pre': option.get('pre_requisito') or ''}
+            for option in sorted(options, key=lambda item: item['nome'])
+            if option['tipo'] == tipo_display]
+
+
 def _opcao_universe(ctx):
     """Opções acessíveis (TbOpcaojogo do tipo ∩ TbAcessoopcao p/ classe/subclasse/nível)."""
     from django.db.models import Q
     from .models import TbOpcaojogo, TbAcessoopcao, TbClasse, TbSubclasse
+    if ctx.get('tipo') == 'item_magico':
+        from .character_engine import _item_consumivel_meta
+        from .versioned_items import resolved_inventory
+
+        personagem = ctx.get('personagem')
+        if personagem is None:
+            return []
+        infusions = personagem.escolhas.filter(tipo='infusao').select_related('id_opcao')
+        if personagem.classes.count() > 1:
+            infusions = infusions.filter(origem__startswith='%s:' % ctx['classe'].nome)
+        infusions = list(infusions.order_by('slot'))
+        replicas = [row for row in infusions
+                    if (row.valor or '').startswith('item_magico:')]
+        # Cada Infusao conhecida pode ceder seu proprio espaco a uma receita.
+        replaceable = infusions
+        if not replaceable:
+            return []
+        replacement_options = [
+            {'slug': str(row.pk),
+             'nome': 'Substituir %s' % (row.id_opcao.nome if row.id_opcao_id
+                                      else row.valor or 'Infusao'),
+             'descricao': 'Ocupa o mesmo espaco de Infusao conhecida.',
+             'already_replica': (row.valor or '').startswith('item_magico:')}
+            for row in replaceable]
+        tags = ' '.join(str(tag) for tag in
+                        (getattr(ctx.get('source'), 'tags_json', None) or []))
+        limits = [(0, 'comum')]
+        limits.extend((int(level), rarity) for level, rarity in re.findall(
+            r'classlvl\s*>=\s*(\d+)\s*:\s*(comum|incomum|raro)', tags))
+        maximum = max((rarity for level, rarity in limits
+                       if level <= int(ctx.get('nivel') or 1)),
+                      key={'comum': 0, 'incomum': 1, 'raro': 2}.get)
+        rank = {'comum': 0, 'incomum': 1, 'raro': 2}
+        inventory = personagem.inventario.filter(
+            id_item_magico__isnull=False, qtd__gt=0).select_related('id_item_magico')
+        if ctx.get('ruleset') is not None:
+            inventory = resolved_inventory(ctx['ruleset'], inventory)
+        out = {}
+        for possession in inventory:
+            item = possession.id_item_magico
+            rarity = (item.raridade or '').split('_', 1)[0]
+            if (rarity not in rank or rank[rarity] > rank[maximum]
+                    or _item_consumivel_meta(possession, item)['consumivel']
+                    or any(row.valor == 'item_magico:' + item.slug for row in replicas)):
+                continue
+            out[item.slug] = {'id': None, 'slug': item.slug, 'nome': item.nome,
+                              'descricao': item.descricao_markdown or '',
+                              'pre': item.get_raridade_display(),
+                              'subopcoes': replacement_options}
+        return sorted(out.values(), key=lambda option: option['nome'])
+    constraints = ctx.get('constraints') or {}
     if ctx.get('ruleset') is not None:
         from .versioned_options import VersionedOptions
-        return VersionedOptions(ctx['ruleset']).universe(ctx)
+        catalog = VersionedOptions(ctx['ruleset'])
+        universe = catalog.universe(ctx)
+        if universe or constraints.get('subclass_only'):
+            return universe
+        tipo_disp = ctx.get('tipo_display') or catalog.type_map().get(ctx['tipo'])
+        return _page_embedded_option_universe(ctx, catalog.data['options'], tipo_disp)
     tipo_disp = ctx.get('tipo_display') or _slug2tipo_map().get(ctx['tipo'])
     if not tipo_disp:
         return []
+    listed = constraints.get('listed_slugs')
+    if listed:
+        return [{'id': o.id_opcao, 'slug': o.slug, 'nome': o.nome,
+                 'descricao': o.descricao or '', 'pre': o.pre_requisito or ''}
+                for o in TbOpcaojogo.objects.filter(tipo=tipo_disp).order_by('nome')
+                if normalize_slug(o.slug) in listed]
     classe = ctx.get('classe')
     subclasse = ctx.get('subclasse')
-    constraints = ctx.get('constraints') or {}
     source_kind = constraints.get('from_kind')
     source_slug = constraints.get('from_slug')
     explicit_source = bool(source_kind and source_slug)
@@ -310,7 +438,8 @@ def _opcao_universe(ctx):
         classe = subclasse.id_classe if subclasse else None
     nivel = int(ctx.get('nivel') or 1)
     acc = TbAcessoopcao.objects.filter(nivel_recebimento__lte=nivel).filter(
-        (Q(id_classe=classe) if classe else Q(pk__in=[]))
+        (Q(id_classe=classe) if classe and not constraints.get('subclass_only')
+         else Q(pk__in=[]))
         | (Q(id_subclasse=subclasse) if subclasse else Q(pk__in=[])))
     qs = TbOpcaojogo.objects.filter(tipo=tipo_disp)
     # ACL e por UNIVERSO. A classe pode ter acessos de outro tipo (por exemplo,
@@ -319,21 +448,59 @@ def _opcao_universe(ctx):
     has_universe_acl = TbAcessoopcao.objects.filter(id_opcao_id__in=universe_ids).exists()
     acc_ids = set(acc.filter(id_opcao_id__in=universe_ids).values_list(
         'id_opcao_id', flat=True))
-    if explicit_source or has_universe_acl:
+    if explicit_source or has_universe_acl or constraints.get('subclass_only'):
         qs = qs.filter(id_opcao__in=acc_ids)
-    return [{'id': o.id_opcao, 'slug': o.slug, 'nome': o.nome,
+    universe = [{'id': o.id_opcao, 'slug': o.slug, 'nome': o.nome,
              'descricao': o.descricao or '', 'pre': o.pre_requisito or ''}
             for o in qs.order_by('nome')]
+    if universe or constraints.get('subclass_only'):
+        return universe
+    return _page_embedded_option_universe(
+        ctx, TbOpcaojogo.objects.filter(tipo=tipo_disp).values(
+            'id_opcao', 'slug', 'nome', 'tipo', 'descricao', 'pre_requisito'),
+        tipo_disp)
+
+
+def _opcao_origin(group):
+    # origem IDÊNTICA à do editar-ficha (personagem_escolher_opcoes) p/ o update_or_create
+    # casar entre criador e level-up: '<Classe>: <Tipo Exibido>'.
+    disp = group.get('tipo_display') or _slug2tipo_map().get(group.get('tipo')) or group.get('tipo') or ''
+    return '%s: %s' % (group.get('classe') or '', disp)
 
 
 def _opcao_persist(personagem, group, valores):
     from .models import TbPersonagemEscolha, TbOpcaojogo
     tipo = group['persist_tipo']
-    # origem IDÊNTICA à do editar-ficha (personagem_escolher_opcoes) p/ o update_or_create
-    # casar entre criador e level-up: '<Classe>: <Tipo Exibido>'.
-    disp = group.get('tipo_display') or _slug2tipo_map().get(group.get('tipo')) or group.get('tipo') or ''
-    origem = '%s: %s' % (group.get('classe') or '', disp)
+    origem = _opcao_origin(group)
     base = int(group.get('slot_base') or 0)
+    if group.get('tipo') == 'item_magico':
+        from django.db import transaction
+        with transaction.atomic():
+            for v in valores:
+                item_slug, _, row_id = str(v).partition('|')
+                candidate = next((u for u in group.get('universo', [])
+                                  if u['slug'] == item_slug and any(
+                                      sub['slug'] == row_id
+                                      for sub in u.get('subopcoes', []))), None)
+                if candidate is None:
+                    raise ValueError('Selected item or infusion is no longer available.')
+                infusion = TbPersonagemEscolha.objects.select_for_update().filter(
+                    pk=int(row_id), id_personagem=personagem, tipo='infusao').first()
+                if infusion is None:
+                    raise ValueError('Known infusion no longer exists.')
+                selected_id = group.get('selected_id')
+                if selected_id is not None and int(selected_id) != infusion.pk:
+                    raise ValueError('Selected infusion does not match the target slot.')
+                if selected_id is None and (infusion.valor or '').startswith('item_magico:'):
+                    raise ValueError('Already learned recipe cannot fill another slot.')
+                if TbPersonagemEscolha.objects.filter(
+                        id_personagem=personagem, tipo='infusao',
+                        valor='item_magico:' + item_slug).exclude(pk=infusion.pk).exists():
+                    raise ValueError('This item is already a known infusion.')
+                infusion.id_opcao = None
+                infusion.valor = 'item_magico:' + item_slug
+                infusion.save(update_fields=['id_opcao', 'valor'])
+        return
     for i, v in enumerate(valores):
         frozen = next((u for u in group.get('universo', [])
                        if str(v) in (str(u.get('id')), str(u.get('slug')))), None)
@@ -358,6 +525,17 @@ def _opcao_readback(personagem, group):
     if personagem is None:
         return []
     tipo = group['persist_tipo']
+    if group.get('tipo') == 'item_magico':
+        choices = personagem.escolhas.filter(
+            tipo='infusao', valor__startswith='item_magico:').order_by('slot')
+        if personagem.classes.count() > 1:
+            choices = choices.filter(origem__startswith='%s:' % group['classe'])
+        names = {u['slug']: u['nome'] for u in group.get('universo', [])}
+        return [{'id': row.pk, 'slot': row.slot,
+                 'valor': '%s|%s' % (row.valor.split(':', 1)[1], row.pk),
+                 'id_opcao': None,
+                 'nome': names.get(row.valor.split(':', 1)[1], row.valor)}
+                for row in choices]
     alt = normalize_slug(tipo)
     alt2 = tipo.replace('-', '_')
     out = []
@@ -365,11 +543,20 @@ def _opcao_readback(personagem, group):
     frozen_names.update({str(u.get('slug')): u.get('nome') for u in group.get('universo', [])})
     choices = (personagem.escolhas.all() if group.get('ruleset') is not None
                else personagem.escolhas.select_related('id_opcao').all())
+    # Em multiclasse, o mesmo tipo tem orçamentos independentes por classe.
+    # Classe única continua relendo linhas antigas sem origem padronizada.
+    if group.get('classe') and personagem.classes.count() > 1:
+        choices = choices.filter(origem=_opcao_origin(group)[:150])
     for e in choices:
         if e.tipo in (tipo, alt, alt2):
+            name = None
+            if tipo == 'infusao' and (e.valor or '').startswith('item_magico:'):
+                from .models import TbItemMagico
+                item = TbItemMagico.objects.filter(slug=e.valor.split(':', 1)[1]).first()
+                name = 'Replicar: %s' % (item.nome if item else e.valor.split(':', 1)[1])
             out.append({'id': e.id, 'slot': e.slot, 'valor': e.valor,
                         'id_opcao': e.id_opcao_id,
-                        'nome': (frozen_names.get(str(e.id_opcao_id))
+                        'nome': (name or frozen_names.get(str(e.id_opcao_id))
                                  or frozen_names.get(str(e.valor))
                                  or (e.valor if group.get('ruleset') is not None
                                      else (e.id_opcao.nome if e.id_opcao_id else e.valor)))})
@@ -506,12 +693,17 @@ def _arma_readback(personagem, group):
     if personagem is None:
         return []
     from .models import TbItemMundano, TbOpcaojogo
+    rows = personagem.escolhas.filter(tipo='maestria')
+    # Uma maestria do Bardo não preenche o orçamento do Guerreiro em multiclasse.
+    # Fichas de classe única continuam lendo registros legados sem origem.
+    if personagem.classes.count() > 1:
+        rows = rows.filter(origem='Maestria de Arma (%s)' % (group.get('classe') or ''))
     if group.get('ruleset') is not None:
         weapons = {str(u.get('slug')): u for u in group.get('universo', [])}
         mast = {normalize_slug(m['slug']): m['nome'] for u in weapons.values()
                 for m in (u.get('maestrias') or [])}
         out = []
-        for e in personagem.escolhas.filter(tipo='maestria').order_by('slot'):
+        for e in rows.order_by('slot'):
             arma, maestria = split_arma_maestria(e.valor)
             weapon = weapons.get(str(arma))
             pending = bool(weapon and weapon.get('maestrias') and maestria is None)
@@ -526,7 +718,7 @@ def _arma_readback(personagem, group):
     mast = {normalize_slug(o.slug): o.nome for o in TbOpcaojogo.objects.filter(tipo='Maestria de Arma')}
     permitidas = {str(u.get('slug')) for u in (group.get('universo') or [])}
     out = []
-    for e in personagem.escolhas.filter(tipo='maestria').order_by('slot'):
+    for e in rows.order_by('slot'):
         arma, maestria = split_arma_maestria(e.valor)
         w = (TbItemMundano.objects.filter(categoria='arma', slug=arma).first()
              or TbItemMundano.objects.filter(categoria='arma', nome__iexact=arma).first())
@@ -549,11 +741,24 @@ def _default_validate(group, valores):
     """Validação genérica: contagem exata + pertinência ao universo."""
     erros = []
     n = int(group.get('n') or 0)
-    universo = {str(u.get('slug')) for u in group.get('universo', [])}
-    universo |= {str(u.get('id')) for u in group.get('universo', []) if u.get('id') is not None}
+    universo = set()
+    for option in group.get('universo', []):
+        suboptions = option.get('subopcoes') or option.get('maestrias') or []
+        if suboptions:
+            universo.update('%s|%s' % (option['slug'], sub['slug'])
+                            for sub in suboptions
+                            if not (group.get('optional') and not group.get('selected_id')
+                                    and sub.get('already_replica')))
+        else:
+            universo.add(str(option.get('slug')))
+            if option.get('id') is not None:
+                universo.add(str(option['id']))
     vals = list(dict.fromkeys([str(v) for v in (valores or [])]))
     fora = [v for v in vals if v not in universo]
-    if fora or len(vals) != n:
+    parents = [v.split('|', 1)[0] for v in vals]
+    duplicate_parent = (group.get('unique_parent')
+                        and len(parents) != len(set(parents)))
+    if fora or len(vals) != n or duplicate_parent:
         erros.append(group.get('erro_label') or ('Escolha %d opção(ões) válida(s).' % n))
     return erros
 
@@ -966,6 +1171,60 @@ def _ferramenta_readback(personagem, group):
 
 
 # ---------------------------------------------------------------------------
+# kind 'idioma' — opções do catálogo de idiomas do mundo, com proficiência
+# materializada para a ficha e escolha por feature para releitura.
+# ---------------------------------------------------------------------------
+def _idioma_universe(ctx):
+    from .models import TbIdioma
+    from .character_engine import derive, _slug
+
+    personagem = ctx.get('personagem')
+    conhecidos = ({_slug(nome) for nome in derive(personagem).get('idiomas', [])}
+                  if personagem is not None else set())
+    return [{'id': idioma.pk, 'slug': idioma.slug, 'nome': idioma.nome,
+             'descricao': '', 'pre': '',
+             'ja_proficiente': (_slug(idioma.nome) in conhecidos
+                                or _slug(idioma.slug) in conhecidos)}
+            for idioma in TbIdioma.objects.all()]
+
+
+def _idioma_validate(group, valores):
+    disponiveis = [item for item in group.get('universo', [])
+                   if not item.get('ja_proficiente')]
+    return _default_validate(dict(group, universo=disponiveis), valores)
+
+
+def _idioma_persist(personagem, group, valores):
+    from .models import TbPersonagemEscolha, TbPersonagemProficiencia
+
+    origem = str(group.get('origem') or group.get('classe') or 'Idioma')[:150]
+    base = int(group.get('slot_base') or 0)
+    for i, valor in enumerate(valores):
+        option = next((item for item in group.get('universo', [])
+                       if str(valor) in (str(item['id']), item['slug'])), None)
+        if option is None:
+            continue
+        TbPersonagemEscolha.objects.update_or_create(
+            id_personagem=personagem, origem=origem, tipo='idioma', slot=base + i,
+            defaults={'valor': option['slug']})
+        TbPersonagemProficiencia.objects.get_or_create(
+            id_personagem=personagem, tipo='idioma', nome=option['nome'],
+            defaults={'origem': origem[:100]})
+
+
+def _idioma_readback(personagem, group):
+    if personagem is None:
+        return []
+    from .models import TbIdioma
+
+    origem = str(group.get('origem') or group.get('classe') or 'Idioma')[:150]
+    nomes = dict(TbIdioma.objects.values_list('slug', 'nome'))
+    return [{'id': row.id, 'slot': row.slot, 'valor': row.valor,
+             'nome': nomes.get(row.valor, row.valor)}
+            for row in personagem.escolhas.filter(
+                tipo='idioma', origem=origem).order_by('slot')]
+
+
 # kind 'talento' — escolha de um TALENTO (TbTalento) concedido por uma feature
 # (`pick:talento:1(=talento_de_origem...)` da linhagem Erthari 'Determinação Comum';
 # `pick:talento:1(tipo:origem, requires:prereqs)` do talento 'Raízes Profundas';
@@ -1110,6 +1369,12 @@ def _pretty_kind(slug):
     return (slug or '').replace('_', ' ').replace('-', ' ').strip().title()
 
 
+_RESIST_DAMAGE_LABELS = {
+    'acido': 'Ácido', 'raio': 'Elétrico', 'fogo': 'Fogo',
+    'frio': 'Frio', 'trovejante': 'Trovão',
+}
+
+
 def _match_brace(s, open_idx):
     """Índice do `}` que fecha o `{` em `open_idx` (contagem balanceada) ou -1."""
     depth = 0
@@ -1123,8 +1388,13 @@ def _match_brace(s, open_idx):
     return -1
 
 
-def _menu_entries(body):
-    """Opções de TOPO `slug:{...}` de um corpo `list{...}` (ignora blocos aninhados)."""
+def _menu_entries(body, class_level=None):
+    """Opções de topo de `list{...}`; enum interno gera pares distintos.
+
+    Um ramo `resistencia:{pick:resist:{fogo|frio}}` representa duas escolhas
+    persistentes, não a opção incompleta `resistencia`. Outros picks aninhados
+    continuam no seu próprio fluxo condicional.
+    """
     out, seen = [], set()
     i = 0
     while i < len(body):
@@ -1136,15 +1406,44 @@ def _menu_entries(body):
         close = _match_brace(body, open_idx)
         if close < 0:
             break
-        if slug not in seen:
-            seen.add(slug)
-            out.append({'id': None, 'slug': slug, 'nome': _pretty_kind(slug),
-                        'descricao': '', 'pre': ''})
+        entry_body = body[open_idx + 1:close]
+        level_gate = re.search(r'\bmin_class_level\s*:\s*(\d+)\b', entry_body)
+        if level_gate and class_level is not None and class_level < int(level_gate.group(1)):
+            i = close + 1
+            continue
+        nested = re.search(r'\bpick:([a-z][a-z0-9_]*):\s*\{([^{}]+)\}', entry_body)
+        options = []
+        if nested:
+            choices = [value.strip() for value in nested.group(2).split('|')]
+            if len(choices) > 1 and all(re.fullmatch(r'[a-z][a-z0-9_-]*', value)
+                                         for value in choices):
+                options = [(slug + '|' + value,
+                            ('Resistência Elemental' if slug == 'resistencia_elemental'
+                             else _pretty_kind(slug)) + ' — ' +
+                            (_RESIST_DAMAGE_LABELS.get(value, _pretty_kind(value))
+                             if nested.group(1) == 'resist' else _pretty_kind(value)))
+                            for value in choices]
+        if not options:
+            options = [(slug, _pretty_kind(slug))]
+        for option_slug, option_name in options:
+            if option_slug not in seen:
+                seen.add(option_slug)
+                out.append({'id': None, 'slug': option_slug,
+                            'nome': option_name, 'descricao': '', 'pre': ''})
         i = close + 1
     return out
 
 
-def _menu_options_from_define(source, kind):
+@lru_cache(maxsize=1)
+def _legacy_choice_supplements():
+    path = Path(__file__).resolve().parent / 'rules' / 'legacy_choice_supplements.json'
+    data = json.loads(path.read_text(encoding='utf-8'))
+    if data.get('schema') != 1:
+        raise ValueError('Unsupported legacy choice supplement schema.')
+    return data['pages']
+
+
+def _menu_options_from_define(source, kind, class_level=None):
     """Opções de `pick:<kind>` cujo universo vive num `define{<kind>: list{...}}` da
     própria feature. Devolve [{'id':None,'slug':..,'nome':..}] ou [] (sem define)."""
     kind = (kind or '').strip()
@@ -1160,7 +1459,37 @@ def _menu_options_from_define(source, kind):
         close = _match_brace(s, open_idx)
         if close < 0:
             continue
-        return _menu_entries(s[open_idx + 1:close])
+        options = _menu_entries(s[open_idx + 1:close], class_level=class_level)
+        # Keep option labels and descriptions in sync with the same page that
+        # defines the inline menu, including accented names in frozen rules.
+        from django.utils.text import slugify
+        details = {}
+        for line in str(getattr(source, 'descricao', '') or '').splitlines():
+            match = re.match(
+                r'^\s*-\s*\*\*(?:\[([^\]]+)\]\([^)]*\)|([^:*]+)):\*\*\s*(.*)$',
+                line)
+            if match:
+                name = (match.group(1) or match.group(2)).strip()
+                details[slugify(name).replace('-', '_')] = (name, match.group(3).strip())
+        for option in options:
+            if '|' not in option['slug'] and option['slug'] in details:
+                option['nome'], option['descricao'] = details[option['slug']]
+        page_digest = hashlib.sha256(
+            str(getattr(source, 'descricao', '') or '').encode('utf-8')).hexdigest()
+        existing = {option['slug'] for option in options}
+        for page in _legacy_choice_supplements():
+            if page['page_sha256'] != page_digest or page['choice_kind'] != kind:
+                continue
+            for supplement in page['options']:
+                if (supplement['slug'] in existing or
+                        (class_level is not None and
+                         class_level < supplement['min_class_level'])):
+                    continue
+                options.append({'id': None, 'slug': supplement['slug'],
+                                'nome': supplement['name'],
+                                'descricao': supplement['description'], 'pre': ''})
+                existing.add(supplement['slug'])
+        return options
     return []
 
 
@@ -1217,6 +1546,11 @@ def _inline_menu_options(tok, escolhas=None):
     m = re.search(r'=\s*(?:[a-z0-9_]+\s*:\s*)?\{([^}]*)\}', raw)
     if m:
         return _slugs_to_opts(_split_pipe(m.group(1)))
+    # Paginas tambem declaram menus literais como `pick:elemento:1(agua|ar|fogo)`.
+    # Aceitar apenas uma lista simples evita interpretar custos e efeitos como opcoes.
+    m = re.fullmatch(r'\s*\(([a-z0-9_-]+(?:\s*\|\s*[a-z0-9_-]+)+)\)\s*', raw)
+    if m:
+        return _slugs_to_opts(_split_pipe(m.group(1)))
     # (3) enumeração no SUB do token: pick:<kind>:{a|b|c}:N
     sub = (tok.sub or '').strip()
     if sub.startswith('{'):
@@ -1224,13 +1558,266 @@ def _inline_menu_options(tok, escolhas=None):
     return []
 
 
+def _selected_define_branches(tags, choice_values):
+    """Recover nested grants from old menus without a separate match() tag.
+
+    The menu itself remains a single choice; only the selected branch can
+    grant additional persistent picks. Published snapshots stay unchanged.
+    """
+    from .character_engine import _resolve_match
+
+    chosen = choice_values or {}
+    for raw in tags:
+        tag = str(raw)
+        for match in re.finditer(r'define\s*\{\s*([a-z][a-z0-9_]*)\s*:\s*list\s*\{', tag):
+            kind = match.group(1)
+            if not chosen.get(kind) or any(re.search(
+                    r'\bmatch\((?:pick:)?' + re.escape(kind) + r'\)\s*\{', str(item))
+                    for item in tags):
+                continue
+            end = _match_brace(tag, match.end() - 1)
+            if end < 0:
+                continue
+            body = tag[match.end():end]
+            branch = _resolve_match('match(%s){%s}' % (kind, body), chosen,
+                                    outer_only=True)
+            if any(iter_pick_tokens(branch)):
+                yield branch
+
+
+def _listed_menu_options(source, tok):
+    """Resolve a literal `pick:kind:N de [a, b]` from the same page tag."""
+    if source is None or tok is None:
+        return []
+    pattern = re.compile(re.escape(tok.raw) + r'\s+de\s*\[([^\]]+)\]', re.I)
+    for tag in getattr(source, 'tags_json', None) or []:
+        match = pattern.search(str(tag))
+        if match:
+            return _slugs_to_opts(_split_pipe(match.group(1)))
+    return []
+
+
+def _paired_prepared_spell_options(source, tok):
+    """Use a same-feature spell list for a legacy prepared-spell pick.
+
+    Sealed pages can name the list in ``spell_selection:fonte:X`` while their
+    ``pick:X_preparada:N`` omits ``de [...]``. The shared source identifier
+    prevents an unrelated spell list on the page from becoming this menu.
+    """
+    if source is None or tok is None:
+        return []
+    for tag in getattr(source, 'tags_json', None) or []:
+        match = re.search(
+            r'\bspell_selection:fonte:([a-z0-9_]+)\s*\{[^{}]*\blist:\s*\[([^\]]+)\]',
+            str(tag))
+        if not match or tok.kind not in {match.group(1) + '_preparada',
+                                       match.group(1) + '_preparado'}:
+            continue
+        options = _split_pipe(match.group(2))
+        if len(options) >= 2 and all(re.fullmatch(r'[a-z0-9_-]+', slug) for slug in options):
+            return _slugs_to_opts(options)
+    return []
+
+
+def _legacy_description_menu_options(source, tok):
+    """Recover a legacy menu only from an explicit choice list on its own page.
+
+    Early sealed catalogs sometimes had a counted ``pick:kind`` tag without a
+    universe even though the feature text enumerated the choices. Require a
+    matching ``Escolha`` heading, or a single counted pick paired with a
+    bold, counted ``dentre`` list. Runtime picks remain excluded by the token
+    scanner; arbitrary prose must never become a builder menu by inference.
+    """
+    if source is None or tok is None:
+        return []
+    from django.utils.text import slugify
+
+    # A frozen page may enumerate an initial choice without bold Markdown:
+    # "escolha um Elemento inicial: Água, Ar, Fogo ou Terra".  Match the noun
+    # to the counted pick kind and require a complete, unique list.
+    for line in str(getattr(source, 'descricao', '') or '').splitlines():
+        statement = re.search(
+            r'\bescolha\s+um(?:a)?\s+([\wÀ-ÿ]+)\s+inicial\s*:\s*([^.;\n]+)',
+            line, re.I)
+        if not statement or slugify(statement.group(1)).replace('-', '_') != tok.kind:
+            continue
+        names = [name.strip() for name in re.split(
+            r',\s*|\s+ou\s+', statement.group(2), flags=re.I)]
+        slugs = [slugify(name) for name in names]
+        if len(slugs) >= 3 and all(slugs) and len(set(slugs)) == len(slugs):
+            return [{'id': None, 'slug': slug, 'nome': name,
+                     'descricao': '', 'pre': ''}
+                    for slug, name in zip(slugs, names)]
+
+    # A rest-swappable sealed choice can list its named options with effects
+    # in parentheses rather than in a `de [...]` tag. Require the tagged noun,
+    # every enumerated entry, and an explicit rest-time replacement on the page.
+    if tok.constraints.get('swap') == 'short_or_long':
+        prose = str(getattr(source, 'descricao', '') or '')
+        stem = tok.kind.split('_')[0]
+        if (len(stem) >= 5 and re.search(r'\bescolher um novo\s+' + re.escape(stem),
+                                          prose, re.I)
+                and re.search(r'Descanso Curto.*Descanso Longo', prose, re.I | re.S)):
+            listing = re.search(r'\bt[eé]cnicas\s*:\s*([^.;\n]+)', prose, re.I)
+            if listing:
+                names = re.findall(r'([\wÀ-ÿ]+)\s*\([^()]+\)', listing.group(1))
+                slugs = [slugify(name) for name in names]
+                if len(slugs) >= 3 and len(slugs) == len(set(slugs)):
+                    return [{'id': None, 'slug': slug, 'nome': name,
+                             'descricao': '', 'pre': ''}
+                            for slug, name in zip(slugs, names)]
+
+    # A counted legacy pick may name the category while the same sentence
+    # enumerates every option in bold: "escolha um tipo de Terreno ...: **A**,
+    # **B** ou **C**". Match the category to the pick kind so unrelated lists
+    # on the page cannot become its universe.
+    for line in str(getattr(source, 'descricao', '') or '').splitlines():
+        statement = re.search(
+            r'\bescolha\s+um\s+tipo\s+de\s+([\wÀ-ÿ]+)[^:\n]*:\s*([^.;\n]+)',
+            line, re.I)
+        if not statement or slugify(statement.group(1)).replace('-', '_') != tok.kind:
+            continue
+        listing = statement.group(2).strip()
+        if not re.fullmatch(
+                r'\*\*[^*]+\*\*(?:\s*,\s*\*\*[^*]+\*\*)+\s+ou\s+\*\*[^*]+\*\*',
+                listing, re.I):
+            continue
+        names = re.findall(r'\*\*([^*]+)\*\*', listing)
+        if len(names) < 3 or any('\ufffd' in name for name in names):
+            continue
+        return [{'id': None, 'slug': slugify(name), 'nome': name,
+                 'descricao': '', 'pre': ''} for name in names]
+
+    kind_parts = [part for part in tok.kind.split('_') if len(part) >= 5]
+    for line in str(getattr(source, 'descricao', '') or '').splitlines():
+        heading = re.match(r'^\s*-\s*\*\*([^*]+)\*\*\s*:?\s*(.+)$', line)
+        if not heading or not slugify(heading.group(1)).startswith('escolha'):
+            continue
+        heading_slug = slugify(heading.group(1)).replace('-', '_')
+        if not any(part in heading_slug for part in kind_parts):
+            continue
+        listing = re.search(r'\bentre:\s*([^.;\n]+)', heading.group(2), re.I)
+        if not listing:
+            continue
+        names = [name.strip(' *') for name in re.split(r',\s*|\s+ou\s+', listing.group(1), flags=re.I)]
+        if len(names) < 3 or any(not name for name in names):
+            continue
+        slugs = [slugify(name) for name in names]
+        if any(not slug for slug in slugs) or len(set(slugs)) != len(slugs):
+            continue
+        return [{'id': None, 'slug': slug, 'nome': name, 'descricao': '', 'pre': ''}
+                for slug, name in zip(slugs, names)]
+    # Some sealed features omitted `de [...]` but explicitly say "escolher
+    # **dois ...** dentre: **A**, **B** ou **C**". Require the only actionable
+    # pick on that feature, the same count in prose and tag, and a complete
+    # bold list. This also works when old prose lost accents in its noun.
+    count_words = {'um': 1, 'uma': 1, 'dois': 2, 'duas': 2,
+                   'tres': 3, 'três': 3, 'quatro': 4}
+    actionable = [pick for tag in getattr(source, 'tags_json', None) or []
+                  for pick in iter_pick_tokens(_strip_define_bodies(str(tag)))]
+    if len(actionable) != 1 or actionable[0].kind != tok.kind:
+        return []
+    for line in str(getattr(source, 'descricao', '') or '').splitlines():
+        statement = re.search(
+            r'\bescolher\s+\*\*(um|uma|dois|duas|tres|três|quatro)\b[^*]*\*\*\s+dentre:\s*([^.;\n]+)',
+            line, re.I)
+        if not statement or str(count_words[statement.group(1).lower()]) != tok.count_expr:
+            continue
+        listing = statement.group(2).strip()
+        if not re.fullmatch(r'\*\*[^*]+\*\*(?:\s*,\s*\*\*[^*]+\*\*)*\s+ou\s+\*\*[^*]+\*\*',
+                            listing, re.I):
+            continue
+        names = re.findall(r'\*\*([^*]+)\*\*', listing)
+        if len(names) < 3 or any('\ufffd' in name for name in names):
+            continue
+        slugs = [slugify(name) for name in names]
+        if any(not slug for slug in slugs) or len(set(slugs)) != len(slugs):
+            continue
+        return [{'id': None, 'slug': slug, 'nome': name, 'descricao': '', 'pre': ''}
+                for slug, name in zip(slugs, names)]
+    return []
+
+
+def _missing_page_menu_options(source, kind, options):
+    """Complete a frozen inline menu from its own explicitly enumerated page.
+
+    The section must match the pick category and already contain at least two
+    tagged entries. Unrelated prose therefore cannot create a builder choice.
+    """
+    from django.utils.text import slugify
+
+    description = str(getattr(source, 'descricao', '') or '')
+    category = [part.rstrip('s') for part in (kind or '').split('_') if len(part) >= 5]
+    if not description or not category:
+        return []
+    existing = {str(option['slug']).partition('|')[0] for option in options}
+    stopwords = {'a', 'o', 'as', 'os', 'de', 'do', 'da', 'dos', 'das', 'e'}
+
+    def normalized(value):
+        return '_'.join(part for part in slugify(value.replace('_', '-')).split('-')
+                        if part not in stopwords)
+
+    for section in re.finditer(r'(?m)^#{3,6}\s+(.+?)\s*$', description):
+        if not any(part in normalized(section.group(1)) for part in category):
+            continue
+        next_section = re.search(r'(?m)^#{1,6}\s+', description[section.end():])
+        end = section.end() + next_section.start() if next_section else len(description)
+        names = []
+        for line in description[section.end():end].splitlines():
+            match = re.match(
+                r'^\s*-\s*\*\*(?:\[([^\]]+)\]\([^)]*\)|([^:*]+)):\*\*', line)
+            if match:
+                names.append(((match.group(1) or match.group(2)).strip(),
+                              line[match.end():].strip().replace('**', '')))
+        if len(names) < 3:
+            continue
+        matched, additions = 0, []
+        for name, detail in names:
+            slug = normalized(name)
+            if not slug:
+                continue
+            if any(current == slug or current.startswith(slug + '_')
+                   or slug.startswith(current + '_')
+                   for current in (normalized(old) for old in existing)):
+                matched += 1
+            else:
+                additions.append({'id': None, 'slug': slug, 'nome': name,
+                                  'descricao': detail, 'pre': ''})
+        if matched >= 2 and len({item['slug'] for item in additions}) == len(additions):
+            return additions
+    return []
+
+
 def _menu_universe(ctx):
     """Universo de um pick de MENU: define{list} irmão OU enumeração inline na cauda."""
-    opts = _menu_options_from_define(ctx.get('source'), ctx.get('kind'))
+    constraints = ctx.get('constraints') or {}
+    source_menu = constraints.get('from_menu')
+    if source_menu:
+        return _menu_options_from_define(ctx.get('source'), source_menu,
+                                         class_level=ctx.get('nivel'))
+    opts = _menu_options_from_define(ctx.get('source'), ctx.get('kind'),
+                                     class_level=ctx.get('nivel'))
     if opts:
-        return opts
-    tok = ctx.get('token')
-    return _inline_menu_options(tok, ctx.get('escolhas')) if tok is not None else []
+        opts += _missing_page_menu_options(ctx.get('source'), ctx.get('kind'), opts)
+    else:
+        tok = ctx.get('token')
+        if tok is None:
+            return []
+        opts = (_inline_menu_options(tok, ctx.get('escolhas'))
+                or _listed_menu_options(ctx.get('source'), tok)
+                or _paired_prepared_spell_options(ctx.get('source'), tok)
+                or _legacy_description_menu_options(ctx.get('source'), tok))
+    known_kind = constraints.get('from_known')
+    personagem = ctx.get('personagem')
+    if known_kind and personagem is not None:
+        known = set(personagem.escolhas.filter(tipo=known_kind).values_list('valor', flat=True))
+        if not known:
+            # Keep an older prepared choice visible until it is seeded as known.
+            known.update(personagem.escolhas.filter(tipo=ctx.get('kind')).values_list('valor', flat=True))
+        opts = [option for option in opts if option['slug'] in known]
+    elif known_kind:
+        opts = []
+    return opts
 
 
 def _save_prof_universe(ctx):
@@ -1295,6 +1882,79 @@ def _menu_readback(personagem, group):
     return out
 
 
+def _truque_universe(ctx):
+    """Cantrips from the live or pinned spell catalog."""
+    from .models import TbMagia
+    ruleset = ctx.get('ruleset')
+    if ruleset is not None:
+        from .versioned_spells import spell_catalog
+        spells = (spell for spell in spell_catalog(ruleset).values()
+                  if int(spell.nivel or 0) == 0)
+    else:
+        spells = TbMagia.objects.filter(nivel=0)
+    return [{'id': None, 'slug': spell.slug, 'nome': spell.nome,
+             'descricao': spell.descricao or '', 'pre': ''}
+            for spell in sorted(spells, key=lambda spell: (spell.nome, spell.slug))]
+
+
+def _spell_universe(ctx):
+    """Spells already acquired in the class spellbook at the declared circle."""
+    from .models import TbMagia
+
+    personagem = ctx.get('personagem')
+    classe = ctx.get('classe')
+    raw = (ctx.get('constraints') or {}).get('raw') or ''
+    circle = re.search(r'circulo\s*:\s*(\d+)', raw)
+    if not (personagem and classe and circle and re.search(r'\bde\s*:\s*grimorio\b', raw)):
+        return []
+    level = int(circle.group(1))
+    ruleset = ctx.get('ruleset')
+    if ruleset is not None:
+        from .versioned_spells import spell_catalog
+        catalog = spell_catalog(ruleset)
+    else:
+        catalog = None
+    options = {}
+    for owned in personagem.magias.filter(
+            origem__iexact=classe.nome, nivel=level,
+            sempre_preparada=False).select_related('id_magia'):
+        spell = catalog.get(owned.id_magia_id) if catalog is not None else owned.id_magia
+        if spell and int(spell.nivel or 0) == level:
+            options[spell.slug] = spell
+    return [{'id': spell.pk, 'slug': spell.slug, 'nome': spell.nome,
+             'descricao': spell.descricao or '', 'pre': ''}
+            for spell in sorted(options.values(), key=lambda spell: (spell.nome, spell.slug))]
+
+
+def _spell_readback(personagem, group):
+    allowed = {option['slug'] for option in group.get('universo', [])}
+    return [row for row in _menu_readback(personagem, group)
+            if row['valor'] in allowed]
+
+
+def _spell_persist(personagem, group, valores):
+    """Reuse slots whose spell left the book, retaining character and choice IDs."""
+    from .models import TbPersonagemEscolha
+
+    origin = str(group.get('origem') or 'spell')[:150]
+    allowed = {option['slug'] for option in group.get('universo', [])}
+    stale = list(personagem.escolhas.filter(
+        tipo='spell', origem=origin).exclude(valor__in=allowed).order_by('slot'))
+    next_slot = int(group.get('slot_base') or 0)
+    for value in valores:
+        if value not in allowed:
+            continue
+        if stale:
+            row = stale.pop(0)
+            row.valor = value
+            row.save(update_fields=['valor'])
+        else:
+            TbPersonagemEscolha.objects.update_or_create(
+                id_personagem=personagem, origem=origin, tipo='spell', slot=next_slot,
+                defaults={'valor': value})
+            next_slot += 1
+
+
 _MENU_ENTRY = {
     'sink': 'escolha',
     'menu': True,
@@ -1315,6 +1975,24 @@ _DEDICATED_KINDS = frozenset({'vertente', 'attr'})
 
 
 PICK_REGISTRY = {
+    'spell': {
+        'sink': 'escolha', 'label': 'Magia do Grimório', 'menu': True,
+        'universe': _spell_universe, 'persist': _spell_persist,
+        'validate': _default_validate, 'readback': _spell_readback,
+    },
+    'truque': {
+        'sink': 'escolha', 'label': 'Truque', 'menu': True,
+        'universe': _truque_universe, 'persist': _menu_persist,
+        'validate': _default_validate, 'readback': _menu_readback,
+    },
+    'idioma': {
+        'sink': 'proficiencia',
+        'label': 'Idioma',
+        'universe': _idioma_universe,
+        'persist': _idioma_persist,
+        'validate': _idioma_validate,
+        'readback': _idioma_readback,
+    },
     'opcao': {
         'sink': 'escolha',
         'universe': _opcao_universe,
@@ -1405,20 +2083,74 @@ def _persist_tipo_for(kind, tipo, is_menu=False):
     return tipo or kind
 
 
+def _legacy_subclass_bonus_defaults(source, subclasse, token):
+    """Recover an old page's two named additional styles from frozen prose."""
+    if (token.kind != 'opcao' or token.count_expr != '2' or subclasse is None
+            or getattr(source, 'id_subclasse_id', None) != subclasse.pk):
+        return []
+    description = str(getattr(source, 'descricao', '') or '')
+    match = re.search(
+        r'aprende os Estilos de Ki\s+([\wÀ-ÿ]+)\s+e\s+([\wÀ-ÿ]+)'
+        r'\s*\(se já possuir[^)]*escolha outro(?: Estilo)?',
+        description, re.I)
+    if not match:
+        return []
+    from django.utils.text import slugify
+    return [slugify('Estilo ' + name) for name in match.groups()]
+
+
 def _build_group(token, source, classe, subclasse, nivel, personagem, escolhas_map, entry,
                  tag_text='', choice_values=None, ruleset=None):
     tipo = token.sub
     n = count_for(token.count_expr, nivel, classe, token.resource_ref, ruleset=ruleset)
+    optional = token.kind == 'opcao' and tipo == 'item_magico'
+    if optional and personagem is not None:
+        known = personagem.escolhas.filter(tipo='infusao')
+        if personagem.classes.count() > 1:
+            known = known.filter(origem__startswith='%s:' % classe.nome)
+        maximum = resource_limit(classe, nivel, 'infusoes_conhecidas', ruleset=ruleset)
+        n = min(known.count(), maximum or 0)
     if not n or n <= 0:
         return None
+    constraints = dict(token.constraints or {})
+    # Legacy subclass pages use ``(<subclass slug>)`` to replace the class
+    # option catalog and add a choice. Interpret the frozen declaration
+    # against its own option ACL without changing the snapshot.
+    subclass_replacement = bool(
+        token.kind == 'opcao' and subclasse is not None
+        and getattr(source, 'id_subclasse_id', None) == subclasse.pk
+        and constraints.get('raw', '').strip() == '(%s)' % subclasse.slug
+        and re.search(r'substitu[ií]d', str(getattr(source, 'descricao', '') or ''), re.I))
+    if subclass_replacement:
+        constraints['subclass_only'] = True
+    defaults = constraints.get('default_slugs') or _legacy_subclass_bonus_defaults(
+        source, subclasse, token)
+    seed_from = constraints.get('seed_from')
+    if seed_from and personagem is not None:
+        defaults = list(dict.fromkeys(defaults + list(
+            personagem.escolhas.filter(tipo=seed_from).values_list('valor', flat=True))))
+    bonus_count = constraints.get('add') or (len(defaults) if defaults else 0)
+    if seed_from:
+        bonus_count = 0
+    source_slug = _page_option_source(source, token)
+    if source_slug:
+        constraints.update(from_kind='classe', from_slug=source_slug)
     ctx = {
         'personagem': personagem, 'classe': classe, 'subclasse': subclasse, 'nivel': nivel,
-        'kind': token.kind, 'tipo': tipo, 'constraints': token.constraints,
+        'kind': token.kind, 'tipo': tipo, 'constraints': constraints,
         'tag_text': tag_text, 'source': source, 'token': token,
         'escolhas': choice_values or {}, 'ruleset': ruleset,
     }
     universo = entry['universe'](ctx)
-    if not universo and ruleset is None:
+    if bonus_count and (bonus_count != len(defaults) or
+                        not set(defaults) <= {o['slug'] for o in universo}):
+        raise ValueError('Declared additional options are absent from the catalog.')
+    learned_replica = (token.kind == 'opcao' and tipo == 'item_magico'
+                       and personagem is not None
+                       and personagem.escolhas.filter(
+                           tipo='infusao', valor__startswith='item_magico:').exists())
+    if not universo and not learned_replica and (ruleset is None or
+                                                 (token.kind == 'opcao' and tipo == 'item_magico')):
         return None
     persist_tipo = _persist_tipo_for(token.kind, tipo, is_menu=bool(entry.get('menu')))
     # Rótulo: kinds com rótulo FIXO no registry (`arma`, `pericia`) usam-no; `opcao` deriva
@@ -1441,14 +2173,24 @@ def _build_group(token, source, classe, subclasse, nivel, personagem, escolhas_m
     group = {
         'origem': getattr(source, 'nome', None) or (classe.nome if classe else ''),
         'kind': token.kind, 'tipo': tipo, 'persist_tipo': persist_tipo,
+        'optional': optional, 'paired_target_is_choice': optional,
+        'increment_existing': subclass_replacement or bool(bonus_count),
+        'auto_options': defaults,
+        'unique_parent': optional,
         'tipo_display': tipo_display, 'label': label,
         # TROCABILIDADE: sai da TAG (constraint do token ou marcador irmão), nunca de uma
         # lista de tipos trocáveis. `None` = escolha fixa.
         'swap': swap_scope(token, source),
-        'n': n, 'universo': universo, 'constraints': token.constraints,
+        'n': n, 'universo': universo, 'constraints': constraints,
         'classe_id': (classe.id_classe if classe else None),
         'classe': (classe.nome if classe else ''),
         'sink': entry['sink'], 'ruleset': ruleset,
+        'spell_table': bool(
+            re.search(r'^\s*\|\s*N[ií]vel[^|]*\|\s*C[ií]rculo',
+                      str(getattr(source, 'descricao', '') or ''), re.I | re.M)
+            and any('spell_selection:' in str(tag) and 'always_prepared' in str(tag)
+                    and 'extra' in str(tag)
+                    for tag in (getattr(source, 'tags_json', None) or []))),
     }
     # escolhidas: do personagem (readback) OU do mapa passado (builder sem personagem)
     if personagem is not None:
@@ -1456,6 +2198,9 @@ def _build_group(token, source, classe, subclasse, nivel, personagem, escolhas_m
     else:
         escolhidas = list((escolhas_map or {}).get(persist_tipo)
                           or (escolhas_map or {}).get(normalize_slug(persist_tipo)) or [])
+    # Regressao de nivel suspende slots ainda nao desbloqueados sem destruir as
+    # escolhas persistidas: ao progredir novamente, o readback recupera todos.
+    escolhidas = escolhidas[:n]
     group['escolhidas'] = escolhidas
     group['usados'] = len(escolhidas)
     group['pendentes'] = max(0, n - len(escolhidas))
@@ -1474,9 +2219,94 @@ def _entry_for_token(tok, source, choice_values=None):
         return None
     if tok.kind in PICK_REGISTRY:
         return PICK_REGISTRY[tok.kind]
-    if _menu_options_from_define(source, tok.kind) or _inline_menu_options(tok, choice_values):
+    if ((tok.constraints or {}).get('from_menu')
+            or _menu_options_from_define(source, tok.kind)
+            or _inline_menu_options(tok, choice_values)
+            or _listed_menu_options(source, tok)
+            or _paired_prepared_spell_options(source, tok)
+            or _legacy_description_menu_options(source, tok)):
         return _MENU_ENTRY
     return None
+
+
+def _paired_known_formula(source):
+    """A page's counted formula source and its prepared menu share one catalog."""
+    tags = [str(tag) for tag in getattr(source, 'tags_json', None) or []]
+    for tag in tags:
+        match = re.search(
+            r'spell_selection:fonte:([a-z0-9_]+)\s*\{\s*qtd:\s*(\{[^}]+\})',
+            tag)
+        if not match:
+            continue
+        stem = match.group(1).rstrip('s')
+        prepared = stem + '_preparado'
+        if (any(re.search(r'\bpick:' + re.escape(prepared) + r':', item)
+                for item in tags)
+                and _menu_options_from_define(source, prepared)):
+            return stem + '_conhecido', prepared, match.group(2)
+    return None
+
+
+def _legacy_guarded_rune_pick(source):
+    """Recover a rest choice from an old ability-rune guard reference and its page.
+
+    The frozen tag names the guarded rune but predates a build-choice menu.  Use
+    only an explicit four-row rune table and both rest triggers on that same
+    page; activation-only rune references must not become permanent choices.
+    """
+    from django.utils.text import slugify
+
+    tags = [str(tag) for tag in getattr(source, 'tags_json', None) or []]
+    if not any(re.search(r'pick:ability\{[^{}]+\}\.runa:1\(guard\)', tag)
+               for tag in tags):
+        return None
+    if 'trigger=on{short_rest, long_rest}' not in tags:
+        return None
+    prose = str(getattr(source, 'descricao', '') or '')
+    heading = re.search(r'(?m)^- \*\*(Runa Guardi[ãa])\.\*\*', prose)
+    if not heading or not re.search(r'Descanso Curto.*Descanso Longo', prose, re.I):
+        return None
+    slugs = []
+    for cell in re.findall(r'(?m)^\|\s*\*\*([^*|]+)\*\*\s*\|', prose):
+        rune = re.fullmatch(r'Runa d(?:a|as|o|os)\s+(.+)',
+                            cell.split('(')[0].strip(), re.I)
+        if rune:
+            slugs.append(slugify(rune.group(1)))
+    if len(slugs) != 4 or len(set(slugs)) != 4:
+        return None
+    kind = slugify(heading.group(1)).replace('-', '_')
+    return 'pick:%s:1(={%s},swap:short_or_long)' % (kind, '|'.join(slugs))
+
+
+def _legacy_rest_attunement_pick(source):
+    """Recover a frozen rest choice only when its own page names both options.
+
+    Old tags placed this pick inside ``instant{}``, where the builder correctly
+    ignores activation choices. A page that explicitly attunes an aspect at a
+    rest instead needs one persistent, rest-swappable character choice.
+    """
+    from django.utils.text import slugify
+
+    tags = [str(tag) for tag in getattr(source, 'tags_json', None) or []]
+    matches = [re.fullmatch(
+        r'trigger=short_rest,\s*trigger=long_rest,\s*instant\{\s*'
+        r'pick:([a-z][a-z0-9_]+):1\s*\}', tag)
+        for tag in tags]
+    kinds = [match.group(1) for match in matches if match]
+    if len(kinds) != 1:
+        return None
+    prose = str(getattr(source, 'descricao', '') or '')
+    statement = re.search(
+        r'Ao terminar um \*\*Descanso Curto ou Longo\*\*,\s*'
+        r'[^.\n]*?\bsintoniza\b[^.\n]*?\bao\s+([\wÀ-ÿ]+)\s+'
+        r'\*\*([^*]+)\*\*\s+ou\s+\*\*([^*]+)\*\*', prose, re.I)
+    if not statement or slugify(statement.group(1)) != kinds[0].split('_')[-1]:
+        return None
+    options = [slugify(statement.group(i)) for i in (2, 3)]
+    if not all(options) or len(set(options)) != 2:
+        return None
+    return 'pick:%s:1(={%s},swap:short_or_long)' % (
+        kinds[0], '|'.join(options))
 
 
 def registry_entry(kind):
@@ -1504,7 +2334,54 @@ def resolve_groups(sources, *, classe=None, subclasse=None, nivel=1,
     grupos = []
     por_chave = {}  # chave -> índice em `grupos` (dedup pela MAIOR contagem)
     for source in sources:
-        for tag in (getattr(source, 'tags_json', None) or []):
+        source_tags = list(getattr(source, 'tags_json', None) or [])
+        guarded_rune = _legacy_guarded_rune_pick(source) if ruleset is not None else None
+        if guarded_rune and not any('pick:' + guarded_rune.split(':')[1] + ':' in str(tag)
+                                    for tag in source_tags):
+            source_tags.insert(0, guarded_rune)
+        rest_attunement = (_legacy_rest_attunement_pick(source)
+                            if ruleset is not None else None)
+        if rest_attunement:
+            rest_kind = rest_attunement.split(':')[1]
+            if not any(tok.kind == rest_kind for tag in source_tags
+                       for tok in iter_pick_tokens(str(tag))):
+                source_tags.insert(0, rest_attunement)
+        paired_formula = _paired_known_formula(source)
+        if paired_formula:
+            known_kind, prepared_kind, count_expr = paired_formula
+            if not any(re.search(r'\bpick:' + re.escape(known_kind) + r':', str(tag))
+                       for tag in source_tags):
+                swap_on_gain = bool(re.search(
+                    r'sempre que aprender.{0,120}substituir',
+                    str(getattr(source, 'descricao', '') or ''), re.I | re.S))
+                source_tags.insert(0, 'pick:%s:%s(from_menu:%s,seed_from:%s%s)' % (
+                    known_kind, count_expr, prepared_kind, prepared_kind,
+                    ',swap:level_up,on_gain:1' if swap_on_gain else ''))
+        define_branches = list(_selected_define_branches(source_tags, choice_values))
+        declared = {m.group(1) for raw in source_tags
+                    for m in re.finditer(r'(?<![a-z_-])pick:([a-z][a-z0-9_]+)', str(raw))}
+        for tag, from_define in ([(raw, False) for raw in source_tags]
+                                 + [(branch, True) for branch in define_branches]):
+            # Picks inside match branches are offered only for the selected branch.
+            # Match expressions inside a pick's own constraints are its option
+            # source, not a branch to collapse before parsing that pick.
+            tag = str(tag)
+            pick_spans = [token.span for token in iter_pick_tokens(tag)]
+            for match in reversed(list(re.finditer(
+                    r'match\((?:pick:)?([a-z][a-z0-9_]+)\)\s*\{', tag))):
+                variable = match.group(1)
+                if variable not in declared:
+                    continue
+                if any(start <= match.start() < end for start, end in pick_spans):
+                    continue
+                end = _match_brace(tag, match.end() - 1)
+                if end < 0:
+                    continue
+                from .character_engine import _resolve_match
+                branch = _resolve_match(tag[match.start():end + 1],
+                                        {variable: (choice_values or {}).get(variable)},
+                                        outer_only=True)
+                tag = tag[:match.start()] + branch + tag[end + 1:]
             # O corpo dos define{} é o MENU do próprio pick — não deve ser varrido como
             # picks IRMÃOS (senão sub-picks de uma opção, ex.: Doutrina Marcial
             # `armas_treinadas:{pick:arma:3}`, vazam como grupos independentes). O pick
@@ -1512,7 +2389,26 @@ def resolve_groups(sources, *, classe=None, subclasse=None, nivel=1,
             for tok in iter_pick_tokens(_strip_define_bodies(tag)):
                 if kinds is not None and tok.kind not in kinds:
                     continue
+                if paired_formula and tok.kind == paired_formula[1]:
+                    tok.constraints['from_known'] = paired_formula[0]
+                    # Old frozen pages wrote the prepared limits as absolute
+                    # milestones (1, 2, 3), not cumulative grants.
+                    if not re.search(r'[+-]\d+', tok.count_expr or ''):
+                        milestones = [int(value) for level, value in re.findall(
+                            r'classlvl\s*=\s*(\d+)\s*:\s*(\d+)', tok.count_expr or '')
+                                      if int(level) <= nivel]
+                        if milestones:
+                            tok.count_expr = str(milestones[-1])
                 entry = _entry_for_token(tok, source, choice_values)
+                if (entry is None and ruleset is not None
+                        and tok.kind not in _DEDICATED_KINDS
+                        and any(previous['kind'] == tok.kind
+                                and previous['tipo'] == tok.sub
+                                and previous['classe_id'] == classe_id
+                                and previous['universo'] for previous in grupos)):
+                    # A sealed later feature can raise the count of an earlier
+                    # menu without repeating its option list.
+                    entry = _MENU_ENTRY
                 if entry is None:
                     continue  # kind não registrado e sem define/inline -> ignora
                 g = _build_group(tok, source, classe, subclasse, nivel,
@@ -1520,17 +2416,45 @@ def resolve_groups(sources, *, classe=None, subclasse=None, nivel=1,
                                  choice_values=choice_values, ruleset=ruleset)
                 if g is None:
                     continue
+                if from_define:
+                    g['increment_existing'] = True
                 # Picks de perÃ­cia pertencem Ã  FEATURE que os concedeu: Conhecimento
                 # Primitivo e PresenÃ§a Intimidante, por exemplo, sÃ£o dois slots distintos.
                 # OpÃ§Ãµes de progressÃ£o (Metamagia etc.) continuam deduplicadas por kind/sub.
-                source_key = getattr(source, 'pk', id(source)) \
-                    if tok.kind in ('pericia', 'pericia_expertise') else None
+                # Traços e talentos distintos podem conceder o mesmo kind (ex.:
+                # Poliglota + Linguista + Contratos e Decretos). Só escolhas da
+                # mesma fonte devem compartilhar os slots nesse caso. Para
+                # classe, a deduplicação por kind continua permitindo que uma
+                # feature posterior amplie o limite da mesma escolha.
+                source_key = None
+                if classe is None or tok.kind in ('pericia', 'pericia_expertise'):
+                    source_key = (getattr(getattr(source, '_meta', None),
+                                          'label_lower', type(source).__name__),
+                                  getattr(source, 'pk', id(source)))
                 chave = (tok.kind, tok.sub, classe_id, source_key)
                 idx = por_chave.get(chave)
+                if idx is not None and g.get('increment_existing'):
+                    g['n'] += grupos[idx]['n']
                 if idx is None:
                     por_chave[chave] = len(grupos)
                     grupos.append(g)
                 elif g['n'] > grupos[idx]['n']:
+                    # A feature que amplia a contagem preserva a identidade de
+                    # persistencia da escolha inicial (ex.: Terreno N3 -> N18).
+                    g['origem'] = grupos[idx]['origem']
+                    # Se a pagina posterior apenas amplia os slots, mantenha o
+                    # universo e a troca declarados pela primeira pagina.
+                    if not g['universo'] and grupos[idx]['universo']:
+                        g['universo'] = grupos[idx]['universo']
+                    if not g['swap']:
+                        g['swap'] = grupos[idx]['swap']
+                    g['spell_table'] = g['spell_table'] or grupos[idx]['spell_table']
+                    if personagem is not None:
+                        g['escolhidas'] = entry['readback'](personagem, g)
+                        g['usados'] = len(g['escolhidas'])
+                        g['pendentes'] = max(0, g['n'] - g['usados'])
+                        g['prox_slot'] = max(
+                            [e.get('slot', -1) for e in g['escolhidas']], default=-1) + 1
                     grupos[idx] = g  # a MAIOR fórmula aplicável vence (não a primeira)
     return grupos
 
@@ -1614,19 +2538,20 @@ def resolve_personagem(personagem, *, kinds=None):
     if personagem is None:
         return grupos
     cvals = _choice_values(personagem)
-    for c in personagem.classes.select_related('id_classe', 'id_subclasse'):
+    for c in personagem.classes.select_related('id_classe', 'id_subclasse', 'ruleset'):
         nivel = int(c.nivel or 0)
         classe = c.id_classe
-        ruleset = None
-        if classe.slug == 'cacador':
+        ruleset = c.ruleset if c.ruleset_id else None
+        if ruleset is None and classe.slug == 'cacador':
             from .models import TbPersonagemCacador
             profile = TbPersonagemCacador.objects.select_related('ruleset').filter(
                 personagem_classe=c).first()
             if profile is not None:
-                from .versioned_classes import VersionedClassCatalog
                 ruleset = profile.ruleset
-                catalog = VersionedClassCatalog(ruleset, c.id_classe_id)
-                classe = catalog.classe
+        if ruleset is not None:
+            from .versioned_classes import VersionedClassCatalog
+            catalog = VersionedClassCatalog(ruleset, c.id_classe_id)
+            classe = catalog.classe
         if ruleset is None:
             habs = list(TbClassehabilidade.objects.filter(
                 id_classe=classe, id_subclasse__isnull=True, niveladquirido__lte=nivel))
@@ -1634,7 +2559,7 @@ def resolve_personagem(personagem, *, kinds=None):
             habs = [h for h in catalog.collections[TbClassehabilidade]
                     if h.id_subclasse_id is None and h.niveladquirido <= nivel]
         subclasse = None
-        if _subclass_unlocked(c, nivel):
+        if _subclass_unlocked(c, nivel, ruleset=ruleset):
             subclasse = catalog.subclasses[c.id_subclasse_id] if ruleset else c.id_subclasse
             if ruleset:
                 habs += [h for h in catalog.collections[TbClassehabilidade]

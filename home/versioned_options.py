@@ -53,6 +53,7 @@ class VersionedOptions:
         classe = getattr(ctx.get('classe'), 'pk', None)
         subclasse = getattr(ctx.get('subclasse'), 'pk', None)
         constraints = ctx.get('constraints') or {}
+        listed = constraints.get('listed_slugs')
         kind, slug = constraints.get('from_kind'), constraints.get('from_slug')
         explicit = bool(kind and slug)
         if kind == 'classe':
@@ -63,13 +64,19 @@ class VersionedOptions:
             subclasse = sub['id_subclasse'] if sub else None
             classe = sub['id_classe_id'] if sub else None
         options = [o for o in self.data['options'] if o['tipo'] == tipo]
+        if listed:
+            options = [o for o in options if o['slug'].replace('_', '-') in listed]
+            return [{'id': o['id_opcao'], 'slug': o['slug'], 'nome': o['nome'],
+                     'descricao': o['descricao'] or '', 'pre': o['pre_requisito'] or ''}
+                    for o in sorted(options, key=lambda o: o['nome'])]
         ids = {o['id_opcao'] for o in options}
         access = [a for a in self.data['access'] if a['id_opcao_id'] in ids]
         level = int(ctx.get('nivel') or 1)
-        if explicit or access:
+        if explicit or access or constraints.get('subclass_only'):
             allowed = {a['id_opcao_id'] for a in access
                 if a['nivel_recebimento'] <= level and (
-                    (classe is not None and a['id_classe_id'] == classe) or
+                    (not constraints.get('subclass_only') and
+                     classe is not None and a['id_classe_id'] == classe) or
                     (subclasse is not None and a['id_subclasse_id'] == subclasse))}
             options = [o for o in options if o['id_opcao'] in allowed]
         return [{'id': o['id_opcao'], 'slug': o['slug'], 'nome': o['nome'],

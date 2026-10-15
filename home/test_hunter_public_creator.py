@@ -11,6 +11,76 @@ from .test_criador import _CriadorBase
 class HunterPublicCreatorTests(_CriadorBase):
     setup_creation = CreatorHunterBindingTests.setup_creation
     valid_payload = CreatorHunterBindingTests.valid_payload
+    def test_pathbuilder_hunter_entry_and_preview_keep_published_class(self):
+        from .class_revision_editor import create_class_revision
+        from .pathbuilder import default_build
+        from .versioned_classes import VersionedClassCatalog
+        from .models import TbClassehabilidade, TbSubclasse
+
+        self.setup_creation()
+        _, errors = self.valid_payload('int')
+        self.assertEqual(errors, [])
+        feature = TbClassehabilidade.objects.filter(id_classe=self.classe).first()
+        self.assertIsNotNone(feature)
+        self.ruleset = create_class_revision(self.ruleset.checksum, self.classe.pk, [
+            {'model': 'home.tbclassehabilidade', 'action': 'update',
+             'pk': feature.pk, 'fields': {'descricao': '## Revisao publicada no laboratorio'}}
+        ], presentation_source='catalog')
+        TbClassPublication.objects.create(id_classe=self.classe, ruleset=self.ruleset)
+        self.client.force_login(self.user)
+        before = TbPersonagem.objects.count()
+        with override_settings(HUNTER_CREATOR_RULESET_CHECKSUM=self.ruleset.checksum):
+            TbClasse.objects.filter(pk=self.classe.pk).update(
+                nome='Caçador vivo alterado', tags_json=[])
+            live_only = TbSubclasse.objects.create(
+                id_classe=self.classe, slug='ordem-so-no-catalogo-vivo',
+                nome='Ordem só no catálogo vivo')
+            entry = self.client.get(reverse('pathbuilder') + '?hunter=1')
+            self.assertEqual(entry.status_code, 200, entry.content[:300])
+            self.assertEqual([row['slug'] for row in entry.context['catalogos']['classes']],
+                             ['cacador'])
+            self.assertContains(entry, 'cf-hunter-ability')
+            laboratory = self.client.get(reverse('pathbuilder_laboratorio'))
+            self.assertEqual(laboratory.status_code, 200, laboratory.content[:300])
+            hunter = next(row for row in laboratory.context['catalogos']['classes']
+                          if row['slug'] == 'cacador')
+            self.assertEqual(hunter['ruleset_checksum'], self.ruleset.checksum)
+            self.assertNotIn(live_only.slug,
+                             {row['slug'] for row in hunter['subclasses']})
+            start = self.client.post(reverse('pathbuilder_iniciar'),
+                data=json.dumps(self.payload), content_type='application/json')
+            self.assertEqual(start.status_code, 200, start.content)
+            preview = self.client.post(reverse('pathbuilder_preview'),
+                data=json.dumps({'base': self.payload,
+                                 'build': default_build(self.payload)}),
+                content_type='application/json')
+            self.assertEqual(preview.status_code, 200, preview.content[:500])
+            self.assertEqual(preview.json()['build']['classes'][0]['classe'], self.classe.nome)
+            published_subclass = next(iter(VersionedClassCatalog(
+                self.ruleset, self.classe.pk).collections[TbSubclasse]), None)
+            if published_subclass is not None:
+                advanced = default_build(self.payload)
+                advanced['classes'][0].update(
+                    nivel=3, subclasse=published_subclass.slug)
+                advanced_preview = self.client.post(reverse('pathbuilder_preview'),
+                    data=json.dumps({'base': self.payload, 'build': advanced}),
+                    content_type='application/json')
+                self.assertEqual(advanced_preview.status_code, 200,
+                                 advanced_preview.content[:500])
+                self.assertEqual(advanced_preview.json()['build']['classes'][0]['subclasse'],
+                                 published_subclass.nome)
+                for level, slots in ((4, 1), (19, 5)):
+                    with self.subTest(level=level):
+                        advanced['classes'][0]['nivel'] = level
+                        asi_preview = self.client.post(reverse('pathbuilder_preview'),
+                            data=json.dumps({'base': self.payload, 'build': advanced}),
+                            content_type='application/json')
+                        self.assertEqual(asi_preview.status_code, 200,
+                                         asi_preview.content[:500])
+                        budget = asi_preview.json()['build']['orcamento']
+                        self.assertEqual(budget['asi_slots'], slots)
+                        self.assertEqual(budget['pontos_disponiveis'], slots * 2)
+        self.assertEqual(TbPersonagem.objects.count(), before)
     def test_configured_revision_serves_catalog_preview_and_create_without_resolver_patch(self):
         self.setup_creation()
         self.assertEqual(self.valid_payload('int')[1], [])
@@ -76,6 +146,8 @@ class HunterPublicCreatorTests(_CriadorBase):
             self.assertEqual(response.status_code, 400)
         with override_settings(HUNTER_CREATOR_RULESET_CHECKSUM='0' * 64):
             self.assertEqual(self.client.get(reverse('criacao_ficha')).status_code, 503)
+            self.assertEqual(self.client.get(reverse('pathbuilder')).status_code, 200)
+            self.assertEqual(self.client.get(reverse('pathbuilder_laboratorio')).status_code, 200)
             self.assertEqual(self._post_criar(self.user, self.payload).status_code, 503)
         self.assertFalse(TbPersonagem.objects.exists())
         self.assertFalse(TbPersonagemCacador.objects.exists())

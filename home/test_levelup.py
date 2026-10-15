@@ -113,8 +113,72 @@ class LevelUpLoteBase(_CriadorBase):
 
 
 class LevelUpAplicarLoteTests(LevelUpLoteBase):
-    """O batch aplica subir-nível + escolha (subclasse) + ASI num único POST JSON,
-    tudo numa transação só, e o estado final bate."""
+    """O batch aplica subir-nível + escolhas num único POST JSON transacional."""
+
+    def test_talento_armadura_media_elegivel_no_wizard_persiste_e_prereq_invalido_reverte(self):
+        talento = TbTalento.objects.get(slug='maestria-em-armaduras-medias')
+        bloqueado = TbTalento.objects.get(slug='duelista-defensivo')
+        p = self._guerreiro_no_nivel(3, apelido='armadura-media-asi')
+        p.destreza = 10
+        p.save(update_fields=['destreza'])
+        pc = p.classes.first()
+        self.client.force_login(p.dono)
+        page = self.client.get(reverse('personagem_subir_nivel', args=[p.pk]))
+        self.assertEqual(page.status_code, 200)
+        options = {row['id']: row for row in page.context['talentos_normais']}
+        self.assertTrue(options[talento.pk]['elegivel'])
+        self.assertFalse(options[bloqueado.pk]['elegivel'])
+
+        actions = [{'tipo': 'subir_nivel', 'payload': {'classe': pc.id_classe_id}},
+                   {'tipo': 'asi', 'payload': {'modo': 'talento',
+                                             'talento': talento.pk,
+                                             'talento_attr': 'FOR'}}]
+        preview = self.client.post(
+            reverse('personagem_levelup_preview', args=[p.pk]),
+            data=json.dumps({'acoes': actions}), content_type='application/json')
+        self.assertEqual(preview.status_code, 200, preview.content)
+        self.assertTrue(preview.json()['ready'], preview.content)
+        self.assertFalse(preview.json()['erros'], preview.content)
+        self.assertFalse(TbPersonagemTalento.objects.filter(
+            id_personagem=p, id_talento=talento).exists())
+
+        applied = self.client.post(
+            reverse('personagem_levelup_aplicar', args=[p.pk]),
+            data=json.dumps({'acoes': actions}), content_type='application/json')
+        self.assertEqual(applied.status_code, 200, applied.content)
+        self.assertTrue(applied.json()['ok'])
+        p.refresh_from_db()
+        self.assertEqual(p.nivel, 4)
+        self.assertTrue(TbPersonagemTalento.objects.filter(
+            id_personagem=p, id_talento=talento, categoria='asi-nivel',
+            nivel=4, detalhes='asi_attr:FOR').exists())
+        self.assertTrue(TbPersonagemAtributoBonus.objects.filter(
+            id_personagem=p, origem_tipo='talento-asi', atributo='FOR', valor=1).exists())
+        reopened = self.client.get(reverse('personagem_subir_nivel', args=[p.pk]))
+        self.assertEqual(reopened.status_code, 200)
+        selected = next(row for row in reopened.context['talentos_normais']
+                        if row['id'] == talento.pk)
+        self.assertFalse(selected['elegivel'])
+        self.assertEqual(selected['estado'], 'Já escolhido')
+
+        invalid = self._guerreiro_no_nivel(3, apelido='duelista-rejeitado')
+        invalid.destreza = 10
+        invalid.save(update_fields=['destreza'])
+        invalid_pc = invalid.classes.first()
+        self.client.force_login(invalid.dono)
+        rejected = self.client.post(
+            reverse('personagem_levelup_aplicar', args=[invalid.pk]),
+            data=json.dumps({'acoes': [
+                {'tipo': 'subir_nivel', 'payload': {'classe': invalid_pc.id_classe_id}},
+                {'tipo': 'asi', 'payload': {'modo': 'talento',
+                                           'talento': bloqueado.pk,
+                                           'talento_attr': 'DES'}},
+            ]}), content_type='application/json')
+        self.assertEqual(rejected.status_code, 400, rejected.content)
+        invalid.refresh_from_db()
+        self.assertEqual(invalid.nivel, 3)
+        self.assertFalse(TbPersonagemTalento.objects.filter(
+            id_personagem=invalid, id_talento=bloqueado).exists())
 
     def test_batch_subir_nivel_subclasse_e_asi_num_lote(self):
         # Guerreiro N3 -> N4: o N4 libera o slot de ASI; a subclasse (N3) ainda está aberta.

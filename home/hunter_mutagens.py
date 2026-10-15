@@ -18,7 +18,7 @@ DAMAGE_TYPES = ('acido', 'concussivo', 'cortante', 'perfurante', 'frio', 'fogo',
 
 
 def linked_effects(person, ruleset):
-    if ruleset is None:
+    if ruleset is None or not getattr(person, 'pk', None):
         return None
     profile = TbPersonagemCacador.objects.select_related('ruleset', 'personagem_classe').filter(
         personagem_classe__id_personagem=person).first()

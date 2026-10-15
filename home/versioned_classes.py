@@ -2,6 +2,10 @@
 
 Character activation remains unavailable until the other content consumers migrate.
 """
+import json
+from functools import lru_cache
+from pathlib import Path
+
 from django.db import transaction
 
 from .content_versions import create_revision, resolve_content, seal_ruleset
@@ -11,6 +15,18 @@ from .models import TbClasse, TbClassehabilidade, TbRecursoclasse, TbSubclasse
 EVALUATOR = 'class-features-v1'
 VOCABULARY = 'class-catalog-v1'
 MODELS = (TbClasse, TbSubclasse, TbClassehabilidade, TbRecursoclasse)
+
+
+@lru_cache(maxsize=1)
+def _legacy_tag_supplements():
+    path = Path(__file__).parent / 'rules' / 'legacy_choice_supplements.json'
+    return json.loads(path.read_text(encoding='utf-8')).get('tag_supplements', [])
+
+
+@lru_cache(maxsize=1)
+def _legacy_description_supplements():
+    path = Path(__file__).parent / 'rules' / 'legacy_choice_supplements.json'
+    return json.loads(path.read_text(encoding='utf-8')).get('description_supplements', [])
 
 
 def _fields(obj):
@@ -57,6 +73,25 @@ class VersionedClassCatalog:
                     raise ValueError('Incompatible class snapshot fields.')
                 objects.append(model(**row))
             self.collections[model] = objects
+        for supplement in _legacy_tag_supplements():
+            for feature in self.collections[TbClassehabilidade]:
+                if (feature.pk == supplement['feature_pk']
+                        and feature.id_classe_id == class_id
+                        and feature.id_subclasse_id == supplement['subclass_pk']
+                        and supplement['old_tag'] in (feature.tags_json or [])):
+                    index = feature.tags_json.index(supplement['old_tag'])
+                    feature.tags_json = (feature.tags_json[:index]
+                                         + supplement['new_tags']
+                                         + feature.tags_json[index + 1:])
+        for supplement in _legacy_description_supplements():
+            for feature in self.collections[TbClassehabilidade]:
+                if (feature.pk == supplement['feature_pk']
+                        and feature.id_classe_id == class_id
+                        and feature.id_subclasse_id == supplement['subclass_pk']):
+                    description = feature.descricao or ''
+                    for old, new in supplement['replacements']:
+                        description = description.replace(old, new)
+                    feature.descricao = description
         classes = self.collections[TbClasse]
         if len(classes) != 1 or classes[0].pk != class_id:
             raise ValueError('Invalid class identity.')

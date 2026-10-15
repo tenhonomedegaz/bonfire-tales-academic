@@ -11,6 +11,7 @@ class ResourceCommandMigrationTests(TransactionTestCase):
         before = [('home', '0102_mercado_treinamentos_emprestimos')]
         after = [('home', '0103_resource_command_receipts')]
         executor = MigrationExecutor(connection)
+        head = executor.loader.graph.leaf_nodes('home')
         current_apps = executor.loader.project_state(after).apps
         # A reversão só prepara o cenário vazio do teste. Não é um procedimento
         # de rollback para produção, onde recibos precisam ser preservados.
@@ -34,4 +35,4 @@ class ResourceCommandMigrationTests(TransactionTestCase):
                 self.assertEqual(resource.versao, 0)
                 self.assertEqual(upgraded.get_model('home', 'TbOperacaoRecurso').objects.count(), 0)
         finally:
-            MigrationExecutor(connection).migrate(after)
+            MigrationExecutor(connection).migrate(head)

@@ -60,6 +60,35 @@ class VersionedOptionsTests(TestCase):
         missing = {'from_kind': 'classe', 'from_slug': 'unknown'}
         self.assertEqual(_opcao_universe(self.ctx('maneuver', constraints=missing, ruleset=self.ruleset)), [])
 
+    def test_page_list_limits_options_in_live_and_frozen_catalog(self):
+        listed_option = TbOpcaojogo.objects.create(
+            nome='Listed Style', slug='listed-style', tipo='Style')
+        ruleset = self.seal()
+        ctx = self.ctx(constraints={'listed_slugs': ['listed-style']})
+        self.assertEqual([o['slug'] for o in _opcao_universe(ctx)], ['listed-style'])
+        frozen = dict(ctx, ruleset=ruleset)
+        self.assertEqual(_opcao_universe(frozen), _opcao_universe(ctx))
+        listed_option.delete()
+        self.assertEqual(_opcao_universe(ctx), [])
+        self.assertEqual([o['slug'] for o in _opcao_universe(frozen)], ['listed-style'])
+
+    def test_pinned_class_feature_resolves_its_listed_style(self):
+        from home.picks import resolve_versioned_class_options
+        from home.versioned_classes import inventory_class
+
+        TbOpcaojogo.objects.create(nome='Listed Style', slug='listed-style', tipo='Style')
+        self.classe.tags_json = ['pick:opcao:style:1(de:[listed-style],swap:level_up)']
+        self.classe.save(update_fields=['tags_json'])
+        revision = create_revision('class-catalog:%s' % self.classe.pk,
+                                   inventory_class(self.classe.pk))
+        ruleset = seal_ruleset([revision, snapshot_options()],
+            evaluator_version=EVALUATOR, vocabulary_version=VOCABULARY)
+        groups = resolve_versioned_class_options(
+            ruleset, self.classe.pk, nivel=3, subclass_id=self.sub.pk)
+        self.assertEqual(len(groups), 1)
+        self.assertEqual([o['slug'] for o in groups[0]['universo']], ['listed-style'])
+        self.assertEqual(groups[0]['swap'], 'level_up')
+
     def test_frozen_reads_issue_no_catalog_queries(self):
         catalog = VersionedOptions(self.ruleset)
         with self.assertNumQueries(0):

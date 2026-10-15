@@ -157,7 +157,7 @@ class ChronicleReviewBrowserTests(StaticLiveServerTestCase):
                 js('''document.querySelector('.review-feedback-input').value = 'Verificar a cronologia';
                     Array.from(document.querySelectorAll('.review-item-actions button'))
                       .find(button => button.textContent.includes('Encaminhar ao Loremaster')).click();''')
-                until('document.body.textContent.includes("Encaminhada ao Loremaster: Verificar a cronologia")')
+                until('!!document.body && document.body.textContent.includes("Encaminhada ao Loremaster: Verificar a cronologia")')
                 forwarded.refresh_from_db()
                 self.assertEqual(forwarded.status, 'pendente')
                 self.assertEqual(forwarded.revisao_edicao['triagem_lore']['motivo'], 'Verificar a cronologia')

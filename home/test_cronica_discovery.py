@@ -287,18 +287,23 @@ class CronicaDiscoveryTests(TestCase):
 class CronicaPublicationMigrationTests(TransactionTestCase):
     def test_backfill_uses_original_submission_not_later_review(self):
         executor = MigrationExecutor(connection)
+        self.assertTrue(connection.settings_dict['NAME'].startswith('test_'))
+        head = executor.loader.graph.leaf_nodes('home')
         before = [('home', '0116_cronica_comentarios_denuncias')]
         after = [('home', '0117_cronica_descoberta_notificacoes')]
         executor.migrate(before)
-        old_apps = executor.loader.project_state(before).apps
-        author = old_apps.get_model('auth', 'User').objects.create(username='author-old-publication')
-        story = old_apps.get_model('home', 'TbCronica').objects.create(
-            titulo='Publicada antes', slug='publicada-antes', conteudo_markdown='Texto',
-            autor_id=author.pk, status='aprovada', data_revisao=timezone.now() + timedelta(days=1),
-        )
-        submission = story.data_submissao
-        executor = MigrationExecutor(connection)
-        executor.migrate(after)
-        migrated = executor.loader.project_state(after).apps.get_model('home', 'TbCronica').objects.get(pk=story.pk)
-        self.assertEqual(migrated.data_publicacao, submission)
-        self.assertFalse(migrated.destaque_editorial)
+        try:
+            old_apps = executor.loader.project_state(before).apps
+            author = old_apps.get_model('auth', 'User').objects.create(username='author-old-publication')
+            story = old_apps.get_model('home', 'TbCronica').objects.create(
+                titulo='Publicada antes', slug='publicada-antes', conteudo_markdown='Texto',
+                autor_id=author.pk, status='aprovada', data_revisao=timezone.now() + timedelta(days=1),
+            )
+            submission = story.data_submissao
+            executor = MigrationExecutor(connection)
+            executor.migrate(after)
+            migrated = executor.loader.project_state(after).apps.get_model('home', 'TbCronica').objects.get(pk=story.pk)
+            self.assertEqual(migrated.data_publicacao, submission)
+            self.assertFalse(migrated.destaque_editorial)
+        finally:
+            MigrationExecutor(connection).migrate(head)

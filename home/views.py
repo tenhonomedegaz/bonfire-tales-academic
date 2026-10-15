@@ -5704,8 +5704,26 @@ def criacao_ficha_view(request):
 def pathbuilder_view(request):
     """Entrada do laboratório: reutiliza o criador, mas nunca oferece persistência."""
     from . import point_buy
+    from .class_publication import published_catalog
+    from django.core.exceptions import ObjectDoesNotExist
     atributos = [('FOR', 'Força'), ('DES', 'Destreza'), ('CON', 'Constituição'),
                  ('INT', 'Inteligência'), ('SAB', 'Sabedoria'), ('CAR', 'Carisma')]
+    try:
+        hunter_class = TbClasse.objects.filter(slug='cacador').first()
+        published_hunter = published_catalog(hunter_class) if hunter_class else None
+        hunter_args = ({'hunter_ruleset': published_hunter[0],
+                        'hunter_class_id': hunter_class.pk} if published_hunter else {})
+        hunter_only = request.GET.get('hunter') == '1' and bool(hunter_args)
+        if hunter_only:
+            catalog = _criador_catalogos(**hunter_args, hunter_only=True)
+        else:
+            catalog = _criador_catalogos()
+            if hunter_args:
+                catalog['classes'] = [row for row in catalog['classes']
+                                      if row['slug'] != 'cacador']
+    except (HunterCreatorCatalogUnavailable, ObjectDoesNotExist, ValueError, KeyError):
+        return HttpResponse('A revisao do Cacador esta indisponivel. Tente novamente mais tarde.',
+                            status=503)
     return render(request, 'home/pages/criacao_ficha.html', {
         'page_title': 'Pathbuilder',
         'atributos': atributos,
@@ -5713,7 +5731,9 @@ def pathbuilder_view(request):
         'pb_max_pontos': point_buy.MAX_PONTOS,
         'pb_min': point_buy.MIN_SCORE,
         'pb_max': point_buy.MAX_SCORE,
-        'catalogos': _criador_catalogos(),
+        'catalogos': catalog,
+        'hunter_creator_available': bool(hunter_args),
+        'hunter_creator_page': hunter_only,
         'logado': True,
         'pathbuilder': True,
     })
@@ -5727,7 +5747,12 @@ def pathbuilder_iniciar(request):
     if not isinstance(data, dict):
         return JsonResponse({'ok': False, 'erros': ['Envie os dados da ficha como objeto.']},
                             status=400)
-    _resolved, errors = _criador_resolver(data)
+    try:
+        _resolved, errors = _criador_public_resolution(data)
+    except ClassCreatorCatalogUnavailable:
+        return JsonResponse({'ok': False,
+            'erros': ['A revisao da classe esta indisponivel. Tente novamente mais tarde.']},
+            status=503)
     if errors:
         return JsonResponse({'ok': False, 'erros': errors}, status=400)
     return JsonResponse({
@@ -5740,9 +5765,15 @@ def pathbuilder_iniciar(request):
 @login_required(login_url='/login/')
 def pathbuilder_laboratorio(request):
     from .pathbuilder import catalogos
+    from django.core.exceptions import ObjectDoesNotExist
+    try:
+        catalog = catalogos()
+    except (ClassCreatorCatalogUnavailable, ObjectDoesNotExist, ValueError, KeyError):
+        return HttpResponse('A revisao de classe esta indisponivel. Tente novamente mais tarde.',
+                            status=503)
     return render(request, 'home/pages/pathbuilder.html', {
         'page_title': 'Laboratório de Builds',
-        'catalogos': catalogos(),
+        'catalogos': catalog,
     })
 
 
@@ -5898,12 +5929,16 @@ _TALENTO_ATTR_FIELDS = {
 
 def _asi_slots(personagem):
     slots = []
-    classes = personagem.classes.select_related('id_classe').order_by('-principal', 'id')
+    classes = personagem.classes.select_related('id_classe', 'ruleset').order_by('-principal', 'id')
     for pc in classes:
-        for nivel in sorted(_tag_levels(pc.id_classe.tags_json, 'asi-choices')):
+        classe = pc.id_classe
+        if pc.ruleset_id:
+            from .versioned_classes import VersionedClassCatalog
+            classe = VersionedClassCatalog(pc.ruleset, classe.pk).classe
+        for nivel in sorted(_tag_levels(classe.tags_json, 'asi-choices')):
             if nivel <= int(pc.nivel or 0):
-                slots.append({'classe': pc.id_classe, 'nivel': nivel,
-                              'origem': 'ASI %s N%d' % (pc.id_classe.nome, nivel)})
+                slots.append({'classe': classe, 'nivel': nivel,
+                              'origem': 'ASI %s N%d' % (classe.nome, nivel)})
     return slots
 
 
@@ -6181,7 +6216,9 @@ def _prereq_tokens(texto):
     for token in re.findall(r'[a-z0-9]+', _prereq_label(texto)):
         if token in _PREREQ_STOP_WORDS:
             continue
-        if len(token) > 3 and token.endswith('s'):
+        if len(token) > 4 and token.endswith('ais'):
+            token = token[:-3] + 'al'
+        elif len(token) > 3 and token.endswith('s'):
             token = token[:-1]
         out.add(token)
     return out
@@ -6219,7 +6256,12 @@ def _talento_prereq_contexto(personagem, ficha):
 
     proficiencias = set()
     for key in ('proficiencias_arma', 'proficiencias_armadura', 'ferramentas'):
-        proficiencias.update(_prereq_label(value) for value in (ficha.get(key) or []))
+        for value in ficha.get(key) or []:
+            label = _prereq_label(value)
+            if label:
+                proficiencias.add(label)
+                if key == 'proficiencias_armadura' and not label.startswith('armadura'):
+                    proficiencias.add('armadura ' + label)
     return {
         'owned': owned,
         'sources': sources,
@@ -6811,11 +6853,22 @@ def _opcoes_ficha(personagem):
                                           'descricao': s['descricao']} for s in livres]})
         escopo = g.get('swap') or ''
         incompleta = any(e['pendente'] for e in escolhidas)
+        for selected in escolhidas:
+            if g.get('paired_target_is_choice'):
+                selected['disponiveis'] = [dict(option, subs=[sub for sub in option['subs']
+                    if sub['val'].rsplit('|', 1)[-1] == str(selected['id'])])
+                    for option in disponiveis
+                    if any(sub['val'].rsplit('|', 1)[-1] == str(selected['id'])
+                           for sub in option['subs'])]
+            else:
+                selected['disponiveis'] = disponiveis
         grupos.append({
             'chave': _opcao_chave(g),
             'kind': g['kind'], 'tipo': g['persist_tipo'], 'label': g['label'],
             'classe': g['classe'], 'classe_id': g['classe_id'], 'origem': g['origem'],
-            'n': g['n'], 'usados': g['usados'], 'pendentes': g['pendentes'],
+            'n': g['n'], 'usados': g['usados'],
+            'pendentes': 0 if g.get('optional') else g['pendentes'],
+            'opcionais_restantes': g['pendentes'] if g.get('optional') else 0,
             'incompleta': incompleta,
             'swap': escopo,
             'swap_label': _SWAP_LABEL.get(escopo, 'trocável (%s)' % escopo.replace('_', ' ')) if escopo else '',
@@ -6897,7 +6950,10 @@ def _opcao_grupos(personagem, classe_id=None):
             'classe_id': g['classe_id'], 'classe': g['classe'], 'slug': slug, 'kind': g['kind'],
             'tipo': tipo_disp, 'limite': g['n'], 'usados': g['usados'],
             'pendentes': g['pendentes'], 'prox_slot': g['prox_slot'],
-            'escolhidas': [{'id': e['id'], 'nome': e['nome']} for e in escs],
+            'origem': g['origem'], 'swap': g.get('swap'),
+            'on_gain': bool(g.get('constraints', {}).get('on_gain')),
+            'escolhidas': [{'id': e['id'], 'nome': e['nome'], 'valor': e.get('valor')}
+                           for e in escs],
             'disponiveis': disponiveis,
         })
     grupos.sort(key=lambda g: (g['pendentes'] == 0, g['classe'], g['tipo']))
@@ -7112,6 +7168,8 @@ def _subir_nivel_experiencia(request, p):
     nivel_atual_total = int(ficha_atual.get('nivel_total') or 0)
     pode_subir = status['pode_subir']
     classes_multiclasse = _classes_multiclasse(p, ficha_atual) if nivel_atual_total < 20 else []
+    grupos_antes = {(str(g['classe_id']), g['slug'], g['origem']): g['limite']
+                    for g in _opcao_grupos(p, classe_id)}
     # recursos ANTES (p/ marcar o que cresce no nível-alvo)
     from .character_engine import (_recursos_consumiveis, _resource_formula_context,
                                    _resource_max_overrides)
@@ -7148,6 +7206,13 @@ def _subir_nivel_experiencia(request, p):
         magias_concedidas_pend = _criador_magias_pendentes(p)
         talentos_raciais_pend = _pendencias_talento_racial(p)
         opcao_grupos = _opcao_grupos(p, classe_id)
+        for grupo in opcao_grupos:
+            limite_antes = grupos_antes.get((str(grupo['classe_id']),
+                                             grupo['slug'], grupo['origem']))
+            grupo['troca_ao_aprender'] = bool(
+                pode_subir and grupo['swap'] == 'level_up' and grupo['on_gain']
+                and limite_antes is not None and grupo['limite'] > limite_antes
+                and grupo['escolhidas'] and grupo['disponiveis'])
         talentos = _talentos_asi_catalogo(p, ficha_alvo)
         # nível-alvo da classe: re-lê do banco DENTRO da transação (o `pc` de fora é o nível
         # atual; `_lvl_aplicar_subir_nivel` gravou o novo nível numa instância própria).
@@ -8229,11 +8294,13 @@ def _pendencias_magias(personagem, subclasse_override=None, classe_id=None, *, r
     # propósito). Regra 5e: o nível máximo conhecível/preparável vem do nível NAQUELA classe,
     # não dos slots *pooled* de multiclasse — por isso lemos a tabela desta classe/subclasse.
     maxlv = _class_max_spell_level(classe, nivel, spell_info, subclasse, ruleset=ruleset)
-    magias_classe = personagem.magias.filter(origem__iexact=classe.nome)
+    magias_classe = personagem.magias.filter(
+        origem__iexact=classe.nome, sempre_preparada=False)
     if personagem.classes.count() == 1:
         magias_classe = personagem.magias.filter(
             Q(origem__iexact=classe.nome)
-            | (Q(origem__isnull=True) | Q(origem='')) & Q(sempre_preparada=False))
+            | Q(origem__isnull=True) | Q(origem=''),
+            sempre_preparada=False)
     # Posse de magia e por ORIGEM de classe. A mesma magia pode pertencer a
     # duas listas e usar atributos/regras de preparo diferentes.
     def owned_spell(row):
@@ -8713,7 +8780,21 @@ def _lvl_aplicar_opcao(personagem, payload):
     from . import picks as _picks
     payload = payload or {}
     if payload.get('acao') == 'remover':
-        TbPersonagemEscolha.objects.filter(id=payload.get('escolha'), id_personagem=personagem).delete()
+        escolha = TbPersonagemEscolha.objects.filter(
+            id=payload.get('escolha'), id_personagem=personagem).first()
+        grupos = _picks.resolve_personagem(personagem, kinds=_OPCAO_PANEL_KINDS)
+        grupo = next((g for g in grupos
+                      if escolha and any(e.get('id') == escolha.pk
+                                         for e in g.get('escolhidas') or [])), None)
+        if grupo is None:
+            return [_ERR_OPCAO_INVALIDA]
+        if any(
+                g.get('constraints', {}).get('from_known') == grupo.get('kind')
+                and any(str(e.get('valor')) == str(escolha.valor)
+                        for e in g.get('escolhidas') or [])
+                for g in grupos):
+            return [_ERR_OPCAO_INVALIDA]
+        escolha.delete()
         return []
     slug = (payload.get('slug') or '').strip()
     val = (payload.get('val') or payload.get('opcao') or '').strip()
@@ -8756,6 +8837,62 @@ def _lvl_aplicar_opcao(personagem, payload):
     # anexa no próximo slot livre (não sobrescreve escolhas anteriores)
     grupo['slot_base'] = grupo['prox_slot']
     _picks.registry_entry(grupo['kind'])['persist'](personagem, grupo, [val])
+    return []
+
+
+def _lvl_aplicar_trocar_opcao(personagem, payload, anteriores, usadas):
+    """Troca opcional ligada a um novo slot aprendido no mesmo lote de level-up."""
+    from .models import TbPersonagemEscolha
+    from . import picks as _picks
+
+    payload = payload or {}
+    try:
+        escolha_id = int(payload.get('escolha'))
+    except (TypeError, ValueError):
+        return [_ERR_OPCAO_INVALIDA]
+    linha = TbPersonagemEscolha.objects.filter(
+        pk=escolha_id, id_personagem=personagem).first()
+    if linha is None:
+        return [_ERR_OPCAO_INVALIDA]
+    grupos = _picks.resolve_personagem(personagem, kinds=_OPCAO_PANEL_KINDS)
+    grupo = next((g for g in grupos if any(
+        e.get('id') == linha.pk for e in g.get('escolhidas') or [])), None)
+    if grupo is None or str(grupo['classe_id']) != str(payload.get('classe')):
+        return [_ERR_OPCAO_INVALIDA]
+    chave = (str(grupo['classe_id']), grupo['persist_tipo'], grupo['origem'])
+    anterior = anteriores.get(chave)
+    escolhidas = grupo.get('escolhidas') or []
+    ids_atuais = {e.get('id') for e in escolhidas}
+    if (not anterior or chave in usadas or grupo.get('swap') != 'level_up'
+            or not grupo.get('constraints', {}).get('on_gain')
+            or int(grupo['n']) <= anterior['n']
+            or linha.pk not in anterior['ids']
+            or not (ids_atuais - anterior['ids'])):
+        return [_ERR_OPCAO_INVALIDA]
+    val = str(payload.get('val') or '').strip()
+    if not val or val in {str(e.get('valor')) for e in escolhidas}:
+        return [_ERR_OPCAO_INVALIDA]
+    if any(u.get('ja_proficiente') and val in (str(u.get('slug')),
+                                               str(u.get('id')))
+           for u in grupo.get('universo') or []):
+        return [_ERR_OPCAO_INVALIDA]
+    entrada = _picks.registry_entry(grupo['kind'])
+    validacao = dict(grupo, n=1)
+    if entrada['validate'](validacao, [val]):
+        return [_ERR_OPCAO_INVALIDA]
+    # Um preparo dependente da antiga fórmula não pode continuar ativo depois da troca.
+    # A revisão do level-up guarda o estado anterior para recuperação, se necessário.
+    dependentes = [e['id'] for g in grupos
+                   if g.get('classe_id') == grupo.get('classe_id')
+                   and g.get('constraints', {}).get('from_known') == grupo['kind']
+                   for e in g.get('escolhidas') or []
+                   if str(e.get('valor')) == str(linha.valor)]
+    grupo['slot_base'] = int(linha.slot or 0)
+    entrada['persist'](personagem, grupo, [val])
+    if dependentes:
+        TbPersonagemEscolha.objects.filter(
+            id_personagem=personagem, pk__in=dependentes).delete()
+    usadas.add(chave)
     return []
 
 
@@ -8909,8 +9046,8 @@ _LVL_ACTIONS = {
     'trocar_magia': _lvl_aplicar_trocar_magia,
 }
 _LVL_ORDEM = {'subir_nivel': 0, 'adicionar_classe': 1, 'subclasse': 2, 'asi': 3,
-              'talento_racial': 4, 'opcao': 5, 'aprender_magias': 6,
-              'magias_concedidas': 7, 'trocar_magia': 8}
+              'talento_racial': 4, 'opcao': 5, 'trocar_opcao': 6, 'aprender_magias': 7,
+              'magias_concedidas': 8, 'trocar_magia': 9}
 
 
 def _levelup_pendencias(personagem, classe_id=None):
@@ -9037,10 +9174,25 @@ def _levelup_aplicar_lote(personagem, acoes):
     [{tipo, payload}, …]. Acumula e devolve a lista de erros; NÃO abre transação nem
     ressincroniza (responsabilidade do endpoint). Ordem preservada entre ações do mesmo
     tipo (sort estável)."""
+    from . import picks as _picks
+    anteriores = {
+        (str(g['classe_id']), g['persist_tipo'], g['origem']): {
+            'n': int(g['n']),
+            'ids': {e.get('id') for e in g.get('escolhidas') or []},
+        }
+        for g in _picks.resolve_personagem(personagem, kinds=_OPCAO_PANEL_KINDS)
+        if g.get('swap') == 'level_up' and g.get('constraints', {}).get('on_gain')
+    } if any(isinstance(a, dict) and a.get('tipo') == 'trocar_opcao'
+             for a in acoes) else {}
+    usadas = set()
     erros = []
     ordenadas = sorted((a for a in acoes if isinstance(a, dict)),
                        key=lambda a: _LVL_ORDEM.get(a.get('tipo'), 99))
     for acao in ordenadas:
+        if acao.get('tipo') == 'trocar_opcao':
+            erros += _lvl_aplicar_trocar_opcao(
+                personagem, acao.get('payload') or {}, anteriores, usadas)
+            continue
         fn = _LVL_ACTIONS.get(acao.get('tipo'))
         if not fn:
             erros.append('Ação de level-up desconhecida: %r' % acao.get('tipo'))
@@ -10358,6 +10510,9 @@ def personagem_trocar_opcao(request, pk):
     alvo = _opcao_alternativa(grupo, val)
     if alvo is None:
         return _opcoes_resposta(request, p, back, msg='fora_do_universo', ok=False)
+    if (grupo.get('paired_target_is_choice')
+            and val.rsplit('|', 1)[-1] != str(linha.id)):
+        return _opcoes_resposta(request, p, back, msg='escolha_invalida', ok=False)
     # a mesma escolha não pode ocupar dois slots do grupo. O que conta como "a mesma" vem
     # das `formas` da alternativa (regra de domínio única, em `_opcao_alternativas`): num
     # universo de dois níveis é o PAR INTEIRO — o mesmo pai PODE repetir com filho
@@ -10372,6 +10527,7 @@ def personagem_trocar_opcao(request, pk):
         return _opcoes_resposta(request, p, back, msg='duplicada', ok=False)
 
     grupo['slot_base'] = int(linha.slot or 0)   # sobrescreve a linha trocada, não anexa
+    grupo['selected_id'] = linha.id
     with transaction.atomic():
         _picks.registry_entry(grupo['kind'])['persist'](p, grupo, [val])
         # O `persist` casa a linha por (origem, tipo, slot). Linha gravada por um fluxo
@@ -10380,6 +10536,8 @@ def personagem_trocar_opcao(request, pk):
         if TbPersonagemEscolha.objects.filter(id_personagem=p, tipo=linha.tipo,
                                               slot=linha.slot).exclude(id=linha.id).exists():
             linha.delete()
+        if grupo.get('spell_table'):
+            _sync_magias_concedidas(p, ruleset=grupo.get('ruleset'))
     return _opcoes_resposta(request, p, back, msg='trocada')
 
 

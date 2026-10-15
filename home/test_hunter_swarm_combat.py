@@ -57,7 +57,8 @@ class SwarmCombatTests(SimpleTestCase):
                       swarm_command=['push', 'step'], swarm_damage=11)
         request = RequestFactory().get('/', params)
         request.user = SimpleNamespace(is_authenticated=True)
-        response = laboratory(request)
+        with patch('home.views._criador_hunter_catalog_args', return_value={}):
+            response = laboratory(request)
         self.assertEqual(response.status_code, 200)
         html = response.content.decode()
         self.assertIn('Dano adicional do Enxame: 1d8', html)
@@ -66,4 +67,5 @@ class SwarmCombatTests(SimpleTestCase):
         params['swarm_command_used'] = '1'
         request = RequestFactory().get('/', params)
         request.user = SimpleNamespace(is_authenticated=True)
-        self.assertEqual(laboratory(request).status_code, 400)
+        with patch('home.views._criador_hunter_catalog_args', return_value={}):
+            self.assertEqual(laboratory(request).status_code, 400)

@@ -21,10 +21,39 @@ from home.models import (
     TbPersonagemMagia,
     TbRegiao,
     TbMagia,
+    TbClasse,
+    TbSubclasse,
 )
 
 
 class DeploySyncContractTests(TestCase):
+    def test_fixture_pk_collision_preserves_dev_only_subclass_and_cosmetic(self):
+        hunter = TbClasse.objects.create(nome='Caçador', slug='cacador-sync-only')
+        extra_subclass = TbSubclasse.objects.create(
+            id_classe=hunter, nome='Ordem local', slug='ordem-local-sync')
+        extra_cosmetic = TbCosmetico.objects.create(
+            nome='Cosmético local', slug='cosmetico-local-sync', tipo='badge')
+        fixture_subclass = TbSubclasse(
+            id_subclasse=extra_subclass.pk, id_classe=hunter,
+            nome='Ordem do fixture', slug='ordem-fixture-sync')
+        fixture_cosmetic = TbCosmetico(
+            pk=extra_cosmetic.pk, nome='Cosmético do fixture',
+            slug='cosmetico-fixture-sync', tipo='badge')
+        fixture = serializers.serialize('json', [fixture_subclass, fixture_cosmetic])
+
+        with patch.object(deploy_sync, '_load_content_deletions', return_value={}):
+            report = deploy_sync.sincronizar_conteudo(fixture)
+
+        self.assertEqual(TbSubclasse.objects.get(pk=extra_subclass.pk).slug,
+                         'ordem-local-sync')
+        self.assertEqual(TbCosmetico.objects.get(pk=extra_cosmetic.pk).slug,
+                         'cosmetico-local-sync')
+        self.assertNotEqual(TbSubclasse.objects.get(slug='ordem-fixture-sync').pk,
+                            extra_subclass.pk)
+        self.assertNotEqual(TbCosmetico.objects.get(slug='cosmetico-fixture-sync').pk,
+                            extra_cosmetic.pk)
+        self.assertTrue(report['mem_ok'])
+
     def test_dry_run_reports_live_tombstone_references_without_deleting(self):
         slug = 'sacrificio-de-sangue'
         with patch.object(deploy_sync, '_load_content_deletions', return_value={'TbMagia': [slug]}):

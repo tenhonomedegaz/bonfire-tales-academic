@@ -8,6 +8,10 @@ from .versioned_classes import EVALUATOR, VOCABULARY, _fields
 MODELS = (TbAntecedente, TbTalento, TbTracoracial)
 RACIAL_MODELS = (TbRaca, TbLinhagem, TbEssencia)
 IDENTITY = 'origin-catalog'
+# Revisões seladas antes dos controles visuais de enquadramento não têm estes
+# campos. O default do modelo (50) reproduz o enquadramento central antigo.
+# A compatibilidade é deliberadamente restrita a metadados de apresentação.
+LEGACY_VISUAL_FIELDS = {'imagem_foco_x', 'imagem_foco_y'}
 
 
 @transaction.atomic
@@ -26,7 +30,10 @@ class VersionedOrigins:
         models = MODELS + RACIAL_MODELS if self.data['schema'] == 2 else MODELS
         for model in models:
             fields = {f.attname for f in model._meta.concrete_fields}
-            if any(set(row) != fields for row in self.data['collections'][model._meta.label_lower]):
+            allowed_missing = LEGACY_VISUAL_FIELDS if model in RACIAL_MODELS else set()
+            if any((set(row) - fields) or
+                   (fields - set(row)) - allowed_missing
+                   for row in self.data['collections'][model._meta.label_lower]):
                 raise ValueError('Incompatible origin snapshot fields.')
 
     def objects(self, model):

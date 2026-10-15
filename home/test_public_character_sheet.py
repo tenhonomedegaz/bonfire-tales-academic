@@ -173,15 +173,19 @@ class PublicCharacterSheetTests(TestCase):
                              baseline.mostrar_atributos_publicos)
 
     def test_public_appearance_respects_owner_entitlements_and_image_safety(self):
-        theme = TbCosmetico.objects.create(
-            slug='tema-ember', tipo='tema', nome='Brasas',
-            css_class='theme-ember', origem='loja_mm', escopo='ficha')
-        frame = TbCosmetico.objects.create(
-            slug='moldura-gold-trim', tipo='moldura', nome='Dourada',
-            css_class='frame-gold-trim', origem='loja_mm', escopo='ficha')
-        effect = TbCosmetico.objects.create(
-            slug='efeito-soft-glow', tipo='efeito', nome='Brilho',
-            css_class='effect-soft-glow', origem='loja_mm', escopo='ficha')
+        theme, _ = TbCosmetico.objects.update_or_create(
+            slug='tema-ember', defaults={
+                'tipo': 'tema', 'nome': 'Brasas', 'css_class': 'theme-ember',
+                'origem': 'loja_mm', 'escopo': 'ficha',
+                'definicao_json': {}, 'css_file': ''})
+        frame, _ = TbCosmetico.objects.update_or_create(
+            slug='moldura-gold-trim', defaults={
+                'tipo': 'moldura', 'nome': 'Dourada', 'css_class': 'frame-gold-trim',
+                'origem': 'loja_mm', 'escopo': 'ficha'})
+        effect, _ = TbCosmetico.objects.update_or_create(
+            slug='efeito-soft-glow', defaults={
+                'tipo': 'efeito', 'nome': 'Brilho', 'css_class': 'effect-soft-glow',
+                'origem': 'loja_mm', 'escopo': 'ficha'})
         invalidate_cosmetic_cache()
         TbPersonagem.objects.filter(pk=self.character.pk).update(
             publico=True, ficha_theme='ember', foto_frame='gold-trim',

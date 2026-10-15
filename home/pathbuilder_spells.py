@@ -3,26 +3,53 @@ from .models import TbMagia, TbPersonagemMagia
 from .spellcasting import acquired_spell_count, limit_at
 
 
-def spell_sources(personagem):
+def spell_sources(personagem, *, ruleset=None):
     from .views import (_caster_subclasse, _classe_spellcasting_info,
                         _class_max_spell_level, _spell_catalog_queryset)
+    from .versioned_classes import resolved_classes
+
+    classes = list(personagem.classes.select_related('id_classe', 'id_subclasse'))
+    if ruleset is not None:
+        from types import SimpleNamespace
+        from .models import TbClasse
+        from .spell_access import access_key, spell_class_slugs
+        from .spellcasting import character_spell_list_delta
+        from .versioned_spells import spell_catalog, spell_scopes
+
+        classes = resolved_classes(ruleset, classes)
+        frozen_spells = spell_catalog(ruleset)
+        scopes = spell_scopes(ruleset)
+        frozen_classes = [SimpleNamespace(slug=slug, nome=scopes.get(slug.lower(), slug))
+                          for slug in TbClasse.objects.values_list('slug', flat=True)]
+        delta = character_spell_list_delta(personagem, ruleset=ruleset)
 
     sources = []
-    for pc in personagem.classes.select_related('id_classe', 'id_subclasse'):
-        subclass = _caster_subclasse(pc)
+    for pc in classes:
+        subclass = pc.id_subclasse if ruleset is not None else _caster_subclasse(pc)
         level = int(pc.nivel or 1)
-        info = _classe_spellcasting_info(pc.id_classe, level, subclass)
+        info = _classe_spellcasting_info(pc.id_classe, level, subclass, ruleset=ruleset)
         if not info:
             continue
-        maximum = _class_max_spell_level(pc.id_classe, level, info, subclass)
-        allowed = set(_spell_catalog_queryset(info['lista_nomes'], personagem)
-                      .filter(nivel__lte=maximum).values_list('id_magia', flat=True))
+        maximum = _class_max_spell_level(pc.id_classe, level, info, subclass,
+                                         ruleset=ruleset)
+        if ruleset is None:
+            allowed = set(_spell_catalog_queryset(info['lista_nomes'], personagem)
+                          .filter(nivel__lte=maximum).values_list('id_magia', flat=True))
+        else:
+            wanted = {row.slug for row in frozen_classes
+                      if access_key(row.nome) in {access_key(name) for name in info['lista_nomes']}}
+            allowed = {spell.pk for spell in frozen_spells.values()
+                       if int(spell.nivel or 0) <= maximum
+                       and spell.slug not in delta['remove']
+                       and (spell.slug in delta['add'] or
+                            wanted.intersection(spell_class_slugs(
+                                spell, classes=frozen_classes)))}
         sources.append({'pc': pc, 'subclass': subclass, 'info': info,
                         'allowed': allowed, 'maximum': maximum})
     return sources
 
 
-def apply_spell_selection(personagem, build):
+def apply_spell_selection(personagem, build, *, ruleset=None):
     """Aplica somente na transação de simulação; ambiguidades ficam diagnosticáveis."""
     rows = build.get('magias', [])
     if not isinstance(rows, list) or len(rows) > 580:
@@ -37,7 +64,12 @@ def apply_spell_selection(personagem, build):
     spells = {m.slug: m for m in TbMagia.objects.filter(slug__in=slugs)}
     if slugs != set(spells):
         raise ValueError('Uma das magias selecionadas nao existe.')
-    sources = spell_sources(personagem)
+    if ruleset is not None:
+        from .versioned_spells import spell_catalog
+        frozen = {spell.slug: spell for spell in spell_catalog(ruleset).values()}
+        if not slugs <= set(frozen):
+            raise ValueError('Uma das magias selecionadas nao pertence a revisao.')
+    sources = spell_sources(personagem, ruleset=ruleset)
     personagem._pathbuilder_base_spells = {
         (m.id_magia_id, m.origem): m.preparada
         for m in personagem.magias.filter(sempre_preparada=False)
@@ -46,6 +78,7 @@ def apply_spell_selection(personagem, build):
     issues, seen = [], set()
     for row in rows:
         spell = spells[str(row.get('slug') or '')]
+        shown_spell = frozen[spell.slug] if ruleset is not None else spell
         source_slug = str(row.get('classe') or '')
         source = by_slug.get(source_slug)
         if not source_slug:
@@ -56,20 +89,20 @@ def apply_spell_selection(personagem, build):
             if len(candidates) == 1:
                 source = candidates[0]
             elif len(candidates) > 1:
-                issues.append('Escolha a classe de origem de %s; há mais de uma fonte elegível.' % spell.nome)
+                issues.append('Escolha a classe de origem de %s; há mais de uma fonte elegível.' % shown_spell.nome)
         if source:
             origin = source['pc'].id_classe.nome
         else:
             origin = 'Pathbuilder'
             if source_slug:
                 issues.append('A origem %s de %s não é uma classe conjuradora desta build.'
-                              % (source_slug, spell.nome))
-            elif not any(spell.nome in issue for issue in issues):
+                              % (source_slug, shown_spell.nome))
+            elif not any(shown_spell.nome in issue for issue in issues):
                 issues.append('Magia %s (círculo %d) sem classe elegível nesta progressão.'
-                              % (spell.nome, spell.nivel or 0))
+                              % (shown_spell.nome, shown_spell.nivel or 0))
         key = (spell.pk, origin)
         if key in seen:
-            raise ValueError('Magia repetida para a mesma origem: %s.' % spell.nome)
+            raise ValueError('Magia repetida para a mesma origem: %s.' % shown_spell.nome)
         seen.add(key)
         # Uma concessão inata não substitui o repertório de classe, nem é editada por ele.
         current = personagem.magias.filter(id_magia=spell, origem=origin,
@@ -80,11 +113,11 @@ def apply_spell_selection(personagem, build):
             current.save(update_fields=['preparada'])
         else:
             TbPersonagemMagia.objects.create(id_personagem=personagem, id_magia=spell,
-                nivel=spell.nivel, nome=spell.nome, preparada=prepared, origem=origin)
+                nivel=shown_spell.nivel, nome=shown_spell.nome, preparada=prepared, origem=origin)
     personagem._pathbuilder_spell_issues = issues
 
 
-def spell_review(personagem, ficha):
+def spell_review(personagem, ficha, *, ruleset=None):
     """Conta repertório por classe; slots de multiclasse não liberam círculos adicionais."""
     from .views import _ABIL_EN
 
@@ -93,7 +126,7 @@ def spell_review(personagem, ficha):
     context.update({en + '_mod': ficha['atributos'][sig]['mod'] for sig, en in _ABIL_EN.items()})
     public = []
     baseline = getattr(personagem, '_pathbuilder_base_spells', {})
-    for source in spell_sources(personagem):
+    for source in spell_sources(personagem, ruleset=ruleset):
         pc, info = source['pc'], source['info']
         classe, level = pc.id_classe, int(pc.nivel or 1)
         rows = list(personagem.magias.filter(origem=classe.nome, sempre_preparada=False)
@@ -110,7 +143,8 @@ def spell_review(personagem, ficha):
         def resolve(spec):
             value = limit_at(spec, classe, level=level, context=ctx,
                             subclass=source['subclass'],
-                            minimum=1 if (spec or {}).get('kind') == 'formula' else 0)
+                            minimum=1 if (spec or {}).get('kind') == 'formula' else 0,
+                            ruleset=ruleset)
             if spec and value is None:
                 issues.append('%s %d: limite de magia indisponível; revise o contrato de conteúdo.'
                               % (classe.nome, level))

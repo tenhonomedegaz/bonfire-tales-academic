@@ -88,7 +88,7 @@ class ClericSlotRepairTests(TestCase):
       and not r['fields']['id_subclasse']}
     for circle, obj in self.resources.items():
       obj.refresh_from_db()
-      self.assertEqual(resources['%so'%circle]['valores_json'], obj.valores_json)
+      self.assertEqual(resources[str(circle)]['valores_json'], obj.valores_json)
 
   def test_unknown_table_or_duplicate_aborts_entire_batch(self):
     for duplicate in [False,True]:

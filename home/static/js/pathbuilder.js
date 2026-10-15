@@ -662,8 +662,9 @@
                     '<div class="pb-row-head">' +
                       '<span class="pb-row-name">' + esc(group.label) +
                         '<small>' + esc([group.classe, group.origem].filter(Boolean).join(' · ')) + '</small></span>' +
-                      '<span class="pb-counter' + (restam > 0 ? ' is-bad' : ' is-ok') + '">' +
-                        (restam > 0 ? 'escolha ' + restam : 'ok') + '</span>' +
+                      '<span class="pb-counter' + (restam > 0 && !group.optional ? ' is-bad' : ' is-ok') + '">' +
+                        (group.optional ? 'opcional: até ' + restam :
+                         (restam > 0 ? 'escolha ' + restam : 'ok')) + '</span>' +
                     '</div>' +
                     (fixed.length ? '<p class="pb-row-note">Já na ficha: ' +
                        esc(fixed.map(function (r) { return r.nome; }).join(', ')) + '</p>' : '') +

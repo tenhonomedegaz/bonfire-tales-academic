@@ -1,0 +1,66 @@
+{
+  "events": [
+    {
+      "step": "creator_ready",
+      "errors": ""
+    },
+    {
+      "step": "http_post",
+      "path": "/sistemas/criacao-de-ficha/salvar/",
+      "status": 200,
+      "response": "{\"ok\": true, \"mode\": \"creator\", \"id\": 48, \"redirect\": \"/jogador/personagens/48/\"}"
+    },
+    {
+      "step": "http_post",
+      "path": "/sistemas/criacao-de-ficha/preview/",
+      "status": 200,
+      "response": "{\"ok\": true, \"ready\": true, \"preview\": {\"nivel\": 1, \"pb\": 2, \"pv\": 12, \"pv_completo\": true, \"ca\": 18, \"iniciativa\": 4, \"velocidade\": \"9 m / 30 ft\", \"atributos\": [{\"sig\": \"FOR\", \"valor\": 15, \"mod\": 2, \"save_bonus\": 4, \"save_prof\": true}, {\"sig\": \"DES\""
+    },
+    {
+      "step": "created",
+      "pk": 48,
+      "level": 1,
+      "name": "QA UI Playwright 828 Guerreiro"
+    },
+    {
+      "step": "reopened",
+      "name_visible": true,
+      "url": "http://127.0.0.1:54556/jogador/personagens/48/"
+    },
+    {
+      "step": "levelup_page",
+      "url": "http://127.0.0.1:54556/jogador/personagens/48/subir-nivel/"
+    },
+    {
+      "step": "http_post",
+      "path": "/jogador/personagens/48/level-up/preview/",
+      "status": 200,
+      "response": "{\"ok\": true, \"ready\": true, \"preview\": {\"nivel\": 2, \"pb\": 2, \"pv\": 20, \"pv_completo\": true, \"ca\": 18, \"iniciativa\": 4, \"velocidade\": \"9 m / 30 ft\", \"atributos\": [{\"sig\": \"FOR\", \"valor\": 15, \"mod\": 2, \"save_bonus\": 4, \"save_prof\": true}, {\"sig\": \"DES\""
+    },
+    {
+      "step": "http_post",
+      "path": "/jogador/personagens/48/level-up/aplicar/",
+      "status": 200,
+      "response": "{\"ok\": true, \"ficha\": {\"nivel\": 2, \"pb\": 2, \"pv\": 20, \"pv_completo\": true, \"ca\": 18, \"iniciativa\": 4, \"velocidade\": \"9 m / 30 ft\", \"atributos\": [{\"sig\": \"FOR\", \"valor\": 15, \"mod\": 2, \"save_bonus\": 4, \"save_prof\": true}, {\"sig\": \"DES\", \"valor\": 15, \"m"
+    },
+    {
+      "step": "evolved",
+      "level": 2,
+      "name": "QA UI Playwright 828 Guerreiro"
+    },
+    {
+      "step": "evolved_reopened",
+      "name_visible": true,
+      "level": 2
+    }
+  ],
+  "temporary_rows_before_cleanup": [
+    {
+      "id_personagem": 48,
+      "nome": "QA UI Playwright 828 Guerreiro",
+      "nivel": 2
+    }
+  ],
+  "cleanup_user": 0,
+  "cleanup_characters": 0
+}

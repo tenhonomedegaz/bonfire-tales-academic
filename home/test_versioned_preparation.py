@@ -68,5 +68,8 @@ class VersionedPreparationTests(TestCase):
         new = TbMagia.objects.create(nome='Outside', slug='outside', nivel=1)
         self.choice.id_magia = new
         self.choice.save()
-        with self.assertRaisesMessage(ValueError, 'Spell absent from pinned ruleset'):
-            _magias_preparadas_info(self.person, ficha, ruleset=ruleset)
+        panel = _magias_preparadas_info(self.person, ficha, ruleset=ruleset)
+        self.assertNotIn('outside', {
+            spell['slug'] for group in panel['grupos'] for spell in group['magias']})
+        self.choice.refresh_from_db()
+        self.assertEqual(self.choice.id_magia_id, new.pk)

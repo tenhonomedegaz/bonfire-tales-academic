@@ -4,7 +4,8 @@ from unittest.mock import patch
 
 from django.urls import reverse
 
-from home.models import TbClasse, TbMagia, TbPersonagem, TbPersonagemClasse, TbPersonagemMagia
+from home.models import (TbClassPublication, TbClasse, TbClassehabilidade, TbMagia,
+                         TbPersonagem, TbPersonagemClasse, TbPersonagemMagia)
 from home.pathbuilder_spells import apply_spell_selection, spell_sources
 from home.test_criador import _CriadorBase
 
@@ -35,6 +36,39 @@ class PathbuilderSpellTests(_CriadorBase):
         self.assertEqual(changed['preparadas'], source['preparadas'] - 1)
         self.assertEqual(changed['conhecidas'], source['conhecidas'])
         self.assertEqual(self.preview(base)['magias_fontes'][0]['preparadas'], source['preparadas'])
+
+    def test_published_spell_access_ignores_unpublished_live_spell_edit(self):
+        from home.class_revision_editor import create_class_revision
+        from home.test_creator_pinned_catalog import CreatorPinnedCatalogTests
+        from home.views import _criador_persistir, _criador_public_resolution
+
+        base = self._payload('mago')
+        classe = TbClasse.objects.get(slug='mago')
+        feature = TbClassehabilidade.objects.filter(id_classe=classe).first()
+        self.assertIsNotNone(feature)
+        initial = CreatorPinnedCatalogTests.seal(self, classe)
+        published = create_class_revision(initial.checksum, classe.pk, [
+            {'model': 'home.tbclassehabilidade', 'action': 'update',
+             'pk': feature.pk, 'fields': {'descricao': '## Revisao publicada do Mago'}}
+        ], presentation_source='catalog')
+        TbClassPublication.objects.create(id_classe=classe, ruleset=published)
+        resolved, errors = _criador_public_resolution(base)
+        self.assertEqual(errors, [])
+        character = _criador_persistir(self.user, base, resolved)
+        allowed = spell_sources(character, ruleset=published)[0]['allowed']
+        spell = TbMagia.objects.filter(pk__in=allowed, nivel=0).exclude(
+            slug__in=base['truques']).first()
+        self.assertIsNotNone(spell)
+
+        TbMagia.objects.filter(pk=spell.pk).update(classes_slugs=[], classes='', nivel=9)
+        self.assertNotIn(spell.pk, spell_sources(character)[0]['allowed'])
+        self.assertIn(spell.pk, spell_sources(character, ruleset=published)[0]['allowed'])
+        result = self.preview(base, spells=[{'slug': spell.slug, 'classe': 'mago'}])
+        self.assertNotIn('fora da lista', ' '.join(result['validacao']['magias']))
+        selected = [row for row in result['magias_fontes'][0]['magias']
+                    if row['slug'] == spell.slug]
+        self.assertEqual(len(selected), 1)
+        self.assertEqual(selected[0]['nivel'], 0)
 
     def test_invalid_or_duplicated_spell_selection_preserves_preview(self):
         base = self._payload('mago')

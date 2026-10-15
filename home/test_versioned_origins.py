@@ -1,9 +1,10 @@
 from types import SimpleNamespace as NS
+from copy import deepcopy
 from django.test import TestCase
-from home.models import TbAntecedente, TbTalento, TbTracoracial
-from home.content_versions import seal_ruleset
+from home.models import TbAntecedente, TbTalento, TbTracoracial, TbRaca, TbLinhagem, TbEssencia
+from home.content_versions import create_revision, seal_ruleset
 from home.versioned_classes import EVALUATOR, VOCABULARY
-from home.versioned_origins import snapshot_origins, VersionedOrigins
+from home.versioned_origins import IDENTITY, snapshot_origins, VersionedOrigins
 from home.character_engine import _antecedente, _talentos
 
 
@@ -61,3 +62,33 @@ class VersionedOriginsTests(TestCase):
 
     def test_snapshot_replay_is_stable(self):
         self.assertEqual(snapshot_origins().pk, snapshot_origins().pk)
+
+    def test_old_racial_snapshot_defaults_only_visual_focus_fields(self):
+        race = TbRaca.objects.create(nome='Legacy race', slug='legacy-focus-race')
+        TbLinhagem.objects.create(id_raca=race, nome='Legacy lineage',
+                                  slug='legacy-focus-lineage')
+        TbEssencia.objects.create(nome='Legacy essence', slug='legacy-focus-essence')
+        source = snapshot_origins()
+        legacy = deepcopy(source.payload)
+        for model in (TbRaca, TbLinhagem, TbEssencia):
+            for row in legacy['collections'][model._meta.label_lower]:
+                row.pop('imagem_foco_x')
+                row.pop('imagem_foco_y')
+        revision = create_revision(IDENTITY, legacy)
+        ruleset = seal_ruleset([revision], evaluator_version=EVALUATOR,
+                               vocabulary_version=VOCABULARY)
+        origins = VersionedOrigins(ruleset)
+        for model in (TbRaca, TbLinhagem, TbEssencia):
+            rows = origins.objects(model)
+            if rows:
+                self.assertEqual((rows[0].imagem_foco_x, rows[0].imagem_foco_y),
+                                 (50, 50))
+        self.assertIn('imagem_foco_x', source.payload['collections'][TbRaca._meta.label_lower][0])
+
+        broken = deepcopy(legacy)
+        broken['collections'][TbTalento._meta.label_lower][0].pop('tags_json')
+        bad_revision = create_revision(IDENTITY, broken)
+        bad_ruleset = seal_ruleset([bad_revision], evaluator_version=EVALUATOR,
+                                   vocabulary_version=VOCABULARY)
+        with self.assertRaisesMessage(ValueError, 'Incompatible origin snapshot fields'):
+            VersionedOrigins(bad_ruleset)

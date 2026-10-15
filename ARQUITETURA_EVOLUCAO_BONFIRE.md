@@ -2,6 +2,30 @@
 
 Data: 13 de setembro de 2026. Documento de planejamento para o projeto `BonfireSite-main`.
 
+## Prioridade vigente do PO: matriz do builder antes do release
+
+Direcionamento de fechamento em 13/10/2026: seguir [Fechamento finito do release DEV](docs/qa/BUILDER_RELEASE_CLOSEOUT.md), etapas F1-F6. Consolidar causas da matriz, corrigir a lista residual, executar QA final e entregar commit/push dev. Nao ampliar o release com melhorias opcionais nem substituir evidencias por percentual historico.
+
+Atualizacao de 12/10/2026: esta ordem substitui a instrucao anterior de adiar a matriz ate depois de todas as demais entregas.
+
+1. Executar AGORA a matriz intensiva de todas as classes/subclasses vigentes e legadas suportadas. Para cada nivel suportado (1 a 20 quando aplicavel), comparar tabela E descricao da pagina da classe/subclasse com habilidades, escolhas, ASI/talentos, recursos, magias e calculos efetivamente oferecidos pelo builder. Registrar esperado, observado, versao do conteudo, evidencia, divergencia e resultado por combinacao. Nao usar o mesmo calculo do builder como unica fonte do resultado esperado.
+2. Corrigir divergencias em conteudo/Markdown/tags e, somente quando necessario, no motor generico. Nao mascarar falha ajustando teste para coincidir com comportamento errado; fontes contraditorias exigem decisao pontual. Retestar combinacoes afetadas e preservar PKs, escolhas e personagens legados.
+3. Depois de fechar a matriz, executar os testes finais integrados e corrigir regressoes. Reaproveitar evidencias validas de codigo/ambiente inalterados; uma suite em andamento nao justifica rodadas dedicadas apenas a polling nem precisa ser duplicada.
+4. Commitar as alteracoes revisadas na branch dev e fazer push normal, sem force push. Autorizacao explicita do usuario para este marco; preservar alteracoes alheias, excluir segredos e confirmar hash local/remoto. Informar migracoes e procedimento de atualizacao.
+5. O usuario atualiza a producao. Somente apos confirmacao dessa atualizacao, verificar compatibilidade da API para os dados revisados e preparar/aplicar o pacote no escopo autorizado com preview, backup e identidades de producao preservadas. Entao realizar QA publicado. Nao executar deploy, resgates ou mutacoes externas nao relacionadas por inferencia.
+
+Cisco permanece pausado por solicitacao anterior. A prioridade de execucao agora e esta frente do site.
+
+## Relatos e cobertura obrigatoria do builder
+
+- [ ] Revisar incoerencias de nomenclatura entre tabelas, cards, descricoes e character builder. Relato concreto: Guerreiro apresenta ASI no nivel 4 como "Aprimoramento de Atributo ou Talento", mas nos niveis 6, 8, 12, 14, 16 e 19 como "Incremento de Atributo ou Talento". Confirmar a fonte canonica antes de escolher o nome; padronizar equivalencias em todas as classes/subclasses sem alterar regras distintas por mera semelhanca textual.
+- [ ] Manter na fila os relatos anteriores de textos do Mistico sem paragrafos e linhagens ausentes do elfo. Corrigir conteudo/Markdown e tags/dados com arquitetura generica; nao introduzir condicionais por nome de classe. Preservar PKs, relacionamentos, escolhas e personagens legados.
+- [ ] Como proxima entrega prioritaria, executar validacao intensiva do character builder com matriz explicita de TODAS as classes e subclasses vigentes e legadas suportadas. Cada combinacao deve ter resultado e evidencia ou bloqueio concreto, nunca aceite presumido por amostragem.
+- [ ] Cobrir criacao, selecao/troca de classe e subclasse, progressao e regressao de nivel nos marcos relevantes, ASI versus talentos, pre-requisitos, habilidades, recursos, magias e espacos, escolhas obrigatorias, calculos e consistencia com tabelas/cards. Incluir multiclasse quando suportada, salvar/reabrir/editar e preservacao de personagens anteriores aos reworks.
+- [ ] Exercitar o fluxo integrado real da UI e persistencia em DEV com dados de teste isolados, alem dos testes de dominio pertinentes. Conferir visualizacao/ficha/exportacao quando aplicaveis; registrar falhas por classe/subclasse e corrigir/retestar antes do aceite. Nao substituir esse marco por testes unitarios apenas, nem executar operacoes destrutivas em producao.
+
+Durante as correcoes, manter testes focados pelo risco. A matriz intensiva acima e obrigatoria e ainda NAO tem aceite confirmado. Seguir a ordem vigente acima; publicacao em producao continua sendo um passo separado, nao implicito no push.
+
 Esta arquitetura transforma os problemas e as funcionalidades do [READ-ME CODEX.docx](<ref/READ-ME CODEX.docx>) em um plano de implementação incremental. A direção principal é fortalecer o Bonfire como comunidade: perfis expressivos, histórias com interação, conquistas verificáveis e recompensas cosméticas, sustentados por fichas confiáveis e uma interface coerente.
 
 A elaboração inicial se limitou a este Markdown. Em 13/09/2026, o usuário ampliou explicitamente a meta para implementar integralmente este plano. A execução e suas evidências são acompanhadas em [Evolução — progresso de implementação](docs/EVOLUCAO_PROGRESSO.md); os critérios documentais da seção 20.1 são preparatórios. As propostas abaixo, por si só, não comprovam funcionalidades implementadas, migrações aplicadas ou autorização de publicação em produção. As sugestões adicionais estão identificadas na seção 17.
