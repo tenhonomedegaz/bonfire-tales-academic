@@ -84296,7 +84296,15 @@
       "name": "Arma Espectral",
       "size": "",
       "type": "construto",
-      "alignment": ""
+      "alignment": "",
+      "trait": [
+        {
+          "name": "Falange Espiritual",
+          "entries": [
+            "Falange Espiritual. Em espaços desocupados que você possa ver a até 18 metros [60 pés] , crie até um número de armas espectrais igual ao seu modificador de Sabedoria (mínimo de 1), cada uma sendo uma cópia de uma de suas Oferendas de Guerra (portanto, caso você tenha apenas uma arma oferecida, só pode criar uma cópia, ainda que tenha Sabedoria 2 ou mais). Cada arma pode imediatamente fazer 1 ataque de arma espiritual contra uma criatura a até 1,5 metros [5 pés] dela, e cada arma deve atacar uma criatura diferente. A arma recebe todos os seus próprios benefícios, e você pode usar sua Sabedoria no lugar de Força ou Destreza nas jogadas de ataque e de dano feitas com ela. Comandar a Falange. Em turnos subsequentes, você pode usar sua Ação Bônus para mover uma dessas armas até 6 metros [20 pés] e fazer com que ela realize 1 ataque. Limites e Propriedades. As armas espectrais duram 1 minuto, são intangíveis, não ocupam espaço e desaparecem se você ficar Incapacitado ou se qualquer delas se afastar mais de 36 metros [120 pés] de você. Cada arma espectral herda as propriedades da arma copiada (por exemplo, alcance, leve, acuidade) e recebe o mesmo bônus mágico de sua arma consagrada correspondente. Efeitos que exijam ativação ou gasto de cargas e recursos não podem ser acionados por estas cópias."
+          ]
+        }
+      ]
     },
     "tags_json": [
       "attack:melee, attack:weapon, dmg:weapon(weapon_type)",

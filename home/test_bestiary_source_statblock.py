@@ -10,6 +10,34 @@ from .views import _render_creature_statblock_full
 
 
 class SourceBackedCompanionStatblockTests(SimpleTestCase):
+    def test_spectral_weapon_keeps_war_domain_rules_without_invented_stats(self):
+        # Source: ref/Classes Reworkadas/Clerigo ... World Anvil.html,
+        # Dominio da Guerra, Armamento da Guerra: Falange Espiritual.
+        records = json.loads((Path(settings.BASE_DIR) / 'home' / 'fixtures' /
+                              'conteudo.json').read_text(encoding='utf-8'))
+        fields = next(record['fields'] for record in records
+                      if record['model'] == 'home.tbbestiario' and record['pk'] == 16)
+        self.assertEqual(fields['slug'], 'arma-espectral')
+        self.assertEqual(fields['companheiro_subclasse'], 122)
+        self.assertTrue(fields['escala_com_dono'])
+        self.assertIsNone(fields['tamanho'])
+        self.assertIsNone(fields['nd'])
+        self.assertIsNone(fields['ca'])
+        self.assertIsNone(fields['pv'])
+        statblock = fields['statblock_json']
+        self.assertFalse(is_statblock_placeholder(statblock))
+        rule = statblock['trait'][0]['entries'][0]
+        for phrase in ('Falange Espiritual.', 'Comandar a Falange.',
+                       'Limites e Propriedades.', '18 metros', '6 metros',
+                       '36 metros', '1 minuto'):
+            self.assertIn(phrase, rule)
+        creature = TbBestiario(nome=fields['nome'], slug=fields['slug'],
+                               tipo=fields['tipo'], statblock_json=statblock)
+        rendered = _render_creature_statblock_full(creature)
+        self.assertIn('Falange Espiritual', rendered)
+        self.assertIn('Comandar a Falange', rendered)
+        self.assertNotIn('Statblock incompleto:', rendered)
+
     def test_primal_familiar_renders_all_four_source_forms(self):
         # Source: ref/Classes/Druida ... World Anvil.html, Pastor Elemental.
         records = json.loads((Path(settings.BASE_DIR) / 'home' / 'fixtures' /
