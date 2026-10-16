@@ -165,6 +165,17 @@
           </header>
 
           {% if c.statblock_incompleto %}<p class="rounded border border-[var(--stroke)] bg-[var(--bg1)] px-3 py-2 text-sm text-[var(--muted)]">Statblock incompleto: atributos e acoes ainda nao foram cadastrados para esta criatura.</p>{% endif %}
+          {% if c.variant_selector %}
+          <section class="monster-section" aria-label="Ficha variavel">
+            <h3 class="monster-section-title">Ficha variavel</h3>
+            <p class="monster-line mt-1">{{ c.variant_selector.selection_note }}</p>
+            <p class="monster-line mt-2">Exemplos de fichas:
+              {% for ref in c.variant_selector.variant_refs %}
+              <a class="bonfire-card-trigger text-[var(--spark)] hover:text-[var(--ember)]" href="#" data-table="tbBestiario" data-args="{{ ref.slug }}">{{ ref.name }} (ND {{ ref.cr }})</a>{% if not forloop.last %}, {% endif %}
+              {% endfor %}
+            </p>
+          </section>
+          {% endif %}
 
           <section class="grid gap-2">
             {% if sb.ca %}<div class="monster-line"><strong>Classe de Armadura</strong> {{ sb.ca }}</div>{% endif %}

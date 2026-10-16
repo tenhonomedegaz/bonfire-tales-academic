@@ -14398,6 +14398,8 @@ def bestiario_view(request):
             if not unicodedata.combining(char)
         ):
             continue
+        statblock = b.statblock_json if isinstance(b.statblock_json, dict) else {}
+        incomplete = is_statblock_placeholder(statblock)
         criaturas.append({
             'id': b.id_criatura, 'nome': b.nome, 'slug': b.slug,
             'tipo': _sb_tipo_pt(b.tipo), 'nd': cr_display(b.nd), 'nd_key': nd_key,
@@ -14405,7 +14407,9 @@ def bestiario_view(request):
             'comunidade': b.comunidade, 'autor': b.autor.username if b.autor_id else None,
             'usages': [USAGE_LABELS[key] for key in usages],
             'imagem': safe_editorial_image(b.imagem_url),
-            'statblock_incompleto': is_statblock_placeholder(b.statblock_json),
+            'statblock_incompleto': incomplete,
+            'variant_selector': statblock if not incomplete and isinstance(
+                statblock.get('variant_refs'), list) else None,
             'nd_valor': nd_number,
             'record': b,
             'descricao': _clean_5et(display_description(b)),

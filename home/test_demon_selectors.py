@@ -36,13 +36,18 @@ class DemonSelectorPreviewTests(TestCase):
                 key: selector[key] for key in ('nome', 'slug', 'tipo', 'tamanho',
                                                'ca', 'pv', 'nd', 'statblock_json')
             })
+            public_page = self.client.get('/mundo/bestiario/', {
+                'q': selector['slug'],
+            })
             creature = self.client.get('/api/creature/', {'slug': selector['slug']})
             card = self.client.get('/api/card-preview/', {
                 'table': 'bestiario', 'args': selector['slug'],
             })
-            self.assertEqual((creature.status_code, card.status_code), (200, 200))
+            self.assertEqual((public_page.status_code, creature.status_code,
+                              card.status_code), (200, 200, 200))
             self.assertFalse(creature.json()['statblock_incompleto'])
-            for html in (creature.json()['statblock_html'], card.json()['card_html']):
+            for html in (public_page.content.decode(),
+                         creature.json()['statblock_html'], card.json()['card_html']):
                 self.assertIn('Ficha variavel', html)
                 self.assertNotIn('Statblock incompleto', html)
                 for ref in refs:
