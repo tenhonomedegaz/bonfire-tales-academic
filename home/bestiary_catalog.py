@@ -104,6 +104,14 @@ def usage_keys(owner_scaled=False, companion_class_id=None, companion_subclass_i
     return tuple(keys)
 
 
+def is_statblock_placeholder(value):
+    """A name/type shell is not a playable statblock, even for an owner-scaled summon."""
+    if not isinstance(value, dict):
+        return True
+    return not any(item for key, item in value.items()
+                   if key not in {'name', 'type', 'size', 'cr', 'alignment'})
+
+
 def cr_classification(value):
     """Return (filter key, numeric sort key, label); unknown CR is not zero."""
     raw = '' if value is None else str(value).strip()

@@ -128,6 +128,18 @@ class BestiarySnapshotAuditTests(SimpleTestCase):
         self.assertEqual(record['classification']['cr'], 'pending')
         self.assertIn('cr_needs_review', record['issues'])
 
+    def test_owner_scaled_name_type_shell_is_not_counted_as_complete_statblock(self):
+        rows = self.sample()
+        fields = rows[1]['fields']
+        fields.update(escala_com_dono=True, tamanho=None, nd=None,
+                      statblock_json={'name': 'Espirito', 'size': '',
+                                      'type': 'elemental', 'alignment': ''})
+        record = audit_snapshot(rows)['records'][0]
+        self.assertIn('statblock_mechanics_missing', record['issues'])
+        self.assertEqual(record['review_destination'], 'classification_and_mechanics')
+        fields['statblock_json']['traits'] = [{'name': 'Vinculo', 'entries': ['Escala com o dono.']}]
+        self.assertNotIn('statblock_mechanics_missing', audit_snapshot(rows)['records'][0]['issues'])
+
     def test_explicit_unrated_cr_is_not_misclassified_as_missing(self):
         rows = self.sample()
         rows[1]['fields']['nd'] = 'None (XP 0; PB equals your Proficiency Bonus)'

@@ -10,7 +10,8 @@ import json
 import re
 import unicodedata
 
-from .bestiary_catalog import cr_classification, size_keys, type_keys, usage_keys
+from .bestiary_catalog import (cr_classification, is_statblock_placeholder,
+                               size_keys, type_keys, usage_keys)
 from .tag_engine import ERROR, WARN, Library, validate_tags_json
 
 
@@ -128,6 +129,8 @@ def audit_snapshot(rows):
         if not isinstance(sb, dict):
             issues.append('statblock_not_object')
             sb = {}
+        if is_statblock_placeholder(sb):
+            issues.append('statblock_mechanics_missing')
 
         feature_count = untagged = legacy_tagged = syntax_errors = syntax_warnings = 0
         for section in FEATURE_SECTIONS:

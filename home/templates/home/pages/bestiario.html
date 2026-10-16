@@ -164,6 +164,8 @@
             {% if c.imagem %}<img class="monster-art" src="{{ c.imagem }}" alt="Ilustração de {{ c.nome }}" loading="lazy" decoding="async">{% endif %}
           </header>
 
+          {% if c.statblock_incompleto %}<p class="rounded border border-[var(--stroke)] bg-[var(--bg1)] px-3 py-2 text-sm text-[var(--muted)]">Statblock incompleto: atributos e acoes ainda nao foram cadastrados para esta criatura.</p>{% endif %}
+
           <section class="grid gap-2">
             {% if sb.ca %}<div class="monster-line"><strong>Classe de Armadura</strong> {{ sb.ca }}</div>{% endif %}
             {% if sb.pv %}<div class="monster-line"><strong>Pontos de Vida</strong> {{ sb.pv }}</div>{% endif %}

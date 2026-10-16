@@ -6,6 +6,20 @@ from .models import TbBestiario, TbClasse
 
 
 class BestiaryCatalogClassificationTests(TestCase):
+    def test_public_catalog_identifies_owner_scaled_placeholder_without_guessing_stats(self):
+        creature = TbBestiario.objects.create(
+            slug='espirito-de-teste', nome='Espirito de Teste', tipo='elemental',
+            escala_com_dono=True, statblock_json={
+                'name': 'Espirito de Teste', 'size': '', 'type': 'elemental', 'alignment': ''})
+        url = reverse('bestiario')
+        response = self.client.get(url, {'q': creature.slug})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Statblock incompleto: atributos e acoes ainda nao foram cadastrados')
+        self.assertContains(response, 'ND pendente')
+        creature.statblock_json['traits'] = [{'name': 'Vinculo', 'entries': ['Escala com o dono.']}]
+        creature.save(update_fields=['statblock_json'])
+        self.assertNotContains(self.client.get(url, {'q': creature.slug}), 'Statblock incompleto:')
+
     def test_large_catalog_paginates_statblocks_and_searches_all_records(self):
         TbBestiario.objects.bulk_create([
             TbBestiario(slug=f'criatura-{index:02}',
