@@ -87253,16 +87253,71 @@
     "nome": "Espírito Aberrante",
     "slug": "espirito-aberrante",
     "tipo": "aberracao",
-    "tamanho": null,
+    "tamanho": "M",
     "nd": null,
     "alinhamento": null,
-    "ca": null,
-    "pv": null,
+    "ca": "11 + nível da magia",
+    "pv": "40 + 10 por nível da magia acima do 4º",
     "statblock_json": {
       "name": "Espírito Aberrante",
-      "size": "",
+      "size": "M",
       "type": "aberracao",
-      "alignment": ""
+      "alignment": "",
+      "ac_text": "11 + nível da magia",
+      "hp": "40 + 10 por nível da magia acima do 4º",
+      "speed": "9 m; voo 9 m (pairar; apenas Beholderkin)",
+      "abilities": {
+        "str": 16,
+        "dex": 10,
+        "con": 15,
+        "int": 16,
+        "wis": 10,
+        "cha": 6
+      },
+      "senses": "Visão no Escuro 18 m; Percepção passiva 10",
+      "languages": "Fala Profunda; compreende os idiomas do invocador",
+      "cr": "Sem ND (XP 0; bônus de proficiência igual ao do invocador)",
+      "trait": [
+        {
+          "name": "Regeneração (Slaad)",
+          "entries": [
+            "Recupera 5 PV no início do turno se tiver ao menos 1 PV."
+          ]
+        },
+        {
+          "name": "Aura Sussurrante (Devorador de Mentes)",
+          "entries": [
+            "No início de cada turno, se não estiver Incapacitado, criaturas diferentes do invocador a até 1,5 m fazem salvaguarda de Sabedoria contra a CD de magia do invocador. Na falha, sofrem 2d6 de dano psíquico."
+          ]
+        }
+      ],
+      "action": [
+        {
+          "name": "Ataques Múltiplos",
+          "entries": [
+            "Faz ataques em número igual à metade do nível da magia, arredondada para baixo."
+          ]
+        },
+        {
+          "name": "Garra (Slaad)",
+          "entries": [
+            "Ataque corpo a corpo com o modificador de ataque mágico do invocador, alcance 1,5 m. Acerto: 1d10 + 3 + nível da magia de dano cortante; o alvo não recupera PV até o início do próximo turno do espírito."
+          ]
+        },
+        {
+          "name": "Raio Ocular (Beholderkin)",
+          "entries": [
+            "Ataque à distância com o modificador de ataque mágico do invocador, alcance 45 m. Acerto: 1d8 + 3 + nível da magia de dano psíquico."
+          ]
+        },
+        {
+          "name": "Golpe Psíquico (Devorador de Mentes)",
+          "entries": [
+            "Ataque corpo a corpo com o modificador de ataque mágico do invocador, alcance 1,5 m. Acerto: 1d8 + 3 + nível da magia de dano psíquico."
+          ]
+        }
+      ],
+      "damage_immunities": "Psíquico"
     },
     "tags_json": [
       "summon:bestiary{espirito_aberrante}"
@@ -87283,16 +87338,68 @@
     "nome": "Espírito de Constructo",
     "slug": "espirito-de-constructo",
     "tipo": "construto",
-    "tamanho": null,
+    "tamanho": "M",
     "nd": null,
     "alinhamento": null,
-    "ca": null,
-    "pv": null,
+    "ca": "13 + nível da magia",
+    "pv": "40 + 15 por nível da magia acima do 4º",
     "statblock_json": {
       "name": "Espírito de Constructo",
-      "size": "",
+      "size": "M",
       "type": "construto",
-      "alignment": ""
+      "alignment": "",
+      "ac_text": "13 + nível da magia",
+      "hp": "40 + 15 por nível da magia acima do 4º",
+      "speed": "9 m",
+      "abilities": {
+        "str": 18,
+        "dex": 10,
+        "con": 18,
+        "int": 14,
+        "wis": 11,
+        "cha": 5
+      },
+      "senses": "Visão no Escuro 18 m; Percepção passiva 10",
+      "languages": "Compreende os idiomas do invocador",
+      "cr": "Sem ND (XP 0; bônus de proficiência igual ao do invocador)",
+      "trait": [
+        {
+          "name": "Corpo Aquecido (Metal)",
+          "entries": [
+            "Uma criatura que acerte o espírito com ataque corpo a corpo ou comece o turno agarrando-o sofre 1d10 de dano de fogo."
+          ]
+        },
+        {
+          "name": "Letargia Rochosa (Pedra)",
+          "entries": [
+            "Quando uma criatura começa o turno a até 3 m, o espírito pode afetá-la se puder vê-la. Ela faz salvaguarda de Sabedoria contra a CD de magia do invocador. Na falha, não pode fazer ataques de oportunidade e seu deslocamento é reduzido à metade até o início do próximo turno."
+          ]
+        }
+      ],
+      "action": [
+        {
+          "name": "Ataques Múltiplos",
+          "entries": [
+            "Faz ataques de Pancada em número igual à metade do nível da magia, arredondada para baixo."
+          ]
+        },
+        {
+          "name": "Pancada",
+          "entries": [
+            "Ataque corpo a corpo com o modificador de ataque mágico do invocador, alcance 1,5 m. Acerto: 1d8 + 4 + nível da magia de dano contundente."
+          ]
+        }
+      ],
+      "reaction": [
+        {
+          "name": "Retaliação Descontrolada (Argila)",
+          "entries": [
+            "Quando sofre dano de uma criatura, faz um ataque de Pancada contra ela, se possível; caso contrário, move-se até metade do deslocamento em direção a ela sem provocar ataques de oportunidade."
+          ]
+        }
+      ],
+      "damage_resistances": "Veneno",
+      "condition_immunities": "Enfeitiçado, Exausto, Amedrontado, Paralisado, Envenenado"
     },
     "tags_json": [
       "summon:bestiary{espirito_de_constructo}"
@@ -87343,16 +87450,55 @@
     "nome": "Espírito Elemental",
     "slug": "espirito-elemental",
     "tipo": "Elemental",
-    "tamanho": null,
+    "tamanho": "M",
     "nd": null,
     "alinhamento": null,
-    "ca": null,
-    "pv": null,
+    "ca": "11 + nível da magia",
+    "pv": "50 + 10 por nível da magia acima do 4º",
     "statblock_json": {
       "name": "Espírito Elemental",
-      "size": "",
+      "size": "M",
       "type": "Elemental",
-      "alignment": ""
+      "alignment": "",
+      "ac_text": "11 + nível da magia",
+      "hp": "50 + 10 por nível da magia acima do 4º",
+      "speed": "12 m; escavação 12 m (Terra), voo 12 m com pairar (Ar), natação 12 m (Água)",
+      "abilities": {
+        "str": 18,
+        "dex": 15,
+        "con": 17,
+        "int": 4,
+        "wis": 10,
+        "cha": 16
+      },
+      "senses": "Visão no Escuro 18 m; Percepção passiva 10",
+      "languages": "Primordial; compreende os idiomas do invocador",
+      "cr": "Sem ND (XP 0; bônus de proficiência igual ao do invocador)",
+      "trait": [
+        {
+          "name": "Forma Amorfa (Ar/Fogo/Água)",
+          "entries": [
+            "Passa por um espaço de apenas 2,5 cm sem considerá-lo terreno difícil."
+          ]
+        }
+      ],
+      "action": [
+        {
+          "name": "Ataques Múltiplos",
+          "entries": [
+            "Faz ataques de Pancada em número igual à metade do nível da magia, arredondada para baixo."
+          ]
+        },
+        {
+          "name": "Pancada",
+          "entries": [
+            "Ataque corpo a corpo com o modificador de ataque mágico do invocador, alcance 1,5 m. Acerto: 1d10 + 4 + nível da magia de dano contundente (Terra), frio (Água), elétrico (Ar) ou fogo (Fogo)."
+          ]
+        }
+      ],
+      "damage_resistances": "Elétrico e Trovejante (Ar); Perfurante e Cortante (Terra); Ácido (Água)",
+      "damage_immunities": "Veneno; Fogo (apenas Fogo)",
+      "condition_immunities": "Exausto, Paralisado, Petrificado, Envenenado"
     },
     "tags_json": [
       "summon:bestiary{espirito_elemental}"
