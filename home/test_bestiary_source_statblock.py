@@ -10,6 +10,36 @@ from .views import _render_creature_statblock_full
 
 
 class SourceBackedCompanionStatblockTests(SimpleTestCase):
+    def test_otherworldly_steed_preserves_spell_scaling_and_three_forms(self):
+        # SRD 5.2.1, Find Steed / Otherworldly Steed, p. 130-131.
+        records = json.loads((Path(settings.BASE_DIR) / 'home' / 'fixtures' /
+                              'conteudo.json').read_text(encoding='utf-8'))
+        fields = next(record['fields'] for record in records
+                      if record['model'] == 'home.tbbestiario' and record['pk'] == 39)
+        self.assertEqual(fields['slug'], 'corcel-de-outro-mundo')
+        self.assertEqual(type_keys(fields['tipo']), ('celestial', 'feerico', 'corruptor'))
+        self.assertEqual(size_keys(fields['tamanho']), ('L',))
+        self.assertIsNone(fields['nd'])
+        self.assertTrue(fields['escala_com_dono'])
+        sb = fields['statblock_json']
+        self.assertFalse(is_statblock_placeholder(sb))
+        self.assertEqual(sb['abilities'], {
+            'str': 18, 'dex': 12, 'con': 14,
+            'int': 6, 'wis': 12, 'cha': 8,
+        })
+        self.assertEqual(len(sb['bonus']), 3)
+        self.assertIn('1d8 + nível da magia', sb['action'][0]['entries'][0])
+        creature = TbBestiario(nome=fields['nome'], slug=fields['slug'],
+                               tipo=fields['tipo'], tamanho=fields['tamanho'],
+                               nd=fields['nd'], ca=fields['ca'], pv=fields['pv'],
+                               statblock_json=sb)
+        html = _render_creature_statblock_full(creature)
+        for phrase in ('Golpe de Outro Mundo', 'Olhar Aterrador',
+                       'Passo Feérico', 'Toque Curativo', '4º nível',
+                       '10 + 1 por nível', '5 + 10 por nível'):
+            self.assertIn(phrase, html)
+        self.assertNotIn('Statblock incompleto:', html)
+
     def test_wizard_objects_show_conjuration_and_transmutation_rules(self):
         # Source: ref/Classes/Mago ... World Anvil.html, Conjurador and Transmutador.
         records = json.loads((Path(settings.BASE_DIR) / 'home' / 'fixtures' /
@@ -278,6 +308,31 @@ class SourceBackedCompanionStatblockTests(SimpleTestCase):
 
 
 class PrimalFamiliarPreviewTests(TestCase):
+    def test_otherworldly_steed_previews_render_mechanics(self):
+        records = json.loads((Path(settings.BASE_DIR) / 'home' / 'fixtures' /
+                              'conteudo.json').read_text(encoding='utf-8'))
+        fields = next(record['fields'] for record in records
+                      if record['model'] == 'home.tbbestiario' and record['pk'] == 39)
+        TbBestiario.objects.create(
+            nome=fields['nome'], slug=fields['slug'], tipo=fields['tipo'],
+            tamanho=fields['tamanho'], nd=fields['nd'], ca=fields['ca'],
+            pv=fields['pv'], statblock_json=fields['statblock_json'],
+        )
+        creature = self.client.get('/api/creature/', {'slug': fields['slug']})
+        self.assertEqual(creature.status_code, 200)
+        self.assertTrue(creature.json()['success'])
+        self.assertFalse(creature.json()['statblock_incompleto'])
+        card = self.client.get('/api/card-preview/', {
+            'table': 'bestiario', 'args': fields['slug'],
+        })
+        self.assertEqual(card.status_code, 200)
+        self.assertTrue(card.json()['success'])
+        for html in (creature.json()['statblock_html'], card.json()['card_html']):
+            for phrase in ('Golpe de Outro Mundo', 'Olhar Aterrador',
+                           'Passo Feérico', 'Toque Curativo'):
+                self.assertIn(phrase, html)
+            self.assertNotIn('Statblock incompleto:', html)
+
     def test_both_public_previews_render_all_four_forms(self):
         records = json.loads((Path(settings.BASE_DIR) / 'home' / 'fixtures' /
                               'conteudo.json').read_text(encoding='utf-8'))

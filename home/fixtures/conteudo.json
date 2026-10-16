@@ -85147,17 +85147,67 @@
   "fields": {
     "nome": "Corcel de Outro Mundo",
     "slug": "corcel-de-outro-mundo",
-    "tipo": "espirito",
-    "tamanho": null,
+    "tipo": "celestial, feérico ou corruptor",
+    "tamanho": "L",
     "nd": null,
-    "alinhamento": null,
-    "ca": null,
-    "pv": null,
+    "alinhamento": "neutro",
+    "ca": "10 + 1 por nível da magia",
+    "pv": "5 + 10 por nível da magia (d10 por nível)",
     "statblock_json": {
       "name": "Corcel de Outro Mundo",
-      "size": "",
-      "type": "espirito",
-      "alignment": ""
+      "size": "L",
+      "type": "celestial, feérico ou corruptor",
+      "alignment": "neutro",
+      "ac_text": "10 + 1 por nível da magia",
+      "hp": "5 + 10 por nível da magia (d10 por nível)",
+      "speed": "18 metros; voo 18 metros se invocado com magia de 4º nível ou superior",
+      "abilities": {
+        "str": 18,
+        "dex": 12,
+        "con": 14,
+        "int": 6,
+        "wis": 12,
+        "cha": 8
+      },
+      "senses": "Percepção passiva 11",
+      "languages": "Telepatia com o invocador até 1,6 km",
+      "cr": "None (XP 0; bônus de proficiência igual ao do invocador)",
+      "trait": [
+        {
+          "name": "Vínculo Vital",
+          "entries": [
+            "Se o invocador recuperar PV de uma magia de 1º nível ou superior e estiver a até 1,5 metro, o corcel recupera a mesma quantidade de PV."
+          ]
+        }
+      ],
+      "action": [
+        {
+          "name": "Golpe de Outro Mundo",
+          "entries": [
+            "Ataque corpo a corpo com o modificador de ataque mágico do invocador, alcance 1,5 metro. Acerto: 1d8 + nível da magia de dano radiante (celestial), psíquico (feérico) ou necrótico (corruptor)."
+          ]
+        }
+      ],
+      "bonus": [
+        {
+          "name": "Olhar Aterrador (corruptor; 1 vez por descanso longo)",
+          "entries": [
+            "Uma criatura que o corcel veja a até 18 metros faz uma salvaguarda de Sabedoria contra a CD de magia do invocador. Na falha, fica amedrontada até o fim do próximo turno do invocador."
+          ]
+        },
+        {
+          "name": "Passo Feérico (feérico; 1 vez por descanso longo)",
+          "entries": [
+            "O corcel e seu cavaleiro se teleportam para um espaço desocupado a até 18 metros do corcel."
+          ]
+        },
+        {
+          "name": "Toque Curativo (celestial; 1 vez por descanso longo)",
+          "entries": [
+            "Uma criatura a até 1,5 metro do corcel recupera 2d8 + nível da magia PV."
+          ]
+        }
+      ]
     },
     "tags_json": [
       "summon:bestiary{corcel_de_outro_mundo}"
@@ -85165,7 +85215,7 @@
     "companheiro_classe": null,
     "companheiro_subclasse": null,
     "escala_com_dono": true,
-    "descricao_markdown": "### Corcel de Outro Mundo\n\n- **Tipo:** espirito",
+    "descricao_markdown": "### Corcel de Outro Mundo\n\n- **Tipo:** celestial, feérico ou corruptor",
     "imagem_url": null,
     "comunidade": false,
     "autor": null

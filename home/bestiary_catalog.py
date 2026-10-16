@@ -53,6 +53,7 @@ SWARM_TYPES = {
 MULTI_TYPES = {
     'planta ou besta': ('planta', 'besta'),
     'celestial, fey, or fiend': ('celestial', 'feerico', 'corruptor'),
+    'celestial, feerico ou corruptor': ('celestial', 'feerico', 'corruptor'),
     'celestial ou corruptor (tita)': ('celestial', 'corruptor'),
     'celestial ou corruptor (tit\ufffd)': ('celestial', 'corruptor'),
 }
