@@ -84776,17 +84776,32 @@
   "fields": {
     "nome": "Sombra",
     "slug": "sombra",
-    "tipo": "morto-vivo",
+    "tipo": "tipo escolhido pelo Guerreiro",
     "tamanho": null,
-    "nd": null,
+    "nd": "0",
     "alinhamento": null,
-    "ca": null,
-    "pv": null,
+    "ca": "14 + Bônus de Proficiência",
+    "pv": "1",
     "statblock_json": {
       "name": "Sombra",
       "size": "",
-      "type": "morto-vivo",
-      "alignment": ""
+      "type": "tipo escolhido pelo Guerreiro",
+      "alignment": "",
+      "ac_text": "14 + Bônus de Proficiência",
+      "hp": "1",
+      "condition_immunities": "Todas as condições",
+      "trait": [
+        {
+          "name": "Invocar Sombra",
+          "entries": [
+            "Como uma Ação Bônus, você manifesta um eco sombrio de si mesmo, criando uma Sombra em um espaço vazio a até 4,5 metros [15 pés]. A Sombra obedece às seguintes regras:",
+            "Estatísticas. A Sombra é considerada uma criatura de CR 0, de tipo escolhido por você, e tem Classe de Armadura (CA) igual a 14 + seu Bônus de Proficiência, 1 Ponto de Vida e é imune a condições. Se for alvo de um teste de resistência, ela usa os seus modificadores.",
+            "Movimento. No seu turno, sem gastar ação, você pode mover a Sombra até 9 metros [30 pés]. Se ela terminar o turno a mais de 9 metros [30 pés] de você, é destruída.",
+            "Limite. Você pode ter 1 Sombra ativa. Esse limite aumenta para 2 no 6º nível de Guerreiro, 3 no 10º nível, 4 no 14º nível e 5 no 18º nível.",
+            "Sombra Instável. Sua sombra é considerada Instável para poder interagir com criaturas ou objetos por meio de Agarrões, Empurrões ou Derrubadas, só podendo fazê-los a partir de Manobras de Combate e maestrias de armas."
+          ]
+        }
+      ]
     },
     "tags_json": [
       "action=bonus_action",
@@ -84800,7 +84815,7 @@
     "companheiro_classe": 8,
     "companheiro_subclasse": 36,
     "escala_com_dono": true,
-    "descricao_markdown": "### Sombra\n\n- **Tipo:** morto-vivo",
+    "descricao_markdown": "### Sombra\n\n- **Tipo:** escolhido pelo Guerreiro",
     "imagem_url": null,
     "comunidade": false,
     "autor": null

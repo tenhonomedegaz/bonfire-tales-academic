@@ -10,6 +10,40 @@ from .views import _render_creature_statblock_full
 
 
 class SourceBackedCompanionStatblockTests(SimpleTestCase):
+    def test_shadow_knight_summon_preserves_variable_type_and_source_rules(self):
+        # Source: ref/Classes Reworkadas/Guerreiro ... World Anvil.html,
+        # Cavaleiro das Sombras, level 3: Invocar Sombra.
+        records = json.loads((Path(settings.BASE_DIR) / 'home' / 'fixtures' /
+                              'conteudo.json').read_text(encoding='utf-8'))
+        matching = [r for r in records if r['model'] == 'home.tbbestiario'
+                    and r['pk'] == 26]
+        self.assertEqual(len(matching), 1)
+        fields = matching[0]['fields']
+        self.assertEqual(fields['slug'], 'sombra')
+        self.assertEqual(fields['companheiro_subclasse'], 36)
+        self.assertEqual(fields['tipo'], 'tipo escolhido pelo Guerreiro')
+        self.assertEqual(type_keys(fields['tipo']), ())
+        self.assertIsNone(fields['tamanho'])
+        self.assertEqual(fields['nd'], '0')
+        self.assertEqual(fields['ca'], '14 + Bônus de Proficiência')
+        self.assertEqual(fields['pv'], '1')
+        sb = fields['statblock_json']
+        self.assertEqual(sb['condition_immunities'], 'Todas as condições')
+        self.assertEqual(sb['trait'][0]['name'], 'Invocar Sombra')
+        text = ' '.join(sb['trait'][0]['entries'])
+        for rule in ('4,5 metros', '9 metros', '6º nível', '18º nível',
+                     'teste de resistência', 'Instável'):
+            self.assertIn(rule, text)
+        self.assertFalse(is_statblock_placeholder(sb))
+        creature = TbBestiario(nome=fields['nome'], slug=fields['slug'],
+                               tipo=fields['tipo'], tamanho=fields['tamanho'],
+                               nd=fields['nd'], ca=fields['ca'], pv=fields['pv'],
+                               statblock_json=sb)
+        rendered = _render_creature_statblock_full(creature)
+        self.assertIn('Invocar Sombra', rendered)
+        self.assertIn('14 + Bônus de Proficiência', rendered)
+        self.assertNotIn('Statblock incompleto:', rendered)
+
     def test_cleric_and_mystic_companions_keep_source_mechanics_and_filters(self):
         # Sources: local World Anvil class pages for Cleric and Mystic.
         records = json.loads((Path(settings.BASE_DIR) / 'home' / 'fixtures' /
