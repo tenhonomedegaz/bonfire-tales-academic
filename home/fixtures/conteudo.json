@@ -84736,7 +84736,16 @@
       "name": "Fiel Montaria",
       "size": "",
       "type": "besta",
-      "alignment": ""
+      "alignment": "",
+      "trait": [
+        {
+          "name": "Vínculo da Fiel Montaria",
+          "entries": [
+            "Ao fim de um Descanso Longo, você pode vincular uma criatura não mágica e disposta, como um Cavalo de Guerra. Ela conserva as estatísticas da criatura escolhida e ganha PV adicionais iguais à metade dos seus PV máximos.",
+            "Você tem Vantagem para não cair da montaria, gasta apenas 1,5 metro de movimento para montar ou desmontar e, se cair, aterrissa em pé."
+          ]
+        }
+      ]
     },
     "tags_json": [
       "trigger=long_rest",
@@ -84983,13 +84992,24 @@
     "tamanho": null,
     "nd": null,
     "alinhamento": null,
-    "ca": null,
-    "pv": null,
+    "ca": "CD de magia do Mago",
+    "pv": "3 vezes o nível de Mago",
     "statblock_json": {
       "name": "Objeto Ilusório",
       "size": "",
       "type": "construto",
-      "alignment": ""
+      "alignment": "",
+      "ac_text": "CD de magia do Mago",
+      "hp": "3 vezes o nível de Mago",
+      "trait": [
+        {
+          "name": "Realidade Ilusória",
+          "entries": [
+            "Ao conjurar uma magia de Ilusão com uma Ação, o Mago pode usar uma Ação Bônus para tornar real um objeto não mágico e inanimado que faça parte da ilusão.",
+            "O objeto não pode causar dano nem efeitos prejudiciais. Dura 1 minuto, até ser destruído, até o Mago encerrar o efeito com uma Ação Bônus ou até usar esta característica de novo."
+          ]
+        }
+      ]
     },
     "tags_json": [
       "action=bonus_action",

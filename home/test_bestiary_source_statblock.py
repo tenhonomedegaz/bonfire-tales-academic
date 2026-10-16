@@ -10,6 +10,38 @@ from .views import _render_creature_statblock_full
 
 
 class SourceBackedCompanionStatblockTests(SimpleTestCase):
+    def test_owner_scaled_feature_objects_render_without_invented_base_stats(self):
+        # Fixture abilities 761 (Fiel Montaria) and 1411 (Realidade Ilusoria).
+        records = json.loads((Path(settings.BASE_DIR) / 'home' / 'fixtures' /
+                              'conteudo.json').read_text(encoding='utf-8'))
+        for pk, slug, subclass, required in (
+            (21, 'fiel-montaria', 34, ('Vínculo da Fiel Montaria',
+                                     'metade dos seus PV máximos', '1,5 metro')),
+            (24, 'objeto-ilusorio', 59, ('Realidade Ilusória',
+                                       'CD de magia do Mago', '3 vezes o nível de Mago',
+                                       '1 minuto')),
+        ):
+            fields = next(record['fields'] for record in records
+                          if record['model'] == 'home.tbbestiario'
+                          and record['pk'] == pk)
+            self.assertEqual(fields['slug'], slug)
+            self.assertEqual(fields['companheiro_subclasse'], subclass)
+            self.assertTrue(fields['escala_com_dono'])
+            self.assertIsNone(fields['tamanho'])
+            self.assertIsNone(fields['nd'])
+            sb = fields['statblock_json']
+            self.assertFalse(is_statblock_placeholder(sb))
+            creature = TbBestiario(nome=fields['nome'], slug=slug,
+                                   tipo=fields['tipo'], tamanho=fields['tamanho'],
+                                   ca=fields['ca'], pv=fields['pv'], statblock_json=sb)
+            rendered = _render_creature_statblock_full(creature)
+            for phrase in required:
+                self.assertIn(phrase, rendered)
+            self.assertNotIn('Statblock incompleto:', rendered)
+        self.assertIsNone(next(record['fields'] for record in records
+                               if record['model'] == 'home.tbbestiario'
+                               and record['pk'] == 21)['ca'])
+
     def test_otherworldly_steed_preserves_spell_scaling_and_three_forms(self):
         # SRD 5.2.1, Find Steed / Otherworldly Steed, p. 130-131.
         records = json.loads((Path(settings.BASE_DIR) / 'home' / 'fixtures' /
@@ -308,6 +340,29 @@ class SourceBackedCompanionStatblockTests(SimpleTestCase):
 
 
 class PrimalFamiliarPreviewTests(TestCase):
+    def test_owner_scaled_feature_objects_render_in_both_public_previews(self):
+        records = json.loads((Path(settings.BASE_DIR) / 'home' / 'fixtures' /
+                              'conteudo.json').read_text(encoding='utf-8'))
+        for pk, phrase in ((21, 'Vínculo da Fiel Montaria'),
+                           (24, 'Realidade Ilusória')):
+            fields = next(record['fields'] for record in records
+                          if record['model'] == 'home.tbbestiario'
+                          and record['pk'] == pk)
+            TbBestiario.objects.create(
+                nome=fields['nome'], slug=fields['slug'], tipo=fields['tipo'],
+                tamanho=fields['tamanho'], nd=fields['nd'], ca=fields['ca'],
+                pv=fields['pv'], statblock_json=fields['statblock_json'],
+            )
+            creature = self.client.get('/api/creature/', {'slug': fields['slug']})
+            self.assertEqual(creature.status_code, 200)
+            self.assertFalse(creature.json()['statblock_incompleto'])
+            self.assertIn(phrase, creature.json()['statblock_html'])
+            card = self.client.get('/api/card-preview/', {
+                'table': 'bestiario', 'args': fields['slug'],
+            })
+            self.assertEqual(card.status_code, 200)
+            self.assertIn(phrase, card.json()['card_html'])
+
     def test_otherworldly_steed_previews_render_mechanics(self):
         records = json.loads((Path(settings.BASE_DIR) / 'home' / 'fixtures' /
                               'conteudo.json').read_text(encoding='utf-8'))
