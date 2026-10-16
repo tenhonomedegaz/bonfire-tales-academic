@@ -15459,6 +15459,7 @@ def _render_creature_statblock(cr):
 def _render_creature_statblock_full(cr, target_size=None):
     from django.template.defaultfilters import linebreaksbr
     from django.utils.html import escape as esc
+    from .bestiary_catalog import is_statblock_placeholder
     sb = cr.statblock_json if isinstance(cr.statblock_json, dict) else {}
     from .bestiary_target_size import annotate_target_size
 
@@ -15471,6 +15472,8 @@ def _render_creature_statblock_full(cr, target_size=None):
         return '<div class="bonfire-creature-line"><b>%s</b> %s</div>' % (esc(label), esc(str(value)))
 
     parts.append('<div class="bonfire-creature-card-sheet">')
+    if is_statblock_placeholder(sb):
+        parts.append('<p class="bonfire-creature-line">Statblock incompleto: atributos e acoes ainda nao foram cadastrados para esta criatura.</p>')
     parts.append('<div class="bonfire-creature-meta">%s%s%s</div>' % (
         '<span><b>CA</b> %s</span>' % esc(str(display.get('ca'))) if display.get('ca') else '',
         '<span><b>PV</b> %s</span>' % esc(str(display.get('pv'))) if display.get('pv') else '',
@@ -15543,6 +15546,7 @@ def _resolve_bestiary_creature(raw_slug):
 
 def api_creature_preview(request):
     from django.http import JsonResponse
+    from .bestiary_catalog import is_statblock_placeholder
     from .bestiary_description import display_description
     from .bestiary_target_size import selected_target_size
     slug = (request.GET.get('slug') or '').strip().lower()
@@ -15563,6 +15567,7 @@ def api_creature_preview(request):
         'nd': cr.nd or '',
         'ca': cr.ca or '',
         'pv': cr.pv or '',
+        'statblock_incompleto': is_statblock_placeholder(cr.statblock_json),
         'statblock_html': _render_creature_statblock_full(cr, target_size),
         'descricao': display_description(cr),
     })

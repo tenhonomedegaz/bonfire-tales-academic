@@ -16,9 +16,21 @@ class BestiaryCatalogClassificationTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Statblock incompleto: atributos e acoes ainda nao foram cadastrados')
         self.assertContains(response, 'ND pendente')
+        creature_preview_url = reverse('api_creature_preview')
+        card_preview_url = reverse('api_card_preview')
+        preview = self.client.get(creature_preview_url, {'slug': creature.slug}).json()
+        card = self.client.get(card_preview_url, {'table': 'tbBestiario', 'args': creature.slug}).json()
+        self.assertTrue(preview['statblock_incompleto'])
+        self.assertIn('Statblock incompleto:', preview['statblock_html'])
+        self.assertIn('Statblock incompleto:', card['card_html'])
         creature.statblock_json['traits'] = [{'name': 'Vinculo', 'entries': ['Escala com o dono.']}]
         creature.save(update_fields=['statblock_json'])
         self.assertNotContains(self.client.get(url, {'q': creature.slug}), 'Statblock incompleto:')
+        preview = self.client.get(creature_preview_url, {'slug': creature.slug}).json()
+        card = self.client.get(card_preview_url, {'table': 'tbBestiario', 'args': creature.slug}).json()
+        self.assertFalse(preview['statblock_incompleto'])
+        self.assertNotIn('Statblock incompleto:', preview['statblock_html'])
+        self.assertNotIn('Statblock incompleto:', card['card_html'])
 
     def test_large_catalog_paginates_statblocks_and_searches_all_records(self):
         TbBestiario.objects.bulk_create([
