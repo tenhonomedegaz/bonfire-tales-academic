@@ -85268,16 +85268,64 @@
     "nome": "Espírito Bestial",
     "slug": "espirito-bestial",
     "tipo": "besta",
-    "tamanho": null,
+    "tamanho": "S",
     "nd": null,
     "alinhamento": null,
-    "ca": null,
-    "pv": null,
+    "ca": "11 + nível da magia",
+    "pv": "20 (Ar) ou 30 (Terra/Água) + 5 por nível da magia acima do 2º",
     "statblock_json": {
       "name": "Espírito Bestial",
-      "size": "",
+      "size": "S",
       "type": "besta",
-      "alignment": ""
+      "alignment": "",
+      "ac_text": "11 + nível da magia",
+      "hp": "20 (Ar) ou 30 (Terra/Água) + 5 por nível da magia acima do 2º",
+      "speed": "9 m; escalar 9 m (Terra), voo 18 m (Ar), natação 9 m (Água)",
+      "abilities": {
+        "str": 18,
+        "dex": 11,
+        "con": 16,
+        "int": 4,
+        "wis": 14,
+        "cha": 5
+      },
+      "senses": "Visão no Escuro 18 m; Percepção passiva 12",
+      "languages": "Compreende os idiomas do invocador",
+      "cr": "Sem ND (XP 0; bônus de proficiência igual ao do invocador)",
+      "trait": [
+        {
+          "name": "Sobrevoo (Ar)",
+          "entries": [
+            "Não provoca ataques de oportunidade ao voar para fora do alcance de um inimigo."
+          ]
+        },
+        {
+          "name": "Táticas de Matilha (Terra/Água)",
+          "entries": [
+            "Tem vantagem no ataque contra uma criatura se um aliado do espírito não incapacitado estiver a até 1,5 m dela."
+          ]
+        },
+        {
+          "name": "Respiração Aquática (Água)",
+          "entries": [
+            "Respira somente debaixo d’água."
+          ]
+        }
+      ],
+      "action": [
+        {
+          "name": "Ataques Múltiplos",
+          "entries": [
+            "Realiza ataques de Dilacerar em número igual à metade do nível da magia, arredondada para baixo."
+          ]
+        },
+        {
+          "name": "Dilacerar",
+          "entries": [
+            "Ataque corpo a corpo com o modificador de ataque mágico do invocador, alcance 1,5 m. Acerto: 1d8 + 4 + nível da magia de dano perfurante."
+          ]
+        }
+      ]
     },
     "tags_json": [
       "summon:bestiary{espirito_bestial}"
@@ -86622,16 +86670,53 @@
     "nome": "Espírito Feérico",
     "slug": "espirito-feerico",
     "tipo": "fada",
-    "tamanho": null,
+    "tamanho": "S",
     "nd": null,
     "alinhamento": null,
-    "ca": null,
-    "pv": null,
+    "ca": "12 + nível da magia",
+    "pv": "30 + 10 por nível da magia acima do 3º",
     "statblock_json": {
       "name": "Espírito Feérico",
-      "size": "",
+      "size": "S",
       "type": "fada",
-      "alignment": ""
+      "alignment": "",
+      "ac_text": "12 + nível da magia",
+      "hp": "30 + 10 por nível da magia acima do 3º",
+      "speed": "9 m; voo 9 m",
+      "abilities": {
+        "str": 13,
+        "dex": 16,
+        "con": 14,
+        "int": 14,
+        "wis": 11,
+        "cha": 16
+      },
+      "senses": "Visão no Escuro 18 m; Percepção passiva 10",
+      "languages": "Silvestre; compreende os idiomas do invocador",
+      "cr": "Sem ND (XP 0; bônus de proficiência igual ao do invocador)",
+      "action": [
+        {
+          "name": "Ataques Múltiplos",
+          "entries": [
+            "Realiza ataques de Lâmina Feérica em número igual à metade do nível da magia, arredondada para baixo."
+          ]
+        },
+        {
+          "name": "Lâmina Feérica",
+          "entries": [
+            "Ataque corpo a corpo com o modificador de ataque mágico do invocador, alcance 1,5 m. Acerto: 2d6 + 3 + nível da magia de dano energético."
+          ]
+        }
+      ],
+      "bonus": [
+        {
+          "name": "Passo Feérico",
+          "entries": [
+            "Teleporta-se magicamente até 9 m para um espaço desocupado que possa ver. Depois, aplica um efeito conforme o humor escolhido: Furioso — vantagem no próximo ataque até o fim deste turno; Alegre — criatura visível a até 3 m faz salvaguarda de Sabedoria contra a CD de magia do invocador ou fica Enfeitiçada pelo invocador e pelo espírito por 1 minuto, até sofrer dano; Travesso — preenche um cubo de 3 m a até 1,5 m com Escuridão mágica até o fim do próximo turno do espírito."
+          ]
+        }
+      ],
+      "condition_immunities": "Enfeitiçado"
     },
     "tags_json": [
       "summon:bestiary{espirito_feerico}"
@@ -86712,16 +86797,48 @@
     "nome": "Pequeno Servo",
     "slug": "pequeno-servo",
     "tipo": "construto",
-    "tamanho": null,
+    "tamanho": "T",
     "nd": null,
     "alinhamento": null,
-    "ca": null,
-    "pv": null,
+    "ca": "15 (Armadura Natural)",
+    "pv": "10 (4d4)",
     "statblock_json": {
       "name": "Pequeno Servo",
-      "size": "",
+      "size": "T",
       "type": "construto",
-      "alignment": ""
+      "alignment": "",
+      "ac_text": "15 (Armadura Natural)",
+      "hp": "10 (4d4)",
+      "speed": "9 m; escalar 9 m",
+      "abilities": {
+        "str": 4,
+        "dex": 16,
+        "con": 10,
+        "int": 2,
+        "wis": 10,
+        "cha": 1
+      },
+      "senses": "Visão às Cegas 18 m (cego além desse alcance); Percepção passiva 10",
+      "languages": "—",
+      "cr": "Sem ND (XP 0)",
+      "trait": [
+        {
+          "name": "Comando do Invocador",
+          "entries": [
+            "Como ação bônus, o invocador pode comandar mentalmente o servo a até 36 m. Sem comando, ele se defende de criaturas hostis. Ao chegar a 0 PV, volta à forma de objeto e o dano excedente é transferido a ela."
+          ]
+        }
+      ],
+      "action": [
+        {
+          "name": "Pancada",
+          "entries": [
+            "Ataque corpo a corpo com arma: +5 para acertar, alcance 1,5 m, um alvo. Acerto: 5 (1d4 + 3) de dano contundente."
+          ]
+        }
+      ],
+      "damage_immunities": "Veneno, Psíquico",
+      "condition_immunities": "Cego, Enfeitiçado, Surdo, Exausto, Amedrontado, Paralisado, Petrificado, Envenenado"
     },
     "tags_json": [
       "summon:bestiary{pequeno_servo}"

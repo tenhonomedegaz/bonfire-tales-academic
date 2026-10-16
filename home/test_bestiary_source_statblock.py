@@ -10,6 +10,38 @@ from .views import _render_creature_statblock_full
 
 
 class SourceBackedCompanionStatblockTests(SimpleTestCase):
+    def test_source_backed_summons_preserve_spell_rules_and_stats(self):
+        # Bestiary.csv: PHB'24 pp. 323/326 and XGE p. 169; spells 490/96/529.
+        records = json.loads((Path(settings.BASE_DIR) / 'home' / 'fixtures' /
+                              'conteudo.json').read_text(encoding='utf-8'))
+        cases = (
+            (40, 490, 'espirito-bestial', 'S', 18, '11 + nível da magia',
+             '20 (Ar) ou 30 (Terra/Água)', 'Dilacerar'),
+            (46, 96, 'espirito-feerico', 'S', 13, '12 + nível da magia',
+             '30 + 10 por nível', 'Passo Feérico'),
+            (49, 529, 'pequeno-servo', 'T', 4, '15 (Armadura Natural)',
+             '10 (4d4)', 'Pancada'),
+        )
+        for pk, spell_pk, slug, size, strength, ac, hp, action in cases:
+            fields = next(r['fields'] for r in records
+                          if r['model'] == 'home.tbbestiario' and r['pk'] == pk)
+            spell = next(r['fields'] for r in records
+                         if r['model'] == 'home.tbmagia' and r['pk'] == spell_pk)
+            self.assertEqual(fields['slug'], slug)
+            self.assertIn(slug, spell['descricao'])
+            self.assertEqual(fields['tamanho'], size)
+            self.assertIsNone(fields['nd'])
+            self.assertTrue(fields['escala_com_dono'])
+            self.assertEqual(fields['statblock_json']['abilities']['str'], strength)
+            self.assertEqual(fields['ca'], ac)
+            self.assertIn(hp, fields['pv'])
+            sb = fields['statblock_json']
+            self.assertFalse(is_statblock_placeholder(sb))
+            creature = TbBestiario(nome=fields['nome'], slug=slug,
+                                   tipo=fields['tipo'], tamanho=size,
+                                   ca=ac, pv=fields['pv'], statblock_json=sb)
+            self.assertIn(action, _render_creature_statblock_full(creature))
+
     def test_homunculus_servant_combines_official_stats_with_local_commands(self):
         # Eberron official errata, Homunculus Servant; fixture spell 272.
         records = json.loads((Path(settings.BASE_DIR) / 'home' / 'fixtures' /
@@ -401,6 +433,28 @@ class SourceBackedCompanionStatblockTests(SimpleTestCase):
 
 
 class PrimalFamiliarPreviewTests(TestCase):
+    def test_source_backed_summons_show_rules_in_both_previews(self):
+        records = json.loads((Path(settings.BASE_DIR) / 'home' / 'fixtures' /
+                              'conteudo.json').read_text(encoding='utf-8'))
+        for pk, phrase in ((40, 'Dilacerar'), (46, 'Passo Feérico'),
+                           (49, 'Pancada')):
+            fields = next(r['fields'] for r in records
+                          if r['model'] == 'home.tbbestiario' and r['pk'] == pk)
+            TbBestiario.objects.create(
+                nome=fields['nome'], slug=fields['slug'], tipo=fields['tipo'],
+                tamanho=fields['tamanho'], ca=fields['ca'], pv=fields['pv'],
+                statblock_json=fields['statblock_json'],
+            )
+            creature = self.client.get('/api/creature/', {'slug': fields['slug']})
+            self.assertEqual(creature.status_code, 200)
+            self.assertFalse(creature.json()['statblock_incompleto'])
+            self.assertIn(phrase, creature.json()['statblock_html'])
+            card = self.client.get('/api/card-preview/', {
+                'table': 'bestiario', 'args': fields['slug'],
+            })
+            self.assertEqual(card.status_code, 200)
+            self.assertIn(phrase, card.json()['card_html'])
+
     def test_homunculus_servant_full_statblock_in_both_public_previews(self):
         records = json.loads((Path(settings.BASE_DIR) / 'home' / 'fixtures' /
                               'conteudo.json').read_text(encoding='utf-8'))
