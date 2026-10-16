@@ -86737,16 +86737,72 @@
     "nome": "Espírito Morto-Vivo",
     "slug": "espirito-morto-vivo",
     "tipo": "morto-vivo",
-    "tamanho": null,
+    "tamanho": "M",
     "nd": null,
     "alinhamento": null,
-    "ca": null,
-    "pv": null,
+    "ca": "11 + nível da magia",
+    "pv": "30 (Fantasmagórica/Pútrida) ou 20 (Esquelética) + 10 por nível da magia acima do 3º",
     "statblock_json": {
       "name": "Espírito Morto-Vivo",
-      "size": "",
+      "size": "M",
       "type": "morto-vivo",
-      "alignment": ""
+      "alignment": "",
+      "ac_text": "11 + nível da magia",
+      "hp": "30 (Fantasmagórica/Pútrida) ou 20 (Esquelética) + 10 por nível da magia acima do 3º",
+      "speed": "9 m; voo 12 m com pairar (apenas Fantasmagórica)",
+      "abilities": {
+        "str": 12,
+        "dex": 16,
+        "con": 15,
+        "int": 4,
+        "wis": 10,
+        "cha": 9
+      },
+      "senses": "Visão no Escuro 18 m; Percepção passiva 10",
+      "languages": "Compreende os idiomas do invocador",
+      "cr": "Sem ND (XP 0; bônus de proficiência igual ao do invocador)",
+      "trait": [
+        {
+          "name": "Aura Pútrida (Pútrida)",
+          "entries": [
+            "Uma criatura diferente do invocador que comece o turno a até 1,5 m do espírito faz salvaguarda de Constituição contra a CD de magia do invocador. Na falha, fica Envenenada até o início do próximo turno dela."
+          ]
+        },
+        {
+          "name": "Passagem Incorpórea (Fantasmagórica)",
+          "entries": [
+            "Move-se através de criaturas e objetos como se fossem terreno difícil. Se terminar o turno dentro de um objeto, é deslocado ao espaço desocupado mais próximo e sofre 1d10 de dano energético por cada 1,5 m percorrido."
+          ]
+        }
+      ],
+      "action": [
+        {
+          "name": "Ataques Múltiplos",
+          "entries": [
+            "Faz ataques em número igual à metade do nível da magia, arredondada para baixo."
+          ]
+        },
+        {
+          "name": "Toque Mortal (Fantasmagórica)",
+          "entries": [
+            "Ataque corpo a corpo com o modificador de ataque mágico do invocador, alcance 1,5 m. Acerto: 1d8 + 3 + nível da magia de dano necrótico; o alvo fica Amedrontado até o fim do próximo turno dele."
+          ]
+        },
+        {
+          "name": "Raio Sepulcral (Esquelética)",
+          "entries": [
+            "Ataque à distância com o modificador de ataque mágico do invocador, alcance 45 m. Acerto: 2d4 + 3 + nível da magia de dano necrótico."
+          ]
+        },
+        {
+          "name": "Garra Apodrecida (Pútrida)",
+          "entries": [
+            "Ataque corpo a corpo com o modificador de ataque mágico do invocador, alcance 1,5 m. Acerto: 1d6 + 3 + nível da magia de dano cortante. Se o alvo estiver Envenenado, fica Paralisado até o fim do próximo turno dele."
+          ]
+        }
+      ],
+      "damage_immunities": "Necrótico, Veneno",
+      "condition_immunities": "Exausto, Amedrontado, Paralisado, Envenenado"
     },
     "tags_json": [
       "summon:bestiary{espirito_morto_vivo}"
@@ -86766,17 +86822,75 @@
   "fields": {
     "nome": "Espírito Sombrio",
     "slug": "espirito-sombrio",
-    "tipo": "morto-vivo",
-    "tamanho": null,
+    "tipo": "monstruosidade",
+    "tamanho": "M",
     "nd": null,
     "alinhamento": null,
-    "ca": null,
-    "pv": null,
+    "ca": "11 + nível da magia (Armadura Natural)",
+    "pv": "35 + 15 por nível da magia acima do 3º",
     "statblock_json": {
       "name": "Espírito Sombrio",
-      "size": "",
-      "type": "morto-vivo",
-      "alignment": ""
+      "size": "M",
+      "type": "monstruosidade",
+      "alignment": "",
+      "ac_text": "11 + nível da magia (Armadura Natural)",
+      "hp": "35 + 15 por nível da magia acima do 3º",
+      "speed": "12 m",
+      "abilities": {
+        "str": 13,
+        "dex": 16,
+        "con": 15,
+        "int": 4,
+        "wis": 10,
+        "cha": 16
+      },
+      "senses": "Visão no Escuro 36 m; Percepção passiva 10",
+      "languages": "Compreende os idiomas falados pelo invocador",
+      "cr": "Sem ND (XP 0)",
+      "trait": [
+        {
+          "name": "Frenesi do Terror (Fúria)",
+          "entries": [
+            "Tem vantagem nos ataques contra criaturas Amedrontadas."
+          ]
+        },
+        {
+          "name": "Peso da Tristeza (Desespero)",
+          "entries": [
+            "Uma criatura diferente do invocador que comece o turno a até 1,5 m do espírito tem seu deslocamento reduzido em 6 m até o início do próximo turno dela."
+          ]
+        }
+      ],
+      "action": [
+        {
+          "name": "Ataques Múltiplos",
+          "entries": [
+            "Faz ataques em número igual à metade do nível da magia, arredondada para baixo."
+          ]
+        },
+        {
+          "name": "Dilacerar Gélido",
+          "entries": [
+            "Ataque corpo a corpo com o modificador de ataque mágico do invocador, alcance 1,5 m, um alvo. Acerto: 1d12 + 3 + nível da magia de dano de frio."
+          ]
+        },
+        {
+          "name": "Grito Pavoroso (1/Dia)",
+          "entries": [
+            "Cada criatura a até 9 m do espírito faz salvaguarda de Sabedoria contra a CD de magia do invocador. Na falha, fica Amedrontada por 1 minuto; pode repetir a salvaguarda no fim de cada turno, encerrando o efeito no sucesso."
+          ]
+        }
+      ],
+      "bonus": [
+        {
+          "name": "Furtividade Sombria (Medo)",
+          "entries": [
+            "Em luz fraca ou escuridão, usa Esconder-se."
+          ]
+        }
+      ],
+      "damage_resistances": "Necrótico",
+      "condition_immunities": "Amedrontado"
     },
     "tags_json": [
       "summon:bestiary{espirito_sombrio}"
@@ -86784,7 +86898,7 @@
     "companheiro_classe": null,
     "companheiro_subclasse": null,
     "escala_com_dono": true,
-    "descricao_markdown": "### Espírito Sombrio\n\n- **Tipo:** morto-vivo",
+    "descricao_markdown": "### Espírito Sombrio\n\n- **Tipo:** monstruosidade",
     "imagem_url": null,
     "comunidade": false,
     "autor": null
@@ -86859,16 +86973,62 @@
     "nome": "Espírito Ceifador",
     "slug": "espirito-ceifador",
     "tipo": "morto-vivo",
-    "tamanho": null,
+    "tamanho": "M",
     "nd": null,
     "alinhamento": null,
-    "ca": null,
-    "pv": null,
+    "ca": "11 + nível da magia (Armadura Natural)",
+    "pv": "40 + 10 por nível da magia acima do 4º",
     "statblock_json": {
       "name": "Espírito Ceifador",
-      "size": "",
+      "size": "M",
       "type": "morto-vivo",
-      "alignment": ""
+      "alignment": "",
+      "ac_text": "11 + nível da magia (Armadura Natural)",
+      "hp": "40 + 10 por nível da magia acima do 4º",
+      "speed": "9 m; voo 9 m (pairar)",
+      "abilities": {
+        "str": 16,
+        "dex": 16,
+        "con": 16,
+        "int": 16,
+        "wis": 16,
+        "cha": 16
+      },
+      "senses": "Visão no Escuro 18 m; Percepção passiva 13",
+      "languages": "Compreende os idiomas falados pelo invocador",
+      "cr": "Sem ND (XP 0; bônus de proficiência igual ao do invocador)",
+      "trait": [
+        {
+          "name": "Movimento Incorpóreo",
+          "entries": [
+            "Move-se através de criaturas e objetos como se fossem terreno difícil. Se terminar o turno dentro de um objeto, é deslocado ao espaço desocupado mais próximo e sofre 1d10 de dano energético por cada 1,5 m de deslocamento."
+          ]
+        }
+      ],
+      "action": [
+        {
+          "name": "Ataques Múltiplos",
+          "entries": [
+            "Faz ataques de Foice Ceifadora em número igual à metade do nível da magia, arredondada para baixo."
+          ]
+        },
+        {
+          "name": "Foice Ceifadora",
+          "entries": [
+            "Ataque corpo a corpo com o modificador de ataque mágico do invocador, com vantagem, alcance 1,5 m, contra a criatura assombrada por Assombrar Criatura. Acerto: 1d8 + 3 + nível da magia de dano necrótico."
+          ]
+        }
+      ],
+      "bonus": [
+        {
+          "name": "Assombrar Criatura",
+          "entries": [
+            "Escolhe uma criatura que possa ver a até 3 m. Enquanto ela estiver assombrada, o invocador e o espírito sabem sua direção e distância se estiver no mesmo plano. Se começar o turno a até 3 m do espírito, faz salvaguarda de Sabedoria contra a CD de magia do invocador ou fica Amedrontada até o início do próximo turno. O efeito termina quando o alvo morre, o espírito desaparece ou esta ação é usada novamente."
+          ]
+        }
+      ],
+      "damage_immunities": "Necrótico, Veneno",
+      "condition_immunities": "Enfeitiçado, Exausto, Amedrontado, Paralisado, Envenenado"
     },
     "tags_json": [
       "summon:bestiary{espirito_ceifador}"

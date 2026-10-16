@@ -10,6 +10,33 @@ from .views import _render_creature_statblock_full
 
 
 class SourceBackedCompanionStatblockTests(SimpleTestCase):
+    def test_undead_and_shadow_summons_match_complete_source_blocks(self):
+        # Bestiary.csv: PHB'24 p. 328, TCE p. 114 and BMT p. 50.
+        records = json.loads((Path(settings.BASE_DIR) / 'home' / 'fixtures' /
+                              'conteudo.json').read_text(encoding='utf-8'))
+        for pk, spell_pk, slug, kind, strength, action in (
+            (47, 498, 'espirito-morto-vivo', 'morto-vivo', 12, 'Garra Apodrecida'),
+            (48, 497, 'espirito-sombrio', 'monstruosidade', 13, 'Grito Pavoroso'),
+            (50, 476, 'espirito-ceifador', 'morto-vivo', 16, 'Foice Ceifadora'),
+        ):
+            fields = next(r['fields'] for r in records
+                          if r['model'] == 'home.tbbestiario' and r['pk'] == pk)
+            spell = next(r['fields'] for r in records
+                         if r['model'] == 'home.tbmagia' and r['pk'] == spell_pk)
+            self.assertEqual(fields['slug'], slug)
+            self.assertIn(slug, spell['descricao'])
+            self.assertEqual(fields['tipo'], kind)
+            self.assertEqual(fields['tamanho'], 'M')
+            self.assertIsNone(fields['nd'])
+            self.assertTrue(fields['escala_com_dono'])
+            sb = fields['statblock_json']
+            self.assertEqual(sb['abilities']['str'], strength)
+            self.assertFalse(is_statblock_placeholder(sb))
+            creature = TbBestiario(nome=fields['nome'], slug=slug,
+                                   tipo=kind, tamanho='M', ca=fields['ca'],
+                                   pv=fields['pv'], statblock_json=sb)
+            self.assertIn(action, _render_creature_statblock_full(creature))
+
     def test_source_backed_summons_preserve_spell_rules_and_stats(self):
         # Bestiary.csv: PHB'24 pp. 323/326 and XGE p. 169; spells 490/96/529.
         records = json.loads((Path(settings.BASE_DIR) / 'home' / 'fixtures' /
@@ -433,6 +460,28 @@ class SourceBackedCompanionStatblockTests(SimpleTestCase):
 
 
 class PrimalFamiliarPreviewTests(TestCase):
+    def test_undead_and_shadow_summons_render_in_both_previews(self):
+        records = json.loads((Path(settings.BASE_DIR) / 'home' / 'fixtures' /
+                              'conteudo.json').read_text(encoding='utf-8'))
+        for pk, phrase in ((47, 'Garra Apodrecida'),
+                           (48, 'Grito Pavoroso'), (50, 'Foice Ceifadora')):
+            fields = next(r['fields'] for r in records
+                          if r['model'] == 'home.tbbestiario' and r['pk'] == pk)
+            TbBestiario.objects.create(
+                nome=fields['nome'], slug=fields['slug'], tipo=fields['tipo'],
+                tamanho=fields['tamanho'], ca=fields['ca'], pv=fields['pv'],
+                statblock_json=fields['statblock_json'],
+            )
+            creature = self.client.get('/api/creature/', {'slug': fields['slug']})
+            self.assertEqual(creature.status_code, 200)
+            self.assertFalse(creature.json()['statblock_incompleto'])
+            self.assertIn(phrase, creature.json()['statblock_html'])
+            card = self.client.get('/api/card-preview/', {
+                'table': 'bestiario', 'args': fields['slug'],
+            })
+            self.assertEqual(card.status_code, 200)
+            self.assertIn(phrase, card.json()['card_html'])
+
     def test_source_backed_summons_show_rules_in_both_previews(self):
         records = json.loads((Path(settings.BASE_DIR) / 'home' / 'fixtures' /
                               'conteudo.json').read_text(encoding='utf-8'))
