@@ -15459,8 +15459,40 @@ def _render_creature_statblock(cr):
 def _render_creature_statblock_full(cr, target_size=None):
     from django.template.defaultfilters import linebreaksbr
     from django.utils.html import escape as esc
+    from types import SimpleNamespace
     from .bestiary_catalog import is_statblock_placeholder
     sb = cr.statblock_json if isinstance(cr.statblock_json, dict) else {}
+    forms = sb.get('forms')
+    if isinstance(forms, list) and forms:
+        parent = SimpleNamespace(
+            nome=cr.nome, tipo=cr.tipo, tamanho=cr.tamanho,
+            alinhamento=getattr(cr, 'alinhamento', None), nd=cr.nd,
+            ca=cr.ca, pv=cr.pv,
+            statblock_json={key: value for key, value in sb.items() if key != 'forms'},
+        )
+        parts = ['<div class="bonfire-creature-forms">',
+                 _render_creature_statblock_full(parent, target_size)]
+        for form in forms:
+            if not isinstance(form, dict):
+                continue
+            form_data = {key: value for key, value in form.items() if key != 'forms'}
+            form_cr = SimpleNamespace(
+                nome=form.get('name') or cr.nome,
+                tipo=form.get('type') or cr.tipo,
+                tamanho=form.get('size') or cr.tamanho,
+                alinhamento=form.get('alignment') or '', nd=cr.nd,
+                ca=form.get('ac_text') or '', pv=form.get('hp') or '',
+                statblock_json=form_data,
+            )
+            parts.append('<section class="bonfire-creature-form"><h4>%s</h4>'
+                         '<p class="bonfire-creature-line">%s</p>%s</section>' % (
+                esc(str(form_cr.nome)),
+                esc('%s %s' % (_sb_size_text(form_data, form_cr),
+                               _sb_type_text(form_data, form_cr))),
+                _render_creature_statblock_full(form_cr, target_size),
+            ))
+        parts.append('</div>')
+        return ''.join(parts)
     from .bestiary_target_size import annotate_target_size
 
     display = annotate_target_size(_statblock_display_full(sb, cr), target_size)

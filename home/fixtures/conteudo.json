@@ -84472,17 +84472,230 @@
   "fields": {
     "nome": "Familiar Primal",
     "slug": "familiar-primal",
-    "tipo": "Elemental",
-    "tamanho": null,
+    "tipo": "elemental",
+    "tamanho": "S",
     "nd": null,
     "alinhamento": null,
-    "ca": null,
-    "pv": null,
+    "ca": "11 + BP (Armadura Natural)",
+    "pv": "20 + 5 vezes o seu nível de Druida",
     "statblock_json": {
       "name": "Familiar Primal",
-      "size": "",
-      "type": "Elemental",
-      "alignment": ""
+      "size": "S",
+      "type": "elemental",
+      "alignment": "",
+      "forms": [
+        {
+          "name": "Fera da Maré Guardiã",
+          "size": "S",
+          "type": "elemental",
+          "alignment": "",
+          "ac_text": "11 + BP (Armadura Natural)",
+          "hp": "20 + 5 vezes o seu nível de Druida",
+          "speed": "9 Metros [30 feet] Nado: 9 Metros [30 feet]",
+          "abilities": {
+            "str": 12,
+            "dex": 14,
+            "con": 14,
+            "int": 13,
+            "wis": 17,
+            "cha": 10
+          },
+          "trait": [
+            {
+              "name": "Aura: Espelho das Marés",
+              "entries": [
+                "A aura da Fera da Maré tem raio de 3 metros [10 pés]. Sempre que você conjurar uma magia que recupere pontos de vida, todas as criatura á sua escolha na aura recuperam pontos de vida adicionais iguais ao seu modificador de Sabedoria (mínimo 1)."
+              ]
+            }
+          ],
+          "senses": "Sentidos. Visão no Escuro 18 metros, Percepção Passiva 13",
+          "languages": "Todas as que o Druída fala.",
+          "action": [
+            {
+              "name": "Corte Gélido",
+              "entries": [
+                "Ataque corpo a corpo com arma. Seu modificador de ataque de magia de Druida para acertar, alcance 1,5 metros [5 pés], um alvo.",
+                "Acerto. 1d10 + seu bônus de proficiência + seu modificador de Sabedoria de dano de frio. O dano aumenta para 2d10 no 11º nível e 3d10 no 17º nível."
+              ]
+            },
+            {
+              "name": "Brasas de Geada",
+              "entries": [
+                "Ataque à distância com arma. Seu modificador de ataque de magia de Druida para acertar, alcance 18 metros [60 pés], um alvo.",
+                "Acerto. 1d6 + seu bônus de proficiência + seu modificador de Sabedoria de dano de frio. O dano aumenta para 2d6 no 11º nível e 3d6 no 17º nível."
+              ]
+            },
+            {
+              "name": "Refluxo Gelado",
+              "entries": [
+                "Criaturas à sua escolha dentro da aura, de tamanho Grande ou menor, devem fazer um teste de resistência de Constituição contra a CD das suas magias de Druida.",
+                "Em uma falha, uma criatura é empurrada para fora da aura em até 4,5 metros [15 pés] e sofre um número de d6 de dano de frio igual ao seu modificador de Sabedoria (mínimo 1d6). Em um sucesso, ela não é empurrada e sofre metade desse dano."
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Fera do Sussurro do Vento",
+          "size": "S",
+          "type": "elemental",
+          "alignment": "",
+          "ac_text": "11 + BP (Armadura Natural)",
+          "hp": "20 + 5 vezes o seu nível de Druida",
+          "speed": "3 Metros [10 feet] Planar: 18 Metros [60 feet]",
+          "abilities": {
+            "str": 12,
+            "dex": 14,
+            "con": 14,
+            "int": 13,
+            "wis": 17,
+            "cha": 10
+          },
+          "trait": [
+            {
+              "name": "Sussurro do Vento",
+              "entries": [
+                "Enquanto uma criatura aliada estiver dentro da aura de 3 metros [10 pés] da Fera do Sussurro do Vento, ela sabe a direção, mas não a distância exata, de qualquer criatura específica a até 36 metros [120 pés] fora da área, desde que essa criatura já tenha sido percebida por você ou pelo familiar."
+              ]
+            }
+          ],
+          "senses": "Visão no Escuro 18 metros [60 feet], Percepção Passiva 12.",
+          "languages": "Todas as que o Druída fala.",
+          "action": [
+            {
+              "name": "Corte Flamejante",
+              "entries": [
+                "Ataque corpo a corpo com arma. Seu modificador de ataque de magia de Druida para acertar, alcance 1,5 metros [5 pés], um alvo.",
+                "Acerto. 1d10 + seu bônus de proficiência + seu modificador de Sabedoria de dano de fogo. O dano aumenta para 2d10 no 11º nível e 3d10 no 17º nível."
+              ]
+            },
+            {
+              "name": "Brasas Dançantes",
+              "entries": [
+                "Ataque à distância com arma. Seu modificador de ataque de magia de Druida para acertar, alcance 18 metros [60 pés], um alvo.",
+                "Acerto. 1d6 + seu bônus de proficiência + seu modificador de Sabedoria de dano de fogo. O dano aumenta para 2d6 no 11º nível e 3d6 no 17º nível."
+              ]
+            },
+            {
+              "name": "Rastro de Brisa",
+              "entries": [
+                "Criaturas à sua escolha ganham 18 metros [10 pés] de deslocamento adicional até o início do próximo turno da Fera do Sussurro do Vento."
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Fera do Fogo Selvagem",
+          "size": "S",
+          "type": "elemental",
+          "alignment": "",
+          "ac_text": "11 + BP (Armadura Natural)",
+          "hp": "20 + 5 vezes o seu nível de Druida",
+          "speed": "9 Metros [30 feet] Planar: 9 Metros [30 feet]",
+          "abilities": {
+            "str": 12,
+            "dex": 14,
+            "con": 14,
+            "int": 13,
+            "wis": 17,
+            "cha": 10
+          },
+          "trait": [
+            {
+              "name": "Aura: Forja Viva",
+              "entries": [
+                "Enquanto estiverem na aura de 3 metros [10 pés] da Fera do Fogo Selvagem, as magias que você conjurar podem receber a bênção da forja.",
+                "Sempre que você conjurar uma magia que cause dano de fogo, você pode aumentar ou reduzir o dano total dessa magia em 1d8, à sua escolha a cada magia.",
+                "Além disso, sempre que você conjurar uma magia que recupere pontos de vida, você pode fazer com que a criatura alvo recupere 1d8 pontos de vida adicionais."
+              ]
+            }
+          ],
+          "senses": "Visão no Escuro 18 metros [60 feet], Percepção Passiva 12.",
+          "languages": "Todas as que o Druída fala.",
+          "action": [
+            {
+              "name": "Corte de Fogo",
+              "entries": [
+                "Ataque corpo a corpo com arma. Seu modificador de ataque de magia de Druida para acertar, alcance 1,5 metros [5 pés], um alvo.",
+                "Acerto. 1d10 + seu bônus de proficiência + seu modificador de Sabedoria de dano de fogo. O dano aumenta para 2d10 no 11º nível e 3d10 no 17º nível."
+              ]
+            },
+            {
+              "name": "Brasas",
+              "entries": [
+                "Ataque à distância com arma. Seu modificador de ataque de magia de Druida para acertar, alcance 18 metros [60 pés], um alvo.",
+                "Acerto. 1d6 + seu bônus de proficiência + seu modificador de Sabedoria de dano de fogo. O dano aumenta para 2d6 no 11º nível e 3d6 no 17º nível."
+              ]
+            },
+            {
+              "name": "Salto Ígneo",
+              "entries": [
+                "O Familiar Primal e criaturas voluntárias à sua escolha a até 1,5 metros [5 pés] dele se teleportam até 4,5 metros [15 pés] para espaços desocupados que você possa ver.",
+                "Em seguida, todas as criaturas a até 1,5 metros [5 pés] do espaço que o familiar deixou devem fazer um teste de resistência de Destreza contra a CD das suas magias de Druida. Em uma falha, sofrem um número de d6 de dano de fogo igual ao seu modificador de Sabedoria (mínimo 1d6). Em um sucesso, sofrem metade do dano."
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Fera da Casca Ancestral",
+          "size": "S",
+          "type": "elemental",
+          "alignment": "",
+          "ac_text": "11 + BP (Armadura Natural)",
+          "hp": "20 + 5 vezes o seu nível de Druida",
+          "speed": "9 Metros [30 feet] Cavar: 9 Metros [30 feet]",
+          "abilities": {
+            "str": 12,
+            "dex": 14,
+            "con": 14,
+            "int": 13,
+            "wis": 17,
+            "cha": 10
+          },
+          "trait": [
+            {
+              "name": "Aura: Casca Ancestral",
+              "entries": [
+                "Criaturas aliadas à sua escolha na aura de 3 metros [10 pés] têm vantagem em testes de habilidade e testes de resistência de Força."
+              ]
+            }
+          ],
+          "senses": "Visão no Escuro 18 metros [60 feet], Percepção Passiva 13.",
+          "languages": "Todas as que o Druída fala.",
+          "action": [
+            {
+              "name": "Soco Rochoso",
+              "entries": [
+                "Ataque corpo a corpo com arma. Seu modificador de ataque de magia de Druida para acertar, alcance 1,5 metro [5 pés], um alvo.",
+                "Acerto. 1d10 + seu bônus de proficiência + seu modificador de Sabedoria de dano de Concussivo, à sua escolha. O dano aumenta para 2d10 no 11º nível e 3d10 no 17º nível."
+              ]
+            },
+            {
+              "name": "Fragmentos",
+              "entries": [
+                "Ataque à distância com arma. Seu modificador de ataque de magia de Druida para acertar, alcance 18 metros [60 pés], um alvo.",
+                "Acerto. 1d6 + seu bônus de proficiência + seu modificador de Sabedoria de dano contundente. O dano aumenta para 2d6 no 11º nível e 3d6 no 17º nível."
+              ]
+            },
+            {
+              "name": "Seiva de Rocha",
+              "entries": [
+                "Criaturas aliadas à sua escolha em até 3 metros [10 pés] recebem pontos de vida temporários iguais a um número de d6 equivalente ao seu modificador de Sabedoria (mínimo 1d6)."
+              ]
+            }
+          ]
+        }
+      ],
+      "trait": [
+        {
+          "name": "Regras Gerais do Familiar Primal",
+          "entries": [
+            "O Familiar Primal usa a ficha da Sintonização Elemental atual.",
+            "Age no seu turno, imediatamente após você, e obedece a comandos verbais sem exigir ação. Sem comandos, realiza Esquivar.",
+            "Você e o familiar compartilham vínculo telepático em 30 metros. Com sua Ação, você pode ver e ouvir pelos sentidos dele até o início do seu próximo turno.",
+            "Ao chegar a 0 pontos de vida, ele desaparece; pode ser invocado novamente com Surto Selvagem: Elo Primal."
+          ]
+        }
+      ]
     },
     "tags_json": [
       "trigger=ability{surto_selvagem, classe:druida}",

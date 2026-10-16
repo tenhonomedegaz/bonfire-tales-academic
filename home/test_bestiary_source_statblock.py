@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 
 from django.conf import settings
-from django.test import SimpleTestCase
+from django.test import SimpleTestCase, TestCase
 
 from .bestiary_catalog import is_statblock_placeholder, type_keys, size_keys
 from .models import TbBestiario
@@ -10,6 +10,49 @@ from .views import _render_creature_statblock_full
 
 
 class SourceBackedCompanionStatblockTests(SimpleTestCase):
+    def test_primal_familiar_renders_all_four_source_forms(self):
+        # Source: ref/Classes/Druida ... World Anvil.html, Pastor Elemental.
+        records = json.loads((Path(settings.BASE_DIR) / 'home' / 'fixtures' /
+                              'conteudo.json').read_text(encoding='utf-8'))
+        matching = [r for r in records if r['model'] == 'home.tbbestiario'
+                    and r['pk'] == 20]
+        self.assertEqual(len(matching), 1)
+        fields = matching[0]['fields']
+        self.assertEqual(fields['slug'], 'familiar-primal')
+        self.assertEqual(fields['companheiro_subclasse'], 26)
+        self.assertEqual(fields['tamanho'], 'S')
+        self.assertEqual(fields['ca'], '11 + BP (Armadura Natural)')
+        self.assertEqual(fields['pv'], '20 + 5 vezes o seu nível de Druida')
+        self.assertIsNone(fields['nd'])
+        sb = fields['statblock_json']
+        forms = sb['forms']
+        self.assertEqual([form['name'] for form in forms], [
+            'Fera da Maré Guardiã', 'Fera do Sussurro do Vento',
+            'Fera do Fogo Selvagem', 'Fera da Casca Ancestral',
+        ])
+        for form in forms:
+            self.assertEqual(form['size'], 'S')
+            self.assertEqual(form['type'], 'elemental')
+            self.assertEqual(form['abilities'], {
+                'str': 12, 'dex': 14, 'con': 14,
+                'int': 13, 'wis': 17, 'cha': 10,
+            })
+            self.assertEqual(len(form['action']), 3)
+            self.assertFalse(is_statblock_placeholder(form))
+        self.assertFalse(is_statblock_placeholder(sb))
+        self.assertTrue(is_statblock_placeholder({**sb, 'forms': forms[:-1] + [{}]}))
+        creature = TbBestiario(nome=fields['nome'], slug=fields['slug'],
+                               tipo=fields['tipo'], tamanho=fields['tamanho'],
+                               ca=fields['ca'], pv=fields['pv'], statblock_json=sb)
+        html = _render_creature_statblock_full(creature)
+        for name in [form['name'] for form in forms]:
+            self.assertIn(name, html)
+        self.assertEqual(html.count('class="bonfire-creature-form"'), 4)
+        self.assertIn('Refluxo Gelado', html)
+        self.assertIn('Salto Ígneo', html)
+        self.assertIn('Seiva de Rocha', html)
+        self.assertNotIn('Statblock incompleto:', html)
+
     def test_shadow_monk_clone_keeps_owner_scaled_rules_without_fixed_stats(self):
         # Source: ref/Classes Reworkadas/Monge ... World Anvil.html,
         # Sombras, level 17: Duplicata das Sombras.
@@ -163,3 +206,32 @@ class SourceBackedCompanionStatblockTests(SimpleTestCase):
                      'Imunidades a condicao'):
             self.assertIn(text, html)
         self.assertNotIn('Statblock incompleto:', html)
+
+
+class PrimalFamiliarPreviewTests(TestCase):
+    def test_both_public_previews_render_all_four_forms(self):
+        records = json.loads((Path(settings.BASE_DIR) / 'home' / 'fixtures' /
+                              'conteudo.json').read_text(encoding='utf-8'))
+        fields = next(record['fields'] for record in records
+                      if record['model'] == 'home.tbbestiario' and record['pk'] == 20)
+        TbBestiario.objects.create(
+            nome=fields['nome'], slug=fields['slug'], tipo=fields['tipo'],
+            tamanho=fields['tamanho'], ca=fields['ca'], pv=fields['pv'],
+            statblock_json=fields['statblock_json'],
+        )
+        creature = self.client.get('/api/creature/', {'slug': fields['slug']})
+        self.assertEqual(creature.status_code, 200)
+        creature_data = creature.json()
+        self.assertTrue(creature_data['success'])
+        self.assertFalse(creature_data['statblock_incompleto'])
+
+        card = self.client.get('/api/card-preview/', {
+            'table': 'bestiario', 'args': fields['slug'],
+        })
+        self.assertEqual(card.status_code, 200)
+        card_data = card.json()
+        self.assertTrue(card_data['success'])
+        for html in (creature_data['statblock_html'], card_data['card_html']):
+            self.assertEqual(html.count('class="bonfire-creature-form"'), 4)
+            for form in fields['statblock_json']['forms']:
+                self.assertIn(form['name'], html)

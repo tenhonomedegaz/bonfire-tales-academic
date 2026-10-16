@@ -109,6 +109,11 @@ def is_statblock_placeholder(value):
     """A name/type shell is not a playable statblock, even for an owner-scaled summon."""
     if not isinstance(value, dict):
         return True
+    if 'forms' in value:
+        forms = value['forms']
+        if not isinstance(forms, list) or not forms or any(
+                is_statblock_placeholder(form) for form in forms):
+            return True
     return not any(item for key, item in value.items()
                    if key not in {'name', 'type', 'size', 'cr', 'alignment'})
 
