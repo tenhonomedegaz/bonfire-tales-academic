@@ -10,6 +10,39 @@ from .views import _render_creature_statblock_full
 
 
 class SourceBackedCompanionStatblockTests(SimpleTestCase):
+    def test_shadow_monk_clone_keeps_owner_scaled_rules_without_fixed_stats(self):
+        # Source: ref/Classes Reworkadas/Monge ... World Anvil.html,
+        # Sombras, level 17: Duplicata das Sombras.
+        records = json.loads((Path(settings.BASE_DIR) / 'home' / 'fixtures' /
+                              'conteudo.json').read_text(encoding='utf-8'))
+        matching = [r for r in records if r['model'] == 'home.tbbestiario'
+                    and r['pk'] == 17]
+        self.assertEqual(len(matching), 1)
+        fields = matching[0]['fields']
+        self.assertEqual(fields['slug'], 'clone-das-sombras')
+        self.assertEqual(fields['companheiro_subclasse'], 149)
+        self.assertTrue(fields['escala_com_dono'])
+        self.assertIsNone(fields['nd'])
+        self.assertIsNone(fields['ca'])
+        self.assertIsNone(fields['tamanho'])
+        self.assertEqual(fields['pv'], 'Metade dos PV do Monge')
+        self.assertIn('hp:=rounddown(self.hp/2)', fields['tags_json'])
+        sb = fields['statblock_json']
+        self.assertEqual(sb['trait'][0]['name'], 'Duplicata das Sombras')
+        rules = sb['trait'][0]['entries'][0]
+        for text in ('3 Pontos de Ki', 'no máximo 3 clones', '1 hora',
+                     'metade dos seus', 'Ataque Extra', '36 metros',
+                     'Passo das Sombras'):
+            self.assertIn(text, rules)
+        self.assertFalse(is_statblock_placeholder(sb))
+        creature = TbBestiario(nome=fields['nome'], slug=fields['slug'],
+                               tipo=fields['tipo'], tamanho=fields['tamanho'],
+                               ca=fields['ca'], pv=fields['pv'], statblock_json=sb)
+        html = _render_creature_statblock_full(creature)
+        self.assertIn('Duplicata das Sombras', html)
+        self.assertIn('3 Pontos de Ki', html)
+        self.assertNotIn('Statblock incompleto:', html)
+
     def test_shadow_knight_summon_preserves_variable_type_and_source_rules(self):
         # Source: ref/Classes Reworkadas/Guerreiro ... World Anvil.html,
         # Cavaleiro das Sombras, level 3: Invocar Sombra.

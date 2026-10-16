@@ -84324,12 +84324,21 @@
     "nd": null,
     "alinhamento": null,
     "ca": null,
-    "pv": null,
+    "pv": "Metade dos PV do Monge",
     "statblock_json": {
       "name": "Clone das Sombras",
       "size": "",
       "type": "humanoide",
-      "alignment": ""
+      "alignment": "",
+      "hp": "Metade dos PV do Monge",
+      "trait": [
+        {
+          "name": "Duplicata das Sombras",
+          "entries": [
+            "Como uma Ação, você gasta 3 Pontos de Ki para conjurar 1 Clone das Sombras em um espaço desocupado a até 9 metros [30 pés] de você. Você pode ter no máximo 3 clones ativos; conjurar um quarto desfaz o mais antigo. Os clones agem logo após você na iniciativa, são comandados telepaticamente e duram 1 hora, até você completar um Descanso Curto ou Longo, ou até seus Pontos de Vida chegarem a 0. Cada clone tem Pontos de Vida iguais à metade dos seus, usa os mesmos atributos, deslocamento, bônus de proficiência e perícias que você, e possui Ataque Extra; ele empunha 2 Armas de Monge à sua escolha (uma corpo a corpo e uma de arremesso, consideradas mágicas) e não tem outras características de classe. Enquanto um clone estiver a até 36 metros [120 pés] de você, com uma Ação você pode ver e ouvir pelos sentidos dele até o início do seu próximo turno (ficando cego e surdo quanto aos seus próprios sentidos), e você pode usar o seu Passo das Sombras para trocar de lugar com o clone."
+          ]
+        }
+      ]
     },
     "tags_json": [
       "ca=self.ca",
