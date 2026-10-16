@@ -84940,13 +84940,21 @@
     "tamanho": null,
     "nd": null,
     "alinhamento": null,
-    "ca": null,
-    "pv": null,
+    "ca": "valor de Inteligência do Mago",
+    "pv": "nível de Mago",
     "statblock_json": {
       "name": "Objeto Conjurado",
       "size": "",
       "type": "construto",
-      "alignment": ""
+      "alignment": "",
+      "trait": [
+        {
+          "name": "Conjuração Menor",
+          "entries": [
+            "Como uma Ação , você conjura instantaneamente um único objeto Minúsculo , não mágico e inanimado, em sua mão ou em um espaço desocupado no chão a até 3 metros [10 pés] . Requisitos: Você deve ter visto o objeto antes e conhecer sua composição. Para objetos que exigem fabricação especializada, você deve ter proficiência nas Ferramentas de Artesão apropriadas. Restrições: Não pode conjurar cópias de itens mágicos nem usar o objeto como componente material de magia. O item é visivelmente mágico e emite luz fraca em 1,5 metros [5 pés]. Estatísticas: O objeto possui Pontos de Vida iguais ao seu nível de Mago e CA igual ao seu valor de Inteligência . Duração: Desaparece após 1 hora, se reduzido a 0 PV, ou se você usar esta característica novamente. Você pode gastar um Espaço de Magia para aumentar o tamanho do objeto conjurado: Espaço de Magia Tamanho Nenhum Minúsculo 1º círculo Pequeno 3º círculo Médio 5º círculo Grande 7º círculo Enorme 9º círculo Colossal"
+          ]
+        }
+      ]
     },
     "tags_json": [
       "size:miudo",
@@ -85655,16 +85663,24 @@
     "nome": "Pedra Filosofal",
     "slug": "pedra-filosofal",
     "tipo": "construto",
-    "tamanho": null,
+    "tamanho": "T",
     "nd": null,
     "alinhamento": null,
     "ca": null,
     "pv": null,
     "statblock_json": {
       "name": "Pedra Filosofal",
-      "size": "",
+      "size": "T",
       "type": "construto",
-      "alignment": ""
+      "alignment": "",
+      "trait": [
+        {
+          "name": "Mestre da Transmutação",
+          "entries": [
+            "Você domina o segredo da Pedra Filosofal. Durante cada Descanso Longo , você pode gastar 1 hora em um ritual para criar uma Pedra Filosofal (objeto Minúsculo). Criar uma nova pedra torna a anterior inerte. Enquanto a pedra estiver com você, você tem Resistência a um tipo de dano à sua escolha: Ácido, Frio, Fogo, Relâmpago ou Trovão . Como uma Ação , você pode consumir a pedra para realizar um dos efeitos abaixo (a pedra vira pó após o uso): Panaceia: Você toca uma criatura. Ela recupera todos os seus Pontos de Vida e remove todas as doenças, venenos e maldições que a afligem. Transmutação Maior: Você conjura uma das seguintes magias no 5º círculo , sem gastar espaço de magia ou componentes: Despertar (Awaken), Contágio (Contagion), Criação (Creation), Cura em Massa (Mass Cure Wounds) ou Restauração Maior (Greater Restoration) . Restaurar Vida: Você conjura Reviver os Mortos (Raise Dead) sem gastar espaço de magia, usando a pedra no lugar dos componentes materiais. Restaurar Juventude: Toca uma criatura voluntária e a idade biológica dela é reduzida em 3d10 anos (mínimo 13 anos). Potencializar Magia: Ao conjurar uma magia de 1º a 4º círculo, você a conjura como se estivesse usando um espaço de 5º círculo , sem gastar espaço de magia adicional."
+          ]
+        }
+      ]
     },
     "tags_json": [
       "size:miudo",

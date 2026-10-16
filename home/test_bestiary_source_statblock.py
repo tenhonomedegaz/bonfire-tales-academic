@@ -10,6 +10,47 @@ from .views import _render_creature_statblock_full
 
 
 class SourceBackedCompanionStatblockTests(SimpleTestCase):
+    def test_wizard_objects_show_conjuration_and_transmutation_rules(self):
+        # Source: ref/Classes/Mago ... World Anvil.html, Conjurador and Transmutador.
+        records = json.loads((Path(settings.BASE_DIR) / 'home' / 'fixtures' /
+                              'conteudo.json').read_text(encoding='utf-8'))
+        for pk, slug, subclass, trait, required in (
+            (23, 'objeto-conjurado', 51, 'Conjuração Menor',
+             ('Requisitos:', 'Restrições:', 'Estatísticas:', 'Duração:',
+              '1 hora', '9º círculo')),
+            (25, 'pedra-filosofal', 61, 'Mestre da Transmutação',
+             ('Panaceia:', 'Transmutação Maior:', 'Restaurar Vida:',
+              'Restaurar Juventude:', 'Potencializar Magia:')),
+        ):
+            fields = next(record['fields'] for record in records
+                          if record['model'] == 'home.tbbestiario'
+                          and record['pk'] == pk)
+            self.assertEqual(fields['slug'], slug)
+            self.assertEqual(fields['companheiro_subclasse'], subclass)
+            self.assertIsNone(fields['nd'])
+            sb = fields['statblock_json']
+            self.assertFalse(is_statblock_placeholder(sb))
+            self.assertEqual(sb['trait'][0]['name'], trait)
+            for phrase in required:
+                self.assertIn(phrase, sb['trait'][0]['entries'][0])
+            creature = TbBestiario(nome=fields['nome'], slug=slug,
+                                   tipo=fields['tipo'], tamanho=fields['tamanho'],
+                                   ca=fields['ca'], pv=fields['pv'],
+                                   statblock_json=sb)
+            rendered = _render_creature_statblock_full(creature)
+            self.assertIn(trait, rendered)
+            self.assertNotIn('Statblock incompleto:', rendered)
+
+        object_fields = next(record['fields'] for record in records
+                             if record['model'] == 'home.tbbestiario'
+                             and record['pk'] == 23)
+        self.assertEqual(object_fields['ca'], 'valor de Inteligência do Mago')
+        self.assertEqual(object_fields['pv'], 'nível de Mago')
+        stone_fields = next(record['fields'] for record in records
+                            if record['model'] == 'home.tbbestiario'
+                            and record['pk'] == 25)
+        self.assertEqual(size_keys(stone_fields['tamanho']), ('T',))
+
     def test_spectral_weapon_keeps_war_domain_rules_without_invented_stats(self):
         # Source: ref/Classes Reworkadas/Clerigo ... World Anvil.html,
         # Dominio da Guerra, Armamento da Guerra: Falange Espiritual.
