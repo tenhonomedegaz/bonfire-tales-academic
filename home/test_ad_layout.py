@@ -103,7 +103,7 @@ class AdLayoutBrowserTests(StaticLiveServerTestCase):
                             'deviceScaleFactor': 1, 'mobile': width <= 768,
                         })
                         call('Page.navigate', {'url': self.live_server_url + reverse('home')})
-                        wait_for('!!document.querySelector("ins.adsbygoogle")')
+                        wait_for('document.querySelectorAll("ins.adsbygoogle").length === 4')
                         # Aguarda a folha responsiva antes de medir os breakpoints.
                         wait_for('document.styleSheets.length > 1')
                         areas = js('''(() => {
@@ -127,4 +127,8 @@ class AdLayoutBrowserTests(StaticLiveServerTestCase):
                 if ws:
                     ws.close()
                 process.terminate()
-                process.wait(timeout=10)
+                try:
+                    process.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.wait(timeout=10)
