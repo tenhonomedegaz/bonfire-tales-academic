@@ -84736,20 +84736,71 @@
     "nome": "Defensor de Aço",
     "slug": "defensor-de-aco",
     "tipo": "construto",
-    "tamanho": null,
+    "tamanho": "M",
     "nd": null,
-    "alinhamento": null,
-    "ca": null,
-    "pv": null,
+    "alinhamento": "sem alinhamento",
+    "ca": "13 (Armadura Natural)",
+    "pv": "20 + 10 vezes o seu nível após o terceiro (Os dados de vida do Defensor são d10 e ele tem dados de vida igual o seu nível)",
     "statblock_json": {
       "name": "Defensor de Aço",
-      "size": "",
+      "size": "M",
       "type": "construto",
-      "alignment": ""
+      "alignment": "sem alinhamento",
+      "ac_text": "13 (Armadura Natural)",
+      "hp": "20 + 10 vezes o seu nível após o terceiro (Os dados de vida do Defensor são d10 e ele tem dados de vida igual o seu nível)",
+      "speed": "12 Metros [40 feet].",
+      "abilities": {
+        "str": 14,
+        "dex": 12,
+        "con": 14,
+        "int": 10,
+        "wis": 10,
+        "cha": 6
+      },
+      "trait": [
+        {
+          "name": "Vigilante",
+          "entries": [
+            "O Defensor não pode ser Surpreso."
+          ]
+        },
+        {
+          "name": "Ligação Arcana",
+          "entries": [
+            "O Defensor tem um bônus em testes de habilidade, resistência e classe de armadura igual ao seu bônus de proficiência."
+          ]
+        }
+      ],
+      "damage_immunities": "Veneno",
+      "condition_immunities": "Encantado, Amedrontado, Exaustão, Envenenado",
+      "senses": "Visão no Escuro 18 metros (60 feet), Percepção Passiva 10 + (BP x 2)",
+      "languages": "O Defensor fala todas as línguas que você fala.",
+      "action": [
+        {
+          "name": "Golpe Fortalecido por Energia",
+          "entries": [
+            "Ataque de Arma Corpo-a-Corpo com Arma: modificador de ataque de magia de artífice para acertar, alcance 1,5 metros [5 feet], um alvo. Dano (1d8 + Modificador de Inteligência do Artífice + Bônus de Proficiência) de dano de Energia. - Esse dano aumenta para 2d8 quando você alcançar o 9º nível nesta classe."
+          ]
+        },
+        {
+          "name": "Reparo (PB/Dia)",
+          "entries": [
+            "Os mecanismos mágicos dentro do defensor restauram 2d8 + Bônus de Proficiência pontos de vida dele mesmo ou de outro construto ou objeto em uma distância de 5ft."
+          ]
+        }
+      ],
+      "reaction": [
+        {
+          "name": "Defletir Ataque",
+          "entries": [
+            "O defensor pode impor desvantagem na rolagem de ataque de uma criatura que ele consiga ver dentro de 1,5 metros [5 feet] dele, desde que essa rolagem de ataque seja contra outra criatura que não o Defensor."
+          ]
+        }
+      ]
     },
     "tags_json": [
       "summon:bestiary{defensor_de_aco}",
-      "cond_immune:envenenado, cond_immune:exaustao"
+      "cond_immune:enfeiticado, cond_immune:amedrontado, cond_immune:exaustao, cond_immune:envenenado, immune:veneno"
     ],
     "companheiro_classe": 1,
     "companheiro_subclasse": 5,
