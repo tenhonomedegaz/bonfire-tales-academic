@@ -84220,17 +84220,52 @@
   "fields": {
     "nome": "Ajudante da Natureza",
     "slug": "ajudante-da-natureza",
-    "tipo": "besta",
-    "tamanho": null,
+    "tipo": "planta ou besta",
+    "tamanho": "M",
     "nd": null,
-    "alinhamento": null,
-    "ca": null,
-    "pv": null,
+    "alinhamento": "qualquer",
+    "ca": "13 (Armadura Natural)",
+    "pv": "10 + 5 vezes o seu nível",
     "statblock_json": {
       "name": "Ajudante da Natureza",
-      "size": "",
-      "type": "besta",
-      "alignment": ""
+      "size": "M",
+      "type": "planta ou besta",
+      "alignment": "qualquer",
+      "ac_text": "13 (Armadura Natural)",
+      "hp": "10 + 5 vezes o seu nível",
+      "speed": "10,5 Metros [40 feet]",
+      "abilities": {
+        "str": 16,
+        "dex": 14,
+        "con": 16,
+        "int": 8,
+        "wis": 16,
+        "cha": 10
+      },
+      "trait": [
+        {
+          "name": "Ligação Divina",
+          "entries": [
+            "O Ajudante da Natureza tem um bônus em testes de habilidade, resistência e classe de armadura igual ao seu bônus de proficiência."
+          ]
+        },
+        {
+          "name": "Elo Divino",
+          "entries": [
+            "O Ajudante não sofre efeitos de enfeitiçar derivados de magias de controle mental que o fariam se rebelar contra você ou deixar de seguir suas ordens."
+          ]
+        }
+      ],
+      "senses": "Visão no Escuro 18 metros [60 feet], Percepção Passiva 13 + (BP)",
+      "languages": "Entende todas que você fala.",
+      "action": [
+        {
+          "name": "Golpe da Natureza",
+          "entries": [
+            "Ataque de Arma Corpo-a-Corpo com Arma: modificador de ataque de magia de clérigo para acertar, alcance 1,5 metros [5 feet], um alvo. Dano (1d8 + Modificador de Sabedoria do Clérigo + Bônus de Proficiência) de dano Cortante, Perfurante ou Concussivo (Você escolhe quando invocar o espírito)."
+          ]
+        }
+      ]
     },
     "tags_json": [
       "summon:bestiary{ajudante_da_natureza}",
@@ -84239,7 +84274,7 @@
     "companheiro_classe": 5,
     "companheiro_subclasse": 125,
     "escala_com_dono": true,
-    "descricao_markdown": "### Ajudante da Natureza\n\n- **Tipo:** besta",
+    "descricao_markdown": "### Ajudante da Natureza\n\n- **Tipo:** planta ou besta",
     "imagem_url": null,
     "comunidade": false,
     "autor": null
@@ -84351,17 +84386,59 @@
   "fields": {
     "nome": "Espírito das Profundezas",
     "slug": "espirito-das-profundezas",
-    "tipo": "Elemental",
-    "tamanho": null,
+    "tipo": "monstruosidade",
+    "tamanho": "M",
     "nd": null,
-    "alinhamento": null,
-    "ca": null,
-    "pv": null,
+    "alinhamento": "sem alinhamento",
+    "ca": "12 (Armadura Natural)",
+    "pv": "5 + 3 vezes o seu nível total.",
     "statblock_json": {
       "name": "Espírito das Profundezas",
-      "size": "",
-      "type": "Elemental",
-      "alignment": ""
+      "size": "M",
+      "type": "monstruosidade",
+      "alignment": "sem alinhamento",
+      "ac_text": "12 (Armadura Natural)",
+      "hp": "5 + 3 vezes o seu nível total.",
+      "speed": "9 Metros [30 feet] Voo: 9 Metros [30 feet] Nado: 18 Metros [60 feet]",
+      "abilities": {
+        "str": 16,
+        "dex": 14,
+        "con": 12,
+        "int": 1,
+        "wis": 10,
+        "cha": 3
+      },
+      "trait": [
+        {
+          "name": "Vínculo das Profundezas",
+          "entries": [
+            "O Espírito das Profundezas obedece seus comandos mentais, e possui um bônus em Testes de Habilidade, Resistência, e Classe de Armadura igual ao seu bônus de proficiência. Porém ele não é inteligente o suficiente para se comunicar de volta."
+          ]
+        },
+        {
+          "name": "Criatura das Profundezas",
+          "entries": [
+            "O espírito das Profundezas não precisa respirar, adicionalmente, ele cresce para o tamanho Grande (Large) quando alcança o 5º nível nesta classe, e para o tamanho Enorme (Huge) quando você alcança o 14º nível nesta classe."
+          ]
+        },
+        {
+          "name": "O Contrato Fechado",
+          "entries": [
+            "O Espírito das Profundezas é imune a qualquer efeito que faça ele ser controlado por outra pessoa que não seja você."
+          ]
+        }
+      ],
+      "senses": "Visão no Escuro de 18 Metros [60 feet], Visão às Cegas de 3 Metros [10 feet], Percepção Passiva 10 + BP",
+      "languages": "Não fala.",
+      "action": [
+        {
+          "name": "Golpe das Profundezas",
+          "entries": [
+            "Ataque de arma corpo-a-corpo: modificador de ataque de magia de Místico para acertar, alcance 3 metros [10 feet], um alvo. Dano: (1d8 + Modificador de Carisma) de dano de Energia. A criatura atingida perde 3 metros [10 feet] de deslocamento até o final do próximo turno dela. O dano do Golpe das Profundezas aumenta para 2d8 + Modificador de Carisma no 10º nesta classe."
+          ]
+        }
+      ],
+      "damage_immunities": "Frio"
     },
     "tags_json": [
       "action=bonus_action",
@@ -84374,7 +84451,7 @@
     "companheiro_classe": 11,
     "companheiro_subclasse": 133,
     "escala_com_dono": true,
-    "descricao_markdown": "### Espírito das Profundezas\n\n- **Tipo:** Elemental",
+    "descricao_markdown": "### Espírito das Profundezas\n\n- **Tipo:** monstruosidade",
     "imagem_url": null,
     "comunidade": false,
     "autor": null

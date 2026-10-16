@@ -51,6 +51,7 @@ SWARM_TYPES = {
     'mortos-vivos': 'morto-vivo',
 }
 MULTI_TYPES = {
+    'planta ou besta': ('planta', 'besta'),
     'celestial, fey, or fiend': ('celestial', 'feerico', 'corruptor'),
     'celestial ou corruptor (tita)': ('celestial', 'corruptor'),
     'celestial ou corruptor (tit\ufffd)': ('celestial', 'corruptor'),
