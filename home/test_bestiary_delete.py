@@ -29,7 +29,11 @@ class BestiaryDeleteReferencesTests(TestCase):
 
     def test_unreferenced_creature_can_be_deleted(self):
         TbMagia.objects.create(nome='Escolha dinâmica', slug='escolha-dinamica',
-                               tags_json=['summon:bestiary{familiar(creature_type:pick:tipo)}'])
+                               tags_json=[
+                                   'summon:bestiary{familiar(creature_type:pick:tipo)}',
+                                   'summon:bestiary{familiar(creature_type:match(pick:polo)'
+                                   '{ celestial:celestial, infero:corruptor })}',
+                               ])
         self.assertIn('m=excluida', self.client.post(self.url)['Location'])
         self.assertFalse(TbBestiario.objects.filter(pk=self.creature.pk).exists())
 

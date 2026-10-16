@@ -4,7 +4,9 @@ from django.apps import apps
 from django.db.models import JSONField, TextField
 from django.db.models.functions import Cast
 
-from .bestiary_audit import STATIC_REF, SUMMON_REF, _mechanical_tags, normalized_slug
+from .bestiary_audit import (STATIC_REF, _mechanical_tags,
+                             bestiary_references as parse_bestiary_references,
+                             normalized_slug)
 
 
 def has_inbound_bestiary_reference(slug):
@@ -24,7 +26,7 @@ def has_inbound_bestiary_reference(slug):
                 for tag in tags:
                     if not isinstance(tag, str):
                         continue
-                    for reference in SUMMON_REF.findall(tag):
+                    for reference in parse_bestiary_references(tag):
                         reference = reference.strip()
                         if STATIC_REF.fullmatch(reference) and normalized_slug(reference) == target:
                             return True
