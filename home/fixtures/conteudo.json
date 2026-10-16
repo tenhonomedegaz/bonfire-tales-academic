@@ -85298,16 +85298,66 @@
     "nome": "Servo Homúnculo",
     "slug": "servo-homunculo",
     "tipo": "construto",
-    "tamanho": null,
+    "tamanho": "T",
     "nd": null,
     "alinhamento": null,
-    "ca": null,
-    "pv": null,
+    "ca": "13 (Armadura Natural)",
+    "pv": "1 + modificador de Inteligência + nível de Artífice (d4 por nível)",
     "statblock_json": {
       "name": "Servo Homúnculo",
-      "size": "",
+      "size": "T",
       "type": "construto",
-      "alignment": ""
+      "alignment": "",
+      "ac_text": "13 (Armadura Natural)",
+      "hp": "1 + modificador de Inteligência + nível de Artífice (d4 por nível)",
+      "speed": "6 metros; voo 9 metros",
+      "abilities": {
+        "str": 4,
+        "dex": 15,
+        "con": 12,
+        "int": 10,
+        "wis": 10,
+        "cha": 7
+      },
+      "saving_throws": "Destreza +2 + bônus de proficiência do Artífice",
+      "skills": [
+        "Percepção + 2 vezes o bônus de proficiência do Artífice",
+        "Furtividade +2 + bônus de proficiência do Artífice"
+      ],
+      "damage_immunities": "Veneno",
+      "condition_immunities": "Exaustão, Envenenado",
+      "senses": "Visão no Escuro 18 metros, Percepção passiva 10 + 2 vezes o bônus de proficiência do Artífice",
+      "languages": "Compreende os idiomas do Artífice",
+      "trait": [
+        {
+          "name": "Evasão",
+          "entries": [
+            "Se um efeito permitir uma salvaguarda de Destreza para sofrer metade do dano, o Servo não sofre dano no sucesso e sofre metade na falha. Não pode usar este traço enquanto estiver incapacitado."
+          ]
+        },
+        {
+          "name": "Comando do Invocador",
+          "entries": [
+            "O Servo compartilha a iniciativa do Artífice e age imediatamente após ele. Obedece a seus comandos sem exigir ação do Artífice. Sem comando, usa Esquivar e se move para evitar o perigo."
+          ]
+        }
+      ],
+      "action": [
+        {
+          "name": "Golpe de Energia",
+          "entries": [
+            "Ataque à distância com o modificador de ataque mágico do Artífice, alcance 9 metros, um alvo visível. Acerto: 1d4 + bônus de proficiência do Artífice de dano de energia."
+          ]
+        }
+      ],
+      "reaction": [
+        {
+          "name": "Canalizar Magia",
+          "entries": [
+            "O Servo entrega uma magia de alcance Toque conjurada pelo Artífice enquanto estiver a até 36 metros dele."
+          ]
+        }
+      ]
     },
     "tags_json": [
       "summon:bestiary{servo_homunculo}"

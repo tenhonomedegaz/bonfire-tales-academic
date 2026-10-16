@@ -10,6 +10,37 @@ from .views import _render_creature_statblock_full
 
 
 class SourceBackedCompanionStatblockTests(SimpleTestCase):
+    def test_homunculus_servant_combines_official_stats_with_local_commands(self):
+        # Eberron official errata, Homunculus Servant; fixture spell 272.
+        records = json.loads((Path(settings.BASE_DIR) / 'home' / 'fixtures' /
+                              'conteudo.json').read_text(encoding='utf-8'))
+        fields = next(record['fields'] for record in records
+                      if record['model'] == 'home.tbbestiario'
+                      and record['pk'] == 41)
+        self.assertEqual(fields['slug'], 'servo-homunculo')
+        self.assertEqual(size_keys(fields['tamanho']), ('T',))
+        self.assertIsNone(fields['nd'])
+        self.assertTrue(fields['escala_com_dono'])
+        sb = fields['statblock_json']
+        self.assertEqual(sb['abilities'], {
+            'str': 4, 'dex': 15, 'con': 12,
+            'int': 10, 'wis': 10, 'cha': 7,
+        })
+        self.assertFalse(is_statblock_placeholder(sb))
+        creature = TbBestiario(nome=fields['nome'], slug=fields['slug'],
+                               tipo=fields['tipo'], tamanho=fields['tamanho'],
+                               ca=fields['ca'], pv=fields['pv'], statblock_json=sb)
+        html = _render_creature_statblock_full(creature)
+        for phrase in ('Evasão', 'Golpe de Energia', 'Canalizar Magia',
+                       'Comando do Invocador', '1 + modificador de Inteligência',
+                       '13 (Armadura Natural)'):
+            self.assertIn(phrase, html)
+        self.assertNotIn('Statblock incompleto:', html)
+        spell = next(record['fields'] for record in records
+                     if record['model'] == 'home.tbmagia'
+                     and record['pk'] == 272)
+        self.assertIn('servo-homunculo', spell['descricao'])
+
     def test_trickery_domain_illusions_keep_distinct_source_mechanics(self):
         # Source: ref/Classes Reworkadas/Clerigo ... World Anvil.html,
         # Dominio da Trapaca, Invocar Duplicidade and Baile das Mascaras.
@@ -370,6 +401,29 @@ class SourceBackedCompanionStatblockTests(SimpleTestCase):
 
 
 class PrimalFamiliarPreviewTests(TestCase):
+    def test_homunculus_servant_full_statblock_in_both_public_previews(self):
+        records = json.loads((Path(settings.BASE_DIR) / 'home' / 'fixtures' /
+                              'conteudo.json').read_text(encoding='utf-8'))
+        fields = next(record['fields'] for record in records
+                      if record['model'] == 'home.tbbestiario'
+                      and record['pk'] == 41)
+        TbBestiario.objects.create(
+            nome=fields['nome'], slug=fields['slug'], tipo=fields['tipo'],
+            tamanho=fields['tamanho'], ca=fields['ca'], pv=fields['pv'],
+            statblock_json=fields['statblock_json'],
+        )
+        creature = self.client.get('/api/creature/', {'slug': fields['slug']})
+        self.assertEqual(creature.status_code, 200)
+        self.assertFalse(creature.json()['statblock_incompleto'])
+        card = self.client.get('/api/card-preview/', {
+            'table': 'bestiario', 'args': fields['slug'],
+        })
+        self.assertEqual(card.status_code, 200)
+        for html in (creature.json()['statblock_html'], card.json()['card_html']):
+            self.assertIn('Golpe de Energia', html)
+            self.assertIn('Canalizar Magia', html)
+            self.assertIn('Comando do Invocador', html)
+
     def test_trickery_illusions_show_rules_in_both_public_previews(self):
         records = json.loads((Path(settings.BASE_DIR) / 'home' / 'fixtures' /
                               'conteudo.json').read_text(encoding='utf-8'))
