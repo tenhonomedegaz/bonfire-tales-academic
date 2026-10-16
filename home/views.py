@@ -14321,6 +14321,7 @@ def bestiario_view(request):
     from django.core.paginator import Paginator
     from .models import TbBestiario
     from .bestiary_description import display_description
+    from .editorial_links import safe_editorial_image
     from .bestiary_target_size import (TARGET_SIZE_OPTIONS, annotate_target_size,
                                        selected_target_size)
     from .bestiary_catalog import (TYPE_LABELS, SIZE_LABELS, USAGE_LABELS,
@@ -14402,7 +14403,7 @@ def bestiario_view(request):
             'tamanho': _sb_size_text(b.statblock_json if isinstance(b.statblock_json, dict) else {}, b),
             'comunidade': b.comunidade, 'autor': b.autor.username if b.autor_id else None,
             'usages': [USAGE_LABELS[key] for key in usages],
-            'imagem': b.imagem_url or '',
+            'imagem': safe_editorial_image(b.imagem_url),
             'nd_valor': nd_number,
             'record': b,
             'descricao': _clean_5et(display_description(b)),

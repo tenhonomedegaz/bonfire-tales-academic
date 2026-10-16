@@ -82,6 +82,24 @@ class BestiaryCatalogClassificationTests(TestCase):
         self.assertEqual(creature.statblock_json['trait'][0]['tags_json'],
                          ['cast{spell:magia-secreta, at-will}'])
 
+    def test_public_catalog_renders_only_safe_existing_creature_art(self):
+        creature = TbBestiario.objects.create(
+            slug='corcel-ilustrado', nome='Corcel Ilustrado',
+            imagem_url='/media/bestiario/corcel.png', statblock_json={})
+        url = reverse('bestiario')
+        body = self.client.get(url, {'q': creature.slug}).content.decode()
+        self.assertIn('src="/media/bestiario/corcel.png"', body)
+        self.assertIn('alt="Ilustração de Corcel Ilustrado"', body)
+        creature.imagem_url = 'javascript:alert(1)'
+        creature.save(update_fields=['imagem_url'])
+        body = self.client.get(url, {'q': creature.slug}).content.decode()
+        self.assertNotIn('class="monster-art"', body)
+        self.assertNotIn('javascript:alert(1)', body)
+        creature.imagem_url = None
+        creature.save(update_fields=['imagem_url'])
+        body = self.client.get(url, {'q': creature.slug}).content.decode()
+        self.assertNotIn('class="monster-art"', body)
+
     def test_preview_preserves_ability_paragraphs_and_escapes_content(self):
         creature = TbBestiario.objects.create(
             slug='conjurador-de-teste', nome='Conjurador de Teste',

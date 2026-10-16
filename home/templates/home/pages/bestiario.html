@@ -35,7 +35,9 @@
     min-height: 540px;
   }
   .monster-sheet-inner { display: grid; grid-template-columns: minmax(0, 1fr); gap: .7rem; padding: .7rem; }
-  .monster-header { border-bottom: 3px double var(--ember); padding-bottom: .5rem; }
+  .monster-header { border-bottom: 3px double var(--ember); padding-bottom: .5rem; display: flex; align-items: start; justify-content: space-between; gap: .75rem; }
+  .monster-header-copy { min-width: 0; }
+  .monster-art { width: 112px; height: 112px; max-width: 35%; object-fit: contain; flex: none; }
   .monster-title { color: var(--ember); font-family: Cinzel, serif; font-size: clamp(1.35rem, 2vw, 2rem); font-weight: 800; line-height: 1.1; }
   .monster-subtitle { color: var(--muted); font-size: .85rem; font-style: italic; margin-top: .2rem; }
   .monster-line { font-size: .9rem; color: var(--text); }
@@ -155,8 +157,11 @@
         <div class="monster-sheet-inner">
           {% with sb=c.sb %}
           <header class="monster-header">
-            <h2 class="monster-title">{{ c.nome }}</h2>
-            <p class="monster-subtitle">{{ sb.cabecalho }}{% if c.autor %} · por {{ c.autor }}{% endif %}</p>
+            <div class="monster-header-copy">
+              <h2 class="monster-title">{{ c.nome }}</h2>
+              <p class="monster-subtitle">{{ sb.cabecalho }}{% if c.autor %} · por {{ c.autor }}{% endif %}</p>
+            </div>
+            {% if c.imagem %}<img class="monster-art" src="{{ c.imagem }}" alt="Ilustração de {{ c.nome }}" loading="lazy" decoding="async">{% endif %}
           </header>
 
           <section class="grid gap-2">
