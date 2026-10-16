@@ -17057,10 +17057,11 @@
       "mistico",
       "mago"
     ],
-    "descricao": "Pronunciando um encantamento sombrio, você invoca um demônio dos Nove Infernos. Você escolhe o tipo do demônio, que deve ter um nível de desafio 6 ou inferior, como um demônio farpado ou um demônio barbudo. O demônio aparece em um espaço desocupado que você possa ver dentro do alcance. O demônio desaparece quando seus pontos de vida chegam a 0 ou quando a magia termina.\n\nO demônio é hostil a você e seus companheiros. Role a iniciativa para o demônio, que tem seus próprios turnos. Ele está sob o controle do Mestre e age de acordo com sua natureza em cada um de seus turnos, o que pode resultar em um ataque se ele achar que pode prevalecer, ou em uma tentativa de tentá-lo a cometer um ato maligno em troca de um serviço limitado. O Mestre possui as estatísticas da criatura.\n\nEm cada um dos seus turnos, você pode tentar dar uma ordem verbal ao demônio (nenhuma ação é necessária da sua parte). Ele obedece à ordem se o resultado provável estiver de acordo com seus desejos, especialmente se o resultado o levar ao mal. Caso contrário, você deve fazer um teste de Carisma (Enganação, Intimidação ou Persuasão) contestado pelo teste de Sabedoria (Intuição) dele. Você faz o teste com vantagem se disser o verdadeiro nome do demônio. Se o seu teste falhar, o demônio se torna imune aos seus comandos verbais durante a duração da magia, embora ainda possa executá-los se assim desejar. Se o seu teste for bem-sucedido, o demônio executa sua ordem — como \"ataque meus inimigos\", \"explore a sala à frente\" ou \"leve esta mensagem à rainha\" — até concluir a atividade, momento em que retorna a você para relatar o ocorrido.\n\nSe sua concentração terminar antes que a magia atinja sua duração total, o demônio não desaparece se tiver se tornado imune aos seus comandos verbais. Em vez disso, ele age da maneira que escolher por 3d6 minutos e então desaparece.\n\nSe você possuir um talismã demoníaco individual, poderá invocar esse demônio se ele tiver o nível de desafio apropriado mais 1 e obedecer a todos os seus comandos, sem necessidade de testes de Carisma.\n\n### Criaturas invocadas\n- [Demônio](creature, demonio)",
+    "descricao": "Pronunciando um encantamento sombrio, você invoca um diabo dos Nove Infernos. Você escolhe o tipo do diabo, que deve ter um nível de desafio 6 ou inferior, como um diabo farpado ou um diabo barbado. O diabo aparece em um espaço desocupado que você possa ver dentro do alcance. O diabo desaparece quando seus pontos de vida chegam a 0 ou quando a magia termina.\n\nO diabo é hostil a você e seus companheiros. Role a iniciativa para o diabo, que tem seus próprios turnos. Ele está sob o controle do Mestre e age de acordo com sua natureza em cada um de seus turnos, o que pode resultar em um ataque se ele achar que pode prevalecer, ou em uma tentativa de tentá-lo a cometer um ato maligno em troca de um serviço limitado. O Mestre possui as estatísticas da criatura.\n\nEm cada um dos seus turnos, você pode tentar dar uma ordem verbal ao diabo (nenhuma ação é necessária da sua parte). Ele obedece à ordem se o resultado provável estiver de acordo com seus desejos, especialmente se o resultado o levar ao mal. Caso contrário, você deve fazer um teste de Carisma (Enganação, Intimidação ou Persuasão) contestado pelo teste de Sabedoria (Intuição) dele. Você faz o teste com vantagem se disser o verdadeiro nome do diabo. Se o seu teste falhar, o diabo se torna imune aos seus comandos verbais durante a duração da magia, embora ainda possa executá-los se assim desejar. Se o seu teste for bem-sucedido, o diabo executa sua ordem — como \"ataque meus inimigos\", \"explore a sala à frente\" ou \"leve esta mensagem à rainha\" — até concluir a atividade, momento em que retorna a você para relatar o ocorrido.\n\nSe sua concentração terminar antes que a magia atinja sua duração total, o diabo não desaparece se tiver se tornado imune aos seus comandos verbais. Em vez disso, ele age da maneira que escolher por 3d6 minutos e então desaparece.\n\nSe você possuir um talismã diabólico individual, poderá invocar esse diabo se ele tiver o nível de desafio apropriado mais 1 e obedecer a todos os seus comandos, sem necessidade de testes de Carisma.\n\n### Criaturas invocadas\n- [Diabo Farpado](creature, barbed-devil)\n- [Diabo Barbado](creature, bearded-devil)",
     "em_niveis_superiores": "Em Níveis Superiores. Quando você conjura esta magia usando um espaço de magia de 6º nível ou superior, o nível de desafio aumenta em 1 para cada nível de espaço acima do 5º.",
     "tags_json": [
-      "summon:bestiary{demonio}"
+      "summon:bestiary{barbed-devil}",
+      "summon:bestiary{bearded-devil}"
     ]
   }
 },
@@ -86649,7 +86650,30 @@
       "name": "Demônio Menor",
       "size": "",
       "type": "demonio",
-      "alignment": ""
+      "alignment": "",
+      "selection_note": "Invocar Demônios Menores escolhe criaturas concretas; o Mestre determina a espécie e cada uma usa seu próprio statblock. Consulte a magia para a quantidade e o limite de ND. Estes links são exemplos, não uma lista exaustiva.",
+      "variant_refs": [
+        {
+          "slug": "manes",
+          "name": "Manes",
+          "cr": "1/8"
+        },
+        {
+          "slug": "dretch",
+          "name": "Dretch",
+          "cr": "1/4"
+        },
+        {
+          "slug": "maw-demon",
+          "name": "Demônio da Boca",
+          "cr": "1"
+        },
+        {
+          "slug": "quasit",
+          "name": "Quasit",
+          "cr": "1"
+        }
+      ]
     },
     "tags_json": [
       "summon:bestiary{demonio_menor}"
@@ -87429,7 +87453,20 @@
       "name": "Demônio",
       "size": "",
       "type": "demonio",
-      "alignment": ""
+      "alignment": "",
+      "selection_note": "Invocar Demônio Maior escolhe uma espécie concreta de demônio com ND permitido pela magia; use o statblock dessa espécie. Estes links são exemplos, não uma lista exaustiva.",
+      "variant_refs": [
+        {
+          "slug": "shadow-demon",
+          "name": "Demônio das Sombras",
+          "cr": "4"
+        },
+        {
+          "slug": "barlgura",
+          "name": "Barlgura",
+          "cr": "5"
+        }
+      ]
     },
     "tags_json": [
       "summon:bestiary{demonio}"

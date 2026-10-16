@@ -110,6 +110,18 @@ def is_statblock_placeholder(value):
     """A name/type shell is not a playable statblock, even for an owner-scaled summon."""
     if not isinstance(value, dict):
         return True
+    if 'variant_refs' in value or 'selection_note' in value:
+        refs = value.get('variant_refs')
+        return not (
+            isinstance(value.get('selection_note'), str)
+            and value['selection_note'].strip()
+            and isinstance(refs, list) and bool(refs)
+            and all(isinstance(ref, dict)
+                    and isinstance(ref.get('name'), str) and ref['name'].strip()
+                    and isinstance(ref.get('slug'), str)
+                    and re.fullmatch(r'[a-z0-9-]+', ref['slug'])
+                    for ref in refs)
+        )
     if 'forms' in value:
         forms = value['forms']
         if not isinstance(forms, list) or not forms or any(

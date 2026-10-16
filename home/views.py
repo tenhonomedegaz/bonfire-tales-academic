@@ -15506,6 +15506,14 @@ def _render_creature_statblock_full(cr, target_size=None):
     parts.append('<div class="bonfire-creature-card-sheet">')
     if is_statblock_placeholder(sb):
         parts.append('<p class="bonfire-creature-line">Statblock incompleto: atributos e acoes ainda nao foram cadastrados para esta criatura.</p>')
+    elif isinstance(sb.get('variant_refs'), list):
+        parts.append('<div class="bonfire-creature-section"><h4>Ficha variavel</h4>')
+        parts.append('<p class="bonfire-creature-line">%s</p>' % esc(sb['selection_note']))
+        parts.append('<p class="bonfire-creature-line">Exemplos de fichas: ')
+        for ref in sb['variant_refs']:
+            parts.append('<a href="#" class="bonfire-card-trigger" data-table="tbBestiario" data-args="%s">%s (ND %s)</a> ' % (
+                esc(ref['slug']), esc(ref['name']), esc(str(ref.get('cr') or '?'))))
+        parts.append('</p></div>')
     parts.append('<div class="bonfire-creature-meta">%s%s%s</div>' % (
         '<span><b>CA</b> %s</span>' % esc(str(display.get('ca'))) if display.get('ca') else '',
         '<span><b>PV</b> %s</span>' % esc(str(display.get('pv'))) if display.get('pv') else '',
