@@ -87750,16 +87750,58 @@
     "nome": "Espírito Celestial",
     "slug": "espirito-celestial",
     "tipo": "Celestial",
-    "tamanho": null,
+    "tamanho": "L",
     "nd": null,
     "alinhamento": null,
-    "ca": null,
-    "pv": null,
+    "ca": "11 + nível da magia (+2 apenas Defensor)",
+    "pv": "40 + 10 por nível da magia acima do 5º",
     "statblock_json": {
       "name": "Espírito Celestial",
-      "size": "",
+      "size": "L",
       "type": "Celestial",
-      "alignment": ""
+      "alignment": "",
+      "ac_text": "11 + nível da magia (+2 apenas Defensor)",
+      "hp": "40 + 10 por nível da magia acima do 5º",
+      "speed": "9 m; voo 12 m",
+      "abilities": {
+        "str": 16,
+        "dex": 14,
+        "con": 16,
+        "int": 10,
+        "wis": 14,
+        "cha": 16
+      },
+      "senses": "Visão no Escuro 18 m; Percepção passiva 12",
+      "languages": "Celestial; compreende os idiomas do invocador",
+      "cr": "Sem ND (XP 0; bônus de proficiência igual ao do invocador)",
+      "action": [
+        {
+          "name": "Ataques Múltiplos",
+          "entries": [
+            "Faz ataques em número igual à metade do nível da magia, arredondada para baixo."
+          ]
+        },
+        {
+          "name": "Arco Radiante (Vingador)",
+          "entries": [
+            "Ataque à distância com o modificador de ataque mágico do invocador, alcance 180 m. Acerto: 2d6 + 2 + nível da magia de dano radiante."
+          ]
+        },
+        {
+          "name": "Maça Radiante (Defensor)",
+          "entries": [
+            "Ataque corpo a corpo com o modificador de ataque mágico do invocador, alcance 1,5 m. Acerto: 1d10 + 3 + nível da magia de dano radiante. O espírito escolhe a si ou outra criatura visível a até 3 m do alvo; ela ganha 1d10 PV temporários."
+          ]
+        },
+        {
+          "name": "Toque Curativo (1/Dia)",
+          "entries": [
+            "Toca outra criatura, que recupera 2d8 + nível da magia PV."
+          ]
+        }
+      ],
+      "damage_resistances": "Radiante",
+      "condition_immunities": "Enfeitiçado, Amedrontado"
     },
     "tags_json": [
       "summon:bestiary{espirito_celestial}"
@@ -87780,16 +87822,60 @@
     "nome": "Espírito Dracônico",
     "slug": "espirito-draconico",
     "tipo": "dragao",
-    "tamanho": null,
+    "tamanho": "L",
     "nd": null,
     "alinhamento": null,
-    "ca": null,
-    "pv": null,
+    "ca": "14 + nível da magia",
+    "pv": "50 + 10 por nível da magia acima do 5º",
     "statblock_json": {
       "name": "Espírito Dracônico",
-      "size": "",
+      "size": "L",
       "type": "dragao",
-      "alignment": ""
+      "alignment": "",
+      "ac_text": "14 + nível da magia",
+      "hp": "50 + 10 por nível da magia acima do 5º",
+      "speed": "9 m; voo 18 m; natação 9 m",
+      "abilities": {
+        "str": 19,
+        "dex": 14,
+        "con": 17,
+        "int": 10,
+        "wis": 14,
+        "cha": 14
+      },
+      "senses": "Visão às Cegas 9 m; Visão no Escuro 18 m; Percepção passiva 12",
+      "languages": "Dracônico; compreende os idiomas do invocador",
+      "cr": "Sem ND (XP 0; bônus de proficiência igual ao do invocador)",
+      "action": [
+        {
+          "name": "Ataques Múltiplos",
+          "entries": [
+            "Faz ataques de Dilacerar em número igual à metade do nível da magia, arredondada para baixo, e usa Arma de Sopro."
+          ]
+        },
+        {
+          "name": "Dilacerar",
+          "entries": [
+            "Ataque corpo a corpo com o modificador de ataque mágico do invocador, alcance 3 m. Acerto: 1d6 + 4 + nível da magia de dano perfurante."
+          ]
+        },
+        {
+          "name": "Arma de Sopro",
+          "entries": [
+            "Cada criatura em cone de 9 m faz salvaguarda de Destreza contra a CD de magia do invocador. Na falha, sofre 2d6 de dano do tipo escolhido ao conjurar a magia entre as resistências do espírito; no sucesso, sofre metade."
+          ]
+        }
+      ],
+      "trait": [
+        {
+          "name": "Resistências Compartilhadas",
+          "entries": [
+            "Ao invocar o espírito, escolha uma de suas resistências. O invocador ganha resistência a esse tipo de dano até o término da magia."
+          ]
+        }
+      ],
+      "damage_resistances": "Ácido, Frio, Fogo, Elétrico, Veneno",
+      "condition_immunities": "Enfeitiçado, Amedrontado, Envenenado"
     },
     "tags_json": [
       "summon:bestiary{espirito_draconico}"
