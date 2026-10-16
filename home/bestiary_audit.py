@@ -20,7 +20,7 @@ FEATURE_SECTIONS = (
     'mythic', 'mythic_actions', 'lair', 'lair_actions',
     'regional', 'regional_effects',
 )
-SUMMON_REF = re.compile(r'\bbestiary\s*\{\s*([^}]+)\s*\}', re.I)
+SUMMON_START = re.compile(r'\bbestiary\s*\{', re.I)
 STATIC_REF = re.compile(r'^[a-z0-9_-]+$', re.I)
 CAST_SPELL = re.compile(r'cast\{spell:([^,}]+)')
 
@@ -28,6 +28,21 @@ CAST_SPELL = re.compile(r'cast\{spell:([^,}]+)')
 def normalized_slug(value):
     folded = unicodedata.normalize('NFKD', str(value or '')).encode('ascii', 'ignore').decode().lower()
     return re.sub(r'[^a-z0-9]+', '-', folded).strip('-')
+
+
+def bestiary_references(tag):
+    """Extract full summon targets, including nested expressions with braces."""
+    for match in SUMMON_START.finditer(tag):
+        depth = 1
+        start = match.end()
+        for index in range(start, len(tag)):
+            if tag[index] == '{':
+                depth += 1
+            elif tag[index] == '}':
+                depth -= 1
+                if depth == 0:
+                    yield tag[start:index].strip()
+                    break
 
 
 def statblock_hash(value):
@@ -170,7 +185,7 @@ def audit_snapshot(rows):
                 syntax_warnings += 1
                 issues.append(f'creature_tags:tag_syntax_warning:{diagnostic.code}')
         for index, tag in enumerate(tags):
-            for reference in SUMMON_REF.findall(tag):
+            for reference in bestiary_references(tag):
                 if not STATIC_REF.fullmatch(reference.strip()):
                     issues.append(f'tags_json[{index}]:dynamic_bestiary_ref_needs_review')
                 elif normalized_slug(reference) not in creature_normalized:
@@ -268,7 +283,7 @@ def audit_snapshot(rows):
         for tag_index, tag in enumerate(tags):
             if not isinstance(tag, str):
                 continue
-            for reference in SUMMON_REF.findall(tag):
+            for reference in bestiary_references(tag):
                 value = reference.strip()
                 matches = creature_by_normalized.get(normalized_slug(value), []) if STATIC_REF.fullmatch(value) else []
                 status = ('dynamic_needs_review' if not STATIC_REF.fullmatch(value) else

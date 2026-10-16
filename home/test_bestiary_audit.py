@@ -7,7 +7,7 @@ from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.test import SimpleTestCase
 
-from .bestiary_audit import audit_snapshot, statblock_hash
+from .bestiary_audit import audit_snapshot, bestiary_references, statblock_hash
 
 
 class BestiarySnapshotAuditTests(SimpleTestCase):
@@ -151,6 +151,20 @@ class BestiarySnapshotAuditTests(SimpleTestCase):
         result = audit_snapshot(rows)
         self.assertEqual(result['summary']['consumer_references_dynamic'], 1)
         self.assertEqual(result['summary']['consumer_references_unresolved'], 0)
+
+    def test_nested_dynamic_reference_is_reported_without_truncation(self):
+        tag = ('summon:bestiary{familiar(creature_type:match(pick:polo)'
+               '{ celestial:celestial, infero:corruptor })}')
+        self.assertEqual(list(bestiary_references(tag)), [
+            'familiar(creature_type:match(pick:polo)'
+            '{ celestial:celestial, infero:corruptor })'])
+        rows = self.sample()
+        rows.append({'model': 'home.tbtracoracial', 'pk': 21,
+                     'fields': {'tags_json': [tag]}})
+        result = audit_snapshot(rows)
+        self.assertEqual(result['summary']['consumer_references_dynamic'], 1)
+        self.assertEqual(result['consumer_references'][-1]['reference'],
+                         list(bestiary_references(tag))[0])
 
     def test_command_writes_separate_report_and_refuses_overwrite(self):
         rows = self.sample()
