@@ -10,6 +10,36 @@ from .views import _render_creature_statblock_full
 
 
 class SourceBackedCompanionStatblockTests(SimpleTestCase):
+    def test_trickery_domain_illusions_keep_distinct_source_mechanics(self):
+        # Source: ref/Classes Reworkadas/Clerigo ... World Anvil.html,
+        # Dominio da Trapaca, Invocar Duplicidade and Baile das Mascaras.
+        records = json.loads((Path(settings.BASE_DIR) / 'home' / 'fixtures' /
+                              'conteudo.json').read_text(encoding='utf-8'))
+        for pk, slug, required in (
+            (18, 'duplicata-ilusoria', ('Onde o Golpe Erra', 'três duplicatas',
+                                       '1d20', '11 ou mais', '2d10')),
+            (22, 'ilusao-de-si', ('Invocar Duplicidade', 'Canalizar Divindade',
+                                 '3º nível', '6º', '17º', '36 metros',
+                                 'não realiza ações')),
+        ):
+            fields = next(record['fields'] for record in records
+                          if record['model'] == 'home.tbbestiario'
+                          and record['pk'] == pk)
+            self.assertEqual(fields['slug'], slug)
+            self.assertEqual(fields['companheiro_classe'], 5)
+            self.assertEqual(fields['companheiro_subclasse'], 129)
+            self.assertIsNone(fields['ca'])
+            self.assertIsNone(fields['pv'])
+            self.assertIsNone(fields['nd'])
+            sb = fields['statblock_json']
+            self.assertFalse(is_statblock_placeholder(sb))
+            creature = TbBestiario(nome=fields['nome'], slug=slug,
+                                   tipo=fields['tipo'], statblock_json=sb)
+            html = _render_creature_statblock_full(creature)
+            for phrase in required:
+                self.assertIn(phrase, html)
+            self.assertNotIn('Statblock incompleto:', html)
+
     def test_owner_scaled_feature_objects_render_without_invented_base_stats(self):
         # Fixture abilities 761 (Fiel Montaria) and 1411 (Realidade Ilusoria).
         records = json.loads((Path(settings.BASE_DIR) / 'home' / 'fixtures' /
@@ -340,6 +370,28 @@ class SourceBackedCompanionStatblockTests(SimpleTestCase):
 
 
 class PrimalFamiliarPreviewTests(TestCase):
+    def test_trickery_illusions_show_rules_in_both_public_previews(self):
+        records = json.loads((Path(settings.BASE_DIR) / 'home' / 'fixtures' /
+                              'conteudo.json').read_text(encoding='utf-8'))
+        for pk, phrase in ((18, 'Onde o Golpe Erra'),
+                           (22, 'Invocar Duplicidade')):
+            fields = next(record['fields'] for record in records
+                          if record['model'] == 'home.tbbestiario'
+                          and record['pk'] == pk)
+            TbBestiario.objects.create(
+                nome=fields['nome'], slug=fields['slug'], tipo=fields['tipo'],
+                statblock_json=fields['statblock_json'],
+            )
+            creature = self.client.get('/api/creature/', {'slug': fields['slug']})
+            self.assertEqual(creature.status_code, 200)
+            self.assertFalse(creature.json()['statblock_incompleto'])
+            self.assertIn(phrase, creature.json()['statblock_html'])
+            card = self.client.get('/api/card-preview/', {
+                'table': 'bestiario', 'args': fields['slug'],
+            })
+            self.assertEqual(card.status_code, 200)
+            self.assertIn(phrase, card.json()['card_html'])
+
     def test_owner_scaled_feature_objects_render_in_both_public_previews(self):
         records = json.loads((Path(settings.BASE_DIR) / 'home' / 'fixtures' /
                               'conteudo.json').read_text(encoding='utf-8'))

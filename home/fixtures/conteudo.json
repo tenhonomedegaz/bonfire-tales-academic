@@ -84382,7 +84382,16 @@
       "name": "Duplicata Ilusória",
       "size": "",
       "type": "construto",
-      "alignment": ""
+      "alignment": "",
+      "trait": [
+        {
+          "name": "Onde o Golpe Erra",
+          "entries": [
+            "Durante O Baile das Máscaras de Zarquil, cada aliado na área de 18 metros fica cercado por três duplicatas ilusórias durante 1 minuto.",
+            "Quando um inimigo ataca um alvo na área, role 1d20. Com 11 ou mais, o ataque atinge uma duplicata e ela se desfaz. Sempre que um inimigo erra um ataque contra um alvo na área, ele sofre 2d10 de dano psíquico."
+          ]
+        }
+      ]
     },
     "tags_json": [
       "trigger=hit_by_attack, instant{if(roll{dice:1d20}>=11): destroy}",
@@ -84778,7 +84787,18 @@
       "name": "Ilusão de Si",
       "size": "",
       "type": "humanoide",
-      "alignment": ""
+      "alignment": "",
+      "trait": [
+        {
+          "name": "Invocar Duplicidade",
+          "entries": [
+            "Como Ação Bônus, o Clérigo gasta um uso de Canalizar Divindade para criar uma ilusão visual sua em um espaço desocupado que veja a até 9 metros. Ela é intangível, não ocupa espaço e dura 1 minuto; termina antes se o Clérigo a encerrar, ficar incapacitado ou morrer.",
+            "Cria uma ilusão no 3º nível de Clérigo, duas no 6º e quatro no 17º. O Clérigo pode conjurar magias a partir do espaço de uma delas, usando seus próprios sentidos. Se ele e uma ilusão estiverem a até 1,5 metro de um alvo que a veja, seus ataques contra esse alvo têm Vantagem.",
+            "As ilusões agem logo após o Clérigo na mesma iniciativa; cada uma se desloca até a velocidade dele, pode provocar ataques de oportunidade e não realiza ações. Uma ilusão que se afaste mais de 36 metros dele se desfaz.",
+            "Uma criatura pode gastar uma Ação para identificá-la com Inteligência (Investigação) contra a CD de magia do Clérigo. Ela não bloqueia movimento, não ativa armadilhas, não sofre efeitos e ataques a atravessam."
+          ]
+        }
+      ]
     },
     "tags_json": [
       "action=bonus_action",
