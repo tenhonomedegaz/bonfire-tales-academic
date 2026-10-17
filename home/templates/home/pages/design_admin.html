@@ -1,0 +1,16 @@
+{% extends 'home/base.html' %}
+{% load static %}
+{% block body_class %}bft-profile{% endblock %}
+{% block main_class %}bft-profile-main{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/pages/profile-redesign.css' %}?v=1">{% endblock %}
+{% block content %}
+<section class="design-admin">
+  <p class="profile-kicker">Bonfire Tales · Ambiente local</p>
+  <h1>Administração da prévia</h1>
+  <p>Revise o site com a identificação de administrador. Estas contas e os dados de perfil pertencem somente a esta cópia; o painel oficial e seus serviços continuam separados.</p>
+  <div class="design-admin-grid">
+    <article><h2>Acessos de teste</h2><ul>{% for account in local_accounts %}<li><a href="{% url 'public_profile' account.username %}">{{ account.username }}</a><span>{{ account.role }}</span></li>{% endfor %}</ul><a class="profile-btn" href="{% url 'profile' %}">Editar meu perfil</a></article>
+    <article><h2>Páginas para revisar</h2><div class="design-admin-links"><a href="{% url 'home' %}">Página inicial ↗</a><a href="{% url 'racas' %}">Raças ↗</a><a href="{% url 'classes' %}">Classes ↗</a><a href="{% url 'jogador_antecedentes' %}">Antecedentes ↗</a><a href="{% url 'magias_listas' %}">Magias ↗</a><a href="{% url 'sistemas_glossario' %}">Glossário ↗</a></div></article>
+  </div>
+</section>
+{% endblock %}
