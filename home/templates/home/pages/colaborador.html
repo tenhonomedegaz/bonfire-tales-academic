@@ -4,7 +4,7 @@
 {% block extra_head %}<link rel="stylesheet" href="{% static 'css/pages/commerce.css' %}?v=1"><script src="{% static 'js/commerce.js' %}?v=1" defer></script>{% endblock %}
 {% block content %}
 {% include 'home/partials/commerce_nav.html' with section='support' %}
-{% if user.is_authenticated %}<aside class="co-notice" data-nav-addition><div><strong>{% if navigation_membership.active %}Você já é colaborador.{% else %}Sua colaboração, em um só lugar.{% endif %}</strong><p>Consulte seu plano, validade, benefícios e orientações de gerenciamento sem procurar pelo menu da conta.</p></div><a class="co-btn co-btn-secondary" href="{% url 'subscription_management' %}">Minha assinatura →</a></aside>{% endif %}
+{% if user.is_authenticated %}<aside class="co-notice" data-nav-addition><div><strong>Confira a conta que receberá sua compra.</strong><p>Revise seu e-mail e o Discord vinculado antes de escolher um plano ou token.</p></div><a class="co-btn co-btn-secondary" href="{% url 'profile' %}">Conferir conta →</a></aside>{% endif %}
 <header class="co-hero co-hero-support">
   <div><p class="co-eyebrow">Uma comunidade. Incontáveis histórias.</p><h1>Mantenha a fogueira <em>acesa.</em></h1><p>O Bonfire é gratuito para jogar. Seu apoio ajuda a manter o servidor e traz benefícios para sua jornada em Cinéria.</p><a class="co-text-link" href="#co-plans">Conheça os planos <span aria-hidden="true">↓</span></a></div>
   <div class="co-hero-seal" aria-hidden="true"><img src="{% static 'brand/icon.png' %}" alt=""><span>Histórias que nos unem.<br>Lendas que permanecem.</span></div>
