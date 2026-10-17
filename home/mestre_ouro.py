@@ -8,6 +8,7 @@ from .models import (MestreOuroDireito, MestreOuroRevisao, TbRecompensaMestre,
 
 
 GOLD_COSMETIC_SLUGS = ('titulo-mestre-ouro', 'moldura-mestre-ouro')
+CHARACTER_SLOT_PRICE_MM = 5000
 
 
 def _grant_cosmetics(user):
@@ -27,6 +28,52 @@ def _purchases(user_id):
     return list(TbTransacaoMestre.objects.filter(
         mestre_id=user_id, tipo='assinatura', valor_mm__lt=0,
     ).order_by('criado_em', 'pk')[:2])
+
+
+def has_unreconciled_mestre_ouro_history(user_id, profile=None):
+    """A past subscription/charge must be reviewed before a new slot debit."""
+    if MestreOuroDireito.objects.filter(user_id=user_id).exists():
+        return False
+    if profile is None:
+        profile = UserProfile.objects.filter(user_id=user_id).first()
+    return bool(
+        (profile and profile.mestre_ouro_ativo)
+        or _purchases(user_id)
+        or TbTransacaoMestre.objects.filter(
+            mestre_id=user_id, tipo='mensalidade', valor_mm__lt=0).exists()
+        or MestreOuroRevisao.objects.filter(user_id=user_id).exists()
+    )
+
+
+@transaction.atomic
+def buy_character_slot_with_mm(user_id):
+    """Reuse the lifetime right; a locked account prevents two debits on replay."""
+    from .permissions import is_mestre
+
+    user = get_user_model().objects.select_for_update().get(pk=user_id)
+    if not user.is_active or not is_mestre(user):
+        raise ValueError('not eligible for MM redemption')
+    existing = MestreOuroDireito.objects.filter(user=user).first()
+    if existing:
+        return existing, False
+    profile, _ = UserProfile.objects.get_or_create(user=user)
+    profile = UserProfile.objects.select_for_update().get(pk=profile.pk)
+    if has_unreconciled_mestre_ouro_history(user_id, profile):
+        raise ValueError('legacy Mestre Ouro history requires review')
+    balance = int(profile.moedas_mestragem or 0)
+    if balance < CHARACTER_SLOT_PRICE_MM:
+        raise ValueError('insufficient MM balance')
+    _grant_cosmetics(user)
+    profile.moedas_mestragem = balance - CHARACTER_SLOT_PRICE_MM
+    profile.save(update_fields=['moedas_mestragem'])
+    purchase = TbTransacaoMestre.objects.create(
+        mestre=user, tipo='resgate', descricao='Slot permanente de personagem (Mestre Ouro)',
+        valor_mm=-CHARACTER_SLOT_PRICE_MM, saldo_mm=profile.moedas_mestragem,
+    )
+    grant = MestreOuroDireito.objects.create(
+        user=user, primeira_compra=purchase, adquirido_em=purchase.criado_em,
+    )
+    return grant, True
 
 
 @transaction.atomic

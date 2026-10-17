@@ -137,6 +137,8 @@ urlpatterns = [
     path('jogador/talentos', views.talentos_view),
     path('jogador/personagens/', views.personagens_list_view, name='personagens'),
     path('jogador/personagens/slots/', slot_views.character_slots, name='character_slots'),
+    path('jogador/personagens/slots/comprar/', slot_views.buy_character_slot,
+         name='buy_character_slot'),
     path('jogador/personagens/<int:pk>/', views.ficha_detail_view, name='ficha_detail'),
     path('personagens/<int:pk>/publico/', views.ficha_publica_view, name='ficha_publica'),
     path('jogador/personagens/<int:pk>/publicacao/', views.personagem_publicacao_view, name='personagem_publicacao'),

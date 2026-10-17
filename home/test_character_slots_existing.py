@@ -1,8 +1,10 @@
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import Client, TestCase
 from django.urls import reverse
+from unittest.mock import patch
 
-from .models import MestreOuroDireito, TbPersonagem, TbTransacaoMestre, UserProfile
+from .models import (MestreOuroDireito, TbCosmetico, TbPersonagem,
+                     TbTransacaoMestre, TbUsuarioCosmetico, UserProfile)
 
 
 class ExistingCharacterSlotsTests(TestCase):
@@ -52,3 +54,69 @@ class ExistingCharacterSlotsTests(TestCase):
         self.assertContains(response, reverse('character_slots'))
         self.assertContains(response, '2 fichas preservadas')
         self.assertNotContains(response, '#slots-g01')
+
+
+class CharacterSlotRedemptionTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user('slot-master', password='test')
+        self.profile = UserProfile.objects.get_or_create(user=self.user)[0]
+        self.profile.moedas_mestragem = 6000
+        self.profile.save(update_fields=['moedas_mestragem'])
+        for slug, kind in (('titulo-mestre-ouro', 'titulo'),
+                           ('moldura-mestre-ouro', 'moldura')):
+            TbCosmetico.objects.get_or_create(slug=slug, defaults={
+                'tipo': kind, 'nome': slug, 'raridade': 'lendario',
+                'origem': 'mestre_ouro', 'escopo': 'perfil', 'ativo': True,
+            })
+        self.client.force_login(self.user)
+        self.url = reverse('buy_character_slot')
+
+    @patch('home.permissions.is_mestre', return_value=True)
+    def test_purchase_once_uses_existing_right_and_mm_ledger(self, _is_mestre):
+        page = self.client.get(reverse('character_slots'))
+        self.assertContains(page, 'Confirmar resgate por 5.000 MM')
+        first = self.client.post(self.url)
+        self.assertRedirects(first, reverse('character_slots'))
+        again = self.client.post(self.url)
+        self.assertRedirects(again, reverse('character_slots'))
+        self.profile.refresh_from_db()
+        self.assertEqual(self.profile.moedas_mestragem, 1000)
+        self.assertFalse(self.profile.mestre_ouro_ativo)
+        self.assertEqual(MestreOuroDireito.objects.filter(user=self.user).count(), 1)
+        ledger = TbTransacaoMestre.objects.get(mestre=self.user)
+        self.assertEqual((ledger.tipo, ledger.valor_mm, ledger.saldo_mm),
+                         ('resgate', -5000, 1000))
+        self.assertEqual(MestreOuroDireito.objects.get(user=self.user).primeira_compra, ledger)
+        self.assertEqual(TbUsuarioCosmetico.objects.filter(user=self.user).count(), 2)
+        self.assertContains(self.client.get(reverse('character_slots')), '+1 permanente')
+
+    @patch('home.permissions.is_mestre', return_value=True)
+    def test_legacy_or_insufficient_balance_never_debits(self, _is_mestre):
+        self.profile.moedas_mestragem = 4999
+        self.profile.save(update_fields=['moedas_mestragem'])
+        self.client.post(self.url)
+        self.assertFalse(MestreOuroDireito.objects.exists())
+        self.assertFalse(TbTransacaoMestre.objects.exists())
+        self.profile.moedas_mestragem = 6000
+        self.profile.save(update_fields=['moedas_mestragem'])
+        TbTransacaoMestre.objects.create(
+            mestre=self.user, tipo='assinatura', valor_mm=-500,
+            saldo_mm=5500, descricao='Compra legada')
+        self.client.post(self.url)
+        self.profile.refresh_from_db()
+        self.assertEqual(self.profile.moedas_mestragem, 6000)
+        self.assertEqual(TbTransacaoMestre.objects.count(), 1)
+        self.assertFalse(MestreOuroDireito.objects.exists())
+        self.assertContains(self.client.get(reverse('character_slots')),
+                            'histórico legado de Mestre Ouro')
+
+    @patch('home.permissions.is_mestre', return_value=False)
+    def test_eligibility_and_csrf_are_enforced_server_side(self, _is_mestre):
+        self.client.post(self.url)
+        self.assertEqual(self.profile.moedas_mestragem, 6000)
+        self.assertFalse(MestreOuroDireito.objects.exists())
+        guarded = Client(enforce_csrf_checks=True)
+        guarded.force_login(self.user)
+        self.assertEqual(guarded.post(self.url).status_code, 403)
+        self.assertEqual(guarded.get(self.url).status_code, 405)
+        self.assertFalse(TbTransacaoMestre.objects.exists())

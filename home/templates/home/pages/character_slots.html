@@ -6,6 +6,7 @@
 <section class="bf-slots" aria-labelledby="slots-title">
   <a class="bs-back" href="{% url 'personagens' %}">← Meus Personagens</a>
   <header class="bs-heading"><div><p class="bs-eyebrow">Histórias que continuam</p><h1 id="slots-title">Meus slots de personagem</h1><p>Consulte a capacidade reconhecida pela sua conta e as fichas que você preserva.</p></div><div class="bs-capacity"><strong>{% if slot_details.ilimitado %}∞{% else %}{{ slot_limit }}{% endif %}</strong><span>fichas ativas permitidas</span></div></header>
+  {% for message in messages %}<p class="bs-notice{% if message.tags == 'error' %} is-error{% endif %}" role="{% if message.tags == 'error' %}alert{% else %}status{% endif %}">{{ message }}</p>{% endfor %}
   <div class="bs-layout">
     <div>
       <section class="bs-panel" aria-labelledby="bs-rights-title">
@@ -29,7 +30,13 @@
         <p class="bs-help">Para arquivar ou restaurar uma ficha, use os controles em <a href="{% url 'personagens' %}">Meus Personagens</a>. Suas fichas não são excluídas ao arquivar.</p>
       </section>
     </div>
-    <aside class="bs-panel bs-acquire" aria-labelledby="bs-acquire-title"><span class="bs-eyebrow">Direitos existentes</span><h2 id="bs-acquire-title">Seu histórico continua</h2><p>O slot vitalício de Mestre Ouro é reconhecido quando há direito registrado na conta. Consulte seu histórico e sua carteira na <a href="{% url 'colaborador' %}">área de colaboração</a>.</p><p class="bs-notice">Novas aquisições de slot estão em preparação. Esta página não realiza pagamento nem débito de MM.</p></aside>
+    <aside class="bs-panel bs-acquire" aria-labelledby="bs-acquire-title"><span class="bs-eyebrow">Direito vitalício</span><h2 id="bs-acquire-title">Mais um personagem.<br>Para sempre.</h2><p>O antigo Mestre Ouro concede um slot permanente. A compra é única e não é uma assinatura.</p><div class="bs-price"><strong>{{ slot_price_mm }} MM</strong><span>Seu saldo: {{ saldo_mm }} MM</span></div>
+      {% if slot_details.mestre_ouro %}<p class="bs-notice">Você já possui este direito permanente. Nenhuma nova compra é necessária.</p>
+      {% elif slot_legacy_pending %}<p class="bs-notice">Há histórico legado de Mestre Ouro a reconciliar. Sua compra fica suspensa para evitar um débito duplicado.</p>
+      {% elif slot_purchase_eligible %}<form method="post" action="{% url 'buy_character_slot' %}">{% csrf_token %}<button class="bs-button"{% if saldo_mm < slot_price_mm %} disabled{% endif %}>Confirmar resgate por 5.000 MM</button></form><p class="bs-help">O saldo é debitado somente após sua confirmação. Uma repetição do pedido não cria outro débito.</p>
+      {% else %}<p class="bs-notice">O resgate com MM está disponível na participação de mestre autorizada.</p>{% endif %}
+      <p class="bs-help">Este resgate usa MM da sua conta; não inicia pagamento em reais.</p>
+    </aside>
   </div>
 </section>
 {% endblock %}
