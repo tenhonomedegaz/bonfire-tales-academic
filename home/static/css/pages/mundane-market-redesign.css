@@ -1,0 +1,4 @@
+.bft-mundane-market .shop { --market-accent:var(--ember); }
+.bft-mundane-market .mkt-bar { border-color:var(--stroke); }
+.bft-mundane-market .mkt-row:focus-visible { outline:2px solid var(--flame); outline-offset:2px; }
+.bft-mundane-market .mkt-row-price { color:var(--flame); }

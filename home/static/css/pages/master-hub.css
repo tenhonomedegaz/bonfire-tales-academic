@@ -1,0 +1,16 @@
+.bft-masters { background:var(--bg0); color:var(--text); }
+.mh-main { width:min(100%,84rem); margin:0 auto; padding:1.5rem 1.75rem 3rem; }
+.master-area { min-width:0; }
+.master-area h1,.master-area h2,.master-area h3 { font-family:'Cinzel',serif; color:var(--text); }
+.mh-nav { display:flex; flex-wrap:wrap; gap:.75rem 1.25rem; margin:0 0 1.25rem; padding-bottom:.75rem; border-bottom:1px solid var(--stroke); }
+.mh-nav a { color:var(--muted); font-size:.82rem; }
+.mh-nav a:hover { color:var(--flame); }
+.mh-hero,.mh-panel,.mh-side-panel { border:1px solid var(--stroke); background:var(--bg1); }
+.mh-hero { padding:1.5rem; border-top:2px solid var(--ember); }
+.mh-hero p,.mh-intro { color:var(--muted); }
+.mh-button { display:inline-flex; align-items:center; justify-content:center; min-height:2.5rem; padding:.55rem .9rem; border:1px solid var(--ember); background:var(--ember); color:#fff; font-size:.8rem; font-weight:700; }
+.mh-button-ghost { background:transparent; color:var(--flame); }
+.mh-card-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem; }
+.mh-quest,.mh-master-card,.mh-panel { min-width:0; padding:1rem; }
+.mh-empty { padding:1.5rem; border:1px dashed var(--stroke); color:var(--muted); text-align:center; }
+@media (max-width:700px) { .mh-main { padding:1rem; } .mh-card-grid { grid-template-columns:1fr; } }

@@ -6,10 +6,12 @@
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'css/pages/mercado_loja.css' %}?v=2">
 <link rel="stylesheet" href="{% static 'css/pages/oficina_magia.css' %}?v=2">
+<script defer src="{% static 'js/oficina-magia.js' %}?v=1"></script>
 {% endblock %}
 
 {% block content %}
 <div class="workshop-shell">
+  {% include 'home/partials/workshop_symbols.html' %}
   {% include 'home/partials/_mercado_balcao.html' with balcao_titulo='Oficina de Magia' %}
 
   {% if oficina_resultado %}<div class="workshop-alert is-ok">{{ oficina_resultado }}</div>{% endif %}

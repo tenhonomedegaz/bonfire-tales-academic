@@ -1,6 +1,10 @@
 {% extends 'home/base.html' %}
 {% load static %}
 
+{% block body_class %}bft-commerce{% endblock %}
+{% block main_class %}co-main flex-1 w-full min-w-0{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/pages/commerce.css' %}?v=1">{% endblock %}
+
 {% block content %}
 <!-- ░░░ HERO ░░░ -->
 <div class="-mx-3 md:-mx-5 -mt-4 mb-8">

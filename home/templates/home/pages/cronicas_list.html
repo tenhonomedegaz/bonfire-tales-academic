@@ -3,10 +3,12 @@
 
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'css/pages/cronicas_list.css' %}?v=4">
+<link rel="stylesheet" href="{% static 'css/pages/chronicles-redesign.css' %}?v=1">
 
 {% endblock %}
 
 {% block content %}
+<div class="chronicles-page">
 <div class="cronicas-hero">
   <h1 class="cronicas-hero-title">Crônicas de Cinéria</h1>
   <p class="cronicas-hero-sub">Relatos escritos pelos aventureiros que moldam o mundo.</p>
@@ -107,4 +109,5 @@
   </div>
 </div>
 {% endif %}
+</div>
 {% endblock %}

@@ -1,5 +1,7 @@
 {% extends 'home/base.html' %}
+{% load static %}
 {% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/pages/journal-redesign.css' %}?v=1">
 <style>
 .jornal-hero {
   background:
@@ -175,7 +177,7 @@
 </style>
 {% endblock %}
 
-{% block content %}
+{% block content %}<div class="journal-page">
 <div class="jornal-hero">
   <h1 class="jornal-hero-title">Jornal de Cinéria</h1>
   <p class="jornal-hero-sub">As últimas notícias, relatos e acontecimentos do mundo vivo.</p>
@@ -221,4 +223,4 @@
   {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}" rel="next">Artigos anteriores</a>{% endif %}
 </nav>
 {% endif %}
-{% endblock %}
+</div>{% endblock %}

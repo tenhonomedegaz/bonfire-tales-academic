@@ -1,31 +1,34 @@
 {% extends 'home/base.html' %}
+{% load static %}
+{% block extra_head %}
+<style>
+.cosmetic-checkout{max-width:68rem;margin:0 auto;padding:2rem 1rem}.cosmetic-checkout header{display:flex;justify-content:space-between;gap:1rem;align-items:end;border-bottom:1px solid var(--stroke);padding-bottom:1rem;margin-bottom:1.5rem}.cosmetic-checkout h1{font-family:'Cinzel',serif;color:var(--text);font-size:clamp(2rem,5vw,3.4rem);margin:0}.cosmetic-checkout .cosmetic-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(16rem,1fr));gap:1rem}.cosmetic-checkout article{display:flex;flex-direction:column;gap:.8rem;padding:1.25rem;border:1px solid var(--stroke);background:var(--bg1)}.cosmetic-checkout h2{font-family:'Cinzel',serif;margin:0;color:var(--flame)}.cosmetic-checkout .price{margin-top:auto;color:var(--spark);font-weight:700}.cosmetic-checkout button,.cosmetic-checkout .checkout-link{display:inline-flex;justify-content:center;padding:.7rem 1rem;border:1px solid var(--ember);background:var(--ember);color:#fff;font-weight:700}.cosmetic-checkout .checkout-link{margin-top:1rem;text-decoration:none}
+</style>
+{% endblock %}
 {% block content %}
-<main class="container py-4">
-  <h1>Cosméticos</h1>
-  <p><a href="{% url 'event_cosmetic_shop' %}">Ver cosméticos de evento por braseiros</a></p>
+<main class="cosmetic-checkout">
+  <header><div><p class="text-sm text-[var(--muted)]">Aparência para a sua jornada</p><h1>Cosméticos</h1></div><a href="{% url 'event_cosmetic_shop' %}" class="text-sm text-[var(--flame)]">Ofertas de evento por braseiros</a></header>
   {% if purchase %}
-    <p>Pedido {{ order.id }}: {{ order.get_status_display }}</p>
+    <section class="border border-[var(--stroke)] bg-[var(--bg1)] p-5"><p>Pedido {{ order.id }}: {{ order.get_status_display }}</p>
     <p>{{ purchase.name }} — R$ {{ order.amount }}</p>
     {% if order.status == 'pending' and order.asaas_checkout_url %}
-      <a href="{{ order.asaas_checkout_url }}" rel="noopener noreferrer">Abrir checkout</a>
+      <a class="checkout-link" href="{{ order.asaas_checkout_url }}" rel="noopener noreferrer">Abrir checkout seguro</a>
     {% elif order.status == 'pending' %}
       <p>Checkout em conciliação. Consulte esta página mais tarde.</p>
-    {% endif %}
+    {% endif %}</section>
   {% else %}
-    {% for offer in offers %}
+    <section class="cosmetic-grid">{% for offer in offers %}
       <article>
         <h2>{{ offer.cosmetico.nome }}</h2>
         <p>{{ offer.cosmetico.descricao }}</p>
-        <p>R$ {{ offer.amount }}</p>
+        <p class="price">R$ {{ offer.amount }}</p>
         <form method="post">
           {% csrf_token %}
           <input type="hidden" name="slug" value="{{ offer.cosmetico.slug }}">
           <button type="submit">Comprar</button>
         </form>
       </article>
-    {% empty %}
-      <p>Nenhuma oferta disponível.</p>
-    {% endfor %}
+    {% empty %}<p>Nenhuma oferta disponível.</p>{% endfor %}</section>
   {% endif %}
 </main>
 {% endblock %}

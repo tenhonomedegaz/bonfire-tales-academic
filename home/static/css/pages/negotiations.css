@@ -1,0 +1,2 @@
+.market-community-mark { display:flex; justify-content:flex-end; height:0; overflow:visible; color:var(--ember); opacity:.32; pointer-events:none; }
+.market-community-mark .shop-visual { width:6rem; height:auto; transform:translateY(.5rem); }

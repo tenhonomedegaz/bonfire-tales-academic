@@ -1,0 +1,4 @@
+.bft-market-game .shop { border-radius:.5rem; }
+.bft-market-game .mkt-row { transition:border-color .15s ease,background .15s ease; }
+.bft-market-game .mkt-row.is-selected { border-color:var(--ember); background:color-mix(in srgb,var(--ember) 10%,var(--bg1)); }
+.bft-market-game .mkt-preview { min-width:0; }
