@@ -15,6 +15,8 @@ from home.models import (AsaasCheckoutOrder, CosmeticCheckoutOffer,
                          MestreOuroRevisao, TbCosmetico, TbRecompensaMestre,
                          TbTransacaoMestre, TbUsuarioCosmetico, UserProfile)
 
+PRE_D_HOME_HEAD = '0154_redesign_master_portfolio'
+
 
 def _rows(query, *fields):
     return list(query.order_by('pk').values(*fields))
@@ -63,6 +65,8 @@ class Command(BaseCommand):
                             help='Most recent applied home migration before G01-D changes.')
 
     def handle(self, *args, **options):
+        if options['expected_home_head'] != PRE_D_HOME_HEAD:
+            raise CommandError('G01-D inventory must use the 0154 pre-change home head.')
         output = Path(options['output'])
         if not output.is_absolute() or output.suffix.lower() != '.json':
             raise CommandError('Use an absolute .json output path.')

@@ -1,6 +1,5 @@
 """Pilot themes are visible but never become payable without a separate gate."""
 
-import hashlib
 import json
 import tempfile
 from io import StringIO
@@ -14,6 +13,7 @@ from django.urls import reverse
 
 from .models import (AsaasCheckoutOrder, CosmeticCheckoutOffer, TbCosmetico,
                      TbUsuarioCosmetico)
+from .test_redesign_d_support import capture_pre_d_snapshot
 
 
 class RedesignDPilotTests(TransactionTestCase):
@@ -21,9 +21,7 @@ class RedesignDPilotTests(TransactionTestCase):
         user = get_user_model().objects.create_user('pilot_user', email='pilot@example.test')
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / 'before.json'
-            call_command('preview_redesign_d', output=str(path),
-                         expected_home_head='0157_merge_redesign_b_d', stdout=StringIO())
-            digest = hashlib.sha256(path.read_bytes()).hexdigest()
+            digest = capture_pre_d_snapshot(path)
 
             def run(action, confirm=''):
                 out = StringIO()
@@ -60,9 +58,7 @@ class RedesignDPilotTests(TransactionTestCase):
         user = get_user_model().objects.create_user('pilot_owner')
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / 'before.json'
-            call_command('preview_redesign_d', output=str(path),
-                         expected_home_head='0157_merge_redesign_b_d', stdout=StringIO())
-            digest = hashlib.sha256(path.read_bytes()).hexdigest()
+            digest = capture_pre_d_snapshot(path)
             call_command('reconcile_redesign_d_pilot', snapshot=str(path), sha256=digest,
                          action='seed', confirm='G01-D-PILOT', stdout=StringIO())
             owned = TbCosmetico.objects.get(slug='tema-aurora-glacial')

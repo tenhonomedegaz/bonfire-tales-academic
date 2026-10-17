@@ -9,13 +9,30 @@ from pathlib import Path
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from django.core.management.base import CommandError
+from django.db import connection
+from django.db.migrations.executor import MigrationExecutor
 from django.test import TransactionTestCase
 
-from .models import (CosmeticCheckoutOffer, TbCosmetico, TbRecompensaMestre,
+from .models import (TbCosmetico, TbRecompensaMestre,
                      TbUsuarioCosmetico, UserProfile)
 
 
 class RedesignDInventoryTests(TransactionTestCase):
+    def setUp(self):
+        super().setUp()
+        executor = MigrationExecutor(connection)
+        self.original_home_heads = executor.loader.graph.leaf_nodes('home')
+        executor.migrate([('home', '0154_redesign_master_portfolio')])
+        self.historical_offer = executor.loader.project_state(
+            [('home', '0154_redesign_master_portfolio')]).apps.get_model(
+                'home', 'CosmeticCheckoutOffer')
+
+    def tearDown(self):
+        try:
+            MigrationExecutor(connection).migrate(self.original_home_heads)
+        finally:
+            super().tearDown()
+
     def test_snapshot_preserves_reward_theme_offer_entitlement_and_mm_balance(self):
         user = get_user_model().objects.create_user('inventory_master', password='test-pass')
         profile = UserProfile.objects.get(user=user)
@@ -26,14 +43,15 @@ class RedesignDInventoryTests(TransactionTestCase):
                                                    tipo='assinatura', ativo=True, preco_mm=5000)
         theme = TbCosmetico.objects.create(slug='theme-inventory-test', tipo='tema', nome='Tema teste',
                                            origem='colaborador', ativo=True)
-        offer = CosmeticCheckoutOffer.objects.create(cosmetico=theme, amount='19.00', active=True)
+        offer = self.historical_offer.objects.create(cosmetico_id=theme.pk,
+                                                     amount='19.00', active=True)
         entitlement = TbUsuarioCosmetico.objects.create(user=user, cosmetico=theme, origem='staff')
 
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / 'prechange.json'
             output = StringIO()
             call_command('preview_redesign_d', output=str(path),
-                         expected_home_head='0157_merge_redesign_b_d', stdout=output)
+                         expected_home_head='0154_redesign_master_portfolio', stdout=output)
             report = json.loads(output.getvalue())
             raw = path.read_bytes()
             saved = json.loads(raw)

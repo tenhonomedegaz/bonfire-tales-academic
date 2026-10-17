@@ -1,6 +1,5 @@
 """The approved catalog transition must preserve acquired rights and MM."""
 
-import hashlib
 import json
 import tempfile
 from io import StringIO
@@ -13,6 +12,7 @@ from django.test import TransactionTestCase
 from django.utils import timezone
 
 from .models import MestreOuroDireito, TbRecompensaMestre, TbTransacaoMestre, UserProfile
+from .test_redesign_d_support import capture_pre_d_snapshot
 
 
 class RedesignDRewardsTests(TransactionTestCase):
@@ -33,10 +33,7 @@ class RedesignDRewardsTests(TransactionTestCase):
                                                  adquirido_em=timezone.now())
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / 'before.json'
-            output = StringIO()
-            call_command('preview_redesign_d', output=str(path),
-                         expected_home_head='0157_merge_redesign_b_d', stdout=output)
-            digest = hashlib.sha256(path.read_bytes()).hexdigest()
+            digest = capture_pre_d_snapshot(path)
 
             def run(action, sha=digest, confirm=''):
                 out = StringIO()
