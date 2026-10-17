@@ -64,13 +64,18 @@ class MasterTableFlowTests(TestCase):
         }).status_code, 302)
         table.refresh_from_db()
         self.assertEqual(table.estado, 'publicado')
+        TbPerfilMestre.objects.filter(user=self.master).update(listado=True)
         self.client.force_login(self.other)
         self.assertEqual(self.client.get(reverse('master_table_detail', args=[table.pk])).status_code, 200)
         self.assertContains(self.client.get(reverse('sistemas_missoes')), table.titulo)
+        public_profile = self.client.get(reverse('public_profile', args=[self.master.username]))
+        self.assertContains(public_profile, reverse('master_table_detail', args=[table.pk]), count=2)
 
         TbPerfilMestre.objects.filter(user=self.master).update(status_mestre='suspenso')
         self.assertEqual(self.client.get(reverse('master_table_detail', args=[table.pk])).status_code, 404)
         self.assertNotContains(self.client.get(reverse('sistemas_missoes')), table.titulo)
+        self.assertNotContains(self.client.get(reverse('public_profile', args=[self.master.username])),
+                               reverse('master_table_detail', args=[table.pk]))
         self.client.force_login(self.master)
         profile_page = self.client.get(reverse('profile') + '?aba=mestre')
         self.assertContains(profile_page, table.titulo)

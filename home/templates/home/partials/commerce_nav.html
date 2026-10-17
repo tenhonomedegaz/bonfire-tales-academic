@@ -1,7 +1,7 @@
 <nav class="co-nav" aria-label="Apoio e cosméticos">
   <a href="{% url 'colaborador' %}{% if commerce_demo %}?demo=1{% endif %}" {% if section == 'support' %}aria-current="page"{% endif %}>Colaborador</a>
   <a href="{% url 'cosmetic_checkout' %}{% if commerce_demo %}?demo=1{% endif %}" {% if section == 'shop' %}aria-current="page"{% endif %}>Loja de cosméticos</a>
-  <a href="#backend-indisponivel" aria-disabled="true" tabindex="-1" title="Indisponível sem integração de backend">Experimentar temas</a>
+  <a href="{% url 'theme_studio' %}" {% if section == 'studio' %}aria-current="page"{% endif %}>Experimentar temas</a>
   <a href="{% url 'event_cosmetic_shop' %}{% if commerce_demo %}?demo=1{% endif %}" {% if section == 'events' %}aria-current="page"{% endif %}>Eventos e braseiros</a>
 </nav>
 {% if commerce_preview %}<aside class="co-notice co-demo" role="note"><strong>Prévia local · sem transações.</strong> {% if commerce_demo %}Ofertas, saldos e pedidos de exemplo; não representam o catálogo oficial.{% else %}Compras e resgates estão desativados nesta cópia.{% endif %} Você pode visualizar a confirmação, mas nenhum pagamento será criado.</aside>{% endif %}
