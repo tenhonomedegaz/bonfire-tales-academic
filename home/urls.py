@@ -4,9 +4,16 @@ from . import views
 from . import hunter_views
 from . import master_participation
 from . import master_tables
+from . import master_portfolio
 
 urlpatterns = [
     path('mestre/mestres/', master_participation.masters_directory, name='masters_directory'),
+    path('mestre/portfolio/', master_portfolio.gallery, name='master_gallery'),
+    path('mestre/portfolio/novo/', master_portfolio.work_edit, name='master_work_create'),
+    path('mestre/portfolio/revisao/', master_portfolio.review_queue, name='master_gallery_review'),
+    path('mestre/portfolio/<int:pk>/editar/', master_portfolio.work_edit, name='master_work_edit'),
+    path('mestre/portfolio/<int:pk>/revisar/', master_portfolio.work_review, name='master_work_review'),
+    path('mestre/portfolio/<int:pk>/', master_portfolio.work_detail, name='master_work_detail'),
     path('mestre/central/', master_participation.master_dashboard, name='master_dashboard'),
     path('mestre/solicitar/', master_participation.master_request, name='master_request'),
     path('mestre/autorizacoes/<int:pk>/', master_participation.master_authorize, name='master_authorize'),

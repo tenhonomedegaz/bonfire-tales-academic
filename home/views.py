@@ -1422,6 +1422,7 @@ def profile_view(request):
     from django.conf import settings as _settings
     from .master_participation import can_authorize, participation
     from .master_hub import can_review
+    from .master_portfolio import portfolio_context
     from .models import TbMesaAnuncio, TbPerfilMestre
     master_profile = TbPerfilMestre.objects.filter(user=user).first()
     return render(request, 'home/pages/perfil.html', {
@@ -1430,6 +1431,7 @@ def profile_view(request):
         'can_authorize': can_authorize(user),
         'can_review': can_review(user),
         'my_tables': list(TbMesaAnuncio.objects.filter(mestre=user).order_by('-atualizado_em')[:20]) if master_profile else [],
+        **portfolio_context(user, master_profile),
         'profile': profile,
         'social_credit_balance': credit_wallet.balance if credit_wallet else 0,
         'social_credit_entries': credit_entries,
@@ -1530,9 +1532,15 @@ def conquista_notificacao_ler_view(request, notificacao_id):
 def public_profile_view(request, username):
     from .models import UserProfile
     from . import permissions as perms
+    from .master_participation import participation
+    from .master_portfolio import portfolio_context
+    from .models import TbMesaAnuncio, TbPerfilMestre
 
     User = get_user_model()
     viewed_user = get_object_or_404(User, username__iexact=username)
+    master_profile = TbPerfilMestre.objects.filter(user=viewed_user).first()
+    master_public = bool(master_profile and master_profile.status_mestre == 'aprovado'
+                         and master_profile.listado and viewed_user.is_active)
     profile = UserProfile.objects.filter(user=viewed_user).first()
     if profile is None:
         # Uma visita pública não deve criar o perfil persistido do jogador.
@@ -1563,6 +1571,10 @@ def public_profile_view(request, username):
     return render(request, 'home/pages/perfil_publico.html', {
         'page_title': viewed_user.username,
         'viewed_user': viewed_user,
+        'community': participation(master_profile) if master_public else {'is_master': False},
+        'public_tables': list(TbMesaAnuncio.objects.filter(
+            mestre=viewed_user, estado='publicado')[:12]) if master_public else [],
+        **portfolio_context(viewed_user, master_profile, public=True),
         'profile': profile,
         'personagens': personagens,
         'pode_ver_privados': pode_ver_privados,

@@ -2182,6 +2182,35 @@ class TbMesaAnuncio(models.Model):
         return ' · '.join(self.ranks or [self.rank])
 
 
+class TbTrabalhoMestre(models.Model):
+    """Portfolio item reviewed independently from the master's site authorization."""
+
+    mestre = models.ForeignKey('auth.User', on_delete=models.CASCADE, related_name='trabalhos_mestre')
+    titulo = models.CharField(max_length=120)
+    categoria = models.CharField(max_length=16, choices=[
+        ('relato', 'Relato'), ('mapa', 'Mapa'), ('cenario', 'Cenário'),
+        ('arte', 'Arte'), ('video', 'Vídeo'), ('outro', 'Outro')])
+    descricao = models.CharField(max_length=500, blank=True, default='')
+    texto = models.TextField(max_length=6000, blank=True, default='')
+    imagem_url = models.CharField(max_length=500, blank=True, default='')
+    video_url = models.URLField(max_length=500, blank=True, default='')
+    estado = models.CharField(max_length=12, default='rascunho', choices=[
+        ('rascunho', 'Rascunho'), ('pendente', 'Em revisão'),
+        ('publicado', 'Publicado'), ('ajustes', 'Ajustes solicitados')])
+    revisao = models.PositiveIntegerField(default=0)
+    nota_revisao = models.CharField(max_length=500, blank=True, default='')
+    revisor = models.ForeignKey('auth.User', on_delete=models.SET_NULL, null=True,
+                                blank=True, related_name='trabalhos_revisados')
+    revisado_em = models.DateTimeField(null=True, blank=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'TB_TrabalhoMestre'
+        ordering = ['-atualizado_em', '-pk']
+        permissions = [('revisar_trabalho_mestre', 'Pode revisar trabalhos de mestre')]
+
+
 class TbAventuraMestre(models.Model):
     """Mesa/aventura CONDUZIDA por um mestre. Ao registrar, credita `recompensa_mm` MM
     na carteira do mestre (ganho automático ao registrar a mesa)."""

@@ -70,7 +70,9 @@ def masters_directory(request):
 def master_dashboard(request):
     authorizer = can_authorize(request.user)
     reviewer = can_review(request.user)
-    if not authorizer and not reviewer:
+    from .master_portfolio import can_review_work
+    work_reviewer = can_review_work(request.user)
+    if not authorizer and not reviewer and not work_reviewer:
         raise PermissionDenied
     requests = (TbPerfilMestre.objects.exclude(status_mestre='nenhum').select_related(
         'user').order_by('-solicitado_em')[:100] if authorizer else [])
@@ -78,6 +80,7 @@ def master_dashboard(request):
         'mestre').order_by('-atualizado_em')[:100] if reviewer else [])
     return render(request, 'home/pages/master_dashboard.html', {
         'can_authorize': authorizer, 'can_review': reviewer,
+        'can_review_work': work_reviewer,
         'master_requests': requests, 'review_queue': review_queue,
         'page_title': 'Permissões de mestre', 'notice': request.GET.get('salvo')})
 
