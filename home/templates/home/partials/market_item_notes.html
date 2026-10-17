@@ -1,9 +1,8 @@
-{% load distance_display %}
 {% for note in notes %}
 <section class="market-guide-section">
   <h3>{{ note.section }}</h3>
-  {% for part in note.row.description %}<p>{% if part.label %}<strong>{{ part.label }}:</strong> {% endif %}{{ part.text|dual_distance }}</p>{% endfor %}
-  {% for paragraph in note.row.continuation %}<p>{{ paragraph|dual_distance }}</p>{% endfor %}
+  {% for part in note.row.description %}<p>{% if part.label %}<strong>{{ part.label }}:</strong> {% endif %}{{ part.text }}</p>{% endfor %}
+  {% for paragraph in note.row.continuation %}<p>{{ paragraph }}</p>{% endfor %}
   {% if note.row.different_price %}<p class="market-consult-note">No texto de referência: {{ note.row.reference_price }}. Para comprar, vale o preço atual do catálogo mostrado acima.</p>{% endif %}
 </section>
 {% endfor %}
