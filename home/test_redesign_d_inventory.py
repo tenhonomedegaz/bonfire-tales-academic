@@ -33,7 +33,7 @@ class RedesignDInventoryTests(TransactionTestCase):
             path = Path(directory) / 'prechange.json'
             output = StringIO()
             call_command('preview_redesign_d', output=str(path),
-                         expected_home_head='0154_redesign_master_portfolio', stdout=output)
+                         expected_home_head='0155_redesign_theme_pilot', stdout=output)
             report = json.loads(output.getvalue())
             raw = path.read_bytes()
             saved = json.loads(raw)
@@ -48,7 +48,7 @@ class RedesignDInventoryTests(TransactionTestCase):
                                   if row['user_id'] == user.pk), 75)
             with self.assertRaises(CommandError):
                 call_command('preview_redesign_d', output=str(path),
-                             expected_home_head='0154_redesign_master_portfolio', stdout=StringIO())
+                             expected_home_head='0155_redesign_theme_pilot', stdout=StringIO())
             with self.assertRaises(CommandError):
                 call_command('preview_redesign_d', output=str(Path(directory) / 'late.json'),
                              expected_home_head='0158_theme_studio_pilot', stdout=StringIO())

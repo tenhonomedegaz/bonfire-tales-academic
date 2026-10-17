@@ -1,0 +1,45 @@
+"""Read-only pilot theme gallery backed by the existing cosmetic catalog."""
+
+from django.conf import settings
+from django.shortcuts import render
+from django.views.decorators.http import require_GET
+
+from .cosmetics import cosmetic_allowed
+from .models import CosmeticCheckoutOffer
+
+
+# Presentation from the pinned redesign. Catalog rows remain the source of
+# availability, price and ownership; this metadata does not grant anything.
+COLLECTIONS = {
+    'forja-de-brasas': ('brasas', 'Uma chama que acompanha a sua história.', 'fogo'),
+    'aurora-glacial': ('glacial', 'O silêncio antes da próxima descoberta.', 'gelo'),
+    'circulo-arcano': ('arcano', 'Toda magia deixa uma assinatura.', 'arcano'),
+}
+
+
+@require_GET
+def theme_studio(request):
+    offers = {offer.cosmetico.slug: offer for offer in
+              CosmeticCheckoutOffer.objects.select_related('cosmetico').filter(
+                  active=True, cosmetico__ativo=True, cosmetico__tipo='tema')}
+    cards = []
+    for key, (sample, subtitle, affinity) in COLLECTIONS.items():
+        offer = offers.get('tema-' + key)
+        if offer is None:
+            continue
+        item = offer.cosmetico
+        cards.append({
+            'key': key, 'sample': sample, 'subtitle': subtitle, 'affinity': affinity,
+            'name': item.nome, 'description': item.descricao,
+            'price_brl': offer.amount, 'price_mm': item.preco if item.origem == 'loja_mm' else None,
+            'demonstration': offer.demonstration, 'offer': offer,
+            'owned': cosmetic_allowed(request.user, 'tema', key, 'ficha'),
+        })
+    selected = next((card for card in cards if card['key'] == request.GET.get('tema')),
+                    cards[0] if cards else None)
+    return render(request, 'home/pages/theme_studio.html', {
+        'page_title': 'Ateliê de identidades', 'ads_enabled': False,
+        'cards': cards, 'selected': selected,
+        'studio_demo': any(card['demonstration'] for card in cards),
+        'commerce_enabled': bool(getattr(settings, 'BONFIRE_COMMERCE_ENABLED', False)),
+    })

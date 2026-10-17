@@ -3603,7 +3603,7 @@ def cosmetic_checkout(request):
     from .cosmetic_entitlements import has_permanent_cosmetic
 
     offers = CosmeticCheckoutOffer.objects.select_related('cosmetico').filter(
-        active=True, cosmetico__ativo=True, amount__gt=0,
+        active=True, demonstration=False, cosmetico__ativo=True, amount__gt=0,
     )
     if request.method == 'GET':
         return render(request, 'home/pages/cosmetic_checkout.html', {'offers': offers})

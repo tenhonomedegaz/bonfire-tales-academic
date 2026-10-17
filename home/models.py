@@ -2671,6 +2671,8 @@ class CosmeticCheckoutOffer(models.Model):
     cosmetico = models.OneToOneField(TbCosmetico, on_delete=models.PROTECT, related_name='checkout_offer')
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     active = models.BooleanField(default=False)
+    demonstration = models.BooleanField(
+        default=False, help_text='Preço ilustrativo; nunca inicia cobrança ou débito MM.')
 
     def __str__(self):
         return self.cosmetico.slug

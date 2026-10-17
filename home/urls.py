@@ -5,8 +5,10 @@ from . import hunter_views
 from . import master_participation
 from . import master_tables
 from . import master_portfolio
+from . import theme_studio
 
 urlpatterns = [
+    path('atelie/', theme_studio.theme_studio, name='theme_studio'),
     path('mestre/mestres/', master_participation.masters_directory, name='masters_directory'),
     path('mestre/portfolio/', master_portfolio.gallery, name='master_gallery'),
     path('mestre/portfolio/novo/', master_portfolio.work_edit, name='master_work_create'),
