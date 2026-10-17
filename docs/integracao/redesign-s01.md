@@ -11,8 +11,8 @@ O [manifesto](redesign-s01-inventory.json) relaciona **cada arquivo rastreado** 
 | Arquivos na base | 1.076 | Registrar extras da base, nunca eliminá-los por ausência na fonte |
 | Idênticos / diferentes / só na fonte | 71 / 933 / 913 | Mesclar por página ou componente; não copiar o pacote inteiro |
 | S02, estrutura e conteúdo em G01 | 506 | Somente análise/proposta agora |
-| S03, fundação compartilhada | 502 | 477 ativos, 23 visuais, 2 vendor |
-| S04 / S05 / S06 / S07 | 134 / 70 / 114 / 36 | Donos visuais exclusivos por caminho |
+| S03, fundação compartilhada | 501 | 477 ativos, 22 visuais, 2 vendor |
+| S04 / S05 / S06 / S07 | 134 / 71 / 114 / 36 | Donos visuais exclusivos por caminho |
 | S10, validação | 472 | Não substituir testes atuais; selecionar cobertura no aceite |
 | S11, documentação/referências | 83 | Consultar no release; não substituir documentação operacional |
 | Rotas da fonte / base | 248 / 226 | 22 novas exigem G01; nenhuma rota só da base |
@@ -23,6 +23,8 @@ O [manifesto](redesign-s01-inventory.json) relaciona **cada arquivo rastreado** 
 - **S03:** todos os caminhos com `stage=S03`: `home/templates/home/base.html`, componentes compartilhados, CSS global,  ativos `home/static/brand`, `icons`, `assets` e vendor. S03 é o único dono desses caminhos. Não criar ou alterar endpoint, contrato, conteúdo mecânico, configuração, migration ou Python. Componentes globais terão API de template compatível com páginas existentes; pedidos adicionais entram em S09.
 - **S04–S07:** o campo `stage` do manifesto é o conjunto exato de arquivos de origem de cada frente. S04 inclui explicitamente `classe_detail.html`, `raca_detail.html`, `magias.html` e catálogos; S05 inclui `criacao_ficha.html`, `editar_ficha.html`, `subir_nivel.html`, `personagens_list.html`, perfis e seus JS. S06 detém mercado, mestres, comunidade e cosméticos. S07 detém templates/CSS/JS de administração. Arquivos globais permanecem S03/S09. Se uma frente precisar editar caminho de outra, entregar pedido de integração, não editar em paralelo.
 - **S10/S11:** testes e documentação têm donos próprios. O manifesto registra diferenças, mas não autoriza importar testes que dependam de backend ainda não aprovado. Arquivos apenas da base permanecem preservados.
+
+Correção de ownership após S03: `home/templates/home/partials/battle_familiar_base.html` pertence a S05, apesar de conter “base” no nome; nenhuma mudança S03 foi feita nesse arquivo. Os hashes e estados do manifesto continuam referentes à base inicial `7e4c13b`.
 
 ## Exclusões e lacunas
 

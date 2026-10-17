@@ -14576,8 +14576,8 @@
     {
       "source": "home/templates/home/partials/battle_familiar_base.html",
       "destination": "home/templates/home/partials/battle_familiar_base.html",
-      "stage": "S03",
-      "category": "shared_visual",
+      "stage": "S05",
+      "category": "account_visual",
       "gate": "none",
       "status": "different",
       "source_sha256": "70c49a4865b4c00b222b34f53f9ce16d25efdcd4ca77173b89040669f1bd3b1a",
@@ -23414,10 +23414,10 @@
       "S11": 83,
       "S06": 114,
       "S10": 472,
-      "S03": 502,
+      "S03": 501,
       "S04": 134,
       "S07": 36,
-      "S05": 70
+      "S05": 71
     },
     "by_status": {
       "source_only": 913,
