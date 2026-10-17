@@ -6,6 +6,7 @@ from . import master_participation
 from . import master_tables
 from . import master_portfolio
 from . import theme_studio
+from . import master_commercial
 
 urlpatterns = [
     path('atelie/', theme_studio.theme_studio, name='theme_studio'),
@@ -17,6 +18,8 @@ urlpatterns = [
     path('mestre/portfolio/<int:pk>/revisar/', master_portfolio.work_review, name='master_work_review'),
     path('mestre/portfolio/<int:pk>/', master_portfolio.work_detail, name='master_work_detail'),
     path('mestre/central/', master_participation.master_dashboard, name='master_dashboard'),
+    path('mestre/mesas-verificadas/<int:pk>/', master_commercial.verify_table, name='master_verify_table'),
+    path('mestre/vitrine-comercial/<int:pk>/', master_commercial.authorize_listing, name='master_authorize_listing'),
     path('mestre/solicitar/', master_participation.master_request, name='master_request'),
     path('mestre/autorizacoes/<int:pk>/', master_participation.master_authorize, name='master_authorize'),
     path('mestre/participacao/', master_participation.participation_edit, name='participation_edit'),

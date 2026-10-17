@@ -78,10 +78,20 @@ def master_dashboard(request):
         'user').order_by('-solicitado_em')[:100] if authorizer else [])
     review_queue = (TbMesaAnuncio.objects.filter(estado='pendente').select_related(
         'mestre').order_by('-atualizado_em')[:100] if reviewer else [])
+    from datetime import timedelta
+    from .models import TbAventuraMestre
+    since = timezone.localdate() - timedelta(days=29)
+    completed_tables = (TbAventuraMestre.objects.filter(
+        data__gte=since, data__lte=timezone.localdate()).exclude(mestre=request.user).select_related(
+        'mestre', 'verificacao_vitrine').order_by('-data')[:100] if authorizer else [])
+    commercial_masters = (TbPerfilMestre.objects.filter(
+        status_mestre='aprovado', user__is_active=True).exclude(user=request.user).select_related(
+        'user', 'user__autorizacao_vitrine').order_by('user__username')[:100] if authorizer else [])
     return render(request, 'home/pages/master_dashboard.html', {
         'can_authorize': authorizer, 'can_review': reviewer,
         'can_review_work': work_reviewer,
         'master_requests': requests, 'review_queue': review_queue,
+        'completed_tables': completed_tables, 'commercial_masters': commercial_masters,
         'page_title': 'Permissões de mestre', 'notice': request.GET.get('salvo')})
 
 

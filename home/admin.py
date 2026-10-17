@@ -5091,3 +5091,6 @@ class SocialCreditRedemptionAdmin(_ReadOnlySocialCreditAdmin):
                        'reversal_reason', 'reversal_review_reason', 'reversal_review_requested_at',
                        'reversal_review_requested_by', 'reversed_at', 'reversed_by',
                        'credit_reversal_entry', 'gold_reversal_entry')
+
+
+from . import master_commercial_admin  # noqa: E402,F401

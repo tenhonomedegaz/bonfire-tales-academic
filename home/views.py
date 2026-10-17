@@ -82,6 +82,7 @@ from .models import (
     MestreOuroDireito,
 )
 from .security import validate_no_sql_danger
+from .master_commercial import visible_public_tables
 from .organization_lists import organization_list
 
 
@@ -1422,6 +1423,7 @@ def profile_view(request):
     from django.conf import settings as _settings
     from .master_participation import can_authorize, participation
     from .master_hub import can_review
+    from .master_commercial import commercial_eligibility
     from .master_portfolio import portfolio_context
     from .models import TbMesaAnuncio, TbPerfilMestre
     master_profile = TbPerfilMestre.objects.filter(user=user).first()
@@ -1431,6 +1433,7 @@ def profile_view(request):
         'can_authorize': can_authorize(user),
         'can_review': can_review(user),
         'my_tables': list(TbMesaAnuncio.objects.filter(mestre=user).order_by('-atualizado_em')[:20]) if master_profile else [],
+        'commercial_status': commercial_eligibility(user) if master_profile else None,
         **portfolio_context(user, master_profile),
         'profile': profile,
         'social_credit_balance': credit_wallet.balance if credit_wallet else 0,
@@ -1572,8 +1575,9 @@ def public_profile_view(request, username):
         'page_title': viewed_user.username,
         'viewed_user': viewed_user,
         'community': participation(master_profile) if master_public else {'is_master': False},
-        'public_tables': list(TbMesaAnuncio.objects.filter(
-            mestre=viewed_user, estado='publicado')[:12]) if master_public else [],
+        'public_tables': visible_public_tables(
+            list(TbMesaAnuncio.objects.filter(mestre=viewed_user, estado='publicado')
+                 .select_related('mestre')[:12])) if master_public else [],
         **portfolio_context(viewed_user, master_profile, public=True),
         'profile': profile,
         'personagens': personagens,
@@ -3130,7 +3134,8 @@ def sistemas_missoes_view(request):
 
     context = {
         'quests': quests,
-        'public_tables': list(public_tables.order_by('data', 'pk')[:100]),
+        'public_tables': visible_public_tables(
+            list(public_tables.order_by('data', 'pk')[:100])),
         'search': search,
         'status': status,
         'db_error': db_error,

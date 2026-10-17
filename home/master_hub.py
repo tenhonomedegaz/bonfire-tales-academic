@@ -293,8 +293,10 @@ def profile_context(user, include_tables=False):
               'can_review':can_review(user)}
     if include_tables:
         from django.db.models import Q
-        result['public_tables'] = list(TbMesaAnuncio.objects.filter(Q(data__gte=timezone.now()) | Q(agenda_combinar=True),
-            mestre=user, estado='publicado')[:12]) if result['community']['is_master'] else []
+        from .master_commercial import visible_public_tables
+        result['public_tables'] = visible_public_tables(list(TbMesaAnuncio.objects.filter(
+            Q(data__gte=timezone.now()) | Q(agenda_combinar=True),
+            mestre=user, estado='publicado').select_related('mestre')[:12])) if result['community']['is_master'] else []
     else:
         result['my_tables'] = list(TbMesaAnuncio.objects.filter(mestre=user).order_by('-atualizado_em')[:100])
     from .master_portfolio import portfolio_context
@@ -310,7 +312,9 @@ def public_announcements(search='', status='', existing_urls=()):
                                         mestre__participacao__status_mestre='aprovado').select_related('mestre')
     if search:
         query = query.filter(Q(titulo__icontains=search) | Q(descricao__icontains=search) | Q(mestre__username__icontains=search))
-    return [table for table in query[:100] if not table.discord_url or table.discord_url not in existing_urls]
+    from .master_commercial import visible_public_tables
+    return visible_public_tables([table for table in query[:100]
+                                  if not table.discord_url or table.discord_url not in existing_urls])
 
 
 def validate_banner(uploaded):

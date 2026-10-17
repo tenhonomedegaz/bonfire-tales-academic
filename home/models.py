@@ -2233,6 +2233,39 @@ class TbAventuraMestre(models.Model):
         return f'{self.nome} — {self.mestre_id}'
 
 
+class TbVerificacaoMesa(models.Model):
+    """Independent staff evidence for a completed adventure; no MM side effects."""
+
+    aventura = models.OneToOneField(TbAventuraMestre, on_delete=models.PROTECT,
+                                   related_name='verificacao_vitrine')
+    aberta = models.BooleanField(default=False)
+    validada = models.BooleanField(default=False)
+    observacao = models.CharField(max_length=800, blank=True, default='')
+    validado_por = models.ForeignKey('auth.User', on_delete=models.PROTECT,
+                                    related_name='mesas_verificadas')
+    validado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Mesa realizada e verificada'
+        verbose_name_plural = 'Mesas realizadas e verificadas'
+
+
+class TbAutorizacaoVitrine(models.Model):
+    """Staff decision for paid listing display; never authorizes payment collection."""
+
+    user = models.OneToOneField('auth.User', on_delete=models.PROTECT,
+                                related_name='autorizacao_vitrine')
+    autorizada = models.BooleanField(default=False)
+    observacao = models.CharField(max_length=800, blank=True, default='')
+    avaliado_por = models.ForeignKey('auth.User', on_delete=models.PROTECT,
+                                    related_name='autorizacoes_vitrine')
+    avaliado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Autorização comercial da vitrine'
+        verbose_name_plural = 'Autorizações comerciais da vitrine'
+
+
 class TbTransacaoMestre(models.Model):
     """Histórico de Moedas de Mestragem (MM) de um mestre: ganho de aventura, resgate,
     leilão, assinatura, ajuste. `valor_mm` ASSINADO (+ recebeu / − gastou)."""

@@ -11,6 +11,7 @@ from django.views.decorators.http import require_POST, require_http_methods
 
 from .master_hub import (TableAnnouncementForm, apply_banner, can_review,
                          player_choices, selected_player_names, transition)
+from .master_commercial import commercial_eligibility
 from .models import TbMesaAnuncio, TbPerfilMestre
 from .table_commerce import offer_summary
 
@@ -35,8 +36,9 @@ def table_edit(request, pk=None):
                     raise PermissionDenied
                 if pk and form.cleaned_data['revisao'] != table.revisao:
                     form.add_error(None, 'O anúncio mudou. Reabra a edição antes de salvar.')
-                elif action == 'enviar' and form.cleaned_data['modalidade'] == 'paga':
-                    form.add_error(None, 'Oferta paga ainda depende da autorização comercial e da verificação de mesas. Salve um rascunho ou anuncie uma mesa gratuita.')
+                elif (action == 'enviar' and form.cleaned_data['modalidade'] == 'paga'
+                      and not commercial_eligibility(request.user)['eligible']):
+                    form.add_error(None, 'A vitrine paga exige autorização comercial e 3 mesas verificadas nos últimos 30 dias, incluindo 1 aberta. Você ainda pode salvar um rascunho ou anunciar uma mesa gratuita.')
                 else:
                     saved = form.save(commit=False)
                     saved.mestre = profile.user
@@ -82,7 +84,8 @@ def table_action(request, pk):
                     status_mestre='aprovado', user__is_active=True).exists():
                 return HttpResponse('Mestre indisponível.', status=409)
             if table.modalidade == 'paga':
-                return HttpResponse('Oferta paga ainda não pode ser publicada.', status=409)
+                if not table.preco_demonstrativo or not commercial_eligibility(table.mestre)['eligible']:
+                    return HttpResponse('Os requisitos comerciais atuais não estão atendidos.', status=409)
             if not table.agenda_combinar and (table.data is None or table.data <= timezone.now()):
                 return HttpResponse('A data da mesa deve ser futura.', status=409)
         try:
@@ -106,6 +109,9 @@ def table_detail(request, pk):
     authorized = TbPerfilMestre.objects.filter(user=table.mestre,
         status_mestre='aprovado', user__is_active=True).exists()
     if (table.estado != 'publicado' or not authorized) and not owner and not reviewer:
+        raise Http404
+    if (table.modalidade == 'paga' and not owner and not reviewer
+            and not commercial_eligibility(table.mestre)['eligible']):
         raise Http404
     try:
         offer = offer_summary(table)
