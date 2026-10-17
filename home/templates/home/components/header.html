@@ -203,6 +203,7 @@
            <input
              type="search"
              name="q"
+             aria-label="Buscar no sistema"
              value="{{ request.GET.q|default:'' }}"
              placeholder="Buscar regras, itens ou monstro"
              class="w-full bg-[var(--bg0)] border border-[var(--stroke)] text-[var(--text)] text-sm rounded-sm py-1.5 pl-9 pr-2 focus:border-[var(--ember)] focus:ring-1 focus:ring-[var(--ember)] placeholder:text-[var(--muted)]/50 transition-all outline-none"
@@ -282,7 +283,7 @@
         
         <details class="site-mobile-menu min-[1100px]:hidden relative group/mob-menu">
           <summary class="list-none cursor-pointer rounded border border-[var(--stroke)] bg-[var(--bg0)] p-2 text-[var(--text)] hover:border-[var(--ember)] transition-all">
-            <span class="sr-only">Abrir menu</span>
+            <span class="sr-only" data-mobile-menu-label>Abrir menu</span>
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 group-open/mob-menu:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 hidden group-open/mob-menu:block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
           </summary>
@@ -293,7 +294,7 @@
                 <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-[var(--muted)]">
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
                 </span>
-                <input type="search" name="q" value="{{ request.GET.q|default:'' }}" placeholder="Buscar no sistema..." class="w-full rounded border border-[var(--stroke)] bg-[var(--bg1)] py-2 pl-9 pr-3 text-sm text-[var(--text)] outline-none focus:border-[var(--ember)] transition-all" />
+                <input type="search" name="q" aria-label="Buscar no sistema" value="{{ request.GET.q|default:'' }}" placeholder="Buscar no sistema..." class="w-full rounded border border-[var(--stroke)] bg-[var(--bg1)] py-2 pl-9 pr-3 text-sm text-[var(--text)] outline-none focus:border-[var(--ember)] transition-all" />
               </form>
             </div>
 
@@ -429,14 +430,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const mobileMenu = document.querySelector('.site-mobile-menu');
     const mobCats = document.querySelectorAll('details.group\\/mob-cat');
     mobCats.forEach(cat => {
-        const summary = cat.querySelector('summary');
-        if (!summary) return;
-        summary.addEventListener('click', (e) => {
-            e.preventDefault();
-            mobCats.forEach(other => {
-                if (other !== cat) other.removeAttribute('open');
-            });
-            cat.setAttribute('open', '');
+        cat.addEventListener('toggle', () => {
+            if (cat.open) {
+                mobCats.forEach(other => {
+                    if (other !== cat) other.open = false;
+                });
+            }
         });
     });
 
@@ -444,8 +443,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const syncMenuState = () => {
         document.body.classList.toggle('site-mobile-menu-open', mobileMenu.open);
+        const label = mobileMenu.querySelector('[data-mobile-menu-label]');
+        if (label) label.textContent = mobileMenu.open ? 'Fechar menu' : 'Abrir menu';
     };
     mobileMenu.addEventListener('toggle', syncMenuState);
+    window.matchMedia('(min-width: 1100px)').addEventListener('change', event => {
+        if (event.matches) mobileMenu.open = false;
+    });
     mobileMenu.addEventListener('click', (event) => {
         if (event.target.closest('a')) {
             mobileMenu.removeAttribute('open');
