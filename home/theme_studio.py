@@ -36,6 +36,7 @@ def theme_studio(request):
             'key': key, 'sample': sample, 'subtitle': subtitle, 'affinity': affinity,
             'name': item.nome, 'description': item.descricao,
             'price_brl': offer.amount, 'price_mm': item.preco if item.origem == 'loja_mm' else None,
+            'mm_only': item.origem == 'loja_mm',
             'demonstration': offer.demonstration, 'offer': offer,
             'owned': cosmetic_allowed(request.user, 'tema', key, 'ficha'),
             'request_key': uuid.uuid4(),

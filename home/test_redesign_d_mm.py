@@ -11,7 +11,7 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from .cosmetic_entitlements import has_permanent_cosmetic
-from .models import (CosmeticCheckoutOffer, CosmeticMMRedemption, TbCosmetico,
+from .models import (AsaasCheckoutOrder, CosmeticCheckoutOffer, CosmeticMMRedemption, TbCosmetico,
                      TbTransacaoMestre, TbUsuarioCosmetico, UserProfile)
 from .theme_mm import redeem_theme_mm, reverse_theme_mm
 
@@ -63,10 +63,21 @@ class ThemeMMTests(TestCase):
         self.client.force_login(self.user)
         live = self.client.get(reverse('theme_studio'))
         self.assertContains(live, reverse('buy_theme_with_mm'))
+        self.assertNotContains(live, 'action="' + reverse('cosmetic_checkout') + '"')
+        self.assertNotContains(live, 'Conferir compra por R$')
         self.offer.demonstration = True
         self.offer.save(update_fields=['demonstration'])
         demo = self.client.get(reverse('theme_studio'))
         self.assertNotContains(demo, reverse('buy_theme_with_mm'))
+
+    def test_live_mm_theme_cannot_create_cash_checkout(self):
+        self.client.force_login(self.user)
+        listing = self.client.get(reverse('cosmetic_checkout'))
+        self.assertNotContains(listing, self.theme.slug)
+        response = self.client.post(reverse('cosmetic_checkout'), {'slug': self.theme.slug})
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(AsaasCheckoutOrder.objects.exists())
+        self.assertFalse(CosmeticMMRedemption.objects.exists())
 
     def test_checkout_disabled_on_server_even_for_live_offer(self):
         self.client.force_login(self.user)

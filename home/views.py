@@ -3609,7 +3609,7 @@ def cosmetic_checkout(request):
 
     offers = CosmeticCheckoutOffer.objects.select_related('cosmetico').filter(
         active=True, demonstration=False, cosmetico__ativo=True, amount__gt=0,
-    )
+    ).exclude(cosmetico__tipo='tema', cosmetico__origem='loja_mm')
     if request.method == 'GET':
         return render(request, 'home/pages/cosmetic_checkout.html', {'offers': offers})
     offer = offers.filter(cosmetico__slug=(request.POST.get('slug') or '').strip()).first()
