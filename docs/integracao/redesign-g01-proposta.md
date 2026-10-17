@@ -16,6 +16,16 @@ verdade. Não copiar `.env`, dumps, contas ou chaves da fonte.
 
 ## Lote G01-A — caravana e catálogo mágico
 
+**Dependência adicional verificada em 17/10.** Os templates
+`home/templates/home/partials/market_consultation_cards.html` e
+`market_item_notes.html` carregam `home/templatetags/distance_display.py` e o
+filtro `dual_distance`. A base atual não registra essa biblioteca; compilar
+esses dois templates falha com `TemplateSyntaxError`. A implementação do
+filtro depende também de `home/distance_presentation.py` e
+`home/rules_terminology.py`. Incluir esses três arquivos Python no lote G01-A
+para revisão explícita antes de ativar a consulta de mercado. Até lá, o
+mercado existente continua acessível; a consulta nova fica sem integração.
+
 **Arquivos.** `home/migrations/0152_magic_market_caravan.py`,
 `home/migrations/0153_fate_deck_server_attunement.py`, `home/models.py`,
 `home/magic_market.py`, `home/magic_market_views.py`,
