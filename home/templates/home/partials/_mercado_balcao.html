@@ -32,6 +32,7 @@ balcao_titulo.{% endcomment %}
       <span class="mkt-wallet-label">Carteira</span>
       <strong class="mkt-wallet-value" data-shop-carteira>{{ mercado_carteira }}</strong>
     </div>
+    {% if mundano_redesign and mercado_ativo %}<a class="market-sheet-link" data-market-sheet-link data-market-sheet-pattern="{% url 'ficha_detail' 0 %}" href="{% url 'ficha_detail' mercado_ativo.pk %}?aba=mochila">Ver mochila <span aria-hidden="true">↗</span></a>{% endif %}
   {% endif %}
 
   <p class="mkt-feedback" data-shop-feedback hidden aria-live="polite"></p>
