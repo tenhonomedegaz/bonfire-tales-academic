@@ -12,8 +12,8 @@
 .service-section[hidden] { display: none; }
 .service-heading { display: flex; justify-content: space-between; align-items: end; gap: 1rem; }
 .service-heading span { color: var(--ember); font-size: .62rem; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; }
-.service-heading h1 { margin: .12rem 0 0; color: var(--text); font: 800 1.45rem/1.15 'Cinzel', serif; }
-.service-heading > strong { color: var(--spark); font-family: 'Cinzel', serif; font-size: .84rem; text-align: right; }
+.service-heading h1 { margin: .12rem 0 0; color: var(--text); font: 800 1.45rem/1.15 'Frank Ruhl Libre', serif; }
+.service-heading > strong { color: var(--spark); font-family: 'Frank Ruhl Libre', serif; font-size: .84rem; text-align: right; }
 .service-lead { max-width: 62rem; margin: .5rem 0 1rem; color: var(--muted); font-size: .82rem; line-height: 1.55; }
 .service-form { display: grid; align-items: end; gap: .5rem; padding: .75rem 0; }
 .service-form label { color: var(--muted); font-size: .64rem; font-weight: 800; text-transform: uppercase; }

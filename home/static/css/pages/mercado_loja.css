@@ -70,7 +70,7 @@
 }
 .mkt-bar-title {
   color: var(--text);
-  font-family: 'Cinzel', serif;
+  font-family: 'Frank Ruhl Libre', serif;
   font-size: 1rem;
   font-weight: 800;
   letter-spacing: .05em;
@@ -129,7 +129,7 @@
 }
 .mkt-wallet-value {
   color: var(--spark);
-  font-family: 'Cinzel', serif;
+  font-family: 'Frank Ruhl Libre', serif;
   font-size: 1rem;
   font-weight: 800;
   text-shadow: 0 0 14px rgba(247, 177, 19, .3);
@@ -271,7 +271,7 @@
 }
 .mkt-row-price {
   color: var(--spark);
-  font-family: 'Cinzel', serif;
+  font-family: 'Frank Ruhl Libre', serif;
   font-size: .82rem;
   font-weight: 700;
   grid-column: 2;
@@ -362,7 +362,7 @@
 }
 .mkt-sigil-letter {
   color: color-mix(in srgb, var(--mkt-accent) 78%, var(--text));
-  font-family: 'Cinzel', serif;
+  font-family: 'Frank Ruhl Libre', serif;
   font-size: 2.6rem;
   font-weight: 800;
   line-height: 1;
@@ -381,7 +381,7 @@
 }
 .mkt-card-name {
   color: var(--text);
-  font-family: 'Cinzel', serif;
+  font-family: 'Frank Ruhl Libre', serif;
   font-size: 1.35rem;
   font-weight: 800;
   letter-spacing: .01em;
@@ -411,7 +411,7 @@
 }
 .mkt-price {
   color: var(--spark);
-  font-family: 'Cinzel', serif;
+  font-family: 'Frank Ruhl Libre', serif;
   font-size: 1.25rem;
   font-weight: 800;
   line-height: 1.1;
@@ -486,7 +486,7 @@
 }
 .mkt-desc :is(h1, h2, h3, h4) {
   color: var(--ember);
-  font-family: 'Cinzel', serif;
+  font-family: 'Frank Ruhl Libre', serif;
   font-size: .88rem;
   font-weight: 800;
   margin: .6rem 0 .25rem;

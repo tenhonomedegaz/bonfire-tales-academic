@@ -6,7 +6,7 @@
 .review-header { margin-bottom: 1.25rem; }
 .review-header h1 {
   color: #fff;
-  font-family: 'Cinzel', serif;
+  font-family: 'Frank Ruhl Libre', serif;
   font-size: 1.8rem;
   font-weight: 900;
   text-transform: uppercase;
@@ -30,7 +30,7 @@
 .review-item-title {
   color: #fff;
   flex: 1;
-  font-family: 'Cinzel', serif;
+  font-family: 'Frank Ruhl Libre', serif;
   font-size: 1.1rem;
   font-weight: 800;
 }

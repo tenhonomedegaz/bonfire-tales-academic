@@ -32,7 +32,7 @@
 }
 .cronica-title {
   color: #fff;
-  font-family: 'Cinzel', serif;
+  font-family: 'Frank Ruhl Libre', serif;
   font-size: clamp(1.6rem, 3vw, 2.2rem);
   font-weight: 900;
   line-height: 1.2;
@@ -63,7 +63,7 @@
 .cronica-body .bonfire-markdown h2,
 .cronica-body .bonfire-markdown h3 {
   color: var(--ember);
-  font-family: 'Cinzel', serif;
+  font-family: 'Frank Ruhl Libre', serif;
   text-transform: uppercase;
 }
 .cronica-status-banner {
@@ -106,7 +106,7 @@
 .cronica-reactions button:disabled { opacity: .6; cursor: wait; }
 .cronica-reactions [role="alert"] { color: #ef4444; }
 .cronica-comments { margin-top: 2rem; border-top: 1px solid var(--stroke); padding-top: 1rem; }
-.cronica-comments h2 { color: var(--ember); font-family: Cinzel, serif; }
+.cronica-comments h2 { color: var(--ember); font-family: 'Frank Ruhl Libre', serif; }
 .cronica-comment { border: 1px solid var(--stroke); border-radius: 8px; margin: .75rem 0; padding: .75rem; color: var(--muted); }
 .cronica-comment-reply { margin-left: clamp(.5rem, 4vw, 2rem); }
 .cronica-comments-pages { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; margin: 1.25rem 0; color: var(--muted); }

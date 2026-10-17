@@ -6,7 +6,7 @@
 .editor-header { margin-bottom: 1.25rem; }
 .editor-header h1 {
   color: #fff;
-  font-family: 'Cinzel', serif;
+  font-family: 'Frank Ruhl Libre', serif;
   font-size: 1.8rem;
   font-weight: 900;
   text-transform: uppercase;
@@ -97,7 +97,7 @@
 }
 .editor-panel-header h2 {
   color: var(--ember);
-  font-family: 'Cinzel', serif;
+  font-family: 'Frank Ruhl Libre', serif;
   font-size: .75rem;
   font-weight: 900;
   letter-spacing: .1em;
@@ -128,7 +128,7 @@
 .editor-preview strong { color: #fff; }
 .editor-preview h1, .editor-preview h2, .editor-preview h3 {
   color: var(--ember);
-  font-family: 'Cinzel', serif;
+  font-family: 'Frank Ruhl Libre', serif;
   text-transform: uppercase;
 }
 .editor-actions {
