@@ -44,7 +44,8 @@ def prepare_fixture(text, reference):
     )
     row = dict(model='home.tbmagia', pk=old['pk'] if old else
                max(row['pk'] for row in spells) + 1, fields=fields)
-    encoded = json.dumps(row, ensure_ascii=False, indent=2)
+    newline = '\r\n' if '\r\n' in text else '\n'
+    encoded = json.dumps(row, ensure_ascii=False, indent=2).replace('\n', newline)
     if old:
         decoder = json.JSONDecoder()
         pos = text.index('[') + 1
@@ -56,7 +57,7 @@ def prepare_fixture(text, reference):
                 return text[:pos] + encoded + text[end:]
             pos = end
     end = text.rindex(']')
-    return text[:end].rstrip() + ',\n' + encoded + '\n' + text[end:]
+    return text[:end].rstrip() + ',' + newline + encoded + newline + text[end:]
 
 
 class Command(BaseCommand):
