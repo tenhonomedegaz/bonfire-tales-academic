@@ -3,12 +3,16 @@
 
 {% block title %}Login - Bonfire Tales{% endblock %}
 {% block meta_robots %}noindex, nofollow{% endblock %}
+{% block extra_head %}{% if local_accounts_preview %}<link rel="stylesheet" href="{% static 'css/pages/profile-redesign.css' %}?v=1">{% endif %}{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8">
-  <div class="max-w-md mx-auto">
-    <div class="bg-[var(--bg1)] border border-[var(--stroke)] shadow-2xl p-6 rounded relative">
-      <h2 class="text-2xl font-rpg font-bold text-[var(--ember)] mb-6 text-center">Acessar Conta</h2>
+<div class="bft-auth">
+  <div class="bft-auth-shell">
+    {% include 'home/components/auth_story.html' %}
+    <div class="bft-auth-card">
+      <h1>Bom ter você de volta.</h1>
+      <p class="bft-auth-intro">Entre para continuar sua jornada no Bonfire Tales.</p>
+      {% if local_accounts_preview %}<p class="bft-local-notice">Demonstração local · Entre com o acesso de jogador ou administrador criado para esta revisão.</p>{% endif %}
 
       <form method="post" action="{% url 'login' %}">
         {% csrf_token %}
@@ -26,7 +30,7 @@
           <div>
             <div class="flex justify-between items-center mb-1">
               <label class="block text-sm font-semibold text-[var(--muted)]" for="id_password">Senha</label>
-              <a href="{% url 'password_reset' %}" class="text-xs text-[var(--ember)] hover:text-[var(--text)] transition-colors">Esqueceu a senha?</a>
+              {% if not local_accounts_preview %}<a href="{% url 'password_reset' %}" class="text-xs text-[var(--ember)] hover:text-[var(--text)] transition-colors">Esqueceu a senha?</a>{% endif %}
             </div>
             <input 
               type="password" 
@@ -46,23 +50,23 @@
               Entrar
             </button>
           </div>
-          <p class="text-center text-xs text-[var(--muted)]">
+          {% if not local_accounts_preview %}<p class="text-center text-xs text-[var(--muted)]">
             Não tem acesso? <a href="{% url 'register' %}" class="text-[var(--ember)] hover:text-[var(--text)]">Cadastrar</a>
-          </p>
+          </p>{% endif %}
         </div>
         <input type="hidden" name="next" value="{{ next|default:'/' }}">
       </form>
 
-      <div class="px-1">
+      {% if not local_accounts_preview %}<div class="px-1">
         <div class="my-4 flex items-center gap-3 text-xs text-[var(--muted)]">
           <span class="h-px flex-1 bg-[var(--stroke)]"></span>ou<span class="h-px flex-1 bg-[var(--stroke)]"></span>
         </div>
         <a href="{% url 'discord_login' %}?next={{ next|default:'/'|urlencode }}"
-           class="flex w-full items-center justify-center gap-2 rounded-sm bg-[#5865F2] px-4 py-2 font-bold text-white transition-all hover:brightness-110">
+           class="bft-auth-discord flex w-full items-center justify-center gap-2 px-4 py-2 font-bold transition-all hover:brightness-110">
           <svg width="20" height="20" viewBox="0 0 127.14 96.36" fill="currentColor" aria-hidden="true"><path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg>
           Entrar com Discord
         </a>
-      </div>
+      </div>{% endif %}
     </div>
   </div>
 </div>

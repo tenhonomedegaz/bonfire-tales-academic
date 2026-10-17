@@ -328,7 +328,7 @@
 }
 
 .profile-username {
-    font-family: 'Cinzel', serif;
+    font-family: 'Frank Ruhl Libre', serif;
     font-size: 1.35rem;
     font-weight: 700;
     color: var(--text);
@@ -387,7 +387,7 @@
 }
 
 .profile-section-title {
-    font-family: 'Cinzel', serif;
+    font-family: 'Frank Ruhl Libre', serif;
     font-size: 0.75rem;
     font-weight: 700;
     text-transform: uppercase;
@@ -869,7 +869,7 @@
     background: var(--profile-deep);
     overflow: hidden;
     color: var(--pf-accent);
-    font-family: 'Cinzel', serif;
+    font-family: 'Frank Ruhl Libre', serif;
     font-size: 2.8rem;
     font-weight: 800;
 }
@@ -888,7 +888,7 @@
 }
 
 .public-profile-name-row h1 {
-    font-family: 'Cinzel', serif;
+    font-family: 'Frank Ruhl Libre', serif;
     font-size: 1.9rem;
     font-weight: 800;
     color: var(--text);
@@ -920,7 +920,7 @@
 }
 
 .public-profile-section-head h2 {
-    font-family: 'Cinzel', serif;
+    font-family: 'Frank Ruhl Libre', serif;
     color: var(--pf-accent);
     font-weight: 800;
 }
@@ -958,7 +958,7 @@
 
 .public-character-card strong {
     color: var(--text);
-    font-family: 'Cinzel', serif;
+    font-family: 'Frank Ruhl Libre', serif;
     font-weight: 800;
 }
 
@@ -1029,7 +1029,7 @@
 }
 
 .players-head h1 {
-    font-family: 'Cinzel', serif;
+    font-family: 'Frank Ruhl Libre', serif;
     font-size: clamp(2rem, 4vw, 3.4rem);
     font-weight: 800;
     color: var(--text);
@@ -1248,7 +1248,7 @@
     border-radius: 50%;
     background: var(--profile-deep);
     color: var(--pf-accent);
-    font-family: 'Cinzel', serif;
+    font-family: 'Frank Ruhl Libre', serif;
     font-size: 2rem;
     font-weight: 800;
 }
@@ -1269,7 +1269,7 @@
 .player-card-title > a {
     min-width: 0;
     color: var(--text);
-    font-family: 'Cinzel', serif;
+    font-family: 'Frank Ruhl Libre', serif;
     font-size: 1.2rem;
     font-weight: 800;
 }
@@ -1354,7 +1354,7 @@
 .players-empty h2 {
     margin-bottom: 0.4rem;
     color: var(--text);
-    font-family: 'Cinzel', serif;
+    font-family: 'Frank Ruhl Libre', serif;
     font-weight: 800;
 }
 
@@ -1398,7 +1398,7 @@
 /* Título sob o nome (cor por raridade; spark/gold por padrão). */
 .profile-title {
     margin-top: 0.35rem;
-    font-family: 'Cinzel', serif;
+    font-family: 'Frank Ruhl Libre', serif;
     font-weight: 700;
     font-size: 0.92rem;
     letter-spacing: 0.04em;
@@ -1494,7 +1494,7 @@
     border-top: 1px dashed var(--stroke);
 }
 .profile-subsection-title {
-    font-family: 'Cinzel', serif;
+    font-family: 'Frank Ruhl Libre', serif;
     font-size: 0.78rem;
     font-weight: 700;
     text-transform: uppercase;
@@ -1738,7 +1738,7 @@
     .perfil-preview-pane {
         order: 0;
         position: sticky;
-        top: 69px;                     /* header fixo do site tem 57px */
+        top: calc(var(--bft-header-height, 57px) + 12px);
         max-height: calc(100vh - 81px);
         overflow: auto;
         scrollbar-width: thin;
@@ -1768,7 +1768,7 @@
     background: none;
     color: var(--pf-accent);
     cursor: pointer;
-    font-family: 'Cinzel', serif;
+    font-family: 'Frank Ruhl Libre', serif;
     font-size: 0.75rem;
     font-weight: 700;
     text-transform: uppercase;

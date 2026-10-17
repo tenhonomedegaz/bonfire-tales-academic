@@ -1,5 +1,7 @@
 {% extends 'home/base.html' %}
 {% load static %}
+{% block body_class %}bft-sheet-editor{% endblock %}
+{% block main_class %}cw-main flex-1 w-full min-w-0{% endblock %}
 
 {% comment %}FERRAMENTA DA STAFF (Ficha v2, onda C). Esta página não é mais "editar ficha":
 tudo que é do JOGADOR migrou — level-up (página dedicada), inventário/slots/sintonização
@@ -10,9 +12,10 @@ acesso é fechado por is_staff na view (dono não-staff é redirecionado para a 
 {% endcomment %}
 
 {% block content %}
-<section class="animate-fade-in">
-  <header class="mb-4 flex flex-wrap items-end justify-between gap-2 border-b border-[var(--stroke)] pb-4">
+<section class="cw-staff-page animate-fade-in">
+  <header class="cw-hero mb-4 flex flex-wrap items-end justify-between gap-2 border-b border-[var(--stroke)] pb-4">
     <div>
+      <p class="cw-eyebrow">Gestão da ficha · acesso restrito</p>
       <h1 class="font-serif text-2xl md:text-3xl font-bold text-[var(--ember)]">Painel da staff</h1>
       <p class="mt-1 text-sm text-[var(--muted)]">{{ p.nome }}{% if pc %} · {{ pc.id_classe.nome }}{% if pc.id_subclasse_id %} ({{ pc.id_subclasse.nome }}){% endif %} Nv {{ nivel }}{% endif %}</p>
     </div>
@@ -21,10 +24,13 @@ acesso é fechado por is_staff na view (dono não-staff é redirecionado para a 
       <a href="{% url 'ficha_detail' p.id_personagem %}" class="rounded border border-[var(--stroke)] px-3 py-1.5 text-sm text-[var(--muted)] hover:text-[var(--text)]">Ver ficha →</a>
     </div>
   </header>
+  <nav class="cw-section-nav" aria-label="Seções do painel da staff"><a href="#cw-progression">Aventuras e progressão</a><a href="#cw-grants">Conceder itens</a><a href="#cw-training">Treinamentos</a></nav>
+  <p class="cw-context-note">Este painel registra intervenções da administração. Informações pessoais, aparência, mochila e escolhas de nível continuam nas áreas próprias da ficha.</p>
 
   <div class="ef-main space-y-3">
 
       {# ============================ PROGRESSÃO (contexto do lançamento) ============================ #}
+      <h2 class="cw-panel-title" id="cw-progression">Aventuras e progressão</h2>
       <div class="lvl-topcard" id="lvl-topcard" data-lvl-card="topo">
         <div class="lvl-topcard__row">
           <div>
@@ -47,8 +53,8 @@ acesso é fechado por is_staff na view (dono não-staff é redirecionado para a 
       </div>
 
       {# ===================== STAFF — CONCEDER ITEM (missão/recompensa, sem custo de ouro) ===================== #}
-      <div class="lvl-staffbox" style="margin-top:1.2rem">
-        <span class="lbl">Staff — conceder item (missão/recompensa):</span>
+      <div class="lvl-staffbox" style="margin-top:1.2rem" id="cw-grants">
+        <h2 class="cw-panel-title lbl">Conceder item de missão ou recompensa</h2>
         <form method="post" action="{% url 'personagem_conceder_item' p.id_personagem %}" class="lvl-inline" style="flex:1 1 100%" data-conceder-form>
           {% csrf_token %}
           <select name="tipo" class="lvl-field" data-conceder-tipo aria-label="Tipo de item">
@@ -74,8 +80,8 @@ acesso é fechado por is_staff na view (dono não-staff é redirecionado para a 
         {% include 'home/partials/_ficha_concessoes_staff.html' %}
       </div>
 
-      <div class="lvl-staffbox" style="margin-top:1.2rem">
-        <span class="lbl">Staff &mdash; treinamento de idioma ou ferramenta:</span>
+      <div class="lvl-staffbox" style="margin-top:1.2rem" id="cw-training">
+        <h2 class="cw-panel-title lbl">Treinamento de idioma ou ferramenta</h2>
         <form method="post" action="{% url 'personagem_treinamento' p.id_personagem %}" class="lvl-inline" style="flex:1 1 100%;min-width:0" data-staff-training-form>
           {% csrf_token %}
           <label class="min-w-0 flex-1 basis-48 text-sm" for="staff-training-search">Buscar treinamento
@@ -143,6 +149,7 @@ acesso é fechado por is_staff na view (dono não-staff é redirecionado para a 
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'css/pages/criador.css' %}?v=3">
 <link rel="stylesheet" href="{% static 'css/pages/levelup.css' %}?v=3">
+<link rel="stylesheet" href="{% static 'css/pages/character-workflows.css' %}?v=1">
 <script src="{% static 'js/editar_ficha.js' %}?v=3" defer></script>
 <script src="{% static 'js/conceder_item.js' %}?v=1" defer></script>
 {% endblock %}

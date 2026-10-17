@@ -25,7 +25,7 @@
 .sn-hero-back:hover { color: var(--ember); }
 .sn-hero-kicker { font-size: 11px; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); }
 .sn-hero-title {
-  font-family: 'Cinzel', serif; font-weight: 800;
+  font-family: 'Frank Ruhl Libre', serif; font-weight: 800;
   font-size: clamp(1.5rem, 4vw, 2.1rem);
   color: var(--flame); line-height: 1.05; margin: 0.15rem 0 0.4rem;
 }
@@ -33,7 +33,7 @@
 .sn-lvl-from, .sn-lvl-to {
   display: inline-flex; align-items: center; justify-content: center;
   min-width: 2.6rem; height: 2.6rem; padding: 0 0.5rem;
-  border-radius: 0.6rem; font-family: 'Cinzel', serif; font-weight: 800; font-size: 1.5rem;
+  border-radius: 0.6rem; font-family: 'Frank Ruhl Libre', serif; font-weight: 800; font-size: 1.5rem;
   border: 1px solid var(--stroke); background: var(--bg0); color: var(--text);
 }
 .sn-lvl-to { border-color: var(--flame); color: var(--flame);
@@ -46,11 +46,11 @@
 
 /* ---- Nada a fazer ---------------------------------------------------- */
 .sn-nothing { text-align: center; max-width: 30rem; margin: 1.5rem auto; }
-.sn-nothing-title { font-family: 'Cinzel', serif; font-weight: 700; font-size: 1.05rem; color: var(--text); }
+.sn-nothing-title { font-family: 'Frank Ruhl Libre', serif; font-weight: 700; font-size: 1.05rem; color: var(--text); }
 .sn-nothing-sub { font-size: 13px; color: var(--muted); margin-top: 0.35rem; }
 
 /* ---- Títulos de etapa ------------------------------------------------ */
-.sn-step-title { font-family: 'Cinzel', serif; font-weight: 700; font-size: 1.15rem; color: var(--text); margin: 0; }
+.sn-step-title { font-family: 'Frank Ruhl Libre', serif; font-weight: 700; font-size: 1.15rem; color: var(--text); margin: 0; }
 .sn-step-sub { font-size: 12.5px; color: var(--muted); margin: 0.15rem 0 0; line-height: 1.5; }
 
 /* ---- Cards de GANHOS do nível ---------------------------------------- */

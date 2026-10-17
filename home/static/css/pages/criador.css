@@ -13,7 +13,7 @@
 /* ---- Stepper ---------------------------------------------------------- */
 .cf-stepper {
   position: sticky;
-  top: 57px;
+  top: var(--bft-header-height, 57px);
   z-index: 20;
   background: color-mix(in srgb, var(--bg0) 88%, transparent);
   backdrop-filter: blur(6px);
@@ -196,7 +196,7 @@
 /* ---- Preview ao vivo -------------------------------------------------- */
 .cf-preview {
   position: sticky;
-  top: 57px;
+  top: var(--bft-header-height, 57px);
   border: 1px solid var(--stroke);
   border-radius: 0.6rem;
   background: var(--bg1);
@@ -211,11 +211,11 @@
   border-bottom: 1px solid var(--stroke);
   background: var(--bg2);
 }
-.cf-preview-title { font-family: 'Cinzel', serif; font-weight: 700; font-size: 13px; color: var(--ember); }
+.cf-preview-title { font-family: 'Frank Ruhl Libre', serif; font-weight: 700; font-size: 13px; color: var(--ember); }
 .cf-preview-status { font-size: 10.5px; color: var(--muted); }
 .cf-preview-status.is-live { color: var(--spark); }
 .cf-preview-body { padding: 0.7rem; }
-.cf-preview-name { font-family: 'Cinzel', serif; font-weight: 700; font-size: 14px; color: var(--text); margin-bottom: 0.5rem; word-break: break-word; }
+.cf-preview-name { font-family: 'Frank Ruhl Libre', serif; font-weight: 700; font-size: 14px; color: var(--text); margin-bottom: 0.5rem; word-break: break-word; }
 .cf-preview-sub { font-size: 11px; color: var(--muted); font-weight: 400; }
 
 .cf-vitals { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.35rem; margin-bottom: 0.6rem; }
@@ -258,7 +258,7 @@
   /* stepper + etapas primeiro (navegação no topo); a prévia acompanha logo abaixo */
   .cf-main { order: 0; }
   .cf-preview { order: 1; position: static; margin-top: 1rem; }
-  .cf-stepper { position: sticky; top: 57px; }
+  .cf-stepper { position: sticky; top: var(--bft-header-height, 57px); }
   .cf-stepnav { position: sticky; }
   .cf-vitals { grid-template-columns: repeat(3, 1fr); }
 }

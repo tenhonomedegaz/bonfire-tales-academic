@@ -1,3 +1,4 @@
+{% load distance_display %}
 {% comment %}CORPO DA FOLHA — as tres colunas da onda F (atributos/saves/pericias · selos de
 combate, PV, ataques e recursos · caracteristicas). Extraido de ficha_detail.html e FONTE
 UNICA deste markup. Quem consome: a aba Ficha (ficha_detail) e a PREVIA do Pathbuilder
@@ -92,7 +93,7 @@ progressao de aventuras e atalhos para outras abas.{% endcomment %}
           <div class="seal seal-vel" title="Deslocamento">
             <div class="seal-face">
               <span class="seal-lbl">Deslocamento</span>
-              <span class="seal-num is-unit">{{ ficha.velocidade }}</span>
+              <span class="seal-num is-unit">{{ ficha.velocidade|dual_distance }}</span>
             </div>
           </div>
         </div>

@@ -26,7 +26,7 @@
   font-weight: 700;
 }
 .pb-head-id h1 {
-  font-family: 'Cinzel', serif;
+  font-family: 'Frank Ruhl Libre', serif;
   font-size: 1.55rem;
   font-weight: 700;
   color: var(--ember);
@@ -121,7 +121,7 @@
   background: var(--bg1);
   padding: 1.6rem 1.2rem;
 }
-.pb-empty h2 { font-family: 'Cinzel', serif; font-size: 1.05rem; color: var(--ember); margin-bottom: 0.5rem; }
+.pb-empty h2 { font-family: 'Frank Ruhl Libre', serif; font-size: 1.05rem; color: var(--ember); margin-bottom: 0.5rem; }
 .pb-empty p { font-size: 12.5px; color: var(--muted); line-height: 1.5; margin-bottom: 1rem; }
 
 /* ---- workspace: editor | ficha ---------------------------------------- */
@@ -137,7 +137,7 @@
 /* ---- stepper (padrão do criador) -------------------------------------- */
 .pb-stepper {
   position: sticky;
-  top: 57px;
+  top: var(--bft-header-height, 57px);
   z-index: 20;
   background: color-mix(in srgb, var(--bg0) 90%, transparent);
   backdrop-filter: blur(6px);
@@ -244,7 +244,7 @@
   margin-bottom: 0.35rem;
 }
 .pb-card-head h2 {
-  font-family: 'Cinzel', serif;
+  font-family: 'Frank Ruhl Libre', serif;
   font-size: 13.5px;
   font-weight: 700;
   color: var(--ember);
@@ -562,7 +562,7 @@
   border-bottom: 1px solid var(--stroke);
   background: var(--bg2, var(--bg1));
 }
-.pb-sheet-title { font-family: 'Cinzel', serif; font-weight: 700; font-size: 12.5px; color: var(--ember); }
+.pb-sheet-title { font-family: 'Frank Ruhl Libre', serif; font-weight: 700; font-size: 12.5px; color: var(--ember); }
 .pb-sheet-status { flex: 1; font-size: 10.5px; color: var(--muted); }
 .pb-sheet-status.is-error { color: var(--flame); }
 .pb-sheet-body { padding: 0.6rem; }

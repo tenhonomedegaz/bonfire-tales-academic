@@ -1,5 +1,7 @@
 {% extends 'home/base.html' %}
 {% load static %}
+{% block body_class %}bft-levelup{% endblock %}
+{% block main_class %}cw-main flex-1 w-full min-w-0{% endblock %}
 
 {% block content %}
 <section class="sn-wrap animate-fade-in">
@@ -36,6 +38,7 @@
       </div>
     </div>
   </header>
+  <p class="cw-context-note">Confira os ganhos, faça as escolhas disponíveis e revise a prévia. O personagem só é atualizado quando você confirma o lote ao final.</p>
 
   {% if not pode_subir and sem_pendencias %}
     {# ---- Nada a fazer: sem folga de teto e sem pendências ---- #}
@@ -439,5 +442,6 @@
 <link rel="stylesheet" href="{% static 'css/pages/criador.css' %}?v=3">
 <link rel="stylesheet" href="{% static 'css/pages/levelup.css' %}?v=3">
 <link rel="stylesheet" href="{% static 'css/pages/subir_nivel.css' %}?v=1">
+<link rel="stylesheet" href="{% static 'css/pages/character-workflows.css' %}?v=1">
 <script src="{% static 'js/subir_nivel.js' %}?v=4" defer></script>
 {% endblock %}

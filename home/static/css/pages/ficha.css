@@ -259,7 +259,7 @@
   }
 }
 .ficha-name {
-  font-family: 'Cinzel', serif;
+  font-family: 'Frank Ruhl Libre', serif;
   font-weight: 800;
   letter-spacing: 0.02em;
   line-height: 1.05;
@@ -320,7 +320,7 @@
   background: var(--sheet-deep);
   overflow: hidden;
   color: var(--ficha-accent);
-  font-family: 'Cinzel', serif;
+  font-family: 'Frank Ruhl Libre', serif;
   font-size: 1.8rem;
   font-weight: 800;
 }
@@ -430,7 +430,7 @@
   flex-wrap: wrap;
   align-items: baseline;
   gap: 0.35rem 0.55rem;
-  font-family: 'Cinzel', serif;
+  font-family: 'Frank Ruhl Libre', serif;
 }
 .banner-class {
   font-size: 1rem;
@@ -552,7 +552,7 @@
   padding: 0.85rem 0.9rem;
 }
 .ficha-section-title {
-  font-family: 'Cinzel', serif;
+  font-family: 'Frank Ruhl Libre', serif;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.14em;
@@ -622,7 +622,7 @@
 }
 /* VALOR grande no miolo (como no PDF); o modificador é o selo oval da base */
 .attr-box .attr-score {
-  font-family: 'Cinzel', serif;
+  font-family: 'Frank Ruhl Libre', serif;
   font-size: 1.7rem;
   font-weight: 800;
   color: var(--text);
@@ -669,7 +669,7 @@
   font-weight: 700;
 }
 .attr-stat .v {
-  font-family: 'Cinzel', serif;
+  font-family: 'Frank Ruhl Libre', serif;
   font-size: 1.3rem;
   font-weight: 800;
   color: var(--text);
@@ -736,7 +736,7 @@
   text-align: center;
 }
 .seal-lbl {
-  font-family: 'Cinzel', serif;
+  font-family: 'Frank Ruhl Libre', serif;
   font-size: 0.5rem;
   font-weight: 700;
   letter-spacing: 0.1em;
@@ -744,7 +744,7 @@
   color: var(--muted);
 }
 .seal-num {
-  font-family: 'Cinzel', serif;
+  font-family: 'Frank Ruhl Libre', serif;
   font-size: 1.45rem;
   font-weight: 800;
   line-height: 1.05;
@@ -799,21 +799,21 @@
   padding: 0.4rem 0.2rem;
 }
 .hp-cell .lbl {
-  font-family: 'Cinzel', serif;
+  font-family: 'Frank Ruhl Libre', serif;
   font-size: 0.54rem;
   text-transform: uppercase;
   letter-spacing: 0.12em;
   color: var(--muted);
   font-weight: 700;
 }
-.hp-cell .v { font-family: 'Cinzel', serif; font-size: 1.05rem; font-weight: 800; color: var(--text); }
+.hp-cell .v { font-family: 'Frank Ruhl Libre', serif; font-size: 1.05rem; font-weight: 800; color: var(--text); }
 .hp-cell.max .v { color: var(--ficha-accent-2); font-size: 1.45rem; line-height: 1.1; }
 .hp-track.single .hp-cell.max { padding: 0.42rem 0.4rem 0.48rem; }
 
 /* ---------- CARDS DE HABILIDADE (acordeão) ---------- */
 .feat-group + .feat-group { margin-top: 0.6rem; }
 .feat-group-title {
-  font-family: 'Cinzel', serif;
+  font-family: 'Frank Ruhl Libre', serif;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.14em;
@@ -833,7 +833,7 @@
 }
 .feat-group-title .count {
   margin-left: auto;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Open Sans', sans-serif;
   font-size: 0.7rem;
   letter-spacing: 0.05em;
   color: var(--muted);
@@ -1012,7 +1012,7 @@
   padding-bottom: 0.1rem;
 }
 .ficha-tab {
-  font-family: 'Cinzel', serif;
+  font-family: 'Frank Ruhl Libre', serif;
   font-weight: 700;
   letter-spacing: 0.06em;
   font-size: 0.85rem;
@@ -1217,7 +1217,7 @@
 .res-counter.is-empty { border-color: color-mix(in srgb, var(--ficha-danger) 45%, transparent); }
 .res-counter.is-empty .res-counter-value { color: var(--ficha-accent-2); }
 .res-counter-value {
-  font-family: 'Cinzel', serif;
+  font-family: 'Frank Ruhl Libre', serif;
   font-size: 1.35rem;
   font-weight: 800;
   line-height: 1;
@@ -1303,7 +1303,7 @@
   padding: 0.5rem 0.6rem 0.55rem;
 }
 .pers-lbl {
-  font-family: 'Cinzel', serif;
+  font-family: 'Frank Ruhl Libre', serif;
   font-size: 0.6rem;
   font-weight: 700;
   letter-spacing: 0.12em;
@@ -1370,10 +1370,10 @@
 .spellbook-head { display: flex; align-items: stretch; justify-content: space-between; gap: 0.55rem; border: 1px solid var(--stroke); border-radius: 8px; background: color-mix(in srgb, var(--ficha-raise) 92%, transparent); padding: 0.55rem; }
 .spell-title { display: flex; min-width: 12rem; flex-direction: column; justify-content: center; gap: 0.1rem; }
 .spell-title span, .spell-stat span, .mystic-points span, .spell-slot-numbers span { color: var(--muted); font-size: 0.62rem; font-weight: 800; text-transform: uppercase; }
-.spell-title strong { color: var(--text); font-family: 'Cinzel', serif; font-size: 1.35rem; }
+.spell-title strong { color: var(--text); font-family: 'Frank Ruhl Libre', serif; font-size: 1.35rem; }
 .spell-stats { display: grid; grid-template-columns: repeat(5, minmax(84px, 1fr)); gap: 0.55rem; flex: 1; }
 .spell-stat, .mystic-points { display: flex; min-height: 58px; flex-direction: column; align-items: center; justify-content: center; border: 1px solid color-mix(in srgb, var(--ficha-edge) 75%, transparent); border-radius: 6px; background: var(--sheet-deep, var(--bg0)); text-align: center; }
-.spell-stat strong, .mystic-points strong { color: var(--text); font-family: 'Cinzel', serif; font-size: 1.35rem; line-height: 1; }
+.spell-stat strong, .mystic-points strong { color: var(--text); font-family: 'Frank Ruhl Libre', serif; font-size: 1.35rem; line-height: 1; }
 .spell-stat.alt strong { color: var(--ficha-mystic); }
 .spell-alert {
   border: 1px solid color-mix(in srgb, var(--ficha-gold) 42%, transparent);
@@ -1392,7 +1392,7 @@
 .mystic-points.subtle strong { color: var(--ficha-gold); }
 .spell-slot-card { display: grid; grid-template-columns: 2rem 1fr auto; align-items: center; gap: 0.5rem; min-height: 58px; border: 1px solid color-mix(in srgb, var(--ficha-edge) 72%, transparent); border-radius: 6px; background: linear-gradient(180deg, color-mix(in srgb, var(--ficha-line) 98%, transparent), color-mix(in srgb, var(--ficha-raise) 98%, transparent)); padding: 0.45rem; }
 .spell-slot-card.is-zero { opacity: 0.45; }
-.spell-slot-level { display: flex; align-items: center; justify-content: center; width: 1.8rem; height: 2rem; border-radius: 4px; background: var(--sheet-surface, var(--bg1)); color: var(--text); font-family: 'Cinzel', serif; font-weight: 900; }
+.spell-slot-level { display: flex; align-items: center; justify-content: center; width: 1.8rem; height: 2rem; border-radius: 4px; background: var(--sheet-surface, var(--bg1)); color: var(--text); font-family: 'Frank Ruhl Libre', serif; font-weight: 900; }
 .spell-slot-numbers { display: grid; grid-template-columns: auto 1fr; gap: 0.1rem 0.35rem; align-items: baseline; }
 .spell-slot-numbers strong { color: var(--text); font-size: 0.95rem; line-height: 1; }
 /* Controles e confirmação cabem no cartão estreito em todas as larguras. */
@@ -1405,7 +1405,7 @@
 .spell-level-card { overflow: hidden; border: 1px solid var(--stroke); border-radius: 7px; background: color-mix(in srgb, var(--ficha-raise) 96%, transparent); }
 .spell-level-card.is-empty { opacity: 0.62; }
 .spell-level-head { display: grid; grid-template-columns: 2rem 1fr auto; align-items: center; gap: 0.55rem; min-height: 2.35rem; border-bottom: 1px solid color-mix(in srgb, var(--ficha-edge) 55%, transparent); background: color-mix(in srgb, var(--ficha-line) 92%, transparent); padding: 0.35rem 0.55rem; }
-.spell-level-head strong { color: var(--text); font-family: 'Cinzel', serif; font-size: 0.85rem; }
+.spell-level-head strong { color: var(--text); font-family: 'Frank Ruhl Libre', serif; font-size: 0.85rem; }
 .spell-level-head > span:last-child { color: var(--ficha-gold); font-size: 0.72rem; font-weight: 800; }
 .spell-level-num { display: inline-flex; align-items: center; justify-content: center; width: 1.55rem; height: 1.55rem; border-radius: 4px; background: var(--sheet-deep, var(--bg0)); color: var(--ficha-accent); font-weight: 900; }
 .spell-list { display: flex; flex-direction: column; padding: 0.25rem 0.5rem 0.45rem; }
@@ -1501,7 +1501,7 @@ button.spell-name-toggle.open .spell-caret { transform: rotate(90deg); opacity: 
   font-size: 0.85rem;
   color: var(--muted);
 }
-.magia-count strong { color: var(--ficha-accent); font-family: 'Cinzel', serif; font-size: 1.05rem; }
+.magia-count strong { color: var(--ficha-accent); font-family: 'Frank Ruhl Libre', serif; font-size: 1.05rem; }
 .magia-count.alt strong { color: var(--ficha-gold); }
 .magias-help { font-size: 0.85rem; color: var(--muted); line-height: 1.4; }
 .magias-help em { color: var(--ficha-gold); font-style: normal; font-weight: 600; }
@@ -1544,7 +1544,7 @@ button.spell-name-toggle.open .spell-caret { transform: rotate(90deg); opacity: 
 }
 .hist-table th {
   text-align: left;
-  font-family: 'Cinzel', serif;
+  font-family: 'Frank Ruhl Libre', serif;
   font-size: 0.68rem;
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -1682,7 +1682,7 @@ button.spell-name-toggle.open .spell-caret { transform: rotate(90deg); opacity: 
   padding: 0.4rem 0.75rem 0.45rem;
 }
 .bag-stat .lbl {
-  font-family: 'Cinzel', serif;
+  font-family: 'Frank Ruhl Libre', serif;
   font-size: 0.56rem;
   font-weight: 700;
   letter-spacing: 0.13em;
@@ -1709,7 +1709,7 @@ button.spell-name-toggle.open .spell-caret { transform: rotate(90deg); opacity: 
 }
 .bag-coins .coin-val { font-size: 1.02rem; font-weight: 800; line-height: 1.1; color: var(--ficha-gold); }
 .bag-coins .coin-sig {
-  font-family: 'Cinzel', serif;
+  font-family: 'Frank Ruhl Libre', serif;
   font-size: 0.55rem;
   font-weight: 700;
   letter-spacing: 0.1em;
@@ -1748,7 +1748,7 @@ button.spell-name-toggle.open .spell-caret { transform: rotate(90deg); opacity: 
   padding: 0.38rem 0.5rem 0.42rem;
 }
 .slot-name {
-  font-family: 'Cinzel', serif;
+  font-family: 'Frank Ruhl Libre', serif;
   font-size: 0.55rem;
   font-weight: 700;
   letter-spacing: 0.11em;
@@ -1821,7 +1821,7 @@ button.spell-name-toggle.open .spell-caret { transform: rotate(90deg); opacity: 
   border-radius: 6px;
   padding: 0.05rem 0.42rem;
   color: var(--bag-accent);
-  font-family: 'Cinzel', serif;
+  font-family: 'Frank Ruhl Libre', serif;
   font-size: 0.56rem;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -1906,7 +1906,7 @@ button.spell-name-toggle.open .spell-caret { transform: rotate(90deg); opacity: 
 .opt-title { display: flex; min-width: 0; flex-direction: column; gap: 0.1rem; }
 .opt-title strong {
   color: var(--ficha-accent);
-  font-family: 'Cinzel', serif;
+  font-family: 'Frank Ruhl Libre', serif;
   font-size: 0.8rem;
   font-weight: 800;
   letter-spacing: 0.05em;

@@ -84,8 +84,8 @@
   {% if protective %}<section aria-label="Contramedidas Protetivas">
     <h2>Contramedidas Protetivas</h2>
     {% if protective.pending %}<p>Escolha INT ou SAB na preparação.</p>
-    {% elif protective.ability == 'int' %}<p>Inteligência escolhida. Contra Inimigos Favoritos: +{{ sheet.atributos.INT.mod }} em salvaguardas provocadas por eles; redução de dano igual ao modificador (mínimo 1).</p>
-    {% else %}<p>Sabedoria escolhida. Contra Inimigos Favoritos: +{{ sheet.atributos.SAB.mod }} em salvaguardas provocadas por eles; redução de dano igual ao modificador (mínimo 1).</p>{% endif %}
+    {% elif protective.ability == 'int' %}<p>Inteligência escolhida. Contra Inimigos Favoritos: +{{ sheet.atributos.INT.mod }} em testes de resistência provocadas por eles; redução de dano igual ao modificador (mínimo 1).</p>
+    {% else %}<p>Sabedoria escolhida. Contra Inimigos Favoritos: +{{ sheet.atributos.SAB.mod }} em testes de resistência provocadas por eles; redução de dano igual ao modificador (mínimo 1).</p>{% endif %}
   </section>{% endif %}
   {% if can_prepare %}
   <form method="post" action="{% url 'personagem_descansar' person.pk %}" class="flex flex-wrap gap-3">
@@ -108,7 +108,7 @@
       <div><dt>Ataques por ação</dt><dd>{{ sheet.ataques.quantidade }}</dd></div>
       {% if sheet.mutagen_bonus_attack %}<div><dt>Manticora Raivosa</dt><dd>Após realizar a ação Atacar, pode fazer um ataque adicional como Ação Bônus.</dd></div>{% endif %}
       {% if sheet.mutagen_weapon_critical %}<div><dt>Quimera do Caos</dt><dd>Ataques com armas: crítico com 19 ou 20 no d20.</dd></div>{% endif %}
-      {% if sheet.mutagen_mental_save_disadvantage %}<div><dt>Efeito Colateral da Quimera do Caos</dt><dd>Desvantagem em salvaguardas contra efeitos mentais, incluindo medo e encantamento.</dd></div>{% endif %}
+      {% if sheet.mutagen_mental_save_disadvantage %}<div><dt>Efeito Colateral da Quimera do Caos</dt><dd>Desvantagem em testes de resistência contra efeitos mentais, incluindo medo e encantamento.</dd></div>{% endif %}
       {% if sheet.cacador %}<div><dt>CD / ataque mágico</dt><dd>{{ sheet.cacador.secret_dc }} / {{ sheet.cacador.spell_attack }}</dd></div>{% endif %}
     </dl>
     <p>Bônus que dependem do alvo, da Marca ou de condições de turno são resolvidos conforme a situação em mesa.</p>
@@ -117,7 +117,7 @@
       <tbody>{% for attack in sheet.ataques.perfis %}<tr><th scope="row">{{ attack.nome|default:attack.escopo }}{% if attack.nota %} · {{ attack.nota }}{% endif %}</th><td>{{ attack.atributo }}</td><td>{{ attack.bonus_ataque }}</td><td>{{ attack.dano }}</td><td>{{ attack.maestria|default:'—' }}</td></tr>{% empty %}<tr><td colspan="5">Nenhum perfil de ataque disponível.</td></tr>{% endfor %}</tbody>
     </table></div>
   </section>
-  <section aria-labelledby="attributes-title"><h2 id="attributes-title" class="text-xl font-bold">Atributos e salvaguardas</h2>
+  <section aria-labelledby="attributes-title"><h2 id="attributes-title" class="text-xl font-bold">Atributos e testes de resistência</h2>
     {% if sheet.mutagen_weapon_disadvantage %}<p>Harpia das Montanhas: Desvantagem em jogadas de ataque com armas.</p>{% endif %}
     {% if sheet.mutagen_cannot_dodge %}<p>Carapaça de Basilisco: não pode realizar a ação Esquivar; deslocamento reduzido em 3 m (10 pés).</p>{% endif %}
     {% if sheet.mutagen_cannot_concentrate %}<p>Guepardo das Planícies: Desvantagem em testes de Inteligência; não pode manter Concentração em magias ou rituais.</p>{% endif %}
@@ -125,10 +125,10 @@
     {% if sheet.mutagen_bright_light_disadvantage %}<p>Morcego Abissal: sob luz plena, Desvantagem em testes de habilidade e jogadas de ataque.</p>{% endif %}
     {% if sheet.crepusculo %}<p>Caçador das Sombras: +{{ sheet.crepusculo.initiative_bonus }} na iniciativa; Visão no Escuro ampliada em 60 pés e visão normal através de escuridão mágica. Ataques adicionais e invisibilidade dependem do turno, da iluminação e da presa marcada.</p>{% endif %}
     <dl class="grid grid-cols-2 md:grid-cols-3 gap-3">{% for name, attribute in sheet.atributos.items %}<div><dt>{{ name }}</dt><dd>{{ attribute.valor }} · modificador {{ attribute.mod }}</dd></div>{% endfor %}</dl>
-    <dl class="grid grid-cols-2 md:grid-cols-3 gap-3">{% for name, save in sheet.saves.items %}<div><dt>Salvaguarda {{ name }}</dt><dd>{{ save.bonus }}{% for condition in save.mutagen_conditions %}<br>{{ condition }}{% endfor %}</dd></div>{% endfor %}</dl>
+    <dl class="grid grid-cols-2 md:grid-cols-3 gap-3">{% for name, save in sheet.saves.items %}<div><dt>Teste de resistência {{ name }}</dt><dd>{{ save.bonus }}{% for condition in save.mutagen_conditions %}<br>{{ condition }}{% endfor %}</dd></div>{% endfor %}</dl>
     <p>Resistências: {{ sheet.resistencias|join:', '|default:'—' }}. Vulnerabilidades: {{ sheet.vulnerabilidades|join:', '|default:'—' }}.</p>
     {% if sheet.mutagen_initiative_disadvantage %}<p>Camaleão Espectral: desvantagem em Iniciativa.</p>{% endif %}
-    {% if sheet.mutagen_charisma_modifiers %}<p>Camaleão Espectral: em testes de Carisma, você pode usar o modificador de {% for option in sheet.mutagen_charisma_modifiers %}{{ option.atributo }} ({{ option.bonus }}){% if not forloop.last %} ou {% endif %}{% endfor %}. A escolha não altera salvaguardas.</p>{% endif %}
+    {% if sheet.mutagen_charisma_modifiers %}<p>Camaleão Espectral: em testes de Carisma, você pode usar o modificador de {% for option in sheet.mutagen_charisma_modifiers %}{{ option.atributo }} ({{ option.bonus }}){% if not forloop.last %} ou {% endif %}{% endfor %}. A escolha não altera testes de resistência.</p>{% endif %}
     <h3>Perícias</h3><ul class="grid grid-cols-1 md:grid-cols-2 gap-2">{% for skill in sheet.pericias %}<li>{{ skill.nome }} ({{ skill.atributo }}): {{ skill.bonus }}{% if skill.expertise %} · Especialização{% elif skill.proficiente %} · Proficiente{% endif %}{% if skill.mutagen_alternatives %}<br>Camaleão: {% for option in skill.mutagen_alternatives %}{{ option.atributo }} {{ option.bonus }}{% if not forloop.last %} ou {% endif %}{% endfor %}{% endif %}{% for condition in skill.mutagen_conditions %}<br>{{ condition }}{% endfor %}</li>{% endfor %}</ul>
     <p>Sentidos: {{ sheet.sentidos|join:', '|default:'—' }}. Imunidades: {{ sheet.imunidades|join:', '|default:'—' }}.</p>
   </section>

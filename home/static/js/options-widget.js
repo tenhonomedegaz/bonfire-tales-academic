@@ -762,8 +762,37 @@
         document.addEventListener('click', async (e) => {
             const trigger = e.target.closest('.bonfire-card-trigger');
             if (!trigger) return;
+            if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
             e.preventDefault();
-            await showCardPreview(trigger);
+            await showCardPreview(trigger, true);
+        });
+
+        // Hover/focus on bestiary spell references. Click pins the same card for
+        // touch and keyboard users; moving into the card keeps it readable.
+        document.addEventListener('pointerover', e => {
+            if (e.pointerType && e.pointerType !== 'mouse') return;
+            if (activeCard?.contains(e.target)) { clearTimeout(closeTimer); return; }
+            const trigger = e.target.closest('.be-spell-trigger');
+            if (!trigger || trigger.contains(e.relatedTarget)) return;
+            clearTimeout(hoverTimer); clearTimeout(closeTimer);
+            hoverTimer = setTimeout(() => showCardPreview(trigger), 250);
+        });
+        document.addEventListener('pointerout', e => {
+            const trigger = e.target.closest('.be-spell-trigger');
+            if (!trigger && !activeCard?.contains(e.target)) return;
+            if (trigger?.contains(e.relatedTarget) || activeCard?.contains(e.relatedTarget)) return;
+            clearTimeout(hoverTimer);
+            scheduleCloseCard();
+        });
+        document.addEventListener('focusin', e => {
+            if (e.target === skipFocusPreview) return;
+            if (activeCard?.contains(e.target)) { clearTimeout(closeTimer); return; }
+            const trigger = e.target.closest('.be-spell-trigger');
+            if (trigger) { clearTimeout(closeTimer); showCardPreview(trigger); }
+        });
+        document.addEventListener('focusout', e => {
+            if (activeCard?.contains(e.relatedTarget) || activeTrigger?.contains(e.relatedTarget)) return;
+            scheduleCloseCard();
         });
 
         document.addEventListener('toggle', (e) => {
@@ -813,30 +842,75 @@
     }
 
     let activeCard = null;
+    let activeTrigger = null;
+    let cardPinned = false;
+    let skipFocusPreview = null;
+    let hoverTimer, closeTimer;
+    const previewCache = new Map();
 
-    async function showCardPreview(trigger) {
-        if (activeCard) {
-            activeCard.remove();
-            activeCard = null;
+    function scheduleCloseCard() {
+        clearTimeout(closeTimer);
+        closeTimer = setTimeout(() => {
+            if (!cardPinned && !activeTrigger?.contains(document.activeElement) && !activeCard?.contains(document.activeElement)) closeCardPreview();
+        }, 300);
+    }
+
+    function closeCardPreview() {
+        clearTimeout(hoverTimer); clearTimeout(closeTimer);
+        if (activeCard) activeCard.remove();
+        if (activeTrigger) {
+            activeTrigger.removeAttribute('aria-expanded');
+            activeTrigger.removeAttribute('aria-controls');
         }
+        activeCard = null; activeTrigger = null; cardPinned = false;
+    }
+    function closeCardAndFocus() {
+        const trigger = activeTrigger;
+        skipFocusPreview = trigger;
+        closeCardPreview();
+        trigger?.focus();
+        skipFocusPreview = null;
+    }
+
+    async function showCardPreview(trigger, pinned = false) {
+        clearTimeout(closeTimer);
+        if (activeCard && activeTrigger === trigger) {
+            cardPinned = cardPinned || pinned;
+            return;
+        }
+        if (activeCard && cardPinned && !pinned) return;
+        closeCardPreview();
 
         const table = trigger.dataset.table;
         const args = trigger.dataset.args;
 
         const card = document.createElement('div');
         card.className = 'bonfire-preview-card';
+        card.id = 'bonfire-preview-active';
+        card.setAttribute('role', 'dialog');
+        card.setAttribute('aria-label', 'Prévia de ' + trigger.textContent.trim());
         card.innerHTML = `
             <div class="bonfire-preview-card-loader">Carregando...</div>
         `;
         document.body.appendChild(card);
         activeCard = card;
+        activeTrigger = trigger;
+        cardPinned = pinned;
+        trigger.setAttribute('aria-expanded','true');
+        trigger.setAttribute('aria-controls',card.id);
 
         positionCard(trigger, card);
 
         try {
-            const res = await fetch(`/api/card-preview/?table=${encodeURIComponent(table)}&args=${encodeURIComponent(args)}`);
-            if (!res.ok) throw new Error('Item não encontrado');
-            const data = await res.json();
+            const key = table+'::'+args;
+            if (!previewCache.has(key)) {
+                if (previewCache.size >= 60) previewCache.delete(previewCache.keys().next().value);
+                previewCache.set(key, fetch(`/api/card-preview/?table=${encodeURIComponent(table)}&args=${encodeURIComponent(args)}`)
+                    .then(res => { if (!res.ok) throw new Error('Item não encontrado'); return res.json(); })
+                    .catch(error => { previewCache.delete(key); throw error; }));
+            }
+            const data = await previewCache.get(key);
+            if (activeCard !== card) return;
             if (!data.success) throw new Error(data.error || 'Erro');
 
             const renderFn = txt => {
@@ -866,13 +940,17 @@
             }
             card.dataset.cardWidth = data.card_width || '';
 
+            const isSpellCard = data.kind === 'spell' && Boolean(data.card_html);
+            card.classList.toggle('bft-spells', isSpellCard);
+            card.classList.toggle('bonfire-preview-card-spell', isSpellCard);
+
             card.innerHTML = `
-                <button type="button" class="bonfire-preview-card-close">&times;</button>
-                <div class="bonfire-preview-card-header">
+                <button type="button" class="bonfire-preview-card-close" aria-label="Fechar prévia">&times;</button>
+                ${isSpellCard ? '' : `<div class="bonfire-preview-card-header">
                     <span class="bonfire-preview-card-type">${escapeHtml(data.kind || table.replace(/^tb/, ''))}</span>
                     <h3 class="bonfire-preview-card-title">${escapeHtml(data.title)}</h3>
                     ${data.subtitle ? `<div class="bonfire-preview-card-subtitle">${escapeHtml(data.subtitle)}</div>` : ''}
-                </div>
+                </div>`}
                 <div class="bonfire-preview-card-body bonfire-markdown">
                     ${descHtml}
                 </div>
@@ -883,24 +961,27 @@
                 ` : ''}
             `;
 
+            if (isSpellCard) card.querySelectorAll('.spell-copy').forEach(copy => {
+                copy.innerHTML = renderFn(copy.textContent);
+            });
+
             positionCard(trigger, card);
 
             card.querySelector('.bonfire-preview-card-close').addEventListener('click', (e) => {
                 e.stopPropagation();
-                card.remove();
-                if (activeCard === card) activeCard = null;
+                closeCardAndFocus();
             });
 
         } catch (err) {
+            if (activeCard !== card) return;
             card.innerHTML = `
-                <button type="button" class="bonfire-preview-card-close">&times;</button>
+                <button type="button" class="bonfire-preview-card-close" aria-label="Fechar prévia">&times;</button>
                 <div class="bonfire-preview-card-error">Erro ao carregar prévia: ${escapeHtml(err.message)}</div>
             `;
             positionCard(trigger, card);
             card.querySelector('.bonfire-preview-card-close').addEventListener('click', (e) => {
                 e.stopPropagation();
-                card.remove();
-                if (activeCard === card) activeCard = null;
+                closeCardAndFocus();
             });
         }
     }
@@ -908,21 +989,17 @@
     function positionCard(trigger, card) {
         const rect = trigger.getBoundingClientRect();
         const requestedWidth = parseInt(card.dataset.cardWidth || '0', 10);
-        const cardWidth = Math.min(Math.max(requestedWidth || 320, 320), Math.max(320, window.innerWidth - 20));
+        const cardWidth = Math.min(Math.max(requestedWidth || 320, 320), window.innerWidth - 24);
+        card.style.maxHeight = `${Math.max(180, window.innerHeight - 100)}px`;
+        card.style.width = `${cardWidth}px`;
         
-        let left = rect.left + window.scrollX + (rect.width / 2) - (cardWidth / 2);
-        if (left < 10) left = 10;
-        if (left + cardWidth > window.innerWidth - 10) {
-            left = window.innerWidth - cardWidth - 10;
-        }
+        const left = Math.max(12, Math.min(rect.left + rect.width/2 - cardWidth/2, window.innerWidth-cardWidth-12));
 
         const cardHeight = card.offsetHeight || 150;
-        let top = rect.top + window.scrollY - cardHeight - 10;
-        if (rect.top - cardHeight - 10 < 10) {
-            top = rect.bottom + window.scrollY + 10;
-        }
+        const preferredTop = rect.bottom + 10 + cardHeight <= window.innerHeight-12 ? rect.bottom+10 : rect.top-cardHeight-10;
+        const top = Math.max(82, Math.min(preferredTop, window.innerHeight-cardHeight-12));
 
-        card.style.position = 'absolute';
+        card.style.position = 'fixed';
         card.style.left = `${left}px`;
         card.style.top = `${top}px`;
         card.style.width = `${cardWidth}px`;
@@ -931,10 +1008,16 @@
 
     document.addEventListener('click', (e) => {
         if (activeCard && !activeCard.contains(e.target) && !e.target.closest('.bonfire-card-trigger')) {
-            activeCard.remove();
-            activeCard = null;
+            closeCardPreview();
         }
     });
+    document.addEventListener('keydown', e => {
+        if (e.key !== 'Escape' || !activeCard) return;
+        const restoreFocus = activeCard.contains(document.activeElement);
+        if (restoreFocus) closeCardAndFocus();
+        else closeCardPreview();
+    });
+    window.addEventListener('resize', () => { if (activeCard && activeTrigger) positionCard(activeTrigger,activeCard); });
 
     window.bonfireOptionsWidget = { hydrate: hydrateAll, hydrateCreatures: hydrateCreatures };
 })();

@@ -26,7 +26,7 @@
     }
     .prose h3 {
         color: var(--ember);
-        font-family: 'Cinzel', serif;
+        font-family: 'Frank Ruhl Libre', serif;
         font-size: 1.05rem;
         font-weight: 700;
         margin-top: 1rem;
@@ -40,7 +40,7 @@
         border-radius: 4px;
         color: var(--spark);
         display: table;
-        font-family: 'Cinzel', serif;
+        font-family: 'Frank Ruhl Libre', serif;
         font-size: 0.95rem;
         font-weight: 800;
         line-height: 1.25;
@@ -329,7 +329,7 @@
             border-right: 1px solid var(--stroke);
             box-shadow: 18px 0 50px rgba(0,0,0,.7);
             position: fixed;
-            top: 57px;
+            top: var(--bft-header-height, 57px);
             bottom: 0;
             left: 0;
             width: 60vw;

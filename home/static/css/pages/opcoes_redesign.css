@@ -1,0 +1,180 @@
+/* Options catalogue: Bonfire branding, isolated from the character sheet. */
+body.bft-options {
+  --bg0:#0a0a0a; --bg1:#131112; --bg2:#201416; --stroke:#422326;
+  --text:#f2eee8; --muted:#b9b3b3; --ember:#ff6a00; --flame:#b31515;
+  background:#0a0a0a; color:var(--text); font-family:'Open Sans',sans-serif;
+}
+.bft-options .bft-header { border-bottom-color:#572023; }
+.bft-options .bft-footer { border-top-color:#572023; }
+.bft-options .bft-options-main { max-width:1400px; margin:0 auto; padding:22px 28px 48px; min-width:0; }
+.bft-options .option-page, .bft-options .option-workspace, .bft-options .option-detail-body { min-width:0; }
+.bft-options .option-page [hidden] { display:none !important; }
+.bft-options .option-masthead { position:relative; overflow:hidden; border:1px solid #693034; border-top:2px solid #b31515; background:#161011; margin-bottom:20px; }
+.bft-options .option-masthead-copy { position:relative; z-index:1; padding:17px 24px 20px; }
+.bft-options .option-breadcrumb { display:flex; flex-wrap:wrap; gap:9px; font-size:.73rem; letter-spacing:.08em; text-transform:uppercase; color:#c5b0ad; }
+.bft-options .option-breadcrumb a:hover { color:#fff; }
+.bft-options .option-masthead h1 { font-family:'Frank Ruhl Libre',Georgia,serif; font-size:clamp(2.25rem,3.5vw,3rem); line-height:1.1; font-weight:500; letter-spacing:-.025em; margin:8px 0; }
+.bft-options .option-masthead p { color:#e4d1c9; font-size:.96rem; line-height:1.6; margin:0; }
+.bft-options .option-masthead p span { color:#bcb4b2; }
+.bft-options .option-masthead-art { position:absolute; inset:0 0 0 43%; opacity:.7; background:linear-gradient(90deg,#161011,#16101188 45%,#09060644),url('../../brand/facets.svg') right center / auto 270px no-repeat,url('../../brand/campfire.webp') center 58% / cover; }
+.bft-options .option-workspace { display:grid; grid-template-columns:280px minmax(0,1fr); align-items:start; gap:22px; }
+.bft-options .option-sidebar { display:flex; flex-direction:column; min-width:0; padding:14px 12px 8px; background:#131112; border:1px solid #422326; border-top:2px solid #7c2228; }
+.bft-options.options-enhanced .option-sidebar { position:sticky; top:calc(var(--bft-header-height,72px) + 12px); max-height:calc(100dvh - var(--bft-header-height,72px) - 24px); overflow:hidden; }
+.bft-options .option-index-heading { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:12px; }
+.bft-options .option-index-heading h2 { font-family:'Frank Ruhl Libre',Georgia,serif; font-size:1.5rem; font-weight:500; line-height:1.2; margin:0; color:#f2e5dc; }
+.bft-options #optionCloseList { display:none; }
+.bft-options .option-tools { flex-shrink:0; }
+.bft-options .option-tools label { display:block; font-size:.78rem; color:#c2b3b0; margin:0 0 5px; }
+.bft-options .option-search-wrap { position:relative; margin-bottom:11px; }
+.bft-options .option-search-wrap svg { position:absolute; width:16px; height:16px; top:12px; left:10px; color:#b99b97; pointer-events:none; }
+.bft-options #optionSearch, .bft-options #optionCategory { width:100%; min-width:0; min-height:40px; padding:9px 8px; border:1px solid #513035; border-radius:3px; background:#0d0b0c; color:#eee7e2; font:inherit; font-size:.85rem; color-scheme:dark; }
+.bft-options #optionSearch { padding-left:32px; }
+.bft-options #optionSearch::placeholder { color:#a59492; font-size:.79rem; }
+.bft-options #optionCategory { padding-right:20px; }
+.bft-options .option-tool-buttons { display:grid; grid-template-columns:1fr auto; gap:7px; margin:9px 0 0; }
+.bft-options .option-tool-buttons button { display:flex; align-items:center; justify-content:center; gap:8px; min-height:38px; padding:7px 13px; border:1px solid #693034; border-radius:3px; color:#e7d1c8; background:#251416; font-size:.85rem; }
+.bft-options .option-tool-buttons button:hover { background:#3c171c; border-color:#b95341; color:#fff; }
+.bft-options .option-tool-buttons svg { width:16px; height:16px; }
+.bft-options #optionFilterCount { background:#b31515; color:#fff; border-radius:3px; font-size:.72rem; padding:1px 6px; }
+.bft-options .option-index-status { display:flex; justify-content:space-between; align-items:center; min-height:39px; gap:8px; font-size:.78rem; color:#b7a5a0; }
+.bft-options #optionReset { padding:6px 0 6px 8px; color:#efb19b; text-decoration:underline; text-underline-offset:3px; }
+.bft-options #optionActiveFilters { color:#d0a89b; font-size:.76rem; line-height:1.5; overflow-wrap:anywhere; margin:0 0 8px; }
+.bft-options #opcoesListItems { display:flex; flex-direction:column; min-height:80px; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; scrollbar-color:#703038 #151112; gap:3px; padding-right:4px; }
+.bft-options #opcoesListItems > a { display:flex; flex-direction:column; gap:5px; flex-shrink:0; padding:10px 9px; border:1px solid transparent; border-left:2px solid transparent; border-radius:2px; text-decoration:none; }
+.bft-options #opcoesListItems > a:hover { border-color:#47272c; background:#241619; }
+.bft-options #opcoesListItems > a[aria-current] { background:linear-gradient(90deg,#4b0d0d,#281417); border-color:#6a292e; border-left-color:#ef572c; }
+.bft-options #opcoesListItems > a > span { font-size:.88rem; font-weight:600; color:#ded1cb; line-height:1.4; overflow-wrap:anywhere; }
+.bft-options #opcoesListItems > a[aria-current] > span { color:#fff2e8; }
+.bft-options #opcoesListItems > a > small { color:#bda8a1; font-size:.72rem; line-height:1.5; overflow-wrap:anywhere; }
+.bft-options .option-group-title { display:flex; justify-content:space-between; gap:10px; margin:12px 0 3px; padding:8px 8px 7px; border-bottom:1px solid #48282d; color:#e5a18d; font-size:.68rem; letter-spacing:.08em; text-transform:uppercase; line-height:1.5; }
+.bft-options .option-group-title:first-child { margin-top:0; }
+.bft-options .option-group-title small { font-size:inherit; color:#c8aca3; }
+.bft-options .option-list-empty { padding:18px 9px; color:#b9b3b3; line-height:1.7; font-size:.88rem; }
+.bft-options .option-detail { min-width:0; border:1px solid #422326; background:#131112; }
+.bft-options .option-detail-header { position:relative; display:flex; align-items:center; gap:14px; padding:19px 24px; min-height:94px; background:linear-gradient(100deg,#3b0e12,#211317 65%,#161112); border-bottom:1px solid #60272d; }
+.bft-options .option-detail-header::after { content:''; position:absolute; inset:0 0 0 65%; background:url('../../brand/facets.svg') right center / 200px no-repeat; opacity:.18; pointer-events:none; }
+.bft-options .option-emblem { width:38px; height:38px; flex:0 0 38px; color:#e58660; }
+.bft-options .option-emblem svg { width:100%; height:100%; }
+.bft-options .option-detail-heading { min-width:0; flex:1; position:relative; z-index:1; }
+.bft-options .option-eyebrow { font-size:.7rem; letter-spacing:.13em; text-transform:uppercase; color:#e19a83; margin:0 0 5px; }
+.bft-options .option-detail h2[data-option-title] { font-family:'Frank Ruhl Libre',Georgia,serif; margin:0; font-weight:500; color:#f7e9df; line-height:1.15; letter-spacing:-.015em; font-size:clamp(1.85rem,2.5vw,2.4rem); overflow-wrap:anywhere; scroll-margin-top:90px; }
+.bft-options [data-option-title]:focus { outline:none !important; }
+.bft-options .option-detail-header .wiki-edit-button { position:relative; z-index:1; flex-shrink:0; }
+.bft-options .option-detail-body { padding:20px 26px 27px; }
+.bft-options .option-tags { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:15px; }
+.bft-options .option-tags span { border:1px solid #543037; background:#251719; color:#d8b5a9; font-size:.76rem; padding:3px 7px; border-radius:2px; overflow-wrap:anywhere; }
+.bft-options .option-meta { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); margin:0 0 22px; border:1px solid #4a272c; background:#1b1315; }
+.bft-options .option-meta > div { padding:12px 14px; min-width:0; }
+.bft-options .option-meta > div + div { border-left:1px solid #4a272c; }
+.bft-options .option-meta dt { font-size:.7rem; color:#e3a18b; letter-spacing:.08em; text-transform:uppercase; margin-bottom:6px; }
+.bft-options .option-meta dd { color:#ded1cb; font-size:14px; line-height:1.65; margin:0; overflow-wrap:anywhere; }
+.bft-options .option-meta ul { list-style:none; padding:0; margin:0; }
+.bft-options .option-meta li + li { margin-top:5px; }
+.bft-options .option-meta strong { font-weight:600; color:#f1ddd1; }
+.bft-options .option-copy { max-width:88ch; font-size:16px; line-height:1.85; color:#d3ccc7; overflow-wrap:anywhere; }
+.bft-options .option-copy p { margin:0 0 1.1em; }
+.bft-options .option-copy em { display:inline; color:inherit; font-style:italic; }
+.bft-options .option-copy strong { color:#f2e1d4; font-weight:700; }
+.bft-options .option-copy .option-rule-label { display:block; color:#f1c3ab; margin:1.1em 0 .22em; }
+.bft-options .option-copy p:first-child > .option-rule-label { margin-top:0; }
+.bft-options .option-copy h1, .bft-options .option-copy h2, .bft-options .option-copy h3, .bft-options .option-copy h4, .bft-options .option-copy h5, .bft-options .option-copy h6 { font-family:'Frank Ruhl Libre',Georgia,serif; font-size:1.5rem; line-height:1.3; font-weight:500; text-transform:none; color:#f4e3d8; margin:26px 0 12px; padding:0; background:none; border:0; letter-spacing:0; }
+.bft-options .option-copy ul, .bft-options .option-copy ol { padding-left:22px; margin:12px 0 20px; }
+.bft-options .option-copy li { padding-left:3px; margin:8px 0; }
+.bft-options .option-copy li::marker { color:#d66048; }
+.bft-options .option-copy li > ul, .bft-options .option-copy li > ol { margin:8px 0; }
+.bft-options .option-copy a { color:#f1aa85; text-decoration:underline; text-underline-offset:3px; }
+.bft-options .option-copy table { display:table; width:100%; table-layout:fixed; border-collapse:collapse; margin:20px 0; font-size:.89rem; line-height:1.65; }
+.bft-options .option-copy th, .bft-options .option-copy td { white-space:normal; overflow-wrap:anywhere; padding:10px 12px; border:1px solid #4e2a2e; text-align:left; }
+.bft-options .option-copy th { background:#421117; color:#f2d2c4; font-size:.75rem; letter-spacing:.06em; }
+.bft-options .option-copy tr:nth-child(even) td { background:#1d1416; }
+.bft-options .option-copy blockquote { border-left:2px solid #b31515; background:#211416; color:#dfc6b9; padding:13px 17px; margin:18px 0; }
+.bft-options .option-copy blockquote p:last-child { margin:0; }
+.bft-options .option-copy .bonfire-toggle { border:1px solid #543037; background:#1b1315; border-radius:3px; margin:16px 0; }
+.bft-options .option-copy .bonfire-toggle > summary { padding:12px 14px; color:#f0c8b4; cursor:pointer; font-size:.9rem; font-weight:600; box-shadow:none; text-transform:none; letter-spacing:0; }
+.bft-options .option-copy .bonfire-toggle-content { padding:12px 16px; }
+.bft-options .option-guidance { border:1px solid #58302d; border-left:2px solid #b31515; background:#1d1314; margin-top:24px; border-radius:3px; }
+.bft-options .option-guidance summary { display:flex; justify-content:space-between; gap:12px; cursor:pointer; padding:12px 14px; color:#e6b9a5; font-size:.84rem; list-style:none; }
+.bft-options .option-guidance summary::-webkit-details-marker { display:none; }
+.bft-options .option-guidance summary::after { content:'+'; font-size:1.1rem; color:#ff9b66; }
+.bft-options .option-guidance[open] summary::after { content:'−'; }
+.bft-options .option-guidance p { margin:0; border-top:1px solid #48272a; padding:12px 14px; font-size:.88rem; color:#c9b7b0; line-height:1.75; }
+.bft-options .option-notice { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px; padding:12px 16px; background:#291b16; border-bottom:1px solid #75402f; color:#e4c5af; font-size:.8rem; line-height:1.6; }
+.bft-options .option-notice button { color:#ffc293; text-decoration:underline; text-underline-offset:3px; flex-shrink:0; }
+.bft-options .option-empty { padding:28px 25px; }
+.bft-options .option-empty h2 { font-family:'Frank Ruhl Libre',Georgia,serif; font-size:1.9rem; }
+.bft-options .option-empty p { color:#b9b3b3; margin:12px 0; line-height:1.7; }
+.bft-options .option-filter-modal { position:fixed; inset:0; z-index:110; display:flex; justify-content:center; align-items:center; padding:16px; }
+.bft-options .option-filter-backdrop { position:absolute; inset:0; background:#000c; backdrop-filter:blur(3px); }
+.bft-options .option-filter-panel { position:relative; width:100%; max-width:650px; max-height:calc(100dvh - 32px); display:flex; flex-direction:column; border:1px solid #693034; border-top:2px solid #b31515; border-radius:4px; background:#171112; box-shadow:0 25px 80px #000b; }
+.bft-options .option-filter-panel > header { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:17px 20px; border-bottom:1px solid #422326; flex-shrink:0; }
+.bft-options #optionFiltersTitle { font-family:'Frank Ruhl Libre',Georgia,serif; font-size:1.7rem; font-weight:500; margin:0; line-height:1.2; }
+.bft-options #optionFilterClose { display:grid; place-items:center; width:40px; height:40px; border:1px solid #593139; border-radius:3px; color:#e3b6a3; flex-shrink:0; }
+.bft-options #optionFilterClose svg { width:20px; height:20px; }
+.bft-options .option-filter-content { overflow-y:auto; min-height:0; padding:18px 20px; overscroll-behavior:contain; }
+.bft-options .option-filter-content h3 { font-size:.76rem; letter-spacing:.08em; text-transform:uppercase; color:#d5b5a9; padding-bottom:9px; margin:0 0 12px; border-bottom:1px solid #422326; }
+.bft-options .option-filter-content section + section { margin-top:22px; }
+.bft-options .option-filter-chips { display:flex; flex-wrap:wrap; gap:7px; }
+.bft-options .option-filter-chips button { min-height:38px; padding:8px 11px; font-size:.82rem; border:1px solid #593139; border-radius:3px; color:#d5c5bf; background:#211719; text-align:left; }
+.bft-options .option-filter-chips button[aria-pressed=true] { background:#6a171b; color:#fff0e7; border-color:#d66048; }
+.bft-options #optionFiltersHint { margin-top:20px; color:#baa9a2; font-size:.8rem; line-height:1.7; }
+.bft-options .option-filter-panel > footer { display:flex; gap:10px; padding:15px 20px; border-top:1px solid #422326; flex-shrink:0; }
+.bft-options .option-filter-panel > footer button { min-height:42px; padding:9px 15px; border:1px solid #693034; border-radius:3px; color:#e9d5c9; font-size:.87rem; }
+.bft-options #optionFilterApply { flex:1; background:#b31515; border-color:#cb4032; color:#fff3ec; }
+.bft-options #optionFilterApply:hover { background:#ca2921; }
+.bft-options .wiki-editor { background:#191113; border-color:#693034; margin:0 0 24px; }
+.bft-options .wiki-editor label { font-size:.74rem; color:#dbb7a7; }
+.bft-options .wiki-editor :is(input,textarea) { font-size:.9rem; line-height:1.6; }
+.bft-options .wiki-editor :is(.wiki-save,.wiki-cancel) { min-height:40px; font-size:.85rem; }
+.bft-options :is(button,input,select,textarea,a,summary):focus-visible { outline:2px solid #ff9c66; outline-offset:3px; }
+.bft-options.option-overlay-open #main-content { z-index:80; }
+.bft-options.option-overlay-open { overflow:hidden; }
+.bft-options .option-fallback-note, .bft-options .option-fallback-entry { padding:22px; border-bottom:1px solid #693034; color:#d3ccc7; line-height:1.85; overflow-wrap:anywhere; }
+.bft-options .option-fallback-entry h2 { font-family:'Frank Ruhl Libre',Georgia,serif; font-size:1.9rem; scroll-margin-top:90px; }
+.bft-options .option-fallback-entry h3 { color:#e3a18b; margin:14px 0; }
+.bft-options button { cursor:pointer; }
+.bft-options button:disabled, .bft-options :is(input,select):disabled { opacity:.55; cursor:default; }
+@media (min-width:1101px) {
+  .bft-options .option-mobile-button, .bft-options .option-list-backdrop { display:none; }
+}
+@media (max-width:1100px) {
+  .bft-options .bft-options-main { padding:16px 20px 85px; }
+  .bft-options .option-workspace { grid-template-columns:minmax(0,1fr); gap:16px; }
+  .bft-options.options-enhanced .option-sidebar { position:fixed; top:0; bottom:0; left:0; height:100dvh; max-height:none; width:min(88vw,350px); padding:20px 14px 20px; z-index:95; transform:translateX(-105%); visibility:hidden; border-right-color:#693034; }
+  .bft-options.option-menu-open .option-sidebar { transform:none; visibility:visible; }
+  .bft-options #optionCloseList { display:grid; place-items:center; width:40px; height:40px; border:1px solid #593139; border-radius:3px; color:#e3b6a3; flex-shrink:0; }
+  .bft-options #optionCloseList svg { width:20px; height:20px; }
+  .bft-options .option-mobile-button { display:inline-flex; align-items:center; gap:8px; position:fixed; bottom:18px; left:20px; z-index:96; height:44px; max-width:calc(100vw - 40px); padding:0 15px; border:1px solid #c64b3a; border-radius:4px; color:#fff0e6; background:#65151b; font-size:.9rem; box-shadow:0 4px 22px #0008; }
+  .bft-options.option-menu-open .option-mobile-button { visibility:hidden; }
+  .bft-options .option-mobile-button svg { width:18px; height:18px; }
+  .bft-options .option-list-backdrop { display:block; position:fixed; inset:0; z-index:92; background:#000b; backdrop-filter:blur(3px); }
+}
+@media (max-width:650px) {
+  .bft-options .bft-options-main { padding:12px 12px 85px; }
+  .bft-options .option-masthead { margin-bottom:14px; }
+  .bft-options .option-masthead-copy { padding:15px 17px 18px; }
+  .bft-options .option-masthead h1 { font-size:2.3rem; }
+  .bft-options .option-masthead p { font-size:.89rem; }
+  .bft-options .option-masthead p span { display:block; }
+  .bft-options .option-masthead-art { left:20%; opacity:.3; }
+  .bft-options .option-detail-header { padding:17px 15px; gap:10px; flex-wrap:wrap; }
+  .bft-options .option-emblem { width:30px; height:30px; flex-basis:30px; }
+  .bft-options .option-eyebrow { font-size:.63rem; letter-spacing:.09em; }
+  .bft-options .option-detail h2[data-option-title] { font-size:1.85rem; }
+  .bft-options .option-detail-body { padding:16px 17px 24px; }
+  .bft-options .option-meta { grid-template-columns:minmax(0,1fr); margin-bottom:19px; }
+  .bft-options .option-meta > div + div { border-left:0; border-top:1px solid #4a272c; }
+  .bft-options .option-meta > div { padding:10px 12px; }
+  .bft-options .option-copy { font-size:16px; }
+  .bft-options .option-copy table { font-size:.82rem; }
+  .bft-options .option-copy th, .bft-options .option-copy td { padding:8px 7px; }
+  .bft-options .option-mobile-button { left:12px; bottom:12px; }
+  .bft-options .option-filter-modal { padding:12px; }
+  .bft-options .option-filter-panel { max-height:calc(100dvh - 24px); }
+  .bft-options .option-filter-panel > header, .bft-options .option-filter-content { padding:15px; }
+  .bft-options .option-filter-panel > footer { flex-wrap:wrap; padding:12px 15px; }
+  .bft-options .option-tools :is(input,select) { font-size:16px; }
+  .bft-options .wiki-editor :is(input,textarea) { font-size:16px; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .bft-options .option-page *, .bft-options .option-page *::before, .bft-options .option-page *::after { animation:none !important; transition:none !important; scroll-behavior:auto !important; }
+}

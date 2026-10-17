@@ -1,17 +1,29 @@
 {% extends 'home/base.html' %}
 {% load static editorial_images %}
 
+{% block body_class %}bft-public-profile{% endblock %}
+{% block main_class %}bft-profile-main{% endblock %}
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'css/pages/perfil.css' %}?v=9">
 <link rel="stylesheet" href="{% static 'css/pages/perfil-fx.css' %}?v=4">
+<link rel="stylesheet" href="{% static 'css/pages/profile-redesign.css' %}?v=1">
+<link rel="stylesheet" href="{% static 'css/pages/master-hub.css' %}?v=2">
+<link rel="stylesheet" href="{% static 'css/pages/master-portfolio.css' %}?v=1">
 <script src="{% static 'cosmetics/renderer.js' %}?v=1" defer></script>
 {% if appearance.theme_css_href %}<link rel="stylesheet" href="{{ appearance.theme_css_href }}">{% endif %}
+{% if master_appearance.theme_css_href and master_appearance.theme_css_href != appearance.theme_css_href %}<link rel="stylesheet" href="{{ master_appearance.theme_css_href }}">{% endif %}
 <title>{{ viewed_user.username }} - Perfil - Bonfire Tales RPG</title>
 {% endblock %}
 
 {% block content %}
+{% include 'home/partials/players_preview_notice.html' %}
+{% if master_demo %}<p class="master-area mh-notice" role="status">Demonstração visual: este perfil e suas mesas são fictícios. Nenhum cargo ou inscrição é criado.</p>{% endif %}
 {% if appearance.background_url|safe_profile_image %}<div class="profile-bg-media" style="background-image:url('{{ appearance.background_url|safe_profile_image }}');"></div>{% endif %}
-{% include 'home/partials/_perfil_publico_hero.html' %}
+{% if master_appearance and community.is_master and community.listado %}
+  {% if request.GET.aba == 'mestre' or community.modo == 'mestre' %}
+    {% include 'home/partials/_perfil_publico_hero.html' with appearance=master_appearance profile=master_profile_display %}
+  {% else %}{% include 'home/partials/_perfil_publico_hero.html' %}{% endif %}
+{% else %}{% include 'home/partials/_perfil_publico_hero.html' %}{% endif %}
 
 {% comment %}
 Curtir/Seguir — o wiring existe SÓ AQUI (página pública). O partial é o mesmo da

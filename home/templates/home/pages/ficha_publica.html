@@ -1,55 +1,32 @@
-{% extends 'home/base.html' %}
-{% load editorial_images static %}
-
+{% extends 'home/base.html' %}{% load editorial_images static %}
 {% block title %}{{ character.nome }} · Personagem · Bonfire Tales RPG{% endblock %}
-
+{% block body_class %}bft-public-sheet{% endblock %}
+{% block main_class %}cw-main flex-1 w-full min-w-0{% endblock %}
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/pages/ficha.css' %}?v=16">
+<link rel="stylesheet" href="{% static 'css/pages/ficha.css' %}?v=16"><link rel="stylesheet" href="{% static 'css/pages/perfil-fx.css' %}?v=4"><link rel="stylesheet" href="{% static 'css/pages/character-workflows.css' %}?v=1">
 {% if appearance.theme_css_href %}<link rel="stylesheet" href="{{ appearance.theme_css_href }}">{% endif %}
 {% if published %}{% with image=character.foto_url|safe_profile_image %}{% if image %}<meta property="og:image" content="{% if image|slice:':1' == '/' %}{{ site_origin }}{% endif %}{{ image }}">{% endif %}{% endwith %}{% endif %}
 {% endblock %}
-
 {% block content %}
-<article class="ficha {{ appearance.theme_class }} {{ appearance.effect_class }} max-w-3xl mx-auto rounded-2xl border border-[var(--stroke)] bg-[var(--surface)] p-6 md:p-10 space-y-6 break-words"{% if appearance.custom_style %} style="{{ appearance.custom_style }}"{% endif %}>
-  {% if preview %}<p class="text-sm text-[var(--spark)]" role="status">Prévia como visitante. {% if not published %}Esta ficha ainda não está publicada.{% endif %}</p>{% endif %}
-  <header class="ficha-header space-y-2 p-5 md:p-6">
+<article class="ficha cw-public-sheet {{ appearance.theme_class }} {{ appearance.effect_class }}"{% if appearance.custom_style %} style="{{ appearance.custom_style }}"{% endif %} aria-labelledby="cw-public-name">
+  {% if preview %}<p class="cw-context-note" role="status">Prévia como visitante. {% if not published %}Esta ficha ainda não está publicada.{% endif %}</p>{% endif %}
+  <header class="ficha-header cw-public-hero">
     {% if appearance.background_url|safe_profile_image %}<div class="ficha-banner-media" style="background-image:url('{{ appearance.background_url|safe_profile_image }}');" aria-hidden="true"></div>{% endif %}
-    <div class="relative z-10 space-y-2">
-    <div class="banner-character-avatar {{ appearance.frame_class }}" style="width:112px;height:112px">{% if character.foto_url|safe_profile_image %}<img src="{{ character.foto_url|safe_profile_image }}" alt="Retrato de {{ character.nome }}" loading="lazy">{% else %}<span aria-hidden="true">{{ character.nome|slice:':1' }}</span>{% endif %}</div>
-    <p class="text-sm text-[var(--muted)]">Personagem de {{ character.dono }}</p>
-    <h1 class="font-serif text-4xl text-[var(--text)]">{{ character.nome }}</h1>
-    <p class="text-[var(--muted)]">Nível {{ character.nivel }}{% if character.classe %} · {{ character.classe }}{% endif %}{% if character.subclasse %} ({{ character.subclasse }}){% endif %}</p>
-    </div>
+    <div class="banner-character-avatar cw-public-avatar {{ appearance.frame_class }}">{% if character.foto_url|safe_profile_image %}<img src="{{ character.foto_url|safe_profile_image }}" alt="Retrato de {{ character.nome }}" loading="lazy">{% else %}<span aria-hidden="true">{{ character.nome|slice:':1' }}</span>{% endif %}</div>
+    <div class="cw-public-identity"><p class="cw-eyebrow">Bonfire Tales RPG · Ficha pública</p><h1 id="cw-public-name">{{ character.nome }}</h1><p class="cw-public-class">Nível {{ character.nivel }}{% if character.classe %} · {{ character.classe }}{% endif %}{% if character.subclasse %} ({{ character.subclasse }}){% endif %}</p><p class="cw-public-owner">Personagem de <a href="{% url 'public_profile' character.dono %}">@{{ character.dono }}</a></p></div>
   </header>
-  {% if character.raca %}<section aria-label="Identidade" class="border-t border-[var(--stroke)] pt-5">
-    <h2 class="font-serif text-xl text-[var(--text)]">Identidade</h2>
-    <p class="mt-2 text-[var(--muted)]">{{ character.raca }}{% if character.linhagem %} · {{ character.linhagem }}{% endif %}{% if character.essencia %} · {{ character.essencia }}{% endif %}</p>
-  </section>{% endif %}
-  {% if character.descricao %}<section aria-label="Descrição pública" class="border-t border-[var(--stroke)] pt-5">
-    <h2 class="font-serif text-xl text-[var(--text)]">Sobre o personagem</h2>
-    <p class="mt-2 whitespace-pre-line text-[var(--muted)]">{{ character.descricao }}</p>
-  </section>{% endif %}
-  {% if mechanics.atributos %}<section aria-label="Atributos públicos" class="border-t border-[var(--stroke)] pt-5">
-    <h2 class="font-serif text-xl text-[var(--text)]">Atributos</h2>
-    <dl class="mt-2 grid grid-cols-2 gap-3 md:grid-cols-3">{% for row in mechanics.atributos %}
-      <div><dt class="text-sm text-[var(--muted)]">{{ row.nome }}</dt><dd class="font-semibold">{{ row.valor }} ({{ row.mod|stringformat:'+d' }})</dd></div>
-    {% endfor %}</dl>
-  </section>{% endif %}
-  {% if mechanics.pericias %}<section aria-label="Perícias públicas" class="border-t border-[var(--stroke)] pt-5">
-    <h2 class="font-serif text-xl text-[var(--text)]">Perícias</h2>
-    <dl class="mt-2 grid grid-cols-2 gap-3 md:grid-cols-3">{% for row in mechanics.pericias %}
-      <div><dt class="text-sm text-[var(--muted)]">{{ row.nome }}{% if row.expertise %} · Especialista{% elif row.proficiente %} · Proficiente{% endif %}</dt><dd class="font-semibold">{{ row.bonus|stringformat:'+d' }}</dd></div>
-    {% endfor %}</dl>
-  </section>{% endif %}
-  {% if mechanics.resumo %}<section aria-label="Resumo mecânico público" class="border-t border-[var(--stroke)] pt-5">
-    <h2 class="font-serif text-xl text-[var(--text)]">Resumo mecânico</h2>
-    <dl class="mt-2 grid grid-cols-2 gap-3 md:grid-cols-4">
-      <div><dt>CA</dt><dd>{{ mechanics.resumo.ca }}</dd></div>
-      <div><dt>PV máximo</dt><dd>{{ mechanics.resumo.pv_maximo|default_if_none:'—' }}</dd></div>
-      <div><dt>Deslocamento</dt><dd>{{ mechanics.resumo.velocidade }}</dd></div>
-      <div><dt>Bônus de proficiência</dt><dd>{{ mechanics.resumo.bonus_proficiencia|stringformat:'+d' }}</dd></div>
-    </dl>
-  </section>{% endif %}
-  <p class="text-sm text-[var(--muted)]">Inventário, carteira, recursos em uso e notas permanecem privados.</p>
+  <div class="cw-public-panel cw-public-rank">{% include 'home/partials/rank_badge.html' %}{% if rank.is_lenda %} <a class="bf-legacy-link" href="{% url 'personagem_lenda' rank.personagem_id %}{% if preview %}?preview=1{% endif %}">Conhecer o legado de Lenda →</a>{% endif %}</div>
+  {% if mechanics.resumo %}<section aria-label="Resumo mecânico público" class="cw-public-summary"><dl><div><dt>Classe de Armadura</dt><dd>{{ mechanics.resumo.ca }}</dd></div><div><dt>PV máximo</dt><dd>{{ mechanics.resumo.pv_maximo|default_if_none:'—' }}</dd></div><div><dt>Deslocamento</dt><dd class="cw-public-speed">{{ mechanics.resumo.velocidade|dual_distance }}</dd></div><div><dt>Proficiência</dt><dd>{{ mechanics.resumo.bonus_proficiencia|stringformat:'+d' }}</dd></div></dl></section>{% endif %}
+  <div class="cw-public-layout">
+    <div class="cw-public-story">
+      {% if character.raca %}<section aria-label="Identidade" class="cw-public-panel"><p class="cw-eyebrow">Origem</p><h2>Identidade</h2><p>{{ character.raca }}{% if character.linhagem %} · {{ character.linhagem }}{% endif %}{% if character.essencia %} · {{ character.essencia }}{% endif %}</p></section>{% endif %}
+      <section aria-label="Descrição pública" class="cw-public-panel"><p class="cw-eyebrow">A história compartilhada</p><h2>Sobre o personagem</h2>{% if character.descricao %}<p class="cw-public-description">{{ character.descricao }}</p>{% else %}<p class="cw-muted">A apresentação pública deste personagem ainda não foi escrita.</p>{% endif %}</section>
+    </div>
+    {% if mechanics.atributos or mechanics.pericias %}<div class="cw-public-mechanics">
+      {% if mechanics.atributos %}<section aria-label="Atributos públicos" class="cw-public-panel"><h2>Atributos</h2><dl class="cw-public-attributes">{% for row in mechanics.atributos %}<div><dt>{{ row.nome }}</dt><dd><strong>{{ row.valor }}</strong><span>{{ row.mod|stringformat:'+d' }}</span></dd></div>{% endfor %}</dl></section>{% endif %}
+      {% if mechanics.pericias %}<section aria-label="Perícias públicas" class="cw-public-panel"><h2>Perícias</h2><dl class="cw-public-skills">{% for row in mechanics.pericias %}<div><dt>{{ row.nome }}{% if row.expertise %}<small>Especialista</small>{% elif row.proficiente %}<small>Proficiente</small>{% endif %}</dt><dd>{{ row.bonus|stringformat:'+d' }}</dd></div>{% endfor %}</dl></section>{% endif %}
+    </div>{% endif %}
+  </div>
+  <p class="cw-public-privacy">Apenas informações autorizadas pelo jogador. Inventário, carteira, recursos em uso e notas permanecem privados.</p>
 </article>
 {% endblock %}

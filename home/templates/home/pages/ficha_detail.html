@@ -2,6 +2,7 @@
 {% load static %}
 
 {% block title %}{{ p.nome }} · Ficha · Bonfire Tales RPG{% endblock %}
+{% block body_class %}bft-character-sheet{% endblock %}
 
 {% comment %}Onda F: a folha usa 3 colunas de verdade (atributos | combate | características),
 então esta página abre mão do `max-w-5xl` padrão e ganha a largura de uma ficha de mesa —
@@ -14,12 +15,15 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
 
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'css/pages/ficha.css' %}?v=16">
+<link rel="stylesheet" href="{% static 'css/pages/characters-redesign.css' %}?v=4">
+<link rel="stylesheet" href="{% static 'css/pages/character-workflows.css' %}?v=1">
 <link rel="stylesheet" href="{% static 'css/components/tema_swatch.css' %}?v=1">
 <link rel="stylesheet" href="{% static 'css/pages/perfil-fx.css' %}?v=4">
 {% if appearance.theme_css_href %}<link rel="stylesheet" href="{{ appearance.theme_css_href }}">{% endif %}
 <script src="{% static 'js/tema_swatch.js' %}?v=1" defer></script>
 <script src="{% static 'js/mochila.js' %}?v=1" defer></script>
 <script src="{% static 'js/ficha_opcoes.js' %}?v=2" defer></script>
+<script src="{% static 'js/characters-presentation.js' %}?v=2" defer></script>
 {% if partial_spell_slots %}
 <script src="{% static 'js/http.js' %}?v=1" defer></script>
 <script src="{% static 'js/spell_slots.js' %}?v=1" defer></script>
@@ -27,6 +31,8 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
 {% endblock %}
 
 {% block content %}
+<div class="character-breadcrumb ficha-noprint"><a href="{% url 'personagens' %}">Meus personagens</a><span aria-hidden="true">/</span><span>{{ p.nome }}</span><span class="character-sheet-label">Ficha de personagem</span></div>
+{% if character_preview %}<p class="character-local-note ficha-noprint">Ficha de demonstração local · criação, personalidade, notas e compras de itens mundanos podem ser testadas aqui. Progressão e demais ações de jogo dependem dos serviços oficiais e não estão ativas nesta prévia.</p><div class="character-preview-feedback ficha-noprint" data-character-preview-feedback hidden role="status"><span data-character-preview-message></span><button type="button" data-character-preview-close aria-label="Fechar aviso">×</button></div>{% endif %}
 {% for pc in p.classes.all %}{% if pc.cacador_rework %}
   <a class="ficha-noprint" href="{% url 'hunter_sheet' p.pk %}">Consultar ficha da revis?o vinculada</a>
 {% endif %}{% endfor %}
@@ -44,6 +50,7 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
 
   {# ===================== CABEÇALHO (banner estilo planilha) ===================== #}
   {% include 'home/partials/_ficha_banner.html' %}
+  {% if slot_readonly_reason %}<p class="cw-slots-warning" role="status">{{ slot_readonly_reason }} <a href="{% url 'character_slots' %}">Escolher fichas ativas →</a></p>{% endif %}
 
   {# ===================== BARRA DE ABAS ===================== #}
   <nav class="ficha-tabs" role="tablist" aria-label="Seções da ficha">
@@ -178,6 +185,7 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
   {# ===================== ABA 3: INFORMAÇÕES ===================== #}
   <div class="ficha-tabpanel space-y-3" data-tabpanel="info" role="tabpanel" hidden>
     {% if pode_editar %}
+    <header class="cw-editor-intro"><div><p class="cw-eyebrow">Seu personagem, sua identidade</p><h2>Informações e aparência</h2><p>Edite os dados, as imagens e o visual da ficha. Raça, classe e progressão não são alteradas por este formulário.</p></div><a href="{% url 'personagens' %}">Gerenciar apresentação pública ↗</a></header>
     <form method="post" action="{% url 'personagem_info_salvar' p.id_personagem %}" class="info-form space-y-3" enctype="multipart/form-data" id="ficha-appearance-form">
       {% csrf_token %}
 
@@ -233,6 +241,7 @@ o teto vive em `.ficha-main` (ficha.css), não numa classe utilitária solta.{% 
             {% endfor %}
           </div>
           <span class="hint">Clique num cartão: a ficha inteira muda na hora. Nada é gravado até você salvar.</span>
+          <a class="cw-atelier-link" href="{% url 'theme_studio' %}" target="_blank" rel="noopener">Experimentar outras identidades no ateliê ↗</a><span class="hint">Abre em outra aba para preservar o que você está editando. Temas bloqueados não podem ser salvos sem aquisição.</span>
         </div>
         <div class="info-grid appearance-controls">
           <label class="info-field"><span class="lbl">Moldura</span>

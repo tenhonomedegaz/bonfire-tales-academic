@@ -1,3 +1,4 @@
+{% load distance_display %}
 {% comment %}RODAPE DA FOLHA (extraido de ficha_detail.html): maestrias de arma, defesas e
 sentidos, vantagens/desvantagens e avisos — FONTE UNICA deste markup.
 Quem consome: a aba Ficha (ficha_detail) e a PREVIA do Pathbuilder
@@ -44,7 +45,7 @@ progressao de aventuras e atalhos para outras abas.{% endcomment %}
       <div class="def-row"><dt>Resistências</dt><dd>{{ ficha.resistencias|join:", "|default:"—" }}</dd></div>
       <div class="def-row"><dt>Imunidades</dt><dd>{{ ficha.imunidades|join:", "|default:"—" }}</dd></div>
       <div class="def-row"><dt>Imun. condição</dt><dd>{% for c in ficha.imunidades_condicao %}{{ c.nome }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</dd></div>
-      <div class="def-row"><dt>Sentidos</dt><dd>{{ ficha.sentidos|join:", "|default:"—" }}</dd></div>
+      <div class="def-row"><dt>Sentidos</dt><dd>{{ ficha.sentidos|join:", "|default:"—"|dual_distance }}</dd></div>
       {% if ficha.movimento_modos %}<div class="def-row"><dt>Deslocamentos</dt><dd>{% for modo, val in ficha.movimento_modos.items %}{% if modo == 'climb' %}Escalada{% elif modo == 'swim' %}Natação{% elif modo == 'fly' %}Voo{% elif modo == 'burrow' %}Escavação{% elif modo == 'wall' %}Parede{% else %}{{ modo|capfirst }}{% endif %}{% if val and val != 'walk' %} {{ val }}{% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}</dd></div>{% endif %}
       <div class="def-row"><dt>Idiomas</dt><dd>{{ ficha.idiomas|join:", "|default:"—" }}</dd></div>
       <div class="def-row"><dt>Ferramentas</dt><dd>{{ ficha.ferramentas|join:", "|default:"—" }}{% if ficha.prof_multiclasse_ferramenta %} <span class="text-[var(--spark)]" title="Ganhas por multiclasse">+ {{ ficha.prof_multiclasse_ferramenta|join:", " }} <span class="text-[10px] uppercase">(multiclasse)</span></span>{% endif %}</dd></div>

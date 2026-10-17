@@ -4,10 +4,12 @@
 {% block meta_robots %}noindex, nofollow{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8">
-  <div class="max-w-md mx-auto">
-    <div class="bg-[var(--bg1)] border border-[var(--stroke)] shadow-2xl p-6 rounded relative">
-      <h2 class="text-2xl font-rpg font-bold text-[var(--ember)] mb-6 text-center">Criar Conta</h2>
+<div class="bft-auth">
+  <div class="bft-auth-shell">
+    {% include 'home/components/auth_story.html' %}
+    <div class="bft-auth-card">
+      <h1>Sua história começa aqui.</h1>
+      <p class="bft-auth-intro">Crie sua conta gratuita. Depois, vincule seu Discord e dê vida ao seu personagem.</p>
 
       <form method="post" action="{% url 'register' %}">
         {% csrf_token %}

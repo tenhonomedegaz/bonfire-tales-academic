@@ -12,10 +12,10 @@
   <h2>Valores da revisão vinculada</h2>
   <p>CA {{ hunter_sheet.ca }} · Ataques por ação {{ hunter_sheet.ataques.quantidade }} · Deslocamento {{ hunter_sheet.velocidade }}</p>
   <p>CD de magias e Segredos {{ hunter_sheet.cacador.secret_dc }} · Ataque mágico {{ hunter_sheet.cacador.spell_attack }}</p>
-  <p>Salvaguardas: FOR {{ hunter_sheet.saves.FOR.bonus }}, DES {{ hunter_sheet.saves.DES.bonus }}, CON {{ hunter_sheet.saves.CON.bonus }}, INT {{ hunter_sheet.saves.INT.bonus }}, SAB {{ hunter_sheet.saves.SAB.bonus }}, CAR {{ hunter_sheet.saves.CAR.bonus }}.</p>
+  <p>Testes de resistência: FOR {{ hunter_sheet.saves.FOR.bonus }}, DES {{ hunter_sheet.saves.DES.bonus }}, CON {{ hunter_sheet.saves.CON.bonus }}, INT {{ hunter_sheet.saves.INT.bonus }}, SAB {{ hunter_sheet.saves.SAB.bonus }}, CAR {{ hunter_sheet.saves.CAR.bonus }}.</p>
   {% if hunter_sheet.cacador.bonus_dash %}<p>Pode Disparar como ação bônus; escalada e natação usam o deslocamento de caminhada.</p>{% endif %}
   {% if hunter_sheet.cacador.bonus_hide %}<p>Pode Esconder-se como ação bônus.</p>{% endif %}
-  {% if hunter_sheet.cacador.frightened_save_advantage %}<p>Vantagem nas salvaguardas contra Amedrontado.</p>{% endif %}
+  {% if hunter_sheet.cacador.frightened_save_advantage %}<p>Vantagem nos testes de resistência contra Amedrontado.</p>{% endif %}
   <p>Imunidades: {{ hunter_sheet.imunidades|join:', ' }}. Sentidos: {{ hunter_sheet.sentidos|join:', ' }}.</p>
   <p>Bônus contra alvos marcados, Inimigos Favoritos e condições de turno são condicionais e não estão somados aos valores permanentes acima.</p>
   {% endif %}
@@ -73,7 +73,7 @@
       <label>Distância da criatura hostil (m) <input name="retaliation_m" type="number" min="0" max="18" step="0.1"></label>
       <label>Primeiro Dado de Caçador <input name="retaliation_roll_1" type="number" min="1" max="{{ traveler.step_die }}"></label>
       <label>Segundo Dado de Caçador <input name="retaliation_roll_2" type="number" min="1" max="{{ traveler.step_die }}"></label>
-      <label><input type="checkbox" name="save_succeeded" value="1"> Alvo passou na salvaguarda de Destreza contra a CD de Magia</label>{% endif %}
+      <label><input type="checkbox" name="save_succeeded" value="1"> Alvo passou no teste de resistência de Destreza contra a CD de Magia</label>{% endif %}
       <label><input type="checkbox" name="confirmed" value="1" required> Confirmo as distâncias e condições declaradas na mesa.</label>
       <button type="submit">Registrar travessia</button>
     </form>
@@ -94,7 +94,7 @@
       {% if companion.large_grapple_advantage %}<p>Forma Grande: Vantagem em Força para Agarrar ou Empurrar e para evitar ou escapar de Agarrão.</p>{% endif %}
       {% if companion.shared_mark_damage %}<p>Marca Compartilhada: cada Retalhar que acerta a Presa Marcada causa também 1{{ companion.shared_mark_damage }} da Marca do Caçador.</p>{% endif %}
       {% if companion.last_mark_hit %}<p>Último acerto da Marca Compartilhada: {{ companion.last_mark_hit.target }}, turno {{ companion.last_mark_hit.turn }}, acerto {{ companion.last_mark_hit.hit }}, dano adicional {{ companion.last_mark_hit.damage }}.</p>{% endif %}
-      {% if companion.breath_type %}<p>Sopro Primordial ({{ companion.breath_type }}): cone de 15 pés, salvaguarda de Destreza CD {{ companion.breath_dc }}, {{ companion.breath_damage }} de dano em falha ou metade em sucesso. Substitui um Retalhar; uma vez por turno.</p>{% endif %}
+      {% if companion.breath_type %}<p>Sopro Primordial ({{ companion.breath_type }}): cone de 15 pés, teste de resistência de Destreza CD {{ companion.breath_dc }}, {{ companion.breath_damage }} de dano em falha ou metade em sucesso. Substitui um Retalhar; uma vez por turno.</p>{% endif %}
       {% if companion.last_breath %}<p>Último sopro: turno {{ companion.last_breath.turn }}, {{ companion.last_breath.damage }} de dano {{ companion.last_breath.damage_type }}, CD {{ companion.last_breath.dc }}.</p>{% endif %}
       {% if companion.supreme %}<p>Forma Primordial Suprema: círculo 9, tamanho Enorme, {{ companion.supreme_remaining_seconds }} segundos de jogo restantes. PV máximos recalculados e recuperação completa na ativação.</p>{% endif %}
       <p>Comando: Ação Bônus e Reação do espírito, uma vez no seu turno. {% if companion.command_replaces_attack %}Pode substituir um ataque da ação Atacar.{% endif %} {% if companion.rend_attacks == 2 %}Retalhar duas vezes a partir do nível 10.{% endif %}</p>
@@ -138,7 +138,7 @@
   <section class="border rounded p-4 space-y-3" aria-label="Lanterna do Véu">
     <h2>Lanterna do Véu</h2>
     <p>{% if lantern.held %}Presente{% else %}Perdida{% endif %}; forma {{ lantern.form|default:'a escolher' }}; luz intensa {{ lantern.radius_m }} m e penumbra até o dobro. Detecta Mortos-Vivos a até 18 m, salvo cobertura total; revela uma vez os últimos seis segundos de cada cadáver válido.</p>
-    {% if lantern.level >= 10 %}<p>Rito de Exorcismo: Cerimônia gratuita, sem componentes materiais; alvo possuído a até 9 m faz salvaguarda de Carisma. Frascos Consagrados {{ lantern.vials }}/{{ lantern.vial_max }}. Beber ou ungir aliado até 1,5 m cura 2d{{ lantern.hunter_die }} + {{ lantern.level }} PV e remove um nível de Exaustão; arremessar até 9 m causa 1d{{ lantern.hunter_die }} radiante, dobro contra Morto-Vivo ou possessor e impede cura até o fim do próximo turno.</p>{% endif %}
+    {% if lantern.level >= 10 %}<p>Rito de Exorcismo: Cerimônia gratuita, sem componentes materiais; alvo possuído a até 9 m faz teste de resistência de Carisma. Frascos Consagrados {{ lantern.vials }}/{{ lantern.vial_max }}. Beber ou ungir aliado até 1,5 m cura 2d{{ lantern.hunter_die }} + {{ lantern.level }} PV e remove um nível de Exaustão; arremessar até 9 m causa 1d{{ lantern.hunter_die }} radiante, dobro contra Morto-Vivo ou possessor e impede cura até o fim do próximo turno.</p>{% endif %}
     {% if lantern.level >= 10 %}<p>Afastar Mortos-Vivos: {% if lantern.turn_ready %}uso disponível{% else %}uso gasto{% endif %}; até 9 m, CD de Magia da ficha, {{ lantern.turn_dice }}d8 de dano radiante por alvo, metade no sucesso. Falha: Amedrontado e Incapacitado por até 1 minuto, encerrando ao sofrer dano, se o Caçador ficar Incapacitado ou morrer. Recupera em Descanso Curto/Longo ou por 3 Pontos de Segredo.</p>{% endif %}
     {% if lantern.level >= 14 %}<p>Luz Reveladora: Falar com Mortos {{ lantern.speak_remaining }}/{{ lantern.speak_max }} usos sem espaço pela lanterna; recupera no Descanso Longo. {% if lantern.revealing_light %}Na luz atual, criaturas não se beneficiam de Invisível nem usam movimento incorpóreo.{% else %}Acenda e segure a lanterna para bloquear Invisível e movimento incorpóreo na área iluminada.{% endif %}</p>{% endif %}
     {% if lantern.sanctuary_eligible %}<p>Santuário do Véu: ritual de Consagração ou Interdição custa 4 Pontos de Segredo e um Frasco Consagrado, sem componentes materiais nem ouro. {% if lantern.sanctuary_site %}Lanterna vinculada a {{ lantern.sanctuary_site }} ({{ lantern.sanctuary_spell }}); o efeito permanece enquanto durar o vínculo. Palavra de Retorno para esse local custa 4 Pontos de Segredo.{% else %}Nenhum local vinculado; vincular outro local desfaz o vínculo anterior.{% endif %}</p>{% endif %}
@@ -166,7 +166,7 @@
       <label>Descanso para substituição <select name="rest_event"><option value="">Nenhum</option><option value="short_rest">Curto</option><option value="long_rest">Longo</option></select></label>
       <label>Segundos de cerimônia <input name="seconds" type="number" min="0" value="0"></label>
       <label><input name="possessed" type="checkbox" value="1"> Alvo possuído</label>
-      <label><input name="charisma_save_failed" type="checkbox" value="1"> Falhou na salvaguarda de Carisma</label>
+      <label><input name="charisma_save_failed" type="checkbox" value="1"> Falhou no teste de resistência de Carisma</label>
       <label>Uso do frasco <select name="mode"><option value="">Nenhum</option><option value="drink">Beber</option><option value="ally">Ungir aliado</option><option value="throw">Arremessar</option></select></label>
       <label>Primeiro Dado de Caçador <input name="roll_1" type="number" min="0" max="12" value="0"></label>
       <label>Segundo Dado de Caçador <input name="roll_2" type="number" min="0" max="12" value="0"></label>
@@ -205,7 +205,7 @@
     <h2>Forma Desperta</h2>
     <p>{% if awakening.active %}Forma ativa. {% if awakening.timeless %}A Marca ativa suspende a contagem da Forma.{% else %}Restam {{ awakening.remaining_seconds }} segundos de jogo.{% endif %}{% else %}Forma inativa.{% endif %}
       {% if awakening.ready %} Uso disponível.{% else %} Uso gasto; recupera em descanso curto, longo ou quando a presa marcada morre.{% endif %}</p>
-    <p>Enquanto ativa: resistência a dano contundente, perfurante e cortante; +1 CA sem armadura pesada nem escudo; vantagem em testes e salvaguardas de Força; +{{ awakening.melee_bonus }} no dano corpo a corpo. Ataque desarmado {{ awakening.unarmed_die }}, com opção de Destreza sem escudo. Ação Bônus: um ataque desarmado, dois contra presa marcada.</p>
+    <p>Enquanto ativa: resistência a dano contundente, perfurante e cortante; +1 CA sem armadura pesada nem escudo; vantagem em testes e testes de resistência de Força; +{{ awakening.melee_bonus }} no dano corpo a corpo. Ataque desarmado {{ awakening.unarmed_die }}, com opção de Destreza sem escudo. Ação Bônus: um ataque desarmado, dois contra presa marcada.</p>
     {% if awakening.speed_bonus %}<p>Vigor da Fera: +{{ awakening.speed_bonus }} pés de deslocamento e salto; Destreza em Atletismo ou Força em Acrobacia. Uma vez por turno, ao acertar e estar Sangrando, cura {{ awakening.bloodied_heal }}.</p>{% endif %}
     {% if awakening.regeneration %}<p>Regeneração Bestial: no início do turno, se Sangrando e com ao menos 1 PV, cura no mínimo 1 + modificador de Constituição. Quem falhar no Uivo não pode recuperar PV até o início do seu próximo turno.</p>{% endif %}
     {% if awakening.elder %}<p>Ímpeto Ancião: Uivo também derruba ou empurra 10 pés. Ao cair a 0 PV sem morte imediata, pode voltar com {{ awakening.level }} × 2 PV uma vez por descanso longo; {% if awakening.elder_ready %}disponível{% else %}gasto{% endif %}.</p>{% endif %}
@@ -291,9 +291,9 @@
   <form method="post">
     {% csrf_token %}<input type="hidden" name="action" value="twilight_save">
     <input type="hidden" name="version" value="{{ profile.version }}">
-    <label>Reflexos das Sombras: Destreza já é proficiente. Escolha outra salvaguarda
+    <label>Reflexos das Sombras: Destreza já é proficiente. Escolha outro teste de resistência
       <select name="ability"><option value="FOR">Força</option><option value="CON">Constituição</option></select>
-    </label><button type="submit">Registrar salvaguarda</button>
+    </label><button type="submit">Registrar teste de resistência</button>
   </form>
   {% elif hunter_sheet.crepusculo.save_proficiency %}<p>Reflexos das Sombras: proficiência em {{ hunter_sheet.crepusculo.save_proficiency }}.</p>{% endif %}
   {% endif %}
@@ -308,7 +308,7 @@
       <button type="submit">Registrar escolha</button>
     </form>
     {% else %}
-    <p>Atributo escolhido: {% if protective.ability == 'int' %}Inteligência{% else %}Sabedoria{% endif %}. Some o modificador a salvaguardas provocadas por Inimigos Favoritos e reduza o dano deles pelo mesmo valor (mínimo 1).</p>
+    <p>Atributo escolhido: {% if protective.ability == 'int' %}Inteligência{% else %}Sabedoria{% endif %}. Some o modificador o testes de resistência provocadas por Inimigos Favoritos e reduza o dano deles pelo mesmo valor (mínimo 1).</p>
     {% endif %}
   </section>
   {% endif %}
