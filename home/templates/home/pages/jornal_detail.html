@@ -1,14 +1,25 @@
 {% extends 'home/base.html' %}
 {% load static %}
+{% block body_class %}bft-journal bft-journal-reader{% endblock %}
+{% block main_class %}flex-1 w-full min-w-0{% endblock %}
 
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'css/pages/jornal_detail.css' %}?v=14">
+<link rel="stylesheet" href="{% static 'css/pages/journal-redesign.css' %}?v=1">
+<link rel="stylesheet" href="{% static 'css/pages/journal-newspaper.css' %}?v=1">
+<script defer src="{% static 'js/journal-reading.js' %}?v=1"></script>
 
 {% endblock %}
 
 {% block content %}
+<div class="journal-reader-shell{% if artigo.layout == 'atlas' %} is-atlas{% endif %}">
+{% include 'home/partials/journal_preview_notice.html' %}
+<nav class="journal-breadcrumb" aria-label="Caminho da reportagem"><a href="{% url 'mundo_jornal' %}">← Jornal de Cinéria</a><span>Reportagem{% if artigo.destaque %} · Em destaque{% endif %}</span></nav>
+<div class="journal-reading-grid">
+<article class="artigo-layout{% if artigo.layout == 'colunas' %} artigo-layout--colunas{% endif %}{% if artigo.layout == 'atlas' %} artigo-layout--atlas{% endif %}" data-artigo-layout="{{ artigo.layout }}">
+{% include 'home/partials/journal_imprint.html' %}
 {% if artigo.layout != 'atlas' %}
-<div class="artigo-hero{% if not artigo.safe_image_url %} artigo-hero--text{% endif %}"{% if artigo.safe_image_url %} style="--hero-bg: url('{{ artigo.safe_image_url }}')"{% endif %}>
+<header class="artigo-hero{% if not artigo.safe_image_url %} artigo-hero--text{% endif %}">
   <span class="artigo-eyebrow">Jornal de Cinéria</span>
   <h1 class="artigo-title">{{ artigo.titulo }}</h1>
   <div class="artigo-meta">
@@ -20,10 +31,11 @@
     <span>Editado em {{ artigo.data_edicao|date:"d/m/Y" }}</span>
     {% endif %}
   </div>
-</div>
+  {% if artigo.resumo %}<p class="journal-article-summary">{{ artigo.resumo }}</p>{% endif %}
+</header>
+{% if artigo.safe_image_url %}<figure class="journal-article-figure"><img class="journal-print-image" src="{{ artigo.safe_image_url }}" alt="Ilustração da reportagem: {{ artigo.titulo }}"></figure>{% endif %}
 {% endif %}
 
-<div class="artigo-layout{% if artigo.layout == 'colunas' %} artigo-layout--colunas{% endif %}{% if artigo.layout == 'atlas' %} artigo-layout--atlas{% endif %}" data-artigo-layout="{{ artigo.layout }}">
   {% if artigo.layout == 'atlas' %}
   <header class="artigo-atlas-meta">
     <span class="artigo-atlas-kicker">Jornal de Cinéria</span>
@@ -141,6 +153,9 @@
   })();
   </script>
   {% endif %}
+</article>
+<aside class="journal-reading-aside" aria-label="Apoio à leitura"><div class="journal-reading-time"><span class="journal-kicker">Tempo de leitura</span><p id="journalReadingTime">Reportagem</p></div><details class="journal-toc" id="journalToc" hidden open><summary>Nesta reportagem <span aria-hidden="true">⌄</span></summary><nav id="journalTocLinks" aria-label="Seções da reportagem"></nav></details><div class="journal-explore"><span class="journal-kicker">O mundo além da notícia</span><a href="{% url 'mundo_regioes' %}">Regiões e Territórios <span aria-hidden="true">→</span></a><a href="{% url 'mapa' %}">Mapa de Cinéria <span aria-hidden="true">↗</span></a><a href="{% url 'mundo_cronicas' %}">Crônicas do mundo <span aria-hidden="true">→</span></a></div></aside>
+</div>
 </div>
 <script>
   (() => {

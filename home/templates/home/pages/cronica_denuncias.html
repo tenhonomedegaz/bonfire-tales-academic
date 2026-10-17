@@ -1,8 +1,9 @@
 {% extends 'home/base.html' %}
 {% load static %}
-{% block extra_head %}<link rel="stylesheet" href="{% static 'css/pages/cronica_detail.css' %}">{% endblock %}
+{% block body_class %}bft-chronicles bft-chronicles-reports{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/pages/cronica_detail.css' %}"><link rel="stylesheet" href="{% static 'css/pages/chronicles-redesign.css' %}?v=1">{% endblock %}
 {% block content %}
-<main class="cronica-layout">
+<section class="cronica-layout">
   <h1>Denúncias de crônicas</h1>
   {% for report in denuncias %}
   <article class="cronica-status-banner">
@@ -35,5 +36,5 @@
     </form>
   </article>
   {% empty %}<p>Não há denúncias pendentes.</p>{% endfor %}
-</main>
+</section>
 {% endblock %}

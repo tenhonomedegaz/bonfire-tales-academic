@@ -1,12 +1,19 @@
 {% extends 'home/base.html' %}
 {% load static %}
+{% block body_class %}bft-chronicles bft-chronicles-reader{% endblock %}
+{% block main_class %}flex-1 w-full min-w-0{% endblock %}
 
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'css/pages/cronica_detail.css' %}?v=3">
+<link rel="stylesheet" href="{% static 'css/pages/chronicles-redesign.css' %}?v=1">
+<script defer src="{% static 'js/chronicle-reading.js' %}?v=2"></script>
 
 {% endblock %}
 
 {% block content %}
+<div class="chronicles-shell chronicles-reader-shell">
+{% include 'home/partials/chronicles_preview_notice.html' %}
+<nav class="chronicles-breadcrumb" aria-label="Caminho da crônica"><a href="{% url 'mundo_cronicas' %}">← Arquivo de Crônicas</a><span>Bonfire Tales RPG · Relatos de aventureiros</span></nav>
 <div class="cronica-hero">
   {% if cronica.safe_image_url %}<img class="cronica-hero-cover" src="{{ cronica.safe_image_url }}" alt="">{% endif %}
   <span class="cronica-eyebrow">{{ cronica.territorio_label }}{% if cronica.regiao_label %} &middot; {{ cronica.regiao_label }}{% endif %}</span>
@@ -20,8 +27,10 @@
     <span>&middot;</span>
     <span>{{ cronica.data_publicacao|default:cronica.data_submissao|date:"d \d\e F \d\e Y" }}</span>
   </div>
+  {% if cronica.resumo %}<p class="chronicles-reader-summary">{{ cronica.resumo }}</p>{% endif %}
 </div>
 
+<div class="chronicles-reading-grid">
 <div class="cronica-layout">
   {% if perms.home.change_tbcronica and cronica.status == 'aprovada' %}
   <form method="post" action="{% url 'cronica_destaque' cronica.id_cronica %}">
@@ -55,7 +64,8 @@
   {% endif %}
 
   <div class="cronica-body">
-    <div class="bonfire-markdown" data-markdown-source data-markdown-options="false">{{ cronica.conteudo_markdown|escape }}</div>
+    <div class="bonfire-markdown" data-chronicle-source data-markdown-source data-markdown-options="false">{{ cronica.conteudo_markdown|escape }}</div>
+    <div class="chronicles-endmark" aria-hidden="true">◆</div>
   </div>
 
   {% if cronica.status == 'aprovada' %}
@@ -117,6 +127,9 @@
     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
     Voltar às Crônicas
   </a>
+</div>
+<aside class="chronicles-reading-aside" aria-label="Apoio à leitura"><div class="chronicles-reading-time"><span class="chronicles-kicker">Tempo de leitura</span><p id="chroniclesReadingTime">Crônica</p></div><details class="chronicles-toc" id="chroniclesToc" hidden open><summary>Capítulos do relato <span aria-hidden="true">⌄</span></summary><nav id="chroniclesTocLinks" aria-label="Seções da crônica"></nav></details><div class="chronicles-world-links"><span class="chronicles-kicker">Explore o cenário</span><a href="{% url 'mundo_regioes' %}">Regiões e Territórios <span aria-hidden="true">→</span></a><a href="{% url 'mapa' %}">Mapa de Cinéria <span aria-hidden="true">↗</span></a></div></aside>
+</div>
 </div>
 <script>
 (() => {

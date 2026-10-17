@@ -1,7 +1,10 @@
 {% extends 'home/base.html' %}
 {% load static %}
+{% block body_class %}bft-journal bft-journal-list{% endblock %}
+{% block main_class %}flex-1 w-full min-w-0{% endblock %}
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'css/pages/journal-redesign.css' %}?v=1">
+<link rel="stylesheet" href="{% static 'css/pages/journal-newspaper.css' %}?v=1">
 <style>
 .jornal-hero {
   background:
@@ -177,11 +180,15 @@
 </style>
 {% endblock %}
 
-{% block content %}<div class="journal-page">
-<div class="jornal-hero">
-  <h1 class="jornal-hero-title">Jornal de Cinéria</h1>
-  <p class="jornal-hero-sub">As últimas notícias, relatos e acontecimentos do mundo vivo.</p>
-</div>
+{% block content %}<section class="journal-edition" aria-labelledby="journalTitle">
+{% include 'home/partials/journal_preview_notice.html' %}
+<header class="jornal-hero">
+  <div class="journal-masthead-top"><span>Bonfire Tales RPG</span><span>Notícias de um mundo vivo</span></div>
+  <div class="journal-masthead-main"><span class="journal-mark"><img src="{% static 'brand/icon.png' %}" alt="" width="72" height="72"></span><div><p class="journal-kicker">Histórias que atravessam Cinéria</p>
+  <h1 class="jornal-hero-title" id="journalTitle">Jornal de Cinéria</h1>
+  <p class="jornal-hero-sub">As últimas notícias, relatos e acontecimentos do mundo vivo.</p></div></div>
+  <div class="journal-masthead-bottom"><span>Entre uma aventura e outra, o mundo continua.</span><a href="{% url 'mundo_regioes' %}">Explore os territórios <span aria-hidden="true">↗</span></a></div>
+</header>
 
 {% if can_edit_wiki %}
 <div class="jornal-actions">
@@ -194,20 +201,22 @@
 
 <div class="jornal-grid">
   {% for artigo in artigos %}
-  <a href="{% url 'jornal_detail' slug=artigo.slug %}" class="jornal-card {% if artigo.destaque %}is-destaque{% endif %}">
-    <div class="jornal-card-cover" {% if artigo.safe_image_url %}style="background-image: url('{{ artigo.safe_image_url }}')"{% endif %}>
-      {% if artigo.destaque %}<span class="jornal-badge-destaque">Destaque</span>{% endif %}
-    </div>
-    <div class="jornal-card-body">
+  <a href="{% url 'jornal_detail' slug=artigo.slug %}" class="jornal-card {% if artigo.destaque %}is-destaque{% endif %}{% if artigo.safe_image_url %} has-cover{% else %} no-cover{% endif %}">
+    <div class="journal-card-heading">
+      <div class="journal-card-rubric">{% if artigo.destaque %}<span class="jornal-badge-destaque">Destaque</span>{% else %}<span>Reportagem</span>{% endif %}</div>
       <h2 class="jornal-card-title">{{ artigo.titulo }}</h2>
-      {% if artigo.resumo %}
-      <p class="jornal-card-summary">{{ artigo.resumo }}</p>
-      {% endif %}
       <div class="jornal-card-meta">
         <span class="author">{{ artigo.autor.username|default:"Redação" }}</span>
         <span>&middot;</span>
         <span>{{ artigo.data_publicacao|date:"d M Y" }}</span>
       </div>
+    </div>
+    {% if artigo.safe_image_url %}<div class="jornal-card-cover"><img class="journal-print-image" src="{{ artigo.safe_image_url }}" alt="" loading="{% if forloop.first %}eager{% else %}lazy{% endif %}"></div>{% endif %}
+    <div class="jornal-card-body">
+      {% if artigo.resumo %}
+      <p class="jornal-card-summary">{{ artigo.resumo }}</p>
+      {% endif %}
+      <span class="journal-read-link">Ler reportagem <span aria-hidden="true">→</span></span>
     </div>
   </a>
   {% empty %}
@@ -223,4 +232,5 @@
   {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}" rel="next">Artigos anteriores</a>{% endif %}
 </nav>
 {% endif %}
-</div>{% endblock %}
+<footer class="journal-paper-footer"><span>Bonfire Tales RPG · Jornal de Cinéria</span><span aria-hidden="true">◆</span><span>Entre uma aventura e outra, o mundo continua.</span></footer>
+</section>{% endblock %}
