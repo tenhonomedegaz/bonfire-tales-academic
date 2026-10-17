@@ -8,8 +8,43 @@ from django.db import connection, transaction
 
 from home.conquistas import _marcos_rank_comprovados
 from home.mestre_ouro import has_unreconciled_mestre_ouro_history
-from home.models import (MestreOuroDireito, MestreOuroRevisao, TbEventoConquista,
-                         TbPersonagem, TbTransacaoMestre, UserProfile)
+from home.models import (MestreOuroDireito, MestreOuroRevisao, TbConquista,
+                         TbEventoConquista, TbPersonagem, TbTransacaoMestre,
+                         TbUsuarioConquista, UserProfile)
+
+
+def configured_level_achievements():
+    """Expose existing site milestone definitions without inferring token policy."""
+    rows = []
+    definitions = TbConquista.objects.filter(
+        criterio='automatico', criterio_json__metric='character_level',
+    ).prefetch_related('recompensas_extras').order_by('pk')
+    for achievement in definitions.iterator(chunk_size=200):
+        rule = achievement.criterio_json or {}
+        if not isinstance(rule, dict):
+            continue
+        level = rule.get('target')
+        if type(level) is not int or level not in (5, 9, 13, 20):
+            continue
+        filters = rule.get('filters') or {}
+        if not isinstance(filters, dict):
+            filters = {}
+        rows.append({
+            'id': achievement.pk,
+            'slug': achievement.slug,
+            'level': level,
+            'class_slug': filters.get('class_slug'),
+            'single_class': filters.get('single_class') is True,
+            'active': achievement.ativo,
+            'cosmetic_reward_ids': sorted({
+                *achievement.recompensas_extras.values_list('pk', flat=True),
+                *([achievement.recompensa_id] if achievement.recompensa_id else []),
+            }),
+            'active_grants': TbUsuarioConquista.objects.filter(
+                conquista=achievement, revogada_em__isnull=True,
+            ).count(),
+        })
+    return rows
 
 
 def preview():
@@ -63,10 +98,14 @@ class Command(BaseCommand):
             with connection.cursor() as cursor:
                 cursor.execute('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY')
             rows = preview()
+            achievements = configured_level_achievements()
         settings = connection.settings_dict
         self.stdout.write(json.dumps({
             'policy': 'level 13 candidate only; level 20 not authorized for grant',
             'database': {key: str(settings.get(key) or '')
                          for key in ('ENGINE', 'NAME', 'HOST', 'PORT', 'USER')},
             'count': len(rows), 'accounts': rows,
+            'configured_level_achievements': achievements,
+            'configuration_note': ('Site achievements disclose cosmetic rewards only; '
+                                   'token and character-slot policy is not inferred.'),
         }, ensure_ascii=False, sort_keys=True))
