@@ -43,7 +43,7 @@
     overscroll-behavior: contain;
     position: fixed;
     right: 0.5rem;
-    top: calc(57px + 0.5rem);
+    top: calc(var(--bft-header-height, 57px) + 0.5rem);
     width: auto;
   }
 }
@@ -86,7 +86,7 @@
     overflow-x: auto;
     padding-inline: 0.25rem;
     position: sticky;
-    top: 57px;
+    top: var(--bft-header-height, 57px);
     z-index: 24;
   }
 
@@ -150,7 +150,7 @@
   .cf-stepper,
   .pb-stepper {
     border-radius: 0.45rem;
-    top: 57px;
+    top: var(--bft-header-height, 57px);
   }
 
   .cf-stepper ol,
@@ -262,7 +262,7 @@
   /* Market bottom sheet respects dynamic viewport and device safe area. */
   .mkt-preview,
   .mkt-preview-inner {
-    max-height: calc(100dvh - 57px);
+    max-height: calc(100dvh - var(--bft-header-height, 57px));
   }
 
   .mkt-preview-inner {

@@ -1,12 +1,13 @@
 {% load static %}
 
 <link rel="stylesheet" href="{% static 'css/pages/header.css' %}?v=2">
+<link rel="stylesheet" href="{% static 'css/pages/header-brand.css' %}?v=1">
 
-<header class="fixed top-0 left-0 z-50 w-full bg-[var(--bg1)] border-b border-[var(--stroke)] shadow-2xl shadow-black/50">
-    <div class="container mx-auto px-3 h-14 flex items-center gap-2 lg:gap-5 justify-between relative group/header">
+<header class="bft-header bft-restored-header fixed top-0 left-0 z-50 w-full bg-[var(--bg1)] border-b border-[var(--stroke)] shadow-2xl shadow-black/50">
+    <div class="bft-header-inner container mx-auto px-3 h-14 flex items-center gap-2 lg:gap-5 justify-between relative group/header">
 
-      <a href="/" class="flex items-center gap-3 flex-shrink-0 pt-1 pb-1 group/logo focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ember)] select-none">
-        <img src="{% static 'assets/logo.png' %}" alt="Bonfire Tales" class="h-7 w-auto object-contain drop-shadow-[0_0_8px_rgba(210,23,23,0.5)] transition-transform duration-300 group-hover/logo:scale-110" />
+      <a href="/" class="bft-brand flex items-center gap-3 flex-shrink-0 pt-1 pb-1 group/logo focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ember)] select-none">
+        <img src="{% static 'brand/icon.png' %}" alt="Bonfire Tales" class="h-7 w-auto object-contain drop-shadow-[0_0_8px_rgba(210,23,23,0.5)] transition-transform duration-300 group-hover/logo:scale-110" />
         <span class="font-rpg font-bold text-base tracking-wide text-[var(--text)] group-hover/logo:text-[var(--ember)] transition-colors hidden sm:block">
           BONFIRE TALES
         </span>
@@ -420,6 +421,7 @@
         </details>
       </div>
     </div>
+    {% include 'home/components/quick_access.html' %}
 </header>
 
 <script>

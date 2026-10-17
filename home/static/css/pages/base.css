@@ -19,7 +19,7 @@
     body {
       background-color: var(--bg0);
       color: var(--text);
-      font-family: 'Inter', sans-serif;
+      font-family: 'Open Sans', sans-serif;
       -webkit-font-smoothing: antialiased;
       position: relative;
       overflow-x: hidden;
@@ -234,13 +234,13 @@
     }
 
     .font-rpg {
-      font-family: 'Cinzel', serif;
+      font-family: 'Frank Ruhl Libre', serif;
     }
 
     /* Custom Toggle Blocks (::toggle) Styles */
     .bonfire-h1-lore {
       color: #fff;
-      font-family: 'Cinzel', serif;
+      font-family: 'Frank Ruhl Libre', serif;
       font-size: 1.5rem;
       font-weight: 900;
       margin: 1.1rem 0 0.6rem;
@@ -276,7 +276,7 @@
       color: var(--spark);
     }
     .subtopic-body-title {
-      font-family: 'Cinzel', serif;
+      font-family: 'Frank Ruhl Libre', serif;
       font-size: .95rem;
       font-weight: 900;
       text-transform: uppercase;

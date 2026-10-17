@@ -17,12 +17,11 @@
   {% if adsense_enabled and ads_enabled %}
   <script async crossorigin="anonymous" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{ adsense_publisher_id }}"></script>
   {% endif %}
-  <link rel="icon" type="image/png" href="{% static 'assets/logo.png' %}" />
-  <link rel="shortcut icon" type="image/png" href="{% static 'assets/logo.png' %}" />
+  <link rel="icon" type="image/png" href="{% static 'brand/icon.png' %}" />
+  <link rel="shortcut icon" type="image/png" href="{% static 'brand/icon.png' %}" />
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="preload" href="{% static 'brand/OpenSans.ttf' %}" as="font" type="font/ttf" crossorigin>
+  <link rel="preload" href="{% static 'brand/FrankRuhlLibre.ttf' %}" as="font" type="font/ttf" crossorigin>
 
   <script src="{% static 'vendor/tailwind/tailwind-3.4.17-typography.js' %}"></script>
   <script>
@@ -31,26 +30,26 @@
       theme: {
         extend: {
           fontFamily: {
-            sans: ['Inter', 'sans-serif'],
-            serif: ['Cinzel', 'serif'],
+            sans: ['Open Sans', 'sans-serif'],
+            serif: ['Frank Ruhl Libre', 'serif'],
           },
           colors: {
             bonfire: {
-              bg0: '#09090A', /* Darker, richer black */
-              bg1: '#101012',
-              bg2: '#18181B',
-              card: '#151517',
-              stroke: '#27272A',
-              flame: '#D21717',
-              ember: '#F27007',
-              spark: '#F7B113',
-              text: '#EDEDED',
-              muted: '#A1A1AA',
+              bg0: '#0A0A0A',
+              bg1: '#141110',
+              bg2: '#201917',
+              card: '#191411',
+              stroke: '#3C3029',
+              flame: '#B31515',
+              ember: '#FF6A00',
+              spark: '#FFC43D',
+              text: '#F2EEE8',
+              muted: '#B6AAA0',
             }
           },
           backgroundImage: {
             'noise': "url('data:image/svg+xml,%3Csvg viewBox=\"0 0 200 200\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cfilter id=\"noiseFilter\"%3E%3CfeTurbulence type=\"fractalNoise\" baseFrequency=\"0.65\" numOctaves=\"3\" stitchTiles=\"stitch\"/%3E%3C/filter%3E%3Crect width=\"100%25\" height=\"100%25\" filter=\"url(%23noiseFilter)\" opacity=\"0.05\"/%3E%3C/svg%3E')",
-            'bonfire-gradient': 'linear-gradient(to right, #D21717, #F27007)',
+            'bonfire-gradient': 'linear-gradient(to right, #4B0D0D, #B31515)',
           },
           keyframes: {
             'fade-in-down': {
@@ -78,10 +77,16 @@
   <link rel="stylesheet" href="{% static 'css/pages/base.css' %}?v=3">
   {% block extra_head %}{% endblock %}
   <link rel="stylesheet" href="{% static 'css/pages/responsive.css' %}?v=1">
+  <link rel="stylesheet" href="{% static 'css/brand.css' %}?v=1">
+  <link rel="stylesheet" href="{% static 'css/brand-world.css' %}?v=2">
+  <link rel="stylesheet" href="{% static 'css/components/navigation-access.css' %}?v=1">
+  <script src="{% static 'js/navigation-access.js' %}?v=1" defer></script>
+  <script src="{% static 'js/brand.js' %}?v=1" defer></script>
 </head>
-<body>
+<body class="{% block body_class %}{% endblock %}">
+  <a class="bft-skip" href="#main-content">Pular para o conteúdo</a>
   <div id="root">
-    <div class="flex flex-col min-h-screen pt-[57px] bg-[var(--bg0)] text-[var(--text)] selection:bg-[var(--ember)] selection:text-white">
+    <div class="bft-shell flex flex-col min-h-screen bg-[var(--bg0)] text-[var(--text)] selection:bg-[var(--ember)] selection:text-white">
       {% include 'home/components/header.html' %}
       
       <div class="flex-1 flex flex-row w-full justify-center">
@@ -95,7 +100,7 @@
           {% endif %}
           {% endblock %}
 
-          <main class="{% block main_class %}flex-1 w-full max-w-5xl mx-auto px-3 md:px-5 py-4{% endblock %} relative z-10 min-w-0">
+          <main id="main-content" tabindex="-1" class="{% block main_class %}flex-1 w-full max-w-5xl mx-auto px-3 md:px-5 py-4{% endblock %} relative z-10 min-w-0">
               {% block mobile_ad_top %}
               {% if adsense_enabled and ads_enabled and adsense_horizontal_slot %}
               <aside class="block min-[1340px]:hidden mb-4 w-full" aria-label="Publicidade acima do conteúdo">

@@ -1,33 +1,10 @@
-
 {% load static %}
-<footer class="border-t border-[var(--stroke)] bg-[var(--bg1)] py-8 mt-8">
-    <div class="container mx-auto px-3 flex flex-col lg:flex-row justify-between items-center gap-4">
-      <div class="text-center md:text-left">
-        <h3 class="font-rpg text-xl font-bold text-[var(--text)] mb-1.5">Bonfire Tales RPG</h3>
-        <p class="text-sm text-[var(--muted)] max-w-xs">Mundo vivo, missões e RPG via Discord.</p>
-      </div>
-
-      <nav aria-label="Informações do site" class="flex flex-wrap justify-center gap-x-4 gap-y-2 text-xs font-semibold text-[var(--muted)]">
-        <a href="{% url 'sobre' %}" class="hover:text-[var(--ember)]">Sobre</a>
-        <a href="{% url 'contato' %}" class="hover:text-[var(--ember)]">Contato</a>
-        <a href="{% url 'privacidade' %}" class="hover:text-[var(--ember)]">Privacidade</a>
-        <a href="{% url 'termos' %}" class="hover:text-[var(--ember)]">Termos de uso</a>
-        <a href="{% url 'atualizacoes' %}" class="hover:text-[var(--ember)]">Atualizações</a>
-      </nav>
-
-      <div class="flex gap-2.5">
-        <a href="https://discord.gg/eyqe7rj2AX" target="_blank" class="p-1.5 rounded-full bg-[var(--bg0)] border border-[var(--stroke)] text-[var(--muted)] hover:text-[var(--ember)] hover:border-[var(--ember)] transition-all flex items-center justify-center">
-          <img src="{% static 'assets/discord_icon.png' %}" class="w-5 h-5 object-contain" alt="Discord" />
-        </a>
-        <a href="https://www.youtube.com/@bonfiretalesrpg" target="_blank" class="p-1.5 rounded-full bg-[var(--bg0)] border border-[var(--stroke)] text-[var(--muted)] hover:text-[var(--ember)] hover:border-[var(--ember)] transition-all flex items-center justify-center">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"/><polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"/></svg>
-        </a>
-        <a href="https://www.instagram.com/bonfiretalesrpg/" target="_blank" class="p-1.5 rounded-full bg-[var(--bg0)] border border-[var(--stroke)] text-[var(--muted)] hover:text-[var(--ember)] hover:border-[var(--ember)] transition-all flex items-center justify-center">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>
-        </a>
-      </div>
-    </div>
-    <div class="container mx-auto px-3 mt-4 pt-4 border-t border-[var(--stroke)] text-center text-xs text-[var(--muted)]">
-      <p>© {% now "Y" %} Bonfire Tales RPG. Conteúdo e ferramentas mantidos pela comunidade.</p>
-    </div>
+<footer class="bft-footer">
+  <div class="bft-width bft-footer-top">
+    <div class="bft-footer-brand"><a class="bft-brand" href="{% url 'home' %}"><img src="{% static 'brand/icon.png' %}" alt="" width="42" height="48"><span>Bonfire Tales<small>RPG · UM MUNDO COMPARTILHADO</small></span></a><p>Onde aventureiros descansam<br>e histórias começam.</p><div class="bft-socials"><a href="https://discord.gg/eyqe7rj2AX" target="_blank" rel="noopener noreferrer">Discord ↗</a><a href="https://www.instagram.com/bonfiretalesrpg/" target="_blank" rel="noopener noreferrer">Instagram ↗</a><a href="https://www.youtube.com/@bonfiretalesrpg" target="_blank" rel="noopener noreferrer">YouTube ↗</a></div></div>
+    <nav aria-label="Comece sua jornada"><h2>Comece sua jornada</h2><a href="{% url 'home' %}#como-jogar">Como jogar</a><a href="{% url 'register' %}">Criar conta</a><a href="{% url 'login' %}">Entrar na conta</a><a href="{% url 'criacao_ficha' %}">Criar personagem</a><a href="{% url 'guia_mestres' %}">Quero mestrar</a></nav>
+    <nav aria-label="Explore o Bonfire"><h2>Explore o Bonfire</h2><a href="{% url 'mapa' %}">Atlas de Cinéria</a><a href="{% url 'mundo_cronicas' %}">Crônicas</a><a href="{% url 'sistemas_missoes' %}">Missões</a><a href="{% url 'classes' %}">Classes e regras</a><a href="{% url 'atualizacoes' %}">Atualizações</a></nav>
+    <div class="bft-footer-support"><span class="bft-eyebrow">MANTENHA A CHAMA ACESA</span><p>Jogar é gratuito.<br>Colaborar é uma escolha.</p><a href="{% url 'colaborador' %}">Conheça a colaboração <span aria-hidden="true">↗</span></a></div>
+  </div>
+  <div class="bft-width bft-footer-bottom"><p>© {% now 'Y' %} Bonfire Tales RPG. Feito de encontros e histórias.</p><nav aria-label="Informações do site"><a href="{% url 'sobre' %}">Sobre</a><a href="{% url 'contato' %}">Contato</a><a href="{% url 'privacidade' %}">Privacidade</a><a href="{% url 'termos' %}">Termos de uso</a></nav></div>
 </footer>
