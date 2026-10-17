@@ -50,6 +50,33 @@
     applyFilters();
     search.focus();
   });
+  // Links do pacote usam o slug; o controlador compartilhado usa data-target na URL.
+  var requestedItem = new URLSearchParams(window.location.search).get('item');
+  if (requestedItem) {
+    var linkedRow = Array.from(shop.querySelectorAll('[data-magic-slug]')).find(function (row) {
+      return row.dataset.magicSlug === requestedItem;
+    });
+    if (linkedRow) {
+      if (linkedRow.dataset.available !== 'true') stock.value = 'catalogo';
+      applyFilters();
+      linkedRow.click();
+    }
+  }
+  var selectionStatus = shop.querySelector('[data-market-selection-status]');
+  if (selectionStatus) {
+    function announceSelection() {
+      var selected = shop.querySelector('[data-shop-pane="comprar"] [data-mkt-row].is-selected');
+      var name = selected?.querySelector('.mkt-row-name')?.textContent.trim();
+      var message = name ? 'Selecionado: ' + name + '.' : 'Nenhum item neste filtro.';
+      if (selectionStatus.textContent !== message) selectionStatus.textContent = message;
+    }
+    new MutationObserver(announceSelection).observe(shop, {
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['aria-selected', 'hidden']
+    });
+    announceSelection();
+  }
   group.addEventListener('change', syncButtons);
   window.addEventListener('popstate', function () { setTimeout(syncButtons, 0); });
   syncButtons();
