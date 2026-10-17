@@ -1,0 +1,7 @@
+{% if journal_local_preview %}
+<aside class="journal-preview-notice" aria-label="Prévia local do Jornal">
+  {% if journal_editor_preview %}<strong>Simulação visual do editor</strong><span>Texto editável apenas nesta tela. Publicação desabilitada.</span>
+  {% elif journal_demo %}<strong>Prévia demonstrativa</strong><span>Os artigos e as datas abaixo são exemplos de layout, não publicações oficiais.</span><a href="/__design__/jornal-editor/">Simular editor</a><a href="{% url 'mundo_jornal' %}">Ver estado sem artigos</a>
+  {% else %}<strong>Cópia local · Jornal sem publicações</strong><a href="{% url 'mundo_jornal' %}?demo=1">Ver exemplos de layout →</a>{% endif %}
+</aside>
+{% endif %}
