@@ -1,8 +1,9 @@
-{% extends 'home/base.html' %}
+{% extends 'home/pages/master_shell.html' %}
+{% block title %}Missões — Bonfire Tales RPG{% endblock %}
 
-{% block content %}
-<div class="mx-auto max-w-7xl px-3 py-4 sm:px-5 lg:px-5">
-  <header class="mb-4 flex flex-col gap-3 border-b border-[var(--stroke)] pb-3 lg:flex-row lg:items-end lg:justify-between">
+{% block master_content %}
+<div class="mh-missions">
+  <header class="mh-hero mh-hero-world">
     <div>
       <p class="mb-1.5 text-xs font-bold uppercase tracking-[0.35em] text-[var(--ember)]">Aventuras da comunidade</p>
       <h1 class="font-rpg text-4xl font-extrabold uppercase tracking-wide text-[var(--text)] md:text-5xl">Missões</h1>
@@ -10,16 +11,19 @@
         Encontre mesas abertas, acompanhe sua inscrição e acesse o canal em que a aventura será organizada.
       </p>
     </div>
-
-    <form method="get" class="flex w-full flex-col gap-2 sm:flex-row lg:w-auto">
+    <span class="mh-hero-mark" aria-hidden="true">✦</span>
+  </header>
+  <section id="missoes" class="mh-section" aria-labelledby="mh-missions-title">
+    <div class="mh-section-head"><div><p class="mh-eyebrow">O chamado está feito</p><h2 id="mh-missions-title">Escolha sua aventura</h2></div><p>Inscrições e organização pelo Discord</p></div>
+    <form method="get" class="mh-filter flex w-full flex-col gap-2 sm:flex-row lg:w-auto">
       <label class="relative min-w-0 flex-1 lg:w-80">
         <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-[var(--muted)]">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
         </span>
-        <input name="q" value="{{ search }}" type="search" placeholder="Buscar missão..." class="w-full rounded border border-[var(--stroke)] bg-[var(--bg1)] py-1.5 pl-9 pr-3 text-sm text-[var(--text)] outline-none transition-colors focus:border-[var(--ember)]">
+        <span class="sr-only">Buscar missão ou mestre</span><input name="q" value="{{ search }}" type="search" placeholder="Buscar missão..." class="w-full rounded border border-[var(--stroke)] bg-[var(--bg1)] py-1.5 pl-9 pr-3 text-sm text-[var(--text)] outline-none transition-colors focus:border-[var(--ember)]">
       </label>
 
-      <select name="status" class="rounded border border-[var(--stroke)] bg-[var(--bg1)] px-2.5 py-1.5 text-sm font-semibold text-[var(--text)] outline-none transition-colors focus:border-[var(--ember)]">
+      <select name="status" aria-label="Estado da missão" class="rounded border border-[var(--stroke)] bg-[var(--bg1)] px-2.5 py-1.5 text-sm font-semibold text-[var(--text)] outline-none transition-colors focus:border-[var(--ember)]">
         {% for value, label in status_options %}
         <option value="{{ value }}" {% if value == status %}selected{% endif %}>{{ label }}</option>
         {% endfor %}
@@ -29,10 +33,9 @@
         Filtrar
       </button>
     </form>
-  </header>
 
   {% if user.is_authenticated and not discord_linked %}
-  <aside class="mb-4 flex flex-col gap-3 rounded border border-[var(--ember)]/50 bg-[var(--ember)]/10 p-3 sm:flex-row sm:items-center sm:justify-between">
+  <aside class="mh-notice mb-4 flex flex-col gap-3 rounded border border-[var(--ember)]/50 bg-[var(--ember)]/10 p-3 sm:flex-row sm:items-center sm:justify-between">
     <div>
       <strong class="text-sm text-[var(--text)]">Vincule sua conta do Discord</strong>
       <p class="mt-1 text-xs leading-relaxed text-[var(--muted)]">Assim o site reconhece suas inscrições, confirmações e posições na fila.</p>
@@ -44,14 +47,14 @@
   {% endif %}
 
   {% if db_error %}
-  <section class="rounded border border-[var(--flame)]/70 bg-[var(--flame)]/10 p-3 text-sm text-[var(--text)]">
+  <section class="mh-notice rounded border border-[var(--flame)]/70 bg-[var(--flame)]/10 p-3 text-sm text-[var(--text)]">
     <h2 class="font-rpg text-xl font-bold text-[var(--flame)]">Missões indisponíveis</h2>
     <p class="mt-2 text-[var(--muted)]">{{ db_error }}</p>
   </section>
   {% elif quests %}
-  <section class="grid gap-2.5 lg:grid-cols-2">
+  <div class="mh-card-grid grid gap-2.5 lg:grid-cols-2">
     {% for quest in quests %}
-    <article class="overflow-hidden rounded border border-[var(--stroke)] bg-[var(--bg1)] transition-colors hover:border-[var(--ember)]/70">
+    <article class="mh-quest overflow-hidden rounded border border-[var(--stroke)] bg-[var(--bg1)] transition-colors hover:border-[var(--ember)]/70">
       <header class="flex flex-col gap-2 border-b border-[var(--stroke)] bg-[var(--bg2)]/60 px-3 py-2 sm:flex-row sm:items-start sm:justify-between">
         <div class="min-w-0">
           <h2 class="font-rpg text-xl font-bold uppercase text-[var(--text)]">{{ quest.name }}</h2>
@@ -114,12 +117,13 @@
       </div>
     </article>
     {% endfor %}
-  </section>
+  </div>
   {% else %}
-  <section class="rounded border border-[var(--stroke)] bg-[var(--bg1)] p-5 text-center">
+  <section class="mh-empty rounded border border-[var(--stroke)] bg-[var(--bg1)] p-5 text-center">
     <h2 class="font-rpg text-2xl font-bold text-[var(--text)]">Nenhuma missão encontrada</h2>
     <p class="mt-2 text-sm text-[var(--muted)]">Tente outro filtro ou volte quando novas aventuras forem publicadas.</p>
   </section>
   {% endif %}
+  </section>
 </div>
 {% endblock %}
