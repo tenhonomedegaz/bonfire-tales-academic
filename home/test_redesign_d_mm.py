@@ -11,8 +11,9 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from .cosmetic_entitlements import has_permanent_cosmetic
+from .cosmetics import catalog_options
 from .models import (AsaasCheckoutOrder, CosmeticCheckoutOffer, CosmeticMMRedemption, TbCosmetico,
-                     TbTransacaoMestre, TbUsuarioCosmetico, UserProfile)
+                     TbPersonagem, TbTransacaoMestre, TbUsuarioCosmetico, UserProfile)
 from .theme_mm import redeem_theme_mm, reverse_theme_mm
 
 
@@ -44,6 +45,30 @@ class ThemeMMTests(TestCase):
         self.assertEqual(TbTransacaoMestre.objects.filter(mestre=self.user, tipo='resgate').count(), 1)
         self.assertTrue(has_permanent_cosmetic(self.user, self.theme))
         self.assertContains(again, 'nenhum novo débito')
+
+    def test_success_opens_existing_profile_and_active_character_editors(self):
+        active = TbPersonagem.objects.create(dono=self.user, nome='Aventureira')
+        archived = TbPersonagem.objects.create(dono=self.user, nome='No cofre', arquivado=True)
+        self.client.force_login(self.user)
+        result = self.client.post(reverse('buy_theme_with_mm'), {
+            'slug': self.theme.slug, 'request_key': str(uuid.uuid4()),
+        })
+        self.assertEqual(result.status_code, 200)
+        self.assertContains(result, reverse('profile') + '#perfil-aparencia')
+        self.assertContains(result, reverse('ficha_detail', args=[active.pk]) +
+                            '?aba=info#ficha-theme-group')
+        self.assertNotContains(result, reverse('ficha_detail', args=[archived.pk]) +
+                               '?aba=info#ficha-theme-group')
+        self.assertIn('forja-de-brasas', [item['key'] for item in catalog_options(
+            self.user, 'tema', 'ficha') if item['estado'] == 'possui'])
+        profile = self.client.get(reverse('profile'))
+        self.assertEqual(profile.status_code, 200)
+        self.assertFalse(next(item['locked'] for item in profile.context['appearance_theme_options']
+                              if item['key'] == 'forja-de-brasas'))
+        editor = self.client.get(reverse('ficha_detail', args=[active.pk]), {'aba': 'info'})
+        self.assertEqual(editor.status_code, 200)
+        self.assertIn('forja-de-brasas', [item['key'] for item in
+                      editor.context['appearance_themes'] if not item['locked']])
 
     def test_demo_or_insufficient_balance_never_debits(self):
         self.offer.demonstration = True

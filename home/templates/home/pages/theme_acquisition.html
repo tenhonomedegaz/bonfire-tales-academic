@@ -5,6 +5,16 @@
   {% if error %}<p role="alert" class="my-4">{{ error }}</p>
   {% elif receipt %}<p role="status" class="my-4">{{ receipt.cosmetico.nome }} está na sua biblioteca. {% if created %}Foram debitados {{ receipt.cost_mm }} MM.{% else %}Este pedido já foi registrado; nenhum novo débito foi feito.{% endif %}</p>{% endif %}
   <p><a href="{% url 'theme_studio' %}" class="text-[var(--ember)]">Voltar ao ateliê →</a></p>
-  {% if receipt %}<p class="mt-4"><a href="{% url 'profile' %}">Personalizar perfil</a> · <a href="{% url 'personagens' %}">Escolher uma ficha</a></p>{% endif %}
+  {% if receipt %}
+  <div class="mt-4">
+    <p>A licença está disponível para suas aparências. Escolha onde equipar; nada foi alterado automaticamente.</p>
+    <p><a href="{% url 'profile' %}#perfil-aparencia">Equipar no perfil</a></p>
+    {% if characters %}
+    <h2 class="font-serif text-xl mt-4">Equipar em uma ficha ativa</h2>
+    <ul>{% for character in characters %}<li><a href="{% url 'ficha_detail' character.pk %}?aba=info#ficha-theme-group">{{ character.nome }}</a></li>{% endfor %}</ul>
+    {% endif %}
+    <p><a href="{% url 'personagens' %}">Ver todas as minhas fichas</a></p>
+  </div>
+  {% endif %}
 </section>
 {% endblock %}

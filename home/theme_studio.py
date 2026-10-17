@@ -79,4 +79,6 @@ def buy_theme_with_mm(request):
     return render(request, 'home/pages/theme_acquisition.html', {
         'page_title': 'Tema na biblioteca', 'receipt': receipt,
         'created': created,
+        'characters': request.user.personagens.filter(arquivado=False)
+        .order_by('nome', 'pk').only('id_personagem', 'nome')[:10],
     })
