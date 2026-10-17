@@ -201,7 +201,8 @@
         <form method="post" autocomplete="off">
             {% csrf_token %}
             <input type="hidden" name="action" value="authenticate">
-            <input type="password" name="server_password" placeholder="Senha do Servidor" required autofocus autocomplete="new-password">
+            <label for="server-password">Senha do servidor</label>
+            <input id="server-password" type="password" name="server_password" placeholder="Senha do Servidor" required autofocus autocomplete="new-password">
             <button type="submit" class="console-button">Acessar Console</button>
         </form>
     </div>
@@ -282,8 +283,8 @@
             <form method="post" enctype="multipart/form-data">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="restore_backup">
-                <div class="console-form-row"><input type="file" name="arquivo" accept=".json" required></div>
-                <div class="console-form-row"><input type="text" name="confirmar" placeholder="Digite RESTAURAR para confirmar" autocomplete="off"></div>
+                <div class="console-form-row"><label for="backup-file">Arquivo de backup</label><input id="backup-file" type="file" name="arquivo" accept=".json" required></div>
+                <div class="console-form-row"><label for="backup-confirm">Confirmação da restauração</label><input id="backup-confirm" type="text" name="confirmar" placeholder="Digite RESTAURAR para confirmar" autocomplete="off"></div>
                 <button type="submit" class="console-button">Restaurar backup</button>
             </form>
 
@@ -292,8 +293,8 @@
             <form method="post" enctype="multipart/form-data">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="restore_map_geometry">
-                <div class="console-form-row"><input type="file" name="arquivo" accept=".json" required></div>
-                <div class="console-form-row"><input type="text" name="confirmar" placeholder="Digite RESTAURAR MAPA para confirmar" autocomplete="off"></div>
+                <div class="console-form-row"><label for="map-file">Arquivo de geometria</label><input id="map-file" type="file" name="arquivo" accept=".json" required></div>
+                <div class="console-form-row"><label for="map-confirm">Confirmação da restauração do mapa</label><input id="map-confirm" type="text" name="confirmar" placeholder="Digite RESTAURAR MAPA para confirmar" autocomplete="off"></div>
                 <button type="submit" class="console-button">Restaurar geometria</button>
             </form>
         </section>
@@ -334,7 +335,7 @@
                 {% csrf_token %}
                 <input type="hidden" name="action" value="merge_conteudo">
                 <input type="hidden" name="merge_stage" value="preview">
-                <div class="console-form-row"><input type="file" name="arquivo" accept=".json" required></div>
+                <div class="console-form-row"><label for="merge-preview-file">Arquivo de conteúdo para prévia</label><input id="merge-preview-file" type="file" name="arquivo" accept=".json" required></div>
                 <button type="submit" class="console-button secondary">Conferir previa do arquivo</button>
             </form>
             {% if manual_catalog_preview %}
@@ -351,7 +352,7 @@
                 {% csrf_token %}
                 <input type="hidden" name="action" value="merge_conteudo">
                 <input type="hidden" name="merge_stage" value="apply">
-                <div class="console-form-row"><input type="file" name="arquivo" accept=".json" required></div>
+                <div class="console-form-row"><label for="merge-apply-file">Arquivo de conteúdo conferido</label><input id="merge-apply-file" type="file" name="arquivo" accept=".json" required></div>
                 <button type="submit" class="console-button">Aplicar arquivo conferido com backup</button>
             </form>
             {% endif %}
@@ -382,7 +383,8 @@
                 <input type="hidden" name="action" value="save_env">
                 <input type="hidden" name="env_target" value="site">
                 <div class="console-form-row">
-                    <textarea name="env_content" spellcheck="false">{{ site_env_content }}</textarea>
+                    <label for="site-env">Conteúdo do .env do site</label>
+                    <textarea id="site-env" name="env_content" spellcheck="false">{{ site_env_content }}</textarea>
                 </div>
                 <button type="submit" class="console-button">Salvar .env do site</button>
             </form>
@@ -395,7 +397,8 @@
                 <input type="hidden" name="action" value="save_env">
                 <input type="hidden" name="env_target" value="bot">
                 <div class="console-form-row">
-                    <textarea name="env_content" spellcheck="false">{{ bot_env_content }}</textarea>
+                    <label for="bot-env">Conteúdo do .env do bot</label>
+                    <textarea id="bot-env" name="env_content" spellcheck="false">{{ bot_env_content }}</textarea>
                 </div>
                 <button type="submit" class="console-button">Salvar .env do bot</button>
             </form>

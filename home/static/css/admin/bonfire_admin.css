@@ -975,6 +975,7 @@ body.login #content-related { display: none; }
 /* Foco de teclado sempre visivel (links, botoes, campos) */
 a:focus-visible,
 button:focus-visible,
+summary:focus-visible,
 .button:focus-visible,
 input[type=submit]:focus-visible,
 input[type=button]:focus-visible,
@@ -984,6 +985,11 @@ input[type=button]:focus-visible,
     outline-offset: 2px;
     box-shadow: var(--focus-ring);
 }
+
+.bft-user-menu > summary { list-style: none; min-height: 44px; }
+.bft-user-menu > summary::-webkit-details-marker { display: none; }
+.bft-user-menu #user-dropdown a:focus-visible,
+.bft-user-menu #user-dropdown button:focus-visible { background: var(--bg0) !important; }
 
 /* Respeita quem pediu menos movimento */
 @media (prefers-reduced-motion: reduce) {

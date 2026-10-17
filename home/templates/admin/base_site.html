@@ -26,13 +26,13 @@
             <a href="{% url 'admin:download_backup' %}" style="color: var(--body-quiet-color); font-weight: 600; text-decoration: none; font-size: 14px;" onmouseover="this.style.color='var(--body-loud-color)'" onmouseout="this.style.color='var(--body-quiet-color)'">Baixar Backup</a>
         </div>
         
-        <div style="position: relative;" onmouseover="document.getElementById('user-dropdown').style.display='block'" onmouseout="document.getElementById('user-dropdown').style.display='none'">
-            <button style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 4px; border: 1px solid var(--stroke); background: var(--bg0); color: var(--body-loud-color); cursor: pointer;">
+        <details class="bft-user-menu" style="position: relative;">
+            <summary style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 4px; border: 1px solid var(--stroke); background: var(--bg0); color: var(--body-loud-color); cursor: pointer;">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--ember);"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                 <span style="font-weight: bold; font-size: 14px;">{{ user.get_username }}</span>
                 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.5;"><path d="m6 9 6 6 6-6"/></svg>
-            </button>
-            <div id="user-dropdown" style="display: none; position: absolute; right: 0; top: 100%; margin-top: 8px; width: 160px; z-index: 50;">
+            </summary>
+            <div id="user-dropdown" style="position: absolute; right: 0; top: 100%; margin-top: 8px; width: 160px; z-index: 50;">
                 <div style="background: var(--bg1); border: 1px solid var(--stroke); border-radius: 4px; padding: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: 4px;">
                     {% if user.has_usable_password %}
                     <a href="{% url 'admin:password_change' %}" style="display: block; padding: 8px 12px; font-size: 13px; color: var(--body-quiet-color); text-decoration: none; font-weight: 600; border-radius: 2px;" onmouseover="this.style.color='var(--body-loud-color)'; this.style.backgroundColor='var(--bg0)'" onmouseout="this.style.color='var(--body-quiet-color)'; this.style.backgroundColor='transparent'">Alterar Senha</a>
@@ -45,7 +45,7 @@
                     </form>
                 </div>
             </div>
-        </div>
+        </details>
     </div>
     {% endif %}
 </div>

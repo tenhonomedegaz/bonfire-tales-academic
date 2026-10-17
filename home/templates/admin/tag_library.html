@@ -144,7 +144,7 @@
     <div class="taglib-section-head"><div><h2>Editor JSON completo</h2><p>Edita catálogos, operações, eventos, seletores e demais contratos.</p></div><code>{{ editor_checksum|slice:':12' }}</code></div>
     <form method="post">
       {% csrf_token %}
-      <textarea name="library_json" spellcheck="false" rows="32">{{ editor_json }}</textarea>
+      <textarea name="library_json" aria-label="Biblioteca de tags em JSON" spellcheck="false" rows="32">{{ editor_json }}</textarea>
       <div class="taglib-json-meta">
         <label>Nome da revisão<input name="revision_name" placeholder="Revisão do vocabulário"></label>
         <label>Motivo da alteração<textarea name="reason" minlength="5" rows="3" placeholder="Obrigatório para ativar"></textarea></label>
@@ -171,7 +171,7 @@
         </tr>{% empty %}<tr><td colspan="6">Nenhuma revisão salva. O motor usa o arquivo do projeto.</td></tr>{% endfor %}</tbody>
       </table>
     </div>
-    <form method="post" class="taglib-file-restore">{% csrf_token %}<input required minlength="5" name="reason" placeholder="Motivo para restaurar o arquivo do projeto"><button class="button" name="action" value="activate_file">Validar e restaurar fallback</button></form>
+    <form method="post" class="taglib-file-restore">{% csrf_token %}<input required minlength="5" name="reason" aria-label="Motivo para restaurar o arquivo do projeto" placeholder="Motivo para restaurar o arquivo do projeto"><button class="button" name="action" value="activate_file">Validar e restaurar fallback</button></form>
   </section>
 </main>
 
