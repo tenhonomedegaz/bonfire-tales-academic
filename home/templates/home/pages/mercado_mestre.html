@@ -1,25 +1,26 @@
 {% extends 'home/base.html' %}
 {% load static %}
-{% block extra_head %}<link rel="stylesheet" href="{% static 'css/pages/master-market.css' %}?v=1">{% endblock %}
+{% block body_class %}bft-master-market{% endblock %}
+{% block main_class %}mm-main{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/pages/master-market.css' %}?v=2">
+<script defer src="{% static 'js/master-market.js' %}?v=1"></script>
+{% endblock %}
 
 {% block content %}
-<section class="master-market animate-fade-in max-w-3xl">
-  <header class="mb-2.5 flex flex-wrap items-end justify-between gap-2 border-b border-[var(--stroke)] pb-2.5">
-    <div>
-      <h1 class="font-serif text-2xl md:text-3xl font-bold text-[var(--ember)]">Mercado de Mestre</h1>
-      <p class="mt-1 text-sm text-[var(--muted)]">Ganhe <strong>Moedas de Mestragem (MM)</strong> registrando as mesas que você conduz e troque por recompensas.</p>
+<section class="mm-page" aria-labelledby="mm-title">
+  <header class="mm-heading">
+    <div class="mm-heading-copy">
+      <span class="mm-heading-symbol" aria-hidden="true">{% include 'home/partials/master_market_symbol.html' %}</span>
+      <div><p class="mm-eyebrow">Bonfire Tales · Para quem conduz histórias</p><h1 id="mm-title">Mercado de Mestre</h1><p>Suas mesas deixam marcas. Suas moedas abrem possibilidades.</p></div>
     </div>
-    <div class="flex gap-1.5">
-      <div class="rounded-lg border border-[var(--ember)]/40 bg-[var(--bg1)] px-3 py-1.5 text-right">
-        <div class="text-xs text-[var(--muted)]">Saldo</div>
-        <div class="font-serif text-xl font-bold text-[var(--flame)]">{{ saldo }} MM</div>
-      </div>
-      <div class="rounded-lg border border-[var(--spark)]/40 bg-[var(--bg1)] px-3 py-1.5 text-right">
-        <div class="text-xs text-[var(--muted)]">Eventos</div>
-        <div class="font-serif text-xl font-bold text-[var(--spark)]">{{ moedas_evento }} 🔥</div>
-      </div>
-    </div>
+    <a class="mm-text-link" href="{% url 'guia_mestres' %}">Guia do Mestre <span aria-hidden="true">↗</span></a>
   </header>
+  <div class="mm-wallet" aria-label="Sua carteira de mestre">
+    <div class="mm-balance"><span class="mm-wallet-icon" aria-hidden="true">{% include 'home/partials/master_market_symbol.html' %}</span><div><p>Moedas de Mestragem</p><strong>{{ saldo }} <small>MM</small></strong><span>Disponíveis para recompensas</span></div></div>
+    <div class="mm-balance mm-event-balance"><span class="mm-wallet-icon" aria-hidden="true">{% include 'home/partials/master_market_symbol.html' with symbol='event' %}</span><div><p>Moedas de Evento</p><strong>{{ moedas_evento }}</strong><span>Troque por Braseiros de personagem</span></div></div>
+    <div class="mm-progress"><div><span>Rei da Colina</span><strong>{% if rei_colina.holder %}{{ rei_colina.holder.username }}{% if sou_rei %} · você{% endif %}{% else %}Cargo vago{% endif %}</strong></div><p>Próximo lance: {{ rei_colina.preco_atual }} MM</p><div><span>Mestre Ouro</span><strong>{% if mestre_ouro_ativo %}Vitalício ativo{% elif mestre_ouro_legado_pendente %}Histórico em revisão{% else %}Não adquirido{% endif %}</strong></div></div>
+  </div>
 
   {% if msg == 'aventura' %}<p class="mb-2.5 rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-3 py-2 text-sm text-[var(--spark)]">Aventura registrada — MM creditadas!</p>
   {% elif msg == 'resgatado' %}<p class="mb-2.5 rounded border border-[var(--spark)]/40 bg-[var(--spark)]/10 px-3 py-2 text-sm text-[var(--spark)]">Recompensa resgatada! A staff cumpre o efeito pelo seu histórico.</p>
@@ -34,22 +35,15 @@
   {% elif msg == 'ja_rei' %}<p class="mb-2.5 rounded border border-[var(--stroke)] bg-[var(--bg1)] px-3 py-2 text-sm text-[var(--muted)]">Você já é o Rei da Colina.</p>
   {% elif msg == 'nome' %}<p class="mb-2.5 rounded border border-[var(--flame)]/50 bg-[var(--flame)]/10 px-3 py-2 text-sm text-[var(--flame)]">Informe o nome da aventura.</p>{% endif %}
 
-  <!-- Status: Rei da Colina + Mestre Ouro -->
-  <div class="mb-4 grid gap-2 sm:grid-cols-2">
-    <div class="rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-2 text-sm">
-      <div class="font-serif font-bold text-[var(--ember)]">👑 Rei da Colina</div>
-      {% if rei_colina.holder %}<div class="text-[var(--text)]">{{ rei_colina.holder.username }}{% if sou_rei %} <span class="text-[var(--spark)]">(você)</span>{% endif %}</div>
-      {% else %}<div class="text-[var(--muted)]">Cargo vago.</div>{% endif %}
-      <div class="text-xs text-[var(--muted)]">Próximo lance: {{ rei_colina.preco_atual }} MM</div>
-    </div>
-    <div class="rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-2 text-sm">
-      <div class="font-serif font-bold text-[var(--ember)]">⭐ Mestre Ouro</div>
-      {% if mestre_ouro_ativo %}<div class="text-[var(--spark)]">Vitalício — 5º espaço liberado.</div>
-      {% elif mestre_ouro_legado_pendente %}<div class="text-[var(--muted)]">Compra anterior em verificação.</div>
-      {% else %}<div class="text-[var(--muted)]">Ainda não adquirido.</div>{% endif %}
-    </div>
-  </div>
+  <nav class="mm-tabs" aria-label="Áreas do Mercado de Mestre">
+    <a href="?area=recompensas" data-mm-area="recompensas"{% if not request.GET.area or request.GET.area == 'recompensas' %} class="is-active" aria-current="page"{% endif %}>Recompensas</a>
+    <a href="?area=eventos" data-mm-area="eventos"{% if request.GET.area == 'eventos' %} class="is-active" aria-current="page"{% endif %}>Moedas de Evento</a>
+    <a href="?area=registro" data-mm-area="registro"{% if request.GET.area == 'registro' %} class="is-active" aria-current="page"{% endif %}>Registrar mesa</a>
+    <a href="?area=historico" data-mm-area="historico"{% if request.GET.area == 'historico' %} class="is-active" aria-current="page"{% endif %}>Histórico</a>
+  </nav>
 
+  <section id="mm-area-eventos" class="mm-area mm-service-layout" aria-label="Moedas de Evento"{% if request.GET.area != 'eventos' %} hidden{% endif %}>
+  <div class="mm-service-panel">
   <!-- Resgatar braseiros (Moedas de Evento → braseiros no personagem) -->
   {% if meus_personagens %}
   <div class="mb-4 rounded-lg border border-[var(--spark)]/40 bg-[var(--bg1)] p-3">
@@ -66,9 +60,16 @@
       <button type="submit" {% if moedas_evento < 1 %}disabled{% endif %} class="rounded bg-bonfire-gradient px-3 py-1.5 text-sm font-bold text-white hover:opacity-90 disabled:opacity-40">Resgatar braseiros</button>
     </form>
   </div>
+  {% else %}
+  <p class="mm-notice">Crie um personagem para receber Braseiros. <a href="{% url 'profile' %}">Ir ao meu perfil</a></p>
   {% endif %}
+  </div>
+  <aside class="mm-guide"><p class="mm-eyebrow">Como funciona</p><h3>Da mesa para o personagem</h3><p>As Moedas de Evento são trocadas por Braseiros no personagem selecionado. Confira a quantidade antes de resgatar.</p></aside>
+  </section>
 
   <!-- Registrar aventura conduzida -->
+  <section id="mm-area-registro" class="mm-area mm-service-layout" aria-label="Registrar mesa"{% if request.GET.area != 'registro' %} hidden{% endif %}>
+  <div class="mm-service-panel">
   <h2 class="mb-2 font-serif text-lg font-bold text-[var(--text)]">Registrar mesa conduzida</h2>
   <form method="post" action="{% url 'mestre_registrar_aventura' %}" class="mb-4 grid gap-2 rounded-lg border border-[var(--stroke)] bg-[var(--bg1)] p-3 sm:grid-cols-2">
     {% csrf_token %}
@@ -84,41 +85,67 @@
       <input name="observacao" class="mt-0.5 block w-full rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm text-[var(--text)]"></label>
     <div class="sm:col-span-2"><button type="submit" class="rounded bg-bonfire-gradient px-3 py-1.5 text-sm font-bold text-white hover:opacity-90">Registrar e creditar MM</button></div>
   </form>
+  </div>
+  <aside class="mm-guide"><p class="mm-eyebrow">Antes de registrar</p><h3>Confira sua mesa</h3><p>Revise nome, data, jogadores e recompensa antes de enviar. O registro credita MM pelo fluxo atual.</p></aside>
+  </section>
 
   <!-- Catálogo de recompensas -->
-  <h2 class="mb-2 font-serif text-lg font-bold text-[var(--text)]">Recompensas</h2>
-  <div class="mb-4 space-y-1.5">
-    {% for r in recompensas %}
-      <div class="flex flex-wrap items-center justify-between gap-1.5 rounded-lg border {% if r.tipo != 'normal' %}border-[var(--ember)]/40{% else %}border-[var(--stroke)]{% endif %} bg-[var(--bg1)] p-2">
-        <div class="min-w-0 flex-1">
-          <div class="font-serif text-sm font-bold text-[var(--text)]">{{ r.nome }}
-            {% if r.tipo == 'leilao' %}<span class="ml-1 rounded bg-[var(--ember)]/15 px-1.5 py-0.5 text-xs text-[var(--ember)]">leilão</span>
-            {% elif r.tipo == 'assinatura' %}<span class="ml-1 rounded bg-[var(--ember)]/15 px-1.5 py-0.5 text-xs text-[var(--ember)]">vitalício</span>{% endif %}
+  <section id="mm-area-recompensas" class="mm-area" aria-label="Recompensas"{% if request.GET.area and request.GET.area != 'recompensas' %} hidden{% endif %}>
+    <div class="mm-workspace">
+      <aside class="mm-catalog" aria-label="Catálogo de recompensas">
+        <form method="get" class="mm-search-form">
+          <input type="hidden" name="area" value="recompensas">
+          <input type="hidden" name="recompensa" id="mm-active" value="{{ request.GET.recompensa }}">
+          <label class="mm-eyebrow" for="mm-search">Encontrar recompensa</label>
+          <div class="mm-search-field"><input id="mm-search" type="search" name="q" value="{{ request.GET.q }}" maxlength="160" placeholder="Nome ou benefício…"><button type="submit" aria-label="Buscar recompensa">⌕</button></div>
+          <label class="mm-filter-label" for="mm-kind">Tipo de benefício</label>
+          <select id="mm-kind" name="tipo"><option value="">Todas as recompensas</option><option value="normal"{% if request.GET.tipo == 'normal' %} selected{% endif %}>Outros benefícios</option><option value="leilao"{% if request.GET.tipo == 'leilao' %} selected{% endif %}>Leilão</option><option value="assinatura"{% if request.GET.tipo == 'assinatura' %} selected{% endif %}>Mestre Ouro</option></select>
+        </form>
+        <div class="mm-list-head"><span><strong id="mm-count">{{ recompensas|length }}</strong> recompensas</span><a class="mm-clear" href="?area=recompensas" hidden>Limpar</a></div>
+        <nav id="mm-list" class="mm-list" aria-label="Escolher recompensa">
+          {% for r in recompensas %}
+          <a href="?area=recompensas&amp;recompensa={{ r.id_recompensa }}" class="mm-item{% if forloop.first %} is-active{% endif %}" data-target="mm-reward-{{ r.id_recompensa }}" data-key="{{ r.id_recompensa }}" data-kind="{{ r.tipo }}" data-search="{{ r.nome }} {{ r.descricao|default:'' }}"{% if forloop.first %} aria-current="true"{% endif %}><span class="mm-list-symbol" aria-hidden="true">{% include 'home/partials/master_market_symbol.html' with symbol=r.tipo %}</span><span><strong>{{ r.nome }}</strong><small>{% if r.tipo == 'leilao' %}{{ rei_colina.preco_atual }} MM{% else %}{{ r.preco_mm }} MM{% endif %}</small></span><span class="mm-list-arrow" aria-hidden="true">›</span></a>
+          {% endfor %}
+          <p id="mm-list-empty" class="mm-muted"{% if recompensas %} hidden{% endif %}>Nenhuma recompensa encontrada.</p>
+        </nav>
+        <p class="mm-catalog-foot">Escolha uma recompensa para conferir o benefício e o custo antes de resgatar.</p>
+      </aside>
+      <div id="mm-reader" class="mm-reader" tabindex="-1">
+        {% for r in recompensas %}
+        <article id="mm-reward-{{ r.id_recompensa }}" class="mm-reward" aria-labelledby="mm-name-{{ r.id_recompensa }}"{% if not forloop.first %} hidden{% endif %}>
+          <header class="mm-reward-heading"><div><p class="mm-eyebrow">Recompensa de mestre</p><h2 id="mm-name-{{ r.id_recompensa }}">{{ r.nome }}</h2></div><span class="mm-reward-symbol" aria-hidden="true">{% include 'home/partials/master_market_symbol.html' with symbol=r.tipo %}</span></header>
+          <div class="mm-reward-body"><h3>O que você recebe</h3>
+            {% if r.tipo == 'assinatura' %}<p class="mm-description">Uma compra concede Mestre Ouro e o 5º espaço de personagem permanentemente.</p>
+            {% elif r.descricao %}<p class="mm-description">{{ r.descricao|linebreaksbr }}</p>{% else %}<p class="mm-description">Confira o custo e as condições antes de resgatar.</p>{% endif %}
           </div>
-          {% if r.tipo == 'assinatura' %}<div class="text-xs text-[var(--muted)]">Uma compra concede Mestre Ouro e o 5º espaço de personagem permanentemente.</div>
-          {% elif r.descricao %}<div class="text-xs text-[var(--muted)]">{{ r.descricao }}</div>{% endif %}
-        </div>
-        <form method="post" action="{% url 'mestre_resgatar' %}" class="flex items-center gap-1.5">
+          <footer class="mm-purchase">
+            <div><p class="mm-eyebrow">{% if r.tipo == 'leilao' %}Lance atual{% elif r.tipo == 'assinatura' %}Pagamento único{% else %}Custo do resgate{% endif %}</p><strong class="mm-price">{% if r.tipo == 'leilao' %}{{ rei_colina.preco_atual }}{% else %}{{ r.preco_mm }}{% endif %} <small>MM</small></strong></div>
+            <form method="post" action="{% url 'mestre_resgatar' %}">
           {% csrf_token %}<input type="hidden" name="recompensa" value="{{ r.id_recompensa }}">
           {% if r.tipo == 'leilao' %}
-            <span class="font-mono text-sm text-[var(--flame)]">{{ rei_colina.preco_atual }} MM</span>
-            <button type="submit" {% if sou_rei %}disabled{% endif %} class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-1.5 text-xs font-bold text-[var(--ember)] hover:border-[var(--ember)] disabled:opacity-40">{% if sou_rei %}Você é o Rei{% else %}Dar lance{% endif %}</button>
+            <button type="submit" {% if sou_rei %}disabled{% endif %} class="mm-button">{% if sou_rei %}Você é o Rei{% else %}Dar lance{% endif %}</button>
           {% elif r.tipo == 'assinatura' %}
             {% if mestre_ouro_ativo %}<span class="text-xs text-[var(--spark)]">Adquirido permanentemente</span>
             {% elif mestre_ouro_legado_pendente %}<span class="text-xs text-[var(--muted)]">Histórico em revisão</span>
-            {% elif r.preco_vitalicio_aprovado_mm and r.preco_vitalicio_aprovado_mm == r.preco_mm %}<span class="font-mono text-sm text-[var(--flame)]">{{ r.preco_mm }} MM, pagamento único</span>
-            <button type="submit" class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-1.5 text-xs font-bold text-[var(--ember)] hover:border-[var(--ember)]">Comprar</button>
+            {% elif r.preco_vitalicio_aprovado_mm and r.preco_vitalicio_aprovado_mm == r.preco_mm %}
+            <button type="submit" class="mm-button">Comprar</button>
             {% else %}<span class="text-xs text-[var(--muted)]">Preço vitalício a definir</span>{% endif %}
           {% else %}
-            <span class="font-mono text-sm text-[var(--flame)]">{{ r.preco_mm }} MM</span>
-            <button type="submit" {% if saldo < r.preco_mm %}disabled{% endif %} class="rounded border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-1.5 text-xs font-bold text-[var(--ember)] hover:border-[var(--ember)] disabled:opacity-40">Resgatar</button>
+            <button type="submit" {% if saldo < r.preco_mm %}disabled{% endif %} class="mm-button">Resgatar</button>
           {% endif %}
-        </form>
+            </form>
+          </footer>
+        </article>
+        {% endfor %}
+        <div id="mm-reader-empty" class="mm-empty"{% if recompensas %} hidden{% endif %}><h2>Nenhuma recompensa encontrada</h2><p>Tente outro nome ou tipo de benefício.</p><a class="mm-button mm-clear" href="?area=recompensas" hidden>Limpar filtros</a></div>
       </div>
-    {% endfor %}
-  </div>
+    </div>
+  </section>
 
   <!-- Aventuras registradas -->
+  <section id="mm-area-historico" class="mm-area" aria-label="Meu histórico"{% if request.GET.area != 'historico' %} hidden{% endif %}>
+  <div class="mm-history-layout">
+  <section class="mm-history-panel">
   {% if aventuras %}
   <h2 class="mb-2 font-serif text-lg font-bold text-[var(--text)]">Minhas aventuras</h2>
   <div class="mb-4 overflow-hidden rounded-lg border border-[var(--stroke)] bg-[var(--bg1)]">
@@ -134,9 +161,11 @@
       </tbody>
     </table>
   </div>
-  {% endif %}
+  {% else %}<p class="mm-muted">Nenhuma aventura registrada.</p>{% endif %}
+  </section>
 
   <!-- Histórico de MM -->
+  <section class="mm-history-panel">
   {% if transacoes %}
   <h2 class="mb-2 font-serif text-lg font-bold text-[var(--text)]">Histórico de MM</h2>
   <div class="overflow-hidden rounded-lg border border-[var(--stroke)] bg-[var(--bg1)]">
@@ -152,6 +181,10 @@
       </tbody>
     </table>
   </div>
-  {% endif %}
+  {% else %}<p class="mm-muted">Nenhuma movimentação de MM.</p>{% endif %}
+  </section>
+  </div>
+  </section>
+  <p id="mm-announcement" class="mm-sr-only" role="status" aria-live="polite"></p>
 </section>
 {% endblock %}
