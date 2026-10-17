@@ -34,7 +34,10 @@ def snapshot():
     data = {
         'subscription_rewards': _rows(TbRecompensaMestre.objects.filter(tipo='assinatura')),
         'themes': _rows(themes),
-        'theme_checkout_offers': _rows(CosmeticCheckoutOffer.objects.filter(cosmetico_id__in=theme_ids)),
+        # The demonstration column is added by G01-D (0155). A pre-D snapshot
+        # must use only columns present at the 0154 migration head.
+        'theme_checkout_offers': _rows(CosmeticCheckoutOffer.objects.filter(cosmetico_id__in=theme_ids),
+                                       'id', 'cosmetico_id', 'amount', 'active'),
         'theme_inventory': _rows(TbUsuarioCosmetico.objects.filter(cosmetico_id__in=theme_ids)),
         'theme_purchases': _rows(purchases),
         'related_orders': _rows(AsaasCheckoutOrder.objects.filter(pk__in=order_ids),
@@ -75,12 +78,12 @@ class Command(BaseCommand):
                 raise CommandError('G01-D inventory requires PostgreSQL.')
             with connection.cursor() as cursor:
                 cursor.execute('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY')
-            rows = snapshot()
             with connection.cursor() as cursor:
                 cursor.execute("SELECT name FROM django_migrations WHERE app = 'home' ORDER BY id DESC LIMIT 8")
                 migrations = cursor.fetchall()
             if not migrations or migrations[0][0] != options['expected_home_head']:
                 raise CommandError('home migration head differs from the expected pre-change state.')
+            rows = snapshot()
         payload = {
             'kind': 'G01-D-prechange', 'created_at': timezone.now(),
             'database_vendor': connection.vendor,
