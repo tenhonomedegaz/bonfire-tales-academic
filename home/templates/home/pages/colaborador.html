@@ -1,230 +1,45 @@
-{% extends 'home/base.html' %}
-{% load static %}
-
+{% extends 'home/base.html' %}{% load static %}
 {% block body_class %}bft-commerce{% endblock %}
 {% block main_class %}co-main flex-1 w-full min-w-0{% endblock %}
-{% block extra_head %}<link rel="stylesheet" href="{% static 'css/pages/commerce.css' %}?v=1">{% endblock %}
-
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/pages/commerce.css' %}?v=1"><script src="{% static 'js/commerce.js' %}?v=1" defer></script>{% endblock %}
 {% block content %}
-<!-- ░░░ HERO ░░░ -->
-<div class="-mx-3 md:-mx-5 -mt-4 mb-8">
-  <section class="relative py-12 md:py-16 bg-gradient-to-b from-[var(--bg1)] to-[var(--bg0)] border-b border-[var(--stroke)] overflow-hidden">
-    <div aria-hidden="true" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vw] h-[80vw] bg-[var(--flame)]/5 rounded-full blur-[120px] pointer-events-none"></div>
-    <div class="container mx-auto px-3 text-center relative z-10">
-      <div class="inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded text-xs font-bold bg-[var(--ember)] text-white mb-2.5">
-        <span aria-hidden="true">🔥</span> Apoie o Bonfire Tales
-      </div>
-      <h1 class="font-rpg text-4xl md:text-6xl font-bold text-[var(--text)] mt-2.5 mb-4 tracking-tighter">
-        Coloque lenha na <span class="bg-clip-text text-transparent" style="background-image:linear-gradient(to right,#F27007,#F7B113)">Fogueira</span>
-      </h1>
-      <p class="text-lg md:text-xl text-[var(--muted)] max-w-2xl mx-auto leading-relaxed">
-        O uso do servidor é <strong class="text-[var(--text)]">totalmente gratuito</strong>. Todo valor investido vai
-        para a manutenção do próprio servidor — e nós agradecemos imensamente o seu apoio.
-      </p>
-    </div>
-  </section>
-</div>
-
-<div class="container mx-auto px-2 sm:px-3 pb-12">
-
-  {% if checkout_feedback %}
-  <div class="mb-4 border px-4 py-3 text-sm {% if checkout_feedback.0 == 'error' %}border-red-500/50 bg-red-950/30 text-red-200{% elif checkout_feedback.0 == 'success' %}border-emerald-500/50 bg-emerald-950/30 text-emerald-100{% else %}border-[var(--stroke)] bg-[var(--bg1)] text-[var(--muted)]{% endif %}" role="status">
-    {{ checkout_feedback.1 }}
-  </div>
-  {% endif %}
-
-  {% if not checkout_account_ready %}
-  <div class="mb-5 flex flex-wrap items-center justify-between gap-3 border border-[var(--stroke)] bg-[var(--bg1)] px-4 py-3">
-    <p class="text-sm text-[var(--muted)]">
-      {% if user.is_authenticated %}
-      Adicione um e-mail ou vincule o Discord para que a compra seja entregue automaticamente na conta correta.
-      {% else %}
-      Entre na sua conta antes de comprar. Assim o pagamento já nasce vinculado ao seu perfil.
-      {% endif %}
-    </p>
-    <a href="{% if user.is_authenticated %}{% url 'profile' %}{% else %}/login/?next={% url 'colaborador' %}{% endif %}"
-       class="inline-flex items-center justify-center rounded-lg border border-[var(--ember)] px-3 py-2 text-sm font-bold text-[var(--ember)] hover:bg-[var(--ember)] hover:text-black">
-      {% if user.is_authenticated %}Preparar minha conta{% else %}Entrar para comprar{% endif %}
-    </a>
-  </div>
-  {% endif %}
-
-  <!-- ░░░ PACOTES DE COLABORADOR ░░░ -->
-  <div class="mb-4 text-center">
-    <h2 class="font-rpg text-2xl md:text-3xl font-bold text-[var(--text)]">Pacotes de Colaborador</h2>
-    <p class="mt-2 text-sm text-[var(--muted)]">Assinatura mensal recorrente, pagamento único ou planos longos com desconto.</p>
-  </div>
-
-  <div class="grid gap-3 lg:grid-cols-3 items-start pt-2.5">
-    {% for tier in tiers %}
-    <div class="relative flex h-full flex-col rounded-xl border {% if tier.destaque %}border-[var(--ember)] bg-[var(--bg1)] shadow-[0_0_40px_-12px_rgba(242,112,7,0.45)] lg:-mt-3{% else %}border-[var(--stroke)] bg-[var(--bg1)]{% endif %} p-4">
-      {% if tier.destaque %}
-      <div class="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-bonfire-gradient px-3 py-1 text-xs font-bold text-white shadow-lg">
-        <span aria-hidden="true">⭐</span> Mais completo
-      </div>
-      {% endif %}
-
-      <!-- Cabeçalho do card -->
-      <div class="mb-3 border-b border-[var(--stroke)] pb-3 text-center">
-        <div class="text-3xl" aria-hidden="true">{{ tier.emoji }}</div>
-        <h3 class="mt-2 font-rpg text-xl font-bold text-[var(--text)]">{{ tier.titulo }}</h3>
-        <div class="mt-3 flex items-end justify-center gap-1">
-          <span class="text-sm text-[var(--muted)]">R$</span>
-          <span class="font-rpg text-4xl font-bold {% if tier.destaque %}text-[var(--ember)]{% else %}text-[var(--text)]{% endif %}">{{ tier.preco_mes }}</span>
-          <span class="mb-1 text-sm text-[var(--muted)]">/mês</span>
-        </div>
-      </div>
-
-      <!-- Benefícios -->
-      <ul class="mb-4 space-y-2 text-sm">
-        {% for emoji, texto in tier.beneficios %}
-        <li class="flex items-start gap-2 text-[var(--text)]">
-          <span class="mt-0.5 flex-shrink-0" aria-hidden="true">{{ emoji }}</span>
-          <span>{{ texto }}</span>
-        </li>
-        {% endfor %}
-      </ul>
-
-      <!-- CTAs (empurra o bloco de planos pro rodapé do card) -->
-      <div class="mt-auto space-y-2">
-        {% if checkout_account_ready %}
-        <form action="{% url 'colaborador_checkout' %}" method="post" target="_blank">
-          {% csrf_token %}
-          <input type="hidden" name="product" value="{{ tier.product_code }}">
-          <input type="hidden" name="mode" value="recurring">
-          <button type="submit" aria-label="Assinar {{ tier.titulo }} no cartão por R$ {{ tier.preco_mes }} por mês"
-             class="flex w-full items-center justify-center gap-1.5 rounded-lg bg-bonfire-gradient px-3 py-2 text-sm font-bold text-white transition-all hover:-translate-y-0.5 hover:brightness-110 shadow-[0_0_15px_rgba(210,23,23,0.25)]">
-          Assinar no cartão
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-          </button>
-        </form>
-        <form action="{% url 'colaborador_checkout' %}" method="post" target="_blank">
-          {% csrf_token %}
-          <input type="hidden" name="product" value="{{ tier.product_code }}">
-          <input type="hidden" name="mode" value="single">
-          <button type="submit" aria-label="Pagamento único de {{ tier.titulo }} via Pix ou cartão"
-             class="flex w-full items-center justify-center gap-1.5 rounded-lg border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm font-semibold text-[var(--text)] transition-all hover:border-[var(--ember)]">
-            Pagamento único · Pix / Cartão
-          </button>
-        </form>
-        {% else %}
-        <a href="{% if user.is_authenticated %}{% url 'profile' %}{% else %}/login/?next={% url 'colaborador' %}{% endif %}"
-           class="flex w-full items-center justify-center rounded-lg bg-bonfire-gradient px-3 py-2 text-sm font-bold text-white">
-          Vincular conta para comprar
-        </a>
-        {% endif %}
-
-        <!-- Planos longos -->
-        <div class="pt-2">
-          <p class="mb-1.5 text-center text-xs font-bold uppercase tracking-wide text-[var(--muted)]">Planos longos · mais desconto</p>
-          <div class="space-y-1.5">
-            {% for plano in tier.planos %}
-            {% if checkout_account_ready %}
-            <form action="{% url 'colaborador_checkout' %}" method="post" target="_blank">
-              {% csrf_token %}
-              <input type="hidden" name="product" value="{{ plano.product_code }}">
-              <input type="hidden" name="mode" value="single">
-              <button type="submit" aria-label="Comprar plano {{ plano.label }} de {{ tier.titulo }} por R$ {{ plano.preco }}"
-               class="group flex w-full items-center justify-between gap-1.5 rounded-lg border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-1.5 transition-all hover:border-[var(--spark)]/60">
-              <span class="flex items-center gap-1.5">
-                <span class="text-sm font-semibold text-[var(--text)]">{{ plano.label }}</span>
-                <span class="rounded bg-[var(--spark)]/20 px-1.5 py-0.5 text-[11px] font-bold text-[var(--spark)]">{{ plano.off }}</span>
-              </span>
-              <span class="flex items-center gap-1.5 text-sm text-[var(--muted)] group-hover:text-[var(--text)]">
-                R$ {{ plano.preco }}
-                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="opacity-50 transition-transform group-hover:translate-x-0.5"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-              </span>
-              </button>
-            </form>
-            {% else %}
-            <span class="flex items-center justify-between gap-1.5 rounded-lg border border-[var(--stroke)] bg-[var(--bg0)] px-2.5 py-1.5 opacity-60">
-              <span class="text-sm font-semibold text-[var(--text)]">{{ plano.label }} · {{ plano.off }}</span>
-              <span class="text-sm text-[var(--muted)]">R$ {{ plano.preco }}</span>
-            </span>
-            {% endif %}
-            {% endfor %}
-          </div>
-        </div>
-      </div>
-    </div>
-    {% endfor %}
-  </div>
-
-  <!-- ░░░ TOKENS AVULSOS ░░░ -->
-  <div class="mt-8 mb-4 text-center">
-    <h2 class="font-rpg text-2xl md:text-3xl font-bold text-[var(--text)]"><span aria-hidden="true">⭐</span> Tokens avulsos</h2>
-    <p class="mt-2 text-sm text-[var(--muted)] max-w-2xl mx-auto">
-      Quer apenas um impulso pontual? Compre tokens de Missão Especial, Boost e Superboost à parte dos pacotes de colaboração.
-    </p>
-  </div>
-
-  <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-    {% for token in tokens %}
-    <div class="flex flex-col rounded-xl border border-[var(--stroke)] bg-[var(--bg1)] p-4 text-center">
-      <div class="text-3xl" aria-hidden="true">{{ token.emoji }}</div>
-      <h3 class="mt-2 font-rpg text-lg font-bold text-[var(--text)]">{{ token.nome }}</h3>
-      <p class="mt-2 flex-1 text-sm text-[var(--muted)]">{{ token.desc }}</p>
-      <div class="my-2.5 font-rpg text-2xl font-bold text-[var(--ember)]">R$ {{ token.preco }}</div>
-      {% if checkout_account_ready %}
-      <form action="{% url 'colaborador_checkout' %}" method="post" target="_blank">
-        {% csrf_token %}
-        <input type="hidden" name="product" value="{{ token.product_code }}">
-        <input type="hidden" name="mode" value="single">
-        <button type="submit" aria-label="Comprar token {{ token.nome }} por R$ {{ token.preco }}"
-         class="flex w-full items-center justify-center gap-1.5 rounded-lg border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-2 text-sm font-bold text-[var(--text)] transition-all hover:border-[var(--ember)] hover:-translate-y-0.5">
-        Comprar token
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-        </button>
+{% include 'home/partials/commerce_nav.html' with section='support' %}
+{% if user.is_authenticated %}<aside class="co-notice" data-nav-addition><div><strong>{% if navigation_membership.active %}Você já é colaborador.{% else %}Sua colaboração, em um só lugar.{% endif %}</strong><p>Consulte seu plano, validade, benefícios e orientações de gerenciamento sem procurar pelo menu da conta.</p></div><a class="co-btn co-btn-secondary" href="{% url 'subscription_management' %}">Minha assinatura →</a></aside>{% endif %}
+<header class="co-hero co-hero-support">
+  <div><p class="co-eyebrow">Uma comunidade. Incontáveis histórias.</p><h1>Mantenha a fogueira <em>acesa.</em></h1><p>O Bonfire é gratuito para jogar. Seu apoio ajuda a manter o servidor e traz benefícios para sua jornada em Cinéria.</p><a class="co-text-link" href="#co-plans">Conheça os planos <span aria-hidden="true">↓</span></a></div>
+  <div class="co-hero-seal" aria-hidden="true"><img src="{% static 'brand/icon.png' %}" alt=""><span>Histórias que nos unem.<br>Lendas que permanecem.</span></div>
+</header>
+{% if checkout_feedback %}<div class="co-notice co-feedback-{{ checkout_feedback.0 }}" role="status">{{ checkout_feedback.1 }}</div>{% endif %}
+{% if not checkout_account_ready %}<aside class="co-notice co-account"><p>{% if user.is_authenticated %}Adicione um e-mail ou vincule o Discord para receber a compra na conta correta.{% else %}Entre na sua conta para que a compra fique vinculada ao seu perfil.{% endif %}</p><a class="co-btn co-btn-secondary" href="{% if user.is_authenticated %}{% url 'profile' %}{% else %}/login/?next={% url 'colaborador' %}{% endif %}">{% if user.is_authenticated %}Configurar conta{% else %}Entrar na conta{% endif %}</a></aside>{% endif %}
+<section id="co-plans" aria-labelledby="co-plans-title">
+  <div class="co-section-head"><div><p class="co-eyebrow">Escolha como apoiar</p><h2 id="co-plans-title">Pacotes de Colaborador</h2></div><p>Assinatura mensal no cartão ou pagamento único.<br>Você escolhe a modalidade antes de pagar.</p></div>
+  <div class="co-plans">
+  {% for tier in tiers %}<article class="co-plan {% if tier.destaque %}co-plan-featured{% endif %}">
+    <header><span class="co-plan-seal" aria-hidden="true">{% include 'home/partials/commerce_symbol.html' with kind='titulo' %}</span><p class="co-eyebrow">{% if tier.destaque %}Mais completo{% else %}Colaborador Bonfire{% endif %}</p><h3>{{ tier.titulo }}</h3><p class="co-price"><span>R$</span> {{ tier.preco_mes }} <small>/mês</small></p></header>
+    <ul class="co-benefits">{% for emoji, texto in tier.beneficios %}<li><span aria-hidden="true">✦</span><span>{{ texto }}</span></li>{% endfor %}</ul>
+    <div class="co-plan-actions">
+    {% if checkout_account_ready %}
+      <form action="{% url 'colaborador_checkout' %}" method="post" target="_blank" data-purchase-review data-product="{{ tier.titulo }}" data-amount="R$ {{ tier.preco_mes }}/mês" data-mode="Assinatura mensal recorrente" data-note="Cobrança mensal no cartão pelo Asaas. Os benefícios dependem da confirmação do pagamento e da conta vinculada. O checkout abre em outra aba.">
+        {% csrf_token %}<input type="hidden" name="product" value="{{ tier.product_code }}"><input type="hidden" name="mode" value="recurring"><button class="co-btn" type="submit">Assinar no cartão <span aria-hidden="true">↗</span></button>
       </form>
-      {% else %}
-      <a href="{% if user.is_authenticated %}{% url 'profile' %}{% else %}/login/?next={% url 'colaborador' %}{% endif %}"
-         class="flex w-full items-center justify-center rounded-lg border border-[var(--stroke)] px-3 py-2 text-sm font-bold text-[var(--muted)]">
-        Vincular conta para comprar
-      </a>
-      {% endif %}
-    </div>
-    {% endfor %}
+      <form action="{% url 'colaborador_checkout' %}" method="post" target="_blank" data-purchase-review data-product="{{ tier.titulo }} · 1 mês" data-amount="R$ {{ tier.preco_mes }}" data-mode="Pagamento único" data-note="Um mês de benefícios, sem assinatura recorrente. Pix ou cartão pelo Asaas; abre em outra aba.">
+        {% csrf_token %}<input type="hidden" name="product" value="{{ tier.product_code }}"><input type="hidden" name="mode" value="single"><button class="co-btn co-btn-secondary" type="submit">1 mês · Pix ou cartão</button>
+      </form>
+    {% else %}<a class="co-btn" href="{% if user.is_authenticated %}{% url 'profile' %}{% else %}/login/?next={% url 'colaborador' %}{% endif %}">Vincular conta para comprar</a>{% endif %}
+    <p class="co-micro">Assinatura: renovação mensal. Pagamento único: sem recorrência.</p>
+    <details class="co-long-plans"><summary>Planos longos <span>até 25% OFF</span></summary><p>Valor total do período, em pagamento único.</p>
+      {% for plano in tier.planos %}{% if checkout_account_ready %}
+      <form action="{% url 'colaborador_checkout' %}" method="post" target="_blank" data-purchase-review data-product="{{ tier.titulo }} · {{ plano.label }}" data-amount="R$ {{ plano.preco }}" data-mode="Pagamento único · {{ plano.label }}" data-note="Valor total do período, sem renovação automática. Pix ou cartão pelo Asaas; abre em outra aba.">
+        {% csrf_token %}<input type="hidden" name="product" value="{{ plano.product_code }}"><input type="hidden" name="mode" value="single"><button type="submit"><span>{{ plano.label }} <small>{{ plano.off }}</small></span><strong>R$ {{ plano.preco }}</strong></button>
+      </form>{% else %}<div class="co-long-disabled"><span>{{ plano.label }} · {{ plano.off }}</span><strong>R$ {{ plano.preco }}</strong></div>{% endif %}{% endfor %}
+    </details></div>
+  </article>{% endfor %}
   </div>
-
-  <!-- ░░░ COMO FUNCIONA ░░░ -->
-  <div class="mt-8 rounded-xl border border-[var(--stroke)] bg-[var(--bg1)] p-4 md:p-5">
-    <h2 class="mb-3 font-rpg text-xl font-bold text-[var(--text)] flex items-center gap-1.5">
-      <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="text-[var(--ember)]"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
-      Como funciona
-    </h2>
-    <div class="grid gap-3 md:grid-cols-3">
-      <div class="flex gap-2">
-        <span class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-bonfire-gradient text-sm font-bold text-white" aria-hidden="true">1</span>
-        <div>
-          <h3 class="text-sm font-bold text-[var(--text)]">Escolha e pague</h3>
-          <p class="mt-1 text-sm text-[var(--muted)]">Você é levado ao checkout seguro do Asaas (Pix ou cartão).</p>
-        </div>
-      </div>
-      <div class="flex gap-2">
-        <span class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-bonfire-gradient text-sm font-bold text-white" aria-hidden="true">2</span>
-        <div>
-          <h3 class="text-sm font-bold text-[var(--text)]">Conta vinculada</h3>
-          <p class="mt-1 text-sm text-[var(--muted)]">O checkout recebe sua conta e seu e-mail automaticamente. Você não precisa digitar o e-mail para resgatar.</p>
-        </div>
-      </div>
-      <div class="flex gap-2">
-        <span class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-bonfire-gradient text-sm font-bold text-white" aria-hidden="true">3</span>
-        <div>
-          <h3 class="text-sm font-bold text-[var(--text)]">Entrega automática</h3>
-          <p class="mt-1 text-sm text-[var(--muted)]">Quando o Asaas confirmar o pagamento, tokens e benefícios são creditados no Discord vinculado.</p>
-        </div>
-      </div>
-    </div>
-    <div class="mt-4 flex flex-wrap items-center gap-2 border-t border-[var(--stroke)] pt-3">
-      <a href="https://discord.gg/eyqe7rj2AX" target="_blank" rel="noopener noreferrer"
-         aria-label="Entrar no servidor do Discord (abre em nova aba)"
-         class="inline-flex items-center gap-1.5 rounded-lg border border-[var(--stroke)] bg-[var(--bg0)] px-3 py-1.5 text-sm font-bold text-[var(--text)] transition-all hover:border-[var(--ember)]">
-        <img src="{% static 'assets/discord_icon.png' %}" class="h-4 w-4 object-contain" alt="" aria-hidden="true">
-        Entrar no Discord
-      </a>
-      <p class="text-xs text-[var(--muted)]">Dúvidas sobre os planos? Fale com a staff no servidor.</p>
-    </div>
-  </div>
-
-</div>
+</section>
+<section class="co-token-section" aria-labelledby="co-tokens-title"><div class="co-section-head"><div><p class="co-eyebrow">Apoio pontual</p><h2 id="co-tokens-title">Tokens avulsos</h2></div><p>Uma compra única, independente dos planos.</p></div><div class="co-tokens">
+{% for token in tokens %}<article class="co-token"><span class="co-token-symbol" aria-hidden="true">{% include 'home/partials/commerce_symbol.html' with kind='token' %}</span><div><h3>{{ token.nome }}</h3><p>{{ token.desc }}</p></div><strong>R$ {{ token.preco }}</strong>
+{% if checkout_account_ready %}<form action="{% url 'colaborador_checkout' %}" method="post" target="_blank" data-purchase-review data-product="{{ token.nome }}" data-amount="R$ {{ token.preco }}" data-mode="Pagamento único" data-note="Token para a conta vinculada. Pix ou cartão pelo Asaas; abre em outra aba. A entrega depende da confirmação do pagamento.">{% csrf_token %}<input type="hidden" name="product" value="{{ token.product_code }}"><input type="hidden" name="mode" value="single"><button class="co-btn co-btn-secondary" type="submit">Comprar token</button></form>
+{% else %}<a class="co-btn co-btn-secondary" href="{% if user.is_authenticated %}{% url 'profile' %}{% else %}/login/?next={% url 'colaborador' %}{% endif %}">Vincular conta</a>{% endif %}</article>{% endfor %}</div></section>
+<section class="co-how" aria-labelledby="co-how-title"><h2 id="co-how-title">Do apoio à sua aventura</h2><ol><li><span>01</span><div><h3>Escolha sua modalidade</h3><p>Confira os benefícios, o período e se a cobrança é única ou recorrente.</p></div></li><li><span>02</span><div><h3>Pague pelo Asaas</h3><p>Sua conta e seu e-mail seguem vinculados ao checkout. Não há resgate manual por e-mail.</p></div></li><li><span>03</span><div><h3>Receba na conta vinculada</h3><p>Tokens e benefícios são creditados no Discord vinculado após a confirmação do pagamento pelo Asaas.</p></div></li></ol><p>Dúvidas sobre planos ou entrega? <a href="https://discord.gg/eyqe7rj2AX" target="_blank" rel="noopener noreferrer">Fale com a staff no Discord ↗</a></p></section>
+{% include 'home/partials/commerce_review.html' %}
 {% endblock %}

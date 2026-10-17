@@ -1,44 +1,13 @@
-{% extends 'home/base.html' %}
-
+{% extends 'home/base.html' %}{% load static %}
+{% block body_class %}bft-commerce{% endblock %}{% block main_class %}co-main flex-1 w-full min-w-0{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/pages/commerce.css' %}?v=1"><script src="{% static 'js/commerce.js' %}?v=1" defer></script>{% endblock %}
 {% block content %}
-<div class="mx-auto max-w-xl py-10 md:py-16">
-  <section class="border border-[var(--stroke)] bg-[var(--bg1)] p-5 md:p-7">
-    {% if checkout_error %}
-      <p class="text-xs font-bold uppercase text-red-400">Checkout indisponível</p>
-      <h1 class="mt-2 font-rpg text-3xl text-[var(--text)]">Não foi possível continuar</h1>
-      <p class="mt-3 text-sm text-[var(--muted)]">{{ checkout_error }}</p>
-      <a href="https://discord.gg/eyqe7rj2AX" class="mt-5 inline-flex border border-[var(--ember)] px-4 py-2 text-sm font-bold text-[var(--ember)]">
-        Voltar ao Discord
-      </a>
-    {% else %}
-      <p class="text-xs font-bold uppercase text-[var(--ember)]">Compra vinculada ao Discord</p>
-      <h1 class="mt-2 font-rpg text-3xl text-[var(--text)]">{{ intent.product.name }}</h1>
-      <p class="mt-2 text-sm text-[var(--muted)]">{{ intent.product.description }}</p>
-
-      <dl class="mt-5 grid grid-cols-2 gap-3 border-y border-[var(--stroke)] py-4 text-sm">
-        <div>
-          <dt class="text-xs uppercase text-[var(--muted)]">Valor</dt>
-          <dd class="mt-1 font-bold text-[var(--text)]">R$ {{ intent.amount_display }}</dd>
-        </div>
-        <div>
-          <dt class="text-xs uppercase text-[var(--muted)]">Entrega</dt>
-          <dd class="mt-1 font-bold text-[var(--text)]">{{ intent.discord_username|default:'Conta do Discord' }}</dd>
-        </div>
-      </dl>
-
-      <p class="mt-4 text-sm text-[var(--muted)]">
-        O pagamento será entregue ao Discord que gerou este link. Caso o Asaas peça um e-mail,
-        ele será usado somente para recibo e para completar o cadastro do bot.
-      </p>
-      <form method="post" class="mt-5">
-        {% csrf_token %}
-        <input type="hidden" name="token" value="{{ token }}">
-        <button type="submit" class="flex w-full items-center justify-center bg-bonfire-gradient px-4 py-3 text-sm font-bold text-white">
-          Continuar para o checkout seguro
-        </button>
-      </form>
-      <p class="mt-3 text-center text-xs text-[var(--muted)]">Pix ou cartão pelo Asaas.</p>
-    {% endif %}
-  </section>
-</div>
+{% include 'home/partials/commerce_nav.html' with section='support' %}
+<div class="co-checkout-layout"><section class="co-checkout">
+{% if checkout_error %}<p class="co-eyebrow">Checkout indisponível</p><h1>Não foi possível continuar</h1><p class="co-notice co-feedback-error" role="alert">{{ checkout_error }}</p><p>Se o link expirou, gere um novo no Discord. Se você já pagou, procure a staff antes de comprar novamente.</p><a class="co-btn co-btn-secondary" href="https://discord.gg/eyqe7rj2AX">Voltar ao Discord ↗</a>
+{% else %}<p class="co-eyebrow">Compra vinculada ao Discord</p><h1>Confira sua escolha.</h1><h2 class="co-selected-product">{{ intent.product.name }}</h2><p>{{ intent.product.description }}</p><dl class="co-summary"><div><dt>Valor{% if intent.mode == 'recurring' %} mensal{% endif %}</dt><dd>R$ {{ intent.amount_display }}{% if intent.mode == 'recurring' %}<small>/mês</small>{% endif %}</dd></div><div><dt>Modalidade</dt><dd>{% if intent.mode == 'recurring' %}Assinatura mensal recorrente{% else %}Pagamento único{% endif %}</dd></div><div class="co-summary-wide"><dt>Conta que receberá a compra</dt><dd>{{ intent.discord_username|default:'Conta do Discord' }}</dd></div></dl><p class="co-notice">A entrega é para o Discord que gerou este link. Um e-mail solicitado pelo Asaas serve apenas para o recibo e para completar o cadastro do bot.</p>
+  <form method="post" data-purchase-review data-product="{{ intent.product.name }}" data-amount="R$ {{ intent.amount_display }}{% if intent.mode == 'recurring' %}/mês{% endif %}" data-mode="{% if intent.mode == 'recurring' %}Assinatura mensal recorrente{% else %}Pagamento único{% endif %}" data-note="Confira a conta de destino. Você será levado ao Asaas para escolher o pagamento; benefícios dependem da confirmação do pagamento.">{% csrf_token %}<input type="hidden" name="token" value="{{ token }}"><button class="co-btn" type="submit">Continuar para o checkout seguro <span aria-hidden="true">↗</span></button></form><p class="co-micro">{% if intent.mode == 'recurring' %}Renovação mensal no cartão.{% else %}Pix ou cartão pelo Asaas.{% endif %} Nenhuma compra é confirmada apenas ao abrir esta página.</p>
+{% endif %}
+</section><aside class="co-checkout-aside"><span class="co-large-symbol" aria-hidden="true">{% include 'home/partials/commerce_symbol.html' with kind='flame' %}</span><h2>Mais uma história ao redor da fogueira.</h2><ol><li>Confira produto, valor e conta.</li><li>Continue para o Asaas.</li><li>Aguarde a confirmação do pagamento.</li></ol><a class="co-text-link" href="{% url 'colaborador' %}{% if commerce_demo %}?demo=1{% endif %}">Ver pacotes de Colaborador →</a></aside></div>
+{% include 'home/partials/commerce_review.html' %}
 {% endblock %}
