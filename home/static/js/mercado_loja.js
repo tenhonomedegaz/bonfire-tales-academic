@@ -79,16 +79,19 @@
       campo.value = valor;
     });
     if (soFavoritos) soFavoritos.checked = params.get('favoritos') === '1';
+    var alvo = params.get('item');
+    var linhaDoLink = alvo && linhasDe(paneDe('comprar')).find(function (r) {
+      return r.getAttribute('data-target') === alvo || r.getAttribute('data-magic-slug') === alvo;
+    });
+    if (linhaDoLink && selEstoque && !params.has('estoque') && linhaDoLink.getAttribute('data-available') !== 'true') {
+      selEstoque.value = 'catalogo';
+    }
     linhasDe(paneDe('comprar')).forEach(function (r) {
       r.classList.remove('is-selected');
       r.setAttribute('aria-selected', 'false');
     });
     aplicarFiltros();
-    var alvo = params.get('item');
-    var row = alvo && linhasDe(paneDe('comprar')).find(function (r) {
-      return r.getAttribute('data-target') === alvo && !r.closest('li').hidden;
-    });
-    if (row) selecionar(row, true);
+    if (linhaDoLink && !linhaDoLink.closest('li').hidden) selecionar(linhaDoLink, true);
   }
 
   function paneDe(nome) { return root.querySelector('[data-shop-pane="' + nome + '"]'); }

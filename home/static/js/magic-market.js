@@ -50,18 +50,6 @@
     applyFilters();
     search.focus();
   });
-  // Links do pacote usam o slug; o controlador compartilhado usa data-target na URL.
-  var requestedItem = new URLSearchParams(window.location.search).get('item');
-  if (requestedItem) {
-    var linkedRow = Array.from(shop.querySelectorAll('[data-magic-slug]')).find(function (row) {
-      return row.dataset.magicSlug === requestedItem;
-    });
-    if (linkedRow) {
-      if (linkedRow.dataset.available !== 'true') stock.value = 'catalogo';
-      applyFilters();
-      linkedRow.click();
-    }
-  }
   var selectionStatus = shop.querySelector('[data-market-selection-status]');
   if (selectionStatus) {
     function announceSelection() {
