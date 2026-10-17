@@ -1,1 +1,10 @@
-{% extends 'home/base.html' %}{% block content %}<section class="p-6 max-w-2xl mx-auto"><h1 class="font-serif text-3xl">Sua biblioteca visual</h1>{% if error %}<p role="alert" class="my-4">{{ error }}</p>{% else %}<p role="status" class="my-4">{{ purchase.cosmetico.nome }} foi adquirido por {{ purchase.cost_mm }} MM. A licença já pertence à sua conta.</p>{% endif %}<p><a href="#backend-indisponivel" aria-disabled="true" tabindex="-1" title="Indisponível sem integração de backend" class="text-[var(--ember)]">Voltar ao ateliê →</a></p>{% if purchase %}<p class="mt-4"><a href="{% url 'profile' %}">Personalizar perfil</a> · <a href="{% url 'personagens' %}">Escolher uma ficha</a></p>{% endif %}</section>{% endblock %}
+{% extends 'home/base.html' %}
+{% block content %}
+<section class="p-6 max-w-2xl mx-auto">
+  <h1 class="font-serif text-3xl">Sua biblioteca visual</h1>
+  {% if error %}<p role="alert" class="my-4">{{ error }}</p>
+  {% elif receipt %}<p role="status" class="my-4">{{ receipt.cosmetico.nome }} está na sua biblioteca. {% if created %}Foram debitados {{ receipt.cost_mm }} MM.{% else %}Este pedido já foi registrado; nenhum novo débito foi feito.{% endif %}</p>{% endif %}
+  <p><a href="{% url 'theme_studio' %}" class="text-[var(--ember)]">Voltar ao ateliê →</a></p>
+  {% if receipt %}<p class="mt-4"><a href="{% url 'profile' %}">Personalizar perfil</a> · <a href="{% url 'personagens' %}">Escolher uma ficha</a></p>{% endif %}
+</section>
+{% endblock %}

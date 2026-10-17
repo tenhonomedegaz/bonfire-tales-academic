@@ -84,7 +84,7 @@ MEMORY_MODELS = [
     "EventCosmeticRedemption",
     "MarketItemFavorite",
     # Direitos financeiros, chaves e trilhas de API são estado operacional local.
-    "CosmeticCheckoutPurchase", "MestreOuroDireito", "MestreOuroRevisao",
+    "CosmeticCheckoutPurchase", "CosmeticMMRedemption", "MestreOuroDireito", "MestreOuroRevisao",
     "ManagedApiKey", "DbAccessIdempotency", "DbAccessAudit",
 ]
 CONTENT_MODELS = UPSERT_POR_SLUG + SUBSTITUI

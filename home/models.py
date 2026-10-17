@@ -2726,6 +2726,34 @@ class CosmeticCheckoutPurchase(models.Model):
         return str(self.order_id)
 
 
+class CosmeticMMRedemption(models.Model):
+    """Receipt for a permanent theme acquired with existing MM balance."""
+
+    user = models.ForeignKey('auth.User', on_delete=models.PROTECT)
+    cosmetico = models.ForeignKey(TbCosmetico, on_delete=models.PROTECT)
+    request_key = models.UUIDField()
+    cost_mm = models.PositiveIntegerField()
+    transaction = models.OneToOneField(TbTransacaoMestre, on_delete=models.PROTECT,
+                                       related_name='cosmetic_redemption')
+    granted_at = models.DateTimeField(auto_now_add=True)
+    reversed_at = models.DateTimeField(null=True, blank=True)
+    reversal_transaction = models.OneToOneField(
+        TbTransacaoMestre, on_delete=models.PROTECT, null=True, blank=True,
+        related_name='cosmetic_redemption_reversal',
+    )
+    prior_inventory_existed = models.BooleanField(default=False)
+    prior_inventory_origin = models.CharField(max_length=80, blank=True, default='')
+    prior_inventory_suspended_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'request_key'],
+                                    name='cosmetic_mm_request_once'),
+            models.UniqueConstraint(fields=['user', 'cosmetico'],
+                                    name='cosmetic_mm_owned_once'),
+        ]
+
+
 class EventCosmeticOffer(models.Model):
     """Oferta de evento cadastrada pela staff; não altera a posse após o encerramento."""
 

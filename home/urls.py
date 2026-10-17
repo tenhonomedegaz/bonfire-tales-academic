@@ -12,6 +12,7 @@ from . import slot_views
 
 urlpatterns = [
     path('atelie/', theme_studio.theme_studio, name='theme_studio'),
+    path('atelie/adquirir-mm/', theme_studio.buy_theme_with_mm, name='buy_theme_with_mm'),
     path('colaborador/assinatura/', subscription_views.subscription_management,
          name='subscription_management'),
     path('mestre/mestres/', master_participation.masters_directory, name='masters_directory'),

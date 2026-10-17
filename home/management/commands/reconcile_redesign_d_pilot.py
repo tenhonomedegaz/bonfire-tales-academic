@@ -9,6 +9,7 @@ from django.db import connection, transaction
 from home.management.commands.reconcile_redesign_d_rewards import _read_json
 from home.management.commands.preview_redesign_d import database_identity
 from home.models import (CosmeticCheckoutOffer, CosmeticCheckoutPurchase,
+                         CosmeticMMRedemption,
                          EventCosmeticRedemption, TbCosmetico, TbUsuarioCosmetico)
 
 
@@ -82,6 +83,7 @@ class Command(BaseCommand):
                     if action == 'archive' and (
                             TbUsuarioCosmetico.objects.filter(cosmetico=item).exists()
                             or CosmeticCheckoutPurchase.objects.filter(cosmetico=item).exists()
+                            or CosmeticMMRedemption.objects.filter(cosmetico=item).exists()
                             or EventCosmeticRedemption.objects.filter(cosmetico=item).exists()):
                         raise CommandError(f'{slug} has usage; preserve acquired rights.')
                 if action == 'seed' and item is None:

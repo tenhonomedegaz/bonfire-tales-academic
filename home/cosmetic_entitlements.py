@@ -3,7 +3,7 @@
 from django.db import transaction
 from django.utils import timezone
 
-from .models import (CosmeticCheckoutPurchase, EventCosmeticRedemption,
+from .models import (CosmeticCheckoutPurchase, CosmeticMMRedemption, EventCosmeticRedemption,
                      TbUsuarioCosmetico)
 
 
@@ -14,7 +14,8 @@ def has_permanent_cosmetic(user, cosmetico):
     return (CosmeticCheckoutPurchase.objects.filter(
         beneficiary=user, cosmetico=cosmetico, granted_at__isnull=False,
     ).exists() or EventCosmeticRedemption.objects.filter(
-        user=user, cosmetico=cosmetico).exists())
+        user=user, cosmetico=cosmetico).exists() or CosmeticMMRedemption.objects.filter(
+        user=user, cosmetico=cosmetico, reversed_at__isnull=True).exists())
 
 
 def permanent_cosmetic_slugs(user, tipo=None):
@@ -30,8 +31,13 @@ def permanent_cosmetic_slugs(user, tipo=None):
         user=user, cosmetico__ativo=True)
     if tipo:
         event_redemptions = event_redemptions.filter(cosmetico__tipo=tipo)
+    mm = CosmeticMMRedemption.objects.filter(
+        user=user, cosmetico__ativo=True, reversed_at__isnull=True)
+    if tipo:
+        mm = mm.filter(cosmetico__tipo=tipo)
     return (set(purchases.values_list('cosmetico__slug', flat=True)) |
-            set(event_redemptions.values_list('cosmetico__slug', flat=True)))
+            set(event_redemptions.values_list('cosmetico__slug', flat=True)) |
+            set(mm.values_list('cosmetico__slug', flat=True)))
 
 
 def grant_paid_purchase(purchase):

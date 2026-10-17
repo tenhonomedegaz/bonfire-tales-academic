@@ -212,6 +212,15 @@ schema. Ofertas demonstrativas não podem cobrar nem debitar MM; a compra MM dev
 travar perfil, validar saldo, registrar uma única transação e conceder somente
 após êxito.
 
+**Adaptação aprovada em DEV isolado.** A implementação local separa schema e
+dados: `0155` introduz apenas o marcador de demonstração; `0158` cria o recibo
+MM e `0159` guarda o estado anterior do inventário para estorno. A aquisição
+`atelie/adquirir-mm/` usa a carteira e o ledger atuais, chave de idempotência e
+oferta ativa não demonstrativa. O estorno `reverse_redesign_d_mm` registra crédito
+compensatório, preserva o débito e recibo originais e restaura a posse anterior.
+As sementes piloto continuam demonstrativas. O inventário pré-D no banco DEV
+real continua obrigatório antes de migrar ou aplicar dados nesse ambiente.
+
 **Riscos.** Débito duplicado, entrega de cosmético sem pagamento, reativação
 indevida de benefício, confusão entre preço ilustrativo e cobrança real, e
 incompatibilidade com checkout/Asaas existente.

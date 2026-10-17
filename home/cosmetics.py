@@ -167,7 +167,8 @@ def _catalog_ownership(user, tipo):
     """Valores possuídos e origens comprovadas, sempre consultados para a conta atual."""
     if not user or not getattr(user, 'is_authenticated', False):
         return set(), {}
-    from .models import (CosmeticCheckoutPurchase, EventCosmeticRedemption,
+    from .models import (CosmeticCheckoutPurchase, CosmeticMMRedemption,
+                         EventCosmeticRedemption,
                          TbUsuarioCosmetico)
 
     inventory = dict(TbUsuarioCosmetico.objects.filter(
@@ -181,13 +182,19 @@ def _catalog_ownership(user, tipo):
     event = set(EventCosmeticRedemption.objects.filter(
         user=user, cosmetico__tipo=tipo, cosmetico__ativo=True,
     ).values_list('cosmetico__slug', flat=True))
+    mm = set(CosmeticMMRedemption.objects.filter(
+        user=user, cosmetico__tipo=tipo, cosmetico__ativo=True,
+        reversed_at__isnull=True,
+    ).values_list('cosmetico__slug', flat=True))
     sources = {}
-    for slug in set(inventory) | paid | event:
+    for slug in set(inventory) | paid | event | mm:
         labels = []
         if slug in event:
             labels.append('Resgate de evento')
         if slug in paid:
             labels.append('Compra confirmada')
+        if slug in mm:
+            labels.append('Resgate em MM')
         if not labels:
             origin = inventory[slug]
             if origin.startswith('conquista:'):
